@@ -1,6 +1,6 @@
 // Type-level checks for the builders (dsl.ts): every line marked @ts-expect-error must fail to type-check, and
 // `tsc -p .` fails if one of them doesn't (an unused @ts-expect-error is itself an error). Never run: type-checked only.
-import {bool, forall, maybe, nat, oneOf, rule, when} from './dsl.ts'
+import {type DecisionEnv, bool, forall, maybe, nat, oneOf, rule, when} from './dsl.ts'
 
 const budget = rule('budget').params({b: nat, m: nat}).inputs({c: nat}).state({s: 0})
 
@@ -41,6 +41,11 @@ export function typeChecks() {
   // @ts-expect-error spent is a Maybe, not a term
   facts.decide('x', () => [], ({spent}) => spent.atMost(3))
   facts.decide('x', () => [], ({spent}) => spent.match({none: () => spent.isNone, some: v => v.atMost(3)}))
+  // A helper outside the chain, typed by the rule.
+  const known = ({spent}: DecisionEnv<typeof facts>) => spent.isSome
+  facts.decide('y', env => known(env), ({spent}) => spent.isSome)
+  // @ts-expect-error a helper typed for facts doesn't take another rule's values
+  known({plan: 1})
 
   // A history's record has only the logged inputs; a sum reads the record and the params, not the request.
   const h = rule('h').params({w: nat}).inputs({t: nat, amount: nat, who: nat}).log('t', 'amount')

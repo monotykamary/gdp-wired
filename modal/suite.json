@@ -565,5 +565,154 @@
 "cwd": "core",
 "cpu": 1.0,
 "timeout": 900
+},
+{
+"name": "examples-access",
+"cmd": "DOMAIN=access bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "lean-examples-access",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o History.olean History.lean && bun export-kernel.ts --examples access > Examples-access.lean && lean Examples-access.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "examples-commerce",
+"cmd": "DOMAIN=commerce bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "lean-examples-commerce",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o History.olean History.lean && bun export-kernel.ts --examples commerce > Examples-commerce.lean && lean Examples-commerce.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "examples-education",
+"cmd": "DOMAIN=education bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "lean-examples-education",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o History.olean History.lean && bun export-kernel.ts --examples education > Examples-education.lean && lean Examples-education.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "examples-finance",
+"cmd": "DOMAIN=finance bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "lean-examples-finance",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o History.olean History.lean && bun export-kernel.ts --examples finance > Examples-finance.lean && lean Examples-finance.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "examples-games",
+"cmd": "DOMAIN=games bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "lean-examples-games",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o History.olean History.lean && bun export-kernel.ts --examples games > Examples-games.lean && lean Examples-games.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "examples-operations",
+"cmd": "DOMAIN=operations bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "lean-examples-operations",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o History.olean History.lean && bun export-kernel.ts --examples operations > Examples-operations.lean && lean Examples-operations.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "examples-protocols",
+"cmd": "DOMAIN=protocols bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "lean-examples-protocols",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o History.olean History.lean && bun export-kernel.ts --examples protocols > Examples-protocols.lean && lean Examples-protocols.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "examples-public",
+"cmd": "DOMAIN=public bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "lean-examples-public",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o History.olean History.lean && bun export-kernel.ts --examples public > Examples-public.lean && lean Examples-public.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "examples-supply",
+"cmd": "DOMAIN=supply bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "lean-examples-supply",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o History.olean History.lean && bun export-kernel.ts --examples supply > Examples-supply.lean && lean Examples-supply.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "readme",
+"cmd": "bun examples/readme.ts && bun examples/budget.ts",
+"cwd": ".",
+"cpu": 1.0,
+"timeout": 600
+},
+{
+"name": "tamper-refusals",
+"cmd": "bun test tamper.test.ts refusals.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 2.0,
+"timeout": 900
 }
 ]

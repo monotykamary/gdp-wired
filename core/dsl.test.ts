@@ -79,6 +79,11 @@ test('variants are one call away, and broken ones are refuted', () => {
   const dayForgotten = caps.flags(({ok, acct, hour, dom, hr, dm, Acct, Hour, Dom}) => ({granted2: ok.and(Acct.at(acct).lt(1), Hour.at(hour).lt(hr), Dom.at(dom).lt(dm))}))
     .step(({acct, day, hour, dom, granted2, Acct, Day, Hour, Dom}) => ({Acct: Acct.bump(acct, granted2), Day: Day.bump(day, granted2), Hour: Hour.bump(hour, granted2), Dom: Dom.bump(dom, granted2)}))
   expect(proveRule(dayForgotten, [dayForgotten.law('day cap', ({Day, d}) => forall(k => Day.at(k).atMost(d)))]).proven).toBe(false)
+  // A flag named again replaces it in place: the step stays as written.
+  const dayForgotten2 = caps.flags(({ok, acct, hour, dom, hr, dm, Acct, Hour, Dom}) => ({granted: ok.and(Acct.at(acct).lt(1), Hour.at(hour).lt(hr), Dom.at(dom).lt(dm))}))
+  expect(Object.keys(dayForgotten2.machine.step.flags!)).toEqual(['granted'])
+  expect(proveRule(dayForgotten2, [dayForgotten2.law('day cap', ({Day, d}) => forall(k => Day.at(k).atMost(d)))]).proven).toBe(false)
+  expect(proveRule(caps, capsLaws).proven).toBe(true) // the original is untouched
   const noRelation = window(false).relations(() => [])
   expect(proveRule(noRelation, [noRelation.law('window ceiling', ({ours, c}) => ours.atMost(c))]).proven).toBe(false)
 })

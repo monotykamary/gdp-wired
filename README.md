@@ -26,7 +26,8 @@ proveRule(budget, [bounded]) // {proven: true, checked: true}
 Names are typed: `({s, bb}) => …` or a law that reads the request `c` is a TypeScript error, not a runtime surprise.
 Forget the cap (`s.plus(c)`) and the kernel refuses the proof; a search from the start turns it into a real run:
 `{params: {b: 1, m: 0}, trace: [{c: 2}]}`. `bun examples/budget.ts` runs all of it, including the generated JavaScript,
-and `examples/domains/` holds dozens of rules from finance to protocols, each checked three ways.
+and `examples/domains/` holds 92 rules from nine domains (finance, access control, public services, operations,
+protocols, commerce, supply chains, games, education), each checked three ways.
 
 ## Scope: where it replaces Bend, and where it doesn't
 
@@ -37,7 +38,8 @@ code. If the checker side finds new frontiers the scope may grow; until then:
 | It expresses and proves | It does not (today) |
 | --- | --- |
 | Step machines over naturals: scalars, maps from naturals to naturals (one write per map per step), named step conditions, preconditions on params, assumptions per request | Lists, sets or strings as values: membership, subsets, equality of lists of names |
-| Invariants of the state and params, laws about every key of a map | Laws relating one step's before and after (only invariants of reachable states; a small extension is planned) |
+| Invariants of the state and params, laws about every key of a map | Laws relating one step's before and after (only invariants of reachable states; "only increases" needs a shadow copy of the old value in the state; a small extension is planned) |
+| Laws about one key of a map at a time, or about scalars | Totals across a map's keys ("the sum of every client's holdings equals in-use") |
 | Histories: sums and queries over a log of requests, relations between them proven one record at a time, pruning | Unbounded recursion over data, quantifiers over sequences other than a machine's own history |
 | Decisions over facts: flags, one-of choices, optional facts, bounded naturals (`match` covers every case) | Datatypes beyond those encodings; division, modulo, reals |
 | Loops that halt by a rank or a tuple of ranks; folds over binary trees; progress laws ("some request makes this happen") | Arbitrary algorithms: there is no general recursion to prove things about |
@@ -75,7 +77,11 @@ How the untrusted parts are held to the trusted ones, automatically:
   generated JS, the kernel on fixed values, the GPU search's u32 twin, the old symbolic prover) against the reference
   evaluator, and the same cases through Lean's own `evalE` (`lean-kernel/conformance.ts`).
 - **Examples** (`examples/`): every law proven by the kernel and re-checked by Lean, every rule run at random through
-  both runtimes, and every broken variant broken by a real run.
+  both runtimes, and every broken variant broken by a real run (a refused proof alone could be the prover's weakness).
+- **Tampering and mutation** (`kernel/tamper.test.ts`, `kernel/refusals.test.ts`, `kernel/mutants.ts`): real proofs
+  broken structurally or offered for weakened goals that have a model must be rejected, every refusal the kernel makes is
+  exercised, and every one-operator mutation of `kernel.ts` and `check.ts` is run against the tests to find what they
+  don't notice.
 - **Fuzz**: the kernel never accepts a refutation of something with a model (`kernel/kernel.test.ts`), and laws proven
   over histories hold on every run (`kernel/history.test.ts`).
 
@@ -145,6 +151,21 @@ about 130 ms of it device setup); ours takes 33 ms warm on WebGPU, with about 11
 L4 ours takes 5 ms warm; Bend's CUDA build compiled, but its GPU runs hung in our tests (its CPU builds ran: 109 ms
 parallel).
 
+## Compared with Bend and Lean
+
+`compare/` writes three rules (a budget, per-key caps, a sliding-window limit) in gdp-wired, in Bend 2 and in plain Lean
+4, each checked by its own tool on Modal, each also handed the same bug to reject. From `compare/README.md`:
+
+| | Rule lines | Law lines | Proof lines | Check (median, whole command) |
+| --- | --- | --- | --- | --- |
+| gdp-wired | 5–7 | 1–4 | 1–2 (`proveRule`) | 25–44 ms |
+| Bend 2 | 39–98 (25–50 of them proof evidence in the rule) | 5–26 | 74–117 | 137–161 ms (`--verdict` 167–178 ms) |
+| Lean 4 (by hand) | 4–15 | 1–4 | 8–30 | 488–571 ms |
+
+Most of each time is the tool's startup (17, 134 and 453 ms). gdp-wired's kernel trees for the same rules re-check in
+its Lean twin in 1.35 s. What each proves, what each ships at runtime, and where each is the better tool are in
+`compare/README.md`.
+
 ## Layout
 
 | Path | What |
@@ -157,6 +178,8 @@ parallel).
 | `next/` | Guards synthesized from laws, relational laws (migrations, tenant isolation), a ReBAC audit |
 | `sat/` | Bit-vector laws: bit-blasted, solved, LRAT-checked in TypeScript, optionally by Lean |
 | `enum/`, `perf/` | The enumeration, and the benchmarks |
+| `examples/` | The builders at work: `domains/` (92 rules across nine domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `budget.ts` |
+| `compare/` | The same three rules in gdp-wired, Bend and plain Lean, checked and measured |
 | `spec.ts`, `gdp.ts`, `circuit.ts`, `laws.ts` | The audit path: gdp-ts predicates written once, as trusted provers per request and as a Handwired circuit that decides every (user, project) pair at once |
 | `modal/` | Everything above as Modal jobs: `suite.json` is the regression suite |
 | `vendor/handwired` | [monotykamary/handwired](https://github.com/monotykamary/handwired), branch `u32-words`: Cheng Lou's Handwired with exact u32 word circuits and word stages in loop programs |
@@ -174,7 +197,7 @@ bun test core/compile.test.ts core/runtime.test.ts kernel/history.test.ts
 cd kernel && bun run-kernel.ts && bun test kernel.test.ts
 ```
 
-The whole suite (74 jobs, about 15 minutes of wall time) runs on [Modal](https://modal.com):
+The whole suite (105 jobs, about 15 minutes of wall time) runs on [Modal](https://modal.com):
 
 ```sh
 modal run modal/run.py --jobs modal/suite.json --out runs/modal/suite && sh modal/reap.sh

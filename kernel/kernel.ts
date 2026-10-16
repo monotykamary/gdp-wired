@@ -256,6 +256,9 @@ function inScope(what: string, ts: (E | C)[], vars: string[], maps: string[] = [
     for (const flag of r.flags) if (!flags.includes(flag)) throw new Error(`${what} reads the flag ${flag}, which it doesn't declare`)
   }
 }
+// A name the kernel's linear forms would read as something else: '1' is the constant, and '*', '[', ']', ',' and ':'
+// build monomials and cells. Such a name could never be proven about; refused instead, with its name.
+const plainName = (what: string, name: string) => { if (name === '1' || /[*[\],:]/.test(name)) throw new Error(`${what}: the name ${name} is reserved (1, or * [ ] , :)`) }
 const distinct = (what: string, names: string[]) => { const seen = new Set<string>(); for (const name of names) { if (seen.has(name)) throw new Error(`${what} declares ${name} twice`); seen.add(name) } }
 
 // A machine (without its history: historyMachine checks that and scopes the plain machine it makes) and its laws. The
@@ -265,6 +268,7 @@ export function scope(m: Machine, laws: Law[] = []) {
   const state = Object.keys(m.state), maps = Object.keys(m.maps ?? {}), flags = Object.keys(m.step.flags ?? {})
   const names = [...m.params, ...m.inputs, ...state]
   distinct(m.name, [...names, ...maps])
+  for (const name of [...names, ...maps, ...flags]) plainName(m.name, name)
   for (const name of Object.keys(m.step.state ?? {})) if (!state.includes(name)) throw new Error(`${m.name}'s step sets ${name}, which isn't in its state`)
   for (const map of Object.keys(m.step.maps ?? {})) if (!maps.includes(map)) throw new Error(`${m.name}'s step writes the map ${map}, which it doesn't declare`)
   inScope(`${m.name}'s start`, Object.values(m.state), m.params)

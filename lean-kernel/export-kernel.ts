@@ -394,10 +394,13 @@ ${tamperText.join('\n')}`
 // as goals by Kern.sound. Usage: bun export-kernel.ts --examples [domain] > Examples.lean
 if (process.argv.includes('--examples')) {
   const which = process.argv[process.argv.indexOf('--examples') + 1]
-  const {domains} = await import('../examples/index.ts')
+  // A path to a module exporting `domain` (e.g. ../compare/domain.ts), or a domain of ../examples by name.
+  const {domains} = which?.endsWith('.ts')
+    ? {domains: [((await import(`${process.cwd()}/${which}`)) as {domain: {domain: string, cases: unknown[]}}).domain] as Awaited<typeof import('../examples/index.ts')>['domains']}
+    : await import('../examples/index.ts')
   const parts: string[] = [], theorems: string[] = []
   let goal = 0
-  for (const d of domains.filter(dd => !which || which.startsWith('--') || dd.domain === which)) {
+  for (const d of domains.filter(dd => !which || which.startsWith('--') || which.endsWith('.ts') || dd.domain === which)) {
     d.cases.forEach((c, i) => {
       const id = `${d.domain}_${i}`.replace(/[^A-Za-z0-9_]/g, '_')
       if (c.kind === 'rule') {
@@ -418,7 +421,7 @@ open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
 
-/-! The examples (gdp-wired/examples${which && !which.startsWith('--') ? `/${which}.ts` : ''}): the kernel's trees for every proven law, checked by the Lean twin. -/
+/-! ${which?.endsWith('.ts') ? which : `The examples (gdp-wired/examples${which && !which.startsWith('--') ? `/${which}.ts` : ''})`}: the kernel's trees for every proven law, checked by the Lean twin. -/
 
 ${parts.join('\n\n')}
 

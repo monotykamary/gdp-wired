@@ -3,6 +3,7 @@
 // is a change nothing notices: a blind spot in the tests (or an equivalent mutant, which the report lets a reader judge).
 //   bun mutants.ts list                 the mutants, numbered
 //   bun mutants.ts run <from> <to>      runs the battery on mutants from..to-1 (in this checkout: run it in a container)
+//   bun mutants.ts ids <a,b,...>        runs the battery on those mutants
 //   bun mutants.ts baseline             the battery on the unmutated code, which must pass
 // modal/mutants.json fans the run out on Modal, one container per batch.
 import {readFileSync, writeFileSync} from 'node:fs'
@@ -39,6 +40,7 @@ export function mutants(): Mutant[] {
 // Fast and pointed first; the kernel fuzz last. Each is a bun test (exit 0 = pass) with a time limit; a mutant that makes
 // a test hang is caught too.
 const battery: {name: string, cwd: string, cmd: string[], env?: Record<string, string>, ms: number}[] = [
+  {name: 'refusals', cwd: 'kernel', cmd: ['bun', 'test', 'refusals.test.ts'], ms: 60_000},
   {name: 'tamper', cwd: 'kernel', cmd: ['bun', 'test', 'tamper.test.ts'], ms: 120_000},
   {name: 'dsl', cwd: 'core', cmd: ['bun', 'test', 'dsl.test.ts'], ms: 120_000},
   {name: 'conformance', cwd: 'core', cmd: ['bun', 'test', 'conformance.test.ts'], env: {FUZZ_SEED: '1'}, ms: 180_000},
@@ -59,7 +61,14 @@ function runBattery(): {killedBy?: string, ms: number} {
 const [cmd, a, b] = process.argv.slice(2)
 if (cmd === 'list') for (const m of mutants()) console.log(`${m.id}\t${m.file}:${m.line}\t${JSON.stringify(m.from)} -> ${JSON.stringify(m.to)}`)
 else if (cmd === 'baseline') console.log(JSON.stringify({baseline: runBattery()}))
-else if (cmd === 'run') {
+else if (cmd === 'ids') {
+  const all = mutants(), ids = new Set((a ?? '').split(',').map(Number))
+  for (const m of all.filter(mm => ids.has(mm.id))) {
+    const path = resolve(root, m.file), original = readFileSync(path, 'utf8')
+    writeFileSync(path, original.slice(0, m.at) + m.to + original.slice(m.at + m.length))
+    try { console.log(JSON.stringify({...m, ...runBattery()})) } finally { writeFileSync(path, original) }
+  }
+} else if (cmd === 'run') {
   const all = mutants(), from = Number(a), to = Math.min(Number(b), all.length)
   for (const m of all.slice(from, to)) {
     const path = resolve(root, m.file), original = readFileSync(path, 'utf8')

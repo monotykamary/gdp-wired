@@ -248,7 +248,9 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     return this.with({state: [...this.spec.state, ...Object.entries(init) as [string, number | ((p: never) => TermLike)][]]})
   }
   maps<T extends Record<string, number>>(init: T): Rule<P, I, S, M & {[k in keyof T]: MapRef}, F, R, Su, Q> { return this.with({maps: [...this.spec.maps, ...Object.entries(init)]}) }
-  // Named conditions of the step, decided once per step before it; each call's flags may read the earlier calls'.
+  // Named conditions of the step, decided once per step before it; each call's flags may read the earlier calls'. A flag
+  // named again replaces the earlier definition in place (what a variant needs: one call, the step unchanged); the new
+  // definition may read only the flags defined before the original's place, as the kernel checks.
   flags<T extends Record<string, Cond>>(f: (env: P & I & S & M & F & Su & Q) => T): Rule<P, I, S, M, F & {[k in keyof T]: Cond}, R, Su, Q> {
     return this.with({flags: [...this.spec.flags, f as (env: never) => Record<string, Cond>]})
   }
@@ -321,7 +323,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const pEnv = this.env({inputs: false, state: false, flags: false, queries: false})
     const env: Record<string, unknown> = this.env({flags: false})
     const flags: Record<string, C> = {}
-    for (const f of s.flags) for (const [n, c] of Object.entries(f(env as never))) { flags[n] = c.c; env[n] = new Cond({op: 'flag', name: n}) }
+    for (const f of s.flags) for (const [n, c] of Object.entries(f(env as never))) { flags[n] = c.c; env[n] = new Cond({op: 'flag', name: n}) } // a name again: replaced in place
     const updates = s.step?.(env as never) ?? {}
     const state: Record<string, E> = {}, maps: Record<string, {key: E, value: E}> = {}
     for (const [n, u] of Object.entries(updates)) {
@@ -377,6 +379,14 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
 const encode = (kinds: [string, Kind<unknown>][], values: Record<string, Raw>): Record<string, number> => Object.assign({}, ...kinds.map(([n, k]) => k.encode(n, values[n])))
 
 export const rule = (name: string): Rule => new Rule({name, params: [], inputs: [], state: [], maps: [], flags: [], pre: [], assume: [], sums: [], queries: []})
+
+// The values a rule's callbacks receive, for helpers written outside the chain (a decision's condition, a shared law):
+// `(env: DecisionEnv<typeof r>) => ...`.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyOf<R, K extends 'decide' | 'step' | 'law'> = R extends Rule<infer P, infer I, infer S, infer M, infer F, any, infer Su, infer Q> ? K extends 'decide' ? P & I : K extends 'law' ? P & S & M & Su : P & I & S & M & F & Su & Q : never
+export type DecisionEnv<R> = AnyOf<R, 'decide'>
+export type StepEnv<R> = AnyOf<R, 'step'>
+export type LawEnv<R> = AnyOf<R, 'law'>
 
 // --- decisions and loops ------------------------------------------------------------------------------------------
 

@@ -10,7 +10,8 @@
 import {expect, test} from 'bun:test'
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {admitFlagged, boundedLoss, capLaws, inflight, inflightLoss, loss, windowCeiling, windowLimit} from '../core/models.ts'
-import type {Step} from '../core/solver.ts'
+import type {Constraint, Step} from '../core/solver.ts'
+import {checkRefutation, checkWitness} from '../core/check.ts'
 import {type Goal, type Tree, check, obligations} from './kernel.ts'
 import {grow, proveLaws} from './prove.ts'
 
@@ -43,6 +44,8 @@ test('structurally broken derivations are rejected', () => {
         leaf => { const i = leaf.findIndex(s => s.kind === 'cut'); if (i < 0) return false; leaf[i] = {...(leaf[i] as Step & {kind: 'cut'}), g: 0}; return true },
         leaf => { const i = leaf.findIndex(s => s.kind === 'cut'); if (i < 0) return false; const s = leaf[i] as Step & {kind: 'cut'}; leaf[i] = {...s, of: i}; return true },
         leaf => { leaf.length = 0; return true },
+        leaf => { const i = leaf.findIndex(s => s.kind === 'combine'); if (i < 0) return false; const s = leaf[i] as Step & {kind: 'combine'}; leaf[i] = {...s, b: i}; return true },
+        leaf => { const i = leaf.findIndex(s => s.kind === 'combine'); if (i < 0) return false; const s = leaf[i] as Step & {kind: 'combine'}; leaf[i] = {...s, a: 10_000}; return true },
       ]
       for (const tamper of tampers) {
         const copy = structuredClone(tree), leaf = leaves(copy)[k]!.leaf
@@ -134,3 +137,31 @@ test('a proof offered for a weakened goal with a model is rejected', () => {
   console.log(`tamper: ${weakened} weakened goals, ${withModel} with a model found, every proof offered for them rejected`)
   expect(withModel).toBeGreaterThan(30)
 }, 600_000)
+
+test('derivations that only an unsound checker would accept, and witnesses', () => {
+  // 2x + y - 1 <= 0 and 1 - y <= 0 hold at x = 0, y = 1. A cut of the first by 2 needs every coefficient divisible (y's
+  // isn't): rounding the constant up is sound only for integer rows. Accepting it would derive 1 <= 0.
+  const constraints: Constraint[] = [{lin: {x: 2, y: 1, '1': -1}, label: 'a'}, {lin: {y: -1, '1': 1}, label: 'b'}, {lin: {x: -1}, label: 'x >= 0'}]
+  const steps: Step[] = [{kind: 'input', index: 0}, {kind: 'cut', of: 0, g: 2}, {kind: 'input', index: 1}, {kind: 'combine', a: 1, b: 2, ma: 2, mb: 1}, {kind: 'input', index: 2}, {kind: 'combine', a: 3, b: 4, ma: 1, mb: 2}]
+  expect(checkRefutation(constraints, steps)).toBe(false)
+  expect(checkWitness(constraints, {x: 0, y: 1})).toBe(true)
+  // A valid refutation of an unsatisfiable system, and its broken forms.
+  const unsat: Constraint[] = [{lin: {x: 1, '1': 1}, label: 'x <= -1'}, {lin: {x: -1}, label: 'x >= 0'}]
+  const ok: Step[] = [{kind: 'input', index: 0}, {kind: 'input', index: 1}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}]
+  expect(checkRefutation(unsat, ok)).toBe(true)
+  expect(checkRefutation(unsat, [...ok.slice(0, 2), {kind: 'combine', a: 0, b: 2, ma: 1, mb: 1}])).toBe(false) // b names itself
+  expect(checkRefutation(unsat, [...ok.slice(0, 2), {kind: 'combine', a: 0, b: 1, ma: 0, mb: 1}])).toBe(false)
+  expect(checkRefutation(unsat, [...ok.slice(0, 2), {kind: 'combine', a: 0, b: 1, ma: 1, mb: 0}])).toBe(false)
+  expect(checkRefutation(unsat, [{kind: 'input', index: 2}])).toBe(false)
+  expect(checkRefutation(unsat, [...ok, {kind: 'cut', of: 2, g: 0}])).toBe(false)
+  expect(checkRefutation(unsat, [...ok, {kind: 'cut', of: 3, g: 1}])).toBe(false) // a cut of a row not made yet
+  // Witnesses: at most 0 is satisfied, above is not, a missing variable is not.
+  expect(checkWitness([{lin: {x: 1, '1': -3}, label: ''}], {x: 3})).toBe(true)
+  expect(checkWitness([{lin: {x: 1, '1': -3}, label: ''}], {x: 4})).toBe(false)
+  expect(checkWitness([{lin: {x: 1, y: 1}, label: ''}], {x: 0})).toBe(false)
+  expect(checkWitness([{lin: {x: 1, '1': -3}, label: ''}, {lin: {x: -1, '1': 5}, label: ''}], {x: 3})).toBe(false) // the second fails
+  // Product pairs that name no row are ignored, not trusted or crashed on.
+  const {goal, tree} = proofs.find(p => 'leaf' in p.tree) ?? proofs[0]!
+  const withBad = (t: Tree): Tree => ('leaf' in t ? {...t, products: [...(t.products ?? []), [10_000, 0], [0, 10_000]]} : {...t, yes: withBad(t.yes), no: withBad(t.no)})
+  expect(check(goal, withBad(tree))).toBe(check(goal, tree))
+})
