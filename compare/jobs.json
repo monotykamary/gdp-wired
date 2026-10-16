@@ -1,0 +1,15 @@
+[
+  {
+    "name": "compare",
+    "cmd": "bun compare/run.ts 2>&1"
+  },
+  {
+    "name": "gdp-lean-twin",
+    "cmd": "cd lean-kernel && TC=$HOME/.elan/toolchains/leanprover--lean4---v4.34.0 && export LEAN_PATH=$PWD:$TC/lib/lean && T=$(mktemp -d) && for f in Cert Kernel Progress History; do s=$(date +%s.%N); lean -o $f.olean $f.lean > /dev/null || exit 1; echo \"built $f.olean (once, shared by every rule): $(echo \"$(date +%s.%N) - $s\" | bc) s\"; done && s=$(date +%s.%N) && bun ../compare/twin.ts > $T/Compare.lean && echo \"exported the three rules' trees: $(echo \"$(date +%s.%N) - $s\" | bc) s, $(wc -l < $T/Compare.lean) lines of Lean data\" && s=$(date +%s.%N) && lean $T/Compare.lean; c=$?; echo \"lean Compare.lean (budget, caps, window), exit $c: $(echo \"$(date +%s.%N) - $s\" | bc) s\"; exit $c",
+    "timeout": 1500
+  },
+  {
+    "name": "typecheck",
+    "cmd": "bun install 2>&1 | tail -1 && s=$(date +%s.%N) && bun ./node_modules/typescript/bin/tsc -p compare 2>&1; c=$?; echo \"tsc -p compare (the gdp-wired rule files, run.ts, twin.ts) exit $c: $(echo \"$(date +%s.%N) - $s\" | bc) s\"; exit $c"
+  }
+]

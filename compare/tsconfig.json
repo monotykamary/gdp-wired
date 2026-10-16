@@ -1,0 +1,5 @@
+{
+  "extends": "../tsconfig.json",
+  "include": ["gdpwired/*.ts", "run.ts", "twin.ts"],
+  "exclude": []
+}
