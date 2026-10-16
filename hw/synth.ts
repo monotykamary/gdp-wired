@@ -16,7 +16,7 @@
 //   kill     document = CHUNK points × one block: invariants over the list of region points (a shared table), ranks over
 //            the box. Output: the block's kill mask.
 import {type C, type E} from '../core/machine.ts'
-import {type AnyStage, type LoopProgram, createLoopRunner, createWordStage} from '../vendor/handwired/src/json-search/loop-program.ts'
+import {type AnyStage, type LoopProgram, type WordBinding, createLoopRunner, createWordStage} from '../vendor/handwired/src/json-search/loop-program.ts'
 import {emitLoopWgsl} from '../vendor/handwired/src/json-search/loop-emit.ts'
 import {type Word, WordCircuit} from '../vendor/handwired/src/runtime/words.ts'
 import {type Box, type Form, type Problem, order, points, varsOf} from '../synth/compile.ts'
@@ -219,7 +219,7 @@ export function compileKernel(p: Problem, box: Box, K: number, kernel: Kernel, c
     let rest = b.add(b.source(at.base!), b.mul(doc, b.constant(BLOCK)))
     const outs: {wire: Word, write: {kind: 'register', register: number}}[] = []
     for (const v of order(p)) { outs.push({wire: b.mod(rest, b.constant(box[v]! + 1)), write: {kind: 'register', register: reg(`v:${v}`)}}); rest = b.div(rest, b.constant(box[v]! + 1)) }
-    stages.push(createWordStage({name: 'first point', repeat: 'once', circuit: b, sharedOffset: 0, bindings: new Map([[doc, {kind: 'document'}]]), outputs: outs}))
+    stages.push(createWordStage({name: 'first point', repeat: 'once', circuit: b, sharedOffset: 0, bindings: new Map<Word, WordBinding>([[doc, {kind: 'document'}]]), outputs: outs}))
   }
   if (blockRegs.length > 0) {
     const b = new WordCircuit(cell)
@@ -233,12 +233,12 @@ export function compileKernel(p: Problem, box: Box, K: number, kernel: Kernel, c
       amask = b.or(amask, b.shl(bit, b.constant(q)))
     }
     outs.push({wire: amask, write: {kind: 'register', register: reg('amask')}})
-    stages.push(createWordStage({name: 'block', repeat: 'once', circuit: b, sharedOffset: 0, bindings: new Map([[doc, {kind: 'document'}]]), outputs: outs}))
+    stages.push(createWordStage({name: 'block', repeat: 'once', circuit: b, sharedOffset: 0, bindings: new Map<Word, WordBinding>([[doc, {kind: 'document'}]]), outputs: outs}))
   }
   void coef, form, dOf, alive
   const stage = createWordStage({
     name: `${kernel}`, repeat: 'forward', circuit: w, sharedOffset: 0,
-    bindings: new Map([
+    bindings: new Map<Word, WordBinding>([
       ...regs.map((_, r) => [w.source(r), {kind: 'register' as const, register: r}] as const),
       [position, {kind: 'position'}], [document, {kind: 'document'}],
     ]),

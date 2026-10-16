@@ -18,7 +18,7 @@ export type Options = {limit?: number, minimize?: boolean, reduce?: boolean}
 const trim = (lrat: LratStep[]): LratStep[] => {
   const used = new Set<number>([(lrat.at(-1) as {id: number}).id])
   for (let i = lrat.length - 1; i >= 0; i--) { const s = lrat[i]!; if ('id' in s && used.has(s.id)) for (const h of s.hints) used.add(h) }
-  return lrat.flatMap(s => ('id' in s ? (used.has(s.id) ? [s] : []) : (s.del.some(id => used.has(id)) ? [{del: s.del.filter(id => used.has(id))}] : [])))
+  return lrat.flatMap<LratStep>(s => ('id' in s ? (used.has(s.id) ? [s] : []) : (s.del.some(id => used.has(id)) ? [{del: s.del.filter(id => used.has(id))}] : [])))
 }
 
 const luby = (i: number): number => {
@@ -162,7 +162,7 @@ export function solve(vars: number, input: Clause[], {limit = Infinity, minimize
           const x = Math.abs(q)
           if (q === lit || seen[x] || level[x] === 0) continue
           seen[x] = 1
-          activity[x] += bump
+          activity[x]! += bump
           if (activity[x]! > 1e100) { for (let y = 1; y <= vars; y++) activity[y]! *= 1e-100; bump *= 1e-100 }
           if (level[x] === limits.length) open++
           else learned.push(q)

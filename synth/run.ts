@@ -5,7 +5,7 @@
 //   --only <substring>, --out <file.json>
 import {writeFileSync} from 'node:fs'
 import {type Box, type Form, fromLoop, fromMachine, points} from './compile.ts'
-import {type Evaluator, atStart, allAlive, countAlive, cpuEvaluator, gpuEvaluator, houdini, killFalse, prove, proveRank, reachable, show, strongest, support, templates} from './synth.ts'
+import {type Evaluator, atStart, allAlive, countAlive, cpuEvaluator, gpuEvaluator, houdini, prove, proveRank, show, strongest, support, templates} from './synth.ts'
 import {invariantCases, rankCases} from './models.ts'
 
 const has = (f: string) => process.argv.includes(f), arg = (f: string) => { const i = process.argv.indexOf(f); return i < 0 ? undefined : process.argv[i + 1] }

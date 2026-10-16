@@ -21,7 +21,7 @@ collect('inflight_loss', prove(inflight, inflightLoss, [inflightLoss, inv]))
 
 const int = (v: number) => (v < 0 ? `(${v})` : String(v))
 const list = (xs: string[]) => `[${xs.join(', ')}]`
-function toLean(ob: Ob): string {
+function toLean(ob: Ob): {names: string[], rows: string, steps: string} {
   const names = [...new Set(ob.constraints.flatMap(c => Object.keys(c.lin).filter(key => key !== '1')))]
   const dense = (lin: Lin) => names.map(name => lin[name] ?? 0)
   const row = (lin: Lin) => `⟨${list(dense(lin).map(int))}, ${int(lin['1'] ?? 0)}⟩`

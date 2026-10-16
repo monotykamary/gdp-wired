@@ -25,7 +25,7 @@ const cond = (names: string[], d: number): C => {
   const r = rand(5)
   if (r === 3) return {op: 'not', x: cond(names, d)}
   if (r === 4 && d > 0) return {op: rand(2) ? 'and' : 'or', xs: [cond(names, d - 1), cond(names, d - 1)]}
-  return {op: (['<', '<=', '='] as const)[rand(3)], a: term(names, d), b: term(names, d)}
+  return {op: (['<', '<=', '='] as const)[rand(3)]!, a: term(names, d), b: term(names, d)}
 }
 const le = (a: E, b: E): C => ({op: '<=', a, b}), plus = (a: E, b: E): E => ({op: 'add', a, b}), twice = (a: E): E => ({op: 'mul', k: 2, a})
 

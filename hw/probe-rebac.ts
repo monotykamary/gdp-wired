@@ -15,7 +15,7 @@ const store = await createDocumentStore(device, CELLS, users)
 store.write(userCells(org), users)
 const code = module.code
 const loopStart = code.indexOf('for (var j')
-const before = code.slice(0, loopStart), body = code.slice(loopStart)
+const _before = code.slice(0, loopStart), _body = code.slice(loopStart)
 const ufLoad = /let (b_w\d+): u32 = shared_values\[(\d+)u \+ j\];\n(?![\s\S]*let b_w\d+: u32 = shared_values\[\d+u \+ j\])/
 const variants: Record<string, (c: string) => string> = {
   as_emitted: c => c,

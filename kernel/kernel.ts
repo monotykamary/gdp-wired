@@ -21,6 +21,10 @@ import {checkRefutation} from '../core/check.ts'
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {type Constraint, type Lin, type Step, add, k, scale, sub, v} from '../core/solver.ts'
 
+// An exhaustive switch's default: TypeScript proves it unreachable, and if it is reached anyway (a value from outside
+// the types), it fails loudly instead of returning undefined.
+export function unreachable(value: never): never { throw new Error(`unhandled case: ${JSON.stringify(value)}`) }
+
 export type Tree = {split: Lin, yes: Tree, no: Tree} | {leaf: Step[], products?: [number, number][]}
 export type Goal = {name: string, hyps: C[]}
 
@@ -75,7 +79,7 @@ function times(a: Lin, b: Lin): Lin | undefined {
 }
 
 // The atoms (lin <= 0 each) that make a comparison true, and those that make it false (one of which holds).
-function comparison(c: C & {a: E}, path: Path): {when: Lin[], unless: Lin[][]} | undefined {
+function comparison(c: Extract<C, {a: E}>, path: Path): {when: Lin[], unless: Lin[][]} | undefined {
   const a = linear(c.a, path), b = linear(c.b, path)
   if (!a || !b) return undefined
   const ab = sub(a, b), ba = sub(b, a)
@@ -93,12 +97,13 @@ export function truth(c: C, path: Path): boolean | undefined {
       const ts = c.xs.map(y => truth(y, path)), dominant = c.op === 'or'
       return ts.includes(dominant) ? dominant : ts.every(t => t === !dominant) ? !dominant : undefined
     }
-    default: {
+    case '<': case '<=': case '=': {
       const cmp = comparison(c, path)
       if (!cmp) return undefined
       const ts = cmp.when.map(lin => decide(lin, path))
       return ts.includes(false) ? false : ts.every(t => t === true) ? true : undefined
     }
+    default: return unreachable(c)
   }
 }
 
@@ -112,13 +117,14 @@ export function facts(c: C, path: Path, positive = true): Lin[] {
       const open = c.xs.filter(y => truth(y, path) !== !positive)
       return open.length === 0 ? [k(1)] : open.length === 1 ? facts(open[0]!, path, positive) : []
     }
-    default: {
+    case '<': case '<=': case '=': {
       const cmp = comparison(c, path)
       if (!cmp) return []
       if (positive) return cmp.when
       const open = cmp.unless.filter(atoms => !atoms.some(lin => decide(lin, path) === false))
       return open.length === 0 ? [k(1)] : open.length === 1 ? open[0]! : []
     }
+    default: return unreachable(c)
   }
 }
 
@@ -183,7 +189,8 @@ function natural(e: E): boolean {
     case 'prod': return natural(e.a) && natural(e.b)
     case 'if': return naturalC(e.c) && natural(e.then) && natural(e.else)
     case 'get': return natural(e.key)
-    default: return natural(e.a) && natural(e.b)
+    case 'add': case 'sub': case 'min': case 'max': return natural(e.a) && natural(e.b)
+    default: return unreachable(e)
   }
 }
 const naturalC = (c: C): boolean => c.op === 'flag' ? true : c.op === 'not' ? naturalC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.every(naturalC) : natural(c.a) && natural(c.b)
@@ -199,7 +206,8 @@ function substE(e: E, s: Subst): E {
     case 'prod': return {...e, a: substE(e.a, s), b: substE(e.b, s)}
     case 'if': return {op: 'if', c: substC(e.c, s), then: substE(e.then, s), else: substE(e.else, s)}
     case 'get': { const key = substE(e.key, s); return s.maps[e.map] ? s.maps[e.map]!(key) : {op: 'get', map: e.map, key} }
-    default: return {...e, a: substE(e.a, s), b: substE(e.b, s)}
+    case 'add': case 'sub': case 'min': case 'max': return {...e, a: substE(e.a, s), b: substE(e.b, s)}
+    default: return unreachable(e)
   }
 }
 function substC(c: C, s: Subst): C {
@@ -235,7 +243,8 @@ function reads(t: E | C, out: Reads = {vars: new Set(), maps: new Set(), flags: 
     case 'and': case 'or': for (const y of t.xs) reads(y, out); break
     case 'mul': reads(t.a, out); break
     case 'if': reads(t.c, out); reads(t.then, out); reads(t.else, out); break
-    default: reads(t.a, out); reads(t.b, out)
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': case '<': case '<=': case '=': reads(t.a, out); reads(t.b, out); break
+    default: unreachable(t)
   }
   return out
 }

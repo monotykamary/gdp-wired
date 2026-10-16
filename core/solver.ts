@@ -67,7 +67,7 @@ export function solve(constraints: Constraint[], maxRows = 20_000): Verdict {
   // with |rows| new rows instead of the |pos| × |neg| of a plain elimination.
   for (let changed = true; changed && contradiction() === undefined;) {
     changed = false
-    const key = (lin: Lin) => JSON.stringify(Object.entries(lin).sort())
+    const key = (lin: Lin) => JSON.stringify(Object.entries(lin).sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)))
     const byKey = new Map(rows.map(r => [key(lins[r]!), r]))
     for (const r of rows) {
       const neg = byKey.get(key(scale(lins[r]!, -1)))

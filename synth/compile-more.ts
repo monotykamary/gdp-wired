@@ -7,7 +7,7 @@
 // A map machine's box point tracks two cells per map: M at the arbitrary key k, and M at the key the step writes;
 // when the two keys are equal the cells must be equal (the guard). Reads in the step must be at the written key (or at
 // k); the write lands on k exactly when the keys are equal. Each kernel is emitted as WGSL and as JavaScript.
-import {type C, type E, type Machine, ite, same, x} from '../core/machine.ts'
+import {type C, type E, type Machine, compileFunction, ite, same, unreachable, x} from '../core/machine.ts'
 import {type Target, expressions} from '../search/compile.ts'
 import {type Box, type Problem, BLOCK, CHUNK, HEADER, blocks, order, varsOf} from './compile.ts'
 
@@ -30,7 +30,8 @@ export function fromMapMachine(m: Machine): MapProblem {
         if (keyOf(e.map) && JSON.stringify(e.key) === JSON.stringify(keyOf(e.map))) return x(`${e.map}_w`)
         throw new Error(`a read of ${e.map} at a key that is neither k nor the key the step writes`)
       }
-      default: return {...e, a: sub(e.a), b: sub(e.b)} as E
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...e, a: sub(e.a), b: sub(e.b)}
+      default: return unreachable(e)
     }
   }
   const subC = (c: C): C => c.op === 'flag' ? c : c.op === 'not' ? {op: 'not', x: subC(c.x)} : c.op === 'and' || c.op === 'or' ? {op: c.op, xs: c.xs.map(subC)} : {...c, a: sub(c.a), b: sub(c.b)}
@@ -148,6 +149,6 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
 
 export function jsMore(p: Problem, box: Box, K: number, kind: MoreKind) {
   return kind === 'mapRegion'
-    ? {region: new Function('index', 'T', 'A', emitMore(p, box, K, kind, 'js')) as (index: number, T: Int32Array, A: Uint32Array) => boolean}
-    : {kill: new Function('index', 'block', 'T', 'A', emitMore(p, box, K, kind, 'js')) as (index: number, block: number, T: Int32Array, A: Uint32Array) => number}
+    ? {region: compileFunction<(index: number, T: Int32Array, A: Uint32Array) => boolean>(['index', 'T', 'A'], emitMore(p, box, K, kind, 'js'))}
+    : {kill: compileFunction<(index: number, block: number, T: Int32Array, A: Uint32Array) => number>(['index', 'block', 'T', 'A'], emitMore(p, box, K, kind, 'js'))}
 }

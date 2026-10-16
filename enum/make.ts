@@ -17,3 +17,4 @@ for (let w = 0; w < 2 ** k; w++) {
 }
 const ms = performance.now() - started
 console.log(JSON.stringify({k, reachable: r, violations: v, expected: ((Math.imul(r >>> 0, 2654435761) ^ v) >>> 0), jsMs: Math.round(ms * 10) / 10}))
+export {}

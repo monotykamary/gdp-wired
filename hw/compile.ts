@@ -16,7 +16,7 @@
 // input key, as in search/. A law with `forall` is checked at every cell and at key bound + 1.
 import {type C, type E, type Law, type Machine} from '../core/machine.ts'
 import {fitsU32} from '../search/compile.ts'
-import {type AnyStage, type LoopProgram, createWordStage} from '../vendor/handwired/src/json-search/loop-program.ts'
+import {type AnyStage, type LoopProgram, type WordBinding, createWordStage} from '../vendor/handwired/src/json-search/loop-program.ts'
 import {type Word, WordCircuit} from '../vendor/handwired/src/runtime/words.ts'
 
 export type Space = {depth: number, bound: number}
@@ -51,7 +51,7 @@ export function compile(m: Machine, law: Law, space: Space, chunk: number, lowAt
   w.assumeAtMost(src('off'), chunk)
   w.assumeAtMost(src('count'), chunk)
   for (const p of m.params) w.assumeAtMost(src(`p:${p}`), K - 1)
-  const position = w.source(regs.length), document = w.source(regs.length + 1), hi = w.source(regs.length + 2), base = w.source(regs.length + 3), total = w.source(regs.length + 4)
+  const position = w.source(regs.length), document = w.source(regs.length + 1), hi = w.source(regs.length + 2), _base = w.source(regs.length + 3), total = w.source(regs.length + 4)
   const k = (n: number) => w.constant(n >>> 0)
   const one = k(1), zero = k(0)
   const not = (a: Word) => w.xor(a, one), and = (a: Word, b: Word) => w.and(a, b), or = (a: Word, b: Word) => w.or(a, b)
@@ -175,12 +175,12 @@ export function compile(m: Machine, law: Law, space: Space, chunk: number, lowAt
   const first = o.add(oBase, o.mul(oDoc, o.constant(chunk)))
   const count = o.min(o.constant(chunk), o.monus(oTotal, first))
   const start = createWordStage({name: 'documents', repeat: 'once', circuit: o, sharedOffset: w.sourceSize,
-    bindings: new Map([[oDoc, {kind: 'document'}], [o.source(3), {kind: 'register', register: reg('best')}]]),
+    bindings: new Map<Word, WordBinding>([[oDoc, {kind: 'document'}], [o.source(3), {kind: 'register', register: reg('best')}]]),
     outputs: [{wire: first, write: {kind: 'register', register: reg('first')}}, {wire: count, write: {kind: 'register', register: reg('count')}},
       {wire: o.constant(0xffffffff), write: {kind: 'register', register: reg('best')}}]})
   const stage = createWordStage({
     name: `${m.name}: ${law.name}`, repeat: 'forward', circuit: w, sharedOffset: 0,
-    bindings: new Map([
+    bindings: new Map<Word, WordBinding>([
       ...regs.map((name, r) => [w.source(r), {kind: 'register' as const, register: r}] as const),
       [position, {kind: 'position'}], [document, {kind: 'document'}],
     ]),

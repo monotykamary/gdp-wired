@@ -2,7 +2,7 @@
 // the interpreter: the generated step updates its maps in place, so its time grows with the requests, not with their
 // square (the interpreter copies its maps each step). Requests from a fixed LCG; the answer is the number of grants.
 //   bun grant-scale.ts
-import {compileJs, interpret} from '../core/machine.ts'
+import {interpret, loadJs} from '../core/machine.ts'
 import {admitFlagged} from '../core/models.ts'
 
 const lcg = (s: number) => (Math.imul(s, 1103515245) + 12345) >>> 0
@@ -19,7 +19,7 @@ function requests(count: number) {
   return reqs.reverse()
 }
 const P = {d: 20, hr: 5, dm: 10}
-const gen = new Function(`${compileJs(admitFlagged()).replace(/^export function/gm, 'function')}\nreturn {init, step}`)()
+const gen = loadJs(admitFlagged())
 const run = interpret(admitFlagged())
 const grants = (st: any) => { let g = 0; for (const v of st.maps.Acct.values()) g += v; return g }
 const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!

@@ -10,7 +10,7 @@
 //   stage 'objects' (forward, one position per object): sees = inherited & groups != 0, or the object lies in a
 //                            granted folder's interval; count += sees, bad += sees && under /finance && !member
 // The outputs, viewable and violations, are a u32 output group.
-import {type AnyStage, type LoopProgram, createWordStage} from '../vendor/handwired/src/json-search/loop-program.ts'
+import {type AnyStage, type LoopProgram, type WordBinding, createWordStage} from '../vendor/handwired/src/json-search/loop-program.ts'
 import {type Word, WordCircuit} from '../vendor/handwired/src/runtime/words.ts'
 import {GROUPS, type Org, closure as close, derive} from '../next/rebac/model.ts'
 import {packStage} from './enum.ts'
@@ -65,7 +65,7 @@ export function buildRebac(org: Org, derived = derive(org), pack = false): LoopP
   const bad = w.and(sees, w.and(underFinance, w.xor(r('member'), one)))
   const objects = createWordStage({
     name: 'objects', repeat: 'forward', circuit: w, sharedOffset: FIN + 1,
-    bindings: new Map([...regs.map((_, register) => [w.source(register), {kind: 'register' as const, register}] as const), [o, {kind: 'position' as const}]]),
+    bindings: new Map<Word, WordBinding>([...regs.map((_, register) => [w.source(register), {kind: 'register' as const, register}] as const), [o, {kind: 'position' as const}]]),
     outputs: [
       {wire: w.add(r('count'), sees), write: {kind: 'register', register: reg('count')}},
       {wire: w.add(r('bad'), bad), write: {kind: 'register', register: reg('bad')}},

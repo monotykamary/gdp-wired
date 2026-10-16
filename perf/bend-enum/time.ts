@@ -19,3 +19,4 @@ for (const k of [24, 28, 30, 31]) {
   const ok = [seq, par, gpu].every(r => r.out === expected.get(k))
   console.log(JSON.stringify({k, seqMs: seq.ms, parMs: par.ms, gpuMs: gpu.ms, agree: ok}))
 }
+export {}

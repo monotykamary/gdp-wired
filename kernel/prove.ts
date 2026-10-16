@@ -3,7 +3,7 @@
 // reads of one map at keys not yet known equal or apart). Its trees go to kernel.check; nothing it says is trusted.
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {type Lin, add, k, scale, solve, sub} from '../core/solver.ts'
-import {type Goal, type Instances, type Path, type Tree, canon, checkLaws, facts, leafConstraints, linear, obligations, truth, withProducts} from './kernel.ts'
+import {type Goal, type Instances, type Path, type Tree, canon, checkLaws, leafConstraints, linear, obligations, truth, unreachable, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
 function openE(e: E, path: Path, out: Lin[]): void {
@@ -13,11 +13,13 @@ function openE(e: E, path: Path, out: Lin[]): void {
     case 'prod': return (openE(e.a, path, out), openE(e.b, path, out))
     case 'get': return openE(e.key, path, out)
     case 'if': { const t = truth(e.c, path); if (t === undefined) openC(e.c, path, out); else openE(t ? e.then : e.else, path, out); return }
-    default: {
+    case 'add': case 'sub': case 'min': case 'max': {
       openE(e.a, path, out), openE(e.b, path, out)
       const a = linear(e.a, path), b = linear(e.b, path)
       if (a && b && linear(e, path) === undefined) out.push(e.op === 'sub' ? sub(b, a) : sub(a, b))
+      return
     }
+    default: return unreachable(e)
   }
 }
 function openC(c: C, path: Path, out: Lin[]): void {

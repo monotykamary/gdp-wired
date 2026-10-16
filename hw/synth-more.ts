@@ -15,7 +15,7 @@
 // It sits behind synth/more.ts's evaluator interface (moreEvaluator's arguments), so check-synth-more.ts and
 // run-synth-more.ts can run either set of kernels on the same rounds.
 import {type C, type E} from '../core/machine.ts'
-import {type AnyStage, type LoopProgram, createLoopRunner, createWordStage} from '../vendor/handwired/src/json-search/loop-program.ts'
+import {type AnyStage, type LoopProgram, type WordBinding, createLoopRunner, createWordStage} from '../vendor/handwired/src/json-search/loop-program.ts'
 import {emitLoopWgsl} from '../vendor/handwired/src/json-search/loop-emit.ts'
 import {type Word, WordCircuit} from '../vendor/handwired/src/runtime/words.ts'
 import {type Box, type Problem, order, points, varsOf} from '../synth/compile.ts'
@@ -169,7 +169,7 @@ export function compileMoreKernel(p: Problem, box: Box, K: number, kind: MoreKin
     let rest = b.add(b.source(at.base!), b.mul(doc, b.constant(BLOCK)))
     const outs: {wire: Word, write: {kind: 'register', register: number}}[] = []
     for (const v of order(p)) { outs.push({wire: b.mod(rest, b.constant(box[v]! + 1)), write: {kind: 'register', register: reg(`v:${v}`)}}); rest = b.div(rest, b.constant(box[v]! + 1)) }
-    stages.push(createWordStage({name: 'first point', repeat: 'once', circuit: b, sharedOffset: 0, bindings: new Map([[doc, {kind: 'document'}]]), outputs: outs}))
+    stages.push(createWordStage({name: 'first point', repeat: 'once', circuit: b, sharedOffset: 0, bindings: new Map<Word, WordBinding>([[doc, {kind: 'document'}]]), outputs: outs}))
   }
   // The once stage of a kill program: the document's block of 24 candidates and their alive bits into registers.
   if (blockRegs.length > 0) {
@@ -184,11 +184,11 @@ export function compileMoreKernel(p: Problem, box: Box, K: number, kind: MoreKin
       amask = b.or(amask, b.shl(bit, b.constant(q)))
     }
     outs.push({wire: amask, write: {kind: 'register', register: reg('amask')}})
-    stages.push(createWordStage({name: 'block', repeat: 'once', circuit: b, sharedOffset: 0, bindings: new Map([[doc, {kind: 'document'}]]), outputs: outs}))
+    stages.push(createWordStage({name: 'block', repeat: 'once', circuit: b, sharedOffset: 0, bindings: new Map<Word, WordBinding>([[doc, {kind: 'document'}]]), outputs: outs}))
   }
   const stage = createWordStage({
     name: kind, repeat: 'forward', circuit: w, sharedOffset: 0,
-    bindings: new Map([
+    bindings: new Map<Word, WordBinding>([
       ...regs.map((_, r) => [w.source(r), {kind: 'register' as const, register: r}] as const),
       [position, {kind: 'position'}], [document, {kind: 'document'}],
     ]),

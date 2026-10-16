@@ -1,7 +1,7 @@
 import {checkRefutation} from '../core/check.ts'
-import {type Law, type Machine, all, any, atMost, bit, get, ite, less, min, minus, n, not, plus, prove, same, search, x} from '../core/machine.ts'
-import {admit, admitFlagged, boundedLoss, loss} from '../core/models.ts'
-import {agree, product} from './relational.ts'
+import {type Law, type Machine, all, any, bit, get, ite, less, n, not, plus, prove, same, search, x} from '../core/machine.ts'
+import {admit, admitFlagged} from '../core/models.ts'
+import {product} from './relational.ts'
 
 function verdict(m: Machine, goals: Law[], invariants: Law[], depth = 3, bound = 2) {
   const proofs = goals.map(g => prove(m, g, invariants))

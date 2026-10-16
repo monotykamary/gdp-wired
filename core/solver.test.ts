@@ -1,6 +1,6 @@
 import {expect, test} from 'bun:test'
 import {checkRefutation, checkWitness} from './check.ts'
-import {add, eq, k, le, lt, nat, solve, v} from './solver.ts'
+import {add, eq, k, le, nat, solve, v} from './solver.ts'
 
 test('2x = 1 has no integer solution, by a cut', () => {
   const cs = eq(add(v('x'), v('x')), k(1))

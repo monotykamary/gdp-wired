@@ -55,7 +55,7 @@ function php(p: number, h: number): {vars: number, cnf: Clause[]} {
 }
 
 test('PHP(6, 5) and PHP(8, 7) are unsatisfiable, with proofs (and deletions) both checkers accept', () => {
-  for (const [p, h] of [[6, 5], [8, 7]]) {
+  for (const [p, h] of [[6, 5], [8, 7]] as const) {
     const {vars, cnf} = php(p, h)
     const r = solve(vars, cnf)
     expect(r.kind).toBe('unsat')

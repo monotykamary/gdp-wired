@@ -7,7 +7,7 @@
 // at the same value; a law about a map holds for every key x, and is proven at one arbitrary x (with the law assumed at
 // every other key the step reads).
 import {historyMachine, scope} from '../kernel/kernel.ts'
-import {type Constraint, type Lin, type Verdict, add, eq, k, le, lt, nat, negate, scale, show, solve, sub, v} from './solver.ts'
+import {type Constraint, type Lin, type Verdict, add, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
 
 export type E =
   | {op: 'var', name: string}
@@ -19,7 +19,8 @@ export type E =
   | {op: 'get', map: string, key: E}
 export type C =
   | {op: '<' | '<=' | '=', a: E, b: E}
-  | {op: 'and' | 'or', xs: C[]}
+  | {op: 'and', xs: C[]}
+  | {op: 'or', xs: C[]}
   | {op: 'not', x: C}
   | {op: 'flag', name: string} // a named condition of the step, decided once per step
 
@@ -45,6 +46,8 @@ export type Machine = {
 export type History = {keep: C, record: string[], sums: Record<string, E>, queries: Record<string, E>, relations?: {when: C, holds: C}[], prune?: {order: string, after: E}}
 // A law: a condition on the state and params, and for a map law, `forall` names the key variable it holds at.
 export type Law = {name: string, holds: C, forall?: string}
+
+export {unreachable} from '../kernel/kernel.ts'
 
 // Builders.
 export const x = (name: string): E => ({op: 'var', name})
@@ -80,7 +83,7 @@ export const bit = (name: string): C => any(same(x(name), n(0)), same(x(name), n
 export type State = {scalars: Record<string, number>, maps: Record<string, Map<number, number>>, history?: Env[], last?: number}
 type Env = Record<string, number>
 export const naturalIn = (v: unknown, what: string): number => {
-  if (typeof v !== 'number' || !Number.isSafeInteger(v) || v < 0) throw new RangeError(`${what} must be a natural below 2^53, not ${v}`)
+  if (typeof v !== 'number' || !Number.isSafeInteger(v) || v < 0) throw new RangeError(`${what} must be a natural below 2^53, not ${String(v)}`)
   return v
 }
 const exact = (v: number): number => {
@@ -261,6 +264,16 @@ export function step(params, state, input) {
 `
 }
 
+// Generated code as a function. Every caller passes source this library generated from its own terms, never from data,
+// which is what makes compiling it safe; the lint's implied-eval rule is waived here and nowhere else.
+export function compileFunction<F>(params: string[], body: string): F {
+  // oxlint-disable-next-line typescript/no-implied-eval
+  return new Function(...params, body) as F
+}
+// compileJs's module, loaded: init, fork and step.
+export type Compiled = {init: (params: object) => State & {head?: number}, fork: (st: State) => State, step: (params: object, st: State, input: object) => State & {head?: number}}
+export const loadJs = (m: Machine): Compiled => compileFunction<() => Compiled>([], `${compileJs(m).replace(/^export function/gm, 'function')}\nreturn {init, fork, step}`)()
+
 // --- symbolic: from expressions to cases of linear constraints -------------------------------------------------------
 
 type Cases<T> = {path: Constraint[], value: T}[]
@@ -282,6 +295,7 @@ function symE(e: E, s: Sym): Cases<Lin> {
     case 'const': return [{path: [], value: k(e.value)}]
     case 'add': return cross(symE(e.a, s), a => symE(e.b, s).map(b => ({path: b.path, value: add(a, b.value)})))
     case 'mul': return symE(e.a, s).map(a => ({path: a.path, value: scale(a.value, e.k)}))
+    case 'prod': throw new Error('a product of two terms: kernel/prove.ts proves with products, this prover does not')
     case 'sub': // truncated at 0, as on naturals
       return cross(symE(e.a, s), a => symE(e.b, s).flatMap(b => [
         {path: [...b.path, ...le(b.value, a)], value: sub(a, b.value)},

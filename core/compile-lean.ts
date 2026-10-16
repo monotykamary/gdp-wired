@@ -16,6 +16,7 @@ function emit(m: Machine, tag: string, laws: Law[]): string {
       case 'add': return `(${ex(e.a, st)} + ${ex(e.b, st)})`
       case 'sub': return `(${ex(e.a, st)} - ${ex(e.b, st)})`
       case 'mul': return `(${e.k} * ${ex(e.a, st)})`
+      case 'prod': return `(${ex(e.a, st)} * ${ex(e.b, st)})`
       case 'min': case 'max': return `(${e.op} ${ex(e.a, st)} ${ex(e.b, st)})`
       case 'if': return `(if ${cx(e.c, st)} then ${ex(e.then, st)} else ${ex(e.else, st)})`
       case 'get': return `(${st}.${e.map} ${ex(e.key, st)})`
@@ -32,7 +33,6 @@ function emit(m: Machine, tag: string, laws: Law[]): string {
       case 'flag': return c.name
     }
   }
-  const S = `${tag}.St`, I = `${tag}.In`
   const fields = [...scalars.map(s => `  ${s} : Nat`), ...maps.map(mp => `  ${mp} : Nat → Nat`)].join('\n')
   const init = [...scalars.map(s => `${s} := ${ex(m.state[s]!, 'st')}`), ...maps.map(mp => `${mp} := fun _ => ${m.maps![mp]}`)].join(', ')
   const step = [

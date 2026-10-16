@@ -29,4 +29,5 @@ for (const [name, extra] of Object.entries(sets)) {
   chrome.kill('SIGKILL'); await chrome.exited
   Bun.spawnSync(['pkill', '-KILL', '-f', 'probe-profile'])
 }
-server.stop(true)
+await server.stop(true)
+export {}

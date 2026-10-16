@@ -6,6 +6,8 @@
 export const Role = {none: 0, viewer: 1, member: 2, owner: 3} as const
 export const Plan = {hobby: 0, pro: 1, enterprise: 2} as const
 
+import {unreachable} from './core/machine.ts'
+
 // A number read from the facts about one (user, project) pair.
 export type Num =
   | {op: 'role'} // the user's role in the team that owns the project, 0 when none
@@ -83,6 +85,7 @@ export function evalFormula(formula: Bool, atomValue: (name: AtomName) => boolea
     case 'and': return formula.xs.every(x => evalFormula(x, atomValue))
     case 'or': return formula.xs.some(x => evalFormula(x, atomValue))
     case 'not': return !evalFormula(formula.x, atomValue)
-    default: throw new Error(`a policy combines atoms, not ${formula.op}`)
+    case '>=': case '===': throw new Error(`a policy combines atoms, not ${formula.op}`)
+    default: return unreachable(formula)
   }
 }

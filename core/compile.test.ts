@@ -2,7 +2,7 @@
 // random machines whose map values read the other map and whose scalars read both, so a write seen before every read
 // is done would show; and branches made with fork stay apart. FUZZ_SEED and FUZZ_SCALE shard it as kernel.test.ts.
 import {expect, test} from 'bun:test'
-import {type C, type E, type Machine, type State, compileJs, interpret} from './machine.ts'
+import {type C, type E, type Machine, type State, interpret, loadJs} from './machine.ts'
 
 let seed = Number(process.env.FUZZ_SEED ?? 777)
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
@@ -24,7 +24,7 @@ const cond = (d: number): C => {
   const r = rand(5)
   if (r === 3) return {op: 'not', x: cond(d)}
   if (r === 4 && d > 0) return {op: rand(2) ? 'and' : 'or', xs: [cond(d - 1), cond(d - 1)]}
-  return {op: (['<', '<=', '='] as const)[rand(3)], a: term(d), b: term(d)}
+  return {op: (['<', '<=', '='] as const)[rand(3)]!, a: term(d), b: term(d)}
 }
 const withFlag = (e: E): E => (rand(3) ? e : {op: 'if', c: {op: 'flag', name: 'f'}, then: e, else: term(0)})
 function machine(): Machine {
@@ -37,7 +37,7 @@ function machine(): Machine {
     },
   }
 }
-const load = (m: Machine) => new Function(`${compileJs(m).replace(/^export function/gm, 'function')}\nreturn {init, fork, step}`)() as {init: (env: object) => State, fork: (st: State) => State, step: (params: object, st: State, input: object) => State}
+const load = (m: Machine) => loadJs(m)
 const cells = (st: State) => JSON.stringify(Object.fromEntries(Object.entries(st.maps).map(([name, map]) => [name, [...map.entries()].sort((x, y) => x[0] - y[0])])))
 const same = (a: State, b: State) => { expect(a.scalars).toEqual(b.scalars); expect(cells(a)).toBe(cells(b)) }
 

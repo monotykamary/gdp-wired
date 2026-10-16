@@ -64,7 +64,7 @@ console.log('Tampering (each must be rejected)')
 const goal = obligations(loss(), [boundedLoss])[1]!
 const tree = lossProof.proof!.trees[goal.name]!
 const leaves: any[] = []
-const walk = (t: any) => ('leaf' in t ? leaves.push(t) : (walk(t.yes), walk(t.no)))
+const walk = (t: any): unknown => ('leaf' in t ? leaves.push(t) : (walk(t.yes), walk(t.no)))
 walk(tree)
 const mutate = (f: (t: any) => void) => { const copy = structuredClone(tree); f(copy); return check(goal, copy) }
 console.log(`  untouched                                    ${check(goal, tree) ? 'accepted' : 'rejected'}`)

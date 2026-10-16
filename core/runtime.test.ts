@@ -3,7 +3,7 @@
 // JavaScript against the interpreter; and pruning, which may drop records only where the kernel proves they add nothing
 // to any query: then a pruned run computes what an unpruned one does, step by step. FUZZ_SEED and FUZZ_SCALE shard it.
 import {expect, test} from 'bun:test'
-import {type C, type E, type Machine, type State, all, atMost, compileJs, get, interpret, ite, less, n, plus, same, times, x} from './machine.ts'
+import {type C, type E, type Machine, type State, all, atMost, compileJs, get, interpret, loadJs, ite, less, n, plus, same, times, x} from './machine.ts'
 import {windowCeiling, windowLimit} from './models.ts'
 import {obligations, scope} from '../kernel/kernel.ts'
 import {proveLaws} from '../kernel/prove.ts'
@@ -12,8 +12,7 @@ let seed = Number(process.env.FUZZ_SEED ?? 777)
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
 const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
 const pick = <T>(xs: T[]): T => xs[rand(xs.length)]!
-type Gen = {init: (params: object) => State & {head?: number}, fork: (st: State) => State, step: (params: object, st: State, input: object) => State & {head?: number}}
-const load = (m: Machine) => new Function(`${compileJs(m).replace(/^export function/gm, 'function')}\nreturn {init, fork, step}`)() as Gen
+const load = (m: Machine) => loadJs(m)
 
 // --- names ---------------------------------------------------------------------------------------------------------------
 
@@ -54,7 +53,7 @@ test('a name nobody declares is refused by the kernel and by both runtimes', () 
 test('params and inputs must be naturals below 2^53, and values may not pass 2^53 - 1', () => {
   for (const run of [interpret(counter), load(counter)]) {
     const st = run.init({cap: 10})
-    for (const bad of [{}, {amount: -1}, {amount: 1.5}, {amount: '3'}, {amount: 2 ** 53}, {amount: NaN}]) expect(() => run.step({cap: 10}, run.init({cap: 10}), bad as object), JSON.stringify(bad)).toThrow(RangeError)
+    for (const bad of [{}, {amount: -1}, {amount: 1.5}, {amount: '3'}, {amount: 2 ** 53}, {amount: NaN}]) expect(() => run.step({cap: 10}, run.init({cap: 10}), bad as never), JSON.stringify(bad)).toThrow(RangeError)
     expect(() => run.init({cap: -2})).toThrow(RangeError)
     expect(() => run.step({cap: 10}, st, {amount: 3, used: 999})).not.toThrow() // a stray input is ignored, never read as the state
     expect(run.step({cap: 10}, run.init({cap: 10}), {amount: 3, used: 999}).scalars.used).toBe(3)
@@ -79,7 +78,7 @@ const term = (names: string[], d: number): E => {
   if (r === 4) return {op: 'min', a: term(names, d - 1), b: term(names, d - 1)}
   return ite(cond(names, d - 1), term(names, d - 1), term(names, d - 1))
 }
-const cond = (names: string[], d: number): C => ({op: (['<', '<=', '='] as const)[rand(3)], a: term(names, d), b: term(names, d)})
+const cond = (names: string[], d: number): C => ({op: (['<', '<=', '='] as const)[rand(3)]!, a: term(names, d), b: term(names, d)})
 // Requests (a, t) with t the order; records keep both; u sums a term of the record; the query s counts (or sums) over
 // the records, often only those inside a window of width w before t, the shape pruning is for.
 function machine(): Machine {

@@ -38,7 +38,7 @@ for (const c of pairCases) {
   const single = proveRank(c.l, c.laws, singles)
   const singleMs = Math.round(performance.now() - t0)
   const r = await rankPairs(gpu, c.l, c.laws, p, box, forms)
-  const entry = {what: c.what, evaluator: r.evaluator, points: points(p, box), candidates: forms.length, singleSurvivors: singles.length, singleRank: single.rank ? 'found' : null, singleMs, ...r}
+  const entry = {what: c.what, points: points(p, box), candidates: forms.length, singleSurvivors: singles.length, singleRank: single.rank ? 'found' : null, singleMs, ...r}
   report.push(entry)
   console.log(`  ${c.what}\n    single ranks: ${fmt(forms.length)} candidates, ${singles.length} survive, ${single.rank ? 'one PROVEN' : 'none proven'} (${fmt(singleMs)} ms)`)
   console.log(`    pairs: ${r.firsts} never go up → ${fmt(r.pairs)} pairs over ${fmt(entry.points)} points on ${r.evaluator}: ${r.survivors} survive in ${fmt(r.filterMs)} ms`)

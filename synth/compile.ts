@@ -10,7 +10,7 @@
 //   region   a thread takes 24 consecutive points and reports, as a bit mask, those in the region (invariants only)
 //   kill     a thread takes CHUNK points (for invariants, from the list of region points) and one block of 24
 //            candidates, and reports which of them die as a bit mask (an f32 holds 24 bits exactly)
-import {type C, type E, type Law, type Machine} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, compileFunction} from '../core/machine.ts'
 import type {Loop} from '../kernel/kernel.ts'
 import {type Target, expressions} from '../search/compile.ts'
 
@@ -144,7 +144,7 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
 // The CPU twins: the same bodies over the same tables (T: the i32 view, A: the u32 view).
 export function js(p: Problem, box: Box, K: number) {
   return {
-    region: new Function('index', 'T', 'A', emit(p, box, K, 'region', 'js')) as (index: number, T: Int32Array, A: Uint32Array) => boolean,
-    kill: new Function('index', 'block', 'T', 'A', emit(p, box, K, 'kill', 'js')) as (index: number, block: number, T: Int32Array, A: Uint32Array) => number,
+    region: compileFunction<(index: number, T: Int32Array, A: Uint32Array) => boolean>(['index', 'T', 'A'], emit(p, box, K, 'region', 'js')),
+    kill: compileFunction<(index: number, block: number, T: Int32Array, A: Uint32Array) => number>(['index', 'block', 'T', 'A'], emit(p, box, K, 'kill', 'js')),
   }
 }

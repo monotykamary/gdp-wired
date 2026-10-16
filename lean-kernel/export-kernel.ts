@@ -8,6 +8,7 @@ import {admit, admitFlagged, boundedLoss, capLaws, inflight, inflightLoss, loss,
 import {agree, product} from '../next/relational.ts'
 import {type Fold, type Goal, type Instances, type Loop, type Path, type Tree, canon, foldObligations, leafConstraints, linear, loopObligations, obligations, progressObligations, withProducts} from '../kernel/kernel.ts'
 import {grow, proveLaws} from '../kernel/prove.ts'
+import {leanTerms} from './lean-terms.ts'
 
 type Exported = {name: string, goal: Goal, tree: Tree}
 const out: Exported[] = []
@@ -107,31 +108,7 @@ function encode(ex: Exported, tamper = false, dropStep = true, globalVars?: stri
     : name.includes('*') ? `.mono ${list(name.split('*').map(f => { const j = vars.indexOf(f); if (j < 0) throw new Error(`${ex.name}: factor ${f}`); return j }).sort((a, b) => a - b).map(String))}`
     : `.var ${vars.indexOf(name)}`))
 
-  const e = (t: E): string => {
-    switch (t.op) {
-      case 'var': return `.var ${vars.indexOf(t.name)}`
-      case 'const': return `.const ${t.value}`
-      case 'mul': return `.mul ${t.k} (${e(t.a)})`
-      case 'add': case 'sub': case 'min': case 'max': case 'prod': return `.${t.op} (${e(t.a)}) (${e(t.b)})`
-      case 'if': return `.ite (${c(t.c)}) (${e(t.then)}) (${e(t.else)})`
-      case 'get': return `.get ${maps.indexOf(t.map)} (${e(t.key)})`
-      default: throw new Error(`${ex.name}: ${t.op} is outside the Lean twin`)
-    }
-  }
-  const c = (t: C): string => {
-    switch (t.op) {
-      case '<=': return `.le (${e(t.a)}) (${e(t.b)})`
-      case '<': return `.lt (${e(t.a)}) (${e(t.b)})`
-      case '=': return `.eq (${e(t.a)}) (${e(t.b)})`
-      case 'not': return `.not (${c(t.x)})`
-      case 'and': case 'or': {
-        if (t.xs.length === 0) return t.op === 'and' ? '.le (.const 0) (.const 0)' : '.lt (.const 0) (.const 0)'
-        return t.xs.map(c).reduceRight((acc, y) => `.${t.op} (${y}) (${acc})`)
-      }
-      // A flag is passed through: its variable (named ?flag), read as a condition. Lean inlines it (Progress.lean).
-      case 'flag': { const j = vars.indexOf(`?${t.name}`); if (j < 0) throw new Error(`${ex.name}: no variable for flag ${t.name}`); return `.eq (.var ${j}) (.const 1)` }
-    }
-  }
+  const {e, c} = leanTerms(vars, maps, ex.name)
 
   let leafNo = 0
   const lean = (t: Tree, path: Path): string => {
@@ -358,7 +335,7 @@ example : checkFMMachine ${id}_tampered ${id}_proof = false := by decide +kernel
 
 // Machines with a history through Kern.hmachine_sound (History.lean): Lean builds the plain machine (sums as state,
 // relations in the assumption) and each relation's record goal; the trees and the instance keys are the kernel's.
-function hmachineToLean(id: string, m: Machine, laws: Law[], tampers: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[] = []): string {
+function hmachineToLean(id: string, m: Machine, laws: Law[], tampers: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[] = [], corollary?: (ix: (name: string) => number) => string): string {
   const h = m.history!
   const r = proveLaws(m, laws)
   if (!r.proven || !r.proof) throw new Error(`${id}: not proven`)
@@ -405,14 +382,7 @@ def ${id}_proof : List MEntry := ${list(entries)}
 def ${id}_records : List (List VDef × Tree) := ${list(records)}
 theorem ${id}_check : checkHMachine ${id}_machine ${id}_proof ${id}_records = true := by decide +kernel
 theorem ${id}_laws : ∀ ρ M hist, HReach ${id}_machine ρ M hist → ∀ e ∈ ${id}_proof, e.law.Holds ρ M :=
-  hmachine_sound ${id}_machine ${id}_proof ${id}_records ${id}_check
--- The window ceiling in plain Lean: in every reachable state, the admitted requests in the window (variable ${ix('ours')},
--- the sum over the history) are at most c (variable ${ix('c')}), for every history of forced and admitted requests.
-theorem window_ceiling (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hist : List (Nat → Nat)) (h : HReach ${id}_machine ρ M hist) :
-    ρ ${ix('ours')} ≤ ρ ${ix('c')} := by
-  have := ${id}_laws ρ M hist h _ List.mem_cons_self
-  simp only [MLaw.Holds, evalC, evalE] at this
-  exact of_decide_eq_true this
+  hmachine_sound ${id}_machine ${id}_proof ${id}_records ${id}_check${corollary ? `\n${corollary(ix)}` : ''}
 ${tamperText.join('\n')}`
 }
 
@@ -423,7 +393,13 @@ if (process.argv.includes('--history')) {
   const text = hmachineToLean('window', m, laws, [
     {what: 'the relation claimed at every t (not only t <= now), offered the same proofs', relations: [{when: yes, holds: atMost(x('ours'), x('seen'))}], withRecordTrees: true},
     {what: 'the relation left out (no record goal), offered the same machine proof', relations: [], withRecordTrees: false},
-  ])
+  ], ix => `-- The window ceiling in plain Lean: in every reachable state, the admitted requests in the window (variable ${ix('ours')},
+-- the sum over the history) are at most c (variable ${ix('c')}), for every history of forced and admitted requests.
+theorem window_ceiling (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hist : List (Nat → Nat)) (h : HReach window_machine ρ M hist) :
+    ρ ${ix('ours')} ≤ ρ ${ix('c')} := by
+  have := window_laws ρ M hist h _ List.mem_cons_self
+  simp only [MLaw.Holds, evalC, evalE] at this
+  exact of_decide_eq_true this`)
   console.log(`import History
 open Kern Cert
 set_option maxRecDepth 100000

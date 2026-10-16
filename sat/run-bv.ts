@@ -43,9 +43,10 @@ for (const [width, claimOff, what] of [[31, true, 'k=31 law'], [64, true, 'k=64 
   const t0 = performance.now()
   const r = solve(g.vars, g.clauses)
   const t1 = performance.now()
+  if (r.kind === 'unknown') throw new Error(`${what}: the solver gave up after ${r.conflicts} conflicts`)
   const ok = r.kind === 'sat' ? checkModel(g.clauses, r.model) : checkProof(g.clauses, r.proof)
   const t2 = performance.now()
-  const detail = r.kind === 'unsat' ? `PROVEN, DRUP ${r.proof.length} clauses (${r.proof.reduce((s, c) => s + c.length, 0)} literals)`
+  const detail = r.kind === 'unsat' ? `PROVEN, DRUP ${r.proof.length} clauses (${r.proof.reduce((s, c) => s + (Array.isArray(c) ? c.length : 0), 0)} literals)`
     : (() => { const value = decode(r.model, w); return `REFUTED, w = ${value} (bigint re-check: law ${holds(width, value, claimOff) ? 'holds?!' : 'fails'})` })()
   rows.push(`| ${what} | ${g.vars} | ${g.clauses.length} | ${(t1 - t0).toFixed(1)} ms | ${(t2 - t1).toFixed(1)} ms ${ok ? 'checked' : 'REJECTED'} | ${detail} |`)
 }
@@ -68,6 +69,7 @@ for (const [what, build] of harder) {
   const t0 = performance.now()
   const r = solve(g.vars, g.clauses)
   const t1 = performance.now()
+  if (r.kind === 'unknown') throw new Error(`${what}: the solver gave up after ${r.conflicts} conflicts`)
   const ok = r.kind === 'sat' ? checkModel(g.clauses, r.model) : checkProof(g.clauses, r.proof)
   const t2 = performance.now()
   more.push(`| ${what} | ${g.vars} | ${g.clauses.length} | ${(t1 - t0).toFixed(1)} ms | ${(t2 - t1).toFixed(1)} ms ${ok ? 'checked' : 'REJECTED'} | ${r.kind === 'unsat' ? `PROVEN, DRUP ${r.proof.length} clauses` : 'REFUTED (a model)'} |`)

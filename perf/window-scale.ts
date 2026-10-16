@@ -2,10 +2,10 @@
 // itself, at growing event counts: pruned (events in time order), it holds only the records of the last w, so its time
 // grows with the events; unpruned, every request scans every record kept.
 //   bun window-scale.ts
-import {type Machine, compileJs, interpret} from '../core/machine.ts'
+import {type Machine, interpret, loadJs} from '../core/machine.ts'
 import {windowLimit} from '../core/models.ts'
 
-const load = (m: Machine) => new Function(`${compileJs(m).replace(/^export function/gm, 'function')}\nreturn {init, step}`)()
+const load = (m: Machine) => loadJs(m)
 let s = 7
 const lcg = () => ((s = (Math.imul(s, 1103515245) + 12345) >>> 0), s >>> 8)
 const P = {w: 3600, c: 35}

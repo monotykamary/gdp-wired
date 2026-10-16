@@ -1,5 +1,6 @@
 // The baseline: the same spec compiled to one plain JavaScript loop over every (user, project) pair, with the atoms
 // inlined, so the comparison is with the fastest straightforward JS, not with the interpreter.
+import {compileFunction} from './core/machine.ts'
 import {type Org, membershipSlots} from './model.ts'
 import {type AtomName, type Bool, type Num, atomNames, atoms} from './spec.ts'
 
@@ -49,7 +50,7 @@ ${atomLines}
       }
       counts.allowedA[user] = a; counts.allowedB[user] = b; counts.gained[user] = gained; counts.lost[user] = lost;
     }`
-  return new Function('org', 'tableA', 'tableB', 'firstUser', 'userCount', 'counts', source) as ReturnType<typeof compileJsAudit>
+  return compileFunction<ReturnType<typeof compileJsAudit>>(['org', 'tableA', 'tableB', 'firstUser', 'userCount', 'counts'], source)
 }
 
 // The clever baseline, written by hand for this schema: only the pairs where a pair atom can hold are visited, i.e.

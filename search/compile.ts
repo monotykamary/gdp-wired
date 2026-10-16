@@ -2,7 +2,7 @@
 // candidate per index. The machine and its law compile to straight-line u32 code (what the forked Handwired's word
 // operations would emit), once as WGSL and once as JavaScript for the CPU baseline. Nothing here is trusted: whatever
 // the kernel reports is replayed by the interpreter before it is shown.
-import {type C, type E, type Law, type Machine, evalC, interpret} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, compileFunction, evalC, interpret} from '../core/machine.ts'
 
 export type Space = {depth: number, bound: number}
 export const NONE = 0xffffffff
@@ -174,5 +174,5 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
 }`
 }
 export function js(m: Machine, law: Law, s: Space): (index: number) => number {
-  return new Function('index', emit(m, law, s, 'js')) as (index: number) => number
+  return compileFunction<(index: number) => number>(['index'], emit(m, law, s, 'js'))
 }

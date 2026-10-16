@@ -29,7 +29,7 @@ const cmp = (d: number): C => {
   const r = rand(5)
   if (r === 3) return {op: 'not', x: cmp(d)}
   if (r === 4 && d > 0) return {op: rand(2) ? 'and' : 'or', xs: [cmp(d - 1), cmp(d - 1)]}
-  return {op: (['<', '<=', '='] as const)[rand(3)], a: term(d), b: term(d)}
+  return {op: (['<', '<=', '='] as const)[rand(3)]!, a: term(d), b: term(d)}
 }
 type Env = {x: number, y: number, z: number, M: number[]}
 const ev = (e: E, env: Env): number => {
@@ -63,7 +63,7 @@ test('the kernel never accepts a refutation of something with a model', () => {
     if (!check(goal, out.tree)) continue
     accepted++
     for (const env of models()) if (goal.hyps.every(h => evC(h, env))) throw new Error(`UNSOUND: ${JSON.stringify(goal)} holds at ${JSON.stringify(env)}`)
-    const emptied = structuredClone(out.tree); const strip = (n: any) => ('leaf' in n ? (n.leaf = []) : (strip(n.yes), strip(n.no))); strip(emptied)
+    const emptied = structuredClone(out.tree); const strip = (n: any): unknown => ('leaf' in n ? (n.leaf = []) : (strip(n.yes), strip(n.no))); strip(emptied)
     expect(check(goal, emptied)).toBe(false)
   }
   console.log(`${accepted} refutations accepted and confirmed by brute force, ${stuck} with a candidate model (${noSmall.length} of them with no model in the small range), of ${total}`)

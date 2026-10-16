@@ -1,7 +1,7 @@
 // The README's example: a budget whose spend may overshoot by at most one capped request, proven, broken, searched and
 // shipped.
 //   bun examples/budget.ts
-import {type Law, type Machine, atMost, compileJs, interpret, ite, less, min, n, plus, search, x} from '../core/machine.ts'
+import {type Law, type Machine, atMost, interpret, ite, less, loadJs, min, n, plus, search, x} from '../core/machine.ts'
 import {proveLaws} from '../kernel/prove.ts'
 
 // A request of cost c is admitted while spend s is under budget b; each request is capped at m.
@@ -21,7 +21,7 @@ console.log(`uncapped: proven ${bad.proven}, stuck at ${bad.failed?.goal} (${bad
 console.log(`          a run that breaks it: ${JSON.stringify(search(budget(false), boundedLoss))}`)
 
 // Shipped: the same machine as JavaScript (or run by the interpreter); params and inputs are checked naturals.
-const mod = new Function(`${compileJs(budget()).replace(/^export function/gm, 'function')}\nreturn {init, step}`)()
+const mod = loadJs(budget())
 let st = mod.init({b: 100, m: 30})
 for (const c of [50, 40, 70, 20]) st = mod.step({b: 100, m: 30}, st, {c})
 console.log(`compiled: spend after 50, 40, 70, 20 with b = 100, m = 30: ${st.scalars.s}`)

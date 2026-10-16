@@ -486,5 +486,84 @@
 "memory": 8192,
 "timeout": 1800,
 "cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o History.olean History.lean && lean HistoryTrees.lean 2>&1 | tail -3; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
+},
+{
+"name": "check",
+"cmd": "bun install >/dev/null 2>&1; echo TSC; bunx tsc -p . 2>&1 | grep \"error TS\"; t=${PIPESTATUS[0]}; echo LINT; bunx oxlint --type-aware --deny-warnings --disable-nested-config 2>&1 | grep -E \"^  [x!] |,-\\[|Found\"; l=${PIPESTATUS[0]}; echo \"tsc=$t lint=$l\"; [ $t = 0 ] && [ $l = 0 ]",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 600
+},
+{
+"name": "lean-conformance",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && bun conformance.ts 600 > Conformance.lean && lean Conformance.lean 2>&1 | tail -20; s=${PIPESTATUS[0]}; grep -c '^example' Conformance.lean; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "dsl",
+"cmd": "bun test dsl.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "conformance-1",
+"cmd": "FUZZ_SEED=1 bun test conformance.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "conformance-2",
+"cmd": "FUZZ_SEED=2 bun test conformance.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "conformance-3",
+"cmd": "FUZZ_SEED=3 bun test conformance.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "conformance-4",
+"cmd": "FUZZ_SEED=4 bun test conformance.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "conformance-5",
+"cmd": "FUZZ_SEED=5 bun test conformance.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "conformance-6",
+"cmd": "FUZZ_SEED=6 bun test conformance.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "conformance-7",
+"cmd": "FUZZ_SEED=7 bun test conformance.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "conformance-8",
+"cmd": "FUZZ_SEED=8 bun test conformance.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
 }
 ]

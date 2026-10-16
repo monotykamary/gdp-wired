@@ -1,7 +1,7 @@
 // Relational laws: two machines (or two runs of one) side by side, stepped by the same requests, as one machine whose
 // state is both states. Migration safety is "a and b agree on every history"; tenant isolation is "what B sees is the
 // same whether or not anyone else acts". Both become ordinary laws of the product, proven by the same induction.
-import {type C, type E, type Law, type Machine, all, ite, same, x} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, all, ite, same, unreachable, x} from '../core/machine.ts'
 
 function rename(e: E, prefix: string, m: Machine, inputs: Record<string, E>): E {
   switch (e.op) {
@@ -10,7 +10,8 @@ function rename(e: E, prefix: string, m: Machine, inputs: Record<string, E>): E 
     case 'mul': return {...e, a: rename(e.a, prefix, m, inputs)}
     case 'if': return {op: 'if', c: renameC(e.c, prefix, m, inputs), then: rename(e.then, prefix, m, inputs), else: rename(e.else, prefix, m, inputs)}
     case 'get': return {op: 'get', map: `${prefix}${e.map}`, key: rename(e.key, prefix, m, inputs)}
-    default: return {...e, a: rename(e.a, prefix, m, inputs), b: rename(e.b, prefix, m, inputs)}
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...e, a: rename(e.a, prefix, m, inputs), b: rename(e.b, prefix, m, inputs)}
+    default: return unreachable(e)
   }
 }
 function renameC(c: C, prefix: string, m: Machine, inputs: Record<string, E>): C {

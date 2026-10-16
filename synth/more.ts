@@ -167,7 +167,7 @@ export function mapLawOf(p: MapProblem, f: Form): Law {
 // Among survivors with the same coefficients, the least d implies the rest.
 export function strongestOf(forms: Form[], alive: Uint32Array): Form[] {
   const best = new Map<string, Form>()
-  forms.forEach((f, j) => { if (!isAlive(alive, j)) return; const key = JSON.stringify(Object.entries(f.coef).sort()); const b = best.get(key); if (!b || f.d < b.d) best.set(key, f) })
+  forms.forEach((f, j) => { if (!isAlive(alive, j)) return; const key = JSON.stringify(Object.entries(f.coef).sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))); const b = best.get(key); if (!b || f.d < b.d) best.set(key, f) })
   return [...best.values()]
 }
 
