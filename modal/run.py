@@ -46,10 +46,10 @@ def sh(name: str, cmd: str, cwd: str = ".", limit: int = 840) -> dict:
         shutil.copytree("/src/gdp-wired", work)
     t0 = time.time()
     try:
-        p = subprocess.run(["bash", "-c", cmd], cwd=work / cwd, capture_output=True, text=True, timeout=limit)
+        p = subprocess.run(["bash", "-c", cmd], cwd=work / cwd, capture_output=True, encoding="utf-8", errors="replace", timeout=limit)
         code, out, err = p.returncode, p.stdout, p.stderr
     except subprocess.TimeoutExpired as e:  # report what it printed rather than lose the container's work
-        code, out, err = 124, (e.stdout or b"").decode() if isinstance(e.stdout, bytes) else (e.stdout or ""), f"timed out after {limit} s"
+        code, out, err = 124, (e.stdout or b"").decode("utf-8", "replace") if isinstance(e.stdout, bytes) else (e.stdout or ""), f"timed out after {limit} s"
     return {"name": name, "code": code, "seconds": round(time.time() - t0, 2), "out": out[-400_000:], "err": err[-100_000:]}
 
 
