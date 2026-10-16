@@ -351,7 +351,9 @@ function symC(c: C, s: Sym, truth: boolean): Cases<null> {
 }
 
 
-const debug = (label: string, n: number) => { if (process.env.PROVE_DEBUG) require("node:fs").appendFileSync(process.env.PROVE_DEBUG, `[prove] ${label}: ${n} (${Math.round(performance.now())} ms)\n`) }
+// PROVE_DEBUG=1 logs the case counts to stderr; read through globalThis so the module also loads where there is no process.
+const proveDebug = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.PROVE_DEBUG
+const debug = (label: string, n: number) => { if (proveDebug) console.error(`[prove] ${label}: ${n} (${Math.round(performance.now())} ms)`) }
 // Drops the cases whose path is already impossible, so impossible branches don't multiply.
 function feasible<T>(cases: Cases<T>): Cases<T> {
   return cases.filter(c => {

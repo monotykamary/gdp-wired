@@ -24,3 +24,4 @@ modal/.live/
 .DS_Store
 lean-kernel/Conformance.lean
 lean-kernel/Examples*.lean
+dist/

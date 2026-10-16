@@ -1,0 +1,46 @@
+name: Test
+
+# The fast gate on every push and pull request: types and lint over the whole tree, the quick tests (builders,
+# conformance of the two runtimes, kernel tamper/refusals/step laws, the nine example domains, the README snippets),
+# and the npm package as a user installs it, on the oldest and newest Node it supports. The long runs (the kernel's
+# 32-seed soundness fuzz, histories, the Lean twin, mutation testing) are modal/suite.json on Modal.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Types and lint
+        run: bun run check
+      - name: Quick tests
+        run: bun run test
+
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        node: [20, 24]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Pack and install as a user would, then run and type-check against it
+        run: bun run smoke

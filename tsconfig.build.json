@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "rewriteRelativeImportExtensions": true,
+    "rootDir": ".",
+    "outDir": "dist",
+    "types": [],
+    "lib": ["ES2022", "DOM"]
+  },
+  "include": [],
+  "files": ["core/dsl.ts", "core/machine.ts", "core/solver.ts", "core/check.ts", "kernel/kernel.ts", "kernel/prove.ts"]
+}

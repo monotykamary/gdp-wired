@@ -9,8 +9,12 @@ searches that find counterexamples or the invariants a proof needs.
 You write the rule once with typed builders and state what must always hold. The library proves it by induction (or
 shows a real run that breaks it), and the same rule runs as an interpreter or ships as generated JavaScript.
 
+```sh
+npm install gdp-wired   # or bun add gdp-wired; plain JavaScript with types, Node 20+, Bun or a browser
+```
+
 ```ts
-import {min, nat, proveRule, rule, when} from './core/dsl.ts'
+import {min, nat, proveRule, rule, when} from 'gdp-wired'
 
 // A request of cost c is admitted while spend s is under budget b; each request is capped at m.
 const budget = rule('budget')
@@ -91,7 +95,7 @@ The builders (`core/dsl.ts`) hand out typed values for every name you declare; e
 the kernel checks, so nothing in them is trusted.
 
 ```ts
-import {bool, count, forall, maybe, nat, oneOf, proveSteps, relation, rule, yes} from './core/dsl.ts'
+import {bool, count, forall, maybe, nat, oneOf, proveSteps, relation, rule, yes} from 'gdp-wired'
 
 // Maps and flags: a grant is decided once per step; each map is written once; a map law holds at every key.
 const caps = rule('caps')
@@ -192,8 +196,12 @@ its Lean twin in 1.35 s. What each proves, what each ships at runtime, and where
 
 ## Running
 
-Needs [Bun](https://bun.sh). Lean 4.34.0 for `lean/` and `lean-kernel/`; a WebGPU runtime (Chrome, or Dawn's node
-bindings) for the GPU parts.
+The npm package is the library: the builders (`gdp-wired`), the runtimes (`gdp-wired/machine`), the kernel
+(`gdp-wired/kernel`), the prover (`gdp-wired/prove`), the derivation checker and solver (`gdp-wired/check`,
+`gdp-wired/solver`). Everything else here (examples, comparisons, the Lean twin, the GPU searches) runs from a clone and
+needs [Bun](https://bun.sh); Lean 4.34.0 for `lean/` and `lean-kernel/`; a WebGPU runtime (Chrome, or Dawn's node
+bindings) for the GPU parts. Releases: bump `version` in `package.json` and push to main;
+`.github/workflows/publish.yml` publishes it with npm provenance.
 
 ```sh
 git clone --recursive https://github.com/monotykamary/gdp-wired && cd gdp-wired
@@ -202,7 +210,7 @@ bun test core/compile.test.ts core/runtime.test.ts kernel/history.test.ts
 cd kernel && bun run-kernel.ts && bun test kernel.test.ts
 ```
 
-The whole suite (105 jobs, about 15 minutes of wall time) runs on [Modal](https://modal.com):
+The whole suite (107 jobs, about 15 minutes of wall time) runs on [Modal](https://modal.com):
 
 ```sh
 modal run modal/run.py --jobs modal/suite.json --out runs/modal/suite && sh modal/reap.sh
