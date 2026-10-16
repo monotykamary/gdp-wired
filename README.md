@@ -6,26 +6,55 @@ Laws about stateful rules (budgets, caps, rate limits, access policies), proven 
 kernel, with an untrusted prover that writes the proofs, an optional Lean twin that checks the kernel itself, and GPU
 searches that find counterexamples or the invariants a proof needs.
 
-You write the rule once, as a step machine, and state what must always hold. The library proves it by induction (or
-shows a real run that breaks it), and the same machine runs as an interpreter or ships as generated JavaScript.
+You write the rule once with typed builders and state what must always hold. The library proves it by induction (or
+shows a real run that breaks it), and the same rule runs as an interpreter or ships as generated JavaScript.
 
 ```ts
-import {type Law, type Machine, atMost, ite, less, min, n, plus, x} from './core/machine.ts'
-import {proveLaws} from './kernel/prove.ts'
+import {min, nat, proveRule, rule, when} from './core/dsl.ts'
 
 // A request of cost c is admitted while spend s is under budget b; each request is capped at m.
-const budget: Machine = {
-  name: 'budget', params: ['b', 'm'], inputs: ['c'], state: {s: n(0)},
-  step: {state: {s: ite(less(x('s'), x('b')), plus(x('s'), min(x('c'), x('m'))), x('s'))}},
-}
-const boundedLoss: Law = {name: 'spend stays within b + m', holds: atMost(x('s'), plus(x('b'), x('m')))}
+const budget = rule('budget')
+  .params({b: nat, m: nat})
+  .inputs({c: nat})
+  .state({s: 0})
+  .step(({b, m, c, s}) => ({s: when(s.lt(b), s.plus(min(c, m)), s)}))
+const bounded = budget.law('spend stays within b + m', ({s, b, m}) => s.atMost(b.plus(m)))
 
-proveLaws(budget, [boundedLoss]) // {proven: true, checked: true, leaves: 4, ...}
+proveRule(budget, [bounded]) // {proven: true, checked: true}
 ```
 
-Forget the cap (`plus(x('s'), x('c'))`) and the step goal has a model; `search` turns it into a run from the start:
-`{params: {b: 1, m: 0}, trace: [{c: 2}]}`. `bun examples/budget.ts` runs all of it, including the generated
-JavaScript.
+Names are typed: `({s, bb}) => …` or a law that reads the request `c` is a TypeScript error, not a runtime surprise.
+Forget the cap (`s.plus(c)`) and the kernel refuses the proof; a search from the start turns it into a real run:
+`{params: {b: 1, m: 0}, trace: [{c: 2}]}`. `bun examples/budget.ts` runs all of it, including the generated JavaScript,
+and `examples/domains/` holds dozens of rules from finance to protocols, each checked three ways.
+
+## Scope: where it replaces Bend, and where it doesn't
+
+gdp-wired is meant to replace Bend where it matters in practice, not to be a language: laws about **stateful rules whose
+state is counters, totals, maps of counters and logs summed over time**, proven automatically, with the rule shipped as
+code. If the checker side finds new frontiers the scope may grow; until then:
+
+| It expresses and proves | It does not (today) |
+| --- | --- |
+| Step machines over naturals: scalars, maps from naturals to naturals (one write per map per step), named step conditions, preconditions on params, assumptions per request | Lists, sets or strings as values: membership, subsets, equality of lists of names |
+| Invariants of the state and params, laws about every key of a map | Laws relating one step's before and after (only invariants of reachable states; a small extension is planned) |
+| Histories: sums and queries over a log of requests, relations between them proven one record at a time, pruning | Unbounded recursion over data, quantifiers over sequences other than a machine's own history |
+| Decisions over facts: flags, one-of choices, optional facts, bounded naturals (`match` covers every case) | Datatypes beyond those encodings; division, modulo, reals |
+| Loops that halt by a rank or a tuple of ranks; folds over binary trees; progress laws ("some request makes this happen") | Arbitrary algorithms: there is no general recursion to prove things about |
+| Arithmetic: `+`, truncated `−`, `×` by a constant, `min`, `max`, `if`, products of two terms (proven by the kernel, less well by the prover) | Generated code for decisions alone (`compileJs` emits machines; a predicate emitter is planned) |
+
+Keep Bend where the specification is about **lists or sets of names** (resource scopes, capability subsets, normalization
+that must refine its input), where a proof needs **induction over data structures**, or where the shipped code must be
+the compiled proved source of an arbitrary algorithm. Use gdp-wired where the rule is a budget, a cap, a window, a
+workflow or a policy decision: it proves those without proof files, finds counterexample runs when they're false, and
+checks its own kernel in Lean.
+
+For a sense of the split: in one real codebase with 98 Bend laws and about 1,600 lines of hand proofs, the policy
+decisions, the compare-and-swap storage plans and the state/provider plans fit gdp-wired as it is (with names interned
+to numbers), and gdp-wired can prove more about storage than its Bend proofs state (no revision reuse across keys); the
+lifecycle machine needs the before/after step laws above; the resource and authority checks, built on lists of names as
+sets, stay in Bend. `compare/` puts three rules side by side in gdp-wired, Bend and plain Lean, with line counts and
+check times.
 
 ## What's trusted
 
@@ -35,23 +64,67 @@ JavaScript.
 | `kernel/prove.ts` | No | Grows the trees. If it's wrong, the kernel rejects the tree |
 | `lean-kernel/` | Optional | The kernel's twin in Lean 4.34.0, each rule proven sound (`Kern.sound`, `machine_sound`, `mmachine_sound`, `fmmachine_sound`, `loop_sound`, `fold_sound`, `progress_sound`, `hmachine_sound`), axioms `propext`, `Classical.choice`, `Quot.sound` only. The exporter sends the kernel's real trees; tampered ones compute to false |
 | `search/`, `synth/`, `hw/` | No | GPU work: counterexample search over every short history, and invariant/rank synthesis. Every hit is replayed by the interpreter or proven by the kernel before it counts |
+| `core/dsl.ts`, the runtimes | No | The builders compile to the kernel's plain values; the interpreter and generated JavaScript are held to the reference evaluator by the conformance test |
+
+How the untrusted parts are held to the trusted ones, automatically:
+
+- **Types**: the whole repo type-checks strictly (`noImplicitReturns`, `noFallthroughCasesInSwitch`,
+  `noUncheckedIndexedAccess`), and a type-aware lint denies warnings; every switch over term and condition operations is
+  exhaustive and ends in `unreachable()`, so a new operation fails to compile wherever it's missing.
+- **Conformance** (`core/conformance.test.ts`): random terms over every operation through every consumer (interpreter,
+  generated JS, the kernel on fixed values, the GPU search's u32 twin, the old symbolic prover) against the reference
+  evaluator, and the same cases through Lean's own `evalE` (`lean-kernel/conformance.ts`).
+- **Examples** (`examples/`): every law proven by the kernel and re-checked by Lean, every rule run at random through
+  both runtimes, and every broken variant broken by a real run.
+- **Fuzz**: the kernel never accepts a refutation of something with a model (`kernel/kernel.test.ts`), and laws proven
+  over histories hold on every run (`kernel/history.test.ts`).
 
 ## Writing laws
 
-- **Machines** (`core/machine.ts`): params, inputs, state, maps (naturals indexed by naturals), flags (conditions
-  decided once per step), `pre` (about params alone) and `assume` (about each request). Arithmetic is over the
-  naturals: `+`, `∸` (truncated), `×` by a constant, `min`, `max`, `if`, map reads; products of two terms for the
-  kernel's nonlinear leaves.
-- **Laws**: a condition on state and params; `forall` makes a map law hold at every key.
-- **Histories**: a machine may keep a log of requests. A *sum* is state equal to Σ over the log of a term of the record;
-  a *query* is an input equal to Σ over the log before the request (what code reads from a database at the request's
-  time); a *relation* between them is proven one record at a time and then assumed. `prune` lets the runtimes drop
-  records the kernel proves can't count any more. See `core/models.ts`'s `windowLimit`, a sliding-window limit whose
-  ceiling is proven at every window end.
-- **Running it**: `interpret(m)` is persistent (searches branch from any state); `compileJs(m)` is what an app ships:
-  maps and the log updated in place, so a step costs the same however long the history. Both refuse params and inputs
-  that aren't naturals below 2^53 and any value past 2^53 − 1, where the proofs over the naturals stop describing the
-  run. The GPU searches refuse a space whose values could pass 2^32 − 1.
+The builders (`core/dsl.ts`) hand out typed values for every name you declare; everything compiles to the plain machine
+the kernel checks, so nothing in them is trusted.
+
+```ts
+import {bool, count, forall, maybe, nat, oneOf, relation, rule, yes} from './core/dsl.ts'
+
+// Maps and flags: a grant is decided once per step; each map is written once; a map law holds at every key.
+const caps = rule('caps')
+  .params({d: nat})
+  .inputs({acct: nat, day: nat, ok: bool})
+  .maps({Acct: 0, Day: 0})
+  .flags(({ok, acct, day, d, Acct, Day}) => ({granted: ok.and(Acct.at(acct).lt(1), Day.at(day).lt(d))}))
+  .step(({acct, day, granted, Acct, Day}) => ({Acct: Acct.bump(acct, granted), Day: Day.bump(day, granted)}))
+const dayCap = caps.law('day cap', ({Day, d}) => forall(k => Day.at(k).atMost(d)))
+
+// Histories: a log of requests, a sum over it (state), a query over it at the request's time (an input the runtime
+// computes), and a relation between them proven one record at a time.
+const window = rule('window limit')
+  .params({w: nat, c: nat, now: nat})
+  .inputs({forced: bool, t: nat})
+  .log('forced', 't')
+  .sums({ours: (r, {now, w}) => count(r.forced.not().and(r.t.atMost(now), now.lt(r.t.plus(w))))})
+  .queries({seen: (r, {t, w}) => count(t.lt(r.t.plus(w)))})
+  .flags(({forced, seen, c}) => ({admitted: forced.not().and(seen.plus(1).atMost(c))}))
+  .keep(({forced, admitted}) => forced.or(admitted))
+  .relations(({t, now, ours, seen}) => [relation(ours.atMost(seen), t.atMost(now))])
+  .prune('t', ({w}) => w) // requests in time order: records older than the window are dropped
+
+// Decisions over facts: optional facts and choices, every case covered.
+const trial = rule('trial').inputs({plan: oneOf('free', 'pro'), spent: maybe(nat), allowance: maybe(nat)})
+const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => spent.isNone,
+  ({plan, spent, allowance}) => plan.match({free: () => spent.match({none: () => yes, some: s => allowance.match({none: () => yes, some: a => s.atLeast(a)})}), pro: () => yes}))
+```
+
+- **Kinds**: `nat`, `upTo(k)`, `bool`, `oneOf(...)`, `maybe(kind)`; their assumptions (a bit is 0 or 1, a choice is in
+  range) go to the kernel by themselves, and `encodeInput`/`encodeParams` turn runtime values into the numbers the
+  machine reads.
+- **Arithmetic** over the naturals: `plus`, `minus` (truncated), `times(k)`, `mul` (a product of two terms), `min`,
+  `max`, `when(cond, a, b)`, `count(cond)`; conditions `lt`, `atMost`, `eq`, `and`, `or`, `not`, `implies`.
+- **Loops** (`loop(...)`): state, `while`, `body`, a `rank` (or a tuple of ranks) that must drop each turn.
+- **Running it**: `rule.interpreter()` is persistent (searches branch from any state); `rule.compiled()` is what an app
+  ships: maps and the log updated in place, so a step costs the same however long the history. Both refuse params and
+  inputs that aren't naturals below 2^53 and any value past 2^53 − 1, where the proofs over the naturals stop describing
+  the run. The GPU searches refuse a space whose values could pass 2^32 − 1.
 
 ## Numbers
 

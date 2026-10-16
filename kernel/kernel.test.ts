@@ -107,7 +107,7 @@ test('products of products stay sound', () => {
     }
   }
   console.log(`degree three: ${proven} monotonicity laws proven, ${falseSeen} false variants (none accepted), ${randomAccepted} random-product leaves accepted (${deep} needing a product of a product), all with no model`)
-  expect(proven).toBeGreaterThan(30) // every true one is proven (checked above); how many are true varies by seed
-  expect(falseSeen).toBeGreaterThan(50)
+  expect(proven).toBeGreaterThan(30 * scale) // every true one is proven (checked above); how many are true varies by seed
+  expect(falseSeen).toBeGreaterThan(50 * scale)
   expect(randomAccepted).toBeGreaterThan(0) // products of products: a few per shard, summed over modal/suite.json's 32 shards
 }, 600000)
