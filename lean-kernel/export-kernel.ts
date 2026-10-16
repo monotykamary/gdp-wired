@@ -335,7 +335,10 @@ example : checkFMMachine ${id}_tampered ${id}_proof = false := by decide +kernel
 
 // Machines with a history through Kern.hmachine_sound (History.lean): Lean builds the plain machine (sums as state,
 // relations in the assumption) and each relation's record goal; the trees and the instance keys are the kernel's.
-function hmachineToLean(id: string, m: Machine, laws: Law[], tampers: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[] = [], corollary?: (ix: (name: string) => number) => string): string {
+// Pruning is left out: its goals are about the runtimes (dropping a record changes no query), the laws and relations
+// are proven over the whole history either way, and Lean's HMachine has no pruning; the TypeScript kernel checks them.
+function hmachineToLean(id: string, pruned: Machine, laws: Law[], tampers: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[] = [], corollary?: (ix: (name: string) => number) => string): string {
+  const m: Machine = {...pruned, history: {...pruned.history!, prune: undefined}}
   const h = m.history!
   const r = proveLaws(m, laws)
   if (!r.proven || !r.proof) throw new Error(`${id}: not proven`)
@@ -384,6 +387,43 @@ theorem ${id}_check : checkHMachine ${id}_machine ${id}_proof ${id}_records = tr
 theorem ${id}_laws : ∀ ρ M hist, HReach ${id}_machine ρ M hist → ∀ e ∈ ${id}_proof, e.law.Holds ρ M :=
   hmachine_sound ${id}_machine ${id}_proof ${id}_records ${id}_check${corollary ? `\n${corollary(ix)}` : ''}
 ${tamperText.join('\n')}`
+}
+
+// The examples (../examples): every proven law of a domain, or of all of them, through the Lean twin: machines by
+// machine_sound, fmachine/fmmachine_sound (flags, maps) or hmachine_sound (histories), loops by loop_sound, decisions
+// as goals by Kern.sound. Usage: bun export-kernel.ts --examples [domain] > Examples.lean
+if (process.argv.includes('--examples')) {
+  const which = process.argv[process.argv.indexOf('--examples') + 1]
+  const {domains} = await import('../examples/index.ts')
+  const parts: string[] = [], theorems: string[] = []
+  let goal = 0
+  for (const d of domains.filter(dd => !which || which.startsWith('--') || dd.domain === which)) {
+    d.cases.forEach((c, i) => {
+      const id = `${d.domain}_${i}`.replace(/[^A-Za-z0-9_]/g, '_')
+      if (c.kind === 'rule') {
+        const m = c.rule.machine
+        parts.push(`-- ${d.domain}: ${c.name}\n${m.history ? hmachineToLean(id, m, c.laws) : m.maps && Object.keys(m.maps).length ? mmachineToLean(id, m, c.laws) : machineToLean(id, m, c.laws)}`)
+        theorems.push(`${id}_laws`)
+      } else if (c.kind === 'loop') {
+        parts.push(`-- ${d.domain}: ${c.name}\n${loopToLean(id, c.loop.loop, c.laws, c.loop.rankTerms)}`)
+        theorems.push(`${id}_halts`)
+      } else for (const dd of c.decisions) {
+        parts.push(toLean({name: `${d.domain}: ${c.name}: ${dd.name}`, goal: dd.goal, tree: grown(dd.goal)}, goal, false))
+        theorems.push(`t${goal++}`)
+      }
+    })
+  }
+  console.log(`import History
+open Kern Cert
+set_option maxRecDepth 100000
+set_option maxHeartbeats 0
+
+/-! The examples (gdp-wired/examples${which && !which.startsWith('--') ? `/${which}.ts` : ''}): the kernel's trees for every proven law, checked by the Lean twin. -/
+
+${parts.join('\n\n')}
+
+${theorems.map(t => `#print axioms ${t}`).join('\n')}`)
+  process.exit(0)
 }
 
 if (process.argv.includes('--history')) {
