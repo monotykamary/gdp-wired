@@ -210,7 +210,7 @@ function substE(e: E, s: Subst): E {
     default: return unreachable(e)
   }
 }
-function substC(c: C, s: Subst): C {
+export function substC(c: C, s: Subst): C {
   if (c.op === 'flag') { const f = s.flags[c.name]; if (!f) throw new Error(`unknown flag ${c.name}`); return f }
   if (c.op === 'not') return {op: 'not', x: substC(c.x, s)}
   if (c.op === 'and' || c.op === 'or') return {op: c.op, xs: c.xs.map(y => substC(y, s))}
@@ -431,6 +431,46 @@ export function progressObligations(m: Machine, laws: Law[], instances: Instance
     ...(m.assume ? [{name: `${p.name}: the request is allowed`, hyps: [...before, {op: 'not', x: substC(m.assume, req)} as C]}] : []),
     {name: `${p.name}: the step it causes`, hyps: [...before, {op: 'not', x: substC(p.then, after)}]},
   ]
+}
+
+// --- step laws: what one step does ------------------------------------------------------------------------------------
+
+// "In every reachable state, every request the machine allows takes a step where `then` holds": `then` reads the state,
+// maps, params and the request as they are before the step by plain names, and the state and maps after it by primed
+// names (s', and M'[k] as a read of the map named M'); flags (decided before the step) may be read too. `when` narrows
+// the requests the law is about; `forall` names a key the law holds at every value of (a free variable of the goal). One
+// goal per law: the precondition, the laws (proven inductive on their own, assumed at
+// the keys the proof names), the request's assumption and `when` as hypotheses, `then` refuted with the primed names read
+// through the step. A machine with a history is its plain machine (sums are state, queries are inputs).
+export type StepLaw = {name: string, when?: C, then: C, forall?: string}
+export function stepLawObligations(machine: Machine, laws: Law[], instances: Instances, sl: StepLaw): Goal[] {
+  const m = machine.history ? historyMachine(machine).machine : machine
+  scope(m, laws)
+  const state = Object.keys(m.state), maps = Object.keys(m.maps ?? {}), flagNames = Object.keys(m.step.flags ?? {})
+  const primes = [...state, ...maps].map(n => `${n}'`)
+  const taken = [...m.params, ...m.inputs, ...state, ...maps]
+  for (const p of primes) if (taken.includes(p)) throw new Error(`${m.name}: ${p} is a name of the machine and a primed name of a step law`)
+  if (sl.forall && [...taken, ...primes].includes(sl.forall)) throw new Error(`step law ${sl.name}'s key ${sl.forall} is already a name of ${m.name}`)
+  inScope(`step law ${sl.name}`, [sl.then], [...taken, ...state.map(n => `${n}'`), ...(sl.forall ? [sl.forall] : [])], [...maps, ...maps.map(n => `${n}'`)], flagNames)
+  if (sl.when) inScope(`step law ${sl.name}'s when`, [sl.when], taken, maps, flagNames)
+  if (!naturalC(sl.then) || (sl.when && !naturalC(sl.when))) throw new Error(`step law ${sl.name}: a negative constant or factor is outside the kernel`)
+  const flags: Subst = {vars: {}, maps: {}, flags: m.step.flags ?? {}}
+  const now = (e: E) => substE(e, flags), nowC = (c: C) => substC(c, flags)
+  const after: Subst = {
+    vars: Object.fromEntries(state.map(n => [`${n}'`, now(m.step.state?.[n] ?? {op: 'var', name: n})])),
+    maps: Object.fromEntries(maps.map(map => {
+      const w = m.step.maps?.[map]
+      return [`${map}'`, (key: E): E => (w ? {op: 'if', c: {op: '=', a: key, b: now(w.key)}, then: now(w.value), else: {op: 'get', map, key}} : {op: 'get', map, key})]
+    })),
+    flags: m.step.flags ?? {},
+  }
+  const before = laws.flatMap(l => (l.forall ? (instances[l.name] ?? []).map(key => substC(l.holds, {vars: {[l.forall!]: key}, maps: {}, flags: {}})) : [l.holds]))
+  return [{name: `${sl.name} @step law`, hyps: [...preOf(m), ...before, ...(m.assume ? [nowC(m.assume)] : []), ...(sl.when ? [nowC(sl.when)] : []), {op: 'not', x: substC(sl.then, after)}]}]
+}
+
+// The laws' proof and every step law's tree: all must check.
+export function checkStepLaws(m: Machine, laws: Law[], stepLaws: StepLaw[], proof: {laws: {instances: Record<string, Instances>, trees: Record<string, Tree>}, instances: Instances, trees: Record<string, Tree>}): boolean {
+  return checkLaws(m, laws, proof.laws) && stepLaws.every(sl => stepLawObligations(m, laws, proof.instances, sl).every(g => proof.trees[g.name] !== undefined && check(g, proof.trees[g.name]!)))
 }
 
 // --- trees: structural induction ---------------------------------------------------------------------------------------

@@ -6,8 +6,8 @@ import {all, any, atMost, bit, get, ite, less, max, min, minus, n, not, plus, pr
 import {type Lin, type Step, add, k, scale, sub} from '../core/solver.ts'
 import {admit, admitFlagged, boundedLoss, capLaws, inflight, inflightLoss, loss, windowCeiling, windowLimit} from '../core/models.ts'
 import {agree, product} from '../next/relational.ts'
-import {type Fold, type Goal, type Instances, type Loop, type Path, type Tree, canon, foldObligations, leafConstraints, linear, loopObligations, obligations, progressObligations, withProducts} from '../kernel/kernel.ts'
-import {grow, proveLaws} from '../kernel/prove.ts'
+import {type Fold, type Goal, type Instances, type Loop, type Path, type StepLaw, type Tree, canon, foldObligations, historyMachine, leafConstraints, linear, loopObligations, obligations, progressObligations, stepLawObligations, substC, withProducts} from '../kernel/kernel.ts'
+import {grow, proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {leanTerms} from './lean-terms.ts'
 
 type Exported = {name: string, goal: Goal, tree: Tree}
@@ -273,15 +273,16 @@ theorem ${id}_laws : ∀ maps ρ, evalC ρ maps ${id}_fold.pre = true → ∀ t,
 // Progress laws through Kern.progress_sound: Lean builds "the request is allowed" and "the step it causes"; a false
 // variant is offered the true one's proof, and Lean computes the check to false.
 type ProgressCase = {id: string, name: string, when: C, then: C, request: Record<string, E>, instances: Instances, tamper?: {what: string, when: C}}
-function mmachineToLean(id: string, m: Machine, laws: Law[], opts: {corollary?: string, tamper?: {what: string, machine: Machine}, progress?: ProgressCase[], free?: string[]} = {}): string {
+function mmachineToLean(id: string, m: Machine, laws: Law[], opts: {corollary?: string, tamper?: {what: string, machine: Machine}, progress?: ProgressCase[], free?: string[], stepLaws?: StepLaw[]} = {}): string {
   const r = proveLaws(m, laws)
   if (!r.proven || !r.proof) throw new Error(`${id}: not proven`)
   const keysOf = [...new Set(laws.flatMap(l => (l.forall ? [l.forall] : [])))]
   const flagNames = Object.keys(m.step.flags ?? {})
-  const primes = opts.progress ? Object.keys(m.state).map(s2 => `${s2}'`) : []
-  const vars = [...m.params, ...m.inputs, ...Object.keys(m.state), ...keysOf, ...keysOf.map(k2 => `${k2}#`), '#', ...flagNames.map(f => `?${f}`), ...(opts.free ?? []), ...primes]
+  const primed = !!(opts.progress || opts.stepLaws?.length)
+  const primes = primed ? Object.keys(m.state).map(s2 => `${s2}'`) : []
+  const vars = [...m.params, ...m.inputs, ...Object.keys(m.state), ...keysOf, ...keysOf.map(k2 => `${k2}#`), '#', ...flagNames.map(f => `?${f}`), ...(opts.free ?? []), ...(opts.stepLaws ?? []).flatMap(sl => (sl.forall ? [sl.forall] : [])), ...primes]
   const baseMaps = [...new Set([...Object.keys(m.maps ?? {}), ...Object.keys(m.step.maps ?? {}), ...[...JSON.stringify(laws).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!)])]
-  const mapNames = [...baseMaps, ...(opts.progress ? baseMaps.map(mp => `${mp}'`) : [])]
+  const mapNames = [...baseMaps, ...(primed ? baseMaps.map(mp => `${mp}'`) : [])]
   const gs = obligations(m, laws, r.proof.instances)
   const enc = (g: Goal, tree = r.proof!.trees[g.name]!) => encode({name: `${id}: ${g.name}`, goal: g, tree}, false, true, vars, mapNames)
   const any0 = enc(gs[0]!, {leaf: []})
@@ -322,6 +323,24 @@ theorem ${pc.id}_holds : ProgressHolds ${id}_machine ${pc.id} :=
 def ${pc.id}_tampered : Progress := ${record(pc.tamper.when)}
 example : checkProgress ${id}_machine ${id}_proof ${pc.id}_tampered = false := by decide +kernel` : ''}`
   })
+  // Step laws through Kern.steplaw_sound: `when` and `then` sent with the flags inlined (as kernel.ts's goal has them).
+  const sp = opts.stepLaws?.length ? proveStepLaws(m, laws, opts.stepLaws) : undefined
+  if (opts.stepLaws?.length && (!sp?.proven || !sp.proof)) throw new Error(`${id}: step laws not proven`)
+  const inlineFlags = (c: C): C => substC(c, {vars: {}, maps: {}, flags: m.step.flags ?? {}})
+  const stepRecords = (opts.stepLaws ?? []).map((sl, j) => {
+    const goal = stepLawObligations(m, laws, sp!.proof!.instances, sl)[0]!
+    const pr = enc(goal, sp!.proof!.trees[goal.name]!)
+    const insts = laws.flatMap((l, li) => (l.forall ? (sp!.proof!.instances[l.name] ?? []).map(key => `(${li}, ${any0.e(key)})`) : []))
+    return `-- Step law: ${sl.name}
+def ${id}_step${j} : StepLaw := ⟨${sl.when ? any0.c(inlineFlags(sl.when)) : TRUE},
+  ${any0.c(inlineFlags(sl.then))},
+  ${list(Object.keys(m.state).map(s2 => `(${ix(s2)}, ${ix(`${s2}'`)})`))},
+  ${list(baseMaps.map(mp => `(${mapNames.indexOf(mp)}, ${mapNames.indexOf(`${mp}'`)})`))},
+  ${list(insts)},
+  (${pr.tab}, ${pr.tree})⟩
+theorem ${id}_step${j}_holds : StepLawHolds ${id}_machine ${id}_step${j} :=
+  steplaw_sound ${id}_machine ${id}_proof ${id}_step${j} ${id}_check (by decide +kernel)`
+  })
   return `-- ${m.name}: ${laws.map(l => l.name).join('; ')}${flagNames.length ? `, with flags ${flagNames.join(', ')}` : ''}  (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')}; maps ${mapNames.map((v2, j) => `${j} ${v2}`).join(', ')})
 def ${id}_machine : FMMachine := ${lit(m)}
 def ${id}_proof : List MEntry := ${list(entries)}
@@ -330,7 +349,7 @@ theorem ${id}_laws : ∀ ρ M, FMReach ${id}_machine ρ M → ∀ e ∈ ${id}_pr
   fmmachine_sound ${id}_machine ${id}_proof ${id}_check${opts.corollary ? `\n${opts.corollary}` : ''}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : FMMachine := ${lit(opts.tamper.machine)}
-example : checkFMMachine ${id}_tampered ${id}_proof = false := by decide +kernel` : ''}${progress.length ? `\n\n${progress.join('\n\n')}` : ''}`
+example : checkFMMachine ${id}_tampered ${id}_proof = false := by decide +kernel` : ''}${progress.length ? `\n\n${progress.join('\n\n')}` : ''}${stepRecords.length ? `\n\n${stepRecords.join('\n\n')}` : ''}`
 }
 
 // Machines with a history through Kern.hmachine_sound (History.lean): Lean builds the plain machine (sums as state,
@@ -407,6 +426,12 @@ if (process.argv.includes('--examples')) {
         const m = c.rule.machine
         parts.push(`-- ${d.domain}: ${c.name}\n${m.history ? hmachineToLean(id, m, c.laws) : m.maps && Object.keys(m.maps).length ? mmachineToLean(id, m, c.laws) : machineToLean(id, m, c.laws)}`)
         theorems.push(`${id}_laws`)
+        if (c.steps?.length) {
+          // Step laws are about the plain machine: a history's sums as state, its queries as inputs (kernel.ts's
+          // historyMachine, whose relations its laws' proof above checks per record).
+          parts.push(`-- ${d.domain}: ${c.name}, step laws\n${mmachineToLean(`${id}s`, m.history ? historyMachine(m).machine : m, c.laws, {stepLaws: c.steps})}`)
+          c.steps.forEach((_, j) => theorems.push(`${id}s_step${j}_holds`))
+        }
       } else if (c.kind === 'loop') {
         parts.push(`-- ${d.domain}: ${c.name}\n${loopToLean(id, c.loop.loop, c.laws, c.loop.rankTerms)}`)
         theorems.push(`${id}_halts`)
@@ -417,6 +442,7 @@ if (process.argv.includes('--examples')) {
     })
   }
   console.log(`import History
+import StepLaw
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0

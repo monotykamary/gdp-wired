@@ -16,8 +16,8 @@
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
 import {type C, type E, type Law, type Machine, type State, interpret, loadJs} from './machine.ts'
-import {type Goal, type Loop, type Tree, check, loopObligations} from '../kernel/kernel.ts'
-import {grow, proveLaws} from '../kernel/prove.ts'
+import {type Goal, type Loop, type StepLaw, type Tree, check, loopObligations} from '../kernel/kernel.ts'
+import {grow, proveLaws, proveStepLaws} from '../kernel/prove.ts'
 
 // --- terms and conditions -------------------------------------------------------------------------------------------
 
@@ -288,6 +288,21 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     return {name, forall: key, holds: out.forall(v(key)).c}
   }
 
+  // A law about one step, for every request the rule allows: `then(before, after)` relates what the step reads (params,
+  // the request, state, maps, flags, sums, queries) to the state, maps and sums after it. `when` narrows the requests.
+  //   counter.stepLaw('never goes back', ({used}, after) => used.atMost(after.used))
+  stepLaw(name: string, then: (before: P & I & S & M & F & Su & Q, after: S & M & Su) => Cond | Forall, when?: (before: P & I & S & M & F & Su & Q) => Cond): StepLaw {
+    const env = this.env() as never
+    const after: Record<string, unknown> = {}
+    for (const [n] of this.spec.state) after[n] = v(`${n}'`)
+    for (const [n] of this.spec.sums) after[n] = v(`${n}'`)
+    for (const [n, init] of this.spec.maps) after[n] = new MapRef(`${n}'`, init)
+    const out = then(env, after as never), w = when ? {when: when(env).c} : {}
+    if (out instanceof Cond) return {name, then: out.c, ...w}
+    const key = `key$${++keyCounter}`
+    return {name, forall: key, then: out.forall(v(key)).c, ...w}
+  }
+
   // A decision: whenever the params and the request meet `given`, `then` holds. Decisions don't read the state.
   decide(name: string, given: (env: P & I) => Cond | Cond[], then: (env: P & I) => Cond): Decision {
     const env = this.env({flags: false, state: false, queries: false}) as never
@@ -453,5 +468,10 @@ export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws:
   const out = proveLaws(r.machine, laws)
   return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {})} : {})}
 }
+export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[]): Verdict {
+  const out = proveStepLaws(r.machine, laws, stepLaws)
+  return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {})} : {})}
+}
+export type {StepLaw}
 export const proveDecision = (d: Decision): Verdict => goalsVerdict([d.goal])
 export const proveLoop = (l: LoopRule<Obj, Obj, Obj>, laws: Law[]): Verdict => goalsVerdict(loopObligations(l.loop, laws, l.rankTerms))

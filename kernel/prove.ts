@@ -3,7 +3,7 @@
 // reads of one map at keys not yet known equal or apart). Its trees go to kernel.check; nothing it says is trusted.
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {type Lin, add, k, scale, solve, sub} from '../core/solver.ts'
-import {type Goal, type Instances, type Path, type Tree, canon, checkLaws, leafConstraints, linear, obligations, truth, unreachable, withProducts} from './kernel.ts'
+import {type Goal, type Instances, type Path, type StepLaw, type Tree, canon, checkLaws, checkStepLaws, historyMachine, leafConstraints, linear, obligations, stepLawObligations, truth, unreachable, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
 function openE(e: E, path: Path, out: Lin[]): void {
@@ -208,6 +208,35 @@ export function proveLaws(m: Machine, laws: Law[]): Report & {proof?: {instances
   const proof = {instances, trees}
   return {proven: true, nodes, leaves, checked: checkLaws(m, laws, proof), proof}
 }
+// Step laws (kernel.ts's stepLawObligations): the laws proven first (they are assumed), then one goal per step law, the
+// every-key laws assumed at every key the step, the laws and the step laws read.
+export function proveStepLaws(m: Machine, laws: Law[], stepLaws: StepLaw[]): Report & {proof?: {laws: {instances: Record<string, Instances>, trees: Record<string, Tree>}, instances: Instances, trees: Record<string, Tree>}} {
+  const base = proveLaws(m, laws)
+  if (!base.proven || !base.proof) return {proven: false, nodes: base.nodes, leaves: base.leaves, ...(base.failed ? {failed: base.failed} : {}), checked: false}
+  const plain = m.history ? historyMachine(m).machine : m
+  const keys = [...readKeys(plain, laws), ...stepLaws.flatMap(sl => [...readKeysC(sl.then), ...(sl.when ? readKeysC(sl.when) : [])])]
+  const instances: Instances = Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, keys]))
+  const trees: Record<string, Tree> = {}
+  let nodes = base.nodes, leaves = base.leaves
+  for (const sl of stepLaws) for (const goal of stepLawObligations(m, laws, instances, sl)) {
+    const out = grow(goal)
+    if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {})}, checked: false}
+    trees[goal.name] = out.tree
+    nodes += out.nodes
+    leaves += countLeaves(out.tree)
+  }
+  const proof = {laws: base.proof, instances, trees}
+  return {proven: true, nodes, leaves, checked: checkStepLaws(m, laws, stepLaws, proof), proof}
+}
+// The key terms a condition reads maps at; a primed map's key is a key of the map before the step too.
+function readKeysC(c: C): E[] {
+  const out: E[] = []
+  const inE = (e: E): void => { if (e.op === 'get') (out.push(e.key), inE(e.key)); else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul') inE(e.a); else if ('a' in e) (inE(e.a), inE(e.b)) }
+  const inC = (x: C): void => (x.op === 'flag' ? undefined : x.op === 'not' ? inC(x.x) : x.op === 'and' || x.op === 'or' ? x.xs.forEach(inC) : (inE(x.a), inE(x.b)))
+  inC(c)
+  return out
+}
+
 export const countLeaves = (t: Tree): number => ('leaf' in t ? 1 : countLeaves(t.yes) + countLeaves(t.no))
 
 // A real counterexample for a goal the prover couldn't close (with products, its witness may be abstract): the free

@@ -103,24 +103,24 @@ const roomsNoVacancyCheck = hotel(() => all(), true)
 const roomsKeepHolder = hotel(({slot, Nights}) => Nights.at(slot).eq(0), false)
 
 // An auction: a bid is taken only if it meets the reserve and beats the high bid by the increment, and the leader can't
-// bid against themselves. `prev` is the high bid it replaced, so "the high bid only rises, by at least the increment"
-// is a law about the state.
+// bid against themselves. "The high bid only rises, by at least the increment" is a law about a step.
 type AuctionEnv = {amount: Term, bidder: Term, high: Term, leader: Term, bids: Term, reserve: Term, increment: Term}
 const auction = (beats: (e: AuctionEnv) => Cond) => rule('auction')
   .params({reserve: nat, increment: nat})
   .inputs({bidder: nat, amount: nat})
-  .state({high: 0, prev: 0, leader: 0, bids: 0})
+  .state({high: 0, leader: 0, bids: 0})
   .flags(e => ({taken: all(beats(e), e.bids.eq(0).or(e.bidder.ne(e.leader)))}))
-  .step(({bidder, amount, high, prev, leader, bids, taken}) => ({
+  .step(({bidder, amount, high, leader, bids, taken}) => ({
     high: when(taken, amount, high),
-    prev: when(taken, high, prev),
     leader: when(taken, bidder, leader),
     bids: when(taken, bids.plus(1), bids),
   }))
 const bidding = auction(({amount, high, reserve, increment}) => all(amount.atLeast(reserve), amount.atLeast(high.plus(increment))))
-const auctionLaws = [
-  bidding.law('the high bid beat the one before by the increment', ({bids, prev, high, increment}) => bids.eq(0).or(prev.plus(increment).atMost(high))),
-  bidding.law('a taken bid meets the reserve', ({bids, high, reserve}) => bids.eq(0).or(high.atLeast(reserve))),
+const auctionLaws = [bidding.law('a taken bid meets the reserve', ({bids, high, reserve}) => bids.eq(0).or(high.atLeast(reserve)))]
+const auctionSteps = (a: typeof bidding) => [
+  a.stepLaw('the high bid never falls', ({high}, after) => high.atMost(after.high)),
+  a.stepLaw('a taken bid beats the high bid by the increment', ({high, increment}, after) => high.plus(increment).atMost(after.high), ({taken}) => taken),
+  a.stepLaw('a refused bid changes nothing', ({high, leader, bids}, after) => after.high.eq(high).and(after.leader.eq(leader)).and(after.bids.eq(bids)), ({taken}) => taken.not()),
 ]
 const auctionBeatsByOne = auction(({amount, high, reserve}) => all(amount.atLeast(reserve), amount.gt(high)))
 const auctionReserveOnly = auction(({amount, reserve, increment}) => amount.atLeast(reserve.plus(increment)))
@@ -255,9 +255,9 @@ export const domain: Domain = {
       {name: 'cancels but keeps the holder', why: 'a cancellation frees the night but leaves the old guest on record', rule: roomsKeepHolder, laws: roomLaws},
     ]),
     machineCase('auction', 'the high bid only rises, each time by at least the increment, and meets the reserve', bidding, auctionLaws, [
-      {name: 'beats the high bid by one', why: 'a bid just above the high bid is taken, ignoring an increment above one', rule: auctionBeatsByOne, laws: auctionLaws},
-      {name: 'checks the reserve only', why: 'a bid is compared with the reserve, not the high bid, so the high bid can fall', rule: auctionReserveOnly, laws: auctionLaws},
-    ]),
+      {name: 'beats the high bid by one', why: 'a bid just above the high bid is taken, ignoring an increment above one', rule: auctionBeatsByOne, laws: auctionLaws, steps: auctionSteps(auctionBeatsByOne)},
+      {name: 'checks the reserve only', why: 'a bid is compared with the reserve, not the high bid, so the high bid can fall', rule: auctionReserveOnly, laws: auctionLaws, steps: auctionSteps(auctionReserveOnly)},
+    ], {steps: auctionSteps(bidding)}),
     machineCase('subscription seats', 'assigned seats never pass the purchased ones, a downgrade refused below the assigned', seating, seatLaws, [
       {name: 'downgrades below the assigned', why: 'a downgrade only checks it leaves a nonnegative seat count', rule: seatsDowngradeBelowAssigned, laws: seatLaws},
     ]),

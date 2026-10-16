@@ -1,6 +1,6 @@
 // The README's "Writing laws" snippets, kept here so they type-check and prove (the suite runs this file).
 //   bun examples/readme.ts
-import {bool, count, forall, maybe, nat, oneOf, proveDecision, proveRule, relation, rule, yes} from '../core/dsl.ts'
+import {bool, count, forall, maybe, nat, oneOf, proveDecision, proveRule, proveSteps, relation, rule, yes} from '../core/dsl.ts'
 
 // Maps and flags: a grant is decided once per step; each map is written once; a map law holds at every key.
 const caps = rule('caps')
@@ -10,6 +10,10 @@ const caps = rule('caps')
   .flags(({ok, acct, day, d, Acct, Day}) => ({granted: ok.and(Acct.at(acct).lt(1), Day.at(day).lt(d))}))
   .step(({acct, day, granted, Acct, Day}) => ({Acct: Acct.bump(acct, granted), Day: Day.bump(day, granted)}))
 const dayCap = caps.law('day cap', ({Day, d}) => forall(k => Day.at(k).atMost(d)))
+
+// Step laws: about one step, for every request the rule allows; `after` reads the state and maps after it.
+const onlyUp = caps.stepLaw('no count goes down', ({Day}, after) => forall(k => Day.at(k).atMost(after.Day.at(k))))
+const once = caps.stepLaw('a grant adds one to its day', ({day, Day}, after) => after.Day.at(day).eq(Day.at(day).plus(1)), ({granted}) => granted)
 
 // Histories: a log of requests, a sum over it (state), a query over it at the request's time (an input the runtime
 // computes), and a relation between them proven one record at a time.
@@ -31,6 +35,7 @@ const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => s
 
 const results = {
   'caps: day cap': proveRule(caps, [dayCap]),
+  'caps: step laws': proveSteps(caps, [dayCap], [onlyUp, once]),
   'window: ceiling': proveRule(window, [window.law('window ceiling', ({ours, c}) => ours.atMost(c))]),
   'trial: fails closed': proveDecision(failsClosed),
 }

@@ -38,7 +38,7 @@ code. If the checker side finds new frontiers the scope may grow; until then:
 | It expresses and proves | It does not (today) |
 | --- | --- |
 | Step machines over naturals: scalars, maps from naturals to naturals (one write per map per step), named step conditions, preconditions on params, assumptions per request | Lists, sets or strings as values: membership, subsets, equality of lists of names |
-| Invariants of the state and params, laws about every key of a map | Laws relating one step's before and after (only invariants of reachable states; "only increases" needs a shadow copy of the old value in the state; a small extension is planned) |
+| Invariants of the state and params, laws about every key of a map; step laws relating one step's before and after (`s'`, `M'[k]`: "only increases", "stays retired") | Laws about runs of two or more steps ("a refund never follows a release" needs a state flag), or orderings beyond progress |
 | Laws about one key of a map at a time, or about scalars | Totals across a map's keys ("the sum of every client's holdings equals in-use") |
 | Histories: sums and queries over a log of requests, relations between them proven one record at a time, pruning | Unbounded recursion over data, quantifiers over sequences other than a machine's own history |
 | Decisions over facts: flags, one-of choices, optional facts, bounded naturals (`match` covers every case) | Datatypes beyond those encodings; division, modulo, reals |
@@ -54,7 +54,7 @@ checks its own kernel in Lean.
 For a sense of the split: in one real codebase with 98 Bend laws and about 1,600 lines of hand proofs, the policy
 decisions, the compare-and-swap storage plans and the state/provider plans fit gdp-wired as it is (with names interned
 to numbers), and gdp-wired can prove more about storage than its Bend proofs state (no revision reuse across keys); the
-lifecycle machine needs the before/after step laws above; the resource and authority checks, built on lists of names as
+lifecycle machine's before/after laws are step laws (as in `release lifecycle` in `examples/`); the resource and authority checks, built on lists of names as
 sets, stay in Bend. `compare/` puts three rules side by side in gdp-wired, Bend and plain Lean, with line counts and
 check times.
 
@@ -62,9 +62,9 @@ check times.
 
 | Part | Trusted? | What it does |
 | --- | --- | --- |
-| `kernel/kernel.ts`, `core/check.ts` | **Yes** | Turns a machine and its laws into goals (the induction rules: step machines with maps and flags, loops with ranks, progress, folds over trees, histories) and checks a proof tree for each: splits on linear atoms, a Fourier–Motzkin derivation at each leaf. Refuses names a machine doesn't declare |
+| `kernel/kernel.ts`, `core/check.ts` | **Yes** | Turns a machine and its laws into goals (the induction rules: step machines with maps and flags, step laws, loops with ranks, progress, folds over trees, histories) and checks a proof tree for each: splits on linear atoms, a Fourier–Motzkin derivation at each leaf. Refuses names a machine doesn't declare |
 | `kernel/prove.ts` | No | Grows the trees. If it's wrong, the kernel rejects the tree |
-| `lean-kernel/` | Optional | The kernel's twin in Lean 4.34.0, each rule proven sound (`Kern.sound`, `machine_sound`, `mmachine_sound`, `fmmachine_sound`, `loop_sound`, `fold_sound`, `progress_sound`, `hmachine_sound`), axioms `propext`, `Classical.choice`, `Quot.sound` only. The exporter sends the kernel's real trees; tampered ones compute to false |
+| `lean-kernel/` | Optional | The kernel's twin in Lean 4.34.0, each rule proven sound (`Kern.sound`, `machine_sound`, `mmachine_sound`, `fmmachine_sound`, `loop_sound`, `fold_sound`, `progress_sound`, `steplaw_sound`, `hmachine_sound`), axioms `propext`, `Classical.choice`, `Quot.sound` only. The exporter sends the kernel's real trees; tampered ones compute to false |
 | `search/`, `synth/`, `hw/` | No | GPU work: counterexample search over every short history, and invariant/rank synthesis. Every hit is replayed by the interpreter or proven by the kernel before it counts |
 | `core/dsl.ts`, the runtimes | No | The builders compile to the kernel's plain values; the interpreter and generated JavaScript are held to the reference evaluator by the conformance test |
 
@@ -91,7 +91,7 @@ The builders (`core/dsl.ts`) hand out typed values for every name you declare; e
 the kernel checks, so nothing in them is trusted.
 
 ```ts
-import {bool, count, forall, maybe, nat, oneOf, relation, rule, yes} from './core/dsl.ts'
+import {bool, count, forall, maybe, nat, oneOf, proveSteps, relation, rule, yes} from './core/dsl.ts'
 
 // Maps and flags: a grant is decided once per step; each map is written once; a map law holds at every key.
 const caps = rule('caps')
@@ -101,6 +101,11 @@ const caps = rule('caps')
   .flags(({ok, acct, day, d, Acct, Day}) => ({granted: ok.and(Acct.at(acct).lt(1), Day.at(day).lt(d))}))
   .step(({acct, day, granted, Acct, Day}) => ({Acct: Acct.bump(acct, granted), Day: Day.bump(day, granted)}))
 const dayCap = caps.law('day cap', ({Day, d}) => forall(k => Day.at(k).atMost(d)))
+
+// Step laws: about one step, for every request the rule allows; `after` reads the state and maps after it.
+const onlyUp = caps.stepLaw('no count goes down', ({Day}, after) => forall(k => Day.at(k).atMost(after.Day.at(k))))
+const once = caps.stepLaw('a grant adds one to its day', ({day, Day}, after) => after.Day.at(day).eq(Day.at(day).plus(1)), ({granted}) => granted)
+proveSteps(caps, [dayCap], [onlyUp, once]) // {proven: true, checked: true}
 
 // Histories: a log of requests, a sum over it (state), a query over it at the request's time (an input the runtime
 // computes), and a relation between them proven one record at a time.

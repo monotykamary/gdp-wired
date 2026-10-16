@@ -191,16 +191,39 @@ const poolLaws = [
 // switch drops it to 0 for good. `before` is the percentage before the last step, so "only increases" is a law.
 const featureFlag = (bug?: 'takes any setting' | 'revives after the kill') => rule('feature flag rollout')
   .inputs({op: oneOf('set', 'kill'), pct: upTo(100)})
-  .state({percent: 0, before: 0, killed: 0})
+  .state({percent: 0, killed: 0})
   .step(({op, pct, percent, killed}) => ({
-    before: percent,
     percent: when(op.is('kill'), 0, when((bug === 'revives after the kill' ? yes : killed.eq(0)).and(bug === 'takes any setting' ? yes : pct.atLeast(percent)), pct, percent)),
     killed: when(op.is('kill'), 1, killed),
   }))
 const flagLaws = [
   featureFlag().law('percent <= 100', ({percent}) => percent.atMost(100)),
-  featureFlag().law('until killed, the percentage only increases', ({killed, before, percent}) => killed.eq(1).or(before.atMost(percent))),
   featureFlag().law('killed means 0%', ({killed, percent}) => killed.eq(0).or(percent.eq(0))),
+]
+// "Only increases" is about a step, not a state: a step law relates the percentage before it to the one after.
+const flagSteps = (f: ReturnType<typeof featureFlag>) => [
+  f.stepLaw('until killed, a step never lowers the percentage', ({percent}, after) => after.killed.eq(1).or(percent.atMost(after.percent))),
+  f.stepLaw('a killed flag stays killed', ({killed}, after) => killed.eq(1).implies(after.killed.eq(1))),
+]
+
+// A release's lifecycle: built (0), staged (1), live (2), retired (3). Each promotion moves it one stage, a rollback
+// takes a live release back to staged, and a retired release stays retired. These are laws about steps.
+const release = (bug?: 'skips staging' | 'revives the retired') => rule('release lifecycle')
+  .inputs({op: oneOf('stage', 'promote', 'rollback', 'retire')})
+  .state({stage: 0, rollbacks: 0})
+  .flags(({op, stage}) => ({rollingBack: op.is('rollback').and(bug === 'revives the retired' ? stage.atLeast(2) : stage.eq(2))}))
+  .step(({op, stage, rollbacks, rollingBack}) => ({
+    stage: when(op.is('stage').and(stage.eq(0)), 1,
+      when(op.is('promote').and(bug === 'skips staging' ? stage.atMost(1) : stage.eq(1)), 2,
+        when(rollingBack, 1, when(op.is('retire').and(stage.eq(2)), 3, stage)))),
+    rollbacks: when(rollingBack, rollbacks.plus(1), rollbacks),
+  }))
+const releaseLaws = [release().law('stage <= 3', ({stage}) => stage.atMost(3))]
+const releaseSteps = (r: ReturnType<typeof release>) => [
+  r.stepLaw('a step moves forward one stage at most', ({stage}, after) => after.stage.atMost(stage.plus(1))),
+  r.stepLaw('only a rollback moves back, live to staged', ({stage, rollingBack}, after) => after.stage.lt(stage).implies(rollingBack.and(stage.eq(2)).and(after.stage.eq(1)))),
+  r.stepLaw('a retired release stays retired', ({stage}, after) => stage.eq(3).implies(after.stage.eq(3))),
+  r.stepLaw('a rollback counts once', ({rollbacks}, after) => after.rollbacks.eq(rollbacks.plus(1)), ({rollingBack}) => rollingBack),
 ]
 
 // Load shedding at the edge: a draining node admits nothing; internal traffic is always welcome otherwise; paid traffic
@@ -266,9 +289,13 @@ export const domain: Domain = {
       {name: 'no per-client cap', why: 'an acquire checks the pool but not the client\'s own cap', rule: pool('no per-client cap'), laws: poolLaws},
     ]),
     machineCase('feature flag rollout', 'the rollout percentage only increases until the kill switch, which holds it at 0', featureFlag(), flagLaws, [
-      {name: 'takes any setting', why: 'a setting below the current percentage is taken', rule: featureFlag('takes any setting'), laws: flagLaws},
-      {name: 'revives after the kill', why: 'a setting after the kill switch turns the flag back on', rule: featureFlag('revives after the kill'), laws: flagLaws},
-    ]),
+      {name: 'takes any setting', why: 'a setting below the current percentage is taken', rule: featureFlag('takes any setting'), laws: flagLaws, steps: flagSteps(featureFlag('takes any setting'))},
+      {name: 'revives after the kill', why: 'a setting after the kill switch turns the flag back on', rule: featureFlag('revives after the kill'), laws: flagLaws, steps: flagSteps(featureFlag('revives after the kill'))},
+    ], {steps: flagSteps(featureFlag())}),
+    machineCase('release lifecycle', 'a release moves forward one stage at a time, back only by a rollback from live, and stays retired', release(), releaseLaws, [
+      {name: 'skips staging', why: 'a promotion takes a built release straight to live', rule: release('skips staging'), laws: releaseLaws, steps: releaseSteps(release('skips staging'))},
+      {name: 'revives the retired', why: 'a rollback also takes a retired release back to staged', rule: release('revives the retired'), laws: releaseLaws, steps: releaseSteps(release('revives the retired'))},
+    ], {steps: releaseSteps(release())}),
     decisionCase('load shedding', 'draining sheds everything, unmeasured free traffic is shed, admitted outside traffic leaves headroom', shedDecisions, [
       {name: 'internal traffic is always admitted', why: 'a draining node sheds internal traffic too', decision: shedInternalAlways},
       {name: 'free traffic within the queue is admitted', why: 'free traffic also needs a measured latency within the SLO', decision: shedFreeUnmeasured},

@@ -47,6 +47,7 @@ const battery: {name: string, cwd: string, cmd: string[], env?: Record<string, s
   {name: 'examples', cwd: 'examples', cmd: ['bun', 'test', 'examples.test.ts'], env: {DOMAIN: 'finance'}, ms: 180_000},
   {name: 'runtime', cwd: 'core', cmd: ['bun', 'test', 'runtime.test.ts'], ms: 180_000},
   {name: 'history', cwd: 'kernel', cmd: ['bun', 'test', 'history.test.ts'], ms: 240_000},
+  {name: 'steplaw', cwd: 'kernel', cmd: ['bun', 'test', 'steplaw.test.ts'], ms: 240_000},
   {name: 'kernel fuzz', cwd: 'kernel', cmd: ['bun', 'test', 'kernel.test.ts'], env: {FUZZ_SCALE: '0.5'}, ms: 400_000},
 ]
 function runBattery(): {killedBy?: string, ms: number} {

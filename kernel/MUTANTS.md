@@ -23,9 +23,10 @@ The 19 that survive change nothing the kernel's soundness or answers rest on:
 | kernel.ts:290 `k >= 0` → `k > 0` | stricter, as above |
 | kernel.ts:310, 322 | text in an error message and a goal's label |
 | kernel.ts:389 `.some` → `.every` | a rank reading an input is refused by the scope check of the rank anyway |
+| kernel.ts:473 inner `.every` → `.some` | `stepLawObligations` makes one goal per step law |
 | check.ts:17 (×4) `> 0` → `>= 0` | a zero multiplier: 0·row is a valid (useless) combination, still sound |
 | check.ts:23 `of < i` → `<=` | the row must exist (`row !== undefined`), which already excludes `of = i` |
 | check.ts:23 (×2) `g > 0` → `g >= 0` | g = 0 makes every variable coefficient fail the divisibility test (NaN); a row with no variable is already a contradiction or rejected |
 
-`kernel/refusals.test.ts` and `kernel/tamper.test.ts` hold the tests the run asked for; the run's logs are in
+`kernel/refusals.test.ts` and `kernel/tamper.test.ts` hold the tests the run asked for (and `kernel/steplaw.test.ts` the step-law ones: the 8 mutants of `stepLawObligations` and `checkStepLaws`, 7 caught); the run's logs are in
 `runs/modal/mutants-all2/` and `runs/modal/mutants-surv/` (local).

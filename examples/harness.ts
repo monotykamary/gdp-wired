@@ -7,7 +7,7 @@
 // Decisions are sampled (given ⇒ then on every draw, a counterexample draw for a broken one); loops are run to the end,
 // their invariants checked every turn and their rank seen to drop.
 import {type C, type E, type Law, type Machine, type State, evalC, evalE, interpret, loadJs} from '../core/machine.ts'
-import {type Decision, type LoopRule, type Rule, type Verdict, proveDecision, proveLoop, proveRule} from '../core/dsl.ts'
+import {type Decision, type LoopRule, type Rule, type StepLaw, type Verdict, proveDecision, proveLoop, proveRule, proveSteps} from '../core/dsl.ts'
 
 // The builders' types are as wide as any example's; a case only needs what the harness reads.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,13 +15,13 @@ type AnyRule = Rule<any, any, any, any, any, any, any, any>
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyLoop = LoopRule<any, any, any>
 export type Broken<T> = {name: string, why: string} & T
-export type RuleCase = {kind: 'rule', name: string, about: string, rule: AnyRule, laws: Law[], broken: Broken<{rule: AnyRule, laws: Law[]}>[], bound?: number, depth?: number}
+export type RuleCase = {kind: 'rule', name: string, about: string, rule: AnyRule, laws: Law[], steps?: StepLaw[], broken: Broken<{rule: AnyRule, laws: Law[], steps?: StepLaw[]}>[], bound?: number, depth?: number}
 export type DecisionCase = {kind: 'decisions', name: string, about: string, decisions: Decision[], broken: Broken<{decision: Decision}>[], bound?: number}
 export type LoopCase = {kind: 'loop', name: string, about: string, loop: AnyLoop, laws: Law[], broken: Broken<{loop: AnyLoop, laws: Law[]}>[], bound?: number}
 export type Case = RuleCase | DecisionCase | LoopCase
 export type Domain = {domain: string, about: string, cases: Case[]}
 
-export const machineCase = (name: string, about: string, rule: AnyRule, laws: Law[], broken: Broken<{rule: AnyRule, laws: Law[]}>[] = [], opts: {bound?: number, depth?: number} = {}): RuleCase => ({kind: 'rule', name, about, rule, laws, broken, ...opts})
+export const machineCase = (name: string, about: string, rule: AnyRule, laws: Law[], broken: Broken<{rule: AnyRule, laws: Law[], steps?: StepLaw[]}>[] = [], opts: {bound?: number, depth?: number, steps?: StepLaw[]} = {}): RuleCase => ({kind: 'rule', name, about, rule, laws, broken, ...opts})
 export const decisionCase = (name: string, about: string, decisions: Decision[], broken: Broken<{decision: Decision}>[] = [], opts: {bound?: number} = {}): DecisionCase => ({kind: 'decisions', name, about, decisions, broken, ...opts})
 export const loopCase = (name: string, about: string, loop: AnyLoop, laws: Law[], broken: Broken<{loop: AnyLoop, laws: Law[]}>[] = [], opts: {bound?: number} = {}): LoopCase => ({kind: 'loop', name, about, loop, laws, broken, ...opts})
 
@@ -50,9 +50,22 @@ const lawHolds = (m: Machine, law: Law, params: Record<string, number>, st: Stat
 const cellsOf = (st: State) => JSON.stringify(Object.fromEntries(Object.entries(st.maps).map(([n, cells]) => [n, [...cells.entries()].sort((a, b) => a[0] - b[0])])))
 
 type Run = {steps: number, mismatch?: string, violation?: {law: string, params: Record<string, number>, trace: Record<string, number>[]}}
+// A step law at one step: `then` read with the state before (plain names), the request, its queries and flags, and the
+// state and maps after (primed names).
+function stepHolds(m: Machine, run: ReturnType<typeof interpret>, sl: StepLaw, params: Record<string, number>, before: State, input: Record<string, number>, after: State): boolean {
+  const env: Record<string, number> = {...params, ...input, ...run.queries(params, before, input)}
+  for (const [name, c] of Object.entries(m.step.flags ?? {})) env[`?${name}`] = evalC(c, env, before, m) ? 1 : 0
+  if (sl.when && !evalC(sl.when, env, before, m)) return true
+  const both: State = {
+    scalars: {...before.scalars, ...Object.fromEntries(Object.entries(after.scalars).map(([n, v]) => [`${n}'`, v]))},
+    maps: {...before.maps, ...Object.fromEntries(Object.entries(after.maps).map(([n, cells]) => [`${n}'`, cells]))},
+  }
+  const m2: Machine = {...m, maps: {...m.maps, ...Object.fromEntries(Object.entries(m.maps ?? {}).map(([n, init]) => [`${n}'`, init]))}}
+  return evalC(sl.then, env, both, m2)
+}
 // Random runs from the start: params and requests drawn by their kinds (and filtered by pre and assume), the prune order
 // sent nondecreasing; the interpreter and the compiled code stepped side by side; every law checked in every state.
-export function runRule(rule: AnyRule, laws: Law[], opts: {trials: number, depth: number, bound: number}): Run {
+export function runRule(rule: AnyRule, laws: Law[], opts: {trials: number, depth: number, bound: number}, stepLaws: StepLaw[] = []): Run {
   const m = rule.machine, run = interpret(m), gen = loadJs(m), order = rule.orderedBy
   let steps = 0
   for (let trial = 0; trial < opts.trials; trial++) {
@@ -67,12 +80,14 @@ export function runRule(rule: AnyRule, laws: Law[], opts: {trials: number, depth
       if (order) input[order] = t + rand(3)
       if (!allowed(m, run, params, st, input)) continue
       if (order) t = input[order]!
+      const before = st
       st = run.step(params, st, input)
       g = gen.step(params, g, input)
       trace.push(input)
       i++, steps++
       if (JSON.stringify(g.scalars) !== JSON.stringify(st.scalars) || cellsOf(g) !== cellsOf(st)) return {steps, mismatch: `compiled ${JSON.stringify(g.scalars)} vs interpreted ${JSON.stringify(st.scalars)} after ${JSON.stringify(trace)}`}
       for (const law of laws) if (!lawHolds(m, law, params, st, opts.bound)) return {steps, violation: {law: law.name, params, trace: [...trace]}}
+      for (const sl of stepLaws) if (!stepHolds(m, run, sl, params, before, input, st)) return {steps, violation: {law: sl.name, params, trace: [...trace]}}
     }
   }
   return {steps}
@@ -137,16 +152,16 @@ export function checkCase(c: Case, scale = 1): Finding[] {
   const bound = c.bound ?? 4
   if (c.kind === 'rule') {
     const depth = c.depth ?? 12
-    const v = proveRule(c.rule, c.laws)
+    const v = c.steps?.length ? proveSteps(c.rule, c.laws, c.steps) : proveRule(c.rule, c.laws)
     note('laws', 'kernel', v.proven && v.checked, verdictText(v))
-    const r = runRule(c.rule, c.laws, {trials: 300 * scale, depth, bound})
+    const r = runRule(c.rule, c.laws, {trials: 300 * scale, depth, bound}, c.steps)
     note('laws', 'runs', !r.violation && !r.mismatch && r.steps > 0, r.mismatch ?? (r.violation ? `${r.violation.law} broken: params ${JSON.stringify(r.violation.params)}, requests ${JSON.stringify(r.violation.trace)}` : `${r.steps} steps, every law held, compiled = interpreted`))
     for (const b of c.broken) {
-      const bv = proveRule(b.rule, b.laws)
+      const bv = b.steps?.length ? proveSteps(b.rule, b.laws, b.steps) : proveRule(b.rule, b.laws)
       note(b.name, 'kernel', !bv.proven, verdictText(bv))
       let found: Run | undefined
       for (const [trials, d, bd] of [[400, depth, bound], [1500, depth * 2, 2], [1500, depth * 2, bound * 2]] as const) {
-        const rb = runRule(b.rule, b.laws, {trials: trials * scale, depth: d, bound: bd})
+        const rb = runRule(b.rule, b.laws, {trials: trials * scale, depth: d, bound: bd}, b.steps)
         if (rb.mismatch) { found = rb; break }
         if (rb.violation) { found = rb; break }
       }
