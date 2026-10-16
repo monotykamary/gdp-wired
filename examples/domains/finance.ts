@@ -109,6 +109,15 @@ const vestingClaimsGrant = vesting.step(({op, amount, grant, rate, cliff, ticks,
   claimed: when(op.is('claim').and(claimed.plus(amount).atMost(grant)), claimed.plus(amount), claimed),
 }))
 
+// Overtime pay: the first 8 hours of a shift at 2 units an hour, the rest at 3; pay never passes 3 units per hour worked.
+// (Also a regression: Lean once rejected this tree, comparing a cut's coefficient lists without trimming trailing zeros.)
+const overtime = rule('overtime pay')
+  .inputs({hours: upTo(16)})
+  .state({worked: 0, pay: 0})
+  .step(({hours, worked, pay}) => ({worked: worked.plus(hours), pay: pay.plus(min(hours, 8).times(2)).plus(hours.minus(8).times(3))}))
+const overtimeBound = overtime.law('pay <= 3 per hour worked', ({pay, worked}) => pay.atMost(worked.times(3)))
+const overtimeTriple = overtime.step(({hours, worked, pay}) => ({worked: worked.plus(hours), pay: pay.plus(min(hours, 8).times(2)).plus(hours.minus(8).times(5))}))
+
 // A credit decision: approve only with a known income, debt-to-income at most 40%, and a known score of at least 600 (a
 // score is 300..850, here 0..550 above 300).
 const credit = rule('loan approval').inputs({income: maybe(nat), debt: nat, score: maybe(upTo(550)), cosigned: bool})
@@ -160,6 +169,9 @@ export const domain: Domain = {
     ]),
     machineCase('vesting with a cliff', 'claims never pass what has vested, and vesting never passes the grant', vesting, vestingLaws, [
       {name: 'claims against the grant', why: 'a claim is checked against the whole grant, not what has vested', rule: vestingClaimsGrant, laws: [vestingClaimsGrant.law('claimed <= vested', ({claimed, vested}) => claimed.atMost(vested))]},
+    ]),
+    machineCase('overtime pay', 'pay never passes three units per hour worked', overtime, [overtimeBound], [
+      {name: 'overtime at 5', why: 'hours past 8 paid at 5 units break the bound on a 16-hour shift (16 + 40 > 48); at 4 it would still hold', rule: overtimeTriple, laws: [overtimeTriple.law('pay <= 3 per hour worked', ({pay, worked}) => pay.atMost(worked.times(3)))]},
     ]),
     decisionCase('loan approval', 'missing facts fail closed and approvals respect debt-to-income', creditDecisions, [
       {name: 'a cosigner is always enough', why: 'a cosigner does not supply the missing income or score', decision: creditWrong},

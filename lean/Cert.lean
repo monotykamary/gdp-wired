@@ -70,8 +70,35 @@ deriving Repr
 def combineRow (ma mb : Int) (A B : Row) : Row :=
   ⟨addL (scaleL ma A.coefs) (scaleL mb B.coefs), ma * A.const + mb * B.const⟩
 
+-- Coefficient lists compare up to trailing zeros: a combination keeps the longer list's length, while a certificate
+-- may write the cut's quotient without its trailing zeros. Trimming changes no dot product (dot_trimZ).
+def trimZ : List Int → List Int
+  | [] => []
+  | a :: as => match trimZ as with
+    | [] => if a = 0 then [] else [a]
+    | t => a :: t
+
+theorem dot_trimZ : ∀ (a x : List Int), dot (trimZ a) x = dot a x
+  | [], _ => rfl
+  | _ :: _, [] => by simp only [dot_nil_right]
+  | a :: as, y :: ys => by
+    have ih := dot_trimZ as ys
+    have key : trimZ (a :: as) = (match trimZ as with | [] => if a = 0 then [] else [a] | t => a :: t) := rfl
+    rw [key]
+    cases h : trimZ as with
+    | nil =>
+      rw [h] at ih
+      have h0 : dot as ys = 0 := by rw [← ih]; simp [dot]
+      by_cases ha : a = 0
+      · simp [ha, dot, h0]
+      · simp [ha, dot, h0]
+    | cons t0 ts =>
+      rw [h] at ih
+      simp only [dot]
+      rw [ih]
+
 def cutOk (A : Row) (g : Int) (q : List Int) (c : Int) : Bool :=
-  decide (1 ≤ g) && decide (A.coefs = scaleL g q) && decide (g * c ≤ A.const + g - 1)
+  decide (1 ≤ g) && decide (trimZ A.coefs = trimZ (scaleL g q)) && decide (g * c ≤ A.const + g - 1)
 
 def replay (inputs : List Row) : List Step → List Row → Option (List Row)
   | [], rows => some rows
@@ -162,7 +189,9 @@ theorem replay_holds (inputs : List Row) (x : List Int) (hx : ∀ r ∈ inputs, 
             simp only [cutOk, Bool.and_eq_true, decide_eq_true_eq] at hok
             obtain ⟨⟨hg, hq⟩, hc⟩ := hok
             have eA := hrows A (List.mem_of_getElem? hA)
-            simp only [eval, hq, dot_scaleL] at eA
+            have hdot : dot A.coefs x = g * dot q x := by
+              rw [← dot_trimZ A.coefs x, hq, dot_trimZ, dot_scaleL]
+            simp only [eval, hdot] at eA
             exact cut_sound g (dot q x) A.const c hg eA hc
         · exact absurd h (by simp)
       · exact absurd h (by simp)
