@@ -1,0 +1,1 @@
+[{"name": "fuzz-6", "cmd": "FUZZ_SEED=6 bun test kernel.test.ts 2>&1", "cwd": "kernel", "cpu": 1.0}]

@@ -1,0 +1,69 @@
+{
+ "jobs": [
+  {
+   "search": 0
+  },
+  {
+   "search": 1
+  },
+  {
+   "search": 2
+  },
+  {
+   "search": 2,
+   "what": "in-flight cap 2: s <= b + 5 (depth 9)",
+   "space": {
+    "depth": 9,
+    "bound": 2
+   }
+  },
+  {
+   "search": 3
+  },
+  {
+   "search": 2,
+   "what": "in-flight cap 2: s <= b + 5 (depth 10)",
+   "space": {
+    "depth": 10,
+    "bound": 2
+   },
+   "warm": false
+  },
+  {
+   "search": 1,
+   "what": "in-flight cap 2: s <= b + 4 (depth 10)",
+   "space": {
+    "depth": 10,
+    "bound": 2
+   },
+   "warm": false
+  },
+  {
+   "search": 2,
+   "what": "in-flight cap 2: s <= b + 5 (depth 11)",
+   "space": {
+    "depth": 11,
+    "bound": 2
+   },
+   "warm": false
+  },
+  {
+   "search": 2,
+   "what": "in-flight cap 2: s <= b + 5 (bound 3, depth 8)",
+   "space": {
+    "depth": 8,
+    "bound": 3
+   },
+   "warm": false
+  },
+  {
+   "search": 2,
+   "what": "in-flight cap 2: s <= b + 5 (depth 12)",
+   "space": {
+    "depth": 12,
+    "bound": 2
+   },
+   "warm": false
+  }
+ ]
+}

@@ -1,0 +1,7 @@
+[submodule "vendor/handwired"]
+	path = vendor/handwired
+	url = https://github.com/monotykamary/handwired.git
+	branch = u32-words
+[submodule "vendor/gdp-ts"]
+	path = vendor/gdp-ts
+	url = https://github.com/rauchg/gdp-ts.git

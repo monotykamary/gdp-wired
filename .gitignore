@@ -1,0 +1,24 @@
+# Local only: run logs and results, and private case studies
+/runs/
+/private/
+runs-kernel.log
+
+# Build output
+node_modules/
+__pycache__/
+*.olean
+*.ilean
+.lake/
+core/generated/
+modal/.live/
+
+# Bend builds of the enumeration: Mach-O binaries and Metal libraries (rebuilt by `bend kK.bend`)
+/enum/base
+/enum/k[0-9]*
+!/enum/k*.bend
+/enum/*.gpu
+/perf/bend-enum/c/
+/perf/bend-enum/*.log
+/perf/bend-enum/modal-l4-debug.json
+
+.DS_Store

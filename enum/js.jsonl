@@ -1,0 +1,5 @@
+{"k":20,"reachable":59049,"violations":2646,"expected":1240748431,"jsMs":22.1}
+{"k":24,"reachable":531441,"violations":17199,"expected":2576841102,"jsMs":102.5}
+{"k":28,"reachable":4782969,"violations":138915,"expected":1716719882,"jsMs":1398.7}
+{"k":30,"reachable":14348907,"violations":361179,"expected":855026720,"jsMs":4421.7}
+{"k":31,"reachable":28697814,"violations":583443,"expected":1710144229,"jsMs":8612.9}

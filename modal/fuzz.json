@@ -1,0 +1,194 @@
+[
+{
+"name": "fuzz-12345",
+"cmd": "FUZZ_SEED=12345 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-1",
+"cmd": "FUZZ_SEED=1 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-2",
+"cmd": "FUZZ_SEED=2 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-3",
+"cmd": "FUZZ_SEED=3 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-4",
+"cmd": "FUZZ_SEED=4 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-5",
+"cmd": "FUZZ_SEED=5 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-6",
+"cmd": "FUZZ_SEED=6 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-7",
+"cmd": "FUZZ_SEED=7 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-8",
+"cmd": "FUZZ_SEED=8 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-9",
+"cmd": "FUZZ_SEED=9 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-10",
+"cmd": "FUZZ_SEED=10 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-11",
+"cmd": "FUZZ_SEED=11 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-12",
+"cmd": "FUZZ_SEED=12 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-13",
+"cmd": "FUZZ_SEED=13 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-14",
+"cmd": "FUZZ_SEED=14 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-15",
+"cmd": "FUZZ_SEED=15 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-16",
+"cmd": "FUZZ_SEED=16 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-17",
+"cmd": "FUZZ_SEED=17 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-18",
+"cmd": "FUZZ_SEED=18 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-19",
+"cmd": "FUZZ_SEED=19 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-20",
+"cmd": "FUZZ_SEED=20 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-21",
+"cmd": "FUZZ_SEED=21 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-22",
+"cmd": "FUZZ_SEED=22 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-23",
+"cmd": "FUZZ_SEED=23 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-24",
+"cmd": "FUZZ_SEED=24 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-25",
+"cmd": "FUZZ_SEED=25 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-26",
+"cmd": "FUZZ_SEED=26 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-27",
+"cmd": "FUZZ_SEED=27 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-28",
+"cmd": "FUZZ_SEED=28 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-29",
+"cmd": "FUZZ_SEED=29 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-30",
+"cmd": "FUZZ_SEED=30 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "fuzz-31",
+"cmd": "FUZZ_SEED=31 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+}
+]

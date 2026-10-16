@@ -1,0 +1,18 @@
+[
+{
+"name": "grant-scale",
+"cmd": "bun grant-scale.ts 2>&1",
+"cwd": "perf",
+"cpu": 2.0,
+"memory": 8192,
+"timeout": 900
+},
+{
+"name": "window-scale",
+"cmd": "bun window-scale.ts 2>&1",
+"cwd": "perf",
+"cpu": 2.0,
+"memory": 8192,
+"timeout": 900
+}
+]

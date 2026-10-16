@@ -1,0 +1,8 @@
+{
+ "H100": {
+  "error": "TimeoutExpired(['bash', '-c', 'cd /work/bend && ./k24'], 300)"
+ },
+ "L4": {
+  "error": "TimeoutExpired(['bash', '-c', 'cd /work/bend && ./k24'], 300)"
+ }
+}

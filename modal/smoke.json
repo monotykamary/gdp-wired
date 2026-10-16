@@ -1,0 +1,6 @@
+[
+ {"name": "run-kernel", "cmd": "bun run-kernel.ts", "cwd": "kernel"},
+ {"name": "run-more", "cmd": "bun run-more.ts", "cwd": "kernel"},
+ {"name": "run-progress", "cmd": "bun run-progress.ts", "cwd": "kernel"},
+ {"name": "lean-trees", "cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean Trees.lean | tail -5; echo done", "cwd": "lean-kernel", "cpu": 4}
+]

@@ -1,0 +1,490 @@
+[
+{
+"name": "fuzz-12345",
+"cmd": "FUZZ_SEED=12345 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-1",
+"cmd": "FUZZ_SEED=1 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-2",
+"cmd": "FUZZ_SEED=2 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-3",
+"cmd": "FUZZ_SEED=3 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-4",
+"cmd": "FUZZ_SEED=4 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-5",
+"cmd": "FUZZ_SEED=5 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-6",
+"cmd": "FUZZ_SEED=6 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-7",
+"cmd": "FUZZ_SEED=7 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-8",
+"cmd": "FUZZ_SEED=8 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-9",
+"cmd": "FUZZ_SEED=9 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-10",
+"cmd": "FUZZ_SEED=10 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-11",
+"cmd": "FUZZ_SEED=11 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-12",
+"cmd": "FUZZ_SEED=12 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-13",
+"cmd": "FUZZ_SEED=13 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-14",
+"cmd": "FUZZ_SEED=14 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-15",
+"cmd": "FUZZ_SEED=15 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-16",
+"cmd": "FUZZ_SEED=16 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-17",
+"cmd": "FUZZ_SEED=17 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-18",
+"cmd": "FUZZ_SEED=18 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-19",
+"cmd": "FUZZ_SEED=19 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-20",
+"cmd": "FUZZ_SEED=20 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-21",
+"cmd": "FUZZ_SEED=21 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-22",
+"cmd": "FUZZ_SEED=22 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-23",
+"cmd": "FUZZ_SEED=23 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-24",
+"cmd": "FUZZ_SEED=24 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-25",
+"cmd": "FUZZ_SEED=25 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-26",
+"cmd": "FUZZ_SEED=26 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-27",
+"cmd": "FUZZ_SEED=27 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-28",
+"cmd": "FUZZ_SEED=28 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-29",
+"cmd": "FUZZ_SEED=29 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-30",
+"cmd": "FUZZ_SEED=30 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fuzz-31",
+"cmd": "FUZZ_SEED=31 bun test kernel.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "run-kernel",
+"cmd": "bun run-kernel.ts 2>&1",
+"cwd": "kernel"
+},
+{
+"name": "run-more",
+"cmd": "bun run-more.ts 2>&1",
+"cwd": "kernel"
+},
+{
+"name": "run-progress",
+"cmd": "bun run-progress.ts 2>&1",
+"cwd": "kernel"
+},
+{
+"name": "probe-products",
+"cmd": "bun probe-products.ts 2>&1",
+"cwd": "kernel"
+},
+{
+"name": "probe-pugh",
+"cmd": "bun probe-pugh.ts 2>&1",
+"cwd": "kernel"
+},
+{
+"name": "run-proofs",
+"cmd": "bun run-proofs.ts 2>&1",
+"cwd": "core"
+},
+{
+"name": "run-strengthen",
+"cmd": "bun run-strengthen.ts 2>&1",
+"cwd": "core"
+},
+{
+"name": "run-relational",
+"cmd": "bun run-relational.ts 2>&1",
+"cwd": "next"
+},
+{
+"name": "run-isolation",
+"cmd": "bun run-isolation.ts 2>&1",
+"cwd": "next"
+},
+{
+"name": "check-cpu",
+"cmd": "bun check-cpu.ts 2>&1",
+"cwd": "search"
+},
+{
+"name": "core-solver-test",
+"cmd": "bun test solver.test.ts 2>&1",
+"cwd": "core"
+},
+{
+"name": "sat-tests",
+"cmd": "bun test solver.test.ts 2>&1",
+"cwd": "sat",
+"cpu": 2.0
+},
+{
+"name": "lean-trees",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean Trees.lean 2>&1 | tail -3; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0
+},
+{
+"name": "history-11",
+"cmd": "FUZZ_SEED=11 FUZZ_SCALE=4 bun test history.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "history-22",
+"cmd": "FUZZ_SEED=22 FUZZ_SCALE=4 bun test history.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "history-33",
+"cmd": "FUZZ_SEED=33 FUZZ_SCALE=4 bun test history.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "history-44",
+"cmd": "FUZZ_SEED=44 FUZZ_SCALE=4 bun test history.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "history-55",
+"cmd": "FUZZ_SEED=55 FUZZ_SCALE=4 bun test history.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "history-66",
+"cmd": "FUZZ_SEED=66 FUZZ_SCALE=4 bun test history.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "history-77",
+"cmd": "FUZZ_SEED=77 FUZZ_SCALE=4 bun test history.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "history-88",
+"cmd": "FUZZ_SEED=88 FUZZ_SCALE=4 bun test history.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0
+},
+{
+"name": "compile-11",
+"cmd": "FUZZ_SEED=11 FUZZ_SCALE=4 bun test compile.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "compile-22",
+"cmd": "FUZZ_SEED=22 FUZZ_SCALE=4 bun test compile.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "compile-33",
+"cmd": "FUZZ_SEED=33 FUZZ_SCALE=4 bun test compile.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "compile-44",
+"cmd": "FUZZ_SEED=44 FUZZ_SCALE=4 bun test compile.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "compile-55",
+"cmd": "FUZZ_SEED=55 FUZZ_SCALE=4 bun test compile.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "compile-66",
+"cmd": "FUZZ_SEED=66 FUZZ_SCALE=4 bun test compile.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "compile-77",
+"cmd": "FUZZ_SEED=77 FUZZ_SCALE=4 bun test compile.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "compile-88",
+"cmd": "FUZZ_SEED=88 FUZZ_SCALE=4 bun test compile.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "runtime-11",
+"cmd": "FUZZ_SEED=11 FUZZ_SCALE=4 bun test runtime.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "runtime-22",
+"cmd": "FUZZ_SEED=22 FUZZ_SCALE=4 bun test runtime.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "runtime-33",
+"cmd": "FUZZ_SEED=33 FUZZ_SCALE=4 bun test runtime.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "runtime-44",
+"cmd": "FUZZ_SEED=44 FUZZ_SCALE=4 bun test runtime.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "runtime-55",
+"cmd": "FUZZ_SEED=55 FUZZ_SCALE=4 bun test runtime.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "runtime-66",
+"cmd": "FUZZ_SEED=66 FUZZ_SCALE=4 bun test runtime.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "runtime-77",
+"cmd": "FUZZ_SEED=77 FUZZ_SCALE=4 bun test runtime.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "runtime-88",
+"cmd": "FUZZ_SEED=88 FUZZ_SCALE=4 bun test runtime.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "fits",
+"cmd": "bun test fits.test.ts 2>&1",
+"cwd": "search",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "hw-check-cpu",
+"cmd": "bun check-cpu.ts 2>&1",
+"cwd": "hw",
+"cpu": 2.0,
+"timeout": 900
+},
+{
+"name": "hw-check-more",
+"cmd": "bun check-more.ts 2>&1",
+"cwd": "hw",
+"cpu": 2.0,
+"timeout": 900
+},
+{
+"name": "lean-big",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800,
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean TreesBig.lean 2>&1 | tail -3; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
+},
+{
+"name": "lean-history",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800,
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o History.olean History.lean && lean HistoryTrees.lean 2>&1 | tail -3; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
+}
+]
