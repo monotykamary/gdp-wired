@@ -81,7 +81,7 @@ How the untrusted parts are held to the trusted ones, automatically:
 - **Tampering and mutation** (`kernel/tamper.test.ts`, `kernel/refusals.test.ts`, `kernel/mutants.ts`): real proofs
   broken structurally or offered for weakened goals that have a model must be rejected, every refusal the kernel makes is
   exercised, and every one-operator mutation of `kernel.ts` and `check.ts` is run against the tests to find what they
-  don't notice.
+  don't notice: 222 of 241 mutants are caught, and the 19 left are equivalent (`kernel/MUTANTS.md`).
 - **Fuzz**: the kernel never accepts a refutation of something with a model (`kernel/kernel.test.ts`), and laws proven
   over histories hold on every run (`kernel/history.test.ts`).
 
