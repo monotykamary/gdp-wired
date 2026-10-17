@@ -13,6 +13,28 @@ early. Handwired's own loop runner runs it on the CPU, and its WGSL writer (`loo
 | `run.ts` | The suite on a GPU through Dawn (Metal on a Mac, Vulkan on Linux); `--hand` also runs search/compile.ts's hand-written shader on the same device; `--big`, `--huge` for depths 10–12; `--low n` forces slices, to test them on a small space |
 | `run_gpu.py` | The same on a Modal GPU (H100, L4), app `hw-gpu-words`, 15-minute timeout, cancelled if the client stops |
 
+| `step-searches.ts` | Step-law and k-step-law searches: the examples' own laws and broken variants (release lifecycle, auction) and the composition examples (the countdown refinement, the interleaved counters), each with whether a run must break it |
+| `check-steps.ts` | Those searches on Handwired's CPU runner against `../core/watch.ts` reading every candidate's run on the interpreter (no code shared with the compiled program), whole spaces; then a fuzz of random machines and random 1-, 2- and 3-step laws where Handwired, the watcher and the kernel must agree: a law the kernel proves has no breaking run |
+
+**Laws over steps.** A `Law` and a `StepLaw` are each one description read three ways: the kernel proves it about every
+run (`kernel.ts`), `core/watch.ts` reads it on one run (the examples' random runs, every replay), and `compile.ts` searches
+for a run that breaks it. For a step law over k steps, registers hold the last k − 1 steps' frames (state, cells and
+request), shifted on each step; each step's `when` is read at its frame and `then` across the window, after every step
+that completes k in a row. `check-steps.ts`: every document of the 11 searches agrees with the replay, and the fuzz agrees
+on 2,760 of 2,760 documents (87,480 runs; 12 kernel-proven laws unbroken, 12 broken). On an L4 (`run.ts --steps --chunk
+256`, medians of 9), each three steps deeper than its CPU check, every counterexample replayed:
+
+| Search | Runs | L4 | Found |
+| --- | --- | --- | --- |
+| release, skips staging: two steps from built never retire (depth 8) | 65,536 | 0.24 ms | after 2 steps: promote, retire |
+| release: two steps from built never retire; the step after a rollback never retires (depth 9) | 262,144 each | 0.25 ms | nothing |
+| auction, reserve only: the high bid never falls (depth 6) | 268M | 36.4 ms | after 2 steps: a lower bid taken |
+| auction: two refused bids change nothing (depth 6) | 268M | 13.7 ms | nothing |
+| countdown, no clamp: the meter allows what it is sent (depth 6) | 65,536 | 0.16 ms | after 1 step: a spend over `most` |
+| countdown, strict: left + used = cap (depth 6) | 65,536 | 0.19 ms | after 1 step |
+| interleaved counters: two turns of anyone leave b's count (depth 6) | 1.6M | 0.36 ms | after 2 steps: b moves |
+| interleaved counters: two a turns leave b's count; a.n <= cap (depth 6) | 1.6M each | 0.19 ms | nothing |
+
 Results. Every answer agrees with the hand-written shader, and every counterexample replays. Medians of 9 runs after a
 warm-up (`--reps 9`), Handwired / hand-written on the same device; past 2^32 the hand times are modal-gpu/'s:
 

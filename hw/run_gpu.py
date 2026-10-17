@@ -27,6 +27,7 @@ image = (
     .add_local_dir(GDP / "search", "/work/gdp-wired/search")
     .add_local_dir(GDP / "hw", "/work/gdp-wired/hw", ignore=["*.py", "__pycache__"])
     .add_local_dir(GDP / "next", "/work/gdp-wired/next")  # run-more.ts: the ReBAC model and fast path
+    .add_local_dir(GDP / "examples", "/work/gdp-wired/examples")  # step-searches.ts: the examples' rules and laws
     .add_local_file(GDP / "enum" / "js.jsonl", "/work/gdp-wired/enum/js.jsonl")  # run-more.ts: the enumeration's counts
     .add_local_dir(HANDWIRED / "src", "/work/gdp-wired/vendor/handwired/src", ignore=["**/node_modules/**"])
 )

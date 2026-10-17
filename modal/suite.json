@@ -473,6 +473,13 @@
 "timeout": 900
 },
 {
+"name": "hw-check-steps",
+"cmd": "bun check-steps.ts 2>&1",
+"cwd": "hw",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
 "name": "lean-big",
 "cwd": "lean-kernel",
 "cpu": 4.0,

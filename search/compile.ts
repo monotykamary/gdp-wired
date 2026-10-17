@@ -3,6 +3,7 @@
 // operations would emit), once as WGSL and once as JavaScript for the CPU baseline. Nothing here is trusted: whatever
 // the kernel reports is replayed by the interpreter before it is shown.
 import {type C, type E, type Law, type Machine, compileFunction, evalC, interpret} from '../core/machine.ts'
+import {type Watched, allowed, isStepLaw, watch} from '../core/watch.ts'
 
 export type Space = {depth: number, bound: number}
 export const NONE = 0xffffffff
@@ -22,32 +23,30 @@ export function decode(m: Machine, s: Space, index: number) {
   return {params, trace}
 }
 
-// Replays a candidate with the interpreter: the depth at which the law fails (0 = at the start), or undefined.
-export function replay(m: Machine, law: Law, s: Space, index: number): {params: Record<string, number>, trace: Record<string, number>[]} | undefined {
+// Replays a candidate with the interpreter, the law (or step law) read along the run by core/watch.ts: the depth at
+// which it fails (0 = at the start), or undefined.
+export function replay(m: Machine, law: Watched, s: Space, index: number): {params: Record<string, number>, trace: Record<string, number>[]} | undefined {
   const {params, trace} = decode(m, s, index)
   const run = interpret(m)
   if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) return undefined
   let st = run.init(params)
-  const keys = (cells: Record<string, Map<number, number>>) => [...new Set([s.bound + 1, ...Object.values(cells).flatMap(c => [...c.keys()])])]
-  const holds = () => (law.forall ? keys(st.maps).every(k => evalC(law.holds, {...params, [law.forall!]: k}, st, m)) : evalC(law.holds, params, st, m))
-  if (!holds()) return {params, trace: []}
+  const on = watch(m, run, law, params, s.bound)
+  if (!on.start(st)) return {params, trace: []}
   for (const [t, input] of trace.entries()) {
-    if (m.assume && !evalC(m.assume, {...params, ...input}, st, m)) return undefined
+    if (!allowed(m, run, params, st, input)) return undefined
+    const before = st
     st = run.step(params, st, input)
-    if (!holds()) return {params, trace: trace.slice(0, t + 1)}
+    if (!on.step(before, input, st)) return {params, trace: trace.slice(0, t + 1)}
   }
   return undefined
 }
-
-// Every value the search computes stays below 2^32 over its space, so the u32 code computes over the naturals the
-// interpreter does and a wrap can't hide a counterexample: an upper bound for each param, input, state variable and map
-// cell (a step's from the bounds before it, kept for every step up to the depth), and each term's from its parts'. A
-// space where some value could reach 2^32 is refused. Handwired's compile (hw/compile.ts) checks the same.
-export function fitsU32(m: Machine, law: Law, s: Space): void {
+export function fitsU32(m: Machine, law: Watched, s: Space): void {
   const limit = 2 ** 32 - 1
   const vars: Record<string, number> = {}, cells: Record<string, number> = {...m.maps}
   for (const name of [...m.params, ...m.inputs]) vars[name] = s.bound
   if (law.forall) vars[law.forall] = s.bound + 1
+  // A step law's later requests are inputs too.
+  if (isStepLaw(law)) for (let j = 2; j <= (law.steps ?? 1); j++) for (const name of m.inputs) vars[`${name}@${j}`] = s.bound
   const up = (e: E): number => {
     let v: number
     switch (e.op) {
@@ -68,7 +67,15 @@ export function fitsU32(m: Machine, law: Law, s: Space): void {
   const upC = (c: C): void => { if (c.op === 'not') upC(c.x); else if (c.op === 'and' || c.op === 'or') c.xs.forEach(upC); else if (c.op !== 'flag') (up(c.a), up(c.b)) }
   for (const [name, e] of Object.entries(m.state)) vars[name] = up(e)
   if (m.pre) upC(m.pre)
-  upC(law.holds)
+  // A law is read at every state; a step law's `then` once the state's bounds are in, its primed names at those bounds.
+  const read = () => {
+    if (!isStepLaw(law)) return upC(law.holds)
+    for (const name of Object.keys(m.state)) vars[`${name}'`] = vars[name]!
+    for (const map of Object.keys(m.maps ?? {})) cells[`${map}'`] = cells[map]!
+    upC(law.then)
+    for (const c of law.when === undefined ? [] : Array.isArray(law.when) ? law.when : [law.when]) upC(c)
+  }
+  read()
   for (let t = 0; t < s.depth; t++) {
     if (m.assume) upC(m.assume)
     for (const c of Object.values(m.step.flags ?? {})) upC(c)
@@ -76,7 +83,7 @@ export function fitsU32(m: Machine, law: Law, s: Space): void {
     const written = Object.entries(m.step.maps ?? {}).map(([map, w]) => (up(w.key), [map, up(w.value)] as const))
     for (const [name, v] of next) vars[name] = Math.max(vars[name]!, v)
     for (const [map, v] of written) cells[map] = Math.max(cells[map]!, v)
-    upC(law.holds)
+    read()
   }
 }
 

@@ -2,13 +2,16 @@
 // (compile.ts), written as WGSL by Handwired's loop-emit.ts and run by its createProgramRunner. Every counterexample is
 // replayed by the interpreter. With --hand, the hand-written kernel of search/compile.ts runs the same searches on the
 // same device, for comparison.
-//   DAWN_MODULE=<webgpu>/index.js bun run.ts [--hand] [--big] [--out result.json]
+//   DAWN_MODULE=<webgpu>/index.js bun run.ts [--hand] [--big] [--steps] [--out result.json]
+// --steps adds the step-law and k-step-law searches (step-searches.ts), each three steps deeper than its CPU check.
 import {writeFileSync} from 'node:fs'
 import {createDocumentStore, createKernelRunner, createProgramRunner, requestBatchDevice} from '../vendor/handwired/src/json-search/gpu/host.ts'
 import {emitLoopWgsl} from '../vendor/handwired/src/json-search/loop-emit.ts'
 import {CHUNK as HAND_CHUNK, replay, size, wgsl} from '../search/compile.ts'
 import {searches} from '../search/models.ts'
 import {compile, decodeBest, lowSteps, setRange} from './compile.ts'
+import {stepSearches} from './step-searches.ts'
+import {isStepLaw} from '../core/watch.ts'
 
 const has = (f: string) => process.argv.includes(f), arg = (f: string) => { const i = process.argv.indexOf(f); return i < 0 ? undefined : process.argv[i + 1] }
 const dawn = await import(process.env.DAWN_MODULE ?? 'webgpu') as {create: (flags: string[]) => GPU, globals: Record<string, unknown>}
@@ -30,7 +33,9 @@ const timed = async <T>(f: () => Promise<T>) => {
   return {result: result!, ms: times[Math.floor(times.length / 2)]!}
 }
 
-const jobs = [...searches.map(s => ({s, space: s.space, what: s.what})), {s: searches[2]!, space: {depth: 9, bound: 2}, what: searches[2]!.what + ' (depth 9)'}]
+type Job = {s: {m: (typeof searches)[number]['m'], law: (typeof searches)[number]['law'] | (typeof stepSearches)[number]['law']}, space: {depth: number, bound: number}, what: string}
+const jobs: Job[] = [...searches.map(s => ({s, space: s.space, what: s.what})), {s: searches[2]!, space: {depth: 9, bound: 2}, what: searches[2]!.what + ' (depth 9)'}]
+if (has('--steps')) jobs.push(...stepSearches.map(s => ({s, space: {...s.space, depth: s.space.depth + 3}, what: `${s.what} (depth ${s.space.depth + 3})`})))
 if (has('--big')) jobs.push({s: searches[2]!, space: {depth: 10, bound: 2}, what: searches[2]!.what + ' (depth 10)'}, {s: searches[1]!, space: {depth: 10, bound: 2}, what: searches[1]!.what + ' (depth 10)'}, {s: searches[2]!, space: {depth: 11, bound: 2}, what: searches[2]!.what + ' (depth 11)'}, {s: searches[2]!, space: {depth: 8, bound: 3}, what: searches[2]!.what + ' (bound 3, depth 8)'})
 if (has('--huge')) jobs.push({s: searches[2]!, space: {depth: 12, bound: 2}, what: searches[2]!.what + ' (depth 12)'})
 const only = arg('--only') // run the jobs whose name contains this
@@ -67,7 +72,7 @@ for (const {s, space, what} of jobs.filter(job => only === undefined || job.what
   const confirmed = best ? replay(s.m, s.law, space, best.index) : undefined
   const entry: Record<string, unknown> = {what, space, candidates: total, slices, statements: module.statementCount, compileMs: round(compileMs), handwiredMs: round(gpuMs),
     found: best ? {...best, ...confirmed, replayed: confirmed !== undefined && confirmed.trace.length === best.depth} : null}
-  if (has('--hand') && slices === 1) {
+  if (has('--hand') && slices === 1 && !isStepLaw(s.law)) {
     // search/compile.ts's hand-written shader on the same device.
     const kernel = await createKernelRunner(device, {code: wgsl(s.m, s.law, space), workgroupSize: 64, tableLength: 2, cellsPerDocument: 1}, store, 1)
     const handRun = async () => {

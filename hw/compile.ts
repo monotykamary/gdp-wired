@@ -14,8 +14,14 @@
 //
 // Maps: cells 0..bound are registers, a read past them is the map's initial value, and a step writes only at a param or
 // input key, as in search/. A law with `forall` is checked at every cell and at key bound + 1.
-import {type C, type E, type Law, type Machine} from '../core/machine.ts'
+//
+// A step law over k steps (kernel.ts's StepLaw, read on a run as core/watch.ts reads it) is checked after every step that
+// ends k steps in a row: registers hold the last k − 1 steps' frames (the state and cells before each, and its request),
+// shifted on at every step; each step's `when` is read at its own frame, `then` across the window (plain names at the
+// first frame, input@j the j-th request, primed names after this step). A candidate's params must meet `pre`.
+import {type C, type E, type Machine} from '../core/machine.ts'
 import {fitsU32} from '../search/compile.ts'
+import {type Watched, isStepLaw} from '../core/watch.ts'
 import {type AnyStage, type LoopProgram, type WordBinding, createWordStage} from '../vendor/handwired/src/json-search/loop-program.ts'
 import {type Word, WordCircuit} from '../vendor/handwired/src/runtime/words.ts'
 
@@ -31,15 +37,21 @@ export function lowSteps(m: Machine, space: Space, atMost = space.depth) {
   return low
 }
 
-export function compile(m: Machine, law: Law, space: Space, chunk: number, lowAtMost = space.depth): LoopProgram<AnyStage> {
+export function compile(m: Machine, law: Watched, space: Space, chunk: number, lowAtMost = space.depth): LoopProgram<AnyStage> {
   const K = space.bound + 1, D = space.depth, L = lowSteps(m, space, lowAtMost)
   fitsU32(m, law, space)
+  if (m.history) throw new Error(`${m.name}: the search takes a machine without a history`)
+  const steps = isStepLaw(law) ? law.steps ?? 1 : 0
+  if (steps > D) throw new Error(`${law.name}: a law over ${steps} steps needs a depth of at least ${steps}`)
   const isVar = (e: E) => e.op === 'var' && (m.params.includes(e.name) || m.inputs.includes(e.name))
   for (const w of Object.values(m.step.maps ?? {})) if (!isVar(w.key)) throw new Error('a step writes maps only at a param or input key')
   const maps = Object.keys(m.maps ?? {})
   const state = Object.keys(m.state)
   // Registers: the remaining digits, params, state, map cells, the candidate's flags, and the best failure.
-  const regs: string[] = ['t', 'off', 'rest', ...m.params.map(p => `p:${p}`), ...state.map(s => `s:${s}`), ...maps.flatMap(map => Array.from({length: K}, (_, c) => `m:${map}:${c}`)), 'live', 'best', 'first', 'count']
+  // A step law's window: the j-th earlier step's frame (j = 1 the step before this one), its state, cells and request.
+  const slot = (j: number) => [...state.map(s => `w${j}:s:${s}`), ...maps.flatMap(map => Array.from({length: K}, (_, c) => `w${j}:m:${map}:${c}`)), ...m.inputs.map(i => `w${j}:i:${i}`)]
+  const slots = Array.from({length: Math.max(0, steps - 1)}, (_, j) => slot(j + 1)).flat()
+  const regs: string[] = ['t', 'off', 'rest', ...m.params.map(p => `p:${p}`), ...state.map(s => `s:${s}`), ...maps.flatMap(map => Array.from({length: K}, (_, c) => `m:${map}:${c}`)), ...slots, 'live', 'best', 'first', 'count']
   const reg = (name: string) => { const r = regs.indexOf(name); if (r < 0) throw new Error(name); return r }
 
   // Source cells: one per register, then the position, the document, and three shared words: hi, base and total.
@@ -67,7 +79,6 @@ export function compile(m: Machine, law: Law, space: Space, chunk: number, lowAt
   const params: Record<string, Word> = {}
   for (const p of m.params) { const d = w.mod(digits, k(K)); digits = w.div(digits, k(K)); params[p] = w.select(fresh, d, src(`p:${p}`)) }
   const rest0 = w.select(fresh, digits, src('rest'))
-  const live0 = w.select(fresh, w.lt(off, src('count')), src('live')) // a document past the space's end has none
   void total
 
   // Terms over an environment of words; map reads go through `cells`.
@@ -88,7 +99,7 @@ export function compile(m: Machine, law: Law, space: Space, chunk: number, lowAt
         // The cell at the key, or the map's initial value past the stored cells; a key that can't be past them starts
         // the chain from the last cell.
         if (w.maximum(key) < cells.length) return cells.slice(0, -1).reduce((acc, cell, c) => w.select(w.eq(key, k(c)), cell, acc), cells.at(-1)!)
-        return cells.reduce((acc, cell, c) => w.select(w.eq(key, k(c)), cell, acc), k(m.maps![e.map]!))
+        return cells.reduce((acc, cell, c) => w.select(w.eq(key, k(c)), cell, acc), k(m.maps![e.map.replace(/'$/, '')]!)) // M' starts as M
       }
     }
   }
@@ -103,12 +114,16 @@ export function compile(m: Machine, law: Law, space: Space, chunk: number, lowAt
       case 'flag': { const f = env.flags[c.name]; if (f === undefined) throw new Error(`unknown flag ${c.name}`); return f }
     }
   }
-  const holds = (env: Env): Word => law.forall
-    ? Array.from({length: K + 1}, (_, key) => cx(law.holds, {...env, vars: {...env.vars, [law.forall!]: k(key)}})).reduce(and, one)
-    : cx(law.holds, env)
+  // A condition at every key (0..bound + 1) for a law about every key, or once.
+  const atKeys = (c: C, env: Env, forall: string | undefined): Word => forall
+    ? Array.from({length: K + 1}, (_, key) => cx(c, {...env, vars: {...env.vars, [forall]: k(key)}})).reduce(and, one)
+    : cx(c, env)
+  const holds = (env: Env): Word => (isStepLaw(law) ? one : atKeys(law.holds, env, law.forall))
 
   // The start, from the params; the registers' state otherwise.
   const startEnv: Env = {vars: {...params}, cells: {}, flags: {}}
+  // A document past the space's end has no candidate, and neither do params that miss the precondition.
+  const live0 = w.select(fresh, m.pre ? and(w.lt(off, src('count')), cx(m.pre, startEnv)) : w.lt(off, src('count')), src('live'))
   const vars0: Record<string, Word> = {...params}
   for (const s of state) vars0[s] = w.select(fresh, ex(m.state[s]!, startEnv), src(`s:${s}`))
   const cells0: Record<string, Word[]> = Object.fromEntries(maps.map(map => [map, Array.from({length: K}, (_, c) => w.select(fresh, k(m.maps![map]!), src(`m:${map}:${c}`)))]))
@@ -121,7 +136,7 @@ export function compile(m: Machine, law: Law, space: Space, chunk: number, lowAt
   const initVars: Record<string, Word> = {...params}
   for (const st of state) initVars[st] = ex(m.state[st]!, startEnv)
   const initEnv: Env = {vars: initVars, cells: Object.fromEntries(maps.map(map => [map, Array.from({length: K}, () => k(m.maps![map]!))])), flags: {}}
-  const startFails = and(and(fresh, live0), not(holds(initEnv)))
+  const startFails = isStepLaw(law) ? zero : and(and(fresh, live0), not(holds(initEnv)))
   const bestStart = record(startFails, zero, best0)
   const live1 = and(live0, not(startFails))
 
@@ -146,7 +161,32 @@ export function compile(m: Machine, law: Law, space: Space, chunk: number, lowAt
     })
   }
   const after: Env = {vars: vars1, cells: cells1, flags: {}}
-  const stepFails = and(go, not(holds(after)))
+  let stepFails = and(go, not(holds(after)))
+  if (isStepLaw(law)) {
+    // The window's frames, oldest first: the k − 1 earlier steps' from their slots, then this one.
+    const frame = (j: number): Env => {
+      if (j === 0) return stepEnv
+      const vars: Record<string, Word> = {...params}
+      for (const s of state) vars[s] = src(`w${j}:s:${s}`)
+      for (const i of m.inputs) vars[i] = src(`w${j}:i:${i}`)
+      const env: Env = {vars, cells: Object.fromEntries(maps.map(map => [map, Array.from({length: K}, (_, c) => src(`w${j}:m:${map}:${c}`))])), flags: {}}
+      for (const [f, c] of Object.entries(m.step.flags ?? {})) env.flags[f] = cx(c, env)
+      return env
+    }
+    const frames = Array.from({length: steps}, (_, j) => frame(steps - 1 - j))
+    const whens = law.when === undefined ? [] : Array.isArray(law.when) ? law.when : [law.when]
+    const meets = whens.map((c, j) => cx(c, frames[j]!)).reduce(and, one)
+    // `then`: the first frame by plain names (its request and flags too), the j-th request as input@j, and after this
+    // step by primed names.
+    const first = frames[0]!
+    const thenVars: Record<string, Word> = {...first.vars}
+    frames.slice(1).forEach((f, j) => { for (const i of m.inputs) thenVars[`${i}@${j + 2}`] = f.vars[i]! })
+    for (const s of state) thenVars[`${s}'`] = vars1[s]!
+    const across: Env = {vars: thenVars, cells: {...first.cells, ...Object.fromEntries(maps.map(map => [`${map}'`, cells1[map]!]))}, flags: first.flags}
+    // A full window: this is at least the k-th step of the candidate (every earlier one was allowed, or it had ended).
+    const full = steps === 1 ? one : w.le(k(steps - 1), t)
+    stepFails = and(and(go, full), and(meets, not(atKeys(law.then, across, law.forall))))
+  }
   const best1 = record(stepFails, w.add(t, one), bestStart)
   const bestOut = best1
 
@@ -166,6 +206,12 @@ export function compile(m: Machine, law: Law, space: Space, chunk: number, lowAt
     ...state.map(s => ({wire: vars1[s]!, write: {kind: 'register' as const, register: reg(`s:${s}`)}})),
     ...maps.flatMap(map => cells1[map]!.map((cell, c) => ({wire: cell, write: {kind: 'register' as const, register: reg(`m:${map}:${c}`)}}))),
     // A candidate that failed or whose request isn't allowed stops: nothing later counts.
+    // The window moves on: this step's frame into slot 1, each slot into the next.
+    ...Array.from({length: Math.max(0, steps - 1)}, (_, j) => j + 1).flatMap(j => [
+      ...state.map(s => ({wire: j === 1 ? before.vars[s]! : src(`w${j - 1}:s:${s}`), write: {kind: 'register' as const, register: reg(`w${j}:s:${s}`)}})),
+      ...maps.flatMap(map => Array.from({length: K}, (_, c) => ({wire: j === 1 ? before.cells[map]![c]! : src(`w${j - 1}:m:${map}:${c}`), write: {kind: 'register' as const, register: reg(`w${j}:m:${map}:${c}`)}}))),
+      ...m.inputs.map(i => ({wire: j === 1 ? inputs[i]! : src(`w${j - 1}:i:${i}`), write: {kind: 'register' as const, register: reg(`w${j}:i:${i}`)}})),
+    ]),
     {wire: liveAfter, write: {kind: 'register', register: reg('live')}},
     {wire: bestOut, write: {kind: 'register', register: reg('best')}},
   ]

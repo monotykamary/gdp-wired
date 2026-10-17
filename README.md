@@ -70,7 +70,7 @@ check times.
 | `kernel/kernel.ts`, `core/check.ts` | **Yes** | Turns a machine and its laws into goals and checks a proof tree for each: splits on linear atoms, a Fourier–Motzkin derivation at each leaf. Every rule (step machines with maps and flags, step laws and k-step laws, loops with ranks, progress, folds over trees) is a few moves of one small algebra of runs: conditions holding where a run is, a step taken from there, a conclusion read at the end or across the run. Histories become plain machines first. Refuses names a machine doesn't declare |
 | `kernel/prove.ts` | No | Grows the trees. If it's wrong, the kernel rejects the tree |
 | `lean-kernel/` | Optional | The kernel's twin in Lean 4.34.0, each rule proven sound (`Kern.sound`, `machine_sound`, `mmachine_sound`, `fmmachine_sound`, `loop_sound`, `fold_sound`, `progress_sound`, `steplaw_sound`, `kstep_sound`, `hmachine_sound`), axioms `propext`, `Classical.choice`, `Quot.sound` only. The exporter sends the kernel's real trees; tampered ones compute to false |
-| `search/`, `synth/`, `hw/` | No | GPU work: counterexample search over every short history, and invariant/rank synthesis. Every hit is replayed by the interpreter or proven by the kernel before it counts |
+| `search/`, `synth/`, `hw/` | No | GPU work: counterexample search over every short history (for laws, step laws and k-step laws), and invariant/rank synthesis. Every hit is replayed by the interpreter or proven by the kernel before it counts |
 | `core/dsl.ts`, `core/compose.ts`, the runtimes | No | The builders and combinators compile to the kernel's plain values; the interpreter and generated JavaScript are held to the reference evaluator by the conformance test, and the combinators to runs of their parts |
 
 How the untrusted parts are held to the trusted ones, automatically:
@@ -83,6 +83,9 @@ How the untrusted parts are held to the trusted ones, automatically:
   evaluator, and the same cases through Lean's own `evalE` (`lean-kernel/conformance.ts`).
 - **Examples** (`examples/`): every law proven by the kernel and re-checked by Lean, every rule run at random through
   both runtimes, and every broken variant broken by a real run (a refused proof alone could be the prover's weakness).
+- **One description, three readings**: a law or step law is proven by the kernel, read on one run by `core/watch.ts` (the
+  examples' runs, every replay), and searched for a breaking run by the Handwired search; `hw/check-steps.ts` holds the
+  search to the watcher on whole spaces, and all three to each other on random machines and laws.
 - **Tampering and mutation** (`kernel/tamper.test.ts`, `kernel/refusals.test.ts`, `kernel/mutants.ts`): real proofs
   broken structurally or offered for weakened goals that have a model must be rejected, every refusal the kernel makes is
   exercised, and every one-operator mutation of `kernel.ts` and `check.ts` is run against the tests to find what they
@@ -218,7 +221,7 @@ bun test core/compile.test.ts core/runtime.test.ts kernel/history.test.ts
 cd kernel && bun run-kernel.ts && bun test kernel.test.ts
 ```
 
-The whole suite (110 jobs, about 15 minutes of wall time) runs on [Modal](https://modal.com):
+The whole suite (111 jobs, about 15 minutes of wall time) runs on [Modal](https://modal.com):
 
 ```sh
 modal run modal/run.py --jobs modal/suite.json --out runs/modal/suite && sh modal/reap.sh
