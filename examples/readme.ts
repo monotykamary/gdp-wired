@@ -14,6 +14,8 @@ const dayCap = caps.law('day cap', ({Day, d}) => forall(k => Day.at(k).atMost(d)
 // Step laws: about one step, for every request the rule allows; `after` reads the state and maps after it.
 const onlyUp = caps.stepLaw('no count goes down', ({Day}, after) => forall(k => Day.at(k).atMost(after.Day.at(k))))
 const once = caps.stepLaw('a grant adds one to its day', ({day, Day}, after) => after.Day.at(day).eq(Day.at(day).plus(1)), ({granted}) => granted)
+// Laws about k steps in a row: `requests` holds each step's request, `when` narrows the j-th step's.
+const twice = caps.stepsLaw('two grants on one day add two', 2, ({day, Day}, after, [, next]) => next!.day.eq(day).implies(after.Day.at(day).eq(Day.at(day).plus(2))), ({granted}) => granted)
 
 // Histories: a log of requests, a sum over it (state), a query over it at the request's time (an input the runtime
 // computes), and a relation between them proven one record at a time.
@@ -35,7 +37,7 @@ const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => s
 
 const results = {
   'caps: day cap': proveRule(caps, [dayCap]),
-  'caps: step laws': proveSteps(caps, [dayCap], [onlyUp, once]),
+  'caps: step laws': proveSteps(caps, [dayCap], [onlyUp, once, twice]),
   'window: ceiling': proveRule(window, [window.law('window ceiling', ({ours, c}) => ours.atMost(c))]),
   'trial: fails closed': proveDecision(failsClosed),
 }

@@ -97,7 +97,6 @@ def homogC (_vs : List Nat) : C → Bool
   | _ => false
 end
 
-def avoidsE (vs : List Nat) (e : E) : Bool := vs.all fun i => !occE i e
 
 -- kernel.ts's checks: sums read the fields and params, queries also the plain inputs, `when` the params and plain
 -- inputs; nothing reads a map; the names don't collide; the precondition reads no input, flag or field.
@@ -233,10 +232,6 @@ theorem sumAt_maps (h : HMachine) (ρ : Nat → Nat) (M M' : Nat → Nat → Nat
   intro rec _
   exact noReadsE _ M M' g hr
 
-theorem avoidsE_occ {vs : List Nat} {e : E} (h : avoidsE vs e = true) {i : Nat} (hi : occE i e = true) : i ∉ vs := by
-  intro hm
-  simp only [avoidsE, List.all_eq_true] at h
-  have := h i hm; simp [hi] at this
 
 /-! The side conditions, unpacked -/
 

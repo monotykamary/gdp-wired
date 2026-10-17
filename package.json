@@ -32,6 +32,10 @@
       "types": "./dist/core/machine.d.ts",
       "default": "./dist/core/machine.js"
     },
+    "./compose": {
+      "types": "./dist/core/compose.d.ts",
+      "default": "./dist/core/compose.js"
+    },
     "./kernel": {
       "types": "./dist/kernel/kernel.d.ts",
       "default": "./dist/kernel/kernel.js"
@@ -65,7 +69,7 @@
     "build": "bun scripts/build.ts",
     "prepublishOnly": "bun scripts/build.ts",
     "smoke": "sh scripts/smoke.sh",
-    "test": "cd core && bun test solver.test.ts dsl.test.ts conformance.test.ts && cd ../kernel && bun test tamper.test.ts refusals.test.ts steplaw.test.ts && cd ../examples && bun test examples.test.ts && cd .. && bun examples/readme.ts && bun examples/budget.ts"
+    "test": "cd core && bun test solver.test.ts dsl.test.ts conformance.test.ts compose.test.ts && cd ../kernel && bun test tamper.test.ts refusals.test.ts steplaw.test.ts && cd ../examples && bun test examples.test.ts && cd .. && bun examples/readme.ts && bun examples/composition.ts && bun examples/budget.ts"
   },
   "devDependencies": {
     "@types/bun": "1.3.1",

@@ -1,4 +1,4 @@
-import Progress
+import Steps
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
@@ -516,6 +516,130 @@ def fadmit_tampered : FMMachine := ⟨⟨[3, 4, 5, 6, 7],
   [(11, .and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))]⟩
 example : checkFMMachine fadmit_tampered fadmit_proof = false := by decide +kernel
 
+-- meter, counting down refines meter: left + used = cap, with flags b_fits  (variables 0 cap, 1 most, 2 amount, 3 a_left, 4 b_used, 5 #, 6 ?b_fits, 7 a_left', 8 b_used'; maps )
+def refines_machine : FMMachine := ⟨⟨[2],
+  [(3, .var 0), (4, .const 0)],
+  [],
+  [(3, .ite (.le (.min (.var 2) (.var 1)) (.var 3)) (.sub (.var 3) (.min (.var 2) (.var 1))) (.var 3)), (4, .ite (.eq (.var 6) (.const 1)) (.add (.var 4) (.min (.var 2) (.var 1))) (.var 4))],
+  [],
+  .le (.const 0) (.const 0),
+  .le (.const 0) (.const 0)⟩,
+  [(6, .le (.add (.var 4) (.min (.var 2) (.var 1))) (.var 0))]⟩
+def refines_proof : List MEntry := [⟨⟨.eq (.add (.var 3) (.var 4)) (.var 0), none⟩, 5, [],
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8], .leaf [⟨[], 1⟩] [.input 0] [] []),
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8], .split ⟨[0, (-1), 1], 0⟩
+  (.split ⟨[0, 0, 1, (-1)], 0⟩
+  (.split ⟨[(-1), 0, 1, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 1, 1], 0⟩
+  (.leaf [⟨[1, 0, 0, (-1), (-1)], 0⟩, ⟨[(-1), 0, 0, 1, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[1, 0, 0, (-1), (-1)], 1⟩, ⟨[(-1), 0, 0, 1, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, 1, (-1)], 0⟩, ⟨[1, 0, (-1), 0, (-1)], 1⟩, ⟨[(-1), 0, 0, 1, 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [] []))
+  (.split ⟨[(-1), 0, 1, 0, 1], 0⟩
+  (.leaf [⟨[0, 0, (-1), 1], 1⟩, ⟨[(-1), 0, 1, 0, 1], 0⟩, ⟨[1, 0, 0, (-1), (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [] [])
+  (.split ⟨[(-1), 0, 0, 1, 1], 0⟩
+  (.leaf [⟨[1, 0, 0, (-1), (-1)], 0⟩, ⟨[(-1), 0, 0, 1, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[1, 0, 0, (-1), (-1)], 1⟩, ⟨[(-1), 0, 0, 1, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.split ⟨[0, 1, 0, (-1)], 0⟩
+  (.split ⟨[(-1), 1, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 1, 1], 0⟩
+  (.leaf [⟨[1, 0, 0, (-1), (-1)], 0⟩, ⟨[(-1), 0, 0, 1, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[1, 0, 0, (-1), (-1)], 1⟩, ⟨[(-1), 0, 0, 1, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 1, 0, (-1)], 0⟩, ⟨[1, (-1), 0, 0, (-1)], 1⟩, ⟨[(-1), 0, 0, 1, 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [] []))
+  (.split ⟨[(-1), 1, 0, 0, 1], 0⟩
+  (.leaf [⟨[0, (-1), 0, 1], 1⟩, ⟨[(-1), 1, 0, 0, 1], 0⟩, ⟨[1, 0, 0, (-1), (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [] [])
+  (.split ⟨[(-1), 0, 0, 1, 1], 0⟩
+  (.leaf [⟨[1, 0, 0, (-1), (-1)], 0⟩, ⟨[(-1), 0, 0, 1, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[1, 0, 0, (-1), (-1)], 1⟩, ⟨[(-1), 0, 0, 1, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))⟩]
+theorem refines_check : checkFMMachine refines_machine refines_proof = true := by decide +kernel
+theorem refines_laws : ∀ ρ M, FMReach refines_machine ρ M → ∀ e ∈ refines_proof, e.law.Holds ρ M :=
+  fmmachine_sound refines_machine refines_proof refines_check
+
+-- Step law: meter allows the request it is sent
+def refines_step0 : StepLaw := ⟨.le (.const 0) (.const 0),
+  .le (.min (.var 2) (.var 1)) (.var 1),
+  [(3, 7), (4, 8)],
+  [],
+  [],
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8], .split ⟨[0, (-1), 1], 0⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [] []))⟩
+theorem refines_step0_holds : StepLawHolds refines_machine refines_step0 :=
+  steplaw_sound refines_machine refines_proof refines_step0 refines_check (by decide +kernel)
+
+-- counter || counter: a.n <= cap; b.n <= cap  (variables 0 cap, 1 amount, 2 turn, 3 a_n, 4 b_n, 5 #, 6 a_n', 7 b_n', 8 amount@2, 9 turn@2; maps )
+def interleaved_machine : FMMachine := ⟨⟨[1, 2],
+  [(3, .const 0), (4, .const 0)],
+  [],
+  [(3, .ite (.eq (.var 2) (.const 1)) (.var 3) (.ite (.le (.add (.var 3) (.var 1)) (.var 0)) (.add (.var 3) (.var 1)) (.var 3))), (4, .ite (.eq (.var 2) (.const 0)) (.var 4) (.ite (.le (.add (.var 4) (.var 1)) (.var 0)) (.add (.var 4) (.var 1)) (.var 4)))],
+  [],
+  .and (.le (.var 0) (.const 10)) (.le (.var 0) (.const 10)),
+  .or (.eq (.var 2) (.const 0)) (.eq (.var 2) (.const 1))⟩,
+  []⟩
+def interleaved_proof : List MEntry := [⟨⟨.le (.var 3) (.var 0), none⟩, 5, [],
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9], .split ⟨[0, 0, 1], 0⟩
+  (.split ⟨[(-1), 1, 0, 1], 0⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])
+  (.leaf [⟨[(-1), 0, 0, 1], 0⟩, ⟨[1, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.split ⟨[0, 0, 1], (-1)⟩
+  (.leaf [⟨[(-1), 0, 0, 1], 0⟩, ⟨[1, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])))⟩, ⟨⟨.le (.var 4) (.var 0), none⟩, 5, [],
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9], .split ⟨[0, 0, 1], 0⟩
+  (.split ⟨[0, 0, (-1)], 0⟩
+  (.leaf [⟨[(-1), 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [] []))
+  (.split ⟨[(-1), 1, 0, 0, 1], 0⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])
+  (.leaf [⟨[(-1), 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩]
+theorem interleaved_check : checkFMMachine interleaved_machine interleaved_proof = true := by decide +kernel
+theorem interleaved_laws : ∀ ρ M, FMReach interleaved_machine ρ M → ∀ e ∈ interleaved_proof, e.law.Holds ρ M :=
+  fmmachine_sound interleaved_machine interleaved_proof interleaved_check
+
+-- Step law: an a turn leaves b's count
+def interleaved_step0 : StepLaw := ⟨.eq (.var 2) (.const 0),
+  .eq (.var 7) (.var 4),
+  [(3, 6), (4, 7)],
+  [],
+  [],
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9], .split ⟨[0, 0, 1], 0⟩
+  (.split ⟨[0, 0, (-1)], 0⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [] []))
+  (.leaf [⟨[0, 0, (-1)], 1⟩, ⟨[0, 0, 1], 0⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩
+theorem interleaved_step0_holds : StepLawHolds interleaved_machine interleaved_step0 :=
+  steplaw_sound interleaved_machine interleaved_proof interleaved_step0 interleaved_check (by decide +kernel)
+
+-- Step law over 2 steps: two a turns leave b's count
+def interleaved_step1 : KStep := ⟨[.eq (.var 2) (.const 0), .eq (.var 2) (.const 0)],
+  .eq (.var 7) (.var 4),
+  [[], [(1, 8), (2, 9)]],
+  [(3, 6), (4, 7)],
+  [],
+  [],
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9], .split ⟨[0, 0, 1], 0⟩
+  (.split ⟨[(-1), 1, 0, 1], 0⟩
+  (.split ⟨[0, 0, (-1)], 0⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [] []))
+  (.split ⟨[0, 0, (-1)], 0⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])))
+  (.leaf [⟨[0, 0, (-1)], 1⟩, ⟨[0, 0, 1], 0⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩
+theorem interleaved_step1_holds : KStepHolds interleaved_machine interleaved_step1 :=
+  kstep_sound interleaved_machine interleaved_proof interleaved_step1 interleaved_check (by decide +kernel)
+
+-- TAMPERED: the two-turn law's proof offered without its whens (b may move on its own turns). Lean computes the check to false.
+example : checkKStep interleaved_machine interleaved_proof { interleaved_step1 with whens := [.le (.const 0) (.const 0), .le (.const 0) (.const 0)] } = false := by decide +kernel
+
 -- in-flight requests: in-flight loss: s <= b + 3 × 50; s + 50p <= b + 150  (variables 0 b, 1 t, 2 done, 3 s, 4 p, 5 #, 6 s', 7 p'; maps )
 def pflight_machine : FMMachine := ⟨⟨[1, 2],
   [(3, .const 0), (4, .const 0)],
@@ -865,55 +989,59 @@ def peracct_machine : FMMachine := ⟨⟨[7, 8, 9, 10, 11, 12],
   [],
   [(0, .var 7, .ite (.and (.eq (.var 11) (.const 1)) (.lt (.get 0 (.var 7)) (.const 1))) (.add (.get 0 (.var 7)) (.const 1)) (.get 0 (.var 7))), (4, .var 7, .ite (.and (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 1)) (.lt (.get 4 (.var 7)) (.const 1))) (.add (.get 4 (.var 7)) (.const 1)) (.get 4 (.var 7)))],
   .le (.const 0) (.const 0),
-  .and (.or (.eq (.var 11) (.const 0)) (.eq (.var 11) (.const 1))) (.and (.or (.eq (.var 11) (.const 0)) (.eq (.var 11) (.const 1))) (.and (.or (.eq (.var 12) (.const 0)) (.eq (.var 12) (.const 1))) (.or (.and (.eq (.var 12) (.const 0)) (.and (.eq (.var 7) (.var 3)) (.and (.eq (.var 8) (.var 4)) (.and (.eq (.var 9) (.var 5)) (.eq (.var 10) (.var 6)))))) (.and (.eq (.var 12) (.const 1)) (.not (.eq (.var 7) (.var 3)))))))⟩,
+  .and (.or (.eq (.var 11) (.const 0)) (.eq (.var 11) (.const 1))) (.and (.or (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 0)) (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 1))) (.and (.or (.eq (.var 12) (.const 0)) (.eq (.var 12) (.const 1))) (.or (.and (.eq (.var 12) (.const 0)) (.and (.eq (.var 7) (.var 3)) (.and (.eq (.var 8) (.var 4)) (.and (.eq (.var 9) (.var 5)) (.eq (.var 10) (.var 6)))))) (.and (.eq (.var 12) (.const 1)) (.not (.eq (.var 7) (.var 3)))))))⟩,
   []⟩
 def peracct_proof : List MEntry := [⟨⟨.eq (.get 0 (.var 3)) (.get 4 (.var 3)), none⟩, 13, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(14, 16), (15, 17)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(14, 16), (15, 17)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [] []))
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.leaf [⟨[], 1⟩] [.input 0] [(14, 16), (15, 17)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
+  (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(14, 16), (15, 17)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(14, 16), (15, 17)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
+  (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
+  (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(14, 16), (15, 17)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(14, 16), (15, 17)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(14, 16), (15, 17)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(14, 16), (15, 17)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 4 1 1 1, .combine 3 2 1 1, .combine 0 6 1 1, .combine 7 5 1 1] [(14, 16), (15, 17)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(14, 16), (15, 17)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(14, 16), (15, 17)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(14, 16), (15, 17)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(14, 16), (15, 17)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(14, 16), (15, 17)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 4 1 1 1, .combine 3 2 1 1, .combine 0 6 1 1, .combine 7 5 1 1] [(14, 16), (15, 17)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(14, 16), (15, 17)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(14, 16), (15, 17)] []))))
   (.leaf [⟨[], 1⟩] [.input 0] [(14, 16), (15, 17)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [] []))
-  (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(14, 16), (15, 17)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))⟩]
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩]
 theorem peracct_check : checkFMMachine peracct_machine peracct_proof = true := by decide +kernel
 theorem peracct_laws : ∀ ρ M, FMReach peracct_machine ρ M → ∀ e ∈ peracct_proof, e.law.Holds ρ M :=
   fmmachine_sound peracct_machine peracct_proof peracct_check
@@ -1061,3 +1189,8 @@ example : checkGoal tampered1001_goal tampered1001_tree = false := by decide +ke
 #print axioms flight_admit_holds
 #print axioms admit_grant_holds
 #print axioms fadmit_grant_holds
+#print axioms refines_laws
+#print axioms refines_step0_holds
+#print axioms interleaved_laws
+#print axioms interleaved_step0_holds
+#print axioms interleaved_step1_holds

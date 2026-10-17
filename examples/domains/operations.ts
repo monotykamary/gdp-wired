@@ -224,6 +224,9 @@ const releaseSteps = (r: ReturnType<typeof release>) => [
   r.stepLaw('only a rollback moves back, live to staged', ({stage, rollingBack}, after) => after.stage.lt(stage).implies(rollingBack.and(stage.eq(2)).and(after.stage.eq(1)))),
   r.stepLaw('a retired release stays retired', ({stage}, after) => stage.eq(3).implies(after.stage.eq(3))),
   r.stepLaw('a rollback counts once', ({rollbacks}, after) => after.rollbacks.eq(rollbacks.plus(1)), ({rollingBack}) => rollingBack),
+  // About two steps in a row.
+  r.stepsLaw('two steps from built never retire', 2, ({stage}, after) => stage.eq(0).implies(after.stage.atMost(2))),
+  r.stepsLaw('the step after a rollback never retires', 2, (_, after) => after.stage.atMost(2), ({rollingBack}, j) => (j === 0 ? rollingBack : undefined)),
 ]
 
 // Load shedding at the edge: a draining node admits nothing; internal traffic is always welcome otherwise; paid traffic

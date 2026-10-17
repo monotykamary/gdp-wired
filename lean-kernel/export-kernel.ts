@@ -8,6 +8,7 @@ import {admit, admitFlagged, boundedLoss, capLaws, inflight, inflightLoss, loss,
 import {agree, product} from '../next/relational.ts'
 import {type Fold, type Goal, type Instances, type Loop, type Path, type StepLaw, type Tree, canon, foldObligations, historyMachine, leafConstraints, linear, loopObligations, obligations, progressObligations, stepLawObligations, substC, withProducts} from '../kernel/kernel.ts'
 import {grow, proveLaws, proveStepLaws} from '../kernel/prove.ts'
+import {counterLaws, counterSteps, counters, meterRefinement} from '../examples/composition.ts'
 import {leanTerms} from './lean-terms.ts'
 
 type Exported = {name: string, goal: Goal, tree: Tree}
@@ -280,7 +281,9 @@ function mmachineToLean(id: string, m: Machine, laws: Law[], opts: {corollary?: 
   const flagNames = Object.keys(m.step.flags ?? {})
   const primed = !!(opts.progress || opts.stepLaws?.length)
   const primes = primed ? Object.keys(m.state).map(s2 => `${s2}'`) : []
-  const vars = [...m.params, ...m.inputs, ...Object.keys(m.state), ...keysOf, ...keysOf.map(k2 => `${k2}#`), '#', ...flagNames.map(f => `?${f}`), ...(opts.free ?? []), ...(opts.stepLaws ?? []).flatMap(sl => (sl.forall ? [sl.forall] : [])), ...primes]
+  // A k-step law reads the j-th request's inputs (j >= 2) by input@j.
+  const later = [...new Set((opts.stepLaws ?? []).flatMap(sl => Array.from({length: (sl.steps ?? 1) - 1}, (_, j) => m.inputs.map(i => `${i}@${j + 2}`)).flat()))]
+  const vars = [...m.params, ...m.inputs, ...Object.keys(m.state), ...keysOf, ...keysOf.map(k2 => `${k2}#`), '#', ...flagNames.map(f => `?${f}`), ...(opts.free ?? []), ...(opts.stepLaws ?? []).flatMap(sl => (sl.forall ? [sl.forall] : [])), ...primes, ...later]
   const baseMaps = [...new Set([...Object.keys(m.maps ?? {}), ...Object.keys(m.step.maps ?? {}), ...[...JSON.stringify(laws).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!)])]
   const mapNames = [...baseMaps, ...(primed ? baseMaps.map(mp => `${mp}'`) : [])]
   const gs = obligations(m, laws, r.proof.instances)
@@ -331,15 +334,30 @@ example : checkProgress ${id}_machine ${id}_proof ${pc.id}_tampered = false := b
     const goal = stepLawObligations(m, laws, sp!.proof!.instances, sl)[0]!
     const pr = enc(goal, sp!.proof!.trees[goal.name]!)
     const insts = laws.flatMap((l, li) => (l.forall ? (sp!.proof!.instances[l.name] ?? []).map(key => `(${li}, ${any0.e(key)})`) : []))
-    return `-- Step law: ${sl.name}
-def ${id}_step${j} : StepLaw := ⟨${sl.when ? any0.c(inlineFlags(sl.when)) : TRUE},
+    const primes = list(Object.keys(m.state).map(s2 => `(${ix(s2)}, ${ix(`${s2}'`)})`)), primeMaps = list(baseMaps.map(mp => `(${mapNames.indexOf(mp)}, ${mapNames.indexOf(`${mp}'`)})`))
+    const k = sl.steps ?? 1
+    if (k === 1 && !Array.isArray(sl.when)) return `-- Step law: ${sl.name}
+def ${id}_step${j} : StepLaw := ⟨${sl.when ? any0.c(inlineFlags(sl.when as C)) : TRUE},
   ${any0.c(inlineFlags(sl.then))},
-  ${list(Object.keys(m.state).map(s2 => `(${ix(s2)}, ${ix(`${s2}'`)})`))},
-  ${list(baseMaps.map(mp => `(${mapNames.indexOf(mp)}, ${mapNames.indexOf(`${mp}'`)})`))},
+  ${primes},
+  ${primeMaps},
   ${list(insts)},
   (${pr.tab}, ${pr.tree})⟩
 theorem ${id}_step${j}_holds : StepLawHolds ${id}_machine ${id}_step${j} :=
   steplaw_sound ${id}_machine ${id}_proof ${id}_step${j} ${id}_check (by decide +kernel)`
+    // Through Kern.kstep_sound (Steps.lean): one `when` per step (0 <= 0 where none), the j-th request's inputs renamed.
+    const whens = sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when]
+    const ren = Array.from({length: k}, (_, s2) => (s2 === 0 ? '[]' : list(m.inputs.map(i => `(${ix(i)}, ${ix(`${i}@${s2 + 1}`)})`))))
+    return `-- Step law over ${k} steps: ${sl.name}
+def ${id}_step${j} : KStep := ⟨${list(Array.from({length: k}, (_, s2) => (whens[s2] ? any0.c(inlineFlags(whens[s2]!)) : TRUE)))},
+  ${any0.c(inlineFlags(sl.then))},
+  ${list(ren)},
+  ${primes},
+  ${primeMaps},
+  ${list(insts)},
+  (${pr.tab}, ${pr.tree})⟩
+theorem ${id}_step${j}_holds : KStepHolds ${id}_machine ${id}_step${j} :=
+  kstep_sound ${id}_machine ${id}_proof ${id}_step${j} ${id}_check (by decide +kernel)`
   })
   return `-- ${m.name}: ${laws.map(l => l.name).join('; ')}${flagNames.length ? `, with flags ${flagNames.join(', ')}` : ''}  (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')}; maps ${mapNames.map((v2, j) => `${j} ${v2}`).join(', ')})
 def ${id}_machine : FMMachine := ${lit(m)}
@@ -427,7 +445,7 @@ if (process.argv.includes('--examples')) {
         parts.push(`-- ${d.domain}: ${c.name}\n${m.history ? hmachineToLean(id, m, c.laws) : m.maps && Object.keys(m.maps).length ? mmachineToLean(id, m, c.laws) : machineToLean(id, m, c.laws)}`)
         theorems.push(`${id}_laws`)
         if (c.steps?.length) {
-          // Step laws are about the plain machine: a history's sums as state, its queries as inputs (kernel.ts's
+          // Step laws (one step through StepLaw.lean, k steps through Steps.lean) are about the plain machine: a history's sums as state, its queries as inputs (kernel.ts's
           // historyMachine, whose relations its laws' proof above checks per record).
           parts.push(`-- ${d.domain}: ${c.name}, step laws\n${mmachineToLean(`${id}s`, m.history ? historyMachine(m).machine : m, c.laws, {stepLaws: c.steps})}`)
           c.steps.forEach((_, j) => theorems.push(`${id}s_step${j}_holds`))
@@ -442,7 +460,7 @@ if (process.argv.includes('--examples')) {
     })
   }
   console.log(`import History
-import StepLaw
+import Steps
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
@@ -578,6 +596,14 @@ machines.push(mmachineToLean('fadmit', admitFlagged(), capLaws, {tamper: {what: 
   const m = admitFlagged(), f = m.step.flags!.granted! as {op: 'and', xs: C[]}
   return {...m, step: {...m.step, flags: {granted: {op: 'and', xs: f.xs.filter(c2 => !JSON.stringify(c2).includes('"Day"'))}}}}
 })()}}))
+// Composition (examples/composition.ts): machines built by core/compose.ts are plain machines, checked here as any other.
+// The refinement's laws (the relation) by induction, and the spec allowing every request it is sent as a step law; the
+// interleaving's caps, and that one turn, or two, of one side leave the other.
+const refines = meterRefinement()
+machines.push(mmachineToLean('refines', refines.machine, refines.laws, {stepLaws: refines.stepLaws}))
+machines.push(mmachineToLean('interleaved', counters, counterLaws, {stepLaws: counterSteps}))
+machines.push(`-- TAMPERED: the two-turn law's proof offered without its whens (b may move on its own turns). Lean computes the check to false.
+example : checkKStep interleaved_machine interleaved_proof { interleaved_step1 with whens := [${TRUE}, ${TRUE}] } = false := by decide +kernel`)
 // Progress (run-progress.ts's cases), through the machine with maps and flags.
 const keysP = {A: x('A'), D: x('D'), H: x('H'), M: x('M')}
 const underP = all(less(get('Acct', keysP.A), n(1)), less(get('Day', keysP.D), x('d')), less(get('Hour', keysP.H), x('hr')), less(get('Dom', keysP.M), x('dm')))
@@ -623,7 +649,7 @@ const sq = out.findIndex(o => o.name === 'products: x <= x·x')
 parts.push(toLean({name: 'the x <= x·x tree offered for x·x <= x', goal: {name: 'x·x <= x', hyps: [not(atMost(prod(x('x'), x('x')), x('x')))]}, tree: out[sq]!.tree}, 1002, true, false))
 const wrong = obligations(loss(), [{name: 'wrong', holds: atMost(x('s'), x('b'))}])[1]!
 parts.push(toLean({name: 'budget rule: the bounded_loss tree offered for s <= b', goal: wrong, tree: out[1]!.tree}, 1001, true, false))
-console.log(`import Progress
+console.log(`import Steps
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
@@ -650,5 +676,10 @@ ${parts.join('\n\n')}
 #print axioms flight_complete_holds
 #print axioms flight_admit_holds
 #print axioms admit_grant_holds
-#print axioms fadmit_grant_holds${process.argv.includes('--big') ? '\n#print axioms iso_laws\n#print axioms migration_laws' : ''}`)
+#print axioms fadmit_grant_holds
+#print axioms refines_laws
+#print axioms refines_step0_holds
+#print axioms interleaved_laws
+#print axioms interleaved_step0_holds
+#print axioms interleaved_step1_holds${process.argv.includes('--big') ? '\n#print axioms iso_laws\n#print axioms migration_laws' : ''}`)
 console.error(out.map((o, i) => `t${i}  ${o.name}`).join('\n'))

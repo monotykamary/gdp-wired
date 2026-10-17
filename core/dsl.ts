@@ -215,6 +215,20 @@ type ValuesOf<K extends Kinds> = {[n in keyof K]: K[n] extends Kind<infer V> ? V
 type Obj = object
 type Update<S extends Obj, M extends Obj> = Partial<{[k in keyof S]: TermLike} & {[k in keyof M]: MapWrite}>
 let keyCounter = 0
+// A k-step law's later requests are built over marked names (j:name, which no rule can declare: ':' is reserved); the
+// kernel reads them as name@j.
+const markedName = (name: string) => { const m = /^(\d+):(.*)$/.exec(name); return m ? `${m[2]}@${m[1]}` : name }
+const markedE = (e: E): E => {
+  switch (e.op) {
+    case 'var': return {op: 'var', name: markedName(e.name)}
+    case 'const': return e
+    case 'mul': return {...e, a: markedE(e.a)}
+    case 'if': return {op: 'if', c: marked(e.c), then: markedE(e.then), else: markedE(e.else)}
+    case 'get': return {op: 'get', map: e.map, key: markedE(e.key)}
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...e, a: markedE(e.a), b: markedE(e.b)}
+  }
+}
+const marked = (c: C): C => c.op === 'flag' ? c : c.op === 'not' ? {op: 'not', x: marked(c.x)} : c.op === 'and' || c.op === 'or' ? {op: c.op, xs: c.xs.map(marked)} : {...c, a: markedE(c.a), b: markedE(c.b)}
 
 type Spec = {
   name: string
@@ -301,6 +315,31 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     if (out instanceof Cond) return {name, then: out.c, ...w}
     const key = `key$${++keyCounter}`
     return {name, forall: key, then: out.forall(v(key)).c, ...w}
+  }
+
+  // A law about k steps in a row (k from 2 to 16): `then(first, last, requests)` relates what the first step reads to the
+  // state, maps and sums after the last, with each step's request and queries (requests[0] is the first's); `when(before,
+  // j)` narrows the j-th step's request (j from 0), read at the state that step starts from.
+  //   meter.stepsLaw('two requests spend at most 2m', 2, ({spent, m}, after) => after.spent.atMost(spent.plus(m).plus(m)))
+  stepsLaw(name: string, k: number, then: (first: P & I & S & M & F & Su & Q, last: S & M & Su, requests: (I & Q)[]) => Cond | Forall, when?: (before: P & I & S & M & F & Su & Q, j: number) => Cond | undefined): StepLaw {
+    const env = this.env() as never
+    const after: Record<string, unknown> = {}
+    for (const [n] of this.spec.state) after[n] = v(`${n}'`)
+    for (const [n] of this.spec.sums) after[n] = v(`${n}'`)
+    for (const [n, init] of this.spec.maps) after[n] = new MapRef(`${n}'`, init)
+    // The j-th request's values over marked names, renamed to the kernel's input@j once built.
+    const mark = (j: number) => `${j}:`
+    const requests = Array.from({length: k}, (_, j) => {
+      if (j === 0) return Object.fromEntries([...this.spec.inputs.map(([n]) => n), ...this.spec.queries.map(([n]) => n)].map(n => [n, (env as Record<string, unknown>)[n]]))
+      return Object.fromEntries([...this.spec.inputs.map(([n, kind]) => [n, kind.value(n, mark(j + 1))]), ...this.spec.queries.map(([n]) => [n, v(`${mark(j + 1)}${n}`)])])
+    })
+    const out = then(env, after as never, requests as never)
+    const whens = when ? Array.from({length: k}, (_, j) => when(env, j)) : []
+    while (whens.length && whens.at(-1) === undefined) whens.pop()
+    const w = whens.length ? {when: whens.map(c => (c ?? lit(0).atMost(0)).c)} : {}
+    if (out instanceof Cond) return {name, steps: k, then: marked(out.c), ...w}
+    const key = `key$${++keyCounter}`
+    return {name, steps: k, forall: key, then: marked(out.forall(v(key)).c), ...w}
   }
 
   // A decision: whenever the params and the request meet `given`, `then` holds. Decisions don't read the state.

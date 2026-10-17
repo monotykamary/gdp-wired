@@ -112,7 +112,7 @@ test('a step law the kernel accepts holds on every run', () => {
             const input = {a, b}, after = run.step({p}, st, input)
             steps++
             const env = {p, a, b}
-            if (sl.when && !evalC(sl.when, env, st, m)) { next.push(after); continue }
+            if (sl.when && !evalC(sl.when as C, env, st, m)) { next.push(after); continue }
             const both: State = {scalars: {...st.scalars, "x'": after.scalars.x!, "y'": after.scalars.y!}, maps: {...st.maps, "M'": after.maps.M!}}
             if (!evalC(sl.then, env, both, {...m, maps: {M: 0, "M'": 0}})) broken = true
             next.push(after)
@@ -127,4 +127,98 @@ test('a step law the kernel accepts holds on every run', () => {
   console.log(`step laws: ${proven} proven (none broken by ${steps.toLocaleString()} steps), ${refuted} refused (${caught} of those broken by a run)`)
   expect(proven).toBeGreaterThan(50 * scale)
   expect(caught).toBeGreaterThan(50 * scale)
+}, 600_000)
+
+// --- k steps -----------------------------------------------------------------------------------------------------------
+
+test('k-step laws: about several steps in a row, proven from the same moves', () => {
+  const laws = [counter.law('used <= cap', ({used, cap}) => used.atMost(cap))]
+  const m = counter.machine
+  const v = (name: string): E => ({op: 'var', name})
+  const add = (a: E, b: E): E => ({op: 'add', a, b})
+  // Two fitting adds add exactly both amounts.
+  const both: StepLaw = {name: 'two fitting adds', steps: 2, when: [{op: 'flag', name: 'fits'}, {op: 'flag', name: 'fits'}], then: {op: '=', a: v("used'"), b: add(add(v('used'), v('amount')), v('amount@2'))}}
+  // After a reset, whatever comes next leaves used at most the next amount: about two steps, not one.
+  const resetThen: StepLaw = {name: 'reset, then at most one amount', steps: 2, when: [{op: '=', a: v('op'), b: {op: 'const', value: 1}}], then: {op: '<=', a: v("used'"), b: v('amount@2')}}
+  // Three steps never take used past cap (the law, read three steps on).
+  const three: StepLaw = {name: 'three steps stay under cap', steps: 3, then: {op: '<=', a: v("used'"), b: v('cap')}}
+  const r = proveStepLaws(m, laws, [both, resetThen, three])
+  expect(r).toMatchObject({proven: true, checked: true})
+  expect(Object.keys(r.proof!.trees)).toEqual(['two fitting adds @2 steps', 'reset, then at most one amount @2 steps', 'three steps stay under cap @3 steps'])
+  // False ones: two steps can lower used (a reset), and two adds that don't fit don't add.
+  const lowers: StepLaw = {name: 'two steps never lower used', steps: 2, then: {op: '<=', a: v('used'), b: v("used'")}}
+  const unfit: StepLaw = {name: 'two adds add both', steps: 2, when: [{op: '=', a: v('op'), b: {op: 'const', value: 0}}, {op: '=', a: v('op'), b: {op: 'const', value: 0}}], then: {op: '=', a: v("used'"), b: add(add(v('used'), v('amount')), v('amount@2'))}}
+  expect(proveStepLaws(m, laws, [lowers]).proven).toBe(false)
+  expect(proveStepLaws(m, laws, [unfit]).proven).toBe(false)
+  // One step is the step law as before: the same goal, by name and hypotheses.
+  const one: StepLaw = {name: 'grows', then: {op: '<=', a: v('used'), b: v("used'")}, when: {op: 'flag', name: 'fits'}}
+  expect(stepLawObligations(m, laws, {}, {...one, steps: 1})).toEqual(stepLawObligations(m, laws, {}, one))
+})
+
+test('k-step laws outside the rule are refused', () => {
+  const m = counter.machine
+  const v = (name: string): E => ({op: 'var', name})
+  const sl = (steps: number, then: C, when?: C | C[]): StepLaw => ({name: 'x', steps, then, ...(when ? {when} : {})})
+  const le = (a: E, b: E): C => ({op: '<=', a, b})
+  expect(() => stepLawObligations(m, [], {}, sl(2, le(v("used'"), v('amount@2'))))).not.toThrow()
+  expect(() => stepLawObligations(m, [], {}, sl(2, le(v("used'"), v('amount@3'))))).toThrow() // no third request
+  expect(() => stepLawObligations(m, [], {}, sl(0, le(v("used'"), v('cap'))))).toThrow()
+  expect(() => stepLawObligations(m, [], {}, sl(16, le(v("used'"), v('cap'))))).not.toThrow() // 16 steps at most
+  expect(() => stepLawObligations(m, [], {}, sl(17, le(v("used'"), v('cap'))))).toThrow()
+  expect(() => stepLawObligations(m, [], {}, sl(1.5, le(v("used'"), v('cap'))))).toThrow()
+  expect(() => stepLawObligations(m, [], {}, sl(2, le(v("used'"), v('cap')), [le(v('used'), v('cap')), le(v('used'), v('cap')), le(v('used'), v('cap'))]))).toThrow() // a when per step at most
+  expect(() => stepLawObligations(m, [], {}, sl(2, le(v("used'"), v('cap')), [le(v('used'), v('cap')), le(v('amount@2'), v('cap'))]))).toThrow() // a when reads its own request plainly
+  expect(() => stepLawObligations({...m, inputs: [...m.inputs, 'amount@2']}, [], {}, sl(2, le(v("used'"), v('cap'))))).toThrow() // a later name taken
+})
+
+test('a k-step law the kernel accepts holds on every run of k steps', () => {
+  let proven = 0, refuted = 0, caught = 0, runs = 0
+  const x = vv('x'), y = vv('y'), x1 = vv("x'"), y1 = vv("y'"), a = vv('a'), a2 = vv('a@2')
+  const forms: C[] = [{op: '<=', a: x, b: x1}, {op: '<=', a: x1, b: {op: 'add', a: {op: 'add', a: x, b: a}, b: a2}}, {op: '=', a: x1, b: x},
+    {op: '<=', a: {op: 'add', a: x, b: y}, b: {op: 'add', a: x1, b: y1}}, {op: '<=', a: {op: 'get', map: 'M', key: a}, b: {op: 'get', map: "M'", key: a}},
+    {op: '<=', a: {op: 'get', map: "M'", key: a2}, b: {op: 'add', a: {op: 'get', map: 'M', key: a2}, b: {op: 'mul', k: 2, a: {op: 'add', a: vv('p'), b: cc(1)}}}}]
+  for (let trial = 0; trial < 40 * scale; trial++) {
+    const m: Machine = {name: 'random', params: ['p'], inputs: ['a', 'b'], state: {x: cc(0), y: cc(0)}, maps: {M: 0},
+      step: {state: {x: rand(2) ? {op: 'add', a: vv('x'), b: term(1)} : term(2), y: term(2)}, maps: {M: {key: vv('a'), value: rand(2) ? {op: 'add', a: {op: 'get', map: 'M', key: vv('a')}, b: term(1)} : term(1)}}}}
+    const run = interpret(m)
+    for (const [i, then] of forms.entries()) {
+      const k = 2 + rand(2)
+      const sl: StepLaw = {name: `form ${i}`, steps: k, then, ...(rand(3) === 0 ? {when: [{op: '<=', a: vv('a'), b: vv('b')} as C]} : {})}
+      const ok = proveStepLaws(m, [], [sl])
+      ok.proven && ok.checked ? proven++ : refuted++
+      // Every reachable state (two steps deep), then every k requests from it (values 0..2).
+      let broken = false
+      for (let p = 0; p < 3 && !broken; p++) {
+        let frontier: State[] = [run.init({p})]
+        const reached: State[] = [...frontier]
+        for (let d = 0; d < 2; d++) { frontier = frontier.flatMap(st => [0, 1, 2].map(av => run.step({p}, st, {a: av, b: 1}))).slice(0, 12); reached.push(...frontier) }
+        const reqs: Record<string, number>[] = []
+        for (let av = 0; av < 3; av++) for (let bv = 0; bv < 3; bv++) reqs.push({a: av, b: bv})
+        for (const st of reached) {
+          const walk = (cur: State, taken: Record<string, number>[]) => {
+            if (broken) return
+            if (taken.length === k) {
+              runs++
+              const env: Record<string, number> = {p, ...taken[0]!}
+              taken.slice(1).forEach((t, j) => { env[`a@${j + 2}`] = t.a!; env[`b@${j + 2}`] = t.b! })
+              const both: State = {scalars: {...st.scalars, "x'": cur.scalars.x!, "y'": cur.scalars.y!}, maps: {...st.maps, "M'": cur.maps.M!}}
+              if (!evalC(sl.then, env, both, {...m, maps: {M: 0, "M'": 0}})) broken = true
+              return
+            }
+            for (const req of reqs) {
+              if (taken.length === 0 && Array.isArray(sl.when) && !evalC(sl.when[0]!, {p, ...req}, cur, m)) continue
+              walk(run.step({p}, cur, req), [...taken, req])
+            }
+          }
+          walk(st, [])
+          if (broken) break
+        }
+      }
+      if (ok.proven && ok.checked) expect(broken, `${sl.name} over ${k} steps on ${JSON.stringify(m.step)}`).toBe(false)
+      else if (broken) caught++
+    }
+  }
+  console.log(`k-step laws: ${proven} proven (none broken by ${runs.toLocaleString()} runs of k steps), ${refuted} refused (${caught} of those broken by a run)`)
+  expect(proven).toBeGreaterThan(10 * scale)
+  expect(caught).toBeGreaterThan(10 * scale)
 }, 600_000)

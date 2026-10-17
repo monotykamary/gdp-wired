@@ -214,7 +214,7 @@ export function proveStepLaws(m: Machine, laws: Law[], stepLaws: StepLaw[]): Rep
   const base = proveLaws(m, laws)
   if (!base.proven || !base.proof) return {proven: false, nodes: base.nodes, leaves: base.leaves, ...(base.failed ? {failed: base.failed} : {}), checked: false}
   const plain = m.history ? historyMachine(m).machine : m
-  const keys = [...readKeys(plain, laws), ...stepLaws.flatMap(sl => [...readKeysC(sl.then), ...(sl.when ? readKeysC(sl.when) : [])])]
+  const keys = [...readKeys(plain, laws), ...stepLaws.flatMap(sl => [sl.then, ...(sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when])].flatMap(readKeysC))]
   const instances: Instances = Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, keys]))
   const trees: Record<string, Tree> = {}
   let nodes = base.nodes, leaves = base.leaves

@@ -125,6 +125,14 @@ end
 -- Flag conditions read the request and the state, never a flag.
 def flagsOk (fl : List (Nat × C)) : Bool := fl.all fun p => avoids (flagVars fl) p.2
 
+-- A term that reads none of these variables.
+def avoidsE (vs : List Nat) (e : E) : Bool := vs.all fun i => !occE i e
+
+theorem avoidsE_occ {vs : List Nat} {e : E} (h : avoidsE vs e = true) {i : Nat} (hi : occE i e = true) : i ∉ vs := by
+  intro hm
+  simp only [avoidsE, List.all_eq_true] at h
+  have := h i hm; simp [hi] at this
+
 -- Two states that agree outside some variables.
 def Agree (vs : List Nat) (ρ ρ' : Nat → Nat) : Prop := ∀ i, i ∉ vs → ρ i = ρ' i
 

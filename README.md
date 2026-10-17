@@ -42,7 +42,8 @@ code. If the checker side finds new frontiers the scope may grow; until then:
 | It expresses and proves | It does not (today) |
 | --- | --- |
 | Step machines over naturals: scalars, maps from naturals to naturals (one write per map per step), named step conditions, preconditions on params, assumptions per request | Lists, sets or strings as values: membership, subsets, equality of lists of names |
-| Invariants of the state and params, laws about every key of a map; step laws relating one step's before and after (`s'`, `M'[k]`: "only increases", "stays retired") | Laws about runs of two or more steps ("a refund never follows a release" needs a state flag), or orderings beyond progress |
+| Invariants of the state and params, laws about every key of a map; step laws relating one step's before and after (`s'`, `M'[k]`: "only increases", "stays retired"), and k-step laws about k steps in a row ("two grants on one day add two", up to 16 steps) | Orderings over any number of steps ("a refund never follows a release", at any distance, needs a state flag), beyond progress |
+| Composition: rules side by side (`product`), taking turns (`interleave`), and one rule refining another (`refinement`: a forward simulation, the spec allowing every request it is sent), each built as a plain machine so every law above applies | Refinement where the spec needs more than one step per step of the implementation |
 | Laws about one key of a map at a time, or about scalars | Totals across a map's keys ("the sum of every client's holdings equals in-use") |
 | Histories: sums and queries over a log of requests, relations between them proven one record at a time, pruning | Unbounded recursion over data, quantifiers over sequences other than a machine's own history |
 | Decisions over facts: flags, one-of choices, optional facts, bounded naturals (`match` covers every case) | Datatypes beyond those encodings; division, modulo, reals |
@@ -66,11 +67,11 @@ check times.
 
 | Part | Trusted? | What it does |
 | --- | --- | --- |
-| `kernel/kernel.ts`, `core/check.ts` | **Yes** | Turns a machine and its laws into goals (the induction rules: step machines with maps and flags, step laws, loops with ranks, progress, folds over trees, histories) and checks a proof tree for each: splits on linear atoms, a Fourier–Motzkin derivation at each leaf. Refuses names a machine doesn't declare |
+| `kernel/kernel.ts`, `core/check.ts` | **Yes** | Turns a machine and its laws into goals and checks a proof tree for each: splits on linear atoms, a Fourier–Motzkin derivation at each leaf. Every rule (step machines with maps and flags, step laws and k-step laws, loops with ranks, progress, folds over trees) is a few moves of one small algebra of runs: conditions holding where a run is, a step taken from there, a conclusion read at the end or across the run. Histories become plain machines first. Refuses names a machine doesn't declare |
 | `kernel/prove.ts` | No | Grows the trees. If it's wrong, the kernel rejects the tree |
-| `lean-kernel/` | Optional | The kernel's twin in Lean 4.34.0, each rule proven sound (`Kern.sound`, `machine_sound`, `mmachine_sound`, `fmmachine_sound`, `loop_sound`, `fold_sound`, `progress_sound`, `steplaw_sound`, `hmachine_sound`), axioms `propext`, `Classical.choice`, `Quot.sound` only. The exporter sends the kernel's real trees; tampered ones compute to false |
+| `lean-kernel/` | Optional | The kernel's twin in Lean 4.34.0, each rule proven sound (`Kern.sound`, `machine_sound`, `mmachine_sound`, `fmmachine_sound`, `loop_sound`, `fold_sound`, `progress_sound`, `steplaw_sound`, `kstep_sound`, `hmachine_sound`), axioms `propext`, `Classical.choice`, `Quot.sound` only. The exporter sends the kernel's real trees; tampered ones compute to false |
 | `search/`, `synth/`, `hw/` | No | GPU work: counterexample search over every short history, and invariant/rank synthesis. Every hit is replayed by the interpreter or proven by the kernel before it counts |
-| `core/dsl.ts`, the runtimes | No | The builders compile to the kernel's plain values; the interpreter and generated JavaScript are held to the reference evaluator by the conformance test |
+| `core/dsl.ts`, `core/compose.ts`, the runtimes | No | The builders and combinators compile to the kernel's plain values; the interpreter and generated JavaScript are held to the reference evaluator by the conformance test, and the combinators to runs of their parts |
 
 How the untrusted parts are held to the trusted ones, automatically:
 
@@ -85,7 +86,7 @@ How the untrusted parts are held to the trusted ones, automatically:
 - **Tampering and mutation** (`kernel/tamper.test.ts`, `kernel/refusals.test.ts`, `kernel/mutants.ts`): real proofs
   broken structurally or offered for weakened goals that have a model must be rejected, every refusal the kernel makes is
   exercised, and every one-operator mutation of `kernel.ts` and `check.ts` is run against the tests to find what they
-  don't notice: 222 of 241 mutants are caught, and the 19 left are equivalent (`kernel/MUTANTS.md`).
+  don't notice: 239 of 261 mutants are caught, and the 22 left are equivalent (`kernel/MUTANTS.md`).
 - **Fuzz**: the kernel never accepts a refutation of something with a model (`kernel/kernel.test.ts`), and laws proven
   over histories hold on every run (`kernel/history.test.ts`).
 
@@ -109,7 +110,9 @@ const dayCap = caps.law('day cap', ({Day, d}) => forall(k => Day.at(k).atMost(d)
 // Step laws: about one step, for every request the rule allows; `after` reads the state and maps after it.
 const onlyUp = caps.stepLaw('no count goes down', ({Day}, after) => forall(k => Day.at(k).atMost(after.Day.at(k))))
 const once = caps.stepLaw('a grant adds one to its day', ({day, Day}, after) => after.Day.at(day).eq(Day.at(day).plus(1)), ({granted}) => granted)
-proveSteps(caps, [dayCap], [onlyUp, once]) // {proven: true, checked: true}
+// k-step laws: about k steps in a row; `requests` holds each step's request, `when` narrows the j-th step's.
+const twice = caps.stepsLaw('two grants on one day add two', 2, ({day, Day}, after, [, next]) => next!.day.eq(day).implies(after.Day.at(day).eq(Day.at(day).plus(2))), ({granted}) => granted)
+proveSteps(caps, [dayCap], [onlyUp, once, twice]) // {proven: true, checked: true}
 
 // Histories: a log of requests, a sum over it (state), a query over it at the request's time (an input the runtime
 // computes), and a relation between them proven one record at a time.
@@ -136,6 +139,10 @@ const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => s
 - **Arithmetic** over the naturals: `plus`, `minus` (truncated), `times(k)`, `mul` (a product of two terms), `min`,
   `max`, `when(cond, a, b)`, `count(cond)`; conditions `lt`, `atMost`, `eq`, `and`, `or`, `not`, `implies`.
 - **Loops** (`loop(...)`): state, `while`, `body`, a `rank` (or a tuple of ranks) that must drop each turn.
+- **Composition** (`gdp-wired/compose`): `product(a, b)`, `interleave(a, b)` and `refinement(impl, spec, {relation, witness})`
+  build plain machines from machines (each side's state named `a_x`, `b_x`). A refinement's laws are the relation, proven
+  by induction, and its step law says the spec allows the request `witness` sends it at each of the implementation's:
+  `examples/composition.ts` proves a meter that counts down refines one that counts up, and refuses two broken ones.
 - **Running it**: `rule.interpreter()` is persistent (searches branch from any state); `rule.compiled()` is what an app
   ships: maps and the log updated in place, so a step costs the same however long the history. Both refuse params and
   inputs that aren't naturals below 2^53 and any value past 2^53 − 1, where the proofs over the naturals stop describing
@@ -179,15 +186,15 @@ its Lean twin in 1.35 s. What each proves, what each ships at runtime, and where
 
 | Path | What |
 | --- | --- |
-| `core/` | Machines, the interpreter and JS compiler, the linear solver and its checker, Houdini invariants, models, the first Lean export |
+| `core/` | Machines, the interpreter and JS compiler, the builders, composition (`compose.ts`), the linear solver and its checker, Houdini invariants, models, the first Lean export |
 | `kernel/` | The trusted kernel and the untrusted prover, with soundness fuzz (`kernel.test.ts`, `history.test.ts`) |
 | `lean/`, `lean-kernel/` | Lean: the derivation checker `Cert.lean`, and the kernel's twin with its exported trees |
 | `search/`, `hw/`, `modal-gpu/` | Counterexample search on the GPU: a hand-written WGSL kernel, and the same through the Handwired fork's word stages |
 | `synth/` | Invariants and ranks found on the GPU, proven by the kernel |
-| `next/` | Guards synthesized from laws, relational laws (migrations, tenant isolation), a ReBAC audit |
+| `next/` | Guards synthesized from laws, relational laws (migrations, tenant isolation, through `core/compose.ts`), a ReBAC audit |
 | `sat/` | Bit-vector laws: bit-blasted, solved, LRAT-checked in TypeScript, optionally by Lean |
 | `enum/`, `perf/` | The enumeration, and the benchmarks |
-| `examples/` | The builders at work: `domains/` (92 rules across nine domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `budget.ts` |
+| `examples/` | The builders at work: `domains/` (92 rules across nine domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `budget.ts`, `composition.ts` |
 | `compare/` | The same three rules in gdp-wired, Bend and plain Lean, checked and measured |
 | `spec.ts`, `gdp.ts`, `circuit.ts`, `laws.ts` | The audit path: gdp-ts predicates written once, as trusted provers per request and as a Handwired circuit that decides every (user, project) pair at once |
 | `modal/` | Everything above as Modal jobs: `suite.json` is the regression suite |
@@ -196,7 +203,8 @@ its Lean twin in 1.35 s. What each proves, what each ships at runtime, and where
 
 ## Running
 
-The npm package is the library: the builders (`gdp-wired`), the runtimes (`gdp-wired/machine`), the kernel
+The npm package is the library: the builders (`gdp-wired`), the runtimes (`gdp-wired/machine`), composition
+(`gdp-wired/compose`), the kernel
 (`gdp-wired/kernel`), the prover (`gdp-wired/prove`), the derivation checker and solver (`gdp-wired/check`,
 `gdp-wired/solver`). Everything else here (examples, comparisons, the Lean twin, the GPU searches) runs from a clone and
 needs [Bun](https://bun.sh); Lean 4.34.0 for `lean/` and `lean-kernel/`; a WebGPU runtime (Chrome, or Dawn's node
@@ -210,7 +218,7 @@ bun test core/compile.test.ts core/runtime.test.ts kernel/history.test.ts
 cd kernel && bun run-kernel.ts && bun test kernel.test.ts
 ```
 
-The whole suite (107 jobs, about 15 minutes of wall time) runs on [Modal](https://modal.com):
+The whole suite (110 jobs, about 15 minutes of wall time) runs on [Modal](https://modal.com):
 
 ```sh
 modal run modal/run.py --jobs modal/suite.json --out runs/modal/suite && sh modal/reap.sh

@@ -121,6 +121,9 @@ const auctionSteps = (a: typeof bidding) => [
   a.stepLaw('the high bid never falls', ({high}, after) => high.atMost(after.high)),
   a.stepLaw('a taken bid beats the high bid by the increment', ({high, increment}, after) => high.plus(increment).atMost(after.high), ({taken}) => taken),
   a.stepLaw('a refused bid changes nothing', ({high, leader, bids}, after) => after.high.eq(high).and(after.leader.eq(leader)).and(after.bids.eq(bids)), ({taken}) => taken.not()),
+  // About two bids in a row.
+  a.stepsLaw('two taken bids raise the high bid by two increments', 2, ({high, increment}, after) => high.plus(increment).plus(increment).atMost(after.high), ({taken}) => taken),
+  a.stepsLaw('two refused bids change nothing', 2, ({high, leader, bids}, after) => after.high.eq(high).and(after.leader.eq(leader)).and(after.bids.eq(bids)), ({taken}) => taken.not()),
 ]
 const auctionBeatsByOne = auction(({amount, high, reserve}) => all(amount.atLeast(reserve), amount.gt(high)))
 const auctionReserveOnly = auction(({amount, reserve, increment}) => amount.atLeast(reserve.plus(increment)))

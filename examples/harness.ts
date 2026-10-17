@@ -50,12 +50,24 @@ const lawHolds = (m: Machine, law: Law, params: Record<string, number>, st: Stat
 const cellsOf = (st: State) => JSON.stringify(Object.fromEntries(Object.entries(st.maps).map(([n, cells]) => [n, [...cells.entries()].sort((a, b) => a[0] - b[0])])))
 
 type Run = {steps: number, mismatch?: string, violation?: {law: string, params: Record<string, number>, trace: Record<string, number>[]}}
-// A step law at one step: `then` read with the state before (plain names), the request, its queries and flags, and the
-// state and maps after (primed names).
-function stepHolds(m: Machine, run: ReturnType<typeof interpret>, sl: StepLaw, params: Record<string, number>, before: State, input: Record<string, number>, after: State): boolean {
-  const env: Record<string, number> = {...params, ...input, ...run.queries(params, before, input)}
-  for (const [name, c] of Object.entries(m.step.flags ?? {})) env[`?${name}`] = evalC(c, env, before, m) ? 1 : 0
-  if (sl.when && !evalC(sl.when, env, before, m)) return true
+// A step law over its last k steps (k = steps, default 1): each step's `when` read with the state it started from, its
+// request, queries and flags; `then` with the state before the first (plain names), the first request and its flags, the
+// j-th request as input@j, and the state and maps after the last (primed names).
+type Taken = {before: State, input: Record<string, number>, after: State}
+function stepHolds(m: Machine, run: ReturnType<typeof interpret>, sl: StepLaw, params: Record<string, number>, window: Taken[]): boolean {
+  const k = sl.steps ?? 1
+  if (window.length < k) return true
+  const taken = window.slice(-k)
+  const envOf = ({before, input}: Taken) => {
+    const env: Record<string, number> = {...params, ...input, ...run.queries(params, before, input)}
+    for (const [name, c] of Object.entries(m.step.flags ?? {})) env[`?${name}`] = evalC(c, env, before, m) ? 1 : 0
+    return env
+  }
+  const whens = sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when]
+  if (whens.some((w, j) => !evalC(w, envOf(taken[j]!), taken[j]!.before, m))) return true
+  const env = envOf(taken[0]!)
+  taken.slice(1).forEach((t, j) => { for (const [n, val] of Object.entries(envOf(t))) if (m.inputs.includes(n)) env[`${n}@${j + 2}`] = val })
+  const before = taken[0]!.before, after = taken[k - 1]!.after
   const both: State = {
     scalars: {...before.scalars, ...Object.fromEntries(Object.entries(after.scalars).map(([n, v]) => [`${n}'`, v]))},
     maps: {...before.maps, ...Object.fromEntries(Object.entries(after.maps).map(([n, cells]) => [`${n}'`, cells]))},
@@ -72,7 +84,7 @@ export function runRule(rule: AnyRule, laws: Law[], opts: {trials: number, depth
     const params = rule.randomParams(rand, opts.bound)
     if (m.pre && !evalC(m.pre, params, empty, m)) continue
     let st = run.init(params), g = gen.init(params)
-    const trace: Record<string, number>[] = []
+    const trace: Record<string, number>[] = [], window: Taken[] = []
     for (const law of laws) if (!lawHolds(m, law, params, st, opts.bound)) return {steps, violation: {law: law.name, params, trace}}
     let t = 0
     for (let i = 0, tries = 0; i < opts.depth && tries < opts.depth * 20; tries++) {
@@ -84,10 +96,12 @@ export function runRule(rule: AnyRule, laws: Law[], opts: {trials: number, depth
       st = run.step(params, st, input)
       g = gen.step(params, g, input)
       trace.push(input)
+      window.push({before, input, after: st})
+      if (window.length > 16) window.shift()
       i++, steps++
       if (JSON.stringify(g.scalars) !== JSON.stringify(st.scalars) || cellsOf(g) !== cellsOf(st)) return {steps, mismatch: `compiled ${JSON.stringify(g.scalars)} vs interpreted ${JSON.stringify(st.scalars)} after ${JSON.stringify(trace)}`}
       for (const law of laws) if (!lawHolds(m, law, params, st, opts.bound)) return {steps, violation: {law: law.name, params, trace: [...trace]}}
-      for (const sl of stepLaws) if (!stepHolds(m, run, sl, params, before, input, st)) return {steps, violation: {law: sl.name, params, trace: [...trace]}}
+      for (const sl of stepLaws) if (!stepHolds(m, run, sl, params, window)) return {steps, violation: {law: sl.name, params, trace: [...trace]}}
     }
   }
   return {steps}
