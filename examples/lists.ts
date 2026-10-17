@@ -35,12 +35,26 @@ export const scopeSteps = (r = ok): StepLaw[] => [
   r.stepLaw('an insert adds one position', ({Scope}, after) => after.Scope.len.eq(Scope.len.plus(1)), ({fits}) => fits),
 ]
 
+// Three keys at once: cells written only with 0 or 1, so any three cells repeat a value (by pigeonhole). Writing each
+// cell's own key instead breaks it (cells 0, 1, 2 hold 0, 1, 2).
+export const bits = (bug?: 'writes the key') => rule('bits').inputs({at: nat, b: nat}).maps({A: 0})
+  .assume(({b}) => b.atMost(1))
+  .step(({at, b, A}) => ({A: A.set(at, bug ? at : b)}))
+export const bitsLaws = (r = bits()): Law[] => [
+  r.law('every cell is a bit', ({A}) => forall(k => A.at(k).atMost(1))),
+  r.law('any three cells repeat a value', ({A}) => forall((i, j, k) => A.at(i).eq(A.at(j)).or(A.at(j).eq(A.at(k)), A.at(i).eq(A.at(k))))),
+]
+
 if (import.meta.main) {
   const results: [string, boolean, boolean][] = []
   for (const bug of [undefined, 'skips the right neighbour', 'shifts the wrong way on removal'] as const) {
     const r = scope(bug), v = proveStepLaws(r.machine, scopeLaws(r), bug ? [] : scopeSteps(r))
     if (!bug && !(v.proven && v.checked)) console.log(JSON.stringify(v.failed))
     results.push([`normalized scope${bug ? ` (${bug})` : ''}`, v.proven && v.checked, !bug])
+  }
+  for (const bug of [undefined, 'writes the key'] as const) {
+    const r = bits(bug), v = proveStepLaws(r.machine, bitsLaws(r), [])
+    results.push([`bits${bug ? ` (${bug})` : ''}: any three cells repeat a value`, v.proven && v.checked, !bug])
   }
   for (const [name, got, want] of results) console.log(`${got === want ? 'ok  ' : 'FAIL'} ${name}: ${got ? 'proven' : 'refused'}`)
   if (results.some(([, got, want]) => got !== want)) process.exit(1)

@@ -207,27 +207,32 @@ function mapKeys(goals: Goal[]): E[] {
   for (const g of goals) g.hyps.forEach(inC)
   return [...out.values()]
 }
-// Instances with each every-key law also at these keys. A law about two keys goes at pairs that relate the goal's own
-// keys (`focus`: the skolems of the law it proves, or a step law's keys) to each other and to the keys that read
-// neither: each key that reads the first focus with each that reads the second or neither, and each that reads neither
-// with each that reads the second (with one focus, both sides are the keys that read it).
+// Instances with each every-key law also at these keys. A law about two keys or more goes at tuples that relate the
+// goal's own keys (`focus`: the skolems of the law it proves, or a step law's keys) to each other and to the keys that
+// read none of them: at the i-th place, a key that reads the i-th focus alone (the first, past the focus there is), and
+// at most one place a key that reads no focus.
 const withReads = (laws: Law[], inst: Instances, keys: E[], focus: string[]): Instances => ({...inst, ...Object.fromEntries(laws.filter(l => l.forall).map(l => {
   const had = inst[l.name] ?? []
-  if (l.forall2) {
+  if (l.keys?.length) {
+    const n = l.keys.length + 1
     const reads = (e: E, x?: string) => x !== undefined && JSON.stringify(e).includes(`"name":${JSON.stringify(x)}`)
-    const [f1, f2] = focus
-    const A = keys.filter(e => reads(e, f1) && !reads(e, f2)), B = f2 === undefined ? A : keys.filter(e => reads(e, f2) && !reads(e, f1))
+    const own = (i: number) => { const f = focus[i] ?? focus[0]; return keys.filter(e => reads(e, f) && focus.every(g => g === f || !reads(e, g))) }
     const R = keys.filter(e => !focus.some(f => reads(e, f)))
-    const out = new Map<string, [E, E]>()
-    for (let i = 0; i + 1 < had.length; i += 2) out.set(JSON.stringify([had[i], had[i + 1]]), [had[i]!, had[i + 1]!])
-    for (const [xs, ys] of [[A, B], [A, R], [R, B]] as const) for (const a of xs) for (const b of ys) out.set(JSON.stringify([a, b]), [a, b])
+    const out = new Map<string, E[]>()
+    for (let i = 0; i + n <= had.length; i += n) out.set(JSON.stringify(had.slice(i, i + n)), had.slice(i, i + n))
+    const go = (i: number, tuple: E[], rest: boolean): void => {
+      if (i === n) { out.set(JSON.stringify(tuple), tuple); return }
+      for (const e of own(i)) go(i + 1, [...tuple, e], rest)
+      if (!rest) for (const e of R) go(i + 1, [...tuple, e], true)
+    }
+    go(0, [], false)
     return [l.name, [...out.values()].flat()]
   }
   const seen = new Set(had.map(e => JSON.stringify(e)))
   return [l.name, [...had, ...keys.filter(e => { const id = JSON.stringify(e); return seen.has(id) ? false : (seen.add(id), true) })]]
 }))})
-// A law about every two keys is assumed at every ordered pair of the keys (flattened, as Instances keeps pairs).
-const pairs = (keys: E[]): E[] => keys.flatMap(a => keys.flatMap(b => [a, b]))
+// A law about every n keys at every n-tuple of the keys (flattened, as Instances keeps tuples).
+const tuples = (keys: E[], n: number): E[] => (n === 0 ? [] : n === 1 ? keys : keys.flatMap(a => { const rest = tuples(keys, n - 1); return Array.from({length: rest.length / (n - 1)}, (_, t) => [a, ...rest.slice(t * (n - 1), (t + 1) * (n - 1))]).flat() }))
 // The keys some goals read a function at.
 function fnKeys(m: Machine, goals: Goal[]): E[] {
   const fns = Object.keys(m.fns ?? {}), out = new Map<string, E>()
@@ -245,7 +250,7 @@ function fnKeys(m: Machine, goals: Goal[]): E[] {
 // value that makes one of its reads one of these (by matching: a function of several arguments reads a paired key), and
 // at the keys themselves.
 const withFacts = (m: Machine, inst: Instances, keys: E[]): Instances => ({...inst, ...Object.fromEntries((m.facts ?? []).filter(f => f.forall).map(f => {
-  if (f.forall2) return [f.name, pairs(keys)]
+  if (f.keys?.length) return [f.name, tuples(keys, f.keys.length + 1)]
   const had = inst[f.name] ?? [], seen = new Set(had.map(e => JSON.stringify(e)))
   const reads = fnKeys(m, [{name: '', hyps: [f.holds]}])
   const at = [...keys, ...reads.flatMap(pattern => keys.flatMap(key => { const b = match(pattern, key, f.forall!); return b ? [b] : [] }))]
@@ -327,8 +332,8 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
   const keys = [...readKeys(m, laws), ...witnesses(m)]
   const instances: Record<string, Instances> = {}
   for (const law of laws) {
-    const at = [...keys, ...(law.forall ? [{op: 'var', name: `${law.forall}#`} as E] : []), ...(law.forall2 ? [{op: 'var', name: law.forall2} as E] : [])]
-    instances[law.name] = {...Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, l.forall2 ? [] : at])), ...flagInstances(m, at)}
+    const at = [...keys, ...(law.forall ? [{op: 'var', name: `${law.forall}#`} as E] : []), ...(law.keys ?? []).map((name): E => ({op: 'var', name}))]
+    instances[law.name] = {...Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, l.keys?.length ? [] : at])), ...flagInstances(m, at)}
   }
   // The facts about functions, at every key each law's goals read a function at (found from the goals, twice round).
   for (let round = 0; round < 2 && m.facts?.length; round++) {
@@ -337,9 +342,9 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
   }
   // Where positions shift (a write at every key reading its key at k ∸ 1 or k + 1) or a law is about two keys, the
   // every-key laws also at each key the goals read a map at, once round.
-  if (shifts(m) || laws.some(l => l.forall2)) {
+  if (shifts(m) || laws.some(l => l.keys?.length)) {
     const goals = obligations(m, laws, instances)
-    laws.forEach((law, i) => { instances[law.name] = withReads(laws, instances[law.name]!, mapKeys(goals.slice(2 * i, 2 * i + 2)), [...(law.forall ? [`${law.forall}#`] : []), ...(law.forall2 ? [law.forall2] : [])]) })
+    laws.forEach((law, i) => { instances[law.name] = withReads(laws, instances[law.name]!, mapKeys(goals.slice(2 * i, 2 * i + 2)), [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])]) })
   }
   const trees: Record<string, Tree> = {}
   let nodes = 0, leaves = 0
@@ -374,12 +379,12 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
   if (!base.proof) return {proven: false, nodes: base.nodes, leaves: base.leaves, checked: false}
   const plain = m.history ? historyMachine(m).machine : m
   const keys = [...readKeys(plain, laws), ...witnesses(plain), ...stepLaws.flatMap(sl => [sl.then, ...(sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when])].flatMap(readKeysC)),
-    ...stepLaws.flatMap(sl => [sl.forall, sl.forall2].flatMap(key => (key ? [{op: 'var', name: key} as E] : [])))]
-  let instances: Instances = {...Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, l.forall2 ? [] : keys])), ...flagInstances(plain, keys)}
+    ...stepLaws.flatMap(sl => [sl.forall, ...(sl.keys ?? [])].flatMap(key => (key ? [{op: 'var', name: key} as E] : [])))]
+  let instances: Instances = {...Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, l.keys?.length ? [] : keys])), ...flagInstances(plain, keys)}
   for (let round = 0; round < 2 && plain.facts?.length; round++) instances = withFacts(plain, instances, fnKeys(plain, stepLaws.flatMap(sl => stepLawObligations(m, laws, instances, sl))))
   // Where positions shift or a law is about two keys, each step law gets its own instances, from its own goal.
   const perStep: Record<string, Instances> = {}
-  if (shifts(plain) || laws.some(l => l.forall2)) for (const sl of stepLaws) perStep[sl.name] = withReads(laws, instances, mapKeys(stepLawObligations(m, laws, instances, sl)), [sl.forall, sl.forall2].flatMap(k => (k ? [k] : [])))
+  if (shifts(plain) || laws.some(l => l.keys?.length)) for (const sl of stepLaws) perStep[sl.name] = withReads(laws, instances, mapKeys(stepLawObligations(m, laws, instances, sl)), [sl.forall, ...(sl.keys ?? [])].flatMap(k => (k ? [k] : [])))
   const trees: Record<string, Tree> = {}
   let nodes = base.nodes, leaves = base.leaves
   for (const sl of stepLaws) for (const goal of stepLawObligations(m, laws, perStep[sl.name] ?? instances, sl)) {
@@ -417,7 +422,7 @@ export function proveLiveness(m: Machine, laws: Law[], l: Liveness): Report & {s
   const {stay, helpful} = livenessParts(m, l)
   const a = proveStepLaws(m, laws, [stay])
   if (!a.proven || !a.checked) return {proven: false, nodes: a.nodes, leaves: a.leaves, ...(a.failed ? {failed: a.failed} : {}), checked: false}
-  const b = proveProgress(m, laws, helpful)
+  const b = proveProgress(m.history ? historyMachine(m).machine : m, laws, helpful)
   return {proven: b.proven, checked: b.checked, nodes: a.nodes + b.nodes, leaves: a.leaves + b.leaves, ...(b.failed ? {failed: b.failed} : {}), stay: a, helpful: b}
 }
 

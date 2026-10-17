@@ -4,7 +4,8 @@
 import {expect, test} from 'bun:test'
 import {evalC, interpret} from './machine.ts'
 import {proveLiveness} from '../kernel/prove.ts'
-import {everyTicket, ticketLaws, tickets} from '../examples/liveness.ts'
+import {everyLoggedTicket, everyTicket, loggedLaws, loggedTickets, ticketLaws, tickets} from '../examples/liveness.ts'
+import {count, nat, rule} from './dsl.ts'
 import {allowed} from './watch.ts'
 
 test('every ticket is served: proven; the stalling variant refused', () => {
@@ -37,4 +38,13 @@ test('fair runs serve every ticket; the stalling variant has a fair run that nev
   for (const op of ['take', 'take'] as const) st = brun.step(params, st, bad.encodeInput({op}))
   for (let i = 0; i < 50; i++) st = brun.step(params, st, bad.encodeInput({op: 'work'}))
   expect(evalC(everyTicket(bad).from, params, st, bm) && !evalC(everyTicket(bad).to, params, st, bm)).toBe(true)
+})
+
+test('a history: liveness through its plain machine (sums as state); with a query, refused by name', () => {
+  expect(proveLiveness(loggedTickets().machine, loggedLaws(), everyLoggedTicket())).toMatchObject({proven: true, checked: true})
+  const bad = loggedTickets('stalls with two waiting')
+  expect(proveLiveness(bad.machine, loggedLaws(bad), everyLoggedTicket(bad)).proven).toBe(false)
+  const q = rule('queried').inputs({t: nat}).state({n: 0}).log('t').queries({seen: r => count(r.t.atLeast(0))}).step(({n}) => ({n}))
+  const live = q.leadsTo('never', {from: ({n}) => n.eq(0), to: ({n}) => n.eq(0), rank: () => 0, helpful: () => ({t: 0})})
+  expect(() => proveLiveness(q.machine, [], live)).toThrow(/queries/)
 })

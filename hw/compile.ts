@@ -25,8 +25,8 @@
 // query is the sum of its term over the records kept before the request and not yet spent (with pruning, a record whose
 // order plus `after` is at most the request's), as the runtimes read it. With pruning, a request whose order goes back
 // ends the candidate: the runtimes refuse it.
-import {type C, type E, type Machine} from '../core/machine.ts'
-import {carried, fitsU32, stepDigits} from '../search/compile.ts'
+import {type C, type E, type Machine, fnValue} from '../core/machine.ts'
+import {FN_KEYS, carried, fitsU32, stepDigits} from '../search/compile.ts'
 import {historyMachine, plainKey} from '../kernel/kernel.ts'
 import {type Watched, isStepLaw} from '../core/watch.ts'
 import {type AnyStage, type LoopProgram, type WordBinding, createWordStage} from '../vendor/handwired/src/json-search/loop-program.ts'
@@ -46,7 +46,7 @@ export function lowSteps(m: Machine, space: Space, atMost = space.depth) {
 
 export function compile(given: Machine, law: Watched, space: Space, chunk: number, lowAtMost = space.depth): LoopProgram<AnyStage> {
   const K = space.bound + 1, D = space.depth, L = lowSteps(given, space, lowAtMost)
-  fitsU32(given, law, space)
+  const bounds = fitsU32(given, law, space)
   const h = given.history, m = h ? historyMachine(given).machine : given, carriedIn = carried(given)
   const log = h ? Array.from({length: D}, (_, i) => [...h.record.map(f => `r${i}:${f}`), `k${i}`]).flat() : []
   const steps = isStepLaw(law) ? law.steps ?? 1 : 0
@@ -77,6 +77,8 @@ export function compile(given: Machine, law: Watched, space: Space, chunk: numbe
   w.assumeAtMost(src('off'), chunk)
   w.assumeAtMost(src('count'), chunk)
   for (const p of m.params) w.assumeAtMost(src(`p:${p}`), K - 1)
+  // With functions: each state register within its bound over the space, so a function's key has a bound to tabulate to.
+  if (Object.keys(m.fns ?? {}).length) for (const s of state) w.assumeAtMost(src(`s:${s}`), bounds.vars[s]!)
   const position = w.source(regs.length), document = w.source(regs.length + 1), hi = w.source(regs.length + 2), _base = w.source(regs.length + 3), total = w.source(regs.length + 4)
   const k = (n: number) => w.constant(n >>> 0)
   const one = k(1), zero = k(0)
@@ -111,6 +113,14 @@ export function compile(given: Machine, law: Watched, space: Space, chunk: numbe
       case 'max': return w.max(ex(e.a, env), ex(e.b, env))
       case 'if': return w.select(cx(e.c, env), ex(e.then, env), ex(e.else, env))
       case 'get': {
+        // A function: its table over the keys the key can reach, computed here from its JavaScript.
+        const fn = m.fns?.[e.map]
+        if (fn) {
+          const key = ex(e.key, env), top = w.maximum(key)
+          if (top >= FN_KEYS) throw new Error(`${m.name}: the GPU search can't bound the key ${e.map} is read at below ${FN_KEYS}`)
+          const values = Array.from({length: top + 1}, (_, c) => fnValue(fn, c))
+          return values.slice(0, -1).reduce<Word>((acc, v, c) => w.select(w.eq(key, k(c)), k(v), acc), k(values.at(-1)!))
+        }
         const cells = env.cells[e.map]!
         if (env.bound && e.key.op === 'var' && e.key.name === env.bound.name) return env.bound.cell === 'past' ? fallback(e.map, env) : cells[env.bound.cell]!
         const key = ex(e.key, env)

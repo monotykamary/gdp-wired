@@ -2,7 +2,7 @@
 // candidate per index. The machine and its law compile to straight-line u32 code (what the forked Handwired's word
 // operations would emit), once as WGSL and once as JavaScript for the CPU baseline. Nothing here is trusted: whatever
 // the kernel reports is replayed by the interpreter before it is shown.
-import {type C, type E, type Law, type Machine, type Request, compileFunction, evalC, interpret, noQuantifier, pointWrite} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, type Request, compileFunction, evalC, fnValue, interpret, noQuantifier, pointWrite} from '../core/machine.ts'
 import {type Watched, allowed, isStepLaw, watch} from '../core/watch.ts'
 import {historyMachine} from '../kernel/kernel.ts'
 
@@ -49,9 +49,19 @@ export function replay(m: Machine, law: Watched, s: Space, index: number): {para
   }
   return undefined
 }
-export function fitsU32(given: Machine, law: Watched, s: Space): void {
-  if (Object.keys(given.fns ?? {}).length) throw new Error(`${given.name}: the GPU searches take no functions (search with the interpreter)`)
+// A function read at a key past this is refused: the GPU search tabulates each function over the keys it can reach.
+export const FN_KEYS = 1024
+// Returns each state variable's and map's bound over the space (the Handwired search assumes them of its registers).
+export function fitsU32(given: Machine, law: Watched, s: Space): {vars: Record<string, number>, cells: Record<string, number>} {
   const limit = 2 ** 32 - 1
+  const fns = given.fns ?? {}, top = new Map<string, number>()
+  // A function's largest value over the keys 0..kb.
+  const fnTop = (name: string, kb: number): number => {
+    if (kb >= FN_KEYS) throw new Error(`${given.name}: the GPU search reads ${name} at keys up to ${kb}, past the ${FN_KEYS} it tabulates`)
+    const id = `${name}:${kb}`
+    if (!top.has(id)) top.set(id, Math.max(...Array.from({length: kb + 1}, (_, key) => fnValue(fns[name]!, key))))
+    return top.get(id)!
+  }
   // A machine with a history as its plain machine (its sums are state); its queries are bounded below.
   const m = given.history ? historyMachine(given).machine : given
   const vars: Record<string, number> = {}, cells: Record<string, number> = {...m.maps}
@@ -75,7 +85,7 @@ export function fitsU32(given: Machine, law: Watched, s: Space): void {
       case 'min': v = Math.min(up(e.a), up(e.b)); break
       case 'max': v = Math.max(up(e.a), up(e.b)); break
       case 'if': upC(e.c); v = Math.max(up(e.then), up(e.else)); break
-      case 'get': up(e.key); v = cells[e.map]!; break
+      case 'get': { const kb = up(e.key); v = fns[e.map] ? fnTop(e.map, kb) : cells[e.map]!; break }
     }
     if (!(v <= limit)) throw new Error(`${m.name}: at depth ${s.depth} and bound ${s.bound}, a value could pass 2^32 - 1, where the GPU search's u32 code would wrap`)
     return v
@@ -108,6 +118,7 @@ export function fitsU32(given: Machine, law: Watched, s: Space): void {
     for (const [map, v] of written) cells[map] = Math.max(cells[map]!, v)
     read()
   }
+  return {vars, cells}
 }
 
 export type Target = 'wgsl' | 'js'
@@ -147,6 +158,7 @@ export function expressions(m: Machine, target: Target, name: (n: string) => str
 // The body of `candidate(index)`: the first depth at which the law fails, or NONE.
 export function emit(m: Machine, law: Law, s: Space, target: Target): string {
   const K = s.bound + 1 // cells 0..bound are stored; every key above holds the map's initial value
+  if (Object.keys(m.fns ?? {}).length) throw new Error(`${m.name}: the hand-written shader takes no functions (the Handwired search does)`)
   fitsU32(m, law, s)
   const isVar = (e: E) => e.op === 'var' && (m.params.includes(e.name) || m.inputs.includes(e.name))
   for (const w of Object.values(m.step.maps ?? {})) if (!isVar(pointWrite(w, 'the hand-written shader').key)) throw new Error('the GPU search writes maps only at a param or input key')

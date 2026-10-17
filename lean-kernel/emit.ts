@@ -7,6 +7,7 @@ import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type Step, add, k, scale, sub} from '../core/solver.ts'
 import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, canon, historyMachine, foldObligations, leafConstraints, linear, livenessParts, loopObligations, obligations, progressObligations, stepLawObligations, substC, withProducts} from '../kernel/kernel.ts'
 import {grow, proveLaws, proveProgress, proveStepLaws} from '../kernel/prove.ts'
+import {refinement, refinementSides} from '../core/compose.ts'
 import {leanTerms} from './lean-terms.ts'
 import {leanLibrary} from './library.ts'
 export {leanLibrary}
@@ -259,7 +260,7 @@ export function readable(id: string, laws: Law[], vars: string[], maps: string[]
   const statement = (law: Law): string => {
     const t = (e: E): string => {
       switch (e.op) {
-        case 'var': return e.name === law.forall ? 'k' : e.name === law.forall2 ? 'k2' : `ρ ${q(e.name)}`
+        case 'var': { const j = (law.keys ?? []).indexOf(e.name); return e.name === law.forall ? 'k' : j >= 0 ? `k${j + 2}` : `ρ ${q(e.name)}` }
         case 'const': return String(e.value)
         case 'add': return `(${t(e.a)} + ${t(e.b)})`
         case 'sub': return `(${t(e.a)} - ${t(e.b)})`
@@ -282,21 +283,22 @@ export function readable(id: string, laws: Law[], vars: string[], maps: string[]
         case 'all': throw new Error(`${id}: a law has no quantifier inside`)
       }
     }
-    return law.forall2 ? `∀ k k2 : Nat, ${p(law.holds)}` : law.forall ? `∀ k : Nat, ${p(law.holds)}` : p(law.holds)
+    return law.keys?.length ? `∀ k ${law.keys.map((_, j) => `k${j + 2}`).join(' ')} : Nat, ${p(law.holds)}` : law.forall ? `∀ k : Nat, ${p(law.holds)}` : p(law.holds)
   }
-  const used = new Set(laws.flatMap(l => [...JSON.stringify(l.holds).matchAll(/"name":"([^"]+)"|"map":"([^"]+)"/g)].map(m => m[1] ?? m[2]!).filter(name => name !== l.forall && name !== l.forall2)))
+  const used = new Set(laws.flatMap(l => [...JSON.stringify(l.holds).matchAll(/"name":"([^"]+)"|"map":"([^"]+)"/g)].map(m => m[1] ?? m[2]!).filter(name => name !== l.forall && !(l.keys ?? []).includes(name))))
   return `namespace ${id}
 ${[...vars.filter(v => used.has(v)).map(v => `abbrev ${q(v)} : Nat := ${vars.indexOf(v)}`), ...maps.filter(mp => used.has(mp)).map(mp => `abbrev ${q(mp)} : Nat := ${maps.indexOf(mp)}`)].join('\n')}
 ${laws.map((law, j) => (law.stated ? `-- ${law.name}: as written, with some key; proven (below) with the prover's witness in place\n` : '') + (JSON.stringify(law.holds).includes('"op":"if"') ? `-- ${law.name}: its terms read an if, so no plain statement here (${id}_laws holds it)` : `/-- ${law.name.replace(/-\//g, '- /')} -/
 theorem law${j} ${reach.binders} (h : ${reach.hyp}) : ${statement(law)} := by
-  ${law.forall2 ? `have hl : ${id}_e${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])
-  exact fun k k2 => (evalC_iff (upd (upd ρ ${vars.indexOf(law.forall2)} k2) ${vars.indexOf(law.forall!)} k) μ ${id}_l${j}.holds).mp (hl k2 k)` : `have hl : ${id}_l${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])
+  ${law.keys?.length ? `have hl : ${id}_e${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])
+  exact fun k ${law.keys.map((_, i) => `k${i + 2}`).join(' ')} => (evalC_iff (upd (${law.keys.reduce((acc, key, i) => `upd (${acc}) ${vars.indexOf(key)} k${i + 2}`, 'ρ')}) ${vars.indexOf(law.forall!)} k) μ ${id}_l${j}.holds).mp (hl ${law.keys.map((_, i) => `k${i + 2}`).join(' ')} k)` : `have hl : ${id}_l${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])
   ${law.forall ? `exact fun k => (evalC_iff (upd ρ ${vars.indexOf(law.forall)} k) μ ${id}_l${j}.holds).mp (hl k)` : `exact (evalC_iff ρ μ ${id}_l${j}.holds).mp hl`}`}`)).join('\n')}
 end ${id}`
 }
 
 export type ProgressCase = {id: string, name: string, when: C, then: C, request: Record<string, E>, instances: Instances, tamper?: {what: string, when: C}}
-export function mmachineToLean(id: string, m: Machine, laws: Law[], opts: {corollary?: string, tamper?: {what: string, machine: Machine}, progress?: ProgressCase[], free?: string[], stepLaws?: StepLaw[], liveness?: Liveness[], ghosts?: string[], after?: (ix: (name: string) => number) => string} = {}): string {
+export function mmachineToLean(id: string, m: Machine, laws: Law[], opts: {corollary?: string, tamper?: {what: string, machine: Machine}, progress?: ProgressCase[], free?: string[], stepLaws?: StepLaw[], liveness?: Liveness[], ghosts?: string[], after?: (ix: (name: string) => number) => string,
+    refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}} = {}): string {
   const r = proveLaws(m, laws)
   if (!r.proven || !r.proof) throw new Error(`${id}: not proven`)
   const keysOf = [...new Set(laws.flatMap(l => (l.forall ? [l.forall] : [])))]
@@ -411,10 +413,30 @@ theorem ${lid}_holds (run : FRun ${id}_machine)
   // (Ghost.lean), so the laws that read no ghost are laws of the original.
   const gv = opts.ghosts ?? []
   const orig: Machine = {...m, state: Object.fromEntries(Object.entries(m.state).filter(([n2]) => !gv.includes(n2))), step: {...m.step, state: Object.fromEntries(Object.entries(m.step.state ?? {}).filter(([n2]) => !gv.includes(n2)))}}
-  const machineDef = gv.length ? `def ${id}_ghosted : Ghosted := ⟨${lit(orig)},
+  const rf = opts.refined
+  const machineDef = rf ? `def ${id}_refined : Refined := ⟨${lit(rf.impl)},
+  ${lit(rf.spec)},
+  ${list(Object.entries(rf.wit).map(([inp, e2]) => `(${ix(`b_${inp}`)}, ${any0.e(e2)})`))},
+  ${any0.c(rf.stutter)}⟩
+def ${id}_machine : FMMachine := ${id}_refined.full` : gv.length ? `def ${id}_ghosted : Ghosted := ⟨${lit(orig)},
   ${list(gv.map(v2 => `(${ix(v2)}, ${any0.e(m.state[v2]!)}, ${any0.e(m.step.state?.[v2] ?? {op: 'var', name: v2})})`))}⟩
 def ${id}_machine : FMMachine := ${id}_ghosted.full
 theorem ${id}_ghostOk : ghostOk ${id}_ghosted = true := by decide +kernel` : `def ${id}_machine : FMMachine := ${lit(m)}`
+  // What the refinement means (Refine.lean's refines), from the laws and the step law (the spec allows the request).
+  const refinesText = () => {
+    const sl = opts.stepLaws![0]!, goal = stepLawObligations(m, laws, sp!.proof!.instances, sl)[0]!, pr = enc(goal, sp!.proof!.trees[goal.name]!)
+    const insts = list(laws.flatMap((l, li) => (l.forall ? (sp!.proof!.instances[l.name] ?? []).map(key => `(${li}, ${any0.e(key)})`) : [])))
+    const primes = list(Object.keys(m.state).map(s2 => `(${ix(s2)}, ${ix(`${s2}'`)})`)), primeMaps = list(baseMaps.map(mp => `(${mapNames.indexOf(mp)}, ${mapNames.indexOf(`${mp}'`)})`))
+    return `
+
+-- What the refinement means: every reachable state of the implementation, beside a reachable state of the spec, related
+-- by every law.
+theorem ${id}_allowed : checkStepLaw ${id}_machine ${id}_proof ⟨trueC, ${id}_refined.allowed, ${primes}, ${primeMaps}, ${insts}, (${pr.tab}, ${pr.tree})⟩ = true := by decide +kernel
+theorem ${id}_refines : ∀ ρ M, FMReach ${id}_refined.impl ρ M → ∃ ρc Mc σ Ms, FMReach ${id}_refined.full ρc Mc ∧ Agree ${id}_refined.SV ρc ρ
+    ∧ (∀ mp, mp ∉ ${id}_refined.SM → Mc mp = M mp) ∧ FMReach ${id}_refined.spec σ Ms ∧ Agree ${id}_refined.X σ ρc
+    ∧ (∀ mp, mp ∉ ${id}_refined.IM → Ms mp = Mc mp) ∧ ∀ e ∈ ${id}_proof, e.law.Holds ρc Mc :=
+  refines ${id}_refined (by decide +kernel) (by decide +kernel) ${id}_proof ${id}_check ${rf!.specPre} ⟨rfl, rfl⟩ ${primes} ${primeMaps} ${insts} (${pr.tab}, ${pr.tree}) ${id}_allowed (by decide +kernel)`
+  }
   const ghostLaws = gv.length ? `
 -- The laws that read no ghost hold of the machine without its ghosts.
 theorem ${id}_orig_laws : ∀ ρ M, FMReach ${id}_ghosted.orig ρ M → ∀ e ∈ ${id}_proof, avoids ${id}_ghosted.vars e.law.holds = true → e.law.Holds ρ M :=
@@ -429,7 +451,7 @@ theorem ${id}_laws : ∀ ρ M, FMReach ${id}_machine ρ M → ∀ e ∈ ${id}_pr
 ${readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `FMReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`})}${opts.corollary ? `\n${opts.corollary}` : ''}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : FMMachine := ${lit(opts.tamper.machine)}
-example : checkFMMachine ${id}_tampered ${id}_proof = false := by decide +kernel` : ''}${progress.length ? `\n\n${progress.join('\n\n')}` : ''}${stepRecords.length ? `\n\n${stepRecords.join('\n\n')}` : ''}${liveRecords.length ? `\n\n${liveRecords.join('\n\n')}` : ''}${ghostLaws}${opts.after ? `\n\n${opts.after(ix)}` : ''}`
+example : checkFMMachine ${id}_tampered ${id}_proof = false := by decide +kernel` : ''}${progress.length ? `\n\n${progress.join('\n\n')}` : ''}${stepRecords.length ? `\n\n${stepRecords.join('\n\n')}` : ''}${liveRecords.length ? `\n\n${liveRecords.join('\n\n')}` : ''}${ghostLaws}${rf ? refinesText() : ''}${opts.after ? `\n\n${opts.after(ix)}` : ''}`
 }
 
 // Machines with sets through Kern.smachine_sound and Kern.skstep_sound (Sets.lean): maps a request carries, flags that
@@ -451,7 +473,7 @@ export function smachineToLean(id: string, m: Machine, laws: Law[], opts: {stepL
   if (!r.proven || !r.proof) throw new Error(`${id}: not proven`)
   const lp = r.proof.laws, si = r.proof.instances
   const flags = Object.entries(m.step.flags ?? {}), quantified = flags.filter(([, c]) => c.op === 'all').map(([f]) => f)
-  const carried = m.inputMaps ?? [], facts = m.facts ?? [], keysOf = [...new Set([...laws, ...facts].flatMap(l => [l.forall, l.forall2].filter((k): k is string => !!k)))]
+  const carried = m.inputMaps ?? [], facts = m.facts ?? [], keysOf = [...new Set([...laws, ...facts].flatMap(l => [l.forall, ...(l.keys ?? [])].filter((k): k is string => !!k)))]
   const k = Math.max(1, ...stepLaws.map(sl => sl.steps ?? 1))
   const ext = [...m.inputs, ...quantified.flatMap(f => [`?${f}`, `w?${f}`])]
   const later = Array.from({length: k - 1}, (_, j) => ext.map(v => `${v}@${j + 2}`)).flat()
@@ -487,15 +509,18 @@ export function smachineToLean(id: string, m: Machine, laws: Law[], opts: {stepL
   ${list((mm.facts ?? []).map(l => `⟨${c(l.holds)}, ${l.forall ? `some ${ix(l.forall)}` : 'none'}⟩`))}⟩`
   }
   const lawIx = (name: string) => laws.findIndex(l => l.name === name)
-  const insts = (inst: Instances) => Object.entries(inst).filter(([name]) => lawIx(name) >= 0 && !laws[lawIx(name)]!.forall2).flatMap(([name, keys]) => keys.map(key => `(${lawIx(name)}, ${e(key)})`))
-  // A law about every two keys is assumed at pairs (kept flattened).
-  const pinsts = (inst: Instances) => Object.entries(inst).filter(([name]) => lawIx(name) >= 0 && laws[lawIx(name)]!.forall2).flatMap(([name, keys]) => keys.flatMap((key, i) => (i % 2 === 0 && keys[i + 1] ? [`(${lawIx(name)}, ${e(key)}, ${e(keys[i + 1]!)})`] : [])))
+  const insts = (inst: Instances) => Object.entries(inst).filter(([name]) => lawIx(name) >= 0 && !laws[lawIx(name)]!.keys?.length).flatMap(([name, keys]) => keys.map(key => `(${lawIx(name)}, ${e(key)})`))
+  // A law about every two keys or more is assumed at tuples (kept flattened): the first key, and the rest.
+  const pinsts = (inst: Instances) => Object.entries(inst).filter(([name]) => lawIx(name) >= 0 && laws[lawIx(name)]!.keys?.length).flatMap(([name, keys]) => {
+    const n = laws[lawIx(name)]!.keys!.length + 1
+    return Array.from({length: Math.floor(keys.length / n)}, (_, t) => `(${lawIx(name)}, ${e(keys[t * n]!)}, ${list(keys.slice(t * n + 1, t * n + n).map(e))})`)
+  })
   const finsts = (inst: Instances) => Object.entries(inst).flatMap(([name, keys]) => { const j = facts.findIndex(f => f.name === name); return j < 0 ? [] : keys.map(key => `(${j}, ${e(key)})`) })
   const qinsts = (inst: Instances) => Object.entries(inst).filter(([name]) => name.startsWith('?')).flatMap(([f, keys]) => keys.map(key => `(${ix(f)}, ${e(key)})`))
   const entries = laws.map((law, j) => {
     const g0 = goalsL[2 * j]!, g1 = goalsL[2 * j + 1]!, a = enc(g0, lp.trees[g0.name]!), b = enc(g1, lp.trees[g1.name]!), inst = lp.instances[law.name] ?? {}
     return `def ${id}_l${j} : MLaw := ⟨${c(law.holds)}, ${law.forall ? `some ${ix(law.forall)}` : 'none'}⟩
-def ${id}_e${j} : SEntry := ⟨${id}_l${j}, ${ix(law.forall ? `${law.forall}#` : '#')}, ${law.forall2 ? `some ${ix(law.forall2)}` : 'none'}, ${list(insts(inst))}, ${list(qinsts(inst))}, ${list(finsts(inst))}, ${list(pinsts(inst))},
+def ${id}_e${j} : SEntry := ⟨${id}_l${j}, ${ix(law.forall ? `${law.forall}#` : '#')}, ${list((law.keys ?? []).map(key => String(ix(key))))}, ${list(insts(inst))}, ${list(qinsts(inst))}, ${list(finsts(inst))}, ${list(pinsts(inst))},
   (${a.tab}, ${a.tree}),
   (${b.tab}, ${b.tree})⟩`
   })
@@ -616,6 +641,9 @@ export type LeanItem =
   // `ghosts`: the machine's ghost variables (compose.ts's ghost), so the export proves its ghost-free laws of the machine
   // without them; `lean.after`: Lean written after the item (a corollary of its theorems, say).
   | {id: string, machine: Machine, laws: Law[], stepLaws?: StepLaw[], liveness?: Liveness[], ghosts?: string[], lean?: {defs?: string, simp?: string[], after?: (ix: (name: string) => number) => string}}
+  // A refinement (compose.ts's), exported with what it means: its relation and the spec's precondition proven of the
+  // composite, the spec allowing every request it is sent, and Refine.lean's `refines`.
+  | {id: string, refinement: {impl: Machine, spec: Machine, relation: Law[], witness: Record<string, E>, stutter?: C}}
   | {id: string, loop: Loop, rank: E | E[], laws?: Law[]}
   | {id: string, goal: Goal}
 
@@ -640,16 +668,21 @@ export function toLean(items: LeanItem[], opts: {title?: string} = {}): string {
         item = {...item, laws: r.laws ?? item.laws, ...(item.stepLaws ? {stepLaws: r.stepLaws ?? item.stepLaws} : {})}
       }
       if (m.history && (m.fns || m.facts)) throw new Error(`${item.id}: functions on a machine with a history aren't exported to Lean yet`)
-      if (hasSets(m) || item.laws.some(l => l.forall2)) {
+      if (hasSets(m) || item.laws.some(l => l.keys?.length)) {
         // Sets (or functions, or laws about two keys): the laws and the step laws in one export (one proof of both).
         parts.push(`-- ${item.id}\n${item.lean?.defs ? `${item.lean.defs}\n` : ''}${smachineToLean(id, m, item.laws, {stepLaws: item.stepLaws, ...(item.lean?.simp ? {simp: item.lean.simp} : {})})}`)
         theorems.push(`${id}_laws`, ...(item.stepLaws ?? []).map((_, j) => `${id}_step${j}_holds`))
         continue
       }
-      if (item.liveness?.length && (m.history || hasSets(m))) throw new Error(`${item.id}: liveness is exported for machines without sets, functions or a history`)
+      if (item.liveness?.length && hasSets(m)) throw new Error(`${item.id}: liveness is exported for machines without sets or functions`)
+      // A history's liveness through its plain machine (its sums as state), as its step laws are.
+      if (item.liveness?.length && m.history) {
+        parts.push(`-- ${item.id}: liveness, on its plain machine\n${mmachineToLean(`${id}s`, historyMachine(m).machine, item.laws, {liveness: item.liveness})}`)
+        item.liveness.forEach((_, j) => theorems.push(`${id}s_live${j}_holds`))
+      }
       const ghosted = item.ghosts?.length ? {ghosts: item.ghosts, stepLaws: item.stepLaws ?? [], ...(item.lean?.after ? {after: item.lean.after} : {})} : {}
       parts.push(`-- ${item.id}\n${m.history ? hmachineToLean(id, m, item.laws) : mmachineToLean(id, m, item.laws, {...(item.liveness?.length ? {liveness: item.liveness} : {}), ...ghosted})}`)
-      theorems.push(`${id}_laws`, ...(item.liveness ?? []).map((_, j) => `${id}_live${j}_holds`))
+      theorems.push(`${id}_laws`, ...(m.history ? [] : (item.liveness ?? []).map((_, j) => `${id}_live${j}_holds`)))
       if (item.ghosts?.length) item.stepLaws?.forEach((_, j) => theorems.push(`${id}_step${j}_holds`))
       if (item.lean?.after) theorems.push(...[...item.lean.after(() => 0).matchAll(/^theorem (\S+)/gm)].map(x2 => x2[1]!))
       else if (item.stepLaws?.length) {
@@ -657,6 +690,14 @@ export function toLean(items: LeanItem[], opts: {title?: string} = {}): string {
         parts.push(`-- ${item.id}: step laws\n${mmachineToLean(sid, plain, item.laws, {stepLaws: item.stepLaws})}`)
         item.stepLaws.forEach((_, j) => theorems.push(`${sid}_step${j}_holds`))
       }
+    } else if ('refinement' in item) {
+      const {impl, spec, relation, witness} = item.refinement
+      const stutter: C = item.refinement.stutter ?? {op: '<', a: n(0), b: n(0)}
+      const R = refinement(impl, spec, {relation, witness, stutter}), S = refinementSides(impl, spec)
+      const laws: Law[] = [...relation, {name: `${spec.name}'s precondition`, holds: spec.pre ?? atMost(n(0), n(0))}]
+      const sl: StepLaw = R.stepLaws[0] ?? {name: `${spec.name} allows the request it is sent`, then: {op: 'or', xs: [stutter, atMost(n(0), n(0))]}}
+      parts.push(`-- ${item.id}\n${mmachineToLean(id, R.machine, laws, {stepLaws: [sl], free: spec.inputs.map(i => `b_${i}`), refined: {impl: S.impl, spec: S.spec, wit: witness, stutter, specPre: relation.length}})}`)
+      theorems.push(`${id}_laws`, `${id}_refines`)
     } else if ('loop' in item) {
       parts.push(`-- ${item.id}\n${loopToLean(id, item.loop, item.laws ?? [], item.rank)}`)
       theorems.push(`${id}_halts`)
@@ -669,7 +710,7 @@ export function toLean(items: LeanItem[], opts: {title?: string} = {}): string {
   }
   // Sets.lean (which imports Steps.lean) only when a machine has sets.
   return `import History
-import ${items.some(item => 'machine' in item && item.ghosts?.length) ? 'Ghost' : items.some(item => 'machine' in item && item.liveness?.length) ? 'Live' : items.some(item => 'machine' in item && (hasSets(item.machine) || item.laws.some(l => l.forall2))) ? 'Sets' : 'Steps'}
+import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && item.ghosts?.length) ? 'Ghost' : items.some(item => 'machine' in item && item.liveness?.length) ? 'Live' : items.some(item => 'machine' in item && (hasSets(item.machine) || item.laws.some(l => l.keys?.length))) ? 'Sets' : 'Steps'}
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0

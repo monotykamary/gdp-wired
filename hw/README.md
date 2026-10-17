@@ -131,3 +131,10 @@ bun check-more.ts
 DAWN_MODULE=<webgpu>/index.js bun run-more.ts --hand
 cd .. && modal run hw/run_gpu.py --out ../runs/modal/hw/more-h100.json --gpu H100 --script run-more.ts --args "--hand"
 ```
+
+Functions (`fn`, `divBy`, `modBy`) are tabulated: a read at a key the circuit's range analysis bounds below 1,024 is a
+chain of selects over the function's values there, computed once from its JavaScript; each state register is assumed
+within its bound over the space (`search/compile.ts`'s `fitsU32`), so a key read from the state has a bound. In
+`check-steps.ts`: the per-minute limit that keeps the raw time breaks its law at the first request past a minute (times
+up to 60), and the proven one has no run that breaks it in 226,981; the handshakes counting the newcomer break theirs at
+the first join.

@@ -216,6 +216,10 @@ export class MapRef {
   subsetOf(other: MapRef): Cond { return everyKey(k => this.at(k).atMost(other.at(k))) }
   disjointFrom(other: MapRef): Cond { return everyKey(k => this.at(k).plus(other.at(k)).atMost(1)) }
   sameAs(other: MapRef): Cond { return everyKey(k => this.at(k).eq(other.at(k))) }
+  // Over a universe of n names (keys 0 .. n − 1): every key past it holds 0 (a law, or a whole flag for a set a request
+  // carries), and the set's size, the sum of its cells there (exact, given `within`).
+  within(n: number): Cond { naturalConst(n); return everyKey(k => k.atLeast(n).implies(this.at(k).eq(0))) }
+  sizeBelow(n: number): Term { naturalConst(n); return sum(0, ...Array.from({length: n}, (_, key) => this.at(key))) }
 }
 
 // A list: a map's positions 0 .. len − 1 and its length (the state variable <name>_len), every cell past the end 0
@@ -247,12 +251,12 @@ export class ListRef {
 }
 const when_ = (c: Cond, then: TermLike, otherwise: TermLike): Term => new Term({op: 'if', c: c.c, then: termOf(then), else: termOf(otherwise)})
 
-export type Forall = {readonly forall: (key: Term, key2: Term) => Cond}
+export type Forall = {readonly forall: (key: Term, ...more: Term[]) => Cond}
 // A law about every key of a map: proven at a fresh key, assumed at the keys a step reads.
-// With two parameters, about every two keys: forall((i, j) => i.lt(j).implies(...)).
-export function forall(f: (key: Term, key2: Term) => Cond): Forall { return {forall: f} }
+// With two parameters or more, about every two keys or more: forall((i, j) => i.lt(j).implies(...)).
+export function forall(f: (key: Term, key2: Term, key3: Term, key4: Term) => Cond): Forall { return {forall: f as Forall['forall']} }
 // The keys a law's callback names: one, or two when it takes two.
-const keysFor = (out: Forall): [string, string | undefined] => [`key$${++keyCounter}`, out.forall.length >= 2 ? `key$${++keyCounter}` : undefined]
+const keysFor = (out: Forall): [string, string[]] => [`key$${++keyCounter}`, Array.from({length: Math.max(0, out.forall.length - 1)}, () => `key$${++keyCounter}`)]
 export type Relation = {readonly when: Cond, readonly holds: Cond}
 // For histories: `holds` (a <= b, homogeneous over sums and queries) wherever `when` (params and plain inputs) holds.
 export const relation = (holds: Cond, whenever: Cond = yes): Relation => ({when: whenever, holds})
@@ -537,8 +541,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   private lawOf(name: string, out: Cond | Forall): Law {
     const key = `key$${++keyCounter}`
     if (out instanceof Cond) { const p = prenex(out.c, `law ${name}`, key); return p ? {name, forall: key, holds: p} : {name, holds: out.c} }
-    const [k1, k2] = keysFor(out), holds = out.forall(v(k1), v(k2 ?? k1)).c
-    return k2 ? {name, forall: k1, forall2: k2, holds} : {name, forall: k1, holds: prenex(holds, `law ${name}`, k1) ?? holds}
+    const [k1, more] = keysFor(out), holds = out.forall(v(k1), ...more.map(v)).c
+    return more.length ? {name, forall: k1, keys: more, holds} : {name, forall: k1, holds: prenex(holds, `law ${name}`, k1) ?? holds}
   }
 
   // A law about one step, for every request the rule allows: `then(before, after)` relates what the step reads (params,
@@ -554,8 +558,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const out = then(env, after as never), w = when ? {when: when(env).c} : {}
     const key = `key$${++keyCounter}`
     if (out instanceof Cond) { const p = prenex(out.c, `step law ${name}`, key); return p ? {name, forall: key, then: p, ...w} : {name, then: out.c, ...w} }
-    const [k1, k2] = keysFor(out), c = out.forall(v(k1), v(k2 ?? k1)).c
-    return k2 ? {name, forall: k1, forall2: k2, then: c, ...w} : {name, forall: k1, then: prenex(c, `step law ${name}`, k1) ?? c, ...w}
+    const [k1, more] = keysFor(out), c = out.forall(v(k1), ...more.map(v)).c
+    return more.length ? {name, forall: k1, keys: more, then: c, ...w} : {name, forall: k1, then: prenex(c, `step law ${name}`, k1) ?? c, ...w}
   }
 
   // A law about k steps in a row (k from 2 to 16): `then(first, last, requests)` relates what the first step reads to the
@@ -581,8 +585,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const w = whens.length ? {when: whens.map(c => (c ?? lit(0).atMost(0)).c)} : {}
     const key = `key$${++keyCounter}`
     if (out instanceof Cond) { const p = prenex(out.c, `step law ${name}`, key); return p ? {name, steps: k, forall: key, then: marked(p), ...w} : {name, steps: k, then: marked(out.c), ...w} }
-    const [k1, k2] = keysFor(out), c = out.forall(v(k1), v(k2 ?? k1)).c
-    return k2 ? {name, steps: k, forall: k1, forall2: k2, then: marked(c), ...w} : {name, steps: k, forall: k1, then: marked(prenex(c, `step law ${name}`, k1) ?? c), ...w}
+    const [k1, more] = keysFor(out), c = out.forall(v(k1), ...more.map(v)).c
+    return more.length ? {name, steps: k, forall: k1, keys: more, then: marked(c), ...w} : {name, steps: k, forall: k1, then: marked(prenex(c, `step law ${name}`, k1) ?? c), ...w}
   }
 
   // "Whenever `from` holds, `to` holds later", in every run that takes the helpful request (a term per input, over the

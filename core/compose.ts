@@ -120,6 +120,17 @@ export function refinement(impl: Machine, spec: Machine, opts: {relation: Law[],
   return {machine, laws, stepLaws}
 }
 
+// A refinement's two sides as machines in its composite's names (for lean-kernel/Refine.lean, which builds the composite
+// from them): the implementation's parts named a_x, the spec's b_x, the spec's inputs b_<input> (which the composite
+// never reads: the witness stands for them there).
+export function refinementSides(impl: Machine, spec: Machine): {impl: Machine, spec: Machine} {
+  const named = (m: Machine, p: string, inputs: Record<string, E>, inputNames: string[]): Machine => {
+    const R = renamed(m, p, inputs)
+    return {name: m.name, params: m.params, inputs: inputNames, state: R.state, maps: R.maps, step: R.step, ...(R.assume ? {assume: R.assume} : {}), ...(m.pre ? {pre: m.pre} : {})}
+  }
+  return {impl: named(impl, 'a_', {}, impl.inputs), spec: named(spec, 'b_', Object.fromEntries(spec.inputs.map(i => [i, x(`b_${i}`)])), spec.inputs.map(i => `b_${i}`))}
+}
+
 // "a and b agree" in a product of a machine with another of its shape: every scalar equal, every map equal at every key.
 export function agree(a: Machine): Law[] {
   return [

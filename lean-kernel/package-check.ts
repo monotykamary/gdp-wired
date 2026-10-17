@@ -3,12 +3,13 @@
 import {mkdirSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {bool, count, forall, loop, maybe, min, nat, oneOf, relation, rule, yes} from '../core/dsl.ts'
-import {escrowLaws, escrowRunsLean, escrowSteps, escrowWatched} from '../examples/composition.ts'
+import {countdown, escrowLaws, escrowRunsLean, escrowSteps, escrowWatched, meter, meterRelation, twoPhase} from '../examples/composition.ts'
 import {authority, authorityLaws, authorityPairs, authoritySteps} from '../examples/sets.ts'
 import {inlineAuthority, inlineLaws, inlineSteps, memberLaws, memberSteps, members} from '../examples/quantifiers.ts'
 import {larger, largerLaws, minuteLaws, minutes, pairsLean, room, roomLaws} from '../examples/functions.ts'
-import {scope, scopeLaws, scopeSteps} from '../examples/lists.ts'
-import {everyTicket, ticketLaws, tickets} from '../examples/liveness.ts'
+import {bits, bitsLaws, scope, scopeLaws, scopeSteps} from '../examples/lists.ts'
+import {team, teamLaws, teamSteps} from '../examples/sizes.ts'
+import {everyLoggedTicket, everyTicket, loggedLaws, loggedTickets, ticketLaws, tickets} from '../examples/liveness.ts'
 import {leanProject, toLean} from './emit.ts'
 
 const caps = rule('caps').params({d: nat}).inputs({acct: nat, day: nat, ok: bool}).maps({Acct: 0, Day: 0})
@@ -45,7 +46,14 @@ const file = toLean(([
   {id: 'larger', machine: larger.machine, laws: largerLaws},
   {id: 'room', machine: room().machine, laws: roomLaws(), lean: pairsLean},
   {id: 'scope', machine: scope().machine, laws: scopeLaws(), stepLaws: scopeSteps()},
+  {id: 'bits', machine: bits().machine, laws: bitsLaws()},
+  {id: 'team', machine: team().machine, laws: teamLaws(), stepLaws: teamSteps()},
   {id: 'tickets', machine: tickets().machine, laws: ticketLaws(), liveness: [everyTicket()]},
+  {id: 'logged', machine: loggedTickets().machine, laws: loggedLaws(), liveness: [everyLoggedTicket()]},
+  // Refinements, with what they mean: the countdown meter refines the meter; the two-phase one refines it with stutters.
+  {id: 'countdown', refinement: {impl: countdown().machine, spec: meter.machine, relation: meterRelation, witness: {amount: {op: 'min', a: {op: 'var', name: 'amount'}, b: {op: 'var', name: 'most'}}}}},
+  {id: 'twophase', refinement: {impl: twoPhase().machine, spec: meter.machine, relation: [{name: 'used = used', holds: {op: '=', a: {op: 'var', name: 'a_used'}, b: {op: 'var', name: 'b_used'}}}, {name: 'pending <= most', holds: {op: '<=', a: {op: 'var', name: 'a_pending'}, b: {op: 'var', name: 'most'}}}],
+    witness: {amount: {op: 'var', name: 'a_pending'}}, stutter: {op: '=', a: {op: 'var', name: 'op'}, b: {op: 'const', value: 0}}}},
 ] as Parameters<typeof toLean>[0]).filter(item => !only || only.includes(item.id)), {title: 'gdp-wired/lean, end to end'})
 const out = process.argv[2]
 if (!out) throw new Error('usage: bun package-check.ts <empty folder>')

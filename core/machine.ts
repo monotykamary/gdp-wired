@@ -65,9 +65,9 @@ export const pointWrite = (w: MapUpdate, where: string): {key: E, value: E} => {
 // The same for a quantified flag.
 export const noQuantifier = (where: string): never => { throw new Error(`${where} takes no quantified flag`) }
 // A law: a condition on the state and params, and for a map law, `forall` names the key variable it holds at.
-// `forall2`: a second key, for a law about every two keys (with `forall`). `stated`: the law as written, when `holds` is
-// the stronger one the prover proved (some key named by a witness).
-export type Law = {name: string, holds: C, forall?: string, forall2?: string, stated?: C}
+// `keys`: the further keys, for a law about every two keys or more (after `forall`). `stated`: the law as written, when
+// `holds` is the stronger one the prover proved (some key named by a witness).
+export type Law = {name: string, holds: C, forall?: string, keys?: string[], stated?: C}
 
 export {unreachable} from '../kernel/kernel.ts'
 
@@ -182,6 +182,8 @@ export function evalE(e: E, env: Env, st: State, m: Machine): number {
     }
   }
 }
+// A function's value at a key (the GPU search tabulates functions with it).
+export const fnValue = (fn: Fn, key: number): number => naturalIn(fnOf(fn)(key), `a function at ${key}`)
 // A function's JavaScript, compiled once.
 const compiledFns = new WeakMap<Fn, (key: number) => number>()
 const fnOf = (fn: Fn): ((key: number) => number) => {

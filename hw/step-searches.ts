@@ -9,6 +9,7 @@ import type {Space} from './compile.ts'
 import {domains} from '../examples/index.ts'
 import {authority, authorityLaws, authoritySteps} from '../examples/sets.ts'
 import {counterLaws, counterSteps, counters, escrowSteps, escrowWatched, meterRefinement, poolTotal, pooled, twoPhaseRefinement} from '../examples/composition.ts'
+import {minuteLaws, minutes, room, roomLaws} from '../examples/functions.ts'
 
 const rule = (domain: string, name: string) => {
   const c = domains.find(d => d.domain === domain)!.cases.find(cc => cc.name === name)
@@ -49,6 +50,12 @@ export const stepSearches: StepSearch[] = [
   {what: 'escrow: no refund after a release', m: escrowWatched(), law: escrowSteps[0]!, space: {depth: 5, bound: 2}, breaks: false},
   {what: 'pool, release unchecked: in use = what the clients hold', m: pooled('release unchecked'), law: poolTotal[0]!, space: {depth: 3, bound: 1}, breaks: true},
   {what: 'pool: in use = what the clients hold', m: pooled(), law: poolTotal[0]!, space: {depth: 4, bound: 1}, breaks: false},
+  // Functions, tabulated over the keys they can be read at: the minute as the raw time breaks its law at the first
+  // request past a minute (times up to 60); the handshakes counting the newcomer too break theirs at the first join.
+  {what: 'per-minute limit, keeps the raw time: the minute is within the time seen', m: minutes('keeps the raw time').machine, law: minuteLaws(minutes('keeps the raw time'))[1]!, space: {depth: 1, bound: 60}, breaks: true},
+  {what: 'per-minute limit: the minute is within the time seen', m: minutes().machine, law: minuteLaws()[1]!, space: {depth: 2, bound: 60}, breaks: false},
+  {what: 'handshakes, counting the newcomer too: shakes = pairs(people)', m: room('counts the newcomer too').machine, law: roomLaws(room('counts the newcomer too'))[0]!, space: {depth: 4, bound: 1}, breaks: true},
+  {what: 'handshakes: shakes = pairs(people)', m: room().machine, law: roomLaws()[0]!, space: {depth: 5, bound: 1}, breaks: false},
 ]
 
 // Every example rule with a history, its proven laws and its broken variants: the queries come from the log in registers.

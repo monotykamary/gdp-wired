@@ -638,35 +638,35 @@ end frame2
 structure SEntry where
   law : MLaw
   sk : Nat                    -- the skolem variable
-  key2 : Option Nat           -- a law about every two keys: its second, a variable nothing but the law reads
+  keys2 : List Nat            -- a law about every two keys or more: its further keys, variables nothing but laws about them read
   insts : List (Nat × E)      -- (law index, key): where the step goal assumes the laws about every key
   qinsts : List (Nat × E)     -- (quantified flag, key): where the step goal closes it
   finsts : List (Nat × E)     -- (fact index, key): where both goals assume the facts
-  pinsts : List (Nat × E × E) -- (law index, key, second key): where the step goal assumes the laws about every two keys
+  pinsts : List (Nat × E × List E) -- (law index, key, further keys): where the step goal assumes the laws about several keys
   start : List VDef × Tree
   step : List VDef × Tree
 
--- What an entry claims: its law, at every value of its second key if it has one.
-def SEntry.Holds (e : SEntry) (ρ : Nat → Nat) (M : Nat → Nat → Nat) : Prop :=
-  match e.key2 with
-  | none => e.law.Holds ρ M
-  | some g => ∀ w, e.law.Holds (upd ρ g w) M
+-- A law at every value of each of some keys.
+def holdsOver (l : MLaw) (M : Nat → Nat → Nat) : List Nat → (Nat → Nat) → Prop
+  | [], ρ => l.Holds ρ M
+  | g :: gs, ρ => ∀ w, holdsOver l M gs (upd ρ g w)
+
+-- What an entry claims: its law, at every value of each further key.
+def SEntry.Holds (e : SEntry) (ρ : Nat → Nat) (M : Nat → Nat → Nat) : Prop := holdsOver e.law M e.keys2 ρ
 
 def trueC : C := .le (.const 0) (.const 0)
 
--- A law about every two keys at a pair, as a law about every first key: its second key read as the pair's second term.
-def pairLaws (ps : List SEntry) (pinsts : List (Nat × E × E)) : List MLaw := pinsts.map fun p =>
+-- A law about several keys at a tuple, as a law about every first key: each further key read as the tuple's term.
+def pairLaws (ps : List SEntry) (pinsts : List (Nat × E × List E)) : List MLaw := pinsts.map fun p =>
   match ps[p.1]? with
-  | some e => match e.key2 with
-    | some g => ⟨substC [(g, p.2.2)] e.law.holds, e.law.key⟩
-    | none => ⟨trueC, none⟩
+  | some e => ⟨substC (e.keys2.zip p.2.2) e.law.holds, e.law.key⟩
   | none => ⟨trueC, none⟩
-def pairInsts : Nat → List (Nat × E × E) → List (Nat × E)
+def pairInsts : Nat → List (Nat × E × List E) → List (Nat × E)
   | _, [] => []
   | n, p :: ps => (n, p.2.1) :: pairInsts (n + 1) ps
 -- The laws a frame assumes (the entries' laws, then each pair's) and where (each pair's at its first term).
-def sLaws (ps : List SEntry) (pinsts : List (Nat × E × E)) : List MLaw := ps.map (·.law) ++ pairLaws ps pinsts
-def sInsts (ps : List SEntry) (insts : List (Nat × E)) (pinsts : List (Nat × E × E)) : List (Nat × E) := insts ++ pairInsts ps.length pinsts
+def sLaws (ps : List SEntry) (pinsts : List (Nat × E × List E)) : List MLaw := ps.map (·.law) ++ pairLaws ps pinsts
+def sInsts (ps : List SEntry) (insts : List (Nat × E)) (pinsts : List (Nat × E × List E)) : List (Nat × E) := insts ++ pairInsts ps.length pinsts
 def sStartGoal (s : SMachine) (e : SEntry) : List C := [s.f.m.pre] ++ factHyps s e.finsts ++ [.not (substRC s.f.m.init (rdStart s.f.m) (goalOf e.law e.sk))]
 def sStepGoal (s : SMachine) (ps : List SEntry) (e : SEntry) : List C :=
   [s.f.m.pre] ++ factHyps s e.finsts ++ (sFrameHyps s (sLaws ps e.pinsts) (sInsts ps e.insts e.pinsts) e.qinsts trueC).map (substRC (frameSub [] []) (frameRd [] getRd))
@@ -693,13 +693,11 @@ def skFresh (s : SMachine) (sk : Nat) : Bool :=
     && s.f.m.step.all (fun p => !occE sk p.2) && s.f.m.writes.all (fun w => !occE sk w.2.1 && !occE sk w.2.2)
     && s.every.all (fun w => !occE sk w.2.2 && w.2.1 != sk) && s.facts.all (fun l => !occC sk l.holds)
 
--- A second key: fresh as a skolem is, read by no other law but one about it, and no entry's skolem.
+-- Further keys: each fresh as a skolem is, not the law's own key, read by no law but those about it, and no entry's skolem.
 def key2Ok (s : SMachine) (ps : List SEntry) (e : SEntry) : Bool :=
-  match e.key2 with
-  | none => true
-  | some g => e.law.key != some g && skFresh s g && !(s.extVars ++ flagVars s.f.flags ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)).contains g
-      && !occC g s.f.m.pre && s.f.m.init.all (fun p => !occE g p.2)
-      && ps.all (fun e' => (!occC g e'.law.holds || e'.key2 == some g) && e'.sk != g)
+  e.keys2.all fun g => e.law.key != some g && skFresh s g && !(s.extVars ++ flagVars s.f.flags ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)).contains g
+    && !occC g s.f.m.pre && s.f.m.init.all (fun p => !occE g p.2)
+    && ps.all (fun e' => (!occC g e'.law.holds || e'.keys2.contains g) && e'.sk != g)
 
 def checkSMachine (s : SMachine) (ps : List SEntry) : Bool :=
   sOk s && avoids (s.extVars ++ flagVars s.f.flags ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)) s.f.m.pre && !readsC s.f.m.pre
@@ -908,39 +906,58 @@ theorem upd_upd_same (ρ : Nat → Nat) (x u w : Nat) : upd (upd ρ x u) x w = u
 theorem upd_comm (ρ : Nat → Nat) {x y : Nat} (h : x ≠ y) (u w : Nat) : upd (upd ρ x u) y w = upd (upd ρ y w) x u := funext fun i => by
   simp only [upd]; by_cases hy : i = y <;> by_cases hx : i = x <;> simp_all
 
-theorem SEntry.holds_law {e : SEntry} {ρ : Nat → Nat} {M : Nat → Nat → Nat} (h : e.Holds ρ M) : e.law.Holds ρ M := by
-  unfold SEntry.Holds at h; split at h
-  · exact h
-  · rename_i g _; have := h (ρ g); rwa [upd_self] at this
+-- An entry holds exactly where its law holds at every state that agrees with the state but at the further keys.
+theorem holdsOver_any {l : MLaw} {M : Nat → Nat → Nat} : ∀ (gs : List Nat) {Y : Nat → Nat}, holdsOver l M gs Y → ∀ Z, Agree gs Z Y → l.Holds Z M
+  | [], Y, h, Z, hag => by
+    have hZ : Z = Y := funext fun i => hag i (by simp)
+    subst hZ; exact h
+  | g :: gs, Y, h, Z, hag => holdsOver_any gs (h (Z g)) Z (fun i hi => by
+      simp only [upd]; split
+      · rename_i hig; subst hig; rfl
+      · rename_i hig; exact hag i (by simp only [List.mem_cons, not_or]; exact ⟨hig, hi⟩))
 
--- An entry read where its law reads alike holds alike (at every value of its second key, if it has one).
+theorem holdsOver_of_any {l : MLaw} {M : Nat → Nat → Nat} : ∀ (gs : List Nat) {Y : Nat → Nat}, (∀ Z, Agree gs Z Y → l.Holds Z M) → holdsOver l M gs Y
+  | [], Y, h => h Y (fun _ _ => rfl)
+  | g :: gs, Y, h => by
+    intro w
+    exact holdsOver_of_any gs (fun Z hag => h Z (fun i hi => by
+      simp only [List.mem_cons, not_or] at hi
+      rw [hag i hi.2]; simp only [upd, if_neg hi.1]))
+
+theorem SEntry.holds_law {e : SEntry} {ρ : Nat → Nat} {M : Nat → Nat → Nat} (h : e.Holds ρ M) : e.law.Holds ρ M :=
+  holdsOver_any e.keys2 h ρ (fun _ _ => rfl)
+
+-- An entry read where its law reads alike holds alike (at every value of its further keys).
 theorem sentry_transfer {V MS : List Nat} {e : SEntry} (hv : avoids V e.law.holds = true) (hm : avoidsMaps MS e.law.holds = true)
     {ρ ρ' : Nat → Nat} {M M' : Nat → Nat → Nat} (hag : Agree V ρ ρ') (hmag : ∀ mp, mp ∉ MS → M mp = M' mp) : e.Holds ρ' M' → e.Holds ρ M := by
-  unfold SEntry.Holds; split
-  · exact holds_transfer e.law hv hm hag hmag
-  · intro h w
-    exact holds_transfer e.law hv hm (fun i hi => by simp only [upd]; split; rfl; exact hag i hi) hmag (h w)
+  intro h
+  apply holdsOver_of_any
+  intro Z hZ
+  have h' := holdsOver_any e.keys2 h (fun i => if i ∈ e.keys2 then Z i else ρ' i) (fun i hi => by simp [hi])
+  exact holds_transfer e.law hv hm (fun i hiV => by
+    by_cases hk : i ∈ e.keys2
+    · simp [hk]
+    · simp only [hk, if_false]; rw [hZ i hk]; exact hag i hiV) hmag h'
 
--- Setting a variable the law reads nowhere, or its own second key, keeps the entry.
-theorem sentry_upd {e : SEntry} {x : Nat} (hx : occC x e.law.holds = false ∨ e.key2 = some x) {ρ : Nat → Nat} {M : Nat → Nat → Nat} (u : Nat) :
+-- Setting a variable the law reads nowhere, or one of its further keys, keeps the entry.
+theorem sentry_upd {e : SEntry} {x : Nat} (hx : occC x e.law.holds = false ∨ x ∈ e.keys2) {ρ : Nat → Nat} {M : Nat → Nat → Nat} (u : Nat) :
     e.Holds ρ M → e.Holds (upd ρ x u) M := by
-  unfold SEntry.Holds; split
-  · rename_i hk
-    rcases hx with hx | hx
-    · exact holds_transfer (V := [x]) (MS := []) e.law (by simp [avoids, hx]) (by simp [avoidsMaps]) (fun i hi => by simp only [upd]; rw [if_neg (by simpa using hi)]) (fun _ _ => rfl)
-    · rw [hk] at hx; cases hx
-  · rename_i g hg
-    intro h w
-    by_cases hgx : g = x
-    · subst hgx; rw [upd_upd_same]; exact h w
-    · rcases hx with hx | hx
-      · exact holds_transfer (V := [x]) (MS := []) e.law (by simp [avoids, hx]) (by simp [avoidsMaps])
-          (fun i hi => by simp only [upd]; by_cases hig : i = g <;> simp_all) (fun _ _ => rfl) (h w)
-      · rw [hg] at hx; cases hx; exact absurd rfl hgx
+  intro h
+  apply holdsOver_of_any
+  intro Z hZ
+  rcases hx with hx | hx
+  · have h' := holdsOver_any e.keys2 h (upd Z x (ρ x)) (fun i hi => by
+      simp only [upd]; split
+      · rename_i hix; subst hix; rfl
+      · rename_i hix; rw [hZ i hi]; simp only [upd, if_neg hix])
+    exact holds_transfer (V := [x]) (MS := []) e.law (by simp [avoids, hx]) (by simp [avoidsMaps])
+      (fun i hi => by simp only [upd]; rw [if_neg (by simpa using hi)]) (fun _ _ => rfl) h'
+  · exact holdsOver_any e.keys2 h Z (fun i hi => by
+      rw [hZ i hi]; simp only [upd]; rw [if_neg (fun h' => hi (by rw [h']; exact hx))])
 
--- Each pair's law holds wherever every entry does.
-theorem pairLaws_hold (ps : List SEntry) (pinsts : List (Nat × E × E)) {Y : Nat → Nat} {N : Nat → Nat → Nat}
-    (hall : ∀ e ∈ ps, e.Holds Y N) : ∀ l ∈ pairLaws ps pinsts, l.Holds Y N := by
+-- Each tuple's law holds wherever every entry does (the law's own key none of its further keys).
+theorem pairLaws_hold (ps : List SEntry) (pinsts : List (Nat × E × List E)) (hkk : ∀ e ∈ ps, ∀ k, e.law.key = some k → k ∉ e.keys2)
+    {Y : Nat → Nat} {N : Nat → Nat → Nat} (hall : ∀ e ∈ ps, e.Holds Y N) : ∀ l ∈ pairLaws ps pinsts, l.Holds Y N := by
   have htrue : (⟨trueC, none⟩ : MLaw).Holds Y N := by simp [MLaw.Holds, trueC, evalC, evalE]
   intro l hl
   simp only [pairLaws, List.mem_map] at hl
@@ -948,24 +965,30 @@ theorem pairLaws_hold (ps : List SEntry) (pinsts : List (Nat × E × E)) {Y : Na
   split
   · rename_i e he
     have hem : e ∈ ps := List.mem_of_getElem? he
-    split
-    · rename_i g hg
-      have h := hall e hem
-      simp only [SEntry.Holds, hg] at h
-      cases hk : e.law.key with
-      | none =>
-        simp only [MLaw.Holds, hk] at h ⊢
-        rw [subst_evalC, applyS_single]
-        exact h (evalE Y N p.2.2)
-      | some k =>
-        simp only [MLaw.Holds, hk] at h ⊢
-        intro v
-        rw [subst_evalC, applyS_single]
-        have := h (evalE (upd Y k v) N p.2.2)
-        by_cases hkg : k = g
-        · subst hkg; rw [upd_upd_same]; have := this (evalE (upd Y k v) N p.2.2); rwa [upd_upd_same] at this
-        · rw [upd_comm _ hkg]; exact this v
-    · exact htrue
+    have hany := holdsOver_any e.keys2 (hall e hem)
+    have hdom : ∀ i, i ∉ e.keys2 → i ∉ (e.keys2.zip p.2.2).map (·.1) := fun i hi hm => by
+      obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hm; exact hi (List.of_mem_zip hq).1
+    cases hk : e.law.key with
+    | none =>
+      have h' := hany (applyS (e.keys2.zip p.2.2) Y N) (fun i hi => applyS_other (hdom i hi) Y N)
+      simp only [MLaw.Holds, hk] at h' ⊢
+      rw [subst_evalC]; exact h'
+    | some k =>
+      have hkg := hkk e hem k hk
+      simp only [MLaw.Holds, hk]
+      intro v
+      rw [subst_evalC]
+      have h' := hany (fun i => if i ∈ e.keys2 then applyS (e.keys2.zip p.2.2) (upd Y k v) N i else Y i) (fun i hi => by simp [hi])
+      simp only [MLaw.Holds, hk] at h'
+      have hZ : upd (fun i => if i ∈ e.keys2 then applyS (e.keys2.zip p.2.2) (upd Y k v) N i else Y i) k v = applyS (e.keys2.zip p.2.2) (upd Y k v) N := by
+        funext i
+        by_cases hik : i = k
+        · subst hik; simp only [upd, if_true]; rw [applyS_other (hdom i hkg)]; simp [upd]
+        · simp only [upd, if_neg hik]
+          by_cases hi : i ∈ e.keys2
+          · simp [hi]
+          · simp only [hi, if_false]; rw [applyS_other (hdom i hi)]; simp [upd, hik]
+      rw [← hZ]; exact h' v
   · exact htrue
 
 -- A variable fresh as a skolem: setting it commutes with a step's view and with the step.
@@ -985,6 +1008,19 @@ theorem fresh_parts {s : SMachine} {x : Nat} (hf : skFresh s x = true)
   have hi : x ∉ s.f.m.inputs := fun hm => hE (by simp only [SMachine.extVars, List.mem_append]; exact Or.inl (Or.inl hm))
   have hq : x ∉ s.qVars := fun hm => hE (by simp only [SMachine.extVars, List.mem_append]; exact Or.inl (Or.inr hm))
   exact ⟨sNext_upd hi hq hF hf2 hf1 hS hf4 hf5 hf6 ρ M ι κ v, sView_upd hi hq hF hf2 hf1 ρ M ι κ v, hI⟩
+
+theorem skey2_parts {s : SMachine} {ps : List SEntry} (h : checkSMachine s ps = true) {e : SEntry} (he : e ∈ ps) {g : Nat} (hg : g ∈ e.keys2) :
+    skFresh s g = true ∧ (s.extVars ++ flagVars s.f.flags ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)).contains g = false
+      ∧ occC g s.f.m.pre = false ∧ (∀ p ∈ s.f.m.init, occE g p.2 = false) ∧ (∀ e' ∈ ps, occC g e'.law.holds = false ∨ g ∈ e'.keys2)
+      ∧ e.law.key ≠ some g := by
+  simp only [checkSMachine, List.all_eq_true, Bool.and_eq_true] at h
+  have hk := (h.2 e he).1.1.2
+  simp only [key2Ok, List.all_eq_true, Bool.and_eq_true, Bool.not_eq_true', bne_iff_ne, ne_eq, Bool.or_eq_true, List.contains_iff_mem] at hk
+  obtain ⟨⟨⟨⟨⟨hkey, hf⟩, hc⟩, hp⟩, hi⟩, hall⟩ := hk g hg
+  exact ⟨hf, hc, hp, hi, fun e' he' => (by have := (hall e' he').1; simpa using this), hkey⟩
+
+theorem skeys_apart {s : SMachine} {ps : List SEntry} (h : checkSMachine s ps = true) : ∀ e ∈ ps, ∀ k, e.law.key = some k → k ∉ e.keys2 :=
+  fun e he k hk hg => (skey2_parts h he hg).2.2.2.2.2 hk
 
 /-- The start: at params that meet the precondition and the facts, with maps as declared, every law holds. -/
 theorem sstart_case (s : SMachine) (ps : List SEntry) (h : checkSMachine s ps = true) (ρ : Nat → Nat) (M : Nat → Nat → Nat)
@@ -1027,6 +1063,7 @@ theorem sstep_case (s : SMachine) (ps : List SEntry) (h : checkSMachine s ps = t
     (ih : ∀ e ∈ ps, e.Holds ρ M) (ha : evalC (sView s ρ M ι κ).1 (sView s ρ M ι κ).2 s.f.m.assume = true) :
     ∀ e ∈ ps, e.law.Holds (sNext s ρ M ι κ).1 (sNext s ρ M ι κ).2 := by
   have hlav := slaws_avoid h
+  have hkk := skeys_apart h
   simp only [checkSMachine, List.all_eq_true, Bool.and_eq_true, Bool.not_eq_true'] at h
   obtain ⟨⟨⟨⟨⟨hs, hpre⟩, hrp⟩, hterms⟩, hfok⟩, h⟩ := h
   obtain ⟨hfav, hstp, hwr, hev⟩ := sTermsOk_parts hterms
@@ -1091,7 +1128,7 @@ theorem sstep_case (s : SMachine) (ps : List SEntry) (h : checkSMachine s ps = t
       (fun l hl => by
         rcases List.mem_append.mp hl with hl | hl
         · obtain ⟨e', he', rfl⟩ := List.mem_map.mp hl; exact SEntry.holds_law (hallY e' he')
-        · exact pairLaws_hold ps e.pinsts hallY l hl)
+        · exact pairLaws_hold ps e.pinsts hkk hallY l hl)
       (hH []) (fun _ _ => by simp [avoids]) (fun _ _ => by simp [avoidsMaps]) hA (by simp [trueC, evalC, evalE]) c' hc'
   · -- The goal, read across the step: the maps a request carries read as carried, the rest as the step leaves them.
     have hrd' : ∀ mp k, evalE W M0 (stepRdS s (frameSub [] []) (frameRd [] getRd) mp k) = withCarried s (sNext s ρ M ι κ).2 κ mp (evalE W M0 k) := by
@@ -1111,58 +1148,58 @@ theorem sstep_case (s : SMachine) (ps : List SEntry) (h : checkSMachine s ps = t
     · have hi1 := avoids_occ hlx hi
       rw [hD'.1 i (fun h' => hi1 (List.mem_append_left _ h')) (fun h' => hi1 (List.mem_append_right _ h')), hNext]
 
-theorem skey2_parts {s : SMachine} {ps : List SEntry} (h : checkSMachine s ps = true) {e : SEntry} (he : e ∈ ps) {g : Nat} (hg : e.key2 = some g) :
-    skFresh s g = true ∧ (s.extVars ++ flagVars s.f.flags ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)).contains g = false
-      ∧ occC g s.f.m.pre = false ∧ (∀ p ∈ s.f.m.init, occE g p.2 = false) ∧ (∀ e' ∈ ps, occC g e'.law.holds = false ∨ e'.key2 = some g) := by
-  simp only [checkSMachine, List.all_eq_true, Bool.and_eq_true] at h
-  have hk := (h.2 e he).1.1.2
-  simp only [key2Ok, hg, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true', bne_iff_ne, ne_eq, Bool.or_eq_true, beq_iff_eq] at hk
-  obtain ⟨⟨⟨⟨⟨_, hf⟩, hc⟩, hp⟩, hi⟩, hall⟩ := hk
-  exact ⟨hf, hc, hp, hi, fun e' he' => by have := (hall e' he').1; simpa using this⟩
-
 /-- The induction rule with sets: for params that meet the precondition, maps that start as declared and functions that
-meet the facts, every entry of an accepted proof holds in every reachable state (a law about every two keys at every
-value of its second), whatever maps each request carries. -/
+meet the facts, every entry of an accepted proof holds in every reachable state (a law about several keys at every value
+of its further keys), whatever maps each request carries. -/
 theorem smachine_sound (s : SMachine) (ps : List SEntry) (h : checkSMachine s ps = true) :
     ∀ ρ M, SReach s ρ M → ∀ e ∈ ps, e.Holds ρ M := by
   have hpre := spre_parts h
   have hfok := sfacts_ok h
+  -- Facts at a state hold with a further key set: they read no further key.
+  have hfacts : ∀ {ρ : Nat → Nat} {M : Nat → Nat → Nat} {g : Nat}, skFresh s g = true → (∀ l ∈ s.facts, l.Holds ρ M) → ∀ w, ∀ l ∈ s.facts, l.Holds (upd ρ g w) M := by
+    intro ρ M g hf hfa w
+    exact facts_frame s hfok [g] [] (fun l hl => by simp [avoids, (skFresh_parts hf).2.2.2.2.2.2 l hl]) (fun _ _ => by simp [avoidsMaps])
+      (fun i _ hig' => by simp only [upd]; rw [if_neg (by simpa using hig')]) (fun _ _ _ => rfl) hfa
+  have hpreu : ∀ {ρ : Nat → Nat} {M : Nat → Nat → Nat} {g : Nat}, occC g s.f.m.pre = false → evalC ρ M s.f.m.pre = true → ∀ w, evalC (upd ρ g w) M s.f.m.pre = true := by
+    intro ρ M g hpg h0 w
+    rw [congrC _ ρ M s.f.m.pre (fun i hi => by have hig' : i ≠ g := (fun h' => by rw [h', hpg] at hi; cases hi); simp only [upd, if_neg hig'])]; exact h0
   intro ρ M hr
   induction hr with
   | start ρ M hM h0 hfa =>
     intro e he
-    unfold SEntry.Holds; split
-    · exact sstart_case s ps h ρ M hM h0 hfa e he
-    · rename_i g hg
-      obtain ⟨hf, hc, hpg, hig, _⟩ := skey2_parts h he hg
-      have hI := (fresh_parts hf hc ρ M (fun _ => 0) (fun _ _ => 0) 0).2.2
-      intro w
+    -- Each further key set in turn, from a start state that meets the precondition and the facts.
+    suffices hs : ∀ gs : List Nat, (∀ g ∈ gs, g ∈ e.keys2) → ∀ ρ', evalC ρ' M s.f.m.pre = true → (∀ l ∈ s.facts, l.Holds ρ' M) →
+        holdsOver e.law M gs (applyS s.f.m.init ρ' M) from hs e.keys2 (fun g hg => hg) ρ h0 hfa
+    intro gs
+    induction gs with
+    | nil => intro _ ρ' hp hf; exact sstart_case s ps h ρ' M hM hp hf e he
+    | cons g gs ih =>
+      intro hsub ρ' hp hf w
+      obtain ⟨hfr, hc, hpg, hig, _, _⟩ := skey2_parts h he (hsub g List.mem_cons_self)
+      have hI := (fresh_parts hfr hc ρ' M (fun _ => 0) (fun _ _ => 0) 0).2.2
       rw [← applyS_upd hI (by simpa [List.all_eq_true] using hig)]
-      exact sstart_case s ps h (upd ρ g w) M hM
-        (by rw [congrC _ ρ M s.f.m.pre (fun i hi => by have hig' : i ≠ g := (fun h' => by rw [h', hpg] at hi; cases hi); simp only [upd, if_neg hig'])]; exact h0)
-        (facts_frame s hfok [g] [] (fun l hl => by simp [avoids, (skFresh_parts hf).2.2.2.2.2.2 l hl]) (fun _ _ => by simp [avoidsMaps])
-          (fun i _ hig' => by simp only [upd]; rw [if_neg (by simpa using hig')]) (fun _ _ _ => rfl) hfa) e he
+      exact ih (fun g' hg' => hsub g' (List.mem_cons_of_mem _ hg')) (upd ρ' g w) (hpreu hpg hp w) (hfacts hfr hf w)
   | step ρ M ι κ hr ha ih =>
     intro e he
-    have hp0 := pre_sreach s hpre.1 hpre.2 hr
-    have hfa := facts_sreach s hfok hr
-    unfold SEntry.Holds; split
-    · exact sstep_case s ps h ρ M ι κ hp0 hfa ih ha e he
-    · rename_i g hg
-      obtain ⟨hf, hc, hpg, _, hall⟩ := skey2_parts h he hg
-      intro w
-      obtain ⟨hNext, hView, _⟩ := fresh_parts hf hc ρ M ι κ w
-      have := sstep_case s ps h (upd ρ g w) M ι κ
-        (by rw [congrC _ ρ M s.f.m.pre (fun i hi => by have hig' : i ≠ g := (fun h' => by rw [h', hpg] at hi; cases hi); simp only [upd, if_neg hig'])]; exact hp0)
-        (facts_frame s hfok [g] [] (fun l hl => by simp [avoids, (skFresh_parts hf).2.2.2.2.2.2 l hl]) (fun _ _ => by simp [avoidsMaps])
-          (fun i _ hig' => by simp only [upd]; rw [if_neg (by simpa using hig')]) (fun _ _ _ => rfl) hfa)
-        (fun e' he' => sentry_upd (hall e' he') w (ih e' he'))
+    suffices hs : ∀ gs : List Nat, (∀ g ∈ gs, g ∈ e.keys2) → ∀ ρ', evalC ρ' M s.f.m.pre = true → (∀ l ∈ s.facts, l.Holds ρ' M) →
+        (∀ e' ∈ ps, e'.Holds ρ' M) → evalC (sView s ρ' M ι κ).1 (sView s ρ' M ι κ).2 s.f.m.assume = true →
+        holdsOver e.law (sNext s ρ' M ι κ).2 gs (sNext s ρ' M ι κ).1 from
+      hs e.keys2 (fun g hg => hg) ρ (pre_sreach s hpre.1 hpre.2 hr) (facts_sreach s hfok hr) ih ha
+    intro gs
+    induction gs with
+    | nil => intro _ ρ' hp hf hi ha'; exact sstep_case s ps h ρ' M ι κ hp hf hi ha' e he
+    | cons g gs ihg =>
+      intro hsub ρ' hp hf hi ha' w
+      obtain ⟨hfr, hc, hpg, _, hall, _⟩ := skey2_parts h he (hsub g List.mem_cons_self)
+      obtain ⟨hNext, hView, _⟩ := fresh_parts hfr hc ρ' M ι κ w
+      have := ihg (fun g' hg' => hsub g' (List.mem_cons_of_mem _ hg')) (upd ρ' g w) (hpreu hpg hp w) (hfacts hfr hf w)
+        (fun e' he' => sentry_upd (hall e' he') w (hi e' he'))
         (by
           rw [hView]; dsimp only
-          rw [congrC _ (sView s ρ M ι κ).1 _ _ (fun i hi => by
-            have hig' : i ≠ g := fun h' => by rw [h', (skFresh_parts hf).2.2.1] at hi; cases hi
+          rw [congrC _ (sView s ρ' M ι κ).1 _ _ (fun i hi => by
+            have hig' : i ≠ g := fun h' => by rw [h', (skFresh_parts hfr).2.2.1] at hi; cases hi
             simp only [upd, if_neg hig'])]
-          exact ha) e he
+          exact ha')
       rw [hNext] at this; exact this
 
 /-! k-step laws over sets -/
@@ -1172,7 +1209,7 @@ structure SKStep where
   mren : List (List (Nat × Nat))   -- per step: (carried map, the name the goal reads it by there); [] for the first step
   qinsts : List (Nat × E)          -- (quantified flag, key): where each frame closes it
   finsts : List (Nat × E)          -- (fact index, key): where the goal assumes the facts, read at the first frame
-  pinsts : List (Nat × E × E)      -- (law index, key, second key): where each frame assumes the laws about every two keys
+  pinsts : List (Nat × E × List E) -- (law index, key, further keys): where each frame assumes the laws about several keys
 
 def sKOut (s : SMachine) (ps : List SEntry) (sl : SKStep) := sRun s (sLaws ps sl.pinsts) (sInsts ps sl.k.insts sl.pinsts) sl.qinsts sl.k.whens sl.k.ren sl.mren [] getRd
 def sKGoal (s : SMachine) (ps : List SEntry) (sl : SKStep) : List C :=
@@ -1437,7 +1474,7 @@ theorem skstep_sound (s : SMachine) (ps : List SEntry) (sl : SKStep)
         (smachine_sound s ps hl ρ M hr e he)
     rcases List.mem_append.mp hl' with hl' | hl'
     · obtain ⟨e', he', rfl⟩ := List.mem_map.mp hl'; exact SEntry.holds_law (hall e' he')
-    · exact pairLaws_hold ps sl.pinsts hall l hl'
+    · exact pairLaws_hold ps sl.pinsts (skeys_apart hl) hall l hl'
   obtain ⟨hh, hfin⟩ := skrun_sound s ps hl (szone s sl) (tgts sl.mren) (sLaws ps sl.pinsts) (sInsts ps sl.k.insts sl.pinsts) sl.qinsts hlY W M0 hflags hterms hmaps
     sl.k.whens sl.k.ren sl.mren (q₁ :: qs) [] getRd ρ M hlw (by omega) (by simp only [List.length_cons]; omega)
     hws (fun r hr p hp => List.contains_iff_mem.mp (hkeys r hr p hp))
