@@ -2,12 +2,13 @@
 
 # gdp-wired
 
-Laws about stateful rules (budgets, caps, rate limits, access policies), proven in TypeScript by a small trusted
-kernel, with an untrusted prover that writes the proofs, an optional Lean twin that checks the kernel itself, and GPU
-searches that find counterexamples or the invariants a proof needs.
+An automatic prover for stateful rules: budgets, caps, rate limits, workflows, access policies. Write the rule and the
+laws it must keep; gdp-wired proves them with no proof to write, shows a real run that breaks them when they're false
+(searched on the GPU), checks every proof again in Lean, and ships the rule as JavaScript.
 
-You write the rule once with typed builders and state what must always hold. The library proves it by induction (or
-shows a real run that breaks it), and the same rule runs as an interpreter or ships as generated JavaScript.
+Proofs are checked by a small trusted kernel; the prover that writes them is untrusted, and the kernel's Lean twin is
+proven sound. On the three rules in [`compare/`](compare/README.md), the proof is a one- or two-line call and checks in
+25–44 ms, against 74–117 lines of hand proof and 137–161 ms in Bend, and 8–30 lines and 488–571 ms in Lean.
 
 ```sh
 npm install gdp-wired   # or bun add gdp-wired; plain JavaScript with types, Node 20+, Bun or a browser
@@ -142,6 +143,10 @@ const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => s
 - **Arithmetic** over the naturals: `plus`, `minus` (truncated), `times(k)`, `mul` (a product of two terms), `min`,
   `max`, `when(cond, a, b)`, `count(cond)`; conditions `lt`, `atMost`, `eq`, `and`, `or`, `not`, `implies`.
 - **Loops** (`loop(...)`): state, `while`, `body`, a `rank` (or a tuple of ranks) that must drop each turn.
+- **Lean** (`gdp-wired/lean`): `toLean([{id, machine, laws, stepLaws}, ...])` writes the proofs as a Lean file, and
+  `leanProject(file)` a Lake project with the twin, so `lake build` checks them. Each law comes as the twin's theorem and
+  as a plain statement over named variables, e.g. `theorem budget.law0 (h : FMReach budget_machine ρ μ) : ρ «s» ≤
+  (ρ «b» + ρ «m»)`, for a Lean development to cite.
 - **Composition** (`gdp-wired/compose`): `product(a, b)`, `interleave(a, b)`, `refinement(impl, spec, {relation, witness, stutter})`
   and `ghost(m, {name: ever(...) | count(...) | total(m, map, name)})`
   build plain machines from machines (each side's state named `a_x`, `b_x`). A refinement's laws are the relation, proven
@@ -210,7 +215,7 @@ its Lean twin in 1.35 s. What each proves, what each ships at runtime, and where
 ## Running
 
 The npm package is the library: the builders (`gdp-wired`), the runtimes (`gdp-wired/machine`), composition
-(`gdp-wired/compose`), the kernel
+(`gdp-wired/compose`), the Lean export (`gdp-wired/lean`), the kernel
 (`gdp-wired/kernel`), the prover (`gdp-wired/prove`), the derivation checker and solver (`gdp-wired/check`,
 `gdp-wired/solver`). Everything else here (examples, comparisons, the Lean twin, the GPU searches) runs from a clone and
 needs [Bun](https://bun.sh); Lean 4.34.0 for `lean/` and `lean-kernel/`; a WebGPU runtime (Chrome, or Dawn's node
@@ -224,7 +229,7 @@ bun test core/compile.test.ts core/runtime.test.ts kernel/history.test.ts
 cd kernel && bun run-kernel.ts && bun test kernel.test.ts
 ```
 
-The whole suite (111 jobs, about 15 minutes of wall time) runs on [Modal](https://modal.com):
+The whole suite (112 jobs, about 15 minutes of wall time) runs on [Modal](https://modal.com):
 
 ```sh
 modal run modal/run.py --jobs modal/suite.json --out runs/modal/suite && sh modal/reap.sh

@@ -11,5 +11,5 @@
   },
   "include": [],
   "files": ["core/dsl.ts", "core/machine.ts",
-    "core/compose.ts", "core/solver.ts", "core/check.ts", "kernel/kernel.ts", "kernel/prove.ts"]
+    "core/compose.ts", "lean-kernel/emit.ts", "core/solver.ts", "core/check.ts", "kernel/kernel.ts", "kernel/prove.ts"]
 }

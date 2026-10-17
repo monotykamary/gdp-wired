@@ -747,6 +747,14 @@
 "cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean Steps.lean 2>&1 | tail -3; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
 },
 {
+"name": "lean-package",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800,
+"cmd": "bun scripts/gen-lean-library.ts --check && bun lean-kernel/package-check.ts /tmp/leanpkg && cd /tmp/leanpkg && lake build 2>&1 | grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' | tail -25; s=${PIPESTATUS[0]}; echo lake-exit $s; exit $s"
+},
+{
 "name": "compose",
 "cmd": "bun test compose.test.ts 2>&1 && cd .. && bun examples/composition.ts 2>&1",
 "cwd": "core",

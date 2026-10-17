@@ -1,7 +1,7 @@
 {
   "name": "gdp-wired",
   "version": "0.2.0",
-  "description": "Laws about stateful rules (budgets, caps, windows, workflows, policy decisions), proven automatically by a small checked kernel, with the rule shipped as code",
+  "description": "An automatic prover for stateful rules (budgets, caps, windows, workflows, policies): laws proven with no proof to write, checked again in Lean, counterexamples found on the GPU, the rule shipped as code",
   "keywords": [
     "verification",
     "theorem-proving",
@@ -9,7 +9,10 @@
     "state-machine",
     "rate-limiting",
     "policy",
-    "lean"
+    "lean",
+    "automatic-prover",
+    "theorem-prover",
+    "formal-verification"
   ],
   "license": "MIT",
   "author": "Tom X Nguyen",
@@ -35,6 +38,10 @@
     "./compose": {
       "types": "./dist/core/compose.d.ts",
       "default": "./dist/core/compose.js"
+    },
+    "./lean": {
+      "types": "./dist/lean-kernel/emit.d.ts",
+      "default": "./dist/lean-kernel/emit.js"
     },
     "./kernel": {
       "types": "./dist/kernel/kernel.d.ts",
@@ -69,7 +76,7 @@
     "build": "bun scripts/build.ts",
     "prepublishOnly": "bun scripts/build.ts",
     "smoke": "sh scripts/smoke.sh",
-    "test": "cd core && bun test solver.test.ts dsl.test.ts conformance.test.ts compose.test.ts && cd ../kernel && bun test tamper.test.ts refusals.test.ts steplaw.test.ts && cd ../examples && bun test examples.test.ts && cd .. && bun examples/readme.ts && bun examples/composition.ts && bun examples/budget.ts"
+    "test": "bun scripts/gen-lean-library.ts --check && cd core && bun test solver.test.ts dsl.test.ts conformance.test.ts compose.test.ts && cd ../kernel && bun test tamper.test.ts refusals.test.ts steplaw.test.ts && cd ../examples && bun test examples.test.ts && cd .. && bun examples/readme.ts && bun examples/composition.ts && bun examples/budget.ts"
   },
   "devDependencies": {
     "@types/bun": "1.3.1",

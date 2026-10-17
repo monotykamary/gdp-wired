@@ -277,7 +277,8 @@ def admit_machine : FMMachine := ⟨⟨[3, 4, 5, 6, 7],
   .le (.const 0) (.const 0),
   .or (.eq (.var 7) (.const 0)) (.eq (.var 7) (.const 1))⟩,
   []⟩
-def admit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+def admit_l0 : MLaw := ⟨.le (.get 0 (.var 8)) (.const 1), some 8⟩
+def admit_e0 : MEntry := ⟨admit_l0, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
@@ -299,7 +300,9 @@ def admit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some 8
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(11, 15), (16, 20), (21, 25), (26, 30)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [(11, 15), (16, 20), (21, 25), (26, 30)] []))
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩, ⟨⟨.le (.get 1 (.var 8)) (.var 0), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def admit_l1 : MLaw := ⟨.le (.get 1 (.var 8)) (.var 0), some 8⟩
+def admit_e1 : MEntry := ⟨admit_l1, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 1], 0⟩
@@ -321,7 +324,9 @@ def admit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some 8
   (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(12, 15), (17, 20), (22, 25), (27, 30)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [(12, 15), (17, 20), (22, 25), (27, 30)] []))
   (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩, ⟨⟨.le (.get 2 (.var 8)) (.var 1), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def admit_l2 : MLaw := ⟨.le (.get 2 (.var 8)) (.var 1), some 8⟩
+def admit_e2 : MEntry := ⟨admit_l2, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10], .leaf [⟨[0, 1], 1⟩, ⟨[0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
@@ -343,7 +348,9 @@ def admit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some 8
   (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(13, 15), (18, 20), (23, 25), (28, 30)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [(13, 15), (18, 20), (23, 25), (28, 30)] []))
   (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩, ⟨⟨.le (.get 3 (.var 8)) (.var 2), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def admit_l3 : MLaw := ⟨.le (.get 3 (.var 8)) (.var 2), some 8⟩
+def admit_e3 : MEntry := ⟨admit_l3, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10], .leaf [⟨[0, 0, 1], 1⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩
@@ -365,14 +372,39 @@ def admit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some 8
   (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(14, 15), (19, 20), (24, 25), (29, 30)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [(14, 15), (19, 20), (24, 25), (29, 30)] []))
   (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩]
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def admit_proof : List MEntry := [admit_e0, admit_e1, admit_e2, admit_e3]
 theorem admit_check : checkFMMachine admit_machine admit_proof = true := by decide +kernel
 theorem admit_laws : ∀ ρ M, FMReach admit_machine ρ M → ∀ e ∈ admit_proof, e.law.Holds ρ M :=
   fmmachine_sound admit_machine admit_proof admit_check
+namespace admit
+abbrev «d» : Nat := 0
+abbrev «hr» : Nat := 1
+abbrev «dm» : Nat := 2
+abbrev «Acct» : Nat := 0
+abbrev «Day» : Nat := 1
+abbrev «Hour» : Nat := 2
+abbrev «Dom» : Nat := 3
+/-- once_per_account: every Acct count <= its cap -/
+theorem law0 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach admit_machine ρ μ) : ∀ k : Nat, (μ «Acct» (k)) ≤ 1 := by
+  have hl : admit_l0.Holds ρ μ := admit_laws ρ μ h admit_e0 (by simp [admit_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ admit_l0.holds).mp (hl k)
+/-- day_cap: every Day count <= its cap -/
+theorem law1 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach admit_machine ρ μ) : ∀ k : Nat, (μ «Day» (k)) ≤ ρ «d» := by
+  have hl : admit_l1.Holds ρ μ := admit_laws ρ μ h admit_e1 (by simp [admit_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ admit_l1.holds).mp (hl k)
+/-- hour_cap: every Hour count <= its cap -/
+theorem law2 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach admit_machine ρ μ) : ∀ k : Nat, (μ «Hour» (k)) ≤ ρ «hr» := by
+  have hl : admit_l2.Holds ρ μ := admit_laws ρ μ h admit_e2 (by simp [admit_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ admit_l2.holds).mp (hl k)
+/-- dom_cap: every Dom count <= its cap -/
+theorem law3 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach admit_machine ρ μ) : ∀ k : Nat, (μ «Dom» (k)) ≤ ρ «dm» := by
+  have hl : admit_l3.Holds ρ μ := admit_laws ρ μ h admit_e3 (by simp [admit_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ admit_l3.holds).mp (hl k)
+end admit
 -- the caps rule's day cap in plain Lean: in every reachable state, every Day count is at most d (variable 0; Day is map 1).
-theorem day_cap (ρ : Nat → Nat) (M : Nat → Nat → Nat) (h : FMReach admit_machine ρ M) (k : Nat) : M 1 k ≤ ρ 0 := by
-  have := admit_laws ρ M h _ (List.mem_cons_of_mem _ List.mem_cons_self) k
-  simpa [evalC, evalE, upd] using this
+theorem day_cap (ρ : Nat → Nat) (M : Nat → Nat → Nat) (h : FMReach admit_machine ρ M) (k : Nat) : M 1 k ≤ ρ 0 :=
+  admit.law1 ρ M h k
 -- TAMPERED: the admit proof offered for the machine whose Day cap is unguarded. Lean computes the check to false.
 def admit_tampered : FMMachine := ⟨⟨[3, 4, 5, 6, 7],
   [],
@@ -413,7 +445,8 @@ def fadmit_machine : FMMachine := ⟨⟨[3, 4, 5, 6, 7],
   .le (.const 0) (.const 0),
   .or (.eq (.var 7) (.const 0)) (.eq (.var 7) (.const 1))⟩,
   [(11, .and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2))))))]⟩
-def fadmit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+def fadmit_l0 : MLaw := ⟨.le (.get 0 (.var 8)) (.const 1), some 8⟩
+def fadmit_e0 : MEntry := ⟨fadmit_l0, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
@@ -435,7 +468,9 @@ def fadmit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some 
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 16), (17, 21), (22, 26), (27, 31)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [(12, 16), (17, 21), (22, 26), (27, 31)] []))
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩, ⟨⟨.le (.get 1 (.var 8)) (.var 0), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def fadmit_l1 : MLaw := ⟨.le (.get 1 (.var 8)) (.var 0), some 8⟩
+def fadmit_e1 : MEntry := ⟨fadmit_l1, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 1], 0⟩
@@ -457,7 +492,9 @@ def fadmit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some 
   (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(13, 16), (18, 21), (23, 26), (28, 31)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [(13, 16), (18, 21), (23, 26), (28, 31)] []))
   (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩, ⟨⟨.le (.get 2 (.var 8)) (.var 1), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def fadmit_l2 : MLaw := ⟨.le (.get 2 (.var 8)) (.var 1), some 8⟩
+def fadmit_e2 : MEntry := ⟨fadmit_l2, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[0, 1], 1⟩, ⟨[0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
@@ -479,7 +516,9 @@ def fadmit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some 
   (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(14, 16), (19, 21), (24, 26), (29, 31)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [(14, 16), (19, 21), (24, 26), (29, 31)] []))
   (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩, ⟨⟨.le (.get 3 (.var 8)) (.var 2), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def fadmit_l3 : MLaw := ⟨.le (.get 3 (.var 8)) (.var 2), some 8⟩
+def fadmit_e3 : MEntry := ⟨fadmit_l3, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[0, 0, 1], 1⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩
@@ -501,10 +540,36 @@ def fadmit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some 
   (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(15, 16), (20, 21), (25, 26), (30, 31)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [(15, 16), (20, 21), (25, 26), (30, 31)] []))
   (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩]
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def fadmit_proof : List MEntry := [fadmit_e0, fadmit_e1, fadmit_e2, fadmit_e3]
 theorem fadmit_check : checkFMMachine fadmit_machine fadmit_proof = true := by decide +kernel
 theorem fadmit_laws : ∀ ρ M, FMReach fadmit_machine ρ M → ∀ e ∈ fadmit_proof, e.law.Holds ρ M :=
   fmmachine_sound fadmit_machine fadmit_proof fadmit_check
+namespace fadmit
+abbrev «d» : Nat := 0
+abbrev «hr» : Nat := 1
+abbrev «dm» : Nat := 2
+abbrev «Acct» : Nat := 0
+abbrev «Day» : Nat := 1
+abbrev «Hour» : Nat := 2
+abbrev «Dom» : Nat := 3
+/-- once_per_account: every Acct count <= its cap -/
+theorem law0 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach fadmit_machine ρ μ) : ∀ k : Nat, (μ «Acct» (k)) ≤ 1 := by
+  have hl : fadmit_l0.Holds ρ μ := fadmit_laws ρ μ h fadmit_e0 (by simp [fadmit_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ fadmit_l0.holds).mp (hl k)
+/-- day_cap: every Day count <= its cap -/
+theorem law1 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach fadmit_machine ρ μ) : ∀ k : Nat, (μ «Day» (k)) ≤ ρ «d» := by
+  have hl : fadmit_l1.Holds ρ μ := fadmit_laws ρ μ h fadmit_e1 (by simp [fadmit_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ fadmit_l1.holds).mp (hl k)
+/-- hour_cap: every Hour count <= its cap -/
+theorem law2 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach fadmit_machine ρ μ) : ∀ k : Nat, (μ «Hour» (k)) ≤ ρ «hr» := by
+  have hl : fadmit_l2.Holds ρ μ := fadmit_laws ρ μ h fadmit_e2 (by simp [fadmit_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ fadmit_l2.holds).mp (hl k)
+/-- dom_cap: every Dom count <= its cap -/
+theorem law3 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach fadmit_machine ρ μ) : ∀ k : Nat, (μ «Dom» (k)) ≤ ρ «dm» := by
+  have hl : fadmit_l3.Holds ρ μ := fadmit_laws ρ μ h fadmit_e3 (by simp [fadmit_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ fadmit_l3.holds).mp (hl k)
+end fadmit
 -- TAMPERED: the flagged admit proof offered for a grant flag without the Day cap. Lean computes the check to false.
 def fadmit_tampered : FMMachine := ⟨⟨[3, 4, 5, 6, 7],
   [],
@@ -525,7 +590,8 @@ def refines_machine : FMMachine := ⟨⟨[2],
   .le (.const 0) (.const 0),
   .le (.const 0) (.const 0)⟩,
   [(6, .le (.add (.var 4) (.min (.var 2) (.var 1))) (.var 0))]⟩
-def refines_proof : List MEntry := [⟨⟨.eq (.add (.var 3) (.var 4)) (.var 0), none⟩, 5, [],
+def refines_l0 : MLaw := ⟨.eq (.add (.var 3) (.var 4)) (.var 0), none⟩
+def refines_e0 : MEntry := ⟨refines_l0, 5, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8], .split ⟨[0, (-1), 1], 0⟩
   (.split ⟨[0, 0, 1, (-1)], 0⟩
@@ -549,10 +615,20 @@ def refines_proof : List MEntry := [⟨⟨.eq (.add (.var 3) (.var 4)) (.var 0),
   (.leaf [⟨[0, (-1), 0, 1], 1⟩, ⟨[(-1), 1, 0, 0, 1], 0⟩, ⟨[1, 0, 0, (-1), (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [] [])
   (.split ⟨[(-1), 0, 0, 1, 1], 0⟩
   (.leaf [⟨[1, 0, 0, (-1), (-1)], 0⟩, ⟨[(-1), 0, 0, 1, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[1, 0, 0, (-1), (-1)], 1⟩, ⟨[(-1), 0, 0, 1, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))⟩]
+  (.leaf [⟨[1, 0, 0, (-1), (-1)], 1⟩, ⟨[(-1), 0, 0, 1, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))⟩
+def refines_proof : List MEntry := [refines_e0]
 theorem refines_check : checkFMMachine refines_machine refines_proof = true := by decide +kernel
 theorem refines_laws : ∀ ρ M, FMReach refines_machine ρ M → ∀ e ∈ refines_proof, e.law.Holds ρ M :=
   fmmachine_sound refines_machine refines_proof refines_check
+namespace refines
+abbrev «cap» : Nat := 0
+abbrev «a_left» : Nat := 3
+abbrev «b_used» : Nat := 4
+/-- left + used = cap -/
+theorem law0 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach refines_machine ρ μ) : (ρ «a_left» + ρ «b_used») = ρ «cap» := by
+  have hl : refines_l0.Holds ρ μ := refines_laws ρ μ h refines_e0 (by simp [refines_proof])
+  exact (evalC_iff ρ μ refines_l0.holds).mp hl
+end refines
 
 -- Step law: meter allows the request it is sent
 def refines_step0 : StepLaw := ⟨.le (.const 0) (.const 0),
@@ -575,7 +651,8 @@ def interleaved_machine : FMMachine := ⟨⟨[1, 2],
   .and (.le (.var 0) (.const 10)) (.le (.var 0) (.const 10)),
   .or (.eq (.var 2) (.const 0)) (.eq (.var 2) (.const 1))⟩,
   []⟩
-def interleaved_proof : List MEntry := [⟨⟨.le (.var 3) (.var 0), none⟩, 5, [],
+def interleaved_l0 : MLaw := ⟨.le (.var 3) (.var 0), none⟩
+def interleaved_e0 : MEntry := ⟨interleaved_l0, 5, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[(-1), 1, 0, 1], 0⟩
@@ -583,7 +660,9 @@ def interleaved_proof : List MEntry := [⟨⟨.le (.var 3) (.var 0), none⟩, 5,
   (.leaf [⟨[(-1), 0, 0, 1], 0⟩, ⟨[1, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 1], (-1)⟩
   (.leaf [⟨[(-1), 0, 0, 1], 0⟩, ⟨[1, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [] [])))⟩, ⟨⟨.le (.var 4) (.var 0), none⟩, 5, [],
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])))⟩
+def interleaved_l1 : MLaw := ⟨.le (.var 4) (.var 0), none⟩
+def interleaved_e1 : MEntry := ⟨interleaved_l1, 5, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[0, 0, (-1)], 0⟩
@@ -591,10 +670,24 @@ def interleaved_proof : List MEntry := [⟨⟨.le (.var 3) (.var 0), none⟩, 5,
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.split ⟨[(-1), 1, 0, 0, 1], 0⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
-  (.leaf [⟨[(-1), 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩]
+  (.leaf [⟨[(-1), 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def interleaved_proof : List MEntry := [interleaved_e0, interleaved_e1]
 theorem interleaved_check : checkFMMachine interleaved_machine interleaved_proof = true := by decide +kernel
 theorem interleaved_laws : ∀ ρ M, FMReach interleaved_machine ρ M → ∀ e ∈ interleaved_proof, e.law.Holds ρ M :=
   fmmachine_sound interleaved_machine interleaved_proof interleaved_check
+namespace interleaved
+abbrev «cap» : Nat := 0
+abbrev «a_n» : Nat := 3
+abbrev «b_n» : Nat := 4
+/-- a.n <= cap -/
+theorem law0 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach interleaved_machine ρ μ) : ρ «a_n» ≤ ρ «cap» := by
+  have hl : interleaved_l0.Holds ρ μ := interleaved_laws ρ μ h interleaved_e0 (by simp [interleaved_proof])
+  exact (evalC_iff ρ μ interleaved_l0.holds).mp hl
+/-- b.n <= cap -/
+theorem law1 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach interleaved_machine ρ μ) : ρ «b_n» ≤ ρ «cap» := by
+  have hl : interleaved_l1.Holds ρ μ := interleaved_laws ρ μ h interleaved_e1 (by simp [interleaved_proof])
+  exact (evalC_iff ρ μ interleaved_l1.holds).mp hl
+end interleaved
 
 -- Step law: an a turn leaves b's count
 def interleaved_step0 : StepLaw := ⟨.eq (.var 2) (.const 0),
@@ -646,7 +739,8 @@ def twophase_machine : FMMachine := ⟨⟨[2, 3],
   .le (.const 0) (.const 0),
   .lt (.var 2) (.const 2)⟩,
   [(8, .le (.add (.var 6) (.var 5)) (.var 0))]⟩
-def twophase_proof : List MEntry := [⟨⟨.eq (.var 4) (.var 6), none⟩, 7, [],
+def twophase_l0 : MLaw := ⟨.eq (.var 4) (.var 6), none⟩
+def twophase_e0 : MEntry := ⟨twophase_l0, 7, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .split ⟨[0, 0, 1], (-1)⟩
   (.split ⟨[0, 0, (-1)], 1⟩
@@ -666,7 +760,9 @@ def twophase_proof : List MEntry := [⟨⟨.eq (.var 4) (.var 6), none⟩, 7, []
   (.leaf [⟨[0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 1, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
   (.leaf [⟨[0, 0, 0, 0, (-1), 0, 1], 1⟩, ⟨[0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.leaf [⟨[0, 0, 1], 1⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.leaf [⟨[0, 0, (-1)], 2⟩, ⟨[0, 0, 1], (-1)⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩, ⟨⟨.le (.var 5) (.var 1), none⟩, 7, [],
+  (.leaf [⟨[0, 0, (-1)], 2⟩, ⟨[0, 0, 1], (-1)⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩
+def twophase_l1 : MLaw := ⟨.le (.var 5) (.var 1), none⟩
+def twophase_e1 : MEntry := ⟨twophase_l1, 7, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[0, 1], 1⟩, ⟨[0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[0, 0, (-1)], 0⟩
@@ -676,10 +772,25 @@ def twophase_proof : List MEntry := [⟨⟨.eq (.var 4) (.var 6), none⟩, 7, []
   (.leaf [⟨[0, 0, 1], 1⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 1], (-1)⟩
   (.leaf [⟨[0, 1], 1⟩, ⟨[0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
-  (.leaf [⟨[0, 0, (-1)], 2⟩, ⟨[0, 0, 1], (-1)⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩]
+  (.leaf [⟨[0, 0, (-1)], 2⟩, ⟨[0, 0, 1], (-1)⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def twophase_proof : List MEntry := [twophase_e0, twophase_e1]
 theorem twophase_check : checkFMMachine twophase_machine twophase_proof = true := by decide +kernel
 theorem twophase_laws : ∀ ρ M, FMReach twophase_machine ρ M → ∀ e ∈ twophase_proof, e.law.Holds ρ M :=
   fmmachine_sound twophase_machine twophase_proof twophase_check
+namespace twophase
+abbrev «most» : Nat := 1
+abbrev «a_used» : Nat := 4
+abbrev «a_pending» : Nat := 5
+abbrev «b_used» : Nat := 6
+/-- used = used -/
+theorem law0 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach twophase_machine ρ μ) : ρ «a_used» = ρ «b_used» := by
+  have hl : twophase_l0.Holds ρ μ := twophase_laws ρ μ h twophase_e0 (by simp [twophase_proof])
+  exact (evalC_iff ρ μ twophase_l0.holds).mp hl
+/-- pending <= most -/
+theorem law1 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach twophase_machine ρ μ) : ρ «a_pending» ≤ ρ «most» := by
+  have hl : twophase_l1.Holds ρ μ := twophase_laws ρ μ h twophase_e1 (by simp [twophase_proof])
+  exact (evalC_iff ρ μ twophase_l1.holds).mp hl
+end twophase
 
 -- Step law: meter allows the request it is sent
 def twophase_step0 : StepLaw := ⟨.le (.const 0) (.const 0),
@@ -700,7 +811,8 @@ def escrow_machine : FMMachine := ⟨⟨[0, 1],
   .le (.const 0) (.const 0),
   .lt (.var 0) (.const 3)⟩,
   [(7, .and (.eq (.var 0) (.const 1)) (.and (.eq (.var 3) (.const 0)) (.lt (.const 0) (.var 2)))), (8, .and (.eq (.var 0) (.const 2)) (.and (.lt (.const 0) (.var 2)) (.eq (.var 3) (.const 0))))]⟩
-def escrow_proof : List MEntry := [⟨⟨.le (.var 5) (.var 3), none⟩, 6, [],
+def escrow_l0 : MLaw := ⟨.le (.var 5) (.var 3), none⟩
+def escrow_e0 : MEntry := ⟨escrow_l0, 6, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12], .split ⟨[1], (-1)⟩
   (.split ⟨[(-1)], 1⟩
@@ -712,10 +824,19 @@ def escrow_proof : List MEntry := [⟨⟨.le (.var 5) (.var 3), none⟩, 6, [],
   (.leaf [⟨[0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.leaf [⟨[0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 1, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
   (.leaf [⟨[0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 1, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 1, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))⟩]
+  (.leaf [⟨[0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 1, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))⟩
+def escrow_proof : List MEntry := [escrow_e0]
 theorem escrow_check : checkFMMachine escrow_machine escrow_proof = true := by decide +kernel
 theorem escrow_laws : ∀ ρ M, FMReach escrow_machine ρ M → ∀ e ∈ escrow_proof, e.law.Holds ρ M :=
   fmmachine_sound escrow_machine escrow_proof escrow_check
+namespace escrow
+abbrev «closed» : Nat := 3
+abbrev «released» : Nat := 5
+/-- a release closes it -/
+theorem law0 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach escrow_machine ρ μ) : ρ «released» ≤ ρ «closed» := by
+  have hl : escrow_l0.Holds ρ μ := escrow_laws ρ μ h escrow_e0 (by simp [escrow_proof])
+  exact (evalC_iff ρ μ escrow_l0.holds).mp hl
+end escrow
 
 -- Step law: no refund after a release
 def escrow_step0 : StepLaw := ⟨.le (.const 0) (.const 0),
@@ -737,7 +858,7 @@ def escrow_step0 : StepLaw := ⟨.le (.const 0) (.const 0),
 theorem escrow_step0_holds : StepLawHolds escrow_machine escrow_step0 :=
   steplaw_sound escrow_machine escrow_proof escrow_step0 escrow_check (by decide +kernel)
 
--- connection pool: in use <= pool size; in use + released = acquired; released <= acquired; every client holds <= its cap; in use = what the clients hold, with flags got, back  (variables 0 size, 1 perClient, 2 op, 3 client, 4 inUse, 5 acquired, 6 released, 7 heldTotal, 8 key$70, 9 key$70#, 10 #, 11 ?got, 12 ?back; maps 0 Held)
+-- connection pool: in use <= pool size; in use + released = acquired; released <= acquired; every client holds <= its cap; in use = what the clients hold, with flags got, back  (variables 0 size, 1 perClient, 2 op, 3 client, 4 inUse, 5 acquired, 6 released, 7 heldTotal, 8 key$91, 9 key$91#, 10 #, 11 ?got, 12 ?back; maps 0 Held)
 def pooltotal_machine : FMMachine := ⟨⟨[2, 3],
   [(4, .const 0), (5, .const 0), (6, .const 0), (7, .const 0)],
   [(0, 0)],
@@ -746,7 +867,8 @@ def pooltotal_machine : FMMachine := ⟨⟨[2, 3],
   .le (.const 0) (.const 0),
   .lt (.var 2) (.const 2)⟩,
   [(11, .and (.eq (.var 2) (.const 0)) (.and (.lt (.var 4) (.var 0)) (.lt (.get 0 (.var 3)) (.var 1)))), (12, .and (.eq (.var 2) (.const 1)) (.and (.lt (.const 0) (.get 0 (.var 3))) (.lt (.const 0) (.var 4))))]⟩
-def pooltotal_proof : List MEntry := [⟨⟨.le (.var 4) (.var 0), none⟩, 10, [(3, .var 3)],
+def pooltotal_l0 : MLaw := ⟨.le (.var 4) (.var 0), none⟩
+def pooltotal_e0 : MEntry := ⟨pooltotal_l0, 10, [(3, .var 3)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .cell 0 ⟨[0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[0, 0, (-1)], 0⟩
@@ -762,7 +884,9 @@ def pooltotal_proof : List MEntry := [⟨⟨.le (.var 4) (.var 0), none⟩, 10, 
   (.leaf [⟨[(-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 1, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, (-1), 1, (-1)], 0⟩, ⟨[1, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 2 1 1, .combine 3 1 1 1, .combine 4 5 1 1] [] [])
   (.leaf [⟨[0, 0, 0, 0, 1], 0⟩, ⟨[(-1), 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 3 1 1, .combine 2 0 1 1, .combine 5 4 1 1] [] []))
   (.leaf [⟨[(-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 1, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, (-1), 1, (-1)], 0⟩, ⟨[1, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 2 1 1, .combine 3 1 1 1, .combine 5 4 1 1] [] []))
-  (.leaf [⟨[0, 0, (-1)], 2⟩, ⟨[0, 0, 1], (-1)⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩, ⟨⟨.eq (.add (.var 4) (.var 6)) (.var 5), none⟩, 10, [(3, .var 3)],
+  (.leaf [⟨[0, 0, (-1)], 2⟩, ⟨[0, 0, 1], (-1)⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def pooltotal_l1 : MLaw := ⟨.eq (.add (.var 4) (.var 6)) (.var 5), none⟩
+def pooltotal_e1 : MEntry := ⟨pooltotal_l1, 10, [(3, .var 3)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .cell 0 ⟨[0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[0, 0, (-1)], 0⟩
@@ -790,7 +914,9 @@ def pooltotal_proof : List MEntry := [⟨⟨.le (.var 4) (.var 0), none⟩, 10, 
   (.split ⟨[0, 0, 0, 0, 1, (-1), 1], 0⟩
   (.leaf [⟨[0, 0, 0, 0, (-1), 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 1, (-1), 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
   (.leaf [⟨[0, 0, 0, 0, (-1), 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 1, (-1), 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.leaf [⟨[0, 0, (-1)], 2⟩, ⟨[0, 0, 1], (-1)⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩, ⟨⟨.le (.var 6) (.var 5), none⟩, 10, [(3, .var 3)],
+  (.leaf [⟨[0, 0, (-1)], 2⟩, ⟨[0, 0, 1], (-1)⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def pooltotal_l2 : MLaw := ⟨.le (.var 6) (.var 5), none⟩
+def pooltotal_e2 : MEntry := ⟨pooltotal_l2, 10, [(3, .var 3)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .cell 0 ⟨[0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 1], (-1)⟩
   (.split ⟨[0, 0, (-1)], 1⟩
@@ -806,7 +932,9 @@ def pooltotal_proof : List MEntry := [⟨⟨.le (.var 4) (.var 0), none⟩, 10, 
   (.leaf [⟨[0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.leaf [⟨[1, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 1, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, (-1), 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .input 5, .combine 2 0 1 1, .combine 3 1 1 1, .combine 4 7 1 1, .combine 5 6 1 1, .combine 9 8 1 1] [] []))
   (.leaf [⟨[0, 0, 1], 1⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.leaf [⟨[0, 0, (-1)], 2⟩, ⟨[0, 0, 1], (-1)⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩, ⟨⟨.le (.get 0 (.var 8)) (.var 1), some 8⟩, 9, [(3, .var 3), (3, .var 9)],
+  (.leaf [⟨[0, 0, (-1)], 2⟩, ⟨[0, 0, 1], (-1)⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩
+def pooltotal_l3 : MLaw := ⟨.le (.get 0 (.var 8)) (.var 1), some 8⟩
+def pooltotal_e3 : MEntry := ⟨pooltotal_l3, 9, [(3, .var 3), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12], .leaf [⟨[0, 1], 1⟩, ⟨[0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩
@@ -826,7 +954,9 @@ def pooltotal_proof : List MEntry := [⟨⟨.le (.var 4) (.var 0), none⟩, 10, 
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 3 1 1, .combine 2 0 1 1, .combine 5 4 1 1] [(13, 14)] []))
   (.leaf [⟨[0, 0, (-1)], 2⟩, ⟨[0, 0, 1], (-1)⟩] [.input 0, .input 1, .combine 0 1 1 1] [(13, 14)] [])))
   (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))⟩, ⟨⟨.eq (.var 4) (.var 7), none⟩, 10, [(3, .var 3)],
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))⟩
+def pooltotal_l4 : MLaw := ⟨.eq (.var 4) (.var 7), none⟩
+def pooltotal_e4 : MEntry := ⟨pooltotal_l4, 10, [(3, .var 3)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .cell 0 ⟨[0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[0, 0, (-1)], 0⟩
@@ -856,10 +986,40 @@ def pooltotal_proof : List MEntry := [⟨⟨.le (.var 4) (.var 0), none⟩, 10, 
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩
   (.leaf [⟨[0, 0, 0, 0, (-1), 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 1, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
   (.leaf [⟨[0, 0, 0, 0, (-1), 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 1, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, (-1), 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 1 1 1, .combine 3 2 1 1, .combine 4 5 1 1] [] [])))
-  (.leaf [⟨[0, 0, (-1)], 2⟩, ⟨[0, 0, 1], (-1)⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩]
+  (.leaf [⟨[0, 0, (-1)], 2⟩, ⟨[0, 0, 1], (-1)⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def pooltotal_proof : List MEntry := [pooltotal_e0, pooltotal_e1, pooltotal_e2, pooltotal_e3, pooltotal_e4]
 theorem pooltotal_check : checkFMMachine pooltotal_machine pooltotal_proof = true := by decide +kernel
 theorem pooltotal_laws : ∀ ρ M, FMReach pooltotal_machine ρ M → ∀ e ∈ pooltotal_proof, e.law.Holds ρ M :=
   fmmachine_sound pooltotal_machine pooltotal_proof pooltotal_check
+namespace pooltotal
+abbrev «size» : Nat := 0
+abbrev «perClient» : Nat := 1
+abbrev «inUse» : Nat := 4
+abbrev «acquired» : Nat := 5
+abbrev «released» : Nat := 6
+abbrev «heldTotal» : Nat := 7
+abbrev «Held» : Nat := 0
+/-- in use <= pool size -/
+theorem law0 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach pooltotal_machine ρ μ) : ρ «inUse» ≤ ρ «size» := by
+  have hl : pooltotal_l0.Holds ρ μ := pooltotal_laws ρ μ h pooltotal_e0 (by simp [pooltotal_proof])
+  exact (evalC_iff ρ μ pooltotal_l0.holds).mp hl
+/-- in use + released = acquired -/
+theorem law1 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach pooltotal_machine ρ μ) : (ρ «inUse» + ρ «released») = ρ «acquired» := by
+  have hl : pooltotal_l1.Holds ρ μ := pooltotal_laws ρ μ h pooltotal_e1 (by simp [pooltotal_proof])
+  exact (evalC_iff ρ μ pooltotal_l1.holds).mp hl
+/-- released <= acquired -/
+theorem law2 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach pooltotal_machine ρ μ) : ρ «released» ≤ ρ «acquired» := by
+  have hl : pooltotal_l2.Holds ρ μ := pooltotal_laws ρ μ h pooltotal_e2 (by simp [pooltotal_proof])
+  exact (evalC_iff ρ μ pooltotal_l2.holds).mp hl
+/-- every client holds <= its cap -/
+theorem law3 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach pooltotal_machine ρ μ) : ∀ k : Nat, (μ «Held» (k)) ≤ ρ «perClient» := by
+  have hl : pooltotal_l3.Holds ρ μ := pooltotal_laws ρ μ h pooltotal_e3 (by simp [pooltotal_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ pooltotal_l3.holds).mp (hl k)
+/-- in use = what the clients hold -/
+theorem law4 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach pooltotal_machine ρ μ) : ρ «inUse» = ρ «heldTotal» := by
+  have hl : pooltotal_l4.Holds ρ μ := pooltotal_laws ρ μ h pooltotal_e4 (by simp [pooltotal_proof])
+  exact (evalC_iff ρ μ pooltotal_l4.holds).mp hl
+end pooltotal
 
 -- TAMPERED: the two-turn law's proof offered without its whens (b may move on its own turns). Lean computes the check to false.
 example : checkKStep interleaved_machine interleaved_proof { interleaved_step1 with whens := [.le (.const 0) (.const 0), .le (.const 0) (.const 0)] } = false := by decide +kernel
@@ -873,7 +1033,8 @@ def pflight_machine : FMMachine := ⟨⟨[1, 2],
   .le (.const 0) (.const 0),
   .or (.eq (.var 2) (.const 0)) (.eq (.var 2) (.const 1))⟩,
   []⟩
-def pflight_proof : List MEntry := [⟨⟨.le (.var 3) (.add (.var 0) (.const 150)), none⟩, 5, [],
+def pflight_l0 : MLaw := ⟨.le (.var 3) (.add (.var 0) (.const 150)), none⟩
+def pflight_e0 : MEntry := ⟨pflight_l0, 5, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7], .leaf [⟨[1], 151⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7], .split ⟨[0, 0, 1], 0⟩
   (.leaf [⟨[(-1), 0, 0, 1], (-150)⟩, ⟨[1, 0, 0, (-1)], 151⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
@@ -883,7 +1044,9 @@ def pflight_proof : List MEntry := [⟨⟨.le (.var 3) (.add (.var 0) (.const 15
   (.leaf [⟨[0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 1], (-50)⟩, ⟨[(-1), 0, 0, 1, 50], (-150)⟩, ⟨[1, (-1), 0, (-1)], 151⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 50, .combine 1 3 1 1, .combine 4 5 1 1] [] [])
   (.leaf [⟨[0, 0, 0, 0, (-1)], 1⟩, ⟨[(-1), 0, 0, 1, 50], (-150)⟩, ⟨[1, 0, 0, (-1)], 101⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 50, .combine 3 2 1 1] [] []))
   (.leaf [⟨[(-1), 0, 0, 1], (-150)⟩, ⟨[1, 0, 0, (-1)], 151⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [] [])))⟩, ⟨⟨.le (.add (.var 3) (.mul 50 (.var 4))) (.add (.var 0) (.const 150)), none⟩, 5, [],
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])))⟩
+def pflight_l1 : MLaw := ⟨.le (.add (.var 3) (.mul 50 (.var 4))) (.add (.var 0) (.const 150)), none⟩
+def pflight_e1 : MEntry := ⟨pflight_l1, 5, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7], .leaf [⟨[1], 151⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[(-1), 0, 0, 1], 1⟩
@@ -897,10 +1060,24 @@ def pflight_proof : List MEntry := [⟨⟨.le (.var 3) (.add (.var 0) (.const 15
   (.leaf [⟨[0, 1], (-50)⟩, ⟨[(-1), 0, 0, 1, 50], (-150)⟩, ⟨[1, (-1), 0, (-1), (-50)], 201⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [] [])
   (.leaf [⟨[(-1), 0, 0, 1, 50], (-150)⟩, ⟨[1, 0, 0, (-1), (-50)], 151⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
   (.leaf [⟨[0, 0, 0, 0, 1], 0⟩, ⟨[(-1), 0, 0, 1], (-150)⟩, ⟨[1, 0, 0, (-1), (-50)], 151⟩] [.input 0, .input 1, .input 2, .combine 2 0 1 50, .combine 3 1 1 1] [] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [] [])))⟩]
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])))⟩
+def pflight_proof : List MEntry := [pflight_e0, pflight_e1]
 theorem pflight_check : checkFMMachine pflight_machine pflight_proof = true := by decide +kernel
 theorem pflight_laws : ∀ ρ M, FMReach pflight_machine ρ M → ∀ e ∈ pflight_proof, e.law.Holds ρ M :=
   fmmachine_sound pflight_machine pflight_proof pflight_check
+namespace pflight
+abbrev «b» : Nat := 0
+abbrev «s» : Nat := 3
+abbrev «p» : Nat := 4
+/-- in-flight loss: s <= b + 3 × 50 -/
+theorem law0 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach pflight_machine ρ μ) : ρ «s» ≤ (ρ «b» + 150) := by
+  have hl : pflight_l0.Holds ρ μ := pflight_laws ρ μ h pflight_e0 (by simp [pflight_proof])
+  exact (evalC_iff ρ μ pflight_l0.holds).mp hl
+/-- s + 50p <= b + 150 -/
+theorem law1 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach pflight_machine ρ μ) : (ρ «s» + (50 * ρ «p»)) ≤ (ρ «b» + 150) := by
+  have hl : pflight_l1.Holds ρ μ := pflight_laws ρ μ h pflight_e1 (by simp [pflight_proof])
+  exact (evalC_iff ρ μ pflight_l1.holds).mp hl
+end pflight
 
 -- Progress: in-flight: a request in flight can always complete
 def flight_complete : Progress := ⟨.le (.const 1) (.var 4),
@@ -953,7 +1130,8 @@ def padmit_machine : FMMachine := ⟨⟨[3, 4, 5, 6, 7],
   .le (.const 0) (.const 0),
   .or (.eq (.var 7) (.const 0)) (.eq (.var 7) (.const 1))⟩,
   []⟩
-def padmit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+def padmit_l0 : MLaw := ⟨.le (.get 0 (.var 8)) (.const 1), some 8⟩
+def padmit_e0 : MEntry := ⟨padmit_l0, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
@@ -975,7 +1153,9 @@ def padmit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some 
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(15, 19), (20, 24), (25, 29), (30, 34)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [(15, 19), (20, 24), (25, 29), (30, 34)] []))
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩, ⟨⟨.le (.get 1 (.var 8)) (.var 0), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def padmit_l1 : MLaw := ⟨.le (.get 1 (.var 8)) (.var 0), some 8⟩
+def padmit_e1 : MEntry := ⟨padmit_l1, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 1], 0⟩
@@ -997,7 +1177,9 @@ def padmit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some 
   (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(16, 19), (21, 24), (26, 29), (31, 34)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [(16, 19), (21, 24), (26, 29), (31, 34)] []))
   (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩, ⟨⟨.le (.get 2 (.var 8)) (.var 1), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def padmit_l2 : MLaw := ⟨.le (.get 2 (.var 8)) (.var 1), some 8⟩
+def padmit_e2 : MEntry := ⟨padmit_l2, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14], .leaf [⟨[0, 1], 1⟩, ⟨[0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
@@ -1019,7 +1201,9 @@ def padmit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some 
   (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(17, 19), (22, 24), (27, 29), (32, 34)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [(17, 19), (22, 24), (27, 29), (32, 34)] []))
   (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩, ⟨⟨.le (.get 3 (.var 8)) (.var 2), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def padmit_l3 : MLaw := ⟨.le (.get 3 (.var 8)) (.var 2), some 8⟩
+def padmit_e3 : MEntry := ⟨padmit_l3, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14], .leaf [⟨[0, 0, 1], 1⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩
@@ -1041,10 +1225,36 @@ def padmit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some 
   (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(18, 19), (23, 24), (28, 29), (33, 34)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [(18, 19), (23, 24), (28, 29), (33, 34)] []))
   (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩]
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def padmit_proof : List MEntry := [padmit_e0, padmit_e1, padmit_e2, padmit_e3]
 theorem padmit_check : checkFMMachine padmit_machine padmit_proof = true := by decide +kernel
 theorem padmit_laws : ∀ ρ M, FMReach padmit_machine ρ M → ∀ e ∈ padmit_proof, e.law.Holds ρ M :=
   fmmachine_sound padmit_machine padmit_proof padmit_check
+namespace padmit
+abbrev «d» : Nat := 0
+abbrev «hr» : Nat := 1
+abbrev «dm» : Nat := 2
+abbrev «Acct» : Nat := 0
+abbrev «Day» : Nat := 1
+abbrev «Hour» : Nat := 2
+abbrev «Dom» : Nat := 3
+/-- once_per_account: every Acct count <= its cap -/
+theorem law0 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach padmit_machine ρ μ) : ∀ k : Nat, (μ «Acct» (k)) ≤ 1 := by
+  have hl : padmit_l0.Holds ρ μ := padmit_laws ρ μ h padmit_e0 (by simp [padmit_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ padmit_l0.holds).mp (hl k)
+/-- day_cap: every Day count <= its cap -/
+theorem law1 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach padmit_machine ρ μ) : ∀ k : Nat, (μ «Day» (k)) ≤ ρ «d» := by
+  have hl : padmit_l1.Holds ρ μ := padmit_laws ρ μ h padmit_e1 (by simp [padmit_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ padmit_l1.holds).mp (hl k)
+/-- hour_cap: every Hour count <= its cap -/
+theorem law2 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach padmit_machine ρ μ) : ∀ k : Nat, (μ «Hour» (k)) ≤ ρ «hr» := by
+  have hl : padmit_l2.Holds ρ μ := padmit_laws ρ μ h padmit_e2 (by simp [padmit_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ padmit_l2.holds).mp (hl k)
+/-- dom_cap: every Dom count <= its cap -/
+theorem law3 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach padmit_machine ρ μ) : ∀ k : Nat, (μ «Dom» (k)) ≤ ρ «dm» := by
+  have hl : padmit_l3.Holds ρ μ := padmit_laws ρ μ h padmit_e3 (by simp [padmit_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ padmit_l3.holds).mp (hl k)
+end padmit
 
 -- Progress: admit: an account under every cap gets its grant
 def admit_grant : Progress := ⟨.and (.lt (.get 0 (.var 11)) (.const 1)) (.and (.lt (.get 1 (.var 12)) (.var 0)) (.and (.lt (.get 2 (.var 13)) (.var 1)) (.lt (.get 3 (.var 14)) (.var 2)))),
@@ -1093,7 +1303,8 @@ def pfadmit_machine : FMMachine := ⟨⟨[3, 4, 5, 6, 7],
   .le (.const 0) (.const 0),
   .or (.eq (.var 7) (.const 0)) (.eq (.var 7) (.const 1))⟩,
   [(11, .and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2))))))]⟩
-def pfadmit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+def pfadmit_l0 : MLaw := ⟨.le (.get 0 (.var 8)) (.const 1), some 8⟩
+def pfadmit_e0 : MEntry := ⟨pfadmit_l0, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
@@ -1115,7 +1326,9 @@ def pfadmit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 20), (21, 25), (26, 30), (31, 35)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [(16, 20), (21, 25), (26, 30), (31, 35)] []))
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩, ⟨⟨.le (.get 1 (.var 8)) (.var 0), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def pfadmit_l1 : MLaw := ⟨.le (.get 1 (.var 8)) (.var 0), some 8⟩
+def pfadmit_e1 : MEntry := ⟨pfadmit_l1, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 1], 0⟩
@@ -1137,7 +1350,9 @@ def pfadmit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some
   (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(17, 20), (22, 25), (27, 30), (32, 35)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [(17, 20), (22, 25), (27, 30), (32, 35)] []))
   (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩, ⟨⟨.le (.get 2 (.var 8)) (.var 1), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def pfadmit_l2 : MLaw := ⟨.le (.get 2 (.var 8)) (.var 1), some 8⟩
+def pfadmit_e2 : MEntry := ⟨pfadmit_l2, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15], .leaf [⟨[0, 1], 1⟩, ⟨[0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
@@ -1159,7 +1374,9 @@ def pfadmit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some
   (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(18, 20), (23, 25), (28, 30), (33, 35)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [(18, 20), (23, 25), (28, 30), (33, 35)] []))
   (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩, ⟨⟨.le (.get 3 (.var 8)) (.var 2), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def pfadmit_l3 : MLaw := ⟨.le (.get 3 (.var 8)) (.var 2), some 8⟩
+def pfadmit_e3 : MEntry := ⟨pfadmit_l3, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15], .leaf [⟨[0, 0, 1], 1⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩
@@ -1181,10 +1398,36 @@ def pfadmit_proof : List MEntry := [⟨⟨.le (.get 0 (.var 8)) (.const 1), some
   (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(19, 20), (24, 25), (29, 30), (34, 35)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [(19, 20), (24, 25), (29, 30), (34, 35)] []))
   (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩]
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def pfadmit_proof : List MEntry := [pfadmit_e0, pfadmit_e1, pfadmit_e2, pfadmit_e3]
 theorem pfadmit_check : checkFMMachine pfadmit_machine pfadmit_proof = true := by decide +kernel
 theorem pfadmit_laws : ∀ ρ M, FMReach pfadmit_machine ρ M → ∀ e ∈ pfadmit_proof, e.law.Holds ρ M :=
   fmmachine_sound pfadmit_machine pfadmit_proof pfadmit_check
+namespace pfadmit
+abbrev «d» : Nat := 0
+abbrev «hr» : Nat := 1
+abbrev «dm» : Nat := 2
+abbrev «Acct» : Nat := 0
+abbrev «Day» : Nat := 1
+abbrev «Hour» : Nat := 2
+abbrev «Dom» : Nat := 3
+/-- once_per_account: every Acct count <= its cap -/
+theorem law0 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach pfadmit_machine ρ μ) : ∀ k : Nat, (μ «Acct» (k)) ≤ 1 := by
+  have hl : pfadmit_l0.Holds ρ μ := pfadmit_laws ρ μ h pfadmit_e0 (by simp [pfadmit_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ pfadmit_l0.holds).mp (hl k)
+/-- day_cap: every Day count <= its cap -/
+theorem law1 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach pfadmit_machine ρ μ) : ∀ k : Nat, (μ «Day» (k)) ≤ ρ «d» := by
+  have hl : pfadmit_l1.Holds ρ μ := pfadmit_laws ρ μ h pfadmit_e1 (by simp [pfadmit_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ pfadmit_l1.holds).mp (hl k)
+/-- hour_cap: every Hour count <= its cap -/
+theorem law2 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach pfadmit_machine ρ μ) : ∀ k : Nat, (μ «Hour» (k)) ≤ ρ «hr» := by
+  have hl : pfadmit_l2.Holds ρ μ := pfadmit_laws ρ μ h pfadmit_e2 (by simp [pfadmit_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ pfadmit_l2.holds).mp (hl k)
+/-- dom_cap: every Dom count <= its cap -/
+theorem law3 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach pfadmit_machine ρ μ) : ∀ k : Nat, (μ «Dom» (k)) ≤ ρ «dm» := by
+  have hl : pfadmit_l3.Holds ρ μ := pfadmit_laws ρ μ h pfadmit_e3 (by simp [pfadmit_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ pfadmit_l3.holds).mp (hl k)
+end pfadmit
 
 -- Progress: admit, the grant as a flag: an account under every cap gets its grant
 def fadmit_grant : Progress := ⟨.and (.lt (.get 0 (.var 12)) (.const 1)) (.and (.lt (.get 1 (.var 13)) (.var 0)) (.and (.lt (.get 2 (.var 14)) (.var 1)) (.lt (.get 3 (.var 15)) (.var 2)))),
@@ -1215,7 +1458,8 @@ def peracct_machine : FMMachine := ⟨⟨[7, 8, 9, 10, 11, 12],
   .le (.const 0) (.const 0),
   .and (.or (.eq (.var 11) (.const 0)) (.eq (.var 11) (.const 1))) (.and (.or (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 0)) (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 1))) (.and (.or (.eq (.var 12) (.const 0)) (.eq (.var 12) (.const 1))) (.or (.and (.eq (.var 12) (.const 0)) (.and (.eq (.var 7) (.var 3)) (.and (.eq (.var 8) (.var 4)) (.and (.eq (.var 9) (.var 5)) (.eq (.var 10) (.var 6)))))) (.and (.eq (.var 12) (.const 1)) (.not (.eq (.var 7) (.var 3)))))))⟩,
   []⟩
-def peracct_proof : List MEntry := [⟨⟨.eq (.get 0 (.var 3)) (.get 4 (.var 3)), none⟩, 13, [],
+def peracct_l0 : MLaw := ⟨.eq (.get 0 (.var 3)) (.get 4 (.var 3)), none⟩
+def peracct_e0 : MEntry := ⟨peracct_l0, 13, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
@@ -1265,10 +1509,20 @@ def peracct_proof : List MEntry := [⟨⟨.eq (.get 0 (.var 3)) (.get 4 (.var 3)
   (.leaf [⟨[], 1⟩] [.input 0] [(14, 16), (15, 17)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩]
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def peracct_proof : List MEntry := [peracct_e0]
 theorem peracct_check : checkFMMachine peracct_machine peracct_proof = true := by decide +kernel
 theorem peracct_laws : ∀ ρ M, FMReach peracct_machine ρ M → ∀ e ∈ peracct_proof, e.law.Holds ρ M :=
   fmmachine_sound peracct_machine peracct_proof peracct_check
+namespace peracct
+abbrev «Bacct» : Nat := 3
+abbrev «a_Acct» : Nat := 0
+abbrev «b_Acct» : Nat := 4
+/-- a.Acct[B] = b.Acct[B] -/
+theorem law0 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach peracct_machine ρ μ) : (μ «a_Acct» (ρ «Bacct»)) = (μ «b_Acct» (ρ «Bacct»)) := by
+  have hl : peracct_l0.Holds ρ μ := peracct_laws ρ μ h peracct_e0 (by simp [peracct_proof])
+  exact (evalC_iff ρ μ peracct_l0.holds).mp hl
+end peracct
 
 -- isolation: a.Acct[B] = b.Acct[B]; a.Day[B] = b.Day[B]; a.Hour[B] = b.Hour[B]; a.Dom[B] = b.Dom[B], with flags a_granted, b_granted  (variables 0 d, 1 hr, 2 dm, 3 Bacct, 4 Bday, 5 Bhour, 6 Bdom, 7 acct, 8 day, 9 hour, 10 dom, 11 ok, 12 who, 13 #, 14 ?a_granted, 15 ?b_granted; maps 0 a_Acct, 1 a_Day, 2 a_Hour, 3 a_Dom, 4 b_Acct, 5 b_Day, 6 b_Hour, 7 b_Dom)
 def iso_machine : FMMachine := ⟨⟨[7, 8, 9, 10, 11, 12],
@@ -1279,7 +1533,8 @@ def iso_machine : FMMachine := ⟨⟨[7, 8, 9, 10, 11, 12],
   .le (.const 0) (.const 0),
   .and (.or (.eq (.var 11) (.const 0)) (.eq (.var 11) (.const 1))) (.and (.or (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 0)) (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 1))) (.and (.or (.eq (.var 12) (.const 0)) (.eq (.var 12) (.const 1))) (.or (.and (.eq (.var 12) (.const 0)) (.and (.eq (.var 7) (.var 3)) (.and (.eq (.var 8) (.var 4)) (.and (.eq (.var 9) (.var 5)) (.eq (.var 10) (.var 6)))))) (.and (.eq (.var 12) (.const 1)) (.and (.not (.eq (.var 7) (.var 3))) (.and (.not (.eq (.var 8) (.var 4))) (.and (.not (.eq (.var 9) (.var 5))) (.not (.eq (.var 10) (.var 6))))))))))⟩,
   [(14, .and (.eq (.var 11) (.const 1)) (.and (.lt (.get 0 (.var 7)) (.const 1)) (.and (.lt (.get 1 (.var 8)) (.var 0)) (.and (.lt (.get 2 (.var 9)) (.var 1)) (.lt (.get 3 (.var 10)) (.var 2)))))), (15, .and (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 1)) (.and (.lt (.get 4 (.var 7)) (.const 1)) (.and (.lt (.get 5 (.var 8)) (.var 0)) (.and (.lt (.get 6 (.var 9)) (.var 1)) (.lt (.get 7 (.var 10)) (.var 2))))))]⟩
-def iso_proof : List MEntry := [⟨⟨.eq (.get 0 (.var 3)) (.get 4 (.var 3)), none⟩, 13, [],
+def iso_l0 : MLaw := ⟨.eq (.get 0 (.var 3)) (.get 4 (.var 3)), none⟩
+def iso_e0 : MEntry := ⟨iso_l0, 13, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
@@ -1617,7 +1872,9 @@ def iso_proof : List MEntry := [⟨⟨.eq (.get 0 (.var 3)) (.get 4 (.var 3)), n
   (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩, ⟨⟨.eq (.get 1 (.var 4)) (.get 5 (.var 4)), none⟩, 13, [],
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def iso_l1 : MLaw := ⟨.eq (.get 1 (.var 4)) (.get 5 (.var 4)), none⟩
+def iso_e1 : MEntry := ⟨iso_l1, 13, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
@@ -1961,7 +2218,9 @@ def iso_proof : List MEntry := [⟨⟨.eq (.get 0 (.var 3)) (.get 4 (.var 3)), n
   (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩, ⟨⟨.eq (.get 2 (.var 5)) (.get 6 (.var 5)), none⟩, 13, [],
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def iso_l2 : MLaw := ⟨.eq (.get 2 (.var 5)) (.get 6 (.var 5)), none⟩
+def iso_e2 : MEntry := ⟨iso_l2, 13, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
@@ -2311,7 +2570,9 @@ def iso_proof : List MEntry := [⟨⟨.eq (.get 0 (.var 3)) (.get 4 (.var 3)), n
   (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩, ⟨⟨.eq (.get 3 (.var 6)) (.get 7 (.var 6)), none⟩, 13, [],
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def iso_l3 : MLaw := ⟨.eq (.get 3 (.var 6)) (.get 7 (.var 6)), none⟩
+def iso_e3 : MEntry := ⟨iso_l3, 13, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
@@ -2667,10 +2928,41 @@ def iso_proof : List MEntry := [⟨⟨.eq (.get 0 (.var 3)) (.get 4 (.var 3)), n
   (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩]
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def iso_proof : List MEntry := [iso_e0, iso_e1, iso_e2, iso_e3]
 theorem iso_check : checkFMMachine iso_machine iso_proof = true := by decide +kernel
 theorem iso_laws : ∀ ρ M, FMReach iso_machine ρ M → ∀ e ∈ iso_proof, e.law.Holds ρ M :=
   fmmachine_sound iso_machine iso_proof iso_check
+namespace iso
+abbrev «Bacct» : Nat := 3
+abbrev «Bday» : Nat := 4
+abbrev «Bhour» : Nat := 5
+abbrev «Bdom» : Nat := 6
+abbrev «a_Acct» : Nat := 0
+abbrev «a_Day» : Nat := 1
+abbrev «a_Hour» : Nat := 2
+abbrev «a_Dom» : Nat := 3
+abbrev «b_Acct» : Nat := 4
+abbrev «b_Day» : Nat := 5
+abbrev «b_Hour» : Nat := 6
+abbrev «b_Dom» : Nat := 7
+/-- a.Acct[B] = b.Acct[B] -/
+theorem law0 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach iso_machine ρ μ) : (μ «a_Acct» (ρ «Bacct»)) = (μ «b_Acct» (ρ «Bacct»)) := by
+  have hl : iso_l0.Holds ρ μ := iso_laws ρ μ h iso_e0 (by simp [iso_proof])
+  exact (evalC_iff ρ μ iso_l0.holds).mp hl
+/-- a.Day[B] = b.Day[B] -/
+theorem law1 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach iso_machine ρ μ) : (μ «a_Day» (ρ «Bday»)) = (μ «b_Day» (ρ «Bday»)) := by
+  have hl : iso_l1.Holds ρ μ := iso_laws ρ μ h iso_e1 (by simp [iso_proof])
+  exact (evalC_iff ρ μ iso_l1.holds).mp hl
+/-- a.Hour[B] = b.Hour[B] -/
+theorem law2 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach iso_machine ρ μ) : (μ «a_Hour» (ρ «Bhour»)) = (μ «b_Hour» (ρ «Bhour»)) := by
+  have hl : iso_l2.Holds ρ μ := iso_laws ρ μ h iso_e2 (by simp [iso_proof])
+  exact (evalC_iff ρ μ iso_l2.holds).mp hl
+/-- a.Dom[B] = b.Dom[B] -/
+theorem law3 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach iso_machine ρ μ) : (μ «a_Dom» (ρ «Bdom»)) = (μ «b_Dom» (ρ «Bdom»)) := by
+  have hl : iso_l3.Holds ρ μ := iso_laws ρ μ h iso_e3 (by simp [iso_proof])
+  exact (evalC_iff ρ μ iso_l3.holds).mp hl
+end iso
 
 -- admit | admit: a.Acct[k] = b.Acct[k]; a.Day[k] = b.Day[k]; a.Hour[k] = b.Hour[k]; a.Dom[k] = b.Dom[k], with flags a_granted  (variables 0 d, 1 hr, 2 dm, 3 acct, 4 day, 5 hour, 6 dom, 7 ok, 8 k, 9 k#, 10 #, 11 ?a_granted; maps 0 a_Acct, 1 a_Day, 2 a_Hour, 3 a_Dom, 4 b_Acct, 5 b_Day, 6 b_Hour, 7 b_Dom)
 def migration_machine : FMMachine := ⟨⟨[3, 4, 5, 6, 7],
@@ -2681,7 +2973,8 @@ def migration_machine : FMMachine := ⟨⟨[3, 4, 5, 6, 7],
   .le (.const 0) (.const 0),
   .and (.or (.eq (.var 7) (.const 0)) (.eq (.var 7) (.const 1))) (.or (.eq (.var 7) (.const 0)) (.eq (.var 7) (.const 1)))⟩,
   [(11, .and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2))))))]⟩
-def migration_proof : List MEntry := [⟨⟨.eq (.get 0 (.var 8)) (.get 4 (.var 8)), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+def migration_l0 : MLaw := ⟨.eq (.get 0 (.var 8)) (.get 4 (.var 8)), some 8⟩
+def migration_e0 : MEntry := ⟨migration_l0, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
@@ -2763,7 +3056,9 @@ def migration_proof : List MEntry := [⟨⟨.eq (.get 0 (.var 8)) (.get 4 (.var 
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))⟩, ⟨⟨.eq (.get 1 (.var 8)) (.get 5 (.var 8)), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))⟩
+def migration_l1 : MLaw := ⟨.eq (.get 1 (.var 8)) (.get 5 (.var 8)), some 8⟩
+def migration_e1 : MEntry := ⟨migration_l1, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 1], 0⟩
@@ -2845,7 +3140,9 @@ def migration_proof : List MEntry := [⟨⟨.eq (.get 0 (.var 8)) (.get 4 (.var 
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))⟩, ⟨⟨.eq (.get 2 (.var 8)) (.get 6 (.var 8)), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))⟩
+def migration_l2 : MLaw := ⟨.eq (.get 2 (.var 8)) (.get 6 (.var 8)), some 8⟩
+def migration_e2 : MEntry := ⟨migration_l2, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
@@ -2927,7 +3224,9 @@ def migration_proof : List MEntry := [⟨⟨.eq (.get 0 (.var 8)) (.get 4 (.var 
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))⟩, ⟨⟨.eq (.get 3 (.var 8)) (.get 7 (.var 8)), some 8⟩, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))⟩
+def migration_l3 : MLaw := ⟨.eq (.get 3 (.var 8)) (.get 7 (.var 8)), some 8⟩
+def migration_e3 : MEntry := ⟨migration_l3, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[], 1⟩] [.input 0] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩
@@ -3009,10 +3308,37 @@ def migration_proof : List MEntry := [⟨⟨.eq (.get 0 (.var 8)) (.get 4 (.var 
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))⟩]
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))⟩
+def migration_proof : List MEntry := [migration_e0, migration_e1, migration_e2, migration_e3]
 theorem migration_check : checkFMMachine migration_machine migration_proof = true := by decide +kernel
 theorem migration_laws : ∀ ρ M, FMReach migration_machine ρ M → ∀ e ∈ migration_proof, e.law.Holds ρ M :=
   fmmachine_sound migration_machine migration_proof migration_check
+namespace migration
+abbrev «a_Acct» : Nat := 0
+abbrev «a_Day» : Nat := 1
+abbrev «a_Hour» : Nat := 2
+abbrev «a_Dom» : Nat := 3
+abbrev «b_Acct» : Nat := 4
+abbrev «b_Day» : Nat := 5
+abbrev «b_Hour» : Nat := 6
+abbrev «b_Dom» : Nat := 7
+/-- a.Acct[k] = b.Acct[k] -/
+theorem law0 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach migration_machine ρ μ) : ∀ k : Nat, (μ «a_Acct» (k)) = (μ «b_Acct» (k)) := by
+  have hl : migration_l0.Holds ρ μ := migration_laws ρ μ h migration_e0 (by simp [migration_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ migration_l0.holds).mp (hl k)
+/-- a.Day[k] = b.Day[k] -/
+theorem law1 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach migration_machine ρ μ) : ∀ k : Nat, (μ «a_Day» (k)) = (μ «b_Day» (k)) := by
+  have hl : migration_l1.Holds ρ μ := migration_laws ρ μ h migration_e1 (by simp [migration_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ migration_l1.holds).mp (hl k)
+/-- a.Hour[k] = b.Hour[k] -/
+theorem law2 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach migration_machine ρ μ) : ∀ k : Nat, (μ «a_Hour» (k)) = (μ «b_Hour» (k)) := by
+  have hl : migration_l2.Holds ρ μ := migration_laws ρ μ h migration_e2 (by simp [migration_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ migration_l2.holds).mp (hl k)
+/-- a.Dom[k] = b.Dom[k] -/
+theorem law3 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach migration_machine ρ μ) : ∀ k : Nat, (μ «a_Dom» (k)) = (μ «b_Dom» (k)) := by
+  have hl : migration_l3.Holds ρ μ := migration_laws ρ μ h migration_e3 (by simp [migration_proof])
+  exact fun k => (evalC_iff (upd ρ 8 k) μ migration_l3.holds).mp (hl k)
+end migration
 
 -- spend roll-up, cap m a param: spend <= m count  (variables 0 m, 1 c, 2 spend, 3 count, 4 l_spend, 5 l_count, 6 r_spend, 7 r_count)
 def rollupM_fold : Fold := ⟨[1],

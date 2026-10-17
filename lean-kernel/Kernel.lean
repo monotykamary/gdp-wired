@@ -60,6 +60,27 @@ def evalC (env : Nat → Nat) (maps : Nat → Nat → Nat) : C → Bool
   | .not a => !evalC env maps a
 end
 
+-- A condition's meaning as a proposition: what a law says in plain Lean (`evalC_iff`). Exported laws are stated with it,
+-- so a statement like `ρ x ≤ ρ cap` is the law itself, up to unfolding.
+def holdsC (env : Nat → Nat) (maps : Nat → Nat → Nat) : C → Prop
+  | .le a b => evalE env maps a ≤ evalE env maps b
+  | .lt a b => evalE env maps a < evalE env maps b
+  | .eq a b => evalE env maps a = evalE env maps b
+  | .and a b => holdsC env maps a ∧ holdsC env maps b
+  | .or a b => holdsC env maps a ∨ holdsC env maps b
+  | .not a => ¬ holdsC env maps a
+
+theorem evalC_iff (env : Nat → Nat) (maps : Nat → Nat → Nat) : ∀ c, evalC env maps c = true ↔ holdsC env maps c
+  | .le a b => by simp [evalC, holdsC]
+  | .lt a b => by simp [evalC, holdsC]
+  | .eq a b => by simp [evalC, holdsC]
+  | .and a b => by simp [evalC, holdsC, evalC_iff env maps a, evalC_iff env maps b]
+  | .or a b => by simp [evalC, holdsC, evalC_iff env maps a, evalC_iff env maps b]
+  | .not a => by
+    have h := evalC_iff env maps a
+    simp only [evalC, holdsC]
+    cases hb : evalC env maps a <;> simp_all
+
 /-! Linear forms are Cert rows: `eval r x = dot r.coefs x + r.const`. -/
 
 def lconst (n : Int) : Row := ⟨[], n⟩
