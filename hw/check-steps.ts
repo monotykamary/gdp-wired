@@ -7,7 +7,7 @@ import type {StepLaw} from '../kernel/kernel.ts'
 import {proveStepLaws} from '../kernel/prove.ts'
 import {createLoopRunner} from '../vendor/handwired/src/json-search/loop-program.ts'
 import {replay, size} from '../search/compile.ts'
-import {stepSearches} from './step-searches.ts'
+import {historySearches, stepSearches} from './step-searches.ts'
 import {compile, decodeBest, setRange} from './compile.ts'
 
 const chunk = 32
@@ -99,4 +99,39 @@ for (let trial = 0; trial < 40; trial++) {
   if (found) broken++
 }
 console.log(`fuzz: ${fuzzAgree} / ${fuzzDocs} documents agree over ${runs.toLocaleString()} runs; ${proven} laws the kernel proves (none broken by a run), ${broken} broken by a run`)
+
+// Histories: every example rule with a log, the queries computed from the log in registers. Each law of each variant is
+// searched over its whole space; every document must agree with the replay, a proven rule must have no breaking run,
+// and a broken variant one for some law.
+const budget = Number(process.env.HISTORY_BUDGET ?? 150_000)
+for (const hs of historySearches(budget)) {
+  const total = size(hs.m, hs.space), docs = Math.ceil(total / chunk)
+  let agree = 0, compared = 0
+  const found: string[] = []
+  for (const law of hs.laws) {
+    const loop = compile(hs.m, law, hs.space, chunk)
+    const runner = createLoopRunner(loop, 'generated')
+    runner.setShared(setRange(loop, 0, total))
+    const out = [new Float32Array(1)], words = new Uint32Array(out[0]!.buffer)
+    const depthOf = Array.from({length: total}, (_, index) => replay(hs.m, law, hs.space, index)?.trace.length)
+    let best: {depth: number, index: number} | undefined
+    for (let doc = 0; doc < docs; doc++) {
+      runner.run([new Float32Array(1)], doc, out, 0, -1)
+      const got = decodeBest(words[0]!, 0, doc, chunk)
+      let expected: {depth: number, index: number} | undefined
+      for (let o = 0; o < chunk && doc * chunk + o < total; o++) {
+        const depth = depthOf[doc * chunk + o]
+        if (depth !== undefined && (!expected || depth < expected.depth)) expected = {depth, index: doc * chunk + o}
+      }
+      compared++
+      if (JSON.stringify(got) === JSON.stringify(expected)) agree++
+      else if (compared - agree <= 2) console.log(`  mismatch: ${hs.what}: ${law.name}, document ${doc}: handwired ${JSON.stringify(got)}, replay ${JSON.stringify(expected)}`)
+      if (got && (!best || got.depth < best.depth || (got.depth === best.depth && got.index < best.index))) best = got
+    }
+    if (best) { const r = replay(hs.m, law, hs.space, best.index)!; found.push(`${law.name} after ${r.trace.length}: ${JSON.stringify(r.params)} ${JSON.stringify(r.trace)}`) }
+  }
+  const ok = agree === compared && (hs.breaks ? found.length > 0 : found.length === 0)
+  if (!ok) failed = true
+  console.log(`${(hs.what + ':').padEnd(72)} ${agree} / ${compared} agree, ${total.toLocaleString()} runs (depth ${hs.space.depth}), ${found.length ? `broken: ${found[0]}` : 'nothing breaks it'}${ok ? '' : '   UNEXPECTED'}`)
+}
 if (failed) process.exit(1)

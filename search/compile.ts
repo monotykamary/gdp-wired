@@ -4,13 +4,16 @@
 // the kernel reports is replayed by the interpreter before it is shown.
 import {type C, type E, type Law, type Machine, compileFunction, evalC, interpret} from '../core/machine.ts'
 import {type Watched, allowed, isStepLaw, watch} from '../core/watch.ts'
+import {historyMachine} from '../kernel/kernel.ts'
 
 export type Space = {depth: number, bound: number}
 export const NONE = 0xffffffff
 
+// The inputs a request carries: a machine with a history computes its queries from the log.
+export const carried = (m: Machine) => m.inputs.filter(i => !Object.keys(m.history?.queries ?? {}).includes(i))
 export function size(m: Machine, s: Space) {
   const base = s.bound + 1
-  return base ** m.params.length * base ** (m.inputs.length * s.depth)
+  return base ** m.params.length * base ** (carried(m).length * s.depth)
 }
 
 // Index → params and the request at each step (params are the lowest digits, then step 1's inputs, and so on).
@@ -19,7 +22,7 @@ export function decode(m: Machine, s: Space, index: number) {
   let rest = index
   const digit = () => { const d = rest % base; rest = Math.floor(rest / base); return d }
   const params = Object.fromEntries(m.params.map(p => [p, digit()]))
-  const trace = Array.from({length: s.depth}, () => Object.fromEntries(m.inputs.map(name => [name, digit()])))
+  const trace = Array.from({length: s.depth}, () => Object.fromEntries(carried(m).map(name => [name, digit()])))
   return {params, trace}
 }
 
@@ -40,8 +43,10 @@ export function replay(m: Machine, law: Watched, s: Space, index: number): {para
   }
   return undefined
 }
-export function fitsU32(m: Machine, law: Watched, s: Space): void {
+export function fitsU32(given: Machine, law: Watched, s: Space): void {
   const limit = 2 ** 32 - 1
+  // A machine with a history as its plain machine (its sums are state); its queries are bounded below.
+  const m = given.history ? historyMachine(given).machine : given
   const vars: Record<string, number> = {}, cells: Record<string, number> = {...m.maps}
   for (const name of [...m.params, ...m.inputs]) vars[name] = s.bound
   if (law.forall) vars[law.forall] = s.bound + 1
@@ -65,6 +70,11 @@ export function fitsU32(m: Machine, law: Watched, s: Space): void {
     return v
   }
   const upC = (c: C): void => { if (c.op === 'not') upC(c.x); else if (c.op === 'and' || c.op === 'or') c.xs.forEach(upC); else if (c.op !== 'flag') (up(c.a), up(c.b)) }
+  // A query sums its term over at most `depth` records, each field within the bound.
+  for (const [q, g] of Object.entries(given.history?.queries ?? {})) {
+    for (const f of given.history!.record) vars[`r.${f}`] = s.bound
+    vars[q] = s.depth * up(g)
+  }
   for (const [name, e] of Object.entries(m.state)) vars[name] = up(e)
   if (m.pre) upC(m.pre)
   // A law is read at every state; a step law's `then` once the state's bounds are in, its primed names at those bounds.

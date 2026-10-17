@@ -42,9 +42,9 @@ code. If the checker side finds new frontiers the scope may grow; until then:
 | It expresses and proves | It does not (today) |
 | --- | --- |
 | Step machines over naturals: scalars, maps from naturals to naturals (one write per map per step), named step conditions, preconditions on params, assumptions per request | Lists, sets or strings as values: membership, subsets, equality of lists of names |
-| Invariants of the state and params, laws about every key of a map; step laws relating one step's before and after (`s'`, `M'[k]`: "only increases", "stays retired"), and k-step laws about k steps in a row ("two grants on one day add two", up to 16 steps) | Orderings over any number of steps ("a refund never follows a release", at any distance, needs a state flag), beyond progress |
-| Composition: rules side by side (`product`), taking turns (`interleave`), and one rule refining another (`refinement`: a forward simulation, the spec allowing every request it is sent), each built as a plain machine so every law above applies | Refinement where the spec needs more than one step per step of the implementation |
-| Laws about one key of a map at a time, or about scalars | Totals across a map's keys ("the sum of every client's holdings equals in-use") |
+| Invariants of the state and params, laws about every key of a map; step laws relating one step's before and after (`s'`, `M'[k]`: "only increases", "stays retired"), and k-step laws about k steps in a row ("two grants on one day add two", up to 16 steps); orderings at any distance through ghost state ("a refund never follows a release": `ghost` with `ever`, `count`) | Liveness under fairness ("every request is eventually served"), beyond progress |
+| Composition: rules side by side (`product`), taking turns (`interleave`), and one rule refining another (`refinement`: a forward simulation, the spec allowing every request it is sent, steps the spec doesn't see as `stutter`), each built as a plain machine so every law above applies | Refinement where the spec needs more than one step per step of the implementation |
+| Laws about one key of a map at a time, or about scalars; totals across a map's keys through a ghost total ("in use equals what the clients hold") | Whole-map operations in one step (copying, merging or comparing two maps at every key at once) |
 | Histories: sums and queries over a log of requests, relations between them proven one record at a time, pruning | Unbounded recursion over data, quantifiers over sequences other than a machine's own history |
 | Decisions over facts: flags, one-of choices, optional facts, bounded naturals (`match` covers every case) | Datatypes beyond those encodings; division, modulo, reals |
 | Loops that halt by a rank or a tuple of ranks; folds over binary trees; progress laws ("some request makes this happen") | Arbitrary algorithms: there is no general recursion to prove things about |
@@ -70,7 +70,7 @@ check times.
 | `kernel/kernel.ts`, `core/check.ts` | **Yes** | Turns a machine and its laws into goals and checks a proof tree for each: splits on linear atoms, a Fourier–Motzkin derivation at each leaf. Every rule (step machines with maps and flags, step laws and k-step laws, loops with ranks, progress, folds over trees) is a few moves of one small algebra of runs: conditions holding where a run is, a step taken from there, a conclusion read at the end or across the run. Histories become plain machines first. Refuses names a machine doesn't declare |
 | `kernel/prove.ts` | No | Grows the trees. If it's wrong, the kernel rejects the tree |
 | `lean-kernel/` | Optional | The kernel's twin in Lean 4.34.0, each rule proven sound (`Kern.sound`, `machine_sound`, `mmachine_sound`, `fmmachine_sound`, `loop_sound`, `fold_sound`, `progress_sound`, `steplaw_sound`, `kstep_sound`, `hmachine_sound`), axioms `propext`, `Classical.choice`, `Quot.sound` only. The exporter sends the kernel's real trees; tampered ones compute to false |
-| `search/`, `synth/`, `hw/` | No | GPU work: counterexample search over every short history (for laws, step laws and k-step laws), and invariant/rank synthesis. Every hit is replayed by the interpreter or proven by the kernel before it counts |
+| `search/`, `synth/`, `hw/` | No | GPU work: counterexample search over every short history (for laws, step laws and k-step laws, machines with a log of requests too), and invariant/rank synthesis. Every hit is replayed by the interpreter or proven by the kernel before it counts |
 | `core/dsl.ts`, `core/compose.ts`, the runtimes | No | The builders and combinators compile to the kernel's plain values; the interpreter and generated JavaScript are held to the reference evaluator by the conformance test, and the combinators to runs of their parts |
 
 How the untrusted parts are held to the trusted ones, automatically:
@@ -142,10 +142,13 @@ const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => s
 - **Arithmetic** over the naturals: `plus`, `minus` (truncated), `times(k)`, `mul` (a product of two terms), `min`,
   `max`, `when(cond, a, b)`, `count(cond)`; conditions `lt`, `atMost`, `eq`, `and`, `or`, `not`, `implies`.
 - **Loops** (`loop(...)`): state, `while`, `body`, a `rank` (or a tuple of ranks) that must drop each turn.
-- **Composition** (`gdp-wired/compose`): `product(a, b)`, `interleave(a, b)` and `refinement(impl, spec, {relation, witness})`
+- **Composition** (`gdp-wired/compose`): `product(a, b)`, `interleave(a, b)`, `refinement(impl, spec, {relation, witness, stutter})`
+  and `ghost(m, {name: ever(...) | count(...) | total(m, map, name)})`
   build plain machines from machines (each side's state named `a_x`, `b_x`). A refinement's laws are the relation, proven
   by induction, and its step law says the spec allows the request `witness` sends it at each of the implementation's:
-  `examples/composition.ts` proves a meter that counts down refines one that counts up, and refuses two broken ones.
+  `examples/composition.ts` proves a meter that counts down refines one that counts up, and refuses two broken ones;
+  a two-phase meter refines it with stuttering; an escrow never refunds after a release (at any distance); and the
+  connection pool's in-use count is the total of every client's holdings.
 - **Running it**: `rule.interpreter()` is persistent (searches branch from any state); `rule.compiled()` is what an app
   ships: maps and the log updated in place, so a step costs the same however long the history. Both refuse params and
   inputs that aren't naturals below 2^53 and any value past 2^53 − 1, where the proofs over the naturals stop describing

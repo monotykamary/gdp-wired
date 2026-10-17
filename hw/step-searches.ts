@@ -1,12 +1,13 @@
 // Searches for step laws and k-step laws: the examples' own laws and broken variants, and the composition examples, each
 // a machine and the law the kernel is asked to prove. A broken one must turn up a run that breaks its law (replayed by
 // core/watch.ts); a proven one must turn up nothing within its space.
-import type {Machine} from '../core/machine.ts'
+import type {Law, Machine} from '../core/machine.ts'
+import {size} from '../search/compile.ts'
 import type {Watched} from '../core/watch.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
 import type {Space} from './compile.ts'
 import {domains} from '../examples/index.ts'
-import {counterLaws, counterSteps, counters, meterRefinement} from '../examples/composition.ts'
+import {counterLaws, counterSteps, counters, escrowSteps, escrowWatched, meterRefinement, poolTotal, pooled, twoPhaseRefinement} from '../examples/composition.ts'
 
 const rule = (domain: string, name: string) => {
   const c = domains.find(d => d.domain === domain)!.cases.find(cc => cc.name === name)
@@ -21,6 +22,7 @@ const release = rule('operations', 'release lifecycle'), skips = variant('operat
 const auction = rule('commerce', 'auction'), reserveOnly = variant('commerce', 'auction', 'checks the reserve only')
 const noClamp = meterRefinement('no clamp'), strict = meterRefinement('strict'), refines = meterRefinement()
 const twoTurns = counterSteps[1]!
+const phased = twoPhaseRefinement(), phasedBad = twoPhaseRefinement('charges the request')
 
 export const stepSearches: StepSearch[] = [
   // Two steps: a release that skips staging retires two steps after it is built (promote, then retire).
@@ -38,4 +40,27 @@ export const stepSearches: StepSearch[] = [
   {what: "interleaved counters: two a turns leave b's count", m: counters, law: twoTurns, space: {depth: 3, bound: 2}, breaks: false},
   {what: "interleaved counters: two turns of anyone leave b's count", m: counters, law: {...twoTurns, name: "two turns of anyone leave b's count", when: undefined}, space: {depth: 3, bound: 2}, breaks: true},
   {what: 'interleaved counters: a.n <= cap', m: counters, law: counterLaws[0]!, space: {depth: 3, bound: 2}, breaks: false},
+  // Stuttering refinement: charging the request's amount instead of the reserved one drifts from the spec.
+  {what: 'two-phase, charges the request: used = used', m: phasedBad.machine, law: phasedBad.laws[0]!, space: {depth: 3, bound: 2}, breaks: true},
+  {what: 'two-phase: used = used', m: phased.machine, law: phased.laws[0]!, space: {depth: 4, bound: 2}, breaks: false},
+  // Ghosts: a refund after a release, four steps in (deposit, release, deposit, refund); in use against the total held.
+  {what: 'escrow, reopens on a deposit: no refund after a release', m: escrowWatched('reopens on a deposit'), law: escrowSteps[0]!, space: {depth: 4, bound: 2}, breaks: true},
+  {what: 'escrow: no refund after a release', m: escrowWatched(), law: escrowSteps[0]!, space: {depth: 5, bound: 2}, breaks: false},
+  {what: 'pool, release unchecked: in use = what the clients hold', m: pooled('release unchecked'), law: poolTotal[0]!, space: {depth: 3, bound: 1}, breaks: true},
+  {what: 'pool: in use = what the clients hold', m: pooled(), law: poolTotal[0]!, space: {depth: 4, bound: 1}, breaks: false},
 ]
+
+// Every example rule with a history, its proven laws and its broken variants: the queries come from the log in registers.
+// A proven rule must have no run that breaks a law; a broken variant must have one that breaks some law (the examples'
+// harness finds it on random runs; here, within the space).
+export type HistorySearch = {what: string, m: Machine, laws: Law[], space: Space, breaks: boolean}
+export const historySearches = (budget = 2_000_000): HistorySearch[] => domains.flatMap(d => d.cases.flatMap(c => {
+  if (c.kind !== 'rule' || !c.rule.machine.history) return []
+  const variants = [{name: '', m: c.rule.machine as Machine, laws: c.laws, breaks: false}, ...c.broken.map(b => ({name: b.name, m: b.rule.machine as Machine, laws: b.laws, breaks: true}))]
+  return variants.map(v => {
+    // The deepest space within the budget, values 0..2 (0..1 if 0..2 doesn't reach depth 3).
+    const space = (bound: number) => { let depth = 1; while (depth < 8 && size(v.m, {depth: depth + 1, bound}) <= budget) depth++; return {depth, bound} }
+    const s2 = space(2)
+    return {what: `${d.domain} / ${c.name}${v.name ? `, ${v.name}` : ''}`, m: v.m, laws: v.laws, space: s2.depth >= 3 ? s2 : space(1), breaks: v.breaks}
+  })
+}))

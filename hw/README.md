@@ -35,6 +35,15 @@ on 2,760 of 2,760 documents (87,480 runs; 12 kernel-proven laws unbroken, 12 bro
 | interleaved counters: two turns of anyone leave b's count (depth 6) | 1.6M | 0.36 ms | after 2 steps: b moves |
 | interleaved counters: two a turns leave b's count; a.n <= cap (depth 6) | 1.6M each | 0.19 ms | nothing |
 
+**Histories.** A machine with a log steps as kernel.ts's plain machine (sums as state); a candidate's digits are only
+the requests' carried inputs. Registers hold the log (each step's recorded inputs and whether it was kept), each query
+is its term summed over the records kept earlier in the candidate and not yet spent (pruning drops a record whose order
+plus `after` is at most the request's), and a request whose order goes back ends the candidate, as the runtimes refuse
+it. `check-steps.ts` runs every example rule with a log (30 variants across nine domains, pruned ones too) against the
+replay; on an L4 (`run.ts --history`), each law over the deepest space within 2^28 runs takes 0.4–28 ms (43M runs in
+3–10 ms), every broken variant's counterexample replays (pruning a tick early, a window a minute short, forgetting the
+request), and no proven rule has one.
+
 Results. Every answer agrees with the hand-written shader, and every counterexample replays. Medians of 9 runs after a
 warm-up (`--reps 9`), Handwired / hand-written on the same device; past 2^32 the hand times are modal-gpu/'s:
 

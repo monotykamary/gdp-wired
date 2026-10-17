@@ -19,8 +19,15 @@
 // ends k steps in a row: registers hold the last k − 1 steps' frames (the state and cells before each, and its request),
 // shifted on at every step; each step's `when` is read at its own frame, `then` across the window (plain names at the
 // first frame, input@j the j-th request, primed names after this step). A candidate's params must meet `pre`.
+//
+// A machine with a history steps as kernel.ts's plain machine (its sums are state), and a candidate's digits are the
+// requests' carried inputs only: registers hold the log (each step's recorded inputs, and whether it was kept), and each
+// query is the sum of its term over the records kept before the request and not yet spent (with pruning, a record whose
+// order plus `after` is at most the request's), as the runtimes read it. With pruning, a request whose order goes back
+// ends the candidate: the runtimes refuse it.
 import {type C, type E, type Machine} from '../core/machine.ts'
-import {fitsU32} from '../search/compile.ts'
+import {carried, fitsU32} from '../search/compile.ts'
+import {historyMachine} from '../kernel/kernel.ts'
 import {type Watched, isStepLaw} from '../core/watch.ts'
 import {type AnyStage, type LoopProgram, type WordBinding, createWordStage} from '../vendor/handwired/src/json-search/loop-program.ts'
 import {type Word, WordCircuit} from '../vendor/handwired/src/runtime/words.ts'
@@ -33,14 +40,15 @@ export type Space = {depth: number, bound: number}
 export function lowSteps(m: Machine, space: Space, atMost = space.depth) {
   const K = space.bound + 1
   let low = Math.min(space.depth, atMost)
-  while (low > 0 && K ** (m.params.length + m.inputs.length * low) > 2 ** 32 - 1) low--
+  while (low > 0 && K ** (m.params.length + carried(m).length * low) > 2 ** 32 - 1) low--
   return low
 }
 
-export function compile(m: Machine, law: Watched, space: Space, chunk: number, lowAtMost = space.depth): LoopProgram<AnyStage> {
-  const K = space.bound + 1, D = space.depth, L = lowSteps(m, space, lowAtMost)
-  fitsU32(m, law, space)
-  if (m.history) throw new Error(`${m.name}: the search takes a machine without a history`)
+export function compile(given: Machine, law: Watched, space: Space, chunk: number, lowAtMost = space.depth): LoopProgram<AnyStage> {
+  const K = space.bound + 1, D = space.depth, L = lowSteps(given, space, lowAtMost)
+  fitsU32(given, law, space)
+  const h = given.history, m = h ? historyMachine(given).machine : given, carriedIn = carried(given)
+  const log = h ? Array.from({length: D}, (_, i) => [...h.record.map(f => `r${i}:${f}`), `k${i}`]).flat() : []
   const steps = isStepLaw(law) ? law.steps ?? 1 : 0
   if (steps > D) throw new Error(`${law.name}: a law over ${steps} steps needs a depth of at least ${steps}`)
   const isVar = (e: E) => e.op === 'var' && (m.params.includes(e.name) || m.inputs.includes(e.name))
@@ -51,7 +59,7 @@ export function compile(m: Machine, law: Watched, space: Space, chunk: number, l
   // A step law's window: the j-th earlier step's frame (j = 1 the step before this one), its state, cells and request.
   const slot = (j: number) => [...state.map(s => `w${j}:s:${s}`), ...maps.flatMap(map => Array.from({length: K}, (_, c) => `w${j}:m:${map}:${c}`)), ...m.inputs.map(i => `w${j}:i:${i}`)]
   const slots = Array.from({length: Math.max(0, steps - 1)}, (_, j) => slot(j + 1)).flat()
-  const regs: string[] = ['t', 'off', 'rest', ...m.params.map(p => `p:${p}`), ...state.map(s => `s:${s}`), ...maps.flatMap(map => Array.from({length: K}, (_, c) => `m:${map}:${c}`)), ...slots, 'live', 'best', 'first', 'count']
+  const regs: string[] = ['t', 'off', 'rest', ...m.params.map(p => `p:${p}`), ...state.map(s => `s:${s}`), ...maps.flatMap(map => Array.from({length: K}, (_, c) => `m:${map}:${c}`)), ...slots, ...log, ...(h?.prune ? ['last'] : []), 'live', 'best', 'first', 'count']
   const reg = (name: string) => { const r = regs.indexOf(name); if (r < 0) throw new Error(name); return r }
 
   // Source cells: one per register, then the position, the document, and three shared words: hi, base and total.
@@ -144,10 +152,26 @@ export function compile(m: Machine, law: Watched, space: Space, chunk: number, l
   const inputs: Record<string, Word> = {}
   // At step `low` the index's digits are used up, and the slice's number holds the rest.
   let rest = L < D ? w.select(w.eq(t, k(L)), hi, rest0) : rest0
-  for (const i of m.inputs) { inputs[i] = w.mod(rest, k(K)); rest = w.div(rest, k(K)) }
+  for (const i of carriedIn) { inputs[i] = w.mod(rest, k(K)); rest = w.div(rest, k(K)) }
+  // The queries, from the log: each record kept at an earlier step of this candidate and not yet spent.
+  const order = h?.prune ? inputs[h.prune.order]! : undefined
+  if (h) {
+    const after = h.prune ? ex(h.prune.after, {vars: {...params}, cells: {}, flags: {}}) : undefined
+    const records = Array.from({length: D}, (_, i) => {
+      const fields = Object.fromEntries(h.record.map(f => [`r.${f}`, src(`r${i}:${f}`)]))
+      const counts = and(w.lt(k(i), t), src(`k${i}`))
+      return {fields, counts: after ? and(counts, w.lt(order!, w.add(src(`r${i}:${h.prune!.order}`), after))) : counts}
+    })
+    for (const [q, g] of Object.entries(h.queries)) {
+      inputs[q] = records.reduce((acc, r) => w.add(acc, w.select(r.counts, ex(g, {vars: {...params, ...inputs, ...r.fields}, cells: {}, flags: {}}), zero)), zero)
+    }
+  }
   const stepEnv: Env = {vars: {...before.vars, ...inputs}, cells: before.cells, flags: {}}
   for (const [f, c] of Object.entries(m.step.flags ?? {})) stepEnv.flags[f] = cx(c, stepEnv)
-  const allowed = m.assume ? cx(m.assume, stepEnv) : one
+  // The machine's own assumption (as the runtimes check it, without the relations the kernel proves of the log); with
+  // pruning, a request in order.
+  const assumed = given.assume ? cx(given.assume, stepEnv) : one
+  const allowed = order ? and(assumed, or(fresh, w.le(src('last'), order))) : assumed
   const go = and(live1, allowed)
   const vars1: Record<string, Word> = {...params}
   for (const s of state) vars1[s] = m.step.state?.[s] ? w.select(go, ex(m.step.state[s]!, stepEnv), before.vars[s]!) : before.vars[s]!
@@ -212,6 +236,12 @@ export function compile(m: Machine, law: Watched, space: Space, chunk: number, l
       ...maps.flatMap(map => Array.from({length: K}, (_, c) => ({wire: j === 1 ? before.cells[map]![c]! : src(`w${j - 1}:m:${map}:${c}`), write: {kind: 'register' as const, register: reg(`w${j}:m:${map}:${c}`)}}))),
       ...m.inputs.map(i => ({wire: j === 1 ? inputs[i]! : src(`w${j - 1}:i:${i}`), write: {kind: 'register' as const, register: reg(`w${j}:i:${i}`)}})),
     ]),
+    // The log: this step's record, kept if the step was taken and keeps it; the last order.
+    ...(h ? Array.from({length: D}, (_, i) => [
+      ...h.record.map(f => ({wire: w.select(w.eq(t, k(i)), inputs[f]!, src(`r${i}:${f}`)), write: {kind: 'register' as const, register: reg(`r${i}:${f}`)}})),
+      {wire: w.select(w.eq(t, k(i)), and(go, cx(h.keep, stepEnv)), src(`k${i}`)), write: {kind: 'register' as const, register: reg(`k${i}`)}},
+    ]).flat() : []),
+    ...(order ? [{wire: w.select(go, order, src('last')), write: {kind: 'register' as const, register: reg('last')}}] : []),
     {wire: liveAfter, write: {kind: 'register', register: reg('live')}},
     {wire: bestOut, write: {kind: 'register', register: reg('best')}},
   ]

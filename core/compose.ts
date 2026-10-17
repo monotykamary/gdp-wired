@@ -3,9 +3,12 @@
 // is trusted: a proof is about the machine built, and the combinators are tested against runs of their parts.
 //   product(a, b)      both step on every request (their params and inputs shared by name)
 //   interleave(a, b)   one of them steps on each request, `turn` picking which
-//   refinement(impl, spec, {relation, witness})
+//   refinement(impl, spec, {relation, witness, stutter})
 //                      impl refines spec: the spec, sent the request `witness` names for each of impl's, always allows it,
-//                      and `relation` holds of the two states at every step (a forward simulation)
+//                      and `relation` holds of the two states at every step (a forward simulation); where `stutter`
+//                      holds, impl's step is one the spec doesn't see, and the spec stays
+//   ghost(m, vars)     state that watches the machine without changing it: what happened before ("ever", "count") and
+//                      totals across a map's keys ("total"), for laws about whole histories
 // Each side's state, maps and flags are renamed a_x and b_x; params and inputs keep their names.
 import {type C, type E, type Law, type Machine, all, any, bit, not, same, unreachable, x} from './machine.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
@@ -92,10 +95,11 @@ export function interleave(a: Machine, b: Machine, opts: {name?: string, turn?: 
 // (conditions over both states) holds at the start and after every step: the laws, proven by induction. With the
 // precondition: impl's is assumed, and the spec's, if any, is a law (it holds of every impl's params).
 // So every run of impl is matched, step by step, by a run of the spec that its own rules allow, related by `relation`.
-export function refinement(impl: Machine, spec: Machine, opts: {relation: Law[], witness: Record<string, E>, name?: string}): {machine: Machine, laws: Law[], stepLaws: StepLaw[]} {
+export function refinement(impl: Machine, spec: Machine, opts: {relation: Law[], witness: Record<string, E>, stutter?: C, name?: string}): {machine: Machine, laws: Law[], stepLaws: StepLaw[]} {
   if (!spec.inputs.every(i => i in opts.witness)) throw new Error(`refinement: name every input of ${spec.name} (${spec.inputs.join(', ')})`)
-  const A = renamed(impl, 'a_', {}), B = renamed(spec, 'b_', opts.witness)
-  const allowedBy = B.assume
+  const A = renamed(impl, 'a_', {}), B = renamed(spec, 'b_', opts.witness, opts.stutter)
+  // A step the spec doesn't see needs no request it allows.
+  const allowedBy = B.assume && opts.stutter ? any(opts.stutter, B.assume) : B.assume
   const machine: Machine = {
     name: opts.name ?? `${impl.name} refines ${spec.name}`,
     params: [...new Set([...impl.params, ...spec.params])],
@@ -115,4 +119,45 @@ export function agree(a: Machine): Law[] {
     ...Object.keys(a.state).map(n => ({name: `a.${n} = b.${n}`, holds: same(x(`a_${n}`), x(`b_${n}`))})),
     ...Object.keys(a.maps ?? {}).map(n => ({name: `a.${n}[k] = b.${n}[k]`, holds: same({op: 'get', map: `a_${n}`, key: x('k')}, {op: 'get', map: `b_${n}`, key: x('k')}), forall: 'k'})),
   ]
+}
+
+// --- ghosts ------------------------------------------------------------------------------------------------------------
+
+// Ghost state: variables that watch m without changing it. Each starts at a term over the params and moves at every step
+// by a term over the state before it, the request and the flags; nothing of m reads them (their names are new), so m's
+// runs are the ghosted machine's runs with the ghosts dropped, and a law about a ghost is a law about m's history.
+export type Ghost = {start: E, step: E}
+export function ghost(m: Machine, vars: Record<string, Ghost>): Machine {
+  const taken = [...m.params, ...m.inputs, ...Object.keys(m.state), ...Object.keys(m.maps ?? {}), ...Object.keys(m.step.flags ?? {})]
+  for (const name of Object.keys(vars)) if (taken.includes(name)) throw new Error(`ghost: ${name} is already a name of ${m.name}`)
+  if (m.history) throw new Error(`${m.name}: ghosts go on a machine without a history (its sums are ghosts of that kind already)`)
+  return {
+    ...m,
+    state: {...m.state, ...Object.fromEntries(Object.entries(vars).map(([n, g]) => [n, g.start]))},
+    step: {...m.step, state: {...m.step.state, ...Object.fromEntries(Object.entries(vars).map(([n, g]) => [n, g.step]))}},
+  }
+}
+// Whether `cond` has held at some step so far (read where the step reads: the state before, the request, the flags).
+export const ever = (name: string, cond: C): Ghost => ({start: {op: 'const', value: 0}, step: {op: 'if', c: cond, then: {op: 'const', value: 1}, else: x(name)}})
+// How many steps so far `cond` held at.
+export const count = (name: string, cond: C): Ghost => ({start: {op: 'const', value: 0}, step: {op: 'add', a: x(name), b: {op: 'if', c: cond, then: {op: 'const', value: 1}, else: {op: 'const', value: 0}}}})
+// The total of a map over every key: the map must start at 0 everywhere (so finitely many keys are nonzero), and each
+// step writes one key, so the total moves by the value written less the value it replaces. That difference is pushed
+// through the written term where its shape gives it (old + d adds d; old ∸ d takes min(d, old); an if moves each way
+// by its branch's), so a proof needs no fact about the total beyond the law it is about; any other term falls back to
+// total ∸ old + new (exact, since the total is at least any one cell).
+export function total(m: Machine, map: string, name: string): Ghost {
+  if ((m.maps ?? {})[map] !== 0) throw new Error(`total: ${map} must start at 0 at every key`)
+  const w = m.step.maps?.[map]
+  if (!w) return {start: {op: 'const', value: 0}, step: x(name)}
+  const old: E = {op: 'get', map, key: w.key}, t = x(name), same = (a: E) => JSON.stringify(a) === JSON.stringify(old)
+  const moved = (e: E): E => {
+    if (same(e)) return t
+    if (e.op === 'add' && same(e.a)) return {op: 'add', a: t, b: e.b}
+    if (e.op === 'add' && same(e.b)) return {op: 'add', a: t, b: e.a}
+    if (e.op === 'sub' && same(e.a)) return {op: 'sub', a: t, b: {op: 'min', a: e.b, b: old}}
+    if (e.op === 'if') return {op: 'if', c: e.c, then: moved(e.then), else: moved(e.else)}
+    return {op: 'add', a: {op: 'sub', a: t, b: old}, b: e}
+  }
+  return {start: {op: 'const', value: 0}, step: moved(w.value)}
 }

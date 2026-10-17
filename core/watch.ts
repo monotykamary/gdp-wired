@@ -23,8 +23,12 @@ export function requestEnv(m: Machine, run: Runtime, params: Env, st: State, inp
   return env
 }
 // Whether the machine allows the request: its assumption, read with the queries and flags.
-export const allowed = (m: Machine, run: Runtime, params: Env, st: State, input: Env): boolean =>
-  !m.assume || evalC(m.assume, requestEnv(m, run, params, st, input), st, m)
+// A request whose order goes back (with a pruned history) is one the runtimes refuse.
+export const allowed = (m: Machine, run: Runtime, params: Env, st: State, input: Env): boolean => {
+  const order = m.history?.prune?.order
+  if (order !== undefined && st.last !== undefined && input[order]! < st.last) return false
+  return !m.assume || evalC(m.assume, requestEnv(m, run, params, st, input), st, m)
+}
 
 // The keys a law about every key is read at: 0 to bound + 1, and every key a map holds.
 export const keysOf = (bound: number, ...states: State[]): number[] => {

@@ -8,7 +8,7 @@ import {admit, admitFlagged, boundedLoss, capLaws, inflight, inflightLoss, loss,
 import {agree, product} from '../next/relational.ts'
 import {type Fold, type Goal, type Instances, type Loop, type Path, type StepLaw, type Tree, canon, foldObligations, historyMachine, leafConstraints, linear, loopObligations, obligations, progressObligations, stepLawObligations, substC, withProducts} from '../kernel/kernel.ts'
 import {grow, proveLaws, proveStepLaws} from '../kernel/prove.ts'
-import {counterLaws, counterSteps, counters, meterRefinement} from '../examples/composition.ts'
+import {counterLaws, counterSteps, counters, escrowLaws, escrowSteps, escrowWatched, meterRefinement, poolLaws, poolTotal, pooled, twoPhaseRefinement} from '../examples/composition.ts'
 import {leanTerms} from './lean-terms.ts'
 
 type Exported = {name: string, goal: Goal, tree: Tree}
@@ -602,6 +602,11 @@ machines.push(mmachineToLean('fadmit', admitFlagged(), capLaws, {tamper: {what: 
 const refines = meterRefinement()
 machines.push(mmachineToLean('refines', refines.machine, refines.laws, {stepLaws: refines.stepLaws}))
 machines.push(mmachineToLean('interleaved', counters, counterLaws, {stepLaws: counterSteps}))
+// Stuttering refinement, and laws about whole histories through ghosts (a release remembered; the holdings totalled).
+const phased = twoPhaseRefinement()
+machines.push(mmachineToLean('twophase', phased.machine, phased.laws, {stepLaws: phased.stepLaws}))
+machines.push(mmachineToLean('escrow', escrowWatched(), escrowLaws, {stepLaws: escrowSteps}))
+machines.push(mmachineToLean('pooltotal', pooled(), [...poolLaws, ...poolTotal]))
 machines.push(`-- TAMPERED: the two-turn law's proof offered without its whens (b may move on its own turns). Lean computes the check to false.
 example : checkKStep interleaved_machine interleaved_proof { interleaved_step1 with whens := [${TRUE}, ${TRUE}] } = false := by decide +kernel`)
 // Progress (run-progress.ts's cases), through the machine with maps and flags.
@@ -681,5 +686,10 @@ ${parts.join('\n\n')}
 #print axioms refines_step0_holds
 #print axioms interleaved_laws
 #print axioms interleaved_step0_holds
-#print axioms interleaved_step1_holds${process.argv.includes('--big') ? '\n#print axioms iso_laws\n#print axioms migration_laws' : ''}`)
+#print axioms interleaved_step1_holds
+#print axioms twophase_laws
+#print axioms twophase_step0_holds
+#print axioms escrow_laws
+#print axioms escrow_step0_holds
+#print axioms pooltotal_laws${process.argv.includes('--big') ? '\n#print axioms iso_laws\n#print axioms migration_laws' : ''}`)
 console.error(out.map((o, i) => `t${i}  ${o.name}`).join('\n'))

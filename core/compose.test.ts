@@ -4,9 +4,9 @@
 import {expect, test} from 'bun:test'
 import {type E, type Machine, type State, interpret, loadJs, plus, x} from './machine.ts'
 import {nat, rule, when} from './dsl.ts'
-import {interleave, product, refinement} from './compose.ts'
-import {counterLaws, counterSteps, counters, countdown, meterRefinement} from '../examples/composition.ts'
-import {proveStepLaws} from '../kernel/prove.ts'
+import {count, ever, ghost, interleave, product, refinement, total} from './compose.ts'
+import {counterLaws, counterSteps, counters, countdown, escrowLaws, escrowSteps, escrowWatched, meterRefinement, poolLaws, poolTotal, pooled, twoPhaseRefinement} from '../examples/composition.ts'
+import {proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {type StepLaw, checkStepLaws} from '../kernel/kernel.ts'
 
 let seed = 7
@@ -93,4 +93,56 @@ test('interleaving: each side\'s laws hold whoever moves, and k-step laws of the
   expect(proveStepLaws(counters, counterLaws, counterSteps)).toMatchObject({proven: true, checked: true})
   const wrong: StepLaw = {...counterSteps[1]!, name: 'two turns of anyone leave b\'s count', when: undefined}
   expect(proveStepLaws(counters, counterLaws, [wrong]).proven).toBe(false)
+})
+
+test('ghosts watch a machine without changing it: the same runs, ever and count as they say, a total the real sum', () => {
+  let steps = 0
+  for (let trial = 0; trial < 60; trial++) {
+    const base = randomMachine('m')
+    // A map that starts at 0 everywhere, written at an input key each step: random values, or the DSL's bump shapes.
+    const shapes: E[] = [vv('a'), {op: 'add', a: {op: 'get', map: 'M', key: vv('a')}, b: cc(1)}, {op: 'sub', a: {op: 'get', map: 'M', key: vv('a')}, b: vv('a')},
+      {op: 'if', c: {op: 'flag', name: 'f'}, then: {op: 'add', a: {op: 'get', map: 'M', key: vv('a')}, b: vv('x')}, else: {op: 'get', map: 'M', key: vv('a')}}]
+    const m: Machine = {...base, step: {...base.step, maps: {M: {key: vv('a'), value: rand(2) ? shapes[rand(shapes.length)]! : term(2, ['p', 'a', 'x', 'y'])}}}}
+    const g = ghost(m, {fired: ever('fired', {op: 'flag', name: 'f'}), times: count('times', {op: 'flag', name: 'f'}), sum: total(m, 'M', 'sum')})
+    const rm = interpret(m), rg = interpret(g), params = {p: rand(3)}
+    let sm = rm.init(params), sg = rg.init(params), fired = 0, times = 0
+    for (let i = 0; i < 12; i++) {
+      const input = {a: rand(4)}
+      const f = (sm.scalars.x ?? 0) <= input.a
+      sm = rm.step(params, sm, input); sg = rg.step(params, sg, input)
+      if (f) { fired = 1; times++ }
+      const real = [...(sm.maps.M ?? new Map()).values()].reduce((acc, v) => acc + v, 0)
+      expect(same(sideOf({scalars: Object.fromEntries(Object.entries(sg.scalars).filter(([n]) => !['fired', 'times', 'sum'].includes(n))), maps: sg.maps}, ''), sm)).toBe(true)
+      expect([sg.scalars.fired, sg.scalars.times, sg.scalars.sum]).toEqual([fired, times, real])
+      steps++
+    }
+  }
+  expect(steps).toBe(720)
+  expect(() => ghost(randomMachine('m'), {x: ever('x', {op: '=', a: cc(0), b: cc(0)})})).toThrow() // a name the machine has
+  expect(() => total({...randomMachine('m'), maps: {M: 1}}, 'M', 's')).toThrow() // a map that starts above 0
+})
+
+test('stuttering refinement: on a stutter the spec stays; the two-phase meter refines the meter, the broken one doesn\'t', () => {
+  const ok = twoPhaseRefinement()
+  const run = interpret(ok.machine), params = {cap: 5, most: 2}
+  let st = run.init(params)
+  st = run.step(params, st, {op: 0, amount: 3}) // reserve: a step the spec doesn't see
+  expect([st.scalars.a_pending, st.scalars.b_used]).toEqual([2, 0])
+  st = run.step(params, st, {op: 1, amount: 0}) // charge: the spec spends the reserved 2
+  expect([st.scalars.a_used, st.scalars.b_used]).toEqual([2, 2])
+  expect(proveStepLaws(ok.machine, ok.laws, ok.stepLaws)).toMatchObject({proven: true, checked: true})
+  const bad = twoPhaseRefinement('charges the request')
+  expect(proveStepLaws(bad.machine, bad.laws, bad.stepLaws).failed?.goal).toBe('used = used @step')
+})
+
+test('laws about whole histories, through ghosts: no refund after a release, in use is what the clients hold', () => {
+  expect(proveStepLaws(escrowWatched(), escrowLaws, escrowSteps)).toMatchObject({proven: true, checked: true})
+  expect(proveStepLaws(escrowWatched('reopens on a deposit'), escrowLaws, escrowSteps).proven).toBe(false)
+  // The broken escrow, on a run: deposit, release, deposit, refund.
+  const m = escrowWatched('reopens on a deposit'), run = interpret(m)
+  let st = run.init({})
+  for (const input of [{op: 0, amount: 2}, {op: 1, amount: 0}, {op: 0, amount: 1}, {op: 2, amount: 0}]) st = run.step({}, st, input)
+  expect([st.scalars.released, st.scalars.refunded]).toEqual([1, 1])
+  expect(proveLaws(pooled(), [...poolLaws, ...poolTotal])).toMatchObject({proven: true, checked: true})
+  expect(proveLaws(pooled('release unchecked'), [...poolLaws, ...poolTotal]).proven).toBe(false)
 })

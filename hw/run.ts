@@ -3,14 +3,15 @@
 // replayed by the interpreter. With --hand, the hand-written kernel of search/compile.ts runs the same searches on the
 // same device, for comparison.
 //   DAWN_MODULE=<webgpu>/index.js bun run.ts [--hand] [--big] [--steps] [--out result.json]
-// --steps adds the step-law and k-step-law searches (step-searches.ts), each three steps deeper than its CPU check.
+// --steps adds the step-law and k-step-law searches (step-searches.ts), each three steps deeper than its CPU check;
+// --history every example rule with a log, each law over the deepest space within 2^28 runs.
 import {writeFileSync} from 'node:fs'
 import {createDocumentStore, createKernelRunner, createProgramRunner, requestBatchDevice} from '../vendor/handwired/src/json-search/gpu/host.ts'
 import {emitLoopWgsl} from '../vendor/handwired/src/json-search/loop-emit.ts'
-import {CHUNK as HAND_CHUNK, replay, size, wgsl} from '../search/compile.ts'
+import {CHUNK as HAND_CHUNK, carried, replay, size, wgsl} from '../search/compile.ts'
 import {searches} from '../search/models.ts'
 import {compile, decodeBest, lowSteps, setRange} from './compile.ts'
-import {stepSearches} from './step-searches.ts'
+import {historySearches, stepSearches} from './step-searches.ts'
 import {isStepLaw} from '../core/watch.ts'
 
 const has = (f: string) => process.argv.includes(f), arg = (f: string) => { const i = process.argv.indexOf(f); return i < 0 ? undefined : process.argv[i + 1] }
@@ -36,6 +37,7 @@ const timed = async <T>(f: () => Promise<T>) => {
 type Job = {s: {m: (typeof searches)[number]['m'], law: (typeof searches)[number]['law'] | (typeof stepSearches)[number]['law']}, space: {depth: number, bound: number}, what: string}
 const jobs: Job[] = [...searches.map(s => ({s, space: s.space, what: s.what})), {s: searches[2]!, space: {depth: 9, bound: 2}, what: searches[2]!.what + ' (depth 9)'}]
 if (has('--steps')) jobs.push(...stepSearches.map(s => ({s, space: {...s.space, depth: s.space.depth + 3}, what: `${s.what} (depth ${s.space.depth + 3})`})))
+if (has('--history')) jobs.push(...historySearches(2 ** 28).flatMap(h => h.laws.map(law => ({s: {m: h.m, law}, space: h.space, what: `${h.what}: ${law.name} (depth ${h.space.depth}, bound ${h.space.bound})${h.breaks ? ' [broken variant]' : ''}`}))))
 if (has('--big')) jobs.push({s: searches[2]!, space: {depth: 10, bound: 2}, what: searches[2]!.what + ' (depth 10)'}, {s: searches[1]!, space: {depth: 10, bound: 2}, what: searches[1]!.what + ' (depth 10)'}, {s: searches[2]!, space: {depth: 11, bound: 2}, what: searches[2]!.what + ' (depth 11)'}, {s: searches[2]!, space: {depth: 8, bound: 3}, what: searches[2]!.what + ' (bound 3, depth 8)'})
 if (has('--huge')) jobs.push({s: searches[2]!, space: {depth: 12, bound: 2}, what: searches[2]!.what + ' (depth 12)'})
 const only = arg('--only') // run the jobs whose name contains this
@@ -45,7 +47,7 @@ for (const {s, space, what} of jobs.filter(job => only === undefined || job.what
   // Slices: perSlice candidates each (the index's digits), `slices` of them (the later steps' requests).
   const forced = Number(arg('--low') ?? space.depth) // --low n: slice after n steps, to test slicing on a small space
   const K = space.bound + 1, low = lowSteps(s.m, space, forced)
-  const perSlice = K ** (s.m.params.length + s.m.inputs.length * low), slices = total / perSlice
+  const perSlice = K ** (s.m.params.length + carried(s.m).length * low), slices = total / perSlice
   const loop = compile(s.m, s.law, space, chunk, forced)
   const module = emitLoopWgsl(loop)
   const compileStarted = performance.now()
