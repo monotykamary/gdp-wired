@@ -23,8 +23,9 @@ export type Problem = {
   next: Record<string, E>, flags: Record<string, C>
   pre?: C, assume?: C, guard?: C // guard: a loop's condition and the invariants it already has (ranks)
 }
-export const fromMachine = (m: Machine): Problem => ({kind: 'invariant', init: m.state, params: m.params, state: Object.keys(m.state), inputs: m.inputs,
+export const fromMachine = (m: Machine): Problem => (Object.keys(m.fns ?? {}).length ? noFns(m) : {kind: 'invariant', init: m.state, params: m.params, state: Object.keys(m.state), inputs: m.inputs,
   next: {...Object.fromEntries(Object.keys(m.state).map(n => [n, {op: 'var', name: n} as E])), ...m.step.state}, flags: m.step.flags ?? {}, pre: m.pre, assume: m.assume})
+const noFns = (m: Machine): never => { throw new Error(`${m.name}: the GPU synthesizers take no functions`) }
 export const fromLoop = (l: Loop, laws: Law[] = []): Problem => ({kind: 'rank', params: l.params, state: Object.keys(l.state), inputs: l.inputs,
   next: {...Object.fromEntries(Object.keys(l.state).map(n => [n, {op: 'var', name: n} as E])), ...l.body}, flags: {},
   pre: l.pre, assume: l.assume, guard: {op: 'and', xs: [l.while, ...laws.map(law => law.holds)]}})

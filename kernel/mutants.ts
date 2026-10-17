@@ -50,6 +50,11 @@ const battery: {name: string, cwd: string, cmd: string[], env?: Record<string, s
   {name: 'steplaw', cwd: 'kernel', cmd: ['bun', 'test', 'steplaw.test.ts'], ms: 240_000},
   {name: 'compose', cwd: 'core', cmd: ['bun', 'test', 'compose.test.ts'], ms: 120_000},
   {name: 'sets', cwd: 'kernel', cmd: ['bun', 'test', 'sets.test.ts'], ms: 240_000},
+  {name: 'functions', cwd: 'core', cmd: ['bun', 'test', 'functions.test.ts'], ms: 120_000},
+  {name: 'quantifiers', cwd: 'core', cmd: ['bun', 'test', 'quantifiers.test.ts'], ms: 180_000},
+  {name: 'keyterms', cwd: 'core', cmd: ['bun', 'test', 'keyterms.test.ts'], ms: 120_000},
+  {name: 'liveness', cwd: 'core', cmd: ['bun', 'test', 'liveness.test.ts'], ms: 120_000},
+  {name: 'lists', cwd: 'core', cmd: ['bun', 'test', 'lists.test.ts'], ms: 300_000},
   {name: 'kernel fuzz', cwd: 'kernel', cmd: ['bun', 'test', 'kernel.test.ts'], env: {FUZZ_SCALE: '0.5'}, ms: 400_000},
 ]
 function runBattery(): {killedBy?: string, ms: number} {

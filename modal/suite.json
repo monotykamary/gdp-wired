@@ -782,5 +782,41 @@
 "cwd": "kernel",
 "cpu": 2.0,
 "timeout": 1800
-}
+},
+{
+"name": "quantifiers",
+"cmd": "bun test quantifiers.test.ts 2>&1 && cd .. && bun examples/quantifiers.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "functions",
+"cmd": "bun test functions.test.ts 2>&1 && cd .. && bun examples/functions.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "keyterms",
+"cmd": "bun test keyterms.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "lists",
+"cmd": "bun test lists.test.ts 2>&1 && cd .. && bun examples/lists.ts 2>&1",
+"cwd": "core",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "liveness",
+"cmd": "bun test liveness.test.ts 2>&1 && cd .. && bun examples/liveness.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{"name": "lean-live-ghost", "cwd": "lean-kernel", "cpu": 4.0, "memory": 8192, "timeout": 2400, "cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean > /dev/null 2>&1 && (lean -o Live.olean Live.lean > live.out 2>&1 || (grep -B2 -A25 error live.out | head -80; exit 1)) && ! grep -q sorry live.out && grep leads_sound live.out && (lean -o Ghost.olean Ghost.lean > ghost.out 2>&1; s=$?; grep -v -e 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' -e linter -e Hint -e Note -e unused ghost.out | grep -B2 -A25 -e error -e sorry | head -150; grep 'Kern.ghost\\|Kern.ever' ghost.out; exit $s)"}
 ]

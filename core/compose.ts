@@ -9,9 +9,11 @@
 //                      holds, impl's step is one the spec doesn't see, and the spec stays
 //   ghost(m, vars)     state that watches the machine without changing it: what happened before ("ever", "count") and
 //                      totals across a map's keys ("total"), for laws about whole histories
+//   steps(m, k)        k steps of m as one: the spec of a refinement that takes several steps for one of impl's
 // Each side's state, maps and flags are renamed a_x and b_x; params and inputs keep their names.
-import {type C, type E, type Law, type Machine, all, any, bit, not, same, unreachable, x} from './machine.ts'
-import type {StepLaw} from '../kernel/kernel.ts'
+import {type C, type E, type Law, type Machine, type MapUpdate, all, any, bit, not, same, unreachable, x} from './machine.ts'
+import {type StepLaw, type Subst, substC, substE} from '../kernel/kernel.ts'
+import {nameQuantifiers} from './dsl.ts'
 
 function rename(e: E, prefix: string, m: Machine, inputs: Record<string, E>): E {
   switch (e.op) {
@@ -124,6 +126,52 @@ export function agree(a: Machine): Law[] {
     ...Object.keys(a.state).map(n => ({name: `a.${n} = b.${n}`, holds: same(x(`a_${n}`), x(`b_${n}`))})),
     ...Object.keys(a.maps ?? {}).map(n => ({name: `a.${n}[k] = b.${n}[k]`, holds: same({op: 'get', map: `a_${n}`, key: x('k')}, {op: 'get', map: `b_${n}`, key: x('k')}), forall: 'k'})),
   ]
+}
+
+// --- several steps as one --------------------------------------------------------------------------------------------
+
+// k steps of m in a row as one step: the j-th request read as <input>@s<j> (j from 1), each step skipped where its input
+// skip@s<j> is 1. Each step reads the state the one before it left (its flags decided there, every map read over the
+// writes before), so several writes to one map become one write at every key, its key compared with theirs (which the
+// runtimes decide on breakpoints). Its assumption: each step not skipped is one m allows. As the spec of a refinement,
+// the witness names each step's request and when it is skipped.
+export function steps(m: Machine, k: number): Machine {
+  if (!Number.isInteger(k) || k < 1) throw new Error('steps: k is a whole number at least 1')
+  if (m.history || m.inputMaps?.length) throw new Error(`steps: ${m.name} has a history or maps a request carries (not taken here)`)
+  const at = (name: string, j: number) => `${name}@s${j}`
+  let vars: Record<string, E> = Object.fromEntries(Object.keys(m.state).map(n => [n, x(n)]))
+  let maps: Record<string, (key: E) => E> = Object.fromEntries(Object.keys(m.maps ?? {}).map(map => [map, (key: E): E => ({op: 'get', map, key})]))
+  const allowed: C[] = [], written = new Set<string>()
+  for (let j = 1; j <= k; j++) {
+    const skip: C = same(x(at('skip', j)), {op: 'const', value: 1})
+    const sub: Subst = {vars: {...vars, ...Object.fromEntries(m.inputs.map(i => [i, x(at(i, j))]))}, maps, flags: {}}
+    for (const [f, c] of Object.entries(m.step.flags ?? {})) sub.flags[f] = substC(c, sub)
+    if (m.assume) allowed.push(any(skip, substC(m.assume, sub)))
+    const kept = (now: E, old: E): E => ({op: 'if', c: skip, then: old, else: now})
+    const nextVars = {...vars}
+    for (const [n, e] of Object.entries(m.step.state ?? {})) nextVars[n] = kept(substE(e, sub), vars[n]!)
+    const nextMaps = {...maps}
+    for (const [map, w] of Object.entries(m.step.maps ?? {}) as [string, MapUpdate][]) {
+      written.add(map)
+      const old = maps[map]!
+      if ('each' in w) nextMaps[map] = (key: E) => kept(substE(w.value, {...sub, vars: {...sub.vars, [w.each]: key}}), old(key))
+      else { const wk = substE(w.key, sub), wv = substE(w.value, sub); nextMaps[map] = (key: E) => kept({op: 'if', c: same(key, wk), then: wv, else: old(key)}, old(key)) }
+    }
+    vars = nextVars
+    maps = nextMaps
+  }
+  const each = 'k$steps'
+  return nameQuantifiers({
+    name: `${m.name}, ${k} steps at once`, params: m.params,
+    inputs: Array.from({length: k}, (_, i) => [...m.inputs.map(n => at(n, i + 1)), at('skip', i + 1)]).flat(),
+    state: m.state, ...(m.maps ? {maps: m.maps} : {}),
+    step: {
+      state: Object.fromEntries(Object.keys(m.step.state ?? {}).map(n => [n, vars[n]!])),
+      ...(written.size ? {maps: Object.fromEntries([...written].map(map => [map, {each, value: maps[map]!(x(each))}]))} : {}),
+    },
+    assume: all(...Array.from({length: k}, (_, i) => bit(at('skip', i + 1))), ...allowed),
+    ...(m.pre ? {pre: m.pre} : {}),
+  })
 }
 
 // --- ghosts ------------------------------------------------------------------------------------------------------------

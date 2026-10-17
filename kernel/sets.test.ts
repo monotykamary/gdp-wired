@@ -59,8 +59,13 @@ test('the kernel refuses sets outside the rule', () => {
   const at = (map: string, key: E): E => ({op: 'get', map, key})
   expect(() => obligations({...base, step: {flags: {f: all({op: '<=', a: at('I', v('k')), b: at('M', v('k'))})}, state: {s: v('s')}}}, [])).not.toThrow()
   expect(() => obligations({...base, assume: all({op: '<=', a: at('I', v('k')), b: {op: 'const', value: 1}})}, [])).toThrow() // a quantifier outside a flag
-  expect(() => obligations({...base, step: {flags: {f: all({op: '<=', a: v('k'), b: v('a')})}, state: {s: v('s')}}}, [])).toThrow() // the key in arithmetic
-  expect(() => obligations({...base, step: {flags: {f: all({op: '<=', a: at('I', {op: 'add', a: v('k'), b: k0}), b: k0})}, state: {s: v('s')}}}, [])).toThrow() // the key inside a sum
+  // The key compared, or read at a key term (k + e, k ∸ e): decided on breakpoints. In other arithmetic: refused.
+  expect(() => obligations({...base, step: {flags: {f: all({op: '<=', a: v('k'), b: v('a')})}, state: {s: v('s')}}}, [])).not.toThrow()
+  expect(() => obligations({...base, step: {flags: {f: all({op: '<=', a: at('I', {op: 'add', a: v('k'), b: v('a')}), b: k0})}, state: {s: v('s')}}}, [])).not.toThrow()
+  expect(() => obligations({...base, step: {flags: {f: all({op: '<=', a: {op: 'mul', k: 2, a: v('k')}, b: v('a')})}, state: {s: v('s')}}}, [])).toThrow() // the key times 2
+  expect(() => obligations({...base, step: {flags: {f: all({op: '<=', a: v('a'), b: {op: 'mul', k: 2, a: v('k')}})}, state: {s: v('s')}}}, [])).toThrow() // the same, on the right
+  expect(() => obligations({...base, step: {flags: {f: all({op: '<=', a: at('I', {op: 'add', a: v('k'), b: v('k')}), b: k0})}, state: {s: v('s')}}}, [])).toThrow() // the key plus itself
+  expect(() => obligations({...base, step: {flags: {f: all({op: '=', a: v('k'), b: at('M', v('k'))})}, state: {s: v('s')}}}, [])).toThrow() // the key compared with a read at it
   expect(() => obligations({...base, step: {flags: {f: all({op: 'not', x: all({op: '<=', a: at('M', v('k')), b: k0})})}, state: {s: v('s')}}}, [])).toThrow() // a quantifier inside one
   expect(() => obligations({...base, step: {maps: {M: {each: 's', value: at('I', v('s'))}}}}, [])).toThrow() // the key a name of the machine
   expect(() => obligations({...base, step: {maps: {I: {each: 'k', value: k0}}}}, [])).toThrow() // a carried map written

@@ -3,8 +3,12 @@
 import {mkdirSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {bool, count, forall, loop, maybe, min, nat, oneOf, relation, rule, yes} from '../core/dsl.ts'
-import {escrowLaws, escrowSteps, escrowWatched} from '../examples/composition.ts'
+import {escrowLaws, escrowRunsLean, escrowSteps, escrowWatched} from '../examples/composition.ts'
 import {authority, authorityLaws, authorityPairs, authoritySteps} from '../examples/sets.ts'
+import {inlineAuthority, inlineLaws, inlineSteps, memberLaws, memberSteps, members} from '../examples/quantifiers.ts'
+import {larger, largerLaws, minuteLaws, minutes, pairsLean, room, roomLaws} from '../examples/functions.ts'
+import {scope, scopeLaws, scopeSteps} from '../examples/lists.ts'
+import {everyTicket, ticketLaws, tickets} from '../examples/liveness.ts'
 import {leanProject, toLean} from './emit.ts'
 
 const caps = rule('caps').params({d: nat}).inputs({acct: nat, day: nat, ok: bool}).maps({Acct: 0, Day: 0})
@@ -26,14 +30,23 @@ const pages = loop('pagination').params({total: nat}).inputs({page: nat}).state(
   .assume(({page}) => page.atLeast(1)).body(({cur, page, total}) => ({cur: cur.plus(min(page, total.minus(cur)))})).rank(({total, cur}) => total.minus(cur))
 
 const auth = authority()
-const file = toLean([
+// ONLY=id,id,... exports just those items (a quicker check while working on one).
+const only = process.env.ONLY?.split(',')
+const file = toLean(([
   {id: 'caps', machine: caps.machine, laws: [dayCap], stepLaws: [onlyUp, twice]},
   {id: 'window', machine: window.machine, laws: [window.law('window ceiling', ({ours, c}) => ours.atMost(c))]},
   {id: 'trial', goal: failsClosed.goal},
   {id: 'pages', loop: pages.loop, rank: pages.rankTerms},
-  {id: 'escrow', machine: escrowWatched(), laws: escrowLaws, stepLaws: escrowSteps},
+  {id: 'escrow', machine: escrowWatched(), laws: escrowLaws, stepLaws: escrowSteps, ghosts: ['released'], lean: {after: escrowRunsLean}},
   {id: 'authority', machine: auth.machine, laws: authorityLaws(auth), stepLaws: [...authoritySteps(auth), ...authorityPairs(auth)]},
-], {title: 'gdp-wired/lean, end to end'})
+  {id: 'inline', machine: inlineAuthority().machine, laws: inlineLaws(), stepLaws: inlineSteps()},
+  {id: 'members', machine: members().machine, laws: memberLaws(), stepLaws: memberSteps()},
+  {id: 'minutes', machine: minutes().machine, laws: minuteLaws()},
+  {id: 'larger', machine: larger.machine, laws: largerLaws},
+  {id: 'room', machine: room().machine, laws: roomLaws(), lean: pairsLean},
+  {id: 'scope', machine: scope().machine, laws: scopeLaws(), stepLaws: scopeSteps()},
+  {id: 'tickets', machine: tickets().machine, laws: ticketLaws(), liveness: [everyTicket()]},
+] as Parameters<typeof toLean>[0]).filter(item => !only || only.includes(item.id)), {title: 'gdp-wired/lean, end to end'})
 const out = process.argv[2]
 if (!out) throw new Error('usage: bun package-check.ts <empty folder>')
 mkdirSync(out, {recursive: true})

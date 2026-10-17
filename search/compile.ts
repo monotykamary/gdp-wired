@@ -50,6 +50,7 @@ export function replay(m: Machine, law: Watched, s: Space, index: number): {para
   return undefined
 }
 export function fitsU32(given: Machine, law: Watched, s: Space): void {
+  if (Object.keys(given.fns ?? {}).length) throw new Error(`${given.name}: the GPU searches take no functions (search with the interpreter)`)
   const limit = 2 ** 32 - 1
   // A machine with a history as its plain machine (its sums are state); its queries are bounded below.
   const m = given.history ? historyMachine(given).machine : given

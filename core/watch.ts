@@ -40,9 +40,10 @@ export const keysOf = (bound: number, ...states: State[]): number[] => {
 // Watches one law or step law along one run: `start` with the state at the start, `step` after each step the run takes
 // (the state before, the request, the state after). Each says whether the law still holds.
 export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound: number) {
-  const atKeys = (forall: string | undefined, keys: number[], f: (env: Env) => boolean) => (forall ? keys.every(key => f({[forall]: key})) : f({}))
+  const atKeys = (forall: string | undefined, keys: number[], f: (env: Env) => boolean, forall2?: string) =>
+    (forall ? keys.every(key => (forall2 ? keys.every(key2 => f({[forall]: key, [forall2]: key2})) : f({[forall]: key}))) : f({}))
   if (!isStepLaw(w)) {
-    const holds = (st: State) => atKeys(w.forall, keysOf(bound, st), extra => evalC(w.holds, {...params, ...extra}, st, m))
+    const holds = (st: State) => atKeys(w.forall, keysOf(bound, st), extra => evalC(w.holds, {...params, ...extra}, st, m), w.forall2)
     return {start: holds, step: (_before: State, _input: Request, after: State) => holds(after)}
   }
   const k = w.steps ?? 1, whens = w.when === undefined ? [] : Array.isArray(w.when) ? w.when : [w.when]
@@ -67,7 +68,7 @@ export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound: 
         maps: {...first.maps, ...Object.fromEntries(Object.entries(after.maps).map(([n, cells]) => [`${n}'`, cells]))},
         defaults: {...first.defaults, ...Object.fromEntries(Object.entries(after.defaults ?? {}).map(([n, d]) => [`${n}'`, d]))},
       }
-      return atKeys(w.forall, keysOf(bound, first, after), extra => evalC(w.then, {...env, ...extra}, both, primedMaps))
+      return atKeys(w.forall, keysOf(bound, first, after), extra => evalC(w.then, {...env, ...extra}, both, primedMaps), w.forall2)
     },
   }
 }

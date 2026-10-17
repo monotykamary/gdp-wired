@@ -5,9 +5,10 @@
 //   - stuttering refinement: a meter that reserves, then charges, refines the meter that spends at once
 //   - ghosts: an escrow where a refund never follows a release (at any distance), and a connection pool whose in-use
 //     count is the total of every client's holdings
-import {type C, type Law, type Machine, plus, x} from '../core/machine.ts'
-import {min, nat, oneOf, rule, upTo, when, yes} from '../core/dsl.ts'
-import {ever, ghost, interleave, refinement, side, total} from '../core/compose.ts'
+//   - several steps as one: a transfer at once refines a withdrawal then a deposit
+import {type C, type E, type Law, type Machine, plus, x} from '../core/machine.ts'
+import {min, nat, no, oneOf, rule, upTo, when, yes} from '../core/dsl.ts'
+import {ever, ghost, interleave, refinement, side, steps, total} from '../core/compose.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
 import {proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {domains} from './index.ts'
@@ -67,6 +68,39 @@ export const escrow = (bug?: 'reopens on a deposit') => rule('escrow').inputs({o
 export const escrowWatched = (bug?: 'reopens on a deposit') => ghost(escrow(bug).machine, {released: ever('released', {op: 'flag', name: 'releasing'})})
 export const escrowLaws: Law[] = [{name: 'a release closes it', holds: {op: '<=', a: x('released'), b: x('closed')}}]
 export const escrowSteps: StepLaw[] = [{name: 'no refund after a release', then: {op: 'or', xs: [{op: '=', a: x('released'), b: {op: 'const', value: 0}}, {op: '=', a: x("refunded'"), b: x('refunded')}]}}]
+// What the step law says of the escrow itself (lean-kernel/Ghost.lean): in every run from the start, once a step has
+// released, no later step refunds. A Lean proof, from the export's theorems: the run lifted to the ghosted machine, the
+// ghost's meaning (`ever_meaning`), and the step law at the later step.
+export const escrowRunsLean = (ix: (name: string) => number) => {
+  const [refunded, released, releasing] = [ix('refunded'), ix('released'), ix('?releasing')]
+  const primes = `[${['held', 'closed', 'refunded', 'released'].map(n => `(${ix(n)}, ${ix(`${n}'`)})`).join(', ')}]`
+  return `/-- The escrow, without its ghost: in every run from the start, once a step has released, no later step refunds. -/
+theorem escrow_no_refund_after_release (run : FRun escrow_ghosted.orig) {ρ0 : Nat → Nat} {M0 : Nat → Nat → Nat}
+    (hM : StartMaps escrow_ghosted.orig.m M0) (hp : evalC ρ0 M0 escrow_ghosted.orig.m.pre = true)
+    (hst : run.st 0 = (applyS escrow_ghosted.orig.m.init ρ0 M0, M0)) {i j : Nat} (hij : i < j)
+    (hrel : decideFlags escrow_ghosted.orig.flags (withInputs escrow_ghosted.orig.m.inputs (run.st i).1 (run.req i)) (run.st i).2 ${releasing} = 1) :
+    (run.st (j + 1)).1 ${refunded} = (run.st j).1 ${refunded} := by
+  obtain ⟨run', hreq, h0, hag⟩ := ghost_run_start escrow_ghosted escrow_ghostOk run hM hp hst
+  have hg0 : (run'.st 0).1 ${released} = 0 := by rw [h0]; rfl
+  have hv := ghost_view escrow_ghosted escrow_ghostOk run run' hreq hag (c := .eq (.var ${releasing}) (.const 1)) (by decide) i
+  have hg1 : (run'.st j).1 ${released} = 1 := (ever_meaning escrow_ghosted escrow_ghostOk (x := ${released}) (s0 := .const 0) (c := .eq (.var ${releasing}) (.const 1))
+    (by simp [escrow_ghosted]) run' hg0 j).mpr ⟨i, hij, by rw [hv]; simp [evalC, evalE, hrel]⟩
+  have hsl := escrow_step0_holds (run'.st j).1 (run'.st j).2 (frun_reach run' j) (run'.req j) (run'.allowed j) (by simp [escrow_step0, evalC, evalE])
+  have hp1 : ∀ A B : Nat → Nat, primed ${primes} A B ${released} = B ${released} := fun _ _ => rfl
+  have hp2 : ∀ A B : Nat → Nat, primed ${primes} A B ${ix("refunded'")} = A ${refunded} := fun _ _ => rfl
+  have hp3 : ∀ A B : Nat → Nat, primed ${primes} A B ${refunded} = B ${refunded} := fun _ _ => rfl
+  have hw1 : withInputs escrow_machine.m.inputs (run'.st j).1 (run'.req j) ${released} = (run'.st j).1 ${released} := withInputs_other (by decide) _ _
+  have hw2 : withInputs escrow_machine.m.inputs (run'.st j).1 (run'.req j) ${refunded} = (run'.st j).1 ${refunded} := withInputs_other (by decide) _ _
+  simp only [escrow_step0, evalC, evalE, Bool.or_eq_true] at hsl
+  simp only [hp1, hp2, hp3, hw1, hw2, hg1, decide_eq_true_eq] at hsl
+  have hnext : (run'.st (j + 1)).1 ${refunded} = (run'.st j).1 ${refunded} := by
+    rw [run'.next j]; rcases hsl with h | h
+    · simp at h
+    · exact h
+  have hr1 := (hag (j + 1)).2 ${refunded} (by decide)
+  have hr0 := (hag j).2 ${refunded} (by decide)
+  rw [← hr1, ← hr0]; exact hnext`
+}
 
 // The connection pool (examples/domains/operations.ts), its holdings totalled by a ghost: in use is exactly what the
 // clients hold between them, a law about every key at once. Releasing without checking the client holds one breaks it.
@@ -76,6 +110,27 @@ const poolOf = (bug?: string) => (bug ? poolCase.broken.find(b => b.name === bug
 export const pooled = (bug?: 'release unchecked') => { const m = poolOf(bug); return ghost(m, {heldTotal: total(m, 'Held', 'heldTotal')}) }
 export const poolLaws: Law[] = poolCase.laws
 export const poolTotal: Law[] = [{name: 'in use = what the clients hold', holds: {op: '=', a: x('inUse'), b: x('heldTotal')}}]
+
+// A transfer done at once refines a ledger that takes a withdrawal, then a deposit (steps(spec, 2): two spec steps for
+// one of the implementation's, both skipped when the transfer doesn't fit). The implementation writes both balances in
+// one step (a write at every key, its key compared with the two accounts). Forgetting a transfer to the same account
+// takes the amount out and never puts it back, which the spec's withdrawal then deposit doesn't.
+export const ledger = rule('ledger').inputs({op: oneOf('withdraw', 'deposit'), acct: nat, amt: nat}).maps({Bal: 0})
+  .assume(({op, acct, amt, Bal}) => op.is('withdraw').implies(Bal.at(acct).atLeast(amt)))
+  .step(({op, acct, amt, Bal}) => ({Bal: Bal.set(acct, when(op.is('withdraw'), Bal.at(acct).minus(amt), Bal.at(acct).plus(amt)))}))
+export const transfers = (bug?: 'forgets a transfer to the same account') => rule('transfers').inputs({from: nat, to: nat, amt: nat}).maps({Bal: 0})
+  .flags(({from, amt, Bal}) => ({fits: Bal.at(from).atLeast(amt)}))
+  .step(({from, to, amt, fits, Bal}) => ({Bal: Bal.each(k => when(fits,
+    when(bug ? no : k.eq(from).and(k.eq(to)), Bal.at(k), when(k.eq(from), Bal.at(k).minus(amt), when(k.eq(to), Bal.at(k).plus(amt), Bal.at(k)))), Bal.at(k)))}))
+const sameBalances: Law[] = [{name: 'a.Bal[k] = b.Bal[k]', forall: 'k', holds: {op: '=', a: {op: 'get', map: 'a_Bal', key: x('k')}, b: {op: 'get', map: 'b_Bal', key: x('k')}}}]
+export const transferRefinement = (bug?: 'forgets a transfer to the same account') => {
+  const fits: C = {op: '<=', a: x('amt'), b: {op: 'get', map: 'a_Bal', key: x('from')}}
+  const skip: E = {op: 'if', c: fits, then: {op: 'const', value: 0}, else: {op: 'const', value: 1}}
+  return refinement(transfers(bug).machine, steps(ledger.machine, 2), {relation: sameBalances, witness: {
+    'op@s1': {op: 'const', value: 0}, 'acct@s1': x('from'), 'amt@s1': x('amt'), 'skip@s1': skip,
+    'op@s2': {op: 'const', value: 1}, 'acct@s2': x('to'), 'amt@s2': x('amt'), 'skip@s2': skip,
+  }})
+}
 
 if (import.meta.main) {
   const results: [string, boolean, boolean][] = []
@@ -99,6 +154,10 @@ if (import.meta.main) {
   for (const bug of [undefined, 'release unchecked'] as const) {
     const v = proveLaws(pooled(bug), [...poolLaws, ...poolTotal])
     results.push([`pool${bug ? ` (${bug})` : ''}: in use = total held`, v.proven && v.checked, !bug])
+  }
+  for (const bug of [undefined, 'forgets a transfer to the same account'] as const) {
+    const t = transferRefinement(bug), v = proveStepLaws(t.machine, t.laws, t.stepLaws)
+    results.push([`transfer${bug ? ` (${bug})` : ''} refines 2 ledger steps`, v.proven && v.checked, !bug])
   }
   for (const [what, got, want] of results) console.log(`${what.padEnd(34)} ${got ? 'proven, kernel accepts' : 'not proven'}${got === want ? '' : '   UNEXPECTED'}`)
   if (results.some(([, got, want]) => got !== want)) process.exit(1)

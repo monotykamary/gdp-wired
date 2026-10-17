@@ -2,10 +2,10 @@
 // is: refinement (an implementation against its spec, broken implementations refused), laws of an interleaving, and
 // k-step laws of a composed machine.
 import {expect, test} from 'bun:test'
-import {type E, type Machine, type State, interpret, loadJs, plus, x} from './machine.ts'
+import {type E, type Machine, type State, evalC, interpret, loadJs, plus, x} from './machine.ts'
 import {nat, rule, when} from './dsl.ts'
-import {count, ever, ghost, interleave, product, refinement, total} from './compose.ts'
-import {counterLaws, counterSteps, counters, countdown, escrowLaws, escrowSteps, escrowWatched, meterRefinement, poolLaws, poolTotal, pooled, twoPhaseRefinement} from '../examples/composition.ts'
+import {count, ever, ghost, interleave, product, refinement, steps, total} from './compose.ts'
+import {counterLaws, counterSteps, counters, countdown, escrowLaws, escrowSteps, escrowWatched, ledger, meterRefinement, poolLaws, poolTotal, pooled, transferRefinement, twoPhaseRefinement} from '../examples/composition.ts'
 import {proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {type StepLaw, checkStepLaws} from '../kernel/kernel.ts'
 
@@ -146,3 +146,42 @@ test('laws about whole histories, through ghosts: no refund after a release, in 
   expect(proveLaws(pooled(), [...poolLaws, ...poolTotal])).toMatchObject({proven: true, checked: true})
   expect(proveLaws(pooled('release unchecked'), [...poolLaws, ...poolTotal]).proven).toBe(false)
 })
+
+// steps(m, k): one step of it is k steps of m (each skipped where its skip input is 1), on random machines and the ledger;
+// and the transfer refines two ledger steps, while the version that forgets a transfer to the same account doesn't.
+test('steps(m, k) runs as k steps of m; the transfer refines two ledger steps', () => {
+  for (let trial = 0; trial < 60; trial++) {
+    const m = trial % 2 ? ledger.machine : randomMachine(`random ${trial}`), k = 1 + rand(3), big = steps(m, k)
+    const one = interpret(m), many = interpret(big), compiled = loadJs(big)
+    for (let t = 0; t < 10; t++) {
+      const params = Object.fromEntries(m.params.map(p => [p, rand(4)]))
+      let a = one.init(params), b = many.init(params), g = compiled.init(params)
+      for (let i = 0; i < 5; i++) {
+        const reqs: Record<string, number>[] = Array.from({length: k}, () => ({...Object.fromEntries(m.inputs.map(n => [n, rand(4)])), skip: rand(3) === 0 ? 1 : 0}))
+        const input = Object.fromEntries(reqs.flatMap((r, j) => [...m.inputs.map(n => [`${n}@s${j + 1}`, r[n]!] as const), [`skip@s${j + 1}`, r.skip!] as const]))
+        // m's own assumption at each step not skipped decides whether big allows the request.
+        const env = (st: State, r: Record<string, number>) => ({...params, ...r})
+        let st = a, ok = true
+        for (const r of reqs) {
+          if (r.skip) continue
+          const {skip: _skip, ...req} = r
+          if (m.assume && !allowedIn(m, st, env(st, req))) { ok = false; break }
+          st = one.step(params, st, req)
+        }
+        if (!ok) continue
+        a = st; b = many.step(params, b, input); g = compiled.step(params, g, input)
+        expect(b.scalars).toEqual(a.scalars)
+        for (const map of Object.keys(m.maps ?? {})) for (let key = 0; key < 8; key++) {
+          const read = (s2: State) => s2.maps[map]!.get(key) ?? s2.defaults?.[map] ?? m.maps![map]!
+          expect(read(b)).toBe(read(a))
+          expect(read(g)).toBe(read(a))
+        }
+      }
+    }
+  }
+  const ok = transferRefinement(), r = proveStepLaws(ok.machine, ok.laws, ok.stepLaws)
+  expect(r).toMatchObject({proven: true, checked: true})
+  const bad = transferRefinement('forgets a transfer to the same account')
+  expect(proveStepLaws(bad.machine, bad.laws, bad.stepLaws).proven).toBe(false)
+}, 120_000)
+const allowedIn = (m: Machine, st: State, env: Record<string, number>): boolean => evalC(m.assume!, env, st, m)
