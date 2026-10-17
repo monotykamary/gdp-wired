@@ -4,6 +4,7 @@ import {mkdirSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {bool, count, forall, loop, maybe, min, nat, oneOf, relation, rule, yes} from '../core/dsl.ts'
 import {escrowLaws, escrowSteps, escrowWatched} from '../examples/composition.ts'
+import {authority, authorityLaws, authorityPairs, authoritySteps} from '../examples/sets.ts'
 import {leanProject, toLean} from './emit.ts'
 
 const caps = rule('caps').params({d: nat}).inputs({acct: nat, day: nat, ok: bool}).maps({Acct: 0, Day: 0})
@@ -24,12 +25,14 @@ const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => s
 const pages = loop('pagination').params({total: nat}).inputs({page: nat}).state({cur: 0}).while(({cur, total}) => cur.lt(total))
   .assume(({page}) => page.atLeast(1)).body(({cur, page, total}) => ({cur: cur.plus(min(page, total.minus(cur)))})).rank(({total, cur}) => total.minus(cur))
 
+const auth = authority()
 const file = toLean([
   {id: 'caps', machine: caps.machine, laws: [dayCap], stepLaws: [onlyUp, twice]},
   {id: 'window', machine: window.machine, laws: [window.law('window ceiling', ({ours, c}) => ours.atMost(c))]},
   {id: 'trial', goal: failsClosed.goal},
   {id: 'pages', loop: pages.loop, rank: pages.rankTerms},
   {id: 'escrow', machine: escrowWatched(), laws: escrowLaws, stepLaws: escrowSteps},
+  {id: 'authority', machine: auth.machine, laws: authorityLaws(auth), stepLaws: [...authoritySteps(auth), ...authorityPairs(auth)]},
 ], {title: 'gdp-wired/lean, end to end'})
 const out = process.argv[2]
 if (!out) throw new Error('usage: bun package-check.ts <empty folder>')

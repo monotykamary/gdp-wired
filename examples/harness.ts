@@ -6,7 +6,7 @@
 //   3. Lean: lean-kernel/export-kernel.ts --examples <domain> sends the same trees to the Lean twin (checked on Modal).
 // Decisions are sampled (given ⇒ then on every draw, a counterexample draw for a broken one); loops are run to the end,
 // their invariants checked every turn and their rank seen to drop.
-import {type C, type E, type Law, type Machine, type State, evalC, evalE, interpret, loadJs} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type State, evalC, evalE, interpret, loadJs, numbersOf} from '../core/machine.ts'
 import {allowed, watch} from '../core/watch.ts'
 import {type Decision, type LoopRule, type Rule, type StepLaw, type Verdict, proveDecision, proveLoop, proveRule, proveSteps} from '../core/dsl.ts'
 
@@ -37,7 +37,7 @@ const verdictText = (v: Verdict) => (v.proven ? (v.checked ? 'proven, kernel acc
 
 const cellsOf = (st: State) => JSON.stringify(Object.fromEntries(Object.entries(st.maps).map(([n, cells]) => [n, [...cells.entries()].sort((a, b) => a[0] - b[0])])))
 
-type Run = {steps: number, mismatch?: string, violation?: {law: string, params: Record<string, number>, trace: Record<string, number>[]}}
+type Run = {steps: number, mismatch?: string, violation?: {law: string, params: Record<string, number>, trace: Request[]}}
 // Random runs from the start: params and requests drawn by their kinds (and filtered by pre and assume), the prune order
 // sent nondecreasing; the interpreter and the compiled code stepped side by side; every law checked in every state.
 export function runRule(rule: AnyRule, laws: Law[], opts: {trials: number, depth: number, bound: number}, stepLaws: StepLaw[] = []): Run {
@@ -47,7 +47,7 @@ export function runRule(rule: AnyRule, laws: Law[], opts: {trials: number, depth
     const params = rule.randomParams(rand, opts.bound)
     if (m.pre && !evalC(m.pre, params, empty, m)) continue
     let st = run.init(params), g = gen.init(params)
-    const trace: Record<string, number>[] = []
+    const trace: Request[] = []
     // Every law and step law watched along the run (core/watch.ts: what each says about one run).
     const watched = [...laws, ...stepLaws].map(w => ({name: w.name, on: watch(m, run, w, params, opts.bound)}))
     for (const w of watched) if (!w.on.start(st)) return {steps, violation: {law: w.name, params, trace}}
@@ -56,7 +56,7 @@ export function runRule(rule: AnyRule, laws: Law[], opts: {trials: number, depth
       const input = rule.randomInput(rand, opts.bound)
       if (order) input[order] = t + rand(3)
       if (!allowed(m, run, params, st, input)) continue
-      if (order) t = input[order]!
+      if (order) t = input[order] as number
       const before = st
       st = run.step(params, st, input)
       g = gen.step(params, g, input)
@@ -76,7 +76,7 @@ export function sampleDecision(d: Decision, opts: {trials: number, bound: number
   const m = d.rule.machine
   let steps = 0
   for (let i = 0; i < opts.trials; i++) {
-    const env = {...d.rule.randomParams(rand, opts.bound), ...d.rule.randomInput(rand, opts.bound)}
+    const env = {...d.rule.randomParams(rand, opts.bound), ...numbersOf(d.rule.randomInput(rand, opts.bound))}
     if (!d.given.every(c => evalC(c, env, empty, m))) continue
     steps++
     if (!evalC(d.then, env, empty, m)) return {steps, counterexample: env}

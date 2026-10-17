@@ -23,6 +23,7 @@ export type C =
   | {op: 'or', xs: C[]}
   | {op: 'not', x: C}
   | {op: 'flag', name: string} // a named condition of the step, decided once per step
+  | {op: 'all', key: string, c: C} // c at every key: only as a whole flag (a quantified flag), the key only as a map's key
 
 export type Machine = {
   name: string
@@ -30,7 +31,8 @@ export type Machine = {
   inputs: string[]
   state: Record<string, E> // initial values, over params
   maps?: Record<string, number> // initial value of every cell
-  step: {flags?: Record<string, C>, state?: Record<string, E>, maps?: Record<string, {key: E, value: E}>}
+  inputMaps?: string[] // maps each request carries whole (a set of names, say), read like any map; every cell a natural
+  step: {flags?: Record<string, C>, state?: Record<string, E>, maps?: Record<string, MapUpdate>}
   pre?: C // about the params alone: a precondition, holding at the start and at every step
   assume?: C // about each request (inputs, and params), e.g. a flag is 0 or 1; holds at a step, not at the start
   history?: History
@@ -44,6 +46,14 @@ export type Machine = {
 // most the request's: the kernel proves such a record adds nothing to any query, and the runtimes refuse a request whose
 // order goes back.
 export type History = {keep: C, record: string[], sums: Record<string, E>, queries: Record<string, E>, relations?: {when: C, holds: C}[], prune?: {order: string, after: E}}
+// A step writes a map at one key, or at every key at once: `each` names the key, read in `value` only as a map's key
+// (M[k]), so every key the maps hold nothing at reads alike.
+export type MapUpdate = {key: E, value: E} | {each: string, value: E}
+// A write at one key, for the parts that take no write at every key (the symbolic prover, the GPU synthesizers, the
+// hand-written shader, the first Lean export): they refuse one by name.
+export const pointWrite = (w: MapUpdate, where: string): {key: E, value: E} => { if ('each' in w) throw new Error(`${where} takes no write at every key`); return w }
+// The same for a quantified flag.
+export const noQuantifier = (where: string): never => { throw new Error(`${where} takes no quantified flag`) }
 // A law: a condition on the state and params, and for a map law, `forall` names the key variable it holds at.
 export type Law = {name: string, holds: C, forall?: string}
 
@@ -79,9 +89,22 @@ export const bit = (name: string): C => any(same(x(name), n(0)), same(x(name), n
 // query is computed from the records at the request's own time. With `prune`, a request whose order goes back is
 // refused and the records the kernel proved spent are dropped.
 
-// history and last only with a history (last only when it is pruned).
-export type State = {scalars: Record<string, number>, maps: Record<string, Map<number, number>>, history?: Env[], last?: number}
+// history and last only with a history (last only when it is pruned). A map reads its cells, and past them its
+// default: the map's initial value until a write at every key sets a new one (defaults).
+export type State = {scalars: Record<string, number>, maps: Record<string, Map<number, number>>, defaults?: Record<string, number>, history?: Env[], last?: number}
 type Env = Record<string, number>
+// A request: its inputs, and the maps it carries (a ReadonlyMap each, cells past it read 0).
+export type Request = Record<string, number | ReadonlyMap<number, number>>
+// A condition at every key, or a value at every key: the bound key is read only as a map's key, so each key a map read
+// holds a cell at, and one key past them all (where every map reads its default), are every case there is.
+const mapsIn = (t: E | C): string[] => [...new Set([...JSON.stringify(t).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x => x[1]!))]
+function keysAt(st: State, maps: string[]): number[] {
+  const keys = new Set<number>()
+  let past = 0
+  for (const cells of Object.values(st.maps)) for (const key of cells.keys()) past = Math.max(past, key + 1)
+  for (const map of maps) for (const key of st.maps[map]?.keys() ?? []) keys.add(key)
+  return [...keys, past]
+}
 export const naturalIn = (v: unknown, what: string): number => {
   if (typeof v !== 'number' || !Number.isSafeInteger(v) || v < 0) throw new RangeError(`${what} must be a natural below 2^53, not ${String(v)}`)
   return v
@@ -102,7 +125,7 @@ export function evalE(e: E, env: Env, st: State, m: Machine): number {
     case 'min': return Math.min(evalE(e.a, env, st, m), evalE(e.b, env, st, m))
     case 'max': return Math.max(evalE(e.a, env, st, m), evalE(e.b, env, st, m))
     case 'if': return evalC(e.c, env, st, m) ? evalE(e.then, env, st, m) : evalE(e.else, env, st, m)
-    case 'get': return st.maps[e.map]!.get(evalE(e.key, env, st, m)) ?? m.maps![e.map]!
+    case 'get': return st.maps[e.map]!.get(evalE(e.key, env, st, m)) ?? st.defaults?.[e.map] ?? m.maps![e.map]!
   }
 }
 export function evalC(c: C, env: Env, st: State, m: Machine): boolean {
@@ -114,7 +137,15 @@ export function evalC(c: C, env: Env, st: State, m: Machine): boolean {
     case 'or': return c.xs.some(y => evalC(y, env, st, m))
     case 'not': return !evalC(c.x, env, st, m)
     case 'flag': return env[`?${c.name}`] === 1
+    case 'all': return keysAt(st, mapsIn(c.c)).every(key => evalC(c.c, {...env, [c.key]: key}, st, m))
   }
+}
+// A write at every key: its value at each key the maps it reads hold a cell at, and its new default past them.
+function writeEvery(w: {each: string, value: E}, env: Env, st: State, m: Machine): {cells: Map<number, number>, default: number} {
+  const keys = keysAt(st, mapsIn(w.value)), past = keys.at(-1)!
+  const fallback = evalE(w.value, {...env, [w.each]: past}, st, m), cells = new Map<number, number>()
+  for (const key of keys.slice(0, -1)) { const v = evalE(w.value, {...env, [w.each]: key}, st, m); if (v !== fallback) cells.set(key, v) }
+  return {cells, default: fallback}
 }
 
 // The machine a runtime steps (with a history, kernel.ts's plain machine), its queries, and the inputs a request carries.
@@ -127,15 +158,32 @@ function runnable(m: Machine) {
 }
 const empty: State = {scalars: {}, maps: {}}
 
+// The state as a step reads it: with the maps the request carries (cells past them read 0), each checked natural.
+export function carriedView(m: Machine, st: State, input: Request, rename: (map: string) => string = map => map): State {
+  if (!m.inputMaps?.length) return st
+  const maps = {...st.maps}, defaults = {...st.defaults}
+  for (const map of m.inputMaps) {
+    const cells = input[map]
+    if (!(cells instanceof Map)) throw new RangeError(`input ${map} must be a Map of naturals`)
+    for (const [key, v] of cells) { naturalIn(key, `a key of ${map}`); naturalIn(v, `a cell of ${map}`) }
+    maps[rename(map)] = cells as Map<number, number>
+    defaults[rename(map)] = 0
+  }
+  return {...st, maps, defaults}
+}
+// A request's numbers (its inputs), without the maps it carries.
+export const numbersOf = (input: Request): Record<string, number> => Object.fromEntries(Object.entries(input).filter((e): e is [string, number] => typeof e[1] === 'number'))
+
 // The interpreter: persistent (a step leaves the state it was given as it was), so searches can branch from any state.
 export function interpret(m: Machine) {
   const {h, plain, carried} = runnable(m)
-  const args = (params: Env, input?: Env): Env => {
+  const args = (params: Env, input?: Request): Env => {
     const env: Env = {}
     for (const p of m.params) env[p] = naturalIn(params[p], `param ${p}`)
     if (input) for (const i of carried) env[i] = naturalIn(input[i], `input ${i}`)
     return env
   }
+  const viewed = (st: State, input: Request): State => carriedView(m, st, input)
   // The records a request's queries read: with pruning, those not yet spent at its order.
   const live = (env: Env, st: State): Env[] => {
     const records = st.history!
@@ -167,23 +215,25 @@ export function interpret(m: Machine) {
       }
     },
     // The queries a request would read (none without a history).
-    queries: (params: Env, st: State, input: Env): Env => {
+    queries: (params: Env, st: State, input: Request): Env => {
       if (!h) return {}
       const env = args(params, input)
       ordered(env, st)
       return queriesOf(env, live(env, st))
     },
-    step: (params: Env, st: State, input: Env): State => {
-      const env = args(params, input)
+    step: (params: Env, given: State, input: Request): State => {
+      const env = args(params, input), st = viewed(given, input)
       let records: Env[] = []
       if (h) { ordered(env, st); records = live(env, st); Object.assign(env, queriesOf(env, records)) }
       for (const [name, c] of Object.entries(plain.step.flags ?? {})) env[`?${name}`] = evalC(c, env, st, plain) ? 1 : 0
       const scalars = {...st.scalars}
       for (const [name, e] of Object.entries(plain.step.state ?? {})) scalars[name] = evalE(e, env, st, plain)
-      const writes = Object.entries(plain.step.maps ?? {}).map(([name, {key, value}]) => [name, evalE(key, env, st, plain), evalE(value, env, st, plain)] as const)
-      const maps = Object.fromEntries(Object.entries(st.maps).map(([name, cells]) => [name, new Map(cells)]))
-      for (const [name, key, value] of writes) maps[name]!.set(key, value)
-      if (!h) return {scalars, maps}
+      const writes = Object.entries(plain.step.maps ?? {}).map(([name, w]) => [name, 'each' in w ? writeEvery(w, env, st, plain) : {key: evalE(w.key, env, st, plain), value: evalE(w.value, env, st, plain)}] as const)
+      const maps = Object.fromEntries(Object.entries(given.maps).map(([name, cells]) => [name, new Map(cells)]))
+      const defaults = {...given.defaults}
+      for (const [name, w] of writes) if ('cells' in w) { maps[name] = w.cells; defaults[name] = w.default } else maps[name]!.set(w.key, w.value)
+      const withDefaults = Object.keys(defaults).length ? {defaults} : {}
+      if (!h) return {scalars, maps, ...withDefaults}
       const kept = evalC(h.keep, env, st, plain)
       return {scalars, maps, history: kept ? [...records, Object.fromEntries(h.record.map(f => [f, env[f]!]))] : records, ...(h.prune ? {last: env[h.prune.order]} : {})}
     },
@@ -196,10 +246,12 @@ export function interpret(m: Machine) {
 export function compileJs(m: Machine): string {
   const {h, plain, queries, carried} = runnable(m)
   const id = (name: string) => JSON.stringify(name)
-  const flags = Object.keys(plain.step.flags ?? {})
+  const flags = Object.keys(plain.step.flags ?? {}), carriedMaps = m.inputMaps ?? []
+  // A key bound by a quantified flag or a write at every key is the JS parameter k.
+  let bound: string | undefined
   const ex = (e: E): string => {
     switch (e.op) {
-      case 'var': return e.name.startsWith('r.') ? `r[${id(e.name.slice(2))}]` : plain.params.includes(e.name) || plain.inputs.includes(e.name) ? `env[${id(e.name)}]` : `s[${id(e.name)}]`
+      case 'var': return e.name === bound ? 'k' : e.name.startsWith('r.') ? `r[${id(e.name.slice(2))}]` : plain.params.includes(e.name) || plain.inputs.includes(e.name) ? `env[${id(e.name)}]` : `s[${id(e.name)}]`
       case 'const': return String(e.value)
       case 'add': return `$x(${ex(e.a)} + ${ex(e.b)})`
       case 'sub': return `Math.max(0, ${ex(e.a)} - ${ex(e.b)})`
@@ -208,7 +260,7 @@ export function compileJs(m: Machine): string {
       case 'min': return `Math.min(${ex(e.a)}, ${ex(e.b)})`
       case 'max': return `Math.max(${ex(e.a)}, ${ex(e.b)})`
       case 'if': return `(${cx(e.c)} ? ${ex(e.then)} : ${ex(e.else)})`
-      case 'get': return `(maps[${id(e.map)}].get(${ex(e.key)}) ?? ${plain.maps![e.map]})`
+      case 'get': return `(maps[${id(e.map)}].get(${ex(e.key)}) ?? ${carriedMaps.includes(e.map) ? '0' : `dft[${id(e.map)}] ?? ${plain.maps![e.map]}`})`
     }
   }
   const cx = (c: C): string => {
@@ -220,11 +272,14 @@ export function compileJs(m: Machine): string {
       case 'or': return `(${c.xs.map(cx).join(' || ')})`
       case 'not': return `(!${cx(c.x)})`
       case 'flag': return `flag${flags.indexOf(c.name)}`
+      case 'all': { const outer = bound; bound = c.key; const body = cx(c.c); bound = outer; return `$keys(maps, ${JSON.stringify(mapsIn(c.c))}).every(k => ${body})` }
     }
   }
+  const every = (w: {each: string, value: E}) => { const outer = bound; bound = w.each; const body = ex(w.value); bound = outer; return `$every($keys(maps, ${JSON.stringify(mapsIn(w.value))}), k => ${body})` }
   const writes = Object.entries(plain.step.maps ?? {})
   const env = (input: boolean) => `{${[...m.params.map(p => `${id(p)}: $n(params[${id(p)}], ${id(`param ${p}`)})`), ...(input ? carried.map(i => `${id(i)}: $n(input[${id(i)}], ${id(`input ${i}`)})`) : [])].join(', ')}}`
-  const lines = [`const env = ${env(true)}, s = state.scalars, maps = state.maps;`]
+  // Reads go through `maps` (with the maps the request carries); writes go to the state's own.
+  const lines = [`const env = ${env(true)}, s = state.scalars, dft = {...state.defaults}, maps = ${carriedMaps.length ? `{...state.maps, ${carriedMaps.map(mp => `${id(mp)}: $m(input[${id(mp)}], ${id(`input ${mp}`)})`).join(', ')}}` : 'state.maps'};`]
   if (h) {
     lines.push('const records = state.history;', 'let head = state.head;')
     if (h.prune) {
@@ -240,23 +295,26 @@ export function compileJs(m: Machine): string {
   }
   lines.push(...flags.map((name, i) => `const flag${i} = ${cx(plain.step.flags![name]!)};`),
     `const scalars = {...s, ${Object.entries(plain.step.state ?? {}).map(([name, e]) => `${id(name)}: ${ex(e)}`).join(', ')}};`,
-    ...writes.map(([, {key, value}], i) => `const key${i} = ${ex(key)}, value${i} = ${ex(value)};`))
+    ...writes.map(([, w], i) => ('each' in w ? `const write${i} = ${every(w)};` : `const key${i} = ${ex(w.key)}, value${i} = ${ex(w.value)};`)))
   if (h) lines.push(`const keep = ${cx(h.keep)};`)
-  lines.push(...writes.map(([name], i) => `maps[${id(name)}].set(key${i}, value${i});`))
+  lines.push(...writes.map(([name, w], i) => ('each' in w ? `state.maps[${id(name)}] = write${i}.cells; dft[${id(name)}] = write${i}.d;` : `state.maps[${id(name)}].set(key${i}, value${i});`)))
   if (h) lines.push(`if (keep) records.push({${h.record.map(f => `${id(f)}: env[${id(f)}]`).join(', ')}});`,
     // Drop the spent prefix now and then, not every step: amortized, each record is moved a bounded number of times.
     'if (head > 1024 && 2 * head > records.length) { records.splice(0, head); head = 0; }',
-    `return {scalars, maps, history: records, head${h.prune ? ', last: order' : ''}};`)
-  else lines.push('return {scalars, maps};')
+    `return {scalars, maps: state.maps, history: records, head${h.prune ? ', last: order' : ''}};`)
+  else lines.push('return Object.keys(dft).length ? {scalars, maps: state.maps, defaults: dft} : {scalars, maps: state.maps};')
   return `// Generated from the machine ${m.name}. step consumes its state: keep the one it returns (fork to branch).
 function $n(v, what) { if (typeof v !== 'number' || !Number.isSafeInteger(v) || v < 0) throw new RangeError(what + ' must be a natural below 2^53, not ' + v); return v; }
 function $x(v) { if (v > 9007199254740991) throw new RangeError('a value passed 2^53 - 1, past which the proofs over the naturals no longer describe the run'); return v; }
+function $m(v, what) { if (!(v instanceof Map)) throw new RangeError(what + ' must be a Map of naturals'); for (const [key, x] of v) { $n(key, 'a key of ' + what); $n(x, 'a cell of ' + what); } return v; }
+function $keys(maps, names) { const keys = new Set(); let past = 0; for (const c of Object.values(maps)) for (const key of c.keys()) past = Math.max(past, key + 1); for (const n of names) for (const key of maps[n].keys()) keys.add(key); return [...keys, past]; }
+function $every(keys, f) { const past = keys[keys.length - 1], d = f(past), cells = new Map(); for (let i = 0; i < keys.length - 1; i++) { const v = f(keys[i]); if (v !== d) cells.set(keys[i], v); } return {cells, d}; }
 export function init(params) {
   const env = ${env(false)}, s = {};
   return {scalars: {${Object.entries(plain.state).map(([name, e]) => `${id(name)}: ${ex(e)}`).join(', ')}}, maps: {${Object.keys(plain.maps ?? {}).map(name => `${id(name)}: new Map()`).join(', ')}}${h ? ', history: [], head: 0' : ''}};
 }
 export function fork(state) {
-  return {scalars: {...state.scalars}, maps: Object.fromEntries(Object.entries(state.maps).map(([name, cells]) => [name, new Map(cells)]))${h ? ', history: state.history.slice(state.head), head: 0, last: state.last' : ''}};
+  return {scalars: {...state.scalars}, maps: Object.fromEntries(Object.entries(state.maps).map(([name, cells]) => [name, new Map(cells)])), ...(state.defaults ? {defaults: {...state.defaults}} : {})${h ? ', history: state.history.slice(state.head), head: 0, last: state.last' : ''}};
 }
 export function step(params, state, input) {
   ${lines.join('\n  ')}
@@ -330,6 +388,7 @@ function symE(e: E, s: Sym): Cases<Lin> {
 // The cases in which c has the given truth value.
 function symC(c: C, s: Sym, truth: boolean): Cases<null> {
   switch (c.op) {
+    case 'all': throw new Error('the symbolic prover takes no quantified flag (the kernel does)')
     case '<': case '<=': case '=':
       return cross(symE(c.a, s), a => symE(c.b, s).flatMap(b => {
         const [p, q] = [a, b.value]
@@ -371,7 +430,7 @@ export type Proof = {law: Law, proven: boolean, obligations: Obligation[]}
 function readsOf(c: C): {map: string, key: E}[] {
   const inE = (e: E): {map: string, key: E}[] => e.op === 'get' ? [{map: e.map, key: e.key}, ...inE(e.key)]
     : e.op === 'if' ? [...readsOfC(e.c), ...inE(e.then), ...inE(e.else)] : 'a' in e ? [...inE(e.a), ...('b' in e ? inE(e.b) : [])] : []
-  const readsOfC = (y: C): {map: string, key: E}[] => y.op === 'flag' ? [] : y.op === 'not' ? readsOfC(y.x) : y.op === 'and' || y.op === 'or' ? y.xs.flatMap(readsOfC) : [...inE(y.a), ...inE(y.b)]
+  const readsOfC = (y: C): {map: string, key: E}[] => y.op === 'flag' || y.op === 'all' ? [] : y.op === 'not' ? readsOfC(y.x) : y.op === 'and' || y.op === 'or' ? y.xs.flatMap(readsOfC) : [...inE(y.a), ...inE(y.b)]
   return readsOfC(c)
 }
 const keyLin = (e: E, names: Record<string, Lin>): Lin => symE(e, {names, reads: noReads})[0]!.value
@@ -442,7 +501,7 @@ export function prove(m: Machine, goal: Law, invariants: Law[] = [goal]): Proof 
   const stepReads = [
     ...Object.values(m.step.flags ?? {}).flatMap(readsOf),
     ...Object.values(m.step.state ?? {}).flatMap(e => readsOf({op: '=', a: e, b: e})),
-    ...Object.entries(m.step.maps ?? {}).flatMap(([map, w]) => [{map, key: w.key}, ...readsOf({op: '=', a: w.value, b: w.value})]),
+    ...Object.entries(m.step.maps ?? {}).flatMap(([map, w]) => [...('each' in w ? [] : [{map, key: w.key}]), ...readsOf({op: '=', a: w.value, b: w.value})]),
   ]
   const pairs = new Map<string, {key: Lin, fkey: Lin}>()
   for (const r of stepReads) {
@@ -474,6 +533,7 @@ export function prove(m: Machine, goal: Law, invariants: Law[] = [goal]): Proof 
       const write = m.step.maps?.[f.map]
       cases = feasible(cross(cases, acc => {
         if (write === undefined) return [{path: [], value: {...acc, [`${f.cell}'`]: v(f.cell)}}]
+        if ('each' in write) throw new Error('the symbolic prover takes no write at every key (the kernel does)')
         return cross(symE(write.key, preSymF), key => {
           const decided = preSymF.decided?.[`${show(key)}|${show(f.key)}`]
           const written = () => symE(write.value, preSymF).map(val => ({path: [...val.path, ...(decided ? [] : eq(key, f.key))], value: {...acc, [`${f.cell}'`]: val.value}}))

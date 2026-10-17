@@ -7,27 +7,27 @@
 // at every k steps in a row the run takes: each step's `when` read with the state it starts from, its request, queries
 // and flags; `then` with the state before the first step (plain names), the first request and its flags, the j-th
 // request as input@j, and the state and maps after the last step (primed names).
-import {type Law, type Machine, type State, evalC, type interpret} from './machine.ts'
+import {type Law, type Machine, type Request, type State, carriedView, evalC, type interpret, numbersOf} from './machine.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
 
 export type Watched = Law | StepLaw
 export const isStepLaw = (w: Watched): w is StepLaw => 'then' in w
 type Runtime = ReturnType<typeof interpret>
 type Env = Record<string, number>
-type Taken = {before: State, input: Env, after: State}
+type Taken = {before: State, input: Request, after: State}
 
 // A request's environment: the params, its inputs and queries, and the step's flags decided (as ?name).
-export function requestEnv(m: Machine, run: Runtime, params: Env, st: State, input: Env): Env {
-  const env: Env = {...params, ...input, ...run.queries(params, st, input)}
-  for (const [name, c] of Object.entries(m.step.flags ?? {})) env[`?${name}`] = evalC(c, env, st, m) ? 1 : 0
+export function requestEnv(m: Machine, run: Runtime, params: Env, st: State, input: Request): Env {
+  const env: Env = {...params, ...numbersOf(input), ...run.queries(params, st, input)}, seen = carriedView(m, st, input)
+  for (const [name, c] of Object.entries(m.step.flags ?? {})) env[`?${name}`] = evalC(c, env, seen, m) ? 1 : 0
   return env
 }
 // Whether the machine allows the request: its assumption, read with the queries and flags.
 // A request whose order goes back (with a pruned history) is one the runtimes refuse.
-export const allowed = (m: Machine, run: Runtime, params: Env, st: State, input: Env): boolean => {
+export const allowed = (m: Machine, run: Runtime, params: Env, st: State, input: Request): boolean => {
   const order = m.history?.prune?.order
-  if (order !== undefined && st.last !== undefined && input[order]! < st.last) return false
-  return !m.assume || evalC(m.assume, requestEnv(m, run, params, st, input), st, m)
+  if (order !== undefined && st.last !== undefined && (input[order] as number) < st.last) return false
+  return !m.assume || evalC(m.assume, requestEnv(m, run, params, st, input), carriedView(m, st, input), m)
 }
 
 // The keys a law about every key is read at: 0 to bound + 1, and every key a map holds.
@@ -43,7 +43,7 @@ export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound: 
   const atKeys = (forall: string | undefined, keys: number[], f: (env: Env) => boolean) => (forall ? keys.every(key => f({[forall]: key})) : f({}))
   if (!isStepLaw(w)) {
     const holds = (st: State) => atKeys(w.forall, keysOf(bound, st), extra => evalC(w.holds, {...params, ...extra}, st, m))
-    return {start: holds, step: (_before: State, _input: Env, after: State) => holds(after)}
+    return {start: holds, step: (_before: State, _input: Request, after: State) => holds(after)}
   }
   const k = w.steps ?? 1, whens = w.when === undefined ? [] : Array.isArray(w.when) ? w.when : [w.when]
   // `then` reads a primed map's cells and initial value as its own map's.
@@ -51,18 +51,21 @@ export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound: 
   const window: Taken[] = []
   return {
     start: (_st: State) => true,
-    step: (before: State, input: Env, after: State) => {
+    step: (before: State, input: Request, after: State) => {
       window.push({before, input, after})
       if (window.length > k) window.shift()
       if (window.length < k) return true
       const envs = window.map(t => requestEnv(m, run, params, t.before, t.input))
-      if (whens.some((c, j) => !evalC(c, envs[j]!, window[j]!.before, m))) return true
+      if (whens.some((c, j) => !evalC(c, envs[j]!, carriedView(m, window[j]!.before, window[j]!.input), m))) return true
       const env: Env = {...envs[0]!}
       window.slice(1).forEach((t, j) => { for (const i of m.inputs) env[`${i}@${j + 2}`] = envs[j + 1]![i]! })
-      const first = window[0]!.before
+      // The first state with the first request's maps; each later request's maps as map@j; the last state primed.
+      let first = carriedView(m, window[0]!.before, window[0]!.input)
+      window.slice(1).forEach((t, j) => { first = carriedView(m, first, t.input, map => `${map}@${j + 2}`) })
       const both: State = {
         scalars: {...first.scalars, ...Object.fromEntries(Object.entries(after.scalars).map(([n, v]) => [`${n}'`, v]))},
         maps: {...first.maps, ...Object.fromEntries(Object.entries(after.maps).map(([n, cells]) => [`${n}'`, cells]))},
+        defaults: {...first.defaults, ...Object.fromEntries(Object.entries(after.defaults ?? {}).map(([n, d]) => [`${n}'`, d]))},
       }
       return atKeys(w.forall, keysOf(bound, first, after), extra => evalC(w.then, {...env, ...extra}, both, primedMaps))
     },

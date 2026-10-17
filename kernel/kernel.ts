@@ -18,7 +18,7 @@
 // meet it), so it holds at the start and at every step; `assume`, about each request, holds only at a step, since no
 // request has come at the start.
 import {checkRefutation} from '../core/check.ts'
-import type {C, E, Law, Machine} from '../core/machine.ts'
+import type {C, E, Law, Machine, MapUpdate} from '../core/machine.ts'
 import {type Constraint, type Lin, type Step, add, k, scale, sub, v} from '../core/solver.ts'
 
 // An exhaustive switch's default: TypeScript proves it unreachable, and if it is reached anyway (a value from outside
@@ -92,6 +92,7 @@ function comparison(c: Extract<C, {a: E}>, path: Path): {when: Lin[], unless: Li
 export function truth(c: C, path: Path): boolean | undefined {
   switch (c.op) {
     case 'flag': throw new Error('flags are inlined before the kernel sees them')
+    case 'all': return undefined // closed before a goal is checked; opaque here, so it gives a leaf nothing
     case 'not': { const t = truth(c.x, path); return t === undefined ? undefined : !t }
     case 'and': case 'or': {
       const ts = c.xs.map(y => truth(y, path)), dominant = c.op === 'or'
@@ -111,6 +112,7 @@ export function truth(c: C, path: Path): boolean | undefined {
 export function facts(c: C, path: Path, positive = true): Lin[] {
   switch (c.op) {
     case 'flag': throw new Error('flags are inlined before the kernel sees them')
+    case 'all': return []
     case 'not': return facts(c.x, path, !positive)
     case 'and': case 'or': {
       if ((c.op === 'and') === positive) return c.xs.flatMap(y => facts(y, path, positive))
@@ -193,7 +195,7 @@ function natural(e: E): boolean {
     default: return unreachable(e)
   }
 }
-const naturalC = (c: C): boolean => c.op === 'flag' ? true : c.op === 'not' ? naturalC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.every(naturalC) : natural(c.a) && natural(c.b)
+const naturalC = (c: C): boolean => c.op === 'flag' ? true : c.op === 'all' ? naturalC(c.c) : c.op === 'not' ? naturalC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.every(naturalC) : natural(c.a) && natural(c.b)
 
 // Substitution: variables by terms, and each map read by what the map holds (the start's constant, or a write over the
 // map before the step).
@@ -213,6 +215,7 @@ function substE(e: E, s: Subst): E {
 export function substC(c: C, s: Subst): C {
   if (c.op === 'flag') { const f = s.flags[c.name]; if (!f) throw new Error(`unknown flag ${c.name}`); return f }
   if (c.op === 'not') return {op: 'not', x: substC(c.x, s)}
+  if (c.op === 'all') { const {[c.key]: _bound, ...vars} = s.vars; return {op: 'all', key: c.key, c: substC(c.c, {...s, vars})} }
   if (c.op === 'and' || c.op === 'or') return {op: c.op, xs: c.xs.map(y => substC(y, s))}
   return {...c, a: substE(c.a, s), b: substE(c.b, s)}
 }
@@ -235,20 +238,24 @@ export type Instances = Record<string, E[]>
 // way). Its goal is the hypotheses with the conclusion refuted. The induction rule, step laws, progress, loops, folds
 // and k-step laws are each a few of these moves; nothing else turns a machine into goals.
 type Run = {hyps: C[], at: Subst}
-type Update = {vars: Record<string, E>, maps: Record<string, {key: E, value: E}>}
+type Update = {vars: Record<string, E>, maps: Record<string, MapUpdate>}
 const identity: Subst = {vars: {}, maps: {}, flags: {}}
 const from = (at: Subst = identity): Run => ({hyps: [], at})
 // Conditions that hold where the run is.
 const holds = (r: Run, cs: C[]): Run => ({hyps: [...r.hyps, ...cs.map(c => substC(c, r.at))], at: r.at})
-// Names read where the run is: inputs named for this step (a request's terms, or fresh names for a later step).
-const reading = (r: Run, vars: Record<string, E>): Run => ({hyps: r.hyps, at: {...r.at, vars: {...r.at.vars, ...vars}}})
+// Names read where the run is: inputs named for this step (a request's terms, or fresh names for a later step), and the
+// maps a request carries, renamed for a later step.
+const reading = (r: Run, vars: Record<string, E>, maps: Record<string, string> = {}): Run => ({hyps: r.hyps, at: {...r.at, vars: {...r.at.vars, ...vars},
+  maps: {...r.at.maps, ...Object.fromEntries(Object.entries(maps).map(([map, name]) => [map, (key: E): E => ({op: 'get', map: name, key})]))}}})
 // One step: each name the update sets is its term read where the run is; a map read after it is the written value at
-// the written key, and what the map held before elsewhere.
+// the written key, and what the map held before elsewhere (or, written at every key, its value at the key read).
 const step = (r: Run, u: Update): Run => {
   const at = r.at, before = (map: string, key: E): E => (at.maps[map] ? at.maps[map]!(key) : {op: 'get', map, key})
   return {hyps: r.hyps, at: {
     vars: {...at.vars, ...Object.fromEntries(Object.entries(u.vars).map(([n, e]) => [n, substE(e, at)]))},
-    maps: {...at.maps, ...Object.fromEntries(Object.entries(u.maps).map(([map, w]) => [map, (key: E): E => ({op: 'if', c: {op: '=', a: key, b: substE(w.key, at)}, then: substE(w.value, at), else: before(map, key)})]))},
+    maps: {...at.maps, ...Object.fromEntries(Object.entries(u.maps).map(([map, w]) => [map, 'each' in w
+      ? (key: E): E => substE(w.value, {...at, vars: {...at.vars, [w.each]: key}})
+      : (key: E): E => ({op: 'if', c: {op: '=', a: key, b: substE(w.key, at)}, then: substE(w.value, at), else: before(map, key)})]))},
     flags: at.flags,
   }}
 }
@@ -262,15 +269,38 @@ const across = (r: Run, c: C, state: string[], maps: string[], first: {inputs: R
   flags: first.flags,
 })
 const goal = (name: string, r: Run, conclusion: C): Goal => ({name, hyps: [...r.hyps, {op: 'not', x: conclusion}]})
-// A machine's step as an update, its flags inlined (they are decided before the step, over the frame it starts from).
+// A machine's flags as its terms read them (decided before the step, over the frame it starts from): a plain flag its
+// condition (through the flags before it), a quantified flag (one whose condition holds at every key) its 0/1 variable
+// ?f, which `closing` ties to the condition.
+const flagsOf = (m: Machine): Record<string, C> => {
+  const out: Record<string, C> = {}
+  for (const [f, c] of Object.entries(m.step.flags ?? {})) out[f] = c.op === 'all' ? {op: '=', a: {op: 'var', name: `?${f}`}, b: {op: 'const', value: 1}} : substC(c, {vars: {}, maps: {}, flags: out})
+  return out
+}
+const quantified = (m: Machine) => Object.entries(m.step.flags ?? {}).filter((e): e is [string, Extract<C, {op: 'all'}>] => e[1].op === 'all')
+// A machine's step as an update, its flags inlined.
 const updateOf = (m: Machine): Update => {
-  const flags: Subst = {vars: {}, maps: {}, flags: m.step.flags ?? {}}
+  const flags: Subst = {vars: {}, maps: {}, flags: flagsOf(m)}
   return {
     vars: Object.fromEntries(Object.entries(m.step.state ?? {}).map(([n, e]) => [n, substE(e, flags)])),
-    maps: Object.fromEntries(Object.entries(m.step.maps ?? {}).map(([map, w]) => [map, {key: substE(w.key, flags), value: substE(w.value, flags)}])),
+    maps: Object.fromEntries(Object.entries(m.step.maps ?? {}).map(([map, w]) => [map, 'each' in w ? {each: w.each, value: substE(w.value, flags)} : {key: substE(w.key, flags), value: substE(w.value, flags)}])),
   }
 }
-const inlineFlags = (m: Machine, c: C): C => substC(c, {vars: {}, maps: {}, flags: m.step.flags ?? {}})
+const inlineFlags = (m: Machine, c: C): C => substC(c, {vars: {}, maps: {}, flags: flagsOf(m)})
+// A quantified flag ?f, closed: it is 0 or 1; where it is 1, its condition holds at each key the proof names (instances
+// under ?f); where it is 0, the condition fails at a fresh witness w?f. A real step decides ?f by the condition, and if
+// that fails some key fails it, so these hold of every real step: a goal that refutes them refutes the machine.
+const closing = (m: Machine, instances: Instances): C[] => quantified(m).flatMap(([f, q]): C[] => {
+  const v: E = {op: 'var', name: `?${f}`}, zero: E = {op: 'const', value: 0}, one: E = {op: 'const', value: 1}
+  const body = (key: E): C => substC(q.c, {vars: {[q.key]: key}, maps: {}, flags: flagsOf(m)})
+  return [{op: '<=', a: v, b: one}, ...(instances[`?${f}`] ?? []).map((key): C => ({op: 'or', xs: [{op: '=', a: v, b: zero}, body(key)]})),
+    {op: 'or', xs: [{op: '=', a: v, b: one}, {op: 'not', x: body({op: 'var', name: `w?${f}`})}]}]
+})
+// The names a later step (j >= 2) reads its request by: inputs, quantified flags and their witnesses, and carried maps.
+const laterNames = (m: Machine, j: number) => ({
+  vars: Object.fromEntries([...m.inputs, ...quantified(m).flatMap(([f]) => [`?${f}`, `w?${f}`])].map(name => [name, {op: 'var', name: `${name}@${j}`} as E])),
+  maps: Object.fromEntries((m.inputMaps ?? []).map(map => [map, `${map}@${j}`])),
+})
 // The laws assumed where the run is: each plain law, and each every-key law at the keys the proof names.
 const assumed = (laws: Law[], instances: Instances): C[] => laws.flatMap(l => (l.forall ? (instances[l.name] ?? []).map(key => substC(l.holds, {vars: {[l.forall!]: key}, maps: {}, flags: {}})) : [l.holds]))
 // The start: the state's start values over the params, every map cell its constant.
@@ -288,6 +318,7 @@ function reads(t: E | C, out: Reads = {vars: new Set(), maps: new Set(), flags: 
     case 'const': break
     case 'get': out.maps.add(t.map); reads(t.key, out); break
     case 'flag': out.flags.add(t.name); break
+    case 'all': { const inner = reads(t.c); inner.vars.delete(t.key); for (const k of ['vars', 'maps', 'flags'] as const) for (const name of inner[k]) out[k].add(name); break }
     case 'not': reads(t.x, out); break
     case 'and': case 'or': for (const y of t.xs) reads(y, out); break
     case 'mul': reads(t.a, out); break
@@ -314,22 +345,68 @@ const distinct = (what: string, names: string[]) => { const seen = new Set<strin
 // step reads params, inputs and the state before it; a flag reads the flags declared before it; a start value reads the
 // params; a law reads the params, the state, the maps and its own key.
 export function scope(m: Machine, laws: Law[] = []) {
-  const state = Object.keys(m.state), maps = Object.keys(m.maps ?? {}), flags = Object.keys(m.step.flags ?? {})
+  const state = Object.keys(m.state), maps = Object.keys(m.maps ?? {}), flags = Object.keys(m.step.flags ?? {}), carried = m.inputMaps ?? []
   const names = [...m.params, ...m.inputs, ...state]
-  distinct(m.name, [...names, ...maps])
-  for (const name of [...names, ...maps, ...flags]) plainName(m.name, name)
+  distinct(m.name, [...names, ...maps, ...carried])
+  for (const name of [...names, ...maps, ...carried, ...flags]) plainName(m.name, name)
   for (const name of Object.keys(m.step.state ?? {})) if (!state.includes(name)) throw new Error(`${m.name}'s step sets ${name}, which isn't in its state`)
   for (const map of Object.keys(m.step.maps ?? {})) if (!maps.includes(map)) throw new Error(`${m.name}'s step writes the map ${map}, which it doesn't declare`)
+  // The step reads the maps a request carries too. A key bound by a quantified flag or a write at every key is new and
+  // read only as a map's key (so every key the maps hold nothing at reads alike); a quantifier is a whole flag, nowhere
+  // else.
+  const readable = [...maps, ...carried]
+  const bound = (what: string, key: string, t: E | C) => {
+    plainName(what, key)
+    if ([...names, ...readable, ...flags].includes(key)) throw new Error(`${what}: the key ${key} is already a name of ${m.name}`)
+    keyOnly(what, t, key)
+  }
   inScope(`${m.name}'s start`, Object.values(m.state), m.params)
-  Object.values(m.step.flags ?? {}).forEach((c, i) => inScope(`${m.name}'s flag ${flags[i]}`, [c], names, maps, flags.slice(0, i)))
-  inScope(`${m.name}'s step`, [...Object.values(m.step.state ?? {}), ...Object.values(m.step.maps ?? {}).flatMap(w => [w.key, w.value])], names, maps, flags)
-  if (m.assume) inScope(`${m.name}'s assumption`, [m.assume], names, maps, flags)
+  flags.forEach((f, i) => {
+    const c = m.step.flags![f]!, what = `${m.name}'s flag ${f}`
+    // A quantified flag's body reads no flag (the twin decides quantified flags before the plain ones).
+    if (c.op === 'all') { bound(what, c.key, c.c); unquantified(what, c.c); inScope(what, [c.c], [...names, c.key], readable, []) }
+    else { unquantified(what, c); inScope(what, [c], names, readable, flags.slice(0, i)) }
+  })
+  for (const [map, w] of Object.entries(m.step.maps ?? {})) {
+    const what = `${m.name}'s write to ${map}`
+    if ('each' in w) { bound(what, w.each, w.value); unquantified(what, w.value); inScope(what, [w.value], [...names, w.each], readable, flags) }
+    else { unquantified(what, w.key); unquantified(what, w.value); inScope(what, [w.key, w.value], names, readable, flags) }
+  }
+  for (const e of Object.values(m.step.state ?? {})) unquantified(`${m.name}'s step`, e)
+  inScope(`${m.name}'s step`, Object.values(m.step.state ?? {}), names, readable, flags)
+  if (m.assume) { unquantified(`${m.name}'s assumption`, m.assume); inScope(`${m.name}'s assumption`, [m.assume], names, readable, flags) }
   if (m.pre) inScope(`${m.name}'s precondition`, [m.pre], m.params)
   distinct(`${m.name}'s laws`, laws.map(l => l.name))
   for (const law of laws) {
-    if (law.forall && [...names, ...maps].includes(law.forall)) throw new Error(`law ${law.name}'s key ${law.forall} is already a name of ${m.name}`)
+    if (law.forall && [...names, ...maps, ...carried].includes(law.forall)) throw new Error(`law ${law.name}'s key ${law.forall} is already a name of ${m.name}`)
+    if (law.name.startsWith('?')) throw new Error(`law ${law.name}: a name starting with ? is a flag's (its instances)`)
+    unquantified(`law ${law.name}`, law.holds)
     inScope(`law ${law.name}`, [law.holds], [...m.params, ...state, ...(law.forall ? [law.forall] : [])], maps)
   }
+}
+
+// A key bound in t is read only as a map's key (M[key]), never in arithmetic or a comparison.
+function keyOnly(what: string, t: E | C, key: string): void {
+  const bad = () => { throw new Error(`${what}: the key ${key} is read only as a map's key`) }
+  const walk = (u: E | C): void => {
+    switch (u.op) {
+      case 'var': if (u.name === key) bad(); break
+      case 'get': if (!(u.key.op === 'var' && u.key.name === key)) walk(u.key); break
+      case 'const': case 'flag': break
+      case 'not': walk(u.x); break
+      case 'all': walk(u.c); break
+      case 'and': case 'or': u.xs.forEach(walk); break
+      case 'mul': walk(u.a); break
+      case 'if': walk(u.c); walk(u.then); walk(u.else); break
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case '<': case '<=': case '=': walk(u.a); walk(u.b); break
+      default: unreachable(u)
+    }
+  }
+  walk(t)
+}
+// No quantifier inside t: a quantifier is a whole flag.
+function unquantified(what: string, t: E | C): void {
+  if (JSON.stringify(t).includes('"op":"all"')) throw new Error(`${what}: a condition at every key is a flag of its own (flags: {name: all(...)})`)
 }
 
 // --- histories ---------------------------------------------------------------------------------------------------------
@@ -346,6 +423,7 @@ const homogeneous = (e: E, names: string[]): boolean => e.op === 'var' ? names.i
 export function historyMachine(m: Machine): {machine: Machine, goals: Goal[]} {
   const h = m.history
   if (!h) return {machine: m, goals: []}
+  if (m.inputMaps?.length || quantified(m).length || Object.values(m.step.maps ?? {}).some(w => 'each' in w)) throw new Error(`${m.name}: a machine with a history has no maps carried by requests, quantified flags or writes at every key`)
   const queries = Object.keys(h.queries), sums = Object.keys(h.sums), plainInputs = m.inputs.filter(i => !queries.includes(i))
   const fields = h.record.map(f => `r.${f}`)
   const taken = [...m.params, ...m.inputs, ...Object.keys(m.state), ...Object.keys(m.step.state ?? {})]
@@ -383,7 +461,7 @@ export function historyMachine(m: Machine): {machine: Machine, goals: Goal[]} {
 export function obligations(m: Machine, laws: Law[], instances: Record<string, Instances> = {}): Goal[] {
   if (m.history) { const {machine, goals} = historyMachine(m); return [...obligations(machine, laws, instances), ...goals] }
   scope(m, laws)
-  const ok = [...Object.values(m.state), ...Object.values(m.step.state ?? {}), ...Object.values(m.step.maps ?? {}).flatMap(w => [w.key, w.value])].every(natural)
+  const ok = [...Object.values(m.state), ...Object.values(m.step.state ?? {}), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.value] : [w.key, w.value]))].every(natural)
     && Object.values(m.step.flags ?? {}).every(naturalC) && laws.every(l => naturalC(l.holds)) && Object.values(m.maps ?? {}).every(c => Number.isInteger(c) && c >= 0)
   if (!ok || laws.some(l => mentions(l.holds, m.inputs))) throw new Error('a negative constant or factor, or a law about a request, is outside the kernel')
   // A law that holds at every key is proven at a fresh one.
@@ -392,7 +470,7 @@ export function obligations(m: Machine, laws: Law[], instances: Record<string, I
   return laws.flatMap(law => {
     // At the start: the precondition, and no request. One step: from a state where the laws hold, a request allowed.
     const start = holds(from(startOf(m)), pre)
-    const turn = step(holds(from(), [...pre, ...assume, ...assumed(laws, instances[law.name] ?? {})]), u)
+    const turn = step(holds(from(), [...pre, ...assume, ...assumed(laws, instances[law.name] ?? {}), ...closing(m, instances[law.name] ?? {})]), u)
     return [goal(`${law.name} @start`, start, atEnd(start, proven(law))), goal(`${law.name} @step`, turn, atEnd(turn, proven(law)))]
   })
 }
@@ -449,12 +527,14 @@ export function progressObligations(m: Machine, laws: Law[], instances: Instance
   if (!m.inputs.every(i => i in p.request) || !Object.values(p.request).every(natural) || mentions(p.when, m.inputs)) throw new Error('outside the kernel')
   for (const e of Object.values(p.request)) if (mentions({op: '=', a: e, b: e}, m.inputs)) throw new Error('a request is named from the state and params')
   const req: Subst = {vars: p.request, maps: {}, flags: {}}
-  const flags = Object.fromEntries(Object.entries(m.step.flags ?? {}).map(([f, c]) => [f, substC(c, req)]))
-  // The run: a state where the laws and `when` hold, then the step the named request causes.
+  const flags = Object.fromEntries(Object.entries(flagsOf(m)).map(([f, c]) => [f, substC(c, req)]))
+  // The run: a state where the laws and `when` hold, the named request (its quantified flags closed), then the step it
+  // causes. Maps a request carries are left as any maps: the step is shown for all of them.
   const before = holds(from(), [...preOf(m), ...assumed(laws, instances), p.when])
-  const caused = step(reading(before, p.request), updateOf(m))
+  const asked = holds(reading(before, p.request), closing(m, instances))
+  const caused = step(asked, updateOf(m))
   return [
-    ...(m.assume ? [goal(`${p.name}: the request is allowed`, before, substC(m.assume, req))] : []),
+    ...(m.assume ? [goal(`${p.name}: the request is allowed`, asked, substC(inlineFlags(m, m.assume), req))] : []),
     goal(`${p.name}: the step it causes`, caused, across(caused, p.then, Object.keys(m.state), Object.keys(m.maps ?? {}), {inputs: p.request, flags})),
   ]
 }
@@ -481,22 +561,24 @@ export function stepLawObligations(machine: Machine, laws: Law[], instances: Ins
   if (!Number.isInteger(k) || k < 1 || k > 16) throw new Error(`step law ${sl.name}: steps is a whole number from 1 to 16`)
   const whens = sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when]
   if (whens.length > k) throw new Error(`step law ${sl.name}: one when per step at most`)
-  const state = Object.keys(m.state), maps = Object.keys(m.maps ?? {}), flagNames = Object.keys(m.step.flags ?? {})
+  const state = Object.keys(m.state), maps = Object.keys(m.maps ?? {}), carried = m.inputMaps ?? [], flagNames = Object.keys(m.step.flags ?? {})
   const primes = [...state, ...maps].map(n => `${n}'`)
-  const later = Array.from({length: k - 1}, (_, i) => m.inputs.map(input => `${input}@${i + 2}`)).flat()
-  const taken = [...m.params, ...m.inputs, ...state, ...maps]
-  for (const p of [...primes, ...later]) if (taken.includes(p)) throw new Error(`${m.name}: ${p} is a name of the machine and a name a step law reads`)
+  const laters = Array.from({length: k - 1}, (_, i) => laterNames(m, i + 2))
+  const later = laters.flatMap(l => Object.values(l.vars).map(e => (e as {name: string}).name)), laterMaps = laters.flatMap(l => Object.values(l.maps))
+  const taken = [...m.params, ...m.inputs, ...state, ...maps, ...carried]
+  for (const p of [...primes, ...later, ...laterMaps]) if (taken.includes(p)) throw new Error(`${m.name}: ${p} is a name of the machine and a name a step law reads`)
   if (sl.forall && [...taken, ...primes, ...later].includes(sl.forall)) throw new Error(`step law ${sl.name}'s key ${sl.forall} is already a name of ${m.name}`)
-  inScope(`step law ${sl.name}`, [sl.then], [...taken, ...state.map(n => `${n}'`), ...later, ...(sl.forall ? [sl.forall] : [])], [...maps, ...maps.map(n => `${n}'`)], flagNames)
-  for (const w of whens) inScope(`step law ${sl.name}'s when`, [w], taken, maps, flagNames)
+  unquantified(`step law ${sl.name}`, sl.then)
+  inScope(`step law ${sl.name}`, [sl.then], [...taken, ...state.map(n => `${n}'`), ...later, ...(sl.forall ? [sl.forall] : [])], [...maps, ...carried, ...maps.map(n => `${n}'`), ...laterMaps], flagNames)
+  for (const w of whens) { unquantified(`step law ${sl.name}'s when`, w); inScope(`step law ${sl.name}'s when`, [w], taken, [...maps, ...carried], flagNames) }
   if (!naturalC(sl.then) || !whens.every(naturalC)) throw new Error(`step law ${sl.name}: a negative constant or factor is outside the kernel`)
   const u = updateOf(m), assume = m.assume ? [inlineFlags(m, m.assume)] : []
   let run = holds(from(), preOf(m))
   for (let j = 1; j <= k; j++) {
-    if (j > 1) run = reading(run, Object.fromEntries(m.inputs.map(input => [input, {op: 'var', name: `${input}@${j}`} as E])))
-    run = step(holds(run, [...assumed(laws, instances), ...assume, ...(whens[j - 1] ? [inlineFlags(m, whens[j - 1]!)] : [])]), u)
+    if (j > 1) run = reading(run, laters[j - 2]!.vars, laters[j - 2]!.maps)
+    run = step(holds(run, [...assumed(laws, instances), ...assume, ...(whens[j - 1] ? [inlineFlags(m, whens[j - 1]!)] : []), ...closing(m, instances)]), u)
   }
-  return [goal(k === 1 ? `${sl.name} @step law` : `${sl.name} @${k} steps`, run, across(run, sl.then, state, maps, {inputs: {}, flags: m.step.flags ?? {}}))]
+  return [goal(k === 1 ? `${sl.name} @step law` : `${sl.name} @${k} steps`, run, across(run, sl.then, state, maps, {inputs: {}, flags: flagsOf(m)}))]
 }
 
 // The laws' proof and every step law's tree: all must check.

@@ -2,7 +2,7 @@
 // candidate per index. The machine and its law compile to straight-line u32 code (what the forked Handwired's word
 // operations would emit), once as WGSL and once as JavaScript for the CPU baseline. Nothing here is trusted: whatever
 // the kernel reports is replayed by the interpreter before it is shown.
-import {type C, type E, type Law, type Machine, compileFunction, evalC, interpret} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, type Request, compileFunction, evalC, interpret, noQuantifier, pointWrite} from '../core/machine.ts'
 import {type Watched, allowed, isStepLaw, watch} from '../core/watch.ts'
 import {historyMachine} from '../kernel/kernel.ts'
 
@@ -11,9 +11,11 @@ export const NONE = 0xffffffff
 
 // The inputs a request carries: a machine with a history computes its queries from the log.
 export const carried = (m: Machine) => m.inputs.filter(i => !Object.keys(m.history?.queries ?? {}).includes(i))
+// The digits a step's request takes: its carried inputs, then each map it carries as one digit per cell 0..bound.
+export const stepDigits = (m: Machine, bound: number) => carried(m).length + (m.inputMaps?.length ?? 0) * (bound + 1)
 export function size(m: Machine, s: Space) {
   const base = s.bound + 1
-  return base ** m.params.length * base ** (carried(m).length * s.depth)
+  return base ** m.params.length * base ** (stepDigits(m, s.bound) * s.depth)
 }
 
 // Index → params and the request at each step (params are the lowest digits, then step 1's inputs, and so on).
@@ -22,13 +24,17 @@ export function decode(m: Machine, s: Space, index: number) {
   let rest = index
   const digit = () => { const d = rest % base; rest = Math.floor(rest / base); return d }
   const params = Object.fromEntries(m.params.map(p => [p, digit()]))
-  const trace = Array.from({length: s.depth}, () => Object.fromEntries(carried(m).map(name => [name, digit()])))
+  const trace: Request[] = Array.from({length: s.depth}, () => {
+    const input: Request = Object.fromEntries(carried(m).map(name => [name, digit()]))
+    for (const map of m.inputMaps ?? []) input[map] = new Map(Array.from({length: base}, (_, key) => [key, digit()] as const).filter(([, v]) => v !== 0))
+    return input
+  })
   return {params, trace}
 }
 
 // Replays a candidate with the interpreter, the law (or step law) read along the run by core/watch.ts: the depth at
 // which it fails (0 = at the start), or undefined.
-export function replay(m: Machine, law: Watched, s: Space, index: number): {params: Record<string, number>, trace: Record<string, number>[]} | undefined {
+export function replay(m: Machine, law: Watched, s: Space, index: number): {params: Record<string, number>, trace: Request[]} | undefined {
   const {params, trace} = decode(m, s, index)
   const run = interpret(m)
   if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) return undefined
@@ -49,6 +55,10 @@ export function fitsU32(given: Machine, law: Watched, s: Space): void {
   const m = given.history ? historyMachine(given).machine : given
   const vars: Record<string, number> = {}, cells: Record<string, number> = {...m.maps}
   for (const name of [...m.params, ...m.inputs]) vars[name] = s.bound
+  // A map a request carries holds digits; a key bound by a quantified flag or a write at every key is any cell.
+  for (const map of given.inputMaps ?? []) cells[map] = s.bound
+  for (const c of Object.values(m.step.flags ?? {})) if (c.op === 'all') vars[c.key] = s.bound + 1
+  for (const w of Object.values(m.step.maps ?? {})) if ('each' in w) vars[w.each] = s.bound + 1
   if (law.forall) vars[law.forall] = s.bound + 1
   // A step law's later requests are inputs too.
   if (isStepLaw(law)) for (let j = 2; j <= (law.steps ?? 1); j++) for (const name of m.inputs) vars[`${name}@${j}`] = s.bound
@@ -69,7 +79,9 @@ export function fitsU32(given: Machine, law: Watched, s: Space): void {
     if (!(v <= limit)) throw new Error(`${m.name}: at depth ${s.depth} and bound ${s.bound}, a value could pass 2^32 - 1, where the GPU search's u32 code would wrap`)
     return v
   }
-  const upC = (c: C): void => { if (c.op === 'not') upC(c.x); else if (c.op === 'and' || c.op === 'or') c.xs.forEach(upC); else if (c.op !== 'flag') (up(c.a), up(c.b)) }
+  const upC = (c: C): void => { if (c.op === 'not') upC(c.x); else if (c.op === 'and' || c.op === 'or') c.xs.forEach(upC); else if (c.op === 'all') upC(c.c); else if (c.op !== 'flag') (up(c.a), up(c.b)) }
+  // A step law's later requests carry maps too.
+  if (isStepLaw(law)) for (let j = 2; j <= (law.steps ?? 1); j++) for (const map of given.inputMaps ?? []) cells[`${map}@${j}`] = s.bound
   // A query sums its term over at most `depth` records, each field within the bound.
   for (const [q, g] of Object.entries(given.history?.queries ?? {})) {
     for (const f of given.history!.record) vars[`r.${f}`] = s.bound
@@ -90,7 +102,7 @@ export function fitsU32(given: Machine, law: Watched, s: Space): void {
     if (m.assume) upC(m.assume)
     for (const c of Object.values(m.step.flags ?? {})) upC(c)
     const next = Object.entries(m.step.state ?? {}).map(([name, e]) => [name, up(e)] as const)
-    const written = Object.entries(m.step.maps ?? {}).map(([map, w]) => (up(w.key), [map, up(w.value)] as const))
+    const written = Object.entries(m.step.maps ?? {}).map(([map, w]) => ('each' in w ? [map, up(w.value)] as const : (up(w.key), [map, up(w.value)] as const)))
     for (const [name, v] of next) vars[name] = Math.max(vars[name]!, v)
     for (const [map, v] of written) cells[map] = Math.max(cells[map]!, v)
     read()
@@ -118,6 +130,7 @@ export function expressions(m: Machine, target: Target, name: (n: string) => str
   }
   const cx = (c: C): string => {
     switch (c.op) {
+      case 'all': return noQuantifier('the hand-written shader')
       case '<': return `(${ex(c.a)} < ${ex(c.b)})`
       case '<=': return `(${ex(c.a)} <= ${ex(c.b)})`
       case '=': return `(${ex(c.a)} == ${ex(c.b)})`
@@ -135,7 +148,7 @@ export function emit(m: Machine, law: Law, s: Space, target: Target): string {
   const K = s.bound + 1 // cells 0..bound are stored; every key above holds the map's initial value
   fitsU32(m, law, s)
   const isVar = (e: E) => e.op === 'var' && (m.params.includes(e.name) || m.inputs.includes(e.name))
-  for (const w of Object.values(m.step.maps ?? {})) if (!isVar(w.key)) throw new Error('the GPU search writes maps only at a param or input key')
+  for (const w of Object.values(m.step.maps ?? {})) if (!isVar(pointWrite(w, 'the hand-written shader').key)) throw new Error('the GPU search writes maps only at a param or input key')
   const name = (n: string) => (m.params.includes(n) ? `p_${n}` : m.inputs.includes(n) ? `i_${n}` : n === law.forall ? 'kk' : `s_${n}`)
   const {ex, cx, u} = expressions(m, target, name, K)
   const decl = (n: string, init: string, mutable = true) => (target === 'wgsl' ? `${mutable ? 'var' : 'let'} ${n}: u32 = ${init};` : `${mutable ? 'let' : 'const'} ${n} = ${init};`)
@@ -157,7 +170,7 @@ export function emit(m: Machine, law: Law, s: Space, target: Target): string {
   for (const [n, e] of next) body.push(decl(`n_${n}`, ex(e), false))
   for (const [map, w] of writes) body.push(decl(`w_${map}`, ex(w.value), false))
   for (const [n] of next) body.push(`s_${n} = n_${n};`)
-  for (const [map, w] of writes) body.push(`m_${map}[${ex(w.key)}] = w_${map};`)
+  for (const [map, w] of writes) body.push(`m_${map}[${ex(pointWrite(w, 'the hand-written shader').key)}] = w_${map};`)
   body.push(check(target === 'wgsl' ? 't + 1u' : 't + 1'))
   lines.push(`for (${target === 'wgsl' ? 'var t = 0u' : 'let t = 0'}; t < ${u(s.depth)}; t++) {`, ...body.map(l => `  ${l}`), '}', `return ${u(NONE)};`)
   return lines.map(l => `  ${l}`).join('\n')

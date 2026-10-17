@@ -47,7 +47,7 @@ const ev = (e: E, env: Env): number => {
   }
 }
 const evC = (c: C, env: Env): boolean => c.op === 'not' ? !evC(c.x, env) : c.op === 'and' ? c.xs.every(y => evC(y, env)) : c.op === 'or' ? c.xs.some(y => evC(y, env))
-  : c.op === 'flag' ? false : c.op === '<' ? ev(c.a, env) < ev(c.b, env) : c.op === '<=' ? ev(c.a, env) <= ev(c.b, env) : ev(c.a, env) === ev(c.b, env)
+  : c.op === 'flag' || c.op === 'all' ? false : c.op === '<' ? ev(c.a, env) < ev(c.b, env) : c.op === '<=' ? ev(c.a, env) <= ev(c.b, env) : ev(c.a, env) === ev(c.b, env)
 const models = function* (): Generator<Env> {
   for (let m = 0; m < 256; m++) { const M = [m & 3, (m >> 2) & 3, (m >> 4) & 3, (m >> 6) & 3]
     for (let x = 0; x < 4; x++) for (let y = 0; y < 4; y++) for (let z = 0; z < 4; z++) yield {x, y, z, M} }
@@ -69,7 +69,7 @@ test('the kernel never accepts a refutation of something with a model', () => {
   console.log(`${accepted} refutations accepted and confirmed by brute force, ${stuck} with a candidate model (${noSmall.length} of them with no model in the small range), of ${total}`)
   expect(accepted).toBeGreaterThan(50 * scale)
   expect(noSmall.filter(why => why === 'unknown')).toEqual([]) // every linear goal left open has an integer witness
-}, 600000)
+}, 1200000) // the slowest shards take up to ~860 s on a busy Modal machine
 
 // Higher degrees: monotone polynomials up to degree three (a·v + b·v·w + c·v·v·w, w another natural), true and false
 // variants, through the prover and through leaves given random products, including products of earlier product rows.

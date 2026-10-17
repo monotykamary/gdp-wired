@@ -4,224 +4,224 @@
 "cmd": "FUZZ_SEED=12345 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-1",
 "cmd": "FUZZ_SEED=1 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-2",
 "cmd": "FUZZ_SEED=2 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-3",
 "cmd": "FUZZ_SEED=3 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-4",
 "cmd": "FUZZ_SEED=4 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-5",
 "cmd": "FUZZ_SEED=5 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-6",
 "cmd": "FUZZ_SEED=6 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-7",
 "cmd": "FUZZ_SEED=7 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-8",
 "cmd": "FUZZ_SEED=8 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-9",
 "cmd": "FUZZ_SEED=9 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-10",
 "cmd": "FUZZ_SEED=10 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-11",
 "cmd": "FUZZ_SEED=11 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-12",
 "cmd": "FUZZ_SEED=12 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-13",
 "cmd": "FUZZ_SEED=13 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-14",
 "cmd": "FUZZ_SEED=14 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-15",
 "cmd": "FUZZ_SEED=15 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-16",
 "cmd": "FUZZ_SEED=16 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-17",
 "cmd": "FUZZ_SEED=17 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-18",
 "cmd": "FUZZ_SEED=18 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-19",
 "cmd": "FUZZ_SEED=19 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-20",
 "cmd": "FUZZ_SEED=20 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-21",
 "cmd": "FUZZ_SEED=21 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-22",
 "cmd": "FUZZ_SEED=22 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-23",
 "cmd": "FUZZ_SEED=23 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-24",
 "cmd": "FUZZ_SEED=24 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-25",
 "cmd": "FUZZ_SEED=25 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-26",
 "cmd": "FUZZ_SEED=26 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-27",
 "cmd": "FUZZ_SEED=27 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-28",
 "cmd": "FUZZ_SEED=28 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-29",
 "cmd": "FUZZ_SEED=29 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-30",
 "cmd": "FUZZ_SEED=30 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "fuzz-31",
 "cmd": "FUZZ_SEED=31 bun test kernel.test.ts 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
-"timeout": 900
+"timeout": 1800
 },
 {
 "name": "run-kernel",
@@ -747,6 +747,14 @@
 "cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean Steps.lean 2>&1 | tail -3; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
 },
 {
+"name": "lean-sets",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 2400,
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && (lean -o Sets.olean Sets.lean > sets0.out 2>&1 || (grep -v -e 'depends on axioms' sets0.out | grep -A14 error | head -150; echo sets-lean-failed; exit 1)) && ! grep -q \"declaration uses 'sorry'\" sets0.out && bun export-kernel.ts --sets > SetsTrees.lean && (time lean SetsTrees.lean) > sets.out 2>&1; s=$?; grep -v -e linter -e Hint -e Omit -e 'unused' sets.out | head -80; echo lean-exit $s; exit $s"
+},
+{
 "name": "lean-package",
 "cwd": ".",
 "cpu": 4.0,
@@ -766,6 +774,13 @@
 "cmd": "FUZZ_SCALE=10 bun test steplaw.test.ts -t 'k steps' 2>&1",
 "cwd": "kernel",
 "cpu": 1.0,
+"timeout": 1800
+},
+{
+"name": "sets",
+"cmd": "bun test sets.test.ts 2>&1 && cd .. && bun examples/sets.ts 2>&1",
+"cwd": "kernel",
+"cpu": 2.0,
 "timeout": 1800
 }
 ]

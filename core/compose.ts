@@ -19,7 +19,7 @@ function rename(e: E, prefix: string, m: Machine, inputs: Record<string, E>): E 
     case 'const': return e
     case 'mul': return {...e, a: rename(e.a, prefix, m, inputs)}
     case 'if': return {op: 'if', c: renameC(e.c, prefix, m, inputs), then: rename(e.then, prefix, m, inputs), else: rename(e.else, prefix, m, inputs)}
-    case 'get': return {op: 'get', map: `${prefix}${e.map}`, key: rename(e.key, prefix, m, inputs)}
+    case 'get': return {op: 'get', map: m.inputMaps?.includes(e.map) ? e.map : `${prefix}${e.map}`, key: rename(e.key, prefix, m, inputs)}
     case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...e, a: rename(e.a, prefix, m, inputs), b: rename(e.b, prefix, m, inputs)}
     default: return unreachable(e)
   }
@@ -28,6 +28,7 @@ function renameC(c: C, prefix: string, m: Machine, inputs: Record<string, E>): C
   if (c.op === 'flag') return {op: 'flag', name: `${prefix}${c.name}`}
   if (c.op === 'not') return {op: 'not', x: renameC(c.x, prefix, m, inputs)}
   if (c.op === 'and' || c.op === 'or') return {op: c.op, xs: c.xs.map(y => renameC(y, prefix, m, inputs))}
+  if (c.op === 'all') return {op: 'all', key: `${prefix}${c.key}`, c: renameC(c.c, prefix, m, inputs)} // the key renamed with its side
   return {...c, a: rename(c.a, prefix, m, inputs), b: rename(c.b, prefix, m, inputs)}
 }
 // A condition (or law) of one side, read in the composed machine.
@@ -44,6 +45,7 @@ function renamed(m: Machine, p: string, inputs: Record<string, E>, stays?: C) {
       flags: Object.fromEntries(Object.entries(m.step.flags ?? {}).map(([n, c]) => [`${p}${n}`, renameC(c, p, m, inputs)])),
       state: Object.fromEntries(Object.entries(m.step.state ?? {}).map(([n, e]) => [`${p}${n}`, keep(rename(e, p, m, inputs), x(`${p}${n}`))])),
       maps: Object.fromEntries(Object.entries(m.step.maps ?? {}).map(([n, w]) => {
+        if ('each' in w) return [`${p}${n}`, {each: `${p}${w.each}`, value: keep(rename(w.value, p, m, inputs), {op: 'get', map: `${p}${n}`, key: x(`${p}${w.each}`)})}]
         const key = rename(w.key, p, m, inputs)
         return [`${p}${n}`, {key, value: keep(rename(w.value, p, m, inputs), {op: 'get', map: `${p}${n}`, key})}]
       })),
@@ -55,6 +57,8 @@ const join = (a: ReturnType<typeof renamed>, b: ReturnType<typeof renamed>) => (
   state: {...a.state, ...b.state}, maps: {...a.maps, ...b.maps},
   step: {flags: {...a.step.flags, ...b.step.flags}, state: {...a.step.state, ...b.step.state}, maps: {...a.step.maps, ...b.step.maps}},
 })
+// The maps requests carry: shared by name, as inputs are.
+const carriedBy = (...ms: Machine[]) => { const names = [...new Set(ms.flatMap(m => m.inputMaps ?? []))]; return names.length ? {inputMaps: names} : {} }
 const conj = (cs: (C | undefined)[]): C | undefined => { const xs = cs.filter((c): c is C => c !== undefined); return xs.length ? all(...xs) : undefined }
 
 // a and b stepped by the same requests. `bInputs` rewrites what b sees (other tenants' requests as no-ops, say).
@@ -65,7 +69,7 @@ export function product(a: Machine, b: Machine, opts: {name?: string, params?: s
     name: opts.name ?? `${a.name} | ${b.name}`,
     params: [...new Set([...a.params, ...b.params, ...(opts.params ?? [])])],
     inputs: [...new Set([...a.inputs, ...b.inputs, ...(opts.inputs ?? [])])],
-    ...join(A, B),
+    ...join(A, B), ...carriedBy(a, b),
     ...(assume ? {assume} : {}),
     ...(pre ? {pre} : {}),
   }
@@ -83,7 +87,7 @@ export function interleave(a: Machine, b: Machine, opts: {name?: string, turn?: 
     name: opts.name ?? `${a.name} || ${b.name}`,
     params: [...new Set([...a.params, ...b.params])],
     inputs: [...new Set([...a.inputs, ...b.inputs, turn])],
-    ...join(A, B),
+    ...join(A, B), ...carriedBy(a, b),
     assume: all(bit(turn), ...(A.assume ? [any(not(isA), A.assume)] : []), ...(B.assume ? [any(not(isB), B.assume)] : [])),
     ...(pre ? {pre} : {}),
   }
@@ -97,6 +101,7 @@ export function interleave(a: Machine, b: Machine, opts: {name?: string, turn?: 
 // So every run of impl is matched, step by step, by a run of the spec that its own rules allow, related by `relation`.
 export function refinement(impl: Machine, spec: Machine, opts: {relation: Law[], witness: Record<string, E>, stutter?: C, name?: string}): {machine: Machine, laws: Law[], stepLaws: StepLaw[]} {
   if (!spec.inputs.every(i => i in opts.witness)) throw new Error(`refinement: name every input of ${spec.name} (${spec.inputs.join(', ')})`)
+  if ((spec.inputMaps ?? []).some(mp => !(impl.inputMaps ?? []).includes(mp))) throw new Error(`refinement: a map ${spec.name}'s requests carry is one ${impl.name}'s carry too (shared by name)`)
   const A = renamed(impl, 'a_', {}), B = renamed(spec, 'b_', opts.witness, opts.stutter)
   // A step the spec doesn't see needs no request it allows.
   const allowedBy = B.assume && opts.stutter ? any(opts.stutter, B.assume) : B.assume
@@ -104,7 +109,7 @@ export function refinement(impl: Machine, spec: Machine, opts: {relation: Law[],
     name: opts.name ?? `${impl.name} refines ${spec.name}`,
     params: [...new Set([...impl.params, ...spec.params])],
     inputs: impl.inputs,
-    ...join(A, B),
+    ...join(A, B), ...carriedBy(impl, spec),
     ...(A.assume ? {assume: A.assume} : {}),
     ...(impl.pre ? {pre: impl.pre} : {}),
   }
@@ -150,6 +155,7 @@ export function total(m: Machine, map: string, name: string): Ghost {
   if ((m.maps ?? {})[map] !== 0) throw new Error(`total: ${map} must start at 0 at every key`)
   const w = m.step.maps?.[map]
   if (!w) return {start: {op: 'const', value: 0}, step: x(name)}
+  if ('each' in w) throw new Error(`total: ${map} is written at every key at once, which no one step's difference describes`)
   const old: E = {op: 'get', map, key: w.key}, t = x(name), same = (a: E) => JSON.stringify(a) === JSON.stringify(old)
   const moved = (e: E): E => {
     if (same(e)) return t

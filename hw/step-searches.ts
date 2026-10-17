@@ -7,6 +7,7 @@ import type {Watched} from '../core/watch.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
 import type {Space} from './compile.ts'
 import {domains} from '../examples/index.ts'
+import {authority, authorityLaws, authoritySteps} from '../examples/sets.ts'
 import {counterLaws, counterSteps, counters, escrowSteps, escrowWatched, meterRefinement, poolTotal, pooled, twoPhaseRefinement} from '../examples/composition.ts'
 
 const rule = (domain: string, name: string) => {
@@ -64,3 +65,17 @@ export const historySearches = (budget = 2_000_000): HistorySearch[] => domains.
     return {what: `${d.domain} / ${c.name}${v.name ? `, ${v.name}` : ''}`, m: v.m, laws: v.laws, space: s2.depth >= 3 ? s2 : space(1), breaks: v.breaks}
   })
 }))
+
+// Sets: the derived authority (examples/sets.ts), its laws and step laws, and its broken variants; a request carries a
+// set (one digit per cell). The space grows fast (each step's request is its inputs and a cell per name), so the CPU
+// check samples documents and the GPU runs every one.
+export type SetSearch = {what: string, m: Machine, law: Watched, space: Space, breaks: boolean}
+export const setSearches = (space: Space = {depth: 3, bound: 3}): SetSearch[] => {
+  const variants = [{name: '', a: authority()}, {name: 'checks only the named grant', a: authority('checks only the named grant')}, {name: 'keeps the child on refusal', a: authority('keeps the child on refusal')}]
+  return variants.flatMap(v => {
+    const all: Watched[] = [...authorityLaws(v.a), ...authoritySteps(v.a)]
+    // A broken variant breaks the law its proof fails at (kernel/sets.test.ts).
+    const breaking = v.name === 'checks only the named grant' ? 'the child is within the grants' : v.name === 'keeps the child on refusal' ? 'a refused derivation leaves no live child' : undefined
+    return all.filter(l => !v.name || l.name === breaking).map(law => ({what: `derived authority${v.name ? `, ${v.name}` : ''}: ${law.name}`, m: v.a.machine, law, space, breaks: !!v.name}))
+  })
+}

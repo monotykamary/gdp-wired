@@ -16,7 +16,7 @@ function constantsOf(m: Machine): number[] {
     else if (e.op === 'get') inE(e.key)
     else if ('a' in e) (inE(e.a), inE(e.b))
   }
-  const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
+  const inC = (c: C): void => (c.op === 'flag' || c.op === 'all' ? undefined : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
   Object.values(m.step.state ?? {}).forEach(inE)
   return [...out].filter(c => c > 0)
 }

@@ -131,7 +131,7 @@ export function atStart(m: Machine, box: Box, forms: Form[]): Uint32Array {
 const evalPre = (m: Machine, params: Record<string, number>) => {
   const c = m.pre!
   const ev = (e: E): number => evalE(e, params, {scalars: {}, maps: {}}, m)
-  const go = (c: C): boolean => c.op === 'not' ? !go(c.x) : c.op === 'and' ? c.xs.every(go) : c.op === 'or' ? c.xs.some(go) : c.op === 'flag' ? false : c.op === '<' ? ev(c.a) < ev(c.b) : c.op === '<=' ? ev(c.a) <= ev(c.b) : ev(c.a) === ev(c.b)
+  const go = (c: C): boolean => c.op === 'not' ? !go(c.x) : c.op === 'and' ? c.xs.every(go) : c.op === 'or' ? c.xs.some(go) : c.op === 'flag' || c.op === 'all' ? false : c.op === '<' ? ev(c.a) < ev(c.b) : c.op === '<=' ? ev(c.a) <= ev(c.b) : ev(c.a) === ev(c.b)
   return go(c)
 }
 

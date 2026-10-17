@@ -7,7 +7,7 @@
 // A map machine's box point tracks two cells per map: M at the arbitrary key k, and M at the key the step writes;
 // when the two keys are equal the cells must be equal (the guard). Reads in the step must be at the written key (or at
 // k); the write lands on k exactly when the keys are equal. Each kernel is emitted as WGSL and as JavaScript.
-import {type C, type E, type Machine, compileFunction, ite, same, unreachable, x} from '../core/machine.ts'
+import {type C, type E, type Machine, compileFunction, ite, noQuantifier, pointWrite, same, unreachable, x} from '../core/machine.ts'
 import {type Target, expressions} from '../search/compile.ts'
 import {type Box, type Problem, BLOCK, CHUNK, HEADER, blocks, order, varsOf} from './compile.ts'
 
@@ -19,7 +19,7 @@ export type MapProblem = Problem & {maps: string[], swap: Record<string, string>
 export function fromMapMachine(m: Machine): MapProblem {
   const maps = Object.keys(m.maps ?? {})
   const writes = m.step.maps ?? {}
-  const keyOf = (M: string) => writes[M]?.key
+  const keyOf = (M: string) => (writes[M] ? pointWrite(writes[M]!, 'the synthesizer').key : undefined)
   const sub = (e: E): E => {
     switch (e.op) {
       case 'var': case 'const': return e
@@ -34,14 +34,15 @@ export function fromMapMachine(m: Machine): MapProblem {
       default: return unreachable(e)
     }
   }
-  const subC = (c: C): C => c.op === 'flag' ? c : c.op === 'not' ? {op: 'not', x: subC(c.x)} : c.op === 'and' || c.op === 'or' ? {op: c.op, xs: c.xs.map(subC)} : {...c, a: sub(c.a), b: sub(c.b)}
+  const subC = (c: C): C => c.op === 'flag' ? c : c.op === 'all' ? noQuantifier('the synthesizer') : c.op === 'not' ? {op: 'not', x: subC(c.x)} : c.op === 'and' || c.op === 'or' ? {op: c.op, xs: c.xs.map(subC)} : {...c, a: sub(c.a), b: sub(c.b)}
   const scalars = Object.keys(m.state)
   const next: Record<string, E> = Object.fromEntries(scalars.map(n => [n, sub(m.step.state?.[n] ?? x(n))]))
   for (const M of maps) {
     const w = writes[M]
-    next[`${M}_k`] = w ? ite(same(sub(w.key), x('k')), sub(w.value), x(`${M}_k`)) : x(`${M}_k`)
+    const pw = w && pointWrite(w, 'the synthesizer')
+    next[`${M}_k`] = pw ? ite(same(sub(pw.key), x('k')), sub(pw.value), x(`${M}_k`)) : x(`${M}_k`)
   }
-  const consistent = maps.filter(M => writes[M]).map(M => ({op: 'or', xs: [{op: 'not', x: same(sub(writes[M]!.key), x('k'))}, same(x(`${M}_w`), x(`${M}_k`))]}) as C)
+  const consistent = maps.filter(M => writes[M]).map(M => ({op: 'or', xs: [{op: 'not', x: same(sub(pointWrite(writes[M]!, 'the synthesizer').key), x('k'))}, same(x(`${M}_w`), x(`${M}_k`))]}) as C)
   const guard: C | undefined = consistent.length ? {op: 'and', xs: consistent} : undefined
   return {
     kind: 'invariant', maps, init: m.state,

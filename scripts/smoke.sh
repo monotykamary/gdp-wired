@@ -15,7 +15,7 @@ cd "$work"
 printf '{"name":"smoke","private":true,"type":"module"}\n' > package.json
 npm install --no-audit --no-fund --silent "$tarball" "typescript@$(node -p "require('$root/package.json').devDependencies.typescript")"
 cat > smoke.mjs <<'JS'
-import {min, nat, proveRule, rule, when} from 'gdp-wired'
+import {everyKey, min, nat, proveRule, rule, when} from 'gdp-wired'
 import {interpret} from 'gdp-wired/machine'
 import {leanProject, toLean} from 'gdp-wired/lean'
 const budget = rule('budget').params({b: nat, m: nat}).inputs({c: nat}).state({s: 0})
@@ -30,7 +30,13 @@ if (typeof interpret !== 'function') throw new Error('gdp-wired/machine has no i
 const lean = toLean([{id: 'budget', machine: budget.machine, laws: [budget.law('spend stays within b + m', ({s, b, m}) => s.atMost(b.plus(m)))]}])
 if (!lean.includes('theorem law0') || !lean.includes('ρ «s» ≤ (ρ «b» + ρ «m»)')) throw new Error('gdp-wired/lean: no readable statement')
 const project = leanProject(lean)
-if (!project['lakefile.lean'] || !project['Kernel.lean'] || !project['Proofs.lean']) throw new Error('gdp-wired/lean: an incomplete project')
+if (!project['lakefile.lean'] || !project['Kernel.lean'] || !project['Sets.lean'] || !project['Proofs.lean']) throw new Error('gdp-wired/lean: an incomplete project')
+// A set of names: a request carries a set, and only names in it are ever held.
+const club = rule('club').inputs({op: nat}).maps({Member: 0}).carries('Invited')
+  .flags(({Invited}) => ({bits: everyKey(k => Invited.at(k).atMost(1))})).assume(({bits}) => bits)
+  .step(({op, Invited, Member}) => ({Member: Member.each(k => when(op.eq(1), Invited.at(k), Member.at(k)))}))
+const sets = toLean([{id: 'club', machine: club.machine, laws: [club.law('members are a set', ({Member}) => ({forall: k => Member.at(k).atMost(1)}))]}])
+if (!sets.includes('import Sets') || !sets.includes('smachine_sound')) throw new Error('gdp-wired/lean: a machine with sets not through smachine_sound')
 console.log(`node ${process.version}: proven, kernel accepts; compiled spend 110; Lean project of ${Object.keys(project).length} files`)
 JS
 node smoke.mjs

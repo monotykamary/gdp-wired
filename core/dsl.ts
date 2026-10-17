@@ -15,7 +15,7 @@
 //
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
-import {type C, type E, type Law, type Machine, type State, interpret, loadJs} from './machine.ts'
+import {type C, type E, type Law, type Machine, type MapUpdate, type Request, type State, interpret, loadJs} from './machine.ts'
 import {type Goal, type Loop, type StepLaw, type Tree, check, loopObligations} from '../kernel/kernel.ts'
 import {grow, proveLaws, proveStepLaws} from '../kernel/prove.ts'
 
@@ -191,7 +191,11 @@ export const maybe = <V>(of: Kind<V>): Kind<Maybe<V>> => new MaybeKind(of)
 
 // --- maps, laws, relations ------------------------------------------------------------------------------------------
 
-export type MapWrite = {readonly map: string, readonly key: E, readonly value: E}
+export type MapWrite = {readonly map: string, readonly key: E, readonly value: E} | {readonly map: string, readonly each: string, readonly value: E}
+let boundCounter = 0
+// A condition at every key: only as a whole flag (`flags: ({...}) => ({covered: everyKey(k => ...)})`), the key read
+// only as a map's key. The kernel closes it (instances where it holds, a witness where it fails).
+export const everyKey = (f: (key: Term) => Cond): Cond => { const key = `k$${++boundCounter}`; return new Cond({op: 'all', key, c: f(v(key)).c}) }
 // A map from naturals to naturals, every cell starting at `init`. One write per map per step.
 export class MapRef {
   constructor(readonly name: string, readonly init: number) {}
@@ -199,6 +203,13 @@ export class MapRef {
   set(key: TermLike, value: TermLike): MapWrite { return {map: this.name, key: termOf(key), value: termOf(value)} }
   // key's cell plus `by` where `c` holds (the counter every cap keeps).
   bump(key: TermLike, c: Cond = yes, by: TermLike = 1): MapWrite { return this.set(key, when(c, this.at(key).plus(by), this.at(key))) }
+  // Every key at once: the value at each key, the key read only as a map's key (Other.at(k)).
+  each(f: (key: Term) => TermLike): MapWrite { const each = `k$${++boundCounter}`; return {map: this.name, each, value: termOf(f(v(each)))} }
+  // As a set (cells 0 or 1): a member, and, as whole flags, every member of this one in another, none shared, the same.
+  has(key: TermLike): Cond { return this.at(key).atLeast(1) }
+  subsetOf(other: MapRef): Cond { return everyKey(k => this.at(k).atMost(other.at(k))) }
+  disjointFrom(other: MapRef): Cond { return everyKey(k => this.at(k).plus(other.at(k)).atMost(1)) }
+  sameAs(other: MapRef): Cond { return everyKey(k => this.at(k).eq(other.at(k))) }
 }
 
 export type Forall = {readonly forall: (key: Term) => Cond}
@@ -228,7 +239,7 @@ const markedE = (e: E): E => {
     case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...e, a: markedE(e.a), b: markedE(e.b)}
   }
 }
-const marked = (c: C): C => c.op === 'flag' ? c : c.op === 'not' ? {op: 'not', x: marked(c.x)} : c.op === 'and' || c.op === 'or' ? {op: c.op, xs: c.xs.map(marked)} : {...c, a: markedE(c.a), b: markedE(c.b)}
+const marked = (c: C): C => c.op === 'flag' ? c : c.op === 'all' ? {op: 'all', key: c.key, c: marked(c.c)} : c.op === 'not' ? {op: 'not', x: marked(c.x)} : c.op === 'and' || c.op === 'or' ? {op: c.op, xs: c.xs.map(marked)} : {...c, a: markedE(c.a), b: markedE(c.b)}
 
 type Spec = {
   name: string
@@ -236,6 +247,7 @@ type Spec = {
   inputs: [string, Kind<unknown>][]
   state: [string, number | ((p: never) => TermLike)][]
   maps: [string, number][]
+  carried?: string[]
   flags: ((env: never) => Record<string, Cond>)[]
   step?: (env: never) => Record<string, TermLike | MapWrite | undefined>
   pre: ((p: never) => Cond)[]
@@ -262,6 +274,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     return this.with({state: [...this.spec.state, ...Object.entries(init) as [string, number | ((p: never) => TermLike)][]]})
   }
   maps<T extends Record<string, number>>(init: T): Rule<P, I, S, M & {[k in keyof T]: MapRef}, F, R, Su, Q> { return this.with({maps: [...this.spec.maps, ...Object.entries(init)]}) }
+  // Maps each request carries whole (a set of names, say: cells 0 or 1), every cell past them 0; read like any map.
+  carries<const N extends string>(...names: N[]): Rule<P, I & {[k in N]: MapRef}, S, M, F, R, Su, Q> { return this.with({carried: [...(this.spec.carried ?? []), ...names]}) }
   // Named conditions of the step, decided once per step before it; each call's flags may read the earlier calls'. A flag
   // named again replaces the earlier definition in place (what a variant needs: one call, the step unchanged); the new
   // definition may read only the flags defined before the original's place, as the kernel checks.
@@ -360,7 +374,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   private env(parts: {inputs?: boolean, state?: boolean, flags?: boolean, queries?: boolean} = {}): Record<string, unknown> {
     const out: Record<string, unknown> = {}
     for (const [n, k] of this.spec.params) out[n] = k.value(n)
-    if (parts.inputs !== false) for (const [n, k] of this.spec.inputs) out[n] = k.value(n)
+    if (parts.inputs !== false) { for (const [n, k] of this.spec.inputs) out[n] = k.value(n); for (const n of this.spec.carried ?? []) out[n] = new MapRef(n, 0) }
     if (parts.state !== false) {
       for (const [n] of this.spec.state) out[n] = v(n)
       for (const [n, init] of this.spec.maps) out[n] = new MapRef(n, init)
@@ -379,12 +393,12 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const flags: Record<string, C> = {}
     for (const f of s.flags) for (const [n, c] of Object.entries(f(env as never))) { flags[n] = c.c; env[n] = new Cond({op: 'flag', name: n}) } // a name again: replaced in place
     const updates = s.step?.(env as never) ?? {}
-    const state: Record<string, E> = {}, maps: Record<string, {key: E, value: E}> = {}
+    const state: Record<string, E> = {}, maps: Record<string, MapUpdate> = {}
     for (const [n, u] of Object.entries(updates)) {
       if (u === undefined) continue
       if (typeof u === 'object' && 'map' in u) {
         if (u.map !== n) throw new Error(`${s.name}: the step writes map ${u.map} under the name ${n}`)
-        maps[n] = {key: u.key, value: u.value}
+        maps[n] = 'each' in u ? {each: u.each, value: u.value} : {key: u.key, value: u.value}
       } else state[n] = termOf(u)
     }
     const pre = [...this.kindAssumptions('params'), ...s.pre.map(f => f(pEnv as never).c)]
@@ -393,6 +407,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       name: s.name, params, inputs,
       state: Object.fromEntries(s.state.map(([n, init]) => [n, typeof init === 'number' ? termOf(init) : termOf(init(pEnv as never))])),
       ...(s.maps.length ? {maps: Object.fromEntries(s.maps)} : {}),
+      ...(s.carried?.length ? {inputMaps: s.carried} : {}),
       step: {...(Object.keys(flags).length ? {flags} : {}), ...(Object.keys(state).length ? {state} : {}), ...(Object.keys(maps).length ? {maps} : {})},
       ...(pre.length ? {pre: pre.length === 1 ? pre[0]! : {op: 'and', xs: pre}} : {}),
       ...(assume.length ? {assume: assume.length === 1 ? assume[0]! : {op: 'and', xs: assume}} : {}),
@@ -419,10 +434,22 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // --- running it -----------------------------------------------------------------------------------------------------
   // Runtime values (numbers, booleans, choice names, null for a missing value) to the variables the machine reads.
   encodeParams(values: {[k in keyof P]: Raw}): Record<string, number> { return encode(this.spec.params, values as Record<string, Raw>) }
-  encodeInput(values: {[k in keyof I]: Raw}): Record<string, number> { return encode(this.spec.inputs, values as Record<string, Raw>) }
+  // A carried map is a Set of keys (each cell 1), an array of them, or a Map of key to natural.
+  encodeInput(values: {[k in keyof I]: I[k] extends MapRef ? ReadonlySet<number> | readonly number[] | ReadonlyMap<number, number> : Raw}): Request {
+    const out: Request = encode(this.spec.inputs, values as Record<string, Raw>)
+    for (const n of this.spec.carried ?? []) {
+      const given = (values as Record<string, unknown>)[n]
+      out[n] = given instanceof Map ? new Map(given as Map<number, number>) : new Map([...(given as Iterable<number>)].map(key => [key, 1] as const))
+    }
+    return out
+  }
   // Random params and inputs that meet their kinds (not the user's `pre` or `assume`, which a caller checks).
   randomParams(rand: Rand, bound: number): Record<string, number> { return Object.assign({}, ...this.spec.params.map(([n, k]) => k.random(n, rand, bound))) }
-  randomInput(rand: Rand, bound: number): Record<string, number> { return Object.assign({}, ...this.spec.inputs.map(([n, k]) => k.random(n, rand, bound))) }
+  randomInput(rand: Rand, bound: number): Request {
+    const out: Request = Object.assign({}, ...this.spec.inputs.map(([n, k]) => k.random(n, rand, bound)))
+    for (const n of this.spec.carried ?? []) out[n] = new Map(Array.from({length: bound + 1}, (_, key) => [key, rand(2)] as const).filter(([, cell]) => cell === 1))
+    return out
+  }
   // The prune order's variable, if the history is pruned (a runtime must send it nondecreasing).
   get orderedBy(): string | undefined { return this.spec.prune ? new Map(this.spec.inputs).get(this.spec.prune.order)!.vars(this.spec.prune.order)[0] : undefined }
   interpreter() { return interpret(this.machine) }

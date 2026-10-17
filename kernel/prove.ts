@@ -24,7 +24,7 @@ function openE(e: E, path: Path, out: Lin[]): void {
 }
 function openC(c: C, path: Path, out: Lin[]): void {
   if (truth(c, path) !== undefined) return
-  if (c.op === 'flag') return
+  if (c.op === 'flag' || c.op === 'all') return
   if (c.op === 'not') return openC(c.x, path, out)
   if (c.op === 'and' || c.op === 'or') return c.xs.forEach(y => openC(y, path, out))
   openE(c.a, path, out), openE(c.b, path, out)
@@ -49,7 +49,7 @@ function openH(c: C, path: Path, out: Lin[], positive = true): void {
     else openC(c, path, out)
     return
   }
-  if (c.op === 'flag') return
+  if (c.op === 'flag' || c.op === 'all') return
   const before = out.length
   openE(c.a, path, out), openE(c.b, path, out)
   if (out.length === before && !positive && c.op === '=' && truth(c, path) === undefined) openC(c, path, out)
@@ -174,28 +174,38 @@ function fractional(point: Record<string, number> | undefined, path: Path): Lin 
 }
 
 // The keys a proof assumes the every-key laws at: every key the step and the laws read, and the fresh key of the goal.
+// A key bound by a quantified flag or a write at every key isn't one: those reads are at every key already.
 function readKeys(m: Machine, laws: Law[]): E[] {
   const out = new Map<string, E>()
+  const bound = new Set<string>([...Object.values(m.step.flags ?? {}).flatMap(c => (c.op === 'all' ? [c.key] : [])), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : []))])
+  const free = (e: E) => !JSON.stringify(e).match(/"name":"([^"]+)"/g)?.some(n => bound.has(n.slice(8, -1)))
   const inE = (e: E): void => {
-    if (e.op === 'get') (out.set(JSON.stringify(e.key), e.key), inE(e.key))
+    if (e.op === 'get') { if (free(e.key)) out.set(JSON.stringify(e.key), e.key); inE(e.key) }
     else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else))
     else if (e.op === 'mul') inE(e.a)
     else if ('a' in e) (inE(e.a), inE(e.b))
   }
-  const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
+  const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? inC(c.c) : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
   Object.values(m.step.state ?? {}).forEach(inE)
   Object.values(m.step.flags ?? {}).forEach(inC)
-  for (const w of Object.values(m.step.maps ?? {})) (out.set(JSON.stringify(w.key), w.key), inE(w.key), inE(w.value))
+  for (const w of Object.values(m.step.maps ?? {})) { if (!('each' in w)) { out.set(JSON.stringify(w.key), w.key); inE(w.key) } inE(w.value) }
   for (const l of laws.filter(l => !l.forall)) inC(l.holds)
   return [...out.values()]
 }
+// Each quantified flag's witness w?f: a key where its condition fails, when it does; every-key facts are wanted there too.
+const witnesses = (m: Machine): E[] => Object.entries(m.step.flags ?? {}).flatMap(([f, c]) => (c.op === 'all' ? [{op: 'var', name: `w?${f}`} as E] : []))
+// The keys each quantified flag is assumed at (instances under ?f).
+const flagInstances = (m: Machine, keys: E[]): Instances => Object.fromEntries(Object.entries(m.step.flags ?? {}).flatMap(([f, c]) => (c.op === 'all' ? [[`?${f}`, keys]] : [])))
 
 export type Report = {proven: boolean, nodes: number, leaves: number, failed?: {goal: string, stuck: string, witness?: Record<string, number>}, checked: boolean}
 
 export function proveLaws(m: Machine, laws: Law[]): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
-  const keys = readKeys(m, laws)
+  const keys = [...readKeys(m, laws), ...witnesses(m)]
   const instances: Record<string, Instances> = {}
-  for (const law of laws) instances[law.name] = Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, [...keys, ...(law.forall ? [{op: 'var', name: `${law.forall}#`} as E] : [])]]))
+  for (const law of laws) {
+    const at = [...keys, ...(law.forall ? [{op: 'var', name: `${law.forall}#`} as E] : [])]
+    instances[law.name] = {...Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, at])), ...flagInstances(m, at)}
+  }
   const trees: Record<string, Tree> = {}
   let nodes = 0, leaves = 0
   for (const goal of obligations(m, laws, instances)) {
@@ -214,8 +224,9 @@ export function proveStepLaws(m: Machine, laws: Law[], stepLaws: StepLaw[]): Rep
   const base = proveLaws(m, laws)
   if (!base.proven || !base.proof) return {proven: false, nodes: base.nodes, leaves: base.leaves, ...(base.failed ? {failed: base.failed} : {}), checked: false}
   const plain = m.history ? historyMachine(m).machine : m
-  const keys = [...readKeys(plain, laws), ...stepLaws.flatMap(sl => [sl.then, ...(sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when])].flatMap(readKeysC))]
-  const instances: Instances = Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, keys]))
+  const keys = [...readKeys(plain, laws), ...witnesses(plain), ...stepLaws.flatMap(sl => [sl.then, ...(sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when])].flatMap(readKeysC)),
+    ...stepLaws.flatMap(sl => (sl.forall ? [{op: 'var', name: sl.forall} as E] : []))]
+  const instances: Instances = {...Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, keys])), ...flagInstances(plain, keys)}
   const trees: Record<string, Tree> = {}
   let nodes = base.nodes, leaves = base.leaves
   for (const sl of stepLaws) for (const goal of stepLawObligations(m, laws, instances, sl)) {
@@ -232,7 +243,7 @@ export function proveStepLaws(m: Machine, laws: Law[], stepLaws: StepLaw[]): Rep
 function readKeysC(c: C): E[] {
   const out: E[] = []
   const inE = (e: E): void => { if (e.op === 'get') (out.push(e.key), inE(e.key)); else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul') inE(e.a); else if ('a' in e) (inE(e.a), inE(e.b)) }
-  const inC = (x: C): void => (x.op === 'flag' ? undefined : x.op === 'not' ? inC(x.x) : x.op === 'and' || x.op === 'or' ? x.xs.forEach(inC) : (inE(x.a), inE(x.b)))
+  const inC = (x: C): void => (x.op === 'flag' || x.op === 'all' ? undefined : x.op === 'not' ? inC(x.x) : x.op === 'and' || x.op === 'or' ? x.xs.forEach(inC) : (inE(x.a), inE(x.b)))
   inC(c)
   return out
 }
@@ -246,7 +257,7 @@ export function concretize(goal: Goal, bound = 12): Record<string, number> | und
   const names = new Set<string>()
   let reads = false
   const walkE = (e: E): void => { if (e.op === 'var') names.add(e.name); else if (e.op === 'get') reads = true; else if (e.op === 'if') (walkC(e.c), walkE(e.then), walkE(e.else)); else if ('a' in e) (walkE(e.a), 'b' in e && walkE(e.b)) }
-  const walkC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'not' ? walkC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(walkC) : (walkE(c.a), walkE(c.b)))
+  const walkC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? void (reads = true) : c.op === 'not' ? walkC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(walkC) : (walkE(c.a), walkE(c.b)))
   goal.hyps.forEach(walkC)
   if (reads || names.size > 4) return undefined
   const ev = (e: E, env: Record<string, number>): number => {
@@ -264,7 +275,7 @@ export function concretize(goal: Goal, bound = 12): Record<string, number> | und
     }
   }
   const holds = (c: C, env: Record<string, number>): boolean => c.op === 'not' ? !holds(c.x, env) : c.op === 'and' ? c.xs.every(y => holds(y, env)) : c.op === 'or' ? c.xs.some(y => holds(y, env))
-    : c.op === 'flag' ? false : c.op === '<' ? ev(c.a, env) < ev(c.b, env) : c.op === '<=' ? ev(c.a, env) <= ev(c.b, env) : ev(c.a, env) === ev(c.b, env)
+    : c.op === 'flag' || c.op === 'all' ? false : c.op === '<' ? ev(c.a, env) < ev(c.b, env) : c.op === '<=' ? ev(c.a, env) <= ev(c.b, env) : ev(c.a, env) === ev(c.b, env)
   const vars = [...names]
   const total = (bound + 1) ** vars.length
   for (let i = 0; i < total; i++) {

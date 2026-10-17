@@ -29,6 +29,7 @@ export function leanTerms(vars: readonly string[], maps: readonly string[], wher
         return t.xs.map(c).reduceRight((acc, y) => `.${t.op} (${y}) (${acc})`)
       }
       case 'flag': return `.eq (.var ${ix(`?${t.name}`)}) (.const 1)`
+      case 'all': throw new Error(`${where}: a quantified flag goes to Lean as a flag of its own, not a condition`)
       default: return unreachable(t)
     }
   }

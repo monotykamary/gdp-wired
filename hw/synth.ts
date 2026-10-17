@@ -79,6 +79,7 @@ export function compileKernel(p: Problem, box: Box, K: number, kernel: Kernel, c
   }
   const cx = (c: C, env: Env): Word => {
     switch (c.op) {
+      case 'all': throw new Error('the synthesizer takes no quantified flag')
       case '<': return w.lt(ex(c.a, env), ex(c.b, env))
       case '<=': return w.le(ex(c.a, env), ex(c.b, env))
       case '=': return w.eq(ex(c.a, env), ex(c.b, env))

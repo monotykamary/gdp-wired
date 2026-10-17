@@ -42,26 +42,31 @@ code. If the checker side finds new frontiers the scope may grow; until then:
 
 | It expresses and proves | It does not (today) |
 | --- | --- |
-| Step machines over naturals: scalars, maps from naturals to naturals (one write per map per step), named step conditions, preconditions on params, assumptions per request | Lists, sets or strings as values: membership, subsets, equality of lists of names |
+| Step machines over naturals: scalars, maps from naturals to naturals (a write at one key, or at every key, per map per step), named step conditions, preconditions on params, assumptions per request | Lists or strings as values: order, duplicates, equality of lists of names |
+| Sets of names, as maps of 0/1 cells over names interned to numbers: a request carrying whole sets (`.carries`), conditions about every key as step flags (`everyKey`, `has`, `subsetOf`, `disjointFrom`, `sameAs`), writes at every key in one step (`each`); laws, step laws and k-step laws over them, each also a Lean theorem | A quantifier anywhere but a whole step flag (inside a condition, or ∃ in a law); a set's size |
 | Invariants of the state and params, laws about every key of a map; step laws relating one step's before and after (`s'`, `M'[k]`: "only increases", "stays retired"), and k-step laws about k steps in a row ("two grants on one day add two", up to 16 steps); orderings at any distance through ghost state ("a refund never follows a release": `ghost` with `ever`, `count`) | Liveness under fairness ("every request is eventually served"), beyond progress |
 | Composition: rules side by side (`product`), taking turns (`interleave`), and one rule refining another (`refinement`: a forward simulation, the spec allowing every request it is sent, steps the spec doesn't see as `stutter`), each built as a plain machine so every law above applies | Refinement where the spec needs more than one step per step of the implementation |
-| Laws about one key of a map at a time, or about scalars; totals across a map's keys through a ghost total ("in use equals what the clients hold") | Whole-map operations in one step (copying, merging or comparing two maps at every key at once) |
+| Laws about one key of a map at a time, or about scalars; totals across a map's keys through a ghost total ("in use equals what the clients hold") | Sums across a map's keys other than through a ghost total |
 | Histories: sums and queries over a log of requests, relations between them proven one record at a time, pruning | Unbounded recursion over data, quantifiers over sequences other than a machine's own history |
 | Decisions over facts: flags, one-of choices, optional facts, bounded naturals (`match` covers every case) | Datatypes beyond those encodings; division, modulo, reals |
 | Loops that halt by a rank or a tuple of ranks; folds over binary trees; progress laws ("some request makes this happen") | Arbitrary algorithms: there is no general recursion to prove things about |
 | Arithmetic: `+`, truncated `−`, `×` by a constant, `min`, `max`, `if`, products of two terms (proven by the kernel, less well by the prover) | Generated code for decisions alone (`compileJs` emits machines; a predicate emitter is planned) |
 
-Keep Bend where the specification is about **lists or sets of names** (resource scopes, capability subsets, normalization
-that must refine its input), where a proof needs **induction over data structures**, or where the shipped code must be
-the compiled proved source of an arbitrary algorithm. Use gdp-wired where the rule is a budget, a cap, a window, a
+Keep Bend where the specification is about **lists of names** (their order, duplicates, a normalization that must refine
+its input), where a proof needs **induction over data structures**, or where the shipped code must be the compiled
+proved source of an arbitrary algorithm. Sets of names (resource scopes, capability subsets) fit gdp-wired:
+`examples/sets.ts` derives an authority from its grants, and its laws, step laws and two-step laws are proven
+automatically, searched on the GPU and checked again in Lean. Use gdp-wired where the rule is a budget, a cap, a window, a
 workflow or a policy decision: it proves those without proof files, finds counterexample runs when they're false, and
 checks its own kernel in Lean.
 
 For a sense of the split: in one real codebase with 98 Bend laws and about 1,600 lines of hand proofs, the policy
 decisions, the compare-and-swap storage plans and the state/provider plans fit gdp-wired as it is (with names interned
 to numbers), and gdp-wired can prove more about storage than its Bend proofs state (no revision reuse across keys); the
-lifecycle machine's before/after laws are step laws (as in `release lifecycle` in `examples/`); the resource and authority checks, built on lists of names as
-sets, stay in Bend. `compare/` puts three rules side by side in gdp-wired, Bend and plain Lean, with line counts and
+lifecycle machine's before/after laws are step laws (as in `release lifecycle` in `examples/`); the authority checks,
+built on lists of names used as sets, fit as sets of names (all ten of its authority laws proven automatically, and the
+rule agrees with the compiled Bend on all 7,654 outcomes over four names); checks that depend on a list's order or a
+normal form stay in Bend. `compare/` puts three rules side by side in gdp-wired, Bend and plain Lean, with line counts and
 check times.
 
 ## What's trusted
@@ -70,7 +75,7 @@ check times.
 | --- | --- | --- |
 | `kernel/kernel.ts`, `core/check.ts` | **Yes** | Turns a machine and its laws into goals and checks a proof tree for each: splits on linear atoms, a Fourier–Motzkin derivation at each leaf. Every rule (step machines with maps and flags, step laws and k-step laws, loops with ranks, progress, folds over trees) is a few moves of one small algebra of runs: conditions holding where a run is, a step taken from there, a conclusion read at the end or across the run. Histories become plain machines first. Refuses names a machine doesn't declare |
 | `kernel/prove.ts` | No | Grows the trees. If it's wrong, the kernel rejects the tree |
-| `lean-kernel/` | Optional | The kernel's twin in Lean 4.34.0, each rule proven sound (`Kern.sound`, `machine_sound`, `mmachine_sound`, `fmmachine_sound`, `loop_sound`, `fold_sound`, `progress_sound`, `steplaw_sound`, `kstep_sound`, `hmachine_sound`), axioms `propext`, `Classical.choice`, `Quot.sound` only. The exporter sends the kernel's real trees; tampered ones compute to false |
+| `lean-kernel/` | Optional | The kernel's twin in Lean 4.34.0, each rule proven sound (`Kern.sound`, `machine_sound`, `mmachine_sound`, `fmmachine_sound`, `loop_sound`, `fold_sound`, `progress_sound`, `steplaw_sound`, `kstep_sound`, `hmachine_sound`, `smachine_sound`, `skstep_sound`), axioms `propext`, `Classical.choice`, `Quot.sound` only. The exporter sends the kernel's real trees; tampered ones compute to false |
 | `search/`, `synth/`, `hw/` | No | GPU work: counterexample search over every short history (for laws, step laws and k-step laws, machines with a log of requests too), and invariant/rank synthesis. Every hit is replayed by the interpreter or proven by the kernel before it counts |
 | `core/dsl.ts`, `core/compose.ts`, the runtimes | No | The builders and combinators compile to the kernel's plain values; the interpreter and generated JavaScript are held to the reference evaluator by the conformance test, and the combinators to runs of their parts |
 

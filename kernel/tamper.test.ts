@@ -88,6 +88,7 @@ const evE = (e: E, env: Record<string, number>, cells: (map: string, key: number
 }
 const evC = (c: C, env: Record<string, number>, cells: (map: string, key: number) => number): boolean => {
   switch (c.op) {
+    case 'all': throw new Error('no quantified flags here')
     case '<': return evE(c.a, env, cells) < evE(c.b, env, cells)
     case '<=': return evE(c.a, env, cells) <= evE(c.b, env, cells)
     case '=': return evE(c.a, env, cells) === evE(c.b, env, cells)
@@ -110,6 +111,7 @@ function model(goal: Goal, tries = 20_000): boolean {
 }
 const loosen = (c: C): C[] => {
   switch (c.op) {
+    case 'all': throw new Error('no quantified flags here')
     case '<': return [{...c, op: '<='}, {op: '<', a: c.a, b: {op: 'add', a: c.b, b: {op: 'const', value: 1}}}]
     case '<=': return [{op: '<=', a: c.a, b: {op: 'add', a: c.b, b: {op: 'const', value: 1}}}]
     case '=': return [{op: '<=', a: c.a, b: c.b}]

@@ -1,7 +1,7 @@
 // Step machines and their laws as Lean, proven by Lean's own omega: an independent verdict on the machine itself, so
 // the TypeScript that turns a machine into solver cases is checked too, as bend --verdict checks bend2's front end.
 // Usage: bun compile-lean.ts > ../lean/Verdict.lean
-import {type C, type E, type Law, type Machine, atMost, n, plus, times, x} from './machine.ts'
+import {type C, type E, type Law, type Machine, atMost, n, noQuantifier, plus, pointWrite, times, x} from './machine.ts'
 import {admit, boundedLoss, capLaws, inflight, inflightLoss, loss} from './models.ts'
 
 function emit(m: Machine, tag: string, laws: Law[]): string {
@@ -24,6 +24,7 @@ function emit(m: Machine, tag: string, laws: Law[]): string {
   }
   const cx = (c: C, st = 'st'): string => {
     switch (c.op) {
+      case 'all': return noQuantifier('the first Lean export')
       case '<': return `${ex(c.a, st)} < ${ex(c.b, st)}`
       case '<=': return `${ex(c.a, st)} ≤ ${ex(c.b, st)}`
       case '=': return `${ex(c.a, st)} = ${ex(c.b, st)}`
@@ -39,7 +40,8 @@ function emit(m: Machine, tag: string, laws: Law[]): string {
     ...scalars.map(s => `${s} := ${ex(m.step.state?.[s] ?? x(s))}`),
     ...maps.map(mp => {
       const w = m.step.maps?.[mp]
-      return w ? `${mp} := upd st.${mp} ${ex(w.key)} ${ex(w.value)}` : `${mp} := st.${mp}`
+      const pw = w && pointWrite(w, 'the first Lean export')
+      return pw ? `${mp} := upd st.${mp} ${ex(pw.key)} ${ex(pw.value)}` : `${mp} := st.${mp}`
     }),
   ].join(',\n    ')
   // A law as a Lean proposition about a state `st`.
@@ -76,7 +78,7 @@ theorem inv_always ${P} (is : List In) : Inv ${args} (is.foldl (step ${args}) (i
   for (const law of mapLaws) {
     const map = (law.holds.op === '<=' && law.holds.a.op === 'get') ? law.holds.a.map : ''
     const w = m.step.maps![map]!
-    const key = ex(w.key)
+    const key = ex(pointWrite(w, 'the first Lean export').key)
     const k = law.forall!
     out.push(`theorem step_${lawName(law)} ${P} (st : St) (i : In) (h : ${prop(law, 'st')}) : ${prop(law, `(step ${args} st i)`)} := by
   intro ${k}

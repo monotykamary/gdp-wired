@@ -6,7 +6,8 @@ import {type C, type E, type Machine, type State, evalC, evalE} from './machine.
 export const E_OPS = ['var', 'const', 'add', 'sub', 'mul', 'prod', 'min', 'max', 'if', 'get'] as const satisfies readonly E['op'][]
 export const C_OPS = ['<', '<=', '=', 'and', 'or', 'not', 'flag'] as const satisfies readonly C['op'][]
 type Covers<T, L extends readonly unknown[]> = [Exclude<T, L[number]>] extends [never] ? true : false
-export const coverage: [Covers<E['op'], typeof E_OPS>, Covers<C['op'], typeof C_OPS>] = [true, true]
+// A quantified flag ('all') is a whole flag the kernel closes, not a term: its own tests are kernel/sets.test.ts.
+export const coverage: [Covers<E['op'], typeof E_OPS>, Covers<Exclude<C['op'], 'all'>, typeof C_OPS>] = [true, true]
 
 let seed = Number(process.env.FUZZ_SEED ?? 777)
 export const reseed = (s: number) => { seed = s }
@@ -73,5 +74,6 @@ export const inlineC = (c: C, f: C): C => {
     case 'and': case 'or': return {op: c.op, xs: c.xs.map(x => inlineC(x, f))}
     case 'not': return {op: 'not', x: inlineC(c.x, f)}
     case 'flag': return f
+    case 'all': throw new Error('conformance terms have no quantified flag')
   }
 }

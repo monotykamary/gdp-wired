@@ -26,7 +26,7 @@
 // order plus `after` is at most the request's), as the runtimes read it. With pruning, a request whose order goes back
 // ends the candidate: the runtimes refuse it.
 import {type C, type E, type Machine} from '../core/machine.ts'
-import {carried, fitsU32} from '../search/compile.ts'
+import {carried, fitsU32, stepDigits} from '../search/compile.ts'
 import {historyMachine} from '../kernel/kernel.ts'
 import {type Watched, isStepLaw} from '../core/watch.ts'
 import {type AnyStage, type LoopProgram, type WordBinding, createWordStage} from '../vendor/handwired/src/json-search/loop-program.ts'
@@ -40,7 +40,7 @@ export type Space = {depth: number, bound: number}
 export function lowSteps(m: Machine, space: Space, atMost = space.depth) {
   const K = space.bound + 1
   let low = Math.min(space.depth, atMost)
-  while (low > 0 && K ** (m.params.length + carried(m).length * low) > 2 ** 32 - 1) low--
+  while (low > 0 && K ** (m.params.length + stepDigits(m, space.bound) * low) > 2 ** 32 - 1) low--
   return low
 }
 
@@ -52,14 +52,18 @@ export function compile(given: Machine, law: Watched, space: Space, chunk: numbe
   const steps = isStepLaw(law) ? law.steps ?? 1 : 0
   if (steps > D) throw new Error(`${law.name}: a law over ${steps} steps needs a depth of at least ${steps}`)
   const isVar = (e: E) => e.op === 'var' && (m.params.includes(e.name) || m.inputs.includes(e.name))
-  for (const w of Object.values(m.step.maps ?? {})) if (!isVar(w.key)) throw new Error('a step writes maps only at a param or input key')
-  const maps = Object.keys(m.maps ?? {})
+  for (const w of Object.values(m.step.maps ?? {})) if (!('each' in w) && !isVar(w.key)) throw new Error('a step writes maps only at a param or input key, or at every key')
+  const maps = Object.keys(m.maps ?? {}), carriedMaps = m.inputMaps ?? []
   const state = Object.keys(m.state)
+  // A map written at every key keeps its default (what every cell past 0..bound reads) in a register; any other reads
+  // its initial value there.
+  const kept = maps.filter(map => { const w = m.step.maps?.[map]; return w !== undefined && 'each' in w })
   // Registers: the remaining digits, params, state, map cells, the candidate's flags, and the best failure.
   // A step law's window: the j-th earlier step's frame (j = 1 the step before this one), its state, cells and request.
-  const slot = (j: number) => [...state.map(s => `w${j}:s:${s}`), ...maps.flatMap(map => Array.from({length: K}, (_, c) => `w${j}:m:${map}:${c}`)), ...m.inputs.map(i => `w${j}:i:${i}`)]
+  const slot = (j: number) => [...state.map(s => `w${j}:s:${s}`), ...maps.flatMap(map => Array.from({length: K}, (_, c) => `w${j}:m:${map}:${c}`)), ...kept.map(map => `w${j}:d:${map}`),
+    ...carriedMaps.flatMap(map => Array.from({length: K}, (_, c) => `w${j}:c:${map}:${c}`)), ...m.inputs.map(i => `w${j}:i:${i}`)]
   const slots = Array.from({length: Math.max(0, steps - 1)}, (_, j) => slot(j + 1)).flat()
-  const regs: string[] = ['t', 'off', 'rest', ...m.params.map(p => `p:${p}`), ...state.map(s => `s:${s}`), ...maps.flatMap(map => Array.from({length: K}, (_, c) => `m:${map}:${c}`)), ...slots, ...log, ...(h?.prune ? ['last'] : []), 'live', 'best', 'first', 'count']
+  const regs: string[] = ['t', 'off', 'rest', ...m.params.map(p => `p:${p}`), ...state.map(s => `s:${s}`), ...maps.flatMap(map => Array.from({length: K}, (_, c) => `m:${map}:${c}`)), ...kept.map(map => `d:${map}`), ...slots, ...log, ...(h?.prune ? ['last'] : []), 'live', 'best', 'first', 'count']
   const reg = (name: string) => { const r = regs.indexOf(name); if (r < 0) throw new Error(name); return r }
 
   // Source cells: one per register, then the position, the document, and three shared words: hi, base and total.
@@ -89,8 +93,10 @@ export function compile(given: Machine, law: Watched, space: Space, chunk: numbe
   const rest0 = w.select(fresh, digits, src('rest'))
   void total
 
-  // Terms over an environment of words; map reads go through `cells`.
-  type Env = {vars: Record<string, Word>, cells: Record<string, Word[]>, flags: Record<string, Word>}
+  // Terms over an environment of words; map reads go through `cells` (0..bound) and `defaults` (past them). A key bound
+  // by a quantified flag or a write at every key is read only as a map's key: at one cell, or past them all.
+  type Env = {vars: Record<string, Word>, cells: Record<string, Word[]>, flags: Record<string, Word>, defaults?: Record<string, Word>, bound?: {name: string, cell: number | 'past'}}
+  const fallback = (map: string, env: Env): Word => env.defaults?.[map] ?? (carriedMaps.includes(map.replace(/(@\d+|')$/, '')) ? zero : k(m.maps![map.replace(/'$/, '')]!)) // M' starts as M
   const ex = (e: E, env: Env): Word => {
     switch (e.op) {
       case 'var': { const v = env.vars[e.name]; if (v === undefined) throw new Error(`unknown variable ${e.name}`); return v }
@@ -103,16 +109,20 @@ export function compile(given: Machine, law: Watched, space: Space, chunk: numbe
       case 'max': return w.max(ex(e.a, env), ex(e.b, env))
       case 'if': return w.select(cx(e.c, env), ex(e.then, env), ex(e.else, env))
       case 'get': {
-        const key = ex(e.key, env), cells = env.cells[e.map]!
+        const cells = env.cells[e.map]!
+        if (env.bound && e.key.op === 'var' && e.key.name === env.bound.name) return env.bound.cell === 'past' ? fallback(e.map, env) : cells[env.bound.cell]!
+        const key = ex(e.key, env)
         // The cell at the key, or the map's initial value past the stored cells; a key that can't be past them starts
         // the chain from the last cell.
         if (w.maximum(key) < cells.length) return cells.slice(0, -1).reduce((acc, cell, c) => w.select(w.eq(key, k(c)), cell, acc), cells.at(-1)!)
-        return cells.reduce((acc, cell, c) => w.select(w.eq(key, k(c)), cell, acc), k(m.maps![e.map.replace(/'$/, '')]!)) // M' starts as M
+        return cells.reduce((acc, cell, c) => w.select(w.eq(key, k(c)), cell, acc), fallback(e.map, env))
       }
     }
   }
   const cx = (c: C, env: Env): Word => {
     switch (c.op) {
+      // Every cell 0..bound, and past them (where every map reads its default).
+      case 'all': return [...Array.from({length: K}, (_, cell) => cell), 'past' as const].map(cell => cx(c.c, {...env, bound: {name: c.key, cell}})).reduce(and, one)
       case '<': return w.lt(ex(c.a, env), ex(c.b, env))
       case '<=': return w.le(ex(c.a, env), ex(c.b, env))
       case '=': return w.eq(ex(c.a, env), ex(c.b, env))
@@ -135,7 +145,8 @@ export function compile(given: Machine, law: Watched, space: Space, chunk: numbe
   const vars0: Record<string, Word> = {...params}
   for (const s of state) vars0[s] = w.select(fresh, ex(m.state[s]!, startEnv), src(`s:${s}`))
   const cells0: Record<string, Word[]> = Object.fromEntries(maps.map(map => [map, Array.from({length: K}, (_, c) => w.select(fresh, k(m.maps![map]!), src(`m:${map}:${c}`)))]))
-  const before: Env = {vars: vars0, cells: cells0, flags: {}}
+  const defaults0: Record<string, Word> = Object.fromEntries(kept.map(map => [map, w.select(fresh, k(m.maps![map]!), src(`d:${map}`))]))
+  const before: Env = {vars: vars0, cells: cells0, flags: {}, defaults: defaults0}
   const best0 = src('best')
   // The best failure is depth × chunk + offset, and 0xffffffff while there is none, so the least is a plain min.
   const record = (failed: Word, depth: Word, current: Word) => w.select(failed, w.min(current, w.add(w.mul(depth, k(chunk)), off)), current)
@@ -153,6 +164,9 @@ export function compile(given: Machine, law: Watched, space: Space, chunk: numbe
   // At step `low` the index's digits are used up, and the slice's number holds the rest.
   let rest = L < D ? w.select(w.eq(t, k(L)), hi, rest0) : rest0
   for (const i of carriedIn) { inputs[i] = w.mod(rest, k(K)); rest = w.div(rest, k(K)) }
+  // Each map the request carries: a digit per cell, 0 past them.
+  const carriedCells: Record<string, Word[]> = {}
+  for (const map of carriedMaps) carriedCells[map] = Array.from({length: K}, () => { const d = w.mod(rest, k(K)); rest = w.div(rest, k(K)); return d })
   // The queries, from the log: each record kept at an earlier step of this candidate and not yet spent.
   const order = h?.prune ? inputs[h.prune.order]! : undefined
   if (h) {
@@ -166,7 +180,7 @@ export function compile(given: Machine, law: Watched, space: Space, chunk: numbe
       inputs[q] = records.reduce((acc, r) => w.add(acc, w.select(r.counts, ex(g, {vars: {...params, ...inputs, ...r.fields}, cells: {}, flags: {}}), zero)), zero)
     }
   }
-  const stepEnv: Env = {vars: {...before.vars, ...inputs}, cells: before.cells, flags: {}}
+  const stepEnv: Env = {vars: {...before.vars, ...inputs}, cells: {...before.cells, ...carriedCells}, flags: {}, defaults: before.defaults}
   for (const [f, c] of Object.entries(m.step.flags ?? {})) stepEnv.flags[f] = cx(c, stepEnv)
   // The machine's own assumption (as the runtimes check it, without the relations the kernel proves of the log); with
   // pruning, a request in order.
@@ -175,16 +189,21 @@ export function compile(given: Machine, law: Watched, space: Space, chunk: numbe
   const go = and(live1, allowed)
   const vars1: Record<string, Word> = {...params}
   for (const s of state) vars1[s] = m.step.state?.[s] ? w.select(go, ex(m.step.state[s]!, stepEnv), before.vars[s]!) : before.vars[s]!
-  const cells1: Record<string, Word[]> = {}
+  const cells1: Record<string, Word[]> = {}, defaults1: Record<string, Word> = {...before.defaults}
   for (const map of maps) {
     const write = m.step.maps?.[map]
+    if (write && 'each' in write) {
+      cells1[map] = before.cells[map]!.map((cell, c) => w.select(go, ex(write.value, {...stepEnv, bound: {name: write.each, cell: c}}), cell))
+      defaults1[map] = w.select(go, ex(write.value, {...stepEnv, bound: {name: write.each, cell: 'past'}}), before.defaults![map]!)
+      continue
+    }
     cells1[map] = before.cells[map]!.map((cell, c) => {
       if (!write) return cell
       const key = ex(write.key, stepEnv), value = ex(write.value, stepEnv)
       return w.select(and(go, w.eq(key, k(c))), value, cell)
     })
   }
-  const after: Env = {vars: vars1, cells: cells1, flags: {}}
+  const after: Env = {vars: vars1, cells: cells1, flags: {}, defaults: defaults1}
   let stepFails = and(go, not(holds(after)))
   if (isStepLaw(law)) {
     // The window's frames, oldest first: the k − 1 earlier steps' from their slots, then this one.
@@ -193,7 +212,8 @@ export function compile(given: Machine, law: Watched, space: Space, chunk: numbe
       const vars: Record<string, Word> = {...params}
       for (const s of state) vars[s] = src(`w${j}:s:${s}`)
       for (const i of m.inputs) vars[i] = src(`w${j}:i:${i}`)
-      const env: Env = {vars, cells: Object.fromEntries(maps.map(map => [map, Array.from({length: K}, (_, c) => src(`w${j}:m:${map}:${c}`))])), flags: {}}
+      const env: Env = {vars, cells: Object.fromEntries([...maps.map(map => [map, Array.from({length: K}, (_, c) => src(`w${j}:m:${map}:${c}`))]),
+        ...carriedMaps.map(map => [map, Array.from({length: K}, (_, c) => src(`w${j}:c:${map}:${c}`))])]), flags: {}, defaults: Object.fromEntries(kept.map(map => [map, src(`w${j}:d:${map}`)]))}
       for (const [f, c] of Object.entries(m.step.flags ?? {})) env.flags[f] = cx(c, env)
       return env
     }
@@ -206,7 +226,9 @@ export function compile(given: Machine, law: Watched, space: Space, chunk: numbe
     const thenVars: Record<string, Word> = {...first.vars}
     frames.slice(1).forEach((f, j) => { for (const i of m.inputs) thenVars[`${i}@${j + 2}`] = f.vars[i]! })
     for (const s of state) thenVars[`${s}'`] = vars1[s]!
-    const across: Env = {vars: thenVars, cells: {...first.cells, ...Object.fromEntries(maps.map(map => [`${map}'`, cells1[map]!]))}, flags: first.flags}
+    const across: Env = {vars: thenVars, flags: first.flags,
+      cells: {...first.cells, ...Object.fromEntries(maps.map(map => [`${map}'`, cells1[map]!])), ...Object.fromEntries(frames.slice(1).flatMap((f, j) => carriedMaps.map(map => [`${map}@${j + 2}`, f.cells[map]!])))},
+      defaults: {...first.defaults, ...Object.fromEntries(kept.map(map => [`${map}'`, defaults1[map]!]))}}
     // A full window: this is at least the k-th step of the candidate (every earlier one was allowed, or it had ended).
     const full = steps === 1 ? one : w.le(k(steps - 1), t)
     stepFails = and(and(go, full), and(meets, not(atKeys(law.then, across, law.forall))))
@@ -229,11 +251,14 @@ export function compile(given: Machine, law: Watched, space: Space, chunk: numbe
     ...m.params.map(p => ({wire: params[p]!, write: {kind: 'register' as const, register: reg(`p:${p}`)}})),
     ...state.map(s => ({wire: vars1[s]!, write: {kind: 'register' as const, register: reg(`s:${s}`)}})),
     ...maps.flatMap(map => cells1[map]!.map((cell, c) => ({wire: cell, write: {kind: 'register' as const, register: reg(`m:${map}:${c}`)}}))),
+    ...kept.map(map => ({wire: defaults1[map]!, write: {kind: 'register' as const, register: reg(`d:${map}`)}})),
     // A candidate that failed or whose request isn't allowed stops: nothing later counts.
     // The window moves on: this step's frame into slot 1, each slot into the next.
     ...Array.from({length: Math.max(0, steps - 1)}, (_, j) => j + 1).flatMap(j => [
       ...state.map(s => ({wire: j === 1 ? before.vars[s]! : src(`w${j - 1}:s:${s}`), write: {kind: 'register' as const, register: reg(`w${j}:s:${s}`)}})),
       ...maps.flatMap(map => Array.from({length: K}, (_, c) => ({wire: j === 1 ? before.cells[map]![c]! : src(`w${j - 1}:m:${map}:${c}`), write: {kind: 'register' as const, register: reg(`w${j}:m:${map}:${c}`)}}))),
+      ...kept.map(map => ({wire: j === 1 ? before.defaults![map]! : src(`w${j - 1}:d:${map}`), write: {kind: 'register' as const, register: reg(`w${j}:d:${map}`)}})),
+      ...carriedMaps.flatMap(map => Array.from({length: K}, (_, c) => ({wire: j === 1 ? carriedCells[map]![c]! : src(`w${j - 1}:c:${map}:${c}`), write: {kind: 'register' as const, register: reg(`w${j}:c:${map}:${c}`)}}))),
       ...m.inputs.map(i => ({wire: j === 1 ? inputs[i]! : src(`w${j - 1}:i:${i}`), write: {kind: 'register' as const, register: reg(`w${j}:i:${i}`)}})),
     ]),
     // The log: this step's record, kept if the step was taken and keeps it; the last order.

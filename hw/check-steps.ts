@@ -4,10 +4,10 @@
 // that breaks it, and a proven one none. `generated` runs every document of each space, `executor` a sample.
 import type {C, E, Machine} from '../core/machine.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
-import {proveStepLaws} from '../kernel/prove.ts'
+import {proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {createLoopRunner} from '../vendor/handwired/src/json-search/loop-program.ts'
 import {replay, size} from '../search/compile.ts'
-import {historySearches, stepSearches} from './step-searches.ts'
+import {historySearches, setSearches, stepSearches} from './step-searches.ts'
 import {compile, decodeBest, setRange} from './compile.ts'
 
 const chunk = 32
@@ -133,5 +133,70 @@ for (const hs of historySearches(budget)) {
   const ok = agree === compared && (hs.breaks ? found.length > 0 : found.length === 0)
   if (!ok) failed = true
   console.log(`${(hs.what + ':').padEnd(72)} ${agree} / ${compared} agree, ${total.toLocaleString()} runs (depth ${hs.space.depth}), ${found.length ? `broken: ${found[0]}` : 'nothing breaks it'}${ok ? '' : '   UNEXPECTED'}`)
+}
+
+// Sets: the derived authority on sampled documents (its space is the GPU's), and random machines over sets whole.
+for (const ss of setSearches({depth: 2, bound: 3})) {
+  const loop = compile(ss.m, ss.law, ss.space, chunk)
+  const total = size(ss.m, ss.space), docs = Math.ceil(total / chunk)
+  const runner = createLoopRunner(loop, 'generated')
+  runner.setShared(setRange(loop, 0, total))
+  const out = [new Float32Array(1)], words = new Uint32Array(out[0]!.buffer)
+  let agree = 0
+  const sample = Array.from({length: 200}, (_, n) => (n < 2 ? [0, docs - 1][n]! : rand(docs)))
+  for (const doc of sample) {
+    runner.run([new Float32Array(1)], doc, out, 0, -1)
+    const got = decodeBest(words[0]!, 0, doc, chunk)
+    let expected: {depth: number, index: number} | undefined
+    for (let o = 0; o < chunk && doc * chunk + o < total; o++) {
+      const depth = replay(ss.m, ss.law, ss.space, doc * chunk + o)?.trace.length
+      if (depth !== undefined && (!expected || depth < expected.depth)) expected = {depth, index: doc * chunk + o}
+    }
+    if (JSON.stringify(got) === JSON.stringify(expected)) agree++
+    else if (agree + 3 > sample.length - 3) console.log(`  mismatch: ${ss.what}, document ${doc}: handwired ${JSON.stringify(got)}, replay ${JSON.stringify(expected)}`)
+  }
+  if (agree !== sample.length) failed = true
+  console.log(`${(ss.what + ':').padEnd(84)} ${agree} / ${sample.length} sampled documents agree (${total.toLocaleString()} runs in all)`)
+}
+{
+  const at = (map: string, key: E): E => ({op: 'get', map, key})
+  const cellTerm = (key: E): E => ([at('S', key), at('I', key), at('T', key), cc(rand(2))] as E[])[rand(4)]!
+  let setDocs = 0, setAgree = 0, setProven = 0, setBroken = 0, setRuns = 0
+  for (let trial = 0; trial < 40; trial++) {
+    const guard: C = rand(2) ? {op: 'flag', name: 'q'} : {op: 'not', x: {op: 'flag', name: 'q'}}
+    const m: Machine = {name: 'sets', params: [], inputs: ['a'], state: {n: cc(0)}, maps: {S: 0, T: 0}, inputMaps: ['I'],
+      step: {flags: {q: {op: 'all', key: 'k', c: {op: rand(2) ? '<=' : '=', a: cellTerm(vv('k')), b: cellTerm(vv('k'))}}, bits: {op: 'all', key: 'k', c: {op: '<=', a: at('I', vv('k')), b: cc(1)}}},
+        state: {n: {op: 'if', c: guard, then: {op: 'add', a: vv('n'), b: cc(1)}, else: vv('n')}},
+        maps: {S: {each: 'j', value: {op: 'if', c: guard, then: ([at('I', vv('j')), {op: 'max', a: at('S', vv('j')), b: at('I', vv('j'))}, {op: 'min', a: at('S', vv('j')), b: at('T', vv('j'))}] as E[])[rand(3)]!, else: at('S', vv('j'))}},
+          T: {each: 'j', value: rand(2) ? at('T', vv('j')) : {op: 'max', a: at('T', vv('j')), b: at('S', vv('j'))}}, }},
+      assume: {op: 'flag', name: 'bits'}}
+    const pick = () => ([at('S', vv('x')), at('T', vv('x')), cc(1)] as E[])[rand(3)]!
+    const law = {name: 'random', forall: 'x', holds: {op: rand(2) ? '<=' : '=', a: pick(), b: pick()} as C}
+    const space = {depth: 3, bound: 1}
+    const loop = compile(m, law, space, chunk)
+    const total = size(m, space), docs = Math.ceil(total / chunk)
+    const runner = createLoopRunner(loop, 'generated')
+    runner.setShared(setRange(loop, 0, total))
+    const out = [new Float32Array(1)], words = new Uint32Array(out[0]!.buffer)
+    let found = false
+    for (let doc = 0; doc < docs; doc++) {
+      runner.run([new Float32Array(1)], doc, out, 0, -1)
+      const got = decodeBest(words[0]!, 0, doc, chunk)
+      let expected: {depth: number, index: number} | undefined
+      for (let o = 0; o < chunk && doc * chunk + o < total; o++) {
+        const depth = replay(m, law, space, doc * chunk + o)?.trace.length
+        if (depth !== undefined && (!expected || depth < expected.depth)) expected = {depth, index: doc * chunk + o}
+      }
+      setDocs++
+      if (JSON.stringify(got) === JSON.stringify(expected)) setAgree++
+      else { failed = true; if (setDocs - setAgree <= 2) console.log(`  sets fuzz mismatch: document ${doc}: handwired ${JSON.stringify(got)}, replay ${JSON.stringify(expected)}`) }
+      if (got) found = true
+    }
+    setRuns += total
+    const r = proveLaws(m, [law])
+    if (r.proven && r.checked) { setProven++; if (found) { failed = true; console.log('  UNSOUND? a proven set law has a breaking run') } }
+    if (found) setBroken++
+  }
+  console.log(`sets fuzz: ${setAgree} / ${setDocs} documents agree over ${setRuns.toLocaleString()} runs; ${setProven} laws the kernel proves (none broken by a run), ${setBroken} broken by a run`)
 }
 if (failed) process.exit(1)

@@ -8,7 +8,8 @@ import {agree, product} from '../next/relational.ts'
 import {type Fold, type Goal, type Loop, historyMachine, obligations} from '../kernel/kernel.ts'
 import {grow, proveLaws} from '../kernel/prove.ts'
 import {counterLaws, counterSteps, counters, escrowLaws, escrowSteps, escrowWatched, meterRefinement, poolLaws, poolTotal, pooled, twoPhaseRefinement} from '../examples/composition.ts'
-import {type Exported, TRUE, encode, foldToLean, grown, hmachineToLean, loopToLean, machineToLean, mmachineToLean, goalToLean} from './emit.ts'
+import {type Exported, TRUE, encode, foldToLean, grown, hasSets, hmachineToLean, loopToLean, machineToLean, mmachineToLean, goalToLean, smachineToLean} from './emit.ts'
+import {authority, authorityLaws, authorityPairs, authoritySteps} from '../examples/sets.ts'
 
 const out: Exported[] = []
 function machine(what: string, m: Machine, laws: Law[]) {
@@ -43,12 +44,18 @@ if (process.argv.includes('--examples')) {
     ? {domains: [((await import(`${process.cwd()}/${which}`)) as {domain: {domain: string, cases: unknown[]}}).domain] as Awaited<typeof import('../examples/index.ts')>['domains']}
     : await import('../examples/index.ts')
   const parts: string[] = [], theorems: string[] = []
-  let goal = 0
+  let goal = 0, sets = false
   for (const d of domains.filter(dd => !which || which.startsWith('--') || which.endsWith('.ts') || dd.domain === which)) {
     d.cases.forEach((c, i) => {
       const id = `${d.domain}_${i}`.replace(/[^A-Za-z0-9_]/g, '_')
       if (c.kind === 'rule') {
         const m = c.rule.machine
+        if (hasSets(m)) {
+          sets = true
+          parts.push(`-- ${d.domain}: ${c.name}\n${smachineToLean(id, m, c.laws, {stepLaws: c.steps})}`)
+          theorems.push(`${id}_laws`, ...(c.steps ?? []).map((_, j) => `${id}_step${j}_holds`))
+          return
+        }
         parts.push(`-- ${d.domain}: ${c.name}\n${m.history ? hmachineToLean(id, m, c.laws) : m.maps && Object.keys(m.maps).length ? mmachineToLean(id, m, c.laws) : machineToLean(id, m, c.laws)}`)
         theorems.push(`${id}_laws`)
         if (c.steps?.length) {
@@ -67,7 +74,7 @@ if (process.argv.includes('--examples')) {
     })
   }
   console.log(`import History
-import Steps
+import ${sets ? 'Sets' : 'Steps'}
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
@@ -77,6 +84,27 @@ set_option maxHeartbeats 0
 ${parts.join('\n\n')}
 
 ${theorems.map(t => `#print axioms ${t}`).join('\n')}`)
+  process.exit(0)
+}
+
+// Sets (examples/sets.ts): the derived authority's laws, step laws and two-step laws through Kern.smachine_sound and Kern.skstep_sound,
+// and its proof offered for the variant that keeps the child on a refused derivation. Usage: bun export-kernel.ts --sets
+if (process.argv.includes('--sets')) {
+  const a = authority(), steps = [...authoritySteps(a), ...authorityPairs(a)]
+  const text = smachineToLean('authority', a.machine, authorityLaws(a), {stepLaws: steps, tamper: {what: 'the authority proof offered for the variant that keeps the child on a refused derivation', machine: authority('keeps the child on refusal').machine}})
+  console.log(`import Sets
+open Kern Cert
+set_option maxRecDepth 100000
+set_option maxHeartbeats 0
+
+/-! A derived authority over sets of names (examples/sets.ts): a request carries a candidate set, the child is accepted
+only if the grants cover it, and holds exactly it; through Kern.smachine_sound and Kern.skstep_sound, with the kernel's
+trees. -/
+
+${text}
+
+#print axioms authority_laws
+${steps.map((_, j) => `#print axioms authority_step${j}_holds`).join('\n')}`)
   process.exit(0)
 }
 

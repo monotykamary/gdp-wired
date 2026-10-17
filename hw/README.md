@@ -44,6 +44,13 @@ replay; on an L4 (`run.ts --history`), each law over the deepest space within 2^
 3–10 ms), every broken variant's counterexample replays (pruning a tick early, a window a minute short, forgetting the
 request), and no proven rule has one.
 
+**Sets.** A map a request carries is K cells of the candidate's digits (keys past them read the map's default), a
+map kept by the machine K registers plus its default, a flag over every key a conjunction over the K cells and the
+default, and a write at every key a write to each. On an L4 (`run.ts --sets`), each law of the derived authority
+(`../examples/sets.ts`) over every run of depth 3 with three names (68.7B runs, 4,096 slices) takes 1.7–2.8 s and finds
+nothing; both broken variants are found (checking only the named grant at depth 2, keeping the child on a refused
+derivation at depth 3), and both counterexamples replay.
+
 Results. Every answer agrees with the hand-written shader, and every counterexample replays. Medians of 9 runs after a
 warm-up (`--reps 9`), Handwired / hand-written on the same device; past 2^32 the hand times are modal-gpu/'s:
 
