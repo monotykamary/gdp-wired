@@ -1,6 +1,6 @@
 {
   "name": "gdp-wired",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Laws about stateful rules (budgets, caps, windows, workflows, policy decisions), proven automatically by a small checked kernel, with the rule shipped as code",
   "keywords": [
     "verification",
