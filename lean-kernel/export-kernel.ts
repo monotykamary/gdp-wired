@@ -59,9 +59,11 @@ if (process.argv.includes('--examples')) {
         parts.push(`-- ${d.domain}: ${c.name}\n${m.history ? hmachineToLean(id, m, c.laws) : m.maps && Object.keys(m.maps).length ? mmachineToLean(id, m, c.laws) : machineToLean(id, m, c.laws)}`)
         theorems.push(`${id}_laws`)
         if (c.steps?.length) {
-          // Step laws (one step through StepLaw.lean, k steps through Steps.lean) are about the plain machine: a history's sums as state, its queries as inputs (kernel.ts's
-          // historyMachine, whose relations its laws' proof above checks per record).
-          parts.push(`-- ${d.domain}: ${c.name}, step laws\n${mmachineToLean(`${id}s`, m.history ? historyMachine(m).machine : m, c.laws, {stepLaws: c.steps})}`)
+          // Step laws, one step or k, through the one twin (Sets.lean's skstep_sound), about the plain machine: a history's
+          // sums as state, its queries as inputs (kernel.ts's historyMachine, whose relations its laws' proof above checks
+          // per record).
+          sets = true
+          parts.push(`-- ${d.domain}: ${c.name}, step laws\n${smachineToLean(`${id}s`, m.history ? historyMachine(m).machine : m, c.laws, {stepLaws: c.steps})}`)
           c.steps.forEach((_, j) => theorems.push(`${id}s_step${j}_holds`))
         }
       } else if (c.kind === 'loop') {

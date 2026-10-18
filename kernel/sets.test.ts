@@ -7,7 +7,7 @@ import {expect, test} from 'bun:test'
 import {type C, type E, type Law, type Machine, type Request, type State, interpret, loadJs} from '../core/machine.ts'
 import {allowed, watch} from '../core/watch.ts'
 import {authority, authorityLaws, authorityPairs, authoritySteps} from '../examples/sets.ts'
-import {type StepLaw, checkStepLaws, obligations, stepLawObligations} from './kernel.ts'
+import {type Instances, type StepLaw, checkStepLaws, obligations, stepLawObligations} from './kernel.ts'
 import {proveLaws, proveStepLaws} from './prove.ts'
 
 let seed = 11
@@ -85,7 +85,9 @@ test('a proof checks only with the instances it was made with', () => {
   // Dropping a quantified flag's instances weakens the goals the trees were grown for: the proof no longer checks.
   const dropped = {...r.proof!, laws: {...r.proof!.laws, instances: Object.fromEntries(Object.entries(r.proof!.laws.instances).map(([l, inst]) => [l, Object.fromEntries(Object.entries(inst).filter(([n]) => !n.startsWith('?')))]))}}
   expect(checkStepLaws(m, laws, steps, dropped)).toBe(false)
-  const droppedSteps = {...r.proof!, instances: Object.fromEntries(Object.entries(r.proof!.instances).filter(([n]) => !n.startsWith('?')))}
+  // Each step law's own instances, where the check reads them.
+  const noFlags = (inst: Instances): Instances => Object.fromEntries(Object.entries(inst).filter(([n]) => !n.startsWith('?')))
+  const droppedSteps = {...r.proof!, instances: noFlags(r.proof!.instances), perStep: Object.fromEntries(Object.entries(r.proof!.perStep ?? {}).map(([n, inst]) => [n, noFlags(inst)]))}
   expect(checkStepLaws(m, laws, steps, droppedSteps)).toBe(false)
   // Every step law needs its own trees: without the last one's, the proof no longer checks.
   const lastGoals = new Set(stepLawObligations(m, laws, r.proof!.instances, steps.at(-1)!).map(g => g.name))

@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, canon, columnTerm, termColumn, historyMachine, foldObligations, leafConstraints, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, withProducts} from '../kernel/kernel.ts'
+import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, canon, columnTerm, stateName, termColumn, historyMachine, foldObligations, leafConstraints, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, withProducts} from '../kernel/kernel.ts'
 import {grow, proveBuilt, proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanTerms} from './lean-terms.ts'
@@ -477,7 +477,8 @@ def ${id}_step${j} : SKStep := ⟨⟨${list(Array.from({length: kk}, (_, s2) => 
   ${list(qinsts(inst))},
   ${list(finsts(inst))},
   ${list(pinsts(inst))},
-  []⟩
+  [],
+  ${list(Array.from({length: kk - 1}, (_, s2) => list(Object.keys(m.state).map(n2 => `(${ix(n2)}, ${ix(stateName(n2, s2 + 1))})`))))}⟩
 theorem ${id}_step${j}_holds : SKStepHolds ${id}_machine ${id}_step${j} :=
   skstep_sound ${id}_machine ${id}_proof ${id}_step${j} ${id}_check (by decide +kernel)`
   }}))
@@ -585,7 +586,8 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
   const allowGoals = [...allowed.values()].flatMap(a => (a ? [a.out.goal!] : []))
   const vars = [...new Set([...m.params, ...m.inputs, ...Object.keys(m.state), ...keysOf, ...keysOf.map(k2 => `${k2}#`), '#', ...flags.map(([f]) => `?${f}`),
     ...quantified.map(f => `w?${f}`), ...boundKeys(m), ...(opts.tamper ? boundKeys(opts.tamper.machine) : []), ...stepLaws.flatMap(sl => (sl.forall ? [sl.forall] : [])), ...(opts.free ?? []),
-    ...primes, ...later, ...[...goalsL, ...goalsS, ...allowGoals].flatMap(g => g.hyps.flatMap(varsOf))])]
+    ...primes, ...later, ...Array.from({length: k - 1}, (_, j) => Object.keys(m.state).map(n2 => stateName(n2, j + 1))).flat(),
+    ...[...goalsL, ...goalsS, ...allowGoals].flatMap(g => g.hyps.flatMap(varsOf))])]
   const baseMaps = [...new Set([...Object.keys(m.maps ?? {}), ...Object.keys(m.step.maps ?? {}), ...Object.keys(m.fns ?? {})])]
   const mapNames = [...new Set([...baseMaps, ...carried, ...(allSteps.length ? Object.keys(m.maps ?? {}).map(mp => `${mp}'`) : []), ...laterMaps,
     ...[...JSON.stringify([...goalsL, ...goalsS, ...allowGoals]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!)])]

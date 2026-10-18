@@ -762,7 +762,7 @@ end sproject
 
 -- The composite's step law: on every request it takes, the spec stutters or allows the request it is sent.
 def srStep (r : SRefined) (prime primeMaps : List (Nat × Nat)) (p : SProof) : SKStep :=
-  ⟨⟨[trueC], r.allowed, [[]], prime, primeMaps, p.1, (p.2.2.2.2.1, p.2.2.2.2.2.2)⟩, [[]], p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.2.1⟩
+  ⟨⟨[trueC], r.allowed, [[]], prime, primeMaps, p.1, (p.2.2.2.2.1, p.2.2.2.2.2.2)⟩, [[]], p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.2.1, []⟩
 
 /-- What a refinement over sets means: with the relation (and the spec's precondition, the j-th law) proven of the
 composite, and its step law that the spec stutters or allows every request it is sent, every reachable state of the

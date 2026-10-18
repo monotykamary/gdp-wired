@@ -324,6 +324,14 @@ const step = (r: Run, u: Update): Run => {
     flags: at.flags,
   }}
 }
+// The state after a step, named: each state variable a fresh name n~j equal to its term there, which later frames read,
+// so a run of k steps is k small frames rather than a term nesting each state in the next (which grows as 3^k when a
+// step reads its state thrice). The names are new to the goal; each equation holds of the run that took the steps.
+const nameState = (r: Run, state: string[], j: number): Run => ({
+  hyps: [...r.hyps, ...state.map(n => ({op: '=', a: {op: 'var', name: stateName(n, j)}, b: r.at.vars[n] ?? {op: 'var', name: n}}) as C)],
+  at: {...r.at, vars: {...r.at.vars, ...Object.fromEntries(state.map(n => [n, {op: 'var', name: stateName(n, j)} as E]))}},
+})
+export const stateName = (n: string, j: number) => `${n}~${j}`
 // The conclusion read at the run's end: plain names at the last frame.
 const atEnd = (r: Run, c: C): C => substC(c, r.at)
 // The conclusion read across the run: plain names at the first frame, primed names (s', and M'[k] as a read of the map
@@ -729,8 +737,9 @@ export function stepLawObligations(machine: Machine, laws: Law[], instances: Ins
   const primes = [...state, ...maps].map(n => `${n}'`)
   const laters = Array.from({length: k - 1}, (_, i) => laterNames(m, i + 2))
   const later = laters.flatMap(l => Object.values(l.vars).map(e => (e as {name: string}).name)), laterMaps = laters.flatMap(l => Object.values(l.maps))
+  const names = Array.from({length: k - 1}, (_, i) => state.map(n => stateName(n, i + 1))).flat()
   const taken = [...m.params, ...m.inputs, ...state, ...maps, ...carried]
-  for (const p of [...primes, ...later, ...laterMaps]) if (taken.includes(p)) throw new Error(`${m.name}: ${p} is a name of the machine and a name a step law reads`)
+  for (const p of [...primes, ...later, ...laterMaps, ...names]) if (taken.includes(p)) throw new Error(`${m.name}: ${p} is a name of the machine and a name a step law reads`)
   for (const key of [sl.forall, ...(sl.keys ?? [])]) if (key && [...taken, ...primes, ...later].includes(key)) throw new Error(`step law ${sl.name}'s key ${key} is already a name of ${m.name}`)
   if (sl.keys?.length && (!sl.forall || new Set([sl.forall, ...sl.keys]).size !== sl.keys.length + 1)) throw new Error(`step law ${sl.name}: further keys come with a first, each a different name`)
   unquantified(`step law ${sl.name}`, sl.then)
@@ -742,6 +751,7 @@ export function stepLawObligations(machine: Machine, laws: Law[], instances: Ins
   for (let j = 1; j <= k; j++) {
     if (j > 1) run = reading(run, laters[j - 2]!.vars, laters[j - 2]!.maps)
     run = step(holds(run, [...assumed(laws, instances), ...assume, ...(whens[j - 1] ? [inlineFlags(m, whens[j - 1]!)] : []), ...closing(m, instances)]), u)
+    if (j < k) run = nameState(run, state, j)
   }
   return [goal(k === 1 ? `${sl.name} @step law` : `${sl.name} @${k} steps`, run, across(run, sl.then, state, maps, {inputs: {}, flags: flagsOf(m)}))]
 }
@@ -759,9 +769,12 @@ export function checkStepLaws(m: Machine, laws: Law[], stepLaws: StepLaw[], proo
       && stepLawObligations(m, laws, inst, sl).every(g => proof.trees[g.name] !== undefined && check(g, proof.trees[g.name]!))
   })
 }
-// The names a k-step law's later requests are read by: each later step's inputs, quantified flags and their witnesses.
-export const stepZone = (m: Machine, k: number): string[] =>
-  Array.from({length: k - 1}, (_, i) => Object.values(laterNames(m, i + 2).vars).map(e => (e as {name: string}).name)).flat()
+// The names a k-step law's run introduces past its first frame: each later step's inputs, quantified flags and their
+// witnesses, and the state after each step but the last (stateName).
+export const stepZone = (m: Machine, k: number): string[] => [
+  ...Array.from({length: k - 1}, (_, i) => Object.values(laterNames(m, i + 2).vars).map(e => (e as {name: string}).name)).flat(),
+  ...Array.from({length: k - 1}, (_, i) => Object.keys(m.state).map(n => stateName(n, i + 1))).flat(),
+]
 
 // --- trees: structural induction ---------------------------------------------------------------------------------------
 

@@ -91,11 +91,11 @@ export type Outcome = {tree: Tree, nodes: number} | {stuck: 'sat' | 'unknown', w
 // The budget: 200,000 nodes and, by default, a second per hypothesis (at least 20 seconds) per goal; past either the goal
 // is left `unknown`. A goal with many instances (a law about two keys at its pairs) has that many more rows per leaf.
 export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number, until?: number} = {nodes: 0, until: performance.now() + Math.max(20_000, 1_000 * goal.hyps.length)}): Outcome {
-  // At the root: plainly first; where the cases multiply past a budget, through cuts. A goal with many open choices
-  // (a long run's steps) gets a small plain budget, so the cuts come early; any other a large one.
+  // At the root: plainly first; where the cases multiply past a budget, through cuts. The plain budget halves with each
+  // two open choices (what a plain search's cases grow by), so a long run's steps reach the cuts early.
   if (path.size === 0 && budget.nodes === 0) {
     const open = new Set(leafConstraints(goal, path).flatMap(r => Object.keys(r.lin)).filter(n => n.startsWith('⟦') && columnTerm(n)?.op === 'if')).size
-    const plain = growPlain(goal, path, {nodes: 0, until: budget.until, cap: open >= 4 ? 32 : 4_000})
+    const plain = growPlain(goal, path, {nodes: 0, until: budget.until, cap: Math.max(32, Math.round(4_000 / 2 ** (open / 2)))})
     if ('tree' in plain || plain.stuck === 'sat' || plain.why === undefined) return plain
     const cut = withCuts(goal, path, budget)
     if (cut) return cut
@@ -490,16 +490,20 @@ export function proveStepLaws(m: Machine, given: Law[], stepLaws: StepLaw[]): Re
 function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base: Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}}): Report & {proof?: StepProof} {
   if (!base.proof) return {proven: false, nodes: base.nodes, leaves: base.leaves, checked: false}
   const plain = m.history ? historyMachine(m).machine : m
-  const keys = [...readKeys(plain, laws), ...witnesses(plain), ...stepLaws.flatMap(sl => [sl.then, ...(sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when])].flatMap(readKeysC)),
-    ...stepLaws.flatMap(sl => [sl.forall, ...(sl.keys ?? [])].flatMap(key => (key ? [{op: 'var', name: key} as E] : [])))]
-  // One set of instances for all the step laws; where positions shift or a law is about several keys, each step law
-  // then its own, from its own goal.
-  // A frame's hypotheses read no name the run introduces later (kernel.ts's stepZone): keys reading one are dropped.
-  const zone = stepZone(plain, Math.max(1, ...stepLaws.map(sl => sl.steps ?? 1)))
-  const instances = avoiding(instancesFor(plain, laws, inst => stepLaws.flatMap(sl => stepLawObligations(m, laws, inst, sl)), {seed: keys, reads: false}), zone, [...laws, ...(plain.facts ?? [])])
+  // Each step law its own instances, from its own goal: the keys the step and the laws read, and its own (a k-step
+  // law's later frames read keys no other step law has); where positions shift or a law is about several keys, the
+  // keys its goal reads a map at too. A frame's hypotheses read no name the run introduces later (kernel.ts's
+  // stepZone), so a k-step law drops the keys that read one.
+  const shared = [...readKeys(plain, laws), ...witnesses(plain)], named = [...laws, ...(plain.facts ?? [])], reads = shifts(plain) || laws.some(l => l.keys?.length)
+  const own = (sl: StepLaw): E[] => [...[sl.then, ...(sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when])].flatMap(readKeysC),
+    ...[sl.forall, ...(sl.keys ?? [])].flatMap(key => (key ? [{op: 'var', name: key} as E] : []))]
   const perStep: Record<string, Instances> = {}
-  if (shifts(plain) || laws.some(l => l.keys?.length)) for (const sl of stepLaws)
-    perStep[sl.name] = avoiding(instancesFor(plain, laws, inst => stepLawObligations(m, laws, avoiding(inst, zone, [...laws, ...(plain.facts ?? [])]), sl), {start: instances, focus: [sl.forall, ...(sl.keys ?? [])].flatMap(k => (k ? [k] : [])), reads: true}), zone, [...laws, ...(plain.facts ?? [])])
+  for (const sl of stepLaws) {
+    const zone = stepZone(plain, sl.steps ?? 1), keep = (inst: Instances) => avoiding(inst, zone, named)
+    perStep[sl.name] = keep(instancesFor(plain, laws, inst => stepLawObligations(m, laws, keep(inst), sl),
+      {seed: [...shared, ...own(sl)], focus: [sl.forall, ...(sl.keys ?? [])].flatMap(k => (k ? [k] : [])), reads}))
+  }
+  const instances = perStep[stepLaws[0]?.name ?? ''] ?? {}
   const trees: Record<string, Tree> = {}
   let nodes = base.nodes, leaves = base.leaves
   for (const sl of stepLaws) for (const goal of stepLawObligations(m, laws, perStep[sl.name] ?? instances, sl)) {

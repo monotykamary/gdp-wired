@@ -1,7 +1,8 @@
 // Laws over many steps in a row: the budget rule's spend over k requests is at most k times the per-request cap, for k
 // from 2 to 16, and a variant that lets one request through uncapped is refused. Each step's case (under the budget or
 // not, the request under the cap or not) multiplies the cases; the prover proves a fact about each step's value that
-// holds either way first (a cut: its failing side decides that step alone), so the proof grows with k, not with 4^k.
+// holds either way first (a cut: its failing side decides that step alone), so the proof grows with k, not with 4^k;
+// each step's state is named in the goal (n~j), so its terms stay small too.
 // With --lean, every law as a Lean theorem, for lean-kernel:
 //   bun examples/steps.ts            # prove and refuse, with times
 //   bun examples/steps.ts --lean > lean-kernel/KSteps.lean
@@ -15,8 +16,7 @@ const over = (r: ReturnType<typeof budget>, k: number) => r.stepsLaw(`${k} reque
 const ks = [2, 4, 8, 12, 16]
 
 if (process.argv.includes('--lean')) {
-  // Up to 6 steps for now: a k-step goal's terms nest each state in the next, and Lean data has no sharing.
-  const r = budget(), items: LeanItem[] = [{id: 'budget_steps', machine: r.machine, laws: [within(r)], stepLaws: [2, 4, 6].map(k => over(r, k))}]
+  const r = budget(), items: LeanItem[] = [{id: 'budget_steps', machine: r.machine, laws: [within(r)], stepLaws: ks.map(k => over(r, k))}]
   console.log(toLean(items, {title: 'Laws over up to 16 steps (examples/steps.ts)'}))
   process.exit(0)
 }

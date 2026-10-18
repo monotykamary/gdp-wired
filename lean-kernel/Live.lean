@@ -485,7 +485,7 @@ def sliveOk (s : SMachine) (l : Live) : Bool :=
 -- A step law over sets's proof: (law instances, quantified flag instances, fact instances, several-key instances, tree).
 abbrev SProof := List (Nat × E) × List (Nat × E) × List (Nat × E) × List (Nat × E × List E) × Cert
 def sliveStep (l : Live) (w t : C) (p : SProof) : SKStep :=
-  ⟨⟨[w], t, [[]], l.prime, l.primeMaps, p.1, (p.2.2.2.2.1, p.2.2.2.2.2.2)⟩, [[]], p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.2.1⟩
+  ⟨⟨[w], t, [[]], l.prime, l.primeMaps, p.1, (p.2.2.2.2.1, p.2.2.2.2.2.2)⟩, [[]], p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.2.1, []⟩
 def sliveHelpsOk (s : SMachine) (ps : List SEntry) (l : Live) (hp : List SProof) : Bool :=
   l.helps.length == hp.length && (l.helps.zip hp).all (fun x => checkSKStep s ps (sliveStep l (liveHelpWhen l x.1) (liveHelpThen l) x.2))
 

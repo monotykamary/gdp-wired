@@ -108,13 +108,18 @@ def frameRd (mr : List (Nat × Nat)) (rd : Nat → E → E) : Nat → E → E :=
 def sFrameHyps (s : SMachine) (laws : List MLaw) (insts qinsts : List (Nat × E)) (w : C) : List C :=
   scalarHyps laws ++ instHyps laws insts ++ [inlineC s.f.flags s.f.m.assume, w] ++ closingHyps s qinsts
 
+-- The state after a step, named (`names`, per step but the last: each state variable and a fresh variable): the fresh
+-- variable equals the variable's term there, and later frames read it (frameSub), so a run's frames stay small.
+def nameHyps (n : List (Nat × Nat)) (σ : List (Nat × E)) : List C := n.map (fun p => .eq (.var p.2) ((assoc σ p.1).getD (.var p.1)))
+
 def sRun (s : SMachine) (laws : List MLaw) (insts qinsts : List (Nat × E)) :
-    List C → List (List (Nat × Nat)) → List (List (Nat × Nat)) → List (Nat × E) → (Nat → E → E) → List C × List (Nat × E) × (Nat → E → E)
-  | w :: ws, r :: rs, mr :: mrs, σ, rd =>
+    List C → List (List (Nat × Nat)) → List (List (Nat × Nat)) → List (List (Nat × Nat)) → List (Nat × E) → (Nat → E → E) → List C × List (Nat × E) × (Nat → E → E)
+  | w :: ws, r :: rs, mr :: mrs, ns, σ, rd =>
     ((sFrameHyps s laws insts qinsts w).map (substRC (frameSub r σ) (frameRd mr rd))
-        ++ (sRun s laws insts qinsts ws rs mrs (stepSub s.f (frameSub r σ) (frameRd mr rd)) (stepRdS s (frameSub r σ) (frameRd mr rd))).1,
-      (sRun s laws insts qinsts ws rs mrs (stepSub s.f (frameSub r σ) (frameRd mr rd)) (stepRdS s (frameSub r σ) (frameRd mr rd))).2)
-  | _, _, _, σ, rd => ([], σ, rd)
+        ++ nameHyps (ns.headD []) (stepSub s.f (frameSub r σ) (frameRd mr rd))
+        ++ (sRun s laws insts qinsts ws rs mrs ns.tail (frameSub (ns.headD []) (stepSub s.f (frameSub r σ) (frameRd mr rd))) (stepRdS s (frameSub r σ) (frameRd mr rd))).1,
+      (sRun s laws insts qinsts ws rs mrs ns.tail (frameSub (ns.headD []) (stepSub s.f (frameSub r σ) (frameRd mr rd))) (stepRdS s (frameSub r σ) (frameRd mr rd))).2)
+  | _, _, _, _, σ, rd => ([], σ, rd)
 
 /-! What a step's goal reads it by -/
 
@@ -1231,8 +1236,9 @@ structure SKStep where
   finsts : List (Nat × E)          -- (fact index, key): where the goal assumes the facts, read at the first frame
   pinsts : List (Nat × E × List E) -- (law index, key, further keys): where each frame assumes the laws about several keys
   used : List C                    -- the hypotheses the tree refutes ([] for the goal's own, in its order)
+  names : List (List (Nat × Nat))  -- per step but the last: (state variable, the fresh variable naming it after that step)
 
-def sKOut (s : SMachine) (ps : List SEntry) (sl : SKStep) := sRun s (sLaws ps sl.pinsts) (sInsts ps sl.k.insts sl.pinsts) sl.qinsts sl.k.whens sl.k.ren sl.mren [] getRd
+def sKOut (s : SMachine) (ps : List SEntry) (sl : SKStep) := sRun s (sLaws ps sl.pinsts) (sInsts ps sl.k.insts sl.pinsts) sl.qinsts sl.k.whens sl.k.ren sl.mren sl.names [] getRd
 def sKGoal (s : SMachine) (ps : List SEntry) (sl : SKStep) : List C :=
   [s.f.m.pre] ++ factHyps s sl.finsts ++ (sKOut s ps sl).1
     ++ [.not (substRC (kEndSub sl.k (sKOut s ps sl).2.1 (sKOut s ps sl).2.2) (kEndRd sl.k (sKOut s ps sl).2.2) sl.k.then_)]
@@ -1244,7 +1250,7 @@ def sMapsOk (s : SMachine) (MZ : List Nat) : Bool :=
     && s.every.all (fun w => avoidsMapsE MZ (inlineE s.f.flags w.2.2))
     && s.facts.all (fun l => avoidsMaps MZ l.holds)
 
-def szone (s : SMachine) (sl : SKStep) : List Nat := tgts sl.k.ren ++ flagVars s.f.flags
+def szone (s : SMachine) (sl : SKStep) : List Nat := tgts sl.k.ren ++ flagVars s.f.flags ++ tgts sl.names
 
 def checkSKStep (s : SMachine) (ps : List SEntry) (sl : SKStep) : Bool :=
   sl.k.whens.length == sl.k.ren.length && sl.mren.length == sl.k.ren.length && sl.k.ren.head? == some [] && sl.mren.head? == some []
@@ -1259,6 +1265,9 @@ def checkSKStep (s : SMachine) (ps : List SEntry) (sl : SKStep) : Bool :=
     && sl.k.whens.all (fun w => (sFrameHyps s (sLaws ps sl.pinsts) (sInsts ps sl.k.insts sl.pinsts) sl.qinsts w).all fun c => avoids (szone s sl) c && avoidsMaps (tgts sl.mren) c)
     && sTermsOk s (szone s sl) && sMapsOk s (tgts sl.mren)
     && checkIn (sKGoal s ps sl) ⟨sl.k.proof.1, sl.used, sl.k.proof.2⟩
+    && distinct (tgts sl.k.ren ++ tgts sl.names)
+    && sl.names.all (fun n => n.all fun p => !s.extVars.contains p.1 && !(szone s sl).contains p.1)
+    && avoids (tgts sl.names) sl.k.then_
 
 /-! What a k-step law over sets claims -/
 
@@ -1267,6 +1276,15 @@ abbrev SRequest := (Nat → Nat) × (Nat → Nat → Nat)   -- a request's input
 noncomputable def sEnd (s : SMachine) : (Nat → Nat) → (Nat → Nat → Nat) → List SRequest → (Nat → Nat) × (Nat → Nat → Nat)
   | ρ, M, [] => (ρ, M)
   | ρ, M, q :: qs => sEnd s (sNext s ρ M q.1 q.2).1 (sNext s ρ M q.1 q.2).2 qs
+
+-- The state after each step.
+noncomputable def sStates (s : SMachine) : (Nat → Nat) → (Nat → Nat → Nat) → List SRequest → List (Nat → Nat)
+  | _, _, [] => []
+  | ρ, M, q :: qs => (sNext s ρ M q.1 q.2).1 :: sStates s (sNext s ρ M q.1 q.2).1 (sNext s ρ M q.1 q.2).2 qs
+
+theorem evalE_assoc_getD (σ : List (Nat × E)) (W : Nat → Nat) (M0 : Nat → Nat → Nat) (v : Nat) :
+    evalE W M0 ((assoc σ v).getD (.var v)) = applyS σ W M0 v := by
+  simp only [applyS]; cases assoc σ v <;> simp [evalE]
 
 -- Each step's extended request (inputs, quantified flags, witnesses), as its goal reads it.
 noncomputable def sExts (s : SMachine) : (Nat → Nat) → (Nat → Nat → Nat) → List SRequest → List (Nat → Nat)
@@ -1347,7 +1365,7 @@ theorem skrun_sound (s : SMachine) (ps : List SEntry) (hl : checkSMachine s ps =
     (hlY : ∀ ρ M ι κ, SReach s ρ M → ∀ l ∈ laws, l.Holds (withExt s ρ (sReq s ρ M ι κ)) (withCarried s M κ))
     (W : Nat → Nat) (M0 : Nat → Nat → Nat)
     (hfz : ∀ v ∈ flagVars s.f.flags, v ∈ Z) (hterms : sTermsOk s Z = true) (hmaps : sMapsOk s MZ = true) :
-    ∀ (ws : List C) (rs mrs : List (List (Nat × Nat))) (qs : List SRequest) (σ : List (Nat × E)) (rd : Nat → E → E)
+    ∀ (ws : List C) (rs mrs ns : List (List (Nat × Nat))) (qs : List SRequest) (σ : List (Nat × E)) (rd : Nat → E → E)
       (ρ : Nat → Nat) (M : Nat → Nat → Nat),
       ws.length = rs.length → ws.length = mrs.length → ws.length = qs.length →
       (∀ w ∈ ws, ∀ c ∈ sFrameHyps s laws insts qinsts w, avoids Z c = true ∧ avoidsMaps MZ c = true) →
@@ -1356,11 +1374,12 @@ theorem skrun_sound (s : SMachine) (ps : List SEntry) (hl : checkSMachine s ps =
       (∀ r ∈ mrs, ∀ p ∈ r, p.1 ∈ s.carried) →
       (∀ r ∈ mrs.tail, ∀ mp ∈ s.carried, ∃ p ∈ r, p.1 = mp) →
       RenOK W rs.tail (sExts s ρ M qs).tail → MRenOK M0 mrs.tail (qs.map (·.2)).tail →
+      (∀ n ∈ ns, ∀ p ∈ n, p.1 ∉ s.extVars ∧ p.1 ∉ Z) → RenOK W ns (sStates s ρ M qs) →
       SReach s ρ M → SDenotes s Z MZ W M0 σ rd ρ M → SHeadL s Z MZ W M0 σ rd ρ M rs mrs qs → SAllowed s ws ρ M qs →
-      (∀ c ∈ (sRun s laws insts qinsts ws rs mrs σ rd).1, evalC W M0 c = true)
-        ∧ SDenotes s Z MZ W M0 (sRun s laws insts qinsts ws rs mrs σ rd).2.1 (sRun s laws insts qinsts ws rs mrs σ rd).2.2
+      (∀ c ∈ (sRun s laws insts qinsts ws rs mrs ns σ rd).1, evalC W M0 c = true)
+        ∧ SDenotes s Z MZ W M0 (sRun s laws insts qinsts ws rs mrs ns σ rd).2.1 (sRun s laws insts qinsts ws rs mrs ns σ rd).2.2
             (sEnd s ρ M qs).1 (sEnd s ρ M qs).2
-  | [], rs, mrs, qs, σ, rd, ρ, M, hl1, hl2, hl3, _, _, _, _, _, _, _, _, hD, _, _ => by
+  | [], rs, mrs, ns, qs, σ, rd, ρ, M, hl1, hl2, hl3, _, _, _, _, _, _, _, _, _, _, hD, _, _ => by
     cases rs with
     | cons _ _ => simp at hl1
     | nil =>
@@ -1370,7 +1389,7 @@ theorem skrun_sound (s : SMachine) (ps : List SEntry) (hl : checkSMachine s ps =
         cases qs with
         | cons _ _ => simp at hl3
         | nil => exact ⟨fun c hc => by simp [sRun] at hc, hD⟩
-  | w :: ws, rs, mrs, qs, σ, rd, ρ, M, hl1, hl2, hl3, hav, hkeys, hcov, hmkeys, hmcov, hren, hmren, hr, hD, hH, hK => by
+  | w :: ws, rs, mrs, ns, qs, σ, rd, ρ, M, hl1, hl2, hl3, hav, hkeys, hcov, hmkeys, hmcov, hren, hmren, hnsrc, hnok, hr, hD, hH, hK => by
     rcases rs with _ | ⟨r, rs⟩
     · simp at hl1
     rcases mrs with _ | ⟨mr, mrs⟩
@@ -1388,8 +1407,23 @@ theorem skrun_sound (s : SMachine) (ps : List SEntry) (hl : checkSMachine s ps =
     have hD' := sstep_denotes s Z MZ W M0 (sOk_of hl) hfz hfav r mr q.1 q.2 hD hH1 (hkeys r List.mem_cons_self) hstp
       (fun w hw => (hwr w hw).1) hev hstm hwrm hevm
     have hr' : SReach s (sNext s ρ M q.1 q.2).1 (sNext s ρ M q.1 q.2).2 := SReach.step ρ M q.1 q.2 hr hA
+    -- The state after the step, named: each fresh variable holds the next state's value of the variable it names.
+    have hnames : ∀ p ∈ ns.headD [], W p.2 = (sNext s ρ M q.1 q.2).1 p.1 := by
+      cases ns with
+      | nil => intro p hp; simp at hp
+      | cons n ns' => exact hnok.1
+    have hnsrc1 : ∀ p ∈ ns.headD [], p.1 ∉ s.extVars ∧ p.1 ∉ Z := by
+      cases ns with
+      | nil => intro p hp; simp at hp
+      | cons n ns' => exact hnsrc n List.mem_cons_self
+    have hD'' : SDenotes s Z MZ W M0 (frameSub (ns.headD []) (stepSub s.f (frameSub r σ) (frameRd mr rd))) (stepRdS s (frameSub r σ) (frameRd mr rd))
+        (sNext s ρ M q.1 q.2).1 (sNext s ρ M q.1 q.2).2 := by
+      refine ⟨fun v hve hvz => ?_, hD'.2⟩
+      by_cases hin : ∃ p ∈ ns.headD [], p.1 = v
+      · exact applyS_frame_in hin hnames
+      · rw [applyS_frame_out (fun p hp he => hin ⟨p, hp, he⟩)]; exact hD'.1 v hve hvz
     -- The next step's frame, its request set and its maps read, agrees with the next state and request.
-    have hH' : SHeadL s Z MZ W M0 (stepSub s.f (frameSub r σ) (frameRd mr rd)) (stepRdS s (frameSub r σ) (frameRd mr rd))
+    have hH' : SHeadL s Z MZ W M0 (frameSub (ns.headD []) (stepSub s.f (frameSub r σ) (frameRd mr rd))) (stepRdS s (frameSub r σ) (frameRd mr rd))
         (sNext s ρ M q.1 q.2).1 (sNext s ρ M q.1 q.2).2 rs mrs qs := by
       rcases rs with _ | ⟨r', rs'⟩
       · exact trivial
@@ -1404,7 +1438,7 @@ theorem skrun_sound (s : SMachine) (ps : List SEntry) (hl : checkSMachine s ps =
         · rw [applyS_frame_in (hcov r' List.mem_cons_self v hve) hr1]
           simp only [withExt]; rw [if_pos (List.contains_iff_mem.mpr hve)]
         · rw [applyS_frame_out (fun p hp he => hve (by rw [← he]; exact hkeys r' (List.mem_cons_of_mem _ List.mem_cons_self) p hp)),
-            hD'.1 v hve hvz]
+            hD''.1 v hve hvz]
           simp only [withExt]; rw [if_neg (by simpa [List.contains_iff_mem] using hve)]
       · by_cases hmc : mp ∈ s.carried
         · cases hlk : lookup (fun p : Nat × Nat => p.1 == mp) mr' with
@@ -1434,18 +1468,31 @@ theorem skrun_sound (s : SMachine) (ps : List SEntry) (hl : checkSMachine s ps =
       rcases qs with _ | ⟨q', qs'⟩
       · cases mrs' <;> exact trivial
       exact hmren1.2
-    obtain ⟨ih1, ih2⟩ := skrun_sound s ps hl Z MZ laws insts qinsts hlY W M0 hfz hterms hmaps ws rs mrs qs _ _ _ _ hl1 hl2 hl3
+    have hnsrc' : ∀ n ∈ ns.tail, ∀ p ∈ n, p.1 ∉ s.extVars ∧ p.1 ∉ Z := fun n hn => hnsrc n (List.mem_of_mem_tail hn)
+    have hnok' : RenOK W ns.tail (sStates s (sNext s ρ M q.1 q.2).1 (sNext s ρ M q.1 q.2).2 qs) := by
+      cases ns with
+      | nil => exact trivial
+      | cons n ns' => exact hnok.2
+    obtain ⟨ih1, ih2⟩ := skrun_sound s ps hl Z MZ laws insts qinsts hlY W M0 hfz hterms hmaps ws rs mrs ns.tail qs _ _ _ _ hl1 hl2 hl3
       (fun w' hw' => hav w' (List.mem_cons_of_mem _ hw'))
       (fun r' hr'' => hkeys r' (List.mem_cons_of_mem _ hr''))
       (fun r' hr'' => hcov r' (List.mem_of_mem_tail hr''))
       (fun r' hr'' => hmkeys r' (List.mem_cons_of_mem _ hr''))
       (fun r' hr'' => hmcov r' (List.mem_of_mem_tail hr''))
-      hren' hmren' hr' hD' hH' hK'
+      hren' hmren' hnsrc' hnok' hr' hD'' hH' hK'
     refine ⟨fun c hc => ?_, ih2⟩
     simp only [sRun, List.mem_append, List.mem_map] at hc
-    rcases hc with ⟨c', hc', rfl⟩ | hc
+    rcases hc with (⟨c', hc', rfl⟩ | hc) | hc
     · exact sframe_hyps s Z MZ W M0 (sOk_of hl) laws insts qinsts (hlY ρ M q.1 q.2 hr)
         hH1 (fun c hc => (hav w List.mem_cons_self c hc).1) (fun c hc => (hav w List.mem_cons_self c hc).2) hA hW c' hc'
+    · -- Each name's equation: the fresh variable holds the next state's value, which the term denotes.
+      simp only [nameHyps, List.mem_map] at hc
+      obtain ⟨p, hp, rfl⟩ := hc
+      simp only [evalC]
+      apply decide_eq_true
+      show W p.2 = evalE W M0 ((assoc (stepSub s.f (frameSub r σ) (frameRd mr rd)) p.1).getD (.var p.1))
+      rw [hnames p hp, evalE_assoc_getD]
+      exact (hD'.1 p.1 (hnsrc1 p hp).1 (hnsrc1 p hp).2).symm
     · exact ih1 c hc
 
 /-- The k-step rule over sets: an accepted k-step goal makes its law hold. -/
@@ -1453,9 +1500,9 @@ theorem skstep_sound (s : SMachine) (ps : List SEntry) (sl : SKStep)
     (hl : checkSMachine s ps = true) (hc : checkSKStep s ps sl = true) : SKStepHolds s sl := by
   intro ρ M hr q₁ qs hlen hK
   simp only [checkSKStep, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hc
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hlw, hlm⟩, hhead⟩, hmhead⟩, hdist⟩, hmdist⟩, hkeys⟩, hcov⟩, hmkeys⟩, hmcov⟩, hpr⟩, hpm⟩, hpre⟩, hws⟩, hterms⟩, hmaps⟩, hgoal⟩ := hc
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hlw, hlm⟩, hhead⟩, hmhead⟩, hdist⟩, hmdist⟩, hkeys⟩, hcov⟩, hmkeys⟩, hmcov⟩, hpr⟩, hpm⟩, hpre⟩, hws⟩, hterms⟩, hmaps⟩, hgoal⟩, hnd⟩, hnsrc⟩, hnthen⟩ := hc
   obtain ⟨hpreS, hrp⟩ := spre_parts hl
-  have hflags : ∀ v ∈ flagVars s.f.flags, v ∈ szone s sl := fun v hv => List.mem_append_right _ hv
+  have hflags : ∀ v ∈ flagVars s.f.flags, v ∈ szone s sl := fun v hv => List.mem_append_left _ (List.mem_append_right _ hv)
   obtain ⟨rs, hrs⟩ : ∃ rs, sl.k.ren = [] :: rs := by
     cases h : sl.k.ren with
     | nil => rw [h] at hhead; simp at hhead
@@ -1464,10 +1511,15 @@ theorem skstep_sound (s : SMachine) (ps : List SEntry) (sl : SKStep)
     cases h : sl.mren with
     | nil => rw [h] at hmhead; simp at hmhead
     | cons r rs => rw [h] at hmhead; simp only [List.head?_cons, Option.some.injEq] at hmhead; exact ⟨rs, by rw [hmhead]⟩
-  let W := renEnv sl.k.ren (sExts s ρ M (q₁ :: qs)) (withExt s ρ (sReq s ρ M q₁.1 q₁.2))
+  -- The goal's environment: each later request at its fresh variables, and each step's state at its names.
+  let W0 := renEnv sl.k.ren (sExts s ρ M (q₁ :: qs)) (withExt s ρ (sReq s ρ M q₁.1 q₁.2))
+  let W := renEnv sl.names (sStates s ρ M (q₁ :: qs)) W0
+  obtain ⟨_, hndn, hndis⟩ := distinct_append hnd
+  have hWn : ∀ v, v ∉ tgts sl.names → W v = W0 v := fun v hv => renEnv_other _ _ _ v hv
   let M0 := renMaps sl.mren ((q₁ :: qs).map (·.2)) (withCarried s M q₁.2)
-  have hWo : ∀ v, v ∉ szone s sl → W v = withExt s ρ (sReq s ρ M q₁.1 q₁.2) v := fun v hv =>
-    renEnv_other _ _ _ v (fun h => hv (List.mem_append_left _ h))
+  have hWo : ∀ v, v ∉ szone s sl → W v = withExt s ρ (sReq s ρ M q₁.1 q₁.2) v := fun v hv => by
+    rw [hWn v (fun h => hv (List.mem_append_right _ h))]
+    exact renEnv_other _ _ _ v (fun h => hv (List.mem_append_left _ (List.mem_append_left _ h)))
   have hMo : ∀ mp, mp ∉ tgts sl.mren → M0 mp = withCarried s M q₁.2 mp := fun mp hmp => renMaps_other _ _ _ mp hmp
   have hD0 : SDenotes s (szone s sl) (tgts sl.mren) W M0 [] getRd ρ M := by
     refine ⟨fun v hve hvz => ?_, fun mp k hmc hmz => ?_⟩
@@ -1480,7 +1532,8 @@ theorem skstep_sound (s : SMachine) (ps : List SEntry) (sl : SKStep)
     · simp only [frameSub, List.map_nil, List.append_nil, applyS_nil']; exact hWo v hvz
     · simp only [frameRd, lookup, getRd, evalE]; rw [hMo mp (by rw [hmrs]; exact hmz)]
   have hren0 : RenOK W sl.k.ren.tail (sExts s ρ M (q₁ :: qs)).tail := by
-    have h : RenOK W sl.k.ren (sExts s ρ M (q₁ :: qs)) := renEnv_ok sl.k.ren _ _ hdist
+    have h : RenOK W sl.k.ren (sExts s ρ M (q₁ :: qs)) :=
+      renOK_congr _ _ (fun v hv => hWn v (hndis v hv)) (renEnv_ok sl.k.ren _ _ hdist)
     rw [hrs] at h ⊢; exact h.2
   have hmren0 : MRenOK M0 sl.mren.tail ((q₁ :: qs).map (·.2)).tail := by
     have h : MRenOK M0 sl.mren ((q₁ :: qs).map (·.2)) := renMaps_ok sl.mren _ _ hmdist
@@ -1497,16 +1550,27 @@ theorem skstep_sound (s : SMachine) (ps : List SEntry) (sl : SKStep)
     · obtain ⟨e', he', rfl⟩ := List.mem_map.mp hl'; exact SEntry.holds_law (hall e' he')
     · exact pairLaws_hold ps sl.pinsts (skeys_apart hl) hall l hl'
   obtain ⟨hh, hfin⟩ := skrun_sound s ps hl (szone s sl) (tgts sl.mren) (sLaws ps sl.pinsts) (sInsts ps sl.k.insts sl.pinsts) sl.qinsts hlY W M0 hflags hterms hmaps
-    sl.k.whens sl.k.ren sl.mren (q₁ :: qs) [] getRd ρ M hlw (by omega) (by simp only [List.length_cons]; omega)
+    sl.k.whens sl.k.ren sl.mren sl.names (q₁ :: qs) [] getRd ρ M hlw (by omega) (by simp only [List.length_cons]; omega)
     hws (fun r hr p hp => List.contains_iff_mem.mp (hkeys r hr p hp))
     (fun r hr i hi => by have := hcov r hr i hi; simpa only [List.any_eq_true, beq_iff_eq] using this)
     (fun r hr p hp => List.contains_iff_mem.mp (hmkeys r hr p hp))
     (fun r hr i hi => by have := hmcov r hr i hi; simpa only [List.any_eq_true, beq_iff_eq] using this)
-    hren0 hmren0 hr hD0 hH0 hK
+    hren0 hmren0
+    (fun n hn p hp => by
+      have h := hnsrc n hn p hp
+      simp only [Bool.and_eq_true, Bool.not_eq_true', List.contains_iff_mem] at h
+      exact ⟨by simpa using h.1, by simpa using h.2⟩)
+    (renEnv_ok sl.names _ _ hndn) hr hD0 hH0 hK
   have hfin' : SDenotes s (szone s sl) (tgts sl.mren) W M0 (sKOut s ps sl).2.1 (sKOut s ps sl).2.2
       (sEnd s ρ M (q₁ :: qs)).1 (sEnd s ρ M (q₁ :: qs)).2 := hfin
   apply Decidable.byContradiction; intro hn
-  have hn' : ¬ evalC (primed sl.k.prime (sEnd s ρ M (q₁ :: qs)).1 W) (primedMaps sl.k.primeMaps (sEnd s ρ M (q₁ :: qs)).2 M0) sl.k.then_ = true := hn
+  -- `then` reads none of the names, so the goal's environment reads it as the claim's does.
+  have hn' : ¬ evalC (primed sl.k.prime (sEnd s ρ M (q₁ :: qs)).1 W) (primedMaps sl.k.primeMaps (sEnd s ρ M (q₁ :: qs)).2 M0) sl.k.then_ = true := by
+    rw [congrC (primed sl.k.prime (sEnd s ρ M (q₁ :: qs)).1 W) (primed sl.k.prime (sEnd s ρ M (q₁ :: qs)).1 W0) _ sl.k.then_ (fun i hi => by
+      simp only [primed]; split
+      · rfl
+      · exact hWn i (avoids_occ hnthen hi))]
+    exact hn
   apply sound_in _ _ hgoal W M0
   intro c hc
   simp only [sKGoal, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
