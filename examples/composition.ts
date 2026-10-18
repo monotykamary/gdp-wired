@@ -75,22 +75,25 @@ export const escrowRunsLean = (ix: (name: string) => number) => {
   const [refunded, released, releasing] = [ix('refunded'), ix('released'), ix('?releasing')]
   const primes = `[${['held', 'closed', 'refunded', 'released'].map(n => `(${ix(n)}, ${ix(`${n}'`)})`).join(', ')}]`
   return `/-- The escrow, without its ghost: in every run from the start, once a step has released, no later step refunds. -/
-theorem escrow_no_refund_after_release (run : FRun escrow_ghosted.orig) {ρ0 : Nat → Nat} {M0 : Nat → Nat → Nat}
-    (hM : StartMaps escrow_ghosted.orig.m M0) (hp : evalC ρ0 M0 escrow_ghosted.orig.m.pre = true)
-    (hst : run.st 0 = (applyS escrow_ghosted.orig.m.init ρ0 M0, M0)) {i j : Nat} (hij : i < j)
-    (hrel : decideFlags escrow_ghosted.orig.flags (withInputs escrow_ghosted.orig.m.inputs (run.st i).1 (run.req i)) (run.st i).2 ${releasing} = 1) :
+theorem escrow_no_refund_after_release (run : SRun escrow_ghosted.orig) {ρ0 : Nat → Nat} {M0 : Nat → Nat → Nat}
+    (hM : StartMaps escrow_ghosted.orig.f.m M0) (hp : evalC ρ0 M0 escrow_ghosted.orig.f.m.pre = true)
+    (hst : run.st 0 = (applyS escrow_ghosted.orig.f.m.init ρ0 M0, M0)) {i j : Nat} (hij : i < j)
+    (hrel : (sView escrow_ghosted.orig (run.st i).1 (run.st i).2 (run.req i).1 (run.req i).2).1 ${releasing} = 1) :
     (run.st (j + 1)).1 ${refunded} = (run.st j).1 ${refunded} := by
-  obtain ⟨run', hreq, h0, hag⟩ := ghost_run_start escrow_ghosted escrow_ghostOk run hM hp hst
+  obtain ⟨run', hreq, h0, hag⟩ := sghost_run_start escrow_ghosted escrow_ghostOk run hM hp (fun l hl => by simp [escrow_ghosted] at hl) hst
   have hg0 : (run'.st 0).1 ${released} = 0 := by rw [h0]; rfl
-  have hv := ghost_view escrow_ghosted escrow_ghostOk run run' hreq hag (c := .eq (.var ${releasing}) (.const 1)) (by decide) i
-  have hg1 : (run'.st j).1 ${released} = 1 := (ever_meaning escrow_ghosted escrow_ghostOk (x := ${released}) (s0 := .const 0) (c := .eq (.var ${releasing}) (.const 1))
+  have hv := sghost_view escrow_ghosted escrow_ghostOk run run' hreq hag (c := .eq (.var ${releasing}) (.const 1)) (by decide) i
+  have hg1 : (run'.st j).1 ${released} = 1 := (sever_meaning escrow_ghosted escrow_ghostOk (x := ${released}) (s0 := .const 0) (c := .eq (.var ${releasing}) (.const 1))
     (by simp [escrow_ghosted]) run' hg0 j).mpr ⟨i, hij, by rw [hv]; simp [evalC, evalE, hrel]⟩
-  have hsl := escrow_step0_holds (run'.st j).1 (run'.st j).2 (frun_reach run' j) (run'.req j) (run'.allowed j) (by simp [escrow_step0, evalC, evalE])
+  have hsl := skstep_holds_one escrow_step0_holds rfl rfl rfl (run'.st j).1 (run'.st j).2 (srun_reach run' j) (run'.req j).1 (run'.req j).2
+    (run'.allowed j) (by simp [escrow_step0, evalC, evalE])
   have hp1 : ∀ A B : Nat → Nat, primed ${primes} A B ${released} = B ${released} := fun _ _ => rfl
   have hp2 : ∀ A B : Nat → Nat, primed ${primes} A B ${ix("refunded'")} = A ${refunded} := fun _ _ => rfl
   have hp3 : ∀ A B : Nat → Nat, primed ${primes} A B ${refunded} = B ${refunded} := fun _ _ => rfl
-  have hw1 : withInputs escrow_machine.m.inputs (run'.st j).1 (run'.req j) ${released} = (run'.st j).1 ${released} := withInputs_other (by decide) _ _
-  have hw2 : withInputs escrow_machine.m.inputs (run'.st j).1 (run'.req j) ${refunded} = (run'.st j).1 ${refunded} := withInputs_other (by decide) _ _
+  have hw1 : withExt escrow_machine (run'.st j).1 (sReq escrow_machine (run'.st j).1 (run'.st j).2 (run'.req j).1 (run'.req j).2) ${released} = (run'.st j).1 ${released} := by
+    simp only [withExt]; rw [if_neg (by decide)]
+  have hw2 : withExt escrow_machine (run'.st j).1 (sReq escrow_machine (run'.st j).1 (run'.st j).2 (run'.req j).1 (run'.req j).2) ${refunded} = (run'.st j).1 ${refunded} := by
+    simp only [withExt]; rw [if_neg (by decide)]
   simp only [escrow_step0, evalC, evalE, Bool.or_eq_true] at hsl
   simp only [hp1, hp2, hp3, hw1, hw2, hg1, decide_eq_true_eq] at hsl
   have hnext : (run'.st (j + 1)).1 ${refunded} = (run'.st j).1 ${refunded} := by

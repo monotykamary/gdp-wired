@@ -1,0 +1,17 @@
+[
+  {
+    "name": "bench-budget",
+    "cmd": "apt-get install -y -qq clang >/dev/null 2>&1 || (apt-get update -qq >/dev/null && apt-get install -y -qq clang >/dev/null); echo \"$(clang --version | head -1); bun $(bun --version); $(lean --version)\"; nproc; bun compare/bench/run.ts budget 2>&1",
+    "timeout": 2400
+  },
+  {
+    "name": "bench-caps",
+    "cmd": "apt-get install -y -qq clang >/dev/null 2>&1 || (apt-get update -qq >/dev/null && apt-get install -y -qq clang >/dev/null); echo \"$(clang --version | head -1); bun $(bun --version); $(lean --version)\"; nproc; bun compare/bench/run.ts caps 2>&1",
+    "timeout": 2400
+  },
+  {
+    "name": "bench-window",
+    "cmd": "apt-get install -y -qq clang >/dev/null 2>&1 || (apt-get update -qq >/dev/null && apt-get install -y -qq clang >/dev/null); echo \"$(clang --version | head -1); bun $(bun --version); $(lean --version)\"; nproc; bun compare/bench/run.ts window 2>&1",
+    "timeout": 2400
+  }
+]

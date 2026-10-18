@@ -33,7 +33,7 @@ The invariant cases were already ahead (the history pass reads its block from re
 building the word circuits (the fork's `live` and `createWordStage` walked a load's whole table once per load; fixed in
 src/handwired, now once per distinct table) and compiling shaders that unroll 24 candidates. A block of 8 compiles 2–3×
 faster (`profile-setup.ts` measures build, WGSL and compile per kernel: build and WGSL are now a few ms; compile is
-~20 ms plus ~3 ms per 1k characters on the M2), and region and kill runners are created together so their compiles
+~20 ms plus ~3 ms per 1k characters), and region and kill runners are created together so their compiles
 overlap. Race, where rounds dominate, gained from the guarded list. What's left on the rank cases is shader compile of
 new shader text (the hand kernels loop over candidates, so their shaders are a few hundred lines).
 
@@ -60,19 +60,19 @@ was (before), then after this round (`runs/modal/hw/synth-more-{H100,L4}-final.j
 
 Before:
 
-| Case | H100 | L4 | M2 |
-| --- | --- | --- | --- |
-| grid walk (pairs) | 5,396 + 46 ms vs 55 + 63 ms | 9,240 + 143 vs 81 + 171 | 3,476 + 68 vs 9 + 107 |
-| triangle (pairs) | 1,761 + 40 vs 42 + 33 | 3,136 + 90 vs 73 + 85 | 1,131 + 26 vs 5 + 36 |
-| rounds of w tries (pairs) | 5,061 + 51 vs 30 + 63 | 8,673 + 144 vs 60 + 176 | 4,693 + 65 vs 11 + 79 |
-| admit (maps, 113M points) | 221 + 238 vs 58 + 110 | 384 + 583 vs 85 + 329 | 36 + 454 vs 10 + 213 |
-| leaderboard (maps) | 151 + 9 vs 46 + 29 | 254 + 22 vs 78 + 70 | 30 + 10 vs 9 + 16 |
+| Case | H100 | L4 |
+| --- | --- | --- |
+| grid walk (pairs) | 5,396 + 46 ms vs 55 + 63 ms | 9,240 + 143 vs 81 + 171 |
+| triangle (pairs) | 1,761 + 40 vs 42 + 33 | 3,136 + 90 vs 73 + 85 |
+| rounds of w tries (pairs) | 5,061 + 51 vs 30 + 63 | 8,673 + 144 vs 60 + 176 |
+| admit (maps, 113M points) | 221 + 238 vs 58 + 110 | 384 + 583 vs 85 + 329 |
+| leaderboard (maps) | 151 + 9 vs 46 + 29 | 254 + 22 vs 78 + 70 |
 
 Before this round the map rounds were about 2× slower and pair setup took seconds (the per-load table walks). The map
 region was not the coefficient reads but the dispatches: sized for 64 positions a point, it ran ~17 dispatches a round,
 each a sync, upload and readback, while a point stops within a candidate or two. Sized for ~2 positions a point (4.2M
-documents a dispatch), with the point's digits in registers and no bounds checks, admit's region went from ~185 ms to
-~85 ms a round on the M2, and its rounds now match the hand kernel's on the H100 (148–171 vs 140–148 ms). Tried and
+documents a dispatch), with the point's digits in registers and no bounds checks, admit's region more than halved, and
+its rounds now match the hand kernel's on the H100 (148–171 vs 140–148 ms). Tried and
 dropped: a region over a once-built list of guarded points (20% of admit's box) — its 1M-entry list tables need ~22
 dispatches a round, slower than the box; and the transposed region (a document = a block of candidates × points, no
 loads in the loop), which gives up the early stop at a point's first broken candidate, where almost every point ends.

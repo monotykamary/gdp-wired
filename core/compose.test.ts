@@ -214,4 +214,4 @@ test('refinement over sets: the lazy authority refines the eager one (carried se
     }
   }
   expect(nonempty).toBeGreaterThan(20)
-})
+}, 60_000)

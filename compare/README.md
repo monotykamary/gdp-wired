@@ -133,6 +133,76 @@ The demo runs agreed across all three tools: budget s = 12; caps granted (1,5) a
 window logged 3 of 5 requests. The broken variants also showed their bugs at runtime: the off-by-one caps rule
 granted a third grant on day 5 in both gdp-wired and Lean, and the broken window logged 4 requests.
 
+## Running the rules
+
+Each tool runs the code it proved over a stream of N requests, and prints a checksum of the final state. The Bend and
+Lean programs are the compare files unchanged up to `--- run`, with a main that takes N in place of the demo
+([`bench/bend/`](bench/bend/), [`bench/lean/`](bench/lean/); [`bench/run.ts`](bench/run.ts) checks the prefix).
+gdp-wired's [`bench/gdpwired.ts`](bench/gdpwired.ts) imports the rules from `gdpwired/` and steps `.compiled()`.
+
+- **The stream.** The LCG x' = (x * 1103515245 + 12345) mod 2^31, from x = 42, one step per request, with each
+  request's fields read off the new x the same way in all three languages.
+  - budget: c = x mod 16, with b = 8N and m = 10. b is never reached (s ends near 6.6N), so every request adds.
+  - caps: acct = x mod 1000, day = x mod 365, ok = x mod 4 ≠ 0, with d = 3. acct and ok share x mod 4, so accounts that
+    are multiples of 4 are never granted, and the grants stop at 750.
+  - window: t grows by x mod 3 from 0, forced = x mod 10 = 0, with w = 60 and c = 5.
+- **The checksums.** budget prints s. caps prints the grants, the sum of their accts and the sum of their days. window
+  prints the logged requests, how many were forced and the sum of their t. The three tools printed the same checksum at
+  every N they ran.
+- **The commands.**
+  - gdp-wired: `bun compare/bench/gdpwired.ts <rule> N`.
+  - Bend: a native binary from `bend <rule>.bend -o <rule>` (the C runtime, built with Debian's clang 14), run as
+    `./<rule> N`.
+  - Lean: `lean -c <Rule>.c <Rule>.lean`, then the toolchain's `leanc -O3`, run as `./lean_<rule> N`.
+  - Builds took 1.0 to 1.5 s for Bend and 2.3 to 3.8 s for Lean (`lean -c` also checks the theorems). They are not in
+    the table.
+
+All of these come from one Modal run, `../runs/modal/compare-bench/v1/` (beside the gdp-wired checkout). Each rule
+ran in its own container with 2 CPUs, on the same image as above. The times are the wall time of the whole command,
+the median of 3 runs. N = 0 is each tool's startup floor. A run past 300 s was stopped.
+
+| rule | N | gdp-wired ms | Bend ms | Lean ms | checksum |
+| --- | --- | --- | --- | --- | --- |
+| budget | 0 (floor) | 27 | 2 | 4 | 0 |
+| budget | 1,000 | 29 | 12 | 5 | 6558 |
+| budget | 10,000 | 32 | 923 | 6 | 65625 |
+| budget | 100,000 | 44 | 92,391 | 8 | 656250 |
+| caps | 0 (floor) | 31 | 3 | 7 | 0 0 0 |
+| caps | 1,000 | 36 | 343 | 8 | 452 231196 81141 |
+| caps | 10,000 | 36 | 7,361 | 26 | 748 374281 133771 |
+| caps | 100,000 | 59 | 75,122 | 205 | 750 375000 134095 |
+| window | 0 (floor) | 31 | 3 | 5 | 0 0 0 |
+| window | 1,000 | 32 | 62 | 6 | 120 98 56848 |
+| window | 10,000 | 64 | 50,795 | 82 | 1189 1028 5944251 |
+| window | 100,000 | 2,572 | stopped at 300 s | 8,740 | 11745 10107 587008768 (gdp-wired, Lean) |
+
+The state each one keeps, which decides most of these numbers:
+
+| | budget | caps | window |
+| --- | --- | --- | --- |
+| gdp-wired (generated JS) | one number | two `Map`s from key to count (`Acct`, `Day`). A step reads and writes one cell of each | an array of every logged request. Each step scans all of it for `seen`, because this rule declares no `.prune`, so the log is never pruned |
+| Bend | one `Nat` | a list of every grant. `count_acct` and `count_day` scan it | a list of every logged request. `seen` scans it |
+| Lean | one `Nat` | the same list as Bend | the same list as Bend |
+
+How to read the times:
+
+- **gdp-wired.** Most of each time is the floor, which is bun loading `core/dsl.ts` and the rule and compiling the
+  step. The window's unpruned log is the only state that grows, and at 100,000 requests each step scans up to 11,745
+  records.
+- **Bend.** `Nat` is a 64-bit word, and Base's `Nat.add` and `Nat.min` compile to machine operations. The comparisons
+  the proofs case on (`dec` and `same`, in `--- evidence`) are ordinary recursions, though. They take one off each
+  argument per call, so a comparison costs as many calls as the smaller number.
+  - budget: `dec(b, s)` costs about s calls per request, so the run is quadratic in N. 10 times the requests took 100
+    times as long.
+  - caps: `same(a, k)` costs up to 999 calls for each of up to 750 grants, for every request.
+  - window: `dec(e.t + w, t)` costs about t calls for each logged request. t grows with N, so the run is cubic. At
+    N = 100,000 the first run did not finish in 300 s.
+- **Lean.** `Nat` comparisons are constant time on small values. What grows is the list scans: up to 750 grants per
+  caps request, and the whole log per window request.
+- **What this measures.** This is the cost of running each rule as it was written to be proven. gdp-wired's runtime
+  representation comes from the machine, not from how the law is written. A Bend or Lean rule written for speed (maps,
+  or a pruned log) would need its proofs redone.
+
 ## Trust bases
 
 - **gdp-wired.**
@@ -185,6 +255,16 @@ granted a third grant on day 5 in both gdp-wired and Lean, and the broken window
 ```sh
 cd gdp-wired && modal run compare/modal_compare.py --jobs compare/jobs.json --out runs/modal/compare/final && sh modal/reap.sh
 ```
+
+The runtime bench has one job per rule in [`bench/jobs.json`](bench/jobs.json), and each job installs clang for
+Bend's native build:
+
+```sh
+cd gdp-wired && modal run compare/modal_compare.py --jobs compare/bench/jobs.json --out ../runs/modal/compare-bench/v1 && sh modal/reap.sh
+```
+
+One rule locally: `BEND=/path/to/bend bun compare/bench/run.ts caps` (`RUNS=3`, `NS=0,1000,10000,100000` and
+`LIMIT=300` seconds per run by default).
 
 `run.ts` alone, where bun, Lean 4.34.0 and the Bend repo are: `BEND=/path/to/bend bun compare/run.ts` (`RUNS=5` by
 default).

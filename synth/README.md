@@ -17,15 +17,15 @@ Nothing before the kernel is trusted.
 
 Every case ends in a kernel proof (H100 run, `runs/modal/synth/h100-v2.json`; the metered row, an L4 run, `runs/modal/synth/fns-l4.json`):
 
-| Case | Candidates | GPU work | Survive (needed) | Found | H100 | L4 | M2 |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| in-flight: s ≤ b + 150 | 6,953 | 16.8M histories of 3, 16.8M points × 4 rounds | 1,041 (1) | s + 50p − b ≤ 150 | 8.0 s | 16.3 s | 42.2 s |
-| token bucket: spent ≤ 10 + 3·ticks | 3,133 | 16.8M histories of 6, 2.1M points × 26 rounds | 78 (1) | tokens + spent − 3·ticks ≤ 10 | 5.7 s | 11.5 s | 41.7 s |
-| leaky bucket: admitted ≤ B + 2·ticks | 5,131 | 8.4M histories of 20, 33.6M points × 5 rounds | 532 (1) | admitted − level − 2·ticks ≤ 0 | 8.9 s | 19.6 s | 183 s |
-| metered blocks: billed ≤ 500 (a function) | 768 | 1.0M histories of 4, 134M points × 9 rounds | 128 (2) | billed − 10used ≤ 0, units + used ≤ 50 | | 3.5 s | |
-| carry halts | 1,215 ranks | 4,096 points | 10 | max(0, 4a + b) | 43 ms | 53 ms | 38 ms |
-| gcd halts (A, B ≥ 1) | 395 ranks | 1M points | 35 | max(0, a + b) | 53 ms | 92 ms | 123 ms |
-| race halts | 1,407 ranks | 4.2M points | 18 | max(0, n + y − x + 1) | 466 ms | 1.0 s | 1.2 s |
+| Case | Candidates | GPU work | Survive (needed) | Found | H100 | L4 |
+| --- | --- | --- | --- | --- | --- | --- |
+| in-flight: s ≤ b + 150 | 6,953 | 16.8M histories of 3, 16.8M points × 4 rounds | 1,041 (1) | s + 50p − b ≤ 150 | 8.0 s | 16.3 s |
+| token bucket: spent ≤ 10 + 3·ticks | 3,133 | 16.8M histories of 6, 2.1M points × 26 rounds | 78 (1) | tokens + spent − 3·ticks ≤ 10 | 5.7 s | 11.5 s |
+| leaky bucket: admitted ≤ B + 2·ticks | 5,131 | 8.4M histories of 20, 33.6M points × 5 rounds | 532 (1) | admitted − level − 2·ticks ≤ 0 | 8.9 s | 19.6 s |
+| metered blocks: billed ≤ 500 (a function) | 768 | 1.0M histories of 4, 134M points × 9 rounds | 128 (2) | billed − 10used ≤ 0, units + used ≤ 50 | | 3.5 s |
+| carry halts | 1,215 ranks | 4,096 points | 10 | max(0, 4a + b) | 43 ms | 53 ms |
+| gcd halts (A, B ≥ 1) | 395 ranks | 1M points | 35 | max(0, a + b) | 53 ms | 92 ms |
+| race halts | 1,407 ranks | 4.2M points | 18 | max(0, n + y − x + 1) | 466 ms | 1.0 s |
 
 The kernel's part is 1–70 ms in every row. For comparison, `core/invariant.ts` (Houdini on the CPU with the symbolic
 prover) takes 13.7 s for its 112 in-flight candidates, and its rank templates (`kernel/run-more.ts`) can't express
@@ -40,16 +40,15 @@ DAWN_MODULE=<webgpu>/index.js bun run-more.ts --gpu   # rank pairs and map invar
 cd .. && modal run synth/run_gpu.py --out ../runs/modal/synth/more-h100.json --gpu H100 --script run-more.ts
 ```
 
-Rank pairs and map invariants (`run-more.ts`; H100 / L4 / M2 filter times, all from `runs/modal/synth/more-*.json` and
-`runs/synth-more-m2.json`). No single linear rank survives any of the three loops; the pair is the first the kernel tries:
+Rank pairs and map invariants (`run-more.ts`; H100 / L4 filter times, from `runs/modal/synth/more-*.json`). No single linear rank survives any of the three loops; the pair is the first the kernel tries:
 
-| Case | GPU work | Survive | Found (kernel) | H100 | L4 | M2 |
-| --- | --- | --- | --- | --- | --- | --- |
-| grid walk, inner bound m a param | 117 non-increasing → 37,440 pairs × 16,384 points | 49 pairs | (n − i, m − j), 6 leaves | 131 ms | 186 ms | 154 ms |
-| triangle, inner bound i | 87 → 17,400 pairs × 16,384 points | 112 | (n − i, n − j), 7 leaves | 89 ms | 111 ms | 86 ms |
-| rounds of w tries within R | 117 → 37,440 pairs × 16,384 points | 49 | (R − r, w − t), 6 leaves | 80 ms | 130 ms | 83 ms |
-| caps rule, caps never written down | 84 candidates, 113M points × 2 rounds | 35 (16 strongest) | Acct[k] ≤ 1, Day[k] ≤ d, Hour[k] ≤ hr, Dom[k] ≤ dm, and Acct[k] ≤ d, hr, dm (a grant needs every cap open); the four caps of `core/models.ts` follow; 84 leaves | 271 ms | 246 ms | 305 ms |
-| leaderboard: Score[u] += inc up to C, top = max | 80 candidates, 512k points × 1 round | 18 (6 strongest) | Score[k] ≤ top, top ≤ C (and weaker forms), 46 leaves | 91 ms | 212 ms | 65 ms |
+| Case | GPU work | Survive | Found (kernel) | H100 | L4 |
+| --- | --- | --- | --- | --- | --- |
+| grid walk, inner bound m a param | 117 non-increasing → 37,440 pairs × 16,384 points | 49 pairs | (n − i, m − j), 6 leaves | 131 ms | 186 ms |
+| triangle, inner bound i | 87 → 17,400 pairs × 16,384 points | 112 | (n − i, n − j), 7 leaves | 89 ms | 111 ms |
+| rounds of w tries within R | 117 → 37,440 pairs × 16,384 points | 49 | (R − r, w − t), 6 leaves | 80 ms | 130 ms |
+| caps rule, caps never written down | 84 candidates, 113M points × 2 rounds | 35 (16 strongest) | Acct[k] ≤ 1, Day[k] ≤ d, Hour[k] ≤ hr, Dom[k] ≤ dm, and Acct[k] ≤ d, hr, dm (a grant needs every cap open); the four caps of `core/models.ts` follow; 84 leaves | 271 ms | 246 ms |
+| leaderboard: Score[u] += inc up to C, top = max | 80 candidates, 512k points × 1 round | 18 (6 strongest) | Score[k] ≤ top, top ≤ C (and weaker forms), 46 leaves | 91 ms | 212 ms |
 
 The kernel's part for admit is 2.5–8 s: 9 survivors the box let through (its keys are 0..1) aren't inductive, and each
 is dropped after a stuck proof of the whole set. The triangle's pair (n − i, n − j) works because its inner loop resets j

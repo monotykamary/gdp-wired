@@ -155,7 +155,7 @@ const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => s
 - **Loops** (`loop(...)`): state, `while`, `body`, a `rank` (or a tuple of ranks) that must drop each turn.
 - **Lean** (`gdp-wired/lean`): `toLean([{id, machine, laws, stepLaws}, ...])` writes the proofs as a Lean file, and
   `leanProject(file)` a Lake project with the twin, so `lake build` checks them. Each law comes as the twin's theorem and
-  as a plain statement over named variables, e.g. `theorem budget.law0 (h : FMReach budget_machine ρ μ) : ρ «s» ≤
+  as a plain statement over named variables, e.g. `theorem budget.law0 (h : SReach budget_machine ρ μ) : ρ «s» ≤
   (ρ «b» + ρ «m»)`, for a Lean development to cite.
 - **Composition** (`gdp-wired/compose`): `product(a, b)`, `interleave(a, b)`, `refinement(impl, spec, {relation, witness, stutter})`,
   `steps(spec, k)` (k spec steps as one, each skippable) and `ghost(m, {name: ever(...) | count(...) | total(m, map, name)})`
@@ -182,15 +182,18 @@ Pruned, the window limit holds about 35 records whatever the event count; unprun
 (76 ms at 10k events). The interpreter copies its maps each step (it's the reference, and searches branch from it):
 1.6 s for 10k requests of the caps rule.
 
-A brute-force enumeration of 2^31 worlds (`enum/`, `perf/bend-enum/`), the same predicate as Bend programs and as a
-Handwired word program: on an M2, Bend takes 985 ms sequential, 221 ms parallel and 153 ms on Metal (whole process,
-about 130 ms of it device setup); ours takes 33 ms warm on WebGPU, with about 115 ms of device setup first. On an NVIDIA
-L4 ours takes 5 ms warm; Bend's CUDA build compiled, but its GPU runs hung in our tests (its CPU builds ran: 109 ms
-parallel).
+Measured against Bend and Lean on the same three rules ([`compare/`](compare/README.md)), gdp-wired's proofs are one
+or two lines and check in 25–44 ms, against 74–117 lines of hand proof and 137–161 ms in Bend and 8–30 lines and
+488–571 ms in Lean. Running each tool's proved code over 100,000 requests (whole command, Modal, 2 CPUs):
 
-Measured against Bend and Lean on the same three rules, gdp-wired's proofs are one or two lines and check in 25–44 ms,
-against 74–117 lines of hand proof and 137–161 ms in Bend and 8–30 lines and 488–571 ms in Lean
-([`compare/`](compare/README.md), [`docs/comparison.md`](docs/comparison.md)).
+| | budget | caps | window |
+| --- | --- | --- | --- |
+| gdp-wired | 44 ms | 59 ms | 2.6 s |
+| Bend | 92 s | 75 s | over 300 s |
+| Lean | 8 ms | 205 ms | 8.7 s |
+
+The proved Bend and Lean rules keep lists and scan them; gdp-wired runs maps and a log (unpruned in this window rule).
+Lean, compiled natively, wins where the state stays small. Details in [`docs/comparison.md`](docs/comparison.md).
 
 ## Layout
 

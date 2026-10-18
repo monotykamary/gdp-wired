@@ -12,20 +12,20 @@
 Findings: Modal mounts NVIDIA's Vulkan ICD (`/etc/vulkan/icd.d/nvidia_icd.json`), which needs libXext to load. Dawn then
 gets the real GPU. Chrome 155 on the same container only ever offers SwiftShader (7 flag sets tried), so Dawn is the path.
 
-Results (`../runs/modal/gpu-search/`, gpuMs after a warm-up for the first five rows; M2 is Chrome on the Mac):
+Results (`../runs/modal/gpu-search/`, gpuMs after a warm-up for the first five rows):
 
-| Search | Candidates | M2 | L4 | H100 |
-| --- | --- | --- | --- | --- |
-| admit, Day unguarded | 268M | 154 ms | 41.8 ms | 17.9 ms |
-| in-flight b+4 (depth-6 counterexample) | 129M | 36.6 ms | 6.3 ms | 3.2 ms |
-| in-flight b+5 | 129M | 35.9 ms | 6.3 ms | 2.9 ms |
-| in-flight b+5, depth 9 | 1.16B | 327 ms | 48.5 ms | 23.3 ms |
-| uncapped | 2.1M | 0.47 ms | 0.40 ms | 0.25 ms |
-| in-flight b+5, depth 10 | 10.5B | — | 424 ms | 203 ms |
-| in-flight b+4, depth 10 | 10.5B | — | 428 ms (same counterexample) | 200 ms |
-| in-flight b+5, depth 11 | 94.1B | — | 3.84 s | 1.80 s |
-| in-flight b+5, bound 3, depth 8 | 17.2B | — | 444 ms | 230 ms |
-| in-flight b+5, depth 12 | 847B | — | — | 16.1 s |
+| Search | Candidates | L4 | H100 |
+| --- | --- | --- | --- |
+| admit, Day unguarded | 268M | 41.8 ms | 17.9 ms |
+| in-flight b+4 (depth-6 counterexample) | 129M | 6.3 ms | 3.2 ms |
+| in-flight b+5 | 129M | 6.3 ms | 2.9 ms |
+| in-flight b+5, depth 9 | 1.16B | 48.5 ms | 23.3 ms |
+| uncapped | 2.1M | 0.40 ms | 0.25 ms |
+| in-flight b+5, depth 10 | 10.5B | 424 ms | 203 ms |
+| in-flight b+4, depth 10 | 10.5B | 428 ms (same counterexample) | 200 ms |
+| in-flight b+5, depth 11 | 94.1B | 3.84 s | 1.80 s |
+| in-flight b+5, bound 3, depth 8 | 17.2B | 444 ms | 230 ms |
+| in-flight b+5, depth 12 | 847B | — | 16.1 s |
 
 ```sh
 cd gdp-wired && modal run modal-gpu/run_gpu.py --config modal-gpu/suite.json --out ../runs/modal/gpu-search/l4.json --gpu L4

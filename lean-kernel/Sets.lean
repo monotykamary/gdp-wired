@@ -18,6 +18,27 @@ that refutes them refutes the machine. Lean builds the same closed goals.
 namespace Kern
 open Classical
 
+/-! Certificates that name their hypotheses -/
+
+deriving instance DecidableEq for E, C
+
+-- A proof tree with the table it reads, and the hypotheses it refutes: none named, the goal's own, in the goal's order;
+-- named, any of the goal's, in any order (each must be one of the goal's), so an exporter may lay its goal out its own
+-- way as long as each hypothesis it uses is one Lean builds.
+abbrev Cert := List VDef × List C × Tree
+def checkIn (hyps : List C) (k : Cert) : Bool :=
+  if k.2.1.isEmpty then checkGoal ⟨k.1, hyps⟩ k.2.2
+  else k.2.1.all (fun c => hyps.contains c) && checkGoal ⟨k.1, k.2.1⟩ k.2.2
+
+theorem sound_in (hyps : List C) (k : Cert) (h : checkIn hyps k = true) (env : Nat → Nat) (maps : Nat → Nat → Nat) :
+    ¬ ∀ c ∈ hyps, evalC env maps c = true := by
+  intro hH
+  unfold checkIn at h
+  split at h
+  · exact sound ⟨k.1, hyps⟩ k.2.2 h env maps hH
+  · simp only [Bool.and_eq_true, List.all_eq_true] at h
+    exact sound ⟨k.1, k.2.1⟩ k.2.2 h.2 env maps (fun c hc => hH c (List.contains_iff_mem.mp (h.1 c hc)))
+
 structure SMachine where
   f : FMMachine
   carried : List Nat               -- maps a request carries
@@ -643,8 +664,8 @@ structure SEntry where
   qinsts : List (Nat × E)     -- (quantified flag, key): where the step goal closes it
   finsts : List (Nat × E)     -- (fact index, key): where both goals assume the facts
   pinsts : List (Nat × E × List E) -- (law index, key, further keys): where the step goal assumes the laws about several keys
-  start : List VDef × Tree
-  step : List VDef × Tree
+  start : Cert
+  step : Cert
 
 -- A law at every value of each of some keys.
 def holdsOver (l : MLaw) (M : Nat → Nat → Nat) : List Nat → (Nat → Nat) → Prop
@@ -707,8 +728,8 @@ def checkSMachine (s : SMachine) (ps : List SEntry) : Bool :=
         && !(s.extVars ++ flagVars s.f.flags ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)).contains e.sk
         && ps.all (fun e' => !occC e.sk e'.law.holds) && !occC e.sk s.f.m.pre && s.f.m.init.all (fun p => !occE e.sk p.2)
         && skFresh s e.sk && key2Ok s ps e
-        && checkGoal ⟨e.start.1, sStartGoal s e⟩ e.start.2
-        && checkGoal ⟨e.step.1, sStepGoal s ps e⟩ e.step.2
+        && checkIn (sStartGoal s e) e.start
+        && checkIn (sStepGoal s ps e) e.step
 
 theorem skFresh_parts {s : SMachine} {sk : Nat} (h : skFresh s sk = true) :
     (∀ p ∈ s.f.flags, occC sk p.2 = false) ∧ (∀ q ∈ s.qflags, occC sk q.2.2 = false) ∧ occC sk s.f.m.assume = false
@@ -1032,7 +1053,7 @@ theorem sstart_case (s : SMachine) (ps : List SEntry) (h : checkSMachine s ps = 
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨_, _⟩, hfresh⟩, hslaw⟩, hspre⟩, hsinit⟩, hskf⟩, _⟩, hst⟩, _⟩ := h e he
   refine goalOf_holds e.law (hslaw e he) _ M (fun v => ?_)
   apply Decidable.byContradiction; intro hn
-  apply sound _ _ hst (upd ρ e.sk v) M
+  apply sound_in _ _ hst (upd ρ e.sk v) M
   intro c hc
   simp only [sStartGoal, List.mem_append, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hc
   rcases hc with (rfl | hc) | rfl
@@ -1094,7 +1115,7 @@ theorem sstep_case (s : SMachine) (ps : List SEntry) (h : checkSMachine s ps = t
     · simp only [getRd, evalE, M0, withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmp)]
   have hD' := sstep_denotes s (flagVars s.f.flags) [] W M0 hs (fun v hv => hv) hfav [] [] ι κ hD (hH _) (fun p hp => by simp at hp)
     hstp (fun w hw => (hwr w hw).1) hev (fun _ _ => by simp [avoidsMapsE]) (fun _ _ => by simp [avoidsMapsE]) (fun _ _ => by simp [avoidsMapsE])
-  apply sound _ _ hst W M0
+  apply sound_in _ _ hst W M0
   intro c hc
   simp only [sStepGoal, List.mem_append, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false, List.mem_map] at hc
   rcases hc with ((rfl | hc) | ⟨c', hc', rfl⟩) | rfl
@@ -1210,6 +1231,7 @@ structure SKStep where
   qinsts : List (Nat × E)          -- (quantified flag, key): where each frame closes it
   finsts : List (Nat × E)          -- (fact index, key): where the goal assumes the facts, read at the first frame
   pinsts : List (Nat × E × List E) -- (law index, key, further keys): where each frame assumes the laws about several keys
+  used : List C                    -- the hypotheses the tree refutes ([] for the goal's own, in its order)
 
 def sKOut (s : SMachine) (ps : List SEntry) (sl : SKStep) := sRun s (sLaws ps sl.pinsts) (sInsts ps sl.k.insts sl.pinsts) sl.qinsts sl.k.whens sl.k.ren sl.mren [] getRd
 def sKGoal (s : SMachine) (ps : List SEntry) (sl : SKStep) : List C :=
@@ -1237,7 +1259,7 @@ def checkSKStep (s : SMachine) (ps : List SEntry) (sl : SKStep) : Bool :=
     && avoids (szone s sl) s.f.m.pre
     && sl.k.whens.all (fun w => (sFrameHyps s (sLaws ps sl.pinsts) (sInsts ps sl.k.insts sl.pinsts) sl.qinsts w).all fun c => avoids (szone s sl) c && avoidsMaps (tgts sl.mren) c)
     && sTermsOk s (szone s sl) && sMapsOk s (tgts sl.mren)
-    && checkGoal ⟨sl.k.proof.1, sKGoal s ps sl⟩ sl.k.proof.2
+    && checkIn (sKGoal s ps sl) ⟨sl.k.proof.1, sl.used, sl.k.proof.2⟩
 
 /-! What a k-step law over sets claims -/
 
@@ -1486,7 +1508,7 @@ theorem skstep_sound (s : SMachine) (ps : List SEntry) (sl : SKStep)
       (sEnd s ρ M (q₁ :: qs)).1 (sEnd s ρ M (q₁ :: qs)).2 := hfin
   apply Decidable.byContradiction; intro hn
   have hn' : ¬ evalC (primed sl.k.prime (sEnd s ρ M (q₁ :: qs)).1 W) (primedMaps sl.k.primeMaps (sEnd s ρ M (q₁ :: qs)).2 M0) sl.k.then_ = true := hn
-  apply sound _ _ hgoal W M0
+  apply sound_in _ _ hgoal W M0
   intro c hc
   simp only [sKGoal, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
   rcases hc with ((rfl | hc) | hc) | rfl

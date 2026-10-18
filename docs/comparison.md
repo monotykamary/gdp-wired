@@ -72,6 +72,22 @@ tools, checks each with its own tool on Modal, and hands each the same bug to re
 Most of each time is the tool's startup (17, 134 and 453 ms). gdp-wired's proofs of the same rules re-check in its Lean
 twin in 1.35 s.
 
+**Running the rules.** Each tool also runs the code it proved over the same stream of requests, and the three print the
+same checksum. Whole-command medians on Modal (2 CPUs), at 100,000 requests and with no requests (each tool's startup):
+
+| | budget | caps | window | startup |
+| --- | --- | --- | --- | --- |
+| gdp-wired (generated JavaScript, on bun) | 44 ms | 59 ms | 2,572 ms | 27–31 ms |
+| Bend (native binary) | 92,391 ms | 75,122 ms | over 300 s | 2–3 ms |
+| Lean (native, `leanc -O3`) | 8 ms | 205 ms | 8,740 ms | 4–7 ms |
+
+What decides these is the state each rule keeps, as it was written to be proven. Bend and Lean keep lists (every grant,
+every logged request) and scan them; Bend's evidence-carrying comparisons also count down one at a time, so its runs
+grow quadratically or worse. gdp-wired's runtime comes from the machine: maps from key to count, and a log (this window
+rule declares no pruning, so its log is scanned whole, which is where its 2.6 s goes; with `.prune` it holds about 35
+records). Lean, compiled natively, starts fastest and wins where the state stays small. The full table, from 1,000
+requests up, is in [`compare/README.md`](../compare/README.md#running-the-rules).
+
 ## When to use which
 
 - **gdp-wired** for the rules around your code: limits, quotas, workflows, permissions, anything that is a state machine
