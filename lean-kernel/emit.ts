@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, canon, historyMachine, foldObligations, leafConstraints, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, withProducts} from '../kernel/kernel.ts'
+import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, canon, columnTerm, termColumn, historyMachine, foldObligations, leafConstraints, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, withProducts} from '../kernel/kernel.ts'
 import {grow, proveBuilt, proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanTerms} from './lean-terms.ts'
@@ -54,8 +54,8 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
   // Columns: every variable of the hypotheses, then every cell any leaf uses (and the cells inside their keys),
   // shallower cells first so a key reads only earlier columns.
   const vars = globalVars ?? [...new Set(goal.hyps.flatMap(varsOf))]
-  const cells = new Set<string>()
-  const addCell = (name: string) => { if (cells.has(name)) return; cells.add(name); for (const key of Object.keys(cellKey(name))) if (key.includes('[')) addCell(key) }
+  const cells = new Set<string>(), terms = new Set<string>()
+  const addCell = (name: string) => { if (cells.has(name)) return; cells.add(name); for (const key of Object.keys(cellKey(name))) if (key.includes('[')) addCell(key); else if (key.startsWith('⟦')) terms.add(key) }
   // Monomials: every one a leaf's rows or products use, or that a product term has under the leaf's path.
   const monos = new Set<string>()
   const subterms = (c: C): E[] => {
@@ -65,15 +65,27 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
     wc(c)
     return out2
   }
+  // Every choice in the hypotheses has its column, whether or not a leaf's rows keep it (a column can cancel, T − T,
+  // yet Lean's linear form of T still needs it): each distinct subterm once, as a run's states are shared.
+  const seenTerms = new WeakSet<object>()
+  const choices = (t: E | C): void => {
+    if (seenTerms.has(t)) return
+    seenTerms.add(t)
+    if (t.op === 'sub' || t.op === 'min' || t.op === 'max' || t.op === 'if') terms.add(termColumn(t))
+    for (const val of Object.values(t)) if (Array.isArray(val)) val.forEach(x => choices(x as E | C)); else if (typeof val === 'object' && val !== null) choices(val as E | C)
+  }
+  goal.hyps.forEach(choices)
   leaves(tree, new Map(), (leaf, path) => {
     for (const r of withProducts(leafConstraints(goal, path), leaf.products ?? [])) for (const key of Object.keys(r.lin)) {
       if (key.includes('[')) addCell(key)
+      else if (key.startsWith('⟦')) terms.add(key)
       else if (key.includes('*')) monos.add(key)
     }
     for (const h of goal.hyps) for (const e of subterms(h)) if (e.op === 'prod') for (const key of Object.keys(linear(e, path) ?? {})) if (key.includes('*')) monos.add(key)
   })
   const depth = (name: string) => name.split('[').length
-  const cols = [...vars, ...[...monos].sort((a, b) => a.split('*').length - b.split('*').length), ...[...cells].sort((a, b) => depth(a) - depth(b))]
+  // Term columns (open choices, each standing for its term's value) before the cells, whose keys may read them.
+  const cols = [...vars, ...[...monos].sort((a, b) => a.split('*').length - b.split('*').length), ...[...terms].sort((a, b) => Number(a.slice(1, -1)) - Number(b.slice(1, -1))), ...[...cells].sort((a, b) => depth(a) - depth(b))]
   const col = new Map(cols.map((name, j) => [name, j]))
   const maps = globalMaps ?? [...new Set([...[...cells].map(cellMap), ...goal.hyps.flatMap(h => [...JSON.stringify(h).matchAll(/"op":"get","map":"([^"]+)"/g)].map(m => m[1]!))])]
   const dense = (lin: Lin) => {
@@ -83,11 +95,11 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
     return coefs as number[]
   }
   const row = (lin: Lin) => `⟨${list(dense(lin).map(int))}, ${int(lin['1'] ?? 0)}⟩`
+  const {e, c} = leanTerms(vars, maps, ex.name)
   const tab = cols.map(name => (name.includes('[') ? `.cell ${maps.indexOf(cellMap(name))} ${row(cellKey(name))}`
+    : name.startsWith('⟦') ? `.term (${e(columnTerm(name)!)})`
     : name.includes('*') ? `.mono ${list(name.split('*').map(f => { const j = vars.indexOf(f); if (j < 0) throw new Error(`${ex.name}: factor ${f}`); return j }).sort((a, b) => a - b).map(String))}`
     : `.var ${vars.indexOf(name)}`))
-
-  const {e, c} = leanTerms(vars, maps, ex.name)
 
   let leafNo = 0
   const lean = (t: Tree, path: Path): string => {

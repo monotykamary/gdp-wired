@@ -39,6 +39,8 @@ inductive C where
   | not (a : C)
 end
 
+deriving instance DecidableEq for E, C
+
 mutual
 def evalE (env : Nat → Nat) (maps : Nat → Nat → Nat) : E → Nat
   | .var i => env i
@@ -170,6 +172,7 @@ inductive VDef where
   | var (i : Nat)
   | cell (m : Nat) (key : Row)
   | mono (fs : List Nat)        -- the product of earlier columns (a monomial)
+  | term (e : E)                -- a choice the path leaves open (∸, min, max, if), standing for its value
 
 def prodV (x : List Int) : List Nat → Int
   | [] => 1
@@ -179,6 +182,7 @@ def valD (env : Nat → Nat) (maps : Nat → Nat → Nat) : VDef → List Int �
   | .var i, _ => (env i : Int)
   | .cell m k, x => (maps m (eval k x).toNat : Int)
   | .mono fs, x => ((prodV x fs).toNat : Int)
+  | .term e, _ => (evalE env maps e : Int)
 
 -- x is a valuation of the table: each column holds what its definition says, and every value is a natural.
 def Model (tab : List VDef) (env : Nat → Nat) (maps : Nat → Nat → Nat) (x : List Int) : Prop :=
@@ -206,6 +210,11 @@ def isVar (i : Nat) : VDef → Bool
 def isCell (m : Nat) (k : Row) : VDef → Bool
   | .cell m' k' => m' == m && same k' k
   | _ => false
+def isTerm (e : E) : VDef → Bool
+  | .term e' => e' == e
+  | _ => false
+-- An open choice's column: the table's column for the whole term, if it has one.
+def termCol (tab : List VDef) (e : E) : Option Row := (findIdx (isTerm e) tab).map lunit
 def isMono (fs : List Nat) : VDef → Bool
   | .mono fs' => fs' == fs
   | _ => false
@@ -295,19 +304,19 @@ def linear (tab : List VDef) (path : Path) : E → Option Row
     | some la, some lb => match dec path (lsub lb la) with
       | some true => some (lsub la lb)
       | some false => some (lconst 0)
-      | none => none
+      | none => termCol tab (.sub a b)
     | _, _ => none
   | .min a b => match linear tab path a, linear tab path b with
     | some la, some lb => match dec path (lsub la lb) with
       | some true => some la
       | some false => some lb
-      | none => none
+      | none => termCol tab (.min a b)
     | _, _ => none
   | .max a b => match linear tab path a, linear tab path b with
     | some la, some lb => match dec path (lsub la lb) with
       | some true => some lb
       | some false => some la
-      | none => none
+      | none => termCol tab (.max a b)
     | _, _ => none
   | .prod a b => match linear tab path a, linear tab path b with
     | some la, some lb => rowMul tab la lb
@@ -315,7 +324,7 @@ def linear (tab : List VDef) (path : Path) : E → Option Row
   | .ite c t f => match truth tab path c with
     | some true => linear tab path t
     | some false => linear tab path f
-    | none => none
+    | none => termCol tab (.ite c t f)
   | .get m key => match linear tab path key with
     | some lk => (findIdx (isCell m lk) tab).map lunit
     | none => none
@@ -357,6 +366,21 @@ theorem var_col (hM : Model tab env maps x) {i j : Nat} (h : findIdx (isVar i) t
   cases d with
   | var i' => simp only [isVar, beq_iff_eq] at hv; subst hv; rfl
   | _ => simp [isVar] at hv
+
+theorem term_col (hM : Model tab env maps x) {e : E} {j : Nat} (h : findIdx (isTerm e) tab = some j) :
+    x.getD j 0 = (evalE env maps e : Int) := by
+  obtain ⟨d, hd, hv⟩ := findIdx_some h
+  rw [hM.1 j d hd]
+  cases d with
+  | term e' => simp only [isTerm, beq_iff_eq] at hv; subst hv; rfl
+  | _ => simp [isTerm] at hv
+
+theorem termCol_sound (hM : Model tab env maps x) {e : E} {l : Row} (h : termCol tab e = some l) :
+    eval l x = (evalE env maps e : Int) := by
+  simp only [termCol] at h
+  cases hj : findIdx (isTerm e) tab with
+  | none => simp [hj] at h
+  | some j => simp only [hj, Option.map_some, Option.some.injEq] at h; subst h; rw [eval_lunit, term_col hM hj]
 
 theorem cell_col (hM : Model tab env maps x) {m j : Nat} {k : Row} (h : findIdx (isCell m k) tab = some j) :
     x.getD j 0 = (maps m (eval k x).toNat : Int) := by
@@ -488,7 +512,7 @@ theorem linear_sound (hM : Model tab env maps x) (hP : PathHolds path x) :
         have := dec_sound hP hd
         simp only [decide_eq_false_iff_not, eval_lsub] at this
         rw [eval_lconst, evalE]; omega
-      · simp at h
+      · exact termCol_sound hM h
     · simp at h
   | .min a b, l, h => by
     simp only [linear] at h
@@ -507,7 +531,7 @@ theorem linear_sound (hM : Model tab env maps x) (hP : PathHolds path x) :
         have := dec_sound hP hd
         simp only [decide_eq_false_iff_not, eval_lsub] at this
         rw [evalE, Nat.min_def]; split <;> omega
-      · simp at h
+      · exact termCol_sound hM h
     · simp at h
   | .max a b, l, h => by
     simp only [linear] at h
@@ -526,7 +550,7 @@ theorem linear_sound (hM : Model tab env maps x) (hP : PathHolds path x) :
         have := dec_sound hP hd
         simp only [decide_eq_false_iff_not, eval_lsub] at this
         rw [evalE, Nat.max_def]; split <;> omega
-      · simp at h
+      · exact termCol_sound hM h
     · simp at h
   | .prod a b, l, h => by
     simp only [linear] at h
@@ -543,7 +567,7 @@ theorem linear_sound (hM : Model tab env maps x) (hP : PathHolds path x) :
     · rename_i hc
       have := truth_sound hM hP c false hc
       rw [linear_sound hM hP f l h, evalE, this]; rfl
-    · simp at h
+    · exact termCol_sound hM h
   | .get m key, l, h => by
     simp only [linear] at h
     split at h
@@ -807,8 +831,29 @@ def cellEq (tab : List VDef) (path : Path) (p : Nat × Nat) : List Row :=
     if m == m' && dec path (lsub k k') == some true && dec path (lsub k' k) == some true
     then [lsub (lunit p.1) (lunit p.2), lsub (lunit p.2) (lunit p.1)] else []
   | _, _ => []
+-- A term column's rows: its bounds, whichever way its choice goes (min ≤ each side, max ≥ each side, a ∸ b ≥ a − b and
+-- ≤ a), and its equality to the term's form under the path (the branch taken, once the path decides it).
+def termBounds (j : Nat) (la lb : Row) : E → List Row
+  | .min _ _ => [lsub (lunit j) la, lsub (lunit j) lb]
+  | .max _ _ => [lsub la (lunit j), lsub lb (lunit j)]
+  | .sub _ _ => [lsub (lsub la lb) (lunit j), lsub (lunit j) la]
+  | _ => []
+def termRowsAt (tab : List VDef) (path : Path) (j : Nat) : List Row :=
+  match tab[j]? with
+  | some (.term e) =>
+    (match e with
+     | .min a b | .max a b | .sub a b => match linear tab path a, linear tab path b with
+       | some la, some lb => termBounds j la lb e
+       | _, _ => []
+     | _ => [])
+    ++ (match linear tab path e with
+        | some r => [lsub (lunit j) r, lsub r (lunit j)]
+        | none => [])
+  | _ => []
+def termRows (tab : List VDef) (path : Path) : List Row := (List.range tab.length).flatMap (termRowsAt tab path)
+
 def leafRows (tab : List VDef) (path : Path) (hyps : List C) (eqs : List (Nat × Nat)) : List Row :=
-  path.map atomRow ++ hyps.flatMap (facts tab path true) ++ natRows tab.length ++ eqs.flatMap (cellEq tab path)
+  path.map atomRow ++ hyps.flatMap (facts tab path true) ++ natRows tab.length ++ eqs.flatMap (cellEq tab path) ++ termRows tab path
 
 -- A leaf may add products of two of its rows (p ≤ 0 and q ≤ 0 give −p·q ≤ 0); a pair may name an earlier product.
 inductive Tree where
@@ -844,6 +889,7 @@ def wfTab : Nat → List VDef → Bool
   | n, .var _ :: ds => wfTab (n + 1) ds
   | n, .cell _ k :: ds => decide (k.coefs.length ≤ n) && wfTab (n + 1) ds
   | n, .mono fs :: ds => fs.all (· < n) && wfTab (n + 1) ds
+  | n, .term _ :: ds => wfTab (n + 1) ds
 
 def checkGoal (g : Goal) (t : Tree) : Bool := wfTab 0 g.tab && checkT g.tab g.hyps [] t
 
@@ -858,11 +904,64 @@ theorem natRows_sound (hM : Model tab env maps x) : ∀ n, ∀ r ∈ natRows n, 
     · subst hr; rw [eval_lscale, eval_lunit]; have := hM.2 n; omega
     · exact natRows_sound hM n r hr
 
+theorem termRows_sound {path : Path} (hM : Model tab env maps x) (hP : PathHolds path x) :
+    ∀ r ∈ termRows tab path, eval r x ≤ 0 := by
+  intro r hr
+  simp only [termRows, List.mem_flatMap] at hr
+  obtain ⟨j, _, hr⟩ := hr
+  simp only [termRowsAt] at hr
+  split at hr
+  · rename_i e hj
+    have hx : x.getD j 0 = (evalE env maps e : Int) := by rw [hM.1 j _ hj]; rfl
+    simp only [List.mem_append] at hr
+    rcases hr with hr | hr
+    · cases e with
+      | min a b =>
+        simp only at hr
+        split at hr
+        · rename_i la lb ha hb
+          have ea := linear_sound hM hP a la ha
+          have eb := linear_sound hM hP b lb hb
+          simp only [termBounds, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hr
+          simp only [evalE, Nat.min_def] at hx
+          split at hx <;> rcases hr with rfl | rfl <;> rw [eval_lsub, eval_lunit] <;> omega
+        · simp at hr
+      | max a b =>
+        simp only at hr
+        split at hr
+        · rename_i la lb ha hb
+          have ea := linear_sound hM hP a la ha
+          have eb := linear_sound hM hP b lb hb
+          simp only [termBounds, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hr
+          simp only [evalE, Nat.max_def] at hx
+          split at hx <;> rcases hr with rfl | rfl <;> rw [eval_lsub, eval_lunit] <;> omega
+        · simp at hr
+      | sub a b =>
+        simp only at hr
+        split at hr
+        · rename_i la lb ha hb
+          have ea := linear_sound hM hP a la ha
+          have eb := linear_sound hM hP b lb hb
+          simp only [termBounds, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hr
+          simp only [evalE] at hx
+          rcases hr with rfl | rfl
+          · rw [eval_lsub, eval_lsub, eval_lunit]; omega
+          · rw [eval_lsub, eval_lunit]; omega
+        · simp at hr
+      | _ => simp at hr
+    · split at hr
+      · rename_i r' hr'
+        have := linear_sound hM hP e r' hr'
+        simp only [List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hr
+        rcases hr with rfl | rfl <;> rw [eval_lsub, eval_lunit] <;> omega
+      · simp at hr
+  · simp at hr
+
 theorem leafRows_sound {path : Path} (hM : Model tab env maps x) (hP : PathHolds path x) {hyps : List C}
     (hH : ∀ c ∈ hyps, evalC env maps c = true) (eqs : List (Nat × Nat)) : ∀ r ∈ leafRows tab path hyps eqs, eval r x ≤ 0 := by
   intro r hr
   simp only [leafRows, List.mem_append, List.mem_map, List.mem_flatMap] at hr
-  rcases hr with ((⟨a, ha, rfl⟩ | ⟨c, hc, hr⟩) | hr) | ⟨p, _, hr⟩
+  rcases hr with (((⟨a, ha, rfl⟩ | ⟨c, hc, hr⟩) | hr) | ⟨p, _, hr⟩) | hr
   · have := hP a ha
     simp only [atomRow]
     cases h2 : a.2 with
@@ -886,6 +985,7 @@ theorem leafRows_sound {path : Path} (hM : Model tab env maps x) (hP : PathHolds
         rcases hr with rfl | rfl <;> rw [eval_lsub, eval_lunit, eval_lunit, e1, e2, hkk] <;> omega
       · simp at hr
     · simp at hr
+  · exact termRows_sound hM hP r hr
 
 theorem extend_sound (hM : Model tab env maps x) :
     ∀ ps acc rows', extend tab acc ps = some rows' → (∀ r ∈ acc, eval r x ≤ 0) → ∀ r ∈ rows', eval r x ≤ 0
@@ -954,11 +1054,13 @@ def Refs (n : Nat) : VDef → Prop
   | .var _ => True
   | .cell _ k => k.coefs.length ≤ n
   | .mono fs => ∀ f ∈ fs, f < n
+  | .term _ => True
 
 theorem Refs.mono_le {n m : Nat} (h : n ≤ m) : ∀ {d : VDef}, Refs n d → Refs m d
   | .var _, _ => trivial
   | .cell _ _, hd => by simp only [Refs] at hd ⊢; omega
   | .mono _, hd => fun f hf => by have := hd f hf; omega
+  | .term _, _ => trivial
 
 theorem prodV_append_left (acc more : List Int) : ∀ fs : List Nat, (∀ f ∈ fs, f < acc.length) → prodV (acc ++ more) fs = prodV acc fs
   | [], _ => rfl
@@ -974,6 +1076,7 @@ theorem valD_append (env : Nat → Nat) (maps : Nat → Nat → Nat) (d : VDef) 
   | var i => rfl
   | cell m k => simp only [Refs] at h; simp only [valD, eval, dot_append k.coefs acc more h]
   | mono fs => simp only [valD, prodV_append_left acc more fs h]
+  | term e => rfl
 
 def Valid (env : Nat → Nat) (maps : Nat → Nat → Nat) (acc : List Int) (pre : List VDef) : Prop :=
   acc.length = pre.length ∧ (∀ (j : Nat) (d : VDef), pre[j]? = some d → Refs j d) ∧
@@ -1022,6 +1125,7 @@ theorem build_valid (env : Nat → Nat) (maps : Nat → Nat → Nat) : ∀ (ds :
       | mono fs =>
         simp only [wfTab, Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at hw
         exact ⟨hw.1, hw.2⟩
+      | term e => exact ⟨trivial, by simpa [wfTab] using hw⟩
     have := build_valid env maps ds _ (pre ++ [d]) (valid_snoc d hv hd.1) (by simpa using hd.2)
     simpa [build] using this
 

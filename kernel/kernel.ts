@@ -43,11 +43,22 @@ function decide(lin: Lin, path: Path): boolean | undefined {
   return flipped === undefined ? undefined : !flipped
 }
 
-// A term's linear form under the path, or undefined if the path leaves one of its choices open.
-// Reads become cells, named by map and key: `M[key]`.
+// A term's linear form under the path. Reads become cells, named by map and key: `M[key]`; a choice the path leaves
+// open (∸, min, max, if) becomes a column of its own, `⟦n⟧`, standing for the term's value (see termRows).
+// Remembered per path and term (a path is never changed once built; a new decision is a new path), so a term shared
+// across hypotheses, or nested in a k-step run's later states, is read once per path.
+const linearMemo = new WeakMap<Path, WeakMap<E, Lin | undefined>>()
 export function linear(e: E, path: Path): Lin | undefined {
+  let memo = linearMemo.get(path)
+  if (!memo) linearMemo.set(path, (memo = new WeakMap()))
+  if (memo.has(e)) return memo.get(e)
+  const out = linearOf(e, path)
+  memo.set(e, out)
+  return out
+}
+function linearOf(e: E, path: Path): Lin | undefined {
   switch (e.op) {
-    case 'var': return e.name === '1' || /[*[\],:]/.test(e.name) ? undefined : v(e.name) // those characters build cells and monomials
+    case 'var': return e.name === '1' || /[*[\],:⟦]/.test(e.name) ? undefined : v(e.name) // those characters build cells, monomials and term columns
     case 'const': return k(e.value)
     case 'mul': { const a = linear(e.a, path); return a && scale(a, e.k) }
     case 'prod': { const a = linear(e.a, path), b = linear(e.b, path); return a && b && times(a, b) }
@@ -56,13 +67,55 @@ export function linear(e: E, path: Path): Lin | undefined {
       const a = linear(e.a, path), b = linear(e.b, path)
       if (!a || !b) return undefined
       const aLeB = decide(sub(a, b), path), bLeA = decide(sub(b, a), path)
-      if (e.op === 'sub') return bLeA === true ? sub(a, b) : bLeA === false ? k(0) : undefined
-      if (aLeB === undefined) return undefined
+      if (e.op === 'sub') return bLeA === true ? sub(a, b) : bLeA === false ? k(0) : v(termColumn(e))
+      if (aLeB === undefined) return v(termColumn(e))
       return (e.op === 'min') === aLeB ? a : b
     }
-    case 'if': { const c = truth(e.c, path); return c === undefined ? undefined : linear(c ? e.then : e.else, path) }
+    case 'if': { const c = truth(e.c, path); return c === undefined ? v(termColumn(e)) : linear(c ? e.then : e.else, path) }
     case 'get': { const key = linear(e.key, path); return key && v(`${e.map}[${canon(key)}]`) }
   }
+}
+
+// --- term columns -------------------------------------------------------------------------------------------------------
+// A choice the path leaves open is a column ⟦n⟧ for the n-th term met (one table per process: the name only has to be
+// the same for the same term). A leaf reads it through rows that hold whichever way the choice goes (termRows), so a
+// fact about the choice's value can be split on, and proven, before the choice is decided.
+// Terms are hash-consed: a term's id comes from its operator, its fields and its parts' ids, remembered per object, so a
+// deep term (a k-step run nests k steps) is read once, not once per lookup.
+const termIds = new Map<string, number>(), termTable: (E | C)[] = [], memo = new WeakMap<object, number>()
+function termId(t: E | C): number {
+  const had = memo.get(t)
+  if (had !== undefined) return had
+  const parts = Object.entries(t).sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0)).map(([key, val]) => (Array.isArray(val) ? `${key}=[${val.map(x => termId(x as E | C)).join(',')}]` : typeof val === 'object' && val !== null ? `${key}=#${termId(val as E | C)}` : `${key}=${JSON.stringify(val)}`))
+  const key = parts.join(';')
+  let id = termIds.get(key)
+  if (id === undefined) { id = termTable.length; termIds.set(key, id); termTable.push(t) }
+  memo.set(t, id)
+  return id
+}
+export const termColumn = (e: E): string => `⟦${termId(e)}⟧`
+export const columnTerm = (name: string): E | undefined => { const m = /^⟦(\d+)⟧$/.exec(name); return m ? termTable[Number(m[1])] as E : undefined }
+// Whether the path decides a choice's top (an if's condition, which side of min, max or ∸).
+export function decided(e: E, path: Path): boolean {
+  if (e.op === 'if') return truth(e.c, path) !== undefined
+  if (e.op !== 'sub' && e.op !== 'min' && e.op !== 'max') return true
+  const a = linear(e.a, path), b = linear(e.b, path)
+  return !!a && !!b && decide(e.op === 'sub' ? sub(b, a) : sub(a, b), path) !== undefined
+}
+// The rows a term column brings: its bounds, true whichever way the choice goes (min(a, b) ≤ a and ≤ b; max(a, b) ≥ a
+// and ≥ b; a ∸ b ≥ a − b and ≤ a), and, once the path decides it, its equality to the branch taken.
+export function termRows(name: string, path: Path): Lin[] {
+  const e = columnTerm(name)!, col = v(name), out: Lin[] = []
+  if (e.op === 'min' || e.op === 'max' || e.op === 'sub') {
+    const a = linear(e.a, path), b = linear(e.b, path)
+    if (a && b) {
+      if (e.op === 'min') out.push(sub(col, a), sub(col, b))
+      if (e.op === 'max') out.push(sub(a, col), sub(b, col))
+      if (e.op === 'sub') out.push(sub(sub(a, b), col), sub(col, a))
+    }
+  }
+  if (decided(e, path)) { const r = linear(e, path); if (r) out.push(sub(col, r), sub(r, col)) }
+  return out
 }
 
 // Products: multiply out, each monomial (variables joined by '*', sorted) one more natural variable. Forgetting how
@@ -71,7 +124,7 @@ export function linear(e: E, path: Path): Lin | undefined {
 function times(a: Lin, b: Lin): Lin | undefined {
   const out: Lin[] = []
   for (const [p, cp] of Object.entries(a)) for (const [q, cq] of Object.entries(b)) {
-    if (p.includes('[') || q.includes('[')) return undefined
+    if (p.includes('[') || q.includes('[') || p.includes('⟦') || q.includes('⟦')) return undefined // factors are variables (and monomials of them)
     const factors = [...(p === '1' ? [] : p.split('*')), ...(q === '1' ? [] : q.split('*'))].sort()
     out.push({[factors.length ? factors.join('*') : '1']: cp * cq})
   }
@@ -141,6 +194,17 @@ export function leafConstraints(goal: Goal, path: Path): Constraint[] {
     if (p.map !== q.map) continue
     const d = sub(p.key, q.key)
     if (decide(d, path) === true && decide(scale(d, -1), path) === true) rows.push({lin: sub(v(p.name), v(q.name)), label: ''}, {lin: sub(v(q.name), v(p.name)), label: ''})
+  }
+  // Each term column's rows, and the columns those rows bring in turn.
+  const seen = new Set<string>(), todo = [...names].filter(n => n.startsWith('⟦'))
+  while (todo.length) {
+    const name = todo.pop()!
+    if (seen.has(name)) continue
+    seen.add(name)
+    for (const lin of termRows(name, path)) {
+      rows.push({lin, label: ''})
+      for (const key of Object.keys(lin)) if (key !== '1') { names.add(key); if (key.startsWith('⟦') && !seen.has(key)) todo.push(key) }
+    }
   }
   for (const name of names) rows.push({lin: {[name]: -1}, label: ''})
   return rows

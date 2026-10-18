@@ -20,7 +20,6 @@ open Classical
 
 /-! Certificates that name their hypotheses -/
 
-deriving instance DecidableEq for E, C
 
 -- A proof tree with the table it reads, and the hypotheses it refutes: none named, the goal's own, in the goal's order;
 -- named, any of the goal's, in any order (each must be one of the goal's), so an exporter may lay its goal out its own

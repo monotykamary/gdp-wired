@@ -76,7 +76,7 @@
     "build": "bun scripts/build.ts",
     "prepublishOnly": "bun scripts/build.ts",
     "smoke": "sh scripts/smoke.sh",
-    "test": "bun scripts/gen-lean-library.ts --check && cd core && bun test solver.test.ts dsl.test.ts conformance.test.ts compose.test.ts quantifiers.test.ts functions.test.ts keyterms.test.ts lists.test.ts liveness.test.ts sizes.test.ts values.test.ts builders.test.ts && cd ../kernel && bun test tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts && cd ../examples && bun test examples.test.ts && cd .. && bun examples/readme.ts && bun examples/composition.ts && bun examples/sets.ts && bun examples/quantifiers.ts && bun examples/functions.ts && bun examples/lists.ts && bun examples/sizes.ts && bun examples/liveness.ts && bun examples/budget.ts && bun examples/jev-fabric/run.ts"
+    "test": "bun scripts/gen-lean-library.ts --check && cd core && bun test solver.test.ts dsl.test.ts conformance.test.ts compose.test.ts quantifiers.test.ts functions.test.ts keyterms.test.ts lists.test.ts liveness.test.ts sizes.test.ts values.test.ts builders.test.ts && cd ../kernel && bun test tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts && cd ../examples && bun test examples.test.ts && cd .. && bun examples/readme.ts && bun examples/composition.ts && bun examples/sets.ts && bun examples/quantifiers.ts && bun examples/functions.ts && bun examples/lists.ts && bun examples/sizes.ts && bun examples/liveness.ts && bun examples/budget.ts && bun examples/steps.ts && bun examples/jev-fabric/run.ts"
   },
   "devDependencies": {
     "@types/bun": "1.3.1",
