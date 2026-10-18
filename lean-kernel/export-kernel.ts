@@ -57,8 +57,11 @@ if (process.argv.includes('--examples')) {
           return
         }
         if (m.history) sets = true
-        parts.push(`-- ${d.domain}: ${c.name}\n${m.history ? hmachineToLean(id, m, c.laws) : m.maps && Object.keys(m.maps).length ? mmachineToLean(id, m, c.laws) : machineToLean(id, m, c.laws)}`)
-        theorems.push(`${id}_laws`, ...(m.history ? [`${id}_hlaws`] : []))
+        // A rule with step laws alone has no laws for these twins to prove; its step laws go through the sets twin below.
+        if (c.laws.length) {
+          parts.push(`-- ${d.domain}: ${c.name}\n${m.history ? hmachineToLean(id, m, c.laws) : m.maps && Object.keys(m.maps).length ? mmachineToLean(id, m, c.laws) : machineToLean(id, m, c.laws)}`)
+          theorems.push(`${id}_laws`, ...(m.history ? [`${id}_hlaws`] : []))
+        }
         if (c.steps?.length) {
           // Step laws, one step or k, through the one twin (Sets.lean's skstep_sound), about the plain machine: a history's
           // sums as state, its queries as inputs (kernel.ts's historyMachine, whose relations its laws' proof above checks

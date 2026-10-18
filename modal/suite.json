@@ -876,5 +876,185 @@
 "cwd": "research/synth",
 "cpu": 1.0,
 "timeout": 900
+},
+{
+"name": "lean-examples-healthcare",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'healthcare' > Examples-healthcare.lean && lean Examples-healthcare.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "lean-examples-energy",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'energy' > Examples-energy.lean && lean Examples-energy.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "lean-examples-networking",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'networking' > Examples-networking.lean && lean Examples-networking.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "lean-examples-ai-agents",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'ai agents' > Examples-ai-agents.lean && lean Examples-ai-agents.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "lean-examples-cloud",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'cloud' > Examples-cloud.lean && lean Examples-cloud.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "lean-examples-ad-tech",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'ad tech' > Examples-ad-tech.lean && lean Examples-ad-tech.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "lean-examples-governance",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'governance' > Examples-governance.lean && lean Examples-governance.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "lean-examples-insurance",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'insurance' > Examples-insurance.lean && lean Examples-insurance.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "lean-examples-bookings",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'bookings' > Examples-bookings.lean && lean Examples-bookings.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "lean-examples-safety-and-iot",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'safety and iot' > Examples-safety-and-iot.lean && lean Examples-safety-and-iot.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "lean-examples-mobility",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'mobility' > Examples-mobility.lean && lean Examples-mobility.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "lean-examples-media",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'media' > Examples-media.lean && lean Examples-media.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "examples-health",
+"cmd": "DOMAIN=health bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "examples-energy",
+"cmd": "DOMAIN=energy bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "examples-network",
+"cmd": "DOMAIN=network bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "examples-agents",
+"cmd": "DOMAIN=agents bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "examples-cloud",
+"cmd": "DOMAIN=cloud bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "examples-ads",
+"cmd": "DOMAIN=ads bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "examples-governance",
+"cmd": "DOMAIN=governance bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "examples-insurance",
+"cmd": "DOMAIN=insurance bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "examples-bookings",
+"cmd": "DOMAIN=bookings bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "examples-safety",
+"cmd": "DOMAIN=safety bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "examples-mobility",
+"cmd": "DOMAIN=mobility bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "examples-media",
+"cmd": "DOMAIN=media bun test examples.test.ts 2>&1",
+"cwd": "examples",
+"cpu": 2.0,
+"timeout": 1800
 }
 ]
