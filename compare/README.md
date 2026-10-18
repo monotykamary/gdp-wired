@@ -203,6 +203,32 @@ How to read the times:
   representation comes from the machine, not from how the law is written. A Bend or Lean rule written for speed (maps,
   or a pruned log) would need its proofs redone.
 
+### Bend's GPU path
+
+A rule's run is a fold over the requests, each step needing the state the one before left, so there is no parallel
+work for a GPU. To check that anyway, [`bench/gpu.ts`](bench/gpu.ts) hands each rule's run to the GPU (`run!(...)` in
+place of `run(...)` in the bench's entry point, the rule and its proofs unchanged), builds it with CUDA 12 and clang 19,
+and times it beside the plain CPU binary and beside the same binary with its GPU off (`--gpu off`, which runs the `!`
+call on the CPU lanes). [`bench/modal_gpu.py`](bench/modal_gpu.py) runs it on a Modal L4 (`runs/modal/compare-bench/gpu/`):
+
+| rule | N | CPU binary ms | `run!` binary, `--gpu off` ms | `run!` binary, GPU on |
+| --- | --- | --- | --- | --- |
+| budget | 0 | 4 | 14 | did not return in 300 s |
+| budget | 1,000 | 11 | 20 | |
+| budget | 10,000 | 693 | 645 | |
+| caps | 0 | 4 | 14 | did not return in 300 s |
+| caps | 1,000 | 186 | 195 | |
+| caps | 10,000 | 3,719 | 3,754 | |
+| window | 0 | 4 | 14 | did not return in 300 s |
+| window | 1,000 | 50 | 52 | |
+| window | 10,000 | 38,204 | 31,877 | |
+
+Every run printed the CPU benchmark's checksum. With the GPU on, nothing returned, even with no requests. The guide's
+own parallel example (`pow2!(20n)`, `PROBE=1`) does the same on this image: its GPU program builds, `--gpu off` prints
+1048576 in about 20 ms, and with the GPU on it does not return in 60 s, on an L4 and on an H100 alike. So Bend's CUDA
+path does not run in these containers, for reasons that have nothing to do with these rules. The `--gpu off` column is
+what the `!` costs a serial fold on the CPU: about 10 ms more startup, otherwise the same.
+
 ## Trust bases
 
 - **gdp-wired.**
