@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 640" width="820" height="640" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="820" height="640" rx="16" fill="#ffffff"/>
+  <circle cx="410" cy="235" r="185" fill="#6b8cff" fill-opacity="0.18" stroke="#3d5fd9" stroke-width="2"/>
+  <circle cx="300" cy="410" r="185" fill="#ff9f43" fill-opacity="0.18" stroke="#d9771f" stroke-width="2"/>
+  <circle cx="520" cy="410" r="185" fill="#2ecc8f" fill-opacity="0.18" stroke="#1b9e6b" stroke-width="2"/>
+
+  <g font-size="19" font-weight="700">
+    <text x="410" y="40" text-anchor="middle" fill="#3d5fd9">Lean</text>
+    <text x="115" y="615" text-anchor="middle" fill="#d9771f">Bend</text>
+    <text x="705" y="615" text-anchor="middle" fill="#1b9e6b">gdp-wired</text>
+  </g>
+
+  <g font-size="13.5" fill="#1f2328" text-anchor="middle">
+    <!-- Lean only -->
+    <text x="410" y="105"><tspan x="410" dy="0">any mathematics</tspan><tspan x="410" dy="18">induction you write</tspan><tspan x="410" dy="18">Mathlib, tactics</tspan></text>
+    <!-- Bend only -->
+    <text x="205" y="455"><tspan x="205" dy="0">proved source,</tspan><tspan x="205" dy="18">compiled and run</tspan><tspan x="205" dy="18">on CPUs and GPUs</tspan><tspan x="205" dy="18">affine resources</tspan></text>
+    <!-- gdp-wired only -->
+    <text x="615" y="440"><tspan x="615" dy="0">proofs with no</tspan><tspan x="615" dy="18">proof to write</tspan><tspan x="615" dy="18">breaking runs found</tspan><tspan x="615" dy="18">invariants synthesized</tspan><tspan x="615" dy="18">liveness, refinement</tspan></text>
+    <!-- Lean and Bend -->
+    <text x="300" y="282" font-size="12.5"><tspan x="300" dy="0">dependent types</tspan><tspan x="300" dy="17">proofs you write</tspan><tspan x="300" dy="17">BendTT's kernel</tspan><tspan x="300" dy="17">in Lean</tspan></text>
+    <!-- Lean and gdp-wired -->
+    <text x="520" y="282" font-size="12.5"><tspan x="520" dy="0">each proof also</tspan><tspan x="520" dy="17">a Lean theorem;</tspan><tspan x="520" dy="17">facts of functions</tspan><tspan x="520" dy="17">defined in Lean</tspan></text>
+    <!-- Bend and gdp-wired -->
+    <text x="410" y="462" font-size="12.5"><tspan x="410" dy="0">the GPU</tspan><tspan x="410" dy="17">Bend: programs</tspan><tspan x="410" dy="17">gdp-wired: search</tspan></text>
+  </g>
+  <!-- the center -->
+  <g font-size="13.5" font-weight="700" fill="#1f2328" text-anchor="middle">
+    <text x="410" y="360"><tspan x="410" dy="0">laws of state</tspan><tspan x="410" dy="18">machines over</tspan><tspan x="410" dy="18">the naturals</tspan></text>
+  </g>
+</svg>
