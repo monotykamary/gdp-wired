@@ -27,6 +27,20 @@ export const everyTicket = (r = ok): Liveness => r.leadsTo('every ticket issued 
   helpful: () => ({op: 1}),
 })
 
+// The ticket queue with a tag on each request (any number, which the queue ignores): the helpful request names `op`
+// and leaves the tag free, under weak fairness too (`work` is allowed whatever its tag).
+export const taggedTickets = () => rule('tagged ticket queue').params({cap: nat, t: nat}).inputs({op: oneOf('take', 'work'), tag: nat}).state({next: 0, served: 0})
+  .flags(({op, next, served, cap}) => ({taking: op.is('take').and(next.minus(served).lt(cap)), working: op.is('work').and(served.lt(next))}))
+  .step(({next, served, taking, working}) => ({next: when(taking, next.plus(1), next), served: when(working, served.plus(1), served)}))
+const tagged = taggedTickets()
+export const taggedLaws: Law[] = [tagged.law('nothing served before it is issued', ({served, next}) => served.atMost(next))]
+export const everyTaggedTicket: Liveness = tagged.leadsTo('every ticket issued is served', {
+  from: ({t, next, served}) => t.lt(next).and(served.atMost(t)),
+  to: ({t, served}) => served.gt(t),
+  rank: ({t, served}) => t.plus(1).minus(served),
+  helpful: () => ({op: 1}),
+})
+
 // The same queue keeping a log: `served` is the number of work requests the log keeps (a sum over it), each kept only
 // while a ticket waits. Its liveness goes through its plain machine (the sum as state).
 export const loggedTickets = (bug?: 'stalls with two waiting') => rule('logged ticket queue').params({cap: nat, t: nat}).inputs({op: oneOf('take', 'work')}).state({next: 0})
@@ -122,6 +136,10 @@ if (import.meta.main) {
   for (const bug of [undefined, 'approves only what the set names'] as const) {
     const r = reviews(bug), v = proveLiveness(r.machine, reviewLaws(r), everyReview(r))
     results.push([`review queue${bug ? ` (${bug})` : ''}: a pending document is approved`, v.proven && v.checked, !bug])
+  }
+  {
+    const v = proveLiveness(tagged.machine, taggedLaws, everyTaggedTicket)
+    results.push(['tagged ticket queue: every ticket is served (the tag free)', v.proven && v.checked, true])
   }
   for (const [name, got, want] of results) console.log(`${got === want ? 'ok  ' : 'FAIL'} ${name}: ${got ? 'proven' : 'refused'}`)
   if (results.some(([, got, want]) => got !== want)) process.exit(1)

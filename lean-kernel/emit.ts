@@ -6,7 +6,7 @@ import type {C, E, Law, Machine} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type Step, add, k, scale, sub} from '../core/solver.ts'
 import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, canon, historyMachine, foldObligations, leafConstraints, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, withProducts} from '../kernel/kernel.ts'
-import {grow, proveLaws, proveProgress, proveStepLaws} from '../kernel/prove.ts'
+import {grow, proveBuilt, proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanTerms} from './lean-terms.ts'
 import {leanLibrary} from './library.ts'
@@ -297,6 +297,22 @@ end ${id}`
 }
 
 export type ProgressCase = {id: string, name: string, when: C, then: C, request: Record<string, E>, instances: Instances, tamper?: {what: string, when: C}}
+// Live.lean's reqC: each input named by its term, two parts per and.
+const reqTS = (req: [string, E][]): C => (req.length ? {op: 'and', xs: [{op: '=', a: {op: 'var', name: req[0]![0]}, b: req[0]![1]}, reqTS(req.slice(1))]} : {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}})
+// Witnesses for a helpful request's free inputs, for its allowed goal: all free first, then each free input fixed to 0, a
+// state variable or a param (a history's query, say, which its relations bound), the first combination that proves.
+function withWitness<R>(m: Machine, request: Record<string, E>, attempt: (wit: [string, E][]) => R | undefined): {wit: [string, E][], out: R} | undefined {
+  const free = m.inputs.filter(i => !(i in request))
+  const cands: (E | undefined)[] = [undefined, {op: 'const', value: 0}, ...Object.keys(m.state).map(v => ({op: 'var', name: v}) as E), ...m.params.map(v => ({op: 'var', name: v}) as E)]
+  const combos: [string, E][][] = [[]]
+  if (free.length <= 2) {
+    const go = (i: number, acc: [string, E][]) => { if (i === free.length) { if (acc.length) combos.push(acc); return } for (const c of cands) go(i + 1, c ? [...acc, [free[i]!, c]] : acc) }
+    go(0, [])
+  }
+  for (const wit of combos) { const out = attempt(wit); if (out !== undefined) return {wit, out} }
+  return undefined
+}
+
 // A liveness as Live.lean's record: from, to, the rank's parts, each helpful request with its region, the primes.
 function liveLit(l: Liveness, t: {e: (x: E) => string, c: (x: C) => string}, ix: (name: string) => number, primes: string, primeMaps: string): string {
   return `⟨${t.c(l.from)}, ${t.c(l.to)}, ${list(livenessRanks(l).map(t.e))},
@@ -361,6 +377,10 @@ example : checkProgress ${id}_machine ${id}_proof ${pc.id}_tampered = false := b
   const sp = opts.stepLaws?.length ? proveStepLaws(m, laws, opts.stepLaws) : undefined
   if (opts.stepLaws?.length && (!sp?.proven || !sp.proof)) throw new Error(`${id}: step laws not proven`)
   const inlineFlags = (c: C): C => substC(c, {vars: {}, maps: {}, flags: m.step.flags ?? {}})
+  // Lean's inlineC: each flag a condition reads becomes `if c then 1 else 0 = 1`, c as the machine's literal has it.
+  const flagVar = Object.fromEntries(Object.keys(m.step.flags ?? {}).map(f => [f, {op: '=', a: {op: 'var', name: `?${f}`}, b: n(1)} as C]))
+  const leanInline = (c: C): C => substC(c, {vars: {}, maps: {}, flags: Object.fromEntries(Object.entries(m.step.flags ?? {}).map(([f, fc]) =>
+    [f, {op: '=', a: {op: 'if', c: substC(fc, {vars: {}, maps: {}, flags: flagVar}), then: n(1), else: n(0)}, b: n(1)} as C]))})
   const stepRecords = (opts.stepLaws ?? []).map((sl, j) => {
     const goal = stepLawObligations(m, laws, sp!.proof!.instances, sl)[0]!
     const pr = enc(goal, sp!.proof!.trees[goal.name]!)
@@ -401,17 +421,18 @@ theorem ${id}_step${j}_holds : KStepHolds ${id}_machine ${id}_step${j} :=
       return {insts: list(laws.flatMap((lw, li) => (lw.forall ? (inst[lw.name] ?? []).map(key => `(${li}, ${any0.e(key)})`) : []))), tree: `(${pr.tab}, ${pr.tree})`}
     }
     const ps = proofOf(stay), pc = proofOf(cover), ph = helps.map(proofOf), lid = `${id}_live${j}`
-    // Weak fairness, where each helpful request is proven allowed in its region (Live.lean's liveAllow, then trivial).
-    const allows = livenessHelpful(l).map((h, i) => {
-      const pp = {name: `${l.name}: helpful request ${i + 1} is allowed`, when: {op: 'and', xs: [{op: 'and', xs: [l.from, {op: 'not', x: l.to}]}, h.when]} as C, then: trueC, request: h.request}
-      // A request naming every input (a progress goal names the whole request); others keep the strong form alone.
-      if (!m.inputs.every(inp => inp in h.request)) return undefined
-      const b = proveProgress(m, laws, pp)
-      if (!b.proven || !b.checked || !b.instances || !b.trees) return undefined
-      const gs2 = progressObligations(m, laws, b.instances, pp), causes = gs2.at(-1)!
-      const allowed = m.assume ? gs2[0]! : {name: `${pp.name}: the request is allowed`, hyps: [...causes.hyps.slice(0, -1), not(atMost(n(0), n(0)))]}
-      const ea = enc(allowed, b.trees[allowed.name] ?? grown(allowed)), ec = enc(causes, b.trees[causes.name]!)
-      return `(${list(laws.flatMap((lw, li) => (lw.forall ? (b.instances![lw.name] ?? []).map(key => `(${li}, ${any0.e(key)})`) : [])))}, (${ea.tab}, ${ea.tree}), (${ec.tab}, ${ec.tree}))`
+    // Weak fairness, where each helpful request is proven allowed in its region, its other inputs free (Live.lean's
+    // fAllowGoal, built here as Lean builds it: the flags in the assumption inlined as `if c then 1 else 0 = 1`).
+    const allows = helps.map((hs, i) => {
+      const found = withWitness(m, livenessHelpful(l)[i]!.request, wit => {
+        const r2 = proveBuilt(m, laws, inst => ({name: `${hs.name}: allowed`, hyps: [m.pre ?? trueC, ...laws.filter(lw => !lw.forall).map(lw => lw.holds),
+          ...laws.flatMap(lw => (lw.forall ? (inst[lw.name] ?? []).map(key => substC(lw.holds, {vars: {[lw.forall!]: key}, maps: {}, flags: {}})) : [])),
+          {op: 'and', xs: [hs.when as C, reqTS(wit)]}, {op: 'not', x: leanInline(m.assume ?? trueC)}]}))
+        return r2.proven ? r2 : undefined
+      })
+      if (!found) return undefined
+      const r2 = found.out, pr = enc(r2.goal!, r2.tree!)
+      return `(${list(found.wit.map(([inp, t]) => `(${ix(inp)}, ${any0.e(t)})`))}, ${list(laws.flatMap((lw, li) => (lw.forall ? (r2.instances![lw.name] ?? []).map(key => `(${li}, ${any0.e(key)})`) : [])))}, (${pr.tab}, ${pr.tree}))`
     })
     const wf = allows.every(a => a !== undefined) ? `
 theorem ${lid}_allows : liveAllowsOk ${id}_machine ${id}_proof ${lid} ${list(allows as string[])} = true := by decide +kernel
@@ -510,12 +531,52 @@ export function smachineToLean(id: string, m: Machine, laws: Law[], opts: {stepL
   const primes = stepLaws.length || liveSteps.length ? Object.keys(m.state).map(s2 => `${s2}'`) : []
   const instOf = (sl: StepLaw) => r.proof!.perStep?.[sl.name] ?? si
   const goalsL = obligations(m, laws, lp.instances), goalsS = [...stepLaws, ...liveSteps].map(sl => stepLawObligations(m, laws, instOf(sl), sl)[0]!)
+  // Weak fairness over sets: each helpful request allowed in its region carrying empty sets (Live.lean's sAllowGoal,
+  // built here as Lean builds it: facts, laws, `when`, each quantified flag closed, the carried maps 0 at the keys read,
+  // and the assumption's failing, its plain flags inlined as `if c then 1 else 0 = 1`).
+  const zero1 = (k: number): E => ({op: 'const', value: k}), eqC = (a: E, b: E): C => ({op: '=', a, b})
+  const fl0 = flagsOfM(m), allFlags = Object.entries(m.step.flags ?? {})
+  const sInline = (c2: C): C => substC(c2, {vars: {}, maps: {}, flags: Object.fromEntries(allFlags.map(([f, fc]) =>
+    [f, fc.op === 'all' ? eqC({op: 'var', name: `?${f}`}, zero1(1)) : eqC({op: 'if', c: fl0[f]!, then: zero1(1), else: zero1(0)}, zero1(1))]))})
+  const sub1 = (c2: C, vars: Record<string, E>): C => substC(c2, {vars, maps: {}, flags: {}})
+  const carriedKeys = (cs: C[]): E[] => {
+    const out = new Map<string, E>()
+    const inE = (x2: E): void => { if (x2.op === 'get') { if ((m.inputMaps ?? []).includes(x2.map)) out.set(JSON.stringify(x2.key), x2.key); inE(x2.key) } else if (x2.op === 'if') (inC(x2.c), inE(x2.then), inE(x2.else)); else if (x2.op === 'mul') inE(x2.a); else if ('a' in x2) (inE(x2.a), inE(x2.b)) }
+    const inC = (c2: C): void => (c2.op === 'flag' || c2.op === 'all' ? undefined : c2.op === 'not' ? inC(c2.x) : c2.op === 'and' || c2.op === 'or' ? c2.xs.forEach(inC) : (inE(c2.a), inE(c2.b)))
+    cs.forEach(inC)
+    return [...out.values()]
+  }
+  const allowGoalS = (inst: Instances, w: C): Goal & {zkeys: E[]} => {
+    const factsF = m.facts ?? []
+    const base: C[] = [m.pre ?? trueC,
+      ...factsF.filter(f => !f.forall).map(f => f.holds),
+      ...Object.entries(inst).flatMap(([name, keys]) => { const f = factsF.find(f2 => f2.name === name); return f?.forall ? keys.map(key => sub1(f.holds, {[f.forall!]: key})) : [] }),
+      ...laws.filter(lw => !lw.forall).map(lw => lw.holds),
+      ...Object.entries(inst).flatMap(([name, keys]) => { const lw = laws.find(l2 => l2.name === name); return lw?.forall && !lw.keys?.length ? keys.map(key => sub1(lw.holds, {[lw.forall!]: key})) : [] }),
+      ...Object.entries(inst).flatMap(([name, keys]) => {
+        const lw = laws.find(l2 => l2.name === name)
+        if (!lw?.keys?.length) return []
+        const k = lw.keys.length + 1
+        return Array.from({length: Math.floor(keys.length / k)}, (_, t) => sub1(sub1(lw.holds, Object.fromEntries(lw.keys!.map((kn, i) => [kn, keys[t * k + 1 + i]!]))), {[lw.forall!]: keys[t * k]!}))
+      }),
+      w,
+      ...allFlags.flatMap(([f, fc]): C[] => (fc.op === 'all' ? [{op: '<=', a: {op: 'var', name: `?${f}`}, b: zero1(1)},
+        ...(inst[`?${f}`] ?? []).map((key): C => ({op: 'or', xs: [eqC({op: 'var', name: `?${f}`}, zero1(0)), sub1(fc.c, {[fc.key]: key})]})),
+        {op: 'or', xs: [eqC({op: 'var', name: `?${f}`}, zero1(1)), {op: 'not', x: sub1(fc.c, {[fc.key]: {op: 'var', name: `w?${f}`}})}]}] : []))]
+    const last: C = {op: 'not', x: sInline(m.assume ?? trueC)}, zkeys = carriedKeys([...base, last])
+    return {name: 'allowed', hyps: [...base, ...(m.inputMaps ?? []).flatMap(mp => zkeys.map(t => eqC({op: 'get', map: mp, key: t}, zero1(0)))), last], zkeys}
+  }
+  const allowS = liveParts.map((p2, j) => p2.helps.map((hs, i) => withWitness(m, livenessHelpful(opts.liveness![j]!)[i]!.request, wit => {
+    const r2 = proveBuilt(m, laws, inst => allowGoalS(inst, {op: 'and', xs: [hs.when as C, reqTS(wit)]}))
+    return r2.proven ? r2 : undefined
+  })))
+  const allowGoals = allowS.flat().flatMap(a => (a ? [a.out.goal!] : []))
   const vars = [...new Set([...m.params, ...m.inputs, ...Object.keys(m.state), ...keysOf, ...keysOf.map(k2 => `${k2}#`), '#', ...flags.map(([f]) => `?${f}`),
     ...quantified.map(f => `w?${f}`), ...boundKeys(m), ...(opts.tamper ? boundKeys(opts.tamper.machine) : []), ...stepLaws.flatMap(sl => (sl.forall ? [sl.forall] : [])), ...(opts.free ?? []),
-    ...primes, ...later, ...[...goalsL, ...goalsS].flatMap(g => g.hyps.flatMap(varsOf))])]
+    ...primes, ...later, ...[...goalsL, ...goalsS, ...allowGoals].flatMap(g => g.hyps.flatMap(varsOf))])]
   const baseMaps = [...new Set([...Object.keys(m.maps ?? {}), ...Object.keys(m.step.maps ?? {}), ...Object.keys(m.fns ?? {})])]
   const mapNames = [...new Set([...baseMaps, ...carried, ...(stepLaws.length || liveSteps.length ? Object.keys(m.maps ?? {}).map(mp => `${mp}'`) : []), ...laterMaps,
-    ...[...JSON.stringify([...goalsL, ...goalsS]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!)])]
+    ...[...JSON.stringify([...goalsL, ...goalsS, ...allowGoals]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!)])]
   const enc = (g: Goal, tree: Tree) => encode({name: `${id}: ${g.name}`, goal: g, tree}, false, true, vars, mapNames)
   const {e, c} = leanTerms(vars, mapNames, id)
   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
@@ -588,6 +649,19 @@ theorem ${id}_step${j}_holds : SKStepHolds ${id}_machine ${id}_step${j} :=
   })
   const liveRecords = (opts.liveness ?? []).map((l, j) => {
     const {stay, cover, helps} = liveParts[j]!, lid = `${id}_live${j}`
+    const al = allowS[j]!
+    const wf = al.every(a => a !== undefined) ? `
+def ${lid}_ap : List (List (Nat × E) × SProof × List E) := ${list(al.map(f2 => { const a = f2!.out, pr = enc(a.goal!, a.tree!), inst = a.instances!
+      return `(${list(f2!.wit.map(([inp, t]) => `(${ix(inp)}, ${e(t)})`))}, (${list(insts(inst))}, ${list(qinsts(inst))}, ${list(finsts(inst))}, ${list(pinsts(inst))}, (${pr.tab}, ${pr.tree})), ${list((a.goal as Goal & {zkeys: E[]}).zkeys.map(e))})` }))}
+theorem ${lid}_allows : sliveAllowsOk ${id}_machine ${id}_proof ${lid} ${lid}_ap = true := by decide +kernel
+/-- ${l.name}, under weak fairness: along every run that takes each helpful request whenever, from some point on, it
+stays allowed, \`from\` is followed by \`to\`. -/
+theorem ${lid}_holds_wf (run : SRun ${id}_machine)
+    (fair : ∀ h ∈ ${lid}.helps, ∀ n, (∀ m, n ≤ m → ∃ ι κ, (∀ p ∈ h.2, ι p.1 = evalE (run.st m).1 (run.st m).2 p.2)
+        ∧ evalC (sView ${id}_machine (run.st m).1 (run.st m).2 ι κ).1 (sView ${id}_machine (run.st m).1 (run.st m).2 ι κ).2 ${id}_machine.f.m.assume = true) →
+      ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
+    ∀ n, evalC (run.st n).1 (run.st n).2 ${lid}.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 ${lid}.to = true :=
+  sleads_wf_sound ${id}_machine ${id}_proof ${lid} _ _ _ _ ${id}_check ${lid}_ok ${lid}_stay ${lid}_cover ${lid}_helps ${lid}_allows run fair` : ''
     const proofOf = (sl: StepLaw) => {
       const g = goalsS[stepLaws.length + liveSteps.indexOf(sl)]!, pr = enc(g, r.proof!.trees[g.name]!), inst = instOf(sl)
       return `(${list(insts(inst))}, ${list(qinsts(inst))}, ${list(finsts(inst))}, ${list(pinsts(inst))}, (${pr.tab}, ${pr.tree}))`
@@ -605,7 +679,7 @@ theorem ${lid}_helps : sliveHelpsOk ${id}_machine ${id}_proof ${lid} ${lid}_hp =
 theorem ${lid}_holds (run : SRun ${id}_machine)
     (fair : ∀ h ∈ ${lid}.helps, ∀ n, ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
     ∀ n, evalC (run.st n).1 (run.st n).2 ${lid}.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 ${lid}.to = true :=
-  sleads_sound ${id}_machine ${id}_proof ${lid} _ _ _ ${id}_check ${lid}_ok ${lid}_stay ${lid}_cover ${lid}_helps run fair`
+  sleads_sound ${id}_machine ${id}_proof ${lid} _ _ _ ${id}_check ${lid}_ok ${lid}_stay ${lid}_cover ${lid}_helps run fair${wf}`
   })
   return `-- ${m.name}: ${laws.map(l => l.name).join('; ')}, with sets (carried ${carried.join(', ') || 'none'}; quantified flags ${quantified.join(', ') || 'none'})
 --   (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')}; maps ${mapNames.map((v2, j) => `${j} ${v2}`).join(', ')})

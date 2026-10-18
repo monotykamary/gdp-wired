@@ -481,3 +481,17 @@ export function concretize(goal: Goal, bound = 12): Record<string, number> | und
   }
   return undefined
 }
+
+// A goal built from its instances (an exporter's goal, shaped as its Lean twin builds it): the every-key laws, the
+// quantified flags and the facts assumed at every key it reads a map or function at, then a tree, checked.
+export function proveBuilt(m: Machine, laws: Law[], build: (inst: Instances) => Goal): {proven: boolean, instances?: Instances, goal?: Goal, tree?: Tree} {
+  let instances: Instances = {}
+  for (let round = 0; round < 2; round++) {
+    const g = build(instances), keys = mapKeys([g])
+    instances = {...withReads(laws, instances, keys, []), ...flagInstances(m, keys)}
+    if (m.facts?.length) instances = withFacts(m, instances, fnKeys(m, [build(instances)]))
+  }
+  const goal = build(instances), out = grow(goal)
+  if (!('tree' in out) || !check(goal, out.tree)) return {proven: false}
+  return {proven: true, instances, goal, tree: out.tree}
+}

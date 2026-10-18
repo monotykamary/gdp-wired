@@ -102,3 +102,24 @@ test('a request that moves the region without lowering the rank: refused (each h
   for (let i = 0; i < 40; i++) st = run.step({}, st, {op: [0, 1, 0, 2][i % 4]!})
   expect(st.scalars.work).toBe(3)
 })
+
+test('weak fairness: each example\'s helpful requests proven allowed in their region (free inputs, a query by witness, empty sets)', async () => {
+  const {toLean} = await import('../lean-kernel/emit.ts')
+  const ex = await import('../examples/liveness.ts')
+  const items = [
+    {id: 'tickets', machine: tickets().machine, laws: ticketLaws(), liveness: [everyTicket()]},
+    {id: 'tagged', machine: ex.taggedTickets().machine, laws: ex.taggedLaws, liveness: [ex.everyTaggedTicket]},
+    {id: 'batches', machine: batches().machine, laws: batchLaws(), liveness: [allDone()]},
+    {id: 'recounted', machine: recounted().machine, laws: recountedLaws(), liveness: [everyRecountedTicket()]},
+    {id: 'reviews', machine: reviews().machine, laws: reviewLaws(), liveness: [everyReview()]},
+  ]
+  for (const item of items) expect(toLean([item])).toMatch(/_live0_holds_wf \(run/)
+  // A helpful request the machine never allows: the claim under weak fairness isn't made.
+  const never = rule('never served').params({t: nat}).inputs({op: nat}).state({next: 1, served: 0})
+    .assume(({op}) => op.eq(0))
+    .step(({op, next, served}) => ({next, served: when(op.eq(1), served.plus(1), served)}))
+  const live = never.leadsTo('served', {from: ({served}) => served.eq(0), to: ({served}) => served.gt(0), rank: ({served}) => served.plus(1).minus(served), helpful: () => ({op: 1})})
+  const out = toLean([{id: 'never', machine: never.machine, laws: [never.law('served at most 1', ({served}) => served.atMost(1))], liveness: [live]}])
+  expect(out).toMatch(/never_live0_holds \(run/)
+  expect(out).not.toMatch(/holds_wf/)
+})
