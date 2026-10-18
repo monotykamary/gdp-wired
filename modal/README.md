@@ -6,7 +6,7 @@
 | `suite.json` | Every runner and probe, plus the soundness fuzz as 32 seeds (`FUZZ_SEED`), about 10 minutes of wall time for over 3 hours of job time |
 | `reap.sh` | Stops apps whose client died (each run registers its app id and client pid in `.live/`); live runs and other apps are only listed |
 
-GPU runs have their own runners: `../modal-gpu/run_gpu.py` (the Handwired searches) and `../synth/run_gpu.py`
+GPU runs have their own runners: `../research/modal-gpu/run_gpu.py` (the Handwired searches) and `../research/synth/run_gpu.py`
 (invariant and rank synthesis), both through Dawn on NVIDIA's Vulkan driver.
 
 ```sh

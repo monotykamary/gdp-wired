@@ -1,5 +1,5 @@
 // Every refutation the library produced, as Lean data, for Lean's kernel to check against Cert.check (proven sound).
-// Usage: bun export-lean.ts > ../lean/Obligations.lean
+// Usage: bun export-lean.ts > ../research/lean/Obligations.lean
 import {type Constraint, type Lin, type Step} from './solver.ts'
 import {prove} from './machine.ts'
 import {admit, boundedLoss, capLaws, inflight, inflightLoss, loss} from './models.ts'

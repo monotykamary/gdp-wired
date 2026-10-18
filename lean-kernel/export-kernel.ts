@@ -4,7 +4,7 @@
 import type {C, Law, Machine} from '../core/machine.ts'
 import {all, any, atMost, bit, get, ite, less, max, min, minus, n, not, plus, prod, same, times, x} from '../core/machine.ts'
 import {admit, admitFlagged, boundedLoss, capLaws, inflight, inflightLoss, loss, windowCeiling, windowLimit} from '../core/models.ts'
-import {agree, product} from '../next/relational.ts'
+import {agree, product} from '../research/next/relational.ts'
 import {type Fold, type Goal, type Loop, historyMachine, obligations} from '../kernel/kernel.ts'
 import {grow, proveLaws} from '../kernel/prove.ts'
 import {counterLaws, counterSteps, counters, escrowLaws, escrowSteps, escrowWatched, meterRefinement, poolLaws, poolTotal, pooled, twoPhaseRefinement} from '../examples/composition.ts'

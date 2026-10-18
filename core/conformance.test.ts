@@ -4,7 +4,7 @@
 //   - the kernel and its prover, on the term with every variable and map cell fixed: the kernel must accept a proof
 //     that the term equals its value, never one that it differs (a model of the negation would be a disagreement), and
 //     never a proof of something with a model;
-//   - the GPU search's u32 JavaScript twin (search/compile.ts);
+//   - the GPU search's u32 JavaScript twin (research/search/compile.ts);
 //   - the old symbolic prover's cases (conditionCases), where it applies;
 //   - and the Lean printer, through lean-kernel/conformance.ts, which writes the same cases for Lean's evalE.
 // Each consumer either agrees or refuses with an error; undefined, NaN or a silent different answer fails.
@@ -13,7 +13,7 @@ import {type C, type E, compileFunction, conditionCases, interpret, loadJs} from
 import {type Case, C_OPS, CELLS, E_OPS, VARS, inlineC, inlineE, machineOf, randomCase, reference, seen, stateOf} from './conformance.ts'
 import {check} from '../kernel/kernel.ts'
 import {grow} from '../kernel/prove.ts'
-import {expressions} from '../search/compile.ts'
+import {expressions} from '../research/search/compile.ts'
 
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
 let seed2 = Number(process.env.FUZZ_SEED ?? 777) + 1

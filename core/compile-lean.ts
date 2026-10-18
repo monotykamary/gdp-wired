@@ -1,6 +1,6 @@
 // Step machines and their laws as Lean, proven by Lean's own omega: an independent verdict on the machine itself, so
 // the TypeScript that turns a machine into solver cases is checked too, as bend --verdict checks bend2's front end.
-// Usage: bun compile-lean.ts > ../lean/Verdict.lean
+// Usage: bun compile-lean.ts > ../research/lean/Verdict.lean
 import {type C, type E, type Law, type Machine, atMost, n, noQuantifier, plus, pointWrite, times, x} from './machine.ts'
 import {admit, boundedLoss, capLaws, inflight, inflightLoss, loss} from './models.ts'
 

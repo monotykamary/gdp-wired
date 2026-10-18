@@ -261,17 +261,17 @@
 {
 "name": "run-relational",
 "cmd": "bun run-relational.ts 2>&1",
-"cwd": "next"
+"cwd": "research/next"
 },
 {
 "name": "run-isolation",
 "cmd": "bun run-isolation.ts 2>&1",
-"cwd": "next"
+"cwd": "research/next"
 },
 {
 "name": "check-cpu",
 "cmd": "bun check-cpu.ts 2>&1",
-"cwd": "search"
+"cwd": "research/search"
 },
 {
 "name": "core-solver-test",
@@ -281,7 +281,7 @@
 {
 "name": "sat-tests",
 "cmd": "bun test solver.test.ts 2>&1",
-"cwd": "sat",
+"cwd": "research/sat",
 "cpu": 2.0
 },
 {
@@ -454,28 +454,28 @@
 {
 "name": "fits",
 "cmd": "bun test fits.test.ts 2>&1",
-"cwd": "search",
+"cwd": "research/search",
 "cpu": 1.0,
 "timeout": 900
 },
 {
 "name": "hw-check-cpu",
 "cmd": "bun check-cpu.ts 2>&1",
-"cwd": "hw",
+"cwd": "research/hw",
 "cpu": 2.0,
 "timeout": 900
 },
 {
 "name": "hw-check-more",
 "cmd": "bun check-more.ts 2>&1",
-"cwd": "hw",
+"cwd": "research/hw",
 "cpu": 2.0,
 "timeout": 900
 },
 {
 "name": "hw-check-steps",
 "cmd": "bun check-steps.ts 2>&1",
-"cwd": "hw",
+"cwd": "research/hw",
 "cpu": 2.0,
 "timeout": 1800
 },
@@ -851,7 +851,7 @@
 {
 "name": "synth-fns",
 "cmd": "bun run.ts --cpu --small --only metered 2>&1 | tee /tmp/s.out; grep -q PROVEN /tmp/s.out",
-"cwd": "synth",
+"cwd": "research/synth",
 "cpu": 1.0,
 "timeout": 900
 }

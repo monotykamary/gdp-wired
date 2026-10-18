@@ -1,6 +1,6 @@
 // A law or a step law read off one run as it happens: the concrete side of kernel.ts's goals. The same description
 // (a Law, or a StepLaw with its `steps`, `when` and `then`) is proven about every run by the kernel, searched for a
-// breaking run by Handwired (hw/compile.ts), and read here on one run: the examples' random runs (examples/harness.ts),
+// breaking run by Handwired (research/hw/compile.ts), and read here on one run: the examples' random runs (examples/harness.ts),
 // the replay of every counterexample the search finds, and the reference the Handwired search is checked against.
 //
 // A law holds at the start and after every step (at every key, for a law about every key). A step law over k steps holds

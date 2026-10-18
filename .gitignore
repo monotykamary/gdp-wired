@@ -13,13 +13,13 @@ core/generated/
 modal/.live/
 
 # Bend builds of the enumeration: Mach-O binaries and Metal libraries (rebuilt by `bend kK.bend`)
-/enum/base
-/enum/k[0-9]*
-!/enum/k*.bend
-/enum/*.gpu
-/perf/bend-enum/c/
-/perf/bend-enum/*.log
-/perf/bend-enum/modal-l4-debug.json
+/research/enum/base
+/research/enum/k[0-9]*
+!/research/enum/k*.bend
+/research/enum/*.gpu
+/research/perf/bend-enum/c/
+/research/perf/bend-enum/*.log
+/research/perf/bend-enum/modal-l4-debug.json
 
 .DS_Store
 lean-kernel/Conformance.lean

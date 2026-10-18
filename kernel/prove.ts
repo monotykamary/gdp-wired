@@ -448,7 +448,7 @@ export const countLeaves = (t: Tree): number => ('leaf' in t ? 1 : countLeaves(t
 
 // A real counterexample for a goal the prover couldn't close (with products, its witness may be abstract): the free
 // variables over 0..bound, every hypothesis evaluated with true arithmetic. Goals that read maps are left to the
-// machine searches (search/), which run whole histories.
+// machine searches (research/search/), which run whole histories.
 export function concretize(goal: Goal, bound = 12): Record<string, number> | undefined {
   const names = new Set<string>()
   let reads = false

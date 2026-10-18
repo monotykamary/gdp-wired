@@ -1,7 +1,7 @@
 // Every earlier machine proof again, now as kernel-checked trees: the prover is untrusted, kernel.ts + check.ts decide.
 import {type Law, type Machine, all, any, atMost, bit, get, ite, less, min, minus, n, not, plus, same, search, times, x} from '../core/machine.ts'
 import {admit, admitFlagged, boundedLoss, capLaws, inflight, inflightLoss, loss} from '../core/models.ts'
-import {agree, product} from '../next/relational.ts'
+import {agree, product} from '../research/next/relational.ts'
 import {check, obligations} from './kernel.ts'
 import {proveLaws} from './prove.ts'
 

@@ -79,7 +79,7 @@ sound.
 | `kernel/kernel.ts`, `core/check.ts` | **Yes** | Turns a rule and its laws into goals, and checks a proof tree for each: case splits on linear facts, then a linear refutation at each leaf |
 | `kernel/prove.ts` | No | Finds the proof trees. If it's wrong, the kernel rejects the tree |
 | `lean-kernel/` | Optional | The kernel's twin in Lean 4.34.0, every rule proven sound there with the standard axioms only. The exporter sends the kernel's real trees; tampered ones compute to false |
-| `search/`, `synth/`, `hw/` | No | The GPU searches for breaking runs, and invariant and rank synthesis. Every hit is replayed or proven before it counts |
+| `research/search/`, `research/synth/`, `research/hw/` | No | The GPU searches for breaking runs, and invariant and rank synthesis. Every hit is replayed or proven before it counts |
 | `core/dsl.ts`, `core/compose.ts`, the runtimes | No | The builders and combinators compile to the kernel's plain values; the runtimes are held to a reference evaluator |
 
 The untrusted parts are held to the trusted ones by the test suite:
@@ -184,8 +184,8 @@ On Modal CPUs (2 vCPU), generated JavaScript, the answers checked against the in
 
 | Machine | 1k | 10k | 100k | 1M |
 | --- | --- | --- | --- | --- |
-| Per-key caps (`perf/grant-scale.ts`), requests | 0.3 ms | 2.5 ms | 29 ms | 267 ms |
-| Window limit, pruned (`perf/window-scale.ts`), events | 0.8 ms | 3.1 ms | 16 ms | 136 ms |
+| Per-key caps (`research/perf/grant-scale.ts`), requests | 0.3 ms | 2.5 ms | 29 ms | 267 ms |
+| Window limit, pruned (`research/perf/window-scale.ts`), events | 0.8 ms | 3.1 ms | 16 ms | 136 ms |
 
 Pruned, the window limit holds about 35 records whatever the event count; unpruned, each request scans every record kept
 (76 ms at 10k events). The interpreter copies its maps each step (it's the reference, and searches branch from it):
@@ -210,19 +210,17 @@ Lean, compiled natively, wins where the state stays small. Details in [`docs/com
 | --- | --- |
 | `core/` | Machines, the interpreter and JS compiler, the builders, composition (`compose.ts`), the linear solver and its checker, Houdini invariants, models, the first Lean export |
 | `kernel/` | The trusted kernel and the untrusted prover, with soundness fuzz (`kernel.test.ts`, `history.test.ts`) |
-| `lean/`, `lean-kernel/` | Lean: the derivation checker `Cert.lean`, and the kernel's twin with its exported trees |
-| `search/`, `hw/`, `modal-gpu/` | Counterexample search on the GPU: a hand-written WGSL kernel, and the same through the Handwired fork's word stages |
-| `synth/` | Invariants and ranks found on the GPU, proven by the kernel |
-| `next/` | Guards synthesized from laws, relational laws (migrations, tenant isolation, through `core/compose.ts`), a ReBAC audit |
-| `sat/` | Bit-vector laws: bit-blasted, solved, LRAT-checked in TypeScript, optionally by Lean |
-| `enum/`, `perf/` | The enumeration, and the benchmarks |
-| `docs/` | The comparison with Bend and Lean, and the full scope |
+| `lean-kernel/` | The kernel's Lean twin, its soundness proofs, and the exported trees |
 | `examples/` | The builders at work: `domains/` (92 rules across nine domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `budget.ts`, `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `lists.ts`, `sizes.ts`, `liveness.ts`, and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
+| `docs/` | The comparison with Bend and Lean, and the full scope |
 | `compare/` | The same three rules in gdp-wired, Bend and plain Lean, checked and measured |
-| `spec.ts`, `gdp.ts`, `circuit.ts`, `laws.ts` | The audit path: gdp-ts predicates written once, as trusted provers per request and as a Handwired circuit that decides every (user, project) pair at once |
+| `research/` | Everything around the library ([`research/README.md`](research/README.md)): the GPU searches (`search/`, `hw/`, `modal-gpu/`), invariant and rank synthesis (`synth/`), relational laws and guard synthesis (`next/`), bit-vector laws (`sat/`), the enumeration and benchmarks (`enum/`, `gpu/`, `perf/`), the first Lean checker (`lean/`) and the first prototype, the audit path (`audit/`) |
 | `modal/` | Everything above as Modal jobs: `suite.json` is the regression suite |
+| `scripts/` | The package build, the smoke test of the packed tarball, the Lean library generator, the diagram |
 | `vendor/handwired` | [monotykamary/handwired](https://github.com/monotykamary/handwired), branch `u32-words`: Cheng Lou's Handwired with exact u32 word circuits and word stages in loop programs |
 | `vendor/gdp-ts` | [rauchg/gdp-ts](https://github.com/rauchg/gdp-ts) |
+
+The npm package is built from `core/`, `kernel/` and `lean-kernel/` alone; nothing in it imports `research/`.
 
 ## Running
 
