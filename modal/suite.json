@@ -834,6 +834,21 @@
 "timeout": 900
 },
 {
+"name": "jev-fabric",
+"cmd": "bun examples/jev-fabric/run.ts 2>&1",
+"cwd": ".",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "lean-jev-fabric",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 2400,
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress History StepLaw Steps Sets; do lean -o $f.olean $f.lean > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; bun ../examples/jev-fabric/run.ts --lean > JevFabric.lean && grep -c '^theorem' JevFabric.lean && lean JevFabric.lean 2>&1 | grep -v -e linter -e Hint -e unused | tail -20; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
+},
+{
 "name": "synth-fns",
 "cmd": "bun run.ts --cpu --small --only metered 2>&1 | tee /tmp/s.out; grep -q PROVEN /tmp/s.out",
 "cwd": "synth",

@@ -5,7 +5,7 @@ import {expect, test} from 'bun:test'
 import {type Machine, type State, interpret} from './machine.ts'
 import {admitFlagged, boundedLoss, capLaws, loss, windowCeiling, windowLimit} from './models.ts'
 import {proveLaws} from '../kernel/prove.ts'
-import {type Rule, Cond, all, bool, count, forall, loop, maybe, min, nat, oneOf, proveDecision, proveLoop, proveRule, relation, rule, upTo, when} from './dsl.ts'
+import {type DecisionEnv, type Rule, Cond, all, bool, count, forall, fun, loop, maybe, min, nat, oneOf, proveDecision, proveLoop, proveRule, relation, rule, upTo, when} from './dsl.ts'
 
 let seed = Number(process.env.FUZZ_SEED ?? 777)
 const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
@@ -139,4 +139,33 @@ test('what the types let through, the kernel still refuses', () => {
   expect(() => proveLaws(budget.machine, [law])).toThrow()
   void r
   expect(() => rule('dup').params({a: nat}).inputs({a: nat}).state({z: 0}).machine && interpret(rule('dup').params({a: nat}).inputs({a: nat}).state({z: 0}).machine)).toThrow()
+})
+
+test('a name is declared once: an input, a state variable, a flag, a map, a param, each its own', () => {
+  const clash = (build: () => unknown) => { try { build(); return '' } catch (e) { return (e as Error).message } }
+  expect(clash(() => rule('r').inputs({a: nat}).state({a: 0}).step(({a}) => ({a})).machine)).toBe('r: a is an input and a state variable; give each a name of its own')
+  expect(clash(() => rule('r').params({a: nat}).maps({a: 0}).law('l', () => all()))).toContain('a is a param and a map')
+  expect(clash(() => rule('r').state({a: 0}).state({a: 1}).machine)).toContain('a is a state variable and declared again')
+  expect(clash(() => rule('r').inputs({a: nat}).flags(({a}) => ({a: a.eq(0)})).machine)).toBe('r: a is a flag and an input')
+  expect(clash(() => rule('r').inputs({a: nat}).decide('d', () => [], ({a}) => a.atLeast(0)))).toBe('')
+  // A flag named again replaces the earlier one (a variant), as before.
+  const r = rule('r').inputs({a: nat}).state({s: 0}).flags(({a}) => ({big: a.gt(3)})).flags(({a}) => ({big: a.gt(5)})).step(({big, s}) => ({s: when(big, s.plus(1), s)}))
+  expect(clash(() => r.machine)).toBe('')
+})
+
+test('relate: two requests under the same params, the second named b.<input>', () => {
+  const gate = rule('gate').params({limit: nat}).inputs({user: nat, secret: nat, admin: bool}).assume(({secret}) => secret.atMost(9))
+  const allowed = (bug: boolean) => ({limit, user, secret, admin}: DecisionEnv<typeof gate>) => (bug ? user.plus(secret) : user).atMost(limit).or(admin)
+  const law = (bug: boolean) => gate.relate('the secret is irrelevant', (a, b) => [a.user.eq(b.user), a.admin.iff(b.admin)], (a, b) => allowed(bug)(a).iff(allowed(bug)(b)))
+  expect(proveDecision(law(false))).toMatchObject({proven: true, checked: true})
+  const broken = proveDecision(law(true))
+  expect(broken.proven).toBe(false)
+  // Both copies are drawn and assumed alike (secret ≤ 9 and b.secret ≤ 9).
+  expect(law(true).rule.machine.inputs).toEqual(['user', 'secret', 'admin', 'b.user', 'b.secret', 'b.admin'])
+  expect(JSON.stringify(law(true).given)).toContain('"name":"b.secret"},"b":{"op":"const","value":9}')
+  // On a function: both results, from the same terms the function computes.
+  const pick = (bug?: boolean) => fun('pick').inputs({explicit: bool, ambient: nat, user: nat}).returns(({explicit, ambient, user}) => ({target: when(explicit, bug ? ambient : user, user.plus(ambient))}))
+  const ni = (bug?: boolean) => pick(bug).relate('an explicit pick ignores the ambient value', (a, b) => [a.explicit, b.explicit, a.user.eq(b.user)], (oa, ob) => oa.target.eq(ob.target))
+  expect(proveDecision(ni())).toMatchObject({proven: true, checked: true})
+  expect(proveDecision(ni(true)).proven).toBe(false)
 })

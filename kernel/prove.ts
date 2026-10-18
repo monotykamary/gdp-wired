@@ -3,7 +3,7 @@
 // reads of one map at keys not yet known equal or apart). Its trees go to kernel.check; nothing it says is trusted.
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {type Lin, add, k, scale, solve, sub} from '../core/solver.ts'
-import {type Goal, type Instances, type Liveness, type Path, type StepLaw, type Tree, canon, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, withProducts} from './kernel.ts'
+import {type Goal, type Instances, type Liveness, type Path, type StepLaw, type Tree, assumed, canon, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
 function openE(e: E, path: Path, out: Lin[]): void {
@@ -480,6 +480,14 @@ export function concretize(goal: Goal, bound = 12): Record<string, number> | und
     if (goal.hyps.every(h => holds(h, env))) return env
   }
   return undefined
+}
+
+// The facts a goal needs, as hypotheses: each fact about every key at the keys the goal reads a function at (and at
+// the keys those facts read, a second round), each plain fact as it is.
+export function factsFor(m: Machine, goal: Goal): C[] {
+  let instances: Instances = {}
+  for (let round = 0; round < 2; round++) instances = withFacts(m, instances, fnKeys(m, [{...goal, hyps: [...assumed(m.facts ?? [], instances), ...goal.hyps]}]))
+  return assumed(m.facts ?? [], instances)
 }
 
 // A goal built from its instances (an exporter's goal, shaped as its Lean twin builds it): the every-key laws, the

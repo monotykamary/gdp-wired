@@ -56,6 +56,9 @@ All of these are proven automatically, and each proof is also a Lean theorem:
 - **Refinement**: an implementation behaves like a simpler spec, step for step (`examples/composition.ts`).
 - **Functions**: division, remainder, and your own functions, known by their facts; a function defined in Lean brings
   facts proven there (`examples/functions.ts`).
+- **Pure functions and two-run laws**: laws about what a function returns, and laws comparing two calls, like "the
+  secret never changes the answer". `examples/jev-fabric/` ports a Bend project's policy core and proves all 59 laws its
+  Bend proofs state.
 
 When a law is false, the GPU search finds a real run that breaks it. When a law needs an invariant nobody wrote, the GPU
 synthesizer finds one and the kernel proves it.
@@ -152,6 +155,12 @@ const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => s
   helpful request lowers in its region. `rank` may return several terms (compared in order) and `helpful` may be a list
   of `{when, request}`; a request names only the inputs it fixes (`examples/liveness.ts`: batches, a history with a
   query, a machine with sets).
+- **Pure functions** (`fun(name).inputs(...).returns(env => ({...}))`): each field of the result a term or a condition;
+  `f.law(name, given, then)` is a decision about the terms it returns and `f.run(values)` runs those terms compiled. A
+  decision assumes the functions' facts where it reads them.
+- **Two runs** (`r.relate(name, (a, b) => given, (a, b) => then)`, or `f.relate(...)` with both results): a decision
+  about two requests under the same params, for noninterference ("requests that differ only in a secret are decided
+  alike"); the second request's inputs show as `b.<input>` in a counterexample.
 - **Loops** (`loop(...)`): state, `while`, `body`, a `rank` (or a tuple of ranks) that must drop each turn.
 - **Lean** (`gdp-wired/lean`): `toLean([{id, machine, laws, stepLaws}, ...])` writes the proofs as a Lean file, and
   `leanProject(file)` a Lake project with the twin, so `lake build` checks them. Each law comes as the twin's theorem and
@@ -208,7 +217,7 @@ Lean, compiled natively, wins where the state stays small. Details in [`docs/com
 | `sat/` | Bit-vector laws: bit-blasted, solved, LRAT-checked in TypeScript, optionally by Lean |
 | `enum/`, `perf/` | The enumeration, and the benchmarks |
 | `docs/` | The comparison with Bend and Lean, and the full scope |
-| `examples/` | The builders at work: `domains/` (92 rules across nine domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `budget.ts`, `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `lists.ts`, `sizes.ts`, `liveness.ts` |
+| `examples/` | The builders at work: `domains/` (92 rules across nine domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `budget.ts`, `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `lists.ts`, `sizes.ts`, `liveness.ts`, and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
 | `compare/` | The same three rules in gdp-wired, Bend and plain Lean, checked and measured |
 | `spec.ts`, `gdp.ts`, `circuit.ts`, `laws.ts` | The audit path: gdp-ts predicates written once, as trusted provers per request and as a Handwired circuit that decides every (user, project) pair at once |
 | `modal/` | Everything above as Modal jobs: `suite.json` is the regression suite |

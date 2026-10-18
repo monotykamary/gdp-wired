@@ -3,7 +3,7 @@
 // functions alike, and every law holds on random runs (the broken variant broken by one); and the refusals.
 import {expect, test} from 'bun:test'
 import {type Machine, interpret, loadJs} from './machine.ts'
-import {divBy, everyKey, fn, modBy, nat, rule} from './dsl.ts'
+import {divBy, everyKey, fn, forall, fun, min, modBy, nat, proveDecision, rule, upTo} from './dsl.ts'
 import {larger, largerLaws, minuteLaws, minutes} from '../examples/functions.ts'
 import {checkLaws, obligations} from '../kernel/kernel.ts'
 import {proveLaws} from '../kernel/prove.ts'
@@ -76,4 +76,31 @@ test('functions: refusals, by name', () => {
   // A function's js reads its arguments alone.
   const c = 7
   expect(() => base.fns({q: fn(1, (x: number) => x + c)}).step(({s}) => ({s})).machine).toThrow(/reads nothing else/)
+})
+
+test('decisions assume the functions\' facts where they read them; fun: a function whose laws are decisions about what it computes', () => {
+  // x mod 2^32 of min(left, local) with local < 2^32 is min(left, local): it needs the fact, which the decision now gets.
+  const R = 2 ** 32
+  const cap = (opts: {bug?: 'narrows before capping', fact?: boolean} = {}) => {
+    const f = fun('cap').inputs({left: nat, local: upTo(R - 1)}).fns({narrow: modBy(R)})
+    return (opts.fact === false ? f : f.facts(({narrow}) => ({'x < 2^32 ⇒ x mod 2^32 = x': forall(x => x.lt(R).implies(narrow(x).eq(x)))})))
+      .returns(({left, local, narrow}) => ({out: opts.bug ? min(narrow(left), local) : narrow(min(left, local))}))
+  }
+  const lossless = (c: ReturnType<typeof cap>) => c.law('narrowing loses nothing', () => [], (o, {left, local}) => o.out.eq(min(left, local)))
+  expect(proveDecision(lossless(cap()))).toMatchObject({proven: true, checked: true})
+  expect(proveDecision(lossless(cap({fact: false}))).proven).toBe(false)
+  expect(proveDecision(lossless(cap({bug: 'narrows before capping'}))).proven).toBe(false)
+  // The facts are hypotheses of the decision's goal (as its Lean export states them), at the arguments it reads.
+  expect(lossless(cap()).goal.hyps.length).toBeGreaterThan(lossless(cap({fact: false})).goal.hyps.length)
+  // What runs is what was proven: the compiled rule, the broken one broken past 2^32.
+  expect(cap().run({left: R + 5, local: 10})).toEqual({out: 10})
+  expect(cap({bug: 'narrows before capping'}).run({left: R + 5, local: 10})).toEqual({out: 5})
+  // Conditions in the result come back as booleans; a field may share an argument's name.
+  const reserve = fun('reserve').params({cost: nat}).inputs({left: nat}).returns(({left, cost}) => ({granted: left.atLeast(cost), left: left.minus(cost)}))
+  expect(reserve.run({left: 3}, {cost: 2})).toEqual({granted: true, left: 1})
+  expect(reserve.run({left: 1}, {cost: 2})).toEqual({granted: false, left: 0})
+  expect(proveDecision(reserve.law('a refusal spends everything left', ({left, cost}) => left.lt(cost), o => o.granted.not().and(o.left.eq(0))))).toMatchObject({proven: true, checked: true})
+  expect(proveDecision(reserve.law('a grant leaves something', () => [], o => o.granted.implies(o.left.gt(0)))).proven).toBe(false)
+  expect(reserve.rule.machine.state).toEqual({'out.granted': {op: 'const', value: 0}, 'out.left': {op: 'const', value: 0}})
+  expect(() => fun('f').inputs({x: nat}).run({x: 1})).toThrow('f: no result (returns)')
 })

@@ -303,7 +303,7 @@ const laterNames = (m: Machine, j: number) => ({
   maps: Object.fromEntries((m.inputMaps ?? []).map(map => [map, `${map}@${j}`])),
 })
 // The laws assumed where the run is: each plain law, and each every-key law at the keys the proof names.
-const assumed = (laws: Law[], instances: Instances): C[] => laws.flatMap(l => {
+export const assumed = (laws: Law[], instances: Instances): C[] => laws.flatMap(l => {
   const keys = instances[l.name] ?? []
   if (l.keys?.length) {
     const names = [l.forall!, ...l.keys], n = names.length

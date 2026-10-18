@@ -121,6 +121,12 @@ In a codebase with 98 Bend laws and about 1,600 lines of hand proofs:
 - the resource checks, which normalize scopes that are lists of paths and compare their prefixes, are induction over
   nested lists: the wall. They stay in Bend, or go to Lean as functions with proven facts.
 
+In [jev-fabric](https://github.com/fabric-runtime/jev-fabric), whose four Bend proof roots state 59 laws, all 59 fit and
+are proven automatically ([`examples/jev-fabric/`](../examples/jev-fabric/)): 52 as decisions about a pure function, one
+as a decision about two calls (noninterference), six over runs or maps of names. The induction in its Bend proofs is
+over naturals, which gdp-wired has built in, or over strings it only passes through, so nothing hits the wall; the price
+is the encoding, strings interned as names and string parsing taken as the runtime's answer.
+
 ## gdp-wired's scope in detail
 
 | It expresses and proves | It does not (today) |

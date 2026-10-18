@@ -17,7 +17,7 @@
 // both runtimes do.
 import {type C, type E, type Fn, type Law, type Machine, type MapUpdate, type Request, type State, compileFunction, interpret, loadJs} from './machine.ts'
 import {type Goal, type Liveness, type Loop, type StepLaw, type Tree, check, loopObligations} from '../kernel/kernel.ts'
-import {grow, proveLaws, proveLiveness, proveStepLaws} from '../kernel/prove.ts'
+import {factsFor, grow, proveLaws, proveLiveness, proveStepLaws} from '../kernel/prove.ts'
 
 // --- terms and conditions -------------------------------------------------------------------------------------------
 
@@ -607,12 +607,24 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     return typeof spec.helpful === 'function' ? {...base, request: req(spec.helpful)} : {...base, helpful: spec.helpful.map(h => ({...(h.when ? {when: h.when(env).c} : {}), request: req(h.request)}))}
   }
 
-  // A decision: whenever the params and the request meet `given`, `then` holds. Decisions don't read the state.
+  // A decision: whenever the params and the request meet `given`, `then` holds. Decisions don't read the state; the
+  // functions' facts are assumed at the arguments the decision reads them at.
   decide(name: string, given: (env: P & I) => Cond | Cond[], then: (env: P & I) => Cond): Decision {
     const env = this.env({flags: false, state: false, queries: false}) as never
     const g = given(env), hyps = [...this.kindAssumptions(), ...this.spec.pre.map(f => f(env as never).c), ...this.spec.assume.map(f => f(env as never).c), ...(Array.isArray(g) ? g : [g]).map(c => c.c)]
-    const t = then(env).c
-    return {name, rule: this as Rule<Obj>, given: hyps, then: t, goal: {name, hyps: [...hyps, {op: 'not', x: t}]}}
+    const t = then(env).c, goal: Goal = {name, hyps: [...hyps, {op: 'not', x: t}]}
+    const facts = this.spec.fns?.length || this.spec.facts?.length ? factsFor(this.machine, goal) : []
+    return {name, rule: this as Rule<Obj>, given: hyps, then: t, goal: {name, hyps: [...facts, ...goal.hyps]}}
+  }
+  // A decision about two requests under the same params (noninterference, say: requests that differ only in a secret
+  // are decided alike). `given` and `then` read both; the second request's inputs are named b.<input> in a witness.
+  //   r.relate('the secret is irrelevant', (a, b) => a.user.eq(b.user), (a, b) => a.allowed.iff(b.allowed))
+  relate(name: string, given: (a: P & I, b: P & I) => Cond | Cond[], then: (a: P & I, b: P & I) => Cond): Decision {
+    const s = this.spec, b = (n: string) => `b.${n}`, own = [...s.inputs.map(([n]) => n), ...(s.carried ?? [])]
+    const second = (env: Record<string, unknown>) => ({...env, ...Object.fromEntries(own.map(n => [n, env[b(n)]]))}) as never
+    const pair = new Rule({...s, inputs: [...s.inputs, ...s.inputs.map(([n, k]) => [b(n), k] as [string, Kind<unknown>])], carried: [...(s.carried ?? []), ...(s.carried ?? []).map(b)],
+      assume: [...s.assume, ...s.assume.map(f => (env: never) => f(second(env)))], flags: [], step: undefined, record: undefined, sums: [], queries: [], keep: undefined, relations: undefined, prune: undefined})
+    return pair.decide(name, env => given(env as never, second(env)), env => then(env as never, second(env)))
   }
 
   // --- what it compiles to ------------------------------------------------------------------------------------------
@@ -623,6 +635,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   }
   // The values handed to the builders' callbacks.
   private env(parts: {inputs?: boolean, state?: boolean, flags?: boolean, queries?: boolean} = {}): Record<string, unknown> {
+    this.distinct()
     const out: Record<string, unknown> = {}
     for (const [n, k] of this.spec.params) out[n] = k.value(n)
     for (const [n, d] of this.spec.fns ?? []) out[n] = fnTerm(n, d)
@@ -634,8 +647,28 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       for (const [n] of this.spec.sums) out[n] = v(n)
     }
     if (parts.queries !== false) for (const [n] of this.spec.queries) out[n] = v(n)
-    if (parts.flags !== false) for (const f of this.spec.flags) for (const n of Object.keys(f(out as never))) out[n] = new Cond({op: 'flag', name: n})
+    if (parts.flags !== false) for (const f of this.spec.flags) for (const n of Object.keys(f(out as never))) {
+      if (n in out && !(out[n] instanceof Cond && (out[n] as Cond).c.op === 'flag')) throw new Error(`${this.spec.name}: ${n} is a flag and ${this.whatIs(n)}`)
+      out[n] = new Cond({op: 'flag', name: n})
+    }
     return out
+  }
+  // Every name the rule declares is declared once (a flag named again replaces the earlier one, so flags are checked as
+  // they are defined): an input and a state variable sharing a name would hand the callbacks only one of them.
+  private names(): [string, string][] {
+    const s = this.spec
+    return [...s.params.map(([n]) => [n, 'a param']), ...(s.fns ?? []).map(([n]) => [n, 'a function']), ...s.inputs.map(([n]) => [n, 'an input']), ...(s.carried ?? []).map(n => [n, 'a carried map']),
+      ...s.state.map(([n]) => [n, 'a state variable']), ...s.maps.map(([n]) => [n, 'a map']), ...s.sums.map(([n]) => [n, 'a sum']), ...s.queries.map(([n]) => [n, 'a query']),
+    ] as [string, string][]
+  }
+  private whatIs(n: string): string { return this.names().find(([m]) => m === n)?.[1] ?? 'something else' }
+  private distinct(): void {
+    const seen = new Map<string, string>()
+    for (const [n, what] of this.names()) {
+      const had = seen.get(n)
+      if (had) throw new Error(`${this.spec.name}: ${n} is ${had} and ${had === what ? 'declared again' : what}; give each a name of its own`)
+      seen.set(n, what)
+    }
   }
   get machine(): Machine {
     const s = this.spec
@@ -644,7 +677,10 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const pEnv = this.env({inputs: false, state: false, flags: false, queries: false})
     const env: Record<string, unknown> = this.env({flags: false})
     const declared: Record<string, C> = {}
-    for (const f of s.flags) for (const [n, c] of Object.entries(f(env as never))) { declared[n] = c.c; env[n] = new Cond({op: 'flag', name: n}) } // a name again: replaced in place
+    for (const f of s.flags) for (const [n, c] of Object.entries(f(env as never))) {
+      if (n in env && !(n in declared)) throw new Error(`${s.name}: ${n} is a flag and ${this.whatIs(n)}`)
+      declared[n] = c.c; env[n] = new Cond({op: 'flag', name: n}) // a name again: replaced in place
+    }
     // Quantifiers anywhere, named as flags: each placed before the flag that reads it.
     const hoist = new Hoister('all$'), flags: Record<string, C> = {}
     const placed = () => { for (const [n, c] of Object.entries(hoist.flags)) if (!(n in flags)) flags[n] = c }
@@ -742,6 +778,55 @@ export type LawEnv<R> = AnyOf<R, 'law'>
 // --- decisions and loops ------------------------------------------------------------------------------------------
 
 export type Decision = {name: string, rule: Rule<Obj>, given: C[], then: C, goal: Goal}
+
+// A function: arguments in, a result out, each field of the result a term or a condition over the arguments, the
+// params and the functions it reads. Its laws are decisions about the same terms it computes, so what is proven is what
+// runs (`run`, the compiled one-step rule whose state after the step is the result).
+//   const reserve = fun('reserve').inputs({left: nat, used: nat}).returns(({left, used}) => ({granted: left.gt(0), left: left.minus(1), used: used.plus(1)}))
+//   reserve.law('an empty budget grants nothing', ({left}) => left.eq(0), out => out.granted.not())
+type Result<T> = {[k in keyof T]: T[k] extends Cond ? Cond : Term}
+type Value<T> = {[k in keyof T]: T[k] extends Cond ? boolean : number}
+export class Fun<P extends Obj = {}, I extends Obj = {}, O extends Obj = {}> {
+  constructor(private readonly r: Rule<P, I>, private readonly out?: (env: never) => Record<string, TermLike | Cond>) {}
+  get name() { return this.r.name }
+  params<K extends Kinds>(kinds: K): Fun<P & ValuesOf<K>, I, O> { return new Fun(this.r.params(kinds), this.out) as never }
+  inputs<K extends Kinds>(kinds: K): Fun<P, I & ValuesOf<K>, O> { return new Fun(this.r.inputs(kinds), this.out) as never }
+  fns<T extends Record<string, FnDef>>(defs: T): Fun<P & {[k in keyof T]: (...args: TermLike[]) => Term}, I, O> { return new Fun(this.r.fns(defs), this.out) as never }
+  facts(f: (p: P) => Record<string, Cond | Forall>): Fun<P, I, O> { return new Fun(this.r.facts(f), this.out) }
+  pre(f: (p: P) => Cond): Fun<P, I, O> { return new Fun(this.r.pre(f), this.out) }
+  assume(f: (env: P & I) => Cond): Fun<P, I, O> { return new Fun(this.r.assume(f as never), this.out) }
+  // The result (replaces an earlier one, so a variant is one call away).
+  returns<T extends Record<string, TermLike | Cond>>(f: (env: P & I) => T): Fun<P, I, Result<T>> { return new Fun(this.r, f as never) as never }
+
+  private result(env: unknown): Record<string, Term | Cond> {
+    if (!this.out) throw new Error(`${this.name}: no result (returns)`)
+    return Object.fromEntries(Object.entries(this.out(env as never)).map(([k, t]) => [k, t instanceof Cond ? t : new Term(termOf(t))]))
+  }
+  // Whenever the arguments (and the result) meet `given`, the result meets `then`.
+  law(name: string, given: (env: P & I, out: O) => Cond | Cond[], then: (out: O, env: P & I) => Cond): Decision {
+    return this.r.decide(name, env => given(env, this.result(env) as never), env => then(this.result(env) as never, env))
+  }
+  // A law about two calls under the same params: `then(outA, outB, a, b)` given `given(a, b)` (noninterference, say).
+  relate(name: string, given: (a: P & I, b: P & I) => Cond | Cond[], then: (outA: O, outB: O, a: P & I, b: P & I) => Cond): Decision {
+    return this.r.relate(name, given, (a, b) => then(this.result(a) as never, this.result(b) as never, a, b))
+  }
+
+  // The one-step rule it compiles to: the result's fields are its state (named out.<field>, apart from the arguments).
+  get rule(): Rule<P, I> {
+    const fields = Object.keys(this.result(this.r['env']({flags: false, state: false, queries: false})))
+    return this.r.state(Object.fromEntries(fields.map(k => [`out.${k}`, 0]))).step(env => Object.fromEntries(Object.entries(this.result(env)).map(([k, t]) => [`out.${k}`, t instanceof Cond ? count(t) : t])) as never) as never
+  }
+  private compiledRule?: {rule: Rule<P, I>, gen: ReturnType<Rule['compiled']>}
+  // The result at these arguments (and params), from the compiled rule: numbers, and booleans for the conditions.
+  run(values: {[k in keyof I]: Raw}, params: {[k in keyof P]?: Raw} = {}): Value<O> {
+    this.compiledRule ??= (rule => ({rule, gen: rule.compiled()}))(this.rule)
+    const {rule, gen} = this.compiledRule, ps = rule.encodeParams(params as never)
+    const kinds = Object.entries(this.result(this.r['env']({flags: false, state: false, queries: false})))
+    const st = gen.step(ps, gen.init(ps), rule.encodeInput(values as never)).scalars
+    return Object.fromEntries(kinds.map(([k, t]) => [k, t instanceof Cond ? st[`out.${k}`] === 1 : st[`out.${k}`]])) as never
+  }
+}
+export const fun = (name: string): Fun => new Fun(rule(name))
 
 // A loop runs `body` while `while` holds, each turn with fresh inputs; it halts if a rank over the state and params
 // (or a tuple of them, compared in order) drops on every turn.
