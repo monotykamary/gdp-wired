@@ -684,9 +684,20 @@ export function stepLawObligations(machine: Machine, laws: Law[], instances: Ins
 
 // The laws' proof and every step law's tree: all must check.
 // `perStep`: a step law's own instances, where it has them (else `instances`).
+// Each frame's hypotheses read no name a later step's request is read by: the condition the Lean twin's proof needs
+// (Sets.lean's checkSKStep, `avoids (szone s sl)`; plain flags are inlined here, so their names never occur), checked
+// here alike.
 export function checkStepLaws(m: Machine, laws: Law[], stepLaws: StepLaw[], proof: {laws: {instances: Record<string, Instances>, trees: Record<string, Tree>}, instances: Instances, perStep?: Record<string, Instances>, trees: Record<string, Tree>}): boolean {
-  return checkLaws(m, laws, proof.laws) && stepLaws.every(sl => stepLawObligations(m, laws, proof.perStep?.[sl.name] ?? proof.instances, sl).every(g => proof.trees[g.name] !== undefined && check(g, proof.trees[g.name]!)))
+  return checkLaws(m, laws, proof.laws) && stepLaws.every(sl => {
+    const inst = proof.perStep?.[sl.name] ?? proof.instances, plain = m.history ? historyMachine(m).machine : m
+    const zone = stepZone(plain, sl.steps ?? 1)
+    return [...assumed(laws, inst), ...assumed(plain.facts ?? [], inst), ...closing(plain, inst)].every(c => !mentions(c, zone))
+      && stepLawObligations(m, laws, inst, sl).every(g => proof.trees[g.name] !== undefined && check(g, proof.trees[g.name]!))
+  })
 }
+// The names a k-step law's later requests are read by: each later step's inputs, quantified flags and their witnesses.
+export const stepZone = (m: Machine, k: number): string[] =>
+  Array.from({length: k - 1}, (_, i) => Object.values(laterNames(m, i + 2).vars).map(e => (e as {name: string}).name)).flat()
 
 // --- trees: structural induction ---------------------------------------------------------------------------------------
 

@@ -3,7 +3,7 @@
 // reads of one map at keys not yet known equal or apart). Its trees go to kernel.check; nothing it says is trusted.
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {type Lin, add, k, scale, solve, sub} from '../core/solver.ts'
-import {type Goal, type Instances, type Liveness, type Path, type StepLaw, type Tree, assumed, canon, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, withProducts} from './kernel.ts'
+import {type Goal, type Instances, type Liveness, type Path, type StepLaw, type Tree, assumed, canon, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
 function openE(e: E, path: Path, out: Lin[]): void {
@@ -280,6 +280,35 @@ function match(pattern: E, term: E, x: string): E | undefined {
 const witnesses = (m: Machine): E[] => Object.entries(m.step.flags ?? {}).flatMap(([f, c]) => (c.op === 'all' ? [{op: 'var', name: `w?${f}`} as E] : []))
 // The keys each quantified flag is assumed at (instances under ?f).
 const flagInstances = (m: Machine, keys: E[]): Instances => Object.fromEntries(Object.entries(m.step.flags ?? {}).flatMap(([f, c]) => (c.op === 'all' ? [[`?${f}`, keys]] : [])))
+// The instances some goals need, for every entry point: the every-key laws and the quantified flags at `seed` (the keys
+// the step and the laws read, when known before any goal is built), then twice round: the facts at every key the goals
+// built so far read a function at, and, where the seed doesn't cover them (no seed, positions that shift, a law about
+// several keys), the every-key laws and flags at every key they read a map at (a law about several keys at tuples
+// relating `focus`, the goals' own keys).
+function instancesFor(m: Machine, laws: Law[], build: (inst: Instances) => Goal[], opts: {seed?: E[], focus?: string[], start?: Instances, reads?: boolean} = {}): Instances {
+  let inst: Instances = opts.start ?? (opts.seed ? {...Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, l.keys?.length ? [] : opts.seed!])), ...flagInstances(m, opts.seed)} : {})
+  const reads = opts.reads ?? (!opts.seed || shifts(m) || laws.some(l => l.keys?.length))
+  for (let round = 0; round < 2; round++) {
+    if (m.facts?.length) inst = withFacts(m, inst, fnKeys(m, build(inst)))
+    if (reads) { const keys = mapKeys(build(inst)); inst = union(withReads(laws, inst, keys, opts.focus ?? []), flagInstances(m, keys)) }
+  }
+  return inst
+}
+// Instances without the keys that read any of these names (a law about several keys loses each tuple that does).
+const avoiding = (inst: Instances, names: string[], laws: Law[]): Instances => {
+  const bad = (e: E) => names.some(n => JSON.stringify(e).includes(`"name":${JSON.stringify(n)}`))
+  return Object.fromEntries(Object.entries(inst).map(([n, keys]) => {
+    const arity = (laws.find(l => l.name === n)?.keys?.length ?? 0) + 1
+    const tuples = Array.from({length: Math.floor(keys.length / arity)}, (_, t) => keys.slice(t * arity, (t + 1) * arity))
+    return [n, tuples.filter(tuple => !tuple.some(bad)).flat()]
+  }))
+}
+// Two sets of instances together: each name at the keys of both.
+const union = (a: Instances, b: Instances): Instances => {
+  const out: Instances = {...a}
+  for (const [n, keys] of Object.entries(b)) { const seen = new Set((out[n] ?? []).map(e => JSON.stringify(e))); out[n] = [...(out[n] ?? []), ...keys.filter(e => !seen.has(JSON.stringify(e)))] }
+  return out
+}
 
 export type Report = {proven: boolean, nodes: number, leaves: number, failed?: {goal: string, stuck: string, witness?: Record<string, number>, why?: string}, checked: boolean}
 
@@ -338,23 +367,14 @@ export function proveLaws(m: Machine, laws: Law[]): Report & {laws?: Law[], proo
   return {...proveLawsAsGiven(m, out.items), laws: out.items}
 }
 function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
-  const keys = [...readKeys(m, laws), ...witnesses(m)]
-  const instances: Record<string, Instances> = {}
-  for (const law of laws) {
-    const at = [...keys, ...(law.forall ? [{op: 'var', name: `${law.forall}#`} as E] : []), ...(law.keys ?? []).map((name): E => ({op: 'var', name}))]
-    instances[law.name] = {...Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, l.keys?.length ? [] : at])), ...flagInstances(m, at)}
-  }
-  // The facts about functions, at every key each law's goals read a function at (found from the goals, twice round).
-  for (let round = 0; round < 2 && m.facts?.length; round++) {
-    const goals = obligations(m, laws, instances)
-    laws.forEach((law, i) => { instances[law.name] = withFacts(m, instances[law.name]!, fnKeys(m, goals.slice(2 * i, 2 * i + 2))) })
-  }
-  // Where positions shift (a write at every key reading its key at k ∸ 1 or k + 1) or a law is about two keys, the
-  // every-key laws also at each key the goals read a map at, once round.
-  if (shifts(m) || laws.some(l => l.keys?.length)) {
-    const goals = obligations(m, laws, instances)
-    laws.forEach((law, i) => { instances[law.name] = withReads(laws, instances[law.name]!, mapKeys(goals.slice(2 * i, 2 * i + 2)), [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])]) })
-  }
+  // Each law's two goals (start and step) get their own instances, seeded with its own keys.
+  const keys = [...readKeys(m, laws), ...witnesses(m)], instances: Record<string, Instances> = {}
+  laws.forEach((law, i) => {
+    instances[law.name] = instancesFor(m, laws, inst => obligations(m, laws, {...instances, [law.name]: inst}).slice(2 * i, 2 * i + 2), {
+      seed: [...keys, ...(law.forall ? [{op: 'var', name: `${law.forall}#`} as E] : []), ...(law.keys ?? []).map((name): E => ({op: 'var', name}))],
+      focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
+    })
+  })
   const trees: Record<string, Tree> = {}
   let nodes = 0, leaves = 0
   for (const goal of obligations(m, laws, instances)) {
@@ -389,11 +409,14 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
   const plain = m.history ? historyMachine(m).machine : m
   const keys = [...readKeys(plain, laws), ...witnesses(plain), ...stepLaws.flatMap(sl => [sl.then, ...(sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when])].flatMap(readKeysC)),
     ...stepLaws.flatMap(sl => [sl.forall, ...(sl.keys ?? [])].flatMap(key => (key ? [{op: 'var', name: key} as E] : [])))]
-  let instances: Instances = {...Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, l.keys?.length ? [] : keys])), ...flagInstances(plain, keys)}
-  for (let round = 0; round < 2 && plain.facts?.length; round++) instances = withFacts(plain, instances, fnKeys(plain, stepLaws.flatMap(sl => stepLawObligations(m, laws, instances, sl))))
-  // Where positions shift or a law is about two keys, each step law gets its own instances, from its own goal.
+  // One set of instances for all the step laws; where positions shift or a law is about several keys, each step law
+  // then its own, from its own goal.
+  // A frame's hypotheses read no name the run introduces later (kernel.ts's stepZone): keys reading one are dropped.
+  const zone = stepZone(plain, Math.max(1, ...stepLaws.map(sl => sl.steps ?? 1)))
+  const instances = avoiding(instancesFor(plain, laws, inst => stepLaws.flatMap(sl => stepLawObligations(m, laws, inst, sl)), {seed: keys, reads: false}), zone, [...laws, ...(plain.facts ?? [])])
   const perStep: Record<string, Instances> = {}
-  if (shifts(plain) || laws.some(l => l.keys?.length)) for (const sl of stepLaws) perStep[sl.name] = withReads(laws, instances, mapKeys(stepLawObligations(m, laws, instances, sl)), [sl.forall, ...(sl.keys ?? [])].flatMap(k => (k ? [k] : [])))
+  if (shifts(plain) || laws.some(l => l.keys?.length)) for (const sl of stepLaws)
+    perStep[sl.name] = avoiding(instancesFor(plain, laws, inst => stepLawObligations(m, laws, avoiding(inst, zone, [...laws, ...(plain.facts ?? [])]), sl), {start: instances, focus: [sl.forall, ...(sl.keys ?? [])].flatMap(k => (k ? [k] : [])), reads: true}), zone, [...laws, ...(plain.facts ?? [])])
   const trees: Record<string, Tree> = {}
   let nodes = base.nodes, leaves = base.leaves
   for (const sl of stepLaws) for (const goal of stepLawObligations(m, laws, perStep[sl.name] ?? instances, sl)) {
@@ -412,9 +435,7 @@ export function proveProgress(m: Machine, laws: Law[], p: {name: string, when: C
   const base = proveLaws(m, laws)
   if (!base.proven || !base.checked) return {proven: false, nodes: base.nodes, leaves: base.leaves, ...(base.failed ? {failed: base.failed} : {}), checked: false}
   const ls = base.laws ?? laws
-  let instances: Instances = {...withReads(ls, {}, mapKeys(progressObligations(m, ls, {}, p)), []), ...flagInstances(m, mapKeys(progressObligations(m, ls, {}, p)))}
-  instances = {...instances, ...withReads(ls, instances, mapKeys(progressObligations(m, ls, instances, p)), [])}
-  if (m.facts?.length) instances = withFacts(m, instances, fnKeys(m, progressObligations(m, ls, instances, p)))
+  const instances = instancesFor(m, ls, inst => progressObligations(m, ls, inst, p))
   const trees: Record<string, Tree> = {}
   let nodes = base.nodes, leaves = base.leaves
   for (const goal of progressObligations(m, ls, instances, p)) {
@@ -494,20 +515,13 @@ export function concretize(goal: Goal, bound = 12): Record<string, number> | und
 // The facts a goal needs, as hypotheses: each fact about every key at the keys the goal reads a function at (and at
 // the keys those facts read, a second round), each plain fact as it is.
 export function factsFor(m: Machine, goal: Goal): C[] {
-  let instances: Instances = {}
-  for (let round = 0; round < 2; round++) instances = withFacts(m, instances, fnKeys(m, [{...goal, hyps: [...assumed(m.facts ?? [], instances), ...goal.hyps]}]))
-  return assumed(m.facts ?? [], instances)
+  return assumed(m.facts ?? [], instancesFor(m, [], inst => [{...goal, hyps: [...assumed(m.facts ?? [], inst), ...goal.hyps]}]))
 }
 
 // A goal built from its instances (an exporter's goal, shaped as its Lean twin builds it): the every-key laws, the
 // quantified flags and the facts assumed at every key it reads a map or function at, then a tree, checked.
 export function proveBuilt(m: Machine, laws: Law[], build: (inst: Instances) => Goal): {proven: boolean, instances?: Instances, goal?: Goal, tree?: Tree} {
-  let instances: Instances = {}
-  for (let round = 0; round < 2; round++) {
-    const g = build(instances), keys = mapKeys([g])
-    instances = {...withReads(laws, instances, keys, []), ...flagInstances(m, keys)}
-    if (m.facts?.length) instances = withFacts(m, instances, fnKeys(m, [build(instances)]))
-  }
+  const instances = instancesFor(m, laws, inst => [build(inst)])
   const goal = build(instances), out = grow(goal)
   if (!('tree' in out) || !check(goal, out.tree)) return {proven: false}
   return {proven: true, instances, goal, tree: out.tree}

@@ -4,7 +4,7 @@
 // results, and host and user checks over strings: proven, the broken variants refused, the runtimes agreeing with plain
 // arithmetic and string matching, and the Lean export.
 import {expect, test} from 'bun:test'
-import {Decimal, Int, bool, decimal, fun, globMatch, int, intern, interned, nat, oneOf, proveDecision, proveRule, proveSteps, rule, str, when, yes} from './dsl.ts'
+import {Choice, Decimal, Int, bool, lit, maybe, decimal, fun, globMatch, int, intern, interned, nat, oneOf, proveDecision, proveRule, proveSteps, rule, str, when, yes} from './dsl.ts'
 import {checkCase, decisionCase, machineCase} from '../examples/harness.ts'
 import {toLean} from '../lean-kernel/emit.ts'
 
@@ -112,4 +112,41 @@ test('strings: patterns computed from the string, equality carries them, laws pr
   // The interning table, for state that keeps names across processes.
   expect(interned().find(([t]) => t === 'admin.internal')?.[1]).toBe(intern('admin.internal'))
   expect(() => intern.load([['admin.internal', intern('admin.internal') + 1000]])).toThrow('is interned as')
+})
+
+test('state of any kind: a choice, a flag, an optional value and a string, each written by the step and read back', () => {
+  // Each kind's own values, written by the step: a choice, a flag, a string, an optional choice.
+  const t = (bug?: 'reopens a closed ticket') => rule('ticket').inputs({op: oneOf('assign', 'close', 'reopen'), who: str({like: ['*@staff']})})
+    .state({status: oneOf('open', 'assigned', 'closed').from('open'), escalated: bool.from(false), owner: str({like: ['*@staff']}).from('nobody@staff'), last: maybe(oneOf('assign', 'close', 'reopen')).from(null)})
+    .assume(({who}) => who.like('*@staff'))
+    .flags(({op, status}) => ({
+      assigning: op.is('assign').and(status.is('closed').not()),
+      closing: op.is('close').and(status.is('assigned')),
+      reopening: op.is('reopen').and(bug ? yes : status.is('closed').not()),
+    }))
+    .step(({assigning, closing, reopening, status, who, owner, op, escalated}) => ({
+      status: when(closing, new Choice(lit(2), status.values), when(assigning, new Choice(lit(1), status.values), when(reopening, new Choice(lit(0), status.values), status))),
+      escalated: escalated.or(reopening),
+      owner: when(assigning, who, owner),
+      last: op,
+    }))
+  const laws = (r: ReturnType<typeof t>) => [
+    r.law('the owner is staff', ({owner}) => owner.like('*@staff')),
+    r.law('only an assigned ticket was ever closed: closed means the last request closed or none since', ({status, last}) => status.is('closed').implies(last.isSome)),
+  ]
+  const r = t()
+  expect(proveRule(r, laws(r))).toMatchObject({proven: true, checked: true})
+  const stays = (x: ReturnType<typeof t>) => x.stepLaw('a closed ticket stays closed', (_before, after) => after.status.is('closed'), ({status}) => status.is('closed'))
+  expect(proveSteps(r, laws(r), [stays(r)])).toMatchObject({proven: true, checked: true})
+  expect(proveSteps(t('reopens a closed ticket'), laws(t('reopens a closed ticket')), [stays(t('reopens a closed ticket'))]).proven).toBe(false)
+  // The runtimes, read back as runtime values.
+  const g = r.compiled()
+  let st = g.init({})
+  expect(r.decode(st)).toEqual({status: 'open', escalated: false, owner: 'nobody@staff', last: null})
+  for (const [op, who] of [['assign', 'ann@staff'], ['close', 'bob@staff'], ['reopen', 'cy@staff']] as const) st = g.step({}, st, r.encodeInput({op, who}))
+  expect(r.decode(st)).toEqual({status: 'closed', escalated: false, owner: 'ann@staff', last: 'reopen'})
+  // The triple check and the builders, the broken variant broken by a run.
+  const findings = checkCase(machineCase('ticket', 'kinds in state', r, laws(r), [{name: 'reopens a closed ticket', why: 'closed stays closed', rule: t('reopens a closed ticket'), laws: laws(t('reopens a closed ticket')), steps: [stays(t('reopens a closed ticket'))]}], {steps: [stays(r)]}))
+  expect(findings.filter(f => !f.ok).map(f => `${f.item} / ${f.check}: ${f.detail}`)).toEqual([])
+  expect(findings.filter(f => f.check === 'builders').length).toBe(2)
 })
