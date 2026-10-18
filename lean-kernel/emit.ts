@@ -5,8 +5,8 @@
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, canon, historyMachine, foldObligations, leafConstraints, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, obligations, progressObligations, stepLawObligations, substC, withProducts} from '../kernel/kernel.ts'
-import {grow, proveLaws, proveStepLaws} from '../kernel/prove.ts'
+import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, canon, historyMachine, foldObligations, leafConstraints, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, withProducts} from '../kernel/kernel.ts'
+import {grow, proveLaws, proveProgress, proveStepLaws} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanTerms} from './lean-terms.ts'
 import {leanLibrary} from './library.ts'
@@ -401,6 +401,28 @@ theorem ${id}_step${j}_holds : KStepHolds ${id}_machine ${id}_step${j} :=
       return {insts: list(laws.flatMap((lw, li) => (lw.forall ? (inst[lw.name] ?? []).map(key => `(${li}, ${any0.e(key)})`) : []))), tree: `(${pr.tab}, ${pr.tree})`}
     }
     const ps = proofOf(stay), pc = proofOf(cover), ph = helps.map(proofOf), lid = `${id}_live${j}`
+    // Weak fairness, where each helpful request is proven allowed in its region (Live.lean's liveAllow, then trivial).
+    const allows = livenessHelpful(l).map((h, i) => {
+      const pp = {name: `${l.name}: helpful request ${i + 1} is allowed`, when: {op: 'and', xs: [{op: 'and', xs: [l.from, {op: 'not', x: l.to}]}, h.when]} as C, then: trueC, request: h.request}
+      // A request naming every input (a progress goal names the whole request); others keep the strong form alone.
+      if (!m.inputs.every(inp => inp in h.request)) return undefined
+      const b = proveProgress(m, laws, pp)
+      if (!b.proven || !b.checked || !b.instances || !b.trees) return undefined
+      const gs2 = progressObligations(m, laws, b.instances, pp), causes = gs2.at(-1)!
+      const allowed = m.assume ? gs2[0]! : {name: `${pp.name}: the request is allowed`, hyps: [...causes.hyps.slice(0, -1), not(atMost(n(0), n(0)))]}
+      const ea = enc(allowed, b.trees[allowed.name] ?? grown(allowed)), ec = enc(causes, b.trees[causes.name]!)
+      return `(${list(laws.flatMap((lw, li) => (lw.forall ? (b.instances![lw.name] ?? []).map(key => `(${li}, ${any0.e(key)})`) : [])))}, (${ea.tab}, ${ea.tree}), (${ec.tab}, ${ec.tree}))`
+    })
+    const wf = allows.every(a => a !== undefined) ? `
+theorem ${lid}_allows : liveAllowsOk ${id}_machine ${id}_proof ${lid} ${list(allows as string[])} = true := by decide +kernel
+/-- ${l.name}, under weak fairness: along every run that takes each helpful request whenever, from some point on, it
+stays allowed, \`from\` is followed by \`to\`. -/
+theorem ${lid}_holds_wf (run : FRun ${id}_machine)
+    (fair : ∀ h ∈ ${lid}.helps, ∀ n, (∀ m, n ≤ m → ∃ ι : Nat → Nat, (∀ p ∈ h.2, ι p.1 = evalE (run.st m).1 (run.st m).2 p.2)
+        ∧ evalC (decideFlags ${id}_machine.flags (withInputs ${id}_machine.m.inputs (run.st m).1 ι) (run.st m).2) (run.st m).2 ${id}_machine.m.assume = true) →
+      ∃ m, n ≤ m ∧ ∀ p ∈ h.2, run.req m p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
+    ∀ n, evalC (run.st n).1 (run.st n).2 ${lid}.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 ${lid}.to = true :=
+  leads_wf_sound ${id}_machine ${id}_proof ${lid} _ _ _ _ _ _ ${id}_check ${lid}_ok ${lid}_stay ${lid}_cover ${lid}_helps ${lid}_allows run fair` : ''
     return `-- Liveness: ${l.name}
 def ${lid} : Live := ${liveLit(l, any0, ix, list(Object.keys(m.state).map(s2 => `(${ix(s2)}, ${ix(`${s2}'`)})`)), list(baseMaps.map(mp => `(${mapNames.indexOf(mp)}, ${mapNames.indexOf(`${mp}'`)})`)))}
 theorem ${lid}_ok : liveOk ${id}_machine ${lid} = true := by decide +kernel
@@ -411,7 +433,7 @@ theorem ${lid}_helps : liveHelpsOk ${id}_machine ${id}_proof ${lid} ${list(ph.ma
 theorem ${lid}_holds (run : FRun ${id}_machine)
     (fair : ∀ h ∈ ${lid}.helps, ∀ n, ∃ m, n ≤ m ∧ ∀ p ∈ h.2, run.req m p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
     ∀ n, evalC (run.st n).1 (run.st n).2 ${lid}.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 ${lid}.to = true :=
-  leads_sound ${id}_machine ${id}_proof ${lid} _ _ _ _ _ ${id}_check ${lid}_ok ${lid}_stay ${lid}_cover ${lid}_helps run fair`
+  leads_sound ${id}_machine ${id}_proof ${lid} _ _ _ _ _ ${id}_check ${lid}_ok ${lid}_stay ${lid}_cover ${lid}_helps run fair${wf}`
   })
   // A ghosted machine (compose.ts's ghost): the original and its ghosts, the machine Lean checks built from them
   // (Ghost.lean), so the laws that read no ghost are laws of the original.
@@ -471,7 +493,8 @@ const flagsOfM = (m: Machine): Record<string, C> => {
 export const hasSets = (m: Machine) => !!m.inputMaps?.length || Object.values(m.step.flags ?? {}).some(c => c.op === 'all') || Object.values(m.step.maps ?? {}).some(w => 'each' in w)
   || !!Object.keys(m.fns ?? {}).length || !!m.facts?.length
 const boundKeys = (m: Machine) => [...Object.values(m.step.flags ?? {}).flatMap(c => (c.op === 'all' ? [c.key] : [])), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : []))]
-export function smachineToLean(id: string, m: Machine, laws: Law[], opts: {stepLaws?: StepLaw[], liveness?: Liveness[], tamper?: {what: string, machine: Machine}, simp?: string[]} = {}): string {
+export function smachineToLean(id: string, m: Machine, laws: Law[], opts: {stepLaws?: StepLaw[], liveness?: Liveness[], tamper?: {what: string, machine: Machine}, simp?: string[], free?: string[],
+    refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}} = {}): string {
   const stepLaws = opts.stepLaws ?? []
   // Liveness through Kern.sleads_sound (Live.lean): its step laws proven with the others, Lean building each from it.
   const liveParts = (opts.liveness ?? []).map(l => livenessParts(m, l)), liveSteps = liveParts.flatMap(p => [p.stay, p.cover, ...p.helps])
@@ -488,7 +511,7 @@ export function smachineToLean(id: string, m: Machine, laws: Law[], opts: {stepL
   const instOf = (sl: StepLaw) => r.proof!.perStep?.[sl.name] ?? si
   const goalsL = obligations(m, laws, lp.instances), goalsS = [...stepLaws, ...liveSteps].map(sl => stepLawObligations(m, laws, instOf(sl), sl)[0]!)
   const vars = [...new Set([...m.params, ...m.inputs, ...Object.keys(m.state), ...keysOf, ...keysOf.map(k2 => `${k2}#`), '#', ...flags.map(([f]) => `?${f}`),
-    ...quantified.map(f => `w?${f}`), ...boundKeys(m), ...(opts.tamper ? boundKeys(opts.tamper.machine) : []), ...stepLaws.flatMap(sl => (sl.forall ? [sl.forall] : [])),
+    ...quantified.map(f => `w?${f}`), ...boundKeys(m), ...(opts.tamper ? boundKeys(opts.tamper.machine) : []), ...stepLaws.flatMap(sl => (sl.forall ? [sl.forall] : [])), ...(opts.free ?? []),
     ...primes, ...later, ...[...goalsL, ...goalsS].flatMap(g => g.hyps.flatMap(varsOf))])]
   const baseMaps = [...new Set([...Object.keys(m.maps ?? {}), ...Object.keys(m.step.maps ?? {}), ...Object.keys(m.fns ?? {})])]
   const mapNames = [...new Set([...baseMaps, ...carried, ...(stepLaws.length || liveSteps.length ? Object.keys(m.maps ?? {}).map(mp => `${mp}'`) : []), ...laterMaps,
@@ -530,7 +553,20 @@ def ${id}_e${j} : SEntry := ⟨${id}_l${j}, ${ix(law.forall ? `${law.forall}#` :
   (${a.tab}, ${a.tree}),
   (${b.tab}, ${b.tree})⟩`
   })
-  const stepRecords = stepLaws.map((sl, j) => {
+  // A refinement over sets (Refine.lean's SRefined): Lean builds the composite from its two sides; its one step law is
+  // that the spec stutters or allows the request it is sent, and srefines says what the whole means.
+  const rf = opts.refined
+  const refineRecord = rf ? (() => {
+    const g = goalsS[0]!, pr = enc(g, r.proof!.trees[g.name]!), inst = instOf(stepLaws[0]!)
+    const primesL = list(Object.keys(m.state).map(s2 => `(${ix(s2)}, ${ix(`${s2}'`)})`)), primeMapsL = list(Object.keys(m.maps ?? {}).map(mp => `(${mx(mp)}, ${mx(`${mp}'`)})`))
+    const proofL = `(${list(insts(inst))}, ${list(qinsts(inst))}, ${list(finsts(inst))}, ${list(pinsts(inst))}, (${pr.tab}, ${pr.tree}))`
+    return `theorem ${id}_allowed : checkSKStep ${id}_machine ${id}_proof (srStep ${id}_refined ${primesL} ${primeMapsL} ${proofL}) = true := by decide +kernel
+theorem ${id}_refines : ∀ ρ M, SReach ${id}_refined.impl ρ M → ∃ ρc Mc σ Ms, SReach ${id}_refined.full ρc Mc ∧ Agree ${id}_refined.SV ρc ρ
+    ∧ (∀ mp, mp ∉ ${id}_refined.SM → Mc mp = M mp) ∧ SReach ${id}_refined.spec σ Ms ∧ Agree ${id}_refined.X σ ρc
+    ∧ (∀ mp, mp ∉ ${id}_refined.IM → mp ∉ ${id}_refined.spec.carried → Ms mp = Mc mp) ∧ ∀ e ∈ ${id}_proof, e.Holds ρc Mc :=
+  srefines ${id}_refined (by decide +kernel) (by decide +kernel) ${id}_proof ${id}_check ${rf.specPre} ⟨rfl, rfl⟩ ${primesL} ${primeMapsL} ${proofL} ${id}_allowed (by decide +kernel) (by decide +kernel) (by decide +kernel)`
+  })() : ''
+  const stepRecords = (rf ? [] : stepLaws).map((sl, j) => {
     const g = goalsS[j]!, pr = enc(g, r.proof!.trees[g.name]!), kk = sl.steps ?? 1
     const whens = sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when]
     const ren = Array.from({length: kk}, (_, s2) => (s2 === 0 ? '[]' : list(ext.map(v => `(${ix(v)}, ${ix(`${v}@${s2 + 1}`)})`))))
@@ -573,7 +609,11 @@ theorem ${lid}_holds (run : SRun ${id}_machine)
   })
   return `-- ${m.name}: ${laws.map(l => l.name).join('; ')}, with sets (carried ${carried.join(', ') || 'none'}; quantified flags ${quantified.join(', ') || 'none'})
 --   (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')}; maps ${mapNames.map((v2, j) => `${j} ${v2}`).join(', ')})
-def ${id}_machine : SMachine := ${lit(m)}
+${rf ? `def ${id}_refined : SRefined := ⟨${lit(rf.impl)},
+  ${lit(rf.spec)},
+  ${list(Object.entries(rf.wit).map(([inp, t]) => `(${ix(`b_${inp}`)}, ${e(t)})`))},
+  ${c(rf.stutter)}⟩
+def ${id}_machine : SMachine := ${id}_refined.full` : `def ${id}_machine : SMachine := ${lit(m)}`}
 ${entries.join('\n')}
 def ${id}_proof : List SEntry := ${list(laws.map((_, j) => `${id}_e${j}`))}
 theorem ${id}_check : checkSMachine ${id}_machine ${id}_proof = true := by decide +kernel
@@ -582,7 +622,7 @@ theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_pro
 ${readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`})}${factsProof(id, m, mapNames, opts.simp)}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
-example : checkSMachine ${id}_tampered ${id}_proof = false := by decide +kernel` : ''}${stepRecords.length ? `\n\n${stepRecords.join('\n\n')}` : ''}${liveRecords.length ? `\n\n${liveRecords.join('\n\n')}` : ''}`
+example : checkSMachine ${id}_tampered ${id}_proof = false := by decide +kernel` : ''}${stepRecords.length ? `\n\n${stepRecords.join('\n\n')}` : ''}${refineRecord ? `\n\n${refineRecord}` : ''}${liveRecords.length ? `\n\n${liveRecords.join('\n\n')}` : ''}`
 }
 
 // The facts, proven in Lean of the functions' Lean definitions, when every function has one: a run that starts with
@@ -722,7 +762,8 @@ export function toLean(items: LeanItem[], opts: {title?: string} = {}): string {
       const R = refinement(impl, spec, {relation, witness, stutter}), S = refinementSides(impl, spec)
       const laws: Law[] = [...relation, {name: `${spec.name}'s precondition`, holds: spec.pre ?? atMost(n(0), n(0))}]
       const sl: StepLaw = R.stepLaws[0] ?? {name: `${spec.name} allows the request it is sent`, then: {op: 'or', xs: [stutter, atMost(n(0), n(0))]}}
-      parts.push(`-- ${item.id}\n${mmachineToLean(id, R.machine, laws, {stepLaws: [sl], free: spec.inputs.map(i => `b_${i}`), refined: {impl: S.impl, spec: S.spec, wit: witness, stutter, specPre: relation.length}})}`)
+      const refined = {impl: S.impl, spec: S.spec, wit: witness, stutter, specPre: relation.length}, free = spec.inputs.map(i => `b_${i}`)
+      parts.push(`-- ${item.id}\n${hasSets(R.machine) ? smachineToLean(id, R.machine, laws, {stepLaws: [sl], free, refined}) : mmachineToLean(id, R.machine, laws, {stepLaws: [sl], free, refined})}`)
       theorems.push(`${id}_laws`, `${id}_refines`)
     } else if ('loop' in item) {
       parts.push(`-- ${item.id}\n${loopToLean(id, item.loop, item.laws ?? [], item.rank)}`)

@@ -4,7 +4,7 @@ import {mkdirSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {bool, count, forall, loop, maybe, min, nat, oneOf, relation, rule, yes} from '../core/dsl.ts'
 import {countdown, escrowLaws, escrowRunsLean, escrowSteps, escrowWatched, meter, meterRelation, twoPhase} from '../examples/composition.ts'
-import {authority, authorityLaws, authorityPairs, authoritySteps} from '../examples/sets.ts'
+import {authority, authorityLaws, authorityPairs, authoritySteps, lazyAuthority, lazyRelation, lazyWitness} from '../examples/sets.ts'
 import {inlineAuthority, inlineLaws, inlineSteps, memberLaws, memberSteps, members} from '../examples/quantifiers.ts'
 import {larger, largerLaws, minuteLaws, minutes, pairsLean, room, roomLaws} from '../examples/functions.ts'
 import {bits, bitsLaws, scope, scopeLaws, scopeSteps} from '../examples/lists.ts'
@@ -54,6 +54,7 @@ const file = toLean(([
   {id: 'recounted', machine: recounted().machine, laws: recountedLaws(), liveness: [everyRecountedTicket()]},
   {id: 'reviews', machine: reviews().machine, laws: reviewLaws(), liveness: [everyReview()]},
   // Refinements, with what they mean: the countdown meter refines the meter; the two-phase one refines it with stutters.
+  {id: 'lazy', refinement: {impl: lazyAuthority().machine, spec: authority().machine, relation: lazyRelation, witness: lazyWitness}},
   {id: 'countdown', refinement: {impl: countdown().machine, spec: meter.machine, relation: meterRelation, witness: {amount: {op: 'min', a: {op: 'var', name: 'amount'}, b: {op: 'var', name: 'most'}}}}},
   {id: 'twophase', refinement: {impl: twoPhase().machine, spec: meter.machine, relation: [{name: 'used = used', holds: {op: '=', a: {op: 'var', name: 'a_used'}, b: {op: 'var', name: 'b_used'}}}, {name: 'pending <= most', holds: {op: '<=', a: {op: 'var', name: 'a_pending'}, b: {op: 'var', name: 'most'}}}],
     witness: {amount: {op: 'var', name: 'a_pending'}}, stutter: {op: '=', a: {op: 'var', name: 'op'}, b: {op: 'const', value: 0}}}},

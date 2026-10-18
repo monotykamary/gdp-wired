@@ -7,6 +7,7 @@ import {nat, rule, when} from './dsl.ts'
 import {count, ever, ghost, interleave, product, refinement, steps, total} from './compose.ts'
 import {counterLaws, counterSteps, counters, countdown, escrowLaws, escrowSteps, escrowWatched, ledger, meterRefinement, poolLaws, poolTotal, pooled, transferRefinement, twoPhaseRefinement} from '../examples/composition.ts'
 import {proveLaws, proveStepLaws} from '../kernel/prove.ts'
+import {authority, lazyAuthority, lazyRefinement} from '../examples/sets.ts'
 import {type StepLaw, checkStepLaws} from '../kernel/kernel.ts'
 
 let seed = 7
@@ -185,3 +186,32 @@ test('steps(m, k) runs as k steps of m; the transfer refines two ledger steps', 
   expect(proveStepLaws(bad.machine, bad.laws, bad.stepLaws).proven).toBe(false)
 }, 120_000)
 const allowedIn = (m: Machine, st: State, env: Record<string, number>): boolean => evalC(m.assume!, env, st, m)
+
+test('refinement over sets: the lazy authority refines the eager one (carried sets shared, every-key writes, flags at every key)', () => {
+  const R = lazyRefinement()
+  expect(R.machine.inputMaps).toEqual(['Candidate'])
+  expect(proveStepLaws(R.machine, R.laws, R.stepLaws)).toMatchObject({proven: true, checked: true})
+  const bad = lazyRefinement('keeps the child live on refusal')
+  expect(proveStepLaws(bad.machine, bad.laws, bad.stepLaws).proven).toBe(false)
+  // Runs: the same requests to both, the relation read on the composite's runs, against the two run on their own.
+  const lazy = interpret(lazyAuthority().machine), eager = interpret(authority().machine), both = interpret(R.machine)
+  let seed = 9
+  const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+  let nonempty = 0
+  for (let trial = 0; trial < 40; trial++) {
+    let a = lazy.init({}), b = eager.init({}), c = both.init({})
+    for (let i = 0; i < 12; i++) {
+      // The first request issues all four names; the rest are random, deriving often.
+      const Candidate = i === 0 ? new Map([0, 1, 2, 3].map(k => [k, 1] as const)) : new Map(Array.from({length: rand(3)}, () => [rand(4), 1] as const))
+      const input = {op: i === 0 ? 0 : [1, 1, 2, 3][rand(4)]!, name: rand(4), Candidate}
+      a = lazy.step({}, a, input); b = eager.step({}, b, input); c = both.step({}, c, input)
+      for (let k = 0; k < 5; k++) {
+        const child = (st: State, map: string) => st.maps[map]?.get(k) ?? st.defaults?.[map] ?? 0
+        expect(child(c, 'b_Child')).toBe(child(b, 'Child'))
+        expect(child(b, 'Child')).toBe(a.scalars.live === 1 ? child(a, 'Child') : 0)
+        if (child(b, 'Child') === 1) nonempty++
+      }
+    }
+  }
+  expect(nonempty).toBeGreaterThan(20)
+})

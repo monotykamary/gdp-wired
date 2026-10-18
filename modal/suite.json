@@ -824,7 +824,7 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 2400,
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets; do lean -o $f.olean $f.lean > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; for f in Live Ghost Refine; do lean -o $f.olean $f.lean > $f.out 2>&1 || { grep -B2 -A25 error $f.out | head -80; echo build-failed $f; exit 1; }; if grep -q -e sorry -e sorryAx $f.out; then echo sorry-in $f; exit 1; fi; grep -e 'Kern.leads' -e 'Kern.ghost' -e 'Kern.ever' -e 'Kern.refine' $f.out; done"
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets; do lean -o $f.olean $f.lean > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; for f in Live Ghost Refine; do lean -o $f.olean $f.lean > $f.out 2>&1 || { grep -B2 -A25 error $f.out | head -80; echo build-failed $f; exit 1; }; if grep -q -e sorry -e sorryAx $f.out; then echo sorry-in $f; exit 1; fi; grep -e 'Kern.leads' -e 'Kern.sleads' -e 'Kern.ghost' -e 'Kern.ever' -e 'Kern.refine' -e 'Kern.srefine' $f.out; done"
 },
 {
 "name": "sizes",

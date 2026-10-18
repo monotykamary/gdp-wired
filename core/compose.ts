@@ -126,7 +126,7 @@ export function refinement(impl: Machine, spec: Machine, opts: {relation: Law[],
 export function refinementSides(impl: Machine, spec: Machine): {impl: Machine, spec: Machine} {
   const named = (m: Machine, p: string, inputs: Record<string, E>, inputNames: string[]): Machine => {
     const R = renamed(m, p, inputs)
-    return {name: m.name, params: m.params, inputs: inputNames, state: R.state, maps: R.maps, step: R.step, ...(R.assume ? {assume: R.assume} : {}), ...(m.pre ? {pre: m.pre} : {})}
+    return {name: m.name, params: m.params, inputs: inputNames, state: R.state, maps: R.maps, step: R.step, ...(m.inputMaps?.length ? {inputMaps: m.inputMaps} : {}), ...(R.assume ? {assume: R.assume} : {}), ...(m.pre ? {pre: m.pre} : {})}
   }
   return {impl: named(impl, 'a_', {}, impl.inputs), spec: named(spec, 'b_', Object.fromEntries(spec.inputs.map(i => [i, x(`b_${i}`)])), spec.inputs.map(i => `b_${i}`))}
 }

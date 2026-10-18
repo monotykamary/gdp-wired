@@ -6,7 +6,7 @@ import {expect, test} from 'bun:test'
 import {evalC, interpret} from './machine.ts'
 import {proveLiveness} from '../kernel/prove.ts'
 import {allDone, batchLaws, batches, everyLoggedTicket, everyRecountedTicket, everyReview, everyTicket, loggedLaws, loggedTickets, recounted, recountedLaws, reviewLaws, reviews, ticketLaws, tickets} from '../examples/liveness.ts'
-import {count, nat, rule} from './dsl.ts'
+import {count, nat, rule, when} from './dsl.ts'
 import {allowed} from './watch.ts'
 
 test('every ticket is served: proven; the stalling variant refused', () => {
@@ -81,4 +81,24 @@ test('a machine with sets: the helpful request leaves the set it carries free', 
   expect(proveLiveness(reviews().machine, reviewLaws(), everyReview())).toMatchObject({proven: true, checked: true})
   const bad = reviews('approves only what the set names')
   expect(proveLiveness(bad.machine, reviewLaws(bad), everyReview(bad)).proven).toBe(false)
+})
+
+test('a request that moves the region without lowering the rank: refused (each helpful request can always arrive in the wrong region)', () => {
+  // toggle flips the phase; act0 works only in phase 0, act1 only in phase 1. The run toggle, act0, toggle, act1, ...
+  // sends both infinitely often and never works, so "the work gets done" is false.
+  const r = rule('two phases').inputs({op: nat}).state({phase: 0, work: 3})
+    .assume(({op}) => op.atMost(2))
+    .step(({op, phase, work}) => ({phase: when(op.eq(0), when(phase.eq(0), 1, 0), phase),
+      work: when(op.eq(1).and(phase.eq(0)).or(op.eq(2).and(phase.eq(1))), work.minus(1), work)}))
+  const live = r.leadsTo('the work gets done', {from: ({work}) => work.atLeast(0), to: ({work}) => work.eq(0), rank: ({work}) => work,
+    helpful: [{when: ({phase}) => phase.eq(0), request: () => ({op: 1})}, {when: ({phase}) => phase.eq(1), request: () => ({op: 2})}]})
+  // The phase is 0 or 1, so some region always holds: only the toggle keeping the rank while it moves the region fails.
+  const laws = [r.law('the phase is 0 or 1', ({phase}) => phase.atMost(1))]
+  const v = proveLiveness(r.machine, laws, live)
+  expect(v.proven).toBe(false)
+  expect(v.failed?.goal).toContain('the rank kept only with its region')
+  const m = r.machine, run = interpret(m)
+  let st = run.init({})
+  for (let i = 0; i < 40; i++) st = run.step({}, st, {op: [0, 1, 0, 2][i % 4]!})
+  expect(st.scalars.work).toBe(3)
 })
