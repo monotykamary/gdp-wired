@@ -266,6 +266,20 @@ modal run modal/run.py --jobs modal/suite.json --out runs/modal/suite && sh moda
 
 Each directory's README has its own runs and results.
 
+## The skill
+
+`npx skills add monotykamary/gdp-wired` installs a skill that guides coding agents (and people) through writing a rule
+the way the code does it, stating its laws, reading a refused proof and handing a claim to Lean:
+
+- [**Workflow**](skills/gdp-wired/SKILL.md#workflow): the checklist for adding or changing a rule whose invariants matter.
+- [**Writing rules**](skills/gdp-wired/references/writing-rules.md): kinds, maps, step and k-step laws, histories,
+  liveness, decisions, two-run laws, loops.
+- [**Reading verdicts**](skills/gdp-wired/references/reading-verdicts.md): a bug or a missing invariant, and what to
+  change.
+- [**Shipping**](skills/gdp-wired/references/shipping.md): running the proven rule, and holding existing code to it.
+- [**The Lean handoff**](skills/gdp-wired/references/lean-handoff.md): exporting the proofs, and functions proven in Lean.
+- [**Where it fits**](skills/gdp-wired/references/where-it-fits.md): gdp-wired, Lean or Bend.
+
 ## Credits
 
 [gdp-ts](https://github.com/rauchg/gdp-ts) by Guillermo Rauch (Ghosts of Departed Proofs for TypeScript) is where the
