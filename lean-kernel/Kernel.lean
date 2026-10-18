@@ -1381,10 +1381,8 @@ theorem machine_sound (m : Machine) (ps : MachineProof) (h : checkMachine m ps =
       exact ih q.1 (List.mem_map.mpr ⟨q, hq, rfl⟩)
     · simp only [evalC, subst_evalC]; simpa using hf
 
-/-! Loops: termination. A loop runs `body` while `guard` holds, each turn reading fresh inputs that meet `assume`. The
-goals are built here: invariants hold at the start and each turn keeps them, and a tuple of natural ranks drops in
-order (lexicographically) on every turn the invariants allow. Ranks may not read the turn's inputs: a rank over an
-input compares two values at one turn's input, which says nothing about the next turn's. -/
+/-! Loops: termination. A loop runs `body` while `guard` holds, each turn reading fresh inputs that meet `assume`. That it
+halts is a liveness of its machine (Live.lean's Loop.machine and loop_halts_of): from anywhere, the guard fails later. -/
 
 structure Loop where
   inputs : List Nat
@@ -1398,171 +1396,6 @@ structure Loop where
 def Turn (l : Loop) (maps : Nat → Nat → Nat) (ρ ρ' : Nat → Nat) : Prop :=
   ∃ ι, evalC (withInputs l.inputs ρ ι) maps l.guard = true ∧ evalC (withInputs l.inputs ρ ι) maps l.assume = true ∧
     ρ' = applyS l.body (withInputs l.inputs ρ ι) maps
-
--- The ranks after the turn (each substituted by the body) are below the ranks before, compared in order.
-def dropsC (σ : List (Nat × E)) : List E → C
-  | [] => .lt (.const 0) (.const 0)
-  | [r] => .lt (substE σ r) r
-  | r :: rest => .or (.lt (substE σ r) r) (.and (.eq (substE σ r) r) (dropsC σ rest))
-
-def during (l : Loop) (laws : List C) : List C := [l.pre, l.assume, l.guard] ++ laws
-def loopStart (l : Loop) (law : C) : List C := [l.pre, .not (substC l.init law)]
-def loopTurn (l : Loop) (laws : List C) (law : C) : List C := during l laws ++ [.not (substC l.body law)]
-def rankGoal (l : Loop) (laws : List C) (ranks : List E) : List C := during l laws ++ [.not (dropsC l.body ranks)]
-
--- Per invariant: the law, then (table, tree) for its start goal and its turn goal; then the ranks and the rank tree.
-structure LoopProof where
-  laws : MachineProof
-  ranks : List E
-  rank : List VDef × Tree
-
-def checkLoop (l : Loop) (ps : LoopProof) : Bool :=
-  avoids (l.inputs ++ l.init.map (·.1) ++ l.body.map (·.1)) l.pre
-    && ps.ranks.all (fun r => l.inputs.all fun i => !occE i r)
-    && ps.laws.all (fun p => avoids l.inputs p.1
-      && checkGoal ⟨p.2.1.1, loopStart l p.1⟩ p.2.1.2
-      && checkGoal ⟨p.2.2.1, loopTurn l (ps.laws.map (·.1)) p.1⟩ p.2.2.2)
-    && checkGoal ⟨ps.rank.1, rankGoal l (ps.laws.map (·.1)) ps.ranks⟩ ps.rank.2
-
--- Tuples compared in order.
-def lexLt : List Nat → List Nat → Prop
-  | a :: as, b :: bs => a < b ∨ (a = b ∧ lexLt as bs)
-  | _, _ => False
-
-theorem drops_lex (σ : List (Nat × E)) (W : Nat → Nat) (maps : Nat → Nat → Nat) :
-    ∀ rs : List E, evalC W maps (dropsC σ rs) = true →
-      lexLt (rs.map (evalE (applyS σ W maps) maps)) (rs.map (evalE W maps))
-  | [], h => by simp [dropsC, evalC, evalE] at h
-  | [r], h => by
-    simp only [dropsC, evalC, decide_eq_true_eq, subst_evalE] at h
-    simp only [List.map, lexLt]; exact Or.inl h
-  | r :: r2 :: rest, h => by
-    simp only [dropsC, evalC, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq, subst_evalE] at h
-    simp only [List.map] at h ⊢
-    rw [lexLt]
-    rcases h with h | ⟨he, h⟩
-    · exact Or.inl h
-    · exact Or.inr ⟨he, by simpa only [List.map] using drops_lex σ W maps (r2 :: rest) h⟩
-
-theorem antitone_le (h : Nat → Nat) (hd : ∀ n, h (n + 1) ≤ h n) : ∀ n m, h (n + m) ≤ h n
-  | _, 0 => Nat.le_refl _
-  | n, m + 1 => Nat.le_trans (hd (n + m)) (antitone_le h hd n m)
-
--- A non-increasing sequence of naturals is constant from some point on.
-theorem eventually_const (v : Nat) : ∀ (h : Nat → Nat), h 0 ≤ v → (∀ n, h (n + 1) ≤ h n) → ∃ N, ∀ n, h (N + n) = h N := by
-  induction v with
-  | zero => intro h h0 hd; exact ⟨0, fun n => by have := antitone_le h hd 0 n; simp at this ⊢; omega⟩
-  | succ v ih =>
-    intro h h0 hd
-    by_cases hc : ∀ n, h n = h 0
-    · exact ⟨0, fun n => by simp [hc]⟩
-    · obtain ⟨m, hm⟩ := Classical.not_forall.mp hc
-      have hle := antitone_le h hd 0 m
-      simp only [Nat.zero_add] at hle
-      obtain ⟨N, hN⟩ := ih (fun n => h (m + n)) (by simp only [Nat.add_zero]; omega) (fun n => hd (m + n))
-      exact ⟨m + N, fun n => by have := hN n; simp only [Nat.add_assoc] at this ⊢; exact this⟩
-
-theorem lexLt_cons {x y : List Nat} {k : Nat} (hx : x.length = k + 1) (hy : y.length = k + 1) (h : lexLt x y) :
-    x.headD 0 ≤ y.headD 0 ∧ (x.headD 0 = y.headD 0 → lexLt x.tail y.tail) := by
-  cases x with
-  | nil => simp at hx
-  | cons a as =>
-    cases y with
-    | nil => simp at hy
-    | cons b bs =>
-      simp only [lexLt] at h
-      simp only [List.headD_cons, List.tail_cons]
-      rcases h with h | ⟨h1, h2⟩
-      · exact ⟨Nat.le_of_lt h, fun e => absurd e (Nat.ne_of_lt h)⟩
-      · exact ⟨Nat.le_of_eq h1, fun _ => h2⟩
-
--- Tuples of naturals of one length can't drop forever.
-theorem no_descent (k : Nat) : ∀ f : Nat → List Nat, (∀ n, (f n).length = k) → (∀ n, lexLt (f (n + 1)) (f n)) → False := by
-  induction k with
-  | zero =>
-    intro f hl hd
-    have h0 := hd 0
-    have a := hl 0; have b := hl 1
-    rw [List.length_eq_zero_iff] at a b
-    rw [a, b] at h0; simp [lexLt] at h0
-  | succ k ih =>
-    intro f hl hd
-    have hc := fun n => lexLt_cons (hl (n + 1)) (hl n) (hd n)
-    obtain ⟨N, hN⟩ := eventually_const _ (fun n => (f n).headD 0) (Nat.le_refl _) (fun n => (hc n).1)
-    refine ih (fun n => (f (N + n)).tail) (fun n => by simp [hl]) (fun n => ?_)
-    have := (hc (N + n)).2 (by have a := hN (n + 1); have b := hN n; simp only [← Nat.add_assoc] at a; omega)
-    simpa [Nat.add_assoc] using this
-
-theorem avoidsE_eq {vs : List Nat} {r : E} (h : ∀ i ∈ vs, (!occE i r) = true) {ρ ρ' : Nat → Nat} (maps : Nat → Nat → Nat)
-    (hρ : ∀ i, i ∉ vs → ρ i = ρ' i) : evalE ρ maps r = evalE ρ' maps r :=
-  congrE ρ ρ' maps r (fun i hi => hρ i (fun hm => by have := h i hm; simp [hi] at this))
-
-/-- Termination: for params that meet the precondition, an accepted loop proof admits no infinite run. -/
-theorem loop_sound (l : Loop) (ps : LoopProof) (h : checkLoop l ps = true) (maps : Nat → Nat → Nat) (ρ0 : Nat → Nat)
-    (h0 : evalC ρ0 maps l.pre = true) :
-    ¬ ∃ f : Nat → Nat → Nat, f 0 = applyS l.init ρ0 maps ∧ ∀ n, Turn l maps (f n) (f (n + 1)) := by
-  rintro ⟨f, hf0, hf⟩
-  simp only [checkLoop, List.all_eq_true, Bool.and_eq_true] at h
-  obtain ⟨⟨⟨hpre, hrk⟩, hlaws⟩, hrank⟩ := h
-  -- The precondition and every invariant hold all along the run.
-  have inv : ∀ n, evalC (f n) maps l.pre = true ∧ ∀ q ∈ ps.laws, evalC (f n) maps q.1 = true := by
-    intro n
-    induction n with
-    | zero =>
-      rw [hf0]
-      have hp : evalC (applyS l.init ρ0 maps) maps l.pre = true := by
-        rw [evalC_avoids hpre maps (ρ' := ρ0) (fun i hi => applyS_other (fun h => hi (by simp [h])) ρ0 maps)]; exact h0
-      refine ⟨hp, fun q hq => ?_⟩
-      apply Decidable.byContradiction; intro hn
-      apply sound _ _ (hlaws q hq).1.2 ρ0 maps
-      intro c hc
-      simp only [loopStart, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hc
-      rcases hc with rfl | rfl
-      · exact h0
-      · simp only [evalC, subst_evalC]; simpa using hn
-    | succ n ih =>
-      obtain ⟨ι, hg, ha, he⟩ := hf n
-      have hW : ∀ c, avoids l.inputs c = true → evalC (withInputs l.inputs (f n) ι) maps c = evalC (f n) maps c :=
-        fun c hc => evalC_avoids hc maps (fun i hi => withInputs_other hi (f n) ι)
-      have hpW : evalC (withInputs l.inputs (f n) ι) maps l.pre = true := by
-        rw [evalC_avoids hpre maps (ρ' := f n) (fun i hi => withInputs_other (fun h => hi (by simp [h])) (f n) ι)]; exact ih.1
-      refine ⟨?_, fun q hq => ?_⟩
-      · rw [he, evalC_avoids hpre maps (ρ' := f n) (fun i hi => by
-          rw [applyS_other (fun h => hi (by simp [h])), withInputs_other (fun h => hi (by simp [h]))])]; exact ih.1
-      · rw [he]
-        apply Decidable.byContradiction; intro hn
-        apply sound _ _ (hlaws q hq).2 (withInputs l.inputs (f n) ι) maps
-        intro c hc
-        simp only [loopTurn, during, List.mem_append, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hc
-        rcases hc with (((rfl | rfl | rfl) | hc) | rfl)
-        · exact hpW
-        · exact ha
-        · exact hg
-        · obtain ⟨q', hq', rfl⟩ := List.mem_map.mp hc
-          rw [hW _ (hlaws q' hq').1.1]; exact ih.2 q' hq'
-        · simp only [evalC, subst_evalC]; simpa using hn
-  -- The ranks drop on every turn.
-  apply no_descent ps.ranks.length (fun n => ps.ranks.map (evalE (f n) maps)) (fun n => by simp)
-  intro n
-  obtain ⟨ι, hg, ha, he⟩ := hf n
-  have hd : evalC (withInputs l.inputs (f n) ι) maps (dropsC l.body ps.ranks) = true := by
-    apply Decidable.byContradiction; intro hn
-    apply sound _ _ hrank (withInputs l.inputs (f n) ι) maps
-    intro c hc
-    simp only [rankGoal, during, List.mem_append, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hc
-    rcases hc with (((rfl | rfl | rfl) | hc) | rfl)
-    · rw [evalC_avoids hpre maps (ρ' := f n) (fun i hi => withInputs_other (fun h => hi (by simp [h])) (f n) ι)]; exact (inv n).1
-    · exact ha
-    · exact hg
-    · obtain ⟨q', hq', rfl⟩ := List.mem_map.mp hc
-      rw [evalC_avoids (hlaws q' hq').1.1 maps (fun i hi => withInputs_other hi (f n) ι)]; exact (inv n).2 q' hq'
-    · simp only [evalC]; simpa using hn
-  have := drops_lex l.body _ maps ps.ranks hd
-  rw [← he] at this
-  have hm : ps.ranks.map (evalE (withInputs l.inputs (f n) ι) maps) = ps.ranks.map (evalE (f n) maps) :=
-    List.map_congr_left (fun r hr => avoidsE_eq (hrk r hr) maps (fun i hi => withInputs_other hi (f n) ι))
-  rw [hm] at this
-  exact this
 
 /-! Folds over binary trees: structural induction. Each leaf and node carries its own inputs; a leaf's state comes from
 its inputs, a node's from its children's (read through copies of the state variables, one per side) and its inputs.
@@ -2137,6 +1970,5 @@ end Kern
 
 #print axioms Kern.sound
 #print axioms Kern.machine_sound
-#print axioms Kern.loop_sound
 #print axioms Kern.fold_sound
 #print axioms Kern.mmachine_sound

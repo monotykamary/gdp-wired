@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, canon, columnTerm, stateName, termColumn, historyMachine, foldObligations, leafConstraints, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, withProducts} from '../kernel/kernel.ts'
+import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, canon, columnTerm, stateName, termColumn, historyMachine, foldObligations, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, withProducts} from '../kernel/kernel.ts'
 import {grow, proveBuilt, proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanTerms} from './lean-terms.ts'
@@ -201,36 +201,11 @@ theorem ${id}_laws : ∀ maps ρ, Reach ${id}_machine maps ρ → ∀ l ∈ ${id
 export const TRUE = '.le (.const 0) (.const 0)'
 export const grown = (g: Goal) => { const o = grow(g); if (!('tree' in o)) throw new Error(`${g.name}: stuck`); return o.tree }
 
-// Loops through Kern.loop_sound: Lean builds the invariant and rank goals from the loop; the trees are the kernel's.
+// Loops through Kern.loop_halts_of: the loop's machine (Live.lean's Loop.machine) with its invariants as laws, and its
+// halting as a liveness (kernel.ts's loopMachine, loopLiveness); the trees are the kernel's.
 export function loopToLean(id: string, l: Loop, laws: Law[], rank: E | E[], tamper?: {what: string, loop: Loop}): string {
-  const vars = [...l.params, ...l.inputs, ...Object.keys(l.state)]
-  const gs = loopObligations(l, laws, rank)
-  const enc = (g: Goal, tree = grown(g)) => encode({name: `${id}: ${g.name}`, goal: g, tree}, false, true, vars)
-  const any0 = enc(gs[0]!, {leaf: []})
-  const ix = (name: string) => vars.indexOf(name)
-  const lit = (lp: Loop) => `⟨${list(lp.inputs.map(name => String(ix(name))))},
-  ${list(Object.entries(lp.state).map(([name, e]) => `(${ix(name)}, ${any0.e(e)})`))},
-  ${list(Object.entries(lp.body).map(([name, e]) => `(${ix(name)}, ${any0.e(e)})`))},
-  ${any0.c(lp.while)},
-  ${lp.pre ? any0.c(lp.pre) : TRUE},
-  ${lp.assume ? any0.c(lp.assume) : TRUE}⟩`
-  const proof = laws.map((law, j) => {
-    const s2 = enc(gs[2 * j]!), t = enc(gs[2 * j + 1]!)
-    return `(${any0.c(law.holds)},\n  (${s2.tab}, ${s2.tree}),\n  (${t.tab}, ${t.tree}))`
-  })
-  const r = enc(gs.at(-1)!)
-  const ranks = Array.isArray(rank) ? rank : [rank]
-  return `-- ${l.name}: halts with ranks ${JSON.stringify(ranks.length)}${laws.length ? `, invariants ${laws.map(law => law.name).join('; ')}` : ''}  (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')})
-def ${id}_loop : Loop := ${lit(l)}
-def ${id}_proof : LoopProof := ⟨${list(proof)},
-  ${list(ranks.map(any0.e))},
-  (${r.tab}, ${r.tree})⟩
-theorem ${id}_halts : ∀ maps ρ0, evalC ρ0 maps ${id}_loop.pre = true →
-    ¬ ∃ f : Nat → Nat → Nat, f 0 = applyS ${id}_loop.init ρ0 maps ∧ ∀ n, Turn ${id}_loop maps (f n) (f (n + 1)) :=
-  loop_sound ${id}_loop ${id}_proof (by decide +kernel)${tamper ? `
--- TAMPERED: ${tamper.what}. Lean computes the check to false.
-def ${id}_tampered : Loop := ${lit(tamper.loop)}
-example : checkLoop ${id}_tampered ${id}_proof = false := by decide +kernel` : ''}`
+  loopObligations(l, laws, rank)
+  return smachineToLean(id, loopMachine(l), laws, {liveness: [loopLiveness(l, rank)], loop: {loop: l, ...(tamper ? {tamper} : {})}})
 }
 
 // Folds through Kern.fold_sound: Lean builds the leaf and node goals; the trees are the kernel's.
@@ -387,7 +362,8 @@ theorem ${pc.id}_holds : ProgressHolds ${id}_machine ${pc.id} :=
 def ${pc.id}_tampered : Progress := ${record(pc.tamper.when)}
 example : checkProgress ${id}_machine ${id}_proof ${pc.id}_tampered = false := by decide +kernel` : ''}`
   })
-  // Step laws through Kern.steplaw_sound: `when` and `then` sent with the flags inlined (as kernel.ts's goal has them).
+  // Step laws through Kern.steplaw_sound: `when` and `then` sent with the flags inlined (as kernel.ts's goal has them);
+  // a law over several steps goes through smachineToLean.
   const sp = opts.stepLaws?.length ? proveStepLaws(m, laws, opts.stepLaws) : undefined
   if (opts.stepLaws?.length && (!sp?.proven || !sp.proof)) throw new Error(`${id}: step laws not proven`)
   const inlineFlags = (c: C): C => substC(c, {vars: {}, maps: {}, flags: m.step.flags ?? {}})
@@ -397,8 +373,10 @@ example : checkProgress ${id}_machine ${id}_proof ${pc.id}_tampered = false := b
     const insts = laws.flatMap((l, li) => (l.forall ? (sp!.proof!.instances[l.name] ?? []).map(key => `(${li}, ${any0.e(key)})`) : []))
     const primes = list(Object.keys(m.state).map(s2 => `(${ix(s2)}, ${ix(`${s2}'`)})`)), primeMaps = list(baseMaps.map(mp => `(${mapNames.indexOf(mp)}, ${mapNames.indexOf(`${mp}'`)})`))
     const k = sl.steps ?? 1
-    if (k === 1 && !Array.isArray(sl.when)) return `-- Step law: ${sl.name}
-def ${id}_step${j} : StepLaw := ⟨${sl.when ? any0.c(inlineFlags(sl.when as C)) : TRUE},
+    const when = Array.isArray(sl.when) ? sl.when[0] : sl.when
+    if (k !== 1) throw new Error(`${id}: step law ${sl.name}: a law over several steps goes through smachineToLean (Sets.lean's skstep_sound)`)
+    return `-- Step law: ${sl.name}
+def ${id}_step${j} : StepLaw := ⟨${when ? any0.c(inlineFlags(when)) : TRUE},
   ${any0.c(inlineFlags(sl.then))},
   ${primes},
   ${primeMaps},
@@ -406,19 +384,6 @@ def ${id}_step${j} : StepLaw := ⟨${sl.when ? any0.c(inlineFlags(sl.when as C))
   (${pr.tab}, ${pr.tree})⟩
 theorem ${id}_step${j}_holds : StepLawHolds ${id}_machine ${id}_step${j} :=
   steplaw_sound ${id}_machine ${id}_proof ${id}_step${j} ${id}_check (by decide +kernel)`
-    // Through Kern.kstep_sound (Steps.lean): one `when` per step (0 <= 0 where none), the j-th request's inputs renamed.
-    const whens = sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when]
-    const ren = Array.from({length: k}, (_, s2) => (s2 === 0 ? '[]' : list(m.inputs.map(i => `(${ix(i)}, ${ix(`${i}@${s2 + 1}`)})`))))
-    return `-- Step law over ${k} steps: ${sl.name}
-def ${id}_step${j} : KStep := ⟨${list(Array.from({length: k}, (_, s2) => (whens[s2] ? any0.c(inlineFlags(whens[s2]!)) : TRUE)))},
-  ${any0.c(inlineFlags(sl.then))},
-  ${list(ren)},
-  ${primes},
-  ${primeMaps},
-  ${list(insts)},
-  (${pr.tab}, ${pr.tree})⟩
-theorem ${id}_step${j}_holds : KStepHolds ${id}_machine ${id}_step${j} :=
-  kstep_sound ${id}_machine ${id}_proof ${id}_step${j} ${id}_check (by decide +kernel)`
   })
   const machineDef = `def ${id}_machine : FMMachine := ${lit(m)}`
   return `-- ${m.name}: ${laws.map(l => l.name).join('; ')}${flagNames.length ? `, with flags ${flagNames.join(', ')}` : ''}  (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')}; maps ${mapNames.map((v2, j) => `${j} ${v2}`).join(', ')})
@@ -453,7 +418,7 @@ const boundKeys = (m: Machine) => [...Object.values(m.step.flags ?? {}).flatMap(
 // `historyTampers`: the history with other relations, each refused.
 export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {stepLaws?: StepLaw[], liveness?: Liveness[], tamper?: {what: string, machine: Machine}, simp?: string[], free?: string[],
     ghosts?: string[], after?: (ix: (name: string) => number) => string, historyTampers?: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[],
-    refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}} = {}): string {
+    refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}, loop?: {loop: Loop, tamper?: {what: string, loop: Loop}}} = {}): string {
   const hm = given.history ? {...given, history: {...given.history, prune: undefined}} : undefined
   const hplain = hm ? historyMachine(hm) : undefined, m = hplain ? hplain.machine : given
   const stepLaws = opts.stepLaws ?? [], rf = opts.refined, gv = opts.ghosts ?? []
@@ -533,6 +498,18 @@ theorem ${lid}_holds (run : SRun ${id}_machine)
   sleads_sound ${id}_machine ${id}_proof ${lid} _ _ _ ${id}_check ${lid}_ok ${lid}_stay ${lid}_cover ${lid}_helps run fair${wf}`
     }})
   }
+  // A loop (Live.lean's loop_halts_of): its machine is the loop's, and its liveness says the loop halts.
+  const lp0 = opts.loop
+  if (lp0) claims.push({steps: [], allows: [], render: () => `/-- ${lp0.loop.name} halts: for params meeting its precondition, no run of turns goes on forever. -/
+theorem ${id}_halts : ∀ maps ρ0, evalC ρ0 maps ${id}_loop.pre = true →
+    ¬ ∃ f : Nat → Nat → Nat, f 0 = applyS ${id}_loop.init ρ0 maps ∧ ∀ n, Turn ${id}_loop maps (f n) (f (n + 1)) :=
+  loop_halts_of ${id}_loop ${id}_live0 rfl rfl (by intro h hh; simp only [${id}_live0, List.mem_singleton] at hh; subst hh; rfl) (by decide +kernel) ${id}_live0_holds${lp0.tamper ? `
+-- TAMPERED: ${lp0.tamper.what}. Lean computes the checks to false.
+def ${id}_tampered : SMachine := Loop.machine ${loopLit(lp0.tamper.loop)}
+example : (checkSMachine ${id}_tampered ${id}_proof && sliveOk ${id}_tampered ${id}_live0
+    && checkSKStep ${id}_tampered ${id}_proof (sliveStep ${id}_live0 ${id}_live0.pend (liveStayC ${id}_live0) ${id}_live0_sp)
+    && checkSKStep ${id}_tampered ${id}_proof (sliveStep ${id}_live0 ${id}_live0.pend (liveCoverC ${id}_live0) ${id}_live0_cp)
+    && sliveHelpsOk ${id}_tampered ${id}_proof ${id}_live0 ${id}_live0_hp) = false := by decide +kernel` : ''}`})
   // Ghosts (Ghost.lean's sghost_laws): the laws that read no ghost hold of the machine without its ghosts.
   if (gv.length) claims.push({steps: [], allows: [], render: () => `-- The laws that read no ghost hold of the machine without its ghosts.
 theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈ ${id}_proof, avoids ${id}_ghosted.vars e.law.holds = true → e.Holds ρ M :=
@@ -618,6 +595,13 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
   ${list(fs.flatMap(([f, c2]) => (c2.op === 'all' ? [`(${ix(`?${f}`)}, ${ix(`w?${f}`)})`] : [])))},
   ${list((mm.facts ?? []).map(l => `⟨${c(l.holds)}, ${l.forall ? `some ${ix(l.forall)}` : 'none'}⟩`))}⟩`
   }
+  // A loop as Live.lean's record: inputs, start, body, while, precondition, assumption.
+  const loopLit = (lp: Loop) => `⟨${list(lp.inputs.map(name => String(ix(name))))},
+  ${list(Object.entries(lp.state).map(([name, e2]) => `(${ix(name)}, ${e(e2)})`))},
+  ${list(Object.entries(lp.body).map(([name, e2]) => `(${ix(name)}, ${e(e2)})`))},
+  ${c(lp.while)},
+  ${lp.pre ? c(lp.pre) : TRUE},
+  ${lp.assume ? c(lp.assume) : TRUE}⟩`
   // The history: the machine without it (its state without the sums, its assumption without the relations), what a
   // record keeps and the sums, queries and relations over it.
   const hlit = (rels: {when: C, holds: C}[]) => {
@@ -682,7 +666,8 @@ def ${id}_machine : SMachine := ${id}_refined.full` : gv.length ? `def ${id}_gho
   ${list(gv.map(v2 => `(${ix(v2)}, ${e(m.state[v2]!)}, ${e(m.step.state?.[v2] ?? {op: 'var', name: v2})})`))}⟩
 def ${id}_machine : SMachine := ${id}_ghosted.full
 theorem ${id}_ghostOk : sghostOk ${id}_ghosted = true := by decide +kernel` : hm ? `def ${id}_hist : HMachine := ${hlit(hm.history.relations ?? [])}
-def ${id}_machine : SMachine := ${id}_hist.plain` : `def ${id}_machine : SMachine := ${lit(m)}`}
+def ${id}_machine : SMachine := ${id}_hist.plain` : lp0 ? `def ${id}_loop : Loop := ${loopLit(lp0.loop)}
+def ${id}_machine : SMachine := ${id}_loop.machine` : `def ${id}_machine : SMachine := ${lit(m)}`}
 ${entries.join('\n')}
 def ${id}_proof : List SEntry := ${list(laws.map((_, j) => `${id}_e${j}`))}
 theorem ${id}_check : checkSMachine ${id}_machine ${id}_proof = true := by decide +kernel
@@ -779,9 +764,9 @@ export function toLean(items: LeanItem[], opts: {title?: string} = {}): string {
       theorems.push(id)
     }
   }
-  // Sets.lean (which imports Steps.lean) only when a machine has sets.
+  // The file the items need: Live.lean for a liveness or a loop, Sets.lean (which imports Steps.lean) for any machine.
   return `import History
-import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && item.ghosts?.length) ? 'Ghost' : items.some(item => 'machine' in item && item.liveness?.length) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
+import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && item.ghosts?.length) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0

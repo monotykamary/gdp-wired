@@ -1,7 +1,7 @@
 // Beyond step machines, through the same kernel: loops that halt (a rank found from templates), laws of every tree (a
 // fold's structural induction), and integer systems that elimination alone can't decide.
 import {type C, type E, type Law, type Machine, all, atMost, ite, less, min, max, minus, n, not, plus, prod, same, times, x} from '../core/machine.ts'
-import {type Goal, type Fold, type Loop, check, foldObligations, loopObligations, obligations} from './kernel.ts'
+import {type Goal, type Fold, type Loop, check, foldObligations, loopMachine, loopObligations, obligations} from './kernel.ts'
 import {concretize, countLeaves, grow} from './prove.ts'
 
 function decideAll(goals: Goal[]): {ok: boolean, leaves: number, stuck?: string} {
@@ -30,7 +30,7 @@ function halts(what: string, l: Loop, laws: Law[]) {
     const out = decideAll(loopObligations(l, laws, r.e))
     if (out.ok) return console.log(`  ${what.padEnd(46)} HALTS    rank ${r.text}, ${out.leaves} leaves, kernel accepts  (${Math.round(performance.now() - t0)} ms)`)
   }
-  const inv = decideAll(loopObligations(l, laws, n(0)).filter(g => g.name !== 'rank drops'))
+  const inv = decideAll(obligations(loopMachine(l), laws))
   console.log(`  ${what.padEnd(46)} NO RANK  among ${ranks(l).length} templates${inv.ok ? '' : `; invariant: ${inv.stuck}`}  (${Math.round(performance.now() - t0)} ms)`)
 }
 

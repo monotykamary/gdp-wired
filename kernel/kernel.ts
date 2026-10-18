@@ -610,10 +610,20 @@ export function checkLaws(m: Machine, laws: Law[], proof: {instances: Record<str
 // natural-valued rank, over the state and params, drops on every turn the invariants allow: naturals can't drop forever.
 export type Loop = {name: string, params: string[], inputs: string[], state: Record<string, E>, while: C, body: Record<string, E>, pre?: C, assume?: C}
 
+// A loop is a machine: its state, a turn's inputs as a request, its body taken where `while` holds and the state kept
+// where it fails. Its invariants are the machine's laws, and that it halts is a liveness: from anywhere, `while` fails
+// later, every request helpful, the rank the loop's (Live.lean's Loop.machine and loop_halts_of: then no run of turns is
+// infinite). `while` and the rank read the state and params, not the turn's input.
 // A rank may be a tuple, compared in order (lexicographically): the first part drops, or it stays and the rest drops.
 // Tuples of naturals can't drop forever either; nested loops need them (an outer count, then an inner one).
 // A rank reads the state and params only: one that reads the turn's input drops against this turn's input, but the next
 // turn measures it with a fresh one, so nothing need decrease (while x < w, x := x + 1, rank w ∸ x, w = x + 1 each turn).
+export const loopMachine = (l: Loop): Machine => ({
+  name: l.name, params: l.params, inputs: l.inputs, state: l.state,
+  step: {state: Object.fromEntries(Object.entries(l.body).map(([v, e]) => [v, {op: 'if', c: l.while, then: e, else: {op: 'var', name: v}} as E]))},
+  ...(l.pre ? {pre: l.pre} : {}), ...(l.assume ? {assume: l.assume} : {}),
+})
+export const loopLiveness = (l: Loop, rank: E | E[]): Liveness => ({name: `${l.name} halts`, from: trueC, to: {op: 'not', x: l.while}, rank, request: {}})
 export function loopObligations(l: Loop, laws: Law[], rank: E | E[]): Goal[] {
   const ranks = Array.isArray(rank) ? rank : [rank]
   const parts = [...Object.values(l.state), ...Object.values(l.body), ...ranks]
@@ -621,24 +631,14 @@ export function loopObligations(l: Loop, laws: Law[], rank: E | E[]): Goal[] {
   distinct(l.name, names)
   for (const name of Object.keys(l.body)) if (!(name in l.state)) throw new Error(`${l.name}'s body sets ${name}, which isn't in its state`)
   inScope(`${l.name}'s start`, Object.values(l.state), l.params)
-  inScope(l.name, [...Object.values(l.body), l.while, ...(l.assume ? [l.assume] : [])], names)
+  inScope(l.name, [...Object.values(l.body), ...(l.assume ? [l.assume] : [])], names)
+  inScope(`${l.name}'s while`, [l.while], [...l.params, ...Object.keys(l.state)])
   inScope(`${l.name}'s precondition`, l.pre ? [l.pre] : [], l.params)
   inScope(`${l.name}'s rank and laws`, [...ranks, ...laws.map(law => law.holds)], [...l.params, ...Object.keys(l.state)])
   if (ranks.some(r => mentions({op: '=', a: r, b: r}, l.inputs))) throw new Error('a rank reads the state and params, not the turn\'s input')
   if (!parts.every(natural) || !naturalC(l.while) || !laws.every(law => !law.forall && !law.keys?.length && naturalC(law.holds) && !mentions(law.holds, l.inputs))) throw new Error('outside the kernel')
-  const pre = preOf(l)
-  const start = holds(from({vars: {...l.state}, maps: {}, flags: {}}), pre)
-  const turn = step(holds(from(), [...pre, ...(l.assume ? [l.assume] : []), l.while, ...laws.map(law => law.holds)]), {vars: l.body, maps: {}})
-  return [
-    ...laws.flatMap(law => [goal(`${law.name} @start`, start, atEnd(start, law.holds)), goal(`${law.name} @turn`, turn, atEnd(turn, law.holds))]),
-    goal('rank drops', turn, drops(ranks, turn.at)),
-  ]
-}
-
-const drops = (ranks: E[], turn: Subst): C => {
-  const [r, ...rest] = ranks
-  const after = substE(r!, turn), less: C = {op: '<', a: after, b: r!}
-  return rest.length === 0 ? less : {op: 'or', xs: [less, {op: 'and', xs: [{op: '=', a: after, b: r!}, drops(rest, turn)]}]}
+  const m = loopMachine(l), {stay, cover, helps} = livenessParts(m, loopLiveness(l, rank))
+  return [...obligations(m, laws, {}), ...[stay, cover, ...helps].map(sl => stepLawObligations(m, laws, {}, sl)[0]!)]
 }
 
 // --- progress: laws with "there is a request" ----------------------------------------------------------------------

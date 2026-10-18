@@ -793,7 +793,86 @@ theorem sleads_wf_sound (s : SMachine) (ps : List SEntry) (l : Live) (sp cp : SP
     rw [hX _ memF, hX _ memT, hX _ memH]
     exact ⟨⟨⟨hP, hnQ⟩, hW, sreq_holds hok hmem hιp⟩, sreq_list (fun p hp' => hwit p hp') hιw⟩
 
+/-! Loops, as machines -/
+
+-- A loop as a machine with sets (none of them): the loop's state, inputs, precondition and assumption, its body taken
+-- where the guard holds and the state kept where it doesn't. That it halts is a liveness claim: every request helps,
+-- `to` is the guard failing, and the loop's ranks drop.
+def Loop.machine (l : Loop) : SMachine :=
+  ⟨⟨⟨l.inputs, l.init, [], l.body.map (fun p => (p.1, E.ite l.guard p.2 (.var p.1))), [], l.pre, l.assume⟩, []⟩, [], [], [], [], []⟩
+
+theorem assoc_guarded (g : C) (i : Nat) : ∀ body : List (Nat × E),
+    assoc (body.map fun p => (p.1, E.ite g p.2 (.var p.1))) i = (assoc body i).map fun e => E.ite g e (.var i)
+  | [] => rfl
+  | p :: ps => by
+    simp only [List.map_cons, assoc, lookup] at ⊢
+    by_cases h : (p.1 == i) = true
+    · have hp : p.1 = i := beq_iff_eq.mp h
+      simp only [h, ite_true, Option.map_some]; rw [hp]
+    · simp only [h, Bool.false_eq_true, ite_false]
+      have := assoc_guarded g i ps
+      simp only [assoc] at this; exact this
+
+-- The loop's machine reads a request as the loop does: its inputs set, nothing decided, no map carried.
+theorem sView_loop (l : Loop) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (ι : Nat → Nat) (κ : Nat → Nat → Nat) :
+    sView l.machine ρ M ι κ = (withInputs l.inputs ρ ι, M) := by
+  have hc : withCarried l.machine M κ = M := by funext mp; simp [withCarried, Loop.machine]
+  have hq : decideQ l.machine (withInputs l.inputs ρ ι) M = withInputs l.inputs ρ ι := by funext v; simp [decideQ, Loop.machine, lookup]
+  simp only [sView, hc]
+  show (decideFlags [] (decideQ l.machine (withInputs l.inputs ρ ι) M) M, M) = _
+  rw [hq]; simp [decideFlags, flagSub, applyS_nil']
+
+-- Where the guard holds, a step of the loop's machine is a turn of the loop, and leaves the maps.
+theorem sNext_loop (l : Loop) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (ι : Nat → Nat) (κ : Nat → Nat → Nat)
+    (hg : evalC (withInputs l.inputs ρ ι) M l.guard = true) :
+    sNext l.machine ρ M ι κ = (applyS l.body (withInputs l.inputs ρ ι) M, M) := by
+  simp only [sNext, sView_loop]
+  refine Prod.ext ?_ ?_
+  · funext i
+    show applyS (l.body.map fun p => (p.1, E.ite l.guard p.2 (.var p.1))) (withInputs l.inputs ρ ι) M i = _
+    simp only [applyS, assoc_guarded]
+    cases assoc l.body i with
+    | none => rfl
+    | some e => simp [evalE, hg]
+  · funext mp key; simp [everyMaps, Loop.machine, lookup, writeMaps]
+
+/-- A loop halts: if the loop's machine reaches the guard failing from anywhere, along every run whose helpful requests
+(here naming no input, so every run's) recur, then for params meeting the precondition no run of turns is infinite. -/
+theorem loop_halts_of (l : Loop) (lv : Live) (hfrom : lv.from_ = trueC) (hto : lv.to = .not l.guard) (hhelps : ∀ h ∈ lv.helps, h.2 = [])
+    (hguard : avoids l.inputs l.guard = true)
+    (hlive : ∀ run : SRun l.machine, (∀ h ∈ lv.helps, ∀ n, ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) →
+      ∀ n, evalC (run.st n).1 (run.st n).2 lv.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 lv.to = true)
+    (maps : Nat → Nat → Nat) (ρ0 : Nat → Nat) (h0 : evalC ρ0 maps l.pre = true) :
+    ¬ ∃ f : Nat → Nat → Nat, f 0 = applyS l.init ρ0 maps ∧ ∀ n, Turn l maps (f n) (f (n + 1)) := by
+  rintro ⟨f, hf0, hf⟩
+  let ι := fun n => Classical.choose (hf n)
+  have hg : ∀ n, evalC (withInputs l.inputs (f n) (ι n)) maps l.guard = true := fun n => (Classical.choose_spec (hf n)).1
+  have ha : ∀ n, evalC (withInputs l.inputs (f n) (ι n)) maps l.assume = true := fun n => (Classical.choose_spec (hf n)).2.1
+  have hnext : ∀ n, f (n + 1) = applyS l.body (withInputs l.inputs (f n) (ι n)) maps := fun n => (Classical.choose_spec (hf n)).2.2
+  let run : SRun l.machine := {
+    st := fun n => (f n, maps)
+    req := fun n => (ι n, fun _ _ => 0)
+    start := by
+      show SReach l.machine (f 0) maps
+      rw [hf0]
+      exact SReach.start (s := l.machine) ρ0 maps (fun p hp => by simp [Loop.machine] at hp) h0 (fun l' hl' => by simp [Loop.machine] at hl')
+    allowed := fun n => by
+      show evalC (sView l.machine (f n) maps (ι n) _).1 (sView l.machine (f n) maps (ι n) _).2 l.assume = true
+      rw [sView_loop]; exact ha n
+    next := fun n => by
+      show (f (n + 1), maps) = sNext l.machine (f n) maps (ι n) _
+      rw [sNext_loop l _ _ _ _ (hg n), hnext n] }
+  obtain ⟨m, _, hm⟩ := hlive run (fun h hh n => ⟨n, Nat.le_refl n, by simp [hhelps h hh]⟩) 0 (by rw [hfrom]; simp [trueC, evalC, evalE])
+  rw [hto] at hm
+  have hgm := hg m
+  rw [congrC (withInputs l.inputs (f m) (ι m)) (f m) maps l.guard (fun i hi => withInputs_other (avoids_occ hguard hi) _ _)] at hgm
+  simp only [evalC, Bool.not_eq_true'] at hm
+  show False
+  have : evalC (run.st m).1 (run.st m).2 l.guard = true := hgm
+  rw [this] at hm; exact Bool.noConfusion hm
+
 end Kern
 
 #print axioms Kern.sleads_sound
 #print axioms Kern.sleads_wf_sound
+#print axioms Kern.loop_halts_of

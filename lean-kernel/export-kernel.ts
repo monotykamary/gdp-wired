@@ -35,7 +35,7 @@ const perAccount: Machine = (() => {
   return product(base, base, {name: 'isolation', params: ['Bacct', 'Bday', 'Bhour', 'Bdom'], inputs: ['who'], bInputs: {ok: ite(same(x('who'), n(1)), n(0), x('ok'))}, assume: all(bit('who'), any(mine, others))})
 })()
 // The examples (../examples): every proven law of a domain, or of all of them, through the Lean twin: machines by
-// machine_sound, fmachine/fmmachine_sound (flags, maps) or hmachine_sound (histories), loops by loop_sound, decisions
+// machine_sound, fmachine/fmmachine_sound (flags, maps) or hmachine_sound (histories), loops by loop_halts_of, decisions
 // as goals by Kern.sound. Usage: bun export-kernel.ts --examples [domain] > Examples.lean
 if (process.argv.includes('--examples')) {
   const which = process.argv[process.argv.indexOf('--examples') + 1]
@@ -44,7 +44,7 @@ if (process.argv.includes('--examples')) {
     ? {domains: [((await import(`${process.cwd()}/${which}`)) as {domain: {domain: string, cases: unknown[]}}).domain] as Awaited<typeof import('../examples/index.ts')>['domains']}
     : await import('../examples/index.ts')
   const parts: string[] = [], theorems: string[] = []
-  let goal = 0, sets = false
+  let goal = 0, sets = false, live = false
   for (const d of domains.filter(dd => !which || which.startsWith('--') || which.endsWith('.ts') || dd.domain === which)) {
     d.cases.forEach((c, i) => {
       const id = `${d.domain}_${i}`.replace(/[^A-Za-z0-9_]/g, '_')
@@ -68,6 +68,7 @@ if (process.argv.includes('--examples')) {
           c.steps.forEach((_, j) => theorems.push(`${id}s_step${j}_holds`))
         }
       } else if (c.kind === 'loop') {
+        live = true
         parts.push(`-- ${d.domain}: ${c.name}\n${loopToLean(id, c.loop.loop, c.laws, c.loop.rankTerms)}`)
         theorems.push(`${id}_halts`)
       } else for (const dd of c.decisions) {
@@ -77,7 +78,7 @@ if (process.argv.includes('--examples')) {
     })
   }
   console.log(`import History
-import ${sets ? 'Sets' : 'Steps'}
+import ${live ? 'Live' : sets ? 'Sets' : 'Steps'}
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
@@ -184,21 +185,14 @@ const grid: Loop = {
   body: {i: ite(less(x('j'), x('m')), x('i'), plus(x('i'), n(1))), j: ite(less(x('j'), x('m')), plus(x('j'), n(1)), n(0))},
 }
 machines.push(loopToLean('grid', grid, [], [minus(x('n'), x('i')), minus(x('m'), x('j'))]))
-// TAMPERED: a rank that reads the turn's input; the loop runs forever (w = x + 1 each turn). kernel.ts refuses such ranks
-// now, so the rank goal is written out here: while x < w, the rank w ∸ x after the turn is not below it before.
-const forever: Loop = {name: 'forever', params: [], inputs: ['w'], state: {x: n(0)}, while: less(x('x'), x('w')), body: {x: plus(x('x'), n(1))}}
-{
-  const fv = [...forever.inputs, ...Object.keys(forever.state)]
-  const g: Goal = {name: 'forever: rank drops', hyps: [forever.while, not(less(minus(x('w'), plus(x('x'), n(1))), minus(x('w'), x('x'))))]}
-  const enc = encode({name: 'forever', goal: g, tree: grown(g)}, false, true, fv)
-  machines.push(`-- TAMPERED: a rank (w ∸ x) that reads the turn's input w: its rank goal checks, yet the loop runs forever when every
--- turn sends w = x + 1. Lean's check refuses ranks over inputs and computes to false (kernel.ts now refuses them too).
+// TAMPERED: a rank that reads the turn's input; the loop runs forever (w = x + 1 each turn). kernel.ts refuses such a
+// rank, and a `while` that reads one; Lean's check of a liveness refuses both too and computes to false.
+machines.push(`-- TAMPERED: while x < w, x := x + 1, with the rank w ∸ x (w the turn's input): the rank drops each turn, yet the loop
+-- runs forever when every turn sends w = x + 1. Its halting, stated as a liveness, reads the input w in \`to\` and the rank;
+-- Lean's check refuses it (kernel.ts refuses both).
 def forever_loop : Loop := ⟨[0], [(1, .const 0)], [(1, .add (.var 1) (.const 1))], .lt (.var 1) (.var 0), ${TRUE}, ${TRUE}⟩
-def forever_proof : LoopProof := ⟨[], [.sub (.var 0) (.var 1)], (${enc.tab}, ${enc.tree})⟩
-example : checkLoop forever_loop forever_proof = false := by decide +kernel
--- Without that check the rank goal alone would pass:
-example : checkGoal ⟨forever_proof.rank.1, rankGoal forever_loop [] forever_proof.ranks⟩ forever_proof.rank.2 = true := by decide +kernel`)
-}
+def forever_live : Live := ⟨${TRUE}, .not (.lt (.var 1) (.var 0)), [.sub (.var 0) (.var 1)], [(${TRUE}, [])], [(1, 2)], []⟩
+example : sliveOk forever_loop.machine forever_live = false := by decide +kernel`)
 const shape: Fold = {
   name: 'shape', params: [], inputs: [], leaf: {leaves: n(1), nodes: n(0), height: n(0)},
   node: {leaves: plus(x('l_leaves'), x('r_leaves')), nodes: plus(plus(x('l_nodes'), x('r_nodes')), n(1)), height: plus(max(x('l_height'), x('r_height')), n(1))},
@@ -236,14 +230,14 @@ machines.push(mmachineToLean('fadmit', admitFlagged(), capLaws, {tamper: {what: 
 // interleaving's caps, and that one turn, or two, of one side leave the other.
 const refines = meterRefinement()
 machines.push(mmachineToLean('refines', refines.machine, refines.laws, {stepLaws: refines.stepLaws}))
-machines.push(mmachineToLean('interleaved', counters, counterLaws, {stepLaws: counterSteps}))
+machines.push(smachineToLean('interleaved', counters, counterLaws, {stepLaws: counterSteps}))
 // Stuttering refinement, and laws about whole histories through ghosts (a release remembered; the holdings totalled).
 const phased = twoPhaseRefinement()
 machines.push(mmachineToLean('twophase', phased.machine, phased.laws, {stepLaws: phased.stepLaws}))
 machines.push(mmachineToLean('escrow', escrowWatched(), escrowLaws, {stepLaws: escrowSteps}))
 machines.push(mmachineToLean('pooltotal', pooled(), [...poolLaws, ...poolTotal]))
 machines.push(`-- TAMPERED: the two-turn law's proof offered without its whens (b may move on its own turns). Lean computes the check to false.
-example : checkKStep interleaved_machine interleaved_proof { interleaved_step1 with whens := [${TRUE}, ${TRUE}] } = false := by decide +kernel`)
+example : checkSKStep interleaved_machine interleaved_proof { interleaved_step1 with k := { interleaved_step1.k with whens := [${TRUE}, ${TRUE}] } } = false := by decide +kernel`)
 // Progress (run-progress.ts's cases), through the machine with maps and flags.
 const keysP = {A: x('A'), D: x('D'), H: x('H'), M: x('M')}
 const underP = all(less(get('Acct', keysP.A), n(1)), less(get('Day', keysP.D), x('d')), less(get('Hour', keysP.H), x('hr')), less(get('Dom', keysP.M), x('dm')))
@@ -289,7 +283,7 @@ const sq = out.findIndex(o => o.name === 'products: x <= x·x')
 parts.push(goalToLean({name: 'the x <= x·x tree offered for x·x <= x', goal: {name: 'x·x <= x', hyps: [not(atMost(prod(x('x'), x('x')), x('x')))]}, tree: out[sq]!.tree}, 1002, true, false))
 const wrong = obligations(loss(), [{name: 'wrong', holds: atMost(x('s'), x('b'))}])[1]!
 parts.push(goalToLean({name: 'budget rule: the bounded_loss tree offered for s <= b', goal: wrong, tree: out[1]!.tree}, 1001, true, false))
-console.log(`import Steps
+console.log(`import Live
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0

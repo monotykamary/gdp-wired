@@ -179,7 +179,8 @@ const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => s
 - **Two runs** (`r.relate(name, (a, b) => given, (a, b) => then)`, or `f.relate(...)` with both results): a decision
   about two requests under the same params, for noninterference ("requests that differ only in a secret are decided
   alike"); the second request's inputs show as `b.<input>` in a counterexample.
-- **Loops** (`loop(...)`): state, `while`, `body`, a `rank` (or a tuple of ranks) that must drop each turn.
+- **Loops** (`loop(...)`): state, `while`, `body`, a `rank` (or a tuple of ranks) that must drop each turn. A loop is a
+  machine (its body taken while `while` holds) and its halting a liveness of it, so Lean checks it with the machine twin.
 - **Lean** (`gdp-wired/lean`): `toLean([{id, machine, laws, stepLaws}, ...])` writes the proofs as a Lean file, and
   `leanProject(file)` a Lake project with the twin, so `lake build` checks them. Each law comes as the twin's theorem and
   as a plain statement over named variables, e.g. `theorem budget.law0 (h : SReach budget_machine ρ μ) : ρ «s» ≤

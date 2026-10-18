@@ -1,4 +1,4 @@
-import Steps
+import Live
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
@@ -14,7 +14,7 @@ def policy_machine : Machine := ⟨[2],
   .le (.const 0) (.const 0)⟩
 def policy_proof : MachineProof := [(.le (.var 3) (.add (.var 0) (.var 1)),
   ([.var 0, .var 1, .var 2, .var 3], .leaf [⟨[1, 1], 1⟩, ⟨[(-1)], 0⟩, ⟨[0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 3 2 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3], .split ⟨[(-1), 0, 0, 1], 1⟩
+  ([.var 0, .var 1, .var 2, .var 3, .term (.min (.var 2) (.var 1)), .term (.ite (.lt (.var 3) (.var 0)) (.add (.var 3) (.min (.var 2) (.var 1))) (.var 3))], .split ⟨[(-1), 0, 0, 1], 1⟩
   (.split ⟨[0, (-1), 1], 0⟩
   (.leaf [⟨[(-1), 0, 0, 1], 1⟩, ⟨[0, (-1), 1], 0⟩, ⟨[1, 1, (-1), (-1)], 1⟩] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .combine 1 3 1 1] [] [])
   (.leaf [⟨[(-1), 0, 0, 1], 1⟩, ⟨[1, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
@@ -35,7 +35,7 @@ def inflight_machine : Machine := ⟨[1, 2],
   .or (.eq (.var 2) (.const 0)) (.eq (.var 2) (.const 1))⟩
 def inflight_proof : MachineProof := [(.le (.var 3) (.add (.var 0) (.const 150)),
   ([.var 0, .var 1, .var 2, .var 3, .var 4], .leaf [⟨[1], 151⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4], .split ⟨[0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .term (.min (.var 1) (.const 50)), .term (.ite (.and (.eq (.var 2) (.const 1)) (.lt (.const 0) (.var 4))) (.add (.var 3) (.min (.var 1) (.const 50))) (.var 3))], .split ⟨[0, 0, 1], 0⟩
   (.leaf [⟨[(-1), 0, 0, 1], (-150)⟩, ⟨[1, 0, 0, (-1)], 151⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
   (.split ⟨[0, 0, 1], (-1)⟩
   (.split ⟨[0, 0, 0, 0, (-1)], 1⟩
@@ -45,7 +45,7 @@ def inflight_proof : MachineProof := [(.le (.var 3) (.add (.var 0) (.const 150))
   (.leaf [⟨[(-1), 0, 0, 1], (-150)⟩, ⟨[1, 0, 0, (-1)], 151⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))), (.le (.add (.var 3) (.mul 50 (.var 4))) (.add (.var 0) (.const 150)),
   ([.var 0, .var 1, .var 2, .var 3, .var 4], .leaf [⟨[1], 151⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4], .split ⟨[0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .term (.min (.var 1) (.const 50)), .term (.ite (.and (.eq (.var 2) (.const 1)) (.lt (.const 0) (.var 4))) (.add (.var 3) (.min (.var 1) (.const 50))) (.var 3)), .term (.ite (.and (.lt (.var 3) (.var 0)) (.lt (.var 4) (.const 3))) (.add (.var 4) (.const 1)) (.var 4)), .term (.sub (.var 4) (.const 1)), .term (.ite (.lt (.const 0) (.var 4)) (.sub (.var 4) (.const 1)) (.var 4)), .term (.ite (.eq (.var 2) (.const 1)) (.ite (.lt (.const 0) (.var 4)) (.sub (.var 4) (.const 1)) (.var 4)) (.ite (.and (.lt (.var 3) (.var 0)) (.lt (.var 4) (.const 3))) (.add (.var 4) (.const 1)) (.var 4)))], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[(-1), 0, 0, 1], 1⟩
   (.split ⟨[0, 0, 0, 0, 1], (-2)⟩
   (.leaf [⟨[(-1), 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 1], (-2)⟩, ⟨[1, 0, 0, (-1), (-50)], 101⟩] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .cut 3 50 [0, 0, 0, 0, (-1)] 3, .combine 1 4 1 1] [] [])
@@ -74,7 +74,7 @@ def counted_machine : Machine := ⟨[1],
   .le (.const 0) (.const 0)⟩
 def counted_proof : MachineProof := [(.le (.var 2) (.prod (.var 0) (.var 3)),
   ([.var 0, .var 1, .var 2, .var 3], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .mono [0, 3]], .split ⟨[(-1), 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .mono [0, 3], .term (.min (.var 1) (.var 0))], .split ⟨[(-1), 1], 0⟩
   (.leaf [⟨[(-1), 1], 0⟩, ⟨[0, 0, 1, 0, (-1)], 0⟩, ⟨[1, (-1), (-1), 0, 1], 1⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [] [])
   (.leaf [⟨[0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 1], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))]
 theorem counted_laws : ∀ maps ρ, Reach counted_machine maps ρ → ∀ l ∈ counted_proof.map (·.1), evalC ρ maps l = true :=
@@ -89,135 +89,333 @@ theorem loss_per_request (maps : Nat → Nat → Nat) (ρ : Nat → Nat) (h : Re
 def uncapped_machine : Machine := ⟨[2], [(3, .const 0)], [(3, .ite (.lt (.var 3) (.var 0)) (.add (.var 3) (.var 2)) (.var 3))], .le (.const 0) (.const 0), .le (.const 0) (.const 0)⟩
 example : checkMachine uncapped_machine policy_proof = false := by decide +kernel
 
--- gcd by subtraction: halts with ranks 1, invariants a >= 1; b >= 1  (variables 0 A, 1 B, 2 a, 3 b)
+-- gcd by subtraction: a >= 1; b >= 1, with sets (carried none; quantified flags none)
+--   (variables 0 A, 1 B, 2 a, 3 b, 4 #, 5 a', 6 b'; maps )
 def gcd_loop : Loop := ⟨[],
   [(2, .var 0), (3, .var 1)],
   [(2, .ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)), (3, .ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3))],
   .not (.eq (.var 2) (.var 3)),
   .and (.le (.const 1) (.var 0)) (.le (.const 1) (.var 1)),
   .le (.const 0) (.const 0)⟩
-def gcd_proof : LoopProof := ⟨[(.le (.const 1) (.var 2),
-  ([.var 0, .var 1, .var 2, .var 3], .leaf [⟨[(-1)], 1⟩, ⟨[1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3], .split ⟨[0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, (-1)], 1⟩, ⟨[0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
+def gcd_machine : SMachine := gcd_loop.machine
+def gcd_l0 : MLaw := ⟨.le (.const 1) (.var 2), none⟩
+def gcd_e0 : SEntry := ⟨gcd_l0, 4, [], [], [], [], [],
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [], .leaf [⟨[(-1)], 1⟩, ⟨[1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.sub (.var 2) (.var 3)), .term (.ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)), .term (.ite (.not (.eq (.var 2) (.var 3))) (.ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)) (.var 2))], [], .split ⟨[0, 0, 1, (-1)], 0⟩
+  (.split ⟨[0, 0, (-1), 1], 0⟩
+  (.leaf [⟨[0, 0, 1, (-1)], 0⟩, ⟨[0, 0, (-1), 1], 0⟩, ⟨[0, 0, (-1)], 1⟩, ⟨[0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 3 1 1 1, .combine 4 5 1 1] [] [])
+  (.leaf [⟨[0, 0, (-1)], 1⟩, ⟨[0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, (-1), 1], 0⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
-  (.leaf [⟨[0, 0, (-1), 1], 1⟩, ⟨[0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])))), (.le (.const 1) (.var 3),
-  ([.var 0, .var 1, .var 2, .var 3], .leaf [⟨[0, (-1)], 1⟩, ⟨[0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3], .split ⟨[0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, (-1), 1], 1⟩, ⟨[0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])))⟩
+def gcd_l1 : MLaw := ⟨.le (.const 1) (.var 3), none⟩
+def gcd_e1 : SEntry := ⟨gcd_l1, 4, [], [], [], [], [],
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [], .leaf [⟨[0, (-1)], 1⟩, ⟨[0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.sub (.var 3) (.var 2)), .term (.ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3)), .term (.ite (.not (.eq (.var 2) (.var 3))) (.ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3)) (.var 3))], [], .split ⟨[0, 0, 1, (-1)], 0⟩
   (.split ⟨[0, 0, (-1), 1], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [] [])
+  (.leaf [⟨[0, 0, 1, (-1)], 0⟩, ⟨[0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [] [])
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.split ⟨[0, 0, 1, (-1)], 1⟩
   (.leaf [⟨[0, 0, (-1), 1], 1⟩, ⟨[0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))],
-  [.add (.var 2) (.var 3)],
-  ([.var 0, .var 1, .var 2, .var 3], .split ⟨[0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+def gcd_proof : List SEntry := [gcd_e0, gcd_e1]
+theorem gcd_check : checkSMachine gcd_machine gcd_proof = true := by decide +kernel
+theorem gcd_laws : ∀ ρ M, SReach gcd_machine ρ M → ∀ e ∈ gcd_proof, e.Holds ρ M :=
+  smachine_sound gcd_machine gcd_proof gcd_check
+namespace gcd
+abbrev «a» : Nat := 2
+abbrev «b» : Nat := 3
+/-- a >= 1 -/
+theorem law0 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : SReach gcd_machine ρ μ) : 1 ≤ ρ «a» := by
+  have hl : gcd_l0.Holds ρ μ := gcd_laws ρ μ h gcd_e0 (by simp [gcd_proof])
+  exact (evalC_iff ρ μ gcd_l0.holds).mp hl
+/-- b >= 1 -/
+theorem law1 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : SReach gcd_machine ρ μ) : 1 ≤ ρ «b» := by
+  have hl : gcd_l1.Holds ρ μ := gcd_laws ρ μ h gcd_e1 (by simp [gcd_proof])
+  exact (evalC_iff ρ μ gcd_l1.holds).mp hl
+end gcd
+
+-- Liveness: gcd by subtraction halts
+def gcd_live0 : Live := ⟨.le (.const 0) (.const 0), .not (.not (.eq (.var 2) (.var 3))), [.add (.var 2) (.var 3)],
+  [(.le (.const 0) (.const 0), [])],
+  [(2, 5), (3, 6)],
+  []⟩
+def gcd_live0_sp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.sub (.var 2) (.var 3)), .term (.ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)), .term (.ite (.not (.eq (.var 2) (.var 3))) (.ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)) (.var 2)), .term (.sub (.var 3) (.var 2)), .term (.ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3)), .term (.ite (.not (.eq (.var 2) (.var 3))) (.ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3)) (.var 3))], [], .split ⟨[0, 0, 1, (-1)], 0⟩
   (.split ⟨[0, 0, (-1), 1], 0⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[0, 0, (-1)], 1⟩, ⟨[0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, (-1), 1], 0⟩
   (.leaf [⟨[0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
-  (.leaf [⟨[0, 0, (-1), 1], 1⟩, ⟨[0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])))⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [] []))))
+def gcd_live0_cp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [], .leaf [⟨[], 1⟩] [.input 0] [] []))
+def gcd_live0_hp : List SProof := [([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.sub (.var 2) (.var 3)), .term (.ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)), .term (.ite (.not (.eq (.var 2) (.var 3))) (.ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)) (.var 2)), .term (.sub (.var 3) (.var 2)), .term (.ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3)), .term (.ite (.not (.eq (.var 2) (.var 3))) (.ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3)) (.var 3))], [], .split ⟨[0, 0, 1, (-1)], 0⟩
+  (.split ⟨[0, 0, (-1), 1], 0⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])
+  (.leaf [⟨[0, 0, (-1)], 1⟩, ⟨[0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.split ⟨[0, 0, (-1), 1], 0⟩
+  (.leaf [⟨[0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [] []))))]
+theorem gcd_live0_ok : sliveOk gcd_machine gcd_live0 = true := by decide +kernel
+theorem gcd_live0_stay : checkSKStep gcd_machine gcd_proof (sliveStep gcd_live0 gcd_live0.pend (liveStayC gcd_live0) gcd_live0_sp) = true := by decide +kernel
+theorem gcd_live0_cover : checkSKStep gcd_machine gcd_proof (sliveStep gcd_live0 gcd_live0.pend (liveCoverC gcd_live0) gcd_live0_cp) = true := by decide +kernel
+theorem gcd_live0_helps : sliveHelpsOk gcd_machine gcd_proof gcd_live0 gcd_live0_hp = true := by decide +kernel
+/-- gcd by subtraction halts: along every run that takes each helpful request infinitely often, `from` is followed by `to`. -/
+theorem gcd_live0_holds (run : SRun gcd_machine)
+    (fair : ∀ h ∈ gcd_live0.helps, ∀ n, ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
+    ∀ n, evalC (run.st n).1 (run.st n).2 gcd_live0.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 gcd_live0.to = true :=
+  sleads_sound gcd_machine gcd_proof gcd_live0 _ _ _ gcd_check gcd_live0_ok gcd_live0_stay gcd_live0_cover gcd_live0_helps run fair
+def gcd_live0_ap : List (List (Nat × E) × SProof × List E) := [([], ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [.and (.le (.const 1) (.var 0)) (.le (.const 1) (.var 1)), .le (.const 1) (.var 2), .le (.const 1) (.var 3), .and (.and (.and (.le (.const 0) (.const 0)) (.not (.not (.not (.eq (.var 2) (.var 3)))))) (.and (.le (.const 0) (.const 0)) (.le (.const 0) (.const 0)))) (.le (.const 0) (.const 0)), .not (.le (.const 0) (.const 0))], .leaf [⟨[], 1⟩] [.input 0] [] [])), [])]
+theorem gcd_live0_allows : sliveAllowsOk gcd_machine gcd_proof gcd_live0 gcd_live0_ap = true := by decide +kernel
+/-- gcd by subtraction halts, under weak fairness: along every run that takes each helpful request whenever, from some point on, it
+stays allowed, `from` is followed by `to`. -/
+theorem gcd_live0_holds_wf (run : SRun gcd_machine)
+    (fair : ∀ h ∈ gcd_live0.helps, ∀ n, (∀ m, n ≤ m → ∃ ι κ, (∀ p ∈ h.2, ι p.1 = evalE (run.st m).1 (run.st m).2 p.2)
+        ∧ evalC (sView gcd_machine (run.st m).1 (run.st m).2 ι κ).1 (sView gcd_machine (run.st m).1 (run.st m).2 ι κ).2 gcd_machine.f.m.assume = true) →
+      ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
+    ∀ n, evalC (run.st n).1 (run.st n).2 gcd_live0.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 gcd_live0.to = true :=
+  sleads_wf_sound gcd_machine gcd_proof gcd_live0 _ _ _ _ gcd_check gcd_live0_ok gcd_live0_stay gcd_live0_cover gcd_live0_helps gcd_live0_allows run fair
+
+/-- gcd by subtraction halts: for params meeting its precondition, no run of turns goes on forever. -/
 theorem gcd_halts : ∀ maps ρ0, evalC ρ0 maps gcd_loop.pre = true →
     ¬ ∃ f : Nat → Nat → Nat, f 0 = applyS gcd_loop.init ρ0 maps ∧ ∀ n, Turn gcd_loop maps (f n) (f (n + 1)) :=
-  loop_sound gcd_loop gcd_proof (by decide +kernel)
--- TAMPERED: the gcd proof without the precondition A, B >= 1. Lean computes the check to false.
-def gcd_tampered : Loop := ⟨[],
+  loop_halts_of gcd_loop gcd_live0 rfl rfl (by intro h hh; simp only [gcd_live0, List.mem_singleton] at hh; subst hh; rfl) (by decide +kernel) gcd_live0_holds
+-- TAMPERED: the gcd proof without the precondition A, B >= 1. Lean computes the checks to false.
+def gcd_tampered : SMachine := Loop.machine ⟨[],
   [(2, .var 0), (3, .var 1)],
   [(2, .ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)), (3, .ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3))],
   .not (.eq (.var 2) (.var 3)),
   .le (.const 0) (.const 0),
   .le (.const 0) (.const 0)⟩
-example : checkLoop gcd_tampered gcd_proof = false := by decide +kernel
+example : (checkSMachine gcd_tampered gcd_proof && sliveOk gcd_tampered gcd_live0
+    && checkSKStep gcd_tampered gcd_proof (sliveStep gcd_live0 gcd_live0.pend (liveStayC gcd_live0) gcd_live0_sp)
+    && checkSKStep gcd_tampered gcd_proof (sliveStep gcd_live0 gcd_live0.pend (liveCoverC gcd_live0) gcd_live0_cp)
+    && sliveHelpsOk gcd_tampered gcd_proof gcd_live0 gcd_live0_hp) = false := by decide +kernel
 
--- pagination: halts with ranks 1  (variables 0 total, 1 page, 2 cur)
+-- pagination: , with sets (carried none; quantified flags none)
+--   (variables 0 total, 1 page, 2 cur, 3 #, 4 cur'; maps )
 def pages_loop : Loop := ⟨[1],
   [(2, .const 0)],
   [(2, .add (.var 2) (.min (.var 1) (.sub (.var 0) (.var 2))))],
   .lt (.var 2) (.var 0),
   .le (.const 0) (.const 0),
   .le (.const 1) (.var 1)⟩
-def pages_proof : LoopProof := ⟨[],
-  [.sub (.var 0) (.var 2)],
-  ([.var 0, .var 1, .var 2], .split ⟨[(-1), 0, 1], 0⟩
+def pages_machine : SMachine := pages_loop.machine
+
+def pages_proof : List SEntry := []
+theorem pages_check : checkSMachine pages_machine pages_proof = true := by decide +kernel
+theorem pages_laws : ∀ ρ M, SReach pages_machine ρ M → ∀ e ∈ pages_proof, e.Holds ρ M :=
+  smachine_sound pages_machine pages_proof pages_check
+namespace pages
+
+
+end pages
+
+-- Liveness: pagination halts
+def pages_live0 : Live := ⟨.le (.const 0) (.const 0), .not (.lt (.var 2) (.var 0)), [.sub (.var 0) (.var 2)],
+  [(.le (.const 0) (.const 0), [])],
+  [(2, 4)],
+  []⟩
+def pages_live0_sp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .term (.sub (.var 0) (.var 2)), .term (.min (.var 1) (.sub (.var 0) (.var 2))), .term (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.min (.var 1) (.sub (.var 0) (.var 2)))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.min (.var 1) (.sub (.var 0) (.var 2)))) (.var 2)))], [], .split ⟨[(-1), 0, 1], 1⟩
+  (.split ⟨[(-1), 0, 1], 0⟩
   (.split ⟨[(-1), 1, 1], 0⟩
   (.leaf [⟨[0, (-1)], 1⟩, ⟨[0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
-  (.leaf [⟨[(-1), 0, 1], 1⟩, ⟨[1, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[1, 0, (-1)], 1⟩, ⟨[(-1), 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [] []))
+  (.leaf [⟨[(-1), 0, 1], 1⟩, ⟨[1, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])))
+def pages_live0_cp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4], [], .leaf [⟨[], 1⟩] [.input 0] [] []))
+def pages_live0_hp : List SProof := [([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .term (.sub (.var 0) (.var 2)), .term (.min (.var 1) (.sub (.var 0) (.var 2))), .term (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.min (.var 1) (.sub (.var 0) (.var 2)))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.min (.var 1) (.sub (.var 0) (.var 2)))) (.var 2)))], [], .split ⟨[(-1), 0, 1], 1⟩
+  (.split ⟨[(-1), 0, 1], 0⟩
+  (.split ⟨[(-1), 1, 1], 0⟩
+  (.leaf [⟨[0, (-1)], 1⟩, ⟨[0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [] []))
+  (.leaf [⟨[(-1), 0, 1], 1⟩, ⟨[1, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[1, 0, (-1)], 0⟩, ⟨[(-1), 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])))]
+theorem pages_live0_ok : sliveOk pages_machine pages_live0 = true := by decide +kernel
+theorem pages_live0_stay : checkSKStep pages_machine pages_proof (sliveStep pages_live0 pages_live0.pend (liveStayC pages_live0) pages_live0_sp) = true := by decide +kernel
+theorem pages_live0_cover : checkSKStep pages_machine pages_proof (sliveStep pages_live0 pages_live0.pend (liveCoverC pages_live0) pages_live0_cp) = true := by decide +kernel
+theorem pages_live0_helps : sliveHelpsOk pages_machine pages_proof pages_live0 pages_live0_hp = true := by decide +kernel
+/-- pagination halts: along every run that takes each helpful request infinitely often, `from` is followed by `to`. -/
+theorem pages_live0_holds (run : SRun pages_machine)
+    (fair : ∀ h ∈ pages_live0.helps, ∀ n, ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
+    ∀ n, evalC (run.st n).1 (run.st n).2 pages_live0.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 pages_live0.to = true :=
+  sleads_sound pages_machine pages_proof pages_live0 _ _ _ pages_check pages_live0_ok pages_live0_stay pages_live0_cover pages_live0_helps run fair
+def pages_live0_ap : List (List (Nat × E) × SProof × List E) := [([(1, .var 0)], ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4], [.le (.const 0) (.const 0), .and (.and (.and (.le (.const 0) (.const 0)) (.not (.not (.lt (.var 2) (.var 0))))) (.and (.le (.const 0) (.const 0)) (.le (.const 0) (.const 0)))) (.and (.eq (.var 1) (.var 0)) (.le (.const 0) (.const 0))), .not (.le (.const 1) (.var 1))], .leaf [⟨[(-1), 0, 1], 1⟩, ⟨[1, (-1)], 0⟩, ⟨[0, 1], 0⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [] [])), [])]
+theorem pages_live0_allows : sliveAllowsOk pages_machine pages_proof pages_live0 pages_live0_ap = true := by decide +kernel
+/-- pagination halts, under weak fairness: along every run that takes each helpful request whenever, from some point on, it
+stays allowed, `from` is followed by `to`. -/
+theorem pages_live0_holds_wf (run : SRun pages_machine)
+    (fair : ∀ h ∈ pages_live0.helps, ∀ n, (∀ m, n ≤ m → ∃ ι κ, (∀ p ∈ h.2, ι p.1 = evalE (run.st m).1 (run.st m).2 p.2)
+        ∧ evalC (sView pages_machine (run.st m).1 (run.st m).2 ι κ).1 (sView pages_machine (run.st m).1 (run.st m).2 ι κ).2 pages_machine.f.m.assume = true) →
+      ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
+    ∀ n, evalC (run.st n).1 (run.st n).2 pages_live0.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 pages_live0.to = true :=
+  sleads_wf_sound pages_machine pages_proof pages_live0 _ _ _ _ pages_check pages_live0_ok pages_live0_stay pages_live0_cover pages_live0_helps pages_live0_allows run fair
+
+/-- pagination halts: for params meeting its precondition, no run of turns goes on forever. -/
 theorem pages_halts : ∀ maps ρ0, evalC ρ0 maps pages_loop.pre = true →
     ¬ ∃ f : Nat → Nat → Nat, f 0 = applyS pages_loop.init ρ0 maps ∧ ∀ n, Turn pages_loop maps (f n) (f (n + 1)) :=
-  loop_sound pages_loop pages_proof (by decide +kernel)
--- TAMPERED: the pagination proof when a page may be empty. Lean computes the check to false.
-def pages_tampered : Loop := ⟨[1],
+  loop_halts_of pages_loop pages_live0 rfl rfl (by intro h hh; simp only [pages_live0, List.mem_singleton] at hh; subst hh; rfl) (by decide +kernel) pages_live0_holds
+-- TAMPERED: the pagination proof when a page may be empty. Lean computes the checks to false.
+def pages_tampered : SMachine := Loop.machine ⟨[1],
   [(2, .const 0)],
   [(2, .add (.var 2) (.min (.var 1) (.sub (.var 0) (.var 2))))],
   .lt (.var 2) (.var 0),
   .le (.const 0) (.const 0),
   .le (.const 0) (.var 1)⟩
-example : checkLoop pages_tampered pages_proof = false := by decide +kernel
+example : (checkSMachine pages_tampered pages_proof && sliveOk pages_tampered pages_live0
+    && checkSKStep pages_tampered pages_proof (sliveStep pages_live0 pages_live0.pend (liveStayC pages_live0) pages_live0_sp)
+    && checkSKStep pages_tampered pages_proof (sliveStep pages_live0 pages_live0.pend (liveCoverC pages_live0) pages_live0_cp)
+    && sliveHelpsOk pages_tampered pages_proof pages_live0 pages_live0_hp) = false := by decide +kernel
 
--- retry: halts with ranks 1  (variables 0 budget, 1 wait, 2 spent, 3 tries)
+-- retry: , with sets (carried none; quantified flags none)
+--   (variables 0 budget, 1 wait, 2 spent, 3 tries, 4 #, 5 spent', 6 tries'; maps )
 def retry_loop : Loop := ⟨[1],
   [(2, .const 0), (3, .const 0)],
   [(2, .add (.var 2) (.max (.const 1) (.var 1))), (3, .add (.var 3) (.const 1))],
   .lt (.var 2) (.var 0),
   .le (.const 0) (.const 0),
   .le (.const 0) (.const 0)⟩
-def retry_proof : LoopProof := ⟨[],
-  [.sub (.var 0) (.var 2)],
-  ([.var 0, .var 1, .var 2, .var 3], .split ⟨[0, (-1)], 1⟩
+def retry_machine : SMachine := retry_loop.machine
+
+def retry_proof : List SEntry := []
+theorem retry_check : checkSMachine retry_machine retry_proof = true := by decide +kernel
+theorem retry_laws : ∀ ρ M, SReach retry_machine ρ M → ∀ e ∈ retry_proof, e.Holds ρ M :=
+  smachine_sound retry_machine retry_proof retry_check
+namespace retry
+
+
+end retry
+
+-- Liveness: retry halts
+def retry_live0 : Live := ⟨.le (.const 0) (.const 0), .not (.lt (.var 2) (.var 0)), [.sub (.var 0) (.var 2)],
+  [(.le (.const 0) (.const 0), [])],
+  [(2, 5), (3, 6)],
+  []⟩
+def retry_live0_sp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.max (.const 1) (.var 1)), .term (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2))), .term (.sub (.var 0) (.var 2))], [], .split ⟨[(-1), 0, 1], 1⟩
+  (.split ⟨[0, (-1)], 1⟩
   (.split ⟨[(-1), 1, 1], 0⟩
   (.split ⟨[(-1), 0, 1], 0⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
-  (.leaf [⟨[1, 0, (-1)], 1⟩, ⟨[(-1), 0, 1], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[(-1), 0, 1], 1⟩, ⟨[1, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
+  (.leaf [⟨[1, (-1), (-1)], 1⟩, ⟨[(-1), 1, 1], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[(-1), 0, 1], 0⟩
-  (.leaf [⟨[(-1), 0, 1], 1⟩, ⟨[1, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
-  (.leaf [⟨[1, 0, (-1)], 1⟩, ⟨[(-1), 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])))
-  (.split ⟨[(-1), 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])
+  (.leaf [⟨[1, 0, (-1)], 1⟩, ⟨[(-1), 0, 1], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])))
+def retry_live0_cp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [], .leaf [⟨[], 1⟩] [.input 0] [] []))
+def retry_live0_hp : List SProof := [([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.max (.const 1) (.var 1)), .term (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2))), .term (.sub (.var 0) (.var 2))], [], .split ⟨[(-1), 0, 1], 1⟩
+  (.split ⟨[0, (-1)], 1⟩
+  (.split ⟨[(-1), 1, 1], 0⟩
   (.split ⟨[(-1), 0, 1], 0⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[(-1), 0, 1], 1⟩, ⟨[1, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
-  (.leaf [⟨[1, 0, (-1)], 0⟩, ⟨[(-1), 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])))⟩
+  (.leaf [⟨[1, (-1), (-1)], 1⟩, ⟨[(-1), 1, 1], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.split ⟨[(-1), 0, 1], 0⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])
+  (.leaf [⟨[1, 0, (-1)], 1⟩, ⟨[(-1), 0, 1], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.leaf [⟨[1, 0, (-1)], 0⟩, ⟨[(-1), 0, 1], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))]
+theorem retry_live0_ok : sliveOk retry_machine retry_live0 = true := by decide +kernel
+theorem retry_live0_stay : checkSKStep retry_machine retry_proof (sliveStep retry_live0 retry_live0.pend (liveStayC retry_live0) retry_live0_sp) = true := by decide +kernel
+theorem retry_live0_cover : checkSKStep retry_machine retry_proof (sliveStep retry_live0 retry_live0.pend (liveCoverC retry_live0) retry_live0_cp) = true := by decide +kernel
+theorem retry_live0_helps : sliveHelpsOk retry_machine retry_proof retry_live0 retry_live0_hp = true := by decide +kernel
+/-- retry halts: along every run that takes each helpful request infinitely often, `from` is followed by `to`. -/
+theorem retry_live0_holds (run : SRun retry_machine)
+    (fair : ∀ h ∈ retry_live0.helps, ∀ n, ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
+    ∀ n, evalC (run.st n).1 (run.st n).2 retry_live0.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 retry_live0.to = true :=
+  sleads_sound retry_machine retry_proof retry_live0 _ _ _ retry_check retry_live0_ok retry_live0_stay retry_live0_cover retry_live0_helps run fair
+def retry_live0_ap : List (List (Nat × E) × SProof × List E) := [([], ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [.le (.const 0) (.const 0), .and (.and (.and (.le (.const 0) (.const 0)) (.not (.not (.lt (.var 2) (.var 0))))) (.and (.le (.const 0) (.const 0)) (.le (.const 0) (.const 0)))) (.le (.const 0) (.const 0)), .not (.le (.const 0) (.const 0))], .leaf [⟨[], 1⟩] [.input 0] [] [])), [])]
+theorem retry_live0_allows : sliveAllowsOk retry_machine retry_proof retry_live0 retry_live0_ap = true := by decide +kernel
+/-- retry halts, under weak fairness: along every run that takes each helpful request whenever, from some point on, it
+stays allowed, `from` is followed by `to`. -/
+theorem retry_live0_holds_wf (run : SRun retry_machine)
+    (fair : ∀ h ∈ retry_live0.helps, ∀ n, (∀ m, n ≤ m → ∃ ι κ, (∀ p ∈ h.2, ι p.1 = evalE (run.st m).1 (run.st m).2 p.2)
+        ∧ evalC (sView retry_machine (run.st m).1 (run.st m).2 ι κ).1 (sView retry_machine (run.st m).1 (run.st m).2 ι κ).2 retry_machine.f.m.assume = true) →
+      ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
+    ∀ n, evalC (run.st n).1 (run.st n).2 retry_live0.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 retry_live0.to = true :=
+  sleads_wf_sound retry_machine retry_proof retry_live0 _ _ _ _ retry_check retry_live0_ok retry_live0_stay retry_live0_cover retry_live0_helps retry_live0_allows run fair
+
+/-- retry halts: for params meeting its precondition, no run of turns goes on forever. -/
 theorem retry_halts : ∀ maps ρ0, evalC ρ0 maps retry_loop.pre = true →
     ¬ ∃ f : Nat → Nat → Nat, f 0 = applyS retry_loop.init ρ0 maps ∧ ∀ n, Turn retry_loop maps (f n) (f (n + 1)) :=
-  loop_sound retry_loop retry_proof (by decide +kernel)
+  loop_halts_of retry_loop retry_live0 rfl rfl (by intro h hh; simp only [retry_live0, List.mem_singleton] at hh; subst hh; rfl) (by decide +kernel) retry_live0_holds
 
--- every cell of an n × m grid: halts with ranks 2  (variables 0 n, 1 m, 2 i, 3 j)
+-- every cell of an n × m grid: , with sets (carried none; quantified flags none)
+--   (variables 0 n, 1 m, 2 i, 3 j, 4 #, 5 i', 6 j'; maps )
 def grid_loop : Loop := ⟨[],
   [(2, .const 0), (3, .const 0)],
   [(2, .ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))), (3, .ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0))],
   .lt (.var 2) (.var 0),
   .le (.const 0) (.const 0),
   .le (.const 0) (.const 0)⟩
-def grid_proof : LoopProof := ⟨[],
-  [.sub (.var 0) (.var 2), .sub (.var 1) (.var 3)],
-  ([.var 0, .var 1, .var 2, .var 3], .split ⟨[0, (-1), 0, 1], 1⟩
+def grid_machine : SMachine := grid_loop.machine
+
+def grid_proof : List SEntry := []
+theorem grid_check : checkSMachine grid_machine grid_proof = true := by decide +kernel
+theorem grid_laws : ∀ ρ M, SReach grid_machine ρ M → ∀ e ∈ grid_proof, e.Holds ρ M :=
+  smachine_sound grid_machine grid_proof grid_check
+namespace grid
+
+
+end grid
+
+-- Liveness: every cell of an n × m grid halts
+def grid_live0 : Live := ⟨.le (.const 0) (.const 0), .not (.lt (.var 2) (.var 0)), [.sub (.var 0) (.var 2), .sub (.var 1) (.var 3)],
+  [(.le (.const 0) (.const 0), [])],
+  [(2, 5), (3, 6)],
+  []⟩
+def grid_live0_sp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))), .term (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2))), .term (.sub (.var 0) (.var 2)), .term (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)), .term (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3)), .term (.sub (.var 1) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3))), .term (.sub (.var 1) (.var 3))], [], .split ⟨[(-1), 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 1], 1⟩
+  (.split ⟨[(-1), 0, 1], 0⟩
+  (.split ⟨[0, (-1), 0, 1], 0⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])
+  (.leaf [⟨[0, 1, 0, (-1)], 1⟩, ⟨[0, (-1), 0, 1], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[(-1), 0, 1], 1⟩, ⟨[1, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.split ⟨[(-1), 0, 1], 0⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])
+  (.leaf [⟨[1, 0, (-1)], 1⟩, ⟨[(-1), 0, 1], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])))
+  (.leaf [⟨[], 1⟩] [.input 0] [] [])))
+def grid_live0_cp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [], .leaf [⟨[], 1⟩] [.input 0] [] []))
+def grid_live0_hp : List SProof := [([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))), .term (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2))), .term (.sub (.var 0) (.var 2)), .term (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)), .term (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3)), .term (.sub (.var 1) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3))), .term (.sub (.var 1) (.var 3))], [], .split ⟨[(-1), 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 1], 1⟩
   (.split ⟨[(-1), 0, 1], 0⟩
   (.split ⟨[0, (-1), 0, 1], 0⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[0, (-1), 0, 1], 1⟩, ⟨[0, 1, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[1, 0, (-1)], 1⟩, ⟨[(-1), 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
-  (.split ⟨[(-1), 0, 1], 1⟩
+  (.leaf [⟨[(-1), 0, 1], 1⟩, ⟨[1, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[(-1), 0, 1], 0⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
-  (.leaf [⟨[(-1), 0, 1], 1⟩, ⟨[1, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[1, 0, (-1)], 0⟩, ⟨[(-1), 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])))⟩
+  (.leaf [⟨[1, 0, (-1)], 1⟩, ⟨[(-1), 0, 1], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])))
+  (.leaf [⟨[1, 0, (-1)], 0⟩, ⟨[(-1), 0, 1], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))]
+theorem grid_live0_ok : sliveOk grid_machine grid_live0 = true := by decide +kernel
+theorem grid_live0_stay : checkSKStep grid_machine grid_proof (sliveStep grid_live0 grid_live0.pend (liveStayC grid_live0) grid_live0_sp) = true := by decide +kernel
+theorem grid_live0_cover : checkSKStep grid_machine grid_proof (sliveStep grid_live0 grid_live0.pend (liveCoverC grid_live0) grid_live0_cp) = true := by decide +kernel
+theorem grid_live0_helps : sliveHelpsOk grid_machine grid_proof grid_live0 grid_live0_hp = true := by decide +kernel
+/-- every cell of an n × m grid halts: along every run that takes each helpful request infinitely often, `from` is followed by `to`. -/
+theorem grid_live0_holds (run : SRun grid_machine)
+    (fair : ∀ h ∈ grid_live0.helps, ∀ n, ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
+    ∀ n, evalC (run.st n).1 (run.st n).2 grid_live0.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 grid_live0.to = true :=
+  sleads_sound grid_machine grid_proof grid_live0 _ _ _ grid_check grid_live0_ok grid_live0_stay grid_live0_cover grid_live0_helps run fair
+def grid_live0_ap : List (List (Nat × E) × SProof × List E) := [([], ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [.le (.const 0) (.const 0), .and (.and (.and (.le (.const 0) (.const 0)) (.not (.not (.lt (.var 2) (.var 0))))) (.and (.le (.const 0) (.const 0)) (.le (.const 0) (.const 0)))) (.le (.const 0) (.const 0)), .not (.le (.const 0) (.const 0))], .leaf [⟨[], 1⟩] [.input 0] [] [])), [])]
+theorem grid_live0_allows : sliveAllowsOk grid_machine grid_proof grid_live0 grid_live0_ap = true := by decide +kernel
+/-- every cell of an n × m grid halts, under weak fairness: along every run that takes each helpful request whenever, from some point on, it
+stays allowed, `from` is followed by `to`. -/
+theorem grid_live0_holds_wf (run : SRun grid_machine)
+    (fair : ∀ h ∈ grid_live0.helps, ∀ n, (∀ m, n ≤ m → ∃ ι κ, (∀ p ∈ h.2, ι p.1 = evalE (run.st m).1 (run.st m).2 p.2)
+        ∧ evalC (sView grid_machine (run.st m).1 (run.st m).2 ι κ).1 (sView grid_machine (run.st m).1 (run.st m).2 ι κ).2 grid_machine.f.m.assume = true) →
+      ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
+    ∀ n, evalC (run.st n).1 (run.st n).2 grid_live0.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 grid_live0.to = true :=
+  sleads_wf_sound grid_machine grid_proof grid_live0 _ _ _ _ grid_check grid_live0_ok grid_live0_stay grid_live0_cover grid_live0_helps grid_live0_allows run fair
+
+/-- every cell of an n × m grid halts: for params meeting its precondition, no run of turns goes on forever. -/
 theorem grid_halts : ∀ maps ρ0, evalC ρ0 maps grid_loop.pre = true →
     ¬ ∃ f : Nat → Nat → Nat, f 0 = applyS grid_loop.init ρ0 maps ∧ ∀ n, Turn grid_loop maps (f n) (f (n + 1)) :=
-  loop_sound grid_loop grid_proof (by decide +kernel)
+  loop_halts_of grid_loop grid_live0 rfl rfl (by intro h hh; simp only [grid_live0, List.mem_singleton] at hh; subst hh; rfl) (by decide +kernel) grid_live0_holds
 
--- TAMPERED: a rank (w ∸ x) that reads the turn's input w: its rank goal checks, yet the loop runs forever when every
--- turn sends w = x + 1. Lean's check refuses ranks over inputs and computes to false (kernel.ts now refuses them too).
+-- TAMPERED: while x < w, x := x + 1, with the rank w ∸ x (w the turn's input): the rank drops each turn, yet the loop
+-- runs forever when every turn sends w = x + 1. Its halting, stated as a liveness, reads the input w in `to` and the rank;
+-- Lean's check refuses it (kernel.ts refuses both).
 def forever_loop : Loop := ⟨[0], [(1, .const 0)], [(1, .add (.var 1) (.const 1))], .lt (.var 1) (.var 0), .le (.const 0) (.const 0), .le (.const 0) (.const 0)⟩
-def forever_proof : LoopProof := ⟨[], [.sub (.var 0) (.var 1)], ([.var 0, .var 1], .split ⟨[(-1), 1], 1⟩
-  (.split ⟨[(-1), 1], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [] [])
-  (.leaf [⟨[(-1), 1], 1⟩, ⟨[1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
-  (.leaf [⟨[1, (-1)], 0⟩, ⟨[(-1), 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩
-example : checkLoop forever_loop forever_proof = false := by decide +kernel
--- Without that check the rank goal alone would pass:
-example : checkGoal ⟨forever_proof.rank.1, rankGoal forever_loop [] forever_proof.ranks⟩ forever_proof.rank.2 = true := by decide +kernel
+def forever_live : Live := ⟨.le (.const 0) (.const 0), .not (.lt (.var 1) (.var 0)), [.sub (.var 0) (.var 1)], [(.le (.const 0) (.const 0), [])], [(1, 2)], []⟩
+example : sliveOk forever_loop.machine forever_live = false := by decide +kernel
 
 -- shape: leaves = nodes + 1; height <= nodes; height < leaves  (variables 0 leaves, 1 nodes, 2 height, 3 l_leaves, 4 l_nodes, 5 l_height, 6 r_leaves, 7 r_nodes, 8 r_height)
 def shape_fold : Fold := ⟨[],
@@ -232,11 +430,11 @@ def shape_proof : FoldProof := [(.eq (.var 0) (.add (.var 1) (.const 1)),
   (.leaf [⟨[0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 1, (-1), 0, 1, (-1)], (-1)⟩] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .combine 3 1 1 1] [] [])
   (.leaf [⟨[0, 0, 0, (-1), 1, 0, (-1), 1], 3⟩, ⟨[0, 0, 0, 1, (-1)], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 3 2 1 1] [] []))), (.le (.var 2) (.var 1),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8], .split ⟨[0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .term (.max (.var 5) (.var 8))], .split ⟨[0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 1, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 3 2 1 1] [] [])
   (.leaf [⟨[0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 1, (-1), 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 3 2 1 1] [] []))), (.lt (.var 2) (.var 0),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8], .split ⟨[0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .term (.max (.var 5) (.var 8))], .split ⟨[0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩
   (.leaf [⟨[0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 1, 0, 0, 1, 0, (-1)], (-1)⟩, ⟨[0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 1 1 1, .combine 2 6 1 1, .combine 7 4 1 1] [] [])
   (.leaf [⟨[0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 1, 0, (-1), 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 1 1 1, .combine 2 6 1 1, .combine 7 4 1 1] [] [])))]
 theorem shape_laws : ∀ maps ρ, evalC ρ maps shape_fold.pre = true → ∀ t, Allowed shape_fold ρ maps t →
@@ -257,7 +455,7 @@ def rollup_fold : Fold := ⟨[0],
   .le (.const 0) (.const 0),
   .le (.const 0) (.const 0)⟩
 def rollup_proof : FoldProof := [(.le (.var 1) (.mul 50 (.var 2)),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], .split ⟨[1], (-50)⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.min (.var 0) (.const 50))], .split ⟨[1], (-50)⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[], 1⟩] [.input 0] [] [])),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], .leaf [⟨[0, 0, 0, 1, (-50)], 0⟩, ⟨[0, 0, 0, 0, 0, 1, (-50)], 0⟩, ⟨[0, 0, 0, (-1), 50, (-1), 50], 1⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [] []))]
@@ -280,99 +478,99 @@ def admit_machine : FMMachine := ⟨⟨[3, 4, 5, 6, 7],
 def admit_l0 : MLaw := ⟨.le (.get 0 (.var 8)) (.const 1), some 8⟩
 def admit_e0 : MEntry := ⟨admit_l0, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 0 (.var 3)) (.const 1)) (.get 0 (.var 3))), .term (.ite (.eq (.var 9) (.var 3)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 0 (.var 3)) (.const 1)) (.get 0 (.var 3))) (.get 0 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 4 5 1 1] [(11, 15), (16, 20), (21, 25), (26, 30)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 4 5 1 1] [(13, 17), (18, 22), (23, 27), (28, 32)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(11, 15), (16, 20), (21, 25), (26, 30)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(11, 15), (16, 20), (21, 25), (26, 30)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(11, 15), (16, 20), (21, 25), (26, 30)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(11, 15), (16, 20), (21, 25), (26, 30)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(11, 15), (16, 20), (21, 25), (26, 30)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(11, 15), (16, 20), (21, 25), (26, 30)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(13, 17), (18, 22), (23, 27), (28, 32)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(13, 17), (18, 22), (23, 27), (28, 32)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(13, 17), (18, 22), (23, 27), (28, 32)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(13, 17), (18, 22), (23, 27), (28, 32)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(13, 17), (18, 22), (23, 27), (28, 32)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(13, 17), (18, 22), (23, 27), (28, 32)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def admit_l1 : MLaw := ⟨.le (.get 1 (.var 8)) (.var 0), some 8⟩
 def admit_e1 : MEntry := ⟨admit_l1, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 1 (.var 4)) (.const 1)) (.get 1 (.var 4))), .term (.ite (.eq (.var 9) (.var 4)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 1 (.var 4)) (.const 1)) (.get 1 (.var 4))) (.get 1 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(12, 15), (17, 20), (22, 25), (27, 30)] [])
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(14, 17), (19, 22), (24, 27), (29, 32)] [])
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(12, 15), (17, 20), (22, 25), (27, 30)] [])
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(12, 15), (17, 20), (22, 25), (27, 30)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(12, 15), (17, 20), (22, 25), (27, 30)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 15), (17, 20), (22, 25), (27, 30)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(12, 15), (17, 20), (22, 25), (27, 30)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(12, 15), (17, 20), (22, 25), (27, 30)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(14, 17), (19, 22), (24, 27), (29, 32)] [])
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(14, 17), (19, 22), (24, 27), (29, 32)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(14, 17), (19, 22), (24, 27), (29, 32)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(14, 17), (19, 22), (24, 27), (29, 32)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(14, 17), (19, 22), (24, 27), (29, 32)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(14, 17), (19, 22), (24, 27), (29, 32)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def admit_l2 : MLaw := ⟨.le (.get 2 (.var 8)) (.var 1), some 8⟩
 def admit_e2 : MEntry := ⟨admit_l2, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10], .leaf [⟨[0, 1], 1⟩, ⟨[0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 2 (.var 5)) (.const 1)) (.get 2 (.var 5))), .term (.ite (.eq (.var 9) (.var 5)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 2 (.var 5)) (.const 1)) (.get 2 (.var 5))) (.get 2 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(13, 15), (18, 20), (23, 25), (28, 30)] [])
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(15, 17), (20, 22), (25, 27), (30, 32)] [])
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(13, 15), (18, 20), (23, 25), (28, 30)] [])
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(13, 15), (18, 20), (23, 25), (28, 30)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(13, 15), (18, 20), (23, 25), (28, 30)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(13, 15), (18, 20), (23, 25), (28, 30)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(13, 15), (18, 20), (23, 25), (28, 30)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(13, 15), (18, 20), (23, 25), (28, 30)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(15, 17), (20, 22), (25, 27), (30, 32)] [])
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(15, 17), (20, 22), (25, 27), (30, 32)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(15, 17), (20, 22), (25, 27), (30, 32)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(15, 17), (20, 22), (25, 27), (30, 32)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(15, 17), (20, 22), (25, 27), (30, 32)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(15, 17), (20, 22), (25, 27), (30, 32)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def admit_l3 : MLaw := ⟨.le (.get 3 (.var 8)) (.var 2), some 8⟩
 def admit_e3 : MEntry := ⟨admit_l3, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10], .leaf [⟨[0, 0, 1], 1⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 3 (.var 6)) (.const 1)) (.get 3 (.var 6))), .term (.ite (.eq (.var 9) (.var 6)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 3 (.var 6)) (.const 1)) (.get 3 (.var 6))) (.get 3 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(14, 15), (19, 20), (24, 25), (29, 30)] [])
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(16, 17), (21, 22), (26, 27), (31, 32)] [])
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(14, 15), (19, 20), (24, 25), (29, 30)] [])
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(14, 15), (19, 20), (24, 25), (29, 30)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(14, 15), (19, 20), (24, 25), (29, 30)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(14, 15), (19, 20), (24, 25), (29, 30)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(14, 15), (19, 20), (24, 25), (29, 30)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(14, 15), (19, 20), (24, 25), (29, 30)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(16, 17), (21, 22), (26, 27), (31, 32)] [])
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 17), (21, 22), (26, 27), (31, 32)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(16, 17), (21, 22), (26, 27), (31, 32)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(16, 17), (21, 22), (26, 27), (31, 32)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(16, 17), (21, 22), (26, 27), (31, 32)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(16, 17), (21, 22), (26, 27), (31, 32)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def admit_proof : List MEntry := [admit_e0, admit_e1, admit_e2, admit_e3]
 theorem admit_check : checkFMMachine admit_machine admit_proof = true := by decide +kernel
 theorem admit_laws : ∀ ρ M, FMReach admit_machine ρ M → ∀ e ∈ admit_proof, e.law.Holds ρ M :=
@@ -425,7 +623,7 @@ def fpolicy_machine : FMachine := ⟨⟨[2],
   [(4, .lt (.var 3) (.var 0))]⟩
 def fpolicy_proof : MachineProof := [(.le (.var 3) (.add (.var 0) (.var 1)),
   ([.var 0, .var 1, .var 2, .var 3, .var 4], .leaf [⟨[1, 1], 1⟩, ⟨[(-1)], 0⟩, ⟨[0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 3 2 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4], .split ⟨[(-1), 0, 0, 1], 1⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .term (.min (.var 2) (.var 1)), .term (.ite (.lt (.var 3) (.var 0)) (.add (.var 3) (.min (.var 2) (.var 1))) (.var 3))], .split ⟨[(-1), 0, 0, 1], 1⟩
   (.split ⟨[0, (-1), 1], 0⟩
   (.leaf [⟨[(-1), 0, 0, 1], 1⟩, ⟨[0, (-1), 1], 0⟩, ⟨[1, 1, (-1), (-1)], 1⟩] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .combine 1 3 1 1] [] [])
   (.leaf [⟨[(-1), 0, 0, 1], 1⟩, ⟨[1, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
@@ -448,99 +646,99 @@ def fadmit_machine : FMMachine := ⟨⟨[3, 4, 5, 6, 7],
 def fadmit_l0 : MLaw := ⟨.le (.get 0 (.var 8)) (.const 1), some 8⟩
 def fadmit_e0 : MEntry := ⟨fadmit_l0, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 0 (.var 3)) (.const 1)) (.get 0 (.var 3))), .term (.ite (.eq (.var 9) (.var 3)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 0 (.var 3)) (.const 1)) (.get 0 (.var 3))) (.get 0 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 4 5 1 1] [(12, 16), (17, 21), (22, 26), (27, 31)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 4 5 1 1] [(14, 18), (19, 23), (24, 28), (29, 33)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(12, 16), (17, 21), (22, 26), (27, 31)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 16), (17, 21), (22, 26), (27, 31)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 16), (17, 21), (22, 26), (27, 31)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 16), (17, 21), (22, 26), (27, 31)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 16), (17, 21), (22, 26), (27, 31)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(12, 16), (17, 21), (22, 26), (27, 31)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(14, 18), (19, 23), (24, 28), (29, 33)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(14, 18), (19, 23), (24, 28), (29, 33)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(14, 18), (19, 23), (24, 28), (29, 33)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(14, 18), (19, 23), (24, 28), (29, 33)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(14, 18), (19, 23), (24, 28), (29, 33)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(14, 18), (19, 23), (24, 28), (29, 33)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def fadmit_l1 : MLaw := ⟨.le (.get 1 (.var 8)) (.var 0), some 8⟩
 def fadmit_e1 : MEntry := ⟨fadmit_l1, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 1 (.var 4)) (.const 1)) (.get 1 (.var 4))), .term (.ite (.eq (.var 9) (.var 4)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 1 (.var 4)) (.const 1)) (.get 1 (.var 4))) (.get 1 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(13, 16), (18, 21), (23, 26), (28, 31)] [])
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(15, 18), (20, 23), (25, 28), (30, 33)] [])
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(13, 16), (18, 21), (23, 26), (28, 31)] [])
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(13, 16), (18, 21), (23, 26), (28, 31)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(13, 16), (18, 21), (23, 26), (28, 31)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(13, 16), (18, 21), (23, 26), (28, 31)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(13, 16), (18, 21), (23, 26), (28, 31)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(13, 16), (18, 21), (23, 26), (28, 31)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(15, 18), (20, 23), (25, 28), (30, 33)] [])
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(15, 18), (20, 23), (25, 28), (30, 33)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(15, 18), (20, 23), (25, 28), (30, 33)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(15, 18), (20, 23), (25, 28), (30, 33)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(15, 18), (20, 23), (25, 28), (30, 33)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(15, 18), (20, 23), (25, 28), (30, 33)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def fadmit_l2 : MLaw := ⟨.le (.get 2 (.var 8)) (.var 1), some 8⟩
 def fadmit_e2 : MEntry := ⟨fadmit_l2, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[0, 1], 1⟩, ⟨[0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 2 (.var 5)) (.const 1)) (.get 2 (.var 5))), .term (.ite (.eq (.var 9) (.var 5)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 2 (.var 5)) (.const 1)) (.get 2 (.var 5))) (.get 2 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(14, 16), (19, 21), (24, 26), (29, 31)] [])
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(16, 18), (21, 23), (26, 28), (31, 33)] [])
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(14, 16), (19, 21), (24, 26), (29, 31)] [])
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(14, 16), (19, 21), (24, 26), (29, 31)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(14, 16), (19, 21), (24, 26), (29, 31)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(14, 16), (19, 21), (24, 26), (29, 31)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(14, 16), (19, 21), (24, 26), (29, 31)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(14, 16), (19, 21), (24, 26), (29, 31)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(16, 18), (21, 23), (26, 28), (31, 33)] [])
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(16, 18), (21, 23), (26, 28), (31, 33)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 18), (21, 23), (26, 28), (31, 33)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(16, 18), (21, 23), (26, 28), (31, 33)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(16, 18), (21, 23), (26, 28), (31, 33)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(16, 18), (21, 23), (26, 28), (31, 33)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def fadmit_l3 : MLaw := ⟨.le (.get 3 (.var 8)) (.var 2), some 8⟩
 def fadmit_e3 : MEntry := ⟨fadmit_l3, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[0, 0, 1], 1⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 3 (.var 6)) (.const 1)) (.get 3 (.var 6))), .term (.ite (.eq (.var 9) (.var 6)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 3 (.var 6)) (.const 1)) (.get 3 (.var 6))) (.get 3 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(15, 16), (20, 21), (25, 26), (30, 31)] [])
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(17, 18), (22, 23), (27, 28), (32, 33)] [])
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(15, 16), (20, 21), (25, 26), (30, 31)] [])
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(15, 16), (20, 21), (25, 26), (30, 31)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(15, 16), (20, 21), (25, 26), (30, 31)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(15, 16), (20, 21), (25, 26), (30, 31)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(15, 16), (20, 21), (25, 26), (30, 31)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(15, 16), (20, 21), (25, 26), (30, 31)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(17, 18), (22, 23), (27, 28), (32, 33)] [])
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(17, 18), (22, 23), (27, 28), (32, 33)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(17, 18), (22, 23), (27, 28), (32, 33)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(17, 18), (22, 23), (27, 28), (32, 33)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(17, 18), (22, 23), (27, 28), (32, 33)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(17, 18), (22, 23), (27, 28), (32, 33)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def fadmit_proof : List MEntry := [fadmit_e0, fadmit_e1, fadmit_e2, fadmit_e3]
 theorem fadmit_check : checkFMMachine fadmit_machine fadmit_proof = true := by decide +kernel
 theorem fadmit_laws : ∀ ρ M, FMReach fadmit_machine ρ M → ∀ e ∈ fadmit_proof, e.law.Holds ρ M :=
@@ -593,7 +791,7 @@ def refines_machine : FMMachine := ⟨⟨[2],
 def refines_l0 : MLaw := ⟨.eq (.add (.var 3) (.var 4)) (.var 0), none⟩
 def refines_e0 : MEntry := ⟨refines_l0, 5, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8], .split ⟨[0, (-1), 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .term (.min (.var 2) (.var 1)), .term (.sub (.var 3) (.min (.var 2) (.var 1))), .term (.ite (.le (.min (.var 2) (.var 1)) (.var 3)) (.sub (.var 3) (.min (.var 2) (.var 1))) (.var 3)), .term (.ite (.le (.add (.var 4) (.min (.var 2) (.var 1))) (.var 0)) (.add (.var 4) (.min (.var 2) (.var 1))) (.var 4))], .split ⟨[0, (-1), 1], 0⟩
   (.split ⟨[0, 0, 1, (-1)], 0⟩
   (.split ⟨[(-1), 0, 1, 0, 1], 0⟩
   (.split ⟨[(-1), 0, 0, 1, 1], 0⟩
@@ -636,25 +834,31 @@ def refines_step0 : StepLaw := ⟨.le (.const 0) (.const 0),
   [(3, 7), (4, 8)],
   [],
   [],
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8], .split ⟨[0, (-1), 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .term (.min (.var 2) (.var 1))], .split ⟨[0, (-1), 1], 0⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[], 1⟩] [.input 0] [] []))⟩
 theorem refines_step0_holds : StepLawHolds refines_machine refines_step0 :=
   steplaw_sound refines_machine refines_proof refines_step0 refines_check (by decide +kernel)
 
--- counter || counter: a.n <= cap; b.n <= cap  (variables 0 cap, 1 amount, 2 turn, 3 a_n, 4 b_n, 5 #, 6 a_n', 7 b_n', 8 amount@2, 9 turn@2; maps )
-def interleaved_machine : FMMachine := ⟨⟨[1, 2],
+-- counter || counter: a.n <= cap; b.n <= cap, with sets (carried none; quantified flags none)
+--   (variables 0 cap, 1 amount, 2 turn, 3 a_n, 4 b_n, 5 #, 6 a_n', 7 b_n', 8 amount@2, 9 turn@2, 10 a_n~1, 11 b_n~1; maps )
+def interleaved_machine : SMachine := ⟨⟨⟨[1, 2],
   [(3, .const 0), (4, .const 0)],
   [],
   [(3, .ite (.eq (.var 2) (.const 1)) (.var 3) (.ite (.le (.add (.var 3) (.var 1)) (.var 0)) (.add (.var 3) (.var 1)) (.var 3))), (4, .ite (.eq (.var 2) (.const 0)) (.var 4) (.ite (.le (.add (.var 4) (.var 1)) (.var 0)) (.add (.var 4) (.var 1)) (.var 4)))],
   [],
   .and (.le (.var 0) (.const 10)) (.le (.var 0) (.const 10)),
   .or (.eq (.var 2) (.const 0)) (.eq (.var 2) (.const 1))⟩,
+  []⟩,
+  [],
+  [],
+  [],
+  [],
   []⟩
 def interleaved_l0 : MLaw := ⟨.le (.var 3) (.var 0), none⟩
-def interleaved_e0 : MEntry := ⟨interleaved_l0, 5, [],
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9], .split ⟨[0, 0, 1], 0⟩
+def interleaved_e0 : SEntry := ⟨interleaved_l0, 5, [], [], [], [], [],
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], [], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .term (.ite (.le (.add (.var 3) (.var 1)) (.var 0)) (.add (.var 3) (.var 1)) (.var 3)), .term (.ite (.eq (.var 2) (.const 1)) (.var 3) (.ite (.le (.add (.var 3) (.var 1)) (.var 0)) (.add (.var 3) (.var 1)) (.var 3)))], [], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[(-1), 1, 0, 1], 0⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[(-1), 0, 0, 1], 0⟩, ⟨[1, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
@@ -662,73 +866,90 @@ def interleaved_e0 : MEntry := ⟨interleaved_l0, 5, [],
   (.leaf [⟨[(-1), 0, 0, 1], 0⟩, ⟨[1, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))⟩
 def interleaved_l1 : MLaw := ⟨.le (.var 4) (.var 0), none⟩
-def interleaved_e1 : MEntry := ⟨interleaved_l1, 5, [],
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9], .split ⟨[0, 0, 1], 0⟩
+def interleaved_e1 : SEntry := ⟨interleaved_l1, 5, [], [], [], [], [],
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], [], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .term (.ite (.le (.add (.var 4) (.var 1)) (.var 0)) (.add (.var 4) (.var 1)) (.var 4)), .term (.ite (.eq (.var 2) (.const 0)) (.var 4) (.ite (.le (.add (.var 4) (.var 1)) (.var 0)) (.add (.var 4) (.var 1)) (.var 4)))], [], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[0, 0, (-1)], 0⟩
   (.leaf [⟨[(-1), 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.split ⟨[(-1), 1, 0, 0, 1], 0⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[(-1), 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
-def interleaved_proof : List MEntry := [interleaved_e0, interleaved_e1]
-theorem interleaved_check : checkFMMachine interleaved_machine interleaved_proof = true := by decide +kernel
-theorem interleaved_laws : ∀ ρ M, FMReach interleaved_machine ρ M → ∀ e ∈ interleaved_proof, e.law.Holds ρ M :=
-  fmmachine_sound interleaved_machine interleaved_proof interleaved_check
+def interleaved_proof : List SEntry := [interleaved_e0, interleaved_e1]
+theorem interleaved_check : checkSMachine interleaved_machine interleaved_proof = true := by decide +kernel
+theorem interleaved_laws : ∀ ρ M, SReach interleaved_machine ρ M → ∀ e ∈ interleaved_proof, e.Holds ρ M :=
+  smachine_sound interleaved_machine interleaved_proof interleaved_check
 namespace interleaved
 abbrev «cap» : Nat := 0
 abbrev «a_n» : Nat := 3
 abbrev «b_n» : Nat := 4
 /-- a.n <= cap -/
-theorem law0 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach interleaved_machine ρ μ) : ρ «a_n» ≤ ρ «cap» := by
+theorem law0 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : SReach interleaved_machine ρ μ) : ρ «a_n» ≤ ρ «cap» := by
   have hl : interleaved_l0.Holds ρ μ := interleaved_laws ρ μ h interleaved_e0 (by simp [interleaved_proof])
   exact (evalC_iff ρ μ interleaved_l0.holds).mp hl
 /-- b.n <= cap -/
-theorem law1 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach interleaved_machine ρ μ) : ρ «b_n» ≤ ρ «cap» := by
+theorem law1 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : SReach interleaved_machine ρ μ) : ρ «b_n» ≤ ρ «cap» := by
   have hl : interleaved_l1.Holds ρ μ := interleaved_laws ρ μ h interleaved_e1 (by simp [interleaved_proof])
   exact (evalC_iff ρ μ interleaved_l1.holds).mp hl
 end interleaved
 
 -- Step law: an a turn leaves b's count
-def interleaved_step0 : StepLaw := ⟨.eq (.var 2) (.const 0),
+def interleaved_step0 : SKStep := ⟨⟨[.eq (.var 2) (.const 0)],
   .eq (.var 7) (.var 4),
+  [[]],
   [(3, 6), (4, 7)],
   [],
   [],
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9], .split ⟨[0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .term (.ite (.le (.add (.var 4) (.var 1)) (.var 0)) (.add (.var 4) (.var 1)) (.var 4)), .term (.ite (.eq (.var 2) (.const 0)) (.var 4) (.ite (.le (.add (.var 4) (.var 1)) (.var 0)) (.add (.var 4) (.var 1)) (.var 4)))], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[0, 0, (-1)], 0⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
-  (.leaf [⟨[0, 0, (-1)], 1⟩, ⟨[0, 0, 1], 0⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩
-theorem interleaved_step0_holds : StepLawHolds interleaved_machine interleaved_step0 :=
-  steplaw_sound interleaved_machine interleaved_proof interleaved_step0 interleaved_check (by decide +kernel)
+  (.leaf [⟨[0, 0, (-1)], 1⟩, ⟨[0, 0, 1], 0⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩,
+  [[]],
+  [],
+  [],
+  [],
+  [],
+  []⟩
+theorem interleaved_step0_holds : SKStepHolds interleaved_machine interleaved_step0 :=
+  skstep_sound interleaved_machine interleaved_proof interleaved_step0 interleaved_check (by decide +kernel)
 
 -- Step law over 2 steps: two a turns leave b's count
-def interleaved_step1 : KStep := ⟨[.eq (.var 2) (.const 0), .eq (.var 2) (.const 0)],
+def interleaved_step1 : SKStep := ⟨⟨[.eq (.var 2) (.const 0), .eq (.var 2) (.const 0)],
   .eq (.var 7) (.var 4),
   [[], [(1, 8), (2, 9)]],
   [(3, 6), (4, 7)],
   [],
   [],
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9], .split ⟨[0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .term (.ite (.le (.add (.var 3) (.var 1)) (.var 0)) (.add (.var 3) (.var 1)) (.var 3)), .term (.ite (.eq (.var 2) (.const 1)) (.var 3) (.ite (.le (.add (.var 3) (.var 1)) (.var 0)) (.add (.var 3) (.var 1)) (.var 3))), .term (.ite (.le (.add (.var 4) (.var 1)) (.var 0)) (.add (.var 4) (.var 1)) (.var 4)), .term (.ite (.eq (.var 2) (.const 0)) (.var 4) (.ite (.le (.add (.var 4) (.var 1)) (.var 0)) (.add (.var 4) (.var 1)) (.var 4))), .term (.ite (.le (.add (.var 11) (.var 8)) (.var 0)) (.add (.var 11) (.var 8)) (.var 11)), .term (.ite (.eq (.var 9) (.const 0)) (.var 11) (.ite (.le (.add (.var 11) (.var 8)) (.var 0)) (.add (.var 11) (.var 8)) (.var 11)))], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[(-1), 1, 0, 1], 0⟩
   (.split ⟨[0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [] [])
+  (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.split ⟨[0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [] [])
+  (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
-  (.leaf [⟨[0, 0, (-1)], 1⟩, ⟨[0, 0, 1], 0⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩
-theorem interleaved_step1_holds : KStepHolds interleaved_machine interleaved_step1 :=
-  kstep_sound interleaved_machine interleaved_proof interleaved_step1 interleaved_check (by decide +kernel)
+  (.leaf [⟨[0, 0, (-1)], 1⟩, ⟨[0, 0, 1], 0⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩,
+  [[], []],
+  [],
+  [],
+  [],
+  [],
+  [[(3, 10), (4, 11)]]⟩
+theorem interleaved_step1_holds : SKStepHolds interleaved_machine interleaved_step1 :=
+  skstep_sound interleaved_machine interleaved_proof interleaved_step1 interleaved_check (by decide +kernel)
 
 -- meter, two-phase refines meter: used = used; pending <= most, with flags b_fits  (variables 0 cap, 1 most, 2 op, 3 amount, 4 a_used, 5 a_pending, 6 b_used, 7 #, 8 ?b_fits, 9 a_used', 10 a_pending', 11 b_used'; maps )
 def twophase_machine : FMMachine := ⟨⟨[2, 3],
@@ -742,7 +963,7 @@ def twophase_machine : FMMachine := ⟨⟨[2, 3],
 def twophase_l0 : MLaw := ⟨.eq (.var 4) (.var 6), none⟩
 def twophase_e0 : MEntry := ⟨twophase_l0, 7, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .split ⟨[0, 0, 1], (-1)⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .term (.ite (.and (.eq (.var 2) (.const 1)) (.le (.add (.var 4) (.var 5)) (.var 0))) (.add (.var 4) (.var 5)) (.var 4)), .term (.ite (.le (.add (.var 6) (.var 5)) (.var 0)) (.add (.var 6) (.var 5)) (.var 6)), .term (.ite (.eq (.var 2) (.const 0)) (.var 6) (.ite (.le (.add (.var 6) (.var 5)) (.var 0)) (.add (.var 6) (.var 5)) (.var 6)))], .split ⟨[0, 0, 1], (-1)⟩
   (.split ⟨[0, 0, (-1)], 1⟩
   (.split ⟨[(-1), 0, 0, 0, 1, 1], 0⟩
   (.split ⟨[(-1), 0, 0, 0, 0, 1, 1], 0⟩
@@ -764,7 +985,7 @@ def twophase_e0 : MEntry := ⟨twophase_l0, 7, [],
 def twophase_l1 : MLaw := ⟨.le (.var 5) (.var 1), none⟩
 def twophase_e1 : MEntry := ⟨twophase_l1, 7, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[0, 1], 1⟩, ⟨[0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .split ⟨[0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .term (.min (.var 3) (.var 1)), .term (.ite (.eq (.var 2) (.const 1)) (.const 0) (.var 5)), .term (.ite (.eq (.var 2) (.const 0)) (.min (.var 3) (.var 1)) (.ite (.eq (.var 2) (.const 1)) (.const 0) (.var 5)))], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[0, 0, (-1)], 0⟩
   (.split ⟨[0, (-1), 0, 1], 0⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
@@ -814,7 +1035,7 @@ def escrow_machine : FMMachine := ⟨⟨[0, 1],
 def escrow_l0 : MLaw := ⟨.le (.var 5) (.var 3), none⟩
 def escrow_e0 : MEntry := ⟨escrow_l0, 6, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12], .split ⟨[1], (-1)⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .term (.ite (.and (.eq (.var 0) (.const 1)) (.and (.eq (.var 3) (.const 0)) (.lt (.const 0) (.var 2)))) (.const 1) (.var 5)), .term (.ite (.and (.eq (.var 0) (.const 1)) (.and (.eq (.var 3) (.const 0)) (.lt (.const 0) (.var 2)))) (.const 1) (.var 3))], .split ⟨[1], (-1)⟩
   (.split ⟨[(-1)], 1⟩
   (.split ⟨[0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, (-1)], 0⟩
@@ -844,7 +1065,7 @@ def escrow_step0 : StepLaw := ⟨.le (.const 0) (.const 0),
   [(2, 9), (3, 10), (4, 11), (5, 12)],
   [],
   [],
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12], .split ⟨[0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .term (.ite (.and (.eq (.var 0) (.const 2)) (.and (.lt (.const 0) (.var 2)) (.eq (.var 3) (.const 0)))) (.add (.var 4) (.var 2)) (.var 4))], .split ⟨[0, 0, 0, 0, 0, 1], 0⟩
   (.leaf [⟨[0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
   (.split ⟨[1], (-2)⟩
   (.split ⟨[(-1)], 2⟩
@@ -858,7 +1079,7 @@ def escrow_step0 : StepLaw := ⟨.le (.const 0) (.const 0),
 theorem escrow_step0_holds : StepLawHolds escrow_machine escrow_step0 :=
   steplaw_sound escrow_machine escrow_proof escrow_step0 escrow_check (by decide +kernel)
 
--- connection pool: in use <= pool size; in use + released = acquired; released <= acquired; every client holds <= its cap; in use = what the clients hold, with flags got, back  (variables 0 size, 1 perClient, 2 op, 3 client, 4 inUse, 5 acquired, 6 released, 7 heldTotal, 8 key$91, 9 key$91#, 10 #, 11 ?got, 12 ?back; maps 0 Held)
+-- connection pool: in use <= pool size; in use + released = acquired; released <= acquired; every client holds <= its cap; in use = what the clients hold, with flags got, back  (variables 0 size, 1 perClient, 2 op, 3 client, 4 inUse, 5 acquired, 6 released, 7 heldTotal, 8 key$301, 9 key$301#, 10 #, 11 ?got, 12 ?back; maps 0 Held)
 def pooltotal_machine : FMMachine := ⟨⟨[2, 3],
   [(4, .const 0), (5, .const 0), (6, .const 0), (7, .const 0)],
   [(0, 0)],
@@ -870,16 +1091,16 @@ def pooltotal_machine : FMMachine := ⟨⟨[2, 3],
 def pooltotal_l0 : MLaw := ⟨.le (.var 4) (.var 0), none⟩
 def pooltotal_e0 : MEntry := ⟨pooltotal_l0, 10, [(3, .var 3)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .cell 0 ⟨[0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .term (.sub (.var 4) (.const 1)), .term (.ite (.and (.eq (.var 2) (.const 1)) (.and (.lt (.const 0) (.get 0 (.var 3))) (.lt (.const 0) (.var 4)))) (.sub (.var 4) (.const 1)) (.var 4)), .term (.ite (.and (.eq (.var 2) (.const 0)) (.and (.lt (.var 4) (.var 0)) (.lt (.get 0 (.var 3)) (.var 1)))) (.add (.var 4) (.const 1)) (.ite (.and (.eq (.var 2) (.const 1)) (.and (.lt (.const 0) (.get 0 (.var 3))) (.lt (.const 0) (.var 4)))) (.sub (.var 4) (.const 1)) (.var 4))), .cell 0 ⟨[0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[0, 0, (-1)], 0⟩
   (.split ⟨[(-1), 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[(-1), 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 1, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, (-1), 1, (-1)], 0⟩, ⟨[1, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 2 1 1, .combine 3 1 1 1, .combine 5 4 1 1] [] []))
   (.leaf [⟨[(-1), 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
   (.leaf [⟨[0, 0, 1], 1⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, 0, (-1)], 1⟩
   (.leaf [⟨[(-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 1, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, (-1), 1, (-1)], 0⟩, ⟨[1, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 2 1 1, .combine 3 1 1 1, .combine 4 5 1 1] [] [])
   (.leaf [⟨[0, 0, 0, 0, 1], 0⟩, ⟨[(-1), 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 3 1 1, .combine 2 0 1 1, .combine 5 4 1 1] [] []))
@@ -888,10 +1109,10 @@ def pooltotal_e0 : MEntry := ⟨pooltotal_l0, 10, [(3, .var 3)],
 def pooltotal_l1 : MLaw := ⟨.eq (.add (.var 4) (.var 6)) (.var 5), none⟩
 def pooltotal_e1 : MEntry := ⟨pooltotal_l1, 10, [(3, .var 3)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .cell 0 ⟨[0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .term (.sub (.var 4) (.const 1)), .term (.ite (.and (.eq (.var 2) (.const 1)) (.and (.lt (.const 0) (.get 0 (.var 3))) (.lt (.const 0) (.var 4)))) (.sub (.var 4) (.const 1)) (.var 4)), .term (.ite (.and (.eq (.var 2) (.const 0)) (.and (.lt (.var 4) (.var 0)) (.lt (.get 0 (.var 3)) (.var 1)))) (.add (.var 4) (.const 1)) (.ite (.and (.eq (.var 2) (.const 1)) (.and (.lt (.const 0) (.get 0 (.var 3))) (.lt (.const 0) (.var 4)))) (.sub (.var 4) (.const 1)) (.var 4))), .term (.ite (.and (.eq (.var 2) (.const 1)) (.and (.lt (.const 0) (.get 0 (.var 3))) (.lt (.const 0) (.var 4)))) (.add (.var 6) (.const 1)) (.var 6)), .term (.ite (.and (.eq (.var 2) (.const 0)) (.and (.lt (.var 4) (.var 0)) (.lt (.get 0 (.var 3)) (.var 1)))) (.add (.var 5) (.const 1)) (.var 5)), .cell 0 ⟨[0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[0, 0, (-1)], 0⟩
   (.split ⟨[(-1), 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
   (.split ⟨[0, 0, 0, 0, 1, (-1), 1], 0⟩
   (.leaf [⟨[0, 0, 0, 0, (-1), 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 1, (-1), 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
   (.leaf [⟨[0, 0, 0, 0, (-1), 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 1, (-1), 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
@@ -903,7 +1124,7 @@ def pooltotal_e1 : MEntry := ⟨pooltotal_l1, 10, [(3, .var 3)],
   (.leaf [⟨[1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, (-1), 1, (-1)], 1⟩, ⟨[(-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 1, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 2 1 1, .combine 3 0 1 1, .combine 4 5 1 1] [] [])))
   (.leaf [⟨[0, 0, 1], 1⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, 0, 1, (-1), 1], 0⟩
   (.leaf [⟨[0, 0, 0, 0, (-1), 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 1, (-1), 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
@@ -918,16 +1139,16 @@ def pooltotal_e1 : MEntry := ⟨pooltotal_l1, 10, [(3, .var 3)],
 def pooltotal_l2 : MLaw := ⟨.le (.var 6) (.var 5), none⟩
 def pooltotal_e2 : MEntry := ⟨pooltotal_l2, 10, [(3, .var 3)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .cell 0 ⟨[0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 1], (-1)⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .term (.ite (.and (.eq (.var 2) (.const 1)) (.and (.lt (.const 0) (.get 0 (.var 3))) (.lt (.const 0) (.var 4)))) (.add (.var 6) (.const 1)) (.var 6)), .term (.ite (.and (.eq (.var 2) (.const 0)) (.and (.lt (.var 4) (.var 0)) (.lt (.get 0 (.var 3)) (.var 1)))) (.add (.var 5) (.const 1)) (.var 5)), .cell 0 ⟨[0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 1], (-1)⟩
   (.split ⟨[0, 0, (-1)], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, 0, (-1)], 1⟩
   (.leaf [⟨[0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 1, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 3 2 1 1] [] [])
   (.leaf [⟨[0, 0, 0, 0, 1, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [] []))
   (.leaf [⟨[0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, (-1)], 0⟩
   (.split ⟨[(-1), 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
   (.leaf [⟨[0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 1, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
   (.leaf [⟨[0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.leaf [⟨[1, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 1, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, (-1), 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .input 5, .combine 2 0 1 1, .combine 3 1 1 1, .combine 4 7 1 1, .combine 5 6 1 1, .combine 9 8 1 1] [] []))
@@ -936,32 +1157,32 @@ def pooltotal_e2 : MEntry := ⟨pooltotal_l2, 10, [(3, .var 3)],
 def pooltotal_l3 : MLaw := ⟨.le (.get 0 (.var 8)) (.var 1), some 8⟩
 def pooltotal_e3 : MEntry := ⟨pooltotal_l3, 9, [(3, .var 3), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12], .leaf [⟨[0, 1], 1⟩, ⟨[0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .term (.sub (.get 0 (.var 3)) (.const 1)), .term (.ite (.and (.eq (.var 2) (.const 1)) (.and (.lt (.const 0) (.get 0 (.var 3))) (.lt (.const 0) (.var 4)))) (.sub (.get 0 (.var 3)) (.const 1)) (.get 0 (.var 3))), .term (.ite (.and (.eq (.var 2) (.const 0)) (.and (.lt (.var 4) (.var 0)) (.lt (.get 0 (.var 3)) (.var 1)))) (.add (.get 0 (.var 3)) (.const 1)) (.ite (.and (.eq (.var 2) (.const 1)) (.and (.lt (.const 0) (.get 0 (.var 3))) (.lt (.const 0) (.var 4)))) (.sub (.get 0 (.var 3)) (.const 1)) (.get 0 (.var 3)))), .term (.ite (.eq (.var 9) (.var 3)) (.ite (.and (.eq (.var 2) (.const 0)) (.and (.lt (.var 4) (.var 0)) (.lt (.get 0 (.var 3)) (.var 1)))) (.add (.get 0 (.var 3)) (.const 1)) (.ite (.and (.eq (.var 2) (.const 1)) (.and (.lt (.const 0) (.get 0 (.var 3))) (.lt (.const 0) (.var 4)))) (.sub (.get 0 (.var 3)) (.const 1)) (.get 0 (.var 3)))) (.get 0 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 1], 0⟩
   (.split ⟨[0, 0, (-1)], 0⟩
   (.split ⟨[(-1), 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(13, 14)] [])
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(13, 14)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(13, 14)] []))
-  (.leaf [⟨[0, 0, 1], 1⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(13, 14)] []))
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(17, 18)] [])
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(17, 18)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(17, 18)] []))
+  (.leaf [⟨[0, 0, 1], 1⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(17, 18)] []))
   (.split ⟨[0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, 0, (-1)], 1⟩
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 4 5 1 1] [(13, 14)] [])
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 4 5 1 1] [(13, 14)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 3 1 1, .combine 2 0 1 1, .combine 5 4 1 1] [(13, 14)] []))
-  (.leaf [⟨[0, 0, (-1)], 2⟩, ⟨[0, 0, 1], (-1)⟩] [.input 0, .input 1, .combine 0 1 1 1] [(13, 14)] [])))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))⟩
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 4 5 1 1] [(17, 18)] [])
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 4 5 1 1] [(17, 18)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 3 1 1, .combine 2 0 1 1, .combine 5 4 1 1] [(17, 18)] []))
+  (.leaf [⟨[0, 0, (-1)], 2⟩, ⟨[0, 0, 1], (-1)⟩] [.input 0, .input 1, .combine 0 1 1 1] [(17, 18)] [])))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))⟩
 def pooltotal_l4 : MLaw := ⟨.eq (.var 4) (.var 7), none⟩
 def pooltotal_e4 : MEntry := ⟨pooltotal_l4, 10, [(3, .var 3)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .cell 0 ⟨[0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .term (.sub (.var 4) (.const 1)), .term (.ite (.and (.eq (.var 2) (.const 1)) (.and (.lt (.const 0) (.get 0 (.var 3))) (.lt (.const 0) (.var 4)))) (.sub (.var 4) (.const 1)) (.var 4)), .term (.ite (.and (.eq (.var 2) (.const 0)) (.and (.lt (.var 4) (.var 0)) (.lt (.get 0 (.var 3)) (.var 1)))) (.add (.var 4) (.const 1)) (.ite (.and (.eq (.var 2) (.const 1)) (.and (.lt (.const 0) (.get 0 (.var 3))) (.lt (.const 0) (.var 4)))) (.sub (.var 4) (.const 1)) (.var 4))), .term (.min (.const 1) (.get 0 (.var 3))), .term (.sub (.var 7) (.min (.const 1) (.get 0 (.var 3)))), .term (.ite (.and (.eq (.var 2) (.const 1)) (.and (.lt (.const 0) (.get 0 (.var 3))) (.lt (.const 0) (.var 4)))) (.sub (.var 7) (.min (.const 1) (.get 0 (.var 3)))) (.var 7)), .term (.ite (.and (.eq (.var 2) (.const 0)) (.and (.lt (.var 4) (.var 0)) (.lt (.get 0 (.var 3)) (.var 1)))) (.add (.var 7) (.const 1)) (.ite (.and (.eq (.var 2) (.const 1)) (.and (.lt (.const 0) (.get 0 (.var 3))) (.lt (.const 0) (.var 4)))) (.sub (.var 7) (.min (.const 1) (.get 0 (.var 3)))) (.var 7))), .cell 0 ⟨[0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[0, 0, (-1)], 0⟩
   (.split ⟨[(-1), 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩
   (.leaf [⟨[0, 0, 0, 0, (-1), 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 1, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
   (.leaf [⟨[0, 0, 0, 0, (-1), 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 1, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, (-1), 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 1 1 1, .combine 3 2 1 1, .combine 4 5 1 1] [] []))
@@ -973,7 +1194,7 @@ def pooltotal_e4 : MEntry := ⟨pooltotal_l4, 10, [(3, .var 3)],
   (.leaf [⟨[1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, (-1), 0, 0, 1], 1⟩, ⟨[(-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 2 1 1, .combine 3 0 1 1, .combine 4 5 1 1] [] [])))
   (.leaf [⟨[0, 0, 1], 1⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩
@@ -1022,7 +1243,7 @@ theorem law4 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach pooltota
 end pooltotal
 
 -- TAMPERED: the two-turn law's proof offered without its whens (b may move on its own turns). Lean computes the check to false.
-example : checkKStep interleaved_machine interleaved_proof { interleaved_step1 with whens := [.le (.const 0) (.const 0), .le (.const 0) (.const 0)] } = false := by decide +kernel
+example : checkSKStep interleaved_machine interleaved_proof { interleaved_step1 with k := { interleaved_step1.k with whens := [.le (.const 0) (.const 0), .le (.const 0) (.const 0)] } } = false := by decide +kernel
 
 -- in-flight requests: in-flight loss: s <= b + 3 × 50; s + 50p <= b + 150  (variables 0 b, 1 t, 2 done, 3 s, 4 p, 5 #, 6 s', 7 p'; maps )
 def pflight_machine : FMMachine := ⟨⟨[1, 2],
@@ -1036,7 +1257,7 @@ def pflight_machine : FMMachine := ⟨⟨[1, 2],
 def pflight_l0 : MLaw := ⟨.le (.var 3) (.add (.var 0) (.const 150)), none⟩
 def pflight_e0 : MEntry := ⟨pflight_l0, 5, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7], .leaf [⟨[1], 151⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7], .split ⟨[0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .term (.min (.var 1) (.const 50)), .term (.ite (.and (.eq (.var 2) (.const 1)) (.lt (.const 0) (.var 4))) (.add (.var 3) (.min (.var 1) (.const 50))) (.var 3))], .split ⟨[0, 0, 1], 0⟩
   (.leaf [⟨[(-1), 0, 0, 1], (-150)⟩, ⟨[1, 0, 0, (-1)], 151⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
   (.split ⟨[0, 0, 1], (-1)⟩
   (.split ⟨[0, 0, 0, 0, (-1)], 1⟩
@@ -1048,7 +1269,7 @@ def pflight_e0 : MEntry := ⟨pflight_l0, 5, [],
 def pflight_l1 : MLaw := ⟨.le (.add (.var 3) (.mul 50 (.var 4))) (.add (.var 0) (.const 150)), none⟩
 def pflight_e1 : MEntry := ⟨pflight_l1, 5, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7], .leaf [⟨[1], 151⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7], .split ⟨[0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .term (.min (.var 1) (.const 50)), .term (.ite (.and (.eq (.var 2) (.const 1)) (.lt (.const 0) (.var 4))) (.add (.var 3) (.min (.var 1) (.const 50))) (.var 3)), .term (.ite (.and (.lt (.var 3) (.var 0)) (.lt (.var 4) (.const 3))) (.add (.var 4) (.const 1)) (.var 4)), .term (.sub (.var 4) (.const 1)), .term (.ite (.lt (.const 0) (.var 4)) (.sub (.var 4) (.const 1)) (.var 4)), .term (.ite (.eq (.var 2) (.const 1)) (.ite (.lt (.const 0) (.var 4)) (.sub (.var 4) (.const 1)) (.var 4)) (.ite (.and (.lt (.var 3) (.var 0)) (.lt (.var 4) (.const 3))) (.add (.var 4) (.const 1)) (.var 4)))], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[(-1), 0, 0, 1], 1⟩
   (.split ⟨[0, 0, 0, 0, 1], (-2)⟩
   (.leaf [⟨[(-1), 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 1], (-2)⟩, ⟨[1, 0, 0, (-1), (-50)], 101⟩] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .cut 3 50 [0, 0, 0, 0, (-1)] 3, .combine 1 4 1 1] [] [])
@@ -1087,7 +1308,7 @@ def flight_complete : Progress := ⟨.le (.const 1) (.var 4),
   [],
   [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7], .split ⟨[0, 0, 0, 0, (-1)], 1⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .term (.ite (.and (.lt (.var 3) (.var 0)) (.lt (.var 4) (.const 3))) (.add (.var 4) (.const 1)) (.var 4)), .term (.sub (.var 4) (.const 1)), .term (.ite (.lt (.const 0) (.var 4)) (.sub (.var 4) (.const 1)) (.var 4)), .term (.ite (.eq (.const 1) (.const 1)) (.ite (.lt (.const 0) (.var 4)) (.sub (.var 4) (.const 1)) (.var 4)) (.ite (.and (.lt (.var 3) (.var 0)) (.lt (.var 4) (.const 3))) (.add (.var 4) (.const 1)) (.var 4)))], .split ⟨[0, 0, 0, 0, (-1)], 1⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩
 theorem flight_complete_holds : ProgressHolds pflight_machine flight_complete :=
@@ -1100,7 +1321,7 @@ def flight_complete_tampered : Progress := ⟨.eq (.var 4) (.const 0),
   [],
   [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7], .split ⟨[0, 0, 0, 0, (-1)], 1⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .term (.ite (.and (.lt (.var 3) (.var 0)) (.lt (.var 4) (.const 3))) (.add (.var 4) (.const 1)) (.var 4)), .term (.sub (.var 4) (.const 1)), .term (.ite (.lt (.const 0) (.var 4)) (.sub (.var 4) (.const 1)) (.var 4)), .term (.ite (.eq (.const 1) (.const 1)) (.ite (.lt (.const 0) (.var 4)) (.sub (.var 4) (.const 1)) (.var 4)) (.ite (.and (.lt (.var 3) (.var 0)) (.lt (.var 4) (.const 3))) (.add (.var 4) (.const 1)) (.var 4)))], .split ⟨[0, 0, 0, 0, (-1)], 1⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩
 example : checkProgress pflight_machine pflight_proof flight_complete_tampered = false := by decide +kernel
@@ -1113,7 +1334,7 @@ def flight_admit : Progress := ⟨.and (.lt (.var 3) (.var 0)) (.lt (.var 4) (.c
   [],
   [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7], .split ⟨[(-1), 0, 0, 1], 1⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .term (.ite (.and (.lt (.var 3) (.var 0)) (.lt (.var 4) (.const 3))) (.add (.var 4) (.const 1)) (.var 4)), .term (.sub (.var 4) (.const 1)), .term (.ite (.lt (.const 0) (.var 4)) (.sub (.var 4) (.const 1)) (.var 4)), .term (.ite (.eq (.const 0) (.const 1)) (.ite (.lt (.const 0) (.var 4)) (.sub (.var 4) (.const 1)) (.var 4)) (.ite (.and (.lt (.var 3) (.var 0)) (.lt (.var 4) (.const 3))) (.add (.var 4) (.const 1)) (.var 4)))], .split ⟨[(-1), 0, 0, 1], 1⟩
   (.split ⟨[0, 0, 0, 0, 1], (-2)⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[0, 0, 0, 0, (-1)], 3⟩, ⟨[0, 0, 0, 0, 1], (-2)⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
@@ -1133,99 +1354,99 @@ def padmit_machine : FMMachine := ⟨⟨[3, 4, 5, 6, 7],
 def padmit_l0 : MLaw := ⟨.le (.get 0 (.var 8)) (.const 1), some 8⟩
 def padmit_e0 : MEntry := ⟨padmit_l0, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 0 (.var 3)) (.const 1)) (.get 0 (.var 3))), .term (.ite (.eq (.var 9) (.var 3)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 0 (.var 3)) (.const 1)) (.get 0 (.var 3))) (.get 0 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 4 5 1 1] [(15, 19), (20, 24), (25, 29), (30, 34)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 4 5 1 1] [(17, 21), (22, 26), (27, 31), (32, 36)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(15, 19), (20, 24), (25, 29), (30, 34)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(15, 19), (20, 24), (25, 29), (30, 34)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(15, 19), (20, 24), (25, 29), (30, 34)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(15, 19), (20, 24), (25, 29), (30, 34)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(15, 19), (20, 24), (25, 29), (30, 34)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(15, 19), (20, 24), (25, 29), (30, 34)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(17, 21), (22, 26), (27, 31), (32, 36)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(17, 21), (22, 26), (27, 31), (32, 36)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(17, 21), (22, 26), (27, 31), (32, 36)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(17, 21), (22, 26), (27, 31), (32, 36)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(17, 21), (22, 26), (27, 31), (32, 36)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(17, 21), (22, 26), (27, 31), (32, 36)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def padmit_l1 : MLaw := ⟨.le (.get 1 (.var 8)) (.var 0), some 8⟩
 def padmit_e1 : MEntry := ⟨padmit_l1, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 1 (.var 4)) (.const 1)) (.get 1 (.var 4))), .term (.ite (.eq (.var 9) (.var 4)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 1 (.var 4)) (.const 1)) (.get 1 (.var 4))) (.get 1 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(16, 19), (21, 24), (26, 29), (31, 34)] [])
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(18, 21), (23, 26), (28, 31), (33, 36)] [])
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 19), (21, 24), (26, 29), (31, 34)] [])
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(16, 19), (21, 24), (26, 29), (31, 34)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(16, 19), (21, 24), (26, 29), (31, 34)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 19), (21, 24), (26, 29), (31, 34)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(16, 19), (21, 24), (26, 29), (31, 34)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 19), (21, 24), (26, 29), (31, 34)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(18, 21), (23, 26), (28, 31), (33, 36)] [])
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(18, 21), (23, 26), (28, 31), (33, 36)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(18, 21), (23, 26), (28, 31), (33, 36)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(18, 21), (23, 26), (28, 31), (33, 36)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(18, 21), (23, 26), (28, 31), (33, 36)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(18, 21), (23, 26), (28, 31), (33, 36)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def padmit_l2 : MLaw := ⟨.le (.get 2 (.var 8)) (.var 1), some 8⟩
 def padmit_e2 : MEntry := ⟨padmit_l2, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14], .leaf [⟨[0, 1], 1⟩, ⟨[0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 2 (.var 5)) (.const 1)) (.get 2 (.var 5))), .term (.ite (.eq (.var 9) (.var 5)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 2 (.var 5)) (.const 1)) (.get 2 (.var 5))) (.get 2 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(17, 19), (22, 24), (27, 29), (32, 34)] [])
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(19, 21), (24, 26), (29, 31), (34, 36)] [])
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(17, 19), (22, 24), (27, 29), (32, 34)] [])
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(17, 19), (22, 24), (27, 29), (32, 34)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(17, 19), (22, 24), (27, 29), (32, 34)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(17, 19), (22, 24), (27, 29), (32, 34)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(17, 19), (22, 24), (27, 29), (32, 34)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(17, 19), (22, 24), (27, 29), (32, 34)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(19, 21), (24, 26), (29, 31), (34, 36)] [])
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(19, 21), (24, 26), (29, 31), (34, 36)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(19, 21), (24, 26), (29, 31), (34, 36)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(19, 21), (24, 26), (29, 31), (34, 36)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(19, 21), (24, 26), (29, 31), (34, 36)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(19, 21), (24, 26), (29, 31), (34, 36)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def padmit_l3 : MLaw := ⟨.le (.get 3 (.var 8)) (.var 2), some 8⟩
 def padmit_e3 : MEntry := ⟨padmit_l3, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14], .leaf [⟨[0, 0, 1], 1⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 3 (.var 6)) (.const 1)) (.get 3 (.var 6))), .term (.ite (.eq (.var 9) (.var 6)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 3 (.var 6)) (.const 1)) (.get 3 (.var 6))) (.get 3 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(18, 19), (23, 24), (28, 29), (33, 34)] [])
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(20, 21), (25, 26), (30, 31), (35, 36)] [])
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 19), (23, 24), (28, 29), (33, 34)] [])
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(18, 19), (23, 24), (28, 29), (33, 34)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(18, 19), (23, 24), (28, 29), (33, 34)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(18, 19), (23, 24), (28, 29), (33, 34)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(18, 19), (23, 24), (28, 29), (33, 34)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 19), (23, 24), (28, 29), (33, 34)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(20, 21), (25, 26), (30, 31), (35, 36)] [])
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(20, 21), (25, 26), (30, 31), (35, 36)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(20, 21), (25, 26), (30, 31), (35, 36)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(20, 21), (25, 26), (30, 31), (35, 36)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(20, 21), (25, 26), (30, 31), (35, 36)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(20, 21), (25, 26), (30, 31), (35, 36)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def padmit_proof : List MEntry := [padmit_e0, padmit_e1, padmit_e2, padmit_e3]
 theorem padmit_check : checkFMMachine padmit_machine padmit_proof = true := by decide +kernel
 theorem padmit_laws : ∀ ρ M, FMReach padmit_machine ρ M → ∀ e ∈ padmit_proof, e.law.Holds ρ M :=
@@ -1264,15 +1485,15 @@ def admit_grant : Progress := ⟨.and (.lt (.get 0 (.var 11)) (.const 1)) (.and 
   [(0, 4), (1, 5), (2, 6), (3, 7)],
   [(0, .var 11), (0, .var 12), (0, .var 13), (0, .var 14), (1, .var 11), (1, .var 12), (1, .var 13), (1, .var 14), (2, .var 11), (2, .var 12), (2, .var 13), (2, .var 14), (3, .var 11), (3, .var 12), (3, .var 13), (3, .var 14)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
-  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
-  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
-  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .term (.ite (.and (.eq (.const 1) (.const 1)) (.and (.lt (.get 0 (.var 11)) (.const 1)) (.and (.lt (.get 1 (.var 12)) (.var 0)) (.and (.lt (.get 2 (.var 13)) (.var 1)) (.lt (.get 3 (.var 14)) (.var 2)))))) (.add (.get 0 (.var 11)) (.const 1)) (.get 0 (.var 11))), .term (.ite (.eq (.var 11) (.var 11)) (.ite (.and (.eq (.const 1) (.const 1)) (.and (.lt (.get 0 (.var 11)) (.const 1)) (.and (.lt (.get 1 (.var 12)) (.var 0)) (.and (.lt (.get 2 (.var 13)) (.var 1)) (.lt (.get 3 (.var 14)) (.var 2)))))) (.add (.get 0 (.var 11)) (.const 1)) (.get 0 (.var 11))) (.get 0 (.var 11))), .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
+  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
+  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
+  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩
 theorem admit_grant_holds : ProgressHolds padmit_machine admit_grant :=
   progress_sound padmit_machine padmit_proof admit_grant padmit_check (by decide +kernel)
 -- TAMPERED: even with the day full (false): the proof above offered for it. Lean computes the check to false.
@@ -1283,15 +1504,15 @@ def admit_grant_tampered : Progress := ⟨.and (.lt (.get 0 (.var 11)) (.const 1
   [(0, 4), (1, 5), (2, 6), (3, 7)],
   [(0, .var 11), (0, .var 12), (0, .var 13), (0, .var 14), (1, .var 11), (1, .var 12), (1, .var 13), (1, .var 14), (2, .var 11), (2, .var 12), (2, .var 13), (2, .var 14), (3, .var 11), (3, .var 12), (3, .var 13), (3, .var 14)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
-  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
-  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
-  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .term (.ite (.and (.eq (.const 1) (.const 1)) (.and (.lt (.get 0 (.var 11)) (.const 1)) (.and (.lt (.get 1 (.var 12)) (.var 0)) (.and (.lt (.get 2 (.var 13)) (.var 1)) (.lt (.get 3 (.var 14)) (.var 2)))))) (.add (.get 0 (.var 11)) (.const 1)) (.get 0 (.var 11))), .term (.ite (.eq (.var 11) (.var 11)) (.ite (.and (.eq (.const 1) (.const 1)) (.and (.lt (.get 0 (.var 11)) (.const 1)) (.and (.lt (.get 1 (.var 12)) (.var 0)) (.and (.lt (.get 2 (.var 13)) (.var 1)) (.lt (.get 3 (.var 14)) (.var 2)))))) (.add (.get 0 (.var 11)) (.const 1)) (.get 0 (.var 11))) (.get 0 (.var 11))), .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
+  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
+  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
+  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩
 example : checkProgress padmit_machine padmit_proof admit_grant_tampered = false := by decide +kernel
 
 -- admit: once_per_account: every Acct count <= its cap; day_cap: every Day count <= its cap; hour_cap: every Hour count <= its cap; dom_cap: every Dom count <= its cap, with flags granted  (variables 0 d, 1 hr, 2 dm, 3 acct, 4 day, 5 hour, 6 dom, 7 ok, 8 k, 9 k#, 10 #, 11 ?granted, 12 A, 13 D, 14 H, 15 M; maps 0 Acct, 1 Day, 2 Hour, 3 Dom, 4 Acct', 5 Day', 6 Hour', 7 Dom')
@@ -1306,99 +1527,99 @@ def pfadmit_machine : FMMachine := ⟨⟨[3, 4, 5, 6, 7],
 def pfadmit_l0 : MLaw := ⟨.le (.get 0 (.var 8)) (.const 1), some 8⟩
 def pfadmit_e0 : MEntry := ⟨pfadmit_l0, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 0 (.var 3)) (.const 1)) (.get 0 (.var 3))), .term (.ite (.eq (.var 9) (.var 3)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 0 (.var 3)) (.const 1)) (.get 0 (.var 3))) (.get 0 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 4 5 1 1] [(16, 20), (21, 25), (26, 30), (31, 35)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 4 5 1 1] [(18, 22), (23, 27), (28, 32), (33, 37)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 20), (21, 25), (26, 30), (31, 35)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 20), (21, 25), (26, 30), (31, 35)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 20), (21, 25), (26, 30), (31, 35)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 20), (21, 25), (26, 30), (31, 35)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 20), (21, 25), (26, 30), (31, 35)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 20), (21, 25), (26, 30), (31, 35)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(18, 22), (23, 27), (28, 32), (33, 37)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(18, 22), (23, 27), (28, 32), (33, 37)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(18, 22), (23, 27), (28, 32), (33, 37)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(18, 22), (23, 27), (28, 32), (33, 37)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [(18, 22), (23, 27), (28, 32), (33, 37)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(18, 22), (23, 27), (28, 32), (33, 37)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def pfadmit_l1 : MLaw := ⟨.le (.get 1 (.var 8)) (.var 0), some 8⟩
 def pfadmit_e1 : MEntry := ⟨pfadmit_l1, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 1 (.var 4)) (.const 1)) (.get 1 (.var 4))), .term (.ite (.eq (.var 9) (.var 4)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 1 (.var 4)) (.const 1)) (.get 1 (.var 4))) (.get 1 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(17, 20), (22, 25), (27, 30), (32, 35)] [])
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(19, 22), (24, 27), (29, 32), (34, 37)] [])
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(17, 20), (22, 25), (27, 30), (32, 35)] [])
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(17, 20), (22, 25), (27, 30), (32, 35)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(17, 20), (22, 25), (27, 30), (32, 35)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(17, 20), (22, 25), (27, 30), (32, 35)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(17, 20), (22, 25), (27, 30), (32, 35)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(17, 20), (22, 25), (27, 30), (32, 35)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(19, 22), (24, 27), (29, 32), (34, 37)] [])
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(19, 22), (24, 27), (29, 32), (34, 37)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(19, 22), (24, 27), (29, 32), (34, 37)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(19, 22), (24, 27), (29, 32), (34, 37)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(19, 22), (24, 27), (29, 32), (34, 37)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(19, 22), (24, 27), (29, 32), (34, 37)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def pfadmit_l2 : MLaw := ⟨.le (.get 2 (.var 8)) (.var 1), some 8⟩
 def pfadmit_e2 : MEntry := ⟨pfadmit_l2, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15], .leaf [⟨[0, 1], 1⟩, ⟨[0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 2 (.var 5)) (.const 1)) (.get 2 (.var 5))), .term (.ite (.eq (.var 9) (.var 5)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 2 (.var 5)) (.const 1)) (.get 2 (.var 5))) (.get 2 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(18, 20), (23, 25), (28, 30), (33, 35)] [])
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(20, 22), (25, 27), (30, 32), (35, 37)] [])
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 20), (23, 25), (28, 30), (33, 35)] [])
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(18, 20), (23, 25), (28, 30), (33, 35)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(18, 20), (23, 25), (28, 30), (33, 35)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(18, 20), (23, 25), (28, 30), (33, 35)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(18, 20), (23, 25), (28, 30), (33, 35)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 20), (23, 25), (28, 30), (33, 35)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(20, 22), (25, 27), (30, 32), (35, 37)] [])
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(20, 22), (25, 27), (30, 32), (35, 37)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(20, 22), (25, 27), (30, 32), (35, 37)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(20, 22), (25, 27), (30, 32), (35, 37)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(20, 22), (25, 27), (30, 32), (35, 37)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(20, 22), (25, 27), (30, 32), (35, 37)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def pfadmit_l3 : MLaw := ⟨.le (.get 3 (.var 8)) (.var 2), some 8⟩
 def pfadmit_e3 : MEntry := ⟨pfadmit_l3, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15], .leaf [⟨[0, 0, 1], 1⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 3 (.var 6)) (.const 1)) (.get 3 (.var 6))), .term (.ite (.eq (.var 9) (.var 6)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 3 (.var 6)) (.const 1)) (.get 3 (.var 6))) (.get 3 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(19, 20), (24, 25), (29, 30), (34, 35)] [])
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(21, 22), (26, 27), (31, 32), (36, 37)] [])
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(19, 20), (24, 25), (29, 30), (34, 35)] [])
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(19, 20), (24, 25), (29, 30), (34, 35)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(19, 20), (24, 25), (29, 30), (34, 35)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(19, 20), (24, 25), (29, 30), (34, 35)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(19, 20), (24, 25), (29, 30), (34, 35)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(19, 20), (24, 25), (29, 30), (34, 35)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 22), (26, 27), (31, 32), (36, 37)] [])
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(21, 22), (26, 27), (31, 32), (36, 37)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(21, 22), (26, 27), (31, 32), (36, 37)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(21, 22), (26, 27), (31, 32), (36, 37)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(21, 22), (26, 27), (31, 32), (36, 37)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 22), (26, 27), (31, 32), (36, 37)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def pfadmit_proof : List MEntry := [pfadmit_e0, pfadmit_e1, pfadmit_e2, pfadmit_e3]
 theorem pfadmit_check : checkFMMachine pfadmit_machine pfadmit_proof = true := by decide +kernel
 theorem pfadmit_laws : ∀ ρ M, FMReach pfadmit_machine ρ M → ∀ e ∈ pfadmit_proof, e.law.Holds ρ M :=
@@ -1437,15 +1658,15 @@ def fadmit_grant : Progress := ⟨.and (.lt (.get 0 (.var 12)) (.const 1)) (.and
   [(0, 4), (1, 5), (2, 6), (3, 7)],
   [(0, .var 12), (0, .var 13), (0, .var 14), (0, .var 15), (1, .var 12), (1, .var 13), (1, .var 14), (1, .var 15), (2, .var 12), (2, .var 13), (2, .var 14), (2, .var 15), (3, .var 12), (3, .var 13), (3, .var 14), (3, .var 15)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
-  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
-  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
-  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .term (.ite (.and (.eq (.const 1) (.const 1)) (.and (.lt (.get 0 (.var 12)) (.const 1)) (.and (.lt (.get 1 (.var 13)) (.var 0)) (.and (.lt (.get 2 (.var 14)) (.var 1)) (.lt (.get 3 (.var 15)) (.var 2)))))) (.add (.get 0 (.var 12)) (.const 1)) (.get 0 (.var 12))), .term (.ite (.eq (.var 12) (.var 12)) (.ite (.and (.eq (.const 1) (.const 1)) (.and (.lt (.get 0 (.var 12)) (.const 1)) (.and (.lt (.get 1 (.var 13)) (.var 0)) (.and (.lt (.get 2 (.var 14)) (.var 1)) (.lt (.get 3 (.var 15)) (.var 2)))))) (.add (.get 0 (.var 12)) (.const 1)) (.get 0 (.var 12))) (.get 0 (.var 12))), .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
+  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
+  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
+  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩
 theorem fadmit_grant_holds : ProgressHolds pfadmit_machine fadmit_grant :=
   progress_sound pfadmit_machine pfadmit_proof fadmit_grant pfadmit_check (by decide +kernel)
 
@@ -1461,23 +1682,23 @@ def peracct_machine : FMMachine := ⟨⟨[7, 8, 9, 10, 11, 12],
 def peracct_l0 : MLaw := ⟨.eq (.get 0 (.var 3)) (.get 4 (.var 3)), none⟩
 def peracct_e0 : MEntry := ⟨peracct_l0, 13, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .term (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)), .term (.ite (.and (.eq (.var 11) (.const 1)) (.lt (.get 0 (.var 7)) (.const 1))) (.add (.get 0 (.var 7)) (.const 1)) (.get 0 (.var 7))), .term (.ite (.eq (.var 3) (.var 7)) (.ite (.and (.eq (.var 11) (.const 1)) (.lt (.get 0 (.var 7)) (.const 1))) (.add (.get 0 (.var 7)) (.const 1)) (.get 0 (.var 7))) (.get 0 (.var 3))), .term (.ite (.and (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 1)) (.lt (.get 4 (.var 7)) (.const 1))) (.add (.get 4 (.var 7)) (.const 1)) (.get 4 (.var 7))), .term (.ite (.eq (.var 3) (.var 7)) (.ite (.and (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 1)) (.lt (.get 4 (.var 7)) (.const 1))) (.add (.get 4 (.var 7)) (.const 1)) (.get 4 (.var 7))) (.get 4 (.var 3))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(14, 16), (15, 17)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.leaf [⟨[], 1⟩] [.input 0] [(19, 21), (20, 22)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(14, 16), (15, 17)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(14, 16), (15, 17)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(19, 21), (20, 22)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(19, 21), (20, 22)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
@@ -1485,28 +1706,28 @@ def peracct_e0 : MEntry := ⟨peracct_l0, 13, [],
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(14, 16), (15, 17)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.leaf [⟨[], 1⟩] [.input 0] [(19, 21), (20, 22)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(14, 16), (15, 17)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(14, 16), (15, 17)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(14, 16), (15, 17)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 4 1 1 1, .combine 3 2 1 1, .combine 0 6 1 1, .combine 7 5 1 1] [(14, 16), (15, 17)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(14, 16), (15, 17)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(14, 16), (15, 17)] []))))
-  (.leaf [⟨[], 1⟩] [.input 0] [(14, 16), (15, 17)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(19, 21), (20, 22)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(19, 21), (20, 22)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(19, 21), (20, 22)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 4 1 1 1, .combine 3 2 1 1, .combine 0 6 1 1, .combine 7 5 1 1] [(19, 21), (20, 22)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(19, 21), (20, 22)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(19, 21), (20, 22)] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(19, 21), (20, 22)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
@@ -1536,107 +1757,107 @@ def iso_machine : FMMachine := ⟨⟨[7, 8, 9, 10, 11, 12],
 def iso_l0 : MLaw := ⟨.eq (.get 0 (.var 3)) (.get 4 (.var 3)), none⟩
 def iso_e0 : MEntry := ⟨iso_l0, 13, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .term (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)), .term (.ite (.and (.eq (.var 11) (.const 1)) (.and (.lt (.get 0 (.var 7)) (.const 1)) (.and (.lt (.get 1 (.var 8)) (.var 0)) (.and (.lt (.get 2 (.var 9)) (.var 1)) (.lt (.get 3 (.var 10)) (.var 2)))))) (.add (.get 0 (.var 7)) (.const 1)) (.get 0 (.var 7))), .term (.ite (.eq (.var 3) (.var 7)) (.ite (.and (.eq (.var 11) (.const 1)) (.and (.lt (.get 0 (.var 7)) (.const 1)) (.and (.lt (.get 1 (.var 8)) (.var 0)) (.and (.lt (.get 2 (.var 9)) (.var 1)) (.lt (.get 3 (.var 10)) (.var 2)))))) (.add (.get 0 (.var 7)) (.const 1)) (.get 0 (.var 7))) (.get 0 (.var 3))), .term (.ite (.and (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 1)) (.and (.lt (.get 4 (.var 7)) (.const 1)) (.and (.lt (.get 5 (.var 8)) (.var 0)) (.and (.lt (.get 6 (.var 9)) (.var 1)) (.lt (.get 7 (.var 10)) (.var 2)))))) (.add (.get 4 (.var 7)) (.const 1)) (.get 4 (.var 7))), .term (.ite (.eq (.var 3) (.var 7)) (.ite (.and (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 1)) (.and (.lt (.get 4 (.var 7)) (.const 1)) (.and (.lt (.get 5 (.var 8)) (.var 0)) (.and (.lt (.get 6 (.var 9)) (.var 1)) (.lt (.get 7 (.var 10)) (.var 2)))))) (.add (.get 4 (.var 7)) (.const 1)) (.get 4 (.var 7))) (.get 4 (.var 3))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] [])
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 26), (19, 29)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 31), (24, 34)] [])
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 27), (21, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 32), (26, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 27), (21, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 32), (26, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 26), (19, 29)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 31), (24, 34)] [])
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 27), (21, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 32), (26, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 27), (21, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 32), (26, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(16, 24), (17, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(16, 24), (17, 25)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(21, 29), (22, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(21, 29), (22, 30)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
@@ -1644,339 +1865,339 @@ def iso_e0 : MEntry := ⟨iso_l0, 13, [],
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] [])
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 26), (19, 29)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 31), (24, 34)] [])
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 27), (21, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 32), (26, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 27), (21, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 32), (26, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 26), (19, 29)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 31), (24, 34)] [])
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 27), (21, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 32), (26, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 27), (21, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 32), (26, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(16, 24), (17, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(16, 24), (17, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(16, 24), (17, 25)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(21, 29), (22, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(21, 29), (22, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(21, 29), (22, 30)] [])
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(16, 24), (17, 25), (18, 26), (19, 29), (20, 27), (21, 30), (22, 28), (23, 31)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25), (18, 26), (19, 29), (20, 27), (21, 30)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25), (18, 26), (19, 29), (20, 27), (21, 30)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25), (18, 26), (19, 29)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25), (18, 26), (19, 29)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(16, 24), (17, 25)] [])
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(21, 29), (22, 30), (23, 31), (24, 34), (25, 32), (26, 35), (27, 33), (28, 36)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30), (23, 31), (24, 34), (25, 32), (26, 35)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30), (23, 31), (24, 34), (25, 32), (26, 35)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30), (23, 31), (24, 34)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30), (23, 31), (24, 34)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(21, 29), (22, 30)] [])
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(16, 24), (17, 25), (18, 26), (19, 29), (20, 27), (21, 30)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25), (18, 26), (19, 29)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25), (18, 26), (19, 29)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(16, 24), (17, 25)] [])
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(21, 29), (22, 30), (23, 31), (24, 34), (25, 32), (26, 35)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30), (23, 31), (24, 34)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30), (23, 31), (24, 34)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(21, 29), (22, 30)] [])
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(16, 24), (17, 25), (18, 26), (19, 29)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] []))))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(16, 24), (17, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] [])
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(21, 29), (22, 30), (23, 31), (24, 34)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] []))))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(21, 29), (22, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] [])
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(16, 24), (17, 25), (18, 26), (19, 29), (20, 27), (21, 30), (22, 28), (23, 31)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25), (18, 26), (19, 29), (20, 27), (21, 30)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25), (18, 26), (19, 29), (20, 27), (21, 30)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25), (18, 26), (19, 29)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25), (18, 26), (19, 29)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(16, 24), (17, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(16, 24), (17, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(16, 24), (17, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(16, 24), (17, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(16, 24), (17, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(16, 24), (17, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(16, 24), (17, 25)] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(16, 24), (17, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] [])
+  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(21, 29), (22, 30), (23, 31), (24, 34), (25, 32), (26, 35), (27, 33), (28, 36)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30), (23, 31), (24, 34), (25, 32), (26, 35)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30), (23, 31), (24, 34), (25, 32), (26, 35)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30), (23, 31), (24, 34)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30), (23, 31), (24, 34)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] [])))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(21, 29), (22, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(21, 29), (22, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(21, 29), (22, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(21, 29), (22, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(21, 29), (22, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(21, 29), (22, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(21, 29), (22, 30)] [])))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(21, 29), (22, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] [])
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(16, 24), (17, 25), (18, 26), (19, 29), (20, 27), (21, 30)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25), (18, 26), (19, 29)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25), (18, 26), (19, 29)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(16, 24), (17, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(16, 24), (17, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(16, 24), (17, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(16, 24), (17, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(16, 24), (17, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(16, 24), (17, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(16, 24), (17, 25)] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(16, 24), (17, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] [])
+  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(21, 29), (22, 30), (23, 31), (24, 34), (25, 32), (26, 35)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30), (23, 31), (24, 34)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30), (23, 31), (24, 34)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] [])))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(21, 29), (22, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(21, 29), (22, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(21, 29), (22, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(21, 29), (22, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(21, 29), (22, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(21, 29), (22, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(21, 29), (22, 30)] [])))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(21, 29), (22, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] [])
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(16, 24), (17, 25), (18, 26), (19, 29)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(16, 24), (17, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(16, 24), (17, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(16, 24), (17, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(16, 24), (17, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(16, 24), (17, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(16, 24), (17, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(16, 24), (17, 25)] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(16, 24), (17, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 4 1 1 1, .combine 3 2 1 1, .combine 0 6 1 1, .combine 7 5 1 1] [(16, 24), (17, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(16, 24), (17, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(16, 24), (17, 25)] []))))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25)] []))
+  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(21, 29), (22, 30), (23, 31), (24, 34)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] [])))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(21, 29), (22, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(21, 29), (22, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(21, 29), (22, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(21, 29), (22, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(21, 29), (22, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(21, 29), (22, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(21, 29), (22, 30)] [])))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(21, 29), (22, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 4 1 1 1, .combine 3 2 1 1, .combine 0 6 1 1, .combine 7 5 1 1] [(21, 29), (22, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(21, 29), (22, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(21, 29), (22, 30)] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 29), (22, 30)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def iso_l1 : MLaw := ⟨.eq (.get 1 (.var 4)) (.get 5 (.var 4)), none⟩
 def iso_e1 : MEntry := ⟨iso_l1, 13, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .term (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)), .term (.ite (.and (.eq (.var 11) (.const 1)) (.and (.lt (.get 0 (.var 7)) (.const 1)) (.and (.lt (.get 1 (.var 8)) (.var 0)) (.and (.lt (.get 2 (.var 9)) (.var 1)) (.lt (.get 3 (.var 10)) (.var 2)))))) (.add (.get 1 (.var 8)) (.const 1)) (.get 1 (.var 8))), .term (.ite (.eq (.var 4) (.var 8)) (.ite (.and (.eq (.var 11) (.const 1)) (.and (.lt (.get 0 (.var 7)) (.const 1)) (.and (.lt (.get 1 (.var 8)) (.var 0)) (.and (.lt (.get 2 (.var 9)) (.var 1)) (.lt (.get 3 (.var 10)) (.var 2)))))) (.add (.get 1 (.var 8)) (.const 1)) (.get 1 (.var 8))) (.get 1 (.var 4))), .term (.ite (.and (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 1)) (.and (.lt (.get 4 (.var 7)) (.const 1)) (.and (.lt (.get 5 (.var 8)) (.var 0)) (.and (.lt (.get 6 (.var 9)) (.var 1)) (.lt (.get 7 (.var 10)) (.var 2)))))) (.add (.get 5 (.var 8)) (.const 1)) (.get 5 (.var 8))), .term (.ite (.eq (.var 4) (.var 8)) (.ite (.and (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 1)) (.and (.lt (.get 4 (.var 7)) (.const 1)) (.and (.lt (.get 5 (.var 8)) (.var 0)) (.and (.lt (.get 6 (.var 9)) (.var 1)) (.lt (.get 7 (.var 10)) (.var 2)))))) (.add (.get 5 (.var 8)) (.const 1)) (.get 5 (.var 8))) (.get 5 (.var 4))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34)] [])
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] [])
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 27), (21, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 32), (26, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 27), (21, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 32), (26, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] [])
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 27), (21, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 32), (26, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 27), (21, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 32), (26, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
@@ -1984,345 +2205,345 @@ def iso_e1 : MEntry := ⟨iso_l1, 13, [],
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34)] [])
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] [])
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 27), (21, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 32), (26, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 27), (21, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 32), (26, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] [])
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 27), (21, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 32), (26, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 27), (21, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 32), (26, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(16, 26), (17, 29), (18, 24), (19, 25), (20, 27), (21, 30), (22, 28), (23, 31)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 24), (19, 25), (20, 27), (21, 30)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 24), (19, 25), (20, 27), (21, 30)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 24), (19, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 24), (19, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(21, 31), (22, 34), (23, 29), (24, 30), (25, 32), (26, 35), (27, 33), (28, 36)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 29), (24, 30), (25, 32), (26, 35)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 29), (24, 30), (25, 32), (26, 35)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 29), (24, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 29), (24, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(16, 26), (17, 29), (18, 24), (19, 25), (20, 27), (21, 30)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 24), (19, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 24), (19, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] []))))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(18, 24), (19, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(21, 31), (22, 34), (23, 29), (24, 30), (25, 32), (26, 35)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 29), (24, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 29), (24, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] []))))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(23, 29), (24, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(16, 26), (17, 29), (18, 24), (19, 25)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(21, 31), (22, 34), (23, 29), (24, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(16, 26), (17, 29), (18, 24), (19, 25), (20, 27), (21, 30), (22, 28), (23, 31)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 24), (19, 25), (20, 27), (21, 30)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 24), (19, 25), (20, 27), (21, 30)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 24), (19, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 24), (19, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(18, 24), (19, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] [])
+  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(21, 31), (22, 34), (23, 29), (24, 30), (25, 32), (26, 35), (27, 33), (28, 36)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 29), (24, 30), (25, 32), (26, 35)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 29), (24, 30), (25, 32), (26, 35)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 29), (24, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 29), (24, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] [])))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(23, 29), (24, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(16, 26), (17, 29), (18, 24), (19, 25), (20, 27), (21, 30)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 24), (19, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 24), (19, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(18, 24), (19, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(18, 24), (19, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] [])
+  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(21, 31), (22, 34), (23, 29), (24, 30), (25, 32), (26, 35)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 29), (24, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 29), (24, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] [])))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(23, 29), (24, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(23, 29), (24, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 4 1 1 1, .combine 3 2 1 1, .combine 0 6 1 1, .combine 7 5 1 1] [(16, 26), (17, 29), (18, 24), (19, 25)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(18, 24), (19, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(18, 24), (19, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(18, 24), (19, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(18, 24), (19, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(18, 24), (19, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(18, 24), (19, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(18, 24), (19, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(18, 24), (19, 25)] []))))
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 24), (19, 25)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 4 1 1 1, .combine 3 2 1 1, .combine 0 6 1 1, .combine 7 5 1 1] [(21, 31), (22, 34), (23, 29), (24, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] [])))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(23, 29), (24, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(23, 29), (24, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(23, 29), (24, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(23, 29), (24, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(23, 29), (24, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(23, 29), (24, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(23, 29), (24, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(23, 29), (24, 30)] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 29), (24, 30)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def iso_l2 : MLaw := ⟨.eq (.get 2 (.var 5)) (.get 6 (.var 5)), none⟩
 def iso_e2 : MEntry := ⟨iso_l2, 13, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .term (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)), .term (.ite (.and (.eq (.var 11) (.const 1)) (.and (.lt (.get 0 (.var 7)) (.const 1)) (.and (.lt (.get 1 (.var 8)) (.var 0)) (.and (.lt (.get 2 (.var 9)) (.var 1)) (.lt (.get 3 (.var 10)) (.var 2)))))) (.add (.get 2 (.var 9)) (.const 1)) (.get 2 (.var 9))), .term (.ite (.eq (.var 5) (.var 9)) (.ite (.and (.eq (.var 11) (.const 1)) (.and (.lt (.get 0 (.var 7)) (.const 1)) (.and (.lt (.get 1 (.var 8)) (.var 0)) (.and (.lt (.get 2 (.var 9)) (.var 1)) (.lt (.get 3 (.var 10)) (.var 2)))))) (.add (.get 2 (.var 9)) (.const 1)) (.get 2 (.var 9))) (.get 2 (.var 5))), .term (.ite (.and (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 1)) (.and (.lt (.get 4 (.var 7)) (.const 1)) (.and (.lt (.get 5 (.var 8)) (.var 0)) (.and (.lt (.get 6 (.var 9)) (.var 1)) (.lt (.get 7 (.var 10)) (.var 2)))))) (.add (.get 6 (.var 9)) (.const 1)) (.get 6 (.var 9))), .term (.ite (.eq (.var 5) (.var 9)) (.ite (.and (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 1)) (.and (.lt (.get 4 (.var 7)) (.const 1)) (.and (.lt (.get 5 (.var 8)) (.var 0)) (.and (.lt (.get 6 (.var 9)) (.var 1)) (.lt (.get 7 (.var 10)) (.var 2)))))) (.add (.get 6 (.var 9)) (.const 1)) (.get 6 (.var 9))) (.get 6 (.var 5))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34)] [])
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 27), (19, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 32), (24, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 27), (19, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 32), (24, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
@@ -2330,351 +2551,351 @@ def iso_e2 : MEntry := ⟨iso_l2, 13, [],
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34)] [])
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 27), (19, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 32), (24, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 27), (19, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 32), (24, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 28), (23, 31)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 33), (28, 36)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(16, 26), (17, 29), (18, 27), (19, 30), (20, 24), (21, 25), (22, 28), (23, 31)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 27), (19, 30), (20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 27), (19, 30), (20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] []))))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(20, 24), (21, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(21, 31), (22, 34), (23, 32), (24, 35), (25, 29), (26, 30), (27, 33), (28, 36)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 32), (24, 35), (25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 32), (24, 35), (25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] []))))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(25, 29), (26, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(16, 26), (17, 29), (18, 27), (19, 30), (20, 24), (21, 25)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(21, 31), (22, 34), (23, 32), (24, 35), (25, 29), (26, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(16, 26), (17, 29), (20, 24), (21, 25)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(21, 31), (22, 34), (25, 29), (26, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(16, 26), (17, 29), (18, 27), (19, 30), (20, 24), (21, 25), (22, 28), (23, 31)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 27), (19, 30), (20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 27), (19, 30), (20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(20, 24), (21, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(20, 24), (21, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] [])
+  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(21, 31), (22, 34), (23, 32), (24, 35), (25, 29), (26, 30), (27, 33), (28, 36)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 32), (24, 35), (25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 32), (24, 35), (25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] [])))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(25, 29), (26, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(25, 29), (26, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(16, 26), (17, 29), (18, 27), (19, 30), (20, 24), (21, 25)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(20, 24), (21, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(20, 24), (21, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(20, 24), (21, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(20, 24), (21, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(20, 24), (21, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] [])
+  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(21, 31), (22, 34), (23, 32), (24, 35), (25, 29), (26, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] [])))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(25, 29), (26, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(25, 29), (26, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(25, 29), (26, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(25, 29), (26, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(25, 29), (26, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 4 1 1 1, .combine 3 2 1 1, .combine 0 6 1 1, .combine 7 5 1 1] [(16, 26), (17, 29), (20, 24), (21, 25)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(20, 24), (21, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(20, 24), (21, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(20, 24), (21, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(20, 24), (21, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(20, 24), (21, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(20, 24), (21, 25)] []))))
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 24), (21, 25)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 4 1 1 1, .combine 3 2 1 1, .combine 0 6 1 1, .combine 7 5 1 1] [(21, 31), (22, 34), (25, 29), (26, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] [])))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(25, 29), (26, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(25, 29), (26, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(25, 29), (26, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(25, 29), (26, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(25, 29), (26, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(25, 29), (26, 30)] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 29), (26, 30)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
 def iso_l3 : MLaw := ⟨.eq (.get 3 (.var 6)) (.get 7 (.var 6)), none⟩
 def iso_e3 : MEntry := ⟨iso_l3, 13, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .var 12, .var 13, .var 14, .var 15, .term (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)), .term (.ite (.and (.eq (.var 11) (.const 1)) (.and (.lt (.get 0 (.var 7)) (.const 1)) (.and (.lt (.get 1 (.var 8)) (.var 0)) (.and (.lt (.get 2 (.var 9)) (.var 1)) (.lt (.get 3 (.var 10)) (.var 2)))))) (.add (.get 3 (.var 10)) (.const 1)) (.get 3 (.var 10))), .term (.ite (.eq (.var 6) (.var 10)) (.ite (.and (.eq (.var 11) (.const 1)) (.and (.lt (.get 0 (.var 7)) (.const 1)) (.and (.lt (.get 1 (.var 8)) (.var 0)) (.and (.lt (.get 2 (.var 9)) (.var 1)) (.lt (.get 3 (.var 10)) (.var 2)))))) (.add (.get 3 (.var 10)) (.const 1)) (.get 3 (.var 10))) (.get 3 (.var 6))), .term (.ite (.and (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 1)) (.and (.lt (.get 4 (.var 7)) (.const 1)) (.and (.lt (.get 5 (.var 8)) (.var 0)) (.and (.lt (.get 6 (.var 9)) (.var 1)) (.lt (.get 7 (.var 10)) (.var 2)))))) (.add (.get 7 (.var 10)) (.const 1)) (.get 7 (.var 10))), .term (.ite (.eq (.var 6) (.var 10)) (.ite (.and (.eq (.ite (.eq (.var 12) (.const 1)) (.const 0) (.var 11)) (.const 1)) (.and (.lt (.get 4 (.var 7)) (.const 1)) (.and (.lt (.get 5 (.var 8)) (.var 0)) (.and (.lt (.get 6 (.var 9)) (.var 1)) (.lt (.get 7 (.var 10)) (.var 2)))))) (.add (.get 7 (.var 10)) (.const 1)) (.get 7 (.var 10))) (.get 7 (.var 6))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34)] [])
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 27), (19, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 32), (24, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 28), (21, 31)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 33), (26, 36)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 28), (21, 31)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 33), (26, 36)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 27), (19, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 32), (24, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 28), (21, 31)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 33), (26, 36)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 28), (21, 31)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 33), (26, 36)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
@@ -2682,250 +2903,250 @@ def iso_e3 : MEntry := ⟨iso_l3, 13, [],
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34)] [])
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 27), (19, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 32), (24, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 28), (21, 31)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 33), (26, 36)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 28), (21, 31)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 33), (26, 36)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(18, 27), (19, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(23, 32), (24, 35)] [])
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 28), (21, 31)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 33), (26, 36)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(20, 28), (21, 31)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(25, 33), (26, 36)] [])
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))))
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(22, 24), (23, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(27, 29), (28, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(16, 26), (17, 29), (18, 27), (19, 30), (20, 28), (21, 31), (22, 24), (23, 25)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 27), (19, 30), (22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 27), (19, 30), (22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(21, 31), (22, 34), (23, 32), (24, 35), (25, 33), (26, 36), (27, 29), (28, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 32), (24, 35), (27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 32), (24, 35), (27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(16, 26), (17, 29), (18, 27), (19, 30), (22, 24), (23, 25)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 7 6 1 1] [(21, 31), (22, 34), (23, 32), (24, 35), (27, 29), (28, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(16, 26), (17, 29), (22, 24), (23, 25)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(22, 24), (23, 25)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 0 1 1, .combine 5 2 1 1, .combine 4 6 1 1, .combine 1 7 1 1] [(21, 31), (22, 34), (27, 29), (28, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(27, 29), (28, 30)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(16, 26), (17, 29), (18, 27), (19, 30), (20, 28), (21, 31), (22, 24), (23, 25)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 27), (19, 30), (22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (18, 27), (19, 30), (22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(22, 24), (23, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(22, 24), (23, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
+  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(21, 31), (22, 34), (23, 32), (24, 35), (25, 33), (26, 36), (27, 29), (28, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 32), (24, 35), (27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (23, 32), (24, 35), (27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(27, 29), (28, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(27, 29), (28, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(16, 26), (17, 29), (18, 27), (19, 30), (22, 24), (23, 25)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(16, 26), (17, 29), (22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(22, 24), (23, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(22, 24), (23, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] []))))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])
+  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 3 2 1 1, .combine 0 5 1 1, .combine 1 4 1 1, .combine 6 7 1 1] [(21, 31), (22, 34), (23, 32), (24, 35), (27, 29), (28, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(21, 31), (22, 34), (27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(27, 29), (28, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(27, 29), (28, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] []))))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], (-1)⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 4 1 1 1, .combine 3 2 1 1, .combine 0 6 1 1, .combine 7 5 1 1] [(16, 26), (17, 29), (22, 24), (23, 25)] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(22, 24), (23, 25)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(22, 24), (23, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(22, 24), (23, 25)] []))))
-  (.leaf [⟨[], 1⟩] [.input 0] [(22, 24), (23, 25)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 4 1 1 1, .combine 3 2 1 1, .combine 0 6 1 1, .combine 7 5 1 1] [(21, 31), (22, 34), (27, 29), (28, 30)] [])
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] []))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] [])))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(27, 29), (28, 30)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 0 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 3 1 1 1, .combine 0 2 1 1, .combine 5 4 1 1] [(27, 29), (28, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 1 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [(27, 29), (28, 30)] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(27, 29), (28, 30)] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
   (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 2⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))⟩
@@ -2976,339 +3197,339 @@ def migration_machine : FMMachine := ⟨⟨[3, 4, 5, 6, 7],
 def migration_l0 : MLaw := ⟨.eq (.get 0 (.var 8)) (.get 4 (.var 8)), some 8⟩
 def migration_e0 : MEntry := ⟨migration_l0, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 0 (.var 3)) (.const 1)) (.get 0 (.var 3))), .term (.ite (.eq (.var 9) (.var 3)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 0 (.var 3)) (.const 1)) (.get 0 (.var 3))) (.get 0 (.var 9))), .term (.ite (.and (.le (.add (.get 7 (.var 6)) (.const 1)) (.var 2)) (.and (.le (.add (.get 6 (.var 5)) (.const 1)) (.var 1)) (.and (.le (.add (.get 5 (.var 4)) (.const 1)) (.var 0)) (.and (.le (.add (.get 4 (.var 3)) (.const 1)) (.const 1)) (.eq (.var 7) (.const 1)))))) (.add (.get 4 (.var 3)) (.const 1)) (.get 4 (.var 3))), .term (.ite (.eq (.var 9) (.var 3)) (.ite (.and (.le (.add (.get 7 (.var 6)) (.const 1)) (.var 2)) (.and (.le (.add (.get 6 (.var 5)) (.const 1)) (.var 1)) (.and (.le (.add (.get 5 (.var 4)) (.const 1)) (.var 0)) (.and (.le (.add (.get 4 (.var 3)) (.const 1)) (.const 1)) (.eq (.var 7) (.const 1)))))) (.add (.get 4 (.var 3)) (.const 1)) (.get 4 (.var 3))) (.get 4 (.var 9))), .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
   (.split ⟨[0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .combine 1 3 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] []))
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 5 4 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 4 5 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] []))))
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 5 4 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 4 5 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 5 4 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 4 5 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] []))))
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 5 4 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 4 5 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 5 4 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 4 5 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 5 4 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 4 5 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] []))))
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 2 1 1 1, .combine 0 3 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] []))))
-  (.leaf [⟨[], 1⟩] [.input 0] [(12, 20), (13, 21), (22, 30), (23, 31), (32, 40), (33, 41), (42, 50), (43, 51)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 3 0 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 3 2 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .combine 1 3 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] []))
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 5 4 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 4 5 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] []))))
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 5 4 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 4 5 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 5 4 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 4 5 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] []))))
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 5 4 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 4 5 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 5 4 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 4 5 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 5 4 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 1, .combine 2 3 1 1, .combine 4 5 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] []))))
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 2 1 1 1, .combine 0 3 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(16, 24), (17, 25), (26, 34), (27, 35), (36, 44), (37, 45), (46, 54), (47, 55)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))⟩
 def migration_l1 : MLaw := ⟨.eq (.get 1 (.var 8)) (.get 5 (.var 8)), some 8⟩
 def migration_e1 : MEntry := ⟨migration_l1, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 1 (.var 4)) (.const 1)) (.get 1 (.var 4))), .term (.ite (.eq (.var 9) (.var 4)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 1 (.var 4)) (.const 1)) (.get 1 (.var 4))) (.get 1 (.var 9))), .term (.ite (.and (.le (.add (.get 7 (.var 6)) (.const 1)) (.var 2)) (.and (.le (.add (.get 6 (.var 5)) (.const 1)) (.var 1)) (.and (.le (.add (.get 5 (.var 4)) (.const 1)) (.var 0)) (.and (.le (.add (.get 4 (.var 3)) (.const 1)) (.const 1)) (.eq (.var 7) (.const 1)))))) (.add (.get 5 (.var 4)) (.const 1)) (.get 5 (.var 4))), .term (.ite (.eq (.var 9) (.var 4)) (.ite (.and (.le (.add (.get 7 (.var 6)) (.const 1)) (.var 2)) (.and (.le (.add (.get 6 (.var 5)) (.const 1)) (.var 1)) (.and (.le (.add (.get 5 (.var 4)) (.const 1)) (.var 0)) (.and (.le (.add (.get 4 (.var 3)) (.const 1)) (.const 1)) (.eq (.var 7) (.const 1)))))) (.add (.get 5 (.var 4)) (.const 1)) (.get 5 (.var 4))) (.get 5 (.var 9))), .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, 0, (-1)], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
   (.split ⟨[0, 0, 0, 0, (-1), 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 1, 0, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .combine 1 3 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .input 5, .combine 0 2 1 1, .combine 4 2 1 1, .combine 7 3 1 1, .combine 6 5 1 1, .combine 1 8 1 1, .combine 10 9 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] []))
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] []))))
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] []))))
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .input 5, .input 6, .combine 0 2 1 1, .combine 5 3 1 1, .combine 8 4 1 1, .combine 7 9 1 1, .combine 1 6 1 1, .combine 10 11 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] []))))
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 2 1 1 1, .combine 0 3 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] []))))
-  (.leaf [⟨[], 1⟩] [.input 0] [(12, 30), (13, 31), (16, 22), (17, 23), (34, 40), (35, 41), (44, 50), (45, 51)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .combine 1 3 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .input 5, .combine 0 2 1 1, .combine 4 2 1 1, .combine 7 3 1 1, .combine 6 5 1 1, .combine 1 8 1 1, .combine 10 9 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] []))
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] []))))
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] []))))
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .input 5, .input 6, .combine 0 2 1 1, .combine 5 3 1 1, .combine 8 4 1 1, .combine 7 9 1 1, .combine 1 6 1 1, .combine 10 11 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] []))))
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 2 1 1 1, .combine 0 3 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(16, 34), (17, 35), (20, 26), (21, 27), (38, 44), (39, 45), (48, 54), (49, 55)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))⟩
 def migration_l2 : MLaw := ⟨.eq (.get 2 (.var 8)) (.get 6 (.var 8)), some 8⟩
 def migration_e2 : MEntry := ⟨migration_l2, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 2 (.var 5)) (.const 1)) (.get 2 (.var 5))), .term (.ite (.eq (.var 9) (.var 5)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 2 (.var 5)) (.const 1)) (.get 2 (.var 5))) (.get 2 (.var 9))), .term (.ite (.and (.le (.add (.get 7 (.var 6)) (.const 1)) (.var 2)) (.and (.le (.add (.get 6 (.var 5)) (.const 1)) (.var 1)) (.and (.le (.add (.get 5 (.var 4)) (.const 1)) (.var 0)) (.and (.le (.add (.get 4 (.var 3)) (.const 1)) (.const 1)) (.eq (.var 7) (.const 1)))))) (.add (.get 6 (.var 5)) (.const 1)) (.get 6 (.var 5))), .term (.ite (.eq (.var 9) (.var 5)) (.ite (.and (.le (.add (.get 7 (.var 6)) (.const 1)) (.var 2)) (.and (.le (.add (.get 6 (.var 5)) (.const 1)) (.var 1)) (.and (.le (.add (.get 5 (.var 4)) (.const 1)) (.var 0)) (.and (.le (.add (.get 4 (.var 3)) (.const 1)) (.const 1)) (.eq (.var 7) (.const 1)))))) (.add (.get 6 (.var 5)) (.const 1)) (.get 6 (.var 5))) (.get 6 (.var 9))), .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
   (.split ⟨[0, 0, 0, 0, 0, (-1), 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .combine 1 3 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .input 5, .combine 0 2 1 1, .combine 4 2 1 1, .combine 7 3 1 1, .combine 6 5 1 1, .combine 1 8 1 1, .combine 10 9 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] []))
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] []))))
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .input 5, .input 6, .combine 0 2 1 1, .combine 5 3 1 1, .combine 8 4 1 1, .combine 7 9 1 1, .combine 1 6 1 1, .combine 10 11 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] []))))
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] []))))
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 2 1 1 1, .combine 0 3 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] []))))
-  (.leaf [⟨[], 1⟩] [.input 0] [(12, 40), (13, 41), (18, 22), (19, 23), (28, 32), (29, 33), (46, 50), (47, 51)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .combine 1 3 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .input 5, .combine 0 2 1 1, .combine 4 2 1 1, .combine 7 3 1 1, .combine 6 5 1 1, .combine 1 8 1 1, .combine 10 9 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] []))
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] []))))
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .input 5, .input 6, .combine 0 2 1 1, .combine 5 3 1 1, .combine 8 4 1 1, .combine 7 9 1 1, .combine 1 6 1 1, .combine 10 11 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] []))))
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] []))))
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 2 1 1 1, .combine 0 3 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(16, 44), (17, 45), (22, 26), (23, 27), (32, 36), (33, 37), (50, 54), (51, 55)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))⟩
 def migration_l3 : MLaw := ⟨.eq (.get 3 (.var 8)) (.get 7 (.var 8)), some 8⟩
 def migration_e3 : MEntry := ⟨migration_l3, 9, [(0, .var 3), (0, .var 4), (0, .var 5), (0, .var 6), (0, .var 9), (1, .var 3), (1, .var 4), (1, .var 5), (1, .var 6), (1, .var 9), (2, .var 3), (2, .var 4), (2, .var 5), (2, .var 6), (2, .var 9), (3, .var 3), (3, .var 4), (3, .var 5), (3, .var 6), (3, .var 9)],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leaf [⟨[], 1⟩] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .term (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 3 (.var 6)) (.const 1)) (.get 3 (.var 6))), .term (.ite (.eq (.var 9) (.var 6)) (.ite (.and (.eq (.var 7) (.const 1)) (.and (.lt (.get 0 (.var 3)) (.const 1)) (.and (.lt (.get 1 (.var 4)) (.var 0)) (.and (.lt (.get 2 (.var 5)) (.var 1)) (.lt (.get 3 (.var 6)) (.var 2)))))) (.add (.get 3 (.var 6)) (.const 1)) (.get 3 (.var 6))) (.get 3 (.var 9))), .term (.ite (.and (.le (.add (.get 7 (.var 6)) (.const 1)) (.var 2)) (.and (.le (.add (.get 6 (.var 5)) (.const 1)) (.var 1)) (.and (.le (.add (.get 5 (.var 4)) (.const 1)) (.var 0)) (.and (.le (.add (.get 4 (.var 3)) (.const 1)) (.const 1)) (.eq (.var 7) (.const 1)))))) (.add (.get 7 (.var 6)) (.const 1)) (.get 7 (.var 6))), .term (.ite (.eq (.var 9) (.var 6)) (.ite (.and (.le (.add (.get 7 (.var 6)) (.const 1)) (.var 2)) (.and (.le (.add (.get 6 (.var 5)) (.const 1)) (.var 1)) (.and (.le (.add (.get 5 (.var 4)) (.const 1)) (.var 0)) (.and (.le (.add (.get 4 (.var 3)) (.const 1)) (.const 1)) (.eq (.var 7) (.const 1)))))) (.add (.get 7 (.var 6)) (.const 1)) (.get 7 (.var 6))) (.get 7 (.var 9))), .cell 3 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 0 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 4 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 1 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 5 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 2 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 6 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 1], 0⟩, .cell 3 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, .cell 7 ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩], .split ⟨[0, 0, 0, 0, 0, 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
   (.split ⟨[0, 0, 0, 0, 0, 0, (-1), 0, 0, 1], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩
   (.split ⟨[0, 0, 0, 0, 0, 0, 0, 1], (-1)⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] []))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .combine 1 3 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] []))
-  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] []))
-  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .input 5, .combine 0 2 1 1, .combine 4 2 1 1, .combine 7 3 1 1, .combine 6 5 1 1, .combine 1 8 1 1, .combine 10 9 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] []))
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .input 5, .input 6, .combine 0 2 1 1, .combine 5 3 1 1, .combine 8 4 1 1, .combine 7 9 1 1, .combine 1 6 1 1, .combine 10 11 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] []))))
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] []))))
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] []))))
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 2 1 1 1, .combine 0 3 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] []))))
-  (.leaf [⟨[], 1⟩] [.input 0] [(12, 50), (13, 51), (20, 22), (21, 23), (30, 32), (31, 33), (40, 42), (41, 43)] []))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] []))
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .combine 1 3 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] []))
+  (.leaf [⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] []))
+  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] []))
+  (.leaf [⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .input 5, .combine 0 2 1 1, .combine 4 2 1 1, .combine 7 3 1 1, .combine 6 5 1 1, .combine 1 8 1 1, .combine 10 9 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] []))
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩] [.input 0, .input 1, .input 2, .input 3, .input 4, .input 5, .input 6, .combine 0 2 1 1, .combine 5 3 1 1, .combine 8 4 1 1, .combine 7 9 1 1, .combine 1 6 1 1, .combine 10 11 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] []))))
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] []))))
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.leaf [⟨[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩, ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] []))))
+  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, (-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[(-1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 2 1 1 1, .combine 0 3 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] []))))
+  (.leaf [⟨[], 1⟩] [.input 0] [(16, 54), (17, 55), (24, 26), (25, 27), (34, 36), (35, 37), (44, 46), (45, 47)] []))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (-1), 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))))⟩
 def migration_proof : List MEntry := [migration_e0, migration_e1, migration_e2, migration_e3]
 theorem migration_check : checkFMMachine migration_machine migration_proof = true := by decide +kernel
 theorem migration_laws : ∀ ρ M, FMReach migration_machine ρ M → ∀ e ∈ migration_proof, e.law.Holds ρ M :=
@@ -3348,7 +3569,7 @@ def rollupM_fold : Fold := ⟨[1],
   .le (.const 0) (.const 0),
   .le (.const 0) (.const 0)⟩
 def rollupM_proof : FoldProof := [(.le (.var 2) (.prod (.var 0) (.var 3)),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7], .split ⟨[(-1), 1], 0⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .term (.min (.var 1) (.var 0))], .split ⟨[(-1), 1], 0⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[], 1⟩] [.input 0] [] [])),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .mono [0, 5], .mono [0, 7]], .leaf [⟨[0, 0, 0, 0, 1, 0, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, 0, 0, 1, 0, 0, (-1)], 0⟩, ⟨[0, 0, 0, 0, (-1), 0, (-1), 0, 1, 1], 1⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [] []))]
@@ -3364,8 +3585,8 @@ def t0_tree : Tree :=
 theorem t0 : ∀ env maps, ¬ ∀ c ∈ t0_goal.hyps, evalC env maps c = true :=
   sound t0_goal t0_tree (by decide +kernel)
 
--- budget rule: bounded_loss: s <= b + m @step  (4 columns)
-def t1_goal : Goal := ⟨[.var 0, .var 1, .var 2, .var 3],
+-- budget rule: bounded_loss: s <= b + m @step  (6 columns)
+def t1_goal : Goal := ⟨[.var 0, .var 1, .var 2, .var 3, .term (.min (.var 3) (.var 2)), .term (.ite (.lt (.var 0) (.var 1)) (.add (.var 0) (.min (.var 3) (.var 2))) (.var 0))],
   [.le (.var 0) (.add (.var 1) (.var 2)), .not (.le (.ite (.lt (.var 0) (.var 1)) (.add (.var 0) (.min (.var 3) (.var 2))) (.var 0)) (.add (.var 1) (.var 2)))]⟩
 def t1_tree : Tree :=
   .split ⟨[1, (-1)], 1⟩
@@ -3384,8 +3605,8 @@ def t2_tree : Tree :=
 theorem t2 : ∀ env maps, ¬ ∀ c ∈ t2_goal.hyps, evalC env maps c = true :=
   sound t2_goal t2_tree (by decide +kernel)
 
--- in-flight: in-flight loss: s <= b + 3 × 50 @step  (5 columns)
-def t3_goal : Goal := ⟨[.var 0, .var 1, .var 2, .var 3, .var 4],
+-- in-flight: in-flight loss: s <= b + 3 × 50 @step  (7 columns)
+def t3_goal : Goal := ⟨[.var 0, .var 1, .var 2, .var 3, .var 4, .term (.min (.var 4) (.const 50)), .term (.ite (.and (.eq (.var 0) (.const 1)) (.lt (.const 0) (.var 3))) (.add (.var 1) (.min (.var 4) (.const 50))) (.var 1))],
   [.or (.eq (.var 0) (.const 0)) (.eq (.var 0) (.const 1)), .le (.var 1) (.add (.var 2) (.const 150)), .le (.add (.var 1) (.mul 50 (.var 3))) (.add (.var 2) (.const 150)), .not (.le (.ite (.and (.eq (.var 0) (.const 1)) (.lt (.const 0) (.var 3))) (.add (.var 1) (.min (.var 4) (.const 50))) (.var 1)) (.add (.var 2) (.const 150)))]⟩
 def t3_tree : Tree :=
   .split ⟨[1], 0⟩
@@ -3408,8 +3629,8 @@ def t4_tree : Tree :=
 theorem t4 : ∀ env maps, ¬ ∀ c ∈ t4_goal.hyps, evalC env maps c = true :=
   sound t4_goal t4_tree (by decide +kernel)
 
--- in-flight: s + 50p <= b + 150 @step  (5 columns)
-def t5_goal : Goal := ⟨[.var 0, .var 1, .var 2, .var 3, .var 4],
+-- in-flight: s + 50p <= b + 150 @step  (11 columns)
+def t5_goal : Goal := ⟨[.var 0, .var 1, .var 2, .var 3, .var 4, .term (.min (.var 4) (.const 50)), .term (.ite (.and (.eq (.var 0) (.const 1)) (.lt (.const 0) (.var 3))) (.add (.var 1) (.min (.var 4) (.const 50))) (.var 1)), .term (.ite (.and (.lt (.var 1) (.var 2)) (.lt (.var 3) (.const 3))) (.add (.var 3) (.const 1)) (.var 3)), .term (.sub (.var 3) (.const 1)), .term (.ite (.lt (.const 0) (.var 3)) (.sub (.var 3) (.const 1)) (.var 3)), .term (.ite (.eq (.var 0) (.const 1)) (.ite (.lt (.const 0) (.var 3)) (.sub (.var 3) (.const 1)) (.var 3)) (.ite (.and (.lt (.var 1) (.var 2)) (.lt (.var 3) (.const 3))) (.add (.var 3) (.const 1)) (.var 3)))],
   [.or (.eq (.var 0) (.const 0)) (.eq (.var 0) (.const 1)), .le (.var 1) (.add (.var 2) (.const 150)), .le (.add (.var 1) (.mul 50 (.var 3))) (.add (.var 2) (.const 150)), .not (.le (.add (.ite (.and (.eq (.var 0) (.const 1)) (.lt (.const 0) (.var 3))) (.add (.var 1) (.min (.var 4) (.const 50))) (.var 1)) (.mul 50 (.ite (.eq (.var 0) (.const 1)) (.ite (.lt (.const 0) (.var 3)) (.sub (.var 3) (.const 1)) (.var 3)) (.ite (.and (.lt (.var 1) (.var 2)) (.lt (.var 3) (.const 3))) (.add (.var 3) (.const 1)) (.var 3))))) (.add (.var 2) (.const 150)))]⟩
 def t5_tree : Tree :=
   .split ⟨[1], 0⟩
@@ -3437,7 +3658,7 @@ theorem t6 : ∀ env maps, ¬ ∀ c ∈ t6_goal.hyps, evalC env maps c = true :=
   sound t6_goal t6_tree (by decide +kernel)
 
 -- TAMPERED: budget rule: bounded_loss: s <= b + m @step, the first leaf's derivation without its last step. Lean computes the check to false.
-def tampered1_goal : Goal := ⟨[.var 0, .var 1, .var 2, .var 3],
+def tampered1_goal : Goal := ⟨[.var 0, .var 1, .var 2, .var 3, .term (.min (.var 3) (.var 2)), .term (.ite (.lt (.var 0) (.var 1)) (.add (.var 0) (.min (.var 3) (.var 2))) (.var 0))],
   [.le (.var 0) (.add (.var 1) (.var 2)), .not (.le (.ite (.lt (.var 0) (.var 1)) (.add (.var 0) (.min (.var 3) (.var 2))) (.var 0)) (.add (.var 1) (.var 2)))]⟩
 def tampered1_tree : Tree :=
   .split ⟨[1, (-1)], 1⟩
@@ -3455,7 +3676,7 @@ def tampered1002_tree : Tree :=
 example : checkGoal tampered1002_goal tampered1002_tree = false := by decide +kernel
 
 -- TAMPERED: budget rule: the bounded_loss tree offered for s <= b. Lean computes the check to false.
-def tampered1001_goal : Goal := ⟨[.var 0, .var 1, .var 2, .var 3],
+def tampered1001_goal : Goal := ⟨[.var 0, .var 1, .var 2, .var 3, .term (.min (.var 2) (.var 3)), .term (.ite (.lt (.var 0) (.var 1)) (.add (.var 0) (.min (.var 2) (.var 3))) (.var 0))],
   [.le (.var 0) (.var 1), .not (.le (.ite (.lt (.var 0) (.var 1)) (.add (.var 0) (.min (.var 2) (.var 3))) (.var 0)) (.var 1))]⟩
 def tampered1001_tree : Tree :=
   .split ⟨[1, (-1)], 1⟩
