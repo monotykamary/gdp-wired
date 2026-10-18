@@ -85,12 +85,13 @@ function parse(text: string): Lin {
   return out
 }
 
-export type Outcome = {tree: Tree, nodes: number} | {stuck: 'sat' | 'unknown', witness?: Record<string, number>, path: Path}
+// `why`, when the budget ran out: which limit, at what size, and what usually helps.
+export type Outcome = {tree: Tree, nodes: number} | {stuck: 'sat' | 'unknown', witness?: Record<string, number>, path: Path, why?: string}
 
 // The budget: 200,000 nodes and, by default, a second per hypothesis (at least 20 seconds) per goal; past either the goal
 // is left `unknown`. A goal with many instances (a law about two keys at its pairs) has that many more rows per leaf.
 export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number, until?: number} = {nodes: 0, until: performance.now() + Math.max(20_000, 1_000 * goal.hyps.length)}): Outcome {
-  if (++budget.nodes > 200_000 || (budget.until !== undefined && performance.now() > budget.until)) return {stuck: 'unknown', path}
+  if (++budget.nodes > 200_000 || (budget.until !== undefined && performance.now() > budget.until)) return {stuck: 'unknown', path, why: outOfBudget(goal, budget.nodes > 200_000 ? 'nodes' : 'time', path.size)}
   const rows = leafConstraints(goal, path)
   const verdict = solve(rows)
   if (verdict.kind === 'refuted') return {tree: {leaf: verdict.steps}, nodes: budget.nodes}
@@ -140,6 +141,14 @@ export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number,
   const no = grow(goal, new Map(path).set(id, {lin: split, holds: false}), budget)
   if (!('tree' in no)) return no
   return {tree: {split, yes: yes.tree, no: no.tree}, nodes: budget.nodes}
+}
+
+// What ran out, for a goal left unknown: its size, how deep the case splits went, and the two shapes that usually cause it.
+function outOfBudget(goal: Goal, limit: 'nodes' | 'time', depth: number): string {
+  const steps = Number(/@(\d+) steps/.exec(goal.name)?.[1] ?? 1)
+  return `the prover's ${limit === 'nodes' ? '200,000-node' : 'time'} budget ran out at ${goal.hyps.length} hypotheses, ${depth} case splits deep. ` +
+    `Each case a step decides multiplies the cases to refute, so ${steps > 1 ? `a law over ${steps} steps` : 'many interacting cases'} can outgrow it: ` +
+    'state the law over fewer steps (a one-step law and an invariant often give the same), or split it into laws about fewer conditions'
 }
 
 // Integer completeness for bounded systems: when elimination is inexact and finds no witness, halve a variable's range
@@ -272,7 +281,7 @@ const witnesses = (m: Machine): E[] => Object.entries(m.step.flags ?? {}).flatMa
 // The keys each quantified flag is assumed at (instances under ?f).
 const flagInstances = (m: Machine, keys: E[]): Instances => Object.fromEntries(Object.entries(m.step.flags ?? {}).flatMap(([f, c]) => (c.op === 'all' ? [[`?${f}`, keys]] : [])))
 
-export type Report = {proven: boolean, nodes: number, leaves: number, failed?: {goal: string, stuck: string, witness?: Record<string, number>}, checked: boolean}
+export type Report = {proven: boolean, nodes: number, leaves: number, failed?: {goal: string, stuck: string, witness?: Record<string, number>, why?: string}, checked: boolean}
 
 // --- some key: laws with a witness ---------------------------------------------------------------------------------------
 
@@ -350,7 +359,7 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
   let nodes = 0, leaves = 0
   for (const goal of obligations(m, laws, instances)) {
     const out = grow(goal)
-    if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {})}, checked: false}
+    if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false}
     trees[goal.name] = out.tree
     nodes += out.nodes
     leaves += countLeaves(out.tree)
@@ -389,7 +398,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
   let nodes = base.nodes, leaves = base.leaves
   for (const sl of stepLaws) for (const goal of stepLawObligations(m, laws, perStep[sl.name] ?? instances, sl)) {
     const out = grow(goal)
-    if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {})}, checked: false}
+    if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false}
     trees[goal.name] = out.tree
     nodes += out.nodes
     leaves += countLeaves(out.tree)
@@ -410,7 +419,7 @@ export function proveProgress(m: Machine, laws: Law[], p: {name: string, when: C
   let nodes = base.nodes, leaves = base.leaves
   for (const goal of progressObligations(m, ls, instances, p)) {
     const out = grow(goal)
-    if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {})}, checked: false}
+    if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false}
     trees[goal.name] = out.tree
     nodes += out.nodes
     leaves += countLeaves(out.tree)

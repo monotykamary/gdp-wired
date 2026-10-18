@@ -8,7 +8,7 @@
 // their invariants checked every turn and their rank seen to drop.
 import {type C, type E, type Law, type Machine, type Request, type State, evalC, evalE, interpret, loadJs, numbersOf} from '../core/machine.ts'
 import {allowed, watch} from '../core/watch.ts'
-import {type Decision, type LoopRule, type Rule, type StepLaw, type Verdict, proveDecision, proveLoop, proveRule, proveSteps} from '../core/dsl.ts'
+import {type Decision, type LoopRule, type Rule, type StepLaw, type Verdict, crossCheckDecision, proveDecision, proveLoop, proveRule, proveSteps} from '../core/dsl.ts'
 
 // The builders' types are as wide as any example's; a case only needs what the harness reads.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,7 +26,7 @@ export const machineCase = (name: string, about: string, rule: AnyRule, laws: La
 export const decisionCase = (name: string, about: string, decisions: Decision[], broken: Broken<{decision: Decision}>[] = [], opts: {bound?: number} = {}): DecisionCase => ({kind: 'decisions', name, about, decisions, broken, ...opts})
 export const loopCase = (name: string, about: string, loop: AnyLoop, laws: Law[], broken: Broken<{loop: AnyLoop, laws: Law[]}>[] = [], opts: {bound?: number} = {}): LoopCase => ({kind: 'loop', name, about, loop, laws, broken, ...opts})
 
-export type Finding = {case: string, item: string, check: 'kernel' | 'runs' | 'counterexample', ok: boolean, detail: string}
+export type Finding = {case: string, item: string, check: 'kernel' | 'runs' | 'counterexample' | 'builders', ok: boolean, detail: string}
 
 let seed = 1
 const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
@@ -132,6 +132,12 @@ export function checkCase(c: Case, scale = 1): Finding[] {
     note('laws', 'kernel', v.proven && v.checked, verdictText(v))
     const r = runRule(c.rule, c.laws, {trials: 300 * scale, depth, bound}, c.steps)
     note('laws', 'runs', !r.violation && !r.mismatch && r.steps > 0, r.mismatch ?? (r.violation ? `${r.violation.law} broken: params ${JSON.stringify(r.violation.params)}, requests ${JSON.stringify(r.violation.trace)}` : `${r.steps} steps, every law held, compiled = interpreted`))
+    // The builders: every law, step law, flag and update run again on concrete values against what was built from them,
+    // for the rule and each broken variant alike.
+    for (const [item, rule, laws, steps] of [['laws', c.rule, c.laws, c.steps ?? []] as const, ...c.broken.map(b => [b.name, b.rule, b.laws, b.steps ?? []] as const)]) {
+      const x = rule.crossCheck(laws, steps, {trials: 40 * scale, depth, bound, rand})
+      note(item, 'builders', !x.failure, x.failure ?? `${x.checked} values: the callbacks and what was built from them agree`)
+    }
     for (const b of c.broken) {
       const bv = b.steps?.length ? proveSteps(b.rule, b.laws, b.steps) : proveRule(b.rule, b.laws)
       note(b.name, 'kernel', !bv.proven, verdictText(bv))
@@ -149,10 +155,14 @@ export function checkCase(c: Case, scale = 1): Finding[] {
       note(d.name, 'kernel', v.proven && v.checked, verdictText(v))
       const s = sampleDecision(d, {trials: 20_000 * scale, bound})
       note(d.name, 'runs', !s.counterexample && s.steps > 0, s.counterexample ? `fails at ${JSON.stringify(s.counterexample)}` : `${s.steps} draws met given, then held on all`)
+      const x = crossCheckDecision(d, {trials: 500 * scale, bound, rand})
+      note(d.name, 'builders', !x.failure, x.failure ?? `${x.checked} values: the callbacks and the decision agree`)
     }
     for (const b of c.broken) {
       const v = proveDecision(b.decision)
       note(b.name, 'kernel', !v.proven, verdictText(v))
+      const x = crossCheckDecision(b.decision, {trials: 500 * scale, bound, rand})
+      note(b.name, 'builders', !x.failure, x.failure ?? `${x.checked} values: the callbacks and the decision agree`)
       let s = sampleDecision(b.decision, {trials: 50_000 * scale, bound})
       if (!s.counterexample) s = sampleDecision(b.decision, {trials: 50_000 * scale, bound: bound * 4})
       note(b.name, 'counterexample', !!s.counterexample, s.counterexample ? `fails at ${JSON.stringify(s.counterexample)}` : 'NO DRAW BREAKS IT')

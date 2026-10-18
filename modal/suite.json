@@ -834,6 +834,13 @@
 "timeout": 900
 },
 {
+"name": "values-builders",
+"cmd": "bun test values.test.ts builders.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
 "name": "jev-fabric",
 "cmd": "bun examples/jev-fabric/run.ts 2>&1",
 "cwd": ".",

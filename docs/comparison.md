@@ -103,9 +103,11 @@ the hypothesis they are.
 
 What gdp-wired leaves to Lean or Bend is one of two things, and neither is a gap the next feature closes:
 
-- **Induction the prover would have to invent.** A property of a recursive structure you define (a tree, every prefix
-  of a list of lists) whose proof needs a lemma nobody stated. No automatic prover proves all of these: arithmetic with
-  induction is undecidable. Write that proof in Lean and give the rule the function with its facts.
+- **Proofs the prover would have to invent.** Induction over a recursive structure you define (a tree, every prefix of
+  a list of lists) whose proof needs a lemma nobody stated; and arithmetic with products of unknowns beyond what
+  multiplying two known facts gives (the kernel takes products the way Lean's `nlinarith` does). No automatic prover
+  proves all of these: integer arithmetic with induction, or with products, is undecidable (Hilbert's tenth problem).
+  Write that proof in Lean and give the rule the function with its facts.
 - **An arbitrary algorithm shipped as its proved source.** gdp-wired ships the rule as JavaScript. Bend compiles the
   proved source itself.
 
@@ -127,11 +129,36 @@ as a decision about two calls (noninterference), six over runs or maps of names.
 over naturals, which gdp-wired has built in, or over strings it only passes through, so nothing hits the wall; the price
 is the encoding, strings interned as names and string parsing taken as the runtime's answer.
 
+## Against Cedar
+
+[Cedar](https://www.cedarpolicy.com) is AWS's authorization language, and the closest precedent for gdp-wired's
+design: a restricted language decidable by construction, automatic analysis, a formal model in Lean, and a production
+engine kept honest by differential testing against that model
+([How We Built Cedar](https://arxiv.org/abs/2407.01688)). The two answer different questions.
+
+| | Cedar | gdp-wired |
+| --- | --- | --- |
+| The question | Who may do what to which resource, one request at a time | Laws about rules with state: how much, how often, in what order |
+| Values | 64-bit integers (overflow is an error), strings with `like`, sets, records, entity hierarchies (`in`, transitive), tags, `decimal` (4 places), `ip`, `datetime`, `duration` ([operators](https://docs.cedarpolicy.com/policies/syntax-operators.html)) | Naturals, integers and decimals (two naturals each), strings as interned names with `like` patterns and length, choices, optional values, sets of names, lists of names |
+| Products | Two values may be multiplied: bounded integers keep the encoding decidable | Unbounded naturals: products as far as multiplying two known facts goes (the wall above) |
+| State and history | None: a decision reads the request, the entities and the policies | The core: invariants over every run, step and k-step laws, sums over a log, liveness, refinement, composition |
+| Analysis | A policy set never errors, always or never allows, is subsumed by, equivalent to or disjoint from another ([SymCC](https://docs.rs/cedar-policy-symcc), through an SMT solver) | Laws about decisions, laws comparing two requests (`relate`), every law over every run |
+| What a proof rests on | The encoding into SMT is proven sound in Lean, and the solver's answer is trusted ([SymCert](https://www.amazon.science/publications/symcert-verifying-smt-based-policy-analyses), 2026, verifies the analyses and turns models into counterexamples) | No solver to trust: a small kernel checks every proof tree, and Lean checks the same trees against a twin proven sound |
+| Breaking inputs | Counterexamples from the solver's models | A breaking run, from the prover's witness or the GPU search |
+| Maturity | A production Rust engine behind Amazon Verified Permissions, its Lean model and proofs open source, differential random testing run daily | Young, one author; held by its conformance tests, the builder cross-check, and ports like jev-fabric's |
+
+So they compose rather than compete. Cedar decides the permission; gdp-wired proves the quotas, budgets, rate limits and
+lifecycles around it, which Cedar leaves outside by design. A permission check can also be written as a gdp-wired
+decision (attributes, choices, strings with patterns) and its laws proven, including two-request laws Cedar's analyses
+don't state; what it can't take is Cedar's hierarchy: an entity graph's transitive `in` is induction, the wall again,
+unless the runtime supplies membership as an input.
+
 ## gdp-wired's scope in detail
 
 | It expresses and proves | It does not (today) |
 | --- | --- |
-| Step machines over naturals: scalars, maps from naturals to naturals (a write at one key, or at every key, per map per step), named step conditions, preconditions on params, assumptions per request | Strings, and lists as values (a list in a map's cell, lists of lists) |
+| Step machines over naturals: scalars, maps from naturals to naturals (a write at one key, or at every key, per map per step), named step conditions, preconditions on params, assumptions per request | Lists as values (a list in a map's cell, lists of lists) |
+| Integers and decimals with fixed places (`int`, `decimal(places)`, `.ints`, `.decimals`), as two naturals each: sums, differences, negation, multiples, comparisons, `abs`; strings (`str`): equality, Cedar-style `like` patterns declared on the kind, length, each computed from the string when it is encoded | Reals; string concatenation, substrings and regular expressions beyond globs (a computation the law doesn't read is the runtime's answer, an input) |
 | Lists of names (`.lists(...)`): positions and a length, `push`, `pop`, `set`, and `insertAt`/`removeAt` that keep the order (positions shift: a write at every key reading its key at k ∸ 1 or k + 1, which the runtimes decide on breakpoints); laws about every two positions or more (`forall((i, j) => ...)`: "strictly increasing", so no name twice; `forall((i, j, k) => ...)`: "any three cells repeat a value"), and step laws that an insert puts its name in, keeps every name, and a removal takes it out (`examples/lists.ts`, a scope kept in normal form) | |
 | Sets of names, as maps of 0/1 cells over names interned to numbers: a request carrying whole sets (`.carries`), conditions about every key (`everyKey`, `has`, `subsetOf`, `disjointFrom`, `sameAs`) anywhere in a step (each named as a flag of its own) and inside laws (pulled out as the law's key), the key read alone or plus or less a term and compared (`k < n`, `M[k + 1]`), writes at every key in one step (`each`); laws, step laws and k-step laws over them, each also a Lean theorem; a set's size over a universe of names (`within(n)`, `sizeBelow(n)`: the sum of its cells, exact for names interned below n; `examples/sizes.ts`) | A set's size over unbounded names (Lean's maps have no finite support, so no sum over every key) |
 | Some key (`someKey`): "something was added, so some name is in", proven through a witness, a term naming the key, that the prover finds among the state, the params, the law's key and the request (or the one the law names) | A witness no term of the state names (which a ghost can keep: the last key added, say) |
@@ -143,6 +170,7 @@ is the encoding, strings interned as names and string parsing taken as the runti
 | Decisions over facts: flags, one-of choices, optional facts, bounded naturals (`match` covers every case) | Datatypes beyond those encodings (except as a function's arguments: a list as a number a Lean function decodes); reals |
 | Loops that halt by a rank or a tuple of ranks; folds over binary trees; progress laws ("some request makes this happen"); recursion defined in Lean, entered as a function with its facts | Induction the prover would have to invent (the wall below) |
 | Arithmetic: `+`, truncated `−`, `×` by a constant, `min`, `max`, `if`, products of two terms (proven by the kernel, less well by the prover), division and remainder by a constant (`divBy`, `modBy`) | Generated code for decisions alone (`compileJs` emits machines; a predicate emitter is planned) |
+| k-step laws up to 16 steps | Many steps quickly: each step's cases multiply, so a law over 8 steps that reads every step's conditions takes seconds and one over 10 runs out of budget (the prover says so); a one-step law and an invariant often say the same |
 
 Each "does not" above has a route already: a ghost (a witness no term names, a sum across a map's keys), a bound with
 skips (spec steps that vary), an encoding (strings, datatypes as numbers a Lean function decodes), or Lean itself (a

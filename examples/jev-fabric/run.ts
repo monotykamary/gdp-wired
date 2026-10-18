@@ -21,7 +21,7 @@ if (process.argv.includes('--lean')) {
   process.exit(0)
 }
 
-type Row = {n: number, law: string, kind: string, encoding: string, how: string, proven: boolean, checked: boolean, ms: number, runs: string, brokenRefused: boolean, brokenRun: string, ok: boolean}
+type Row = {n: number, law: string, kind: string, encoding: string, how: string, proven: boolean, checked: boolean, ms: number, runs: string, builders: string, brokenRefused: boolean, brokenRun: string, ok: boolean}
 
 function check(e: Entry): Row {
   const c = e.case()
@@ -37,6 +37,8 @@ function check(e: Entry): Row {
   times.sort((a, b) => a - b)
   const findings = checkCase(c)
   const runs = findings.find(f => f.check === 'runs')
+  // The builders, for the rule and its broken variant: each callback against what was built from it.
+  const builders = findings.filter(f => f.check === 'builders'), buildersOk = builders.length > 0 && builders.every(f => f.ok)
   const own = c.kind === 'rule' ? 'laws' : c.kind === 'decisions' ? c.decisions[0]!.name : ''
   const refused = findings.filter(f => f.check === 'kernel' && f.item !== own)
   const brokenKernel = refused.length > 0 && refused.every(f => f.ok)
@@ -51,9 +53,9 @@ function check(e: Entry): Row {
   }
   const row: Row = {
     n: e.n, law: e.bend, kind: e.kind, encoding: e.encoding, how: e.how ?? 'automatic', proven, checked, ms: times[2]!,
-    runs: runs ? runs.detail : '', brokenRefused: brokenKernel, brokenRun, ok: false,
+    runs: runs ? runs.detail : '', builders: builders.filter(f => !f.ok).map(f => f.detail).join('; ') || `${builders.length} agree`, brokenRefused: brokenKernel, brokenRun, ok: false,
   }
-  row.ok = proven && checked && !!runs?.ok && brokenKernel && brokenOk
+  row.ok = proven && checked && !!runs?.ok && buildersOk && brokenKernel && brokenOk
   return row
 }
 
@@ -61,9 +63,9 @@ const rows: Row[] = []
 const t0 = performance.now()
 for (const e of [...bendLaws, ...extras]) {
   let r: Row
-  try { r = check(e) } catch (err) { r = {n: e.n, law: e.bend, kind: e.kind, encoding: e.encoding, how: e.how ?? '', proven: false, checked: false, ms: 0, runs: `ERROR ${(err as Error).message}`, brokenRefused: false, brokenRun: '', ok: false} }
+  try { r = check(e) } catch (err) { r = {n: e.n, law: e.bend, kind: e.kind, encoding: e.encoding, how: e.how ?? '', proven: false, checked: false, ms: 0, runs: `ERROR ${(err as Error).message}`, builders: '', brokenRefused: false, brokenRun: '', ok: false} }
   rows.push(r)
-  console.log(`${r.ok ? 'ok  ' : 'FAIL'} ${String(r.n || '+').padStart(2)} ${r.law.padEnd(68)} ${r.proven ? (r.checked ? 'proven' : 'KERNEL REJECTS') : 'NOT PROVEN'} ${r.ms.toFixed(1)} ms | broken: ${r.brokenRefused ? 'refused' : 'NOT REFUSED'}${r.ok ? '' : `\n       runs: ${r.runs}\n       broken: ${r.brokenRun}`}`)
+  console.log(`${r.ok ? 'ok  ' : 'FAIL'} ${String(r.n || '+').padStart(2)} ${r.law.padEnd(68)} ${r.proven ? (r.checked ? 'proven' : 'KERNEL REJECTS') : 'NOT PROVEN'} ${r.ms.toFixed(1)} ms | broken: ${r.brokenRefused ? 'refused' : 'NOT REFUSED'}${r.ok ? '' : `\n       runs: ${r.runs}\n       builders: ${r.builders}\n       broken: ${r.brokenRun}`}`)
 }
 const bend = rows.filter(r => r.n > 0), extra = rows.filter(r => r.n === 0)
 const count = (rs: Row[], f: (r: Row) => boolean) => rs.filter(f).length

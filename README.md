@@ -63,9 +63,10 @@ All of these are proven automatically, and each proof is also a Lean theorem:
 When a law is false, the GPU search finds a real run that breaks it. When a law needs an invariant nobody wrote, the GPU
 synthesizer finds one and the kernel proves it.
 
-**What it leaves to Lean or Bend.** Two things, and neither is a gap the next feature closes: induction the prover would
-have to invent (a property of a recursive structure whose proof needs a lemma nobody stated; arithmetic with induction
-is undecidable), and shipping an arbitrary algorithm as its proved source (gdp-wired ships the rule as JavaScript; Bend
+**What it leaves to Lean or Bend.** Two things, and neither is a gap the next feature closes: proofs the prover would
+have to invent (induction over a recursive structure whose proof needs a lemma nobody stated, and arithmetic with
+products of unknowns beyond multiplying two known facts; integer arithmetic with induction or with products is
+undecidable), and shipping an arbitrary algorithm as its proved source (gdp-wired ships the rule as JavaScript; Bend
 compiles the proved source itself). The full list of what is and isn't in scope is in
 [`docs/comparison.md`](docs/comparison.md#gdp-wireds-scope-in-detail).
 
@@ -84,6 +85,12 @@ sound.
 
 The untrusted parts are held to the trusted ones by the test suite:
 
+- **Builders**: every law, step law, flag, update and decision in the examples is run again on concrete runs, its
+  callback's answer computed by the builders' own arithmetic (each term carries its value beside its expression) against
+  what the interpreter makes of the expression that was proven (`rule.crossCheck`, `crossCheckDecision`). A builder that
+  writes a different expression than it means is caught, even where the kernel would still prove the law it wrote.
+- **Encodings**: `fun.compare(reference)` and `rule.compare({init, step})` run the rule against the code it describes,
+  on drawn and edge inputs (strings, decimals and choices as themselves), field by field.
 - **Types**: strict TypeScript and a lint that denies warnings; every switch over operations is exhaustive, so a new
   operation fails to compile wherever it's missing.
 - **Conformance**: random terms through every evaluator (interpreter, generated JavaScript, the kernel, the GPU search,
@@ -138,9 +145,17 @@ const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => s
 ```
 
 
-- **Kinds**: `nat`, `upTo(k)`, `bool`, `oneOf(...)`, `maybe(kind)`; their assumptions (a bit is 0 or 1, a choice is in
-  range) go to the kernel by themselves, and `encodeInput`/`encodeParams` turn runtime values into the numbers the
-  machine reads.
+- **Kinds**: `nat`, `upTo(k)`, `bool`, `oneOf(...)`, `maybe(kind)`, `int`, `decimal(places)`, `str({like, maxLength})`;
+  their assumptions (a bit is 0 or 1, a choice is in range) go to the kernel by themselves, and
+  `encodeInput`/`encodeParams` turn runtime values into the numbers the machine reads.
+- **Integers and decimals**: `int` and `decimal(places)` inputs, `.ints({...})` and `.decimals(places, {...})` state;
+  `plus`, `minus`, `negate`, `times(k)` (k may be negative), `min`, `max`, `abs`, `isNegative`, comparisons with numbers
+  (a decimal's literals are scaled: `price.atMost(19.99)`). Each is two naturals underneath, so the kernel and the Lean
+  twin see nothing new; `rule.decode(state)` reads them back as numbers.
+- **Strings**: `str({like: ['*.internal'], maxLength: 64})`. A string is its interned name, its length and a bit per
+  declared pattern (Cedar's glob), all computed from the string itself when the input is encoded. `s.like(pattern)`,
+  `s.eq('admin')` (which carries the literal's length and pattern bits, so laws reason from either), `s.isEmpty`,
+  `s.length`; sets of strings are carried maps keyed by `s.id`.
 - **Arithmetic** over the naturals: `plus`, `minus` (truncated), `times(k)`, `mul` (a product of two terms), `min`,
   `max`, `when(cond, a, b)`, `count(cond)`; conditions `lt`, `atMost`, `eq`, `and`, `or`, `not`, `implies`.
 - **Sets and quantifiers**: `.carries(...)` for sets a request brings, `everyKey(k => ...)` (and `has`, `subsetOf`,
