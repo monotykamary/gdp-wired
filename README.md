@@ -148,6 +148,9 @@ const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => s
 - **Kinds**: `nat`, `upTo(k)`, `bool`, `oneOf(...)`, `maybe(kind)`, `int`, `decimal(places)`, `str({like, maxLength})`;
   their assumptions (a bit is 0 or 1, a choice is in range) go to the kernel by themselves, and
   `encodeInput`/`encodeParams` turn runtime values into the numbers the machine reads.
+- **State of any kind**: `.state({open: bool.from(true), status: oneOf('new', 'done').from('new'), owner: str().from(''), note: maybe(nat).from(null)})`;
+  a step writes each kind's own values, `when(c, a, b)` chooses between any two values of a kind, and `rule.decode(state)`
+  reads them back as runtime values.
 - **Integers and decimals**: `int` and `decimal(places)` inputs, `.ints({...})` and `.decimals(places, {...})` state;
   `plus`, `minus`, `negate`, `times(k)` (k may be negative), `min`, `max`, `abs`, `isNegative`, comparisons with numbers
   (a decimal's literals are scaled: `price.atMost(19.99)`). Each is two naturals underneath, so the kernel and the Lean
@@ -226,7 +229,7 @@ Lean, compiled natively, wins where the state stays small. Details in [`docs/com
 | `core/` | Machines, the interpreter and JS compiler, the builders, composition (`compose.ts`), the linear solver and its checker, Houdini invariants, models, the first Lean export |
 | `kernel/` | The trusted kernel and the untrusted prover, with soundness fuzz (`kernel.test.ts`, `history.test.ts`) |
 | `lean-kernel/` | The kernel's Lean twin, its soundness proofs, and the exported trees |
-| `examples/` | The builders at work: `domains/` (92 rules across nine domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `budget.ts`, `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `lists.ts`, `sizes.ts`, `liveness.ts`, and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
+| `examples/` | The builders at work: `domains/` (92 rules across nine domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `budget.ts`, `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `lists.ts`, `sizes.ts`, `liveness.ts`, `steps.ts` (laws over up to 16 steps), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
 | `docs/` | The comparison with Bend and Lean, and the full scope |
 | `compare/` | The same three rules in gdp-wired, Bend and plain Lean, checked and measured |
 | `research/` | Everything around the library ([`research/README.md`](research/README.md)): the GPU searches (`search/`, `hw/`, `modal-gpu/`), invariant and rank synthesis (`synth/`), relational laws and guard synthesis (`next/`), bit-vector laws (`sat/`), the enumeration and benchmarks (`enum/`, `gpu/`, `perf/`), the first Lean checker (`lean/`) and the first prototype, the audit path (`audit/`) |
