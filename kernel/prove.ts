@@ -3,7 +3,7 @@
 // reads of one map at keys not yet known equal or apart). Its trees go to kernel.check; nothing it says is trusted.
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {type Lin, add, k, scale, solve, sub} from '../core/solver.ts'
-import {type Goal, type Instances, type Liveness, type Path, type StepLaw, type Tree, canon, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, linear, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, truth, unreachable, withProducts} from './kernel.ts'
+import {type Goal, type Instances, type Liveness, type Path, type StepLaw, type Tree, canon, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
 function openE(e: E, path: Path, out: Lin[]): void {
@@ -417,13 +417,22 @@ export function proveProgress(m: Machine, laws: Law[], p: {name: string, when: C
   }
   return {proven: true, nodes, leaves, checked: progressObligations(m, ls, instances, p).every(g => check(g, trees[g.name]!)), instances, trees}
 }
-// Liveness (kernel.ts's livenessParts): its step law and its progress goals.
-export function proveLiveness(m: Machine, laws: Law[], l: Liveness): Report & {stay?: ReturnType<typeof proveStepLaws>, helpful?: ReturnType<typeof proveProgress>} {
-  const {stay, helpful} = livenessParts(m, l)
-  const a = proveStepLaws(m, laws, [stay])
+// Liveness (kernel.ts's livenessParts): its step laws, proven together. The claim needs no more (a run takes the
+// request, so it is allowed); but a request never allowed would leave the claim about no run, so where a helpful request
+// names every input a client sends and carries no maps, it is proven allowed in its region too.
+export function proveLiveness(m: Machine, laws: Law[], l: Liveness): Report & {steps?: ReturnType<typeof proveStepLaws>} {
+  const {stay, cover, helps} = livenessParts(m, l)
+  const a = proveStepLaws(m, laws, [stay, cover, ...helps])
   if (!a.proven || !a.checked) return {proven: false, nodes: a.nodes, leaves: a.leaves, ...(a.failed ? {failed: a.failed} : {}), checked: false}
-  const b = proveProgress(m.history ? historyMachine(m).machine : m, laws, helpful)
-  return {proven: b.proven, checked: b.checked, nodes: a.nodes + b.nodes, leaves: a.leaves + b.leaves, ...(b.failed ? {failed: b.failed} : {}), stay: a, helpful: b}
+  const plain = m.history ? historyMachine(m).machine : m
+  let nodes = a.nodes, leaves = a.leaves
+  for (const [i, h] of livenessHelpful(l).entries()) {
+    if (m.history || plain.inputMaps?.length || !plain.assume || !plain.inputs.every(inp => inp in h.request)) continue
+    const b = proveProgress(plain, laws, {name: `${l.name}: helpful request ${i + 1} is allowed`, when: {op: 'and', xs: [l.from, {op: 'not', x: l.to}, h.when]}, then: trueC, request: h.request})
+    nodes += b.nodes; leaves += b.leaves
+    if (!b.proven || !b.checked) return {proven: false, nodes, leaves, ...(b.failed ? {failed: b.failed} : {}), checked: false}
+  }
+  return {proven: true, checked: true, nodes, leaves, steps: a}
 }
 
 // The key terms a condition reads maps at; a primed map's key is a key of the map before the step too.

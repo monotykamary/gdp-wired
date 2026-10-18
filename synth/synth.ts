@@ -248,11 +248,13 @@ export function proveWith(m: Machine, goal: Law, survivors: Law[]) {
   }
   // Keep what the goal needs: follow the step trees' leaves back to the laws they use.
   const proof = proveLaws(m, laws).proof!
-  const offset = (m.pre ? 1 : 0) + (m.assume ? 1 : 0)
   const need = new Set([goal.name]), queue = [goal.name]
   while (queue.length) {
     const name = queue.pop()!
-    const g = obligations(m, laws).find(o => o.name === `${name} @step`)!
+    const g = obligations(m, laws, proof.instances).find(o => o.name === `${name} @step`)!
+    // The laws are assumed in order, each once (they are plain), after the facts, the precondition and the assumption.
+    const holds = laws.map(l => JSON.stringify(l.holds)), hyps = g.hyps.map(h => JSON.stringify(h))
+    const offset = hyps.findIndex((_, i) => holds.every((h, j) => hyps[i + j] === h))
     for (const h of usedHyps(g, proof.trees[g.name]!)) {
       const law = laws[h - offset]
       if (law && !need.has(law.name)) (need.add(law.name), queue.push(law.name))

@@ -591,27 +591,51 @@ export function progressObligations(m: Machine, laws: Law[], instances: Instance
 
 // --- liveness: "from leads to to", under fairness ----------------------------------------------------------------------
 
-// "Whenever `from` holds, `to` holds later", in every run where the helpful request (a term per input over the state and
-// params) is taken infinitely often. Two goals of the kinds above: while `from` holds and `to` doesn't, every request
-// allowed takes a step that keeps `from` or reaches `to`, and lets the rank (a natural over the state and params) rise
-// only by reaching `to` (a step law); and the helpful request is allowed and reaches `to` or lowers the rank (progress).
-// Then along such a run the rank can't drop forever, so `to` comes (the Lean twin's `leads_sound`).
-export type Liveness = {name: string, from: C, to: C, rank: E, request: Record<string, E>}
-export function livenessParts(m: Machine, l: Liveness): {stay: StepLaw, helpful: {name: string, when: C, then: C, request: Record<string, E>}} {
-  // A machine with a history as its plain machine (its sums are state); a query is computed from the log, so no helpful
-  // request could name it.
-  if (Object.keys(m.history?.queries ?? {}).length) throw new Error(`liveness ${l.name}: a machine whose history has queries is outside it (a request can't name a query)`)
+// "Whenever `from` holds, `to` holds later", in every run that takes each helpful request infinitely often. The rank is
+// naturals over the state and params compared in order (one term, or several: the first that differs decides). A
+// helpful request names some inputs by terms over the state and params (the others, and the maps it carries, stay
+// free: any value helps) and the region where it helps (everywhere, if none). Every goal is a step law, while `from`
+// holds and `to` doesn't: each request allowed keeps `from` or reaches `to`, and reaches `to`, lowers the rank, or keeps
+// it with every region it is in kept (stay); some region holds (cover); and each helpful request taken in its region
+// reaches `to` or lowers the rank (helps). Then along such a run the rank can't drop forever; once it stops, the region
+// it is in stays and its request comes (the Lean twin's `leads_sound`, `sleads_sound`). The conditions are built
+// exactly as Live.lean builds them, two parts per and/or.
+export type Helpful = {when?: C, request: Record<string, E>}
+export type Liveness = {name: string, from: C, to: C, rank: E | E[], request?: Record<string, E>, helpful?: Helpful[]}
+const zero: E = {op: 'const', value: 0}
+export const trueC: C = {op: '<=', a: zero, b: zero}, falseC: C = {op: '<', a: zero, b: zero}
+const and2 = (a: C, b: C): C => ({op: 'and', xs: [a, b]}), or2 = (a: C, b: C): C => ({op: 'or', xs: [a, b]})
+const lexLt = (after: E[], before: E[]): C => (after.length && before.length ? or2({op: '<', a: after[0]!, b: before[0]!}, and2({op: '=', a: after[0]!, b: before[0]!}, lexLt(after.slice(1), before.slice(1)))) : falseC)
+const eqs = (after: E[], before: E[]): C => (after.length && before.length ? and2({op: '=', a: after[0]!, b: before[0]!}, eqs(after.slice(1), before.slice(1))) : trueC)
+const keep = (ws: C[], prime: (c: C) => C): C => (ws.length ? and2(or2({op: 'not', x: ws[0]!}, prime(ws[0]!)), keep(ws.slice(1), prime)) : trueC)
+const anyOf = (ws: C[]): C => (ws.length ? or2(ws[0]!, anyOf(ws.slice(1))) : falseC)
+const named = (req: [string, E][]): C => (req.length ? and2({op: '=', a: {op: 'var', name: req[0]![0]}, b: req[0]![1]}, named(req.slice(1))) : trueC)
+export const livenessRanks = (l: Liveness): E[] => (Array.isArray(l.rank) ? l.rank : [l.rank])
+export const livenessHelpful = (l: Liveness): {when: C, request: Record<string, E>}[] => {
+  if ((l.request === undefined) === (l.helpful === undefined)) throw new Error(`liveness ${l.name}: a helpful request, or helpful requests with their regions`)
+  return (l.helpful ?? [{request: l.request!}]).map(h => ({when: h.when ?? trueC, request: h.request}))
+}
+export function livenessParts(m: Machine, l: Liveness): {stay: StepLaw, cover: StepLaw, helps: StepLaw[]} {
+  // A machine with a history as its plain machine (its sums are state, its queries inputs no request names).
   const plain = m.history ? historyMachine(m).machine : m
-  for (const [what, t] of [['from', l.from], ['to', l.to], ['rank', {op: '=', a: l.rank, b: l.rank}]] as const) {
+  const queries = Object.keys(m.history?.queries ?? {}), client = plain.inputs.filter(i => !queries.includes(i))
+  const ranks = livenessRanks(l), helpful = livenessHelpful(l)
+  if (!ranks.length || !helpful.length) throw new Error(`liveness ${l.name}: a rank of one natural or more, and a helpful request or more`)
+  for (const [what, t] of [['from', l.from], ['to', l.to], ...ranks.map((r, i) => [`rank ${i + 1}`, {op: '=', a: r, b: r}] as const), ...helpful.map((h, i) => [`region ${i + 1}`, h.when] as const)] as const) {
     if (mentions(t as C, plain.inputs)) throw new Error(`liveness ${l.name}: ${what} reads the state and params, not a request`)
   }
+  for (const h of helpful) for (const [input, t] of Object.entries(h.request)) {
+    if (!client.includes(input)) throw new Error(`liveness ${l.name}: a helpful request names inputs a client sends (${input} is ${queries.includes(input) ? 'a query, computed from the log' : 'none'})`)
+    if (mentions({op: '=', a: t, b: t}, plain.inputs)) throw new Error(`liveness ${l.name}: the request's ${input} is a term over the state and params`)
+  }
   const after: Subst = {vars: Object.fromEntries(Object.keys(plain.state).map(n => [n, {op: 'var', name: `${n}'`} as E])), maps: Object.fromEntries(Object.keys(plain.maps ?? {}).map(map => [map, (key: E): E => ({op: 'get', map: `${map}'`, key})])), flags: {}}
-  const from2 = substC(l.from, after), to2 = substC(l.to, after), rank2 = substE(l.rank, after)
-  const pending: C = {op: 'and', xs: [l.from, {op: 'not', x: l.to}]}
+  const prime = (c: C) => substC(c, after), ranks2 = ranks.map(r => substE(r, after)), to2 = prime(l.to)
+  const pending = and2(l.from, {op: 'not', x: l.to}), lower = lexLt(ranks2, ranks), regions = helpful.map(h => h.when)
   return {
-    stay: {name: `${l.name}: each step stays or gets there, the rank rising only by getting there`, when: pending,
-      then: {op: 'and', xs: [{op: 'or', xs: [from2, to2]}, {op: 'or', xs: [to2, {op: '<=', a: rank2, b: l.rank}]}]}},
-    helpful: {name: `${l.name}: the helpful request`, when: pending, then: {op: 'or', xs: [to2, {op: '<', a: rank2, b: l.rank}]}, request: l.request},
+    stay: {name: `${l.name}: each step stays or gets there, the rank kept only with its region`, when: pending,
+      then: and2(or2(prime(l.from), to2), or2(to2, or2(lower, and2(eqs(ranks2, ranks), keep(regions, prime)))))},
+    cover: {name: `${l.name}: some helpful request applies`, when: pending, then: anyOf(regions)},
+    helps: helpful.map((h, i) => ({name: `${l.name}: helpful request ${i + 1}`, when: and2(pending, and2(h.when, named(Object.entries(h.request)))), then: or2(to2, lower)})),
   }
 }
 

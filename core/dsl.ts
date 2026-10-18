@@ -589,16 +589,22 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     return more.length ? {name, steps: k, forall: k1, keys: more, then: marked(c), ...w} : {name, steps: k, forall: k1, then: marked(prenex(c, `step law ${name}`, k1) ?? c), ...w}
   }
 
-  // "Whenever `from` holds, `to` holds later", in every run that takes the helpful request (a term per input, over the
-  // state and params) infinitely often: proven by a rank (a natural over the state and params) that no step raises
-  // while `from` holds and `to` doesn't, except by reaching `to`, and that the helpful request lowers (or it reaches
-  // `to`). Steps keep `from` until `to` holds.
+  // "Whenever `from` holds, `to` holds later", in every run that takes each helpful request infinitely often: proven by
+  // a rank (a natural over the state and params, or several compared in order) that no step raises while `from` holds
+  // and `to` doesn't, except by reaching `to`, and that each helpful request lowers (or it reaches `to`). A helpful
+  // request names some inputs by terms over the state and params, the rest left free; with several, each comes with the
+  // region where it helps (`when`), some region always holds, and a step that keeps the rank keeps its region.
   //   queue.leadsTo('every ticket is served', {from: ({t, next, served}) => t.lt(next).and(served.atMost(t)), to: ({t, served}) => served.gt(t),
   //     rank: ({t, served}) => t.plus(1).minus(served), helpful: () => ({op: 1})})
-  leadsTo(name: string, spec: {from: (env: P & S & M & Su) => Cond, to: (env: P & S & M & Su) => Cond, rank: (env: P & S & M & Su) => TermLike, helpful: (env: P & S & M & Su) => Record<string, TermLike>}): Liveness {
+  //   batches.leadsTo('every batch is done', {from: () => yes, to: ({waiting, items}) => waiting.eq(0).and(items.eq(0)),
+  //     rank: ({waiting, items}) => [waiting, items], helpful: [{when: ({items}) => items.gt(0), request: () => ({op: 1})}, {when: ({items}) => items.eq(0), request: () => ({op: 0})}]})
+  leadsTo(name: string, spec: {from: (env: P & S & M & Su) => Cond, to: (env: P & S & M & Su) => Cond, rank: (env: P & S & M & Su) => TermLike | TermLike[],
+    helpful: ((env: P & S & M & Su) => Record<string, TermLike>) | {when?: (env: P & S & M & Su) => Cond, request: (env: P & S & M & Su) => Record<string, TermLike>}[]}): Liveness {
     const env = this.env({flags: false, inputs: false, queries: false}) as never
-    const request = Object.fromEntries(Object.entries(spec.helpful(env)).map(([n, t]) => [n, termOf(t)]))
-    return {name, from: spec.from(env).c, to: spec.to(env).c, rank: termOf(spec.rank(env)), request}
+    const req = (f: (env: never) => Record<string, TermLike>) => Object.fromEntries(Object.entries(f(env)).map(([n, t]) => [n, termOf(t)]))
+    const r = spec.rank(env), rank = Array.isArray(r) ? r.map(termOf) : termOf(r)
+    const base = {name, from: spec.from(env).c, to: spec.to(env).c, rank}
+    return typeof spec.helpful === 'function' ? {...base, request: req(spec.helpful)} : {...base, helpful: spec.helpful.map(h => ({...(h.when ? {when: h.when(env).c} : {}), request: req(h.request)}))}
   }
 
   // A decision: whenever the params and the request meet `given`, `then` holds. Decisions don't read the state.

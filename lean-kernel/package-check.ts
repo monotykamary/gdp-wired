@@ -9,7 +9,7 @@ import {inlineAuthority, inlineLaws, inlineSteps, memberLaws, memberSteps, membe
 import {larger, largerLaws, minuteLaws, minutes, pairsLean, room, roomLaws} from '../examples/functions.ts'
 import {bits, bitsLaws, scope, scopeLaws, scopeSteps} from '../examples/lists.ts'
 import {team, teamLaws, teamSteps} from '../examples/sizes.ts'
-import {everyLoggedTicket, everyTicket, loggedLaws, loggedTickets, ticketLaws, tickets} from '../examples/liveness.ts'
+import {allDone, batchLaws, batches, everyLoggedTicket, everyRecountedTicket, everyReview, everyTicket, loggedLaws, loggedTickets, recounted, recountedLaws, reviewLaws, reviews, ticketLaws, tickets} from '../examples/liveness.ts'
 import {leanProject, toLean} from './emit.ts'
 
 const caps = rule('caps').params({d: nat}).inputs({acct: nat, day: nat, ok: bool}).maps({Acct: 0, Day: 0})
@@ -50,6 +50,9 @@ const file = toLean(([
   {id: 'team', machine: team().machine, laws: teamLaws(), stepLaws: teamSteps()},
   {id: 'tickets', machine: tickets().machine, laws: ticketLaws(), liveness: [everyTicket()]},
   {id: 'logged', machine: loggedTickets().machine, laws: loggedLaws(), liveness: [everyLoggedTicket()]},
+  {id: 'batches', machine: batches().machine, laws: batchLaws(), liveness: [allDone()]},
+  {id: 'recounted', machine: recounted().machine, laws: recountedLaws(), liveness: [everyRecountedTicket()]},
+  {id: 'reviews', machine: reviews().machine, laws: reviewLaws(), liveness: [everyReview()]},
   // Refinements, with what they mean: the countdown meter refines the meter; the two-phase one refines it with stutters.
   {id: 'countdown', refinement: {impl: countdown().machine, spec: meter.machine, relation: meterRelation, witness: {amount: {op: 'min', a: {op: 'var', name: 'amount'}, b: {op: 'var', name: 'most'}}}}},
   {id: 'twophase', refinement: {impl: twoPhase().machine, spec: meter.machine, relation: [{name: 'used = used', holds: {op: '=', a: {op: 'var', name: 'a_used'}, b: {op: 'var', name: 'b_used'}}}, {name: 'pending <= most', holds: {op: '<=', a: {op: 'var', name: 'a_pending'}, b: {op: 'var', name: 'most'}}}],

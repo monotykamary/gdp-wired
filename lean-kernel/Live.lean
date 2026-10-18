@@ -1,62 +1,138 @@
 import Sets
 
 /-!
-Liveness under fairness: "from leads to to" for machines with maps and flags, proven sound. kernel.ts proves it by a
-rank (a natural term over the state and params) and a helpful request: while `from` holds and `to` doesn't, every request
-allowed keeps `from` or reaches `to` and lets the rank rise only by reaching `to` (a step law), and the helpful request is
-allowed and reaches `to` or lowers the rank (progress). Lean builds both goals from the liveness itself, checks them with
-StepLaw.lean's and Progress.lean's rules, and `leads_sound` concludes: along every run that takes the helpful request
-infinitely often, each state where `from` holds is followed by one where `to` holds. The rank can't drop forever.
+Liveness under fairness: "from leads to to", proven sound for machines with maps and flags (`leads_sound`) and for
+machines with sets (`sleads_sound`). kernel.ts proves it by a rank (naturals over the state and params, compared in
+order: the first that differs decides) and helpful requests, each with the region where it helps. While `from` holds and
+`to` doesn't: every request allowed keeps `from` or reaches `to`, and reaches `to`, lowers the rank, or keeps the rank
+with every region it was in kept (a step law); some region holds (a step law that reads no step); and each helpful
+request, taken in its region, reaches `to` or lowers the rank (a step law whose `when` names the inputs the request
+sets; the others, and the maps it carries, stay free: a history's queries among them). Lean builds all of them from the
+liveness and checks them with the step-law rules (StepLaw.lean's, Sets.lean's). Then along every run that takes each
+helpful request infinitely often, each state where `from` holds is followed by one where `to` holds: the rank can't drop
+forever, once it stops dropping the region it is in stays, and that region's request comes and lowers it.
 -/
 
 namespace Kern
 
-/-! A rank that can't drop forever -/
+/-! Ranks compared in order -/
 
--- Along a run, if `P ∧ ¬Q` is kept (or Q reached) with the rank never rising, and the helpful steps, taken infinitely
--- often, lower it (or reach Q), then Q follows every P.
-theorem leads_of_rank {S : Type} (run : Nat → S) (P Q : S → Prop) (r : S → Nat) (H : Nat → Prop)
-    (hstay : ∀ n, P (run n) → ¬ Q (run n) → (P (run (n + 1)) ∨ Q (run (n + 1))) ∧ (Q (run (n + 1)) ∨ r (run (n + 1)) ≤ r (run n)))
-    (hhelp : ∀ n, P (run n) → ¬ Q (run n) → H n → Q (run (n + 1)) ∨ r (run (n + 1)) < r (run n))
-    (fair : ∀ n, ∃ m, n ≤ m ∧ H m) : ∀ n, P (run n) → ∃ m, n ≤ m ∧ Q (run m) := by
-  -- By induction on a bound of the rank.
-  suffices h : ∀ k n, r (run n) ≤ k → P (run n) → ∃ m, n ≤ m ∧ Q (run m) from fun n hP => h _ n (Nat.le_refl _) hP
-  intro k
-  induction k with
-  | zero => ?_
-  | succ k ih => ?_
-  all_goals
-    intro n hr hP
-    apply Classical.byContradiction
-    intro hno
-    have hnq : ∀ m, n ≤ m → ¬ Q (run m) := fun m hm hq => hno ⟨m, hm, hq⟩
-    -- P holds, and the rank stays within its bound, at every step from n on.
-    have hinv : ∀ d, P (run (n + d)) ∧ r (run (n + d)) ≤ r (run n) := by
-      intro d
-      induction d with
-      | zero => exact ⟨hP, Nat.le_refl _⟩
-      | succ d ihd =>
-        obtain ⟨hPd, hrd⟩ := ihd
-        obtain ⟨h1, h2⟩ := hstay (n + d) hPd (hnq _ (Nat.le_add_right _ _))
-        have hq1 : ¬ Q (run (n + d + 1)) := hnq _ (by omega)
-        refine ⟨?_, ?_⟩
-        · rcases h1 with h1 | h1
-          · exact h1
-          · exact absurd h1 hq1
-        · rcases h2 with h2 | h2
-          · exact absurd h2 hq1
-          · exact Nat.le_trans h2 hrd
-    obtain ⟨m, hm, hH⟩ := fair n
+def lexB : List Nat → List Nat → Bool
+  | a' :: as', a :: as => decide (a' < a) || (decide (a' = a) && lexB as' as)
+  | _, _ => false
+
+theorem lexB_irrefl : ∀ x : List Nat, lexB x x = false
+  | [] => rfl
+  | a :: as => by simp [lexB, lexB_irrefl as]
+
+theorem nat_down {g : Nat → Nat} {n0 : Nat} (h : ∀ n, n0 ≤ n → g (n + 1) ≤ g n) : ∀ d, g (n0 + d) ≤ g n0
+  | 0 => Nat.le_refl _
+  | d + 1 => Nat.le_trans (h (n0 + d) (Nat.le_add_right _ _)) (nat_down h d)
+
+-- A natural that never rises from n0 on stops changing.
+theorem nat_stable (g : Nat → Nat) : ∀ v n0, g n0 ≤ v → (∀ n, n0 ≤ n → g (n + 1) ≤ g n) →
+    ∃ T, n0 ≤ T ∧ ∀ m, T ≤ m → g m = g T := by
+  intro v
+  induction v with
+  | zero =>
+    intro n0 hv h
+    refine ⟨n0, Nat.le_refl _, fun m hm => ?_⟩
     obtain ⟨d, rfl⟩ := Nat.exists_eq_add_of_le hm
-    obtain ⟨hPm, hrm⟩ := hinv d
-    rcases hhelp (n + d) hPm (hnq _ (Nat.le_add_right _ _)) hH with hq | hlt
-    · exact hnq _ (by omega) hq
-  · -- With the rank bounded by 0, nothing lowers it.
-    omega
-  · -- One helpful step lowers the rank below k + 1; from there, the bound k.
-    have hP1 := (hinv (d + 1)).1
-    obtain ⟨m', hm', hq'⟩ := ih (n + d + 1) (by omega) (hP1 : P (run (n + d + 1)))
-    exact hnq m' (by omega) hq'
+    have := nat_down h d; omega
+  | succ v ih =>
+    intro n0 hv h
+    by_cases hall : ∀ m, n0 ≤ m → g m = g n0
+    · exact ⟨n0, Nat.le_refl _, hall⟩
+    · have hex : ∃ m, n0 ≤ m ∧ g m ≠ g n0 := Classical.byContradiction fun hno =>
+        hall fun m hm => Classical.byContradiction fun hne => hno ⟨m, hm, hne⟩
+      obtain ⟨m, hm, hne⟩ := hex
+      obtain ⟨d, rfl⟩ := Nat.exists_eq_add_of_le hm
+      have := nat_down h d
+      obtain ⟨T, hT, hTm⟩ := ih (n0 + d) (by omega) (fun n hn => h n (by omega))
+      exact ⟨T, by omega, hTm⟩
+
+-- A rank of k naturals that never rises (in order) from n0 on stops changing.
+theorem lex_stable : ∀ (k : Nat) (r : Nat → List Nat) (n0 : Nat), (∀ n, (r n).length = k) →
+    (∀ n, n0 ≤ n → lexB (r (n + 1)) (r n) = true ∨ r (n + 1) = r n) → ∃ T, n0 ≤ T ∧ ∀ m, T ≤ m → r m = r T
+  | 0, r, n0, hk, _ => ⟨n0, Nat.le_refl _, fun m _ => by
+      rw [List.eq_nil_of_length_eq_zero (hk m), List.eq_nil_of_length_eq_zero (hk n0)]⟩
+  | k + 1, r, n0, hk, hmono => by
+    have hcons : ∀ n, r n = (r n).headD 0 :: (r n).tail := by
+      intro n
+      have := hk n
+      cases h : r n with
+      | nil => rw [h] at this; simp at this
+      | cons a as => rfl
+    have hstep : ∀ n, n0 ≤ n → (r (n + 1)).headD 0 < (r n).headD 0 ∨
+        ((r (n + 1)).headD 0 = (r n).headD 0 ∧ (lexB (r (n + 1)).tail (r n).tail = true ∨ (r (n + 1)).tail = (r n).tail)) := by
+      intro n hn
+      have h := hmono n hn
+      rw [hcons (n + 1), hcons n] at h
+      simp only [lexB, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq, List.cons.injEq] at h
+      rcases h with (h | ⟨h1, h2⟩) | ⟨h1, h2⟩
+      · exact Or.inl h
+      · exact Or.inr ⟨h1, Or.inl h2⟩
+      · exact Or.inr ⟨h1, Or.inr h2⟩
+    obtain ⟨T1, hT1, hT1m⟩ := nat_stable (fun n => (r n).headD 0) _ n0 (Nat.le_refl _) (fun n hn => by
+      rcases hstep n hn with h | ⟨h, _⟩
+      · exact Nat.le_of_lt h
+      · exact Nat.le_of_eq h)
+    obtain ⟨T2, hT2, hT2m⟩ := lex_stable k (fun n => (r n).tail) T1 (fun n => by simp [hk n]) (fun n hn => by
+      rcases hstep n (by omega) with h | ⟨_, h⟩
+      · have e1 := hT1m (n + 1) (by omega); have e2 := hT1m n hn; omega
+      · exact h)
+    refine ⟨T2, by omega, fun m hm => ?_⟩
+    have e1 := hT1m m (by omega); have e2 := hT1m T2 hT2; have e3 := hT2m m hm
+    rw [hcons m, hcons T2, e3, e1, e2]
+
+/-- Along a run: if `P ∧ ¬Q` is kept (or Q reached) with the rank never rising, and kept only with every region kept;
+some region holds while `P ∧ ¬Q` does; and each region's helpful step, taken infinitely often, reaches Q or lowers the
+rank there; then Q follows every P. -/
+theorem leads_of_lex {α : Type} (P Q : Nat → Prop) (r : Nat → List Nat) (k : Nat) (hk : ∀ n, (r n).length = k)
+    (helps : List α) (W H : α → Nat → Prop)
+    (hstay : ∀ n, P n → ¬ Q n → (P (n + 1) ∨ Q (n + 1)) ∧
+      (Q (n + 1) ∨ lexB (r (n + 1)) (r n) = true ∨ (r (n + 1) = r n ∧ ∀ h ∈ helps, W h n → W h (n + 1))))
+    (hcover : ∀ n, P n → ¬ Q n → ∃ h ∈ helps, W h n)
+    (hhelp : ∀ h ∈ helps, ∀ n, P n → ¬ Q n → W h n → H h n → Q (n + 1) ∨ lexB (r (n + 1)) (r n) = true)
+    (fair : ∀ h ∈ helps, ∀ n, ∃ m, n ≤ m ∧ H h m) : ∀ n, P n → ∃ m, n ≤ m ∧ Q m := by
+  intro n0 hP
+  apply Classical.byContradiction
+  intro hno
+  have hnq : ∀ m, n0 ≤ m → ¬ Q m := fun m hm hq => hno ⟨m, hm, hq⟩
+  have hPd : ∀ d, P (n0 + d) := by
+    intro d
+    induction d with
+    | zero => exact hP
+    | succ d ih =>
+      rcases (hstay (n0 + d) ih (hnq _ (Nat.le_add_right _ _))).1 with h | h
+      · exact h
+      · exact absurd h (hnq _ (by omega))
+  have hPm : ∀ m, n0 ≤ m → P m := fun m hm => by obtain ⟨d, rfl⟩ := Nat.exists_eq_add_of_le hm; exact hPd d
+  have hmono : ∀ n, n0 ≤ n → lexB (r (n + 1)) (r n) = true ∨ r (n + 1) = r n := by
+    intro n hn
+    rcases (hstay n (hPm n hn) (hnq n hn)).2 with h | h | ⟨h, _⟩
+    · exact absurd h (hnq _ (by omega))
+    · exact Or.inl h
+    · exact Or.inr h
+  -- The rank stops changing at T; the region T is in stays, and its helpful step would lower the rank.
+  obtain ⟨T, hT, hTm⟩ := lex_stable k r n0 hk hmono
+  have hlow : ∀ m, T ≤ m → lexB (r (m + 1)) (r m) ≠ true := fun m hm hl => by
+    rw [hTm (m + 1) (by omega), hTm m hm, lexB_irrefl] at hl; exact absurd hl (by simp)
+  obtain ⟨h, hh, hW⟩ := hcover T (hPm T hT) (hnq T hT)
+  have hWd : ∀ d, W h (T + d) := by
+    intro d
+    induction d with
+    | zero => exact hW
+    | succ d ih =>
+      rcases (hstay (T + d) (hPm _ (by omega)) (hnq _ (by omega))).2 with hq | hl | ⟨_, hkeep⟩
+      · exact absurd hq (hnq _ (by omega))
+      · exact absurd hl (hlow _ (by omega))
+      · exact hkeep h hh ih
+  obtain ⟨m, hm, hH⟩ := fair h hh T
+  obtain ⟨d, rfl⟩ := Nat.exists_eq_add_of_le hm
+  rcases hhelp h hh (T + d) (hPm _ (by omega)) (hnq _ (by omega)) (hWd d) hH with hq | hl
+  · exact hnq _ (by omega) hq
+  · exact hlow _ (by omega) hl
 
 /-! Primed names: a condition read after a step -/
 
@@ -178,33 +254,223 @@ theorem primeC_eval : (c : C) → (∀ i, occC i c = true → i ∉ pr.map (·.2
 end
 end prime
 
+-- Read where `then` reads, a condition that reads no primed name is the condition before the step.
+theorem unprimedC_eval {pr pm : List (Nat × Nat)} {c : C} (hv : ∀ i, occC i c = true → i ∉ pr.map (·.2)) (hm : ∀ mp, occMC mp c = true → mp ∉ pm.map (·.2))
+    (ρ ρ' : Nat → Nat) (M M' : Nat → Nat → Nat) : evalC (primed pr ρ' ρ) (primedMaps pm M' M) c = evalC ρ M c := by
+  rw [congrC _ ρ _ c (fun i hi => by
+    simp only [primed]
+    rw [lookup_none (fun q hq => by simp only [beq_eq_false_iff_ne]; intro he; exact hv i hi (by rw [← he]; exact List.mem_map_of_mem hq))])]
+  exact congrMC ρ _ M c (fun mp hmp => by
+    funext k; simp only [primedMaps]
+    rw [lookup_none (fun q hq => by simp only [beq_eq_false_iff_ne]; intro he; exact hm mp hmp (by rw [← he]; exact List.mem_map_of_mem hq))])
+
+theorem unprimed_eval {pr pm : List (Nat × Nat)} {e : E} (hv : ∀ i, occE i e = true → i ∉ pr.map (·.2)) (hm : ∀ mp, occME mp e = true → mp ∉ pm.map (·.2))
+    (ρ ρ' : Nat → Nat) (M M' : Nat → Nat → Nat) : evalE (primed pr ρ' ρ) (primedMaps pm M' M) e = evalE ρ M e := by
+  rw [congrE _ ρ _ e (fun i hi => by
+    simp only [primed]
+    rw [lookup_none (fun q hq => by simp only [beq_eq_false_iff_ne]; intro he; exact hv i hi (by rw [← he]; exact List.mem_map_of_mem hq))])]
+  exact congrME ρ _ M e (fun mp hmp => by
+    funext k; simp only [primedMaps]
+    rw [lookup_none (fun q hq => by simp only [beq_eq_false_iff_ne]; intro he; exact hm mp hmp (by rw [← he]; exact List.mem_map_of_mem hq))])
+
+-- A condition (a term) read across a step: primed, it is read after the step; plain, before it, whether in `then`'s
+-- reading or in `when`'s; given that what it reads is renamed or unchanged by the step, and unchanged by the request.
+theorem view_C {pr pm : List (Nat × Nat)} (hpr : distinct (pr.map (·.2)) = true) (hpm : distinct (pm.map (·.2)) = true)
+    {c : C} {ρ X ρ' : Nat → Nat} {M N M' : Nat → Nat → Nat}
+    (hv : ∀ i, occC i c = true → i ∉ pr.map (·.2) ∧ (i ∈ pr.map (·.1) ∨ ρ' i = X i))
+    (hm : ∀ mp, occMC mp c = true → mp ∉ pm.map (·.2) ∧ (mp ∈ pm.map (·.1) ∨ M' mp = N mp))
+    (hx : ∀ i, occC i c = true → X i = ρ i) (hn : ∀ mp, occMC mp c = true → N mp = M mp) :
+    evalC (primed pr ρ' X) (primedMaps pm M' N) (primeC pr pm c) = evalC ρ' M' c
+      ∧ evalC (primed pr ρ' X) (primedMaps pm M' N) c = evalC ρ M c ∧ evalC X N c = evalC ρ M c := by
+  have h3 : evalC X N c = evalC ρ M c := by rw [congrMC X N M c hn]; exact congrC X ρ M c hx
+  refine ⟨primeC_eval pr pm hpr hpm X ρ' N M' c hv hm, ?_, h3⟩
+  rw [unprimedC_eval (fun i hi => (hv i hi).1) (fun mp h => (hm mp h).1), h3]
+
+theorem view_E {pr pm : List (Nat × Nat)} (hpr : distinct (pr.map (·.2)) = true) (hpm : distinct (pm.map (·.2)) = true)
+    {e : E} {ρ X ρ' : Nat → Nat} {M N M' : Nat → Nat → Nat}
+    (hv : ∀ i, occC i (.eq e e) = true → i ∉ pr.map (·.2) ∧ (i ∈ pr.map (·.1) ∨ ρ' i = X i))
+    (hm : ∀ mp, occMC mp (.eq e e) = true → mp ∉ pm.map (·.2) ∧ (mp ∈ pm.map (·.1) ∨ M' mp = N mp))
+    (hx : ∀ i, occC i (.eq e e) = true → X i = ρ i) (hn : ∀ mp, occMC mp (.eq e e) = true → N mp = M mp) :
+    evalE (primed pr ρ' X) (primedMaps pm M' N) (primeE pr pm e) = evalE ρ' M' e
+      ∧ evalE (primed pr ρ' X) (primedMaps pm M' N) e = evalE ρ M e := by
+  have h3 : evalE X N e = evalE ρ M e := by
+    rw [congrME X N M e (fun mp h => hn mp (by simp [occMC, h]))]; exact congrE X ρ M e (fun i h => hx i (by simp [occC, h]))
+  refine ⟨primeE_eval pr pm hpr hpm X ρ' N M' e (fun i h => hv i (by simp [occC, h])) (fun mp h => hm mp (by simp [occMC, h])), ?_⟩
+  rw [unprimed_eval (fun i h => (hv i (by simp [occC, h])).1) (fun mp h => (hm mp (by simp [occMC, h])).1), h3]
+
+/-! The conditions Lean builds -/
+
+def falseC : C := .lt (.const 0) (.const 0)
+-- The rank after (as') below the rank before (as), in order; the two equal; each region, if it held, held after; some
+-- region; the request's inputs as its terms.
+def lexLtC : List E → List E → C
+  | a' :: as', a :: as => .or (.lt a' a) (.and (.eq a' a) (lexLtC as' as))
+  | _, _ => falseC
+def eqsC : List E → List E → C
+  | a' :: as', a :: as => .and (.eq a' a) (eqsC as' as)
+  | _, _ => trueC
+def keepC (pr pm : List (Nat × Nat)) : List C → C
+  | [] => trueC
+  | w :: ws => .and (.or (.not w) (primeC pr pm w)) (keepC pr pm ws)
+def anyC : List C → C
+  | [] => falseC
+  | w :: ws => .or w (anyC ws)
+def reqC : List (Nat × E) → C
+  | [] => trueC
+  | p :: ps => .and (.eq (.var p.1) p.2) (reqC ps)
+
+theorem lexLtC_eval (ρ : Nat → Nat) (M : Nat → Nat → Nat) : ∀ as' as : List E,
+    evalC ρ M (lexLtC as' as) = lexB (as'.map (evalE ρ M)) (as.map (evalE ρ M))
+  | a' :: as', a :: as => by simp only [lexLtC, lexB, evalC, List.map_cons, lexLtC_eval ρ M as' as]
+  | [], _ => by simp [lexLtC, lexB, evalC, falseC]
+  | _ :: _, [] => by simp [lexLtC, lexB, evalC, falseC]
+
+theorem eqsC_eval (ρ : Nat → Nat) (M : Nat → Nat → Nat) : ∀ as' as : List E, as'.length = as.length →
+    (evalC ρ M (eqsC as' as) = true ↔ as'.map (evalE ρ M) = as.map (evalE ρ M))
+  | a' :: as', a :: as, h => by
+    simp only [eqsC, evalC, Bool.and_eq_true, decide_eq_true_eq, List.map_cons, List.cons.injEq, eqsC_eval ρ M as' as (by simpa using h)]
+  | [], [], _ => by simp [eqsC, evalC, trueC]
+  | [], _ :: _, h => by simp at h
+  | _ :: _, [], h => by simp at h
+
+theorem keepC_eval (ρ : Nat → Nat) (M : Nat → Nat → Nat) (pr pm : List (Nat × Nat)) : ∀ ws : List C,
+    evalC ρ M (keepC pr pm ws) = true ↔ ∀ w ∈ ws, evalC ρ M w = true → evalC ρ M (primeC pr pm w) = true
+  | [] => by simp [keepC, evalC, trueC]
+  | w :: ws => by
+    rw [List.forall_mem_cons, ← keepC_eval ρ M pr pm ws]
+    simp only [keepC, evalC, Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true']
+    cases evalC ρ M w <;> simp
+
+theorem anyC_eval (ρ : Nat → Nat) (M : Nat → Nat → Nat) : ∀ ws : List C, evalC ρ M (anyC ws) = true ↔ ∃ w ∈ ws, evalC ρ M w = true
+  | [] => by simp [anyC, evalC, falseC]
+  | w :: ws => by simp only [anyC, evalC, Bool.or_eq_true, anyC_eval ρ M ws, List.mem_cons, exists_eq_or_imp]
+
+theorem reqC_eval (ρ : Nat → Nat) (M : Nat → Nat → Nat) : ∀ ps : List (Nat × E), evalC ρ M (reqC ps) = true ↔ ∀ p ∈ ps, ρ p.1 = evalE ρ M p.2
+  | [] => by simp [reqC, evalC, trueC]
+  | p :: ps => by
+    rw [List.forall_mem_cons, ← reqC_eval ρ M ps]
+    simp only [reqC, evalC, evalE, Bool.and_eq_true]
+    exact ⟨fun h => ⟨of_decide_eq_true h.1, h.2⟩, fun h => ⟨decide_eq_true h.1, h.2⟩⟩
+
+theorem zip_cover {α β : Type} : ∀ (as : List α) (bs : List β), as.length = bs.length → ∀ a ∈ as, ∃ b, (a, b) ∈ as.zip bs
+  | [], [], _, a, ha => by simp at ha
+  | a :: as, b :: bs, h, x, hx => by
+    rcases List.mem_cons.mp hx with rfl | hx
+    · exact ⟨b, by simp⟩
+    · obtain ⟨b', hb'⟩ := zip_cover as bs (by simpa using h) x hx
+      exact ⟨b', by simp [hb']⟩
+  | [], _ :: _, h, _, _ => by simp at h
+  | _ :: _, [], h, _, _ => by simp at h
+
 /-! Liveness -/
 
 structure Live where
   from_ : C
   to : C
-  rank : E
-  req : List (Nat × E)          -- the helpful request: an input and its term over the state and params
-  prime : List (Nat × Nat)      -- a state variable, and its primed name
-  primeMaps : List (Nat × Nat)  -- a map, and its primed name
+  rank : List E                         -- compared in order
+  helps : List (C × List (Nat × E))     -- (the region where it helps, the request: an input and its term over the state and params)
+  prime : List (Nat × Nat)              -- a state variable, and its primed name
+  primeMaps : List (Nat × Nat)          -- a map, and its primed name
 
-def liveWhen (l : Live) : C := .and l.from_ (.not l.to)
--- The step law and the progress goal Lean checks: built here from the liveness.
-def liveStay (l : Live) (insts : List (Nat × E)) (proof : List VDef × Tree) : StepLaw :=
-  ⟨liveWhen l, .and (.or (primeC l.prime l.primeMaps l.from_) (primeC l.prime l.primeMaps l.to))
-      (.or (primeC l.prime l.primeMaps l.to) (.le (primeE l.prime l.primeMaps l.rank) l.rank)), l.prime, l.primeMaps, insts, proof⟩
-def liveHelp (l : Live) (insts : List (Nat × E)) (allowed causes : List VDef × Tree) : Progress :=
-  ⟨liveWhen l, .or (primeC l.prime l.primeMaps l.to) (.lt (primeE l.prime l.primeMaps l.rank) l.rank), l.req, l.prime, l.primeMaps, insts, allowed, causes⟩
+def Live.pend (l : Live) : C := .and l.from_ (.not l.to)
+def liveStayC (l : Live) : C :=
+  .and (.or (primeC l.prime l.primeMaps l.from_) (primeC l.prime l.primeMaps l.to))
+    (.or (primeC l.prime l.primeMaps l.to) (.or (lexLtC (l.rank.map (primeE l.prime l.primeMaps)) l.rank)
+      (.and (eqsC (l.rank.map (primeE l.prime l.primeMaps)) l.rank) (keepC l.prime l.primeMaps (l.helps.map (·.1))))))
+def liveCoverC (l : Live) : C := anyC (l.helps.map (·.1))
+def liveHelpWhen (l : Live) (h : C × List (Nat × E)) : C := .and l.pend (.and h.1 (reqC h.2))
+def liveHelpThen (l : Live) : C := .or (primeC l.prime l.primeMaps l.to) (lexLtC (l.rank.map (primeE l.prime l.primeMaps)) l.rank)
+-- What reads the state alone: `from`, `to`, each part of the rank and each region.
+def liveConds (l : Live) : List C := [l.from_, l.to] ++ l.rank.map (fun e => .eq e e) ++ l.helps.map (·.1)
 
--- What `from`, `to` and the rank read: no primed name; a variable unprimed is no input, flag or step target, and a map
--- unprimed is never written (so each reads the same before and after a step). Primed names are distinct.
+theorem mem_conds_rank {l : Live} {e : E} (he : e ∈ l.rank) : C.eq e e ∈ liveConds l := by
+  simp only [liveConds, List.mem_append, List.mem_map]; exact Or.inl (Or.inr ⟨e, he, rfl⟩)
+
+/-- The argument, given how each step reads: `B`, `BM` the state and maps `when` reads (with the request), `A`, `AM`
+those `then` reads (primed names after the step). -/
+theorem leads_view (l : Live) (st : Nat → (Nat → Nat) × (Nat → Nat → Nat)) (B A : Nat → Nat → Nat) (BM AM : Nat → Nat → Nat → Nat)
+    (H : C × List (Nat × E) → Nat → Prop)
+    (hC : ∀ n, ∀ c ∈ liveConds l, evalC (A n) (AM n) (primeC l.prime l.primeMaps c) = evalC (st (n + 1)).1 (st (n + 1)).2 c
+      ∧ evalC (A n) (AM n) c = evalC (st n).1 (st n).2 c ∧ evalC (B n) (BM n) c = evalC (st n).1 (st n).2 c)
+    (hE : ∀ n, ∀ e ∈ l.rank, evalE (A n) (AM n) (primeE l.prime l.primeMaps e) = evalE (st (n + 1)).1 (st (n + 1)).2 e
+      ∧ evalE (A n) (AM n) e = evalE (st n).1 (st n).2 e)
+    (hstay : ∀ n, evalC (B n) (BM n) l.pend = true → evalC (A n) (AM n) (liveStayC l) = true)
+    (hcover : ∀ n, evalC (B n) (BM n) l.pend = true → evalC (A n) (AM n) (liveCoverC l) = true)
+    (hhelp : ∀ h ∈ l.helps, ∀ n, evalC (B n) (BM n) (liveHelpWhen l h) = true → evalC (A n) (AM n) (liveHelpThen l) = true)
+    (hreq : ∀ h ∈ l.helps, ∀ n, H h n → evalC (B n) (BM n) (reqC h.2) = true)
+    (fair : ∀ h ∈ l.helps, ∀ n, ∃ m, n ≤ m ∧ H h m) :
+    ∀ n, evalC (st n).1 (st n).2 l.from_ = true → ∃ m, n ≤ m ∧ evalC (st m).1 (st m).2 l.to = true := by
+  have memF : l.from_ ∈ liveConds l := by simp [liveConds]
+  have memT : l.to ∈ liveConds l := by simp [liveConds]
+  have memH : ∀ h ∈ l.helps, h.1 ∈ liveConds l := fun h hh => by
+    simp only [liveConds, List.mem_append, List.mem_map]; exact Or.inr ⟨h, hh, rfl⟩
+  have h1 : ∀ n, (l.rank.map (primeE l.prime l.primeMaps)).map (evalE (A n) (AM n)) = l.rank.map (evalE (st (n + 1)).1 (st (n + 1)).2) := by
+    intro n; rw [List.map_map]; exact List.map_congr_left (fun e he => (hE n e he).1)
+  have h2 : ∀ n, l.rank.map (evalE (A n) (AM n)) = l.rank.map (evalE (st n).1 (st n).2) := fun n =>
+    List.map_congr_left (fun e he => (hE n e he).2)
+  have hlex : ∀ n, evalC (A n) (AM n) (lexLtC (l.rank.map (primeE l.prime l.primeMaps)) l.rank)
+      = lexB (l.rank.map (evalE (st (n + 1)).1 (st (n + 1)).2)) (l.rank.map (evalE (st n).1 (st n).2)) := by
+    intro n; rw [lexLtC_eval, h1, h2]
+  have heqs : ∀ n, evalC (A n) (AM n) (eqsC (l.rank.map (primeE l.prime l.primeMaps)) l.rank) = true
+      ↔ l.rank.map (evalE (st (n + 1)).1 (st (n + 1)).2) = l.rank.map (evalE (st n).1 (st n).2) := by
+    intro n; rw [eqsC_eval _ _ _ _ (by simp), h1, h2]
+  have hpend : ∀ n, evalC (st n).1 (st n).2 l.from_ = true → ¬ evalC (st n).1 (st n).2 l.to = true → evalC (B n) (BM n) l.pend = true := by
+    intro n hP hnQ
+    simp only [Live.pend, evalC, Bool.and_eq_true, Bool.not_eq_true']
+    rw [(hC n _ memF).2.2, (hC n _ memT).2.2]; exact ⟨hP, by simpa using hnQ⟩
+  refine leads_of_lex (fun n => evalC (st n).1 (st n).2 l.from_ = true) (fun n => evalC (st n).1 (st n).2 l.to = true)
+    (fun n => l.rank.map (evalE (st n).1 (st n).2)) l.rank.length (fun n => by simp) l.helps
+    (fun h n => evalC (st n).1 (st n).2 h.1 = true) H ?_ ?_ ?_ fair
+  · intro n hP hnQ
+    have h := hstay n (hpend n hP hnQ)
+    simp only [liveStayC, evalC, Bool.and_eq_true, Bool.or_eq_true] at h
+    rw [(hC n _ memF).1, (hC n _ memT).1, hlex n, heqs n, keepC_eval] at h
+    refine ⟨h.1, ?_⟩
+    rcases h.2 with h2 | h2 | ⟨h2, h3⟩
+    · exact Or.inl h2
+    · exact Or.inr (Or.inl h2)
+    · refine Or.inr (Or.inr ⟨h2, fun hp hhp hW => ?_⟩)
+      have := h3 hp.1 (List.mem_map_of_mem hhp) (by rw [(hC n _ (memH hp hhp)).2.1]; exact hW)
+      rwa [(hC n _ (memH hp hhp)).1] at this
+  · intro n hP hnQ
+    have h := hcover n (hpend n hP hnQ)
+    rw [liveCoverC, anyC_eval] at h
+    obtain ⟨w, hw, hW⟩ := h
+    obtain ⟨hp, hhp, rfl⟩ := List.mem_map.mp hw
+    exact ⟨hp, hhp, by rw [← (hC n _ (memH hp hhp)).2.1]; exact hW⟩
+  · intro hp hhp n hP hnQ hW hH
+    have hB : evalC (B n) (BM n) (liveHelpWhen l hp) = true := by
+      have := hpend n hP hnQ
+      simp only [liveHelpWhen, evalC, Bool.and_eq_true]
+      rw [(hC n _ (memH hp hhp)).2.2]
+      exact ⟨this, hW, hreq hp hhp n hH⟩
+    have h := hhelp hp hhp n hB
+    simp only [liveHelpThen, evalC, Bool.or_eq_true] at h
+    rwa [(hC n _ memT).1, hlex n] at h
+
+/-! Machines with maps and flags -/
+
+-- What the liveness reads: no primed name; a variable unprimed is no input, flag or step target, and a map unprimed is
+-- never written (so each reads the same before and after a step). Primed names are distinct. Each request names inputs
+-- by terms that read none.
 def liveVars (f : FMMachine) (l : Live) : List Nat :=
   l.prime.map (·.2) ++ f.m.inputs ++ (flagVars f.flags ++ f.m.step.map (·.1)).filter (fun i => !(l.prime.map (·.1)).contains i)
 def liveMaps (f : FMMachine) (l : Live) : List Nat :=
   l.primeMaps.map (·.2) ++ (f.m.writes.map (·.1)).filter (fun mp => !(l.primeMaps.map (·.1)).contains mp)
 def liveOk (f : FMMachine) (l : Live) : Bool :=
   distinct (l.prime.map (·.2)) && distinct (l.primeMaps.map (·.2))
-    && [l.from_, l.to, .eq l.rank l.rank].all (fun c => avoids (liveVars f l) c && avoidsMaps (liveMaps f l) c)
+    && (liveConds l).all (fun c => avoids (liveVars f l) c && avoidsMaps (liveMaps f l) c)
+    && l.helps.all (fun h => h.2.all (fun p => f.m.inputs.contains p.1 && avoids f.m.inputs (.eq p.2 p.2)))
+
+-- The step laws Lean checks, built from the liveness.
+def liveStay (l : Live) (insts : List (Nat × E)) (proof : List VDef × Tree) : StepLaw :=
+  ⟨l.pend, liveStayC l, l.prime, l.primeMaps, insts, proof⟩
+def liveCover (l : Live) (insts : List (Nat × E)) (proof : List VDef × Tree) : StepLaw :=
+  ⟨l.pend, liveCoverC l, l.prime, l.primeMaps, insts, proof⟩
+def liveHelp (l : Live) (h : C × List (Nat × E)) (insts : List (Nat × E)) (proof : List VDef × Tree) : StepLaw :=
+  ⟨liveHelpWhen l h, liveHelpThen l, l.prime, l.primeMaps, insts, proof⟩
+def liveHelpsOk (f : FMMachine) (ps : List MEntry) (l : Live) (hp : List (List (Nat × E) × (List VDef × Tree))) : Bool :=
+  l.helps.length == hp.length && (l.helps.zip hp).all (fun x => checkStepLaw f ps (liveHelp l x.1 x.2.1 x.2.2))
 
 -- A run of a machine with maps and flags: from a reachable state, each step a request the machine allows.
 structure FRun (f : FMMachine) where
@@ -219,21 +485,15 @@ theorem frun_reach {f : FMMachine} (run : FRun f) : ∀ n, FMReach f (run.st n).
   | 0 => run.start
   | n + 1 => by rw [run.next n]; exact FMReach.step _ _ _ (frun_reach run n) (run.allowed n)
 
--- A variable or map `from`, `to` or the rank reads: read alike before and after a step, if unprimed.
-theorem live_reads {f : FMMachine} {l : Live} (hok : liveOk f l = true) {c : C} (hc : c = l.from_ ∨ c = l.to ∨ c = .eq l.rank l.rank)
+theorem live_reads {f : FMMachine} {l : Live} (hok : liveOk f l = true) {c : C} (hc : c ∈ liveConds l)
     (ρ ι : Nat → Nat) (M : Nat → Nat → Nat) :
     (∀ i, occC i c = true → i ∉ l.prime.map (·.2) ∧ (i ∈ l.prime.map (·.1) ∨
         applyS f.m.step (decideFlags f.flags (withInputs f.m.inputs ρ ι) M) M i = withInputs f.m.inputs ρ ι i))
       ∧ (∀ mp, occMC mp c = true → mp ∉ l.primeMaps.map (·.2) ∧ (mp ∈ l.primeMaps.map (·.1) ∨
         writeMaps f.m.writes (decideFlags f.flags (withInputs f.m.inputs ρ ι) M) M mp = M mp))
       ∧ (∀ i, occC i c = true → withInputs f.m.inputs ρ ι i = ρ i) := by
-  simp only [liveOk, Bool.and_eq_true, List.all_cons, List.all_nil, Bool.and_true] at hok
-  obtain ⟨⟨_, _⟩, ⟨hfv, hfm⟩, ⟨htv, htm⟩, ⟨hrv, hrm⟩⟩ := hok
-  have hv : avoids (liveVars f l) c = true ∧ avoidsMaps (liveMaps f l) c = true := by
-    rcases hc with rfl | rfl | rfl
-    · exact ⟨hfv, hfm⟩
-    · exact ⟨htv, htm⟩
-    · exact ⟨hrv, hrm⟩
+  simp only [liveOk, Bool.and_eq_true, List.all_eq_true] at hok
+  have hv := hok.1.2 c hc
   have notIn : ∀ i, occC i c = true → i ∉ l.prime.map (·.1) → i ∉ flagVars f.flags ++ f.m.step.map (·.1) := fun i hi hn hm =>
     avoids_occ hv.1 hi (List.mem_append_right _ (List.mem_filter.mpr ⟨hm, by simpa [List.contains_iff_mem] using hn⟩))
   have noIn : ∀ i, occC i c = true → i ∉ f.m.inputs := fun i hi hm => avoids_occ hv.1 hi (List.mem_append_left _ (List.mem_append_right _ hm))
@@ -243,7 +503,7 @@ theorem live_reads {f : FMMachine} {l : Live} (hok : liveOk f l = true) {c : C} 
     · exact Or.inl hp
     · right
       have hn := notIn i hi hp
-      rw [applyS_other (fun h => hn (List.mem_append_right _ h)), decide_other (fun h => hn (List.mem_append_left _ h)), withInputs_other (noIn i hi)]
+      rw [applyS_other (fun h => hn (List.mem_append_right _ h)), decide_other (fun h => hn (List.mem_append_left _ h))]
   · by_cases hp : mp ∈ l.primeMaps.map (·.1)
     · exact Or.inl hp
     · right
@@ -252,87 +512,194 @@ theorem live_reads {f : FMMachine} {l : Live} (hok : liveOk f l = true) {c : C} 
       simp only [writeMaps]
       rw [lookup_none (fun w hw' => by simp only [beq_eq_false_iff_ne]; intro he; exact hw (by rw [← he]; exact List.mem_map_of_mem hw'))]
 
--- Read where `then` reads, a term that reads no primed name is the term before the step.
-theorem unprimed_eval {pr pm : List (Nat × Nat)} {e : E} (hv : ∀ i, occE i e = true → i ∉ pr.map (·.2)) (hm : ∀ mp, occME mp e = true → mp ∉ pm.map (·.2))
-    (ρ ρ' : Nat → Nat) (M M' : Nat → Nat → Nat) : evalE (primed pr ρ' ρ) (primedMaps pm M' M) e = evalE ρ M e := by
-  rw [congrE _ ρ _ e (fun i hi => by
-    simp only [primed]
-    rw [lookup_none (fun q hq => by simp only [beq_eq_false_iff_ne]; intro he; exact hv i hi (by rw [← he]; exact List.mem_map_of_mem hq))])]
-  exact congrME ρ _ M e (fun mp hmp => by
-    funext k; simp only [primedMaps]
-    rw [lookup_none (fun q hq => by simp only [beq_eq_false_iff_ne]; intro he; exact hm mp hmp (by rw [← he]; exact List.mem_map_of_mem hq))])
-
-/-- Liveness under fairness: if the laws' proof checks, the liveness reads what it may (`liveOk`), and the step law and
-the progress goal Lean builds from it check, then along every run that takes the helpful request infinitely often, each
-state where `from` holds is followed (then or later) by one where `to` holds. -/
+/-- Liveness under fairness, for machines with maps and flags: if the laws' proof checks, the liveness reads what it may
+(`liveOk`), and the step laws Lean builds from it check, then along every run that takes each helpful request (its
+named inputs as its terms) infinitely often, each state where `from` holds is followed (then or later) by one where `to`
+holds. -/
 theorem leads_sound (f : FMMachine) (ps : List MEntry) (l : Live) (sinsts : List (Nat × E)) (sproof : List VDef × Tree)
-    (pinsts : List (Nat × E)) (pa pc : List VDef × Tree)
+    (cinsts : List (Nat × E)) (cproof : List VDef × Tree) (hp : List (List (Nat × E) × (List VDef × Tree)))
     (hl : checkFMMachine f ps = true) (hok : liveOk f l = true)
-    (hs : checkStepLaw f ps (liveStay l sinsts sproof) = true) (hp : checkProgress f ps (liveHelp l pinsts pa pc) = true)
-    (run : FRun f) (fair : ∀ n, ∃ m, n ≤ m ∧ ∀ i ∈ f.m.inputs, run.req m i = applyS l.req (run.st m).1 (run.st m).2 i) :
+    (hs : checkStepLaw f ps (liveStay l sinsts sproof) = true) (hc : checkStepLaw f ps (liveCover l cinsts cproof) = true)
+    (hh : liveHelpsOk f ps l hp = true) (run : FRun f)
+    (fair : ∀ h ∈ l.helps, ∀ n, ∃ m, n ≤ m ∧ ∀ p ∈ h.2, run.req m p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
     ∀ n, evalC (run.st n).1 (run.st n).2 l.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 l.to = true := by
-  have hSL := steplaw_sound f ps _ hl hs
-  have hPR := progress_sound f ps _ hl hp
-  have hdist : distinct (l.prime.map (·.2)) = true ∧ distinct (l.primeMaps.map (·.2)) = true := by
-    simp only [liveOk, Bool.and_eq_true] at hok; exact hok.1
-  -- After a step (request ι from ρ, M): `from`, `to` and the rank read primed are read at the next state; the rank read
-  -- plain is read at the state before.
-  have hC : ∀ c, (c = l.from_ ∨ c = l.to) → ∀ ρ ι M,
-      evalC (primed l.prime (applyS f.m.step (decideFlags f.flags (withInputs f.m.inputs ρ ι) M) M) (withInputs f.m.inputs ρ ι))
-        (primedMaps l.primeMaps (writeMaps f.m.writes (decideFlags f.flags (withInputs f.m.inputs ρ ι) M) M) M) (primeC l.prime l.primeMaps c)
-      = evalC (applyS f.m.step (decideFlags f.flags (withInputs f.m.inputs ρ ι) M) M) (writeMaps f.m.writes (decideFlags f.flags (withInputs f.m.inputs ρ ι) M) M) c := by
-    intro c hc ρ ι M
-    obtain ⟨hv, hm, _⟩ := live_reads hok (c := c) (by rcases hc with h | h; exact Or.inl h; exact Or.inr (Or.inl h)) ρ ι M
-    exact primeC_eval _ _ hdist.1 hdist.2 _ _ _ _ c hv hm
-  have hR := live_reads hok (c := .eq l.rank l.rank) (by simp)
-  have hE : ∀ ρ ι M,
-      evalE (primed l.prime (applyS f.m.step (decideFlags f.flags (withInputs f.m.inputs ρ ι) M) M) (withInputs f.m.inputs ρ ι))
-        (primedMaps l.primeMaps (writeMaps f.m.writes (decideFlags f.flags (withInputs f.m.inputs ρ ι) M) M) M) (primeE l.prime l.primeMaps l.rank)
-      = evalE (applyS f.m.step (decideFlags f.flags (withInputs f.m.inputs ρ ι) M) M) (writeMaps f.m.writes (decideFlags f.flags (withInputs f.m.inputs ρ ι) M) M) l.rank := by
-    intro ρ ι M
-    obtain ⟨hv, hm, _⟩ := hR ρ ι M
-    exact primeE_eval _ _ hdist.1 hdist.2 _ _ _ _ l.rank (fun i hi => hv i (by simp [occC, hi])) (fun mp h => hm mp (by simp [occMC, h]))
-  have hE0 : ∀ ρ ι M,
-      evalE (primed l.prime (applyS f.m.step (decideFlags f.flags (withInputs f.m.inputs ρ ι) M) M) (withInputs f.m.inputs ρ ι))
-        (primedMaps l.primeMaps (writeMaps f.m.writes (decideFlags f.flags (withInputs f.m.inputs ρ ι) M) M) M) l.rank = evalE ρ M l.rank := by
-    intro ρ ι M
-    obtain ⟨hv, hm, hin⟩ := hR ρ ι M
-    rw [unprimed_eval (fun i hi => (hv i (by simp [occC, hi])).1) (fun mp h => (hm mp (by simp [occMC, h])).1)]
-    exact congrE _ _ M l.rank (fun i hi => hin i (by simp [occC, hi]))
-  -- `from` and `to` read the state, not the request.
-  have hW : ∀ c, (c = l.from_ ∨ c = l.to) → ∀ ρ ι M, evalC (withInputs f.m.inputs ρ ι) M c = evalC ρ M c := by
-    intro c hc ρ ι M
-    obtain ⟨_, _, hin⟩ := live_reads hok (c := c) (by rcases hc with h | h; exact Or.inl h; exact Or.inr (Or.inl h)) ρ ι M
-    exact congrC _ _ M c hin
-  refine leads_of_rank run.st (fun s => evalC s.1 s.2 l.from_ = true) (fun s => evalC s.1 s.2 l.to = true) (fun s => evalE s.1 s.2 l.rank)
-    (fun m => ∀ i ∈ f.m.inputs, run.req m i = applyS l.req (run.st m).1 (run.st m).2 i) ?_ ?_ fair
-  · intro n hP hnQ
-    have h := hSL (run.st n).1 (run.st n).2 (frun_reach run n) (run.req n) (run.allowed n)
-      (by simp only [liveStay, liveWhen, evalC, Bool.and_eq_true, Bool.not_eq_true']
-          rw [hW _ (Or.inl rfl), hW _ (Or.inr rfl)]
-          exact ⟨hP, by simpa using hnQ⟩)
-    simp only [liveStay, evalC, Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq] at h
-    rw [hC _ (Or.inl rfl), hC _ (Or.inr rfl), hE, hE0] at h
+  have hok0 := hok
+  simp only [liveOk, Bool.and_eq_true, List.all_eq_true] at hok0
+  obtain ⟨⟨⟨hd1, hd2⟩, _⟩, hreqs⟩ := hok0
+  simp only [liveHelpsOk, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hh
+  obtain ⟨hlen, hall⟩ := hh
+  refine leads_view l run.st (fun n => withInputs f.m.inputs (run.st n).1 (run.req n))
+    (fun n => primed l.prime (run.st (n + 1)).1 (withInputs f.m.inputs (run.st n).1 (run.req n)))
+    (fun n => (run.st n).2) (fun n => primedMaps l.primeMaps (run.st (n + 1)).2 (run.st n).2)
+    (fun h n => ∀ p ∈ h.2, run.req n p.1 = evalE (run.st n).1 (run.st n).2 p.2) ?_ ?_ ?_ ?_ ?_ ?_ fair
+  · intro n c hc
+    obtain ⟨hv, hm, hx⟩ := live_reads hok hc (run.st n).1 (run.req n) (run.st n).2
     rw [run.next n]
-    exact h
-  · intro n hP hnQ hH
-    obtain ⟨_, h⟩ := hPR (run.st n).1 (run.st n).2 (frun_reach run n)
-      (by simp only [liveHelp, liveWhen, evalC, Bool.and_eq_true, Bool.not_eq_true']; exact ⟨hP, by simpa using hnQ⟩)
-    -- The helpful request is the request the run took.
-    have hreq : withInputs f.m.inputs (run.st n).1 (applyS (liveHelp l pinsts pa pc).req (run.st n).1 (run.st n).2)
-        = withInputs f.m.inputs (run.st n).1 (run.req n) := by
-      funext i
-      simp only [withInputs]
-      split
-      · rename_i hi; exact (hH i (List.contains_iff_mem.mp hi)).symm
-      · rfl
-    simp only [liveHelp] at h hreq
-    rw [hreq] at h
-    simp only [evalC, Bool.or_eq_true, decide_eq_true_eq] at h
-    rw [hC _ (Or.inr rfl), hE, hE0] at h
+    exact view_C hd1 hd2 hv hm hx (fun _ _ => rfl)
+  · intro n e he
+    obtain ⟨hv, hm, hx⟩ := live_reads hok (mem_conds_rank he) (run.st n).1 (run.req n) (run.st n).2
     rw [run.next n]
-    exact h
+    exact view_E hd1 hd2 hv hm hx (fun _ _ => rfl)
+  · intro n hB
+    have := steplaw_sound f ps _ hl hs _ _ (frun_reach run n) _ (run.allowed n) hB
+    rw [run.next n]; exact this
+  · intro n hB
+    have := steplaw_sound f ps _ hl hc _ _ (frun_reach run n) _ (run.allowed n) hB
+    rw [run.next n]; exact this
+  · intro h hmem n hB
+    obtain ⟨pp, hpp⟩ := zip_cover l.helps hp hlen h hmem
+    have := steplaw_sound f ps _ hl (hall _ hpp) _ _ (frun_reach run n) _ (run.allowed n) hB
+    rw [run.next n]; exact this
+  · intro h hmem n hH
+    show evalC (withInputs f.m.inputs (run.st n).1 (run.req n)) (run.st n).2 (reqC h.2) = true
+    rw [reqC_eval]
+    intro p hp'
+    have hq := hreqs h hmem p hp'
+    simp only [withInputs, hq.1, if_true]
+    rw [hH p hp']
+    exact (congrE _ _ _ p.2 (fun i hi => withInputs_other (fun hin => avoids_occ hq.2 (by simp [occC, hi]) hin) _ _)).symm
+
+/-! Machines with sets -/
+
+-- As for maps and flags, with the request's extended variables (inputs, quantified flags, witnesses) and the maps it
+-- carries read by no part of the liveness, and maps written at every key unprimed counted as written.
+def sliveVars (s : SMachine) (l : Live) : List Nat :=
+  l.prime.map (·.2) ++ s.extVars ++ (flagVars s.f.flags ++ s.f.m.step.map (·.1)).filter (fun i => !(l.prime.map (·.1)).contains i)
+def sliveMaps (s : SMachine) (l : Live) : List Nat :=
+  l.primeMaps.map (·.2) ++ s.carried ++ (s.f.m.writes.map (·.1) ++ s.every.map (·.1)).filter (fun mp => !(l.primeMaps.map (·.1)).contains mp)
+def sliveOk (s : SMachine) (l : Live) : Bool :=
+  distinct (l.prime.map (·.2)) && distinct (l.primeMaps.map (·.2))
+    && (liveConds l).all (fun c => avoids (sliveVars s l) c && avoidsMaps (sliveMaps s l) c)
+    && l.helps.all (fun h => h.2.all (fun p => s.f.m.inputs.contains p.1 && avoids s.extVars (.eq p.2 p.2) && avoidsMaps s.carried (.eq p.2 p.2)))
+
+-- A step law over sets's proof: (law instances, quantified flag instances, fact instances, several-key instances, tree).
+abbrev SProof := List (Nat × E) × List (Nat × E) × List (Nat × E) × List (Nat × E × List E) × (List VDef × Tree)
+def sliveStep (l : Live) (w t : C) (p : SProof) : SKStep :=
+  ⟨⟨[w], t, [[]], l.prime, l.primeMaps, p.1, p.2.2.2.2⟩, [[]], p.2.1, p.2.2.1, p.2.2.2.1⟩
+def sliveHelpsOk (s : SMachine) (ps : List SEntry) (l : Live) (hp : List SProof) : Bool :=
+  l.helps.length == hp.length && (l.helps.zip hp).all (fun x => checkSKStep s ps (sliveStep l (liveHelpWhen l x.1) (liveHelpThen l) x.2))
+
+-- A run of a machine with sets: each step a request (inputs, the maps it carries) the machine allows.
+structure SRun (s : SMachine) where
+  st : Nat → (Nat → Nat) × (Nat → Nat → Nat)
+  req : Nat → SRequest
+  start : SReach s (st 0).1 (st 0).2
+  allowed : ∀ n, evalC (sView s (st n).1 (st n).2 (req n).1 (req n).2).1 (sView s (st n).1 (st n).2 (req n).1 (req n).2).2 s.f.m.assume = true
+  next : ∀ n, st (n + 1) = sNext s (st n).1 (st n).2 (req n).1 (req n).2
+
+theorem srun_reach {s : SMachine} (run : SRun s) : ∀ n, SReach s (run.st n).1 (run.st n).2
+  | 0 => run.start
+  | n + 1 => by rw [run.next n]; exact SReach.step _ _ _ _ (srun_reach run n) (run.allowed n)
+
+-- A step law over sets of one step: every request allowed that `when` admits takes a step where `then` holds.
+theorem skstep_one {s : SMachine} {ps : List SEntry} {l : Live} {w t : C} {p : SProof} (hl : checkSMachine s ps = true)
+    (hc : checkSKStep s ps (sliveStep l w t p) = true) : ∀ ρ M, SReach s ρ M → ∀ ι κ,
+      evalC (sView s ρ M ι κ).1 (sView s ρ M ι κ).2 s.f.m.assume = true →
+      evalC (withExt s ρ (sReq s ρ M ι κ)) (withCarried s M κ) w = true →
+      evalC (primed l.prime (sNext s ρ M ι κ).1 (withExt s ρ (sReq s ρ M ι κ)))
+        (primedMaps l.primeMaps (sNext s ρ M ι κ).2 (withCarried s M κ)) t = true := by
+  intro ρ M hr ι κ hA hW
+  have h := skstep_sound s ps _ hl hc ρ M hr (ι, κ) [] rfl ⟨hA, hW, trivial⟩
+  simpa [sliveStep, sEnd, sExts, renEnv, renMaps, lookup] using h
+
+theorem decideQ_other {s : SMachine} {i : Nat} (h : i ∉ s.qVars) (X : Nat → Nat) (N : Nat → Nat → Nat) : decideQ s X N i = X i := by
+  simp only [decideQ]
+  rw [lookup_none (fun q hq => by
+    simp only [beq_eq_false_iff_ne]; intro he; exact h (by rw [← he]; exact List.mem_map_of_mem hq))]
+
+theorem slive_reads {s : SMachine} {l : Live} (hok : sliveOk s l = true) {c : C} (hc : c ∈ liveConds l)
+    (ρ : Nat → Nat) (M : Nat → Nat → Nat) (ι : Nat → Nat) (κ : Nat → Nat → Nat) :
+    (∀ i, occC i c = true → i ∉ l.prime.map (·.2) ∧ (i ∈ l.prime.map (·.1) ∨ (sNext s ρ M ι κ).1 i = withExt s ρ (sReq s ρ M ι κ) i))
+      ∧ (∀ mp, occMC mp c = true → mp ∉ l.primeMaps.map (·.2) ∧ (mp ∈ l.primeMaps.map (·.1) ∨ (sNext s ρ M ι κ).2 mp = withCarried s M κ mp))
+      ∧ (∀ i, occC i c = true → withExt s ρ (sReq s ρ M ι κ) i = ρ i)
+      ∧ (∀ mp, occMC mp c = true → withCarried s M κ mp = M mp) := by
+  simp only [sliveOk, Bool.and_eq_true, List.all_eq_true] at hok
+  have hv := hok.1.2 c hc
+  have noExt : ∀ i, occC i c = true → i ∉ s.extVars := fun i hi hm => avoids_occ hv.1 hi (List.mem_append_left _ (List.mem_append_right _ hm))
+  have hext : ∀ i, occC i c = true → withExt s ρ (sReq s ρ M ι κ) i = ρ i := fun i hi => by
+    simp only [withExt]; rw [if_neg (by simpa [List.contains_iff_mem] using noExt i hi)]
+  have noCar : ∀ mp, occMC mp c = true → mp ∉ s.carried := fun mp hmp hm => avoidsMaps_occ hv.2 hmp (List.mem_append_left _ (List.mem_append_right _ hm))
+  have hcar : ∀ mp, occMC mp c = true → withCarried s M κ mp = M mp := fun mp hmp => by
+    simp only [withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using noCar mp hmp)]
+  refine ⟨fun i hi => ⟨fun h => avoids_occ hv.1 hi (List.mem_append_left _ (List.mem_append_left _ h)), ?_⟩,
+    fun mp hmp => ⟨fun h => avoidsMaps_occ hv.2 hmp (List.mem_append_left _ (List.mem_append_left _ h)), ?_⟩, hext, hcar⟩
+  · by_cases hp : i ∈ l.prime.map (·.1)
+    · exact Or.inl hp
+    · right
+      have hn : i ∉ flagVars s.f.flags ++ s.f.m.step.map (·.1) := fun hm =>
+        avoids_occ hv.1 hi (List.mem_append_right _ (List.mem_filter.mpr ⟨hm, by simpa [List.contains_iff_mem] using hp⟩))
+      have hx := noExt i hi
+      simp only [SMachine.extVars, SMachine.qVars, List.mem_append, not_or] at hx
+      rw [hext i hi]
+      simp only [sNext, sView]
+      rw [applyS_other (fun h => hn (List.mem_append_right _ h)), decide_other (fun h => hn (List.mem_append_left _ h)),
+        decideQ_other (by simpa [SMachine.qVars] using hx.1.2), withInputs_other hx.1.1]
+  · by_cases hp : mp ∈ l.primeMaps.map (·.1)
+    · exact Or.inl hp
+    · right
+      have hw : mp ∉ s.f.m.writes.map (·.1) ++ s.every.map (·.1) := fun hm =>
+        avoidsMaps_occ hv.2 hmp (List.mem_append_right _ (List.mem_filter.mpr ⟨hm, by simpa [List.contains_iff_mem] using hp⟩))
+      funext k
+      simp only [sNext, everyMaps]
+      rw [lookup_none (fun w hw' => by simp only [beq_eq_false_iff_ne]; intro he; exact hw (List.mem_append_right _ (by rw [← he]; exact List.mem_map_of_mem hw')))]
+      simp only [writeMaps]
+      rw [lookup_none (fun w hw' => by simp only [beq_eq_false_iff_ne]; intro he; exact hw (List.mem_append_left _ (by rw [← he]; exact List.mem_map_of_mem hw')))]
+      rfl
+
+/-- Liveness under fairness, for machines with sets: as `leads_sound`, with each helpful request naming some inputs and
+leaving the rest, and the maps it carries, free. -/
+theorem sleads_sound (s : SMachine) (ps : List SEntry) (l : Live) (sp cp : SProof) (hp : List SProof)
+    (hl : checkSMachine s ps = true) (hok : sliveOk s l = true)
+    (hs : checkSKStep s ps (sliveStep l l.pend (liveStayC l) sp) = true) (hc : checkSKStep s ps (sliveStep l l.pend (liveCoverC l) cp) = true)
+    (hh : sliveHelpsOk s ps l hp = true) (run : SRun s)
+    (fair : ∀ h ∈ l.helps, ∀ n, ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
+    ∀ n, evalC (run.st n).1 (run.st n).2 l.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 l.to = true := by
+  have hok0 := hok
+  simp only [sliveOk, Bool.and_eq_true, List.all_eq_true] at hok0
+  obtain ⟨⟨⟨hd1, hd2⟩, _⟩, hreqs⟩ := hok0
+  simp only [sliveHelpsOk, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hh
+  obtain ⟨hlen, hall⟩ := hh
+  refine leads_view l run.st (fun n => withExt s (run.st n).1 (sReq s (run.st n).1 (run.st n).2 (run.req n).1 (run.req n).2))
+    (fun n => primed l.prime (run.st (n + 1)).1 (withExt s (run.st n).1 (sReq s (run.st n).1 (run.st n).2 (run.req n).1 (run.req n).2)))
+    (fun n => withCarried s (run.st n).2 (run.req n).2) (fun n => primedMaps l.primeMaps (run.st (n + 1)).2 (withCarried s (run.st n).2 (run.req n).2))
+    (fun h n => ∀ p ∈ h.2, (run.req n).1 p.1 = evalE (run.st n).1 (run.st n).2 p.2) ?_ ?_ ?_ ?_ ?_ ?_ fair
+  · intro n c hc
+    obtain ⟨hv, hm, hx, hn⟩ := slive_reads hok hc (run.st n).1 (run.st n).2 (run.req n).1 (run.req n).2
+    rw [run.next n]
+    exact view_C hd1 hd2 hv hm hx hn
+  · intro n e he
+    obtain ⟨hv, hm, hx, hn⟩ := slive_reads hok (mem_conds_rank he) (run.st n).1 (run.st n).2 (run.req n).1 (run.req n).2
+    rw [run.next n]
+    exact view_E hd1 hd2 hv hm hx hn
+  · intro n hB
+    have := skstep_one hl hs _ _ (srun_reach run n) _ _ (run.allowed n) hB
+    rw [run.next n]; exact this
+  · intro n hB
+    have := skstep_one hl hc _ _ (srun_reach run n) _ _ (run.allowed n) hB
+    rw [run.next n]; exact this
+  · intro h hmem n hB
+    obtain ⟨pp, hpp⟩ := zip_cover l.helps hp hlen h hmem
+    have := skstep_one hl (hall _ hpp) _ _ (srun_reach run n) _ _ (run.allowed n) hB
+    rw [run.next n]; exact this
+  · intro h hmem n hH
+    show evalC (withExt s (run.st n).1 (sReq s (run.st n).1 (run.st n).2 (run.req n).1 (run.req n).2)) (withCarried s (run.st n).2 (run.req n).2) (reqC h.2) = true
+    rw [reqC_eval]
+    intro p hp'
+    have hq := hreqs h hmem p hp'
+    obtain ⟨⟨hin, hav⟩, havm⟩ := hq
+    have hext : s.extVars.contains p.1 = true := by
+      simp only [SMachine.extVars, List.contains_iff_mem, List.mem_append]; exact Or.inl (Or.inl (List.contains_iff_mem.mp hin))
+    have hl1 : withExt s (run.st n).1 (sReq s (run.st n).1 (run.st n).2 (run.req n).1 (run.req n).2) p.1 = (run.req n).1 p.1 := by
+      simp only [withExt, hext, if_true, sReq, hin]
+    have hr1 : evalE (withExt s (run.st n).1 (sReq s (run.st n).1 (run.st n).2 (run.req n).1 (run.req n).2)) (withCarried s (run.st n).2 (run.req n).2) p.2
+        = evalE (run.st n).1 (run.st n).2 p.2 := by
+      rw [congrME _ _ (run.st n).2 p.2 (fun mp hmp => by
+        simp only [withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using avoidsMaps_occ havm (by simp [occMC, hmp]))])]
+      exact congrE _ _ _ p.2 (fun i hi => by
+        simp only [withExt]; rw [if_neg (by simpa [List.contains_iff_mem] using avoids_occ hav (by simp [occC, hi]))])
+    rw [hl1, hr1]; exact hH p hp'
 
 end Kern
 
 #print axioms Kern.leads_sound
+#print axioms Kern.sleads_sound

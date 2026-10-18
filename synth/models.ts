@@ -1,6 +1,7 @@
 // Synthesis problems: machines whose law needs an invariant nobody wrote, and loops whose rank nobody wrote.
 import {type Law, type Machine, all, any, atMost, ite, less, min, minus, n, plus, same, times, x} from '../core/machine.ts'
 import {inflight, inflightLoss} from '../core/models.ts'
+import {divBy, nat, rule, when} from '../core/dsl.ts'
 import type {Loop} from '../kernel/kernel.ts'
 import type {Box, Form} from './compile.ts'
 
@@ -33,6 +34,15 @@ const leaky: Machine = {
   assume: atMost(x('kind'), n(1)),
 }
 
+// A prepaid meter billing by the started block of 10: a request for amt costs ⌈amt / 10⌉ blocks (a function from
+// outside the rule, blocks(amt + 9)), taken while enough are left. Billing stays within 500, which needs billed <=
+// 10·used (from the function's facts, at amt + 9) and units + used <= 50.
+const metered = rule('metered blocks').inputs({amt: nat}).state({units: 50, used: 0, billed: 0})
+  .fns({blocks: divBy(10)})
+  .flags(({amt, units, blocks}) => ({fits: blocks(amt.plus(9)).atMost(units)}))
+  .step(({amt, units, used, billed, fits, blocks}) => ({units: when(fits, units.minus(blocks(amt.plus(9))), units), used: when(fits, used.plus(blocks(amt.plus(9))), used), billed: when(fits, billed.plus(amt), billed)}))
+  .machine
+
 export const invariantCases: InvariantCase[] = [
   {what: 'in-flight requests: s <= b + 150', depth: 3, history: {b: 7, t: 63, done: 1}, m: inflight, goal: inflightLoss, goalForm: {coef: {s: 1, b: -1}, d: 150},
     box: {b: 63, s: 255, p: 7, t: 63, done: 1}, small: {b: 7, s: 63, p: 4, t: 7, done: 1},
@@ -43,6 +53,9 @@ export const invariantCases: InvariantCase[] = [
   {what: 'leaky bucket: admitted <= B + 2·ticks', depth: 20, history: {B: 7, kind: 1}, m: leaky, goal: {name: 'admitted <= B + 2 ticks', holds: atMost(x('admitted'), plus(x('B'), times(2, x('ticks'))))}, goalForm: {coef: {admitted: 1, B: -1, ticks: -2}, d: 0},
     box: {B: 31, level: 63, admitted: 127, ticks: 63, kind: 1}, small: {B: 7, level: 15, admitted: 31, ticks: 7, kind: 1},
     coefs: signed([1, 2, 3]), consts: range(0, 6), terms: 3},
+  {what: 'metered blocks: billed <= 500 (a function)', depth: 4, history: {amt: 31}, m: metered, goal: {name: 'billed <= 500', holds: atMost(x('billed'), n(500))}, goalForm: {coef: {billed: 1}, d: 500},
+    box: {units: 63, used: 63, billed: 1023, amt: 31}, small: {units: 15, used: 15, billed: 127, amt: 15},
+    coefs: signed([1, 2, 10]), consts: [...range(0, 12), 50, 100, 500], terms: 2},
 ]
 
 // Loops. carry: count down b, and when it's out, take one from a and refill b to 3; the rank 4a + b drops each turn.

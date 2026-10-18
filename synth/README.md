@@ -7,21 +7,22 @@ Nothing before the kernel is trusted.
 
 | File | What |
 | --- | --- |
-| `compile.ts` | The kernels, as WGSL for Handwired's runner and as JavaScript (the CPU twin). `history`: every request sequence from the start; a candidate a reachable state breaks dies. `region`: which box points satisfy every candidate alive (24 points a thread, a bit mask). `kill`: over the region's points, the candidates their step breaks (a block of 24 candidates a thread, a bit mask). Ranks: a candidate max(0, Σ c·v − d) dies where the loop runs but it doesn't drop |
+| `compile.ts` | The kernels, as WGSL for Handwired's runner and as JavaScript (the CPU twin). A function from outside the rule is a table of its values up to the largest key a box point reads it at (the box bounds the params, state and request; a history's state, by running its largest values through its depth), read as a map. `history`: every request sequence from the start; a candidate a reachable state breaks dies. `region`: which box points satisfy every candidate alive (24 points a thread, a bit mask). `kill`: over the region's points, the candidates their step breaks (a block of 24 candidates a thread, a bit mask). Ranks: a candidate max(0, Σ c·v − d) dies where the loop runs but it doesn't drop |
 | `synth.ts` | Templates (up to 3 terms, coefficients and constants per case), the GPU and CPU evaluators (dispatches sized by work, under the macOS GPU watchdog), Houdini rounds, `support` (the few survivors the goal needs: add the one ruling out the most counterexamples to induction until none is left), and the kernel loop (when the kernel gets stuck, its witness is a counterexample to induction: add the survivor that rules it out). `usedHyps` reads which laws a kernel tree's leaves use |
-| `models.ts` | in-flight requests (needs s + 50p ≤ b + 150), a token bucket (needs tokens + spent − 3·ticks ≤ 10), a leaky bucket with its capacity a param (needs admitted ≤ level + 2·ticks); loops: carry (rank 4a + b), gcd (a + b), race (n + y − x + 1) |
+| `models.ts` | in-flight requests (needs s + 50p ≤ b + 150), a token bucket (needs tokens + spent − 3·ticks ≤ 10), a leaky bucket with its capacity a param (needs admitted ≤ level + 2·ticks), a meter billing by the started block through `divBy(10)` (needs billed ≤ 10·used, from the function's facts, and units + used ≤ 50); loops: carry (rank 4a + b), gcd (a + b), race (n + y − x + 1) |
 | `run.ts` | End to end: `--gpu` (Dawn's navigator.gpu: Metal on a Mac, Vulkan on Linux) or `--cpu` (the JS twin), `--small` boxes, `--only` |
 | `run_gpu.py` | The same on a Modal GPU (L4 or H100), app `hw-gpu-synth`, 15-minute timeout, cancelled if the client stops; `--script run-more.ts` for the cases below |
 | `compile-more.ts` | More kernels, beside compile.ts's (unchanged): `nonincreasing` (ranks that never go up), `rankPair` (pairs compared in order), and for machines with maps `mapRegion` / `mapKill`. A map machine's box point tracks two cells per map, M at an arbitrary key k and M at the key the step writes, equal when the keys are; reads must be at the written key or at k; a candidate about a map must hold at both cells to be in the region, and dies when the step breaks it at k |
 | `more.ts`, `models-more.ts`, `run-more.ts` | Rank pairs: first the ranks that never go up (one round), then every such r1 with every r2 (one round), the kernel's `loopObligations(l, laws, [r1, r2])` simplest first. Map invariants: templates about one map's cell at k (plus a scalar or param), the start (every cell holds the map's initial value), Houdini over tracked cells, then the kernel proves the strongest survivors as laws for every k, dropping any it can't |
 
-Every case ends in a kernel proof (H100 run, `runs/modal/synth/h100-v2.json`):
+Every case ends in a kernel proof (H100 run, `runs/modal/synth/h100-v2.json`; the metered row, an L4 run, `runs/modal/synth/fns-l4.json`):
 
 | Case | Candidates | GPU work | Survive (needed) | Found | H100 | L4 | M2 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | in-flight: s ≤ b + 150 | 6,953 | 16.8M histories of 3, 16.8M points × 4 rounds | 1,041 (1) | s + 50p − b ≤ 150 | 8.0 s | 16.3 s | 42.2 s |
 | token bucket: spent ≤ 10 + 3·ticks | 3,133 | 16.8M histories of 6, 2.1M points × 26 rounds | 78 (1) | tokens + spent − 3·ticks ≤ 10 | 5.7 s | 11.5 s | 41.7 s |
 | leaky bucket: admitted ≤ B + 2·ticks | 5,131 | 8.4M histories of 20, 33.6M points × 5 rounds | 532 (1) | admitted − level − 2·ticks ≤ 0 | 8.9 s | 19.6 s | 183 s |
+| metered blocks: billed ≤ 500 (a function) | 768 | 1.0M histories of 4, 134M points × 9 rounds | 128 (2) | billed − 10used ≤ 0, units + used ≤ 50 | | 3.5 s | |
 | carry halts | 1,215 ranks | 4,096 points | 10 | max(0, 4a + b) | 43 ms | 53 ms | 38 ms |
 | gcd halts (A, B ≥ 1) | 395 ranks | 1M points | 35 | max(0, a + b) | 53 ms | 92 ms | 123 ms |
 | race halts | 1,407 ranks | 4.2M points | 18 | max(0, n + y − x + 1) | 466 ms | 1.0 s | 1.2 s |
