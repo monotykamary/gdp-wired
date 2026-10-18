@@ -447,9 +447,15 @@ const flagsOfM = (m: Machine): Record<string, C> => {
 export const hasSets = (m: Machine) => !!m.inputMaps?.length || Object.values(m.step.flags ?? {}).some(c => c.op === 'all') || Object.values(m.step.maps ?? {}).some(w => 'each' in w)
   || !!Object.keys(m.fns ?? {}).length || !!m.facts?.length
 const boundKeys = (m: Machine) => [...Object.values(m.step.flags ?? {}).flatMap(c => (c.op === 'all' ? [c.key] : [])), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : []))]
-export function smachineToLean(id: string, m: Machine, laws: Law[], opts: {stepLaws?: StepLaw[], liveness?: Liveness[], tamper?: {what: string, machine: Machine}, simp?: string[], free?: string[],
-    ghosts?: string[], after?: (ix: (name: string) => number) => string,
+// A machine with a history goes as its plain machine (kernel.ts's historyMachine: sums as state, queries as inputs,
+// the relations assumed), built in Lean from the machine and its history (History.lean's HMachine.plain), so every claim
+// below is about it; with the relations' record goals, its laws hold over histories too (hmachine_sound).
+// `historyTampers`: the history with other relations, each refused.
+export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {stepLaws?: StepLaw[], liveness?: Liveness[], tamper?: {what: string, machine: Machine}, simp?: string[], free?: string[],
+    ghosts?: string[], after?: (ix: (name: string) => number) => string, historyTampers?: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[],
     refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}} = {}): string {
+  const hm = given.history ? {...given, history: {...given.history, prune: undefined}} : undefined
+  const hplain = hm ? historyMachine(hm) : undefined, m = hplain ? hplain.machine : given
   const stepLaws = opts.stepLaws ?? [], rf = opts.refined, gv = opts.ghosts ?? []
   // Every claim about the machine past its laws goes through one pipeline: a claim brings the step laws it needs and
   // the requests it needs proven allowed in a region, the proofs are found and encoded once for all claims, and each
@@ -587,7 +593,7 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
   const vars = [...new Set([...m.params, ...m.inputs, ...Object.keys(m.state), ...keysOf, ...keysOf.map(k2 => `${k2}#`), '#', ...flags.map(([f]) => `?${f}`),
     ...quantified.map(f => `w?${f}`), ...boundKeys(m), ...(opts.tamper ? boundKeys(opts.tamper.machine) : []), ...stepLaws.flatMap(sl => (sl.forall ? [sl.forall] : [])), ...(opts.free ?? []),
     ...primes, ...later, ...Array.from({length: k - 1}, (_, j) => Object.keys(m.state).map(n2 => stateName(n2, j + 1))).flat(),
-    ...[...goalsL, ...goalsS, ...allowGoals].flatMap(g => g.hyps.flatMap(varsOf))])]
+    ...(hm ? hm.history.record.map(f => `r.${f}`) : []), ...[...goalsL, ...goalsS, ...allowGoals, ...(hplain?.goals ?? [])].flatMap(g => g.hyps.flatMap(varsOf))])]
   const baseMaps = [...new Set([...Object.keys(m.maps ?? {}), ...Object.keys(m.step.maps ?? {}), ...Object.keys(m.fns ?? {})])]
   const mapNames = [...new Set([...baseMaps, ...carried, ...(allSteps.length ? Object.keys(m.maps ?? {}).map(mp => `${mp}'`) : []), ...laterMaps,
     ...[...JSON.stringify([...goalsL, ...goalsS, ...allowGoals]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!)])]
@@ -611,6 +617,30 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
   ${list(fs.flatMap(([f, c2]) => (c2.op === 'all' ? [`(${ix(`?${f}`)}, ${ix(c2.key)}, ${c(c2.c)})`] : [])))},
   ${list(fs.flatMap(([f, c2]) => (c2.op === 'all' ? [`(${ix(`?${f}`)}, ${ix(`w?${f}`)})`] : [])))},
   ${list((mm.facts ?? []).map(l => `⟨${c(l.holds)}, ${l.forall ? `some ${ix(l.forall)}` : 'none'}⟩`))}⟩`
+  }
+  // The history: the machine without it (its state without the sums, its assumption without the relations), what a
+  // record keeps and the sums, queries and relations over it.
+  const hlit = (rels: {when: C, holds: C}[]) => {
+    const h = hm!.history, base: Machine = {...hm!, history: undefined}
+    return `⟨${lit(base)},
+  ${c(h.keep)},
+  ${list(h.record.map(f => String(ix(f))))},
+  ${list(h.record.map(f => String(ix(`r.${f}`))))},
+  ${list(Object.entries(h.sums).map(([name, g]) => `(${ix(name)}, ${e(g)})`))},
+  ${list(Object.entries(h.queries).map(([name, g]) => `(${ix(name)}, ${e(g)})`))},
+  ${list(rels.map(rel => { if (rel.holds.op !== '<=') throw new Error(`${id}: a relation is a <= b`); return `(${c(rel.when)}, ${e(rel.holds.a)}, ${e(rel.holds.b)})` }))}⟩`
+  }
+  // Each relation's record goal and its tree, the history's check, and the laws over histories.
+  const histBlock = () => {
+    const records = hplain!.goals.map(g => { const out = grow(g); if (!('tree' in out)) throw new Error(`${id}: ${g.name} not proven`); const x2 = enc(g, out.tree); return `(${x2.tab}, ${x2.tree})` })
+    const tampered = (opts.historyTampers ?? []).map((t, j) => `-- TAMPERED: ${t.what}. Lean computes the check to false.
+def ${id}_tampered${j} : HMachine := ${hlit(t.relations)}
+example : checkHMachine ${id}_tampered${j} ${id}_proof ${t.withRecordTrees ? `${id}_records` : '[]'} = false := by decide +kernel`)
+    return `def ${id}_records : List (List VDef × Tree) := ${list(records)}
+theorem ${id}_hcheck : checkHMachine ${id}_hist ${id}_proof ${id}_records = true := by decide +kernel
+theorem ${id}_hlaws : ∀ ρ M hist, HReach ${id}_hist ρ M hist → ∀ e ∈ ${id}_proof, e.Holds ρ M :=
+  hmachine_sound ${id}_hist ${id}_proof ${id}_records ${id}_hcheck
+${readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat) (hist : List (Nat → Nat))', hyp: `HReach ${id}_hist ρ μ hist`, call: `${id}_hlaws ρ μ hist h`})}${tampered.length ? `\n${tampered.join('\n')}` : ''}`
   }
   const lawIx = (name: string) => laws.findIndex(l => l.name === name)
   const insts = (inst: Instances) => Object.entries(inst).filter(([name]) => lawIx(name) >= 0 && !laws[lawIx(name)]!.keys?.length).flatMap(([name, keys]) => keys.map(key => `(${lawIx(name)}, ${e(key)})`))
@@ -651,13 +681,14 @@ ${rf ? `def ${id}_refined : SRefined := ⟨${lit(rf.impl)},
 def ${id}_machine : SMachine := ${id}_refined.full` : gv.length ? `def ${id}_ghosted : SGhosted := ⟨${lit(orig)},
   ${list(gv.map(v2 => `(${ix(v2)}, ${e(m.state[v2]!)}, ${e(m.step.state?.[v2] ?? {op: 'var', name: v2})})`))}⟩
 def ${id}_machine : SMachine := ${id}_ghosted.full
-theorem ${id}_ghostOk : sghostOk ${id}_ghosted = true := by decide +kernel` : `def ${id}_machine : SMachine := ${lit(m)}`}
+theorem ${id}_ghostOk : sghostOk ${id}_ghosted = true := by decide +kernel` : hm ? `def ${id}_hist : HMachine := ${hlit(hm.history.relations ?? [])}
+def ${id}_machine : SMachine := ${id}_hist.plain` : `def ${id}_machine : SMachine := ${lit(m)}`}
 ${entries.join('\n')}
 def ${id}_proof : List SEntry := ${list(laws.map((_, j) => `${id}_e${j}`))}
 theorem ${id}_check : checkSMachine ${id}_machine ${id}_proof = true := by decide +kernel
 theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_proof, e.Holds ρ M :=
   smachine_sound ${id}_machine ${id}_proof ${id}_check
-${readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`})}${factsProof(id, m, mapNames, opts.simp)}${opts.tamper ? `
+${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`})}${factsProof(id, m, mapNames, opts.simp)}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
 example : checkSMachine ${id}_tampered ${id}_proof = false := by decide +kernel` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix)}` : ''}`
@@ -681,58 +712,9 @@ theorem ${id}_facts_hold (ρ : Nat → Nat) (μ : Nat → Nat → Nat) ${fns.map
 // relations in the assumption) and each relation's record goal; the trees and the instance keys are the kernel's.
 // Pruning is left out: its goals are about the runtimes (dropping a record changes no query), the laws and relations
 // are proven over the whole history either way, and Lean's HMachine has no pruning; the TypeScript kernel checks them.
-export function hmachineToLean(id: string, pruned: Machine, laws: Law[], tampers: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[] = [], corollary?: (ix: (name: string) => number) => string): string {
-  const m: Machine = {...pruned, history: {...pruned.history!, prune: undefined}}
-  const h = m.history!
-  const r = proveLaws(m, laws)
-  if (!r.proven || !r.proof) throw new Error(`${id}: not proven`)
-  const keysOf = [...new Set(laws.flatMap(l => (l.forall ? [l.forall] : [])))]
-  const flagNames = Object.keys(m.step.flags ?? {})
-  const sums = Object.keys(h.sums), fields = h.record.map(f => `r.${f}`)
-  const vars = [...m.params, ...m.inputs, ...Object.keys(m.state), ...sums, ...keysOf, ...keysOf.map(k2 => `${k2}#`), '#', ...flagNames.map(f => `?${f}`), ...fields]
-  const mapNames = [...new Set([...Object.keys(m.maps ?? {}), ...Object.keys(m.step.maps ?? {}), ...[...JSON.stringify(laws).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!)])]
-  const gs = obligations(m, laws, r.proof.instances)
-  const enc = (g: Goal, tree = r.proof!.trees[g.name]!) => encode({name: `${id}: ${g.name}`, goal: g, tree}, false, true, vars, mapNames)
-  const any0 = enc(gs[0]!, {leaf: []})
-  const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable ${name}`); return j }
-  const rels = (rs: {when: C, holds: C}[]) => list(rs.map(rel => {
-    if (rel.holds.op !== '<=') throw new Error(`${id}: a relation is a <= b`)
-    return `(${any0.c(rel.when)}, ${any0.e(rel.holds.a)}, ${any0.e(rel.holds.b)})`
-  }))
-  const lit = (rs: {when: C, holds: C}[]) => `⟨⟨⟨${list(m.inputs.map(name => String(ix(name))))},
-  ${list(Object.entries(m.state).map(([name, e]) => `(${ix(name)}, ${any0.e(e)})`))},
-  ${list(Object.entries(m.maps ?? {}).map(([name, c2]) => `(${mapNames.indexOf(name)}, ${c2})`))},
-  ${list(Object.entries(m.step.state ?? {}).map(([name, e]) => `(${ix(name)}, ${any0.e(e)})`))},
-  ${list(Object.entries(m.step.maps ?? {}).map(([name, w]) => { const pw = pointWrite(w, 'Lean (for now)'); return `(${mapNames.indexOf(name)}, ${any0.e(pw.key)}, ${any0.e(pw.value)})` }))},
-  ${m.pre ? any0.c(m.pre) : TRUE},
-  ${m.assume ? any0.c(m.assume) : TRUE}⟩,
-  ${list(flagNames.map(f => `(${ix(`?${f}`)}, ${any0.c(m.step.flags![f]!)})`))}⟩,
-  ${any0.c(h.keep)},
-  ${list(h.record.map(f => String(ix(f))))},
-  ${list(fields.map(f => String(ix(f))))},
-  ${list(Object.entries(h.sums).map(([name, g]) => `(${ix(name)}, ${any0.e(g)})`))},
-  ${list(Object.entries(h.queries).map(([name, g]) => `(${ix(name)}, ${any0.e(g)})`))},
-  ${rels(rs)}⟩`
-  const entries = laws.map((law, j) => {
-    const a = enc(gs[2 * j]!), b = enc(gs[2 * j + 1]!)
-    const insts = Object.entries(r.proof!.instances[law.name] ?? {}).flatMap(([lname, keys]) => keys.map(key => `(${laws.findIndex(l => l.name === lname)}, ${any0.e(key)})`))
-    return `def ${id}_l${j} : MLaw := ⟨${any0.c(law.holds)}, ${law.forall ? `some ${ix(law.forall)}` : 'none'}⟩\ndef ${id}_e${j} : MEntry := ⟨${id}_l${j}, ${ix(law.forall ? `${law.forall}#` : '#')}, ${list(insts)},\n  (${a.tab}, ${a.tree}),\n  (${b.tab}, ${b.tree})⟩`
-  })
-  const records = gs.slice(2 * laws.length).map(g => { const x2 = enc(g); return `(${x2.tab}, ${x2.tree})` })
-  const tamperText = tampers.map((t, j) => `-- TAMPERED: ${t.what}. Lean computes the check to false.
-def ${id}_tampered${j} : HMachine := ${lit(t.relations)}
-example : checkHMachine ${id}_tampered${j} ${id}_proof ${t.withRecordTrees ? `${id}_records` : '[]'} = false := by decide +kernel`)
-  return `-- ${m.name}: ${laws.map(l => l.name).join('; ')}, with a history (sums ${sums.join(', ')}; queries ${Object.keys(h.queries).join(', ')}; ${(h.relations ?? []).length} relation(s))
---   (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')}; maps ${mapNames.map((v2, j) => `${j} ${v2}`).join(', ')})
-def ${id}_machine : HMachine := ${lit(h.relations ?? [])}
-${entries.join('\n')}
-def ${id}_proof : List MEntry := ${list(laws.map((_, j) => `${id}_e${j}`))}
-def ${id}_records : List (List VDef × Tree) := ${list(records)}
-theorem ${id}_check : checkHMachine ${id}_machine ${id}_proof ${id}_records = true := by decide +kernel
-theorem ${id}_laws : ∀ ρ M hist, HReach ${id}_machine ρ M hist → ∀ e ∈ ${id}_proof, e.law.Holds ρ M :=
-  hmachine_sound ${id}_machine ${id}_proof ${id}_records ${id}_check
-${readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat) (hist : List (Nat → Nat))', hyp: `HReach ${id}_machine ρ μ hist`, call: `${id}_laws ρ μ hist h`})}${corollary ? `\n${corollary(ix)}` : ''}
-${tamperText.join('\n')}`
+// A machine with a history: its laws over histories (History.lean's hmachine_sound), through smachineToLean.
+export function hmachineToLean(id: string, m: Machine, laws: Law[], tampers: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[] = [], corollary?: (ix: (name: string) => number) => string): string {
+  return smachineToLean(id, m, laws, {historyTampers: tampers, ...(corollary ? {after: corollary} : {})})
 }
 
 
@@ -772,22 +754,11 @@ export function toLean(items: LeanItem[], opts: {title?: string} = {}): string {
         if (!r.proven) throw new Error(`${item.id}: not proven (${r.failed?.stuck ?? ''})`)
         item = {...item, laws: r.laws ?? item.laws, ...(item.stepLaws ? {stepLaws: r.stepLaws ?? item.stepLaws} : {})}
       }
-      if (m.history && (m.fns || m.facts)) throw new Error(`${item.id}: functions on a machine with a history aren't exported to Lean yet`)
-      // One twin: a machine without a history goes to Lean as a machine with sets (one with none, if it has none): its laws,
-      // step laws, liveness and ghosts in one export. A history's laws go through History.lean, and its step laws and
-      // liveness through its plain machine (its sums as state, its queries as inputs).
-      if (m.history) {
-        parts.push(`-- ${item.id}\n${hmachineToLean(id, m, item.laws)}`)
-        theorems.push(`${id}_laws`)
-        if (item.stepLaws?.length || item.liveness?.length) {
-          parts.push(`-- ${item.id}: step laws and liveness, on its plain machine\n${smachineToLean(`${id}s`, historyMachine(m).machine, item.laws, {stepLaws: item.stepLaws, ...(item.liveness?.length ? {liveness: item.liveness} : {})})}`)
-          theorems.push(...(item.stepLaws ?? []).map((_, j) => `${id}s_step${j}_holds`), ...(item.liveness ?? []).map((_, j) => `${id}s_live${j}_holds`))
-        }
-        continue
-      }
+      // One twin: every machine goes to Lean as a machine with sets (one with none, if it has none): its laws, step laws,
+      // liveness and ghosts in one export; a machine with a history as its plain machine, and its laws over histories.
       parts.push(`-- ${item.id}\n${item.lean?.defs ? `${item.lean.defs}\n` : ''}${smachineToLean(id, m, item.laws, {stepLaws: item.stepLaws, ...(item.liveness?.length ? {liveness: item.liveness} : {}),
         ...(item.ghosts?.length ? {ghosts: item.ghosts} : {}), ...(item.lean?.simp ? {simp: item.lean.simp} : {}), ...(item.lean?.after ? {after: item.lean.after} : {})})}`)
-      theorems.push(`${id}_laws`, ...(item.stepLaws ?? []).map((_, j) => `${id}_step${j}_holds`), ...(item.liveness ?? []).map((_, j) => `${id}_live${j}_holds`))
+      theorems.push(`${id}_laws`, ...(m.history ? [`${id}_hlaws`] : []), ...(item.stepLaws ?? []).map((_, j) => `${id}_step${j}_holds`), ...(item.liveness ?? []).map((_, j) => `${id}_live${j}_holds`))
       if (item.lean?.after) theorems.push(...[...item.lean.after(() => 0).matchAll(/^theorem (\S+)/gm)].map(x2 => x2[1]!))
     } else if ('refinement' in item) {
       const {impl, spec, relation, witness} = item.refinement

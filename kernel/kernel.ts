@@ -542,7 +542,6 @@ const homogeneous = (e: E, names: string[]): boolean => e.op === 'var' ? names.i
 export function historyMachine(m: Machine): {machine: Machine, goals: Goal[]} {
   const h = m.history
   if (!h) return {machine: m, goals: []}
-  if (m.inputMaps?.length || quantified(m).length || Object.values(m.step.maps ?? {}).some(w => 'each' in w)) throw new Error(`${m.name}: a machine with a history has no maps carried by requests, quantified flags or writes at every key`)
   const queries = Object.keys(h.queries), sums = Object.keys(h.sums), plainInputs = m.inputs.filter(i => !queries.includes(i))
   const fields = h.record.map(f => `r.${f}`)
   const taken = [...m.params, ...m.inputs, ...Object.keys(m.state), ...Object.keys(m.step.state ?? {})]
@@ -557,12 +556,15 @@ export function historyMachine(m: Machine): {machine: Machine, goals: Goal[]} {
   inScope(`${m.name}'s keep`, [h.keep], [...m.params, ...m.inputs, ...Object.keys(m.state), ...sums], Object.keys(m.maps ?? {}), Object.keys(m.step.flags ?? {}))
   if (h.prune && !(h.record.includes(h.prune.order) && natural(h.prune.after) && readsOnly(h.prune.after, m.params))) throw new Error('a history is pruned by a recorded input and a term over the params')
   const atRequest: Subst = {vars: Object.fromEntries(h.record.map(f => [`r.${f}`, {op: 'var', name: f} as E])), maps: {}, flags: {}}
-  const relations = (h.relations ?? []).map(r => ({op: 'or', xs: [{op: 'not', x: r.when}, r.holds]}) as C)
+  // The relations conjoined to the assumption as the Lean twin builds them (History.lean's HMachine.plain: assume ∧
+  // r₁ ∧ … ∧ true), so the two read the same assumption.
+  const TRUE: C = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
+  const relations = (h.relations ?? []).map(r => ({op: 'or', xs: [{op: 'not', x: r.when}, r.holds]}) as C).reduceRight<C>((acc, r) => ({op: 'and', xs: [r, acc]}), TRUE)
   const machine: Machine = {
     ...m, history: undefined,
     state: {...m.state, ...Object.fromEntries(sums.map(s => [s, {op: 'const', value: 0} as E]))},
     step: {...m.step, state: {...m.step.state, ...Object.fromEntries(sums.map(s => [s, {op: 'add', a: {op: 'var', name: s}, b: {op: 'if', c: h.keep, then: substE(h.sums[s]!, atRequest), else: {op: 'const', value: 0}}} as E]))}},
-    ...(m.assume || relations.length ? {assume: {op: 'and', xs: [...(m.assume ? [m.assume] : []), ...relations]}} : {}),
+    assume: {op: 'and', xs: [m.assume ?? TRUE, relations]},
   }
   const perRecord: Subst = {vars: {...h.sums, ...h.queries}, maps: {}, flags: {}}
   const goals = (h.relations ?? []).map((r, i) => ({name: `relation ${i + 1} @record`, hyps: [...preOf(m), r.when, {op: 'not', x: substC(r.holds, perRecord)} as C]}))

@@ -1,6 +1,6 @@
 // Access control and identity: role grants, login lockout, one-time tokens, API quotas, reset-email rate limits,
 // session and step-up decisions, attribute-based access, delegation that only narrows, a key rotation sweep.
-import {type Bool, type Choice, type Maybe, type Term, bool, count, forall, loop, maybe, min, nat, no, oneOf, relation, rule, upTo, when, yes} from '../../core/dsl.ts'
+import {type Bool, type Choice, type Maybe, type Term, bool, count, everyKey, forall, loop, max, maybe, min, nat, no, oneOf, relation, rule, upTo, when, yes} from '../../core/dsl.ts'
 import {type Domain, decisionCase, loopCase, machineCase} from '../harness.ts'
 
 // Role grants: a user is promoted to admin only if already a member, and removing a member removes their admin role
@@ -94,6 +94,29 @@ const resetMails = (window: (r: {t: Term}, t: Term, hour: Term) => Term) => rule
 const mails = resetMails((r, t, hour) => count(t.lt(r.t.plus(hour))))
 const mailsLawOf = (r: typeof mails) => r.law('emails to who in the hour ending at now <= cap', ({lastHour, cap}) => lastHour.atMost(cap))
 const mailsShortWindow = resetMails((r, t, hour) => count(t.plus(1).lt(r.t.plus(hour))))
+// The same limit, sent only through trusted origins: a request carries the origins it came through (a set), an email is
+// sent only when every one of them is allowed (a condition at every key), and the origins of each email sent are
+// remembered (a write at every key): a history beside sets.
+const originMails = (bug?: 'trusts any origin') => rule('reset emails from trusted origins')
+  .params({hour: nat, cap: nat, now: nat, who: nat})
+  .inputs({op: oneOf('send', 'allow'), acct: nat, t: nat, origin: nat})
+  .carries('Via')
+  .maps({Allowed: 0, Seen: 0})
+  .log('acct', 't')
+  .sums({lastHour: (r, {now, hour, who}) => count(r.acct.eq(who).and(r.t.atMost(now), now.lt(r.t.plus(hour))))})
+  .queries({sent: (r, {t, hour, acct}) => when(r.acct.eq(acct), count(t.lt(r.t.plus(hour))), 0)})
+  .flags(({Via, Allowed}) => ({trusted: everyKey(k => Via.at(k).atMost(Allowed.at(k)))}))
+  .flags(({op, sent, cap, trusted}) => ({send: op.is('send').and(sent.plus(1).atMost(cap), bug ? yes : trusted)}))
+  .keep(({send}) => send)
+  .relations(({t, now, acct, who, lastHour, sent}) => [relation(lastHour.atMost(sent), t.atMost(now).and(acct.eq(who)))])
+  .step(({op, origin, send, Allowed, Seen, Via}) => ({
+    Allowed: Allowed.set(origin, when(op.is('allow'), max(Allowed.at(origin), 1), Allowed.at(origin))),
+    Seen: Seen.each(k => when(send, max(Seen.at(k), Via.at(k)), Seen.at(k))),
+  }))
+const originLawsOf = (r: ReturnType<typeof originMails>) => [
+  r.law('emails to who in the hour ending at now <= cap', ({lastHour, cap}) => lastHour.atMost(cap)),
+  r.law('every origin an email came through was allowed', ({Seen, Allowed}) => forall(k => Seen.at(k).atMost(Allowed.at(k)))),
+]
 
 // Session validity: within the absolute lifetime, with known last activity within the idle window (four times longer
 // with remember-me). Step-up: what an action needs, given risk, how recent the last MFA was, and the device.
@@ -206,6 +229,9 @@ export const domain: Domain = {
     machineCase('reset emails per hour', 'no account gets more than cap reset emails in any hour ending at now, read from the log', mails, [mailsLawOf(mails)], [
       {name: 'window a minute short', why: 'the lookback forgets the oldest minute of the hour', rule: mailsShortWindow, laws: [mailsLawOf(mailsShortWindow)]},
     ]),
+    machineCase('reset emails from trusted origins', 'the hourly cap from the log, and every origin an email came through was allowed', originMails(), originLawsOf(originMails()), [
+      {name: 'trusts any origin', why: 'an email is sent whatever origins it came through', rule: originMails('trusts any origin'), laws: originLawsOf(originMails('trusts any origin'))},
+    ], {bound: 3}),
     decisionCase('sessions and step-up', 'expired or unknown sessions fail closed, and transfers and risky actions need a fresh MFA', sessionDecisions, [
       {name: 'remember-me skips every check', why: 'remember-me also bypasses the absolute lifetime', decision: session.decide('past the absolute lifetime, never valid', ({now, issuedAt, ttl}) => now.atLeast(issuedAt.plus(ttl)), env => validRememberBypass(env).not())},
       {name: 'trusted device skips MFA on transfers', why: 'a trusted device replaces the fresh MFA instead of adding to it', decision: stepUp.decide('a transfer always needs a fresh MFA', env => [env.action.is('transfer'), allowTrustedTransfer(env)], env => recent(env))},

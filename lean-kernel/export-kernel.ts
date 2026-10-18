@@ -56,8 +56,9 @@ if (process.argv.includes('--examples')) {
           theorems.push(`${id}_laws`, ...(c.steps ?? []).map((_, j) => `${id}_step${j}_holds`))
           return
         }
+        if (m.history) sets = true
         parts.push(`-- ${d.domain}: ${c.name}\n${m.history ? hmachineToLean(id, m, c.laws) : m.maps && Object.keys(m.maps).length ? mmachineToLean(id, m, c.laws) : machineToLean(id, m, c.laws)}`)
-        theorems.push(`${id}_laws`)
+        theorems.push(`${id}_laws`, ...(m.history ? [`${id}_hlaws`] : []))
         if (c.steps?.length) {
           // Step laws, one step or k, through the one twin (Sets.lean's skstep_sound), about the plain machine: a history's
           // sums as state, its queries as inputs (kernel.ts's historyMachine, whose relations its laws' proof above checks
@@ -119,7 +120,7 @@ if (process.argv.includes('--history')) {
     {what: 'the relation left out (no record goal), offered the same machine proof', relations: [], withRecordTrees: false},
   ], ix => `-- The window ceiling in plain Lean: in every reachable state, the admitted requests in the window (variable ${ix('ours')},
 -- the sum over the history) are at most c (variable ${ix('c')}), for every history of forced and admitted requests.
-theorem window_ceiling (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hist : List (Nat → Nat)) (h : HReach window_machine ρ M hist) :
+theorem window_ceiling (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hist : List (Nat → Nat)) (h : HReach window_hist ρ M hist) :
     ρ ${ix('ours')} ≤ ρ ${ix('c')} :=
   window.law0 ρ M hist h`)
   console.log(`import History
@@ -132,7 +133,7 @@ with the kernel's trees. -/
 
 ${text}
 
-#print axioms window_laws
+#print axioms window_hlaws
 #print axioms window_ceiling`)
   process.exit(0)
 }

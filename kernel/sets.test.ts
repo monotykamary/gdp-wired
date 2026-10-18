@@ -70,12 +70,13 @@ test('the kernel refuses sets outside the rule', () => {
   expect(() => obligations({...base, step: {maps: {M: {each: 's', value: at('I', v('s'))}}}}, [])).toThrow() // the key a name of the machine
   expect(() => obligations({...base, step: {maps: {I: {each: 'k', value: k0}}}}, [])).toThrow() // a carried map written
   expect(() => obligations(base, [{name: 'reads I', holds: {op: '<=', a: at('I', k0), b: k0}}])).toThrow() // a law about a request's map
-  // A history, with each kind of set alone.
+  // A history beside each kind of set (sets a request carries, a condition at every key, a write at every key): its
+  // plain machine is a machine with sets like any other.
   const history = {keep: {op: '<=', a: k0, b: k0} as C, record: ['a'], sums: {}, queries: {}}, plain = {...base, inputMaps: []}
   expect(() => obligations({...plain, history}, [])).not.toThrow()
-  expect(() => obligations({...base, history}, [])).toThrow()
-  expect(() => obligations({...plain, history, step: {flags: {f: all({op: '<=', a: at('M', v('k')), b: k0})}, state: {s: v('s')}}}, [])).toThrow()
-  expect(() => obligations({...plain, history, step: {state: {s: v('s')}, maps: {M: {each: 'k', value: k0}}}}, [])).toThrow()
+  expect(() => obligations({...base, history}, [])).not.toThrow()
+  expect(() => obligations({...plain, history, step: {flags: {f: all({op: '<=', a: at('M', v('k')), b: k0})}, state: {s: v('s')}}}, [])).not.toThrow()
+  expect(() => obligations({...plain, history, step: {state: {s: v('s')}, maps: {M: {each: 'k', value: k0}}}}, [])).not.toThrow()
 })
 
 test('a proof checks only with the instances it was made with', () => {
