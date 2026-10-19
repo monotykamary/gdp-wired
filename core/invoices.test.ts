@@ -4,7 +4,7 @@
 // real lists.
 import {expect, test} from 'bun:test'
 import {Unproven, nat, proveSteps, record, rule} from './dsl.ts'
-import {Line, invoiceLaws, invoiceSteps, invoices} from '../examples/invoices.ts'
+import {Line, invoiceLaws, invoiceSteps, invoices, metered, meteredLaws} from '../examples/invoices.ts'
 
 test('a list a request carries: proven, cross-checked, the broken variants refused', () => {
   const r = invoices(), laws = invoiceLaws(r), steps = invoiceSteps(r)
@@ -34,4 +34,19 @@ test('a fold lemma that does not hold is refused', () => {
   const made = () => rule('x').carriesList('Lines', record({amount: nat}), {total: {from: 0, step: (acc, l) => acc.plus(l.amount)}}, {'at most 10': ({total}) => total.atMost(10)})
   expect(made).toThrow(Unproven)
   void Line
+})
+
+test('folds that read the params: proven, the broken lemma refused, computed with the params a request is encoded with', () => {
+  const r = metered(), laws = meteredLaws(r)
+  expect(proveSteps(r, laws, [])).toMatchObject({proven: true, checked: true})
+  expect(r.crossCheck(laws, []).failure).toBeUndefined()
+  expect(() => metered('charges at least the ceiling')).toThrow(Unproven)
+  const params = {budget: 100, ceil: 25, fee: 5}, gen = r.compiled(), ps = r.encodeParams(params)
+  const line = (amount: number) => ({sku: 1, amount, taxable: false})
+  const enc = r.encodeInput({Lines: [line(30), line(10)]}, params)
+  expect([...(enc['Lines$charged'] as Map<number, number>)]).toEqual([[0, 5], [1, 30], [2, 40]])
+  let st = gen.init(ps)
+  for (const lines of [[line(30), line(10)], [line(60), line(60)], [line(20)]]) st = gen.step(ps, st, r.encodeInput({Lines: lines}, params))
+  expect(r.decode(st)).toMatchObject({spent: 95, listed: 160, fees: 10}) // 40, then 55 (each line up to 25, the fee 5), then 25 past the budget
+  expect(() => r.encodeInput({Lines: [line(1)]})).toThrow(/read the params/)
 })

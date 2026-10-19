@@ -99,8 +99,9 @@ From `gdp-wired`:
 | `fun(name)`, `loop(name)` | Pure functions (`.returns`, `.law`, `.relate`, `.run`) and loops (`.while`, `.body`, `.rank`). |
 | `fn(arity, js, {facts, lean})`, `divBy(c)`, `modBy(c)` | Functions known by their facts. |
 | `recur(name, {args, fns, zero, next}, lemmas, between)` | A function defined by a recurrence on its first argument (up to four further arguments fixed, other functions read), its lemmas and laws between two points proven by induction when made (`Unproven` otherwise); its equations, lemmas and laws are its facts, checked again by Lean as the kernel's own proof. |
-| `r.carriesList(name, kind, folds, lemmas)` | A list of values a request carries (an invoice's lines): `L.every`, `L.at(i)`, `L.fold.<f>`; fold lemmas proven by induction. |
-| `fold(name)`, `proveFold`, `f.run(tree)` | A fold over a tree given as a value: `.leaf`, `.node`, `.law`; laws proven by induction over the tree. |
+| `r.carriesList(name, kind, folds, lemmas)` | A list of values a request carries (an invoice's lines): `L.every`, `L.at(i)`, `L.fold.<f>`; folds and lemmas may read the params; fold lemmas proven by induction. |
+| `fold(name)`, `proveFold`, `f.run(tree)` | A fold over a tree given as a value: `.leaf`, `.node`, `.law` (`.children` for any number of children per node); laws proven by induction over the tree. |
+| `r.nodes(name, kind, children, folds)` | A tree (or lists of lists) in the state: a table of nodes that only grows, `T.make(value, kids, when)`, `T.node(n).fold`; a law about a subtree is a law about one node. |
 | `optional(c, value)`, `variant(cases, {tag})`, `r.kindLaws()` | A value present where c holds; a variant whose runtime case key isn't `tag`; what the kinds of the state and cells keep true (proven by `proveSteps` on its own). |
 | `r.compiled()`, `r.interpreter()`, `r.encodeParams`, `r.encodeInput`, `r.decode`, `r.crossCheck`, `r.compare` | Running and checking the rule. |
 

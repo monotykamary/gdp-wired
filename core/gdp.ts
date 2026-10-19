@@ -52,7 +52,7 @@ export function guard<K extends string, F extends AnyFun>(prover: Prover<K>, fn:
   const r = fn.rule, m = r.machine, params = (opts.params ?? {}) as ParamsOf<F>, ps = r.encodeParams(params as never)
   if (m.pre && !evalC(m.pre, ps, {scalars: {}, maps: {}}, m)) throw new Error(`${fn.name}: the params ${JSON.stringify(params)} don't meet its precondition`)
   return (args, ...about) => {
-    const input = r.encodeInput(args as never)
+    const input = r.encodeInput(args as never, params as never)
     if (m.assume && !evalC(m.assume, {...ps, ...input} as Record<string, number>, {scalars: {}, maps: {}}, m)) return null
     return atPath(fn.run(args as never, params), field) === true ? prover.prove(...about) : null
   }
@@ -93,7 +93,7 @@ export function gate<K extends string, R extends AnyRule>(prover: Prover<K>, r: 
   let st: State = opts.state ?? compiled.init(ps)
   return {
     request: (args, ...about) => {
-      const input = r.encodeInput(args as never)
+      const input = r.encodeInput(args as never, params as never)
       if (!allowed(m, run, ps, st, input)) return null
       const granted = requestEnv(m, run, ps, st, input)[`?${flag}`] === 1
       st = compiled.step(ps, st, input)

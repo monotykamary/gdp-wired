@@ -763,6 +763,14 @@
 "cmd": "bun scripts/gen-lean-library.ts --check && bun lean-kernel/package-check.ts /tmp/leanpkg && cd /tmp/leanpkg && lake build 2>&1 | grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' | tail -25; s=${PIPESTATUS[0]}; echo lake-exit $s; exit $s"
 },
 {
+"name": "lean-nodes",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800,
+"cmd": "ONLY=searchtree,sheet bun lean-kernel/package-check.ts /tmp/leanpkg && cd /tmp/leanpkg && lake build 2>&1 | grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' | tail -25; s=${PIPESTATUS[0]}; echo lake-exit $s; exit $s"
+},
+{
 "name": "compose",
 "cmd": "bun test compose.test.ts 2>&1 && cd .. && bun examples/composition.ts 2>&1",
 "cwd": "core",
@@ -814,6 +822,13 @@
 {
 "name": "folds",
 "cmd": "bun test folds.test.ts 2>&1 && cd .. && bun examples/folds.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "trees",
+"cmd": "bun test trees.test.ts 2>&1 && cd .. && bun examples/trees.ts 2>&1",
 "cwd": "core",
 "cpu": 1.0,
 "timeout": 900

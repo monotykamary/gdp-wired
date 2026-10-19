@@ -9,8 +9,9 @@ import {inlineAuthority, inlineLaws, inlineSteps, memberLaws, memberSteps, membe
 import {larger, largerLaws, minuteLaws, minutes, pairsLean, room, roomLaws} from '../examples/functions.ts'
 import {bits, bitsLaws, scope, scopeLaws, scopeSteps} from '../examples/lists.ts'
 import {accountLaws, accountSteps, accounts, approveLaws, hold, holdLaws, holdSteps, jobLaws, jobSteps, jobs, seatLaws, seatSteps, seats} from '../examples/datatypes.ts'
-import {invoiceLaws, invoiceSteps, invoices} from '../examples/invoices.ts'
-import {rollup, rollupLaws, signoffLaws, signoffs} from '../examples/folds.ts'
+import {invoiceLaws, invoiceSteps, invoices, metered, meteredLaws} from '../examples/invoices.ts'
+import {orgChart, orgChartLaws, rollup, rollupLaws, signoffLaws, signoffs} from '../examples/folds.ts'
+import {searchTree, searchTreeLaws, sheet, sheetLaws} from '../examples/trees.ts'
 import {area, areaLaws, counter, counterLaws, escalation, escalationLaws, fillMeter, fillMeterLaws, ladder, ladderLaws, ledger, ledgerLaws, pump, pumpLive, retries, retryLaws, retrySteps, tank, tankLaws} from '../examples/lemmas.ts'
 import {team, teamLaws, teamSteps} from '../examples/sizes.ts'
 import {allDone, batchLaws, batches, everyTaggedTicket, taggedLaws, taggedTickets, everyLoggedTicket, everyRecountedTicket, everyReview, everyTicket, loggedLaws, loggedTickets, recounted, recountedLaws, reviewLaws, reviews, ticketLaws, tickets} from '../examples/liveness.ts'
@@ -35,8 +36,10 @@ const pages = loop('pagination').params({total: nat}).inputs({page: nat}).state(
   .assume(({page}) => page.atLeast(1)).body(({cur, page, total}) => ({cur: cur.plus(min(page, total.minus(cur)))})).rank(({total, cur}) => total.minus(cur))
 
 const auth = authority()
-// ONLY=id,id,... exports just those items (a quicker check while working on one).
+// ONLY=id,id,... exports just those items (a quicker check while working on one). The tables of nodes take Lean a few
+// minutes each, so they are checked on their own (the suite's lean-nodes job): left out unless ONLY names them.
 const only = process.env.ONLY?.split(',')
+const separately = ['searchtree', 'sheet']
 const file = toLean(([
   {id: 'caps', machine: caps.machine, laws: [dayCap], stepLaws: [onlyUp, twice]},
   {id: 'window', machine: window.machine, laws: [window.law('window ceiling', ({ours, c}) => ours.atMost(c))]},
@@ -64,6 +67,10 @@ const file = toLean(([
   // A request carrying a list, with folds over it; folds over trees as values.
   {id: 'invoices', machine: invoices().machine, laws: invoiceLaws(), stepLaws: invoiceSteps()},
   {id: 'rollup', fold: rollup().fold, laws: rollupLaws()},
+  {id: 'orgchart', fold: orgChart().fold, laws: [...orgChart().lemmas, ...orgChartLaws()]},
+  {id: 'metered', machine: metered().machine, laws: meteredLaws()},
+  {id: 'searchtree', machine: searchTree().machine, laws: [...searchTree().kindLaws(), ...searchTreeLaws()]},
+  {id: 'sheet', machine: sheet().machine, laws: [...sheet().kindLaws(), ...sheetLaws()]},
   {id: 'signoffs', fold: signoffs().fold, laws: signoffLaws()},
   {id: 'pump', machine: pump().machine, laws: [], liveness: [pumpLive()]},
   // Records and variants, as the variables they are encoded in.
@@ -86,7 +93,7 @@ const file = toLean(([
   {id: 'countdown', refinement: {impl: countdown().machine, spec: meter.machine, relation: meterRelation, witness: {amount: {op: 'min', a: {op: 'var', name: 'amount'}, b: {op: 'var', name: 'most'}}}}},
   {id: 'twophase', refinement: {impl: twoPhase().machine, spec: meter.machine, relation: [{name: 'used = used', holds: {op: '=', a: {op: 'var', name: 'a_used'}, b: {op: 'var', name: 'b_used'}}}, {name: 'pending <= most', holds: {op: '<=', a: {op: 'var', name: 'a_pending'}, b: {op: 'var', name: 'most'}}}],
     witness: {amount: {op: 'var', name: 'a_pending'}}, stutter: {op: '=', a: {op: 'var', name: 'op'}, b: {op: 'const', value: 0}}}},
-] as Parameters<typeof toLean>[0]).filter(item => !only || only.includes(item.id)), {title: 'gdp-wired/lean, end to end'})
+] as Parameters<typeof toLean>[0]).filter(item => (only ? only.includes(item.id) : !separately.includes(item.id))), {title: 'gdp-wired/lean, end to end'})
 const out = process.argv[2]
 if (!out) throw new Error('usage: bun package-check.ts <empty folder>')
 mkdirSync(out, {recursive: true})

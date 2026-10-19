@@ -1,8 +1,9 @@
 // Laws over many steps in a row: the budget rule's spend over k requests is at most k times the per-request cap, for k
-// from 2 to 16, and a variant that lets one request through uncapped is refused. Each step's case (under the budget or
-// not, the request under the cap or not) multiplies the cases; the prover proves a fact about each step's value that
-// holds either way first (a cut: its failing side decides that step alone), so the proof grows with k, not with 4^k;
-// each step's state is named in the goal (n~j), so its terms stay small too.
+// from 2 to 32 (to 16 for Lean, which takes minutes past that), and a variant that lets one request through uncapped is
+// refused. Each step's case (under the budget or not, the request under the cap or not) multiplies the cases; the
+// prover proves a fact about each step's value that holds either way first (a cut: its failing side decides that step
+// alone), so the proof grows with k, not with 4^k; each step's state is named in the goal (n~j), so its terms stay small
+// too.
 // With --lean, every law as a Lean theorem, for lean-kernel:
 //   bun examples/steps.ts            # prove and refuse, with times
 //   bun examples/steps.ts --lean > lean-kernel/KSteps.lean
@@ -21,7 +22,7 @@ if (process.argv.includes('--lean')) {
   process.exit(0)
 }
 let failed = false
-for (const k of ks) {
+for (const k of [...ks, 32]) {
   const t0 = performance.now(), v = proveSteps(budget(), [within(budget())], [over(budget(), k)]), ms = performance.now() - t0
   const b = proveSteps(budget('one request uncapped'), [within(budget('one request uncapped'))], [over(budget('one request uncapped'), k)])
   const ok = v.proven && v.checked && !b.proven

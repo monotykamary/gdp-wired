@@ -46,7 +46,10 @@ export type Machine = {
 }
 // A function from a key to a natural. `js`: its JavaScript source (k => ...), what the runtimes call; `lean`: a Lean term
 // of type Nat → Nat, for an export that proves the facts of this function in Lean.
-export type Fn = {js: string, lean?: string, recur?: Recurrence}
+// A function of several arguments is read at their pairing (core/dsl.ts's argsKey, left-nested (a + b)² + b), which the
+// kernel and Lean reason about; `call`, its JavaScript on the `arity` arguments themselves, is what the runtimes call
+// where a read's key is that pairing, so no paired key (which passes 2^53 at modest arguments) is ever computed.
+export type Fn = {js: string, lean?: string, recur?: Recurrence, arity?: number, call?: string}
 // A function defined by a recurrence on its first argument: f(0, args) = zero, f(x + 1, args) = next, which reads x, prev
 // (f(x, args)), the further arguments by name and the functions in `uses` by name (a map read at its key); each lemma
 // reads x, fx and the arguments, each law between two points x, fx, y, fy (for every x <= y) and the arguments, all
@@ -185,7 +188,9 @@ export function evalE(e: E, env: Env, st: State, m: Machine): number {
     case 'max': return Math.max(evalE(e.a, env, st, m), evalE(e.b, env, st, m))
     case 'if': return evalC(e.c, env, st, m) ? evalE(e.then, env, st, m) : evalE(e.else, env, st, m)
     case 'get': {
-      const key = evalE(e.key, env, st, m), fn = m.fns?.[e.map]
+      const fn = m.fns?.[e.map], args = fn?.call ? pairedArgs(e.key, fn.arity!) : undefined
+      if (args) { const xs = args.map(a => evalE(a, env, st, m)); return naturalIn(callOf(fn!)(...xs), `${e.map}(${xs.join(', ')})`) }
+      const key = evalE(e.key, env, st, m)
       return fn ? naturalIn(fnOf(fn)(key), `${e.map}(${key})`) : st.maps[e.map]!.get(key) ?? st.defaults?.[e.map] ?? m.maps![e.map]!
     }
   }
@@ -199,6 +204,28 @@ const fnOf = (fn: Fn): ((key: number) => number) => {
   if (!f) { f = compileFunction<(key: number) => number>(['k'], `return (${fn.js})(k)`); compiledFns.set(fn, f) }
   return f
 }
+const compiledCalls = new WeakMap<Fn, (...args: number[]) => number>()
+const callOf = (fn: Fn): ((...args: number[]) => number) => {
+  let f = compiledCalls.get(fn)
+  if (!f) { f = compileFunction<() => (...args: number[]) => number>([], `return (${fn.call})`)(); compiledCalls.set(fn, f) }
+  return f
+}
+// The n arguments a key pairs (left-nested, ((a, b), c)..., each pair (s)² + b with s = a + b), if it is their pairing.
+const paired = new WeakMap<E, Map<number, E[] | undefined>>()
+export function pairedArgs(key: E, n: number): E[] | undefined {
+  let byN = paired.get(key)
+  if (!byN) paired.set(key, (byN = new Map()))
+  if (byN.has(n)) return byN.get(n)
+  let out: E[] | undefined
+  if (n === 1) out = [key]
+  else if (key.op === 'add' && key.a.op === 'prod' && key.a.a.op === 'add' && alike(key.a.a, key.a.b) && alike(key.a.a.b, key.b)) {
+    const first = pairedArgs(key.a.a.a, n - 1)
+    out = first && [...first, key.b]
+  }
+  byN.set(n, out)
+  return out
+}
+const alike = (a: E, b: E): boolean => a === b || JSON.stringify(a) === JSON.stringify(b)
 export function evalC(c: C, env: Env, st: State, m: Machine): boolean {
   switch (c.op) {
     case '<': return evalE(c.a, env, st, m) < evalE(c.b, env, st, m)
@@ -340,7 +367,11 @@ export function compileJs(m: Machine): string {
       case 'min': return `Math.min(${ex(e.a)}, ${ex(e.b)})`
       case 'max': return `Math.max(${ex(e.a)}, ${ex(e.b)})`
       case 'if': return `(${cx(e.c)} ? ${ex(e.then)} : ${ex(e.else)})`
-      case 'get': return fns.includes(e.map) ? `$n(fn${fns.indexOf(e.map)}(${ex(e.key)}), ${id(`${e.map}()`)})` : `(maps[${id(e.map)}].get(${ex(e.key)}) ?? ${carriedMaps.includes(e.map) ? '0' : `dft[${id(e.map)}] ?? ${plain.maps![e.map]}`})`
+      case 'get': {
+        const fn = m.fns?.[e.map], args = fn?.call ? pairedArgs(e.key, fn.arity!) : undefined
+        if (args) return `$n(fnc${fns.indexOf(e.map)}(${args.map(ex).join(', ')}), ${id(`${e.map}()`)})`
+        return fns.includes(e.map) ? `$n(fn${fns.indexOf(e.map)}(${ex(e.key)}), ${id(`${e.map}()`)})` : `(maps[${id(e.map)}].get(${ex(e.key)}) ?? ${carriedMaps.includes(e.map) ? '0' : `dft[${id(e.map)}] ?? ${plain.maps![e.map]}`})`
+      }
     }
   }
   const cx = (c: C): string => {
@@ -394,7 +425,7 @@ function $n(v, what) { if (typeof v !== 'number' || !Number.isSafeInteger(v) || 
 function $x(v) { if (v > 9007199254740991) throw new RangeError('a value passed 2^53 - 1, past which the proofs over the naturals no longer describe the run'); return v; }
 function $m(v, what) { if (!(v instanceof Map)) throw new RangeError(what + ' must be a Map of naturals'); for (const [key, x] of v) { $n(key, 'a key of ' + what); $n(x, 'a cell of ' + what); } return v; }
 function $keys(maps, names) { const keys = new Set(); let past = 0; for (const c of Object.values(maps)) for (const key of c.keys()) past = Math.max(past, key + 1); for (const n of names) for (const key of maps[n].keys()) keys.add(key); return [...keys, past]; }
-${fns.map((name, i) => `const fn${i} = (${m.fns![name]!.js});\n`).join('')}function $breaks(maps, reads, cmps) { const p = new Set([0]); for (const [n, d, minus] of reads) { for (const s of maps[n].keys()) { if (minus) p.add(s + d); else if (s >= d) p.add(s - d); } if (minus) p.add(d); } for (const [v, d, minus] of cmps) { if (minus) { p.add(v + d); p.add(d); } else if (v >= d) p.add(v - d); } const keys = new Set(); for (const q of p) for (let i = -1; i <= 2; i++) if (q + i >= 0) keys.add(q + i); const sorted = [...keys].sort((a, b) => a - b); sorted.push(sorted[sorted.length - 1] + 1); return sorted; }
+${fns.map((name, i) => `const fn${i} = (${m.fns![name]!.js});\n${m.fns![name]!.call ? `const fnc${i} = (${m.fns![name]!.call});\n` : ''}`).join('')}function $breaks(maps, reads, cmps) { const p = new Set([0]); for (const [n, d, minus] of reads) { for (const s of maps[n].keys()) { if (minus) p.add(s + d); else if (s >= d) p.add(s - d); } if (minus) p.add(d); } for (const [v, d, minus] of cmps) { if (minus) { p.add(v + d); p.add(d); } else if (v >= d) p.add(v - d); } const keys = new Set(); for (const q of p) for (let i = -1; i <= 2; i++) if (q + i >= 0) keys.add(q + i); const sorted = [...keys].sort((a, b) => a - b); sorted.push(sorted[sorted.length - 1] + 1); return sorted; }
 function $dense(keys, f) { const top = keys[keys.length - 1]; if (top > 1000000) throw new RangeError('a write at every key reads its key in arithmetic past a million keys (' + top + ')'); const d = f(top), cells = new Map(); for (let k = 0; k < top; k++) { const v = f(k); if (v !== d) cells.set(k, v); } return {cells, d}; }
 function $every(keys, f) { const past = keys[keys.length - 1], d = f(past), cells = new Map(); for (let i = 0; i < keys.length - 1; i++) { const v = f(keys[i]); if (v !== d) cells.set(keys[i], v); } return {cells, d}; }
 export function init(params) {

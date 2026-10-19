@@ -144,13 +144,38 @@ const rollup = fold('spend roll-up').params({cap: nat}).inputs({spend: nat})
   .node(({spend, cap}, l, r) => ({total: l.total.plus(r.total).plus(min(spend, cap)), teams: l.teams.plus(r.teams).plus(1)}))
 proveFold(rollup, [rollup.law('at most the cap per team', ({total, teams, cap}) => total.atMost(teams.mul(cap)))])
 rollup.run({node: {spend: 50}, left: {leaf: {spend: 5}}, right: {leaf: {spend: 9}}}, {cap: 40}) // {total: 54, teams: 3}
+
+// Any number of children: folded into `kids` first, with lemmas about every prefix of them.
+const org = fold('org chart').params({cap: nat}).inputs({pay: nat})
+  .leaf(({pay, cap}) => ({cost: min(pay, cap), heads: 1}))
+  .children({cost: 0, heads: 0}, (acc, kid) => ({cost: acc.cost.plus(kid.cost), heads: acc.heads.plus(kid.heads)}),
+    {'at most the cap per head': ({cost, heads}, {cap}) => cost.atMost(heads.mul(cap))})
+  .node(({pay, cap}, kids) => ({cost: kids.cost.plus(min(pay, cap)), heads: kids.heads.plus(1)}))
+org.run({node: {pay: 90}, children: [{leaf: {pay: 30}}, {node: {pay: 5}, children: []}]}, {cap: 50})
+
+// A tree in the state: a table of nodes that only grows, each made from nodes already there, its folds kept with it.
+const tree = rule('search tree').inputs({key: nat, l: nat, r: nat})
+  .nodes('Tree', record({key: nat}), ['left', 'right'], {
+    lo: {empty: 0, node: (x, k) => when(k.left.empty, x.key, k.left.fold.lo)},
+    hi: {empty: 0, node: (x, k) => when(k.right.empty, x.key, k.right.fold.hi)},
+  })
+  .flags(({key, l, r, Tree}) => ({join: Tree.node(l).empty.or(Tree.node(l).fold.hi.lt(key)).and(Tree.node(r).empty.or(key.lt(Tree.node(r).fold.lo)))}))
+  .step(({key, l, r, join, Tree}) => Tree.make({key}, {left: l, right: r}, join))
 ```
 
-- A carried list's folds start at a number and step from the running value and the item alone; their equations are
-  assumed of every request (the encoding computes them, the runtimes check them). A lemma about the folds at every prefix
-  is proven by induction over the items when the rule is built; without it a law that needs it isn't proven.
-- A fold's laws read its values and the params, not the inputs; `toLean` takes `{id, fold: f.fold, laws}`.
-- Not here: a tree in a rule's state, lists of lists, and claims about a structure that need a lemma nobody stated.
+- A carried list's folds start at a number (or a term over the params) and step from the running value, the item and
+  the params (`step: (acc, l, {ceil}) => ...`); their equations are assumed of every request (the encoding computes
+  them, the runtimes check them). Folds that read the params need them to encode a request: `encodeInput(values,
+  params)`. A lemma about the folds at every prefix is proven by induction over the items when the rule is built; without
+  it a law that needs it isn't proven.
+- A fold's laws read its values and the params, not the inputs; `toLean` takes `{id, fold: f.fold, laws}` (with
+  `.children`, `laws: [...f.lemmas, ...laws]`).
+- A table of nodes (`.nodes(name, kind, children, folds)`): node 0 is the empty tree, `T.make(value, kids, when)` makes
+  node `T_size + 1` when every child is 0 or already there; `T.node(n)` gives `value`, `kids`, `fold`, `empty`. State a
+  law about every subtree as a law about every node (`forall(n => n.atLeast(1).and(n.atMost(T_size)).implies(...))`). A
+  fold may read a table declared before (`(x, kids, {Cell}) => Cell.node(x.first).fold.total...`): guard the make so
+  the node it reads is already there. Lists of lists are two tables: cells, and rows naming their first cell.
+- Not here: claims about a structure that need a lemma nobody stated (that every key is reachable from the root).
 
 ## Loops
 

@@ -15,7 +15,7 @@
 //
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
-import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type MapUpdate, type Request, type State, carriedView, compileFunction, evalC, evalE, interpret, loadJs, numbersOf} from './machine.ts'
+import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type MapUpdate, type Request, type State, carriedView, compileFunction, evalC, evalE, interpret, loadJs, numbersOf, pairedArgs} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type StepLaw, type Tree, check, foldObligations, loopObligations} from '../kernel/kernel.ts'
 import {factsFor, grow, proveLaws, proveLiveness, proveStepLaws} from '../kernel/prove.ts'
@@ -782,12 +782,18 @@ export type ItemsOp = {readonly when: Cond, readonly parts: Record<string, ListO
 // A lemma about the folds is a law of their running values at every prefix (and its length i): proven by induction when
 // the rule is built (the folds run as a machine over items that are any functions), then assumed of every request at
 // every prefix, which the runtimes check as they check the equations.
-export type ListFold<V> = {from: number, step: (acc: Term, item: V) => TermLike}
-export type ListLemma = (acc: Record<string, Term>, i: Term) => Cond
+// A fold's start and step may read the rule's params (`p`, those declared before the list), as its lemmas may.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ListFold<V, P = any> = {from: number | ((p: P) => TermLike), step: (acc: Term, item: V, p: P) => TermLike}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ListLemma<P = any> = (acc: Record<string, Term>, i: Term, p: P) => Cond
+const fromOf = <V>(d: ListFold<V>, p: Record<string, unknown>): TermLike => (typeof d.from === 'number' ? d.from : d.from(p))
 export class CarriedList<V, Fd extends string = never> {
   readonly fold: Record<Fd, Term>
+  // `params`: the params' values the folds read (by their kinds: terms for the kernel, constants to encode a request),
+  // undefined where none are given; `paramKinds`, the params themselves, for the lemmas' induction.
   constructor(readonly name: string, readonly kind: Kind<V>, readonly len: Term, readonly folds: Record<Fd, ListFold<V>>, private readonly map: (part: string) => MapRef,
-    readonly lemmas: Record<string, ListLemma> = {}) {
+    readonly lemmas: Record<string, ListLemma> = {}, private readonly params?: Record<string, unknown>, private readonly paramKinds: [string, Kind<unknown>][] = []) {
     this.fold = Object.fromEntries(Object.keys(folds).map(f => [f, map(`${name}$${f}`).at(len)])) as Record<Fd, Term>
   }
   at(i: TermLike): V { return this.kind.build(this.name, part => this.map(part).at(i)) }
@@ -803,12 +809,19 @@ export class CarriedList<V, Fd extends string = never> {
   equations(): Cond[] {
     const folds = Object.entries(this.folds) as [string, ListFold<V>][], lemmas = Object.values(this.lemmas)
     const at = (k: Term) => {
-      const x = this.at(k), steps = folds.map(([f, d]) => this.map(`${this.name}$${f}`).at(k.plus(1)).eq(d.step(this.map(`${this.name}$${f}`).at(k), x)))
+      const x = this.at(k), steps = folds.map(([f, d]) => this.map(`${this.name}$${f}`).at(k.plus(1)).eq(d.step(this.map(`${this.name}$${f}`).at(k), x, this.p())))
       const below = [...this.kind.invariant(x), ...steps]
-      return all(...(below.length ? [k.lt(this.len).implies(all(...below))] : []), ...(lemmas.length ? [k.atMost(this.len).implies(all(...lemmas.map(l => l(this.running(k), k))))] : []))
+      return all(...(below.length ? [k.lt(this.len).implies(all(...below))] : []), ...(lemmas.length ? [k.atMost(this.len).implies(all(...lemmas.map(l => l(this.running(k), k, this.p()))))] : []))
     }
     const any = this.kind.invariant(this.kind.value(this.name)).length + folds.length + lemmas.length > 0
-    return [...folds.map(([f, d]) => this.map(`${this.name}$${f}`).at(0).eq(d.from)), ...(any ? [everyKey(at)] : [])]
+    return [...folds.map(([f, d]) => this.map(`${this.name}$${f}`).at(0).eq(fromOf(d, this.p()))), ...(any ? [everyKey(at)] : [])]
+  }
+  // Whether a fold reads the params (its start a function, or its step taking them).
+  private get readsParams(): boolean { return (Object.values(this.folds) as ListFold<V>[]).some(d => typeof d.from === 'function' || d.step.length > 2) }
+  private p(): Record<string, unknown> {
+    if (this.params) return this.params
+    if (this.readsParams) throw new RangeError(`${this.name}'s folds read the params: give them (encodeInput(values, params))`)
+    return {}
   }
   private running(k: Term): Record<string, Term> { return Object.fromEntries(Object.keys(this.folds).map(f => [f, this.after(f as Fd, k)])) }
   // The lemmas, proven: the folds as a machine counting i up from 0 over items that are functions of i known only by
@@ -821,10 +834,11 @@ export class CarriedList<V, Fd extends string = never> {
     const kindFact: Record<string, Cond | Forall> = this.kind.invariant(this.kind.value(this.name)).length ? {'every item is a value of its kind': forall(k => all(...this.kind.invariant(item(k))))} : {}
     const fns = Object.fromEntries(parts.map((p, j) => [fname(p), fn(1, 'x => 0', j === 0 ? {facts: () => kindFact} : {})]))
     const folds = Object.entries(this.folds) as [string, ListFold<V>][]
-    const r: LooseRule = (rule(`${this.name}'s folds, by induction`) as LooseRule).fns(fns).inputs({}).state({i: 0, ...Object.fromEntries(folds.map(([f, d]) => [`acc$${f}`, d.from]))})
-      .step((env: Record<string, Term>) => ({i: env.i!.plus(1), ...Object.fromEntries(folds.map(([f, d]) => [`acc$${f}`, d.step(env[`acc$${f}`]!, item(env.i!))]))}))
+    const r: LooseRule = (rule(`${this.name}'s folds, by induction`) as LooseRule).params(Object.fromEntries(this.paramKinds)).fns(fns).inputs({})
+      .state({i: 0, ...Object.fromEntries(folds.map(([f, d]) => [`acc$${f}`, typeof d.from === 'number' ? d.from : (p: never) => (d.from as (p: never) => TermLike)(p)]))})
+      .step((env: Record<string, Term>) => ({i: env.i!.plus(1), ...Object.fromEntries(folds.map(([f, d]) => [`acc$${f}`, d.step(env[`acc$${f}`]!, item(env.i!), env)]))}))
     const accs = (env: Record<string, Term>) => Object.fromEntries(folds.map(([f]) => [f, env[`acc$${f}`]!]))
-    return proveRule(r as never, Object.entries(this.lemmas).map(([n, l]) => r.law(n, (env: Record<string, Term>) => l(accs(env), env.i!))))
+    return proveRule(r as never, Object.entries(this.lemmas).map(([n, l]) => r.law(n, (env: Record<string, Term>) => l(accs(env), env.i!, env))))
   }
   // Every carried map it is kept in: the items' parts, then each fold's.
   get maps(): string[] { return [...this.kind.vars(this.name), ...Object.keys(this.folds).map(f => `${this.name}$${f}`)] }
@@ -835,12 +849,12 @@ export class CarriedList<V, Fd extends string = never> {
     const maps: Record<string, Map<number, number>> = Object.fromEntries(this.maps.map(m => [m, new Map<number, number>()]))
     items.forEach((enc, i) => { for (const [part, x] of Object.entries(enc)) if (x !== 0) maps[part]!.set(i, x) })
     for (const [f, d] of Object.entries(this.folds) as [string, ListFold<V>][]) {
-      const acc = maps[`${this.name}$${f}`]!
-      let value = d.from
+      const acc = maps[`${this.name}$${f}`]!, p = this.p()
+      let value = valOf(fromOf(d, p))!
       if (value !== 0) acc.set(0, value)
       items.forEach((enc, i) => {
         const item = this.kind.build(this.name, part => new Term({op: 'const', value: enc[part]!}, enc[part]!))
-        const next = valOf(d.step(new Term({op: 'const', value}, value), item))
+        const next = valOf(d.step(new Term({op: 'const', value}, value), item, p))
         if (next === undefined || !Number.isSafeInteger(next) || next < 0) throw new RangeError(`${this.name}'s fold ${f} reads more than its items`)
         value = next
         if (value !== 0) acc.set(i + 1, value)
@@ -871,6 +885,67 @@ export class ItemsRef<V> {
   within(): Forall { return forall(k => this.len.atMost(k).implies(all(...this.names.map(part => this.list(part).at(k).eq(0))))) }
   increasing(by: (x: V) => Term): Forall { return forall((i, j) => i.lt(j).and(j.lt(this.len)).implies(by(this.at(i)).lt(by(this.at(j))))) }
 }
+
+// A tree (or a forest, or a list of lists) in a rule's state, as a table of nodes that only grows: node 0 the empty
+// tree, nodes 1 .. <name>_size each a value of a kind and its children (named; each an earlier node, or 0), made one a
+// step from nodes already there, never changed after. Each fold is a value of every node from its own value and its
+// children's (a child 0 has the fold's `empty`), kept with the node when it is made, so a law about a whole subtree is a
+// law about its root's folds: one node at a time, no induction over the tree. Maps: <name>.<part> for the values,
+// <name>^<child> for the children, <name>$<fold> for the folds; laws that every node's children are earlier, its folds
+// are its children's, and nothing is past the end are the table's own (Rule.kindLaws), proven beside the rule's.
+//   .nodes('Tree', record({key: nat}), ['left', 'right'], {lo: {empty: 0, node: (x, kids) => when(kids.left.empty, x.key, kids.left.fold.lo)}})
+export type NodeRef<V, C extends string, Fd extends string> = {readonly index: Term, readonly empty: Cond, readonly value: V, readonly fold: Record<Fd, Term>, readonly kids: Record<C, Term>}
+// A fold's node may read the tables declared before its own (`tables`, by name): a row's total over the cells its value
+// names, say. Their nodes never change, so a fold read from them stays theirs; a node made before the one it reads is
+// refused by the table's laws, which the kernel proves only if the step makes it after.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type NodeFold<V, C extends string, Fd extends string = string, T = Record<string, NodeTable<any, any, any>>> = {empty: number, node: (value: V, kids: Record<C, NodeRef<V, C, Fd>>, tables: T) => TermLike}
+// The tables among a rule's maps.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type TablesOf<M> = {[k in keyof M as M[k] extends NodeTable<any, any, any> ? k : never]: M[k]}
+export class NodeTable<V, C extends string = string, Fd extends string = string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(readonly name: string, readonly kind: Kind<V>, readonly children: C[], readonly folds: Record<Fd, NodeFold<V, C, Fd>>, readonly size: Term, private readonly map: (part: string) => MapRef, private readonly tables: Record<string, NodeTable<any, any, any>> = {}) {}
+  // The node at n (0, or past the end: the empty tree).
+  node(n: TermLike): NodeRef<V, C, Fd> {
+    const index = termAt(n)
+    return {index, empty: index.eq(0), value: this.kind.build(this.name, part => this.map(part).at(index)),
+      fold: Object.fromEntries(Object.keys(this.folds).map(f => [f, this.map(`${this.name}$${f}`).at(index)])) as Record<Fd, Term>,
+      kids: Object.fromEntries(this.children.map(c => [c, this.map(`${this.name}^${c}`).at(index)])) as Record<C, Term>}
+  }
+  at(n: TermLike): V { return this.node(n).value }
+  // Whether nodes can be made from these children (each 0 or a node already there).
+  fits(kids: Record<C, TermLike>): Cond { return all(...this.children.map(c => termAt(kids[c]).atMost(this.size))) }
+  // Node size + 1, from a value and children already there, when `when` holds (and they fit): its value, children and
+  // folds written, the size grown.
+  make(value: Writes<V>, kids: Record<C, TermLike>, when: Cond = yes): Record<string, TermLike | PartsWrite> {
+    const n = this.size.plus(1), go = when.and(this.fits(kids)), parts = partsOf(this.kind, this.name, value)
+    const val = this.kind.build(this.name, part => termAt(parts[part]!))
+    const kidRefs = Object.fromEntries(this.children.map(c => [c, this.node(termAt(kids[c]))])) as Record<C, NodeRef<V, C, Fd>>
+    const writes: Record<string, MapWrite> = {}
+    const put = (part: string, x: TermLike) => { writes[part] = this.map(part).set(n, when_(go, x, this.map(part).at(n))) }
+    for (const part of this.kind.vars(this.name)) put(part, parts[part]!)
+    for (const c of this.children) put(`${this.name}^${c}`, kids[c])
+    for (const [f, d] of Object.entries(this.folds) as [string, NodeFold<V, C, Fd>][]) put(`${this.name}$${f}`, d.node(val, kidRefs, this.tables))
+    return {[this.name]: {parts: writes}, [`${this.name}_size`]: when_(go, n, this.size)}
+  }
+  // The table's own laws: every node's children are earlier nodes and its folds are its children's, and node 0 and every
+  // key past the end hold nothing (each fold's empty).
+  laws(): [string, Forall][] {
+    const inside = (k: Term) => k.atLeast(1).and(k.atMost(this.size))
+    const folds = Object.entries(this.folds) as [string, NodeFold<V, C, Fd>][]
+    return [
+      ...(this.children.length ? [[`every ${this.name} node's children are earlier nodes`, forall(k => inside(k).implies(all(...this.children.map(c => this.node(k).kids[c].lt(k)))))] as [string, Forall]] : []),
+      ...(folds.length ? [[`every ${this.name} node's folds are its children's`, forall(k => inside(k).implies(all(...folds.map(([f, d]) => {
+        const x = this.node(k)
+        return x.fold[f as Fd].eq(d.node(x.value, Object.fromEntries(this.children.map(c => [c, this.node(x.kids[c])])) as Record<C, NodeRef<V, C, Fd>>, this.tables))
+      }))))] as [string, Forall]] : []),
+      [`nothing in ${this.name} past its end`, forall(k => k.eq(0).or(this.size.lt(k)).implies(all(...this.kind.vars(this.name).map(part => this.map(part).at(k).eq(0)),
+        ...this.children.map(c => this.node(k).kids[c].eq(0)), ...folds.map(([f, d]) => this.node(k).fold[f as Fd].eq(d.empty)))))],
+    ]
+  }
+}
+const termAt = (t: TermLike): Term => (t instanceof Term ? t : lit(t))
 
 export type Forall = {readonly forall: (key: Term, ...more: Term[]) => Cond}
 // A law about every key of a map: proven at a fresh key, assumed at the keys a step reads.
@@ -1080,6 +1155,8 @@ export const recur = <const A extends string = never, U extends Record<string, F
   const args: string[] = [...(def.args ?? [])], uses = Object.entries(def.fns ?? {}) as [string, FnDef][]
   for (const n of [...args, ...uses.map(([u]) => u)]) if (!plain.test(n) || reservedInRecur.includes(n) || n === name) throw new Error(`recur ${name}: ${n} can't name an argument or a function here (${reservedInRecur.join(', ')} and ${name} are taken)`)
   distinctNames(`recur ${name}`, [...args, ...uses.map(([u]) => u)])
+  // A rule reads the function at its arguments paired, which the kernel multiplies out: with five further arguments that
+  // is a polynomial of degree 32, past what it can hold.
   if (args.length > 4) throw new Error(`recur ${name}: at most four further arguments`)
   const named = (n: string) => new Term({op: 'var', name: n})
   const argsAt = (ts: Term[]) => Object.fromEntries(args.map((a, i) => [a, ts[i]!])) as {[a in A]: Term}
@@ -1120,8 +1197,9 @@ export const recur = <const A extends string = never, U extends Record<string, F
   // A law about every n keys (forall counts them by the callback's own parameters).
   const keysOf = (n: number) => (f: (...ks: Term[]) => Cond): Cond | Forall => {
     if (n === 0) return f()
-    const by = [(a: Term) => f(a), (a: Term, b: Term) => f(a, b), (a: Term, b: Term, c: Term) => f(a, b, c), (a: Term, b: Term, c: Term, d: Term) => f(a, b, c, d),
-      (a: Term, b: Term, c: Term, d: Term, e: Term) => f(a, b, c, d, e), (a: Term, b: Term, c: Term, d: Term, e: Term, g: Term) => f(a, b, c, d, e, g)][n - 1]!
+    // A law's keys are counted by its callback's parameters: this one takes n.
+    const by = (...ks: Term[]) => f(...ks)
+    Object.defineProperty(by, 'length', {value: n})
     return forall(by as never)
   }
   const facts = (withBetween: boolean): FnDef['facts'] => (f, at = {}) => {
@@ -1153,7 +1231,7 @@ export const recur = <const A extends string = never, U extends Record<string, F
   return {...base, verdict, facts: facts(true)}
 }
 const distinctNames = (what: string, names: string[]) => { if (new Set(names).size !== names.length) throw new Error(`${what}: a name given twice`) }
-// A recurrence as JavaScript: a function of its arguments, the functions it reads inlined (each as a function of its key,
+// A recurrence as JavaScript: a function of its arguments, the functions it reads inlined (each called on its arguments,
 // as the runtimes call it).
 const recurJs = (name: string, args: string[], zero: E, next: E, uses: [string, FnDef][]): string => {
   const fns = new Map(uses.map(([u], i) => [u, `$f${i}`]))
@@ -1168,7 +1246,10 @@ const recurJs = (name: string, args: string[], zero: E, next: E, uses: [string, 
       case 'min': return `Math.min(${js(e.a)}, ${js(e.b)})`
       case 'max': return `Math.max(${js(e.a)}, ${js(e.b)})`
       case 'if': return `(${jc(e.c)} ? ${js(e.then)} : ${js(e.else)})`
-      case 'get': return `${fns.get(e.map)!}(${js(e.key)})`
+      case 'get': {
+        const i = uses.findIndex(([u]) => u === e.map), args = uses[i]![1].arity > 1 ? pairedArgs(e.key, uses[i]![1].arity) : undefined
+        return args ? `$g${i}(${args.map(js).join(', ')})` : `${fns.get(e.map)!}(${js(e.key)})`
+      }
     }
   }
   const jc = (c: C): string => {
@@ -1182,7 +1263,7 @@ const recurJs = (name: string, args: string[], zero: E, next: E, uses: [string, 
       case 'flag': case 'all': throw new Error('a recurrence takes no flag or quantifier')
     }
   }
-  const inlined = uses.map(([u, d], i) => `const $f${i} = (${fnSource(u, d)}); `).join('')
+  const inlined = uses.map(([u, d], i) => `const $f${i} = (${fnSource(u, d)}); ${d.arity > 1 ? `const $g${i} = (${jsOf(d)}); ` : ''}`).join('')
   // The last value computed at each tuple of further arguments is kept, so reading f at x after f at a smaller x takes
   // only the steps between (a rule that reads f at a count that grows costs one step a request).
   return `(() => { ${inlined}const $memo = new Map(); return (x, ${args.map(a => `${a}, `).join('')}) => { const $k = ${args.length ? `[${args.join(', ')}].join()` : "''"}; let $at = $memo.get($k); if (!$at || $at[0] > x) $at = [0, ${js(zero)}]; let x0 = $at[0], prev = $at[1]; for (; x0 < x; x0++) { prev = ((x, prev) => ${js(next)})(x0, prev); if (!Number.isSafeInteger(prev)) throw new RangeError(${JSON.stringify(`${name} passes the safe integers`)}); } if ($memo.size > 4096) $memo.clear(); $memo.set($k, [x, prev]); return prev; }; })()`
@@ -1195,8 +1276,9 @@ const flatFns = (defs: [string, FnDef][]): [string, FnDef, Record<string, FnTerm
 const pairE = (a: E, b: E): E => { const s: E = {op: 'add', a, b}; return {op: 'add', a: {op: 'prod', a: s, b: s}, b} }
 const argsKey = (args: E[]): E => args.slice(1).reduce(pairE, args[0]!)
 // A function's JavaScript as one function of its key: its arguments unpaired (left-nested, as argsKey pairs them).
+const jsOf = (d: FnDef): string => (typeof d.js === 'string' ? d.js : String(d.js))
 const fnSource = (name: string, d: FnDef): string => {
-  const src = typeof d.js === 'string' ? d.js : String(d.js)
+  const src = jsOf(d)
   let f: (...args: number[]) => number
   try { f = compileFunction<() => (...args: number[]) => number>([], `return (${src})`)(); f(...Array.from({length: d.arity}, () => 0)) } catch (e) { throw new Error(`function ${name}: its js must be a function of its arguments that reads nothing else (${(e as Error).message})`) }
   if (d.arity === 1) return src
@@ -1253,6 +1335,7 @@ type Spec = {
   // Maps and lists of a kind: their parts are in `maps` (and the length in `state`).
   cells?: [string, Kind<unknown>][]
   items?: [string, Kind<unknown>][]
+  nodes?: [string, Kind<unknown>, string[], Record<string, NodeFold<unknown, string>>][]
   // State variables declared by a kind: each a value over the kind's variables (in `state`, one entry each).
   kinded?: [string, Kind<unknown>][]
   carried?: string[]
@@ -1327,6 +1410,16 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     return this.with({maps: [...this.spec.maps, ...entries.flatMap(([n, k]) => k.vars(n).map(part => [part, 0] as [string, number]))],
       state: [...this.spec.state, ...entries.map(([n]) => [`${n}_len`, 0] as [string, number])], items: [...(this.spec.items ?? []), ...entries]})
   }
+  // A table of nodes, empty at the start (NodeTable): a tree in the state, made one node a step.
+  nodes<const N extends string, V, const C extends string, Fd extends string = never>(name: N, of: Kind<V>, children: readonly C[], folds: {[f in Fd]: NodeFold<V, C, Fd, TablesOf<M>>} = {} as {[f in Fd]: NodeFold<V, C, Fd, TablesOf<M>>}):
+    Rule<P, I, S & {[k in N as `${k}_size`]: Term}, M & {[k in N]: NodeTable<V, C, Fd>}, F, R, Su, Q> {
+    for (const c of children) if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(c) || c === 'value') throw new Error(`${name}: ${c} can't name a child`)
+    for (const f of Object.keys(folds)) if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(f)) throw new Error(`${name}: ${f} is not a plain fold name`)
+    distinctNames(name, [...children])
+    const maps: [string, number][] = [...of.vars(name).map(part => [part, 0] as [string, number]), ...children.map(c => [`${name}^${c}`, 0] as [string, number]),
+      ...Object.entries(folds).map(([f, d]) => [`${name}$${f}`, (d as NodeFold<V, C, Fd>).empty] as [string, number])]
+    return this.with({maps: [...this.spec.maps, ...maps], state: [...this.spec.state, [`${name}_size`, 0]], nodes: [...(this.spec.nodes ?? []), [name, of, [...children], folds as never]]})
+  }
   // Functions defined outside the rule (fn, divBy, modBy), read like params that take arguments: f(x).
   fns<T extends Record<string, FnDef>>(defs: T): Rule<P & {[k in keyof T]: (...args: TermLike[]) => Term}, I, S, M, F, R, Su, Q> {
     return this.with({fns: [...(this.spec.fns ?? []), ...Object.entries(defs)]})
@@ -1337,13 +1430,14 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   carries<const N extends string>(...names: N[]): Rule<P, I & {[k in N]: MapRef}, S, M, F, R, Su, Q> { return this.with({carried: [...(this.spec.carried ?? []), ...names]}) }
   // A list of values of a kind each request carries, with folds over it and lemmas about the folds (CarriedList):
   //   .carriesList('Lines', record({amount: nat}), {total: {from: 0, step: (acc, line) => acc.plus(line.amount)}})
-  carriesList<const N extends string, V, Fd extends string = never>(name: N, of: Kind<V>, folds: Record<Fd, ListFold<V>> = {} as Record<Fd, ListFold<V>>,
-    lemmas: Record<string, (acc: Record<Fd, Term>, i: Term) => Cond> = {}): Rule<P, I & {[k in N]: CarriedList<V, Fd>}, S, M, F, R, Su, Q> {
+  // Each fold's start and step, and each lemma, may read the params declared before it.
+  carriesList<const N extends string, V, Fd extends string = never>(name: N, of: Kind<V>, folds: Record<Fd, ListFold<V, P>> = {} as Record<Fd, ListFold<V, P>>,
+    lemmas: Record<string, (acc: Record<Fd, Term>, i: Term, p: P) => Cond> = {}): Rule<P, I & {[k in N]: CarriedList<V, Fd>}, S, M, F, R, Su, Q> {
     const entries = [[name, of, folds, lemmas]] as unknown as [string, Kind<unknown>, Record<string, ListFold<unknown>>, Record<string, ListLemma>][]
     for (const [n, , fs] of entries) for (const f of Object.keys(fs)) if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(f)) throw new Error(`${n}: ${f} is not a plain fold name`)
     // The folds' lemmas, proven now (a lemma that isn't throws, with the verdict).
     for (const [n, k, fs, ls] of entries) {
-      const v2 = new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0), ls).prove()
+      const v2 = new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0), ls, undefined, this.spec.params).prove()
       if (!(v2.proven && v2.checked)) throw new Unproven(`${n}'s fold lemmas`, v2)
     }
     for (const [n, , fs] of entries) for (const f of Object.keys(fs)) if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(f)) throw new Error(`${n}: ${f} is not a plain fold name`)
@@ -1402,6 +1496,10 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     for (const [n, k] of [...this.spec.cells ?? [], ...this.spec.items ?? []]) if (k.invariant(k.value(n)).length) {
       out.push(this.law(`every ${n} cell is a value of its kind`, env => forall(key => all(...k.invariant((of(env, n) as CellsRef<unknown>).at(key))))))
     }
+    for (const [n, k] of this.spec.nodes ?? []) {
+      if (k.invariant(k.value(n)).length) out.push(this.law(`every ${n} node is a value of its kind`, env => forall(key => all(...k.invariant((of(env, n) as NodeTable<unknown>).at(key))))))
+      for (const [name] of (this.env({flags: false, inputs: false, queries: false})[n] as NodeTable<unknown>).laws()) out.push(this.law(name, env => (of(env, n) as NodeTable<unknown>).laws().find(([m]) => m === name)![1]))
+    }
     return out
   }
 
@@ -1418,7 +1516,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     return withSource(more.length ? {name, forall: k1, keys: more, then: c, ...w} : {name, forall: k1, then: prenex(c, `step law ${name}`, k1) ?? c, ...w}, src)
   }
 
-  // A law about k steps in a row (k from 2 to 16): `then(first, last, requests)` relates what the first step reads to the
+  // A law about k steps in a row (k from 2 to 64): `then(first, last, requests)` relates what the first step reads to the
   // state, maps and sums after the last, with each step's request and queries (requests[0] is the first's); `when(before,
   // j)` narrows the j-th step's request (j from 0), read at the state that step starts from.
   //   meter.stepsLaw('two requests spend at most 2m', 2, ({spent, m}, after) => after.spent.atMost(spent.plus(m).plus(m)))
@@ -1506,7 +1604,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     if (parts.inputs !== false) {
       for (const [n, k] of this.spec.inputs) out[n] = k.value(n)
       for (const n of this.spec.carried ?? []) out[n] = new MapRef(n, 0)
-      for (const [n, k, fs, ls] of this.spec.lists2 ?? []) { const l = new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0), ls); for (const part of l.maps) delete out[part]; out[n] = l }
+      const ps = Object.fromEntries(this.spec.params.map(([n]) => [n, out[n]]))
+      for (const [n, k, fs, ls] of this.spec.lists2 ?? []) { const l = new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0), ls, ps, this.spec.params); for (const part of l.maps) delete out[part]; out[n] = l }
     }
     if (parts.state !== false) {
       for (const [n] of this.spec.state) out[n] = v(n)
@@ -1528,6 +1627,14 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const init = new Map(this.spec.maps)
     for (const [n, k] of this.spec.cells ?? []) { for (const part of k.vars(n)) delete out[part]; out[n] = new CellsRef(n, k, part => new MapRef(at(part), init.get(part)!)) }
     for (const [n, k] of this.spec.items ?? []) { for (const part of k.vars(n)) delete out[part]; out[n] = new ItemsRef(n, k, len(n), part => new ListRef(at(part), len(n))) }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tables: Record<string, NodeTable<any, any, any>> = {}
+    for (const [n, k, cs, fs] of this.spec.nodes ?? []) {
+      const t = new NodeTable(n, k, cs, fs, v(at(`${n}_size`)), part => new MapRef(at(part), init.get(part)!), {...tables})
+      tables[n] = t
+      for (const part of [...k.vars(n), ...cs.map(c => `${n}^${c}`), ...Object.keys(fs).map(f => `${n}$${f}`)]) delete out[part]
+      out[n] = t
+    }
   }
   // Every name the rule declares is declared once (a flag named again replaces the earlier one, so flags are checked as
   // they are defined): an input and a state variable sharing a name would hand the callbacks only one of them.
@@ -1536,6 +1643,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     return [...s.params.map(([n]) => [n, 'a param']), ...(s.fns ?? []).map(([n]) => [n, 'a function']), ...s.inputs.map(([n]) => [n, 'an input']), ...(s.carried ?? []).map(n => [n, 'a carried map']),
       ...s.state.map(([n]) => [n, 'a state variable']), ...s.maps.map(([n]) => [n, 'a map']), ...s.sums.map(([n]) => [n, 'a sum']), ...s.queries.map(([n]) => [n, 'a query']),
       ...[...(s.cells ?? []), ...(s.items ?? [])].filter(([n, k]) => !k.vars(n).includes(n)).map(([n]) => [n, 'a map of a kind']),
+      ...(s.nodes ?? []).map(([n]) => [n, 'a table of nodes']),
     ] as [string, string][]
   }
   private whatIs(n: string): string { return this.names().find(([m]) => m === n)?.[1] ?? 'something else' }
@@ -1589,7 +1697,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     // Functions, and their facts: each function's own (named after it), then the rule's.
     // The functions a function reads come first, each named <function>.<use>.
     const flat = flatFns(s.fns ?? [])
-    const fns: Record<string, Fn> = Object.fromEntries(flat.map(([n, d]) => [n, {js: fnSource(n, d), ...(d.lean ? {lean: d.lean} : {}), ...(d.recur ? {recur: d.recur} : {})}]))
+    const fns: Record<string, Fn> = Object.fromEntries(flat.map(([n, d]) => [n, {js: fnSource(n, d), ...(d.arity > 1 ? {arity: d.arity, call: jsOf(d)} : {}), ...(d.lean ? {lean: d.lean} : {}), ...(d.recur ? {recur: d.recur} : {})}]))
     const facts: Law[] = [
       ...flat.flatMap(([n, d, uses]) => Object.entries(d.facts?.(fnTerm(n, d), uses) ?? {}).map(([name, f]) => this.lawOf(`${n}: ${name}`, f))),
       ...(s.facts ?? []).flatMap(f => Object.entries(f(pEnv as never)).map(([name, out]) => this.lawOf(name, out))),
@@ -1651,7 +1759,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
           if (ok !== watch(m, run, law, params, bound).start(st)) return {checked, failure: at(`law "${law.name}": its callback says ${ok}, the law proven says ${!ok}`, params, st)}
         }
         if (d === (opts.depth ?? 8)) break
-        const input = this.randomInput(rand, bound)
+        const input = this.randomInput(rand, bound, params)
         if (s.prune || !allowed(m, run, params, st, input)) continue
         d++
         const next = run.step(params, st, input)
@@ -1747,7 +1855,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       const edges = trial === 0 ? opts.edges ?? [] : []
       for (let d = 0; d < (opts.depth ?? 10) + edges.length; d++) {
         const request = edges[d] ?? opts.draw?.(rand) ?? sample(s.inputs) as {[k in keyof I]: Raw}
-        ours = gen.step(ps, ours, this.encodeInput(request as never)); theirs = reference.step(params, theirs, request)
+        ours = gen.step(ps, ours, this.encodeInput(request as never, params)); theirs = reference.step(params, theirs, request)
         const got = this.decode(ours)
         for (const [field, want] of Object.entries(theirs)) {
           checked++
@@ -1762,10 +1870,12 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // Runtime values (numbers, booleans, choice names, null for a missing value) to the variables the machine reads.
   encodeParams(values: {[k in keyof P]: Raw}): Record<string, number> { return encode(this.spec.params, values as Record<string, Raw>) }
   // A carried map is a Set of keys (each cell 1), an array of them, or a Map of key to natural.
-  // A carried list is an array of its items' runtime values (its length and folds computed from them).
+  // A carried list is an array of its items' runtime values (its length and folds computed from them); `params`, what
+  // folds that read the params are computed with.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  encodeInput(values: {[k in keyof I]: I[k] extends MapRef ? ReadonlySet<number> | readonly number[] | ReadonlyMap<number, number> : I[k] extends CarriedList<any, any> ? readonly Raw[] : Raw}): Request {
-    const lists = Object.fromEntries((this.spec.lists2 ?? []).map(([n, k, fs]) => [n, new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0)).encode((values as Record<string, Raw>)[n])]))
+  encodeInput(values: {[k in keyof I]: I[k] extends MapRef ? ReadonlySet<number> | readonly number[] | ReadonlyMap<number, number> : I[k] extends CarriedList<any, any> ? readonly Raw[] : Raw}, params?: {[k in keyof P]: Raw}): Request {
+    const at = params && this.paramValues(this.encodeParams(params))
+    const lists = Object.fromEntries((this.spec.lists2 ?? []).map(([n, k, fs]) => [n, new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0), {}, at).encode((values as Record<string, Raw>)[n])]))
     const out: Request = encode(this.spec.inputs, {...values as Record<string, Raw>, ...Object.fromEntries(Object.entries(lists).map(([n, l]) => [`${n}_len`, l.len]))})
     for (const l of Object.values(lists)) Object.assign(out, l.maps)
     for (const n of this.spec.carried ?? []) {
@@ -1777,12 +1887,17 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   }
   // Random params and inputs that meet their kinds (not the user's `pre` or `assume`, which a caller checks).
   randomParams(rand: Rand, bound: number): Record<string, number> { return Object.assign({}, ...this.spec.params.map(([n, k]) => k.random(n, rand, bound))) }
-  randomInput(rand: Rand, bound: number): Request {
+  // The params' values by their kinds, as constants (what a fold that reads them is computed with).
+  private paramValues(ps: Record<string, number>): Record<string, unknown> {
+    return Object.fromEntries(this.spec.params.map(([n, k]) => [n, k.build(n, part => new Term({op: 'const', value: ps[part]!}, ps[part]!))]))
+  }
+  // `ps`: the params (encoded), for folds that read them.
+  randomInput(rand: Rand, bound: number, ps?: Record<string, number>): Request {
     const out: Request = Object.assign({}, ...this.spec.inputs.map(([n, k]) => k.random(n, rand, bound)))
     for (const n of this.spec.carried ?? []) out[n] = new Map(Array.from({length: bound + 1}, (_, key) => [key, rand(2)] as const).filter(([, cell]) => cell === 1))
     // A carried list: items drawn by their kind, its length and folds as the encoding computes them.
     for (const [n, k, fs] of this.spec.lists2 ?? []) {
-      const l = new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0)).encode(Array.from({length: rand(bound + 1)}, () => k.sample(rand, bound)))
+      const l = new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0), {}, ps && this.paramValues(ps)).encode(Array.from({length: rand(bound + 1)}, () => k.sample(rand, bound)))
       Object.assign(out, l.maps, {[`${n}_len`]: l.len})
     }
     return out
@@ -1799,6 +1914,11 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       out[n] = Object.fromEntries(keys.map(key => [key, cell(n, k, key)]))
     }
     for (const [n, k] of this.spec.items ?? []) out[n] = Array.from({length: st.scalars[`${n}_len`]!}, (_, i) => cell(n, k, i)) as never
+    // A table of nodes: node 1 first, each its value and its children.
+    for (const [n, k, cs] of this.spec.nodes ?? []) {
+      const at = (part: string, key: number) => st.maps[part]?.get(key) ?? 0
+      out[n] = Array.from({length: st.scalars[`${n}_size`]!}, (_, i) => ({value: cell(n, k, i + 1), ...Object.fromEntries(cs.map(c => [c, at(`${n}^${c}`, i + 1)]))})) as never
+    }
     return out
   }
   // The prune order's variable, if the history is pruned (a runtime must send it nondecreasing).
@@ -1900,7 +2020,7 @@ export class Fun<P extends Obj = {}, I extends Obj = {}, O extends Obj = {}> {
     this.compiledRule ??= (rule => ({rule, gen: rule.compiled()}))(this.rule)
     const {rule, gen} = this.compiledRule, ps = rule.encodeParams(params as never)
     const kinds = Object.entries(this.result(this.r['env']({flags: false, state: false, queries: false})))
-    const st = rule.decode(gen.step(ps, gen.init(ps), rule.encodeInput(values as never)))
+    const st = rule.decode(gen.step(ps, gen.init(ps), rule.encodeInput(values as never, params as never)))
     return Object.fromEntries(kinds.map(([k]) => [k, st[`out.${k}`]])) as never
   }
 }
@@ -2004,7 +2124,7 @@ export function crossCheckDecision(d: Decision, opts: {trials?: number, bound?: 
   const r = d.rule, m = r.machine, bound = opts.bound ?? 4, rand = opts.rand ?? seeded(11), own = d.given.slice(d.given.length - src.own)
   let checked = 0
   for (let i = 0; i < (opts.trials ?? 500); i++) {
-    const input = r.randomInput(rand, bound), values = {...r.randomParams(rand, bound), ...numbersOf(input)}
+    const ps = r.randomParams(rand, bound), input = r.randomInput(rand, bound, ps), values = {...ps, ...numbersOf(input)}
     const st: State = {scalars: {}, maps: Object.fromEntries(Object.entries(input).filter((e): e is [string, ReadonlyMap<number, number>] => typeof e[1] !== 'number').map(([n, cells]) => [n, new Map(cells)]))}
     const keys = exactKeys(keysOf(bound, st), values, st)
     const sc: Scope = {vars: values, maps: Object.fromEntries(Object.entries(st.maps).map(([n, cells]) => [n, {cells, dflt: 0}])), keys, flags: {}}
@@ -2045,6 +2165,12 @@ export class FoldRule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}
   assume(f: (env: P & I) => Cond): FoldRule<P, I, S> { return this.with({assume: [...this.spec.assume, f as (env: never) => Cond]}) }
   leaf<T extends Record<string, TermLike>>(f: (env: P & I) => T): FoldRule<P, I, {[k in keyof T]: Term}> { return this.with({leaf: f as never}) }
   node(f: (env: P & I, left: S, right: S) => {[k in keyof S]: TermLike}): FoldRule<P, I, S> { return this.with({node: f as never}) }
+  // Nodes with any number of children (RoseFold): the children's values folded into `kids`, from `from` by `step` (which
+  // reads the params), each lemma a law of every prefix of every node's children that meet the fold's laws.
+  children<A extends Record<string, number | ((p: P) => TermLike)>>(from: A, step: (acc: {[k in keyof A]: Term}, kid: S, p: P) => {[k in keyof A]: TermLike},
+    lemmas: Record<string, (acc: {[k in keyof A]: Term}, p: P) => Cond> = {}): RoseFold<P, I, S, {[k in keyof A]: Term}> {
+    return new RoseFold(this.spec, {from: from as never, step: step as never, lemmas: lemmas as never})
+  }
   private env(inputs = true): Record<string, unknown> {
     const out: Record<string, unknown> = {}
     for (const [n, k] of this.spec.params) out[n] = k.value(n)
@@ -2119,4 +2245,124 @@ export class FoldRule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}
   }
 }
 export const fold = (name: string): FoldRule => new FoldRule({name, params: [], inputs: [], pre: [], assume: []})
-export const proveFold = (f: FoldRule<Obj, Obj, Obj>, laws: Law[]): Verdict => goalsVerdict(foldObligations(f.fold, laws))
+// A fold's laws proven over every tree (a rose fold's own laws, its children's lemmas, with them).
+export const proveFold = (f: {fold: Fold, lemmas?: Law[]}, laws: Law[]): Verdict => goalsVerdict(foldObligations(f.fold, [...(f.lemmas ?? []), ...laws]))
+
+const asTerm = (t: TermLike): Term => (t instanceof Term ? t : lit(t))
+// A tree whose nodes have any number of children, as a runtime value.
+export type RoseValue<I> = {leaf: I} | {node: I, children: RoseValue<I>[]}
+type RoseSpec = {from: Record<string, number | ((p: never) => TermLike)>, step: (acc: never, kid: never, p: never) => Record<string, TermLike>, lemmas: Record<string, (acc: never, p: never) => Cond>}
+// A fold over trees whose nodes have any number of children, as the kernel's binary fold (so the kernel and Lean's
+// fold_sound check it as they check any fold): a node's children become a chain of glue nodes, each folding one child
+// into the values of the rest (`kids`, from `from` at the chain's end), and the node reads the chain's values. Every
+// tree node carries `kind$` (0 a node or leaf of the tree, 1 a glue node or the chain's end) and its role as an input; a
+// law of the fold is claimed where kind$ is 0, each lemma where it is 1. A binary tree no rose tree maps to (a child
+// where a chain belongs, or a chain where a child does) is read as one that does: a node reads a chain only, a glue
+// node a child only, so the laws are proven of every binary tree, and of each rose tree's image in particular.
+//   fold('org chart').params({cap: nat}).inputs({pay: nat})
+//     .leaf(({pay}) => ({cost: pay, heads: 1}))
+//     .children({cost: 0, heads: 0}, (acc, kid) => ({cost: acc.cost.plus(kid.cost), heads: acc.heads.plus(kid.heads)}))
+//     .node(({pay}, kids) => ({cost: kids.cost.plus(pay), heads: kids.heads.plus(1)}))
+export class RoseFold<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, A extends Obj = {}> {
+  constructor(private readonly spec: FoldSpec, private readonly kids: RoseSpec, private readonly nodeOf?: (env: never, kids: never) => Record<string, TermLike>) {}
+  get name() { return this.spec.name }
+  node(f: (env: P & I, kids: A) => {[k in keyof S]: TermLike}): RoseFold<P, I, S, A> { return new RoseFold(this.spec, this.kids, f as never) }
+  private env(inputs = true): Record<string, unknown> {
+    const out: Record<string, unknown> = {}
+    for (const [n, k] of this.spec.params) out[n] = k.value(n)
+    if (inputs) for (const [n, k] of this.spec.inputs) out[n] = k.value(n)
+    return out
+  }
+  private names(): string[] {
+    if (!this.spec.leaf) throw new Error(`${this.spec.name}: a fold needs a leaf`)
+    return Object.keys(this.spec.leaf(this.env() as never))
+  }
+  private side(prefix: string): Record<string, Term> { return Object.fromEntries(this.names().map(n => [n, v(`${prefix}${n}`)])) }
+  private accs(prefix: string): Record<string, Term> { return Object.fromEntries(Object.keys(this.kids.from).map(a => [a, v(`${prefix}kids$${a}`)])) }
+  private start(p: Record<string, unknown>): Record<string, Term> { return Object.fromEntries(Object.entries(this.kids.from).map(([a, x]) => [a, typeof x === 'number' ? lit(x) : asTerm(x(p as never))])) }
+  // A law about the values and the params, claimed of every node and leaf of the tree.
+  law(name: string, f: (env: P & S) => Cond): Law { return {name, holds: v('kind$').atLeast(1).or(f({...this.env(false), ...this.side('')} as never)).c} }
+  // The children's lemmas (claimed of every glue node), and that kind$ is 0 or 1: proveFold adds them.
+  get lemmas(): Law[] {
+    const p = this.env(false)
+    return [{name: `${this.spec.name}: kind$ is 0 or 1`, holds: v('kind$').atMost(1).c},
+      ...Object.entries(this.kids.lemmas).map(([n, l]) => ({name: n, holds: v('kind$').eq(0).or(l(this.accs('') as never, p as never)).c}))]
+  }
+  get fold(): Fold {
+    const s = this.spec, node = this.nodeOf
+    if (!s.leaf || !node) throw new Error(`${s.name}: a fold needs a leaf and a node`)
+    const env = this.env(), pEnv = this.env(false), names = this.names(), accNames = Object.keys(this.kids.from)
+    const role = v('role$'), real = role.eq(0)
+    const pre = [...s.params.flatMap(([n, k]) => k.assume(n)).map(c => c.c), ...s.pre.map(f => f(pEnv as never).c)]
+    const own = all(...s.inputs.flatMap(([n, k]) => k.assume(n)), ...s.assume.map(f => f(env as never)))
+    const assume = role.atMost(1).and(role.eq(1).or(own)).c
+    const start = this.start(pEnv)
+    // A leaf of the tree, or the end of a chain (no children yet).
+    const leafOut = s.leaf(env as never)
+    const leaf: Record<string, E> = {...Object.fromEntries(names.map(n => [n, when(real, leafOut[n]!, 0).e])),
+      ...Object.fromEntries(accNames.map(a => [`kids$${a}`, when(real, 0, start[a]!).e])), 'kind$': when(real, 0, 1).e}
+    // A node reads the chain on its left (its children's values); a glue node folds its left child into the rest.
+    const lAcc = this.accs('l_'), rAcc = this.accs('r_'), lk = v('l_kind$'), rk = v('r_kind$')
+    const kidsIn = Object.fromEntries(accNames.map(a => [a, when(lk.eq(1), lAcc[a]!, start[a]!)]))
+    const rest = Object.fromEntries(accNames.map(a => [a, when(rk.eq(1), rAcc[a]!, start[a]!)]))
+    const nodeOut = node(env as never, kidsIn as never), stepped = this.kids.step(rest as never, this.side('l_') as never, pEnv as never)
+    const nodeE: Record<string, E> = {...Object.fromEntries(names.map(n => [n, when(real, nodeOut[n]!, 0).e])),
+      ...Object.fromEntries(accNames.map(a => [`kids$${a}`, when(real, 0, when(lk.eq(0), stepped[a]!, rest[a]!)).e])), 'kind$': when(real, 0, 1).e}
+    return {name: s.name, params: s.params.flatMap(([n, k]) => k.vars(n)), inputs: [...s.inputs.flatMap(([n, k]) => k.vars(n)), 'role$'], leaf, node: nodeE,
+      ...(pre.length ? {pre: pre.length === 1 ? pre[0]! : {op: 'and', xs: pre}} : {}), assume}
+  }
+  // The values of a rose tree, by the terms proven (the tree as the binary tree the fold reads it as).
+  run(tree: RoseValue<{[k in keyof I]: Raw}>, params: {[k in keyof P]?: Raw} = {}): {[k in keyof S]: number} {
+    const f = this.fold, ps = encode(this.spec.params, params as Record<string, Raw>), none: Machine = {name: f.name, params: [], inputs: [], state: {}, step: {}}
+    const st: State = {scalars: {}, maps: {}}
+    if (f.pre && !evalC(f.pre, ps, st, none)) throw new RangeError(`${f.name}: the params don't meet its precondition`)
+    const zero = Object.fromEntries(f.inputs.map(n => [n, 0]))
+    const at = (exprs: Record<string, E>, env: Record<string, number>) => Object.fromEntries(Object.entries(exprs).map(([n, e]) => [n, evalE(e, env, st, none)]))
+    const kidsOf = (vals: Record<string, number>, prefix: string) => Object.fromEntries(Object.entries(vals).map(([n, x]) => [`${prefix}${n}`, x]))
+    const chain = (cs: RoseValue<Record<string, Raw>>[]): Record<string, number> => {
+      const env = {...ps, ...zero, 'role$': 1}
+      if (!cs.length) return at(f.leaf, env)
+      return at(f.node, {...env, ...kidsOf(go(cs[0]!), 'l_'), ...kidsOf(chain(cs.slice(1)), 'r_')})
+    }
+    const go = (t: RoseValue<Record<string, Raw>>): Record<string, number> => {
+      const own = 'leaf' in t ? t.leaf : t.node, env: Record<string, number> = {...ps, ...encode(this.spec.inputs, own), 'role$': 0}
+      if (f.assume && !evalC(f.assume, env, st, none)) throw new RangeError(`${f.name}: ${JSON.stringify(own)} doesn't meet its assumption`)
+      if ('leaf' in t) return at(f.leaf, env)
+      return at(f.node, {...env, ...kidsOf(chain(t.children), 'l_'), ...kidsOf(chain([]), 'r_')})
+    }
+    const out = go(tree as RoseValue<Record<string, Raw>>)
+    return Object.fromEntries(this.names().map(n => [n, out[n]!])) as never
+  }
+  // The builders against what they built, on random rose trees: each value by the callbacks' own arithmetic (the
+  // children folded by step, then the node) against the terms proven, and each law and lemma at the root.
+  crossCheck(laws: Law[] = [], opts: {trials?: number, depth?: number, bound?: number, rand?: Rand} = {}): Agreement {
+    const s = this.spec, rand = opts.rand ?? seeded(17), bound = opts.bound ?? 6, f = this.fold
+    let checked = 0
+    const sample = (kinds: [string, Kind<unknown>][]) => Object.fromEntries(kinds.map(([n, k]) => [n, k.sample(rand, bound)]))
+    const tree = (d: number): RoseValue<Record<string, Raw>> => (d === 0 || rand(3) === 0 ? {leaf: sample(s.inputs)} : {node: sample(s.inputs), children: Array.from({length: rand(4)}, () => tree(d - 1))})
+    const known = (vals: Record<string, number>) => Object.fromEntries(Object.entries(vals).map(([n, x]) => [n, new Term({op: 'const', value: x}, x)]))
+    const nums = (out: Record<string, TermLike>) => { const vals = Object.entries(out).map(([n, x]) => [n, valOf(x)] as const); return vals.every(([, x]) => x !== undefined) ? Object.fromEntries(vals) as Record<string, number> : undefined }
+    for (let t = 0; t < (opts.trials ?? 200); t++) {
+      const params = sample(s.params), ps = encode(s.params, params)
+      const pv = known(ps), pEnv = Object.fromEntries(s.params.map(([n, k]) => [n, k.build(n, part => pv[part]!)]))
+      const builder = (tr: RoseValue<Record<string, Raw>>): Record<string, number> | undefined => {
+        const own = 'leaf' in tr ? tr.leaf : tr.node, iv = known(encode(s.inputs, own)), env = {...pEnv, ...Object.fromEntries(s.inputs.map(([n, k]) => [n, k.build(n, part => iv[part]!)]))}
+        if ('leaf' in tr) return nums(s.leaf!(env as never))
+        let acc: Record<string, number> | undefined = nums(this.start(pEnv))
+        for (const c of [...tr.children].reverse()) { const kid = builder(c); acc = acc && kid && nums(this.kids.step(known(acc) as never, known(kid) as never, pEnv as never)) }
+        return acc && nums(this.nodeOf!(env as never, known(acc) as never))
+      }
+      const tr = tree(opts.depth ?? 3)
+      let ours: Record<string, number>
+      try { ours = this.run(tr as never, params as never) } catch { continue }
+      const theirs = builder(tr)
+      if (!theirs) continue
+      for (const [n, x] of Object.entries(theirs)) { checked++; if (ours[n] !== x) return {checked, failure: `${f.name}: ${n} is ${x} by its callbacks, ${ours[n]} by the terms proven, for ${JSON.stringify(tr)}`} }
+      for (const law of laws) {
+        checked++
+        if (!evalC(law.holds, {...ps, ...ours, 'kind$': 0}, {scalars: {}, maps: {}}, {name: f.name, params: [], inputs: [], state: {}, step: {}})) return {checked, failure: `${f.name}: law ${law.name} fails for ${JSON.stringify(tr)} with params ${JSON.stringify(params)}`}
+      }
+    }
+    return {checked}
+  }
+}

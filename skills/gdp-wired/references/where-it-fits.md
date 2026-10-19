@@ -27,10 +27,11 @@ from a proven `guard` or `gate` ([with gdp-ts](gdp-ts.md)): the policy is proven
   recurrence on one natural whose lemma you can state stays here: `recur` proves the lemma by induction.
 - Products of unknowns beyond multiplying two known facts. (Integer arithmetic with induction or products is
   undecidable; no automatic prover closes all of it.)
-- Reals, a tree in a rule's state, lists of lists, and claims about a recursive structure that need a lemma nobody
-  stated (or encoded as a number a Lean function decodes). Records and variants stay here, as values, in maps and in
-  lists (`record`, `variant`, `.maps`, `.items`), and so do lists a request carries with folds over them
-  (`.carriesList`) and folds over a tree given as a value (`fold`, `proveFold`).
+- Reals, and claims about a recursive structure that need a lemma nobody stated (or encoded as a number a Lean
+  function decodes). Records and variants stay here, as values, in maps and in lists (`record`, `variant`, `.maps`,
+  `.items`), and so do lists a request carries with folds over them (`.carriesList`), folds over a tree given as a
+  value (`fold`, `proveFold`, any number of children with `.children`), and trees and lists of lists in a rule's state
+  as tables of nodes (`.nodes`).
 - Shipping an arbitrary algorithm as its proved source: Bend compiles the proved program itself; gdp-wired ships the
   rule as JavaScript.
 

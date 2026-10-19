@@ -4,9 +4,9 @@
 // they aren't (the two equations alone say nothing about the delay at an unknown attempt); a lemma that doesn't hold
 // is refused with the induction step it breaks at; the runtimes compute the function by its recurrence.
 import {expect, test} from 'bun:test'
-import {Unproven, min, modBy, nat, proveLeadsTo, proveSteps, recur, rule, when} from './dsl.ts'
+import {Unproven, fn, min, modBy, nat, proveLeadsTo, proveSteps, recur, rule, when} from './dsl.ts'
 import {area, areaLaws, backoff, escalation, escalationLaws, fillMeter, fillMeterLaws, filled, growing, ladder, ladderLaws, ledger, ledgerLaws, leftovers, pump, pumpLive, retries, retryLaws, retrySteps, tank, tankLaws} from '../examples/lemmas.ts'
-import {fnValue} from './machine.ts'
+import {fnValue, interpret} from './machine.ts'
 
 test('lemmas proven by induction, then used: the backoff schedule proven with them, not without', () => {
   expect(backoff().verdict).toMatchObject({proven: true, checked: true})
@@ -89,4 +89,22 @@ test('a start that reads a function, four further arguments, and a runtime that 
   const g = rule('reads').params({a: nat}).inputs({x: nat}).state({v: 0}).fns({shifted}).step(({x, a, shifted}) => ({v: shifted(x, a)}))
   const at = (x: number, a: number) => fnValue(g.machine.fns!.shifted!, (x + a) * (x + a) + a)
   expect([at(0, 7), at(3, 7), at(10, 7), at(2, 7), at(4, 9), at(10, 7)]).toEqual([2, 5, 12, 4, 8, 12])
+})
+
+test('four further arguments in the thousands: both runtimes call the function on its arguments, not their pairing', () => {
+  // The paired key of five arguments near 1000 is past 2^53; the kernel and Lean read the pairing, the runtimes the
+  // arguments themselves. A recurrence reading a function of three arguments calls it on them too.
+  const spread = fn(3, (a: number, b: number, c: number) => Math.max(a, b, c) - Math.min(a, b, c))
+  const four = recur('four', {args: ['a', 'b', 'c', 'd'], fns: {spread}, zero: ({a}) => a,
+    next: (_, f, {b, c, d, spread}) => f.plus(min(b, min(c, d))).plus(spread(b, c, d))}, {'at least a': (_, f, {a}) => f.atLeast(a)})
+  expect(four.verdict).toMatchObject({proven: true, checked: true})
+  const r = rule('reads four').params({a: nat, b: nat, c: nat, d: nat}).inputs({x: nat}).state({v: 0}).fns({four})
+    .step(({x, a, b, c, d, four}) => ({v: four(x, a, b, c, d)}))
+  const ps = {a: 1000, b: 2000, c: 3000, d: 999}
+  const want = (x: number) => ps.a + x * (999 + (3000 - 999))
+  for (const run of [r.compiled(), interpret(r.machine)]) {
+    const p = r.encodeParams(ps as never)
+    let st = run.init(p)
+    for (const x of [0, 1, 5, 40]) { st = run.step(p, st, r.encodeInput({x} as never)); expect(r.decode(st).v).toBe(want(x)) }
+  }
 })

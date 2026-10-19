@@ -850,7 +850,8 @@ export function stepLawObligations(machine: Machine, laws: Law[], instances: Ins
   const m = machine.history ? historyMachine(machine).machine : machine
   scope(m, laws)
   const k = sl.steps ?? 1
-  if (!Number.isInteger(k) || k < 1 || k > 16) throw new Error(`step law ${sl.name}: steps is a whole number from 1 to 16`)
+  // Past 64 the cost is the bound (proving grows about as k³: 64 steps in about 90 s; Lean checks 32 in about 13 minutes).
+  if (!Number.isInteger(k) || k < 1 || k > 64) throw new Error(`step law ${sl.name}: steps is a whole number from 1 to 64`)
   const whens = sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when]
   if (whens.length > k) throw new Error(`step law ${sl.name}: one when per step at most`)
   const state = Object.keys(m.state), maps = Object.keys(m.maps ?? {}), carried = m.inputMaps ?? [], flagNames = Object.keys(m.step.flags ?? {})
