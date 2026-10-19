@@ -14,7 +14,7 @@ regression suite (`../modal/suite.json`) runs the parts below that it lists.
 | [`sat/`](sat/) | Bit-vector laws: bit-blasted, solved, LRAT-checked in TypeScript, optionally by Lean |
 | `enum/` | The predicate enumeration in Bend (`make.ts` writes `k<K>.bend` for K atoms; `run.ts`, `time.ts` time it), with the JavaScript counts in `js.jsonl` that `hw/` and `perf/` check against |
 | `gpu/` | The access audit's circuit on WebGPU in headless Chrome (`bun research/gpu/run.ts`) |
-| `perf/` | Benchmarks: per-key caps and windows at scale (`grant-scale.ts`, `window-scale.ts`), the enumeration through the Handwired fork against Bend's (`enum-ours.ts`, `bend-enum/`, `enum_gpu.py` on Modal) |
+| `perf/` | Benchmarks: the prover over every example (`prover-bench.ts`: totals, the slowest items and goals) and on families that double in size until it stops (`prover-stress.ts`), per-key caps and windows at scale (`grant-scale.ts`, `window-scale.ts`), the enumeration through the Handwired fork against Bend's (`enum-ours.ts`, `bend-enum/`, `enum_gpu.py` on Modal) |
 | `lean/` | The first Lean checker: `Cert.lean` (Farkas derivations, `Cert.sound`), and the files `../core/export-lean.ts` and `../core/compile-lean.ts` write |
 | `audit/` | The first prototype, before the kernel: an access spec written once (`spec.ts`) as gdp-ts provers (`gdp.ts`), a Handwired circuit (`circuit.ts`) and a plain JavaScript loop (`js-audit.ts`), compared on generated orgs (`check.ts`); its laws decided over a small model (`laws.ts`, `intent.ts`) and by the solver (`run-predicates.ts`); sequence laws by enumeration and by Farkas certificates (`steps.ts`, `arith-laws.ts`, `certificate.ts`, its own `solver.ts`) |
 

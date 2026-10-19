@@ -81,7 +81,12 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
       else if (key.startsWith('⟦')) terms.add(key)
       else if (key.includes('*')) monos.add(key)
     }
-    for (const h of goal.hyps) for (const e of subterms(h)) if (e.op === 'prod') for (const key of Object.keys(linear(e, path) ?? {})) if (key.includes('*')) monos.add(key)
+    // Each cell a hypothesis reads under the path, kept or not: two reads of one cell cancel in a row (T − T), yet
+    // Lean's linear form of each still needs the cell's column to see the comparison decided.
+    for (const h of goal.hyps) for (const e of subterms(h)) {
+      if (e.op === 'prod') for (const key of Object.keys(linear(e, path) ?? {})) if (key.includes('*')) monos.add(key)
+      if (e.op === 'get') for (const key of Object.keys(linear(e, path) ?? {})) if (key.includes('[')) addCell(key)
+    }
   })
   const depth = (name: string) => name.split('[').length
   // Term columns (open choices, each standing for its term's value) before the cells, whose keys may read them.

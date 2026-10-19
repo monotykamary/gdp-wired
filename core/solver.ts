@@ -12,14 +12,26 @@ export type Constraint = {lin: Lin, label: string} // lin <= 0
 
 export const v = (name: string): Lin => ({[name]: 1})
 export const k = (value: number): Lin => (value === 0 ? {} : {1: value})
+// (Plain loops, no intermediate arrays: these run millions of times in a proof. Each keeps the keys in the order they
+// first appear, as a sum over the entries would.)
 export function add(...xs: Lin[]): Lin {
   const out: Lin = {}
-  for (const x of xs) for (const [key, value] of Object.entries(x)) out[key] = (out[key] ?? 0) + value
-  for (const key of Object.keys(out)) if (out[key] === 0) delete out[key]
+  for (const x of xs) for (const key in x) out[key] = (out[key] ?? 0) + x[key]!
+  for (const key in out) if (out[key] === 0) delete out[key]
   return out
 }
-export const scale = (x: Lin, f: number): Lin => add(Object.fromEntries(Object.entries(x).map(([key, value]) => [key, value * f])))
-export const sub = (a: Lin, b: Lin) => add(a, scale(b, -1))
+export const scale = (x: Lin, f: number): Lin => {
+  const out: Lin = {}
+  for (const key in x) { const value = x[key]! * f; if (value !== 0) out[key] = value }
+  return out
+}
+export const sub = (a: Lin, b: Lin): Lin => {
+  const out: Lin = {}
+  for (const key in a) out[key] = a[key]!
+  for (const key in b) out[key] = (out[key] ?? 0) - b[key]!
+  for (const key in out) if (out[key] === 0) delete out[key]
+  return out
+}
 export function show(x: Lin): string {
   const parts = Object.entries(x).filter(([key]) => key !== '1').map(([key, c]) => (c === 1 ? key : c === -1 ? `-${key}` : `${c}${key}`))
   if ((x['1'] ?? 0) !== 0 || parts.length === 0) parts.push(String(x['1'] ?? 0))
@@ -169,4 +181,57 @@ function prune(steps: Step[], last: number): Step[] {
     const s = steps[i]!
     return s.kind === 'combine' ? {...s, a: at.get(s.a)!, b: at.get(s.b)!} : s.kind === 'cut' ? {...s, of: at.get(s.of)!} : s
   })
+}
+
+// A refutation found fast, where there is one over the rationals: Farkas' lemma says rows a·x + c <= 0 (x free) have no
+// rational solution exactly when some λ >= 0 has Σ λ·a = 0 and Σ λ·c > 0. A floating-point simplex looks for such λ
+// (phase one on Σ λ·a = 0, Σ λ·c = 1), and elimination on the rows it uses alone (usually a handful) gives the
+// derivation, renumbered to the whole system's rows. Floating point only picks the rows: the derivation is exact, and
+// the checker sees nothing else. Undefined when no λ turns up (a system with a rational solution, or one the floats
+// misjudge): the caller goes on as without it.
+export function refuteFast(constraints: Constraint[], maxRows = 2_000): Verdict | undefined {
+  const m = constraints.length
+  if (m === 0) return undefined
+  const names = [...new Set(constraints.flatMap(c => vars(c.lin)))], n = names.length
+  if (m > maxRows || n > maxRows) return undefined
+  // Tableau rows: one per variable (Σ λ_i a_ij = 0) and the normalization (Σ λ_i c_i = 1); columns: the m λs, then one
+  // artificial per row, then the right-hand side.
+  const R = n + 1, cols = m + R
+  const T: Float64Array[] = Array.from({length: R}, () => new Float64Array(cols + 1))
+  const col = new Map(names.map((x, j) => [x, j]))
+  constraints.forEach((c, i) => {
+    for (const [key, a] of Object.entries(c.lin)) { if (key === '1') T[n]![i] = a; else T[col.get(key)!]![i] = a }
+  })
+  T[n]![cols] = 1
+  for (let r = 0; r < R; r++) T[r]![m + r] = 1
+  const basis = Array.from({length: R}, (_, r) => m + r)
+  // Phase one: minimize the artificials' sum, as the reduced costs of the objective row.
+  const z = new Float64Array(cols + 1)
+  for (let r = 0; r < R; r++) for (let j = 0; j <= cols; j++) if (j < m || j === cols) z[j]! -= T[r]![j]!
+  const eps = 1e-9
+  for (let iter = 0; iter < 50 * (R + m); iter++) {
+    // Bland's rule: the first column with a negative reduced cost enters (no cycling on degenerate systems).
+    let enter = -1
+    for (let j = 0; j < cols; j++) if (z[j]! < -eps) { enter = j; break }
+    if (enter < 0) break
+    let leave = -1, best = Infinity
+    for (let r = 0; r < R; r++) {
+      const a = T[r]![enter]!
+      if (a > eps) { const ratio = T[r]![cols]! / a; if (ratio < best - eps || (Math.abs(ratio - best) <= eps && basis[r]! < basis[leave]!)) { best = ratio; leave = r } }
+    }
+    if (leave < 0) return undefined // unbounded: cannot happen in phase one; give up rather than guess
+    const p = T[leave]!, pv = p[enter]!
+    for (let j = 0; j <= cols; j++) p[j]! /= pv
+    for (let r = 0; r < R; r++) if (r !== leave) { const f = T[r]![enter]!; if (f !== 0) { const row = T[r]!; for (let j = 0; j <= cols; j++) row[j]! -= f * p[j]! } }
+    const f = z[enter]!
+    if (f !== 0) for (let j = 0; j <= cols; j++) z[j]! -= f * p[j]!
+    basis[leave] = enter
+  }
+  if (-z[cols]! > 1e-7) return undefined // the artificials can't all leave: no λ, so a rational solution exists
+  const support: number[] = []
+  for (let r = 0; r < R; r++) if (basis[r]! < m && T[r]![cols]! > eps) support.push(basis[r]!)
+  if (!support.length) return undefined
+  const sub = solve(support.sort((a, b) => a - b).map(i => constraints[i]!))
+  if (sub.kind !== 'refuted') return undefined
+  return {kind: 'refuted', steps: sub.steps.map(st => (st.kind === 'input' ? {...st, index: support[st.index]!} : st))}
 }

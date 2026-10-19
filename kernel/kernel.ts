@@ -30,25 +30,69 @@ export type Goal = {name: string, hyps: C[]}
 
 // The path: atoms decided so far, by their canonical text. yes: lin <= 0; no: lin >= 1.
 export type Path = Map<string, {lin: Lin, holds: boolean}>
-export const canon = (lin: Lin) => Object.keys(lin).sort().map(key => `${key}:${lin[key]}`).join(',')
+// (Remembered per linear form: a form is never changed once built, and the same forms are looked up at every node.)
+const canonMemo = new WeakMap<Lin, string>(), flipMemo = new WeakMap<Lin, string>()
+export const canon = (lin: Lin): string => {
+  let out = canonMemo.get(lin)
+  if (out === undefined) canonMemo.set(lin, (out = Object.keys(lin).sort().map(key => `${key}:${lin[key]}`).join(',')))
+  return out
+}
+// canon(1 − lin), the atom that decides lin <= 0 the other way, without building it.
+export const canonFlip = (lin: Lin): string => {
+  let out = flipMemo.get(lin)
+  if (out !== undefined) return out
+  const keys = Object.keys(lin)
+  if (!('1' in lin)) keys.push('1')
+  const parts: string[] = []
+  for (const key of keys.sort()) { const c = key === '1' ? 1 - (lin['1'] ?? 0) : -lin[key]!; if (c !== 0) parts.push(`${key}:${c}`) }
+  flipMemo.set(lin, (out = parts.join(',')))
+  return out
+}
 export const atomOf = (lin: Lin, holds: boolean): Constraint => ({lin: holds ? lin : add(k(1), scale(lin, -1)), label: ''})
 
 // Is lin <= 0 decided by the path? A constant atom decides itself.
 // Over the integers lin <= 0 fails exactly when 1 - lin <= 0 holds, so either atom decides the other.
 function decide(lin: Lin, path: Path): boolean | undefined {
-  if (Object.keys(lin).every(key => key === '1')) return (lin['1'] ?? 0) <= 0
-  const direct = path.get(canon(lin))?.holds
+  let constant = true
+  for (const key in lin) if (key !== '1') { constant = false; break }
+  if (constant) return (lin['1'] ?? 0) <= 0
+  const direct = look(path, canon(lin))
   if (direct !== undefined) return direct
-  const flipped = path.get(canon(add(k(1), scale(lin, -1))))?.holds
+  const flipped = look(path, canonFlip(lin))
   return flipped === undefined ? undefined : !flipped
 }
+// Every decision a hypothesis' facts read, found or not, while they are recorded (leafConstraintsReusing).
+let recording: Map<string, boolean | undefined> | undefined
+const look = (path: Path, key: string): boolean | undefined => { const out = path.get(key)?.holds; if (recording) recording.set(key, out); return out }
 
 // A term's linear form under the path. Reads become cells, named by map and key: `M[key]`; a choice the path leaves
 // open (∸, min, max, if) becomes a column of its own, `⟦n⟧`, standing for the term's value (see termRows).
 // Remembered per path and term (a path is never changed once built; a new decision is a new path), so a term shared
 // across hypotheses, or nested in a k-step run's later states, is read once per path.
+// A term without a choice (no ∸, min, max or if inside, its keys' too) reads alike on every path: remembered once.
 const linearMemo = new WeakMap<Path, WeakMap<E, Lin | undefined>>()
+const freeMemo = new WeakMap<E, boolean>(), freeLinear = new WeakMap<E, Lin | undefined>()
+const choiceFree = (e: E): boolean => {
+  let out = freeMemo.get(e)
+  if (out !== undefined) return out
+  switch (e.op) {
+    case 'var': case 'const': out = true; break
+    case 'mul': out = choiceFree(e.a); break
+    case 'get': out = choiceFree(e.key); break
+    case 'add': case 'prod': out = choiceFree(e.a) && choiceFree(e.b); break
+    case 'sub': case 'min': case 'max': case 'if': out = false; break
+  }
+  freeMemo.set(e, out)
+  return out
+}
 export function linear(e: E, path: Path): Lin | undefined {
+  if (choiceFree(e)) {
+    if (freeLinear.has(e)) return freeLinear.get(e)
+    const out = linearOf(e, path)
+    freeLinear.set(e, out)
+    return out
+  }
+  if (reuse) return reusing(seenOf(linearSeen, e), path, p => linearOf(e, p))
   let memo = linearMemo.get(path)
   if (!memo) linearMemo.set(path, (memo = new WeakMap()))
   if (memo.has(e)) return memo.get(e)
@@ -132,7 +176,23 @@ function times(a: Lin, b: Lin): Lin | undefined {
 }
 
 // The atoms (lin <= 0 each) that make a comparison true, and those that make it false (one of which holds).
-function comparison(c: Extract<C, {a: E}>, path: Path): {when: Lin[], unless: Lin[][]} | undefined {
+// Remembered per path and comparison (as linear is), and once for a comparison of terms without choices.
+type Comparison = {when: Lin[], unless: Lin[][]} | undefined
+const comparisonMemo = new WeakMap<Path, WeakMap<C, Comparison>>(), freeComparison = new WeakMap<C, Comparison>()
+function comparison(c: Extract<C, {a: E}>, path: Path): Comparison {
+  const free = choiceFree(c.a) && choiceFree(c.b)
+  if (free && freeComparison.has(c)) return freeComparison.get(c)
+  if (!free && reuse) return reusing(seenOf(comparisonSeen, c), path, p => comparisonOf(c, p))
+  let memo = comparisonMemo.get(path)
+  if (!free) {
+    if (!memo) comparisonMemo.set(path, (memo = new WeakMap()))
+    if (memo.has(c)) return memo.get(c)
+  }
+  const out = comparisonOf(c, path)
+  if (free) freeComparison.set(c, out); else memo!.set(c, out)
+  return out
+}
+function comparisonOf(c: Extract<C, {a: E}>, path: Path): Comparison {
   const a = linear(c.a, path), b = linear(c.b, path)
   if (!a || !b) return undefined
   const ab = sub(a, b), ba = sub(b, a)
@@ -141,8 +201,18 @@ function comparison(c: Extract<C, {a: E}>, path: Path): {when: Lin[], unless: Li
   return {when: [ab, ba], unless: [[add(ab, k(1))], [add(ba, k(1))]]}
 }
 
-// Kleene truth under the path: true, false, or undefined when open.
+// Kleene truth under the path: true, false, or undefined when open (remembered per path and condition).
+const truthMemo = new WeakMap<Path, WeakMap<C, boolean | undefined>>()
 export function truth(c: C, path: Path): boolean | undefined {
+  if (reuse) return reusing(seenOf(truthSeen, c), path, p => truthOf(c, p))
+  let memo = truthMemo.get(path)
+  if (!memo) truthMemo.set(path, (memo = new WeakMap()))
+  if (memo.has(c)) return memo.get(c)
+  const out = truthOf(c, path)
+  memo.set(c, out)
+  return out
+}
+function truthOf(c: C, path: Path): boolean | undefined {
   switch (c.op) {
     case 'flag': throw new Error('flags are inlined before the kernel sees them')
     case 'all': return undefined // closed before a goal is checked; opaque here, so it gives a leaf nothing
@@ -184,9 +254,55 @@ export function facts(c: C, path: Path, positive = true): Lin[] {
 }
 
 // What a leaf's derivation must refute.
-export function leafConstraints(goal: Goal, path: Path): Constraint[] {
+export function leafConstraints(goal: Goal, path: Path): Constraint[] { return leafRows(goal, path, h => facts(h, path)) }
+// The same rows, for the prover's search: each hypothesis' facts as they were at an earlier path of the goal's where
+// every decision they read was the same (facts read the path only through those decisions), and found afresh, with
+// what they read recorded, otherwise. The kernel's check never uses it: it rebuilds every row as leafConstraints does.
+type FactsSeen = {reads: [string, boolean | undefined][], out: Lin[]}[]
+const factsSeen = new WeakMap<Goal, Map<C, FactsSeen>>()
+export function leafConstraintsReusing(goal: Goal, path: Path): Constraint[] {
+  let byHyp = factsSeen.get(goal)
+  if (!byHyp) factsSeen.set(goal, (byHyp = new Map()))
+  return leafRows(goal, path, h => {
+    let seen = byHyp.get(h)
+    if (!seen) byHyp.set(h, (seen = []))
+    return reusing(seen, path, p => facts(h, p))
+  })
+}
+// A value of the path that reads it only through decisions (facts, truth, linear forms, and what is built of them): as
+// it was at an earlier path where each decision it read is the same, else found afresh, on a copy of the path (so no
+// memo made without recording answers it), with what it read recorded in `seen` (the latest few).
+type Seen<T> = {reads: [string, boolean | undefined][], out: T}[]
+export function reusing<T>(seen: Seen<T>, path: Path, f: (path: Path) => T): T {
+  const hit = seen.find(e => e.reads.every(([key, holds]) => path.get(key)?.holds === holds))
+  if (hit) {
+    if (recording) for (const [key, holds] of hit.reads) recording.set(key, holds)
+    return hit.out
+  }
+  const outer = recording, mode = reuse
+  recording = new Map()
+  reuse = true
+  try {
+    const out = f(new Map(path))
+    seen.unshift({reads: [...recording], out})
+    if (seen.length > 16) seen.pop()
+    return out
+  } finally {
+    // What was read inside is read by the outer value too.
+    if (outer) for (const [key, holds] of recording) outer.set(key, holds)
+    recording = outer
+    reuse = mode
+  }
+}
+// While the prover reuses (inside `reusing`), a term's linear form, a comparison and a condition's truth are reused the
+// same way, each by the decisions it reads: only what a new decision touches is read again. The kernel's check never
+// runs in this mode: it reads every term afresh on every path.
+let reuse = false
+const linearSeen = new WeakMap<E, Seen<Lin | undefined>>(), comparisonSeen = new WeakMap<C, Seen<Comparison>>(), truthSeen = new WeakMap<C, Seen<boolean | undefined>>()
+const seenOf = <K extends object, T>(m: WeakMap<K, Seen<T>>, k: K): Seen<T> => { let s = m.get(k); if (!s) m.set(k, (s = [])); return s }
+function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[] {
   const rows: Constraint[] = [...path.values()].map(a => atomOf(a.lin, a.holds))
-  for (const h of goal.hyps) for (const lin of facts(h, path)) rows.push({lin, label: ''})
+  for (const h of goal.hyps) for (const lin of factsOf(h)) rows.push({lin, label: ''})
   const names = new Set(rows.flatMap(r => Object.keys(r.lin).filter(key => key !== '1')))
   // Two reads of one map whose keys the path proves equal are equal.
   const cells = [...names].filter(name => name.includes('[')).map(name => ({name, map: name.slice(0, name.indexOf('[')), key: keyOf(name)}))
@@ -579,8 +695,9 @@ export function historyMachine(m: Machine): {machine: Machine, goals: Goal[]} {
   return {machine, goals}
 }
 
-export function obligations(m: Machine, laws: Law[], instances: Record<string, Instances> = {}): Goal[] {
-  if (m.history) { const {machine, goals} = historyMachine(m); return [...obligations(machine, laws, instances), ...goals] }
+// `only`: the goals of that law alone (the prover's instance search asks for one law's at a time).
+export function obligations(m: Machine, laws: Law[], instances: Record<string, Instances> = {}, only?: number): Goal[] {
+  if (m.history) { const {machine, goals} = historyMachine(m); return [...obligations(machine, laws, instances, only), ...(only === undefined ? goals : [])] }
   scope(m, laws)
   const ok = [...Object.values(m.state), ...Object.values(m.step.state ?? {}), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.value] : [w.key, w.value]))].every(natural)
     && Object.values(m.step.flags ?? {}).every(naturalC) && laws.every(l => naturalC(l.holds)) && Object.values(m.maps ?? {}).every(c => Number.isInteger(c) && c >= 0)
@@ -590,7 +707,8 @@ export function obligations(m: Machine, laws: Law[], instances: Record<string, I
   // value of it too (the Lean twin reads it so).
   const proven = (law: Law) => (law.forall ? substC(law.holds, {vars: {[law.forall]: {op: 'var', name: `${law.forall}#`}}, maps: {}, flags: {}}) : law.holds)
   const pre = preOf(m), u = updateOf(m), assume = m.assume ? [inlineFlags(m, m.assume)] : []
-  return laws.flatMap(law => {
+  return laws.flatMap((law, i) => {
+    if (only !== undefined && i !== only) return []
     // At the start: the precondition, and no request. One step: from a state where the laws hold, a request allowed.
     // The facts hold throughout, read where the run begins (they read no state).
     const start = given(m, holds(from(startOf(m)), pre), instances[law.name] ?? {})

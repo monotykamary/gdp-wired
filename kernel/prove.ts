@@ -1,9 +1,16 @@
 // An untrusted prover for the kernel: grows a split tree until every leaf's constraints are refuted by solve(), splitting
 // on whatever atom the hypotheses leave open (an if's condition, a min's or ∸'s comparison, a disjunction's atoms, two
 // reads of one map at keys not yet known equal or apart). Its trees go to kernel.check; nothing it says is trusted.
+// What keeps it fast (research/perf/prover-bench.ts and prover-stress.ts measure each):
+//   - the conclusion's atoms are split first: a case it never reads is often one no refutation needs;
+//   - a node with a case still to split asks only "refuted or not": its Farkas rows first (solver.ts refuteFast), then
+//     a bounded elimination; the full one, which a satisfiable system needs to the last variable, only at the leaves;
+//   - a refutation of a split's yes side that never reads the split refutes its parent (lift), and the no side is skipped;
+//   - a hypothesis' rows and open atoms, and every term inside them, are reused from an earlier path that decided the
+//     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
 import type {C, E, Law, Machine} from '../core/machine.ts'
-import {type Lin, type Step, add, k, scale, solve, sub, v} from '../core/solver.ts'
-import {type Goal, type Instances, type Liveness, type Path, type StepLaw, type Tree, assumed, canon, columnTerm, decided, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, withProducts} from './kernel.ts'
+import {type Lin, type Step, add, k, refuteFast, scale, solve, sub, v} from '../core/solver.ts'
+import {type Goal, type Instances, type Liveness, type Path, type StepLaw, type Tree, assumed, canon, canonFlip, columnTerm, decided, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
 function openE(e: E, path: Path, out: Lin[]): void {
@@ -27,14 +34,15 @@ function openC(c: C, path: Path, out: Lin[]): void {
   if (c.op === 'flag' || c.op === 'all') return
   if (c.op === 'not') return openC(c.x, path, out)
   if (c.op === 'and' || c.op === 'or') return c.xs.forEach(y => openC(y, path, out))
-  openE(c.a, path, out), openE(c.b, path, out)
-  const a = linear(c.a, path), b = linear(c.b, path)
+  const a = linear(c.a, path), b = linear(c.b, path), own: Lin[] = []
   if (a && b) {
     const d = sub(a, b)
-    if (c.op === '<=') out.push(d)
-    else if (c.op === '<') out.push(add(d, k(1)))
-    else out.push(d, scale(d, -1))
+    if (c.op === '<=') own.push(d)
+    else if (c.op === '<') own.push(add(d, k(1)))
+    else own.push(d, scale(d, -1))
   }
+  openE(c.a, path, out), openE(c.b, path, out)
+  out.push(...own)
 }
 // A hypothesis is settled when it gives facts that are all its content: here, when its truth is decided, or it is a
 // conjunction of settled parts / a linear comparison. A disjunction is settled only once one disjunct is left open and
@@ -63,7 +71,7 @@ function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
   for (const [i, p] of names.entries()) for (const q of names.slice(i + 1)) {
     if (p.slice(0, p.indexOf('[')) !== q.slice(0, q.indexOf('['))) continue
     const d = sub(parse(keyText(p)), parse(keyText(q)))
-    const dec = (lin: Lin) => path.get(canon(lin))?.holds ?? (path.has(canon(add(k(1), scale(lin, -1)))) ? !path.get(canon(add(k(1), scale(lin, -1))))!.holds : undefined)
+    const dec = (lin: Lin) => path.get(canon(lin))?.holds ?? (path.has(canonFlip(lin)) ? !path.get(canonFlip(lin))!.holds : undefined)
     const a = dec(d), b = dec(scale(d, -1))
     if (a === undefined) out.push(d)
     else if (a === true && b === undefined) out.push(scale(d, -1))
@@ -85,12 +93,33 @@ function parse(text: string): Lin {
   return out
 }
 
+// Where a goal's time goes, when asked (research/perf/prover-bench.ts): each root goal's time, nodes, solver calls and
+// the time in the solver and in building rows. Off unless `profile.on`; the counters cost nothing then.
+export const profile: {on: boolean, goals: {name: string, ms: number, nodes: number, solves: number, solveMs: number, rowsMs: number, proven: boolean}[], solves: number, solveMs: number, rowsMs: number, nodes: number} =
+  {on: false, goals: [], solves: 0, solveMs: 0, rowsMs: 0, nodes: 0}
+const timed = <T>(f: () => T, add: (ms: number) => void): T => { if (!profile.on) return f(); const t = performance.now(); try { return f() } finally { add(performance.now() - t) } }
+export const solveKinds: Record<string, {n: number, ms: number, rows: number}> = {}
+const solveP = (rows: Parameters<typeof solve>[0], maxRows?: number): ReturnType<typeof solve> => {
+  if (!profile.on) return solve(rows, maxRows)
+  const t = performance.now(), out = solve(rows, maxRows), ms = performance.now() - t
+  profile.solves++; profile.solveMs += ms
+  const s = (solveKinds[out.kind] ??= {n: 0, ms: 0, rows: 0}); s.n++; s.ms += ms; s.rows += rows.length
+  return out
+}
+
 // `why`, when the budget ran out: which limit, at what size, and what usually helps.
 export type Outcome = {tree: Tree, nodes: number} | {stuck: 'sat' | 'unknown', witness?: Record<string, number>, path: Path, why?: string}
 
 // The budget: 200,000 nodes and, by default, a second per hypothesis (at least 20 seconds) per goal; past either the goal
 // is left `unknown`. A goal with many instances (a law about two keys at its pairs) has that many more rows per leaf.
 export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number, until?: number} = {nodes: 0, until: performance.now() + Math.max(20_000, 1_000 * goal.hyps.length)}): Outcome {
+  if (!profile.on || path.size || budget.nodes) return growRoot(goal, path, budget)
+  const t = performance.now(), s0 = profile.solves, m0 = profile.solveMs, r0 = profile.rowsMs, n0 = profile.nodes
+  const out = growRoot(goal, path, budget)
+  profile.goals.push({name: goal.name, ms: performance.now() - t, nodes: profile.nodes - n0, solves: profile.solves - s0, solveMs: profile.solveMs - m0, rowsMs: profile.rowsMs - r0, proven: 'tree' in out})
+  return out
+}
+function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
   // At the root: plainly first; where the cases multiply past a budget, through cuts. The plain budget halves with each
   // two open choices (what a plain search's cases grow by), so a long run's steps reach the cuts early.
   if (path.size === 0 && budget.nodes === 0) {
@@ -104,21 +133,38 @@ export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number,
 }
 function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: number, cap?: number}): Outcome {
   if (budget.cap !== undefined && budget.nodes >= budget.cap) return {stuck: 'unknown', path, why: 'cap'}
+  if (profile.on) profile.nodes++
   if (++budget.nodes > 200_000 || (budget.until !== undefined && performance.now() > budget.until)) return {stuck: 'unknown', path, why: outOfBudget(goal, budget.nodes > 200_000 ? 'nodes' : 'time', path.size)}
   // Rows that read a term column only once a cut has put one on the path; before, the rows a choice-free search uses
   // (what it saw before term columns), renumbered to the whole leaf's when a leaf is found.
-  const full = leafConstraints(goal, path)
+  const full = timed(() => leafConstraintsReusing(goal, path), ms => { profile.rowsMs += ms })
   const columns = [...path.values()].some(a => Object.keys(a.lin).some(key => key.startsWith('⟦')))
   const idx = full.flatMap((r, i) => (columns || !Object.keys(r.lin).some(key => key.startsWith('⟦')) ? [i] : []))
   const rows = idx.map(i => full[i]!), at = (i: number) => (i < rows.length ? idx[i]! : full.length + i - rows.length)
   const leafOf = (steps: Step[], products?: [number, number][]): Tree => ({leaf: steps.map(st => (st.kind === 'input' ? {...st, index: at(st.index)} : st)), ...(products ? {products: products.map(([i, j]) => [at(i), at(j)] as [number, number])} : {})})
-  const verdict = solve(rows)
-  if (verdict.kind === 'refuted') return {tree: leafOf(verdict.steps), nodes: budget.nodes}
+  // The conclusion's own atoms first (the goal's last hypothesis is the law refuted): a case it doesn't read is often
+  // one no refutation needs, and splitting it first multiplies every case after it.
   const open: Lin[] = []
-  for (const h of goal.hyps) openH(h, path, open)
+  const hyps = goal.hyps, last = hyps.length - 1
+  let byHyp = openSeen.get(goal)
+  if (!byHyp) openSeen.set(goal, (byHyp = new Map()))
+  const openOf = (h: C) => { let seen = byHyp.get(h); if (!seen) byHyp.set(h, (seen = [])); return reusing(seen, path, p => { const out: Lin[] = []; openH(h, p, out); return out }) }
+  if (last >= 0) open.push(...openOf(hyps[last]!))
+  for (const [i, h] of hyps.entries()) if (i !== last) open.push(...openOf(h))
   open.push(...openCells(rows, path))
-  let split = open.find(lin => Object.keys(lin).some(key => key !== '1') && !path.has(canon(lin)) && !path.has(canon(add(k(1), scale(lin, -1)))))
-    ?? (verdict.kind === 'unknown' ? bisect(rows, path) ?? fractional(verdict.point, path) : undefined)
+  const next = open.find(lin => Object.keys(lin).some(key => key !== '1') && !path.has(canon(lin)) && !path.has(canonFlip(lin)))
+  // With a case still to split, only "refuted or not" matters (a witness here goes unused): a large system is tried by
+  // its Farkas rows alone, and left to the split if they don't refute it. Elimination to the last variable, which a
+  // satisfiable system needs to say so, is kept for small systems and for the leaves, where its answer is the outcome.
+  // Past the Farkas rows, elimination still runs, bounded (a refutation the rationals miss is an integer one, which
+  // elimination's cuts find early; a satisfiable system grows past the bound and is left to the split).
+  if (next && rows.length > 60) {
+    const fast = timed(() => refuteFast(rows), ms => { profile.solves++; profile.solveMs += ms })
+    if (fast?.kind === 'refuted') return {tree: leafOf(fast.steps), nodes: budget.nodes}
+  }
+  const verdict: ReturnType<typeof solve> = next && rows.length > 60 ? solveP(rows, 2 * rows.length) : solveP(rows)
+  if (verdict.kind === 'refuted') return {tree: leafOf(verdict.steps), nodes: budget.nodes}
+  let split = next ?? (verdict.kind === 'unknown' ? bisect(rows, path) ?? fractional(verdict.point, path) : undefined)
   // Products: with monomials about, try every pair of rows multiplied; failing that, split a factor at zero.
   const monomials = rows.some(r => Object.keys(r.lin).some(key => key.includes('*')))
   // A witness that multiplies out (each monomial's value is its factors' product) is a real model: nothing to refute.
@@ -146,7 +192,7 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
       if (third.kind === 'refuted') return {tree: leafOf(third.steps, [...sq, ...cubes]), nodes: budget.nodes}
     }
     const factors = [...new Set(rows.flatMap(r => Object.keys(r.lin).filter(key => key.includes('*')).flatMap(key => key.split('*'))))]
-    const fresh = (lin: Lin) => !path.has(canon(lin)) && !path.has(canon(add(k(1), scale(lin, -1))))
+    const fresh = (lin: Lin) => !path.has(canon(lin)) && !path.has(canonFlip(lin))
     // Split a factor at zero, else two factors against each other (so (x - y)² >= 0 becomes a product of rows).
     const zero = factors.find(f => fresh({[f]: 1}))
     const apart = factors.flatMap((f, i) => factors.slice(i + 1).map(g => ({[f]: 1, [g]: -1}) as Lin)).find(fresh)
@@ -157,10 +203,50 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
   const id = canon(split)
   const yes = growPlain(goal, new Map(path).set(id, {lin: split, holds: true}), budget)
   if (!('tree' in yes)) return yes
+  // A refutation of the yes side that never reads the split refutes the case as it stands: the other side is skipped.
+  const lifted = lift(goal, yes.tree, new Map(path).set(id, {lin: split, holds: true}), path)
+  if (lifted) return {tree: lifted, nodes: budget.nodes}
   const no = growPlain(goal, new Map(path).set(id, {lin: split, holds: false}), budget)
   if (!('tree' in no)) return no
   return {tree: {split, yes: yes.tree, no: no.tree}, nodes: budget.nodes}
 }
+
+// A tree found under one more decision (`from`, the path with it) as a tree under the path without it (`to`), if no
+// leaf reads the decision: each leaf's rows found again among the rows the shorter path gives (the same rows, renumbered:
+// the decision's own row, and any row only it makes, are not there), every split kept. The derivations are the same
+// arithmetic over the same rows, and the kernel checks the whole tree in the end. Undefined at the first leaf that
+// needs the decision.
+function lift(goal: Goal, tree: Tree, from: Path, to: Path): Tree | undefined {
+  const own = to.size // the decision's row: the last of `from`'s path rows, below every later split's
+  const reads = (t: Tree): boolean => ('leaf' in t ? t.leaf.some(st => st.kind === 'input' && st.index === own) || (t.products ?? []).some(([i, j]) => i === own || j === own) : reads(t.yes) || reads(t.no))
+  if (reads(tree)) return undefined
+  const go = (t: Tree, a: Path, b: Path): Tree | undefined => {
+    if (!('leaf' in t)) {
+      const sid = canon(t.split)
+      if (b.has(sid) || b.has(canonFlip(t.split))) return undefined
+      const yes = go(t.yes, new Map(a).set(sid, {lin: t.split, holds: true}), new Map(b).set(sid, {lin: t.split, holds: true}))
+      const no = yes && go(t.no, new Map(a).set(sid, {lin: t.split, holds: false}), new Map(b).set(sid, {lin: t.split, holds: false}))
+      return yes && no ? {split: t.split, yes, no} : undefined
+    }
+    const ra = leafConstraintsReusing(goal, a), rb = leafConstraintsReusing(goal, b), at = new Map<string, number>()
+    rb.forEach((r, i) => { const key = canon(r.lin); if (!at.has(key)) at.set(key, i) })
+    const map = (i: number) => (i < ra.length ? at.get(canon(ra[i]!.lin)) : undefined)
+    const leaf: Step[] = []
+    for (const st of t.leaf) {
+      if (st.kind !== 'input') { leaf.push(st); continue }
+      const j = map(st.index)
+      if (j === undefined) return undefined
+      leaf.push({...st, index: j})
+    }
+    const products: [number, number][] = []
+    for (const [i, j] of t.products ?? []) { const pi = map(i), pj = map(j); if (pi === undefined || pj === undefined) return undefined; products.push([pi, pj]) }
+    return {leaf, ...(t.products ? {products} : {})}
+  }
+  return go(tree, from, to)
+}
+
+// Each hypothesis' open atoms, as at an earlier path that decided the same atoms it reads (kernel.ts's reusing).
+const openSeen = new WeakMap<Goal, Map<C, {reads: [string, boolean | undefined][], out: Lin[]}[]>>()
 
 // What ran out, for a goal left unknown: its size, how deep the case splits went, and the two shapes that usually cause it.
 function outOfBudget(goal: Goal, limit: 'nodes' | 'time', depth: number): string {
@@ -206,14 +292,14 @@ function topAtoms(c: C, path: Path): Lin[] {
   const a = linear(c.a, path), b = linear(c.b, path)
   if (!a || !b) return []
   const atoms = c.op === '<=' ? [sub(a, b)] : c.op === '<' ? [add(sub(a, b), k(1))] : [sub(a, b), sub(b, a)]
-  return atoms.filter(l => Object.keys(l).some(key => key !== '1') && !path.has(canon(l)) && !path.has(canon(add(k(1), scale(l, -1)))))
+  return atoms.filter(l => Object.keys(l).some(key => key !== '1') && !path.has(canon(l)) && !path.has(canonFlip(l)))
 }
 // A refutation that splits only on these atoms (a cut's failing side), within a small budget.
 function growFocused(goal: Goal, path: Path, focus: Lin[], budget: {nodes: number}, near: Lin[] = focus): Outcome {
   if (++budget.nodes > 64) return {stuck: 'unknown', path}
   const verdict = solveNear(leafConstraints(goal, path), [...near, ...[...path.values()].slice(-1).map(a => a.lin)])
   if (verdict.kind === 'refuted') return {tree: {leaf: verdict.steps}, nodes: budget.nodes}
-  const split = focus.find(l => !path.has(canon(l)) && !path.has(canon(add(k(1), scale(l, -1)))))
+  const split = focus.find(l => !path.has(canon(l)) && !path.has(canonFlip(l)))
   if (!split) return {stuck: verdict.kind === 'sat' ? 'sat' : 'unknown', path}
   const id = canon(split)
   const yes = growFocused(goal, new Map(path).set(id, {lin: split, holds: true}), focus, budget, near)
@@ -250,7 +336,7 @@ function bisect(rows: {lin: Lin, label: string}[], path: Path): Lin | undefined 
     const mid = Math.floor((lo + hi) / 2)
     for (const c of lo === hi ? [lo, lo - 1] : [mid]) {
       const lin: Lin = c === 0 ? {[x]: 1} : {[x]: 1, 1: -c}
-      if (!path.has(canon(lin)) && !path.has(canon(add(k(1), scale(lin, -1))))) return lin
+      if (!path.has(canon(lin)) && !path.has(canonFlip(lin))) return lin
     }
   }
   return undefined
@@ -261,7 +347,7 @@ function fractional(point: Record<string, number> | undefined, path: Path): Lin 
   for (const [x, value] of Object.entries(point ?? {})) {
     if (Math.abs(value - Math.round(value)) < 1e-9 || x.includes('*')) continue
     const c = Math.floor(value), lin: Lin = c === 0 ? {[x]: 1} : {[x]: 1, 1: -c}
-    if (!path.has(canon(lin)) && !path.has(canon(add(k(1), scale(lin, -1))))) return lin
+    if (!path.has(canon(lin)) && !path.has(canonFlip(lin))) return lin
   }
   return undefined
 }
@@ -477,7 +563,7 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
   // Each law's two goals (start and step) get their own instances, seeded with its own keys.
   const keys = [...readKeys(m, laws), ...witnesses(m)], instances: Record<string, Instances> = {}
   laws.forEach((law, i) => {
-    instances[law.name] = instancesFor(m, laws, inst => obligations(m, laws, {...instances, [law.name]: inst}).slice(2 * i, 2 * i + 2), {
+    instances[law.name] = instancesFor(m, laws, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), {
       seed: [...keys, ...(law.forall ? [{op: 'var', name: `${law.forall}#`} as E] : []), ...(law.keys ?? []).map((name): E => ({op: 'var', name}))],
       focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
     })
