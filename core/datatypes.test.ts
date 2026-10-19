@@ -3,7 +3,7 @@
 // a broken variant refused; a hold whose state is a variant, its laws and step laws proven, the runs decoded as the
 // code it describes keeps them; values outside their kinds refused.
 import {expect, test} from 'bun:test'
-import {crossCheckDecision, fun, nat, proveDecision, proveSteps, record, rule, same, variant, when, yes} from './dsl.ts'
+import {bool, crossCheckDecision, optional, fun, nat, proveDecision, proveSteps, record, rule, same, variant, when, yes} from './dsl.ts'
 import {accountLaws, accountSteps, accounts, approve, approveLaws, customer, hold, holdLaws, holdSteps, jobLaws, jobSteps, jobs, seatLaws, seatSteps, seats} from '../examples/datatypes.ts'
 
 test('a decision over a variant and a record: proven, the broken variant refused, run on runtime values', () => {
@@ -110,4 +110,22 @@ test('maps and lists of a kind: proven, cross-checked, the broken variants refus
   let sj = gj.init(ps)
   for (const q of [{op: 'push', job: {id: 4, prio: 1}}, {op: 'push', job: {id: 5, prio: 9}}, {op: 'push', job: {id: 6, prio: 2}}, {op: 'pop', job: {id: 0, prio: 0}}, {op: 'push', job: {id: 7, prio: 3}}] as const) sj = gj.step(ps, sj, j.encodeInput(q))
   expect(j.decode(sj).Queue).toEqual([{id: 4, prio: 1}, {id: 7, prio: 3}])
+})
+
+test('the kinds keep their own laws; a variant named by another key; optional results', () => {
+  // "every seat is free, held or sold" is proven beside "a sale is final" without being stated.
+  const r = seats()
+  expect(r.kindLaws().map(l => l.name)).toEqual(['every Seats cell is a value of its kind'])
+  expect(proveSteps(r, [], seatSteps(r))).toMatchObject({proven: true, checked: true})
+  // A variant whose runtime values name their case by `kind`, as the code they come from does.
+  const Shape = variant({circle: {r: nat}, square: {side: nat}}, {tag: 'kind'})
+  const area = fun('area bound').inputs({s: Shape}).returns(({s}) => ({big: s.match({circle: c => c.r.gt(10), square: q => q.side.gt(20)}), same: Shape.make({kind: 'square', side: 3})}))
+  expect(area.run({s: {kind: 'circle', r: 11}})).toEqual({big: true, same: {kind: 'square', side: 3}})
+  expect(() => area.run({s: {tag: 'circle', r: 1} as never})).toThrow(RangeError)
+  expect(() => variant({a: {kind: nat}}, {tag: 'kind'})).toThrow(/names the case/)
+  // A result that may be missing.
+  const pick = fun('pick').inputs({has: bool, x: nat}).returns(({has, x}) => ({out: optional(has, x.plus(1))}))
+  expect(pick.run({has: true, x: 4})).toEqual({out: 5})
+  expect(pick.run({has: false, x: 4})).toEqual({out: null})
+  expect(proveDecision(pick.law('present when has', ({has}) => has, out => out.out.isSome)).proven).toBe(true)
 })

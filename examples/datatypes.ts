@@ -48,8 +48,10 @@ export const hold = (bug?: 'releases early') => rule('hold and release')
       when(freed, at.match({holding: h => Held.make({tag: 'released', amount: h.amount}), idle: () => at, released: () => at}), when(back, Held.make({tag: 'idle'}), at))),
     paid: when(freed, paid.plus(at.match({holding: h => h.amount, idle: () => 0, released: () => 0})), paid),
   }))
+// The kinds' laws ("at is a value of its kind": idle, holding or released) are proven by proveSteps on its own; they are
+// listed here for toLean, which takes the laws it is given.
 export const holdLaws = (r = hold()) => [
-  r.law('the case is one of three', ({at}) => at.is('idle').or(at.is('holding'), at.is('released'))),
+  ...r.kindLaws(),
   r.law('a hold is within the cap', ({at, cap}) => at.match({holding: h => h.amount.atMost(cap), released: rel => rel.amount.atMost(cap), idle: () => yes})),
   r.law('what is paid is what was released', ({at, paid}) => at.match({released: rel => paid.eq(rel.amount), idle: () => paid.eq(0), holding: () => paid.eq(0)})),
 ]
@@ -89,7 +91,8 @@ export const seats = (bug?: 'lets a hold replace a sale') => rule('seats')
   .step(({seat, who, now, holds, buys, Seats}) => ({
     Seats: Seats.set(seat, when(holds, Seat.make({tag: 'held', by: who, until: now.plus(10)}), when(buys, Seat.make({tag: 'sold', to: who}), Seats.at(seat)))),
   }))
-export const seatLaws = (r = seats()) => [r.law('every seat is free, held or sold', ({Seats}) => forall(k => Seats.at(k).is('free').or(Seats.at(k).is('held'), Seats.at(k).is('sold'))))]
+// Every seat is free, held or sold: the kind's law, which "a sale is final" leans on.
+export const seatLaws = (r = seats()) => r.kindLaws()
 export const seatSteps = (r = seats()) => [
   r.stepLaw('a sale is final', ({Seats}, after) => forall(k => Seats.at(k).match({sold: s => after.Seats.at(k).match({sold: t => t.to.eq(s.to), free: () => no, held: () => no}), free: () => yes, held: () => yes}))),
 ]

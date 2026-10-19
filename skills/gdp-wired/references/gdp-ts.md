@@ -46,6 +46,7 @@ export async function canRead<U, D>(user: Named<U, UserId>, doc: Named<D, DocId>
   `verdict.witness`), so a wrong check never becomes a trusted module.
 - Only laws stated about this function are accepted (`access.law`, `access.relate`): a law about a variant is refused.
 - `params` fixes the function's params: `guard(P, fn, 'ok', {laws, params: {cap: 5}})`.
+- A condition inside a record of the result is named by its path: `guard(P, decide, 'verdict.ok', {laws})`.
 
 ## A check with state: `gate`
 

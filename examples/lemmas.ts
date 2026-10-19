@@ -13,6 +13,8 @@
 //     is at most the delay at its current one (the law between read at two values of the state at once)
 //   - a tank filled at a capacity the request may raise: the level stays within the capacity (a function of two
 //     arguments read at keys over the state and the request)
+//   - squares: f(x + 1) = f(x) + 2x + 1, and its lemma f(x) = x·x, a product: proven by induction here, and checked by
+//     Lean as the kernel's own proof (no tactic of Lean's own closes it); a rule that keeps n·n through it
 //   - a pump allowed to pump only while the bucket is within its capacity reaches its goal, under weak fairness too: its
 //     helpful request is allowed by the bucket's lemma, a fact about two keys
 import {type Law} from '../core/machine.ts'
@@ -94,6 +96,10 @@ export const pumpLive = (r = pump()): Liveness => r.leadsTo('the pump reaches it
   from: ({n, goal}) => n.lt(goal), to: ({n, goal}) => n.atLeast(goal), rank: ({n, goal}) => goal.minus(n), helpful: () => ({op: 1}),
 })
 
+export const squares = () => recur('squares', {zero: 0, next: (x, p) => p.plus(x.times(2)).plus(1)}, {'x squared': (x, f) => f.eq(x.mul(x))})
+export const area = () => rule('area').inputs({}).state({n: 0, a: 0}).fns({sq: squares()}).step(({n, sq}) => ({n: n.plus(1), a: sq(n.plus(1))}))
+export const areaLaws = (r = area()): Law[] => [r.law('the area is n·n', ({a, n}) => a.eq(n.mul(n)))]
+
 if (import.meta.main) {
   const results: [string, boolean, boolean][] = []
   for (const bug of [undefined, 'states no lemma'] as const) {
@@ -102,7 +108,7 @@ if (import.meta.main) {
   }
   const c = counter(), v = proveSteps(c, counterLaws(c), [])
   results.push(['two by two', v.proven && v.checked, true])
-  for (const [what, r, laws] of [['fill meter', fillMeter(), fillMeterLaws], ['leftover ledger', ledger(), ledgerLaws], ['escalation', escalation(), escalationLaws], ['ladder', ladder(), ladderLaws], ['tank', tank(), tankLaws]] as const) {
+  for (const [what, r, laws] of [['fill meter', fillMeter(), fillMeterLaws], ['leftover ledger', ledger(), ledgerLaws], ['escalation', escalation(), escalationLaws], ['ladder', ladder(), ladderLaws], ['tank', tank(), tankLaws], ['area', area(), areaLaws]] as const) {
     const w = proveSteps(r as never, laws(r as never), [])
     results.push([what, w.proven && w.checked, true])
   }

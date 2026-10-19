@@ -5,7 +5,7 @@
 // is refused with the induction step it breaks at; the runtimes compute the function by its recurrence.
 import {expect, test} from 'bun:test'
 import {Unproven, min, modBy, nat, proveLeadsTo, proveSteps, recur, rule, when} from './dsl.ts'
-import {backoff, escalation, escalationLaws, fillMeter, fillMeterLaws, filled, growing, ladder, ladderLaws, ledger, ledgerLaws, leftovers, pump, pumpLive, retries, retryLaws, retrySteps, tank, tankLaws} from '../examples/lemmas.ts'
+import {area, areaLaws, backoff, escalation, escalationLaws, fillMeter, fillMeterLaws, filled, growing, ladder, ladderLaws, ledger, ledgerLaws, leftovers, pump, pumpLive, retries, retryLaws, retrySteps, tank, tankLaws} from '../examples/lemmas.ts'
 import {fnValue} from './machine.ts'
 
 test('lemmas proven by induction, then used: the backoff schedule proven with them, not without', () => {
@@ -50,7 +50,7 @@ test('the runtimes compute it by its recurrence', () => {
 
 test('recurrences of several arguments, reading other functions, and laws between two points', () => {
   for (const f of [filled(), leftovers(), growing()]) expect(f.verdict).toMatchObject({proven: true, checked: true})
-  for (const [r, laws] of [[fillMeter(), fillMeterLaws], [ledger(), ledgerLaws], [escalation(), escalationLaws], [ladder(), ladderLaws], [tank(), tankLaws]] as const) {
+  for (const [r, laws] of [[fillMeter(), fillMeterLaws], [ledger(), ledgerLaws], [escalation(), escalationLaws], [ladder(), ladderLaws], [tank(), tankLaws], [area(), areaLaws]] as const) {
     expect(proveSteps(r as never, laws(r as never), [])).toMatchObject({proven: true, checked: true})
     expect((r as ReturnType<typeof fillMeter>).crossCheck(laws(r as never)).failure).toBeUndefined()
   }
@@ -71,5 +71,22 @@ test('recurrences of several arguments, reading other functions, and laws betwee
     .step(({day, left}) => ({day: day.plus(1), total: left(day.plus(1))}))
   expect(proveSteps(bare, [bare.law('at most 6 a day so far', ({total, day}) => total.atMost(day.times(6)))], []).proven).toBe(false)
   expect(() => recur('f', {args: ['x'], zero: 0, next: (_, p) => p})).toThrow(/taken/)
-  expect(() => recur('f', {args: ['a', 'b', 'c', 'd'] as const, zero: 0, next: (_, p) => p})).toThrow(/at most three/)
+  expect(() => recur('f', {args: ['a', 'b', 'c', 'd', 'e'] as const, zero: 0, next: (_, p) => p})).toThrow(/at most four/)
 }, 300_000)
+
+test('a start that reads a function, four further arguments, and a runtime that keeps its place', () => {
+  // f(0, a) = a mod 5, f(x + 1, a) = f(x, a) + 1: at least the start, by the remainder's facts.
+  const shifted = recur('shifted', {args: ['a'], fns: {rem: modBy(5)}, zero: ({a, rem}) => rem(a), next: (_, f) => f.plus(1)}, {
+    'below 5 plus the steps': (x, f) => f.lt(x.plus(5)),
+  })
+  expect(shifted.verdict).toMatchObject({proven: true, checked: true})
+  // Four further arguments, a law between two points.
+  const four = recur('four', {args: ['a', 'b', 'c', 'd'], zero: ({a}) => a, next: (_, f, {b, c, d}) => f.plus(min(b, min(c, d)))}, {
+    'at least a': (_, f, {a}) => f.atLeast(a),
+  }, {'never shrinks': (_, f, __, g) => f.atMost(g)})
+  expect(four.verdict).toMatchObject({proven: true, checked: true})
+  // The runtime: values at growing x continue from the last, at a smaller x start over, per tuple of arguments.
+  const g = rule('reads').params({a: nat}).inputs({x: nat}).state({v: 0}).fns({shifted}).step(({x, a, shifted}) => ({v: shifted(x, a)}))
+  const at = (x: number, a: number) => fnValue(g.machine.fns!.shifted!, (x + a) * (x + a) + a)
+  expect([at(0, 7), at(3, 7), at(10, 7), at(2, 7), at(4, 9), at(10, 7)]).toEqual([2, 5, 12, 4, 8, 12])
+})

@@ -98,7 +98,8 @@ From `gdp-wired`:
 | `when`, `min`, `max`, `count`, `sum`, `all`, `any`, `not`, `forall`, `everyKey`, `someKey`, `relation` | Terms and conditions; terms have `plus` `minus` (truncated) `times(k)` `mul` `lt` `atMost` `atLeast` `gt` `eq`, conditions `and` `or` `not` `implies`. |
 | `fun(name)`, `loop(name)` | Pure functions (`.returns`, `.law`, `.relate`, `.run`) and loops (`.while`, `.body`, `.rank`). |
 | `fn(arity, js, {facts, lean})`, `divBy(c)`, `modBy(c)` | Functions known by their facts. |
-| `recur(name, {args, fns, zero, next}, lemmas, between)` | A function defined by a recurrence on its first argument (further arguments fixed, other functions read), its lemmas and laws between two points proven by induction when made (`Unproven` otherwise); its equations, lemmas and laws are its facts. |
+| `recur(name, {args, fns, zero, next}, lemmas, between)` | A function defined by a recurrence on its first argument (up to four further arguments fixed, other functions read), its lemmas and laws between two points proven by induction when made (`Unproven` otherwise); its equations, lemmas and laws are its facts, checked again by Lean as the kernel's own proof. |
+| `optional(c, value)`, `variant(cases, {tag})`, `r.kindLaws()` | A value present where c holds; a variant whose runtime case key isn't `tag`; what the kinds of the state and cells keep true (proven by `proveSteps` on its own). |
 | `r.compiled()`, `r.interpreter()`, `r.encodeParams`, `r.encodeInput`, `r.decode`, `r.crossCheck`, `r.compare` | Running and checking the rule. |
 
 Also: `gdp-wired/gdp` (`guard`, `gate`, `Unproven`: gdp-ts proofs minted by proven checks),

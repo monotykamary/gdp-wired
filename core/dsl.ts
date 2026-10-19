@@ -84,7 +84,7 @@ export function when<K extends string>(c: Cond, then: Choice<K>, otherwise: Choi
 export function when(c: Cond, then: Str, otherwise: Str): Str
 export function when<V>(c: Cond, then: Maybe<V>, otherwise: Maybe<V>): Maybe<V>
 export function when(c: Cond, then: Cond, otherwise: Cond): Cond
-export function when<C extends Cases>(c: Cond, then: Variant<C>, otherwise: Variant<C>): Variant<C>
+export function when<C extends Cases, T extends string>(c: Cond, then: Variant<C, T>, otherwise: Variant<C, T>): Variant<C, T>
 export function when<T extends Record<string, unknown>>(c: Cond, then: T, otherwise: T): T
 export function when(c: Cond, then: unknown, otherwise: unknown): unknown {
   if (then instanceof Cond && otherwise instanceof Cond) return choose(c, then, otherwise)
@@ -167,6 +167,10 @@ export abstract class Kind<V> {
   // The value over its variables' terms, each part's from `get` (the variable named so, or a term written for it).
   abstract build(name: string, get: (part: string) => Term): V
   value(name: string, at: At = ''): V { return this.build(name, part => v(named(at, part))) }
+  // What every value a step writes keeps true of its variables (a flag is 0 or 1, a choice or a case in range, a
+  // presence bit 0 or 1), unlike a bound such as upTo's, which a step may pass: the laws a rule's state and cells of the
+  // kind are proven to keep (Rule.kindLaws).
+  invariant(_value: V): Cond[] { return [] }
   abstract encode(name: string, raw: Raw): Record<string, number>
   abstract random(name: string, rand: Rand, bound: number): Record<string, number>
   abstract store(name: string, value: unknown): Record<string, TermLike>
@@ -309,6 +313,7 @@ class BoolKind extends Kind<Bool> {
   vars(name: string) { return [name] }
   assume(name: string) { return [v(name).atMost(1)] }
   build(name: string, get: (part: string) => Term) { return new Bool(get(name)) }
+  override invariant(b: Bool) { return [b.n.atMost(1)] }
   store(name: string, value: unknown) { return {[name]: typeof value === 'boolean' ? (value ? 1 : 0) : count(value as Cond)} }
   decode(name: string, vars: Record<string, number>) { return vars[name] === 1 }
   empty() { return false }
@@ -348,6 +353,7 @@ class OneOfKind<K extends string> extends Kind<Choice<K>> {
   vars(name: string) { return [name] }
   assume(name: string) { return [v(name).lt(this.values.length)] }
   build(name: string, get: (part: string) => Term) { return new Choice(get(name), this.values) }
+  override invariant(c: Choice<K>) { return [c.n.lt(this.values.length)] }
   store(name: string, value: unknown) { return {[name]: value instanceof Choice ? value.n : this.encode(name, value as Raw)[name]!} }
   decode(name: string, vars: Record<string, number>) { return this.values[vars[name]!]! }
   empty() { return this.values[0]! }
@@ -383,6 +389,7 @@ class MaybeKind<V> extends Kind<Maybe<V>> {
   vars(name: string) { return [this.has(name), ...this.of.vars(name)] }
   assume(name: string) { return [v(this.has(name)).atMost(1), ...this.of.assume(name)] }
   build(name: string, get: (part: string) => Term) { return new Maybe(get(this.has(name)), this.of.build(name, get)) }
+  override invariant(m: Maybe<V>) { return [m.present.atMost(1), ...this.of.invariant(m.inner)] }
   // null for none, a Maybe as it is, any other value as some.
   store(name: string, value: unknown) {
     if (value === null || value === undefined) return {[this.has(name)]: 0, ...this.of.store(name, this.of.empty())}
@@ -401,6 +408,8 @@ class MaybeKind<V> extends Kind<Maybe<V>> {
   sample(rand: Rand, bound: number) { return rand(4) === 0 ? null : this.of.sample(rand, bound) }
 }
 export const maybe = <V>(of: Kind<V>): Kind<Maybe<V>> => new MaybeKind(of)
+// A value present where c holds and missing elsewhere (a function's result that may be missing, say).
+export const optional = <V>(c: Cond, value: V): Maybe<V> => new Maybe(count(c), value)
 
 // A record: named fields, each of its own kind, its variables each field's (<name>.<field>). Its value is a plain object
 // of the fields' values, so a callback destructures it (`({pay}) => pay.amount.atMost(limit)`), and `when` and `same`
@@ -435,6 +444,7 @@ class RecordKind<K extends Fields> extends Kind<ValuesOf<K>> {
   vars(name: string) { composite(name); return this.each((f, k) => k.vars(fieldName(name, f))).flat() }
   assume(name: string) { return this.each((f, k) => k.assume(fieldName(name, f))).flat() }
   build(name: string, get: (part: string) => Term) { return Object.fromEntries(this.each((f, k) => [f, k.build(fieldName(name, f), get)])) as ValuesOf<K> }
+  override invariant(r: ValuesOf<K>) { return this.each((f, k) => k.invariant((r as Record<string, unknown>)[f])).flat() }
   store(name: string, value: unknown) {
     const o = value as Record<string, unknown>
     if (o === null || typeof o !== 'object') throw new Error(`${name}: a record is written as an object of its fields`)
@@ -461,8 +471,8 @@ export const record = <const K extends Fields>(fields: K): Kind<ValuesOf<K>> => 
 type Cases = Record<string, Fields>
 type CaseValues<C extends Cases> = {[k in keyof C]: ValuesOf<C[k]>}
 type MatchCases<C extends Cases, T> = {[k in keyof C]: (fields: ValuesOf<C[k]>) => T}
-export class Variant<C extends Cases = Cases> {
-  constructor(readonly tag: Term, readonly cases: CaseValues<C>, readonly kind: VariantKind<C>) {}
+export class Variant<C extends Cases = Cases, T extends string = 'tag'> {
+  constructor(readonly tag: Term, readonly cases: CaseValues<C>, readonly kind: VariantKind<C, T>) {}
   is(k: keyof C & string): Cond { return this.tag.eq(this.kind.index(k)) }
   // One function per case, each given its fields: every case returns a condition, or every case a value of one kind.
   match(cases: MatchCases<C, Cond>): Cond
@@ -475,16 +485,15 @@ export class Variant<C extends Cases = Cases> {
     return results.slice(0, -1).reduceRight<unknown>((acc, [k, r]) => when(this.is(k), r as never, acc as never), results.at(-1)![1])
   }
 }
-export type VariantWrite<C extends Cases> = {[k in keyof C]: {[f in 'tag' | keyof C[k]]: f extends 'tag' ? k : C[k][f] extends Kind<infer V> ? Writes<V> : never}}[keyof C]
-export class VariantKind<C extends Cases> extends Kind<Variant<C>> {
+export type VariantWrite<C extends Cases, T extends string = 'tag'> = {[k in keyof C]: {[f in T | keyof C[k]]: f extends T ? k : C[k][f] extends Kind<infer V> ? Writes<V> : never}}[keyof C]
+export class VariantKind<C extends Cases, T extends string = 'tag'> extends Kind<Variant<C, T>> {
   readonly names: (keyof C & string)[]
-  readonly tagKey = 'tag'
-  constructor(readonly cases: C) {
+  constructor(readonly cases: C, readonly tagKey: T) {
     super()
     this.names = Object.keys(cases)
     if (this.names.length === 0) throw new Error('a variant has a case')
     plainFields('variant', this.names)
-    for (const k of this.names) { plainFields(`variant case ${k}`, Object.keys(cases[k]!)); if ('tag' in cases[k]!) throw new Error(`variant case ${k}: tag names the case, not a field`) }
+    for (const k of this.names) { plainFields(`variant case ${k}`, Object.keys(cases[k]!)); if (tagKey in cases[k]!) throw new Error(`variant case ${k}: ${tagKey} names the case, not a field`) }
   }
   index(k: string): number {
     const i = this.names.indexOf(k)
@@ -501,7 +510,8 @@ export class VariantKind<C extends Cases> extends Kind<Variant<C>> {
   }
   // The value of a case with these fields (terms, values or runtime values), to compare, match or pass to `when`:
   //   when(held, At.make({tag: 'holding', amount, since: now}), at)
-  make(write: VariantWrite<C>): Variant<C> {
+  override invariant(x: Variant<C, T>) { return [x.tag.lt(this.names.length), ...this.names.filter(k => this.filled(k)).flatMap(k => this.payload(k).invariant(x.cases[k] as never))] }
+  make(write: VariantWrite<C, T>): Variant<C, T> {
     const parts = this.store('$', write)
     return this.build('$', part => { const t = parts[part]!; return typeof t === 'number' ? lit(t) : t })
   }
@@ -536,7 +546,14 @@ export class VariantKind<C extends Cases> extends Kind<Variant<C>> {
   }
   sample(rand: Rand, bound: number) { const k = this.names[rand(this.names.length)]!; return {[this.tagKey]: k, ...(this.filled(k) ? this.payload(k).sample(rand, bound) as RawObject : {})} }
 }
-export const variant = <const C extends Cases>(cases: C): VariantKind<C> => new VariantKind(cases)
+// The key that names the case in a runtime value is `tag`, or the one given: variant({...}, {tag: 'kind'}).
+export function variant<const C extends Cases>(cases: C): VariantKind<C>
+export function variant<const C extends Cases, const T extends string>(cases: C, opts: {tag: T}): VariantKind<C, T>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function variant(cases: Cases, opts: {tag?: string} = {}): VariantKind<any, any> {
+  if (opts.tag !== undefined && !/^[A-Za-z_][A-Za-z0-9_]*$/.test(opts.tag)) throw new Error(`variant: ${opts.tag} is not a plain key`)
+  return new VariantKind(cases, opts.tag ?? 'tag')
+}
 
 // A string, encoded as its interned name, its length and one bit per pattern the kind declares (`like`, Cedar's glob:
 // `*` any run of characters, `\*` a star): all computed from the string itself when the input is encoded, so the bits
@@ -782,7 +799,7 @@ export class ItemsRef<V> {
 export type Forall = {readonly forall: (key: Term, ...more: Term[]) => Cond}
 // A law about every key of a map: proven at a fresh key, assumed at the keys a step reads.
 // With two parameters or more, about every two keys or more: forall((i, j) => i.lt(j).implies(...)).
-export function forall(f: (key: Term, key2: Term, key3: Term, key4: Term) => Cond): Forall { return {forall: f as Forall['forall']} }
+export function forall(f: (key: Term, key2: Term, key3: Term, key4: Term, key5: Term, key6: Term) => Cond): Forall { return {forall: f as Forall['forall']} }
 // The keys a law's callback names: one, or two when it takes two.
 const keysFor = (out: Forall): [string, string[]] => [`key$${++keyCounter}`, Array.from({length: Math.max(0, out.forall.length - 1)}, () => `key$${++keyCounter}`)]
 export type Relation = {readonly when: Cond, readonly holds: Cond}
@@ -972,10 +989,10 @@ type RecurEnv<A extends string, U> = {[a in A]: Term} & {[u in keyof U]: FnTerm}
 export type RecurDef<A extends string, U extends Record<string, FnDef>> = {
   args?: readonly A[]
   fns?: U
-  zero: TermLike | ((env: {[a in A]: Term}) => TermLike)
+  zero: TermLike | ((env: RecurEnv<A, U>) => TermLike)
   next: (x: Term, prev: Term, env: RecurEnv<A, U>) => TermLike
 }
-const reservedInRecur = ['x', 'fx', 'y', 'fy', 'prev', 'x0']
+const reservedInRecur = ['x', 'fx', 'y', 'fy', 'prev', 'x0', 'fx0']
 // The machines a recurrence is proven by, built over plain environments.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type LooseRule = any
@@ -987,13 +1004,12 @@ export const recur = <const A extends string = never, U extends Record<string, F
   const args: string[] = [...(def.args ?? [])], uses = Object.entries(def.fns ?? {}) as [string, FnDef][]
   for (const n of [...args, ...uses.map(([u]) => u)]) if (!plain.test(n) || reservedInRecur.includes(n) || n === name) throw new Error(`recur ${name}: ${n} can't name an argument or a function here (${reservedInRecur.join(', ')} and ${name} are taken)`)
   distinctNames(`recur ${name}`, [...args, ...uses.map(([u]) => u)])
-  if (args.length > 2 && Object.keys(between).length) throw new Error(`recur ${name}: a law between two points takes at most two further arguments`)
-  if (args.length > 3) throw new Error(`recur ${name}: at most three further arguments`)
+  if (args.length > 4) throw new Error(`recur ${name}: at most four further arguments`)
   const named = (n: string) => new Term({op: 'var', name: n})
   const argsAt = (ts: Term[]) => Object.fromEntries(args.map((a, i) => [a, ts[i]!])) as {[a in A]: Term}
   const usesAt = (at: (u: string) => string) => Object.fromEntries(uses.map(([u, d]) => [u, fnTerm(at(u), d)])) as {[u in keyof U]: FnTerm}
   const envAt = (ts: Term[], at: (u: string) => string = u => u) => ({...argsAt(ts), ...usesAt(at)}) as RecurEnv<A, U>
-  const zeroAt = (ts: Term[]) => (typeof def.zero === 'function' ? def.zero(argsAt(ts)) : def.zero)
+  const zeroAt = (ts: Term[], at: (u: string) => string = u => u) => (typeof def.zero === 'function' ? def.zero(envAt(ts, at)) : def.zero)
   // The recurrence over named variables (x, prev, the arguments; lemmas over x and fx; laws between over x, fx, y, fy),
   // the functions it reads by their own names: what the runtimes and the Lean export are made from.
   const own = args.map(named)
@@ -1003,50 +1019,59 @@ export const recur = <const A extends string = never, U extends Record<string, F
     for (const n of namesIn(t)) if (!names.includes(n)) throw new Error(`recur ${name}: ${what} reads ${n}`)
     for (const m of [...JSON.stringify(t).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x => x[1]!)) if (!maps.includes(m)) throw new Error(`recur ${name}: ${what} reads a function or a map it isn't given (${m})`)
   }
-  only('zero', zero, args, []); only('next', next, ['x', 'prev', ...args], uses.map(([u]) => u))
+  only('zero', zero, args, uses.map(([u]) => u)); only('next', next, ['x', 'prev', ...args], uses.map(([u]) => u))
   const stated = Object.entries(lemmas).map(([n, f]) => { const holds = f(named('x'), named('fx'), envAt(own)).c; only(`lemma "${n}"`, holds, ['x', 'fx', ...args], uses.map(([u]) => u)); return {name: n, holds} })
   const pairs = Object.entries(between).map(([n, f]) => { const holds = f(named('x'), named('fx'), named('y'), named('fy'), envAt(own)).c; only(`law between "${n}"`, holds, ['x', 'fx', 'y', 'fy', ...args], uses.map(([u]) => u)); return {name: n, holds} })
   const argKinds = Object.fromEntries(args.map(a => [a, nat])) as Kinds
   const failed = (what: string, v: Verdict) => { if (!(v.proven && v.checked)) throw new Unproven(`${name}'s ${what}`, v) }
   // The lemmas: x counting up from 0 and fx its value, each lemma a law of that machine.
   let verdict: Verdict = {proven: true, checked: true}
+  const proofs: NonNullable<Recurrence['proofs']> = {}
   if (stated.length) {
-    const r: LooseRule = (rule(`${name}, by induction`) as LooseRule).params(argKinds).fns(def.fns ?? {}).inputs({}).state({x: 0, fx: ((p: Record<string, Term>) => zeroAt(args.map(a => p[a]!))) as never})
+    // A start that reads a function is a param given as that start by a fact (a start reads the params alone).
+    const zeroReads = JSON.stringify(zero).includes('"op":"get"')
+    let r0: LooseRule = (rule(`${name}, by induction`) as LooseRule).params({...argKinds, ...(zeroReads ? {fx0: nat} : {})}).fns(def.fns ?? {}).inputs({})
+    if (zeroReads) r0 = r0.facts((p: Record<string, Term>) => ({[`fx0 is ${name}(0)`]: p.fx0!.eq(zeroAt(args.map(a => p[a]!)))}))
+    const r: LooseRule = r0.state({x: 0, fx: ((p: Record<string, Term>) => (zeroReads ? p.fx0! : zeroAt(args.map(a => p[a]!)))) as never})
       .step((env: Record<string, Term>) => ({x: env.x!.plus(1), fx: def.next(env.x!, env.fx!, envAt(args.map(a => env[a]!)))}) as never)
-    verdict = proveRule(r as never, Object.entries(lemmas).map(([n, f]) => r.law(n, (env: Record<string, Term>) => f(env.x!, env.fx!, envAt(args.map(a => env[a]!))))))
+    const laws: Law[] = Object.entries(lemmas).map(([n, f]) => r.law(n, (env: Record<string, Term>) => f(env.x!, env.fx!, envAt(args.map(a => env[a]!)))))
+    verdict = proveRule(r as never, laws)
     failed('lemmas', verdict)
+    proofs.lemmas = {machine: (r as Rule).machine, laws}
   }
   const js = recurJs(name, args, zero, next, uses)
-  const recurrence: Recurrence = {args, zero, next, lemmas: stated, between: pairs, uses: Object.fromEntries(uses.map(([u, d]) => [u, {arity: d.arity, ...(d.lean ? {lean: d.lean} : {})}]))}
+  const recurrence: Recurrence = {args, zero, next, lemmas: stated, between: pairs, uses: Object.fromEntries(uses.map(([u, d]) => [u, {arity: d.arity, ...(d.lean ? {lean: d.lean} : {})}])), proofs}
   // A law about every n keys (forall counts them by the callback's own parameters).
   const keysOf = (n: number) => (f: (...ks: Term[]) => Cond): Cond | Forall => {
     if (n === 0) return f()
-    const by = [(a: Term) => f(a), (a: Term, b: Term) => f(a, b), (a: Term, b: Term, c: Term) => f(a, b, c), (a: Term, b: Term, c: Term, d: Term) => f(a, b, c, d)][n - 1]!
+    const by = [(a: Term) => f(a), (a: Term, b: Term) => f(a, b), (a: Term, b: Term, c: Term) => f(a, b, c), (a: Term, b: Term, c: Term, d: Term) => f(a, b, c, d),
+      (a: Term, b: Term, c: Term, d: Term, e: Term) => f(a, b, c, d, e), (a: Term, b: Term, c: Term, d: Term, e: Term, g: Term) => f(a, b, c, d, e, g)][n - 1]!
     return forall(by as never)
   }
   const facts = (withBetween: boolean): FnDef['facts'] => (f, at = {}) => {
     const env = (ts: Term[]) => ({...argsAt(ts), ...Object.fromEntries(uses.map(([u, d]) => [u, at[u] ?? fnTerm(u, d)]))}) as RecurEnv<A, U>
     return {
-      [`${name}(0)`]: keysOf(args.length)((...as) => f(0, ...as).eq(zeroAt(as))),
+      [`${name}(0)`]: keysOf(args.length)((...as) => f(0, ...as).eq(typeof def.zero === 'function' ? def.zero(env(as)) : def.zero)),
       [`${name}(x + 1)`]: keysOf(1 + args.length)((k, ...as) => f(k.plus(1), ...as).eq(def.next(k, f(k, ...as), env(as)))),
       ...Object.fromEntries(Object.entries(lemmas).map(([n, l]) => [n, keysOf(1 + args.length)((k, ...as) => l(k, f(k, ...as), env(as)))])),
       ...(withBetween ? Object.fromEntries(Object.entries(between).map(([n, l]) => [n, keysOf(2 + args.length)((k, j, ...as) => k.atMost(j).implies(l(k, f(k, ...as), j, f(j, ...as), env(as))))])) : {}),
     } as Record<string, Cond | Forall>
   }
   const base = {arity: 1 + args.length, js, lean: `Recur.${name}`, recur: recurrence, ...(uses.length ? {uses: def.fns as Record<string, FnDef>} : {})}
-  // The laws between two points: y counting up from x, fy from f(x) (a param, given as f(x) by a fact), each law a law
-  // of that machine beside "fy is f(y)", which lets the lemmas speak at y.
+  // The laws between two points: y counting up from x and fy from fx, a value at x that meets the lemmas (as f(x)
+  // does: they are given of it, as facts of the params), each law a law of that machine beside the lemmas at y. What
+  // holds there for every such fx holds for f(x), and fy is f(y) by the recurrence; the machine reads no f at all.
   if (pairs.length) {
-    const self: FnDef = {...base, facts: facts(false)}
-    const r: LooseRule = (rule(`${name}, between`) as LooseRule).params({...argKinds, x: nat, fx: nat}).fns({[name]: self}).inputs({})
-      .facts(((p: Record<string, Term & FnTerm>) => ({[`fx is ${name}(x)`]: p.fx!.eq(p[name]!(p.x!, ...args.map(a => p[a]!)))})) as never)
-      .state({y: ((p: Record<string, Term>) => p.x!) as never, fy: ((p: Record<string, Term>) => p.fx!) as never})
-      .step((env: Record<string, Term>) => ({y: env.y!.plus(1), fy: def.next(env.y!, env.fy!, envAt(args.map(a => env[a]!), u => `${name}.${u}`))}) as never)
-    const at = (env: Record<string, Term & FnTerm>) => args.map(a => env[a]!)
-    const laws = [r.law(`fy is ${name}(y)`, (env: Record<string, Term & FnTerm>) => env.fy!.eq(env[name]!(env.y!, ...at(env)))),
-      ...Object.entries(between).map(([n, l]) => r.law(n, (env: Record<string, Term & FnTerm>) => l(env.x!, env.fx!, env.y!, env.fy!, envAt(at(env), u => `${name}.${u}`))))]
+    const at = (env: Record<string, Term>) => args.map(a => env[a]!)
+    let r0: LooseRule = (rule(`${name}, between`) as LooseRule).params({...argKinds, x: nat, fx: nat}).fns(def.fns ?? {}).inputs({})
+    if (stated.length) r0 = r0.facts((p: Record<string, Term>) => Object.fromEntries(Object.entries(lemmas).map(([n, l]) => [`${n} at x`, l(p.x!, p.fx!, envAt(at(p)))])))
+    const r: LooseRule = r0.state({y: ((p: Record<string, Term>) => p.x!) as never, fy: ((p: Record<string, Term>) => p.fx!) as never})
+      .step((env: Record<string, Term>) => ({y: env.y!.plus(1), fy: def.next(env.y!, env.fy!, envAt(at(env)))}) as never)
+    const laws = [...Object.entries(lemmas).map(([n, l]) => r.law(`${n} at y`, (env: Record<string, Term>) => l(env.y!, env.fy!, envAt(at(env))))),
+      ...Object.entries(between).map(([n, l]) => r.law(n, (env: Record<string, Term>) => l(env.x!, env.fx!, env.y!, env.fy!, envAt(at(env)))))]
     const v = proveRule(r as never, laws)
     failed('laws between two points', v)
+    proofs.between = {machine: (r as Rule).machine, laws}
     verdict = {proven: true, checked: verdict.checked && v.checked}
   }
   return {...base, verdict, facts: facts(true)}
@@ -1082,7 +1107,9 @@ const recurJs = (name: string, args: string[], zero: E, next: E, uses: [string, 
     }
   }
   const inlined = uses.map(([u, d], i) => `const $f${i} = (${fnSource(u, d)}); `).join('')
-  return `(x, ${args.map(a => `${a}, `).join('')}) => { ${inlined}let prev = ${js(zero)}; for (let x0 = 0; x0 < x; x0++) { prev = ((x, prev) => ${js(next)})(x0, prev); if (!Number.isSafeInteger(prev)) throw new RangeError(${JSON.stringify(`${name} passes the safe integers`)}); } return prev; }`
+  // The last value computed at each tuple of further arguments is kept, so reading f at x after f at a smaller x takes
+  // only the steps between (a rule that reads f at a count that grows costs one step a request).
+  return `(() => { ${inlined}const $memo = new Map(); return (x, ${args.map(a => `${a}, `).join('')}) => { const $k = ${args.length ? `[${args.join(', ')}].join()` : "''"}; let $at = $memo.get($k); if (!$at || $at[0] > x) $at = [0, ${js(zero)}]; let x0 = $at[0], prev = $at[1]; for (; x0 < x; x0++) { prev = ((x, prev) => ${js(next)})(x0, prev); if (!Number.isSafeInteger(prev)) throw new RangeError(${JSON.stringify(`${name} passes the safe integers`)}); } if ($memo.size > 4096) $memo.clear(); $memo.set($k, [x, prev]); return prev; }; })()`
 }
 // Functions with the functions they read, those first (named <function>.<use>), each with the terms its facts read them by.
 const flatFns = (defs: [string, FnDef][]): [string, FnDef, Record<string, FnTerm>][] => defs.flatMap(([n, d]) => {
@@ -1097,7 +1124,7 @@ const fnSource = (name: string, d: FnDef): string => {
   let f: (...args: number[]) => number
   try { f = compileFunction<() => (...args: number[]) => number>([], `return (${src})`)(); f(...Array.from({length: d.arity}, () => 0)) } catch (e) { throw new Error(`function ${name}: its js must be a function of its arguments that reads nothing else (${(e as Error).message})`) }
   if (d.arity === 1) return src
-  return `k => { const u = z => { let s = Math.floor(Math.sqrt(z)); while (s * s > z) s--; while ((s + 1) * (s + 1) <= z) s++; return [s - (z - s * s), z - s * s]; }; const a = []; let z = k; for (let i = 1; i < ${d.arity}; i++) { const [p, q] = u(z); a.unshift(q); z = p; } a.unshift(z); return (${src})(...a); }`
+  return `(() => { const $fn = (${src}); return k => { const u = z => { let s = Math.floor(Math.sqrt(z)); while (s * s > z) s--; while ((s + 1) * (s + 1) <= z) s++; return [s - (z - s * s), z - s * s]; }; const a = []; let z = k; for (let i = 1; i < ${d.arity}; i++) { const [p, q] = u(z); a.unshift(q); z = p; } a.unshift(z); return $fn(...a); }; })()`
 }
 const fnTerm = (name: string, d: FnDef) => (...args: TermLike[]): Term => {
   if (args.length !== d.arity) throw new Error(`function ${name} takes ${d.arity} argument${d.arity === 1 ? '' : 's'}`)
@@ -1118,7 +1145,7 @@ type Kinds = Record<string, Kind<unknown>>
 type ValuesOf<K extends Kinds> = {[n in keyof K]: K[n] extends Kind<infer V> ? V : never}
 type Obj = object
 // What a step may write to a state variable of each kind.
-type Writes<V> = V extends Decimal ? DecimalLike | string : V extends Int ? IntLike : V extends Cond ? Cond | boolean : V extends Choice<infer K> ? Choice<K> | K : V extends Maybe<infer W> ? Maybe<W> | Writes<W> | null : V extends Str ? Str | string : V extends Variant<infer C> ? Variant<C> | VariantWrite<C> : V extends Term ? TermLike : V extends Record<string, unknown> ? {[k in keyof V]: Writes<V[k]>} : TermLike
+type Writes<V> = V extends Decimal ? DecimalLike | string : V extends Int ? IntLike : V extends Cond ? Cond | boolean : V extends Choice<infer K> ? Choice<K> | K : V extends Maybe<infer W> ? Maybe<W> | Writes<W> | null : V extends Str ? Str | string : V extends Variant<infer C, infer T> ? Variant<C, T> | VariantWrite<C, T> : V extends Term ? TermLike : V extends Record<string, unknown> ? {[k in keyof V]: Writes<V[k]>} : TermLike
 type Update<S extends Obj, M extends Obj> = Partial<{[k in keyof S]: Writes<S[k]>} & {[k in keyof M]: M[k] extends CellsRef<unknown> | ItemsRef<unknown> ? PartsWrite : MapWrite}>
 let keyCounter = 0
 // The callbacks each law, step law and decision was built from, for crossCheck to run again on concrete values.
@@ -1269,6 +1296,20 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     if (out instanceof Cond) { const p = prenex(out.c, `law ${name}`, key); return p ? {name, forall: key, holds: p} : {name, holds: out.c} }
     const [k1, more] = keysFor(out), holds = out.forall(v(k1), ...more.map(v)).c
     return more.length ? {name, forall: k1, keys: more, holds} : {name, forall: k1, holds: prenex(holds, `law ${name}`, k1) ?? holds}
+  }
+
+  // What the kinds keep true of the state and of the maps and lists of a kind (Kind.invariant: a flag 0 or 1, a choice or
+  // a case in range, a presence bit 0 or 1), as laws: proveRule, proveSteps and proveLeadsTo prove them beside the laws
+  // they are given, so a law may lean on "the hold is idle, holding or released" without stating it; give them to
+  // toLean (or the kernel) with the rest.
+  kindLaws(): Law[] {
+    const out: Law[] = []
+    const of = (env: unknown, n: string) => (env as Record<string, unknown>)[n]
+    for (const [n, k] of this.spec.kinded ?? []) if (k.invariant(k.value(n)).length) out.push(this.law(`${n} is a value of its kind`, env => all(...k.invariant(of(env, n)))))
+    for (const [n, k] of [...this.spec.cells ?? [], ...this.spec.items ?? []]) if (k.invariant(k.value(n)).length) {
+      out.push(this.law(`every ${n} cell is a value of its kind`, env => forall(key => all(...k.invariant((of(env, n) as CellsRef<unknown>).at(key))))))
+    }
+    return out
   }
 
   // A law about one step, for every request the rule allows: `then(before, after)` relates what the step reads (params,
@@ -1686,16 +1727,16 @@ export type Decision = {name: string, rule: Rule<Obj>, given: C[], then: C, goal
 //   const reserve = fun('reserve').inputs({left: nat, used: nat}).returns(({left, used}) => ({granted: left.gt(0), left: left.minus(1), used: used.plus(1)}))
 //   reserve.law('an empty budget grants nothing', ({left}) => left.eq(0), out => out.granted.not())
 // (A field of no known kind, `any`, is a term.)
-type ResultOf<V> = 0 extends 1 & V ? Term : [V] extends [Cond] ? Cond : [V] extends [Decimal] ? Decimal : [V] extends [Int] ? Int : [V] extends [Choice<infer K>] ? Choice<K> : [V] extends [Str] ? Str : [V] extends [Variant<infer C>] ? Variant<C> : [V] extends [Term | number] ? Term : [V] extends [Record<string, unknown>] ? {[f in keyof V]: ResultOf<V[f]>} : Term
+type ResultOf<V> = 0 extends 1 & V ? Term : [V] extends [Cond] ? Cond : [V] extends [Decimal] ? Decimal : [V] extends [Int] ? Int : [V] extends [Choice<infer K>] ? Choice<K> : [V] extends [Str] ? Str : [V] extends [Variant<infer C, infer T>] ? Variant<C, T> : [V] extends [Maybe<infer W>] ? Maybe<ResultOf<W>> : [V] extends [Term | number] ? Term : [V] extends [Record<string, unknown>] ? {[f in keyof V]: ResultOf<V[f]>} : Term
 type Result<T> = {[k in keyof T]: ResultOf<T[k]>}
-type ValueOf<V> = 0 extends 1 & V ? number : [V] extends [Cond] ? boolean : [V] extends [Choice<infer K>] ? K : [V] extends [Str] ? string : [V] extends [Variant<infer C>] ? CaseRaw<C> : [V] extends [Term | number | Int | Decimal] ? number : [V] extends [Record<string, unknown>] ? {[f in keyof V]: ValueOf<V[f]>} : number
-type CaseRaw<C extends Cases> = {[k in keyof C]: {tag: k} & {[f in keyof C[k]]: C[k][f] extends Kind<infer V> ? ValueOf<V> : never}}[keyof C]
+type ValueOf<V> = 0 extends 1 & V ? number : [V] extends [Cond] ? boolean : [V] extends [Choice<infer K>] ? K : [V] extends [Str] ? string : [V] extends [Variant<infer C, infer T>] ? CaseRaw<C, T> : [V] extends [Maybe<infer W>] ? ValueOf<W> | null : [V] extends [Term | number | Int | Decimal] ? number : [V] extends [Record<string, unknown>] ? {[f in keyof V]: ValueOf<V[f]>} : number
+type CaseRaw<C extends Cases, T extends string = 'tag'> = {[k in keyof C]: {[t in T]: k} & {[f in keyof C[k]]: C[k][f] extends Kind<infer V> ? ValueOf<V> : never}}[keyof C]
 type Value<T> = {[k in keyof T]: ValueOf<T[k]>}
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Field = Term | Cond | Int | Decimal | Choice<string> | Str | Variant<any> | {[f: string]: Field | number}
+type Field = Term | Cond | Int | Decimal | Choice<string> | Str | Variant<any, any> | Maybe<any> | {[f: string]: Field | number}
 // The kind a result field is kept in.
 const kindOf = (t: Field | number): Kind<unknown> => (t instanceof Cond ? bool : t instanceof Int ? int : t instanceof Decimal ? decimal(t.places) : t instanceof Choice ? oneOf(...t.values) : t instanceof Str ? str({like: t.patterns})
-  : t instanceof Variant ? t.kind : isRecord(t) ? record(Object.fromEntries(Object.entries(t).map(([f, x]) => [f, kindOf(x as Field)]))) : nat)
+  : t instanceof Variant ? t.kind : t instanceof Maybe ? maybe(kindOf(t.inner as Field)) : isRecord(t) ? record(Object.fromEntries(Object.entries(t).map(([f, x]) => [f, kindOf(x as Field)]))) : nat)
 export class Fun<P extends Obj = {}, I extends Obj = {}, O extends Obj = {}> {
   constructor(private readonly r: Rule<P, I>, private readonly out?: (env: never) => Record<string, TermLike | Field>) {}
   get name() { return this.r.name }
@@ -1829,18 +1870,20 @@ const goalsVerdict = (goals: Goal[]): Verdict => {
   }
   return {proven: true, checked: goals.every(g => check(g, trees[g.name]!)), trees}
 }
+// The kinds' laws first, those the caller didn't pass already (by name).
+const withKinds = (r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[]): Law[] => [...r.kindLaws().filter(k => !laws.some(l => l.name === k.name)), ...laws]
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[]): Verdict {
-  const out = proveLaws(r.machine, laws)
+  const out = proveLaws(r.machine, withKinds(r, laws))
   return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[]): Verdict {
-  const out = proveStepLaws(r.machine, laws, stepLaws)
+  const out = proveStepLaws(r.machine, withKinds(r, laws), stepLaws)
   return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
 }
 export type {StepLaw}
 export type {Liveness}
 export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: Liveness): Verdict {
-  const out = proveLiveness(r.machine, laws, l)
+  const out = proveLiveness(r.machine, withKinds(r, laws), l)
   return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
 }
 export const proveDecision = (d: Decision): Verdict => goalsVerdict([d.goal])

@@ -41,10 +41,11 @@ proveRule(retry, [retry.law('the next try is at most 64 after the last request',
   `Unproven` with the induction step it breaks at (`verdict.witness`, over x and fx). That step need not be a real
   value of f: a lemma that holds but isn't inductive by itself needs a helper lemma beside it, as a law does.
 - Without the lemmas the same law isn't proven: the two equations say nothing about the delay at an unknown attempt.
-- `toLean` defines `Recur.delay` by the same recurrence and proves `Recur.delay_lemmas` by induction, then the rule's
-  facts from it: nothing is left as a hypothesis.
-- Further arguments (`args: ['cap']`, up to three, fixed along the recursion), functions the step reads (`fns: {rem:
-  modBy(7)}`, another recurrence), and laws between two points (a fourth argument, `(x, fx, y, fy, env) => ...`, for
+- `toLean` defines `Recur.delay` by the same recurrence and checks the kernel's own proof of `Recur.delay_lemmas`: the
+  machine the lemmas were proven by, with its trees, and its run reaching x and f(x) (a lemma with a product, f(x) =
+  x·x, goes through as the kernel proved it); then the rule's facts from it: nothing is left as a hypothesis.
+- Further arguments (`args: ['cap']`, up to four, fixed along the recursion), functions the step and the start read
+  (`fns: {rem: modBy(7)}`, another recurrence), and laws between two points (a fourth argument, `(x, fx, y, fy, env) => ...`, for
   every x <= y, proven by induction on y with the lemmas):
 
   ```ts

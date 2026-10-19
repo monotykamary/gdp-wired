@@ -32,8 +32,10 @@ const proven = (what: string, v: Verdict): void => { if (!(v.proven && v.checked
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyFun = Fun<any, any, any>
-// The fields of a function's result that are conditions (booleans when it runs).
-type Conditions<O> = {[k in keyof O]: O[k] extends boolean ? k : never}[keyof O] & string
+// The fields of a function's result that are conditions (booleans when it runs), and those inside its records, by path
+// ('verdict.ok').
+type Conditions<O> = {[k in keyof O & string]: O[k] extends boolean ? k : O[k] extends Record<string, unknown> ? `${k}.${Conditions<O[k]>}` : never}[keyof O & string]
+const atPath = (o: unknown, path: string): unknown => path.split('.').reduce<unknown>((x, f) => (typeof x === 'object' && x !== null ? (x as Record<string, unknown>)[f] : undefined), o)
 type ArgsOf<F extends AnyFun> = Parameters<F['run']>[0]
 type ParamsOf<F extends AnyFun> = NonNullable<Parameters<F['run']>[1]>
 
@@ -52,7 +54,7 @@ export function guard<K extends string, F extends AnyFun>(prover: Prover<K>, fn:
   return (args, ...about) => {
     const input = r.encodeInput(args as never)
     if (m.assume && !evalC(m.assume, {...ps, ...input} as Record<string, number>, {scalars: {}, maps: {}}, m)) return null
-    return (fn.run(args as never, params) as Record<string, unknown>)[field] === true ? prover.prove(...about) : null
+    return atPath(fn.run(args as never, params), field) === true ? prover.prove(...about) : null
   }
 }
 

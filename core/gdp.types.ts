@@ -1,7 +1,7 @@
 // Type-level checks for the gdp-ts adapter (gdp.ts): every line marked @ts-expect-error must fail to type-check, and
 // `tsc -p .` fails if one of them doesn't. Never run: type-checked only.
 import {type Named, type Proof, defineProof, name} from '@gdp-ts/core'
-import {bool, fun, nat, oneOf, rule, upTo} from './dsl.ts'
+import {bool, fun, lit, nat, oneOf, rule, upTo} from './dsl.ts'
 import {gate, guard} from './gdp.ts'
 
 interface CanRead<U, D> extends Proof<'CanRead', [U, D]> {}
@@ -38,4 +38,8 @@ export function typeChecks() {
   const g = gate(defineProof('Redeemed'), tokens, 'redeem', {laws: []})
   // @ts-expect-error the request is the rule's inputs
   g.request({op: 'redeem', tkn: 1})
+  const nested = fun('nested').inputs({c: bool}).returns(({c}) => ({v: {ok: c, n: lit(1)}}))
+  guard(defineProof('Ok'), nested, 'v.ok', {laws})
+  // @ts-expect-error v.n is a number, not a condition
+  guard(defineProof('Ok'), nested, 'v.n', {laws})
 }

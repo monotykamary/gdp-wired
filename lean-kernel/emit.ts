@@ -418,7 +418,7 @@ const boundKeys = (m: Machine) => [...Object.values(m.step.flags ?? {}).flatMap(
 // `historyTampers`: the history with other relations, each refused.
 export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {stepLaws?: StepLaw[], liveness?: Liveness[], tamper?: {what: string, machine: Machine}, simp?: string[], free?: string[],
     ghosts?: string[], after?: (ix: (name: string) => number) => string, historyTampers?: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[],
-    refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}, loop?: {loop: Loop, tamper?: {what: string, loop: Loop}}} = {}): string {
+    refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}, loop?: {loop: Loop, tamper?: {what: string, loop: Loop}}, noFacts?: boolean} = {}): string {
   const hm = given.history ? {...given, history: {...given.history, prune: undefined}} : undefined
   const hplain = hm ? historyMachine(hm) : undefined, stepLaws = opts.stepLaws ?? [], rf = opts.refined, gv = opts.ghosts ?? []
   const m = hplain ? hplain.machine : given
@@ -690,7 +690,7 @@ def ${id}_proof : List SEntry := ${list(laws.map((_, j) => `${id}_e${j}`))}
 theorem ${id}_check : checkSMachine ${id}_machine ${id}_proof = true := by decide +kernel
 theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_proof, e.Holds ρ M :=
   smachine_sound ${id}_machine ${id}_proof ${id}_check
-${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`})}${factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
+${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`})}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
 example : checkSMachine ${id}_tampered ${id}_proof = false := by decide +kernel` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix)}` : ''}`
@@ -741,6 +741,62 @@ const useLemmas = (uses: Uses, t: E | C, names: Record<string, string>, where: s
   walk(t)
   return [...new Set(out)]
 }
+// The kernel's own proof of a recurrence's lemmas (or of its laws between two points), for Lean to check: the machine
+// it was proven by, exported with its trees (smachine_sound gives its laws at every reachable state), and the run of
+// that machine that reaches x and f(x) (or y = x + d and f(y) from x and f(x)), so each law, read there, is the lemma.
+// The proof needs no tactic beyond simp's arithmetic of the machine's terms: what the kernel proved (products of two
+// terms among it) Lean checks as the kernel's own tree.
+function recurKernel(lean: string, r: Recurrence, uses: Uses, which: 'lemmas' | 'between'): {pre: string, proof: (from: string) => string} | undefined {
+  const pr = r.proofs?.[which]
+  if (!pr) return undefined
+  const m = pr.machine, two = which === 'between', id = `${lean.replace(/[^A-Za-z0-9_]/g, '_')}_${two ? 'two' : 'ind'}`
+  const vars = [...m.params, ...m.inputs, ...Object.keys(m.state)], col = (n: string) => { const j = vars.indexOf(n); if (j < 0) throw new Error(`${id}: no column for ${n}`); return j }
+  const fnNames = Object.keys(m.fns ?? {}), args = r.args.map(recurArg), argNames = Object.fromEntries(r.args.map(a => [a, recurArg(a)]))
+  const F = (x: string) => recurCall(lean, r, x)
+  const surface = leanSurface(argNames, lean, useRead(uses, lean))
+  const binders = [...r.args.map(a => `(${recurArg(a)} : Nat)`), ...(two ? ['(x : Nat)'] : [])].join(' '), ps = [...args, ...(two ? ['x'] : [])].join(' ')
+  const start: [string, string][] = [...r.args.map(a => [a, recurArg(a)] as [string, string]), ...(m.params.includes('fx0') ? [['fx0', surface.e(r.zero)] as [string, string]] : []),
+    ...(two ? [['x', 'x'], ['fx', F('x')]] as [string, string][] : [])]
+  const chain = (pairs: [number, string][], dflt: string, v: string) => pairs.reduceRight((acc, [c, e]) => `if ${v} = ${c} then ${e} else ${acc}`, dflt)
+  // What the run holds after n steps, column by column.
+  const at = (n: string): [number, string][] => two
+    ? [[col('y'), `x + ${n}`], [col('fy'), F(`(x + ${n})`)], [col('x'), 'x'], [col('fx'), F('x')], ...r.args.map(a => [col(a), recurArg(a)] as [number, string])]
+    : [[col('x'), n], [col('fx'), F(n)], ...r.args.map(a => [col(a), recurArg(a)] as [number, string])]
+  const hs = at('n').map((_, i) => `h${i}`)
+  const recurDefs = [r.args.length ? `${lean}_rec` : lean, ...Object.values(uses).flatMap(u => (u.recur ? (u.recur.args.length ? [`${u.lean}_rec`, `${u.lean}_key`] : [u.lean!]) : []))]
+  const one = (m.facts ?? []).some(f => !f.keys?.length), several = (m.facts ?? []).some(f => f.keys?.length)
+  // A fact of the params at the start of the laws between: the lemma at x and f(x), its own conjunct.
+  const proj = (j: number, k: number) => (k === 1 ? '' : j < k - 1 ? `${'.2'.repeat(j)}.1` : '.2'.repeat(k - 1))
+  const cite = (f: Law) => { const j = r.lemmas.findIndex(l => f.name === `${l.name} at x`); return two && j >= 0 ? `(${lean}_lemmas ${args.join(' ')} x)${proj(j, r.lemmas.length)}` : undefined }
+  const factsAt = factsProof(id, m, fnNames, vars, [`${id}_ρ`, `${id}_μ`, ...recurDefs], {binders, rho: `(${id}_ρ ${ps})`, mu: `${id}_μ`, cite})
+  const unfold = [`${id}_machine`, `${id}_μ`, 'applyS', 'assoc', 'lookup', 'evalE', 'evalC', ...recurDefs].join(', ')
+  const pre = `
+${smachineToLean(id, m, pr.laws, {noFacts: true})}
+def ${id}_ρ ${binders} : Nat → Nat := fun i => ${chain(start.map(([n, e]) => [col(n), e]), '0', 'i')}
+noncomputable def ${id}_μ : Nat → Nat → Nat := fun j => ${chain(fnNames.map((n, j) => [j, `(${m.fns![n]!.lean})`]), 'fun _ => 0', 'j')}${factsAt}
+-- The run of ${m.name} that ${two ? 'counts y up from x' : 'counts x up from 0'}: reachable, and holding ${two ? 'y = x + n and f(y)' : 'x = n and f(x)'}.
+theorem ${id}_run ${binders} : ∀ n, ∃ ρ, SReach ${id}_machine ρ ${id}_μ ∧ ${at('n').map(([c, e]) => `ρ ${c} = ${e}`).join(' ∧ ')} := by
+  intro n
+  induction n with
+  | zero =>
+    refine ⟨_, SReach.start (${id}_ρ ${ps}) ${id}_μ ?_ ?_ ?_ ?_, ${at('0').map(() => '?_').join(', ')}⟩
+    · intro p hp; simp [${id}_machine] at hp
+    · simp [${id}_machine, evalC, evalE]
+    · ${one ? `exact ${id}_facts_at ${ps}` : `intro l hl; simp [${id}_machine] at hl`}
+    · ${several ? `exact ${id}_pfacts_at ${ps}` : `intro p hp; simp [${id}_machine] at hp`}
+    all_goals simp [${id}_ρ, ${unfold}]
+  | succ n ih =>
+    obtain ⟨ρ, hr, ${hs.join(', ')}⟩ := ih
+    refine ⟨_, SReach.step ρ ${id}_μ (fun _ => 0) (fun _ _ => 0) hr ?_, ${at('0').map(() => '?_').join(', ')}⟩
+    · simp [sView, ${id}_machine, evalC, evalE]
+    all_goals (try rw [show x + (n + 1) = x + n + 1 from by omega])
+    all_goals simp [sNext, sView, decideFlags, decideQ, flagSub, withInputs, withCarried, ${hs.join(', ')}, ${unfold}]`
+  // The lemmas (or the laws between, after the lemmas at y): each the machine's law read on the run.
+  const own = two ? r.between.map((_, j) => r.lemmas.length + j) : r.lemmas.map((_, j) => j)
+  const each = (j: number) => `by have h := ${id}_laws ρ ${id}_μ hr ${id}_e${j} (by simp [${id}_proof]); simp [SEntry.Holds, holdsOver, ${id}_e${j}, ${id}_l${j}, MLaw.Holds, evalC, evalE, ${hs.join(', ')}] at h; simpa using h`
+  const proof = (from: string) => `(obtain ⟨ρ, hr, ${hs.join(', ')}⟩ := ${id}_run ${from}; exact ${own.length === 1 ? `(${each(own[0]!)})` : `⟨${own.map(j => `(${each(j)})`).join(', ')}⟩`})`
+  return {pre, proof}
+}
 export function recurToLean(lean: string, r: Recurrence, uses: Uses = {}): string {
   const binders = r.args.map(a => `(${recurArg(a)} : Nat)`).join(' '), argNames = Object.fromEntries(r.args.map(a => [a, recurArg(a)]))
   const self = r.args.length ? `${lean}_rec` : lean
@@ -750,22 +806,28 @@ export function recurToLean(lean: string, r: Recurrence, uses: Uses = {}): strin
   const lemmaAt = (x: string) => r.lemmas.map(l => `(${surface({x, fx: recurCall(lean, r, x)}).c(l.holds)})`).join(' ∧ ')
   const close = (haves: string[]) => `${haves.map(h => `${h}; `).join('')}(repeat' split) <;> omega`
   const step = (n: string) => useLemmas(uses, r.next, {...argNames, x: n, prev: recurCall(lean, r, n)}, lean)
-  const lemmas = r.lemmas.length ? `
+  // Each theorem by the kernel's proof (its machine and the run), or by induction with omega where that fails.
+  const kl = recurKernel(lean, r, uses, 'lemmas'), kb = recurKernel(lean, r, uses, 'between')
+  const lemmas = r.lemmas.length ? `${kl?.pre ?? ''}
 -- ${r.lemmas.map(l => l.name).join('; ')}
 theorem ${lean}_lemmas ${binders} (x : Nat) : ${lemmaAt('x')} := by
-  induction x with
-  | zero => (try simp only [${unfold}]); ${close(useLemmas(uses, {op: 'and', xs: r.lemmas.map(l => l.holds)}, {...argNames, x: '0', fx: recurCall(lean, r, '0')}, lean))}
-  | succ n ih => (try simp only [${unfold}] at ih ⊢); ${close([...step('n'), ...useLemmas(uses, {op: 'and', xs: r.lemmas.map(l => l.holds)}, {...argNames, x: '(n + 1)', fx: recurCall(lean, r, '(n + 1)')}, lean)])}` : ''
+  first
+  | ${kl ? kl.proof(`${[...r.args.map(recurArg), 'x'].join(' ')}`) : 'fail'}
+  | (induction x with
+    | zero => (try simp only [${unfold}]); ${close(useLemmas(uses, {op: 'and', xs: r.lemmas.map(l => l.holds)}, {...argNames, x: '0', fx: recurCall(lean, r, '0')}, lean))}
+    | succ n ih => (try simp only [${unfold}] at ih ⊢); ${close([...step('n'), ...useLemmas(uses, {op: 'and', xs: r.lemmas.map(l => l.holds)}, {...argNames, x: '(n + 1)', fx: recurCall(lean, r, '(n + 1)')}, lean)])})` : ''
   const args = r.args.map(recurArg).join(' ')
   const pairAt = (x: string, y: string) => r.between.map(l => `(${surface({x, fx: recurCall(lean, r, x), y, fy: recurCall(lean, r, y)}).c(l.holds)})`).join(' ∧ ')
-  const between = r.between.length ? `
+  const between = r.between.length ? `${kb?.pre ?? ''}
 -- ${r.between.map(l => l.name).join('; ')}, for every x <= y
 theorem ${lean}_between_by ${binders} (x d : Nat) : ${pairAt('x', '(x + d)')} := by
-  induction d with
-  | zero => simp only [Nat.add_zero]; (repeat' split) <;> omega
-  | succ n ih =>
-    rw [show x + (n + 1) = (x + n) + 1 from by omega]
-    ${r.lemmas.length ? `have := ${lean}_lemmas ${args} (x + n); ` : ''}(try simp only [${unfold}] at ih this ⊢); ${close(step('(x + n)'))}
+  first
+  | ${kb ? kb.proof(`${[...r.args.map(recurArg), 'x', 'd'].join(' ')}`) : 'fail'}
+  | (induction d with
+    | zero => simp only [Nat.add_zero]; (repeat' split) <;> omega
+    | succ n ih =>
+      rw [show x + (n + 1) = (x + n) + 1 from by omega]
+      ${r.lemmas.length ? `have := ${lean}_lemmas ${args} (x + n); ` : ''}(try simp only [${unfold}] at ih this ⊢); ${close(step('(x + n)'))})
 theorem ${lean}_between ${binders} (x y : Nat) (h : x ≤ y) : ${pairAt('x', 'y')} := by
   obtain ⟨d, rfl⟩ := Nat.exists_eq_add_of_le h
   exact ${lean}_between_by ${args} x d` : ''
@@ -805,9 +867,12 @@ theorem Recur.unpair_pair (a b : Nat) : Recur.unpair ((a + b) * (a + b) + b) = (
 // The facts, proven in Lean of the functions' Lean definitions, when every function has one: a run that starts with
 // those functions starts where SReach asks the facts to hold. A recurrence's equations unfold its definition (a function
 // of several arguments read at its key first); its lemmas and laws between two points are its theorems at the keys.
-function factsProof(id: string, m: Machine, maps: string[], vars: string[], simp: string[] = []): string {
+// With `at`, the facts at one state and maps (a machine's start, its params given as the facts say), each with the
+// theorem `cite` names for it, if any, cited first.
+type FactsAt = {binders: string, rho: string, mu: string, cite?: (fact: Law) => string | undefined}
+function factsProof(id: string, m: Machine, maps: string[], vars: string[], simp: string[] = [], at?: FactsAt): string {
   const fns = Object.entries(m.fns ?? {}), facts = m.facts ?? []
-  if (!facts.length || !fns.length || fns.some(([, f]) => !f.lean)) return ''
+  if (!facts.length || (!at && !fns.length) || fns.some(([, f]) => !f.lean)) return ''
   const recurs = fns.filter(([, f]) => f.recur)
   simp = [...simp, ...recurs.flatMap(([, f]) => (f.recur!.args.length ? [`${f.lean}_rec`, `${f.lean}_key`] : [f.lean!]))]
   // Each recurrence's key lemma rewrites the function at its key before anything else simplifies the key.
@@ -819,25 +884,28 @@ function factsProof(id: string, m: Machine, maps: string[], vars: string[], simp
     const keys = fact.forall ? [fact.forall, ...(fact.keys ?? [])] : [], arg = keys.map((_, i) => (i === 0 ? 'v' : `w${i}`))
     const owner = recurs.find(([n]) => fact.name.startsWith(`${n}: `)), what = owner ? fact.name.slice(owner[0].length + 2) : ''
     const r = owner?.[1].recur, lean = owner?.[1].lean
-    const cite = !r || !keys.length ? undefined : r.lemmas.some(l => l.name === what) ? `${lean}_lemmas ${[...arg.slice(1), arg[0]!].join(' ')}`
-      : r.between.some(l => l.name === what) ? `${lean}_between ${[...arg.slice(2), arg[0]!, arg[1]!].join(' ')}` : undefined
+    const cite = at?.cite?.(fact) ?? (!r || !keys.length ? undefined : r.lemmas.some(l => l.name === what) ? `${lean}_lemmas ${[...arg.slice(1), arg[0]!].join(' ')}`
+      : r.between.some(l => l.name === what) ? `${lean}_between ${[...arg.slice(2), arg[0]!, arg[1]!].join(' ')}` : undefined)
     const intro = keys.length > 1 ? `simp only [holdsOver]; intro ${arg.slice(1).join(' ')}; ` : ''
-    return `${intro}simp only [MLaw.Holds]; (try intro v); ${cite ? `have hc := ${cite}; ` : ''}simp only [evalC, evalE, upd, ${hs.join(', ')}]${keyed.length ? `; (try simp only [${keyed.join(', ')}])` : ''}; (try simp [${[...hs, ...simp].join(', ')}]${cite ? ' at hc ⊢' : ''}); all_goals omega`
+    return `${intro}simp only [MLaw.Holds]; (try intro v); ${cite ? `have hc := ${cite}; ` : ''}simp only [${['evalC', 'evalE', 'upd', ...hs].join(', ')}]${keyed.length ? `; (try simp only [${keyed.join(', ')}])` : ''}; (try simp [${[...hs, ...simp].join(', ')}]${cite ? ' at hc ⊢' : ''}); all_goals ${cite ? 'first | omega | (simpa using hc)' : 'omega'}`
   }
   const one = facts.filter(f => !f.keys?.length), several = facts.filter(f => f.keys?.length)
-  const binders = `(ρ : Nat → Nat) (μ : Nat → Nat → Nat) ${fns.map(([n, f], j) => `(h${j} : μ ${maps.indexOf(n)} = ${f.lean})`).join(' ')}`
+  const binders = at ? at.binders : `(ρ : Nat → Nat) (μ : Nat → Nat → Nat) ${fns.map(([n, f], j) => `(h${j} : μ ${maps.indexOf(n)} = ${f.lean})`).join(' ')}`
+  const rho = at ? at.rho : 'ρ', mu = at ? at.mu : 'μ', name = at ? 'at' : 'hold'
+  // At one state and maps, each function's equation is the maps' own definition.
+  const given = at ? fns.map(([n, f], j) => `have h${j} : ${mu} ${maps.indexOf(n)} = (${f.lean}) := rfl\n  `).join('') : ''
   const cases = (fs: Law[], h: string) => `rcases ${h} with ${fs.map(() => 'rfl').join(' | ')}\n${fs.map(f => `  · ${tactic(f)}`).join('\n')}`
   return `
 -- The facts hold of the functions' Lean definitions: ${fns.map(([n, f]) => `${n} := ${f.lean}`).join('; ')}.${one.length ? `
-theorem ${id}_facts_hold ${binders} :
-    ∀ l ∈ ${id}_machine.facts, l.Holds ρ μ := by
-  intro l hl
+theorem ${id}_facts_${name} ${binders} :
+    ∀ l ∈ ${id}_machine.facts, l.Holds ${rho} ${mu} := by
+  ${given}intro l hl
   simp only [${id}_machine, List.mem_cons, List.not_mem_nil, or_false] at hl
   ${cases(one, 'hl')}` : ''}${several.length ? `
 -- The facts about several keys, at every value of their further keys.
-theorem ${id}_pfacts_hold ${binders} :
-    ${id}_machine.PFacts ρ μ := by
-  intro p hp
+theorem ${id}_pfacts_${name} ${binders} :
+    ${id}_machine.PFacts ${rho} ${mu} := by
+  ${given}intro p hp
   simp only [${id}_machine, List.mem_cons, List.not_mem_nil, or_false] at hp
   ${cases(several, 'hp')}` : ''}`
 }

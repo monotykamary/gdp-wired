@@ -9,7 +9,7 @@ import {inlineAuthority, inlineLaws, inlineSteps, memberLaws, memberSteps, membe
 import {larger, largerLaws, minuteLaws, minutes, pairsLean, room, roomLaws} from '../examples/functions.ts'
 import {bits, bitsLaws, scope, scopeLaws, scopeSteps} from '../examples/lists.ts'
 import {accountLaws, accountSteps, accounts, approveLaws, hold, holdLaws, holdSteps, jobLaws, jobSteps, jobs, seatLaws, seatSteps, seats} from '../examples/datatypes.ts'
-import {counter, counterLaws, escalation, escalationLaws, fillMeter, fillMeterLaws, ladder, ladderLaws, ledger, ledgerLaws, pump, pumpLive, retries, retryLaws, retrySteps, tank, tankLaws} from '../examples/lemmas.ts'
+import {area, areaLaws, counter, counterLaws, escalation, escalationLaws, fillMeter, fillMeterLaws, ladder, ladderLaws, ledger, ledgerLaws, pump, pumpLive, retries, retryLaws, retrySteps, tank, tankLaws} from '../examples/lemmas.ts'
 import {team, teamLaws, teamSteps} from '../examples/sizes.ts'
 import {allDone, batchLaws, batches, everyTaggedTicket, taggedLaws, taggedTickets, everyLoggedTicket, everyRecountedTicket, everyReview, everyTicket, loggedLaws, loggedTickets, recounted, recountedLaws, reviewLaws, reviews, ticketLaws, tickets} from '../examples/liveness.ts'
 import {leanProject, toLean} from './emit.ts'
@@ -57,6 +57,8 @@ const file = toLean(([
   {id: 'ladder', machine: ladder().machine, laws: ladderLaws()},
   {id: 'tank', machine: tank().machine, laws: tankLaws()},
   // Liveness under weak fairness, its helpful request allowed by a fact about two keys.
+  // A lemma with a product, checked by Lean as the kernel's own proof.
+  {id: 'area', machine: area().machine, laws: areaLaws()},
   {id: 'pump', machine: pump().machine, laws: [], liveness: [pumpLive()]},
   // Records and variants, as the variables they are encoded in.
   {id: 'held', machine: hold().machine, laws: holdLaws(), stepLaws: holdSteps()},

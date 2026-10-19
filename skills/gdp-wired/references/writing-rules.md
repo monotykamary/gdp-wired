@@ -114,12 +114,15 @@ const hold = rule('hold').inputs({op: oneOf('hold', 'refund'), amount: nat, now:
 - At runtime a record is an object with exactly its fields and a variant `{tag, ...that case's fields}`; anything else
   throws a `RangeError`, as a value outside any kind does.
 - They are their fields' variables underneath (`pay.card.amount`, the case's index as `pay`), so every prover,
-  runtime and the Lean export take them as they are. A state variant's case being one of its cases is a law like any
-  other ("the case is one of three") when another law needs it.
+  runtime and the Lean export take them as they are. That a state variant is one of its cases is `r.kindLaws()`, proven
+  by proveRule and proveSteps on their own.
 - In maps and lists: `.maps({Acct: record({limit: nat, spent: nat}).from({limit: 0, spent: 0})})` gives `Acct.at(k)`
   (a record), `Acct.set(k, value)` and `Acct.each(k => value)`; `.items({Queue: Job})` a list of them with `Queue_len`,
   `push`, `pop`, `set`, `insertAt`, `removeAt`, `apply(...ops)`, `has(x)`, `within()`, `increasing(by)`. A map of variants
-  needs "every cell is one of its cases" as a law when another law reads a case (`examples/datatypes.ts`, seats).
+  keeps every cell one of its cases by itself: `r.kindLaws()` (proven by proveSteps beside your laws; pass them to
+  `toLean` with the rest) (`examples/datatypes.ts`, seats).
+- `variant({...}, {tag: 'kind'})` names the case by another key at runtime; `optional(c, value)` is a result that may be
+  missing (`null` from `run`).
 - Not as values: recursive types (a tree). The name `r` is a history's record.
 
 ## Loops
@@ -144,7 +147,8 @@ proveLoop(gcd, [gcd.law('a >= 1', ({a}) => a.atLeast(1)), gcd.law('b >= 1', ({b}
   (`examples/functions.ts`).
 - `recur('delay', {zero: 1, next: (x, d) => min(d.times(2), 64)}, {'at most 64': (x, d) => d.atMost(64)})`: a function
   defined by a recurrence, its lemmas proven by induction when it is made, then facts any rule that reads it uses; with
-  `args: ['cap']` it takes further arguments, with `fns: {rem: modBy(7)}` its step reads other functions, and a fourth
+  `args: ['cap']` it takes further arguments (up to four), with `fns: {rem: modBy(7)}` its step and its start read other
+  functions, and a fourth
   argument states laws between two points (`(x, fx, y, fy) => fx.atMost(fy)`, for every x <= y)
   (`examples/lemmas.ts`, [Lean handoff](lean-handoff.md)).
 - `gdp-wired/compose`: `product`, `interleave`, `refinement(impl, spec, {relation, witness, stutter})`, `steps`,

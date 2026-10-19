@@ -52,7 +52,9 @@ export type Fn = {js: string, lean?: string, recur?: Recurrence}
 // reads x, fx and the arguments, each law between two points x, fx, y, fy (for every x <= y) and the arguments, all
 // proven by induction where the function is made. The kernel knows the function by its facts alone; the Lean export
 // defines it by the recurrence and proves them there.
-export type Recurrence = {args: string[], zero: E, next: E, lemmas: {name: string, holds: C}[], between: {name: string, holds: C}[], uses: Record<string, {arity: number, lean?: string}>}
+export type Recurrence = {args: string[], zero: E, next: E, lemmas: {name: string, holds: C}[], between: {name: string, holds: C}[], uses: Record<string, {arity: number, lean?: string}>,
+  // The machines the lemmas and the laws between were proven by (each with its laws), for the Lean export to check again.
+  proofs?: {lemmas?: {machine: Machine, laws: Law[]}, between?: {machine: Machine, laws: Law[]}}}
 // The events kept so far, each a record of some of its inputs (read as r.<input>). A sum is a state variable worth the
 // sum over the history of a term of the record and the params (a count, a total); a query is an input worth the sum over
 // the history of a term of the record, the params and the request's other inputs (what code reads from a log at the

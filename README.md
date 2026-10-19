@@ -209,8 +209,11 @@ const soon = retry.law('the next try is at most 64 after the last request', ({ne
 - **Records and variants**: `record({limit: nat, blocked: bool})` hands out an object of its fields' values;
   `variant({card: {...}, cash: {...}})` a value with `is(case)` and `match({card: c => ..., cash: c => ...})`, the only
   place a case's fields are read. `Pay.make({tag: 'card', amount, verified})` builds a case to write or to pass to
-  `when`, and `same(a, b)` compares two values of one kind part by part. At runtime a record is an object of its fields
-  and a variant `{tag: 'card', ...fields}`; a field or case the kind doesn't declare is refused. Both are their fields'
+  `when`, and `same(a, b)` compares two values of one kind part by part; `optional(c, value)` is a value present where c
+  holds (a result that may be missing). At runtime a record is an object of its fields and a variant `{tag: 'card',
+  ...fields}` (or the key given, `variant({...}, {tag: 'kind'})`); a field or case the kind doesn't declare is refused.
+  What a kind keeps true of the values a step writes (a case in range, a flag 0 or 1) is a law of its own, `r.kindLaws()`,
+  which proveRule, proveSteps and proveLeadsTo prove beside the laws they are given. Both are their fields'
   variables underneath (`pay.card.amount`, and the case's index as `pay`), so the kernel, both runtimes and the Lean
   twin see nothing new. Maps and lists of them: `.maps({Acct: record({...}).from({...})})` (`Acct.at(k)`,
   `Acct.set(k, value)`, `Acct.each(k => value)`) and `.items({Queue: Job})` (`push`, `pop`, `set`, `insertAt`,
@@ -237,15 +240,17 @@ const soon = retry.law('the next try is at most 64 after the last request', ({ne
   own), and the Lean export takes them as the hypothesis they are, proving them where the function has a Lean
   definition. A function defined and proven in Lean is how a rule reaches past what the kernel decides: `examples/functions.ts`.
 - **Recurrences and their lemmas** (`recur(name, {args, fns, zero, next}, lemmas, between)`): f(0, a..) = zero and
-  f(x + 1, a..) = next(x, f(x, a..), a..), the further arguments `args` (up to three) fixed along the recursion, each term
-  the kernel's own or a read of a function in `fns` (`modBy(7)`, another recurrence). Each lemma is a law about every x
+  f(x + 1, a..) = next(x, f(x, a..), a..), the further arguments `args` (up to four) fixed along the recursion, each term
+  the kernel's own or a read of a function in `fns` (`modBy(7)`, another recurrence), the start's too. Each lemma is a law about every x
   and f(x), proven when the function is made, all of them together by induction (the recurrence run as a machine, each
   lemma a law of it, so one lemma may lean on another, and on the facts of the functions it reads); each law `between`
   is about every x <= y and f(x), f(y) ("never shrinks"), proven by induction on y from x, with the lemmas. One that
   isn't proven throws `Unproven` with the induction step it breaks at. The two equations, the lemmas and the laws
-  between are the function's facts. The runtimes compute f by the recurrence (x steps); the Lean export defines
-  `Recur.<name>` by it (a function of several arguments through an injective pairing, proven so in Lean) and proves
-  every fact there by induction (`examples/lemmas.ts`).
+  between are the function's facts. The runtimes compute f by the recurrence, continuing from the last value computed at
+  the same further arguments (a rule that reads f at a growing count takes one step a request); the Lean export defines
+  `Recur.<name>` by it (a function of several arguments through an injective pairing, proven so in Lean) and checks the
+  kernel's own proof of every lemma and law between: the machine it was proven by, with its trees, and the run of it that
+  reaches x and f(x), so a lemma with a product (squares: f(x) = x·x) needs no tactic of Lean's (`examples/lemmas.ts`).
 - **Liveness** (`rule.leadsTo(name, {from, to, rank, helpful})`, `proveLeadsTo`): whenever `from` holds, `to` holds later in
   every run that takes each helpful request infinitely often; proven by a rank no step raises while waiting and each
   helpful request lowers in its region. `rank` may return several terms (compared in order) and `helpful` may be a list

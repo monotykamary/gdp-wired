@@ -125,3 +125,12 @@ test('a gate over a history: at most cap emails to an account in any hour', () =
   expect(sent).toEqual([true, true, false, false, true, true, false])
   expect(g.request({acct: 2, t: 80})).not.toBeNull() // another account's hour is its own
 })
+
+test('a guard on a condition inside a record of the result', () => {
+  const decide = fun('decide').inputs({level: upTo(3), cleared: bool}).returns(({level, cleared}) => ({verdict: {ok: cleared.or(level.eq(0)), level}}))
+  const mint = guard(defineProof('Ok'), decide, 'verdict.ok', {laws: [decide.law('above public, cleared', ({level}, out) => [out.verdict.ok, level.gt(0)], (_, {cleared}) => cleared)]})
+  name(1, x => {
+    expect(mint({level: 2, cleared: true}, x)?.kind).toBe('Ok')
+    expect(mint({level: 2, cleared: false}, x)).toBeNull()
+  })
+})
