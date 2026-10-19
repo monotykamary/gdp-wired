@@ -16,7 +16,7 @@ printf '{"name":"smoke","private":true,"type":"module"}\n' > package.json
 npm install --no-audit --no-fund --silent "$tarball" "typescript@$(node -p "require('$root/package.json').devDependencies.typescript")" \
   "@gdp-ts/core@$(node -p "require('$root/package.json').devDependencies['@gdp-ts/core']")"
 cat > smoke.mjs <<'JS'
-import {everyKey, min, nat, proveRule, rule, when} from 'gdp-wired'
+import {everyKey, min, nat, proveRule, recur, rule, variant, when} from 'gdp-wired'
 import {interpret} from 'gdp-wired/machine'
 import {leanProject, toLean} from 'gdp-wired/lean'
 const budget = rule('budget').params({b: nat, m: nat}).inputs({c: nat}).state({s: 0})
@@ -47,11 +47,21 @@ const tokens = rule('tokens').inputs({op: nat, token: nat}).maps({Used: 0})
 const redeemed = gate(defineProof('Redeemed'), tokens, 'redeem', {laws: [tokens.law('used at most once', ({Used}) => ({forall: k => Used.at(k).atMost(1)}))]})
 const minted = name(7, t => [redeemed.request({op: 1, token: 7}, t)?.kind, redeemed.request({op: 1, token: 7}, t)])
 if (minted[0] !== 'Redeemed' || minted[1] !== null) throw new Error(`gdp-wired/gdp: minted ${JSON.stringify(minted)}`)
-console.log(`node ${process.version}: proven, kernel accepts; compiled spend 110; Lean project of ${Object.keys(project).length} files; a gate minted once`)
+// A recurrence and its lemma, read at a variant's case: the wait is at most 64.
+const delay = recur('delay', {zero: 1, next: (_, d) => min(d.times(2), 64)}, {'at most 64': (_, d) => d.atMost(64)})
+const Pay = variant({card: {amount: nat}, cash: {}})
+const waits = rule('waits').inputs({pay: Pay, n: nat}).state({w: 0}).fns({delay})
+  .step(({pay, n, delay}) => ({w: pay.match({card: c => min(c.amount, delay(n)), cash: () => 0})}))
+const wv = proveRule(waits, [waits.law('the wait is at most 64', ({w}) => w.atMost(64))])
+if (!wv.proven || !wv.checked) throw new Error(`recur: not proven: ${JSON.stringify(wv)}`)
+const wr = waits.compiled(), w = wr.step({}, wr.init({}), waits.encodeInput({pay: {tag: 'card', amount: 100}, n: 3}))
+if (w.scalars.w !== 8) throw new Error(`recur: compiled wait ${w.scalars.w}, not 8`)
+if (!toLean([{id: 'waits', machine: waits.machine, laws: []}]).includes('def Recur.delay')) throw new Error('gdp-wired/lean: no recurrence defined')
+console.log(`node ${process.version}: proven, kernel accepts; compiled spend 110; Lean project of ${Object.keys(project).length} files; a gate minted once; a recurrence's lemma used`)
 JS
 node smoke.mjs
 cat > consumer.ts <<'TS'
-import {bool, forall, fun, nat, proveRule, proveSteps, rule, type Verdict} from 'gdp-wired'
+import {bool, forall, fun, nat, proveRule, proveSteps, record, recur, rule, variant, type Verdict} from 'gdp-wired'
 import type {Machine} from 'gdp-wired/machine'
 import {check} from 'gdp-wired/kernel'
 import {type LeanItem, toLean} from 'gdp-wired/lean'
@@ -67,7 +77,11 @@ const items: LeanItem[] = [{id: 'caps', machine: product(m, m), laws: []}]
 const text: string = toLean(items)
 const access = fun('access').inputs({cleared: bool}).returns(({cleared}) => ({permit: cleared}))
 const mint: Mint<'CanRead', {cleared: boolean}> = guard(defineProof('CanRead'), access, 'permit', {laws: [access.law('only cleared', (_, out) => out.permit, (_, {cleared}) => cleared)]})
-export {v, s, m, check, text, mint}
+const pay = fun('pay').inputs({p: variant({card: {amount: nat}, cash: {}}), who: record({limit: nat})})
+  .returns(({p, who}) => ({ok: p.match({card: c => c.amount.atMost(who.limit), cash: () => p.is('cash')})}))
+const ok: boolean = pay.run({p: {tag: 'card', amount: 3}, who: {limit: 5}}).ok
+const steps = recur('steps', {zero: 0, next: (_, y) => y.plus(1)}, {'at most x': (x, y) => y.atMost(x)})
+export {v, s, m, check, text, mint, ok, steps}
 TS
 printf '{"compilerOptions":{"strict":true,"noEmit":true,"module":"nodenext","moduleResolution":"nodenext","target":"es2022","lib":["es2022"],"types":[],"skipLibCheck":false},"files":["consumer.ts"]}\n' > tsconfig.json
 npx tsc -p tsconfig.json

@@ -46,7 +46,13 @@ export type Machine = {
 }
 // A function from a key to a natural. `js`: its JavaScript source (k => ...), what the runtimes call; `lean`: a Lean term
 // of type Nat → Nat, for an export that proves the facts of this function in Lean.
-export type Fn = {js: string, lean?: string}
+export type Fn = {js: string, lean?: string, recur?: Recurrence}
+// A function defined by a recurrence on its first argument: f(0, args) = zero, f(x + 1, args) = next, which reads x, prev
+// (f(x, args)), the further arguments by name and the functions in `uses` by name (a map read at its key); each lemma
+// reads x, fx and the arguments, each law between two points x, fx, y, fy (for every x <= y) and the arguments, all
+// proven by induction where the function is made. The kernel knows the function by its facts alone; the Lean export
+// defines it by the recurrence and proves them there.
+export type Recurrence = {args: string[], zero: E, next: E, lemmas: {name: string, holds: C}[], between: {name: string, holds: C}[], uses: Record<string, {arity: number, lean?: string}>}
 // The events kept so far, each a record of some of its inputs (read as r.<input>). A sum is a state variable worth the
 // sum over the history of a term of the record and the params (a count, a total); a query is an input worth the sum over
 // the history of a term of the record, the params and the request's other inputs (what code reads from a log at the

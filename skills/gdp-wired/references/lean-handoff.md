@@ -21,6 +21,44 @@ Each law comes as the twin's theorem and as a plain statement over named
 variables, e.g. `theorem law0 (h : SReach budget_machine ρ μ) : ρ «s» ≤ (ρ «b» + ρ «m»)`,
 for a Lean development to cite. Lean 4.34.0, core only, standard axioms.
 
+## State the lemma instead
+
+When the function is a recurrence on one natural and you can say what it needs, `recur` defines it by the recurrence
+and proves the lemmas by induction itself; the rule then uses them as facts:
+
+```ts
+const delay = recur('delay', {zero: 1, next: (_, d) => min(d.times(2), 64)}, {
+  'at least 1': (_, d) => d.atLeast(1),
+  'at most 64': (_, d) => d.atMost(64),
+})
+const retry = rule('retry').inputs({failed: bool, now: nat}).state({tries: 0, next: 0, last: 0}).fns({delay})
+  .assume(({now, last}) => now.atLeast(last))
+  .step(({failed, now, tries, next, delay}) => ({tries: when(failed, tries.plus(1), 0), next: when(failed.and(now.atLeast(next)), now.plus(delay(tries)), next), last: now}))
+proveRule(retry, [retry.law('the next try is at most 64 after the last request', ({next, last}) => next.atMost(last.plus(64)))]) // proven
+```
+
+- The lemmas are proven when `recur` runs, all together (one may lean on another, as laws do); one that fails throws
+  `Unproven` with the induction step it breaks at (`verdict.witness`, over x and fx). That step need not be a real
+  value of f: a lemma that holds but isn't inductive by itself needs a helper lemma beside it, as a law does.
+- Without the lemmas the same law isn't proven: the two equations say nothing about the delay at an unknown attempt.
+- `toLean` defines `Recur.delay` by the same recurrence and proves `Recur.delay_lemmas` by induction, then the rule's
+  facts from it: nothing is left as a hypothesis.
+- Further arguments (`args: ['cap']`, up to three, fixed along the recursion), functions the step reads (`fns: {rem:
+  modBy(7)}`, another recurrence), and laws between two points (a fourth argument, `(x, fx, y, fy, env) => ...`, for
+  every x <= y, proven by induction on y with the lemmas):
+
+  ```ts
+  const filled = recur('filled', {args: ['cap'], zero: 0, next: (_, f, {cap}) => min(f.plus(1), cap)},
+    {'within the capacity': (_, f, {cap}) => f.atMost(cap)}, {'never drains': (_, f, __, g) => f.atMost(g)})
+  ```
+
+  In Lean a function of several arguments is `Recur.<name>_rec` with its key's function `Recur.<name>` beside it (the
+  builders pair the arguments as (a + b)² + b; `Recur.pair_inj` proves that injective), and each fact the proof uses at
+  several keys goes to the twin with every key but one set to its term, which must read the params alone: a proof that
+  needs a law between two points at two values of the state at once is checked here, not in Lean.
+- A recursion that isn't on a natural (a tree, a list as a value), or a lemma that isn't by induction from 0 or
+  between two points, is the next section.
+
 ## Hand a claim to Lean
 
 When a law needs induction over a recursive structure, or arithmetic with
@@ -45,7 +83,7 @@ definition has its facts stated as hypotheses of the exported theorems.
 ## When to hand off instead of forcing it
 
 - The claim is about every prefix, subtree or element of a recursive value you define.
-- The proof needs a lemma nobody stated.
+- The proof needs a lemma nobody stated, or one `recur` can't take (a recursion that isn't on a natural).
 - The claim multiplies unknowns beyond multiplying two known facts.
 - You need to ship an arbitrary algorithm as its proved source: that is Bend.
 

@@ -61,6 +61,12 @@ All of these are proven automatically, and each proof is also a Lean theorem:
 - **Refinement**: an implementation behaves like a simpler spec, step for step (`examples/composition.ts`).
 - **Functions**: division, remainder, and your own functions, known by their facts; a function defined in Lean brings
   facts proven there (`examples/functions.ts`).
+- **Lemmas you state**: a function defined by a recurrence (`recur`), of one argument or several, reading other
+  functions, and lemmas about it proven by induction, at one point or between two, which every rule that reads it may
+  then use: a backoff delay is at most 64 at every attempt and never shrinks (`examples/lemmas.ts`).
+- **Records and variants**: inputs, state, results, map cells and list items made of named fields, or one of several
+  cases each with fields of its own (a payment by card or in cash, a seat free, held or sold), every case covered
+  (`examples/datatypes.ts`).
 - **Pure functions and two-run laws**: laws about what a function returns, and laws comparing two calls, like "the
   secret never changes the answer". `examples/jev-fabric/` ports a Bend project's policy core and proves all 59 laws its
   Bend proofs state.
@@ -71,7 +77,7 @@ synthesizer finds one and the kernel proves it.
 **What it leaves to Lean or Bend.** Two things, and neither is a gap the next feature closes: proofs the prover would
 have to invent (induction over a recursive structure whose proof needs a lemma nobody stated, and arithmetic with
 products of unknowns beyond multiplying two known facts; integer arithmetic with induction or with products is
-undecidable), and shipping an arbitrary algorithm as its proved source (gdp-wired ships the rule as JavaScript; Bend
+undecidable; a lemma you state about a recurrence is proven, but a recursive datatype as a value is Lean's), and shipping an arbitrary algorithm as its proved source (gdp-wired ships the rule as JavaScript; Bend
 compiles the proved source itself). The full list of what is and isn't in scope is in
 [`docs/comparison.md`](docs/comparison.md#gdp-wireds-scope-in-detail).
 
@@ -145,7 +151,7 @@ The builders (`core/dsl.ts`) hand out typed values for every name you declare; e
 the kernel checks, so nothing in them is trusted.
 
 ```ts
-import {bool, count, forall, maybe, nat, oneOf, proveSteps, relation, rule, yes} from 'gdp-wired'
+import {bool, count, forall, fun, maybe, min, nat, no, oneOf, proveSteps, record, recur, relation, rule, variant, when, yes} from 'gdp-wired'
 
 // Maps and flags: a grant is decided once per step; each map is written once; a map law holds at every key.
 const caps = rule('caps')
@@ -180,12 +186,36 @@ const window = rule('window limit')
 const trial = rule('trial').inputs({plan: oneOf('free', 'pro'), spent: maybe(nat), allowance: maybe(nat)})
 const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => spent.isNone,
   ({plan, spent, allowance}) => plan.match({free: () => spent.match({none: () => yes, some: s => allowance.match({none: () => yes, some: a => s.atLeast(a)})}), pro: () => yes}))
+
+// Records and variants: a payment is by card or in cash, each with fields of its own, read only in `match`.
+const Pay = variant({card: {amount: nat, verified: bool}, cash: {amount: nat}})
+const approve = fun('approve').inputs({pay: Pay, who: record({limit: nat, blocked: bool})})
+  .returns(({pay, who}) => ({ok: who.blocked.not().and(pay.match({card: c => c.verified.and(c.amount.atMost(who.limit)), cash: c => c.amount.atMost(200)}))}))
+const unverified = approve.law('an unverified card is never approved', ({pay}, out) => [pay.match({card: c => c.verified.not(), cash: () => no}), out.ok], () => no)
+
+// A lemma you state, proven by induction: the backoff delay is defined by its recurrence, and its lemmas are facts
+// every rule that reads it may use (its two equations alone don't bound it at an unknown attempt).
+const delay = recur('delay', {zero: 1, next: (_, d) => min(d.times(2), 64)}, {'at least 1': (_, d) => d.atLeast(1), 'at most 64': (_, d) => d.atMost(64)})
+const retry = rule('retry').inputs({failed: bool, now: nat}).state({tries: 0, next: 0, last: 0}).fns({delay})
+  .assume(({now, last}) => now.atLeast(last))
+  .step(({failed, now, tries, next, delay}) => ({tries: when(failed, tries.plus(1), 0), next: when(failed.and(now.atLeast(next)), now.plus(delay(tries)), next), last: now}))
+const soon = retry.law('the next try is at most 64 after the last request', ({next, last}) => next.atMost(last.plus(64)))
 ```
 
 
-- **Kinds**: `nat`, `upTo(k)`, `bool`, `oneOf(...)`, `maybe(kind)`, `int`, `decimal(places)`, `str({like, maxLength})`;
-  their assumptions (a bit is 0 or 1, a choice is in range) go to the kernel by themselves, and
-  `encodeInput`/`encodeParams` turn runtime values into the numbers the machine reads.
+- **Kinds**: `nat`, `upTo(k)`, `bool`, `oneOf(...)`, `maybe(kind)`, `int`, `decimal(places)`, `str({like, maxLength})`,
+  `record({...})`, `variant({...})`; their assumptions (a bit is 0 or 1, a choice is in range) go to the kernel by
+  themselves, and `encodeInput`/`encodeParams` turn runtime values into the numbers the machine reads.
+- **Records and variants**: `record({limit: nat, blocked: bool})` hands out an object of its fields' values;
+  `variant({card: {...}, cash: {...}})` a value with `is(case)` and `match({card: c => ..., cash: c => ...})`, the only
+  place a case's fields are read. `Pay.make({tag: 'card', amount, verified})` builds a case to write or to pass to
+  `when`, and `same(a, b)` compares two values of one kind part by part. At runtime a record is an object of its fields
+  and a variant `{tag: 'card', ...fields}`; a field or case the kind doesn't declare is refused. Both are their fields'
+  variables underneath (`pay.card.amount`, and the case's index as `pay`), so the kernel, both runtimes and the Lean
+  twin see nothing new. Maps and lists of them: `.maps({Acct: record({...}).from({...})})` (`Acct.at(k)`,
+  `Acct.set(k, value)`, `Acct.each(k => value)`) and `.items({Queue: Job})` (`push`, `pop`, `set`, `insertAt`,
+  `removeAt`, `apply`, `has`, `within`, `increasing(by)`), one map per variable of the kind; `rule.decode` reads them back
+  as objects and arrays. Not as values: recursive types (a tree).
 - **State of any kind**: `.state({open: bool.from(true), status: oneOf('new', 'done').from('new'), owner: str().from(''), note: maybe(nat).from(null)})`;
   a step writes each kind's own values, `when(c, a, b)` chooses between any two values of a kind, and `rule.decode(state)`
   reads them back as runtime values.
@@ -206,6 +236,16 @@ const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => s
   take arguments, `perMinute(t)`; the kernel knows each only by its facts (`.facts(...)`, and a library function's
   own), and the Lean export takes them as the hypothesis they are, proving them where the function has a Lean
   definition. A function defined and proven in Lean is how a rule reaches past what the kernel decides: `examples/functions.ts`.
+- **Recurrences and their lemmas** (`recur(name, {args, fns, zero, next}, lemmas, between)`): f(0, a..) = zero and
+  f(x + 1, a..) = next(x, f(x, a..), a..), the further arguments `args` (up to three) fixed along the recursion, each term
+  the kernel's own or a read of a function in `fns` (`modBy(7)`, another recurrence). Each lemma is a law about every x
+  and f(x), proven when the function is made, all of them together by induction (the recurrence run as a machine, each
+  lemma a law of it, so one lemma may lean on another, and on the facts of the functions it reads); each law `between`
+  is about every x <= y and f(x), f(y) ("never shrinks"), proven by induction on y from x, with the lemmas. One that
+  isn't proven throws `Unproven` with the induction step it breaks at. The two equations, the lemmas and the laws
+  between are the function's facts. The runtimes compute f by the recurrence (x steps); the Lean export defines
+  `Recur.<name>` by it (a function of several arguments through an injective pairing, proven so in Lean) and proves
+  every fact there by induction (`examples/lemmas.ts`).
 - **Liveness** (`rule.leadsTo(name, {from, to, rank, helpful})`, `proveLeadsTo`): whenever `from` holds, `to` holds later in
   every run that takes each helpful request infinitely often; proven by a rank no step raises while waiting and each
   helpful request lowers in its region. `rank` may return several terms (compared in order) and `helpful` may be a list
@@ -268,7 +308,7 @@ Lean, compiled natively, wins where the state stays small. Details in [`docs/com
 | `core/` | Machines, the interpreter and JS compiler, the builders, composition (`compose.ts`), the linear solver and its checker, Houdini invariants, models, the first Lean export |
 | `kernel/` | The trusted kernel and the untrusted prover, with soundness fuzz (`kernel.test.ts`, `history.test.ts`) |
 | `lean-kernel/` | The kernel's Lean twin, its soundness proofs, and the exported trees |
-| `examples/` | The builders at work: `domains/` (187 rules across 21 domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `budget.ts`, `gdp.ts` (gdp-ts's example, its checks proven), `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `lists.ts`, `sizes.ts`, `liveness.ts`, `steps.ts` (laws over up to 16 steps), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
+| `examples/` | The builders at work: `domains/` (187 rules across 21 domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `budget.ts`, `gdp.ts` (gdp-ts's example, its checks proven), `datatypes.ts` (records and variants), `lemmas.ts` (recurrences and their lemmas), `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `lists.ts`, `sizes.ts`, `liveness.ts`, `steps.ts` (laws over up to 16 steps), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
 | `docs/` | The comparison with Bend and Lean, and the full scope |
 | `compare/` | The same three rules in gdp-wired, Bend and plain Lean, checked and measured |
 | `research/` | Everything around the library ([`research/README.md`](research/README.md)): the GPU searches (`search/`, `hw/`, `modal-gpu/`), invariant and rank synthesis (`synth/`), relational laws and guard synthesis (`next/`), bit-vector laws (`sat/`), the enumeration and benchmarks (`enum/`, `gpu/`, `perf/`), the first Lean checker (`lean/`) and the first prototype, the audit path (`audit/`) |

@@ -342,12 +342,36 @@ function fnKeys(m: Machine, goals: Goal[]): E[] {
 // value that makes one of its reads one of these (by matching: a function of several arguments reads a paired key), and
 // at the keys themselves.
 const withFacts = (m: Machine, inst: Instances, keys: E[]): Instances => ({...inst, ...Object.fromEntries((m.facts ?? []).filter(f => f.forall).map(f => {
-  if (f.keys?.length) return [f.name, tuples(keys, f.keys.length + 1)]
+  if (f.keys?.length) {
+    // A fact about several keys reads a function of several arguments (at a paired key): each read matched against the
+    // keys the goals read binds some of the fact's keys; one match, or two that agree, binding every key is an instance.
+    const vars = [f.forall!, ...f.keys], reads = fnKeys(m, [{name: '', hyps: [f.holds]}])
+    if (!reads.length) return [f.name, tuples(keys, vars.length)]
+    const partial = reads.flatMap(pattern => keys.flatMap(key => { const b = matchMany(pattern, key, vars); return b ? [b] : [] }))
+    const whole = (b: Record<string, E>) => vars.every(x => x in b)
+    const agree = (a: Record<string, E>, b: Record<string, E>) => Object.entries(b).every(([x, e]) => !(x in a) || JSON.stringify(a[x]) === JSON.stringify(e))
+    const found = [...partial.filter(whole), ...partial.flatMap((a, i) => partial.slice(i + 1).filter(b => agree(a, b)).map(b => ({...a, ...b})).filter(whole))]
+    const had = inst[f.name] ?? [], out = [...had], seen = new Set<string>()
+    for (let t = 0; t < had.length / vars.length; t++) seen.add(JSON.stringify(had.slice(t * vars.length, (t + 1) * vars.length)))
+    for (const b of found) { const tuple = vars.map(x => b[x]!), id = JSON.stringify(tuple); if (!seen.has(id)) { seen.add(id); out.push(...tuple) } }
+    return [f.name, out]
+  }
   const had = inst[f.name] ?? [], seen = new Set(had.map(e => JSON.stringify(e)))
   const reads = fnKeys(m, [{name: '', hyps: [f.holds]}])
   const at = [...keys, ...reads.flatMap(pattern => keys.flatMap(key => { const b = match(pattern, key, f.forall!); return b ? [b] : [] }))]
   return [f.name, [...had, ...at.filter(e => { const id = JSON.stringify(e); return seen.has(id) ? false : (seen.add(id), true) })]]
 }))})
+// The values of the names in xs that make pattern the term, for those it reads, if some do (structurally).
+function matchMany(pattern: E, term: E, xs: string[]): Record<string, E> | undefined {
+  const bound: Record<string, E> = {}
+  const go = (p: E | C, t: E | C): boolean => {
+    if (p.op === 'var' && xs.includes(p.name)) { if (p.name in bound) return JSON.stringify(bound[p.name]) === JSON.stringify(t); bound[p.name] = t as E; return true }
+    if (p.op !== t.op) return false
+    const pe = Object.entries(p), te = t as Record<string, unknown>
+    return pe.every(([k, val]) => k === 'op' || (typeof val === 'object' && val !== null ? (Array.isArray(val) ? Array.isArray(te[k]) && (te[k] as unknown[]).length === val.length && val.every((y, i) => go(y as E, (te[k] as E[])[i]!)) : go(val as E, te[k] as E)) : val === te[k]))
+  }
+  return go(pattern, term) ? bound : undefined
+}
 // The value of x that makes pattern the term, if one does (structurally).
 function match(pattern: E, term: E, x: string): E | undefined {
   let bound: E | undefined

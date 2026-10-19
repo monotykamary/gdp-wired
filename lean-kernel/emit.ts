@@ -2,13 +2,13 @@
 // soundness theorems (Kernel.lean, Progress.lean, StepLaw.lean, Steps.lean, History.lean, Sets.lean) with `decide +kernel`. The
 // emitter is untrusted: it names columns, orders rows and claims cell equalities; Lean checks every claim. Pure string
 // building, so it ships in the package (`gdp-wired/lean`); export-kernel.ts is the repo's script around it.
-import type {C, E, Law, Machine} from '../core/machine.ts'
+import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type Step, add, k, scale, sub} from '../core/solver.ts'
 import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, canon, columnTerm, stateName, termColumn, historyMachine, foldObligations, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, withProducts} from '../kernel/kernel.ts'
 import {grow, proveBuilt, proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
-import {leanTerms} from './lean-terms.ts'
+import {leanSurface, leanTerms} from './lean-terms.ts'
 import {leanLibrary} from './library.ts'
 export {leanLibrary}
 
@@ -420,8 +420,8 @@ export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {s
     ghosts?: string[], after?: (ix: (name: string) => number) => string, historyTampers?: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[],
     refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}, loop?: {loop: Loop, tamper?: {what: string, loop: Loop}}} = {}): string {
   const hm = given.history ? {...given, history: {...given.history, prune: undefined}} : undefined
-  const hplain = hm ? historyMachine(hm) : undefined, m = hplain ? hplain.machine : given
-  const stepLaws = opts.stepLaws ?? [], rf = opts.refined, gv = opts.ghosts ?? []
+  const hplain = hm ? historyMachine(hm) : undefined, stepLaws = opts.stepLaws ?? [], rf = opts.refined, gv = opts.ghosts ?? []
+  const {machine: m, origins} = specializeFacts(hplain ? hplain.machine : given, laws, stepLaws)
   // Every claim about the machine past its laws goes through one pipeline: a claim brings the step laws it needs and
   // the requests it needs proven allowed in a region, the proofs are found and encoded once for all claims, and each
   // claim states its theorem from them (the Lean meaning of each is a theorem in Live.lean, Refine.lean or Ghost.lean).
@@ -673,24 +673,190 @@ def ${id}_proof : List SEntry := ${list(laws.map((_, j) => `${id}_e${j}`))}
 theorem ${id}_check : checkSMachine ${id}_machine ${id}_proof = true := by decide +kernel
 theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_proof, e.Holds ρ M :=
   smachine_sound ${id}_machine ${id}_proof ${id}_check
-${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`})}${factsProof(id, m, mapNames, opts.simp)}${opts.tamper ? `
+${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`})}${factsProof(id, m, mapNames, vars, opts.simp, origins)}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
 example : checkSMachine ${id}_tampered ${id}_proof = false := by decide +kernel` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix)}` : ''}`
 }
 
+// The twin assumes a fact at one key: a fact about several keys (a function of several arguments, a law between two
+// points) goes to it as the facts about one key the proof uses, each the fact at a tuple of the proof's instances with
+// every key but one set to its term, which reads the params alone (the one left is the key whose term reads more). The
+// machine is proven again with them, as the twin will check it (a proof that needs a fact at two keys over the state
+// at once isn't one the twin takes), and each is proven in Lean of the general fact.
+type Origin = {from: Law, at: Record<string, E>}
+function specializeFacts(m: Machine, laws: Law[], stepLaws: StepLaw[]): {machine: Machine, origins: Map<string, Origin>} {
+  const origins = new Map<string, Origin>(), facts = m.facts ?? []
+  if (!facts.some(f => f.keys?.length)) return {machine: m, origins}
+  const r = proveStepLaws(m, laws, stepLaws)
+  if (!r.proven || !r.proof) throw new Error(`${m.name}: not proven (${r.failed?.stuck ?? ''})`)
+  const all: Instances[] = [...Object.values(r.proof.laws.instances), r.proof.instances, ...Object.values(r.proof.perStep ?? {})]
+  const overParams = (t: E) => varsOf({op: '=', a: t, b: t}).every(x => m.params.includes(x)) && !JSON.stringify(t).includes('"op":"get"')
+  const out: Law[] = []
+  for (const f of facts) {
+    if (!f.keys?.length) { out.push(f); continue }
+    const vars = [f.forall!, ...f.keys], seen = new Set<string>()
+    for (const inst of all) {
+      const keys = inst[f.name] ?? []
+      for (let t = 0; t + vars.length <= keys.length; t += vars.length) {
+        const tuple = keys.slice(t, t + vars.length), open = tuple.map((e2, i) => [e2, i] as const).filter(([e2]) => !overParams(e2)).map(([, i]) => i)
+        // A tuple with two keys over the state is left out (the prover offers more instances than a proof uses): if the
+        // proof needs it, proving the machine again without it fails, and says so.
+        if (open.length > 1) continue
+        const left = open[0] ?? 0, at = Object.fromEntries(vars.flatMap((x, i) => (i === left ? [] : [[x, tuple[i]!]])))
+        const id = JSON.stringify([left, at])
+        if (seen.has(id)) continue
+        seen.add(id)
+        const name = `${f.name} #${seen.size}`
+        out.push({name, forall: vars[left]!, holds: substC(f.holds, {vars: at, maps: {}, flags: {}})})
+        origins.set(name, {from: f, at})
+      }
+    }
+  }
+  return {machine: {...m, facts: out}, origins}
+}
+
+// A function defined by a recurrence (core/dsl.ts recur): its Lean definition by the same recurrence, and its lemmas
+// proven together by induction (each case by omega, its min, max and ifs split first), and its laws between two points
+// by induction on the distance. A function of several arguments is `<name>_rec`, its further arguments first, and the
+// function the machine reads is its key's (`<name>`, through Recur.unpair: the arguments paired as the builders pair
+// them, (a + b)² + b, which Recur.pair_inj proves injective). The kernel proved the lemmas by the same inductions; Lean
+// proves them again of the definition.
+const recurArg = (a: string) => `«${a}»`
+// The arguments a key was paired from (the builders' argsKey: left-nested (k + a)² + a), if it was.
+const unpairKey = (key: E, n: number): E[] | undefined => {
+  if (n === 1) return [key]
+  if (key.op !== 'add' || key.a.op !== 'prod' || key.a.a.op !== 'add') return undefined
+  const s = key.a.a, b = key.b
+  if (JSON.stringify(key.a.b) !== JSON.stringify(s) || JSON.stringify(s.b) !== JSON.stringify(b)) return undefined
+  const rest = unpairKey(s.a, n - 1)
+  return rest ? [...rest, b] : undefined
+}
+// f at x (and the further arguments), as Lean reads it.
+const recurCall = (lean: string, r: Recurrence, x: string, args: string[] = r.args.map(recurArg)) => (r.args.length ? `(${lean}_rec ${[...args, x].join(' ')})` : `(${lean} ${x})`)
+type Uses = Record<string, {lean?: string, recur?: Recurrence, arity: number}>
+// A read of a function the recurrence uses: a recurrence by its definition at the unpaired arguments, any other by its
+// Lean term at the key.
+const useRead = (uses: Uses, where: string) => (map: string, key: E, e: (t: E) => string): string => {
+  const u = uses[map]
+  if (!u?.lean) throw new Error(`${where}: ${map} has no Lean definition`)
+  if (u.recur) { const args = unpairKey(key, u.arity); if (!args) throw new Error(`${where}: ${map} read at a key not paired by its arguments`); return recurCall(u.lean, u.recur, e(args[0]!), args.slice(1).map(e)) }
+  return `((${u.lean}) ${e(key)})`
+}
+// The lemmas of the recurrences a term reads, at the keys it reads them, with the names as given.
+const useLemmas = (uses: Uses, t: E | C, names: Record<string, string>, where: string): string[] => {
+  const out: string[] = []
+  const walk = (x: unknown): void => {
+    if (!x || typeof x !== 'object') return
+    const o = x as {op?: string, map?: string, key?: E}
+    if (o.op === 'get' && o.map) {
+      const u = uses[o.map]
+      if (u?.recur?.lemmas.length) {
+        const args = unpairKey(o.key!, u.arity)!, s = leanSurface(names, where, useRead(uses, where)).e
+        out.push(`have := ${u.lean}_lemmas ${[...args.slice(1).map(s), s(args[0]!)].join(' ')}`)
+      }
+    }
+    for (const v of Object.values(o)) walk(v)
+  }
+  walk(t)
+  return [...new Set(out)]
+}
+export function recurToLean(lean: string, r: Recurrence, uses: Uses = {}): string {
+  const binders = r.args.map(a => `(${recurArg(a)} : Nat)`).join(' '), argNames = Object.fromEntries(r.args.map(a => [a, recurArg(a)]))
+  const self = r.args.length ? `${lean}_rec` : lean
+  const read = useRead(uses, lean)
+  const surface = (names: Record<string, string>) => leanSurface({...argNames, ...names}, lean, read)
+  const text = JSON.stringify(r), unfold = [self, ...(text.includes('"op":"min"') ? ['Nat.min_def'] : []), ...(text.includes('"op":"max"') ? ['Nat.max_def'] : [])].join(', ')
+  const lemmaAt = (x: string) => r.lemmas.map(l => `(${surface({x, fx: recurCall(lean, r, x)}).c(l.holds)})`).join(' ∧ ')
+  const close = (haves: string[]) => `${haves.map(h => `${h}; `).join('')}(repeat' split) <;> omega`
+  const step = (n: string) => useLemmas(uses, r.next, {...argNames, x: n, prev: recurCall(lean, r, n)}, lean)
+  const lemmas = r.lemmas.length ? `
+-- ${r.lemmas.map(l => l.name).join('; ')}
+theorem ${lean}_lemmas ${binders} (x : Nat) : ${lemmaAt('x')} := by
+  induction x with
+  | zero => (try simp only [${unfold}]); ${close(useLemmas(uses, {op: 'and', xs: r.lemmas.map(l => l.holds)}, {...argNames, x: '0', fx: recurCall(lean, r, '0')}, lean))}
+  | succ n ih => (try simp only [${unfold}] at ih ⊢); ${close([...step('n'), ...useLemmas(uses, {op: 'and', xs: r.lemmas.map(l => l.holds)}, {...argNames, x: '(n + 1)', fx: recurCall(lean, r, '(n + 1)')}, lean)])}` : ''
+  const args = r.args.map(recurArg).join(' ')
+  const pairAt = (x: string, y: string) => r.between.map(l => `(${surface({x, fx: recurCall(lean, r, x), y, fy: recurCall(lean, r, y)}).c(l.holds)})`).join(' ∧ ')
+  const between = r.between.length ? `
+-- ${r.between.map(l => l.name).join('; ')}, for every x <= y
+theorem ${lean}_between_by ${binders} (x d : Nat) : ${pairAt('x', '(x + d)')} := by
+  induction d with
+  | zero => simp only [Nat.add_zero]; (repeat' split) <;> omega
+  | succ n ih =>
+    rw [show x + (n + 1) = (x + n) + 1 from by omega]
+    ${r.lemmas.length ? `have := ${lean}_lemmas ${args} (x + n); ` : ''}(try simp only [${unfold}] at ih this ⊢); ${close(step('(x + n)'))}
+theorem ${lean}_between ${binders} (x y : Nat) (h : x ≤ y) : ${pairAt('x', 'y')} := by
+  obtain ⟨d, rfl⟩ := Nat.exists_eq_add_of_le h
+  exact ${lean}_between_by ${args} x d` : ''
+  const zero = surface({}).e(r.zero), next = surface({x: 'x', prev: recurCall(lean, r, 'x')}).e(r.next)
+  if (!r.args.length) return `def ${lean} : Nat → Nat\n  | 0 => ${zero}\n  | x + 1 => ${next}${lemmas}${between}`
+  // The key's function: the arguments unpaired, innermost first.
+  const u = (i: number): string => (i === r.args.length ? '(Recur.unpair k)' : `(Recur.unpair ${u(i + 1)}.1)`)
+  const keyOf = (x: string) => r.args.map(recurArg).reduce((k, a) => `((${k} + ${a}) * (${k} + ${a}) + ${a})`, x)
+  return `def ${self} ${binders} : Nat → Nat
+  | 0 => ${zero}
+  | x + 1 => ${next}
+noncomputable def ${lean} (k : Nat) : Nat := ${self} ${r.args.map((_, i) => `${u(i + 1)}.2`).join(' ')} ${u(1)}.1
+theorem ${lean}_key ${binders} (x : Nat) : ${lean} ${keyOf('x')} = ${self} ${args} x := by
+  simp only [${lean}, Recur.unpair_pair]${lemmas}${between}`
+}
+// The pairing the builders read a function of several arguments by, and Lean's inverse of it (choice over the pairs:
+// Recur.pair_inj makes it the pair).
+export const recurPairing = `theorem Recur.pair_inj {a b c d : Nat} (h : (a + b) * (a + b) + b = (c + d) * (c + d) + d) : a = c ∧ b = d := by
+  have sq : ∀ s t : Nat, s < t → s * s + s < t * t := by
+    intro s t hst
+    have h1 : (s + 1) * (s + 1) ≤ t * t := Nat.mul_le_mul hst hst
+    have h2 : (s + 1) * (s + 1) = s * s + s + s + 1 := by simp only [Nat.add_mul, Nat.mul_add, Nat.mul_one, Nat.one_mul]; omega
+    omega
+  have hb : b ≤ a + b := Nat.le_add_left b a
+  have hd : d ≤ c + d := Nat.le_add_left d c
+  rcases Nat.lt_trichotomy (a + b) (c + d) with hlt | heq | hgt
+  · have := sq _ _ hlt; omega
+  · rw [heq] at h; omega
+  · have := sq _ _ hgt; omega
+noncomputable def Recur.unpair (k : Nat) : Nat × Nat :=
+  Classical.epsilon fun p : Nat × Nat => (p.1 + p.2) * (p.1 + p.2) + p.2 = k
+theorem Recur.unpair_pair (a b : Nat) : Recur.unpair ((a + b) * (a + b) + b) = (a, b) := by
+  have h := Classical.epsilon_spec (p := fun p : Nat × Nat => (p.1 + p.2) * (p.1 + p.2) + p.2 = (a + b) * (a + b) + b) ⟨(a, b), rfl⟩
+  obtain ⟨h1, h2⟩ := Recur.pair_inj h
+  exact Prod.ext h1 h2`
+
 // The facts, proven in Lean of the functions' Lean definitions, when every function has one: a run that starts with
-// those functions starts where SReach asks the facts to hold.
-function factsProof(id: string, m: Machine, maps: string[], simp: string[] = []): string {
+// those functions starts where SReach asks the facts to hold. A recurrence's equations unfold its definition (a function
+// of several arguments read at its key first); its lemmas and laws between two points are its theorems at the keys.
+function factsProof(id: string, m: Machine, maps: string[], vars: string[], simp: string[] = [], origins: Map<string, Origin> = new Map()): string {
   const fns = Object.entries(m.fns ?? {}), facts = m.facts ?? []
   if (!facts.length || !fns.length || fns.some(([, f]) => !f.lean)) return ''
+  const recurs = fns.filter(([, f]) => f.recur)
+  simp = [...simp, ...recurs.flatMap(([, f]) => (f.recur!.args.length ? [`${f.lean}_rec`, `${f.lean}_key`] : [f.lean!]))]
+  const at = leanSurface(Object.fromEntries(vars.map((x, j) => [x, `(ρ ${j})`])), `${id}'s facts`)
+  // Each recurrence's key lemma rewrites the function at its key before anything else simplifies the key.
+  const keyed = recurs.filter(([, f]) => f.recur!.args.length).map(([, f]) => `${f.lean}_key`)
+  const tactic = (fact: Law): string => {
+    // The theorem a fact is an instance of, cited first so that both it and the goal are simplified alike.
+    const cite = (): string | undefined => {
+      const o = origins.get(fact.name), general = o?.from ?? fact
+      const owner = recurs.find(([n]) => general.name.startsWith(`${n}: `)), what = owner ? general.name.slice(owner[0].length + 2) : ''
+      if (!owner || !general.forall) return undefined
+      const [, f] = owner, r = f.recur!, keys = [general.forall, ...(general.keys ?? [])]
+      // Each key: the one left (v), or its term, read at the columns.
+      const arg = keys.map(x => (x === fact.forall ? 'v' : `(${at.e(o?.at[x] ?? {op: 'var', name: x})})`))
+      if (r.lemmas.some(l => l.name === what)) return `${f.lean}_lemmas ${[...arg.slice(1), arg[0]!].join(' ')}`
+      if (r.between.some(l => l.name === what)) return `${f.lean}_between ${[...arg.slice(2), arg[0]!, arg[1]!].join(' ')}`
+      return undefined
+    }
+    const c = cite(), hs = [...fns.map((_, j) => `h${j}`)]
+    return `simp only [MLaw.Holds]; (try intro v); ${c ? `have hc := ${c}; ` : ''}simp only [evalC, evalE, upd, ${hs.join(', ')}]${keyed.length ? `; (try simp only [${keyed.join(', ')}])` : ''}; (try simp [${[...hs, ...simp].join(', ')}]${c ? ' at hc ⊢' : ''}); all_goals omega`
+  }
   return `
 -- The facts hold of the functions' Lean definitions: ${fns.map(([n, f]) => `${n} := ${f.lean}`).join('; ')}.
 theorem ${id}_facts_hold (ρ : Nat → Nat) (μ : Nat → Nat → Nat) ${fns.map(([n, f], j) => `(h${j} : μ ${maps.indexOf(n)} = ${f.lean})`).join(' ')} :
     ∀ l ∈ ${id}_machine.facts, l.Holds ρ μ := by
   intro l hl
   simp only [${id}_machine, List.mem_cons, List.not_mem_nil, or_false] at hl
-  rcases hl with ${facts.map(() => 'rfl').join(' | ')} <;> (simp only [MLaw.Holds]; try intro v); all_goals (simp [evalC, evalE, upd, ${[...fns.map((_, j) => `h${j}`), ...simp].join(', ')}]; try omega)`
+  rcases hl with ${facts.map(() => 'rfl').join(' | ')}
+${facts.map(f => `  · ${tactic(f)}`).join('\n')}`
 }
 
 // Machines with a history through Kern.hmachine_sound (History.lean): Lean builds the plain machine (sums as state,
@@ -728,6 +894,19 @@ export function toLean(items: LeanItem[], opts: {title?: string} = {}): string {
   const ident = (id: string) => { const s = id.replace(/[^A-Za-z0-9_]/g, '_'); return /^[A-Za-z]/.test(s) ? s : `x_${s}` }
   const parts: string[] = [], theorems: string[] = []
   let goals = 0
+  // Each recurrence defined once, before the first item that reads it.
+  const recurs = new Map<string, string>()
+  const recurDefs = (m: Machine): string => Object.entries(m.fns ?? {}).filter(([, f]) => f.recur).map(([n, f]) => {
+    // The functions it reads are the machine's <n>.<use>, defined before it (flatFns puts them first).
+    const uses = Object.fromEntries(Object.entries(f.recur!.uses).map(([u, d]) => { const g = m.fns?.[`${n}.${u}`]; return [u, {...d, ...(g?.recur ? {recur: g.recur} : {})}] }))
+    const text = recurToLean(f.lean!, f.recur!, uses), had = recurs.get(f.lean!)
+    if (had !== undefined) { if (had !== text) throw new Error(`${f.lean}: two recurrences of one name`); return '' }
+    const pairing = f.recur!.args.length && !recurs.has('') ? (recurs.set('', recurPairing), `${recurPairing}\n`) : ''
+    recurs.set(f.lean!, text)
+    if (f.recur!.lemmas.length) theorems.push(`${f.lean}_lemmas`)
+    if (f.recur!.between.length) theorems.push(`${f.lean}_between`)
+    return `${pairing}${text}\n`
+  }).join('')
   for (let item of items) {
     const id = ident(item.id)
     if ('machine' in item) {
@@ -741,7 +920,7 @@ export function toLean(items: LeanItem[], opts: {title?: string} = {}): string {
       }
       // One twin: every machine goes to Lean as a machine with sets (one with none, if it has none): its laws, step laws,
       // liveness and ghosts in one export; a machine with a history as its plain machine, and its laws over histories.
-      parts.push(`-- ${item.id}\n${item.lean?.defs ? `${item.lean.defs}\n` : ''}${smachineToLean(id, m, item.laws, {stepLaws: item.stepLaws, ...(item.liveness?.length ? {liveness: item.liveness} : {}),
+      parts.push(`-- ${item.id}\n${recurDefs(m)}${item.lean?.defs ? `${item.lean.defs}\n` : ''}${smachineToLean(id, m, item.laws, {stepLaws: item.stepLaws, ...(item.liveness?.length ? {liveness: item.liveness} : {}),
         ...(item.ghosts?.length ? {ghosts: item.ghosts} : {}), ...(item.lean?.simp ? {simp: item.lean.simp} : {}), ...(item.lean?.after ? {after: item.lean.after} : {})})}`)
       theorems.push(`${id}_laws`, ...(m.history ? [`${id}_hlaws`] : []), ...(item.stepLaws ?? []).map((_, j) => `${id}_step${j}_holds`), ...(item.liveness ?? []).map((_, j) => `${id}_live${j}_holds`))
       if (item.lean?.after) theorems.push(...[...item.lean.after(() => 0).matchAll(/^theorem (\S+)/gm)].map(x2 => x2[1]!))

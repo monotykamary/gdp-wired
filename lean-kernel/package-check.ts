@@ -8,6 +8,8 @@ import {authority, authorityLaws, authorityPairs, authoritySteps, lazyAuthority,
 import {inlineAuthority, inlineLaws, inlineSteps, memberLaws, memberSteps, members} from '../examples/quantifiers.ts'
 import {larger, largerLaws, minuteLaws, minutes, pairsLean, room, roomLaws} from '../examples/functions.ts'
 import {bits, bitsLaws, scope, scopeLaws, scopeSteps} from '../examples/lists.ts'
+import {accountLaws, accountSteps, accounts, approveLaws, hold, holdLaws, holdSteps, jobLaws, jobSteps, jobs, seatLaws, seatSteps, seats} from '../examples/datatypes.ts'
+import {counter, counterLaws, escalation, escalationLaws, ledger, ledgerLaws, fillMeter, fillMeterLaws, retries, retryLaws, retrySteps} from '../examples/lemmas.ts'
 import {team, teamLaws, teamSteps} from '../examples/sizes.ts'
 import {allDone, batchLaws, batches, everyTaggedTicket, taggedLaws, taggedTickets, everyLoggedTicket, everyRecountedTicket, everyReview, everyTicket, loggedLaws, loggedTickets, recounted, recountedLaws, reviewLaws, reviews, ticketLaws, tickets} from '../examples/liveness.ts'
 import {leanProject, toLean} from './emit.ts'
@@ -45,6 +47,18 @@ const file = toLean(([
   {id: 'minutes', machine: minutes().machine, laws: minuteLaws()},
   {id: 'larger', machine: larger.machine, laws: largerLaws},
   {id: 'room', machine: room().machine, laws: roomLaws(), lean: pairsLean},
+  // Recurrences: defined in Lean by the recurrence, their lemmas proven there by induction.
+  {id: 'backoff', machine: retries().machine, laws: retryLaws(), stepLaws: retrySteps()},
+  {id: 'twos', machine: counter().machine, laws: counterLaws()},
+  {id: 'filled', machine: fillMeter().machine, laws: fillMeterLaws()},
+  {id: 'leftovers', machine: ledger().machine, laws: ledgerLaws()},
+  {id: 'growing', machine: escalation().machine, laws: escalationLaws()},
+  // Records and variants, as the variables they are encoded in.
+  {id: 'held', machine: hold().machine, laws: holdLaws(), stepLaws: holdSteps()},
+  {id: 'accounts', machine: accounts().machine, laws: accountLaws(), stepLaws: accountSteps()},
+  {id: 'seats', machine: seats().machine, laws: seatLaws(), stepLaws: seatSteps()},
+  {id: 'jobs', machine: jobs().machine, laws: jobLaws(), stepLaws: jobSteps()},
+  ...approveLaws().map((d, j) => ({id: `approve${j}`, goal: d.goal})),
   {id: 'scope', machine: scope().machine, laws: scopeLaws(), stepLaws: scopeSteps()},
   {id: 'bits', machine: bits().machine, laws: bitsLaws()},
   {id: 'team', machine: team().machine, laws: teamLaws(), stepLaws: teamSteps()},

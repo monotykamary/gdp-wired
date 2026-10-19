@@ -28,9 +28,10 @@ proveRule(uncapped, [bounded]) // {proven: false, goal: 'spend stays within b + 
 search(uncapped.machine, bounded) // {params: {b: 1, m: 0}, trace: [{c: 2}]}
 ```
 
-It decides laws about stateful rules over naturals, maps, sets and logs.
-Recursion it would have to invent a lemma for belongs to Lean or Bend
-([where it fits](references/where-it-fits.md)).
+It decides laws about stateful rules over naturals, records, variants, maps,
+sets and logs, and proves the lemmas you state about a recurrence by
+induction. Recursion it would have to invent a lemma for belongs to Lean or
+Bend ([where it fits](references/where-it-fits.md)).
 
 ## Workflow
 
@@ -38,8 +39,9 @@ When adding or changing a rule whose invariants matter:
 
 1. **Write the rule as the code does it.** One `rule(...)` with the same
    params, inputs, state and step as the production code. Use kinds for what
-   isn't a natural (`bool`, `oneOf`, `maybe`, `int`, `decimal`, `str`), maps
-   for per-key state, `.log` for histories ([writing rules](references/writing-rules.md)).
+   isn't a natural (`bool`, `oneOf`, `maybe`, `int`, `decimal`, `str`), records
+   and variants for objects and tagged unions (`record`, `variant`), maps for
+   per-key state, `.log` for histories ([writing rules](references/writing-rules.md)).
 2. **State the laws a reviewer would ask about.** Invariants with `law`
    ("no day passes its cap"), one-step facts with `stepLaw` ("a balance only
    goes down"), k steps with `stepsLaw`, "eventually" with `leadsTo`,
@@ -62,10 +64,13 @@ When adding or changing a rule whose invariants matter:
 6. **Keep the broken variant.** Next to each proven rule, keep the bug it
    rules out (the uncapped budget) and assert it is refused. It is the
    cheapest regression test you will write.
-7. **Hand off what it doesn't decide.** Recursive structure or products of
-   unknowns: prove the function in Lean, give the rule the function with its
-   facts, export with `toLean` ([Lean handoff](references/lean-handoff.md)).
-   Don't approximate a recursive claim with a bounded one and call it proven.
+7. **State the lemma, or hand off.** A recurrence on one natural (a backoff
+   delay, a fee schedule): define it with `recur` and state the lemmas the
+   rule needs; they are proven by induction and become its facts. Other
+   recursive structure, or products of unknowns: prove the function in Lean,
+   give the rule the function with its facts, export with `toLean`
+   ([Lean handoff](references/lean-handoff.md)). Don't approximate a
+   recursive claim with a bounded one and call it proven.
 
 ## References
 
@@ -73,11 +78,11 @@ Read the one you need:
 
 | File | Read it when |
 |---|---|
-| [`references/writing-rules.md`](references/writing-rules.md) | Writing a rule or a law: kinds, maps, flags, step laws, k-step laws, histories, liveness, decisions, pure functions, two-run laws, loops. |
+| [`references/writing-rules.md`](references/writing-rules.md) | Writing a rule or a law: kinds, records and variants, maps, flags, step laws, k-step laws, histories, liveness, decisions, pure functions, two-run laws, loops. |
 | [`references/reading-verdicts.md`](references/reading-verdicts.md) | A verdict is not `{proven: true, checked: true}`: `stuck: 'sat'`, `stuck: 'unknown'` with `why`, a witness, a search result. |
 | [`references/shipping.md`](references/shipping.md) | Running the proven rule in an app, encoding runtime values, holding existing code to the rule. |
 | [`references/gdp-ts.md`](references/gdp-ts.md) | The codebase uses gdp-ts (`@gdp-ts/core`, a `proofs/` folder), or an authorization check should be proven and demanded at every call site: `guard` and `gate`. |
-| [`references/lean-handoff.md`](references/lean-handoff.md) | Exporting proofs to Lean, or a claim needs recursion or arithmetic the kernel doesn't decide. |
+| [`references/lean-handoff.md`](references/lean-handoff.md) | Exporting proofs to Lean, stating a lemma about a recurrence (`recur`), or a claim needs recursion or arithmetic the kernel doesn't decide. |
 | [`references/where-it-fits.md`](references/where-it-fits.md) | Deciding whether gdp-wired, Lean or Bend should own a claim. |
 
 ## API
@@ -86,13 +91,14 @@ From `gdp-wired`:
 
 | Export | What it is |
 |---|---|
-| `rule(name)` | A rule builder: `.params` `.inputs` `.state` `.maps` `.lists` `.carries` `.flags` `.step` `.pre` `.assume` `.fns` `.facts` `.log` `.sums` `.queries` `.keep` `.relations` `.prune`. |
-| `nat`, `upTo(k)`, `bool`, `oneOf(...)`, `maybe(kind)`, `int`, `decimal(places)`, `str({like, maxLength})` | Kinds; state of any kind with `kind.from(init)`. |
+| `rule(name)` | A rule builder: `.params` `.inputs` `.state` `.maps` (of naturals, or of a kind: `kind.from(v)`) `.lists` `.items` (lists of a kind) `.carries` `.flags` `.step` `.pre` `.assume` `.fns` `.facts` `.log` `.sums` `.queries` `.keep` `.relations` `.prune`. |
+| `nat`, `upTo(k)`, `bool`, `oneOf(...)`, `maybe(kind)`, `int`, `decimal(places)`, `str({like, maxLength})`, `record({...})`, `variant({...})` | Kinds; state of any kind with `kind.from(init)`; a variant's case built with `V.make({tag, ...fields})`, read with `is` and `match`; `same(a, b)` compares two values part by part. |
 | `r.law`, `r.stepLaw`, `r.stepsLaw`, `r.leadsTo`, `r.decide`, `r.relate` | Claims: invariant, one step, k steps (k ≤ 16), liveness, a decision about one request, a decision about two. |
 | `proveRule`, `proveSteps`, `proveLeadsTo`, `proveDecision`, `proveLoop` | Verdicts: `{proven, checked, goal?, stuck?, witness?, why?}`. |
 | `when`, `min`, `max`, `count`, `sum`, `all`, `any`, `not`, `forall`, `everyKey`, `someKey`, `relation` | Terms and conditions; terms have `plus` `minus` (truncated) `times(k)` `mul` `lt` `atMost` `atLeast` `gt` `eq`, conditions `and` `or` `not` `implies`. |
 | `fun(name)`, `loop(name)` | Pure functions (`.returns`, `.law`, `.relate`, `.run`) and loops (`.while`, `.body`, `.rank`). |
 | `fn(arity, js, {facts, lean})`, `divBy(c)`, `modBy(c)` | Functions known by their facts. |
+| `recur(name, {args, fns, zero, next}, lemmas, between)` | A function defined by a recurrence on its first argument (further arguments fixed, other functions read), its lemmas and laws between two points proven by induction when made (`Unproven` otherwise); its equations, lemmas and laws are its facts. |
 | `r.compiled()`, `r.interpreter()`, `r.encodeParams`, `r.encodeInput`, `r.decode`, `r.crossCheck`, `r.compare` | Running and checking the rule. |
 
 Also: `gdp-wired/gdp` (`guard`, `gate`, `Unproven`: gdp-ts proofs minted by proven checks),

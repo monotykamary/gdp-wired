@@ -23,11 +23,12 @@ from a proven `guard` or `gate` ([with gdp-ts](gdp-ts.md)): the policy is proven
 
 ## Hand off to Lean or Bend
 
-- Induction the prover would have to invent (a recursive structure whose proof needs an unstated lemma).
+- Induction the prover would have to invent (a recursive structure whose proof needs an unstated lemma). A
+  recurrence on one natural whose lemma you can state stays here: `recur` proves the lemma by induction.
 - Products of unknowns beyond multiplying two known facts. (Integer arithmetic with induction or products is
   undecidable; no automatic prover closes all of it.)
-- Reals, and datatypes beyond flags, choices, optional facts, bounded naturals, strings and sets (or encoded as a
-  number a Lean function decodes).
+- Reals, and recursive datatypes as values: trees, lists of lists (or encoded as a number a Lean function decodes).
+  Records and variants stay here, as values, in maps and in lists (`record`, `variant`, `.maps`, `.items`).
 - Shipping an arbitrary algorithm as its proved source: Bend compiles the proved program itself; gdp-wired ships the
   rule as JavaScript.
 

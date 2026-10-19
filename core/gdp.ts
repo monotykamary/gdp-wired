@@ -18,7 +18,7 @@
 // nothing and leaves a gate's state as it was; a value that isn't of its kind is refused with the RangeError both
 // runtimes refuse it with. Either way no proof is minted: the proof fails closed.
 import type {Named, NamesOf, Proof, Prover} from '@gdp-ts/core'
-import {type Decision, type Fun, type Rule, type StepLaw, type Verdict, funOf, proveDecision, proveSteps} from './dsl.ts'
+import {type Decision, type Fun, type Rule, type StepLaw, type Verdict, Unproven, funOf, proveDecision, proveSteps} from './dsl.ts'
 import {type Law, type State, evalC, interpret} from './machine.ts'
 import {allowed, requestEnv} from './watch.ts'
 
@@ -27,13 +27,7 @@ type AnyNamed = Named<any, any>
 // Mints a proof of kind K about the named values it is given, or returns null: `args` are the values the condition reads.
 export type Mint<K extends string, A> = <S extends AnyNamed[]>(args: A, ...about: S) => Proof<K, NamesOf<S>> | null
 
-// A verdict that isn't a checked proof, as the error a guard or gate is refused with (the verdict on `.verdict`).
-export class Unproven extends Error {
-  constructor(what: string, readonly verdict: Verdict) {
-    const found = [verdict.goal && `goal ${verdict.goal}`, verdict.stuck, verdict.witness && `a counterexample: ${JSON.stringify(verdict.witness)}`, verdict.why].filter(Boolean).join('; ')
-    super(`${what}: ${verdict.proven ? 'proven, but the kernel did not check the proof' : `not proven${found ? ` (${found})` : ''}`}`)
-  }
-}
+export {Unproven}
 const proven = (what: string, v: Verdict): void => { if (!(v.proven && v.checked)) throw new Unproven(what, v) }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

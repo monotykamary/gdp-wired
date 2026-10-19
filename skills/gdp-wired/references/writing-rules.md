@@ -92,6 +92,36 @@ proveDecision(answer.relate('the key never changes the answer', (a, b) => a.q.eq
 `match` must cover every case. `relate` compares two calls under the same
 params (noninterference); a counterexample shows the second call as `b.<input>`.
 
+## Records and variants
+
+```ts
+import {bool, fun, nat, no, oneOf, proveDecision, record, rule, variant, when} from 'gdp-wired'
+
+const Pay = variant({card: {amount: nat, verified: bool}, cash: {amount: nat}})
+const approve = fun('approve').inputs({pay: Pay, who: record({limit: nat, blocked: bool})})
+  .returns(({pay, who}) => ({ok: who.blocked.not().and(pay.match({card: c => c.verified.and(c.amount.atMost(who.limit)), cash: c => c.amount.atMost(200)}))}))
+proveDecision(approve.law('an unverified card is never approved', ({pay}, out) => [pay.match({card: c => c.verified.not(), cash: () => no}), out.ok], () => no))
+approve.run({pay: {tag: 'card', amount: 40, verified: true}, who: {limit: 100, blocked: false}}) // {ok: true}
+
+const Held = variant({idle: {}, holding: {amount: nat, since: nat}})
+const hold = rule('hold').inputs({op: oneOf('hold', 'refund'), amount: nat, now: nat}).state({at: Held.from({tag: 'idle'})})
+  .step(({op, amount, now, at}) => ({at: when(op.is('hold').and(at.is('idle')), Held.make({tag: 'holding', amount, since: now}), when(op.is('refund'), Held.make({tag: 'idle'}), at))}))
+```
+
+- A record is an object of its fields' values; a variant's fields are read only in `match` (every case, by name), and
+  `is(case)` tests the case. `Held.make({tag, ...fields})` builds a case to write or to pass to `when`; `same(a, b)`
+  compares two values of one kind part by part.
+- At runtime a record is an object with exactly its fields and a variant `{tag, ...that case's fields}`; anything else
+  throws a `RangeError`, as a value outside any kind does.
+- They are their fields' variables underneath (`pay.card.amount`, the case's index as `pay`), so every prover,
+  runtime and the Lean export take them as they are. A state variant's case being one of its cases is a law like any
+  other ("the case is one of three") when another law needs it.
+- In maps and lists: `.maps({Acct: record({limit: nat, spent: nat}).from({limit: 0, spent: 0})})` gives `Acct.at(k)`
+  (a record), `Acct.set(k, value)` and `Acct.each(k => value)`; `.items({Queue: Job})` a list of them with `Queue_len`,
+  `push`, `pop`, `set`, `insertAt`, `removeAt`, `apply(...ops)`, `has(x)`, `within()`, `increasing(by)`. A map of variants
+  needs "every cell is one of its cases" as a law when another law reads a case (`examples/datatypes.ts`, seats).
+- Not as values: recursive types (a tree). The name `r` is a history's record.
+
 ## Loops
 
 ```ts
@@ -112,5 +142,10 @@ proveLoop(gcd, [gcd.law('a >= 1', ({a}) => a.atLeast(1)), gcd.law('b >= 1', ({b}
 - `.lists('Scope')`: a list with `Scope_len` (`examples/lists.ts`).
 - `.fns({perMinute: divBy(60)})` or `fn(arity, js, {facts, lean})`: the kernel knows a function only by its facts
   (`examples/functions.ts`).
+- `recur('delay', {zero: 1, next: (x, d) => min(d.times(2), 64)}, {'at most 64': (x, d) => d.atMost(64)})`: a function
+  defined by a recurrence, its lemmas proven by induction when it is made, then facts any rule that reads it uses; with
+  `args: ['cap']` it takes further arguments, with `fns: {rem: modBy(7)}` its step reads other functions, and a fourth
+  argument states laws between two points (`(x, fx, y, fy) => fx.atMost(fy)`, for every x <= y)
+  (`examples/lemmas.ts`, [Lean handoff](lean-handoff.md)).
 - `gdp-wired/compose`: `product`, `interleave`, `refinement(impl, spec, {relation, witness, stutter})`, `steps`,
   `ghost(m, {name: ever(...) | count(...) | total(...)})` for orderings at any distance (`examples/composition.ts`).

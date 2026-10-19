@@ -1,6 +1,6 @@
 // The README's "Writing laws" snippets, kept here so they type-check and prove (the suite runs this file).
 //   bun examples/readme.ts
-import {bool, count, forall, maybe, nat, oneOf, proveDecision, proveRule, proveSteps, relation, rule, yes} from '../core/dsl.ts'
+import {bool, count, forall, fun, maybe, min, nat, no, oneOf, proveDecision, proveRule, proveSteps, record, recur, relation, rule, variant, when, yes} from '../core/dsl.ts'
 
 // Maps and flags: a grant is decided once per step; each map is written once; a map law holds at every key.
 const caps = rule('caps')
@@ -35,11 +35,27 @@ const trial = rule('trial').inputs({plan: oneOf('free', 'pro'), spent: maybe(nat
 const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => spent.isNone,
   ({plan, spent, allowance}) => plan.match({free: () => spent.match({none: () => yes, some: s => allowance.match({none: () => yes, some: a => s.atLeast(a)})}), pro: () => yes}))
 
+// Records and variants: a payment is by card or in cash, each with fields of its own, read only in `match`.
+const Pay = variant({card: {amount: nat, verified: bool}, cash: {amount: nat}})
+const approve = fun('approve').inputs({pay: Pay, who: record({limit: nat, blocked: bool})})
+  .returns(({pay, who}) => ({ok: who.blocked.not().and(pay.match({card: c => c.verified.and(c.amount.atMost(who.limit)), cash: c => c.amount.atMost(200)}))}))
+const unverified = approve.law('an unverified card is never approved', ({pay}, out) => [pay.match({card: c => c.verified.not(), cash: () => no}), out.ok], () => no)
+
+// A lemma you state, proven by induction: the backoff delay is defined by its recurrence, and its lemmas are facts
+// every rule that reads it may use (its two equations alone don't bound it at an unknown attempt).
+const delay = recur('delay', {zero: 1, next: (_, d) => min(d.times(2), 64)}, {'at least 1': (_, d) => d.atLeast(1), 'at most 64': (_, d) => d.atMost(64)})
+const retry = rule('retry').inputs({failed: bool, now: nat}).state({tries: 0, next: 0, last: 0}).fns({delay})
+  .assume(({now, last}) => now.atLeast(last))
+  .step(({failed, now, tries, next, delay}) => ({tries: when(failed, tries.plus(1), 0), next: when(failed.and(now.atLeast(next)), now.plus(delay(tries)), next), last: now}))
+const soon = retry.law('the next try is at most 64 after the last request', ({next, last}) => next.atMost(last.plus(64)))
+
 const results = {
   'caps: day cap': proveRule(caps, [dayCap]),
   'caps: step laws': proveSteps(caps, [dayCap], [onlyUp, once, twice]),
   'window: ceiling': proveRule(window, [window.law('window ceiling', ({ours, c}) => ours.atMost(c))]),
   'trial: fails closed': proveDecision(failsClosed),
+  'approve: unverified': proveDecision(unverified),
+  'retry: backoff': proveRule(retry, [soon]),
 }
 for (const [what, v] of Object.entries(results)) console.log(`${what.padEnd(22)} proven ${v.proven}, checked ${v.checked}`)
 if (!Object.values(results).every(v => v.proven && v.checked)) process.exit(1)

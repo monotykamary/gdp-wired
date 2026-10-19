@@ -798,6 +798,20 @@
 "timeout": 900
 },
 {
+"name": "datatypes",
+"cmd": "bun test datatypes.test.ts 2>&1 && cd .. && bun examples/datatypes.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "lemmas",
+"cmd": "bun test lemmas.test.ts 2>&1 && cd .. && bun examples/lemmas.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
 "name": "keyterms",
 "cmd": "bun test keyterms.test.ts 2>&1",
 "cwd": "core",
