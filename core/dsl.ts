@@ -15,9 +15,9 @@
 //
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
-import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type MapUpdate, type Request, type State, carriedView, compileFunction, evalC, interpret, loadJs, numbersOf} from './machine.ts'
+import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type MapUpdate, type Request, type State, carriedView, compileFunction, evalC, evalE, interpret, loadJs, numbersOf} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
-import {type Goal, type Liveness, type Loop, type StepLaw, type Tree, check, loopObligations} from '../kernel/kernel.ts'
+import {type Fold, type Goal, type Liveness, type Loop, type StepLaw, type Tree, check, foldObligations, loopObligations} from '../kernel/kernel.ts'
 import {factsFor, grow, proveLaws, proveLiveness, proveStepLaws} from '../kernel/prove.ts'
 
 // --- terms and conditions -------------------------------------------------------------------------------------------
@@ -774,6 +774,82 @@ export class CellsRef<V> {
 // past the end 0 (the kind's empty value, for every kind). The same operations as a list of names, each taking a whole
 // value; `apply` takes several, the first whose condition holds.
 export type ItemsOp = {readonly when: Cond, readonly parts: Record<string, ListOp>, readonly len: TermLike}
+// A list of values of a kind a request carries (an invoice's lines, a batch of transfers): its items one carried map per
+// variable of the kind (<name>.<field>), every cell past the length 0, its length the input <name>_len, and each fold a
+// carried map of the fold's running values (<name>$<fold>: the start at 0, and at i + 1 the step from the value at i and
+// the i-th item). The encoding computes the folds from the items, and every request is assumed to meet their equations
+// (a request that doesn't is not allowed), so `fold.<name>`, the value at the length, is what the fold computes.
+// A lemma about the folds is a law of their running values at every prefix (and its length i): proven by induction when
+// the rule is built (the folds run as a machine over items that are any functions), then assumed of every request at
+// every prefix, which the runtimes check as they check the equations.
+export type ListFold<V> = {from: number, step: (acc: Term, item: V) => TermLike}
+export type ListLemma = (acc: Record<string, Term>, i: Term) => Cond
+export class CarriedList<V, Fd extends string = never> {
+  readonly fold: Record<Fd, Term>
+  constructor(readonly name: string, readonly kind: Kind<V>, readonly len: Term, readonly folds: Record<Fd, ListFold<V>>, private readonly map: (part: string) => MapRef,
+    readonly lemmas: Record<string, ListLemma> = {}) {
+    this.fold = Object.fromEntries(Object.keys(folds).map(f => [f, map(`${name}$${f}`).at(len)])) as Record<Fd, Term>
+  }
+  at(i: TermLike): V { return this.kind.build(this.name, part => this.map(part).at(i)) }
+  // The running value of a fold after the first i items.
+  after(fold: Fd, i: TermLike): Term { return this.map(`${this.name}$${fold}`).at(i) }
+  every(f: (item: V, i: Term) => Cond): Cond { return everyKey(k => k.lt(this.len).implies(f(this.at(k), k))) }
+  some(f: (item: V, i: Term) => Cond): Cond { return this.every((x, i) => f(x, i).not()).not() }
+  has(x: V): Cond { return this.some(y => same(y, x)) }
+  // Each item's `by` below the next one's (so no two alike).
+  increasing(by: (item: V) => Term): Cond { return everyKey(k => k.plus(1).lt(this.len).implies(by(this.at(k)).lt(by(this.at(k.plus(1)))))) }
+  // What every request is assumed to meet: each fold's start, and at every key one condition (the item's own laws and
+  // each fold's step below the length, each lemma up to it), so the prover closes one quantifier, not one per part.
+  equations(): Cond[] {
+    const folds = Object.entries(this.folds) as [string, ListFold<V>][], lemmas = Object.values(this.lemmas)
+    const at = (k: Term) => {
+      const x = this.at(k), steps = folds.map(([f, d]) => this.map(`${this.name}$${f}`).at(k.plus(1)).eq(d.step(this.map(`${this.name}$${f}`).at(k), x)))
+      const below = [...this.kind.invariant(x), ...steps]
+      return all(...(below.length ? [k.lt(this.len).implies(all(...below))] : []), ...(lemmas.length ? [k.atMost(this.len).implies(all(...lemmas.map(l => l(this.running(k), k))))] : []))
+    }
+    const any = this.kind.invariant(this.kind.value(this.name)).length + folds.length + lemmas.length > 0
+    return [...folds.map(([f, d]) => this.map(`${this.name}$${f}`).at(0).eq(d.from)), ...(any ? [everyKey(at)] : [])]
+  }
+  private running(k: Term): Record<string, Term> { return Object.fromEntries(Object.keys(this.folds).map(f => [f, this.after(f as Fd, k)])) }
+  // The lemmas, proven: the folds as a machine counting i up from 0 over items that are functions of i known only by
+  // the kind's own laws, each lemma a law of it (so it holds after every prefix of every list).
+  prove(): Verdict {
+    if (!Object.keys(this.lemmas).length) return {proven: true, checked: true}
+    const parts = this.kind.vars(this.name), fname = (p: string) => `item$${p.replaceAll('.', '$')}`
+    const item = (i: Term) => this.kind.build(this.name, p => new Term({op: 'get', map: fname(p), key: i.e}))
+    // Every item is a value of the kind (its own laws, as a fact of the first part's function).
+    const kindFact: Record<string, Cond | Forall> = this.kind.invariant(this.kind.value(this.name)).length ? {'every item is a value of its kind': forall(k => all(...this.kind.invariant(item(k))))} : {}
+    const fns = Object.fromEntries(parts.map((p, j) => [fname(p), fn(1, 'x => 0', j === 0 ? {facts: () => kindFact} : {})]))
+    const folds = Object.entries(this.folds) as [string, ListFold<V>][]
+    const r: LooseRule = (rule(`${this.name}'s folds, by induction`) as LooseRule).fns(fns).inputs({}).state({i: 0, ...Object.fromEntries(folds.map(([f, d]) => [`acc$${f}`, d.from]))})
+      .step((env: Record<string, Term>) => ({i: env.i!.plus(1), ...Object.fromEntries(folds.map(([f, d]) => [`acc$${f}`, d.step(env[`acc$${f}`]!, item(env.i!))]))}))
+    const accs = (env: Record<string, Term>) => Object.fromEntries(folds.map(([f]) => [f, env[`acc$${f}`]!]))
+    return proveRule(r as never, Object.entries(this.lemmas).map(([n, l]) => r.law(n, (env: Record<string, Term>) => l(accs(env), env.i!))))
+  }
+  // Every carried map it is kept in: the items' parts, then each fold's.
+  get maps(): string[] { return [...this.kind.vars(this.name), ...Object.keys(this.folds).map(f => `${this.name}$${f}`)] }
+  // A request's list as those maps and its length: each fold computed by its step, as the builders compute it.
+  encode(raw: Raw): {maps: Record<string, Map<number, number>>, len: number} {
+    if (!Array.isArray(raw)) throw new RangeError(`${this.name} must be a list, not ${shown(raw)}`)
+    const items = (raw as readonly Raw[]).map(x => this.kind.encode(this.name, x))
+    const maps: Record<string, Map<number, number>> = Object.fromEntries(this.maps.map(m => [m, new Map<number, number>()]))
+    items.forEach((enc, i) => { for (const [part, x] of Object.entries(enc)) if (x !== 0) maps[part]!.set(i, x) })
+    for (const [f, d] of Object.entries(this.folds) as [string, ListFold<V>][]) {
+      const acc = maps[`${this.name}$${f}`]!
+      let value = d.from
+      if (value !== 0) acc.set(0, value)
+      items.forEach((enc, i) => {
+        const item = this.kind.build(this.name, part => new Term({op: 'const', value: enc[part]!}, enc[part]!))
+        const next = valOf(d.step(new Term({op: 'const', value}, value), item))
+        if (next === undefined || !Number.isSafeInteger(next) || next < 0) throw new RangeError(`${this.name}'s fold ${f} reads more than its items`)
+        value = next
+        if (value !== 0) acc.set(i + 1, value)
+      })
+    }
+    return {maps, len: items.length}
+  }
+}
+
 export class ItemsRef<V> {
   constructor(readonly name: string, readonly kind: Kind<V>, readonly len: Term, private readonly list: (part: string) => ListRef) {}
   private get names() { return this.kind.vars(this.name) }
@@ -1180,6 +1256,8 @@ type Spec = {
   // State variables declared by a kind: each a value over the kind's variables (in `state`, one entry each).
   kinded?: [string, Kind<unknown>][]
   carried?: string[]
+  // Lists of a kind a request carries, each with its folds (their maps are carried too).
+  lists2?: [string, Kind<unknown>, Record<string, ListFold<unknown>>, Record<string, ListLemma>][]
   fns?: [string, FnDef][]
   facts?: ((env: never) => Record<string, Cond | Forall>)[]
   flags: ((env: never) => Record<string, Cond>)[]
@@ -1257,6 +1335,21 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   facts(f: (p: P) => Record<string, Cond | Forall>): Rule<P, I, S, M, F, R, Su, Q> { return this.with({facts: [...(this.spec.facts ?? []), f as (env: never) => Record<string, Cond | Forall>]}) }
   // Maps each request carries whole (a set of names, say: cells 0 or 1), every cell past them 0; read like any map.
   carries<const N extends string>(...names: N[]): Rule<P, I & {[k in N]: MapRef}, S, M, F, R, Su, Q> { return this.with({carried: [...(this.spec.carried ?? []), ...names]}) }
+  // A list of values of a kind each request carries, with folds over it and lemmas about the folds (CarriedList):
+  //   .carriesList('Lines', record({amount: nat}), {total: {from: 0, step: (acc, line) => acc.plus(line.amount)}})
+  carriesList<const N extends string, V, Fd extends string = never>(name: N, of: Kind<V>, folds: Record<Fd, ListFold<V>> = {} as Record<Fd, ListFold<V>>,
+    lemmas: Record<string, (acc: Record<Fd, Term>, i: Term) => Cond> = {}): Rule<P, I & {[k in N]: CarriedList<V, Fd>}, S, M, F, R, Su, Q> {
+    const entries = [[name, of, folds, lemmas]] as unknown as [string, Kind<unknown>, Record<string, ListFold<unknown>>, Record<string, ListLemma>][]
+    for (const [n, , fs] of entries) for (const f of Object.keys(fs)) if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(f)) throw new Error(`${n}: ${f} is not a plain fold name`)
+    // The folds' lemmas, proven now (a lemma that isn't throws, with the verdict).
+    for (const [n, k, fs, ls] of entries) {
+      const v2 = new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0), ls).prove()
+      if (!(v2.proven && v2.checked)) throw new Unproven(`${n}'s fold lemmas`, v2)
+    }
+    for (const [n, , fs] of entries) for (const f of Object.keys(fs)) if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(f)) throw new Error(`${n}: ${f} is not a plain fold name`)
+    const maps = entries.flatMap(([n, k, fs]) => [...k.vars(n), ...Object.keys(fs).map(f => `${n}$${f}`)])
+    return this.with({carried: [...(this.spec.carried ?? []), ...maps], inputs: [...this.spec.inputs, ...entries.map(([n]) => [`${n}_len`, nat] as [string, Kind<unknown>])], lists2: [...(this.spec.lists2 ?? []), ...entries]})
+  }
   // Named conditions of the step, decided once per step before it; each call's flags may read the earlier calls'. A flag
   // named again replaces the earlier definition in place (what a variant needs: one call, the step unchanged); the new
   // definition may read only the flags defined before the original's place, as the kernel checks.
@@ -1380,6 +1473,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   //   r.relate('the secret is irrelevant', (a, b) => a.user.eq(b.user), (a, b) => a.allowed.iff(b.allowed))
   relate(name: string, given: (a: P & I, b: P & I) => Cond | Cond[], then: (a: P & I, b: P & I) => Cond): Decision {
     const s = this.spec, b = (n: string) => `b.${n}`, own = [...s.inputs.map(([n]) => n), ...(s.carried ?? [])]
+    if (s.lists2?.length) throw new Error(`${s.name}: a decision about two requests takes no carried list`)
     const second = (env: Record<string, unknown>) => ({...env, ...Object.fromEntries(own.map(n => [n, env[b(n)]]))}) as never
     const pair = new Rule({...s, inputs: [...s.inputs, ...s.inputs.map(([n, k]) => [b(n), k] as [string, Kind<unknown>])], carried: [...(s.carried ?? []), ...(s.carried ?? []).map(b)],
       assume: [...s.assume, ...s.assume.map(f => (env: never) => f(second(env)))], flags: [], step: undefined, record: undefined, sums: [], queries: [], keep: undefined, relations: undefined, prune: undefined})
@@ -1409,7 +1503,11 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const out: Record<string, unknown> = {}
     for (const [n, k] of this.spec.params) out[n] = k.value(n)
     for (const [n, d] of this.spec.fns ?? []) out[n] = fnTerm(n, d)
-    if (parts.inputs !== false) { for (const [n, k] of this.spec.inputs) out[n] = k.value(n); for (const n of this.spec.carried ?? []) out[n] = new MapRef(n, 0) }
+    if (parts.inputs !== false) {
+      for (const [n, k] of this.spec.inputs) out[n] = k.value(n)
+      for (const n of this.spec.carried ?? []) out[n] = new MapRef(n, 0)
+      for (const [n, k, fs, ls] of this.spec.lists2 ?? []) { const l = new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0), ls); for (const part of l.maps) delete out[part]; out[n] = l }
+    }
     if (parts.state !== false) {
       for (const [n] of this.spec.state) out[n] = v(n)
       for (const [n, init] of this.spec.maps) out[n] = new MapRef(n, init)
@@ -1486,7 +1584,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       } else state[n] = hoist.term(termOf(u))
     }
     const pre = [...this.kindAssumptions('params'), ...s.pre.map(f => f(pEnv as never).c)]
-    const assume = [...this.kindAssumptions('inputs'), ...s.assume.map(f => hoist.cond(f(env as never).c))]
+    const assume = [...this.kindAssumptions('inputs'), ...(s.lists2 ?? []).flatMap(([n]) => (env[n] as CarriedList<unknown>).equations().map(c => hoist.cond(c.c))), ...s.assume.map(f => hoist.cond(f(env as never).c))]
     placed()
     // Functions, and their facts: each function's own (named after it), then the rule's.
     // The functions a function reads come first, each named <function>.<use>.
@@ -1664,9 +1762,14 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // Runtime values (numbers, booleans, choice names, null for a missing value) to the variables the machine reads.
   encodeParams(values: {[k in keyof P]: Raw}): Record<string, number> { return encode(this.spec.params, values as Record<string, Raw>) }
   // A carried map is a Set of keys (each cell 1), an array of them, or a Map of key to natural.
-  encodeInput(values: {[k in keyof I]: I[k] extends MapRef ? ReadonlySet<number> | readonly number[] | ReadonlyMap<number, number> : Raw}): Request {
-    const out: Request = encode(this.spec.inputs, values as Record<string, Raw>)
+  // A carried list is an array of its items' runtime values (its length and folds computed from them).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  encodeInput(values: {[k in keyof I]: I[k] extends MapRef ? ReadonlySet<number> | readonly number[] | ReadonlyMap<number, number> : I[k] extends CarriedList<any, any> ? readonly Raw[] : Raw}): Request {
+    const lists = Object.fromEntries((this.spec.lists2 ?? []).map(([n, k, fs]) => [n, new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0)).encode((values as Record<string, Raw>)[n])]))
+    const out: Request = encode(this.spec.inputs, {...values as Record<string, Raw>, ...Object.fromEntries(Object.entries(lists).map(([n, l]) => [`${n}_len`, l.len]))})
+    for (const l of Object.values(lists)) Object.assign(out, l.maps)
     for (const n of this.spec.carried ?? []) {
+      if (n in out) continue
       const given = (values as Record<string, unknown>)[n]
       out[n] = given instanceof Map ? new Map(given as Map<number, number>) : new Map([...(given as Iterable<number>)].map(key => [key, 1] as const))
     }
@@ -1677,6 +1780,11 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   randomInput(rand: Rand, bound: number): Request {
     const out: Request = Object.assign({}, ...this.spec.inputs.map(([n, k]) => k.random(n, rand, bound)))
     for (const n of this.spec.carried ?? []) out[n] = new Map(Array.from({length: bound + 1}, (_, key) => [key, rand(2)] as const).filter(([, cell]) => cell === 1))
+    // A carried list: items drawn by their kind, its length and folds as the encoding computes them.
+    for (const [n, k, fs] of this.spec.lists2 ?? []) {
+      const l = new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0)).encode(Array.from({length: rand(bound + 1)}, () => k.sample(rand, bound)))
+      Object.assign(out, l.maps, {[`${n}_len`]: l.len})
+    }
     return out
   }
   // The state's scalars as runtime values: each kinded variable as its kind decodes it (an integer as one signed
@@ -1911,3 +2019,104 @@ export function crossCheckDecision(d: Decision, opts: {trials?: number, bound?: 
   return {checked}
 }
 export const proveLoop = (l: LoopRule<Obj, Obj, Obj>, laws: Law[]): Verdict => goalsVerdict(loopObligations(l.loop, laws, l.rankTerms))
+
+// --- folds over trees ---------------------------------------------------------------------------------------------------
+
+// A tree as a runtime value: a leaf with its inputs, or a node with its own inputs and two subtrees.
+export type TreeValue<I> = {leaf: I} | {node: I, left: TreeValue<I>, right: TreeValue<I>}
+// A fold over binary trees (the kernel's Fold, proven by Kern.fold_sound in Lean): each leaf's values from its inputs and
+// the params, each node's from its own inputs, the params and its two children's values. A law about the values holds
+// of every tree when it holds at every leaf and at every node whose children meet it: induction over the tree, which
+// the kernel checks as two goals and Lean again.
+//   const rollup = fold('spend roll-up').params({cap: nat}).inputs({c: nat})
+//     .leaf(({c, cap}) => ({spend: min(c, cap), count: 1}))
+//     .node(({c, cap}, l, r) => ({spend: l.spend.plus(r.spend).plus(min(c, cap)), count: l.count.plus(r.count).plus(1)}))
+//   proveFold(rollup, [rollup.law('within the cap', ({spend, count, cap}) => spend.atMost(count.mul(cap)))])
+type FoldSpec = {name: string, params: [string, Kind<unknown>][], inputs: [string, Kind<unknown>][], pre: ((p: never) => Cond)[], assume: ((env: never) => Cond)[],
+  leaf?: (env: never) => Record<string, TermLike>, node?: (env: never, left: never, right: never) => Record<string, TermLike>}
+export class FoldRule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}> {
+  constructor(private readonly spec: FoldSpec) {}
+  private with(more: Partial<FoldSpec>): never { return new FoldRule({...this.spec, ...more}) as never }
+  get name() { return this.spec.name }
+  params<K extends Kinds>(kinds: K): FoldRule<P & ValuesOf<K>, I, S> { return this.with({params: [...this.spec.params, ...Object.entries(kinds)]}) }
+  inputs<K extends Kinds>(kinds: K): FoldRule<P, I & ValuesOf<K>, S> { return this.with({inputs: [...this.spec.inputs, ...Object.entries(kinds)]}) }
+  pre(f: (p: P) => Cond): FoldRule<P, I, S> { return this.with({pre: [...this.spec.pre, f as (p: never) => Cond]}) }
+  // What every leaf's and node's inputs satisfy (with their kinds' own assumptions).
+  assume(f: (env: P & I) => Cond): FoldRule<P, I, S> { return this.with({assume: [...this.spec.assume, f as (env: never) => Cond]}) }
+  leaf<T extends Record<string, TermLike>>(f: (env: P & I) => T): FoldRule<P, I, {[k in keyof T]: Term}> { return this.with({leaf: f as never}) }
+  node(f: (env: P & I, left: S, right: S) => {[k in keyof S]: TermLike}): FoldRule<P, I, S> { return this.with({node: f as never}) }
+  private env(inputs = true): Record<string, unknown> {
+    const out: Record<string, unknown> = {}
+    for (const [n, k] of this.spec.params) out[n] = k.value(n)
+    if (inputs) for (const [n, k] of this.spec.inputs) out[n] = k.value(n)
+    return out
+  }
+  private names(): string[] {
+    if (!this.spec.leaf) throw new Error(`${this.spec.name}: a fold needs a leaf`)
+    return Object.keys(this.spec.leaf(this.env() as never))
+  }
+  private side(prefix: string): Record<string, Term> { return Object.fromEntries(this.names().map(n => [n, v(`${prefix}${n}`)])) }
+  // A law about the values (and the params): it reads no input.
+  law(name: string, f: (env: P & S) => Cond): Law { return {name, holds: f({...this.env(false), ...this.side('')} as never).c} }
+  get fold(): Fold {
+    const s = this.spec
+    if (!s.leaf || !s.node) throw new Error(`${s.name}: a fold needs a leaf and a node`)
+    const env = this.env(), pEnv = this.env(false)
+    const pre = [...s.params.flatMap(([n, k]) => k.assume(n)).map(c => c.c), ...s.pre.map(f => f(pEnv as never).c)]
+    const assume = [...s.inputs.flatMap(([n, k]) => k.assume(n)).map(c => c.c), ...s.assume.map(f => f(env as never).c)]
+    const terms = (r: Record<string, TermLike>) => Object.fromEntries(Object.entries(r).map(([n, t]) => [n, termOf(t)]))
+    const leaf = terms(s.leaf(env as never)), node = terms(s.node(env as never, this.side('l_') as never, this.side('r_') as never))
+    return {name: s.name, params: s.params.flatMap(([n, k]) => k.vars(n)), inputs: s.inputs.flatMap(([n, k]) => k.vars(n)), leaf, node,
+      ...(pre.length ? {pre: pre.length === 1 ? pre[0]! : {op: 'and', xs: pre}} : {}), ...(assume.length ? {assume: assume.length === 1 ? assume[0]! : {op: 'and', xs: assume}} : {})}
+  }
+  // The values of a tree, by the terms that were proven (each leaf's and node's inputs as their kinds encode them; one
+  // that doesn't meet `assume` is refused, as the laws are claimed only of trees that meet it).
+  run(tree: TreeValue<{[k in keyof I]: Raw}>, params: {[k in keyof P]?: Raw} = {}): {[k in keyof S]: number} {
+    const f = this.fold, ps = encode(this.spec.params, params as Record<string, Raw>), none: Machine = {name: f.name, params: [], inputs: [], state: {}, step: {}}
+    const st: State = {scalars: {}, maps: {}}
+    if (f.pre && !evalC(f.pre, ps, st, none)) throw new RangeError(`${f.name}: the params don't meet its precondition`)
+    const go = (t: TreeValue<Record<string, Raw>>): Record<string, number> => {
+      const own = 'leaf' in t ? t.leaf : t.node, env: Record<string, number> = {...ps, ...encode(this.spec.inputs, own)}
+      if (f.assume && !evalC(f.assume, env, st, none)) throw new RangeError(`${f.name}: ${JSON.stringify(own)} doesn't meet its assumption`)
+      if ('leaf' in t) return Object.fromEntries(Object.entries(f.leaf).map(([n, e]) => [n, evalE(e, env, st, none)]))
+      const l = go(t.left), r = go(t.right)
+      const both = {...env, ...Object.fromEntries(Object.entries(l).map(([n, x]) => [`l_${n}`, x])), ...Object.fromEntries(Object.entries(r).map(([n, x]) => [`r_${n}`, x]))}
+      return Object.fromEntries(Object.entries(f.node).map(([n, e]) => [n, evalE(e, both, st, none)]))
+    }
+    return go(tree as TreeValue<Record<string, Raw>>) as never
+  }
+  // The builders against what they built, on random trees: each value by the callbacks' own arithmetic against the
+  // terms the kernel proved (as run evaluates them), and each law's callback against its condition.
+  crossCheck(laws: Law[] = [], opts: {trials?: number, depth?: number, bound?: number, rand?: Rand} = {}): Agreement {
+    const s = this.spec, rand = opts.rand ?? seeded(13), bound = opts.bound ?? 6, f = this.fold
+    let checked = 0
+    const sample = (kinds: [string, Kind<unknown>][]) => Object.fromEntries(kinds.map(([n, k]) => [n, k.sample(rand, bound)]))
+    const tree = (d: number): TreeValue<Record<string, Raw>> => (d === 0 || rand(3) === 0 ? {leaf: sample(s.inputs)} : {node: sample(s.inputs), left: tree(d - 1), right: tree(d - 1)})
+    const known = (vals: Record<string, number>) => Object.fromEntries(Object.entries(vals).map(([n, x]) => [n, new Term({op: 'const', value: x}, x)]))
+    for (let t = 0; t < (opts.trials ?? 200); t++) {
+      const params = sample(s.params), ps = encode(s.params, params)
+      const pv = known(ps), pEnv = Object.fromEntries(s.params.map(([n, k]) => [n, k.build(n, part => pv[part]!)]))
+      const builder = (tr: TreeValue<Record<string, Raw>>): Record<string, number> | undefined => {
+        const own = 'leaf' in tr ? tr.leaf : tr.node, iv = known(encode(s.inputs, own)), env = {...pEnv, ...Object.fromEntries(s.inputs.map(([n, k]) => [n, k.build(n, part => iv[part]!)]))}
+        const out = 'leaf' in tr ? s.leaf!(env as never) : (() => { const l = builder(tr.left), r = builder(tr.right); return l && r ? s.node!(env as never, known(l) as never, known(r) as never) : undefined })()
+        if (!out) return undefined
+        const vals = Object.entries(out).map(([n, x]) => [n, valOf(x)] as const)
+        return vals.every(([, x]) => x !== undefined) ? Object.fromEntries(vals) as Record<string, number> : undefined
+      }
+      const tr = tree(opts.depth ?? 3)
+      let ours: Record<string, number>
+      try { ours = this.run(tr as never, params as never) } catch { continue }
+      const theirs = builder(tr)
+      if (!theirs) continue
+      for (const [n, x] of Object.entries(theirs)) { checked++; if (ours[n] !== x) return {checked, failure: `${f.name}: ${n} is ${x} by its callbacks, ${ours[n]} by the terms proven, for ${JSON.stringify(tr)}`} }
+      for (const law of laws) {
+        const ok = evalC(law.holds, {...ps, ...ours}, {scalars: {}, maps: {}}, {name: f.name, params: [], inputs: [], state: {}, step: {}})
+        checked++
+        if (!ok) return {checked, failure: `${f.name}: law ${law.name} fails for ${JSON.stringify(tr)} with params ${JSON.stringify(params)}`}
+      }
+    }
+    return {checked}
+  }
+}
+export const fold = (name: string): FoldRule => new FoldRule({name, params: [], inputs: [], pre: [], assume: []})
+export const proveFold = (f: FoldRule<Obj, Obj, Obj>, laws: Law[]): Verdict => goalsVerdict(foldObligations(f.fold, laws))

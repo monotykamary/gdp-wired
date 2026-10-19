@@ -9,6 +9,8 @@ import {inlineAuthority, inlineLaws, inlineSteps, memberLaws, memberSteps, membe
 import {larger, largerLaws, minuteLaws, minutes, pairsLean, room, roomLaws} from '../examples/functions.ts'
 import {bits, bitsLaws, scope, scopeLaws, scopeSteps} from '../examples/lists.ts'
 import {accountLaws, accountSteps, accounts, approveLaws, hold, holdLaws, holdSteps, jobLaws, jobSteps, jobs, seatLaws, seatSteps, seats} from '../examples/datatypes.ts'
+import {invoiceLaws, invoiceSteps, invoices} from '../examples/invoices.ts'
+import {rollup, rollupLaws, signoffLaws, signoffs} from '../examples/folds.ts'
 import {area, areaLaws, counter, counterLaws, escalation, escalationLaws, fillMeter, fillMeterLaws, ladder, ladderLaws, ledger, ledgerLaws, pump, pumpLive, retries, retryLaws, retrySteps, tank, tankLaws} from '../examples/lemmas.ts'
 import {team, teamLaws, teamSteps} from '../examples/sizes.ts'
 import {allDone, batchLaws, batches, everyTaggedTicket, taggedLaws, taggedTickets, everyLoggedTicket, everyRecountedTicket, everyReview, everyTicket, loggedLaws, loggedTickets, recounted, recountedLaws, reviewLaws, reviews, ticketLaws, tickets} from '../examples/liveness.ts'
@@ -59,6 +61,10 @@ const file = toLean(([
   // Liveness under weak fairness, its helpful request allowed by a fact about two keys.
   // A lemma with a product, checked by Lean as the kernel's own proof.
   {id: 'area', machine: area().machine, laws: areaLaws()},
+  // A request carrying a list, with folds over it; folds over trees as values.
+  {id: 'invoices', machine: invoices().machine, laws: invoiceLaws(), stepLaws: invoiceSteps()},
+  {id: 'rollup', fold: rollup().fold, laws: rollupLaws()},
+  {id: 'signoffs', fold: signoffs().fold, laws: signoffLaws()},
   {id: 'pump', machine: pump().machine, laws: [], liveness: [pumpLive()]},
   // Records and variants, as the variables they are encoded in.
   {id: 'held', machine: hold().machine, laws: holdLaws(), stepLaws: holdSteps()},

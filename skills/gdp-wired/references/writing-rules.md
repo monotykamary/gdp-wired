@@ -123,7 +123,34 @@ const hold = rule('hold').inputs({op: oneOf('hold', 'refund'), amount: nat, now:
   `toLean` with the rest) (`examples/datatypes.ts`, seats).
 - `variant({...}, {tag: 'kind'})` names the case by another key at runtime; `optional(c, value)` is a result that may be
   missing (`null` from `run`).
-- Not as values: recursive types (a tree). The name `r` is a history's record.
+- The name `r` is a history's record.
+
+## Lists a request carries, and trees
+
+```ts
+const Line = record({sku: nat, amount: nat, taxable: bool})
+const invoices = rule('invoices').params({budget: nat, cap: nat})
+  .carriesList('Lines', Line, {
+    total: {from: 0, step: (acc, l) => acc.plus(l.amount)},
+    taxed: {from: 0, step: (acc, l) => acc.plus(when(l.taxable, l.amount, 0))},
+  }, {'the taxable part is within the total': ({taxed, total}) => taxed.atMost(total)})
+  .state({spent: 0})
+  .flags(({Lines, cap, budget, spent}) => ({ok: Lines.every(l => l.amount.atMost(cap)).and(spent.plus(Lines.fold.total).atMost(budget))}))
+  .step(({Lines, spent, ok}) => ({spent: when(ok, spent.plus(Lines.fold.total), spent)}))
+invoices.encodeInput({Lines: [{sku: 1, amount: 30, taxable: true}]})
+
+const rollup = fold('spend roll-up').params({cap: nat}).inputs({spend: nat})
+  .leaf(({spend, cap}) => ({total: min(spend, cap), teams: 1}))
+  .node(({spend, cap}, l, r) => ({total: l.total.plus(r.total).plus(min(spend, cap)), teams: l.teams.plus(r.teams).plus(1)}))
+proveFold(rollup, [rollup.law('at most the cap per team', ({total, teams, cap}) => total.atMost(teams.mul(cap)))])
+rollup.run({node: {spend: 50}, left: {leaf: {spend: 5}}, right: {leaf: {spend: 9}}}, {cap: 40}) // {total: 54, teams: 3}
+```
+
+- A carried list's folds start at a number and step from the running value and the item alone; their equations are
+  assumed of every request (the encoding computes them, the runtimes check them). A lemma about the folds at every prefix
+  is proven by induction over the items when the rule is built; without it a law that needs it isn't proven.
+- A fold's laws read its values and the params, not the inputs; `toLean` takes `{id, fold: f.fold, laws}`.
+- Not here: a tree in a rule's state, lists of lists, and claims about a structure that need a lemma nobody stated.
 
 ## Loops
 

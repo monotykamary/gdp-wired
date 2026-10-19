@@ -67,6 +67,10 @@ All of these are proven automatically, and each proof is also a Lean theorem:
 - **Records and variants**: inputs, state, results, map cells and list items made of named fields, or one of several
   cases each with fields of its own (a payment by card or in cash, a seat free, held or sold), every case covered
   (`examples/datatypes.ts`).
+- **Lists a request carries, and trees**: an invoice's lines, with folds over them (the total, the taxable part) and
+  lemmas about the folds proven by induction over the lines (`examples/invoices.ts`); a fold over a tree as a value (a
+  spend roll-up over an org chart, sign-offs over a document's sections), its laws proven by induction over the tree
+  (`examples/folds.ts`).
 - **Pure functions and two-run laws**: laws about what a function returns, and laws comparing two calls, like "the
   secret never changes the answer". `examples/jev-fabric/` ports a Bend project's policy core and proves all 59 laws its
   Bend proofs state.
@@ -218,7 +222,19 @@ const soon = retry.law('the next try is at most 64 after the last request', ({ne
   twin see nothing new. Maps and lists of them: `.maps({Acct: record({...}).from({...})})` (`Acct.at(k)`,
   `Acct.set(k, value)`, `Acct.each(k => value)`) and `.items({Queue: Job})` (`push`, `pop`, `set`, `insertAt`,
   `removeAt`, `apply`, `has`, `within`, `increasing(by)`), one map per variable of the kind; `rule.decode` reads them back
-  as objects and arrays. Not as values: recursive types (a tree).
+  as objects and arrays.
+- **Lists a request carries** (`.carriesList('Lines', Line, folds, lemmas)`): the items one carried map per variable of
+  the kind, the length `Lines.len`, each fold (`{total: {from: 0, step: (acc, line) => acc.plus(line.amount)}}`) a
+  carried map of its running values whose equations every request is assumed to meet (the encoding computes them from the
+  array, and a request that doesn't meet them isn't allowed), read as `Lines.fold.total`; `Lines.every`, `some`, `has`,
+  `increasing(by)`, `at(i)`. A lemma about the folds (`({taxed, total}) => taxed.atMost(total)`) is proven by induction
+  over the items when the rule is built, then assumed at every prefix (`examples/invoices.ts`).
+- **Folds over trees** (`fold(name).params(...).inputs(...).leaf(env => ({...})).node((env, left, right) => ({...}))`,
+  `proveFold`): a tree as a value (`{leaf: inputs}` or `{node: inputs, left, right}`), each leaf's values from its inputs
+  and each node's from its own and its children's; a law about the values is proven by induction over the tree (the
+  kernel's leaf and node goals, Lean's `fold_sound`), `f.run(tree, params)` evaluates the terms proven and `f.crossCheck`
+  holds the builders to them (`examples/folds.ts`). A tree in a rule's state, and claims that need a lemma about the
+  tree's shape nobody stated, stay Lean's.
 - **State of any kind**: `.state({open: bool.from(true), status: oneOf('new', 'done').from('new'), owner: str().from(''), note: maybe(nat).from(null)})`;
   a step writes each kind's own values, `when(c, a, b)` chooses between any two values of a kind, and `rule.decode(state)`
   reads them back as runtime values.
@@ -313,7 +329,7 @@ Lean, compiled natively, wins where the state stays small. Details in [`docs/com
 | `core/` | Machines, the interpreter and JS compiler, the builders, composition (`compose.ts`), the linear solver and its checker, Houdini invariants, models, the first Lean export |
 | `kernel/` | The trusted kernel and the untrusted prover, with soundness fuzz (`kernel.test.ts`, `history.test.ts`) |
 | `lean-kernel/` | The kernel's Lean twin, its soundness proofs, and the exported trees |
-| `examples/` | The builders at work: `domains/` (187 rules across 21 domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `budget.ts`, `gdp.ts` (gdp-ts's example, its checks proven), `datatypes.ts` (records and variants), `lemmas.ts` (recurrences and their lemmas), `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `lists.ts`, `sizes.ts`, `liveness.ts`, `steps.ts` (laws over up to 16 steps), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
+| `examples/` | The builders at work: `domains/` (187 rules across 21 domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `budget.ts`, `gdp.ts` (gdp-ts's example, its checks proven), `datatypes.ts` (records and variants), `lemmas.ts` (recurrences and their lemmas), `invoices.ts` (lists a request carries), `folds.ts` (folds over trees), `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `lists.ts`, `sizes.ts`, `liveness.ts`, `steps.ts` (laws over up to 16 steps), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
 | `docs/` | The comparison with Bend and Lean, and the full scope |
 | `compare/` | The same three rules in gdp-wired, Bend and plain Lean, checked and measured |
 | `research/` | Everything around the library ([`research/README.md`](research/README.md)): the GPU searches (`search/`, `hw/`, `modal-gpu/`), invariant and rank synthesis (`synth/`), relational laws and guard synthesis (`next/`), bit-vector laws (`sat/`), the enumeration and benchmarks (`enum/`, `gpu/`, `perf/`), the first Lean checker (`lean/`) and the first prototype, the audit path (`audit/`) |

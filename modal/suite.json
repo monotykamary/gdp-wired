@@ -805,6 +805,20 @@
 "timeout": 900
 },
 {
+"name": "invoices",
+"cmd": "bun test invoices.test.ts 2>&1 && cd .. && bun examples/invoices.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "folds",
+"cmd": "bun test folds.test.ts 2>&1 && cd .. && bun examples/folds.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
 "name": "lemmas",
 "cmd": "bun test lemmas.test.ts 2>&1 && cd .. && bun examples/lemmas.ts 2>&1",
 "cwd": "core",

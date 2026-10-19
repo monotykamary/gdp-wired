@@ -934,6 +934,8 @@ export type LeanItem =
   // composite, the spec allowing every request it is sent, and Refine.lean's `refines`.
   | {id: string, refinement: {impl: Machine, spec: Machine, relation: Law[], witness: Record<string, E>, stutter?: C}}
   | {id: string, loop: Loop, rank: E | E[], laws?: Law[]}
+  // A fold over trees (a fold rule's `.fold`) and its laws, through Kern.fold_sound.
+  | {id: string, fold: Fold, laws: Law[]}
   | {id: string, goal: Goal}
 
 // A Lean file proving each item, to compile against the twin (`leanLibrary`, or `leanProject` for a ready Lake project).
@@ -987,6 +989,9 @@ export function toLean(items: LeanItem[], opts: {title?: string} = {}): string {
     } else if ('loop' in item) {
       parts.push(`-- ${item.id}\n${loopToLean(id, item.loop, item.laws ?? [], item.rank)}`)
       theorems.push(`${id}_halts`)
+    } else if ('fold' in item) {
+      parts.push(`-- ${item.id}\n${foldToLean(id, item.fold, item.laws)}`)
+      theorems.push(`${id}_laws`)
     } else {
       // goalToLean names its theorem t<i>; here it is the item's id.
       const n = goals++
