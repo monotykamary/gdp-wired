@@ -483,9 +483,10 @@ def sliveOk (s : SMachine) (l : Live) : Bool :=
     && l.helps.all (fun h => h.2.all (fun p => s.f.m.inputs.contains p.1 && avoids s.extVars (.eq p.2 p.2) && avoidsMaps s.carried (.eq p.2 p.2)))
 
 -- A step law over sets's proof: (law instances, quantified flag instances, fact instances, several-key instances, tree).
-abbrev SProof := List (Nat × E) × List (Nat × E) × List (Nat × E) × List (Nat × E × List E) × Cert
+-- A proof's instances (laws, quantified flags, facts, laws about several keys, facts about several keys) and its certificate.
+abbrev SProof := List (Nat × E) × List (Nat × E) × List (Nat × E) × List (Nat × E × List E) × List (Nat × E × List E) × Cert
 def sliveStep (l : Live) (w t : C) (p : SProof) : SKStep :=
-  ⟨⟨[w], t, [[]], l.prime, l.primeMaps, p.1, (p.2.2.2.2.1, p.2.2.2.2.2.2)⟩, [[]], p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.2.1, []⟩
+  ⟨⟨[w], t, [[]], l.prime, l.primeMaps, p.1, (p.2.2.2.2.2.1, p.2.2.2.2.2.2.2)⟩, [[]], p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.2.1, []⟩
 def sliveHelpsOk (s : SMachine) (ps : List SEntry) (l : Live) (hp : List SProof) : Bool :=
   l.helps.length == hp.length && (l.helps.zip hp).all (fun x => checkSKStep s ps (sliveStep l (liveHelpWhen l x.1) (liveHelpThen l) x.2))
 
@@ -655,11 +656,11 @@ theorem sreq_holds {s : SMachine} {l : Live} (hok : sliveOk s l = true) {h : C �
 -- facts read no request's variable or map.
 def zeroHyps (s : SMachine) (zkeys : List E) : List C := s.carried.flatMap fun mp => zkeys.map fun t => .eq (.get mp t) (.const 0)
 def sAllowGoal (s : SMachine) (ps : List SEntry) (w : C) (p : SProof) (zkeys : List E) : List C :=
-  [s.f.m.pre] ++ factHyps s p.2.2.1 ++ (scalarHyps (sLaws ps p.2.2.2.1) ++ instHyps (sLaws ps p.2.2.2.1) (sInsts ps p.1 p.2.2.2.1))
+  [s.f.m.pre] ++ factHyps s p.2.2.1 p.2.2.2.2.1 ++ (scalarHyps (sLaws ps p.2.2.2.1) ++ instHyps (sLaws ps p.2.2.2.1) (sInsts ps p.1 p.2.2.2.1))
     ++ [w] ++ closingHyps s p.2.1 ++ zeroHyps s zkeys ++ [.not (inlineC s.f.flags s.f.m.assume)]
 def checkSAllow (s : SMachine) (ps : List SEntry) (w : C) (p : SProof) (zkeys : List E) : Bool :=
   s.facts.all (fun l => avoids s.extVars l.holds && avoidsMaps s.carried l.holds)
-    && checkIn (sAllowGoal s ps w p zkeys) p.2.2.2.2
+    && checkIn (sAllowGoal s ps w p zkeys) p.2.2.2.2.2
 
 -- The request carrying empty sets.
 def noSets : Nat → Nat → Nat := fun _ _ => 0
@@ -700,7 +701,13 @@ theorem sallow_sound (s : SMachine) (ps : List SEntry) (w : C) (p : SProof) (zke
   · rw [noReadsC W M0 M s.f.m.pre hrp, congrC W ρ M s.f.m.pre (fun j hj => hWo j (fun h' =>
       avoids_occ hpreS hj (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ h')))))]
     exact pre_sreach s hpreS hrp hr
-  · exact laws_hyps_true s.facts p.2.2.1 W M0 hfacts c hc
+  · -- The facts about several keys, as the reachable state has them: they read no request and no carried map.
+    have hpf : s.PFacts W M0 := fun f hf' =>
+      holdsOver_transfer f.1 (pfactsOk_parts (sfacts_ok hl) f hf').1 (pfactsOk_parts (sfacts_ok hl) f hf').2.1 f.2
+        (fun i hi => hWo i (fun h' => hi (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ h')))))
+        (fun mp hmp => hMo mp (fun h' => hmp (List.mem_append_left _ (List.mem_append_left _ h'))))
+        (pfacts_sreach s (sfacts_ok hl) hr f hf')
+    exact facthyps_true s p.2.2.1 p.2.2.2.2.1 W M0 (fun f hf' => (pfactsOk_parts (sfacts_ok hl) f hf').2.2) hfacts hpf c hc
   · exact laws_hyps_true _ _ W M0 hlY c (List.mem_append.mpr hc)
   · exact hw
   · exact closing_true s ρ M ι noSets hs p.2.1 c hc
@@ -799,7 +806,7 @@ theorem sleads_wf_sound (s : SMachine) (ps : List SEntry) (l : Live) (sp cp : SP
 -- where the guard holds and the state kept where it doesn't. That it halts is a liveness claim: every request helps,
 -- `to` is the guard failing, and the loop's ranks drop.
 def Loop.machine (l : Loop) : SMachine :=
-  ⟨⟨⟨l.inputs, l.init, [], l.body.map (fun p => (p.1, E.ite l.guard p.2 (.var p.1))), [], l.pre, l.assume⟩, []⟩, [], [], [], [], []⟩
+  ⟨⟨⟨l.inputs, l.init, [], l.body.map (fun p => (p.1, E.ite l.guard p.2 (.var p.1))), [], l.pre, l.assume⟩, []⟩, [], [], [], [], [], []⟩
 
 theorem assoc_guarded (g : C) (i : Nat) : ∀ body : List (Nat × E),
     assoc (body.map fun p => (p.1, E.ite g p.2 (.var p.1))) i = (assoc body i).map fun e => E.ite g e (.var i)
@@ -855,7 +862,7 @@ theorem loop_halts_of (l : Loop) (lv : Live) (hfrom : lv.from_ = trueC) (hto : l
     start := by
       show SReach l.machine (f 0) maps
       rw [hf0]
-      exact SReach.start (s := l.machine) ρ0 maps (fun p hp => by simp [Loop.machine] at hp) h0 (fun l' hl' => by simp [Loop.machine] at hl')
+      exact SReach.start (s := l.machine) ρ0 maps (fun p hp => by simp [Loop.machine] at hp) h0 (fun l' hl' => by simp [Loop.machine] at hl') (fun p hp => by simp [Loop.machine] at hp)
     allowed := fun n => by
       show evalC (sView l.machine (f n) maps (ι n) _).1 (sView l.machine (f n) maps (ι n) _).2 l.assume = true
       rw [sView_loop]; exact ha n

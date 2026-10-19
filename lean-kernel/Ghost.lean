@@ -76,7 +76,7 @@ def SGhosted.vars (g : SGhosted) : List Nat := g.ghosts.map (·.1)
 def SGhosted.full (g : SGhosted) : SMachine :=
   ⟨⟨⟨g.orig.f.m.inputs, g.orig.f.m.init ++ g.ghosts.map (fun x => (x.1, x.2.1)), g.orig.f.m.maps0,
       g.orig.f.m.step ++ g.ghosts.map (fun x => (x.1, x.2.2)), g.orig.f.m.writes, g.orig.f.m.pre, g.orig.f.m.assume⟩, g.orig.f.flags⟩,
-    g.orig.carried, g.orig.every, g.orig.qflags, g.orig.wits, g.orig.facts⟩
+    g.orig.carried, g.orig.every, g.orig.qflags, g.orig.wits, g.orig.facts, g.orig.pfacts⟩
 
 -- The ghosts are new names, and nothing of the original reads them.
 def sghostOk (g : SGhosted) : Bool :=
@@ -167,8 +167,8 @@ theorem sghost_step {ρ ρg : Nat → Nat} (hag : Agree g.vars ρg ρ) (M : Nat 
 theorem sghost_reach : ∀ {ρ M}, SReach g.orig ρ M → ∃ ρg, SReach g.full ρg M ∧ Agree g.vars ρg ρ := by
   intro ρ M hr
   induction hr with
-  | start ρ M hM h0 hfa =>
-    refine ⟨applyS g.full.f.m.init ρ M, SReach.start ρ M hM h0 hfa, fun i hi => ?_⟩
+  | start ρ M hM h0 hfa hpf =>
+    refine ⟨applyS g.full.f.m.init ρ M, SReach.start ρ M hM h0 hfa hpf, fun i hi => ?_⟩
     show applyS (g.orig.f.m.init ++ g.ghosts.map (fun x => (x.1, x.2.1))) ρ M i = applyS g.orig.f.m.init ρ M i
     exact applyS_append_other (by simpa [SGhosted.vars] using hi) ρ M
   | step ρ M ι κ _ ha ih =>
@@ -213,7 +213,7 @@ theorem sghost_run (run : SRun g.orig) : ∃ run' : SRun g.full, run'.req = run.
     sghostFrom_agree g hg run (Classical.choose (sghost_reach g hg run.start), (run.st 0).2) rfl (Classical.choose_spec (sghost_reach g hg run.start)).2⟩
 /-- A run of the original from its start lifts to one of the ghosted machine from its start: each ghost at its start term. -/
 theorem sghost_run_start (run : SRun g.orig) {ρ0 : Nat → Nat} {M0 : Nat → Nat → Nat} (hM : StartMaps g.orig.f.m M0)
-    (hp : evalC ρ0 M0 g.orig.f.m.pre = true) (hfa : ∀ l ∈ g.orig.facts, l.Holds ρ0 M0) (hst : run.st 0 = (applyS g.orig.f.m.init ρ0 M0, M0)) :
+    (hp : evalC ρ0 M0 g.orig.f.m.pre = true) (hfa : ∀ l ∈ g.orig.facts, l.Holds ρ0 M0) (hpf : g.orig.PFacts ρ0 M0) (hst : run.st 0 = (applyS g.orig.f.m.init ρ0 M0, M0)) :
     ∃ run' : SRun g.full, run'.req = run.req ∧ run'.st 0 = (applyS g.full.f.m.init ρ0 M0, M0)
       ∧ ∀ n, (run'.st n).2 = (run.st n).2 ∧ Agree g.vars (run'.st n).1 (run.st n).1 := by
   have hA0 : Agree g.vars (applyS g.full.f.m.init ρ0 M0) (run.st 0).1 := fun i hi => by
@@ -221,7 +221,7 @@ theorem sghost_run_start (run : SRun g.orig) {ρ0 : Nat → Nat} {M0 : Nat → N
     show applyS (g.orig.f.m.init ++ g.ghosts.map (fun x => (x.1, x.2.1))) ρ0 M0 i = applyS g.orig.f.m.init ρ0 M0 i
     exact applyS_append_other (by simpa [SGhosted.vars] using hi) ρ0 M0
   have hM0 : M0 = (run.st 0).2 := by rw [hst]
-  exact ⟨sghostRun g hg run (applyS g.full.f.m.init ρ0 M0, M0) (SReach.start ρ0 M0 hM hp hfa) hM0 hA0, rfl, rfl,
+  exact ⟨sghostRun g hg run (applyS g.full.f.m.init ρ0 M0, M0) (SReach.start ρ0 M0 hM hp hfa hpf) hM0 hA0, rfl, rfl,
     sghostFrom_agree g hg run (applyS g.full.f.m.init ρ0 M0, M0) hM0 hA0⟩
 
 -- A condition that reads no ghost, read where a step reads (its request, its flags decided), reads alike in a run and

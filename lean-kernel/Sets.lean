@@ -8,7 +8,9 @@ reading no flag). Lean decides a quantified flag classically, which only the mea
 
 Functions from outside the rule are maps no step writes (and no request carries); `facts` are laws about the params and
 those maps alone, given rather than proven: a run starts where they hold, so they hold at every state, and every goal may
-assume them at the keys its proof names (`finsts`).
+assume them at the keys its proof names (`finsts`). A fact about several keys (`pfacts`: a function of several
+arguments, a law between two points) is given at every value of its further keys, as a law about several keys holds,
+and a goal assumes it at the tuples its proof names (`pfinsts`).
 
 kernel.ts closes each quantified flag ?f in a goal: ?f ≤ 1; ?f = 0 ∨ body(t) at keys t the proof names (`qinsts`); and
 ?f = 1 ∨ ¬body(w) at a fresh witness w (`wits`). A real step satisfies these with w a failing key when ?f = 0, so a goal
@@ -45,6 +47,7 @@ structure SMachine where
   qflags : List (Nat × Nat × C)    -- (flag variable, bound key, body): 1 when the body holds at every key, else 0
   wits : List (Nat × Nat)          -- (flag variable, its witness variable)
   facts : List MLaw                -- given about the params and the functions (maps no step writes)
+  pfacts : List (MLaw × List Nat)  -- facts about several keys: the fact about its first key, and its further keys
 
 def SMachine.qVars (s : SMachine) : List Nat := s.qflags.map (·.1)
 def SMachine.wVars (s : SMachine) : List Nat := s.wits.map (·.2)
@@ -73,9 +76,17 @@ def everyMaps (s : SMachine) (D : Nat → Nat) (N : Nat → Nat → Nat) : Nat �
 noncomputable def sNext (s : SMachine) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (ι : Nat → Nat) (κ : Nat → Nat → Nat) : (Nat → Nat) × (Nat → Nat → Nat) :=
   (applyS s.f.m.step (sView s ρ M ι κ).1 (sView s ρ M ι κ).2, everyMaps s (sView s ρ M ι κ).1 (sView s ρ M ι κ).2)
 
+-- A law at every value of each of some keys.
+def holdsOver (l : MLaw) (M : Nat → Nat → Nat) : List Nat → (Nat → Nat) → Prop
+  | [], ρ => l.Holds ρ M
+  | g :: gs, ρ => ∀ w, holdsOver l M gs (upd ρ g w)
+
+-- The facts about several keys, each at every value of its further keys.
+def SMachine.PFacts (s : SMachine) (ρ : Nat → Nat) (M : Nat → Nat → Nat) : Prop := ∀ p ∈ s.pfacts, holdsOver p.1 M p.2 ρ
+
 inductive SReach (s : SMachine) : (Nat → Nat) → (Nat → Nat → Nat) → Prop
   | start (ρ : Nat → Nat) (M : Nat → Nat → Nat) : StartMaps s.f.m M → evalC ρ M s.f.m.pre = true → (∀ l ∈ s.facts, l.Holds ρ M) →
-      SReach s (applyS s.f.m.init ρ M) M
+      s.PFacts ρ M → SReach s (applyS s.f.m.init ρ M) M
   | step (ρ : Nat → Nat) (M : Nat → Nat → Nat) (ι : Nat → Nat) (κ : Nat → Nat → Nat) : SReach s ρ M →
       evalC (sView s ρ M ι κ).1 (sView s ρ M ι κ).2 s.f.m.assume = true → SReach s (sNext s ρ M ι κ).1 (sNext s ρ M ι κ).2
 
@@ -90,8 +101,20 @@ def closingHyps (s : SMachine) (qinsts : List (Nat × E)) : List C :=
           | some w => [.or (.eq (.var q.1) (.const 1)) (.not (substC [(q.2.1, .var w.2)] q.2.2))]
           | none => [])
 
--- The facts, at the keys the proof names.
-def factHyps (s : SMachine) (finsts : List (Nat × E)) : List C := scalarHyps s.facts ++ instHyps s.facts finsts
+def trueC : C := .le (.const 0) (.const 0)
+def pairInsts : Nat → List (Nat × E × List E) → List (Nat × E)
+  | _, [] => []
+  | n, p :: ps => (n, p.2.1) :: pairInsts (n + 1) ps
+
+-- A fact about several keys at a tuple, as a fact about its first key: each further key read as the tuple's term.
+def pfactLaw (s : SMachine) (p : Nat × E × List E) : MLaw :=
+  match s.pfacts[p.1]? with
+  | some f => ⟨substC (f.2.zip p.2.2) f.1.holds, f.1.key⟩
+  | none => ⟨trueC, none⟩
+
+-- The facts, at the keys the proof names, and the facts about several keys at the tuples it names.
+def factHyps (s : SMachine) (finsts : List (Nat × E)) (pfinsts : List (Nat × E × List E)) : List C :=
+  scalarHyps s.facts ++ instHyps s.facts finsts ++ instHyps (pfinsts.map (pfactLaw s)) (pairInsts 0 pfinsts)
 
 -- A map written at every key reads, after the step, its value at the key read; any other map as stepRd reads it.
 def stepRdS (s : SMachine) (τ : List (Nat × E)) (rd : Nat → E → E) : Nat → E → E := fun mp k =>
@@ -668,33 +691,24 @@ structure SEntry where
   qinsts : List (Nat × E)     -- (quantified flag, key): where the step goal closes it
   finsts : List (Nat × E)     -- (fact index, key): where both goals assume the facts
   pinsts : List (Nat × E × List E) -- (law index, key, further keys): where the step goal assumes the laws about several keys
+  pfinsts : List (Nat × E × List E) -- (fact index, key, further keys): where both goals assume the facts about several keys
   start : Cert
   step : Cert
 
--- A law at every value of each of some keys.
-def holdsOver (l : MLaw) (M : Nat → Nat → Nat) : List Nat → (Nat → Nat) → Prop
-  | [], ρ => l.Holds ρ M
-  | g :: gs, ρ => ∀ w, holdsOver l M gs (upd ρ g w)
-
 -- What an entry claims: its law, at every value of each further key.
 def SEntry.Holds (e : SEntry) (ρ : Nat → Nat) (M : Nat → Nat → Nat) : Prop := holdsOver e.law M e.keys2 ρ
-
-def trueC : C := .le (.const 0) (.const 0)
 
 -- A law about several keys at a tuple, as a law about every first key: each further key read as the tuple's term.
 def pairLaws (ps : List SEntry) (pinsts : List (Nat × E × List E)) : List MLaw := pinsts.map fun p =>
   match ps[p.1]? with
   | some e => ⟨substC (e.keys2.zip p.2.2) e.law.holds, e.law.key⟩
   | none => ⟨trueC, none⟩
-def pairInsts : Nat → List (Nat × E × List E) → List (Nat × E)
-  | _, [] => []
-  | n, p :: ps => (n, p.2.1) :: pairInsts (n + 1) ps
 -- The laws a frame assumes (the entries' laws, then each pair's) and where (each pair's at its first term).
 def sLaws (ps : List SEntry) (pinsts : List (Nat × E × List E)) : List MLaw := ps.map (·.law) ++ pairLaws ps pinsts
 def sInsts (ps : List SEntry) (insts : List (Nat × E)) (pinsts : List (Nat × E × List E)) : List (Nat × E) := insts ++ pairInsts ps.length pinsts
-def sStartGoal (s : SMachine) (e : SEntry) : List C := [s.f.m.pre] ++ factHyps s e.finsts ++ [.not (substRC s.f.m.init (rdStart s.f.m) (goalOf e.law e.sk))]
+def sStartGoal (s : SMachine) (e : SEntry) : List C := [s.f.m.pre] ++ factHyps s e.finsts e.pfinsts ++ [.not (substRC s.f.m.init (rdStart s.f.m) (goalOf e.law e.sk))]
 def sStepGoal (s : SMachine) (ps : List SEntry) (e : SEntry) : List C :=
-  [s.f.m.pre] ++ factHyps s e.finsts ++ (sFrameHyps s (sLaws ps e.pinsts) (sInsts ps e.insts e.pinsts) e.qinsts trueC).map (substRC (frameSub [] []) (frameRd [] getRd))
+  [s.f.m.pre] ++ factHyps s e.finsts e.pfinsts ++ (sFrameHyps s (sLaws ps e.pinsts) (sInsts ps e.insts e.pinsts) e.qinsts trueC).map (substRC (frameSub [] []) (frameRd [] getRd))
     ++ [.not (substRC (stepSub s.f (frameSub [] []) (frameRd [] getRd)) (stepRdS s (frameSub [] []) (frameRd [] getRd)) (goalOf e.law e.sk))]
 
 -- The machine's terms and the zone a frame keeps apart (the flags, and here the skolem).
@@ -704,19 +718,25 @@ def sTermsOk (s : SMachine) (Z : List Nat) : Bool :=
     && s.f.m.writes.all (fun w => avoidsE (Z ++ s.wVars) (inlineE s.f.flags w.2.1) && avoidsE (Z ++ s.wVars) (inlineE s.f.flags w.2.2) && !s.carried.contains w.1)
     && s.every.all (fun w => avoidsE (Z ++ s.wVars) (inlineE s.f.flags w.2.2) && !Z.contains w.2.1 && !(flagVars s.f.flags).contains w.2.1
         && s.f.flags.all (fun p => !occC w.2.1 p.2) && !s.carried.contains w.1 && !(s.f.m.writes.map (·.1)).contains w.1)
-    && s.facts.all (fun l => avoids Z l.holds)
+    && s.facts.all (fun l => avoids Z l.holds) && s.pfacts.all (fun f => avoids Z f.1.holds)
 
 -- The facts read the params and the functions alone: no request, flag or state variable, and no map a step writes or
 -- a request carries.
-def factsOk (s : SMachine) : Bool :=
+def factsOk1 (s : SMachine) : Bool :=
   s.facts.all fun l => avoids (s.extVars ++ flagVars s.f.flags ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)) l.holds
     && avoidsMaps (s.carried ++ s.every.map (·.1) ++ s.f.m.writes.map (·.1)) l.holds
+-- The facts about several keys alike, each about a first key apart from its further keys.
+def pfactsOk (s : SMachine) : Bool :=
+  s.pfacts.all fun f => avoids (s.extVars ++ flagVars s.f.flags ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)) f.1.holds
+    && avoidsMaps (s.carried ++ s.every.map (·.1) ++ s.f.m.writes.map (·.1)) f.1.holds && f.2.all (fun g => f.1.key != some g)
+def factsOk (s : SMachine) : Bool := factsOk1 s && pfactsOk s
 
 -- The skolem is fresh for the machine: no flag, body, assumption, term or write reads it, nor binds it.
 def skFresh (s : SMachine) (sk : Nat) : Bool :=
   s.f.flags.all (fun p => !occC sk p.2) && s.qflags.all (fun q => !occC sk q.2.2) && !occC sk s.f.m.assume
     && s.f.m.step.all (fun p => !occE sk p.2) && s.f.m.writes.all (fun w => !occE sk w.2.1 && !occE sk w.2.2)
     && s.every.all (fun w => !occE sk w.2.2 && w.2.1 != sk) && s.facts.all (fun l => !occC sk l.holds)
+    && s.pfacts.all (fun f => !occC sk f.1.holds)
 
 -- Further keys: each fresh as a skolem is, not the law's own key, read by no law but those about it, and no entry's skolem.
 def key2Ok (s : SMachine) (ps : List SEntry) (e : SEntry) : Bool :=
@@ -740,8 +760,11 @@ theorem skFresh_parts {s : SMachine} {sk : Nat} (h : skFresh s sk = true) :
       ∧ (∀ p ∈ s.f.m.step, occE sk p.2 = false) ∧ (∀ w ∈ s.f.m.writes, occE sk w.2.1 = false ∧ occE sk w.2.2 = false)
       ∧ (∀ w ∈ s.every, occE sk w.2.2 = false ∧ w.2.1 ≠ sk) ∧ (∀ l ∈ s.facts, occC sk l.holds = false) := by
   simp only [skFresh, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true', bne_iff_ne, ne_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩ := h
+  obtain ⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, _⟩ := h
   exact ⟨h1, h2, h3, h4, h5, h6, h7⟩
+
+theorem skFresh_pfacts {s : SMachine} {sk : Nat} (h : skFresh s sk = true) : ∀ f ∈ s.pfacts, occC sk f.1.holds = false := by
+  simp only [skFresh, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true'] at h; exact h.2
 
 /-! A variable no step reads or writes: setting it commutes with a step -/
 
@@ -821,7 +844,7 @@ theorem sTermsOk_parts {s : SMachine} {Z : List Nat} (h : sTermsOk s Z = true) :
       ∧ (∀ w ∈ s.every, avoidsE (Z ++ s.wVars) (inlineE s.f.flags w.2.2) = true ∧ w.2.1 ∉ Z ∧ w.2.1 ∉ flagVars s.f.flags
           ∧ (∀ p ∈ s.f.flags, occC w.2.1 p.2 = false) ∧ w.1 ∉ s.carried ∧ w.1 ∉ s.f.m.writes.map (·.1)) := by
   simp only [sTermsOk, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true'] at h
-  obtain ⟨⟨⟨⟨hf, hst⟩, hwr⟩, hev⟩, _⟩ := h
+  obtain ⟨⟨⟨⟨⟨hf, hst⟩, hwr⟩, hev⟩, _⟩, _⟩ := h
   refine ⟨hf, hst, fun w hw => ⟨⟨(hwr w hw).1.1, (hwr w hw).1.2⟩, by simpa using (hwr w hw).2⟩, fun w hw => ?_⟩
   obtain ⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩ := hev w hw
   exact ⟨h1, by simpa using h2, by simpa using h3, fun p hp => by simpa using h4 p hp, by simpa using h5, by simpa using h6⟩
@@ -831,7 +854,7 @@ theorem pre_sreach (s : SMachine) (hp : avoids (s.extVars ++ flagVars s.f.flags 
     (hr : readsC s.f.m.pre = false) : ∀ {ρ M}, SReach s ρ M → evalC ρ M s.f.m.pre = true := by
   intro ρ M h
   induction h with
-  | start ρ M _ h0 _ =>
+  | start ρ M _ h0 _ _ =>
     rw [evalC_avoids hp M (ρ' := ρ) (fun i hi => applyS_other (fun h => hi (by simp [h])) ρ M)]; exact h0
   | step ρ M ι κ _ _ ih =>
     rw [noReadsC _ _ M s.f.m.pre hr]
@@ -847,10 +870,12 @@ theorem pre_sreach (s : SMachine) (hp : avoids (s.extVars ++ flagVars s.f.flags 
 
 -- The facts hold in every reachable state: a run starts where they hold, and no step moves what they read.
 theorem facts_sreach (s : SMachine) (hf : factsOk s = true) : ∀ {ρ M}, SReach s ρ M → ∀ l ∈ s.facts, l.Holds ρ M := by
-  simp only [factsOk, List.all_eq_true, Bool.and_eq_true] at hf
+  simp only [factsOk, Bool.and_eq_true] at hf
+  have hf := hf.1
+  simp only [factsOk1, List.all_eq_true, Bool.and_eq_true] at hf
   intro ρ M h
   induction h with
-  | start ρ M _ _ hfa =>
+  | start ρ M _ _ hfa _ =>
     intro l hl
     exact holds_transfer l (hf l hl).1 (MS := []) (by simp [avoidsMaps])
       (fun i hi => applyS_other (fun h => hi (by simp [h])) ρ M) (fun _ _ => rfl) (hfa l hl)
@@ -874,6 +899,8 @@ theorem facts_sreach (s : SMachine) (hf : factsOk s = true) : ∀ {ρ M}, SReach
       simp only [withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmc)]
 
 theorem sTermsOk_facts {s : SMachine} {Z : List Nat} (h : sTermsOk s Z = true) : ∀ l ∈ s.facts, avoids Z l.holds = true := by
+  simp only [sTermsOk, Bool.and_eq_true, List.all_eq_true] at h; exact h.1.2
+theorem sTermsOk_pfacts {s : SMachine} {Z : List Nat} (h : sTermsOk s Z = true) : ∀ f ∈ s.pfacts, avoids Z f.1.holds = true := by
   simp only [sTermsOk, Bool.and_eq_true, List.all_eq_true] at h; exact h.2
 
 -- The facts hold wherever the variables and maps they may read are the state's: away from the request, the flags, the
@@ -883,7 +910,9 @@ theorem facts_frame (s : SMachine) (hfok : factsOk s = true) (Vx Mx : List Nat)
     {ρ : Nat → Nat} {M : Nat → Nat → Nat} {X : Nat → Nat} {N : Nat → Nat → Nat}
     (hX : ∀ i, i ∉ s.extVars → i ∉ Vx → X i = ρ i) (hN : ∀ mp, mp ∉ s.carried → mp ∉ Mx → N mp = M mp)
     (hl : ∀ l ∈ s.facts, l.Holds ρ M) : ∀ l ∈ s.facts, l.Holds X N := by
-  simp only [factsOk, List.all_eq_true, Bool.and_eq_true] at hfok
+  simp only [factsOk, Bool.and_eq_true] at hfok
+  have hfok := hfok.1
+  simp only [factsOk1, List.all_eq_true, Bool.and_eq_true] at hfok
   intro l hl'
   refine holds_transfer (V := (s.extVars ++ flagVars s.f.flags ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)) ++ Vx)
     (MS := (s.carried ++ s.every.map (·.1) ++ s.f.m.writes.map (·.1)) ++ Mx) l
@@ -1016,6 +1045,119 @@ theorem pairLaws_hold (ps : List SEntry) (pinsts : List (Nat × E × List E)) (h
       rw [← hZ]; exact h' v
   · exact htrue
 
+/-! Facts about several keys -/
+
+-- A law at every value of some keys, read where it reads alike, holds alike.
+theorem holdsOver_transfer {V MS : List Nat} (l : MLaw) (hv : avoids V l.holds = true) (hm : avoidsMaps MS l.holds = true) :
+    ∀ (gs : List Nat) {ρ ρ' : Nat → Nat} {M M' : Nat → Nat → Nat}, Agree V ρ ρ' → (∀ mp, mp ∉ MS → M mp = M' mp) →
+      holdsOver l M' gs ρ' → holdsOver l M gs ρ
+  | [], _, _, _, _, hag, hmag, h => holds_transfer l hv hm hag hmag h
+  | g :: gs, ρ, ρ', _, _, hag, hmag, h => fun w =>
+      holdsOver_transfer l hv hm gs (ρ := upd ρ g w) (ρ' := upd ρ' g w) (fun i hi => by
+        simp only [upd]; split
+        · rfl
+        · exact hag i hi) hmag (h w)
+
+-- A law at every value of its further keys holds with each set to a term (the law about its first key, at the tuple).
+theorem holdsOver_subst (l : MLaw) (gs : List Nat) (ts : List E) (hkk : ∀ k, l.key = some k → k ∉ gs)
+    {Y : Nat → Nat} {N : Nat → Nat → Nat} (h : holdsOver l N gs Y) : (⟨substC (gs.zip ts) l.holds, l.key⟩ : MLaw).Holds Y N := by
+  have hany := holdsOver_any gs h
+  have hdom : ∀ i, i ∉ gs → i ∉ (gs.zip ts).map (·.1) := fun i hi hm => by
+    obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hm; exact hi (List.of_mem_zip hq).1
+  cases hk : l.key with
+  | none =>
+    have h' := hany (applyS (gs.zip ts) Y N) (fun i hi => applyS_other (hdom i hi) Y N)
+    simp only [MLaw.Holds, hk] at h' ⊢
+    rw [subst_evalC]; exact h'
+  | some k =>
+    have hkg := hkk k hk
+    simp only [MLaw.Holds, hk]
+    intro v
+    rw [subst_evalC]
+    have h' := hany (fun i => if i ∈ gs then applyS (gs.zip ts) (upd Y k v) N i else Y i) (fun i hi => by simp [hi])
+    simp only [MLaw.Holds, hk] at h'
+    have hZ : upd (fun i => if i ∈ gs then applyS (gs.zip ts) (upd Y k v) N i else Y i) k v = applyS (gs.zip ts) (upd Y k v) N := by
+      funext i
+      by_cases hik : i = k
+      · subst hik; simp only [upd, if_true]; rw [applyS_other (hdom i hkg)]; simp [upd]
+      · simp only [upd, if_neg hik]
+        by_cases hi : i ∈ gs
+        · simp [hi]
+        · simp only [hi, if_false]; rw [applyS_other (hdom i hi)]; simp [upd, hik]
+    rw [← hZ]; exact h' v
+
+theorem pfactsOk_parts {s : SMachine} (h : factsOk s = true) : ∀ f ∈ s.pfacts,
+    avoids (s.extVars ++ flagVars s.f.flags ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)) f.1.holds = true
+      ∧ avoidsMaps (s.carried ++ s.every.map (·.1) ++ s.f.m.writes.map (·.1)) f.1.holds = true ∧ ∀ k, f.1.key = some k → k ∉ f.2 := by
+  simp only [factsOk, pfactsOk, Bool.and_eq_true, List.all_eq_true, bne_iff_ne, ne_eq] at h
+  intro f hf
+  obtain ⟨⟨h1, h2⟩, h3⟩ := h.2 f hf
+  exact ⟨h1, h2, fun k hk hm => h3 k hm (by rw [hk])⟩
+
+-- The facts about several keys at the tuples a goal names hold wherever the facts do.
+theorem pfactLaws_hold (s : SMachine) (pfinsts : List (Nat × E × List E)) (hkk : ∀ f ∈ s.pfacts, ∀ k, f.1.key = some k → k ∉ f.2)
+    {Y : Nat → Nat} {N : Nat → Nat → Nat} (hp : s.PFacts Y N) : ∀ l ∈ pfinsts.map (pfactLaw s), l.Holds Y N := by
+  intro l hl
+  obtain ⟨p, _, rfl⟩ := List.mem_map.mp hl
+  unfold pfactLaw
+  split
+  · rename_i f hf
+    have hfm : f ∈ s.pfacts := List.mem_of_getElem? hf
+    exact holdsOver_subst f.1 f.2 p.2.2 (hkk f hfm) (hp f hfm)
+  · simp [MLaw.Holds, trueC, evalC, evalE]
+
+-- A goal's facts all hold where the facts and the facts about several keys do.
+theorem facthyps_true (s : SMachine) (finsts : List (Nat × E)) (pfinsts : List (Nat × E × List E)) (Y : Nat → Nat) (N : Nat → Nat → Nat)
+    (hkk : ∀ f ∈ s.pfacts, ∀ k, f.1.key = some k → k ∉ f.2) (hf : ∀ l ∈ s.facts, l.Holds Y N) (hp : s.PFacts Y N) :
+    ∀ c ∈ factHyps s finsts pfinsts, evalC Y N c = true := by
+  intro c hc
+  simp only [factHyps] at hc
+  rcases List.mem_append.mp hc with hc | hc
+  · exact laws_hyps_true s.facts finsts Y N hf c hc
+  · exact laws_hyps_true (pfinsts.map (pfactLaw s)) (pairInsts 0 pfinsts) Y N (pfactLaws_hold s pfinsts hkk hp) c (List.mem_append_right _ hc)
+
+-- The facts about several keys hold in every reachable state, and wherever what they read is the state's.
+theorem pfacts_sreach (s : SMachine) (hf : factsOk s = true) : ∀ {ρ M}, SReach s ρ M → s.PFacts ρ M := by
+  have hf := pfactsOk_parts hf
+  intro ρ M h
+  induction h with
+  | start ρ M _ _ _ hpf =>
+    intro f hfm
+    exact holdsOver_transfer f.1 (hf f hfm).1 (MS := []) (by simp [avoidsMaps]) f.2
+      (fun i hi => applyS_other (fun h => hi (by simp [h])) ρ M) (fun _ _ => rfl) (hpf f hfm)
+  | step ρ M ι κ _ _ ih =>
+    intro f hfm
+    refine holdsOver_transfer f.1 (hf f hfm).1 (hf f hfm).2.1 f.2 (fun i hi => ?_) (fun mp hmp => ?_) (ih f hfm)
+    · simp only [sNext, sView]
+      rw [applyS_other (fun h => hi (by simp [h])), decide_other (fun h => hi (by simp [h]))]
+      simp only [decideQ]
+      rw [lookup_none (fun q hq => by
+        simp only [beq_eq_false_iff_ne]; intro he
+        exact hi (by simp only [SMachine.extVars, SMachine.qVars, List.mem_append, List.mem_map]; exact Or.inl (Or.inl (Or.inl (Or.inl (Or.inr ⟨q, hq, he⟩))))))]
+      exact withInputs_other (fun h => hi (by simp only [SMachine.extVars, List.mem_append]; exact Or.inl (Or.inl (Or.inl (Or.inl (Or.inl h)))))) ρ ι
+    · simp only [List.mem_append, not_or] at hmp
+      obtain ⟨⟨hmc, hme⟩, hmw⟩ := hmp
+      funext key
+      simp only [sNext, sView, everyMaps]
+      rw [lookup_none (fun w hw => by simp only [beq_eq_false_iff_ne]; intro he; exact hme (by rw [← he]; exact List.mem_map_of_mem hw))]
+      simp only [writeMaps]
+      rw [lookup_none (fun w hw => by simp only [beq_eq_false_iff_ne]; intro he; exact hmw (by rw [← he]; exact List.mem_map_of_mem hw))]
+      simp only [withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmc)]
+
+theorem pfacts_frame (s : SMachine) (hfok : factsOk s = true) (Vx Mx : List Nat)
+    (hvx : ∀ f ∈ s.pfacts, avoids Vx f.1.holds = true) (hmx : ∀ f ∈ s.pfacts, avoidsMaps Mx f.1.holds = true)
+    {ρ : Nat → Nat} {M : Nat → Nat → Nat} {X : Nat → Nat} {N : Nat → Nat → Nat}
+    (hX : ∀ i, i ∉ s.extVars → i ∉ Vx → X i = ρ i) (hN : ∀ mp, mp ∉ s.carried → mp ∉ Mx → N mp = M mp)
+    (hl : s.PFacts ρ M) : s.PFacts X N := by
+  have hp := pfactsOk_parts hfok
+  intro f hf'
+  refine holdsOver_transfer (V := (s.extVars ++ flagVars s.f.flags ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)) ++ Vx)
+    (MS := (s.carried ++ s.every.map (·.1) ++ s.f.m.writes.map (·.1)) ++ Mx) f.1
+    (by have h1 := (hp f hf').1; simp only [avoids, List.all_append, Bool.and_eq_true] at hvx h1 ⊢; exact ⟨h1, hvx f hf'⟩)
+    (by have h2 := (hp f hf').2.1; simp only [avoidsMaps, List.all_append, Bool.and_eq_true] at hmx h2 ⊢; exact ⟨h2, hmx f hf'⟩) f.2
+    (fun i hi => hX i (fun h => hi (by simp [h])) (fun h => hi (by simp [h])))
+    (fun mp hmp => hN mp (fun h => hmp (by simp [h])) (fun h => hmp (by simp [h]))) (hl f hf')
+
 -- A variable fresh as a skolem: setting it commutes with a step's view and with the step.
 theorem fresh_parts {s : SMachine} {x : Nat} (hf : skFresh s x = true)
     (hc : (s.extVars ++ flagVars s.f.flags ++ s.f.m.init.map (·.1) ++ s.f.m.step.map (·.1)).contains x = false) (ρ : Nat → Nat) (M : Nat → Nat → Nat)
@@ -1049,7 +1191,7 @@ theorem skeys_apart {s : SMachine} {ps : List SEntry} (h : checkSMachine s ps = 
 
 /-- The start: at params that meet the precondition and the facts, with maps as declared, every law holds. -/
 theorem sstart_case (s : SMachine) (ps : List SEntry) (h : checkSMachine s ps = true) (ρ : Nat → Nat) (M : Nat → Nat → Nat)
-    (hM : StartMaps s.f.m M) (h0 : evalC ρ M s.f.m.pre = true) (hfa : ∀ l ∈ s.facts, l.Holds ρ M) :
+    (hM : StartMaps s.f.m M) (h0 : evalC ρ M s.f.m.pre = true) (hfa : ∀ l ∈ s.facts, l.Holds ρ M) (hpf : s.PFacts ρ M) :
     ∀ e ∈ ps, e.law.Holds (applyS s.f.m.init ρ M) M := by
   simp only [checkSMachine, List.all_eq_true, Bool.and_eq_true, Bool.not_eq_true'] at h
   obtain ⟨⟨⟨⟨⟨_, _⟩, _⟩, _⟩, hfok⟩, h⟩ := h
@@ -1067,8 +1209,11 @@ theorem sstart_case (s : SMachine) (ps : List SEntry) (h : checkSMachine s ps = 
       · rfl)]
     exact h0
   · -- The facts hold at the start, and read not the skolem.
-    exact laws_hyps_true s.facts e.finsts _ M (facts_frame s hfok [e.sk] [] (fun l hl => by simp [avoids, (skFresh_parts hskf).2.2.2.2.2.2 l hl])
-      (fun _ _ => by simp [avoidsMaps]) (fun i _ hik => by simp only [upd]; rw [if_neg (by simpa using hik)]) (fun _ _ _ => rfl) hfa) c hc
+    exact facthyps_true s e.finsts e.pfinsts _ M (fun f hf => (pfactsOk_parts hfok f hf).2.2)
+      (facts_frame s hfok [e.sk] [] (fun l hl => by simp [avoids, (skFresh_parts hskf).2.2.2.2.2.2 l hl])
+        (fun _ _ => by simp [avoidsMaps]) (fun i _ hik => by simp only [upd]; rw [if_neg (by simpa using hik)]) (fun _ _ _ => rfl) hfa)
+      (pfacts_frame s hfok [e.sk] [] (fun f hf => by simp [avoids, skFresh_pfacts hskf f hf])
+        (fun _ _ => by simp [avoidsMaps]) (fun i _ hik => by simp only [upd]; rw [if_neg (by simpa using hik)]) (fun _ _ _ => rfl) hpf) c hc
   · have hrd : ∀ mp k, evalE (upd ρ e.sk v) M (rdStart s.f.m mp k) = M mp (evalE (upd ρ e.sk v) M k) := by
       intro mp k
       simp only [rdStart]
@@ -1084,7 +1229,7 @@ theorem sstart_case (s : SMachine) (ps : List SEntry) (h : checkSMachine s ps = 
 
 /-- One step: from a state where the precondition, the facts and every entry hold, a request allowed keeps each law. -/
 theorem sstep_case (s : SMachine) (ps : List SEntry) (h : checkSMachine s ps = true) (ρ : Nat → Nat) (M : Nat → Nat → Nat)
-    (ι : Nat → Nat) (κ : Nat → Nat → Nat) (hp0 : evalC ρ M s.f.m.pre = true) (hfa : ∀ l ∈ s.facts, l.Holds ρ M)
+    (ι : Nat → Nat) (κ : Nat → Nat → Nat) (hp0 : evalC ρ M s.f.m.pre = true) (hfa : ∀ l ∈ s.facts, l.Holds ρ M) (hpf : s.PFacts ρ M)
     (ih : ∀ e ∈ ps, e.Holds ρ M) (ha : evalC (sView s ρ M ι κ).1 (sView s ρ M ι κ).2 s.f.m.assume = true) :
     ∀ e ∈ ps, e.law.Holds (sNext s ρ M ι κ).1 (sNext s ρ M ι κ).2 := by
   have hlav := slaws_avoid h
@@ -1132,10 +1277,15 @@ theorem sstep_case (s : SMachine) (ps : List SEntry) (h : checkSMachine s ps = t
       rw [if_neg (fun h' => hi1 (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.contains_iff_mem.mp h')))))]
       simp only [upd, if_neg hik]
   · -- The facts: they read no request, not the skolem, and no map a request carries.
-    exact laws_hyps_true s.facts e.finsts W M0 (facts_frame s hfok [e.sk] [] (fun l hl => by simp [avoids, hf7 l hl])
-      (fun _ _ => by simp [avoidsMaps])
-      (fun i hie hik => by simp only [W, withExt]; rw [if_neg (by simpa [List.contains_iff_mem] using hie)]; simp only [upd]; rw [if_neg (by simpa using hik)])
-      (fun mp hmc _ => by simp only [M0, withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmc)]) hfa) c hc
+    exact facthyps_true s e.finsts e.pfinsts W M0 (fun f hf => (pfactsOk_parts hfok f hf).2.2)
+      (facts_frame s hfok [e.sk] [] (fun l hl => by simp [avoids, hf7 l hl])
+        (fun _ _ => by simp [avoidsMaps])
+        (fun i hie hik => by simp only [W, withExt]; rw [if_neg (by simpa [List.contains_iff_mem] using hie)]; simp only [upd]; rw [if_neg (by simpa using hik)])
+        (fun mp hmc _ => by simp only [M0, withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmc)]) hfa)
+      (pfacts_frame s hfok [e.sk] [] (fun f hf => by simp [avoids, skFresh_pfacts hskf f hf])
+        (fun _ _ => by simp [avoidsMaps])
+        (fun i hie hik => by simp only [W, withExt]; rw [if_neg (by simpa [List.contains_iff_mem] using hie)]; simp only [upd]; rw [if_neg (by simpa using hik)])
+        (fun mp hmc _ => by simp only [M0, withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmc)]) hpf) c hc
   · -- The entries hold at the state with the skolem set (their laws don't read it), so in the goal's view of it, and so
     -- does each pair's law; the assumption reads the skolem nowhere either.
     have hA : evalC (sView s (upd ρ e.sk v) M ι κ).1 (sView s (upd ρ e.sk v) M ι κ).2 s.f.m.assume = true := by
@@ -1185,39 +1335,43 @@ theorem smachine_sound (s : SMachine) (ps : List SEntry) (h : checkSMachine s ps
     intro ρ M g hf hfa w
     exact facts_frame s hfok [g] [] (fun l hl => by simp [avoids, (skFresh_parts hf).2.2.2.2.2.2 l hl]) (fun _ _ => by simp [avoidsMaps])
       (fun i _ hig' => by simp only [upd]; rw [if_neg (by simpa using hig')]) (fun _ _ _ => rfl) hfa
+  have hpfacts : ∀ {ρ : Nat → Nat} {M : Nat → Nat → Nat} {g : Nat}, skFresh s g = true → s.PFacts ρ M → ∀ w, s.PFacts (upd ρ g w) M := by
+    intro ρ M g hf hpf w
+    exact pfacts_frame s hfok [g] [] (fun f hfm => by simp [avoids, skFresh_pfacts hf f hfm]) (fun _ _ => by simp [avoidsMaps])
+      (fun i _ hig' => by simp only [upd]; rw [if_neg (by simpa using hig')]) (fun _ _ _ => rfl) hpf
   have hpreu : ∀ {ρ : Nat → Nat} {M : Nat → Nat → Nat} {g : Nat}, occC g s.f.m.pre = false → evalC ρ M s.f.m.pre = true → ∀ w, evalC (upd ρ g w) M s.f.m.pre = true := by
     intro ρ M g hpg h0 w
     rw [congrC _ ρ M s.f.m.pre (fun i hi => by have hig' : i ≠ g := (fun h' => by rw [h', hpg] at hi; cases hi); simp only [upd, if_neg hig'])]; exact h0
   intro ρ M hr
   induction hr with
-  | start ρ M hM h0 hfa =>
+  | start ρ M hM h0 hfa hpf =>
     intro e he
     -- Each further key set in turn, from a start state that meets the precondition and the facts.
     suffices hs : ∀ gs : List Nat, (∀ g ∈ gs, g ∈ e.keys2) → ∀ ρ', evalC ρ' M s.f.m.pre = true → (∀ l ∈ s.facts, l.Holds ρ' M) →
-        holdsOver e.law M gs (applyS s.f.m.init ρ' M) from hs e.keys2 (fun g hg => hg) ρ h0 hfa
+        s.PFacts ρ' M → holdsOver e.law M gs (applyS s.f.m.init ρ' M) from hs e.keys2 (fun g hg => hg) ρ h0 hfa hpf
     intro gs
     induction gs with
-    | nil => intro _ ρ' hp hf; exact sstart_case s ps h ρ' M hM hp hf e he
+    | nil => intro _ ρ' hp hf hq; exact sstart_case s ps h ρ' M hM hp hf hq e he
     | cons g gs ih =>
-      intro hsub ρ' hp hf w
+      intro hsub ρ' hp hf hq w
       obtain ⟨hfr, hc, hpg, hig, _, _⟩ := skey2_parts h he (hsub g List.mem_cons_self)
       have hI := (fresh_parts hfr hc ρ' M (fun _ => 0) (fun _ _ => 0) 0).2.2
       rw [← applyS_upd hI (by simpa [List.all_eq_true] using hig)]
-      exact ih (fun g' hg' => hsub g' (List.mem_cons_of_mem _ hg')) (upd ρ' g w) (hpreu hpg hp w) (hfacts hfr hf w)
+      exact ih (fun g' hg' => hsub g' (List.mem_cons_of_mem _ hg')) (upd ρ' g w) (hpreu hpg hp w) (hfacts hfr hf w) (hpfacts hfr hq w)
   | step ρ M ι κ hr ha ih =>
     intro e he
     suffices hs : ∀ gs : List Nat, (∀ g ∈ gs, g ∈ e.keys2) → ∀ ρ', evalC ρ' M s.f.m.pre = true → (∀ l ∈ s.facts, l.Holds ρ' M) →
-        (∀ e' ∈ ps, e'.Holds ρ' M) → evalC (sView s ρ' M ι κ).1 (sView s ρ' M ι κ).2 s.f.m.assume = true →
+        s.PFacts ρ' M → (∀ e' ∈ ps, e'.Holds ρ' M) → evalC (sView s ρ' M ι κ).1 (sView s ρ' M ι κ).2 s.f.m.assume = true →
         holdsOver e.law (sNext s ρ' M ι κ).2 gs (sNext s ρ' M ι κ).1 from
-      hs e.keys2 (fun g hg => hg) ρ (pre_sreach s hpre.1 hpre.2 hr) (facts_sreach s hfok hr) ih ha
+      hs e.keys2 (fun g hg => hg) ρ (pre_sreach s hpre.1 hpre.2 hr) (facts_sreach s hfok hr) (pfacts_sreach s hfok hr) ih ha
     intro gs
     induction gs with
-    | nil => intro _ ρ' hp hf hi ha'; exact sstep_case s ps h ρ' M ι κ hp hf hi ha' e he
+    | nil => intro _ ρ' hp hf hq hi ha'; exact sstep_case s ps h ρ' M ι κ hp hf hq hi ha' e he
     | cons g gs ihg =>
-      intro hsub ρ' hp hf hi ha' w
+      intro hsub ρ' hp hf hq hi ha' w
       obtain ⟨hfr, hc, hpg, _, hall, _⟩ := skey2_parts h he (hsub g List.mem_cons_self)
       obtain ⟨hNext, hView, _⟩ := fresh_parts hfr hc ρ' M ι κ w
-      have := ihg (fun g' hg' => hsub g' (List.mem_cons_of_mem _ hg')) (upd ρ' g w) (hpreu hpg hp w) (hfacts hfr hf w)
+      have := ihg (fun g' hg' => hsub g' (List.mem_cons_of_mem _ hg')) (upd ρ' g w) (hpreu hpg hp w) (hfacts hfr hf w) (hpfacts hfr hq w)
         (fun e' he' => sentry_upd (hall e' he') w (hi e' he'))
         (by
           rw [hView]; dsimp only
@@ -1235,12 +1389,13 @@ structure SKStep where
   qinsts : List (Nat × E)          -- (quantified flag, key): where each frame closes it
   finsts : List (Nat × E)          -- (fact index, key): where the goal assumes the facts, read at the first frame
   pinsts : List (Nat × E × List E) -- (law index, key, further keys): where each frame assumes the laws about several keys
+  pfinsts : List (Nat × E × List E) -- (fact index, key, further keys): where the goal assumes the facts about several keys
   used : List C                    -- the hypotheses the tree refutes ([] for the goal's own, in its order)
   names : List (List (Nat × Nat))  -- per step but the last: (state variable, the fresh variable naming it after that step)
 
 def sKOut (s : SMachine) (ps : List SEntry) (sl : SKStep) := sRun s (sLaws ps sl.pinsts) (sInsts ps sl.k.insts sl.pinsts) sl.qinsts sl.k.whens sl.k.ren sl.mren sl.names [] getRd
 def sKGoal (s : SMachine) (ps : List SEntry) (sl : SKStep) : List C :=
-  [s.f.m.pre] ++ factHyps s sl.finsts ++ (sKOut s ps sl).1
+  [s.f.m.pre] ++ factHyps s sl.finsts sl.pfinsts ++ (sKOut s ps sl).1
     ++ [.not (substRC (kEndSub sl.k (sKOut s ps sl).2.1 (sKOut s ps sl).2.2) (kEndRd sl.k (sKOut s ps sl).2.2) sl.k.then_)]
 
 -- The step's terms, flags inlined, read none of the names later requests' maps are read by.
@@ -1248,7 +1403,7 @@ def sMapsOk (s : SMachine) (MZ : List Nat) : Bool :=
   s.f.m.step.all (fun p => avoidsMapsE MZ (inlineE s.f.flags p.2))
     && s.f.m.writes.all (fun w => avoidsMapsE MZ (inlineE s.f.flags w.2.1) && avoidsMapsE MZ (inlineE s.f.flags w.2.2))
     && s.every.all (fun w => avoidsMapsE MZ (inlineE s.f.flags w.2.2))
-    && s.facts.all (fun l => avoidsMaps MZ l.holds)
+    && s.facts.all (fun l => avoidsMaps MZ l.holds) && s.pfacts.all (fun f => avoidsMaps MZ f.1.holds)
 
 def szone (s : SMachine) (sl : SKStep) : List Nat := tgts sl.k.ren ++ flagVars s.f.flags ++ tgts sl.names
 
@@ -1314,9 +1469,11 @@ theorem sMapsOk_parts {s : SMachine} {MZ : List Nat} (h : sMapsOk s MZ = true) :
       ∧ (∀ w ∈ s.f.m.writes, avoidsMapsE MZ (inlineE s.f.flags w.2.1) = true ∧ avoidsMapsE MZ (inlineE s.f.flags w.2.2) = true)
       ∧ (∀ w ∈ s.every, avoidsMapsE MZ (inlineE s.f.flags w.2.2) = true) := by
   simp only [sMapsOk, Bool.and_eq_true, List.all_eq_true] at h
-  exact ⟨h.1.1.1, h.1.1.2, h.1.2⟩
+  exact ⟨h.1.1.1.1, h.1.1.1.2, h.1.1.2⟩
 
 theorem sMapsOk_facts {s : SMachine} {MZ : List Nat} (h : sMapsOk s MZ = true) : ∀ l ∈ s.facts, avoidsMaps MZ l.holds = true := by
+  simp only [sMapsOk, Bool.and_eq_true, List.all_eq_true] at h; exact h.1.2
+theorem sMapsOk_pfacts {s : SMachine} {MZ : List Nat} (h : sMapsOk s MZ = true) : ∀ f ∈ s.pfacts, avoidsMaps MZ f.1.holds = true := by
   simp only [sMapsOk, Bool.and_eq_true, List.all_eq_true] at h; exact h.2
 
 theorem renMaps_other : ∀ (rs : List (List (Nat × Nat))) (κs : List (Nat → Nat → Nat)) (b : Nat → Nat → Nat) (mp : Nat),
@@ -1581,10 +1738,15 @@ theorem skstep_sound (s : SMachine) (ps : List SEntry) (sl : SKStep)
     · rw [hWo j (avoids_occ hpre hj)]; simp only [withExt]
       rw [if_neg (fun h' => avoids_occ hpreS hj (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _ (List.contains_iff_mem.mp h')))))]
   · -- The facts, at the first frame: it agrees with the first state away from the zone and the request.
-    exact laws_hyps_true s.facts sl.finsts W M0 (facts_frame s (sfacts_ok hl) (szone s sl) (tgts sl.mren) (sTermsOk_facts hterms) (sMapsOk_facts hmaps)
-      (fun i hie hiz => by rw [hWo i hiz]; simp only [withExt]; rw [if_neg (by simpa [List.contains_iff_mem] using hie)])
-      (fun mp hmc hmz => by rw [hMo mp hmz]; simp only [withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmc)])
-      (facts_sreach s (sfacts_ok hl) hr)) c hc
+    exact facthyps_true s sl.finsts sl.pfinsts W M0 (fun f hf => (pfactsOk_parts (sfacts_ok hl) f hf).2.2)
+      (facts_frame s (sfacts_ok hl) (szone s sl) (tgts sl.mren) (sTermsOk_facts hterms) (sMapsOk_facts hmaps)
+        (fun i hie hiz => by rw [hWo i hiz]; simp only [withExt]; rw [if_neg (by simpa [List.contains_iff_mem] using hie)])
+        (fun mp hmc hmz => by rw [hMo mp hmz]; simp only [withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmc)])
+        (facts_sreach s (sfacts_ok hl) hr))
+      (pfacts_frame s (sfacts_ok hl) (szone s sl) (tgts sl.mren) (sTermsOk_pfacts hterms) (sMapsOk_pfacts hmaps)
+        (fun i hie hiz => by rw [hWo i hiz]; simp only [withExt]; rw [if_neg (by simpa [List.contains_iff_mem] using hie)])
+        (fun mp hmc hmz => by rw [hMo mp hmz]; simp only [withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmc)])
+        (pfacts_sreach s (sfacts_ok hl) hr)) c hc
   · exact hh c hc
   · -- `then`, read across the run, is what SKStepHolds reads.
     have hrdE : ∀ mp k, evalE W M0 (kEndRd sl.k (sKOut s ps sl).2.2 mp k)

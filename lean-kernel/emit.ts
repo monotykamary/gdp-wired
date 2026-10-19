@@ -421,7 +421,7 @@ export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {s
     refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}, loop?: {loop: Loop, tamper?: {what: string, loop: Loop}}} = {}): string {
   const hm = given.history ? {...given, history: {...given.history, prune: undefined}} : undefined
   const hplain = hm ? historyMachine(hm) : undefined, stepLaws = opts.stepLaws ?? [], rf = opts.refined, gv = opts.ghosts ?? []
-  const {machine: m, origins} = specializeFacts(hplain ? hplain.machine : given, laws, stepLaws)
+  const m = hplain ? hplain.machine : given
   // Every claim about the machine past its laws goes through one pipeline: a claim brings the step laws it needs and
   // the requests it needs proven allowed in a region, the proofs are found and encoded once for all claims, and each
   // claim states its theorem from them (the Lean meaning of each is a theorem in Live.lean, Refine.lean or Ghost.lean).
@@ -448,6 +448,7 @@ def ${id}_step${j} : SKStep := ⟨⟨${list(Array.from({length: kk}, (_, s2) => 
   ${list(qinsts(inst))},
   ${list(finsts(inst))},
   ${list(pinsts(inst))},
+  ${list(pfinsts(inst))},
   [],
   ${list(Array.from({length: kk - 1}, (_, s2) => list(Object.keys(m.state).map(n2 => `(${ix(n2)}, ${ix(stateName(n2, s2 + 1))})`))))}⟩
 theorem ${id}_step${j}_holds : SKStepHolds ${id}_machine ${id}_step${j} :=
@@ -546,7 +547,14 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
     const factsF = m.facts ?? []
     const base: C[] = [m.pre ?? trueC,
       ...factsF.filter(f => !f.forall).map(f => f.holds),
-      ...Object.entries(inst).flatMap(([name, keys]) => { const f = factsF.find(f2 => f2.name === name); return f?.forall ? keys.map(key => sub1(f.holds, {[f.forall!]: key})) : [] }),
+      ...Object.entries(inst).flatMap(([name, keys]) => { const f = factsF.find(f2 => f2.name === name); return f?.forall && !f.keys?.length ? keys.map(key => sub1(f.holds, {[f.forall!]: key})) : [] }),
+      // A fact about several keys at each tuple (kept flattened), as Lean reads it: the further keys, then the first.
+      ...Object.entries(inst).flatMap(([name, keys]) => {
+        const f = factsF.find(f2 => f2.name === name)
+        if (!f?.keys?.length) return []
+        const k = f.keys.length + 1
+        return Array.from({length: Math.floor(keys.length / k)}, (_, t) => sub1(sub1(f.holds, Object.fromEntries(f.keys!.map((kn, i) => [kn, keys[t * k + 1 + i]!]))), {[f.forall!]: keys[t * k]!}))
+      }),
       ...laws.filter(lw => !lw.forall).map(lw => lw.holds),
       ...Object.entries(inst).flatMap(([name, keys]) => { const lw = laws.find(l2 => l2.name === name); return lw?.forall && !lw.keys?.length ? keys.map(key => sub1(lw.holds, {[lw.forall!]: key})) : [] }),
       ...Object.entries(inst).flatMap(([name, keys]) => {
@@ -593,7 +601,8 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
   ${list(ws.flatMap(([name, w]) => ('each' in w ? [`(${mx(name)}, ${ix(w.each)}, ${e(w.value)})`] : [])))},
   ${list(fs.flatMap(([f, c2]) => (c2.op === 'all' ? [`(${ix(`?${f}`)}, ${ix(c2.key)}, ${c(c2.c)})`] : [])))},
   ${list(fs.flatMap(([f, c2]) => (c2.op === 'all' ? [`(${ix(`?${f}`)}, ${ix(`w?${f}`)})`] : [])))},
-  ${list((mm.facts ?? []).map(l => `⟨${c(l.holds)}, ${l.forall ? `some ${ix(l.forall)}` : 'none'}⟩`))}⟩`
+  ${list((mm.facts ?? []).filter(l => !l.keys?.length).map(l => `⟨${c(l.holds)}, ${l.forall ? `some ${ix(l.forall)}` : 'none'}⟩`))},
+  ${list((mm.facts ?? []).filter(l => l.keys?.length).map(l => `(⟨${c(l.holds)}, some ${ix(l.forall!)}⟩, ${list(l.keys!.map(k2 => String(ix(k2))))})`))}⟩`
   }
   // A loop as Live.lean's record: inputs, start, body, while, precondition, assumption.
   const loopLit = (lp: Loop) => `⟨${list(lp.inputs.map(name => String(ix(name))))},
@@ -633,12 +642,20 @@ ${readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat →
     const n = laws[lawIx(name)]!.keys!.length + 1
     return Array.from({length: Math.floor(keys.length / n)}, (_, t) => `(${lawIx(name)}, ${e(keys[t * n]!)}, ${list(keys.slice(t * n + 1, t * n + n).map(e))})`)
   })
-  const finsts = (inst: Instances) => Object.entries(inst).flatMap(([name, keys]) => { const j = facts.findIndex(f => f.name === name); return j < 0 ? [] : keys.map(key => `(${j}, ${e(key)})`) })
+  // The facts about one key, and those about several (each instance a tuple, kept flattened: its first key, the rest).
+  const facts1 = facts.filter(f => !f.keys?.length), factsN = facts.filter(f => f.keys?.length)
+  const finsts = (inst: Instances) => Object.entries(inst).flatMap(([name, keys]) => { const j = facts1.findIndex(f => f.name === name); return j < 0 ? [] : keys.map(key => `(${j}, ${e(key)})`) })
+  const pfinsts = (inst: Instances) => Object.entries(inst).flatMap(([name, keys]) => {
+    const j = factsN.findIndex(f => f.name === name)
+    if (j < 0) return []
+    const n = factsN[j]!.keys!.length + 1
+    return Array.from({length: Math.floor(keys.length / n)}, (_, t) => `(${j}, ${e(keys[t * n]!)}, ${list(keys.slice(t * n + 1, t * n + n).map(e))})`)
+  })
   const qinsts = (inst: Instances) => Object.entries(inst).filter(([name]) => name.startsWith('?')).flatMap(([f, keys]) => keys.map(key => `(${ix(f)}, ${e(key)})`))
   const entries = laws.map((law, j) => {
     const g0 = goalsL[2 * j]!, g1 = goalsL[2 * j + 1]!, a = enc(g0, lp.trees[g0.name]!), b = enc(g1, lp.trees[g1.name]!), inst = lp.instances[law.name] ?? {}
     return `def ${id}_l${j} : MLaw := ⟨${c(law.holds)}, ${law.forall ? `some ${ix(law.forall)}` : 'none'}⟩
-def ${id}_e${j} : SEntry := ⟨${id}_l${j}, ${ix(law.forall ? `${law.forall}#` : '#')}, ${list((law.keys ?? []).map(key => String(ix(key))))}, ${list(insts(inst))}, ${list(qinsts(inst))}, ${list(finsts(inst))}, ${list(pinsts(inst))},
+def ${id}_e${j} : SEntry := ⟨${id}_l${j}, ${ix(law.forall ? `${law.forall}#` : '#')}, ${list((law.keys ?? []).map(key => String(ix(key))))}, ${list(insts(inst))}, ${list(qinsts(inst))}, ${list(finsts(inst))}, ${list(pinsts(inst))}, ${list(pfinsts(inst))},
   (${a.tab}, [], ${a.tree}),
   (${b.tab}, [], ${b.tree})⟩`
   })
@@ -647,12 +664,12 @@ def ${id}_e${j} : SEntry := ⟨${id}_l${j}, ${ix(law.forall ? `${law.forall}#` :
   const orig: Machine = {...m, state: Object.fromEntries(Object.entries(m.state).filter(([n2]) => !gv.includes(n2))), step: {...m.step, state: Object.fromEntries(Object.entries(m.step.state ?? {}).filter(([n2]) => !gv.includes(n2)))}}
   const h: Helpers = {
     step: sl => { const g = goalsS[allSteps.indexOf(sl)]!; return {pr: enc(g, r.proof!.trees[g.name]!), inst: instOf(sl)} },
-    sproof: sl => { const {pr, inst} = h.step(sl); return `(${list(insts(inst))}, ${list(qinsts(inst))}, ${list(finsts(inst))}, ${list(pinsts(inst))}, (${pr.tab}, [], ${pr.tree}))` },
+    sproof: sl => { const {pr, inst} = h.step(sl); return `(${list(insts(inst))}, ${list(qinsts(inst))}, ${list(finsts(inst))}, ${list(pinsts(inst))}, ${list(pfinsts(inst))}, (${pr.tab}, [], ${pr.tree}))` },
     allow: a => {
       const f2 = allowed.get(a)
       if (!f2) return undefined
       const ar = f2.out, pr = enc(ar.goal!, ar.tree!), inst = ar.instances!
-      return `(${list(f2.wit.map(([inp, t]) => `(${ix(inp)}, ${e(t)})`))}, (${list(insts(inst))}, ${list(qinsts(inst))}, ${list(finsts(inst))}, ${list(pinsts(inst))}, (${pr.tab}, ${list(ar.goal!.hyps.map(c))}, ${pr.tree})), ${list((ar.goal as Goal & {zkeys: E[]}).zkeys.map(e))})`
+      return `(${list(f2.wit.map(([inp, t]) => `(${ix(inp)}, ${e(t)})`))}, (${list(insts(inst))}, ${list(qinsts(inst))}, ${list(finsts(inst))}, ${list(pinsts(inst))}, ${list(pfinsts(inst))}, (${pr.tab}, ${list(ar.goal!.hyps.map(c))}, ${pr.tree})), ${list((ar.goal as Goal & {zkeys: E[]}).zkeys.map(e))})`
     },
   }
   const records = claims.map(cl => cl.render(h)).filter(t => t.length)
@@ -673,47 +690,10 @@ def ${id}_proof : List SEntry := ${list(laws.map((_, j) => `${id}_e${j}`))}
 theorem ${id}_check : checkSMachine ${id}_machine ${id}_proof = true := by decide +kernel
 theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_proof, e.Holds ρ M :=
   smachine_sound ${id}_machine ${id}_proof ${id}_check
-${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`})}${factsProof(id, m, mapNames, vars, opts.simp, origins)}${opts.tamper ? `
+${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`})}${factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
 example : checkSMachine ${id}_tampered ${id}_proof = false := by decide +kernel` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix)}` : ''}`
-}
-
-// The twin assumes a fact at one key: a fact about several keys (a function of several arguments, a law between two
-// points) goes to it as the facts about one key the proof uses, each the fact at a tuple of the proof's instances with
-// every key but one set to its term, which reads the params alone (the one left is the key whose term reads more). The
-// machine is proven again with them, as the twin will check it (a proof that needs a fact at two keys over the state
-// at once isn't one the twin takes), and each is proven in Lean of the general fact.
-type Origin = {from: Law, at: Record<string, E>}
-function specializeFacts(m: Machine, laws: Law[], stepLaws: StepLaw[]): {machine: Machine, origins: Map<string, Origin>} {
-  const origins = new Map<string, Origin>(), facts = m.facts ?? []
-  if (!facts.some(f => f.keys?.length)) return {machine: m, origins}
-  const r = proveStepLaws(m, laws, stepLaws)
-  if (!r.proven || !r.proof) throw new Error(`${m.name}: not proven (${r.failed?.stuck ?? ''})`)
-  const all: Instances[] = [...Object.values(r.proof.laws.instances), r.proof.instances, ...Object.values(r.proof.perStep ?? {})]
-  const overParams = (t: E) => varsOf({op: '=', a: t, b: t}).every(x => m.params.includes(x)) && !JSON.stringify(t).includes('"op":"get"')
-  const out: Law[] = []
-  for (const f of facts) {
-    if (!f.keys?.length) { out.push(f); continue }
-    const vars = [f.forall!, ...f.keys], seen = new Set<string>()
-    for (const inst of all) {
-      const keys = inst[f.name] ?? []
-      for (let t = 0; t + vars.length <= keys.length; t += vars.length) {
-        const tuple = keys.slice(t, t + vars.length), open = tuple.map((e2, i) => [e2, i] as const).filter(([e2]) => !overParams(e2)).map(([, i]) => i)
-        // A tuple with two keys over the state is left out (the prover offers more instances than a proof uses): if the
-        // proof needs it, proving the machine again without it fails, and says so.
-        if (open.length > 1) continue
-        const left = open[0] ?? 0, at = Object.fromEntries(vars.flatMap((x, i) => (i === left ? [] : [[x, tuple[i]!]])))
-        const id = JSON.stringify([left, at])
-        if (seen.has(id)) continue
-        seen.add(id)
-        const name = `${f.name} #${seen.size}`
-        out.push({name, forall: vars[left]!, holds: substC(f.holds, {vars: at, maps: {}, flags: {}})})
-        origins.set(name, {from: f, at})
-      }
-    }
-  }
-  return {machine: {...m, facts: out}, origins}
 }
 
 // A function defined by a recurrence (core/dsl.ts recur): its Lean definition by the same recurrence, and its lemmas
@@ -825,38 +805,41 @@ theorem Recur.unpair_pair (a b : Nat) : Recur.unpair ((a + b) * (a + b) + b) = (
 // The facts, proven in Lean of the functions' Lean definitions, when every function has one: a run that starts with
 // those functions starts where SReach asks the facts to hold. A recurrence's equations unfold its definition (a function
 // of several arguments read at its key first); its lemmas and laws between two points are its theorems at the keys.
-function factsProof(id: string, m: Machine, maps: string[], vars: string[], simp: string[] = [], origins: Map<string, Origin> = new Map()): string {
+function factsProof(id: string, m: Machine, maps: string[], vars: string[], simp: string[] = []): string {
   const fns = Object.entries(m.fns ?? {}), facts = m.facts ?? []
   if (!facts.length || !fns.length || fns.some(([, f]) => !f.lean)) return ''
   const recurs = fns.filter(([, f]) => f.recur)
   simp = [...simp, ...recurs.flatMap(([, f]) => (f.recur!.args.length ? [`${f.lean}_rec`, `${f.lean}_key`] : [f.lean!]))]
-  const at = leanSurface(Object.fromEntries(vars.map((x, j) => [x, `(ρ ${j})`])), `${id}'s facts`)
   // Each recurrence's key lemma rewrites the function at its key before anything else simplifies the key.
   const keyed = recurs.filter(([, f]) => f.recur!.args.length).map(([, f]) => `${f.lean}_key`)
+  const hs = fns.map((_, j) => `h${j}`)
+  // A fact's proof, its keys named: the first `v`, the further ones `w1`, `w2`...: the recurrence theorem it is an
+  // instance of cited first (so that it and the goal simplify alike), then the facts' terms read and omega.
   const tactic = (fact: Law): string => {
-    // The theorem a fact is an instance of, cited first so that both it and the goal are simplified alike.
-    const cite = (): string | undefined => {
-      const o = origins.get(fact.name), general = o?.from ?? fact
-      const owner = recurs.find(([n]) => general.name.startsWith(`${n}: `)), what = owner ? general.name.slice(owner[0].length + 2) : ''
-      if (!owner || !general.forall) return undefined
-      const [, f] = owner, r = f.recur!, keys = [general.forall, ...(general.keys ?? [])]
-      // Each key: the one left (v), or its term, read at the columns.
-      const arg = keys.map(x => (x === fact.forall ? 'v' : `(${at.e(o?.at[x] ?? {op: 'var', name: x})})`))
-      if (r.lemmas.some(l => l.name === what)) return `${f.lean}_lemmas ${[...arg.slice(1), arg[0]!].join(' ')}`
-      if (r.between.some(l => l.name === what)) return `${f.lean}_between ${[...arg.slice(2), arg[0]!, arg[1]!].join(' ')}`
-      return undefined
-    }
-    const c = cite(), hs = [...fns.map((_, j) => `h${j}`)]
-    return `simp only [MLaw.Holds]; (try intro v); ${c ? `have hc := ${c}; ` : ''}simp only [evalC, evalE, upd, ${hs.join(', ')}]${keyed.length ? `; (try simp only [${keyed.join(', ')}])` : ''}; (try simp [${[...hs, ...simp].join(', ')}]${c ? ' at hc ⊢' : ''}); all_goals omega`
+    const keys = fact.forall ? [fact.forall, ...(fact.keys ?? [])] : [], arg = keys.map((_, i) => (i === 0 ? 'v' : `w${i}`))
+    const owner = recurs.find(([n]) => fact.name.startsWith(`${n}: `)), what = owner ? fact.name.slice(owner[0].length + 2) : ''
+    const r = owner?.[1].recur, lean = owner?.[1].lean
+    const cite = !r || !keys.length ? undefined : r.lemmas.some(l => l.name === what) ? `${lean}_lemmas ${[...arg.slice(1), arg[0]!].join(' ')}`
+      : r.between.some(l => l.name === what) ? `${lean}_between ${[...arg.slice(2), arg[0]!, arg[1]!].join(' ')}` : undefined
+    const intro = keys.length > 1 ? `simp only [holdsOver]; intro ${arg.slice(1).join(' ')}; ` : ''
+    return `${intro}simp only [MLaw.Holds]; (try intro v); ${cite ? `have hc := ${cite}; ` : ''}simp only [evalC, evalE, upd, ${hs.join(', ')}]${keyed.length ? `; (try simp only [${keyed.join(', ')}])` : ''}; (try simp [${[...hs, ...simp].join(', ')}]${cite ? ' at hc ⊢' : ''}); all_goals omega`
   }
+  const one = facts.filter(f => !f.keys?.length), several = facts.filter(f => f.keys?.length)
+  const binders = `(ρ : Nat → Nat) (μ : Nat → Nat → Nat) ${fns.map(([n, f], j) => `(h${j} : μ ${maps.indexOf(n)} = ${f.lean})`).join(' ')}`
+  const cases = (fs: Law[], h: string) => `rcases ${h} with ${fs.map(() => 'rfl').join(' | ')}\n${fs.map(f => `  · ${tactic(f)}`).join('\n')}`
   return `
--- The facts hold of the functions' Lean definitions: ${fns.map(([n, f]) => `${n} := ${f.lean}`).join('; ')}.
-theorem ${id}_facts_hold (ρ : Nat → Nat) (μ : Nat → Nat → Nat) ${fns.map(([n, f], j) => `(h${j} : μ ${maps.indexOf(n)} = ${f.lean})`).join(' ')} :
+-- The facts hold of the functions' Lean definitions: ${fns.map(([n, f]) => `${n} := ${f.lean}`).join('; ')}.${one.length ? `
+theorem ${id}_facts_hold ${binders} :
     ∀ l ∈ ${id}_machine.facts, l.Holds ρ μ := by
   intro l hl
   simp only [${id}_machine, List.mem_cons, List.not_mem_nil, or_false] at hl
-  rcases hl with ${facts.map(() => 'rfl').join(' | ')}
-${facts.map(f => `  · ${tactic(f)}`).join('\n')}`
+  ${cases(one, 'hl')}` : ''}${several.length ? `
+-- The facts about several keys, at every value of their further keys.
+theorem ${id}_pfacts_hold ${binders} :
+    ${id}_machine.PFacts ρ μ := by
+  intro p hp
+  simp only [${id}_machine, List.mem_cons, List.not_mem_nil, or_false] at hp
+  ${cases(several, 'hp')}` : ''}`
 }
 
 // Machines with a history through Kern.hmachine_sound (History.lean): Lean builds the plain machine (sums as state,

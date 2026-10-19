@@ -4,8 +4,8 @@
 // they aren't (the two equations alone say nothing about the delay at an unknown attempt); a lemma that doesn't hold
 // is refused with the induction step it breaks at; the runtimes compute the function by its recurrence.
 import {expect, test} from 'bun:test'
-import {Unproven, min, modBy, nat, proveSteps, recur, rule, when} from './dsl.ts'
-import {backoff, escalation, escalationLaws, filled, growing, ledger, ledgerLaws, leftovers, fillMeter, fillMeterLaws, retries, retryLaws, retrySteps} from '../examples/lemmas.ts'
+import {Unproven, min, modBy, nat, proveLeadsTo, proveSteps, recur, rule, when} from './dsl.ts'
+import {backoff, escalation, escalationLaws, fillMeter, fillMeterLaws, filled, growing, ladder, ladderLaws, ledger, ledgerLaws, leftovers, pump, pumpLive, retries, retryLaws, retrySteps, tank, tankLaws} from '../examples/lemmas.ts'
 import {fnValue} from './machine.ts'
 
 test('lemmas proven by induction, then used: the backoff schedule proven with them, not without', () => {
@@ -50,10 +50,13 @@ test('the runtimes compute it by its recurrence', () => {
 
 test('recurrences of several arguments, reading other functions, and laws between two points', () => {
   for (const f of [filled(), leftovers(), growing()]) expect(f.verdict).toMatchObject({proven: true, checked: true})
-  for (const [r, laws] of [[fillMeter(), fillMeterLaws], [ledger(), ledgerLaws], [escalation(), escalationLaws]] as const) {
+  for (const [r, laws] of [[fillMeter(), fillMeterLaws], [ledger(), ledgerLaws], [escalation(), escalationLaws], [ladder(), ladderLaws], [tank(), tankLaws]] as const) {
     expect(proveSteps(r as never, laws(r as never), [])).toMatchObject({proven: true, checked: true})
     expect((r as ReturnType<typeof fillMeter>).crossCheck(laws(r as never)).failure).toBeUndefined()
   }
+  // Liveness whose helpful request is allowed by a fact about two keys.
+  const p = pump()
+  expect(proveLeadsTo(p, [], pumpLive(p))).toMatchObject({proven: true, checked: true})
   // The runtimes: two arguments unpaired from one key, another function inlined.
   const m = fillMeter().machine, l = ledger().machine
   const key = (a: number, b: number) => (a + b) * (a + b) + b

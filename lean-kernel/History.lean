@@ -67,7 +67,7 @@ def kept (h : HMachine) (X : Nat → Nat) (M : Nat → Nat → Nat) (hist : List
 
 inductive HReach (h : HMachine) : (Nat → Nat) → (Nat → Nat → Nat) → List (Nat → Nat) → Prop
   | start (ρ : Nat → Nat) (M : Nat → Nat → Nat) : StartMaps h.s.f.m M → evalC ρ M h.s.f.m.pre = true →
-      (∀ l ∈ h.s.facts, l.Holds ρ M) → HReach h (withSums h (applyS h.s.f.m.init ρ M) M []) M []
+      (∀ l ∈ h.s.facts, l.Holds ρ M) → h.s.PFacts ρ M → HReach h (withSums h (applyS h.s.f.m.init ρ M) M []) M []
   | step (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hist : List (Nat → Nat)) (ι : Nat → Nat) (κ : Nat → Nat → Nat) : HReach h ρ M hist →
       evalC (reqEnv h ρ ι κ M hist) (withCarried h.s M κ) h.s.f.m.assume = true →
       HReach h (withSums h (applyS h.s.f.m.step (reqEnv h ρ ι κ M hist) (withCarried h.s M κ)) (withCarried h.s M κ)
@@ -336,7 +336,7 @@ theorem hsum_of_hreach {h : HMachine} (ok : HOk h) : ∀ {ρ M hist}, HReach h �
       exact (withSums_other h this.1.2 ρ1 M0 hist).symm)
   intro ρ M hist hr
   cases hr with
-  | start ρ0 M h0 hp _ => exact fun s g hs => key _ M M [] s g hs
+  | start ρ0 M h0 hp _ _ => exact fun s g hs => key _ M M [] s g hs
   | step ρ0 M0 hist0 ι κ _ _ => exact fun s g hs => key _ _ _ _ s g hs
 
 theorem relsC_true (X : Nat → Nat) (M : Nat → Nat → Nat) :
@@ -534,9 +534,9 @@ theorem hreach_sreach {h : HMachine} (ps : List SEntry) (ok : HOk h)
   obtain ⟨hpreS, hrp⟩ := spre_parts hsm
   intro ρ M hist hr
   induction hr with
-  | start ρ M hM h0 hf =>
+  | start ρ M hM h0 hf hpf =>
     rw [← start_eq ok]
-    exact SReach.start (s := h.plain) ρ M hM h0 hf
+    exact SReach.start (s := h.plain) ρ M hM h0 hf hpf
   | step ρ M hist ι κ hr ha ih =>
     have hsum := hsum_of_hreach ok hr
     have hp := pre_sreach h.plain hpreS hrp ih

@@ -112,7 +112,7 @@ def SRefined.full (r : SRefined) : SMachine :=
   ⟨r.base.full, r.impl.carried,
    r.impl.every ++ r.spec.every.map (fun w => (w.1, w.2.1, E.ite r.stutter (.get w.1 (.var w.2.1)) (substE r.wit w.2.2))),
    r.impl.qflags ++ r.spec.qflags.map (fun q => (q.1, q.2.1, substC r.wit q.2.2)),
-   r.impl.wits ++ r.spec.wits, []⟩
+   r.impl.wits ++ r.spec.wits, [], []⟩
 def SRefined.allowed (r : SRefined) : C := inlineC r.full.f.flags (.or r.stutter (substC r.wit r.spec.f.m.assume))
 
 theorem sfull_inputs (r : SRefined) : r.full.f.m.inputs = r.impl.f.m.inputs := rfl
@@ -157,7 +157,7 @@ def srNamesOk (r : SRefined) : Bool :=
     && r.impl.carried.all (fun mp => !(r.IO ++ r.SM).contains mp)
     && r.wit.all (fun p => r.spec.f.m.inputs.contains p.1 && avoidsE r.W p.2) && avoids r.W r.stutter
     && r.impl.facts.isEmpty && r.spec.facts.isEmpty
-def srOk (r : SRefined) : Bool := srImplOk r && srSpecOk r && srNamesOk r
+def srOk (r : SRefined) : Bool := srImplOk r && srSpecOk r && (srNamesOk r && r.spec.pfacts.isEmpty)
 
 theorem srImpl_parts {r : SRefined} (h : srImplOk r = true) :
     readsNone r.SV r.SM r.impl.f.m.pre = true ∧ readsNone r.SV r.SM r.impl.f.m.assume = true
@@ -202,7 +202,8 @@ include hok
 
 theorem sr_impl : srImplOk r = true := by simp only [srOk, Bool.and_eq_true] at hok; exact hok.1.1
 theorem sr_spec : srSpecOk r = true := by simp only [srOk, Bool.and_eq_true] at hok; exact hok.1.2
-theorem sr_names : srNamesOk r = true := by simp only [srOk, Bool.and_eq_true] at hok; exact hok.2
+theorem sr_names : srNamesOk r = true := by simp only [srOk, Bool.and_eq_true] at hok; exact hok.2.1
+theorem sr_pfacts : r.spec.pfacts = [] := by simp only [srOk, Bool.and_eq_true, List.isEmpty_iff] at hok; exact hok.2.2
 
 -- One step of the composite from a state that agrees with the implementation's outside the spec's part, with the same
 -- request: allowed alike, to states that still agree.
@@ -312,7 +313,7 @@ theorem srefine_lift (hmo : distinct (r.spec.f.m.maps0.map (·.1)) = true) :
   obtain ⟨_, _, hsm, _⟩ := srNames_parts (sr_names r hok)
   intro ρ M hr
   induction hr with
-  | start ρ M hM h0 _ =>
+  | start ρ M hM h0 _ _ =>
     let Mc : Nat → Nat → Nat := fun mp => match lookup (fun p => p.1 == mp) r.spec.f.m.maps0 with
       | some p => fun _ => p.2
       | none => M mp
@@ -333,7 +334,7 @@ theorem srefine_lift (hmo : distinct (r.spec.f.m.maps0.map (·.1)) = true) :
       · have hl : lookup (fun q => q.1 == p.1) r.spec.f.m.maps0 = some p := lookup_unique1 hmo hp'
         simp only [Mc, hl]
     have hfacts : ∀ l ∈ r.full.facts, l.Holds ρ Mc := fun l hl => by simp [SRefined.full] at hl
-    refine ⟨_, Mc, SReach.start ρ Mc hstart hpre hfacts, fun i hi' => ?_, hMc⟩
+    refine ⟨_, Mc, SReach.start ρ Mc hstart hpre hfacts (fun p hp => by simp [SRefined.full] at hp), fun i hi' => ?_, hMc⟩
     show applyS (r.impl.f.m.init ++ r.spec.f.m.init) ρ Mc i = applyS r.impl.f.m.init ρ M i
     rw [applyS_append_other (by
       intro h'; apply hi'; simp only [SRefined.SV, List.mem_append]; left; left; left; left; exact h')]
@@ -645,9 +646,9 @@ theorem srefine_project (hpre : ∀ ρ M, SReach r.full ρ M → evalC ρ M r.sp
     simp only [beq_eq_false_iff_ne]; intro he; exact h (by simp only [SRefined.IM, SRefined.IO, List.mem_append]; left; left; right; rw [← he]; exact List.mem_map_of_mem hw))
   intro ρ M hr
   induction hr with
-  | start ρ M hM h0 _ =>
+  | start ρ M hM h0 _ _ =>
     have hp0 : evalC ρ M r.spec.f.m.pre = true := by
-      have h := hpre _ M (SReach.start ρ M hM h0 (fun l hl => by simp [SRefined.full] at hl))
+      have h := hpre _ M (SReach.start ρ M hM h0 (fun l hl => by simp [SRefined.full] at hl) (fun p hp => by simp [SRefined.full] at hp))
       have hag0 : ∀ i, occC i r.spec.f.m.pre = true → applyS r.full.f.m.init ρ M i = ρ i := fun i hi => applyS_other (fun h' => by
         apply avoids_occ (rn_v hsp) hi
         rw [sfull_init] at h'
@@ -655,7 +656,7 @@ theorem srefine_project (hpre : ∀ ρ M, SReach r.full ρ M → evalC ρ M r.sp
         rcases h' with h' | h' <;> simp [SRefined.X, SRefined.IV, SRefined.SV, h']) ρ M
       rwa [congrC _ ρ M r.spec.f.m.pre hag0] at h
     have hMs : StartMaps r.spec.f.m M := fun p hp' key => hM p (by rw [sfull_maps0]; exact List.mem_append_right _ hp') key
-    refine ⟨_, M, SReach.start ρ M hMs hp0 (fun l hl => by simp [hsfacts] at hl), fun i hi => ?_, fun _ _ _ => rfl⟩
+    refine ⟨_, M, SReach.start ρ M hMs hp0 (fun l hl => by simp [hsfacts] at hl) (fun p hp => by simp [sr_pfacts r hok] at hp), fun i hi => ?_, fun _ _ _ => rfl⟩
     show applyS r.spec.f.m.init ρ M i = applyS (r.impl.f.m.init ++ r.spec.f.m.init) ρ M i
     rw [applyS_append_right (fun h' => hi (by simp [SRefined.X, SRefined.IV, h']))]
   | step ρ M ι κ hr ha ih =>
@@ -762,7 +763,7 @@ end sproject
 
 -- The composite's step law: on every request it takes, the spec stutters or allows the request it is sent.
 def srStep (r : SRefined) (prime primeMaps : List (Nat × Nat)) (p : SProof) : SKStep :=
-  ⟨⟨[trueC], r.allowed, [[]], prime, primeMaps, p.1, (p.2.2.2.2.1, p.2.2.2.2.2.2)⟩, [[]], p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.2.1, []⟩
+  ⟨⟨[trueC], r.allowed, [[]], prime, primeMaps, p.1, (p.2.2.2.2.2.1, p.2.2.2.2.2.2.2)⟩, [[]], p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.2.1, []⟩
 
 /-- What a refinement over sets means: with the relation (and the spec's precondition, the j-th law) proven of the
 composite, and its step law that the spec stutters or allows every request it is sent, every reachable state of the

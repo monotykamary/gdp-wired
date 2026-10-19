@@ -80,7 +80,7 @@ theorem escrow_no_refund_after_release (run : SRun escrow_ghosted.orig) {ρ0 : N
     (hst : run.st 0 = (applyS escrow_ghosted.orig.f.m.init ρ0 M0, M0)) {i j : Nat} (hij : i < j)
     (hrel : (sView escrow_ghosted.orig (run.st i).1 (run.st i).2 (run.req i).1 (run.req i).2).1 ${releasing} = 1) :
     (run.st (j + 1)).1 ${refunded} = (run.st j).1 ${refunded} := by
-  obtain ⟨run', hreq, h0, hag⟩ := sghost_run_start escrow_ghosted escrow_ghostOk run hM hp (fun l hl => by simp [escrow_ghosted] at hl) hst
+  obtain ⟨run', hreq, h0, hag⟩ := sghost_run_start escrow_ghosted escrow_ghostOk run hM hp (fun l hl => by simp [escrow_ghosted] at hl) (fun p hp => by simp [escrow_ghosted] at hp) hst
   have hg0 : (run'.st 0).1 ${released} = 0 := by rw [h0]; rfl
   have hv := sghost_view escrow_ghosted escrow_ghostOk run run' hreq hag (c := .eq (.var ${releasing}) (.const 1)) (by decide) i
   have hg1 : (run'.st j).1 ${released} = 1 := (sever_meaning escrow_ghosted escrow_ghostOk (x := ${released}) (s0 := .const 0) (c := .eq (.var ${releasing}) (.const 1))

@@ -99,7 +99,7 @@ def gcd_loop : Loop := ⟨[],
   .le (.const 0) (.const 0)⟩
 def gcd_machine : SMachine := gcd_loop.machine
 def gcd_l0 : MLaw := ⟨.le (.const 1) (.var 2), none⟩
-def gcd_e0 : SEntry := ⟨gcd_l0, 4, [], [], [], [], [],
+def gcd_e0 : SEntry := ⟨gcd_l0, 4, [], [], [], [], [], [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [], .leaf [⟨[(-1)], 1⟩, ⟨[1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.sub (.var 2) (.var 3)), .term (.ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)), .term (.ite (.not (.eq (.var 2) (.var 3))) (.ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)) (.var 2))], [], .split ⟨[0, 0, 1, (-1)], 0⟩
   (.split ⟨[0, 0, (-1), 1], 0⟩
@@ -109,7 +109,7 @@ def gcd_e0 : SEntry := ⟨gcd_l0, 4, [], [], [], [], [],
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[0, 0, (-1), 1], 1⟩, ⟨[0, 0, 1, (-1)], 1⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])))⟩
 def gcd_l1 : MLaw := ⟨.le (.const 1) (.var 3), none⟩
-def gcd_e1 : SEntry := ⟨gcd_l1, 4, [], [], [], [], [],
+def gcd_e1 : SEntry := ⟨gcd_l1, 4, [], [], [], [], [], [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [], .leaf [⟨[0, (-1)], 1⟩, ⟨[0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.sub (.var 3) (.var 2)), .term (.ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3)), .term (.ite (.not (.eq (.var 2) (.var 3))) (.ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3)) (.var 3))], [], .split ⟨[0, 0, 1, (-1)], 0⟩
   (.split ⟨[0, 0, (-1), 1], 0⟩
@@ -140,15 +140,15 @@ def gcd_live0 : Live := ⟨.le (.const 0) (.const 0), .not (.not (.eq (.var 2) (
   [(.le (.const 0) (.const 0), [])],
   [(2, 5), (3, 6)],
   []⟩
-def gcd_live0_sp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.sub (.var 2) (.var 3)), .term (.ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)), .term (.ite (.not (.eq (.var 2) (.var 3))) (.ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)) (.var 2)), .term (.sub (.var 3) (.var 2)), .term (.ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3)), .term (.ite (.not (.eq (.var 2) (.var 3))) (.ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3)) (.var 3))], [], .split ⟨[0, 0, 1, (-1)], 0⟩
+def gcd_live0_sp : SProof := ([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.sub (.var 2) (.var 3)), .term (.ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)), .term (.ite (.not (.eq (.var 2) (.var 3))) (.ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)) (.var 2)), .term (.sub (.var 3) (.var 2)), .term (.ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3)), .term (.ite (.not (.eq (.var 2) (.var 3))) (.ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3)) (.var 3))], [], .split ⟨[0, 0, 1, (-1)], 0⟩
   (.split ⟨[0, 0, (-1), 1], 0⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[0, 0, (-1)], 1⟩, ⟨[0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split ⟨[0, 0, (-1), 1], 0⟩
   (.leaf [⟨[0, 0, 0, (-1)], 1⟩, ⟨[0, 0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
   (.leaf [⟨[], 1⟩] [.input 0] [] []))))
-def gcd_live0_cp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [], .leaf [⟨[], 1⟩] [.input 0] [] []))
-def gcd_live0_hp : List SProof := [([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.sub (.var 2) (.var 3)), .term (.ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)), .term (.ite (.not (.eq (.var 2) (.var 3))) (.ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)) (.var 2)), .term (.sub (.var 3) (.var 2)), .term (.ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3)), .term (.ite (.not (.eq (.var 2) (.var 3))) (.ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3)) (.var 3))], [], .split ⟨[0, 0, 1, (-1)], 0⟩
+def gcd_live0_cp : SProof := ([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [], .leaf [⟨[], 1⟩] [.input 0] [] []))
+def gcd_live0_hp : List SProof := [([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.sub (.var 2) (.var 3)), .term (.ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)), .term (.ite (.not (.eq (.var 2) (.var 3))) (.ite (.lt (.var 3) (.var 2)) (.sub (.var 2) (.var 3)) (.var 2)) (.var 2)), .term (.sub (.var 3) (.var 2)), .term (.ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3)), .term (.ite (.not (.eq (.var 2) (.var 3))) (.ite (.lt (.var 2) (.var 3)) (.sub (.var 3) (.var 2)) (.var 3)) (.var 3))], [], .split ⟨[0, 0, 1, (-1)], 0⟩
   (.split ⟨[0, 0, (-1), 1], 0⟩
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[0, 0, (-1)], 1⟩, ⟨[0, 0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
@@ -164,7 +164,7 @@ theorem gcd_live0_holds (run : SRun gcd_machine)
     (fair : ∀ h ∈ gcd_live0.helps, ∀ n, ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
     ∀ n, evalC (run.st n).1 (run.st n).2 gcd_live0.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 gcd_live0.to = true :=
   sleads_sound gcd_machine gcd_proof gcd_live0 _ _ _ gcd_check gcd_live0_ok gcd_live0_stay gcd_live0_cover gcd_live0_helps run fair
-def gcd_live0_ap : List (List (Nat × E) × SProof × List E) := [([], ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [.and (.le (.const 1) (.var 0)) (.le (.const 1) (.var 1)), .le (.const 1) (.var 2), .le (.const 1) (.var 3), .and (.and (.and (.le (.const 0) (.const 0)) (.not (.not (.not (.eq (.var 2) (.var 3)))))) (.and (.le (.const 0) (.const 0)) (.le (.const 0) (.const 0)))) (.le (.const 0) (.const 0)), .not (.le (.const 0) (.const 0))], .leaf [⟨[], 1⟩] [.input 0] [] [])), [])]
+def gcd_live0_ap : List (List (Nat × E) × SProof × List E) := [([], ([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [.and (.le (.const 1) (.var 0)) (.le (.const 1) (.var 1)), .le (.const 1) (.var 2), .le (.const 1) (.var 3), .and (.and (.and (.le (.const 0) (.const 0)) (.not (.not (.not (.eq (.var 2) (.var 3)))))) (.and (.le (.const 0) (.const 0)) (.le (.const 0) (.const 0)))) (.le (.const 0) (.const 0)), .not (.le (.const 0) (.const 0))], .leaf [⟨[], 1⟩] [.input 0] [] [])), [])]
 theorem gcd_live0_allows : sliveAllowsOk gcd_machine gcd_proof gcd_live0 gcd_live0_ap = true := by decide +kernel
 /-- gcd by subtraction halts, under weak fairness: along every run that takes each helpful request whenever, from some point on, it
 stays allowed, `from` is followed by `to`. -/
@@ -215,15 +215,15 @@ def pages_live0 : Live := ⟨.le (.const 0) (.const 0), .not (.lt (.var 2) (.var
   [(.le (.const 0) (.const 0), [])],
   [(2, 4)],
   []⟩
-def pages_live0_sp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .term (.sub (.var 0) (.var 2)), .term (.min (.var 1) (.sub (.var 0) (.var 2))), .term (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.min (.var 1) (.sub (.var 0) (.var 2)))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.min (.var 1) (.sub (.var 0) (.var 2)))) (.var 2)))], [], .split ⟨[(-1), 0, 1], 1⟩
+def pages_live0_sp : SProof := ([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .term (.sub (.var 0) (.var 2)), .term (.min (.var 1) (.sub (.var 0) (.var 2))), .term (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.min (.var 1) (.sub (.var 0) (.var 2)))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.min (.var 1) (.sub (.var 0) (.var 2)))) (.var 2)))], [], .split ⟨[(-1), 0, 1], 1⟩
   (.split ⟨[(-1), 0, 1], 0⟩
   (.split ⟨[(-1), 1, 1], 0⟩
   (.leaf [⟨[0, (-1)], 1⟩, ⟨[0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
   (.leaf [⟨[], 1⟩] [.input 0] [] []))
   (.leaf [⟨[(-1), 0, 1], 1⟩, ⟨[1, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
-def pages_live0_cp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4], [], .leaf [⟨[], 1⟩] [.input 0] [] []))
-def pages_live0_hp : List SProof := [([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .term (.sub (.var 0) (.var 2)), .term (.min (.var 1) (.sub (.var 0) (.var 2))), .term (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.min (.var 1) (.sub (.var 0) (.var 2)))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.min (.var 1) (.sub (.var 0) (.var 2)))) (.var 2)))], [], .split ⟨[(-1), 0, 1], 1⟩
+def pages_live0_cp : SProof := ([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4], [], .leaf [⟨[], 1⟩] [.input 0] [] []))
+def pages_live0_hp : List SProof := [([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .term (.sub (.var 0) (.var 2)), .term (.min (.var 1) (.sub (.var 0) (.var 2))), .term (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.min (.var 1) (.sub (.var 0) (.var 2)))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.min (.var 1) (.sub (.var 0) (.var 2)))) (.var 2)))], [], .split ⟨[(-1), 0, 1], 1⟩
   (.split ⟨[(-1), 0, 1], 0⟩
   (.split ⟨[(-1), 1, 1], 0⟩
   (.leaf [⟨[0, (-1)], 1⟩, ⟨[0, 1], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
@@ -239,7 +239,7 @@ theorem pages_live0_holds (run : SRun pages_machine)
     (fair : ∀ h ∈ pages_live0.helps, ∀ n, ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
     ∀ n, evalC (run.st n).1 (run.st n).2 pages_live0.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 pages_live0.to = true :=
   sleads_sound pages_machine pages_proof pages_live0 _ _ _ pages_check pages_live0_ok pages_live0_stay pages_live0_cover pages_live0_helps run fair
-def pages_live0_ap : List (List (Nat × E) × SProof × List E) := [([(1, .var 0)], ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4], [.le (.const 0) (.const 0), .and (.and (.and (.le (.const 0) (.const 0)) (.not (.not (.lt (.var 2) (.var 0))))) (.and (.le (.const 0) (.const 0)) (.le (.const 0) (.const 0)))) (.and (.eq (.var 1) (.var 0)) (.le (.const 0) (.const 0))), .not (.le (.const 1) (.var 1))], .leaf [⟨[(-1), 0, 1], 1⟩, ⟨[1, (-1)], 0⟩, ⟨[0, 1], 0⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [] [])), [])]
+def pages_live0_ap : List (List (Nat × E) × SProof × List E) := [([(1, .var 0)], ([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4], [.le (.const 0) (.const 0), .and (.and (.and (.le (.const 0) (.const 0)) (.not (.not (.lt (.var 2) (.var 0))))) (.and (.le (.const 0) (.const 0)) (.le (.const 0) (.const 0)))) (.and (.eq (.var 1) (.var 0)) (.le (.const 0) (.const 0))), .not (.le (.const 1) (.var 1))], .leaf [⟨[(-1), 0, 1], 1⟩, ⟨[1, (-1)], 0⟩, ⟨[0, 1], 0⟩, ⟨[0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .input 3, .combine 2 1 1 1, .combine 0 4 1 1, .combine 5 3 1 1] [] [])), [])]
 theorem pages_live0_allows : sliveAllowsOk pages_machine pages_proof pages_live0 pages_live0_ap = true := by decide +kernel
 /-- pagination halts, under weak fairness: along every run that takes each helpful request whenever, from some point on, it
 stays allowed, `from` is followed by `to`. -/
@@ -290,7 +290,7 @@ def retry_live0 : Live := ⟨.le (.const 0) (.const 0), .not (.lt (.var 2) (.var
   [(.le (.const 0) (.const 0), [])],
   [(2, 5), (3, 6)],
   []⟩
-def retry_live0_sp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.max (.const 1) (.var 1)), .term (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2))), .term (.sub (.var 0) (.var 2))], [], .split ⟨[(-1), 0, 1], 1⟩
+def retry_live0_sp : SProof := ([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.max (.const 1) (.var 1)), .term (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2))), .term (.sub (.var 0) (.var 2))], [], .split ⟨[(-1), 0, 1], 1⟩
   (.split ⟨[0, (-1)], 1⟩
   (.split ⟨[(-1), 1, 1], 0⟩
   (.split ⟨[(-1), 0, 1], 0⟩
@@ -301,8 +301,8 @@ def retry_live0_sp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[1, 0, (-1)], 1⟩, ⟨[(-1), 0, 1], 2⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
-def retry_live0_cp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [], .leaf [⟨[], 1⟩] [.input 0] [] []))
-def retry_live0_hp : List SProof := [([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.max (.const 1) (.var 1)), .term (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2))), .term (.sub (.var 0) (.var 2))], [], .split ⟨[(-1), 0, 1], 1⟩
+def retry_live0_cp : SProof := ([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [], .leaf [⟨[], 1⟩] [.input 0] [] []))
+def retry_live0_hp : List SProof := [([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.max (.const 1) (.var 1)), .term (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2))), .term (.sub (.var 0) (.var 2))], [], .split ⟨[(-1), 0, 1], 1⟩
   (.split ⟨[0, (-1)], 1⟩
   (.split ⟨[(-1), 1, 1], 0⟩
   (.split ⟨[(-1), 0, 1], 0⟩
@@ -322,7 +322,7 @@ theorem retry_live0_holds (run : SRun retry_machine)
     (fair : ∀ h ∈ retry_live0.helps, ∀ n, ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
     ∀ n, evalC (run.st n).1 (run.st n).2 retry_live0.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 retry_live0.to = true :=
   sleads_sound retry_machine retry_proof retry_live0 _ _ _ retry_check retry_live0_ok retry_live0_stay retry_live0_cover retry_live0_helps run fair
-def retry_live0_ap : List (List (Nat × E) × SProof × List E) := [([], ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [.le (.const 0) (.const 0), .and (.and (.and (.le (.const 0) (.const 0)) (.not (.not (.lt (.var 2) (.var 0))))) (.and (.le (.const 0) (.const 0)) (.le (.const 0) (.const 0)))) (.le (.const 0) (.const 0)), .not (.le (.const 0) (.const 0))], .leaf [⟨[], 1⟩] [.input 0] [] [])), [])]
+def retry_live0_ap : List (List (Nat × E) × SProof × List E) := [([], ([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [.le (.const 0) (.const 0), .and (.and (.and (.le (.const 0) (.const 0)) (.not (.not (.lt (.var 2) (.var 0))))) (.and (.le (.const 0) (.const 0)) (.le (.const 0) (.const 0)))) (.le (.const 0) (.const 0)), .not (.le (.const 0) (.const 0))], .leaf [⟨[], 1⟩] [.input 0] [] [])), [])]
 theorem retry_live0_allows : sliveAllowsOk retry_machine retry_proof retry_live0 retry_live0_ap = true := by decide +kernel
 /-- retry halts, under weak fairness: along every run that takes each helpful request whenever, from some point on, it
 stays allowed, `from` is followed by `to`. -/
@@ -362,7 +362,7 @@ def grid_live0 : Live := ⟨.le (.const 0) (.const 0), .not (.lt (.var 2) (.var 
   [(.le (.const 0) (.const 0), [])],
   [(2, 5), (3, 6)],
   []⟩
-def grid_live0_sp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))), .term (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2))), .term (.sub (.var 0) (.var 2)), .term (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)), .term (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3)), .term (.sub (.var 1) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3))), .term (.sub (.var 1) (.var 3))], [], .split ⟨[(-1), 0, 1], 1⟩
+def grid_live0_sp : SProof := ([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))), .term (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2))), .term (.sub (.var 0) (.var 2)), .term (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)), .term (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3)), .term (.sub (.var 1) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3))), .term (.sub (.var 1) (.var 3))], [], .split ⟨[(-1), 0, 1], 1⟩
   (.split ⟨[0, (-1), 0, 1], 1⟩
   (.split ⟨[(-1), 0, 1], 0⟩
   (.split ⟨[0, (-1), 0, 1], 0⟩
@@ -373,8 +373,8 @@ def grid_live0_sp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3,
   (.leaf [⟨[], 1⟩] [.input 0] [] [])
   (.leaf [⟨[1, 0, (-1)], 1⟩, ⟨[(-1), 0, 1], 2⟩] [.input 0, .input 1, .combine 1 0 1 1] [] [])))
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
-def grid_live0_cp : SProof := ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [], .leaf [⟨[], 1⟩] [.input 0] [] []))
-def grid_live0_hp : List SProof := [([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))), .term (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2))), .term (.sub (.var 0) (.var 2)), .term (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)), .term (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3)), .term (.sub (.var 1) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3))), .term (.sub (.var 1) (.var 3))], [], .split ⟨[(-1), 0, 1], 1⟩
+def grid_live0_cp : SProof := ([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [], .leaf [⟨[], 1⟩] [.input 0] [] []))
+def grid_live0_hp : List SProof := [([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))), .term (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2))), .term (.sub (.var 0) (.var 2)), .term (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)), .term (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3)), .term (.sub (.var 1) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3))), .term (.sub (.var 1) (.var 3))], [], .split ⟨[(-1), 0, 1], 1⟩
   (.split ⟨[0, (-1), 0, 1], 1⟩
   (.split ⟨[(-1), 0, 1], 0⟩
   (.split ⟨[0, (-1), 0, 1], 0⟩
@@ -394,7 +394,7 @@ theorem grid_live0_holds (run : SRun grid_machine)
     (fair : ∀ h ∈ grid_live0.helps, ∀ n, ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
     ∀ n, evalC (run.st n).1 (run.st n).2 grid_live0.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 grid_live0.to = true :=
   sleads_sound grid_machine grid_proof grid_live0 _ _ _ grid_check grid_live0_ok grid_live0_stay grid_live0_cover grid_live0_helps run fair
-def grid_live0_ap : List (List (Nat × E) × SProof × List E) := [([], ([], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [.le (.const 0) (.const 0), .and (.and (.and (.le (.const 0) (.const 0)) (.not (.not (.lt (.var 2) (.var 0))))) (.and (.le (.const 0) (.const 0)) (.le (.const 0) (.const 0)))) (.le (.const 0) (.const 0)), .not (.le (.const 0) (.const 0))], .leaf [⟨[], 1⟩] [.input 0] [] [])), [])]
+def grid_live0_ap : List (List (Nat × E) × SProof × List E) := [([], ([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [.le (.const 0) (.const 0), .and (.and (.and (.le (.const 0) (.const 0)) (.not (.not (.lt (.var 2) (.var 0))))) (.and (.le (.const 0) (.const 0)) (.le (.const 0) (.const 0)))) (.le (.const 0) (.const 0)), .not (.le (.const 0) (.const 0))], .leaf [⟨[], 1⟩] [.input 0] [] [])), [])]
 theorem grid_live0_allows : sliveAllowsOk grid_machine grid_proof grid_live0 grid_live0_ap = true := by decide +kernel
 /-- every cell of an n × m grid halts, under weak fairness: along every run that takes each helpful request whenever, from some point on, it
 stays allowed, `from` is followed by `to`. -/
@@ -854,9 +854,10 @@ def interleaved_machine : SMachine := ⟨⟨⟨[1, 2],
   [],
   [],
   [],
+  [],
   []⟩
 def interleaved_l0 : MLaw := ⟨.le (.var 3) (.var 0), none⟩
-def interleaved_e0 : SEntry := ⟨interleaved_l0, 5, [], [], [], [], [],
+def interleaved_e0 : SEntry := ⟨interleaved_l0, 5, [], [], [], [], [], [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], [], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .term (.ite (.le (.add (.var 3) (.var 1)) (.var 0)) (.add (.var 3) (.var 1)) (.var 3)), .term (.ite (.eq (.var 2) (.const 1)) (.var 3) (.ite (.le (.add (.var 3) (.var 1)) (.var 0)) (.add (.var 3) (.var 1)) (.var 3)))], [], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[(-1), 1, 0, 1], 0⟩
@@ -866,7 +867,7 @@ def interleaved_e0 : SEntry := ⟨interleaved_l0, 5, [], [], [], [], [],
   (.leaf [⟨[(-1), 0, 0, 1], 0⟩, ⟨[1, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))⟩
 def interleaved_l1 : MLaw := ⟨.le (.var 4) (.var 0), none⟩
-def interleaved_e1 : SEntry := ⟨interleaved_l1, 5, [], [], [], [], [],
+def interleaved_e1 : SEntry := ⟨interleaved_l1, 5, [], [], [], [], [], [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], [], .leaf [⟨[1], 1⟩, ⟨[(-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .term (.ite (.le (.add (.var 4) (.var 1)) (.var 0)) (.add (.var 4) (.var 1)) (.var 4)), .term (.ite (.eq (.var 2) (.const 0)) (.var 4) (.ite (.le (.add (.var 4) (.var 1)) (.var 0)) (.add (.var 4) (.var 1)) (.var 4)))], [], .split ⟨[0, 0, 1], 0⟩
   (.split ⟨[0, 0, (-1)], 0⟩
@@ -910,6 +911,7 @@ def interleaved_step0 : SKStep := ⟨⟨[.eq (.var 2) (.const 0)],
   [],
   [],
   [],
+  [],
   []⟩
 theorem interleaved_step0_holds : SKStepHolds interleaved_machine interleaved_step0 :=
   skstep_sound interleaved_machine interleaved_proof interleaved_step0 interleaved_check (by decide +kernel)
@@ -943,6 +945,7 @@ def interleaved_step1 : SKStep := ⟨⟨[.eq (.var 2) (.const 0), .eq (.var 2) (
   (.leaf [⟨[], 1⟩] [.input 0] [] [])))
   (.leaf [⟨[0, 0, (-1)], 1⟩, ⟨[0, 0, 1], 0⟩] [.input 0, .input 1, .combine 1 0 1 1] [] []))⟩,
   [[], []],
+  [],
   [],
   [],
   [],
@@ -1079,7 +1082,7 @@ def escrow_step0 : StepLaw := ⟨.le (.const 0) (.const 0),
 theorem escrow_step0_holds : StepLawHolds escrow_machine escrow_step0 :=
   steplaw_sound escrow_machine escrow_proof escrow_step0 escrow_check (by decide +kernel)
 
--- connection pool: in use <= pool size; in use + released = acquired; released <= acquired; every client holds <= its cap; in use = what the clients hold, with flags got, back  (variables 0 size, 1 perClient, 2 op, 3 client, 4 inUse, 5 acquired, 6 released, 7 heldTotal, 8 key$171, 9 key$171#, 10 #, 11 ?got, 12 ?back; maps 0 Held)
+-- connection pool: in use <= pool size; in use + released = acquired; released <= acquired; every client holds <= its cap; in use = what the clients hold, with flags got, back  (variables 0 size, 1 perClient, 2 op, 3 client, 4 inUse, 5 acquired, 6 released, 7 heldTotal, 8 key$200, 9 key$200#, 10 #, 11 ?got, 12 ?back; maps 0 Held)
 def pooltotal_machine : FMMachine := ⟨⟨[2, 3],
   [(4, .const 0), (5, .const 0), (6, .const 0), (7, .const 0)],
   [(0, 0)],

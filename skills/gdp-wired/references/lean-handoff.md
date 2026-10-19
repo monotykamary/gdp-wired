@@ -53,9 +53,9 @@ proveRule(retry, [retry.law('the next try is at most 64 after the last request',
   ```
 
   In Lean a function of several arguments is `Recur.<name>_rec` with its key's function `Recur.<name>` beside it (the
-  builders pair the arguments as (a + b)² + b; `Recur.pair_inj` proves that injective), and each fact the proof uses at
-  several keys goes to the twin with every key but one set to its term, which must read the params alone: a proof that
-  needs a law between two points at two values of the state at once is checked here, not in Lean.
+  builders pair the arguments as (a + b)² + b; `Recur.pair_inj` proves that injective). A fact about several keys goes to
+  the twin as one (`pfacts`), given at every value of its further keys and assumed at the tuples the proof names, as a
+  law about several keys is; `<id>_pfacts_hold` proves it of the definitions.
 - A recursion that isn't on a natural (a tree, a list as a value), or a lemma that isn't by induction from 0 or
   between two points, is the next section.
 
