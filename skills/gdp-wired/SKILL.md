@@ -1,6 +1,6 @@
 ---
 name: gdp-wired
-description: Prove the laws of stateful rules in TypeScript with gdp-wired, an automatic prover (no proof to write, every proof checkable again in Lean). Use when adding, changing or reviewing a budget, cap, quota, rate limit, sliding window, workflow, ledger, access policy or any state machine whose invariants matter; when code imports from 'gdp-wired'; when a law comes back refuted or unproven; or when deciding whether a claim belongs to gdp-wired, Lean or Bend.
+description: Prove the laws of stateful rules in TypeScript with gdp-wired, an automatic prover (no proof to write, every proof checkable again in Lean). Use when adding, changing or reviewing a budget, cap, quota, rate limit, sliding window, workflow, ledger, access policy or any state machine whose invariants matter; when code imports from 'gdp-wired'; when a gdp-ts trusted module's check (an authorization or entitlement policy) should be proven, not just trusted; when a law comes back refuted or unproven; or when deciding whether a claim belongs to gdp-wired, Lean or Bend.
 ---
 
 # gdp-wired
@@ -56,7 +56,9 @@ When adding or changing a rule whose invariants matter:
 5. **Never prove a different rule than the one that ships.** Ship the rule
    itself (`rule.compiled()`), or hold hand-written code to it with
    `rule.compare(reference)`; run `rule.crossCheck(laws)` in tests
-   ([shipping](references/shipping.md)).
+   ([shipping](references/shipping.md)). With gdp-ts, mint its proofs from
+   the proven check (`guard`, `gate` from `gdp-wired/gdp`) so every call site
+   is held to it ([with gdp-ts](references/gdp-ts.md)).
 6. **Keep the broken variant.** Next to each proven rule, keep the bug it
    rules out (the uncapped budget) and assert it is refused. It is the
    cheapest regression test you will write.
@@ -74,6 +76,7 @@ Read the one you need:
 | [`references/writing-rules.md`](references/writing-rules.md) | Writing a rule or a law: kinds, maps, flags, step laws, k-step laws, histories, liveness, decisions, pure functions, two-run laws, loops. |
 | [`references/reading-verdicts.md`](references/reading-verdicts.md) | A verdict is not `{proven: true, checked: true}`: `stuck: 'sat'`, `stuck: 'unknown'` with `why`, a witness, a search result. |
 | [`references/shipping.md`](references/shipping.md) | Running the proven rule in an app, encoding runtime values, holding existing code to the rule. |
+| [`references/gdp-ts.md`](references/gdp-ts.md) | The codebase uses gdp-ts (`@gdp-ts/core`, a `proofs/` folder), or an authorization check should be proven and demanded at every call site: `guard` and `gate`. |
 | [`references/lean-handoff.md`](references/lean-handoff.md) | Exporting proofs to Lean, or a claim needs recursion or arithmetic the kernel doesn't decide. |
 | [`references/where-it-fits.md`](references/where-it-fits.md) | Deciding whether gdp-wired, Lean or Bend should own a claim. |
 
@@ -92,6 +95,7 @@ From `gdp-wired`:
 | `fn(arity, js, {facts, lean})`, `divBy(c)`, `modBy(c)` | Functions known by their facts. |
 | `r.compiled()`, `r.interpreter()`, `r.encodeParams`, `r.encodeInput`, `r.decode`, `r.crossCheck`, `r.compare` | Running and checking the rule. |
 
-Also: `gdp-wired/machine` (`search`, `compileJs`, the interpreter), `gdp-wired/lean`
+Also: `gdp-wired/gdp` (`guard`, `gate`, `Unproven`: gdp-ts proofs minted by proven checks),
+`gdp-wired/machine` (`search`, `compileJs`, the interpreter), `gdp-wired/lean`
 (`toLean`, `leanProject`), `gdp-wired/compose` (`product`, `interleave`,
 `refinement`, `steps`, `ghost`), `gdp-wired/kernel`, `gdp-wired/prove`.

@@ -7,6 +7,7 @@ Laws about stateful rules, proven inside the library, with a Lean-checked truste
 | `solver.ts` | Integer linear arithmetic: Fourier–Motzkin with cuts. Refutations are derivations; satisfiable cases carry a witness; otherwise `unknown`, never a wrong answer |
 | `check.ts` | The TypeScript checker for derivations and witnesses |
 | `machine.ts` | Step machines (state, maps, params, inputs, one step, and optionally a history of kept requests with sums, queries and relations): the interpreter (persistent, for searches) and generated JS (maps and the log updated in place, what an app ships), both refusing undeclared names (the kernel's scope check), params and inputs that aren't naturals below 2^53, and values past 2^53 − 1; induction into solver cases; real counterexample search |
+| `gdp.ts` | The gdp-ts adapter (`gdp-wired/gdp`): a guard (a function's condition) or a gate (a rule's flag, the rule run compiled) mints gdp-ts proofs only where the condition holds, its laws proven when it is made; `gdp.test.ts`, and `gdp.types.ts` (type-checked only) |
 | `invariant.ts` | Houdini: candidate invariants from the machine's own variables and constants, kept while inductive together, then minimized |
 | `models.ts` | the budget rule (bounded loss), the caps rule (per-key caps), requests in flight, and a sliding-window limit with a history |
 | `run-proofs.ts`, `run-strengthen.ts` | The runs below |

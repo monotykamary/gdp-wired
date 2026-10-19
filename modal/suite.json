@@ -856,6 +856,13 @@
 "timeout": 900
 },
 {
+"name": "gdp",
+"cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && cd core && bun test gdp.test.ts 2>&1 && cd .. && bun examples/gdp.ts 2>&1",
+"cwd": ".",
+"cpu": 1.0,
+"timeout": 900
+},
+{
 "name": "jev-fabric",
 "cmd": "bun examples/jev-fabric/run.ts 2>&1",
 "cwd": ".",

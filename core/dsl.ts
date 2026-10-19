@@ -1294,11 +1294,11 @@ export class Fun<P extends Obj = {}, I extends Obj = {}, O extends Obj = {}> {
   }
   // Whenever the arguments (and the result) meet `given`, the result meets `then`.
   law(name: string, given: (env: P & I, out: O) => Cond | Cond[], then: (out: O, env: P & I) => Cond): Decision {
-    return this.r.decide(name, env => given(env, this.result(env) as never), env => then(this.result(env) as never, env))
+    return lawOfFun(this, this.r.decide(name, env => given(env, this.result(env) as never), env => then(this.result(env) as never, env)))
   }
   // A law about two calls under the same params: `then(outA, outB, a, b)` given `given(a, b)` (noninterference, say).
   relate(name: string, given: (a: P & I, b: P & I) => Cond | Cond[], then: (outA: O, outB: O, a: P & I, b: P & I) => Cond): Decision {
-    return this.r.relate(name, given, (a, b) => then(this.result(a) as never, this.result(b) as never, a, b))
+    return lawOfFun(this, this.r.relate(name, given, (a, b) => then(this.result(a) as never, this.result(b) as never, a, b)))
   }
 
   // Against the code it describes: `reference` called with the same arguments (drawn by their kinds, or by `draw`, the
@@ -1336,6 +1336,11 @@ export class Fun<P extends Obj = {}, I extends Obj = {}, O extends Obj = {}> {
   }
 }
 export const fun = (name: string): Fun => new Fun(rule(name))
+// The function a law was stated about. Variants of one function share its arguments, so a law's terms alone don't say
+// which result it is about; a guard (gdp.ts) takes only laws stated about the function it runs.
+const lawsOfFuns = new WeakMap<Decision, Fun<Obj, Obj, Obj>>()
+const lawOfFun = (f: Fun<Obj, Obj, Obj>, d: Decision): Decision => { lawsOfFuns.set(d, f); return d }
+export const funOf = (d: Decision): Fun<Obj, Obj, Obj> | undefined => lawsOfFuns.get(d)
 // One disagreement between a rule and the code it describes, or none: what compare returns.
 export type Agreement = {checked: number, failure?: string}
 type Draws<T> = {trials?: number, bound?: number, rand?: Rand, edges?: T[], draw?: (rand: Rand) => T}

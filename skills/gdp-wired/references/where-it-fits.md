@@ -16,6 +16,11 @@ Numbers: `compare/README.md` in the gdp-wired repo (one Modal run, median of 5, 
   fairness, refinement, decisions over a request, noninterference between two requests.
 - Laws that must keep holding as the code changes: the proof reruns in milliseconds.
 
+## Pair it with gdp-ts
+
+gdp-ts holds every call site to a check; gdp-wired proves the check. Where a codebase demands gdp-ts proofs, mint them
+from a proven `guard` or `gate` ([with gdp-ts](gdp-ts.md)): the policy is proven, and no caller can skip it.
+
 ## Hand off to Lean or Bend
 
 - Induction the prover would have to invent (a recursive structure whose proof needs an unstated lemma).

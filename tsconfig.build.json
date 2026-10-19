@@ -10,6 +10,6 @@
     "lib": ["ES2022", "DOM"]
   },
   "include": [],
-  "files": ["core/dsl.ts", "core/machine.ts",
+  "files": ["core/dsl.ts", "core/machine.ts", "core/gdp.ts",
     "core/compose.ts", "lean-kernel/emit.ts", "core/solver.ts", "core/check.ts", "kernel/kernel.ts", "kernel/prove.ts"]
 }

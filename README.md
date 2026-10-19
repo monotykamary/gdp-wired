@@ -106,6 +106,39 @@ The untrusted parts are held to the trusted ones by the test suite:
   tests, and the few that survive are equivalent (`kernel/MUTANTS.md`).
 - **Fuzz**: the kernel never accepts a refutation of something that has a model.
 
+## With gdp-ts
+
+[gdp-ts](https://github.com/rauchg/gdp-ts) makes every call site present a proof that a check ran on exactly these
+values, and trusts the module that performs the check. `gdp-wired/gdp` proves that check: the trusted module hands its
+private prover to a `guard` (a function's condition) or a `gate` (a rule's flag), which proves the laws when the module
+loads, refuses to load if one fails, and mints a proof only where the proven condition holds. gdp-ts then holds every
+call site to it: the policy is proven, every caller is held to it, and Lean checks the proof again.
+
+```ts
+// proofs/can-set-protection.ts (trusted: the only module that can mint this proof)
+import {defineProof, type Named, type Proof} from '@gdp-ts/core'
+import {fun, no, oneOf} from 'gdp-wired'
+import {guard} from 'gdp-wired/gdp'
+
+const canSet = fun('can set password protection')
+  .inputs({role: oneOf('owner', 'member', 'viewer', 'none'), plan: oneOf('free', 'pro', 'enterprise')})
+  .returns(({role, plan}) => ({allow: role.is('owner').or(role.is('member')).and(plan.is('free').not())}))
+const laws = [canSet.law('the free plan never has protection', ({plan}, out) => [plan.is('free'), out.allow], () => no)]
+
+const CanSetProtection = defineProof('CanSetProtection') // not exported
+export interface CanSetProtection<U, P> extends Proof<'CanSetProtection', [U, P]> {}
+const mint = guard(CanSetProtection, canSet, 'allow', {laws}) // proven here, or the module doesn't load
+
+export async function canSetProtection<U, P>(user: Named<U, UserId>, project: Named<P, ProjectId>): Promise<CanSetProtection<U, P> | null> {
+  return mint({role: await db.role(user.value, project.value), plan: await db.plan(project.value)}, user, project)
+}
+```
+
+A `gate` does the same for a rule with state: each request takes the rule's step, and a proof is minted when the step
+takes the flag (a one-time token redeemed, a sign-in while the account is unlocked, an email within the hourly cap).
+Requests outside what was proven (a failed `assume`, a history read out of order) mint nothing and leave the state as it
+was. `examples/gdp.ts` runs gdp-ts's own example this way; `@gdp-ts/core` is an optional peer dependency.
+
 ## Writing laws
 
 The builders (`core/dsl.ts`) hand out typed values for every name you declare; everything compiles to the plain machine
@@ -235,7 +268,7 @@ Lean, compiled natively, wins where the state stays small. Details in [`docs/com
 | `core/` | Machines, the interpreter and JS compiler, the builders, composition (`compose.ts`), the linear solver and its checker, Houdini invariants, models, the first Lean export |
 | `kernel/` | The trusted kernel and the untrusted prover, with soundness fuzz (`kernel.test.ts`, `history.test.ts`) |
 | `lean-kernel/` | The kernel's Lean twin, its soundness proofs, and the exported trees |
-| `examples/` | The builders at work: `domains/` (187 rules across 21 domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `budget.ts`, `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `lists.ts`, `sizes.ts`, `liveness.ts`, `steps.ts` (laws over up to 16 steps), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
+| `examples/` | The builders at work: `domains/` (187 rules across 21 domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `budget.ts`, `gdp.ts` (gdp-ts's example, its checks proven), `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `lists.ts`, `sizes.ts`, `liveness.ts`, `steps.ts` (laws over up to 16 steps), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
 | `docs/` | The comparison with Bend and Lean, and the full scope |
 | `compare/` | The same three rules in gdp-wired, Bend and plain Lean, checked and measured |
 | `research/` | Everything around the library ([`research/README.md`](research/README.md)): the GPU searches (`search/`, `hw/`, `modal-gpu/`), invariant and rank synthesis (`synth/`), relational laws and guard synthesis (`next/`), bit-vector laws (`sat/`), the enumeration and benchmarks (`enum/`, `gpu/`, `perf/`), the first Lean checker (`lean/`) and the first prototype, the audit path (`audit/`) |
@@ -288,7 +321,7 @@ the way the code does it, stating its laws, reading a refused proof and handing 
 ## Credits
 
 [gdp-ts](https://github.com/rauchg/gdp-ts) by Guillermo Rauch (Ghosts of Departed Proofs for TypeScript) is where the
-audit path starts; [Handwired](https://github.com/chenglou/handwired) by Cheng Lou is the circuit and GPU runtime this
+audit path starts, and what `gdp-wired/gdp` mints proofs for; [Handwired](https://github.com/chenglou/handwired) by Cheng Lou is the circuit and GPU runtime this
 builds on, through a fork; [Bend](https://github.com/bendlang/bend) is the language the laws were first written in,
 and the yardstick for the benchmarks.
 
