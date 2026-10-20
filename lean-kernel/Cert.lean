@@ -4,8 +4,10 @@ Cert: the trusted core of gdp-wired, with its proofs. Lean 4.34.0, core only.
 A row `Σ cᵢ·xᵢ + c ≤ 0` over the integers. A certificate is a list of steps that replays into rows: an input row, a
 positive combination of two earlier rows, or a cut (an earlier row whose coefficients are all g times q, replaced by q
 with a constant c such that g·c ≤ constant + g − 1). `check` accepts when the last row has only zero coefficients and a
-positive constant, replaying on sparse rows (`sreplay`; `replay` is the same replay on dense rows). `sound`: if `check`
-accepts, no integer point satisfies every input row.
+positive constant. `sound`: if `check` accepts, no integer point satisfies every input row.
+
+A row holds its nonzero coefficients alone (column, coefficient), in column order, so a step costs a row's nonzeros
+rather than the table's width. Any list reads as a sum (`dot`); sorted lists stay sorted and cancel to [] under `addL`.
 
 `run_preserves` is the induction rule a step machine's laws rest on: a property true at the start and preserved by
 every step holds after every sequence of steps.
@@ -14,174 +16,109 @@ every step holds after every sequence of steps.
 namespace Cert
 
 structure Row where
-  coefs : List Int
+  coefs : List (Nat × Int)
   const : Int
 deriving Repr
 
-def dot : List Int → List Int → Int
-  | c :: cs, y :: ys => c * y + dot cs ys
-  | _, _ => 0
+def dot : List (Nat × Int) → List Int → Int
+  | [], _ => 0
+  | p :: rest, x => p.2 * x.getD p.1 0 + dot rest x
 
 def eval (r : Row) (x : List Int) : Int := dot r.coefs x + r.const
 
-def addL : List Int → List Int → List Int
-  | a :: as, b :: bs => (a + b) :: addL as bs
-  | [], bs => bs
-  | as, [] => as
+-- Two sorted lists merged, coefficients of one column added (a column that cancels dropped). The fuel only bounds the
+-- recursion: out of it, the lists are put side by side, which reads the same.
+def addF : Nat → List (Nat × Int) → List (Nat × Int) → List (Nat × Int)
+  | 0, a, b => a ++ b
+  | _ + 1, [], b => b
+  | _ + 1, a, [] => a
+  | n + 1, p :: as, q :: bs =>
+    if p.1 < q.1 then p :: addF n as (q :: bs)
+    else if q.1 < p.1 then q :: addF n (p :: as) bs
+    else if p.2 + q.2 = 0 then addF n as bs else (p.1, p.2 + q.2) :: addF n as bs
 
-def scaleL (m : Int) : List Int → List Int
-  | [] => []
-  | a :: as => (m * a) :: scaleL m as
+def addL (a b : List (Nat × Int)) : List (Nat × Int) := addF (a.length + b.length) a b
 
-theorem dot_nil_right : ∀ (a : List Int), dot a [] = 0
-  | [] => rfl
-  | _ :: _ => rfl
+def scaleL (m : Int) (a : List (Nat × Int)) : List (Nat × Int) := if m = 0 then [] else a.map (fun p => (p.1, m * p.2))
 
-theorem dot_addL : ∀ (a b x : List Int), dot (addL a b) x = dot a x + dot b x
-  | [], b, x => by simp [addL, dot]
-  | _ :: _, [], x => by simp [addL, dot]
-  | a :: as, b :: bs, [] => by simp [addL, dot]
-  | a :: as, b :: bs, y :: ys => by
-    simp only [addL, dot, dot_addL as bs ys, Int.add_mul]
-    omega
-
-theorem dot_scaleL (m : Int) : ∀ (a x : List Int), dot (scaleL m a) x = m * dot a x
-  | [], x => by simp [scaleL, dot]
-  | _ :: _, [] => by simp [scaleL, dot]
-  | a :: as, y :: ys => by
-    simp only [scaleL, dot, dot_scaleL m as ys, Int.mul_add, Int.mul_assoc]
-
-def allZero : List Int → Bool
+def allZero : List (Nat × Int) → Bool
   | [] => true
-  | c :: cs => c == 0 && allZero cs
+  | p :: a => p.2 == 0 && allZero a
 
-theorem dot_allZero : ∀ (a x : List Int), allZero a = true → dot a x = 0
-  | [], _, _ => by simp [dot]
-  | _ :: _, [], _ => rfl
-  | c :: cs, y :: ys, h => by
+theorem dot_app (x : List Int) : ∀ (a b : List (Nat × Int)), dot (a ++ b) x = dot a x + dot b x
+  | [], b => by simp [dot]
+  | p :: a, b => by simp only [List.cons_append, dot, dot_app x a b]; omega
+
+theorem dot_addF (x : List Int) : ∀ (n : Nat) (a b : List (Nat × Int)), dot (addF n a b) x = dot a x + dot b x
+  | 0, a, b => by simp only [addF, dot_app]
+  | _ + 1, [], b => by simp [addF, dot]
+  | _ + 1, _ :: _, [] => by simp [addF, dot]
+  | n + 1, p :: as, q :: bs => by
+    simp only [addF]
+    split
+    · simp only [dot, dot_addF x n as (q :: bs)]; omega
+    · split
+      · simp only [dot, dot_addF x n (p :: as) bs]; omega
+      · have hpq : p.1 = q.1 := by omega
+        split
+        · rename_i hz
+          simp only [dot, dot_addF x n as bs, hpq]
+          have : p.2 * x.getD q.1 0 + q.2 * x.getD q.1 0 = 0 := by rw [← Int.add_mul, hz, Int.zero_mul]
+          omega
+        · simp only [dot, dot_addF x n as bs, hpq, Int.add_mul]; omega
+
+theorem dot_addL (a b : List (Nat × Int)) (x : List Int) : dot (addL a b) x = dot a x + dot b x := dot_addF x _ a b
+
+theorem dot_map (m : Int) (x : List Int) : ∀ (a : List (Nat × Int)), dot (a.map (fun p => (p.1, m * p.2))) x = m * dot a x
+  | [] => by simp [dot]
+  | p :: a => by simp only [List.map_cons, dot, dot_map m x a, Int.mul_add, Int.mul_assoc]
+
+theorem dot_scaleL (m : Int) (a : List (Nat × Int)) (x : List Int) : dot (scaleL m a) x = m * dot a x := by
+  unfold scaleL
+  split
+  · rename_i h; subst h; simp [dot]
+  · exact dot_map m x a
+
+theorem dot_allZero : ∀ (a : List (Nat × Int)) (x : List Int), allZero a = true → dot a x = 0
+  | [], _, _ => rfl
+  | p :: a, x, h => by
     simp only [allZero, Bool.and_eq_true, beq_iff_eq] at h
-    simp [dot, h.1, dot_allZero cs ys h.2]
+    simp [dot, h.1, dot_allZero a x h.2]
 
 inductive Step where
   | input (i : Nat)
   | combine (a b : Nat) (ma mb : Int)
-  | cut (of : Nat) (g : Int) (q : List Int) (c : Int)
+  | cut (of : Nat) (g : Int) (q : List (Nat × Int)) (c : Int)
 deriving Repr
 
 def combineRow (ma mb : Int) (A B : Row) : Row :=
   ⟨addL (scaleL ma A.coefs) (scaleL mb B.coefs), ma * A.const + mb * B.const⟩
 
--- Coefficient lists compare up to trailing zeros: a combination keeps the longer list's length, while a certificate
--- may write the cut's quotient without its trailing zeros. Trimming changes no dot product (dot_trimZ).
-def trimZ : List Int → List Int
-  | [] => []
-  | a :: as => match trimZ as with
-    | [] => if a = 0 then [] else [a]
-    | t => a :: t
-
-theorem dot_trimZ : ∀ (a x : List Int), dot (trimZ a) x = dot a x
-  | [], _ => rfl
-  | _ :: _, [] => by simp only [dot_nil_right]
-  | a :: as, y :: ys => by
-    have ih := dot_trimZ as ys
-    have key : trimZ (a :: as) = (match trimZ as with | [] => if a = 0 then [] else [a] | t => a :: t) := rfl
-    rw [key]
-    cases h : trimZ as with
-    | nil =>
-      rw [h] at ih
-      have h0 : dot as ys = 0 := by rw [← ih]; simp [dot]
-      by_cases ha : a = 0
-      · simp [ha, dot, h0]
-      · simp [ha, dot, h0]
-    | cons t0 ts =>
-      rw [h] at ih
-      simp only [dot]
-      rw [ih]
-
-def cutOk (A : Row) (g : Int) (q : List Int) (c : Int) : Bool :=
-  decide (1 ≤ g) && decide (trimZ A.coefs = trimZ (scaleL g q)) && decide (g * c ≤ A.const + g - 1)
-
-def replay (inputs : List Row) : List Step → List Row → Option (List Row)
-  | [], rows => some rows
-  | .input i :: ss, rows =>
-    match inputs[i]? with
-    | some r => replay inputs ss (rows ++ [r])
-    | none => none
-  | .combine a b ma mb :: ss, rows =>
-    match rows[a]?, rows[b]? with
-    | some A, some B => if 0 < ma ∧ 0 < mb then replay inputs ss (rows ++ [combineRow ma mb A B]) else none
-    | _, _ => none
-  | .cut o g q c :: ss, rows =>
-    match rows[o]? with
-    | some A => if cutOk A g q c then replay inputs ss (rows ++ [⟨q, c⟩]) else none
-    | none => none
-
-/-! Sparse rows. `check` replays a certificate on each row's nonzero coefficients alone (column, coefficient), in column
-order, so a step costs the rows' nonzeros rather than the table's width. The inputs and each cut's quotient are taken
-dense, as certificates write them, and made sparse once. -/
-
-abbrev SL := List (Nat × Int)
-
-structure SRow where
-  coefs : SL
-  const : Int
-
-def sevalL : SL → List Int → Int
-  | [], _ => 0
-  | p :: rest, x => p.2 * x.getD p.1 0 + sevalL rest x
-
-def seval (r : SRow) (x : List Int) : Int := sevalL r.coefs x + r.const
-
-def toSparse : Nat → List Int → SL
-  | _, [] => []
-  | i, c :: cs => if c = 0 then toSparse (i + 1) cs else (i, c) :: toSparse (i + 1) cs
-
-def toS (r : Row) : SRow := ⟨toSparse 0 r.coefs, r.const⟩
-
-def sscale (m : Int) : SL → SL
-  | [] => []
-  | p :: rest => (p.1, m * p.2) :: sscale m rest
-
--- Two sorted lists merged, coefficients of one column added (a column that cancels dropped). The fuel only bounds the
--- recursion: out of it, the lists are put side by side, which reads the same.
-def saddF : Nat → SL → SL → SL
-  | 0, a, b => a ++ b
-  | _ + 1, [], b => b
-  | _ + 1, a, [] => a
-  | n + 1, p :: as, q :: bs =>
-    if p.1 < q.1 then p :: saddF n as (q :: bs)
-    else if q.1 < p.1 then q :: saddF n (p :: as) bs
-    else if p.2 + q.2 = 0 then saddF n as bs else (p.1, p.2 + q.2) :: saddF n as bs
-
-def sadd (a b : SL) : SL := saddF (a.length + b.length) a b
-
-def scombine (ma mb : Int) (A B : SRow) : SRow := ⟨sadd (sscale ma A.coefs) (sscale mb B.coefs), ma * A.const + mb * B.const⟩
-
-def scutOk (A : SRow) (g : Int) (q : SL) (c : Int) : Bool :=
-  decide (1 ≤ g) && decide (A.coefs = sscale g q) && decide (g * c ≤ A.const + g - 1)
+def cutOk (A : Row) (g : Int) (q : List (Nat × Int)) (c : Int) : Bool :=
+  decide (1 ≤ g) && decide (A.coefs = scaleL g q) && decide (g * c ≤ A.const + g - 1)
 
 -- The rows so far kept newest first, with their number (step i's row is at n − 1 − i): a row is put on the front and
 -- read where it is, never past a chain of appends.
-def sreplay (inputs : List SRow) : List Step → Nat → List SRow → Option (List SRow)
+def replay (inputs : List Row) : List Step → Nat → List Row → Option (List Row)
   | [], _, rows => some rows
   | .input i :: ss, n, rows =>
     match inputs[i]? with
-    | some r => sreplay inputs ss (n + 1) (r :: rows)
+    | some r => replay inputs ss (n + 1) (r :: rows)
     | none => none
   | .combine a b ma mb :: ss, n, rows =>
     match rows[n - 1 - a]?, rows[n - 1 - b]? with
-    | some A, some B => if a < n ∧ b < n ∧ 0 < ma ∧ 0 < mb then sreplay inputs ss (n + 1) (scombine ma mb A B :: rows) else none
+    | some A, some B => if a < n ∧ b < n ∧ 0 < ma ∧ 0 < mb then replay inputs ss (n + 1) (combineRow ma mb A B :: rows) else none
     | _, _ => none
   | .cut o g q c :: ss, n, rows =>
     match rows[n - 1 - o]? with
-    | some A => if o < n ∧ scutOk A g (toSparse 0 q) c then sreplay inputs ss (n + 1) (⟨toSparse 0 q, c⟩ :: rows) else none
+    | some A => if o < n ∧ cutOk A g q c then replay inputs ss (n + 1) (⟨q, c⟩ :: rows) else none
     | none => none
 
 def check (inputs : List Row) (steps : List Step) : Bool :=
-  match sreplay (inputs.map toS) steps 0 [] with
+  match replay inputs steps 0 [] with
   | some rows =>
     match rows.head? with
-    | some r => r.coefs.isEmpty && decide (0 < r.const)
+    | some r => allZero r.coefs && decide (0 < r.const)
     | none => false
   | none => false
 
@@ -193,133 +130,19 @@ theorem cut_sound (g d c c' : Int) (hg : 1 ≤ g) (h : g * d + c ≤ 0) (hc : g 
 
 -- Every row a replay produces holds wherever the inputs and the rows so far hold.
 theorem replay_holds (inputs : List Row) (x : List Int) (hx : ∀ r ∈ inputs, eval r x ≤ 0) :
-    ∀ (ss : List Step) (rows out : List Row), (∀ r ∈ rows, eval r x ≤ 0) →
-      replay inputs ss rows = some out → ∀ r ∈ out, eval r x ≤ 0 := by
+    ∀ (ss : List Step) (n : Nat) (rows out : List Row), (∀ r ∈ rows, eval r x ≤ 0) →
+      replay inputs ss n rows = some out → ∀ r ∈ out, eval r x ≤ 0 := by
   intro ss
   induction ss with
   | nil =>
-    intro rows out hrows h
+    intro n rows out hrows h
     simp only [replay, Option.some.injEq] at h
     exact h ▸ hrows
   | cons s ss ih =>
-    intro rows out hrows h
-    cases s with
-    | input i =>
-      simp only [replay] at h
-      split at h
-      · rename_i r hr
-        refine ih _ out ?_ h
-        intro r' hr'
-        rcases List.mem_append.mp hr' with hr' | hr'
-        · exact hrows r' hr'
-        · simp only [List.mem_singleton] at hr'
-          exact hr' ▸ hx r (List.mem_of_getElem? hr)
-      · exact absurd h (by simp)
-    | combine a b ma mb =>
-      simp only [replay] at h
-      split at h
-      · rename_i A B hA hB
-        split at h
-        · rename_i hm
-          refine ih _ out ?_ h
-          intro r' hr'
-          rcases List.mem_append.mp hr' with hr' | hr'
-          · exact hrows r' hr'
-          · simp only [List.mem_singleton] at hr'
-            subst hr'
-            have eA := hrows A (List.mem_of_getElem? hA)
-            have eB := hrows B (List.mem_of_getElem? hB)
-            simp only [eval, combineRow, dot_addL, dot_scaleL] at eA eB ⊢
-            have h1 : ma * (dot A.coefs x + A.const) ≤ ma * 0 := Int.mul_le_mul_of_nonneg_left eA (by omega)
-            have h2 : mb * (dot B.coefs x + B.const) ≤ mb * 0 := Int.mul_le_mul_of_nonneg_left eB (by omega)
-            simp only [Int.mul_add, Int.mul_zero] at h1 h2
-            omega
-        · exact absurd h (by simp)
-      · exact absurd h (by simp)
-    | cut o g q c =>
-      simp only [replay] at h
-      split at h
-      · rename_i A hA
-        split at h
-        · rename_i hok
-          refine ih _ out ?_ h
-          intro r' hr'
-          rcases List.mem_append.mp hr' with hr' | hr'
-          · exact hrows r' hr'
-          · simp only [List.mem_singleton] at hr'
-            subst hr'
-            simp only [cutOk, Bool.and_eq_true, decide_eq_true_eq] at hok
-            obtain ⟨⟨hg, hq⟩, hc⟩ := hok
-            have eA := hrows A (List.mem_of_getElem? hA)
-            have hdot : dot A.coefs x = g * dot q x := by
-              rw [← dot_trimZ A.coefs x, hq, dot_trimZ, dot_scaleL]
-            simp only [eval, hdot] at eA
-            exact cut_sound g (dot q x) A.const c hg eA hc
-        · exact absurd h (by simp)
-      · exact absurd h (by simp)
-
-/-! The sparse rows read as the dense ones. -/
-
-theorem dot_cons_drop (c : Int) (cs : List Int) : ∀ (x : List Int) (i : Nat), dot (c :: cs) (x.drop i) = c * x.getD i 0 + dot cs (x.drop (i + 1))
-  | [], i => by simp [dot, dot_nil_right]
-  | y :: ys, 0 => by simp [dot]
-  | y :: ys, i + 1 => by simp only [List.drop_succ_cons, List.getD_cons_succ]; exact dot_cons_drop c cs ys i
-
-theorem sevalL_toSparse (x : List Int) : ∀ (cs : List Int) (i : Nat), sevalL (toSparse i cs) x = dot cs (x.drop i)
-  | [], i => by simp [toSparse, sevalL, dot]
-  | c :: cs, i => by
-    rw [dot_cons_drop]
-    simp only [toSparse]
-    split
-    · rename_i hc; subst hc; rw [sevalL_toSparse x cs (i + 1)]; simp
-    · simp only [sevalL]; rw [sevalL_toSparse x cs (i + 1)]
-
-theorem seval_toS (r : Row) (x : List Int) : seval (toS r) x = eval r x := by
-  simp only [seval, toS, eval, sevalL_toSparse, List.drop_zero]
-
-theorem sevalL_append (x : List Int) : ∀ (a b : SL), sevalL (a ++ b) x = sevalL a x + sevalL b x
-  | [], b => by simp [sevalL]
-  | p :: a, b => by simp only [List.cons_append, sevalL, sevalL_append x a b]; omega
-
-theorem sevalL_sscale (m : Int) (x : List Int) : ∀ (a : SL), sevalL (sscale m a) x = m * sevalL a x
-  | [] => by simp [sscale, sevalL]
-  | p :: a => by simp only [sscale, sevalL, sevalL_sscale m x a, Int.mul_add, Int.mul_assoc]
-
-theorem sevalL_saddF (x : List Int) : ∀ (n : Nat) (a b : SL), sevalL (saddF n a b) x = sevalL a x + sevalL b x
-  | 0, a, b => by simp only [saddF, sevalL_append]
-  | _ + 1, [], b => by simp [saddF, sevalL]
-  | _ + 1, _ :: _, [] => by simp [saddF, sevalL]
-  | n + 1, p :: as, q :: bs => by
-    simp only [saddF]
-    split
-    · simp only [sevalL, sevalL_saddF x n as (q :: bs)]; omega
-    · split
-      · simp only [sevalL, sevalL_saddF x n (p :: as) bs]; omega
-      · rename_i h1 h2
-        have hpq : p.1 = q.1 := by omega
-        split
-        · rename_i hz
-          simp only [sevalL, sevalL_saddF x n as bs, hpq]
-          have : p.2 * x.getD q.1 0 + q.2 * x.getD q.1 0 = 0 := by rw [← Int.add_mul, hz, Int.zero_mul]
-          omega
-        · simp only [sevalL, sevalL_saddF x n as bs, hpq, Int.add_mul]; omega
-
-theorem sevalL_sadd (x : List Int) (a b : SL) : sevalL (sadd a b) x = sevalL a x + sevalL b x := sevalL_saddF x _ a b
-
-theorem sreplay_holds (inputs : List SRow) (x : List Int) (hx : ∀ r ∈ inputs, seval r x ≤ 0) :
-    ∀ (ss : List Step) (n : Nat) (rows out : List SRow), (∀ r ∈ rows, seval r x ≤ 0) →
-      sreplay inputs ss n rows = some out → ∀ r ∈ out, seval r x ≤ 0 := by
-  intro ss
-  induction ss with
-  | nil =>
-    intro n rows out hrows h
-    simp only [sreplay, Option.some.injEq] at h
-    exact h ▸ hrows
-  | cons s ss ih =>
     intro n rows out hrows h
     cases s with
     | input i =>
-      simp only [sreplay] at h
+      simp only [replay] at h
       split at h
       · rename_i r hr
         refine ih _ _ out ?_ h
@@ -329,7 +152,7 @@ theorem sreplay_holds (inputs : List SRow) (x : List Int) (hx : ∀ r ∈ inputs
         · exact hrows r' hr'
       · exact absurd h (by simp)
     | combine a b ma mb =>
-      simp only [sreplay] at h
+      simp only [replay] at h
       split at h
       · rename_i A B hA hB
         split at h
@@ -340,16 +163,16 @@ theorem sreplay_holds (inputs : List SRow) (x : List Int) (hx : ∀ r ∈ inputs
           · subst hr'
             have eA := hrows A (List.mem_of_getElem? hA)
             have eB := hrows B (List.mem_of_getElem? hB)
-            simp only [seval, scombine, sevalL_sadd, sevalL_sscale] at eA eB ⊢
-            have h1 : ma * (sevalL A.coefs x + A.const) ≤ ma * 0 := Int.mul_le_mul_of_nonneg_left eA (by omega)
-            have h2 : mb * (sevalL B.coefs x + B.const) ≤ mb * 0 := Int.mul_le_mul_of_nonneg_left eB (by omega)
+            simp only [eval, combineRow, dot_addL, dot_scaleL] at eA eB ⊢
+            have h1 : ma * (dot A.coefs x + A.const) ≤ ma * 0 := Int.mul_le_mul_of_nonneg_left eA (by omega)
+            have h2 : mb * (dot B.coefs x + B.const) ≤ mb * 0 := Int.mul_le_mul_of_nonneg_left eB (by omega)
             simp only [Int.mul_add, Int.mul_zero] at h1 h2
             omega
           · exact hrows r' hr'
         · exact absurd h (by simp)
       · exact absurd h (by simp)
     | cut o g q c =>
-      simp only [sreplay] at h
+      simp only [replay] at h
       split at h
       · rename_i A hA
         split at h
@@ -358,12 +181,12 @@ theorem sreplay_holds (inputs : List SRow) (x : List Int) (hx : ∀ r ∈ inputs
           intro r' hr'
           rcases List.mem_cons.mp hr' with hr' | hr'
           · subst hr'
-            simp only [scutOk, Bool.and_eq_true, decide_eq_true_eq] at hok
+            simp only [cutOk, Bool.and_eq_true, decide_eq_true_eq] at hok
             obtain ⟨_, ⟨hg, hq⟩, hc⟩ := hok
             have eA := hrows A (List.mem_of_getElem? hA)
-            have hdot : sevalL A.coefs x = g * sevalL (toSparse 0 q) x := by rw [hq, sevalL_sscale]
-            simp only [seval, hdot] at eA
-            exact cut_sound g (sevalL (toSparse 0 q) x) A.const c hg eA hc
+            have hdot : dot A.coefs x = g * dot q x := by rw [hq, dot_scaleL]
+            simp only [eval, hdot] at eA
+            exact cut_sound g (dot q x) A.const c hg eA hc
           · exact hrows r' hr'
         · exact absurd h (by simp)
       · exact absurd h (by simp)
@@ -376,16 +199,14 @@ theorem sound (inputs : List Row) (steps : List Step) (h : check inputs steps = 
   · rename_i rows hrows
     split at h
     · rename_i r hr
-      simp only [Bool.and_eq_true, decide_eq_true_eq, List.isEmpty_iff] at h
-      have hall := sreplay_holds (inputs.map toS) x (fun r' hr' => by
-        obtain ⟨r0, h0, rfl⟩ := List.mem_map.mp hr'
-        rw [seval_toS]; exact hx r0 h0) steps 0 [] rows (by simp) hrows
+      simp only [Bool.and_eq_true, decide_eq_true_eq] at h
+      have hall := replay_holds inputs x hx steps 0 [] rows (by simp) hrows
       have hm : r ∈ rows := by
         cases rows with
         | nil => simp at hr
         | cons a as => simp only [List.head?, Option.some.injEq] at hr; subst hr; exact List.mem_cons_self
       have := hall r hm
-      simp only [seval, h.1, sevalL] at this
+      simp only [eval, dot_allZero r.coefs x h.1] at this
       omega
     · exact absurd h (by simp)
   · exact absurd h (by simp)

@@ -89,16 +89,9 @@ def lconst (n : Int) : Row := ⟨[], n⟩
 def ladd (a b : Row) : Row := ⟨addL a.coefs b.coefs, a.const + b.const⟩
 def lscale (m : Int) (a : Row) : Row := ⟨scaleL m a.coefs, m * a.const⟩
 def lsub (a b : Row) : Row := ladd a (lscale (-1) b)
-def unitL : Nat → List Int
-  | 0 => [1]
-  | j + 1 => 0 :: unitL j
-def lunit (j : Nat) : Row := ⟨unitL j, 0⟩
--- Coefficients by their nonzero entries (column, coefficient), in order: how the exporters write rows, to keep a
--- certificate small. It builds the dense list a row holds (any list of pairs builds some row, which the check reads).
-def sparseL : Nat → List (Nat × Int) → List Int
-  | _, [] => []
-  | i, (j, c) :: rest => List.replicate (j - i) 0 ++ c :: sparseL (j + 1) rest
-def sp (cs : List (Nat × Int)) (c : Int) : Row := ⟨sparseL 0 cs, c⟩
+def lunit (j : Nat) : Row := ⟨[(j, 1)], 0⟩
+-- A row as the exporters write it: its nonzero coefficients (column, coefficient), in column order, and its constant.
+def sp (cs : List (Nat × Int)) (c : Int) : Row := ⟨cs, c⟩
 def same (a b : Row) : Bool := allZero (lsub a b).coefs && (lsub a b).const == 0
 -- 1 − a: over the integers, a ≤ 0 fails exactly when 1 − a ≤ 0 holds.
 def flip (a : Row) : Row := lsub (lconst 1) a
@@ -113,13 +106,8 @@ theorem eval_lsub (a b : Row) (x : List Int) : eval (lsub a b) x = eval a x - ev
   simp only [lsub, eval_ladd, eval_lscale]; omega
 theorem eval_flip (a : Row) (x : List Int) : eval (flip a) x = 1 - eval a x := by
   simp only [flip, eval_lsub, eval_lconst]
-theorem dot_unitL : ∀ (j : Nat) (x : List Int), dot (unitL j) x = x.getD j 0
-  | 0, [] => rfl
-  | 0, y :: ys => by simp [unitL, dot]
-  | _ + 1, [] => rfl
-  | j + 1, y :: ys => by simp [unitL, dot, dot_unitL j ys]
 theorem eval_lunit (j : Nat) (x : List Int) : eval (lunit j) x = x.getD j 0 := by
-  simp [eval, lunit, dot_unitL]
+  simp [eval, lunit, dot]
 theorem same_eval {a b : Row} (h : same a b = true) (x : List Int) : eval a x = eval b x := by
   simp only [same, Bool.and_eq_true, beq_iff_eq] at h
   have h1 : eval (lsub a b) x = 0 := by simp only [eval, dot_allZero _ x h.1, h.2]; rfl
@@ -261,40 +249,27 @@ def pcol (tab : List VDef) (i j : Nat) : Option Nat :=
   | some a, some b => findIdx (isMono (srt (a ++ b))) tab
   | _, _ => none
 
--- x_i · Σ_t b_t x_(j+t)
-def mulRow (tab : List VDef) (i : Nat) : Nat → List Int → Option Row
-  | _, [] => some (lconst 0)
-  | j, b :: bs => match mulRow tab i (j + 1) bs with
+-- x_i · Σ b x_j, over b's coefficients (column j, coefficient b)
+def mulRow (tab : List VDef) (i : Nat) : List (Nat × Int) → Option Row
+  | [] => some (lconst 0)
+  | q :: bs => match mulRow tab i bs with
     | none => none
-    | some r => if b == 0 then some r else match pcol tab i j with
-      | some k => some (ladd (lscale b (lunit k)) r)
+    | some r => if q.2 == 0 then some r else match pcol tab i q.1 with
+      | some k => some (ladd (lscale q.2 (lunit k)) r)
       | none => none
--- (Σ_s a_s x_(i+s)) · Σ_t b_t x_t
-def mulRows (tab : List VDef) (bs : List Int) : Nat → List Int → Option Row
-  | _, [] => some (lconst 0)
-  | i, a :: as => match mulRows tab bs (i + 1) as with
+-- (Σ a x_i) · Σ b x_j
+def mulRows (tab : List VDef) (bs : List (Nat × Int)) : List (Nat × Int) → Option Row
+  | [] => some (lconst 0)
+  | p :: as => match mulRows tab bs as with
     | none => none
-    | some r => if a == 0 then some r else match mulRow tab i 0 bs with
-      | some q => some (ladd (lscale a q) r)
+    | some r => if p.2 == 0 then some r else match mulRow tab p.1 bs with
+      | some q => some (ladd (lscale p.2 q) r)
       | none => none
 def rowMul (tab : List VDef) (a b : Row) : Option Row :=
-  match mulRows tab b.coefs 0 a.coefs with
+  match mulRows tab b.coefs a.coefs with
   | some p => some (ladd p (ladd (lscale a.const ⟨b.coefs, 0⟩) (ladd (lscale b.const ⟨a.coefs, 0⟩) (lconst (a.const * b.const)))))
   | none => none
 
-def dotAt (x : List Int) : Nat → List Int → Int
-  | _, [] => 0
-  | j, b :: bs => b * x.getD j 0 + dotAt x (j + 1) bs
-theorem dotAt_cons (y : Int) (ys : List Int) : ∀ j bs, dotAt (y :: ys) (j + 1) bs = dotAt ys j bs
-  | _, [] => rfl
-  | j, b :: bs => by simp only [dotAt, List.getD_cons_succ, dotAt_cons y ys (j + 1) bs]
-theorem dotAt_nil : ∀ j bs, dotAt [] j bs = 0
-  | _, [] => rfl
-  | j, b :: bs => by simp [dotAt, dotAt_nil (j + 1) bs]
-theorem dot_dotAt : ∀ (bs x : List Int), dot bs x = dotAt x 0 bs
-  | [], x => by cases x <;> rfl
-  | b :: bs, [] => by simp [dot, dotAt, dotAt_nil]
-  | b :: bs, y :: ys => by simp only [dot, dotAt, List.getD_cons_zero, dotAt_cons, dot_dotAt bs ys]
 
 mutual
 def linear (tab : List VDef) (path : Path) : E → Option Row
@@ -423,43 +398,43 @@ theorem pcol_val (hM : Model tab env maps x) {i j k : Nat} (h : pcol tab i j = s
   · simp at h
 
 theorem mulRow_sound (hM : Model tab env maps x) (i : Nat) :
-    ∀ j bs r, mulRow tab i j bs = some r → eval r x = x.getD i 0 * dotAt x j bs
-  | _, [], r, h => by simp only [mulRow, Option.some.injEq] at h; subst h; simp [eval_lconst, dotAt]
-  | j, b :: bs, r, h => by
+    ∀ bs r, mulRow tab i bs = some r → eval r x = x.getD i 0 * dot bs x
+  | [], r, h => by simp only [mulRow, Option.some.injEq] at h; subst h; simp [eval_lconst, dot]
+  | q :: bs, r, h => by
     simp only [mulRow] at h
     split at h
     · simp at h
     · rename_i r' hr'
-      have ih := mulRow_sound hM i (j + 1) bs r' hr'
+      have ih := mulRow_sound hM i bs r' hr'
       split at h
       · rename_i hb
         simp only [Option.some.injEq] at h; subst h
-        simp only [beq_iff_eq] at hb; subst hb; simp [dotAt, ih]
+        simp only [beq_iff_eq] at hb; simp [dot, hb, ih]
       · split at h
         · rename_i k hk
           simp only [Option.some.injEq] at h; subst h
           rw [eval_ladd, eval_lscale, eval_lunit, pcol_val hM hk, ih]
-          simp only [dotAt]; rw [Int.mul_add, Int.mul_left_comm (x.getD i 0) b]
+          simp only [dot]; rw [Int.mul_add, Int.mul_left_comm (x.getD i 0) q.2]
         · simp at h
 
-theorem mulRows_sound (hM : Model tab env maps x) (bs : List Int) :
-    ∀ i as r, mulRows tab bs i as = some r → eval r x = dotAt x i as * dotAt x 0 bs
-  | _, [], r, h => by simp only [mulRows, Option.some.injEq] at h; subst h; simp [eval_lconst, dotAt]
-  | i, a :: as, r, h => by
+theorem mulRows_sound (hM : Model tab env maps x) (bs : List (Nat × Int)) :
+    ∀ as r, mulRows tab bs as = some r → eval r x = dot as x * dot bs x
+  | [], r, h => by simp only [mulRows, Option.some.injEq] at h; subst h; simp [eval_lconst, dot]
+  | p :: as, r, h => by
     simp only [mulRows] at h
     split at h
     · simp at h
     · rename_i r' hr'
-      have ih := mulRows_sound hM bs (i + 1) as r' hr'
+      have ih := mulRows_sound hM bs as r' hr'
       split at h
       · rename_i ha
         simp only [Option.some.injEq] at h; subst h
-        simp only [beq_iff_eq] at ha; subst ha; simp [dotAt, ih]
+        simp only [beq_iff_eq] at ha; simp [dot, ha, ih]
       · split at h
         · rename_i q hq
           simp only [Option.some.injEq] at h; subst h
-          rw [eval_ladd, eval_lscale, mulRow_sound hM i 0 bs q hq, ih]
-          simp only [dotAt]; rw [Int.add_mul, Int.mul_assoc]
+          rw [eval_ladd, eval_lscale, mulRow_sound hM p.1 bs q hq, ih]
+          simp only [dot]; rw [Int.add_mul, Int.mul_assoc]
         · simp at h
 
 theorem rowMul_sound (hM : Model tab env maps x) {a b r : Row} (h : rowMul tab a b = some r) : eval r x = eval a x * eval b x := by
@@ -467,8 +442,7 @@ theorem rowMul_sound (hM : Model tab env maps x) {a b r : Row} (h : rowMul tab a
   split at h
   · rename_i p hp
     simp only [Option.some.injEq] at h; subst h
-    have e := mulRows_sound hM b.coefs 0 a.coefs p hp
-    rw [← dot_dotAt, ← dot_dotAt] at e
+    have e := mulRows_sound hM b.coefs a.coefs p hp
     simp only [eval_ladd, eval_lscale, eval_lconst, e]
     simp only [eval, Int.add_zero]
     rw [Int.add_mul, Int.mul_add, Int.mul_add, Int.mul_comm b.const]; omega
@@ -923,7 +897,7 @@ structure Goal where
 def wfTab : Nat → List VDef → Bool
   | _, [] => true
   | n, .var _ :: ds => wfTab (n + 1) ds
-  | n, .cell _ k :: ds => decide (k.coefs.length ≤ n) && wfTab (n + 1) ds
+  | n, .cell _ k :: ds => k.coefs.all (·.1 < n) && wfTab (n + 1) ds
   | n, .mono fs :: ds => fs.all (· < n) && wfTab (n + 1) ds
   | n, .term _ :: ds => wfTab (n + 1) ds
 
@@ -1140,23 +1114,24 @@ def build (env : Nat → Nat) (maps : Nat → Nat → Nat) : List VDef → List 
   | [], acc => acc
   | d :: ds, acc => build env maps ds (acc ++ [valD env maps d acc])
 
-theorem dot_append : ∀ (a l1 l2 : List Int), a.length ≤ l1.length → dot a (l1 ++ l2) = dot a l1
+theorem dot_append : ∀ (a : List (Nat × Int)) (l1 l2 : List Int), (∀ p ∈ a, p.1 < l1.length) → dot a (l1 ++ l2) = dot a l1
   | [], _, _, _ => by simp [dot]
-  | _ :: _, [], _, h => by simp at h
-  | c :: cs, y :: ys, l2, h => by
-    simp only [List.length_cons, Nat.add_le_add_iff_right] at h
-    simp only [List.cons_append, dot, dot_append cs ys l2 h]
+  | p :: a, l1, l2, h => by
+    simp only [dot]
+    rw [dot_append a l1 l2 (fun q hq => h q (List.mem_cons_of_mem _ hq))]
+    have hp := h p List.mem_cons_self
+    rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_append_left hp]
 
 -- What a column may refer to: only earlier columns.
 def Refs (n : Nat) : VDef → Prop
   | .var _ => True
-  | .cell _ k => k.coefs.length ≤ n
+  | .cell _ k => ∀ p ∈ k.coefs, p.1 < n
   | .mono fs => ∀ f ∈ fs, f < n
   | .term _ => True
 
 theorem Refs.mono_le {n m : Nat} (h : n ≤ m) : ∀ {d : VDef}, Refs n d → Refs m d
   | .var _, _ => trivial
-  | .cell _ _, hd => by simp only [Refs] at hd ⊢; omega
+  | .cell _ _, hd => fun p hp => by have := hd p hp; omega
   | .mono _, hd => fun f hf => by have := hd f hf; omega
   | .term _, _ => trivial
 
@@ -1218,7 +1193,7 @@ theorem build_valid (env : Nat → Nat) (maps : Nat → Nat → Nat) : ∀ (ds :
       cases d with
       | var i => exact ⟨trivial, by simpa [wfTab] using hw⟩
       | cell m k =>
-        simp only [wfTab, Bool.and_eq_true, decide_eq_true_eq] at hw
+        simp only [wfTab, Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at hw
         exact ⟨hw.1, hw.2⟩
       | mono fs =>
         simp only [wfTab, Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at hw

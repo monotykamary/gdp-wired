@@ -54,7 +54,7 @@ def inflight_proof : MachineProof := [(.le (.var 3) (.add (.var 0) (.const 150))
   (.leafAt [((sp [(4, 1)] 0), .atom 0), ((sp [(0, (-1)), (3, 1)] (-150)), .fact 1), ((sp [(0, 1), (3, (-1)), (4, (-50))] 151), .fact 3)] [.input 0, .input 1, .input 2, .combine 2 0 1 50, .combine 3 1 1 1] [] []))
   (.split (sp [(0, (-1)), (3, 1)] 1)
   (.split (sp [(4, 1)] (-2))
-  (.leafAt [((sp [(0, (-1)), (3, 1)] 1), .atom 1), ((sp [(4, 1)] (-2)), .atom 0), ((sp [(0, 1), (3, (-1)), (4, (-50))] 101), .fact 3)] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .cut 3 50 (sparseL 0 [(4, (-1))]) 3, .combine 1 4 1 1] [] [])
+  (.leafAt [((sp [(0, (-1)), (3, 1)] 1), .atom 1), ((sp [(4, 1)] (-2)), .atom 0), ((sp [(0, 1), (3, (-1)), (4, (-50))] 101), .fact 3)] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .cut 3 50 [(4, (-1))] 3, .combine 1 4 1 1] [] [])
   (.leafAt [((sp [(0, (-1)), (3, 1), (4, 50)] (-150)), .fact 2), ((sp [(0, 1), (3, (-1)), (4, (-50))] 151), .fact 3)] [.input 0, .input 1, .combine 1 0 1 1] [] []))
   (.leafAt [((sp [(0, (-1)), (3, 1), (4, 50)] (-150)), .fact 2), ((sp [(0, 1), (3, (-1)), (4, (-50))] 151), .fact 3)] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
   (.leafAt [((sp [(2, (-1))] 2), .atom 0), ((sp [(2, 1)] 0), .fact 0)] [.input 0, .input 1, .combine 0 1 1 1] [] [])))]
@@ -1040,7 +1040,7 @@ def escrow_step0 : StepLaw := ⟨.le (.const 0) (.const 0),
 theorem escrow_step0_holds : StepLawHolds escrow_machine escrow_step0 :=
   steplaw_sound escrow_machine escrow_proof escrow_step0 escrow_check (by decide +kernel)
 
--- connection pool: in use <= pool size; in use + released = acquired; released <= acquired; every client holds <= its cap; in use = what the clients hold, with flags got, back  (variables 0 size, 1 perClient, 2 op, 3 client, 4 inUse, 5 acquired, 6 released, 7 heldTotal, 8 key$569, 9 key$569#, 10 #, 11 ?got, 12 ?back; maps 0 Held)
+-- connection pool: in use <= pool size; in use + released = acquired; released <= acquired; every client holds <= its cap; in use = what the clients hold, with flags got, back  (variables 0 size, 1 perClient, 2 op, 3 client, 4 inUse, 5 acquired, 6 released, 7 heldTotal, 8 key$445, 9 key$445#, 10 #, 11 ?got, 12 ?back; maps 0 Held)
 def pooltotal_machine : FMMachine := ⟨⟨[2, 3],
   [(4, .const 0), (5, .const 0), (6, .const 0), (7, .const 0)],
   [(0, 0)],
@@ -1239,7 +1239,7 @@ def pflight_e1 : MEntry := ⟨pflight_l1, 5, [],
   (.leafAt [((sp [(4, 1)] 0), .atom 0), ((sp [(0, (-1)), (3, 1)] (-150)), .fact 1), ((sp [(0, 1), (3, (-1)), (4, (-50))] 151), .fact 3)] [.input 0, .input 1, .input 2, .combine 2 0 1 50, .combine 3 1 1 1] [] []))
   (.split (sp [(0, (-1)), (3, 1)] 1)
   (.split (sp [(4, 1)] (-2))
-  (.leafAt [((sp [(0, (-1)), (3, 1)] 1), .atom 1), ((sp [(4, 1)] (-2)), .atom 0), ((sp [(0, 1), (3, (-1)), (4, (-50))] 101), .fact 3)] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .cut 3 50 (sparseL 0 [(4, (-1))]) 3, .combine 1 4 1 1] [] [])
+  (.leafAt [((sp [(0, (-1)), (3, 1)] 1), .atom 1), ((sp [(4, 1)] (-2)), .atom 0), ((sp [(0, 1), (3, (-1)), (4, (-50))] 101), .fact 3)] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .cut 3 50 [(4, (-1))] 3, .combine 1 4 1 1] [] [])
   (.leafAt [((sp [(0, (-1)), (3, 1), (4, 50)] (-150)), .fact 2), ((sp [(0, 1), (3, (-1)), (4, (-50))] 151), .fact 3)] [.input 0, .input 1, .combine 1 0 1 1] [] []))
   (.leafAt [((sp [(0, (-1)), (3, 1), (4, 50)] (-150)), .fact 2), ((sp [(0, 1), (3, (-1)), (4, (-50))] 151), .fact 3)] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
   (.leafAt [((sp [(2, (-1))] 2), .atom 0), ((sp [(2, 1)] 0), .fact 0)] [.input 0, .input 1, .combine 0 1 1 1] [] []))⟩
@@ -2585,7 +2585,7 @@ def t5_tree : Tree :=
   (.leafAt [((sp [(3, 1)] 0), .atom 0), ((sp [(1, 1), (2, (-1))] (-150)), .fact 1), ((sp [(1, (-1)), (2, 1), (3, (-50))] 151), .fact 3)] [.input 0, .input 1, .input 2, .combine 2 0 1 50, .combine 3 1 1 1] [] []))
   (.split (sp [(1, 1), (2, (-1))] 1)
   (.split (sp [(3, 1)] (-2))
-  (.leafAt [((sp [(1, 1), (2, (-1))] 1), .atom 1), ((sp [(3, 1)] (-2)), .atom 0), ((sp [(1, (-1)), (2, 1), (3, (-50))] 101), .fact 3)] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .cut 3 50 (sparseL 0 [(3, (-1))]) 3, .combine 1 4 1 1] [] [])
+  (.leafAt [((sp [(1, 1), (2, (-1))] 1), .atom 1), ((sp [(3, 1)] (-2)), .atom 0), ((sp [(1, (-1)), (2, 1), (3, (-50))] 101), .fact 3)] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .cut 3 50 [(3, (-1))] 3, .combine 1 4 1 1] [] [])
   (.leafAt [((sp [(1, 1), (2, (-1)), (3, 50)] (-150)), .fact 2), ((sp [(1, (-1)), (2, 1), (3, (-50))] 151), .fact 3)] [.input 0, .input 1, .combine 1 0 1 1] [] []))
   (.leafAt [((sp [(1, 1), (2, (-1)), (3, 50)] (-150)), .fact 2), ((sp [(1, (-1)), (2, 1), (3, (-50))] 151), .fact 3)] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
   (.leafAt [((sp [(0, (-1))] 2), .atom 0), ((sp [(0, 1)] 0), .fact 0)] [.input 0, .input 1, .combine 0 1 1 1] [] [])

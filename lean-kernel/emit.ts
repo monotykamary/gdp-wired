@@ -99,7 +99,7 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
     while (coefs.length && coefs.at(-1) === 0) coefs.pop()
     return coefs as number[]
   }
-  // Rows by their nonzero coefficients (Kernel.lean's sp builds the dense row): most of a wide row is zeros.
+  // Rows by their nonzero coefficients (Cert.lean's rows hold them so): most of a wide row is zeros.
   const sparse = (coefs: number[]) => list(coefs.flatMap((x, j) => (x === 0 ? [] : [`(${j}, ${int(x)})`])))
   const row = (lin: Lin) => `(sp ${sparse(dense(lin))} ${int(lin['1'] ?? 0)})`
   const {e, c} = leanTerms(vars, maps, ex.name)
@@ -132,7 +132,7 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
       const q: Lin = Object.fromEntries(Object.entries(from).filter(([key]) => key !== '1').map(([key, v]) => [key, v / s.g]))
       const cc = Math.ceil((from['1'] ?? 0) / s.g)
       replay.push({...q, 1: cc})
-      return `.cut ${s.of} ${int(s.g)} (sparseL 0 ${sparse(dense(q))}) ${int(cc)}`
+      return `.cut ${s.of} ${int(s.g)} ${sparse(dense(q))} ${int(cc)}`
     })
     if (tamper && dropStep && leafNo++ === 0) steps = steps.slice(0, -1) // the first leaf loses its last step
     // Cell pairs the path proves equal (Lean re-checks each).
