@@ -3,7 +3,7 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.13.1
 
 - Charts: internal transitions (no `to`: the state stays, nothing is exited or entered, `set` runs), outputs
   (`.outputs({...})`: what each step decides, reset to its default every step, so a step where nothing fires reads the
