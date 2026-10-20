@@ -332,10 +332,18 @@ function growFocused(goal: Goal, path: Path, focus: Lin[], budget: {nodes: numbe
 
 // A refutation from the rows near some facts (the rows reachable from their variables in two hops, each row joining the
 // variables it reads), its inputs renumbered to the whole leaf's. A cut about one step of a long run needs that step's
-// rows, not the run's; a cut it misses is only a cut not made (the plain search still follows).
+// rows, not the run's; a cut it misses is only a cut not made (the plain search still follows). A variable most rows
+// read (a param every step reads) joins no rows: through it every step is near every other.
 function solveNear(rows: {lin: Lin, label: string}[], seeds: Lin[]): ReturnType<typeof solve> {
+  const uses = new Map<string, number>()
+  for (const r of rows) for (const key in r.lin) if (key !== '1') uses.set(key, (uses.get(key) ?? 0) + 1)
+  const hub = (key: string) => (uses.get(key) ?? 0) > Math.max(16, rows.length / 8)
   const reach = new Set(seeds.flatMap(l => Object.keys(l).filter(key => key !== '1')))
-  for (let hop = 0; hop < 2; hop++) for (const r of rows) { const keys = Object.keys(r.lin).filter(key => key !== '1'); if (keys.some(key => reach.has(key))) keys.forEach(key => reach.add(key)) }
+  for (let hop = 0; hop < 2; hop++) {
+    // One hop: the rows reading what was reached before it (not what this hop adds, or one pass runs along the run).
+    const from = new Set(reach)
+    for (const r of rows) { const keys = Object.keys(r.lin).filter(key => key !== '1'); if (keys.some(key => from.has(key) && !hub(key))) keys.forEach(key => reach.add(key)) }
+  }
   const picked = rows.flatMap((r, i) => (Object.keys(r.lin).every(key => key === '1' || reach.has(key)) ? [i] : []))
   const near = solve(picked.map(i => rows[i]!))
   return near.kind === 'refuted' ? {kind: 'refuted', steps: near.steps.map(st => (st.kind === 'input' ? {...st, index: picked[st.index]!} : st))} : near
