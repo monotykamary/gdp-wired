@@ -3,6 +3,26 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+- Both runtimes refuse a request that fails the rule's `assume`: `rule.compiled()` and `rule.interpreter()` throw a
+  `RangeError` instead of taking a step no proof covers. Before, an assumption was the caller's to keep: a row of the
+  resource groups naming an effect past the list was taken, and read as independent. `rule.compare` skips such requests;
+  `gdp-wired/gdp`'s gate already refused them.
+- A condition at every two keys whose premise is x(k) = y(k1) (a value at one key equal to a value at the other) is
+  decided by a join in the compiled runtime: only the pairs whose values match are read, rows plus matches instead of
+  rows squared; the interpreter reads every pair, and the two are compared on drawn maps. The resource groups at 256
+  effects a side with 64 names each, disjoint, decide in 62 ms, against 5.92 s reading every pair of rows and 2.46 s for
+  the loop over every pair of the pair rule (`research/perf/groups-scale.ts`, Modal, 2 vCPU):
+
+  | Effects per side × names | Loop over pairs | Rule, every pair of rows | Rule, joined on names |
+  | --- | --- | --- | --- |
+  | 32 × 4 | 16 ms | 5.1 ms | 2.5 ms |
+  | 256 × 4 | 366 ms | 30 ms | 9.2 ms |
+  | 256 × 16 | 776 ms | 352 ms | 20 ms |
+  | 256 × 32 | 1.30 s | 1.24 s | 32 ms |
+  | 256 × 64 | 2.46 s | 5.92 s | 62 ms |
+
 ## 0.12.6
 
 - A false law is refused at once, with a real run: `proveRule` and `proveSteps` first take a few random runs from the

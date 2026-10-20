@@ -1885,7 +1885,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // decimals as numbers) for every field the reference's state has, after every step of `trials` runs of `depth`.
   compare<St extends Record<string, Raw>>(reference: {init(params: Value<P>): St, step(params: Value<P>, st: St, request: RawInputs<I>): St},
     opts: Draws<RawInputs<I>> & {params?: (rand: Rand) => Value<P>, depth?: number} = {}): Agreement {
-    const s = this.spec, rand = opts.rand ?? seeded(5), bound = opts.bound ?? 100, gen = this.compiled()
+    const s = this.spec, rand = opts.rand ?? seeded(5), bound = opts.bound ?? 100, gen = this.compiled(), run = interpret(this.machine)
     let checked = 0
     const sample = (kinds: [string, Kind<unknown>][]) => Object.fromEntries(kinds.map(([n, k]) => [n, k.sample(rand, bound)]))
     for (let trial = 0; trial < (opts.trials ?? 200); trial++) {
@@ -1893,8 +1893,10 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       let ours = gen.init(ps), theirs = reference.init(params)
       const edges = trial === 0 ? opts.edges ?? [] : []
       for (let d = 0; d < (opts.depth ?? 10) + edges.length; d++) {
-        const request = edges[d] ?? opts.draw?.(rand) ?? sample(s.inputs) as RawInputs<I>
-        ours = gen.step(ps, ours, this.encodeInput(request as never, params as never)); theirs = reference.step(params, theirs, request)
+        const request = edges[d] ?? opts.draw?.(rand) ?? sample(s.inputs) as RawInputs<I>, encoded = this.encodeInput(request as never, params as never)
+        // A request the rule's assumption refuses is no step of the rule: the runtimes throw, so it isn't compared.
+        if (!allowed(this.machine, run, ps, ours, encoded)) continue
+        ours = gen.step(ps, ours, encoded); theirs = reference.step(params, theirs, request)
         const got = this.decode(ours)
         for (const [field, want] of Object.entries(theirs)) {
           checked++

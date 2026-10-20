@@ -303,6 +303,9 @@ export function carriedView(m: Machine, st: State, input: Request, rename: (map:
 // A request's numbers (its inputs), without the maps it carries.
 export const numbersOf = (input: Request): Record<string, number> => Object.fromEntries(Object.entries(input).filter((e): e is [string, number] => typeof e[1] === 'number'))
 
+// A request the rule's assumption refuses: the proofs say nothing about the step it would take, so neither runtime takes
+// it (a caller that may send one checks first, as gdp-wired/gdp's gate does).
+const refused = (m: Machine) => `${m.name}: the request fails the rule's assumption, so no proof covers the step it would take`
 // The interpreter: persistent (a step leaves the state it was given as it was), so searches can branch from any state.
 export function interpret(m: Machine) {
   const {h, plain, carried} = runnable(m)
@@ -355,6 +358,7 @@ export function interpret(m: Machine) {
       let records: Env[] = []
       if (h) { ordered(env, st); records = live(env, st); Object.assign(env, queriesOf(env, records)) }
       for (const [name, c] of Object.entries(plain.step.flags ?? {})) env[`?${name}`] = evalC(c, env, st, plain) ? 1 : 0
+      if (m.assume && !evalC(m.assume, env, st, plain)) throw new RangeError(refused(m))
       const scalars = {...st.scalars}
       for (const [name, e] of Object.entries(plain.step.state ?? {})) scalars[name] = evalE(e, env, st, plain)
       const writes = Object.entries(plain.step.maps ?? {}).map(([name, w]) => [name, 'each' in w ? writeEvery(w, env, st, plain) : {key: evalE(w.key, env, st, plain), value: evalE(w.value, env, st, plain)}] as const)
@@ -379,6 +383,8 @@ const RUNTIME: [string, string][] = [
   ['$m', `function $m(v, what) { if (!(v instanceof Map)) throw new RangeError(what + ' must be a Map of naturals'); for (const [key, x] of v) { $n(key, 'a key of ' + what); $n(x, 'a cell of ' + what); } return v; }`],
   ['$keys', `function $keys(maps, names) { const keys = new Set(); let past = 0; for (const c of Object.values(maps)) for (const key of c.keys()) past = Math.max(past, key + 1); for (const n of names) for (const key of maps[n].keys()) keys.add(key); return [...keys, past]; }`],
   ['$breaks', `function $breaks(maps, reads, cmps) { const p = new Set([0]); for (const [n, d, minus] of reads) { for (const s of maps[n].keys()) { if (minus) p.add(s + d); else if (s >= d) p.add(s - d); } if (minus) p.add(d); } for (const [v, d, minus] of cmps) { if (minus) { p.add(v + d); p.add(d); } else if (v >= d) p.add(v - d); } const keys = new Set(); for (const q of p) for (let i = -1; i <= 2; i++) if (q + i >= 0) keys.add(q + i); const sorted = [...keys].sort((a, b) => a - b); sorted.push(sorted[sorted.length - 1] + 1); return sorted; }`],
+  // A condition at every two keys that holds wherever x(k) differs from y(k1): only the pairs whose values match are read.
+  ['$join', `function $join(ks, x, y, f) { const by = new Map(); for (const k1 of ks) { const v = y(k1), l = by.get(v); if (l) l.push(k1); else by.set(v, [k1]); } return ks.every(k => { const l = by.get(x(k)); return l === undefined || l.every(k1 => f(k, k1)); }); }`],
   ['$spread', `function $spread(keys, n) { const out = new Set(); for (const k of keys) for (let i = 0; i < n; i++) out.add(k + i); return [...out].sort((a, b) => a - b); }`],
   ['$dense', `function $dense(keys, f) { const top = keys[keys.length - 1]; if (top > 1000000) throw new RangeError('a write at every key reads its key in arithmetic past a million keys (' + top + ')'); const d = f(top), cells = new Map(); for (let k = 0; k < top; k++) { const v = f(k); if (v !== d) cells.set(k, v); } return {cells, d}; }`],
   ['$every', `function $every(keys, f) { const past = keys[keys.length - 1], d = f(past), cells = new Map(); for (let i = 0; i < keys.length - 1; i++) { const v = f(keys[i]); if (v !== d) cells.set(keys[i], v); } return {cells, d}; }`],
@@ -391,6 +397,20 @@ function runtimeFor(code: string): string {
     for (const [name] of RUNTIME) if (!used.has(name) && text.includes(`${name}(`)) { used.add(name); grew = true }
   }
   return RUNTIME.filter(([name]) => used.has(name)).map(([, src]) => `${src}\n`).join('')
+}
+
+// A condition over two keys, k and k1, that holds wherever a term of k alone differs from a term of k1 alone: an
+// implication (a not-and, or an or with one) whose premises include x(k) = y(k1). The runtime then reads only the pairs
+// whose values match ($join), the rest holding by the premise: rows plus matches, not rows squared.
+function joinOf(c: C, k: string, k1: string): {x: E, y: E} | undefined {
+  const reads = (t: E | C, key: string) => JSON.stringify(t).includes(`"op":"var","name":${JSON.stringify(key)}`)
+  const premises = c.op === 'not' && c.x.op === 'and' ? c.x.xs : c.op === 'or' ? c.xs.flatMap(x => (x.op === 'not' ? (x.x.op === 'and' ? x.x.xs : [x.x]) : [])) : []
+  for (const p of premises) {
+    if (p.op !== '=') continue
+    if (reads(p.a, k) && !reads(p.a, k1) && reads(p.b, k1) && !reads(p.b, k)) return {x: p.a, y: p.b}
+    if (reads(p.b, k) && !reads(p.b, k1) && reads(p.a, k1) && !reads(p.a, k)) return {x: p.b, y: p.a}
+  }
+  return undefined
 }
 
 export function compileJs(m: Machine): string {
@@ -431,6 +451,15 @@ export function compileJs(m: Machine): string {
         bound = {...bound, ...Object.fromEntries(names.map((n, i) => [n, ks[i]!]))}
         const body = cx(c.c)
         bound = outer
+        if (names.length === 2) {
+          const j = joinOf(c.c, names[0]!, names[1]!)
+          if (j) {
+            bound = {...bound, [names[0]!]: 'k', [names[1]!]: 'k1'}
+            const x = ex(j.x), y = ex(j.y)
+            bound = outer
+            return `$join(${keys}, k => ${x}, k1 => ${y}, (k, k1) => ${body})`
+          }
+        }
         return names.length === 1 ? `${keys}.every(k => ${body})` : `(ks => ${ks.map(k => `ks.every(${k} => `).join('')}${body}${')'.repeat(ks.length)})(${keys})`
       }
     }
@@ -472,6 +501,8 @@ export function compileJs(m: Machine): string {
       ...queries.map((q, i) => `env[${id(q)}] = q${i};`))
   }
   lines.push(...flags.map((name, i) => `const flag${i} = ${cx(plain.step.flags![name]!)};`),
+    // The rule's own assumption, as `allowed` (core/watch.ts) reads it (a history's machine assumes more: its relations).
+    ...(m.assume ? [`if (!${cx(m.assume)}) throw new RangeError(${id(refused(m))});`] : []),
     `const scalars = {...s, ${Object.entries(plain.step.state ?? {}).map(([name, e]) => `${id(name)}: ${ex(e)}`).join(', ')}};`,
     ...writes.map(([, w], i) => ('each' in w ? `const write${i} = ${every(w)};` : `const key${i} = ${ex(w.key)}, value${i} = ${ex(w.value)};`)))
   if (h) lines.push(`const keep = ${cx(h.keep)};`)

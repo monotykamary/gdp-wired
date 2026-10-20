@@ -316,7 +316,7 @@ const soon = retry.law('the next try is at most 64 after the last request', ({ne
 - **Running it**: `rule.interpreter()` is persistent (searches branch from any state); `rule.compiled()` is what an app
   ships: maps and the log updated in place, so a step costs the same however long the history. Both refuse params and
   inputs that aren't naturals below 2^53 and any value past 2^53 − 1, where the proofs over the naturals stop describing
-  the run. The GPU searches refuse a space whose values could pass 2^32 − 1.
+  the run, and a request that fails the rule's `assume` (no proof covers the step it would take). The GPU searches refuse a space whose values could pass 2^32 − 1.
 
 ## Numbers
 

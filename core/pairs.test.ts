@@ -4,10 +4,10 @@
 // its broken variants refused, what the kernel refuses, and a fuzz: every law over two keys the kernel accepts holds on
 // every run.
 import {expect, test} from 'bun:test'
-import {type C, type E, type Law, type Machine, type Request, interpret, loadJs} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, compileJs, interpret, loadJs} from './machine.ts'
 import {watch} from './watch.ts'
 import {proveLaws} from '../kernel/prove.ts'
-import {everyKey, nat, proveSteps, rule} from './dsl.ts'
+import {everyKey, nat, proveSteps, rule, when} from './dsl.ts'
 import {scope} from '../kernel/kernel.ts'
 import {distinctNames, distinctNamesLaws, sortedList, sortedListLaws} from '../examples/pairs.ts'
 import {decide, groupLaws, groups, type Held} from '../examples/groups.ts'
@@ -170,3 +170,33 @@ test('two groups of effects: every pair at once, proven, and the same as checkin
     expect(d.groups).toBe(d.pairs)
   }
 }, 120_000)
+
+// A request the rule's assumption refuses is no step of the rule: both runtimes throw rather than take it.
+test('a request that fails the assumption is refused by both runtimes', () => {
+  const g = groups(), bad = g.encodeInput({L: [], R: [], LN: [{item: 5, name: 2}], RN: []} as never)
+  for (const m of [g.compiled(), g.interpreter()]) expect(() => m.step({}, m.init({}), bad)).toThrow(/fails the rule's assumption/)
+  const ok = g.encodeInput({L: [{effect: true, ordered: true, exact: true}], R: [], LN: [{item: 0, name: 2}], RN: []} as never)
+  for (const m of [g.compiled(), g.interpreter()]) expect(g.decode(m.step({}, m.init({}), ok))).toEqual({conflict: 0})
+})
+
+// A condition at every two keys whose premise is x(k) = y(k1) is decided by a join in the compiled runtime: against the
+// interpreter (every pair) on drawn maps, with and without matches.
+test('a join on equal values decides a condition at every two keys as every pair does', () => {
+  const r = rule('join').inputs({n: nat}).state({ok: 0}).carries('A', 'B', 'C')
+    .flags(({n, A, B, C}) => ({all: everyKey((i, j) => i.lt(n).and(j.lt(n), A.at(i).eq(B.at(j))).implies(C.at(i).atMost(C.at(j))))}))
+    .step(({all}) => ({ok: when(all, 1, 0)}))
+  const c = r.compiled(), m = r.interpreter()
+  let seed = 9
+  const draw = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+  const cells = () => new Map(Array.from({length: draw(8)}, () => [draw(10), draw(4)] as [number, number]))
+  let ones = 0
+  for (let t = 0; t < 2000; t++) {
+    const input = r.encodeInput({n: draw(12), A: cells(), B: cells(), C: cells()} as never)
+    const a = r.decode(c.step({}, c.init({}), input)), b = r.decode(m.step({}, m.init({}), input))
+    expect(a).toEqual(b)
+    ones += a.ok as number
+  }
+  expect(ones).toBeGreaterThan(100)
+  expect(ones).toBeLessThan(1900)
+  expect(compileJs(r.machine)).toContain('$join(')
+})
