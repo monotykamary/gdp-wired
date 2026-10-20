@@ -96,7 +96,8 @@ export function solve(constraints: Constraint[], maxRows = 20_000): Verdict {
     for (const r of rows) {
       const neg = byKey.get(negKey(r))
       if (neg === undefined || neg === r) continue
-      const x = vars(lins[r]!).find(name => Math.abs(lins[r]![name]!) === 1)
+      let x: string | undefined
+      for (const name in lins[r]!) if (name !== '1' && Math.abs(lins[r]![name]!) === 1) { x = name; break }
       if (x === undefined) continue
       // up: the row of the pair with +x, down: with −x.
       const [up, down] = lins[r]![x] === 1 ? [r, neg] : [neg, r]
@@ -128,8 +129,9 @@ export function solve(constraints: Constraint[], maxRows = 20_000): Verdict {
   for (let found = contradiction(); found === undefined; found = contradiction()) {
     // Each variable's rows by sign, in one pass (variables in the order they first appear).
     const index = new Map<string, {pos: number[], neg: number[], posUnit: boolean, negUnit: boolean}>()
-    for (const r of rows) for (const [x, c] of Object.entries(lins[r]!)) {
+    for (const r of rows) for (const x in lins[r]!) {
       if (x === '1') continue
+      const c = lins[r]![x]!
       let e = index.get(x)
       if (!e) index.set(x, (e = {pos: [], neg: [], posUnit: true, negUnit: true}))
       if (c > 0) { e.pos.push(r); e.posUnit &&= c === 1 } else if (c < 0) { e.neg.push(r); e.negUnit &&= c === -1 }
