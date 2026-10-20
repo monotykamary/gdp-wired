@@ -1,5 +1,5 @@
-// Probes of two limits: k-step laws (the kernel takes up to 64: 32 steps prove in about 3 s and Lean checks them in
-// about 25 s, 64 prove in about 17 s and Lean checks them in about 3 minutes), and recurrences with many further arguments (each proven quickly on its own,
+// Probes of two limits: k-step laws (the kernel takes up to 64: 32 steps prove in about a second and Lean checks them
+// in about 14 s, 64 prove in about 5 s and Lean checks them in about 47 s), and recurrences with many further arguments (each proven quickly on its own,
 // but a rule reads the function at its arguments paired, which the kernel multiplies out: five further arguments is a
 // polynomial of degree 32, past what it holds, so the limit stays four). `steps` and `args` print, for each size, the
 // time to prove and the verdict; `lean <dir>` writes a Lean project of both (a rule reading a recurrence of ARGS further

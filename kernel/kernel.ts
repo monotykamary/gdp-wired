@@ -913,7 +913,7 @@ export function stepLawObligations(machine: Machine, laws: Law[], instances: Ins
   const m = machine.history ? historyMachine(machine).machine : machine
   scope(m, laws)
   const k = sl.steps ?? 1
-  // Past 64 the cost is the bound (proving grows about as k³: 64 steps in about 17 s on Modal; Lean checks 32 in about 25 s, 64 in about 3 minutes).
+  // Past 64 the cost is the bound (proving grows about as k³: 64 steps in about 5 s on Modal; Lean checks 32 in about 14 s, 64 in about 47 s).
   if (!Number.isInteger(k) || k < 1 || k > 64) throw new Error(`step law ${sl.name}: steps is a whole number from 1 to 64`)
   const whens = sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when]
   if (whens.length > k) throw new Error(`step law ${sl.name}: one when per step at most`)
