@@ -3,7 +3,7 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.12.4
 
 - A law over several steps may read a condition a step kept: an earlier step's condition at every key is assumed at a
   later step's witness, where the later check would fail (`examples/quantifiers.ts`: a scope normalized, then rechecked
