@@ -5,7 +5,7 @@ import {expect, test} from 'bun:test'
 import {type Machine, type State, interpret, search} from './machine.ts'
 import {admitFlagged, boundedLoss, capLaws, loss, windowCeiling, windowLimit} from './models.ts'
 import {proveLaws} from '../kernel/prove.ts'
-import {type DecisionEnv, type Rule, Cond, all, bool, count, forall, fun, loop, maybe, min, nat, oneOf, proveDecision, proveLoop, proveRule, relation, rule, upTo, when} from './dsl.ts'
+import {type DecisionEnv, type Rule, Cond, all, bool, count, forall, fun, loop, maybe, min, nat, oneOf, proveDecision, proveLoop, proveRule, proveSteps, relation, rule, upTo, when} from './dsl.ts'
 
 let seed = Number(process.env.FUZZ_SEED ?? 777)
 const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
@@ -177,4 +177,21 @@ test('search tries every value of a small kind, whatever the bound', () => {
   const far = rule('far').inputs({n: nat}).state({hit: 0}).step(({n}) => ({hit: when(n.eq(3), 1, 0)}))
   expect(search(far.machine, far.law('never three', ({hit}) => hit.eq(0)))).toBeUndefined()
   expect(search(far.machine, far.law('never three', ({hit}) => hit.eq(0)), 3, 3)?.trace).toEqual([{n: 3}])
+})
+
+// A step law holds from every state the laws allow, reached or not: one broken only from a state no run reaches is
+// refused from a random such state, with its witness and no run.
+test('a step law broken only from a state no run reaches is refused at once, with the state', () => {
+  const r = rule('stays').inputs({go: bool}).state({s: 0}).step(({s}) => ({s}))
+  const v = proveSteps(r, [], [r.stepLaw('the count stays at 0', (_, after) => after.s.eq(0))])
+  expect(v).toMatchObject({proven: false, stuck: 'sat'})
+  expect(v.run).toBeUndefined()
+  expect(v.witness!.s).toBeGreaterThan(0)
+})
+
+// A choice compares with a name, another choice of its kind or an index, and reads its index as a term.
+test('a choice compares by name, by choice or by index', () => {
+  const r = rule('phases').inputs({to: oneOf('a', 'b', 'c')}).state({p: oneOf('a', 'b', 'c').from('a')}).step(({to}) => ({p: to}))
+  const law = r.stepLaw('the phase is the one asked for', ({to}, after) => all(after.p.eq(to), after.p.index.eq(to.index), after.p.eq('a').implies(after.p.eq(0)), after.p.ne('b').or(to.is('b'))))
+  expect(proveSteps(r, [], [law])).toMatchObject({proven: true, checked: true})
 })

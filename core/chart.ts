@@ -16,7 +16,7 @@
 // most specific source (an inner state over its parent) is taken, then the first declared; the regions react to the
 // same event at once. A transition into a compound state enters its initial child, or the child it was last in when the
 // compound keeps its history; `set` writes the extended state (a variable two regions both set takes the first region's).
-import {type Cond, type Kind, type Rule, type Term, type TermLike, type Verdict, Choice, all, any, no, oneOf, proveRule, proveSteps, rule, when, yes} from './dsl.ts'
+import {type Kind, type Rule, type TermLike, type Verdict, Choice, Cond, Term, all, any, no, oneOf, proveRule, proveSteps, rule, when, yes} from './dsl.ts'
 import {type Law, type Request, type State, interpret, numbersOf} from './machine.ts'
 import {allowed} from './watch.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
@@ -112,7 +112,6 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
       for (const [c, {history}] of r.compounds) if (history && c) state[lastOf(r, c)] = kind.from(enter(c))
     }
     for (const [k, v] of Object.entries({...s.context, ...s.outputs})) state[k] = v
-    const inState = (env: Obj) => (path: string): Cond => { const [r, p] = locate(path); return any(...under(r, p).map(l => (env[r.field] as Choice<string>).is(l))) }
     const guardEnv = (env: Obj) => this.wrap(env) as Env<P, I, X>
     // Entering a path: a leaf, or a compound's last child (with history) or its initial one.
     const entered = (env: Obj, r: Region, path: string): Choice<string> => {
@@ -122,25 +121,34 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
       return entered(env, r, path ? `${path}.${c.initial}` : c.initial)
     }
     let built = rule(s.name).params(s.params as never).inputs({event: oneOf(...events), ...s.inputs} as never).state(state as never) as Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>
+    // A set of a region's states as ranges of their indices (n <= 2, 3 <= n <= 4): a few comparisons, where one test per
+    // state would be a disjunction the prover splits on; the whole region is no condition at all.
+    const among = (env: Obj, r: Region, leaves: string[]): Cond => {
+      const n = (env[r.field] as Choice<string>).index, ix = leaves.map(l => r.leaves.indexOf(l)).sort((a, b) => a - b), top = r.leaves.length - 1, ranges: [number, number][] = []
+      for (const i of ix) { const last = ranges.at(-1); if (last && i === last[1] + 1) last[1] = i; else ranges.push([i, i]) }
+      return any(...ranges.map(([a, b]) => (a === 0 && b === top ? yes : a === b ? n.eq(a) : a === 0 ? n.atMost(b) : b === top ? n.atLeast(a) : n.atLeast(a).and(n.atMost(b)))))
+    }
+    const regionOf = (t: Placed<P, I, X>) => regions.find(r => r.name === t.region)!
     built = built.flags((env: Obj) => Object.fromEntries(placed.map((t, i) => [`on${i}`, all(
-      (env.event as Choice<string>).is(t.event), inState(env)(single ? '' : t.region), any(...t.sources.map(l => (env[regions.find(r => r.name === t.region)!.field] as Choice<string>).is(l))),
-      ...(t.when ? [t.when(guardEnv(env))] : []))]))) as never
-    // A transition is taken when it is enabled and no transition before it in its region is.
+      (env.event as Choice<string>).is(t.event), among(env, regionOf(t), t.sources), ...(t.when ? [t.when(guardEnv(env))] : []))]))) as never
+    // A transition is taken when it is enabled and no transition before it in its region, on its event, from a state it
+    // shares, is (transitions on other events are never enabled together).
     built = built.flags((env: Obj) => Object.fromEntries(placed.map((t, i) => [`take${i}`, all(env[`on${i}`] as Cond,
-      ...placed.slice(0, i).flatMap((u, j) => (u.region === t.region && u.sources.some(l => t.sources.includes(l)) ? [(env[`on${j}`] as Cond).not()] : [])))]))) as never
+      ...placed.slice(0, i).flatMap((u, j) => (u.region === t.region && u.event === t.event && u.sources.some(l => t.sources.includes(l)) ? [(env[`on${j}`] as Cond).not()] : [])))]))) as never
     built = built.step((env: Obj) => {
       const out: Obj = {}
       for (const r of regions) {
-        // The transitions taken in a region exclude one another: a chain of `when`s, the first in order outermost.
-        out[r.field] = placed.map((t, i) => [t, i] as const).filter(([t]) => t.region === r.name).reverse()
-          .reduce<Choice<string>>((acc, [t, i]) => when(env[`take${i}`] as Cond, t.to === undefined ? env[r.field] : entered(env, r, locate(t.to)[1]), acc), env[r.field])
+        // The transitions taken in a region exclude one another, so those entering one state share a `when` (any of
+        // them taken), and an internal one needs none (the state stays).
+        out[r.field] = grouped(placed.map((t, i) => [t, i] as const).filter(([t]) => t.region === r.name && t.to !== undefined)
+          .map(([t, i]) => ({i, region: r.name, value: entered(env, r, locate(t.to!)[1])})), env, env[r.field])
         for (const [c, {history}] of r.compounds) if (history && c) out[lastOf(r, c)] = when(any(...under(r, c).map(l => (out[r.field] as Choice<string>).is(l))), out[r.field], env[lastOf(r, c)])
       }
       // Context keeps its value where no transition taken sets it; an output falls back to its default.
       for (const k of [...Object.keys(s.context), ...Object.keys(s.outputs)]) {
-        const sets = placed.map((t, i) => [t, i] as const).filter(([t]) => t.set).map(([t, i]) => [i, t.set!(guardEnv(env))[k as keyof X]] as const).filter(([, v]) => v !== undefined)
+        const sets = placed.map((t, i) => [t, i] as const).filter(([t]) => t.set).map(([t, i]) => ({i, region: t.region, value: t.set!(guardEnv(env))[k as keyof X] as unknown})).filter(x => x.value !== undefined)
         const base = k in s.outputs ? defaultOf(env[k], s.outputs[k], k) : env[k]
-        if (sets.length || k in s.outputs) out[k] = sets.reverse().reduce((acc, [i, v]) => when(env[`take${i}`] as Cond, v as never, acc as never), base)
+        if (sets.length || k in s.outputs) out[k] = grouped(sets.map(x => ({...x, value: typeof x.value === 'string' ? (env[k] as Choice<string>).of(x.value) : x.value})), env, base)
       }
       return out
     }) as never
@@ -199,7 +207,9 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
     const reachedAt = new Map<string, string>()
     const note = (k: string, st: State) => { for (const reg of regions) { const l = reg.leaves[st.scalars[reg.field]!]!; if (!reachedAt.has(label(reg, l))) reachedAt.set(label(reg, l), k) } }
     note(queue[0]!, start)
-    while (queue.length && seen.size < (opts.maxStates ?? 20_000)) {
+    // Breadth first, so each state's run is a shortest one; done once every state has one.
+    const states = regions.reduce((n, reg) => n + reg.leaves.length, 0)
+    while (queue.length && seen.size < (opts.maxStates ?? 20_000) && reachedAt.size < states) {
       const k = queue.shift()!, st = seen.get(k)!.st
       for (const req of requests) {
         if (!allowed(m, run, params, st, req)) continue
@@ -209,25 +219,45 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
       }
     }
     const runTo = (k: string): Obj[] => { const out: Obj[] = []; for (let at = seen.get(k)!; at.by; at = seen.get(at.from!)!) out.unshift({...numbersOf(at.by), event: events[at.by.event as number]}); return out }
-    const reached: Record<string, {run: Obj[]} | 'unreachable' | 'unknown'> = {}
+    // States no run reached: proven unreachable together (one may lean on another), else each on its own.
+    const reached: Record<string, {run: Obj[]} | 'unreachable' | 'unknown'> = {}, missed: {name: string, law: Law}[] = []
     for (const reg of regions) for (const l of reg.leaves) {
       const name = label(reg, l), at = reachedAt.get(name)
-      if (at) { reached[name] = {run: runTo(at)}; continue }
-      const never = r.law(`${name} is never reached`, (env: Obj) => (env[reg.field] as Choice<string>).is(l).not())
-      const v = proveRule(r, [...this.chartLaws(), never])
-      reached[name] = v.proven && v.checked ? 'unreachable' : 'unknown'
+      if (at) reached[name] = {run: runTo(at)}
+      else missed.push({name, law: r.law(`${name} is never reached`, (env: Obj) => (env[reg.field] as Choice<string>).is(l).not())})
     }
+    const proven = (v: Verdict) => v.proven && v.checked
+    const allMissed = missed.length > 0 && proven(proveRule(r, [...this.chartLaws(), ...missed.map(x => x.law)]))
+    for (const x of missed) reached[x.name] = allMissed || proven(proveRule(r, [...this.chartLaws(), x.law])) ? 'unreachable' : 'unknown'
     // A way out is a transition to a state: an internal one stays where it is.
     const stuck = regions.flatMap(reg => reg.leaves.filter(l => !reg.finals.has(l) && !placed.some(t => t.to !== undefined && t.region === reg.name && t.sources.includes(l))).map(l => label(reg, l)))
-    const ambiguous: {event: string, transitions: [number, number], verdict: Verdict}[] = []
+    // Pairs as specific as each other, on one event, from a state they share: proven never both enabled, all at once,
+    // and only where that fails each on its own (to name the pair and the request).
+    const pairs: {t: Placed<P, I, X>, u: Placed<P, I, X>, law: StepLaw}[] = []
     placed.forEach((t, i) => placed.forEach((u, j) => {
       if (j <= i || t.region !== u.region || t.event !== u.event || t.depth !== u.depth || !t.sources.some(l => u.sources.includes(l))) return
-      const apart = r.stepLaw(`transitions ${t.order} and ${u.order} on ${t.event} are never both enabled`, (env: Obj) => all(env[`on${i}`] as Cond, env[`on${j}`] as Cond).not())
-      const v = proveSteps(r, this.chartLaws(), [apart])
-      if (!(v.proven && v.checked)) ambiguous.push({event: t.event, transitions: [t.order, u.order], verdict: v})
+      pairs.push({t, u, law: r.stepLaw(`transitions ${t.order} and ${u.order} on ${t.event} are never both enabled`, (env: Obj) => all(env[`on${i}`] as Cond, env[`on${j}`] as Cond).not())})
     }))
+    const ambiguous: {event: string, transitions: [number, number], verdict: Verdict}[] = []
+    if (pairs.length && !proven(proveSteps(r, this.chartLaws(), pairs.map(x => x.law))))
+      for (const {t, u, law} of pairs) { const v = proveSteps(r, this.chartLaws(), [law]); if (!proven(v)) ambiguous.push({event: t.event, transitions: [t.order, u.order], verdict: v}) }
     return {ok: !stuck.length && !ambiguous.length && Object.values(reached).every(x => x !== 'unknown'), reached, stuck, ambiguous}
   }
+}
+// The value a step writes: of the transitions taken, the first in order that writes one. Transitions of one region exclude
+// one another, so consecutive ones of a region writing the same value share one `when` (any of them taken); the order
+// between regions is kept.
+function grouped(writes: {i: number, region: string, value: unknown}[], env: Obj, base: unknown): never {
+  const keyOf = (v: unknown) => JSON.stringify(v instanceof Choice ? v.index.e : v instanceof Cond ? v.c : v instanceof Term ? v.e : v)
+  const groups: {region: string, key: string, value: unknown, takes: Cond[]}[] = []
+  for (const w of writes) {
+    const key = keyOf(w.value)
+    let g: (typeof groups)[number] | undefined
+    for (let j = groups.length - 1; j >= 0 && groups[j]!.region === w.region; j--) if (groups[j]!.key === key) { g = groups[j]; break }
+    if (g) g.takes.push(env[`take${w.i}`] as Cond)
+    else groups.push({region: w.region, key, value: w.value, takes: [env[`take${w.i}`] as Cond]})
+  }
+  return groups.reduceRight<unknown>((acc, g) => when(any(...g.takes), g.value as never, acc as never), base) as never
 }
 export const chart = (name: string): Chart => new Chart({name, params: {}, inputs: {}, context: {}, outputs: {}, regions: [], on: []})
 // An output's default as a value of its kind: a number, a choice's named value, or a yes/no.

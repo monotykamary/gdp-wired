@@ -3,6 +3,21 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+- A chart compiles to a lighter step: a transition's source states as ranges of their indices (no disjunction over every
+  state, none at all for the whole region), a transition outranks only those on its own event, and transitions writing
+  the same value share one `when`. `check()` stops walking once every state has a run and proves its pairs and its
+  unreached states together. On a binding lifecycle of 6 states, 12 events and 19 transitions with 19 step laws and 7
+  broken variants (Modal, 2 vCPU): the laws prove in 1.7 to 2.2 s (12.5 s before), `check()` takes 18 ms (7.0 s), and
+  the whole run 3.9 s (33.5 s).
+- A step law broken only from a state no run reaches is refused at once too: after the random runs, `proveSteps` tries
+  random states the laws allow (each scalar and cell small, kept where every law and kind law holds) and returns the
+  first that breaks it, with its `witness` and no `run`. The lifecycle's two variants that the runs missed are refused in
+  39 ms and 1.2 s (4.3 s and 9.6 s).
+- A choice compares by name, choice or index: `phase.eq('closing')`, `a.phase.eq(b.phase)`, `phase.eq(3)`, `ne` the
+  same, and `phase.index` is its index as a term (the order declared).
+
 ## 0.13.1
 
 - Charts: internal transitions (no `to`: the state stays, nothing is exited or entered, `set` runs), outputs

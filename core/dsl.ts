@@ -334,10 +334,15 @@ export const bool: Kind<Bool> = new BoolKind()
 // One of a few named values, encoded as its index. `match` takes every case (TypeScript checks none is missing).
 export class Choice<K extends string> {
   constructor(readonly n: Term, readonly values: readonly K[]) {}
-  is(k: K): Cond { return this.n.eq(this.index(k)) }
+  is(k: K): Cond { return this.n.eq(this.indexOf(k)) }
   // The value named k, of this choice's kind (to write: when(c, status.of('closed'), status)).
-  of(k: K): Choice<K> { return new Choice(lit(this.index(k)), this.values) }
-  private index(k: K): number {
+  of(k: K): Choice<K> { return new Choice(lit(this.indexOf(k)), this.values) }
+  // Its index among the values, in the order declared (oneOf('new', 'paid'): new is 0), as a term.
+  get index(): Term { return this.n }
+  // The same value as a name, another choice of the kind, or an index: status.eq('paid'), a.phase.eq(b.phase), phase.eq(3).
+  eq(o: K | Choice<K> | number): Cond { return typeof o === 'string' ? this.is(o) : typeof o === 'number' ? this.n.eq(o) : this.n.eq(o.n) }
+  ne(o: K | Choice<K> | number): Cond { return this.eq(o).not() }
+  private indexOf(k: K): number {
     const i = this.values.indexOf(k)
     if (i < 0) throw new Error(`${k} is not one of ${this.values.join(', ')}`)
     return i
@@ -2136,7 +2141,8 @@ export const loop = (name: string): LoopRule => new LoopRule({name, params: [], 
 // --- proving ---------------------------------------------------------------------------------------------------------
 
 // `run`: a real run from the start that breaks the law (params, and each request in order, a carried map as its cells),
-// when a few random runs found one before the prover ran.
+// when a few random runs found one before the prover ran (a step law broken from a state no run is known to reach comes
+// back with its `witness` alone).
 export type Verdict = {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}}
 // A verdict that isn't a checked proof, as the error a lemma, a guard or a gate is refused with (the verdict on `.verdict`).
 export class Unproven extends Error {
@@ -2162,7 +2168,7 @@ const withKinds = (r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[])
 // interpreter took. A rule that reads functions is skipped: the kernel knows them only by their facts (a recurrence's
 // induction machine reads the function it proves things about), so a run computing them proves nothing about the goal.
 const refuteBudget = {trials: 60, depth: 6, bound: 3, ms: 150}
-function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[] = []): {goal: string, witness: Record<string, number>, run: {params: Record<string, number>, trace: Record<string, unknown>[]}} | undefined {
+function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[] = []): {goal: string, witness: Record<string, number>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}} | undefined {
   const m = r.machine
   if (Object.keys(m.fns ?? {}).length || m.facts?.length) return undefined
   const run = interpret(m), rand = seeded(13), until = performance.now() + refuteBudget.ms, bound = refuteBudget.bound
@@ -2188,10 +2194,23 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
         st = next
       }
     }
+    // A step law holds from every state the laws allow, reached or not: from random such states (each scalar and cell
+    // small, kept when every law and kind law holds there), a step that breaks it is a counterexample too, without a run.
+    const steps1 = stepLaws.filter(sl => (sl.steps ?? 1) === 1), given = withKinds(r, laws)
+    for (let trial = 0; steps1.length && trial < refuteBudget.trials * 4 && performance.now() < until; trial++) {
+      const params = r.randomParams(rand, bound)
+      if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) continue
+      const st: State = {scalars: Object.fromEntries(Object.keys(m.state).map(n => [n, rand(8)])), maps: Object.fromEntries(Object.keys(m.maps ?? {}).map(n => [n, new Map(Array.from({length: rand(3)}, () => [rand(bound + 1), rand(bound + 1)] as const))]))}
+      if (m.history || !given.every(l => watch(m, run, l, params, bound).start(st))) continue
+      const input = r.randomInput(rand, bound, params)
+      if (!allowed(m, run, params, st, input)) continue
+      const next = run.step(params, st, input)
+      for (const sl of steps1) if (!watch(m, run, sl, params, bound).step(st, input, next)) return {goal: `${sl.name} @step law`, witness: {...params, ...st.scalars, ...numbersOf(input)}}
+    }
   } catch { return undefined }
   return undefined
 }
-const refutedVerdict = (out: NonNullable<ReturnType<typeof refuteByRuns>>): Verdict => ({proven: false, checked: false, goal: out.goal, stuck: 'sat', witness: out.witness, run: out.run})
+const refutedVerdict = (out: NonNullable<ReturnType<typeof refuteByRuns>>): Verdict => ({proven: false, checked: false, goal: out.goal, stuck: 'sat', witness: out.witness, ...(out.run ? {run: out.run} : {})})
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[]): Verdict {
   const refuted = refuteByRuns(r, laws)
   if (refuted) return refutedVerdict(refuted)
