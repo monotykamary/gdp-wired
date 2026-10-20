@@ -12,6 +12,7 @@ import {accountLaws, accountSteps, accounts, approveLaws, hold, holdLaws, holdSt
 import {invoiceLaws, invoiceSteps, invoices, metered, meteredLaws} from '../examples/invoices.ts'
 import {orgChart, orgChartLaws, rollup, rollupLaws, signoffLaws, signoffs} from '../examples/folds.ts'
 import {searchTree, searchTreeLaws, sheet, sheetLaws} from '../examples/trees.ts'
+import {distinctNames, distinctNamesLaws, sortedList, sortedListLaws} from '../examples/pairs.ts'
 import {area, areaLaws, counter, counterLaws, escalation, escalationLaws, fillMeter, fillMeterLaws, ladder, ladderLaws, ledger, ledgerLaws, pump, pumpLive, retries, retryLaws, retrySteps, tank, tankLaws} from '../examples/lemmas.ts'
 import {team, teamLaws, teamSteps} from '../examples/sizes.ts'
 import {allDone, batchLaws, batches, everyTaggedTicket, taggedLaws, taggedTickets, everyLoggedTicket, everyRecountedTicket, everyReview, everyTicket, loggedLaws, loggedTickets, recounted, recountedLaws, reviewLaws, reviews, ticketLaws, tickets} from '../examples/liveness.ts'
@@ -69,6 +70,8 @@ const file = toLean(([
   {id: 'rollup', fold: rollup().fold, laws: rollupLaws()},
   {id: 'orgchart', fold: orgChart().fold, laws: [...orgChart().lemmas, ...orgChartLaws()]},
   {id: 'metered', machine: metered().machine, laws: meteredLaws()},
+  {id: 'sortedlist', machine: sortedList().machine, laws: sortedListLaws()},
+  {id: 'distinctnames', machine: distinctNames().machine, laws: distinctNamesLaws()},
   {id: 'searchtree', machine: searchTree().machine, laws: [...searchTree().kindLaws(), ...searchTreeLaws()]},
   {id: 'sheet', machine: sheet().machine, laws: [...sheet().kindLaws(), ...sheetLaws()]},
   {id: 'signoffs', fold: signoffs().fold, laws: signoffLaws()},

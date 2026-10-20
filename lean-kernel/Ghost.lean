@@ -39,24 +39,25 @@ theorem applyS_append_other {σ τ : List (Nat × E)} {i : Nat} (h : i ∉ τ.ma
   simp only [applyS, assoc_append_none h]
 
 -- The keys a machine's every-key writes and quantified flags bind.
-def bkeys (s : SMachine) : List Nat := s.every.map (·.2.1) ++ s.qflags.map (·.2.1)
+def bkeys (s : SMachine) : List Nat := s.every.map (·.2.1) ++ s.qflags.flatMap (·.2.1)
 
--- A flag that holds at every key, decided over states that agree where its body reads (its key aside), is decided alike.
-theorem ite_all_congr {X X' : Nat → Nat} {N N' : Nat → Nat → Nat} {k : Nat} {c : C}
-    (hv : ∀ i, occC i c = true → i ≠ k → X i = X' i) (hm : ∀ mp, occMC mp c = true → N mp = N' mp) :
-    (if ∀ key, holdsC (upd X k key) N c then 1 else 0) = (if ∀ key, holdsC (upd X' k key) N' c then 1 else 0) := by
-  have h : (∀ key, holdsC (upd X k key) N c) ↔ (∀ key, holdsC (upd X' k key) N' c) := by
-    apply forall_congr'; intro key
+-- A flag that holds at every value of its keys, decided over states that agree where its body reads (its keys aside), is
+-- decided alike.
+theorem ite_all_congr {X X' : Nat → Nat} {N N' : Nat → Nat → Nat} {ks : List Nat} {c : C}
+    (hv : ∀ i, occC i c = true → i ∉ ks → X i = X' i) (hm : ∀ mp, occMC mp c = true → N mp = N' mp) :
+    (if ∀ k, holdsC (atKeys X ks k) N c then 1 else 0) = (if ∀ k, holdsC (atKeys X' ks k) N' c then 1 else 0) := by
+  have h : (∀ k, holdsC (atKeys X ks k) N c) ↔ (∀ k, holdsC (atKeys X' ks k) N' c) := by
+    apply forall_congr'; intro k
     rw [← evalC_iff, ← evalC_iff, congrMC _ N N' c hm]
-    rw [congrC (upd X k key) (upd X' k key) N' c (fun i hi => by
-      simp only [upd]; split
-      · rfl
-      · rename_i hik; exact hv i hi hik)]
+    rw [congrC (atKeys X ks k) (atKeys X' ks k) N' c (fun i hi => by
+      by_cases hik : i ∈ ks
+      · rw [atKeys_in hik, atKeys_in hik]
+      · rw [atKeys_out hik, atKeys_out hik]; exact hv i hi hik)]
   simp only [h]
 
 theorem decideQ_of (s : SMachine) (X : Nat → Nat) (N : Nat → Nat → Nat) (v : Nat) :
     decideQ s X N v = match lookup (fun q => q.1 == v) s.qflags with
-      | some q => if ∀ key, holdsC (upd X q.2.1 key) N q.2.2 then 1 else 0
+      | some q => if ∀ k, holdsC (atKeys X q.2.1 k) N q.2.2 then 1 else 0
       | none => X v := rfl
 
 theorem upd_agree {V : List Nat} {X X' : Nat → Nat} (h : Agree V X X') (k v : Nat) : Agree V (upd X k v) (upd X' k v) := fun i hi => by

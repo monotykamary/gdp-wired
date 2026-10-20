@@ -51,7 +51,8 @@ All of these are proven automatically, and each proof is also a Lean theorem:
 
 - **Invariants**: a law that holds after every sequence of requests ("spend stays within the budget").
 - **Maps, sets and lists of names**: laws at every key ("no day passes its cap"), sets a request carries, conditions
-  about every key, lists kept in order (`examples/sets.ts`, `examples/lists.ts`).
+  about every key or every two keys ("a batch is taken only when its values increase"), lists kept in order
+  (`examples/sets.ts`, `examples/lists.ts`, `examples/pairs.ts`).
 - **Step laws**: what one step does ("a balance only goes down", "a grant adds one"), and laws over several steps in a
   row.
 - **Histories**: sums and queries over a log of requests, like a sliding-window rate limit.
@@ -261,7 +262,8 @@ const soon = retry.law('the next try is at most 64 after the last request', ({ne
 - **Arithmetic** over the naturals: `plus`, `minus` (truncated), `times(k)`, `mul` (a product of two terms), `min`,
   `max`, `when(cond, a, b)`, `count(cond)`; conditions `lt`, `atMost`, `eq`, `and`, `or`, `not`, `implies`.
 - **Sets and quantifiers**: `.carries(...)` for sets a request brings, `everyKey(k => ...)` (and `has`, `subsetOf`,
-  `disjointFrom`, `sameAs`) anywhere in a step or inside a law, `M.each(k => ...)` to write every key, and
+  `disjointFrom`, `sameAs`) anywhere in a step or inside a law, `everyKey((i, j) => ...)` in a step for every two keys
+  (each read on its own, compared with the other plainly: `i.lt(j)`), `M.each(k => ...)` to write every key, and
   `someKey(k => ..., witness?)` for "some key where", proven through a witness the prover finds or the one given.
 - **Functions** (`.fns({perMinute: divBy(60)})`, or `fn(arity, js, {facts, lean})` for your own): read like params that
   take arguments, `perMinute(t)`; the kernel knows each only by its facts (`.facts(...)`, and a library function's

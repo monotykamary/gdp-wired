@@ -68,7 +68,7 @@ export function fitsU32(given: Machine, law: Watched, s: Space): {vars: Record<s
   for (const name of [...m.params, ...m.inputs]) vars[name] = s.bound
   // A map a request carries holds digits; a key bound by a quantified flag or a write at every key is any cell.
   for (const map of given.inputMaps ?? []) cells[map] = s.bound
-  for (const c of Object.values(m.step.flags ?? {})) if (c.op === 'all') vars[c.key] = s.bound + 1
+  for (const c of Object.values(m.step.flags ?? {})) if (c.op === 'all') { if (c.keys?.length) throw new Error('the search takes a condition at every key, not at every two'); vars[c.key] = s.bound + 1 }
   for (const w of Object.values(m.step.maps ?? {})) if ('each' in w) vars[w.each] = s.bound + 1
   if (law.forall) vars[law.forall] = s.bound + 1
   // A step law's later requests are inputs too.

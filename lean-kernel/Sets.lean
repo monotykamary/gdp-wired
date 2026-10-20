@@ -4,7 +4,7 @@ import Steps
 Sets: kernel.ts's machines with sets, proven sound. A set is a map with cells 0 or 1; three things go beyond FMMachine:
 a request carries whole maps (`carried`: any maps at each request), a step writes a map at every key at once (`every`:
 the value at each key, read with the key bound), and a flag may hold at every key (`qflags`: ∀ key. body, its body
-reading no flag). Lean decides a quantified flag classically, which only the meaning needs; the checker never does.
+reading no flag), or at every tuple of keys (∀ k₁ … kₙ. body). Lean decides a quantified flag classically, which only the meaning needs; the checker never does.
 
 Functions from outside the rule are maps no step writes (and no request carries); `facts` are laws about the params and
 those maps alone, given rather than proven: a run starts where they hold, so they hold at every state, and every goal may
@@ -12,9 +12,10 @@ assume them at the keys its proof names (`finsts`). A fact about several keys (`
 arguments, a law between two points) is given at every value of its further keys, as a law about several keys holds,
 and a goal assumes it at the tuples its proof names (`pfinsts`).
 
-kernel.ts closes each quantified flag ?f in a goal: ?f ≤ 1; ?f = 0 ∨ body(t) at keys t the proof names (`qinsts`); and
-?f = 1 ∨ ¬body(w) at a fresh witness w (`wits`). A real step satisfies these with w a failing key when ?f = 0, so a goal
-that refutes them refutes the machine. Lean builds the same closed goals.
+kernel.ts closes each quantified flag ?f in a goal: ?f ≤ 1; ?f = 0 ∨ body(t) at keys t the proof names (`qinsts`, a
+tuple of terms over several keys); and ?f = 1 ∨ ¬body(w) at fresh witnesses w, one per key (`wits`). A real step
+satisfies these with w failing keys when ?f = 0, so a goal that refutes them refutes the machine. Lean builds the same
+closed goals.
 -/
 
 namespace Kern
@@ -44,23 +45,31 @@ structure SMachine where
   f : FMMachine
   carried : List Nat               -- maps a request carries
   every : List (Nat × Nat × E)     -- (map, bound key, value): the map at every key
-  qflags : List (Nat × Nat × C)    -- (flag variable, bound key, body): 1 when the body holds at every key, else 0
-  wits : List (Nat × Nat)          -- (flag variable, its witness variable)
+  qflags : List (Nat × List Nat × C) -- (flag variable, bound keys, body): 1 when the body holds at every value of the keys, else 0
+  wits : List (Nat × List Nat)     -- (flag variable, its witness variables: one per key)
   facts : List MLaw                -- given about the params and the functions (maps no step writes)
   pfacts : List (MLaw × List Nat)  -- facts about several keys: the fact about its first key, and its further keys
 
 def SMachine.qVars (s : SMachine) : List Nat := s.qflags.map (·.1)
-def SMachine.wVars (s : SMachine) : List Nat := s.wits.map (·.2)
+def SMachine.wVars (s : SMachine) : List Nat := s.wits.flatMap (·.2)
 
 /-! The meaning -/
 
 -- The maps a step reads: its own, with the maps the request carries.
 def withCarried (s : SMachine) (M κ : Nat → Nat → Nat) : Nat → Nat → Nat := fun mp => if s.carried.contains mp then κ mp else M mp
 
--- Each quantified flag decided: 1 where its body holds at every key, else 0.
+-- A state with the bound keys read from v.
+def atKeys (X : Nat → Nat) (ks : List Nat) (v : Nat → Nat) : Nat → Nat := fun i => if ks.contains i then v i else X i
+
+theorem atKeys_in {X : Nat → Nat} {ks : List Nat} {v : Nat → Nat} {i : Nat} (h : i ∈ ks) : atKeys X ks v i = v i := by
+  simp [atKeys, List.contains_iff_mem, h]
+theorem atKeys_out {X : Nat → Nat} {ks : List Nat} {v : Nat → Nat} {i : Nat} (h : i ∉ ks) : atKeys X ks v i = X i := by
+  simp [atKeys, List.contains_iff_mem, h]
+
+-- Each quantified flag decided: 1 where its body holds at every value of its keys, else 0.
 noncomputable def decideQ (s : SMachine) (X : Nat → Nat) (N : Nat → Nat → Nat) : Nat → Nat := fun v =>
   match lookup (fun q => q.1 == v) s.qflags with
-  | some q => if ∀ key, holdsC (upd X q.2.1 key) N q.2.2 then 1 else 0
+  | some q => if ∀ k, holdsC (atKeys X q.2.1 k) N q.2.2 then 1 else 0
   | none => X v
 
 -- A step's state before its terms: inputs set, quantified flags decided, then the plain flags; and the maps it reads.
@@ -92,13 +101,13 @@ inductive SReach (s : SMachine) : (Nat → Nat) → (Nat → Nat → Nat) → Pr
 
 /-! The goals -/
 
--- Each quantified flag closed, at the keys the proof names.
-def closingHyps (s : SMachine) (qinsts : List (Nat × E)) : List C :=
+-- Each quantified flag closed, at the tuples the proof names.
+def closingHyps (s : SMachine) (qinsts : List (Nat × List E)) : List C :=
   s.qflags.flatMap fun q =>
     [.le (.var q.1) (.const 1)]
-      ++ (qinsts.filter (fun p => p.1 == q.1)).map (fun p => .or (.eq (.var q.1) (.const 0)) (substC [(q.2.1, p.2)] q.2.2))
+      ++ (qinsts.filter (fun p => p.1 == q.1)).map (fun p => .or (.eq (.var q.1) (.const 0)) (substC (q.2.1.zip p.2) q.2.2))
       ++ (match lookup (fun w => w.1 == q.1) s.wits with
-          | some w => [.or (.eq (.var q.1) (.const 1)) (.not (substC [(q.2.1, .var w.2)] q.2.2))]
+          | some w => [.or (.eq (.var q.1) (.const 1)) (.not (substC (q.2.1.zip (w.2.map .var)) q.2.2))]
           | none => [])
 
 def trueC : C := .le (.const 0) (.const 0)
@@ -128,14 +137,14 @@ def frameRd (mr : List (Nat × Nat)) (rd : Nat → E → E) : Nat → E → E :=
   | some p => .get p.2 k
   | none => rd mp k
 
-def sFrameHyps (s : SMachine) (laws : List MLaw) (insts qinsts : List (Nat × E)) (w : C) : List C :=
+def sFrameHyps (s : SMachine) (laws : List MLaw) (insts : List (Nat × E)) (qinsts : List (Nat × List E)) (w : C) : List C :=
   scalarHyps laws ++ instHyps laws insts ++ [inlineC s.f.flags s.f.m.assume, w] ++ closingHyps s qinsts
 
 -- The state after a step, named (`names`, per step but the last: each state variable and a fresh variable): the fresh
 -- variable equals the variable's term there, and later frames read it (frameSub), so a run's frames stay small.
 def nameHyps (n : List (Nat × Nat)) (σ : List (Nat × E)) : List C := n.map (fun p => .eq (.var p.2) ((assoc σ p.1).getD (.var p.1)))
 
-def sRun (s : SMachine) (laws : List MLaw) (insts qinsts : List (Nat × E)) :
+def sRun (s : SMachine) (laws : List MLaw) (insts : List (Nat × E)) (qinsts : List (Nat × List E)) :
     List C → List (List (Nat × Nat)) → List (List (Nat × Nat)) → List (List (Nat × Nat)) → List (Nat × E) → (Nat → E → E) → List C × List (Nat × E) × (Nat → E → E)
   | w :: ws, r :: rs, mr :: mrs, ns, σ, rd =>
     ((sFrameHyps s laws insts qinsts w).map (substRC (frameSub r σ) (frameRd mr rd))
@@ -146,9 +155,9 @@ def sRun (s : SMachine) (laws : List MLaw) (insts qinsts : List (Nat × E)) :
 
 /-! What a step's goal reads it by -/
 
--- A key where a quantified flag's body fails, when one does.
-noncomputable def witnessKey (X : Nat → Nat) (N : Nat → Nat → Nat) (q : Nat × Nat × C) : Nat :=
-  if h : ∃ key, ¬ holdsC (upd X q.2.1 key) N q.2.2 then Classical.choose h else 0
+-- Values of the keys where a quantified flag's body fails, when there are some.
+noncomputable def witnessKeys (X : Nat → Nat) (N : Nat → Nat → Nat) (q : Nat × List Nat × C) : Nat → Nat :=
+  if h : ∃ k, ¬ holdsC (atKeys X q.2.1 k) N q.2.2 then Classical.choose h else fun _ => 0
 
 def SMachine.extVars (s : SMachine) : List Nat := s.f.m.inputs ++ s.qVars ++ s.wVars
 
@@ -157,9 +166,11 @@ noncomputable def sReq (s : SMachine) (ρ : Nat → Nat) (M : Nat → Nat → Na
   if s.f.m.inputs.contains v then ι v
   else match lookup (fun q => q.1 == v) s.qflags with
     | some _ => decideQ s (withInputs s.f.m.inputs ρ ι) (withCarried s M κ) v
-    | none => match lookup (fun w => w.2 == v) s.wits with
+    | none => match lookup (fun w => w.2.contains v) s.wits with
       | some w => match lookup (fun q => q.1 == w.1) s.qflags with
-        | some q => witnessKey (withInputs s.f.m.inputs ρ ι) (withCarried s M κ) q
+        | some q => match lookup (fun p => p.2 == v) (q.2.1.zip w.2) with
+          | some p => witnessKeys (withInputs s.f.m.inputs ρ ι) (withCarried s M κ) q p.1
+          | none => 0
         | none => 0
       | none => 0
 
@@ -174,15 +185,15 @@ def renMaps : List (List (Nat × Nat)) → List (Nat → Nat → Nat) → (Nat �
 
 /-! The checks -/
 
-def distinctPairs (ws : List (Nat × Nat)) : Bool := distinct (ws.map (·.1)) && distinct (ws.map (·.2))
+def distinctPairs (ws : List (Nat × List Nat)) : Bool := distinct (ws.map (·.1)) && distinct (ws.flatMap (·.2))
 
--- The machine's own side conditions: inputs, flags, quantified flags and witnesses are distinct variables; a body reads no flag, quantified flag or witness, and its key is none of them; every
--- quantified flag has a witness; the plain flags and the step read no witness.
+-- The machine's own side conditions: inputs, flags, quantified flags and witnesses are distinct variables; a body reads no flag, quantified flag or witness, and its keys are none of them
+-- and distinct; every quantified flag has a witness per key; the plain flags and the step read no witness.
 def sOk (s : SMachine) : Bool :=
   flagsOk s.f.flags && distinct s.qVars && distinctPairs s.wits
-    && s.qflags.all (fun q => s.wits.any (·.1 == q.1))
+    && s.qflags.all (fun q => s.wits.any (fun w => w.1 == q.1 && w.2.length == q.2.1.length) && distinct q.2.1)
     && distinct (s.extVars ++ flagVars s.f.flags)
-    && s.qflags.all (fun q => avoids (s.qVars ++ s.wVars ++ flagVars s.f.flags) q.2.2 && !(s.extVars ++ flagVars s.f.flags).contains q.2.1)
+    && s.qflags.all (fun q => avoids (s.qVars ++ s.wVars ++ flagVars s.f.flags) q.2.2 && q.2.1.all (fun k => !(s.extVars ++ flagVars s.f.flags).contains k))
     && s.f.flags.all (fun p => avoids s.wVars p.2)
     && avoids (s.wVars ++ s.qVars) s.f.m.pre
     && s.f.m.step.all (fun p => avoidsE s.wVars (inlineE s.f.flags p.2))
@@ -193,7 +204,7 @@ def sOk (s : SMachine) : Bool :=
 
 /-! One step's view -/
 
-theorem lookup_unique {p : Nat × Nat × C} {l : List (Nat × Nat × C)} (hd : distinct (l.map (·.1)) = true) (hp : p ∈ l) :
+theorem lookup_unique {β : Type} {p : Nat × β} {l : List (Nat × β)} (hd : distinct (l.map (·.1)) = true) (hp : p ∈ l) :
     lookup (fun q => q.1 == p.1) l = some p := by
   induction l with
   | nil => simp at hp
@@ -207,8 +218,79 @@ theorem lookup_unique {p : Nat × Nat × C} {l : List (Nat × Nat × C)} (hd : d
         simp only [beq_eq_false_iff_ne]; intro he; exact hna (by rw [he]; exact List.mem_map_of_mem hp')
       simp only [hne, Bool.false_eq_true, ite_false]; exact ih hd' hp'
 
-theorem lookup_unique2 {p : Nat × Nat} {l : List (Nat × Nat)} (hd : distinct (l.map (·.2)) = true) (hp : p ∈ l) :
-    lookup (fun q => q.2 == p.2) l = some p := lookup_ren hd p hp
+-- Witnesses: distinct across the flags, each found in its flag's entry, beside its key.
+theorem lookup_wit : ∀ {ws : List (Nat × List Nat)}, distinct (ws.flatMap (·.2)) = true → ∀ {w : Nat × List Nat} {v : Nat}, w ∈ ws → v ∈ w.2 →
+    lookup (fun w' => w'.2.contains v) ws = some w
+  | [], _, _, _, h, _ => by simp at h
+  | a :: as, hd, w, v, h, hv => by
+    simp only [List.flatMap_cons] at hd
+    obtain ⟨_, hd2, hap⟩ := distinct_append hd
+    simp only [lookup]
+    rcases List.mem_cons.mp h with rfl | h
+    · simp [List.contains_iff_mem, hv]
+    · have hna : a.2.contains v = false := by
+        have : v ∉ a.2 := fun hva => hap v hva (List.mem_flatMap.mpr ⟨w, h, hv⟩)
+        simpa [List.contains_iff_mem] using this
+      simp only [hna, Bool.false_eq_true, ite_false]
+      exact lookup_wit hd2 h hv
+
+theorem distinct_of_flatMap : ∀ {ws : List (Nat × List Nat)}, distinct (ws.flatMap (·.2)) = true → ∀ {w : Nat × List Nat}, w ∈ ws → distinct w.2 = true
+  | [], _, _, h => by simp at h
+  | a :: as, hd, w, h => by
+    simp only [List.flatMap_cons] at hd
+    obtain ⟨hd1, hd2, _⟩ := distinct_append hd
+    rcases List.mem_cons.mp h with rfl | h
+    · exact hd1
+    · exact distinct_of_flatMap hd2 h
+
+theorem lookup_zip_wit : ∀ {ks ws : List Nat}, distinct ws = true → ∀ {k w : Nat}, (k, w) ∈ ks.zip ws → lookup (fun p => p.2 == w) (ks.zip ws) = some (k, w)
+  | [], _, _, _, _, h => by simp at h
+  | _ :: _, [], _, _, _, h => by simp at h
+  | a :: as, b :: bs, hd, k, w, h => by
+    obtain ⟨hb, hd'⟩ := distinct_cons hd
+    simp only [List.zip_cons_cons, List.mem_cons, Prod.mk.injEq] at h
+    simp only [List.zip_cons_cons, lookup]
+    rcases h with ⟨rfl, rfl⟩ | h
+    · simp
+    · have hw : w ≠ b := fun he => hb (he ▸ (List.of_mem_zip h).2)
+      have hbw : (b == w) = false := by simp only [beq_eq_false_iff_ne]; exact fun he => hw he.symm
+      simp only [hbw, Bool.false_eq_true, ite_false]
+      exact lookup_zip_wit hd' h
+
+-- Distinct keys zipped with variables: each key reads the variable beside it.
+theorem assoc_zip_var : ∀ {ks ws : List Nat}, distinct ks = true → ∀ {k w : Nat}, (k, w) ∈ ks.zip ws → assoc (ks.zip (ws.map E.var)) k = some (.var w)
+  | [], _, _, _, _, h => by simp at h
+  | _ :: _, [], _, _, _, h => by simp at h
+  | a :: as, b :: bs, hd, k, w, h => by
+    obtain ⟨ha, hd'⟩ := distinct_cons hd
+    simp only [List.zip_cons_cons, List.mem_cons, Prod.mk.injEq] at h
+    simp only [List.map_cons, List.zip_cons_cons, assoc, lookup]
+    rcases h with ⟨rfl, rfl⟩ | h
+    · simp
+    · have hk : k ≠ a := fun he => ha (he ▸ (List.of_mem_zip h).1)
+      have hak : (a == k) = false := by simp only [beq_eq_false_iff_ne]; exact fun he => hk he.symm
+      simp only [hak, Bool.false_eq_true, ite_false]
+      exact assoc_zip_var hd' h
+
+theorem zip_has : ∀ {ks ws : List Nat}, ks.length = ws.length → ∀ {k : Nat}, k ∈ ks → ∃ w, (k, w) ∈ ks.zip ws
+  | [], _, _, _, h => by simp at h
+  | _ :: _, [], hl, _, _ => by simp at hl
+  | a :: as, b :: bs, hl, k, h => by
+    simp only [List.length_cons, Nat.add_right_cancel_iff] at hl
+    rcases List.mem_cons.mp h with rfl | h
+    · exact ⟨b, by simp⟩
+    · obtain ⟨w, hw⟩ := zip_has hl h
+      exact ⟨w, by simp [List.zip_cons_cons, hw]⟩
+
+-- Terms put in for the keys: the state read at the keys' values.
+theorem applyS_zip_atKeys (ks : List Nat) (ts : List E) (X : Nat → Nat) (N : Nat → Nat → Nat) :
+    applyS (ks.zip ts) X N = atKeys X ks (applyS (ks.zip ts) X N) := by
+  funext i
+  simp only [atKeys]
+  split
+  · rfl
+  · rename_i h
+    exact applyS_other (fun hm => h (by obtain ⟨⟨a, b⟩, hp, rfl⟩ := List.mem_map.mp hm; exact List.contains_iff_mem.mpr (List.of_mem_zip hp).1)) X N
 
 theorem lookup_unique1 {p : Nat × Nat} {l : List (Nat × Nat)} (hd : distinct (l.map (·.1)) = true) (hp : p ∈ l) :
     lookup (fun q => q.1 == p.1) l = some p := by
@@ -247,14 +329,15 @@ section view
 variable (s : SMachine) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (ι : Nat → Nat) (κ : Nat → Nat → Nat)
 
 theorem sOk_parts (hs : sOk s = true) :
-    flagsOk s.f.flags = true ∧ distinct s.qVars = true ∧ distinctPairs s.wits = true ∧ (∀ q ∈ s.qflags, ∃ w ∈ s.wits, w.1 = q.1)
+    flagsOk s.f.flags = true ∧ distinct s.qVars = true ∧ distinctPairs s.wits = true
+      ∧ (∀ q ∈ s.qflags, (∃ w ∈ s.wits, w.1 = q.1 ∧ w.2.length = q.2.1.length) ∧ distinct q.2.1 = true)
       ∧ distinct (s.extVars ++ flagVars s.f.flags) = true
-      ∧ (∀ q ∈ s.qflags, avoids (s.qVars ++ s.wVars ++ flagVars s.f.flags) q.2.2 = true ∧ q.2.1 ∉ s.extVars ++ flagVars s.f.flags)
+      ∧ (∀ q ∈ s.qflags, avoids (s.qVars ++ s.wVars ++ flagVars s.f.flags) q.2.2 = true ∧ ∀ k ∈ q.2.1, k ∉ s.extVars ++ flagVars s.f.flags)
       ∧ (∀ p ∈ s.f.flags, avoids s.wVars p.2 = true) := by
   simp only [sOk, Bool.and_eq_true, List.all_eq_true, List.any_eq_true, beq_iff_eq, Bool.not_eq_true'] at hs
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hf, hq⟩, hw⟩, hcov⟩, hd⟩, hb⟩, hfl⟩, _⟩, _⟩, _⟩, _⟩, _⟩ := hs
-  refine ⟨hf, hq, hw, fun q hq' => hcov q hq', hd, fun q hq' => ⟨(hb q hq').1, fun hm => ?_⟩, hfl⟩
-  have h2 := (hb q hq').2
+  refine ⟨hf, hq, hw, fun q hq' => ⟨(hcov q hq').1, (hcov q hq').2⟩, hd, fun q hq' => ⟨(hb q hq').1, fun k hk hm => ?_⟩, hfl⟩
+  have h2 := (hb q hq').2 k hk
   exact absurd hm (by simpa using h2)
 
 -- The extended variables are apart: an input is no quantified flag or witness, and so on.
@@ -288,7 +371,7 @@ theorem view_agree (hs : sOk s = true) :
       simp only [SMachine.extVars, List.contains_iff_mem, List.mem_append, hvi, hvq, hvw, or_false, ite_false, decideQ, hl, withInputs, List.contains_iff_mem]
 
 -- (F2) Every closing hypothesis holds of the real step, read in the goal's view.
-theorem closing_true (hs : sOk s = true) (qinsts : List (Nat × E)) :
+theorem closing_true (hs : sOk s = true) (qinsts : List (Nat × List E)) :
     ∀ c ∈ closingHyps s qinsts, evalC (withExt s ρ (sReq s ρ M ι κ)) (withCarried s M κ) c = true := by
   obtain ⟨_, hqd, hwd, hcov, _, hbody, _⟩ := sOk_parts s hs
   obtain ⟨hin, hqw⟩ := ext_apart s hs
@@ -297,14 +380,14 @@ theorem closing_true (hs : sOk s = true) (qinsts : List (Nat × E)) :
   simp only [closingHyps, List.mem_flatMap, List.mem_append, List.mem_singleton, List.mem_map, List.mem_filter] at hc
   obtain ⟨q, hq, hc⟩ := hc
   have hqv : q.1 ∈ s.qVars := List.mem_map_of_mem hq
-  -- The flag's value: 1 exactly when the body holds at every key (read in either view: they agree on the body).
-  have hY : withExt s ρ (sReq s ρ M ι κ) q.1 = if ∀ key, holdsC (upd (withInputs s.f.m.inputs ρ ι) q.2.1 key) (withCarried s M κ) q.2.2 then 1 else 0 := by
+  -- The flag's value: 1 exactly when the body holds at every value of the keys (read in either view: they agree on the body).
+  have hY : withExt s ρ (sReq s ρ M ι κ) q.1 = if ∀ k, holdsC (atKeys (withInputs s.f.m.inputs ρ ι) q.2.1 k) (withCarried s M κ) q.2.2 then 1 else 0 := by
     rw [← hag q.1 (hqw _ hqv)]; simp only [decideQ, lookup_unique hqd hq]
-  have hbodyY : ∀ key, holdsC (upd (withExt s ρ (sReq s ρ M ι κ)) q.2.1 key) (withCarried s M κ) q.2.2
-      ↔ holdsC (upd (withInputs s.f.m.inputs ρ ι) q.2.1 key) (withCarried s M κ) q.2.2 := by
-    intro key
-    rw [← evalC_iff, ← evalC_iff, congrC _ (upd (withInputs s.f.m.inputs ρ ι) q.2.1 key) (withCarried s M κ) q.2.2 (fun j hj => by
-      simp only [upd]; split
+  have hbodyY : ∀ k, holdsC (atKeys (withExt s ρ (sReq s ρ M ι κ)) q.2.1 k) (withCarried s M κ) q.2.2
+      ↔ holdsC (atKeys (withInputs s.f.m.inputs ρ ι) q.2.1 k) (withCarried s M κ) q.2.2 := by
+    intro k
+    rw [← evalC_iff, ← evalC_iff, congrC _ (atKeys (withInputs s.f.m.inputs ρ ι) q.2.1 k) (withCarried s M κ) q.2.2 (fun j hj => by
+      simp only [atKeys]; split
       · rfl
       · have hjq : j ∉ s.qVars := fun h => avoids_occ (hbody q hq).1 hj (List.mem_append_left _ (List.mem_append_left _ h))
         have hjw : j ∉ s.wVars := fun h => avoids_occ (hbody q hq).1 hj (List.mem_append_left _ (List.mem_append_right _ h))
@@ -314,38 +397,49 @@ theorem closing_true (hs : sOk s = true) (qinsts : List (Nat × E)) :
   · simp only [evalC, evalE, hY]; split <;> simp
   · simp only [beq_iff_eq] at hpq
     simp only [evalC, evalE, Bool.or_eq_true, decide_eq_true_eq]
-    by_cases h1 : ∀ key, holdsC (upd (withInputs s.f.m.inputs ρ ι) q.2.1 key) (withCarried s M κ) q.2.2
-    · right; rw [subst_evalC, applyS_single, evalC_iff]; exact (hbodyY _).mpr (h1 _)
+    by_cases h1 : ∀ k, holdsC (atKeys (withInputs s.f.m.inputs ρ ι) q.2.1 k) (withCarried s M κ) q.2.2
+    · right; rw [subst_evalC, applyS_zip_atKeys, evalC_iff]; exact (hbodyY _).mpr (h1 _)
     · left; simp [hY, h1]
-  · obtain ⟨w, hw, hwq⟩ := hcov q hq
+  · obtain ⟨⟨w, hw, hwq, hlen⟩, hkd⟩ := hcov q hq
     have hlw : lookup (fun w' => w'.1 == q.1) s.wits = some w := by
-      rw [← hwq]; exact lookup_unique1 (by simp only [distinctPairs, Bool.and_eq_true] at hwd; exact hwd.1) hw
+      rw [← hwq]; exact lookup_unique (by simp only [distinctPairs, Bool.and_eq_true] at hwd; exact hwd.1) hw
     simp only [hlw, List.mem_singleton] at hc; subst hc
     simp only [evalC, evalE, Bool.or_eq_true, decide_eq_true_eq, Bool.not_eq_true']
-    by_cases h1 : ∀ key, holdsC (upd (withInputs s.f.m.inputs ρ ι) q.2.1 key) (withCarried s M κ) q.2.2
+    by_cases h1 : ∀ k, holdsC (atKeys (withInputs s.f.m.inputs ρ ι) q.2.1 k) (withCarried s M κ) q.2.2
     · left; simp [hY, h1]
     · right
-      -- The witness reads a failing key.
-      have hwv : w.2 ∈ s.wVars := List.mem_map_of_mem hw
-      have hYw : withExt s ρ (sReq s ρ M ι κ) w.2 = witnessKey (withInputs s.f.m.inputs ρ ι) (withCarried s M κ) q := by
-        have hwi : w.2 ∉ s.f.m.inputs := fun h => (hin _ h).2 hwv
-        have hwq' : w.2 ∉ s.qVars := fun h => hqw _ h hwv
-        have hext : s.extVars.contains w.2 = true := by
-          simp only [SMachine.extVars, List.contains_iff_mem, List.mem_append]; exact Or.inr hwv
-        have hni : s.f.m.inputs.contains w.2 = false := by simpa [List.contains_iff_mem] using hwi
+      have hwd' : distinct (s.wits.flatMap (·.2)) = true := by simp only [distinctPairs, Bool.and_eq_true] at hwd; exact hwd.2
+      -- Each witness reads the failing value of the key beside it.
+      have hYw : ∀ k x, (k, x) ∈ q.2.1.zip w.2 → withExt s ρ (sReq s ρ M ι κ) x = witnessKeys (withInputs s.f.m.inputs ρ ι) (withCarried s M κ) q k := by
+        intro k x hkx
+        have hxw : x ∈ s.wVars := List.mem_flatMap.mpr ⟨w, hw, (List.of_mem_zip hkx).2⟩
+        have hxi : x ∉ s.f.m.inputs := fun h => (hin _ h).2 hxw
+        have hxq : x ∉ s.qVars := fun h => hqw _ h hxw
+        have hext : s.extVars.contains x = true := by
+          simp only [SMachine.extVars, List.contains_iff_mem, List.mem_append]; exact Or.inr hxw
+        have hni : s.f.m.inputs.contains x = false := by simpa [List.contains_iff_mem] using hxi
         simp only [withExt, hext, ite_true, sReq, hni, Bool.false_eq_true, ite_false]
         rw [lookup_none (fun q' hq' => by
-          simp only [beq_eq_false_iff_ne]; intro he; exact hwq' (by rw [← he]; exact List.mem_map_of_mem hq')),
-          lookup_unique2 (by simp only [distinctPairs, Bool.and_eq_true] at hwd; exact hwd.2) hw]
+          simp only [beq_eq_false_iff_ne]; intro he; exact hxq (by rw [← he]; exact List.mem_map_of_mem hq')),
+          lookup_wit hwd' hw (List.of_mem_zip hkx).2]
         simp only [hwq, lookup_unique hqd hq]
-      have hex : ∃ key, ¬ holdsC (upd (withInputs s.f.m.inputs ρ ι) q.2.1 key) (withCarried s M κ) q.2.2 := by simpa using h1
-      have hfail : ¬ holdsC (upd (withInputs s.f.m.inputs ρ ι) q.2.1 (witnessKey (withInputs s.f.m.inputs ρ ι) (withCarried s M κ) q)) (withCarried s M κ) q.2.2 := by
-        simp only [witnessKey, dif_pos hex]; exact Classical.choose_spec hex
-      rw [subst_evalC, applyS_single]
-      simp only [evalE, hYw]
-      cases hb : evalC (upd (withExt s ρ (sReq s ρ M ι κ)) q.2.1 (witnessKey (withInputs s.f.m.inputs ρ ι) (withCarried s M κ) q)) (withCarried s M κ) q.2.2
+        rw [lookup_zip_wit (distinct_of_flatMap hwd' hw) hkx]
+      have hex : ∃ k, ¬ holdsC (atKeys (withInputs s.f.m.inputs ρ ι) q.2.1 k) (withCarried s M κ) q.2.2 := by simpa using h1
+      have hfail : ¬ holdsC (atKeys (withInputs s.f.m.inputs ρ ι) q.2.1 (witnessKeys (withInputs s.f.m.inputs ρ ι) (withCarried s M κ) q)) (withCarried s M κ) q.2.2 := by
+        simp only [witnessKeys, dif_pos hex]; exact Classical.choose_spec hex
+      rw [subst_evalC]
+      cases hb : evalC (applyS (q.2.1.zip (w.2.map E.var)) (withExt s ρ (sReq s ρ M ι κ)) (withCarried s M κ)) (withCarried s M κ) q.2.2
       · rfl
-      · exact absurd ((hbodyY _).mp ((evalC_iff _ _ _).mp hb)) hfail
+      · refine absurd ((hbodyY _).mp ((evalC_iff _ _ _).mp ?_)) hfail
+        rw [← hb]
+        apply congrC; intro j _
+        simp only [atKeys]; split
+        · rename_i hj
+          obtain ⟨x, hx⟩ := zip_has hlen.symm (List.contains_iff_mem.mp hj)
+          simp only [applyS, assoc_zip_var hkd hx, evalE]
+          exact (hYw j x hx).symm
+        · rename_i hj
+          exact (applyS_other (fun hm => hj (by obtain ⟨⟨a, b⟩, hp, rfl⟩ := List.mem_map.mp hm; exact List.contains_iff_mem.mpr (List.of_mem_zip hp).1)) _ _).symm
 end view
 
 /-! Which maps a term reads -/
@@ -587,7 +681,7 @@ section frame2
 variable (s : SMachine) (Z MZ : List Nat) (W : Nat → Nat) (M0 : Nat → Nat → Nat)
 
 -- Every hypothesis of a frame holds where the frame is read, given the laws in the goal's view of its state.
-theorem sframe_hyps (hs : sOk s = true) (laws : List MLaw) (insts qinsts : List (Nat × E))
+theorem sframe_hyps (hs : sOk s = true) (laws : List MLaw) (insts : List (Nat × E)) (qinsts : List (Nat × List E))
     {σ : List (Nat × E)} {rd : Nat → E → E} {ρ : Nat → Nat} {M : Nat → Nat → Nat} {r mr : List (Nat × Nat)} {ι : Nat → Nat} {κ : Nat → Nat → Nat} {w : C}
     (hlY : ∀ l ∈ laws, l.Holds (withExt s ρ (sReq s ρ M ι κ)) (withCarried s M κ))
     (hH : SHead s Z MZ W M0 σ rd ρ M r mr ι κ)
@@ -688,7 +782,7 @@ structure SEntry where
   sk : Nat                    -- the skolem variable
   keys2 : List Nat            -- a law about every two keys or more: its further keys, variables nothing but laws about them read
   insts : List (Nat × E)      -- (law index, key): where the step goal assumes the laws about every key
-  qinsts : List (Nat × E)     -- (quantified flag, key): where the step goal closes it
+  qinsts : List (Nat × List E) -- (quantified flag, keys): where the step goal closes it
   finsts : List (Nat × E)     -- (fact index, key): where both goals assume the facts
   pinsts : List (Nat × E × List E) -- (law index, key, further keys): where the step goal assumes the laws about several keys
   pfinsts : List (Nat × E × List E) -- (fact index, key, further keys): where both goals assume the facts about several keys
@@ -790,13 +884,12 @@ theorem decideQ_upd {s : SMachine} {x : Nat} (hq : x ∉ s.qVars) (hb : ∀ q �
     | none => simp [upd, hux]
     | some q =>
       have hbq := hb q (lookup_some hl).1
-      have hiff : ∀ key, holdsC (upd (upd X x v) q.2.1 key) N q.2.2 ↔ holdsC (upd X q.2.1 key) N q.2.2 := fun key => by
-        rw [← evalC_iff, ← evalC_iff, congrC _ (upd X q.2.1 key) N q.2.2 (fun i hi => by
+      have hiff : ∀ k, holdsC (atKeys (upd X x v) q.2.1 k) N q.2.2 ↔ holdsC (atKeys X q.2.1 k) N q.2.2 := fun k => by
+        rw [← evalC_iff, ← evalC_iff, congrC _ (atKeys X q.2.1 k) N q.2.2 (fun i hi => by
           have hix : i ≠ x := fun h => by rw [h, hbq] at hi; cases hi
-          simp only [upd]
-          by_cases hik : i = q.2.1
-          · simp [hik]
-          · simp [hik, hix])]
+          simp only [atKeys]; split
+          · rfl
+          · simp [upd, hix])]
       simp only [hiff]
 
 theorem sView_upd {s : SMachine} {x : Nat} (hxi : x ∉ s.f.m.inputs) (hxq : x ∉ s.qVars) (hxf : x ∉ flagVars s.f.flags)
@@ -1386,7 +1479,7 @@ theorem smachine_sound (s : SMachine) (ps : List SEntry) (h : checkSMachine s ps
 structure SKStep where
   k : KStep                        -- whens (flags inlined), then, ren (each later step: every extended request variable), primes, insts, proof
   mren : List (List (Nat × Nat))   -- per step: (carried map, the name the goal reads it by there); [] for the first step
-  qinsts : List (Nat × E)          -- (quantified flag, key): where each frame closes it
+  qinsts : List (Nat × List E)     -- (quantified flag, keys): where each frame closes it
   finsts : List (Nat × E)          -- (fact index, key): where the goal assumes the facts, read at the first frame
   pinsts : List (Nat × E × List E) -- (law index, key, further keys): where each frame assumes the laws about several keys
   pfinsts : List (Nat × E × List E) -- (fact index, key, further keys): where the goal assumes the facts about several keys
@@ -1518,7 +1611,7 @@ def SHeadL (s : SMachine) (Z MZ : List Nat) (W : Nat → Nat) (M0 : Nat → Nat 
   | r :: _, mr :: _, q :: _ => SHead s Z MZ W M0 σ rd ρ M r mr q.1 q.2
   | _, _, _ => True
 
-theorem skrun_sound (s : SMachine) (ps : List SEntry) (hl : checkSMachine s ps = true) (Z MZ : List Nat) (laws : List MLaw) (insts qinsts : List (Nat × E))
+theorem skrun_sound (s : SMachine) (ps : List SEntry) (hl : checkSMachine s ps = true) (Z MZ : List Nat) (laws : List MLaw) (insts : List (Nat × E)) (qinsts : List (Nat × List E))
     (hlY : ∀ ρ M ι κ, SReach s ρ M → ∀ l ∈ laws, l.Holds (withExt s ρ (sReq s ρ M ι κ)) (withCarried s M κ))
     (W : Nat → Nat) (M0 : Nat → Nat → Nat)
     (hfz : ∀ v ∈ flagVars s.f.flags, v ∈ Z) (hterms : sTermsOk s Z = true) (hmaps : sMapsOk s MZ = true) :

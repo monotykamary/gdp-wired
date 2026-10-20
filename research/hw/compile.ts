@@ -53,7 +53,7 @@ export function compile(given: Machine, law: Watched, space: Space, chunk: numbe
   if (steps > D) throw new Error(`${law.name}: a law over ${steps} steps needs a depth of at least ${steps}`)
   const isVar = (e: E) => e.op === 'var' && (m.params.includes(e.name) || m.inputs.includes(e.name))
   for (const w of Object.values(m.step.maps ?? {})) if (!('each' in w) && !isVar(w.key)) throw new Error('a step writes maps only at a param or input key, or at every key')
-  for (const c of Object.values(m.step.flags ?? {})) if (c.op === 'all' && !plainKey(c.c, c.key)) throw new Error('the GPU search decides a condition at every key only where the key is read plainly as a map key')
+  for (const c of Object.values(m.step.flags ?? {})) if (c.op === 'all' && (c.keys?.length || !plainKey(c.c, c.key))) throw new Error('the GPU search decides a condition at every key (one key) only where the key is read plainly as a map key')
   for (const w of Object.values(m.step.maps ?? {})) if ('each' in w && !plainKey(w.value, w.each)) throw new Error('the GPU search writes every key only where the key is read plainly as a map key')
   const maps = Object.keys(m.maps ?? {}), carriedMaps = m.inputMaps ?? []
   const state = Object.keys(m.state)

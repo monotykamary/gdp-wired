@@ -10,7 +10,7 @@
 //     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {type Lin, type Step, add, k, refuteFast, scale, solve, sub, v} from '../core/solver.ts'
-import {type Goal, type Instances, type Liveness, type Path, type StepLaw, type Tree, assumed, canon, canonFlip, columnTerm, decided, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, withProducts} from './kernel.ts'
+import {type Goal, type Instances, type Liveness, type Path, type StepLaw, type Tree, assumed, boundOf, canon, canonFlip, columnTerm, decided, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
 function openE(e: E, path: Path, out: Lin[]): void {
@@ -356,7 +356,7 @@ function fractional(point: Record<string, number> | undefined, path: Path): Lin 
 // A key bound by a quantified flag or a write at every key isn't one: those reads are at every key already.
 function readKeys(m: Machine, laws: Law[]): E[] {
   const out = new Map<string, E>()
-  const bound = new Set<string>([...Object.values(m.step.flags ?? {}).flatMap(c => (c.op === 'all' ? [c.key] : [])), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : []))])
+  const bound = new Set<string>([...Object.values(m.step.flags ?? {}).flatMap(c => (c.op === 'all' ? boundOf(c) : [])), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : []))])
   const free = (e: E) => !JSON.stringify(e).match(/"name":"([^"]+)"/g)?.some(n => bound.has(n.slice(8, -1)))
   const inE = (e: E): void => {
     if (e.op === 'get') { if (free(e.key)) out.set(JSON.stringify(e.key), e.key); inE(e.key) }
@@ -392,23 +392,27 @@ function mapKeys(goals: Goal[]): E[] {
 const withReads = (laws: Law[], inst: Instances, keys: E[], focus: string[]): Instances => ({...inst, ...Object.fromEntries(laws.filter(l => l.forall).map(l => {
   const had = inst[l.name] ?? []
   if (l.keys?.length) {
-    const n = l.keys.length + 1
-    const reads = (e: E, x?: string) => x !== undefined && JSON.stringify(e).includes(`"name":${JSON.stringify(x)}`)
-    const own = (i: number) => { const f = focus[i] ?? focus[0]; return keys.filter(e => reads(e, f) && focus.every(g => g === f || !reads(e, g))) }
-    const R = keys.filter(e => !focus.some(f => reads(e, f)))
-    const out = new Map<string, E[]>()
+    const n = l.keys.length + 1, out = new Map<string, E[]>()
     for (let i = 0; i + n <= had.length; i += n) out.set(JSON.stringify(had.slice(i, i + n)), had.slice(i, i + n))
-    const go = (i: number, tuple: E[], rest: boolean): void => {
-      if (i === n) { out.set(JSON.stringify(tuple), tuple); return }
-      for (const e of own(i)) go(i + 1, [...tuple, e], rest)
-      if (!rest) for (const e of R) go(i + 1, [...tuple, e], true)
-    }
-    go(0, [], false)
+    for (const tuple of related(keys, focus, n)) out.set(JSON.stringify(tuple), tuple)
     return [l.name, [...out.values()].flat()]
   }
   const seen = new Set(had.map(e => JSON.stringify(e)))
   return [l.name, [...had, ...keys.filter(e => { const id = JSON.stringify(e); return seen.has(id) ? false : (seen.add(id), true) })]]
 }))})
+// The n-tuples of the keys that relate the focus (withReads).
+const related = (keys: E[], focus: string[], n: number): E[][] => {
+  const reads = (e: E, x?: string) => x !== undefined && JSON.stringify(e).includes(`"name":${JSON.stringify(x)}`)
+  const own = (i: number) => { const f = focus[i] ?? focus[0]; return keys.filter(e => reads(e, f) && focus.every(g => g === f || !reads(e, g))) }
+  const R = keys.filter(e => !focus.some(f => reads(e, f))), out: E[][] = []
+  const go = (i: number, tuple: E[], rest: boolean): void => {
+    if (i === n) { out.push(tuple); return }
+    for (const e of own(i)) go(i + 1, [...tuple, e], rest)
+    if (!rest) for (const e of R) go(i + 1, [...tuple, e], true)
+  }
+  go(0, [], false)
+  return out
+}
 // A law about every n keys at every n-tuple of the keys (flattened, as Instances keeps tuples).
 const tuples = (keys: E[], n: number): E[] => (n === 0 ? [] : n === 1 ? keys : keys.flatMap(a => { const rest = tuples(keys, n - 1); return Array.from({length: rest.length / (n - 1)}, (_, t) => [a, ...rest.slice(t * (n - 1), (t + 1) * (n - 1))]).flat() }))
 // The keys some goals read a function at.
@@ -469,37 +473,52 @@ function match(pattern: E, term: E, x: string): E | undefined {
   }
   return go(pattern, term) ? bound : undefined
 }
-// Each quantified flag's witness w?f: a key where its condition fails, when it does; every-key facts are wanted there too.
-const witnesses = (m: Machine): E[] => Object.entries(m.step.flags ?? {}).flatMap(([f, c]) => (c.op === 'all' ? [{op: 'var', name: `w?${f}`} as E] : []))
-// The keys each quantified flag is assumed at (instances under ?f).
-const flagInstances = (m: Machine, keys: E[]): Instances => Object.fromEntries(Object.entries(m.step.flags ?? {}).flatMap(([f, c]) => (c.op === 'all' ? [[`?${f}`, keys]] : [])))
+// Each quantified flag's witness w?f (one per key, over several): a key where its condition fails, when it does;
+// every-key facts are wanted there too.
+const witnesses = (m: Machine): E[] => Object.entries(m.step.flags ?? {}).flatMap(([f, c]) => (c.op === 'all' ? witnessesOf(f, c).map((name): E => ({op: 'var', name})) : []))
+// The keys each quantified flag is assumed at (instances under ?f): over several keys, the tuples that relate the
+// goals' own keys as a law about several keys takes them (every tuple, without them).
+const flagInstances = (m: Machine, keys: E[], focus: string[] = []): Instances => Object.fromEntries(Object.entries(m.step.flags ?? {}).flatMap(([f, c]) => {
+  if (c.op !== 'all') return []
+  const n = boundOf(c).length
+  return [[`?${f}`, n === 1 ? keys : focus.length ? related(keys, focus, n).flat() : tuples(keys, n)]]
+}))
+const pairFlags = (m: Machine) => Object.values(m.step.flags ?? {}).some(c => c.op === 'all' && !!c.keys?.length)
+// How many keys each instance of a name takes: a law's, or a quantified flag's (?f).
+const arity = (m: Machine | undefined, laws: Law[], n: string): number => {
+  const q = n.startsWith('?') ? m?.step.flags?.[n.slice(1)] : undefined
+  return q?.op === 'all' ? boundOf(q).length : (laws.find(l => l.name === n)?.keys?.length ?? 0) + 1
+}
 // The instances some goals need, for every entry point: the every-key laws and the quantified flags at `seed` (the keys
 // the step and the laws read, when known before any goal is built), then twice round: the facts at every key the goals
 // built so far read a function at, and, where the seed doesn't cover them (no seed, positions that shift, a law about
 // several keys), the every-key laws and flags at every key they read a map at (a law about several keys at tuples
 // relating `focus`, the goals' own keys).
 function instancesFor(m: Machine, laws: Law[], build: (inst: Instances) => Goal[], opts: {seed?: E[], focus?: string[], start?: Instances, reads?: boolean} = {}): Instances {
-  let inst: Instances = opts.start ?? (opts.seed ? {...Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, l.keys?.length ? [] : opts.seed!])), ...flagInstances(m, opts.seed)} : {})
-  const reads = opts.reads ?? (!opts.seed || shifts(m) || laws.some(l => l.keys?.length))
+  let inst: Instances = opts.start ?? (opts.seed ? {...Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, l.keys?.length ? [] : opts.seed!])), ...flagInstances(m, opts.seed, opts.focus)} : {})
+  const reads = opts.reads ?? (!opts.seed || shifts(m) || laws.some(l => l.keys?.length) || pairFlags(m))
   for (let round = 0; round < 2; round++) {
     if (m.facts?.length) inst = withFacts(m, inst, fnKeys(m, build(inst)))
-    if (reads) { const keys = mapKeys(build(inst)); inst = union(withReads(laws, inst, keys, opts.focus ?? []), flagInstances(m, keys)) }
+    if (reads) { const keys = mapKeys(build(inst)); inst = union(withReads(laws, inst, keys, opts.focus ?? []), flagInstances(m, keys, opts.focus), m) }
   }
   return inst
 }
 // Instances without the keys that read any of these names (a law about several keys loses each tuple that does).
-const avoiding = (inst: Instances, names: string[], laws: Law[]): Instances => {
+const avoiding = (inst: Instances, names: string[], laws: Law[], m?: Machine): Instances => {
   const bad = (e: E) => names.some(n => JSON.stringify(e).includes(`"name":${JSON.stringify(n)}`))
   return Object.fromEntries(Object.entries(inst).map(([n, keys]) => {
-    const arity = (laws.find(l => l.name === n)?.keys?.length ?? 0) + 1
-    const tuples = Array.from({length: Math.floor(keys.length / arity)}, (_, t) => keys.slice(t * arity, (t + 1) * arity))
-    return [n, tuples.filter(tuple => !tuple.some(bad)).flat()]
+    const a = arity(m, laws, n), groups = Array.from({length: Math.floor(keys.length / a)}, (_, t) => keys.slice(t * a, (t + 1) * a))
+    return [n, groups.filter(tuple => !tuple.some(bad)).flat()]
   }))
 }
-// Two sets of instances together: each name at the keys of both.
-const union = (a: Instances, b: Instances): Instances => {
+// Two sets of instances together: each name at the keys (or tuples) of both.
+const union = (a: Instances, b: Instances, m?: Machine): Instances => {
   const out: Instances = {...a}
-  for (const [n, keys] of Object.entries(b)) { const seen = new Set((out[n] ?? []).map(e => JSON.stringify(e))); out[n] = [...(out[n] ?? []), ...keys.filter(e => !seen.has(JSON.stringify(e)))] }
+  for (const [n, keys] of Object.entries(b)) {
+    const k = arity(m, [], n), groups = (ks: E[]) => Array.from({length: Math.floor(ks.length / k)}, (_, t) => ks.slice(t * k, (t + 1) * k))
+    const seen = new Set(groups(out[n] ?? []).map(g => JSON.stringify(g)))
+    out[n] = [...(out[n] ?? []), ...groups(keys).filter(g => !seen.has(JSON.stringify(g))).flat()]
+  }
   return out
 }
 
@@ -604,12 +623,12 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
   // law's later frames read keys no other step law has); where positions shift or a law is about several keys, the
   // keys its goal reads a map at too. A frame's hypotheses read no name the run introduces later (kernel.ts's
   // stepZone), so a k-step law drops the keys that read one.
-  const shared = [...readKeys(plain, laws), ...witnesses(plain)], named = [...laws, ...(plain.facts ?? [])], reads = shifts(plain) || laws.some(l => l.keys?.length)
+  const shared = [...readKeys(plain, laws), ...witnesses(plain)], named = [...laws, ...(plain.facts ?? [])], reads = shifts(plain) || laws.some(l => l.keys?.length) || pairFlags(plain)
   const own = (sl: StepLaw): E[] => [...[sl.then, ...(sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when])].flatMap(readKeysC),
     ...[sl.forall, ...(sl.keys ?? [])].flatMap(key => (key ? [{op: 'var', name: key} as E] : []))]
   const perStep: Record<string, Instances> = {}
   for (const sl of stepLaws) {
-    const zone = stepZone(plain, sl.steps ?? 1), keep = (inst: Instances) => avoiding(inst, zone, named)
+    const zone = stepZone(plain, sl.steps ?? 1), keep = (inst: Instances) => avoiding(inst, zone, named, plain)
     perStep[sl.name] = keep(instancesFor(plain, laws, inst => stepLawObligations(m, laws, keep(inst), sl),
       {seed: [...shared, ...own(sl)], focus: [sl.forall, ...(sl.keys ?? [])].flatMap(k => (k ? [k] : [])), reads}))
   }

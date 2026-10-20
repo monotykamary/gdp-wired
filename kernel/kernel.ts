@@ -395,7 +395,7 @@ export function substE(e: E, s: Subst): E {
 export function substC(c: C, s: Subst): C {
   if (c.op === 'flag') { const f = s.flags[c.name]; if (!f) throw new Error(`unknown flag ${c.name}`); return f }
   if (c.op === 'not') return {op: 'not', x: substC(c.x, s)}
-  if (c.op === 'all') { const {[c.key]: _bound, ...vars} = s.vars; return {op: 'all', key: c.key, c: substC(c.c, {...s, vars})} }
+  if (c.op === 'all') { const keys = boundOf(c), vars = Object.fromEntries(Object.entries(s.vars).filter(([n]) => !keys.includes(n))); return {...c, c: substC(c.c, {...s, vars})} }
   if (c.op === 'and' || c.op === 'or') return {op: c.op, xs: c.xs.map(y => substC(y, s))}
   return {...c, a: substE(c.a, s), b: substE(c.b, s)}
 }
@@ -467,6 +467,27 @@ const flagsOf = (m: Machine): Record<string, C> => {
   return out
 }
 const quantified = (m: Machine) => Object.entries(m.step.flags ?? {}).filter((e): e is [string, Extract<C, {op: 'all'}>] => e[1].op === 'all')
+// The keys a quantifier binds: its key, and a quantified flag's further keys (a condition at every tuple of keys).
+export const boundOf = (c: Extract<C, {op: 'all'}>): string[] => [c.key, ...(c.keys ?? [])]
+// A quantified flag's witnesses, one per key: w?f, then w2?f, w3?f.
+export const witnessesOf = (f: string, q: Extract<C, {op: 'all'}>): string[] => boundOf(q).map((_, i) => (i ? `w${i + 1}?${f}` : `w?${f}`))
+// A comparison between two of a flag's keys, plainly (i < j, i ≤ j, i = j).
+const crossing = (c: C, keys: string[]): boolean => (c.op === '<' || c.op === '<=' || c.op === '=') && c.a.op === 'var' && c.b.op === 'var' && c.a.name !== c.b.name && keys.includes(c.a.name) && keys.includes(c.b.name)
+// A condition over several keys with each comparison between two of them set aside (as 0 ≤ 0): what reads each key on
+// its own. (Kept per condition and keys: the runtimes ask at every step.)
+const crossCache = new WeakMap<C, Map<string, C>>()
+export const crossFree = (c: C, keys: string[]): C => {
+  const id = keys.join(','), hit = crossCache.get(c)?.get(id)
+  if (hit) return hit
+  const zero: E = {op: 'const', value: 0}
+  const e = (t: E): E => (t.op === 'if' ? {...t, c: crossFree(t.c, keys), then: e(t.then), else: e(t.else)} : t.op === 'get' ? {...t, key: e(t.key)} : t.op === 'mul' ? {...t, a: e(t.a)}
+    : t.op === 'add' || t.op === 'sub' || t.op === 'min' || t.op === 'max' || t.op === 'prod' ? {...t, a: e(t.a), b: e(t.b)} : t)
+  const out: C = crossing(c, keys) ? {op: '<=', a: zero, b: zero} : c.op === 'not' ? {op: 'not', x: crossFree(c.x, keys)} : c.op === 'and' || c.op === 'or' ? {op: c.op, xs: c.xs.map(y => crossFree(y, keys))}
+    : c.op === 'all' ? {...c, c: crossFree(c.c, keys)} : c.op === 'flag' ? c : {...c, a: e(c.a), b: e(c.b)}
+  if (!crossCache.has(c)) crossCache.set(c, new Map())
+  crossCache.get(c)!.set(id, out)
+  return out
+}
 // A machine's step as an update, its flags inlined.
 const updateOf = (m: Machine): Update => {
   const flags: Subst = {vars: {}, maps: {}, flags: flagsOf(m)}
@@ -479,15 +500,17 @@ const inlineFlags = (m: Machine, c: C): C => substC(c, {vars: {}, maps: {}, flag
 // A quantified flag ?f, closed: it is 0 or 1; where it is 1, its condition holds at each key the proof names (instances
 // under ?f); where it is 0, the condition fails at a fresh witness w?f. A real step decides ?f by the condition, and if
 // that fails some key fails it, so these hold of every real step: a goal that refutes them refutes the machine.
+// Over several keys, the instances are tuples (flattened, as Instances keeps them) and there is a witness per key.
 const closing = (m: Machine, instances: Instances): C[] => quantified(m).flatMap(([f, q]): C[] => {
-  const v: E = {op: 'var', name: `?${f}`}, zero: E = {op: 'const', value: 0}, one: E = {op: 'const', value: 1}
-  const body = (key: E): C => substC(q.c, {vars: {[q.key]: key}, maps: {}, flags: flagsOf(m)})
-  return [{op: '<=', a: v, b: one}, ...(instances[`?${f}`] ?? []).map((key): C => ({op: 'or', xs: [{op: '=', a: v, b: zero}, body(key)]})),
-    {op: 'or', xs: [{op: '=', a: v, b: one}, {op: 'not', x: body({op: 'var', name: `w?${f}`})}]}]
+  const v: E = {op: 'var', name: `?${f}`}, zero: E = {op: 'const', value: 0}, one: E = {op: 'const', value: 1}, names = boundOf(q), n = names.length
+  const body = (keys: E[]): C => substC(q.c, {vars: Object.fromEntries(names.map((key, i) => [key, keys[i]!])), maps: {}, flags: flagsOf(m)})
+  const inst = instances[`?${f}`] ?? []
+  return [{op: '<=', a: v, b: one}, ...Array.from({length: Math.floor(inst.length / n)}, (_, t): C => ({op: 'or', xs: [{op: '=', a: v, b: zero}, body(inst.slice(t * n, (t + 1) * n))]})),
+    {op: 'or', xs: [{op: '=', a: v, b: one}, {op: 'not', x: body(witnessesOf(f, q).map((name): E => ({op: 'var', name})))}]}]
 })
 // The names a later step (j >= 2) reads its request by: inputs, quantified flags and their witnesses, and carried maps.
 const laterNames = (m: Machine, j: number) => ({
-  vars: Object.fromEntries([...m.inputs, ...quantified(m).flatMap(([f]) => [`?${f}`, `w?${f}`])].map(name => [name, {op: 'var', name: `${name}@${j}`} as E])),
+  vars: Object.fromEntries([...m.inputs, ...quantified(m).flatMap(([f, q]) => [`?${f}`, ...witnessesOf(f, q)])].map(name => [name, {op: 'var', name: `${name}@${j}`} as E])),
   maps: Object.fromEntries((m.inputMaps ?? []).map(map => [map, `${map}@${j}`])),
 })
 // The laws assumed where the run is: each plain law, and each every-key law at the keys the proof names.
@@ -517,7 +540,7 @@ function reads(t: E | C, out: Reads = {vars: new Set(), maps: new Set(), flags: 
     case 'const': break
     case 'get': out.maps.add(t.map); reads(t.key, out); break
     case 'flag': out.flags.add(t.name); break
-    case 'all': { const inner = reads(t.c); inner.vars.delete(t.key); for (const k of ['vars', 'maps', 'flags'] as const) for (const name of inner[k]) out[k].add(name); break }
+    case 'all': { const inner = reads(t.c); for (const key of boundOf(t)) inner.vars.delete(key); for (const k of ['vars', 'maps', 'flags'] as const) for (const name of inner[k]) out[k].add(name); break }
     case 'not': reads(t.x, out); break
     case 'and': case 'or': for (const y of t.xs) reads(y, out); break
     case 'mul': reads(t.a, out); break
@@ -563,7 +586,12 @@ export function scope(m: Machine, laws: Law[] = []) {
   flags.forEach((f, i) => {
     const c = m.step.flags![f]!, what = `${m.name}'s flag ${f}`
     // A quantified flag's body reads no flag (the twin decides quantified flags before the plain ones).
-    if (c.op === 'all') { bound(what, c.key, c.c); unquantified(what, c.c); inScope(what, [c.c], [...names, c.key], readable, []) }
+    if (c.op === 'all') {
+      const keys = boundOf(c), body = crossFree(c.c, keys)
+      distinct(what, keys)
+      for (const key of keys) { bound(what, key, body); apart(what, body, key, keys) }
+      unquantified(what, c.c); inScope(what, [c.c], [...names, ...keys], readable, [])
+    }
     else { unquantified(what, c); inScope(what, [c], names, readable, flags.slice(0, i)) }
   })
   for (const [map, w] of Object.entries(m.step.maps ?? {})) {
@@ -618,6 +646,18 @@ function keyOnly(what: string, t: E | C, key: string, fns: string[] = []): void 
       case 'add': case 'sub': case 'min': case 'max': case 'prod': walk(u.a); walk(u.b); break
       default: unreachable(u)
     }
+  }
+  walk(t)
+}
+// Over several keys, each read apart from the others: no offset of its key terms, and no value it is compared with, reads
+// another (the comparisons between two of them, plainly, are set aside before: crossFree).
+function apart(what: string, t: C, key: string, keys: string[]): void {
+  const others = keys.filter(k => k !== key), other = (e: E) => others.some(k => readsKey(e, k))
+  const walk = (u: E | C): void => {
+    if ((u.op === 'get' && keyTerm(u.key, key) && other(u.key))
+      || ((u.op === '<' || u.op === '<=' || u.op === '=') && ((keyTerm(u.a, key) && (other(u.a) || other(u.b))) || (keyTerm(u.b, key) && (other(u.a) || other(u.b))))))
+      throw new Error(`${what}: the keys ${keys.join(', ')} are each read on their own, and compared with one another only plainly (i < j, i <= j, i = j)`)
+    for (const x of Object.values(u)) if (x && typeof x === 'object') (Array.isArray(x) ? x : [x]).forEach(y => walk(y as E | C))
   }
   walk(t)
 }

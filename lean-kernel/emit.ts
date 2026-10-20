@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, canon, columnTerm, stateName, termColumn, historyMachine, foldObligations, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, withProducts} from '../kernel/kernel.ts'
+import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, boundOf, canon, columnTerm, stateName, termColumn, historyMachine, foldObligations, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {grow, proveBuilt, proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
@@ -416,7 +416,7 @@ const flagsOfM = (m: Machine): Record<string, C> => {
 // Sets, or functions with facts: both go through Sets.lean.
 export const hasSets = (m: Machine) => !!m.inputMaps?.length || Object.values(m.step.flags ?? {}).some(c => c.op === 'all') || Object.values(m.step.maps ?? {}).some(w => 'each' in w)
   || !!Object.keys(m.fns ?? {}).length || !!m.facts?.length
-const boundKeys = (m: Machine) => [...Object.values(m.step.flags ?? {}).flatMap(c => (c.op === 'all' ? [c.key] : [])), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : []))]
+const boundKeys = (m: Machine) => [...Object.values(m.step.flags ?? {}).flatMap(c => (c.op === 'all' ? boundOf(c) : [])), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : []))]
 // A machine with a history goes as its plain machine (kernel.ts's historyMachine: sums as state, queries as inputs,
 // the relations assumed), built in Lean from the machine and its history (History.lean's HMachine.plain), so every claim
 // below is about it; with the relations' record goals, its laws hold over histories too (hmachine_sound).
@@ -525,9 +525,10 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
   if (!r.proven || !r.proof) throw new Error(`${id}: not proven`)
   const lp = r.proof.laws, si = r.proof.instances
   const flags = Object.entries(m.step.flags ?? {}), quantified = flags.filter(([, c]) => c.op === 'all').map(([f]) => f)
+  const qwits = (f: string) => witnessesOf(f, m.step.flags![f] as Extract<C, {op: 'all'}>)
   const carried = m.inputMaps ?? [], facts = m.facts ?? [], keysOf = [...new Set([...laws, ...facts].flatMap(l => [l.forall, ...(l.keys ?? [])].filter((k): k is string => !!k)))]
   const k = Math.max(1, ...allSteps.map(sl => sl.steps ?? 1))
-  const ext = [...m.inputs, ...quantified.flatMap(f => [`?${f}`, `w?${f}`])]
+  const ext = [...m.inputs, ...quantified.flatMap(f => [`?${f}`, ...qwits(f)])]
   const later = Array.from({length: k - 1}, (_, j) => ext.map(v => `${v}@${j + 2}`)).flat()
   const laterMaps = Array.from({length: k - 1}, (_, j) => carried.map(mp => `${mp}@${j + 2}`)).flat()
   const primes = allSteps.length ? Object.keys(m.state).map(s2 => `${s2}'`) : []
@@ -569,9 +570,13 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
         return Array.from({length: Math.floor(keys.length / k)}, (_, t) => sub1(sub1(lw.holds, Object.fromEntries(lw.keys!.map((kn, i) => [kn, keys[t * k + 1 + i]!]))), {[lw.forall!]: keys[t * k]!}))
       }),
       w,
-      ...allFlags.flatMap(([f, fc]): C[] => (fc.op === 'all' ? [{op: '<=', a: {op: 'var', name: `?${f}`}, b: zero1(1)},
-        ...(inst[`?${f}`] ?? []).map((key): C => ({op: 'or', xs: [eqC({op: 'var', name: `?${f}`}, zero1(0)), sub1(fc.c, {[fc.key]: key})]})),
-        {op: 'or', xs: [eqC({op: 'var', name: `?${f}`}, zero1(1)), {op: 'not', x: sub1(fc.c, {[fc.key]: {op: 'var', name: `w?${f}`}})}]}] : []))]
+      ...allFlags.flatMap(([f, fc]): C[] => {
+        if (fc.op !== 'all') return []
+        const names = boundOf(fc), n = names.length, at = (ts: E[]) => sub1(fc.c, Object.fromEntries(names.map((key, i) => [key, ts[i]!]))), qi = inst[`?${f}`] ?? []
+        return [{op: '<=', a: {op: 'var', name: `?${f}`}, b: zero1(1)},
+          ...Array.from({length: Math.floor(qi.length / n)}, (_, t): C => ({op: 'or', xs: [eqC({op: 'var', name: `?${f}`}, zero1(0)), at(qi.slice(t * n, (t + 1) * n))]})),
+          {op: 'or', xs: [eqC({op: 'var', name: `?${f}`}, zero1(1)), {op: 'not', x: at(qwits(f).map((name): E => ({op: 'var', name})))}]}]
+      })]
     const last: C = {op: 'not', x: sInline(m.assume ?? trueC)}, zkeys = carriedKeys([...base, last])
     return {name: 'allowed', hyps: [...base, ...(m.inputMaps ?? []).flatMap(mp => zkeys.map(t => eqC({op: 'get', map: mp, key: t}, zero1(0)))), last], zkeys}
   }
@@ -581,7 +586,7 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
   })] as const))
   const allowGoals = [...allowed.values()].flatMap(a => (a ? [a.out.goal!] : []))
   const vars = [...new Set([...m.params, ...m.inputs, ...Object.keys(m.state), ...keysOf, ...keysOf.map(k2 => `${k2}#`), '#', ...flags.map(([f]) => `?${f}`),
-    ...quantified.map(f => `w?${f}`), ...boundKeys(m), ...(opts.tamper ? boundKeys(opts.tamper.machine) : []), ...stepLaws.flatMap(sl => (sl.forall ? [sl.forall] : [])), ...(opts.free ?? []),
+    ...quantified.flatMap(qwits), ...boundKeys(m), ...(opts.tamper ? boundKeys(opts.tamper.machine) : []), ...stepLaws.flatMap(sl => (sl.forall ? [sl.forall] : [])), ...(opts.free ?? []),
     ...primes, ...later, ...Array.from({length: k - 1}, (_, j) => Object.keys(m.state).map(n2 => stateName(n2, j + 1))).flat(),
     ...(hm ? hm.history.record.map(f => `r.${f}`) : []), ...[...goalsL, ...goalsS, ...allowGoals, ...(hplain?.goals ?? [])].flatMap(g => g.hyps.flatMap(varsOf))])]
   const baseMaps = [...new Set([...Object.keys(m.maps ?? {}), ...Object.keys(m.step.maps ?? {}), ...Object.keys(m.fns ?? {})])]
@@ -604,8 +609,8 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
   ${list(fs.flatMap(([f, c2]) => (c2.op === 'all' ? [] : [`(${ix(`?${f}`)}, ${c(fl[f]!)})`])))}⟩,
   ${list((mm.inputMaps ?? []).map(mp => String(mx(mp))))},
   ${list(ws.flatMap(([name, w]) => ('each' in w ? [`(${mx(name)}, ${ix(w.each)}, ${e(w.value)})`] : [])))},
-  ${list(fs.flatMap(([f, c2]) => (c2.op === 'all' ? [`(${ix(`?${f}`)}, ${ix(c2.key)}, ${c(c2.c)})`] : [])))},
-  ${list(fs.flatMap(([f, c2]) => (c2.op === 'all' ? [`(${ix(`?${f}`)}, ${ix(`w?${f}`)})`] : [])))},
+  ${list(fs.flatMap(([f, c2]) => (c2.op === 'all' ? [`(${ix(`?${f}`)}, ${list(boundOf(c2).map(key => String(ix(key))))}, ${c(c2.c)})`] : [])))},
+  ${list(fs.flatMap(([f, c2]) => (c2.op === 'all' ? [`(${ix(`?${f}`)}, ${list(witnessesOf(f, c2).map(w => String(ix(w))))})`] : [])))},
   ${list((mm.facts ?? []).filter(l => !l.keys?.length).map(l => `⟨${c(l.holds)}, ${l.forall ? `some ${ix(l.forall)}` : 'none'}⟩`))},
   ${list((mm.facts ?? []).filter(l => l.keys?.length).map(l => `(⟨${c(l.holds)}, some ${ix(l.forall!)}⟩, ${list(l.keys!.map(k2 => String(ix(k2))))})`))}⟩`
   }
@@ -656,7 +661,11 @@ ${readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat →
     const n = factsN[j]!.keys!.length + 1
     return Array.from({length: Math.floor(keys.length / n)}, (_, t) => `(${j}, ${e(keys[t * n]!)}, ${list(keys.slice(t * n + 1, t * n + n).map(e))})`)
   })
-  const qinsts = (inst: Instances) => Object.entries(inst).filter(([name]) => name.startsWith('?')).flatMap(([f, keys]) => keys.map(key => `(${ix(f)}, ${e(key)})`))
+  // Each quantified flag at its tuples (one key each, over one key).
+  const qinsts = (inst: Instances) => Object.entries(inst).filter(([name]) => name.startsWith('?')).flatMap(([f, keys]) => {
+    const q = m.step.flags?.[f.slice(1)], n = q?.op === 'all' ? boundOf(q).length : 1
+    return Array.from({length: Math.floor(keys.length / n)}, (_, t) => `(${ix(f)}, ${list(keys.slice(t * n, (t + 1) * n).map(e))})`)
+  })
   const entries = laws.map((law, j) => {
     const g0 = goalsL[2 * j]!, g1 = goalsL[2 * j + 1]!, a = enc(g0, lp.trees[g0.name]!), b = enc(g1, lp.trees[g1.name]!), inst = lp.instances[law.name] ?? {}
     return `def ${id}_l${j} : MLaw := ⟨${c(law.holds)}, ${law.forall ? `some ${ix(law.forall)}` : 'none'}⟩

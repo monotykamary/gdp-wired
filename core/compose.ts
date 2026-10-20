@@ -30,7 +30,7 @@ function renameC(c: C, prefix: string, m: Machine, inputs: Record<string, E>): C
   if (c.op === 'flag') return {op: 'flag', name: `${prefix}${c.name}`}
   if (c.op === 'not') return {op: 'not', x: renameC(c.x, prefix, m, inputs)}
   if (c.op === 'and' || c.op === 'or') return {op: c.op, xs: c.xs.map(y => renameC(y, prefix, m, inputs))}
-  if (c.op === 'all') return {op: 'all', key: `${prefix}${c.key}`, c: renameC(c.c, prefix, m, inputs)} // the key renamed with its side
+  if (c.op === 'all') return {...c, key: `${prefix}${c.key}`, ...(c.keys ? {keys: c.keys.map(k => `${prefix}${k}`)} : {}), c: renameC(c.c, prefix, m, inputs)} // the keys renamed with their side
   return {...c, a: rename(c.a, prefix, m, inputs), b: rename(c.b, prefix, m, inputs)}
 }
 // A condition (or law) of one side, read in the composed machine.

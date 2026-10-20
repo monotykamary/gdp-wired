@@ -834,6 +834,13 @@
 "timeout": 900
 },
 {
+"name": "pairs",
+"cmd": "bun test pairs.test.ts 2>&1 && cd .. && bun examples/pairs.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
 "name": "lemmas",
 "cmd": "bun test lemmas.test.ts 2>&1 && cd .. && bun examples/lemmas.ts 2>&1",
 "cwd": "core",

@@ -685,8 +685,15 @@ export type MapWrite = {readonly map: string, readonly key: E, readonly value: E
   | {readonly map: string, readonly each: string, readonly value: E, readonly concrete?: {at: (key: Term) => TermLike}}
 let boundCounter = 0
 // A condition at every key: only as a whole flag (`flags: ({...}) => ({covered: everyKey(k => ...)})`), the key read
-// only as a map's key. The kernel closes it (instances where it holds, a witness where it fails).
-export const everyKey = (f: (key: Term) => Cond): Cond => { const key = `k$${++boundCounter}`; return new Cond({op: 'all', key, c: f(v(key)).c}, everyOk(scope?.keys, k => f(keyTerm(k)).ok)) }
+// only as a map's key. The kernel closes it (instances where it holds, a witness where it fails). With two parameters
+// or more, at every two keys or more (`everyKey((i, j) => i.lt(j).implies(At.at(i).atMost(At.at(j))))`): each key read
+// on its own, and compared with another only plainly (i < j, i <= j, i = j); the runtimes decide it on every tuple of
+// a few keys per breakpoint, so it costs the square of the cells (the cube, over three keys).
+export const everyKey = (f: (key: Term, key2: Term, key3: Term) => Cond): Cond => {
+  const names = Array.from({length: Math.max(1, f.length)}, () => `k$${++boundCounter}`), g = f as (...ks: Term[]) => Cond
+  const ok = (picked: Term[]): boolean | undefined => (picked.length === names.length ? g(...picked).ok : everyOk(scope?.keys, k => ok([...picked, keyTerm(k)])))
+  return new Cond({op: 'all', key: names[0]!, ...(names.length > 1 ? {keys: names.slice(1)} : {}), c: g(...names.map(v)).c}, ok([]))
+}
 // Some key where f holds, in a law or a step law's conclusion (¬∀k. ¬f(k)): proven through a witness, a term naming the
 // key, given here or found by the prover among a few candidates (kernel/prove.ts).
 export const someKey = (f: (key: Term) => Cond, witness?: TermLike): Cond => {
@@ -970,7 +977,7 @@ function swapC(c: C, from: C, to: C): C {
   switch (c.op) {
     case 'not': return {op: 'not', x: swapC(c.x, from, to)}
     case 'and': case 'or': return {op: c.op, xs: c.xs.map(y => swapC(y, from, to))}
-    case 'all': return {op: 'all', key: c.key, c: swapC(c.c, from, to)}
+    case 'all': return {...c, c: swapC(c.c, from, to)}
     case 'flag': return c
     case '<': case '<=': case '=': return {...c, a: swapE(c.a, from, to), b: swapE(c.b, from, to)}
   }
@@ -1029,11 +1036,11 @@ class Hoister {
   // A quantifier as a flag (or, with per-step truths inside, a condition over flags).
   quantifier(q: Extract<C, {op: 'all'}>, bound: string[], name?: string): C {
     const outer = bound.filter(key => namesIn(q).includes(key))
-    if (outer.length) throw new Error(`a condition at every key reads ${outer[0]}, a key bound outside it: two keys at once are outside the kernel`)
-    const inner = perStep(q.c)
-    if (!inner) { const f = name ?? `${this.prefix}${++this.n}`; this.flags[f] = {op: 'all', key: q.key, c: q.c}; return {op: 'flag', name: f} }
-    const truth = inner.op === 'flag' ? inner : this.quantifier(inner, [...bound, q.key])
-    const split = (by: C) => this.quantifier({op: 'all', key: q.key, c: swapC(q.c, inner, by)}, bound)
+    if (outer.length) throw new Error(`a condition at every key reads ${outer[0]}, a key bound outside it: two keys at once are named together (everyKey((i, j) => ...))`)
+    const inner = perStep(q.c), keys = q.keys?.length ? {keys: q.keys} : {}
+    if (!inner) { const f = name ?? `${this.prefix}${++this.n}`; this.flags[f] = {op: 'all', key: q.key, ...keys, c: q.c}; return {op: 'flag', name: f} }
+    const truth = inner.op === 'flag' ? inner : this.quantifier(inner, [...bound, q.key, ...(q.keys ?? [])])
+    const split = (by: C) => this.quantifier({op: 'all', key: q.key, ...keys, c: swapC(q.c, inner, by)}, bound)
     return {op: 'or', xs: [{op: 'and', xs: [truth, split(yes.c)]}, {op: 'and', xs: [{op: 'not', x: truth}, split(no.c)]}]}
   }
 }
@@ -1065,6 +1072,7 @@ function prenex(c: C, what: string, key: string): C | undefined {
   const walk = (d: C, positive: boolean): C => {
     switch (d.op) {
       case 'all':
+        if (d.keys?.length) throw new Error(`${what}: a condition at every two keys in a law is the law's own keys (forall((i, j) => ...))`)
         if (!positive) return d
         found = true
         return walk(substKey(d.c, d.key, key), positive)
@@ -1323,7 +1331,7 @@ const markedE = (e: E): E => {
     case 'add': case 'sub': case 'min': case 'max': case 'prod': return {...e, a: markedE(e.a), b: markedE(e.b)}
   }
 }
-const marked = (c: C): C => c.op === 'flag' ? c : c.op === 'all' ? {op: 'all', key: c.key, c: marked(c.c)} : c.op === 'not' ? {op: 'not', x: marked(c.x)} : c.op === 'and' || c.op === 'or' ? {op: c.op, xs: c.xs.map(marked)} : {...c, a: markedE(c.a), b: markedE(c.b)}
+const marked = (c: C): C => c.op === 'flag' ? c : c.op === 'all' ? {...c, c: marked(c.c)} : c.op === 'not' ? {op: 'not', x: marked(c.x)} : c.op === 'and' || c.op === 'or' ? {op: c.op, xs: c.xs.map(marked)} : {...c, a: markedE(c.a), b: markedE(c.b)}
 
 type Spec = {
   name: string

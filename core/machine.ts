@@ -6,7 +6,7 @@
 // Arithmetic is linear: +, −, × by a constant, min, max, if. Maps are naturals indexed by naturals, every cell starting
 // at the same value; a law about a map holds for every key x, and is proven at one arbitrary x (with the law assumed at
 // every other key the step reads).
-import {historyMachine, keyTerm, plainKey, scope} from '../kernel/kernel.ts'
+import {boundOf, crossFree, historyMachine, keyTerm, plainKey, scope} from '../kernel/kernel.ts'
 import {type Constraint, type Lin, type Verdict, add, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
 
 export type E =
@@ -23,8 +23,9 @@ export type C =
   | {op: 'or', xs: C[]}
   | {op: 'not', x: C}
   | {op: 'flag', name: string} // a named condition of the step, decided once per step
-  | {op: 'all', key: string, c: C, witness?: E} // c at every key: only as a whole flag (a quantified flag), the key only as a map's key;
-  // in a law, under a not (some key where a condition holds), `witness` may name the key (kernel/prove.ts)
+  | {op: 'all', key: string, keys?: string[], c: C, witness?: E} // c at every key: only as a whole flag (a quantified flag), the key only as a map's key;
+  // in a law, under a not (some key where a condition holds), `witness` may name the key (kernel/prove.ts). A flag may
+  // hold at every tuple of keys (`keys` the further ones), each read on its own and compared with another plainly
 
 export type Machine = {
   name: string
@@ -133,9 +134,9 @@ function keysAt(st: State, maps: string[]): number[] {
 // breakpoint p with p - 1 .. p + 2, 0, and one past them all are every case: between two keys that are none of those,
 // no comparison turns and no read moves onto a cell.
 type Breaks = {reads: {map: string, off?: E, minus: boolean}[], cmps: {value: E, off?: E, minus: boolean}[]}
-const breaksCache = new WeakMap<object, Breaks>()
+const breaksCache = new WeakMap<object, Map<string, Breaks>>()
 function breaksOf(t: E | C, key: string): Breaks {
-  const hit = breaksCache.get(t)
+  const hit = breaksCache.get(t)?.get(key)
   if (hit) return hit
   const out: Breaks = {reads: [], cmps: []}
   const termOf = (e: E): {off?: E, minus: boolean} => (e.op === 'var' ? {minus: false} : e.op === 'add' ? {off: e.a.op === 'var' && e.a.name === key ? e.b : e.a, minus: false} : {off: (e as {b: E}).b, minus: true})
@@ -148,7 +149,8 @@ function breaksOf(t: E | C, key: string): Breaks {
     for (const v of Object.values(u)) if (v && typeof v === 'object') (Array.isArray(v) ? v : [v]).forEach(y => walk(y as E | C))
   }
   walk(t)
-  breaksCache.set(t, out)
+  if (!breaksCache.has(t)) breaksCache.set(t, new Map())
+  breaksCache.get(t)!.set(key, out)
   return out
 }
 function breakKeys(b: Breaks, env: Env, st: State, m: Machine): number[] {
@@ -167,6 +169,18 @@ function breakKeys(b: Breaks, env: Env, st: State, m: Machine): number[] {
   const sorted = [...keys].sort((a, b) => a - b)
   return [...sorted, sorted.at(-1)! + 1]
 }
+// A condition at every tuple of n keys: the breakpoints of each key (each read on its own, the comparisons between two
+// of them set aside) together, each case with the n - 1 keys after it. Every stretch where no read moves and no
+// comparison turns starts at one of those cases (a breakpoint, the key after one, or 0), so the keys after its start
+// place n keys there in every order they can take; keys read only as a map's key need only the cells and one past them.
+function tupleKeys(c: Extract<C, {op: 'all'}>, env: Env, st: State, m: Machine): number[] {
+  const names = boundOf(c)
+  if (names.every(n => plainKey(c.c, n))) return keysAt(st, mapsIn(c.c))
+  if (names.length === 1) return breakKeys(breaksOf(c.c, c.key), env, st, m)
+  const body = crossFree(c.c, names), parts = names.map(n => breaksOf(body, n))
+  return spread(breakKeys({reads: parts.flatMap(b => b.reads), cmps: parts.flatMap(b => b.cmps)}, env, st, m), names.length)
+}
+const spread = (keys: number[], n: number): number[] => [...new Set(keys.flatMap(k => Array.from({length: n}, (_, i) => k + i)))].sort((a, b) => a - b)
 export const naturalIn = (v: unknown, what: string): number => {
   if (typeof v !== 'number' || !Number.isSafeInteger(v) || v < 0) throw new RangeError(`${what} must be a natural below 2^53, not ${String(v)}`)
   return v
@@ -235,7 +249,11 @@ export function evalC(c: C, env: Env, st: State, m: Machine): boolean {
     case 'or': return c.xs.some(y => evalC(y, env, st, m))
     case 'not': return !evalC(c.x, env, st, m)
     case 'flag': return env[`?${c.name}`] === 1
-    case 'all': return (plainKey(c.c, c.key) ? keysAt(st, mapsIn(c.c)) : breakKeys(breaksOf(c.c, c.key), env, st, m)).every(key => evalC(c.c, {...env, [c.key]: key}, st, m))
+    case 'all': {
+      const names = boundOf(c), keys = tupleKeys(c, env, st, m)
+      const go = (i: number, at: Env): boolean => (i === names.length ? evalC(c.c, at, st, m) : keys.every(key => go(i + 1, {...at, [names[i]!]: key})))
+      return go(0, env)
+    }
   }
 }
 // A write at every key: its value at each key the maps it reads hold a cell at, and its new default past them.
@@ -354,11 +372,11 @@ export function compileJs(m: Machine): string {
   const {h, plain, queries, carried} = runnable(m)
   const id = (name: string) => JSON.stringify(name)
   const flags = Object.keys(plain.step.flags ?? {}), carriedMaps = m.inputMaps ?? [], fns = Object.keys(m.fns ?? {})
-  // A key bound by a quantified flag or a write at every key is the JS parameter k.
-  let bound: string | undefined
+  // A key bound by a quantified flag or a write at every key is the JS parameter k (k1, k2 for a flag's further keys).
+  let bound: Record<string, string> = {}
   const ex = (e: E): string => {
     switch (e.op) {
-      case 'var': return e.name === bound ? 'k' : e.name.startsWith('r.') ? `r[${id(e.name.slice(2))}]` : plain.params.includes(e.name) || plain.inputs.includes(e.name) ? `env[${id(e.name)}]` : `s[${id(e.name)}]`
+      case 'var': return bound[e.name] ?? (e.name.startsWith('r.') ? `r[${id(e.name.slice(2))}]` : plain.params.includes(e.name) || plain.inputs.includes(e.name) ? `env[${id(e.name)}]` : `s[${id(e.name)}]`)
       case 'const': return String(e.value)
       case 'add': return `$x(${ex(e.a)} + ${ex(e.b)})`
       case 'sub': return `Math.max(0, ${ex(e.a)} - ${ex(e.b)})`
@@ -383,16 +401,32 @@ export function compileJs(m: Machine): string {
       case 'or': return `(${c.xs.map(cx).join(' || ')})`
       case 'not': return `(!${cx(c.x)})`
       case 'flag': return `flag${flags.indexOf(c.name)}`
-      case 'all': { const keys = keysJs(c.c, c.key), outer = bound; bound = c.key; const body = cx(c.c); bound = outer; return `${keys}.every(k => ${body})` }
+      case 'all': {
+        const names = boundOf(c), ks = names.map((_, i) => (i ? `k${i}` : 'k')), keys = names.length === 1 ? keysJs(c.c, c.key) : tupleJs(c), outer = bound
+        bound = {...bound, ...Object.fromEntries(names.map((n, i) => [n, ks[i]!]))}
+        const body = cx(c.c)
+        bound = outer
+        return names.length === 1 ? `${keys}.every(k => ${body})` : `(ks => ${ks.map(k => `ks.every(${k} => `).join('')}${body}${')'.repeat(ks.length)})(${keys})`
+      }
     }
   }
   // The keys a quantifier or a write at every key is decided on (the interpreter's keysAt, or its breakKeys).
   const keysJs = (t: E | C, key: string): string => {
     if (plainKey(t, key)) return `$keys(maps, ${JSON.stringify(mapsIn(t).filter(mp => !fns.includes(mp)))})`
-    const b = breaksOf(t, key), off = (o?: E) => (o ? ex(o) : '0')
+    return breaksJs(breaksOf(t, key))
+  }
+  const breaksJs = (b: Breaks): string => {
+    const off = (o?: E) => (o ? ex(o) : '0')
     return `$breaks(maps, [${b.reads.map(r => `[${id(r.map)}, ${off(r.off)}, ${r.minus}]`).join(', ')}], [${b.cmps.map(c => `[${ex(c.value)}, ${off(c.off)}, ${c.minus}]`).join(', ')}])`
   }
-  const every = (w: {each: string, value: E}) => { const keys = keysJs(w.value, w.each), dense = !plainKey(w.value, w.each), outer = bound; bound = w.each; const body = ex(w.value); bound = outer; return `${dense ? '$dense' : '$every'}(${keys}, k => ${body})` }
+  // The interpreter's tupleKeys.
+  const tupleJs = (c: Extract<C, {op: 'all'}>): string => {
+    const names = boundOf(c)
+    if (names.every(n => plainKey(c.c, n))) return `$keys(maps, ${JSON.stringify(mapsIn(c.c).filter(mp => !fns.includes(mp)))})`
+    const body = crossFree(c.c, names), parts = names.map(n => breaksOf(body, n))
+    return `$spread(${breaksJs({reads: parts.flatMap(b => b.reads), cmps: parts.flatMap(b => b.cmps)})}, ${names.length})`
+  }
+  const every = (w: {each: string, value: E}) => { const keys = keysJs(w.value, w.each), dense = !plainKey(w.value, w.each), outer = bound; bound = {[w.each]: 'k'}; const body = ex(w.value); bound = outer; return `${dense ? '$dense' : '$every'}(${keys}, k => ${body})` }
   const writes = Object.entries(plain.step.maps ?? {})
   const env = (input: boolean) => `{${[...m.params.map(p => `${id(p)}: $n(params[${id(p)}], ${id(`param ${p}`)})`), ...(input ? carried.map(i => `${id(i)}: $n(input[${id(i)}], ${id(`input ${i}`)})`) : [])].join(', ')}}`
   // Reads go through `maps` (with the maps the request carries); writes go to the state's own.
@@ -426,6 +460,7 @@ function $x(v) { if (v > 9007199254740991) throw new RangeError('a value passed 
 function $m(v, what) { if (!(v instanceof Map)) throw new RangeError(what + ' must be a Map of naturals'); for (const [key, x] of v) { $n(key, 'a key of ' + what); $n(x, 'a cell of ' + what); } return v; }
 function $keys(maps, names) { const keys = new Set(); let past = 0; for (const c of Object.values(maps)) for (const key of c.keys()) past = Math.max(past, key + 1); for (const n of names) for (const key of maps[n].keys()) keys.add(key); return [...keys, past]; }
 ${fns.map((name, i) => `const fn${i} = (${m.fns![name]!.js});\n${m.fns![name]!.call ? `const fnc${i} = (${m.fns![name]!.call});\n` : ''}`).join('')}function $breaks(maps, reads, cmps) { const p = new Set([0]); for (const [n, d, minus] of reads) { for (const s of maps[n].keys()) { if (minus) p.add(s + d); else if (s >= d) p.add(s - d); } if (minus) p.add(d); } for (const [v, d, minus] of cmps) { if (minus) { p.add(v + d); p.add(d); } else if (v >= d) p.add(v - d); } const keys = new Set(); for (const q of p) for (let i = -1; i <= 2; i++) if (q + i >= 0) keys.add(q + i); const sorted = [...keys].sort((a, b) => a - b); sorted.push(sorted[sorted.length - 1] + 1); return sorted; }
+function $spread(keys, n) { const out = new Set(); for (const k of keys) for (let i = 0; i < n; i++) out.add(k + i); return [...out].sort((a, b) => a - b); }
 function $dense(keys, f) { const top = keys[keys.length - 1]; if (top > 1000000) throw new RangeError('a write at every key reads its key in arithmetic past a million keys (' + top + ')'); const d = f(top), cells = new Map(); for (let k = 0; k < top; k++) { const v = f(k); if (v !== d) cells.set(k, v); } return {cells, d}; }
 function $every(keys, f) { const past = keys[keys.length - 1], d = f(past), cells = new Map(); for (let i = 0; i < keys.length - 1; i++) { const v = f(keys[i]); if (v !== d) cells.set(keys[i], v); } return {cells, d}; }
 export function init(params) {

@@ -356,8 +356,8 @@ end slift
 
 /-! The spec's part of the composite's runs -/
 
-theorem lookup_qmap (l : List (Nat × Nat × C)) (g : Nat × Nat × C → C) (v : Nat) :
-    lookup (fun q : Nat × Nat × C => q.1 == v) (l.map (fun q => (q.1, q.2.1, g q))) = (lookup (fun q : Nat × Nat × C => q.1 == v) l).map (fun q => (q.1, q.2.1, g q)) := by
+theorem lookup_qmap (l : List (Nat × List Nat × C)) (g : Nat × List Nat × C → C) (v : Nat) :
+    lookup (fun q : Nat × List Nat × C => q.1 == v) (l.map (fun q => (q.1, q.2.1, g q))) = (lookup (fun q : Nat × List Nat × C => q.1 == v) l).map (fun q => (q.1, q.2.1, g q)) := by
   rw [lookup_map_pred]
 theorem lookup_emap (l : List (Nat × Nat × E)) (g : Nat × Nat × E → E) (v : Nat) :
     lookup (fun w : Nat × Nat × E => w.1 == v) (l.map (fun w => (w.1, w.2.1, g w))) = (lookup (fun w : Nat × Nat × E => w.1 == v) l).map (fun w => (w.1, w.2.1, g w)) := by
@@ -406,6 +406,13 @@ theorem sr_wit_upd {X : Nat → Nat} {N : Nat → Nat → Nat} {e : E} (he : avo
   simp only [upd]; split
   · rename_i h; subst h; exact absurd (by simp only [SRefined.W, List.mem_append]; right; exact hk) (avoidsE_occ he hj)
   · rfl
+
+theorem sr_wit_atKeys {X : Nat → Nat} {N : Nat → Nat → Nat} {e : E} (he : avoidsE r.W e = true) {ks : List Nat} (hk : ∀ k ∈ ks, k ∈ bkeys r.spec) (v : Nat → Nat) :
+    evalE (atKeys X ks v) N e = evalE X N e := by
+  apply congrE; intro j hj
+  by_cases hjk : j ∈ ks
+  · exact absurd (by simp only [SRefined.W, List.mem_append]; right; exact hk j hjk) (avoidsE_occ he hj)
+  · exact atKeys_out hjk
 
 -- The witness's domain: spec inputs.
 theorem sr_wdom {i : Nat} (hi : i ∉ r.spec.f.m.inputs) : i ∉ r.wit.map (·.1) := fun h' => by
@@ -472,45 +479,44 @@ theorem sr_q {ρ σ : Nat → Nat} {M Ms : Nat → Nat → Nat} (hag : Agree r.X
     | some q =>
       have hqm := (lookup_some hl).1
       have hrd := hsq q hqm
-      have hk : q.2.1 ∈ bkeys r.spec := by simp only [bkeys, List.mem_append]; right; exact List.mem_map_of_mem hqm
+      have hk : ∀ k ∈ q.2.1, k ∈ bkeys r.spec := fun k hk' => by simp only [bkeys, List.mem_append]; right; exact List.mem_flatMap.mpr ⟨q, hqm, hk'⟩
       simp only [Option.map_some]
-      have hc : (∀ key, holdsC (upd (withInputs r.full.f.m.inputs ρ ι) q.2.1 key) (withCarried r.full M κ) (substC r.wit q.2.2))
-          ↔ (∀ key, holdsC (applyS r.wit (upd (withInputs r.full.f.m.inputs ρ ι) q.2.1 key) (withCarried r.full M κ)) (withCarried r.full M κ) q.2.2) := by
-        apply forall_congr'; intro key; rw [← evalC_iff, ← evalC_iff, subst_evalC]
-      rw [show (if ∀ key, holdsC (upd (withInputs r.full.f.m.inputs ρ ι) q.2.1 key) (withCarried r.full M κ) (substC r.wit q.2.2) then 1 else 0)
-          = (if ∀ key, holdsC (applyS r.wit (upd (withInputs r.full.f.m.inputs ρ ι) q.2.1 key) (withCarried r.full M κ)) (withCarried r.full M κ) q.2.2 then 1 else 0) by
+      have hc : (∀ k, holdsC (atKeys (withInputs r.full.f.m.inputs ρ ι) q.2.1 k) (withCarried r.full M κ) (substC r.wit q.2.2))
+          ↔ (∀ k, holdsC (applyS r.wit (atKeys (withInputs r.full.f.m.inputs ρ ι) q.2.1 k) (withCarried r.full M κ)) (withCarried r.full M κ) q.2.2) := by
+        apply forall_congr'; intro k; rw [← evalC_iff, ← evalC_iff, subst_evalC]
+      rw [show (if ∀ k, holdsC (atKeys (withInputs r.full.f.m.inputs ρ ι) q.2.1 k) (withCarried r.full M κ) (substC r.wit q.2.2) then 1 else 0)
+          = (if ∀ k, holdsC (applyS r.wit (atKeys (withInputs r.full.f.m.inputs ρ ι) q.2.1 k) (withCarried r.full M κ)) (withCarried r.full M κ) q.2.2 then 1 else 0) by
         simp only [hc]]
-      have hkdom : q.2.1 ∉ r.wit.map (·.1) := sr_wdom r hok (hSI _ (by simp only [SRefined.SV, List.mem_append]; right; exact hk))
-      -- Both sides as one condition over every key: compare the states they read the body at.
-      have hall : ∀ key, evalC (upd (withInputs r.spec.f.m.inputs σ (applyS r.wit (sView r.full ρ M ι κ).1 (withCarried r.full M κ))) q.2.1 key) (withCarried r.spec Ms κ) q.2.2
-          = evalC (applyS r.wit (upd (withInputs r.full.f.m.inputs ρ ι) q.2.1 key) (withCarried r.full M κ)) (withCarried r.full M κ) q.2.2 := by
-        intro key
+      have hkdom : ∀ k ∈ q.2.1, k ∉ r.wit.map (·.1) := fun k hk' => sr_wdom r hok (hSI _ (by simp only [SRefined.SV, List.mem_append]; right; exact hk k hk'))
+      -- Both sides as one condition over every value of the keys: compare the states they read the body at.
+      have hall : ∀ k, evalC (atKeys (withInputs r.spec.f.m.inputs σ (applyS r.wit (sView r.full ρ M ι κ).1 (withCarried r.full M κ))) q.2.1 k) (withCarried r.spec Ms κ) q.2.2
+          = evalC (applyS r.wit (atKeys (withInputs r.full.f.m.inputs ρ ι) q.2.1 k) (withCarried r.full M κ)) (withCarried r.full M κ) q.2.2 := by
+        intro k
         rw [congrMC _ _ (withCarried r.full M κ) _ (fun mp hmp => hN mp (avoidsMaps_occ (rn_m hrd) hmp))]
         apply congrC; intro i hi
         have hiR := avoids_occ (rn_v hrd) hi
         simp only [List.mem_append, not_or] at hiR
         obtain ⟨⟨hiI, hiF⟩, hiQ⟩ := hiR
-        by_cases hik : i = q.2.1
-        · subst hik; simp only [upd, if_true]; rw [applyS_other hkdom]; simp [upd]
-        · simp only [upd, hik, if_false]
+        by_cases hik : i ∈ q.2.1
+        · rw [applyS_other (hkdom i hik), atKeys_in hik, atKeys_in hik]
+        · rw [atKeys_out hik]
           by_cases hii : i ∈ r.spec.f.m.inputs
           · simp only [withInputs, List.contains_iff_mem.mpr hii, if_true]
             rw [hιs i hii]
             simp only [applyS]
             cases ha : assoc r.wit i with
-            | none => simp only [upd, hik, if_false]; exact decideQ_other (fun h' => hfull_q i (hIVq i hiI) hiQ h') _ _
+            | none => rw [atKeys_out hik]; exact decideQ_other (fun h' => hfull_q i (hIVq i hiI) hiQ h') _ _
             | some e =>
               have hm := sr_wit_some r hok ha
               dsimp only
-              rw [sr_wit_upd r hok (hwit _ hm).2 hk]
+              rw [sr_wit_atKeys r hok (hwit _ hm).2 hk]
               exact congrE _ _ _ e (fun j hj => decideQ_other (fun h' => avoidsE_occ (hwit _ hm).2 hj (sr_W r hok (Or.inr h'))) _ _)
-          · rw [withInputs_other hii, applyS_other (sr_wdom r hok hii)]
-            simp only [upd, hik, if_false]
+          · rw [withInputs_other hii, applyS_other (sr_wdom r hok hii), atKeys_out hik]
             rw [sfull_inputs, withInputs_other (hIVi i hiI)]
             exact hag i (by simp only [SRefined.X, List.mem_append, not_or]; exact ⟨⟨⟨hiI, hiF⟩, hiQ⟩, hii⟩)
-      simp only [show (∀ key, holdsC (upd (withInputs r.spec.f.m.inputs σ (applyS r.wit (sView r.full ρ M ι κ).1 (withCarried r.full M κ))) q.2.1 key) (withCarried r.spec Ms κ) q.2.2)
-          ↔ (∀ key, holdsC (applyS r.wit (upd (withInputs r.full.f.m.inputs ρ ι) q.2.1 key) (withCarried r.full M κ)) (withCarried r.full M κ) q.2.2) from
-        forall_congr' (fun key => by rw [← evalC_iff, ← evalC_iff, hall key])]
+      simp only [show (∀ k, holdsC (atKeys (withInputs r.spec.f.m.inputs σ (applyS r.wit (sView r.full ρ M ι κ).1 (withCarried r.full M κ))) q.2.1 k) (withCarried r.spec Ms κ) q.2.2)
+          ↔ (∀ k, holdsC (applyS r.wit (atKeys (withInputs r.full.f.m.inputs ρ ι) q.2.1 k) (withCarried r.full M κ)) (withCarried r.full M κ) q.2.2) from
+        forall_congr' (fun k => by rw [← evalC_iff, ← evalC_iff, hall k])]
   · rw [decideQ_other hvq]
     by_cases hvi : v ∈ r.spec.f.m.inputs
     · simp only [withInputs, List.contains_iff_mem.mpr hvi, if_true]
