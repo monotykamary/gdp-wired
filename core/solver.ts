@@ -59,7 +59,8 @@ export type Verdict =
 const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
 const vars = (lin: Lin) => Object.keys(lin).filter(key => key !== '1')
 
-// maxRows: elimination can square the rows each round; past this many live rows it gives up with `unknown`.
+// maxRows: elimination can square the rows each round; past this many live rows, or a round that would make more than
+// five times as many before merging them, it gives up with `unknown`.
 export function solve(constraints: Constraint[], maxRows = 20_000): Verdict {
   const steps: Step[] = []
   const lins: Lin[] = []
@@ -67,9 +68,11 @@ export function solve(constraints: Constraint[], maxRows = 20_000): Verdict {
   // A row after its cut, if its variables share a divisor.
   const tighten = (index: number) => {
     const lin = lins[index]!
-    const g = vars(lin).reduce((acc, key) => gcd(acc, lin[key]!), 0)
+    let g = 0
+    for (const key in lin) if (key !== '1') { g = gcd(g, lin[key]!); if (g === 1) return index }
     if (g <= 1) return index
-    const cut: Lin = Object.fromEntries(vars(lin).map(key => [key, lin[key]! / g]))
+    const cut: Lin = {}
+    for (const key in lin) if (key !== '1') cut[key] = lin[key]! / g
     const constant = Math.ceil((lin['1'] ?? 0) / g)
     return push({kind: 'cut', of: index, g}, add(cut, k(constant)))
   }
@@ -111,7 +114,17 @@ export function solve(constraints: Constraint[], maxRows = 20_000): Verdict {
     }
   }
   const sigs: string[] = []
-  const sigOf = (r: number) => (sigs[r] ??= JSON.stringify(vars(lins[r]!).sort().map(key => [key, lins[r]![key]])))
+  const sigOf = (r: number) => {
+    let sig = sigs[r]
+    if (sig === undefined) {
+      const lin = lins[r]!, keys: string[] = []
+      for (const key in lin) if (key !== '1') keys.push(key)
+      keys.sort()
+      sig = JSON.stringify(keys.map(key => [key, lin[key]]))
+      sigs[r] = sig
+    }
+    return sig
+  }
   for (let found = contradiction(); found === undefined; found = contradiction()) {
     // Each variable's rows by sign, in one pass (variables in the order they first appear).
     const index = new Map<string, {pos: number[], neg: number[], posUnit: boolean, negUnit: boolean}>()
@@ -129,6 +142,7 @@ export function solve(constraints: Constraint[], maxRows = 20_000): Verdict {
       if (!choice || (c.isExact && !choice.isExact) || (c.isExact === choice.isExact && c.size < choice.size)) choice = c
     }
     if (!choice) break
+    if (choice.pos.length * choice.neg.length > 5 * maxRows) return {kind: 'unknown'}
     exact &&= choice.isExact
     eliminated.push({x: choice.x, rows: [...choice.pos, ...choice.neg]})
     const next = rows.filter(r => (lins[r]![choice.x] ?? 0) === 0)
