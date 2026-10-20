@@ -16,7 +16,7 @@
 // most specific source (an inner state over its parent) is taken, then the first declared; the regions react to the
 // same event at once. A transition into a compound state enters its initial child, or the child it was last in when the
 // compound keeps its history; `set` writes the extended state (a variable two regions both set takes the first region's).
-import {type Cond, type Kind, type Rule, type Term, type TermLike, type Verdict, type Choice, all, any, oneOf, proveRule, proveSteps, rule, when} from './dsl.ts'
+import {type Cond, type Kind, type Rule, type Term, type TermLike, type Verdict, Choice, all, any, no, oneOf, proveRule, proveSteps, rule, when, yes} from './dsl.ts'
 import {type Law, type Request, type State, interpret, numbersOf} from './machine.ts'
 import {allowed} from './watch.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
@@ -29,13 +29,14 @@ type Obj = Record<string, any>
 // and a compound's history (the state it was last in, a full path: last('active').is('active.shipped')).
 type Env<P, I, X> = P & I & X & {event: Choice<string>, in: (path: string) => Cond, last: (compound: string) => Choice<string>}
 type After<X> = X & {in: (path: string) => Cond, last: (compound: string) => Choice<string>}
-export type Transition<P, I, X> = {from: string | string[], to: string, when?: (env: Env<P, I, X>) => Cond, set?: (env: Env<P, I, X>) => Partial<{[k in keyof X]: TermLike | Cond | X[k]}>}
+// Without `to`, an internal transition: the state stays as it is (nothing is exited or entered) and `set` runs.
+export type Transition<P, I, X> = {from: string | string[], to?: string, when?: (env: Env<P, I, X>) => Cond, set?: (env: Env<P, I, X>) => Partial<{[k in keyof X]: X[k] extends Choice<infer K> ? K | X[k] : TermLike | Cond | X[k]}>}
 
 type Region = {name: string, field: string, leaves: string[], finals: Set<string>, compounds: Map<string, {initial: string, history: boolean}>}
 type Placed<P, I, X> = Transition<P, I, X> & {event: string, region: string, sources: string[], depth: number, order: number}
 
 export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
-  constructor(private readonly s: {name: string, params: Obj, inputs: Obj, context: Obj, regions: [string, StateNode][], on: [string, Transition<P, I, X>][]}) {}
+  constructor(private readonly s: {name: string, params: Obj, inputs: Obj, context: Obj, outputs: Obj, regions: [string, StateNode][], on: [string, Transition<P, I, X>][], field?: string, events?: string[]}) {}
   private with(more: object): never { return new Chart({...this.s, ...more} as never) as never }
 
   params<K extends Record<string, Kind<unknown>>>(kinds: K): Chart<P & {[k in keyof K]: K[k] extends Kind<infer V> ? V : never}, I, X> { return this.with({params: {...this.s.params, ...kinds}}) }
@@ -43,8 +44,15 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
   inputs<K extends Record<string, Kind<unknown>>>(kinds: K): Chart<P, I & {[k in keyof K]: K[k] extends Kind<infer V> ? V : never}, X> { return this.with({inputs: {...this.s.inputs, ...kinds}}) }
   // The extended state: a natural from a number, or any kind from `kind.from(init)`.
   context<T extends Record<string, number | {kind: Kind<unknown>, init: unknown}>>(init: T): Chart<P, I, X & {[k in keyof T]: T[k] extends {kind: Kind<infer V>} ? V : Term}> { return this.with({context: {...this.s.context, ...init}}) }
-  // One region's states (a chart of one region names its states plainly: 'active.paid').
-  states(tree: Record<string, StateNode>, opts: {initial?: string} = {}): Chart<P, I, X> { return this.with({regions: [['state', {states: tree, initial: opts.initial}]]}) }
+  // What each step decides, read after it (a command, a verdict): every output starts each step at its default, and a
+  // transition taken may set it, so a step where none fires reads the default, never the last step's value. A default
+  // is a number, a choice (`oneOf(...).from('denied')`) or a yes/no (`bool.from(false)`).
+  outputs<T extends Record<string, number | {kind: Kind<unknown>, init: unknown}>>(init: T): Chart<P, I, X & {[k in keyof T]: T[k] extends {kind: Kind<infer V>} ? V : Term}> { return this.with({outputs: {...this.s.outputs, ...init}}) }
+  // The events, in the order they are encoded (by default, the order they are first used in `on`).
+  events(...names: string[]): Chart<P, I, X> { return this.with({events: names}) }
+  // One region's states (a chart of one region names its states plainly: 'active.paid'); `field` names the state
+  // variable the rule keeps them in (`state` by default).
+  states(tree: Record<string, StateNode>, opts: {initial?: string, field?: string} = {}): Chart<P, I, X> { return this.with({regions: [['state', {states: tree, initial: opts.initial}]], field: opts.field}) }
   // Parallel regions, each with its own states, reacting to the same events: paths start with the region ('payment.paid').
   regions(regions: Record<string, StateNode>): Chart<P, I, X> { return this.with({regions: Object.entries(regions)}) }
   on(event: string, t: Transition<P, I, X>): Chart<P, I, X> { return this.with({on: [...this.s.on, [event, t]]}) }
@@ -69,7 +77,7 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
         }
       }
       walk('', root)
-      return {name, field: single ? 'state' : name, leaves, finals, compounds}
+      return {name, field: single ? s.field ?? 'state' : name, leaves, finals, compounds}
     })
     // A path as the region and the state within it.
     const locate = (path: string): [Region, string] => {
@@ -83,12 +91,14 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
       if (!out.length) throw new Error(`${s.name}: no state ${path} in ${r.name}`)
       return out
     }
-    const events = [...new Set(s.on.map(([e]) => e))]
+    const used = [...new Set(s.on.map(([e]) => e))], events = s.events ?? used
+    for (const e of used) if (!events.includes(e)) throw new Error(`${s.name}: the event ${e} isn't one of the events declared (${events.join(', ')})`)
+    if (new Set(events).size !== events.length) throw new Error(`${s.name}: an event is declared twice`)
     if (!events.length) throw new Error(`${s.name}: a chart needs transitions`)
     const placed: Placed<P, I, X>[] = s.on.map(([event, t], order) => {
-      const froms = (Array.isArray(t.from) ? t.from : [t.from]).map(locate), [to] = locate(t.to)
-      if (froms.some(([r]) => r !== to)) throw new Error(`${s.name}: a transition on ${event} goes from one region to another (${t.to})`)
-      under(to, locate(t.to)[1])
+      const froms = (Array.isArray(t.from) ? t.from : [t.from]).map(locate), [to] = t.to === undefined ? froms[0]! : locate(t.to)
+      if (froms.some(([r]) => r !== to)) throw new Error(`${s.name}: a transition on ${event} goes from one region to another (${t.to ?? [t.from].flat().join(", ")})`)
+      if (t.to !== undefined) under(to, locate(t.to)[1])
       const sources = [...new Set(froms.flatMap(([r, p]) => under(r, p)))]
       return {...t, event, region: to.name, sources, depth: Math.min(...froms.map(([, p]) => (p === '' ? 0 : p.split('.').length))), order}
     })
@@ -101,7 +111,7 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
       state[r.field] = kind.from(enter(''))
       for (const [c, {history}] of r.compounds) if (history && c) state[lastOf(r, c)] = kind.from(enter(c))
     }
-    for (const [k, v] of Object.entries(s.context)) state[k] = v
+    for (const [k, v] of Object.entries({...s.context, ...s.outputs})) state[k] = v
     const inState = (env: Obj) => (path: string): Cond => { const [r, p] = locate(path); return any(...under(r, p).map(l => (env[r.field] as Choice<string>).is(l))) }
     const guardEnv = (env: Obj) => this.wrap(env) as Env<P, I, X>
     // Entering a path: a leaf, or a compound's last child (with history) or its initial one.
@@ -123,12 +133,14 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
       for (const r of regions) {
         // The transitions taken in a region exclude one another: a chain of `when`s, the first in order outermost.
         out[r.field] = placed.map((t, i) => [t, i] as const).filter(([t]) => t.region === r.name).reverse()
-          .reduce<Choice<string>>((acc, [t, i]) => when(env[`take${i}`] as Cond, entered(env, r, locate(t.to)[1]), acc), env[r.field])
+          .reduce<Choice<string>>((acc, [t, i]) => when(env[`take${i}`] as Cond, t.to === undefined ? env[r.field] : entered(env, r, locate(t.to)[1]), acc), env[r.field])
         for (const [c, {history}] of r.compounds) if (history && c) out[lastOf(r, c)] = when(any(...under(r, c).map(l => (out[r.field] as Choice<string>).is(l))), out[r.field], env[lastOf(r, c)])
       }
-      for (const k of Object.keys(s.context)) {
+      // Context keeps its value where no transition taken sets it; an output falls back to its default.
+      for (const k of [...Object.keys(s.context), ...Object.keys(s.outputs)]) {
         const sets = placed.map((t, i) => [t, i] as const).filter(([t]) => t.set).map(([t, i]) => [i, t.set!(guardEnv(env))[k as keyof X]] as const).filter(([, v]) => v !== undefined)
-        if (sets.length) out[k] = sets.reverse().reduce((acc, [i, v]) => when(env[`take${i}`] as Cond, v as never, acc as never), env[k])
+        const base = k in s.outputs ? defaultOf(env[k], s.outputs[k], k) : env[k]
+        if (sets.length || k in s.outputs) out[k] = sets.reverse().reduce((acc, [i, v]) => when(env[`take${i}`] as Cond, v as never, acc as never), base)
       }
       return out
     }) as never
@@ -205,7 +217,8 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
       const v = proveRule(r, [...this.chartLaws(), never])
       reached[name] = v.proven && v.checked ? 'unreachable' : 'unknown'
     }
-    const stuck = regions.flatMap(reg => reg.leaves.filter(l => !reg.finals.has(l) && !placed.some(t => t.region === reg.name && t.sources.includes(l))).map(l => label(reg, l)))
+    // A way out is a transition to a state: an internal one stays where it is.
+    const stuck = regions.flatMap(reg => reg.leaves.filter(l => !reg.finals.has(l) && !placed.some(t => t.to !== undefined && t.region === reg.name && t.sources.includes(l))).map(l => label(reg, l)))
     const ambiguous: {event: string, transitions: [number, number], verdict: Verdict}[] = []
     placed.forEach((t, i) => placed.forEach((u, j) => {
       if (j <= i || t.region !== u.region || t.event !== u.event || t.depth !== u.depth || !t.sources.some(l => u.sources.includes(l))) return
@@ -216,4 +229,13 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
     return {ok: !stuck.length && !ambiguous.length && Object.values(reached).every(x => x !== 'unknown'), reached, stuck, ambiguous}
   }
 }
-export const chart = (name: string): Chart => new Chart({name, params: {}, inputs: {}, context: {}, regions: [], on: []})
+export const chart = (name: string): Chart => new Chart({name, params: {}, inputs: {}, context: {}, outputs: {}, regions: [], on: []})
+// An output's default as a value of its kind: a number, a choice's named value, or a yes/no.
+function defaultOf(current: unknown, init: unknown, name: string): unknown {
+  if (typeof init === 'number') return init
+  const {kind, init: v} = init as {kind: Kind<unknown>, init: unknown}
+  if (current instanceof Choice) return current.of(v as string)
+  if (typeof v === 'boolean') return v ? yes : no
+  if (typeof v === 'number') return v
+  throw new Error(`the output ${name}'s default is a number, a choice or a yes/no, not ${String(v)} of ${kind.constructor.name}`)
+}

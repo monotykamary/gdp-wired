@@ -3,7 +3,7 @@
 // reference, and what a chart refuses to build.
 import {expect, test} from 'bun:test'
 import {chart} from './chart.ts'
-import {order, orderLaws, checkout, checkoutLaws} from '../examples/charts.ts'
+import {binding, bindingLaws, order, orderLaws, checkout, checkoutLaws} from '../examples/charts.ts'
 
 test('the order chart: every state reached by a run the compiled rule takes, its laws proven, its broken variants caught', () => {
   const o = order(), report = o.check({params: {tries: 2}})
@@ -70,4 +70,37 @@ test('a chart that names no such state, a bad initial state or a cross-region tr
   expect(() => chart('a').states({x: {states: {p: {}}, initial: 'q'}}).on('go', {from: 'x', to: 'x'}).rule).toThrow(/initial state q/)
   expect(() => chart('a').regions({r: {states: {x: {}}}, s: {states: {y: {}}}}).on('go', {from: 'r.x', to: 's.y'}).rule).toThrow(/one region to another/)
   expect(() => chart('a').states({x: {}}).on('go', {from: 'x', to: 'x'}).last({}, 'x')).toThrow(/keeps no history/)
+})
+
+// Internal transitions stay where they are; an output falls back to its default every step; the phase is kept as the
+// field named, and the events are encoded in the order declared.
+test('internal transitions, outputs reset each step, a named state field and a declared event order', () => {
+  const b = binding(), r = b.rule
+  expect(Object.keys(r.machine.state)).toEqual(['phase', 'holds', 'command'])
+  const g = r.compiled()
+  let st = g.init({})
+  const seen: unknown[] = []
+  for (const event of ['retain', 'activate', 'retain', 'retain', 'retire', 'release', 'close', 'release', 'close', 'close', 'retain']) {
+    st = g.step({}, st, r.encodeInput({event} as never))
+    seen.push(r.decode(st))
+  }
+  expect(seen).toEqual([
+    {phase: 'staged', holds: 0, command: 'denied'},            // retain before activation: nothing fires
+    {phase: 'live.active', holds: 0, command: 'granted'},
+    {phase: 'live.active', holds: 1, command: 'granted'},      // internal: stays, counts
+    {phase: 'live.active', holds: 2, command: 'granted'},
+    {phase: 'live.retiring', holds: 2, command: 'denied'},     // retire sets no command: back to the default
+    {phase: 'live.retiring', holds: 1, command: 'granted'},    // release from anywhere in live
+    {phase: 'live.retiring', holds: 1, command: 'denied'},     // close waits for nothing held
+    {phase: 'live.retiring', holds: 0, command: 'granted'},
+    {phase: 'closing', holds: 0, command: 'startClose'},
+    {phase: 'closed', holds: 0, command: 'denied'},
+    {phase: 'closed', holds: 0, command: 'denied'},
+  ])
+  // the event's encoding is the declared order
+  expect(r.encodeInput({event: 'retain'} as never).event).toBe(1)
+  expect(b.check()).toMatchObject({ok: true, stuck: [], ambiguous: []})
+  expect(b.prove([], bindingLaws(b))).toMatchObject({proven: true, checked: true})
+  expect(binding('grants after closing').prove([], bindingLaws(binding('grants after closing'))).proven).toBe(false)
+  expect(() => chart('x').events('a').states({s: {}}).on('b', {from: 's'}).rule).toThrow(/isn't one of the events declared/)
 })

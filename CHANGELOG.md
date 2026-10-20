@@ -3,6 +3,15 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+- Charts: internal transitions (no `to`: the state stays, nothing is exited or entered, `set` runs), outputs
+  (`.outputs({...})`: what each step decides, reset to its default every step, so a step where nothing fires reads the
+  default), `.states(tree, {field})` to name the state variable, and `.events(...)` to fix the events' encoding, so a
+  machine already shipped keeps its names (`examples/charts.ts`: a binding's lifecycle, its counts changed by internal
+  transitions and its command an output; Lean checks its laws, package-check `bindingchart`). `set` takes a choice's
+  name.
+
 ## 0.13.0
 
 - Statecharts: `chart(name)` with nested states, parallel regions, a compound's history, guards, extended state and

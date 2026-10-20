@@ -6,7 +6,7 @@
 //     (ambiguous), a state with no way out (stuck)
 //   - a checkout in two parallel regions, payment and shipping, reacting to the same events: shipping waits for the
 //     payment, so nothing ships unpaid; the broken variant ships without looking at the payment
-import {nat} from '../core/dsl.ts'
+import {nat, oneOf} from '../core/dsl.ts'
 import {chart} from '../core/chart.ts'
 
 export const order = (bug?: 'refunds a shipped order' | 'ships two ways' | 'a state with no way out') => {
@@ -48,6 +48,27 @@ export const checkout = (bug?: 'ships unpaid') => chart('checkout')
   .on('ship', {from: 'shipping.waiting', to: 'shipping.sent', when: env => (bug ? env.in('shipping') : env.in('payment.paid'))})
 export const checkoutLaws = (c = checkout()) => [c.law('nothing ships unpaid', env => env.in('shipping.sent').implies(env.in('payment.paid')))]
 
+// A binding's lifecycle: most events change counts, not the phase (internal transitions), and each step decides a
+// command that falls back to `denied` when nothing fires (an output); the phase is kept as `phase` and the events in a
+// fixed order, as the code that feeds it encodes them. The broken variant grants a use after the binding closed.
+export const binding = (bug?: 'grants after closing') => chart('binding')
+  .events('activate', 'retain', 'release', 'retire', 'close', 'fail')
+  .context({holds: 0})
+  .outputs({command: oneOf('denied', 'granted', 'startClose').from('denied')})
+  .states({staged: {}, live: {states: {active: {}, retiring: {}}}, closing: {}, closed: {final: true}, failed: {final: true}}, {field: 'phase'})
+  .on('activate', {from: 'staged', to: 'live.active', set: () => ({command: 'granted'})})
+  .on('retain', {from: bug ? ['live', 'closed'] : 'live.active', set: ({holds}) => ({holds: holds.plus(1), command: 'granted'})})
+  .on('release', {from: 'live', when: ({holds}) => holds.atLeast(1), set: ({holds}) => ({holds: holds.minus(1), command: 'granted'})})
+  .on('retire', {from: 'live.active', to: 'live.retiring'})
+  .on('close', {from: 'live.retiring', to: 'closing', when: ({holds}) => holds.eq(0), set: () => ({command: 'startClose'})})
+  .on('close', {from: 'closing', to: 'closed'})
+  .on('fail', {from: ['staged', 'live', 'closing'], to: 'failed'})
+export const bindingLaws = (c = binding()) => [
+  c.stepLaw('nothing is granted once closed or failed', (_, after) => after.command.is('granted').not(), before => before.in('closed').or(before.in('failed'))),
+  c.stepLaw('a step where nothing fires is denied', (_, after) => after.command.is('denied'), before => before.event.is('retire').or(before.event.is('fail'))),
+  c.stepLaw('closing starts only with nothing held', (before, after) => after.command.is('startClose').implies(before.holds.eq(0))),
+]
+
 if (import.meta.main) {
   const results: [string, boolean, boolean][] = []
   const o = order(), ok = o.check({params: {tries: 2}}), {laws, stepLaws} = orderLaws(o), v = o.prove(laws, stepLaws)
@@ -60,6 +81,10 @@ if (import.meta.main) {
   results.push(['checkout: every state reached, none stuck, none ambiguous', k.check().ok, true], ['checkout: nothing ships unpaid', kv.proven && kv.checked, true])
   const b = checkout('ships unpaid'), bv = b.prove(checkoutLaws(b))
   results.push(['checkout (ships unpaid): nothing ships unpaid', bv.proven && bv.checked, false])
+  const bd = binding(), bk = bd.check()
+  results.push(['binding: every phase reached, none stuck, none ambiguous', bk.ok, true], ['binding: its laws', (v => v.proven && v.checked)(bd.prove([], bindingLaws(bd))), true])
+  const bb = binding('grants after closing')
+  results.push(['binding (grants after closing): its laws', (v => v.proven && v.checked)(bb.prove([], bindingLaws(bb))), false])
   for (const [name, got, want] of results) console.log(`${got === want ? 'ok  ' : 'FAIL'} ${name}: ${got}`)
   if (results.some(([, got, want]) => got !== want)) process.exit(1)
 }

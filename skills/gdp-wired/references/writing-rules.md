@@ -231,6 +231,13 @@ order.prove([order.law('retries within the limit', ({retries, tries}) => retries
 - `check().reached` gives each state the shortest run that reaches it (a breadth-first walk over every event and small
   payloads), or `'unreachable'` where the prover proves no run gets there; `stuck` lists states with no way out that
   aren't `final`.
+- A transition without `to` is internal: it stays where it is (nothing is exited or entered) and runs `set`; `from` may
+  name a compound or several states (`{from: 'live', set: ({holds}) => ({holds: holds.plus(1)})}`).
+- `.outputs({command: oneOf('denied', 'granted').from('denied')})`: what each step decides, read after it. An output
+  starts every step at its default and a taken transition may `set` it, so a step where nothing fires reads `denied`,
+  not the last grant (a default is a number, a choice or a yes/no). Context keeps its value instead.
+- `.states(tree, {field: 'phase'})` names the state variable, and `.events('activate', 'retain', ...)` fixes the events'
+  order and encoding: an existing bridge, its laws and its variants keep their names (`examples/charts.ts`'s binding).
 - Entry and exit actions and side effects aren't modeled: the chart computes the next state and its context, and the
   code around it acts on the result. `chart.rule` is the plain rule, for `compiled()`, `compare` and `toLean`.
 
