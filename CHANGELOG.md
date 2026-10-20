@@ -3,7 +3,7 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.13.0
 
 - Statecharts: `chart(name)` with nested states, parallel regions, a compound's history, guards, extended state and
   final states, written as a table of transitions (`.on(event, {from, to, when, set})`) and compiled to a rule, so
