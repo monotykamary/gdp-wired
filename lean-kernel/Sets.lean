@@ -28,9 +28,53 @@ open Classical
 -- named, any of the goal's, in any order (each must be one of the goal's), so an exporter may lay its goal out its own
 -- way as long as each hypothesis it uses is one Lean builds.
 abbrev Cert := List VDef × List C × Tree
+-- The goal's hypotheses after the first one equal to c, if there is one.
+def afterFirst (c : C) : List C → Option (List C)
+  | [] => none
+  | h :: t => if beqC c h then some t else afterFirst c t
+-- Each named hypothesis is one of the goal's: looked for after the last one found (exporters name them mostly in the
+-- goal's order), and from the start when it is not there.
+def namedIn (hyps : List C) : List C → List C → Bool
+  | [], _ => true
+  | c :: cs, rest => match afterFirst c rest with
+    | some rest' => namedIn hyps cs rest'
+    | none => match afterFirst c hyps with
+      | some rest' => namedIn hyps cs rest'
+      | none => false
 def checkIn (hyps : List C) (k : Cert) : Bool :=
   if k.2.1.isEmpty then checkGoal ⟨k.1, hyps⟩ k.2.2
-  else k.2.1.all (fun c => hyps.contains c) && checkGoal ⟨k.1, k.2.1⟩ k.2.2
+  else namedIn hyps k.2.1 hyps && checkGoal ⟨k.1, k.2.1⟩ k.2.2
+
+theorem afterFirst_some : ∀ {c : C} {l t : List C}, afterFirst c l = some t → c ∈ l ∧ ∀ x ∈ t, x ∈ l
+  | _, [], _, h => by simp [afterFirst] at h
+  | c, h' :: l, t, h => by
+    simp only [afterFirst] at h
+    split at h
+    · rename_i hb
+      simp only [Option.some.injEq] at h; subst h
+      exact ⟨by rw [beqC_eq hb]; exact List.mem_cons_self, fun x hx => List.mem_cons_of_mem _ hx⟩
+    · obtain ⟨h1, h2⟩ := afterFirst_some h
+      exact ⟨List.mem_cons_of_mem _ h1, fun x hx => List.mem_cons_of_mem _ (h2 x hx)⟩
+
+theorem namedIn_sound (hyps : List C) : ∀ (cs rest : List C), (∀ x ∈ rest, x ∈ hyps) → namedIn hyps cs rest = true → ∀ c ∈ cs, c ∈ hyps
+  | [], _, _, _ => by simp
+  | c :: cs, rest, hr, h => by
+    simp only [namedIn] at h
+    split at h
+    · rename_i rest' hs
+      obtain ⟨h1, h2⟩ := afterFirst_some hs
+      intro x hx
+      rcases List.mem_cons.mp hx with rfl | hx
+      · exact hr _ h1
+      · exact namedIn_sound hyps cs rest' (fun y hy => hr y (h2 y hy)) h x hx
+    · split at h
+      · rename_i rest' hs
+        obtain ⟨h1, h2⟩ := afterFirst_some hs
+        intro x hx
+        rcases List.mem_cons.mp hx with rfl | hx
+        · exact h1
+        · exact namedIn_sound hyps cs rest' h2 h x hx
+      · simp at h
 
 theorem sound_in (hyps : List C) (k : Cert) (h : checkIn hyps k = true) (env : Nat → Nat) (maps : Nat → Nat → Nat) :
     ¬ ∀ c ∈ hyps, evalC env maps c = true := by
@@ -38,8 +82,8 @@ theorem sound_in (hyps : List C) (k : Cert) (h : checkIn hyps k = true) (env : N
   unfold checkIn at h
   split at h
   · exact sound ⟨k.1, hyps⟩ k.2.2 h env maps hH
-  · simp only [Bool.and_eq_true, List.all_eq_true] at h
-    exact sound ⟨k.1, k.2.1⟩ k.2.2 h.2 env maps (fun c hc => hH c (List.contains_iff_mem.mp (h.1 c hc)))
+  · simp only [Bool.and_eq_true] at h
+    exact sound ⟨k.1, k.2.1⟩ k.2.2 h.2 env maps (fun c hc => hH c (namedIn_sound hyps k.2.1 hyps (fun _ hx => hx) h.1 c hc))
 
 structure SMachine where
   f : FMMachine

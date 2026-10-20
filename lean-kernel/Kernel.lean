@@ -41,6 +41,205 @@ end
 
 deriving instance DecidableEq for E, C
 
+/-! Boolean equality of terms and conditions, by structure: what a check compares terms with (the derived DecidableEq
+builds a proof at each comparison, which the kernel then reduces). -/
+
+mutual
+def beqE : E → E → Bool
+  | .var x0, .var y0 => x0 == y0
+  | .const x0, .const y0 => x0 == y0
+  | .add x0 x1, .add y0 y1 => beqE x0 y0 && beqE x1 y1
+  | .sub x0 x1, .sub y0 y1 => beqE x0 y0 && beqE x1 y1
+  | .mul x0 x1, .mul y0 y1 => x0 == y0 && beqE x1 y1
+  | .min x0 x1, .min y0 y1 => beqE x0 y0 && beqE x1 y1
+  | .max x0 x1, .max y0 y1 => beqE x0 y0 && beqE x1 y1
+  | .prod x0 x1, .prod y0 y1 => beqE x0 y0 && beqE x1 y1
+  | .ite x0 x1 x2, .ite y0 y1 y2 => beqC x0 y0 && beqE x1 y1 && beqE x2 y2
+  | .get x0 x1, .get y0 y1 => x0 == y0 && beqE x1 y1
+  | _, _ => false
+def beqC : C → C → Bool
+  | .le x0 x1, .le y0 y1 => beqE x0 y0 && beqE x1 y1
+  | .lt x0 x1, .lt y0 y1 => beqE x0 y0 && beqE x1 y1
+  | .eq x0 x1, .eq y0 y1 => beqE x0 y0 && beqE x1 y1
+  | .and x0 x1, .and y0 y1 => beqC x0 y0 && beqC x1 y1
+  | .or x0 x1, .or y0 y1 => beqC x0 y0 && beqC x1 y1
+  | .not x0, .not y0 => beqC x0 y0
+  | _, _ => false
+end
+
+mutual
+theorem beqE_eq : ∀ {a b : E}, beqE a b = true → a = b
+  | .var x0, .var y0, h => by
+    simp only [beqE, Bool.and_eq_true, beq_iff_eq] at h
+    rw [h]
+  | .const x0, .const y0, h => by
+    simp only [beqE, Bool.and_eq_true, beq_iff_eq] at h
+    rw [h]
+  | .add x0 x1, .add y0 y1, h => by
+    simp only [beqE, Bool.and_eq_true, beq_iff_eq] at h
+    rw [beqE_eq h.1, beqE_eq h.2]
+  | .sub x0 x1, .sub y0 y1, h => by
+    simp only [beqE, Bool.and_eq_true, beq_iff_eq] at h
+    rw [beqE_eq h.1, beqE_eq h.2]
+  | .mul x0 x1, .mul y0 y1, h => by
+    simp only [beqE, Bool.and_eq_true, beq_iff_eq] at h
+    rw [h.1, beqE_eq h.2]
+  | .min x0 x1, .min y0 y1, h => by
+    simp only [beqE, Bool.and_eq_true, beq_iff_eq] at h
+    rw [beqE_eq h.1, beqE_eq h.2]
+  | .max x0 x1, .max y0 y1, h => by
+    simp only [beqE, Bool.and_eq_true, beq_iff_eq] at h
+    rw [beqE_eq h.1, beqE_eq h.2]
+  | .prod x0 x1, .prod y0 y1, h => by
+    simp only [beqE, Bool.and_eq_true, beq_iff_eq] at h
+    rw [beqE_eq h.1, beqE_eq h.2]
+  | .ite x0 x1 x2, .ite y0 y1 y2, h => by
+    simp only [beqE, Bool.and_eq_true, beq_iff_eq] at h
+    rw [beqC_eq h.1.1, beqE_eq h.1.2, beqE_eq h.2]
+  | .get x0 x1, .get y0 y1, h => by
+    simp only [beqE, Bool.and_eq_true, beq_iff_eq] at h
+    rw [h.1, beqE_eq h.2]
+  | .var _, .const _, h => by simp [beqE] at h
+  | .var _, .add _ _, h => by simp [beqE] at h
+  | .var _, .sub _ _, h => by simp [beqE] at h
+  | .var _, .mul _ _, h => by simp [beqE] at h
+  | .var _, .min _ _, h => by simp [beqE] at h
+  | .var _, .max _ _, h => by simp [beqE] at h
+  | .var _, .prod _ _, h => by simp [beqE] at h
+  | .var _, .ite _ _ _, h => by simp [beqE] at h
+  | .var _, .get _ _, h => by simp [beqE] at h
+  | .const _, .var _, h => by simp [beqE] at h
+  | .const _, .add _ _, h => by simp [beqE] at h
+  | .const _, .sub _ _, h => by simp [beqE] at h
+  | .const _, .mul _ _, h => by simp [beqE] at h
+  | .const _, .min _ _, h => by simp [beqE] at h
+  | .const _, .max _ _, h => by simp [beqE] at h
+  | .const _, .prod _ _, h => by simp [beqE] at h
+  | .const _, .ite _ _ _, h => by simp [beqE] at h
+  | .const _, .get _ _, h => by simp [beqE] at h
+  | .add _ _, .var _, h => by simp [beqE] at h
+  | .add _ _, .const _, h => by simp [beqE] at h
+  | .add _ _, .sub _ _, h => by simp [beqE] at h
+  | .add _ _, .mul _ _, h => by simp [beqE] at h
+  | .add _ _, .min _ _, h => by simp [beqE] at h
+  | .add _ _, .max _ _, h => by simp [beqE] at h
+  | .add _ _, .prod _ _, h => by simp [beqE] at h
+  | .add _ _, .ite _ _ _, h => by simp [beqE] at h
+  | .add _ _, .get _ _, h => by simp [beqE] at h
+  | .sub _ _, .var _, h => by simp [beqE] at h
+  | .sub _ _, .const _, h => by simp [beqE] at h
+  | .sub _ _, .add _ _, h => by simp [beqE] at h
+  | .sub _ _, .mul _ _, h => by simp [beqE] at h
+  | .sub _ _, .min _ _, h => by simp [beqE] at h
+  | .sub _ _, .max _ _, h => by simp [beqE] at h
+  | .sub _ _, .prod _ _, h => by simp [beqE] at h
+  | .sub _ _, .ite _ _ _, h => by simp [beqE] at h
+  | .sub _ _, .get _ _, h => by simp [beqE] at h
+  | .mul _ _, .var _, h => by simp [beqE] at h
+  | .mul _ _, .const _, h => by simp [beqE] at h
+  | .mul _ _, .add _ _, h => by simp [beqE] at h
+  | .mul _ _, .sub _ _, h => by simp [beqE] at h
+  | .mul _ _, .min _ _, h => by simp [beqE] at h
+  | .mul _ _, .max _ _, h => by simp [beqE] at h
+  | .mul _ _, .prod _ _, h => by simp [beqE] at h
+  | .mul _ _, .ite _ _ _, h => by simp [beqE] at h
+  | .mul _ _, .get _ _, h => by simp [beqE] at h
+  | .min _ _, .var _, h => by simp [beqE] at h
+  | .min _ _, .const _, h => by simp [beqE] at h
+  | .min _ _, .add _ _, h => by simp [beqE] at h
+  | .min _ _, .sub _ _, h => by simp [beqE] at h
+  | .min _ _, .mul _ _, h => by simp [beqE] at h
+  | .min _ _, .max _ _, h => by simp [beqE] at h
+  | .min _ _, .prod _ _, h => by simp [beqE] at h
+  | .min _ _, .ite _ _ _, h => by simp [beqE] at h
+  | .min _ _, .get _ _, h => by simp [beqE] at h
+  | .max _ _, .var _, h => by simp [beqE] at h
+  | .max _ _, .const _, h => by simp [beqE] at h
+  | .max _ _, .add _ _, h => by simp [beqE] at h
+  | .max _ _, .sub _ _, h => by simp [beqE] at h
+  | .max _ _, .mul _ _, h => by simp [beqE] at h
+  | .max _ _, .min _ _, h => by simp [beqE] at h
+  | .max _ _, .prod _ _, h => by simp [beqE] at h
+  | .max _ _, .ite _ _ _, h => by simp [beqE] at h
+  | .max _ _, .get _ _, h => by simp [beqE] at h
+  | .prod _ _, .var _, h => by simp [beqE] at h
+  | .prod _ _, .const _, h => by simp [beqE] at h
+  | .prod _ _, .add _ _, h => by simp [beqE] at h
+  | .prod _ _, .sub _ _, h => by simp [beqE] at h
+  | .prod _ _, .mul _ _, h => by simp [beqE] at h
+  | .prod _ _, .min _ _, h => by simp [beqE] at h
+  | .prod _ _, .max _ _, h => by simp [beqE] at h
+  | .prod _ _, .ite _ _ _, h => by simp [beqE] at h
+  | .prod _ _, .get _ _, h => by simp [beqE] at h
+  | .ite _ _ _, .var _, h => by simp [beqE] at h
+  | .ite _ _ _, .const _, h => by simp [beqE] at h
+  | .ite _ _ _, .add _ _, h => by simp [beqE] at h
+  | .ite _ _ _, .sub _ _, h => by simp [beqE] at h
+  | .ite _ _ _, .mul _ _, h => by simp [beqE] at h
+  | .ite _ _ _, .min _ _, h => by simp [beqE] at h
+  | .ite _ _ _, .max _ _, h => by simp [beqE] at h
+  | .ite _ _ _, .prod _ _, h => by simp [beqE] at h
+  | .ite _ _ _, .get _ _, h => by simp [beqE] at h
+  | .get _ _, .var _, h => by simp [beqE] at h
+  | .get _ _, .const _, h => by simp [beqE] at h
+  | .get _ _, .add _ _, h => by simp [beqE] at h
+  | .get _ _, .sub _ _, h => by simp [beqE] at h
+  | .get _ _, .mul _ _, h => by simp [beqE] at h
+  | .get _ _, .min _ _, h => by simp [beqE] at h
+  | .get _ _, .max _ _, h => by simp [beqE] at h
+  | .get _ _, .prod _ _, h => by simp [beqE] at h
+  | .get _ _, .ite _ _ _, h => by simp [beqE] at h
+theorem beqC_eq : ∀ {a b : C}, beqC a b = true → a = b
+  | .le x0 x1, .le y0 y1, h => by
+    simp only [beqC, Bool.and_eq_true, beq_iff_eq] at h
+    rw [beqE_eq h.1, beqE_eq h.2]
+  | .lt x0 x1, .lt y0 y1, h => by
+    simp only [beqC, Bool.and_eq_true, beq_iff_eq] at h
+    rw [beqE_eq h.1, beqE_eq h.2]
+  | .eq x0 x1, .eq y0 y1, h => by
+    simp only [beqC, Bool.and_eq_true, beq_iff_eq] at h
+    rw [beqE_eq h.1, beqE_eq h.2]
+  | .and x0 x1, .and y0 y1, h => by
+    simp only [beqC, Bool.and_eq_true, beq_iff_eq] at h
+    rw [beqC_eq h.1, beqC_eq h.2]
+  | .or x0 x1, .or y0 y1, h => by
+    simp only [beqC, Bool.and_eq_true, beq_iff_eq] at h
+    rw [beqC_eq h.1, beqC_eq h.2]
+  | .not x0, .not y0, h => by
+    simp only [beqC, Bool.and_eq_true, beq_iff_eq] at h
+    rw [beqC_eq h]
+  | .le _ _, .lt _ _, h => by simp [beqC] at h
+  | .le _ _, .eq _ _, h => by simp [beqC] at h
+  | .le _ _, .and _ _, h => by simp [beqC] at h
+  | .le _ _, .or _ _, h => by simp [beqC] at h
+  | .le _ _, .not _, h => by simp [beqC] at h
+  | .lt _ _, .le _ _, h => by simp [beqC] at h
+  | .lt _ _, .eq _ _, h => by simp [beqC] at h
+  | .lt _ _, .and _ _, h => by simp [beqC] at h
+  | .lt _ _, .or _ _, h => by simp [beqC] at h
+  | .lt _ _, .not _, h => by simp [beqC] at h
+  | .eq _ _, .le _ _, h => by simp [beqC] at h
+  | .eq _ _, .lt _ _, h => by simp [beqC] at h
+  | .eq _ _, .and _ _, h => by simp [beqC] at h
+  | .eq _ _, .or _ _, h => by simp [beqC] at h
+  | .eq _ _, .not _, h => by simp [beqC] at h
+  | .and _ _, .le _ _, h => by simp [beqC] at h
+  | .and _ _, .lt _ _, h => by simp [beqC] at h
+  | .and _ _, .eq _ _, h => by simp [beqC] at h
+  | .and _ _, .or _ _, h => by simp [beqC] at h
+  | .and _ _, .not _, h => by simp [beqC] at h
+  | .or _ _, .le _ _, h => by simp [beqC] at h
+  | .or _ _, .lt _ _, h => by simp [beqC] at h
+  | .or _ _, .eq _ _, h => by simp [beqC] at h
+  | .or _ _, .and _ _, h => by simp [beqC] at h
+  | .or _ _, .not _, h => by simp [beqC] at h
+  | .not _, .le _ _, h => by simp [beqC] at h
+  | .not _, .lt _ _, h => by simp [beqC] at h
+  | .not _, .eq _ _, h => by simp [beqC] at h
+  | .not _, .and _ _, h => by simp [beqC] at h
+  | .not _, .or _ _, h => by simp [beqC] at h
+end
+
 mutual
 def evalE (env : Nat → Nat) (maps : Nat → Nat → Nat) : E → Nat
   | .var i => env i
@@ -205,7 +404,7 @@ def isCell (m : Nat) (k : Row) : VDef → Bool
   | .cell m' k' => m' == m && same k' k
   | _ => false
 def isTerm (e : E) : VDef → Bool
-  | .term e' => e' == e
+  | .term e' => beqE e' e
   | _ => false
 -- An open choice's column: the table's column for the whole term, if it has one.
 def termCol (tab : List VDef) (e : E) : Option Row := (findIdx (isTerm e) tab).map lunit
@@ -353,7 +552,7 @@ theorem term_col (hM : Model tab env maps x) {e : E} {j : Nat} (h : findIdx (isT
   obtain ⟨d, hd, hv⟩ := findIdx_some h
   rw [hM.1 j d hd]
   cases d with
-  | term e' => simp only [isTerm, beq_iff_eq] at hv; subst hv; rfl
+  | term e' => simp only [isTerm] at hv; have he := beqE_eq hv; subst he; rfl
   | _ => simp [isTerm] at hv
 
 theorem termCol_sound (hM : Model tab env maps x) {e : E} {l : Row} (h : termCol tab e = some l) :
