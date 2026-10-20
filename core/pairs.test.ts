@@ -10,6 +10,7 @@ import {proveLaws} from '../kernel/prove.ts'
 import {everyKey, nat, proveSteps, rule} from './dsl.ts'
 import {scope} from '../kernel/kernel.ts'
 import {distinctNames, distinctNamesLaws, sortedList, sortedListLaws} from '../examples/pairs.ts'
+import {decide, groupLaws, groups, type Held} from '../examples/groups.ts'
 
 let seed = 23
 const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
@@ -151,3 +152,21 @@ test('a law over two keys the kernel accepts holds on every run', () => {
   expect(proven).toBeGreaterThan(10)
   expect(refutedRuns).toBeGreaterThan(10)
 }, 600_000)
+
+// A row that names its effect by place (a read at a value read at the key): two groups decided at every pair at once,
+// its laws proven, each broken variant refused with a run, and the compiled rule against every pair of the pair rule.
+test('two groups of effects: every pair at once, proven, and the same as checking every pair', () => {
+  expect(proveSteps(groups(), [], groupLaws())).toMatchObject({proven: true, checked: true})
+  for (const bug of ['diagonal only', 'skips the last left effect', 'first right effect only', 'within one side'] as const) {
+    const g = groups(bug), v = proveSteps(g, [], groupLaws(g))
+    expect(v.proven).toBe(false)
+    expect(v.run?.trace.length).toBeGreaterThan(0)
+  }
+  let seed = 3
+  const draw = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+  const held = (): Held => ({effect: draw(4) > 0, ordered: draw(2) === 1, scope: draw(5) === 0 ? {exact: false, names: []} : {exact: true, names: [...new Set(Array.from({length: draw(3) + 1}, () => 2 + draw(4)))]}})
+  for (let n = 0; n < 1000; n++) {
+    const d = decide(Array.from({length: draw(5)}, held), Array.from({length: draw(5)}, held))
+    expect(d.groups).toBe(d.pairs)
+  }
+}, 120_000)

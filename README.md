@@ -13,6 +13,9 @@ the laws it must keep. gdp-wired proves them with no proof to write, shows a rea
 npm install gdp-wired   # or bun add gdp-wired; plain JavaScript with types, Node 20+, Bun or a browser
 ```
 
+New to formal verification? [The guide](https://gdpwired.dev/guide) takes a rule from ordinary TypeScript to a proof in
+seven steps, with recipes for limits, workflows, permissions and orders with line items.
+
 ```ts
 import {min, nat, proveRule, rule, when} from 'gdp-wired'
 
@@ -52,7 +55,8 @@ All of these are proven automatically, and each proof is also a Lean theorem:
 - **Invariants**: a law that holds after every sequence of requests ("spend stays within the budget").
 - **Maps, sets and lists of names**: laws at every key ("no day passes its cap"), sets a request carries, conditions
   about every key or every two keys ("a batch is taken only when its values increase"), lists kept in order
-  (`examples/sets.ts`, `examples/lists.ts`, `examples/pairs.ts`).
+  (`examples/sets.ts`, `examples/lists.ts`, `examples/pairs.ts`), and two groups of items with a set each, decided at
+  every pair at once (`examples/groups.ts`).
 - **Step laws**: what one step does ("a balance only goes down", "a grant adds one"), and laws over up to 64 steps in
   a row (`examples/steps.ts`).
 - **Histories**: sums and queries over a log of requests, like a sliding-window rate limit.
@@ -351,7 +355,7 @@ Proving and checking: a law over 64 steps proves in about 5 s, and Lean checks i
 | `core/` | Machines, the interpreter and JS compiler, the builders, composition (`compose.ts`), the linear solver and its checker, Houdini invariants, models, the first Lean export |
 | `kernel/` | The trusted kernel and the untrusted prover, with soundness fuzz (`kernel.test.ts`, `history.test.ts`) |
 | `lean-kernel/` | The kernel's Lean twin, its soundness proofs, and the exported trees |
-| `examples/` | The builders at work: `domains/` (187 rules across 21 domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `budget.ts`, `gdp.ts` (gdp-ts's example, its checks proven), `datatypes.ts` (records and variants), `lemmas.ts` (recurrences and their lemmas), `invoices.ts` (lists a request carries), `folds.ts` (folds over trees), `trees.ts` (trees and lists of lists in the state), `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `lists.ts`, `sizes.ts`, `liveness.ts`, `steps.ts` (laws over up to 64 steps), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
+| `examples/` | The builders at work: `domains/` (187 rules across 21 domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `guide.ts` (the guide's code), `groups.ts` (two groups decided at every pair), `budget.ts`, `gdp.ts` (gdp-ts's example, its checks proven), `datatypes.ts` (records and variants), `lemmas.ts` (recurrences and their lemmas), `invoices.ts` (lists a request carries), `folds.ts` (folds over trees), `trees.ts` (trees and lists of lists in the state), `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `lists.ts`, `sizes.ts`, `liveness.ts`, `steps.ts` (laws over up to 64 steps), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
 | `docs/` | The comparison with Bend and Lean, and the full scope |
 | `compare/` | The same three rules in gdp-wired, Bend and plain Lean, checked and measured |
 | `research/` | Everything around the library ([`research/README.md`](research/README.md)): the GPU searches (`search/`, `hw/`, `modal-gpu/`), invariant and rank synthesis (`synth/`), relational laws and guard synthesis (`next/`), bit-vector laws (`sat/`), the enumeration and benchmarks (`enum/`, `gpu/`, `perf/`), the first Lean checker (`lean/`) and the first prototype, the audit path (`audit/`) |
@@ -379,7 +383,7 @@ bun test core/compile.test.ts core/runtime.test.ts kernel/history.test.ts
 cd kernel && bun run-kernel.ts && bun test kernel.test.ts
 ```
 
-The whole suite (159 jobs, about 6 minutes of wall time and 22 minutes of job time) runs on [Modal](https://modal.com):
+The whole suite (163 jobs, about 10 minutes of wall time and 46 minutes of job time) runs on [Modal](https://modal.com):
 
 ```sh
 modal run modal/run.py --jobs modal/suite.json --out runs/modal/suite && sh modal/reap.sh

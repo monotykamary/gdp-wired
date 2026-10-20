@@ -80,7 +80,8 @@ export function when(c: Cond, then: TermLike, otherwise: TermLike): Term
 export function when(c: Cond, then: Decimal, otherwise: Decimal | number): Decimal
 export function when(c: Cond, then: Decimal | number, otherwise: Decimal): Decimal
 export function when(c: Cond, then: IntLike, otherwise: IntLike): Int
-export function when<K extends string>(c: Cond, then: Choice<K>, otherwise: Choice<K>): Choice<K>
+export function when<K extends string>(c: Cond, then: Choice<K> | NoInfer<K>, otherwise: Choice<K>): Choice<K>
+export function when<K extends string>(c: Cond, then: Choice<K>, otherwise: Choice<K> | NoInfer<K>): Choice<K>
 export function when(c: Cond, then: Str, otherwise: Str): Str
 export function when<V>(c: Cond, then: Maybe<V>, otherwise: Maybe<V>): Maybe<V>
 export function when(c: Cond, then: Cond, otherwise: Cond): Cond
@@ -96,6 +97,9 @@ export function when(c: Cond, then: unknown, otherwise: unknown): unknown {
     if (Object.keys(then).sort().join() !== Object.keys(otherwise).sort().join()) throw new Error('when: records of other fields')
     return Object.fromEntries(Object.keys(then).map(f => [f, when(c, then[f] as never, otherwise[f] as never)]))
   }
+  // A choice's name beside a choice is that choice's value: when(closing, 'closed', status).
+  if (then instanceof Choice && typeof otherwise === 'string') return when(c, then, then.of(otherwise))
+  if (typeof then === 'string' && otherwise instanceof Choice) return when(c, otherwise.of(then), otherwise)
   if (then instanceof Choice && otherwise instanceof Choice) return new Choice(when(c, then.n, otherwise.n), then.values)
   if (then instanceof Str && otherwise instanceof Str) return then.choose(c, otherwise)
   if (then instanceof Maybe && otherwise instanceof Maybe) return new Maybe(when(c, then.present, otherwise.present), when(c, then.inner as never, otherwise.inner as never))
@@ -330,10 +334,13 @@ export const bool: Kind<Bool> = new BoolKind()
 // One of a few named values, encoded as its index. `match` takes every case (TypeScript checks none is missing).
 export class Choice<K extends string> {
   constructor(readonly n: Term, readonly values: readonly K[]) {}
-  is(k: K): Cond {
+  is(k: K): Cond { return this.n.eq(this.index(k)) }
+  // The value named k, of this choice's kind (to write: when(c, status.of('closed'), status)).
+  of(k: K): Choice<K> { return new Choice(lit(this.index(k)), this.values) }
+  private index(k: K): number {
     const i = this.values.indexOf(k)
     if (i < 0) throw new Error(`${k} is not one of ${this.values.join(', ')}`)
-    return this.n.eq(i)
+    return i
   }
   match(cases: {[k in K]: () => Cond}): Cond
   match(cases: {[k in K]: () => TermLike}): Term
@@ -1876,18 +1883,18 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // Against the code it describes, step by step: `reference.init(params)` and `reference.step(params, state, request)`,
   // with requests drawn by their kinds (or `draw`), must hold the same values as the compiled rule (decoded: integers and
   // decimals as numbers) for every field the reference's state has, after every step of `trials` runs of `depth`.
-  compare<St extends Record<string, Raw>>(reference: {init: (params: {[k in keyof P]: Raw}) => St, step: (params: {[k in keyof P]: Raw}, st: St, request: {[k in keyof I]: Raw}) => St},
-    opts: Draws<{[k in keyof I]: Raw}> & {params?: (rand: Rand) => {[k in keyof P]: Raw}, depth?: number} = {}): Agreement {
+  compare<St extends Record<string, Raw>>(reference: {init(params: Value<P>): St, step(params: Value<P>, st: St, request: RawInputs<I>): St},
+    opts: Draws<RawInputs<I>> & {params?: (rand: Rand) => Value<P>, depth?: number} = {}): Agreement {
     const s = this.spec, rand = opts.rand ?? seeded(5), bound = opts.bound ?? 100, gen = this.compiled()
     let checked = 0
     const sample = (kinds: [string, Kind<unknown>][]) => Object.fromEntries(kinds.map(([n, k]) => [n, k.sample(rand, bound)]))
     for (let trial = 0; trial < (opts.trials ?? 200); trial++) {
-      const params = (opts.params?.(rand) ?? sample(s.params)) as {[k in keyof P]: Raw}, ps = this.encodeParams(params)
+      const params = (opts.params?.(rand) ?? sample(s.params)) as Value<P>, ps = this.encodeParams(params as never)
       let ours = gen.init(ps), theirs = reference.init(params)
       const edges = trial === 0 ? opts.edges ?? [] : []
       for (let d = 0; d < (opts.depth ?? 10) + edges.length; d++) {
-        const request = edges[d] ?? opts.draw?.(rand) ?? sample(s.inputs) as {[k in keyof I]: Raw}
-        ours = gen.step(ps, ours, this.encodeInput(request as never, params)); theirs = reference.step(params, theirs, request)
+        const request = edges[d] ?? opts.draw?.(rand) ?? sample(s.inputs) as RawInputs<I>
+        ours = gen.step(ps, ours, this.encodeInput(request as never, params as never)); theirs = reference.step(params, theirs, request)
         const got = this.decode(ours)
         for (const [field, want] of Object.entries(theirs)) {
           checked++
@@ -2002,6 +2009,9 @@ type Result<T> = {[k in keyof T]: ResultOf<T[k]>}
 type ValueOf<V> = 0 extends 1 & V ? number : [V] extends [Cond] ? boolean : [V] extends [Choice<infer K>] ? K : [V] extends [Str] ? string : [V] extends [Variant<infer C, infer T>] ? CaseRaw<C, T> : [V] extends [Maybe<infer W>] ? ValueOf<W> | null : [V] extends [Term | number | Int | Decimal] ? number : [V] extends [Record<string, unknown>] ? {[f in keyof V]: ValueOf<V[f]>} : number
 type CaseRaw<C extends Cases, T extends string = 'tag'> = {[k in keyof C]: {[t in T]: k} & {[f in keyof C[k]]: C[k][f] extends Kind<infer V> ? ValueOf<V> : never}}[keyof C]
 type Value<T> = {[k in keyof T]: ValueOf<T[k]>}
+// A request's runtime values: a carried map as a set of keys (or an array of them, or a map of key to natural), a carried
+// list as an array of its items' values, anything else as its kind's value (what encodeInput takes).
+type RawInputs<T> = {[k in keyof T]: T[k] extends MapRef ? ReadonlySet<number> | readonly number[] | ReadonlyMap<number, number> : T[k] extends CarriedList<infer V, infer _F> ? readonly ValueOf<V>[] : ValueOf<T[k]>}
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Field = Term | Cond | Int | Decimal | Choice<string> | Str | Variant<any, any> | Maybe<any> | {[f: string]: Field | number}
 // The kind a result field is kept in.
@@ -2025,21 +2035,21 @@ export class Fun<P extends Obj = {}, I extends Obj = {}, O extends Obj = {}> {
   }
   // Whenever the arguments (and the result) meet `given`, the result meets `then`.
   law(name: string, given: (env: P & I, out: O) => Cond | Cond[], then: (out: O, env: P & I) => Cond): Decision {
-    return lawOfFun(this, this.r.decide(name, env => given(env, this.result(env) as never), env => then(this.result(env) as never, env)))
+    return lawOfFun(this as never, this.r.decide(name, env => given(env, this.result(env) as never), env => then(this.result(env) as never, env)))
   }
   // A law about two calls under the same params: `then(outA, outB, a, b)` given `given(a, b)` (noninterference, say).
   relate(name: string, given: (a: P & I, b: P & I) => Cond | Cond[], then: (outA: O, outB: O, a: P & I, b: P & I) => Cond): Decision {
-    return lawOfFun(this, this.r.relate(name, given, (a, b) => then(this.result(a) as never, this.result(b) as never, a, b)))
+    return lawOfFun(this as never, this.r.relate(name, given, (a, b) => then(this.result(a) as never, this.result(b) as never, a, b)))
   }
 
   // Against the code it describes: `reference` called with the same arguments (drawn by their kinds, or by `draw`, the
   // `edges` first) must return the same value for every field it returns (a field it leaves out is not compared). The
   // check for an encoding: that the terms here are what the real function computes, on its real inputs.
   //   cap.compare(({left, local}) => ({out: realCap(left, local)}), {edges: [{left: 2 ** 32 + 5, local: 10}]})
-  compare(reference: (values: {[k in keyof I]: Raw}, params: {[k in keyof P]: Raw}) => Partial<Value<O>>, opts: Draws<{[k in keyof I]: Raw}> & {params?: {[k in keyof P]: Raw}} = {}): Agreement {
-    const rand = opts.rand ?? seeded(5), bound = opts.bound ?? 1000, params = (opts.params ?? {}) as {[k in keyof P]: Raw}, kinds = this.r['spec'].inputs
+  compare(reference: (values: Value<I>, params: Value<P>) => Partial<Value<O>>, opts: Draws<Value<I>> & {params?: Value<P>} = {}): Agreement {
+    const rand = opts.rand ?? seeded(5), bound = opts.bound ?? 1000, params = (opts.params ?? {}) as Value<P>, kinds = this.r['spec'].inputs
     let checked = 0
-    const draws = [...(opts.edges ?? []), ...Array.from({length: opts.trials ?? 2000}, () => opts.draw?.(rand) ?? Object.fromEntries(kinds.map(([n, k]) => [n, k.sample(rand, bound)])) as {[k in keyof I]: Raw})]
+    const draws = [...(opts.edges ?? []), ...Array.from({length: opts.trials ?? 2000}, () => opts.draw?.(rand) ?? Object.fromEntries(kinds.map(([n, k]) => [n, k.sample(rand, bound)])) as Value<I>)]
     for (const values of draws) {
       const ours = this.run(values, params) as Record<string, unknown>, theirs = reference(values, params) as Record<string, unknown>
       for (const [field, want] of Object.entries(theirs)) {
@@ -2123,7 +2133,9 @@ export const loop = (name: string): LoopRule => new LoopRule({name, params: [], 
 
 // --- proving ---------------------------------------------------------------------------------------------------------
 
-export type Verdict = {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>}
+// `run`: a real run from the start that breaks the law (params, and each request in order, a carried map as its cells),
+// when a few random runs found one before the prover ran.
+export type Verdict = {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}}
 // A verdict that isn't a checked proof, as the error a lemma, a guard or a gate is refused with (the verdict on `.verdict`).
 export class Unproven extends Error {
   constructor(what: string, readonly verdict: Verdict) {
@@ -2142,11 +2154,51 @@ const goalsVerdict = (goals: Goal[]): Verdict => {
 }
 // The kinds' laws first, those the caller didn't pass already (by name).
 const withKinds = (r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[]): Law[] => [...r.kindLaws().filter(k => !laws.some(l => l.name === k.name)), ...laws]
+// A real run from the start that breaks a law or a step law, from a few random runs (each request drawn by its kinds,
+// those the rule's assumption refuses skipped): a false law is refused at once, with the run, where the symbolic search
+// would have to decide every case of its goal to reach one. Nothing here is trusted; a run it finds is a run the
+// interpreter took. A rule that reads functions is skipped: the kernel knows them only by their facts (a recurrence's
+// induction machine reads the function it proves things about), so a run computing them proves nothing about the goal.
+const refuteBudget = {trials: 60, depth: 6, bound: 3, ms: 150}
+function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[] = []): {goal: string, witness: Record<string, number>, run: {params: Record<string, number>, trace: Record<string, unknown>[]}} | undefined {
+  const m = r.machine
+  if (Object.keys(m.fns ?? {}).length || m.facts?.length) return undefined
+  const run = interpret(m), rand = seeded(13), until = performance.now() + refuteBudget.ms, bound = refuteBudget.bound
+  const shown = (input: Request) => Object.fromEntries(Object.entries(input).map(([n, x]) => [n, typeof x === 'number' ? x : Object.fromEntries(x as ReadonlyMap<number, number>)]))
+  try {
+    for (let trial = 0; trial < refuteBudget.trials && performance.now() < until; trial++) {
+      const params = r.randomParams(rand, bound)
+      if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) continue
+      const watching = [...laws, ...stepLaws].map(w => ({w, on: watch(m, run, w, params, bound)}))
+      let st = run.init(params)
+      const trace: Request[] = []
+      // The witness: the params, the state the breaking step starts from (or the start) and its request's own values.
+      const broken = (w: Law | StepLaw, at: string, before: State, input?: Request) =>
+        ({goal: `${w.name} ${at}`, witness: {...params, ...before.scalars, ...(input ? numbersOf(input) : {})}, run: {params, trace: trace.map(shown)}})
+      for (const {w, on} of watching) if (!('then' in w) && !on.start(st)) return broken(w, '@start', st)
+      for (let d = 0, tries = 0; d < refuteBudget.depth && tries < 40; tries++) {
+        const input = r.randomInput(rand, bound, params)
+        if (!allowed(m, run, params, st, input)) continue
+        d++
+        const next = run.step(params, st, input)
+        trace.push(input)
+        for (const {w, on} of watching) if (!on.step(st, input, next)) return broken(w, !('then' in w) ? '@step' : (w.steps ?? 1) > 1 ? `@${w.steps} steps` : '@step law', st, input)
+        st = next
+      }
+    }
+  } catch { return undefined }
+  return undefined
+}
+const refutedVerdict = (out: NonNullable<ReturnType<typeof refuteByRuns>>): Verdict => ({proven: false, checked: false, goal: out.goal, stuck: 'sat', witness: out.witness, run: out.run})
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[]): Verdict {
+  const refuted = refuteByRuns(r, laws)
+  if (refuted) return refutedVerdict(refuted)
   const out = proveLaws(r.machine, withKinds(r, laws))
   return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[]): Verdict {
+  const refuted = refuteByRuns(r, laws, stepLaws)
+  if (refuted) return refutedVerdict(refuted)
   const out = proveStepLaws(r.machine, withKinds(r, laws), stepLaws)
   return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
 }

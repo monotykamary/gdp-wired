@@ -107,12 +107,19 @@ const solveP = (rows: Parameters<typeof solve>[0], maxRows?: number): ReturnType
   return out
 }
 
+// PROVE_TRACE=1 logs each goal grown from its root (hypotheses, nodes, time, outcome) to stderr.
+const proveTrace = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.PROVE_TRACE
 // `why`, when the budget ran out: which limit, at what size, and what usually helps.
 export type Outcome = {tree: Tree, nodes: number} | {stuck: 'sat' | 'unknown', witness?: Record<string, number>, path: Path, why?: string}
 
 // The budget: 200,000 nodes and, by default, a second per hypothesis (at least 20 seconds) per goal; past either the goal
 // is left `unknown`. A goal with many instances (a law about two keys at its pairs) has that many more rows per leaf.
 export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number, until?: number} = {nodes: 0, until: performance.now() + Math.max(20_000, 1_000 * goal.hyps.length)}): Outcome {
+  if (proveTrace && !path.size && !budget.nodes) {
+    const t = performance.now(), out = growRoot(goal, path, budget)
+    console.error(`[grow] ${goal.name}: ${goal.hyps.length} hyps, ${budget.nodes} nodes, ${Math.round(performance.now() - t)} ms, ${'tree' in out ? 'proven' : `${out.stuck}${out.why ? ` (${out.why})` : ''}`}`)
+    return out
+  }
   if (!profile.on || path.size || budget.nodes) return growRoot(goal, path, budget)
   const t = performance.now(), s0 = profile.solves, m0 = profile.solveMs, r0 = profile.rowsMs, n0 = profile.nodes
   const out = growRoot(goal, path, budget)

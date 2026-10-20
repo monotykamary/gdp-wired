@@ -5,6 +5,24 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+- A false law is refused at once, with a real run: `proveRule` and `proveSteps` first take a few random runs from the
+  start (150 ms at most) and watch every law and step law on them; a run that breaks one comes back as the verdict's
+  `run` (the params and each request in order) with `stuck: 'sat'`. The symbolic search had to decide every case of a
+  goal to reach a model, and a goal with many instances (a condition at every two keys, read at hundreds of key terms)
+  ran out its budget first: a broken variant of the resource groups below took over 10 minutes and now takes
+  milliseconds. Rules that read functions known by their facts are left to the prover.
+- Two groups of effects decided at every pair at once (`examples/groups.ts`): each group's effects a list, each scope
+  as rows (the effect's place, a name), so a row reads its effect at the place it names inside a condition at every two
+  keys. Its four laws prove in about 3 s each; the compiled rule says what checking every pair with the pair rule says
+  on 2,000 drawn groups; pairs on the diagonal only, a skipped last effect, the first effect only and a group against
+  itself are each refused with a run. Lean checks the four laws, one suite job each (`lean-groups-0` to `-3`, 2.7 to
+  6.3 minutes on 4 vCPU); the suite is 163 jobs, 575 s of wall time and 2,741 s of job time (`runs/modal/refute3`).
+- `when(c, 'closed', status)`: a choice's name beside a choice of that kind is its value (no more
+  `new Choice(lit(2), status.values)`), and `status.of('closed')` names one directly.
+- `rule.compare` and `fun.compare` take the reference with the runtime types of the params and inputs (a natural as a
+  `number`, a choice as its names, a flag as a `boolean`, a carried list as an array of its items), so a reference
+  needs no casts.
+- `examples/guide.ts`: the code of the guide at gdpwired.dev/guide, run by the suite.
 - `search` tries every value of a small kind (a choice, a yes/no, an `upTo` of at most 15), whatever its bound: a
   choice's fifth case was out of reach at the default bound of 2. The bound still widens naturals.
 

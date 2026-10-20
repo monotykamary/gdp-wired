@@ -771,6 +771,38 @@
 "cmd": "ONLY=searchtree,sheet bun lean-kernel/package-check.ts /tmp/leanpkg && cd /tmp/leanpkg && lake build 2>&1 | grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' | tail -25; s=${PIPESTATUS[0]}; echo lake-exit $s; exit $s"
 },
 {
+"name": "lean-groups-0",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800,
+"cmd": "ONLY=groups0 bun lean-kernel/package-check.ts /tmp/leanpkg && cd /tmp/leanpkg && lake build 2>&1 | grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' | tail -25; s=${PIPESTATUS[0]}; echo lake-exit $s; exit $s"
+},
+{
+"name": "lean-groups-1",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800,
+"cmd": "ONLY=groups1 bun lean-kernel/package-check.ts /tmp/leanpkg && cd /tmp/leanpkg && lake build 2>&1 | grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' | tail -25; s=${PIPESTATUS[0]}; echo lake-exit $s; exit $s"
+},
+{
+"name": "lean-groups-2",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800,
+"cmd": "ONLY=groups2 bun lean-kernel/package-check.ts /tmp/leanpkg && cd /tmp/leanpkg && lake build 2>&1 | grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' | tail -25; s=${PIPESTATUS[0]}; echo lake-exit $s; exit $s"
+},
+{
+"name": "lean-groups-3",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800,
+"cmd": "ONLY=groups3 bun lean-kernel/package-check.ts /tmp/leanpkg && cd /tmp/leanpkg && lake build 2>&1 | grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' | tail -25; s=${PIPESTATUS[0]}; echo lake-exit $s; exit $s"
+},
+{
 "name": "compose",
 "cmd": "bun test compose.test.ts 2>&1 && cd .. && bun examples/composition.ts 2>&1",
 "cwd": "core",

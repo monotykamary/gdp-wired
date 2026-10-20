@@ -7,6 +7,7 @@ Every prove call returns `{proven, checked, goal?, stuck?, witness?, why?}`.
 | `proven: true, checked: true` | The kernel checked a proof of every goal. | Done. Keep the broken variant as a test. |
 | `proven: true, checked: false` | The prover's tree was rejected by the kernel. | A bug in gdp-wired: report it with the rule. Never ship on this. |
 | `stuck: 'sat'` at `<law> @start` | The law is false in the start state for the witness's params. | Fix the start state, the law, or add `.pre` if those params are impossible. |
+| `stuck: 'sat'` with `run` | A few random runs found a real run from the start that breaks the law: `run.params` and each request in `run.trace`. | The rule (or the law) is wrong. Replay the run with `rule.interpreter()`. |
 | `stuck: 'sat'` at `<law> @step` | Some state where the laws hold steps to one where this law fails. The witness may be unreachable. | Run `search` (below). |
 | `stuck: 'unknown'` with `why` | The prover's budget ran out. `why` says which limit and what helps. | Usually: fewer steps in a k-step law, or split a law into laws about fewer conditions. |
 

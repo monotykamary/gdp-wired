@@ -13,6 +13,7 @@ import {invoiceLaws, invoiceSteps, invoices, metered, meteredLaws} from '../exam
 import {orgChart, orgChartLaws, rollup, rollupLaws, signoffLaws, signoffs} from '../examples/folds.ts'
 import {searchTree, searchTreeLaws, sheet, sheetLaws} from '../examples/trees.ts'
 import {distinctNames, distinctNamesLaws, sortedList, sortedListLaws} from '../examples/pairs.ts'
+import {groupLaws, groups} from '../examples/groups.ts'
 import {area, areaLaws, counter, counterLaws, escalation, escalationLaws, fillMeter, fillMeterLaws, ladder, ladderLaws, ledger, ledgerLaws, pump, pumpLive, retries, retryLaws, retrySteps, tank, tankLaws} from '../examples/lemmas.ts'
 import {team, teamLaws, teamSteps} from '../examples/sizes.ts'
 import {allDone, batchLaws, batches, everyTaggedTicket, taggedLaws, taggedTickets, everyLoggedTicket, everyRecountedTicket, everyReview, everyTicket, loggedLaws, loggedTickets, recounted, recountedLaws, reviewLaws, reviews, ticketLaws, tickets} from '../examples/liveness.ts'
@@ -38,9 +39,10 @@ const pages = loop('pagination').params({total: nat}).inputs({page: nat}).state(
 
 const auth = authority()
 // ONLY=id,id,... exports just those items (a quicker check while working on one). The tables of nodes take Lean a few
-// minutes each, so they are checked on their own (the suite's lean-nodes job): left out unless ONLY names them.
+// minutes each, so they are checked on their own (the suite's lean-nodes job), and so are the resource groups' laws, one
+// per job (lean-groups-0..3, a quarter of an hour together): left out unless ONLY names them.
 const only = process.env.ONLY?.split(',')
-const separately = ['searchtree', 'sheet']
+const separately = ['searchtree', 'sheet', 'groups0', 'groups1', 'groups2', 'groups3']
 const file = toLean(([
   {id: 'caps', machine: caps.machine, laws: [dayCap], stepLaws: [onlyUp, twice]},
   {id: 'window', machine: window.machine, laws: [window.law('window ceiling', ({ours, c}) => ours.atMost(c))]},
@@ -77,6 +79,10 @@ const file = toLean(([
   {id: 'taxwithin', goal: invoices().decide('the taxable part is within the total', () => [], ({Lines}) => Lines.fold.taxed.atMost(Lines.fold.total)).goal},
   {id: 'sortedlist', machine: sortedList().machine, laws: sortedListLaws()},
   {id: 'distinctnames', machine: distinctNames().machine, laws: distinctNamesLaws()},
+  {id: 'groups0', machine: groups().machine, laws: [], stepLaws: [groupLaws()[0]!]},
+  {id: 'groups1', machine: groups().machine, laws: [], stepLaws: [groupLaws()[1]!]},
+  {id: 'groups2', machine: groups().machine, laws: [], stepLaws: [groupLaws()[2]!]},
+  {id: 'groups3', machine: groups().machine, laws: [], stepLaws: [groupLaws()[3]!]},
   {id: 'searchtree', machine: searchTree().machine, laws: [...searchTree().kindLaws(), ...searchTreeLaws()]},
   {id: 'sheet', machine: sheet().machine, laws: [...sheet().kindLaws(), ...sheetLaws()]},
   {id: 'signoffs', fold: signoffs().fold, laws: signoffLaws()},
