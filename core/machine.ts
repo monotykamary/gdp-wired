@@ -173,11 +173,15 @@ function breakKeys(b: Breaks, env: Env, st: State, m: Machine): number[] {
 // of them set aside) together, each case with the n - 1 keys after it. Every stretch where no read moves and no
 // comparison turns starts at one of those cases (a breakpoint, the key after one, or 0), so the keys after its start
 // place n keys there in every order they can take; keys read only as a map's key need only the cells and one past them.
+// Keys read only as a map's key and compared with each other: a read changes only at a cell, so each cell, the n keys
+// after it (the stretch up to the next cell), 0 and the n after it, and past the last cell are every case.
 function tupleKeys(c: Extract<C, {op: 'all'}>, env: Env, st: State, m: Machine): number[] {
   const names = boundOf(c)
   if (names.every(n => plainKey(c.c, n))) return keysAt(st, mapsIn(c.c))
   if (names.length === 1) return breakKeys(breaksOf(c.c, c.key), env, st, m)
-  const body = crossFree(c.c, names), parts = names.map(n => breaksOf(body, n))
+  const body = crossFree(c.c, names)
+  if (names.every(n => plainKey(body, n))) return spread([0, ...keysAt(st, mapsIn(c.c))], names.length + 1)
+  const parts = names.map(n => breaksOf(body, n))
   return spread(breakKeys({reads: parts.flatMap(b => b.reads), cmps: parts.flatMap(b => b.cmps)}, env, st, m), names.length)
 }
 const spread = (keys: number[], n: number): number[] => [...new Set(keys.flatMap(k => Array.from({length: n}, (_, i) => k + i)))].sort((a, b) => a - b)
@@ -423,7 +427,9 @@ export function compileJs(m: Machine): string {
   const tupleJs = (c: Extract<C, {op: 'all'}>): string => {
     const names = boundOf(c)
     if (names.every(n => plainKey(c.c, n))) return `$keys(maps, ${JSON.stringify(mapsIn(c.c).filter(mp => !fns.includes(mp)))})`
-    const body = crossFree(c.c, names), parts = names.map(n => breaksOf(body, n))
+    const body = crossFree(c.c, names)
+    if (names.every(n => plainKey(body, n))) return `$spread([0, ...$keys(maps, ${JSON.stringify(mapsIn(c.c).filter(mp => !fns.includes(mp)))})], ${names.length + 1})`
+    const parts = names.map(n => breaksOf(body, n))
     return `$spread(${breaksJs({reads: parts.flatMap(b => b.reads), cmps: parts.flatMap(b => b.cmps)})}, ${names.length})`
   }
   const every = (w: {each: string, value: E}) => { const keys = keysJs(w.value, w.each), dense = !plainKey(w.value, w.each), outer = bound; bound = {[w.each]: 'k'}; const body = ex(w.value); bound = outer; return `${dense ? '$dense' : '$every'}(${keys}, k => ${body})` }

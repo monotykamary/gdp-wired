@@ -22,16 +22,17 @@ const keyTerm = (key: string, plain: boolean): E => (plain ? v(key) : pick<() =>
   () => ({op: 'add', a: pick([v('b'), c(rand(4))]), b: v(key)}),
   () => ({op: 'sub', a: v(key), b: pick([v('a'), c(rand(4))])}),
 ])())
-const cond = (keys: string[], plain: boolean, depth: number): C => {
+const cond = (keys: string[], plain: boolean, depth: number, cross = false): C => {
   const atom = (): E => pick<() => E>([() => ({op: 'get', map: pick(['I', 'J']), key: keyTerm(pick(keys), plain)}), () => v(pick(['a', 'b'])), () => c(rand(5))])()
   if (depth === 0 || rand(3) === 0) {
     const op = pick(['<', '<=', '='] as const), [x, y] = [pick(keys), pick(keys)]
-    // Two keys compared plainly, a key term compared with a term that reads no key, or two reads.
-    const r = plain ? 2 : rand(3)
+    // Two keys compared plainly, a key term compared with a term that reads no key, or two reads (plain trials: the
+    // keys only as a map's key, and compared with each other or not at all).
+    const r = plain ? (cross ? pick([0, 2, 2]) : 2) : rand(3)
     return r === 0 && x !== y ? {op, a: v(x), b: v(y)} : r === 1 ? {op, a: keyTerm(x, false), b: pick([v('a'), v('b'), c(rand(12))])} : {op, a: atom(), b: atom()}
   }
-  return pick<() => C>([() => ({op: 'and', xs: [cond(keys, plain, depth - 1), cond(keys, plain, depth - 1)]}), () => ({op: 'or', xs: [cond(keys, plain, depth - 1), cond(keys, plain, depth - 1)]}),
-    () => ({op: 'not', x: cond(keys, plain, depth - 1)})])()
+  return pick<() => C>([() => ({op: 'and', xs: [cond(keys, plain, depth - 1, cross), cond(keys, plain, depth - 1, cross)]}), () => ({op: 'or', xs: [cond(keys, plain, depth - 1, cross), cond(keys, plain, depth - 1, cross)]}),
+    () => ({op: 'not', x: cond(keys, plain, depth - 1, cross)})])()
 }
 
 type Env = Record<string, number>
@@ -68,7 +69,7 @@ const bruteAll = (body: C, keys: string[], top: number, env: Env, I: Map<number,
 test('a condition at every two keys or three: decided on a few keys per breakpoint, as brute force decides it', () => {
   let trues = 0, falses = 0
   for (let trial = 0; trial < 500; trial++) {
-    const keys = trial % 10 === 9 ? ['k', 'j', 'h'] : ['k', 'j'], plain = trial % 4 === 0, body = cond(keys, plain, 3)
+    const keys = trial % 10 === 9 ? ['k', 'j', 'h'] : ['k', 'j'], plain = trial % 4 < 2, body = cond(keys, plain, 3, trial % 4 === 1)
     const m: Machine = {name: 'pairs', params: [], inputs: ['a', 'b'], state: {r: c(0)}, inputMaps: ['I', 'J'],
       step: {flags: {f: {op: 'all', key: keys[0]!, keys: keys.slice(1), c: body}}, state: {r: {op: 'if', c: {op: 'flag', name: 'f'}, then: c(1), else: c(0)}}}}
     const run = interpret(m), gen = loadJs(m)
