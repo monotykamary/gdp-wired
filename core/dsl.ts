@@ -795,6 +795,25 @@ export type ListFold<V, P = any> = {from: number | ((p: P) => TermLike), step: (
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ListLemma<P = any> = (acc: Record<string, Term>, i: Term, p: P) => Cond
 const fromOf = <V>(d: ListFold<V>, p: Record<string, unknown>): TermLike => (typeof d.from === 'number' ? d.from : d.from(p))
+// The keys a condition reads any of these maps at, as terms.
+function keysRead(cs: C[], maps: string[]): Term[] {
+  const out: Term[] = []
+  const e = (t: E): void => {
+    if (t.op === 'get') { if (maps.includes(t.map)) out.push(new Term(t.key)); e(t.key) }
+    else if (t.op === 'if') { c(t.c); e(t.then); e(t.else) }
+    else if (t.op === 'mul') e(t.a)
+    else if (t.op === 'add' || t.op === 'sub' || t.op === 'min' || t.op === 'max' || t.op === 'prod') { e(t.a); e(t.b) }
+  }
+  const c = (x: C): void => {
+    if (x.op === 'not') c(x.x)
+    else if (x.op === 'and' || x.op === 'or') x.xs.forEach(c)
+    else if (x.op === 'all') c(x.c)
+    else if (x.op !== 'flag') { e(x.a); e(x.b) }
+  }
+  cs.forEach(c)
+  return out
+}
+const uniqueTerms = (ts: Term[]): Term[] => [...new Map(ts.map(t => [JSON.stringify(t.e), t])).values()]
 export class CarriedList<V, Fd extends string = never> {
   readonly fold: Record<Fd, Term>
   // `params`: the params' values the folds read (by their kinds: terms for the kernel, constants to encode a request),
@@ -813,15 +832,16 @@ export class CarriedList<V, Fd extends string = never> {
   increasing(by: (item: V) => Term): Cond { return everyKey(k => k.plus(1).lt(this.len).implies(by(this.at(k)).lt(by(this.at(k.plus(1)))))) }
   // What every request is assumed to meet: each fold's start, and at every key one condition (the item's own laws and
   // each fold's step below the length, each lemma up to it), so the prover closes one quantifier, not one per part.
-  equations(): Cond[] {
+  equations(): Cond[] { return [...this.starts(), ...(this.keyed ? [everyKey(k => this.atKey(k))] : [])] }
+  // The same at the keys given, without the quantifier: what a decision assumes of the list (Rule.decide).
+  equationsAt(keys: Term[]): Cond[] { return [...this.starts(), ...(this.keyed ? keys.map(k => this.atKey(k)) : [])] }
+  private starts(): Cond[] { return (Object.entries(this.folds) as [string, ListFold<V>][]).map(([f, d]) => this.map(`${this.name}$${f}`).at(0).eq(fromOf(d, this.p()))) }
+  private get keyed(): boolean { return this.kind.invariant(this.kind.value(this.name)).length + Object.keys(this.folds).length + Object.keys(this.lemmas).length > 0 }
+  private atKey(k: Term): Cond {
     const folds = Object.entries(this.folds) as [string, ListFold<V>][], lemmas = Object.values(this.lemmas)
-    const at = (k: Term) => {
-      const x = this.at(k), steps = folds.map(([f, d]) => this.map(`${this.name}$${f}`).at(k.plus(1)).eq(d.step(this.map(`${this.name}$${f}`).at(k), x, this.p())))
-      const below = [...this.kind.invariant(x), ...steps]
-      return all(...(below.length ? [k.lt(this.len).implies(all(...below))] : []), ...(lemmas.length ? [k.atMost(this.len).implies(all(...lemmas.map(l => l(this.running(k), k, this.p()))))] : []))
-    }
-    const any = this.kind.invariant(this.kind.value(this.name)).length + folds.length + lemmas.length > 0
-    return [...folds.map(([f, d]) => this.map(`${this.name}$${f}`).at(0).eq(fromOf(d, this.p()))), ...(any ? [everyKey(at)] : [])]
+    const x = this.at(k), steps = folds.map(([f, d]) => this.map(`${this.name}$${f}`).at(k.plus(1)).eq(d.step(this.map(`${this.name}$${f}`).at(k), x, this.p())))
+    const below = [...this.kind.invariant(x), ...steps]
+    return all(...(below.length ? [k.lt(this.len).implies(all(...below))] : []), ...(lemmas.length ? [k.atMost(this.len).implies(all(...lemmas.map(l => l(this.running(k), k, this.p()))))] : []))
   }
   // Whether a fold reads the params (its start a function, or its step taking them).
   private get readsParams(): boolean { return (Object.values(this.folds) as ListFold<V>[]).some(d => typeof d.from === 'function' || d.step.length > 2) }
@@ -1566,11 +1586,15 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   }
 
   // A decision: whenever the params and the request meet `given`, `then` holds. Decisions don't read the state; the
-  // functions' facts are assumed at the arguments the decision reads them at.
+  // functions' facts are assumed at the arguments the decision reads them at, and a carried list's equations (each
+  // fold's start, its step and its lemmas) at the list's end, the key before it and every key the decision reads it at.
   decide(name: string, given: (env: P & I) => Cond | Cond[], then: (env: P & I) => Cond): Decision {
     const env = this.env({flags: false, state: false, queries: false}) as never
     const g = given(env), hyps = [...this.kindAssumptions(), ...this.spec.pre.map(f => f(env as never).c), ...this.spec.assume.map(f => f(env as never).c), ...(Array.isArray(g) ? g : [g]).map(c => c.c)]
-    const t = then(env).c, goal: Goal = {name, hyps: [...hyps, {op: 'not', x: t}]}
+    const t = then(env).c
+    const lists = (this.spec.lists2 ?? []).map(([n]) => (env as Record<string, unknown>)[n] as CarriedList<unknown>)
+    const listed = lists.flatMap(l => l.equationsAt(uniqueTerms([l.len, l.len.minus(1), ...keysRead([...hyps, t], l.maps)])).map(c => c.c))
+    const goal: Goal = {name, hyps: [...listed, ...hyps, {op: 'not', x: t}]}
     const facts = this.spec.fns?.length || this.spec.facts?.length ? factsFor(this.machine, goal) : []
     return withSource({name, rule: this as Rule<Obj>, given: hyps, then: t, goal: {name, hyps: [...facts, ...goal.hyps]}}, {decision: {given: given as never, then: then as never, own: Array.isArray(g) ? g.length : 1}})
   }
@@ -2133,7 +2157,9 @@ export function crossCheckDecision(d: Decision, opts: {trials?: number, bound?: 
   let checked = 0
   for (let i = 0; i < (opts.trials ?? 500); i++) {
     const ps = r.randomParams(rand, bound), input = r.randomInput(rand, bound, ps), values = {...ps, ...numbersOf(input)}
-    const st: State = {scalars: {}, maps: Object.fromEntries(Object.entries(input).filter((e): e is [string, ReadonlyMap<number, number>] => typeof e[1] !== 'number').map(([n, cells]) => [n, new Map(cells)]))}
+    // a map a request carries reads 0 past its cells (a list's encoding keeps no 0 cell)
+    const carried = Object.entries(input).filter((e): e is [string, ReadonlyMap<number, number>] => typeof e[1] !== 'number')
+    const st: State = {scalars: {}, maps: Object.fromEntries(carried.map(([n, cells]) => [n, new Map(cells)])), defaults: Object.fromEntries(carried.map(([n]) => [n, 0]))}
     const keys = exactKeys(keysOf(bound, st), values, st)
     const sc: Scope = {vars: values, maps: Object.fromEntries(Object.entries(st.maps).map(([n, cells]) => [n, {cells, dflt: 0}])), keys, flags: {}}
     const [g, t] = inScope(sc, () => { const env = r['env']({flags: false, state: false, queries: false}) as never, g = src.given(env); return [all(...(Array.isArray(g) ? g : [g])).ok, src.then(env).ok] })

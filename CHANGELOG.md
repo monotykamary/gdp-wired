@@ -3,6 +3,18 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+- A law over several steps may read a condition a step kept: an earlier step's condition at every key is assumed at a
+  later step's witness, where the later check would fail (`examples/quantifiers.ts`: a scope normalized, then rechecked
+  against itself, keeps it). The prover tries it when the shared instances don't prove the law; the Lean twin's check
+  lets a quantified flag's keys name a later step's variables (Sets.lean, `sframe_hyps`, proven: where the flag is 1 its
+  condition holds at every key).
+- A decision (`decide`) about a list a request carries assumes the folds' starts, steps and lemmas, at the list's end and
+  wherever it reads the list, as the rule's step does; `crossCheckDecision` reads such a list's maps as 0 past their
+  cells.
+- A compiled module declares only the runtime helpers it calls.
+
 ## 0.12.3
 
 - Lean checks by `native_decide` on request: `toLean(items, {native: true})`, or `GDP_LEAN_NATIVE=1`, or the suite's

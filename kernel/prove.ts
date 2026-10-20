@@ -512,6 +512,16 @@ const flagInstances = (m: Machine, keys: E[], focus: string[] = []): Instances =
   const n = boundOf(c).length
   return [[`?${f}`, n === 1 ? keys : focus.length ? related(keys, focus, n).flat() : tuples(keys, n)]]
 }))
+// A k-step law whose steps keep a condition (a flag that holds at one step and is read again at the next) fails at a
+// later step's witness only where the condition held before: so, per quantified flag over one key, the instances at the
+// law's own keys and that flag's witness at every step (a later step's witness is a key an earlier frame may name, as a
+// flag holds at every key: kernel.ts's checkStepLaws). Few instances, where the shared ones are many and mostly idle.
+const keptAcross = (m: Machine, laws: Law[], inst: Instances, own: E[], k: number): Instances[] => k < 2 ? [] : Object.entries(m.step.flags ?? {}).flatMap(([f, c]) => {
+  if (c.op !== 'all' || c.keys?.length) return []
+  const ws = Array.from({length: k}, (_, i): E => ({op: 'var', name: i ? `w?${f}@${i + 1}` : `w?${f}`})), keys = [...own, ...ws.slice(0, 1)]
+  const keep = new Set(keys.map(e => JSON.stringify(e)))
+  return [Object.fromEntries(Object.entries(inst).map(([n, ks]) => [n, arity(m, laws, n) === 1 ? [...ks.filter(e => keep.has(JSON.stringify(e))), ...(n === `?${f}` ? ws.slice(1) : [])] : ks]))]
+})
 const pairFlags = (m: Machine) => Object.values(m.step.flags ?? {}).some(c => c.op === 'all' && !!c.keys?.length)
 // How many keys each instance of a name takes: a law's, or a quantified flag's (?f).
 const arity = (m: Machine | undefined, laws: Law[], n: string): number => {
@@ -524,7 +534,8 @@ const arity = (m: Machine | undefined, laws: Law[], n: string): number => {
 // several keys), the every-key laws and flags at every key they read a map at (a law about several keys at tuples
 // relating `focus`, the goals' own keys).
 function instancesFor(m: Machine, laws: Law[], build: (inst: Instances) => Goal[], opts: {seed?: E[], focus?: string[], start?: Instances, reads?: boolean} = {}): Instances {
-  let inst: Instances = opts.start ?? (opts.seed ? {...Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, l.keys?.length ? [] : opts.seed!])), ...flagInstances(m, opts.seed, opts.focus)} : {})
+  const seed = opts.seed && [...new Map(opts.seed.map(e => [JSON.stringify(e), e])).values()]
+  let inst: Instances = opts.start ?? (seed ? {...Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, l.keys?.length ? [] : seed!])), ...flagInstances(m, seed, opts.focus)} : {})
   const reads = opts.reads ?? (!opts.seed || shifts(m) || laws.some(l => l.keys?.length) || pairFlags(m))
   for (let round = 0; round < 2; round++) {
     if (m.facts?.length) inst = withFacts(m, inst, fnKeys(m, build(inst)))
@@ -546,7 +557,7 @@ const union = (a: Instances, b: Instances, m?: Machine): Instances => {
   for (const [n, keys] of Object.entries(b)) {
     const k = arity(m, [], n), groups = (ks: E[]) => Array.from({length: Math.floor(ks.length / k)}, (_, t) => ks.slice(t * k, (t + 1) * k))
     const seen = new Set(groups(out[n] ?? []).map(g => JSON.stringify(g)))
-    out[n] = [...(out[n] ?? []), ...groups(keys).filter(g => !seen.has(JSON.stringify(g))).flat()]
+    out[n] = [...(out[n] ?? []), ...groups(keys).filter(g => !seen.has(JSON.stringify(g)) && !!seen.add(JSON.stringify(g))).flat()]
   }
   return out
 }
@@ -651,7 +662,8 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
   // Each step law its own instances, from its own goal: the keys the step and the laws read, and its own (a k-step
   // law's later frames read keys no other step law has); where positions shift or a law is about several keys, the
   // keys its goal reads a map at too. A frame's hypotheses read no name the run introduces later (kernel.ts's
-  // stepZone), so a k-step law drops the keys that read one.
+  // stepZone), so a k-step law drops the keys that read one; but a flag that holds at every key holds at a later step's
+  // key too: where these instances don't prove it, each flag at its own witness at every step is tried (keptAcross).
   const shared = [...readKeys(plain, laws), ...witnesses(plain)], named = [...laws, ...(plain.facts ?? [])], reads = shifts(plain) || laws.some(l => l.keys?.length) || pairFlags(plain)
   const own = (sl: StepLaw): E[] => [...[sl.then, ...(sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when])].flatMap(readKeysC),
     ...[sl.forall, ...(sl.keys ?? [])].flatMap(key => (key ? [{op: 'var', name: key} as E] : []))]
@@ -665,7 +677,12 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
   const trees: Record<string, Tree> = {}
   let nodes = base.nodes, leaves = base.leaves
   for (const sl of stepLaws) for (const goal of stepLawObligations(m, laws, perStep[sl.name] ?? instances, sl)) {
-    const out = grow(goal)
+    let out = grow(goal)
+    // A k-step law that reads a condition kept across its steps: each flag at its own witnesses, at every step.
+    if (!('tree' in out)) for (const kept of keptAcross(plain, laws, perStep[sl.name] ?? instances, own(sl), sl.steps ?? 1)) {
+      const again = grow(stepLawObligations(m, laws, kept, sl)[0]!)
+      if ('tree' in again) { out = again; perStep[sl.name] = kept; break }
+    }
     if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false}
     trees[goal.name] = out.tree
     nodes += out.nodes

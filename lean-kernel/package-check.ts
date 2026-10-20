@@ -5,7 +5,7 @@ import {join} from 'node:path'
 import {bool, count, forall, loop, maybe, min, nat, oneOf, relation, rule, yes} from '../core/dsl.ts'
 import {countdown, escrowLaws, escrowRunsLean, escrowSteps, escrowWatched, meter, meterRelation, twoPhase} from '../examples/composition.ts'
 import {authority, authorityLaws, authorityPairs, authoritySteps, lazyAuthority, lazyRelation, lazyWitness} from '../examples/sets.ts'
-import {inlineAuthority, inlineLaws, inlineSteps, memberLaws, memberSteps, members} from '../examples/quantifiers.ts'
+import {inlineAuthority, inlineLaws, inlineSteps, memberLaws, memberSteps, members, normalForm, normalFormLaws, normalFormSteps} from '../examples/quantifiers.ts'
 import {larger, largerLaws, minuteLaws, minutes, pairsLean, room, roomLaws} from '../examples/functions.ts'
 import {bits, bitsLaws, scope, scopeLaws, scopeSteps} from '../examples/lists.ts'
 import {accountLaws, accountSteps, accounts, approveLaws, hold, holdLaws, holdSteps, jobLaws, jobSteps, jobs, seatLaws, seatSteps, seats} from '../examples/datatypes.ts'
@@ -50,6 +50,8 @@ const file = toLean(([
   {id: 'authority', machine: auth.machine, laws: authorityLaws(auth), stepLaws: [...authoritySteps(auth), ...authorityPairs(auth)]},
   {id: 'inline', machine: inlineAuthority().machine, laws: inlineLaws(), stepLaws: inlineSteps()},
   {id: 'members', machine: members().machine, laws: memberLaws(), stepLaws: memberSteps()},
+  // A flag read at a later step's witness: the first step's check where the second's would fail.
+  {id: 'normalform', machine: normalForm().machine, laws: normalFormLaws(), stepLaws: normalFormSteps()},
   {id: 'minutes', machine: minutes().machine, laws: minuteLaws()},
   {id: 'larger', machine: larger.machine, laws: largerLaws},
   {id: 'room', machine: room().machine, laws: roomLaws(), lean: pairsLean},
@@ -70,6 +72,8 @@ const file = toLean(([
   {id: 'rollup', fold: rollup().fold, laws: rollupLaws()},
   {id: 'orgchart', fold: orgChart().fold, laws: [...orgChart().lemmas, ...orgChartLaws()]},
   {id: 'metered', machine: metered().machine, laws: meteredLaws()},
+  // A decision about a carried list: the folds' equations and lemma assumed at the list's end.
+  {id: 'taxwithin', goal: invoices().decide('the taxable part is within the total', () => [], ({Lines}) => Lines.fold.taxed.atMost(Lines.fold.total)).goal},
   {id: 'sortedlist', machine: sortedList().machine, laws: sortedListLaws()},
   {id: 'distinctnames', machine: distinctNames().machine, laws: distinctNamesLaws()},
   {id: 'searchtree', machine: searchTree().machine, laws: [...searchTree().kindLaws(), ...searchTreeLaws()]},

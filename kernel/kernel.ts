@@ -944,12 +944,14 @@ export function stepLawObligations(machine: Machine, laws: Law[], instances: Ins
 // `perStep`: a step law's own instances, where it has them (else `instances`).
 // Each frame's hypotheses read no name a later step's request is read by: the condition the Lean twin's proof needs
 // (Sets.lean's checkSKStep, `avoids (szone s sl)`; plain flags are inlined here, so their names never occur), checked
-// here alike.
+// here alike. A quantified flag's keys are free of it: where the flag is 1 its condition holds at every key, so at a
+// key a later step names too (and the flag, its witness and its condition read none).
+const lawsOnly = (inst: Instances): Instances => Object.fromEntries(Object.entries(inst).filter(([n]) => !n.startsWith('?')))
 export function checkStepLaws(m: Machine, laws: Law[], stepLaws: StepLaw[], proof: {laws: {instances: Record<string, Instances>, trees: Record<string, Tree>}, instances: Instances, perStep?: Record<string, Instances>, trees: Record<string, Tree>}): boolean {
   return checkLaws(m, laws, proof.laws) && stepLaws.every(sl => {
     const inst = proof.perStep?.[sl.name] ?? proof.instances, plain = m.history ? historyMachine(m).machine : m
     const zone = stepZone(plain, sl.steps ?? 1)
-    return [...assumed(laws, inst), ...assumed(plain.facts ?? [], inst), ...closing(plain, inst)].every(c => !mentions(c, zone))
+    return [...assumed(laws, inst), ...assumed(plain.facts ?? [], inst), ...closing(plain, lawsOnly(inst))].every(c => !mentions(c, zone))
       && stepLawObligations(m, laws, inst, sl).every(g => proof.trees[g.name] !== undefined && check(g, proof.trees[g.name]!))
   })
 }

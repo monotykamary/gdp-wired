@@ -6,7 +6,7 @@
 import {expect, test} from 'bun:test'
 import {type C, type Machine, type State, evalC} from './machine.ts'
 import {everyKey, nat, rule, someKey, when} from './dsl.ts'
-import {inlineAuthority, inlineLaws, inlineSteps, memberLaws, memberSteps, members} from '../examples/quantifiers.ts'
+import {inlineAuthority, inlineLaws, inlineSteps, memberLaws, memberSteps, members, normalForm, normalFormLaws, normalFormSteps} from '../examples/quantifiers.ts'
 import {proveLaws, proveStepLaws} from '../kernel/prove.ts'
 
 test('quantifiers inside flags, the assumption and laws: named as flags and keys, proven; the broken variant refused', () => {
@@ -89,3 +89,12 @@ test('some key: proven through a witness the prover finds, or the one named; ref
   expect(rb.proven).toBe(false)
   expect(rb.failed!.stuck).toMatch(/no witness found for some key in something was added/)
 })
+
+// A k-step law whose second step reads a condition the first kept: the first step's flag is assumed at the second's
+// witness (a later step's name, which only a flag's keys may read), and the law is proven; without the lengths it isn't.
+test('a flag read at a later step\'s witness: the recheck proven, the broken one refused', () => {
+  const r = normalForm(), v = proveStepLaws(r.machine, normalFormLaws(r), normalFormSteps(undefined, r))
+  expect(v).toMatchObject({proven: true, checked: true})
+  expect(JSON.stringify(v.proof?.perStep)).toContain('w?fits@2')
+  expect(proveStepLaws(r.machine, normalFormLaws(r), normalFormSteps('rechecks without the lengths', r)).proven).toBe(false)
+}, 300_000)

@@ -230,8 +230,10 @@ const soon = retry.law('the next try is at most 64 after the last request', ({ne
   carried map of its running values whose equations every request is assumed to meet (the encoding computes them from the
   array, and a request that doesn't meet them isn't allowed), read as `Lines.fold.total`; `Lines.every`, `some`, `has`,
   `increasing(by)`, `at(i)`. A lemma about the folds (`({taxed, total}) => taxed.atMost(total)`) is proven by induction
-  over the items when the rule is built, then assumed at every prefix. A fold's start and step, and a lemma, may read the
-  params (`{from: ({fee}) => fee, step: (acc, line, {ceil}) => acc.plus(min(line.amount, ceil))}`); a request is then
+  over the items when the rule is built, then assumed at every prefix; a decision (`decide`) assumes the equations and
+  lemmas too, at the list's end and wherever it reads the list. A lemma reads the folds, the prefix's length and the
+  params, not the items: a fact about every item is a fold's (a count of the items that meet it). A fold's start and
+  step, and a lemma, may read the params (`{from: ({fee}) => fee, step: (acc, line, {ceil}) => acc.plus(min(line.amount, ceil))}`); a request is then
   encoded with them, `rule.encodeInput(values, params)` (`examples/invoices.ts`).
 - **Folds over trees** (`fold(name).params(...).inputs(...).leaf(env => ({...})).node((env, left, right) => ({...}))`,
   `proveFold`): a tree as a value (`{leaf: inputs}` or `{node: inputs, left, right}`), each leaf's values from its inputs

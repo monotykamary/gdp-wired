@@ -138,6 +138,8 @@ const invoices = rule('invoices').params({budget: nat, cap: nat})
   .flags(({Lines, cap, budget, spent}) => ({ok: Lines.every(l => l.amount.atMost(cap)).and(spent.plus(Lines.fold.total).atMost(budget))}))
   .step(({Lines, spent, ok}) => ({spent: when(ok, spent.plus(Lines.fold.total), spent)}))
 invoices.encodeInput({Lines: [{sku: 1, amount: 30, taxable: true}]})
+// a decision assumes the folds' equations and lemmas at the list's end (and wherever it reads the list)
+proveDecision(invoices.decide('the taxable part is within the total', () => [], ({Lines}) => Lines.fold.taxed.atMost(Lines.fold.total)))
 
 const rollup = fold('spend roll-up').params({cap: nat}).inputs({spend: nat})
   .leaf(({spend, cap}) => ({total: min(spend, cap), teams: 1}))

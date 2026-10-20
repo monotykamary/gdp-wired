@@ -3,7 +3,7 @@
 // examples/invoices.ts proven, their broken variants refused, the builders cross-checked, the compiled rule run on
 // real lists.
 import {expect, test} from 'bun:test'
-import {Unproven, nat, proveSteps, record, rule} from './dsl.ts'
+import {Unproven, crossCheckDecision, nat, proveDecision, proveSteps, record, rule} from './dsl.ts'
 import {Line, invoiceLaws, invoiceSteps, invoices, metered, meteredLaws} from '../examples/invoices.ts'
 
 test('a list a request carries: proven, cross-checked, the broken variants refused', () => {
@@ -49,4 +49,19 @@ test('folds that read the params: proven, the broken lemma refused, computed wit
   for (const lines of [[line(30), line(10)], [line(60), line(60)], [line(20)]]) st = gen.step(ps, st, r.encodeInput({Lines: lines}, params))
   expect(r.decode(st)).toMatchObject({spent: 95, listed: 160, fees: 10}) // 40, then 55 (each line up to 25, the fee 5), then 25 past the budget
   expect(() => r.encodeInput({Lines: [line(1)]})).toThrow(/read the params/)
+})
+
+// A decision reads a request's list as the rule's step does: each fold from its start and step, its lemmas, at the
+// list's end and at every key the decision reads it at.
+test('a decision about a carried list: the folds\' equations and lemmas assumed', () => {
+  const r = invoices()
+  const within = r.decide('the taxable part is within the total', () => [], ({Lines}) => Lines.fold.taxed.atMost(Lines.fold.total))
+  expect(proveDecision(within)).toMatchObject({proven: true, checked: true})
+  expect(crossCheckDecision(within).failure).toBeUndefined()
+  const one = r.decide('one line: the total is its amount', ({Lines}) => Lines.len.eq(1), ({Lines}) => Lines.fold.total.eq(Lines.at(0).amount))
+  expect(proveDecision(one)).toMatchObject({proven: true, checked: true})
+  // what the equations don't give stays unproven: a list may be empty, a lemma not stated isn't assumed
+  expect(proveDecision(r.decide('the total is positive', () => [], ({Lines}) => Lines.fold.total.atLeast(1))).proven).toBe(false)
+  const bare = invoices('states no lemma')
+  expect(proveDecision(bare.decide('the taxable part is within the total', () => [], ({Lines}) => Lines.fold.taxed.atMost(Lines.fold.total))).proven).toBe(false)
 })

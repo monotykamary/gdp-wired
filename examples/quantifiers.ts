@@ -4,8 +4,11 @@
 //     use them, in the assumption, and inside laws (each named as a flag, or pulled out as the law's key)
 //   - a set that only grows, remembering the last name added: some name is in it once anything was added, and an add
 //     puts some name in (each proven through a witness the prover finds: `last`, and the request's name)
+//   - a scope of names normalized, then rechecked against itself: the recheck keeps it, as the first step's check
+//     holds at the key where the second's would fail (a flag read at a later step's witness); the broken variant
+//     rechecks without the lengths
 import {type Law} from '../core/machine.ts'
-import {everyKey, nat, oneOf, rule, someKey, when} from '../core/dsl.ts'
+import {all, everyKey, nat, oneOf, rule, someKey, when} from '../core/dsl.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
 import {proveStepLaws} from '../kernel/prove.ts'
 
@@ -48,6 +51,27 @@ const grows = members()
 export const memberLaws = (a = grows): Law[] => [a.law('something was added, so some name is in', ({count, S}) => count.atLeast(1).implies(someKey(k => S.at(k).eq(1))))]
 export const memberSteps = (a = grows): StepLaw[] => [a.stepLaw('an add puts some name in', (_, after) => someKey(k => after.S.at(k).eq(1)), ({op}) => op.is('add'))]
 
+const EMPTY = 0, WILDCARD = 1, NAMES = 66, LENGTH = 256
+export const normalForm = () => rule('normal form')
+  .inputs({op: oneOf('source', 'normalize'), first: nat}).state({exact: 0}).maps({Names: 0}).carries('Given', 'Len')
+  .flags(({Given, Len, Names}) => ({
+    bits: everyKey(k => Given.at(k).atMost(1)),
+    identities: everyKey(k => Given.has(k).implies(k.ne(EMPTY).and(k.ne(WILDCARD)))),
+    fits: everyKey(k => Given.has(k).iff(Names.has(k)).and(Given.has(k).implies(all(k.ne(EMPTY), k.ne(WILDCARD), k.lt(NAMES), Len.at(k).atMost(LENGTH))))),
+  }))
+  .flags(({Given, Len, Names}) => ({
+    unchanged: everyKey(k => Given.at(k).eq(Names.at(k))),
+    short: everyKey(k => Given.has(k).implies(Len.at(k).atMost(LENGTH))),
+  }))
+  .flags(({op, exact, first, Given, identities, fits}) => ({accepted: Given.has(first).and(op.match({source: () => identities, normalize: () => exact.eq(1).and(fits)}))}))
+  .assume(({bits}) => bits)
+  .step(({accepted, Given, Names}) => ({exact: when(accepted, 1, 0), Names: Names.each(k => when(accepted, Given.at(k), 0))}))
+export const normalFormLaws = (r = normalForm()): Law[] => [r.law('the names are a set', ({Names}) => everyKey(k => Names.at(k).atMost(1)))]
+export const normalFormSteps = (bug?: 'rechecks without the lengths', r = normalForm()): StepLaw[] => [
+  r.stepsLaw('rechecking a normal form against itself keeps it', 2, ({Given}, last) => last.exact.eq(1).and(everyKey(k => last.Names.at(k).eq(Given.at(k)))),
+    ({op, accepted, first, Given, unchanged, short}, j) => (j === 0 ? op.is('normalize').and(accepted) : op.is('normalize').and(unchanged, ...(bug ? [] : [short]), Given.has(first)))),
+]
+
 if (import.meta.main) {
   const results: [string, boolean, boolean][] = []
   for (const bug of [undefined, 'checks only the named grant'] as const) {
@@ -57,6 +81,10 @@ if (import.meta.main) {
   for (const bug of [undefined, 'forgets the name'] as const) {
     const a = members(bug), v = proveStepLaws(a.machine, memberLaws(a), bug ? [] : memberSteps(a))
     results.push([`members${bug ? ` (${bug})` : ''}`, v.proven && v.checked, !bug])
+  }
+  for (const bug of [undefined, 'rechecks without the lengths'] as const) {
+    const a = normalForm(), v = proveStepLaws(a.machine, normalFormLaws(a), normalFormSteps(bug, a))
+    results.push([`normal form${bug ? ` (${bug})` : ''}`, v.proven && v.checked, !bug])
   }
   for (const [name, got, want] of results) console.log(`${got === want ? 'ok  ' : 'FAIL'} ${name}: ${got ? 'proven' : 'refused'}`)
   if (results.some(([, got, want]) => got !== want)) process.exit(1)

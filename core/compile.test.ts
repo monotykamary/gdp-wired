@@ -2,7 +2,8 @@
 // random machines whose map values read the other map and whose scalars read both, so a write seen before every read
 // is done would show; and branches made with fork stay apart. FUZZ_SEED and FUZZ_SCALE shard it as kernel.test.ts.
 import {expect, test} from 'bun:test'
-import {type C, type E, type Machine, type State, interpret, loadJs} from './machine.ts'
+import {type C, type E, type Machine, type State, compileJs, interpret, loadJs} from './machine.ts'
+import {distinctNames, sortedList} from '../examples/pairs.ts'
 
 let seed = Number(process.env.FUZZ_SEED ?? 777)
 const scale = Number(process.env.FUZZ_SCALE ?? 1)
@@ -65,3 +66,18 @@ test('the generated JavaScript steps as the interpreter does', () => {
   }
   console.log(`compiled vs interpreted: ${steps.toLocaleString()} steps and ${forks.toLocaleString()} forks agree`)
 }, 600_000)
+
+// A module declares only the runtime helpers it calls: a helper declared and never called is dead code in the caller's
+// bundle (and a lint error there).
+test('a compiled module declares only the helpers it calls', () => {
+  const machines = [sortedList().machine, distinctNames().machine, ...Array.from({length: 200}, () => machine())]
+  const seen = new Set<string>()
+  for (const m of machines) {
+    const js = compileJs(m), declared = [...js.matchAll(/^function (\$\w+)\(/gm)].map(x => x[1]!)
+    for (const name of declared) {
+      seen.add(name)
+      expect(js.split(`${name}(`).length - 1, `${name} in ${m.name}`).toBeGreaterThan(1)
+    }
+  }
+  expect(seen.has('$spread')).toBe(true)
+})
