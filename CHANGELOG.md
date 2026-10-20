@@ -3,6 +3,16 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+- A law over several steps may read a condition an earlier step kept at a key a later step's request names, not only at
+  that step's witness (`examples/quantifiers.ts`: a child derived from its parent's grants, then used, uses only the
+  parent's).
+- `rule.foldsOf({Lines: [...]}, params)`: a carried list's folds at its end, computed from its items without running the
+  rule (a rule whose laws are all decisions needs no state to compare its folds with the code it describes).
+- (0.12.4, noted) Kernels compiled into one module no longer share an identical preamble: each declares the runtime
+  helpers it calls. A helper's body is the same under its name within a release, so hoisting the union by name is safe.
+
 ## 0.12.4
 
 - A law over several steps may read a condition a step kept: an earlier step's condition at every key is assumed at a

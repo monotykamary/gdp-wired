@@ -7,8 +7,11 @@
 //   - a scope of names normalized, then rechecked against itself: the recheck keeps it, as the first step's check
 //     holds at the key where the second's would fail (a flag read at a later step's witness); the broken variant
 //     rechecks without the lengths
+//   - a child derived from a parent's grants, then used: a use the child is granted names a grant of the parent, as the
+//     derivation's cover holds at the use's name (a flag read at a later step's input); the broken variant derives
+//     without the cover
 import {type Law} from '../core/machine.ts'
-import {all, everyKey, nat, oneOf, rule, someKey, when} from '../core/dsl.ts'
+import {all, bool, everyKey, nat, oneOf, rule, someKey, when} from '../core/dsl.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
 import {proveStepLaws} from '../kernel/prove.ts'
 
@@ -72,6 +75,29 @@ export const normalFormSteps = (bug?: 'rechecks without the lengths', r = normal
     ({op, accepted, first, Given, unchanged, short}, j) => (j === 0 ? op.is('normalize').and(accepted) : op.is('normalize').and(unchanged, ...(bug ? [] : [short]), Given.has(first)))),
 ]
 
+export const childUse = (bug?: 'derives without the cover') => rule('derived child')
+  .inputs({op: oneOf('issue', 'derive', 'use', 'release'), name: nat, parentLive: bool}).state({live: 0, granted: 0}).maps({Grants: 0}).carries('Candidate', 'Parent')
+  .flags(({Candidate, Parent}) => ({
+    bits: everyKey(k => Candidate.at(k).atMost(1).and(Parent.at(k).atMost(1))),
+    covered: everyKey(k => Candidate.has(k).implies(Parent.has(k))),
+  }))
+  .flags(({op, parentLive, covered, live, name, Grants}) => ({
+    issued: op.is('issue'),
+    derived: op.is('derive').and(bug ? parentLive : parentLive.and(covered)),
+    allowed: op.is('use').and(live.eq(1).and(Grants.has(name))),
+  }))
+  .assume(({bits}) => bits)
+  .step(({op, live, issued, derived, allowed, Candidate, Grants}) => ({
+    live: when(issued.or(derived), 1, when(op.is('use'), live, 0)),
+    granted: when(allowed, 1, 0),
+    Grants: Grants.each(k => when(issued.or(derived), Candidate.at(k), when(op.is('use'), Grants.at(k), 0))),
+  }))
+export const childUseLaws = (r = childUse()): Law[] => [r.law('the grants are a set', ({Grants}) => everyKey(k => Grants.at(k).atMost(1)))]
+export const childUseSteps = (r = childUse()): StepLaw[] => [
+  r.stepsLaw('a derived child\'s granted use names a grant of its parent', 2, ({Parent}, last, [, use]) => last.granted.eq(1).implies(Parent.has(use!.name)),
+    ({op}, j) => (j === 0 ? op.is('derive') : op.is('use'))),
+]
+
 if (import.meta.main) {
   const results: [string, boolean, boolean][] = []
   for (const bug of [undefined, 'checks only the named grant'] as const) {
@@ -85,6 +111,10 @@ if (import.meta.main) {
   for (const bug of [undefined, 'rechecks without the lengths'] as const) {
     const a = normalForm(), v = proveStepLaws(a.machine, normalFormLaws(a), normalFormSteps(bug, a))
     results.push([`normal form${bug ? ` (${bug})` : ''}`, v.proven && v.checked, !bug])
+  }
+  for (const bug of [undefined, 'derives without the cover'] as const) {
+    const a = childUse(bug), v = proveStepLaws(a.machine, childUseLaws(a), childUseSteps(a))
+    results.push([`derived child${bug ? ` (${bug})` : ''}`, v.proven && v.checked, !bug])
   }
   for (const [name, got, want] of results) console.log(`${got === want ? 'ok  ' : 'FAIL'} ${name}: ${got ? 'proven' : 'refused'}`)
   if (results.some(([, got, want]) => got !== want)) process.exit(1)

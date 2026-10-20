@@ -168,7 +168,7 @@ const tree = rule('search tree').inputs({key: nat, l: nat, r: nat})
 - A carried list's folds start at a number (or a term over the params) and step from the running value, the item and
   the params (`step: (acc, l, {ceil}) => ...`); their equations are assumed of every request (the encoding computes
   them, the runtimes check them). Folds that read the params need them to encode a request: `encodeInput(values,
-  params)`. A lemma about the folds at every prefix is proven by induction over the items when the rule is built; without
+  params)`; `foldsOf(values, params)` gives the folds at the list's end without running the rule. A lemma about the folds at every prefix is proven by induction over the items when the rule is built; without
   it a law that needs it isn't proven.
 - A fold's laws read its values and the params, not the inputs; `toLean` takes `{id, fold: f.fold, laws}` (with
   `.children`, `laws: [...f.lemmas, ...laws]`).

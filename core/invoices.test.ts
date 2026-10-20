@@ -65,3 +65,12 @@ test('a decision about a carried list: the folds\' equations and lemmas assumed'
   const bare = invoices('states no lemma')
   expect(proveDecision(bare.decide('the taxable part is within the total', () => [], ({Lines}) => Lines.fold.taxed.atMost(Lines.fold.total))).proven).toBe(false)
 })
+
+// A carried list's folds at its end, without running the rule: what the compiled rule reads, the params included.
+test('the folds of a list a request carries, computed without the rule', () => {
+  const lines = [{sku: 1, amount: 30, taxable: true}, {sku: 2, amount: 50, taxable: false}, {sku: 3, amount: 5, taxable: true}]
+  expect(invoices().foldsOf({Lines: lines})).toEqual({Lines: {total: 85, taxed: 35}})
+  expect(invoices().foldsOf({Lines: []})).toEqual({Lines: {total: 0, taxed: 0}})
+  expect(metered().foldsOf({Lines: lines}, {budget: 1000, ceil: 40, fee: 7})).toEqual({Lines: {total: 85, charged: 82}})
+  expect(() => metered().foldsOf({Lines: lines})).toThrow(/read the params/)
+})

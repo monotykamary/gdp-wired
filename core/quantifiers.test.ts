@@ -6,7 +6,7 @@
 import {expect, test} from 'bun:test'
 import {type C, type Machine, type State, evalC} from './machine.ts'
 import {everyKey, nat, rule, someKey, when} from './dsl.ts'
-import {inlineAuthority, inlineLaws, inlineSteps, memberLaws, memberSteps, members, normalForm, normalFormLaws, normalFormSteps} from '../examples/quantifiers.ts'
+import {childUse, childUseLaws, childUseSteps, inlineAuthority, inlineLaws, inlineSteps, memberLaws, memberSteps, members, normalForm, normalFormLaws, normalFormSteps} from '../examples/quantifiers.ts'
 import {proveLaws, proveStepLaws} from '../kernel/prove.ts'
 
 test('quantifiers inside flags, the assumption and laws: named as flags and keys, proven; the broken variant refused', () => {
@@ -97,4 +97,14 @@ test('a flag read at a later step\'s witness: the recheck proven, the broken one
   expect(v).toMatchObject({proven: true, checked: true})
   expect(JSON.stringify(v.proof?.perStep)).toContain('w?fits@2')
   expect(proveStepLaws(r.machine, normalFormLaws(r), normalFormSteps('rechecks without the lengths', r)).proven).toBe(false)
+}, 300_000)
+
+// The same, keyed on a later step's input: the derivation's cover is assumed at the use's name (name@2), which the
+// first step's frame may name only as a flag's key; without the cover the child's use is refused.
+test('a flag read at a later step\'s input: the child\'s use proven, the uncovered one refused', () => {
+  const r = childUse(), v = proveStepLaws(r.machine, childUseLaws(r), childUseSteps(r))
+  expect(v).toMatchObject({proven: true, checked: true})
+  expect(JSON.stringify(v.proof?.perStep)).toContain('name@2')
+  const b = childUse('derives without the cover')
+  expect(proveStepLaws(b.machine, childUseLaws(b), childUseSteps(b)).proven).toBe(false)
 }, 300_000)

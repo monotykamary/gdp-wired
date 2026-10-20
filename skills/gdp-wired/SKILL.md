@@ -103,7 +103,7 @@ From `gdp-wired`:
 | `fold(name)`, `proveFold`, `f.run(tree)` | A fold over a tree given as a value: `.leaf`, `.node`, `.law` (`.children` for any number of children per node); laws proven by induction over the tree. |
 | `r.nodes(name, kind, children, folds)` | A tree (or lists of lists) in the state: a table of nodes that only grows, `T.make(value, kids, when)`, `T.node(n).fold`; a law about a subtree is a law about one node. |
 | `optional(c, value)`, `variant(cases, {tag})`, `r.kindLaws()` | A value present where c holds; a variant whose runtime case key isn't `tag`; what the kinds of the state and cells keep true (proven by `proveSteps` on its own). |
-| `r.compiled()`, `r.interpreter()`, `r.encodeParams`, `r.encodeInput`, `r.decode`, `r.crossCheck`, `r.compare` | Running and checking the rule. |
+| `r.compiled()`, `r.interpreter()`, `r.encodeParams`, `r.encodeInput`, `r.foldsOf`, `r.decode`, `r.crossCheck`, `r.compare` | Running and checking the rule. |
 
 Also: `gdp-wired/gdp` (`guard`, `gate`, `Unproven`: gdp-ts proofs minted by proven checks),
 `gdp-wired/machine` (`search`, `compileJs`, the interpreter), `gdp-wired/lean`

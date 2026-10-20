@@ -234,7 +234,9 @@ const soon = retry.law('the next try is at most 64 after the last request', ({ne
   lemmas too, at the list's end and wherever it reads the list. A lemma reads the folds, the prefix's length and the
   params, not the items: a fact about every item is a fold's (a count of the items that meet it). A fold's start and
   step, and a lemma, may read the params (`{from: ({fee}) => fee, step: (acc, line, {ceil}) => acc.plus(min(line.amount, ceil))}`); a request is then
-  encoded with them, `rule.encodeInput(values, params)` (`examples/invoices.ts`).
+  encoded with them, `rule.encodeInput(values, params)` (`examples/invoices.ts`). `rule.foldsOf({Lines: [...]}, params)`
+  gives each fold at the list's end, computed the same way, without running the rule (to compare a decision's folds
+  with the code it describes).
 - **Folds over trees** (`fold(name).params(...).inputs(...).leaf(env => ({...})).node((env, left, right) => ({...}))`,
   `proveFold`): a tree as a value (`{leaf: inputs}` or `{node: inputs, left, right}`), each leaf's values from its inputs
   and each node's from its own and its children's; a law about the values is proven by induction over the tree (the

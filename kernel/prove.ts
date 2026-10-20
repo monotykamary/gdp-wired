@@ -514,13 +514,14 @@ const flagInstances = (m: Machine, keys: E[], focus: string[] = []): Instances =
 }))
 // A k-step law whose steps keep a condition (a flag that holds at one step and is read again at the next) fails at a
 // later step's witness only where the condition held before: so, per quantified flag over one key, the instances at the
-// law's own keys and that flag's witness at every step (a later step's witness is a key an earlier frame may name, as a
-// flag holds at every key: kernel.ts's checkStepLaws). Few instances, where the shared ones are many and mostly idle.
+// law's own keys and that flag's witness at every step (a later step's input or witness is a key an earlier frame may
+// name, as a flag holds at every key: kernel.ts's checkStepLaws). Few instances, where the shared ones are many and
+// mostly idle.
 const keptAcross = (m: Machine, laws: Law[], inst: Instances, own: E[], k: number): Instances[] => k < 2 ? [] : Object.entries(m.step.flags ?? {}).flatMap(([f, c]) => {
   if (c.op !== 'all' || c.keys?.length) return []
   const ws = Array.from({length: k}, (_, i): E => ({op: 'var', name: i ? `w?${f}@${i + 1}` : `w?${f}`})), keys = [...own, ...ws.slice(0, 1)]
   const keep = new Set(keys.map(e => JSON.stringify(e)))
-  return [Object.fromEntries(Object.entries(inst).map(([n, ks]) => [n, arity(m, laws, n) === 1 ? [...ks.filter(e => keep.has(JSON.stringify(e))), ...(n === `?${f}` ? ws.slice(1) : [])] : ks]))]
+  return [Object.fromEntries(Object.entries(inst).map(([n, ks]) => [n, n === `?${f}` ? [...keys, ...ws.slice(1)].filter((e, i, all) => all.findIndex(o => JSON.stringify(o) === JSON.stringify(e)) === i) : arity(m, laws, n) === 1 ? ks.filter(e => keep.has(JSON.stringify(e))) : ks]))]
 })
 const pairFlags = (m: Machine) => Object.values(m.step.flags ?? {}).some(c => c.op === 'all' && !!c.keys?.length)
 // How many keys each instance of a name takes: a law's, or a quantified flag's (?f).

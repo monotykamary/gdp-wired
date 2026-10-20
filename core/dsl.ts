@@ -1917,6 +1917,16 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     }
     return out
   }
+  // Each carried list's folds at its end (what `L.fold.<f>` reads), computed from its items as encodeInput computes
+  // them, without running the rule: `foldsOf({Lines: [...]})` → {Lines: {total: 30}}. Only the lists given.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  foldsOf(values: {[k in keyof I]?: I[k] extends CarriedList<any, any> ? readonly Raw[] : never}, params?: {[k in keyof P]: Raw}): Record<string, Record<string, number>> {
+    const at = params && this.paramValues(this.encodeParams(params))
+    return Object.fromEntries((this.spec.lists2 ?? []).filter(([n]) => n in values).map(([n, k, fs]) => {
+      const {maps, len} = new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0), {}, at).encode((values as Record<string, Raw>)[n])
+      return [n, Object.fromEntries(Object.keys(fs).map(f => [f, maps[`${n}$${f}`]!.get(len) ?? 0]))]
+    }))
+  }
   // Random params and inputs that meet their kinds (not the user's `pre` or `assume`, which a caller checks).
   randomParams(rand: Rand, bound: number): Record<string, number> { return Object.assign({}, ...this.spec.params.map(([n, k]) => k.random(n, rand, bound))) }
   // The params' values by their kinds, as constants (what a fold that reads them is computed with).
