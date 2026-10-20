@@ -2,7 +2,7 @@
 // step through both runtimes; kinds encode and decode as declared; laws with forall, decisions and loops prove and
 // refute as they should; and what the types let through, the kernel's scope check still refuses.
 import {expect, test} from 'bun:test'
-import {type Machine, type State, interpret} from './machine.ts'
+import {type Machine, type State, interpret, search} from './machine.ts'
 import {admitFlagged, boundedLoss, capLaws, loss, windowCeiling, windowLimit} from './models.ts'
 import {proveLaws} from '../kernel/prove.ts'
 import {type DecisionEnv, type Rule, Cond, all, bool, count, forall, fun, loop, maybe, min, nat, oneOf, proveDecision, proveLoop, proveRule, relation, rule, upTo, when} from './dsl.ts'
@@ -168,4 +168,13 @@ test('relate: two requests under the same params, the second named b.<input>', (
   const ni = (bug?: boolean) => pick(bug).relate('an explicit pick ignores the ambient value', (a, b) => [a.explicit, b.explicit, a.user.eq(b.user)], (oa, ob) => oa.target.eq(ob.target))
   expect(proveDecision(ni())).toMatchObject({proven: true, checked: true})
   expect(proveDecision(ni(true)).proven).toBe(false)
+})
+
+// A choice, a yes/no or a small upTo is searched over every value it may take, past the bound; a natural only to it.
+test('search tries every value of a small kind, whatever the bound', () => {
+  const r = rule('fifth case').inputs({op: oneOf('a', 'b', 'c', 'd', 'e'), n: nat}).state({hit: 0}).step(({op, n}) => ({hit: when(op.is('e').and(n.atMost(2)), 1, 0)}))
+  expect(search(r.machine, r.law('never the fifth case', ({hit}) => hit.eq(0)))).toEqual({params: {}, trace: [{op: 4, n: 0}]})
+  const far = rule('far').inputs({n: nat}).state({hit: 0}).step(({n}) => ({hit: when(n.eq(3), 1, 0)}))
+  expect(search(far.machine, far.law('never three', ({hit}) => hit.eq(0)))).toBeUndefined()
+  expect(search(far.machine, far.law('never three', ({hit}) => hit.eq(0)), 3, 3)?.trace).toEqual([{n: 3}])
 })

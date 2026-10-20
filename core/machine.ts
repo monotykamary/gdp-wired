@@ -748,15 +748,22 @@ function renameKey(lin: Lin, from: string, to: Lin | undefined): Lin {
 // --- real counterexamples ----------------------------------------------------------------------------------------------
 
 // Every sequence of up to `depth` requests, with params and inputs within 0..bound, from the start: the first that breaks
-// the law, checked with the interpreter. A law that fails here is false; one that only fails `prove` may just need a
-// stronger invariant.
+// the law, checked with the interpreter. A variable `pre` or `assume` bounds by a constant of at most 15 (a choice, a
+// yes/no, a small upTo) takes every value it may instead. A law that fails here is false; one that only fails `prove` may
+// just need a stronger invariant.
 export function search(m: Machine, law: Law, depth = 3, bound = 2): {params: Env, trace: Env[]} | undefined {
   const run = interpret(m)
   const holds = (params: Env, st: State) => {
     const keys = law.forall ? [...new Set([0, ...Object.values(st.maps).flatMap(cells => [...cells.keys()])])] : [0]
     return keys.every(key => evalC(law.holds, {...params, ...(law.forall ? {[law.forall]: key} : {})}, st, m))
   }
-  const tuples = (names: string[]): Env[] => names.reduce<Env[]>((acc, name) => acc.flatMap(t => Array.from({length: bound + 1}, (_, i) => ({...t, [name]: i}))), [{}])
+  const tops = new Map<string, number>()
+  const conj = (c: C | undefined): C[] => (c === undefined ? [] : c.op === 'and' ? c.xs.flatMap(conj) : [c])
+  for (const c of [...conj(m.pre), ...conj(m.assume)]) if ((c.op === '<' || c.op === '<=') && c.a.op === 'var' && c.b.op === 'const') {
+    const top = c.op === '<' ? c.b.value - 1 : c.b.value
+    if (top >= 0 && top <= 15) tops.set(c.a.name, Math.min(top, tops.get(c.a.name) ?? top))
+  }
+  const tuples = (names: string[]): Env[] => names.reduce<Env[]>((acc, name) => acc.flatMap(t => Array.from({length: (tops.get(name) ?? bound) + 1}, (_, i) => ({...t, [name]: i}))), [{}])
   const assumed = (env: Env, st: State) => m.assume === undefined || evalC(m.assume, env, st, m)
   const meetsPre = (params: Env) => m.pre === undefined || evalC(m.pre, params, {scalars: {}, maps: {}}, m)
   for (const params of tuples(m.params)) {

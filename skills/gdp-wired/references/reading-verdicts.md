@@ -18,6 +18,8 @@ search(uncapped.machine, bounded)          // {params: {b: 1, m: 0}, trace: [{c:
 search(uncapped.machine, bounded, 6, 4)    // deeper (requests) and wider (values) when nothing turns up
 ```
 
+The bound widens naturals; a choice, a yes/no or an `upTo` of at most 15 is always tried at every value it may take.
+
 - **A run comes back:** it is a real sequence of requests from the start that breaks the law. The rule (or the law)
   is wrong. Replay it with `rule.interpreter()` to see each state.
 - **No run:** the law is probably true but not inductive: the witness is a state no run reaches. Find the fact that

@@ -3,6 +3,11 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+- `search` tries every value of a small kind (a choice, a yes/no, an `upTo` of at most 15), whatever its bound: a
+  choice's fifth case was out of reach at the default bound of 2. The bound still widens naturals.
+
 ## 0.12.5
 
 - A law over several steps may read a condition an earlier step kept at a key a later step's request names, not only at
