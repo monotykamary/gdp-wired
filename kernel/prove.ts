@@ -149,8 +149,12 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
   let byHyp = openSeen.get(goal)
   if (!byHyp) openSeen.set(goal, (byHyp = new Map()))
   const openOf = (h: C) => { let seen = byHyp.get(h); if (!seen) byHyp.set(h, (seen = {})); return reusing(seen, path, p => { const out: Lin[] = []; openH(h, p, out); return out }) }
+  // Then the hypotheses about only the names the conclusion reads (an assumption about another key, a witness, can
+  // wait: a refutation seldom needs it), then the rest, each group in the goal's order.
   if (last >= 0) open.push(...openOf(hyps[last]!))
-  for (const [i, h] of hyps.entries()) if (i !== last) open.push(...openOf(h))
+  const near = nearOf(goal)
+  for (const [i, h] of hyps.entries()) if (i !== last && near[i]) open.push(...openOf(h))
+  for (const [i, h] of hyps.entries()) if (i !== last && !near[i]) open.push(...openOf(h))
   open.push(...openCells(rows, path))
   const next = open.find(lin => Object.keys(lin).some(key => key !== '1') && !path.has(canon(lin)) && !path.has(canonFlip(lin)))
   // With a case still to split, only "refuted or not" matters (a witness here goes unused): a large system is tried by
@@ -245,6 +249,17 @@ function lift(goal: Goal, tree: Tree, from: Path, to: Path): Tree | undefined {
   return go(tree, from, to)
 }
 
+// Whether each hypothesis reads only names the goal's conclusion (its last hypothesis) reads.
+const nearSeen = new WeakMap<Goal, boolean[]>()
+const namesOf = (t: unknown): string[] => (t === undefined ? [] : [...JSON.stringify(t).matchAll(/"(?:name|map)":"([^"]+)"/g)].map(m => m[1]!))
+function nearOf(goal: Goal): boolean[] {
+  let out = nearSeen.get(goal)
+  if (!out) {
+    const theirs = new Set(namesOf(goal.hyps.at(-1)))
+    nearSeen.set(goal, (out = goal.hyps.map(h => namesOf(h).every(n => theirs.has(n)))))
+  }
+  return out
+}
 // Each hypothesis' open atoms, as at an earlier path that decided the same atoms it reads (kernel.ts's reusing).
 const openSeen = new WeakMap<Goal, Map<C, Seen<Lin[]>>>()
 
