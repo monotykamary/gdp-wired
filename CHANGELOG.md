@@ -3,7 +3,7 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.12.7
 
 - Both runtimes refuse a request that fails the rule's `assume`: `rule.compiled()` and `rule.interpreter()` throw a
   `RangeError` instead of taking a step no proof covers. Before, an assumption was the caller's to keep: a row of the
