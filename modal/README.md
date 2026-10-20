@@ -12,6 +12,8 @@ GPU runs have their own runners: `../research/modal-gpu/run_gpu.py` (the Handwir
 
 ```sh
 cd gdp-wired && modal run modal/run.py --jobs modal/suite.json --out ../runs/modal/suite && sh modal/reap.sh
+# a quick run: the generated Lean checked by native_decide (compiled Lean; a release runs without the flag)
+cd gdp-wired && modal run modal/run.py --jobs modal/suite.json --out ../runs/modal/quick --native && sh modal/reap.sh
 ```
 
 Cost hygiene: jobs time out at 15 minutes unless they ask for more (the command is killed inside the container first,

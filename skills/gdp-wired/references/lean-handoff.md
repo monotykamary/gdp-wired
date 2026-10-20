@@ -21,6 +21,11 @@ Each law comes as the twin's theorem and as a plain statement over named
 variables, e.g. `theorem law0 (h : SReach budget_machine ρ μ) : ρ «s» ≤ (ρ «b» + ρ «m»)`,
 for a Lean development to cite. Lean 4.34.0, core only, standard axioms.
 
+`toLean(items, {native: true})` closes each check by `native_decide` instead of `decide +kernel`: several times faster
+on a large certificate (a 64-step law in about 6 s instead of 49), but each theorem then also rests on an axiom of its
+own (`#print axioms` names it, `…_native.native_decide.ax_…`), which trusts Lean's compiler and runtime. Use it while
+iterating; keep the default for what you publish or cite.
+
 ## State the lemma instead
 
 When the function is a recurrence on one natural and you can say what it needs, `recur` defines it by the recurrence

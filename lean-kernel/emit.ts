@@ -165,11 +165,11 @@ def ${name}_tree : Tree :=
   return tamper
     ? `-- TAMPERED: ${ex.name}${dropStep ? ", the first leaf's derivation without its last step" : ''}. Lean computes the check to false.
 ${body}
-example : checkGoal ${name}_goal ${name}_tree = false := by decide +kernel`
+example : checkGoal ${name}_goal ${name}_tree = false := by ${checkBy}`
     : `-- ${ex.name}  (${cols.length} columns)
 ${body}
 theorem ${name} : ∀ env maps, ¬ ∀ c ∈ ${name}_goal.hyps, evalC env maps c = true :=
-  sound ${name}_goal ${name}_tree (by decide +kernel)`
+  sound ${name}_goal ${name}_tree (by ${checkBy})`
 }
 
 // Whole machines through Kern.machine_sound: Lean builds the goals from the machine; the trees are the kernel's.
@@ -205,15 +205,17 @@ export function machineToLean(id: string, m: Machine, laws: Law[], corollary?: s
 def ${id}_machine : FMachine := ${lit(m)}
 def ${id}_proof : MachineProof := ${list(proof)}
 theorem ${id}_laws : ∀ maps ρ, FReach ${id}_machine maps ρ → ∀ l ∈ ${id}_proof.map (·.1), evalC ρ maps l = true :=
-  fmachine_sound ${id}_machine ${id}_proof (by decide +kernel)${corollary ? `\n${corollary}` : ''}`
+  fmachine_sound ${id}_machine ${id}_proof (by ${checkBy})${corollary ? `\n${corollary}` : ''}`
   }
   return `-- ${m.name}: ${laws.map(l => l.name).join('; ')}  (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')})
 def ${id}_machine : Machine := ${machine}
 def ${id}_proof : MachineProof := ${list(proof)}
 theorem ${id}_laws : ∀ maps ρ, Reach ${id}_machine maps ρ → ∀ l ∈ ${id}_proof.map (·.1), evalC ρ maps l = true :=
-  machine_sound ${id}_machine ${id}_proof (by decide +kernel)${corollary ? `\n${corollary}` : ''}`
+  machine_sound ${id}_machine ${id}_proof (by ${checkBy})${corollary ? `\n${corollary}` : ''}`
 }
 export const TRUE = '.le (.const 0) (.const 0)'
+// The tactic each check is closed by: `decide +kernel`, or `native_decide` for toLean's `native`.
+let checkBy = 'decide +kernel'
 export const grown = (g: Goal) => { const o = grow(g); if (!('tree' in o)) throw new Error(`${g.name}: stuck`); return o.tree }
 
 // Loops through Kern.loop_halts_of: the loop's machine (Live.lean's Loop.machine) with its invariants as laws, and its
@@ -246,7 +248,7 @@ def ${id}_fold : Fold := ${fold}
 def ${id}_proof : FoldProof := ${list(proof)}
 theorem ${id}_laws : ∀ maps ρ, evalC ρ maps ${id}_fold.pre = true → ∀ t, Allowed ${id}_fold ρ maps t →
     ∀ l ∈ ${id}_proof.map (·.1), evalC (foldT ${id}_fold ρ maps t) maps l = true :=
-  fold_sound ${id}_fold ${id}_proof (by decide +kernel)${extra}`
+  fold_sound ${id}_fold ${id}_proof (by ${checkBy})${extra}`
 }
 
 // Machines with maps (and flags) through Kern.fmmachine_sound: Lean inlines the flags, then builds the start and step
@@ -372,10 +374,10 @@ export function mmachineToLean(id: string, m: Machine, laws: Law[], opts: {corol
     return `-- Progress: ${pc.name}
 def ${pc.id} : Progress := ${record(pc.when)}
 theorem ${pc.id}_holds : ProgressHolds ${id}_machine ${pc.id} :=
-  progress_sound ${id}_machine ${id}_proof ${pc.id} ${id}_check (by decide +kernel)${pc.tamper ? `
+  progress_sound ${id}_machine ${id}_proof ${pc.id} ${id}_check (by ${checkBy})${pc.tamper ? `
 -- TAMPERED: ${pc.tamper.what}: the proof above offered for it. Lean computes the check to false.
 def ${pc.id}_tampered : Progress := ${record(pc.tamper.when)}
-example : checkProgress ${id}_machine ${id}_proof ${pc.id}_tampered = false := by decide +kernel` : ''}`
+example : checkProgress ${id}_machine ${id}_proof ${pc.id}_tampered = false := by ${checkBy}` : ''}`
   })
   // Step laws through Kern.steplaw_sound: `when` and `then` sent with the flags inlined (as kernel.ts's goal has them);
   // a law over several steps goes through smachineToLean.
@@ -398,20 +400,20 @@ def ${id}_step${j} : StepLaw := ⟨${when ? any0.c(inlineFlags(when)) : TRUE},
   ${list(insts)},
   (${pr.tab}, ${pr.tree})⟩
 theorem ${id}_step${j}_holds : StepLawHolds ${id}_machine ${id}_step${j} :=
-  steplaw_sound ${id}_machine ${id}_proof ${id}_step${j} ${id}_check (by decide +kernel)`
+  steplaw_sound ${id}_machine ${id}_proof ${id}_step${j} ${id}_check (by ${checkBy})`
   })
   const machineDef = `def ${id}_machine : FMMachine := ${lit(m)}`
   return `-- ${m.name}: ${laws.map(l => l.name).join('; ')}${flagNames.length ? `, with flags ${flagNames.join(', ')}` : ''}  (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')}; maps ${mapNames.map((v2, j) => `${j} ${v2}`).join(', ')})
 ${machineDef}
 ${entries.join('\n')}
 def ${id}_proof : List MEntry := ${list(laws.map((_, j) => `${id}_e${j}`))}
-theorem ${id}_check : checkFMMachine ${id}_machine ${id}_proof = true := by decide +kernel
+theorem ${id}_check : checkFMMachine ${id}_machine ${id}_proof = true := by ${checkBy}
 theorem ${id}_laws : ∀ ρ M, FMReach ${id}_machine ρ M → ∀ e ∈ ${id}_proof, e.law.Holds ρ M :=
   fmmachine_sound ${id}_machine ${id}_proof ${id}_check
 ${readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `FMReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`})}${opts.corollary ? `\n${opts.corollary}` : ''}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : FMMachine := ${lit(opts.tamper.machine)}
-example : checkFMMachine ${id}_tampered ${id}_proof = false := by decide +kernel` : ''}${progress.length ? `\n\n${progress.join('\n\n')}` : ''}${stepRecords.length ? `\n\n${stepRecords.join('\n\n')}` : ''}`
+example : checkFMMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${progress.length ? `\n\n${progress.join('\n\n')}` : ''}${stepRecords.length ? `\n\n${stepRecords.join('\n\n')}` : ''}`
 }
 
 // Machines with sets through Kern.smachine_sound and Kern.skstep_sound (Sets.lean): maps a request carries, flags that
@@ -467,18 +469,18 @@ def ${id}_step${j} : SKStep := ⟨⟨${list(Array.from({length: kk}, (_, s2) => 
   ${pr.hyps},
   ${list(Array.from({length: kk - 1}, (_, s2) => list(Object.keys(m.state).map(n2 => `(${ix(n2)}, ${ix(stateName(n2, s2 + 1))})`))))}⟩
 theorem ${id}_step${j}_holds : SKStepHolds ${id}_machine ${id}_step${j} :=
-  skstep_sound ${id}_machine ${id}_proof ${id}_step${j} ${id}_check (by decide +kernel)`
+  skstep_sound ${id}_machine ${id}_proof ${id}_step${j} ${id}_check (by ${checkBy})`
   }}))
   // A refinement (Refine.lean's SRefined): its step law, that the spec stutters or allows the request it is sent; srefines
   // says what the whole means.
   if (rf) claims.push({steps: [stepLaws[0]!], allows: [], render: h => {
     const primesL = list(Object.keys(m.state).map(s2 => `(${ix(s2)}, ${ix(`${s2}'`)})`)), primeMapsL = list(Object.keys(m.maps ?? {}).map(mp => `(${mx(mp)}, ${mx(`${mp}'`)})`))
     const proofL = h.sproof(stepLaws[0]!)
-    return `theorem ${id}_allowed : checkSKStep ${id}_machine ${id}_proof (srStep ${id}_refined ${primesL} ${primeMapsL} ${proofL}) = true := by decide +kernel
+    return `theorem ${id}_allowed : checkSKStep ${id}_machine ${id}_proof (srStep ${id}_refined ${primesL} ${primeMapsL} ${proofL}) = true := by ${checkBy}
 theorem ${id}_refines : ∀ ρ M, SReach ${id}_refined.impl ρ M → ∃ ρc Mc σ Ms, SReach ${id}_refined.full ρc Mc ∧ Agree ${id}_refined.SV ρc ρ
     ∧ (∀ mp, mp ∉ ${id}_refined.SM → Mc mp = M mp) ∧ SReach ${id}_refined.spec σ Ms ∧ Agree ${id}_refined.X σ ρc
     ∧ (∀ mp, mp ∉ ${id}_refined.IM → mp ∉ ${id}_refined.spec.carried → Ms mp = Mc mp) ∧ ∀ e ∈ ${id}_proof, e.Holds ρc Mc :=
-  srefines ${id}_refined (by decide +kernel) (by decide +kernel) ${id}_proof ${id}_check ${rf.specPre} ⟨rfl, rfl⟩ ${primesL} ${primeMapsL} ${proofL} ${id}_allowed (by decide +kernel) (by decide +kernel) (by decide +kernel)`
+  srefines ${id}_refined (by ${checkBy}) (by ${checkBy}) ${id}_proof ${id}_check ${rf.specPre} ⟨rfl, rfl⟩ ${primesL} ${primeMapsL} ${proofL} ${id}_allowed (by ${checkBy}) (by ${checkBy}) (by ${checkBy})`
   }})
   // Liveness (Live.lean's sleads_sound): its step laws (stay, cover, one per helpful request), and where each helpful
   // request is proven allowed in its region, the same under weak fairness (sleads_wf_sound).
@@ -489,7 +491,7 @@ theorem ${id}_refines : ∀ ρ M, SReach ${id}_refined.impl ρ M → ∃ ρc Mc 
       const al = allows.map(h.allow)
       const wf = al.every(a => a !== undefined) ? `
 def ${lid}_ap : List (List (Nat × E) × SProof × List E) := ${list(al as string[])}
-theorem ${lid}_allows : sliveAllowsOk ${id}_machine ${id}_proof ${lid} ${lid}_ap = true := by decide +kernel
+theorem ${lid}_allows : sliveAllowsOk ${id}_machine ${id}_proof ${lid} ${lid}_ap = true := by ${checkBy}
 /-- ${l.name}, under weak fairness: along every run that takes each helpful request whenever, from some point on, it
 stays allowed, \`from\` is followed by \`to\`. -/
 theorem ${lid}_holds_wf (run : SRun ${id}_machine)
@@ -503,10 +505,10 @@ def ${lid} : Live := ${liveLit(l, {e, c}, ix, list(Object.keys(m.state).map(s2 =
 def ${lid}_sp : SProof := ${h.sproof(stay)}
 def ${lid}_cp : SProof := ${h.sproof(cover)}
 def ${lid}_hp : List SProof := ${list(helps.map(h.sproof))}
-theorem ${lid}_ok : sliveOk ${id}_machine ${lid} = true := by decide +kernel
-theorem ${lid}_stay : checkSKStep ${id}_machine ${id}_proof (sliveStep ${lid} ${lid}.pend (liveStayC ${lid}) ${lid}_sp) = true := by decide +kernel
-theorem ${lid}_cover : checkSKStep ${id}_machine ${id}_proof (sliveStep ${lid} ${lid}.pend (liveCoverC ${lid}) ${lid}_cp) = true := by decide +kernel
-theorem ${lid}_helps : sliveHelpsOk ${id}_machine ${id}_proof ${lid} ${lid}_hp = true := by decide +kernel
+theorem ${lid}_ok : sliveOk ${id}_machine ${lid} = true := by ${checkBy}
+theorem ${lid}_stay : checkSKStep ${id}_machine ${id}_proof (sliveStep ${lid} ${lid}.pend (liveStayC ${lid}) ${lid}_sp) = true := by ${checkBy}
+theorem ${lid}_cover : checkSKStep ${id}_machine ${id}_proof (sliveStep ${lid} ${lid}.pend (liveCoverC ${lid}) ${lid}_cp) = true := by ${checkBy}
+theorem ${lid}_helps : sliveHelpsOk ${id}_machine ${id}_proof ${lid} ${lid}_hp = true := by ${checkBy}
 /-- ${l.name}: along every run that takes each helpful request infinitely often, \`from\` is followed by \`to\`. -/
 theorem ${lid}_holds (run : SRun ${id}_machine)
     (fair : ∀ h ∈ ${lid}.helps, ∀ n, ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
@@ -519,13 +521,13 @@ theorem ${lid}_holds (run : SRun ${id}_machine)
   if (lp0) claims.push({steps: [], allows: [], render: () => `/-- ${lp0.loop.name} halts: for params meeting its precondition, no run of turns goes on forever. -/
 theorem ${id}_halts : ∀ maps ρ0, evalC ρ0 maps ${id}_loop.pre = true →
     ¬ ∃ f : Nat → Nat → Nat, f 0 = applyS ${id}_loop.init ρ0 maps ∧ ∀ n, Turn ${id}_loop maps (f n) (f (n + 1)) :=
-  loop_halts_of ${id}_loop ${id}_live0 rfl rfl (by intro h hh; simp only [${id}_live0, List.mem_singleton] at hh; subst hh; rfl) (by decide +kernel) ${id}_live0_holds${lp0.tamper ? `
+  loop_halts_of ${id}_loop ${id}_live0 rfl rfl (by intro h hh; simp only [${id}_live0, List.mem_singleton] at hh; subst hh; rfl) (by ${checkBy}) ${id}_live0_holds${lp0.tamper ? `
 -- TAMPERED: ${lp0.tamper.what}. Lean computes the checks to false.
 def ${id}_tampered : SMachine := Loop.machine ${loopLit(lp0.tamper.loop)}
 example : (checkSMachine ${id}_tampered ${id}_proof && sliveOk ${id}_tampered ${id}_live0
     && checkSKStep ${id}_tampered ${id}_proof (sliveStep ${id}_live0 ${id}_live0.pend (liveStayC ${id}_live0) ${id}_live0_sp)
     && checkSKStep ${id}_tampered ${id}_proof (sliveStep ${id}_live0 ${id}_live0.pend (liveCoverC ${id}_live0) ${id}_live0_cp)
-    && sliveHelpsOk ${id}_tampered ${id}_proof ${id}_live0 ${id}_live0_hp) = false := by decide +kernel` : ''}`})
+    && sliveHelpsOk ${id}_tampered ${id}_proof ${id}_live0 ${id}_live0_hp) = false := by ${checkBy}` : ''}`})
   // Ghosts (Ghost.lean's sghost_laws): the laws that read no ghost hold of the machine without its ghosts.
   if (gv.length) claims.push({steps: [], allows: [], render: () => `-- The laws that read no ghost hold of the machine without its ghosts.
 theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈ ${id}_proof, avoids ${id}_ghosted.vars e.law.holds = true → e.Holds ρ M :=
@@ -648,9 +650,9 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
     const records = hplain!.goals.map(g => { const out = grow(g); if (!('tree' in out)) throw new Error(`${id}: ${g.name} not proven`); const x2 = enc(g, out.tree); return `(${x2.tab}, ${x2.tree})` })
     const tampered = (opts.historyTampers ?? []).map((t, j) => `-- TAMPERED: ${t.what}. Lean computes the check to false.
 def ${id}_tampered${j} : HMachine := ${hlit(t.relations)}
-example : checkHMachine ${id}_tampered${j} ${id}_proof ${t.withRecordTrees ? `${id}_records` : '[]'} = false := by decide +kernel`)
+example : checkHMachine ${id}_tampered${j} ${id}_proof ${t.withRecordTrees ? `${id}_records` : '[]'} = false := by ${checkBy}`)
     return `def ${id}_records : List (List VDef × Tree) := ${list(records)}
-theorem ${id}_hcheck : checkHMachine ${id}_hist ${id}_proof ${id}_records = true := by decide +kernel
+theorem ${id}_hcheck : checkHMachine ${id}_hist ${id}_proof ${id}_records = true := by ${checkBy}
 theorem ${id}_hlaws : ∀ ρ M hist, HReach ${id}_hist ρ M hist → ∀ e ∈ ${id}_proof, e.Holds ρ M :=
   hmachine_sound ${id}_hist ${id}_proof ${id}_records ${id}_hcheck
 ${readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat) (hist : List (Nat → Nat))', hyp: `HReach ${id}_hist ρ μ hist`, call: `${id}_hlaws ρ μ hist h`})}${tampered.length ? `\n${tampered.join('\n')}` : ''}`
@@ -706,18 +708,18 @@ ${rf ? `def ${id}_refined : SRefined := ⟨${lit(rf.impl)},
 def ${id}_machine : SMachine := ${id}_refined.full` : gv.length ? `def ${id}_ghosted : SGhosted := ⟨${lit(orig)},
   ${list(gv.map(v2 => `(${ix(v2)}, ${e(m.state[v2]!)}, ${e(m.step.state?.[v2] ?? {op: 'var', name: v2})})`))}⟩
 def ${id}_machine : SMachine := ${id}_ghosted.full
-theorem ${id}_ghostOk : sghostOk ${id}_ghosted = true := by decide +kernel` : hm ? `def ${id}_hist : HMachine := ${hlit(hm.history.relations ?? [])}
+theorem ${id}_ghostOk : sghostOk ${id}_ghosted = true := by ${checkBy}` : hm ? `def ${id}_hist : HMachine := ${hlit(hm.history.relations ?? [])}
 def ${id}_machine : SMachine := ${id}_hist.plain` : lp0 ? `def ${id}_loop : Loop := ${loopLit(lp0.loop)}
 def ${id}_machine : SMachine := ${id}_loop.machine` : `def ${id}_machine : SMachine := ${lit(m)}`}
 ${entries.join('\n')}
 def ${id}_proof : List SEntry := ${list(laws.map((_, j) => `${id}_e${j}`))}
-theorem ${id}_check : checkSMachine ${id}_machine ${id}_proof = true := by decide +kernel
+theorem ${id}_check : checkSMachine ${id}_machine ${id}_proof = true := by ${checkBy}
 theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_proof, e.Holds ρ M :=
   smachine_sound ${id}_machine ${id}_proof ${id}_check
 ${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`})}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
-example : checkSMachine ${id}_tampered ${id}_proof = false := by decide +kernel` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix)}` : ''}`
+example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix)}` : ''}`
 }
 
 // A function defined by a recurrence (core/dsl.ts recur): its Lean definition by the same recurrence, and its lemmas
@@ -967,7 +969,18 @@ export type LeanItem =
 // over named variables); step laws with `<id>_stepN_holds` (on the plain machine, `<id>s`, for a machine with a history);
 // loops with `<id>_halts`; decisions with `<id>`. A machine with sets has its step laws as `<id>_stepN_holds`.
 // Throws if the kernel can't prove one.
-export function toLean(items: LeanItem[], opts: {title?: string} = {}): string {
+//
+// `native`: each check by `native_decide` (compiled Lean, several times faster on a large certificate), not by
+// `decide +kernel` (Lean's kernel alone). Every such theorem then also rests on an axiom of its own that `#print axioms`
+// names (`…_native.native_decide.ax_…`): it trusts Lean's compiler, its runtime and the C compiler. Defaults to off, or
+// to GDP_LEAN_NATIVE=1 (the suite's quick runs); a release's proofs stay on Lean's kernel and its core axioms.
+export function toLean(items: LeanItem[], opts: {title?: string, native?: boolean} = {}): string {
+  const outer = checkBy
+  const env = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
+  checkBy = (opts.native ?? env?.GDP_LEAN_NATIVE === '1') ? 'native_decide' : 'decide +kernel'
+  try { return toLeanWith(items, opts) } finally { checkBy = outer }
+}
+function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   const ident = (id: string) => { const s = id.replace(/[^A-Za-z0-9_]/g, '_'); return /^[A-Za-z]/.test(s) ? s : `x_${s}` }
   const parts: string[] = [], theorems: string[] = []
   let goals = 0

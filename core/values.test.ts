@@ -39,6 +39,14 @@ test('an integer state variable: proven, the broken variant refused, runs agree 
   expect(findings.filter(f => !f.ok).map(f => f.detail)).toEqual([])
   // Lean: the export is the twin's, over the two parts.
   expect(toLean([{id: 'account', machine: r.machine, laws: [floor(r)]}])).toContain('theorem account_laws')
+  // Lean's kernel unless asked (`native: false` here, as a suite run with GDP_LEAN_NATIVE=1 turns it on by default);
+  // native_decide (compiled Lean, an axiom of its own per theorem) when asked.
+  const lean = toLean([{id: 'account', machine: r.machine, laws: [floor(r)]}], {native: false})
+  expect(lean).toContain('by decide +kernel')
+  expect(lean).not.toContain('native_decide')
+  const native = toLean([{id: 'account', machine: r.machine, laws: [floor(r)]}], {native: true})
+  expect(native).toContain('by native_decide')
+  expect(native).not.toContain('decide +kernel')
 })
 
 test('decimals: scaled exactly, compared with numbers, mixed places refused', () => {

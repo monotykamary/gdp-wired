@@ -89,7 +89,7 @@ def sh(name: str, cmd: str, cwd: str = ".", limit: int = 840) -> dict:
 
 
 @app.local_entrypoint()
-def main(jobs: str, out: str):
+def main(jobs: str, out: str, native: bool = False):
     import os
 
     spec = json.loads(pathlib.Path(jobs).read_text())
@@ -108,7 +108,8 @@ def main(jobs: str, out: str):
     try:
         for (cpu, memory, timeout), js in groups.items():
             fn = sh.with_options(cpu=cpu, memory=memory, timeout=timeout + 60)
-            calls += [(j["name"], fn.spawn(j["name"], j["cmd"], j.get("cwd", "."), timeout - 30)) for j in js]
+            # --native: the Lean the jobs generate closes each check by native_decide (emit.ts's toLean `native`).
+            calls += [(j["name"], fn.spawn(j["name"], ("export GDP_LEAN_NATIVE=1; " if native else "") + j["cmd"], j.get("cwd", "."), timeout - 30)) for j in js]
         rows = collect(calls, outdir)
     finally:  # whatever happened, nothing keeps running (cancelling a finished call is a no-op)
         for _, c in calls:
