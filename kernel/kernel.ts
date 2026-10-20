@@ -258,34 +258,57 @@ export function leafConstraints(goal: Goal, path: Path): Constraint[] { return l
 // The same rows, for the prover's search: each hypothesis' facts as they were at an earlier path of the goal's where
 // every decision they read was the same (facts read the path only through those decisions), and found afresh, with
 // what they read recorded, otherwise. The kernel's check never uses it: it rebuilds every row as leafConstraints does.
-type FactsSeen = {reads: [string, boolean | undefined][], out: Lin[]}[]
-const factsSeen = new WeakMap<Goal, Map<C, FactsSeen>>()
+const factsSeen = new WeakMap<Goal, Map<C, Seen<Lin[]>>>()
 export function leafConstraintsReusing(goal: Goal, path: Path): Constraint[] {
   let byHyp = factsSeen.get(goal)
   if (!byHyp) factsSeen.set(goal, (byHyp = new Map()))
   return leafRows(goal, path, h => {
     let seen = byHyp.get(h)
-    if (!seen) byHyp.set(h, (seen = []))
+    if (!seen) byHyp.set(h, (seen = {}))
     return reusing(seen, path, p => facts(h, p))
   })
 }
 // A value of the path that reads it only through decisions (facts, truth, linear forms, and what is built of them): as
 // it was at an earlier path where each decision it read is the same, else found afresh, on a copy of the path (so no
-// memo made without recording answers it), with what it read recorded in `seen` (the latest few).
-type Seen<T> = {reads: [string, boolean | undefined][], out: T}[]
+// memo made without recording answers it), with what it read recorded in `seen`. `seen` is a trie of the decisions
+// read, in the order they were read: a value's next decision depends only on the answers to those before it, so
+// following the path's answers from the root reaches the value found for the same answers, if there is one.
+type Decisions = [string, boolean | undefined][]
+// A leaf holds a value and every decision it read; a branch sits where two values' decisions first part (at index
+// `at`, the decision's key), so a value's run of decisions shared with no other costs no nodes.
+type Node<T> = {at: number, key: string, next: Map<boolean | undefined, Node<T>>} | {reads: Decisions, out: T}
+export type Seen<T> = {root?: Node<T>, size?: number}
+// Past `reuseKeep` values a trie starts afresh: a long search would otherwise keep every value it ever found.
+const reuseKeep = 16
+function remember<T>(seen: Seen<T>, reads: Decisions, out: T): void {
+  if ((seen.size = (seen.size ?? 0) + 1) > reuseKeep) { seen.root = undefined; seen.size = 1 }
+  const leaf: Node<T> = {reads, out}
+  let node = seen.root, parent: {next: Map<boolean | undefined, Node<T>>} | undefined, via: boolean | undefined
+  while (node && 'key' in node) {
+    // A value that read otherwise than the trie says (none does: the decisions are deterministic) is not kept.
+    if (reads[node.at]?.[0] !== node.key) return
+    parent = node; via = reads[node.at]![1]
+    node = node.next.get(via)
+  }
+  const put = (n: Node<T>) => { if (parent) parent.next.set(via, n); else seen.root = n }
+  if (!node) { put(leaf); return }
+  const i = node.reads.findIndex((d, j) => reads[j]?.[0] !== d[0] || reads[j]![1] !== d[1])
+  if (i < 0 || reads[i]?.[0] !== node.reads[i]![0]) return
+  put({at: i, key: node.reads[i]![0], next: new Map([[node.reads[i]![1], node], [reads[i]![1], leaf]])})
+}
 export function reusing<T>(seen: Seen<T>, path: Path, f: (path: Path) => T): T {
-  const hit = seen.find(e => e.reads.every(([key, holds]) => path.get(key)?.holds === holds))
-  if (hit) {
-    if (recording) for (const [key, holds] of hit.reads) recording.set(key, holds)
-    return hit.out
+  let node = seen.root
+  while (node && 'key' in node) node = node.next.get(path.get(node.key)?.holds)
+  if (node && node.reads.every(([key, holds]) => path.get(key)?.holds === holds)) {
+    if (recording) for (const [key, holds] of node.reads) recording.set(key, holds)
+    return node.out
   }
   const outer = recording, mode = reuse
   recording = new Map()
   reuse = true
   try {
     const out = f(new Map(path))
-    seen.unshift({reads: [...recording], out})
-    if (seen.length > 16) seen.pop()
+    remember(seen, [...recording], out)
     return out
   } finally {
     // What was read inside is read by the outer value too.
@@ -299,7 +322,7 @@ export function reusing<T>(seen: Seen<T>, path: Path, f: (path: Path) => T): T {
 // runs in this mode: it reads every term afresh on every path.
 let reuse = false
 const linearSeen = new WeakMap<E, Seen<Lin | undefined>>(), comparisonSeen = new WeakMap<C, Seen<Comparison>>(), truthSeen = new WeakMap<C, Seen<boolean | undefined>>()
-const seenOf = <K extends object, T>(m: WeakMap<K, Seen<T>>, k: K): Seen<T> => { let s = m.get(k); if (!s) m.set(k, (s = [])); return s }
+const seenOf = <K extends object, T>(m: WeakMap<K, Seen<T>>, k: K): Seen<T> => { let s = m.get(k); if (!s) m.set(k, (s = {})); return s }
 function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[] {
   const rows: Constraint[] = [...path.values()].map((a, i) => ({...atomOf(a.lin, a.holds), src: {atom: i}}))
   for (const [i, h] of goal.hyps.entries()) for (const lin of factsOf(h)) rows.push({lin, label: '', src: {fact: i}})

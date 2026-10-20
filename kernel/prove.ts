@@ -10,7 +10,7 @@
 //     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {type Lin, type Step, add, k, refuteFast, scale, solve, sub, v} from '../core/solver.ts'
-import {type Goal, type Instances, type Liveness, type Path, type StepLaw, type Tree, assumed, boundOf, canon, canonFlip, columnTerm, decided, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
+import {type Goal, type Instances, type Liveness, type Path, type Seen, type StepLaw, type Tree, assumed, boundOf, canon, canonFlip, columnTerm, decided, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
 function openE(e: E, path: Path, out: Lin[]): void {
@@ -148,7 +148,7 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
   const hyps = goal.hyps, last = hyps.length - 1
   let byHyp = openSeen.get(goal)
   if (!byHyp) openSeen.set(goal, (byHyp = new Map()))
-  const openOf = (h: C) => { let seen = byHyp.get(h); if (!seen) byHyp.set(h, (seen = [])); return reusing(seen, path, p => { const out: Lin[] = []; openH(h, p, out); return out }) }
+  const openOf = (h: C) => { let seen = byHyp.get(h); if (!seen) byHyp.set(h, (seen = {})); return reusing(seen, path, p => { const out: Lin[] = []; openH(h, p, out); return out }) }
   if (last >= 0) open.push(...openOf(hyps[last]!))
   for (const [i, h] of hyps.entries()) if (i !== last) open.push(...openOf(h))
   open.push(...openCells(rows, path))
@@ -246,7 +246,7 @@ function lift(goal: Goal, tree: Tree, from: Path, to: Path): Tree | undefined {
 }
 
 // Each hypothesis' open atoms, as at an earlier path that decided the same atoms it reads (kernel.ts's reusing).
-const openSeen = new WeakMap<Goal, Map<C, {reads: [string, boolean | undefined][], out: Lin[]}[]>>()
+const openSeen = new WeakMap<Goal, Map<C, Seen<Lin[]>>>()
 
 // What ran out, for a goal left unknown: its size, how deep the case splits went, and the two shapes that usually cause it.
 function outOfBudget(goal: Goal, limit: 'nodes' | 'time', depth: number): string {
