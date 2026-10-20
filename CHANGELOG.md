@@ -3,7 +3,7 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.13.2
 
 - A chart compiles to a lighter step: a transition's source states as ranges of their indices (no disjunction over every
   state, none at all for the whole region), a transition outranks only those on its own event, and transitions writing
