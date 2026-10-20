@@ -93,6 +93,12 @@ def unitL : Nat → List Int
   | 0 => [1]
   | j + 1 => 0 :: unitL j
 def lunit (j : Nat) : Row := ⟨unitL j, 0⟩
+-- Coefficients by their nonzero entries (column, coefficient), in order: how the exporters write rows, to keep a
+-- certificate small. It builds the dense list a row holds (any list of pairs builds some row, which the check reads).
+def sparseL : Nat → List (Nat × Int) → List Int
+  | _, [] => []
+  | i, (j, c) :: rest => List.replicate (j - i) 0 ++ c :: sparseL (j + 1) rest
+def sp (cs : List (Nat × Int)) (c : Int) : Row := ⟨sparseL 0 cs, c⟩
 def same (a b : Row) : Bool := allZero (lsub a b).coefs && (lsub a b).const == 0
 -- 1 − a: over the integers, a ≤ 0 fails exactly when 1 − a ≤ 0 holds.
 def flip (a : Row) : Row := lsub (lconst 1) a
@@ -855,10 +861,31 @@ def termRows (tab : List VDef) (path : Path) : List Row := (List.range tab.lengt
 def leafRows (tab : List VDef) (path : Path) (hyps : List C) (eqs : List (Nat × Nat)) : List Row :=
   path.map atomRow ++ hyps.flatMap (facts tab path true) ++ natRows tab.length ++ eqs.flatMap (cellEq tab path) ++ termRows tab path
 
+-- Where a leaf's row is looked for first: the path's i-th atom (the latest decision first), a hypothesis's facts, column i's naturality, the i-th
+-- pair of equal cells, or term column j's rows. A hint only saves work: a row not found there is looked for among all
+-- of the leaf's rows, as one without a hint is.
+inductive Src where
+  | atom (i : Nat)
+  | fact (h : Nat)
+  | nat (i : Nat)
+  | eq (i : Nat)
+  | term (j : Nat)
+  | any
+
+def srcRows (tab : List VDef) (path : Path) (hyps : List C) (eqs : List (Nat × Nat)) : Src → List Row
+  | .atom i => match path[i]? with | some a => [atomRow a] | none => []
+  | .fact h => match hyps[h]? with | some c => facts tab path true c | none => []
+  | .nat i => if i < tab.length then [lscale (-1) (lunit i)] else []
+  | .eq i => match eqs[i]? with | some p => cellEq tab path p | none => []
+  | .term j => if j < tab.length then termRowsAt tab path j else []
+  | .any => []
+
 -- A leaf may add products of two of its rows (p ≤ 0 and q ≤ 0 give −p·q ≤ 0); a pair may name an earlier product.
+-- `leafAt` is a leaf whose rows come with hints.
 inductive Tree where
   | split (l : Row) (yes no : Tree)
   | leaf (rows : List Row) (steps : List Step) (eqs : List (Nat × Nat)) (prods : List (Nat × Nat))
+  | leafAt (rows : List (Row × Src)) (steps : List Step) (eqs : List (Nat × Nat)) (prods : List (Nat × Nat))
 
 def extend (tab : List VDef) : List Row → List (Nat × Nat) → Option (List Row)
   | acc, [] => some acc
@@ -875,9 +902,18 @@ def leafOk (tab : List VDef) (path : Path) (hyps : List C) (rows : List Row) (st
     | some rows' => Cert.check rows' steps
     | none => false
 
+-- Each row where its hint says, or else among the leaf's rows.
+def leafAtOk (tab : List VDef) (path : Path) (hyps : List C) (rows : List (Row × Src)) (steps : List Step) (eqs : List (Nat × Nat))
+    (prods : List (Nat × Nat)) : Bool :=
+  rows.all (fun r => (srcRows tab path hyps eqs r.2).any (same r.1) || (leafRows tab path hyps eqs).any (same r.1))
+    && match extend tab (rows.map (·.1)) prods with
+    | some rows' => Cert.check rows' steps
+    | none => false
+
 def checkT (tab : List VDef) (hyps : List C) : Path → Tree → Bool
-  | path, .split l y n => checkT tab hyps (path ++ [(l, true)]) y && checkT tab hyps (path ++ [(l, false)]) n
+  | path, .split l y n => checkT tab hyps ((l, true) :: path) y && checkT tab hyps ((l, false) :: path) n
   | path, .leaf rows steps eqs prods => leafOk tab path hyps rows steps eqs prods
+  | path, .leafAt rows steps eqs prods => leafAtOk tab path hyps rows steps eqs prods
 
 structure Goal where
   tab : List VDef
@@ -987,6 +1023,56 @@ theorem leafRows_sound {path : Path} (hM : Model tab env maps x) (hP : PathHolds
     · simp at hr
   · exact termRows_sound hM hP r hr
 
+-- A hint names some of the leaf's rows.
+theorem natRows_mem : ∀ {n i : Nat}, i < n → lscale (-1) (lunit i) ∈ natRows n
+  | 0, _, h => absurd h (Nat.not_lt_zero _)
+  | n + 1, i, h => by
+    simp only [natRows, List.mem_cons]
+    rcases Nat.lt_succ_iff_lt_or_eq.mp h with h | rfl
+    · exact Or.inr (natRows_mem h)
+    · exact Or.inl rfl
+
+theorem srcRows_sub {path : Path} {hyps : List C} {eqs : List (Nat × Nat)} {r : Row} :
+    ∀ s, r ∈ srcRows tab path hyps eqs s → r ∈ leafRows tab path hyps eqs
+  | .atom i, hr => by
+    simp only [srcRows] at hr
+    split at hr
+    · rename_i a ha
+      simp only [List.mem_singleton] at hr; subst hr
+      simp only [leafRows, List.mem_append, List.mem_map]
+      exact Or.inl (Or.inl (Or.inl (Or.inl ⟨a, List.mem_of_getElem? ha, rfl⟩)))
+    · simp at hr
+  | .fact h, hr => by
+    simp only [srcRows] at hr
+    split at hr
+    · rename_i c hc
+      simp only [leafRows, List.mem_append, List.mem_flatMap]
+      exact Or.inl (Or.inl (Or.inl (Or.inr ⟨c, List.mem_of_getElem? hc, hr⟩)))
+    · simp at hr
+  | .nat i, hr => by
+    simp only [srcRows] at hr
+    split at hr
+    · rename_i hi
+      simp only [List.mem_singleton] at hr; subst hr
+      simp only [leafRows, List.mem_append]
+      exact Or.inl (Or.inl (Or.inr (natRows_mem hi)))
+    · simp at hr
+  | .eq i, hr => by
+    simp only [srcRows] at hr
+    split at hr
+    · rename_i p hp
+      simp only [leafRows, List.mem_append, List.mem_flatMap]
+      exact Or.inl (Or.inr ⟨p, List.mem_of_getElem? hp, hr⟩)
+    · simp at hr
+  | .term j, hr => by
+    simp only [srcRows] at hr
+    split at hr
+    · rename_i hj
+      simp only [leafRows, termRows, List.mem_append, List.mem_flatMap, List.mem_range]
+      exact Or.inr ⟨j, hj, hr⟩
+    · simp at hr
+  | .any, hr => by simp [srcRows] at hr
+
 theorem extend_sound (hM : Model tab env maps x) :
     ∀ ps acc rows', extend tab acc ps = some rows' → (∀ r ∈ acc, eval r x ≤ 0) → ∀ r ∈ rows', eval r x ≤ 0
   | [], acc, rows', h, ha => by simp only [extend, Option.some.injEq] at h; subst h; exact ha
@@ -1015,14 +1101,14 @@ theorem checkT_sound (hM : Model tab env maps x) {hyps : List C} (hH : ∀ c ∈
     by_cases hl : eval l x ≤ 0
     · refine checkT_sound hM hH y _ ?_ h.1
       intro a ha
-      rcases List.mem_append.mp ha with ha | ha
+      rcases List.mem_cons.mp ha with ha | ha
+      · subst ha; simpa using hl
       · exact hP a ha
-      · simp only [List.mem_singleton] at ha; subst ha; simpa using hl
     · refine checkT_sound hM hH n _ ?_ h.2
       intro a ha
-      rcases List.mem_append.mp ha with ha | ha
+      rcases List.mem_cons.mp ha with ha | ha
+      · subst ha; simpa using hl
       · exact hP a ha
-      · simp only [List.mem_singleton] at ha; subst ha; simpa using hl
   | .leaf rows steps eqs prods, path, hP, h => by
     simp only [checkT, leafOk, Bool.and_eq_true, List.all_eq_true, List.any_eq_true] at h
     obtain ⟨h1, h2⟩ := h
@@ -1033,6 +1119,18 @@ theorem checkT_sound (hM : Model tab env maps x) {hyps : List C} (hH : ∀ c ∈
       obtain ⟨c, hc, hs⟩ := h1 r hr
       rw [same_eval hs]
       exact leafRows_sound hM hP hH eqs c hc
+    · simp at h2
+  | .leafAt rows steps eqs prods, path, hP, h => by
+    simp only [checkT, leafAtOk, Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true, List.any_eq_true] at h
+    obtain ⟨h1, h2⟩ := h
+    split at h2
+    · rename_i rows' he
+      refine Cert.sound rows' steps h2 x (extend_sound hM prods _ rows' he ?_)
+      intro r hr
+      obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hr
+      rcases h1 p hp with ⟨c, hc, hs⟩ | ⟨c, hc, hs⟩
+      · rw [same_eval hs]; exact leafRows_sound hM hP hH eqs c (srcRows_sub p.2 hc)
+      · rw [same_eval hs]; exact leafRows_sound hM hP hH eqs c hc
     · simp at h2
 end
 

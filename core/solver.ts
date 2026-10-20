@@ -8,7 +8,10 @@
 // exact shadow). Then a rational solution of the rest extends to an integer x, so back-substitution finds a witness.
 
 export type Lin = Record<string, number> // variable -> coefficient, '1' -> constant
-export type Constraint = {lin: Lin, label: string} // lin <= 0
+// lin <= 0. `src`: where a leaf's row comes from (the path's i-th atom, a hypothesis's facts, a column's naturality, a pair
+// of equal cells, a term column's rows), a hint for Lean's check, which looks there first.
+export type Constraint = {lin: Lin, label: string, src?: RowSrc}
+export type RowSrc = {atom: number} | {fact: number} | {nat: string} | {pair: [string, string]} | {term: string}
 
 export const v = (name: string): Lin => ({[name]: 1})
 export const k = (value: number): Lin => (value === 0 ? {} : {1: value})
@@ -71,18 +74,24 @@ export function solve(constraints: Constraint[], maxRows = 20_000): Verdict {
     return push({kind: 'cut', of: index, g}, add(cut, k(constant)))
   }
   let rows = constraints.map((c, index) => tighten(push({kind: 'input', index}, c.lin)))
-  const contradiction = () => rows.find(r => vars(lins[r]!).length === 0 && (lins[r]!['1'] ?? 0) > 0)
+  // A row with no variable and a positive constant (kept per row: a row never changes once pushed).
+  const contra: boolean[] = []
+  const isContra = (r: number) => (contra[r] ??= (lins[r]!['1'] ?? 0) > 0 && Object.keys(lins[r]!).every(key => key === '1'))
+  const contradiction = () => rows.find(isContra)
   const eliminated: {x: string, rows: number[]}[] = []
   let exact = true
   // Equalities first: a pair of rows that are each other's negation, with a variable of coefficient ±1, defines that
   // variable. Substituting it into every other row (a combination with one row of the pair) eliminates it exactly,
   // with |rows| new rows instead of the |pos| × |neg| of a plain elimination.
+  // A row's key and its negation's, kept per row (a row never changes once pushed).
+  const keyOf = (lin: Lin) => JSON.stringify(Object.entries(lin).sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)))
+  const keys: string[] = [], negKeys: string[] = []
+  const key = (r: number) => (keys[r] ??= keyOf(lins[r]!)), negKey = (r: number) => (negKeys[r] ??= keyOf(scale(lins[r]!, -1)))
   for (let changed = true; changed && contradiction() === undefined;) {
     changed = false
-    const key = (lin: Lin) => JSON.stringify(Object.entries(lin).sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)))
-    const byKey = new Map(rows.map(r => [key(lins[r]!), r]))
+    const byKey = new Map(rows.map(r => [key(r), r]))
     for (const r of rows) {
-      const neg = byKey.get(key(scale(lins[r]!, -1)))
+      const neg = byKey.get(negKey(r))
       if (neg === undefined || neg === r) continue
       const x = vars(lins[r]!).find(name => Math.abs(lins[r]![name]!) === 1)
       if (x === undefined) continue
@@ -101,16 +110,25 @@ export function solve(constraints: Constraint[], maxRows = 20_000): Verdict {
       break
     }
   }
+  const sigs: string[] = []
+  const sigOf = (r: number) => (sigs[r] ??= JSON.stringify(vars(lins[r]!).sort().map(key => [key, lins[r]![key]])))
   for (let found = contradiction(); found === undefined; found = contradiction()) {
-    const remaining = [...new Set(rows.flatMap(r => vars(lins[r]!)))]
-    if (remaining.length === 0) break
-    // Eliminate the variable that makes the fewest new rows, preferring exact eliminations.
-    const cost = (x: string) => {
-      const pos = rows.filter(r => (lins[r]![x] ?? 0) > 0), neg = rows.filter(r => (lins[r]![x] ?? 0) < 0)
-      const isExact = pos.every(p => lins[p]![x] === 1) || neg.every(n => lins[n]![x] === -1)
-      return {x, pos, neg, isExact, size: pos.length * neg.length - pos.length - neg.length}
+    // Each variable's rows by sign, in one pass (variables in the order they first appear).
+    const index = new Map<string, {pos: number[], neg: number[], posUnit: boolean, negUnit: boolean}>()
+    for (const r of rows) for (const [x, c] of Object.entries(lins[r]!)) {
+      if (x === '1') continue
+      let e = index.get(x)
+      if (!e) index.set(x, (e = {pos: [], neg: [], posUnit: true, negUnit: true}))
+      if (c > 0) { e.pos.push(r); e.posUnit &&= c === 1 } else if (c < 0) { e.neg.push(r); e.negUnit &&= c === -1 }
     }
-    const choice = remaining.map(cost).sort((a, b) => Number(b.isExact) - Number(a.isExact) || a.size - b.size)[0]!
+    if (index.size === 0) break
+    // Eliminate the variable that makes the fewest new rows, preferring exact eliminations (the first such).
+    let choice: {x: string, pos: number[], neg: number[], isExact: boolean, size: number} | undefined
+    for (const [x, e] of index) {
+      const c = {x, pos: e.pos, neg: e.neg, isExact: e.posUnit || e.negUnit, size: e.pos.length * e.neg.length - e.pos.length - e.neg.length}
+      if (!choice || (c.isExact && !choice.isExact) || (c.isExact === choice.isExact && c.size < choice.size)) choice = c
+    }
+    if (!choice) break
     exact &&= choice.isExact
     eliminated.push({x: choice.x, rows: [...choice.pos, ...choice.neg]})
     const next = rows.filter(r => (lins[r]![choice.x] ?? 0) === 0)
@@ -123,7 +141,7 @@ export function solve(constraints: Constraint[], maxRows = 20_000): Verdict {
     // say nothing.
     const best = new Map<string, number>()
     for (const r of next) {
-      const lin = lins[r]!, sig = JSON.stringify(vars(lin).sort().map(key => [key, lin[key]]))
+      const lin = lins[r]!, sig = sigOf(r)
       if (sig === '[]' && (lin['1'] ?? 0) <= 0) continue
       const seen = best.get(sig)
       if (seen === undefined || (lins[seen]!['1'] ?? 0) < (lin['1'] ?? 0)) best.set(sig, r)

@@ -301,15 +301,15 @@ let reuse = false
 const linearSeen = new WeakMap<E, Seen<Lin | undefined>>(), comparisonSeen = new WeakMap<C, Seen<Comparison>>(), truthSeen = new WeakMap<C, Seen<boolean | undefined>>()
 const seenOf = <K extends object, T>(m: WeakMap<K, Seen<T>>, k: K): Seen<T> => { let s = m.get(k); if (!s) m.set(k, (s = [])); return s }
 function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[] {
-  const rows: Constraint[] = [...path.values()].map(a => atomOf(a.lin, a.holds))
-  for (const h of goal.hyps) for (const lin of factsOf(h)) rows.push({lin, label: ''})
+  const rows: Constraint[] = [...path.values()].map((a, i) => ({...atomOf(a.lin, a.holds), src: {atom: i}}))
+  for (const [i, h] of goal.hyps.entries()) for (const lin of factsOf(h)) rows.push({lin, label: '', src: {fact: i}})
   const names = new Set(rows.flatMap(r => Object.keys(r.lin).filter(key => key !== '1')))
   // Two reads of one map whose keys the path proves equal are equal.
   const cells = [...names].filter(name => name.includes('[')).map(name => ({name, map: name.slice(0, name.indexOf('[')), key: keyOf(name)}))
   for (const [i, p] of cells.entries()) for (const q of cells.slice(i + 1)) {
     if (p.map !== q.map) continue
     const d = sub(p.key, q.key)
-    if (decide(d, path) === true && decide(scale(d, -1), path) === true) rows.push({lin: sub(v(p.name), v(q.name)), label: ''}, {lin: sub(v(q.name), v(p.name)), label: ''})
+    if (decide(d, path) === true && decide(scale(d, -1), path) === true) rows.push({lin: sub(v(p.name), v(q.name)), label: '', src: {pair: [p.name, q.name]}}, {lin: sub(v(q.name), v(p.name)), label: '', src: {pair: [p.name, q.name]}})
   }
   // Each term column's rows, and the columns those rows bring in turn.
   const seen = new Set<string>(), todo = [...names].filter(n => n.startsWith('⟦'))
@@ -318,11 +318,11 @@ function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[
     if (seen.has(name)) continue
     seen.add(name)
     for (const lin of termRows(name, path)) {
-      rows.push({lin, label: ''})
+      rows.push({lin, label: '', src: {term: name}})
       for (const key of Object.keys(lin)) if (key !== '1') { names.add(key); if (key.startsWith('⟦') && !seen.has(key)) todo.push(key) }
     }
   }
-  for (const name of names) rows.push({lin: {[name]: -1}, label: ''})
+  for (const name of names) rows.push({lin: {[name]: -1}, label: '', src: {nat: name}})
   return rows
 }
 const keyOf = (cell: string): Lin => {
@@ -890,7 +890,7 @@ export function stepLawObligations(machine: Machine, laws: Law[], instances: Ins
   const m = machine.history ? historyMachine(machine).machine : machine
   scope(m, laws)
   const k = sl.steps ?? 1
-  // Past 64 the cost is the bound (proving grows about as k³: 64 steps in about 90 s; Lean checks 32 in about 13 minutes).
+  // Past 64 the cost is the bound (proving grows about as k³: 64 steps in about 17 s on Modal; Lean checks 32 in about 25 s, 64 in about 3 minutes).
   if (!Number.isInteger(k) || k < 1 || k > 64) throw new Error(`step law ${sl.name}: steps is a whole number from 1 to 64`)
   const whens = sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when]
   if (whens.length > k) throw new Error(`step law ${sl.name}: one when per step at most`)

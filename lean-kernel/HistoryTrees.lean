@@ -31,49 +31,41 @@ def window_hist : HMachine := ⟨⟨⟨⟨[3, 4, 5],
 def window_machine : SMachine := window_hist.plain
 def window_l0 : MLaw := ⟨.le (.var 6) (.var 1), none⟩
 def window_e0 : SEntry := ⟨window_l0, 7, [], [], [], [], [], [],
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10], [], .leaf [⟨[0, 1], 1⟩, ⟨[0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .term (.ite (.and (.eq (.var 3) (.const 0)) (.and (.le (.var 4) (.var 2)) (.lt (.var 2) (.add (.var 4) (.var 0))))) (.const 1) (.const 0)), .term (.ite (.or (.eq (.var 3) (.const 1)) (.and (.eq (.var 3) (.const 0)) (.le (.add (.var 5) (.const 1)) (.var 1)))) (.ite (.and (.eq (.var 3) (.const 0)) (.and (.le (.var 4) (.var 2)) (.lt (.var 2) (.add (.var 4) (.var 0))))) (.const 1) (.const 0)) (.const 0))], [], .split ⟨[0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, (-1), 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, (-1)], 0⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 1], 1⟩
-  (.split ⟨[(-1), 0, 1, 0, (-1)], 1⟩
-  (.leaf [⟨[0, (-1), 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 0 3 1 1] [] [])
-  (.leaf [⟨[0, (-1), 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, (-1), 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 2 3 1 1] [] []))
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [] []))
-  (.split ⟨[0, 0, 0, (-1)], 0⟩
-  (.split ⟨[0, (-1), 0, 0, 0, 1], 1⟩
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.leaf [⟨[], 1⟩] [.input 0] [] [])))
-  (.split ⟨[0, 0, (-1), 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 1], (-1)⟩
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [] []))
-  (.split ⟨[0, 0, 0, 1], (-1)⟩
-  (.leaf [⟨[0, (-1), 0, 0, 0, 0, 1], 0⟩, ⟨[0, 1, 0, 0, 0, 0, (-1)], 1⟩] [.input 0, .input 1, .combine 0 1 1 1] [] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [] []))))⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10], [.not (.le (.const 0) (.var 1))], .leafAt [((sp [(1, 1)] 1), .fact 0), ((sp [(1, (-1))] 0), .nat 1)] [.input 0, .input 1, .combine 0 1 1 1] [] []),
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .term (.ite (.and (.eq (.var 3) (.const 0)) (.and (.le (.var 4) (.var 2)) (.lt (.var 2) (.add (.var 4) (.var 0))))) (.const 1) (.const 0)), .term (.ite (.or (.eq (.var 3) (.const 1)) (.and (.eq (.var 3) (.const 0)) (.le (.add (.var 5) (.const 1)) (.var 1)))) (.ite (.and (.eq (.var 3) (.const 0)) (.and (.le (.var 4) (.var 2)) (.lt (.var 2) (.add (.var 4) (.var 0))))) (.const 1) (.const 0)) (.const 0))], [.and (.or (.eq (.var 3) (.const 0)) (.eq (.var 3) (.const 1))) (.and (.or (.not (.le (.var 4) (.var 2))) (.le (.var 6) (.var 5))) (.le (.const 0) (.const 0))), .le (.var 6) (.var 1), .not (.le (.add (.var 6) (.ite (.or (.eq (.var 3) (.const 1)) (.and (.eq (.var 3) (.const 0)) (.le (.add (.var 5) (.const 1)) (.var 1)))) (.ite (.and (.eq (.var 3) (.const 0)) (.and (.le (.var 4) (.var 2)) (.lt (.var 2) (.add (.var 4) (.var 0))))) (.const 1) (.const 0)) (.const 0))) (.var 1))], .split (sp [(3, 1)] (-1))
+  (.split (sp [(3, (-1))] 1)
+  (.leafAt [((sp [(1, (-1)), (6, 1)] 0), .fact 1), ((sp [(1, 1), (6, (-1))] 1), .fact 2)] [.input 0, .input 1, .combine 0 1 1 1] [] [])
+  (.split (sp [(3, (-1))] 0)
+  (.split (sp [(1, (-1)), (5, 1)] 1)
+  (.split (sp [(2, (-1)), (4, 1)] 0)
+  (.split (sp [(0, (-1)), (2, 1), (4, (-1))] 1)
+  (.leafAt [((sp [(1, (-1)), (5, 1)] 1), .atom 2), ((sp [(5, (-1)), (6, 1)] 0), .fact 0), ((sp [(1, 1), (6, (-1))] 0), .fact 2)] [.input 0, .input 1, .input 2, .combine 1 2 1 1, .combine 0 3 1 1] [] [])
+  (.leafAt [((sp [(1, (-1)), (5, 1)] 1), .atom 2), ((sp [(5, (-1)), (6, 1)] 0), .fact 0), ((sp [(1, 1), (6, (-1))] 1), .fact 2)] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 2 3 1 1] [] []))
+  (.leafAt [((sp [(1, (-1)), (6, 1)] 0), .fact 1), ((sp [(1, 1), (6, (-1))] 1), .fact 2)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leafAt [((sp [(1, (-1)), (6, 1)] 0), .fact 1), ((sp [(1, 1), (6, (-1))] 1), .fact 2)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leafAt [((sp [] 1), .fact 0)] [.input 0] [] [])))
+  (.leafAt [((sp [(3, (-1))] 2), .atom 0), ((sp [(3, 1)] 0), .fact 0)] [.input 0, .input 1, .combine 0 1 1 1] [] []))⟩
 def window_proof : List SEntry := [window_e0]
 theorem window_check : checkSMachine window_machine window_proof = true := by decide +kernel
 theorem window_laws : ∀ ρ M, SReach window_machine ρ M → ∀ e ∈ window_proof, e.Holds ρ M :=
   smachine_sound window_machine window_proof window_check
-def window_records : List (List VDef × Tree) := [([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .term (.ite (.and (.eq (.var 9) (.const 0)) (.and (.le (.var 10) (.var 2)) (.lt (.var 2) (.add (.var 10) (.var 0))))) (.const 1) (.const 0)), .term (.ite (.lt (.var 4) (.add (.var 10) (.var 0))) (.const 1) (.const 0))], .split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩
-  (.split ⟨[0, 0, (-1), 0, 0, 0, 0, 0, 0, 0, 1], 0⟩
-  (.split ⟨[(-1), 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩
-  (.split ⟨[(-1), 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [] [])
-  (.leaf [⟨[(-1), 0, 1, 0, 0, 0, 0, 0, 0, 0, (-1)], 1⟩, ⟨[1, 0, 0, 0, (-1), 0, 0, 0, 0, 0, 1], 0⟩, ⟨[0, 0, (-1), 0, 1], 0⟩] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [] []))
-  (.split ⟨[(-1), 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [] [])))
-  (.split ⟨[(-1), 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [] [])))
-  (.leaf [⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1⟩, ⟨[0, 0, 0, 0, 0, 0, 0, 0, 0, (-1)], 0⟩] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.split ⟨[(-1), 0, 0, 0, 1, 0, 0, 0, 0, 0, (-1)], 1⟩
-  (.leaf [⟨[], 1⟩] [.input 0] [] [])
-  (.leaf [⟨[], 1⟩] [.input 0] [] [])))]
+def window_records : List (List VDef × Tree) := [([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .term (.ite (.and (.eq (.var 9) (.const 0)) (.and (.le (.var 10) (.var 2)) (.lt (.var 2) (.add (.var 10) (.var 0))))) (.const 1) (.const 0)), .term (.ite (.lt (.var 4) (.add (.var 10) (.var 0))) (.const 1) (.const 0))], .split (sp [(9, 1)] 0)
+  (.split (sp [(9, (-1))] 0)
+  (.split (sp [(2, (-1)), (10, 1)] 0)
+  (.split (sp [(0, (-1)), (2, 1), (10, (-1))] 1)
+  (.split (sp [(0, (-1)), (4, 1), (10, (-1))] 1)
+  (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])
+  (.leafAt [((sp [(0, (-1)), (2, 1), (10, (-1))] 1), .atom 1), ((sp [(0, 1), (4, (-1)), (10, 1)] 0), .atom 0), ((sp [(2, (-1)), (4, 1)] 0), .fact 0)] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [] []))
+  (.split (sp [(0, (-1)), (4, 1), (10, (-1))] 1)
+  (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])
+  (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])))
+  (.split (sp [(0, (-1)), (4, 1), (10, (-1))] 1)
+  (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])
+  (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])))
+  (.leafAt [((sp [(9, 1)] 1), .atom 0), ((sp [(9, (-1))] 0), .nat 9)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.split (sp [(0, (-1)), (4, 1), (10, (-1))] 1)
+  (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])
+  (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])))]
 theorem window_hcheck : checkHMachine window_hist window_proof window_records = true := by decide +kernel
 theorem window_hlaws : ∀ ρ M hist, HReach window_hist ρ M hist → ∀ e ∈ window_proof, e.Holds ρ M :=
   hmachine_sound window_hist window_proof window_records window_hcheck

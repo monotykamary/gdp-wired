@@ -4,7 +4,7 @@
 // building, so it ships in the package (`gdp-wired/lean`); export-kernel.ts is the repo's script around it.
 import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
-import {type Lin, type Step, add, k, scale, sub} from '../core/solver.ts'
+import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
 import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, boundOf, canon, columnTerm, stateName, termColumn, historyMachine, foldObligations, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {grow, proveBuilt, proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
@@ -99,7 +99,9 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
     while (coefs.length && coefs.at(-1) === 0) coefs.pop()
     return coefs as number[]
   }
-  const row = (lin: Lin) => `⟨${list(dense(lin).map(int))}, ${int(lin['1'] ?? 0)}⟩`
+  // Rows by their nonzero coefficients (Kernel.lean's sp builds the dense row): most of a wide row is zeros.
+  const sparse = (coefs: number[]) => list(coefs.flatMap((x, j) => (x === 0 ? [] : [`(${j}, ${int(x)})`])))
+  const row = (lin: Lin) => `(sp ${sparse(dense(lin))} ${int(lin['1'] ?? 0)})`
   const {e, c} = leanTerms(vars, maps, ex.name)
   const tab = cols.map(name => (name.includes('[') ? `.cell ${maps.indexOf(cellMap(name))} ${row(cellKey(name))}`
     : name.startsWith('⟦') ? `.term (${e(columnTerm(name)!)})`
@@ -130,18 +132,26 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
       const q: Lin = Object.fromEntries(Object.entries(from).filter(([key]) => key !== '1').map(([key, v]) => [key, v / s.g]))
       const cc = Math.ceil((from['1'] ?? 0) / s.g)
       replay.push({...q, 1: cc})
-      return `.cut ${s.of} ${int(s.g)} ${list(dense(q).map(int))} ${int(cc)}`
+      return `.cut ${s.of} ${int(s.g)} (sparseL 0 ${sparse(dense(q))}) ${int(cc)}`
     })
     if (tamper && dropStep && leafNo++ === 0) steps = steps.slice(0, -1) // the first leaf loses its last step
     // Cell pairs the path proves equal (Lean re-checks each).
-    const eqs: string[] = []
+    const eqs: string[] = [], pairs: string[] = []
     const cellCols = cols.map((name, j) => ({name, j})).filter(c2 => c2.name.includes('['))
     for (const [a, p] of cellCols.entries()) for (const q of cellCols.slice(a + 1)) {
       if (cellMap(p.name) !== cellMap(q.name)) continue
       const d = sub(cellKey(p.name), cellKey(q.name))
-      if (decide(d, path) === true && decide(scale(d, -1), path) === true) eqs.push(`(${p.j}, ${q.j})`)
+      if (decide(d, path) === true && decide(scale(d, -1), path) === true) { eqs.push(`(${p.j}, ${q.j})`); pairs.push([p.name, q.name].sort().join('\n')) }
     }
-    return `.leaf ${list(used.map(u => row(rows[u]!)))} ${list(steps)} ${list(eqs)} ${list(prods.map(([i, j]) => `(${idx(i)}, ${idx(j)})`))}`
+    // Each row with where Lean finds it (a hint: missed, Lean looks among all of the leaf's rows).
+    const hint = (src?: RowSrc): string => {
+      if (!src) return '.any'
+      if ('atom' in src) return `.atom ${path.size - 1 - src.atom}` // Lean's path has the latest decision first
+      if ('fact' in src) return `.fact ${src.fact}`
+      const j = 'pair' in src ? pairs.indexOf([...src.pair].sort().join('\n')) : col.get('nat' in src ? src.nat : src.term) ?? -1
+      return j < 0 ? '.any' : 'pair' in src ? `.eq ${j}` : 'nat' in src ? `.nat ${j}` : `.term ${j}`
+    }
+    return `.leafAt ${list(used.map(u => `(${row(rows[u]!)}, ${hint(base[u]!.src)})`))} ${list(steps)} ${list(eqs)} ${list(prods.map(([i, j]) => `(${idx(i)}, ${idx(j)})`))}`
   }
   return {tab: list(tab), hyps: list(goal.hyps.map(c)), tree: lean(tree, new Map()), cols, c, e}
 }
@@ -431,7 +441,7 @@ export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {s
   // the requests it needs proven allowed in a region, the proofs are found and encoded once for all claims, and each
   // claim states its theorem from them (the Lean meaning of each is a theorem in Live.lean, Refine.lean or Ghost.lean).
   type Allow = {when: C, request: Record<string, E>}
-  type Helpers = {step: (sl: StepLaw) => {pr: {tab: string, tree: string}, inst: Instances}, sproof: (sl: StepLaw) => string, allow: (a: Allow) => string | undefined}
+  type Helpers = {step: (sl: StepLaw) => {pr: {tab: string, tree: string, hyps: string}, inst: Instances}, sproof: (sl: StepLaw) => string, allow: (a: Allow) => string | undefined}
   type Claim = {steps: StepLaw[], allows: Allow[], render: (h: Helpers) => string}
   const claims: Claim[] = []
   const claimSteps = () => claims.flatMap(cl => cl.steps)
@@ -454,7 +464,7 @@ def ${id}_step${j} : SKStep := ⟨⟨${list(Array.from({length: kk}, (_, s2) => 
   ${list(finsts(inst))},
   ${list(pinsts(inst))},
   ${list(pfinsts(inst))},
-  [],
+  ${pr.hyps},
   ${list(Array.from({length: kk - 1}, (_, s2) => list(Object.keys(m.state).map(n2 => `(${ix(n2)}, ${ix(stateName(n2, s2 + 1))})`))))}⟩
 theorem ${id}_step${j}_holds : SKStepHolds ${id}_machine ${id}_step${j} :=
   skstep_sound ${id}_machine ${id}_proof ${id}_step${j} ${id}_check (by decide +kernel)`
@@ -670,15 +680,15 @@ ${readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat →
     const g0 = goalsL[2 * j]!, g1 = goalsL[2 * j + 1]!, a = enc(g0, lp.trees[g0.name]!), b = enc(g1, lp.trees[g1.name]!), inst = lp.instances[law.name] ?? {}
     return `def ${id}_l${j} : MLaw := ⟨${c(law.holds)}, ${law.forall ? `some ${ix(law.forall)}` : 'none'}⟩
 def ${id}_e${j} : SEntry := ⟨${id}_l${j}, ${ix(law.forall ? `${law.forall}#` : '#')}, ${list((law.keys ?? []).map(key => String(ix(key))))}, ${list(insts(inst))}, ${list(qinsts(inst))}, ${list(finsts(inst))}, ${list(pinsts(inst))}, ${list(pfinsts(inst))},
-  (${a.tab}, [], ${a.tree}),
-  (${b.tab}, [], ${b.tree})⟩`
+  (${a.tab}, ${a.hyps}, ${a.tree}),
+  (${b.tab}, ${b.hyps}, ${b.tree})⟩`
   })
   // A ghosted machine (compose.ts's ghost): the original and its ghosts, the machine Lean checks built from them
   // (Ghost.lean), so the laws that read no ghost are laws of the original.
   const orig: Machine = {...m, state: Object.fromEntries(Object.entries(m.state).filter(([n2]) => !gv.includes(n2))), step: {...m.step, state: Object.fromEntries(Object.entries(m.step.state ?? {}).filter(([n2]) => !gv.includes(n2)))}}
   const h: Helpers = {
     step: sl => { const g = goalsS[allSteps.indexOf(sl)]!; return {pr: enc(g, r.proof!.trees[g.name]!), inst: instOf(sl)} },
-    sproof: sl => { const {pr, inst} = h.step(sl); return `(${list(insts(inst))}, ${list(qinsts(inst))}, ${list(finsts(inst))}, ${list(pinsts(inst))}, ${list(pfinsts(inst))}, (${pr.tab}, [], ${pr.tree}))` },
+    sproof: sl => { const {pr, inst} = h.step(sl); return `(${list(insts(inst))}, ${list(qinsts(inst))}, ${list(finsts(inst))}, ${list(pinsts(inst))}, ${list(pfinsts(inst))}, (${pr.tab}, ${pr.hyps}, ${pr.tree}))` },
     allow: a => {
       const f2 = allowed.get(a)
       if (!f2) return undefined
