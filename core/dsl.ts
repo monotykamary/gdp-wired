@@ -339,9 +339,10 @@ export class Choice<K extends string> {
   of(k: K): Choice<K> { return new Choice(lit(this.indexOf(k)), this.values) }
   // Its index among the values, in the order declared (oneOf('new', 'paid'): new is 0), as a term.
   get index(): Term { return this.n }
-  // The same value as a name, another choice of the kind, or an index: status.eq('paid'), a.phase.eq(b.phase), phase.eq(3).
-  eq(o: K | Choice<K> | number): Cond { return typeof o === 'string' ? this.is(o) : typeof o === 'number' ? this.n.eq(o) : this.n.eq(o.n) }
-  ne(o: K | Choice<K> | number): Cond { return this.eq(o).not() }
+  // The same value as a name, another choice of the kind, or an index (a number or a natural term): status.eq('paid'),
+  // a.phase.eq(b.phase), phase.eq(3), phase.eq(when(c, 2, phase.index)).
+  eq(o: K | Choice<K> | number | Term): Cond { return typeof o === 'string' ? this.is(o) : o instanceof Choice ? this.n.eq(o.n) : this.n.eq(o) }
+  ne(o: K | Choice<K> | number | Term): Cond { return this.eq(o).not() }
   private indexOf(k: K): number {
     const i = this.values.indexOf(k)
     if (i < 0) throw new Error(`${k} is not one of ${this.values.join(', ')}`)

@@ -192,6 +192,6 @@ test('a step law broken only from a state no run reaches is refused at once, wit
 // A choice compares with a name, another choice of its kind or an index, and reads its index as a term.
 test('a choice compares by name, by choice or by index', () => {
   const r = rule('phases').inputs({to: oneOf('a', 'b', 'c')}).state({p: oneOf('a', 'b', 'c').from('a')}).step(({to}) => ({p: to}))
-  const law = r.stepLaw('the phase is the one asked for', ({to}, after) => all(after.p.eq(to), after.p.index.eq(to.index), after.p.eq('a').implies(after.p.eq(0)), after.p.ne('b').or(to.is('b'))))
+  const law = r.stepLaw('the phase is the one asked for', ({to}, after) => all(after.p.eq(to), after.p.index.eq(to.index), after.p.eq('a').implies(after.p.eq(0)), after.p.ne('b').or(to.is('b')), after.p.eq(when(to.is('c'), 2, to.index))))
   expect(proveSteps(r, [], [law])).toMatchObject({proven: true, checked: true})
 })
