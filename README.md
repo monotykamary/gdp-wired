@@ -60,6 +60,9 @@ All of these are proven automatically, and each proof is also a Lean theorem:
 - **Step laws**: what one step does ("a balance only goes down", "a grant adds one"), and laws over up to 64 steps in
   a row (`examples/steps.ts`).
 - **Histories**: sums and queries over a log of requests, like a sliding-window rate limit.
+- **Statecharts**: `chart(name).states({...}).on(event, {from, to, when, set})`, with nested states, parallel regions,
+  a compound's history, guards and extended state, compiled to a rule; `check()` shows every state reached by a run (or
+  proves it unreachable), no state stuck and no event ambiguous, and its laws prove like any rule's (`examples/charts.ts`).
 - **Orderings at any distance**: "a refund never follows a release", through ghost state that watches the rule.
 - **Liveness**: "every ticket issued is served", in every run that keeps sending the requests that help, including under
   weak fairness (`examples/liveness.ts`).

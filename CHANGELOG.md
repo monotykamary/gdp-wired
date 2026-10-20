@@ -3,6 +3,16 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+- Statecharts: `chart(name)` with nested states, parallel regions, a compound's history, guards, extended state and
+  final states, written as a table of transitions (`.on(event, {from, to, when, set})`) and compiled to a rule, so
+  everything proven about rules holds of charts (`core/chart.ts`, `examples/charts.ts`). `check()` gives every state the
+  shortest run that reaches it or a proof that none does, lists states with no way out that aren't final, and proves
+  each pair of transitions as specific as each other never enabled by one request (or names the request that enables
+  both). Lean checks the examples' laws (package-check `orderchart`, `checkoutchart`).
+- The guide gains the statechart recipe, its code in `examples/guide.ts`.
+
 ## 0.12.7
 
 - Both runtimes refuse a request that fails the rule's `assume`: `rule.compiled()` and `rule.interpreter()` throw a

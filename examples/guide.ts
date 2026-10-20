@@ -3,6 +3,7 @@
 //   bun examples/guide.ts
 import {bool, forall, fun, min, nat, oneOf, proveDecision, proveRule, proveSteps, record, rule, when} from '../core/dsl.ts'
 import {search} from '../core/machine.ts'
+import {chart} from '../core/chart.ts'
 
 const failures: string[] = []
 const expect = (what: string, got: unknown, want: unknown) => {
@@ -92,6 +93,25 @@ const paidFirst = order.stepLaw('only a paid order ships',
   ({status}, after) => after.status.is('shipped').implies(status.is('paid').or(status.is('shipped'))),
 )
 expect('order', verdict(proveSteps(order, [], [neverRefunded, paidFirst])), {proven: true, checked: true})
+
+// A statechart: the same order as states, nested, with transitions in a table; checked, then proven.
+const orderChart = chart('order')
+  .states({
+    new: {},
+    active: {states: {paid: {}, shipped: {}}},
+    refunded: {final: true},
+    delivered: {final: true},
+  })
+  .on('pay', {from: 'new', to: 'active'})          // enters active.paid, its first state
+  .on('ship', {from: 'active.paid', to: 'active.shipped'})
+  .on('refund', {from: 'active.paid', to: 'refunded'})
+  .on('deliver', {from: 'active.shipped', to: 'delivered'})
+const charted = orderChart.check()
+expect('chart check', {ok: charted.ok, stuck: charted.stuck, ambiguous: charted.ambiguous.length, shipped: charted.reached['active.shipped']},
+  {ok: true, stuck: [], ambiguous: 0, shipped: {run: [{event: 'pay'}, {event: 'ship'}]}})
+const neverAfterShipping = orderChart.stepLaw('a shipped order is never refunded',
+  (_, after) => after.in('refunded').not(), before => before.in('active.shipped'))
+expect('chart proven', verdict(orderChart.prove([], [neverAfterShipping])), {proven: true, checked: true})
 
 // A permission check: a pure function, and what it must never allow.
 const canEdit = fun('can edit')

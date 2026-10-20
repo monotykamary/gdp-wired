@@ -867,7 +867,7 @@
 },
 {
 "name": "pairs",
-"cmd": "bun test pairs.test.ts 2>&1 && cd .. && bun examples/pairs.ts 2>&1",
+"cmd": "bun test pairs.test.ts chart.test.ts 2>&1 && cd .. && bun examples/pairs.ts 2>&1 && bun examples/groups.ts 2>&1 && bun examples/charts.ts 2>&1",
 "cwd": "core",
 "cpu": 1.0,
 "timeout": 900

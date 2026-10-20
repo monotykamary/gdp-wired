@@ -192,6 +192,48 @@ proveLoop(gcd, [gcd.law('a >= 1', ({a}) => a.atLeast(1)), gcd.law('b >= 1', ({b}
 
 `while` and the rank read the state and params, never a turn's input.
 
+## Statecharts
+
+A workflow with many states reads better as a table than as a chain of `when`s. `chart` compiles one to a rule:
+
+```ts
+import {chart, nat} from 'gdp-wired'
+
+const order = chart('order')
+  .params({tries: nat})
+  .context({retries: 0})                                   // extended state
+  .states({
+    new: {},
+    active: {states: {paid: {}, shipped: {}}, history: true}, // re-entered where it was left
+    held: {},
+    refunded: {final: true},
+    delivered: {final: true},
+  })
+  .on('pay', {from: 'new', to: 'active'})
+  .on('fail', {from: 'new', to: 'new', when: ({retries, tries}) => retries.lt(tries), set: ({retries}) => ({retries: retries.plus(1)})})
+  .on('hold', {from: 'active', to: 'held'})
+  .on('resume', {from: 'held', to: 'active'})
+  .on('ship', {from: 'active.paid', to: 'active.shipped'})
+  .on('refund', {from: 'active.paid', to: 'refunded'})
+  .on('deliver', {from: 'active.shipped', to: 'delivered'})
+order.check({params: {tries: 2}}) // {ok, reached: {state: {run} | 'unreachable' | 'unknown'}, stuck: [...], ambiguous: [...]}
+order.prove([order.law('retries within the limit', ({retries, tries}) => retries.atMost(tries))],
+  [order.stepLaw('a shipped order is never refunded', (_, after) => after.in('refunded').not(), b => b.in('active.shipped'))])
+```
+
+- Per region and event, the enabled transition with the most specific source is taken (an inner state over its
+  parent), then the first declared; `check().ambiguous` names two as specific as each other that one request enables.
+- `.regions({payment: {...}, shipping: {...}})` for parallel regions: paths start with the region (`'payment.paid'`),
+  every region reacts to the same event, and a guard reads another region with `env.in('payment.paid')`.
+- A transition into a compound enters its initial child (the first, or `initial`), or with `history: true` the child it
+  was last in (`env.last('active')` in a law). `prove` and `check` add `chartLaws()` (each history is one of its own
+  states) to the laws.
+- `check().reached` gives each state the shortest run that reaches it (a breadth-first walk over every event and small
+  payloads), or `'unreachable'` where the prover proves no run gets there; `stuck` lists states with no way out that
+  aren't `final`.
+- Entry and exit actions and side effects aren't modeled: the chart computes the next state and its context, and the
+  code around it acts on the result. `chart.rule` is the plain rule, for `compiled()`, `compare` and `toLean`.
+
 ## Sets, lists, functions, composition
 
 - `.carries('Candidate')`: a set the request brings; `everyKey`, `has`, `subsetOf`, `disjointFrom`, `sameAs`;

@@ -41,7 +41,7 @@ When adding or changing a rule whose invariants matter:
    params, inputs, state and step as the production code. Use kinds for what
    isn't a natural (`bool`, `oneOf`, `maybe`, `int`, `decimal`, `str`), records
    and variants for objects and tagged unions (`record`, `variant`), maps for
-   per-key state, `.log` for histories ([writing rules](references/writing-rules.md)).
+   per-key state, `.log` for histories, `chart` for a workflow with many states ([writing rules](references/writing-rules.md)).
 2. **State the laws a reviewer would ask about.** Invariants with `law`
    ("no day passes its cap"), one-step facts with `stepLaw` ("a balance only
    goes down"), k steps with `stepsLaw`, "eventually" with `leadsTo`,
@@ -96,6 +96,7 @@ From `gdp-wired`:
 | `r.law`, `r.stepLaw`, `r.stepsLaw`, `r.leadsTo`, `r.decide`, `r.relate` | Claims: invariant, one step, k steps (k ≤ 64), liveness, a decision about one request, a decision about two. |
 | `proveRule`, `proveSteps`, `proveLeadsTo`, `proveDecision`, `proveLoop` | Verdicts: `{proven, checked, goal?, stuck?, witness?, why?}`. |
 | `when`, `min`, `max`, `count`, `sum`, `all`, `any`, `not`, `forall`, `everyKey`, `someKey`, `relation` | Terms and conditions; terms have `plus` `minus` (truncated) `times(k)` `mul` `lt` `atMost` `atLeast` `gt` `eq`, conditions `and` `or` `not` `implies`. |
+| `chart(name)` | A statechart: `.states({...})` (nested: `{states: {...}, initial, history, final}`) or `.regions({...})` (parallel), `.params`, `.inputs` (the payload), `.context` (extended state), `.on(event, {from, to, when, set})`; `.check()` (every state reached with its run or proven unreachable, none stuck, no event ambiguous), `.law`, `.stepLaw` (`env.in('active.paid')`, `env.last('active')`), `.prove`, `.rule`. |
 | `fun(name)`, `loop(name)` | Pure functions (`.returns`, `.law`, `.relate`, `.run`) and loops (`.while`, `.body`, `.rank`). |
 | `fn(arity, js, {facts, lean})`, `divBy(c)`, `modBy(c)` | Functions known by their facts. |
 | `recur(name, {args, fns, zero, next}, lemmas, between)` | A function defined by a recurrence on its first argument (up to four further arguments fixed, other functions read), its lemmas and laws between two points proven by induction when made (`Unproven` otherwise); its equations, lemmas and laws are its facts, checked again by Lean as the kernel's own proof. |

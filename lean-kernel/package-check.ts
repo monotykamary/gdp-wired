@@ -14,6 +14,7 @@ import {orgChart, orgChartLaws, rollup, rollupLaws, signoffLaws, signoffs} from 
 import {searchTree, searchTreeLaws, sheet, sheetLaws} from '../examples/trees.ts'
 import {distinctNames, distinctNamesLaws, sortedList, sortedListLaws} from '../examples/pairs.ts'
 import {groupLaws, groups} from '../examples/groups.ts'
+import {checkout, checkoutLaws, order, orderLaws} from '../examples/charts.ts'
 import {area, areaLaws, counter, counterLaws, escalation, escalationLaws, fillMeter, fillMeterLaws, ladder, ladderLaws, ledger, ledgerLaws, pump, pumpLive, retries, retryLaws, retrySteps, tank, tankLaws} from '../examples/lemmas.ts'
 import {team, teamLaws, teamSteps} from '../examples/sizes.ts'
 import {allDone, batchLaws, batches, everyTaggedTicket, taggedLaws, taggedTickets, everyLoggedTicket, everyRecountedTicket, everyReview, everyTicket, loggedLaws, loggedTickets, recounted, recountedLaws, reviewLaws, reviews, ticketLaws, tickets} from '../examples/liveness.ts'
@@ -79,6 +80,8 @@ const file = toLean(([
   {id: 'taxwithin', goal: invoices().decide('the taxable part is within the total', () => [], ({Lines}) => Lines.fold.taxed.atMost(Lines.fold.total)).goal},
   {id: 'sortedlist', machine: sortedList().machine, laws: sortedListLaws()},
   {id: 'distinctnames', machine: distinctNames().machine, laws: distinctNamesLaws()},
+  {id: 'orderchart', machine: order().rule.machine, laws: [...order().chartLaws(), ...orderLaws().laws], stepLaws: orderLaws().stepLaws},
+  {id: 'checkoutchart', machine: checkout().rule.machine, laws: checkoutLaws()},
   {id: 'groups0', machine: groups().machine, laws: [], stepLaws: [groupLaws()[0]!]},
   {id: 'groups1', machine: groups().machine, laws: [], stepLaws: [groupLaws()[1]!]},
   {id: 'groups2', machine: groups().machine, laws: [], stepLaws: [groupLaws()[2]!]},
