@@ -34,9 +34,23 @@ image = (
                                               "vendor/handwired/lab/ui-exploration/**", "vendor/handwired/lab/knuth-plass/**", "vendor/handwired/assets/**", "vendor/handwired/tests/**", "vendor/gdp-ts/examples/**"])
 )
 app = modal.App("gdp-wired-experiments", image=image)
+# The Lean twin's library, compiled once per version of its sources: a job copies the .olean files in before it runs
+# (its `[ -f X.olean ] ||` then skips the compile) and saves the ones it compiled. The key hashes every library source
+# and the toolchain, so a job only ever reads files compiled from the sources it was given. A compile whose output a job
+# checks (for sorry, say) is written without the skip, so it still runs.
+oleans = modal.Volume.from_name("gdp-wired-olean", create_if_missing=True)
+LIBRARY = ["Cert", "Kernel", "Progress", "StepLaw", "Steps", "Sets", "History", "Live", "Ghost", "Refine"]
 
 
-@app.function(cpu=2.0, memory=4096, timeout=900)
+def library_key(lean_dir: pathlib.Path) -> str:
+    import hashlib
+    h = hashlib.sha256(b"leanprover/lean4:v4.34.0\n")
+    for mod in LIBRARY:
+        h.update(mod.encode() + b"\0" + (lean_dir / f"{mod}.lean").read_bytes() + b"\0")
+    return h.hexdigest()[:32]
+
+
+@app.function(cpu=2.0, memory=4096, timeout=900, volumes={"/olean": oleans})
 def sh(name: str, cmd: str, cwd: str = ".", limit: int = 840) -> dict:
     import shutil
     import subprocess
@@ -44,12 +58,33 @@ def sh(name: str, cmd: str, cwd: str = ".", limit: int = 840) -> dict:
     work = pathlib.Path("/work/gdp-wired")
     if not work.exists():
         shutil.copytree("/src/gdp-wired", work)
+    lean_dir = work / "lean-kernel"
+    try:
+        oleans.reload()
+    except Exception:
+        pass
+    cache = pathlib.Path("/olean") / library_key(lean_dir)
+    had = {f.name for f in cache.glob("*.olean")} if cache.exists() else set()
+    for name_ in had:
+        shutil.copy2(cache / name_, lean_dir / name_)
     t0 = time.time()
     try:
         p = subprocess.run(["bash", "-c", cmd], cwd=work / cwd, capture_output=True, encoding="utf-8", errors="replace", timeout=limit)
         code, out, err = p.returncode, p.stdout, p.stderr
     except subprocess.TimeoutExpired as e:  # report what it printed rather than lose the container's work
         code, out, err = 124, (e.stdout or b"").decode("utf-8", "replace") if isinstance(e.stdout, bytes) else (e.stdout or ""), f"timed out after {limit} s"
+    # Save the library files this job compiled and the cache lacks (each written whole, then renamed into place).
+    new = [m for m in LIBRARY if f"{m}.olean" not in had and (lean_dir / f"{m}.olean").exists()]
+    if new:
+        try:
+            cache.mkdir(parents=True, exist_ok=True)
+            for m in new:
+                tmp = cache / f".{m}.olean.{name}"
+                shutil.copy2(lean_dir / f"{m}.olean", tmp)
+                tmp.rename(cache / f"{m}.olean")
+            oleans.commit()
+        except Exception:
+            pass
     return {"name": name, "code": code, "seconds": round(time.time() - t0, 2), "out": out[-400_000:], "err": err[-100_000:]}
 
 

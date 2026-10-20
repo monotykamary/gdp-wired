@@ -286,7 +286,7 @@
 },
 {
 "name": "lean-trees",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o Live.olean Live.lean && lean Trees.lean 2>&1 | tail -3; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && lean Trees.lean 2>&1 | tail -3; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "timeout": 1800
@@ -485,7 +485,7 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 1800,
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o Live.olean Live.lean && lean TreesBig.lean 2>&1 | tail -3; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && lean TreesBig.lean 2>&1 | tail -3; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
 },
 {
 "name": "lean-history",
@@ -493,7 +493,7 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 1800,
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean HistoryTrees.lean 2>&1 | tail -3; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && lean HistoryTrees.lean 2>&1 | tail -3; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
 },
 {
 "name": "check",
@@ -505,7 +505,7 @@
 },
 {
 "name": "lean-conformance",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && bun conformance.ts 600 > Conformance.lean && lean Conformance.lean 2>&1 | tail -20; s=${PIPESTATUS[0]}; grep -c '^example' Conformance.lean; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && bun conformance.ts 600 > Conformance.lean && lean Conformance.lean 2>&1 | tail -20; s=${PIPESTATUS[0]}; grep -c '^example' Conformance.lean; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -583,7 +583,7 @@
 },
 {
 "name": "lean-examples-access",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples access > Examples-access.lean && lean Examples-access.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples access > Examples-access.lean && lean Examples-access.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -598,7 +598,7 @@
 },
 {
 "name": "lean-examples-commerce",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples commerce > Examples-commerce.lean && lean Examples-commerce.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples commerce > Examples-commerce.lean && lean Examples-commerce.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -613,7 +613,7 @@
 },
 {
 "name": "lean-examples-education",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples education > Examples-education.lean && lean Examples-education.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples education > Examples-education.lean && lean Examples-education.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -628,7 +628,7 @@
 },
 {
 "name": "lean-examples-finance",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples finance > Examples-finance.lean && lean Examples-finance.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples finance > Examples-finance.lean && lean Examples-finance.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -643,7 +643,7 @@
 },
 {
 "name": "lean-examples-games",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples games > Examples-games.lean && lean Examples-games.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples games > Examples-games.lean && lean Examples-games.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -658,7 +658,7 @@
 },
 {
 "name": "lean-examples-operations",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples operations > Examples-operations.lean && lean Examples-operations.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples operations > Examples-operations.lean && lean Examples-operations.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -673,7 +673,7 @@
 },
 {
 "name": "lean-examples-protocols",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples protocols > Examples-protocols.lean && lean Examples-protocols.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples protocols > Examples-protocols.lean && lean Examples-protocols.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -688,7 +688,7 @@
 },
 {
 "name": "lean-examples-public",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples public > Examples-public.lean && lean Examples-public.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples public > Examples-public.lean && lean Examples-public.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -703,7 +703,7 @@
 },
 {
 "name": "lean-examples-supply",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples supply > Examples-supply.lean && lean Examples-supply.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples supply > Examples-supply.lean && lean Examples-supply.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -736,7 +736,7 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 1800,
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean StepLaw.lean 2>&1 | tail -3; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && lean StepLaw.lean 2>&1 | tail -3; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
 },
 {
 "name": "lean-steps",
@@ -744,7 +744,7 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 1800,
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean Steps.lean 2>&1 | tail -3; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && lean Steps.lean 2>&1 | tail -3; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
 },
 {
 "name": "lean-sets",
@@ -752,7 +752,7 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 2400,
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && (lean -o Sets.olean Sets.lean > sets0.out 2>&1 || (grep -v -e 'depends on axioms' sets0.out | grep -A14 error | head -150; echo sets-lean-failed; exit 1)) && ! grep -q \"declaration uses 'sorry'\" sets0.out && bun export-kernel.ts --sets > SetsTrees.lean && (time lean SetsTrees.lean) > sets.out 2>&1; s=$?; grep -v -e linter -e Hint -e Omit -e 'unused' sets.out | head -80; echo lean-exit $s; exit $s"
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && (lean -o Sets.olean Sets.lean > sets0.out 2>&1 || (grep -v -e 'depends on axioms' sets0.out | grep -A14 error | head -150; echo sets-lean-failed; exit 1)) && ! grep -q \"declaration uses 'sorry'\" sets0.out && bun export-kernel.ts --sets > SetsTrees.lean && (time lean SetsTrees.lean) > sets.out 2>&1; s=$?; grep -v -e linter -e Hint -e Omit -e 'unused' sets.out | head -80; echo lean-exit $s; exit $s"
 },
 {
 "name": "lean-package",
@@ -874,7 +874,7 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 2400,
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets; do lean -o $f.olean $f.lean > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; for f in Live Ghost Refine; do lean -o $f.olean $f.lean > $f.out 2>&1 || { grep -B2 -A25 error $f.out | head -80; echo build-failed $f; exit 1; }; if grep -q -e sorry -e sorryAx $f.out; then echo sorry-in $f; exit 1; fi; grep -e 'Kern.leads' -e 'Kern.sleads' -e 'Kern.loop' -e 'Kern.ghost' -e 'Kern.ever' -e 'Kern.refine' -e 'Kern.srefine' $f.out; done"
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; for f in Live Ghost Refine; do lean -o $f.olean $f.lean > $f.out 2>&1 || { grep -B2 -A25 error $f.out | head -80; echo build-failed $f; exit 1; }; if grep -q -e sorry -e sorryAx $f.out; then echo sorry-in $f; exit 1; fi; grep -e 'Kern.leads' -e 'Kern.sleads' -e 'Kern.loop' -e 'Kern.ghost' -e 'Kern.ever' -e 'Kern.refine' -e 'Kern.srefine' $f.out; done"
 },
 {
 "name": "sizes",
@@ -896,7 +896,7 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 2400,
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets History; do lean -o $f.olean $f.lean > /dev/null 2>&1 || { echo build-failed $f; lean $f.lean 2>&1 | grep -A20 error | head -60; exit 1; }; done; bun ../examples/steps.ts --lean > KSteps.lean && grep -c '^theorem' KSteps.lean && lean KSteps.lean 2>&1 | grep -v -e linter -e Hint -e unused | tail -20; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets History; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; lean $f.lean 2>&1 | grep -A20 error | head -60; exit 1; }; done; bun ../examples/steps.ts --lean > KSteps.lean && grep -c '^theorem' KSteps.lean && lean KSteps.lean 2>&1 | grep -v -e linter -e Hint -e unused | tail -20; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
 },
 {
 "name": "values-builders",
@@ -925,7 +925,7 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 2400,
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets History; do lean -o $f.olean $f.lean > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; bun ../examples/jev-fabric/run.ts --lean > JevFabric.lean && grep -c '^theorem' JevFabric.lean && lean JevFabric.lean 2>&1 | grep -v -e linter -e Hint -e unused | tail -20; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets History; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; bun ../examples/jev-fabric/run.ts --lean > JevFabric.lean && grep -c '^theorem' JevFabric.lean && lean JevFabric.lean 2>&1 | grep -v -e linter -e Hint -e unused | tail -20; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"
 },
 {
 "name": "synth-fns",
@@ -936,7 +936,7 @@
 },
 {
 "name": "lean-examples-healthcare",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'healthcare' > Examples-healthcare.lean && lean Examples-healthcare.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples 'healthcare' > Examples-healthcare.lean && lean Examples-healthcare.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -944,7 +944,7 @@
 },
 {
 "name": "lean-examples-energy",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'energy' > Examples-energy.lean && lean Examples-energy.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples 'energy' > Examples-energy.lean && lean Examples-energy.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -952,7 +952,7 @@
 },
 {
 "name": "lean-examples-networking",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'networking' > Examples-networking.lean && lean Examples-networking.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples 'networking' > Examples-networking.lean && lean Examples-networking.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -960,7 +960,7 @@
 },
 {
 "name": "lean-examples-ai-agents",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'ai agents' > Examples-ai-agents.lean && lean Examples-ai-agents.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples 'ai agents' > Examples-ai-agents.lean && lean Examples-ai-agents.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -968,7 +968,7 @@
 },
 {
 "name": "lean-examples-cloud",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'cloud' > Examples-cloud.lean && lean Examples-cloud.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples 'cloud' > Examples-cloud.lean && lean Examples-cloud.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -976,7 +976,7 @@
 },
 {
 "name": "lean-examples-ad-tech",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'ad tech' > Examples-ad-tech.lean && lean Examples-ad-tech.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples 'ad tech' > Examples-ad-tech.lean && lean Examples-ad-tech.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -984,7 +984,7 @@
 },
 {
 "name": "lean-examples-governance",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'governance' > Examples-governance.lean && lean Examples-governance.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples 'governance' > Examples-governance.lean && lean Examples-governance.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -992,7 +992,7 @@
 },
 {
 "name": "lean-examples-insurance",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'insurance' > Examples-insurance.lean && lean Examples-insurance.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples 'insurance' > Examples-insurance.lean && lean Examples-insurance.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -1000,7 +1000,7 @@
 },
 {
 "name": "lean-examples-bookings",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'bookings' > Examples-bookings.lean && lean Examples-bookings.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples 'bookings' > Examples-bookings.lean && lean Examples-bookings.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -1008,7 +1008,7 @@
 },
 {
 "name": "lean-examples-safety-and-iot",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'safety and iot' > Examples-safety-and-iot.lean && lean Examples-safety-and-iot.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples 'safety and iot' > Examples-safety-and-iot.lean && lean Examples-safety-and-iot.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -1016,7 +1016,7 @@
 },
 {
 "name": "lean-examples-mobility",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'mobility' > Examples-mobility.lean && lean Examples-mobility.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples 'mobility' > Examples-mobility.lean && lean Examples-mobility.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
@@ -1024,7 +1024,7 @@
 },
 {
 "name": "lean-examples-media",
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; lean -o Cert.olean Cert.lean && lean -o Kernel.olean Kernel.lean && lean -o Progress.olean Progress.lean && lean -o StepLaw.olean StepLaw.lean && lean -o Steps.olean Steps.lean && lean -o Sets.olean Sets.lean && lean -o History.olean History.lean && lean -o Live.olean Live.lean && bun export-kernel.ts --examples 'media' > Examples-media.lean && lean Examples-media.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && { [ -f Sets.olean ] || lean -o Sets.olean Sets.lean; } && { [ -f History.olean ] || lean -o History.olean History.lean; } && { [ -f Live.olean ] || lean -o Live.olean Live.lean; } && bun export-kernel.ts --examples 'media' > Examples-media.lean && lean Examples-media.lean 2>&1 | tail -5; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s",
 "cwd": "lean-kernel",
 "cpu": 4.0,
 "memory": 8192,
