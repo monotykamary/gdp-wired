@@ -168,6 +168,12 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
   }
   const verdict: ReturnType<typeof solve> = next && rows.length > 60 ? solveP(rows, 2 * rows.length) : solveP(rows)
   if (verdict.kind === 'refuted') return {tree: leafOf(verdict.steps), nodes: budget.nodes}
+  // Before a split, the rows the plain search sets aside (those reading a term column) by their Farkas rows: an open
+  // choice's bounds (min(a, c) ≤ c) often refute the case whichever way the choice goes, so its cases need no split.
+  if (next && !columns && full.length > rows.length) {
+    const fast = timed(() => refuteFast(full), ms => { profile.solves++; profile.solveMs += ms })
+    if (fast?.kind === 'refuted') return {tree: {leaf: fast.steps}, nodes: budget.nodes}
+  }
   let split = next ?? (verdict.kind === 'unknown' ? bisect(rows, path) ?? fractional(verdict.point, path) : undefined)
   // Products: with monomials about, try every pair of rows multiplied; failing that, split a factor at zero.
   const monomials = rows.some(r => Object.keys(r.lin).some(key => key.includes('*')))
