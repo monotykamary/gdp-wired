@@ -159,11 +159,11 @@ export function termRows(name: string, path: Path): Lin[] {
     }
   }
   // An if is one of its two naturals, so at most their sum, whichever way its condition goes (a yes/no's if(c, 1, 0)
-  // is at most 1 without deciding c). Only over branches that read no term column: one that did would bring that
-  // column's rows into the leaf, and theirs, through every if a run of steps nests.
+  // is at most 1 without deciding c). Only over constant branches: over a variable one (a map's if(c, Given[k], 0)),
+  // each such row is one more in every leaf and slows the solve more than it saves.
   if (e.op === 'if') {
-    const a = linear(e.then, path), b = linear(e.else, path), plain = (l: Lin) => Object.keys(l).every(key => !key.startsWith('⟦'))
-    if (a && b && plain(a) && plain(b)) out.push(sub(col, add(a, b)))
+    const a = linear(e.then, path), b = linear(e.else, path), constant = (l: Lin) => Object.entries(l).every(([key, c]) => key === '1' || c === 0)
+    if (a && b && constant(a) && constant(b)) out.push(sub(col, add(a, b)))
   }
   if (decided(e, path)) { const r = linear(e, path); if (r) out.push(sub(col, r), sub(r, col)) }
   return out

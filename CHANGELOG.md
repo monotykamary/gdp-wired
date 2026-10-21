@@ -3,6 +3,15 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.14.2
+
+- The kernel's if row (0.14.1) only over constant branches, in the kernel and the Lean twin alike: over a variable
+  branch (a map's `if(c, Given[k], 0)` for every cell) each row was one more in every leaf, and a rule proving nine laws
+  at once over one ran about 12% slower (reported by a downstream project). The yes/no it was for, `if(c, 1, 0)`, keeps
+  it. On that rule (Modal, 2 vCPU, three containers each, the median per container): 41.5, 37.0 and 29.1 s, against
+  42.4, 45.0 and 53.2 s on 0.14.1 and 29.8, 41.7 and 44.8 s with no such row. The CHC track's median `proveRule` time
+  stays at 0.35 s (0.33 s on 0.14.1), with 128 tasks solved (48 sat, 80 unsat), none wrongly.
+
 ## 0.14.1
 
 - The kernel bounds an if by the sum of its two branches (when neither branch reads another term), whichever way its

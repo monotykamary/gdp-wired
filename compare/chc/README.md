@@ -20,8 +20,8 @@ and Eldarica (2.3).
 
 ## Results
 
-Spacer, Golem and Eldarica from `runs/modal/chc/full1`, gdp-wired from `runs/modal/chc/full3-gdp` (0.14.1; the whole
-track in 202 s of wall time on Modal), together in `runs/modal/chc/combined3`. A task is solved when the answer is sat
+Spacer, Golem and Eldarica from `runs/modal/chc/full1`, gdp-wired from `runs/modal/chc/full4-gdp` (0.14.2; every task in
+its own container, the whole track in a few minutes of wall time), together in `runs/modal/chc/combined4`. A task is solved when the answer is sat
 or unsat and, where CHC-COMP'26 decided the task, the same as its verdict.
 
 | tool | sat | unsat | wrong | solved of 1,406 | median s of those solved |
@@ -29,18 +29,18 @@ or unsat and, where CHC-COMP'26 decided the task, the same as its verdict.
 | Spacer (Z3 5.3.1) | 733 | 430 | 0 | 1,163 | 0.08 |
 | Golem 0.9.0 | 728 | 426 | 0 | 1,154 | 0.04 |
 | Eldarica 2.3 | 501 | 267 | 0 | 768 | 0.43 |
-| gdp-wired | 47 | 80 | 0 | 127 | 0.64 |
+| gdp-wired | 48 | 80 | 0 | 128 | 1 |
 
-- Every task imports (none refused). Of gdp-wired's answers, 47 sat are Houdini's candidates proven together and
+- Every task imports (none refused). Of gdp-wired's answers, 48 sat are Houdini's candidates proven together and
   checked by the kernel, 76 unsat are random runs reaching error and 4 unsat come from `proveRule`'s own refutation;
   every unsat run is checked against the CHC clauses by `checkDerivation`.
 - One task is solved by gdp-wired and none of the others within 60 s: `extra-small-lia/dillig05_m` (sat, 96 invariants,
-  55.9 s; CHC-COMP's own limit is longer). The others solve 1,139 that gdp-wired doesn't.
+  55.9 s; CHC-COMP's own limit is longer). The others solve 1,138 that gdp-wired doesn't.
 - What this measures is invariant inference, which gdp-wired doesn't do: its prover checks the laws you write, and a CHC
-  task gives none but the safety property. Houdini's templates find the invariants of 47 tasks; on 476 the templates
-  over many variables are too many to try, and on 280 an inductive set is found that doesn't imply the law.
+  task gives none but the safety property. Houdini's templates find the invariants of 48 tasks; on most of the rest the
+  templates over many variables are too many to try, or the inductive set found doesn't imply the law.
 - What it found in the library: on the 766 Lustre tasks (one predicate over up to 80 integers and 33 booleans),
   `proveRule` spent 20–45 s proving that a yes/no state stays 0 or 1, case-splitting the whole step guard. 0.14.1's
-  kernel row (an if is at most the sum of its branches) closes that: the median prove stage over the track went from
-  20.8 s (`full2-gdp`, 1,358 tasks) to 0.33 s (`full3-gdp`, 1,390 tasks).
+  kernel row (an if is at most the sum of its branches; 0.14.2 keeps it to constant branches) closes that: the median
+  prove stage over the track went from 20.8 s (`full2-gdp`, 1,358 tasks) to 0.35 s (`full4-gdp`, 1,392 tasks).
 - Not covered: nonlinear clauses (none in this track), arrays, bit vectors and algebraic datatypes (other tracks).
