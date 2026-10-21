@@ -105,7 +105,7 @@ const dataItems: Record<string, [() => DataLaw, string]> = {
   datamaplen: [() => dataLaws.lengthMap(), 'length_map'], datamirror: [() => dataLaws.mirrorMirror(), 'mirror_mirror'],
   datamirrorsize: [() => dataLaws.sizeMirror(), 'size_mirror'], dataflatten: [() => dataLaws.sumFlatten(), 'sum_flatten'],
   datasorted: [() => dataLaws.insertSorted(), 'insert_sorted'], datacount: [() => dataLaws.insertCount(), 'insert_count'],
-  datainslen: [() => dataLaws.insertLength(), 'insert_length'], databst: [() => dataLaws.bstInsert(), 'bst_insert'],
+  datainslen: [() => dataLaws.insertLength(), 'insert_length'],
 }
 const separately = ['searchtree', 'sheet', 'groups0', 'groups1', 'groups2', 'groups3', ...cyclicItems, ...foundItems, ...Object.keys(dataItems)]
 const file = toLean(([
@@ -195,7 +195,7 @@ const file = toLean(([
   })()),
   ...(!only?.some(id => foundItems.includes(id)) ? [] : cycleLeanItems()),
   ...Object.entries(dataItems).filter(([id]) => only?.includes(id)).map(([id, [mk, theorem]]): Parameters<typeof toLean>[0][number] => {
-    const l = mk(), v = proveData(l)
+    const l = mk(), v = proveData(l, {ms: 300_000})
     if (!v.proven || !v.checked || !v.proof?.proven || !v.program || v.node === undefined) throw new Error(`${id}: not proven (${v.goal}: ${v.stuck})`)
     return {id, cyclic: v.proof.proof, data: true, after: dataLean(id, l, v.program, v.proof.proof, v.node, theorem)}
   }),

@@ -1,4 +1,4 @@
-// The wall corpus's score: `bun research/frontier/score.ts [--track t] [--limit s] [--json out]`. Each item runs in a
+// The wall corpus's score: `bun research/frontier/score.ts [--track t] [--not t] [--shard i/n] [--limit s] [--json out]`. Each item runs in a
 // process of its own, today's prover and the track's search where it has one, each under the time limit (60 s). An
 // item counts for the frontier only when its verdict is proven and checked by the kernel.
 // `bun research/frontier/score.ts --one <id> <today|frontier>` is one run, its verdict as JSON; `--from <dir>` reads a Modal
@@ -50,7 +50,9 @@ const run = (id: string, how: string): Run => {
   if (p.exitCode === null || p.signalCode) return {proven: false, checked: false, ms, timeout: true}
   try { return JSON.parse(p.stdout.toString().trim().split('\n').at(-1)!) as Run } catch { return {proven: false, checked: false, ms, error: p.stderr.toString().slice(-300)} }
 }
-const items = corpus.filter(i => !track || i.track === track), rows = []
+// `--not <track>` leaves a track out (one with jobs of its own); `--shard i/n` runs every n-th item from the i-th.
+const not = arg('--not'), shard = arg('--shard')?.split('/').map(Number)
+const items = corpus.filter(i => (!track || i.track === track) && i.track !== not).filter((_, j) => !shard || j % shard[1]! === shard[0]!), rows = []
 console.log('| item | removed | today | frontier |\n| --- | --- | --- | --- |')
 for (const i of items) {
   const today = run(i.id, 'today'), frontier = i.frontier ? run(i.id, 'frontier') : undefined

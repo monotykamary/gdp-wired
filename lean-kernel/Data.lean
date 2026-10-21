@@ -180,6 +180,10 @@ theorem tup_le : ∀ (k i q : Nat), tup q k i ≤ q
 
 /-! ### Facts at their keys -/
 
+/-- A condition's value as a natural is at most 1 (a function to `Bool` as the encoding reads it). -/
+@[simp] theorem ite_one_zero_le (p : Prop) [Decidable p] : (if p then 1 else 0) ≤ 1 := by
+  split <;> omega
+
 /-- A fact read at its own keys reads the values given there. -/
 theorem override_at (keys : List Nat) (i : Nat) (h : keys.contains i = true) (vals env : Nat → Nat) :
     override keys vals env i = vals i := by

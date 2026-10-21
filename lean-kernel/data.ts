@@ -178,7 +178,7 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
       `  have h := ${id}_sound ${M} (fun i => ${env}) (facts_hold${params.map(q => ` ${q}`).join('')} _) _ ${nd}_mem (by simp [${nd}_hyps, ${id}_hyps${node}])`,
       `  rw [${nd}_concl] at h`,
       `  simp [${id}_concl${node}, evalC, evalE, model, unpk_fst, unpk_snd, unpk_sq_fst, unpk_sq_snd, unpk_sqb_fst, unpk_sqb_snd] at h`,
-      `  simpa using h`, '', `end ${id}`)
+      `  first | simpa using h | (intros; simp_all)`, '', `end ${id}`)
     return out.join('\n')
   }
 }

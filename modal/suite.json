@@ -939,6 +939,41 @@
 "timeout": 900
 },
 {
+"name": "data",
+"cmd": "bun test data.test.ts 2>&1 && cd .. && bun examples/data.ts 2>&1",
+"cwd": "core",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "frontier-datatype-0",
+"cmd": "bun research/frontier/score.ts --track datatype --shard 0/4 --limit 180 2>&1",
+"cwd": ".",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "frontier-datatype-1",
+"cmd": "bun research/frontier/score.ts --track datatype --shard 1/4 --limit 180 2>&1",
+"cwd": ".",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "frontier-datatype-2",
+"cmd": "bun research/frontier/score.ts --track datatype --shard 2/4 --limit 180 2>&1",
+"cwd": ".",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "frontier-datatype-3",
+"cmd": "bun research/frontier/score.ts --track datatype --shard 3/4 --limit 180 2>&1",
+"cwd": ".",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
 "name": "lemmas",
 "cmd": "bun test lemmas.test.ts 2>&1 && cd .. && bun examples/lemmas.ts 2>&1",
 "cwd": "core",
@@ -961,7 +996,7 @@
 },
 {
 "name": "frontier-score",
-"cmd": "bun research/frontier/score.ts --limit 120 2>&1",
+"cmd": "bun research/frontier/score.ts --limit 120 --not datatype 2>&1",
 "cwd": ".",
 "cpu": 1.0,
 "timeout": 1800
@@ -1268,6 +1303,38 @@
 {
 "name": "lean-cycles-loops",
 "cmd": "ONLY=loopphases,loopphases3,loopother,loopeuclid bash scripts/lean-items.sh 2>&1",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "lean-data-0",
+"cmd": "ONLY=datalen,datamaplen,datasorted bash research/data/lean-data.sh 2>&1",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "lean-data-1",
+"cmd": "ONLY=dataassoc,datamirror,datacount bash research/data/lean-data.sh 2>&1",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "lean-data-2",
+"cmd": "ONLY=datarev,datamirrorsize,datainslen bash research/data/lean-data.sh 2>&1",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "lean-data-3",
+"cmd": "ONLY=datafusion,dataflatten bash research/data/lean-data.sh 2>&1",
 "cwd": ".",
 "cpu": 4.0,
 "memory": 8192,

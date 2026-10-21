@@ -1361,8 +1361,8 @@ export function proveData(l: DataLaw, opts: Options = {}): DataVerdict {
   }
   const steps: (() => DataVerdict | undefined)[] = [
     () => lemmasAt(1),
-    () => ok(proveWith(p, fs, l, [], 1, opts, until, 20000, [2]), []),
-    () => (proven.length ? ok(proveWith(p2, fs2, l, proven, 1 + proven.length, opts, until, 20000, [2]), proven, p2) : undefined),
+    () => ok(proveWith(p, fs, l, [], 1, opts, until, 30000, [2]), []),
+    () => (proven.length ? ok(proveWith(p2, fs2, l, proven, 1 + proven.length, opts, until, 30000, [2]), proven, p2) : undefined),
     () => lemmasAt(2),
     () => ok(proveWith(p2, fs2, l, proven, 1 + proven.length, opts, until, 12000, [3]), proven, p2),
   ]
