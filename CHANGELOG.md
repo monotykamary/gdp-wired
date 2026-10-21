@@ -3,6 +3,22 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+- Products of unknowns, further: a map's cell may be a factor (a per-key quota, `Used[k] <= per·Seats[k]`; a cost kept
+  as `Price[k]·Qty[k]`), and a leaf may add the square of any linear form t (t·t >= 0, whatever t's sign), in the
+  kernel and the Lean twin alike (`leafSq`, its soundness case proven; a monomial's factors may be cells there too).
+  Where a leaf with products isn't refuted linearly, the prover tries, after the products of two facts it tried
+  before: (x − y)² for each product x·y the goal reads, its factors as the path leaves them (4ab <= (a + b)² kept by a
+  rule that moves one from b to a needs (a − b + 2)²), and for each monomial split into two halves (Cauchy–Schwarz's
+  (ad − bc)²), alone and with the products, then each square times each factor (a³ + b³ + c³ >= 3abc). A leaf keeps only
+  the squares and products its derivation reads. `research/frontier/nonlinear.ts`: 8 true laws, none proven at
+  eb28edc, 7 proven now (Modal, 1 vCPU: 1 to 308 ms each); `(Σx)² <= n·Σx²` over running samples is not (its
+  certificate multiplies the goal by n first). The prover bench (`research/perf/prover-bench.ts`, 520 items, 1,210
+  goals) makes the same 14,008 solver calls as before, in 4.0–6.0 s over five Modal runs against 5.0–6.5 s before.
+  The Lean exports gain these goals and a per-key quota machine (`quota_laws`), and a tampered Cauchy–Schwarz tree
+  computes to false.
+
 ## 0.14.2
 
 - The kernel's if row (0.14.1) only over constant branches, in the kernel and the Lean twin alike: over a variable

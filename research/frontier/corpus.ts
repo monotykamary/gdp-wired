@@ -8,6 +8,7 @@ import {proveLaws} from '../../kernel/prove.ts'
 import {invariantCases} from '../synth/models.ts'
 import {retries, retryLaws, retrySteps} from '../../examples/lemmas.ts'
 import {invoices, invoiceLaws, invoiceSteps} from '../../examples/invoices.ts'
+import {nonlinear} from './nonlinear.ts'
 
 export type Track = 'invariant' | 'lemma' | 'fold' | 'nonlinear' | 'structure'
 export type Item = {id: string, track: Track, removed: string, today: () => Verdict, frontier?: () => Verdict}
@@ -54,4 +55,4 @@ const folds: Item[] = [
   {id: 'fold/invoices', track: 'fold', removed: 'the taxable part is within the total, at every prefix', today: () => { const r = invoices('states no lemma'); return proveSteps(r, invoiceLaws(r), invoiceSteps(r)) }},
 ]
 
-export const corpus: Item[] = [...invariants, ...lemmas, ...folds]
+export const corpus: Item[] = [...invariants, ...lemmas, ...folds, ...nonlinear]

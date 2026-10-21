@@ -278,12 +278,36 @@ if (process.argv.includes('--big')) {
 const rollupM: Fold = {name: 'spend roll-up, cap m a param', params: ['m'], inputs: ['c'], leaf: {spend: min(x('c'), x('m')), count: n(1)}, node: {spend: plus(x('l_spend'), x('r_spend')), count: plus(x('l_count'), x('r_count'))}}
 machines.push(foldToLean('rollupM', rollupM, [{name: 'spend <= m count', holds: atMost(x('spend'), prod(x('m'), x('count')))}]))
 
+// Products of a map's cell: a per-key quota (every key's use within per × its seats; a request joins a seat or uses
+// within the quota). And goals refuted with squares: Cauchy–Schwarz's (ad − bc)², AM–GM for three (a·(b − c)² and the
+// like), a square of factors shifted by a step ((a − b + 2)²), and a³ <= b³ only when a <= b.
+const quota: Machine = {
+  name: 'per-key quota', params: ['per'], inputs: ['join', 'k', 'amt'], state: {}, maps: {S: 0, U: 0},
+  step: {maps: {
+    S: {key: x('k'), value: ite(same(x('join'), n(1)), plus(get('S', x('k')), n(1)), get('S', x('k')))},
+    U: {key: x('k'), value: ite(all(same(x('join'), n(0)), atMost(plus(get('U', x('k')), x('amt')), prod(x('per'), get('S', x('k'))))), plus(get('U', x('k')), x('amt')), get('U', x('k')))},
+  }},
+  assume: bit('join'),
+}
+machines.push(mmachineToLean('quota', quota, [{name: 'every key: U <= per × S', holds: atMost(get('U', x('q')), prod(x('per'), get('S', x('q')))), forall: 'q'}]))
+const [va, vb, vc, vd] = ['a', 'b', 'c', 'd'].map(x) as [ReturnType<typeof x>, ReturnType<typeof x>, ReturnType<typeof x>, ReturnType<typeof x>]
+const cs = (extra: number) => not(atMost(plus(prod(plus(prod(va, vc), prod(vb, vd)), plus(prod(va, vc), prod(vb, vd))), n(extra)), prod(plus(prod(va, va), prod(vb, vb)), plus(prod(vc, vc), prod(vd, vd)))))
+goals('squares', [
+  {name: '(ac + bd)² <= (a² + b²)(c² + d²)', hyps: [cs(0)]},
+  {name: '2abc <= a³ + b³ + c³', hyps: [not(atMost(prod(plus(prod(va, vb), prod(va, vb)), vc), plus(plus(prod(prod(va, va), va), prod(prod(vb, vb), vb)), prod(prod(vc, vc), vc))))]},
+  {name: '4(a + 1)(b − 1) <= (a + b)² when b >= 1', hyps: [atMost(n(1), vb), not(atMost(times(4, prod(plus(va, n(1)), minus(vb, n(1)))), prod(plus(va, vb), plus(va, vb))))]},
+  {name: 'a³ <= b³ only when a <= b', hyps: [atMost(prod(prod(va, va), va), prod(prod(vb, vb), vb)), not(atMost(va, vb))]},
+])
+
 const parts = [...machines, ...out.map((ex, i) => goalToLean(ex, i))]
 parts.push(goalToLean(out[1]!, 1, true))
 // The proof of s <= b + m offered for s <= b (false: the step admits up to m past b).
 // The proof of x <= x·x offered for x·x <= x (false at x = 2).
 const sq = out.findIndex(o => o.name === 'products: x <= x·x')
 parts.push(goalToLean({name: 'the x <= x·x tree offered for x·x <= x', goal: {name: 'x·x <= x', hyps: [not(atMost(prod(x('x'), x('x')), x('x')))]}, tree: out[sq]!.tree}, 1002, true, false))
+// The Cauchy–Schwarz tree offered for (ac + bd)² + 1 <= (a² + b²)(c² + d²) (false at a = b = c = d = 0).
+const csAt = out.findIndex(o => o.name === 'squares: (ac + bd)² <= (a² + b²)(c² + d²)')
+parts.push(goalToLean({name: 'the Cauchy–Schwarz tree offered for (ac + bd)² + 1 <= (a² + b²)(c² + d²)', goal: {name: 'cs + 1', hyps: [cs(1)]}, tree: out[csAt]!.tree}, 1003, true, false))
 const wrong = obligations(loss(), [{name: 'wrong', holds: atMost(x('s'), x('b'))}])[1]!
 parts.push(goalToLean({name: 'budget rule: the bounded_loss tree offered for s <= b', goal: wrong, tree: out[1]!.tree}, 1001, true, false))
 console.log(`import Live
@@ -323,5 +347,6 @@ ${parts.join('\n\n')}
 #print axioms twophase_step0_holds
 #print axioms escrow_laws
 #print axioms escrow_step0_holds
-#print axioms pooltotal_laws${process.argv.includes('--big') ? '\n#print axioms iso_laws\n#print axioms migration_laws' : ''}`)
+#print axioms pooltotal_laws
+#print axioms quota_laws${process.argv.includes('--big') ? '\n#print axioms iso_laws\n#print axioms migration_laws' : ''}`)
 console.error(out.map((o, i) => `t${i}  ${o.name}`).join('\n'))

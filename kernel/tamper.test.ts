@@ -27,7 +27,49 @@ for (const [m, laws] of subjects) {
   for (const g of obligations(m, laws, r.proof.instances)) proofs.push({goal: g, tree: r.proof.trees[g.name]!})
 }
 
-const leaves = (t: Tree): (Tree & {leaf: Step[]})[] => ('leaf' in t ? [t] : [...leaves(t.yes), ...leaves(t.no)])
+// Nonlinear goals: products of cells, and refutations that need squares (Cauchy–Schwarz's (ad − bc)², AM–GM for three,
+// a square of factors shifted by a step, a³ <= b³ only when a <= b).
+{
+  const X = (name: string): E => ({op: 'var', name}), P = (a: E, b: E): E => ({op: 'prod', a, b}), S = (a: E, b: E): E => ({op: 'add', a, b})
+  const le = (a: E, b: E): C => ({op: '<=', a, b}), not = (c: C): C => ({op: 'not', x: c}), K = (value: number): E => ({op: 'const', value})
+  const [a, b, c, d] = ['a', 'b', 'c', 'd'].map(X) as [E, E, E, E], cell = (map: string, k: string): E => ({op: 'get', map, key: X(k)})
+  const nonlinear: Goal[] = [
+    {name: 'cauchy-schwarz', hyps: [not(le(P(S(P(a, c), P(b, d)), S(P(a, c), P(b, d))), P(S(P(a, a), P(b, b)), S(P(c, c), P(d, d)))))]},
+    {name: 'am-gm for three', hyps: [not(le(P(S(P(a, b), P(a, b)), c), S(S(P(P(a, a), a), P(P(b, b), b)), P(P(c, c), c))))]},
+    {name: 'a shifted square', hyps: [le(K(1), b), le(P(S(a, b), S(a, b)), K(1000)), not(le({op: 'mul', k: 4, a: P(S(a, K(1)), {op: 'sub', a: b, b: K(1)})}, P(S(a, b), S(a, b))))]},
+    {name: 'cubes', hyps: [le(P(P(a, a), a), P(P(b, b), b)), not(le(a, b))]},
+    {name: 'a cell times a param', hyps: [le(cell('U', 'k'), P(X('per'), cell('S', 'k'))), not(le(S(cell('U', 'k'), X('per')), P(X('per'), S(cell('S', 'k'), K(1)))))]},
+  ]
+  for (const g of nonlinear) {
+    const out = grow(g)
+    if (!('tree' in out)) throw new Error(`${g.name}: not proven`)
+    proofs.push({goal: g, tree: out.tree})
+  }
+}
+const squaresIn = (t: Tree): number => ('leaf' in t ? t.squares?.length ?? 0 : squaresIn(t.yes) + squaresIn(t.no))
+test('nonlinear proofs: squares are read, and a changed square breaks them', () => {
+  let squared = 0, changed = 0
+  for (const {goal, tree} of proofs.filter(p => squaresIn(p.tree) > 0)) {
+    squared++
+    expect(check(goal, tree)).toBe(true)
+    const drop = (t: Tree): Tree => ('leaf' in t ? {leaf: t.leaf, ...(t.products ? {products: t.products} : {})} : {...t, yes: drop(t.yes), no: drop(t.no)})
+    expect(check(goal, drop(tree)), `${goal.name} without its squares`).toBe(false)
+    // Each square's form moved by one somewhere: if the kernel still accepts, the goal must still have no model.
+    for (let k = 0; k < 20; k++) {
+      const copy = structuredClone(tree), leaf = leaves(copy).find(l => l.squares?.length)! as Leaf & {squares: Record<string, number>[]}
+      const sq = leaf.squares[rand(leaf.squares.length)]!, keys = Object.keys(sq), key = keys[rand(keys.length)]!
+      sq[key] = sq[key]! + (rand(2) ? 1 : -1)
+      if (!check(goal, copy)) changed++
+      else expect(model(goal), `${goal.name}: a changed square accepted, and the goal has a model`).toBe(false)
+    }
+  }
+  console.log(`tamper: ${squared} proofs with squares, ${changed} changed squares rejected`)
+  expect(squared).toBeGreaterThanOrEqual(3)
+  expect(changed).toBeGreaterThan(0)
+})
+
+type Leaf = Extract<Tree, {leaf: Step[]}>
+const leaves = (t: Tree): Leaf[] => ('leaf' in t ? [t] : [...leaves(t.yes), ...leaves(t.no)])
 const splits = (t: Tree): (Tree & {split: object})[] => ('leaf' in t ? [] : [t, ...splits(t.yes), ...splits(t.no)])
 
 test('structurally broken derivations are rejected', () => {
