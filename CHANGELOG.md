@@ -3,6 +3,23 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.14.1
+
+- The kernel bounds an if by the sum of its two branches (when neither branch reads another term), whichever way its
+  condition goes, and the Lean twin has the same row with its soundness case. A yes/no written under a wide condition
+  (`if(c, 1, 0)`) now keeps its kind without the prover deciding `c` atom by atom: on CHC-COMP's LIA-Lin track below,
+  the median time `proveRule` takes on a task went from 20.8 s to 0.33 s (Modal, 2 vCPU). `examples/wide.ts` (an alarm
+  over 12 sensor pairs) is in the suite and checked again in Lean (`wideflag`).
+- On a rule with 32 variables or more, refutation also tries one step from random states the laws allow, each variable
+  of a kind drawn as its kind draws, for the laws as well as the step laws: a law that isn't inductive is refused with
+  its counterexample at once instead of after the prover's whole budget. It only ever refuses; smaller rules take the
+  same path as before.
+- `compare/chc/`: gdp-wired on the 1,406 tasks of CHC-COMP 2026's LIA-Lin track, beside Spacer, Golem and Eldarica,
+  every task in its own Modal container under the same 60 s limit. gdp-wired solves 127 (47 sat with a checked proof,
+  80 unsat with a run the CHC itself confirms), none wrongly; Spacer 1,163, Golem 1,154, Eldarica 768. The gap is
+  invariant inference, which gdp-wired doesn't do (its prover checks the laws you write); the table and what it found
+  are in [`compare/chc/README.md`](compare/chc/README.md).
+
 ## 0.14.0
 
 - XState machines as charts (`gdp-wired/xstate`): `fromXState(machine, {guards, actions})` reads an XState v5 machine
