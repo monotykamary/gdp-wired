@@ -1203,6 +1203,29 @@ example : cycLawOk ${id}_machine ${id}_enc (${t.c(l.holds)}) = true := by ${by}
 example : cycNodeOk ${id}_machine ${id}_enc (${t.c(l.holds)}) ⟨${list(nodes[j]!.hyps.map(t.c))}, ${t.c(nodes[j]!.concl)}, [], [], [], ([], .leaf [] [] [] [])⟩ = true := by ${by}`).join('\n')}`
 }
 
+// Bridge.lean's recOk and foldOk alone, for the sweep (research/cyclic/bridge.ts): recurNodes' and foldNodes' facts (and
+// a fold's nodes, with no proof: foldOk reads only their hypotheses and conclusions) against the recurrence's equations
+// and the fold's table. Each an example, named in a comment before it.
+export function cycRecurCheckLean(id: string, facts: {name: string, keys: string[], holds: C}[], r: CycRecur): string {
+  const v = (name: string): E => ({op: 'var', name})
+  const {vars, maps} = cycScope([{facts, nodes: []}], undefined, [r.zero, r.next, v('x'), v('prev'), v('k$'), ...r.args.map(v), {op: 'get', map: `${r.name}$`, key: v('x')}])
+  const t = leanTerms(vars, maps, id), ix = (n2: string) => vars.indexOf(n2), mx = (n2: string) => maps.indexOf(n2)
+  return `-- CHECK ${id} recurrence: ${r.name}
+example : recOk ⟨${mx(`${r.name}$`)}, ${ix('x')}, ${ix('prev')}, ${ix('k$')}⟩ (${t.e(r.zero)}) (${t.e(r.next)}) []
+    ${list(facts.map(f => `⟨${list(f.keys.map(k2 => String(ix(k2))))}, ${t.c(f.holds)}⟩`))} = true := by ${checkBy}`
+}
+export function cycFoldCheckLean(id: string, facts: {name: string, keys: string[], holds: C}[], nodes: {name: string, hyps: C[], concl: C}[], f: Fold, laws: Law[]): string {
+  const v = (name: string): E => ({op: 'var', name}), st = Object.keys(f.leaf)
+  const shape: CycShape = {facts, nodes: nodes.map(n => ({hyps: n.hyps, concl: n.concl, rank: [], insts: [], uses: []}))}
+  const {vars, maps} = cycScope([shape], undefined, [...[...f.params, ...f.inputs, ...st, ...st.map(x => `l_${x}`), ...st.map(x => `r_${x}`), 'n$', 'N$'].map(v),
+    ...Object.values(f.leaf), ...Object.values(f.node), ...['Kind', 'Left', 'Right', ...st, ...f.inputs].map((x): E => ({op: 'get', map: `${x}@`, key: v('n$')}))])
+  const t = leanTerms(vars, maps, id)
+  return `${cycFoldLean(id, f, [], vars, maps, t)}
+def ${id}_facts : List Fact := ${list(facts.map(g => `⟨${list(g.keys.map(k2 => String(vars.indexOf(k2))))}, ${t.c(g.holds)}⟩`))}
+${laws.map((l, j) => `-- CHECK ${id} fold law ${j}: ${l.name}
+example : foldOk ${id}_fold ${id}_fenc ${id}_facts (${t.c(l.holds)}) ⟨${list(nodes[j]!.hyps.map(t.c))}, ${t.c(nodes[j]!.concl)}, [], [], [], ([], .leaf [] [] [] [])⟩ = true := by ${checkBy}`).join('\n')}`
+}
+
 // Bridge.lean's cyc_fold_sound for each law of a cyclic proof made by foldNodes: the fold as Kernel.lean's Fold, the
 // table (its added variables and maps), each law's check and its theorem over trees, as fold_sound states the usual one.
 function cycFoldLean(id: string, f: Fold, laws: Law[], vars: string[], maps: string[], t: {e: (x: E) => string, c: (x: C) => string}): string {
