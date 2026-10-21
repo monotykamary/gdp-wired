@@ -39,7 +39,7 @@ app = modal.App("gdp-wired-experiments", image=image)
 # and the toolchain, so a job only ever reads files compiled from the sources it was given. A compile whose output a job
 # checks (for sorry, say) is written without the skip, so it still runs.
 oleans = modal.Volume.from_name("gdp-wired-olean", create_if_missing=True)
-LIBRARY = ["Cert", "Kernel", "Cyclic", "Progress", "StepLaw", "Steps", "Sets", "History", "Live", "Ghost", "Refine", "Bridge"]
+LIBRARY = ["Cert", "Kernel", "Cyclic", "Progress", "StepLaw", "Steps", "Sets", "History", "Live", "Ghost", "Refine", "Bridge", "Data"]
 
 
 def library_key(lean_dir: pathlib.Path) -> str:

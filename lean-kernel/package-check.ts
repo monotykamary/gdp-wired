@@ -1,6 +1,9 @@
 // gdp-wired/lean end to end: rules written with the builders, exported by toLean, laid out by leanProject, and built by
 // `lake build` (modal/suite.json's lean-package job). Usage: bun package-check.ts <empty folder>
 import {mkdirSync, writeFileSync} from 'node:fs'
+import {type DataLaw, proveData} from '../core/data.ts'
+import {laws as dataLaws} from '../examples/data.ts'
+import {dataLean} from './data.ts'
 import {join} from 'node:path'
 import {bool, count, forall, loop, maybe, min, nat, oneOf, relation, rule, yes} from '../core/dsl.ts'
 import {countdown, escrowLaws, escrowRunsLean, escrowSteps, escrowWatched, meter, meterRelation, twoPhase} from '../examples/composition.ts'
@@ -94,7 +97,17 @@ const cyclicItems = ['mccarthy', 'mutual', 'cycgrowing', 'cycfilled', 'cyccounte
 // The proofs core/cycles.ts finds (examples/cycles.ts's leanItems; the suite's lean-cycles jobs, the loops in a file
 // of their own: Live.lean and Cyclic.lean each define lexLtC).
 const foundItems = ['cycmc91', 'cycack', 'cycgcd', 'cycacc', 'cycacc2', 'cycring', 'cycthrough', 'loopphases', 'loopphases3', 'loopother', 'loopeuclid', 'rule91', 'rule91lemma', 'ruledouble', 'ruledoublelemma']
-const separately = ['searchtree', 'sheet', 'groups0', 'groups1', 'groups2', 'groups3', ...cyclicItems, ...foundItems]
+// Datatype laws (core/data.ts, examples/data.ts): each its cyclic proof and the law about the Lean definitions (the
+// suite's lean-data job).
+const dataItems: Record<string, [() => DataLaw, string]> = {
+  datalen: [() => dataLaws.lengthAppend(), 'length_append'], dataassoc: [() => dataLaws.appendAssoc(), 'append_assoc'],
+  datarev: [() => dataLaws.reverseReverse(), 'reverse_reverse'], datafusion: [() => dataLaws.mapFusion(), 'map_fusion'],
+  datamaplen: [() => dataLaws.lengthMap(), 'length_map'], datamirror: [() => dataLaws.mirrorMirror(), 'mirror_mirror'],
+  datamirrorsize: [() => dataLaws.sizeMirror(), 'size_mirror'], dataflatten: [() => dataLaws.sumFlatten(), 'sum_flatten'],
+  datasorted: [() => dataLaws.insertSorted(), 'insert_sorted'], datacount: [() => dataLaws.insertCount(), 'insert_count'],
+  datainslen: [() => dataLaws.insertLength(), 'insert_length'], databst: [() => dataLaws.bstInsert(), 'bst_insert'],
+}
+const separately = ['searchtree', 'sheet', 'groups0', 'groups1', 'groups2', 'groups3', ...cyclicItems, ...foundItems, ...Object.keys(dataItems)]
 const file = toLean(([
   {id: 'caps', machine: caps.machine, laws: [dayCap], stepLaws: [onlyUp, twice]},
   {id: 'window', machine: window.machine, laws: [window.law('window ceiling', ({ours, c}) => ours.atMost(c))]},
@@ -181,6 +194,11 @@ const file = toLean(([
     ]
   })()),
   ...(!only?.some(id => foundItems.includes(id)) ? [] : cycleLeanItems()),
+  ...Object.entries(dataItems).filter(([id]) => only?.includes(id)).map(([id, [mk, theorem]]): Parameters<typeof toLean>[0][number] => {
+    const l = mk(), v = proveData(l)
+    if (!v.proven || !v.checked || !v.proof?.proven || !v.program || v.node === undefined) throw new Error(`${id}: not proven (${v.goal}: ${v.stuck})`)
+    return {id, cyclic: v.proof.proof, data: true, after: dataLean(id, l, v.program, v.proof.proof, v.node, theorem)}
+  }),
   // A decision that reads conditions about every key, as the step law it is proven as.
   ...(d => [{id: 'subsettrans', machine: d.steps!.rule.machine, laws: [], stepLaws: [d.steps!.law]}])(rule('sets').inputs({n: nat}).carries('A', 'B', 'C').decide('a subset of a subset is a subset', ({A, B, C}) => [A.subsetOf(B), B.subsetOf(C)], ({A, C}) => A.subsetOf(C))),
   // n times the goal, then a square: (Σv)² <= n·Σv² over running samples.

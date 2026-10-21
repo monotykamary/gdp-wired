@@ -19,6 +19,6 @@ export const sC = (c: C): string => {
     case 'and': return `(${c.xs.map(sC).join(' ∧ ')})`
     case 'or': return `(${c.xs.map(sC).join(' ∨ ')})`
     case 'not': return `¬${sC(c.x)}`
-    default: return JSON.stringify(c)
+    case 'flag': case 'all': return JSON.stringify(c)
   }
 }

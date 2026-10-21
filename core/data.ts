@@ -23,7 +23,7 @@
 // at the terms of the law they match.
 import type {C, E} from './machine.ts'
 import {type Fact} from '../kernel/cyclic.ts'
-import {substC, substE} from '../kernel/kernel.ts'
+import {substC} from '../kernel/kernel.ts'
 import {type CyclicVerdict, type NodeSpec, proveCyclic} from './cyclic.ts'
 import {pairedKeys, withDeadline} from '../kernel/prove.ts'
 
@@ -87,7 +87,8 @@ export const no = new Bool({op: '<', a: {op: 'nat', value: 0}, b: {op: 'nat', va
 export class Val {
   constructor(readonly data: Data, readonly x: X) {}
   // Every case covered; each case's fields by name (a natural, or a value of the datatype).
-  match<R extends Nat | Bool | Val | number>(cases: Record<string, (fields: Record<string, any>) => R>): R extends number ? Nat : R {
+  // oxlint-disable-next-line typescript/no-explicit-any
+  match(cases: Record<string, (fields: Record<string, any>) => Nat | Bool | Val | number>): any {
     const d = this.data
     const built = d.ctors.map(c => {
       const f = cases[c.name]
@@ -135,7 +136,7 @@ export class Data {
     return new Val(this, {op: 'ctor', data: this.name, ctor: j, args: c.fields.map((f, i) => xOf(f.sort === 'nat' ? 'nat' : this, args[i]))})
   }
 }
-type Decl = Record<string, Record<string, typeof self | {nat?: true} | unknown>>
+type Decl = Record<string, Record<string, unknown>>
 // `data('List', {nil: {}, cons: {head: nat, tail: self}})`: `List.nil`, `List.cons(h, t)`, and `xs.match({...})`.
 export function data<const D extends Decl>(name: string, decl: D): Data & {[c in keyof D]: keyof D[c] extends never ? Val : (...args: (Val | NatLike)[]) => Val} {
   const norm = Object.fromEntries(Object.entries(decl).map(([c, fs]) => [c, Object.fromEntries(Object.entries(fs as object).map(([f, s]) => [f, s === self ? self : 'nat' as const]))]))
@@ -471,7 +472,7 @@ export class Model {
       case 'and': return c.xs.every(x => this.evalC(x, env))
       case 'or': return c.xs.some(x => this.evalC(x, env))
       case 'not': return !this.evalC(c.x, env)
-      default: throw new Error(`${c.op} isn't in the encoding`)
+      case 'flag': case 'all': throw new Error(`${c.op} isn't in the encoding`)
     }
   }
 }
@@ -486,7 +487,9 @@ export function unkey(key: number, n: number): number[] {
 // --- the search -------------------------------------------------------------------------------------------------------
 
 export type Lemma = {law: DataLaw, spec?: NodeSpec}
-export type DataVerdict = {proven: boolean, checked: boolean, law: string, counterexample?: Record<string, string>, proof?: CyclicVerdict, lemmas: string[], scheme?: string, ms: number, goal?: string, stuck?: string, tried: number}
+// `program`: the datatypes and functions the proof's facts are of; `node`: the law's own node in the proof (lemmas' nodes
+// and cases besides).
+export type DataVerdict = {proven: boolean, checked: boolean, law: string, counterexample?: Record<string, string>, proof?: CyclicVerdict, lemmas: string[], scheme?: string, ms: number, goal?: string, stuck?: string, tried: number, program?: Program, node?: number}
 export type Options = {samples?: number, depth?: number, lemmas?: boolean | DataLaw[], ms?: number, induction?: boolean, seed?: number}
 
 // Random values of the law's variables: a law false at one is refuted with it.
@@ -767,7 +770,7 @@ type M = {m: Model, env: Record<string, number>}
 // the node it parts from near it.
 type Case = {lits: C[], models: M[] | undefined, near?: M[]}
 function casesOf(p: Program, unfolded: C[], vars: Set<string>, models: M[]): Case[] {
-  const plain = (e: E): boolean => (e.op === 'var' ? vars.has(e.name) : e.op === 'const' ? true : e.op === 'get' ? p.datas.some(d => e.map.startsWith(`${d.name}.`)) && !p.datas.some((d, _) => d.ctors.some((c, j) => c.fields.length > 0 && e.map === ctorMap(d, j))) && plain(e.key)
+  const plain = (e: E): boolean => (e.op === 'var' ? vars.has(e.name) : e.op === 'const' ? true : e.op === 'get' ? p.datas.some(d => e.map.startsWith(`${d.name}.`)) && !p.datas.some(d => d.ctors.some((c, j) => c.fields.length > 0 && e.map === ctorMap(d, j))) && plain(e.key)
     : e.op === 'add' || e.op === 'sub' || e.op === 'min' || e.op === 'max' ? plain(e.a) && plain(e.b) : e.op === 'mul' ? plain(e.a) : false)
   const plainC = (c: C): boolean => JSON.stringify(c).includes('"op":"var"') && (c.op === '<' || c.op === '<=' || c.op === '=' ? plain(c.a) && plain(c.b) : c.op === 'not' ? plainC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.every(plainC) : false)
   // The functions' facts the goal unfolds.
@@ -1161,7 +1164,7 @@ export function proveData(l: DataLaw, opts: Options = {}): DataVerdict {
   if (cex) return done({proven: false, checked: false, counterexample: cex, lemmas: [], tried: 0})
   // The law alone: one unfolding, then two.
   let tried = 0
-  const ok = (r: ReturnType<typeof proveWith>, lemmas: Proven[]) => (tried += r.tried, r.out ? done({proven: true, checked: true, proof: r.verdict, lemmas: lemmas.map(q => q.law.name), scheme: r.scheme, tried}) : undefined)
+  const ok = (r: ReturnType<typeof proveWith>, lemmas: Proven[], prog = p) => (tried += r.tried, r.out ? done({proven: true, checked: true, proof: r.verdict, lemmas: lemmas.map(q => q.law.name), scheme: r.scheme, tried, program: prog, node: r.out.nodes.indexOf(r.out.spec)}) : undefined)
   const first = proveWith(p, fs, l, [], 1, opts, until, 6000, [1])
   const one = ok(first, [])
   if (one) return one
@@ -1188,11 +1191,11 @@ export function proveData(l: DataLaw, opts: Options = {}): DataVerdict {
     if (!r.out) continue
     proven.push(r.out)
     if (!hit) continue
-    const again = ok(proveWith(p2, fs2, l, proven, 1 + proven.length, opts, until, 8000, [1, 2]), proven)
+    const again = ok(proveWith(p2, fs2, l, proven, 1 + proven.length, opts, until, 8000, [1, 2]), proven, p2)
     if (again) return again
   }
   // Last, deeper, with every lemma proven.
-  if (proven.length && performance.now() < until) { const deep = ok(proveWith(p2, fs2, l, proven, 1 + proven.length, opts, until, 12000, [3]), proven); if (deep) return deep }
+  if (proven.length && performance.now() < until) { const deep = ok(proveWith(p2, fs2, l, proven, 1 + proven.length, opts, until, 12000, [3]), proven, p2); if (deep) return deep }
   return done({proven: false, checked: false, lemmas: proven.map(q => q.law.name), tried, ...stuckOf(first.last)})
 }
 const stuckOf = (v?: CyclicVerdict) => (v && !v.proven ? {goal: v.goal, stuck: v.stuck} : v && !v.checked ? {goal: 'check', stuck: v.why} : {})

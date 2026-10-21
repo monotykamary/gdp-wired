@@ -45,6 +45,7 @@ theorem pk_inj {a b c d : Nat} (h : pk a b = pk c d) : a = c ∧ b = d := by
   rw [hs] at h
   omega
 
+open Classical in
 /-- A left inverse of `pk`: the pair a natural is the pairing of, where it is one. -/
 noncomputable def unpk (n : Nat) : Nat × Nat :=
   if h : ∃ p : Nat × Nat, pk p.1 p.2 = n then Classical.choose h else (0, 0)
@@ -52,9 +53,11 @@ noncomputable def unpk (n : Nat) : Nat × Nat :=
 theorem unpk_pk (a b : Nat) : unpk (pk a b) = (a, b) := by
   have h : ∃ p : Nat × Nat, pk p.1 p.2 = pk a b := ⟨(a, b), rfl⟩
   unfold unpk
-  rw [dif_pos h]
-  have ⟨h1, h2⟩ := pk_inj (Classical.choose_spec h)
-  exact Prod.ext h1 h2
+  split
+  · rename_i h'
+    have ⟨h1, h2⟩ := pk_inj (Classical.choose_spec h')
+    exact Prod.ext h1 h2
+  · exact absurd h ‹_›
 
 @[simp] theorem unpk_fst (a b : Nat) : (unpk ((a + b) * (a + b) + b)).1 = a := by
   have := unpk_pk a b; unfold pk at this; rw [this]
@@ -82,30 +85,30 @@ theorem le_tri : ∀ s, s ≤ tri s
   | 0 => Nat.le_refl 0
   | s + 1 => by have := le_tri s; simp only [tri]; omega
 
+theorem cpair_succ_left (b : Nat) : cpair (b + 1) 0 = cpair 0 b + 1 := by
+  simp only [cpair, Nat.add_zero, Nat.zero_add, tri]
+
+theorem cpair_succ_right (a b : Nat) : cpair a (b + 1) = cpair (a + 1) b + 1 := by
+  simp only [cpair]
+  have e : a + (b + 1) = a + 1 + b := by omega
+  rw [e]; omega
+
 theorem cpair_cun : ∀ n, cpair (cun n).1 (cun n).2 = n
   | 0 => rfl
   | n + 1 => by
     have ih := cpair_cun n
-    simp only [cun]
-    split
-    · rename_i b h
-      rw [h] at ih
-      simp only [cpair, Nat.zero_add] at ih ⊢
-      simp only [Nat.add_zero, tri]
-      omega
-    · rename_i a b h
-      rw [h] at ih
-      simp only [cpair] at ih ⊢
-      have e : a + (b + 1) = (a + 1 + b) := by omega
-      rw [e]
-      omega
+    rcases h : cun n with ⟨a, b⟩
+    rw [h] at ih
+    cases a with
+    | zero => simp only [cun, h]; rw [cpair_succ_left]; simp only at ih; omega
+    | succ a => simp only [cun, h]; rw [cpair_succ_right]; simp only at ih; omega
 
 theorem cun_tri : ∀ s b, b ≤ s → cun (tri s + b) = (s - b, b)
   | 0, 0, _ => rfl
   | 0, _ + 1, h => absurd h (by omega)
   | s + 1, 0, _ => by
     have ih := cun_tri s s (Nat.le_refl s)
-    have e : tri (s + 1) + 0 = (tri s + s) + 1 := by simp only [tri]; omega
+    have e : tri (s + 1) + 0 = (tri s + s) + 1 := by simp only [tri]; try omega
     rw [e]
     simp only [cun, ih, Nat.sub_self, Nat.sub_zero]
   | s + 1, b + 1, h => by
@@ -161,5 +164,14 @@ theorem tup_le : ∀ (k i q : Nat), tup q k i ≤ q
 @[simp] theorem tup_two_zero (k a q : Nat) : tup (cpair a q) (k + 2) 0 = a := by simp [tup]
 @[simp] theorem tup_two_succ (k i a q : Nat) : tup (cpair a q) (k + 2) (i + 1) = tup q (k + 1) i := by simp [tup]
 @[simp] theorem tup_one (q i : Nat) : tup q 1 i = q := rfl
+@[simp] theorem tupk_one (x : Nat) : tupk [x] = x := rfl
+@[simp] theorem tupk_cons (x y : Nat) (ys : List Nat) : tupk (x :: y :: ys) = cpair x (tupk (y :: ys)) := rfl
+
+/-! ### Facts at their keys -/
+
+/-- A fact read at its own keys reads the values given there. -/
+theorem override_at (keys : List Nat) (i : Nat) (h : keys.contains i = true) (vals env : Nat → Nat) :
+    override keys vals env i = vals i := by
+  unfold override; rw [if_pos h]
 
 end Kern

@@ -991,7 +991,7 @@ export type LeanItem =
   // cyc_machine_sound gives each law of the machine (`<id>_lawN_holds`, and `<id>.lawN` plainly); each tampered machine's
   // check against the proof computed to false.
   | {id: string, cyclic: Cyclic, tampered?: {what: string, proof: Cyclic}[], after?: (ix: (name: string) => number, mx: (map: string) => number) => string,
-    bridge?: CycBridge, recur?: CycRecur, fold?: {fold: Fold, laws: Law[]}}
+    bridge?: CycBridge, recur?: CycRecur, fold?: {fold: Fold, laws: Law[]}, data?: true}
 
 // A Lean file proving each item, to compile against the twin (`leanLibrary`, or `leanProject` for a ready Lake project).
 // Each machine's laws come with `<id>_laws` (the twin's theorem) and `<id>.lawN` (the law as a plain Lean statement
@@ -1062,7 +1062,8 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
       parts.push(`-- ${item.id}\n${cyclicToLean(id, item.cyclic, item.tampered ?? [], item.after, item.bridge, item.recur, item.fold)}`)
       theorems.push(`${id}_sound`, ...(item.bridge?.laws ?? item.fold?.laws ?? []).map((_, j) => `${id}_law${j}_holds`), ...(item.recur ? [`${id}_values`] : []),
         ...(item.recur ? [...item.recur.lemmas.map((_, j) => `${id}_lemma${j}`), ...item.recur.between.map((_, j) => `${id}_between${j}`)] : []),
-        ...(item.after ? [...item.after(() => 0, () => 0).matchAll(/^theorem (\S+)/gm)].map(x2 => x2[1]!) : []))
+        // A datatype law's theorem is in a namespace of the item's (its datatypes and functions are named as declared).
+        ...(item.after ? (ts => (item.data ? ts.slice(-1).map(t => `${id}.${t}`) : ts))([...item.after(() => 0, () => 0).matchAll(/^theorem (\S+)/gm)].map(x2 => x2[1]!)) : []))
     } else if ('fold' in item) {
       parts.push(`-- ${item.id}\n${foldToLean(id, item.fold, item.laws)}`)
       theorems.push(`${id}_laws`)
@@ -1075,7 +1076,7 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   }
   // The file the items need: Live.lean for a liveness or a loop, Sets.lean (which imports Steps.lean) for any machine.
   return `import History
-${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && item.ghosts?.length) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
+${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && item.ghosts?.length) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
