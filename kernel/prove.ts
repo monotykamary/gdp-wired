@@ -64,7 +64,10 @@ function openH(c: C, path: Path, out: Lin[], positive = true): void {
   if (out.length === before && !positive && c.op === '=' && truth(c, path) === undefined) openC(c, path, out)
 }
 
-// Pairs of reads of one map whose keys the path doesn't yet compare.
+// Pairs of reads of one map whose keys the path doesn't yet compare. With `pairedKeys.skip` (core/data.ts), reads at
+// keys a pairing builds ((a + b)² + b, keys whose difference has monomials) are left uncompared: that encoding states
+// their congruence as facts, and comparing their keys only brings products into leaves its linear rows decide.
+export const pairedKeys = {skip: false}
 function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
   const names = [...new Set(rows.flatMap(r => Object.keys(r.lin)))].filter(isCell)
   const out: Lin[] = []
@@ -72,6 +75,7 @@ function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
   for (const [i, p] of names.entries()) for (const q of names.slice(i + 1)) {
     if (p.slice(0, p.indexOf('[')) !== q.slice(0, q.indexOf('['))) continue
     const d = sub(parse(keyText(p)), parse(keyText(q)))
+    if (pairedKeys.skip && Object.keys(d).some(isMonomial)) continue
     const dec = (lin: Lin) => path.get(canon(lin))?.holds ?? (path.has(canonFlip(lin)) ? !path.get(canonFlip(lin))!.holds : undefined)
     const a = dec(d), b = dec(scale(d, -1))
     if (a === undefined) out.push(d)
