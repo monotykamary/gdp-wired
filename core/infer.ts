@@ -13,6 +13,7 @@
 //     its witness is a counterexample to induction, so the candidate that rules it out (and the most of those seen) is
 //     added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
+import {quietly} from './cyclic.ts'
 import {type C, type E, type Law, type Machine, type Request, type State, any, atMost, evalC, get, interpret, n, not, plus, same, times, x} from './machine.ts'
 import {type StepLaw, type Verdict, proveRule, proveSteps} from './dsl.ts'
 import {allowed, watch} from './watch.ts'
@@ -95,7 +96,8 @@ const keyValue = (cell: string, w: Record<string, number>): number | undefined =
   return value
 }
 
-export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
+export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred { return quietly(() => inferLawsSearch(target, laws, stepLaws, opts)) }
+function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
   const t0 = performance.now(), until = t0 + (opts.ms ?? 20000), rule = isRule(target) ? target : undefined
   const m = rule ? rule.machine : target as Machine
   let proofs = 0

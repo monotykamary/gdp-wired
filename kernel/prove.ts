@@ -10,6 +10,7 @@
 //     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {type Lin, type Step, add, k, refuteFast, scale, solve, sub, v} from '../core/solver.ts'
+import {crossCyclic, cyclicMachine, cyclicOn, machineNodes, proveCyclic} from '../core/cyclic.ts'
 import {type Goal, type Instances, type Liveness, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
@@ -113,6 +114,8 @@ export let proveDump: ((goal: Goal) => void) | undefined
 export const setProveDump = (f: ((goal: Goal) => void) | undefined) => { proveDump = f }
 const proveTrace = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.PROVE_TRACE
 // `why`, when the budget ran out: which limit, at what size, and what usually helps.
+// Set while core/cyclic.ts grows its goals.
+export const cellProducts = {on: false}
 export type Outcome = {tree: Tree, nodes: number} | {stuck: 'sat' | 'unknown', witness?: Record<string, number>, path: Path, why?: string}
 
 // The budget: 200,000 nodes and, by default, a second per hypothesis (at least 20 seconds) per goal; past either the goal
@@ -205,6 +208,28 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
     const w = verdict.witness, value = (key: string) => w[key] ?? 0
     const real = rows.every(r => Object.keys(r.lin).every(key => !isMonomial(key) || value(key) === factorsOf(key).reduce((acc, f) => acc * value(f), 1)))
     if (real) return {stuck: 'sat', witness: w, path}
+  }
+  // An equation about a factor (x' = x + 1, a run's next state as a cell) times each factor's sign: e·f = 0 for every
+  // factor f, so a monomial of x' is one of x (x'·x' = (x + 1)²). Whatever the number of rows: there are few such pairs.
+  // Only for cyclic proofs (core/cyclic.ts, whose runs keep each next state as a cell): the usual rules substitute it.
+  if (!split && monomials && cellProducts.on) {
+    const factorSet = new Set(rows.flatMap(r => Object.keys(r.lin).filter(isMonomial).flatMap(factorsOf)))
+    const byCanon = new Map(rows.map((r, i) => [canon(r.lin), i]))
+    const eqs = rows.flatMap((r, i) => (Object.keys(r.lin).some(key => key !== '1' && factorSet.has(key)) && byCanon.has(canon(scale(r.lin, -1))) ? [i] : []))
+    const signs = rows.flatMap((r, i) => { const keys = Object.keys(r.lin); return keys.length === 1 && factorSet.has(keys[0]!) && r.lin[keys[0]!]! < 0 ? [i] : [] })
+    const pairs = eqs.flatMap(i => signs.map(j => [i, j] as [number, number])).slice(0, 200)
+    if (pairs.length) {
+      const sub = solve(withProducts(rows, pairs))
+      if (sub.kind === 'refuted') return {tree: leafOf(sub.steps, pairs), nodes: budget.nodes}
+      // Then every linear row about a factor (n >= x: (n − x)·d >= 0) times each sign, past the forty rows the pairs
+      // below are kept to.
+      const about = rows.flatMap((r, i) => (!eqs.includes(i) && Object.keys(r.lin).some(key => key !== '1' && factorSet.has(key)) && !Object.keys(r.lin).some(isMonomial) ? [i] : []))
+      const more = [...pairs, ...about.flatMap(i => signs.map(j => [i, j] as [number, number]))].slice(0, 400)
+      if (more.length > pairs.length) {
+        const ineq = solve(withProducts(rows, more))
+        if (ineq.kind === 'refuted') return {tree: leafOf(ineq.steps, more), nodes: budget.nodes}
+      }
+    }
   }
   if (!split && monomials && rows.length <= 40) {
     // Only rows about the factors (no other map cells), each pair once: elimination over hundreds of products blows up.
@@ -853,6 +878,15 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
       focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
     })
   })
+  const t0 = performance.now(), out = proveThinned(m, laws, {...instances}), usualMs = performance.now() - t0
+  if (cyclicOn()) {
+    if (cyclicMachine(m, laws)) crossCyclic('machine', m.name, out.proven && out.checked, () => { const {facts, specs} = machineNodes(m, laws, instances); return proveCyclic(facts, specs) }, usualMs)
+    else console.error(`cyclic: ${JSON.stringify({kind: 'machine', name: m.name, usual: out.proven && out.checked, uncovered: true})}`)
+  }
+  return out
+}
+// Each law with its instances thinned (`triggered`) where that proves it, else with all of them.
+function proveThinned(m: Machine, laws: Law[], instances: Record<string, Instances>): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
   const trees: Record<string, Tree> = {}, fulls = {...instances}
   let nodes = 0, leaves = 0
   for (const [i, law] of laws.entries()) {
@@ -877,7 +911,7 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
     if (trees[goal.name]) continue
     const out = grow(goal)
     // Where thinned instances leave such a goal unproven, every goal again with the full ones.
-    if (!('tree' in out) && laws.some(l => instances[l.name] !== fulls[l.name])) return provenWith(m, laws, fulls)
+    if (!('tree' in out) && laws.some(l => instances[l.name] !== fulls[l.name])) return proveWith(m, laws, fulls)
     if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false}
     trees[goal.name] = out.tree
     nodes += out.nodes
@@ -886,8 +920,8 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
   const proof = {instances, trees}
   return {proven: true, nodes, leaves, checked: checkLaws(m, laws, proof), proof}
 }
-// Every goal of the laws with these instances (proveLawsAsGiven's, before any is thinned).
-function provenWith(m: Machine, laws: Law[], instances: Record<string, Instances>): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
+// Every goal of the laws with these instances.
+function proveWith(m: Machine, laws: Law[], instances: Record<string, Instances>): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
   const trees: Record<string, Tree> = {}
   let nodes = 0, leaves = 0
   for (const goal of obligations(m, laws, instances)) {

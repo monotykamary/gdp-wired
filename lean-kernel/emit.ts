@@ -9,6 +9,7 @@ import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Pat
 import {grow, proveBuilt, proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
+import {type Cyclic, descentGoal, mainGoal, premiseGoal} from '../kernel/cyclic.ts'
 import {leanLibrary} from './library.ts'
 export {leanLibrary}
 
@@ -970,6 +971,8 @@ export type LeanItem =
   // A fold over trees (a fold rule's `.fold`) and its laws, through Kern.fold_sound.
   | {id: string, fold: Fold, laws: Law[]}
   | {id: string, goal: Goal}
+  // A cyclic proof (kernel/cyclic.ts) through Cyclic.lean's cyclic_sound; each tampered one computed to false.
+  | {id: string, cyclic: Cyclic, tampered?: {what: string, proof: Cyclic}[], after?: (ix: (name: string) => number, mx: (map: string) => number) => string}
 
 // A Lean file proving each item, to compile against the twin (`leanLibrary`, or `leanProject` for a ready Lake project).
 // Each machine's laws come with `<id>_laws` (the twin's theorem) and `<id>.lawN` (the law as a plain Lean statement
@@ -1033,6 +1036,9 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
     } else if ('loop' in item) {
       parts.push(`-- ${item.id}\n${loopToLean(id, item.loop, item.laws ?? [], item.rank)}`)
       theorems.push(`${id}_halts`)
+    } else if ('cyclic' in item) {
+      parts.push(`-- ${item.id}\n${cyclicToLean(id, item.cyclic, item.tampered ?? [], item.after)}`)
+      theorems.push(`${id}_sound`, ...(item.after ? [...item.after(() => 0, () => 0).matchAll(/^theorem (\S+)/gm)].map(x2 => x2[1]!) : []))
     } else if ('fold' in item) {
       parts.push(`-- ${item.id}\n${foldToLean(id, item.fold, item.laws)}`)
       theorems.push(`${id}_laws`)
@@ -1045,7 +1051,7 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   }
   // The file the items need: Live.lean for a liveness or a loop, Sets.lean (which imports Steps.lean) for any machine.
   return `import History
-import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && item.ghosts?.length) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
+${items.some(item => 'cyclic' in item) ? 'import Cyclic\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && item.ghosts?.length) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
@@ -1077,4 +1083,44 @@ lean_lib ${name} where
   roots := #[${modules.map(mod => `\`${mod}`).join(', ')}]
 `,
   }
+}
+
+// A cyclic proof through Kern.cyclic_sound: the facts and the nodes, each goal's table and tree (Lean builds the goals
+// from the nodes), one theorem for every node; each tampered proof's check computed to false. `after` writes Lean
+// after it (a corollary in plain terms), given the variables' and maps' numbers.
+export function cyclicToLean(id: string, p: Cyclic, tampered: {what: string, proof: Cyclic}[] = [], after?: (ix: (name: string) => number, mx: (map: string) => number) => string): string {
+  const all = [p, ...tampered.map(t => t.proof)]
+  const names = (t: unknown) => [...JSON.stringify(t).matchAll(/"op":"var","name":"([^"]+)"/g)].map(m => m[1]!)
+  const vars = [...new Set(all.flatMap(q => [...q.facts.flatMap(f => [...f.keys, ...names(f.holds)]), ...q.nodes.flatMap(n => [...names([n.hyps, n.concl, n.rank, n.insts]), ...n.uses.flatMap(u => [...Object.keys(u.subst), ...names([u.subst, u.guard])])])]))]
+  const maps = [...new Set([...JSON.stringify(all).matchAll(/"op":"get","map":"([^"]+)"/g)].map(m => m[1]!))]
+  const {e, c} = leanTerms(vars, maps, id)
+  const ix = (name: string) => vars.indexOf(name)
+  const facts = list(p.facts.map(f => `⟨${list(f.keys.map(key => String(ix(key))))}, ${c(f.holds)}⟩`))
+  // A tampered proof keeps the proof's tables and trees (made for the proof's own goals) under its changed nodes.
+  const enc = (g: Goal, tree: Tree) => { const x = encode({name: `${id}: ${g.name}`, goal: g, tree}, false, true, vars, maps); return `(${x.tab}, ${x.tree})` }
+  const nodeLits = (q: Cyclic) => q.nodes.map((n, i) => {
+    const o = p.nodes[i]!
+    const uses = n.uses.map((u, j) => {
+      const ou = o.uses[j]!, om = p.nodes[ou.node]!
+      return `⟨${u.node}, ${list(Object.entries(u.subst).map(([name, t]) => `(${ix(name)}, ${e(t)})`))}, ${c(u.guard)},\n  ${list(om.hyps.map((h, k2) => enc(premiseGoal(p.facts, o, ou, h, k2), ou.premises[k2]!)))},\n  ${enc(descentGoal(p.facts, o, ou, om), ou.descent)}⟩`
+    })
+    return {hyps: list(n.hyps.map(c)), concl: c(n.concl), rest: `${list(n.rank.map(e))}, ${list(n.insts.map(t => `(${t.fact}, ${list(t.at.map(e))})`))},\n  ${list(uses)},\n  ${enc(mainGoal(p.facts, p.nodes, o), o.main)}`}
+  })
+  const nodes = (q: Cyclic) => list(nodeLits(q).map(x => `⟨${x.hyps}, ${x.concl}, ${x.rest}⟩`))
+  const mx = (map: string) => maps.indexOf(map)
+  return `-- ${p.nodes.map(n => n.name).join('; ')}  (variables ${vars.map((name, j) => `${j} ${name}`).join(', ')}; maps ${maps.map((name, j) => `${j} ${name}`).join(', ')})
+def ${id}_facts : List Fact := ${facts}
+${nodeLits(p).map((x, i) => `def ${id}_hyps${i} : List C := ${x.hyps}
+def ${id}_concl${i} : C := ${x.concl}
+def ${id}_node${i} : CNode := ⟨${id}_hyps${i}, ${id}_concl${i}, ${x.rest}⟩
+theorem ${id}_node${i}_hyps : ${id}_node${i}.hyps = ${id}_hyps${i} := rfl
+theorem ${id}_node${i}_concl : ${id}_node${i}.concl = ${id}_concl${i} := rfl`).join('\n')}
+def ${id}_nodes : List CNode := ${list(p.nodes.map((_, i) => `${id}_node${i}`))}
+${p.nodes.map((_, i) => `theorem ${id}_node${i}_mem : ${id}_node${i} ∈ ${id}_nodes := by simp only [${id}_nodes, List.mem_cons, true_or, or_true]`).join('\n')}
+theorem ${id}_check : checkCyclic ${id}_facts ${id}_nodes = true := by ${checkBy}
+theorem ${id}_sound : ∀ (maps : Nat → Nat → Nat) env, FactsHold ${id}_facts env maps → ∀ n ∈ ${id}_nodes, (∀ c ∈ n.hyps, evalC env maps c = true) → evalC env maps n.concl = true :=
+  cyclic_sound ${id}_facts ${id}_nodes ${id}_check
+${tampered.map((t, j) => `-- TAMPERED: ${t.what}. Lean computes the check to false.
+def ${id}_tampered${j} : List CNode := ${nodes(t.proof)}
+example : checkCyclic ${id}_facts ${id}_tampered${j} = false := by ${checkBy}`).join('\n')}${after ? `\n${after(ix, mx)}` : ''}`
 }

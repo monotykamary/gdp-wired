@@ -887,6 +887,13 @@
 "timeout": 900
 },
 {
+"name": "cyclic",
+"cmd": "bun test cyclic.test.ts 2>&1 && cd .. && bun examples/cyclic.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
 "name": "lemmas",
 "cmd": "bun test lemmas.test.ts 2>&1 && cd .. && bun examples/lemmas.ts 2>&1",
 "cwd": "core",
@@ -1179,6 +1186,14 @@
 "cmd": "DOMAIN=media bun test examples.test.ts 2>&1",
 "cwd": "examples",
 "cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "lean-cyclic",
+"cmd": "bun scripts/gen-lean-library.ts --check && ONLY=mccarthy,mutual,cycgrowing,cyccounter,cycrollup bun lean-kernel/package-check.ts /tmp/leanpkg && cd /tmp/leanpkg && lake build 2>&1 | grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' | tail -25; s=${PIPESTATUS[0]}; echo lake-exit $s; exit $s",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
 "timeout": 1800
 }
 ]
