@@ -44,7 +44,30 @@ export function plan(c: Clause, preds: Chc['preds']): Plan {
   // Definitions, until none is left: x = e (either side) with x free and e not reaching x through the definitions.
   const reaches = (s: Sx, x: string, seen = new Set<string>()): boolean => [...varsIn(s)].some(v => v === x || (!seen.has(v) && bound.get(v)?.kind === 'def' && (seen.add(v), reaches((bound.get(v) as {sx: Sx}).sx, x, seen))))
   const free = (v: Sx): v is string => typeof v === 'string' && c.vars.has(v) && !bound.has(v)
-  let rest = [...c.constraint]
+  // A let around conjuncts (how CHC-COMP's formatter writes most transition relations): each binding becomes a
+  // definition of its own (renamed apart), and the body's conjuncts are read as the clause's.
+  let lets = 0
+  const renamed = (s: Sx, names: Map<string, string>): Sx => {
+    if (typeof s === 'string') return names.get(s) ?? s
+    if (s[0] !== 'let') return s.map((x, i) => (i === 0 ? x : renamed(x, names)))
+    const inner = new Map(names)
+    for (const b of s[1] as Sx[][]) inner.delete(b[0] as string)
+    return ['let', (s[1] as Sx[][]).map(b => [b[0]!, renamed(b[1]!, names)]), renamed(s[2]!, inner)]
+  }
+  const opened = (s: Sx): Sx[] => {
+    if (Array.isArray(s) && s[0] === 'and') return s.slice(1).flatMap(opened)
+    // A conjunct that is a binding's name is the binding's own conjuncts (often an equation that defines a variable).
+    if (typeof s === 'string' && s.includes('@let')) { const d = bound.get(s); if (d?.kind === 'def') return opened(d.sx) }
+    if (!Array.isArray(s) || s[0] !== 'let') return s === 'true' ? [] : [s]
+    const names = new Map<string, string>()
+    for (const b of s[1] as Sx[][]) {
+      const fresh = `${b[0] as string}@let${lets++}`
+      names.set(b[0] as string, fresh)
+      bound.set(fresh, {kind: 'def', sx: b[1]!})
+    }
+    return opened(renamed(s[2]!, names))
+  }
+  let rest = c.constraint.flatMap(opened)
   for (let changed = true; changed;) {
     changed = false
     const next: Sx[] = []

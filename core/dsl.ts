@@ -1942,6 +1942,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       return [n, Object.fromEntries(Object.keys(fs).map(f => [f, maps[`${n}$${f}`]!.get(len) ?? 0]))]
     }))
   }
+  // The state's variables declared with a kind (a yes/no, a choice, an integer...), with their kinds.
+  kindsOfState(): [string, Kind<unknown>][] { return this.spec.kinded ?? [] }
   // Random params and inputs that meet their kinds (not the user's `pre` or `assume`, which a caller checks).
   randomParams(rand: Rand, bound: number): Record<string, number> { return Object.assign({}, ...this.spec.params.map(([n, k]) => k.random(n, rand, bound))) }
   // The params' values by their kinds, as constants (what a fold that reads them is computed with).
@@ -2197,16 +2199,23 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     }
     // A step law holds from every state the laws allow, reached or not: from random such states (each scalar and cell
     // small, kept when every law and kind law holds there), a step that breaks it is a counterexample too, without a run.
+    // On a wide rule (32 variables or more) the laws are tried so as well, since they are proven by one step from every
+    // such state (the kernel's search, when it fails, ends at one, and there that search is the slow part), and a
+    // variable of a kind is drawn as its kind draws (33 yes/nos drawn from 0..7 almost never make a lawful state).
     const steps1 = stepLaws.filter(sl => (sl.steps ?? 1) === 1), given = withKinds(r, laws)
-    for (let trial = 0; steps1.length && trial < refuteBudget.trials * 4 && performance.now() < until; trial++) {
+    const wide = Object.keys(m.state).length + m.inputs.length >= 32, lawsHere = wide ? given : [], kinded = wide ? r.kindsOfState() : []
+    for (let trial = 0; !m.history && (steps1.length || lawsHere.length) && trial < refuteBudget.trials * 4 && performance.now() < until; trial++) {
       const params = r.randomParams(rand, bound)
       if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) continue
-      const st: State = {scalars: Object.fromEntries(Object.keys(m.state).map(n => [n, rand(8)])), maps: Object.fromEntries(Object.keys(m.maps ?? {}).map(n => [n, new Map(Array.from({length: rand(3)}, () => [rand(bound + 1), rand(bound + 1)] as const))]))}
-      if (m.history || !given.every(l => watch(m, run, l, params, bound).start(st))) continue
+      const scalars: Record<string, number> = Object.fromEntries(Object.keys(m.state).map(n => [n, rand(8)]))
+      for (const [n, k] of kinded) Object.assign(scalars, k.random(n, rand, bound))
+      const st: State = {scalars, maps: Object.fromEntries(Object.keys(m.maps ?? {}).map(n => [n, new Map(Array.from({length: rand(3)}, () => [rand(bound + 1), rand(bound + 1)] as const))]))}
+      if (!given.every(l => watch(m, run, l, params, bound).start(st))) continue
       const input = r.randomInput(rand, bound, params)
       if (!allowed(m, run, params, st, input)) continue
-      const next = run.step(params, st, input)
-      for (const sl of steps1) if (!watch(m, run, sl, params, bound).step(st, input, next)) return {goal: `${sl.name} @step law`, witness: {...params, ...st.scalars, ...numbersOf(input)}}
+      const next = run.step(params, st, input), witness = () => ({...params, ...st.scalars, ...numbersOf(input)})
+      for (const sl of steps1) if (!watch(m, run, sl, params, bound).step(st, input, next)) return {goal: `${sl.name} @step law`, witness: witness()}
+      for (const l of lawsHere) if (!watch(m, run, l, params, bound).step(st, input, next)) return {goal: `${l.name} @step`, witness: witness()}
     }
   } catch { return undefined }
   return undefined

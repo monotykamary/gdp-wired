@@ -16,6 +16,7 @@ import {distinctNames, distinctNamesLaws, sortedList, sortedListLaws} from '../e
 import {groupLaws, groups} from '../examples/groups.ts'
 import {binding, bindingLaws, checkout, checkoutLaws, order, orderLaws} from '../examples/charts.ts'
 import {xorder, xorderLaws} from '../examples/xstate.ts'
+import {wide} from '../examples/wide.ts'
 import {area, areaLaws, counter, counterLaws, escalation, escalationLaws, fillMeter, fillMeterLaws, ladder, ladderLaws, ledger, ledgerLaws, pump, pumpLive, retries, retryLaws, retrySteps, tank, tankLaws} from '../examples/lemmas.ts'
 import {team, teamLaws, teamSteps} from '../examples/sizes.ts'
 import {allDone, batchLaws, batches, everyTaggedTicket, taggedLaws, taggedTickets, everyLoggedTicket, everyRecountedTicket, everyReview, everyTicket, loggedLaws, loggedTickets, recounted, recountedLaws, reviewLaws, reviews, ticketLaws, tickets} from '../examples/liveness.ts'
@@ -81,6 +82,7 @@ const file = toLean(([
   {id: 'taxwithin', goal: invoices().decide('the taxable part is within the total', () => [], ({Lines}) => Lines.fold.taxed.atMost(Lines.fold.total)).goal},
   {id: 'sortedlist', machine: sortedList().machine, laws: sortedListLaws()},
   {id: 'distinctnames', machine: distinctNames().machine, laws: distinctNamesLaws()},
+  {id: 'wideflag', machine: wide().machine, laws: wide().kindLaws()},
   {id: 'orderchart', machine: order().rule.machine, laws: [...order().chartLaws(), ...orderLaws().laws], stepLaws: orderLaws().stepLaws},
   {id: 'checkoutchart', machine: checkout().rule.machine, laws: checkoutLaws()},
   {id: 'bindingchart', machine: binding().rule.machine, laws: [], stepLaws: bindingLaws()},

@@ -5,6 +5,7 @@ import {expect, test} from 'bun:test'
 import {type Machine, type State, interpret, search} from './machine.ts'
 import {admitFlagged, boundedLoss, capLaws, loss, windowCeiling, windowLimit} from './models.ts'
 import {proveLaws} from '../kernel/prove.ts'
+import {wide} from '../examples/wide.ts'
 import {type DecisionEnv, type Rule, Cond, all, bool, count, forall, fun, loop, maybe, min, nat, oneOf, proveDecision, proveLoop, proveRule, proveSteps, relation, rule, upTo, when} from './dsl.ts'
 
 let seed = Number(process.env.FUZZ_SEED ?? 777)
@@ -194,4 +195,14 @@ test('a choice compares by name, by choice or by index', () => {
   const r = rule('phases').inputs({to: oneOf('a', 'b', 'c')}).state({p: oneOf('a', 'b', 'c').from('a')}).step(({to}) => ({p: to}))
   const law = r.stepLaw('the phase is the one asked for', ({to}, after) => all(after.p.eq(to), after.p.index.eq(to.index), after.p.eq('a').implies(after.p.eq(0)), after.p.ne('b').or(to.is('b')), after.p.eq(when(to.is('c'), 2, to.index))))
   expect(proveSteps(r, [], [law])).toMatchObject({proven: true, checked: true})
+})
+
+// A yes/no written under a wide condition stays a yes/no without the prover deciding the condition: an if is at most
+// the sum of its branches (before that row, 24 comparisons took ~20 s of case splits, 80 didn't finish).
+test('a yes/no state written under a wide condition keeps its kind without deciding the condition', () => {
+  for (const pairs of [12, 40]) {
+    const r = wide(pairs), started = performance.now()
+    expect(proveRule(r, [])).toMatchObject({proven: true, checked: true})
+    expect(performance.now() - started).toBeLessThan(2000)
+  }
 })
