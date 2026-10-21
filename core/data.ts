@@ -402,6 +402,50 @@ export function factsOf(p: Program): Facts {
   return {facts, at, arity}
 }
 
+// --- the codes Lean's twin defines (lean-kernel/Data.lean, lean-kernel/data.ts) ------------------------------------------
+
+// The naturals onto the pairs in order of their sum (Data.lean's cun) and back (cpair); a datatype's values as naturals:
+// those of no field their tag, the rest z + m·q + r (z of no field, m with fields, r the constructor's place among
+// those, q its fields packed by cpair). Every natural is a value; numbers past 2^53 are refused.
+const tri = (s: number) => (s * (s + 1)) / 2
+const cun = (n: number): [number, number] => { let s = Math.floor((Math.sqrt(8 * n + 1) - 1) / 2); while (tri(s) > n) s--; while (tri(s + 1) <= n) s++; const b = n - tri(s); return [s - b, b] }
+const cpair = (a: number, b: number) => tri(a + b) + b
+const tup = (q: number, k: number, i: number): number => (k <= 1 ? q : i === 0 ? cun(q)[0] : tup(cun(q)[1], k - 1, i - 1))
+const tupk = (xs: number[]): number => (xs.length === 1 ? xs[0]! : cpair(xs[0]!, tupk(xs.slice(1))))
+const safe = (x: number) => { if (!Number.isSafeInteger(x)) throw new RangeError('past 2^53'); return x }
+export function decode(d: Data, n: number): Value {
+  const z = d.nullary, m = d.ctors.length - z
+  if (n < z) return {c: n, f: []}
+  const q = Math.floor((n - z) / m), j = z + ((n - z) % m), c = d.ctors[j]!
+  return {c: j, f: c.fields.map((f, i) => { const x = tup(q, c.fields.length, i); return f.sort === 'nat' ? x : decode(d, x) })}
+}
+export function encode(d: Data, v: Value): number {
+  const o = v as {c: number, f: Value[]}, z = d.nullary, m = d.ctors.length - z
+  if (o.c < z) return o.c
+  const c = d.ctors[o.c]!
+  return safe(z + m * tupk(c.fields.map((f, i) => (f.sort === 'nat' ? o.f[i] as number : encode(d, o.f[i]!)))) + (o.c - z))
+}
+// Each map of the encoding as a function of its arguments, on the codes (for core/cycles.ts's runs).
+export function codeValues(p: Program): Record<string, (...xs: number[]) => number> {
+  const out: Record<string, (...xs: number[]) => number> = {}
+  for (const d of p.datas) {
+    out[tagMap(d.name)] = n => (decode(d, n) as {c: number}).c
+    out[sizeMap(d.name)] = n => sizeOf(d, decode(d, n))
+    d.ctors.forEach((c, j) => {
+      c.fields.forEach((f, i) => { out[fieldMap(d, j, i)] = n => { const v = decode(d, n) as {c: number, f: Value[]}; return v.c === j ? (f.sort === 'nat' ? v.f[i] as number : encode(d, v.f[i]!)) : 0 } })
+      if (c.fields.length) out[ctorMap(d, j)] = (...xs) => encode(d, {c: j, f: c.fields.map((f, i) => (f.sort === 'nat' ? xs[i]! : decode(d, xs[i]!)))})
+    })
+  }
+  for (const f of p.fns) out[f.name] = (...xs) => {
+    const v = evalX(f.body(), new Map(f.params.map((q, i) => [`${f.name}.${q.name}`, q.sort instanceof Data ? decode(q.sort, xs[i]!) : xs[i]!])), {})
+    return f.ret instanceof Data ? encode(f.ret, v) : v as number
+  }
+  return out
+}
+// That a value's fields of its datatype have smaller codes (true of the codes above: each field at most q).
+export const orderFacts = (p: Program): Fact[] => p.datas.map(d => ({name: `order ${d.name}`, keys: ['x$'], holds: andC(yesC, ...d.ctors.flatMap((c, j) =>
+  c.fields.flatMap((f, i): C[] => (f.sort === 'self' ? [implies(eqC(get(tagMap(d.name), ev('x$')), k(j)), {op: '<', a: get(fieldMap(d, j, i), ev('x$')), b: ev('x$')})] : []))))}))
+
 // --- concrete models: a value of the encoding at random values (which terms are equal, for congruences and matches) ----
 
 // Values interned per datatype: a constructor of no field is its tag; the rest numbered from there. A key is a
@@ -683,7 +727,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
           const anchor = {read: tid(get(f.name, r.key)), arg: own, value: t}, had = anchoredAt.get(key2) ?? []
           if (!had.some(x => x.read === anchor.read)) anchoredAt.set(key2, [...had, anchor])
           if (t === own && r.key === keyOf(as2)) continue
-          if (unfolded.has(rid) || extra >= 32) continue
+          if (unfolded.has(rid) || extra >= 12) continue
           unfolded.add(rid); extra++
           if (dataTrace) console.error(`[data]     unfold ${f.name} at ${JSON.stringify(as2).slice(0, 160)} for ${JSON.stringify(r.key).slice(0, 80)}`)
           inst(`fn ${f.name}`, as2)
@@ -889,9 +933,10 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
   }
   // Each attempt within its own time (a goal past it is left unknown, and the attempt fails).
   if (dataTrace) console.error(`[data] ${l.name} (${scheme?.name}) depth ${depth}, ${lemmas.length} lemmas: built in ${Math.round(performance.now() - t0)} ms, ${specs.length} nodes, ${specs.reduce((n, x) => n + x.insts.length, 0)} instances`)
+  if (performance.now() > t0 + attemptMs.ms) return {verdict: {proven: false, checked: false, node: name, goal: name, stuck: 'unknown'}, specs}
   const was = pairedKeys.skip
   pairedKeys.skip = true
-  try { return {verdict: withDeadline(performance.now() + attemptMs.ms, () => proveCyclic(fs.facts, specs)), specs} } finally { pairedKeys.skip = was }
+  try { return {verdict: withDeadline(t0 + attemptMs.ms, () => proveCyclic(fs.facts, specs)), specs} } finally { pairedKeys.skip = was }
 }
 export const attemptMs = {ms: 8000}
 // A case node's instances, those its models reach: from every read of its conclusion and its uses' (and their guards),
@@ -1012,8 +1057,7 @@ function proveWith(p: Program, fs: Facts, l: DataLaw, lemmas: Proven[], level: n
   for (const depth of depths.filter(d => d <= (opts.depth ?? 3))) for (const s of ss) {
     if (performance.now() > until) return {tried, last}
     tried++
-    attemptMs.ms = Math.min(per, until - performance.now())
-    const {verdict, specs} = attempt(p, fs, l, s, depth, lemmas, level, models)
+    const {verdict, specs} = (attemptMs.ms = Math.min(per, until - performance.now()), attempt(p, fs, l, s, depth, lemmas, level, models))
     last = verdict
     if (verdict.proven && verdict.checked) return {out: {law: l, spec: specs.find(n => n.name === specs[specs.length - 1]!.name.replace(/, case \d+$/, ''))!, nodes: specs}, verdict, scheme: s?.name, tried}
   }
@@ -1201,7 +1245,7 @@ export const showY = (y: Y): string => {
 // with lemmas found from the values when the law alone isn't (`lemmas: false` turns that off; an array gives lemmas to
 // prove and use instead, which the corpus never does).
 export function proveData(l: DataLaw, opts: Options = {}): DataVerdict {
-  const t0 = performance.now(), until = t0 + (opts.ms ?? 90_000)
+  const t0 = performance.now(), until = t0 + (opts.ms ?? 120_000)
   const p = programOf([l, ...(Array.isArray(opts.lemmas) ? opts.lemmas : [])]), fs = factsOf(p)
   const done = (v: Omit<DataVerdict, 'ms' | 'law'>): DataVerdict => ({law: l.name, ...v, ms: Math.round(performance.now() - t0)})
   const cex = refute(l, opts.samples ?? 400)
@@ -1229,13 +1273,16 @@ export function proveData(l: DataLaw, opts: Options = {}): DataVerdict {
   }
   const goals = schemes(p2, l).map(goalOf)
   const matchesGoal = (c: DataLaw) => goals.some(g => lemmaUsesFor(p2, fs2, [{law: c, node: 0, concl: encY(p2, c.holds, new Map())}], g.from, g.insts).length > 0)
-  const ranked = cands.map(c => ({c, hit: matchesGoal(c)})).sort((a, b) => Number(b.hit) - Number(a.hit))
+  // Those the goal matches first, of those the ones of the law's shape (an implication for an implication) first.
+  const implication = (y: Y) => y.op === 'or' && y.xs.length === 2 && y.xs[0]!.op === 'not'
+  const score = (c: DataLaw, hit: boolean) => (hit ? 2 : 0) + (implication(c.holds) === implication(l.holds) ? 1 : 0)
+  const ranked = cands.map(c => ({c, hit: matchesGoal(c)})).sort((a, b) => score(b.c, b.hit) - score(a.c, a.hit))
   const proven: Proven[] = [], failed = new Set<DataLaw>()
   const lemmasAt = (depth: number) => {
     for (const {c, hit} of ranked) {
       if (performance.now() > until) return undefined
       if (proven.some(q => q.law === c) || (depth === 2 && !failed.has(c)) || refute(c, 200)) continue
-      const r = proveWith(p2, fs2, c, proven, 1 + proven.length, opts, Math.min(until, performance.now() + (depth === 1 ? 4000 : 12000)), depth === 1 ? 2500 : 5000, [depth])
+      const r = proveWith(p2, fs2, c, proven, 1 + proven.length, opts, Math.min(until, performance.now() + (depth === 1 ? 8000 : 12000)), 5000, [depth])
       tried += r.tried
       if (!r.out) { failed.add(c); continue }
       failed.delete(c)
@@ -1248,7 +1295,8 @@ export function proveData(l: DataLaw, opts: Options = {}): DataVerdict {
   }
   const steps: (() => DataVerdict | undefined)[] = [
     () => lemmasAt(1),
-    () => ok(proveWith(p2, fs2, l, proven, 1 + proven.length, opts, until, 8000, [2]), proven, p2),
+    () => ok(proveWith(p, fs, l, [], 1, opts, until, 20000, [2]), []),
+    () => (proven.length ? ok(proveWith(p2, fs2, l, proven, 1 + proven.length, opts, until, 20000, [2]), proven, p2) : undefined),
     () => lemmasAt(2),
     () => ok(proveWith(p2, fs2, l, proven, 1 + proven.length, opts, until, 12000, [3]), proven, p2),
   ]

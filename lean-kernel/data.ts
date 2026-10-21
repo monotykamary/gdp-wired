@@ -106,7 +106,8 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
           `    have e1 : (${full} - ${z}) / ${m} = ${code} := by omega`, `    have e2 : (${full} - ${z}) % ${m} = ${j - z} := by omega`,
           `    simp [${D}.enc, e1, e2, tupk, tup${c.fields.flatMap((f, i) => (f.sort === 'self' ? [`, ih${i}`] : [])).join('')}]`)
       }
-      out.push(`@[simp] theorem ${D}.dec_enc' (x : ${D}) : ${D}.dec (${D}.enc x) = x := ${D}.dec_enc x`)
+      out.push(`@[simp] theorem ${D}.dec_enc' (x : ${D}) : ${D}.dec (${D}.enc x) = x := ${D}.dec_enc x`,
+        `@[simp] theorem ${D}.enc_inj (a b : ${D}) : ${D}.enc a = ${D}.enc b ↔ a = b := ⟨fun h => by rw [← ${D}.dec_enc a, h, ${D}.dec_enc], fun h => h ▸ rfl⟩`)
       for (let j = 0; j < z; j++) out.push(`@[simp] theorem ${D}.dec_${j} : ${D}.dec ${j} = .${d.ctors[j]!.name} := by rw [${D}.dec]; simp`, `@[simp] theorem ${D}.enc_${j} : ${D}.enc .${d.ctors[j]!.name} = ${j} := rfl`)
       out.push(`theorem ${D}.enc_dec (n : Nat) : ${D}.enc (${D}.dec n) = n := by`, `  rw [${D}.dec]`, `  repeat' split`, `  all_goals (try simp only [${D}.enc])`)
       for (const [kk, i] of recCalls) out.push(`  all_goals (try rw [${D}.enc_dec (tup ${q} ${kk} ${i})])`)

@@ -1,5 +1,5 @@
 // The wall corpus: laws gdp-wired proves today only when someone states what the proof needs (an invariant, a lemma
-// about a recurrence or a fold, a cyclic proof's shape), with that statement taken out. Each item's `today` is how the library proves it now;
+// about a recurrence or a fold, a cyclic proof's shape, an induction over a datatype), with that statement taken out. Each item's `today` is how the library proves it now;
 // `frontier`, where a track has one, is the same law through that track's search, which must end in a checked proof
 // of the same rule. `bun research/frontier/score.ts` runs both.
 import {type Law} from '../../core/machine.ts'
@@ -10,8 +10,9 @@ import {retries, retryLaws, retrySteps} from '../../examples/lemmas.ts'
 import {Line, invoices, invoiceLaws, invoiceSteps} from '../../examples/invoices.ts'
 import {nonlinear} from './nonlinear.ts'
 import {cycleItems} from './cycles.ts'
+import {dataItems} from './datatypes.ts'
 
-export type Track = 'invariant' | 'lemma' | 'fold' | 'nonlinear' | 'structure' | 'cycle'
+export type Track = 'invariant' | 'lemma' | 'fold' | 'nonlinear' | 'structure' | 'cycle' | 'datatype'
 // `broken`: a broken variant (of the item named), which counts when nothing proves it.
 export type Item = {id: string, track: Track, removed: string, broken?: string, today: () => Verdict, frontier?: () => Verdict}
 
@@ -71,4 +72,4 @@ const folds: Item[] = [
     frontier: () => { const {f, laws} = orgChart(); return discoverFold(f, laws).verdict }},
 ]
 
-export const corpus: Item[] = [...invariantItems, ...lemmas, ...folds, ...nonlinear, ...cycleItems]
+export const corpus: Item[] = [...invariantItems, ...lemmas, ...folds, ...nonlinear, ...cycleItems, ...dataItems]
