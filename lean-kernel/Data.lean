@@ -64,6 +64,17 @@ theorem unpk_pk (a b : Nat) : unpk (pk a b) = (a, b) := by
 @[simp] theorem unpk_snd (a b : Nat) : (unpk ((a + b) * (a + b) + b)).2 = b := by
   have := unpk_pk a b; unfold pk at this; rw [this]
 
+-- The pairing with a 0 argument, as simp leaves it: (a + 0)² + 0 is a·a, (0 + b)² + b is b·b + b, and (0 + 0)² + 0 is 0.
+@[simp] theorem unpk_sq_fst (a : Nat) : (unpk (a * a)).1 = a := by
+  have := unpk_pk a 0; simp only [pk, Nat.add_zero] at this; rw [this]
+@[simp] theorem unpk_sq_snd (a : Nat) : (unpk (a * a)).2 = 0 := by
+  have := unpk_pk a 0; simp only [pk, Nat.add_zero] at this; rw [this]
+@[simp] theorem unpk_sqb_fst (b : Nat) : (unpk (b * b + b)).1 = 0 := by
+  have := unpk_pk 0 b; simp only [pk, Nat.zero_add] at this; rw [this]
+@[simp] theorem unpk_sqb_snd (b : Nat) : (unpk (b * b + b)).2 = b := by
+  have := unpk_pk 0 b; simp only [pk, Nat.zero_add] at this; rw [this]
+@[simp] theorem unpk_zero : unpk 0 = (0, 0) := unpk_pk 0 0
+
 /-! ### A bijection between the naturals and the pairs -/
 
 /-- The naturals onto the pairs, in order of their sum: 0 is (0, 0), and each next natural the pair after. -/

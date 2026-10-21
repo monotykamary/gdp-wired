@@ -623,8 +623,10 @@ function schemes(p: Program, l: DataLaw): Scheme[] {
 // the shape at `shapesAt` (where a use's guard reads the tag), and from depth 2 at every value whose tag is read; eta at
 // `etaAt`; congruences of reads the random models give equal arguments. `others` (the uses' conclusions) are read for
 // constructors and congruences, and unfolded too from depth 3.
-type Want = {roots: unknown[], others: unknown[], depth: number, shapesAt: E[], etaAt: E[], models: {m: Model, env: Record<string, number>}[], every?: boolean}
+type Want = {roots: unknown[], others: unknown[], depth: number, shapesAt: E[], etaAt: E[], models: {m: Model, env: Record<string, number>}[], every?: boolean, until?: number}
 function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
+  // Past the attempt's time, what is found so far (the attempt then fails or proves with it).
+  const late = () => w.until !== undefined && performance.now() > w.until
   const tt = performance.now(), lap = (what: string) => { if (dataTrace) console.error(`[data]   instances: ${what} at ${Math.round(performance.now() - tt)} ms`) }
   const insts: NodeSpec['insts'] = [], seen = new Set<string>()
   const inst = (fact: string, at: E[]) => { const i = fs.at.get(fact); if (i === undefined) return; const id = JSON.stringify([i, at]); if (!seen.has(id)) { seen.add(id); insts.push({fact: i, at}) } }
@@ -694,7 +696,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     for (const c of w.others as C[]) active(c)
     const cells = new Map<string, {key: E, as: E[]}[]>()
     for (const r of all) { const n = fs.arity.get(r.map), as = n ? argsOf(r.key, n) : undefined; if (as) (cells.get(r.map) ?? cells.set(r.map, []).get(r.map)!).push({key: r.key, as}) }
-    for (let changed = true; changed;) {
+    for (let changed = true; changed && !late();) {
       changed = false
       for (const [map, list] of cells) {
         const bySig = new Map<string, {key: E, as: E[]}>()
@@ -713,7 +715,13 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   if (w.depth >= 1) {
     let extra = 0
     for (const model of w.models.length ? w.models : [undefined]) {
+      if (late()) break
       const cl = closure(model)
+      // Once per function and value of its arguments (in this model; by class without one): a term equal to one
+      // unfolded already brings nothing new.
+      const sigOf = (fn: string, as: E[]) => `${fn}(${as.map(a => { if (!model) return cl.find(tid(a)); try { return String(model.m.evalE(a, model.env)) } catch { return tid(a) } }).join(',')})`
+      const done = new Set<string>()
+      for (const q of insts) { const name = fs.facts[q.fact]!.name; if (name.startsWith('fn ')) done.add(sigOf(name.slice(3), q.at)) }
       for (const r of [...all]) {
         const f = fnOfMap(r.map)
         if (!f || f.decreases === undefined) continue
@@ -727,8 +735,8 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
           const anchor = {read: tid(get(f.name, r.key)), arg: own, value: t}, had = anchoredAt.get(key2) ?? []
           if (!had.some(x => x.read === anchor.read)) anchoredAt.set(key2, [...had, anchor])
           if (t === own && r.key === keyOf(as2)) continue
-          if (unfolded.has(rid) || extra >= 12) continue
-          unfolded.add(rid); extra++
+          if (unfolded.has(rid) || extra >= 12 || done.has(sigOf(f.name, as2))) continue
+          unfolded.add(rid); extra++; done.add(sigOf(f.name, as2))
           if (dataTrace) console.error(`[data]     unfold ${f.name} at ${JSON.stringify(as2).slice(0, 160)} for ${JSON.stringify(r.key).slice(0, 80)}`)
           inst(`fn ${f.name}`, as2)
           note([{map: f.name, key: keyOf(as2)}])
@@ -753,6 +761,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   // instances (with `every`, those that every model's explanations use).
   const used = new Map<string, {map: string, at: E[], n: number}>()
   for (const model of w.models) {
+    if (late()) break
     const {find, adj, truthOf} = closure(model)
     const counted = new Set<string>(), explained = new Set<string>()
     const explain = (a2: string, b2: string): void => {
@@ -888,6 +897,7 @@ const dataTrace = !!(globalThis as {process?: {env?: Record<string, string | und
 const allCong = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.DATA_ALLCONG
 function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, depth: number, lemmas: Proven[], level: number, pool: M[]): {verdict: CyclicVerdict, specs: NodeSpec[]} {
   const t0 = performance.now()
+  anchoredAt.clear()
   // A few models for the instances; the whole pool for the cases (a rare case gets its own models from it).
   const models = pool.slice(0, 24), few = (ms: M[]) => ms.slice(0, 16)
   const concl = encY(p, l.holds, new Map())
@@ -909,13 +919,13 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
   const ihConcls = ih.map(u => substC(concl, {vars: u.subst, maps: {}, flags: {}}))
   // Uses of the lemmas, where a lemma's largest read matches a read of this goal (unfolded), its key up to the equalities
   // the unfolded definitions give (any branch); twice over, the uses' own conclusions read the second time.
-  const pre = instancesOf(p, fs, {roots: [concl], others: ihConcls, depth, shapesAt, etaAt: [], models: []})
+  const pre = instancesOf(p, fs, {roots: [concl], others: ihConcls, depth, shapesAt, etaAt: [], models: [], until: t0 + attemptMs.ms})
   const lemmaUses = lemmaUsesFor(p, fs, lemmas.map(lm => ({law: lm.law, node: where.get(lm.spec.name)!, concl: specs[where.get(lm.spec.name)!]!.concl})), [concl, ihConcls], pre)
   const uses = [...ih, ...lemmaUses]
   const useConcl = (u: NodeSpec['uses'][number]) => substC(u.node === me ? concl : specs[u.node]!.concl, {vars: u.subst, maps: {}, flags: {}})
   // The lemmas' conclusions are unfolded like the law's (they are what the goal reads, said another way); the cycle's
   // own uses only from depth 3.
-  const instsFor = (ms: M[], us: NodeSpec['uses'], every = false) => instancesOf(p, fs, {roots: [concl], others: us.map(useConcl), depth, shapesAt, etaAt: [...shapesAt, ...valuesCompared(p, l)], models: ms, every})
+  const instsFor = (ms: M[], us: NodeSpec['uses'], every = false) => instancesOf(p, fs, {roots: [concl], others: us.map(useConcl), depth, shapesAt, etaAt: [...shapesAt, ...valuesCompared(p, l)], models: ms, every, until: t0 + attemptMs.ms})
   const cases = scheme ? casesOf(p, pre.filter(q => fs.facts[q.fact]!.name.startsWith('fn ')).map(q => holdsAt(fs, q)), new Set(l.vars.map(v => v.name)), pool) : []
   if (cases.length <= 1) {
     specs.push({name, hyps: [], concl, rank: rank(0), insts: instsFor(models, uses), uses})
@@ -932,7 +942,7 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
     }
   }
   // Each attempt within its own time (a goal past it is left unknown, and the attempt fails).
-  if (dataTrace) console.error(`[data] ${l.name} (${scheme?.name}) depth ${depth}, ${lemmas.length} lemmas: built in ${Math.round(performance.now() - t0)} ms, ${specs.length} nodes, ${specs.reduce((n, x) => n + x.insts.length, 0)} instances`)
+  if (dataTrace) console.error(`[data] @${Math.round(performance.now())} ${l.name} (${scheme?.name}) depth ${depth}, ${lemmas.length} lemmas: built in ${Math.round(performance.now() - t0)} ms, ${specs.length} nodes, ${specs.reduce((n, x) => n + x.insts.length, 0)} instances`)
   if (performance.now() > t0 + attemptMs.ms) return {verdict: {proven: false, checked: false, node: name, goal: name, stuck: 'unknown'}, specs}
   const was = pairedKeys.skip
   pairedKeys.skip = true

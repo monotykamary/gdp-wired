@@ -165,7 +165,7 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
       const casePat = (D: string, dd: number): string => { const d = dataOf(D); return dd <= 0 ? '_' : d.ctors.map(c => (c.fields.length ? `⟨${c.fields.map(fl => (fl.sort === 'self' ? casePat(D, dd - 1) : '_')).join(', ')}⟩` : '_')).join(' | ') }
       const cases = keys.filter(x => x.s !== 'nat').map(x => `rcases ${x.x} with ${casePat(x.s, depth)}`)
       void i
-      return `${head}\n${obtain.join('\n')}${obtain.length ? '\n' : ''}    simp [${[...rw, 'model', 'unpk_fst', 'unpk_snd'].join(', ')}]\n${cases.length ? `    ${cases.join(' <;> ')}\n` : ''}    all_goals (simp [${[fnSimp, dataSimp].filter(Boolean).join(', ')}])\n    all_goals (try split) <;> (try simp_all) <;> (try omega)`
+      return `${head}\n${obtain.join('\n')}${obtain.length ? '\n' : ''}    simp [${[...rw, 'model', 'unpk_fst', 'unpk_snd', 'unpk_sq_fst', 'unpk_sq_snd', 'unpk_sqb_fst', 'unpk_sqb_snd'].join(', ')}]\n${cases.length ? `    ${cases.join(' <;> ')}\n` : ''}    all_goals (simp [${[fnSimp, dataSimp].filter(Boolean).join(', ')}])\n    all_goals (try split) <;> (try simp_all) <;> (try omega)`
     })
     out.push(`theorem facts_hold${params.map(q => ` (${q} : Nat → Nat)`).join('')} (env : Nat → Nat) : FactsHold ${id}_facts env ${M} := by`,
       `  intro fa hfa vals`, `  simp only [${id}_facts, _root_.List.mem_cons, _root_.List.not_mem_nil, or_false] at hfa`,
@@ -177,7 +177,7 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
     out.push(`theorem ${theorem}${params.map(q => ` (${q} : Nat → Nat)`).join('')}${vars.map(x => ` (${name(x.name)} : ${sortLean(x.sort)})`).join('')} :\n    ${lp(law.holds, lnames)} := by`,
       `  have h := ${id}_sound ${M} (fun i => ${env}) (facts_hold${params.map(q => ` ${q}`).join('')} _) _ ${nd}_mem (by simp [${nd}_hyps, ${id}_hyps${node}])`,
       `  rw [${nd}_concl] at h`,
-      `  simp [${id}_concl${node}, evalC, evalE, model, unpk_fst, unpk_snd] at h`,
+      `  simp [${id}_concl${node}, evalC, evalE, model, unpk_fst, unpk_snd, unpk_sq_fst, unpk_sq_snd, unpk_sqb_fst, unpk_sqb_snd] at h`,
       `  simpa using h`, '', `end ${id}`)
     return out.join('\n')
   }

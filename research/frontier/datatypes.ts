@@ -14,7 +14,7 @@ import type {Item} from './corpus.ts'
 
 const asVerdict = (v: DataVerdict): Verdict => ({proven: v.proven, checked: v.checked, ...(v.goal ? {goal: v.goal, stuck: v.stuck} : {}),
   ...(v.counterexample ? {why: `broken at ${JSON.stringify(v.counterexample)}`} : {}),
-  ...(v.proven ? {found: {rank: v.scheme, ...(v.lemmas.length ? {facts: v.lemmas} : {})}} : {})})
+  ...(v.proven ? {found: {facts: [`by ${v.scheme}`, ...v.lemmas.map(x => `lemma: ${x}`)]}} : {})})
 function today(l: DataLaw): Verdict {
   const plain = proveData(l, {induction: false, ms: 30_000})
   if (plain.proven && plain.checked) return asVerdict(plain)
