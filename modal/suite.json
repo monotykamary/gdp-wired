@@ -1234,8 +1234,24 @@
 "timeout": 1800
 },
 {
+"name": "lean-bridge",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Cyclic Progress StepLaw Steps Sets; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; lean -o Bridge.olean Bridge.lean > Bridge.out 2>&1 || { grep -B2 -A25 error Bridge.out | head -80; echo build-failed Bridge; exit 1; }; if grep -q -e sorry -e sorryAx Bridge.out; then echo sorry-in Bridge; exit 1; fi; printf 'import Bridge\\n#print axioms Kern.cyc_machine_sound\\n#print axioms Kern.cyc_machine_holds\\n#print axioms Kern.cyc_recur_sound\\n#print axioms Kern.cyc_fold_sound\\n' > ax.lean; lean ax.lean",
+"cwd": "lean-kernel",
+"cpu": 2.0,
+"memory": 4096,
+"timeout": 900
+},
+{
+"name": "lean-bridge-sweep",
+"cmd": "bun scripts/gen-lean-library.ts --check && cd lean-kernel && export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean && for f in Cert Kernel Cyclic Progress StepLaw Steps Sets Bridge; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done && cd .. && bun research/cyclic/bridge.ts /tmp/sweep --lean 2>&1",
+"cwd": ".",
+"cpu": 8.0,
+"memory": 16384,
+"timeout": 1800
+},
+{
 "name": "lean-cyclic",
-"cmd": "ONLY=mccarthy,mutual,cycgrowing,cyccounter,cycrollup bash scripts/lean-items.sh 2>&1",
+"cmd": "ONLY=mccarthy,mutual,cycgrowing,cycfilled,cyccounter,cycrollup,cyccaps,cycfill,cyctally,cycbudget bash scripts/lean-items.sh 2>&1",
 "cwd": ".",
 "cpu": 4.0,
 "memory": 8192,

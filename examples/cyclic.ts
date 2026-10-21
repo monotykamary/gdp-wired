@@ -7,9 +7,14 @@
 //   - two functions defined by each other (a(0) = b(0) = 0, a(x + 1) = b(x) + 1, b(x + 1) = a(x) + 2): their bounds
 //     a(x) <= 2x and b(x) <= 2x are proven together, each lemma at x using the other at x − 1. `recur` reads only
 //     functions defined before; this is a mutual induction
-import type {C, E} from '../core/machine.ts'
-import {type CyclicVerdict, type NodeSpec, proveCyclic} from '../core/cyclic.ts'
+//   - machines whose laws are proven as cyclic proofs over their runs (machineNodes) and carried back to the machine in
+//     Lean (lean-kernel/Bridge.lean's cyc_machine_sound, package-check's cyc* items): a write at every key (fill), a map
+//     each request carries (tally), inputs under an assumption and a precondition (budget)
+import type {C, E, Law, Machine} from '../core/machine.ts'
+import {type CyclicVerdict, type NodeSpec, machineNodes, proveCyclic} from '../core/cyclic.ts'
 import type {Fact} from '../kernel/cyclic.ts'
+import {forall, min, nat, rule, when} from '../core/dsl.ts'
+import {proveLaws} from '../kernel/prove.ts'
 
 const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})
 const add = (a: E, b: E): E => ({op: 'add', a, b}), sub = (a: E, b: E): E => ({op: 'sub', a, b})
@@ -50,11 +55,35 @@ export function mutual(): {facts: Fact[], specs: NodeSpec[]} {
 
 export const proveExample = (e: {facts: Fact[], specs: NodeSpec[]}): CyclicVerdict => proveCyclic(e.facts, e.specs)
 
+export const fill = () => rule('fill').params({cap: nat}).inputs({}).maps({Level: 0})
+  .step(({Level, cap}) => ({Level: Level.each(k => min(Level.at(k).plus(1), cap))}))
+export const fillLaws = (r = fill()): Law[] => [r.law('every level within the cap', ({Level, cap}) => forall(k => Level.at(k).atMost(cap)))]
+export const tally = () => rule('tally').params({cap: nat}).inputs({who: nat}).carries('Ok').maps({Count: 0})
+  .flags(({who, Ok, Count, cap}) => ({counted: Ok.at(who).eq(1).and(Count.at(who).lt(cap))}))
+  .step(({who, counted, Count}) => ({Count: Count.bump(who, counted)}))
+export const tallyLaws = (r = tally()): Law[] => [r.law('every count within the cap', ({Count, cap}) => forall(k => Count.at(k).atMost(cap)))]
+export const budget = (bug?: 'grants past the cap') => rule('budget').params({cap: nat}).inputs({amt: nat}).state({spent: 0, n: 0})
+  .pre(({cap}) => cap.atLeast(1)).assume(({amt}) => amt.atLeast(1))
+  .flags(({amt, spent, cap}) => ({ok: bug ? spent.atMost(cap) : spent.plus(amt).atMost(cap)}))
+  .step(({amt, ok, spent, n}) => ({spent: when(ok, spent.plus(amt), spent), n: when(ok, n.plus(1), n)}))
+export const budgetLaws = (r = budget()): Law[] => [r.law('spent within the cap', ({spent, cap}) => spent.atMost(cap)),
+  r.law('each grant spends one or more', ({spent, n}) => n.atMost(spent))]
+// A machine's laws as one cyclic proof over its runs, the laws' keys as the usual proof names them.
+export const machineProof = (m: Machine, laws: Law[]): CyclicVerdict => {
+  const {facts, specs} = machineNodes(m, laws, proveLaws(m, laws).proof?.instances ?? {})
+  return proveCyclic(facts, specs)
+}
+
 if (import.meta.main) {
   const results: [string, boolean, boolean][] = []
   for (const [what, e, want] of [['McCarthy 91', mccarthy(), true], ['McCarthy 91 (claims 92)', mccarthy(92), false], ['a and b, by each other', mutual(), true]] as const) {
     const t = performance.now(), out = proveExample(e)
     results.push([`${what} (${Math.round(performance.now() - t)} ms)`, out.proven && out.checked, want])
+  }
+  for (const [what, m, laws, want] of [['fill', fill().machine, fillLaws(), true], ['tally', tally().machine, tallyLaws(), true], ['budget', budget().machine, budgetLaws(), true],
+    ['budget (grants past the cap)', budget('grants past the cap').machine, budgetLaws(budget('grants past the cap')), false]] as const) {
+    const t = performance.now(), out = machineProof(m, laws)
+    results.push([`${what}, over its runs (${Math.round(performance.now() - t)} ms)`, out.proven && out.checked, want])
   }
   for (const [name, got, want] of results) console.log(`${got === want ? 'ok  ' : 'FAIL'} ${name}: ${got ? 'proven' : 'refused'}`)
   if (results.some(([, got, want]) => got !== want)) process.exit(1)

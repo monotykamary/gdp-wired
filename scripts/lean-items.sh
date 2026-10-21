@@ -7,7 +7,7 @@ set -o pipefail
 bun scripts/gen-lean-library.ts --check || exit 1
 cd lean-kernel
 export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean
-for f in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live Ghost Refine; do
+for f in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live Ghost Refine Bridge; do
   { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }
 done
 t0=$SECONDS
@@ -17,5 +17,5 @@ t1=$SECONDS
 lean $out/Proofs.lean > $out/proofs.out 2>&1; s=$?
 echo "library $t0 s, export $((t1 - t0)) s, lean $((SECONDS - t1)) s"
 grep -v 'depends on axioms: \[propext, Classical.choice, Quot.sound\]' $out/proofs.out | tail -25
-if grep -q -e "declaration uses 'sorry'" $out/proofs.out; then echo sorry; exit 1; fi
+if grep -q -e "declaration uses 'sorry'" -e sorryAx $out/proofs.out; then echo sorry; exit 1; fi
 echo lean-exit $s; exit $s

@@ -26,10 +26,11 @@ import {grantLaws, normalizedLaws, patternLaws} from '../examples/scopes.ts'
 import {leanProject, toLean} from './emit.ts'
 import {foldNodes, machineNodes, proveCyclic, recurNodes} from '../core/cyclic.ts'
 import {proveLaws} from '../kernel/prove.ts'
+import type {Law, Machine} from '../core/machine.ts'
 import type {Cyclic} from '../kernel/cyclic.ts'
-import {mccarthy, mutual} from '../examples/cyclic.ts'
+import {budget, budgetLaws, fill, fillLaws, mccarthy, mutual, tally, tallyLaws} from '../examples/cyclic.ts'
 import {leanItems as cycleLeanItems} from '../examples/cycles.ts'
-import {growing} from '../examples/lemmas.ts'
+import {filled, growing} from '../examples/lemmas.ts'
 
 const caps = rule('caps').params({d: nat}).inputs({acct: nat, day: nat, ok: bool}).maps({Acct: 0, Day: 0})
   .flags(({ok, acct, day, d, Acct, Day}) => ({granted: ok.and(Acct.at(acct).lt(1), Day.at(day).lt(d))}))
@@ -49,6 +50,38 @@ const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => s
 const pages = loop('pagination').params({total: nat}).inputs({page: nat}).state({cur: 0}).while(({cur, total}) => cur.lt(total))
   .assume(({page}) => page.atLeast(1)).body(({cur, page, total}) => ({cur: cur.plus(min(page, total.minus(cur)))})).rank(({total, cur}) => total.minus(cur))
 
+// The budget's laws in plain Lean, from its cyclic proof: every sequence of requests, each granted when it fits, keeps
+// what was spent within the cap and the grants at most what was spent (as mccarthy_91 states McCarthy's function).
+const budgetRuns = (ix: (name: string) => number) => {
+  const [cap, spent, n] = [ix('cap'), ix('spent'), ix('n')]
+  const sim = `cycbudget_machine, sNext, sView, decideQ, decideFlags, flagSub, applyS, assoc, lookup, withInputs, withCarried, evalC, evalE`
+  return `/-- The budget, plainly: from nothing spent, each request of amt i ≥ 1 granted (spent + amt i, one more grant) when it
+fits the cap and refused otherwise, what was spent stays within the cap and the grants at most what was spent, after every
+number of requests. -/
+theorem budget_runs (cap : Nat) (hcap : 1 ≤ cap) (amt spent n : Nat → Nat) (hamt : ∀ i, 1 ≤ amt i) (h0 : spent 0 = 0) (hn0 : n 0 = 0)
+    (hs : ∀ i, spent (i + 1) = if spent i + amt i ≤ cap then spent i + amt i else spent i)
+    (hn : ∀ i, n (i + 1) = if spent i + amt i ≤ cap then n i + 1 else n i) (i : Nat) : spent i ≤ cap ∧ n i ≤ spent i := by
+  have reach : ∀ i, ∃ ρ M, SReach cycbudget_machine ρ M ∧ ρ ${spent} = spent i ∧ ρ ${n} = n i ∧ ρ ${cap} = cap := by
+    intro i
+    induction i with
+    | zero =>
+      refine ⟨_, _, SReach.start (fun j => if j = ${cap} then cap else 0) (fun _ _ => 0) (fun p hp => by simp [cycbudget_machine] at hp)
+        (by simp [cycbudget_machine, evalC, evalE, hcap]) (fun l hl => by simp [cycbudget_machine] at hl)
+        (fun p hp => by simp [cycbudget_machine] at hp), ?_, ?_, ?_⟩ <;> simp [${sim}, h0, hn0]
+    | succ i ih =>
+      obtain ⟨ρ, M, hr, h1, h2, h3⟩ := ih
+      refine ⟨_, _, SReach.step ρ M (fun _ => amt i) M hr (by simp [${sim}, hamt]), ?_, ?_, ?_⟩
+      · simp [${sim}, h1, h3, hs i]
+      · simp [${sim}, h1, h2, h3, hn i]
+      · simp [${sim}, h3]
+  obtain ⟨ρ, M, hr, h1, h2, h3⟩ := reach i
+  have l0 : ρ ${spent} ≤ ρ ${cap} := cycbudget.law0 ρ M hr
+  have l1 : ρ ${n} ≤ ρ ${spent} := cycbudget.law1 ρ M hr
+  rw [h1, h3] at l0
+  rw [h1, h2] at l1
+  exact ⟨l0, l1⟩`
+}
+
 const auth = authority()
 // ONLY=id,id,... exports just those items (a quicker check while working on one). The tables of nodes take Lean a few
 // minutes each, so they are checked on their own (the suite's lean-nodes job), and so are the resource groups' laws, one
@@ -57,7 +90,7 @@ const only = process.env.ONLY?.split(',')
 // SHARD=i/n exports every n-th item from the i-th (the suite's lean-package-0..n−1, one Lean build each).
 const shard = process.env.SHARD?.split('/').map(Number)
 // Built by jobs of their own (modal/suite.json: lean-big's trees and groups; lean-cyclic's cyclic proofs).
-const cyclicItems = ['mccarthy', 'mutual', 'cycgrowing', 'cyccounter', 'cycrollup']
+const cyclicItems = ['mccarthy', 'mutual', 'cycgrowing', 'cycfilled', 'cyccounter', 'cycrollup', 'cyccaps', 'cycfill', 'cyctally', 'cycbudget']
 // The proofs core/cycles.ts finds (examples/cycles.ts's leanItems; the suite's lean-cycles jobs, the loops in a file
 // of their own: Live.lean and Cyclic.lean each define lexLtC).
 const foundItems = ['cycmc91', 'cycgcd', 'cycacc', 'cycacc2', 'cycring', 'cycthrough', 'loopphases', 'loopphases3', 'loopother', 'loopeuclid', 'rule91', 'rule91lemma', 'ruledouble', 'ruledoublelemma']
@@ -103,12 +136,19 @@ const file = toLean(([
   {id: 'taxwithin', goal: invoices().decide('the taxable part is within the total', () => [], ({Lines}) => Lines.fold.taxed.atMost(Lines.fold.total)).goal},
   // Cyclic proofs (Cyclic.lean's cyclic_sound): McCarthy's 91 function, with three tampered proofs computed to false and
   // the claim in plain Lean; a mutual induction; and today's rules as instances (a recurrence's lemmas and law between,
-  // a machine's laws over a function's facts, a fold's laws over trees as tables).
+  // a machine's laws over a function's facts, a fold's laws over trees as tables). A machine's proof is carried back to
+  // the machine (Bridge.lean's cyc_machine_sound): its laws over SReach, the machine Sets.lean's; for caps and budget, a
+  // tampered machine's check against the proof computed to false.
   ...(!only?.some(id => cyclicItems.includes(id)) ? [] : ((): Parameters<typeof toLean>[0] => {
     const proven = (fs: Parameters<typeof proveCyclic>[0], specs: Parameters<typeof proveCyclic>[1]): Cyclic => { const r = proveCyclic(fs, specs); if (!r.proven || !r.checked) throw new Error(`cyclic: ${r.proven ? r.why : r.goal}`); return r.proof }
+    const ofMachine = (id: string, machine: Machine, laws: Law[], tampered?: {what: string, machine: Machine}[], after?: (ix: (name: string) => number) => string) =>
+      (r => ({id, cyclic: proven(r.facts, r.specs), bridge: {machine, laws, ...(tampered ? {tampered} : {})}, ...(after ? {after} : {})}))(machineNodes(machine, laws, proveLaws(machine, laws).proof!.instances))
+    const capsLoose = rule('caps').params({d: nat}).inputs({acct: nat, day: nat, ok: bool}).maps({Acct: 0, Day: 0})
+      .flags(({ok, acct, Acct}) => ({granted: ok.and(Acct.at(acct).lt(1))}))
+      .step(({acct, day, granted, Acct, Day}) => ({Acct: Acct.bump(acct, granted), Day: Day.bump(day, granted)}))
     const mc = mccarthy(), p = proven(mc.facts, mc.specs)
     const use0 = (edit: (u: Cyclic['nodes'][number]['uses'][number]) => Cyclic['nodes'][number]['uses'][number]): Cyclic => ({...p, nodes: p.nodes.map(n => ({...n, uses: n.uses.map((u, j) => (j === 0 ? edit(u) : u))}))})
-    const g = growing(), rc = g.recur!
+    const g = growing(), rc = g.recur!, fd = filled().recur!
     const c = counter(), cl = counterLaws(c), cm = c.machine, ci = proveLaws(cm, cl).proof!.instances
     const ru = rollup(), rl = rollupLaws(ru)
     return [
@@ -128,9 +168,16 @@ const file = toLean(([
   simpa [mccarthy_concl0, evalC, evalE] using h
 -- the map's number: ${mx('f')}`},
       {id: 'mutual', cyclic: proven(mutual().facts, mutual().specs)},
-      ...(r => [{id: 'cycgrowing', cyclic: proven(r.facts, r.specs)}])(recurNodes({name: 'growing', args: rc.args, zero: rc.zero, next: rc.next, lemmas: rc.lemmas, between: rc.between, facts: []})),
-      ...(r => [{id: 'cyccounter', cyclic: proven(r.facts, r.specs)}])(machineNodes(cm, cl, ci)),
-      ...(r => [{id: 'cycrollup', cyclic: proven(r.facts, r.specs)}])(foldNodes(ru.fold, rl)),
+      ...[['cycgrowing', 'growing', rc], ['cycfilled', 'filled', fd]].map(([id, name, d]) => {
+        const r = d as typeof rc, rcase = {name: name as string, args: r.args, zero: r.zero, next: r.next, lemmas: r.lemmas, between: r.between}, nodes = recurNodes({...rcase, facts: []})
+        return {id: id as string, cyclic: proven(nodes.facts, nodes.specs), recur: rcase}
+      }),
+      ...(r => [{id: 'cyccounter', cyclic: proven(r.facts, r.specs), bridge: {machine: cm, laws: cl}}])(machineNodes(cm, cl, ci)),
+      ...(r => [{id: 'cycrollup', cyclic: proven(r.facts, r.specs), fold: {fold: ru.fold, laws: rl}}])(foldNodes(ru.fold, rl)),
+      ofMachine('cyccaps', caps.machine, [dayCap], [{what: 'a grant that doesn\'t check the day\'s count', machine: capsLoose.machine}]),
+      ofMachine('cycfill', fill().machine, fillLaws()),
+      ofMachine('cyctally', tally().machine, tallyLaws()),
+      ofMachine('cycbudget', budget().machine, budgetLaws(), [{what: 'a grant that checks what was spent, not what it adds', machine: budget('grants past the cap').machine}], budgetRuns),
     ]
   })()),
   ...(!only?.some(id => foundItems.includes(id)) ? [] : cycleLeanItems()),
