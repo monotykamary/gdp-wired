@@ -60,9 +60,15 @@ All of these are proven automatically, and each proof is also a Lean theorem:
 - **Step laws**: what one step does ("a balance only goes down", "a grant adds one"), and laws over up to 64 steps in
   a row (`examples/steps.ts`).
 - **Histories**: sums and queries over a log of requests, like a sliding-window rate limit.
-- **Statecharts**: `chart(name).states({...}).on(event, {from, to, when, set})`, with nested states, parallel regions,
-  a compound's history, guards and extended state, compiled to a rule; `check()` shows every state reached by a run (or
-  proves it unreachable), no state stuck and no event ambiguous, and its laws prove like any rule's (`examples/charts.ts`).
+- **Statecharts**: `chart(name).states({...}).on(event, {from, to, when, set})`, with states nested to any depth,
+  parallel regions (at the top of the chart), a compound's history (deep), guards and extended state, compiled to a rule;
+  `check()` shows every state reached by a run (or proves it unreachable), no state stuck and no event ambiguous, and its
+  laws prove like any rule's (`examples/charts.ts`). Not yet: parallel regions inside a state, entry and exit actions,
+  eventless and delayed transitions.
+- **XState machines** (`gdp-wired/xstate`): `fromXState(machine, {guards, actions})` builds the chart an XState v5
+  machine runs as, with each guard and action it names given again in gdp-wired's terms, and `conforms(chart, machine,
+  createActor)` drives XState's own actor and the compiled rule with the same random events, comparing every state and
+  context; what a chart can't run the same way is refused when built, with the reason (`examples/xstate.ts`).
 - **Orderings at any distance**: "a refund never follows a release", through ghost state that watches the rule.
 - **Liveness**: "every ticket issued is served", in every run that keeps sending the requests that help, including under
   weak fairness (`examples/liveness.ts`).
@@ -372,7 +378,7 @@ The npm package is built from `core/`, `kernel/` and `lean-kernel/` alone; nothi
 ## Running
 
 The npm package is the library: the builders (`gdp-wired`), the runtimes (`gdp-wired/machine`), composition
-(`gdp-wired/compose`), the Lean export (`gdp-wired/lean`), the kernel
+(`gdp-wired/compose`), XState machines as charts (`gdp-wired/xstate`), the Lean export (`gdp-wired/lean`), the kernel
 (`gdp-wired/kernel`), the prover (`gdp-wired/prove`), the derivation checker and solver (`gdp-wired/check`,
 `gdp-wired/solver`). Everything else here (examples, comparisons, the Lean twin, the GPU searches) runs from a clone and
 needs [Bun](https://bun.sh); Lean 4.34.0 for `lean/` and `lean-kernel/`; a WebGPU runtime (Chrome, or Dawn's node

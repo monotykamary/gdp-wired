@@ -67,8 +67,9 @@ function decodeRequest(t: Record<string, unknown>): Record<string, number | bool
 // states they reach are kept (a sample) for Houdini.
 const seen: State[] = []
 {
-  let seed = 7
-  const rand = (n: number) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n }
+  // dsl.ts's generator: the high bits of a linear congruence (the low ones repeat with a short period)
+  let x = 7
+  const rand = (k: number) => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) }
   const at = b!.plans.map(p => (p.clause.body[0] ? b!.loc[b!.predNames.indexOf(p.clause.body[0].pred)]! : 'start'))
   const until = performance.now() + runsMs
   let trials = 0
@@ -84,7 +85,8 @@ const seen: State[] = []
           const raw: Record<string, number | boolean | string> = {c: b!.clauseNames[choices[rand(choices.length)]!]!}
           for (let k = 0; k < b!.inInt; k++) raw[`x${k}`] = rand(2 * bound + 1) - bound
           for (let k = 0; k < b!.inBool; k++) raw[`y${k}`] = rand(2) === 1
-          const next = g.step({}, st, r.encodeInput(raw as never))
+          let next
+          try { next = g.step({}, st, r.encodeInput(raw as never)) } catch { continue } // a value past 2^53: not a run the proofs describe
           if (JSON.stringify(next.scalars) === JSON.stringify(st.scalars)) continue
           raws.push(raw); st = next; moved = true
           if (seen.length < 4000) seen.push(next); else if (rand(8) === 0) seen[rand(4000)] = next

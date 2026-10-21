@@ -225,9 +225,9 @@ order.prove([order.law('retries within the limit', ({retries, tries}) => retries
   parent), then the first declared; `check().ambiguous` names two as specific as each other that one request enables.
 - `.regions({payment: {...}, shipping: {...}})` for parallel regions: paths start with the region (`'payment.paid'`),
   every region reacts to the same event, and a guard reads another region with `env.in('payment.paid')`.
-- A transition into a compound enters its initial child (the first, or `initial`), or with `history: true` the child it
-  was last in (`env.last('active')` in a law). `prove` and `check` add `chartLaws()` (each history is one of its own
-  states) to the laws.
+- A transition into a compound enters its initial child (the first, or `initial`), or with `history: true` the state it
+  was last in, however deep (`env.last('active')` in a law); with `fresh: true` it enters the initial states all the way
+  down, history or not. `prove` and `check` add `chartLaws()` (each history is one of its own states) to the laws.
 - `check().reached` gives each state the shortest run that reaches it (a breadth-first walk over every event and small
   payloads), or `'unreachable'` where the prover proves no run gets there; `stuck` lists states with no way out that
   aren't `final`.
@@ -240,6 +240,37 @@ order.prove([order.law('retries within the limit', ({retries, tries}) => retries
   order and encoding: an existing bridge, its laws and its variants keep their names (`examples/charts.ts`'s binding).
 - Entry and exit actions and side effects aren't modeled: the chart computes the next state and its context, and the
   code around it acts on the result. `chart.rule` is the plain rule, for `compiled()`, `compare` and `toLean`.
+- Not yet: parallel regions inside a state (regions run at the top, for the chart's whole life), eventless and delayed
+  transitions. Guard on the parent instead (`env.in('active')`), and send time in as an event.
+
+### XState machines
+
+An XState v5 machine you already ship becomes a chart with `fromXState`; give each guard and action it names again in
+gdp-wired's terms (an action as the context it writes, `null` for one that writes none), then check the chart against
+XState's own actor:
+
+```ts
+import {createActor} from 'xstate'
+import {conforms, fromXState} from 'gdp-wired/xstate'
+
+const c = fromXState(machine, {                 // machine: setup({guards, actions}).createMachine({...}), or its config
+  guards: {canRetry: ({retries}) => retries.lt(2), unshipped: env => env.in('active.paid')},
+  actions: {count: ({retries}) => ({retries: retries.plus(1)}), notify: null},
+})
+conforms(c, machine, createActor, {runs: 300, depth: 16}) // {checked} or {checked, failure: 'after PAY, SHIP, REFUND: ...'}
+c.check(); c.prove([c.law('retries within 2', ({retries}) => retries.atMost(2))])
+```
+
+- Read: nesting, a parallel root (its children the regions), `initial`, final states, transitions as a target, an
+  object or a list (`#id.path`, `.child`, a sibling), targetless transitions (internal), named guards and actions with
+  their `params`, several actions in a row (each reads what the one before wrote), history nodes (a transition through
+  one restores; one straight to the state enters it fresh, as XState does), root transitions (not from a final state).
+- Refused when built, with the reason: a parallel state below the root, `always`, `after`, `invoke`, `onDone`, wildcard
+  events, several targets, inline guards and actions (name them in `setup`), entry and exit actions that write the
+  context, two regions writing the context on one event, a shallow history over nested states, context that isn't
+  numbers and booleans unless its kinds are given (`context: {status: oneOf('a', 'b').from('a')}`).
+- `conforms` is what ties the two: a guard or an action given wrongly shows up as the run where XState and the chart part.
+  Payloads come from `payload: (event, rand) => ({amount: rand(10)})`, with `inputs: {amount: nat}` in `fromXState`.
 
 ## Sets, lists, functions, composition
 

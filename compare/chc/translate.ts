@@ -25,7 +25,8 @@ const varsIn = (s: Sx, out = new Set<string>(), shadow = new Set<string>()): Set
   for (const x of s.slice(1)) varsIn(x, out, shadow)
   return out
 }
-const countDivs = (s: Sx): number => (typeof s === 'string' ? 0 : (s[0] === 'div' || s[0] === 'mod' ? 1 : 0) + s.slice(1).reduce<number>((n, x) => n + countDivs(x), 0))
+// Every element, the head too: a let's first binding is a list in head position.
+const countDivs = (s: Sx): number => (typeof s === 'string' ? 0 : s.reduce<number>((n, x) => n + countDivs(x), s[0] === 'div' || s[0] === 'mod' ? 1 : 0))
 const constOf = (s: Sx): bigint | undefined => {
   try { const v = evalSx(s, new Map()); return typeof v === 'bigint' ? v : undefined } catch { return undefined }
 }

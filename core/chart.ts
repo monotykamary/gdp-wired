@@ -29,8 +29,10 @@ type Obj = Record<string, any>
 // and a compound's history (the state it was last in, a full path: last('active').is('active.shipped')).
 type Env<P, I, X> = P & I & X & {event: Choice<string>, in: (path: string) => Cond, last: (compound: string) => Choice<string>}
 type After<X> = X & {in: (path: string) => Cond, last: (compound: string) => Choice<string>}
-// Without `to`, an internal transition: the state stays as it is (nothing is exited or entered) and `set` runs.
-export type Transition<P, I, X> = {from: string | string[], to?: string, when?: (env: Env<P, I, X>) => Cond, set?: (env: Env<P, I, X>) => Partial<{[k in keyof X]: X[k] extends Choice<infer K> ? K | X[k] : TermLike | Cond | X[k]}>}
+// Without `to`, an internal transition: the state stays as it is (nothing is exited or entered) and `set` runs. With
+// `fresh`, the target is entered at its initial states all the way down, not where a compound keeping its history was
+// last (as XState enters a state any way but through its history node).
+export type Transition<P, I, X> = {from: string | string[], to?: string, fresh?: boolean, when?: (env: Env<P, I, X>) => Cond, set?: (env: Env<P, I, X>) => Partial<{[k in keyof X]: X[k] extends Choice<infer K> ? K | X[k] : TermLike | Cond | X[k]}>}
 
 type Region = {name: string, field: string, leaves: string[], finals: Set<string>, compounds: Map<string, {initial: string, history: boolean}>}
 type Placed<P, I, X> = Transition<P, I, X> & {event: string, region: string, sources: string[], depth: number, order: number}
@@ -113,12 +115,12 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
     }
     for (const [k, v] of Object.entries({...s.context, ...s.outputs})) state[k] = v
     const guardEnv = (env: Obj) => this.wrap(env) as Env<P, I, X>
-    // Entering a path: a leaf, or a compound's last child (with history) or its initial one.
-    const entered = (env: Obj, r: Region, path: string): Choice<string> => {
+    // Entering a path: a leaf, or a compound's last child (with history, unless fresh) or its initial one.
+    const entered = (env: Obj, r: Region, path: string, fresh = false): Choice<string> => {
       const c = r.compounds.get(path), field = env[r.field] as Choice<string>
       if (!c) return field.of(path)
-      if (c.history && path) return env[lastOf(r, path)] as Choice<string>
-      return entered(env, r, path ? `${path}.${c.initial}` : c.initial)
+      if (c.history && path && !fresh) return env[lastOf(r, path)] as Choice<string>
+      return entered(env, r, path ? `${path}.${c.initial}` : c.initial, fresh)
     }
     let built = rule(s.name).params(s.params as never).inputs({event: oneOf(...events), ...s.inputs} as never).state(state as never) as Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>
     // A set of a region's states as ranges of their indices (n <= 2, 3 <= n <= 4): a few comparisons, where one test per
@@ -141,7 +143,7 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
         // The transitions taken in a region exclude one another, so those entering one state share a `when` (any of
         // them taken), and an internal one needs none (the state stays).
         out[r.field] = grouped(placed.map((t, i) => [t, i] as const).filter(([t]) => t.region === r.name && t.to !== undefined)
-          .map(([t, i]) => ({i, region: r.name, value: entered(env, r, locate(t.to!)[1])})), env, env[r.field])
+          .map(([t, i]) => ({i, region: r.name, value: entered(env, r, locate(t.to!)[1], t.fresh)})), env, env[r.field])
         for (const [c, {history}] of r.compounds) if (history && c) out[lastOf(r, c)] = when(any(...under(r, c).map(l => (out[r.field] as Choice<string>).is(l))), out[r.field], env[lastOf(r, c)])
       }
       // Context keeps its value where no transition taken sets it; an output falls back to its default.

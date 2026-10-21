@@ -26,7 +26,7 @@ if (gdp.length) {
   const last = (r: Row, k: string) => r.stages?.findLast(s => s.stage === k)
   console.log('\ngdp-wired, answered by:', count(gdp.filter(r => r.answer === 'sat' || r.answer === 'unsat'), r => `${r.answer} by ${String(last(r, 'answer')?.by)}`))
   console.log('refused:', count(gdp.filter(r => r.answer === 'unsupported'), r => String(last(r, 'answer')?.why).replace(/: .*/, '').replace(/\d+/g, 'N')))
-  console.log('unanswered, last stage:', count(gdp.filter(r => r.answer === 'unknown' || r.answer === 'timeout' || r.answer === 'error'), r => `${r.answer} after ${String(r.stages?.filter(s => s.stage !== 'answer').at(-1)?.stage ?? 'nothing')}`))
+  console.log('unanswered, last stage:', count(gdp.filter(r => r.answer === 'unknown' || r.answer === 'timeout' || r.answer === 'error'), r => `${r.answer} after ${(r.stages?.filter(s => s.stage !== 'answer').at(-1)?.stage as string | undefined) ?? 'nothing'}`))
   console.log('houdini:', count(gdp.filter(r => last(r, 'houdini')), r => `${last(r, 'houdini')!.proven ? 'proven' : String(last(r, 'houdini')!.why)}`))
   const others = tools.filter(t => t !== 'gdp')
   const solved = (tool: string) => new Set(rows.filter(r => r.tool === tool && (r.answer === 'sat' || r.answer === 'unsat') && (!decided(r) || r.answer === r.expected)).map(r => r.task))

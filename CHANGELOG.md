@@ -3,6 +3,26 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## 0.14.0
+
+- XState machines as charts (`gdp-wired/xstate`): `fromXState(machine, {guards, actions})` reads an XState v5 machine
+  (or its config) and builds the chart it runs as: nesting, a parallel root, `initial`, final states, targets as
+  `#id.path`, `.child` or a sibling, targetless transitions, history nodes, root transitions, named guards and actions
+  with their `params` and several actions in a row. Each guard and action the machine names is given again in
+  gdp-wired's terms (an action as the context it writes, `null` for one that writes none). `conforms(chart, machine,
+  createActor)` sends the same random events to XState's own actor and to the compiled rule and compares every state
+  value and context: on `examples/xstate.ts`'s order (nesting, a deep history node entered through it and directly, a
+  guard, two actions, a root transition), 4,800 events agree, `check()` passes and its four laws prove, in 623 ms
+  (Modal, 1 vCPU); its broken variant's guard is caught as the run where the two part and its law refused, in 478 ms.
+  What a chart can't run the same way is refused when built, with the reason: a parallel state below the root, `always`,
+  `after`, `invoke`, `onDone`, wildcard events, several targets, inline guards and actions, entry and exit actions that
+  write the context, two regions writing the context on one event, a shallow history over nested states. XState is a
+  dev dependency only; the module imports nothing from it. The order is checked again in Lean (`xstateorder`).
+- A chart transition with `fresh: true` enters its target at the initial states all the way down, not where a compound
+  keeping its history was last (XState enters a state that way unless through its history node).
+- The README and the skill say what a chart does not do yet: parallel regions inside a state, entry and exit actions,
+  eventless and delayed transitions.
+
 ## 0.13.3
 
 - A choice compares with a natural term too, as its index: `a.phase.eq(when(c, 2, b.phase.index))`.

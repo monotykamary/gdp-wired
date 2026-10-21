@@ -867,7 +867,7 @@
 },
 {
 "name": "pairs",
-"cmd": "bun test pairs.test.ts chart.test.ts 2>&1 && cd .. && bun examples/pairs.ts 2>&1 && bun examples/groups.ts 2>&1 && bun examples/charts.ts 2>&1",
+"cmd": "cd .. && bun install --frozen-lockfile >/dev/null 2>&1 && cd core && bun test pairs.test.ts chart.test.ts xstate.test.ts 2>&1 && cd .. && bun examples/pairs.ts 2>&1 && bun examples/groups.ts 2>&1 && bun examples/charts.ts 2>&1 && bun examples/xstate.ts 2>&1",
 "cwd": "core",
 "cpu": 1.0,
 "timeout": 900
