@@ -17,14 +17,15 @@ import type {Fold, Goal, Instances, Subst, Tree} from '../kernel/kernel.ts'
 import {assumed, foldObligations, obligations, substC, substE} from '../kernel/kernel.ts'
 import {type CNode, type Cyclic, type Fact, type Use, baseHyps, descentGoal, instHyps, mainGoal, premiseGoal, refuseCyclic} from '../kernel/cyclic.ts'
 import {cellProducts, grow, profile, usedHyps, widen} from '../kernel/prove.ts'
-import {type Renamer, type TStats, decide, renamer, translate, tstats} from './translate.ts'
+import {type Renamer, type TStats, carry, decide, renamer, translate, tstats} from './translate.ts'
 
 // What only the search reads: `opaque`, terms it reads as variables of their own in the node's goal (the trees are the
 // goal's still: see `widen`); `variants`, the node stated otherwise (fewer facts, other uses), each tried in turn where
 // the node isn't proven, a `weak` one (a conclusion that holds outright) leaving no other node to use it.
 // `slice`: its goals grown first on what they read (`slice`, `reached`), as the instances below ask; others are grown whole.
-// `main`: the node's tree already made (a usual proof's, translated: core/translate.ts), taken as it is, its goal not grown.
-export type NodeSpec = Omit<CNode, 'uses' | 'main'> & {uses: Omit<Use, 'premises' | 'descent'>[], opaque?: E[], variants?: NodeSpec[], weak?: boolean, slice?: boolean, main?: Tree}
+// `main`: the node's tree already made (a usual proof's, translated: core/translate.ts), taken as it is, its goal not grown;
+// `carry`: its tree made by core/translate.ts's `carry` from its goal (grown as any other where that fails).
+export type NodeSpec = Omit<CNode, 'uses' | 'main'> & {uses: Omit<Use, 'premises' | 'descent'>[], opaque?: E[], variants?: NodeSpec[], weak?: boolean, slice?: boolean, main?: Tree, carry?: boolean}
 export type CyclicVerdict = {proven: true, checked: boolean, proof: Cyclic, why?: string} | {proven: false, checked: false, node: string, goal: string, stuck: string}
 
 const v = (name: string): E => ({op: 'var', name})
@@ -48,7 +49,7 @@ export const pair = (u: E, key: E): E => add(u, {op: 'prod', a: key, b: omega})
 // descent, the kernel's check): ms, goals, hypotheses, solver and row ms.
 export const cyclicProf: Record<string, {ms: number, n: number, hyps: number, solveMs: number, rowsMs: number}> = {}
 const profOn = () => env()?.GDP_CYCLIC_PROF === '1'
-function timedKind<T>(kind: string, hyps: number, f: () => T): T {
+export function timedKind<T>(kind: string, hyps: number, f: () => T): T {
   if (!profOn()) return f()
   const was = profile.on, s0 = profile.solveMs, r0 = profile.rowsMs, t0 = performance.now()
   profile.on = true
@@ -132,6 +133,7 @@ export function slice(g: Goal, whole: (i: number) => boolean, hypsOnly = false):
   if (joined.length) { hyps[hyps.length - 1] = and(hyps.at(-1)!, ...joined); from[from.length - 1]!.push(...joinedFrom) }
   return {name: g.name, hyps, from}
 }
+const withProducts = <T>(f: () => T): T => { const was = cellProducts.on; cellProducts.on = true; try { return f() } finally { cellProducts.on = was } }
 let sliceNow = false
 const sliceOn = () => sliceNow && env()?.GDP_CYCLIC_SLICE !== '0'
 const afterOn = () => env()?.GDP_CYCLIC_AFTER !== '0'
@@ -145,7 +147,7 @@ export const translatedCache: Grown = new Map()
 type Stuck = {proven: false, checked: false, node: string, goal: string, stuck: string}
 // `order`: the order the nodes are grown in, by default those with a weak variant first (a variant that uses a weak node
 // is passed over).
-export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = [...specs.keys()].sort((i, j) => Number(!specs[i]!.variants?.some(x => x.weak)) - Number(!specs[j]!.variants?.some(x => x.weak))), grownBefore: Grown = searched): CyclicVerdict {
+export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = [...specs.keys()].sort((i, j) => Number(!specs[i]!.variants?.some(x => x.weak)) - Number(!specs[j]!.variants?.some(x => x.weak))), grownBefore: Grown = searched, st: TStats = tstats()): CyclicVerdict {
   const nodes: CNode[] = [], shapes = [...specs], weak = new Set<number>()
   let later: number | undefined, refuted = false
   // A goal's tree, and the hypotheses its leaves read (of the whole goal, a weaker goal's read through where they came from).
@@ -168,7 +170,6 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = 
       return 'tree' in o ? {tree: o.tree, from: g, used: () => usedHyps(g, o.tree)} : {proven: false, checked: false, node, goal: g.name, stuck: o.stuck}
     } finally { cellProducts.on = was }
   }
-  const withProducts = <T>(f: () => T): T => { const was = cellProducts.on; cellProducts.on = true; try { return f() } finally { cellProducts.on = was } }
   // The tree made the goal's own (a weaker goal's widened), or grown on the goal itself where that fails.
   const own = (r: {tree: Tree, from: Goal}, g: Goal): Tree | undefined => (r.from === g ? r.tree : timedKind('widen', 0, () => widen(r.from, g, r.tree, opaqueOf.get(r.from))))
   const whole = (g: Goal, node: string, mine: (i: number) => boolean): Tree | Stuck => {
@@ -197,11 +198,13 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = 
   }
   // A node's goal grown; then the node keeps only the facts and uses its tree reads (the fewer, the fewer hypotheses its
   // goal has for the kernel to read at every leaf, and the fewer uses to prove below); then each use's goals.
-  const attempt = ({opaque, variants: _v, weak: _w, slice: sl, main: given, ...n0}: NodeSpec): CNode | Stuck => {
+  const attempt = ({opaque, variants: _v, weak: _w, slice: sl, main: given0, carry: made, ...n0}: NodeSpec): CNode | Stuck => {
     hidden = opaque ?? []
     sliceNow = !!sl
     // A goal's own hypotheses: the node's, and those after its facts and uses.
     const n1 = {...n0, insts: n0.insts.filter(p => facts[p.fact])}
+    const given = given0 ?? (made ? timedKind('carry', 0, () => withProducts(() => carry(mainGoal(facts, shapes, n1), n1.insts.length, n1.uses.length, st, performance.now() + 2_000))) : undefined)
+    if (made && !given0) { if (given) st.carried++; else st.uncarried++ }
     const base = baseHyps(facts, n1).length, mine = (tail: number) => (i: number) => i < n1.hyps.length || i >= base + tail
     const g = given ? undefined : mainGoal(facts, shapes, n1), key = g ? JSON.stringify(g.hyps) : '', before = g && grownBefore.get(key)
     let n = n1, main: Tree | undefined = given, src: {tree: Tree, from: Goal} | undefined
@@ -408,13 +411,13 @@ export function recurNodes(r: RecurCase, usual?: {lemmas?: UsualProof, between?:
         made.push({g: lay.g1, tree: lay.t1, node: 2 * n + b + i, ren, decide: p1.uses.flatMap(us => (us.node >= n && us.node < n + b ? [le(x, less1(y))] : []))}, {g: lay.g0, tree: lay.t0, node: N + n + i, ren: ren0})
       }
     }
-    const carry = own.map((sp, i): NodeSpec => ({...sp, variants: undefined, uses: [...sp.uses, i < n ? {node: N + i, subst: {}, guard: le(x, k(0))} : {node: N + i, subst: {}, guard: le(y, x)}]}))
-    const rest = [...lemmaAfterT, ...betweenAfterT, ...lemmaStart, ...betweenStart], all = [...withReads(facts, carry, [...carry, ...rest]), ...rest]
+    const carried = own.map((sp, i): NodeSpec => ({...sp, variants: undefined, carry: true, uses: [...sp.uses, i < n ? {node: N + i, subst: {}, guard: le(x, k(0))} : {node: N + i, subst: {}, guard: le(y, x)}]}))
+    const rest = [...lemmaAfterT, ...betweenAfterT, ...lemmaStart, ...betweenStart], all = [...withReads(facts, carried, [...carried, ...rest]), ...rest]
     for (const [i, a] of all.slice(0, n + b).entries()) { const o = [...new Set([...shared(facts, a, all[n + b + i]!.concl), ...shared(facts, a, all[N + i]!.concl)].map(e => JSON.stringify(e)))].map(e => JSON.parse(e) as E); if (o.length) all[i] = {...a, opaque: o} }
     const until = performance.now() + 10_000
     for (const m of made) {
       const whole = mainGoal(facts, all, all[m.node]!)
-      const tree = decide(whole, m.decide ?? [], wp => translate(m.g, whole, m.tree, m.ren, st, until, new Map(), wp), st, until)
+      const tree = timedKind('translate', 0, () => withProducts(() => decide(whole, m.decide ?? [], wp => translate(m.g, whole, m.tree, m.ren, st, until, new Map(), wp), st, until)))
       if (!tree) return {specs: [], why: `${all[m.node]!.name}: not translated`}
       all[m.node] = {...all[m.node]!, main: tree}
     }
@@ -658,7 +661,7 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
     const naturals = (when: E) => state.map(st2 => ({fact: fi(`${m.name}: ${st2} is a natural`), at: [when]}))
     const params = {fact: fi(`${m.name}: params are naturals`), at: []}
     const goals = new Map(obligations(m, laws, instances).map(g => [g.name, g]))
-    const nows: NodeSpec[] = [], afters: NodeSpec[] = [], starts: NodeSpec[] = [], made: {g: Goal, tree: Tree, node: number, ren: Renamer}[] = []
+    const nows: NodeSpec[] = [], afters: NodeSpec[] = [], starts: NodeSpec[] = [], made: {g: Goal, tree: Tree, node: number, ren: Renamer, decide?: C[]}[] = []
     for (const [i, l] of laws.entries()) {
       const g0 = goals.get(`${l.name} @start`), g1 = goals.get(`${l.name} @step`), t0 = g0 && usual!.trees[g0.name], t1 = g1 && usual!.trees[g1.name]
       if (!g0 || !g1 || !t0 || !t1) return {specs: [], why: `${l.name}: no usual tree`}
@@ -677,14 +680,17 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
         concl: substC(last(g1), sigma), rank: [t, k(0)], insts: [...fn1.filter((_, q) => used1.has(q)), ...naturals(less1(t)), params], uses: uses.filter((_, j) => used1.has(nf + np + na + j))})
       starts.push({name: `${m.name}: ${l.name}, at the start`, hyps: m.pre ? [m.pre] : [], concl: substC(last(g0), vars(fresh)), rank: [k(0), k(0)], insts: [...fn0.filter((_, q) => used0.has(q)), params], uses: []})
       nows.push({name: `${m.name}: ${l.name}`, hyps: [...(m.pre ? [m.pre] : []), le(t, T), ...omegaHyp], concl, rank: [t, k(1)], insts: [...run(t), ...mapInsts(concl), ...naturals(t), params],
-        uses: [{node: L + i, subst: {}, guard: one}, {node: 2 * L + i, subst: {}, guard: le(t, k(0))}]})
-      made.push({g: g1, tree: t1, node: L + i, ren}, {g: g0, tree: t0, node: 2 * L + i, ren: ren0})
+        uses: [{node: L + i, subst: {}, guard: one}, {node: 2 * L + i, subst: {}, guard: le(t, k(0))}], carry: true})
+      made.push({g: g1, tree: t1, node: L + i, ren, decide: [one]}, {g: g0, tree: t0, node: 2 * L + i, ren: ren0})
     }
     const all = [...nows, ...afters, ...starts]
     for (const [i, a] of nows.entries()) { const o = [...new Set([...shared(facts, a, afters[i]!.concl), ...shared(facts, a, starts[i]!.concl)].map(e => JSON.stringify(e)))].map(e => JSON.parse(e) as E); if (o.length) a.opaque = o }
     const until = performance.now() + 10_000
     for (const x of made) {
-      const tree = translate(x.g, mainGoal(facts, all, all[x.node]!), x.tree, x.ren, st, until)
+      // (after a step, 1 <= t decided first: t ∸ 1 is then t − 1, and a cell read at a key over the cells at t − 1 has a
+      // linear form)
+      const whole = mainGoal(facts, all, all[x.node]!)
+      const tree = timedKind('translate', 0, () => withProducts(() => decide(whole, x.decide ?? [], wp => translate(x.g, whole, x.tree, x.ren, st, until, new Map(), wp), st, until)))
       if (!tree) return {specs: [], why: `${all[x.node]!.name}: not translated`}
       all[x.node] = {...all[x.node]!, main: tree}
     }
@@ -775,14 +781,14 @@ export function foldNodes(f: Fold, laws: Law[], usual?: Record<string, Tree>, st
       leaves.push({name: `${f.name}: ${l.name}, at a leaf`, hyps: [...hyps, eq(kind(n), k(0)), ...(f.assume ? [substC(f.assume, sigma0)] : [])], concl: substC(last(g0), sigma0), rank: [n, k(0)], insts: [{fact: 2, at: []}], uses: []})
       made.push({g: g1, tree: t1, node: L + i, ren}, {g: g0, tree: t0, node: 2 * L + i, ren: ren0})
     }
-    const carry = atNode.map((a, i): NodeSpec => {
-      const b: NodeSpec = {...a, variants: undefined, uses: [...a.uses, {node: 2 * L + i, subst: {}, guard: eq(kind(n), k(0))}]}
+    const carried = atNode.map((a, i): NodeSpec => {
+      const b: NodeSpec = {...a, variants: undefined, carry: true, uses: [...a.uses, {node: 2 * L + i, subst: {}, guard: eq(kind(n), k(0))}]}
       const o = [...new Set([...shared(facts, b, kids[i]!.concl), ...shared(facts, b, leaves[i]!.concl)].map(e => JSON.stringify(e)))].map(e => JSON.parse(e) as E)
       return {...b, opaque: o.length ? o : undefined}
     })
-    const all = [...carry, ...kids, ...leaves], until = performance.now() + 10_000
+    const all = [...carried, ...kids, ...leaves], until = performance.now() + 10_000
     for (const m of made) {
-      const tree = translate(m.g, mainGoal(facts, all, all[m.node]!), m.tree, m.ren, st, until)
+      const tree = timedKind('translate', 0, () => withProducts(() => translate(m.g, mainGoal(facts, all, all[m.node]!), m.tree, m.ren, st, until)))
       if (!tree) return {specs: [], why: `${all[m.node]!.name}: not translated`}
       all[m.node] = {...all[m.node]!, main: tree}
     }
@@ -818,7 +824,7 @@ export function crossCyclic(kind: string, name: string, usual: boolean, run: () 
   const prof = profOn() ? {prof: Object.fromEntries(Object.entries(cyclicProf).map(([key, p]) => [key, Object.fromEntries(Object.entries(p).map(([f, x]) => [f, Math.round(x)]))]))} : {}
   let search: {searchMs: number, searchCyclic: boolean} | undefined
   if (route === 'both') { const s0 = performance.now(), o = run(); search = {searchMs: Math.round(performance.now() - s0), searchCyclic: o.proven && o.checked} }
-  console.error(`cyclic: ${JSON.stringify({kind, name, usual, cyclic, ms, ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? {leaves: st.leaves, regrown: st.regrown, splits: st.splits} : {}), ...(why ? {fellBack: why} : {}), ...search, ...prof, ...(out.proven ? {nodes: out.proof.nodes.length, ...(out.why ? {why: out.why} : {})} : {goal: out.goal, stuck: out.stuck})})}`)
+  console.error(`cyclic: ${JSON.stringify({kind, name, usual, cyclic, ms, ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {}), ...search, ...prof, ...(out.proven ? {nodes: out.proof.nodes.length, ...(out.why ? {why: out.why} : {})} : {goal: out.goal, stuck: out.stuck})})}`)
   const lax = env()?.GDP_CYCLIC_LAX === '1'
   if (cyclic !== usual && !lax) throw new Error(`cyclic route: ${kind} ${name} is ${cyclic ? 'proven' : 'not proven'} as a cyclic proof, ${usual ? 'proven' : 'not proven'} the usual way${out.proven ? (out.why ? ` (${out.why})` : '') : ` (${out.goal}: ${out.stuck})`}`)
   if (search && search.searchCyclic !== usual && !lax) throw new Error(`cyclic route: ${kind} ${name} is ${search.searchCyclic ? 'proven' : 'not proven'} as a cyclic proof searched, ${usual ? 'proven' : 'not proven'} the usual way`)

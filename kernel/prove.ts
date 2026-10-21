@@ -11,7 +11,7 @@
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {type Lin, type Step, add, k, refuteFast, scale, solve, sub, v} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
-import {crossCyclic, cyclicMachine, cyclicOn, machineNodes, proveCyclic, translatedCache} from '../core/cyclic.ts'
+import {crossCyclic, cyclicMachine, cyclicOn, machineNodes, proveCyclic, timedKind, translatedCache} from '../core/cyclic.ts'
 import {type Goal, type Instances, type Liveness, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
@@ -1043,7 +1043,7 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
   if (cyclicOn()) {
     const inst = out.proof?.instances ?? instances
     if (cyclicMachine(m, laws)) crossCyclic('machine', m.name, out.proven && out.checked, () => { const {facts, specs} = machineNodes(m, laws, inst); return proveCyclic(facts, specs) }, usualMs,
-      out.proof && (st => { const {facts, specs, why} = machineNodes(m, laws, inst, out.proof!, st); return why ? {why} : {verdict: proveCyclic(facts, specs, undefined, translatedCache)} }))
+      out.proof && (st => { const {facts, specs, why} = timedKind('instance', 0, () => machineNodes(m, laws, inst, out.proof!, st)); return why ? {why} : {verdict: proveCyclic(facts, specs, undefined, translatedCache, st)} }))
     else console.error(`cyclic: ${JSON.stringify({kind: 'machine', name: m.name, usual: out.proven && out.checked, uncovered: true})}`)
   }
   return out
