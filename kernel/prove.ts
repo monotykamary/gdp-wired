@@ -171,7 +171,7 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
   if (++budget.nodes > 200_000 || (budget.until !== undefined && performance.now() > budget.until)) return {stuck: 'unknown', path, why: outOfBudget(goal, budget.nodes > 200_000 ? 'nodes' : 'time', path.size)}
   // Rows that read a term column only once a cut has put one on the path; before, the rows a choice-free search uses
   // (what it saw before term columns), renumbered to the whole leaf's when a leaf is found.
-  const full = timed(() => leafConstraintsReusing(goal, path), ms => { profile.rowsMs += ms })
+  const full = timed(() => rowsAt(goal, path), ms => { profile.rowsMs += ms })
   const columns = [...path.values()].some(a => Object.keys(a.lin).some(key => key.startsWith('⟦')))
   const idx = full.flatMap((r, i) => (columns || !Object.keys(r.lin).some(key => key.startsWith('⟦')) ? [i] : []))
   const rows = idx.map(i => full[i]!), at = (i: number) => (i < rows.length ? idx[i]! : full.length + i - rows.length)
@@ -394,6 +394,18 @@ function squareForms(rows: {lin: Lin}[]): Lin[] {
 // the decision's own row, and any row only it makes, are not there), every split kept. The derivations are the same
 // arithmetic over the same rows, and the kernel checks the whole tree in the end. Undefined at the first leaf that
 // needs the decision.
+// A leaf's rows, by its path's decisions in order (what they are a function of): a lift reads every leaf of a subtree
+// at its own path, found when it was grown, and at the path without the split, which the next lift up reads again.
+const rowsSeen = new WeakMap<Goal, Map<string, ReturnType<typeof leafConstraintsReusing>>>()
+function rowsAt(goal: Goal, path: Path): ReturnType<typeof leafConstraintsReusing> {
+  let byPath = rowsSeen.get(goal)
+  if (!byPath) rowsSeen.set(goal, (byPath = new Map()))
+  let id = ''
+  for (const [key, a] of path) id += `${a.holds ? '+' : '-'}${key}|`
+  let rows = byPath.get(id)
+  if (!rows) { if (byPath.size >= 4096) byPath.clear(); byPath.set(id, (rows = leafConstraintsReusing(goal, path))) }
+  return rows
+}
 function lift(goal: Goal, tree: Tree, from: Path, to: Path): Tree | undefined {
   const own = to.size // the decision's row: the last of `from`'s path rows, below every later split's
   const reads = (t: Tree): boolean => ('leaf' in t ? t.leaf.some(st => st.kind === 'input' && st.index === own) || (t.products ?? []).some(([i, j]) => i === own || j === own) : reads(t.yes) || reads(t.no))
@@ -406,7 +418,7 @@ function lift(goal: Goal, tree: Tree, from: Path, to: Path): Tree | undefined {
       const no = yes && go(t.no, new Map(a).set(sid, {lin: t.split, holds: false}), new Map(b).set(sid, {lin: t.split, holds: false}))
       return yes && no ? {split: t.split, yes, no} : undefined
     }
-    const ra = leafConstraintsReusing(goal, a), rb = leafConstraintsReusing(goal, b), at = new Map<string, number>()
+    const ra = rowsAt(goal, a), rb = rowsAt(goal, b), at = new Map<string, number>()
     rb.forEach((r, i) => { const key = canon(r.lin); if (!at.has(key)) at.set(key, i) })
     const map = (i: number) => (i < ra.length ? at.get(canon(ra[i]!.lin)) : undefined)
     const leaf: Step[] = []
@@ -421,6 +433,49 @@ function lift(goal: Goal, tree: Tree, from: Path, to: Path): Tree | undefined {
     return {leaf, ...(t.products ? {products} : {}), ...(t.squares ? {squares: t.squares} : {})}
   }
   return go(tree, from, to)
+}
+
+// A tree for a weaker goal (some hypotheses left out, some conjuncts of one left out) made a tree for the whole: at any
+// path a leaf's rows are among the whole goal's (each hypothesis' facts are a hypothesis' own, the cells, terms and
+// naturals they read a subset), so each input is renumbered to the same row there, a square or product past the rows
+// moved by the difference. Where a dropped conjunct makes the whole hypothesis false under the path, its row 1 <= 0
+// refutes the leaf alone; a leaf neither maps is grown again on the whole goal.
+// `opaque`: variables the weaker goal has for terms of the whole (a step's value, read the same in two hypotheses), each
+// read as the term's linear form at the whole goal's path; a split the whole's path already decides is followed, not
+// made again.
+export function widen(part: Goal, whole: Goal, tree: Tree, opaque: Record<string, E> = {}, pp: Path = new Map(), wp: Path = pp): Tree | undefined {
+  const names = Object.keys(opaque)
+  const rename = (lin: Lin): Lin | undefined => {
+    if (!names.length) return lin
+    let out: Lin = {}
+    for (const [key, c] of Object.entries(lin)) {
+      const e = opaque[key]
+      if (e) { const l = linear(e, wp); if (!l) return undefined; out = add(out, scale(l, c)) } else if (names.some(n => key.includes(n))) return undefined
+      else out = add(out, {[key]: c})
+    }
+    return out
+  }
+  if (!('leaf' in tree)) {
+    const id = canon(tree.split), wl = rename(tree.split)
+    if (!wl) { const o = grow(whole, wp); return 'tree' in o ? o.tree : undefined }
+    const wid = canon(wl), known = Object.keys(wl).every(key => key === '1') ? (wl['1'] ?? 0) <= 0 : wp.has(wid) ? wp.get(wid)!.holds : wp.has(canonFlip(wl)) ? !wp.get(canonFlip(wl))!.holds : undefined
+    if (known !== undefined) return widen(part, whole, known ? tree.yes : tree.no, opaque, new Map(pp).set(id, {lin: tree.split, holds: known}), wp)
+    const yes = widen(part, whole, tree.yes, opaque, new Map(pp).set(id, {lin: tree.split, holds: true}), new Map(wp).set(wid, {lin: wl, holds: true}))
+    const no = yes && widen(part, whole, tree.no, opaque, new Map(pp).set(id, {lin: tree.split, holds: false}), new Map(wp).set(wid, {lin: wl, holds: false}))
+    return yes && no ? {split: wl, yes, no} : undefined
+  }
+  const rp = rowsAt(part, pp), rw = rowsAt(whole, wp), at = new Map<string, number>()
+  rw.forEach((r, i) => { const key = canon(r.lin); if (!at.has(key)) at.set(key, i) })
+  const map = (i: number) => { if (i >= rp.length) return i - rp.length + rw.length; const l = rename(rp[i]!.lin); return l && at.get(canon(l)) }
+  const leaf: Step[] = [], products: [number, number][] = []
+  let ok = !names.length || !(tree.products?.length || tree.squares?.length)
+  for (const st of ok ? tree.leaf : []) { if (st.kind !== 'input') { leaf.push(st); continue } const j = map(st.index); if (j === undefined) { ok = false; break } leaf.push({...st, index: j}) }
+  for (const [i, j] of ok ? tree.products ?? [] : []) { const pi = map(i), pj = map(j); if (pi === undefined || pj === undefined) { ok = false; break } products.push([pi, pj]) }
+  if (ok) return {leaf, ...(tree.products ? {products} : {}), ...(tree.squares ? {squares: tree.squares} : {})}
+  const absurd = rw.findIndex(r => Object.keys(r.lin).every(key => key === '1') && (r.lin['1'] ?? 0) > 0)
+  if (absurd >= 0) return {leaf: [{kind: 'input', index: absurd}]}
+  const out = grow(whole, wp)
+  return 'tree' in out ? out.tree : undefined
 }
 
 // Whether each hypothesis reads only names the goal's conclusion (its last hypothesis) reads.
@@ -807,9 +862,9 @@ function triggered(m: Machine, laws: Law[], inst: Instances, build: (inst: Insta
 // fewer hypotheses (a law about pairs of items with 900 instance hypotheses and 30 leaves using a few of them, say).
 export const minimal = {on: false}
 // The hypotheses a tree's leaves read: each leaf's input rows, and the rows its products multiply.
-function usedHyps(goal: Goal, tree: Tree, path: Path = new Map(), out = new Set<number>()): Set<number> {
+export function usedHyps(goal: Goal, tree: Tree, path: Path = new Map(), out = new Set<number>()): Set<number> {
   if ('leaf' in tree) {
-    const rows = leafConstraints(goal, path), n = rows.length, sq = tree.squares?.length ?? 0
+    const rows = rowsAt(goal, path), n = rows.length, sq = tree.squares?.length ?? 0
     const mark = (i: number): void => {
       if (i < n) { const s = rows[i]!.src; if (s && 'fact' in s) out.add(s.fact) } else if (i >= n + sq) { const pq = tree.products?.[i - n - sq]; if (pq) { mark(pq[0]); mark(pq[1]) } }
     }
