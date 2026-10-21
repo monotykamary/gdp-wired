@@ -721,6 +721,25 @@ export function proveLaws(m: Machine, laws: Law[]): Report & {laws?: Law[], proo
   if ('stuck' in out) return {proven: false, nodes: 0, leaves: 0, failed: {goal: 'witnesses', stuck: out.stuck}, checked: false}
   return {...proveLawsAsGiven(m, out.items), laws: out.items}
 }
+// One law's two goals, every law assumed (core/infer.ts adds laws one at a time and reproves only what isn't proven
+// yet); not a proof of the set, which proveLaws gives. Laws with some key go through proveLaws.
+export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>} {
+  const law = laws[i]!
+  if (laws.some(l => someKeys(l.holds).length)) {
+    const r = proveLaws(m, laws)
+    return r.proven ? {proven: true} : {proven: false, goal: r.failed!.goal, stuck: r.failed!.stuck, ...(r.failed!.witness ? {witness: r.failed!.witness} : {})}
+  }
+  const keys = [...readKeys(m, laws), ...witnesses(m)]
+  const inst = instancesFor(m, laws, inst => obligations(m, laws, {[law.name]: inst}, i), {
+    seed: [...keys, ...(law.forall ? [{op: 'var', name: `${law.forall}#`} as E] : []), ...(law.keys ?? []).map((name): E => ({op: 'var', name}))],
+    focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
+  })
+  for (const goal of obligations(m, laws, {[law.name]: inst}, i)) {
+    const out = grow(goal)
+    if (!('tree' in out)) return {proven: false, goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {})}
+  }
+  return {proven: true}
+}
 function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
   // Each law's two goals (start and step) get their own instances, seeded with its own keys.
   const keys = [...readKeys(m, laws), ...witnesses(m)], instances: Record<string, Instances> = {}

@@ -69,6 +69,10 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   machine runs as, with each guard and action it names given again in gdp-wired's terms, and `conforms(chart, machine,
   createActor)` drives XState's own actor and the compiled rule with the same random events, comparing every state and
   context; what a chart can't run the same way is refused when built, with the reason (`examples/xstate.ts`).
+- **Invariants nobody wrote** (`gdp-wired/infer`): `inferLaws(rule, laws)` proves a law that holds but isn't inductive
+  alone, with the laws it finds (bounds, sums and differences over the state, the same where a flag or a choice holds
+  one value, and laws about every key of a map), each proven by the kernel with yours and handed back as the
+  `r.law(...)` call that states it; a false law comes back with the run that breaks it (`examples/infer.ts`).
 - **Orderings at any distance**: "a refund never follows a release", through ghost state that watches the rule.
 - **Liveness**: "every ticket issued is served", in every run that keeps sending the requests that help, including under
   weak fairness (`examples/liveness.ts`).
@@ -94,8 +98,8 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   secret never changes the answer". `examples/jev-fabric/` ports a Bend project's policy core and proves all 59 laws its
   Bend proofs state.
 
-When a law is false, the GPU search finds a real run that breaks it. When a law needs an invariant nobody wrote, the GPU
-synthesizer finds one and the kernel proves it.
+When a law is false, the GPU search finds a real run that breaks it. When a law needs an invariant nobody wrote,
+`inferLaws` finds one on the CPU (and the GPU synthesizer, at scale, in `research/synth/`) and the kernel proves it.
 
 **What it leaves to Lean or Bend.** Two things, and neither is a gap the next feature closes: proofs the prover would
 have to invent (induction over a recursive structure whose proof needs a lemma nobody stated and `discover` doesn't find, and arithmetic with
@@ -386,12 +390,13 @@ The npm package is built from `core/`, `kernel/` and `lean-kernel/` alone; nothi
 ## Running
 
 The npm package is the library: the builders (`gdp-wired`), the runtimes (`gdp-wired/machine`), composition
-(`gdp-wired/compose`), XState machines as charts (`gdp-wired/xstate`), lemmas nobody stated (`gdp-wired/discover`), the Lean export (`gdp-wired/lean`), the kernel
-(`gdp-wired/kernel`), the prover (`gdp-wired/prove`), the derivation checker and solver (`gdp-wired/check`,
-`gdp-wired/solver`). Everything else here (examples, comparisons, the Lean twin, the GPU searches) runs from a clone and
-needs [Bun](https://bun.sh); Lean 4.34.0 for `lean/` and `lean-kernel/`; a WebGPU runtime (Chrome, or Dawn's node
-bindings) for the GPU parts. Releases: bump `version` in `package.json` and push to main;
-`.github/workflows/publish.yml` publishes it with npm provenance.
+(`gdp-wired/compose`), XState machines as charts (`gdp-wired/xstate`), lemmas nobody stated (`gdp-wired/discover`), invariant
+inference (`gdp-wired/infer`), the
+Lean export (`gdp-wired/lean`), the kernel (`gdp-wired/kernel`), the prover (`gdp-wired/prove`), the derivation checker
+and solver (`gdp-wired/check`, `gdp-wired/solver`). Everything else here (examples, comparisons, the Lean twin, the GPU
+searches) runs from a clone and needs [Bun](https://bun.sh); Lean 4.34.0 for `lean/` and `lean-kernel/`; a WebGPU
+runtime (Chrome, or Dawn's node bindings) for the GPU parts. Releases: bump `version` in `package.json` and push to
+main; `.github/workflows/publish.yml` publishes it with npm provenance.
 
 ```sh
 git clone --recursive https://github.com/monotykamary/gdp-wired && cd gdp-wired

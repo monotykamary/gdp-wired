@@ -16,6 +16,7 @@ import {distinctNames, distinctNamesLaws, sortedList, sortedListLaws} from '../e
 import {groupLaws, groups} from '../examples/groups.ts'
 import {binding, bindingLaws, checkout, checkoutLaws, order, orderLaws} from '../examples/charts.ts'
 import {xorder, xorderLaws} from '../examples/xstate.ts'
+import {lease, leaseLaw, pool, poolLaw} from '../examples/infer.ts'
 import {wide} from '../examples/wide.ts'
 import {area, areaLaws, counter, counterLaws, escalation, escalationLaws, fillMeter, fillMeterLaws, ladder, ladderLaws, ledger, ledgerLaws, pump, pumpLive, retries, retryLaws, retrySteps, tank, tankLaws} from '../examples/lemmas.ts'
 import {team, teamLaws, teamSteps} from '../examples/sizes.ts'
@@ -95,6 +96,9 @@ const file = toLean(([
   {id: 'checkoutchart', machine: checkout().rule.machine, laws: checkoutLaws()},
   {id: 'bindingchart', machine: binding().rule.machine, laws: [], stepLaws: bindingLaws()},
   {id: 'xstateorder', machine: xorder().rule.machine, laws: [...xorder().chartLaws(), ...xorderLaws().laws], stepLaws: xorderLaws().stepLaws},
+  // Invariants core/infer.ts found (examples/infer.ts), written out as its builder calls: with the laws they prove.
+  {id: 'inferpool', machine: pool().machine, laws: [poolLaw(), pool().law('inUse + released <= acquired', ({inUse, acquired, released}) => inUse.plus(released).atMost(acquired))]},
+  {id: 'inferlease', machine: lease().machine, laws: [leaseLaw(), lease().law('every k: Expiry[k] <= until', ({until, Expiry}) => forall(k => Expiry.at(k).atMost(until)))]},
   {id: 'groups0', machine: groups().machine, laws: [], stepLaws: [groupLaws()[0]!]},
   {id: 'groups1', machine: groups().machine, laws: [], stepLaws: [groupLaws()[1]!]},
   {id: 'groups2', machine: groups().machine, laws: [], stepLaws: [groupLaws()[2]!]},

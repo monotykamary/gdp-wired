@@ -5,22 +5,13 @@
 import {type Law} from '../../core/machine.ts'
 import {type Verdict, fold, max, min, modBy, nat, oneOf, proveFold, proveSteps, recur, rule, when} from '../../core/dsl.ts'
 import {discover, discoverFold} from '../../core/discover.ts'
-import {proveLaws} from '../../kernel/prove.ts'
-import {invariantCases} from '../synth/models.ts'
+import {invariantItems} from './invariants.ts'
 import {retries, retryLaws, retrySteps} from '../../examples/lemmas.ts'
 import {Line, invoices, invoiceLaws, invoiceSteps} from '../../examples/invoices.ts'
 import {nonlinear} from './nonlinear.ts'
 
 export type Track = 'invariant' | 'lemma' | 'fold' | 'nonlinear' | 'structure'
 export type Item = {id: string, track: Track, removed: string, today: () => Verdict, frontier?: () => Verdict}
-
-const machineVerdict = (out: ReturnType<typeof proveLaws>): Verdict => ({proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck} : {})})
-
-// Invariants: research/synth's cases, the law alone.
-const invariants: Item[] = invariantCases.map(c => ({
-  id: `invariant/${c.m.name}`, track: 'invariant', removed: 'the inductive invariant the law needs',
-  today: () => machineVerdict(proveLaws(c.m, [c.goal])),
-}))
 
 // Recurrences with no lemma: examples/lemmas.ts's rules, each function declared again with its lemmas taken out (the
 // fill meter and the tank aren't here: their law follows from the equations alone).
@@ -78,4 +69,4 @@ const folds: Item[] = [
     frontier: () => { const {f, laws} = orgChart(); return discoverFold(f, laws).verdict }},
 ]
 
-export const corpus: Item[] = [...invariants, ...lemmas, ...folds, ...nonlinear]
+export const corpus: Item[] = [...invariantItems, ...lemmas, ...folds, ...nonlinear]

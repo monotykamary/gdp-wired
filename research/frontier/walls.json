@@ -1,0 +1,128 @@
+[
+ {
+  "domain": "access",
+  "case": "role grants",
+  "law": "every admin is a member",
+  "ms": 48
+ },
+ {
+  "domain": "access",
+  "case": "login lockout",
+  "law": "failures never pass maxFails",
+  "ms": 4
+ },
+ {
+  "domain": "ai agents",
+  "case": "approval gate for destructive tools",
+  "law": "every destructive action that ran was approved",
+  "ms": 20
+ },
+ {
+  "domain": "cloud",
+  "case": "autoscaling within bounds",
+  "steps": true,
+  "ms": 3
+ },
+ {
+  "domain": "commerce",
+  "case": "inventory reservations",
+  "law": "sold <= received",
+  "ms": 9
+ },
+ {
+  "domain": "commerce",
+  "case": "hotel room-nights",
+  "law": "a room-night has a holder exactly when it is booked",
+  "ms": 22
+ },
+ {
+  "domain": "finance",
+  "case": "vesting with a cliff",
+  "law": "claimed <= vested",
+  "ms": 5
+ },
+ {
+  "domain": "games",
+  "case": "loot drops with pity",
+  "law": "opened <= rares * (pity + 1) + misses",
+  "ms": 4
+ },
+ {
+  "domain": "games",
+  "case": "friend requests",
+  "law": "friends only where asked",
+  "ms": 17
+ },
+ {
+  "domain": "governance",
+  "case": "one vote per voter",
+  "law": "every voter: at most one ballot counted",
+  "ms": 5
+ },
+ {
+  "domain": "governance",
+  "case": "one vote per voter",
+  "law": "a counted ballot means the voter voted",
+  "ms": 10
+ },
+ {
+  "domain": "governance",
+  "case": "proposal lifecycle",
+  "law": "executed at most once",
+  "ms": 4
+ },
+ {
+  "domain": "healthcare",
+  "case": "medication order lifecycle",
+  "law": "an order is activated at most once",
+  "ms": 3
+ },
+ {
+  "domain": "operations",
+  "case": "connection pool",
+  "law": "released <= acquired",
+  "ms": 4
+ },
+ {
+  "domain": "protocols",
+  "case": "lease",
+  "law": "only the owner holds a live lease",
+  "ms": 17
+ },
+ {
+  "domain": "protocols",
+  "case": "lease",
+  "law": "every lease ends by until",
+  "ms": 19
+ },
+ {
+  "domain": "protocols",
+  "case": "idempotency keys",
+  "law": "every id: applied at most once",
+  "ms": 9
+ },
+ {
+  "domain": "protocols",
+  "case": "idempotency keys",
+  "law": "every id: applied exactly when done",
+  "ms": 8
+ },
+ {
+  "domain": "public",
+  "case": "class waitlist",
+  "law": "nobody waits while a seat is free",
+  "ms": 6
+ },
+ {
+  "domain": "safety and iot",
+  "case": "emergency stop",
+  "steps": true,
+  "ms": 5
+ },
+ {
+  "domain": "supply",
+  "case": "machine maintenance interval",
+  "law": "hours since service <= limit + one shift",
+  "ms": 8
+ }
+]
