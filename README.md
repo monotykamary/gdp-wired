@@ -70,8 +70,9 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   createActor)` drives XState's own actor and the compiled rule with the same random events, comparing every state and
   context; what a chart can't run the same way is refused when built, with the reason (`examples/xstate.ts`).
 - **What nobody stated, looked for when the prover alone stops**: where `proveRule` or `proveSteps` doesn't prove the laws
-  and no run breaks them, it looks for lemmas about the rule's recurrences and lists (`discover`) and then invariants
-  (`inferLaws`), within 10 s (`{search: {ms}}`; `{search: false}`, the prover alone); the verdict's `found` holds what
+  and no run breaks them, it looks for lemmas about the rule's recurrences and lists (`discover`), lemmas about the
+  functions it knows by their facts (`cycleLemmas`, each proven by a cyclic proof) and then invariants (`inferLaws`),
+  within 10 s (`{search: {ms}}`; `{search: false}`, the prover alone); the verdict's `found` holds what
   proved them, as laws and lemmas with the source to paste.
 - **Invariants nobody wrote** (`gdp-wired/infer`): `inferLaws(rule, laws)` proves a law that holds but isn't inductive
   alone, with the laws it finds (bounds, sums and differences over the state, the same where a flag or a choice holds
@@ -90,6 +91,12 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   of a list a request carries need, from their values (bounds, linear relations, a closed form of degree 2 at most, a
   law between two points), proves it by the same induction and keeps only what the laws need; `discoverFold(fold,
   laws)` does the same for a fold over a tree. What it finds comes back as source to paste (`examples/discover.ts`).
+- **Cycles nobody shaped** (`gdp-wired/cycles`): `findCycles(facts, claims)` proves claims about functions defined by
+  their equations with nothing a proof needs stated: the rank each induction drops (from the runs, by linear
+  programming, in order: McCarthy's 91 by 101 − n, Ackermann's by (m, n)), where each cycle returns (the calls its
+  goal reads), and the lemma a stuck one needs (g(x, 0) = 2x through g(x, a) = a + 2x; a bound on another function);
+  `proveLoop` with no rank finds it (two phases' (x, y)) and the invariants it needs; the kernel checks the cyclic
+  proof (`examples/cycles.ts`).
 - **Records and variants**: inputs, state, results, map cells and list items made of named fields, or one of several
   cases each with fields of its own (a payment by card or in cash, a seat free, held or sold), every case covered
   (`examples/datatypes.ts`).
@@ -120,7 +127,7 @@ sound.
 | Part | Trusted? | What it does |
 | --- | --- | --- |
 | `kernel/kernel.ts`, `core/check.ts` | **Yes** | Turns a rule and its laws into goals, and checks a proof tree for each: case splits on linear facts, then a linear refutation at each leaf |
-| `kernel/cyclic.ts` | **Yes** | Cyclic proofs: builds each node's goals (its own, and for each node it uses, that node's hypotheses and that the rank drops) and checks each tree with kernel.ts's check. Its twin is `lean-kernel/Cyclic.lean` (`cyclic_sound`) |
+| `kernel/cyclic.ts` | **Yes** | Cyclic proofs: builds each node's goals (its own, and for each node it uses, that node's hypotheses and that the rank drops) and checks each tree with kernel.ts's check. Its twin is `lean-kernel/Cyclic.lean` (`cyclic_sound`), and `lean-kernel/Bridge.lean` carries a cyclic proof of a machine's law, a recurrence's lemmas or a fold's law back to the rule itself |
 | `kernel/prove.ts` | No | Finds the proof trees. If it's wrong, the kernel rejects the tree |
 | `lean-kernel/` | Optional | The kernel's twin in Lean 4.34.0, every rule proven sound there with the standard axioms only. The exporter sends the kernel's real trees; tampered ones compute to false |
 | `research/search/`, `research/synth/`, `research/hw/` | No | The GPU searches for breaking runs, and invariant and rank synthesis. Every hit is replayed or proven before it counts |
