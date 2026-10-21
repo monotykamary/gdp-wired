@@ -78,6 +78,10 @@ All of these are proven automatically, and each proof is also a Lean theorem:
 - **Lemmas you state**: a function defined by a recurrence (`recur`), of one argument or several, reading other
   functions, and lemmas about it proven by induction, at one point or between two, which every rule that reads it may
   then use: a backoff delay is at most 64 at every attempt and never shrinks (`examples/lemmas.ts`).
+- **Lemmas nobody stated** (`gdp-wired/discover`): `discover(rule, laws, stepLaws)` finds what a recurrence or the folds
+  of a list a request carries need, from their values (bounds, linear relations, a closed form of degree 2 at most, a
+  law between two points), proves it by the same induction and keeps only what the laws need; `discoverFold(fold,
+  laws)` does the same for a fold over a tree. What it finds comes back as source to paste (`examples/discover.ts`).
 - **Records and variants**: inputs, state, results, map cells and list items made of named fields, or one of several
   cases each with fields of its own (a payment by card or in cash, a seat free, held or sold), every case covered
   (`examples/datatypes.ts`).
@@ -94,9 +98,9 @@ When a law is false, the GPU search finds a real run that breaks it. When a law 
 synthesizer finds one and the kernel proves it.
 
 **What it leaves to Lean or Bend.** Two things, and neither is a gap the next feature closes: proofs the prover would
-have to invent (induction over a recursive structure whose proof needs a lemma nobody stated, and arithmetic with
-products of unknowns beyond what products of facts and sums of squares give; integer arithmetic with induction or with
-products is undecidable; a lemma you state about a recurrence is proven, but a recursive datatype as a value is Lean's), and shipping an arbitrary algorithm as its proved source (gdp-wired ships the rule as JavaScript; Bend
+have to invent (induction over a recursive structure whose proof needs a lemma nobody stated and `discover` doesn't find, and arithmetic with
+products of unknowns beyond what products of facts and sums of squares give; integer arithmetic with induction or
+with products is undecidable; a lemma you state about a recurrence is proven, but a recursive datatype as a value is Lean's), and shipping an arbitrary algorithm as its proved source (gdp-wired ships the rule as JavaScript; Bend
 compiles the proved source itself). The full list of what is and isn't in scope is in
 [`docs/comparison.md`](docs/comparison.md#gdp-wireds-scope-in-detail).
 
@@ -382,7 +386,7 @@ The npm package is built from `core/`, `kernel/` and `lean-kernel/` alone; nothi
 ## Running
 
 The npm package is the library: the builders (`gdp-wired`), the runtimes (`gdp-wired/machine`), composition
-(`gdp-wired/compose`), XState machines as charts (`gdp-wired/xstate`), the Lean export (`gdp-wired/lean`), the kernel
+(`gdp-wired/compose`), XState machines as charts (`gdp-wired/xstate`), lemmas nobody stated (`gdp-wired/discover`), the Lean export (`gdp-wired/lean`), the kernel
 (`gdp-wired/kernel`), the prover (`gdp-wired/prove`), the derivation checker and solver (`gdp-wired/check`,
 `gdp-wired/solver`). Everything else here (examples, comparisons, the Lean twin, the GPU searches) runs from a clone and
 needs [Bun](https://bun.sh); Lean 4.34.0 for `lean/` and `lean-kernel/`; a WebGPU runtime (Chrome, or Dawn's node

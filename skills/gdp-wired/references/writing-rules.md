@@ -289,5 +289,11 @@ c.check(); c.prove([c.law('retries within 2', ({retries}) => retries.atMost(2))]
   functions, and a fourth
   argument states laws between two points (`(x, fx, y, fy) => fx.atMost(fy)`, for every x <= y)
   (`examples/lemmas.ts`, [Lean handoff](lean-handoff.md)).
+- `discover(r, laws, stepLaws)` (`gdp-wired/discover`): where a law needs a lemma about a `recur` function or a
+  carried list's folds that nobody stated, it finds one among bounds, linear relations, closed forms of degree 2 at most
+  and laws between two points, proves it by the same induction and keeps only what the laws need: `out.verdict` is of
+  `out.rule`, the rule made again with them, and `out.found` is source to paste into `recur` or `carriesList`
+  (`{delay: {lemmas: ["'f(x) <= 64': (_, f) => f.atMost(64)"]}}`). `discoverFold(fold, laws)` does the same for a tree
+  fold; `found` is laws to pass as `proveFold`'s `lemmas`, and lemmas for `.children` (`examples/discover.ts`).
 - `gdp-wired/compose`: `product`, `interleave`, `refinement(impl, spec, {relation, witness, stutter})`, `steps`,
   `ghost(m, {name: ever(...) | count(...) | total(...)})` for orderings at any distance (`examples/composition.ts`).

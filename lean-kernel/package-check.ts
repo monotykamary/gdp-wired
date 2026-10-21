@@ -20,6 +20,7 @@ import {wide} from '../examples/wide.ts'
 import {area, areaLaws, counter, counterLaws, escalation, escalationLaws, fillMeter, fillMeterLaws, ladder, ladderLaws, ledger, ledgerLaws, pump, pumpLive, retries, retryLaws, retrySteps, tank, tankLaws} from '../examples/lemmas.ts'
 import {team, teamLaws, teamSteps} from '../examples/sizes.ts'
 import {allDone, batchLaws, batches, everyTaggedTicket, taggedLaws, taggedTickets, everyLoggedTicket, everyRecountedTicket, everyReview, everyTicket, loggedLaws, loggedTickets, recounted, recountedLaws, reviewLaws, reviews, ticketLaws, tickets} from '../examples/liveness.ts'
+import {areaLaws as foundAreaLaws, foundArea, foundInvoices, foundOrgChart, foundRetries, orgChart as bareOrgChart, orgChartLaws as bareOrgChartLaws, retryLaws as foundRetryLaws, retrySteps as foundRetrySteps} from '../examples/discover.ts'
 import {leanProject, toLean} from './emit.ts'
 
 const caps = rule('caps').params({d: nat}).inputs({acct: nat, day: nat, ok: bool}).maps({Acct: 0, Day: 0})
@@ -78,6 +79,11 @@ const file = toLean(([
   {id: 'rollup', fold: rollup().fold, laws: rollupLaws()},
   {id: 'orgchart', fold: orgChart().fold, laws: [...orgChart().lemmas, ...orgChartLaws()]},
   {id: 'metered', machine: metered().machine, laws: meteredLaws()},
+  // Lemmas nobody stated, found (core/discover.ts): each rule made again with what was found, its laws as given.
+  {id: 'foundbackoff', machine: foundRetries().rule.machine, laws: foundRetryLaws(), stepLaws: foundRetrySteps()},
+  {id: 'foundarea', machine: foundArea().rule.machine, laws: foundAreaLaws()},
+  {id: 'foundinvoices', machine: foundInvoices().rule.machine, laws: invoiceLaws(invoices('states no lemma')), stepLaws: invoiceSteps(invoices('states no lemma'))},
+  {id: 'foundorgchart', fold: bareOrgChart().fold, laws: [...bareOrgChart().lemmas, ...foundOrgChart().lemmas, ...bareOrgChartLaws()]},
   // A decision about a carried list: the folds' equations and lemma assumed at the list's end.
   {id: 'taxwithin', goal: invoices().decide('the taxable part is within the total', () => [], ({Lines}) => Lines.fold.taxed.atMost(Lines.fold.total)).goal},
   // A decision that reads conditions about every key, as the step law it is proven as.

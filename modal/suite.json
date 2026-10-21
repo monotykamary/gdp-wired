@@ -887,6 +887,20 @@
 "timeout": 900
 },
 {
+"name": "discover",
+"cmd": "bun test discover.test.ts 2>&1 && cd .. && bun examples/discover.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "frontier-score",
+"cmd": "bun research/frontier/score.ts --limit 120 2>&1",
+"cwd": ".",
+"cpu": 1.0,
+"timeout": 1800
+},
+{
 "name": "keyterms",
 "cmd": "bun test keyterms.test.ts 2>&1",
 "cwd": "core",

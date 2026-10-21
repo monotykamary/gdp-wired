@@ -64,9 +64,13 @@ When adding or changing a rule whose invariants matter:
 6. **Keep the broken variant.** Next to each proven rule, keep the bug it
    rules out (the uncapped budget) and assert it is refused. It is the
    cheapest regression test you will write.
-7. **State the lemma, or hand off.** A recurrence on one natural (a backoff
-   delay, a fee schedule): define it with `recur` and state the lemmas the
-   rule needs; they are proven by induction and become its facts. Other
+7. **State the lemma, find it, or hand off.** A recurrence on one natural (a
+   backoff delay, a fee schedule): define it with `recur` and state the lemmas
+   the rule needs; they are proven by induction and become its facts. When the
+   law isn't proven and you don't know the lemma, `discover(rule, laws,
+   stepLaws)` (`gdp-wired/discover`) looks for it, for a recurrence and for a
+   carried list's folds (`discoverFold(fold, laws)` for a tree): paste what
+   `found` gives into `recur`, `carriesList` or `.children`. Other
    recursive structure, or products of unknowns past what products of facts
    and squares refute: prove the function in Lean,
    give the rule the function with its facts, export with `toLean`
@@ -102,6 +106,7 @@ From `gdp-wired`:
 | `fun(name)`, `loop(name)` | Pure functions (`.returns`, `.law`, `.relate`, `.run`) and loops (`.while`, `.body`, `.rank`). |
 | `fn(arity, js, {facts, lean})`, `divBy(c)`, `modBy(c)` | Functions known by their facts. |
 | `recur(name, {args, fns, zero, next}, lemmas, between)` | A function defined by a recurrence on its first argument (up to four further arguments fixed, other functions read), its lemmas and laws between two points proven by induction when made (`Unproven` otherwise); its equations, lemmas and laws are its facts, checked again by Lean as the kernel's own proof. |
+| `discover(rule, laws, stepLaws)`, `discoverFold(fold, laws)` | `gdp-wired/discover`: lemmas nobody stated, for a recurrence's function, a carried list's folds or a tree fold, found from their values (bounds, linear relations, closed forms of degree 2 at most, laws between two points), proven by the same induction, only those the laws need kept; `verdict` is of `rule` (the rule made again with them), `found` is source to paste. |
 | `r.carriesList(name, kind, folds, lemmas)` | A list of values a request carries (an invoice's lines): `L.every`, `L.at(i)`, `L.fold.<f>`; folds and lemmas may read the params; fold lemmas proven by induction (they read the folds, not the items); decisions assume the folds too. |
 | `fold(name)`, `proveFold`, `f.run(tree)` | A fold over a tree given as a value: `.leaf`, `.node`, `.law` (`.children` for any number of children per node); laws proven by induction over the tree. |
 | `r.nodes(name, kind, children, folds)` | A tree (or lists of lists) in the state: a table of nodes that only grows, `T.make(value, kids, when)`, `T.node(n).fold`; a law about a subtree is a law about one node. |

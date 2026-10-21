@@ -62,6 +62,9 @@ proveRule(retry, [retry.law('the next try is at most 64 after the last request',
   builders pair the arguments as (a + b)² + b; `Recur.pair_inj` proves that injective). A fact about several keys goes to
   the twin as one (`pfacts`), given at every value of its further keys and assumed at the tuples the proof names, as a
   law about several keys is; `<id>_pfacts_hold` proves it of the definitions.
+- Not sure what the lemma is? `discover(rule, laws, stepLaws)` (`gdp-wired/discover`) tries bounds, linear relations,
+  closed forms of degree 2 at most and laws between two points, from the function's values; what it proves comes back
+  as source to paste into `recur`, and the rule it returns, made again with them, exports to Lean as above.
 - A recursion that isn't on a natural (a tree, a list as a value), or a lemma that isn't by induction from 0 or
   between two points, is the next section.
 

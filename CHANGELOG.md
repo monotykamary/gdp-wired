@@ -18,6 +18,14 @@ noted), each with the command that reproduces it.
   goals) makes the same 14,008 solver calls as before, in 4.0–6.0 s over five Modal runs against 5.0–6.5 s before.
   The Lean exports gain these goals and a per-key quota machine (`quota_laws`), and a tampered Cauchy–Schwarz tree
   computes to false.
+- Lemmas nobody stated, found (`gdp-wired/discover`): `discover(rule, laws, stepLaws)` looks, where the laws aren't
+  proven, for lemmas about the rule's `recur` functions and the folds of the lists its requests carry, among bounds,
+  linear relations, closed forms of degree 2 at most and laws between two points that their values meet; proves them by
+  the same induction stated lemmas are proven by and keeps only what the laws need. `discoverFold(fold, laws)` does the
+  same for a fold over a tree, the children's lemmas of `.children` among them. The rule comes back made again with
+  them, what was found as source to paste, and the Lean export checks it as it checks stated lemmas
+  (`examples/discover.ts`). The kernel and the Lean twin are unchanged. On `research/frontier`'s corpus every lemma and
+  fold item is proven (8 of the 12 items; the other 4 are the invariant track's), from 214 ms to 7.9 s each on Modal.
 
 ## 0.14.2
 
