@@ -474,7 +474,21 @@
 },
 {
 "name": "hw-check-steps",
-"cmd": "bun check-steps.ts 2>&1",
+"cmd": "PART=steps bun check-steps.ts 2>&1",
+"cwd": "research/hw",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "hw-check-histories",
+"cmd": "PART=histories bun check-steps.ts 2>&1",
+"cwd": "research/hw",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "hw-check-sets",
+"cmd": "PART=sets bun check-steps.ts 2>&1",
 "cwd": "research/hw",
 "cpu": 2.0,
 "timeout": 1800
@@ -755,12 +769,36 @@
 "cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && { [ -f Progress.olean ] || lean -o Progress.olean Progress.lean; } && { [ -f StepLaw.olean ] || lean -o StepLaw.olean StepLaw.lean; } && { [ -f Steps.olean ] || lean -o Steps.olean Steps.lean; } && (lean -o Sets.olean Sets.lean > sets0.out 2>&1 || (grep -v -e 'depends on axioms' sets0.out | grep -A14 error | head -150; echo sets-lean-failed; exit 1)) && ! grep -q \"declaration uses 'sorry'\" sets0.out && bun export-kernel.ts --sets > SetsTrees.lean && (time lean SetsTrees.lean) > sets.out 2>&1; s=$?; grep -v -e linter -e Hint -e Omit -e 'unused' sets.out | head -80; echo lean-exit $s; exit $s"
 },
 {
-"name": "lean-package",
+"name": "lean-package-0",
 "cwd": ".",
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 1800,
-"cmd": "bun scripts/gen-lean-library.ts --check && bun lean-kernel/package-check.ts /tmp/leanpkg && cd /tmp/leanpkg && lake build 2>&1 | grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' | tail -25; s=${PIPESTATUS[0]}; echo lake-exit $s; exit $s"
+"cmd": "bun scripts/gen-lean-library.ts --check && SHARD=0/4 bun lean-kernel/package-check.ts /tmp/leanpkg && cd /tmp/leanpkg && lake build 2>&1 | grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' | tail -25; s=${PIPESTATUS[0]}; echo lake-exit $s; exit $s"
+},
+{
+"name": "lean-package-1",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800,
+"cmd": "SHARD=1/4 bash scripts/lean-items.sh 2>&1"
+},
+{
+"name": "lean-package-2",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800,
+"cmd": "SHARD=2/4 bash scripts/lean-items.sh 2>&1"
+},
+{
+"name": "lean-package-3",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800,
+"cmd": "SHARD=3/4 bash scripts/lean-items.sh 2>&1"
 },
 {
 "name": "lean-nodes",
@@ -768,7 +806,7 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 1800,
-"cmd": "ONLY=searchtree,sheet bun lean-kernel/package-check.ts /tmp/leanpkg && cd /tmp/leanpkg && lake build 2>&1 | grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' | tail -25; s=${PIPESTATUS[0]}; echo lake-exit $s; exit $s"
+"cmd": "ONLY=searchtree,sheet bash scripts/lean-items.sh 2>&1"
 },
 {
 "name": "lean-groups-0",
@@ -776,7 +814,7 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 1800,
-"cmd": "ONLY=groups0 bun lean-kernel/package-check.ts /tmp/leanpkg && cd /tmp/leanpkg && lake build 2>&1 | grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' | tail -25; s=${PIPESTATUS[0]}; echo lake-exit $s; exit $s"
+"cmd": "ONLY=groups0 bash scripts/lean-items.sh 2>&1"
 },
 {
 "name": "lean-groups-1",
@@ -784,7 +822,7 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 1800,
-"cmd": "ONLY=groups1 bun lean-kernel/package-check.ts /tmp/leanpkg && cd /tmp/leanpkg && lake build 2>&1 | grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' | tail -25; s=${PIPESTATUS[0]}; echo lake-exit $s; exit $s"
+"cmd": "ONLY=groups1 bash scripts/lean-items.sh 2>&1"
 },
 {
 "name": "lean-groups-2",
@@ -792,7 +830,7 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 1800,
-"cmd": "ONLY=groups2 bun lean-kernel/package-check.ts /tmp/leanpkg && cd /tmp/leanpkg && lake build 2>&1 | grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' | tail -25; s=${PIPESTATUS[0]}; echo lake-exit $s; exit $s"
+"cmd": "ONLY=groups2 bash scripts/lean-items.sh 2>&1"
 },
 {
 "name": "lean-groups-3",
@@ -800,7 +838,7 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 1800,
-"cmd": "ONLY=groups3 bun lean-kernel/package-check.ts /tmp/leanpkg && cd /tmp/leanpkg && lake build 2>&1 | grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' | tail -25; s=${PIPESTATUS[0]}; echo lake-exit $s; exit $s"
+"cmd": "ONLY=groups3 bash scripts/lean-items.sh 2>&1"
 },
 {
 "name": "compose",
@@ -1190,7 +1228,7 @@
 },
 {
 "name": "lean-cyclic",
-"cmd": "bun scripts/gen-lean-library.ts --check && ONLY=mccarthy,mutual,cycgrowing,cyccounter,cycrollup bun lean-kernel/package-check.ts /tmp/leanpkg && cd /tmp/leanpkg && lake build 2>&1 | grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' | tail -25; s=${PIPESTATUS[0]}; echo lake-exit $s; exit $s",
+"cmd": "ONLY=mccarthy,mutual,cycgrowing,cyccounter,cycrollup bash scripts/lean-items.sh 2>&1",
 "cwd": ".",
 "cpu": 4.0,
 "memory": 8192,

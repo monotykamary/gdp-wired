@@ -18,7 +18,7 @@
 import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type MapUpdate, type Request, type State, carriedView, compileFunction, evalC, evalE, interpret, loadJs, numbersOf, pairedArgs} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type StepLaw, type Tree, check, foldObligations, loopObligations} from '../kernel/kernel.ts'
-import {factsFor, grow, proveLaws, proveLiveness, proveStepLaws} from '../kernel/prove.ts'
+import {factsFor, grow, proveLaws, proveLiveness, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
@@ -2355,7 +2355,7 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   let rule = r, lemmas: Found['lemmas']
   const {fns, lists} = r.parts
   if (lists.length || fns.some(([, d]) => recurOf(d))) {
-    const d = discover(r, laws, stepLaws, v)
+    const d = withDeadline(until, () => discover(r, laws, stepLaws, v))
     if (d.verdict.proven && d.verdict.checked) return {...d.verdict, found: {lemmas: d.found}}
     if (Object.keys(d.found).length) (rule = d.rule, lemmas = d.found)
   }

@@ -53,6 +53,8 @@ const auth = authority()
 // minutes each, so they are checked on their own (the suite's lean-nodes job), and so are the resource groups' laws, one
 // per job (lean-groups-0..3, a quarter of an hour together): left out unless ONLY names them.
 const only = process.env.ONLY?.split(',')
+// SHARD=i/n exports every n-th item from the i-th (the suite's lean-package-0..n−1, one Lean build each).
+const shard = process.env.SHARD?.split('/').map(Number)
 // Built by jobs of their own (modal/suite.json: lean-big's trees and groups; lean-cyclic's cyclic proofs).
 const cyclicItems = ['mccarthy', 'mutual', 'cycgrowing', 'cyccounter', 'cycrollup']
 const separately = ['searchtree', 'sheet', 'groups0', 'groups1', 'groups2', 'groups3', ...cyclicItems]
@@ -171,7 +173,7 @@ const file = toLean(([
   {id: 'countdown', refinement: {impl: countdown().machine, spec: meter.machine, relation: meterRelation, witness: {amount: {op: 'min', a: {op: 'var', name: 'amount'}, b: {op: 'var', name: 'most'}}}}},
   {id: 'twophase', refinement: {impl: twoPhase().machine, spec: meter.machine, relation: [{name: 'used = used', holds: {op: '=', a: {op: 'var', name: 'a_used'}, b: {op: 'var', name: 'b_used'}}}, {name: 'pending <= most', holds: {op: '<=', a: {op: 'var', name: 'a_pending'}, b: {op: 'var', name: 'most'}}}],
     witness: {amount: {op: 'var', name: 'a_pending'}}, stutter: {op: '=', a: {op: 'var', name: 'op'}, b: {op: 'const', value: 0}}}},
-] as Parameters<typeof toLean>[0]).filter(item => (only ? only.includes(item.id) : !separately.includes(item.id))), {title: 'gdp-wired/lean, end to end'})
+] as Parameters<typeof toLean>[0]).filter(item => (only ? only.includes(item.id) : !separately.includes(item.id))).filter((_, i) => !shard || i % shard[1]! === shard[0]!), {title: 'gdp-wired/lean, end to end'})
 const out = process.argv[2]
 if (!out) throw new Error('usage: bun package-check.ts <empty folder>')
 mkdirSync(out, {recursive: true})

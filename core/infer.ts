@@ -17,7 +17,7 @@ import {quietly} from './cyclic.ts'
 import {type C, type E, type Law, type Machine, type Request, type State, any, atMost, evalC, get, interpret, n, not, plus, same, times, x} from './machine.ts'
 import {type StepLaw, type Verdict, proveRule, proveSteps} from './dsl.ts'
 import {allowed, watch} from './watch.ts'
-import {proveLaw, proveLaws, proveStepLaws} from '../kernel/prove.ts'
+import {proveLaw, proveLaws, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 
 type AnyRule = Parameters<typeof proveRule>[0]
 type Env = Record<string, number>
@@ -96,7 +96,9 @@ const keyValue = (cell: string, w: Record<string, number>): number | undefined =
   return value
 }
 
-export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred { return quietly(() => inferLawsSearch(target, laws, stepLaws, opts)) }
+export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
+  return quietly(() => withDeadline(performance.now() + (opts.ms ?? 20000), () => inferLawsSearch(target, laws, stepLaws, opts)))
+}
 function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
   const t0 = performance.now(), until = t0 + (opts.ms ?? 20000), rule = isRule(target) ? target : undefined
   const m = rule ? rule.machine : target as Machine

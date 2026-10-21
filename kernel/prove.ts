@@ -120,7 +120,16 @@ export type Outcome = {tree: Tree, nodes: number} | {stuck: 'sat' | 'unknown', w
 
 // The budget: 200,000 nodes and, by default, a second per hypothesis (at least 20 seconds) per goal; past either the goal
 // is left `unknown`. A goal with many instances (a law about two keys at its pairs) has that many more rows per leaf.
+// A deadline every goal grown inside `withDeadline` keeps, beside its own budget: a search that proves many things (core/
+// infer.ts, core/discover.ts, the search proveRule falls back on) bounds them all; a goal past it is left `unknown`.
+let deadline = Infinity
+export function withDeadline<T>(until: number, f: () => T): T {
+  const outer = deadline
+  deadline = Math.min(outer, until)
+  try { return f() } finally { deadline = outer }
+}
 export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number, until?: number} = {nodes: 0, until: performance.now() + Math.max(20_000, 1_000 * goal.hyps.length)}): Outcome {
+  if (deadline < (budget.until ?? Infinity)) budget.until = deadline
   if (proveDump && !path.size && !budget.nodes) { proveDump(goal); }
   if (proveTrace && !path.size && !budget.nodes) {
     const t = performance.now(), out = growRoot(goal, path, budget)
@@ -729,8 +738,9 @@ function instancesFor(m: Machine, laws: Law[], build: (inst: Instances) => Goal[
 // Instances worth their rows: a quantified flag or a law about every key, at a key where the goals read a map the way
 // its condition reads one at its own key (M[k] read as M[t], M[k + b] as M[t + b]). An instance anywhere else gives each
 // leaf rows about cells nothing else mentions, and a split for each (a flag over grant numbers at a path's positions,
-// say). Found as a fixpoint from the goals with none of these instances, as an instance's rows read cells that make
-// others worth it; a name whose condition reads no map at its key, the focus keys and tuples are kept as they are.
+// say); a tuple, where each of its keys is so read. Found as a fixpoint from the goals with none of these instances, as
+// an instance's rows read cells that make others worth it; a name whose condition reads no map at its keys, and the
+// focus keys, are kept as they are.
 // Untrusted: fewer instances still make a checked proof, and where they don't prove a goal the full set is tried.
 const triggers = (body: C, key: string): {map: string, at: E}[] => {
   const out: {map: string, at: E}[] = [], mentions = (e: E): boolean => JSON.stringify(e).includes(`"name":${JSON.stringify(key)}`)
@@ -741,34 +751,71 @@ const triggers = (body: C, key: string): {map: string, at: E}[] => {
 }
 const substKey = (e: E, key: string, by: E): E => JSON.parse(JSON.stringify(e).replaceAll(`{"op":"var","name":${JSON.stringify(key)}}`, JSON.stringify(by))) as E
 // GDP_TRIGGER=0 keeps every instance (for comparing).
+const triggerDebug = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.TRIGGER_DEBUG
 const triggerOn = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_TRIGGER !== '0'
 function triggered(m: Machine, laws: Law[], inst: Instances, build: (inst: Instances) => Goal[], focus: string[] = []): Instances {
   if (!triggerOn) return inst
-  const bodies = new Map<string, {map: string, at: E}[]>()
-  for (const [n, keys] of Object.entries(inst)) {
-    if (!keys.length) continue
+  // Per name: its bound keys, and for each the triggers that read it alone (a key with none takes any value).
+  const bodies = new Map<string, {keys: string[], per: {map: string, at: E}[][]}>()
+  for (const [n, ks] of Object.entries(inst)) {
+    if (!ks.length) continue
     const q = n.startsWith('?') ? m.step.flags?.[n.slice(1)] : undefined, l = q ? undefined : laws.find(x => x.name === n)
-    const t = q?.op === 'all' && !q.keys?.length ? triggers(q.c, q.key) : l?.forall && !l.keys?.length ? triggers(l.holds, l.forall) : []
-    if (t.length) bodies.set(n, t)
+    const body = q?.op === 'all' ? q.c : l?.forall ? l.holds : undefined, keys = q?.op === 'all' ? boundOf(q) : l?.forall ? [l.forall, ...(l.keys ?? [])] : []
+    if (!body) continue
+    const per = keys.map(key => triggers(body, key).filter(t => keys.every(o => o === key || !JSON.stringify(t.at).includes(`"name":${JSON.stringify(o)}`))))
+    if (per.some(t => t.length)) bodies.set(n, {keys, per})
   }
   if (!bodies.size) return inst
-  const kept = (e: E) => e.op === 'var' && focus.includes(e.name)
-  const out: Instances = Object.fromEntries(Object.entries(inst).map(([n, keys]) => [n, bodies.has(n) ? keys.filter(kept) : keys]))
+  const tuplesOf = (n: string, ks: E[]) => { const a = bodies.get(n)!.keys.length; return Array.from({length: Math.floor(ks.length / a)}, (_, t) => ks.slice(t * a, (t + 1) * a)) }
+  const kept = (tuple: E[]) => tuple.some(e => e.op === 'var' && focus.includes(e.name))
+  const out: Instances = Object.fromEntries(Object.entries(inst).map(([n, ks]) => [n, bodies.has(n) ? tuplesOf(n, ks).filter(kept).flat() : ks]))
   for (let round = 0; round < 8; round++) {
     const reads = new Set<string>()
     const inE = (e: E): void => { if (e.op === 'get') { reads.add(`${e.map}|${JSON.stringify(e.key)}`); inE(e.key) } else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul') inE(e.a); else if ('a' in e) (inE(e.a), inE(e.b)) }
     const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? inC(c.c) : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
     for (const g of build(out)) g.hyps.forEach(inC)
     let grew = false
-    for (const [n, t] of bodies) {
-      const q = n.startsWith('?') ? m.step.flags![n.slice(1)] as Extract<C, {op: 'all'}> : undefined, key = q ? q.key : laws.find(x => x.name === n)!.forall!
-      const have = new Set(out[n]!.map(e => JSON.stringify(e)))
-      for (const e of inst[n]!) {
-        if (have.has(JSON.stringify(e)) || !t.some(({map, at}) => reads.has(`${map}|${JSON.stringify(substKey(at, key, e))}`))) continue
-        out[n]!.push(e); have.add(JSON.stringify(e)); grew = true
+    for (const [n, {keys, per}] of bodies) {
+      const have = new Set(tuplesOf(n, out[n]!).map(t => JSON.stringify(t)))
+      for (const tuple of tuplesOf(n, inst[n]!)) {
+        const id = JSON.stringify(tuple)
+        if (have.has(id) || !keys.every((key, i) => !per[i]!.length || per[i]!.some(({map, at}) => reads.has(`${map}|${JSON.stringify(substKey(at, key, tuple[i]!))}`)))) continue
+        out[n]!.push(...tuple); have.add(id); grew = true
       }
     }
     if (!grew) break
+  }
+  return out
+}
+// For a certificate others check again (the Lean export sets `minimal.on`): the instances of quantified flags a proof
+// found that its leaves refute with, the proof grown again with those alone. The checked goal is then built from far
+// fewer hypotheses (a law about pairs of items with 900 instance hypotheses and 30 leaves using a few of them, say).
+export const minimal = {on: false}
+// The hypotheses a tree's leaves read: each leaf's input rows, and the rows its products multiply.
+function usedHyps(goal: Goal, tree: Tree, path: Path = new Map(), out = new Set<number>()): Set<number> {
+  if ('leaf' in tree) {
+    const rows = leafConstraints(goal, path), n = rows.length, sq = tree.squares?.length ?? 0
+    const mark = (i: number): void => {
+      if (i < n) { const s = rows[i]!.src; if (s && 'fact' in s) out.add(s.fact) } else if (i >= n + sq) { const pq = tree.products?.[i - n - sq]; if (pq) { mark(pq[0]); mark(pq[1]) } }
+    }
+    for (const st of tree.leaf) if (st.kind === 'input') mark(st.index)
+    return out
+  }
+  const id = canon(tree.split)
+  usedHyps(goal, tree.yes, new Map(path).set(id, {lin: tree.split, holds: true}), out)
+  return usedHyps(goal, tree.no, new Map(path).set(id, {lin: tree.split, holds: false}), out)
+}
+// The tuples of each quantified flag whose hypotheses `used` names: a flag's instance hypotheses follow its ?f <= 1 in
+// the goal, in the instances' order (kernel.ts's closing).
+function usedInstances(m: Machine, goal: Goal, inst: Instances, used: Set<number>, focus: string[]): Instances {
+  const out: Instances = {...inst}
+  for (const [f, q] of Object.entries(m.step.flags ?? {})) {
+    if (q.op !== 'all' || !inst[`?${f}`]?.length) continue
+    const at = goal.hyps.findIndex(h => h.op === '<=' && h.a.op === 'var' && h.a.name === `?${f}` && h.b.op === 'const' && h.b.value === 1)
+    if (at < 0) continue
+    const a = boundOf(q).length, ks = inst[`?${f}`]!
+    out[`?${f}`] = Array.from({length: Math.floor(ks.length / a)}, (_, t) => ks.slice(t * a, (t + 1) * a))
+      .filter((tuple, t) => used.has(at + 1 + t) || tuple.some(e => e.op === 'var' && focus.includes(e.name))).flat()
   }
   return out
 }
@@ -974,6 +1021,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
   for (const sl of stepLaws) for (const goal of stepLawObligations(m, laws, perStep[sl.name] ?? instances, sl)) {
     const full = perStep[sl.name] ?? instances, few = triggered(plain, laws, full, inst => stepLawObligations(m, laws, inst, sl), [sl.forall, ...(sl.keys ?? [])].flatMap(k => (k ? [k] : [])))
     let out = sameInstances(few, full) ? grow(goal) : grow(stepLawObligations(m, laws, few, sl).find(g => g.name === goal.name) ?? goal)
+    if (triggerDebug) console.error(`[triggered] ${sl.name}: ${JSON.stringify(Object.fromEntries(Object.entries(few).map(([n, ks]) => [n, `${ks.length}/${full[n]?.length}`])))} ${'tree' in out ? 'proven' : out.stuck}`)
     if ('tree' in out && !sameInstances(few, full)) perStep[sl.name] = few
     else if (!sameInstances(few, full)) out = grow(goal)
     // A k-step law that reads a condition kept across its steps: each flag at its own witnesses, at every step.
@@ -982,6 +1030,15 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
       if ('tree' in again) { out = again; perStep[sl.name] = kept; break }
     }
     if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false}
+    if (minimal.on) {
+      const had = perStep[sl.name] ?? instances, built = stepLawObligations(m, laws, had, sl).find(g => g.name === goal.name)
+      if (built) {
+        const focus = [sl.forall, ...(sl.keys ?? [])].flatMap(k => (k ? [k] : [])), thin = usedInstances(plain, built, had, usedHyps(built, out.tree), focus)
+        const g2 = sameInstances(thin, had) ? undefined : stepLawObligations(m, laws, thin, sl).find(g => g.name === goal.name)
+        const again = g2 && grow(g2)
+        if (again && 'tree' in again) { out = again; perStep[sl.name] = thin }
+      }
+    }
     trees[goal.name] = out.tree
     nodes += out.nodes
     leaves += countLeaves(out.tree)

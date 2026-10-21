@@ -6,7 +6,7 @@ import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
 import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, boundOf, canon, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, historyMachine, foldObligations, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
-import {grow, proveBuilt, proveLaws, proveStepLaws} from '../kernel/prove.ts'
+import {grow, minimal, proveBuilt, proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
 import {type Cyclic, descentGoal, mainGoal, premiseGoal} from '../kernel/cyclic.ts'
@@ -988,7 +988,10 @@ export function toLean(items: LeanItem[], opts: {title?: string, native?: boolea
   const outer = checkBy
   const env = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
   checkBy = (opts.native ?? env?.GDP_LEAN_NATIVE === '1') ? 'native_decide' : 'decide +kernel'
-  try { return toLeanWith(items, opts) } finally { checkBy = outer }
+  // The proofs found with only the instances their leaves use: the same laws, from fewer hypotheses for Lean to build.
+  const wasMinimal = minimal.on
+  minimal.on = true
+  try { return toLeanWith(items, opts) } finally { checkBy = outer; minimal.on = wasMinimal }
 }
 function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   const ident = (id: string) => { const s = id.replace(/[^A-Za-z0-9_]/g, '_'); return /^[A-Za-z]/.test(s) ? s : `x_${s}` }
