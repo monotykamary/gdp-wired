@@ -10,7 +10,8 @@
 // the constant of its tag; one with fields is a map read at its fields (`D.<ctor>[key]`); a function is a map read at
 // its arguments; several arguments are read at their pairing, left-nested (a + b)² + b, as the library reads a function
 // of several arguments (core/dsl.ts's argsKey). The facts, each at every value of its keys:
-//   - the shape: D.tag[x] is a constructor's tag, and under tag j, D.size[x] = 1 + the sizes of x's fields of type D
+//   - the shape: D.tag[x] is a constructor's tag, and under tag j, D.size[x] = 1 + the sizes of x's fields of type D,
+//     and the fields of every other constructor 0
 //   - eta: under tag j, x is constructor j at its own fields (every natural is a value)
 //   - each constructor: D.tag[C[key]] = j and each field of C[key] is its argument
 //   - each function: f[key] = its body, a match read as ifs on the tag, a field bound by a case read from its map
@@ -372,8 +373,13 @@ export function factsOf(p: Program): Facts {
   const x = ev('x$')
   for (const d of p.datas) {
     const tag = get(tagMap(d.name), x), size = (t: E) => get(sizeMap(d.name), t)
-    put(`shape ${d.name}`, {name: '', keys: ['x$'], holds: andC(leC(tag, k(d.ctors.length - 1)), ...d.ctors.map((c, j) =>
-      implies(eqC(tag, k(j)), eqC(size(x), c.fields.flatMap((f, i) => (f.sort === 'self' ? [size(get(fieldMap(d, j, i), x))] : [])).reduce<E>((a, b) => ({op: 'add', a, b}), k(1))))))})
+    // Under tag j: the size, and every field of another constructor 0 (what Lean's model reads there).
+    const under = (c: Ctor, j: number): C => {
+      const sz = c.fields.flatMap((f, i) => (f.sort === 'self' ? [size(get(fieldMap(d, j, i), x))] : [])).reduce<E>((a, b) => ({op: 'add', a, b}), k(1))
+      const others = d.ctors.flatMap((c2, j2) => (j2 === j ? [] : c2.fields.map((_, i2) => eqC(get(fieldMap(d, j2, i2), x), k(0)))))
+      return andC(eqC(size(x), sz), ...others)
+    }
+    put(`shape ${d.name}`, {name: '', keys: ['x$'], holds: andC(leC(tag, k(d.ctors.length - 1)), ...d.ctors.map((c, j) => implies(eqC(tag, k(j)), under(c, j))))})
     put(`eta ${d.name}`, {name: '', keys: ['x$'], holds: andC(...d.ctors.map((c, j) => implies(eqC(tag, k(j)), eqC(x, c.fields.length ? get(ctorMap(d, j), keyOf(c.fields.map((_, i) => get(fieldMap(d, j, i), x)))) : k(j)))))})
     if (d.nullary) put(`nullary ${d.name}`, {name: '', keys: [], holds: andC(...d.ctors.slice(0, d.nullary).map((_, j) => eqC(get(tagMap(d.name), k(j)), k(j))))})
     for (const [j, c] of d.ctors.entries()) {
@@ -909,6 +915,8 @@ function casesOf(p: Program, unfolded: C[], vars: Set<string>, models: M[]): Cas
     const key = pick[0], c = ms.map(i => sigs[i]!.get(key)).find(x => x)!.c
     const side = (t: boolean) => ms.filter(i => sigs[i]!.get(key)?.t !== !t)
     const d2 = new Set([...decided, key])
+    // A guard every one of many models takes one way is not split (its other side is likely no case at all).
+    if (ms.length >= 20 && (!side(true).length || !side(false).length)) return build(ms, lits, d2, depth)
     return [true, false].flatMap(t => { const s2 = side(t), lit = t ? c : {op: 'not', x: c} as C; return s2.length ? build(s2, [...lits, lit], d2, depth + 1) : [{lits: [...lits, lit], models: undefined, near: ms.map(i => models[i]!)}] })
   }
   return build(models.map((_, i) => i), [], new Set(), 0)
@@ -945,8 +953,9 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
   // Uses of the lemmas, where a lemma's largest read matches a read of this goal (unfolded), its key up to the equalities
   // the unfolded definitions give (any branch); twice over, the uses' own conclusions read the second time.
   const pre = instancesOf(p, fs, {roots: [concl], others: ihConcls, depth, shapesAt, etaAt: [], models: [], until: t0 + attemptMs.ms})
-  const lemmaUses = lemmaUsesFor(p, fs, lemmas.map(lm => ({law: lm.law, node: where.get(lm.spec.name)!, concl: specs[where.get(lm.spec.name)!]!.concl})), [concl, ihConcls], pre)
+  const lemmaUses = lemmaUsesFor(p, fs, lemmas.map(lm => ({law: lm.law, node: where.get(lm.spec.name)!, concl: specs[where.get(lm.spec.name)!]!.concl})), [concl, ihConcls], pre, models)
   const uses = [...ih, ...lemmaUses]
+  if (dataTrace) for (const u of lemmaUses) console.error(`[data]   lemma use ${specs[u.node]!.name.slice(0, 40)} at ${Object.entries(u.subst).map(([x, t]) => `${x} := ${JSON.stringify(t).slice(0, 80)}`).join('; ')}`)
   const useConcl = (u: NodeSpec['uses'][number]) => substC(u.node === me ? concl : specs[u.node]!.concl, {vars: u.subst, maps: {}, flags: {}})
   // The lemmas' conclusions are unfolded like the law's (they are what the goal reads, said another way); the cycle's
   // own uses only from depth 3.
@@ -1027,12 +1036,26 @@ function reached(p: Program, fs: Facts, insts: NodeSpec['insts'], from: unknown[
 }
 // The uses of lemmas a goal's reads match: each lemma's largest reads (those inside no other) matched against the goal's
 // reads of the same map at keys equal, by the instances' equations (every branch), to the read's key.
-function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number, concl: C}[], from: unknown[], insts: NodeSpec['insts']): NodeSpec['uses'] {
+function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number, concl: C}[], from: unknown[], insts: NodeSpec['insts'], models: M[] = []): NodeSpec['uses'] {
   const id = tid, parent = new Map<string, string>(), terms = new Map<string, E>()
   const find = (x: string): string => { let r = x; while (parent.has(r)) r = parent.get(r)!; return r }
   const union = (x: E, y: E) => { terms.set(id(x), x); terms.set(id(y), y); const a = find(id(x)), b = find(id(y)); if (a !== b) parent.set(a, b) }
   const leaves = (e: E): E[] => (e.op === 'if' ? [...leaves(e.then), ...leaves(e.else)] : [e])
   for (const q of insts) for (const [a, b] of equalities(holdsAt(fs, q))) for (const leaf of leaves(b)) union(a, leaf)
+  // Closed under congruence (two reads of one map at arguments of one class), by signatures.
+  const cells = new Map<string, {key: E, as: E[]}[]>()
+  walk([from, insts.map(q => holdsAt(fs, q))], o => { if (o.op !== 'get') return; const n = fs.arity.get(o.map as string), as = n ? argsOf(o.key as E, n) : undefined; if (as) (cells.get(o.map as string) ?? cells.set(o.map as string, []).get(o.map as string)!).push({key: o.key as E, as}) })
+  for (let changed = true, rounds = 0; changed && rounds < 8; rounds++) {
+    changed = false
+    for (const [map, list] of cells) {
+      const bySig = new Map<string, E>()
+      for (const x of list) {
+        const sig = x.as.map(t => find(id(t))).join('\u0001'), y = bySig.get(sig), cx = get(map, x.key)
+        if (!y) { bySig.set(sig, cx); continue }
+        if (find(id(y)) !== find(id(cx))) { union(y, cx); changed = true }
+      }
+    }
+  }
   const classes = new Map<string, E[]>()
   for (const [key, e] of terms) { const r = find(key); (classes.get(r) ?? classes.set(r, []).get(r)!).push(e) }
   const members = (t: E): E[] => { const k0 = tid(t); return [t, ...(classes.get(find(k0)) ?? []).filter(e => tid(e) !== k0)] }
@@ -1049,9 +1072,16 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number
       const tops = sides.filter(a => !sides.some(b => b !== a && JSON.stringify(b).includes(JSON.stringify(a)))) as Extract<E, {op: 'get'}>[]
       for (const top of tops) for (const t of reads) {
         if (t.op !== 'get' || t.map !== top.map) continue
-        for (const key of members(t.key)) {
-          const sub = matches(top.key, vars, key, {})
-          if (!sub || Object.keys(sub).length !== vars.size) continue
+        // Each argument of the read matched up to its class (a key of several arguments is their pairing).
+        const n = fs.arity.get(top.map) ?? 1, pats = argsOf(top.key, n), args = argsOf(t.key, n)
+        if (!pats || !args) continue
+        let subs: Record<string, E>[] = [{}]
+        for (const [q, pat] of pats.entries()) subs = subs.flatMap(sb => members(args[q]!).slice(0, 256).flatMap(m => { const r = matches(pat, vars, m, sb); return r ? [r] : [] })).slice(0, 512)
+        for (const sub of subs) {
+          if (Object.keys(sub).length !== vars.size) continue
+          // Where a model gives the lemma's arguments the goal read's (a match through every branch's classes may be none).
+          const there = pats.map(a => substE(a, {vars: sub, maps: {}, flags: {}}))
+          if (models.length && !models.some(({m, env}) => { try { return there.every((a, q) => m.evalE(a, env) === m.evalE(args[q]!, env)) } catch { return false } })) continue
           const k2 = JSON.stringify([lm.node, sub])
           if (seen.has(k2) || out.length >= 12 || out.filter(u => u.node === lm.node).length >= 4) continue
           seen.add(k2)
@@ -1323,7 +1353,7 @@ export function proveData(l: DataLaw, opts: Options = {}): DataVerdict {
       if (!r.out) { failed.add(c); continue }
       failed.delete(c)
       proven.push(r.out)
-      if (!hit) continue
+      if (!hit && implication(c.holds) !== implication(l.holds)) continue
       const again = ok(proveWith(p2, fs2, l, proven, 1 + proven.length, opts, until, 6000, depth === 1 ? [1] : [1, 2]), proven, p2)
       if (again) return again
     }
