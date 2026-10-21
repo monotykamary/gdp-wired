@@ -54,7 +54,8 @@ When adding or changing a rule whose invariants matter:
    `@step` means the law isn't inductive: run `search` from the start. A real
    run is a bug in the rule (or the law); no run means the law needs a
    helper invariant, so add the missing law next to it, never weaken the one
-   that matters.
+   that matters. `inferLaws(rule, laws)` (`gdp-wired/infer`) looks for it:
+   each law it finds comes back proven, with the `r.law(...)` call to paste.
 5. **Never prove a different rule than the one that ships.** Ship the rule
    itself (`rule.compiled()`), or hold hand-written code to it with
    `rule.compare(reference)`; run `rule.crossCheck(laws)` in tests
@@ -97,6 +98,7 @@ From `gdp-wired`:
 | `proveRule`, `proveSteps`, `proveLeadsTo`, `proveDecision`, `proveLoop` | Verdicts: `{proven, checked, goal?, stuck?, witness?, why?}`. |
 | `when`, `min`, `max`, `count`, `sum`, `all`, `any`, `not`, `forall`, `everyKey`, `someKey`, `relation` | Terms and conditions; terms have `plus` `minus` (truncated) `times(k)` `mul` `lt` `atMost` `atLeast` `gt` `eq`, conditions `and` `or` `not` `implies`. |
 | `chart(name)` | A statechart: `.states({...})` (nested: `{states: {...}, initial, history, final}`) or `.regions({...})` (parallel), `.params`, `.inputs` (the payload), `.context` (extended state), `.outputs` (decided each step, reset to a default), `.events` (their order), `.on(event, {from, to, when, set, fresh})` (no `to`: internal; `fresh`: ignore history); `.check()` (every state reached with its run or proven unreachable, none stuck, no event ambiguous), `.law`, `.stepLaw` (`env.in('active.paid')`, `env.last('active')`), `.prove`, `.rule`. |
+| `inferLaws(rule, laws, stepLaws?)` | `gdp-wired/infer`: the invariants a law that isn't inductive needs, found from runs and the kernel's counterexamples (bounds, sums, differences, guarded by a flag or a choice, laws about every key of a map); `found[i].source` is the `r.law(...)` call; proven and checked like `proveRule`. |
 | `fromXState(machine, {guards, actions})` | `gdp-wired/xstate`: an XState v5 machine as a chart, each named guard and action given again; `conforms(chart, machine, createActor)` runs both on the same random events and names the first run where they part; what a chart can't run the same way is refused with the reason. |
 | `fun(name)`, `loop(name)` | Pure functions (`.returns`, `.law`, `.relate`, `.run`) and loops (`.while`, `.body`, `.rank`). |
 | `fn(arity, js, {facts, lean})`, `divBy(c)`, `modBy(c)` | Functions known by their facts. |

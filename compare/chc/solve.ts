@@ -5,18 +5,21 @@
 //   - prove: proveRule on the law alone (its refutation by runs included)
 //   - runs: random runs of the compiled rule, each step a clause the state can take and request values up to a bound
 //     that doubles per round
-//   - houdini: candidate laws per predicate, those a run's state breaks dropped, then rounds of proveRule until the rest
-//     are inductive together, then proveRule on the law and those kept (houdini.ts)
+//   - houdini: the library's search for the invariants the law needs (core/infer.ts), from the states the runs reached:
+//     candidates per predicate (loc = p → a bound, a difference, a sum), those a run's state breaks dropped, then the
+//     kernel's counterexamples to induction choosing which to add; `--old-houdini`, this folder's first Houdini
+//     (houdini.ts: every candidate kept, rounds of proveRule until the rest are inductive together)
 import {readFileSync} from 'node:fs'
 import {Unsupported, parseChc} from './chc.ts'
 import {type Step, build, checkDerivation} from './translate.ts'
 import {proveRule} from '../../core/dsl.ts'
 import {houdini} from './houdini.ts'
+import {inferLaws} from '../../core/infer.ts'
 import type {State} from '../../core/machine.ts'
 
 const args = process.argv.slice(2), file = args[0]!
 const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 ? d : Number(args[i + 1]) }
-const runsMs = opt('--runs-ms', 5000), houdiniMs = opt('--houdini-ms', 60000), useHoudini = !args.includes('--no-houdini')
+const runsMs = opt('--runs-ms', 5000), houdiniMs = opt('--houdini-ms', 60000), useHoudini = !args.includes('--no-houdini'), oldHoudini = args.includes('--old-houdini')
 const t0 = performance.now(), ms = () => Math.round(performance.now() - t0)
 const say = (o: object) => console.log(JSON.stringify({task: file, ms: ms(), ...o}))
 const done = (answer: string, o: object = {}) => { say({stage: 'answer', answer, ...o}); process.exit(0) }
@@ -100,7 +103,13 @@ const seen: State[] = []
   say({stage: 'runs', trials})
 }
 
-if (useHoudini) {
+if (useHoudini && !oldHoudini) {
+  // --houdini-ms is the stage's deadline from the start
+  const h = inferLaws(r, [law], [], {ms: Math.max(1000, houdiniMs - ms()), seen, first: direct, progress: (phase, info) => say({stage: `infer ${phase}`, ...info})})
+  say({stage: 'houdini', engine: 'infer', candidates: h.stats.candidates, alive: h.stats.alive, kept: h.found.length, proofs: h.stats.proofs, proven: h.proven && h.checked, ...(h.proven ? {} : {why: `${h.goal ?? ''} ${h.stuck ?? ''}`.trim().slice(0, 120)})})
+  if (h.proven && h.checked) done('sat', {by: 'houdini', invariants: h.found.length})
+}
+if (useHoudini && oldHoudini) {
   const h = houdini(b!, chc!, seen, {ms: houdiniMs})
   say({stage: 'houdini', candidates: h.candidates, afterRuns: h.afterRuns, kept: h.kept.length, rounds: h.rounds, proven: h.proven, ...(h.why ? {why: h.why} : {})})
   if (h.proven) done('sat', {by: 'houdini', invariants: h.kept.length})
