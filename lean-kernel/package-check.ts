@@ -93,7 +93,7 @@ const shard = process.env.SHARD?.split('/').map(Number)
 const cyclicItems = ['mccarthy', 'mutual', 'cycgrowing', 'cycfilled', 'cyccounter', 'cycrollup', 'cyccaps', 'cycfill', 'cyctally', 'cycbudget']
 // The proofs core/cycles.ts finds (examples/cycles.ts's leanItems; the suite's lean-cycles jobs, the loops in a file
 // of their own: Live.lean and Cyclic.lean each define lexLtC).
-const foundItems = ['cycmc91', 'cycgcd', 'cycacc', 'cycacc2', 'cycring', 'cycthrough', 'loopphases', 'loopphases3', 'loopother', 'loopeuclid', 'rule91', 'rule91lemma', 'ruledouble', 'ruledoublelemma']
+const foundItems = ['cycmc91', 'cycack', 'cycgcd', 'cycacc', 'cycacc2', 'cycring', 'cycthrough', 'loopphases', 'loopphases3', 'loopother', 'loopeuclid', 'rule91', 'rule91lemma', 'ruledouble', 'ruledoublelemma']
 const separately = ['searchtree', 'sheet', 'groups0', 'groups1', 'groups2', 'groups3', ...cyclicItems, ...foundItems]
 const file = toLean(([
   {id: 'caps', machine: caps.machine, laws: [dayCap], stepLaws: [onlyUp, twice]},

@@ -66,9 +66,9 @@ noted), each with the command that reproduces it.
     companion found; loops of two and three phases ((x, y), 419 ms; (x, y, z), 2,744 ms), every other turn (2·x − p with
     p <= 1, 885 ms), subtractive gcd with no invariant (a + b with 1 <= a, 1 <= b, 1,362 ms); a rule reading McCarthy's
     function (f(k) = 91 for k <= 101, 2,340 ms) and one reading a function given by its recurrence's facts (105 ms).
-    The proofs found are checked again in Lean (`lean-cycles`, `lean-cycles-loops`, `runs/modal/cycsearch/lean2`) but
-    Ackermann's, whose back-edge at (m − 1, ack(m, n − 1)) reads a key that is a product of cells, which the export
-    refuses.
+    The proofs found are checked again in Lean (`lean-cycles`, `lean-cycles-loops`, `runs/modal/cycsearch/lean2`),
+    Ackermann's too, whose back-edge at (m − 1, ack(m, n − 1)) reads a key that is a product of cells, since the export
+    places each column after the columns it reads (`runs/modal/merge/ack1`).
   - Not found: a rank that isn't linear or needs a coefficient past 4 in one component, a back-edge at a term no goal
     reads (after unfolding the facts twice), a generalization whose conclusion isn't an exact linear fit, bounds on a
     function of two arguments, a machine's liveness with no rank. CHC-COMP's LIA-Lin tasks read no function and state

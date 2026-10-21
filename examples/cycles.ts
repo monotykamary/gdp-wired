@@ -148,9 +148,7 @@ if (import.meta.main) {
 // through Cyclic.lean's cyclic_sound, each loop's halting with its rank and laws found through Live.lean, each rule's
 // laws with its lemmas (stated as the hypotheses they are there) and the lemmas' own cyclic proof.
 export function leanItems(): ({id: string, cyclic: Cyclic} | {id: string, loop: Loop, rank: E[], laws: Law[]} | {id: string, machine: Machine, laws: Law[]})[] {
-  // Ackermann's is left out: its back-edge at (m − 1, ack(m, n − 1)) reads a key that is a product of cells, which the
-  // export refuses (the kernel here checks it).
-  const ids = ['cycmc91', '', '', '', 'cycgcd', '', 'cycacc', '', 'cycacc2', '', 'cycring', '', 'cycthrough', '']
+  const ids = ['cycmc91', '', 'cycack', '', 'cycgcd', '', 'cycacc', '', 'cycacc2', '', 'cycring', '', 'cycthrough', '']
   const loops = ['loopphases', '', 'loopphases3', '', 'loopother', '', 'loopeuclid', '']
   const rules = ['rule91', '', 'ruledouble', '']
   const fail = (what: string): never => { throw new Error(`${what}: not proven`) }

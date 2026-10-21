@@ -136,8 +136,8 @@ has a broken variant, which must be refused. Modal, 1 vCPU a job, `runs/modal/cy
 | rule: doubling (a function given by its recurrence's facts) | not proven | proven, 105 ms | twice(k) = 2·k |
 
 All 13 broken variants (a false claim, a hypothesis dropped so the equation no longer determines the function, a loop
-that never ends, a rule reading past the region) are refused by both. The proofs found are checked again in Lean, but
-Ackermann's, whose key reads a product of cells, which the export refuses (`runs/modal/cycsearch/lean2`).
+that never ends, a rule reading past the region) are refused by both. The proofs found are checked again in Lean
+(`runs/modal/cycsearch/lean2`), Ackermann's, whose key reads a product of cells, too (`runs/modal/merge/ack1`).
 
 Not found: a rank that isn't linear, or needs a coefficient past 4 in one component; a back-edge at a term no goal
 reads after unfolding the facts twice; a generalization whose conclusion isn't an exact linear fit (a closed form with
