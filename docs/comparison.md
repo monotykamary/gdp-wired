@@ -116,6 +116,9 @@ What gdp-wired leaves to Lean or Bend is one of two things, and neither is a gap
   three values, guarded ones and laws about every key of a map, and the kernel proves the law with what it finds. A
   list compared by prefix isn't either, written as positions and a length (a prefix is then a condition about every
   position below a length).
+  Cyclic proofs (`gdp-wired/cyclic`) take an induction of any shape once its nodes are stated: nested recursion
+  (McCarthy's 91 function), mutual recursion, ranks compared in order; finding the nodes, what each cycle returns to,
+  is still the part nobody automates.
 - **An arbitrary algorithm shipped as its proved source.** gdp-wired ships the rule as JavaScript. Bend compiles the
   proved source itself.
 

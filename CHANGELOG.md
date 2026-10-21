@@ -3,6 +3,35 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+- Cyclic proofs: one rule for every induction (`kernel/cyclic.ts`, trusted; its twin `lean-kernel/Cyclic.lean`,
+  `cyclic_sound`, proven with the standard axioms only). A proof is facts (conditions that hold at every value of their
+  keys) and nodes, each a sequent with a rank (naturals compared in order); a node uses any node, itself included, at a
+  substitution of its variables where a guard holds, once that node's hypotheses there follow and its rank there is
+  below. Every goal is built from the nodes, in TypeScript and again in Lean, and refuted by the kernel's trees; soundness
+  is well-founded induction on the rank. `gdp-wired/cyclic`'s `proveCyclic(facts, nodes)` grows every tree.
+  - New inductions (`examples/cyclic.ts`): McCarthy's 91 function, nested recursion `recur` can't define, proven at every
+    n <= 101 (566 ms, `runs/modal/suite-plain3`) and stated in plain Lean as `mccarthy_91` (every f meeting the equation gives 91); two
+    functions defined by each other, their bounds proven together. Three tampered proofs (a back-edge that doesn't drop,
+    one read at the wrong term, the node unranked) are refused by the kernel and computed to false by Lean.
+  - Today's rules as instances, behind `modal/run.py --cyclic` (GDP_CYCLIC=1: every proof they cover made again as a
+    cyclic proof, a differing verdict failing the job): a recurrence's lemmas (rank x) and laws between two points; a
+    fold over trees as a table of nodes, children below their parent (rank n); a machine's laws over its run as maps
+    over time (rank t, a map's cell at time u and key k at u + k·Ω, Ω above the run's length). On the whole suite
+    (`runs/modal/suite-cyclic3`): 4,528 machine proofs of 252 machines, 258 recurrence proofs and 16 fold proofs
+    compared; all agree but 3 (`running statistics` twice and the lists example's normalized scope, proven the usual
+    way, not as cyclic proofs: the run's equations would need the goal's multiplier with them, and two keys at once go
+    past the prover's budget). Left to the usual rules: histories, flags that hold at every key, and laws that read a
+    map at a key read from a map (tables of nodes, `research/cyclic/probe.ts`). The cyclic route is slower (machines
+    17,738 ms the usual way against 231,733 ms; recurrences 934 ms against 8,824 ms; laws between 285 ms against 16,913
+    ms; folds 199 ms against 9,078 ms), so the default prover stays as it was: the suite takes 3,910.0 s of job time on
+    its 168 jobs from before against 3,874.5 s at 0.16.0 (`runs/modal/suite-plain3`, `suite-merged3`), quantifiers
+    150.8–164.6 s against 148.5–186.8 s over three runs each. Lean's checks of the cyclic proofs are a job of their own
+    (`lean-cyclic`, 74.57 s).
+  - Loops and liveness are not instances: their claims are about runs that never end, not sequents over a frame (their
+    rank's drop is a cyclic descent goal, but the claim around it isn't).
+
 ## 0.16.0
 
 `research/frontier`'s corpus: all 41 laws proven with nothing stated (the suite's `frontier-score` job,

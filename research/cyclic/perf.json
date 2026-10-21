@@ -1,0 +1,44 @@
+[
+{
+"name": "quantifiers-0",
+"cmd": "bun test quantifiers.test.ts 2>&1 && cd .. && bun examples/quantifiers.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "liveness-0",
+"cmd": "bun test liveness.test.ts 2>&1 && cd .. && bun examples/liveness.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "quantifiers-1",
+"cmd": "bun test quantifiers.test.ts 2>&1 && cd .. && bun examples/quantifiers.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "liveness-1",
+"cmd": "bun test liveness.test.ts 2>&1 && cd .. && bun examples/liveness.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "quantifiers-2",
+"cmd": "bun test quantifiers.test.ts 2>&1 && cd .. && bun examples/quantifiers.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "liveness-2",
+"cmd": "bun test liveness.test.ts 2>&1 && cd .. && bun examples/liveness.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+}
+]
