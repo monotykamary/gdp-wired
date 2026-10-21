@@ -2,12 +2,12 @@
 same container size under the same wall-clock limit, one tool and a shard of tasks per container.
 
     modal run compare/chc/modal_chc.py --out runs/modal/chc/<name> [--tools gdp,z3,golem,eldarica] [--limit 60]
-                                       [--per 12] [--sample 0] [--only <substring>]
+                                       [--per 1] [--sample 0] [--only <substring>]
 
 The benchmarks are chc-comp/chc-comp26-benchmarks at a pinned commit, fetched into the image; the track's task list is
 its LIA-Lin.set, each task's expected verdict its .yml's. <out>/results.jsonl has one row per tool and task: the
 answer, the seconds and, for gdp-wired, the stages it printed. The app id and client pid are registered in
-modal/.live/ (modal/reap.sh stops an orphan), and every spawned call is cancelled when this entrypoint exits.
+modal/.live/ (modal/reap.sh stops an orphan); the app, and every call in it, stops when this entrypoint exits.
 """
 import json
 import os
@@ -126,7 +126,7 @@ def tasks() -> list[dict]:
 
 
 @app.local_entrypoint()
-def main(out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: int = 12, sample: int = 0, only: str = ""):
+def main(out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: int = 1, sample: int = 0, only: str = ""):
     live = GDP / "modal" / ".live"
     live.mkdir(exist_ok=True)
     ticket = live / f"{app.app_id}"
@@ -134,7 +134,6 @@ def main(out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: i
     outdir = pathlib.Path(out)
     outdir.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
-    calls = []
     try:
         all_tasks = tasks.remote()
         (outdir / "tasks.json").write_text(json.dumps(all_tasks, indent=1))
@@ -142,27 +141,19 @@ def main(out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: i
         if sample:
             step = max(1, len(chosen) // sample)
             chosen = chosen[::step][:sample]
-        for tool in tools.split(","):
-            for i in range(0, len(chosen), per):
-                calls.append(shard.spawn(tool, chosen[i:i + per], limit))
-        print(f"{len(chosen)} tasks, {len(calls)} shards", flush=True)
+        shards = [(tool, chosen[i:i + per], limit) for tool in tools.split(",") for i in range(0, len(chosen), per)]
+        print(f"{len(chosen)} tasks, {len(shards)} shards", flush=True)
         n = 0
+        # starmap sends the inputs in batches and yields each shard's rows as it finishes, every container at once.
         with (outdir / "results.jsonl").open("w") as f:
-            for c in calls:
-                try:
-                    rows = c.get()
-                except Exception as e:
-                    rows = [{"tool": "?", "task": "?", "answer": "error", "err": repr(e)[:400]}]
+            for rows in shard.starmap(shards, order_outputs=False, return_exceptions=True):
+                if isinstance(rows, BaseException):
+                    rows = [{"tool": "?", "task": "?", "answer": "error", "err": repr(rows)[:400]}]
                 for r in rows:
                     f.write(json.dumps(r) + "\n")
                 n += 1
-                if n % 20 == 0:
-                    print(f"{n}/{len(calls)} shards, {round(time.time() - t0)} s", flush=True)
+                if n % 100 == 0:
+                    print(f"{n}/{len(shards)} shards, {round(time.time() - t0)} s", flush=True)
     finally:
-        for c in calls:
-            try:
-                c.cancel()
-            except Exception:
-                pass
         ticket.unlink(missing_ok=True)
     print(f"done in {round(time.time() - t0, 1)} s wall")
