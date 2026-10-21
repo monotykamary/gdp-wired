@@ -80,6 +80,8 @@ const file = toLean(([
   {id: 'metered', machine: metered().machine, laws: meteredLaws()},
   // A decision about a carried list: the folds' equations and lemma assumed at the list's end.
   {id: 'taxwithin', goal: invoices().decide('the taxable part is within the total', () => [], ({Lines}) => Lines.fold.taxed.atMost(Lines.fold.total)).goal},
+  // A decision that reads conditions about every key, as the step law it is proven as.
+  ...(d => [{id: 'subsettrans', machine: d.steps!.rule.machine, laws: [], stepLaws: [d.steps!.law]}])(rule('sets').inputs({n: nat}).carries('A', 'B', 'C').decide('a subset of a subset is a subset', ({A, B, C}) => [A.subsetOf(B), B.subsetOf(C)], ({A, C}) => A.subsetOf(C))),
   {id: 'sortedlist', machine: sortedList().machine, laws: sortedListLaws()},
   {id: 'distinctnames', machine: distinctNames().machine, laws: distinctNamesLaws()},
   {id: 'wideflag', machine: wide().machine, laws: wide().kindLaws()},

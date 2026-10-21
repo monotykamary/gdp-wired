@@ -206,3 +206,13 @@ test('a yes/no state written under a wide condition keeps its kind without decid
     expect(performance.now() - started).toBeLessThan(2000)
   }
 })
+
+test('a decision reading conditions about every key is proven as a step law of its rule', () => {
+  const sets = rule('sets').inputs({n: nat}).carries('A', 'B', 'C')
+  const trans = sets.decide('a subset of a subset is a subset', ({A, B, C}) => [A.subsetOf(B), B.subsetOf(C)], ({A, C}) => A.subsetOf(C))
+  const flipped = sets.decide('a subset is a superset', ({A, B}) => A.subsetOf(B), ({A, B}) => B.subsetOf(A))
+  const plain = sets.decide('three is below four', ({n}) => n.atMost(3), ({n}) => n.lt(4))
+  expect([trans.steps !== undefined, proveDecision(trans).proven, proveDecision(trans).checked]).toEqual([true, true, true])
+  expect(proveDecision(flipped).proven).toBe(false)
+  expect([plain.steps, proveDecision(plain).proven]).toEqual([undefined, true])
+})

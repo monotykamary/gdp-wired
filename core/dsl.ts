@@ -1601,6 +1601,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // A decision: whenever the params and the request meet `given`, `then` holds. Decisions don't read the state; the
   // functions' facts are assumed at the arguments the decision reads them at, and a carried list's equations (each
   // fold's start, its step and its lemmas) at the list's end, the key before it and every key the decision reads it at.
+  // A condition about every key (`everyKey`, `subsetOf`, ...) in `given` or `then` makes the decision a step law of
+  // this rule (its conditions as flags, the step left as it is): the flags' quantifiers are what the kernel closes.
   decide(name: string, given: (env: P & I) => Cond | Cond[], then: (env: P & I) => Cond): Decision {
     const env = this.env({flags: false, state: false, queries: false}) as never
     const g = given(env), hyps = [...this.kindAssumptions(), ...this.spec.pre.map(f => f(env as never).c), ...this.spec.assume.map(f => f(env as never).c), ...(Array.isArray(g) ? g : [g]).map(c => c.c)]
@@ -1609,7 +1611,14 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const listed = lists.flatMap(l => l.equationsAt(uniqueTerms([l.len, l.len.minus(1), ...keysRead([...hyps, t], l.maps)])).map(c => c.c))
     const goal: Goal = {name, hyps: [...listed, ...hyps, {op: 'not', x: t}]}
     const facts = this.spec.fns?.length || this.spec.facts?.length ? factsFor(this.machine, goal) : []
-    return withSource({name, rule: this as Rule<Obj>, given: hyps, then: t, goal: {name, hyps: [...facts, ...goal.hyps]}}, {decision: {given: given as never, then: then as never, own: Array.isArray(g) ? g.length : 1}})
+    const d: Decision = {name, rule: this as Rule<Obj>, given: hyps, then: t, goal: {name, hyps: [...facts, ...goal.hyps]}}
+    if ([...(Array.isArray(g) ? g : [g]).map(c => c.c), t].some(quantifiedIn)) {
+      const conds = (e: never) => { const own = given(e); return {given$: all(...(Array.isArray(own) ? own : [own])), then$: then(e)} }
+      const r = (this.spec.step ? this : this.step(() => ({}) as never)).flags(conds as never) as unknown as Rule<Obj>
+      const flag = (f: string) => (env: object) => (env as Record<string, Cond>)[f]!
+      d.steps = {rule: r, law: r.stepLaw(name, flag('then$'), flag('given$'))}
+    }
+    return withSource(d, {decision: {given: given as never, then: then as never, own: Array.isArray(g) ? g.length : 1}})
   }
   // A decision about two requests under the same params (noninterference, say: requests that differ only in a secret
   // are decided alike). `given` and `then` read both; the second request's inputs are named b.<input> in a witness.
@@ -2006,7 +2015,10 @@ export type LawEnv<R> = AnyOf<R, 'law'>
 
 // --- decisions and loops ------------------------------------------------------------------------------------------
 
-export type Decision = {name: string, rule: Rule<Obj>, given: C[], then: C, goal: Goal}
+// `steps`: the decision as a step law of its rule, where it reads a condition about every key (`decide`).
+export type Decision = {name: string, rule: Rule<Obj>, given: C[], then: C, goal: Goal, steps?: {rule: Rule<Obj>, law: StepLaw}}
+const quantifiedE = (e: E): boolean => e.op === 'if' ? quantifiedIn(e.c) || quantifiedE(e.then) || quantifiedE(e.else) : 'a' in e && typeof e.a === 'object' ? quantifiedE(e.a) || ('b' in e && typeof e.b === 'object' && quantifiedE(e.b)) : false
+const quantifiedIn = (c: C): boolean => c.op === 'all' || (c.op === 'not' ? quantifiedIn(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.some(quantifiedIn) : c.op === 'flag' ? false : quantifiedE(c.a) || quantifiedE(c.b))
 
 // A function: arguments in, a result out, each field of the result a term or a condition over the arguments, the
 // params and the functions it reads. Its laws are decisions about the same terms it computes, so what is proven is what
@@ -2239,7 +2251,7 @@ export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, la
   const out = proveLiveness(r.machine, withKinds(r, laws), l)
   return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
 }
-export const proveDecision = (d: Decision): Verdict => goalsVerdict([d.goal])
+export const proveDecision = (d: Decision): Verdict => (d.steps ? proveSteps(d.steps.rule as never, [], [d.steps.law]) : goalsVerdict([d.goal]))
 const seeded = (seed: number): Rand => { let x = seed; return k => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) } }
 // A decision's callbacks against its condition, on random params and requests: `given` and `then` each run with every
 // value known, against what the interpreter evaluates of the decision built from them.
