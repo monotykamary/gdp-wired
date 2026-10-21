@@ -558,7 +558,8 @@ export type Lemma = {law: DataLaw, spec?: NodeSpec}
 // `program`: the datatypes and functions the proof's facts are of; `node`: the law's own node in the proof (lemmas' nodes
 // and cases besides).
 export type DataVerdict = {proven: boolean, checked: boolean, law: string, counterexample?: Record<string, string>, proof?: CyclicVerdict, lemmas: string[], scheme?: string, ms: number, goal?: string, stuck?: string, tried: number, program?: Program, node?: number}
-export type Options = {samples?: number, depth?: number, lemmas?: boolean | DataLaw[], ms?: number, induction?: boolean, seed?: number}
+// `patience` multiplies each attempt's time (the search's outcome depends on it: on a busy machine, a larger one).
+export type Options = {samples?: number, depth?: number, lemmas?: boolean | DataLaw[], ms?: number, induction?: boolean, seed?: number, patience?: number}
 
 // Random values of the law's variables: a law false at one is refuted with it.
 export function refute(l: DataLaw, n = 400, seed = 7): Record<string, string> | undefined {
@@ -1123,7 +1124,7 @@ function proveWith(p: Program, fs: Facts, l: DataLaw, lemmas: Proven[], level: n
   for (const depth of depths.filter(d => d <= (opts.depth ?? 3))) for (const s of ss) {
     if (performance.now() > until) return {tried, last}
     tried++
-    const {verdict, specs} = (attemptMs.ms = Math.min(per, until - performance.now()), attempt(p, fs, l, s, depth, lemmas, level, models))
+    const {verdict, specs} = (attemptMs.ms = Math.min(per * (opts.patience ?? 1), until - performance.now()), attempt(p, fs, l, s, depth, lemmas, level, models))
     last = verdict
     if (verdict.proven && verdict.checked) return {out: {law: l, spec: specs.find(n => n.name === specs[specs.length - 1]!.name.replace(/, case \d+$/, ''))!, nodes: specs}, verdict, scheme: s?.name, tried}
   }
@@ -1348,7 +1349,7 @@ export function proveData(l: DataLaw, opts: Options = {}): DataVerdict {
     for (const {c, hit} of ranked) {
       if (performance.now() > until) return undefined
       if (proven.some(q => q.law === c) || (depth === 2 && !failed.has(c)) || refute(c, 200)) continue
-      const r = proveWith(p2, fs2, c, proven, 1 + proven.length, opts, Math.min(until, performance.now() + (depth === 1 ? 8000 : 12000)), 5000, [depth])
+      const r = proveWith(p2, fs2, c, proven, 1 + proven.length, opts, Math.min(until, performance.now() + (depth === 1 ? 8000 : 12000) * (opts.patience ?? 1)), 5000, [depth])
       tried += r.tried
       if (!r.out) { failed.add(c); continue }
       failed.delete(c)

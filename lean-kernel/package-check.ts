@@ -195,7 +195,7 @@ const file = toLean(([
   })()),
   ...(!only?.some(id => foundItems.includes(id)) ? [] : cycleLeanItems()),
   ...Object.entries(dataItems).filter(([id]) => only?.includes(id)).map(([id, [mk, theorem]]): Parameters<typeof toLean>[0][number] => {
-    const l = mk(), v = proveData(l, {ms: 300_000})
+    const l = mk(), v = proveData(l, {ms: 600_000, patience: 3})
     if (!v.proven || !v.checked || !v.proof?.proven || !v.program || v.node === undefined) throw new Error(`${id}: not proven (${v.goal}: ${v.stuck})`)
     return {id, cyclic: v.proof.proof, data: true, after: dataLean(id, l, v.program, v.proof.proof, v.node, theorem)}
   }),

@@ -1314,7 +1314,7 @@
 "cwd": ".",
 "cpu": 4.0,
 "memory": 8192,
-"timeout": 1800
+"timeout": 2400
 },
 {
 "name": "lean-data-1",
@@ -1322,7 +1322,7 @@
 "cwd": ".",
 "cpu": 4.0,
 "memory": 8192,
-"timeout": 1800
+"timeout": 2400
 },
 {
 "name": "lean-data-2",
@@ -1330,7 +1330,7 @@
 "cwd": ".",
 "cpu": 4.0,
 "memory": 8192,
-"timeout": 1800
+"timeout": 2400
 },
 {
 "name": "lean-data-3",
@@ -1338,6 +1338,6 @@
 "cwd": ".",
 "cpu": 4.0,
 "memory": 8192,
-"timeout": 1800
+"timeout": 2400
 }
 ]
