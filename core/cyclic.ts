@@ -21,7 +21,8 @@ import {cellProducts, grow, profile, usedHyps, widen} from '../kernel/prove.ts'
 // What only the search reads: `opaque`, terms it reads as variables of their own in the node's goal (the trees are the
 // goal's still: see `widen`); `variants`, the node stated otherwise (fewer facts, other uses), each tried in turn where
 // the node isn't proven, a `weak` one (a conclusion that holds outright) leaving no other node to use it.
-export type NodeSpec = Omit<CNode, 'uses' | 'main'> & {uses: Omit<Use, 'premises' | 'descent'>[], opaque?: E[], variants?: NodeSpec[], weak?: boolean}
+// `slice`: its goals grown first on what they read (`slice`, `reached`), as the instances below ask; others are grown whole.
+export type NodeSpec = Omit<CNode, 'uses' | 'main'> & {uses: Omit<Use, 'premises' | 'descent'>[], opaque?: E[], variants?: NodeSpec[], weak?: boolean, slice?: boolean}
 export type CyclicVerdict = {proven: true, checked: boolean, proof: Cyclic, why?: string} | {proven: false, checked: false, node: string, goal: string, stuck: string}
 
 const v = (name: string): E => ({op: 'var', name})
@@ -129,7 +130,8 @@ export function slice(g: Goal, whole: (i: number) => boolean, hypsOnly = false):
   if (joined.length) { hyps[hyps.length - 1] = and(hyps.at(-1)!, ...joined); from[from.length - 1]!.push(...joinedFrom) }
   return {name: g.name, hyps, from}
 }
-const sliceOn = () => env()?.GDP_CYCLIC_SLICE !== '0'
+let sliceNow = false
+const sliceOn = () => sliceNow && env()?.GDP_CYCLIC_SLICE !== '0'
 const afterOn = () => env()?.GDP_CYCLIC_AFTER !== '0'
 const stepNodesOn = () => env()?.GDP_CYCLIC_STEP !== '0'
 // Trees already grown, by their goal (a node met again: a recurrence's lemmas in its laws between, a machine proven again),
@@ -140,6 +142,7 @@ type Stuck = {proven: false, checked: false, node: string, goal: string, stuck: 
 // is passed over).
 export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = [...specs.keys()].sort((i, j) => Number(!specs[i]!.variants?.some(x => x.weak)) - Number(!specs[j]!.variants?.some(x => x.weak)))): CyclicVerdict {
   const nodes: CNode[] = [], shapes = [...specs], weak = new Set<number>()
+  let later: number | undefined
   // A goal's tree, and the hypotheses its leaves read (of the whole goal, a weaker goal's read through where they came from).
   const grown = (g: Goal, node: string, own: (i: number) => boolean): {tree: Tree, from: Goal, used: () => Set<number>} | Stuck => {
     const was = cellProducts.on, kind = g.name.endsWith('its rank below') ? 'descent' : g.name.includes(': use of node') ? 'premise' : 'main'
@@ -156,7 +159,7 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = 
           if ('tree' in q) return {tree: q.tree, from: sliced, used: () => new Set([...usedHyps(sliced, q.tree)].flatMap(i => sliced.from[i]!))}
         }
       }
-      const o = timedKind(kind, g.hyps.length, () => grow(g))
+      const o = timedKind(kind, g.hyps.length, () => grow(g, new Map(), {nodes: 0, until: performance.now() + (later ?? Math.max(20_000, 1_000 * g.hyps.length))}))
       return 'tree' in o ? {tree: o.tree, from: g, used: () => usedHyps(g, o.tree)} : {proven: false, checked: false, node, goal: g.name, stuck: o.stuck}
     } finally { cellProducts.on = was }
   }
@@ -189,8 +192,9 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = 
   }
   // A node's goal grown; then the node keeps only the facts and uses its tree reads (the fewer, the fewer hypotheses its
   // goal has for the kernel to read at every leaf, and the fewer uses to prove below); then each use's goals.
-  const attempt = ({opaque, variants: _v, weak: _w, ...n0}: NodeSpec): CNode | Stuck => {
+  const attempt = ({opaque, variants: _v, weak: _w, slice: sl, ...n0}: NodeSpec): CNode | Stuck => {
     hidden = opaque ?? []
+    sliceNow = !!sl
     // A goal's own hypotheses: the node's, and those after its facts and uses.
     const n1 = {...n0, insts: n0.insts.filter(p => facts[p.fact])}
     const base = baseHyps(facts, n1).length, mine = (tail: number) => (i: number) => i < n1.hyps.length || i >= base + tail
@@ -212,8 +216,8 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = 
       if (!main) {
         const r = grown(g, n1.name, mine(n1.uses.length))
         if ('proven' in r) return r
-        const used = timedKind('used', 0, r.used)
-        const trim = {...n1, insts: n1.insts.filter((_, i) => used.has(h0 + i)), uses: n1.uses.filter((_, j) => used.has(base + j))}
+        const used = sliceOn() ? timedKind('used', 0, r.used) : undefined
+        const trim = used ? {...n1, insts: n1.insts.filter((_, i) => used.has(h0 + i)), uses: n1.uses.filter((_, j) => used.has(base + j))} : n1
         const g2 = trim.insts.length < n1.insts.length || trim.uses.length < n1.uses.length ? mainGoal(facts, shapes, trim) : g
         const t2 = own(r, g2)
         main = t2 ?? own(r, g) ?? (() => { const o = grow(g); return 'tree' in o ? o.tree : undefined })()
@@ -247,7 +251,9 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = 
   }
   for (const i of order) {
     let failed: Stuck | undefined
-    for (const spec of [specs[i]!, ...(specs[i]!.variants ?? [])]) {
+    for (const [j, spec] of [specs[i]!, ...(specs[i]!.variants ?? [])].entries()) {
+      // (a variant after the first within a few seconds a goal: one the first wasn't proven by is seldom needed)
+      later = j ? 3_000 : undefined
       if (spec.uses.some(u => weak.has(u.node))) continue
       const r = attempt(spec)
       if ('proven' in r) { failed ??= r; continue }
@@ -260,6 +266,9 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = 
   const proof: Cyclic = {facts, nodes}, why = timedKind('check', 0, () => refuseCyclic(proof))
   return {proven: true, checked: why === undefined, proof, ...(why ? {why} : {})}
 }
+
+// An instance's nodes, and their variants, grown first on what their goals read.
+const sliced = (specs: NodeSpec[]): NodeSpec[] => specs.map(sp => ({...sp, slice: true, ...(sp.variants ? {variants: sp.variants.map(x => ({...x, slice: true}))} : {})}))
 
 // The facts of a machine's functions (laws about every key of them), as cyclic facts.
 const factOf = (l: Law): Fact => ({name: l.name, keys: [...(l.forall ? [l.forall] : []), ...(l.keys ?? [])], holds: l.holds})
@@ -291,7 +300,7 @@ export function recurNodes(r: RecurCase): {facts: Fact[], specs: NodeSpec[]} {
     insts: [{fact: 1, at: [less1(y)]}],
     uses: [...r.between.map((_, j) => ({node: n + j, subst: {y: less1(y)}, guard: le(add(x, k(1)), y)})), ...lemmaUses(x, yes), ...lemmaUses(y, yes), ...lemmaUses(less1(y), le(k(1), y))],
   })
-  if (!stepNodesOn()) return {facts, specs: withReads(facts, specs)}
+  if (!stepNodesOn()) return {facts, specs: sliced(withReads(facts, specs))}
   // Each lemma and law twice, as a machine's laws are (GDP_CYCLIC_STEP=0 states the first alone): at x (rank (0, x, 1)),
   // from f(0) or from the lemma after a step to x, rank (0, x, 0), read at next(x − 1, f(x − 1)) (the usual rule's step
   // goal) and using every lemma at x − 1; a law between x and y likewise at y (rank (1, y, ·)), after a step to y using
@@ -316,7 +325,7 @@ export function recurNodes(r: RecurCase): {facts: Fact[], specs: NodeSpec[]} {
   })
   const all = withReads(facts, [...own, ...lemmaAfter, ...betweenAfter])
   for (const [i, a] of all.slice(0, n + b).entries()) { const o = shared(facts, a, all[n + b + i]!.concl); if (o.length) all[i] = {...a, opaque: o} }
-  return {facts, specs: all.map(sp => (sp.variants ? {...sp, variants: withReads(facts, sp.variants, all)} : sp))}
+  return {facts, specs: sliced(all.map(sp => (sp.variants ? {...sp, variants: withReads(facts, sp.variants, all)} : sp)))}
 }
 
 // Function facts at the keys a node's goal reads them at: each fact about every key of a function read f[k] (the key
@@ -482,8 +491,10 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
         const flat = inst[l2.name] ?? []
         return Array.from({length: Math.floor(flat.length / ks.length)}, (_, q) => ({node: j, subst: {'t$': less1(t), ...Object.fromEntries(ks.map((kn, r) => [kn, over(flat[q * ks.length + r]!, pre)]))}, guard: one}))
       })
-      const hyps = [...(m.pre ? [m.pre] : []), one, le(t, T), ...omegaHyp], name = `${m.name}: ${l.name}, after a step`
-      return {name, hyps, concl, rank: [t, k(0)], insts: [{fact: 1, at: [t]}, ...fnInsts(inst, pre), ...naturals(less1(t)), params], uses,
+      // (the request the step assumes a hypothesis of its own, which the law at t has from the step's fact: the step's
+      // equations are no hypothesis of this goal)
+      const hyps = [...(m.pre ? [m.pre] : []), one, le(t, T), ...omegaHyp, ...(m.assume ? [now(inline(m.assume), less1(t))] : [])], name = `${m.name}: ${l.name}, after a step`
+      return {name, hyps, concl, rank: [t, k(0)], insts: [...fnInsts(inst, pre), ...naturals(less1(t)), params], uses,
         variants: [{name, hyps, concl: yes, rank: [t, k(0)], insts: [], uses: [], weak: true}]}
     })
     // The law at t reads the law after the step and the step's facts at t: the terms they share (the state the step
@@ -528,7 +539,7 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
       insts: [...run(t), ...factInsts, ...base, ...state.map(st => ({fact: fi(`${m.name}: ${st} is a natural`), at: [t]})), {fact: fi(`${m.name}: params are naturals`), at: []}], uses,
     }
   })
-  return {facts, specs: stepNodesOn() ? stepNodes(specs) : specs}
+  return {facts, specs: sliced(stepNodesOn() ? stepNodes(specs) : specs)}
 }
 
 // The terms (not a read, a variable or a constant) of a conclusion that a node's facts read too, largest first; none
@@ -576,7 +587,7 @@ export function foldNodes(f: Fold, laws: Law[]): {facts: Fact[], specs: NodeSpec
     insts: [{fact: 0, at: [n]}, ...[n, left(n), right(n)].map(i => ({fact: 1, at: [i]})), {fact: 2, at: []}],
     uses: laws.flatMap((_, j) => [left, right].map(c => ({node: j, subst: {'n$': c(n)}, guard: eq(kind(n), k(1))}))),
   }))
-  if (!stepNodesOn()) return {facts, specs}
+  if (!stepNodesOn()) return {facts, specs: sliced(specs)}
   // Each law twice, as a machine's are (GDP_CYCLIC_STEP=0 states the first alone): at a node n, rank (n, 1), from the
   // table's leaf case or from the law at a node from its children, rank (n, 0), the law read at the values the node's
   // case gives (the usual rule's node goal, over the table's cells at its children), using every law at both children.
@@ -593,7 +604,7 @@ export function foldNodes(f: Fold, laws: Law[]): {facts: Fact[], specs: NodeSpec
     const o = shared(facts, a, fromChildren[i]!.concl)
     return o.length ? {...a, opaque: o} : a
   })
-  return {facts, specs: [...atNode, ...fromChildren]}
+  return {facts, specs: sliced([...atNode, ...fromChildren])}
 }
 
 // --- the cyclic route beside the usual one (GDP_CYCLIC=1) -------------------------------------------------------------
