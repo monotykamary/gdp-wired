@@ -3,6 +3,45 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+Cyclic proofs carried back to the rules they were made from: a cyclic proof of a machine law is now, in Lean, a proof
+about the machine. The suite (177 jobs) passes in 343.9 s wall and 2,544.6 s of job time (`runs/modal/cycbridge/suite1`).
+
+- `lean-kernel/Bridge.lean` (trusted, on top of `Sets.lean` and `Cyclic.lean`, the standard axioms only). `cyclic_sound`
+  says what a proof's nodes hold of any maps that meet its facts; nothing tied `core/cyclic.ts`'s instances to the rules'
+  meanings, so a cyclic proof of a machine law was a proof about its encoding. Each instance is now written in Lean as a
+  function of the rule's own syntax, a check compares an exported proof against it, and a theorem carries the node to
+  the rule:
+  - `cyc_machine_sound` (`machineNodes`, every machine the cyclic route covers): a reachable state ends a run of T steps
+    (`reach_run`), and the run as maps over time (a state variable or input x as x@[u], a map's cell k at time u as
+    M@[u + k·Ω], Ω = T + 1, which decodes at every key) meets the encoding's facts: the start, each step with its flags
+    inlined, each map's start and step (a write at one key read at the fact's key), the functions' facts. If the
+    exported facts are among those or true of every natural, and the node's hypotheses among the precondition, t <= T
+    and T < Ω with its conclusion the law at t (`cycMOk`), the law holds in every `SReach` state at every value of its
+    keys.
+  - `cyc_recur_sound` (`recurNodes`): a recurrence's lemmas and laws between two points hold of its values (`recF`). The
+    export shows those values equal to the recurrence as Lean defines it and states each lemma plainly of the definition
+    (`cycgrowing_lemma0 : 1 ≤ cycgrowing_fn x`; `cycfilled_between0`, a recurrence with a further argument).
+  - `cyc_fold_sound` (`foldNodes`): a tree's table is its post-order, each node after its children; for params that meet
+    the precondition a law holds of every tree whose inputs meet the assumption, as `fold_sound` says of the structural
+    induction.
+- The encoding is sound as it stands, and `core/cyclic.ts` is unchanged: Ω only needs to be above the run's length (the
+  node's T < Ω), and a key needs no bound. What could not be checked in Lean was a cyclic machine proof whose maps are
+  read at a key from the state or a request (caps, tally): the exporter refused a cell whose key reads a product of
+  cells (Ω·k@[t]). It now places each table column after the columns it reads.
+- End to end (`lean-cyclic`, ten items, 107 theorems, 29.85 s): the two-by-two counter (a function's facts), caps (writes
+  under a flag), fill (a write at every key), tally (a map each request carries), the budget (inputs, a flag, an
+  assumption, a precondition), growing, filled and the spend roll-up. The proofs of caps and of the budget, checked
+  against a machine whose grant skips the day's count or checks only what was spent, compute to false. `budget_runs`
+  states the budget's laws in plain Lean, as `mccarthy_91` states McCarthy's function: from nothing spent, each request
+  granted when it fits the cap, what was spent stays within the cap and the grants at most what was spent, after any
+  number of requests.
+- `research/cyclic/bridge.ts` checks in Lean, against Bridge.lean's encoding, the facts and nodes the instances make for
+  every machine law of the example domains (with their broken variants) the cyclic route covers, and the examples'
+  recurrences and folds: 265 machines, 492 laws, 6 recurrences, 5 folds, 3,854 checks, none failed
+  (`lean-bridge-sweep`, 8.2 s). `lean-bridge` builds Bridge.lean with no `sorry` and prints its theorems' axioms.
+
 ## 0.17.0
 
 Cyclic proofs in the kernel and its Lean twin, and a prover about twice as fast: the suite (175 jobs) passes in
