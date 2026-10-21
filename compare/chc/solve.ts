@@ -84,7 +84,9 @@ const seen: State[] = []
           const raw: Record<string, number | boolean | string> = {c: b!.clauseNames[choices[rand(choices.length)]!]!}
           for (let k = 0; k < b!.inInt; k++) raw[`x${k}`] = rand(2 * bound + 1) - bound
           for (let k = 0; k < b!.inBool; k++) raw[`y${k}`] = rand(2) === 1
-          const next = g.step({}, st, r.encodeInput(raw as never))
+          let next
+          // A value past 2^53 − 1 ends the run (the rule refuses it): that trial stops here.
+          try { next = g.step({}, st, r.encodeInput(raw as never)) } catch (e) { if (e instanceof RangeError) break; throw e }
           if (JSON.stringify(next.scalars) === JSON.stringify(st.scalars)) continue
           raws.push(raw); st = next; moved = true
           if (seen.length < 4000) seen.push(next); else if (rand(8) === 0) seen[rand(4000)] = next
