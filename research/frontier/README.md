@@ -36,7 +36,7 @@ their sibling laws (`walls.json`), examples/lemmas.ts's rules with no lemma, fol
 | nonlinear | 8 | 0 | 8 |
 | all | 41 | 0 | 41 |
 
-Now: the suite's `frontier-score` job, `runs/modal/seqs-suite1`. The last, `(Σx)² <= n·Σx²` over running samples, is
+Now: the suite's `frontier-score` job, `runs/modal/suite-merged3`. The last, `(Σx)² <= n·Σx²` over running samples, is
 proven by the prover multiplying the goal by n before the squares.
 
 ## Structure: path scopes, the case the docs called the wall

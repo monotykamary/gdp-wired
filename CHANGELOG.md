@@ -3,7 +3,10 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.16.0
+
+`research/frontier`'s corpus: all 41 laws proven with nothing stated (the suite's `frontier-score` job,
+`runs/modal/suite-merged3`); `proveRule` and `proveSteps` search for what a stuck law needs on their own.
 
 - Sequences a request carries (`.carriesSeq('Path')`, and tables of them, `.carriesSeqs('Paths')`): positions and a
   length, `at`, `len`, `prefixOf`, `startsWith`, `equals`, `extends(B, k)`, `has`, a table's `row(r)` and `rows`, each
