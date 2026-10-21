@@ -22,6 +22,7 @@ import {factsFor, grow, proveLaws, proveLiveness, proveStepLaws, withDeadline} f
 import {crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
+import {cycleLemmas, findRank} from './cycles.ts'
 
 // --- terms and conditions -------------------------------------------------------------------------------------------
 
@@ -2230,6 +2231,7 @@ export class LoopRule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}
       ...(assume.length ? {assume: assume.length === 1 ? assume[0]! : {op: 'and', xs: assume}} : {}),
     }
   }
+  get hasRank(): boolean { return !!this.spec.rank }
   get rankTerms(): E[] {
     if (!this.spec.rank) throw new Error(`${this.spec.name}: no rank`)
     const r = this.spec.rank(this.env(false) as never)
@@ -2248,12 +2250,15 @@ export const loop = (name: string): LoopRule => new LoopRule({name, params: [], 
 // `found`: what the search found and proved beside the laws (`proveRule`'s, `proveSteps`'s), as laws to pass with them and
 // as lemmas to state in `recur` or `carriesList` (source to paste).
 export type Verdict = {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found}
-export type Found = {laws?: {law: Law, text: string, source?: string}[], lemmas?: Record<string, {lemmas?: string[], between?: string[]}>}
+// `facts`: lemmas about the rule's functions (those known by their facts) proven from those facts by a cyclic proof
+// (core/cycles.ts), the laws proven with them; `rank`: a loop's rank, found from its runs (`proveLoop` with none).
+export type Found = {laws?: {law: Law, text: string, source?: string}[], lemmas?: Record<string, {lemmas?: string[], between?: string[]}>, facts?: string[], rank?: string}
 // `search`: where the laws aren't proven and no run breaks them, what they need may be what nobody stated, so the
 // prover looks for it within `ms` (10 s): lemmas about the rule's recurrences and its lists' folds (core/discover.ts),
-// then invariants (core/infer.ts), each proven by the kernel with the laws, the verdict theirs. `{search: false}`: the
-// prover alone.
-export type ProveOptions = {search?: boolean | {ms?: number}}
+// then lemmas about the functions known by their facts, each proven by a cyclic proof (core/cycles.ts; `cycles: false`
+// leaves them out), then invariants (core/infer.ts), each proven by the kernel with the laws, the verdict theirs.
+// `{search: false}`: the prover alone.
+export type ProveOptions = {search?: boolean | {ms?: number, cycles?: boolean}}
 // A verdict that isn't a checked proof, as the error a lemma, a guard or a gate is refused with (the verdict on `.verdict`).
 export class Unproven extends Error {
   constructor(what: string, readonly verdict: Verdict) {
@@ -2359,6 +2364,12 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
     if (d.verdict.proven && d.verdict.checked) return {...d.verdict, found: {lemmas: d.found}}
     if (Object.keys(d.found).length) (rule = d.rule, lemmas = d.found)
   }
+  // Functions known by their facts alone (not a recurrence): lemmas about them, fitted to their values and proven from
+  // the facts as cyclic claims, the laws proven with them as facts.
+  if ((typeof opts.search !== 'object' || opts.search.cycles !== false) && fns.some(([, d]) => !recurOf(d)) && rule.machine.facts?.length && until - performance.now() > 500) {
+    const c = withDeadline(until, () => cycleLemmas(rule.machine, withKinds(rule, laws), stepLaws, {ms: (until - performance.now()) / 2}))
+    if (c.proven && c.checked) return {proven: true, checked: true, found: {...(lemmas ? {lemmas} : {}), facts: c.found.map(f => f.text)}}
+  }
   const ms = until - performance.now()
   if (ms < 500) return v
   const inf = inferLaws(rule, laws, stepLaws, {ms, ...(rule === r ? {first: v} : {})})
@@ -2399,7 +2410,14 @@ export function crossCheckDecision(d: Decision, opts: {trials?: number, bound?: 
   }
   return {checked}
 }
-export const proveLoop = (l: LoopRule<Obj, Obj, Obj>, laws: Law[]): Verdict => goalsVerdict(loopObligations(l.loop, laws, l.rankTerms))
+// With no rank stated, the rank is searched for from the loop's runs (core/cycles.ts's findRank), with the invariants it
+// needs (inferLaws), within `ms` (10 s); the verdict is the kernel's on the rank and the laws found, in `found`.
+export const proveLoop = (l: LoopRule<Obj, Obj, Obj>, laws: Law[], opts: {ms?: number} = {}): Verdict => {
+  if (l.hasRank) return goalsVerdict(loopObligations(l.loop, laws, l.rankTerms))
+  const out = findRank(l.loop, laws, opts)
+  return {proven: out.proven, checked: out.checked, ...(out.trees ? {trees: out.trees} : {}), ...(out.goal ? {goal: out.goal, stuck: out.stuck} : {}), ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {}),
+    ...(out.found ? {found: {rank: out.found.rank, ...(out.laws?.length ? {laws: out.laws.map((law, i) => ({law, text: out.found!.laws[i] ?? law.name}))} : {})}} : {})}
+}
 
 // --- folds over trees ---------------------------------------------------------------------------------------------------
 

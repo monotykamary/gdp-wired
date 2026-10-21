@@ -3,6 +3,79 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+- `lean-kernel/Bridge.lean` (trusted, on top of `Sets.lean` and `Cyclic.lean`, the standard axioms only). `cyclic_sound`
+  says what a proof's nodes hold of any maps that meet its facts; nothing tied `core/cyclic.ts`'s instances to the rules'
+  meanings, so a cyclic proof of a machine law was a proof about its encoding. Each instance is now written in Lean as a
+  function of the rule's own syntax, a check compares an exported proof against it, and a theorem carries the node to
+  the rule:
+  - `cyc_machine_sound` (`machineNodes`, every machine the cyclic route covers): a reachable state ends a run of T steps
+    (`reach_run`), and the run as maps over time (a state variable or input x as x@[u], a map's cell k at time u as
+    M@[u + k·Ω], Ω = T + 1, which decodes at every key) meets the encoding's facts: the start, each step with its flags
+    inlined, each map's start and step (a write at one key read at the fact's key), the functions' facts. If the
+    exported facts are among those or true of every natural, and the node's hypotheses among the precondition, t <= T
+    and T < Ω with its conclusion the law at t (`cycMOk`), the law holds in every `SReach` state at every value of its
+    keys.
+  - `cyc_recur_sound` (`recurNodes`): a recurrence's lemmas and laws between two points hold of its values (`recF`). The
+    export shows those values equal to the recurrence as Lean defines it and states each lemma plainly of the definition
+    (`cycgrowing_lemma0 : 1 ≤ cycgrowing_fn x`; `cycfilled_between0`, a recurrence with a further argument).
+  - `cyc_fold_sound` (`foldNodes`): a tree's table is its post-order, each node after its children; for params that meet
+    the precondition a law holds of every tree whose inputs meet the assumption, as `fold_sound` says of the structural
+    induction.
+- The encoding is sound as it stands, and `core/cyclic.ts` is unchanged: Ω only needs to be above the run's length (the
+  node's T < Ω), and a key needs no bound. What could not be checked in Lean was a cyclic machine proof whose maps are
+  read at a key from the state or a request (caps, tally): the exporter refused a cell whose key reads a product of
+  cells (Ω·k@[t]). It now places each table column after the columns it reads.
+- End to end (`lean-cyclic`, ten items, 107 theorems, 29.85 s): the two-by-two counter (a function's facts), caps (writes
+  under a flag), fill (a write at every key), tally (a map each request carries), the budget (inputs, a flag, an
+  assumption, a precondition), growing, filled and the spend roll-up. The proofs of caps and of the budget, checked
+  against a machine whose grant skips the day's count or checks only what was spent, compute to false. `budget_runs`
+  states the budget's laws in plain Lean, as `mccarthy_91` states McCarthy's function: from nothing spent, each request
+  granted when it fits the cap, what was spent stays within the cap and the grants at most what was spent, after any
+  number of requests.
+- `research/cyclic/bridge.ts` checks in Lean, against Bridge.lean's encoding, the facts and nodes the instances make for
+  every machine law of the example domains (with their broken variants) the cyclic route covers, and the examples'
+  recurrences and folds: 265 machines, 492 laws, 6 recurrences, 5 folds, 3,854 checks, none failed
+  (`lean-bridge-sweep`, 8.2 s). `lean-bridge` builds Bridge.lean with no `sorry` and prints its theorems' axioms.
+- Cycles nobody shaped (`gdp-wired/cycles`, untrusted; the kernel and the Lean twin unchanged): searches whose output is
+  a cyclic proof `kernel/cyclic.ts` checks, with what core/cyclic.ts's builders fix (each node's rank, where each
+  back-edge returns, at which terms) found. `findCycles(facts, claims)` takes claims (hypotheses and a conclusion, no
+  rank, no back-edge) about functions defined by their equations (f(k) = body, or f(0) and f(k + 1); several arguments
+  paired as dsl's argsKey pairs them) and runs the equations: a false claim comes back with the point the facts break
+  it at. Back-edges go to a claim at the arguments of each call its goal reads (n + 11 and f(n + 11) for McCarthy's 91),
+  each guarded by where it may be used (that claim's hypotheses there and its rank there below), so the premises and
+  the descent are the guard's. Ranks come from the runs: each sampled call a back-edge makes must drop, and the rank,
+  linear over the claim's variables, is an integer LP (solver.ts's elimination, its rows generated from the violated
+  ones, coefficients first naturals and small), lexicographic by successive elimination (Bradley–Manna–Sipma), the
+  uses between strongly connected components ranked by their height first. Where a claim is stuck, its constants are
+  abstracted (an accumulator: g(x, 0) = 2x through g(x, a) = a + 2x, fitted exactly to the values) into a companion below
+  it, or companions beside it bound what its goal reads (by analogy with the claim, then every bound fitted to the
+  values), Houdini over them and only those the claims need kept. `findRank(loop, laws)` takes a loop's rank from its
+  runs the same way, and where the kernel's halting goals need an invariant, `inferLaws` finds it with the loop's
+  descent as its step laws; `proveLoop` with no `.rank` calls it. `proveRule`'s and `proveSteps`'s search, for a rule
+  reading functions known by their facts (`fn`, not `recur`), tries `cycleLemmas` between discover and inferLaws:
+  lemmas fitted to the functions' JavaScript (a constant on a region, a line, a bound), proven from the facts as cyclic
+  claims, the laws proven with them as facts (`found.facts`; `{search: {cycles: false}}` leaves it out).
+  - `research/frontier`'s cycle track (`research/frontier/cycles.ts`, `examples/cycles.ts`): 13 items, none proven with
+    nothing stated before (today: the builders' shape, rank x and back-edges at x − 1, for claims; kernel/run-more.ts's
+    rank templates for loops; `proveRule`'s search as at 0.17.0 for rules), all 13 proven now, and their 13 broken
+    variants refused both ways (Modal, 1 vCPU a job, `runs/modal/cycsearch/corpus1`): McCarthy's 91 by 101 − n (107 ms),
+    Ackermann's ack(m, n) > n by (m, n) (439 ms), subtractive gcd by x + y (863 ms), an accumulator (85 ms) and two (290
+    ms), three functions in a ring (88 ms) and one read through another at twice its argument (550 ms), each with the
+    companion found; loops of two and three phases ((x, y), 419 ms; (x, y, z), 2,744 ms), every other turn (2·x − p with
+    p <= 1, 885 ms), subtractive gcd with no invariant (a + b with 1 <= a, 1 <= b, 1,362 ms); a rule reading McCarthy's
+    function (f(k) = 91 for k <= 101, 2,340 ms) and one reading a function given by its recurrence's facts (105 ms).
+    The proofs found are checked again in Lean (`lean-cycles`, `lean-cycles-loops`, `runs/modal/cycsearch/lean2`),
+    Ackermann's too, whose back-edge at (m − 1, ack(m, n − 1)) reads a key that is a product of cells, since the export
+    places each column after the columns it reads (`runs/modal/merge/ack1`).
+  - Not found: a rank that isn't linear or needs a coefficient past 4 in one component, a back-edge at a term no goal
+    reads (after unfolding the facts twice), a generalization whose conclusion isn't an exact linear fit, bounds on a
+    function of two arguments, a machine's liveness with no rank. CHC-COMP's LIA-Lin tasks read no function and state
+    no loop, so their verdicts are unchanged (the search isn't reached).
+  - The suite (`modal/suite.json`, 178 jobs with `cycles`, `lean-cycles` and `lean-cycles-loops`): 365.7 s wall and
+    2,624.2 s of job time, none failed; `frontier-score` 54 / 54 (`runs/modal/cycsearch/suite1`).
+
 ## 0.17.0
 
 Cyclic proofs in the kernel and its Lean twin, and a prover about twice as fast: the suite (175 jobs) passes in
