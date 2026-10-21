@@ -28,3 +28,35 @@ ledger with no fold lemma. Each item has `today` (the library now) and, once its
 
 Every item is proven by today's library with the statement put back (the examples and research/synth show it), so
 none of them is false; today proves none of them without it.
+
+## Lemma and fold track: `discover`
+
+`core/discover.ts` (`gdp-wired/discover`): `discover(rule, laws, stepLaws)` for a rule's `recur` functions and the
+folds of the lists its requests carry, `discoverFold(fold, laws)` for a fold over a tree. Candidates come from the
+values (each function at x from 0 to 40 and a few values of its further arguments; folds over 300 random lists; 300
+random trees), every statement of a few shapes they all meet: bounds, bounds linear in x, in the further arguments, in
+the other folds or the params (a product of a tree's value and a param among them), a closed form of degree 2 at most
+fitted exactly, laws between two points. They are proven by the induction stated lemmas are proven by (Houdini: one not
+proven is dropped, with every candidate the kernel's counterexample to induction breaks), then only what the laws need
+is kept (each dropped in turn, with those that leaned on it). The rule comes back made again with them, and they come
+back as source to paste. The kernel and the Lean twin are unchanged; `lean-kernel/package-check.ts` checks four of the
+rules made again (`foundbackoff`, `foundarea`, `foundinvoices`, `foundorgchart`).
+
+On Modal (the suite's `frontier-score` job, 2 vCPU, `runs/modal/lemma-suite1`), every lemma and fold item is proven,
+with what the examples state found again (the backoff delay at most 64 and at least 1, x·x, the taxable part within
+the total, the reports' cost at most the cap per head):
+
+| Item | Frontier |
+| --- | --- |
+| lemma/retry with backoff | proven, 407 ms |
+| lemma/two by two | proven, 214 ms |
+| lemma/leftover ledger | proven, 425 ms |
+| lemma/escalation | proven, 938 ms (the bound alone: the law is inductive over the rule with it) |
+| lemma/area | proven, 342 ms |
+| fold/invoices | proven, 1,068 ms |
+| fold/metered invoices | proven, 863 ms |
+| fold/org chart | proven, 7,902 ms |
+
+Not found: a lemma of another shape (a bound by a product of two unknowns other than a tree's value and a param, a
+closed form past degree 2 or with further arguments, an exponential), and anything about a quantified state invariant
+(examples/trees.ts's tables of nodes: the invariant track's).

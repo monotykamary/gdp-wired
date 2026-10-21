@@ -1269,8 +1269,15 @@ export const recur = <const A extends string = never, U extends Record<string, F
     proofs.between = {machine: (r as Rule).machine, laws}
     verdict = {proven: true, checked: verdict.checked && v.checked}
   }
-  return {...base, verdict, facts: facts(true)}
+  const out = {...base, verdict, facts: facts(true)}
+  recurDefs.set(out, {name, def: def as RecurDef<string, Record<string, FnDef>>, lemmas: lemmas as never, between: between as never})
+  return out
 }
+// What each recurrence was made from, so core/discover.ts can make it again with lemmas it found.
+type RecurLemma = (x: Term, fx: Term, env: Record<string, Term>) => Cond
+type RecurBetween = (x: Term, fx: Term, y: Term, fy: Term, env: Record<string, Term>) => Cond
+const recurDefs = new WeakMap<FnDef, {name: string, def: RecurDef<string, Record<string, FnDef>>, lemmas: Record<string, RecurLemma>, between: Record<string, RecurBetween>}>()
+export const recurOf = (d: FnDef) => recurDefs.get(d)
 const distinctNames = (what: string, names: string[]) => { if (new Set(names).size !== names.length) throw new Error(`${what}: a name given twice`) }
 // A recurrence as JavaScript: a function of its arguments, the functions it reads inlined (each called on its arguments,
 // as the runtimes call it).
@@ -1402,6 +1409,19 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   constructor(private readonly spec: Spec) {}
   private with(more: Partial<Spec>): never { return new Rule({...this.spec, ...more}) as never }
   get name() { return this.spec.name }
+  // For core/discover.ts: the functions and carried lists the rule reads, and the same rule with functions made again
+  // and lemmas added to its lists' folds (each proven here, as carriesList proves its own).
+  get parts(): {params: [string, Kind<unknown>][], fns: [string, FnDef][], lists: [string, Kind<unknown>, Record<string, ListFold<unknown>>, Record<string, ListLemma>][]} {
+    return {params: this.spec.params, fns: this.spec.fns ?? [], lists: this.spec.lists2 ?? []}
+  }
+  withParts(fns: Record<string, FnDef>, listLemmas: Record<string, Record<string, ListLemma>> = {}): this {
+    const lists = (this.spec.lists2 ?? []).map(([n, k, fs, ls]) => [n, k, fs, {...ls, ...(listLemmas[n] ?? {})}] as [string, Kind<unknown>, Record<string, ListFold<unknown>>, Record<string, ListLemma>])
+    for (const [n, k, fs, ls] of lists) if (listLemmas[n]) {
+      const v2 = new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0), ls, undefined, this.spec.params).prove()
+      if (!(v2.proven && v2.checked)) throw new Unproven(`${n}'s fold lemmas`, v2)
+    }
+    return this.with({fns: (this.spec.fns ?? []).map(([n, d]) => [n, fns[n] ?? d] as [string, FnDef]), lists2: lists})
+  }
 
   params<K extends Kinds>(kinds: K): Rule<P & ValuesOf<K>, I, S, M, F, R, Su, Q> { return this.with({params: [...this.spec.params, ...Object.entries(kinds)]}) }
   inputs<K extends Kinds>(kinds: K): Rule<P, I & ValuesOf<K>, S, M, F, R, Su, Q> { return this.with({inputs: [...this.spec.inputs, ...Object.entries(kinds)]}) }

@@ -3,6 +3,17 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+- Lemmas nobody stated, found (`gdp-wired/discover`): `discover(rule, laws, stepLaws)` looks, where the laws aren't
+  proven, for lemmas about the rule's `recur` functions and the folds of the lists its requests carry, among bounds,
+  linear relations, closed forms of degree 2 at most and laws between two points that their values meet; proves them by
+  the same induction stated lemmas are proven by and keeps only what the laws need. `discoverFold(fold, laws)` does the
+  same for a fold over a tree, the children's lemmas of `.children` among them. The rule comes back made again with
+  them, what was found as source to paste, and the Lean export checks it as it checks stated lemmas
+  (`examples/discover.ts`). The kernel and the Lean twin are unchanged. On `research/frontier`'s corpus every lemma and
+  fold item is proven (8 of the 12 items; the other 4 are the invariant track's), from 214 ms to 7.9 s each on Modal.
+
 ## 0.14.2
 
 - The kernel's if row (0.14.1) only over constant branches, in the kernel and the Lean twin alike: over a variable
