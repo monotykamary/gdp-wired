@@ -29,7 +29,7 @@ import {proveLaws} from '../kernel/prove.ts'
 import type {Law, Machine} from '../core/machine.ts'
 import type {Cyclic} from '../kernel/cyclic.ts'
 import {budget, budgetLaws, fill, fillLaws, mccarthy, mutual, tally, tallyLaws} from '../examples/cyclic.ts'
-import {growing} from '../examples/lemmas.ts'
+import {filled, growing} from '../examples/lemmas.ts'
 
 const caps = rule('caps').params({d: nat}).inputs({acct: nat, day: nat, ok: bool}).maps({Acct: 0, Day: 0})
   .flags(({ok, acct, day, d, Acct, Day}) => ({granted: ok.and(Acct.at(acct).lt(1), Day.at(day).lt(d))}))
@@ -89,7 +89,7 @@ const only = process.env.ONLY?.split(',')
 // SHARD=i/n exports every n-th item from the i-th (the suite's lean-package-0..n−1, one Lean build each).
 const shard = process.env.SHARD?.split('/').map(Number)
 // Built by jobs of their own (modal/suite.json: lean-big's trees and groups; lean-cyclic's cyclic proofs).
-const cyclicItems = ['mccarthy', 'mutual', 'cycgrowing', 'cyccounter', 'cycrollup', 'cyccaps', 'cycfill', 'cyctally', 'cycbudget']
+const cyclicItems = ['mccarthy', 'mutual', 'cycgrowing', 'cycfilled', 'cyccounter', 'cycrollup', 'cyccaps', 'cycfill', 'cyctally', 'cycbudget']
 const separately = ['searchtree', 'sheet', 'groups0', 'groups1', 'groups2', 'groups3', ...cyclicItems]
 const file = toLean(([
   {id: 'caps', machine: caps.machine, laws: [dayCap], stepLaws: [onlyUp, twice]},
@@ -144,7 +144,7 @@ const file = toLean(([
       .step(({acct, day, granted, Acct, Day}) => ({Acct: Acct.bump(acct, granted), Day: Day.bump(day, granted)}))
     const mc = mccarthy(), p = proven(mc.facts, mc.specs)
     const use0 = (edit: (u: Cyclic['nodes'][number]['uses'][number]) => Cyclic['nodes'][number]['uses'][number]): Cyclic => ({...p, nodes: p.nodes.map(n => ({...n, uses: n.uses.map((u, j) => (j === 0 ? edit(u) : u))}))})
-    const g = growing(), rc = g.recur!
+    const g = growing(), rc = g.recur!, fd = filled().recur!
     const c = counter(), cl = counterLaws(c), cm = c.machine, ci = proveLaws(cm, cl).proof!.instances
     const ru = rollup(), rl = rollupLaws(ru)
     return [
@@ -164,7 +164,10 @@ const file = toLean(([
   simpa [mccarthy_concl0, evalC, evalE] using h
 -- the map's number: ${mx('f')}`},
       {id: 'mutual', cyclic: proven(mutual().facts, mutual().specs)},
-      ...(r => [{id: 'cycgrowing', cyclic: proven(r.facts, r.specs)}])(recurNodes({name: 'growing', args: rc.args, zero: rc.zero, next: rc.next, lemmas: rc.lemmas, between: rc.between, facts: []})),
+      ...[['cycgrowing', 'growing', rc], ['cycfilled', 'filled', fd]].map(([id, name, d]) => {
+        const r = d as typeof rc, rcase = {name: name as string, args: r.args, zero: r.zero, next: r.next, lemmas: r.lemmas, between: r.between}, nodes = recurNodes({...rcase, facts: []})
+        return {id: id as string, cyclic: proven(nodes.facts, nodes.specs), recur: rcase}
+      }),
       ...(r => [{id: 'cyccounter', cyclic: proven(r.facts, r.specs), bridge: {machine: cm, laws: cl}}])(machineNodes(cm, cl, ci)),
       ...(r => [{id: 'cycrollup', cyclic: proven(r.facts, r.specs)}])(foldNodes(ru.fold, rl)),
       ofMachine('cyccaps', caps.machine, [dayCap], [{what: 'a grant that doesn\'t check the day\'s count', machine: capsLoose.machine}]),

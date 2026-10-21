@@ -989,4 +989,94 @@ theorem cyc_machine_holds {M : Nat → Nat → Nat} {ρ : Nat → Nat} {law : C}
     simp only [upd]
     rw [if_neg (fun e => hi (List.mem_append_right _ (by rw [e]; exact List.mem_cons_self)))]
 
+/-! Recurrences (`recurNodes`) -/
+
+-- A recurrence's values: f(0) is `zero`, f(n + 1) is `next` with x read as n and prev as f(n), the rest of the
+-- environment (the further arguments) as given.
+def recF (zero next : E) (x prev : Nat) (env : Nat → Nat) (maps : Nat → Nat → Nat) : Nat → Nat
+  | 0 => evalE env maps zero
+  | n + 1 => evalE (upd (upd env x n) prev (recF zero next x prev env maps n)) maps next
+
+-- The maps with one of them replaced.
+def withMap (maps : Nat → Nat → Nat) (f : Nat) (g : Nat → Nat) : Nat → Nat → Nat := fun m => if m = f then g else maps m
+
+-- The function's map, the recurrence's x and prev, the step fact's key.
+structure RecEnc where
+  f : Nat
+  x : Nat
+  prev : Nat
+  k : Nat
+
+-- The recurrence's two equations as recurNodes states them: f(0) = zero, and at every k, f(k + 1) = next(k, f(k)).
+def recFacts (re : RecEnc) (zero next : E) : List Fact :=
+  [⟨[], .eq (.get re.f (.const 0)) zero⟩,
+   ⟨[re.k], .eq (.get re.f (.add (.var re.k) (.const 1))) (substE [(re.x, .var re.k), (re.prev, .get re.f (.var re.k))] next)⟩]
+
+-- The exported facts are the equations, facts given about other functions (`given`), or true of every natural; the
+-- recurrence reads its own values only through prev, and nothing given reads them.
+def recOk (re : RecEnc) (zero next : E) (given facts : List Fact) : Bool :=
+  !occME re.f zero && !occME re.f next && !occE re.k next && re.x != re.prev && re.k != re.x && re.k != re.prev
+    && given.all (fun g => !occMC re.f g.holds)
+    && facts.all (fun g => natC g.holds || (recFacts re zero next ++ given).any (factBeq g))
+
+theorem override_nil (vals env : Nat → Nat) : override [] vals env = env := by
+  funext i; simp [override]
+
+theorem rec_facts {re : RecEnc} {zero next : E} {given facts : List Fact} (hok : recOk re zero next given facts = true)
+    (maps : Nat → Nat → Nat) (env : Nat → Nat) (hg : FactsHold given env maps) :
+    FactsHold facts env (withMap maps re.f (recF zero next re.x re.prev env maps)) := by
+  simp only [recOk, Bool.and_eq_true, Bool.not_eq_true', bne_iff_ne, ne_eq] at hok
+  obtain ⟨⟨⟨⟨⟨⟨⟨hz, hn⟩, hk⟩, hxp⟩, hkx⟩, hkp⟩, hgv⟩, hfa⟩ := hok
+  have hM : ∀ e : E, occME re.f e = false → ∀ ρ, evalE ρ (withMap maps re.f (recF zero next re.x re.prev env maps)) e = evalE ρ maps e :=
+    fun e he ρ => congrME ρ _ maps e (fun m hm => by
+      simp only [withMap]; rw [if_neg (fun h => by rw [h, he] at hm; exact absurd hm (by decide))])
+  intro f hf vals
+  have hfi := List.all_eq_true.mp hfa f hf
+  simp only [Bool.or_eq_true] at hfi
+  rcases hfi with hnc | hcan
+  · exact natC_true _ hnc
+  obtain ⟨g, hg', hb⟩ := List.any_eq_true.mp hcan
+  simp only [factBeq, Bool.and_eq_true, beq_iff_eq] at hb
+  rw [hb.1, beqC_eq hb.2]
+  simp only [recFacts, List.cons_append, List.nil_append, List.mem_cons] at hg'
+  rcases hg' with rfl | rfl | hg'
+  · show evalC (override [] vals env) _ (.eq (.get re.f (.const 0)) zero) = true
+    rw [override_nil, evalC_iff]
+    show withMap maps re.f (recF zero next re.x re.prev env maps) re.f 0 = evalE env _ zero
+    rw [hM zero hz env]
+    simp only [withMap, if_pos (rfl : re.f = re.f), ite_true, recF]
+  · show evalC (override [re.k] vals env) _ (.eq (.get re.f (.add (.var re.k) (.const 1)))
+      (substE [(re.x, .var re.k), (re.prev, .get re.f (.var re.k))] next)) = true
+    rw [evalC_iff]
+    show withMap maps re.f (recF zero next re.x re.prev env maps) re.f (override [re.k] vals env re.k + 1) = _
+    rw [subst_evalE, hM next hn]
+    simp only [withMap, if_pos (rfl : re.f = re.f), ite_true, recF]
+    refine congrE _ _ maps next (fun j hj => ?_)
+    have hjk : j ≠ re.k := fun h => by rw [h, hk] at hj; exact absurd hj (by decide)
+    simp only [upd, applyS, assoc, lookup]
+    by_cases hjp : j = re.prev
+    · subst hjp
+      simp [hxp, Ne.symm hxp, evalE, withMap]
+    · by_cases hjx : j = re.x
+      · subst hjx
+        simp [evalE, hxp]
+      · have h1 : (re.x == j) = false := by simpa using Ne.symm hjx
+        have h2 : (re.prev == j) = false := by simpa using Ne.symm hjp
+        simp only [hjp, hjx, if_false, h1, h2, Bool.false_eq_true, Option.map_none, override]
+        rw [if_neg (fun h => hjk (by simpa using h))]
+  · rw [congrMC _ _ maps g.holds (fun m hm => by
+      simp only [withMap]
+      rw [if_neg (fun h => by
+        have := List.all_eq_true.mp hgv g hg'; rw [h] at hm; rw [hm] at this; exact absurd this (by decide))])]
+    exact hg g hg' vals
+
+/-- A cyclic proof of a recurrence's lemmas and laws between two points (`recurNodes`), checked against its equations
+(`recOk`): every node holds of the recurrence's values (`recF`), at every environment where the facts given about the
+functions it reads hold. -/
+theorem cyc_recur_sound (re : RecEnc) (zero next : E) (given facts : List Fact) (nodes : List CNode)
+    (hc : checkCyclic facts nodes = true) (hok : recOk re zero next given facts = true) (maps : Nat → Nat → Nat) (env : Nat → Nat)
+    (hg : FactsHold given env maps) : ∀ n ∈ nodes, (∀ c ∈ n.hyps, evalC env (withMap maps re.f (recF zero next re.x re.prev env maps)) c = true) →
+      evalC env (withMap maps re.f (recF zero next re.x re.prev env maps)) n.concl = true :=
+  cyclic_sound facts nodes hc _ env (rec_facts hok maps env hg)
+
 end Kern
