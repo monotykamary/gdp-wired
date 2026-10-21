@@ -2197,12 +2197,14 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
         st = next
       }
     }
-    // A step law holds from every state the laws allow, reached or not, and the laws are proven by one step from every
-    // such state: from random such states (each scalar and cell small, a variable of a kind drawn as its kind draws, kept
-    // when every law and kind law holds there), a step that breaks a step law, or a law, is a counterexample too, without
-    // a run (to the law's induction: the kernel's search, when it fails, ends at such a state).
-    const steps1 = stepLaws.filter(sl => (sl.steps ?? 1) === 1), given = withKinds(r, laws), kinded = r.kindsOfState()
-    for (let trial = 0; !m.history && trial < refuteBudget.trials * 4 && performance.now() < until; trial++) {
+    // A step law holds from every state the laws allow, reached or not: from random such states (each scalar and cell
+    // small, kept when every law and kind law holds there), a step that breaks it is a counterexample too, without a run.
+    // On a wide rule (32 variables or more) the laws are tried so as well, since they are proven by one step from every
+    // such state (the kernel's search, when it fails, ends at one, and there that search is the slow part), and a
+    // variable of a kind is drawn as its kind draws (33 yes/nos drawn from 0..7 almost never make a lawful state).
+    const steps1 = stepLaws.filter(sl => (sl.steps ?? 1) === 1), given = withKinds(r, laws)
+    const wide = Object.keys(m.state).length + m.inputs.length >= 32, lawsHere = wide ? given : [], kinded = wide ? r.kindsOfState() : []
+    for (let trial = 0; !m.history && (steps1.length || lawsHere.length) && trial < refuteBudget.trials * 4 && performance.now() < until; trial++) {
       const params = r.randomParams(rand, bound)
       if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) continue
       const scalars: Record<string, number> = Object.fromEntries(Object.keys(m.state).map(n => [n, rand(8)]))
@@ -2213,7 +2215,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
       if (!allowed(m, run, params, st, input)) continue
       const next = run.step(params, st, input), witness = () => ({...params, ...st.scalars, ...numbersOf(input)})
       for (const sl of steps1) if (!watch(m, run, sl, params, bound).step(st, input, next)) return {goal: `${sl.name} @step law`, witness: witness()}
-      for (const l of given) if (!watch(m, run, l, params, bound).step(st, input, next)) return {goal: `${l.name} @step`, witness: witness()}
+      for (const l of lawsHere) if (!watch(m, run, l, params, bound).step(st, input, next)) return {goal: `${l.name} @step`, witness: witness()}
     }
   } catch { return undefined }
   return undefined

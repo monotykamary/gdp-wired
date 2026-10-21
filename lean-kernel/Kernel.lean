@@ -1011,8 +1011,9 @@ def cellEq (tab : List VDef) (path : Path) (p : Nat × Nat) : List Row :=
     then [lsub (lunit p.1) (lunit p.2), lsub (lunit p.2) (lunit p.1)] else []
   | _, _ => []
 -- A term column's rows: its bounds, whichever way its choice goes (min ≤ each side, max ≥ each side, a ∸ b ≥ a − b and
--- ≤ a, an if ≤ the sum of its branches), and its equality to the term's form under the path (the branch taken, once the
--- path decides it).
+-- ≤ a, an if ≤ the sum of its branches when neither reads a term column), and its equality to the term's form under the
+-- path (the branch taken, once the path decides it).
+def plainIn (tab : List VDef) (r : Row) : Bool := r.coefs.all (fun p => match tab[p.1]? with | some (.term _) => false | _ => true)
 def termBounds (j : Nat) (la lb : Row) : E → List Row
   | .min _ _ => [lsub (lunit j) la, lsub (lunit j) lb]
   | .max _ _ => [lsub la (lunit j), lsub lb (lunit j)]
@@ -1023,8 +1024,11 @@ def termRowsAt (tab : List VDef) (path : Path) (j : Nat) : List Row :=
   match tab[j]? with
   | some (.term e) =>
     (match e with
-     | .min a b | .max a b | .sub a b | .ite _ a b => match linear tab path a, linear tab path b with
+     | .min a b | .max a b | .sub a b => match linear tab path a, linear tab path b with
        | some la, some lb => termBounds j la lb e
+       | _, _ => []
+     | .ite _ a b => match linear tab path a, linear tab path b with
+       | some la, some lb => if plainIn tab la && plainIn tab lb then termBounds j la lb e else []
        | _, _ => []
      | _ => [])
     ++ (match linear tab path e with
@@ -1163,13 +1167,15 @@ theorem termRows_sound {path : Path} (hM : Model tab env maps x) (hP : PathHolds
         simp only at hr
         split at hr
         · rename_i la lb ha hb
-          have ea := linear_sound hM hP a la ha
-          have eb := linear_sound hM hP b lb hb
-          simp only [termBounds, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hr
-          simp only [evalE] at hx
-          subst hr
-          rw [eval_lsub, eval_ladd, eval_lunit]
-          split at hx <;> omega
+          split at hr
+          · have ea := linear_sound hM hP a la ha
+            have eb := linear_sound hM hP b lb hb
+            simp only [termBounds, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hr
+            simp only [evalE] at hx
+            subst hr
+            rw [eval_lsub, eval_ladd, eval_lunit]
+            split at hx <;> omega
+          · simp at hr
         · simp at hr
       | _ => simp at hr
     · split at hr
