@@ -5,6 +5,28 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+- Faster proofs, and a suite at about half its time. The prover keeps a quantified flag's or an every-key law's
+  instance only where the goal reads a map the way its condition reads one at its key (a tuple, where each of its keys
+  is so read), the rest left out unless a goal needs them (then every instance, as before), and on a goal that outgrows
+  64 cases splits first the atoms the root's rows already force (a guard `?f = 0` where `?f = 1` holds), whose forced
+  side then refutes at once instead of under every other case. In the same run against 0.16.0 (`runs/modal/perf/ab4-*`,
+  three containers each): pi-fabric's resource scope (`private/pifabric/bench.ts`, three proofs a container) 16.4 to
+  24.6 s a proof against 36.6 to 47.5 s; `examples/scopes.ts`'s attenuation 3,886 ms against 40,665 ms, normalizing
+  1,374 ms against 16,593 ms and each action back 678 to 715 ms against 9,051 to 9,597 ms; the prover bench
+  (`research/perf/prover-bench.ts`, five runs) 4.7 to 7.2 s against 6.1 to 7.6 s.
+- The Lean export proves each step law again from only the instances its first proof's leaves read
+  (`minimal.on`, set by `toLean`): the resource groups' laws (`examples/groups.ts`) were built from 944 to 1,186
+  hypotheses for trees of 29 to 52 leaves, and Lean took 268 s on one (`runs/modal/perf/suite1`), 15 to 21 s now
+  (`runs/modal/perf/lean2`). The package check runs in four shards (`SHARD=i/n`, lean-package-0..3), the item jobs
+  against the twin's library compiled once and cached (`scripts/lean-items.sh`; lean-package-0 still builds the Lake
+  project whole), and research/hw's step checks in three (`PART=`). The suite (`modal/suite.json`, 175 jobs): 326.0 s
+  wall and 2,404.6 s of job time (`runs/modal/perf/suite3`), against 621.4 s and 3,874.5 s (`runs/modal/suite-merged3`).
+- A deadline the prover keeps (`withDeadline`): `inferLaws` and the search `proveRule` falls back on bound every proof
+  they make by their own time, a goal past it left `unknown`. On CHC-COMP's LIA-Lin track (`compare/chc`, the search's
+  deadline now 2 s before the 60 s limit, as the prover keeps it): 365 solved (223 sat, 142 unsat), none wrongly, 12
+  out of time (`runs/modal/chc/perf4-gdp`), against 366, none wrongly, 315 out of time (`eng5-gdp`). `grow`'s
+  `units: false` leaves a goal's own order for a caller after a model (the guided runs), and `--env` sets variables
+  for each task (`GDP_UNITS=0`, `GDP_TRIGGER=0` turn the two changes above off, for comparing).
 - Cyclic proofs: one rule for every induction (`kernel/cyclic.ts`, trusted; its twin `lean-kernel/Cyclic.lean`,
   `cyclic_sound`, proven with the standard axioms only). A proof is facts (conditions that hold at every value of their
   keys) and nodes, each a sequent with a rank (naturals compared in order); a node uses any node, itself included, at a

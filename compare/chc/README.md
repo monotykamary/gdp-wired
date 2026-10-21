@@ -31,6 +31,9 @@ CHC-COMP'26 decided the task, the same as its verdict.
 | Eldarica 2.3 | 501 | 267 | 0 | 768 | 0.43 |
 | gdp-wired | 223 | 143 | 0 | 366 | 14.71 |
 
+- With the prover's deadline (every proof the search makes bounded by the stage's time, the stage ending 2 s before
+  the limit): 365 solved (223 sat, 142 unsat), none wrongly, 12 out of time, against 315 out of time before
+  (`runs/modal/chc/perf4-gdp`).
 - Every task imports (none refused). Of gdp-wired's answers, 223 sat are the law proven with the invariants `inferLaws`
   found, checked by the kernel; 63 unsat are runs the prover guided reaching error, 43 random runs, 37 `proveRule`'s
   own refutation; every unsat run is checked against the CHC clauses by `checkDerivation`.
