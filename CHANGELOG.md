@@ -75,6 +75,42 @@ noted), each with the command that reproduces it.
     no loop, so their verdicts are unchanged (the search isn't reached).
   - The suite (`modal/suite.json`, 178 jobs with `cycles`, `lean-cycles` and `lean-cycles-loops`): 365.7 s wall and
     2,624.2 s of job time, none failed; `frontier-score` 54 / 54 (`runs/modal/cycsearch/suite1`).
+- The cyclic route faster, and no verdict apart from the usual route's: the three that differed (`running statistics`
+  twice, the lists example's normalized scope) are proven as cyclic proofs. Untrusted only: the kernel, its Lean twin
+  and Bridge.lean are unchanged, and every instance's facts are Bridge.lean's (`cycCanon`).
+  - Each law of a machine is two nodes: at time t (rank (t, 1)), as before, and after a step from t − 1 (rank (t, 0)),
+    the law read at the state the step gives over the run's cells at t − 1, using every law at t − 1 at the keys the
+    machine's proof names. The second is the usual rule's step goal; the first carries it to the cells at t through the
+    step's equations, the step's values opaque to its search (variables of their own, `widen` reading them back as the
+    terms). A recurrence's lemmas and laws between (at x / after a step to x) and a fold's laws (at a node / from its
+    children) likewise. Where the law after the step isn't proven, the law at t falls back to the one node whose goal is
+    the whole step (a variant; the other then holds outright, its conclusion true).
+  - Each goal is grown first on what it reads: a node keeps only the facts and uses its goal reaches (through the
+    equations that give a cell it reads, a run's map read at any key one cell by its map and time), then is trimmed to
+    those its tree reads; a weaker goal's tree is the whole goal's (`widen`, kernel/prove.ts: each row is a row of the
+    whole). Where neither proves it within two seconds, the whole goal as before.
+  - Two keys of a run's map (cells at u + k·Ω) are first compared as k = k', a linear atom; where the path has them
+    equal the keys' difference is split and its other side refuted by (k − k')·Ω = 0, a product of the path's two atoms
+    and Ω's sign row. The prover's leaf rows are kept by the path's decisions (a lift read every leaf of a subtree
+    twice).
+  - In the same run (`runs/modal/cycspeed/abA2`, the suite with `--cyclic` and `GDP_CYCLIC_LAX=1`, which prints a
+    differing verdict instead of failing the job, this branch against main at 12ef6b1 in the same containers): machines
+    4,683 proofs compared, 17,872 ms the usual way against 95,813 ms cyclic (5.36x; main 19,710 ms against 946,471 ms,
+    48.02x, 12 differing, escalation and ladder past the prover's budget); without the normalized scope 15,238 ms
+    against 57,645 ms (3.78x; main 44.03x), the normalized scope 2,634 ms against 38,168 ms; recurrences 1,747 ms
+    against 5,489 ms (3.14x; main 8.84x); laws between 440 ms against 3,181 ms (7.23x; main 63.63x); folds 209 ms
+    against 6,201 ms (29.67x; main 62.31x). The suite's job time with the cross-check: 2,569.4 s against 4,380.7 s. Not
+    within twice the usual route, so the default prover stays the usual one; `research/cyclic/ratios.ts` prints these
+    figures from a run.
+  - CHC-COMP's LIA-Lin track (the prover's leaf rows are shared): 367 solved (224 sat, 143 unsat), none wrongly, 11 out
+    of time (`runs/modal/cycspeed/chc-mine`), against main's 365 (222 sat, 143 unsat), none wrongly, 11 out of time
+    (`chc-base`); one task main solved isn't (`llreve/break_merged_safe.c-1`, both at 58 s of 60), three it didn't are.
+  - The suite (`modal/suite.json`, 180 jobs): 350.3 s wall and 2,443.9 s of job time, none failed
+    (`runs/modal/cycspeed/final-plain`); with `--cyclic`, every differing verdict failing its job, 387.1 s wall and
+    2,499.4 s, none failed, none differing (`final-cyclic`); `frontier-score` 54 / 54, `lean-bridge-sweep` 3,854 checks,
+    none failed.
+  - `GDP_CYCLIC_PROF=1` prints where each cyclic proof's time went, by goal kind; `GDP_CYCLIC_SLICE=0` grows every goal
+    whole, `GDP_CYCLIC_STEP=0` states each law as one node (the encoding before).
 
 ## 0.17.0
 
