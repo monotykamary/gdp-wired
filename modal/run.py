@@ -112,7 +112,9 @@ def main(jobs: str, out: str, native: bool = False, cyclic: bool = False):
             # --cyclic: every proof core/cyclic.ts's instances cover is made again as a cyclic proof, a differing verdict
             # failing the job (GDP_CYCLIC=1).
             pre = ("export GDP_LEAN_NATIVE=1; " if native else "") + ("export GDP_CYCLIC=1; " if cyclic else "")
-            calls += [(j["name"], fn.spawn(j["name"], pre + j["cmd"], j.get("cwd", "."), timeout - 30)) for j in js]
+            # (every proof made twice, so a test's own time limit is lifted)
+            cmd = lambda c: c.replace("bun test ", "bun test --timeout 600000 ") if cyclic else c
+            calls += [(j["name"], fn.spawn(j["name"], pre + cmd(j["cmd"]), j.get("cwd", "."), timeout - 30)) for j in js]
         rows = collect(calls, outdir)
     finally:  # whatever happened, nothing keeps running (cancelling a finished call is a no-op)
         for _, c in calls:

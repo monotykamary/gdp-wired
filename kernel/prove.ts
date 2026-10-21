@@ -205,6 +205,14 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
     if (pairs.length) {
       const sub = solve(withProducts(rows, pairs))
       if (sub.kind === 'refuted') return {tree: leafOf(sub.steps, pairs), nodes: budget.nodes}
+      // Then every linear row about a factor (n >= x: (n − x)·d >= 0) times each sign, past the forty rows the pairs
+      // below are kept to.
+      const about = rows.flatMap((r, i) => (!eqs.includes(i) && Object.keys(r.lin).some(key => key !== '1' && factorSet.has(key)) && !Object.keys(r.lin).some(isMonomial) ? [i] : []))
+      const more = [...pairs, ...about.flatMap(i => signs.map(j => [i, j] as [number, number]))].slice(0, 400)
+      if (more.length > pairs.length) {
+        const ineq = solve(withProducts(rows, more))
+        if (ineq.kind === 'refuted') return {tree: leafOf(ineq.steps, more), nodes: budget.nodes}
+      }
     }
   }
   if (!split && monomials && rows.length <= 40) {
@@ -764,7 +772,10 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
     })
   })
   const out = proveWith(m, laws, instances)
-  if (cyclicOn() && cyclicMachine(m)) crossCyclic('machine', m.name, out.proven && out.checked, () => { const {facts, specs} = machineNodes(m, laws, instances); return proveCyclic(facts, specs) })
+  if (cyclicOn()) {
+    if (cyclicMachine(m, laws)) crossCyclic('machine', m.name, out.proven && out.checked, () => { const {facts, specs} = machineNodes(m, laws, instances); return proveCyclic(facts, specs) })
+    else console.error(`cyclic: ${JSON.stringify({kind: 'machine', name: m.name, usual: out.proven && out.checked, uncovered: true})}`)
+  }
   return out
 }
 function proveWith(m: Machine, laws: Law[], instances: Record<string, Instances>): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {

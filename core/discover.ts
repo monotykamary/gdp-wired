@@ -10,6 +10,7 @@
 //   const out = discover(r, laws, stepLaws)
 //   out.verdict          // the laws, proven of out.rule: r with its functions and lists made again with the lemmas
 //   out.found            // per function or list, the lemmas found, as source to paste into recur(...) or carriesList(...)
+import {quietly} from './cyclic.ts'
 import {type C, type E, type Law, type Machine, type State, any, atMost, compileFunction, evalC, evalE, n, plus, prod, same, times, x} from './machine.ts'
 import {type FnDef, type Kind, type ListFold, type ListLemma, type StepLaw, type Verdict, Cond, Rule, Term, Unproven, lit, proveFold, proveSteps, recur, recurOf} from './dsl.ts'
 import {type Fold} from '../kernel/kernel.ts'
@@ -231,7 +232,8 @@ function houdiniList(r: AnyRule, part: ListPart, cands: Cand[], params: string[]
 
 // The laws of r, and where they aren't proven as r states them, the lemmas found for its functions and lists: all that
 // is proven first, then each dropped in turn while the laws stay proven without it.
-export function discover(r: AnyRule, laws: Law[], stepLaws: StepLaw[] = []): Discovery {
+export function discover(r: AnyRule, laws: Law[], stepLaws: StepLaw[] = []): Discovery { return quietly(() => discoverSearch(r, laws, stepLaws)) }
+function discoverSearch(r: AnyRule, laws: Law[], stepLaws: StepLaw[] = []): Discovery {
   const first = proveSteps(r, laws, stepLaws)
   if (first.proven && first.checked) return {verdict: first, rule: r, found: {}}
   const {params, fns, lists} = r.parts, ps = natParams(params)
@@ -348,7 +350,8 @@ const eOfSide = (side: [string, number][]): E => {
   return es.length ? es.slice(1).reduce((acc, t) => plus(acc, t), es[0]!) : n(0)
 }
 const cOfCand = (c: Cand): C => { const {pos, neg} = sides(c.lin), a = eOfSide(pos), b = eOfSide(neg); return c.rel === '=' ? same(a, b) : atMost(a, b) }
-export function discoverFold(f: TreeFold, laws: Law[]): FoldDiscovery {
+export function discoverFold(f: TreeFold, laws: Law[]): FoldDiscovery { return quietly(() => discoverFoldSearch(f, laws)) }
+function discoverFoldSearch(f: TreeFold, laws: Law[]): FoldDiscovery {
   const stated = f.lemmas ?? [], first = proveFold({fold: f.fold, lemmas: stated}, laws)
   if (first.proven && first.checked) return {verdict: first, lemmas: [], found: []}
   const fold = f.fold, names = Object.keys(fold.leaf), rose = names.includes('kind$'), samples = foldSamples(fold)

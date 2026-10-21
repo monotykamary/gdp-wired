@@ -1,0 +1,2 @@
+[{"name":"probe-trees","cmd":"bun research/cyclic/probe.ts trees 2>&1","cwd":".","cpu":2.0,"timeout":1800},
+ {"name":"probe-sheet","cmd":"bun research/cyclic/probe.ts sheet 2>&1","cwd":".","cpu":2.0,"timeout":1800}]
