@@ -1115,18 +1115,7 @@ export type CycBridge = {machine: Machine, laws: Law[], tampered?: {what: string
 export function cyclicToLean(id: string, p: Cyclic, tampered: {what: string, proof: Cyclic}[] = [], after?: (ix: (name: string) => number, mx: (map: string) => number) => string,
     bridge?: CycBridge): string {
   const all = [p, ...tampered.map(t => t.proof)]
-  const names = (t: unknown) => [...JSON.stringify(t).matchAll(/"op":"var","name":"([^"]+)"/g)].map(m => m[1]!)
-  // A machine's own names (core/cyclic.ts's encoding adds u$, k$, T$, O$, t$ and a map x@ over time for each state
-  // variable, input and map), for its SMachine and the encoding Bridge.lean checks the proof against.
-  const ms = bridge ? [bridge.machine, ...(bridge.tampered ?? []).map(t => t.machine)] : []
-  const keysOf = (l: Law) => [...(l.forall ? [l.forall] : []), ...(l.keys ?? [])]
-  const traced = (m: Machine) => [...Object.keys(m.state), ...m.inputs], tracedMaps = (m: Machine) => [...Object.keys(m.maps ?? {}), ...(m.inputMaps ?? [])]
-  const machineVars = ms.flatMap(m => [...m.params, ...m.inputs, ...Object.keys(m.state), ...Object.keys(m.step.flags ?? {}).map(f => `?${f}`),
-    ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : [])), ...(m.facts ?? []).flatMap(keysOf), ...names([m.state, m.step, m.pre, m.assume, m.facts])])
-  const vars = [...new Set([...all.flatMap(q => [...q.facts.flatMap(f => [...f.keys, ...names(f.holds)]), ...q.nodes.flatMap(n => [...names([n.hyps, n.concl, n.rank, n.insts]), ...n.uses.flatMap(u => [...Object.keys(u.subst), ...names([u.subst, u.guard])])])]),
-    ...machineVars, ...(bridge ? [...bridge.laws.flatMap(l => [...keysOf(l), ...names(l.holds)]), 'u$', 'k$', 'T$', 'O$', 't$'] : [])])]
-  const maps = [...new Set([...[...JSON.stringify([all, ms, bridge?.laws ?? []]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(m => m[1]!),
-    ...ms.flatMap(m => [...tracedMaps(m), ...Object.keys(m.fns ?? {}), ...traced(m).map(x => `${x}@`), ...tracedMaps(m).map(x => `${x}@`)])])]
+  const {vars, maps} = cycScope(all, bridge)
   const {e, c} = leanTerms(vars, maps, id)
   const ix = (name: string) => vars.indexOf(name)
   const facts = list(p.facts.map(f => `⟨${list(f.keys.map(key => String(ix(key))))}, ${c(f.holds)}⟩`))
@@ -1157,6 +1146,52 @@ theorem ${id}_sound : ∀ (maps : Nat → Nat → Nat) env, FactsHold ${id}_fact
 ${tampered.map((t, j) => `-- TAMPERED: ${t.what}. Lean computes the check to false.
 def ${id}_tampered${j} : List CNode := ${nodes(t.proof)}
 example : checkCyclic ${id}_facts ${id}_tampered${j} = false := by ${checkBy}`).join('\n')}${bridge ? `\n${cycBridgeLean(id, p, bridge, vars, maps, {e, c})}` : ''}${after ? `\n${after(ix, mx)}` : ''}`
+}
+
+// The variables and maps a cyclic proof names. With a machine it was made from, the machine's own names too (core/cyclic.ts's
+// encoding adds u$, k$, T$, O$, t$ and a map x@ over time for each state variable, input and map), for its SMachine and
+// the encoding Bridge.lean checks the proof against.
+type CycShape = {facts: {keys: string[], holds: C}[], nodes: {hyps: C[], concl: C, rank: E[], insts: unknown[], uses: {subst: Record<string, E>, guard: C}[]}[]}
+function cycScope(all: CycShape[], bridge?: CycBridge): {vars: string[], maps: string[]} {
+  const names = (t: unknown) => [...JSON.stringify(t).matchAll(/"op":"var","name":"([^"]+)"/g)].map(m => m[1]!)
+  const ms = bridge ? [bridge.machine, ...(bridge.tampered ?? []).map(t => t.machine)] : []
+  const keysOf = (l: Law) => [...(l.forall ? [l.forall] : []), ...(l.keys ?? [])]
+  const traced = (m: Machine) => [...Object.keys(m.state), ...m.inputs], tracedMaps = (m: Machine) => [...Object.keys(m.maps ?? {}), ...(m.inputMaps ?? [])]
+  const machineVars = ms.flatMap(m => [...m.params, ...m.inputs, ...Object.keys(m.state), ...Object.keys(m.step.flags ?? {}).map(f => `?${f}`),
+    ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : [])), ...(m.facts ?? []).flatMap(keysOf), ...names([m.state, m.step, m.pre, m.assume, m.facts])])
+  const vars = [...new Set([...all.flatMap(q => [...q.facts.flatMap(f => [...f.keys, ...names(f.holds)]), ...q.nodes.flatMap(n => [...names([n.hyps, n.concl, n.rank, n.insts]), ...n.uses.flatMap(u => [...Object.keys(u.subst), ...names([u.subst, u.guard])])])]),
+    ...machineVars, ...(bridge ? [...bridge.laws.flatMap(l => [...keysOf(l), ...names(l.holds)]), 'u$', 'k$', 'T$', 'O$', 't$'] : [])])]
+  const maps = [...new Set([...[...JSON.stringify([all, ms, bridge?.laws ?? []]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(m => m[1]!),
+    ...ms.flatMap(m => [...tracedMaps(m), ...Object.keys(m.fns ?? {}), ...traced(m).map(x => `${x}@`), ...tracedMaps(m).map(x => `${x}@`)])])]
+  return {vars, maps}
+}
+
+// Bridge.lean's cycMOk alone, part by part, for each law of a machine (the sweep research/cyclic/bridge.ts runs over the
+// examples): the facts and nodes machineNodes makes, each node with no proof (cycMOk reads only its hypotheses and
+// conclusion), against the machine's encoding. Each part an example, named in a comment before it.
+export function cycEncodingLean(id: string, facts: {name: string, keys: string[], holds: C}[], nodes: {name: string, hyps: C[], concl: C}[], b: CycBridge): string {
+  const shape: CycShape = {facts, nodes: nodes.map(n => ({hyps: n.hyps, concl: n.concl, rank: [], insts: [], uses: []}))}
+  const {vars, maps} = cycScope([shape], b)
+  const t = leanTerms(vars, maps, id)
+  const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
+  const mx = (name: string) => { const j = maps.indexOf(name); if (j < 0) throw new Error(`${id}: no map for ${name}`); return j }
+  const m = b.machine, keysOf = (l: Law) => list([...(l.forall ? [l.forall] : []), ...(l.keys ?? [])].map(k2 => String(ix(k2))))
+  const by = checkBy
+  return `-- ${id}: ${m.name}
+def ${id}_machine : SMachine := ${machineLit(m, t, ix, mx)}
+def ${id}_enc : CycEnc := ⟨${['u$', 'k$', 'T$', 'O$', 't$'].map(ix).join(', ')},
+  ${list([...Object.keys(m.state), ...m.inputs].map(x => `(${ix(x)}, ${mx(`${x}@`)})`))},
+  ${list([...Object.keys(m.maps ?? {}), ...(m.inputMaps ?? [])].map(x => `(${mx(x)}, ${mx(`${x}@`)})`))}⟩
+${facts.map((f, i) => `-- CHECK ${id} fact ${i}: ${f.name}
+example : (natC (${t.c(f.holds)}) || (cycCanon ${id}_machine ${id}_enc).any (factBeq ⟨${list(f.keys.map(k2 => String(ix(k2))))}, ${t.c(f.holds)}⟩)) = true := by ${by}`).join('\n')}
+${b.laws.map((l, j) => `-- CHECK ${id} law ${j}: shape: ${l.name}
+example : cycShapeOk ${id}_machine ${id}_enc ${keysOf(l)} = true := by ${by}
+-- CHECK ${id} law ${j}: terms: ${l.name}
+example : cycTermsOk ${id}_machine ${id}_enc ${keysOf(l)} = true := by ${by}
+-- CHECK ${id} law ${j}: law: ${l.name}
+example : cycLawOk ${id}_machine ${id}_enc (${t.c(l.holds)}) = true := by ${by}
+-- CHECK ${id} law ${j}: node: ${l.name}
+example : cycNodeOk ${id}_machine ${id}_enc (${t.c(l.holds)}) ⟨${list(nodes[j]!.hyps.map(t.c))}, ${t.c(nodes[j]!.concl)}, [], [], [], ([], .leaf [] [] [] [])⟩ = true := by ${by}`).join('\n')}`
 }
 
 // Bridge.lean's cyc_machine_sound for each law of a cyclic proof made by machineNodes: the machine as Sets.lean's
