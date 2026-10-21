@@ -817,6 +817,13 @@
 "timeout": 1800
 },
 {
+"name": "seqs",
+"cmd": "bun test seqs.test.ts 2>&1 && cd .. && bun examples/scopes.ts 2>&1",
+"cwd": "core",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
 "name": "sets",
 "cmd": "bun test sets.test.ts 2>&1 && cd .. && bun examples/sets.ts 2>&1",
 "cwd": "kernel",
@@ -874,7 +881,7 @@
 },
 {
 "name": "infer",
-"cmd": "cd .. && bun install --frozen-lockfile >/dev/null 2>&1 && cd core && bun test infer.test.ts 2>&1 && cd .. && bun examples/infer.ts 2>&1",
+"cmd": "cd .. && bun install --frozen-lockfile >/dev/null 2>&1 && cd core && bun test infer.test.ts search.test.ts 2>&1 && cd .. && bun examples/infer.ts 2>&1",
 "cwd": "core",
 "cpu": 1.0,
 "timeout": 900

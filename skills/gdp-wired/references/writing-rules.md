@@ -281,6 +281,11 @@ c.check(); c.prove([c.law('retries within 2', ({retries}) => retries.atMost(2))]
   compared with each other only plainly (`i.lt(j)`, `i.atMost(j)`, `i.eq(j)`). The runtimes decide it on every pair of
   a few keys per cell, so it costs the square of the cells; nest no `everyKey` inside another (`examples/pairs.ts`).
 - `.lists('Scope')`: a list with `Scope_len` (`examples/lists.ts`).
+- `.carriesSeq('Path')`, `.carriesSeqs('Paths')`: sequences a request carries as positions and a length (a path's
+  segments as interned names), `A.prefixOf(B)`, `startsWith`, `equals`, `extends(B, k)`, `has(x)`, a table's
+  `Paths.row(r)`; a prefix is a condition about every position, so a law about prefixes needs no lemma. Compare rows at a
+  witness (an input naming the row), not inside a condition about every row. A permutation (sorting, merging) is
+  bookkeeping the request carries, where each item went, checked with `everyBelow(n, k => ...)` (`examples/scopes.ts`).
 - `.fns({perMinute: divBy(60)})` or `fn(arity, js, {facts, lean})`: the kernel knows a function only by its facts
   (`examples/functions.ts`).
 - `recur('delay', {zero: 1, next: (x, d) => min(d.times(2), 64)}, {'at most 64': (x, d) => d.atMost(64)})`: a function

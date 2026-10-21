@@ -232,9 +232,11 @@ function houdiniList(r: AnyRule, part: ListPart, cands: Cand[], params: string[]
 
 // The laws of r, and where they aren't proven as r states them, the lemmas found for its functions and lists: all that
 // is proven first, then each dropped in turn while the laws stay proven without it.
-export function discover(r: AnyRule, laws: Law[], stepLaws: StepLaw[] = []): Discovery { return quietly(() => discoverSearch(r, laws, stepLaws)) }
-function discoverSearch(r: AnyRule, laws: Law[], stepLaws: StepLaw[] = []): Discovery {
-  const first = proveSteps(r, laws, stepLaws)
+// `first`: the laws' verdict on r alone, when the caller has it.
+export function discover(r: AnyRule, laws: Law[], stepLaws: StepLaw[] = [], first?: Verdict): Discovery {
+  return quietly(() => discoverSearch(r, laws, stepLaws, first ?? proveSteps(r, laws, stepLaws, {search: false})))
+}
+function discoverSearch(r: AnyRule, laws: Law[], stepLaws: StepLaw[], first: Verdict): Discovery {
   if (first.proven && first.checked) return {verdict: first, rule: r, found: {}}
   const {params, fns, lists} = r.parts, ps = natParams(params)
   // Per function and per list: what is proven, made into the rule.
@@ -252,7 +254,7 @@ function discoverSearch(r: AnyRule, laws: Law[], stepLaws: StepLaw[] = []): Disc
     const out = houdiniList(rule, part, listCands(part, params, listSamples(part, params)), ps)
     if (out && out.kept.length) { rule = out.rule; listKept[part[0]] = out.kept }
   }
-  const verdict = proveSteps(rule, laws, stepLaws)
+  const verdict = proveSteps(rule, laws, stepLaws, {search: false})
   const found = (): Record<string, Found> => ({
     ...Object.fromEntries(Object.entries(fnMade).map(([n, m]) => { const args = [...(recurOf(m.d)!.def.args ?? [])]; return [n, {...(m.lemmas.length ? {lemmas: m.lemmas.map(c => recurSrc(c, args, false))} : {}), ...(m.between.length ? {between: m.between.map(c => recurSrc(c, args, true))} : {})}] })),
     ...Object.fromEntries(Object.entries(listKept).map(([n, cs]) => [n, {lemmas: cs.map(c => listSrc(c, Object.keys(lists.find(l => l[0] === n)![2]), ps, c.target!))}])),
@@ -263,7 +265,7 @@ function discoverSearch(r: AnyRule, laws: Law[], stepLaws: StepLaw[] = []): Disc
   let best = {rule, verdict}
   // A rule made again and the laws proven of it; or the lemma whose proof failed without the one dropped.
   const tryRule = (next: () => AnyRule): {rule: AnyRule, verdict: Verdict} | {leaned: string} | undefined => {
-    try { const r2 = next(), v = proveSteps(r2, laws, stepLaws); return v.proven && v.checked ? {rule: r2, verdict: v} : undefined } catch (e) {
+    try { const r2 = next(), v = proveSteps(r2, laws, stepLaws, {search: false}); return v.proven && v.checked ? {rule: r2, verdict: v} : undefined } catch (e) {
       if (e instanceof Unproven) return {leaned: e.verdict.goal ?? ''}
       throw e
     }

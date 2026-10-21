@@ -69,6 +69,10 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   machine runs as, with each guard and action it names given again in gdp-wired's terms, and `conforms(chart, machine,
   createActor)` drives XState's own actor and the compiled rule with the same random events, comparing every state and
   context; what a chart can't run the same way is refused when built, with the reason (`examples/xstate.ts`).
+- **What nobody stated, looked for when the prover alone stops**: where `proveRule` or `proveSteps` doesn't prove the laws
+  and no run breaks them, it looks for lemmas about the rule's recurrences and lists (`discover`) and then invariants
+  (`inferLaws`), within 10 s (`{search: {ms}}`; `{search: false}`, the prover alone); the verdict's `found` holds what
+  proved them, as laws and lemmas with the source to paste.
 - **Invariants nobody wrote** (`gdp-wired/infer`): `inferLaws(rule, laws)` proves a law that holds but isn't inductive
   alone, with the laws it finds (bounds, sums and differences over the state, the same where a flag or a choice holds
   one value, and laws about every key of a map), each proven by the kernel with yours and handed back as the
@@ -247,6 +251,13 @@ const soon = retry.law('the next try is at most 64 after the last request', ({ne
   `Acct.set(k, value)`, `Acct.each(k => value)`) and `.items({Queue: Job})` (`push`, `pop`, `set`, `insertAt`,
   `removeAt`, `apply`, `has`, `within`, `increasing(by)`), one map per variable of the kind; `rule.decode` reads them back
   as objects and arrays.
+- **Sequences a request carries** (`.carriesSeq('Path')`, and tables of them, `.carriesSeqs('Paths')`): a sequence of
+  naturals as positions and a length, `Path.at(i)`, `Path.len`, a table's row `Paths.row(r)`; `A.prefixOf(B)`,
+  `startsWith`, `equals`, `extends(B, k)`, `has(x)`, each a condition about every position below a length, so laws about
+  prefixes of paths need no induction or lemma. The request gives an array of naturals (interned names), a table an
+  array of them. `everyBelow(n, k => ...)` checks bookkeeping a request carries row by row (where each grant went). A
+  condition about every row of a table can't compare the rows' sequences (that is two keys at once); compare a row at a
+  named row, a witness, instead (`examples/scopes.ts`: pi-fabric's path scopes, covering, attenuation and normalization).
 - **Lists a request carries** (`.carriesList('Lines', Line, folds, lemmas)`): the items one carried map per variable of
   the kind, the length `Lines.len`, each fold (`{total: {from: 0, step: (acc, line) => acc.plus(line.amount)}}`) a
   carried map of its running values whose equations every request is assumed to meet (the encoding computes them from the

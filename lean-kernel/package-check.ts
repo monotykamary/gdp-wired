@@ -22,6 +22,7 @@ import {area, areaLaws, counter, counterLaws, escalation, escalationLaws, fillMe
 import {team, teamLaws, teamSteps} from '../examples/sizes.ts'
 import {allDone, batchLaws, batches, everyTaggedTicket, taggedLaws, taggedTickets, everyLoggedTicket, everyRecountedTicket, everyReview, everyTicket, loggedLaws, loggedTickets, recounted, recountedLaws, reviewLaws, reviews, ticketLaws, tickets} from '../examples/liveness.ts'
 import {areaLaws as foundAreaLaws, foundArea, foundInvoices, foundOrgChart, foundRetries, orgChart as bareOrgChart, orgChartLaws as bareOrgChartLaws, retryLaws as foundRetryLaws, retrySteps as foundRetrySteps} from '../examples/discover.ts'
+import {grantLaws, normalizedLaws, patternLaws} from '../examples/scopes.ts'
 import {leanProject, toLean} from './emit.ts'
 import {foldNodes, machineNodes, proveCyclic, recurNodes} from '../core/cyclic.ts'
 import {proveLaws} from '../kernel/prove.ts'
@@ -128,6 +129,10 @@ const file = toLean(([
   })()),
   // A decision that reads conditions about every key, as the step law it is proven as.
   ...(d => [{id: 'subsettrans', machine: d.steps!.rule.machine, laws: [], stepLaws: [d.steps!.law]}])(rule('sets').inputs({n: nat}).carries('A', 'B', 'C').decide('a subset of a subset is a subset', ({A, B, C}) => [A.subsetOf(B), B.subsetOf(C)], ({A, C}) => A.subsetOf(C))),
+  // n times the goal, then a square: (Σv)² <= n·Σv² over running samples.
+  ...(r => [{id: 'runningstats', machine: r.machine, laws: [r.law('s² within n·q', ({n, s, q}) => s.mul(s).atMost(n.mul(q)))]}])(rule('running statistics').inputs({v: nat}).state({n: 0, s: 0, q: 0}).step(({v, n, s, q}) => ({n: n.plus(1), s: s.plus(v), q: q.plus(v.mul(v))}))),
+  // Path scopes (examples/scopes.ts): each decision as the step law it is proven as.
+  ...[...patternLaws(), ...grantLaws(), ...normalizedLaws()].map((d, i) => ({id: `scopes${i}`, machine: d.steps!.rule.machine, laws: [], stepLaws: [d.steps!.law]})),
   {id: 'sortedlist', machine: sortedList().machine, laws: sortedListLaws()},
   {id: 'distinctnames', machine: distinctNames().machine, laws: distinctNamesLaws()},
   {id: 'wideflag', machine: wide().machine, laws: wide().kindLaws()},

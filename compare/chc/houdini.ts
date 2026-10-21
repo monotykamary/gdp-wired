@@ -42,7 +42,7 @@ export function houdini(b: Built, chc: Chc, seen: State[], opts: {ms: number, ma
   let rounds = 0, inductive = false
   while (performance.now() < until) {
     rounds++
-    const v = proveRule(b.rule, kept)
+    const v = proveRule(b.rule, kept, {search: false})
     if (v.proven && v.checked) { inductive = true; break }
     if (!v.goal) break
     const name = v.goal.replace(/ @.*$/, ''), drop = new Set(kept.filter(l => l.name === name))
@@ -58,6 +58,6 @@ export function houdini(b: Built, chc: Chc, seen: State[], opts: {ms: number, ma
     kept = kept.filter(l => !drop.has(l))
   }
   if (!inductive) return {candidates: all.length, afterRuns, kept, rounds, proven: false, why: 'no inductive set in time'}
-  const v = proveRule(b.rule, [b.law, ...kept])
+  const v = proveRule(b.rule, [b.law, ...kept], {search: false})
   return {candidates: all.length, afterRuns, kept, rounds, proven: v.proven && v.checked}
 }

@@ -20,6 +20,8 @@ import {allowed, keysOf, requestEnv, watch} from './watch.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type StepLaw, type Tree, check, foldObligations, loopObligations} from '../kernel/kernel.ts'
 import {factsFor, grow, proveLaws, proveLiveness, proveStepLaws} from '../kernel/prove.ts'
 import {crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes} from './cyclic.ts'
+import {discover} from './discover.ts'
+import {inferLaws} from './infer.ts'
 
 // --- terms and conditions -------------------------------------------------------------------------------------------
 
@@ -764,6 +766,31 @@ export class ListRef {
   within(): Forall { return forall(k => this.len.atMost(k).implies(this.at(k).eq(0))) }
   increasing(): Forall { return forall((i, j) => i.lt(j).and(j.lt(this.len)).implies(this.at(i).lt(this.at(j)))) }
 }
+// A sequence of naturals as positions and a length (a path's segments, as interned names): `at(i)` its value at i,
+// `len` its length. Comparing two is a condition about every position below a length (the array property fragment,
+// decidable), so a law about prefixes needs no induction. One a request carries (`carriesSeq`), or a row of a table of
+// them (`carriesSeqs`), its positions read from its row's offset in the table's one map.
+export class SeqRef {
+  constructor(private readonly map: MapRef, readonly len: Term, private readonly base?: Term) {}
+  at(i: TermLike): Term { return this.map.at(!this.base ? i : typeof i === 'number' ? this.base.plus(i) : i.plus(this.base)) }
+  // The same values at every position below `upTo` (both have them).
+  private agree(o: SeqRef, upTo: Term): Cond { return everyKey(k => k.lt(upTo).implies(this.at(k).eq(o.at(k)))) }
+  // This one is where o starts; o is where this one starts; the same; o followed by `by` more; x at some position.
+  prefixOf(o: SeqRef): Cond { return this.len.atMost(o.len).and(this.agree(o, this.len)) }
+  startsWith(o: SeqRef): Cond { return o.prefixOf(this) }
+  equals(o: SeqRef): Cond { return this.len.eq(o.len).and(this.agree(o, this.len)) }
+  extends(o: SeqRef, by: TermLike): Cond { return o.prefixOf(this).and(this.len.eq(o.len.plus(by))) }
+  has(x: TermLike): Cond { return everyKey(k => k.lt(this.len).implies(this.at(k).ne(x))).not() }
+}
+// A table of sequences a request carries (each grant's path, say): `row(r)` is row r's sequence, `rows` how many. Rows
+// are read by their number as a map's key, so a condition about every row reads a row only there (`everyBelow(T.rows,
+// r => ...)`).
+export class SeqTable {
+  constructor(readonly name: string, readonly rows: Term) {}
+  row(r: TermLike): SeqRef { return new SeqRef(new MapRef(this.name, 0), new MapRef(`${this.name}_len`, 0).at(r), new MapRef(`${this.name}_base`, 0).at(r)) }
+}
+// f at every key below n: what bookkeeping a request carries meets, row by row (where each grant went, say).
+export const everyBelow = (n: TermLike, f: (key: Term) => Cond): Cond => everyKey(k => k.lt(n).implies(f(k)))
 const when_ = (c: Cond, then: TermLike, otherwise: TermLike): Term => new Term({op: 'if', c: c.c, then: termOf(then), else: termOf(otherwise)}, c.ok === undefined ? undefined : valOf(c.ok ? then : otherwise))
 
 // Writes to the maps a map or a list of a kind is kept in (one per variable of the kind), as the step returns them under
@@ -879,7 +906,7 @@ export class CarriedList<V, Fd extends string = never> {
       .state({i: 0, ...Object.fromEntries(folds.map(([f, d]) => [`acc$${f}`, typeof d.from === 'number' ? d.from : (p: never) => (d.from as (p: never) => TermLike)(p)]))})
       .step((env: Record<string, Term>) => ({i: env.i!.plus(1), ...Object.fromEntries(folds.map(([f, d]) => [`acc$${f}`, d.step(env[`acc$${f}`]!, item(env.i!), env)]))}))
     const accs = (env: Record<string, Term>) => Object.fromEntries(folds.map(([f]) => [f, env[`acc$${f}`]!]))
-    return proveRule(r as never, Object.entries(this.lemmas).map(([n, l]) => r.law(n, (env: Record<string, Term>) => l(accs(env), env.i!, env))))
+    return proveRule(r as never, Object.entries(this.lemmas).map(([n, l]) => r.law(n, (env: Record<string, Term>) => l(accs(env), env.i!, env))), {search: false})
   }
   // Every carried map it is kept in: the items' parts, then each fold's.
   get maps(): string[] { return [...this.kind.vars(this.name), ...Object.keys(this.folds).map(f => `${this.name}$${f}`)] }
@@ -1236,7 +1263,7 @@ export const recur = <const A extends string = never, U extends Record<string, F
     const laws: Law[] = Object.entries(lemmas).map(([n, f]) => r.law(n, (env: Record<string, Term>) => f(env.x!, env.fx!, envAt(args.map(a => env[a]!)))))
     // (Its machine's proof timed alone: the recurrence is compared below as its own instance.)
     const t0 = performance.now()
-    verdict = quietly(() => proveRule(r as never, laws))
+    verdict = quietly(() => proveRule(r as never, laws, {search: false}))
     if (cyclicOn()) crossCyclic('recurrence', name, verdict.proven && verdict.checked, () => { const {facts, specs} = recurNodes(recurCase([])); return proveCyclic(facts, specs) }, performance.now() - t0)
     failed('lemmas', verdict)
     proofs.lemmas = {machine: (r as Rule).machine, laws}
@@ -1272,7 +1299,7 @@ export const recur = <const A extends string = never, U extends Record<string, F
       .step((env: Record<string, Term>) => ({y: env.y!.plus(1), fy: def.next(env.y!, env.fy!, envAt(at(env)))}) as never)
     const laws = [...Object.entries(lemmas).map(([n, l]) => r.law(`${n} at y`, (env: Record<string, Term>) => l(env.y!, env.fy!, envAt(at(env))))),
       ...Object.entries(between).map(([n, l]) => r.law(n, (env: Record<string, Term>) => l(env.x!, env.fx!, env.y!, env.fy!, envAt(at(env)))))]
-    const t0 = performance.now(), v = quietly(() => proveRule(r as never, laws)), usualMs = performance.now() - t0
+    const t0 = performance.now(), v = quietly(() => proveRule(r as never, laws, {search: false})), usualMs = performance.now() - t0
     if (cyclicOn()) crossCyclic('recurrence, between', name, v.proven && v.checked, () => { const {facts, specs} = recurNodes(recurCase(pairs)); return proveCyclic(facts, specs) }, usualMs)
     failed('laws between two points', v)
     proofs.between = {machine: (r as Rule).machine, laws}
@@ -1396,6 +1423,10 @@ type Spec = {
   // State variables declared by a kind: each a value over the kind's variables (in `state`, one entry each).
   kinded?: [string, Kind<unknown>][]
   carried?: string[]
+  // Sequences a request carries (in `carried`, each length an input <name>_len), and tables of them (in `carried` with
+  // <name>_base and <name>_len, the number of rows an input <name>_rows).
+  seqs?: string[]
+  seqTables?: string[]
   // Lists of a kind a request carries, each with its folds (their maps are carried too).
   lists2?: [string, Kind<unknown>, Record<string, ListFold<unknown>>, Record<string, ListLemma>][]
   fns?: [string, FnDef][]
@@ -1498,6 +1529,16 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   facts(f: (p: P) => Record<string, Cond | Forall>): Rule<P, I, S, M, F, R, Su, Q> { return this.with({facts: [...(this.spec.facts ?? []), f as (env: never) => Record<string, Cond | Forall>]}) }
   // Maps each request carries whole (a set of names, say: cells 0 or 1), every cell past them 0; read like any map.
   carries<const N extends string>(...names: N[]): Rule<P, I & {[k in N]: MapRef}, S, M, F, R, Su, Q> { return this.with({carried: [...(this.spec.carried ?? []), ...names]}) }
+  // Sequences each request carries (SeqRef): `.carriesSeq('Path')`, then `Path.at(i)`, `Path.len`, `A.prefixOf(B)`; the
+  // request gives each as an array of naturals.
+  carriesSeq<const N extends string>(...names: N[]): Rule<P, I & {[k in N]: SeqRef}, S, M, F, R, Su, Q> {
+    return this.with({carried: [...(this.spec.carried ?? []), ...names], inputs: [...this.spec.inputs, ...names.map(n => [`${n}_len`, nat] as [string, Kind<unknown>])], seqs: [...(this.spec.seqs ?? []), ...names]})
+  }
+  // Tables of sequences each request carries (SeqTable): `.carriesSeqs('Paths')`, then `Paths.row(r)`, `Paths.rows`; the
+  // request gives each as an array of arrays of naturals.
+  carriesSeqs<const N extends string>(...names: N[]): Rule<P, I & {[k in N]: SeqTable}, S, M, F, R, Su, Q> {
+    return this.with({carried: [...(this.spec.carried ?? []), ...names.flatMap(n => [n, `${n}_base`, `${n}_len`])], inputs: [...this.spec.inputs, ...names.map(n => [`${n}_rows`, nat] as [string, Kind<unknown>])], seqTables: [...(this.spec.seqTables ?? []), ...names]})
+  }
   // A list of values of a kind each request carries, with folds over it and lemmas about the folds (CarriedList):
   //   .carriesList('Lines', record({amount: nat}), {total: {from: 0, step: (acc, line) => acc.plus(line.amount)}})
   // Each fold's start and step, and each lemma, may read the params declared before it.
@@ -1687,6 +1728,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     if (parts.inputs !== false) {
       for (const [n, k] of this.spec.inputs) out[n] = k.value(n)
       for (const n of this.spec.carried ?? []) out[n] = new MapRef(n, 0)
+      for (const n of this.spec.seqs ?? []) { delete out[`${n}_len`]; out[n] = new SeqRef(new MapRef(n, 0), v(`${n}_len`)) }
+      for (const n of this.spec.seqTables ?? []) { for (const part of [`${n}_base`, `${n}_len`, `${n}_rows`]) delete out[part]; out[n] = new SeqTable(n, v(`${n}_rows`)) }
       const ps = Object.fromEntries(this.spec.params.map(([n]) => [n, out[n]]))
       for (const [n, k, fs, ls] of this.spec.lists2 ?? []) { const l = new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0), ls, ps, this.spec.params); for (const part of l.maps) delete out[part]; out[n] = l }
     }
@@ -1954,15 +1997,30 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // --- running it -----------------------------------------------------------------------------------------------------
   // Runtime values (numbers, booleans, choice names, null for a missing value) to the variables the machine reads.
   encodeParams(values: {[k in keyof P]: Raw}): Record<string, number> { return encode(this.spec.params, values as Record<string, Raw>) }
-  // A carried map is a Set of keys (each cell 1), an array of them, or a Map of key to natural.
+  // A carried map is a Set of keys (each cell 1), an array of them, or a Map of key to natural; a sequence an array of
+  // naturals, a table of them an array of such arrays.
   // A carried list is an array of its items' runtime values (its length and folds computed from them); `params`, what
   // folds that read the params are computed with.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  encodeInput(values: {[k in keyof I]: I[k] extends MapRef ? ReadonlySet<number> | readonly number[] | ReadonlyMap<number, number> : I[k] extends CarriedList<any, any> ? readonly Raw[] : Raw}, params?: {[k in keyof P]: Raw}): Request {
+  encodeInput(values: {[k in keyof I]: I[k] extends MapRef ? ReadonlySet<number> | readonly number[] | ReadonlyMap<number, number> : I[k] extends SeqRef ? readonly number[] : I[k] extends SeqTable ? readonly (readonly number[])[] : I[k] extends CarriedList<any, any> ? readonly Raw[] : Raw}, params?: {[k in keyof P]: Raw}): Request {
     const at = params && this.paramValues(this.encodeParams(params))
     const lists = Object.fromEntries((this.spec.lists2 ?? []).map(([n, k, fs]) => [n, new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0), {}, at).encode((values as Record<string, Raw>)[n])]))
-    const out: Request = encode(this.spec.inputs, {...values as Record<string, Raw>, ...Object.fromEntries(Object.entries(lists).map(([n, l]) => [`${n}_len`, l.len]))})
+    // A sequence: its values at their positions (no 0 cell), its length; a table: the rows one after another in one map,
+    // each row's offset and length.
+    const seqMaps: Record<string, Map<number, number>> = {}, seqLens: Record<string, number> = {}
+    const cells = (xs: readonly number[], from = 0) => xs.flatMap((x, i) => (x ? [[from + i, x] as [number, number]] : []))
+    for (const n of this.spec.seqs ?? []) { const xs = (values as Record<string, readonly number[]>)[n] ?? []; seqMaps[n] = new Map(cells(xs)); seqLens[`${n}_len`] = xs.length }
+    for (const n of this.spec.seqTables ?? []) {
+      const rows = (values as Record<string, readonly (readonly number[])[]>)[n] ?? [], base: number[] = []
+      rows.reduce((at, r) => (base.push(at), at + r.length), 0)
+      seqMaps[n] = new Map(rows.flatMap((r, i) => cells(r, base[i])))
+      seqMaps[`${n}_base`] = new Map(base.flatMap((b, i) => (b ? [[i, b] as [number, number]] : [])))
+      seqMaps[`${n}_len`] = new Map(rows.flatMap((r, i) => (r.length ? [[i, r.length] as [number, number]] : [])))
+      seqLens[`${n}_rows`] = rows.length
+    }
+    const out: Request = encode(this.spec.inputs, {...values as Record<string, Raw>, ...seqLens, ...Object.fromEntries(Object.entries(lists).map(([n, l]) => [`${n}_len`, l.len]))})
     for (const l of Object.values(lists)) Object.assign(out, l.maps)
+    Object.assign(out, seqMaps)
     for (const n of this.spec.carried ?? []) {
       if (n in out) continue
       const given = (values as Record<string, unknown>)[n]
@@ -2062,7 +2120,7 @@ type CaseRaw<C extends Cases, T extends string = 'tag'> = {[k in keyof C]: {[t i
 type Value<T> = {[k in keyof T]: ValueOf<T[k]>}
 // A request's runtime values: a carried map as a set of keys (or an array of them, or a map of key to natural), a carried
 // list as an array of its items' values, anything else as its kind's value (what encodeInput takes).
-type RawInputs<T> = {[k in keyof T]: T[k] extends MapRef ? ReadonlySet<number> | readonly number[] | ReadonlyMap<number, number> : T[k] extends CarriedList<infer V, infer _F> ? readonly ValueOf<V>[] : ValueOf<T[k]>}
+type RawInputs<T> = {[k in keyof T]: T[k] extends MapRef ? ReadonlySet<number> | readonly number[] | ReadonlyMap<number, number> : T[k] extends SeqRef ? readonly number[] : T[k] extends SeqTable ? readonly (readonly number[])[] : T[k] extends CarriedList<infer V, infer _F> ? readonly ValueOf<V>[] : ValueOf<T[k]>}
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Field = Term | Cond | Int | Decimal | Choice<string> | Str | Variant<any, any> | Maybe<any> | {[f: string]: Field | number}
 // The kind a result field is kept in.
@@ -2187,7 +2245,15 @@ export const loop = (name: string): LoopRule => new LoopRule({name, params: [], 
 // `run`: a real run from the start that breaks the law (params, and each request in order, a carried map as its cells),
 // when a few random runs found one before the prover ran (a step law broken from a state no run is known to reach comes
 // back with its `witness` alone).
-export type Verdict = {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}}
+// `found`: what the search found and proved beside the laws (`proveRule`'s, `proveSteps`'s), as laws to pass with them and
+// as lemmas to state in `recur` or `carriesList` (source to paste).
+export type Verdict = {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found}
+export type Found = {laws?: {law: Law, text: string, source?: string}[], lemmas?: Record<string, {lemmas?: string[], between?: string[]}>}
+// `search`: where the laws aren't proven and no run breaks them, what they need may be what nobody stated, so the
+// prover looks for it within `ms` (10 s): lemmas about the rule's recurrences and its lists' folds (core/discover.ts),
+// then invariants (core/infer.ts), each proven by the kernel with the laws, the verdict theirs. `{search: false}`: the
+// prover alone.
+export type ProveOptions = {search?: boolean | {ms?: number}}
 // A verdict that isn't a checked proof, as the error a lemma, a guard or a gate is refused with (the verdict on `.verdict`).
 export class Unproven extends Error {
   constructor(what: string, readonly verdict: Verdict) {
@@ -2212,13 +2278,15 @@ const withKinds = (r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[])
 // interpreter took. A rule that reads functions is skipped: the kernel knows them only by their facts (a recurrence's
 // induction machine reads the function it proves things about), so a run computing them proves nothing about the goal.
 const refuteBudget = {trials: 60, depth: 6, bound: 3, ms: 150}
-function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[] = []): {goal: string, witness: Record<string, number>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}} | undefined {
+// The search's own runs, before it looks for what the laws need: deeper and wider, from another seed.
+const deeperBudget = {trials: 600, depth: 24, bound: 8, ms: 1500, seed: 29}
+function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[] = [], budget: typeof refuteBudget & {seed?: number} = refuteBudget): {goal: string, witness: Record<string, number>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}} | undefined {
   const m = r.machine
   if (Object.keys(m.fns ?? {}).length || m.facts?.length) return undefined
-  const run = interpret(m), rand = seeded(13), until = performance.now() + refuteBudget.ms, bound = refuteBudget.bound
+  const run = interpret(m), rand = seeded(budget.seed ?? 13), until = performance.now() + budget.ms, bound = budget.bound
   const shown = (input: Request) => Object.fromEntries(Object.entries(input).map(([n, x]) => [n, typeof x === 'number' ? x : Object.fromEntries(x as ReadonlyMap<number, number>)]))
   try {
-    for (let trial = 0; trial < refuteBudget.trials && performance.now() < until; trial++) {
+    for (let trial = 0; trial < budget.trials && performance.now() < until; trial++) {
       const params = r.randomParams(rand, bound)
       if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) continue
       const watching = [...laws, ...stepLaws].map(w => ({w, on: watch(m, run, w, params, bound)}))
@@ -2228,7 +2296,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
       const broken = (w: Law | StepLaw, at: string, before: State, input?: Request) =>
         ({goal: `${w.name} ${at}`, witness: {...params, ...before.scalars, ...(input ? numbersOf(input) : {})}, run: {params, trace: trace.map(shown)}})
       for (const {w, on} of watching) if (!('then' in w) && !on.start(st)) return broken(w, '@start', st)
-      for (let d = 0, tries = 0; d < refuteBudget.depth && tries < 40; tries++) {
+      for (let d = 0, tries = 0; d < budget.depth && tries < 40; tries++) {
         const input = r.randomInput(rand, bound, params)
         if (!allowed(m, run, params, st, input)) continue
         d++
@@ -2245,7 +2313,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     // variable of a kind is drawn as its kind draws (33 yes/nos drawn from 0..7 almost never make a lawful state).
     const steps1 = stepLaws.filter(sl => (sl.steps ?? 1) === 1), given = withKinds(r, laws)
     const wide = Object.keys(m.state).length + m.inputs.length >= 32, lawsHere = wide ? given : [], kinded = wide ? r.kindsOfState() : []
-    for (let trial = 0; !m.history && (steps1.length || lawsHere.length) && trial < refuteBudget.trials * 4 && performance.now() < until; trial++) {
+    for (let trial = 0; !m.history && (steps1.length || lawsHere.length) && trial < budget.trials * 4 && performance.now() < until; trial++) {
       const params = r.randomParams(rand, bound)
       if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) continue
       const scalars: Record<string, number> = Object.fromEntries(Object.keys(m.state).map(n => [n, rand(8)]))
@@ -2262,17 +2330,42 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
   return undefined
 }
 const refutedVerdict = (out: NonNullable<ReturnType<typeof refuteByRuns>>): Verdict => ({proven: false, checked: false, goal: out.goal, stuck: 'sat', witness: out.witness, ...(out.run ? {run: out.run} : {})})
-export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[]): Verdict {
+export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions = {}): Verdict {
   const refuted = refuteByRuns(r, laws)
   if (refuted) return refutedVerdict(refuted)
   const out = proveLaws(r.machine, withKinds(r, laws))
-  return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
+  const v: Verdict = {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
+  return searched(r, laws, [], v, opts)
 }
-export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[]): Verdict {
+export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
   const refuted = refuteByRuns(r, laws, stepLaws)
   if (refuted) return refutedVerdict(refuted)
   const out = proveStepLaws(r.machine, withKinds(r, laws), stepLaws)
-  return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
+  const v: Verdict = {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
+  return searched(r, laws, stepLaws, v, opts)
+}
+// The search, where the prover alone didn't prove the laws and nothing refuted them: the lemmas first where the rule has
+// recurrences or carried lists (the rule made again with them), then invariants over what it then is. The verdict is the
+// prover's on the laws with what was found; when nothing is found, the prover's own (with why).
+function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions): Verdict {
+  if ((v.proven && v.checked) || opts.search === false || v.run || v.stuck === 'sat' && !/@step|@\d+ steps/.test(v.goal ?? '')) return v
+  const deeper = refuteByRuns(r, laws, stepLaws, deeperBudget)
+  if (deeper?.run) return refutedVerdict(deeper)
+  const until = performance.now() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000)
+  let rule = r, lemmas: Found['lemmas']
+  const {fns, lists} = r.parts
+  if (lists.length || fns.some(([, d]) => recurOf(d))) {
+    const d = discover(r, laws, stepLaws, v)
+    if (d.verdict.proven && d.verdict.checked) return {...d.verdict, found: {lemmas: d.found}}
+    if (Object.keys(d.found).length) (rule = d.rule, lemmas = d.found)
+  }
+  const ms = until - performance.now()
+  if (ms < 500) return v
+  const inf = inferLaws(rule, laws, stepLaws, {ms, ...(rule === r ? {first: v} : {})})
+  if (!(inf.proven && inf.checked)) return {...v, why: [v.why, `the search found nothing that proves it in ${Math.round(inf.stats.ms)} ms`].filter(Boolean).join('; ')}
+  const {found, stats: _stats, ...verdict} = inf
+  void _stats
+  return {...verdict, found: {laws: found, ...(lemmas ? {lemmas} : {})}}
 }
 export type {StepLaw}
 export type {Liveness}
@@ -2280,7 +2373,7 @@ export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, la
   const out = proveLiveness(r.machine, withKinds(r, laws), l)
   return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
 }
-export const proveDecision = (d: Decision): Verdict => (d.steps ? proveSteps(d.steps.rule as never, [], [d.steps.law]) : goalsVerdict([d.goal]))
+export const proveDecision = (d: Decision): Verdict => (d.steps ? proveSteps(d.steps.rule as never, [], [d.steps.law], {search: false}) : goalsVerdict([d.goal]))
 const seeded = (seed: number): Rand => { let x = seed; return k => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) } }
 // A decision's callbacks against its condition, on random params and requests: `given` and `then` each run with every
 // value known, against what the interpreter evaluates of the decision built from them.

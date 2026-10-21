@@ -54,8 +54,11 @@ When adding or changing a rule whose invariants matter:
    `@step` means the law isn't inductive: run `search` from the start. A real
    run is a bug in the rule (or the law); no run means the law needs a
    helper invariant, so add the missing law next to it, never weaken the one
-   that matters. `inferLaws(rule, laws)` (`gdp-wired/infer`) looks for it:
-   each law it finds comes back proven, with the `r.law(...)` call to paste.
+   that matters. `proveRule` and `proveSteps` look for it themselves (10 s by
+   default; `{search: {ms}}`, or `{search: false}` for the prover alone):
+   lemmas first (`discover`), then invariants (`inferLaws`), and the verdict's
+   `found` holds what proved the laws, as laws to pass with them and as
+   lemmas to state, each with the source to paste.
 5. **Never prove a different rule than the one that ships.** Ship the rule
    itself (`rule.compiled()`), or hold hand-written code to it with
    `rule.compare(reference)`; run `rule.crossCheck(laws)` in tests
@@ -100,7 +103,7 @@ From `gdp-wired`:
 | `rule(name)` | A rule builder: `.params` `.inputs` `.state` `.maps` (of naturals, or of a kind: `kind.from(v)`) `.lists` `.items` (lists of a kind) `.carries` `.flags` `.step` `.pre` `.assume` `.fns` `.facts` `.log` `.sums` `.queries` `.keep` `.relations` `.prune`. |
 | `nat`, `upTo(k)`, `bool`, `oneOf(...)`, `maybe(kind)`, `int`, `decimal(places)`, `str({like, maxLength})`, `record({...})`, `variant({...})` | Kinds; state of any kind with `kind.from(init)`; a variant's case built with `V.make({tag, ...fields})`, read with `is` and `match`; `same(a, b)` compares two values part by part. |
 | `r.law`, `r.stepLaw`, `r.stepsLaw`, `r.leadsTo`, `r.decide`, `r.relate` | Claims: invariant, one step, k steps (k ≤ 64), liveness, a decision about one request, a decision about two. |
-| `proveRule`, `proveSteps`, `proveLeadsTo`, `proveDecision`, `proveLoop` | Verdicts: `{proven, checked, goal?, stuck?, witness?, why?}`. |
+| `proveRule`, `proveSteps`, `proveLeadsTo`, `proveDecision`, `proveLoop` | Verdicts: `{proven, checked, goal?, stuck?, witness?, why?, found?}`. `proveRule` and `proveSteps` take `{search}`: where the prover alone doesn't prove the laws and no run breaks them, they look for lemmas and invariants (10 s by default; `false` for the prover alone), and `found` says what proved them. |
 | `when`, `min`, `max`, `count`, `sum`, `all`, `any`, `not`, `forall`, `everyKey`, `someKey`, `relation` | Terms and conditions; terms have `plus` `minus` (truncated) `times(k)` `mul` `lt` `atMost` `atLeast` `gt` `eq`, conditions `and` `or` `not` `implies`. |
 | `chart(name)` | A statechart: `.states({...})` (nested: `{states: {...}, initial, history, final}`) or `.regions({...})` (parallel), `.params`, `.inputs` (the payload), `.context` (extended state), `.outputs` (decided each step, reset to a default), `.events` (their order), `.on(event, {from, to, when, set, fresh})` (no `to`: internal; `fresh`: ignore history); `.check()` (every state reached with its run or proven unreachable, none stuck, no event ambiguous), `.law`, `.stepLaw` (`env.in('active.paid')`, `env.last('active')`), `.prove`, `.rule`. |
 | `inferLaws(rule, laws, stepLaws?)` | `gdp-wired/infer`: the invariants a law that isn't inductive needs, found from runs and the kernel's counterexamples (bounds, sums, differences, guarded by a flag or a choice, laws about every key of a map); `found[i].source` is the `r.law(...)` call; proven and checked like `proveRule`. |
@@ -109,6 +112,7 @@ From `gdp-wired`:
 | `fn(arity, js, {facts, lean})`, `divBy(c)`, `modBy(c)` | Functions known by their facts. |
 | `recur(name, {args, fns, zero, next}, lemmas, between)` | A function defined by a recurrence on its first argument (up to four further arguments fixed, other functions read), its lemmas and laws between two points proven by induction when made (`Unproven` otherwise); its equations, lemmas and laws are its facts, checked again by Lean as the kernel's own proof. |
 | `discover(rule, laws, stepLaws)`, `discoverFold(fold, laws)` | `gdp-wired/discover`: lemmas nobody stated, for a recurrence's function, a carried list's folds or a tree fold, found from their values (bounds, linear relations, closed forms of degree 2 at most, laws between two points), proven by the same induction, only those the laws need kept; `verdict` is of `rule` (the rule made again with them), `found` is source to paste. |
+| `r.carriesSeq(...names)`, `r.carriesSeqs(...names)`, `everyBelow(n, f)` | Sequences a request carries as positions and a length (`A.prefixOf(B)`, `startsWith`, `equals`, `extends(B, k)`, `has`, `at`, `len`), tables of them (`T.row(r)`, `T.rows`); laws about prefixes of paths need no lemma; rows compared at a witness. |
 | `r.carriesList(name, kind, folds, lemmas)` | A list of values a request carries (an invoice's lines): `L.every`, `L.at(i)`, `L.fold.<f>`; folds and lemmas may read the params; fold lemmas proven by induction (they read the folds, not the items); decisions assume the folds too. |
 | `fold(name)`, `proveFold`, `f.run(tree)` | A fold over a tree given as a value: `.leaf`, `.node`, `.law` (`.children` for any number of children per node); laws proven by induction over the tree. |
 | `r.nodes(name, kind, children, folds)` | A tree (or lists of lists) in the state: a table of nodes that only grows, `T.make(value, kids, when)`, `T.node(n).fold`; a law about a subtree is a law about one node. |

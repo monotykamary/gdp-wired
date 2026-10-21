@@ -16,7 +16,7 @@ test('the backoff delay: the bounds its rule needs, found, and the source pasted
   expect(proveSteps(r, retryLaws(r), retrySteps(r))).toMatchObject({proven: true, checked: true})
   // As the rule stated it, refused.
   const bare = retries()
-  expect(proveSteps(bare, retryLaws(bare), retrySteps(bare)).proven).toBe(false)
+  expect(proveSteps(bare, retryLaws(bare), retrySteps(bare), {search: false}).proven).toBe(false)
 })
 
 test('a closed form fitted exactly: squares is x·x', () => {

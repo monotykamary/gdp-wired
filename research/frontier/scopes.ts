@@ -4,6 +4,7 @@
 // outer's segments are a prefix of inner's with the wildcards' room for the extra segments. A pattern's segments are a
 // carried map from positions to interned names, its length an input. The laws a scope's attenuation rests on:
 // covering is transitive, and a pattern covers itself.
+// The research record, by hand over carried maps; the same laws with the library's sequences are examples/scopes.ts.
 import {type Cond, type Verdict, bool, everyKey, nat, oneOf, proveSteps, rule, when, yes, all} from '../../core/dsl.ts'
 
 const pattern = (p: string) => ({[`ns${p}`]: nat, [`all${p}`]: bool, [`abs${p}`]: bool, [`w${p}`]: oneOf('none', 'one', 'any'), [`len${p}`]: nat})

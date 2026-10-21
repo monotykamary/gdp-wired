@@ -255,6 +255,22 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
         if (third.kind === 'refuted') return {tree: leafOf(third.steps, weighted, squares), nodes: budget.nodes}
       }
     }
+    // A multiplier: every row times a factor the path has at least 1 (the row 1 − x <= 0), with the squares (x·a − b)
+    // and (x·b − a) of each product a·b the rows read: a certificate that multiplies the goal by x first ((Σv)² <= n·Σv²
+    // over running samples is n times the goal, closed by (n·v − s)²).
+    const ones = rows.flatMap((r, i) => { const ks = Object.keys(r.lin); return ks.length === 2 && r.lin['1'] === 1 && ks.some(key => key !== '1' && r.lin[key] === -1 && factorSet.has(key)) ? [i] : [] })
+    for (const xi of ones.slice(0, 3)) {
+      const x = Object.keys(rows[xi]!.lin).find(key => key !== '1')!, name = (fs: string[]) => [...fs].sort().join('*')
+      const forms = new Map<string, Lin>()
+      for (const m of new Set(rows.flatMap(r => Object.keys(r.lin).filter(isMonomial)))) {
+        const [a, b, ...more] = factorsOf(m)
+        if (!a || !b || more.length) continue
+        for (const [u, w] of [[a, b], [b, a]] as const) { const t: Lin = {[name([x, u])]: 1, [w]: -1}; forms.set(canon(t), t) }
+      }
+      const times: [number, number][] = relevant.map(i => [i, xi]), sq = [...forms.values()].slice(0, 32)
+      const multiplied = solve(withProducts(rows, times, sq))
+      if (multiplied.kind === 'refuted') return {tree: leafOf(multiplied.steps, times, sq), nodes: budget.nodes}
+    }
     const factors = [...new Set(rows.flatMap(r => Object.keys(r.lin).filter(isMonomial).flatMap(factorsOf)))]
     const fresh = (lin: Lin) => !path.has(canon(lin)) && !path.has(canonFlip(lin))
     // Split a factor at zero, else two factors against each other (so (x - y)² >= 0 becomes a product of rows).

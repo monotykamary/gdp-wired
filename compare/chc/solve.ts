@@ -5,6 +5,8 @@
 //   - prove: proveRule on the law alone (its refutation by runs included)
 //   - runs: random runs of the compiled rule, each step a clause the state can take and request values up to a bound
 //     that doubles per round
+//   - guided: runs the prover guides, each request a model of its clause's condition where the run is (the clauses that
+//     derive false tried first at each state)
 //   - houdini: the library's search for the invariants the law needs (core/infer.ts), from the states the runs reached:
 //     candidates per predicate (loc = p → a bound, a difference, a sum), those a run's state breaks dropped, then the
 //     kernel's counterexamples to induction choosing which to add; `--old-houdini`, this folder's first Houdini
@@ -15,11 +17,13 @@ import {type Step, build, checkDerivation} from './translate.ts'
 import {proveRule} from '../../core/dsl.ts'
 import {houdini} from './houdini.ts'
 import {inferLaws} from '../../core/infer.ts'
-import type {State} from '../../core/machine.ts'
+import type {C, E, State} from '../../core/machine.ts'
+import {grow} from '../../kernel/prove.ts'
+import {substC} from '../../kernel/kernel.ts'
 
 const args = process.argv.slice(2), file = args[0]!
 const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 ? d : Number(args[i + 1]) }
-const runsMs = opt('--runs-ms', 5000), houdiniMs = opt('--houdini-ms', 60000), useHoudini = !args.includes('--no-houdini'), oldHoudini = args.includes('--old-houdini')
+const runsMs = opt('--runs-ms', 5000), guideMs = opt('--guide-ms', 8000), houdiniMs = opt('--houdini-ms', 60000), useHoudini = !args.includes('--no-houdini'), oldHoudini = args.includes('--old-houdini')
 const t0 = performance.now(), ms = () => Math.round(performance.now() - t0)
 const say = (o: object) => console.log(JSON.stringify({task: file, ms: ms(), ...o}))
 const done = (answer: string, o: object = {}) => { say({stage: 'answer', answer, ...o}); process.exit(0) }
@@ -54,7 +58,7 @@ const unsat = (stage: string, raws: Record<string, number | boolean | string>[])
   done('unsat', {by: stage, steps: raws.length})
 }
 
-const direct = proveRule(r, [law])
+const direct = proveRule(r, [law], {search: false})
 say({stage: 'prove', proven: direct.proven, checked: direct.checked, ...(direct.stuck ? {stuck: direct.stuck.slice(0, 120)} : {})})
 if (direct.proven && direct.checked) done('sat', {by: 'prove'})
 if (direct.run) unsat('prove', direct.run.trace.map(t => decodeRequest(t)))
@@ -89,8 +93,9 @@ const seen: State[] = []
           for (let k = 0; k < b!.inInt; k++) raw[`x${k}`] = rand(2 * bound + 1) - bound
           for (let k = 0; k < b!.inBool; k++) raw[`y${k}`] = rand(2) === 1
           let next
-          // A value past 2^53 − 1 ends the run (the rule refuses it): that trial stops here.
-          try { next = g.step({}, st, r.encodeInput(raw as never)) } catch (e) { if (e instanceof RangeError) break; throw e }
+          // A request naming a clause that doesn't fire is refused (the rule's assumption): another is drawn. A value past
+          // 2^53 − 1 ends the run (the rule refuses it too): that trial stops here.
+          try { next = g.step({}, st, r.encodeInput(raw as never)) } catch (e) { if (e instanceof RangeError && e.message.includes('assumption')) continue; if (e instanceof RangeError) break; throw e }
           if (JSON.stringify(next.scalars) === JSON.stringify(st.scalars)) continue
           raws.push(raw); st = next; moved = true
           if (seen.length < 4000) seen.push(next); else if (rand(8) === 0) seen[rand(4000)] = next
@@ -101,6 +106,61 @@ const seen: State[] = []
     }
   }
   say({stage: 'runs', trials})
+}
+
+// Runs the prover guides: at each state, a request for a clause that fires there, a model of the clause's condition
+// with the state's values put in (kernel/prove.ts grow: a goal it doesn't refute comes back with a witness). The clauses
+// that derive false are tried first; then another clause at random, some of the request's values fixed at random first
+// (freed when that has no model). The compiled rule takes each request as it takes any, its assumption checked.
+{
+  const until = performance.now() + guideMs
+  const bad = new Set(b!.plans.flatMap((p, j) => (p.clause.head ? [] : [j])))
+  const at = b!.plans.map(p => (p.clause.body[0] ? b!.loc[b!.predNames.indexOf(p.clause.body[0].pred)]! : 'start'))
+  const k = (value: number): E => ({op: 'const', value})
+  let x = 11
+  const rand = (n: number) => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * n) }
+  const modelFor = (st: State, j: number, fix: Record<string, number>): Record<string, number | boolean | string> | undefined => {
+    const vars: Record<string, E> = {c: k(j)}
+    for (const [n, v] of Object.entries(st.scalars)) vars[n] = k(v)
+    for (const [n, v] of Object.entries(fix)) if (n.startsWith('x')) (vars[n] = k(Math.max(0, v)), vars[`${n}$neg`] = k(Math.max(0, -v))); else vars[n] = k(v)
+    const hyps: C[] = [substC(b!.fires[j]!, {vars, maps: {}, flags: {}}), ...Array.from({length: b!.inBool}, (_, q): C => ({op: '<=', a: {op: 'var', name: `y${q}`}, b: k(1)}))]
+    const out = grow({name: 'a request', hyps}, new Map(), {nodes: 0, until: performance.now() + 300})
+    if ('tree' in out || out.stuck !== 'sat' || !out.witness) return undefined
+    const w = out.witness, raw: Record<string, number | boolean | string> = {c: b!.clauseNames[j]!}
+    for (let q = 0; q < b!.inInt; q++) raw[`x${q}`] = `x${q}` in fix ? fix[`x${q}`]! : (w[`x${q}`] ?? 0) - (w[`x${q}$neg`] ?? 0)
+    for (let q = 0; q < b!.inBool; q++) raw[`y${q}`] = (`y${q}` in fix ? fix[`y${q}`] : w[`y${q}`] ?? 0) === 1
+    return raw
+  }
+  const take = (st: State, raw: Record<string, number | boolean | string>) => { try { return g.step({}, st, r.encodeInput(raw as never)) } catch (e) { if (e instanceof RangeError) return undefined; throw e } }
+  let trials = 0, steps = 0
+  while (performance.now() < until) {
+    trials++
+    let st = g.init({})
+    const raws: Record<string, number | boolean | string>[] = []
+    for (let d = 0; d < 2000 && performance.now() < until; d++) {
+      const here = r.decode(st).loc, choices = at.flatMap((a, j) => (a === here ? [j] : []))
+      for (const j of choices.filter(j => bad.has(j))) {
+        const raw = modelFor(st, j, {}), next = raw && take(st, raw)
+        if (next && r.decode(next).loc === 'error') unsat('guided', [...raws, raw!])
+      }
+      const others = choices.filter(j => !bad.has(j))
+      let moved = false
+      for (let tries = 0; tries < 6 && !moved && others.length; tries++) {
+        const j = others[rand(others.length)]!, fix: Record<string, number> = {}
+        const ints = Object.entries(st.scalars).filter(([n]) => n.startsWith('i') && !n.endsWith('$neg')).map(([n, v]) => v - (st.scalars[`${n}$neg`] ?? 0))
+        if (tries < 4) {
+          for (let q = 0; q < b!.inInt; q++) if (rand(2)) fix[`x${q}`] = [0, 1, -1, ...ints, ...ints.map(v => v + 1), ...ints.map(v => v - 1)][rand(3 + 3 * ints.length)]!
+          for (let q = 0; q < b!.inBool; q++) if (rand(2)) fix[`y${q}`] = rand(2)
+        }
+        const raw = modelFor(st, j, fix), next = raw && take(st, raw)
+        if (!next || JSON.stringify(next.scalars) === JSON.stringify(st.scalars)) continue
+        raws.push(raw!); st = next; moved = true; steps++
+        if (seen.length < 4000) seen.push(next); else if (rand(8) === 0) seen[rand(4000)] = next
+      }
+      if (!moved) break
+    }
+  }
+  say({stage: 'guided', trials, steps})
 }
 
 if (useHoudini && !oldHoudini) {

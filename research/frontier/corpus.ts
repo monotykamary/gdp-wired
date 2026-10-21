@@ -20,11 +20,11 @@ const leftovers = () => recur('leftovers', {fns: {rem: modBy(7)}, zero: 0, next:
 const growing = () => recur('growing', {zero: 1, next: (_, d) => min(d.times(2), 64)}, {})
 const squares = () => recur('squares', {zero: 0, next: (x, p) => p.plus(x.times(2)).plus(1)}, {})
 const lemma = (id: string, removed: string, build: () => {r: Parameters<typeof proveSteps>[0], laws: Law[]}): Item => ({
-  id: `lemma/${id}`, track: 'lemma', removed, today: () => { const {r, laws} = build(); return proveSteps(r, laws, []) },
+  id: `lemma/${id}`, track: 'lemma', removed, today: () => { const {r, laws} = build(); return proveSteps(r, laws, [], {search: false}) },
   frontier: () => { const {r, laws} = build(); return discover(r, laws).verdict },
 })
 const lemmas: Item[] = [
-  {id: 'lemma/retry with backoff', track: 'lemma', removed: 'delay: at least 1, at most 64', today: () => { const r = retries('states no lemma'); return proveSteps(r, retryLaws(r), retrySteps(r)) },
+  {id: 'lemma/retry with backoff', track: 'lemma', removed: 'delay: at least 1, at most 64', today: () => { const r = retries('states no lemma'); return proveSteps(r, retryLaws(r), retrySteps(r), {search: false}) },
     frontier: () => { const r = retries('states no lemma'); return discover(r, retryLaws(r), retrySteps(r)).verdict }},
   lemma('two by two', 'twos: at most 10, at most 2x', () => {
     const r = rule('two by two').inputs({}).state({n: 0, v: 0}).fns({twos: twos()}).step(({n, twos}) => ({n: n.plus(1), v: twos(n.plus(1))}))
@@ -61,9 +61,9 @@ const orgChart = () => {
   return {f, laws: [f.law('the roll-up is at most the cap per head', ({cost, heads, cap}) => cost.atMost(heads.mul(cap))), f.law('a chart is at least as wide as it is deep', ({depth, heads}) => depth.lt(heads))]}
 }
 const folds: Item[] = [
-  {id: 'fold/invoices', track: 'fold', removed: 'the taxable part is within the total, at every prefix', today: () => { const r = invoices('states no lemma'); return proveSteps(r, invoiceLaws(r), invoiceSteps(r)) },
+  {id: 'fold/invoices', track: 'fold', removed: 'the taxable part is within the total, at every prefix', today: () => { const r = invoices('states no lemma'); return proveSteps(r, invoiceLaws(r), invoiceSteps(r), {search: false}) },
     frontier: () => { const r = invoices('states no lemma'); return discover(r, invoiceLaws(r), invoiceSteps(r)).verdict }},
-  {id: 'fold/metered invoices', track: 'fold', removed: 'the charge is within the total and the fee', today: () => { const {r, laws} = metered(); return proveSteps(r, laws, []) },
+  {id: 'fold/metered invoices', track: 'fold', removed: 'the charge is within the total and the fee', today: () => { const {r, laws} = metered(); return proveSteps(r, laws, [], {search: false}) },
     frontier: () => { const {r, laws} = metered(); return discover(r, laws).verdict }},
   {id: 'fold/org chart', track: 'fold', removed: "the reports' lemmas: cost at most the cap per head, as many as deep", today: () => { const {f, laws} = orgChart(); return proveFold(f, laws) },
     frontier: () => { const {f, laws} = orgChart(); return discoverFold(f, laws).verdict }},
