@@ -128,8 +128,11 @@ export function withDeadline<T>(until: number, f: () => T): T {
   deadline = Math.min(outer, until)
   try { return f() } finally { deadline = outer }
 }
-export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number, until?: number} = {nodes: 0, until: performance.now() + Math.max(20_000, 1_000 * goal.hyps.length)}): Outcome {
+// `units: false`: the goal's own order, no units first (a caller after a model, not a proof: a run guided by the
+// prover's witnesses, say, whose models units would steer).
+export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number, until?: number, units?: boolean} = {nodes: 0, until: performance.now() + Math.max(20_000, 1_000 * goal.hyps.length)}): Outcome {
   if (deadline < (budget.until ?? Infinity)) budget.until = deadline
+  if (budget.units === false && unitsNow) { unitsNow = false; try { return grow(goal, path, budget) } finally { unitsNow = true } }
   if (proveDump && !path.size && !budget.nodes) { proveDump(goal); }
   if (proveTrace && !path.size && !budget.nodes) {
     const t = performance.now(), out = growRoot(goal, path, budget)
@@ -145,7 +148,7 @@ export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number,
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
   // At the root: plainly first; where the cases multiply past a budget, through cuts. The plain budget halves with each
   // two open choices (what a plain search's cases grow by), so a long run's steps reach the cuts early.
-  if (path.size === 0 && budget.nodes === 0 && unitFirst) {
+  if (path.size === 0 && budget.nodes === 0 && unitFirst && unitsNow) {
     // A goal that a few cases settle needs no units (finding them costs a Farkas check per atom); the rest get them.
     unitsNow = false
     try {
@@ -433,7 +436,7 @@ function nearOf(goal: Goal): boolean[] {
 }
 // Units first: an atom some hypothesis splits on whose value the root's rows already force (a guard `?f = 0` where
 // `?f = 1` holds, `k < len` where it is given). Split at the top, its forced side refutes at once; split late, under
-// every other case, it is split again in each. Found by the Farkas rows alone, with the root's rows and the atom.
+// every other case, it is split again in each.
 // GDP_UNITS=0 leaves them in the goal's order (for comparing).
 const unitFirst = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_UNITS !== '0'
 let unitsNow = true
@@ -441,17 +444,30 @@ const unitSeen = new WeakMap<Goal, Lin[]>()
 function unitsOf(goal: Goal): Lin[] {
   let out = unitSeen.get(goal)
   if (out) return out
-  const root: Path = new Map(), rows = leafConstraints(goal, root), seen = new Set<string>()
+  // Forced by the root's rows without a solver: a row the atom is (or is the negation of), or the bounds the rows give
+  // single variables (x <= c, x >= c) deciding it whichever way its variables go.
+  const root: Path = new Map(), rows = leafConstraints(goal, root), seen = new Set<string>(), given = new Set<string>()
+  const lo = new Map<string, number>(), hi = new Map<string, number>()
+  for (const r of rows) {
+    given.add(canon(r.lin))
+    const vs = Object.keys(r.lin).filter(key => key !== '1')
+    if (vs.length !== 1) continue
+    const x = vs[0]!, c = r.lin[x]!, k = r.lin['1'] ?? 0, bound = -k / c
+    if (c > 0) hi.set(x, Math.min(hi.get(x) ?? Infinity, Math.floor(bound)))
+    else lo.set(x, Math.max(lo.get(x) ?? -Infinity, Math.ceil(bound)))
+  }
+  const range = (lin: Lin): [number, number] => Object.entries(lin).reduce(([a, b], [x, c]) => x === '1' ? [a + c, b + c]
+    : c > 0 ? [a + c * (lo.get(x) ?? -Infinity), b + c * (hi.get(x) ?? Infinity)] : [a + c * (hi.get(x) ?? Infinity), b + c * (lo.get(x) ?? -Infinity)], [0, 0])
   out = []
-  if (rows.length <= 400) for (const h of goal.hyps.slice(0, -1)) {
+  for (const h of goal.hyps.slice(0, -1)) {
     const atoms: Lin[] = []
     openH(h, root, atoms)
     for (const lin of atoms) {
       const id = canon(lin)
       if (seen.has(id) || seen.has(canonFlip(lin)) || !Object.keys(lin).some(key => key !== '1')) continue
       seen.add(id)
-      if (seen.size > 96) break
-      if (refuteFast([...rows, atomOf(lin, true)])?.kind === 'refuted' || refuteFast([...rows, atomOf(lin, false)])?.kind === 'refuted') out.push(lin)
+      const [a, b] = range(lin)
+      if (given.has(id) || given.has(canon(atomOf(lin, false).lin)) || b <= 0 || a >= 1) out.push(lin)
     }
   }
   unitSeen.set(goal, out)
@@ -751,7 +767,6 @@ const triggers = (body: C, key: string): {map: string, at: E}[] => {
 }
 const substKey = (e: E, key: string, by: E): E => JSON.parse(JSON.stringify(e).replaceAll(`{"op":"var","name":${JSON.stringify(key)}}`, JSON.stringify(by))) as E
 // GDP_TRIGGER=0 keeps every instance (for comparing).
-const triggerDebug = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.TRIGGER_DEBUG
 const triggerOn = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_TRIGGER !== '0'
 function triggered(m: Machine, laws: Law[], inst: Instances, build: (inst: Instances) => Goal[], focus: string[] = []): Instances {
   if (!triggerOn) return inst
@@ -1021,7 +1036,6 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
   for (const sl of stepLaws) for (const goal of stepLawObligations(m, laws, perStep[sl.name] ?? instances, sl)) {
     const full = perStep[sl.name] ?? instances, few = triggered(plain, laws, full, inst => stepLawObligations(m, laws, inst, sl), [sl.forall, ...(sl.keys ?? [])].flatMap(k => (k ? [k] : [])))
     let out = sameInstances(few, full) ? grow(goal) : grow(stepLawObligations(m, laws, few, sl).find(g => g.name === goal.name) ?? goal)
-    if (triggerDebug) console.error(`[triggered] ${sl.name}: ${JSON.stringify(Object.fromEntries(Object.entries(few).map(([n, ks]) => [n, `${ks.length}/${full[n]?.length}`])))} ${'tree' in out ? 'proven' : out.stuck}`)
     if ('tree' in out && !sameInstances(few, full)) perStep[sl.name] = few
     else if (!sameInstances(few, full)) out = grow(goal)
     // A k-step law that reads a condition kept across its steps: each flag at its own witnesses, at every step.

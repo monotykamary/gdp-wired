@@ -124,7 +124,7 @@ const seen: State[] = []
     for (const [n, v] of Object.entries(st.scalars)) vars[n] = k(v)
     for (const [n, v] of Object.entries(fix)) if (n.startsWith('x')) (vars[n] = k(Math.max(0, v)), vars[`${n}$neg`] = k(Math.max(0, -v))); else vars[n] = k(v)
     const hyps: C[] = [substC(b!.fires[j]!, {vars, maps: {}, flags: {}}), ...Array.from({length: b!.inBool}, (_, q): C => ({op: '<=', a: {op: 'var', name: `y${q}`}, b: k(1)}))]
-    const out = grow({name: 'a request', hyps}, new Map(), {nodes: 0, until: performance.now() + 300})
+    const out = grow({name: 'a request', hyps}, new Map(), {nodes: 0, until: performance.now() + 300, units: false})
     if ('tree' in out || out.stuck !== 'sat' || !out.witness) return undefined
     const w = out.witness, raw: Record<string, number | boolean | string> = {c: b!.clauseNames[j]!}
     for (let q = 0; q < b!.inInt; q++) raw[`x${q}`] = `x${q}` in fix ? fix[`x${q}`]! : (w[`x${q}`] ?? 0) - (w[`x${q}$neg`] ?? 0)

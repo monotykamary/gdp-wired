@@ -2,7 +2,8 @@
 same container size under the same wall-clock limit, one tool and a shard of tasks per container.
 
     modal run compare/chc/modal_chc.py --out runs/modal/chc/<name> [--tools gdp,z3,golem,eldarica] [--limit 60]
-                                       [--per 1] [--sample 0] [--only <substring>]
+                                       [--per 1] [--sample 0] [--only <substring>|<substring>]
+                                       [--env NAME=value,...] (set for each task's process)
 
 The benchmarks are chc-comp/chc-comp26-benchmarks at a pinned commit, fetched into the image; the track's task list is
 its LIA-Lin.set, each task's expected verdict its .yml's. <out>/results.jsonl has one row per tool and task: the
@@ -58,7 +59,8 @@ app = modal.App("gdp-wired-chc", image=image)
 
 def command(tool: str, task: str, limit: int) -> list[str]:
     if tool == "gdp":
-        return ["bun", "compare/chc/solve.ts", task, "--runs-ms", str(min(5000, limit * 100)), "--houdini-ms", str(max(1000, (limit - 10) * 1000))]
+        # The search's deadline 2 s before the limit (the prover keeps it: kernel/prove.ts's withDeadline).
+        return ["bun", "compare/chc/solve.ts", task, "--runs-ms", str(min(5000, limit * 100)), "--houdini-ms", str(max(1000, (limit - 2) * 1000))]
     if tool == "z3":
         return ["z3", "fp.engine=spacer", task]
     if tool == "golem":
@@ -69,7 +71,7 @@ def command(tool: str, task: str, limit: int) -> list[str]:
 
 
 @app.function(cpu=2.0, memory=4096, timeout=3600)
-def shard(tool: str, tasks: list[dict], limit: int) -> list[dict]:
+def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]:
     import shutil
     import subprocess
 
@@ -81,7 +83,8 @@ def shard(tool: str, tasks: list[dict], limit: int) -> list[dict]:
         path = f"/bench/{t['smt2']}"
         t0 = time.time()
         try:
-            p = subprocess.run(["timeout", "-k", "5", str(limit), *command(tool, path, limit)], cwd=work, capture_output=True, text=True, timeout=limit + 30)
+            extra = dict(kv.split("=", 1) for kv in env.split(",") if kv)
+            p = subprocess.run(["timeout", "-k", "5", str(limit), *command(tool, path, limit)], cwd=work, capture_output=True, text=True, timeout=limit + 30, env={**os.environ, **extra})
             code, out, err = p.returncode, p.stdout, p.stderr
         except subprocess.TimeoutExpired:
             code, out, err = 124, "", "killed"
@@ -126,7 +129,7 @@ def tasks() -> list[dict]:
 
 
 @app.local_entrypoint()
-def main(out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: int = 1, sample: int = 0, only: str = ""):
+def main(out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: int = 1, sample: int = 0, only: str = "", env: str = ""):
     live = GDP / "modal" / ".live"
     live.mkdir(exist_ok=True)
     ticket = live / f"{app.app_id}"
@@ -137,11 +140,11 @@ def main(out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: i
     try:
         all_tasks = tasks.remote()
         (outdir / "tasks.json").write_text(json.dumps(all_tasks, indent=1))
-        chosen = [t for t in all_tasks if only in t["task"]]
+        chosen = [t for t in all_tasks if any(o in t["task"] for o in only.split("|"))]
         if sample:
             step = max(1, len(chosen) // sample)
             chosen = chosen[::step][:sample]
-        shards = [(tool, chosen[i:i + per], limit) for tool in tools.split(",") for i in range(0, len(chosen), per)]
+        shards = [(tool, chosen[i:i + per], limit, env) for tool in tools.split(",") for i in range(0, len(chosen), per)]
         print(f"{len(chosen)} tasks, {len(shards)} shards", flush=True)
         n = 0
         # starmap sends the inputs in batches and yields each shard's rows as it finishes, every container at once.

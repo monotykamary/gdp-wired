@@ -13,8 +13,7 @@
 import {quietly} from './cyclic.ts'
 import {type C, type E, type Law, type Machine, type State, any, atMost, compileFunction, evalC, evalE, n, plus, prod, same, times, x} from './machine.ts'
 import {type FnDef, type Kind, type ListFold, type ListLemma, type StepLaw, type Verdict, Cond, Rule, Term, Unproven, lit, proveFold, proveSteps, recur, recurOf} from './dsl.ts'
-import {type Fold, foldObligations} from '../kernel/kernel.ts'
-import {grow} from '../kernel/prove.ts'
+import {type Fold} from '../kernel/kernel.ts'
 
 type Obj = object
 type AnyRule = Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>
@@ -379,29 +378,16 @@ function discoverFoldSearch(f: TreeFold, laws: Law[]): FoldDiscovery {
   // Houdini: every candidate beside the laws; a candidate whose goal fails is dropped, until the rest are proven.
   let kept = dedupeBy(cands, c => `${c.at}:${c.cand.name}`)
   const prove = (ks: typeof kept) => proveFold({fold, lemmas: [...stated, ...ks.map(lawOf)]}, laws)
-  // Each round every goal is grown, and every candidate whose goal fails is dropped at once (the rest assumed it).
-  const failing = (ks: typeof kept): {bad: typeof kept, first?: Verdict} => {
-    const bad: typeof kept = []
-    let first: Verdict | undefined
-    for (const g of foldObligations(fold, [...stated, ...ks.map(lawOf), ...laws])) {
-      const c = ks.find(k => isGoalOf(g.name)(k.cand))
-      if (!c || bad.includes(c)) continue
-      const out = grow(g)
-      if ('tree' in out) continue
-      bad.push(c)
-      first ??= {proven: false, checked: false, goal: g.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {})}
-    }
-    return {bad, ...(first ? {first} : {})}
-  }
-  for (let round = 0; round <= cands.length; round++) {
-    const {bad, first} = failing(kept)
-    if (!bad.length) break
-    // The kernel's witness is a counterexample to induction: the leaf or node it names, from children that meet every
-    // law kept. Each candidate its values break goes with those whose goals failed.
-    const broken = new Set([...bad, ...brokenAt(fold, first!, kept)])
-    kept = kept.filter(c => !broken.has(c))
-  }
   let verdict = prove(kept)
+  for (let round = 0; round <= cands.length && !(verdict.proven && verdict.checked); round++) {
+    const bad = kept.find(c => isGoalOf(verdict.goal ?? '')(c.cand))
+    if (!bad) break
+    // The kernel's witness is a counterexample to induction: the leaf or node it names, from children that meet every
+    // law kept. Each candidate its values break goes with the one the goal named.
+    const broken = new Set([bad, ...brokenAt(fold, verdict, kept)])
+    kept = kept.filter(c => !broken.has(c))
+    verdict = prove(kept)
+  }
   if (!(verdict.proven && verdict.checked)) return {verdict, lemmas: [], found: []}
   // Only what the laws need.
   for (const c of [...kept]) {
