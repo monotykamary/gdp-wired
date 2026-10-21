@@ -142,7 +142,7 @@ type Stuck = {proven: false, checked: false, node: string, goal: string, stuck: 
 // is passed over).
 export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = [...specs.keys()].sort((i, j) => Number(!specs[i]!.variants?.some(x => x.weak)) - Number(!specs[j]!.variants?.some(x => x.weak)))): CyclicVerdict {
   const nodes: CNode[] = [], shapes = [...specs], weak = new Set<number>()
-  let later: number | undefined
+  let later: number | undefined, refuted = false
   // A goal's tree, and the hypotheses its leaves read (of the whole goal, a weaker goal's read through where they came from).
   const grown = (g: Goal, node: string, own: (i: number) => boolean): {tree: Tree, from: Goal, used: () => Set<number>} | Stuck => {
     const was = cellProducts.on, kind = g.name.endsWith('its rank below') ? 'descent' : g.name.includes(': use of node') ? 'premise' : 'main'
@@ -151,11 +151,11 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = 
       const sliced = sliceOn() ? slice(g, own) : undefined, part = sliced && hide(sliced)
       if (part) {
         // (within two seconds: a weaker goal no easier than the whole is left to the whole)
-        const t0 = performance.now(), p = timedKind(`${kind} sliced`, part.hyps.length, () => grow(part, new Map(), {nodes: 0, until: performance.now() + 2_000}))
+        const t0 = performance.now(), p = timedKind(`${kind} sliced`, part.hyps.length, () => grow(part, new Map(), {nodes: 0, until: performance.now() + Math.min(2_000, later ?? 2_000)}))
         if (env()?.GDP_CYCLIC_DEBUG) console.error(`[cyc] ${g.name}: ${part.hyps.length} hyps${part !== sliced ? ' (opaque)' : ''}, ${'tree' in p ? `${p.nodes} nodes` : p.stuck}, ${Math.round(performance.now() - t0)} ms`)
         if ('tree' in p) return {tree: p.tree, from: part, used: () => new Set([...usedHyps(part, p.tree)].flatMap(i => part.from[i]!))}
         if (part !== sliced) {
-          const q = timedKind(`${kind} sliced`, sliced.hyps.length, () => grow(sliced, new Map(), {nodes: 0, until: performance.now() + 2_000}))
+          const q = timedKind(`${kind} sliced`, sliced.hyps.length, () => grow(sliced, new Map(), {nodes: 0, until: performance.now() + Math.min(2_000, later ?? 2_000)}))
           if ('tree' in q) return {tree: q.tree, from: sliced, used: () => new Set([...usedHyps(sliced, q.tree)].flatMap(i => sliced.from[i]!))}
         }
       }
@@ -207,7 +207,7 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = 
       const n2 = keep && {...n1, insts: n1.insts.filter((_, i) => keep.has(h0 + i)), uses: n1.uses.filter((_, j) => keep.has(base + j))}
       if (n2 && (n2.insts.length < n1.insts.length || n2.uses.length < n1.uses.length)) {
         const g2 = mainGoal(facts, shapes, n2), part = hide(g2)
-        const p = timedKind('main selected', g2.hyps.length, () => withProducts(() => grow(part, new Map(), {nodes: 0, until: performance.now() + 2_000})))
+        const p = timedKind('main selected', g2.hyps.length, () => withProducts(() => grow(part, new Map(), {nodes: 0, until: performance.now() + Math.min(2_000, later ?? 2_000)})))
         if (env()?.GDP_CYCLIC_DEBUG) console.error(`[cyc] ${g.name}: ${g2.hyps.length} of ${g.hyps.length} hyps selected, ${'tree' in p ? `${p.nodes} nodes` : p.stuck}`)
         const t = 'tree' in p ? own({tree: p.tree, from: part}, g2) : undefined
         if (t && 'tree' in p) { n = n2; main = t; src = {tree: p.tree, from: part} }
@@ -252,11 +252,12 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = 
   for (const i of order) {
     let failed: Stuck | undefined
     for (const [j, spec] of [specs[i]!, ...(specs[i]!.variants ?? [])].entries()) {
-      // (a variant after the first within a few seconds a goal: one the first wasn't proven by is seldom needed)
-      later = j ? 3_000 : undefined
+      // (a variant after the first within a few seconds a goal, one second once a node is refuted: a variant the first
+      // wasn't proven by is seldom needed, and seldom proves a node where another is refuted)
+      later = j ? (refuted ? 1_000 : 3_000) : undefined
       if (spec.uses.some(u => weak.has(u.node))) continue
       const r = attempt(spec)
-      if ('proven' in r) { failed ??= r; continue }
+      if ('proven' in r) { failed ??= r; if (r.stuck === 'sat') refuted = true; continue }
       nodes[i] = r; shapes[i] = spec; failed = undefined
       if (spec.weak) weak.add(i)
       break
