@@ -33,16 +33,26 @@ none of them is false; today proves none of them without it.
 
 `scopes.ts` takes pi-fabric's resource patterns (`<ns>:<path>`, `/*`, `/**`, `<ns>:*`) and its `covers`, the check its
 scope attenuation rests on, with a pattern's segments as a carried map from positions to interned names and its length
-an input. Nothing is stated beyond the laws; each is proven and checked by the kernel:
+an input. Nothing is stated beyond the laws; each is proven and checked by the kernel (Modal, 2 vCPU,
+`runs/modal/frontier-scopes2`):
 
 | Law | Faithful | Broken variants |
 | --- | --- | --- |
-| covering is transitive | proven, 450 ms | `/*` covering `/**`: refuted |
-| a pattern covers itself | proven, 46 ms | |
-| what a covered pattern matches, the covering one matches (matching written apart from `covers`) | proven, 2,575 ms | the prefix skipped: refuted; `/*` covering `/**`: refuted |
-| what a derived scope allows, its parent allows (scopes as lists of grants with actions, the two "some grant"s as witnesses) | proven, 992 ms | the actions ignored: refuted |
+| covering is transitive | proven, 989 ms | `/*` covering `/**`: refuted |
+| a pattern covers itself | proven, 86 ms | |
+| what a covered pattern matches, the covering one matches (matching written apart from `covers`) | proven, 5,823 ms | the prefix skipped: refuted; `/*` covering `/**`: refuted |
+| what a derived scope allows, its parent allows (scopes as lists of grants with actions, the two "some grant"s as witnesses) | proven, 1,845 ms | the actions ignored: refuted |
+| what a scope allows, its normalized form allows (grants of one resource merged, actions joined, sorted) | proven, 747 ms | an action dropped when merging: refuted |
+| what the normalized form allows, the scope allows (one law per action) | proven, 12,971 ms, 13,653 ms, 14,286 ms | |
 
 The encoding agrees with pi-fabric's own `covers` on 20,000 random triples of patterns, and the grant tables with its
-grant checks on 5,000 random pairs of scopes (`compareScopes`, `compareGrants`). Prefixes of lists of paths needed no
-induction once a list is positions and a length. What stays out: normalizing a scope (merging and sorting grants is a
-permutation), reachability, recursive datatypes as values.
+grant checks on 5,000 random pairs of scopes (`compareScopes`, `compareGrants`). Two things carried it:
+
+- **A list as positions and a length.** A prefix is then a condition about every position below a length (the array
+  property fragment, decidable), so prefixes of lists of paths needed no induction.
+- **The bookkeeping as data.** Normalizing is a permutation, which no condition about every key states. The normalizer
+  knows where each grant went (`To[g]`) and where each merged action came from (`From<a>[n]`); given those, the rule
+  checks them at every key and the laws follow at the witnesses. The proven rule is the normalizer with its bookkeeping
+  as output, which the code computes as it merges.
+
+What stays out: reachability through a structure that changes, and recursive datatypes as values.

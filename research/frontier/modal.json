@@ -1,0 +1,4 @@
+[
+{"name": "scopes", "cmd": "bun research/frontier/scopes.ts 2>&1", "cwd": ".", "cpu": 2.0, "timeout": 1800},
+{"name": "corpus", "cmd": "bun research/frontier/score.ts --limit 120 2>&1", "cwd": ".", "cpu": 2.0, "timeout": 3600}
+]

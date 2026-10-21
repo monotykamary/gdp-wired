@@ -4,7 +4,7 @@
 // outer's segments are a prefix of inner's with the wildcards' room for the extra segments. A pattern's segments are a
 // carried map from positions to interned names, its length an input. The laws a scope's attenuation rests on:
 // covering is transitive, and a pattern covers itself.
-import {type Cond, type Verdict, bool, everyKey, nat, oneOf, proveSteps, rule, when, yes} from '../../core/dsl.ts'
+import {type Cond, type Verdict, bool, everyKey, nat, oneOf, proveSteps, rule, when, yes, all} from '../../core/dsl.ts'
 
 const pattern = (p: string) => ({[`ns${p}`]: nat, [`all${p}`]: bool, [`abs${p}`]: bool, [`w${p}`]: oneOf('none', 'one', 'any'), [`len${p}`]: nat})
 export type ScopeBug = 'skips the prefix' | 'lets /* cover /**'
@@ -136,9 +136,57 @@ export function compareGrants(trials = 5000, seed = 11): {checked: number, failu
   return {checked: trials}
 }
 
+
+// Normalizing a scope (pi-fabric's normalizeGrants: grants of one resource merged, their actions joined, sorted by
+// resource) changes nothing it allows. A permutation is no condition about every key on its own; the normalizer's
+// bookkeeping is: `To[g]`, the normalized grant original grant g went to, and `From<a>[n]`, an original grant that gave
+// normalized grant n the action a. Grants name their resource by its interned id (`Orid`, `Nrid`), as the normalizer
+// merges by the resource string, and the patterns are a table keyed by resource id (each one's segments from its
+// offset `RB` in one segment table): the parse is a function of the string. The rule checks the bookkeeping at every
+// key, and the law follows at the witnesses: what the original allows through grant g and its resource rid, the
+// normalized allows through To[g] and rid; what the normalized allows through n, the original allows through From<a>[n].
+const acts = ['read', 'write', 'exec'] as const
+export const normalized = (bug?: 'drops an action when merging' | 'merges two resources') => rule('normalized scope')
+  .inputs({g: nat, n: nat, rid: nat, nsR: nat, absR: bool, lenR: nat, act: oneOf('read', 'write', 'exec'), sizeO: nat, sizeN: nat})
+  .carries('Rns', 'Rall', 'Rabs', 'Rw', 'Rlen', 'RB', 'Seg', 'SR', 'Orid', 'Nrid', ...acts.map(a => `O${a}`), ...acts.map(a => `N${a}`), 'To', ...acts.map(a => `From${a}`))
+  .state({z: 0})
+  .flags((env: any) => {
+    const pat = (rid: any) => ({ns: env.Rns.at(rid), all: env.Rall.at(rid).eq(1), abs: env.Rabs.at(rid).eq(1), w: env.Rw.at(rid), len: env.Rlen.at(rid), base: env.RB.at(rid)})
+    const room = (o: any, li: any) => o.w.eq(0).and(li.eq(o.len)).or(o.w.eq(1).and(li.eq(o.len.plus(1))), o.w.eq(2).and(li.atLeast(o.len.plus(1))))
+    const matches = (rid: any) => { const o = pat(rid); return o.ns.eq(env.nsR).and(o.all.or(o.abs.iff(env.absR).and(everyKey(k => k.lt(o.len).implies(env.Seg.at(k.plus(o.base)).eq(env.SR.at(k)))), room(o, env.lenR)))) }
+    const has = (side: string, i: any) => env.act.match({read: () => env[`${side}read`].at(i).eq(1), write: () => env[`${side}write`].at(i).eq(1), exec: () => env[`${side}exec`].at(i).eq(1)})
+    return {
+      // Each original grant's resource is its normalized grant's, and its actions are there too.
+      toOk: everyKey(i => { const to = env.To.at(i); return i.lt(env.sizeO).implies(all(to.lt(env.sizeN), bug === 'merges two resources' ? yes : env.Nrid.at(to).eq(env.Orid.at(i)),
+        ...acts.filter(a => !(bug === 'drops an action when merging' && a === 'exec')).map(a => env[`O${a}`].at(i).eq(1).implies(env[`N${a}`].at(to).eq(1))))) }),
+      // Each action of a normalized grant came from an original grant of the same resource.
+      fromOk: everyKey(j => j.lt(env.sizeN).implies(all(...acts.map(a => { const src = env[`From${a}`].at(j); return env[`N${a}`].at(j).eq(1).implies(all(src.lt(env.sizeO), env.Orid.at(src).eq(env.Nrid.at(j)), env[`O${a}`].at(src).eq(1))) })))),
+      // A grant allows through the resource rid when it has the action, names rid, and rid's pattern matches.
+      matched: matches(env.rid),
+      originalAllows: env.g.lt(env.sizeO).and(has('O', env.g), env.Orid.at(env.g).eq(env.rid)),
+      normalizedAllowsTo: has('N', env.To.at(env.g)).and(env.Nrid.at(env.To.at(env.g)).eq(env.rid)),
+      normalizedAllows: env.n.lt(env.sizeN).and(has('N', env.n), env.Nrid.at(env.n).eq(env.rid)),
+      originalAllowsFrom: env.act.match(Object.fromEntries(acts.map(a => [a, () => { const src = env[`From${a}`].at(env.n); return src.lt(env.sizeO).and(env[`O${a}`].at(src).eq(1), env.Orid.at(src).eq(env.rid)) }])) as never),
+    }
+  })
+  .assume((env: any) => everyKey(k => all(env.Rall.at(k).atMost(1), env.Rabs.at(k).atMost(1), env.Rw.at(k).atMost(2), ...acts.flatMap(a => [env[`O${a}`].at(k).atMost(1), env[`N${a}`].at(k).atMost(1)]))))
+  .step(({z}) => ({z}))
+export const normalizedSteps = (r = normalized()) => [
+  r.stepLaw('what the original allows, the normalized allows', ({normalizedAllowsTo, matched}) => normalizedAllowsTo.and(matched), ({toOk, originalAllows, matched}) => toOk.and(originalAllows, matched)),
+  // One law per action: the action picks which From map names the original grant.
+  ...acts.map(a => r.stepLaw(`what the normalized allows to ${a}, the original allows`, ({originalAllowsFrom, matched}) => originalAllowsFrom.and(matched), ({act, fromOk, normalizedAllows, matched}) => act.is(a).and(fromOk, normalizedAllows, matched))),
+]
+
 if (import.meta.main) {
   console.log('grants against pi-fabric:', JSON.stringify(compareGrants()))
   console.log('against pi-fabric:', JSON.stringify(compareScopes()))
+  for (const bug of [undefined, 'drops an action when merging'] as const) {
+    const r = normalized(bug)
+    for (const s of normalizedSteps(r)) {
+      const t = performance.now(), v = proveSteps(r as never, [], [s])
+      console.log(`${bug ?? 'faithful'} | ${s.name}: ${v.proven && v.checked ? 'proven' : `not proven (${v.goal} ${v.stuck ?? ''})`} ${Math.round(performance.now() - t)} ms`)
+    }
+  }
   for (const bug of [undefined, 'ignores the actions'] as const) {
     const r = grants(bug), t = performance.now(), v = proveSteps(r as never, [], grantSteps(r))
     console.log(`${bug ?? 'faithful'} | attenuation: ${v.proven && v.checked ? 'proven' : `not proven (${v.goal} ${v.stuck ?? ''})`} ${Math.round(performance.now() - t)} ms`)
