@@ -3,7 +3,12 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.18.0
+
+Cycles found, not shaped: ranks, generalized lemmas and recursive datatypes found as cyclic proofs, which Lean now
+carries back to the machines, recurrences, folds and datatypes they were made from; the cyclic route faster and agreeing
+with the usual one everywhere, the usual route still the default. The suite (189 jobs) passes in 500.5 s wall and
+3,818.4 s of job time at this release (`runs/modal/rel018-suite`).
 
 - Recursive datatypes as values (`gdp-wired/data`, `core/data.ts`): declare a datatype by its constructors
   (`data('List', {nil: {}, cons: {head: nat, tail: self}})`, fields naturals or the datatype), functions over it by
