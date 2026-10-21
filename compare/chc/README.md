@@ -20,9 +20,9 @@ and Eldarica (2.3).
 
 ## Results
 
-Spacer, Golem and Eldarica from `runs/modal/chc/full1`, gdp-wired from `runs/modal/chc/full4-gdp` (0.14.2; every task in
-its own container, the whole track in a few minutes of wall time), together in `runs/modal/chc/combined4`. A task is solved when the answer is sat
-or unsat and, where CHC-COMP'26 decided the task, the same as its verdict.
+Spacer, Golem and Eldarica from `runs/modal/chc/full1`, gdp-wired from `runs/modal/chc/full4-gdp` (0.14.2, every task
+in its own container), together in `runs/modal/chc/combined4`. A task is solved when the answer is sat or unsat and,
+where CHC-COMP'26 decided the task, the same as its verdict.
 
 | tool | sat | unsat | wrong | solved of 1,406 | median s of those solved |
 | --- | --- | --- | --- | --- | --- |
@@ -35,7 +35,7 @@ or unsat and, where CHC-COMP'26 decided the task, the same as its verdict.
   checked by the kernel, 76 unsat are random runs reaching error and 4 unsat come from `proveRule`'s own refutation;
   every unsat run is checked against the CHC clauses by `checkDerivation`.
 - One task is solved by gdp-wired and none of the others within 60 s: `extra-small-lia/dillig05_m` (sat, 96 invariants,
-  55.9 s; CHC-COMP's own limit is longer). The others solve 1,138 that gdp-wired doesn't.
+  47.9 s; CHC-COMP's own limit is longer). The others solve 1,138 that gdp-wired doesn't.
 - What this measures is invariant inference, which gdp-wired doesn't do: its prover checks the laws you write, and a CHC
   task gives none but the safety property. Houdini's templates find the invariants of 48 tasks; on most of the rest the
   templates over many variables are too many to try, or the inductive set found doesn't imply the law.
