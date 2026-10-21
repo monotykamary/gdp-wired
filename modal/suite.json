@@ -1228,7 +1228,7 @@
 },
 {
 "name": "lean-cyclic",
-"cmd": "ONLY=mccarthy,mutual,cycgrowing,cyccounter,cycrollup bash scripts/lean-items.sh 2>&1",
+"cmd": "ONLY=mccarthy,mutual,cycgrowing,cyccounter,cycrollup,cyccaps,cycfill,cyctally,cycbudget bash scripts/lean-items.sh 2>&1",
 "cwd": ".",
 "cpu": 4.0,
 "memory": 8192,

@@ -96,9 +96,19 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
   // monomial with a cell among its factors after the cells.
   const degree = (a: string, b: string) => factorsOf(a).length - factorsOf(b).length
   const plainMonos = [...monos].filter(m => factorsOf(m).every(f => !isCell(f))).sort(degree), cellMonos = [...monos].filter(m => factorsOf(m).some(isCell)).sort(degree)
-  const cols = [...vars, ...plainMonos, ...[...terms].sort((a, b) => Number(a.slice(1, -1)) - Number(b.slice(1, -1))), ...[...cells].sort((a, b) => depth(a) - depth(b)), ...cellMonos]
+  // A cell whose key reads a product of cells (a cyclic proof's map at u + k·Ω, its key k read from a map over time)
+  // comes after that product, and the product after its cells: each column placed after the columns it reads.
+  const late: string[] = [], placed = new Set<string>()
+  const place = (name: string): void => {
+    if (placed.has(name)) return
+    placed.add(name)
+    for (const d of isMonomial(name) ? factorsOf(name) : Object.keys(cellKey(name))) if (cells.has(d) || cellMonos.includes(d)) place(d)
+    late.push(name)
+  }
+  for (const cell of [...cells].sort((a, b) => depth(a) - depth(b))) place(cell)
+  for (const mono of cellMonos) place(mono)
+  const cols = [...vars, ...plainMonos, ...[...terms].sort((a, b) => Number(a.slice(1, -1)) - Number(b.slice(1, -1))), ...late]
   const col = new Map(cols.map((name, j) => [name, j]))
-  for (const cell of cells) for (const key of Object.keys(cellKey(cell))) if (cellMonos.includes(key)) throw new Error(`${ex.name}: the key of ${cell} reads a product of cells`)
   const maps = globalMaps ?? [...new Set([...[...cells].map(cellMap), ...goal.hyps.flatMap(h => [...JSON.stringify(h).matchAll(/"op":"get","map":"([^"]+)"/g)].map(m => m[1]!))])]
   const dense = (lin: Lin) => {
     const coefs = new Array(cols.length).fill(0)
@@ -266,7 +276,8 @@ theorem ${id}_laws : ∀ maps ρ, evalC ρ maps ${id}_fold.pre = true → ∀ t,
 // Readable corollaries: each law as a plain Lean statement over named variables (ρ the state, μ the maps, each name an
 // abbreviation for its column), proven from the machine's theorem by unfolding the law's own definition. The statement
 // is what a Lean development cites; the column numbers stay inside the namespace.
-export function readable(id: string, laws: Law[], vars: string[], maps: string[], reach: {binders: string, hyp: string, call: string}): string {
+// `have`: the line that gives each law as a hypothesis hl (an SEntry's Holds by default; a cyclic proof's, holdsOver).
+export function readable(id: string, laws: Law[], vars: string[], maps: string[], reach: {binders: string, hyp: string, call: string, have?: (j: number) => string}): string {
   for (const name of [...vars, ...maps]) if (name === 'ρ' || name === 'μ' || name.includes('«') || name.includes('»')) throw new Error(`${id}: the name ${name} can't be a Lean abbreviation here`)
   const q = (name: string) => `«${name}»`
   const statement = (law: Law): string => {
@@ -302,8 +313,8 @@ export function readable(id: string, laws: Law[], vars: string[], maps: string[]
 ${[...vars.filter(v => used.has(v)).map(v => `abbrev ${q(v)} : Nat := ${vars.indexOf(v)}`), ...maps.filter(mp => used.has(mp)).map(mp => `abbrev ${q(mp)} : Nat := ${maps.indexOf(mp)}`)].join('\n')}
 ${laws.map((law, j) => (law.stated ? `-- ${law.name}: as written, with some key; proven (below) with the prover's witness in place\n` : '') + (JSON.stringify(law.holds).includes('"op":"if"') ? `-- ${law.name}: its terms read an if, so no plain statement here (${id}_laws holds it)` : `/-- ${law.name.replace(/-\//g, '- /')} -/
 theorem law${j} ${reach.binders} (h : ${reach.hyp}) : ${statement(law)} := by
-  ${law.keys?.length ? `have hl : ${id}_e${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])
-  exact fun k ${law.keys.map((_, i) => `k${i + 2}`).join(' ')} => (evalC_iff (upd (${law.keys.reduce((acc, key, i) => `upd (${acc}) ${vars.indexOf(key)} k${i + 2}`, 'ρ')}) ${vars.indexOf(law.forall!)} k) μ ${id}_l${j}.holds).mp (hl ${law.keys.map((_, i) => `k${i + 2}`).join(' ')} k)` : `have hl : ${id}_l${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])
+  ${law.keys?.length ? `${reach.have ? reach.have(j) : `have hl : ${id}_e${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])`}
+  exact fun k ${law.keys.map((_, i) => `k${i + 2}`).join(' ')} => (evalC_iff (upd (${law.keys.reduce((acc, key, i) => `upd (${acc}) ${vars.indexOf(key)} k${i + 2}`, 'ρ')}) ${vars.indexOf(law.forall!)} k) μ ${id}_l${j}.holds).mp (hl ${law.keys.map((_, i) => `k${i + 2}`).join(' ')} k)` : `${reach.have ? reach.have(j) : `have hl : ${id}_l${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])`}
   ${law.forall ? `exact fun k => (evalC_iff (upd ρ ${vars.indexOf(law.forall)} k) μ ${id}_l${j}.holds).mp (hl k)` : `exact (evalC_iff ρ μ ${id}_l${j}.holds).mp hl`}`}`)).join('\n')}
 end ${id}`
 }
@@ -441,6 +452,26 @@ const boundKeys = (m: Machine) => [...Object.values(m.step.flags ?? {}).flatMap(
 // the relations assumed), built in Lean from the machine and its history (History.lean's HMachine.plain), so every claim
 // below is about it; with the relations' record goals, its laws hold over histories too (hmachine_sound).
 // `historyTampers`: the history with other relations, each refused.
+// A machine as Sets.lean's SMachine literal: its variables and maps numbered by `ix` and `mx`, its terms by `t`.
+export function machineLit(mm: Machine, t: {e: (x: E) => string, c: (x: C) => string}, ix: (name: string) => number, mx: (name: string) => number): string {
+  const {e, c} = t
+  const fl = flagsOfM(mm), fs = Object.entries(mm.step.flags ?? {}), ws = Object.entries(mm.step.maps ?? {})
+  return `⟨⟨⟨${list(mm.inputs.map(name => String(ix(name))))},
+  ${list(Object.entries(mm.state).map(([name, e2]) => `(${ix(name)}, ${e(e2)})`))},
+  ${list(Object.entries(mm.maps ?? {}).map(([name, c2]) => `(${mx(name)}, ${c2})`))},
+  ${list(Object.entries(mm.step.state ?? {}).map(([name, e2]) => `(${ix(name)}, ${e(e2)})`))},
+  ${list(ws.flatMap(([name, w]) => ('each' in w ? [] : [`(${mx(name)}, ${e(w.key)}, ${e(w.value)})`])))},
+  ${mm.pre ? c(mm.pre) : TRUE},
+  ${mm.assume ? c(mm.assume) : TRUE}⟩,
+  ${list(fs.flatMap(([f, c2]) => (c2.op === 'all' ? [] : [`(${ix(`?${f}`)}, ${c(fl[f]!)})`])))}⟩,
+  ${list((mm.inputMaps ?? []).map(mp => String(mx(mp))))},
+  ${list(ws.flatMap(([name, w]) => ('each' in w ? [`(${mx(name)}, ${ix(w.each)}, ${e(w.value)})`] : [])))},
+  ${list(fs.flatMap(([f, c2]) => (c2.op === 'all' ? [`(${ix(`?${f}`)}, ${list(boundOf(c2).map(key => String(ix(key))))}, ${c(c2.c)})`] : [])))},
+  ${list(fs.flatMap(([f, c2]) => (c2.op === 'all' ? [`(${ix(`?${f}`)}, ${list(witnessesOf(f, c2).map(w => String(ix(w))))})`] : [])))},
+  ${list((mm.facts ?? []).filter(l => !l.keys?.length).map(l => `⟨${c(l.holds)}, ${l.forall ? `some ${ix(l.forall)}` : 'none'}⟩`))},
+  ${list((mm.facts ?? []).filter(l => l.keys?.length).map(l => `(⟨${c(l.holds)}, some ${ix(l.forall!)}⟩, ${list(l.keys!.map(k2 => String(ix(k2))))})`))}⟩`
+}
+
 export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {stepLaws?: StepLaw[], liveness?: Liveness[], tamper?: {what: string, machine: Machine}, simp?: string[], free?: string[],
     ghosts?: string[], after?: (ix: (name: string) => number) => string, historyTampers?: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[],
     refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}, loop?: {loop: Loop, tamper?: {what: string, loop: Loop}}, noFacts?: boolean} = {}): string {
@@ -617,23 +648,7 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
   const mx = (name: string) => { const j = mapNames.indexOf(name); if (j < 0) throw new Error(`${id}: no map for ${name}`); return j }
   const inline = (c2: C): C => substC(c2, {vars: {}, maps: {}, flags: flagsOfM(m)})
-  const lit = (mm: Machine) => {
-    const fl = flagsOfM(mm), fs = Object.entries(mm.step.flags ?? {}), ws = Object.entries(mm.step.maps ?? {})
-    return `⟨⟨⟨${list(mm.inputs.map(name => String(ix(name))))},
-  ${list(Object.entries(mm.state).map(([name, e2]) => `(${ix(name)}, ${e(e2)})`))},
-  ${list(Object.entries(mm.maps ?? {}).map(([name, c2]) => `(${mx(name)}, ${c2})`))},
-  ${list(Object.entries(mm.step.state ?? {}).map(([name, e2]) => `(${ix(name)}, ${e(e2)})`))},
-  ${list(ws.flatMap(([name, w]) => ('each' in w ? [] : [`(${mx(name)}, ${e(w.key)}, ${e(w.value)})`])))},
-  ${mm.pre ? c(mm.pre) : TRUE},
-  ${mm.assume ? c(mm.assume) : TRUE}⟩,
-  ${list(fs.flatMap(([f, c2]) => (c2.op === 'all' ? [] : [`(${ix(`?${f}`)}, ${c(fl[f]!)})`])))}⟩,
-  ${list((mm.inputMaps ?? []).map(mp => String(mx(mp))))},
-  ${list(ws.flatMap(([name, w]) => ('each' in w ? [`(${mx(name)}, ${ix(w.each)}, ${e(w.value)})`] : [])))},
-  ${list(fs.flatMap(([f, c2]) => (c2.op === 'all' ? [`(${ix(`?${f}`)}, ${list(boundOf(c2).map(key => String(ix(key))))}, ${c(c2.c)})`] : [])))},
-  ${list(fs.flatMap(([f, c2]) => (c2.op === 'all' ? [`(${ix(`?${f}`)}, ${list(witnessesOf(f, c2).map(w => String(ix(w))))})`] : [])))},
-  ${list((mm.facts ?? []).filter(l => !l.keys?.length).map(l => `⟨${c(l.holds)}, ${l.forall ? `some ${ix(l.forall)}` : 'none'}⟩`))},
-  ${list((mm.facts ?? []).filter(l => l.keys?.length).map(l => `(⟨${c(l.holds)}, some ${ix(l.forall!)}⟩, ${list(l.keys!.map(k2 => String(ix(k2))))})`))}⟩`
-  }
+  const lit = (mm: Machine) => machineLit(mm, {e, c}, ix, mx)
   // A loop as Live.lean's record: inputs, start, body, while, precondition, assumption.
   const loopLit = (lp: Loop) => `⟨${list(lp.inputs.map(name => String(ix(name))))},
   ${list(Object.entries(lp.state).map(([name, e2]) => `(${ix(name)}, ${e(e2)})`))},
@@ -972,7 +987,11 @@ export type LeanItem =
   | {id: string, fold: Fold, laws: Law[]}
   | {id: string, goal: Goal}
   // A cyclic proof (kernel/cyclic.ts) through Cyclic.lean's cyclic_sound; each tampered one computed to false.
-  | {id: string, cyclic: Cyclic, tampered?: {what: string, proof: Cyclic}[], after?: (ix: (name: string) => number, mx: (map: string) => number) => string}
+  // `bridge`: the machine and laws the proof was made from (core/cyclic.ts's machineNodes), so that Bridge.lean's
+  // cyc_machine_sound gives each law of the machine (`<id>_lawN_holds`, and `<id>.lawN` plainly); each tampered machine's
+  // check against the proof computed to false.
+  | {id: string, cyclic: Cyclic, tampered?: {what: string, proof: Cyclic}[], after?: (ix: (name: string) => number, mx: (map: string) => number) => string,
+    bridge?: CycBridge}
 
 // A Lean file proving each item, to compile against the twin (`leanLibrary`, or `leanProject` for a ready Lake project).
 // Each machine's laws come with `<id>_laws` (the twin's theorem) and `<id>.lawN` (the law as a plain Lean statement
@@ -1040,8 +1059,9 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
       parts.push(`-- ${item.id}\n${loopToLean(id, item.loop, item.laws ?? [], item.rank)}`)
       theorems.push(`${id}_halts`)
     } else if ('cyclic' in item) {
-      parts.push(`-- ${item.id}\n${cyclicToLean(id, item.cyclic, item.tampered ?? [], item.after)}`)
-      theorems.push(`${id}_sound`, ...(item.after ? [...item.after(() => 0, () => 0).matchAll(/^theorem (\S+)/gm)].map(x2 => x2[1]!) : []))
+      parts.push(`-- ${item.id}\n${cyclicToLean(id, item.cyclic, item.tampered ?? [], item.after, item.bridge)}`)
+      theorems.push(`${id}_sound`, ...(item.bridge?.laws ?? []).map((_, j) => `${id}_law${j}_holds`),
+        ...(item.after ? [...item.after(() => 0, () => 0).matchAll(/^theorem (\S+)/gm)].map(x2 => x2[1]!) : []))
     } else if ('fold' in item) {
       parts.push(`-- ${item.id}\n${foldToLean(id, item.fold, item.laws)}`)
       theorems.push(`${id}_laws`)
@@ -1054,7 +1074,7 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   }
   // The file the items need: Live.lean for a liveness or a loop, Sets.lean (which imports Steps.lean) for any machine.
   return `import History
-${items.some(item => 'cyclic' in item) ? 'import Cyclic\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && item.ghosts?.length) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
+${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && item.bridge) ? 'import Bridge\n' : 'import Cyclic\n') : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && item.ghosts?.length) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
@@ -1091,11 +1111,22 @@ lean_lib ${name} where
 // A cyclic proof through Kern.cyclic_sound: the facts and the nodes, each goal's table and tree (Lean builds the goals
 // from the nodes), one theorem for every node; each tampered proof's check computed to false. `after` writes Lean
 // after it (a corollary in plain terms), given the variables' and maps' numbers.
-export function cyclicToLean(id: string, p: Cyclic, tampered: {what: string, proof: Cyclic}[] = [], after?: (ix: (name: string) => number, mx: (map: string) => number) => string): string {
+export type CycBridge = {machine: Machine, laws: Law[], tampered?: {what: string, machine: Machine}[]}
+export function cyclicToLean(id: string, p: Cyclic, tampered: {what: string, proof: Cyclic}[] = [], after?: (ix: (name: string) => number, mx: (map: string) => number) => string,
+    bridge?: CycBridge): string {
   const all = [p, ...tampered.map(t => t.proof)]
   const names = (t: unknown) => [...JSON.stringify(t).matchAll(/"op":"var","name":"([^"]+)"/g)].map(m => m[1]!)
-  const vars = [...new Set(all.flatMap(q => [...q.facts.flatMap(f => [...f.keys, ...names(f.holds)]), ...q.nodes.flatMap(n => [...names([n.hyps, n.concl, n.rank, n.insts]), ...n.uses.flatMap(u => [...Object.keys(u.subst), ...names([u.subst, u.guard])])])]))]
-  const maps = [...new Set([...JSON.stringify(all).matchAll(/"op":"get","map":"([^"]+)"/g)].map(m => m[1]!))]
+  // A machine's own names (core/cyclic.ts's encoding adds u$, k$, T$, O$, t$ and a map x@ over time for each state
+  // variable, input and map), for its SMachine and the encoding Bridge.lean checks the proof against.
+  const ms = bridge ? [bridge.machine, ...(bridge.tampered ?? []).map(t => t.machine)] : []
+  const keysOf = (l: Law) => [...(l.forall ? [l.forall] : []), ...(l.keys ?? [])]
+  const traced = (m: Machine) => [...Object.keys(m.state), ...m.inputs], tracedMaps = (m: Machine) => [...Object.keys(m.maps ?? {}), ...(m.inputMaps ?? [])]
+  const machineVars = ms.flatMap(m => [...m.params, ...m.inputs, ...Object.keys(m.state), ...Object.keys(m.step.flags ?? {}).map(f => `?${f}`),
+    ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : [])), ...(m.facts ?? []).flatMap(keysOf), ...names([m.state, m.step, m.pre, m.assume, m.facts])])
+  const vars = [...new Set([...all.flatMap(q => [...q.facts.flatMap(f => [...f.keys, ...names(f.holds)]), ...q.nodes.flatMap(n => [...names([n.hyps, n.concl, n.rank, n.insts]), ...n.uses.flatMap(u => [...Object.keys(u.subst), ...names([u.subst, u.guard])])])]),
+    ...machineVars, ...(bridge ? [...bridge.laws.flatMap(l => [...keysOf(l), ...names(l.holds)]), 'u$', 'k$', 'T$', 'O$', 't$'] : [])])]
+  const maps = [...new Set([...[...JSON.stringify([all, ms, bridge?.laws ?? []]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(m => m[1]!),
+    ...ms.flatMap(m => [...tracedMaps(m), ...Object.keys(m.fns ?? {}), ...traced(m).map(x => `${x}@`), ...tracedMaps(m).map(x => `${x}@`)])])]
   const {e, c} = leanTerms(vars, maps, id)
   const ix = (name: string) => vars.indexOf(name)
   const facts = list(p.facts.map(f => `⟨${list(f.keys.map(key => String(ix(key))))}, ${c(f.holds)}⟩`))
@@ -1125,5 +1156,31 @@ theorem ${id}_sound : ∀ (maps : Nat → Nat → Nat) env, FactsHold ${id}_fact
   cyclic_sound ${id}_facts ${id}_nodes ${id}_check
 ${tampered.map((t, j) => `-- TAMPERED: ${t.what}. Lean computes the check to false.
 def ${id}_tampered${j} : List CNode := ${nodes(t.proof)}
-example : checkCyclic ${id}_facts ${id}_tampered${j} = false := by ${checkBy}`).join('\n')}${after ? `\n${after(ix, mx)}` : ''}`
+example : checkCyclic ${id}_facts ${id}_tampered${j} = false := by ${checkBy}`).join('\n')}${bridge ? `\n${cycBridgeLean(id, p, bridge, vars, maps, {e, c})}` : ''}${after ? `\n${after(ix, mx)}` : ''}`
+}
+
+// Bridge.lean's cyc_machine_sound for each law of a cyclic proof made by machineNodes: the machine as Sets.lean's
+// SMachine, the encoding (its added variables and maps over time), each law's check and theorem, and the laws plainly.
+function cycBridgeLean(id: string, p: Cyclic, b: CycBridge, vars: string[], maps: string[], t: {e: (x: E) => string, c: (x: C) => string}): string {
+  const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
+  const mx = (name: string) => { const j = maps.indexOf(name); if (j < 0) throw new Error(`${id}: no map for ${name}`); return j }
+  if (b.laws.length > p.nodes.length) throw new Error(`${id}: more laws than nodes`)
+  const keysOf = (l: Law) => [...(l.forall ? [l.forall] : []), ...(l.keys ?? [])]
+  const enc = (m: Machine) => `⟨${['u$', 'k$', 'T$', 'O$', 't$'].map(ix).join(', ')},
+  ${list([...Object.keys(m.state), ...m.inputs].map(x => `(${ix(x)}, ${mx(`${x}@`)})`))},
+  ${list([...Object.keys(m.maps ?? {}), ...(m.inputMaps ?? [])].map(x => `(${mx(x)}, ${mx(`${x}@`)})`))}⟩`
+  const keysL = (l: Law) => list(keysOf(l).map(k2 => String(ix(k2))))
+  return `def ${id}_machine : SMachine := ${machineLit(b.machine, t, ix, mx)}
+def ${id}_enc : CycEnc := ${enc(b.machine)}
+${b.laws.map((l, j) => `-- ${l.name}
+def ${id}_law${j} : C := ${t.c(l.holds)}
+def ${id}_l${j} : MLaw := ⟨${id}_law${j}, ${l.forall ? `some ${ix(l.forall)}` : 'none'}⟩
+theorem ${id}_law${j}_ok : cycMOk ${id}_machine ${id}_enc ${id}_facts ${id}_law${j} ${keysL(l)} ${id}_node${j} = true := by ${checkBy}
+theorem ${id}_law${j}_holds : ∀ ρ M, SReach ${id}_machine ρ M → ∀ ρ' : Nat → Nat, (∀ i, i ∉ ${keysL(l)} → ρ' i = ρ i) → evalC ρ' M ${id}_law${j} = true :=
+  cyc_machine_sound ${id}_machine ${id}_enc ${id}_facts ${id}_nodes ${id}_check ${id}_law${j} ${keysL(l)} ${id}_node${j} ${id}_node${j}_mem ${id}_law${j}_ok`).join('\n')}
+${(b.tampered ?? []).map((tm, j) => `-- TAMPERED: ${tm.what}. Lean computes the check against the proof to false.
+def ${id}_tamperedm${j} : SMachine := ${machineLit(tm.machine, t, ix, mx)}
+example : cycMOk ${id}_tamperedm${j} ${id}_enc ${id}_facts ${id}_law0 ${keysL(b.laws[0]!)} ${id}_node0 = false := by ${checkBy}`).join('\n')}
+${readable(id, b.laws, vars, maps, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: '',
+  have: j => `have hl : holdsOver ${id}_l${j} μ ${list((b.laws[j]!.keys ?? []).map(k2 => String(ix(k2))))} ρ := cyc_machine_holds (${id}_law${j}_holds ρ μ h)`})}`
 }
