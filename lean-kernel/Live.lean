@@ -304,12 +304,12 @@ theorem view_E {pr pm : List (Nat × Nat)} (hpr : distinct (pr.map (·.2)) = tru
 
 /-! The conditions Lean builds -/
 
-def falseC : C := .lt (.const 0) (.const 0)
+def noneC : C := .lt (.const 0) (.const 0)
 -- The rank after (as') below the rank before (as), in order; the two equal; each region, if it held, held after; some
 -- region; the request's inputs as its terms.
-def lexLtC : List E → List E → C
-  | a' :: as', a :: as => .or (.lt a' a) (.and (.eq a' a) (lexLtC as' as))
-  | _, _ => falseC
+def rankLtC : List E → List E → C
+  | a' :: as', a :: as => .or (.lt a' a) (.and (.eq a' a) (rankLtC as' as))
+  | _, _ => noneC
 def eqsC : List E → List E → C
   | a' :: as', a :: as => .and (.eq a' a) (eqsC as' as)
   | _, _ => trueC
@@ -317,17 +317,17 @@ def keepC (pr pm : List (Nat × Nat)) : List C → C
   | [] => trueC
   | w :: ws => .and (.or (.not w) (primeC pr pm w)) (keepC pr pm ws)
 def anyC : List C → C
-  | [] => falseC
+  | [] => noneC
   | w :: ws => .or w (anyC ws)
 def reqC : List (Nat × E) → C
   | [] => trueC
   | p :: ps => .and (.eq (.var p.1) p.2) (reqC ps)
 
-theorem lexLtC_eval (ρ : Nat → Nat) (M : Nat → Nat → Nat) : ∀ as' as : List E,
-    evalC ρ M (lexLtC as' as) = lexB (as'.map (evalE ρ M)) (as.map (evalE ρ M))
-  | a' :: as', a :: as => by simp only [lexLtC, lexB, evalC, List.map_cons, lexLtC_eval ρ M as' as]
-  | [], _ => by simp [lexLtC, lexB, evalC, falseC]
-  | _ :: _, [] => by simp [lexLtC, lexB, evalC, falseC]
+theorem rankLtC_eval (ρ : Nat → Nat) (M : Nat → Nat → Nat) : ∀ as' as : List E,
+    evalC ρ M (rankLtC as' as) = lexB (as'.map (evalE ρ M)) (as.map (evalE ρ M))
+  | a' :: as', a :: as => by simp only [rankLtC, lexB, evalC, List.map_cons, rankLtC_eval ρ M as' as]
+  | [], _ => by simp [rankLtC, lexB, evalC, noneC]
+  | _ :: _, [] => by simp [rankLtC, lexB, evalC, noneC]
 
 theorem eqsC_eval (ρ : Nat → Nat) (M : Nat → Nat → Nat) : ∀ as' as : List E, as'.length = as.length →
     (evalC ρ M (eqsC as' as) = true ↔ as'.map (evalE ρ M) = as.map (evalE ρ M))
@@ -346,7 +346,7 @@ theorem keepC_eval (ρ : Nat → Nat) (M : Nat → Nat → Nat) (pr pm : List (N
     cases evalC ρ M w <;> simp
 
 theorem anyC_eval (ρ : Nat → Nat) (M : Nat → Nat → Nat) : ∀ ws : List C, evalC ρ M (anyC ws) = true ↔ ∃ w ∈ ws, evalC ρ M w = true
-  | [] => by simp [anyC, evalC, falseC]
+  | [] => by simp [anyC, evalC, noneC]
   | w :: ws => by simp only [anyC, evalC, Bool.or_eq_true, anyC_eval ρ M ws, List.mem_cons, exists_eq_or_imp]
 
 theorem reqC_eval (ρ : Nat → Nat) (M : Nat → Nat → Nat) : ∀ ps : List (Nat × E), evalC ρ M (reqC ps) = true ↔ ∀ p ∈ ps, ρ p.1 = evalE ρ M p.2
@@ -379,11 +379,11 @@ structure Live where
 def Live.pend (l : Live) : C := .and l.from_ (.not l.to)
 def liveStayC (l : Live) : C :=
   .and (.or (primeC l.prime l.primeMaps l.from_) (primeC l.prime l.primeMaps l.to))
-    (.or (primeC l.prime l.primeMaps l.to) (.or (lexLtC (l.rank.map (primeE l.prime l.primeMaps)) l.rank)
+    (.or (primeC l.prime l.primeMaps l.to) (.or (rankLtC (l.rank.map (primeE l.prime l.primeMaps)) l.rank)
       (.and (eqsC (l.rank.map (primeE l.prime l.primeMaps)) l.rank) (keepC l.prime l.primeMaps (l.helps.map (·.1))))))
 def liveCoverC (l : Live) : C := anyC (l.helps.map (·.1))
 def liveHelpWhen (l : Live) (h : C × List (Nat × E)) : C := .and l.pend (.and h.1 (reqC h.2))
-def liveHelpThen (l : Live) : C := .or (primeC l.prime l.primeMaps l.to) (lexLtC (l.rank.map (primeE l.prime l.primeMaps)) l.rank)
+def liveHelpThen (l : Live) : C := .or (primeC l.prime l.primeMaps l.to) (rankLtC (l.rank.map (primeE l.prime l.primeMaps)) l.rank)
 -- What reads the state alone: `from`, `to`, each part of the rank and each region.
 def liveConds (l : Live) : List C := [l.from_, l.to] ++ l.rank.map (fun e => .eq e e) ++ l.helps.map (·.1)
 
@@ -414,9 +414,9 @@ theorem leads_view (l : Live) (st : Nat → (Nat → Nat) × (Nat → Nat → Na
     intro n; rw [List.map_map]; exact List.map_congr_left (fun e he => (hE n e he).1)
   have h2 : ∀ n, l.rank.map (evalE (A n) (AM n)) = l.rank.map (evalE (st n).1 (st n).2) := fun n =>
     List.map_congr_left (fun e he => (hE n e he).2)
-  have hlex : ∀ n, evalC (A n) (AM n) (lexLtC (l.rank.map (primeE l.prime l.primeMaps)) l.rank)
+  have hlex : ∀ n, evalC (A n) (AM n) (rankLtC (l.rank.map (primeE l.prime l.primeMaps)) l.rank)
       = lexB (l.rank.map (evalE (st (n + 1)).1 (st (n + 1)).2)) (l.rank.map (evalE (st n).1 (st n).2)) := by
-    intro n; rw [lexLtC_eval, h1, h2]
+    intro n; rw [rankLtC_eval, h1, h2]
   have heqs : ∀ n, evalC (A n) (AM n) (eqsC (l.rank.map (primeE l.prime l.primeMaps)) l.rank) = true
       ↔ l.rank.map (evalE (st (n + 1)).1 (st (n + 1)).2) = l.rank.map (evalE (st n).1 (st n).2) := by
     intro n; rw [eqsC_eval _ _ _ _ (by simp), h1, h2]
