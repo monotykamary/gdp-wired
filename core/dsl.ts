@@ -18,8 +18,8 @@
 import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type MapUpdate, type Request, type State, carriedView, compileFunction, evalC, evalE, interpret, loadJs, numbersOf, pairedArgs} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type StepLaw, type Tree, check, foldObligations, loopObligations} from '../kernel/kernel.ts'
-import {factsFor, grow, proveLaws, proveLiveness, proveStepLaws, withDeadline} from '../kernel/prove.ts'
-import {crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes} from './cyclic.ts'
+import {factsFor, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline} from '../kernel/prove.ts'
+import {type Translated, type UsualProof, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedCache} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
 import {cycleLemmas, findRank} from './cycles.ts'
@@ -1254,6 +1254,10 @@ export const recur = <const A extends string = never, U extends Record<string, F
   // The lemmas: x counting up from 0 and fx its value, each lemma a law of that machine.
   let verdict: Verdict = {proven: true, checked: true}
   const proofs: NonNullable<Recurrence['proofs']> = {}
+  // The usual proofs, to translate (core/cyclic.ts's recurNodes): the lemmas' machine's, the laws between's.
+  let lemmaProof: UsualProof | undefined
+  const translatedRecur = (u: {lemmas?: UsualProof, between?: UsualProof}): Translated | undefined => (u.lemmas || !stated.length)
+    ? st => { const {facts, specs, why} = recurNodes(recurCase(u.between ? pairs : []), u, st); return why ? {why} : {verdict: proveCyclic(facts, specs, undefined, translatedCache)} } : undefined
   if (stated.length) {
     // A start that reads a function is a param given as that start by a fact (a start reads the params alone).
     const zeroReads = JSON.stringify(zero).includes('"op":"get"')
@@ -1264,8 +1268,10 @@ export const recur = <const A extends string = never, U extends Record<string, F
     const laws: Law[] = Object.entries(lemmas).map(([n, f]) => r.law(n, (env: Record<string, Term>) => f(env.x!, env.fx!, envAt(args.map(a => env[a]!)))))
     // (Its machine's proof timed alone: the recurrence is compared below as its own instance.)
     const t0 = performance.now()
+    usualProof.last = undefined
     verdict = quietly(() => proveRule(r as never, laws, {search: false}))
-    if (cyclicOn()) crossCyclic('recurrence', name, verdict.proven && verdict.checked, () => { const {facts, specs} = recurNodes(recurCase([])); return proveCyclic(facts, specs) }, performance.now() - t0)
+    lemmaProof = usualProof.last
+    if (cyclicOn()) crossCyclic('recurrence', name, verdict.proven && verdict.checked, () => { const {facts, specs} = recurNodes(recurCase([])); return proveCyclic(facts, specs) }, performance.now() - t0, translatedRecur({lemmas: lemmaProof}))
     failed('lemmas', verdict)
     proofs.lemmas = {machine: (r as Rule).machine, laws}
   }
@@ -1300,8 +1306,9 @@ export const recur = <const A extends string = never, U extends Record<string, F
       .step((env: Record<string, Term>) => ({y: env.y!.plus(1), fy: def.next(env.y!, env.fy!, envAt(at(env)))}) as never)
     const laws = [...Object.entries(lemmas).map(([n, l]) => r.law(`${n} at y`, (env: Record<string, Term>) => l(env.y!, env.fy!, envAt(at(env))))),
       ...Object.entries(between).map(([n, l]) => r.law(n, (env: Record<string, Term>) => l(env.x!, env.fx!, env.y!, env.fy!, envAt(at(env)))))]
-    const t0 = performance.now(), v = quietly(() => proveRule(r as never, laws, {search: false})), usualMs = performance.now() - t0
-    if (cyclicOn()) crossCyclic('recurrence, between', name, v.proven && v.checked, () => { const {facts, specs} = recurNodes(recurCase(pairs)); return proveCyclic(facts, specs) }, usualMs)
+    usualProof.last = undefined
+    const t0 = performance.now(), v = quietly(() => proveRule(r as never, laws, {search: false})), usualMs = performance.now() - t0, betweenProof = usualProof.last
+    if (cyclicOn()) crossCyclic('recurrence, between', name, v.proven && v.checked, () => { const {facts, specs} = recurNodes(recurCase(pairs)); return proveCyclic(facts, specs) }, usualMs, betweenProof && translatedRecur({lemmas: lemmaProof, between: betweenProof}))
     failed('laws between two points', v)
     proofs.between = {machine: (r as Rule).machine, laws}
     verdict = {proven: true, checked: verdict.checked && v.checked}
@@ -2527,7 +2534,8 @@ export const fold = (name: string): FoldRule => new FoldRule({name, params: [], 
 // A fold's laws proven over every tree (a rose fold's own laws, its children's lemmas, with them).
 export const proveFold = (f: {fold: Fold, lemmas?: Law[]}, laws: Law[]): Verdict => {
   const all = [...(f.lemmas ?? []), ...laws], t0 = performance.now(), v = goalsVerdict(foldObligations(f.fold, all)), usualMs = performance.now() - t0
-  if (cyclicOn()) crossCyclic('fold', f.fold.name, v.proven && v.checked, () => { const {facts, specs} = foldNodes(f.fold, all); return proveCyclic(facts, specs) }, usualMs)
+  if (cyclicOn()) crossCyclic('fold', f.fold.name, v.proven && v.checked, () => { const {facts, specs} = foldNodes(f.fold, all); return proveCyclic(facts, specs) }, usualMs,
+    v.trees && (st => { const {facts, specs, why} = foldNodes(f.fold, all, v.trees, st); return why ? {why} : {verdict: proveCyclic(facts, specs, undefined, translatedCache)} }))
   return v
 }
 
