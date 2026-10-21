@@ -18,7 +18,7 @@ noted), each with the command that reproduces it.
   (equations up to six symbols, predicates a function keeps), proves them the same way and uses them where the goal's
   reads match. `research/frontier`'s new datatype track: 11 of 12 laws proven where the library proved none (the
   prover alone on the unfolded law, and `findCycles` on the same facts with the maps' values on the codes), each in
-  0.25 to 37.7 s, the 5 broken variants refused by both (`runs/modal/cycdata/suite1`): length of append and of map,
+  0.23 to 45.1 s, the 5 broken variants refused by both (`runs/modal/cycdata/suite2`): length of append and of map,
   append associative, map fusion for any f and g, mirror twice and the size of a mirror, the count and length after a
   sorted insertion, sorted insertion keeping a list sorted (two unfoldings), reverse of reverse (lemma found:
   `reverse(append(xs, [n])) = n :: reverse(xs)`), the sum of a flattened tree (lemma found: the sum of an append). Not
@@ -30,7 +30,8 @@ noted), each with the command that reproduces it.
   as Lean `inductive`s, the functions by pattern matching, a bijection between each datatype and the naturals, the
   model of every map, every fact of the proof proven true of it, and the law about the definitions
   (`datarev.reverse_reverse (xs : List) : reverse (reverse xs) = xs`). All 11 proven laws check
-  (`runs/modal/cycdata/leandata1`, the suite's `lean-data-0..3`, 35.8 to 126.2 s a shard of up to three).
+  (the suite's `lean-data-0..3`, 34.6 to 72.4 s a shard of up to three, `runs/modal/cycdata/suite2`). The suite
+  (189 jobs) passes, 3,937.3 s of job time (`runs/modal/cycdata/suite2`).
 - Reachability through a structure that changes is still out (research/frontier/README.md says why: a heap a rule
   rewrites is no value, and reachability there is an existential over paths with a frame lemma inside the induction
   over steps, which no cyclic instance builds).

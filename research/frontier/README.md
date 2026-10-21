@@ -41,7 +41,7 @@ their sibling laws (`walls.json`), examples/lemmas.ts's rules with no lemma, fol
 
 Now: the suite's `frontier-score` job, `runs/modal/cycsearch/suite1` (54 / 54, and the cycle track's 13 broken variants
 refused; the cycle track's times: `runs/modal/cycsearch/corpus1`); the datatype track, its own `frontier-datatype-0..3`
-jobs, `runs/modal/cycdata/suite1` (11 / 12, its 5 broken variants refused). The last, `(Σx)² <= n·Σx²` over running samples, is
+jobs, `runs/modal/cycdata/suite2` (11 / 12, its 5 broken variants refused). The last, `(Σx)² <= n·Σx²` over running samples, is
 proven by the prover multiplying the goal by n before the squares.
 
 ## Structure: path scopes, the case the docs called the wall
@@ -184,31 +184,31 @@ The search, untrusted, finds the cycle:
 `today` is what the library proves of the same law with the same facts, without the search: the kernel's prover on
 the law with the definitions unfolded and no cycle, and `findCycles` with the maps' values on the codes and that a
 value's fields have smaller codes (so a rank linear in the codes exists). Each broken variant must be refused. Modal,
-2 vCPU a job, `runs/modal/cycdata/suite1` (`frontier-datatype-0..3`; the lemmas found as the search reports them, `runs/modal/cycdata/batch5`):
+2 vCPU a job, `runs/modal/cycdata/suite2` (`frontier-datatype-0..3`; the lemmas found as the search reports them, `runs/modal/cycdata/batch5`):
 
 | Law | Today | Frontier | Found |
 | --- | --- | --- | --- |
-| length(append xs ys) = length xs + length ys | not proven | proven, 472 ms | recursion of append on xs |
-| append is associative | not proven | proven, 3,003 ms | recursion of append on xs |
-| reverse(reverse xs) = xs | not proven | proven, 25,699 ms | recursion of reverse on xs, with reverse(append(xs, [n])) = n :: reverse(xs) |
-| map fusion: map f (map g xs) = map (f ∘ g) xs, any f and g | not proven | proven, 521 ms | recursion of map g on xs |
-| length(map f xs) = length xs | not proven | proven, 251 ms | recursion of map f on xs |
-| mirror(mirror t) = t | not proven | proven, 1,983 ms | recursion of mirror on t |
-| size(mirror t) = size t | not proven | proven, 488 ms | recursion of mirror on t |
-| sum(flatten t) = the tree's sum | not proven | proven, 9,067 ms | recursion of flatten on t, with sum(cons(sum(xs), ys)) = sum(append(xs, ys)) |
-| sorted xs → sorted (insert x xs) | not proven | proven, 37,672 ms | recursion of sorted on xs, two unfoldings deep |
-| count y (insert x xs) = count y xs + (1 if x = y) | not proven | proven, 3,953 ms | recursion of insert on xs |
-| length(insert x xs) = length xs + 1 | not proven | proven, 391 ms | recursion of insert on xs |
+| length(append xs ys) = length xs + length ys | not proven | proven, 560 ms | recursion of append on xs |
+| append is associative | not proven | proven, 1,496 ms | recursion of append on xs |
+| reverse(reverse xs) = xs | not proven | proven, 25,770 ms | recursion of reverse on xs, with reverse(append(xs, [n])) = n :: reverse(xs) |
+| map fusion: map f (map g xs) = map (f ∘ g) xs, any f and g | not proven | proven, 839 ms | recursion of map g on xs |
+| length(map f xs) = length xs | not proven | proven, 225 ms | recursion of map f on xs |
+| mirror(mirror t) = t | not proven | proven, 1,089 ms | recursion of mirror on t |
+| size(mirror t) = size t | not proven | proven, 478 ms | recursion of mirror on t |
+| sum(flatten t) = the tree's sum | not proven | proven, 13,778 ms | recursion of flatten on t, with sum(cons(sum(xs), ys)) = sum(append(xs, ys)) |
+| sorted xs → sorted (insert x xs) | not proven | proven, 45,055 ms | recursion of sorted on xs, two unfoldings deep |
+| count y (insert x xs) = count y xs + (1 if x = y) | not proven | proven, 2,089 ms | recursion of insert on xs |
+| length(insert x xs) = length xs + 1 | not proven | proven, 342 ms | recursion of insert on xs |
 | bst t → bst (insert x t) | not proven | not proven | |
 
 The five broken variants (an append that drops the head, a reverse that repeats it, a mirror that adds 1 to a value,
 an insertion that puts the item first, a search tree insertion that goes the wrong way) are refused by both, each with
-a value that breaks it (4 to 9 ms).
+a value that breaks it (4 to 7 ms).
 
 The lemmas found are the classic ones: `reverse(append(xs, [n])) = n :: reverse(xs)` for reverse of reverse, and the
 sum of an append for the sum of a flattened tree, which the search states as `sum(cons(sum(xs), ys)) =
 sum(append(xs, ys))` (with `sum(append(xs, [0])) = sum(xs)`, proven before it and used). Every proven law is checked in Lean
-(`runs/modal/cycdata/leandata1`, the suite's `lean-data-0..3`, the standard axioms only) as a theorem about the datatype as declared: `lean-kernel/data.ts` writes the
+(the suite's `lean-data-0..3`, `runs/modal/cycdata/suite2`, the standard axioms only) as a theorem about the datatype as declared: `lean-kernel/data.ts` writes the
 datatypes as Lean `inductive`s and the functions by pattern matching, a bijection between each datatype and the
 naturals (`enc`, `dec`, with `dec_enc` and `enc_dec`, from Data.lean's `cun`/`cpair`), the model (each map as the
 facts say it is), proves every fact of the proof true of the model, and states the law about the Lean definitions:
