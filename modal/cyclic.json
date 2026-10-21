@@ -1,0 +1,4 @@
+[
+{"name": "lean-cyclic", "cwd": "lean-kernel", "cpu": 4.0, "memory": 8192, "timeout": 2400,
+ "cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; { [ -f Cert.olean ] || lean -o Cert.olean Cert.lean; } && { [ -f Kernel.olean ] || lean -o Kernel.olean Kernel.lean; } && lean -o Cyclic.olean Cyclic.lean 2>&1 | tail -40; s=${PIPESTATUS[0]}; echo lean-exit $s; exit $s"}
+]

@@ -10,6 +10,7 @@
 //     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {type Lin, type Step, add, k, refuteFast, scale, solve, sub, v} from '../core/solver.ts'
+import {crossCyclic, cyclicMachine, cyclicOn, machineNodes, proveCyclic} from '../core/cyclic.ts'
 import {type Goal, type Instances, type Liveness, type Path, type Seen, type StepLaw, type Tree, assumed, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
@@ -192,6 +193,19 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
     const w = verdict.witness, value = (key: string) => w[key] ?? 0
     const real = rows.every(r => Object.keys(r.lin).every(key => !isMonomial(key) || value(key) === factorsOf(key).reduce((acc, f) => acc * value(f), 1)))
     if (real) return {stuck: 'sat', witness: w, path}
+  }
+  // An equation about a factor (x' = x + 1, a run's next state as a cell) times each factor's sign: e·f = 0 for every
+  // factor f, so a monomial of x' is one of x (x'·x' = (x + 1)²). Whatever the number of rows: there are few such pairs.
+  if (!split && monomials) {
+    const factorSet = new Set(rows.flatMap(r => Object.keys(r.lin).filter(isMonomial).flatMap(factorsOf)))
+    const byCanon = new Map(rows.map((r, i) => [canon(r.lin), i]))
+    const eqs = rows.flatMap((r, i) => (Object.keys(r.lin).some(key => key !== '1' && factorSet.has(key)) && byCanon.has(canon(scale(r.lin, -1))) ? [i] : []))
+    const signs = rows.flatMap((r, i) => { const keys = Object.keys(r.lin); return keys.length === 1 && factorSet.has(keys[0]!) && r.lin[keys[0]!]! < 0 ? [i] : [] })
+    const pairs = eqs.flatMap(i => signs.map(j => [i, j] as [number, number])).slice(0, 200)
+    if (pairs.length) {
+      const sub = solve(withProducts(rows, pairs))
+      if (sub.kind === 'refuted') return {tree: leafOf(sub.steps, pairs), nodes: budget.nodes}
+    }
   }
   if (!split && monomials && rows.length <= 40) {
     // Only rows about the factors (no other map cells), each pair once: elimination over hundreds of products blows up.
@@ -749,6 +763,11 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
       focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
     })
   })
+  const out = proveWith(m, laws, instances)
+  if (cyclicOn() && cyclicMachine(m)) crossCyclic('machine', m.name, out.proven && out.checked, () => { const {facts, specs} = machineNodes(m, laws, instances); return proveCyclic(facts, specs) })
+  return out
+}
+function proveWith(m: Machine, laws: Law[], instances: Record<string, Instances>): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
   const trees: Record<string, Tree> = {}
   let nodes = 0, leaves = 0
   for (const goal of obligations(m, laws, instances)) {

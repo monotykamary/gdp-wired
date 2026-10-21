@@ -19,6 +19,7 @@ import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type M
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type StepLaw, type Tree, check, foldObligations, loopObligations} from '../kernel/kernel.ts'
 import {factsFor, grow, proveLaws, proveLiveness, proveStepLaws} from '../kernel/prove.ts'
+import {crossCyclic, cyclicOn, foldNodes, proveCyclic, recurNodes} from './cyclic.ts'
 
 // --- terms and conditions -------------------------------------------------------------------------------------------
 
@@ -1217,6 +1218,10 @@ export const recur = <const A extends string = never, U extends Record<string, F
   const stated = Object.entries(lemmas).map(([n, f]) => { const holds = f(named('x'), named('fx'), envAt(own)).c; only(`lemma "${n}"`, holds, ['x', 'fx', ...args], uses.map(([u]) => u)); return {name: n, holds} })
   const pairs = Object.entries(between).map(([n, f]) => { const holds = f(named('x'), named('fx'), named('y'), named('fy'), envAt(own)).c; only(`law between "${n}"`, holds, ['x', 'fx', 'y', 'fy', ...args], uses.map(([u]) => u)); return {name: n, holds} })
   const argKinds = Object.fromEntries(args.map(a => [a, nat])) as Kinds
+  // The recurrence as a cyclic proof's instance (core/cyclic.ts, GDP_CYCLIC=1): the facts of the functions it reads, from
+  // a rule that reads them.
+  const recurCase = (between: {name: string, holds: C}[]) => ({name, args, zero, next, lemmas: stated, between,
+    facts: uses.length ? ((rule(`${name}'s functions`) as LooseRule).fns(def.fns ?? {}).inputs({}).state({z: 0}).step((env: Record<string, Term>) => ({z: env.z!}) as never) as Rule).machine.facts ?? [] : []})
   const failed = (what: string, v: Verdict) => { if (!(v.proven && v.checked)) throw new Unproven(`${name}'s ${what}`, v) }
   // The lemmas: x counting up from 0 and fx its value, each lemma a law of that machine.
   let verdict: Verdict = {proven: true, checked: true}
@@ -1230,6 +1235,7 @@ export const recur = <const A extends string = never, U extends Record<string, F
       .step((env: Record<string, Term>) => ({x: env.x!.plus(1), fx: def.next(env.x!, env.fx!, envAt(args.map(a => env[a]!)))}) as never)
     const laws: Law[] = Object.entries(lemmas).map(([n, f]) => r.law(n, (env: Record<string, Term>) => f(env.x!, env.fx!, envAt(args.map(a => env[a]!)))))
     verdict = proveRule(r as never, laws)
+    if (cyclicOn()) crossCyclic('recurrence', name, verdict.proven && verdict.checked, () => { const {facts, specs} = recurNodes(recurCase([])); return proveCyclic(facts, specs) })
     failed('lemmas', verdict)
     proofs.lemmas = {machine: (r as Rule).machine, laws}
   }
@@ -1265,6 +1271,7 @@ export const recur = <const A extends string = never, U extends Record<string, F
     const laws = [...Object.entries(lemmas).map(([n, l]) => r.law(`${n} at y`, (env: Record<string, Term>) => l(env.y!, env.fy!, envAt(at(env))))),
       ...Object.entries(between).map(([n, l]) => r.law(n, (env: Record<string, Term>) => l(env.x!, env.fx!, env.y!, env.fy!, envAt(at(env)))))]
     const v = proveRule(r as never, laws)
+    if (cyclicOn()) crossCyclic('recurrence, between', name, v.proven && v.checked, () => { const {facts, specs} = recurNodes(recurCase(pairs)); return proveCyclic(facts, specs) })
     failed('laws between two points', v)
     proofs.between = {machine: (r as Rule).machine, laws}
     verdict = {proven: true, checked: verdict.checked && v.checked}
@@ -2405,7 +2412,11 @@ export class FoldRule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}
 }
 export const fold = (name: string): FoldRule => new FoldRule({name, params: [], inputs: [], pre: [], assume: []})
 // A fold's laws proven over every tree (a rose fold's own laws, its children's lemmas, with them).
-export const proveFold = (f: {fold: Fold, lemmas?: Law[]}, laws: Law[]): Verdict => goalsVerdict(foldObligations(f.fold, [...(f.lemmas ?? []), ...laws]))
+export const proveFold = (f: {fold: Fold, lemmas?: Law[]}, laws: Law[]): Verdict => {
+  const all = [...(f.lemmas ?? []), ...laws], v = goalsVerdict(foldObligations(f.fold, all))
+  if (cyclicOn()) crossCyclic('fold', f.fold.name, v.proven && v.checked, () => { const {facts, specs} = foldNodes(f.fold, all); return proveCyclic(facts, specs) })
+  return v
+}
 
 const asTerm = (t: TermLike): Term => (t instanceof Term ? t : lit(t))
 // A tree whose nodes have any number of children, as a runtime value.
