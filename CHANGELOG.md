@@ -5,6 +5,36 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+- Recursive datatypes as values (`gdp-wired/data`, `core/data.ts`): declare a datatype by its constructors
+  (`data('List', {nil: {}, cons: {head: nat, tail: self}})`, fields naturals or the datatype), functions over it by
+  structural recursion (`define`, the recursion checked), laws about them (`law`), and `proveData` proves a law by a
+  cyclic proof it finds, or refutes it with a value that breaks it. The encoding keeps the trusted kernel as it was:
+  every natural is a value of each datatype, a value read through maps (its tag, fields and size; a constructor and a
+  function of several arguments at their pairing), the definitions, constructors, shape, eta and congruence as facts.
+  The search picks the induction (structural on an argument, or a function's own recursion), splits the law into a
+  node per case (a decision tree over the guards 240 random values disagree on) each with what its case needs
+  (definitions unfolded, also where an argument equals a constructor's value; the congruences a proof-producing
+  congruence closure explains in each model), and where the law alone isn't proven finds lemmas from the values
+  (equations up to six symbols, predicates a function keeps), proves them the same way and uses them where the goal's
+  reads match. `research/frontier`'s new datatype track: 11 of 12 laws proven where the library proved none (the
+  prover alone on the unfolded law, and `findCycles` on the same facts with the maps' values on the codes), each in
+  0.25 to 37.7 s, the 5 broken variants refused by both (`runs/modal/cycdata/suite1`): length of append and of map,
+  append associative, map fusion for any f and g, mirror twice and the size of a mirror, the count and length after a
+  sorted insertion, sorted insertion keeping a list sorted (two unfoldings), reverse of reverse (lemma found:
+  `reverse(append(xs, [n])) = n :: reverse(xs)`), the sum of a flattened tree (lemma found: the sum of an append). Not
+  proven: a search tree's insertion keeping its order (its two lemmas are found and proven, the law with them is not).
+  `findCycles` doesn't take these laws: a list's code squares with each item, so its runs give it no edge.
+- `lean-kernel/Data.lean` (on top of `Cyclic.lean`, nothing trusted beyond `cyclic_sound`; the standard axioms only):
+  the pairing (a + b)² + b injective with a left inverse, a bijection between the naturals and pairs (`cun`, `cpair`),
+  tuples. `lean-kernel/data.ts` exports each datatype proof as a theorem about the datatype as declared: the datatypes
+  as Lean `inductive`s, the functions by pattern matching, a bijection between each datatype and the naturals, the
+  model of every map, every fact of the proof proven true of it, and the law about the definitions
+  (`datarev.reverse_reverse (xs : List) : reverse (reverse xs) = xs`). All 11 proven laws check
+  (`runs/modal/cycdata/leandata1`, the suite's `lean-data-0..3`, 35.8 to 126.2 s a shard of up to three).
+- Reachability through a structure that changes is still out (research/frontier/README.md says why: a heap a rule
+  rewrites is no value, and reachability there is an existential over paths with a frame lemma inside the induction
+  over steps, which no cyclic instance builds).
+
 - `lean-kernel/Bridge.lean` (trusted, on top of `Sets.lean` and `Cyclic.lean`, the standard axioms only). `cyclic_sound`
   says what a proof's nodes hold of any maps that meet its facts; nothing tied `core/cyclic.ts`'s instances to the rules'
   meanings, so a cyclic proof of a machine law was a proof about its encoding. Each instance is now written in Lean as a

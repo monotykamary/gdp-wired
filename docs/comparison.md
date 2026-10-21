@@ -103,8 +103,8 @@ the hypothesis they are.
 
 What gdp-wired leaves to Lean or Bend is one of two things, and neither is a gap the next feature closes:
 
-- **Proofs the prover would have to invent.** Induction over a recursive structure you define (a tree, reachability
-  through a structure that changes) whose proof needs a lemma nobody stated and `discover` doesn't find; and arithmetic with products of unknowns beyond what
+- **Proofs the prover would have to invent.** Induction over a structure that changes (reachability through linked
+  cells a rule rewrites), and over a recursive datatype where the proof needs a lemma `proveData` doesn't find; and arithmetic with products of unknowns beyond what
   products of facts and sums of squares give (the kernel takes products and squares the way Lean's `nlinarith` does,
   and the prover tries the goal multiplied by a factor first: `(Σx)² <= n·Σx²` over running samples). No automatic prover
   proves all of these: integer arithmetic with induction, or with products, is undecidable (Hilbert's tenth problem).
@@ -121,6 +121,12 @@ What gdp-wired leaves to Lean or Bend is one of two things, and neither is a gap
   nodes for claims about functions defined by their equations: linear ranks in order from the runs, back-edges at the
   calls a goal reads, a stuck claim's constants abstracted (an accumulator) or a companion bound on what it reads;
   a rank that isn't linear, a back-edge at a term no goal reads, or a lemma of another shape is still the wall's.
+  Recursive datatypes are values (`gdp-wired/data`): declare one by its constructors, functions over it by structural
+  recursion, and laws about them, and `proveData` finds the induction (which argument, structural or by a function's
+  own recursion, the cases), and the lemmas from the values (equations up to six symbols, predicates kept by a
+  function): reverse of reverse, the sum of a flattened tree, sorted insertion, each checked in Lean as a theorem about
+  the Lean `inductive` and functions; a lemma past six symbols, or the search tree's insertion keeping its order, is
+  still the wall's.
 - **An arbitrary algorithm shipped as its proved source.** gdp-wired ships the rule as JavaScript. Bend compiles the
   proved source itself.
 
@@ -187,6 +193,7 @@ unless the runtime supplies membership as an input.
 | Sequences a request carries (`.carriesSeq`, and tables of them, `.carriesSeqs`): positions and a length, with prefixes, equality and extension as conditions about every position below a length (the array property fragment), so laws about prefixes of paths need no lemma; the request gives arrays of naturals; bookkeeping a request carries checked row by row (`everyBelow`) (`examples/scopes.ts`: pi-fabric's path scopes, compared with its `covers` on 20,000 random triples) | A condition about every row of a table comparing the rows' sequences (two keys at once: a row is compared at a witness) |
 | Lists a request carries (`.carriesList`: an invoice's lines, each item a value of a kind, one carried map per variable of the kind and the length an input), with folds over them (each a carried map of running values whose equations every request meets: the encoding computes them, the runtimes check them) and lemmas about the folds proven by induction over the items, the folds and lemmas reading the params if they like; folds over a tree given as a value (`fold`, `proveFold`: each leaf's values from its inputs, each node's from its own and its children's, two or any number of them (`.children`, a chain of glue nodes underneath), laws by induction over the tree, Lean's `fold_sound`); trees and lists of lists in a rule's state as tables of nodes that only grow (`.nodes`: each node made from nodes already there, its folds kept with it, so a law about a subtree is a law about one node) (`examples/invoices.ts`, `examples/folds.ts`, `examples/trees.ts`); the folds' lemmas nobody stated, found the same way (`discover` for a list a request carries: bounds and relations between the folds, the length and the params; `discoverFold` for a tree: relations between its values and the params, products of a value and a param among them, and under `.children` the children's own lemmas) (`examples/discover.ts`) | A claim about a list or tree that needs a lemma nobody stated and `discover` doesn't find (prefixes of lists of paths, reachability) |
 | Loops that halt by a rank or a tuple of ranks; folds over trees; progress laws ("some request makes this happen"); recursion defined in Lean, entered as a function with its facts | Induction the prover would have to invent, where no one states the lemma (the wall below) |
+| Recursive datatypes as values (`gdp-wired/data`: lists, trees, any datatype whose fields are naturals or the datatype), functions over them by structural recursion, laws proven by cyclic proofs the search finds with the lemmas it needs, each checked in Lean against the datatype as declared (`examples/data.ts`) | Mutual or nested datatypes (a list of trees), recursion on a natural, a lemma past six symbols; reachability through linked cells a rule rewrites |
 | Arithmetic: `+`, truncated `−`, `×` by a constant, `min`, `max`, `if`, products of two terms, a map's cell among them (a per-key quota, `Used[k] <= per·Seats[k]`), refuted with products of facts and squares (Cauchy–Schwarz, AM–GM for three, `4ab <= (a + b)²` kept by a rule), division and remainder by a constant (`divBy`, `modBy`) | Generated code for decisions alone (`compileJs` emits machines; a predicate emitter is planned) |
 | k-step laws up to 64 steps, proven by a fact about each step's value first (a cut), each step's state named in the goal: 16 steps in under a second, 32 in about one, 64 in about 5, and checked by Lean (16 steps in about 3 s, 32 in about 14, 64 in about 47) (`examples/steps.ts`) | A law over more than 64 steps (an invariant and a one-step law usually say the same) |
 

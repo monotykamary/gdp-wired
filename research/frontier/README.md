@@ -36,10 +36,12 @@ their sibling laws (`walls.json`), examples/lemmas.ts's rules with no lemma, fol
 | fold | 3 | 0 | 3 |
 | nonlinear | 8 | 0 | 8 |
 | cycle | 13 | 0 | 13 |
-| all | 54 | 0 | 54 |
+| datatype | 12 | 0 | 11 |
+| all | 66 | 0 | 65 |
 
 Now: the suite's `frontier-score` job, `runs/modal/cycsearch/suite1` (54 / 54, and the cycle track's 13 broken variants
-refused; the cycle track's times: `runs/modal/cycsearch/corpus1`). The last, `(Σx)² <= n·Σx²` over running samples, is
+refused; the cycle track's times: `runs/modal/cycsearch/corpus1`); the datatype track, its own `frontier-datatype-0..3`
+jobs, `runs/modal/cycdata/suite1` (11 / 12, its 5 broken variants refused). The last, `(Σx)² <= n·Σx²` over running samples, is
 proven by the prover multiplying the goal by n before the squares.
 
 ## Structure: path scopes, the case the docs called the wall
@@ -68,7 +70,9 @@ grant checks on 5,000 random pairs of scopes (`compareScopes`, `compareGrants`).
   checks them at every key and the laws follow at the witnesses. The proven rule is the normalizer with its bookkeeping
   as output, which the code computes as it merges.
 
-What stays out: reachability through a structure that changes, and recursive datatypes as values.
+What stayed out then: reachability through a structure that changes, and recursive datatypes as values. Datatypes as
+values are the datatype track's now (below); reachability through a structure that changes is still out, and why is
+below too.
 
 ## Lemma and fold track: `discover`
 
@@ -142,3 +146,97 @@ that never ends, a rule reading past the region) are refused by both. The proofs
 Not found: a rank that isn't linear, or needs a coefficient past 4 in one component; a back-edge at a term no goal
 reads after unfolding the facts twice; a generalization whose conclusion isn't an exact linear fit (a closed form with
 products); bounds on a function of two arguments; a machine's liveness (`proveLeadsTo`) with no rank.
+
+## Datatype track: `proveData`
+
+`core/data.ts` (`gdp-wired/data`) takes recursive datatypes as values. A user declares a datatype by its constructors
+(`data('List', {nil: {}, cons: {head: nat, tail: self}})`), functions over it by structural recursion (`define`,
+checked: every recursive call passes a field of one parameter bound by a match), and laws about them (`law`); nothing
+else. Every natural is a value of each datatype (a bijection Lean's twin defines), so a value is a natural and two
+values are equal when they are the same natural; a datatype is read through maps (its tag, its fields, its size), a
+constructor with fields and a function of several arguments through maps read at the arguments' pairing
+((a + b)² + b, as the library reads a function of several arguments). The facts: each datatype's shape (the tag one of
+the constructors', under each the size and the other constructors' fields 0) and eta (a value is its constructor at its
+own fields), each constructor's fields, each function's body (a match read as ifs on the tag), and that a map is a
+function (equal arguments, equal cells). Nothing is new to the kernel or to `Cyclic.lean`; the prover (untrusted) leaves
+two reads at pairing keys uncompared while a datatype proof grows (`pairedKeys`: their congruence is a fact, and
+comparing the keys only brings products into leaves the linear rows decide).
+
+The search, untrusted, finds the cycle:
+
+- **Which induction.** Structural induction on each argument of a datatype (the uses at its fields, where the tag is
+  the constructor's), and recursion induction from each recursive function the law calls on its variables (the uses at
+  the arguments of its own recursive calls, other arguments changing with them). The rank is (level, size of the
+  argument, 0 or 1).
+- **Cases.** The law's node uses one node per case (a decision tree over the guards the unfolded definitions evaluate,
+  split where 240 random values disagree), each with only what its case needs: the definitions unfolded at the calls
+  its conclusion makes (one or two deep, and where an argument equals a constructor's value), the instances the models
+  of the case reach, and the congruences the explanations of their classes use (proof-producing congruence closure in
+  each model: a value's read explained against another of its class, through no constant first).
+- **Lemmas.** Where the law alone isn't proven, conjectures from the values (theory exploration): equations between
+  terms of the law's functions over two variables of each sort, up to six symbols, met by 80 random values, each named
+  canonically, none ground, none the law, none following by rewriting with the definitions and smaller equations; and
+  that a function keeps a predicate (under a comparison of two naturals). Those a read of the law's goal matches go
+  first; each is proven the same way (one unfolding, then two) at a lower level, and the law is tried again with it,
+  its uses at the reads its largest side matches (argument by argument, up to the classes, and only where a random
+  value makes them equal).
+
+`today` is what the library proves of the same law with the same facts, without the search: the kernel's prover on
+the law with the definitions unfolded and no cycle, and `findCycles` with the maps' values on the codes and that a
+value's fields have smaller codes (so a rank linear in the codes exists). Each broken variant must be refused. Modal,
+2 vCPU a job, `runs/modal/cycdata/suite1` (`frontier-datatype-0..3`; the lemmas found as the search reports them, `runs/modal/cycdata/batch5`):
+
+| Law | Today | Frontier | Found |
+| --- | --- | --- | --- |
+| length(append xs ys) = length xs + length ys | not proven | proven, 472 ms | recursion of append on xs |
+| append is associative | not proven | proven, 3,003 ms | recursion of append on xs |
+| reverse(reverse xs) = xs | not proven | proven, 25,699 ms | recursion of reverse on xs, with reverse(append(xs, [n])) = n :: reverse(xs) |
+| map fusion: map f (map g xs) = map (f ∘ g) xs, any f and g | not proven | proven, 521 ms | recursion of map g on xs |
+| length(map f xs) = length xs | not proven | proven, 251 ms | recursion of map f on xs |
+| mirror(mirror t) = t | not proven | proven, 1,983 ms | recursion of mirror on t |
+| size(mirror t) = size t | not proven | proven, 488 ms | recursion of mirror on t |
+| sum(flatten t) = the tree's sum | not proven | proven, 9,067 ms | recursion of flatten on t, with sum(cons(sum(xs), ys)) = sum(append(xs, ys)) |
+| sorted xs → sorted (insert x xs) | not proven | proven, 37,672 ms | recursion of sorted on xs, two unfoldings deep |
+| count y (insert x xs) = count y xs + (1 if x = y) | not proven | proven, 3,953 ms | recursion of insert on xs |
+| length(insert x xs) = length xs + 1 | not proven | proven, 391 ms | recursion of insert on xs |
+| bst t → bst (insert x t) | not proven | not proven | |
+
+The five broken variants (an append that drops the head, a reverse that repeats it, a mirror that adds 1 to a value,
+an insertion that puts the item first, a search tree insertion that goes the wrong way) are refused by both, each with
+a value that breaks it (4 to 9 ms).
+
+The lemmas found are the classic ones: `reverse(append(xs, [n])) = n :: reverse(xs)` for reverse of reverse, and the
+sum of an append for the sum of a flattened tree, which the search states as `sum(cons(sum(xs), ys)) =
+sum(append(xs, ys))` (with `sum(append(xs, [0])) = sum(xs)`, proven before it and used). Every proven law is checked in Lean
+(`runs/modal/cycdata/leandata1`, the suite's `lean-data-0..3`, the standard axioms only) as a theorem about the datatype as declared: `lean-kernel/data.ts` writes the
+datatypes as Lean `inductive`s and the functions by pattern matching, a bijection between each datatype and the
+naturals (`enc`, `dec`, with `dec_enc` and `enc_dec`, from Data.lean's `cun`/`cpair`), the model (each map as the
+facts say it is), proves every fact of the proof true of the model, and states the law about the Lean definitions:
+`datarev.reverse_reverse (xs : List) : reverse (reverse xs) = xs`,
+`dataflatten.sum_flatten (t : Tree) : sum (flatten t) = tsum t`,
+`datafusion.map_fusion (f g : Nat → Nat) (xs : List) : mapF f (mapG g xs) = mapFG f g xs`,
+`datasorted.insert_sorted (x : Nat) (xs : List) : sorted xs = true → sorted (insert x xs) = true`.
+
+`core/cycles.ts`'s `findCycles` doesn't take these laws (its `today` above): it fits ranks linear in the variables
+from runs over a grid of naturals, but a list's code squares with each item (codes past 2^53 after a few), so the runs
+give it no edge; its back-edges go to every call the goal reads (`xs := append(xs, ys)` among them); and its goals
+lean on the kernel's own congruence, which over pairing keys splits on products. The datatype search keeps its own
+cycle builder for that reason; the two share the kernel, `proveCyclic` and the corpus.
+
+Not proven: the search tree's insertion keeping the order (`bst(t) → bst(insert(x, t))`). Its two lemmas
+(`allBelow(t, v) ∧ x < v → allBelow(insert(x, t), v)` and the `allAbove` one) are found and proven; the law with them
+is not, within its time. Not found in general: a lemma past six symbols or of another shape than an equation or a kept
+predicate, an induction on a term no recursive call makes, mutual or nested datatypes (a field of another datatype, a
+list of trees), and functions defined by recursion on a natural.
+
+### Reachability through a structure that changes
+
+Still out, and why precisely. A datatype here is a value: no sharing, no mutation, every function a fold over it. A
+rule may hold such a value in its state and replace it at each step (a sorted list a request inserts into, its laws
+those above), but a linked structure a rule mutates is a heap: a map from addresses to cells whose links the step
+rewrites, aliasing and cycles allowed. Reachability there is a least fixpoint over a map that changes: "y is reachable
+from x" is an existential (some path), not a structural recursion (the heap has no decreasing argument; with fuel it is
+recursion on a natural, which the datatype search doesn't take), and the step's law needs a frame lemma about every
+path not through the written cell, an induction on the path's length inside the induction over the run's steps. The
+cyclic kernel can state that (a node ranked (t, n), lexicographic), but no instance builds such nodes, and the
+witness a step's new path needs (the path the law claims after the write) is a term no fact names.
