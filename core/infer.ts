@@ -40,7 +40,9 @@ export type Inferred = Verdict & {found: Found[], stats: {samples: number, candi
 // is a map's cell at the law's key (its parts are maps).
 type Atom = {name: string, parts: [string, 1 | -1][], param: boolean, int: boolean, cell: boolean}
 type Guard = {atom: number, value: number} | {keyNot: number}
-type Form = {coef: [number, number][], d: number, cells: boolean, guard?: Guard, unreachable?: {atom: number, value: number}, size: number}
+// `when`: a linear condition the form holds under (Σ c·v ≤ d over scalars), beside its guard; the search makes such forms
+// from a counterexample to induction no candidate rules out.
+type Form = {coef: [number, number][], d: number, cells: boolean, guard?: Guard, when?: {coef: [number, number][], d: number}, unreachable?: {atom: number, value: number}, size: number}
 
 const KEY = 'key$found', AT = '@', K = '#'
 const seeded = (seed: number): Rand => { let s = seed; return k => { s = (s * 1103515245 + 12345) % 2 ** 31; return Math.floor(s / 2 ** 31 * k) } }
@@ -99,7 +101,7 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
   let proofs = 0
   const prove = (ls: Law[]): Verdict => {
     proofs++
-    if (rule) return stepLaws.length ? proveSteps(rule, ls, stepLaws) : proveRule(rule, ls)
+    if (rule) return stepLaws.length ? proveSteps(rule, ls, stepLaws, {search: false}) : proveRule(rule, ls, {search: false})
     const out = stepLaws.length ? proveStepLaws(m, ls, stepLaws) : proveLaws(m, ls)
     return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
   }
@@ -195,14 +197,16 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
     go(0, [])
   }
   const choose = (k: number, of: number) => { let r = 1; for (let i = 0; i < k; i++) r = r * (of - i) / (i + 1); return r }
-  const plain = atoms.flatMap((a, i) => (a.cell ? [] : [i])), P = plain.length
+  // A choice's index orders its values arbitrarily: it is a guard, or alone (a bound on it reads as the values it
+  // allows), never a term among others.
+  const plain = atoms.flatMap((a, i) => (a.cell ? [] : [i])), terms = plain.filter(i => !modeOf(i)?.choice), P = terms.length
   const scalarOk = (acc: [number, number][]) => acc.some(([i]) => !atoms[i]!.param)
   pick(1, [1], plain, scalarOk, false)
-  pick(2, choose(2, P) * 4 * mags.length ** 2 <= maxCandidates / 4 ? mags : [1], plain, scalarOk, false)
-  if (choose(3, P) * 8 * mags.length ** 3 <= maxCandidates / 2) pick(3, mags, plain, scalarOk, false)
-  else if (choose(3, P) * 8 <= maxCandidates / 2) pick(3, [1], plain, scalarOk, false)
+  pick(2, choose(2, P) * 4 * mags.length ** 2 <= maxCandidates / 4 ? mags : [1], terms, scalarOk, false)
+  if (choose(3, P) * 8 * mags.length ** 3 <= maxCandidates / 2) pick(3, mags, terms, scalarOk, false)
+  else if (choose(3, P) * 8 <= maxCandidates / 2) pick(3, [1], terms, scalarOk, false)
   if (cellAtoms.length) {
-    const all = atoms.map((_, i) => i), cellOk = (acc: [number, number][]) => acc.some(([i]) => atoms[i]!.cell) && acc.filter(([i]) => !atoms[i]!.cell).length <= 1
+    const all = atoms.flatMap((_, i) => (modeOf(i)?.choice ? [] : [i])), cellOk = (acc: [number, number][]) => acc.some(([i]) => atoms[i]!.cell) && acc.filter(([i]) => !atoms[i]!.cell).length <= 1
     pick(1, [1], cellAtoms, () => true, true)
     pick(2, [1], all, cellOk, true)
     if (choose(3, A) * 8 <= maxCandidates / 4) pick(3, [1], all, acc => cellOk(acc) && acc.filter(([i]) => atoms[i]!.cell).length >= 2, true)
@@ -260,7 +264,8 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
     if (f.unreachable) return `${nameOf(f.unreachable.atom)} is never ${shownValue(f.unreachable.atom, f.unreachable.value)}`
     const {l, r} = sides(f), within = allowedValues(f)
     const body = within ? `${nameOf(f.coef[0]![0])} is ${within.map(v => shownValue(f.coef[0]![0], v)).join(' or ')}` : `${l} <= ${r}`
-    const guarded = !f.guard ? body : 'keyNot' in f.guard ? `k = ${nameOf(f.guard.keyNot)} or ${body}` : `${nameOf(f.guard.atom)} is ${shownValue(f.guard.atom, f.guard.value)} → ${body}`
+    const under = f.when ? (({l: wl, r: wr}) => `${wl} <= ${wr} → `)(sides({coef: f.when.coef, d: f.when.d, cells: false, size: 0})) : ''
+    const guarded = !f.guard ? under + body : 'keyNot' in f.guard ? `k = ${nameOf(f.guard.keyNot)} or ${body}` : `${nameOf(f.guard.atom)} is ${shownValue(f.guard.atom, f.guard.value)} → ${under}${body}`
     return f.cells ? `every k: ${guarded}` : guarded
   }
   const sum = (es: E[]): E => es.reduce((p, q) => plus(p, q), n(0))
@@ -277,12 +282,13 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
     }
     if (f.unreachable) return notAt(f.unreachable.atom, f.unreachable.value)
     const lhs = sum([...partsOf(f, 1), ...(f.d < 0 ? [n(-f.d)] : [])]), rhs = sum([...partsOf(f, -1), ...(f.d > 0 ? [n(f.d)] : [])])
-    const body = atMost(lhs, rhs)
+    // Under a condition Σ ≤ d: its negation, −Σ ≤ −d − 1, or the body.
+    const body = f.when ? any(condOf({coef: f.when.coef.map(([i, c]) => [i, -c]), d: -f.when.d - 1, cells: false, size: 0}), atMost(lhs, rhs)) : atMost(lhs, rhs)
     return !f.guard ? body : 'keyNot' in f.guard ? any(same(x(KEY), x(atoms[f.guard.keyNot]!.parts[0]![0])), body) : any(notAt(f.guard.atom, f.guard.value), body)
   }
   // The builder call, for a rule whose atoms are its own variables (naturals, or integers alone).
   const sourceOf = (f: Form, text: string): string | undefined => {
-    if (!rule) return undefined
+    if (!rule || f.when) return undefined
     const used = [...new Set([...f.coef.map(([i]) => i), ...(f.guard ? ['keyNot' in f.guard ? f.guard.keyNot : f.guard.atom] : []), ...(f.unreachable ? [f.unreachable.atom] : [])])]
     const ints = f.coef.filter(([i]) => atoms[i]!.int).length
     if (ints && ints !== f.coef.length) return undefined
@@ -310,6 +316,7 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
       if ('keyNot' in f.guard) { if (env[K] === valueOf(atoms[f.guard.keyNot]!, env)) return true }
       else if (valueOf(atoms[f.guard.atom]!, env) !== f.guard.value) return true
     }
+    if (f.when) { let w = 0; for (const [i, c] of f.when.coef) w += c * valueOf(atoms[i]!, env); if (w > f.when.d) return true }
     let s = 0
     for (const [i, c] of f.coef) s += c * valueOf(atoms[i]!, env)
     return s <= f.d
@@ -386,6 +393,63 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
     }
     return pickF
   }
+  // A counterexample to induction no candidate rules out: forms false at it that every sample meets under a condition
+  // it meets too (one value, or a sum or difference of two, at most a threshold: 0, ±1, or its own value there), the
+  // choice (loc, say) at its value there as the guard. A condition no sample meets gives its negation instead. Only the
+  // eight values most unusual at it are read (furthest past the samples in its guard, then the rarest there).
+  const choiceMode = modes.find(mo => mo.choice && !atoms[mo.atom]!.cell)
+  const condAtoms = plain.filter(i => !atoms[i]!.param && i !== choiceMode?.atom)
+  const fromCti = (p: Point): Form[] => {
+    const stop = Math.min(until, performance.now() + Math.max(300, (until - performance.now()) / 8))
+    const sc = p.scalar, pv = (coef: [number, number][]) => { let v = 0; for (const [i, c] of coef) v += c * valueOf(atoms[i]!, sc); return v }
+    const gv = choiceMode ? valueOf(atoms[choiceMode.atom]!, sc) : undefined
+    const inGuard: number[] = []
+    for (let j = 0; j < NS; j++) if (gv === undefined || valsS[choiceMode!.atom]![j] === gv) inGuard.push(j)
+    const unusual = (i: number) => {
+      const v = valueOf(atoms[i]!, sc)
+      let lo = Infinity, hi = -Infinity, same = 0
+      for (const j of inGuard) { const w = valsS[i]![j]!; if (w < lo) lo = w; if (w > hi) hi = w; if (w === v) same++ }
+      return [Math.max(0, lo - v, v - hi), -same] as const
+    }
+    const focus = condAtoms.map(i => ({i, u: unusual(i)})).sort((a, b) => b.u[0] - a.u[0] || b.u[1] - a.u[1]).slice(0, 8).map(x => x.i)
+    // Over the focus: one or two values with the magnitudes, three with ±1.
+    const bodies: {coef: [number, number][]}[] = []
+    const signed = (ks: number[]) => ks.flatMap(k => [k, -k])
+    for (const [a, i] of focus.entries()) {
+      bodies.push({coef: [[i, 1]]}, {coef: [[i, -1]]})
+      for (const [b2, k] of focus.slice(a + 1).entries()) {
+        for (const c1 of signed(mags)) for (const c2 of signed(mags)) if (gcd(c1, c2) === 1) bodies.push({coef: [[i, c1], [k, c2]]})
+        for (const q of focus.slice(a + b2 + 2)) for (const c1 of [1, -1]) for (const c2 of [1, -1]) for (const c3 of [1, -1]) bodies.push({coef: [[i, c1], [k, c2], [q, c3]]})
+      }
+    }
+    const conds: [number, number][][] = []
+    for (const [a, i] of focus.entries()) {
+      conds.push([[i, 1]], [[i, -1]])
+      for (const k of focus.slice(a + 1)) conds.push([[i, 1], [k, -1]], [[i, -1], [k, 1]], [[i, 1], [k, 1]])
+    }
+    const out: Form[] = [], guard = choiceMode ? {atom: choiceMode.atom, value: gv!} : undefined
+    for (const coef of conds) {
+      const here = pv(coef)
+      for (const d of [...new Set([here, 0, 1, -1])].filter(d => here <= d)) {
+        if (performance.now() > stop) break
+        const rows: number[] = []
+        for (const j of inGuard) if (at(coef, valsS, j) <= d) rows.push(j)
+        const when = {coef, d}, base = sizeOf(coef) + 80
+        if (!rows.length) { out.push({coef: coef.map(([i, c]) => [i, -c]), d: -d - 1, cells: false, ...(guard ? {guard} : {}), size: base}); continue }
+        const stride = Math.max(1, Math.ceil(rows.length / 600))
+        for (const [q, sh] of bodies.entries()) {
+          if (q % 256 === 0 && performance.now() > stop) break
+          const v = pv(sh.coef)
+          let most = -Infinity, ok = true
+          for (let t = 0; t < rows.length; t += stride) { const w = at(sh.coef, valsS, rows[t]!); if (w >= v) { ok = false; break } if (w > most) most = w }
+          if (ok && Number.isFinite(most)) out.push({coef: sh.coef, d: most, cells: false, ...(guard ? {guard} : {}), when, size: base + sizeOf(sh.coef)})
+        }
+      }
+    }
+    // A stride may skip a sample that breaks a form: each is checked again at every sample in its guard.
+    return out.sort((x, y) => x.size - y.size).slice(0, 2000).filter(f => inGuard.every(j => holdsRow(f, rowsS[j]!))).slice(0, 400)
+  }
+
   // The search proves one law at a time (proveLaw), each with every law assumed, and keeps what it proved while laws
   // are only added (more laws assumed keep a proof a proof); dropping one forgets it all. Once every law is proven so,
   // the set is proven as a whole, by the rule's own prover: that verdict is the answer.
@@ -424,7 +488,8 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
     if (chosen.length && took > slow) { drop(chosen.at(-1)!); continue }
     const p = /@step|@\d+ steps/.test(last.goal) && last.witness ? witnessPoint(last.witness) : undefined
     if (p) ctis.push(p)
-    const next = p ? best(p) : undefined
+    let next = p ? best(p) : undefined
+    if (!next && p) { const t = performance.now(), made = fromCti(p); pool.push(...made); next = best(p); opts.progress?.('cti', {forms: made.length, ms: Math.round(performance.now() - t)}) }
     if (next) { chosen.push(next); continue }
     // Stuck with no counterexample on a goal not a candidate's: the last candidate made it harder, so it goes.
     if (chosen.length && !stuckOn && !p) { drop(chosen.at(-1)!); continue }

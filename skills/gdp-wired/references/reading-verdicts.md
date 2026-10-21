@@ -1,6 +1,7 @@
 # Reading verdicts
 
-Every prove call returns `{proven, checked, goal?, stuck?, witness?, why?}`.
+Every prove call returns `{proven, checked, goal?, stuck?, witness?, why?}`; `proveRule` and `proveSteps` add `found`
+when they proved the laws with what they looked for themselves.
 
 | Verdict | Meaning | Do |
 |---|---|---|
@@ -10,6 +11,7 @@ Every prove call returns `{proven, checked, goal?, stuck?, witness?, why?}`.
 | `stuck: 'sat'` with a `witness` and no `run`, at `@step law` | A state the laws allow (maybe one no run reaches) from which one step breaks the step law: a step law claims every such state. | Fix the rule, or add the law that rules the state out (the step law then holds from the states it allows). |
 | `stuck: 'sat'` with `run` | A few random runs found a real run from the start that breaks the law: `run.params` and each request in `run.trace`. | The rule (or the law) is wrong. Replay the run with `rule.interpreter()`. |
 | `stuck: 'sat'` at `<law> @step` | Some state where the laws hold steps to one where this law fails. The witness may be unreachable. | Run `search` (below). |
+| `proven: true, checked: true` with `found` | Proven with laws or lemmas nobody stated, which `proveRule`/`proveSteps` found when the prover alone stopped: `found.laws` (pass them with yours), `found.lemmas` (per function or list, the lemmas to state). | Paste them, so the next proof needs no search. |
 | `stuck: 'unknown'` with `why` | The prover's budget ran out. `why` says which limit and what helps. | Usually: fewer steps in a k-step law, or split a law into laws about fewer conditions. |
 
 ## A failed step: bug, or missing invariant?
@@ -24,8 +26,8 @@ The bound widens naturals; a choice, a yes/no or an `upTo` of at most 15 is alwa
 
 - **A run comes back:** it is a real sequence of requests from the start that breaks the law. The rule (or the law)
   is wrong. Replay it with `rule.interpreter()` to see each state.
-- **No run:** the law is probably true but not inductive: the witness is a state no run reaches. Find the fact that
-  rules that state out and add it as another law in the same call (`proveRule(r, [helper, law])`); the laws are
+- **No run:** the law is probably true but not inductive: the witness is a state no run reaches. The search the prove
+  calls run by default looked for the fact and didn't find it (`why` says so). Find the fact that rules that state out and add it as another law in the same call (`proveRule(r, [helper, law])`); the laws are
   proven together. Example: gcd's rank only drops if `a >= 1` and `b >= 1` are laws too.
 
 Reading a witness: names are the goal's variables. `Day[day:1]` is the map

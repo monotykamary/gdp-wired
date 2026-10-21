@@ -10,11 +10,11 @@ const out: Wall[] = []
 for (const d of domains) for (const c of d.cases) {
   if (c.kind !== 'rule') continue
   if (c.laws.length >= 2) for (const law of c.laws) {
-    const t = performance.now(), v = proveRule(c.rule, [law]), ms = Math.round(performance.now() - t)
+    const t = performance.now(), v = proveRule(c.rule, [law], {search: false}), ms = Math.round(performance.now() - t)
     if (!(v.proven && v.checked) && !v.run) out.push({domain: d.domain, case: c.name, law: law.name, ms})
   }
   if (c.steps?.length && c.laws.length) {
-    const t = performance.now(), v = proveSteps(c.rule, [], c.steps), ms = Math.round(performance.now() - t)
+    const t = performance.now(), v = proveSteps(c.rule, [], c.steps, {search: false}), ms = Math.round(performance.now() - t)
     if (!(v.proven && v.checked) && !v.run) out.push({domain: d.domain, case: c.name, steps: true, ms})
   }
 }

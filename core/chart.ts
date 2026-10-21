@@ -229,8 +229,8 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
       else missed.push({name, law: r.law(`${name} is never reached`, (env: Obj) => (env[reg.field] as Choice<string>).is(l).not())})
     }
     const proven = (v: Verdict) => v.proven && v.checked
-    const allMissed = missed.length > 0 && proven(proveRule(r, [...this.chartLaws(), ...missed.map(x => x.law)]))
-    for (const x of missed) reached[x.name] = allMissed || proven(proveRule(r, [...this.chartLaws(), x.law])) ? 'unreachable' : 'unknown'
+    const allMissed = missed.length > 0 && proven(proveRule(r, [...this.chartLaws(), ...missed.map(x => x.law)], {search: false}))
+    for (const x of missed) reached[x.name] = allMissed || proven(proveRule(r, [...this.chartLaws(), x.law], {search: false})) ? 'unreachable' : 'unknown'
     // A way out is a transition to a state: an internal one stays where it is.
     const stuck = regions.flatMap(reg => reg.leaves.filter(l => !reg.finals.has(l) && !placed.some(t => t.to !== undefined && t.region === reg.name && t.sources.includes(l))).map(l => label(reg, l)))
     // Pairs as specific as each other, on one event, from a state they share: proven never both enabled, all at once,
@@ -241,8 +241,8 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
       pairs.push({t, u, law: r.stepLaw(`transitions ${t.order} and ${u.order} on ${t.event} are never both enabled`, (env: Obj) => all(env[`on${i}`] as Cond, env[`on${j}`] as Cond).not())})
     }))
     const ambiguous: {event: string, transitions: [number, number], verdict: Verdict}[] = []
-    if (pairs.length && !proven(proveSteps(r, this.chartLaws(), pairs.map(x => x.law))))
-      for (const {t, u, law} of pairs) { const v = proveSteps(r, this.chartLaws(), [law]); if (!proven(v)) ambiguous.push({event: t.event, transitions: [t.order, u.order], verdict: v}) }
+    if (pairs.length && !proven(proveSteps(r, this.chartLaws(), pairs.map(x => x.law), {search: false})))
+      for (const {t, u, law} of pairs) { const v = proveSteps(r, this.chartLaws(), [law], {search: false}); if (!proven(v)) ambiguous.push({event: t.event, transitions: [t.order, u.order], verdict: v}) }
     return {ok: !stuck.length && !ambiguous.length && Object.values(reached).every(x => x !== 'unknown'), reached, stuck, ambiguous}
   }
 }

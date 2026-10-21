@@ -23,6 +23,22 @@ noted), each with the command that reproduces it.
   products and squares); the package check exports it (`runningstats`). The prover bench (`research/perf/prover-bench.ts`,
   520 items, 1,210 goals) makes the same 14,008 solver calls with it as without, in 5.1–6.3 s over five Modal runs
   against 3.6–6.3 s without (`runs/modal/seqs-bench1`).
+- `proveRule` and `proveSteps` look for what the laws need when the prover alone doesn't prove them and no run breaks
+  them: first runs deeper than the first ones (600 of up to 24 requests, values up to 8, within 1.5 s; a false law comes
+  back with the run that breaks it), then lemmas about the rule's recurrences and lists' folds (`discover`), then
+  invariants (`inferLaws`), within 10 s (`{search: {ms}}`; `{search: false}` is the prover alone). The verdict's
+  `found` holds what proved the laws, as laws to pass with them and lemmas to state, with the source to paste. A proven
+  or refuted law costs what it did: pi-fabric's resource scope (`private/pifabric/bench.ts`, Modal, three containers of
+  three proofs) took 35.5 to 51.1 s a proof against 41.1 to 55.9 s at 0.15.0 in the same run of both; the prover bench
+  (`research/perf/prover-bench.ts`, five runs) 6.4 to 9.3 s against 5.5 to 7.4 s, 14,037 solver calls against 14,008,
+  the difference eight broken variants now refuted by the deeper runs and one searched for 1 s.
+- CHC-COMP's LIA-Lin track (`compare/chc`): 366 solved (223 sat, 143 unsat), none wrongly, from 199 at 0.15.0's code
+  (`runs/modal/chc/eng5-gdp` against `eng0-gdp`); nine tasks solved by none of Spacer, Golem and Eldarica within 60 s.
+  A request names a clause that fires (the rule's assumption), so each update reads the clause named alone and the
+  first proof no longer splits every clause's constraint on `loc`'s kind law (461 tasks had stopped there); runs the
+  prover guides (each request a model of its clause's condition where the run is) answer 63 unsat; and `inferLaws`
+  makes candidates from a counterexample to induction no candidate rules out (false at it, met by every sample under a
+  condition it meets), a choice no term among others.
 
 ## 0.15.0
 

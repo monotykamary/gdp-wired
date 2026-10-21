@@ -10,6 +10,7 @@
 // guess); the variables left are the request's; div and mod by a constant k take one more request value q each, with
 // k·q ≤ e ≤ k·q + k − 1. Nonlinear clauses (two predicates in a body) and sorts other than Int and Bool are refused.
 import {type Chc, type Clause, type Sort, type Sx, Unsupported, evalSx, type Val} from './chc.ts'
+import type {C} from '../../core/machine.ts'
 import {Choice, Cond, Int, all, any, bool, choose, int, no, oneOf, rule, when, yes} from '../../core/dsl.ts'
 
 type Bound = {kind: 'slot', sort: Sort, k: number} | {kind: 'def', sx: Sx} | {kind: 'input', sort: Sort, k: number}
@@ -99,100 +100,115 @@ export function build(chc: Chc, name = 'chc') {
   const inBool = Math.max(0, ...plans.map(p => [...p.bound.values()].filter(b => b.kind === 'input' && b.sort === 'Bool').length))
   const range = (k: number, f: (j: number) => string) => Array.from({length: k}, (_, j) => f(j))
   const clauseNames = range(plans.length, j => `c${j}`) as [string, ...string[]]
-  const r = rule(name)
+  const r0 = rule(name)
     .inputs({c: oneOf(...clauseNames), ...Object.fromEntries(range(inInt, j => `x${j}`).map(k => [k, int])), ...Object.fromEntries(range(inBool, j => `y${j}`).map(k => [k, bool]))})
     .ints(Object.fromEntries(range(nInt, j => `i${j}`).map(k => [k, 0])))
     .state({...Object.fromEntries(range(nBool, j => `b${j}`).map(k => [k, bool.from(false)])), loc: oneOf('start', ...loc, 'error').from('start')})
+  // Each clause where the run is: when it fires (the request names it, the run is at its body, its constraint holds) and
+  // the head it makes. A request names a clause that fires (the rule's assumption: a request that doesn't is refused, a
+  // step that would leave the state as it was), so each update reads the clause named alone.
+  const clauses = (env: Record<string, unknown>) => {
+    const fires: Cond[] = [], heads: {loc: string, values: Record<string, Int | Cond>}[] = []
+    plans.forEach(p => {
+      const side: Cond[] = []
+      let nextDiv = p.ints
+      const memo = new Map<string, Int | Cond>()
+      const asInt = (v: Int | Cond, s: Sx): Int => { if (v instanceof Int) return v; throw new Unsupported(`an Int expected: ${JSON.stringify(s).slice(0, 60)}`) }
+      const asCond = (v: Int | Cond, s: Sx): Cond => { if (v instanceof Cond) return v; throw new Unsupported(`a Bool expected: ${JSON.stringify(s).slice(0, 60)}`) }
+      const tr = (s: Sx, scope: Map<string, Int | Cond>): Int | Cond => {
+        if (typeof s === 'string') {
+          if (s === 'true') return yes
+          if (s === 'false') return no
+          if (/^\d+$/.test(s)) { const v = Number(s); if (!Number.isSafeInteger(v)) throw new Unsupported(`the numeral ${s}`); return Int.of(v) }
+          if (scope.has(s)) return scope.get(s)!
+          const m = /^#([ib])(\d+)$/.exec(s)
+          if (m) return env[`${m[1]}${m[2]}`] as Int | Cond
+          const b = p.bound.get(s)
+          if (!b) throw new Unsupported(`an unbound symbol ${s}`)
+          if (b.kind === 'slot') return env[`${b.sort === 'Int' ? 'i' : 'b'}${b.k}`] as Int | Cond
+          if (b.kind === 'input') return env[`${b.sort === 'Int' ? 'x' : 'y'}${b.k}`] as Int | Cond
+          if (!memo.has(s)) memo.set(s, tr(b.sx, new Map()))
+          return memo.get(s)!
+        }
+        const [op, ...xs] = s as [string, ...Sx[]]
+        if (op === 'let') {
+          const inner = new Map(scope)
+          for (const b of xs[0] as Sx[][]) inner.set(b[0] as string, tr(b[1]!, scope))
+          return tr(xs[1]!, inner)
+        }
+        const I = (k: number) => asInt(tr(xs[k]!, scope), xs[k]!), B = (k: number) => asCond(tr(xs[k]!, scope), xs[k]!)
+        const pairs = (f: (a: Int, b: Int) => Cond) => all(...xs.slice(1).map((_, k) => f(I(k), I(k + 1))))
+        switch (op) {
+          case '+': return xs.slice(1).reduce<Int>((a, _, k) => a.plus(I(k + 1)), I(0))
+          case '-': return xs.length === 1 ? I(0).negate() : xs.slice(1).reduce<Int>((a, _, k) => a.minus(I(k + 1)), I(0))
+          case '*': {
+            const ks = xs.map(constOf), vars = xs.filter((_, k) => ks[k] === undefined)
+            if (vars.length > 1) throw new Unsupported('a product of two variables')
+            const k = ks.reduce<bigint>((a, c) => a * (c ?? 1n), 1n)
+            if (k > BigInt(Number.MAX_SAFE_INTEGER) || -k > BigInt(Number.MAX_SAFE_INTEGER)) throw new Unsupported('a coefficient too large')
+            return vars.length ? asInt(tr(vars[0]!, scope), vars[0]!).times(Number(k)) : Int.of(Number(k))
+          }
+          case 'div': case 'mod': {
+            const k = constOf(xs[1]!)
+            if (k === undefined || k <= 0n) throw new Unsupported(`${op} by a non-constant or non-positive divisor`)
+            const e = I(0), q = env[`x${nextDiv++}`] as Int, kq = q.times(Number(k))
+            side.push(kq.atMost(e), e.atMost(kq.plus(Number(k) - 1)))
+            return op === 'div' ? q : e.minus(kq)
+          }
+          case 'abs': { const e = I(0); return when(e.isNegative, e.negate(), e) }
+          case '<=': return pairs((a, b) => a.atMost(b))
+          case '<': return pairs((a, b) => a.lt(b))
+          case '>=': return pairs((a, b) => a.atLeast(b))
+          case '>': return pairs((a, b) => a.gt(b))
+          case '=': case 'distinct': {
+            const vs = xs.map(x => tr(x, scope))
+            const eq = (a: Int | Cond, b: Int | Cond): Cond => (a instanceof Int ? a.eq(asInt(b, s)) : choose(a, asCond(b, s), asCond(b, s).not()))
+            const c = op === '=' ? all(...vs.slice(1).map(v => eq(vs[0]!, v))) : all(...vs.flatMap((a, k) => vs.slice(k + 1).map(b => eq(a, b).not())))
+            return c
+          }
+          case 'and': return all(...xs.map((_, k) => B(k)))
+          case 'or': return any(...xs.map((_, k) => B(k)))
+          case 'not': return B(0).not()
+          case '=>': return any(B(0).not(), B(1))
+          case 'xor': return choose(B(0), B(1).not(), B(1))
+          case 'ite': {
+            const c = B(0), a = tr(xs[1]!, scope), b = tr(xs[2]!, scope)
+            return a instanceof Int ? when(c, a, asInt(b, s)) : choose(c, a, asCond(b, s))
+          }
+          default: throw new Unsupported(`the operator ${op}`)
+        }
+      }
+      const top = new Map<string, Int | Cond>()
+      const at = p.clause.body[0] ? locOf(p.clause.body[0].pred) : 'start'
+      const conds = [...p.guard, ...p.extra].map(s => asCond(tr(s, top), s))
+      const head = {loc: p.clause.head ? locOf(p.clause.head.pred) : 'error', values: {} as Record<string, Int | Cond>}
+      if (p.clause.head) {
+        const n = {Int: 0, Bool: 0}
+        chc.preds.get(p.clause.head.pred)!.forEach((sort, k) => { head.values[`${sort === 'Int' ? 'i' : 'b'}${n[sort]++}`] = tr(p.clause.head!.args[k]!, top) })
+      }
+      fires.push(all((env.loc as Choice<string>).is(at), ...conds, ...side))
+      heads.push(head)
+    })
+    return {fires, heads}
+  }
+  const named = (env: Record<string, unknown>, j: number) => (env.c as Choice<string>).is(clauseNames[j]!)
+  // Over the clauses, the value of the one the request names (`rest` where none is, which no request is).
+  const byClause = <T>(xs: T[], pick: (c: Cond, a: T, b: T) => T, env: Record<string, unknown>, rest: T): T => xs.reduceRight<T>((acc, x, j) => pick(named(env, j), x, acc), rest)
+  const r = r0
+    .assume((env: Record<string, unknown>) => byClause(clauses(env).fires, choose, env, no))
     .step((env: Record<string, unknown>) => {
-      const fires: Cond[] = [], heads: {loc: string, values: Record<string, Int | Cond>}[] = []
-      plans.forEach((p, j) => {
-        const side: Cond[] = []
-        let nextDiv = p.ints
-        const memo = new Map<string, Int | Cond>()
-        const asInt = (v: Int | Cond, s: Sx): Int => { if (v instanceof Int) return v; throw new Unsupported(`an Int expected: ${JSON.stringify(s).slice(0, 60)}`) }
-        const asCond = (v: Int | Cond, s: Sx): Cond => { if (v instanceof Cond) return v; throw new Unsupported(`a Bool expected: ${JSON.stringify(s).slice(0, 60)}`) }
-        const tr = (s: Sx, scope: Map<string, Int | Cond>): Int | Cond => {
-          if (typeof s === 'string') {
-            if (s === 'true') return yes
-            if (s === 'false') return no
-            if (/^\d+$/.test(s)) { const v = Number(s); if (!Number.isSafeInteger(v)) throw new Unsupported(`the numeral ${s}`); return Int.of(v) }
-            if (scope.has(s)) return scope.get(s)!
-            const m = /^#([ib])(\d+)$/.exec(s)
-            if (m) return env[`${m[1]}${m[2]}`] as Int | Cond
-            const b = p.bound.get(s)
-            if (!b) throw new Unsupported(`an unbound symbol ${s}`)
-            if (b.kind === 'slot') return env[`${b.sort === 'Int' ? 'i' : 'b'}${b.k}`] as Int | Cond
-            if (b.kind === 'input') return env[`${b.sort === 'Int' ? 'x' : 'y'}${b.k}`] as Int | Cond
-            if (!memo.has(s)) memo.set(s, tr(b.sx, new Map()))
-            return memo.get(s)!
-          }
-          const [op, ...xs] = s as [string, ...Sx[]]
-          if (op === 'let') {
-            const inner = new Map(scope)
-            for (const b of xs[0] as Sx[][]) inner.set(b[0] as string, tr(b[1]!, scope))
-            return tr(xs[1]!, inner)
-          }
-          const I = (k: number) => asInt(tr(xs[k]!, scope), xs[k]!), B = (k: number) => asCond(tr(xs[k]!, scope), xs[k]!)
-          const pairs = (f: (a: Int, b: Int) => Cond) => all(...xs.slice(1).map((_, k) => f(I(k), I(k + 1))))
-          switch (op) {
-            case '+': return xs.slice(1).reduce<Int>((a, _, k) => a.plus(I(k + 1)), I(0))
-            case '-': return xs.length === 1 ? I(0).negate() : xs.slice(1).reduce<Int>((a, _, k) => a.minus(I(k + 1)), I(0))
-            case '*': {
-              const ks = xs.map(constOf), vars = xs.filter((_, k) => ks[k] === undefined)
-              if (vars.length > 1) throw new Unsupported('a product of two variables')
-              const k = ks.reduce<bigint>((a, c) => a * (c ?? 1n), 1n)
-              if (k > BigInt(Number.MAX_SAFE_INTEGER) || -k > BigInt(Number.MAX_SAFE_INTEGER)) throw new Unsupported('a coefficient too large')
-              return vars.length ? asInt(tr(vars[0]!, scope), vars[0]!).times(Number(k)) : Int.of(Number(k))
-            }
-            case 'div': case 'mod': {
-              const k = constOf(xs[1]!)
-              if (k === undefined || k <= 0n) throw new Unsupported(`${op} by a non-constant or non-positive divisor`)
-              const e = I(0), q = env[`x${nextDiv++}`] as Int, kq = q.times(Number(k))
-              side.push(kq.atMost(e), e.atMost(kq.plus(Number(k) - 1)))
-              return op === 'div' ? q : e.minus(kq)
-            }
-            case 'abs': { const e = I(0); return when(e.isNegative, e.negate(), e) }
-            case '<=': return pairs((a, b) => a.atMost(b))
-            case '<': return pairs((a, b) => a.lt(b))
-            case '>=': return pairs((a, b) => a.atLeast(b))
-            case '>': return pairs((a, b) => a.gt(b))
-            case '=': case 'distinct': {
-              const vs = xs.map(x => tr(x, scope))
-              const eq = (a: Int | Cond, b: Int | Cond): Cond => (a instanceof Int ? a.eq(asInt(b, s)) : choose(a, asCond(b, s), asCond(b, s).not()))
-              const c = op === '=' ? all(...vs.slice(1).map(v => eq(vs[0]!, v))) : all(...vs.flatMap((a, k) => vs.slice(k + 1).map(b => eq(a, b).not())))
-              return c
-            }
-            case 'and': return all(...xs.map((_, k) => B(k)))
-            case 'or': return any(...xs.map((_, k) => B(k)))
-            case 'not': return B(0).not()
-            case '=>': return any(B(0).not(), B(1))
-            case 'xor': return choose(B(0), B(1).not(), B(1))
-            case 'ite': {
-              const c = B(0), a = tr(xs[1]!, scope), b = tr(xs[2]!, scope)
-              return a instanceof Int ? when(c, a, asInt(b, s)) : choose(c, a, asCond(b, s))
-            }
-            default: throw new Unsupported(`the operator ${op}`)
-          }
-        }
-        const top = new Map<string, Int | Cond>()
-        const at = p.clause.body[0] ? locOf(p.clause.body[0].pred) : 'start'
-        const conds = [...p.guard, ...p.extra].map(s => asCond(tr(s, top), s))
-        const head = {loc: p.clause.head ? locOf(p.clause.head.pred) : 'error', values: {} as Record<string, Int | Cond>}
-        if (p.clause.head) {
-          const n = {Int: 0, Bool: 0}
-          chc.preds.get(p.clause.head.pred)!.forEach((sort, k) => { head.values[`${sort === 'Int' ? 'i' : 'b'}${n[sort]++}`] = tr(p.clause.head!.args[k]!, top) })
-        }
-        fires.push(all((env.c as Choice<string>).is(clauseNames[j]!), (env.loc as Choice<string>).is(at), ...conds, ...side))
-        heads.push(head)
-      })
-      const out: Record<string, unknown> = {}
-      for (let k = 0; k < nInt; k++) out[`i${k}`] = fires.reduceRight<Int>((acc, f, j) => when(f, (heads[j]!.values[`i${k}`] as Int | undefined) ?? Int.of(0), acc), env[`i${k}`] as Int)
-      for (let k = 0; k < nBool; k++) out[`b${k}`] = fires.reduceRight<Cond>((acc, f, j) => choose(f, (heads[j]!.values[`b${k}`] as Cond | undefined) ?? no, acc), env[`b${k}`] as Cond)
-      out.loc = fires.reduceRight<unknown>((acc, f, j) => when(f, heads[j]!.loc as never, acc as never), env.loc)
+      const {heads} = clauses(env), out: Record<string, unknown> = {}
+      for (let k = 0; k < nInt; k++) out[`i${k}`] = byClause(heads.map(h => (h.values[`i${k}`] as Int | undefined) ?? Int.of(0)), (c, a, b) => when(c, a, b), env, env[`i${k}`] as Int)
+      for (let k = 0; k < nBool; k++) out[`b${k}`] = byClause(heads.map(h => (h.values[`b${k}`] as Cond | undefined) ?? no), choose, env, env[`b${k}`] as Cond)
+      out.loc = byClause<unknown>(heads.map(h => h.loc), (c, a, b) => when(c, a as never, b as never), env, env.loc)
       return out as never
     })
   const law = r.law('no clause derives false', (env: Record<string, unknown>) => (env.loc as Choice<string>).is('error').not())
-  return {rule: r, law, plans, predNames, loc, clauseNames, nInt, nBool, inInt, inBool}
+  // Each clause's firing condition over the state and the request, as the machine's terms read them (solve.ts asks the
+  // prover for a request that meets it).
+  let fires: C[] = []
+  r.stepLaw('fires', (env: Record<string, unknown>) => { fires = clauses(env).fires.map(f => f.c); return yes })
+  return {rule: r, law, plans, predNames, loc, clauseNames, nInt, nBool, inInt, inBool, fires}
 }
 
 // A run the rule took, checked against the CHC itself (evalSx: no gdp-wired code): each step's clause, with its

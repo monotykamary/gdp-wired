@@ -53,9 +53,11 @@ export const meteredLaws = (r = metered()): Law[] => [
 if (import.meta.main) {
   const results: [string, boolean, boolean][] = []
   for (const bug of [undefined, 'checks the first line only', 'states no lemma'] as const) {
-    const r = invoices(bug), v = proveSteps(r, invoiceLaws(r), invoiceSteps(r))
+    const r = invoices(bug), v = proveSteps(r, invoiceLaws(r), invoiceSteps(r), {search: false})
     results.push([`invoices${bug ? ` (${bug})` : ''}`, v.proven && v.checked, !bug])
   }
+  // With the search (the default), the lemma nobody stated is found and proven.
+  { const r = invoices('states no lemma'), v = proveSteps(r, invoiceLaws(r), invoiceSteps(r)); results.push(['invoices (states no lemma), the lemma found', v.proven && v.checked && !!v.found?.lemmas?.Lines, true]) }
   { const v = proveSteps(metered(), meteredLaws(), []); results.push(['metered invoices', v.proven && v.checked, true]) }
   try { metered('charges at least the ceiling'); results.push(['metered invoices (charges at least the ceiling)', true, false]) } catch { results.push(['metered invoices (charges at least the ceiling)', false, false]) }
   for (const [name, got, want] of results) console.log(`${got === want ? 'ok  ' : 'FAIL'} ${name}: ${got ? 'proven' : 'refused'}`)
