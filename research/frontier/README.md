@@ -20,14 +20,24 @@ with its soundness proven in the Lean twin.
 
 ## The corpus
 
-`corpus.ts` holds laws that gdp-wired proves only when the statement the proof needs is given, with that statement taken
-out: research/synth's machines without their invariant, examples/lemmas.ts's rules with no lemma, examples/invoices.ts's
-ledger with no fold lemma. Each item has `today` (the library now) and, once its track has one, `frontier`.
+`corpus.ts` holds laws that gdp-wired proved (at eb28edc) only when the statement the proof needs is given, with that
+statement taken out: research/synth's machines without their invariant, laws of the example domains proven only beside
+their sibling laws (`walls.json`), examples/lemmas.ts's rules with no lemma, folds with no lemma, and true nonlinear laws
+(`nonlinear.ts`). Each item has `today` (the library's prover alone) and, where its track has one, `frontier` (`inferLaws`,
+`discover`). The nonlinear items need no search of their own: the kernel's squares prove them as they are.
 
     bun research/frontier/score.ts [--track lemma] [--limit 60] [--json runs/frontier/<name>.json]
 
-Every item is proven by today's library with the statement put back (the examples and research/synth show it), so
-none of them is false; today proves none of them without it.
+| Track | Items | Proven at eb28edc | Proven now |
+| --- | --- | --- | --- |
+| invariant | 25 | 0 | 25 |
+| lemma | 5 | 0 | 5 |
+| fold | 3 | 0 | 3 |
+| nonlinear | 8 | 0 | 7 |
+| all | 41 | 0 | 40 |
+
+Now: the suite's `frontier-score` job, `runs/modal/suite-merged2`. The one left is `(Σx)² <= n·Σx²` over running
+samples, whose certificate multiplies the goal by n first.
 
 ## Structure: path scopes, the case the docs called the wall
 

@@ -3,7 +3,34 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.15.0
+
+The proofs nobody had to state. `research/frontier/` holds a corpus of laws gdp-wired proved only when someone
+stated what the proof needs (an invariant, a lemma about a recurrence or a fold, a square), with that statement taken
+out: 41 laws, none proven at eb28edc, 40 proven now (the suite's `frontier-score` job, `runs/modal/suite-merged2`).
+
+- Invariants nobody wrote, found (`gdp-wired/infer`): `inferLaws(rule, laws, stepLaws?)` proves a law that holds but
+  isn't inductive by finding the laws it needs among bounds, sums and differences of up to three values over the state
+  and params, the same guarded by a flag or a choice, and laws about every key of a map; candidates broken by states
+  random runs reach are dropped, and the kernel's counterexamples to induction pick which to add. What it found comes
+  back as laws and as the `r.law(...)` call that states each; the verdict is the prover's on the laws with them, so the
+  kernel and the Lean twin are unchanged (`examples/infer.ts`, two proofs Lean-checked in the package check). A false
+  law comes back with the run that breaks it. On the corpus: research/synth's four machines (in-flight requests, the
+  token bucket, the leaky bucket, the metered blocks), 951 to 1,399 ms each, and 21 laws of the example domains that
+  were proven only beside their sibling laws, proven alone (606 to 3,081 ms). On CHC-COMP's LIA-Lin track
+  (`compare/chc`, every task in its own container, 60 s each): 203 solved (123 sat, 80 unsat), none wrongly, from 128
+  with the folder's own Houdini (`runs/modal/chc/infer5-gdp` against `full4-gdp`); four tasks solved by none of Spacer,
+  Golem and Eldarica within the limit.
+- A decision whose `given` or `then` reads a condition about every key (`everyKey`, `subsetOf`, `disjointFrom`) is
+  proven as a step law of its rule, the kernel closing the quantifiers as it does for flags (`decision.steps`); it came
+  back unproven before.
+- `research/frontier/scopes.ts`: pi-fabric's path scopes (`<ns>:<path>`, `/*`, `/**`, `<ns>:*`), the case
+  docs/comparison.md called induction over nested lists, proven with no lemma once a path is positions and a length:
+  covering is transitive, what a covered pattern matches the covering one matches, what a derived scope allows its
+  parent allows (grants with actions), and normalizing a scope changes nothing it allows, both ways (the normalizer's
+  bookkeeping, where each grant went and where each merged action came from, as data the rule checks at every key).
+  The encoding agrees with pi-fabric's `covers` on 20,000 random triples of patterns and its grant checks on 5,000
+  random pairs of scopes; each broken variant is refuted (`runs/modal/frontier-scopes2`).
 
 - Products of unknowns, further: a map's cell may be a factor (a per-key quota, `Used[k] <= per·Seats[k]`; a cost kept
   as `Price[k]·Qty[k]`), and a leaf may add the square of any linear form t (t·t >= 0, whatever t's sign), in the
@@ -25,7 +52,7 @@ noted), each with the command that reproduces it.
   same for a fold over a tree, the children's lemmas of `.children` among them. The rule comes back made again with
   them, what was found as source to paste, and the Lean export checks it as it checks stated lemmas
   (`examples/discover.ts`). The kernel and the Lean twin are unchanged. On `research/frontier`'s corpus every lemma and
-  fold item is proven (8 of the 12 items; the other 4 are the invariant track's), from 214 ms to 7.9 s each on Modal.
+  fold item is proven (8 items), from 214 ms to 7.9 s each on Modal (`runs/modal/lemma-suite1`).
 
 ## 0.14.2
 

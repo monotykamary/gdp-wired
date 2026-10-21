@@ -103,8 +103,8 @@ the hypothesis they are.
 
 What gdp-wired leaves to Lean or Bend is one of two things, and neither is a gap the next feature closes:
 
-- **Proofs the prover would have to invent.** Induction over a recursive structure you define (a tree, every prefix of
-  a list of lists) whose proof needs a lemma nobody stated; and arithmetic with products of unknowns beyond what
+- **Proofs the prover would have to invent.** Induction over a recursive structure you define (a tree, reachability
+  through a structure that changes) whose proof needs a lemma nobody stated and `discover` doesn't find; and arithmetic with products of unknowns beyond what
   products of facts and sums of squares give (the kernel takes products and squares the way Lean's `nlinarith` does;
   `(Σx)² <= n·Σx²` over running samples, which needs the goal multiplied by n first, is past it). No automatic prover
   proves all of these: integer arithmetic with induction, or with products, is undecidable (Hilbert's tenth problem).
@@ -112,7 +112,10 @@ What gdp-wired leaves to Lean or Bend is one of two things, and neither is a gap
   natural and you can state the lemma, `recur` proves it by induction itself: the lemma is what nobody had to invent.
   Where nobody states it, `discover` looks for it among a few shapes (bounds, linear relations, a closed form of degree
   2 at most, a law between two points) and proves what it finds the same way; a lemma of another shape is still the
-  wall's.
+  wall's. An invariant nobody wrote isn't the wall: `inferLaws` looks for it among bounds, sums and differences of up to
+  three values, guarded ones and laws about every key of a map, and the kernel proves the law with what it finds. A
+  list compared by prefix isn't either, written as positions and a length (a prefix is then a condition about every
+  position below a length).
 - **An arbitrary algorithm shipped as its proved source.** gdp-wired ships the rule as JavaScript. Bend compiles the
   proved source itself.
 
@@ -125,8 +128,11 @@ In a codebase with 98 Bend laws and about 1,600 lines of hand proofs:
 - the lifecycle machine's before and after laws are step laws;
 - the authority checks, built on lists of names used as sets, fit as sets of names: all ten authority laws proven
   automatically, and the rule agrees with the compiled Bend on all 7,654 outcomes over four names;
-- the resource checks, which normalize scopes that are lists of paths and compare their prefixes, are induction over
-  nested lists: the wall. They stay in Bend, or go to Lean as functions with proven facts.
+- the resource checks, which normalize scopes that are lists of paths and compare their prefixes, were written there as
+  induction over nested lists. A list of paths compared by prefix needs no induction when each path is positions and a
+  length: pi-fabric's path scopes, the same shape, are proven that way with no lemma (covering, attenuation through
+  lists of grants, normalization both ways; `research/frontier/scopes.ts`). This codebase's own checks haven't been
+  ported.
 
 In [jev-fabric](https://github.com/fabric-runtime/jev-fabric), whose four Bend proof roots state 59 laws, all 59 fit and
 are proven automatically ([`examples/jev-fabric/`](../examples/jev-fabric/)): 52 as decisions about a pure function, one
