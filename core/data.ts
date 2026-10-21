@@ -671,13 +671,18 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   const closure = (model?: M): Closure => {
     const parent = new Map<string, string>(), terms = new Map<string, E>(), adj: Closure['adj'] = new Map()
     const find = (x: string): string => { let r = x; while (parent.has(r)) r = parent.get(r)!; return r }
+    const linked = new Set<string>()
     const edge = (x: E, y: E, cong?: {map: string, x: E[], y: E[]}) => {
       const a2 = tid(x), b2 = tid(y)
       terms.set(a2, x); terms.set(b2, y)
-      if (a2 === b2 || find(a2) === find(b2)) return false
-      parent.set(find(a2), find(b2))
+      if (a2 === b2) return false
+      const merged = find(a2) !== find(b2)
+      // A congruence is recorded even between reads already of one class (they may be so only through a constant).
+      if (!merged && (!cong || linked.has(a2 < b2 ? `${a2}|${b2}` : `${b2}|${a2}`))) return false
+      linked.add(a2 < b2 ? `${a2}|${b2}` : `${b2}|${a2}`)
+      if (merged) parent.set(find(a2), find(b2))
       ;(adj.get(a2) ?? adj.set(a2, []).get(a2)!).push({to: b2, cong}); (adj.get(b2) ?? adj.set(b2, []).get(b2)!).push({to: a2, cong: cong && {map: cong.map, x: cong.y, y: cong.x}})
-      return true
+      return merged
     }
     const truthOf = (c: C): boolean | undefined => { if (!model) return undefined; try { return model.m.evalC(c, model.env) } catch { return undefined } }
     const leaves = (e: E): E[] => { if (e.op !== 'if') return [e]; const t = truthOf(e.c); return t === undefined ? [...leaves(e.then), ...leaves(e.else)] : leaves(t ? e.then : e.else) }
@@ -717,9 +722,9 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     for (const model of w.models.length ? w.models : [undefined]) {
       if (late()) break
       const cl = closure(model)
-      // Once per function and value of its arguments (in this model; by class without one): a term equal to one
-      // unfolded already brings nothing new.
-      const sigOf = (fn: string, as: E[]) => `${fn}(${as.map(a => { if (!model) return cl.find(tid(a)); try { return String(model.m.evalE(a, model.env)) } catch { return tid(a) } }).join(',')})`
+      // Once per function and class of its arguments (this model's): a term the facts already make equal to one
+      // unfolded brings nothing new.
+      const sigOf = (fn: string, as: E[]) => `${fn}(${as.map(a => cl.find(tid(a))).join(',')})`
       const done = new Set<string>()
       for (const q of insts) { const name = fs.facts[q.fact]!.name; if (name.startsWith('fn ')) done.add(sigOf(name.slice(3), q.at)) }
       for (const r of [...all]) {
@@ -734,7 +739,6 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
           const as2 = as.map((a, i) => (i === f.decreases ? t : a)), rid = JSON.stringify({map: f.name, key: keyOf(as2)}), key2 = JSON.stringify([fs.at.get(`fn ${f.name}`), as2])
           const anchor = {read: tid(get(f.name, r.key)), arg: own, value: t}, had = anchoredAt.get(key2) ?? []
           if (!had.some(x => x.read === anchor.read)) anchoredAt.set(key2, [...had, anchor])
-          if (t === own && r.key === keyOf(as2)) continue
           if (unfolded.has(rid) || extra >= 12 || done.has(sigOf(f.name, as2))) continue
           unfolded.add(rid); extra++; done.add(sigOf(f.name, as2))
           if (dataTrace) console.error(`[data]     unfold ${f.name} at ${JSON.stringify(as2).slice(0, 160)} for ${JSON.stringify(r.key).slice(0, 80)}`)
@@ -769,7 +773,14 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
       if (a2 === b2 || explained.has(key)) return
       explained.add(key)
       const back = new Map<string, {from: string, cong?: {map: string, x: E[], y: E[]}}>([[a2, {from: ''}]]), queue = [a2]
-      while (queue.length && !back.has(b2)) { const x = queue.shift()!; for (const e of adj.get(x) ?? []) if (!back.has(e.to)) { back.set(e.to, {from: x, cong: e.cong}); queue.push(e.to) } }
+      // A path through no constant first: two terms the model gives one value aren't equal for that alone (each needs
+      // its own facts), and a congruence between them is what the proof can use; else one through a constant.
+      const isConst = (x: string) => x !== a2 && x !== b2 && x.startsWith('{"op":"const"')
+      for (const avoid of [true, false]) {
+        if (back.has(b2)) break
+        back.clear(); back.set(a2, {from: ''}); queue.length = 0; queue.push(a2)
+        while (queue.length && !back.has(b2)) { const x = queue.shift()!; if (avoid && isConst(x)) continue; for (const e of adj.get(x) ?? []) if (!back.has(e.to)) { back.set(e.to, {from: x, cong: e.cong}); queue.push(e.to) } }
+      }
       if (!back.has(b2)) return
       for (let at = b2; at !== a2;) {
         const step = back.get(at)!
@@ -797,7 +808,21 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     look(insts.map(q => holdsAt(fs.facts[q.fact]!.name, q.at)), false)
     const byClass = new Map<string, string[]>()
     for (const v of read) { const r = find(v); (byClass.get(r) ?? byClass.set(r, []).get(r)!).push(v) }
-    for (const vs of byClass.values()) for (const v of vs.slice(1)) explain(vs[0]!, v)
+    // Within a class, first the parts that join without a constant (each value against its part's first), then the parts.
+    const isConstId = (x: string) => x.startsWith('{"op":"const"')
+    for (const vs of byClass.values()) {
+      if (vs.length < 2) continue
+      const part = new Map<string, string>()
+      for (const v of vs) {
+        if (part.has(v)) continue
+        const seen = new Set([v]), queue = [v]
+        while (queue.length) { const x = queue.shift()!; for (const e of adj.get(x) ?? []) if (!seen.has(e.to) && !isConstId(e.to)) { seen.add(e.to); queue.push(e.to) } }
+        for (const u of vs) if (seen.has(u) && !part.has(u)) part.set(u, v)
+      }
+      for (const v of vs) if (part.get(v) !== v) explain(part.get(v)!, v)
+      const heads = [...new Set(part.values())]
+      for (const h of heads.slice(1)) explain(heads[0]!, h)
+    }
     if (allCong) for (const es of adj.values()) for (const e of es) if (e.cong) { const k2 = JSON.stringify([e.cong.map, e.cong.x, e.cong.y]), k3 = JSON.stringify([e.cong.map, e.cong.y, e.cong.x]); if (!used.has(k2) && !used.has(k3)) used.set(k2, {map: e.cong.map, at: [...e.cong.x, ...e.cong.y], n: 1}) }
   }
   for (const d of used.values()) if (!w.every || d.n >= w.models.length) inst(`cong ${d.map}`, d.at)
@@ -1016,7 +1041,8 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number
   walk([from, insts.map(q => holdsAt(fs, q))], o => { if (o.op === 'get') reads.push(o as unknown as E) })
   for (let round = 0; round < 2; round++) {
     const fresh: E[] = []
-    for (const lm of lemmas) {
+    // The newest lemma first (the one the law is tried again for).
+    for (const lm of [...lemmas].reverse()) {
       if (round > 0 && out.some(u => u.node === lm.node)) continue
       const vars = new Set(lm.law.vars.map(v => v.name)), sides: E[] = []
       walk(encY(p, lm.law.holds, new Map()), o => { if (o.op === 'get') sides.push(o as unknown as E) })
@@ -1027,7 +1053,7 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number
           const sub = matches(top.key, vars, key, {})
           if (!sub || Object.keys(sub).length !== vars.size) continue
           const k2 = JSON.stringify([lm.node, sub])
-          if (seen.has(k2) || out.length >= 8 || out.filter(u => u.node === lm.node).length >= 4) continue
+          if (seen.has(k2) || out.length >= 12 || out.filter(u => u.node === lm.node).length >= 4) continue
           seen.add(k2)
           out.push({node: lm.node, subst: sub, guard: yesC})
           matchedAt.set(out.at(-1)!, {goal: t, lemma: substE(top, {vars: sub, maps: {}, flags: {}})})

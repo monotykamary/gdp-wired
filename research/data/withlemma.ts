@@ -3,7 +3,7 @@ import {laws, List, Tree, app, sum, rev} from '../../examples/data.ts'
 import {law, proveData, natural, type DataLaw, type Nat, type Val} from '../../core/data.ts'
 const N = (v: unknown) => v as Nat, L = (v: unknown) => v as Val
 const given: Record<string, DataLaw[]> = {
-  sumFlatten: [law('sum of append', {a: List, b: List}, ({a, b}) => N(sum(app(a, b))).eq(N(sum(a)).plus(N(sum(b)))))],
+  sumFlatten: [law('sum after one 0', {a: List}, ({a}) => N(sum(app(a, List.cons(0, List.nil)))).eq(N(sum(a)))), law('sum of append', {a: List, b: List}, ({a, b}) => N(sum(app(a, b))).eq(N(sum(a)).plus(N(sum(b)))))],
   reverseReverse: [law('reverse of append one', {a: List, n: natural}, ({a, n}) => L(rev(app(a, List.cons(n, List.nil)))).eq(List.cons(n, rev(a))))],
 }
 void Tree
