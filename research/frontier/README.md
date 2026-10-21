@@ -16,7 +16,7 @@ with its soundness proven in the Lean twin.
 | lemma | Lemmas about a recurrence (`recur`) nobody stated: bounds, linear bounds in x, closed forms fitted exactly to its values, laws between two points | The lemmas, by the induction `recur` already proves them by |
 | fold | The same for folds over lists and trees | By induction over the items or the tree, as `.carriesList` and `proveFold` already prove stated lemmas |
 | nonlinear | Which products of facts and which squares refute a goal (Positivstellensatz of degree 2, as Lean's `nlinarith`) | A product row, and a square of a linear term, each proven sound in Lean |
-| structure | Lemmas over lists and trees as values (prefixes of paths) | To be designed |
+| structure | A representation in which the law needs no induction: a list as positions and a length, so a prefix is a condition about every position below a length (the array property fragment, decidable) | The laws as they are, through `everyKey` |
 
 ## The corpus
 
@@ -28,3 +28,21 @@ ledger with no fold lemma. Each item has `today` (the library now) and, once its
 
 Every item is proven by today's library with the statement put back (the examples and research/synth show it), so
 none of them is false; today proves none of them without it.
+
+## Structure: path scopes, the case the docs called the wall
+
+`scopes.ts` takes pi-fabric's resource patterns (`<ns>:<path>`, `/*`, `/**`, `<ns>:*`) and its `covers`, the check its
+scope attenuation rests on, with a pattern's segments as a carried map from positions to interned names and its length
+an input. Nothing is stated beyond the laws; each is proven and checked by the kernel:
+
+| Law | Faithful | Broken variants |
+| --- | --- | --- |
+| covering is transitive | proven, 450 ms | `/*` covering `/**`: refuted |
+| a pattern covers itself | proven, 46 ms | |
+| what a covered pattern matches, the covering one matches (matching written apart from `covers`) | proven, 2,575 ms | the prefix skipped: refuted; `/*` covering `/**`: refuted |
+| what a derived scope allows, its parent allows (scopes as lists of grants with actions, the two "some grant"s as witnesses) | proven, 992 ms | the actions ignored: refuted |
+
+The encoding agrees with pi-fabric's own `covers` on 20,000 random triples of patterns, and the grant tables with its
+grant checks on 5,000 random pairs of scopes (`compareScopes`, `compareGrants`). Prefixes of lists of paths needed no
+induction once a list is positions and a length. What stays out: normalizing a scope (merging and sorting grants is a
+permutation), reachability, recursive datatypes as values.
