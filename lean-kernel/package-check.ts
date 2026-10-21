@@ -169,7 +169,7 @@ const file = toLean(([
         return {id: id as string, cyclic: proven(nodes.facts, nodes.specs), recur: rcase}
       }),
       ...(r => [{id: 'cyccounter', cyclic: proven(r.facts, r.specs), bridge: {machine: cm, laws: cl}}])(machineNodes(cm, cl, ci)),
-      ...(r => [{id: 'cycrollup', cyclic: proven(r.facts, r.specs)}])(foldNodes(ru.fold, rl)),
+      ...(r => [{id: 'cycrollup', cyclic: proven(r.facts, r.specs), fold: {fold: ru.fold, laws: rl}}])(foldNodes(ru.fold, rl)),
       ofMachine('cyccaps', caps.machine, [dayCap], [{what: 'a grant that doesn\'t check the day\'s count', machine: capsLoose.machine}]),
       ofMachine('cycfill', fill().machine, fillLaws()),
       ofMachine('cyctally', tally().machine, tallyLaws()),

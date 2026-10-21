@@ -1079,4 +1079,517 @@ theorem cyc_recur_sound (re : RecEnc) (zero next : E) (given facts : List Fact) 
       evalC env (withMap maps re.f (recF zero next re.x re.prev env maps)) n.concl = true :=
   cyclic_sound facts nodes hc _ env (rec_facts hok maps env hg)
 
+theorem assoc_map_kv {α : Type} (l : List α) (k : α → Nat) (g : α → E) (y : Nat) :
+    assoc (l.map fun a => (k a, g a)) y = (lookup (fun a => k a == y) l).map g := by
+  simp only [assoc, lookup_map_pred, Option.map_map]; rfl
+
+theorem holds_of_eq {ρ : Nat → Nat} {M : Nat → Nat → Nat} {a b : E} (h : evalE ρ M a = evalE ρ M b) : evalC ρ M (.eq a b) = true :=
+  (evalC_iff ρ M (.eq a b)).mpr h
+theorem holds_of_lt {ρ : Nat → Nat} {M : Nat → Nat → Nat} {a b : E} (h : evalE ρ M a < evalE ρ M b) : evalC ρ M (.lt a b) = true :=
+  (evalC_iff ρ M (.lt a b)).mpr h
+
+theorem holds_of_le {ρ : Nat → Nat} {M : Nat → Nat → Nat} {a b : E} (h : evalE ρ M a ≤ evalE ρ M b) : evalC ρ M (.le a b) = true :=
+  (evalC_iff ρ M (.le a b)).mpr h
+theorem and_true2 {ρ : Nat → Nat} {M : Nat → Nat → Nat} {a b : C} (ha : evalC ρ M a = true) (hb : evalC ρ M b = true) :
+    evalC ρ M (.and a b) = true := by simp [evalC, ha, hb]
+
+/-! Folds over trees (`foldNodes`) -/
+
+def BTree.size : BTree → Nat
+  | .leaf _ => 1
+  | .node _ l r => l.size + r.size + 1
+-- The inputs a leaf or node carries.
+def BTree.req : BTree → Nat → Nat
+  | .leaf ι => ι
+  | .node ι _ _ => ι
+-- The subtrees in post-order: each node after its children, so its right child just before it and its left child just
+-- before its right subtree (foldNodes' table, children numbered below their parent).
+def BTree.flat : BTree → List BTree
+  | .leaf ι => [.leaf ι]
+  | .node ι l r => l.flat ++ r.flat ++ [.node ι l r]
+
+theorem flat_length : ∀ t : BTree, t.flat.length = t.size
+  | .leaf _ => rfl
+  | .node _ l r => by simp [BTree.flat, BTree.size, flat_length l, flat_length r]; omega
+
+theorem size_pos : ∀ t : BTree, 1 ≤ t.size
+  | .leaf _ => by simp [BTree.size]
+  | .node _ l r => by simp [BTree.size]
+
+theorem flat_last : ∀ t : BTree, t.flat[t.size - 1]? = some t
+  | .leaf _ => rfl
+  | .node ι l r => by
+    simp only [BTree.flat, BTree.size]
+    rw [List.getElem?_append_right (by simp [flat_length])]
+    simp [flat_length]
+
+theorem flat_node : ∀ (t : BTree) (i : Nat) (ι : Nat → Nat) (l r : BTree), t.flat[i]? = some (.node ι l r) →
+    l.size + r.size ≤ i ∧ t.flat[i - 1]? = some r ∧ t.flat[i - 1 - r.size]? = some l
+  | .leaf _, i, ι, l, r, h => by
+    cases i with
+    | zero => simp [BTree.flat] at h
+    | succ i => simp [BTree.flat] at h
+  | .node ι' l' r', i, ι, l, r, h => by
+    have hl := flat_length l'
+    have hr := flat_length r'
+    have pl := size_pos l'
+    have pr := size_pos r'
+    have pl2 := size_pos l
+    simp only [BTree.flat] at h ⊢
+    rcases Nat.lt_or_ge i l'.size with h1 | h1
+    · rw [List.getElem?_append_left (by simp; omega), List.getElem?_append_left (by omega)] at h
+      obtain ⟨b, e1, e2⟩ := flat_node l' i ι l r h
+      refine ⟨b, ?_, ?_⟩
+      · rw [List.getElem?_append_left (by simp; omega), List.getElem?_append_left (by omega), e1]
+      · rw [List.getElem?_append_left (by simp; omega), List.getElem?_append_left (by omega), e2]
+    · rcases Nat.lt_or_ge i (l'.size + r'.size) with h2 | h2
+      · rw [List.getElem?_append_left (by simp; omega), List.getElem?_append_right (by omega), hl] at h
+        obtain ⟨b, e1, e2⟩ := flat_node r' (i - l'.size) ι l r h
+        refine ⟨by omega, ?_, ?_⟩
+        · rw [List.getElem?_append_left (by simp; omega), List.getElem?_append_right (by omega), hl,
+            show i - 1 - l'.size = i - l'.size - 1 by omega]
+          exact e1
+        · rw [List.getElem?_append_left (by simp; omega), List.getElem?_append_right (by omega), hl,
+            show i - 1 - r.size - l'.size = i - l'.size - 1 - r.size by omega]
+          exact e2
+      · rw [List.getElem?_append_right (by simp; omega)] at h
+        simp only [List.length_append, hl, hr] at h
+        rcases Nat.lt_or_ge i (l'.size + r'.size + 1) with h3 | h3
+        · have hi : i - (l'.size + r'.size) = 0 := by omega
+          rw [hi] at h
+          simp only [List.getElem?_cons_zero, Option.some.injEq, BTree.node.injEq] at h
+          obtain ⟨_, hll, hrr⟩ := h
+          subst hll
+          subst hrr
+          refine ⟨by omega, ?_, ?_⟩
+          · rw [List.getElem?_append_left (by simp; omega), List.getElem?_append_right (by omega), hl,
+              show i - 1 - l'.size = r'.size - 1 by omega, ← hr]
+            rw [hr]; exact flat_last r'
+          · rw [List.getElem?_append_left (by simp; omega), List.getElem?_append_left (by omega),
+              show i - 1 - r'.size = l'.size - 1 by omega]
+            exact flat_last l'
+        · rw [List.getElem?_eq_none (by simp; omega)] at h
+          exact absurd h (by simp)
+
+theorem flat_allowed {f : Fold} {ρ : Nat → Nat} {maps : Nat → Nat → Nat} : ∀ t : BTree, Allowed f ρ maps t →
+    ∀ s ∈ t.flat, Allowed f ρ maps s
+  | .leaf ι, h, s, hs => by simp [BTree.flat] at hs; rw [hs]; exact h
+  | .node ι l r, h, s, hs => by
+    simp only [BTree.flat, List.mem_append, List.mem_singleton] at hs
+    rcases hs with (hs | hs) | hs
+    · exact flat_allowed l h.2.1 s hs
+    · exact flat_allowed r h.2.2 s hs
+    · rw [hs]; exact h
+
+-- The table's variables (a node's number n, the tree's size N) and maps (each node's kind and children, and each
+-- state variable and input's value at each node).
+structure FoldEnc where
+  n : Nat
+  N : Nat
+  kind : Nat
+  left : Nat
+  right : Nat
+  vtr : List (Nat × Nat)
+
+def foldσ (fe : FoldEnc) (w : E) : List (Nat × E) := fe.vtr.map fun p => (p.1, .get p.2 w)
+-- A node's frame: its inputs, and each copy read at the child's number.
+def foldNodeσ (f : Fold) (fe : FoldEnc) : List (Nat × E) :=
+  f.inputs.map (fun i => (i, substE (foldσ fe (.var fe.n)) (.var i)))
+    ++ f.state.map (fun e => (e.2.1, substE (foldσ fe (.get fe.left (.var fe.n))) (.var e.1)))
+    ++ f.state.map (fun e => (e.2.2, substE (foldσ fe (.get fe.right (.var fe.n))) (.var e.1)))
+
+-- foldNodes' table fact: below the size, a leaf's values from its inputs, a node's from its children's, numbered below
+-- it (with the assumption at each, or without when the fold has none).
+def foldTable (f : Fold) (fe : FoldEnc) (withAssume : Bool) : Fact :=
+  ⟨[fe.n], .or (.not (.lt (.var fe.n) (.var fe.N))) (.and (.le (.get fe.kind (.var fe.n)) (.const 1)) (.and
+    (.or (.not (.eq (.get fe.kind (.var fe.n)) (.const 0))) (andL (trueC :: ((if withAssume then [substC (foldσ fe (.var fe.n)) f.assume] else [])
+      ++ f.leaf.map fun p => .eq (substE (foldσ fe (.var fe.n)) (.var p.1)) (substE (foldσ fe (.var fe.n)) p.2)))))
+    (.or (.not (.eq (.get fe.kind (.var fe.n)) (.const 1))) (andL (.lt (.get fe.left (.var fe.n)) (.var fe.n) :: .lt (.get fe.right (.var fe.n)) (.var fe.n)
+      :: ((if withAssume then [substC (foldσ fe (.var fe.n)) f.assume] else [])
+      ++ f.leaf.map fun p => .eq (substE (foldσ fe (.var fe.n)) (.var p.1)) (substE (foldNodeσ f fe) ((assoc f.node p.1).getD (.var p.1)))))))))⟩
+
+def foldCopies (f : Fold) : List Nat := f.state.map (·.2.1) ++ f.state.map (·.2.2)
+def foldTM (fe : FoldEnc) : List Nat := [fe.kind, fe.left, fe.right] ++ fe.vtr.map (·.2)
+def foldNot (f : Fold) (fe : FoldEnc) : List Nat := f.state.map (·.1) ++ foldCopies f ++ [fe.n, fe.N]
+
+-- The table fits the fold: names apart, every input and state variable with its map, leaf and node set the state
+-- variables, leaves and the assumption read no state variable or copy, nodes no state variable, the precondition
+-- params alone, the law no input or copy; none reads the added variables or maps.
+def foldShapeOk (f : Fold) (fe : FoldEnc) : Bool :=
+  copiesOk f && distinct (f.inputs ++ f.state.map (·.1) ++ foldCopies f ++ [fe.n, fe.N]) && distinct (f.leaf.map (·.1))
+    && f.leaf.all (fun p => (f.state.map (·.1)).contains p.1 && (f.node.map (·.1)).contains p.1)
+    && f.node.all (fun p => (f.state.map (·.1)).contains p.1)
+    && distinct (foldTM fe) && (f.inputs ++ f.state.map (·.1)).all (fun x => (fe.vtr.map (·.1)).contains x)
+    && !(fe.vtr.map (·.1)).contains fe.n && !(fe.vtr.map (·.1)).contains fe.N
+def foldTermsOk (f : Fold) (fe : FoldEnc) (law : C) : Bool :=
+  f.leaf.all (fun p => avoidsE (foldNot f fe) p.2 && avoidsMapsE (foldTM fe) p.2)
+    && f.node.all (fun p => avoidsE (f.state.map (·.1) ++ [fe.n, fe.N]) p.2 && avoidsMapsE (foldTM fe) p.2)
+    && avoids (foldNot f fe) f.assume && avoidsMaps (foldTM fe) f.assume
+    && avoids (f.inputs ++ foldNot f fe) f.pre && avoidsMaps (foldTM fe) f.pre
+    && avoids (f.inputs ++ foldCopies f ++ [fe.n, fe.N]) law && avoidsMaps (foldTM fe) law
+def foldOk (f : Fold) (fe : FoldEnc) (facts : List Fact) (law : C) (nd : CNode) : Bool :=
+  foldShapeOk f fe && foldTermsOk f fe law
+    && facts.all (fun g => natC g.holds || [foldTable f fe true, foldTable f fe false].any (factBeq g))
+    && beqC nd.concl (substC (foldσ fe (.var fe.n)) law)
+    && nd.hyps.all (fun h => beqC h f.pre || beqC h (.lt (.var fe.n) (.var fe.N)))
+
+-- The tree as foldNodes' table.
+def foldMaps (f : Fold) (fe : FoldEnc) (ρ : Nat → Nat) (maps : Nat → Nat → Nat) (t : BTree) : Nat → Nat → Nat := fun i =>
+  if i = fe.kind then fun j => match t.flat[j]? with
+    | some (.node _ _ _) => 1
+    | _ => 0
+  else if i = fe.left then fun j => match t.flat[j]? with
+    | some (.node _ _ r) => j - 1 - r.size
+    | _ => 0
+  else if i = fe.right then fun j => j - 1
+  else match lookup (fun p => p.2 == i) fe.vtr with
+    | some p => fun j => match t.flat[j]? with
+      | some s => foldT f ρ maps s p.1
+      | none => 0
+    | none => maps i
+
+structure FoldShape (f : Fold) (fe : FoldEnc) : Prop where
+  copies : copiesOk f = true
+  dvars : distinct (f.inputs ++ f.state.map (·.1) ++ foldCopies f ++ [fe.n, fe.N]) = true
+  dleaf : distinct (f.leaf.map (·.1)) = true
+  leafst : ∀ p ∈ f.leaf, p.1 ∈ f.state.map (·.1)
+  leafnode : ∀ p ∈ f.leaf, p.1 ∈ f.node.map (·.1)
+  nodest : ∀ p ∈ f.node, p.1 ∈ f.state.map (·.1)
+  dtm : distinct (foldTM fe) = true
+  vin : ∀ x ∈ f.inputs, x ∈ fe.vtr.map (·.1)
+  vst : ∀ x ∈ f.state.map (·.1), x ∈ fe.vtr.map (·.1)
+  vn : fe.n ∉ fe.vtr.map (·.1)
+  vN : fe.N ∉ fe.vtr.map (·.1)
+
+theorem foldShape_of {f : Fold} {fe : FoldEnc} (h : foldShapeOk f fe = true) : FoldShape f fe := by
+  simp only [foldShapeOk, Bool.and_eq_true] at h
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hc, hd⟩, hdl⟩, hl⟩, hn⟩, hdt⟩, hv⟩, hvn⟩, hvN⟩ := h
+  refine ⟨hc, hd, hdl, fun p hp => List.contains_iff_mem.mp (and_parts (List.all_eq_true.mp hl p hp)).1,
+    fun p hp => List.contains_iff_mem.mp (and_parts (List.all_eq_true.mp hl p hp)).2,
+    fun p hp => List.contains_iff_mem.mp (List.all_eq_true.mp hn p hp), hdt,
+    fun x hx => List.contains_iff_mem.mp (List.all_eq_true.mp hv x (List.mem_append_left _ hx)),
+    fun x hx => List.contains_iff_mem.mp (List.all_eq_true.mp hv x (List.mem_append_right _ hx)),
+    not_mem_of_not_contains hvn, not_mem_of_not_contains hvN⟩
+
+section fold
+variable {f : Fold} {fe : FoldEnc} {ρ : Nat → Nat} {maps : Nat → Nat → Nat} {t : BTree} (hS : FoldShape f fe)
+include hS
+
+theorem fs_parts : fe.kind ≠ fe.left ∧ fe.kind ≠ fe.right ∧ fe.left ≠ fe.right ∧ (∀ a ∈ fe.vtr.map (·.2), a ≠ fe.kind ∧ a ≠ fe.left ∧ a ≠ fe.right)
+    ∧ distinct (fe.vtr.map (·.2)) = true := by
+  have h := hS.dtm
+  simp only [foldTM, List.cons_append, List.nil_append] at h
+  obtain ⟨n1, d1⟩ := distinct_cons h
+  obtain ⟨n2, d2⟩ := distinct_cons d1
+  obtain ⟨n3, d3⟩ := distinct_cons d2
+  refine ⟨fun e => n1 (by rw [e]; simp), fun e => n1 (by rw [e]; simp), fun e => n2 (by rw [e]; simp),
+    fun a ha => ⟨fun e => n1 (by rw [← e]; simp [ha]), fun e => n2 (by rw [← e]; simp [ha]), fun e => n3 (by rw [← e]; exact ha)⟩, d3⟩
+
+theorem fm_kind (j : Nat) : foldMaps f fe ρ maps t fe.kind j = match t.flat[j]? with
+    | some (.node _ _ _) => 1
+    | _ => 0 := by
+  simp only [foldMaps, if_pos rfl, ite_true]
+theorem fm_left (j : Nat) : foldMaps f fe ρ maps t fe.left j = match t.flat[j]? with
+    | some (.node _ _ r) => j - 1 - r.size
+    | _ => 0 := by
+  have := fs_parts hS
+  simp only [foldMaps, if_neg (Ne.symm this.1), if_pos rfl, ite_true]
+theorem fm_right (j : Nat) : foldMaps f fe ρ maps t fe.right j = j - 1 := by
+  have := fs_parts hS
+  simp only [foldMaps, if_neg (Ne.symm this.2.1), if_neg (Ne.symm this.2.2.1), if_pos rfl, ite_true]
+theorem fm_v {p : Nat × Nat} (hp : p ∈ fe.vtr) (j : Nat) : foldMaps f fe ρ maps t p.2 j = match t.flat[j]? with
+    | some s => foldT f ρ maps s p.1
+    | none => 0 := by
+  obtain ⟨_, _, _, ha, hd⟩ := fs_parts hS
+  have h3 := ha p.2 (List.mem_map.mpr ⟨p, hp, rfl⟩)
+  simp only [foldMaps, if_neg h3.1, if_neg h3.2.1, if_neg h3.2.2, lookup_ren hd p hp]
+theorem fm_o {i : Nat} (hi : i ∉ foldTM fe) : foldMaps f fe ρ maps t i = maps i := by
+  have h1 : i ≠ fe.kind := fun e => hi (by simp [foldTM, e])
+  have h2 : i ≠ fe.left := fun e => hi (by simp [foldTM, e])
+  have h3 : i ≠ fe.right := fun e => hi (by simp [foldTM, e])
+  have hn : lookup (fun p => p.2 == i) fe.vtr = none := lookup_none (fun q hq => by
+    simp only [beq_eq_false_iff_ne]; intro he
+    exact hi (List.mem_append_right _ (List.mem_map.mpr ⟨q, hq, he⟩)))
+  simp only [foldMaps, if_neg h1, if_neg h2, if_neg h3, hn]
+
+-- What no leaf or node sets, and no copy: the inputs a node carries, else as before the tree.
+theorem foldT_frame {y : Nat} (hy : y ∉ f.state.map (·.1)) (hc : y ∉ foldCopies f) (s : BTree) :
+    foldT f ρ maps s y = withInputs f.inputs ρ s.req y := by
+  cases s with
+  | leaf ι =>
+    simp only [foldT, BTree.req]
+    exact applyS_other (fun h => by obtain ⟨p, hp, rfl⟩ := List.mem_map.mp h; exact hy (hS.leafst p hp)) _ _
+  | node ι l r =>
+    simp only [foldT, BTree.req]
+    rw [applyS_other (fun h => by obtain ⟨p, hp, rfl⟩ := List.mem_map.mp h; exact hy (hS.nodest p hp))]
+    exact withChildren_plain f _ _ _ (fun h => hc (List.mem_append_left _ h)) (fun h => hc (List.mem_append_right _ h))
+
+theorem fold_σ_in {Q : Nat → Nat} {w : E} {j : Nat} {s : BTree} (hw : evalE Q (foldMaps f fe ρ maps t) w = j)
+    (hs : t.flat[j]? = some s) {x : Nat} (hx : x ∈ fe.vtr.map (·.1)) : applyS (foldσ fe w) Q (foldMaps f fe ρ maps t) x = foldT f ρ maps s x := by
+  cases h : lookup (fun p => p.1 == x) fe.vtr with
+  | none =>
+    exfalso; obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hx
+    have := lookup_none_all h p hp; simp at this
+  | some q =>
+    obtain ⟨hq, hqx⟩ := lookup_some h
+    have hqx' : q.1 = x := by simpa using hqx
+    have ha : assoc (foldσ fe w) x = some (.get q.2 w) := by
+      simp only [assoc, foldσ, lookup_map_pred, h, Option.map_some]
+    simp only [applyS, ha, evalE, fm_v hS hq, hw, hs, hqx']
+
+theorem fold_σ_out {Q : Nat → Nat} {w : E} {x : Nat} (hx : x ∉ fe.vtr.map (·.1)) :
+    applyS (foldσ fe w) Q (foldMaps f fe ρ maps t) x = Q x := by
+  apply applyS_other
+  intro h; apply hx
+  obtain ⟨a, ha, rfl⟩ := List.mem_map.mp h
+  obtain ⟨p, hp, rfl⟩ := List.mem_map.mp ha
+  exact List.mem_map.mpr ⟨p, hp, rfl⟩
+
+-- A term that reads no state variable, copy or added variable, at a node's frame: at its inputs.
+theorem fold_at {Q : Nat → Nat} (hQ : ∀ i, i ≠ fe.n → i ≠ fe.N → Q i = ρ i) {w : E} {j : Nat} {s : BTree}
+    (hw : evalE Q (foldMaps f fe ρ maps t) w = j) (hs : t.flat[j]? = some s) {y : Nat} (hy : y ∉ foldNot f fe) :
+    applyS (foldσ fe w) Q (foldMaps f fe ρ maps t) y = withInputs f.inputs ρ s.req y := by
+  have hy1 : y ∉ f.state.map (·.1) := fun h => hy (by simp only [foldNot, List.mem_append]; exact Or.inl (Or.inl h))
+  have hy2 : y ∉ foldCopies f := fun h => hy (by simp only [foldNot, List.mem_append]; exact Or.inl (Or.inr h))
+  have hy3 : y ≠ fe.n := fun e => hy (by simp [foldNot, e])
+  have hy4 : y ≠ fe.N := fun e => hy (by simp [foldNot, e])
+  by_cases hv : y ∈ fe.vtr.map (·.1)
+  · rw [fold_σ_in hS hw hs hv, foldT_frame hS hy1 hy2]
+  · rw [fold_σ_out hS hv, hQ y hy3 hy4, withInputs_other (fun h => hv (hS.vin y h))]
+
+theorem dvars_parts : (∀ x ∈ f.inputs, x ∉ foldCopies f) ∧ fe.n ≠ fe.N ∧ (∀ x ∈ f.inputs ++ f.state.map (·.1) ++ foldCopies f, x ≠ fe.n ∧ x ≠ fe.N) := by
+  obtain ⟨d1, d2, d3⟩ := distinct_append hS.dvars
+  obtain ⟨d4, _, d6⟩ := distinct_append d1
+  obtain ⟨_, _, d9⟩ := distinct_append d4
+  obtain ⟨n1, _⟩ := distinct_cons d2
+  refine ⟨fun x hx hc => d6 x (List.mem_append_left _ hx) hc, fun e => n1 (by rw [e]; simp), fun x hx => ⟨fun e => d3 x hx (by rw [e]; simp), fun e => d3 x hx (by rw [e]; simp)⟩⟩
+
+-- A node's frame, as foldNodeσ reads it from the table: as withChildren reads it from the children.
+theorem fold_node {Q : Nat → Nat} (hQ : ∀ i, i ≠ fe.n → i ≠ fe.N → Q i = ρ i) {j : Nat} {ι : Nat → Nat} {l r : BTree}
+    (hs : t.flat[j]? = some (.node ι l r)) (hj : Q fe.n = j) {y : Nat} (hy1 : y ∉ f.state.map (·.1)) (hy2 : y ≠ fe.n) (hy3 : y ≠ fe.N) :
+    applyS (foldNodeσ f fe) Q (foldMaps f fe ρ maps t) y = withChildren f (withInputs f.inputs ρ ι) (foldT f ρ maps l) (foldT f ρ maps r) y := by
+  obtain ⟨_, hr1, hl1⟩ := flat_node t j ι l r hs
+  have hwn : evalE Q (foldMaps f fe ρ maps t) (.var fe.n) = j := hj
+  have hwl : evalE Q (foldMaps f fe ρ maps t) (.get fe.left (.var fe.n)) = j - 1 - r.size := by
+    simp only [evalE, hj, fm_left hS, hs]
+  have hwr : evalE Q (foldMaps f fe ρ maps t) (.get fe.right (.var fe.n)) = j - 1 := by
+    simp only [evalE, hj, fm_right hS]
+  have hcp := (dvars_parts hS).1
+  simp only [applyS, foldNodeσ, assoc_append_or, assoc_map_kv, withChildren]
+  by_cases hin : y ∈ f.inputs
+  · have hl0 : lookup (fun e => e.2.1 == y) f.state = none := lookup_none (fun e he => by
+      simp only [beq_eq_false_iff_ne]; intro h; exact hcp y hin (List.mem_append_left _ (List.mem_map.mpr ⟨e, he, h⟩)))
+    have hr0 : lookup (fun e => e.2.2 == y) f.state = none := lookup_none (fun e he => by
+      simp only [beq_eq_false_iff_ne]; intro h; exact hcp y hin (List.mem_append_right _ (List.mem_map.mpr ⟨e, he, h⟩)))
+    have hi0 : (lookup (fun i => i == y) f.inputs).map (fun i => substE (foldσ fe (.var fe.n)) (.var i)) = some (substE (foldσ fe (.var fe.n)) (.var y)) := by
+      cases h : lookup (fun i => i == y) f.inputs with
+      | none => have := lookup_none_all h y hin; simp at this
+      | some i => obtain ⟨_, hi⟩ := lookup_some h; simp only [beq_iff_eq] at hi; simp [hi]
+    simp only [hl0, hr0, hi0, Option.some_or]
+    rw [subst_evalE]
+    show applyS (foldσ fe (.var fe.n)) Q (foldMaps f fe ρ maps t) y = _
+    rw [fold_σ_in hS hwn hs (hS.vin y hin), foldT_frame hS hy1 (hcp y hin)]
+    rfl
+  · have hi0 : lookup (fun i => i == y) f.inputs = none := lookup_none (fun i hi => by
+      simp only [beq_eq_false_iff_ne]; intro h; exact hin (h ▸ hi))
+    simp only [hi0, Option.map_none, Option.none_or]
+    cases hl : lookup (fun e => e.2.1 == y) f.state with
+    | some e =>
+      obtain ⟨he, _⟩ := lookup_some hl
+      simp only [Option.map_some, Option.some_or]
+      rw [subst_evalE]
+      show applyS (foldσ fe (.get fe.left (.var fe.n))) Q (foldMaps f fe ρ maps t) e.1 = _
+      exact fold_σ_in hS hwl hl1 (hS.vst e.1 (List.mem_map.mpr ⟨e, he, rfl⟩))
+    | none =>
+      simp only [Option.map_none, Option.none_or]
+      cases hr : lookup (fun e => e.2.2 == y) f.state with
+      | some e =>
+        obtain ⟨he, _⟩ := lookup_some hr
+        simp only [Option.map_some]
+        rw [subst_evalE]
+        show applyS (foldσ fe (.get fe.right (.var fe.n))) Q (foldMaps f fe ρ maps t) e.1 = _
+        exact fold_σ_in hS hwr hr1 (hS.vst e.1 (List.mem_map.mpr ⟨e, he, rfl⟩))
+      | none =>
+        simp only [Option.map_none]
+        rw [hQ y hy2 hy3, withInputs_other hin]
+end fold
+
+structure FoldTerms (f : Fold) (fe : FoldEnc) (law : C) : Prop where
+  leafz : ∀ p ∈ f.leaf, avoidsE (foldNot f fe) p.2 = true
+  leafm : ∀ p ∈ f.leaf, avoidsMapsE (foldTM fe) p.2 = true
+  nodez : ∀ p ∈ f.node, avoidsE (f.state.map (·.1) ++ [fe.n, fe.N]) p.2 = true
+  nodem : ∀ p ∈ f.node, avoidsMapsE (foldTM fe) p.2 = true
+  asz : avoids (foldNot f fe) f.assume = true
+  asm : avoidsMaps (foldTM fe) f.assume = true
+  prz : avoids (f.inputs ++ foldNot f fe) f.pre = true
+  prm : avoidsMaps (foldTM fe) f.pre = true
+  lawz : avoids (f.inputs ++ foldCopies f ++ [fe.n, fe.N]) law = true
+  lawm : avoidsMaps (foldTM fe) law = true
+
+theorem foldTerms_of {f : Fold} {fe : FoldEnc} {law : C} (h : foldTermsOk f fe law = true) : FoldTerms f fe law := by
+  simp only [foldTermsOk, Bool.and_eq_true] at h
+  obtain ⟨⟨⟨⟨⟨⟨⟨hl, hn⟩, ha⟩, ham⟩, hp⟩, hpm⟩, hz⟩, hzm⟩ := h
+  exact ⟨fun p hp => (and_parts (List.all_eq_true.mp hl p hp)).1, fun p hp => (and_parts (List.all_eq_true.mp hl p hp)).2,
+    fun p hp => (and_parts (List.all_eq_true.mp hn p hp)).1, fun p hp => (and_parts (List.all_eq_true.mp hn p hp)).2, ha, ham, hp, hpm, hz, hzm⟩
+
+-- The table's fact holds of the tree's table, wherever T and Ω... the size N is the tree's.
+theorem table_holds {f : Fold} {fe : FoldEnc} {law : C} {ρ : Nat → Nat} {maps : Nat → Nat → Nat} {t : BTree} (hS : FoldShape f fe)
+    (hT : FoldTerms f fe law) (hA : Allowed f ρ maps t) (b : Bool) {Q : Nat → Nat} (hQ : ∀ i, i ≠ fe.n → i ≠ fe.N → Q i = ρ i)
+    (hN : Q fe.N = t.size) : evalC Q (foldMaps f fe ρ maps t) (foldTable f fe b).holds = true := by
+  apply impl_true
+  intro h0
+  rw [evalC_iff] at h0; simp only [holdsC, evalE] at h0
+  rw [hN, ← flat_length] at h0
+  have hs : t.flat[Q fe.n]? = some t.flat[Q fe.n] := List.getElem?_eq_getElem h0
+  have hal := flat_allowed t hA _ (List.getElem_mem h0)
+  have hw : evalE Q (foldMaps f fe ρ maps t) (.var fe.n) = Q fe.n := rfl
+  have hkind : evalE Q (foldMaps f fe ρ maps t) (.get fe.kind (.var fe.n)) = match t.flat[Q fe.n]? with
+      | some (.node _ _ _) => 1
+      | _ => 0 := by simp only [evalE, fm_kind hS]
+  -- the assumption, at the node's own inputs
+  have hasm : ∀ (s : BTree), t.flat[Q fe.n]? = some s → evalC (withInputs f.inputs ρ s.req) maps f.assume = true →
+      evalC Q (foldMaps f fe ρ maps t) (substC (foldσ fe (.var fe.n)) f.assume) = true := by
+    intro s hs' hx
+    rw [subst_evalC, congr2C (ρ' := withInputs f.inputs ρ s.req) (M' := maps) f.assume
+      (fun y hy => fold_at hS hQ hw hs' (avoids_occ hT.asz hy)) (fun m hm => fm_o hS (avoidsMaps_occ hT.asm hm))]
+    exact hx
+  generalize t.flat[Q fe.n] = s at hs hal
+  cases s with
+  | leaf ι =>
+    have hk : evalE Q (foldMaps f fe ρ maps t) (.get fe.kind (.var fe.n)) = 0 := by rw [hkind, hs]
+    refine and_true2 (holds_of_le (by rw [hk]; simp [evalE])) (and_true2 (impl_true fun _ => ?_) (impl_true fun h1 => ?_))
+    · apply andL_true
+      intro c hc
+      rcases List.mem_cons.mp hc with rfl | hc
+      · simp [trueC, evalC, evalE]
+      rcases List.mem_append.mp hc with hc | hc
+      · cases b
+        · simp at hc
+        · simp at hc; subst hc; exact hasm _ hs hal
+      · obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hc
+        apply holds_of_eq
+        rw [subst_evalE, subst_evalE]
+        show applyS (foldσ fe (.var fe.n)) Q (foldMaps f fe ρ maps t) p.1 = _
+        rw [fold_σ_in hS hw hs (hS.vst p.1 (hS.leafst p hp)), congr2E (ρ' := withInputs f.inputs ρ ι) (M' := maps) p.2
+          (fun y hy => fold_at hS hQ hw hs (avoidsE_occ (hT.leafz p hp) hy)) (fun m hm => fm_o hS (avoidsMapsE_occ (hT.leafm p hp) hm))]
+        simp only [foldT, applyS, assoc, lookup_unique hS.dleaf hp, Option.map_some]
+    · rw [evalC_iff] at h1; simp only [holdsC, hk] at h1; simp [evalE] at h1
+  | node ι l r =>
+    obtain ⟨hb, _, _⟩ := flat_node t (Q fe.n) ι l r hs
+    have pl := size_pos l
+    have hk : evalE Q (foldMaps f fe ρ maps t) (.get fe.kind (.var fe.n)) = 1 := by rw [hkind, hs]
+    refine and_true2 (holds_of_le (by rw [hk]; simp [evalE])) (and_true2 (impl_true fun h1 => ?_) (impl_true fun _ => ?_))
+    · rw [evalC_iff] at h1; simp only [holdsC, hk] at h1; simp [evalE] at h1
+    · apply andL_true
+      intro c hc
+      rcases List.mem_cons.mp hc with rfl | hc
+      · apply holds_of_lt
+        have hl' : evalE Q (foldMaps f fe ρ maps t) (.get fe.left (.var fe.n)) = Q fe.n - 1 - r.size := by
+          simp only [evalE, fm_left hS, hs]
+        rw [hl']; show Q fe.n - 1 - r.size < Q fe.n; omega
+      rcases List.mem_cons.mp hc with rfl | hc
+      · apply holds_of_lt
+        have hr' : evalE Q (foldMaps f fe ρ maps t) (.get fe.right (.var fe.n)) = Q fe.n - 1 := by
+          simp only [evalE, fm_right hS]
+        rw [hr']; show Q fe.n - 1 < Q fe.n; omega
+      rcases List.mem_append.mp hc with hc | hc
+      · cases b
+        · simp at hc
+        · simp at hc; subst hc
+          apply hasm _ hs
+          show evalC (withInputs f.inputs ρ ι) maps f.assume = true
+          rw [← congrC (withChildren f (withInputs f.inputs ρ ι) (foldT f ρ maps l) (foldT f ρ maps r)) _ maps f.assume
+            (fun y hy => withChildren_plain f _ _ _
+              (fun h => avoids_occ hT.asz hy (by simp only [foldNot, foldCopies, List.mem_append]; exact Or.inl (Or.inr (Or.inl h))))
+              (fun h => avoids_occ hT.asz hy (by simp only [foldNot, foldCopies, List.mem_append]; exact Or.inl (Or.inr (Or.inr h)))))]
+          exact hal.1
+      · obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hc
+        apply holds_of_eq
+        rw [subst_evalE, subst_evalE]
+        show applyS (foldσ fe (.var fe.n)) Q (foldMaps f fe ρ maps t) p.1 = _
+        rw [fold_σ_in hS hw hs (hS.vst p.1 (hS.leafst p hp))]
+        simp only [foldT]
+        rw [applyS_getD]
+        obtain ⟨e, he⟩ : ∃ e, assoc f.node p.1 = some e := by
+          cases h : assoc f.node p.1 with
+          | some e => exact ⟨e, rfl⟩
+          | none =>
+            exfalso; obtain ⟨q, hq, hq1⟩ := List.mem_map.mp (hS.leafnode p hp)
+            simp only [assoc, Option.map_eq_none_iff] at h
+            have := lookup_none_all h q hq; simp [hq1] at this
+        have hem := assoc_some_mem he
+        rw [he]
+        simp only [Option.getD]
+        exact congr2E e (fun y hy => (fold_node hS hQ hs rfl (fun h => avoidsE_occ (hT.nodez _ hem) hy (List.mem_append_left _ h))
+            (fun h => avoidsE_occ (hT.nodez _ hem) hy (by rw [h]; simp)) (fun h => avoidsE_occ (hT.nodez _ hem) hy (by rw [h]; simp))).symm)
+          (fun m hm => (fm_o hS (avoidsMapsE_occ (hT.nodem _ hem) hm)).symm)
+
+def foldEnv (fe : FoldEnc) (t : BTree) (ρ : Nat → Nat) : Nat → Nat := fun i =>
+  if i = fe.n then t.size - 1 else if i = fe.N then t.size else ρ i
+
+/-- A cyclic proof of a fold's law over trees as tables (`foldNodes`), checked against the fold's table (`foldOk`): for
+params that meet the precondition, the law holds of every tree whose inputs meet the assumption, as `fold_sound` says of
+the structural induction. -/
+theorem cyc_fold_sound (f : Fold) (fe : FoldEnc) (facts : List Fact) (nodes : List CNode) (hc : checkCyclic facts nodes = true)
+    (law : C) (nd : CNode) (hn : nd ∈ nodes) (hok : foldOk f fe facts law nd = true) (maps : Nat → Nat → Nat) (ρ : Nat → Nat)
+    (h0 : evalC ρ maps f.pre = true) : ∀ t, Allowed f ρ maps t → evalC (foldT f ρ maps t) maps law = true := by
+  intro t hA
+  simp only [foldOk, Bool.and_eq_true] at hok
+  obtain ⟨⟨⟨⟨hsh, hte⟩, hfa⟩, hcon⟩, hhy⟩ := hok
+  have hS := foldShape_of hsh
+  have hT := foldTerms_of hte
+  obtain ⟨_, hnN, hx⟩ := dvars_parts hS
+  have hE : ∀ i, i ≠ fe.n → i ≠ fe.N → foldEnv fe t ρ i = ρ i := fun i h1 h2 => by simp [foldEnv, h1, h2]
+  have hEn : foldEnv fe t ρ fe.n = t.size - 1 := by simp [foldEnv]
+  have hEN : foldEnv fe t ρ fe.N = t.size := by simp [foldEnv, Ne.symm hnN]
+  have pt := size_pos t
+  have hF : FactsHold facts (foldEnv fe t ρ) (foldMaps f fe ρ maps t) := by
+    intro g hg vals
+    have hgi := List.all_eq_true.mp hfa g hg
+    simp only [Bool.or_eq_true] at hgi
+    rcases hgi with hnc | hcan
+    · exact natC_true _ hnc
+    obtain ⟨g', hg', hb⟩ := List.any_eq_true.mp hcan
+    simp only [factBeq, Bool.and_eq_true, beq_iff_eq] at hb
+    rw [hb.1, beqC_eq hb.2]
+    have hk : g'.keys = [fe.n] := by
+      simp only [List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hg'
+      rcases hg' with rfl | rfl <;> rfl
+    have hQ : ∀ i, i ≠ fe.n → i ≠ fe.N → override g'.keys vals (foldEnv fe t ρ) i = ρ i := fun i h1 h2 => by
+      rw [hk]; simp only [override]
+      rw [if_neg (fun h => h1 (by simpa using h))]
+      exact hE i h1 h2
+    have hQN : override g'.keys vals (foldEnv fe t ρ) fe.N = t.size := by
+      rw [hk]; simp only [override]
+      rw [if_neg (fun h => hnN (by have h' : fe.N = fe.n := by simpa using h
+                                   exact h'.symm))]
+      exact hEN
+    simp only [List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hg'
+    rcases hg' with rfl | rfl
+    · exact table_holds hS hT hA true hQ hQN
+    · exact table_holds hS hT hA false hQ hQN
+  have hH : ∀ c ∈ nd.hyps, evalC (foldEnv fe t ρ) (foldMaps f fe ρ maps t) c = true := by
+    intro c hc
+    have h := List.all_eq_true.mp hhy c hc
+    simp only [Bool.or_eq_true] at h
+    rcases h with h | h
+    · rw [beqC_eq h, congr2C (ρ' := ρ) (M' := maps) _ (fun y hy => hE y
+        (fun e => avoids_occ hT.prz hy (by rw [e]; simp [foldNot])) (fun e => avoids_occ hT.prz hy (by rw [e]; simp [foldNot])))
+        (fun m hm => fm_o hS (avoidsMaps_occ hT.prm hm))]
+      exact h0
+    · rw [beqC_eq h]; apply holds_of_lt; simp only [evalE, hEn, hEN]; omega
+  have hc0 := cyclic_sound facts nodes hc (foldMaps f fe ρ maps t) (foldEnv fe t ρ) hF nd hn hH
+  have hw : evalE (foldEnv fe t ρ) (foldMaps f fe ρ maps t) (.var fe.n) = t.size - 1 := hEn
+  rw [beqC_eq hcon, subst_evalC] at hc0
+  refine (congr2C (ρ' := applyS (foldσ fe (.var fe.n)) (foldEnv fe t ρ) (foldMaps f fe ρ maps t)) (M' := foldMaps f fe ρ maps t) law
+    (fun y hy => ?_) (fun m hm => (fm_o hS (avoidsMaps_occ hT.lawm hm)).symm)).trans hc0
+  have hy' := avoids_occ hT.lawz hy
+  have hyi : y ∉ f.inputs := fun h => hy' (List.mem_append_left _ (List.mem_append_left _ h))
+  have hyc : y ∉ foldCopies f := fun h => hy' (List.mem_append_left _ (List.mem_append_right _ h))
+  have hyn : y ≠ fe.n := fun e => hy' (by rw [e]; simp)
+  have hyN : y ≠ fe.N := fun e => hy' (by rw [e]; simp)
+  by_cases hv : y ∈ fe.vtr.map (·.1)
+  · rw [fold_σ_in hS hw (flat_last t) hv]
+  · rw [fold_σ_out hS hv, hE y hyn hyN, foldT_frame hS (fun h => hv (hS.vst y h)) hyc, withInputs_other hyi]
+
 end Kern

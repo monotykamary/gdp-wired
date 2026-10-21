@@ -991,7 +991,7 @@ export type LeanItem =
   // cyc_machine_sound gives each law of the machine (`<id>_lawN_holds`, and `<id>.lawN` plainly); each tampered machine's
   // check against the proof computed to false.
   | {id: string, cyclic: Cyclic, tampered?: {what: string, proof: Cyclic}[], after?: (ix: (name: string) => number, mx: (map: string) => number) => string,
-    bridge?: CycBridge, recur?: CycRecur}
+    bridge?: CycBridge, recur?: CycRecur, fold?: {fold: Fold, laws: Law[]}}
 
 // A Lean file proving each item, to compile against the twin (`leanLibrary`, or `leanProject` for a ready Lake project).
 // Each machine's laws come with `<id>_laws` (the twin's theorem) and `<id>.lawN` (the law as a plain Lean statement
@@ -1059,8 +1059,8 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
       parts.push(`-- ${item.id}\n${loopToLean(id, item.loop, item.laws ?? [], item.rank)}`)
       theorems.push(`${id}_halts`)
     } else if ('cyclic' in item) {
-      parts.push(`-- ${item.id}\n${cyclicToLean(id, item.cyclic, item.tampered ?? [], item.after, item.bridge, item.recur)}`)
-      theorems.push(`${id}_sound`, ...(item.bridge?.laws ?? []).map((_, j) => `${id}_law${j}_holds`), ...(item.recur ? [`${id}_values`] : []),
+      parts.push(`-- ${item.id}\n${cyclicToLean(id, item.cyclic, item.tampered ?? [], item.after, item.bridge, item.recur, item.fold)}`)
+      theorems.push(`${id}_sound`, ...(item.bridge?.laws ?? item.fold?.laws ?? []).map((_, j) => `${id}_law${j}_holds`), ...(item.recur ? [`${id}_values`] : []),
         ...(item.recur ? [...item.recur.lemmas.map((_, j) => `${id}_lemma${j}`), ...item.recur.between.map((_, j) => `${id}_between${j}`)] : []),
         ...(item.after ? [...item.after(() => 0, () => 0).matchAll(/^theorem (\S+)/gm)].map(x2 => x2[1]!) : []))
     } else if ('fold' in item) {
@@ -1075,7 +1075,7 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   }
   // The file the items need: Live.lean for a liveness or a loop, Sets.lean (which imports Steps.lean) for any machine.
   return `import History
-${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && item.ghosts?.length) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
+${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && item.ghosts?.length) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
@@ -1117,9 +1117,14 @@ export type CycBridge = {machine: Machine, laws: Law[], tampered?: {what: string
 // gives each node of the recurrence's values, and each lemma and law between plainly of its Lean definition.
 export type CycRecur = {name: string, args: string[], zero: E, next: E, lemmas: {name: string, holds: C}[], between: {name: string, holds: C}[]}
 export function cyclicToLean(id: string, p: Cyclic, tampered: {what: string, proof: Cyclic}[] = [], after?: (ix: (name: string) => number, mx: (map: string) => number) => string,
-    bridge?: CycBridge, recur?: CycRecur): string {
+    bridge?: CycBridge, recur?: CycRecur, fold?: {fold: Fold, laws: Law[]}): string {
   const all = [p, ...tampered.map(t => t.proof)]
-  const {vars, maps} = cycScope(all, bridge, recur ? [recur.zero, recur.next, {op: 'var', name: 'x'}, {op: 'var', name: 'prev'}, {op: 'var', name: 'k$'}, ...recur.args.map((a): E => ({op: 'var', name: a}))] : [])
+  const v = (name: string): E => ({op: 'var', name})
+  const fnames = fold ? Object.keys(fold.fold.leaf) : []
+  const {vars, maps} = cycScope(all, bridge, [...(recur ? [recur.zero, recur.next, v('x'), v('prev'), v('k$'), ...recur.args.map(v)] : []),
+    ...(fold ? [...fold.fold.params, ...fold.fold.inputs, ...fnames, ...fnames.map(x => `l_${x}`), ...fnames.map(x => `r_${x}`), 'n$', 'N$'].map(v) : []),
+    ...(fold ? [...Object.values(fold.fold.leaf), ...Object.values(fold.fold.node), ...fold.laws.map((l): E => ({op: 'if', c: l.holds, then: v('n$'), else: v('n$')}))] : []),
+    ...(fold ? ['Kind', 'Left', 'Right', ...fnames, ...fold.fold.inputs].map((x): E => ({op: 'get', map: `${x}@`, key: v('n$')})) : [])])
   const {e, c} = leanTerms(vars, maps, id)
   const ix = (name: string) => vars.indexOf(name)
   const facts = list(p.facts.map(f => `⟨${list(f.keys.map(key => String(ix(key))))}, ${c(f.holds)}⟩`))
@@ -1149,7 +1154,7 @@ theorem ${id}_sound : ∀ (maps : Nat → Nat → Nat) env, FactsHold ${id}_fact
   cyclic_sound ${id}_facts ${id}_nodes ${id}_check
 ${tampered.map((t, j) => `-- TAMPERED: ${t.what}. Lean computes the check to false.
 def ${id}_tampered${j} : List CNode := ${nodes(t.proof)}
-example : checkCyclic ${id}_facts ${id}_tampered${j} = false := by ${checkBy}`).join('\n')}${bridge ? `\n${cycBridgeLean(id, p, bridge, vars, maps, {e, c})}` : ''}${recur ? `\n${cycRecurLean(id, p, recur, vars, maps, {e, c})}` : ''}${after ? `\n${after(ix, mx)}` : ''}`
+example : checkCyclic ${id}_facts ${id}_tampered${j} = false := by ${checkBy}`).join('\n')}${bridge ? `\n${cycBridgeLean(id, p, bridge, vars, maps, {e, c})}` : ''}${recur ? `\n${cycRecurLean(id, p, recur, vars, maps, {e, c})}` : ''}${fold ? `\n${cycFoldLean(id, fold.fold, fold.laws, vars, maps, {e, c})}` : ''}${after ? `\n${after(ix, mx)}` : ''}`
 }
 
 // The variables and maps a cyclic proof names. With a machine it was made from, the machine's own names too (core/cyclic.ts's
@@ -1196,6 +1201,27 @@ example : cycTermsOk ${id}_machine ${id}_enc ${keysOf(l)} = true := by ${by}
 example : cycLawOk ${id}_machine ${id}_enc (${t.c(l.holds)}) = true := by ${by}
 -- CHECK ${id} law ${j}: node: ${l.name}
 example : cycNodeOk ${id}_machine ${id}_enc (${t.c(l.holds)}) ⟨${list(nodes[j]!.hyps.map(t.c))}, ${t.c(nodes[j]!.concl)}, [], [], [], ([], .leaf [] [] [] [])⟩ = true := by ${by}`).join('\n')}`
+}
+
+// Bridge.lean's cyc_fold_sound for each law of a cyclic proof made by foldNodes: the fold as Kernel.lean's Fold, the
+// table (its added variables and maps), each law's check and its theorem over trees, as fold_sound states the usual one.
+function cycFoldLean(id: string, f: Fold, laws: Law[], vars: string[], maps: string[], t: {e: (x: E) => string, c: (x: C) => string}): string {
+  const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
+  const mx = (name: string) => { const j = maps.indexOf(name); if (j < 0) throw new Error(`${id}: no map for ${name}`); return j }
+  const st = Object.keys(f.leaf)
+  return `def ${id}_fold : Fold := ⟨${list(f.inputs.map(name => String(ix(name))))},
+  ${list(st.map(n2 => `(${ix(n2)}, ${ix(`l_${n2}`)}, ${ix(`r_${n2}`)})`))},
+  ${list(Object.entries(f.leaf).map(([name, e2]) => `(${ix(name)}, ${t.e(e2)})`))},
+  ${list(Object.entries(f.node).map(([name, e2]) => `(${ix(name)}, ${t.e(e2)})`))},
+  ${f.pre ? t.c(f.pre) : TRUE},
+  ${f.assume ? t.c(f.assume) : TRUE}⟩
+def ${id}_fenc : FoldEnc := ⟨${ix('n$')}, ${ix('N$')}, ${mx('Kind@')}, ${mx('Left@')}, ${mx('Right@')}, ${list([...st, ...f.inputs].map(x => `(${ix(x)}, ${mx(`${x}@`)})`))}⟩
+${laws.map((l, j) => `-- ${l.name}
+def ${id}_law${j} : C := ${t.c(l.holds)}
+theorem ${id}_law${j}_ok : foldOk ${id}_fold ${id}_fenc ${id}_facts ${id}_law${j} ${id}_node${j} = true := by ${checkBy}
+theorem ${id}_law${j}_holds : ∀ (maps : Nat → Nat → Nat) ρ, evalC ρ maps ${id}_fold.pre = true → ∀ t, Allowed ${id}_fold ρ maps t →
+    evalC (foldT ${id}_fold ρ maps t) maps ${id}_law${j} = true :=
+  cyc_fold_sound ${id}_fold ${id}_fenc ${id}_facts ${id}_nodes ${id}_check ${id}_law${j} ${id}_node${j} ${id}_node${j}_mem ${id}_law${j}_ok`).join('\n')}`
 }
 
 // Bridge.lean's cyc_recur_sound for a cyclic proof made by recurNodes: the recurrence's equations checked against the
