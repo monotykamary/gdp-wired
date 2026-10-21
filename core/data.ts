@@ -617,44 +617,79 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     frontier = next
   }
   lap(`unfolded, ${insts.length} instances, ${all.length} reads`)
-  // A function read whose decreasing argument equals a constructor's value (by the equalities the instances give, every
-  // branch, and the uses' conclusions) unfolds there too: where the definition's match is decided.
-  if (w.depth >= 1) {
-    const id0 = (t: E) => JSON.stringify(t), parent = new Map<string, string>(), terms = new Map<string, E>()
+  // The classes of a model (or, with none, of every branch): the equalities the instances give there (a function's read
+  // equal to the branch of its body the model takes, a constructor's field to its argument, eta, an implication's
+  // equalities where its premise holds, a use's where its guard does), closed under reading one map at arguments of one
+  // class (by signatures: the map and the arguments' classes), each merge with why (a fact, or a congruence).
+  type Closure = {find: (x: string) => string, terms: Map<string, E>, adj: Map<string, {to: string, cong?: {map: string, x: E[], y: E[]}}[]>, truthOf: (c: C) => boolean | undefined}
+  const closure = (model?: M): Closure => {
+    const parent = new Map<string, string>(), terms = new Map<string, E>(), adj: Closure['adj'] = new Map()
     const find = (x: string): string => { let r = x; while (parent.has(r)) r = parent.get(r)!; return r }
-    const union = (x: E, y: E) => { terms.set(id0(x), x); terms.set(id0(y), y); const a = find(id0(x)), b = find(id0(y)); if (a !== b) parent.set(a, b) }
-    const leaves = (e: E): E[] => (e.op === 'if' ? [...leaves(e.then), ...leaves(e.else)] : [e])
-    for (const q of insts) for (const [a, b] of equalities(holdsAt(fs.facts[q.fact]!.name, q.at))) for (const leaf of leaves(b)) union(a, leaf)
-    for (const c of w.others as C[]) for (const [a, b] of equalities(c)) union(a, b)
-    // Closed under congruence: two reads of one map at arguments already equal are equal.
-    const readsBy = new Map<string, {key: E, as: E[]}[]>()
-    for (const r of all) { const n = fs.arity.get(r.map), as = n ? argsOf(r.key, n) : undefined; if (as) { const list = readsBy.get(r.map) ?? []; list.push({key: r.key, as}); readsBy.set(r.map, list) } }
+    const edge = (x: E, y: E, cong?: {map: string, x: E[], y: E[]}) => {
+      const a2 = tid(x), b2 = tid(y)
+      terms.set(a2, x); terms.set(b2, y)
+      if (a2 === b2 || find(a2) === find(b2)) return false
+      parent.set(find(a2), find(b2))
+      ;(adj.get(a2) ?? adj.set(a2, []).get(a2)!).push({to: b2, cong}); (adj.get(b2) ?? adj.set(b2, []).get(b2)!).push({to: a2, cong: cong && {map: cong.map, x: cong.y, y: cong.x}})
+      return true
+    }
+    const truthOf = (c: C): boolean | undefined => { if (!model) return undefined; try { return model.m.evalC(c, model.env) } catch { return undefined } }
+    const leaves = (e: E): E[] => { if (e.op !== 'if') return [e]; const t = truthOf(e.c); return t === undefined ? [...leaves(e.then), ...leaves(e.else)] : leaves(t ? e.then : e.else) }
+    const active = (c: C): void => {
+      if (c.op === 'and') { c.xs.forEach(active); return }
+      if (c.op === 'or') {
+        if (!model) { c.xs.forEach(x => { if (x.op !== 'not') active(x) }); return }
+        const open = c.xs.filter(x => truthOf(x) !== false)
+        if (open.length === 1) active(open[0]!)
+        else { const neg = c.xs.find(x => x.op === 'not' && truthOf(x.x) === true); if (neg) c.xs.filter(x => x !== neg).forEach(x => { if (truthOf(x) === true) active(x) }) }
+        return
+      }
+      if (c.op === '=' && (!model || truthOf(c) === true)) for (const leaf of leaves(c.b)) edge(c.a, leaf)
+    }
+    for (const q of insts) active(holdsAt(fs.facts[q.fact]!.name, q.at))
+    for (const c of w.others as C[]) active(c)
+    const cells = new Map<string, {key: E, as: E[]}[]>()
+    for (const r of all) { const n = fs.arity.get(r.map), as = n ? argsOf(r.key, n) : undefined; if (as) (cells.get(r.map) ?? cells.set(r.map, []).get(r.map)!).push({key: r.key, as}) }
     for (let changed = true; changed;) {
       changed = false
-      for (const [map, list] of readsBy) for (const [i, x] of list.entries()) for (const y of list.slice(i + 1)) {
-        if (!x.as.every((t, q) => find(id0(t)) === find(id0(y.as[q]!)))) continue
-        const cx = get(map, x.key), cy = get(map, y.key)
-        if (find(id0(cx)) !== find(id0(cy))) { union(cx, cy); changed = true }
+      for (const [map, list] of cells) {
+        const bySig = new Map<string, {key: E, as: E[]}>()
+        for (const x of list) {
+          const sig = x.as.map(t => find(tid(t))).join('\u0001'), y = bySig.get(sig)
+          if (!y) { bySig.set(sig, x); continue }
+          if (tid(y.key) !== tid(x.key) && edge(get(map, y.key), get(map, x.key), {map, x: y.as, y: x.as})) changed = true
+        }
       }
     }
-    const built = (t: E) => (t.op === 'get' && p.datas.some(d => d.ctors.some((c, j) => c.fields.length && t.map === ctorMap(d, j)))) || t.op === 'const'
+    return {find, terms, adj, truthOf}
+  }
+  // A function read whose decreasing argument a model's classes make a constructor's value (the argument itself, or a
+  // term of its class) unfolds there too: where the definition's match is decided. Each such instance stands for the
+  // reads it was unfolded for (`reached` keeps it in a case where it is one of them).
+  if (w.depth >= 1) {
     let extra = 0
-    for (const r of [...all]) {
-      const f = fnOfMap(r.map)
-      if (!f || f.decreases === undefined) continue
-      const as = argsOf(r.key, f.params.length)
-      if (!as) continue
-      const root = find(id0(as[f.decreases]!)), own = as[f.decreases]!
-      // The argument itself where it is a constructor's value, else the constructor values it equals.
-      for (const [key, t] of built(own) && !unfolded.has(JSON.stringify(r)) ? [[id0(own), own] as [string, E]] : [...terms]) {
-        if ((key === id0(own) && !built(own)) || find(key) !== root || !built(t) || extra >= 24) continue
-        const as2 = as.map((a, i) => (i === f.decreases ? t : a)), rid = JSON.stringify({map: f.name, key: keyOf(as2)})
-        if (unfolded.has(rid) || (t === own && unfolded.has(JSON.stringify(r)))) continue
-        unfolded.add(rid); extra++
-        inst(`fn ${f.name}`, as2)
-        anchoredAt.set(JSON.stringify([fs.at.get(`fn ${f.name}`), as2]), {read: JSON.stringify(get(f.name, r.key)), arg: as[f.decreases]!, value: t})
-        note([{map: f.name, key: keyOf(as2)}])
-        ctors(note(reads(holdsAt(`fn ${f.name}`, as2))))
+    for (const model of w.models.length ? w.models : [undefined]) {
+      const cl = closure(model)
+      for (const r of [...all]) {
+        const f = fnOfMap(r.map)
+        if (!f || f.decreases === undefined) continue
+        const as = argsOf(r.key, f.params.length)
+        if (!as) continue
+        const own = as[f.decreases]!, d = f.params[f.decreases]!.sort as Data, root = cl.find(tid(own))
+        const built = (t: E) => (t.op === 'get' && d.ctors.some((c, j) => c.fields.length && t.map === ctorMap(d, j))) || (t.op === 'const' && t.value < d.nullary)
+        const cands = built(own) ? [own] : [...cl.terms.values()].filter(t => built(t) && cl.find(tid(t)) === root)
+        for (const t of cands) {
+          const as2 = as.map((a, i) => (i === f.decreases ? t : a)), rid = JSON.stringify({map: f.name, key: keyOf(as2)}), key2 = JSON.stringify([fs.at.get(`fn ${f.name}`), as2])
+          const anchor = {read: tid(get(f.name, r.key)), arg: own, value: t}, had = anchoredAt.get(key2) ?? []
+          if (!had.some(x => x.read === anchor.read)) anchoredAt.set(key2, [...had, anchor])
+          if (t === own && r.key === keyOf(as2)) continue
+          if (unfolded.has(rid) || extra >= 32) continue
+          unfolded.add(rid); extra++
+          if (dataTrace) console.error(`[data]     unfold ${f.name} at ${JSON.stringify(as2).slice(0, 160)} for ${JSON.stringify(r.key).slice(0, 80)}`)
+          inst(`fn ${f.name}`, as2)
+          note([{map: f.name, key: keyOf(as2)}])
+          ctors(note(reads(holdsAt(`fn ${f.name}`, as2))))
+        }
       }
     }
   }
@@ -667,66 +702,14 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   for (const t of w.shapesAt) shape(t, typeOfVar(p, t))
   if (w.depth >= 2) for (const r of [...all]) for (const d of p.datas) if (r.map === tagMap(d.name)) shape(r.key, d)
   for (const t of w.etaAt) { const d = typeOfVar(p, t) ?? dataOfTerm(t); if (d) { inst(`eta ${d.name}`, [t]); shape(t, d); ctors(note(reads(holdsAt(`eta ${d.name}`, [t])))) } }
-  // Congruences (a map is a function), found in each random model: the equalities the facts give there (a function's
-  // read equal to the branch of its body the model takes, a constructor's field to its argument, eta, an implication's
-  // equalities where its premise holds, a use's where its guard does), closed under reading one map at equal arguments;
-  // each pair of reads the closure makes equal in some model is a congruence instance.
+  // A constant's tag is read where its tag is (the nullary facts).
   for (const d of p.datas) if (d.nullary && all.some(r => r.map === tagMap(d.name))) { inst(`nullary ${d.name}`, []); for (let j = 0; j < d.nullary; j++) all.push({map: tagMap(d.name), key: k(j)}) }
-  const id = (t: E) => JSON.stringify(t)
-  const cellsOf = new Map<string, {key: E, as: E[]}[]>()
-  for (const r of all) {
-    const n = fs.arity.get(r.map), as = n ? argsOf(r.key, n) : undefined
-    if (!as) continue
-    const list = cellsOf.get(r.map) ?? []
-    if (!list.some(x => id(x.key) === id(r.key))) list.push({key: r.key, as})
-    cellsOf.set(r.map, list)
-  }
-  const sources = [...insts.map(q => holdsAt(fs.facts[q.fact]!.name, q.at)), ...(w.others as C[])]
-  // The values the goal reads (each read, but not as a key of another read): what the congruences must connect.
-  const values = new Map<string, E>()
-  const valueWalk = (t: unknown): void => {
-    if (!t || typeof t !== 'object') return
-    if (Array.isArray(t)) { t.forEach(valueWalk); return }
-    const o = t as E
-    if (o.op === 'get') { values.set(id(o), o); return }
-    for (const v of Object.values(o)) valueWalk(v)
-  }
-  valueWalk([sources, w.roots])
-  // In each model: the classes of the equalities the facts give there, with why each merged (a fact, or a congruence
-  // whose arguments are merged); every value in a class is explained against one, and the congruences the explanations
-  // use are the instances (with `every`, those that every model's explanations use).
+  // Congruences (a map is a function), in each model: every value the model reads explained against one of its class
+  // (the path between them, each congruence on it explained in turn); the congruences the explanations use are the
+  // instances (with `every`, those that every model's explanations use).
   const used = new Map<string, {map: string, at: E[], n: number}>()
-  for (const {m, env} of w.models) {
-    const parent = new Map<string, string>(), adj = new Map<string, {to: string, cong?: {map: string, x: E[], y: E[]}}[]>()
-    const find = (x: string): string => { let r = x; while (parent.has(r)) r = parent.get(r)!; return r }
-    const edge = (x: E, y: E, cong?: {map: string, x: E[], y: E[]}) => {
-      const a2 = tid(x), b2 = tid(y)
-      if (a2 === b2 || find(a2) === find(b2)) return false
-      parent.set(find(a2), find(b2))
-      ;(adj.get(a2) ?? adj.set(a2, []).get(a2)!).push({to: b2, cong}); (adj.get(b2) ?? adj.set(b2, []).get(b2)!).push({to: a2, cong: cong && {map: cong.map, x: cong.y, y: cong.x}})
-      return true
-    }
-    const truthOf = (c: C): boolean | undefined => { try { return m.evalC(c, env) } catch { return undefined } }
-    const taken = (e: E): E | undefined => { if (e.op !== 'if') return e; const t = truthOf(e.c); return t === undefined ? undefined : taken(t ? e.then : e.else) }
-    const active = (c: C): void => {
-      if (c.op === 'and') { c.xs.forEach(active); return }
-      if (c.op === 'or') { const open = c.xs.filter(x => truthOf(x) !== false); if (open.length === 1) active(open[0]!); else { const neg = c.xs.find(x => x.op === 'not' && truthOf(x.x) === true); if (neg) c.xs.filter(x => x !== neg).forEach(x => { if (truthOf(x) === true) active(x) }) } return }
-      if (c.op === '=' && truthOf(c) === true) { const leaf = taken(c.b); if (leaf) edge(c.a, leaf) }
-    }
-    sources.forEach(active)
-    // Congruence by signatures: a read's map and its arguments' classes; two reads of one signature are merged.
-    for (let changed = true; changed;) {
-      changed = false
-      for (const [map, list] of cellsOf) {
-        const bySig = new Map<string, {key: E, as: E[]}>()
-        for (const x of list) {
-          const sig = x.as.map(t => find(tid(t))).join('\u0001'), y = bySig.get(sig)
-          if (!y) { bySig.set(sig, x); continue }
-          if (edge(get(map, y.key), get(map, x.key), {map, x: y.as, y: x.as})) changed = true
-        }
-      }
-    }
-    // Explanations: the path between two terms of a class (each edge a fact, or a congruence explained in turn).
+  for (const model of w.models) {
+    const {find, adj, truthOf} = closure(model)
     const counted = new Set<string>(), explained = new Set<string>()
     const explain = (a2: string, b2: string): void => {
       const key = a2 < b2 ? `${a2}|${b2}` : `${b2}|${a2}`
@@ -752,7 +735,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
       if (!t || typeof t !== 'object') return
       if (Array.isArray(t)) { t.forEach(x => look(x, whole)); return }
       const o = t as E | C
-      if (!whole && o.op === 'if') { look(o.c, whole); const b = truthOf(o.c); if (b !== false) look(o.then, whole); if (b !== true) look(o.else, whole); return }
+      if (!whole && o.op === 'if') { look(o.c, whole); const b2 = truthOf(o.c); if (b2 !== false) look(o.then, whole); if (b2 !== true) look(o.else, whole); return }
       if (!whole && o.op === 'or' && o.xs.length === 2 && o.xs[0]!.op === 'not') { look(o.xs[0], whole); if (truthOf(o.xs[0]!.x) !== false) look(o.xs[1], whole); return }
       if (o.op === 'get') { read.add(tid(o)); return }
       for (const v of Object.values(o)) look(v, whole)
@@ -760,8 +743,9 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     look([w.roots, w.others], true)
     look(insts.map(q => holdsAt(fs.facts[q.fact]!.name, q.at)), false)
     const byClass = new Map<string, string[]>()
-    for (const v of values.keys()) { if (!read.has(v)) continue; const r = find(v); (byClass.get(r) ?? byClass.set(r, []).get(r)!).push(v) }
+    for (const v of read) { const r = find(v); (byClass.get(r) ?? byClass.set(r, []).get(r)!).push(v) }
     for (const vs of byClass.values()) for (const v of vs.slice(1)) explain(vs[0]!, v)
+    if (allCong) for (const es of adj.values()) for (const e of es) if (e.cong) { const k2 = JSON.stringify([e.cong.map, e.cong.x, e.cong.y]), k3 = JSON.stringify([e.cong.map, e.cong.y, e.cong.x]); if (!used.has(k2) && !used.has(k3)) used.set(k2, {map: e.cong.map, at: [...e.cong.x, ...e.cong.y], n: 1}) }
   }
   for (const d of used.values()) if (!w.every || d.n >= w.models.length) inst(`cong ${d.map}`, d.at)
   lap(`congruences, ${insts.length} instances, ${w.models.length} models`)
@@ -772,7 +756,7 @@ let varSorts = new Map<string, Data>()
 const idMemo = new WeakMap<object, string>()
 const tid = (t: E): string => { let out = idMemo.get(t); if (out === undefined) idMemo.set(t, (out = JSON.stringify(t))); return out }
 // An instance unfolded where a read's argument equals a constructor's value: the read it stands for (for `reached`).
-const anchoredAt = new Map<string, {read: string, arg: E, value: E}>()
+const anchoredAt = new Map<string, {read: string, arg: E, value: E}[]>()
 const typeOfVar = (_p: Program, t: E): Data | undefined => (t.op === 'var' ? varSorts.get(t.name) : undefined)
 
 // The values a law's conclusion compares (eta is wanted at each: a variable equal to a value built is the constructor at
@@ -856,6 +840,8 @@ function casesOf(p: Program, unfolded: C[], vars: Set<string>, models: M[]): Cas
 // several cases, a main node uses a node per case (each its guards as hypotheses, its own instances), at rank
 // (level, size, 1) above theirs (level, size, 0); a case node uses the main node at the children.
 const dataTrace = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.DATA_TRACE
+// Debugging: every congruence a model's closure makes, not only those explanations use.
+const allCong = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.DATA_ALLCONG
 function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, depth: number, lemmas: Proven[], level: number, pool: M[]): {verdict: CyclicVerdict, specs: NodeSpec[]} {
   const t0 = performance.now()
   // A few models for the instances; the whole pool for the cases (a rare case gets its own models from it).
@@ -935,15 +921,17 @@ function reached(p: Program, fs: Facts, insts: NodeSpec['insts'], from: unknown[
     return []
   }
   const kept = new Set<number>()
+  // A constant's tag (the nullary facts) is read wherever its constant is.
+  for (const [i, q] of insts.entries()) if (fs.facts[q.fact]!.name.startsWith('nullary ')) { kept.add(i); each(holdsAt(fs, q)) }
   for (let changed = true; changed;) {
     changed = false
     for (const [i, q] of insts.entries()) {
       if (kept.has(i)) continue
       const name = fs.facts[q.fact]!.name
       if (name.startsWith('cong ') || name.startsWith('nullary ')) continue
-      const virtual = anchoredAt.get(JSON.stringify([q.fact, q.at]))
-      const same = (v: NonNullable<typeof virtual>) => ms.every(({m, env}) => { try { return m.evalE(v.arg, env) === m.evalE(v.value, env) } catch { return false } })
-      if (!anchor(q).some(a => reach.has(id(a))) && !(virtual && reach.has(virtual.read) && same(virtual))) continue
+      const virtual = anchoredAt.get(JSON.stringify([q.fact, q.at])) ?? []
+      const same = (v: {arg: E, value: E}) => ms.every(({m, env}) => { try { return m.evalE(v.arg, env) === m.evalE(v.value, env) } catch { return false } })
+      if (!anchor(q).some(a => reach.has(id(a))) && !virtual.some(v => reach.has(v.read) && same(v))) continue
       kept.add(i); changed = true
       each(holdsAt(fs, q))
     }
