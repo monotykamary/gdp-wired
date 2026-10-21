@@ -54,7 +54,7 @@ noted), each with the command that reproduces it.
   - `cyc_fold_sound` (`foldNodes`): a tree's table is its post-order, each node after its children; for params that meet
     the precondition a law holds of every tree whose inputs meet the assumption, as `fold_sound` says of the structural
     induction.
-- The encoding is sound as it stands, and `core/cyclic.ts` is unchanged: Ω only needs to be above the run's length (the
+- The encoding was sound as it stood, with no change to `core/cyclic.ts` needed: Ω only needs to be above the run's length (the
   node's T < Ω), and a key needs no bound. What could not be checked in Lean was a cyclic machine proof whose maps are
   read at a key from the state or a request (caps, tally): the exporter refused a cell whose key reads a product of
   cells (Ω·k@[t]). It now places each table column after the columns it reads.
