@@ -49,6 +49,38 @@ const failsClosed = trial.decide('a missing fact means no trial', ({spent}) => s
 const pages = loop('pagination').params({total: nat}).inputs({page: nat}).state({cur: 0}).while(({cur, total}) => cur.lt(total))
   .assume(({page}) => page.atLeast(1)).body(({cur, page, total}) => ({cur: cur.plus(min(page, total.minus(cur)))})).rank(({total, cur}) => total.minus(cur))
 
+// The budget's laws in plain Lean, from its cyclic proof: every sequence of requests, each granted when it fits, keeps
+// what was spent within the cap and the grants at most what was spent (as mccarthy_91 states McCarthy's function).
+const budgetRuns = (ix: (name: string) => number) => {
+  const [cap, spent, n] = [ix('cap'), ix('spent'), ix('n')]
+  const sim = `cycbudget_machine, sNext, sView, decideQ, decideFlags, flagSub, applyS, assoc, lookup, withInputs, withCarried, evalC, evalE`
+  return `/-- The budget, plainly: from nothing spent, each request of amt i ≥ 1 granted (spent + amt i, one more grant) when it
+fits the cap and refused otherwise, what was spent stays within the cap and the grants at most what was spent, after every
+number of requests. -/
+theorem budget_runs (cap : Nat) (hcap : 1 ≤ cap) (amt spent n : Nat → Nat) (hamt : ∀ i, 1 ≤ amt i) (h0 : spent 0 = 0) (hn0 : n 0 = 0)
+    (hs : ∀ i, spent (i + 1) = if spent i + amt i ≤ cap then spent i + amt i else spent i)
+    (hn : ∀ i, n (i + 1) = if spent i + amt i ≤ cap then n i + 1 else n i) (i : Nat) : spent i ≤ cap ∧ n i ≤ spent i := by
+  have reach : ∀ i, ∃ ρ M, SReach cycbudget_machine ρ M ∧ ρ ${spent} = spent i ∧ ρ ${n} = n i ∧ ρ ${cap} = cap := by
+    intro i
+    induction i with
+    | zero =>
+      refine ⟨_, _, SReach.start (fun j => if j = ${cap} then cap else 0) (fun _ _ => 0) (fun p hp => by simp [cycbudget_machine] at hp)
+        (by simp [cycbudget_machine, evalC, evalE, hcap]) (fun l hl => by simp [cycbudget_machine] at hl)
+        (fun p hp => by simp [cycbudget_machine] at hp), ?_, ?_, ?_⟩ <;> simp [${sim}, h0, hn0]
+    | succ i ih =>
+      obtain ⟨ρ, M, hr, h1, h2, h3⟩ := ih
+      refine ⟨_, _, SReach.step ρ M (fun _ => amt i) M hr (by simp [${sim}, hamt]), ?_, ?_, ?_⟩
+      · simp [${sim}, h1, h3, hs i]
+      · simp [${sim}, h1, h2, h3, hn i]
+      · simp [${sim}, h3]
+  obtain ⟨ρ, M, hr, h1, h2, h3⟩ := reach i
+  have l0 : ρ ${spent} ≤ ρ ${cap} := cycbudget.law0 ρ M hr
+  have l1 : ρ ${n} ≤ ρ ${spent} := cycbudget.law1 ρ M hr
+  rw [h1, h3] at l0
+  rw [h1, h2] at l1
+  exact ⟨l0, l1⟩`
+}
+
 const auth = authority()
 // ONLY=id,id,... exports just those items (a quicker check while working on one). The tables of nodes take Lean a few
 // minutes each, so they are checked on their own (the suite's lean-nodes job), and so are the resource groups' laws, one
@@ -105,8 +137,8 @@ const file = toLean(([
   // tampered machine's check against the proof computed to false.
   ...(!only?.some(id => cyclicItems.includes(id)) ? [] : ((): Parameters<typeof toLean>[0] => {
     const proven = (fs: Parameters<typeof proveCyclic>[0], specs: Parameters<typeof proveCyclic>[1]): Cyclic => { const r = proveCyclic(fs, specs); if (!r.proven || !r.checked) throw new Error(`cyclic: ${r.proven ? r.why : r.goal}`); return r.proof }
-    const ofMachine = (id: string, machine: Machine, laws: Law[], tampered?: {what: string, machine: Machine}[]) =>
-      (r => ({id, cyclic: proven(r.facts, r.specs), bridge: {machine, laws, ...(tampered ? {tampered} : {})}}))(machineNodes(machine, laws, proveLaws(machine, laws).proof!.instances))
+    const ofMachine = (id: string, machine: Machine, laws: Law[], tampered?: {what: string, machine: Machine}[], after?: (ix: (name: string) => number) => string) =>
+      (r => ({id, cyclic: proven(r.facts, r.specs), bridge: {machine, laws, ...(tampered ? {tampered} : {})}, ...(after ? {after} : {})}))(machineNodes(machine, laws, proveLaws(machine, laws).proof!.instances))
     const capsLoose = rule('caps').params({d: nat}).inputs({acct: nat, day: nat, ok: bool}).maps({Acct: 0, Day: 0})
       .flags(({ok, acct, Acct}) => ({granted: ok.and(Acct.at(acct).lt(1))}))
       .step(({acct, day, granted, Acct, Day}) => ({Acct: Acct.bump(acct, granted), Day: Day.bump(day, granted)}))
@@ -138,7 +170,7 @@ const file = toLean(([
       ofMachine('cyccaps', caps.machine, [dayCap], [{what: 'a grant that doesn\'t check the day\'s count', machine: capsLoose.machine}]),
       ofMachine('cycfill', fill().machine, fillLaws()),
       ofMachine('cyctally', tally().machine, tallyLaws()),
-      ofMachine('cycbudget', budget().machine, budgetLaws(), [{what: 'a grant that checks what was spent, not what it adds', machine: budget('grants past the cap').machine}]),
+      ofMachine('cycbudget', budget().machine, budgetLaws(), [{what: 'a grant that checks what was spent, not what it adds', machine: budget('grants past the cap').machine}], budgetRuns),
     ]
   })()),
   // A decision that reads conditions about every key, as the step law it is proven as.
