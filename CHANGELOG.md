@@ -40,6 +40,8 @@ noted), each with the command that reproduces it.
     reads (after unfolding the facts twice), a generalization whose conclusion isn't an exact linear fit, bounds on a
     function of two arguments, a machine's liveness with no rank. CHC-COMP's LIA-Lin tasks read no function and state
     no loop, so their verdicts are unchanged (the search isn't reached).
+  - The suite (`modal/suite.json`, 178 jobs with `cycles`, `lean-cycles` and `lean-cycles-loops`): 365.7 s wall and
+    2,624.2 s of job time, none failed; `frontier-score` 54 / 54 (`runs/modal/cycsearch/suite1`).
 
 ## 0.17.0
 

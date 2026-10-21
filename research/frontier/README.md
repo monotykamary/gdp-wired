@@ -38,7 +38,8 @@ their sibling laws (`walls.json`), examples/lemmas.ts's rules with no lemma, fol
 | cycle | 13 | 0 | 13 |
 | all | 54 | 0 | 54 |
 
-Now: the suite's `frontier-score` job, `runs/modal/suite-merged3` (the cycle track: `runs/modal/cycsearch/corpus1`). The last, `(Σx)² <= n·Σx²` over running samples, is
+Now: the suite's `frontier-score` job, `runs/modal/cycsearch/suite1` (54 / 54, and the cycle track's 13 broken variants
+refused; the cycle track's times: `runs/modal/cycsearch/corpus1`). The last, `(Σx)² <= n·Σx²` over running samples, is
 proven by the prover multiplying the goal by n before the squares.
 
 ## Structure: path scopes, the case the docs called the wall
