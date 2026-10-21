@@ -19,7 +19,7 @@ import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type M
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type StepLaw, type Tree, check, foldObligations, loopObligations} from '../kernel/kernel.ts'
 import {factsFor, grow, proveLaws, proveLiveness, proveStepLaws} from '../kernel/prove.ts'
-import {crossCyclic, cyclicOn, foldNodes, proveCyclic, recurNodes} from './cyclic.ts'
+import {crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes} from './cyclic.ts'
 
 // --- terms and conditions -------------------------------------------------------------------------------------------
 
@@ -1234,8 +1234,10 @@ export const recur = <const A extends string = never, U extends Record<string, F
     const r: LooseRule = r0.state({x: 0, fx: ((p: Record<string, Term>) => (zeroReads ? p.fx0! : zeroAt(args.map(a => p[a]!)))) as never})
       .step((env: Record<string, Term>) => ({x: env.x!.plus(1), fx: def.next(env.x!, env.fx!, envAt(args.map(a => env[a]!)))}) as never)
     const laws: Law[] = Object.entries(lemmas).map(([n, f]) => r.law(n, (env: Record<string, Term>) => f(env.x!, env.fx!, envAt(args.map(a => env[a]!)))))
-    verdict = proveRule(r as never, laws)
-    if (cyclicOn()) crossCyclic('recurrence', name, verdict.proven && verdict.checked, () => { const {facts, specs} = recurNodes(recurCase([])); return proveCyclic(facts, specs) })
+    // (Its machine's proof timed alone: the recurrence is compared below as its own instance.)
+    const t0 = performance.now()
+    verdict = quietly(() => proveRule(r as never, laws))
+    if (cyclicOn()) crossCyclic('recurrence', name, verdict.proven && verdict.checked, () => { const {facts, specs} = recurNodes(recurCase([])); return proveCyclic(facts, specs) }, performance.now() - t0)
     failed('lemmas', verdict)
     proofs.lemmas = {machine: (r as Rule).machine, laws}
   }
@@ -1270,8 +1272,8 @@ export const recur = <const A extends string = never, U extends Record<string, F
       .step((env: Record<string, Term>) => ({y: env.y!.plus(1), fy: def.next(env.y!, env.fy!, envAt(at(env)))}) as never)
     const laws = [...Object.entries(lemmas).map(([n, l]) => r.law(`${n} at y`, (env: Record<string, Term>) => l(env.y!, env.fy!, envAt(at(env))))),
       ...Object.entries(between).map(([n, l]) => r.law(n, (env: Record<string, Term>) => l(env.x!, env.fx!, env.y!, env.fy!, envAt(at(env)))))]
-    const v = proveRule(r as never, laws)
-    if (cyclicOn()) crossCyclic('recurrence, between', name, v.proven && v.checked, () => { const {facts, specs} = recurNodes(recurCase(pairs)); return proveCyclic(facts, specs) })
+    const t0 = performance.now(), v = quietly(() => proveRule(r as never, laws)), usualMs = performance.now() - t0
+    if (cyclicOn()) crossCyclic('recurrence, between', name, v.proven && v.checked, () => { const {facts, specs} = recurNodes(recurCase(pairs)); return proveCyclic(facts, specs) }, usualMs)
     failed('laws between two points', v)
     proofs.between = {machine: (r as Rule).machine, laws}
     verdict = {proven: true, checked: verdict.checked && v.checked}
@@ -2413,8 +2415,8 @@ export class FoldRule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}
 export const fold = (name: string): FoldRule => new FoldRule({name, params: [], inputs: [], pre: [], assume: []})
 // A fold's laws proven over every tree (a rose fold's own laws, its children's lemmas, with them).
 export const proveFold = (f: {fold: Fold, lemmas?: Law[]}, laws: Law[]): Verdict => {
-  const all = [...(f.lemmas ?? []), ...laws], v = goalsVerdict(foldObligations(f.fold, all))
-  if (cyclicOn()) crossCyclic('fold', f.fold.name, v.proven && v.checked, () => { const {facts, specs} = foldNodes(f.fold, all); return proveCyclic(facts, specs) })
+  const all = [...(f.lemmas ?? []), ...laws], t0 = performance.now(), v = goalsVerdict(foldObligations(f.fold, all)), usualMs = performance.now() - t0
+  if (cyclicOn()) crossCyclic('fold', f.fold.name, v.proven && v.checked, () => { const {facts, specs} = foldNodes(f.fold, all); return proveCyclic(facts, specs) }, usualMs)
   return v
 }
 

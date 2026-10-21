@@ -111,6 +111,8 @@ const solveP = (rows: Parameters<typeof solve>[0], maxRows?: number): ReturnType
 // PROVE_TRACE=1 logs each goal grown from its root (hypotheses, nodes, time, outcome) to stderr.
 const proveTrace = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.PROVE_TRACE
 // `why`, when the budget ran out: which limit, at what size, and what usually helps.
+// Set while core/cyclic.ts grows its goals.
+export const cellProducts = {on: false}
 export type Outcome = {tree: Tree, nodes: number} | {stuck: 'sat' | 'unknown', witness?: Record<string, number>, path: Path, why?: string}
 
 // The budget: 200,000 nodes and, by default, a second per hypothesis (at least 20 seconds) per goal; past either the goal
@@ -196,7 +198,8 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
   }
   // An equation about a factor (x' = x + 1, a run's next state as a cell) times each factor's sign: e·f = 0 for every
   // factor f, so a monomial of x' is one of x (x'·x' = (x + 1)²). Whatever the number of rows: there are few such pairs.
-  if (!split && monomials) {
+  // Only for cyclic proofs (core/cyclic.ts, whose runs keep each next state as a cell): the usual rules substitute it.
+  if (!split && monomials && cellProducts.on) {
     const factorSet = new Set(rows.flatMap(r => Object.keys(r.lin).filter(isMonomial).flatMap(factorsOf)))
     const byCanon = new Map(rows.map((r, i) => [canon(r.lin), i]))
     const eqs = rows.flatMap((r, i) => (Object.keys(r.lin).some(key => key !== '1' && factorSet.has(key)) && byCanon.has(canon(scale(r.lin, -1))) ? [i] : []))
@@ -771,9 +774,9 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
       focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
     })
   })
-  const out = proveWith(m, laws, instances)
+  const t0 = performance.now(), out = proveWith(m, laws, instances), usualMs = performance.now() - t0
   if (cyclicOn()) {
-    if (cyclicMachine(m, laws)) crossCyclic('machine', m.name, out.proven && out.checked, () => { const {facts, specs} = machineNodes(m, laws, instances); return proveCyclic(facts, specs) })
+    if (cyclicMachine(m, laws)) crossCyclic('machine', m.name, out.proven && out.checked, () => { const {facts, specs} = machineNodes(m, laws, instances); return proveCyclic(facts, specs) }, usualMs)
     else console.error(`cyclic: ${JSON.stringify({kind: 'machine', name: m.name, usual: out.proven && out.checked, uncovered: true})}`)
   }
   return out

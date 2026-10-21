@@ -52,7 +52,9 @@ const auth = authority()
 // minutes each, so they are checked on their own (the suite's lean-nodes job), and so are the resource groups' laws, one
 // per job (lean-groups-0..3, a quarter of an hour together): left out unless ONLY names them.
 const only = process.env.ONLY?.split(',')
-const separately = ['searchtree', 'sheet', 'groups0', 'groups1', 'groups2', 'groups3']
+// Built by jobs of their own (modal/suite.json: lean-big's trees and groups; lean-cyclic's cyclic proofs).
+const cyclicItems = ['mccarthy', 'mutual', 'cycgrowing', 'cyccounter', 'cycrollup']
+const separately = ['searchtree', 'sheet', 'groups0', 'groups1', 'groups2', 'groups3', ...cyclicItems]
 const file = toLean(([
   {id: 'caps', machine: caps.machine, laws: [dayCap], stepLaws: [onlyUp, twice]},
   {id: 'window', machine: window.machine, laws: [window.law('window ceiling', ({ours, c}) => ours.atMost(c))]},
@@ -95,7 +97,7 @@ const file = toLean(([
   // Cyclic proofs (Cyclic.lean's cyclic_sound): McCarthy's 91 function, with three tampered proofs computed to false and
   // the claim in plain Lean; a mutual induction; and today's rules as instances (a recurrence's lemmas and law between,
   // a machine's laws over a function's facts, a fold's laws over trees as tables).
-  ...((): Parameters<typeof toLean>[0] => {
+  ...(!only?.some(id => cyclicItems.includes(id)) ? [] : ((): Parameters<typeof toLean>[0] => {
     const proven = (fs: Parameters<typeof proveCyclic>[0], specs: Parameters<typeof proveCyclic>[1]): Cyclic => { const r = proveCyclic(fs, specs); if (!r.proven || !r.checked) throw new Error(`cyclic: ${r.proven ? r.why : r.goal}`); return r.proof }
     const mc = mccarthy(), p = proven(mc.facts, mc.specs)
     const use0 = (edit: (u: Cyclic['nodes'][number]['uses'][number]) => Cyclic['nodes'][number]['uses'][number]): Cyclic => ({...p, nodes: p.nodes.map(n => ({...n, uses: n.uses.map((u, j) => (j === 0 ? edit(u) : u))}))})
@@ -123,7 +125,7 @@ const file = toLean(([
       ...(r => [{id: 'cyccounter', cyclic: proven(r.facts, r.specs)}])(machineNodes(cm, cl, ci)),
       ...(r => [{id: 'cycrollup', cyclic: proven(r.facts, r.specs)}])(foldNodes(ru.fold, rl)),
     ]
-  })(),
+  })()),
   // A decision that reads conditions about every key, as the step law it is proven as.
   ...(d => [{id: 'subsettrans', machine: d.steps!.rule.machine, laws: [], stepLaws: [d.steps!.law]}])(rule('sets').inputs({n: nat}).carries('A', 'B', 'C').decide('a subset of a subset is a subset', ({A, B, C}) => [A.subsetOf(B), B.subsetOf(C)], ({A, C}) => A.subsetOf(C))),
   {id: 'sortedlist', machine: sortedList().machine, laws: sortedListLaws()},

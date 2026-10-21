@@ -16,7 +16,7 @@ import type {C, E, Law, Machine} from './machine.ts'
 import type {Fold, Goal, Instances, Subst, Tree} from '../kernel/kernel.ts'
 import {substC, substE} from '../kernel/kernel.ts'
 import {type CNode, type Cyclic, type Fact, type Use, descentGoal, mainGoal, premiseGoal, refuseCyclic} from '../kernel/cyclic.ts'
-import {grow} from '../kernel/prove.ts'
+import {cellProducts, grow} from '../kernel/prove.ts'
 
 export type NodeSpec = Omit<CNode, 'uses' | 'main'> & {uses: Omit<Use, 'premises' | 'descent'>[]}
 export type CyclicVerdict = {proven: true, checked: boolean, proof: Cyclic, why?: string} | {proven: false, checked: false, node: string, goal: string, stuck: string}
@@ -41,7 +41,10 @@ export const pair = (u: E, key: E): E => add(u, {op: 'prod', a: key, b: omega})
 export function proveCyclic(facts: Fact[], specs: NodeSpec[]): CyclicVerdict {
   const nodes: CNode[] = []
   const grown = (g: Goal, node: string): Tree | {proven: false, checked: false, node: string, goal: string, stuck: string} => {
-    const o = grow(g)
+    const was = cellProducts.on
+    cellProducts.on = true
+    let o: ReturnType<typeof grow>
+    try { o = grow(g) } finally { cellProducts.on = was }
     return 'tree' in o ? o.tree : {proven: false, checked: false, node, goal: g.name, stuck: o.stuck}
   }
   for (const n of specs) {
@@ -273,9 +276,9 @@ let quiet = 0
 export const cyclicOn = () => quiet === 0 && env()?.GDP_CYCLIC === '1'
 // A search's many trial proofs (core/discover.ts, core/infer.ts) aren't compared: what it finds is proven again.
 export const quietly = <T>(f: () => T): T => { quiet++; try { return f() } finally { quiet-- } }
-export function crossCyclic(kind: string, name: string, usual: boolean, run: () => CyclicVerdict): void {
+export function crossCyclic(kind: string, name: string, usual: boolean, run: () => CyclicVerdict, usualMs?: number): void {
   const t0 = performance.now(), out = run(), ms = Math.round(performance.now() - t0)
   const cyclic = out.proven && out.checked
-  console.error(`cyclic: ${JSON.stringify({kind, name, usual, cyclic, ms, ...(out.proven ? {nodes: out.proof.nodes.length, ...(out.why ? {why: out.why} : {})} : {goal: out.goal, stuck: out.stuck})})}`)
+  console.error(`cyclic: ${JSON.stringify({kind, name, usual, cyclic, ms, ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), ...(out.proven ? {nodes: out.proof.nodes.length, ...(out.why ? {why: out.why} : {})} : {goal: out.goal, stuck: out.stuck})})}`)
   if (cyclic !== usual) throw new Error(`cyclic route: ${kind} ${name} is ${cyclic ? 'proven' : 'not proven'} as a cyclic proof, ${usual ? 'proven' : 'not proven'} the usual way${out.proven ? (out.why ? ` (${out.why})` : '') : ` (${out.goal}: ${out.stuck})`}`)
 }
