@@ -10,6 +10,7 @@
 //     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {type Lin, type Step, add, k, refuteFast, scale, solve, sub, v} from '../core/solver.ts'
+import {checkRefutation} from '../core/check.ts'
 import {crossCyclic, cyclicMachine, cyclicOn, machineNodes, proveCyclic} from '../core/cyclic.ts'
 import {type Goal, type Instances, type Liveness, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
@@ -73,12 +74,34 @@ function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
     if (p.slice(0, p.indexOf('[')) !== q.slice(0, q.indexOf('['))) continue
     const d = sub(parse(keyText(p)), parse(keyText(q)))
     const dec = (lin: Lin) => path.get(canon(lin))?.holds ?? (path.has(canonFlip(lin)) ? !path.get(canonFlip(lin))!.holds : undefined)
+    // Two cells of a run's map (core/cyclic.ts: time u and key k at u + k·Ω) at keys k·Ω and k'·Ω: k = k' first, a
+    // linear atom; the keys' own difference only where k = k' (its other side then refuted by (k − k')·Ω = 0, a product).
+    const q0 = cellProducts.on ? quotient(d) : undefined
+    if (q0) {
+      const qa = dec(q0), qb = dec(scale(q0, -1))
+      if (qa === undefined) { out.push(q0); continue }
+      if (qa === true && qb === undefined) { out.push(scale(q0, -1)); continue }
+      if (!(qa && qb)) continue
+      cellDiffs.set(canon(d), q0); cellDiffs.set(canon(scale(d, -1)), scale(q0, -1))
+    }
     const a = dec(d), b = dec(scale(d, -1))
     if (a === undefined) out.push(d)
     else if (a === true && b === undefined) out.push(scale(d, -1))
   }
   return out
 }
+// A key difference q·F over monomials that share one factor F (Ω), with no other part: q, else undefined.
+const quotient = (d: Lin): Lin | undefined => {
+  const keys = Object.keys(d)
+  if (!keys.length || keys.some(key => key === '1' || !isMonomial(key))) return undefined
+  const shared = factorsOf(keys[0]!).find(f => keys.every(key => factorsOf(key).includes(f)))
+  if (!shared) return undefined
+  const out: Lin = {}
+  for (const key of keys) { const fs = [...factorsOf(key)]; fs.splice(fs.indexOf(shared), 1); out[fs.join('*')] = (out[fs.join('*')] ?? 0) + d[key]! }
+  return out
+}
+// The cells' key differences split at their quotient's equality, by canonical text: their quotient.
+const cellDiffs = new Map<string, Lin>()
 function parse(text: string): Lin {
   const out: Lin = {}
   let depth = 0, start = 0
@@ -213,6 +236,20 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
     if (fast?.kind === 'refuted') return {tree: {leaf: fast.steps}, nodes: budget.nodes}
   }
   let split = next ?? (verdict.kind === 'unknown' ? bisect(rows, path) ?? fractional(verdict.point, path) : undefined)
+  // A cell difference's failing side (k = k' on the path, the keys apart): (k − k')·Ω = 0 refutes it, a product of each
+  // of the path's two atoms k − k' <= 0 and k' − k <= 0 with Ω >= 0.
+  if (cellProducts.on && path.size) {
+    const [id, last] = [...path].at(-1)!, q0 = !last.holds ? cellDiffs.get(id) : undefined
+    if (q0) {
+      const at = (lin: Lin) => rows.findIndex(r => canon(r.lin) === canon(lin))
+      const d = last.lin, f = factorsOf(Object.keys(d)[0]!).find(x => !Object.keys(q0).includes(x) && Object.keys(d).every(key => factorsOf(key).includes(x)))
+      const e1 = at(q0), e2 = at(scale(q0, -1)), sign = f === undefined ? -1 : at({[f]: -1})
+      if (e1 >= 0 && e2 >= 0 && sign >= 0) {
+        const pairs: [number, number][] = [[e1, sign], [e2, sign]], out = solve(withProducts(rows, pairs))
+        if (out.kind === 'refuted') return {tree: leafOf(out.steps, pairs), nodes: budget.nodes}
+      }
+    }
+  }
   // Products: with monomials about, try every pair of rows multiplied; failing that, split a factor at zero.
   const monomials = rows.some(r => Object.keys(r.lin).some(isMonomial))
   // A witness that multiplies out (each monomial's value is its factors' product) is a real model: nothing to refute.
@@ -467,11 +504,13 @@ export function widen(part: Goal, whole: Goal, tree: Tree, opaque: Record<string
   const rp = rowsAt(part, pp), rw = rowsAt(whole, wp), at = new Map<string, number>()
   rw.forEach((r, i) => { const key = canon(r.lin); if (!at.has(key)) at.set(key, i) })
   const map = (i: number) => { if (i >= rp.length) return i - rp.length + rw.length; const l = rename(rp[i]!.lin); return l && at.get(canon(l)) }
-  const leaf: Step[] = [], products: [number, number][] = []
-  let ok = !names.length || !(tree.products?.length || tree.squares?.length)
+  const leaf: Step[] = [], products: [number, number][] = [], squares = (tree.squares ?? []).map(rename)
+  let ok = squares.every(Boolean)
   for (const st of ok ? tree.leaf : []) { if (st.kind !== 'input') { leaf.push(st); continue } const j = map(st.index); if (j === undefined) { ok = false; break } leaf.push({...st, index: j}) }
   for (const [i, j] of ok ? tree.products ?? [] : []) { const pi = map(i), pj = map(j); if (pi === undefined || pj === undefined) { ok = false; break } products.push([pi, pj]) }
-  if (ok) return {leaf, ...(tree.products ? {products} : {}), ...(tree.squares ? {squares: tree.squares} : {})}
+  // (renamed, a derivation through products or cuts is replayed: a cut's divisor may not divide the terms' coefficients)
+  if (ok && names.length && !checkRefutation(withProducts(rw, products, squares as Lin[]), leaf)) ok = false
+  if (ok) return {leaf, ...(tree.products ? {products} : {}), ...(tree.squares ? {squares: squares as Lin[]} : {})}
   const absurd = rw.findIndex(r => Object.keys(r.lin).every(key => key === '1') && (r.lin['1'] ?? 0) > 0)
   if (absurd >= 0) return {leaf: [{kind: 'input', index: absurd}]}
   const out = grow(whole, wp)

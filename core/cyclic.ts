@@ -62,8 +62,14 @@ function timedKind<T>(kind: string, hyps: number, f: () => T): T {
 // its terms' cells and its guard's; any other part reached when it shares a cell with what is, or reads none. The
 // weaker goal's tree is the whole goal's (`widen`); where the weaker goal isn't refuted, the whole is grown as before.
 // GDP_CYCLIC_SLICE=0 grows the whole goal only.
+// A cell by what it may be equal to: a run's map read at time u and any key (two keys the prover may prove equal) is
+// one, by its map and u; a function's read at any key is one, by the function; a run's other reads are themselves.
 const cellsIn = (t: unknown, out = new Set<string>()): Set<string> => {
-  if (t && typeof t === 'object') { const o = t as Record<string, unknown>; if (o.op === 'get') out.add(JSON.stringify(o)); for (const val of Object.values(o)) cellsIn(val, out) }
+  if (t && typeof t === 'object') {
+    const o = t as Record<string, unknown>, map = o.map as string
+    if (o.op === 'get') { const key = o.key as E; out.add(key.op === 'add' && key.b.op === 'prod' && JSON.stringify(key.b.b) === JSON.stringify(omega) ? `${map}@${JSON.stringify(key.a)}` : map.endsWith('@') ? JSON.stringify(o) : map) }
+    for (const val of Object.values(o)) cellsIn(val, out)
+  }
   return out
 }
 // A hypothesis' parts: through its conjunctions and its guarded parts (¬g ∨ x), each part with the guards it is under;
@@ -80,13 +86,18 @@ function rebuild(c: C, keep: (j: number) => boolean, at = {j: 0}): C | undefined
   if (c.op === 'or' && c.xs.length === 2 && c.xs[0]!.op === 'not') { const b = rebuild(c.xs[1]!, keep, at); return b && {op: 'or', xs: [c.xs[0]!, b]} }
   return keep(at.j++) ? c : undefined
 }
-export function slice(g: Goal, whole: (i: number) => boolean): (Goal & {from: number[][]}) | undefined {
+// The hypotheses with a part the goal reaches (whole ones included).
+export function reached(g: Goal, whole: (i: number) => boolean): Set<number> { return slice(g, whole, true) as Set<number> }
+export function slice(g: Goal, whole: (i: number) => boolean): (Goal & {from: number[][]}) | undefined
+export function slice(g: Goal, whole: (i: number) => boolean, hypsOnly: true): Set<number>
+export function slice(g: Goal, whole: (i: number) => boolean, hypsOnly = false): (Goal & {from: number[][]}) | Set<number> | undefined {
   const reach = new Set<string>(), parts = g.hyps.map(h => partsOf(h))
   const pieces: (Part & {i: number, j: number, gives?: string, cells: Set<string>})[] = []
   g.hyps.forEach((h, i) => {
     if (whole(i)) { cellsIn(h, reach); return }
     parts[i]!.forEach(({c, guards}, j) => {
-      const gives = c.op === '=' && c.a.op === 'get' ? JSON.stringify(c.a) : undefined, cells = cellsIn(c.op === '=' && gives ? c.b : c)
+      // (an equation between two reads, a law's, gives neither: it is reached by either)
+      const gives = c.op === '=' && c.a.op === 'get' && c.b.op !== 'get' ? [...cellsIn(c.a)][0] : undefined, cells = cellsIn(c.op === '=' && gives ? c.b : c)
       for (const x of guards) cellsIn(x, cells)
       pieces.push({c, guards, i, j, gives, cells})
     })
@@ -101,6 +112,7 @@ export function slice(g: Goal, whole: (i: number) => boolean): (Goal & {from: nu
       if (p.gives) reach.add(p.gives)
     }
   }
+  if (hypsOnly) return new Set(g.hyps.flatMap((_, i) => (whole(i) || pieces.some((p, q) => p.i === i && kept.has(q)) ? [i] : [])))
   // The equations that give a cell the conclusion reads (a step's, the start's) join the conclusion, under their guards:
   // the prover splits the conclusion's atoms first, as the usual rule does a law read after the step.
   const last = g.hyps.length - 1, concl = whole(last) ? cellsIn(g.hyps[last]) : new Set<string>()
@@ -135,12 +147,12 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = 
     try {
       const sliced = sliceOn() ? slice(g, own) : undefined, part = sliced && hide(sliced)
       if (part) {
-        // (within a few seconds: a weaker goal no easier than the whole is left to the whole)
-        const t0 = performance.now(), p = timedKind(`${kind} sliced`, part.hyps.length, () => grow(part, new Map(), {nodes: 0, until: performance.now() + 5_000}))
+        // (within two seconds: a weaker goal no easier than the whole is left to the whole)
+        const t0 = performance.now(), p = timedKind(`${kind} sliced`, part.hyps.length, () => grow(part, new Map(), {nodes: 0, until: performance.now() + 2_000}))
         if (env()?.GDP_CYCLIC_DEBUG) console.error(`[cyc] ${g.name}: ${part.hyps.length} hyps${part !== sliced ? ' (opaque)' : ''}, ${'tree' in p ? `${p.nodes} nodes` : p.stuck}, ${Math.round(performance.now() - t0)} ms`)
         if ('tree' in p) return {tree: p.tree, from: part, used: () => new Set([...usedHyps(part, p.tree)].flatMap(i => part.from[i]!))}
         if (part !== sliced) {
-          const q = timedKind(`${kind} sliced`, sliced.hyps.length, () => grow(sliced, new Map(), {nodes: 0, until: performance.now() + 5_000}))
+          const q = timedKind(`${kind} sliced`, sliced.hyps.length, () => grow(sliced, new Map(), {nodes: 0, until: performance.now() + 2_000}))
           if ('tree' in q) return {tree: q.tree, from: sliced, used: () => new Set([...usedHyps(sliced, q.tree)].flatMap(i => sliced.from[i]!))}
         }
       }
@@ -148,6 +160,7 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = 
       return 'tree' in o ? {tree: o.tree, from: g, used: () => usedHyps(g, o.tree)} : {proven: false, checked: false, node, goal: g.name, stuck: o.stuck}
     } finally { cellProducts.on = was }
   }
+  const withProducts = <T>(f: () => T): T => { const was = cellProducts.on; cellProducts.on = true; try { return f() } finally { cellProducts.on = was } }
   // The tree made the goal's own (a weaker goal's widened), or grown on the goal itself where that fails.
   const own = (r: {tree: Tree, from: Goal}, g: Goal): Tree | undefined => (r.from === g ? r.tree : timedKind('widen', 0, () => widen(r.from, g, r.tree, opaqueOf.get(r.from))))
   const whole = (g: Goal, node: string, mine: (i: number) => boolean): Tree | Stuck => {
@@ -182,34 +195,55 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = 
     const n1 = {...n0, insts: n0.insts.filter(p => facts[p.fact])}
     const base = baseHyps(facts, n1).length, mine = (tail: number) => (i: number) => i < n1.hyps.length || i >= base + tail
     const g = mainGoal(facts, shapes, n1), key = JSON.stringify(g.hyps), before = grownBefore.get(key)
-    let n = n1, main: Tree
-    if (before) { n = {...n1, insts: before.insts?.map(i => n1.insts[i]!) ?? n1.insts, uses: before.uses?.map(j => n1.uses[j]!) ?? n1.uses}; main = before.tree }
+    let n = n1, main: Tree | undefined, src: {tree: Tree, from: Goal} | undefined
+    if (before) { n = {...n1, insts: before.insts?.map(i => n1.insts[i]!) ?? n1.insts, uses: before.uses?.map(j => n1.uses[j]!) ?? n1.uses}; main = before.tree; src = {tree: main, from: mainGoal(facts, shapes, n)} }
     else {
-      const r = grown(g, n1.name, mine(n1.uses.length))
-      if ('proven' in r) return r
-      const used = timedKind('used', 0, r.used), h = n1.hyps.length
-      const trim = {...n1, insts: n1.insts.filter((_, i) => used.has(h + i)), uses: n1.uses.filter((_, j) => used.has(base + j))}
-      const g2 = trim.insts.length < n1.insts.length || trim.uses.length < n1.uses.length ? mainGoal(facts, shapes, trim) : g
-      const t2 = own(r, g2), t = t2 ?? own(r, g) ?? (() => { const o = grow(g); return 'tree' in o ? o.tree : undefined })()
-      if (!t) return {proven: false, checked: false, node: n1.name, goal: g.name, stuck: 'unknown'}
-      if (t2) n = trim
-      main = t
+      // First the node with only the facts and uses its goal reaches, its goal grown as it is (within two seconds).
+      const h0 = n1.hyps.length, keep = sliceOn() ? reached(g, mine(n1.uses.length)) : undefined
+      const n2 = keep && {...n1, insts: n1.insts.filter((_, i) => keep.has(h0 + i)), uses: n1.uses.filter((_, j) => keep.has(base + j))}
+      if (n2 && (n2.insts.length < n1.insts.length || n2.uses.length < n1.uses.length)) {
+        const g2 = mainGoal(facts, shapes, n2), part = hide(g2)
+        const p = timedKind('main selected', g2.hyps.length, () => withProducts(() => grow(part, new Map(), {nodes: 0, until: performance.now() + 2_000})))
+        if (env()?.GDP_CYCLIC_DEBUG) console.error(`[cyc] ${g.name}: ${g2.hyps.length} of ${g.hyps.length} hyps selected, ${'tree' in p ? `${p.nodes} nodes` : p.stuck}`)
+        const t = 'tree' in p ? own({tree: p.tree, from: part}, g2) : undefined
+        if (t && 'tree' in p) { n = n2; main = t; src = {tree: p.tree, from: part} }
+      }
+      // Then the whole node, its goal sliced; it keeps the facts and uses its tree reads.
+      if (!main) {
+        const r = grown(g, n1.name, mine(n1.uses.length))
+        if ('proven' in r) return r
+        const used = timedKind('used', 0, r.used)
+        const trim = {...n1, insts: n1.insts.filter((_, i) => used.has(h0 + i)), uses: n1.uses.filter((_, j) => used.has(base + j))}
+        const g2 = trim.insts.length < n1.insts.length || trim.uses.length < n1.uses.length ? mainGoal(facts, shapes, trim) : g
+        const t2 = own(r, g2)
+        main = t2 ?? own(r, g) ?? (() => { const o = grow(g); return 'tree' in o ? o.tree : undefined })()
+        if (!main) return {proven: false, checked: false, node: n1.name, goal: g.name, stuck: 'unknown'}
+        if (t2) n = trim
+        src = {tree: r.tree, from: r.from}
+      }
       if (grownBefore.size >= 4096) grownBefore.clear()
       grownBefore.set(key, {tree: main, insts: n.insts.map(p => n1.insts.indexOf(p)), uses: n.uses.map(u => n1.uses.indexOf(u))})
     }
     hidden = []
-    const nb = baseHyps(facts, n).length, mine2 = (i: number) => i < n.hyps.length || i >= nb
-    const uses: Use[] = []
-    for (const u of n.uses) {
-      const m = shapes[u.node]
-      if (!m) return {proven: false, checked: false, node: n.name, goal: `use of node ${u.node}`, stuck: 'no such node'}
-      const premises: Tree[] = []
-      for (const [i, c] of m.hyps.entries()) { const t = whole(premiseGoal(facts, n, u, c, i), n.name, mine2); if ('proven' in t) return t; premises.push(t) }
-      const descent = whole(descentGoal(facts, n, u, m), n.name, mine2)
-      if ('proven' in descent) return descent
-      uses.push({...u, premises, descent})
+    // Each use's goals; where one isn't proven with the facts the node kept, again with all of them.
+    const usesOf = (n: Omit<CNode, 'uses' | 'main'> & {uses: NodeSpec['uses']}): Use[] | Stuck => {
+      const nb = baseHyps(facts, n).length, mine2 = (i: number) => i < n.hyps.length || i >= nb, out: Use[] = []
+      for (const u of n.uses) {
+        const m = shapes[u.node]
+        if (!m) return {proven: false, checked: false, node: n.name, goal: `use of node ${u.node}`, stuck: 'no such node'}
+        const premises: Tree[] = []
+        for (const [i, c] of m.hyps.entries()) { const t = whole(premiseGoal(facts, n, u, c, i), n.name, mine2); if ('proven' in t) return t; premises.push(t) }
+        const descent = whole(descentGoal(facts, n, u, m), n.name, mine2)
+        if ('proven' in descent) return descent
+        out.push({...u, premises, descent})
+      }
+      return out
     }
-    return {...n, uses, main}
+    const uses = usesOf(n)
+    if (!('proven' in uses)) return {...n, uses, main: main!}
+    if (n.insts.length === n1.insts.length || !src) return uses
+    const n3 = {...n, insts: n1.insts}, main3 = own(src, mainGoal(facts, shapes, n3)), uses3 = main3 ? usesOf(n3) : uses
+    return main3 && !('proven' in uses3) ? {...n3, uses: uses3, main: main3} : uses
   }
   for (const i of order) {
     let failed: Stuck | undefined
@@ -257,12 +291,37 @@ export function recurNodes(r: RecurCase): {facts: Fact[], specs: NodeSpec[]} {
     insts: [{fact: 1, at: [less1(y)]}],
     uses: [...r.between.map((_, j) => ({node: n + j, subst: {y: less1(y)}, guard: le(add(x, k(1)), y)})), ...lemmaUses(x, yes), ...lemmaUses(y, yes), ...lemmaUses(less1(y), le(k(1), y))],
   })
-  return {facts, specs: withReads(facts, specs)}
+  if (!stepNodesOn()) return {facts, specs: withReads(facts, specs)}
+  // Each lemma and law twice, as a machine's laws are (GDP_CYCLIC_STEP=0 states the first alone): at x (rank (0, x, 1)),
+  // from f(0) or from the lemma after a step to x, rank (0, x, 0), read at next(x − 1, f(x − 1)) (the usual rule's step
+  // goal) and using every lemma at x − 1; a law between x and y likewise at y (rank (1, y, ·)), after a step to y using
+  // the laws at y − 1 and the lemmas at x and y − 1.
+  const b = r.between.length, step = (e: E) => substE(r.next, vars({x: less1(e), prev: get(f, less1(e))}))
+  const atStep = (l: {holds: C}) => substC(l.holds, vars({x, fx: step(x)}))
+  const lemmaAfter = r.lemmas.map((l): NodeSpec => {
+    const name = `${r.name}: ${l.name}, after a step`, hyps = [le(k(1), x)]
+    return {name, hyps, concl: atStep(l), rank: [k(0), x, k(0)], insts: [], uses: lemmaUses(less1(x), yes), variants: [{name, hyps, concl: yes, rank: [k(0), x, k(0)], insts: [], uses: [], weak: true}]}
+  })
+  const betweenAfter = r.between.map((l): NodeSpec => {
+    const name = `${r.name}: ${l.name}, after a step`, hyps = [le(add(x, k(1)), y)]
+    return {name, hyps, concl: substC(l.holds, vars({x, fx: get(f, x), y, fy: step(y)})), rank: [k(1), y, k(0)], insts: [],
+      uses: [...r.between.map((_, j) => ({node: n + j, subst: {y: less1(y)}, guard: yes})), ...lemmaUses(x, yes), ...lemmaUses(less1(y), yes)],
+      variants: [{name, hyps, concl: yes, rank: [k(1), y, k(0)], insts: [], uses: [], weak: true}]}
+  })
+  const own = specs.map((sp, i): NodeSpec => {
+    const lemma = i < n, a: NodeSpec = {...sp, rank: [...sp.rank, k(1)], insts: lemma ? sp.insts : [{fact: 1, at: [less1(y)]}],
+      uses: lemma ? [{node: n + b + i, subst: {}, guard: le(k(1), x)}] : [{node: 2 * n + b + (i - n), subst: {}, guard: le(add(x, k(1)), y)}, ...lemmaUses(x, yes), ...lemmaUses(y, yes)],
+      variants: [{...sp, rank: [...sp.rank, k(1)]}]}
+    return a
+  })
+  const all = withReads(facts, [...own, ...lemmaAfter, ...betweenAfter])
+  for (const [i, a] of all.slice(0, n + b).entries()) { const o = shared(facts, a, all[n + b + i]!.concl); if (o.length) all[i] = {...a, opaque: o} }
+  return {facts, specs: all.map(sp => (sp.variants ? {...sp, variants: withReads(facts, sp.variants, all)} : sp))}
 }
 
 // Function facts at the keys a node's goal reads them at: each fact about every key of a function read f[k] (the key
 // alone) at each key f is read at, twice over (a fact's own reads give more keys).
-function withReads(facts: Fact[], specs: NodeSpec[]): NodeSpec[] {
+function withReads(facts: Fact[], specs: NodeSpec[], nodes: NodeSpec[] = specs): NodeSpec[] {
   const simple = facts.flatMap((f, i) => {
     if (f.keys.length !== 1) return []
     const reads = [...JSON.stringify(f.holds).matchAll(/"op":"get","map":"([^"]+)","key":\{"op":"var","name":"([^"]+)"\}/g)].filter(m => m[2] === f.keys[0])
@@ -273,7 +332,7 @@ function withReads(facts: Fact[], specs: NodeSpec[]): NodeSpec[] {
   return specs.map(n => {
     const insts = [...n.insts], seen = new Set(insts.map(p => JSON.stringify(p)))
     for (let round = 0; round < 2; round++) {
-      const goal = [n.hyps, n.concl, insts.map(p => substC(facts[p.fact]!.holds, vars(Object.fromEntries(facts[p.fact]!.keys.map((key, i) => [key, p.at[i]!]))))), n.uses.map(u => substC(specs[u.node]!.concl, vars(u.subst)))]
+      const goal = [n.hyps, n.concl, insts.map(p => substC(facts[p.fact]!.holds, vars(Object.fromEntries(facts[p.fact]!.keys.map((key, i) => [key, p.at[i]!]))))), n.uses.map(u => substC(nodes[u.node]!.concl, vars(u.subst)))]
       for (const s of simple) for (const key of readsIn(goal, s.map)) {
         const p = {fact: s.fact, at: [key]}, id = JSON.stringify(p)
         if (!seen.has(id)) { seen.add(id); insts.push(p) }
@@ -354,6 +413,8 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
     {name: `${m.name}: params are naturals`, keys: [], holds: and(yes, ...m.params.map(x => le(k(0), v(x))))},
   ]
   const fi = (name: string) => facts.findIndex(f => f.name === name)
+  // The run's facts at time t: the start and the step (Bridge.lean's cycCanon has them so).
+  const run = (when: E): NodeSpec['insts'] => [{fact: 0, at: [when]}, {fact: 1, at: [when]}]
   const nexts = new Map(state.flatMap(s => { const e = m.step.state?.[s]; return e && !(e.op === 'var' && e.name === s) && afterOn() ? [[JSON.stringify(inlineE(e)), get(`${s}@`, t)] as const] : [] }))
   const afterStep = (e: E): E => {
     const walk = (x: unknown): unknown => (Array.isArray(x) ? x.map(walk) : !x || typeof x !== 'object' ? x
@@ -408,7 +469,7 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
     const nowNodes = laws.map((l, i): NodeSpec => {
       const concl = substC(l.holds, at(t)), inst = instances[l.name] ?? {}
       const hyps = [...(m.pre ? [m.pre] : []), le(t, T), ...omegaHyp], uses = [{node: L + i, subst: {}, guard: one}]
-      const lean = [{fact: 0, at: [t]}, {fact: 1, at: [t]}, ...mapInsts(concl), ...naturals(t), params]
+      const lean = [...run(t), ...mapInsts(concl), ...naturals(t), params]
       const fns = fnInsts(inst, at(t))
       return {name: `${m.name}: ${l.name}`, hyps, concl, rank: [t, k(1)], insts: lean, uses,
         variants: [...(fns.length ? [{name: `${m.name}: ${l.name}`, hyps, concl, rank: [t, k(1)], insts: [...lean, ...fns], uses}] : []), {...single[i]!, rank: [t, k(1)]}]}
@@ -427,18 +488,7 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
     })
     // The law at t reads the law after the step and the step's facts at t: the terms they share (the state the step
     // gives) are opaque to its search, so that it carries the one to the other without splitting the step's cases.
-    for (const [i, a] of nowNodes.entries()) {
-      const theirs = JSON.stringify(instHyps(facts, a.insts)), seen = new Set<string>(), out: E[] = []
-      const walk = (x: unknown): void => {
-        if (!x || typeof x !== 'object') return
-        if (Array.isArray(x)) { x.forEach(walk); return }
-        const o = x as E, id = JSON.stringify(o)
-        if (['if', 'add', 'sub', 'min', 'max', 'mul', 'prod'].includes(o.op) && theirs.includes(id)) { if (!seen.has(id)) { seen.add(id); out.push(o) } return }
-        for (const val of Object.values(o)) walk(val)
-      }
-      walk(stepNodes[i]!.concl)
-      if (out.length) a.opaque = out.sort((x, y) => JSON.stringify(y).length - JSON.stringify(x).length)
-    }
+    for (const [i, a] of nowNodes.entries()) { const o = shared(facts, a, stepNodes[i]!.concl); if (o.length) a.opaque = o }
     return [...nowNodes, ...stepNodes]
   }
   const specs: NodeSpec[] = laws.map(l => {
@@ -450,7 +500,7 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
     // A function's fact also at its keys with the terms the step gives a state variable (the usual proof reads the state
     // after the step so) as that variable's cell at t, where it then reads the function where the law at t does: at the
     // key its own reads are at, not one the prover would have to prove equal to it.
-    const fnReads = (x: unknown) => [...cellsIn(x)].filter(c => !(JSON.parse(c) as {map: string}).map.endsWith('@'))
+    const fnReads = (x: unknown): string[] => { const out: string[] = []; const walk = (y: unknown): void => { if (y && typeof y === 'object') { const o = y as Record<string, unknown>; if (o.op === 'get' && !(o.map as string).endsWith('@')) out.push(JSON.stringify(o)); Object.values(o).forEach(walk) } }; walk(x); return out }
     const concl = substC(l.holds, at(t)), reads = new Set(fnReads(concl))
     const after = (e: E) => substE(afterStep(substE(e, vars(fresh))), pre)
     const both = <T>(tuple: E[], make: (ks: E[]) => T, read: (x: T) => unknown): T[] => {
@@ -475,10 +525,33 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
     const base = mapInsts([concl, useConcls])
     return {
       name: `${m.name}: ${l.name}`, hyps: [...(m.pre ? [m.pre] : []), le(t, T), ...(mapNames.length ? [{op: '<', a: T, b: omega} as C] : [])], concl, rank: [t],
-      insts: [{fact: 0, at: [t]}, {fact: 1, at: [t]}, ...factInsts, ...base, ...state.map(st => ({fact: fi(`${m.name}: ${st} is a natural`), at: [t]})), {fact: fi(`${m.name}: params are naturals`), at: []}], uses,
+      insts: [...run(t), ...factInsts, ...base, ...state.map(st => ({fact: fi(`${m.name}: ${st} is a natural`), at: [t]})), {fact: fi(`${m.name}: params are naturals`), at: []}], uses,
     }
   })
   return {facts, specs: stepNodesOn() ? stepNodes(specs) : specs}
+}
+
+// The terms (not a read, a variable or a constant) of a conclusion that a node's facts read too, largest first; none
+// inside a product (a product of a term's linear form is no linear form).
+function shared(facts: Fact[], a: NodeSpec, concl: C): E[] {
+  const inst = instHyps(facts, a.insts), theirs = JSON.stringify(inst), seen = new Set<string>(), out: E[] = [], factors = new Set<string>()
+  const inProducts = (x: unknown, under = false): void => {
+    if (!x || typeof x !== 'object') return
+    if (Array.isArray(x)) { x.forEach(y => inProducts(y, under)); return }
+    const o = x as E
+    if (under) factors.add(JSON.stringify(o))
+    for (const val of Object.values(o)) inProducts(val, under || o.op === 'prod')
+  }
+  inProducts([concl, inst])
+  const walk = (x: unknown): void => {
+    if (!x || typeof x !== 'object') return
+    if (Array.isArray(x)) { x.forEach(walk); return }
+    const o = x as E, id = JSON.stringify(o)
+    if (['if', 'add', 'sub', 'min', 'max', 'mul', 'prod'].includes(o.op) && theirs.includes(id) && !factors.has(id)) { if (!seen.has(id)) { seen.add(id); out.push(o) } return }
+    for (const val of Object.values(o)) walk(val)
+  }
+  walk(concl)
+  return out.sort((x, y) => JSON.stringify(y).length - JSON.stringify(x).length)
 }
 
 // --- folds over trees -----------------------------------------------------------------------------------------------
@@ -503,7 +576,24 @@ export function foldNodes(f: Fold, laws: Law[]): {facts: Fact[], specs: NodeSpec
     insts: [{fact: 0, at: [n]}, ...[n, left(n), right(n)].map(i => ({fact: 1, at: [i]})), {fact: 2, at: []}],
     uses: laws.flatMap((_, j) => [left, right].map(c => ({node: j, subst: {'n$': c(n)}, guard: eq(kind(n), k(1))}))),
   }))
-  return {facts, specs}
+  if (!stepNodesOn()) return {facts, specs}
+  // Each law twice, as a machine's are (GDP_CYCLIC_STEP=0 states the first alone): at a node n, rank (n, 1), from the
+  // table's leaf case or from the law at a node from its children, rank (n, 0), the law read at the values the node's
+  // case gives (the usual rule's node goal, over the table's cells at its children), using every law at both children.
+  const L = laws.length, hyps = [...(f.pre ? [f.pre] : []), {op: '<', a: n, b: N} as C], inner = eq(kind(n), k(1))
+  const valuesAt = vars({...Object.fromEntries(f.inputs.map(x => [x, get(`${x}@`, n)])), ...Object.fromEntries(names.map(x => [x, substE(f.node[x]!, nodeAt(n))]))})
+  const fromChildren = laws.map((l): NodeSpec => {
+    const name = `${f.name}: ${l.name}, from its children`, h = [...hyps, inner]
+    return {name, hyps: h, concl: substC(l.holds, valuesAt), rank: [n, k(0)], insts: [{fact: 0, at: [n]}, ...[left(n), right(n)].map(i => ({fact: 1, at: [i]})), {fact: 2, at: []}],
+      uses: laws.flatMap((_, j) => [left, right].map(c => ({node: j, subst: {'n$': c(n)}, guard: yes}))), variants: [{name, hyps: h, concl: yes, rank: [n, k(0)], insts: [], uses: [], weak: true}]}
+  })
+  const atNode = laws.map((l, i): NodeSpec => {
+    const a: NodeSpec = {name: `${f.name}: ${l.name}`, hyps, concl: substC(l.holds, at(n)), rank: [n, k(1)], insts: [{fact: 0, at: [n]}, {fact: 1, at: [n]}, {fact: 2, at: []}],
+      uses: [{node: L + i, subst: {}, guard: inner}], variants: [{...specs[i]!, rank: [n, k(1)]}]}
+    const o = shared(facts, a, fromChildren[i]!.concl)
+    return o.length ? {...a, opaque: o} : a
+  })
+  return {facts, specs: [...atNode, ...fromChildren]}
 }
 
 // --- the cyclic route beside the usual one (GDP_CYCLIC=1) -------------------------------------------------------------
