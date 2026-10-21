@@ -3,7 +3,10 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.17.0
+
+Cyclic proofs in the kernel and its Lean twin, and a prover about twice as fast: the suite (175 jobs) passes in
+372.3 s wall and 2,378.3 s of job time at this release (`runs/modal/rel017-suite`).
 
 - Faster proofs, and a suite at about half its time. The prover keeps a quantified flag's or an every-key law's
   instance only where the goal reads a map the way its condition reads one at its key (a tuple, where each of its keys
