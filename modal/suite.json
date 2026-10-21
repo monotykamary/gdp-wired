@@ -932,6 +932,13 @@
 "timeout": 900
 },
 {
+"name": "cycles",
+"cmd": "bun test cycles.test.ts 2>&1 && cd .. && bun examples/cycles.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
 "name": "lemmas",
 "cmd": "bun test lemmas.test.ts 2>&1 && cd .. && bun examples/lemmas.ts 2>&1",
 "cwd": "core",
@@ -1229,6 +1236,14 @@
 {
 "name": "lean-cyclic",
 "cmd": "ONLY=mccarthy,mutual,cycgrowing,cyccounter,cycrollup bash scripts/lean-items.sh 2>&1",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800
+},
+{
+"name": "lean-cycles",
+"cmd": "ONLY=cycmc91,cycgcd,cycacc,cycacc2,cycring,cycthrough,loopphases,loopphases3,loopother,loopeuclid,rule91,rule91lemma,ruledouble,ruledoublelemma bash scripts/lean-items.sh 2>&1",
 "cwd": ".",
 "cpu": 4.0,
 "memory": 8192,

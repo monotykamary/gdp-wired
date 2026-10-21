@@ -408,7 +408,6 @@ function build(facts: Fact[], cx: Ctx, nodes: Node[], depth: number, big: number
     if (!within.length) { for (const i of idx) parts.set(i, []); continue }
     let best = {...lexRanks(idx, nodes, samples, within, shared, until), name: shared}
     if (best.left && idx.length > 1 && idx.length <= 4) { const o = lexRanks(idx, nodes, samples, within, own(nodes), until); if (o.left < best.left) best = {...o, name: own(nodes)} }
-    if (!best.comps.length) return {why: 'no linear rank, in order, drops on any call the runs make'}
     for (const i of idx) parts.set(i, best.comps.map(cp => compE(cp, i, nodes[i]!, best.name)))
   }
   const width = Math.max(0, ...[...parts.values()].map(p => p.length)), tiers = graph.some(g => g.length)
@@ -497,36 +496,52 @@ function beside(cx: Ctx, facts: Fact[], nodes: Node[], big: number, until: numbe
 }
 
 const trace = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.CYCLES_TRACE
+const nodeOf = (c: Claim, level: number, given: boolean): Node => ({name: c.name, hyps: c.hyps ?? [], concl: c.concl, vars: varsOf([c.hyps ?? [], c.concl]), level, given})
+// The facts at the terms a claim's goal reads (and at those the facts read, `depth` times over): what the search gives
+// each node, for a caller building nodes of its own (research/frontier's today, the builders' shape).
+export function claimInstances(facts: Fact[], claim: Claim, depth = 2): NodeSpec['insts'] {
+  const {eqs, arity} = equations(facts)
+  return instancesFor(facts, {eqs, arity, values: {}, memo: new Map(), fuel: 0, depth: 0}, nodeOf(claim, 0, true), depth).insts
+}
 export function findCycles(facts: Fact[], claims: Claim[], opts: CycleOptions = {}): CycleVerdict {
   const t0 = performance.now(), until = t0 + (opts.ms ?? 10_000), depth = opts.depth ?? 1
   const {eqs, arity} = equations(facts)
   const cx: Ctx = {eqs, arity, values: opts.values ?? {}, memo: new Map(), fuel: 20_000, depth: 0}
   const big = Math.max(0, ...constsOf([facts.map(f => f.holds), claims]).filter(c => c <= 1000))
-  const given: Node[] = claims.map(c => ({name: c.name, hyps: c.hyps ?? [], concl: c.concl, vars: varsOf([c.hyps ?? [], c.concl]), level: 1, given: !opts.houdini}))
+  const given: Node[] = claims.map(c => nodeOf(c, 1, !opts.houdini))
   let last: CycleVerdict = {proven: false, checked: false, why: 'nothing tried'}
   // One set of nodes, Houdini over those that may be dropped: each failing one dropped and the rest proven again.
+  // One set of nodes, built and proven: the verdict, or the node that failed (a broken one: the runs refute it).
+  type Tried = {proven: CycleVerdict} | {failed: Node, verdict: CycleVerdict}
+  const once = (nodes: Node[], depth: number): Tried => {
+    const b = withDeadline(until, () => build(facts, cx, nodes, depth, big, until))
+    if ('broken' in b) { const at = nodes.find(n => n.name === b.broken.node)!; return {failed: at, verdict: {proven: false, checked: false, goal: at.name, stuck: 'sat', witness: b.broken.env, why: 'the facts, run, break it'}} }
+    if ('why' in b) return {failed: nodes[0]!, verdict: {proven: false, checked: false, why: b.why}}
+    if (trace) for (const sp of b.specs) console.error(`[cycles] ${sp.name}: rank (${sp.rank.map(showE).join(', ')}), ${sp.insts.length} instances, uses ${sp.uses.map(u => `${u.node}@{${Object.entries(u.subst).map(([x, t]) => `${x} := ${showE(t)}`).join(', ')}}`).join(' ')}`)
+    const out = withDeadline(until, () => proveCyclic(facts, b.specs))
+    if (trace) console.error(`[cycles] ${out.proven ? 'proven' : `${out.node}: ${out.goal} ${out.stuck}`} at ${Math.round(performance.now() - t0)} ms`)
+    if (!out.proven) { const at = nodes.find(n => n.name === out.node) ?? nodes[0]!; return {failed: at, verdict: {proven: false, checked: false, goal: out.goal, stuck: out.stuck}} }
+    const found: CycleFound = {ranks: Object.fromEntries(nodes.map((n, i) => [n.name, `(${b.ranks[i]!.map(showE).join(', ')})`])), companions: nodes.filter(n => !n.given && !claims.some(c => c.name === n.name)).map(n => `${showC(n.concl)}${n.hyps.length ? ` where ${showC(and(...n.hyps))}` : ''}`), uses: b.uses}
+    return {proven: {proven: true, checked: out.checked, proof: out.proof, specs: b.specs, kept: nodes.map(n => n.name), found, ...(out.why ? {why: out.why} : {})}}
+  }
+  // Houdini over the nodes that may be dropped (each that fails, dropped, the rest proven again); then each companion
+  // dropped in turn where the rest are proven without it (only what the claims need is kept).
   const attempt = (start: Node[], depth: number): CycleVerdict => {
-    let nodes = start
-    for (let round = 0; round <= start.length && nodes.length && performance.now() < until; round++) {
-      const b = withDeadline(until, () => build(facts, cx, nodes, depth, big, until))
-      if ('broken' in b) {
-        const at = nodes.find(n => n.name === b.broken.node)!
-        if (at.given) return {proven: false, checked: false, goal: at.name, stuck: 'sat', witness: b.broken.env, why: 'the facts, run, break it'}
-        nodes = nodes.filter(n => n !== at); continue
-      }
-      if ('why' in b) return {proven: false, checked: false, why: b.why}
-      if (trace) for (const sp of b.specs) console.error(`[cycles] ${sp.name}: rank (${sp.rank.map(showE).join(', ')}), ${sp.insts.length} instances, uses ${sp.uses.map(u => `${u.node}@{${Object.entries(u.subst).map(([x, t]) => `${x} := ${showE(t)}`).join(', ')}}`).join(' ')}`)
-      const out = withDeadline(until, () => proveCyclic(facts, b.specs))
-      if (trace) console.error(`[cycles] ${out.proven ? 'proven' : `${out.node}: ${out.goal} ${out.stuck}`} at ${Math.round(performance.now() - t0)} ms`)
-      if (out.proven) {
-        const found: CycleFound = {ranks: Object.fromEntries(nodes.map((n, i) => [n.name, `(${b.ranks[i]!.map(showE).join(', ')})`])), companions: nodes.filter(n => !n.given && !claims.some(c => c.name === n.name)).map(n => `${showC(n.concl)}${n.hyps.length ? ` where ${showC(and(...n.hyps))}` : ''}`), uses: b.uses}
-        return {proven: true, checked: out.checked, proof: out.proof, specs: b.specs, kept: nodes.map(n => n.name), found, ...(out.why ? {why: out.why} : {})}
-      }
-      const at = nodes.find(n => n.name === out.node)
-      if (!at || at.given) return {proven: false, checked: false, goal: out.goal, stuck: out.stuck}
-      nodes = nodes.filter(n => n !== at)
+    let nodes = start, done: CycleVerdict | undefined
+    for (let round = 0; round <= start.length && nodes.length && performance.now() < until && !done; round++) {
+      const t = once(nodes, depth)
+      if ('proven' in t) { done = t.proven; break }
+      if (t.failed.given) return t.verdict
+      nodes = nodes.filter(n => n !== t.failed)
     }
-    return {proven: false, checked: false, why: performance.now() >= until ? 'out of time' : 'every candidate dropped'}
+    if (!done) return {proven: false, checked: false, why: performance.now() >= until ? 'out of time' : 'every candidate dropped'}
+    if (opts.houdini) return done
+    for (const c of nodes.filter(n => !n.given)) {
+      if (performance.now() >= until) break
+      const rest = nodes.filter(n => n !== c), t = once(rest, depth)
+      if ('proven' in t && t.proven.checked) (nodes = rest, done = t.proven)
+    }
+    return done
   }
   // The claims alone, with the facts at the terms they read and then at those the facts read; their constants as
   // variables; companions beside them by analogy, then every bound.
@@ -619,7 +634,7 @@ export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): R
 // from the facts as cyclic claims (Houdini: one not proven dropped), then the laws with those kept as facts, each
 // dropped in turn where the laws don't need it.
 export type LemmaFound = {law: Law, text: string}
-export function cycleLemmas(m: Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: {ms?: number} = {}): {proven: boolean, checked: boolean, machine?: Machine, found: LemmaFound[], why?: string} {
+export function cycleLemmas(m: Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: {ms?: number} = {}): {proven: boolean, checked: boolean, machine?: Machine, found: LemmaFound[], proof?: Cyclic, why?: string} {
   const until = performance.now() + (opts.ms ?? 10_000)
   const fns = Object.entries(m.fns ?? {}).filter(([, f]) => !f.recur && (f.arity ?? 1) === 1)
   if (!fns.length || !m.facts?.length) return {proven: false, checked: false, found: [], why: 'no function known by its facts'}
@@ -665,5 +680,5 @@ export function cycleLemmas(m: Machine, laws: Law[], stepLaws: StepLaw[] = [], o
     const rest = found.filter(g => g !== f), again = proveWith(rest)
     if (again.ok) (found = rest, best = again)
   }
-  return {proven: true, checked: true, machine: best.machine, found}
+  return {proven: true, checked: true, machine: best.machine, found, ...(out.proof ? {proof: out.proof} : {})}
 }

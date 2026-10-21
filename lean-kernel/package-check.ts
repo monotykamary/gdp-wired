@@ -28,6 +28,7 @@ import {foldNodes, machineNodes, proveCyclic, recurNodes} from '../core/cyclic.t
 import {proveLaws} from '../kernel/prove.ts'
 import type {Cyclic} from '../kernel/cyclic.ts'
 import {mccarthy, mutual} from '../examples/cyclic.ts'
+import {leanItems as cycleLeanItems} from '../examples/cycles.ts'
 import {growing} from '../examples/lemmas.ts'
 
 const caps = rule('caps').params({d: nat}).inputs({acct: nat, day: nat, ok: bool}).maps({Acct: 0, Day: 0})
@@ -57,7 +58,9 @@ const only = process.env.ONLY?.split(',')
 const shard = process.env.SHARD?.split('/').map(Number)
 // Built by jobs of their own (modal/suite.json: lean-big's trees and groups; lean-cyclic's cyclic proofs).
 const cyclicItems = ['mccarthy', 'mutual', 'cycgrowing', 'cyccounter', 'cycrollup']
-const separately = ['searchtree', 'sheet', 'groups0', 'groups1', 'groups2', 'groups3', ...cyclicItems]
+// The proofs core/cycles.ts finds (examples/cycles.ts's leanItems; the suite's lean-cycles job).
+const foundItems = ['cycmc91', 'cycgcd', 'cycacc', 'cycacc2', 'cycring', 'cycthrough', 'loopphases', 'loopphases3', 'loopother', 'loopeuclid', 'rule91', 'rule91lemma', 'ruledouble', 'ruledoublelemma']
+const separately = ['searchtree', 'sheet', 'groups0', 'groups1', 'groups2', 'groups3', ...cyclicItems, ...foundItems]
 const file = toLean(([
   {id: 'caps', machine: caps.machine, laws: [dayCap], stepLaws: [onlyUp, twice]},
   {id: 'window', machine: window.machine, laws: [window.law('window ceiling', ({ours, c}) => ours.atMost(c))]},
@@ -129,6 +132,7 @@ const file = toLean(([
       ...(r => [{id: 'cycrollup', cyclic: proven(r.facts, r.specs)}])(foldNodes(ru.fold, rl)),
     ]
   })()),
+  ...(!only?.some(id => foundItems.includes(id)) ? [] : cycleLeanItems()),
   // A decision that reads conditions about every key, as the step law it is proven as.
   ...(d => [{id: 'subsettrans', machine: d.steps!.rule.machine, laws: [], stepLaws: [d.steps!.law]}])(rule('sets').inputs({n: nat}).carries('A', 'B', 'C').decide('a subset of a subset is a subset', ({A, B, C}) => [A.subsetOf(B), B.subsetOf(C)], ({A, C}) => A.subsetOf(C))),
   // n times the goal, then a square: (Σv)² <= n·Σv² over running samples.
