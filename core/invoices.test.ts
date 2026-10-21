@@ -12,7 +12,7 @@ test('a list a request carries: proven, cross-checked, the broken variants refus
   expect(r.crossCheck(laws, steps).failure).toBeUndefined()
   for (const bug of ['checks the first line only', 'states no lemma'] as const) {
     const b = invoices(bug)
-    expect(proveSteps(b, invoiceLaws(b), invoiceSteps(b)).proven).toBe(false)
+    expect(proveSteps(b, invoiceLaws(b), invoiceSteps(b), {search: false}).proven).toBe(false)
   }
 })
 

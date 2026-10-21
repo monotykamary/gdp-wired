@@ -874,7 +874,7 @@
 },
 {
 "name": "infer",
-"cmd": "cd .. && bun install --frozen-lockfile >/dev/null 2>&1 && cd core && bun test infer.test.ts 2>&1 && cd .. && bun examples/infer.ts 2>&1",
+"cmd": "cd .. && bun install --frozen-lockfile >/dev/null 2>&1 && cd core && bun test infer.test.ts search.test.ts 2>&1 && cd .. && bun examples/infer.ts 2>&1",
 "cwd": "core",
 "cpu": 1.0,
 "timeout": 900

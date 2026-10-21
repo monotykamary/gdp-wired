@@ -2,7 +2,8 @@
 // core/lemmas.test.ts and lean-kernel/package-check.ts.
 //   - delay: exponential backoff, 1, 2, 4, ... up to 64; its lemmas say it is at least 1 and at most 64, which a retry
 //     schedule needs (the next try is at most 64 after the last request; a failure waits at least a tick) and which its
-//     two equations alone don't give: the broken variant states no lemma and is refused
+//     two equations alone don't give: the broken variant states no lemma and the prover alone refuses it (the search,
+//     the default, finds both)
 //   - twos: two by two for five steps; "at most 10" is proven only beside "at most 2x", as a law leans on another
 //   - filled: a bucket filled one a step up to its capacity, a function of two arguments (the steps, the capacity);
 //     a meter that reads it at its own capacity stays within it
@@ -103,9 +104,11 @@ export const areaLaws = (r = area()): Law[] => [r.law('the area is n·n', ({a, n
 if (import.meta.main) {
   const results: [string, boolean, boolean][] = []
   for (const bug of [undefined, 'states no lemma'] as const) {
-    const r = retries(bug), v = proveSteps(r, retryLaws(r), retrySteps(r))
+    const r = retries(bug), v = proveSteps(r, retryLaws(r), retrySteps(r), {search: false})
     results.push([`retry with backoff${bug ? ` (${bug})` : ''}`, v.proven && v.checked, !bug])
   }
+  // With the search (the default), the lemmas nobody stated are found and proven.
+  { const r = retries('states no lemma'), v = proveSteps(r, retryLaws(r), retrySteps(r)); results.push(['retry with backoff (states no lemma), the lemmas found', v.proven && v.checked && !!v.found?.lemmas?.delay, true]) }
   const c = counter(), v = proveSteps(c, counterLaws(c), [])
   results.push(['two by two', v.proven && v.checked, true])
   for (const [what, r, laws] of [['fill meter', fillMeter(), fillMeterLaws], ['leftover ledger', ledger(), ledgerLaws], ['escalation', escalation(), escalationLaws], ['ladder', ladder(), ladderLaws], ['tank', tank(), tankLaws], ['area', area(), areaLaws]] as const) {

@@ -69,6 +69,10 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   machine runs as, with each guard and action it names given again in gdp-wired's terms, and `conforms(chart, machine,
   createActor)` drives XState's own actor and the compiled rule with the same random events, comparing every state and
   context; what a chart can't run the same way is refused when built, with the reason (`examples/xstate.ts`).
+- **What nobody stated, looked for when the prover alone stops**: where `proveRule` or `proveSteps` doesn't prove the laws
+  and no run breaks them, it looks for lemmas about the rule's recurrences and lists (`discover`) and then invariants
+  (`inferLaws`), within 10 s (`{search: {ms}}`; `{search: false}`, the prover alone); the verdict's `found` holds what
+  proved them, as laws and lemmas with the source to paste.
 - **Invariants nobody wrote** (`gdp-wired/infer`): `inferLaws(rule, laws)` proves a law that holds but isn't inductive
   alone, with the laws it finds (bounds, sums and differences over the state, the same where a flag or a choice holds
   one value, and laws about every key of a map), each proven by the kernel with yours and handed back as the

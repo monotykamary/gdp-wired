@@ -15,7 +15,7 @@ test('lemmas proven by induction, then used: the backoff schedule proven with th
   expect(r.crossCheck(laws, steps).failure).toBeUndefined()
   // The equations alone: true of the delay, but no proof without induction.
   const bare = retries('states no lemma')
-  expect(proveSteps(bare, retryLaws(bare), retrySteps(bare)).proven).toBe(false)
+  expect(proveSteps(bare, retryLaws(bare), retrySteps(bare), {search: false}).proven).toBe(false)
   // The facts the rule assumes: the two equations and both lemmas.
   expect(r.machine.facts?.map(f => f.name)).toEqual(['delay: delay(0)', 'delay: delay(x + 1)', 'delay: at least 1', 'delay: at most 64'])
 })
@@ -69,7 +69,7 @@ test('recurrences of several arguments, reading other functions, and laws betwee
   // Without "at most 6 a day", the ledger's law isn't proven: the remainder's fact alone bounds one day, not the sum.
   const bare = rule('bare ledger').inputs({}).state({day: 0, total: 0}).fns({left: recur('leftovers', {fns: {rem: modBy(7)}, zero: 0, next: (x, t, {rem}) => t.plus(rem(x))})})
     .step(({day, left}) => ({day: day.plus(1), total: left(day.plus(1))}))
-  expect(proveSteps(bare, [bare.law('at most 6 a day so far', ({total, day}) => total.atMost(day.times(6)))], []).proven).toBe(false)
+  expect(proveSteps(bare, [bare.law('at most 6 a day so far', ({total, day}) => total.atMost(day.times(6)))], [], {search: false}).proven).toBe(false)
   expect(() => recur('f', {args: ['x'], zero: 0, next: (_, p) => p})).toThrow(/taken/)
   expect(() => recur('f', {args: ['a', 'b', 'c', 'd', 'e'] as const, zero: 0, next: (_, p) => p})).toThrow(/at most four/)
 }, 300_000)

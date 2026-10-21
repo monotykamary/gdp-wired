@@ -21,10 +21,10 @@ const examples: Item[] = (walls as Wall[]).map(w => {
   const law = c.laws.find(l => l.name === w.law)
   return w.steps ? {
     id: `invariant/${w.domain}/${w.case}: step laws`, track: 'invariant', removed: 'the laws the step laws assume',
-    today: () => proveSteps(c.rule, [], c.steps!), frontier: () => inferLaws(c.rule, [], c.steps!),
+    today: () => proveSteps(c.rule, [], c.steps!, {search: false}), frontier: () => inferLaws(c.rule, [], c.steps!),
   } : {
     id: `invariant/${w.domain}/${w.case}: ${w.law}`, track: 'invariant', removed: 'its sibling laws',
-    today: () => proveRule(c.rule, [law!]), frontier: () => inferLaws(c.rule, [law!]),
+    today: () => proveRule(c.rule, [law!], {search: false}), frontier: () => inferLaws(c.rule, [law!]),
   }
 })
 export const invariantItems: Item[] = [...synth, ...examples]

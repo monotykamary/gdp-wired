@@ -10,7 +10,7 @@ import {bucket, bucketLaw, lease, leaseLaw, pool, poolLaw} from '../examples/inf
 
 test('a law that needs an invariant: not proven alone, proven with what the search finds, and the set checks', () => {
   for (const [r, law] of [[pool(), poolLaw()], [bucket(), bucketLaw()], [lease(), leaseLaw()]] as const) {
-    expect(proveRule(r as never, [law]).proven).toBe(false)
+    expect(proveRule(r as never, [law], {search: false}).proven).toBe(false)
     const v = inferLaws(r as never, [law], [], {ms: 15000})
     expect(v).toMatchObject({proven: true, checked: true})
     expect(v.found.length).toBeGreaterThan(0)

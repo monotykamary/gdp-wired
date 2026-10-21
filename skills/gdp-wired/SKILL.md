@@ -54,8 +54,11 @@ When adding or changing a rule whose invariants matter:
    `@step` means the law isn't inductive: run `search` from the start. A real
    run is a bug in the rule (or the law); no run means the law needs a
    helper invariant, so add the missing law next to it, never weaken the one
-   that matters. `inferLaws(rule, laws)` (`gdp-wired/infer`) looks for it:
-   each law it finds comes back proven, with the `r.law(...)` call to paste.
+   that matters. `proveRule` and `proveSteps` look for it themselves (10 s by
+   default; `{search: {ms}}`, or `{search: false}` for the prover alone):
+   lemmas first (`discover`), then invariants (`inferLaws`), and the verdict's
+   `found` holds what proved the laws, as laws to pass with them and as
+   lemmas to state, each with the source to paste.
 5. **Never prove a different rule than the one that ships.** Ship the rule
    itself (`rule.compiled()`), or hold hand-written code to it with
    `rule.compare(reference)`; run `rule.crossCheck(laws)` in tests
@@ -100,7 +103,7 @@ From `gdp-wired`:
 | `rule(name)` | A rule builder: `.params` `.inputs` `.state` `.maps` (of naturals, or of a kind: `kind.from(v)`) `.lists` `.items` (lists of a kind) `.carries` `.flags` `.step` `.pre` `.assume` `.fns` `.facts` `.log` `.sums` `.queries` `.keep` `.relations` `.prune`. |
 | `nat`, `upTo(k)`, `bool`, `oneOf(...)`, `maybe(kind)`, `int`, `decimal(places)`, `str({like, maxLength})`, `record({...})`, `variant({...})` | Kinds; state of any kind with `kind.from(init)`; a variant's case built with `V.make({tag, ...fields})`, read with `is` and `match`; `same(a, b)` compares two values part by part. |
 | `r.law`, `r.stepLaw`, `r.stepsLaw`, `r.leadsTo`, `r.decide`, `r.relate` | Claims: invariant, one step, k steps (k ≤ 64), liveness, a decision about one request, a decision about two. |
-| `proveRule`, `proveSteps`, `proveLeadsTo`, `proveDecision`, `proveLoop` | Verdicts: `{proven, checked, goal?, stuck?, witness?, why?}`. |
+| `proveRule`, `proveSteps`, `proveLeadsTo`, `proveDecision`, `proveLoop` | Verdicts: `{proven, checked, goal?, stuck?, witness?, why?, found?}`. `proveRule` and `proveSteps` take `{search}`: where the prover alone doesn't prove the laws and no run breaks them, they look for lemmas and invariants (10 s by default; `false` for the prover alone), and `found` says what proved them. |
 | `when`, `min`, `max`, `count`, `sum`, `all`, `any`, `not`, `forall`, `everyKey`, `someKey`, `relation` | Terms and conditions; terms have `plus` `minus` (truncated) `times(k)` `mul` `lt` `atMost` `atLeast` `gt` `eq`, conditions `and` `or` `not` `implies`. |
 | `chart(name)` | A statechart: `.states({...})` (nested: `{states: {...}, initial, history, final}`) or `.regions({...})` (parallel), `.params`, `.inputs` (the payload), `.context` (extended state), `.outputs` (decided each step, reset to a default), `.events` (their order), `.on(event, {from, to, when, set, fresh})` (no `to`: internal; `fresh`: ignore history); `.check()` (every state reached with its run or proven unreachable, none stuck, no event ambiguous), `.law`, `.stepLaw` (`env.in('active.paid')`, `env.last('active')`), `.prove`, `.rule`. |
 | `inferLaws(rule, laws, stepLaws?)` | `gdp-wired/infer`: the invariants a law that isn't inductive needs, found from runs and the kernel's counterexamples (bounds, sums, differences, guarded by a flag or a choice, laws about every key of a map); `found[i].source` is the `r.law(...)` call; proven and checked like `proveRule`. |
