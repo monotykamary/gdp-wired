@@ -158,6 +158,12 @@ export function termRows(name: string, path: Path): Lin[] {
       if (e.op === 'sub') out.push(sub(sub(a, b), col), sub(col, a))
     }
   }
+  // An if is one of its two naturals, so at most their sum, whichever way its condition goes (a yes/no's if(c, 1, 0)
+  // is at most 1 without deciding c).
+  if (e.op === 'if') {
+    const a = linear(e.then, path), b = linear(e.else, path)
+    if (a && b) out.push(sub(col, add(a, b)))
+  }
   if (decided(e, path)) { const r = linear(e, path); if (r) out.push(sub(col, r), sub(r, col)) }
   return out
 }

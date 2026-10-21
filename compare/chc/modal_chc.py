@@ -50,7 +50,7 @@ image = (
     )
     .run_commands(f"python3 - <<'EOF'\n{KEEP}\nEOF", "du -sh /bench")
     .env({"PATH": "/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
-    .add_local_dir(GDP, "/src/gdp-wired", ignore=["**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "modal/**", "private/**",
+    .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "modal/**", "private/**",
                                               "vendor/**", "compare/**/*.js", "compare/**/out/**"])
 )
 app = modal.App("gdp-wired-chc", image=image)
