@@ -67,7 +67,8 @@ When adding or changing a rule whose invariants matter:
 7. **State the lemma, or hand off.** A recurrence on one natural (a backoff
    delay, a fee schedule): define it with `recur` and state the lemmas the
    rule needs; they are proven by induction and become its facts. Other
-   recursive structure, or products of unknowns: prove the function in Lean,
+   recursive structure, or products of unknowns past what products of facts
+   and squares refute: prove the function in Lean,
    give the rule the function with its facts, export with `toLean`
    ([Lean handoff](references/lean-handoff.md)). Don't approximate a
    recursive claim with a bounded one and call it proven.

@@ -438,11 +438,12 @@ theorem prodV_nonneg {x : List Int} (h : ∀ j, 0 ≤ x.getD j 0) : ∀ l, 0 ≤
   | [] => by simp [prodV]
   | a :: as => Int.mul_nonneg (h a) (prodV_nonneg h as)
 
+-- A column's factors: a monomial's own, or the column itself (a variable, a map's cell, an open choice).
 def fac (tab : List VDef) (i : Nat) : Option (List Nat) :=
   match tab[i]? with
-  | some (.var _) => some [i]
   | some (.mono fs) => some fs
-  | _ => none
+  | some _ => some [i]
+  | none => none
 def pcol (tab : List VDef) (i j : Nat) : Option Nat :=
   match fac tab i, fac tab j with
   | some a, some b => findIdx (isMono (srt (a ++ b))) tab
@@ -576,10 +577,10 @@ theorem cell_col (hM : Model tab env maps x) {m j : Nat} {k : Row} (h : findIdx 
 theorem fac_val (hM : Model tab env maps x) {i : Nat} {fs : List Nat} (h : fac tab i = some fs) : x.getD i 0 = prodV x fs := by
   simp only [fac] at h
   split at h
-  · simp only [Option.some.injEq] at h; subst h; simp [prodV]
   · rename_i fs' hd
     simp only [Option.some.injEq] at h; subst h
     rw [hM.1 i _ hd]; simp only [valD]; exact Int.toNat_of_nonneg (prodV_nonneg hM.2 _)
+  · simp only [Option.some.injEq] at h; subst h; simp [prodV]
   · simp at h
 
 theorem pcol_val (hM : Model tab env maps x) {i j k : Nat} (h : pcol tab i j = some k) :
@@ -1060,11 +1061,19 @@ def srcRows (tab : List VDef) (path : Path) (hyps : List C) (eqs : List (Nat × 
   | .any => []
 
 -- A leaf may add products of two of its rows (p ≤ 0 and q ≤ 0 give −p·q ≤ 0); a pair may name an earlier product.
--- `leafAt` is a leaf whose rows come with hints.
+-- `leafAt` is a leaf whose rows come with hints; `leafSq` one that also adds the square of each of its forms t
+-- (−t·t ≤ 0, whatever t's sign) after its rows, before the products, which may name them.
 inductive Tree where
   | split (l : Row) (yes no : Tree)
   | leaf (rows : List Row) (steps : List Step) (eqs : List (Nat × Nat)) (prods : List (Nat × Nat))
   | leafAt (rows : List (Row × Src)) (steps : List Step) (eqs : List (Nat × Nat)) (prods : List (Nat × Nat))
+  | leafSq (rows : List (Row × Src)) (sqs : List Row) (steps : List Step) (eqs : List (Nat × Nat)) (prods : List (Nat × Nat))
+
+def squares (tab : List VDef) : List Row → Option (List Row)
+  | [] => some []
+  | t :: ts => match rowMul tab t t, squares tab ts with
+    | some r, some rs => some (lscale (-1) r :: rs)
+    | _, _ => none
 
 def extend (tab : List VDef) : List Row → List (Nat × Nat) → Option (List Row)
   | acc, [] => some acc
@@ -1089,10 +1098,21 @@ def leafAtOk (tab : List VDef) (path : Path) (hyps : List C) (rows : List (Row �
     | some rows' => Cert.check rows' steps
     | none => false
 
+-- Each row where its hint says, or else among the leaf's rows; then the squares, then the products.
+def leafSqOk (tab : List VDef) (path : Path) (hyps : List C) (rows : List (Row × Src)) (sqs : List Row) (steps : List Step)
+    (eqs : List (Nat × Nat)) (prods : List (Nat × Nat)) : Bool :=
+  rows.all (fun r => (srcRows tab path hyps eqs r.2).any (same r.1) || (leafRows tab path hyps eqs).any (same r.1))
+    && match squares tab sqs with
+    | some sr => match extend tab (rows.map (·.1) ++ sr) prods with
+      | some rows' => Cert.check rows' steps
+      | none => false
+    | none => false
+
 def checkT (tab : List VDef) (hyps : List C) : Path → Tree → Bool
   | path, .split l y n => checkT tab hyps ((l, true) :: path) y && checkT tab hyps ((l, false) :: path) n
   | path, .leaf rows steps eqs prods => leafOk tab path hyps rows steps eqs prods
   | path, .leafAt rows steps eqs prods => leafAtOk tab path hyps rows steps eqs prods
+  | path, .leafSq rows sqs steps eqs prods => leafSqOk tab path hyps rows sqs steps eqs prods
 
 structure Goal where
   tab : List VDef
@@ -1287,6 +1307,26 @@ theorem extend_sound (hM : Model tab env maps x) :
       · simp at h
     · simp at h
 
+theorem squares_sound (hM : Model tab env maps x) : ∀ ts rs, squares tab ts = some rs → ∀ r ∈ rs, eval r x ≤ 0
+  | [], rs, h => by simp only [squares, Option.some.injEq] at h; subst h; simp
+  | t :: ts, rs, h => by
+    simp only [squares] at h
+    split at h
+    · rename_i r rs' hr hrs
+      simp only [Option.some.injEq] at h; subst h
+      intro r' hr'
+      rcases List.mem_cons.mp hr' with hr' | hr'
+      · subst hr'
+        rw [eval_lscale, rowMul_sound hM hr]
+        have : 0 ≤ eval t x * eval t x := by
+          rcases Int.le_total 0 (eval t x) with h0 | h0
+          · exact Int.mul_nonneg h0 h0
+          · have := Int.mul_nonneg (show 0 ≤ -eval t x by omega) (show 0 ≤ -eval t x by omega)
+            rwa [Int.neg_mul_neg] at this
+        omega
+      · exact squares_sound hM ts rs' hrs r' hr'
+    · simp at h
+
 theorem checkT_sound (hM : Model tab env maps x) {hyps : List C} (hH : ∀ c ∈ hyps, evalC env maps c = true) :
     ∀ (t : Tree) (path : Path), PathHolds path x → checkT tab hyps path t = true → False
   | .split l y n, path, hP, h => by
@@ -1324,6 +1364,23 @@ theorem checkT_sound (hM : Model tab env maps x) {hyps : List C} (hH : ∀ c ∈
       rcases h1 p hp with ⟨c, hc, hs⟩ | ⟨c, hc, hs⟩
       · rw [same_eval hs]; exact leafRows_sound hM hP hH eqs c (srcRows_sub p.2 hc)
       · rw [same_eval hs]; exact leafRows_sound hM hP hH eqs c hc
+    · simp at h2
+  | .leafSq rows sqs steps eqs prods, path, hP, h => by
+    simp only [checkT, leafSqOk, Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true, List.any_eq_true] at h
+    obtain ⟨h1, h2⟩ := h
+    split at h2
+    · rename_i sr hsr
+      split at h2
+      · rename_i rows' he
+        refine Cert.sound rows' steps h2 x (extend_sound hM prods _ rows' he ?_)
+        intro r hr
+        rcases List.mem_append.mp hr with hr | hr
+        · obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hr
+          rcases h1 p hp with ⟨c, hc, hs⟩ | ⟨c, hc, hs⟩
+          · rw [same_eval hs]; exact leafRows_sound hM hP hH eqs c (srcRows_sub p.2 hc)
+          · rw [same_eval hs]; exact leafRows_sound hM hP hH eqs c hc
+        · exact squares_sound hM sqs sr hsr r hr
+      · simp at h2
     · simp at h2
 end
 

@@ -95,8 +95,8 @@ synthesizer finds one and the kernel proves it.
 
 **What it leaves to Lean or Bend.** Two things, and neither is a gap the next feature closes: proofs the prover would
 have to invent (induction over a recursive structure whose proof needs a lemma nobody stated, and arithmetic with
-products of unknowns beyond multiplying two known facts; integer arithmetic with induction or with products is
-undecidable; a lemma you state about a recurrence is proven, but a recursive datatype as a value is Lean's), and shipping an arbitrary algorithm as its proved source (gdp-wired ships the rule as JavaScript; Bend
+products of unknowns beyond what products of facts and sums of squares give; integer arithmetic with induction or with
+products is undecidable; a lemma you state about a recurrence is proven, but a recursive datatype as a value is Lean's), and shipping an arbitrary algorithm as its proved source (gdp-wired ships the rule as JavaScript; Bend
 compiles the proved source itself). The full list of what is and isn't in scope is in
 [`docs/comparison.md`](docs/comparison.md#gdp-wireds-scope-in-detail).
 
@@ -276,8 +276,12 @@ const soon = retry.law('the next try is at most 64 after the last request', ({ne
   declared pattern (Cedar's glob), all computed from the string itself when the input is encoded. `s.like(pattern)`,
   `s.eq('admin')` (which carries the literal's length and pattern bits, so laws reason from either), `s.isEmpty`,
   `s.length`; sets of strings are carried maps keyed by `s.id`.
-- **Arithmetic** over the naturals: `plus`, `minus` (truncated), `times(k)`, `mul` (a product of two terms), `min`,
-  `max`, `when(cond, a, b)`, `count(cond)`; conditions `lt`, `atMost`, `eq`, `and`, `or`, `not`, `implies`.
+- **Arithmetic** over the naturals: `plus`, `minus` (truncated), `times(k)`, `mul` (a product of two terms, a map's
+  cell among them: `Used.at(k).atMost(per.mul(Seats.at(k)))`), `min`, `max`, `when(cond, a, b)`, `count(cond)`;
+  conditions `lt`, `atMost`, `eq`, `and`, `or`, `not`, `implies`. Where a law with products isn't linear in its
+  monomials, the prover multiplies facts together and adds squares, as Lean's `nlinarith` does: (x − y)² for each
+  product x·y the law reads, its factors as the step leaves them, and for each monomial split in two halves
+  (Cauchy–Schwarz's (ad − bc)²), times each factor past degree two (`research/frontier/nonlinear.ts`).
 - **Sets and quantifiers**: `.carries(...)` for sets a request brings, `everyKey(k => ...)` (and `has`, `subsetOf`,
   `disjointFrom`, `sameAs`) anywhere in a step or inside a law, `everyKey((i, j) => ...)` in a step for every two keys
   (each read on its own, compared with the other plainly: `i.lt(j)`), `M.each(k => ...)` to write every key, and

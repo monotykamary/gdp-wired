@@ -3,8 +3,8 @@ open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
 
-/-! 7 goals from gdp-wired's kernel (kernel/prove.ts trees), each checked by Lean's kernel against Kern.checkGoal,
-whose soundness (Kern.sound) is proven in Kernel.lean. Goals: budget rule; in-flight; products. -/
+/-! 11 goals from gdp-wired's kernel (kernel/prove.ts trees), each checked by Lean's kernel against Kern.checkGoal,
+whose soundness (Kern.sound) is proven in Kernel.lean. Goals: budget rule; in-flight; products; squares. -/
 
 -- loss: bounded_loss: s <= b + m  (variables 0 b, 1 m, 2 c, 3 s)
 def policy_machine : Machine := ⟨[2],
@@ -15,9 +15,7 @@ def policy_machine : Machine := ⟨[2],
 def policy_proof : MachineProof := [(.le (.var 3) (.add (.var 0) (.var 1)),
   ([.var 0, .var 1, .var 2, .var 3], .leafAt [((sp [(0, 1), (1, 1)] 1), .fact 0), ((sp [(0, (-1))] 0), .nat 0), ((sp [(1, (-1))] 0), .nat 1)] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 3 2 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .term (.min (.var 2) (.var 1)), .term (.ite (.lt (.var 3) (.var 0)) (.add (.var 3) (.min (.var 2) (.var 1))) (.var 3))], .split (sp [(0, (-1)), (3, 1)] 1)
-  (.split (sp [(1, (-1)), (2, 1)] 0)
-  (.leafAt [((sp [(0, (-1)), (3, 1)] 1), .atom 1), ((sp [(1, (-1)), (2, 1)] 0), .atom 0), ((sp [(0, 1), (1, 1), (2, (-1)), (3, (-1))] 1), .fact 1)] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .combine 1 3 1 1] [] [])
-  (.leafAt [((sp [(0, (-1)), (3, 1)] 1), .atom 1), ((sp [(0, 1), (3, (-1))] 1), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leafAt [((sp [(0, (-1)), (3, 1)] 1), .atom 0), ((sp [(0, 1), (1, 1), (3, (-1)), (4, (-1))] 1), .fact 1), ((sp [(1, (-1)), (4, 1)] 0), .term 4)] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 2 3 1 1] [] [])
   (.leafAt [((sp [(0, (-1)), (1, (-1)), (3, 1)] 0), .fact 0), ((sp [(0, 1), (1, 1), (3, (-1))] 1), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] [])))]
 theorem policy_laws : ∀ maps ρ, Reach policy_machine maps ρ → ∀ l ∈ policy_proof.map (·.1), evalC ρ maps l = true :=
   machine_sound policy_machine policy_proof (by decide +kernel)
@@ -38,9 +36,7 @@ def inflight_proof : MachineProof := [(.le (.var 3) (.add (.var 0) (.const 150))
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .term (.min (.var 1) (.const 50)), .term (.ite (.and (.eq (.var 2) (.const 1)) (.lt (.const 0) (.var 4))) (.add (.var 3) (.min (.var 1) (.const 50))) (.var 3))], .split (sp [(2, 1)] (-1))
   (.split (sp [(2, (-1))] 1)
   (.split (sp [(4, (-1))] 1)
-  (.split (sp [(1, 1)] (-50))
-  (.leafAt [((sp [(4, (-1))] 1), .atom 1), ((sp [(1, 1)] (-50)), .atom 0), ((sp [(0, (-1)), (3, 1), (4, 50)] (-150)), .fact 2), ((sp [(0, 1), (1, (-1)), (3, (-1))] 151), .fact 3)] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 50, .combine 1 3 1 1, .combine 4 5 1 1] [] [])
-  (.leafAt [((sp [(4, (-1))] 1), .atom 1), ((sp [(0, (-1)), (3, 1), (4, 50)] (-150)), .fact 2), ((sp [(0, 1), (3, (-1))] 101), .fact 3)] [.input 0, .input 1, .input 2, .combine 1 0 1 50, .combine 3 2 1 1] [] []))
+  (.leafAt [((sp [(4, (-1))] 1), .atom 0), ((sp [(0, (-1)), (3, 1), (4, 50)] (-150)), .fact 2), ((sp [(0, 1), (3, (-1)), (5, (-1))] 151), .fact 3), ((sp [(5, 1)] (-50)), .term 5)] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 50, .combine 2 4 1 1, .combine 3 5 1 1] [] [])
   (.leafAt [((sp [(0, (-1)), (3, 1)] (-150)), .fact 1), ((sp [(0, 1), (3, (-1))] 151), .fact 3)] [.input 0, .input 1, .combine 1 0 1 1] [] []))
   (.leafAt [((sp [(0, (-1)), (3, 1)] (-150)), .fact 1), ((sp [(0, 1), (3, (-1))] 151), .fact 3)] [.input 0, .input 1, .combine 1 0 1 1] [] []))
   (.leafAt [((sp [(2, (-1))] 2), .atom 0), ((sp [(2, 1)] 0), .fact 0)] [.input 0, .input 1, .combine 0 1 1 1] [] []))), (.le (.add (.var 3) (.mul 50 (.var 4))) (.add (.var 0) (.const 150)),
@@ -48,9 +44,7 @@ def inflight_proof : MachineProof := [(.le (.var 3) (.add (.var 0) (.const 150))
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .term (.min (.var 1) (.const 50)), .term (.ite (.and (.eq (.var 2) (.const 1)) (.lt (.const 0) (.var 4))) (.add (.var 3) (.min (.var 1) (.const 50))) (.var 3)), .term (.ite (.and (.lt (.var 3) (.var 0)) (.lt (.var 4) (.const 3))) (.add (.var 4) (.const 1)) (.var 4)), .term (.sub (.var 4) (.const 1)), .term (.ite (.lt (.const 0) (.var 4)) (.sub (.var 4) (.const 1)) (.var 4)), .term (.ite (.eq (.var 2) (.const 1)) (.ite (.lt (.const 0) (.var 4)) (.sub (.var 4) (.const 1)) (.var 4)) (.ite (.and (.lt (.var 3) (.var 0)) (.lt (.var 4) (.const 3))) (.add (.var 4) (.const 1)) (.var 4)))], .split (sp [(2, 1)] (-1))
   (.split (sp [(2, (-1))] 1)
   (.split (sp [(4, (-1))] 1)
-  (.split (sp [(1, 1)] (-50))
-  (.leafAt [((sp [(1, 1)] (-50)), .atom 0), ((sp [(0, (-1)), (3, 1), (4, 50)] (-150)), .fact 2), ((sp [(0, 1), (1, (-1)), (3, (-1)), (4, (-50))] 201), .fact 3)] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [] [])
-  (.leafAt [((sp [(0, (-1)), (3, 1), (4, 50)] (-150)), .fact 2), ((sp [(0, 1), (3, (-1)), (4, (-50))] 151), .fact 3)] [.input 0, .input 1, .combine 1 0 1 1] [] []))
+  (.leafAt [((sp [(0, (-1)), (3, 1), (4, 50)] (-150)), .fact 2), ((sp [(0, 1), (3, (-1)), (4, (-50)), (5, (-1))] 201), .fact 3), ((sp [(5, 1)] (-50)), .term 5)] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 2 3 1 1] [] [])
   (.leafAt [((sp [(4, 1)] 0), .atom 0), ((sp [(0, (-1)), (3, 1)] (-150)), .fact 1), ((sp [(0, 1), (3, (-1)), (4, (-50))] 151), .fact 3)] [.input 0, .input 1, .input 2, .combine 2 0 1 50, .combine 3 1 1 1] [] []))
   (.split (sp [(0, (-1)), (3, 1)] 1)
   (.split (sp [(4, 1)] (-2))
@@ -74,9 +68,7 @@ def counted_machine : Machine := ⟨[1],
   .le (.const 0) (.const 0)⟩
 def counted_proof : MachineProof := [(.le (.var 2) (.prod (.var 0) (.var 3)),
   ([.var 0, .var 1, .var 2, .var 3], .leafAt [((sp [] 1), .fact 0)] [.input 0] [] []),
-  ([.var 0, .var 1, .var 2, .var 3, .mono [0, 3], .term (.min (.var 1) (.var 0))], .split (sp [(0, (-1)), (1, 1)] 0)
-  (.leafAt [((sp [(0, (-1)), (1, 1)] 0), .atom 0), ((sp [(2, 1), (4, (-1))] 0), .fact 0), ((sp [(0, 1), (1, (-1)), (2, (-1)), (4, 1)] 1), .fact 1)] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [] [])
-  (.leafAt [((sp [(2, 1), (4, (-1))] 0), .fact 0), ((sp [(2, (-1)), (4, 1)] 1), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] [])))]
+  ([.var 0, .var 1, .var 2, .var 3, .mono [0, 3], .term (.min (.var 1) (.var 0))], .leafAt [((sp [(2, 1), (4, (-1))] 0), .fact 0), ((sp [(0, 1), (2, (-1)), (4, 1), (5, (-1))] 1), .fact 1), ((sp [(0, (-1)), (5, 1)] 0), .term 5)] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 2 3 1 1] [] []))]
 theorem counted_laws : ∀ maps ρ, Reach counted_machine maps ρ → ∀ l ∈ counted_proof.map (·.1), evalC ρ maps l = true :=
   machine_sound counted_machine counted_proof (by decide +kernel)
 -- In plain Lean: after any requests, s <= m · r (m, c, s, r are variables 0..3).
@@ -105,9 +97,7 @@ def gcd_e0 : SEntry := ⟨gcd_l0, 4, [], [], [], [], [], [],
   (.split (sp [(2, (-1)), (3, 1)] 0)
   (.leafAt [((sp [(2, 1), (3, (-1))] 0), .atom 1), ((sp [(2, (-1)), (3, 1)] 0), .atom 0), ((sp [(2, (-1))] 1), .fact 1), ((sp [(2, 1)] 0), .fact 3)] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 1, .combine 3 1 1 1, .combine 4 5 1 1] [] [])
   (.leafAt [((sp [(2, (-1))] 1), .fact 1), ((sp [(2, 1)] 0), .fact 3)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.split (sp [(2, (-1)), (3, 1)] 0)
-  (.leafAt [((sp [] 1), .fact 3)] [.input 0] [] [])
-  (.leafAt [((sp [(2, (-1)), (3, 1)] 1), .atom 1), ((sp [(2, 1), (3, (-1))] 1), .atom 0)] [.input 0, .input 1, .combine 1 0 1 1] [] [])))⟩
+  (.leafAt [((sp [(2, (-1)), (3, 1)] 1), .atom 0), ((sp [(7, 1)] 0), .fact 3), ((sp [(2, 1), (3, (-1)), (7, (-1))] 0), .term 7)] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .combine 1 3 1 1] [] []))⟩
 def gcd_l1 : MLaw := ⟨.le (.const 1) (.var 3), none⟩
 def gcd_e1 : SEntry := ⟨gcd_l1, 4, [], [], [], [], [], [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [.and (.le (.const 1) (.var 0)) (.le (.const 1) (.var 1)), .not (.le (.const 1) (.var 1))], .leafAt [((sp [(1, (-1))] 1), .fact 0), ((sp [(1, 1)] 0), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] []),
@@ -293,25 +283,17 @@ def retry_live0 : Live := ⟨.le (.const 0) (.const 0), .not (.lt (.var 2) (.var
 def retry_live0_sp : SProof := ([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.max (.const 1) (.var 1)), .term (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2))), .term (.sub (.var 0) (.var 2))], [.and (.le (.const 0) (.const 0)) (.not (.not (.lt (.var 2) (.var 0)))), .not (.and (.or (.le (.const 0) (.const 0)) (.not (.lt (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2)) (.var 0)))) (.or (.not (.lt (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2)) (.var 0))) (.or (.or (.lt (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2))) (.sub (.var 0) (.var 2))) (.and (.eq (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2))) (.sub (.var 0) (.var 2))) (.lt (.const 0) (.const 0)))) (.and (.and (.eq (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2))) (.sub (.var 0) (.var 2))) (.le (.const 0) (.const 0))) (.and (.or (.not (.le (.const 0) (.const 0))) (.le (.const 0) (.const 0))) (.le (.const 0) (.const 0)))))))], .split (sp [(0, (-1)), (2, 1)] 1)
   (.split (sp [(1, (-1))] 1)
   (.split (sp [(0, (-1)), (1, 1), (2, 1)] 0)
-  (.split (sp [(0, (-1)), (2, 1)] 0)
-  (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])
-  (.leafAt [((sp [(0, (-1)), (2, 1)] 1), .atom 3), ((sp [(0, 1), (2, (-1))] 1), .atom 0)] [.input 0, .input 1, .combine 1 0 1 1] [] []))
+  (.leafAt [((sp [(1, (-1))] 1), .atom 1), ((sp [(0, (-1)), (1, 1), (2, 1), (10, 1)] 0), .fact 1), ((sp [(0, 1), (2, (-1)), (10, (-1))] 0), .term 10)] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 2 3 1 1] [] [])
   (.leafAt [((sp [(0, 1), (1, (-1)), (2, (-1))] 1), .atom 0), ((sp [(0, (-1)), (1, 1), (2, 1)] 1), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.split (sp [(0, (-1)), (2, 1)] 0)
-  (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])
-  (.leafAt [((sp [(0, 1), (2, (-1))] 1), .atom 0), ((sp [(0, (-1)), (2, 1)] 2), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.leafAt [((sp [(0, (-1)), (2, 1), (10, 1)] 1), .fact 1), ((sp [(0, 1), (2, (-1)), (10, (-1))] 0), .term 10)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])))
 def retry_live0_cp : SProof := ([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [.and (.le (.const 0) (.const 0)) (.not (.not (.lt (.var 2) (.var 0)))), .not (.or (.le (.const 0) (.const 0)) (.lt (.const 0) (.const 0)))], .leafAt [((sp [] 1), .fact 1)] [.input 0] [] []))
 def retry_live0_hp : List SProof := [([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.max (.const 1) (.var 1)), .term (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2))), .term (.sub (.var 0) (.var 2))], [.and (.and (.le (.const 0) (.const 0)) (.not (.not (.lt (.var 2) (.var 0))))) (.and (.le (.const 0) (.const 0)) (.le (.const 0) (.const 0))), .not (.or (.not (.lt (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2)) (.var 0))) (.or (.lt (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2))) (.sub (.var 0) (.var 2))) (.and (.eq (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.add (.var 2) (.max (.const 1) (.var 1))) (.var 2))) (.sub (.var 0) (.var 2))) (.lt (.const 0) (.const 0)))))], .split (sp [(0, (-1)), (2, 1)] 1)
   (.split (sp [(1, (-1))] 1)
   (.split (sp [(0, (-1)), (1, 1), (2, 1)] 0)
-  (.split (sp [(0, (-1)), (2, 1)] 0)
-  (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])
-  (.leafAt [((sp [(0, (-1)), (2, 1)] 1), .atom 3), ((sp [(0, 1), (2, (-1))] 1), .atom 0)] [.input 0, .input 1, .combine 1 0 1 1] [] []))
+  (.leafAt [((sp [(1, (-1))] 1), .atom 1), ((sp [(0, (-1)), (1, 1), (2, 1), (10, 1)] 0), .fact 1), ((sp [(0, 1), (2, (-1)), (10, (-1))] 0), .term 10)] [.input 0, .input 1, .input 2, .combine 1 0 1 1, .combine 2 3 1 1] [] [])
   (.leafAt [((sp [(0, 1), (1, (-1)), (2, (-1))] 1), .atom 0), ((sp [(0, (-1)), (1, 1), (2, 1)] 1), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.split (sp [(0, (-1)), (2, 1)] 0)
-  (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])
-  (.leafAt [((sp [(0, 1), (2, (-1))] 1), .atom 0), ((sp [(0, (-1)), (2, 1)] 2), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] [])))
+  (.leafAt [((sp [(0, (-1)), (2, 1), (10, 1)] 1), .fact 1), ((sp [(0, 1), (2, (-1)), (10, (-1))] 0), .term 10)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.leafAt [((sp [(0, 1), (2, (-1))] 0), .atom 0), ((sp [(0, (-1)), (2, 1)] 1), .fact 0)] [.input 0, .input 1, .combine 0 1 1 1] [] [])))]
 theorem retry_live0_ok : sliveOk retry_machine retry_live0 = true := by decide +kernel
 theorem retry_live0_stay : checkSKStep retry_machine retry_proof (sliveStep retry_live0 retry_live0.pend (liveStayC retry_live0) retry_live0_sp) = true := by decide +kernel
@@ -365,25 +347,17 @@ def grid_live0 : Live := ⟨.le (.const 0) (.const 0), .not (.lt (.var 2) (.var 
 def grid_live0_sp : SProof := ([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))), .term (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2))), .term (.sub (.var 0) (.var 2)), .term (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)), .term (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3)), .term (.sub (.var 1) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3))), .term (.sub (.var 1) (.var 3))], [.and (.le (.const 0) (.const 0)) (.not (.not (.lt (.var 2) (.var 0)))), .not (.and (.or (.le (.const 0) (.const 0)) (.not (.lt (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2)) (.var 0)))) (.or (.not (.lt (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2)) (.var 0))) (.or (.or (.lt (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2))) (.sub (.var 0) (.var 2))) (.and (.eq (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2))) (.sub (.var 0) (.var 2))) (.or (.lt (.sub (.var 1) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3))) (.sub (.var 1) (.var 3))) (.and (.eq (.sub (.var 1) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3))) (.sub (.var 1) (.var 3))) (.lt (.const 0) (.const 0)))))) (.and (.and (.eq (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2))) (.sub (.var 0) (.var 2))) (.and (.eq (.sub (.var 1) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3))) (.sub (.var 1) (.var 3))) (.le (.const 0) (.const 0)))) (.and (.or (.not (.le (.const 0) (.const 0))) (.le (.const 0) (.const 0))) (.le (.const 0) (.const 0)))))))], .split (sp [(0, (-1)), (2, 1)] 1)
   (.split (sp [(1, (-1)), (3, 1)] 1)
   (.split (sp [(0, (-1)), (2, 1)] 0)
-  (.split (sp [(1, (-1)), (3, 1)] 0)
-  (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])
-  (.leafAt [((sp [(1, 1), (3, (-1))] 1), .atom 0), ((sp [(1, (-1)), (3, 1)] 2), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leafAt [((sp [(1, (-1)), (3, 1), (14, 1)] 1), .fact 1), ((sp [(1, 1), (3, (-1)), (14, (-1))] 0), .term 14)] [.input 0, .input 1, .combine 0 1 1 1] [] [])
   (.leafAt [((sp [(0, (-1)), (2, 1)] 1), .atom 2), ((sp [(0, 1), (2, (-1))] 1), .atom 0)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.split (sp [(0, (-1)), (2, 1)] 0)
-  (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])
-  (.leafAt [((sp [(0, 1), (2, (-1))] 1), .atom 0), ((sp [(0, (-1)), (2, 1)] 2), .fact 1)] [.input 0, .input 1, .combine 1 0 1 1] [] [])))
+  (.leafAt [((sp [(0, (-1)), (2, 1), (10, 1)] 1), .fact 1), ((sp [(0, 1), (2, (-1)), (10, (-1))] 0), .term 10)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])))
 def grid_live0_cp : SProof := ([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], [.and (.le (.const 0) (.const 0)) (.not (.not (.lt (.var 2) (.var 0)))), .not (.or (.le (.const 0) (.const 0)) (.lt (.const 0) (.const 0)))], .leafAt [((sp [] 1), .fact 1)] [.input 0] [] []))
 def grid_live0_hp : List SProof := [([], [], [], [], [], ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))), .term (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2)), .term (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2))), .term (.sub (.var 0) (.var 2)), .term (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)), .term (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3)), .term (.sub (.var 1) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3))), .term (.sub (.var 1) (.var 3))], [.and (.and (.le (.const 0) (.const 0)) (.not (.not (.lt (.var 2) (.var 0))))) (.and (.le (.const 0) (.const 0)) (.le (.const 0) (.const 0))), .not (.or (.not (.lt (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2)) (.var 0))) (.or (.lt (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2))) (.sub (.var 0) (.var 2))) (.and (.eq (.sub (.var 0) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.var 2) (.add (.var 2) (.const 1))) (.var 2))) (.sub (.var 0) (.var 2))) (.or (.lt (.sub (.var 1) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3))) (.sub (.var 1) (.var 3))) (.and (.eq (.sub (.var 1) (.ite (.lt (.var 2) (.var 0)) (.ite (.lt (.var 3) (.var 1)) (.add (.var 3) (.const 1)) (.const 0)) (.var 3))) (.sub (.var 1) (.var 3))) (.lt (.const 0) (.const 0)))))))], .split (sp [(0, (-1)), (2, 1)] 1)
   (.split (sp [(1, (-1)), (3, 1)] 1)
   (.split (sp [(0, (-1)), (2, 1)] 0)
-  (.split (sp [(1, (-1)), (3, 1)] 0)
-  (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])
-  (.leafAt [((sp [(1, (-1)), (3, 1)] 1), .atom 2), ((sp [(1, 1), (3, (-1))] 1), .atom 0)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leafAt [((sp [(1, (-1)), (3, 1), (14, 1)] 1), .fact 1), ((sp [(1, 1), (3, (-1)), (14, (-1))] 0), .term 14)] [.input 0, .input 1, .combine 0 1 1 1] [] [])
   (.leafAt [((sp [(0, (-1)), (2, 1)] 1), .atom 2), ((sp [(0, 1), (2, (-1))] 1), .atom 0)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
-  (.split (sp [(0, (-1)), (2, 1)] 0)
-  (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])
-  (.leafAt [((sp [(0, 1), (2, (-1))] 1), .atom 0), ((sp [(0, (-1)), (2, 1)] 2), .fact 1)] [.input 0, .input 1, .combine 1 0 1 1] [] [])))
+  (.leafAt [((sp [(0, (-1)), (2, 1), (10, 1)] 1), .fact 1), ((sp [(0, 1), (2, (-1)), (10, (-1))] 0), .term 10)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.leafAt [((sp [(0, 1), (2, (-1))] 0), .atom 0), ((sp [(0, (-1)), (2, 1)] 1), .fact 0)] [.input 0, .input 1, .combine 0 1 1 1] [] [])))]
 theorem grid_live0_ok : sliveOk grid_machine grid_live0 = true := by decide +kernel
 theorem grid_live0_stay : checkSKStep grid_machine grid_proof (sliveStep grid_live0 grid_live0.pend (liveStayC grid_live0) grid_live0_sp) = true := by decide +kernel
@@ -455,9 +429,7 @@ def rollup_fold : Fold := ⟨[0],
   .le (.const 0) (.const 0),
   .le (.const 0) (.const 0)⟩
 def rollup_proof : FoldProof := [(.le (.var 1) (.mul 50 (.var 2)),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.min (.var 0) (.const 50))], .split (sp [(0, 1)] (-50))
-  (.leafAt [((sp [] 1), .fact 0)] [.input 0] [] [])
-  (.leafAt [((sp [] 1), .fact 0)] [.input 0] [] [])),
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.min (.var 0) (.const 50))], .leafAt [((sp [(7, (-1))] 51), .fact 0), ((sp [(7, 1)] (-50)), .term 7)] [.input 0, .input 1, .combine 1 0 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], .leafAt [((sp [(3, 1), (4, (-50))] 0), .fact 0), ((sp [(5, 1), (6, (-50))] 0), .fact 1), ((sp [(3, (-1)), (4, 50), (5, (-1)), (6, 50)] 1), .fact 2)] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [] []))]
 theorem rollup_laws : ∀ maps ρ, evalC ρ maps rollup_fold.pre = true → ∀ t, Allowed rollup_fold ρ maps t →
     ∀ l ∈ rollup_proof.map (·.1), evalC (foldT rollup_fold ρ maps t) maps l = true :=
@@ -608,9 +580,7 @@ def fpolicy_machine : FMachine := ⟨⟨[2],
 def fpolicy_proof : MachineProof := [(.le (.var 3) (.add (.var 0) (.var 1)),
   ([.var 0, .var 1, .var 2, .var 3, .var 4], .leafAt [((sp [(0, 1), (1, 1)] 1), .fact 0), ((sp [(0, (-1))] 0), .nat 0), ((sp [(1, (-1))] 0), .nat 1)] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 3 2 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .term (.min (.var 2) (.var 1)), .term (.ite (.lt (.var 3) (.var 0)) (.add (.var 3) (.min (.var 2) (.var 1))) (.var 3))], .split (sp [(0, (-1)), (3, 1)] 1)
-  (.split (sp [(1, (-1)), (2, 1)] 0)
-  (.leafAt [((sp [(0, (-1)), (3, 1)] 1), .atom 1), ((sp [(1, (-1)), (2, 1)] 0), .atom 0), ((sp [(0, 1), (1, 1), (2, (-1)), (3, (-1))] 1), .fact 1)] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .combine 1 3 1 1] [] [])
-  (.leafAt [((sp [(0, (-1)), (3, 1)] 1), .atom 1), ((sp [(0, 1), (3, (-1))] 1), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leafAt [((sp [(0, (-1)), (3, 1)] 1), .atom 0), ((sp [(0, 1), (1, 1), (3, (-1)), (5, (-1))] 1), .fact 1), ((sp [(1, (-1)), (5, 1)] 0), .term 5)] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 2 3 1 1] [] [])
   (.leafAt [((sp [(0, (-1)), (1, (-1)), (3, 1)] 0), .fact 0), ((sp [(0, 1), (1, 1), (3, (-1))] 1), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] [])))]
 theorem fpolicy_laws : ∀ maps ρ, FReach fpolicy_machine maps ρ → ∀ l ∈ fpolicy_proof.map (·.1), evalC ρ maps l = true :=
   fmachine_sound fpolicy_machine fpolicy_proof (by decide +kernel)
@@ -802,9 +772,7 @@ def refines_step0 : StepLaw := ⟨.le (.const 0) (.const 0),
   [(3, 7), (4, 8)],
   [],
   [],
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .term (.min (.var 2) (.var 1))], .split (sp [(1, (-1)), (2, 1)] 0)
-  (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] [])
-  (.leafAt [((sp [] 1), .fact 1)] [.input 0] [] []))⟩
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .term (.min (.var 2) (.var 1))], .leafAt [((sp [(1, 1), (9, (-1))] 1), .fact 1), ((sp [(1, (-1)), (9, 1)] 0), .term 9)] [.input 0, .input 1, .combine 0 1 1 1] [] [])⟩
 theorem refines_step0_holds : StepLawHolds refines_machine refines_step0 :=
   steplaw_sound refines_machine refines_proof refines_step0 refines_check (by decide +kernel)
 
@@ -954,9 +922,7 @@ def twophase_e1 : MEntry := ⟨twophase_l1, 7, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11], .leafAt [((sp [(1, 1)] 1), .fact 0), ((sp [(1, (-1))] 0), .nat 1)] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .var 8, .var 9, .var 10, .var 11, .term (.min (.var 3) (.var 1)), .term (.ite (.eq (.var 2) (.const 1)) (.const 0) (.var 5)), .term (.ite (.eq (.var 2) (.const 0)) (.min (.var 3) (.var 1)) (.ite (.eq (.var 2) (.const 1)) (.const 0) (.var 5)))], .split (sp [(2, 1)] 0)
   (.split (sp [(2, (-1))] 0)
-  (.split (sp [(1, (-1)), (3, 1)] 0)
-  (.leafAt [((sp [] 1), .fact 3)] [.input 0] [] [])
-  (.leafAt [((sp [] 1), .fact 3)] [.input 0] [] []))
+  (.leafAt [((sp [(1, 1), (12, (-1))] 1), .fact 3), ((sp [(1, (-1)), (12, 1)] 0), .term 12)] [.input 0, .input 1, .combine 0 1 1 1] [] [])
   (.leafAt [((sp [(2, 1)] 1), .atom 0), ((sp [(2, (-1))] 0), .nat 2)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
   (.split (sp [(2, 1)] (-1))
   (.leafAt [((sp [(1, 1)] 1), .fact 3), ((sp [(1, (-1))] 0), .nat 1)] [.input 0, .input 1, .combine 0 1 1 1] [] [])
@@ -1221,9 +1187,7 @@ def pflight_e0 : MEntry := ⟨pflight_l0, 5, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .term (.min (.var 1) (.const 50)), .term (.ite (.and (.eq (.var 2) (.const 1)) (.lt (.const 0) (.var 4))) (.add (.var 3) (.min (.var 1) (.const 50))) (.var 3))], .split (sp [(2, 1)] (-1))
   (.split (sp [(2, (-1))] 1)
   (.split (sp [(4, (-1))] 1)
-  (.split (sp [(1, 1)] (-50))
-  (.leafAt [((sp [(4, (-1))] 1), .atom 1), ((sp [(1, 1)] (-50)), .atom 0), ((sp [(0, (-1)), (3, 1), (4, 50)] (-150)), .fact 2), ((sp [(0, 1), (1, (-1)), (3, (-1))] 151), .fact 3)] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 50, .combine 1 3 1 1, .combine 4 5 1 1] [] [])
-  (.leafAt [((sp [(4, (-1))] 1), .atom 1), ((sp [(0, (-1)), (3, 1), (4, 50)] (-150)), .fact 2), ((sp [(0, 1), (3, (-1))] 101), .fact 3)] [.input 0, .input 1, .input 2, .combine 1 0 1 50, .combine 3 2 1 1] [] []))
+  (.leafAt [((sp [(4, (-1))] 1), .atom 0), ((sp [(0, (-1)), (3, 1), (4, 50)] (-150)), .fact 2), ((sp [(0, 1), (3, (-1)), (8, (-1))] 151), .fact 3), ((sp [(8, 1)] (-50)), .term 8)] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 50, .combine 2 4 1 1, .combine 3 5 1 1] [] [])
   (.leafAt [((sp [(0, (-1)), (3, 1)] (-150)), .fact 1), ((sp [(0, 1), (3, (-1))] 151), .fact 3)] [.input 0, .input 1, .combine 1 0 1 1] [] []))
   (.leafAt [((sp [(0, (-1)), (3, 1)] (-150)), .fact 1), ((sp [(0, 1), (3, (-1))] 151), .fact 3)] [.input 0, .input 1, .combine 1 0 1 1] [] []))
   (.leafAt [((sp [(2, (-1))] 2), .atom 0), ((sp [(2, 1)] 0), .fact 0)] [.input 0, .input 1, .combine 0 1 1 1] [] []))⟩
@@ -1233,9 +1197,7 @@ def pflight_e1 : MEntry := ⟨pflight_l1, 5, [],
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .term (.min (.var 1) (.const 50)), .term (.ite (.and (.eq (.var 2) (.const 1)) (.lt (.const 0) (.var 4))) (.add (.var 3) (.min (.var 1) (.const 50))) (.var 3)), .term (.ite (.and (.lt (.var 3) (.var 0)) (.lt (.var 4) (.const 3))) (.add (.var 4) (.const 1)) (.var 4)), .term (.sub (.var 4) (.const 1)), .term (.ite (.lt (.const 0) (.var 4)) (.sub (.var 4) (.const 1)) (.var 4)), .term (.ite (.eq (.var 2) (.const 1)) (.ite (.lt (.const 0) (.var 4)) (.sub (.var 4) (.const 1)) (.var 4)) (.ite (.and (.lt (.var 3) (.var 0)) (.lt (.var 4) (.const 3))) (.add (.var 4) (.const 1)) (.var 4)))], .split (sp [(2, 1)] (-1))
   (.split (sp [(2, (-1))] 1)
   (.split (sp [(4, (-1))] 1)
-  (.split (sp [(1, 1)] (-50))
-  (.leafAt [((sp [(1, 1)] (-50)), .atom 0), ((sp [(0, (-1)), (3, 1), (4, 50)] (-150)), .fact 2), ((sp [(0, 1), (1, (-1)), (3, (-1)), (4, (-50))] 201), .fact 3)] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [] [])
-  (.leafAt [((sp [(0, (-1)), (3, 1), (4, 50)] (-150)), .fact 2), ((sp [(0, 1), (3, (-1)), (4, (-50))] 151), .fact 3)] [.input 0, .input 1, .combine 1 0 1 1] [] []))
+  (.leafAt [((sp [(0, (-1)), (3, 1), (4, 50)] (-150)), .fact 2), ((sp [(0, 1), (3, (-1)), (4, (-50)), (8, (-1))] 201), .fact 3), ((sp [(8, 1)] (-50)), .term 8)] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 2 3 1 1] [] [])
   (.leafAt [((sp [(4, 1)] 0), .atom 0), ((sp [(0, (-1)), (3, 1)] (-150)), .fact 1), ((sp [(0, 1), (3, (-1)), (4, (-50))] 151), .fact 3)] [.input 0, .input 1, .input 2, .combine 2 0 1 50, .combine 3 1 1 1] [] []))
   (.split (sp [(0, (-1)), (3, 1)] 1)
   (.split (sp [(4, 1)] (-2))
@@ -1664,13 +1626,50 @@ def rollupM_fold : Fold := ⟨[1],
   .le (.const 0) (.const 0),
   .le (.const 0) (.const 0)⟩
 def rollupM_proof : FoldProof := [(.le (.var 2) (.prod (.var 0) (.var 3)),
-  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .term (.min (.var 1) (.var 0))], .split (sp [(0, (-1)), (1, 1)] 0)
-  (.leafAt [((sp [] 1), .fact 0)] [.input 0] [] [])
-  (.leafAt [((sp [] 1), .fact 0)] [.input 0] [] [])),
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .term (.min (.var 1) (.var 0))], .leafAt [((sp [(0, 1), (8, (-1))] 1), .fact 0), ((sp [(0, (-1)), (8, 1)] 0), .term 8)] [.input 0, .input 1, .combine 0 1 1 1] [] []),
   ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .var 7, .mono [0, 5], .mono [0, 7]], .leafAt [((sp [(4, 1), (8, (-1))] 0), .fact 0), ((sp [(6, 1), (9, (-1))] 0), .fact 1), ((sp [(4, (-1)), (6, (-1)), (8, 1), (9, 1)] 1), .fact 2)] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 1 3 1 1] [] []))]
 theorem rollupM_laws : ∀ maps ρ, evalC ρ maps rollupM_fold.pre = true → ∀ t, Allowed rollupM_fold ρ maps t →
     ∀ l ∈ rollupM_proof.map (·.1), evalC (foldT rollupM_fold ρ maps t) maps l = true :=
   fold_sound rollupM_fold rollupM_proof (by decide +kernel)
+
+-- per-key quota: every key: U <= per × S  (variables 0 per, 1 join, 2 k, 3 amt, 4 q, 5 q#, 6 #; maps 0 S, 1 U)
+def quota_machine : FMMachine := ⟨⟨[1, 2, 3],
+  [],
+  [(0, 0), (1, 0)],
+  [],
+  [(0, .var 2, .ite (.eq (.var 1) (.const 1)) (.add (.get 0 (.var 2)) (.const 1)) (.get 0 (.var 2))), (1, .var 2, .ite (.and (.eq (.var 1) (.const 0)) (.le (.add (.get 1 (.var 2)) (.var 3)) (.prod (.var 0) (.get 0 (.var 2))))) (.add (.get 1 (.var 2)) (.var 3)) (.get 1 (.var 2)))],
+  .le (.const 0) (.const 0),
+  .or (.eq (.var 1) (.const 0)) (.eq (.var 1) (.const 1))⟩,
+  []⟩
+def quota_l0 : MLaw := ⟨.le (.get 1 (.var 4)) (.prod (.var 0) (.get 0 (.var 4))), some 4⟩
+def quota_e0 : MEntry := ⟨quota_l0, 5, [(0, .var 2), (0, .var 5)],
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6], .leafAt [((sp [] 1), .fact 0)] [.input 0] [] []),
+  ([.var 0, .var 1, .var 2, .var 3, .var 4, .var 5, .var 6, .term (.ite (.and (.eq (.var 1) (.const 0)) (.le (.add (.get 1 (.var 2)) (.var 3)) (.prod (.var 0) (.get 0 (.var 2))))) (.add (.get 1 (.var 2)) (.var 3)) (.get 1 (.var 2))), .term (.ite (.eq (.var 5) (.var 2)) (.ite (.and (.eq (.var 1) (.const 0)) (.le (.add (.get 1 (.var 2)) (.var 3)) (.prod (.var 0) (.get 0 (.var 2))))) (.add (.get 1 (.var 2)) (.var 3)) (.get 1 (.var 2))) (.get 1 (.var 5))), .term (.ite (.eq (.var 1) (.const 1)) (.add (.get 0 (.var 2)) (.const 1)) (.get 0 (.var 2))), .term (.ite (.eq (.var 5) (.var 2)) (.ite (.eq (.var 1) (.const 1)) (.add (.get 0 (.var 2)) (.const 1)) (.get 0 (.var 2))) (.get 0 (.var 5))), .cell 1 (sp [(2, 1)] 0), .cell 0 (sp [(2, 1)] 0), .cell 1 (sp [(5, 1)] 0), .cell 0 (sp [(5, 1)] 0), .mono [0, 12], .mono [0, 14]], .split (sp [(2, (-1)), (5, 1)] 0)
+  (.split (sp [(2, 1), (5, (-1))] 0)
+  (.split (sp [(1, 1)] 0)
+  (.split (sp [(1, (-1))] 0)
+  (.split (sp [(3, 1), (11, 1), (15, (-1))] 0)
+  (.leafAt [((sp [] 1), .fact 3)] [.input 0] [(11, 13), (12, 14)] [])
+  (.leafAt [((sp [(11, 1), (15, (-1))] 0), .fact 1), ((sp [(11, (-1)), (15, 1)] 1), .fact 3), ((sp [(11, 1), (13, (-1))] 0), .eq 0), ((sp [(11, (-1)), (13, 1)] 0), .eq 0)] [.input 0, .input 1, .input 2, .input 3, .combine 0 3 1 1, .combine 1 2 1 1, .combine 5 4 1 1] [(11, 13), (12, 14)] []))
+  (.leafAt [((sp [] 1), .fact 0)] [.input 0] [(11, 13), (12, 14)] []))
+  (.split (sp [(1, 1)] (-1))
+  (.leafAt [((sp [(11, 1), (15, (-1))] 0), .fact 1), ((sp [(0, 1), (11, (-1)), (15, 1)] 1), .fact 3), ((sp [(11, 1), (13, (-1))] 0), .eq 0), ((sp [(11, (-1)), (13, 1)] 0), .eq 0), ((sp [(0, (-1))] 0), .nat 0)] [.input 0, .input 1, .input 2, .input 3, .input 4, .combine 0 3 1 1, .combine 1 2 1 1, .combine 6 5 1 1, .combine 7 4 1 1] [(11, 13), (12, 14)] [])
+  (.leafAt [((sp [] 1), .fact 0)] [.input 0] [(11, 13), (12, 14)] [])))
+  (.leafAt [((sp [(13, 1), (16, (-1))] 0), .fact 2), ((sp [(13, (-1)), (16, 1)] 1), .fact 3)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leafAt [((sp [(13, 1), (16, (-1))] 0), .fact 2), ((sp [(13, (-1)), (16, 1)] 1), .fact 3)] [.input 0, .input 1, .combine 0 1 1 1] [] []))⟩
+def quota_proof : List MEntry := [quota_e0]
+theorem quota_check : checkFMMachine quota_machine quota_proof = true := by decide +kernel
+theorem quota_laws : ∀ ρ M, FMReach quota_machine ρ M → ∀ e ∈ quota_proof, e.law.Holds ρ M :=
+  fmmachine_sound quota_machine quota_proof quota_check
+namespace quota
+abbrev «per» : Nat := 0
+abbrev «S» : Nat := 0
+abbrev «U» : Nat := 1
+/-- every key: U <= per × S -/
+theorem law0 (ρ : Nat → Nat) (μ : Nat → Nat → Nat) (h : FMReach quota_machine ρ μ) : ∀ k : Nat, (μ «U» (k)) ≤ (ρ «per» * (μ «S» (k))) := by
+  have hl : quota_l0.Holds ρ μ := quota_laws ρ μ h quota_e0 (by simp [quota_proof])
+  exact fun k => (evalC_iff (upd ρ 4 k) μ quota_l0.holds).mp (hl k)
+end quota
 
 -- budget rule: bounded_loss: s <= b + m @start  (2 columns)
 def t0_goal : Goal := ⟨[.var 0, .var 1],
@@ -1685,9 +1684,7 @@ def t1_goal : Goal := ⟨[.var 0, .var 1, .var 2, .var 3, .term (.min (.var 3) (
   [.le (.var 0) (.add (.var 1) (.var 2)), .not (.le (.ite (.lt (.var 0) (.var 1)) (.add (.var 0) (.min (.var 3) (.var 2))) (.var 0)) (.add (.var 1) (.var 2)))]⟩
 def t1_tree : Tree :=
   .split (sp [(0, 1), (1, (-1))] 1)
-  (.split (sp [(2, (-1)), (3, 1)] 0)
-  (.leafAt [((sp [(0, 1), (1, (-1))] 1), .atom 1), ((sp [(2, (-1)), (3, 1)] 0), .atom 0), ((sp [(0, (-1)), (1, 1), (2, 1), (3, (-1))] 1), .fact 1)] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .combine 1 3 1 1] [] [])
-  (.leafAt [((sp [(0, 1), (1, (-1))] 1), .atom 1), ((sp [(0, (-1)), (1, 1)] 1), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leafAt [((sp [(0, 1), (1, (-1))] 1), .atom 0), ((sp [(0, (-1)), (1, 1), (2, 1), (4, (-1))] 1), .fact 1), ((sp [(2, (-1)), (4, 1)] 0), .term 4)] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 2 3 1 1] [] [])
   (.leafAt [((sp [(0, 1), (1, (-1)), (2, (-1))] 0), .fact 0), ((sp [(0, (-1)), (1, 1), (2, 1)] 1), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] [])
 theorem t1 : ∀ env maps, ¬ ∀ c ∈ t1_goal.hyps, evalC env maps c = true :=
   sound t1_goal t1_tree (by decide +kernel)
@@ -1707,9 +1704,7 @@ def t3_tree : Tree :=
   .split (sp [(0, 1)] (-1))
   (.split (sp [(0, (-1))] 1)
   (.split (sp [(3, (-1))] 1)
-  (.split (sp [(4, 1)] (-50))
-  (.leafAt [((sp [(3, (-1))] 1), .atom 1), ((sp [(4, 1)] (-50)), .atom 0), ((sp [(1, 1), (2, (-1)), (3, 50)] (-150)), .fact 2), ((sp [(1, (-1)), (2, 1), (4, (-1))] 151), .fact 3)] [.input 0, .input 1, .input 2, .input 3, .combine 2 0 1 50, .combine 1 3 1 1, .combine 4 5 1 1] [] [])
-  (.leafAt [((sp [(3, (-1))] 1), .atom 1), ((sp [(1, 1), (2, (-1)), (3, 50)] (-150)), .fact 2), ((sp [(1, (-1)), (2, 1)] 101), .fact 3)] [.input 0, .input 1, .input 2, .combine 1 0 1 50, .combine 3 2 1 1] [] []))
+  (.leafAt [((sp [(3, (-1))] 1), .atom 0), ((sp [(1, 1), (2, (-1)), (3, 50)] (-150)), .fact 2), ((sp [(1, (-1)), (2, 1), (5, (-1))] 151), .fact 3), ((sp [(5, 1)] (-50)), .term 5)] [.input 0, .input 1, .input 2, .input 3, .combine 1 0 1 50, .combine 2 4 1 1, .combine 3 5 1 1] [] [])
   (.leafAt [((sp [(1, 1), (2, (-1))] (-150)), .fact 1), ((sp [(1, (-1)), (2, 1)] 151), .fact 3)] [.input 0, .input 1, .combine 1 0 1 1] [] []))
   (.leafAt [((sp [(1, 1), (2, (-1))] (-150)), .fact 1), ((sp [(1, (-1)), (2, 1)] 151), .fact 3)] [.input 0, .input 1, .combine 1 0 1 1] [] []))
   (.leafAt [((sp [(0, (-1))] 2), .atom 0), ((sp [(0, 1)] 0), .fact 0)] [.input 0, .input 1, .combine 0 1 1 1] [] [])
@@ -1731,9 +1726,7 @@ def t5_tree : Tree :=
   .split (sp [(0, 1)] (-1))
   (.split (sp [(0, (-1))] 1)
   (.split (sp [(3, (-1))] 1)
-  (.split (sp [(4, 1)] (-50))
-  (.leafAt [((sp [(4, 1)] (-50)), .atom 0), ((sp [(1, 1), (2, (-1)), (3, 50)] (-150)), .fact 2), ((sp [(1, (-1)), (2, 1), (3, (-50)), (4, (-1))] 201), .fact 3)] [.input 0, .input 1, .input 2, .combine 0 2 1 1, .combine 3 1 1 1] [] [])
-  (.leafAt [((sp [(1, 1), (2, (-1)), (3, 50)] (-150)), .fact 2), ((sp [(1, (-1)), (2, 1), (3, (-50))] 151), .fact 3)] [.input 0, .input 1, .combine 1 0 1 1] [] []))
+  (.leafAt [((sp [(1, 1), (2, (-1)), (3, 50)] (-150)), .fact 2), ((sp [(1, (-1)), (2, 1), (3, (-50)), (5, (-1))] 201), .fact 3), ((sp [(5, 1)] (-50)), .term 5)] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 2 3 1 1] [] [])
   (.leafAt [((sp [(3, 1)] 0), .atom 0), ((sp [(1, 1), (2, (-1))] (-150)), .fact 1), ((sp [(1, (-1)), (2, 1), (3, (-50))] 151), .fact 3)] [.input 0, .input 1, .input 2, .combine 2 0 1 50, .combine 3 1 1 1] [] []))
   (.split (sp [(1, 1), (2, (-1))] 1)
   (.split (sp [(3, 1)] (-2))
@@ -1744,22 +1737,68 @@ def t5_tree : Tree :=
 theorem t5 : ∀ env maps, ¬ ∀ c ∈ t5_goal.hyps, evalC env maps c = true :=
   sound t5_goal t5_tree (by decide +kernel)
 
--- products: x <= x·x  (4 columns)
-def t6_goal : Goal := ⟨[.var 0, .mono [0, 0], .mono [0, 0, 0], .mono [0, 0, 0, 0]],
+-- products: x <= x·x  (3 columns)
+def t6_goal : Goal := ⟨[.var 0, .mono [0, 0], .mono [0, 0, 0]],
   [.not (.le (.var 0) (.prod (.var 0) (.var 0)))]⟩
 def t6_tree : Tree :=
-  .leafAt [((sp [(0, (-1)), (1, 1)] 1), .fact 0), ((sp [(1, (-1))] 0), .nat 1), ((sp [(0, (-1))] 0), .nat 0)] [.input 0, .input 5, .input 7, .combine 1 0 1 1, .combine 3 2 1 1] [] [(0, 0), (0, 1), (0, 2), (1, 1), (1, 2), (2, 2)]
+  .leafAt [((sp [(0, (-1)), (1, 1)] 1), .fact 0), ((sp [(1, (-1))] 0), .nat 1), ((sp [(0, (-1))] 0), .nat 0)] [.input 0, .input 3, .input 4, .combine 1 0 1 1, .combine 3 2 1 1] [] [(0, 2), (1, 2)]
 theorem t6 : ∀ env maps, ¬ ∀ c ∈ t6_goal.hyps, evalC env maps c = true :=
   sound t6_goal t6_tree (by decide +kernel)
+
+-- squares: (ac + bd)² <= (a² + b²)(c² + d²)  (17 columns)
+def t7_goal : Goal := ⟨[.var 0, .var 1, .var 2, .var 3, .mono [0, 3], .mono [1, 2], .mono [0, 1], .mono [2, 3], .mono [0, 0], .mono [2, 2], .mono [1, 1], .mono [3, 3], .mono [0, 0, 3, 3], .mono [1, 1, 2, 2], .mono [0, 1, 2, 3], .mono [0, 0, 1, 1], .mono [2, 2, 3, 3]],
+  [.not (.le (.add (.prod (.add (.prod (.var 0) (.var 1)) (.prod (.var 2) (.var 3))) (.add (.prod (.var 0) (.var 1)) (.prod (.var 2) (.var 3)))) (.const 0)) (.prod (.add (.prod (.var 0) (.var 0)) (.prod (.var 2) (.var 2))) (.add (.prod (.var 1) (.var 1)) (.prod (.var 3) (.var 3)))))]⟩
+def t7_tree : Tree :=
+  .leafSq [((sp [(12, 1), (13, 1), (14, (-2))] 1), .fact 0)] [(sp [(4, 1), (5, (-1))] 0)] [.input 0, .input 1, .combine 0 1 1 1] [] []
+theorem t7 : ∀ env maps, ¬ ∀ c ∈ t7_goal.hyps, evalC env maps c = true :=
+  sound t7_goal t7_tree (by decide +kernel)
+
+-- squares: 2abc <= a³ + b³ + c³  (17 columns)
+def t8_goal : Goal := ⟨[.var 0, .var 1, .var 2, .mono [1, 2], .mono [0, 1], .mono [0, 0], .mono [1, 1], .mono [2, 2], .mono [0, 2], .mono [0, 0, 0], .mono [1, 1, 1], .mono [2, 2, 2], .mono [0, 1, 2], .mono [0, 0, 1], .mono [0, 1, 1], .mono [1, 1, 2], .mono [1, 2, 2]],
+  [.not (.le (.prod (.add (.prod (.var 0) (.var 1)) (.prod (.var 0) (.var 1))) (.var 2)) (.add (.add (.prod (.prod (.var 0) (.var 0)) (.var 0)) (.prod (.prod (.var 1) (.var 1)) (.var 1))) (.prod (.prod (.var 2) (.var 2)) (.var 2))))]⟩
+def t8_tree : Tree :=
+  .split (sp [(0, 1)] 0)
+  (.split (sp [(1, 1)] 0)
+  (.split (sp [(2, 1)] 0)
+  (.leafAt [((sp [(0, 1)] 0), .atom 2), ((sp [(9, 1), (10, 1), (11, 1), (12, (-2))] 1), .fact 0), ((sp [(1, (-1))] 0), .nat 1), ((sp [(2, (-1))] 0), .nat 2), ((sp [(9, (-1))] 0), .nat 9), ((sp [(10, (-1))] 0), .nat 10), ((sp [(11, (-1))] 0), .nat 11)] [.input 1, .input 4, .input 5, .input 6, .input 8, .combine 0 1 1 1, .combine 5 2 1 1, .combine 6 3 1 1, .cut 7 2 [(12, (-1))] 1, .combine 8 4 1 1] [] [(2, 3), (7, 0)])
+  (.leafAt [((sp [(0, 1)] 0), .atom 2), ((sp [(9, 1), (10, 1), (11, 1), (12, (-2))] 1), .fact 0), ((sp [(1, (-1))] 0), .nat 1), ((sp [(2, (-1))] 0), .nat 2), ((sp [(9, (-1))] 0), .nat 9), ((sp [(10, (-1))] 0), .nat 10), ((sp [(11, (-1))] 0), .nat 11)] [.input 1, .input 4, .input 5, .input 6, .input 8, .combine 0 1 1 1, .combine 5 2 1 1, .combine 6 4 1 2, .combine 7 3 1 1] [] [(2, 3), (7, 0)]))
+  (.split (sp [(2, 1)] 0)
+  (.leafAt [((sp [(0, 1)] 0), .atom 2), ((sp [(9, 1), (10, 1), (11, 1), (12, (-2))] 1), .fact 0), ((sp [(1, (-1))] 0), .nat 1), ((sp [(2, (-1))] 0), .nat 2), ((sp [(9, (-1))] 0), .nat 9), ((sp [(10, (-1))] 0), .nat 10), ((sp [(11, (-1))] 0), .nat 11)] [.input 1, .input 4, .input 5, .input 6, .input 8, .combine 0 1 1 1, .combine 5 3 1 1, .combine 6 4 1 2, .combine 7 2 1 1] [] [(2, 3), (7, 0)])
+  (.leafAt [((sp [(0, 1)] 0), .atom 2), ((sp [(1, (-1))] 1), .atom 1), ((sp [(9, 1), (10, 1), (11, 1), (12, (-2))] 1), .fact 0), ((sp [(1, (-1))] 0), .nat 1), ((sp [(2, (-1))] 0), .nat 2), ((sp [(9, (-1))] 0), .nat 9), ((sp [(11, (-1))] 0), .nat 11)] [.input 1, .input 2, .input 5, .input 6, .input 9, .input 10, .input 11, .combine 1 2 1 1, .combine 7 5 1 2, .combine 6 0 1 2, .combine 8 4 1 1, .combine 10 9 1 1, .combine 11 3 1 1] [] [(3, 3), (3, 4), (7, 1), (8, 0), (1, 1)])))
+  (.split (sp [(1, 1)] 0)
+  (.split (sp [(2, 1)] 0)
+  (.leafAt [((sp [(1, 1)] 0), .atom 1), ((sp [(9, 1), (10, 1), (11, 1), (12, (-2))] 1), .fact 0), ((sp [(0, (-1))] 0), .nat 0), ((sp [(2, (-1))] 0), .nat 2), ((sp [(9, (-1))] 0), .nat 9), ((sp [(10, (-1))] 0), .nat 10), ((sp [(11, (-1))] 0), .nat 11)] [.input 1, .input 4, .input 5, .input 6, .input 8, .combine 0 2 1 1, .combine 5 3 1 1, .combine 6 4 1 2, .combine 7 1 1 1] [] [(2, 3), (7, 0)])
+  (.leafAt [((sp [(0, (-1))] 1), .atom 2), ((sp [(1, 1)] 0), .atom 1), ((sp [(9, 1), (10, 1), (11, 1), (12, (-2))] 1), .fact 0), ((sp [(0, (-1))] 0), .nat 0), ((sp [(2, (-1))] 0), .nat 2), ((sp [(10, (-1))] 0), .nat 10), ((sp [(11, (-1))] 0), .nat 11)] [.input 0, .input 2, .input 5, .input 6, .input 9, .input 10, .input 11, .combine 1 2 1 1, .combine 7 5 1 2, .combine 6 0 1 2, .combine 8 4 1 1, .combine 10 9 1 1, .combine 11 3 1 1] [] [(3, 3), (3, 4), (7, 0), (8, 1), (0, 0)]))
+  (.split (sp [(2, 1)] 0)
+  (.leafAt [((sp [(0, (-1))] 1), .atom 2), ((sp [(2, 1)] 0), .atom 0), ((sp [(9, 1), (10, 1), (11, 1), (12, (-2))] 1), .fact 0), ((sp [(0, (-1))] 0), .nat 0), ((sp [(1, (-1))] 0), .nat 1), ((sp [(10, (-1))] 0), .nat 10), ((sp [(11, (-1))] 0), .nat 11)] [.input 0, .input 2, .input 5, .input 6, .input 9, .input 10, .input 11, .combine 1 3 1 1, .combine 7 5 1 2, .combine 6 0 1 2, .combine 8 4 1 1, .combine 10 9 1 1, .combine 11 2 1 1] [] [(3, 3), (3, 4), (7, 0), (8, 1), (0, 0)])
+  (.leafSq [((sp [(9, 1), (10, 1), (11, 1), (12, (-2))] 1), .fact 0), ((sp [(0, (-1))] 0), .nat 0), ((sp [(1, (-1))] 0), .nat 1), ((sp [(2, (-1))] 0), .nat 2), ((sp [(9, (-1))] 0), .nat 9), ((sp [(10, (-1))] 0), .nat 10), ((sp [(11, (-1))] 0), .nat 11)] [(sp [(0, 1), (1, (-1))] 0), (sp [(1, 1), (2, (-1))] 0), (sp [(0, 1), (2, (-1))] 0)] [.input 0, .input 4, .input 5, .input 6, .input 10, .input 11, .input 12, .input 13, .input 14, .combine 4 5 1 2, .combine 4 7 1 2, .combine 9 10 1 3, .cut 11 2 [(9, (-2)), (10, (-1)), (12, 6), (16, (-3))] 0, .combine 0 1 1 1, .combine 0 12 2 1, .combine 13 6 1 1, .combine 14 2 1 1, .combine 15 3 1 1, .combine 16 8 1 2, .combine 18 17 1 1] [] [(1, 7), (2, 7), (2, 8), (2, 9), (3, 8)])))
+theorem t8 : ∀ env maps, ¬ ∀ c ∈ t8_goal.hyps, evalC env maps c = true :=
+  sound t8_goal t8_tree (by decide +kernel)
+
+-- squares: 4(a + 1)(b − 1) <= (a + b)² when b >= 1  (6 columns)
+def t9_goal : Goal := ⟨[.var 0, .var 1, .mono [1, 1], .mono [0, 1], .mono [0, 0], .term (.sub (.var 0) (.const 1))],
+  [.le (.const 1) (.var 0), .not (.le (.mul 4 (.prod (.add (.var 1) (.const 1)) (.sub (.var 0) (.const 1)))) (.prod (.add (.var 1) (.var 0)) (.add (.var 1) (.var 0))))]⟩
+def t9_tree : Tree :=
+  .split (sp [(0, (-1))] 1)
+  (.leafSq [((sp [(0, (-4)), (1, 4), (2, 1), (3, (-2)), (4, 1)] 5), .fact 1)] [(sp [(0, (-1)), (1, 1)] 2)] [.input 0, .input 1, .combine 0 1 1 1] [] [])
+  (.leafAt [((sp [(0, 1)] 0), .atom 0), ((sp [(0, (-1))] 1), .fact 0)] [.input 0, .input 1, .combine 1 0 1 1] [] [])
+theorem t9 : ∀ env maps, ¬ ∀ c ∈ t9_goal.hyps, evalC env maps c = true :=
+  sound t9_goal t9_tree (by decide +kernel)
+
+-- squares: a³ <= b³ only when a <= b  (9 columns)
+def t10_goal : Goal := ⟨[.var 0, .var 1, .mono [1, 1], .mono [0, 1], .mono [0, 0], .mono [0, 0, 0], .mono [1, 1, 1], .mono [0, 1, 1], .mono [0, 0, 1]],
+  [.le (.prod (.prod (.var 0) (.var 0)) (.var 0)) (.prod (.prod (.var 1) (.var 1)) (.var 1)), .not (.le (.var 0) (.var 1))]⟩
+def t10_tree : Tree :=
+  .leafAt [((sp [(5, 1), (6, (-1))] 0), .fact 0), ((sp [(0, (-1)), (1, 1)] 1), .fact 1), ((sp [(1, (-1))] 0), .nat 1), ((sp [(0, (-1))] 0), .nat 0)] [.input 0, .input 1, .input 5, .input 7, .input 8, .input 9, .input 10, .combine 0 5 1 1, .combine 3 7 1 1, .combine 8 6 1 1, .combine 4 9 1 1, .combine 1 10 2 1, .cut 11 3 [(3, 1)] 1, .combine 12 2 1 1] [] [(2, 2), (2, 3), (3, 3), (4, 1), (5, 1), (6, 1), (1, 1)]
+theorem t10 : ∀ env maps, ¬ ∀ c ∈ t10_goal.hyps, evalC env maps c = true :=
+  sound t10_goal t10_tree (by decide +kernel)
 
 -- TAMPERED: budget rule: bounded_loss: s <= b + m @step, the first leaf's derivation without its last step. Lean computes the check to false.
 def tampered1_goal : Goal := ⟨[.var 0, .var 1, .var 2, .var 3, .term (.min (.var 3) (.var 2)), .term (.ite (.lt (.var 0) (.var 1)) (.add (.var 0) (.min (.var 3) (.var 2))) (.var 0))],
   [.le (.var 0) (.add (.var 1) (.var 2)), .not (.le (.ite (.lt (.var 0) (.var 1)) (.add (.var 0) (.min (.var 3) (.var 2))) (.var 0)) (.add (.var 1) (.var 2)))]⟩
 def tampered1_tree : Tree :=
   .split (sp [(0, 1), (1, (-1))] 1)
-  (.split (sp [(2, (-1)), (3, 1)] 0)
-  (.leafAt [((sp [(0, 1), (1, (-1))] 1), .atom 1), ((sp [(2, (-1)), (3, 1)] 0), .atom 0), ((sp [(0, (-1)), (1, 1), (2, 1), (3, (-1))] 1), .fact 1)] [.input 0, .input 1, .input 2, .combine 2 0 1 1] [] [])
-  (.leafAt [((sp [(0, 1), (1, (-1))] 1), .atom 1), ((sp [(0, (-1)), (1, 1)] 1), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leafAt [((sp [(0, 1), (1, (-1))] 1), .atom 0), ((sp [(0, (-1)), (1, 1), (2, 1), (4, (-1))] 1), .fact 1), ((sp [(2, (-1)), (4, 1)] 0), .term 4)] [.input 0, .input 1, .input 2, .combine 0 1 1 1] [] [])
   (.leafAt [((sp [(0, 1), (1, (-1)), (2, (-1))] 0), .fact 0), ((sp [(0, (-1)), (1, 1), (2, 1)] 1), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] [])
 example : checkGoal tampered1_goal tampered1_tree = false := by decide +kernel
 
@@ -1767,22 +1806,27 @@ example : checkGoal tampered1_goal tampered1_tree = false := by decide +kernel
 def tampered1002_goal : Goal := ⟨[.var 0, .mono [0, 0], .mono [0, 0, 0], .mono [0, 0, 0, 0]],
   [.not (.le (.prod (.var 0) (.var 0)) (.var 0))]⟩
 def tampered1002_tree : Tree :=
-  .leafAt [((sp [(0, 1), (1, (-1))] 1), .fact 0), ((sp [(0, (-1))] 0), .nat 0), ((sp [(1, (-1))] 0), .nat 1)] [.input 0, .input 5, .input 7, .combine 1 0 1 1, .combine 3 2 1 1] [] [(0, 0), (0, 1), (0, 2), (1, 1), (1, 2), (2, 2)]
+  .leafAt [((sp [(0, 1), (1, (-1))] 1), .fact 0), ((sp [(0, (-1))] 0), .nat 0), ((sp [(1, (-1))] 0), .nat 1)] [.input 0, .input 3, .input 4, .combine 1 0 1 1, .combine 3 2 1 1] [] [(0, 2), (1, 2)]
 example : checkGoal tampered1002_goal tampered1002_tree = false := by decide +kernel
+
+-- TAMPERED: the Cauchy–Schwarz tree offered for (ac + bd)² + 1 <= (a² + b²)(c² + d²). Lean computes the check to false.
+def tampered1003_goal : Goal := ⟨[.var 0, .var 1, .var 2, .var 3, .mono [0, 3], .mono [1, 2], .mono [0, 1], .mono [2, 3], .mono [0, 0], .mono [2, 2], .mono [1, 1], .mono [3, 3], .mono [0, 0, 3, 3], .mono [1, 1, 2, 2], .mono [0, 1, 2, 3], .mono [0, 0, 1, 1], .mono [2, 2, 3, 3]],
+  [.not (.le (.add (.prod (.add (.prod (.var 0) (.var 1)) (.prod (.var 2) (.var 3))) (.add (.prod (.var 0) (.var 1)) (.prod (.var 2) (.var 3)))) (.const 1)) (.prod (.add (.prod (.var 0) (.var 0)) (.prod (.var 2) (.var 2))) (.add (.prod (.var 1) (.var 1)) (.prod (.var 3) (.var 3)))))]⟩
+def tampered1003_tree : Tree :=
+  .leafSq [((sp [(12, 1), (13, 1), (14, (-2))] 0), .fact 0)] [(sp [(4, 1), (5, (-1))] 0)] [.input 0, .input 1, .combine 0 1 1 1] [] []
+example : checkGoal tampered1003_goal tampered1003_tree = false := by decide +kernel
 
 -- TAMPERED: budget rule: the bounded_loss tree offered for s <= b. Lean computes the check to false.
 def tampered1001_goal : Goal := ⟨[.var 0, .var 1, .var 2, .var 3, .term (.min (.var 2) (.var 3)), .term (.ite (.lt (.var 0) (.var 1)) (.add (.var 0) (.min (.var 2) (.var 3))) (.var 0))],
   [.le (.var 0) (.var 1), .not (.le (.ite (.lt (.var 0) (.var 1)) (.add (.var 0) (.min (.var 2) (.var 3))) (.var 0)) (.var 1))]⟩
 def tampered1001_tree : Tree :=
   .split (sp [(0, 1), (1, (-1))] 1)
-  (.split (sp [(2, 1), (3, (-1))] 0)
-  (.leafAt [((sp [(0, 1), (1, (-1))] 1), .atom 1), ((sp [(2, 1), (3, (-1))] 0), .atom 0), ((sp [(0, (-1)), (1, 1), (2, (-1))] 1), .fact 1)] [.input 0, .input 1, .input 2, .combine 2 0 1 1, .combine 1 3 1 1] [] [])
-  (.leafAt [((sp [(0, 1), (1, (-1))] 1), .atom 1), ((sp [(0, (-1)), (1, 1), (3, (-1))] 1), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] []))
+  (.leafAt [((sp [(0, 1), (1, (-1))] 1), .atom 0), ((sp [(0, (-1)), (1, 1), (4, (-1))] 1), .fact 1), ((sp [(3, (-1)), (4, 1)] 0), .term 4)] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 2 3 1 1] [] [])
   (.leafAt [((sp [(0, 1), (1, (-1))] 0), .fact 0), ((sp [(0, (-1)), (1, 1)] 1), .fact 1)] [.input 0, .input 1, .combine 0 1 1 1] [] [])
 example : checkGoal tampered1001_goal tampered1001_tree = false := by decide +kernel
 
 #print axioms t0
-#print axioms t6
+#print axioms t10
 #print axioms bounded_loss
 #print axioms inflight_loss
 #print axioms gcd_halts
@@ -1809,3 +1853,4 @@ example : checkGoal tampered1001_goal tampered1001_tree = false := by decide +ke
 #print axioms escrow_laws
 #print axioms escrow_step0_holds
 #print axioms pooltotal_laws
+#print axioms quota_laws

@@ -25,8 +25,9 @@ from a proven `guard` or `gate` ([with gdp-ts](gdp-ts.md)): the policy is proven
 
 - Induction the prover would have to invent (a recursive structure whose proof needs an unstated lemma). A
   recurrence on one natural whose lemma you can state stays here: `recur` proves the lemma by induction.
-- Products of unknowns beyond multiplying two known facts. (Integer arithmetic with induction or products is
-  undecidable; no automatic prover closes all of it.)
+- Products of unknowns beyond what products of facts and sums of squares give (the prover tries both, as Lean's
+  `nlinarith`; a map's cell may be a factor). Integer arithmetic with induction or products is undecidable; no
+  automatic prover closes all of it.
 - Reals, and claims about a recursive structure that need a lemma nobody stated (or encoded as a number a Lean
   function decodes). Records and variants stay here, as values, in maps and in lists (`record`, `variant`, `.maps`,
   `.items`), and so do lists a request carries with folds over them (`.carriesList`), folds over a tree given as a

@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, boundOf, canon, columnTerm, stateName, termColumn, historyMachine, foldObligations, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
+import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, boundOf, canon, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, historyMachine, foldObligations, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {grow, proveBuilt, proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
@@ -42,7 +42,7 @@ const decide = (lin: Lin, path: Path): boolean | undefined => {
 export const int = (v: number) => (v < 0 ? `(${v})` : String(v))
 export const list = (xs: string[]) => `[${xs.join(', ')}]`
 
-export function leaves(t: Tree, path: Path, visit: (t: Tree & {leaf: Step[], products?: [number, number][]}, path: Path) => void) {
+export function leaves(t: Tree, path: Path, visit: (t: Tree & {leaf: Step[], products?: [number, number][], squares?: Lin[]}, path: Path) => void) {
   if ('leaf' in t) return visit(t, path)
   const id = canon(t.split)
   leaves(t.yes, new Map(path).set(id, {lin: t.split, holds: true}), visit)
@@ -55,9 +55,11 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
   // shallower cells first so a key reads only earlier columns.
   const vars = globalVars ?? [...new Set(goal.hyps.flatMap(varsOf))]
   const cells = new Set<string>(), terms = new Set<string>()
-  const addCell = (name: string) => { if (cells.has(name)) return; cells.add(name); for (const key of Object.keys(cellKey(name))) if (key.includes('[')) addCell(key); else if (key.startsWith('⟦')) terms.add(key) }
-  // Monomials: every one a leaf's rows or products use, or that a product term has under the leaf's path.
+  // Monomials: every one a leaf's rows or products use, or that a product term has under the leaf's path, with the
+  // cells among their factors.
   const monos = new Set<string>()
+  const addMono = (name: string) => { monos.add(name); for (const f of factorsOf(name)) if (isCell(f)) addCell(f) }
+  const addCell = (name: string) => { if (cells.has(name)) return; cells.add(name); for (const key of Object.keys(cellKey(name))) if (isMonomial(key)) addMono(key); else if (key.includes('[')) addCell(key); else if (key.startsWith('⟦')) terms.add(key) }
   const subterms = (c: C): E[] => {
     const out2: E[] = []
     const we = (e: E): void => { out2.push(e); if (e.op === 'if') { wc(e.c); we(e.then); we(e.else) } else if (e.op === 'get') we(e.key); else if ('a' in e) { we(e.a); if ('b' in e) we(e.b) } }
@@ -76,22 +78,26 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
   }
   goal.hyps.forEach(choices)
   leaves(tree, new Map(), (leaf, path) => {
-    for (const r of withProducts(leafConstraints(goal, path), leaf.products ?? [])) for (const key of Object.keys(r.lin)) {
-      if (key.includes('[')) addCell(key)
+    for (const r of [...withProducts(leafConstraints(goal, path), leaf.products ?? [], leaf.squares), ...(leaf.squares ?? []).map(lin => ({lin}))]) for (const key of Object.keys(r.lin)) {
+      if (isMonomial(key)) addMono(key)
+      else if (key.includes('[')) addCell(key)
       else if (key.startsWith('⟦')) terms.add(key)
-      else if (key.includes('*')) monos.add(key)
     }
     // Each cell a hypothesis reads under the path, kept or not: two reads of one cell cancel in a row (T − T), yet
     // Lean's linear form of each still needs the cell's column to see the comparison decided.
     for (const h of goal.hyps) for (const e of subterms(h)) {
-      if (e.op === 'prod') for (const key of Object.keys(linear(e, path) ?? {})) if (key.includes('*')) monos.add(key)
-      if (e.op === 'get') for (const key of Object.keys(linear(e, path) ?? {})) if (key.includes('[')) addCell(key)
+      if (e.op === 'prod') for (const key of Object.keys(linear(e, path) ?? {})) if (isMonomial(key)) addMono(key)
+      if (e.op === 'get') for (const key of Object.keys(linear(e, path) ?? {})) if (isCell(key)) addCell(key)
     }
   })
   const depth = (name: string) => name.split('[').length
-  // Term columns (open choices, each standing for its term's value) before the cells, whose keys may read them.
-  const cols = [...vars, ...[...monos].sort((a, b) => a.split('*').length - b.split('*').length), ...[...terms].sort((a, b) => Number(a.slice(1, -1)) - Number(b.slice(1, -1))), ...[...cells].sort((a, b) => depth(a) - depth(b))]
+  // Term columns (open choices, each standing for its term's value) before the cells, whose keys may read them; a
+  // monomial with a cell among its factors after the cells.
+  const degree = (a: string, b: string) => factorsOf(a).length - factorsOf(b).length
+  const plainMonos = [...monos].filter(m => factorsOf(m).every(f => !isCell(f))).sort(degree), cellMonos = [...monos].filter(m => factorsOf(m).some(isCell)).sort(degree)
+  const cols = [...vars, ...plainMonos, ...[...terms].sort((a, b) => Number(a.slice(1, -1)) - Number(b.slice(1, -1))), ...[...cells].sort((a, b) => depth(a) - depth(b)), ...cellMonos]
   const col = new Map(cols.map((name, j) => [name, j]))
+  for (const cell of cells) for (const key of Object.keys(cellKey(cell))) if (cellMonos.includes(key)) throw new Error(`${ex.name}: the key of ${cell} reads a product of cells`)
   const maps = globalMaps ?? [...new Set([...[...cells].map(cellMap), ...goal.hyps.flatMap(h => [...JSON.stringify(h).matchAll(/"op":"get","map":"([^"]+)"/g)].map(m => m[1]!))])]
   const dense = (lin: Lin) => {
     const coefs = new Array(cols.length).fill(0)
@@ -103,9 +109,9 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
   const sparse = (coefs: number[]) => list(coefs.flatMap((x, j) => (x === 0 ? [] : [`(${j}, ${int(x)})`])))
   const row = (lin: Lin) => `(sp ${sparse(dense(lin))} ${int(lin['1'] ?? 0)})`
   const {e, c} = leanTerms(vars, maps, ex.name)
-  const tab = cols.map(name => (name.includes('[') ? `.cell ${maps.indexOf(cellMap(name))} ${row(cellKey(name))}`
+  const tab = cols.map(name => (isMonomial(name) ? `.mono ${list(factorsOf(name).map(f => { const j = col.get(f); if (j === undefined) throw new Error(`${ex.name}: factor ${f}`); return j }).sort((a, b) => a - b).map(String))}`
+    : name.includes('[') ? `.cell ${maps.indexOf(cellMap(name))} ${row(cellKey(name))}`
     : name.startsWith('⟦') ? `.term (${e(columnTerm(name)!)})`
-    : name.includes('*') ? `.mono ${list(name.split('*').map(f => { const j = vars.indexOf(f); if (j < 0) throw new Error(`${ex.name}: factor ${f}`); return j }).sort((a, b) => a - b).map(String))}`
     : `.var ${vars.indexOf(name)}`))
 
   let leafNo = 0
@@ -114,10 +120,10 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
       const id = canon(t.split)
       return `.split ${row(t.split)}\n  (${lean(t.yes, new Map(path).set(id, {lin: t.split, holds: true}))})\n  (${lean(t.no, new Map(path).set(id, {lin: t.split, holds: false}))})`
     }
-    const base = leafConstraints(goal, path), prods = t.products ?? []
-    const rows = withProducts(base, prods).map(r => r.lin), n0 = base.length
-    // Only the rows the derivation and the products read, renumbered (products follow them, in order); cuts carry
-    // their quotient row (Cert's format).
+    const base = leafConstraints(goal, path), prods = t.products ?? [], squares = t.squares ?? []
+    const rows = withProducts(base, prods, squares).map(r => r.lin), n0 = base.length
+    // Only the rows the derivation and the products read, renumbered (the squares follow them, then the products, in
+    // order); cuts carry their quotient row (Cert's format).
     const used = [...new Set([...t.leaf.flatMap(s => (s.kind === 'input' && s.index < n0 ? [s.index] : [])), ...prods.flat().filter(i => i < n0)])].sort((a, b) => a - b)
     const at = new Map(used.map((old, j) => [old, j]))
     const idx = (i: number) => (i < n0 ? at.get(i)! : used.length + i - n0)
@@ -137,7 +143,7 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
     if (tamper && dropStep && leafNo++ === 0) steps = steps.slice(0, -1) // the first leaf loses its last step
     // Cell pairs the path proves equal (Lean re-checks each).
     const eqs: string[] = [], pairs: string[] = []
-    const cellCols = cols.map((name, j) => ({name, j})).filter(c2 => c2.name.includes('['))
+    const cellCols = cols.map((name, j) => ({name, j})).filter(c2 => isCell(c2.name))
     for (const [a, p] of cellCols.entries()) for (const q of cellCols.slice(a + 1)) {
       if (cellMap(p.name) !== cellMap(q.name)) continue
       const d = sub(cellKey(p.name), cellKey(q.name))
@@ -151,7 +157,8 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
       const j = 'pair' in src ? pairs.indexOf([...src.pair].sort().join('\n')) : col.get('nat' in src ? src.nat : src.term) ?? -1
       return j < 0 ? '.any' : 'pair' in src ? `.eq ${j}` : 'nat' in src ? `.nat ${j}` : `.term ${j}`
     }
-    return `.leafAt ${list(used.map(u => `(${row(rows[u]!)}, ${hint(base[u]!.src)})`))} ${list(steps)} ${list(eqs)} ${list(prods.map(([i, j]) => `(${idx(i)}, ${idx(j)})`))}`
+    const at2 = list(used.map(u => `(${row(rows[u]!)}, ${hint(base[u]!.src)})`)), rest = `${list(steps)} ${list(eqs)} ${list(prods.map(([i, j]) => `(${idx(i)}, ${idx(j)})`))}`
+    return squares.length ? `.leafSq ${at2} ${list(squares.map(row))} ${rest}` : `.leafAt ${at2} ${rest}`
   }
   return {tab: list(tab), hyps: list(goal.hyps.map(c)), tree: lean(tree, new Map()), cols, c, e}
 }

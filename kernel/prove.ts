@@ -10,7 +10,7 @@
 //     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {type Lin, type Step, add, k, refuteFast, scale, solve, sub, v} from '../core/solver.ts'
-import {type Goal, type Instances, type Liveness, type Path, type Seen, type StepLaw, type Tree, assumed, boundOf, canon, canonFlip, columnTerm, decided, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
+import {type Goal, type Instances, type Liveness, type Path, type Seen, type StepLaw, type Tree, assumed, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
 function openE(e: E, path: Path, out: Lin[]): void {
@@ -65,7 +65,7 @@ function openH(c: C, path: Path, out: Lin[], positive = true): void {
 
 // Pairs of reads of one map whose keys the path doesn't yet compare.
 function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
-  const names = [...new Set(rows.flatMap(r => Object.keys(r.lin)))].filter(n => n.includes('['))
+  const names = [...new Set(rows.flatMap(r => Object.keys(r.lin)))].filter(isCell)
   const out: Lin[] = []
   const keyText = (n: string) => n.slice(n.indexOf('[') + 1, -1)
   for (const [i, p] of names.entries()) for (const q of names.slice(i + 1)) {
@@ -148,7 +148,10 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
   const columns = [...path.values()].some(a => Object.keys(a.lin).some(key => key.startsWith('⟦')))
   const idx = full.flatMap((r, i) => (columns || !Object.keys(r.lin).some(key => key.startsWith('⟦')) ? [i] : []))
   const rows = idx.map(i => full[i]!), at = (i: number) => (i < rows.length ? idx[i]! : full.length + i - rows.length)
-  const leafOf = (steps: Step[], products?: [number, number][]): Tree => ({leaf: steps.map(st => (st.kind === 'input' ? {...st, index: at(st.index)} : st)), ...(products ? {products: products.map(([i, j]) => [at(i), at(j)] as [number, number])} : {})})
+  const leafOf = (steps0: Step[], products0?: [number, number][], squares0?: Lin[]): Tree => {
+    const {steps, products, squares} = products0 || squares0 ? trimmed(rows.length, steps0, products0 ?? [], squares0 ?? []) : {steps: steps0, products: undefined, squares: undefined}
+    return {leaf: steps.map(st => (st.kind === 'input' ? {...st, index: at(st.index)} : st)), ...(products?.length ? {products: products.map(([i, j]) => [at(i), at(j)] as [number, number])} : {}), ...(squares?.length ? {squares} : {})}
+  }
   // The conclusion's own atoms first (the goal's last hypothesis is the law refuted): a case it doesn't read is often
   // one no refutation needs, and splitting it first multiplies every case after it.
   const open: Lin[] = []
@@ -183,32 +186,51 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
   }
   let split = next ?? (verdict.kind === 'unknown' ? bisect(rows, path) ?? fractional(verdict.point, path) : undefined)
   // Products: with monomials about, try every pair of rows multiplied; failing that, split a factor at zero.
-  const monomials = rows.some(r => Object.keys(r.lin).some(key => key.includes('*')))
+  const monomials = rows.some(r => Object.keys(r.lin).some(isMonomial))
   // A witness that multiplies out (each monomial's value is its factors' product) is a real model: nothing to refute.
   if (!split && monomials && verdict.kind === 'sat') {
     const w = verdict.witness, value = (key: string) => w[key] ?? 0
-    const real = rows.every(r => Object.keys(r.lin).every(key => !key.includes('*') || value(key) === key.split('*').reduce((acc, f) => acc * value(f), 1)))
+    const real = rows.every(r => Object.keys(r.lin).every(key => !isMonomial(key) || value(key) === factorsOf(key).reduce((acc, f) => acc * value(f), 1)))
     if (real) return {stuck: 'sat', witness: w, path}
   }
   if (!split && monomials && rows.length <= 40) {
-    // Only rows about the factors (no map cells), each pair once: elimination over hundreds of products blows up.
-    const factorSet = new Set(rows.flatMap(r => Object.keys(r.lin).filter(key => key.includes('*')).flatMap(key => key.split('*'))))
-    const relevant = rows.flatMap((r, i) => (Object.keys(r.lin).every(key => key === '1' || (!key.includes('[') && key.split('*').every(f => factorSet.has(f)))) ? [i] : []))
+    // Only rows about the factors (no other map cells), each pair once: elimination over hundreds of products blows up.
+    const factorSet = new Set(rows.flatMap(r => Object.keys(r.lin).filter(isMonomial).flatMap(factorsOf)))
+    const relevant = rows.flatMap((r, i) => (Object.keys(r.lin).every(key => key === '1' || factorsOf(key).every(f => factorSet.has(f))) ? [i] : []))
     const pairs: [number, number][] = []
     for (const [a, i] of relevant.entries()) for (const j of relevant.slice(a)) pairs.push([i, j])
     pairs.splice(300)
     const product = solve(withProducts(rows, pairs))
     if (product.kind === 'refuted') return {tree: leafOf(product.steps, pairs), nodes: budget.nodes}
     // Degree three: each row times each product of two variables (x·y >= 0 is the pair of -x <= 0 and -y <= 0).
-    const degree = Math.max(...rows.flatMap(r => Object.keys(r.lin).map(key => (key === '1' ? 0 : key.split('*').length))))
+    const degree = Math.max(...rows.flatMap(r => Object.keys(r.lin).map(key => (key === '1' ? 0 : factorsOf(key).length))))
     if (degree >= 3) {
-      const signs = rows.flatMap((r, i) => (Object.keys(r.lin).length === 1 && Object.values(r.lin)[0]! < 0 && !Object.keys(r.lin)[0]!.includes('*') && !Object.keys(r.lin)[0]!.includes('[') ? [i] : []))
+      const signs = rows.flatMap((r, i) => { const key = Object.keys(r.lin)[0]!; return Object.keys(r.lin).length === 1 && Object.values(r.lin)[0]! < 0 && !isMonomial(key) && (!isCell(key) || factorSet.has(key)) ? [i] : [] })
       const sq: [number, number][] = signs.flatMap((i, a) => signs.slice(a).map(j => [i, j] as [number, number])), cubes: [number, number][] = []
       for (let s = 0; s < sq.length; s++) for (let i = 0; i < rows.length; i++) cubes.push([rows.length + s, i])
-      const third = solve(withProducts(rows, [...sq, ...cubes]))
-      if (third.kind === 'refuted') return {tree: leafOf(third.steps, [...sq, ...cubes]), nodes: budget.nodes}
+      const third = solve(withProducts(rows, [...sq, ...cubes, ...pairs]))
+      if (third.kind === 'refuted') return {tree: leafOf(third.steps, [...sq, ...cubes, ...pairs]), nodes: budget.nodes}
     }
-    const factors = [...new Set(rows.flatMap(r => Object.keys(r.lin).filter(key => key.includes('*')).flatMap(key => key.split('*'))))]
+    // Sums of squares: each product the hypotheses multiply, x·y, gives (x − y)² >= 0, its factors as the path reads them
+    // (4·a'·b' <= (a' + b')² after a step that moves one from b to a is (a − b + 2)²); and each monomial written as u·w,
+    // u and w of half its degree (one factor set aside when the degree is odd), gives (u − w)² >= 0. With the pairs above,
+    // one solve finds a certificate of degree two in those forms (Cauchy–Schwarz's (ad − bc)²); past degree two, each
+    // square times each factor's sign too (a³ + b³ + c³ − 3abc is a sum of a·(b − c)² and the like).
+    const squares = [...new Map([...productForms(goal, path), ...squareForms(rows)].map(t => [canon(t), t])).values()].slice(0, 64)
+    if (squares.length) {
+      // The squares alone first (a small system), then with the pairs.
+      const alone = solve(withProducts(rows, [], squares))
+      if (alone.kind === 'refuted') return {tree: leafOf(alone.steps, [], squares), nodes: budget.nodes}
+      const sos = solve(withProducts(rows, pairs, squares))
+      if (sos.kind === 'refuted') return {tree: leafOf(sos.steps, pairs, squares), nodes: budget.nodes}
+      if (degree >= 3) {
+        const signs = rows.flatMap((r, i) => { const key = Object.keys(r.lin)[0]!; return Object.keys(r.lin).length === 1 && Object.values(r.lin)[0]! < 0 && factorSet.has(key) ? [i] : [] })
+        const weighted: [number, number][] = [...pairs, ...signs.flatMap(i => squares.map((_, s) => [i, rows.length + s] as [number, number]))].slice(0, 600)
+        const third = solve(withProducts(rows, weighted, squares))
+        if (third.kind === 'refuted') return {tree: leafOf(third.steps, weighted, squares), nodes: budget.nodes}
+      }
+    }
+    const factors = [...new Set(rows.flatMap(r => Object.keys(r.lin).filter(isMonomial).flatMap(factorsOf)))]
     const fresh = (lin: Lin) => !path.has(canon(lin)) && !path.has(canonFlip(lin))
     // Split a factor at zero, else two factors against each other (so (x - y)² >= 0 becomes a product of rows).
     const zero = factors.find(f => fresh({[f]: 1}))
@@ -226,6 +248,79 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
   const no = growPlain(goal, new Map(path).set(id, {lin: split, holds: false}), budget)
   if (!('tree' in no)) return no
   return {tree: {split, yes: yes.tree, no: no.tree}, nodes: budget.nodes}
+}
+
+// A leaf's squares and products without those its derivation never reads (directly, or through a product that does),
+// the rest renumbered: the same derivation over the same rows, so a smaller certificate (and a smaller Lean term).
+function trimmed(n0: number, steps: Step[], pairs: [number, number][], squares: Lin[]): {steps: Step[], products: [number, number][], squares: Lin[]} {
+  const used = new Set(steps.flatMap(st => (st.kind === 'input' && st.index >= n0 ? [st.index] : [])))
+  for (let j = pairs.length - 1; j >= 0; j--) if (used.has(n0 + squares.length + j)) for (const i of pairs[j]!) if (i >= n0) used.add(i)
+  const keepS = squares.flatMap((_, s) => (used.has(n0 + s) ? [s] : [])), keepP = pairs.flatMap((_, j) => (used.has(n0 + squares.length + j) ? [j] : []))
+  const to = new Map<number, number>()
+  keepS.forEach((s, r) => to.set(n0 + s, n0 + r))
+  keepP.forEach((j, r) => to.set(n0 + squares.length + j, n0 + keepS.length + r))
+  const re = (i: number) => (i < n0 ? i : to.get(i)!)
+  return {
+    steps: steps.map(st => (st.kind === 'input' ? {...st, index: re(st.index)} : st)),
+    products: keepP.map(j => [re(pairs[j]![0]), re(pairs[j]![1])] as [number, number]),
+    squares: keepS.map(s => squares[s]!),
+  }
+}
+
+// The difference of each product's two factors in the goal's hypotheses, as the path reads them (a factor with an open
+// choice in it is left out: a product of one isn't a monomial).
+const productMemo = new WeakMap<Goal, E[]>()
+function productForms(goal: Goal, path: Path): Lin[] {
+  let prods = productMemo.get(goal)
+  if (!prods) {
+    const found: E[] = [], seen = new WeakSet<object>()
+    const walk = (t: E | C): void => {
+      if (seen.has(t)) return
+      seen.add(t)
+      if (t.op === 'prod') found.push(t)
+      for (const val of Object.values(t)) if (Array.isArray(val)) val.forEach(x => walk(x as E | C)); else if (typeof val === 'object' && val !== null) walk(val as E | C)
+    }
+    goal.hyps.forEach(walk)
+    productMemo.set(goal, (prods = found))
+  }
+  const out: Lin[] = []
+  for (const e of prods) {
+    if (e.op !== 'prod') continue
+    const a = linear(e.a, path), b = linear(e.b, path)
+    if (!a || !b) continue
+    const t = sub(a, b)
+    if (Object.keys(t).some(key => key.includes('⟦')) || Object.entries(t).every(([key, c]) => key === '1' || c === 0)) continue
+    out.push(Object.fromEntries(Object.entries(t).filter(([, c]) => c !== 0)))
+  }
+  return out
+}
+
+// The forms whose squares a leaf may try: for each monomial, (u − w) for every way to split its factors (all of them,
+// or all but one when there is an odd number) into two halves u and w that differ (u = w is a square already, a
+// natural monomial). At most 64, from the smallest monomials up.
+function squareForms(rows: {lin: Lin}[]): Lin[] {
+  const monos = [...new Set(rows.flatMap(r => Object.keys(r.lin).filter(isMonomial)))].sort((a, b) => factorsOf(a).length - factorsOf(b).length)
+  const out = new Map<string, Lin>()
+  const name = (fs: string[]) => [...fs].sort().join('*')
+  const halves = (fs: string[]) => {
+    const pick = (from: number, chosen: number[]): void => {
+      if (chosen.length === fs.length / 2) {
+        const u = name(chosen.map(i => fs[i]!)), w = name(fs.filter((_, i) => !chosen.includes(i)))
+        if (u < w) { const t: Lin = {[u]: 1, [w]: -1}; out.set(canon(t), t) }
+        return
+      }
+      for (let i = from; i < fs.length; i++) pick(i + 1, [...chosen, i])
+    }
+    pick(0, [])
+  }
+  for (const m of monos) {
+    const fs = factorsOf(m)
+    if (fs.length > 6) continue
+    if (fs.length % 2 === 0) halves(fs)
+    else for (let i = 0; i < fs.length; i++) halves(fs.filter((_, j) => j !== i))
+    if (out.size >= 64) break
+  }
+  return [...out.values()].slice(0, 64)
 }
 
 // A tree found under one more decision (`from`, the path with it) as a tree under the path without it (`to`), if no
@@ -257,7 +352,7 @@ function lift(goal: Goal, tree: Tree, from: Path, to: Path): Tree | undefined {
     }
     const products: [number, number][] = []
     for (const [i, j] of t.products ?? []) { const pi = map(i), pj = map(j); if (pi === undefined || pj === undefined) return undefined; products.push([pi, pj]) }
-    return {leaf, ...(t.products ? {products} : {})}
+    return {leaf, ...(t.products ? {products} : {}), ...(t.squares ? {squares: t.squares} : {})}
   }
   return go(tree, from, to)
 }
@@ -381,7 +476,7 @@ function bisect(rows: {lin: Lin, label: string}[], path: Path): Lin | undefined 
 // Branch and bound for unbounded systems: split on a variable the rational solution puts between two integers.
 function fractional(point: Record<string, number> | undefined, path: Path): Lin | undefined {
   for (const [x, value] of Object.entries(point ?? {})) {
-    if (Math.abs(value - Math.round(value)) < 1e-9 || x.includes('*')) continue
+    if (Math.abs(value - Math.round(value)) < 1e-9 || isMonomial(x)) continue
     const c = Math.floor(value), lin: Lin = c === 0 ? {[x]: 1} : {[x]: 1, 1: -c}
     if (!path.has(canon(lin)) && !path.has(canonFlip(lin))) return lin
   }

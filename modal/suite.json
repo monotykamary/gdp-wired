@@ -880,6 +880,13 @@
 "timeout": 900
 },
 {
+"name": "nonlinear",
+"cmd": "bun research/frontier/nonlinear.ts 2>&1",
+"cwd": ".",
+"cpu": 1.0,
+"timeout": 900
+},
+{
 "name": "keyterms",
 "cmd": "bun test keyterms.test.ts 2>&1",
 "cwd": "core",

@@ -68,7 +68,8 @@ proveRule(retry, [retry.law('the next try is at most 64 after the last request',
 ## Hand a claim to Lean
 
 When a law needs induction over a recursive structure, or arithmetic with
-products of unknowns, the kernel won't invent the proof. Define the function in
+products of unknowns past products of facts and sums of squares, the kernel
+won't invent the proof. Define the function in
 Lean, state the facts the rule needs, and give the rule the function:
 
 ```ts

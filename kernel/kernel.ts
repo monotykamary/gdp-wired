@@ -25,7 +25,7 @@ import {type Constraint, type Lin, type Step, add, k, scale, sub, v} from '../co
 // the types), it fails loudly instead of returning undefined.
 export function unreachable(value: never): never { throw new Error(`unhandled case: ${JSON.stringify(value)}`) }
 
-export type Tree = {split: Lin, yes: Tree, no: Tree} | {leaf: Step[], products?: [number, number][]}
+export type Tree = {split: Lin, yes: Tree, no: Tree} | {leaf: Step[], products?: [number, number][], squares?: Lin[]}
 export type Goal = {name: string, hyps: C[]}
 
 // The path: atoms decided so far, by their canonical text. yes: lin <= 0; no: lin >= 1.
@@ -169,18 +169,38 @@ export function termRows(name: string, path: Path): Lin[] {
   return out
 }
 
-// Products: multiply out, each monomial (variables joined by '*', sorted) one more natural variable. Forgetting how
-// monomials relate (x*x to x, say) only weakens what a leaf may use, so it stays sound; distributing is what proves
-// spend <= m·count over a node from the same law at its children. Map reads can't be factors.
+// Products: multiply out, each monomial (its factors joined by '*', sorted) one more natural variable. A factor is a
+// variable or a map's cell (used ≤ per·Seats[k] reads one); an open choice isn't (the path decides it first, and the
+// product is of its branch). Forgetting how monomials relate (x*x to x, say, or two monomials over cells the path
+// proves equal) only weakens what a leaf may use, so it stays sound; distributing is what proves spend <= m·count over
+// a node from the same law at its children.
 function times(a: Lin, b: Lin): Lin | undefined {
   const out: Lin[] = []
   for (const [p, cp] of Object.entries(a)) for (const [q, cq] of Object.entries(b)) {
-    if (p.includes('[') || q.includes('[') || p.includes('⟦') || q.includes('⟦')) return undefined // factors are variables (and monomials of them)
-    const factors = [...(p === '1' ? [] : p.split('*')), ...(q === '1' ? [] : q.split('*'))].sort()
-    out.push({[factors.length ? factors.join('*') : '1']: cp * cq})
+    if (p.includes('⟦') || q.includes('⟦')) return undefined
+    const fs = [...(p === '1' ? [] : factorsOf(p)), ...(q === '1' ? [] : factorsOf(q))].sort()
+    out.push({[fs.length ? fs.join('*') : '1']: cp * cq})
   }
   return add(...out)
 }
+// A name's factors: split at each '*' outside a cell's brackets (a cell's key may itself read a monomial).
+const factorMemo = new Map<string, string[]>()
+export function factorsOf(name: string): string[] {
+  let out = factorMemo.get(name)
+  if (out) return out
+  out = []
+  let depth = 0, start = 0
+  for (let i = 0; i <= name.length; i++) {
+    const ch = name[i]
+    if (ch === '[') depth++
+    else if (ch === ']') depth--
+    else if ((ch === '*' && depth === 0) || i === name.length) { out.push(name.slice(start, i)); start = i + 1 }
+  }
+  factorMemo.set(name, out)
+  return out
+}
+export const isMonomial = (name: string) => factorsOf(name).length > 1
+export const isCell = (name: string) => name.includes('[') && !isMonomial(name)
 
 // The atoms (lin <= 0 each) that make a comparison true, and those that make it false (one of which holds).
 // Remembered per path and comparison (as linear is), and once for a comparison of terms without choices.
@@ -335,7 +355,7 @@ function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[
   for (const [i, h] of goal.hyps.entries()) for (const lin of factsOf(h)) rows.push({lin, label: '', src: {fact: i}})
   const names = new Set(rows.flatMap(r => Object.keys(r.lin).filter(key => key !== '1')))
   // Two reads of one map whose keys the path proves equal are equal.
-  const cells = [...names].filter(name => name.includes('[')).map(name => ({name, map: name.slice(0, name.indexOf('[')), key: keyOf(name)}))
+  const cells = [...names].filter(isCell).map(name => ({name, map: name.slice(0, name.indexOf('[')), key: keyOf(name)}))
   for (const [i, p] of cells.entries()) for (const q of cells.slice(i + 1)) {
     if (p.map !== q.map) continue
     const d = sub(p.key, q.key)
@@ -371,10 +391,13 @@ const keyOf = (cell: string): Lin => {
   return out
 }
 
-// A leaf may also use the product of two of its rows: p <= 0 and q <= 0 give p·q >= 0, as nlinarith does. A pair may
-// name an earlier product row too (index past the leaf's rows), which is a row of the same kind, so degrees go higher.
-export function withProducts(rows: Constraint[], pairs: [number, number][]): Constraint[] {
+// A leaf may also use the product of two of its rows: p <= 0 and q <= 0 give p·q >= 0, as nlinarith does; and the
+// square of any linear form t, which holds whatever t's sign: t·t >= 0 (a sum of squares, as a Positivstellensatz
+// certificate has). The squares follow the leaf's rows, then the products; a pair may name a square or an earlier
+// product (an index past the leaf's rows), each a row of the same kind, so degrees go higher.
+export function withProducts(rows: Constraint[], pairs: [number, number][], squares: Lin[] = []): Constraint[] {
   const out = [...rows]
+  for (const t of squares) { const tt = times(t, t); out.push(tt ? {lin: scale(tt, -1), label: ''} : {lin: {}, label: ''}) }
   for (const [i, j] of pairs) {
     const p = out[i], q = out[j], pq = p && q ? times(p.lin, q.lin) : undefined
     out.push(pq ? {lin: scale(pq, -1), label: ''} : {lin: {}, label: ''})
@@ -383,7 +406,7 @@ export function withProducts(rows: Constraint[], pairs: [number, number][]): Con
 }
 
 export function check(goal: Goal, tree: Tree, path: Path = new Map()): boolean {
-  if ('leaf' in tree) return checkRefutation(withProducts(leafConstraints(goal, path), tree.products ?? []), tree.leaf)
+  if ('leaf' in tree) return checkRefutation(withProducts(leafConstraints(goal, path), tree.products ?? [], tree.squares), tree.leaf)
   const id = canon(tree.split)
   if (path.has(id) || Object.keys(tree.split).every(key => key === '1')) return false
   const yes = new Map(path).set(id, {lin: tree.split, holds: true}), no = new Map(path).set(id, {lin: tree.split, holds: false})

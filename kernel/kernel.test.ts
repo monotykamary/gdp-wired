@@ -111,3 +111,48 @@ test('products of products stay sound', () => {
   expect(falseSeen).toBeGreaterThan(50 * scale)
   expect(randomAccepted).toBeGreaterThan(0) // products of products: a few per shard, summed over modal/suite.json's 32 shards
 }, 600000)
+
+// Squares and cells as factors: random hypotheses whose products multiply a map's cell or any two terms, leaves at the
+// root given random square forms over the names the rows read (and random pairs, some naming a square), and whatever
+// derivation the solver finds. Whatever the kernel accepts must have no model; so must what the prover grows.
+const nterm = (d: number): E => {
+  const r = rand(6)
+  if (r === 0) return {op: 'prod', a: {op: 'get', map: 'M', key: term(0)}, b: term(d - 1)}
+  if (r === 1) return {op: 'prod', a: term(d - 1), b: term(d - 1)}
+  return term(d)
+}
+const ncmp = (d: number): C => {
+  const r = rand(4)
+  if (r === 3) return {op: 'not', x: ncmp(d)}
+  return {op: (['<', '<=', '='] as const)[rand(3)]!, a: nterm(d), b: nterm(d)}
+}
+test('squares and cells as factors stay sound', () => {
+  let accepted = 0, grown = 0, withSquares = 0
+  for (let t = 0; t < 300 * scale; t++) {
+    const goal: Goal = {name: 'squares', hyps: [ncmp(2), ncmp(1), ncmp(1)]}
+    const sat = [...models()].some(env => goal.hyps.every(h => evC(h, env)))
+    const out = timed('squares', goal, () => grow(goal))
+    if ('tree' in out && check(goal, out.tree)) {
+      if (sat) throw new Error(`UNSOUND (grown): ${JSON.stringify(goal)}`)
+      grown++
+    }
+    const rows = leafConstraints(goal, new Map()), names = [...new Set(rows.flatMap(r => Object.keys(r.lin)).filter(key => key !== '1' && !key.includes('*')))]
+    if (!names.length) continue
+    for (let tries = 0; tries < 10; tries++) {
+      const squares = Array.from({length: 1 + rand(3)}, () => {
+        const f: Record<string, number> = {'1': rand(5) - 2}
+        for (const name of names) if (rand(2)) f[name] = rand(5) - 2
+        return f
+      })
+      const pairs: [number, number][] = []
+      for (let i = 0; i < 6; i++) pairs.push([rand(rows.length + squares.length + pairs.length), rand(rows.length + squares.length + pairs.length)])
+      const verdict = solve(withProducts(rows, pairs, squares))
+      if (verdict.kind !== 'refuted' || !check(goal, {leaf: verdict.steps, products: pairs, squares})) continue
+      accepted++
+      if (verdict.steps.some(st => st.kind === 'input' && st.index >= rows.length && st.index < rows.length + squares.length)) withSquares++
+      if (sat) throw new Error(`UNSOUND (random squares): ${JSON.stringify(goal)} ${JSON.stringify(squares)} ${JSON.stringify(pairs)}`)
+    }
+  }
+  console.log(`squares: ${grown} goals grown, ${accepted} random-square leaves accepted (${withSquares} reading a square), all with no model`)
+  expect(accepted).toBeGreaterThan(0)
+}, 600000)
