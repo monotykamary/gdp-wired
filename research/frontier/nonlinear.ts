@@ -27,7 +27,8 @@ const accounts = () => rule('accounts').inputs({op: oneOf('day', 'spend', 'raise
 const shares = () => rule('shares').params({total: nat}).inputs({op: oneOf('move', 'back')}).state({a: 0, b: ({total}) => total})
   .step(({op, a, b}) => ({a: when(op.is('move').and(b.gt(0)), a.plus(1), when(op.is('back').and(a.gt(0)), a.minus(1), a)), b: when(op.is('move').and(b.gt(0)), b.minus(1), when(op.is('back').and(a.gt(0)), b.plus(1), b))}))
 // Running statistics: the sum of the samples squared is at most their count times the sum of their squares.
-const stats = () => rule('running statistics').inputs({v: nat}).state({n: 0, s: 0, q: 0}).step(({v, n, s, q}) => ({n: n.plus(1), s: s.plus(v), q: q.plus(v.mul(v))}))
+export const stats = () => rule('running statistics').inputs({v: nat}).state({n: 0, s: 0, q: 0}).step(({v, n, s, q}) => ({n: n.plus(1), s: s.plus(v), q: q.plus(v.mul(v))}))
+export const statsLaws = (r = stats()) => [r.law('s² within n·q', ({n, s, q}) => s.mul(s).atMost(n.mul(q)))]
 
 const four = fun('four').inputs({a: nat, b: nat, c: nat, d: nat}).returns(({a, b, c, d}) => ({l: a.mul(c).plus(b.mul(d)), x: a.mul(a).plus(b.mul(b)), y: c.mul(c).plus(d.mul(d))}))
 const three = fun('three').inputs({a: nat, b: nat, c: nat}).returns(({a, b, c}) => ({cubes: a.mul(a).mul(a).plus(b.mul(b).mul(b)).plus(c.mul(c).mul(c)), abc: a.mul(b).mul(c)}))
@@ -56,9 +57,8 @@ export const cases: Case[] = [
     () => sample(2000, r => { const [a, b, c] = [r(50), r(50), r(50)]; return 3 * a * b * c <= a ** 3 + b ** 3 + c ** 3 })),
   item('cubes', 'nothing: products of a row with squares', () => proveDecision(two.law('a³ <= b³ only when a <= b', () => [], (o, {a, b}) => o.a3.atMost(o.b3).implies(a.atMost(b)))),
     () => sample(2000, r => { const [a, b] = [r(50), r(50)]; return a ** 3 > b ** 3 || a <= b })),
-  // Not yet: the certificate multiplies the goal by n before (n·v − s)² closes it, a multiplier no square here suggests.
-  item('running statistics', 'not proven: needs n times the goal', () => { const r = stats(); return proveRule(r, [r.law('s² within n·q', ({n, s, q}) => s.mul(s).atMost(n.mul(q)))]) },
-    () => runs(20, {n: 0, s: 0, q: 0}, (s, r) => { const v = r(30); s.n!++; s.s! += v; s.q! += v * v }, s => s.s! * s.s! <= s.n! * s.q!), false),
+  item('running statistics', 'nothing: n times the goal, then (n·v − s)²', () => { const r = stats(); return proveRule(r, statsLaws(r)) },
+    () => runs(20, {n: 0, s: 0, q: 0}, (s, r) => { const v = r(30); s.n!++; s.s! += v; s.q! += v * v }, s => s.s! * s.s! <= s.n! * s.q!)),
 ]
 export const nonlinear: Item[] = cases.map(c => ({id: c.id, track: c.track, removed: c.removed, today: c.today}))
 

@@ -246,6 +246,13 @@ const soon = retry.law('the next try is at most 64 after the last request', ({ne
   `Acct.set(k, value)`, `Acct.each(k => value)`) and `.items({Queue: Job})` (`push`, `pop`, `set`, `insertAt`,
   `removeAt`, `apply`, `has`, `within`, `increasing(by)`), one map per variable of the kind; `rule.decode` reads them back
   as objects and arrays.
+- **Sequences a request carries** (`.carriesSeq('Path')`, and tables of them, `.carriesSeqs('Paths')`): a sequence of
+  naturals as positions and a length, `Path.at(i)`, `Path.len`, a table's row `Paths.row(r)`; `A.prefixOf(B)`,
+  `startsWith`, `equals`, `extends(B, k)`, `has(x)`, each a condition about every position below a length, so laws about
+  prefixes of paths need no induction or lemma. The request gives an array of naturals (interned names), a table an
+  array of them. `everyBelow(n, k => ...)` checks bookkeeping a request carries row by row (where each grant went). A
+  condition about every row of a table can't compare the rows' sequences (that is two keys at once); compare a row at a
+  named row, a witness, instead (`examples/scopes.ts`: pi-fabric's path scopes, covering, attenuation and normalization).
 - **Lists a request carries** (`.carriesList('Lines', Line, folds, lemmas)`): the items one carried map per variable of
   the kind, the length `Lines.len`, each fold (`{total: {from: 0, step: (acc, line) => acc.plus(line.amount)}}`) a
   carried map of its running values whose equations every request is assumed to meet (the encoding computes them from the

@@ -3,6 +3,27 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+- Sequences a request carries (`.carriesSeq('Path')`, and tables of them, `.carriesSeqs('Paths')`): positions and a
+  length, `at`, `len`, `prefixOf`, `startsWith`, `equals`, `extends(B, k)`, `has`, a table's `row(r)` and `rows`, each
+  comparison a condition about every position below a length, so a law about prefixes of paths needs no lemma; the
+  request gives an array of naturals, a table an array of them; `everyBelow(n, k => ...)` for bookkeeping a request
+  carries, row by row. `examples/scopes.ts`: pi-fabric's path scopes (`<ns>:<path>`, `/*`, `/**`, `<ns>:*`), its
+  `covers` compared with the rule's on 20,000 random triples of patterns; covering transitive and reflexive and what a
+  covered pattern matches the covering one matches (64 to 933 ms each), what a derived scope allows its parent allows
+  (41,279 ms), normalizing changes nothing a scope allows, both ways (15,602 ms, and 8,211 to 9,145 ms per action); the
+  broken variants refused (`runs/modal/seqs-scopes3`, Modal, 2 vCPU). A condition about every row of a table that
+  compares the rows' sequences is refused (two keys at once): a row is compared at a witness.
+- A goal multiplied by a factor first: where a leaf with products isn't refuted by products and squares, the prover
+  multiplies every row by a factor the path has at least 1, with the squares (x·a − b) of the products the rows read.
+  `(Σv)² <= n·Σv²` over running samples (n times the goal, then (n·v − s)²) is proven, 53 ms (the suite's `nonlinear`
+  job, 1 vCPU, `runs/modal/seqs-suite1`); it was the one item of
+  `research/frontier`'s nonlinear corpus not proven. The kernel and the Lean twin are unchanged (the certificate is
+  products and squares); the package check exports it (`runningstats`). The prover bench (`research/perf/prover-bench.ts`,
+  520 items, 1,210 goals) makes the same 14,008 solver calls with it as without, in 5.1–6.3 s over five Modal runs
+  against 3.6–6.3 s without (`runs/modal/seqs-bench1`).
+
 ## 0.15.0
 
 The proofs nobody had to state. `research/frontier/` holds a corpus of laws gdp-wired proved only when someone

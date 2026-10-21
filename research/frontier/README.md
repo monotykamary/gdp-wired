@@ -33,11 +33,11 @@ their sibling laws (`walls.json`), examples/lemmas.ts's rules with no lemma, fol
 | invariant | 25 | 0 | 25 |
 | lemma | 5 | 0 | 5 |
 | fold | 3 | 0 | 3 |
-| nonlinear | 8 | 0 | 7 |
-| all | 41 | 0 | 40 |
+| nonlinear | 8 | 0 | 8 |
+| all | 41 | 0 | 41 |
 
-Now: the suite's `frontier-score` job, `runs/modal/suite-merged2`. The one left is `(Σx)² <= n·Σx²` over running
-samples, whose certificate multiplies the goal by n first.
+Now: the suite's `frontier-score` job, `runs/modal/seqs-suite1`. The last, `(Σx)² <= n·Σx²` over running samples, is
+proven by the prover multiplying the goal by n before the squares.
 
 ## Structure: path scopes, the case the docs called the wall
 

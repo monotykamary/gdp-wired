@@ -763,6 +763,31 @@ export class ListRef {
   within(): Forall { return forall(k => this.len.atMost(k).implies(this.at(k).eq(0))) }
   increasing(): Forall { return forall((i, j) => i.lt(j).and(j.lt(this.len)).implies(this.at(i).lt(this.at(j)))) }
 }
+// A sequence of naturals as positions and a length (a path's segments, as interned names): `at(i)` its value at i,
+// `len` its length. Comparing two is a condition about every position below a length (the array property fragment,
+// decidable), so a law about prefixes needs no induction. One a request carries (`carriesSeq`), or a row of a table of
+// them (`carriesSeqs`), its positions read from its row's offset in the table's one map.
+export class SeqRef {
+  constructor(private readonly map: MapRef, readonly len: Term, private readonly base?: Term) {}
+  at(i: TermLike): Term { return this.map.at(!this.base ? i : typeof i === 'number' ? this.base.plus(i) : i.plus(this.base)) }
+  // The same values at every position below `upTo` (both have them).
+  private agree(o: SeqRef, upTo: Term): Cond { return everyKey(k => k.lt(upTo).implies(this.at(k).eq(o.at(k)))) }
+  // This one is where o starts; o is where this one starts; the same; o followed by `by` more; x at some position.
+  prefixOf(o: SeqRef): Cond { return this.len.atMost(o.len).and(this.agree(o, this.len)) }
+  startsWith(o: SeqRef): Cond { return o.prefixOf(this) }
+  equals(o: SeqRef): Cond { return this.len.eq(o.len).and(this.agree(o, this.len)) }
+  extends(o: SeqRef, by: TermLike): Cond { return o.prefixOf(this).and(this.len.eq(o.len.plus(by))) }
+  has(x: TermLike): Cond { return everyKey(k => k.lt(this.len).implies(this.at(k).ne(x))).not() }
+}
+// A table of sequences a request carries (each grant's path, say): `row(r)` is row r's sequence, `rows` how many. Rows
+// are read by their number as a map's key, so a condition about every row reads a row only there (`everyBelow(T.rows,
+// r => ...)`).
+export class SeqTable {
+  constructor(readonly name: string, readonly rows: Term) {}
+  row(r: TermLike): SeqRef { return new SeqRef(new MapRef(this.name, 0), new MapRef(`${this.name}_len`, 0).at(r), new MapRef(`${this.name}_base`, 0).at(r)) }
+}
+// f at every key below n: what bookkeeping a request carries meets, row by row (where each grant went, say).
+export const everyBelow = (n: TermLike, f: (key: Term) => Cond): Cond => everyKey(k => k.lt(n).implies(f(k)))
 const when_ = (c: Cond, then: TermLike, otherwise: TermLike): Term => new Term({op: 'if', c: c.c, then: termOf(then), else: termOf(otherwise)}, c.ok === undefined ? undefined : valOf(c.ok ? then : otherwise))
 
 // Writes to the maps a map or a list of a kind is kept in (one per variable of the kind), as the step returns them under
@@ -1387,6 +1412,10 @@ type Spec = {
   // State variables declared by a kind: each a value over the kind's variables (in `state`, one entry each).
   kinded?: [string, Kind<unknown>][]
   carried?: string[]
+  // Sequences a request carries (in `carried`, each length an input <name>_len), and tables of them (in `carried` with
+  // <name>_base and <name>_len, the number of rows an input <name>_rows).
+  seqs?: string[]
+  seqTables?: string[]
   // Lists of a kind a request carries, each with its folds (their maps are carried too).
   lists2?: [string, Kind<unknown>, Record<string, ListFold<unknown>>, Record<string, ListLemma>][]
   fns?: [string, FnDef][]
@@ -1489,6 +1518,16 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   facts(f: (p: P) => Record<string, Cond | Forall>): Rule<P, I, S, M, F, R, Su, Q> { return this.with({facts: [...(this.spec.facts ?? []), f as (env: never) => Record<string, Cond | Forall>]}) }
   // Maps each request carries whole (a set of names, say: cells 0 or 1), every cell past them 0; read like any map.
   carries<const N extends string>(...names: N[]): Rule<P, I & {[k in N]: MapRef}, S, M, F, R, Su, Q> { return this.with({carried: [...(this.spec.carried ?? []), ...names]}) }
+  // Sequences each request carries (SeqRef): `.carriesSeq('Path')`, then `Path.at(i)`, `Path.len`, `A.prefixOf(B)`; the
+  // request gives each as an array of naturals.
+  carriesSeq<const N extends string>(...names: N[]): Rule<P, I & {[k in N]: SeqRef}, S, M, F, R, Su, Q> {
+    return this.with({carried: [...(this.spec.carried ?? []), ...names], inputs: [...this.spec.inputs, ...names.map(n => [`${n}_len`, nat] as [string, Kind<unknown>])], seqs: [...(this.spec.seqs ?? []), ...names]})
+  }
+  // Tables of sequences each request carries (SeqTable): `.carriesSeqs('Paths')`, then `Paths.row(r)`, `Paths.rows`; the
+  // request gives each as an array of arrays of naturals.
+  carriesSeqs<const N extends string>(...names: N[]): Rule<P, I & {[k in N]: SeqTable}, S, M, F, R, Su, Q> {
+    return this.with({carried: [...(this.spec.carried ?? []), ...names.flatMap(n => [n, `${n}_base`, `${n}_len`])], inputs: [...this.spec.inputs, ...names.map(n => [`${n}_rows`, nat] as [string, Kind<unknown>])], seqTables: [...(this.spec.seqTables ?? []), ...names]})
+  }
   // A list of values of a kind each request carries, with folds over it and lemmas about the folds (CarriedList):
   //   .carriesList('Lines', record({amount: nat}), {total: {from: 0, step: (acc, line) => acc.plus(line.amount)}})
   // Each fold's start and step, and each lemma, may read the params declared before it.
@@ -1678,6 +1717,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     if (parts.inputs !== false) {
       for (const [n, k] of this.spec.inputs) out[n] = k.value(n)
       for (const n of this.spec.carried ?? []) out[n] = new MapRef(n, 0)
+      for (const n of this.spec.seqs ?? []) { delete out[`${n}_len`]; out[n] = new SeqRef(new MapRef(n, 0), v(`${n}_len`)) }
+      for (const n of this.spec.seqTables ?? []) { for (const part of [`${n}_base`, `${n}_len`, `${n}_rows`]) delete out[part]; out[n] = new SeqTable(n, v(`${n}_rows`)) }
       const ps = Object.fromEntries(this.spec.params.map(([n]) => [n, out[n]]))
       for (const [n, k, fs, ls] of this.spec.lists2 ?? []) { const l = new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0), ls, ps, this.spec.params); for (const part of l.maps) delete out[part]; out[n] = l }
     }
@@ -1945,15 +1986,30 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // --- running it -----------------------------------------------------------------------------------------------------
   // Runtime values (numbers, booleans, choice names, null for a missing value) to the variables the machine reads.
   encodeParams(values: {[k in keyof P]: Raw}): Record<string, number> { return encode(this.spec.params, values as Record<string, Raw>) }
-  // A carried map is a Set of keys (each cell 1), an array of them, or a Map of key to natural.
+  // A carried map is a Set of keys (each cell 1), an array of them, or a Map of key to natural; a sequence an array of
+  // naturals, a table of them an array of such arrays.
   // A carried list is an array of its items' runtime values (its length and folds computed from them); `params`, what
   // folds that read the params are computed with.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  encodeInput(values: {[k in keyof I]: I[k] extends MapRef ? ReadonlySet<number> | readonly number[] | ReadonlyMap<number, number> : I[k] extends CarriedList<any, any> ? readonly Raw[] : Raw}, params?: {[k in keyof P]: Raw}): Request {
+  encodeInput(values: {[k in keyof I]: I[k] extends MapRef ? ReadonlySet<number> | readonly number[] | ReadonlyMap<number, number> : I[k] extends SeqRef ? readonly number[] : I[k] extends SeqTable ? readonly (readonly number[])[] : I[k] extends CarriedList<any, any> ? readonly Raw[] : Raw}, params?: {[k in keyof P]: Raw}): Request {
     const at = params && this.paramValues(this.encodeParams(params))
     const lists = Object.fromEntries((this.spec.lists2 ?? []).map(([n, k, fs]) => [n, new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0), {}, at).encode((values as Record<string, Raw>)[n])]))
-    const out: Request = encode(this.spec.inputs, {...values as Record<string, Raw>, ...Object.fromEntries(Object.entries(lists).map(([n, l]) => [`${n}_len`, l.len]))})
+    // A sequence: its values at their positions (no 0 cell), its length; a table: the rows one after another in one map,
+    // each row's offset and length.
+    const seqMaps: Record<string, Map<number, number>> = {}, seqLens: Record<string, number> = {}
+    const cells = (xs: readonly number[], from = 0) => xs.flatMap((x, i) => (x ? [[from + i, x] as [number, number]] : []))
+    for (const n of this.spec.seqs ?? []) { const xs = (values as Record<string, readonly number[]>)[n] ?? []; seqMaps[n] = new Map(cells(xs)); seqLens[`${n}_len`] = xs.length }
+    for (const n of this.spec.seqTables ?? []) {
+      const rows = (values as Record<string, readonly (readonly number[])[]>)[n] ?? [], base: number[] = []
+      rows.reduce((at, r) => (base.push(at), at + r.length), 0)
+      seqMaps[n] = new Map(rows.flatMap((r, i) => cells(r, base[i])))
+      seqMaps[`${n}_base`] = new Map(base.flatMap((b, i) => (b ? [[i, b] as [number, number]] : [])))
+      seqMaps[`${n}_len`] = new Map(rows.flatMap((r, i) => (r.length ? [[i, r.length] as [number, number]] : [])))
+      seqLens[`${n}_rows`] = rows.length
+    }
+    const out: Request = encode(this.spec.inputs, {...values as Record<string, Raw>, ...seqLens, ...Object.fromEntries(Object.entries(lists).map(([n, l]) => [`${n}_len`, l.len]))})
     for (const l of Object.values(lists)) Object.assign(out, l.maps)
+    Object.assign(out, seqMaps)
     for (const n of this.spec.carried ?? []) {
       if (n in out) continue
       const given = (values as Record<string, unknown>)[n]
@@ -2053,7 +2109,7 @@ type CaseRaw<C extends Cases, T extends string = 'tag'> = {[k in keyof C]: {[t i
 type Value<T> = {[k in keyof T]: ValueOf<T[k]>}
 // A request's runtime values: a carried map as a set of keys (or an array of them, or a map of key to natural), a carried
 // list as an array of its items' values, anything else as its kind's value (what encodeInput takes).
-type RawInputs<T> = {[k in keyof T]: T[k] extends MapRef ? ReadonlySet<number> | readonly number[] | ReadonlyMap<number, number> : T[k] extends CarriedList<infer V, infer _F> ? readonly ValueOf<V>[] : ValueOf<T[k]>}
+type RawInputs<T> = {[k in keyof T]: T[k] extends MapRef ? ReadonlySet<number> | readonly number[] | ReadonlyMap<number, number> : T[k] extends SeqRef ? readonly number[] : T[k] extends SeqTable ? readonly (readonly number[])[] : T[k] extends CarriedList<infer V, infer _F> ? readonly ValueOf<V>[] : ValueOf<T[k]>}
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Field = Term | Cond | Int | Decimal | Choice<string> | Str | Variant<any, any> | Maybe<any> | {[f: string]: Field | number}
 // The kind a result field is kept in.
