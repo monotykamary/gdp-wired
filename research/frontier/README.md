@@ -17,6 +17,7 @@ with its soundness proven in the Lean twin.
 | fold | The same for folds over lists and trees | By induction over the items or the tree, as `.carriesList` and `proveFold` already prove stated lemmas |
 | nonlinear | Which products of facts and which squares refute a goal (Positivstellensatz of degree 2, as Lean's `nlinarith`) | A product row, and a square of a linear term, each proven sound in Lean |
 | structure | A representation in which the law needs no induction: a list as positions and a length, so a prefix is a condition about every position below a length (the array property fragment, decidable) | The laws as they are, through `everyKey` |
+| cycle | A cyclic proof's shape: each node's rank (linear, in order, from the runs by LP), where each back-edge returns, the companions a stuck claim needs (constants abstracted, bounds on what it reads); a loop's rank and the invariants it needs | The cyclic proof (`kernel/cyclic.ts`), the loop's halting goals |
 
 ## The corpus
 
@@ -34,9 +35,10 @@ their sibling laws (`walls.json`), examples/lemmas.ts's rules with no lemma, fol
 | lemma | 5 | 0 | 5 |
 | fold | 3 | 0 | 3 |
 | nonlinear | 8 | 0 | 8 |
-| all | 41 | 0 | 41 |
+| cycle | 13 | 0 | 13 |
+| all | 54 | 0 | 54 |
 
-Now: the suite's `frontier-score` job, `runs/modal/suite-merged3`. The last, `(Σx)² <= n·Σx²` over running samples, is
+Now: the suite's `frontier-score` job, `runs/modal/suite-merged3` (the cycle track: `runs/modal/cycsearch/corpus1`). The last, `(Σx)² <= n·Σx²` over running samples, is
 proven by the prover multiplying the goal by n before the squares.
 
 ## Structure: path scopes, the case the docs called the wall
@@ -98,3 +100,44 @@ the total, the reports' cost at most the cap per head):
 Not found: a lemma of another shape (a bound by a product of two unknowns other than a tree's value and a param, a
 closed form past degree 2 or with further arguments, an exponential), and anything about a quantified state invariant
 (examples/trees.ts's tables of nodes: the invariant track's).
+
+## Cycle track: `findCycles`, `findRank`, `cycleLemmas`
+
+`core/cycles.ts` (`gdp-wired/cycles`) searches for what core/cyclic.ts's builders fix by rule shape: from claims over
+functions defined by their equations, the facts are run (values, and at each claim's samples the calls its goal
+makes); back-edges go to a claim at the arguments of each call the goal reads, guarded by where that claim may be used
+(its hypotheses and its rank below), so the premises and the descent are the guard's; the ranks are linear over each
+claim's variables, an integer LP over the runs' edges (each sampled call must drop), lexicographic by successive
+elimination; a stuck claim gets companions, its constants abstracted (an accumulator) below it or bounds on what its
+goal reads beside it (Houdini, then only those it needs). Loops take their rank from their runs, `inferLaws` finding
+the invariants the kernel's halting goals need (the descent as step laws). A rule reading functions known by their
+facts gets lemmas fitted to their JavaScript and proven from the facts as cyclic claims. Nothing new is trusted.
+
+`today` is what the library did before with the same statement: for claims, the builders' shape (rank x for each
+variable x tried, back-edges at x − 1, the search's own fact instances); for loops, kernel/run-more.ts's rank templates
+(a state variable, a param minus one, a sum of two); for rules, `proveRule`'s search with `cycles: false`. Each item
+has a broken variant, which must be refused. Modal, 1 vCPU a job, `runs/modal/cycsearch/corpus1`:
+
+| Item | Today | Frontier | Found |
+| --- | --- | --- | --- |
+| McCarthy's 91: f(n) = 91 for n <= 101 | not proven | proven, 107 ms | rank 101 − n, back-edges at n + 11 and f(n + 11) |
+| Ackermann: ack(m, n) > n | not proven | proven, 439 ms | rank (m, n) |
+| gcd by subtraction: >= 1 and <= x, for x, y >= 1 | not proven | proven, 863 ms | rank x + y |
+| an accumulator: g(x, 0) = 2x | not proven | proven, 85 ms | g(x, a) = a + 2x, below it |
+| two accumulators: h(x, 0, 0) = 3x | not proven | proven, 290 ms | h(x, a, b) = a + b + 3x, below it |
+| three functions in a ring: a(x) <= x | not proven | proven, 88 ms | b(y) <= y, beside it |
+| one function read through another: a(x) <= 2x | not proven | proven, 550 ms | b(y) = y, below it |
+| loop: two phases | not proven | proven, 419 ms | rank (x, y) |
+| loop: three phases | not proven | proven, 2,744 ms | rank (x, y, z) |
+| loop: every other turn | not proven | proven, 885 ms | rank 2·x − p, p <= 1 |
+| loop: gcd by subtraction, no invariant | not proven | proven, 1,362 ms | rank a + b, 1 <= a, 1 <= b |
+| rule: ninety-one (McCarthy's function, known by its facts) | not proven | proven, 2,340 ms | f(k) = 91 for k <= 101 |
+| rule: doubling (a function given by its recurrence's facts) | not proven | proven, 105 ms | twice(k) = 2·k |
+
+All 13 broken variants (a false claim, a hypothesis dropped so the equation no longer determines the function, a loop
+that never ends, a rule reading past the region) are refused by both. The proofs found are checked again in Lean, but
+Ackermann's, whose key reads a product of cells, which the export refuses (`runs/modal/cycsearch/lean2`).
+
+Not found: a rank that isn't linear, or needs a coefficient past 4 in one component; a back-edge at a term no goal
+reads after unfolding the facts twice; a generalization whose conclusion isn't an exact linear fit (a closed form with
+products); bounds on a function of two arguments; a machine's liveness (`proveLeadsTo`) with no rank.

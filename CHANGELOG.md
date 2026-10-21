@@ -3,6 +3,44 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+- Cycles nobody shaped (`gdp-wired/cycles`, untrusted; the kernel and the Lean twin unchanged): searches whose output is
+  a cyclic proof `kernel/cyclic.ts` checks, with what core/cyclic.ts's builders fix (each node's rank, where each
+  back-edge returns, at which terms) found. `findCycles(facts, claims)` takes claims (hypotheses and a conclusion, no
+  rank, no back-edge) about functions defined by their equations (f(k) = body, or f(0) and f(k + 1); several arguments
+  paired as dsl's argsKey pairs them) and runs the equations: a false claim comes back with the point the facts break
+  it at. Back-edges go to a claim at the arguments of each call its goal reads (n + 11 and f(n + 11) for McCarthy's 91),
+  each guarded by where it may be used (that claim's hypotheses there and its rank there below), so the premises and
+  the descent are the guard's. Ranks come from the runs: each sampled call a back-edge makes must drop, and the rank,
+  linear over the claim's variables, is an integer LP (solver.ts's elimination, its rows generated from the violated
+  ones, coefficients first naturals and small), lexicographic by successive elimination (Bradley–Manna–Sipma), the
+  uses between strongly connected components ranked by their height first. Where a claim is stuck, its constants are
+  abstracted (an accumulator: g(x, 0) = 2x through g(x, a) = a + 2x, fitted exactly to the values) into a companion below
+  it, or companions beside it bound what its goal reads (by analogy with the claim, then every bound fitted to the
+  values), Houdini over them and only those the claims need kept. `findRank(loop, laws)` takes a loop's rank from its
+  runs the same way, and where the kernel's halting goals need an invariant, `inferLaws` finds it with the loop's
+  descent as its step laws; `proveLoop` with no `.rank` calls it. `proveRule`'s and `proveSteps`'s search, for a rule
+  reading functions known by their facts (`fn`, not `recur`), tries `cycleLemmas` between discover and inferLaws:
+  lemmas fitted to the functions' JavaScript (a constant on a region, a line, a bound), proven from the facts as cyclic
+  claims, the laws proven with them as facts (`found.facts`; `{search: {cycles: false}}` leaves it out).
+  - `research/frontier`'s cycle track (`research/frontier/cycles.ts`, `examples/cycles.ts`): 13 items, none proven with
+    nothing stated before (today: the builders' shape, rank x and back-edges at x − 1, for claims; kernel/run-more.ts's
+    rank templates for loops; `proveRule`'s search as at 0.17.0 for rules), all 13 proven now, and their 13 broken
+    variants refused both ways (Modal, 1 vCPU a job, `runs/modal/cycsearch/corpus1`): McCarthy's 91 by 101 − n (107 ms),
+    Ackermann's ack(m, n) > n by (m, n) (439 ms), subtractive gcd by x + y (863 ms), an accumulator (85 ms) and two (290
+    ms), three functions in a ring (88 ms) and one read through another at twice its argument (550 ms), each with the
+    companion found; loops of two and three phases ((x, y), 419 ms; (x, y, z), 2,744 ms), every other turn (2·x − p with
+    p <= 1, 885 ms), subtractive gcd with no invariant (a + b with 1 <= a, 1 <= b, 1,362 ms); a rule reading McCarthy's
+    function (f(k) = 91 for k <= 101, 2,340 ms) and one reading a function given by its recurrence's facts (105 ms).
+    The proofs found are checked again in Lean (`lean-cycles`, `lean-cycles-loops`, `runs/modal/cycsearch/lean2`) but
+    Ackermann's, whose back-edge at (m − 1, ack(m, n − 1)) reads a key that is a product of cells, which the export
+    refuses.
+  - Not found: a rank that isn't linear or needs a coefficient past 4 in one component, a back-edge at a term no goal
+    reads (after unfolding the facts twice), a generalization whose conclusion isn't an exact linear fit, bounds on a
+    function of two arguments, a machine's liveness with no rank. CHC-COMP's LIA-Lin tasks read no function and state
+    no loop, so their verdicts are unchanged (the search isn't reached).
+
 ## 0.17.0
 
 Cyclic proofs in the kernel and its Lean twin, and a prover about twice as fast: the suite (175 jobs) passes in
