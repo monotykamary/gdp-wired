@@ -1,4 +1,6 @@
 import Bridge
+import Refine
+import History
 
 /-!
 BridgeRules: the rest of today's rules carried by cyclic proofs. Lean 4.34.0, core only, on top of `Bridge.lean`.
@@ -440,5 +442,81 @@ theorem cyc_kstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes 
           exact hQr x (fun h => hxz (List.mem_append_left _ h))
   · intro m hm
     simp only [if_neg (fun h => avoidsMaps_occ hthm hm (List.contains_iff_mem.mp h))]
+
+/-! Liveness from step laws -/
+
+-- A step law Lean builds from a liveness (Live.lean's `sliveStep`), with no certificate: one `when`, its `then`, the
+-- liveness's primed names.
+def liveK (l : Live) (w t : C) : SKStep := ⟨⟨[w], t, [[]], l.prime, l.primeMaps, [], ([], .leaf [] [] [] [])⟩, [[]], [], [], [], [], [], []⟩
+
+/-- Liveness under fairness from its step laws: if the liveness reads what it may (`sliveOk`) and the step laws Lean
+builds from it hold (`SKStepHolds`, a cyclic proof's through `cyc_kstep_sound`), then along every run that takes each
+helpful request infinitely often, each state where `from` holds is followed by one where `to` holds. `sleads_sound`
+with the step laws' meaning in place of their certificates. -/
+theorem sleads_of_holds (s : SMachine) (l : Live) (hok : sliveOk s l = true)
+    (hs : SKStepHolds s (liveK l l.pend (liveStayC l))) (hc : SKStepHolds s (liveK l l.pend (liveCoverC l)))
+    (hh : ∀ h ∈ l.helps, SKStepHolds s (liveK l (liveHelpWhen l h) (liveHelpThen l))) (run : SRun s)
+    (fair : ∀ h ∈ l.helps, ∀ n, ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
+    ∀ n, evalC (run.st n).1 (run.st n).2 l.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 l.to = true := by
+  have hok0 := hok
+  simp only [sliveOk, Bool.and_eq_true, List.all_eq_true] at hok0
+  obtain ⟨⟨⟨hd1, hd2⟩, _⟩, hreqs⟩ := hok0
+  refine leads_view l run.st (fun n => withExt s (run.st n).1 (sReq s (run.st n).1 (run.st n).2 (run.req n).1 (run.req n).2))
+    (fun n => primed l.prime (run.st (n + 1)).1 (withExt s (run.st n).1 (sReq s (run.st n).1 (run.st n).2 (run.req n).1 (run.req n).2)))
+    (fun n => withCarried s (run.st n).2 (run.req n).2) (fun n => primedMaps l.primeMaps (run.st (n + 1)).2 (withCarried s (run.st n).2 (run.req n).2))
+    (fun h n => ∀ p ∈ h.2, (run.req n).1 p.1 = evalE (run.st n).1 (run.st n).2 p.2) (fun _ _ => True) ?_ ?_ ?_ ?_ ?_ ?_
+    (fun _ _ _ _ _ _ => trivial) (fun h hh n _ => fair h hh n)
+  · intro n c hc
+    obtain ⟨hv, hm, hx, hn⟩ := slive_reads hok hc (run.st n).1 (run.st n).2 (run.req n).1 (run.req n).2
+    rw [run.next n]
+    exact view_C hd1 hd2 hv hm hx hn
+  · intro n e he
+    obtain ⟨hv, hm, hx, hn⟩ := slive_reads hok (mem_conds_rank he) (run.st n).1 (run.st n).2 (run.req n).1 (run.req n).2
+    rw [run.next n]
+    exact view_E hd1 hd2 hv hm hx hn
+  · intro n hB
+    have := skstep_holds_one hs rfl rfl rfl _ _ (srun_reach run n) _ _ (run.allowed n) hB
+    rw [run.next n]; exact this
+  · intro n hB
+    have := skstep_holds_one hc rfl rfl rfl _ _ (srun_reach run n) _ _ (run.allowed n) hB
+    rw [run.next n]; exact this
+  · intro h hmem n hB
+    have := skstep_holds_one (hh h hmem) rfl rfl rfl _ _ (srun_reach run n) _ _ (run.allowed n) hB
+    rw [run.next n]; exact this
+  · intro h hmem n hH
+    show evalC (withExt s (run.st n).1 (sReq s (run.st n).1 (run.st n).2 (run.req n).1 (run.req n).2)) (withCarried s (run.st n).2 (run.req n).2) (reqC h.2) = true
+    exact sreq_list (fun p hp => hreqs h hmem p hp) (fun p hp' => hH p hp')
+
+/-! Histories through their plain machine -/
+
+/-- A machine with a history reaches only states its plain machine reaches, once the record goals and the history's
+side conditions check (`checkHMachine` with no laws: `histOk`, the record goals, the plain machine's own conditions). -/
+theorem hreach_plain (h : HMachine) (rs : List (List VDef × Tree)) (hc : checkHMachine h [] rs = true) :
+    ∀ ρ M hist, HReach h ρ M hist → SReach h.plain ρ M := by
+  simp only [checkHMachine, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hc
+  obtain ⟨⟨⟨hok, hlen⟩, hgoals⟩, hsm⟩ := hc
+  have hrs : ∀ r ∈ h.rels, ∃ tt : List VDef × Tree, checkGoal ⟨tt.1, recordGoal h r⟩ tt.2 = true := by
+    intro r hr
+    obtain ⟨tt, htt⟩ := zip_mem_left h.rels rs hlen.symm r hr
+    exact ⟨tt, hgoals (r, tt) htt⟩
+  intro ρ M hist hr
+  exact hreach_sreach [] (histOk_sound hok) hrs hsm hr
+
+/-! Ghosts -/
+
+/-- A law of a ghosted machine (a cyclic proof's, as `cyc_machine_sound` states it) that reads no ghost holds in every
+reachable state of the original, at every value of its keys. -/
+theorem cyc_ghost_holds (g : SGhosted) (hg : sghostOk g = true) (law : C) (keys : List Nat) (hav : avoids g.vars law = true)
+    (hl : ∀ ρ M, SReach g.full ρ M → ∀ ρ' : Nat → Nat, (∀ i, i ∉ keys → ρ' i = ρ i) → evalC ρ' M law = true) :
+    ∀ ρ M, SReach g.orig ρ M → ∀ ρ' : Nat → Nat, (∀ i, i ∉ keys → ρ' i = ρ i) → evalC ρ' M law = true := by
+  intro ρ M hr ρ' hρ'
+  obtain ⟨ρg, hrg, hag⟩ := sghost_reach g hg hr
+  have h := hl ρg M hrg (fun i => if keys.contains i then ρ' i else ρg i) (fun i hi => by
+    rw [if_neg (fun h => hi (List.contains_iff_mem.mp h))])
+  rw [congrC _ ρ' M law (fun i hi => by
+    by_cases hk : keys.contains i = true
+    · rw [if_pos hk]
+    · rw [if_neg hk, hag i (avoids_occ hav hi), hρ' i (fun h => hk (List.contains_iff_mem.mpr h))])] at h
+  exact h
 
 end Kern
