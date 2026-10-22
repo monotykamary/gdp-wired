@@ -43,6 +43,8 @@ checked in Lean on the standard axioms (`runs/modal/dataplus/corpus1`).
   `databag.len_concat`, `datarep.len_replicate`, `datatakedrop.take_drop`, `datadroplen.len_drop`.
 - The suite: `frontier-datatype-0..5` (six shards, was four), `lean-data-4` and `lean-data-5` for the new Lean items.
   In `corpus1` the shards took 69.75 to 153.14 s, `lean-data-0..5` 45.46 to 120.03 s, `data` 125.98 s.
+  The whole suite (`modal/suite.json`, 193 jobs) at this branch's last commit: 452.9 s wall, 4,304.0 s of job time, none
+  failed (`runs/modal/dataplus/suite2`).
 - Still out (research/frontier/README.md): a lemma past six symbols or of another shape; a companion the functions' own
   calls don't lift the law to; a ring of functions as a recursion induction; nested datatypes in Lean's sense (a field
   of a type applied to the datatype, `List Rose`: there is no type parameter, a list of trees is a forest declared with
