@@ -9,7 +9,7 @@ noted), each with the command that reproduces it.
 proven, was 73, none wrong; 17 of the 68 `false/` properties refuted as before, each confirmed by TIP's evaluator
 (`runs/modal/cheap/tip3`, cvc5's and Vampire's rows from `runs/modal/tip/full2` in `runs/modal/cheap/tip3-with-full2`:
 cvc5 168, with conjecture generation 187, Vampire 189). The datatype corpus unchanged: 15 of 15 laws proven and the 15
-broken variants refused, the same work units where checked (`runs/modal/cheap/corpus2` against
+broken variants refused (`runs/modal/cheap/corpus2` against
 `runs/modal/dataplus/corpus1`). The suite: 195 jobs, none failed, 574.2 s wall, 4,242.3 s of job time
 (`runs/modal/cheap/suite1`).
 
