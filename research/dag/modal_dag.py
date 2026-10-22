@@ -62,7 +62,7 @@ if GOALS.exists():
 app = modal.App("gdp-wired-dag", image=image)
 
 
-@app.function(cpu=2.0, memory=4096, timeout=3600)
+@app.function(scaledown_window=2, cpu=2.0, memory=4096, timeout=3600)
 def job(name: str, cmd: str, limit: int, collect: str) -> dict:
     import shutil
     import subprocess
