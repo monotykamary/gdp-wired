@@ -15,7 +15,13 @@ import os
 import pathlib
 import time
 
-import modal
+try:
+    import modal
+except ImportError:  # plain python3, --backend boat: the runner's functions run on boat VMs (modal/fanout.py)
+    import sys
+    sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent.parent / "modal"))
+    from agent import modal_stub
+    modal = modal_stub()
 
 HERE = pathlib.Path(__file__).resolve().parent
 GDP = HERE.parent.parent
@@ -38,6 +44,16 @@ image = (
                                               "vendor/**", "compare/**/*.js", "compare/**/out/**", "docs/**", "static/**", "lean-kernel/.lake/**"])
 )
 app = modal.App("gdp-wired-term", image=image)
+
+# The same image on a boat VM, a layer of the pool's snapshot (modal/boat.py): the benchmarks under /opt/gdpw/term,
+# mounted at /bench for each call (BOAT).
+BOAT_SETUP = f"""
+curl -fsSL -o /tmp/loat https://github.com/LoAT-developers/LoAT/releases/download/{LOAT}/loat-static && sudo install -m 755 /tmp/loat /usr/local/bin/loat
+curl -fsSL https://github.com/aprove-developers/KoAT2-Releases/releases/download/{KOAT}/koat2_static.zst | zstd -d > /tmp/koat2 && sudo install -m 755 /tmp/koat2 /usr/local/bin/koat2
+mkdir -p /opt/gdpw/term/bench && curl -fsSL https://codeload.github.com/TermCOMP/TPDB-ARI/tar.gz/{ARI_COMMIT} | tar xz -C /opt/gdpw/term/bench --strip-components 1 TPDB-ARI-{ARI_COMMIT}/Integer_Transition_Systems
+find /opt/gdpw/term/bench -name '*.ari' | wc -l
+"""
+BOAT = {"mounts": {"/bench": "/opt/gdpw/term/bench"}}
 
 # KoAT2 reads its own format: the task through `koat2 ari-to-koat` first, with `^` in names (T2's x^0) and the quoted
 # symbols of the AProVE tasks (|f274_0_power_LE'|) renamed (KoAT's parsers refuse them; a renaming, nothing else).
@@ -134,17 +150,20 @@ def versions() -> dict:
 
 @app.local_entrypoint()
 def main(out: str, tools: str = "gdp,loat,loat-abmc,koat2", limit: int = 60, sample: int = 0, only: str = "", env: str = "", tasks_file: str = ""):
-    live = GDP / "modal" / ".live"
-    live.mkdir(exist_ok=True)
-    ticket = live / f"{app.app_id}"
-    ticket.write_text(str(os.getpid()))
+    import sys
+    sys.path.insert(0, str(GDP / "modal"))
+    import fanout
+    run(fanout.ModalEx(app), out, tools, limit, sample, only, env, tasks_file)
+
+
+def run(ex, out: str, tools: str = "gdp,loat,loat-abmc,koat2", limit: int = 60, sample: int = 0, only: str = "", env: str = "", tasks_file: str = ""):
     outdir = pathlib.Path(out)
     outdir.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     try:
-        all_tasks = tasks.remote()
+        all_tasks = ex.remote(tasks)
         (outdir / "tasks.json").write_text(json.dumps(all_tasks, indent=1))
-        (outdir / "versions.json").write_text(json.dumps({**versions.remote(), "tpdb_ari": ARI_COMMIT, "loat_release": LOAT, "koat2_release": KOAT, "limit": limit, "tools": tools}, indent=1))
+        (outdir / "versions.json").write_text(json.dumps({**ex.remote(versions), "tpdb_ari": ARI_COMMIT, "loat_release": LOAT, "koat2_release": KOAT, "limit": limit, "tools": tools}, indent=1))
         chosen = [t for t in all_tasks if any(o in t["task"] for o in only.split("|"))]
         if tasks_file:
             names = set(pathlib.Path(tasks_file).read_text().split())
@@ -156,7 +175,7 @@ def main(out: str, tools: str = "gdp,loat,loat-abmc,koat2", limit: int = 60, sam
         print(f"{len(chosen)} tasks, {len(shards)} containers", flush=True)
         n = 0
         with (outdir / "results.jsonl").open("w") as f:
-            for rows in shard.starmap(shards, order_outputs=False, return_exceptions=True):
+            for rows in ex.starmap(shard, shards):
                 if isinstance(rows, BaseException):
                     rows = [{"tool": "?", "task": "?", "answer": "error", "err": repr(rows)[:400]}]
                 for r in rows:
@@ -166,5 +185,12 @@ def main(out: str, tools: str = "gdp,loat,loat-abmc,koat2", limit: int = 60, sam
                 if n % 200 == 0:
                     print(f"{n}/{len(shards)}, {round(time.time() - t0)} s", flush=True)
     finally:
-        ticket.unlink(missing_ok=True)
+        ex.close()
     print(f"done in {round(time.time() - t0, 1)} s wall")
+
+
+if __name__ == "__main__":
+    import sys
+    sys.path.insert(0, str(GDP / "modal"))
+    import fanout
+    fanout.cli(run, __file__, __doc__)

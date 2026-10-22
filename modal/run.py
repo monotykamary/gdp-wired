@@ -2,6 +2,12 @@
 on every run (so edits need no rebuild).
 
     modal run modal/run.py --jobs jobs.json --out ../runs/modal/<name>
+    python3 modal/run.py --backend auto|boat|modal --jobs jobs.json --out runs/backends/<name> [--vms N] [--idle 60]
+
+`--backend auto` runs the same jobs, with the same flags and outputs, on boat.dev VMs (modal/boat.py: a pool kept
+stopped between batches, 2 vCPU and 4 GB a slot) and moves to Modal what boat can't serve (modal/fanout.py); summary.tsv
+gets a 4th column, the backend each job ran on, and the final line says where they ran, why any moved and what the VMs
+cost. `--backend boat` forces boat; `modal` (the default) is Modal as before.
 
 jobs.json is a list of {"name", "cmd", "cwd"?, "cpu"?, "memory"?, "timeout"?}; cmd runs under bash in gdp-wired/<cwd>.
 Each job's output lands in <out>/<name>.log, and <out>/summary.tsv has name, exit code and seconds.
@@ -15,7 +21,13 @@ import json
 import pathlib
 import time
 
-import modal
+try:
+    import modal
+except ImportError:  # plain python3: --backend boat needs no Modal client
+    import sys
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+    from agent import modal_stub
+    modal = modal_stub()
 
 HERE = pathlib.Path(__file__).resolve().parent
 GDP = HERE.parent
@@ -88,55 +100,76 @@ def sh(name: str, cmd: str, cwd: str = ".", limit: int = 840) -> dict:
     return {"name": name, "code": code, "seconds": round(time.time() - t0, 2), "out": out[-400_000:], "err": err[-100_000:]}
 
 
-@app.local_entrypoint()
-def main(jobs: str, out: str, native: bool = False, cyclic: bool = False, usual: bool = False):
-    import os
+def flags(native: bool, cyclic: bool, usual: bool):
+    """What each job's command gets for the flags: exports before it, and the change to its command."""
+    # --native: the Lean the jobs generate closes each check by native_decide (emit.ts's toLean `native`).
+    # --cyclic: every proof core/cyclic.ts's instances cover is made again as a cyclic proof, a differing verdict
+    # failing the job (GDP_CYCLIC=1).
+    # --usual: each proof's certificate is the usual trees, and the Lean export reads those, not the cyclic proofs
+    # (GDP_CERT=usual: core/cyclic.ts's certOn, lean-kernel/emit.ts's cyclicCerts).
+    pre = "export GDP_CYCLIC_LOG=1; " + ("export GDP_LEAN_NATIVE=1; " if native else "") + ("export GDP_CYCLIC=1; " if cyclic else "") + ("export GDP_CERT=usual; " if usual else "")
+    # (every proof made twice, so a test's own time limit is lifted)
+    cmd = lambda c: c.replace("bun test ", "bun test --timeout 600000 ") if cyclic else c
+    return pre, cmd
 
+
+@app.local_entrypoint()
+def main(jobs: str, out: str, native: bool = False, cyclic: bool = False, usual: bool = False, backend: str = "modal",
+         vms: int = 0, idle: int = 60, teardown: bool = False, vm_type: str = "default", durations: str = "", max_vms: int = 0, max_wait: int = 120):
+    import sys
+    sys.path.insert(0, str(HERE))
+    import fanout
     spec = json.loads(pathlib.Path(jobs).read_text())
-    live = HERE / ".live"
-    live.mkdir(exist_ok=True)
-    ticket = live / f"{app.app_id}"
-    ticket.write_text(str(os.getpid()))
-    outdir = pathlib.Path(out)
-    outdir.mkdir(parents=True, exist_ok=True)
-    t0 = time.time()
+    pre, cmd = flags(native, cyclic, usual)
+    fanout.run_jobs(app, spec, out, pre, cmd, lambda js, on_done: modal_jobs(js, pre, cmd, on_done), backend=backend, vms=vms, idle=idle, teardown=teardown,
+                    durations=durations, vm_type=vm_type, max_vms=max_vms, max_wait=max_wait)
+
+
+def modal_jobs(spec: list[dict], pre: str, cmd, on_done) -> dict:
+    """The jobs on Modal, inside the running app: {name: {code, seconds, out, err}}."""
     # Jobs with the same resources share one function variant; every variant runs its jobs in parallel.
     groups: dict[tuple, list] = {}
     for j in spec:
         groups.setdefault((j.get("cpu", 2.0), j.get("memory", 4096), j.get("timeout", 900)), []).append(j)
     calls = []
+    rows = {}
     try:
         for (cpu, memory, timeout), js in groups.items():
             fn = sh.with_options(cpu=cpu, memory=memory, timeout=timeout + 60)
-            # --native: the Lean the jobs generate closes each check by native_decide (emit.ts's toLean `native`).
-            # --cyclic: every proof core/cyclic.ts's instances cover is made again as a cyclic proof, a differing verdict
-            # failing the job (GDP_CYCLIC=1).
-            # --usual: each proof's certificate is the usual trees, and the Lean export reads those, not the cyclic proofs
-            # (GDP_CERT=usual: core/cyclic.ts's certOn, lean-kernel/emit.ts's cyclicCerts).
-            pre = "export GDP_CYCLIC_LOG=1; " + ("export GDP_LEAN_NATIVE=1; " if native else "") + ("export GDP_CYCLIC=1; " if cyclic else "") + ("export GDP_CERT=usual; " if usual else "")
-            # (every proof made twice, so a test's own time limit is lifted)
-            cmd = lambda c: c.replace("bun test ", "bun test --timeout 600000 ") if cyclic else c
             calls += [(j["name"], fn.spawn(j["name"], pre + cmd(j["cmd"]), j.get("cwd", "."), timeout - 30)) for j in js]
-        rows = collect(calls, outdir)
+        for name, c in calls:
+            try:
+                r = c.get()
+            except Exception as e:  # a container that timed out or died still gets a row
+                r = {"name": name, "code": -1, "seconds": -1, "out": "", "err": repr(e)}
+            rows[name] = r
+            on_done(name, r)
     finally:  # whatever happened, nothing keeps running (cancelling a finished call is a no-op)
         for _, c in calls:
             try:
                 c.cancel()
             except Exception:
                 pass
-        ticket.unlink(missing_ok=True)
-    print(f"{len(rows)} jobs, {sum(r['code'] != 0 for r in rows)} failed, {round(time.time() - t0, 1)} s wall, {round(sum(max(r['seconds'], 0) for r in rows), 1)} s of job time")
-
-
-def collect(calls, outdir):
-    rows = []
-    for name, c in calls:
-        try:
-            r = c.get()
-        except Exception as e:  # a container that timed out or died still gets a row
-            r = {"name": name, "code": -1, "seconds": -1, "out": "", "err": repr(e)}
-        (outdir / f"{r['name']}.log").write_text(r["out"] + ("\n--- stderr ---\n" + r["err"] if r["err"].strip() else ""))
-        rows.append(r)
-        print(f"{r['name']:40} exit {r['code']:>3}  {r['seconds']:>8} s", flush=True)
-    (outdir / "summary.tsv").write_text("".join(f"{r['name']}\t{r['code']}\t{r['seconds']}\n" for r in rows))
     return rows
+
+
+if __name__ == "__main__":
+    import argparse
+    import sys
+    sys.path.insert(0, str(HERE))
+    import fanout
+    fanout.reexec_with_modal()
+    ap = argparse.ArgumentParser(description="modal/run.py's jobs on a backend: modal (the default), auto (boat, Modal when boat can't), boat")
+    ap.add_argument("--jobs", required=True)
+    ap.add_argument("--out", required=True)
+    for f in ("native", "cyclic", "usual", "teardown"):
+        ap.add_argument(f"--{f}", action="store_true")
+    ap.add_argument("--backend", default="modal", choices=["modal", "auto", "boat"])
+    ap.add_argument("--vms", type=int, default=0, help="boat VMs for the batch (default: by the jobs' last times and the plan's limits)")
+    ap.add_argument("--max-vms", type=int, default=0)
+    ap.add_argument("--idle", type=int, default=60, help="seconds a released VM stays up before boat stops it (0: stop at once)")
+    ap.add_argument("--vm-type", default="default", choices=["small", "default", "large"])
+    ap.add_argument("--durations", default="", help="a summary.tsv whose times order the jobs (default: the last run's)")
+    ap.add_argument("--max-wait", type=int, default=120, help="auto: seconds to wait for a boat VM before Modal takes the batch")
+    a = ap.parse_args()
+    main(a.jobs, a.out, a.native, a.cyclic, a.usual, a.backend, a.vms, a.idle, a.teardown, a.vm_type, a.durations, a.max_vms, a.max_wait)

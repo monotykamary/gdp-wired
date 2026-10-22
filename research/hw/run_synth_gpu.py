@@ -8,7 +8,13 @@ the app is named hw-gpu-synth-words (check `modal app list` afterwards; `modal a
 import json
 import pathlib
 
-import modal
+try:
+    import modal
+except ImportError:  # plain python3, --backend runpod: no Modal client needed
+    import sys
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent.parent / "modal"))
+    from agent import modal_stub
+    modal = modal_stub()
 
 HERE = pathlib.Path(__file__).resolve().parent
 GDP = HERE.parent.parent
@@ -59,7 +65,19 @@ def words_h100(args: str = "", script: str = "run-synth.ts") -> dict:
 
 
 @app.local_entrypoint()
-def main(out: str, gpu: str = "H100", args: str = "", script: str = "run-synth.ts"):
+def main(out: str, gpu: str = "H100", args: str = "", script: str = "run-synth.ts", backend: str = "modal", gpus: str = ""):
+    if backend != "modal":  # RunPod, or Modal when RunPod can't serve (modal/fanout.py): the same run, the same output
+        import sys
+        sys.path.insert(0, str(GDP / "modal"))
+        import fanout
+        r, meta = fanout.gpu_call(__file__, "run", [args, script], app, {"L4": words_l4, "H100": words_h100}[gpu], backend, gpus, label="synth")
+        pathlib.Path(out).parent.mkdir(parents=True, exist_ok=True)
+        pathlib.Path(out).write_text(json.dumps(r, indent=1))
+        pathlib.Path(out).with_suffix(".backend.json").write_text(json.dumps(meta, indent=1))
+        print(r["gpu"])
+        print(r["log"])
+        print(f"on {meta['backend']}" + (f" (fallback: {meta['fallback']})" if meta["fallback"] else ""))
+        return
     call = {"L4": words_l4, "H100": words_h100}[gpu].spawn(args, script)
     try:
         r = call.get()
@@ -72,3 +90,10 @@ def main(out: str, gpu: str = "H100", args: str = "", script: str = "run-synth.t
     pathlib.Path(out).write_text(json.dumps(r, indent=1))
     print(r["gpu"])
     print(r["log"])
+
+
+if __name__ == "__main__":  # python3 <this> --backend auto|runpod|modal --out ... [--gpus "NVIDIA GeForce RTX 4090,NVIDIA L4"]
+    import sys
+    sys.path.insert(0, str(GDP / "modal"))
+    import fanout
+    fanout.gpu_cli(main, __file__)

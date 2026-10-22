@@ -48,6 +48,10 @@ BACKSTOP = 900  # the TTL a held VM keeps renewing: a VM whose client is gone st
 STARTS_RESERVE = 10  # starts of the day and the hour never spent by one batch
 
 
+class Unavailable(RuntimeError):
+    """boat can't serve this batch (API, billing, limits, image): the caller may move it to Modal."""
+
+
 def log(*a):
     print("[boat]", *a, file=sys.stderr, flush=True)
 
@@ -161,7 +165,7 @@ curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh 
 ~/.elan/bin/lean --version
 ~/.bun/bin/bun --version
 sudo mkdir -p /work /src/gdp-wired /bench /smt /vamp /sv /opt/gdpw
-sudo chown "$USER" /smt /vamp /sv /opt/gdpw
+sudo chown "$(id -un)" /smt /vamp /sv /opt/gdpw
 """
 # the compare runners' solvers, a layer each (their BOAT_SETUP, next to their Modal image), the slowest to build first
 RUNNERS = ["compare/tip/modal_tip.py", "compare/chc/modal_chc.py", "compare/term/modal_term.py", "compare/term/modal_sv.py"]
@@ -186,7 +190,8 @@ def layers() -> list[tuple[str, str, str]]:
 
 
 def image_name() -> str:
-    return layers()[-1][1]
+    """The pool's snapshot; $GDPW_BOAT_IMAGE names another (a test of the fallback names one that doesn't exist)."""
+    return os.environ.get("GDPW_BOAT_IMAGE") or layers()[-1][1]
 
 
 def build_layer(name: str, snap: str, script: str, parent: str | None):
@@ -203,8 +208,8 @@ def build_layer(name: str, snap: str, script: str, parent: str | None):
     ticket.write_text(json.dumps({"vm": vm, "pid": os.getpid(), "host": socket.gethostname(), "snapshot": snap}))
     try:
         wait_running([vm])
-        b64 = base64.b64encode(("set -ex\nexport DEBIAN_FRONTEND=noninteractive\n" + script).encode()).decode()
-        exec_json(vm, ["bash", "-c", 'mkdir -p ~/.gdpw/build && echo "$1" | base64 -d > ~/.gdpw/build/l.sh && (setsid nohup bash -c "bash ~/.gdpw/build/l.sh > ~/.gdpw/build/l.log 2>&1; echo \\$? > ~/.gdpw/build/l.rc" > /dev/null 2>&1 &) && echo "{}"', "_", b64])
+        b64 = base64.b64encode(("set -ex\nexport DEBIAN_FRONTEND=noninteractive PATH=$HOME/.bun/bin:$HOME/.elan/bin:$HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n" + script).encode()).decode()
+        exec_json(vm, ["bash", "-c", 'rm -rf ~/.gdpw/build && mkdir -p ~/.gdpw/build && echo "$1" | base64 -d > ~/.gdpw/build/l.sh && (setsid nohup bash -c "bash ~/.gdpw/build/l.sh > ~/.gdpw/build/l.log 2>&1; echo \\$? > ~/.gdpw/build/l.rc" > /dev/null 2>&1 &) && echo "{}"', "_", b64])
         t0 = time.time()
         while True:
             time.sleep(20)
@@ -217,9 +222,12 @@ def build_layer(name: str, snap: str, script: str, parent: str | None):
                 break
             if time.time() - t0 > 6600:
                 raise RuntimeError(f"layer {name} still building after {int(time.time() - t0)} s")
+        full = exec_(vm, ["bash", "-c", "tail -c 400000 ~/.gdpw/build/l.log"], 120).get("stdout", "")
+        (LIVE / "builds").mkdir(parents=True, exist_ok=True)
+        (LIVE / "builds" / f"{snap}.log").write_text(full)
         if rc != "0":
-            raise RuntimeError(f"layer {name} failed ({rc}):\n{out[-1500:]}")
-        exec_(vm, ["bash", "-c", "sudo apt-get clean; rm -rf ~/.cache/pip; sync"], 120)
+            raise RuntimeError(f"layer {name} failed ({rc}), its log in {LIVE / 'builds' / (snap + '.log')}:\n{out[-1500:]}")
+        exec_(vm, ["bash", "-c", "sudo apt-get clean; rm -rf ~/.cache/pip ~/.gdpw/build; sync"], 120)
         log(f"  {name} built in {int(time.time() - t0)} s; saving {snap}")
         boat("snapshot", vm, snap, "--json", timeout=1800)
         for _ in range(180):
@@ -236,28 +244,47 @@ def build_layer(name: str, snap: str, script: str, parent: str | None):
 
 def ensure_image(build: bool = True) -> str:
     have = named_snapshots()
+    if os.environ.get("GDPW_BOAT_IMAGE"):
+        if have.get(image_name(), {}).get("status") != "ready":
+            raise Unavailable(f"boat image {image_name()} doesn't exist")
+        return image_name()
     chain = layers()
     parent = None
     for name, snap, script in chain:
         if snap not in have or have[snap].get("status") != "ready":
             if not build:
-                raise RuntimeError(f"the image needs layer {snap}; run `python3 modal/boat.py image --build`")
+                raise Unavailable(f"boat image {chain[-1][1]} isn't built (layer {snap} missing): python3 modal/boat.py image --build")
             build_layer(name, snap, script, parent)
         parent = snap
-    prune_snapshots({s for _, s, _ in chain})
+    prune_snapshots({s for _, s, _ in chain}, chain[-1][1])
     return chain[-1][1]
 
 
-def prune_snapshots(keep: set[str]):
-    """Named snapshots of older images (gdpw-*), except those a pool VM still comes from; the plan names 10 for free."""
+def prune_snapshots(keep: set[str], current: str):
+    """Named snapshots of superseded images (gdpw-*): every layer of the current image is kept, and the image before
+    it (the registry's `images`, newest last), nothing older; the plan names 10 for free."""
     try:
-        used = {v["snapshot"] for v in Registry().read()["vms"].values()}
+        with Registry().locked() as d:
+            imgs = [i for i in d.get("images", []) if i != current] + [current]
+            d["images"] = imgs[-2:]
+        keep = keep | set(imgs[-2:])
         for n in named_snapshots():
-            if n.startswith("gdpw-") and n not in keep and n not in used and n != "gdpw-base":
+            if n.startswith("gdpw-") and n not in keep and n != "gdpw-base":
                 boat("snapshot", "rm", n, "--json", check=False)
-                log(f"removed old snapshot {n}")
+                log(f"removed superseded snapshot {n}")
     except Exception as e:
         log(f"(snapshot prune skipped: {e})")
+
+
+def retire(d: dict, image: str):
+    """Free VMs of an image neither current nor the one before: deleted (the toolchain changed)."""
+    keep = set(d.get("images", [])[-2:]) | {image}
+    old = [i for i, v in d["vms"].items() if lease_free(v) and v["snapshot"] not in keep]
+    for i in old:
+        d["vms"].pop(i)
+        threading.Thread(target=boat, args=("delete", i, "--yes", "--json"), kwargs={"check": False}, daemon=True).start()
+    if old:
+        log(f"deleted {len(old)} VMs of superseded images")
 
 
 # ------------------------------------------------------------------------------------------------------- the registry
@@ -300,13 +327,34 @@ class Registry:
 
 
 def reconcile(d: dict, live: dict):
-    """Drops VMs boat no longer has (deleted, or their data expired) and records each one's state."""
+    """Drops VMs boat no longer has, deletes those whose stopped disk expired (boat keeps it 14 days; the pool never
+    counts on one), and records each one's state."""
     for i in list(d["vms"]):
         s = live.get(i)
-        if not s or s.get("dataExpiredAt") or s.get("state") in ("deleted", "error", "deleting"):
+        if not s or s.get("state") in ("deleted", "deleting"):
             d["vms"].pop(i)
+        elif s.get("dataExpiredAt") or (s.get("state") == "error" and lease_free(d["vms"][i])):
+            d["vms"].pop(i)
+            threading.Thread(target=boat, args=("delete", i, "--yes", "--json"), kwargs={"check": False}, daemon=True).start()
         else:
             d["vms"][i]["state"] = s.get("state")
+
+
+REFRESH_DAYS = 12  # a VM stopped this long is resumed and stopped again when a batch runs, before boat drops its disk
+
+
+def refresh_old(d: dict, image: str):
+    """Free VMs stopped for REFRESH_DAYS: resumed and stopped again (in the background), which restarts boat's clock."""
+    old = [i for i, v in d["vms"].items() if lease_free(v) and v.get("state") == "stopped" and time.time() - v.get("last_used", time.time()) > REFRESH_DAYS * 86400]
+
+    def one(i):
+        boat("resume", i, "--json", check=False, timeout=300)
+        boat("stop", i, "--yes", "--json", check=False, timeout=300)
+    for i in old:
+        d["vms"][i]["last_used"] = time.time()
+        threading.Thread(target=one, args=(i,), daemon=True).start()
+    if old:
+        log(f"refreshing {len(old)} VMs stopped over {REFRESH_DAYS} days")
 
 
 def lease_free(v: dict) -> bool:
@@ -382,7 +430,7 @@ class Session:
         self.batch = time.strftime("%Y%m%d-%H%M%S") + "-" + "".join(random.choice("abcdefghijklmnopqrstuvwxyz0123456789") for _ in range(6))
         self.label, self.idle, self.teardown, self.vm_type = label, idle, teardown, vm_type
         self.reg = Registry()
-        self.image = ensure_image(build)
+        self.image = ensure_image(build)  # (raises Unavailable when it's missing and build is off)
         self.key = library_key()
         self.tar = tree_tarball(self.key)
         self.agent_b64 = base64.b64encode((HERE / "agent.py").read_bytes()).decode()
@@ -398,6 +446,7 @@ class Session:
         self.t0 = time.time()
         self.threads: list[threading.Thread] = []
         self.counts = {"leased_running": 0, "resumed": 0, "created": 0}
+        self.last_error = ""
         threading.Thread(target=self._heartbeat, daemon=True).start()
         log(f"batch {self.batch}: image {self.image}, tree {len(self.tar) // 1024} KB, library {self.key[:12]}"
             f" ({len(list((LIVE / 'olean' / self.key).glob('*.olean'))) if (LIVE / 'olean' / self.key).exists() else 0} .olean shipped)")
@@ -417,6 +466,8 @@ class Session:
                 reconcile(d, sandboxes())
             except Exception as e:
                 log(f"(reconcile skipped: {e})")
+            refresh_old(d, self.image)
+            retire(d, self.image)
             free = [i for i, v in d["vms"].items() if v["snapshot"] == self.image and v["type"] == vm_type and lease_free(v) and i not in self.vms]
             free.sort(key=lambda i: (d["vms"][i].get("state") not in RUNNING, -d["vms"][i].get("last_used", 0)))
             for i in free[:need]:
@@ -438,7 +489,16 @@ class Session:
     def _bring_up(self, vm: VM, running: bool):
         try:
             if not running:
-                boat("resume", vm.id, "--json", timeout=300, check=False)
+                with _sem:
+                    p = subprocess.run([BOAT, "resume", vm.id, "--json"], capture_output=True, text=True, timeout=300, env=ENV)
+                if p.returncode != 0 and ("snapshot_data_expired" in p.stdout + p.stderr or "409" in p.stdout + p.stderr):
+                    # a stopped disk boat no longer keeps (14 days): the VM goes, a new one from the image takes its place
+                    log(f"{vm.id}: its stopped disk expired; a new VM instead")
+                    boat("delete", vm.id, "--yes", "--json", check=False, timeout=180)
+                    vm.dead = True
+                    self._release([vm.id], deleted=True)
+                    self._create(1, vm.type)
+                    return
                 self.counts["resumed"] += 1
             else:
                 self.counts["leased_running"] += 1
@@ -448,6 +508,7 @@ class Session:
             self._prepare(vm)
         except Exception as e:
             log(f"{vm.id}: {e}")
+            self.last_error = f"{vm.id}: {str(e)[:200]}"
             vm.dead = True
             self._release([vm.id])
 
@@ -485,6 +546,7 @@ class Session:
                     if e.get("id") and e["id"] not in ids and e.get("event") != "error":
                         ids.append(e["id"])
             if not ids:
+                self.last_error = f"boat new: {out.strip()[-200:]}"
                 log(f"boat new gave no VM: {out[-300:]}")
                 time.sleep(15)
                 continue
@@ -513,6 +575,7 @@ class Session:
             self._prepare(vm)
         except Exception as e:
             log(f"{vm.id}: {e}")
+            self.last_error = f"{vm.id}: {str(e)[:200]}"
             vm.dead = True
             self._release([vm.id])
 
@@ -590,15 +653,19 @@ class Session:
         # (the URL carries boat's token: it never goes to a log or a file)
 
     # -- running
-    def run(self, items: list[dict], on_done, on_start=None):
-        """Runs items ({name, kind, weight, est, ...spec}) longest first over the session's VMs, as they come up."""
+    def run(self, items: list[dict], on_done, on_start=None, on_lost=None, max_wait: int = 0):
+        """Runs items ({name, kind, weight, est, ...spec}) longest first over the session's VMs, as they come up.
+
+        An item whose VM died (or whose runner vanished) runs again once on another VM; lost again, it goes to
+        on_lost(item, reason) (else it's done with exit -1). With max_wait, if no VM is ready that many seconds after
+        the start, or every VM is gone, what hasn't run goes to on_lost too."""
         queue = sorted(items, key=lambda it: -it.get("est", 60))
         lock = threading.Lock()
         left = {"n": len(items)}
-        tries: dict[str, int] = {}
         self._enough = lambda: len(queue) <= sum(v.slots for v in self.vms.values() if not v.dead)
         started_threads = set()
         all_done = threading.Event()
+        t_start = time.time()
         if not items:
             return
 
@@ -620,14 +687,31 @@ class Session:
                     free -= it["weight"]
             return got
 
-        def finish(it: dict, row: dict):
+        def finish(it: dict, row: dict | None, lost_reason: str = ""):
+            orig = {**it, "name": it.get("orig", it["name"])}
             try:
-                on_done(it, row)
+                if row is None:
+                    if on_lost:
+                        on_lost(orig, lost_reason)
+                    else:
+                        on_done(orig, {"name": orig["name"], "code": -1, "seconds": -1, "error": lost_reason})
+                else:
+                    on_done(orig, {**row, "name": orig["name"]})
             finally:
                 with lock:
                     left["n"] -= 1
                     if left["n"] <= 0:
                         all_done.set()
+
+        def lose(it: dict, reason: str):
+            """Once more on another VM (under a name of its own there), then on_lost."""
+            k = it.get("try", 0) + 1
+            if k <= 1:
+                with lock:
+                    queue.insert(0, {**it, "try": k, "orig": it.get("orig", it["name"]), "name": f"{it.get('orig', it['name'])}~r{k}"})
+                log(f"{it.get('orig', it['name'])}: {reason}; once more on boat")
+            else:
+                finish(it, None, reason)
 
         def worker(vm: VM):
             running: dict[str, tuple[dict, float]] = {}
@@ -648,7 +732,7 @@ class Session:
                     running[it["name"]] = (it, now)
                     if on_start:
                         on_start(it, vm)
-                unsent += [{k: v for k, v in it.items() if k not in ("est", "weight", "vm_type", "meta")} | {"cpus": it["weight"] * SLOT_CPU} for it in starts]
+                unsent += [{k: v for k, v in it.items() if k not in ("est", "weight", "vm_type", "meta", "try", "orig")} | {"cpus": it["weight"] * SLOT_CPU} for it in starts]
                 msg = json.dumps({"start": unsent, "acks": acks, "wait": 25 if running else 0}).encode()
                 b64 = base64.b64encode(msg).decode()
                 parts = [b64[k:k + 100_000] for k in range(0, len(b64), 100_000)]
@@ -661,17 +745,9 @@ class Session:
                     log(f"{vm.id}: tick failed ({fails}): {str(e)[:200]}")
                     if fails >= 8:
                         vm.dead = True
-                        lost = []
-                        with lock:
-                            for name, (it, _) in running.items():
-                                tries[name] = tries.get(name, 0) + 1
-                                if tries[name] <= 1:
-                                    queue.insert(0, it)
-                                else:
-                                    lost.append(it)
-                        for it in lost:
-                            finish(it, {"name": it["name"], "code": -1, "seconds": -1, "error": f"VM {vm.id} lost"})
-                        log(f"{vm.id}: given up; its items go to other VMs")
+                        log(f"{vm.id}: given up")
+                        for name, (it, _) in list(running.items()):
+                            lose(it, f"boat VM {vm.id} lost")
                         return
                     time.sleep(min(30, 3 * fails))
                     continue
@@ -681,7 +757,10 @@ class Session:
                     if name in running:
                         it, t = running.pop(name)
                         vm.busy.append([t, time.time()])
-                        finish(it, row)
+                        if row.get("lost"):
+                            lose(it, f"its runner on {vm.id} vanished")
+                        else:
+                            finish(it, row)
 
         def spawn_workers():
             while not all_done.is_set() and not self.stop.is_set():
@@ -692,13 +771,29 @@ class Session:
                             threading.Thread(target=worker, args=(vm,), daemon=True).start()
                     self.cv.wait(2)
 
+        def give_up(reason: str):
+            with lock:
+                rest = list(queue)
+                queue.clear()
+            for it in rest:
+                finish(it, None, reason)
+
         sp = threading.Thread(target=spawn_workers, daemon=True)
         sp.start()
         while not all_done.wait(1):
             if self.stop.is_set():
                 raise KeyboardInterrupt
-            if self.vms and all(v.dead for v in self.vms.values()) and not any(t.is_alive() for t in self.threads):
-                raise RuntimeError("no VM left to run on")
+            gone = self.vms and all(v.dead for v in self.vms.values()) and not any(t.is_alive() for t in self.threads)
+            if max_wait and not self.ready and time.time() - t_start > max_wait:
+                give_up(f"no boat VM ready after {max_wait} s" + (f" ({self.last_error})" if self.last_error else ""))
+                if not any(t.is_alive() for t in self.threads) or all_done.is_set():
+                    break
+            elif gone:
+                if on_lost:
+                    give_up("every boat VM lost" + (f" ({self.last_error})" if self.last_error else ""))
+                else:
+                    raise Unavailable("no VM left to run on" + (f" ({self.last_error})" if self.last_error else ""))
+        all_done.wait(5)
 
     def call(self, module: str, fn: str, args, extra: dict | None = None, limit: int = 600):
         """One function of a runner on one of the session's VMs (the first ready), its result."""
@@ -889,16 +984,51 @@ def last_durations(out: pathlib.Path, names: set[str], explicit: str = "") -> di
 
 
 # ------------------------------------------------------------------------------------------------- modal/run.py's jobs
-def run_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int = 60, teardown: bool = False, durations: str = "", vm_type: str = "default", max_vms: int = 0):
-    outdir = pathlib.Path(out)
-    outdir.mkdir(parents=True, exist_ok=True)
-    t0 = time.time()
-    past = last_durations(outdir, {j["name"] for j in spec}, durations)
+def preflight(want: int = 1, vm_type: str = "default") -> tuple[str | None, dict]:
+    """Can boat serve a batch now? None and what it can give, or the reason it can't: its API, the account's billing,
+    the image, or no VM to be had (the pool's free VMs, and what the plan lets this batch start)."""
+    try:
+        lim = limits()
+    except Exception as e:
+        return f"boat API unreachable ({str(e)[:160]})", {}
+    if lim.get("billingStatus") not in (None, "active") or lim.get("blockedReason") or lim.get("startBlockedReason") or not lim.get("canStart", True):
+        return f"boat can't start VMs ({lim.get('billingStatus')}, {lim.get('blockedReason') or lim.get('startBlockedReason')})", {}
+    if not lim.get("unlimited") and lim.get("creditBalanceSeconds", 1) <= 0 and lim.get("packBalanceSeconds", 0) <= 0:
+        return "boat credit used up", {}
+    img = image_name()
+    try:
+        snap = named_snapshots().get(img)
+    except Exception as e:
+        return f"boat API unreachable ({str(e)[:160]})", {}
+    if not snap or snap.get("status") != "ready":
+        return f"boat image {img} isn't there (python3 modal/boat.py image --build)", {}
+    try:
+        with Registry().locked() as d:
+            reconcile(d, sandboxes())
+            free = [v for v in d["vms"].values() if v["snapshot"] == img and v["type"] == vm_type and lease_free(v)]
+    except Exception as e:
+        return f"boat API unreachable ({str(e)[:160]})", {}
+    up = sum(1 for v in free if v.get("state") in RUNNING)
+    room = lim["currentLimits"]["activeSandboxes"] - lim["activeSandboxes"]
+    st = lim["starts"]
+    starts = max(0, min(st["minute"]["remaining"], st["hour"]["remaining"] - STARTS_RESERVE, st["day"]["remaining"] - STARTS_RESERVE))
+    resumable = min(len(free) - up, max(0, room))
+    creatable = min(starts, max(0, room - resumable))
+    can = up + resumable + creatable
+    info = {"free_up": up, "free_stopped": len(free) - up, "active_room": room, "starts_now": starts, "can": can}
+    if can <= 0:
+        why = "boat at its active-VM limit" if room <= 0 else "no boat starts left this hour or day" if starts <= 0 else "no boat VM to be had"
+        return why, info
+    return None, info
+
+
+def job_items(spec: list[dict], pre: str, cmd, vm_type: str, past: dict) -> tuple[list[dict], list[str]]:
+    """modal/run.py's jobs as items, in its summary's order (its resource groups, in the order they first appear)."""
     med = sorted(past.values())[len(past) // 2] if past else 60
     cap_slots = TYPES[vm_type][0] // SLOT_CPU
     items, order = [], []
     groups: dict[tuple, list] = {}
-    for j in spec:  # (modal/run.py's summary order: its resource groups, in the order they first appear)
+    for j in spec:
         groups.setdefault((j.get("cpu", 2.0), j.get("memory", 4096), j.get("timeout", 900)), []).append(j)
     for (cpu, memory, timeout), js in groups.items():
         for j in js:
@@ -911,12 +1041,23 @@ def run_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int 
                 it["vm_type"] = big
             items.append(it)
             order.append(j["name"])
+    return items, order
+
+
+def boat_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int = 60, teardown: bool = False, durations: str = "", vm_type: str = "default",
+              max_vms: int = 0, on_lost=None, max_wait: int = 0, on_done=None) -> tuple[dict, dict]:
+    """modal/run.py's jobs on the pool: {name: {code, seconds, out, err}} for those that ran, and the batch's figures.
+    A job lost twice (its VM died) goes to on_lost(name, reason), as does every job when boat can't serve the batch."""
+    outdir = pathlib.Path(out)
+    past = last_durations(outdir, {j["name"] for j in spec}, durations)
+    items, order = job_items(spec, pre, cmd, vm_type, past)
+    cap_slots = TYPES[vm_type][0] // SLOT_CPU
     rows: dict[str, dict] = {}
     sess = None
     summary = {}
     try:
         with signals_as_interrupt():
-            sess = Session(f"run.py {pathlib.Path(out).name}", idle=idle, teardown=teardown, vm_type=vm_type)
+            sess = Session(f"run.py {outdir.name}", idle=idle, teardown=teardown, vm_type=vm_type, build=on_lost is None)
             plain = [it for it in items if not it.get("vm_type")]
             bigs: dict[str, int] = {}
             for it in items:
@@ -930,33 +1071,38 @@ def run_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int 
 
             def done(it, row):
                 rows[it["name"]] = row
-                print(f"{it['name']:40} exit {row.get('code', -1):>3}  {row.get('seconds', -1):>8} s", flush=True)
-            sess.run(items, done)
+                if on_done:
+                    on_done(it["name"], row)
+            sess.run(items, done, on_lost=(lambda it, why: on_lost(it["name"], why)) if on_lost else None, max_wait=max_wait)
             logs = sess.collect()
-            for name in order:
-                r = rows.get(name, {"code": -1, "seconds": -1})
+            for name in list(rows):
                 lg = logs.get(name, {})
+                for k in range(1, 3):  # a job that ran again: its last run's logs
+                    lg = logs.get(f"{name}~r{k}", lg)
                 o, e = lg.get("out", ""), lg.get("err", "")
-                if r.get("error"):
-                    e += ("\n" if e else "") + str(r["error"])
-                (outdir / f"{name}.log").write_text(o + ("\n--- stderr ---\n" + e if e.strip() else ""))
+                if rows[name].get("error"):
+                    e += ("\n" if e else "") + str(rows[name]["error"])
+                rows[name].update(out=o, err=e)
             sess.harvest_oleans()
+    except Unavailable as e:
+        if on_lost is None:
+            raise
+        for it in items:
+            if it["name"] not in rows:
+                on_lost(it["name"], str(e))
     finally:
         if sess:
             summary = sess.close()
-    done_rows = [rows.get(n, {"code": -1, "seconds": -1}) for n in order]
-    (outdir / "summary.tsv").write_text("".join(f"{n}\t{r.get('code', -1)}\t{r.get('seconds', -1)}\n" for n, r in zip(order, done_rows)))
-    wall = round(time.time() - t0, 1)
-    print(f"{len(done_rows)} jobs, {sum(r.get('code', -1) != 0 for r in done_rows)} failed, {wall} s wall, {round(sum(max(r.get('seconds', 0), 0) for r in done_rows), 1)} s of job time")
-    if sess:
-        summary["dollars_so_far"] = sess.dollars()
-        summary["batch"] = sess.batch
-        summary["wall_s"] = wall
-        summary["image"] = sess.image
-        (outdir / "boat.json").write_text(json.dumps(summary, indent=1))
-        print(f"boat: {summary['vms']} VMs ({summary['created']} created, {summary['resumed']} resumed, {summary['leased_running']} already up), "
-              f"${summary['dollars_so_far']} so far (boat usage), {summary['idle_vm_s']} idle VM-s of {summary['ready_held_s']} held ready, "
-              f"{summary['bring_up_s']} VM-s bringing up" + (f", then up to {summary['idle_tail_s']} VM-s idle before they stop" if summary["idle_tail_s"] else ""))
+            summary["dollars_so_far"] = sess.dollars()
+            summary["batch"] = sess.batch
+            summary["image"] = sess.image
+    return rows, summary
+
+
+def summary_line(s: dict) -> str:
+    return (f"boat: {s['vms']} VMs ({s['created']} created, {s['resumed']} resumed, {s['leased_running']} already up), ${s['dollars_so_far']} so far (boat usage), "
+            f"{s['idle_vm_s']} idle VM-s of {s['ready_held_s']} held ready, {s['bring_up_s']} VM-s bringing up"
+            + (f", then up to {s['idle_tail_s']} VM-s idle before they stop" if s.get("idle_tail_s") else ""))
 
 
 # ----------------------------------------------------------------------------------------------------------- the CLI
@@ -1048,7 +1194,8 @@ if __name__ == "__main__":
         teardown(a.all)
     elif a.cmd == "image":
         if a.build:
-            print(ensure_image(True))
+            with signals_as_interrupt():
+                print(ensure_image(True))
         else:
             have = named_snapshots()
             for name, snap, _ in layers():

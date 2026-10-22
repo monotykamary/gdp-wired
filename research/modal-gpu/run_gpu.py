@@ -10,7 +10,13 @@ cancelled if this entrypoint stops for any reason.
 import json
 import pathlib
 
-import modal
+try:
+    import modal
+except ImportError:  # plain python3, --backend runpod: no Modal client needed
+    import sys
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent.parent / "modal"))
+    from agent import modal_stub
+    modal = modal_stub()
 
 HERE = pathlib.Path(__file__).resolve().parent
 GDP = HERE.parent.parent
@@ -73,7 +79,19 @@ def search_h100(config: dict, mode: str = "dawn") -> dict:
 
 
 @app.local_entrypoint()
-def main(config: str, out: str, gpu: str = "L4", mode: str = "dawn"):
+def main(config: str, out: str, gpu: str = "L4", mode: str = "dawn", backend: str = "modal", gpus: str = ""):
+    if backend != "modal":  # RunPod, or Modal when RunPod can't serve (modal/fanout.py): the same run, the same output
+        import sys
+        sys.path.insert(0, str(GDP / "modal"))
+        import fanout
+        r, meta = fanout.gpu_call(__file__, "run", [json.loads(pathlib.Path(config).read_text()), mode], app, {"L4": search_l4, "A10G": search_a10g, "H100": search_h100}[gpu], backend, gpus, label="search")
+        pathlib.Path(out).parent.mkdir(parents=True, exist_ok=True)
+        pathlib.Path(out).write_text(json.dumps(r, indent=1))
+        pathlib.Path(out).with_suffix(".backend.json").write_text(json.dumps(meta, indent=1))
+        print(r["gpu"], "|", r["vulkan"].replace("\n", " | "))
+        print(r["log"][-6000:])
+        print(f"on {meta['backend']}" + (f" (fallback: {meta['fallback']})" if meta["fallback"] else ""))
+        return
     fn = {"L4": search_l4, "A10G": search_a10g, "H100": search_h100}[gpu]
     call = fn.spawn(json.loads(pathlib.Path(config).read_text()), mode)
     try:
@@ -87,3 +105,10 @@ def main(config: str, out: str, gpu: str = "L4", mode: str = "dawn"):
     pathlib.Path(out).write_text(json.dumps(r, indent=1))
     print(r["gpu"], "|", r["vulkan"].replace("\n", " | "))
     print(r["log"][-6000:])
+
+
+if __name__ == "__main__":  # python3 <this> --backend auto|runpod|modal --out ... [--gpus "NVIDIA GeForce RTX 4090,NVIDIA L4"]
+    import sys
+    sys.path.insert(0, str(GDP / "modal"))
+    import fanout
+    fanout.gpu_cli(main, __file__)
