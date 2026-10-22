@@ -1066,8 +1066,13 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
   const searched = () => { const {facts, specs} = machineNodes(mc, laws, inst); return proveCyclic(facts, specs) }
   const translated = out.proof ? ((st: TStats) => translatedProof(() => JSON.stringify(['machine', mc, laws, inst]), () => timedKind('instance', 0, () => machineNodes(mc, laws, inst, out.proof!, st)), st)) : undefined
   if (cyclicOn()) {
-    if (!why) crossCyclic('machine', m.name, out.proven && out.checked, searched, usualMs, translated)
-    else cycLog({kind: 'machine', name: m.name, usual: out.proven && out.checked, uncovered: true, why})
+    const usual = out.proven && out.checked
+    // (a history: its plain machine's cyclic proof, and its record goals as the leaf goals they are; a machine with flags
+    // that hold at every key the usual route doesn't prove: not searched, as before 0.19.0, a search there costs seconds)
+    const records = !hist || hist.goals.every(g => { const tr = out.proof?.trees[g.name] ?? (() => { const o = grow(g); return 'tree' in o ? o.tree : undefined })(); return tr !== undefined && check(g, tr) })
+    const recordFails = (): CyclicVerdict => ({proven: false, checked: false, node: m.name, goal: 'a record goal', stuck: 'not proven'})
+    if (!why && (usual || !hasQuantified(mc))) crossCyclic('machine', m.name, usual, records ? searched : recordFails, usualMs, records ? translated : undefined)
+    else cycLog({kind: 'machine', name: m.name, usual, uncovered: true, why: why ?? 'a flag at every key the usual route does not prove'})
   }
   if (cert && out.proven && out.proof) {
     const c = certCyclic('machine', m.name, translated, searched, usualMs)
