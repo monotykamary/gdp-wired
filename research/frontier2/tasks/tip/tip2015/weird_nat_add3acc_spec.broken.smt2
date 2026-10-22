@@ -1,0 +1,29 @@
+; A broken variant (gdp-wired research/frontier2): z replaced by z + 1 on the right, so the goal is false
+; Weird functions over natural numbers
+;
+; Property about accumulative trinary addition function
+(declare-datatype Nat ((zero) (succ (p Nat))))
+(define-fun-rec
+  plus
+  ((x Nat) (y Nat)) Nat
+  (match x
+    ((zero y)
+     ((succ z) (succ (plus z y))))))
+(define-fun-rec
+  add3acc
+  ((x Nat) (y Nat) (z Nat)) Nat
+  (match x
+    ((zero
+      (match y
+        ((zero z)
+         ((succ x2) (add3acc zero x2 (succ z))))))
+     ((succ x3) (add3acc x3 (succ y) z)))))
+(prove
+  (forall ((x Nat) (y Nat) (z Nat))
+    (= (add3acc x y z) (plus x (plus y (succ z))))))
+(assert
+  (forall ((x Nat) (y Nat) (z Nat))
+    (= (plus x (plus y z)) (plus (plus x y) z))))
+(assert (forall ((x Nat) (y Nat)) (= (plus x y) (plus y x))))
+(assert (forall ((x Nat)) (= (plus x zero) x)))
+(assert (forall ((x Nat)) (= (plus zero x) x)))

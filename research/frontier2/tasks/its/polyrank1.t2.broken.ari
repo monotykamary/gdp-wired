@@ -1,0 +1,30 @@
+(format LCTRS)
+(theory Ints)
+(fun l0 (-> Int Int Int))
+(fun l1 (-> Int Int Int))
+(fun l2 (-> Int Int Int))
+(fun l3 (-> Int Int Int))
+(entrypoint l3)
+(rule
+(l0 x^0 y^0)
+(l1 x^post y^post)
+:guard
+(and
+(and (<= 1 (+ 0 x^0)) (= x^post (+ (+ 0 x^0) (* (- 1) y^0))))
+(= y^post (+ (- 1) y^0)))
+)
+(rule
+(l1 x^0 y^0)
+(l0 x^post y^post)
+:guard
+(and (= x^0 x^post) (= y^0 y^post)))
+(rule
+(l2 x^0 y^0)
+(l0 x^post y^post)
+:guard
+(and (= x^0 x^post) (= y^0 y^post)))
+(rule
+(l3 x^0 y^0)
+(l2 x^post y^post)
+:guard
+(and (= x^0 x^post) (= y^0 y^post)))

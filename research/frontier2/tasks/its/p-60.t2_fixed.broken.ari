@@ -1,0 +1,107 @@
+(format LCTRS)
+(theory Ints)
+(fun l0 (-> Int Int Int Int Int Int))
+(fun l1 (-> Int Int Int Int Int Int))
+(fun l2 (-> Int Int Int Int Int Int))
+(fun l3 (-> Int Int Int Int Int Int))
+(fun l4 (-> Int Int Int Int Int Int))
+(fun l5 (-> Int Int Int Int Int Int))
+(entrypoint l5)
+(rule
+(l0 Result_4^0 ___cil_tmp4_8^0 ___retres3_7^0 i_5^0 x_6^0)
+(l1 Result_4^post ___cil_tmp4_8^post ___retres3_7^post i_5^post x_6^post)
+:guard
+(and
+(and
+(and
+(and
+(and (<= (+ 101 (* (- 1) i_5^0)) 0) (= ___retres3_7^post 0))
+(= ___cil_tmp4_8^post (+ 0 ___retres3_7^post)))
+(= Result_4^post (+ 0 ___cil_tmp4_8^post)))
+(= i_5^0 i_5^post))
+(= x_6^0 x_6^post))
+)
+(rule
+(l0 Result_4^0 ___cil_tmp4_8^0 ___retres3_7^0 i_5^0 x_6^0)
+(l2 Result_4^post ___cil_tmp4_8^post ___retres3_7^post i_5^post x_6^post)
+:guard
+(and
+(and
+(and
+(and
+(and
+(<= 0 (+ (- 1) x_6^0))
+(= i_5^post (+ 1 i_5^0)))
+(= Result_4^0 Result_4^post))
+(= ___cil_tmp4_8^0 ___cil_tmp4_8^post))
+(= ___retres3_7^0 ___retres3_7^post))
+(= x_6^0 x_6^post))
+)
+(rule
+(l2 Result_4^0 ___cil_tmp4_8^0 ___retres3_7^0 i_5^0 x_6^0)
+(l0 Result_4^post ___cil_tmp4_8^post ___retres3_7^post i_5^post x_6^post)
+:guard
+(and
+(and
+(and
+(and (= Result_4^0 Result_4^post) (= ___cil_tmp4_8^0 ___cil_tmp4_8^post))
+(= ___retres3_7^0 ___retres3_7^post))
+(= i_5^0 i_5^post))
+(= x_6^0 x_6^post))
+)
+(rule
+(l3 Result_4^0 ___cil_tmp4_8^0 ___retres3_7^0 i_5^0 x_6^0)
+(l4 Result_4^post ___cil_tmp4_8^post ___retres3_7^post i_5^post x_6^post)
+:guard
+(and
+(and
+(and
+(and (= i_5^post 0) (= Result_4^0 Result_4^post))
+(= ___cil_tmp4_8^0 ___cil_tmp4_8^post))
+(= ___retres3_7^0 ___retres3_7^post))
+(= x_6^0 x_6^post))
+)
+(rule
+(l4 Result_4^0 ___cil_tmp4_8^0 ___retres3_7^0 i_5^0 x_6^0)
+(l1 Result_4^post ___cil_tmp4_8^post ___retres3_7^post i_5^post x_6^post)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and (<= 0 (+ 100 (* (- 1) i_5^0))) (<= (+ 0 x_6^0) 0))
+(= ___retres3_7^post 0))
+(= ___cil_tmp4_8^post (+ 0 ___retres3_7^post)))
+(= Result_4^post (+ 0 ___cil_tmp4_8^post)))
+(= i_5^0 i_5^post))
+(= x_6^0 x_6^post))
+)
+(rule
+(l4 Result_4^0 ___cil_tmp4_8^0 ___retres3_7^0 i_5^0 x_6^0)
+(l0 Result_4^post ___cil_tmp4_8^post ___retres3_7^post i_5^post x_6^post)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and (<= 0 (+ 100 (* (- 1) i_5^0))) (<= 0 (+ (- 1) x_6^0)))
+(= i_5^post (+ 1 i_5^0)))
+(= Result_4^0 Result_4^post))
+(= ___cil_tmp4_8^0 ___cil_tmp4_8^post))
+(= ___retres3_7^0 ___retres3_7^post))
+(= x_6^0 x_6^post))
+)
+(rule
+(l5 Result_4^0 ___cil_tmp4_8^0 ___retres3_7^0 i_5^0 x_6^0)
+(l3 Result_4^post ___cil_tmp4_8^post ___retres3_7^post i_5^post x_6^post)
+:guard
+(and
+(and
+(and
+(and (= Result_4^0 Result_4^post) (= ___cil_tmp4_8^0 ___cil_tmp4_8^post))
+(= ___retres3_7^0 ___retres3_7^post))
+(= i_5^0 i_5^post))
+(= x_6^0 x_6^post))
+)

@@ -1,0 +1,83 @@
+(format LCTRS)
+(theory Ints)
+(fun __init (-> Int Int Int))
+(fun f1_0_main_Load (-> Int Int Int))
+(fun f274_0_power_LE (-> Int Int Int))
+(fun |f274_0_power_LE'| (-> Int Int Int))
+(entrypoint __init)
+(rule
+(f1_0_main_Load arg1 arg2)
+(f274_0_power_LE arg1P arg2P)
+:guard
+(exists
+((x3 Int))
+(and
+(and (and (and (> arg2 (- 1)) (> arg1P 1)) (< x3 2)) (> x3 (- 1)))
+(> arg1 0))
+)
+)
+(rule
+(f1_0_main_Load arg1 arg2)
+(f274_0_power_LE arg1P arg2P)
+:guard
+(exists
+((x7 Int))
+(and (and (and (> arg2 (- 1)) (> arg1P 1)) (> x7 2)) (> arg1 0)))
+)
+(rule
+(f274_0_power_LE arg1 arg2)
+(|f274_0_power_LE'| arg1P arg2P)
+:guard
+(exists
+((x11 Int) (x12 Int))
+(and
+(and (and (= (- arg1 (* 2 x11)) 0) (> arg1 x12)) (> arg1 0))
+(= arg1 arg1P))
+)
+)
+(rule
+(|f274_0_power_LE'| arg1 arg2)
+(f274_0_power_LE arg1P arg2P)
+:guard
+(exists
+((x15 Int))
+(and
+(and
+(and
+(and
+(and (and (= (- arg1 (* 2 x15)) 0) (> arg1 0)) (> arg1 arg1P))
+(>= (- arg1 (* 2 x15)) 0))
+(< (- arg1 (* 2 x15)) 2))
+(< (- arg1 (* 2 arg1P)) 2))
+(>= (- arg1 (* 2 arg1P)) 0))
+)
+)
+(rule
+(f274_0_power_LE arg1 arg2)
+(|f274_0_power_LE'| arg1P arg2P)
+:guard
+(exists
+((x17 Int) (x18 Int))
+(and
+(and (and (= (- arg1 (* 2 x17)) 1) (> arg1 x18)) (> arg1 0))
+(= arg1 arg1P))
+)
+)
+(rule
+(|f274_0_power_LE'| arg1 arg2)
+(f274_0_power_LE arg1P arg2P)
+:guard
+(exists
+((x21 Int))
+(and
+(and
+(and
+(and
+(and (and (= (- arg1 (* 2 x21)) 1) (> arg1 0)) (> arg1 arg1P))
+(>= (- arg1 (* 2 x21)) 0))
+(< (- arg1 (* 2 x21)) 2))
+(< (- arg1 (* 2 arg1P)) 2))
+(>= (- arg1 (* 2 arg1P)) 0))
+)
+)
+(rule (__init arg1 arg2) (f1_0_main_Load arg1P arg2P))
