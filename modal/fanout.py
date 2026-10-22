@@ -242,7 +242,7 @@ class BoatEx:
         self.sess.ensure(1)
         out = {}
         self.sess.run([{"name": f"call-{fname(fn)}-{int(time.time() * 1000)}", "kind": "py", "module": self.module, "fn": fname(fn), "args": list(args),
-                        "limit": self.limit, "weight": 1, "est": 1, **self.extra}], lambda it, row: out.update(row), max_wait=self.max_wait)
+                        "limit": self.limit, "weight": 1, "est": 1, **self.extra}], lambda it, row: out.update(row), max_wait=self.max_wait or 600)
         if "result" not in out or out.get("code") != 0:
             raise RuntimeError(f"{fname(fn)} failed on boat: {str(out.get('error', out))[-1500:]}")
         return out["result"]

@@ -501,22 +501,36 @@ class Session:
 
     def _bring_up(self, vm: VM, running: bool):
         try:
-            if not running:
-                with _sem:
-                    p = subprocess.run([BOAT, "resume", vm.id, "--json"], capture_output=True, text=True, timeout=300, env=ENV)
-                if p.returncode != 0 and ("snapshot_data_expired" in p.stdout + p.stderr or "409" in p.stdout + p.stderr):
-                    # a stopped disk boat no longer keeps (14 days): the VM goes, a new one from the image takes its place
-                    log(f"{vm.id}: its stopped disk expired; a new VM instead")
-                    boat("delete", vm.id, "--yes", "--json", check=False, timeout=180)
-                    vm.dead = True
-                    self._release([vm.id], deleted=True)
-                    self._create(1, vm.type)
-                    return
-                self.counts["resumed"] += 1
-            else:
+            if running:
                 self.counts["leased_running"] += 1
-            boat("extend", vm.id, "--ttl", str(BACKSTOP), "--json", check=False)
-            if not wait_running([vm.id], 600):
+                boat("extend", vm.id, "--ttl", str(BACKSTOP), "--json", check=False)
+                up = wait_running([vm.id], 300)
+            else:
+                up = False
+                for attempt in range(3):
+                    # a VM still stopping (the last batch just let it go) takes a resume only once it has stopped
+                    for _ in range(60):
+                        if states().get(vm.id, {}).get("state") not in ("stopping", "pausing", "snapshotting"):
+                            break
+                        time.sleep(3)
+                    with _sem:
+                        p = subprocess.run([BOAT, "resume", vm.id, "--json"], capture_output=True, text=True, timeout=300, env=ENV)
+                    said = p.stdout + p.stderr
+                    if p.returncode != 0 and "snapshot_data_expired" in said:
+                        # a stopped disk boat no longer keeps (14 days): the VM goes, a new one from the image takes its place
+                        log(f"{vm.id}: its stopped disk expired; a new VM instead")
+                        boat("delete", vm.id, "--yes", "--json", check=False, timeout=180)
+                        vm.dead = True
+                        self._release([vm.id], deleted=True)
+                        self._create(1, vm.type)
+                        return
+                    boat("extend", vm.id, "--ttl", str(BACKSTOP), "--json", check=False)
+                    if wait_running([vm.id], 150):
+                        up = True
+                        break
+                    log(f"{vm.id}: not up after resume ({said.strip()[-160:]}); again")
+                self.counts["resumed"] += 1
+            if not up:
                 raise RuntimeError("never came up")
             vm.t_running = time.time()
             self._prepare(vm)
