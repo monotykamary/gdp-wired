@@ -2468,6 +2468,7 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
 export type {StepLaw}
 export type {Liveness}
 export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: Liveness, opts: {ms?: number} = {}): Verdict {
+  if (laws.some(law => law.some?.length)) throw new Error(`${r.machine.name}: a law with "there exists" goes to proveRule or proveSteps; a liveness takes plain laws (the ones its proof printed, Verdict.witnesses)`)
   if (Array.isArray(l.rank) && !l.rank.length) {
     const f = findLeadsTo(r.machine, withKinds(r, laws), l, {params: (rand, bound) => r.randomParams(rand, bound), input: (rand, bound, ps) => r.randomInput(rand, bound, ps)}, opts)
     return {proven: f.proven, checked: f.checked, ...(f.goal ? {goal: f.goal, stuck: f.stuck} : {}), ...(f.witness ? {witness: f.witness} : {}), ...(f.why ? {why: f.why} : {}),
