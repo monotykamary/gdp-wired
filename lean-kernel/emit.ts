@@ -794,6 +794,7 @@ function proveStepLawsOnce(m: Machine, laws: Law[], stepLaws: StepLaw[]): Return
   usualMade.set(key, r)
   return r
 }
+const envOf = () => (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
 export const cyclicCerts = certMode
 let certsOn = false, cycTexts = 0
 // What the last toLean exported from cyclic certificates, and what went the usual way (and why).
