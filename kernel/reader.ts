@@ -73,15 +73,17 @@ export class Reader {
     return x.fin && (x.pos < 0 || (x.pos < this.trail.size() && this.trail.stamp(x.pos) === x.stamp))
   }
   private kept(r: R): Kept { return {pos: r.pos, stamp: r.pos < 0 ? 0 : this.trail.stamp(r.pos), node: this.node} }
+  private units = new Map<string, W>()
+  private unit(name: string): W { let w = this.units.get(name); if (!w) this.units.set(name, (w = new Set([name]))); return w }
   // Whether lin <= 0 is decided, and by what.
   dec(lin: Lin): R & {t: boolean | undefined} {
     let constant = true
     for (const key in lin) if (key !== '1') { constant = false; break }
     if (constant) return {...R0, t: (lin['1'] ?? 0) <= 0}
     const a = canon(lin), x = this.trail.get(a)
-    if (x && x.val !== undefined) return {t: x.val, w: new Set([a]), pos: x.at, fin: true}
+    if (x && x.val !== undefined) return {t: x.val, w: this.unit(a), pos: x.at, fin: true}
     const f = canonFlip(lin), y = this.trail.get(f)
-    if (y && y.val !== undefined) return {t: !y.val, w: new Set([f]), pos: y.at, fin: true}
+    if (y && y.val !== undefined) return {t: !y.val, w: this.unit(f), pos: y.at, fin: true}
     return {t: undefined, w: none, pos: -1, fin: false}
   }
   linear(e: E): LV {
@@ -182,7 +184,8 @@ export class Reader {
         for (const row of inner) out.push({lin: row.lin, w: join(row.w, closed.w), label: ''})
         // (the last open part's own value is a read: open while it is)
         const last = this.truth(open[0]!)
-        return {...both(closed, r), fin: r.fin && last.t !== undefined && last.fin}
+        // (and the facts are kept only while the part's own value is: its reason is theirs, though not their rows')
+        return {...both(both(closed, r), last), fin: r.fin && last.t !== undefined && last.fin}
       }
       case '<': case '<=': case '=': {
         const cmp = this.atoms(c)
@@ -240,6 +243,16 @@ export class Reader {
   // equal cells at keys the trail proves equal, each term column's rows (and those of the columns they bring), and a
   // natural's row for every name.
   rows(): Row[] {
+    // One row per linear form, with the shortest reason any of its copies has.
+    const out: Row[] = [], at = new Map<string, number>()
+    for (const r of this.leafRows()) {
+      const id = canon(r.lin), j = at.get(id)
+      if (j === undefined) { at.set(id, out.length); out.push(r) } else if (r.w.size < out[j]!.w.size) out[j] = r
+    }
+    return out
+  }
+  // The rows in kernel.ts's order, copies kept (a leaf's derivation indexes these).
+  leafRows(): Row[] {
     const rows: Row[] = []
     for (let i = 0; i < this.trail.size(); i++) {
       const a = this.trail.lin(i), key = `${a.name}=${a.holds}`
@@ -249,8 +262,8 @@ export class Reader {
     }
     for (let i = 0; i < this.goal.hyps.length; i++) for (const r of this.facts(i).rows) rows.push(r)
     const names = new Set<string>()
-    for (const r of rows) for (const key in r.lin) if (key !== '1') names.add(key)
-    const cells = [...names].filter(isCell).map(name => ({name, map: name.slice(0, name.indexOf('[')), key: keyLin(name)}))
+    for (const r of rows) for (const key of namesOf(r.lin)) names.add(key)
+    const cells = [...names].filter(isCell).map(cellOf)
     for (const [i, p] of cells.entries()) for (const q of cells.slice(i + 1)) {
       if (p.map !== q.map) continue
       const d = sub(p.key, q.key), x = this.dec(d), y = this.dec(scale(d, -1))
@@ -263,17 +276,11 @@ export class Reader {
       seen.add(name)
       for (const r of this.termRows(name)) {
         rows.push(r)
-        for (const key in r.lin) if (key !== '1') { names.add(key); if (key.startsWith('⟦') && !seen.has(key)) todo.push(key) }
+        for (const key of namesOf(r.lin)) { names.add(key); if (key.startsWith('⟦') && !seen.has(key)) todo.push(key) }
       }
     }
     for (const name of names) { let r = this.natRows.get(name); if (!r) this.natRows.set(name, (r = {lin: {[name]: -1}, w: none, label: ''})); rows.push(r) }
-    // One row per linear form, with the shortest reason any of its copies has.
-    const out: Row[] = [], at = new Map<string, number>()
-    for (const r of rows) {
-      const id = canon(r.lin), j = at.get(id)
-      if (j === undefined) { at.set(id, out.length); out.push(r) } else if (r.w.size < out[j]!.w.size) out[j] = r
-    }
-    return out
+    return rows
   }
   // prove.ts's open atoms of a hypothesis (openH), in its order; none for a hypothesis whose facts are final.
   open(i: number, out: Lin[]): void {
@@ -291,7 +298,7 @@ export class Reader {
         if (this.linear(e).fin) return
         this.openE(e.a, out), this.openE(e.b, out)
         const a = this.linear(e.a).lin, b = this.linear(e.b).lin
-        if (a && b && !this.decided(e)) out.push(e.op === 'sub' ? sub(b, a) : sub(a, b))
+        if (a && b && !this.decided(e)) out.push(same(1, e, a, b, 0, () => (e.op === 'sub' ? sub(b, a) : sub(a, b))))
         return
       }
     }
@@ -301,13 +308,8 @@ export class Reader {
     if (c.op === 'flag' || c.op === 'all') return
     if (c.op === 'not') return this.openC(c.x, out)
     if (c.op === 'and' || c.op === 'or') return c.xs.forEach(y => this.openC(y, out))
-    const a = this.linear(c.a).lin, b = this.linear(c.b).lin, own: Lin[] = []
-    if (a && b) {
-      const d = sub(a, b)
-      if (c.op === '<=') own.push(d)
-      else if (c.op === '<') own.push(add(d, k(1)))
-      else own.push(d, scale(d, -1))
-    }
+    const a = this.linear(c.a).lin, b = this.linear(c.b).lin
+    const own: Lin[] = a && b ? same(7, c, a, b, 0, () => { const d = sub(a, b); return c.op === '<=' ? [d] : c.op === '<' ? [add(d, k(1))] : [d, scale(d, -1)] }) : []
     this.openE(c.a, out), this.openE(c.b, out)
     for (const x of own) out.push(x)
   }
@@ -328,6 +330,19 @@ export class Reader {
   }
 }
 
+// A form's variables, and a cell's map and key, remembered (read at every node).
+const nameMemo = new WeakMap<Lin, string[]>()
+export const namesOf = (lin: Lin): string[] => {
+  let out = nameMemo.get(lin)
+  if (!out) nameMemo.set(lin, (out = Object.keys(lin).filter(key => key !== '1')))
+  return out
+}
+const cellMemo = new Map<string, {name: string, map: string, key: Lin}>()
+const cellOf = (name: string) => {
+  let out = cellMemo.get(name)
+  if (!out) { if (cellMemo.size > 100_000) cellMemo.clear(); cellMemo.set(name, (out = {name, map: name.slice(0, name.indexOf('[')), key: keyLin(name)})) }
+  return out
+}
 export const keyLin = (cell: string): Lin => {
   const inner = cell.slice(cell.indexOf('[') + 1, -1), out: Lin = {}
   let depth = 0, start = 0

@@ -19,26 +19,11 @@
 // afresh.
 import {type Constraint, type Lin, type Step, refuteFast, solve, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
-import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isCell, isMonomial} from './kernel.ts'
+import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isCell, isMonomial, leafConstraints} from './kernel.ts'
 import {clock, nearOf, openAt, openCells, rowsAt, unitAtoms, type Outcome} from './prove.ts'
-import {Reader, type Row} from './reader.ts'
+import {Reader, type Row, namesOf} from './reader.ts'
 import {Simplex} from './simplex.ts'
 
-// A derivation over some rows (their linear forms, `inputs`, the steps' input indices into them) found again among the
-// rows at a path: the steps renumbered and checked, else undefined.
-type Found = {rows: Constraint[], steps: Step[]}
-function refind(goal: Goal, path: Path, inputs: Lin[], steps: Step[]): Found | undefined {
-  const rows = rowsAt(goal, path), at = new Map<string, number>()
-  rows.forEach((r, i) => { const key = canon(r.lin); if (!at.has(key)) at.set(key, i) })
-  const out: Step[] = []
-  for (const st of steps) {
-    if (st.kind !== 'input') { out.push(st); continue }
-    const j = at.get(canon(inputs[st.index]!))
-    if (j === undefined) return undefined
-    out.push({...st, index: j})
-  }
-  return checkRefutation(rows, out) ? {rows, steps: out} : undefined
-}
 // A derivation's own inputs: the rows it reads, in order, and the steps renumbered to them.
 function localize(rows: {lin: Lin}[], steps: Step[]): {inputs: Lin[], steps: Step[]} {
   const inputs: Lin[] = [], at = new Map<number, number>()
@@ -50,16 +35,6 @@ function localize(rows: {lin: Lin}[], steps: Step[]): {inputs: Lin[], steps: Ste
   })
   return {inputs, steps: out}
 }
-// The rows at a path refuted from scratch, as growPlain refutes a leaf.
-function refuteAt(goal: Goal, path: Path): Step[] | undefined {
-  const rows = rowsAt(goal, path)
-  work.n += 1 + rows.length
-  const fast = rows.length > 60 ? refuteFast(rows) : undefined
-  if (fast?.kind === 'refuted') return fast.steps
-  const out = solve(rows)
-  return out.kind === 'refuted' ? out.steps : undefined
-}
-
 // --- the search -----------------------------------------------------------------------------------------------------------
 
 // A node of the refutation: a leaf (its decisions, by variable, and a derivation over the rows at its path) or a
@@ -70,7 +45,7 @@ type Clause = {lits: Map<string, boolean>, node: number}
 // GDP_CDCL_LP=0: each node solved by elimination alone (no simplex); GDP_CDCL_FILL (8): the simplex's tableau begun
 // again past this many entries a row the node reads (research/step's comparisons).
 const env = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env ?? {}
-const lpFill = Number(env.GDP_CDCL_FILL ?? 8), useLp = env.GDP_CDCL_LP !== '0'
+const lpFill = Number(env.GDP_CDCL_FILL ?? 8), useLp = env.GDP_CDCL_LP !== '0', verify = env.GDP_CDCL_VERIFY === '1'
 // Counters research/step reads (times only while `on`).
 export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions: 0, solveMs: 0, rowsMs: 0, coreMs: 0, unfoldMs: 0, leaves: 0, resolved: 0, coreSize: 0, pathSize: 0, lpMisses: 0, resolved2: 0, unfoldWhy: '', orderMs: 0, boundMs: 0, openMisses: 0, lpMs: 0, lpUnknown: 0, fmCalls: 0, pivots: 0, lpRebuilds: 0, lpRows: 0, lpNnz: 0, lpVars: 0, lpLoad: 0}
 
@@ -197,12 +172,16 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
       reader.begin()
       const rowsR = t(() => reader.rows(), ms => { st.rowsMs += ms })
       const full: Constraint[] = rowsR
+      if (verify) {
+        const mine = new Set(rowsR.map(r => canon(r.lin))), theirs = new Set(leafConstraints(goal, pathOf()).map(r => canon(r.lin)))
+        if (mine.size !== theirs.size || [...mine].some(x => !theirs.has(x))) throw new Error(`reader.ts's rows differ from kernel.ts's at a node of ${goal.name}`)
+      }
       work.n += 1 + full.length
       // (the elimination below reads term columns' rows only once the trail has an atom about one, as growPlain does)
       let columns = false
       for (let i = 0; i < trail.length && !columns; i++) for (const key in vars.get(trail[i]!)!.lin) if (key.startsWith('⟦')) { columns = true; break }
-      const idx = full.flatMap((r, i) => (columns || !Object.keys(r.lin).some(key => key.startsWith('⟦')) ? [i] : []))
-      const rows = idx.map(i => full[i]!), at = (i: number) => (i < rows.length ? idx[i]! : full.length + i - rows.length)
+      const idx = columns ? undefined : full.flatMap((r, i) => (namesOf(r.lin).some(key => key.startsWith('⟦')) ? [] : [i]))
+      const rows = idx ? idx.map(i => full[i]!) : full, at = (i: number) => (!idx ? i : i < rows.length ? idx[i]! : full.length + i - rows.length)
       // The candidates, in growPlain's order: the units, the conclusion's open atoms, the hypotheses' near it, the
       // rest, pairs of cells.
       const cands = t(() => {
@@ -210,8 +189,9 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
         if (last >= 0) reader.open(last, out)
         for (let i = 0; i < last; i++) if (near[i]) reader.open(i, out)
         for (let i = 0; i < last; i++) if (!near[i]) reader.open(i, out)
-        if (rows.some(r => Object.keys(r.lin).some(isCell))) for (const x of openCells(rows, pathOf())) out.push(x)
-        return out.filter(lin => Object.keys(lin).some(key => key !== '1') && !decidedLin(lin))
+        if (rows.some(r => namesOf(r.lin).some(isCell))) for (const x of openCells(rows, pathOf())) out.push(x)
+        const seen = new Set<Lin>()
+        return out.filter(lin => !seen.has(lin) && (seen.add(lin), namesOf(lin).length > 0) && !decidedLin(lin))
       }, ms => { st.orderMs += ms })
       const open = cands.length > 0
       // Bound propagation: an open atom its variables' bounds (the single-variable rows) decide.
@@ -219,17 +199,16 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
       if (open) {
         const lo = new Map<string, [number, number]>(), hi = new Map<string, [number, number]>()
         full.forEach((r, i) => {
-          let x0: string | undefined, n = 0
-          for (const key in r.lin) if (key !== '1') { x0 = key; if (++n > 1) return }
-          if (!x0) return
-          const c = r.lin[x0]!, k0 = r.lin['1'] ?? 0
+          const ks = namesOf(r.lin)
+          if (ks.length !== 1) return
+          const x0 = ks[0]!, c = r.lin[x0]!, k0 = r.lin['1'] ?? 0
           if (c > 0) { const b = Math.floor(-k0 / c); if (b < (hi.get(x0)?.[0] ?? Infinity)) hi.set(x0, [b, i]) }
           else if (c < 0) { const b = Math.ceil(k0 / -c); if (b > (lo.get(x0)?.[0] ?? -Infinity)) lo.set(x0, [b, i]) }
         })
         let forced = 0
         for (const lin of cands) {
           const name = ensure(lin), x = vars.get(name)!
-          if (x.val !== undefined || Object.keys(x.lin).some(key => key.startsWith('⟦'))) continue // (a term column's rows read differently once its choice is decided)
+          if (x.val !== undefined || namesOf(x.lin).some(key => key.startsWith('⟦'))) continue // (a term column's rows read differently once its choice is decided)
           const side = (val: boolean): number[] | undefined => { // the rows that force the stored atom to `val`
             let sum = x.lin['1'] ?? 0
             const used: number[] = []
@@ -340,26 +319,56 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
   }
 }
 
-// The DAG as a kernel tree below `root`.
+// The DAG as a kernel tree below `root`, walked depth first with a reader of its own (the tree's path is a stack, as
+// the search's trail is): each leaf's derivation found again among the rows at its tree path, in kernel.ts's order (the
+// tree's leaves index those), else those rows refuted afresh. GDP_CDCL_VERIFY=1 compares each leaf's rows with
+// kernel.ts's (kernel/cdcl.test.ts).
 function unfold(goal: Goal, nodes: DagNode[], top: number, root: Path, maxLeaves: number, until: number): Tree | undefined {
-  let leaves = 0
-  const go = (i: number, path: Path): Tree | undefined => {
+  const stack: {name: string, lin: Lin, holds: boolean}[] = [], on = new Map<string, {val: boolean, at: number}>(), stamps: number[] = []
+  let stampN = 0, leaves = 0
+  const push = (name: string, lin: Lin, holds: boolean) => { on.set(name, {val: holds, at: stack.length}); stamps[stack.length] = ++stampN; stack.push({name, lin, holds}) }
+  const pop = () => { on.delete(stack.pop()!.name) }
+  for (const [key, a] of root) push(key, a.lin, a.holds)
+  const reader = new Reader(goal, {get: name => on.get(name), stamp: at => stamps[at]!, size: () => stack.length, lin: at => stack[at]!})
+  const go = (i: number): Tree | undefined => {
     const n = nodes[i]!
     if ('res' in n) {
-      const key = canon(n.on), d = path.get(key)
-      if (d) return go(d.holds ? n.res[0] : n.res[1], path)
-      const yes = go(n.res[0], new Map(path).set(key, {lin: n.on, holds: true}))
-      const no = yes && go(n.res[1], new Map(path).set(key, {lin: n.on, holds: false}))
-      return yes && no ? {split: n.on, yes, no} : undefined
+      const key = canon(n.on), d = on.get(key)
+      if (d) return go(d.val ? n.res[0] : n.res[1])
+      push(key, n.on, true); const yes = go(n.res[0]); pop()
+      if (!yes) return undefined
+      push(key, n.on, false); const no = go(n.res[1]); pop()
+      return no && {split: n.on, yes, no}
     }
     if (++leaves > maxLeaves || clock() > until) { cdclStats.unfoldWhy = leaves > maxLeaves ? 'leaves' : 'time'; return undefined }
-    const found = refind(goal, path, n.inputs, n.steps)
-    if (found) return {leaf: found.steps}
+    reader.begin()
+    const rows = reader.leafRows()
+    if (verify) {
+      const path: Path = new Map(stack.map(x => [x.name, {lin: x.lin, holds: x.holds}])), kr = leafConstraints(goal, path)
+      if (kr.length !== rows.length || kr.some((r, j) => canon(r.lin) !== canon(rows[j]!.lin))) {
+        const j = kr.findIndex((r, j2) => canon(r.lin) !== canon(rows[j2]?.lin ?? {}))
+        throw new Error(`reader.ts's rows differ from kernel.ts's at a leaf of ${goal.name}: ${kr.length} vs ${rows.length}, at ${j}: ${JSON.stringify(kr[j])} vs ${JSON.stringify(rows[j]?.lin)}; next ${JSON.stringify(kr.slice(j + 1, j + 3).map(r => r.lin))} vs ${JSON.stringify(rows.slice(j + 1, j + 3).map(r => r.lin))}`)
+      }
+    }
+    const at = new Map<string, number>()
+    rows.forEach((r, j) => { const key = canon(r.lin); if (!at.has(key)) at.set(key, j) })
+    const steps: Step[] = []
+    for (const s of n.steps) {
+      if (s.kind !== 'input') { steps.push(s); continue }
+      const j = at.get(canon(n.inputs[s.index]!))
+      if (j === undefined) break
+      steps.push({...s, index: j})
+    }
+    if (steps.length === n.steps.length && checkRefutation(rows, steps)) return {leaf: steps}
     // (a row a longer path reads otherwise: a hypothesis false outright there, a choice decided)
     cdclStats.resolved2++
-    const steps = refuteAt(goal, path)
-    if (!steps) cdclStats.unfoldWhy = 'refute'
-    return steps && {leaf: steps}
+    work.n += 1 + rows.length
+    const fast = rows.length > 60 ? refuteFast(rows) : undefined
+    if (fast?.kind === 'refuted') return {leaf: fast.steps}
+    const out = solve(rows)
+    if (out.kind === 'refuted') return {leaf: out.steps}
+    cdclStats.unfoldWhy = 'refute'
+    return undefined
   }
-  return go(top, new Map(root))
+  return go(top)
 }

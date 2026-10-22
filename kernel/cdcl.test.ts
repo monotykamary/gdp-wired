@@ -2,7 +2,8 @@
 // disjunctions), larger than kernel.test.ts's so that cases multiply. Every tree the search returns is checked by the
 // kernel, and no concrete model (x, y, z, w in 0..3, the map M any function from 0..3 to 0..3, 0 elsewhere) may satisfy
 // a goal it refutes; a goal it calls satisfiable must not be one the plain search (prove.ts's grow) refutes, nor the
-// other way round. FUZZ_SEED and FUZZ_SCALE shard it, as kernel.test.ts.
+// other way round. FUZZ_SEED and FUZZ_SCALE shard it, as kernel.test.ts; GDP_CDCL_VERIFY=1 (the suite's shards) also
+// compares reader.ts's rows with kernel.ts's at every node of the search and every leaf of the unfolded tree.
 import {expect, test} from 'bun:test'
 import type {C, E} from '../core/machine.ts'
 import {type Goal, check} from './kernel.ts'
@@ -73,4 +74,4 @@ test('every tree the CDCL search returns checks, and refutes only goals with no 
   }
   console.log(`cdcl fuzz: ${proven} refuted, ${sat} satisfiable, ${unknown} unknown`)
   expect(proven).toBeGreaterThan(0)
-})
+}, 600_000)
