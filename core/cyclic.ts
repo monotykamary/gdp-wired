@@ -30,7 +30,10 @@
 //     3L + 2j + 1 the step law itself, rank (t, 2): hyps the precondition, k <= t, t <= T, T < Ω and `when` at each
 //     step's time, its conclusion `then` with plain names at t − k, primed ones at t and a later step's request (i@j) at
 //     its time, facts the step at t − k + 1..t (and the maps' at t), its one use node 3L + 2j, its tree made (`carry`).
-//     Several steps only on a machine with no map.
+//     Over several steps a later step reads a map as the usual goal's term over the cells at t − k (its laws there a
+//     use only where they read no map), the step law's node reading each cell back to t − k through the maps' steps.
+//   - a machine with flags that hold at every key is read as its sk machine, the usual goals' closing hypotheses the
+//     closing facts at their time (`qflagFacts`); a request allowed (`allowTranslated`) two nodes after the laws'.
 //   - recurrences, lemmas n, laws between b: nodes 0..n+b−1 as above (their trees made), using also node 2n + 2b + i
 //     (the lemma at the start, guard x <= 0; a law between at y = x, guard y <= x); nodes n + b.. the lemma (law between)
 //     after a step, the usual step goal with x as x − 1, fx as f(x − 1) (y, fy likewise, fx as f(x)); then the start
@@ -38,6 +41,13 @@
 //   - folds, laws L: node i the law at a node n, rank (n, 1), using node L + i (guard Kind[n] = 1) and node 2L + i (guard
 //     Kind[n] = 0); node L + i from its children, rank (n, 0), hyps n < N, Kind[n] = 1, both children below n and the
 //     assumption at n, uses the laws at both children; node 2L + i at a leaf, rank (n, 0).
+//
+// The switches (the environment; a user needs none): GDP_CERT=usual, the usual trees as every certificate (the fallback
+// and the baseline); GDP_CERT_SEARCH=1, a search where a translation fails, within GDP_CERT_MS (10,000 ms); GDP_CYCLIC=1,
+// the cross-check (every proof made again as a cyclic proof, a differing verdict throwing; GDP_CYCLIC_LAX=1 only logs it;
+// GDP_CYCLIC_ROUTE=translate|search|both, its route). Diagnostics: GDP_CYCLIC_LOG=1, the `cyclic: {...}` lines
+// research/cyclic/ratios.ts reads; GDP_CYCLIC_PROF=1, where each proof's time went; GDP_CYCLIC_SLICE=0, every goal grown
+// whole; GDP_CYCLIC_DEBUG=1, each goal grown.
 import type {C, E, Law, Machine} from './machine.ts'
 import type {Fold, Goal, Instances, StepLaw, Subst, Tree} from '../kernel/kernel.ts'
 import {assumed, boundOf, foldObligations, obligations, substC, substE, witnessesOf} from '../kernel/kernel.ts'
