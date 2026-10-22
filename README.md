@@ -76,7 +76,8 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   proved them, as laws and lemmas with the source to paste.
 - **Invariants nobody wrote** (`gdp-wired/infer`): `inferLaws(rule, laws)` proves a law that holds but isn't inductive
   alone, with the laws it finds (bounds, sums and differences over the state, the same where a flag or a choice holds
-  one value, and laws about every key of a map), each proven by the kernel with yours and handed back as the
+  one value, remainders of a value or of a sum or difference of two, x mod 2 = 0 for a counter stepping by 2, and laws
+  about every key of a map), each proven by the kernel with yours and handed back as the
   `r.law(...)` call that states it; a false law comes back with the run that breaks it (`examples/infer.ts`).
 - **Orderings at any distance**: "a refund never follows a release", through ghost state that watches the rule.
 - **Liveness**: "every ticket issued is served", in every run that keeps sending the requests that help, including under
@@ -115,7 +116,8 @@ When a law is false, the GPU search finds a real run that breaks it. When a law 
 **What it leaves to Lean or Bend.** Two things, and neither is a gap the next feature closes: proofs the prover would
 have to invent (induction over a recursive structure whose proof needs a lemma nobody stated and `discover` doesn't find, and arithmetic with
 products of unknowns beyond what products of facts and sums of squares give; integer arithmetic with induction or
-with products is undecidable; a lemma you state about a recurrence is proven, and `proveData` finds the induction and lemmas for a recursive datatype as a value, up to six symbols a lemma), and shipping an arbitrary algorithm as its proved source (gdp-wired ships the rule as JavaScript; Bend
+with products is undecidable; a lemma you state about a recurrence is proven, and `proveData` finds the induction and lemmas for a recursive datatype as a value, up to six symbols a lemma, its
+values naturals, integers (`integer`, Lean's `Int`, beside `natural`) and datatypes), and shipping an arbitrary algorithm as its proved source (gdp-wired ships the rule as JavaScript; Bend
 compiles the proved source itself). The full list of what is and isn't in scope is in
 [`docs/comparison.md`](docs/comparison.md#gdp-wireds-scope-in-detail).
 
@@ -297,14 +299,20 @@ const soon = retry.law('the next try is at most 64 after the last request', ({ne
   reads them back as runtime values.
 - **Integers and decimals**: `int` and `decimal(places)` inputs, `.ints({...})` and `.decimals(places, {...})` state;
   `plus`, `minus`, `negate`, `times(k)` (k may be negative), `min`, `max`, `abs`, `isNegative`, comparisons with numbers
-  (a decimal's literals are scaled: `price.atMost(19.99)`). Each is two naturals underneath, so the kernel and the Lean
-  twin see nothing new; `rule.decode(state)` reads them back as numbers.
+  (a decimal's literals are scaled: `price.atMost(19.99)`), and `modBy(k)`, `divBy(k)` by Euclid's rule (−7 div 2 is
+  −4, −7 mod 2 is 1, as SMT-LIB and Lean's `Int` read them). Each is two naturals underneath, so the kernel twin sees
+  nothing new; the Lean export states each law about integers again over `Int` (`law0_int`, proven from the law over
+  the naturals by `omega`), and `rule.decode(state)` reads them back as numbers. A natural's `minus` stays truncated:
+  an integer is a kind of its own, chosen where a value may go below 0 (`examples/arith.ts`).
 - **Strings**: `str({like: ['*.internal'], maxLength: 64})`. A string is its interned name, its length and a bit per
   declared pattern (Cedar's glob), all computed from the string itself when the input is encoded. `s.like(pattern)`,
   `s.eq('admin')` (which carries the literal's length and pattern bits, so laws reason from either), `s.isEmpty`,
   `s.length`; sets of strings are carried maps keyed by `s.id`.
 - **Arithmetic** over the naturals: `plus`, `minus` (truncated), `times(k)`, `mul` (a product of two terms, a map's
-  cell among them: `Used.at(k).atMost(per.mul(Seats.at(k)))`), `min`, `max`, `when(cond, a, b)`, `count(cond)`;
+  cell among them: `Used.at(k).atMost(per.mul(Seats.at(k)))`), `modBy(k)` and `divBy(k)` by a constant k ≥ 1 (the rule's
+  functions mod$k and div$k, known to the kernel by x = k·(x div k) + x mod k and x mod k < k, Presburger arithmetic it
+  already decides; Lean's `%` and `/`, both facts proven by `omega`; division by a term isn't offered: x = y·q + r is a
+  product of two unknowns), `min`, `max`, `when(cond, a, b)`, `count(cond)`;
   conditions `lt`, `atMost`, `eq`, `and`, `or`, `not`, `implies`. Where a law with products isn't linear in its
   monomials, the prover multiplies facts together and adds squares, as Lean's `nlinarith` does: (x − y)² for each
   product x·y the law reads, its factors as the step leaves them, and for each monomial split in two halves
@@ -395,7 +403,7 @@ Proving and checking: a law over 64 steps proves in about 5 s, and Lean checks i
 | `core/` | Machines, the interpreter and JS compiler, the builders, composition (`compose.ts`), the linear solver and its checker, Houdini invariants, models, the first Lean export |
 | `kernel/` | The trusted kernel and the untrusted prover, with soundness fuzz (`kernel.test.ts`, `history.test.ts`) |
 | `lean-kernel/` | The kernel's Lean twin, its soundness proofs, and the exported trees |
-| `examples/` | The builders at work: `domains/` (187 rules across 21 domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `guide.ts` (the guide's code), `groups.ts` (two groups decided at every pair), `budget.ts`, `gdp.ts` (gdp-ts's example, its checks proven), `datatypes.ts` (records and variants), `lemmas.ts` (recurrences and their lemmas), `invoices.ts` (lists a request carries), `folds.ts` (folds over trees), `trees.ts` (trees and lists of lists in the state), `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `lists.ts`, `sizes.ts`, `liveness.ts`, `steps.ts` (laws over up to 64 steps), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
+| `examples/` | The builders at work: `domains/` (187 rules across 21 domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `guide.ts` (the guide's code), `groups.ts` (two groups decided at every pair), `budget.ts`, `gdp.ts` (gdp-ts's example, its checks proven), `datatypes.ts` (records and variants), `lemmas.ts` (recurrences and their lemmas), `invoices.ts` (lists a request carries), `folds.ts` (folds over trees), `trees.ts` (trees and lists of lists in the state), `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `arith.ts` (division and remainder by a constant, integers in rules and datatypes), `lists.ts`, `sizes.ts`, `liveness.ts`, `steps.ts` (laws over up to 64 steps), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
 | `docs/` | The comparison with Bend and Lean, and the full scope |
 | `compare/` | The same three rules in gdp-wired, Bend and plain Lean, checked and measured |
 | `research/` | Everything around the library ([`research/README.md`](research/README.md)): the GPU searches (`search/`, `hw/`, `modal-gpu/`), invariant and rank synthesis (`synth/`), relational laws and guard synthesis (`next/`), bit-vector laws (`sat/`), the enumeration and benchmarks (`enum/`, `gpu/`, `perf/`), the first Lean checker (`lean/`) and the first prototype, the audit path (`audit/`) |

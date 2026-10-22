@@ -84,3 +84,18 @@ test('a machine with no division is left as it is', () => {
   expect(withArithmetic(m)).toBe(m)
   expect(m.fns).toBeUndefined()
 })
+
+test('integers and remainders in the datatype language: proven, refused with a value, and an integer literal in a branch', async () => {
+  const {dataLaws, first} = await import('../examples/arith.ts')
+  const {proveData, evalX, programOf, integer, law} = await import('./data.ts')
+  for (const mk of [dataLaws.firstOfCons, dataLaws.twiceLess, dataLaws.euclid, dataLaws.evenSum]) expect(proven(proveData(mk(), {ms: 20000}))).toBe(true)
+  expect(proveData(dataLaws.natural(), {ms: 5000}).counterexample).toEqual({x: '-2'})
+  expect(proveData(dataLaws.oddSum(), {ms: 5000}).counterexample).toBeDefined()
+  // first's nil case is the integer 0, not a natural's code (an integer literal in a match's case).
+  const body = first.fn.body()
+  expect(JSON.stringify(body)).toContain('{"op":"int","value":0}')
+  // Euclid on a negative value, as the runtime computes it.
+  const l = law('q', {x: integer}, ({x}) => x.divBy(2).eq(-4))
+  expect(evalX((l.holds as unknown as {a: never}).a, new Map([['x', -7]]), {})).toBe(-4)
+  expect(programOf([l]).ints).toBe(true)
+})
