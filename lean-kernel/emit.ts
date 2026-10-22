@@ -10,7 +10,7 @@ import {grow, minimal, proveBuilt, proveLaws, proveStepLaws} from '../kernel/pro
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
 import {type Cyclic, descentGoal, mainGoal, premiseGoal} from '../kernel/cyclic.ts'
-import {allowNode, closingInsts, cyclicMachine, foldNodes, hasQuantified, kWhens, machineNodes, type NodeSpec, proveCyclic, qflagNodes, routeOf, skMachine, stepLawNodes, tBack} from '../core/cyclic.ts'
+import {allowNode, closingInsts, cyclicMachine, foldNodes, hasQuantified, kWhens, machineNodes, type NodeSpec, proveCyclic, qflagNodes, routeOf, skMachine, stepLawNodes, tBack, tSub} from '../core/cyclic.ts'
 import type {Fact} from '../kernel/cyclic.ts'
 import {leanLibrary} from './library.ts'
 export {leanLibrary}
@@ -812,11 +812,12 @@ function cycMachineProof(m: Machine, laws: Law[], allSteps: StepLaw[], allows: {
     const usualSteps = allSteps.map(sl => { const inst = instOf(sl), g = stepLawObligations(m, laws, inst, sl)[0]!; return {sl, inst, goal: g, tree: r.proof!.trees[g.name]!} })
     const tr = usualSteps.every(u => u.tree) ? machineNodes(m, laws, lp.instances, {trees: lp.trees, steps: usualSteps}) : undefined
     if (tr && !tr.why && tr.specs.length === 3 * L + 2 * allSteps.length) {
-      const own = mine(tr.facts, tr.specs), id = (x: unknown) => JSON.stringify(x)
-      const fits = allSteps.every((_, j) => {
+      // (either time form cycKOk reads: one step back at a time, or t − n at once)
+      const id = (x: unknown) => JSON.stringify(x), forms = [tBack, tSub].map(time => stepLawNodes(mm, laws, allSteps.map(sl => ({law: sl, instances: instOf(sl)})), tr.facts, tr.specs, time))
+      const fits = allSteps.every((_, j) => forms.some(own => {
         const a = tr.specs[3 * L + 2 * j + 1]!, b = own[j]!, hs = new Set(b.hyps.map(id))
         return id(a.concl) === id(b.concl) && a.hyps.every(h => hs.has(id(h)))
-      })
+      }))
       if (fits) tries.push({facts: tr.facts, specs: tr.specs, lawNodes: tr.specs, stepAt: allSteps.map((_, j) => 3 * L + 2 * j + 1), translated: true})
     }
   }

@@ -144,14 +144,31 @@ theorem tBack_eval (ce : CycEnc) (Q : Nat → Nat) (M : Nat → Nat → Nat) : �
   | 0 => by simp [tBack, evalE]
   | n + 1 => by simp [tBack, evalE, tBack_eval ce Q M n]; omega
 
+-- The same times read t − n at once (as core/translate.ts's step laws over several steps read them).
+def tSub (ce : CycEnc) : Nat → E
+  | 0 => .var ce.t
+  | n + 1 => .sub (.var ce.t) (.const (n + 1))
+
+theorem tSub_eval (ce : CycEnc) (Q : Nat → Nat) (M : Nat → Nat → Nat) : ∀ n, evalE Q M (tSub ce n) = Q ce.t - n
+  | 0 => by simp [tSub, evalE]
+  | n + 1 => by simp [tSub, evalE]
+
+-- Either: one step back at a time (b), or at once.
+def tAtS (tb : Bool) (ce : CycEnc) (n : Nat) : E := if tb then tBack ce n else tSub ce n
+
+theorem tAtS_eval (tb : Bool) (ce : CycEnc) (Q : Nat → Nat) (M : Nat → Nat → Nat) (n : Nat) : evalE Q M (tAtS tb ce n) = Q ce.t - n := by
+  cases tb
+  · simp only [tAtS, Bool.false_eq_true, ↓reduceIte]; exact tSub_eval ce Q M n
+  · simp only [tAtS, ↓reduceIte]; exact tBack_eval ce Q M n
+
 -- The map over time of a traced variable, and of a map.
 def cycVM (ce : CycEnc) (x : Nat) : Nat := ((lookup (fun p => p.1 == x) ce.vtr).map (·.2)).getD 0
 def cycMM (ce : CycEnc) (m : Nat) : Nat := ((lookup (fun p => p.1 == m) ce.mtr).map (·.2)).getD 0
 
 -- Each later request's inputs at their fresh names, read at its time (of k steps, the j-th at t − (k − j)).
-def kRenσ (ce : CycEnc) (k : Nat) : Nat → List (List (Nat × Nat)) → List (Nat × E)
+def kRenσ (tb : Bool) (ce : CycEnc) (k : Nat) : Nat → List (List (Nat × Nat)) → List (Nat × E)
   | _, [] => []
-  | j, r :: rs => r.map (fun p => (p.2, .get (cycVM ce p.1) (tBack ce (k - j)))) ++ kRenσ ce k (j + 1) rs
+  | j, r :: rs => r.map (fun p => (p.2, .get (cycVM ce p.1) (tAtS tb ce (k - j)))) ++ kRenσ tb ce k (j + 1) rs
 
 -- The step and the carried map a fresh map name stands for.
 def kMren : Nat → List (List (Nat × Nat)) → Nat → Option (Nat × Nat)
@@ -162,35 +179,35 @@ def kMren : Nat → List (List (Nat × Nat)) → Nat → Option (Nat × Nat)
 
 -- `then` over the run of k steps ending at t: primed names at t, each later request's inputs at its time, the rest at
 -- t − k.
-def kσ (ce : CycEnc) (sl : SKStep) : List (Nat × E) :=
-  sl.k.prime.map (fun q => (q.2, .get (cycVM ce q.1) (tBack ce 0))) ++ kRenσ ce sl.k.whens.length 0 sl.k.ren
-    ++ cycσ ce (tBack ce sl.k.whens.length)
-def kRd (ce : CycEnc) (sl : SKStep) : Nat → E → E := fun m key =>
+def kσ (tb : Bool) (ce : CycEnc) (sl : SKStep) : List (Nat × E) :=
+  sl.k.prime.map (fun q => (q.2, .get (cycVM ce q.1) (tAtS tb ce 0))) ++ kRenσ tb ce sl.k.whens.length 0 sl.k.ren
+    ++ cycσ ce (tAtS tb ce sl.k.whens.length)
+def kRd (tb : Bool) (ce : CycEnc) (sl : SKStep) : Nat → E → E := fun m key =>
   match lookup (fun q => q.2 == m) sl.k.primeMaps with
-  | some q => .get (cycMM ce q.1) (.add (tBack ce 0) (.prod key (.var ce.om)))
+  | some q => .get (cycMM ce q.1) (.add (tAtS tb ce 0) (.prod key (.var ce.om)))
   | none => match kMren 0 sl.mren m with
-    | some p => .get (cycMM ce p.2) (.add (tBack ce (sl.k.whens.length - p.1)) (.prod key (.var ce.om)))
-    | none => cycRd ce (tBack ce sl.k.whens.length) m key
+    | some p => .get (cycMM ce p.2) (.add (tAtS tb ce (sl.k.whens.length - p.1)) (.prod key (.var ce.om)))
+    | none => cycRd ce (tAtS tb ce sl.k.whens.length) m key
 
 -- Each step's `when` at its time.
-def kWhens (ce : CycEnc) (k : Nat) : Nat → List C → List C
+def kWhens (tb : Bool) (ce : CycEnc) (k : Nat) : Nat → List C → List C
   | _, [] => []
-  | j, w :: ws => trC ce (tBack ce (k - j)) w :: kWhens ce k (j + 1) ws
+  | j, w :: ws => trC ce (tAtS tb ce (k - j)) w :: kWhens tb ce k (j + 1) ws
 
-theorem kWhens_mem (ce : CycEnc) (k : Nat) : ∀ (j : Nat) (ws : List C) {c : C}, c ∈ kWhens ce k j ws → ∃ i, ∃ h : i < ws.length, c = trC ce (tBack ce (k - (j + i))) ws[i]
+theorem kWhens_mem (tb : Bool) (ce : CycEnc) (k : Nat) : ∀ (j : Nat) (ws : List C) {c : C}, c ∈ kWhens tb ce k j ws → ∃ i, ∃ h : i < ws.length, c = trC ce (tAtS tb ce (k - (j + i))) ws[i]
   | _, [], _, h => by simp [kWhens] at h
   | j, w :: ws, c, h => by
     simp only [kWhens, List.mem_cons] at h
     rcases h with rfl | h
     · exact ⟨0, by simp, by simp⟩
-    · obtain ⟨i, hi, rfl⟩ := kWhens_mem ce k (j + 1) ws h
+    · obtain ⟨i, hi, rfl⟩ := kWhens_mem tb ce k (j + 1) ws h
       exact ⟨i + 1, by simp; omega, by simp [Nat.add_assoc, Nat.add_comm 1 i]⟩
 
 /-- A k-step law's node, checked against the machine's encoding: the encoding fits the machine as for its laws, the
 law's fresh names stand for traced inputs and state variables and the maps for maps over time, `then` and each `when`
 read no added variable, flag or map over time, the conclusion is `then` over the run (`kσ`, `kRd`) and the hypotheses
 are among the precondition, k ≤ t, t ≤ T, T < Ω and each step's `when` at its time. -/
-def cycKOk (s : SMachine) (ce : CycEnc) (facts : List Fact) (sl : SKStep) (n : CNode) : Bool :=
+def cycKOkAt (tb : Bool) (s : SMachine) (ce : CycEnc) (facts : List Fact) (sl : SKStep) (n : CNode) : Bool :=
   cycShapeOk s ce [] && cycTermsOk s ce [] && s.wits.isEmpty && cycFactsIn s ce facts
     && sl.k.ren.length == sl.k.whens.length && sl.mren.length == sl.k.whens.length
     && sl.k.ren.all (fun r => r.all fun p => s.f.m.inputs.contains p.1)
@@ -199,9 +216,9 @@ def cycKOk (s : SMachine) (ce : CycEnc) (facts : List Fact) (sl : SKStep) (n : C
     && sl.k.primeMaps.all (fun q => (ce.mtr.map (·.1)).contains q.1 && !s.carried.contains q.1 && !ce.tm.contains q.2)
     && avoids (ce.special ++ flagVars s.f.flags) sl.k.then_ && avoidsMaps ce.tm sl.k.then_
     && sl.k.whens.all (fun w => avoids (ce.special ++ flagVars s.f.flags) w && avoidsMaps ce.tm w)
-    && beqC n.concl (substRC (kσ ce sl) (kRd ce sl) sl.k.then_)
+    && beqC n.concl (substRC (kσ tb ce sl) (kRd tb ce sl) sl.k.then_)
     && n.hyps.all (fun h => beqC h s.f.m.pre || beqC h (.le (.const sl.k.whens.length) (.var ce.t)) || beqC h (.le (.var ce.t) (.var ce.T))
-      || beqC h (.lt (.var ce.T) (.var ce.om)) || (kWhens ce sl.k.whens.length 0 sl.k.whens).any (beqC h))
+      || beqC h (.lt (.var ce.T) (.var ce.om)) || (kWhens tb ce sl.k.whens.length 0 sl.k.whens).any (beqC h))
 
 /-! The encoding read back -/
 
@@ -222,10 +239,10 @@ theorem not_tgt_cons {r : List (Nat × Nat)} {rs : List (List (Nat × Nat))} {v 
   · exact h
 
 -- Each later request's inputs at their fresh names: the run's request at its time, as renEnv reads it.
-theorem kRen_eval (ce : CycEnc) (k : Nat) (Q : Nat → Nat) (cm : Nat → Nat → Nat) (b : Nat → Nat) (rest : List (Nat × E)) :
+theorem kRen_eval (tb : Bool) (ce : CycEnc) (k : Nat) (Q : Nat → Nat) (cm : Nat → Nat → Nat) (b : Nat → Nat) (rest : List (Nat × E)) :
     ∀ (rs : List (List (Nat × Nat))) (j : Nat) (ιs : List (Nat → Nat)), rs.length ≤ ιs.length →
-      (∀ i (hi : i < rs.length) (hι : i < ιs.length), ∀ p ∈ rs[i], evalE Q cm (.get (cycVM ce p.1) (tBack ce (k - (j + i)))) = ιs[i] p.1) →
-      ∀ v, v ∈ tgts rs → applyS (kRenσ ce k j rs ++ rest) Q cm v = renEnv rs ιs b v
+      (∀ i (hi : i < rs.length) (hι : i < ιs.length), ∀ p ∈ rs[i], evalE Q cm (.get (cycVM ce p.1) (tAtS tb ce (k - (j + i)))) = ιs[i] p.1) →
+      ∀ v, v ∈ tgts rs → applyS (kRenσ tb ce k j rs ++ rest) Q cm v = renEnv rs ιs b v
   | [], _, _, _, _, v, hv => by simp [tgts] at hv
   | _ :: _, _, [], hl, _, _, _ => by simp at hl
   | r :: rs, j, ι :: ιs, hl, hX, v, hv => by
@@ -239,13 +256,13 @@ theorem kRen_eval (ce : CycEnc) (k : Nat) (Q : Nat → Nat) (cm : Nat → Nat �
       simpa using h0
     | none =>
       simp only [Option.map_none]
-      exact kRen_eval ce k Q cm b rest rs (j + 1) ιs (by simp at hl; omega)
+      exact kRen_eval tb ce k Q cm b rest rs (j + 1) ιs (by simp at hl; omega)
         (fun i hi hι p hp => by
           have := hX (i + 1) (by simp; omega) (by simp; omega) p (by simpa using hp)
           simpa [Nat.add_assoc, Nat.add_comm 1 i] using this) v (not_tgt_cons hv hr)
 
-theorem kRen_out (ce : CycEnc) (k : Nat) (Q : Nat → Nat) (cm : Nat → Nat → Nat) (rest : List (Nat × E)) :
-    ∀ (rs : List (List (Nat × Nat))) (j : Nat) (v : Nat), v ∉ tgts rs → applyS (kRenσ ce k j rs ++ rest) Q cm v = applyS rest Q cm v
+theorem kRen_out (tb : Bool) (ce : CycEnc) (k : Nat) (Q : Nat → Nat) (cm : Nat → Nat → Nat) (rest : List (Nat × E)) :
+    ∀ (rs : List (List (Nat × Nat))) (j : Nat) (v : Nat), v ∉ tgts rs → applyS (kRenσ tb ce k j rs ++ rest) Q cm v = applyS rest Q cm v
   | [], _, _, _ => by simp [kRenσ]
   | r :: rs, j, v, hv => by
     simp only [kRenσ, List.append_assoc]
@@ -253,7 +270,7 @@ theorem kRen_out (ce : CycEnc) (k : Nat) (Q : Nat → Nat) (cm : Nat → Nat →
     have hn : lookup (fun p => p.2 == v) r = none := lookup_none (fun p hp => by
       simp only [beq_eq_false_iff_ne]; intro he; exact hv (by simp only [tgts, List.mem_append]; exact Or.inl (List.mem_map.mpr ⟨p, hp, he⟩)))
     simp only [hn, Option.map_none]
-    exact kRen_out ce k Q cm rest rs (j + 1) v (fun h => hv (by simp only [tgts, List.mem_append]; exact Or.inr h))
+    exact kRen_out tb ce k Q cm rest rs (j + 1) v (fun h => hv (by simp only [tgts, List.mem_append]; exact Or.inr h))
 
 -- The maps a later request carries at their fresh names: the run's at its time, as renMaps reads them.
 theorem kMren_eval : ∀ (rs : List (List (Nat × Nat))) (j : Nat) (κs : List (Nat → Nat → Nat)) (b : Nat → Nat → Nat) (m : Nat),
@@ -300,11 +317,10 @@ theorem read_mm {s : SMachine} {ce : CycEnc} {r : CRun} {T : Nat} (hd : distinct
 
 /-! The bridge for step laws and k-step laws -/
 
-/-- A cyclic proof of a k-step law (a step law, k = 1), checked against the machine's encoding (`cycKOk`): from every
-reachable state, every k requests in a row the machine allows, each meeting its `when`, end where `then` holds. -/
-theorem cyc_kstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes : List CNode) (hc : checkCyclic facts nodes = true)
-    (sl : SKStep) (n : CNode) (hn : n ∈ nodes) (hok : cycKOk s ce facts sl n = true) : SKStepHolds s sl := by
-  simp only [cycKOk, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hok
+-- The bridge for one time form (`tAtS b`).
+theorem cyc_kstep_sound_at (tb : Bool) (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes : List CNode) (hc : checkCyclic facts nodes = true)
+    (sl : SKStep) (n : CNode) (hn : n ∈ nodes) (hok : cycKOkAt tb s ce facts sl n = true) : SKStepHolds s sl := by
+  simp only [cycKOkAt, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hsh, hte⟩, hwit⟩, hfa⟩, hrl⟩, hml⟩, hrin⟩, hpr⟩, hmr⟩, hpm⟩, hthv⟩, hthm⟩, hwh⟩, hcon⟩, hhy⟩ := hok
   have hS := cycShape_of hsh
   have hT := cycTerms_of hte
@@ -334,7 +350,7 @@ theorem cyc_kstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes 
   have hframe : ∀ u, u ≤ T0 + (q₁ :: qs).length → ∀ i, i ∉ ce.vtr.map (·.1) → i ∉ flagVars s.f.flags → r'.st u i = r'.ρ0 i := fun u hu i hv hf =>
     run_frame hr' u hu i (fun h => by obtain ⟨p, hp, rfl⟩ := List.mem_map.mp h; exact hv (hS.initv p hp))
       (fun h => by obtain ⟨p, hp, rfl⟩ := List.mem_map.mp h; exact hv (hS.stepv p hp)) (fun h => hv (hS.inv i h)) hf
-  have hw0 : evalE Q (cycMaps s ce r' (T0 + (q₁ :: qs).length + 1)) (tBack ce sl.k.whens.length) = T0 := by rw [tBack_eval, hQt, hk]; omega
+  have hw0 : evalE Q (cycMaps s ce r' (T0 + (q₁ :: qs).length + 1)) (tAtS tb ce sl.k.whens.length) = T0 := by rw [tAtS_eval tb, hQt, hk]; omega
   -- The facts hold of the run.
   have hF : FactsHold facts Q (cycMaps s ce r' (T0 + (q₁ :: qs).length + 1)) := by
     intro f hf vals
@@ -360,10 +376,10 @@ theorem cyc_kstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes 
     · rw [beqC_eq h, evalC_iff]; simp only [holdsC, evalE, hQT, hQo]; omega
     · obtain ⟨c', hc', hb⟩ := List.any_eq_true.mp h
       rw [beqC_eq hb]
-      obtain ⟨i, hi, rfl⟩ := kWhens_mem ce sl.k.whens.length 0 sl.k.whens hc'
+      obtain ⟨i, hi, rfl⟩ := kWhens_mem tb ce sl.k.whens.length 0 sl.k.whens hc'
       have hiq : i < (q₁ :: qs).length := by omega
       have hu : T0 + i ≤ T0 + (q₁ :: qs).length := by omega
-      have hwi : evalE Q (cycMaps s ce r' (T0 + (q₁ :: qs).length + 1)) (tBack ce (sl.k.whens.length - (0 + i))) = T0 + i := by rw [tBack_eval, hQt, hk]; omega
+      have hwi : evalE Q (cycMaps s ce r' (T0 + (q₁ :: qs).length + 1)) (tAtS tb ce (sl.k.whens.length - (0 + i))) = T0 + i := by rw [tAtS_eval tb, hQt, hk]; omega
       have hall := sallowed_at (q₁ :: qs) sl.k.whens ρ M hK i hiq hi
       obtain ⟨hsti, hmpi⟩ := hj i (by omega)
       obtain ⟨hιi, hκi⟩ := hι i hiq
@@ -388,7 +404,7 @@ theorem cyc_kstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes 
   -- `then` over the run: the maps it reads, then its names.
   have hTle : T0 ≤ T0 + (q₁ :: qs).length := Nat.le_add_right _ _
   let Mt : Nat → Nat → Nat := primedMaps sl.k.primeMaps (sEnd s ρ M (q₁ :: qs)).2 (renMaps sl.mren ((q₁ :: qs).map (·.2)) (withCarried s M q₁.2))
-  have hrd : ∀ m key, evalE Q (cycMaps s ce r' (T0 + (q₁ :: qs).length + 1)) (kRd ce sl m key)
+  have hrd : ∀ m key, evalE Q (cycMaps s ce r' (T0 + (q₁ :: qs).length + 1)) (kRd tb ce sl m key)
       = (fun m => if ce.tm.contains m then cycMaps s ce r' (T0 + (q₁ :: qs).length + 1) m else Mt m) m
         (evalE Q (cycMaps s ce r' (T0 + (q₁ :: qs).length + 1)) key) := by
     intro m key
@@ -399,7 +415,7 @@ theorem cyc_kstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes 
       have hqe' : q.2 = m := by simpa using hqe
       obtain ⟨⟨hq1, hq2⟩, hq3⟩ := hpm q hqm
       have hnt : ¬ ce.tm.contains m = true := by rw [← hqe']; simpa using hq3
-      simp only [evalE, tBack_eval, hQt, hQo, Nat.sub_zero]
+      simp only [evalE, tAtS_eval tb, hQt, hQo, Nat.sub_zero]
       rw [read_mm hS.dtm (List.contains_iff_mem.mp hq1) (Nat.le_refl _), N_not_carried (by simpa using hq2), hend.2, if_neg hnt]
       simp only [Mt, primedMaps, hq]
     | none =>
@@ -411,7 +427,7 @@ theorem cyc_kstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes 
         have hnt : ¬ ce.tm.contains m = true := by rw [← hp2]; simpa using hnt0
         have hiq : i' < (q₁ :: qs).length := by simpa using hκ'
         obtain ⟨hιi, hκi⟩ := hι i' hiq
-        simp only [evalE, tBack_eval, hQt, hQo, hi0, Nat.zero_add]
+        simp only [evalE, tAtS_eval tb, hQt, hQo, hi0, Nat.zero_add]
         rw [show T0 + (q₁ :: qs).length - (sl.k.whens.length - i') = T0 + i' by rw [hk]; omega]
         rw [read_mm hS.dtm (hS.carm _ (by rw [← hp1]; exact List.contains_iff_mem.mp hcar)) (by omega), CRun.N, hκi, if_neg hnt]
         simp only [Mt, primedMaps, hq, hren, withCarried, ← hp1, hcar, if_true, List.getElem_map]
@@ -422,7 +438,7 @@ theorem cyc_kstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes 
         · rw [if_pos ht, if_pos ht]
         · rw [if_neg ht, if_neg ht, CRun.N, hst0.2, hι0.2]
           simp only [Mt, primedMaps, hq, hkm.1 hkr]
-  rw [substR_evalC (kσ ce sl) (kRd ce sl) Q _ _ hrd] at hc0
+  rw [substR_evalC (kσ tb ce sl) (kRd tb ce sl) Q _ _ hrd] at hc0
   rw [congr2C (ρ' := primed sl.k.prime (sEnd s ρ M (q₁ :: qs)).1 (renEnv sl.k.ren (sExts s ρ M (q₁ :: qs)) (withExt s ρ (sReq s ρ M q₁.1 q₁.2))))
     (M' := Mt) _ ?_ ?_] at hc0
   · exact hc0
@@ -435,17 +451,17 @@ theorem cyc_kstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes 
     | some q =>
       obtain ⟨hqm, _⟩ := lookup_some hq
       obtain ⟨hq1, hq2⟩ := hpr q hqm
-      simp only [Option.map_some, evalE, tBack_eval, hQt, Nat.sub_zero]
+      simp only [Option.map_some, evalE, tAtS_eval tb, hQt, Nat.sub_zero]
       rw [read_vm hS.dtm (List.contains_iff_mem.mp hq1), CRun.X, withInputs_other (by simpa using hq2), hend.1]
     | none =>
       simp only [Option.map_none]
       by_cases hxr : x ∈ tgts sl.k.ren
-      · rw [kRen_eval ce sl.k.whens.length Q _ _ _ sl.k.ren 0 (sExts s ρ M (q₁ :: qs)) (by rw [sExts_plain hS.q hW]; simp; omega) ?_ x hxr]
+      · rw [kRen_eval tb ce sl.k.whens.length Q _ _ _ sl.k.ren 0 (sExts s ρ M (q₁ :: qs)) (by rw [sExts_plain hS.q hW]; simp; omega) ?_ x hxr]
         intro i hi hιl p hp
         have hpin := hrin _ (List.getElem_mem hi) p hp
         have hiq : i < (q₁ :: qs).length := by rw [sExts_plain hS.q hW] at hιl; simpa using hιl
         obtain ⟨hιi, _⟩ := hι i hiq
-        simp only [evalE, tBack_eval, hQt, Nat.zero_add]
+        simp only [evalE, tAtS_eval tb, hQt, Nat.zero_add]
         rw [show T0 + (q₁ :: qs).length - (sl.k.whens.length - i) = T0 + i by rw [hk]; omega]
         rw [read_vm hS.dtm (hS.inv _ (List.contains_iff_mem.mp hpin)), CRun.X]
         simp only [withInputs, hpin, if_true, hιi]
@@ -453,7 +469,7 @@ theorem cyc_kstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes 
             ∀ h : i < l.length, (q₁ :: qs)[i].1 p.1 = l[i] p.1 := by
           intro l hl h; subst hl; simp only [List.getElem_map, hpin, if_true]
         exact hx _ (sExts_plain hS.q hW _ _ _) hιl
-      · rw [kRen_out ce sl.k.whens.length Q _ _ sl.k.ren 0 x hxr, renEnv_other _ _ _ x hxr, withExt_plain hS.q hW, sReq_plain hS.q hW]
+      · rw [kRen_out tb ce sl.k.whens.length Q _ _ sl.k.ren 0 x hxr, renEnv_other _ _ _ x hxr, withExt_plain hS.q hW, sReq_plain hS.q hW]
         by_cases hv : x ∈ ce.vtr.map (·.1)
         · rw [enc_σ_in hS hT hr' hEnv hw0 hTle hv, CRun.X, hst0.1, hι0.1]; simp only [withInputs]; split <;> rfl
         · have hxi : x ∉ s.f.m.inputs := fun h => hv (hS.inv x h)
@@ -462,6 +478,19 @@ theorem cyc_kstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes 
           exact hQr x (fun h => hxz (List.mem_append_left _ h))
   · intro m hm
     simp only [if_neg (fun h => avoidsMaps_occ hthm hm (List.contains_iff_mem.mp h))]
+
+-- A step law's node with its times either way (`cycKOkAt`).
+def cycKOk (s : SMachine) (ce : CycEnc) (facts : List Fact) (sl : SKStep) (n : CNode) : Bool :=
+  cycKOkAt true s ce facts sl n || cycKOkAt false s ce facts sl n
+
+/-- A cyclic proof of a k-step law (a step law, k = 1), checked against the machine's encoding (`cycKOk`): from every
+reachable state, every k requests in a row the machine allows, each meeting its `when`, end where `then` holds. -/
+theorem cyc_kstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes : List CNode) (hc : checkCyclic facts nodes = true)
+    (sl : SKStep) (n : CNode) (hn : n ∈ nodes) (hok : cycKOk s ce facts sl n = true) : SKStepHolds s sl := by
+  simp only [cycKOk, Bool.or_eq_true] at hok
+  rcases hok with h | h
+  · exact cyc_kstep_sound_at true s ce facts nodes hc sl n hn h
+  · exact cyc_kstep_sound_at false s ce facts nodes hc sl n hn h
 
 /-! Liveness from step laws -/
 
@@ -1483,7 +1512,7 @@ theorem cyc_qmachine_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nod
 
 /-- A k-step law's node for a machine with flags that hold at every key, checked against its sk machine's encoding with
 those flags' facts (`cycKOk` over the sk machine, the flags' keys apart). -/
-def cycQKOk (s : SMachine) (ce : CycEnc) (facts : List Fact) (sl : SKStep) (n : CNode) : Bool :=
+def cycQKOkAt (tb : Bool) (s : SMachine) (ce : CycEnc) (facts : List Fact) (sl : SKStep) (n : CNode) : Bool :=
   sOk s && cycShapeOk s.sk ce s.bk && cycTermsOk s.sk ce s.bk && cycBodyOk s ce s.bk && cycQFactsIn s ce facts
     && sl.k.ren.length == sl.k.whens.length && sl.mren.length == sl.k.whens.length
     && sl.k.ren.all (fun r => r.all fun p => s.sk.f.m.inputs.contains p.1)
@@ -1492,13 +1521,13 @@ def cycQKOk (s : SMachine) (ce : CycEnc) (facts : List Fact) (sl : SKStep) (n : 
     && sl.k.primeMaps.all (fun q => (ce.mtr.map (·.1)).contains q.1 && !s.carried.contains q.1 && !ce.tm.contains q.2)
     && avoids (ce.special ++ s.bk ++ flagVars s.f.flags) sl.k.then_ && avoidsMaps ce.tm sl.k.then_
     && sl.k.whens.all (fun w => avoids (ce.special ++ s.bk ++ flagVars s.f.flags) w && avoidsMaps ce.tm w)
-    && beqC n.concl (substRC (kσ ce sl) (kRd ce sl) sl.k.then_)
+    && beqC n.concl (substRC (kσ tb ce sl) (kRd tb ce sl) sl.k.then_)
     && n.hyps.all (fun h => beqC h s.f.m.pre || beqC h (.le (.const sl.k.whens.length) (.var ce.t)) || beqC h (.le (.var ce.t) (.var ce.T))
-      || beqC h (.lt (.var ce.T) (.var ce.om)) || (kWhens ce sl.k.whens.length 0 sl.k.whens).any (beqC h))
+      || beqC h (.lt (.var ce.T) (.var ce.om)) || (kWhens tb ce sl.k.whens.length 0 sl.k.whens).any (beqC h))
 
-theorem cyc_qkstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes : List CNode) (hc : checkCyclic facts nodes = true)
-    (sl : SKStep) (n : CNode) (hn : n ∈ nodes) (hok : cycQKOk s ce facts sl n = true) : SKStepHolds s sl := by
-  simp only [cycQKOk, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hok
+theorem cyc_qkstep_sound_at (tb : Bool) (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes : List CNode) (hc : checkCyclic facts nodes = true)
+    (sl : SKStep) (n : CNode) (hn : n ∈ nodes) (hok : cycQKOkAt tb s ce facts sl n = true) : SKStepHolds s sl := by
+  simp only [cycQKOkAt, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hs, hsh⟩, hte⟩, hbo⟩, hfa⟩, hrl⟩, hml⟩, hrin⟩, hpr⟩, hmr⟩, hpm⟩, hthv⟩, hthm⟩, hwh⟩, hcon⟩, hhy⟩ := hok
   have hS := cycShape_of hsh
   have hT := cycTerms_of hte
@@ -1569,7 +1598,7 @@ theorem cyc_qkstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes
     show withCarried s.sk (r1.mp (T0 + j)) (if T0 + j = T' then _ else r1.κ (T0 + j)) = _
     rw [if_neg hne, (hreqj j h).2, (hagj j (Nat.le_of_lt h)).2]; rfl
   have hq0 : 0 < (q₁ :: qs).length := by simp
-  have hw0 : evalE Q (cycMaps s.sk ce r' (T' + 1)) (tBack ce sl.k.whens.length) = T0 := by rw [tBack_eval, hQt, hk]; simp only [T']; omega
+  have hw0 : evalE Q (cycMaps s.sk ce r' (T' + 1)) (tAtS tb ce sl.k.whens.length) = T0 := by rw [tAtS_eval tb, hQt, hk]; simp only [T']; omega
   -- The node's hypotheses hold there.
   have hH : ∀ c ∈ n.hyps, evalC Q (cycMaps s.sk ce r' (T' + 1)) c = true := by
     intro c hc
@@ -1584,10 +1613,10 @@ theorem cyc_qkstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes
     · rw [beqC_eq h, evalC_iff]; simp only [holdsC, evalE, hQT, hQo]; omega
     · obtain ⟨c', hc', hb⟩ := List.any_eq_true.mp h
       rw [beqC_eq hb]
-      obtain ⟨i, hi, rfl⟩ := kWhens_mem ce sl.k.whens.length 0 sl.k.whens hc'
+      obtain ⟨i, hi, rfl⟩ := kWhens_mem tb ce sl.k.whens.length 0 sl.k.whens hc'
       have hiq : i < (q₁ :: qs).length := by omega
       have hu : T0 + i ≤ T' := by simp only [T']; omega
-      have hwi : evalE Q (cycMaps s.sk ce r' (T' + 1)) (tBack ce (sl.k.whens.length - (0 + i))) = T0 + i := by rw [tBack_eval, hQt, hk]; simp only [T']; omega
+      have hwi : evalE Q (cycMaps s.sk ce r' (T' + 1)) (tAtS tb ce (sl.k.whens.length - (0 + i))) = T0 + i := by rw [tAtS_eval tb, hQt, hk]; simp only [T']; omega
       have hall := sallowed_at (q₁ :: qs) sl.k.whens ρ M hK i hiq hi
       have hav := hwh _ (List.getElem_mem hi)
       rw [enc_trC hS hT hr' hEnv hwi hu]
@@ -1606,7 +1635,7 @@ theorem cyc_qkstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes
   obtain ⟨hagE, hmE⟩ : Agree s.wVars (r'.st T') (sEnd s ρ M (q₁ :: qs)).1 ∧ r'.mp T' = (sEnd s ρ M (q₁ :: qs)).2 := by
     have h := hagj (q₁ :: qs).length (Nat.le_refl _); simp only [List.take_length] at h; exact h
   let Mt : Nat → Nat → Nat := primedMaps sl.k.primeMaps (sEnd s ρ M (q₁ :: qs)).2 (renMaps sl.mren ((q₁ :: qs).map (·.2)) (withCarried s M q₁.2))
-  have hrd : ∀ m key, evalE Q (cycMaps s.sk ce r' (T' + 1)) (kRd ce sl m key)
+  have hrd : ∀ m key, evalE Q (cycMaps s.sk ce r' (T' + 1)) (kRd tb ce sl m key)
       = (fun m => if ce.tm.contains m then cycMaps s.sk ce r' (T' + 1) m else Mt m) m (evalE Q (cycMaps s.sk ce r' (T' + 1)) key) := by
     intro m key
     simp only [kRd]
@@ -1616,7 +1645,7 @@ theorem cyc_qkstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes
       have hqe' : q.2 = m := by simpa using hqe
       obtain ⟨⟨hq1, hq2⟩, hq3⟩ := hpm q hqm
       have hnt : ¬ ce.tm.contains m = true := by rw [← hqe']; simpa using hq3
-      simp only [evalE, tBack_eval, hQt, hQo, Nat.sub_zero]
+      simp only [evalE, tAtS_eval tb, hQt, hQo, Nat.sub_zero]
       rw [read_mm hS.dtm (List.contains_iff_mem.mp hq1) (Nat.le_refl _), N_not_carried (show q.1 ∉ s.sk.carried from fun h => by simp only [Bool.not_eq_true'] at hq2; rw [List.contains_iff_mem.mpr (show q.1 ∈ s.carried from h)] at hq2; cases hq2), hmE, if_neg hnt]
       simp only [Mt, primedMaps, hq]
     | none =>
@@ -1627,7 +1656,7 @@ theorem cyc_qkstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes
         obtain ⟨hcar, hnt0⟩ := hmr _ (List.getElem_mem hi') p' hp'
         have hnt : ¬ ce.tm.contains m = true := by rw [← hp2]; simpa using hnt0
         have hiq : i' < (q₁ :: qs).length := by simpa using hκ'
-        simp only [evalE, tBack_eval, hQt, hQo, hi0, Nat.zero_add]
+        simp only [evalE, tAtS_eval tb, hQt, hQo, hi0, Nat.zero_add]
         rw [show T' - (sl.k.whens.length - i') = T0 + i' by rw [hk]; simp only [T']; omega]
         rw [read_mm hS.dtm (hS.carm _ (by rw [← hp1]; exact List.contains_iff_mem.mp hcar)) (by simp only [T']; omega), hNj i' hiq, if_neg hnt]
         simp only [Mt, primedMaps, hq, hren, withCarried, ← hp1, hcar, if_true, List.getElem_map]
@@ -1641,7 +1670,7 @@ theorem cyc_qkstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes
           simp only [Nat.add_zero, List.take_zero, sEnd, List.getElem_cons_zero] at h0
           rw [h0]
           simp only [Mt, primedMaps, hq, hkm.1 hkr]
-  rw [substR_evalC (kσ ce sl) (kRd ce sl) Q _ _ hrd] at hc0
+  rw [substR_evalC (kσ tb ce sl) (kRd tb ce sl) Q _ _ hrd] at hc0
   rw [congr2C (ρ' := primed sl.k.prime (sEnd s ρ M (q₁ :: qs)).1 (renEnv sl.k.ren (sExts s ρ M (q₁ :: qs)) (withExt s ρ (sReq s ρ M q₁.1 q₁.2))))
     (M' := Mt) _ ?_ ?_] at hc0
   · exact hc0
@@ -1657,7 +1686,7 @@ theorem cyc_qkstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes
       have hqw : q.1 ∉ s.wVars := fun h => by
         simp only [Bool.not_eq_true'] at hq2
         rw [List.contains_iff_mem.mpr (by rw [sk_inputs]; simp only [SMachine.extVars, List.mem_append]; exact Or.inr h)] at hq2; cases hq2
-      simp only [Option.map_some, evalE, tBack_eval, hQt, Nat.sub_zero]
+      simp only [Option.map_some, evalE, tAtS_eval tb, hQt, Nat.sub_zero]
       rw [read_vm hS.dtm (List.contains_iff_mem.mp hq1), CRun.X, withInputs_other (by simpa using hq2), hagE q.1 hqw]
     | none =>
       simp only [Option.map_none]
@@ -1666,15 +1695,15 @@ theorem cyc_qkstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes
           intro ρ M qs; induction qs generalizing ρ M with
           | nil => rfl
           | cons q qs ih => simp [sExts, ih]
-        rw [kRen_eval ce sl.k.whens.length Q _ _ _ sl.k.ren 0 (sExts s ρ M (q₁ :: qs)) (by rw [hel]; omega) ?_ x hxr]
+        rw [kRen_eval tb ce sl.k.whens.length Q _ _ _ sl.k.ren 0 (sExts s ρ M (q₁ :: qs)) (by rw [hel]; omega) ?_ x hxr]
         intro i hi hιl p hp
         have hpin := hrin _ (List.getElem_mem hi) p hp
         have hiq : i < (q₁ :: qs).length := by rw [hel] at hιl; exact hιl
-        simp only [evalE, tBack_eval, hQt, Nat.zero_add]
+        simp only [evalE, tAtS_eval tb, hQt, Nat.zero_add]
         rw [show T' - (sl.k.whens.length - i) = T0 + i by rw [hk]; simp only [T']; omega]
         rw [read_vm hS.dtm (hS.inv _ (List.contains_iff_mem.mp hpin)), hXj i hiq, sExts_get ρ M (q₁ :: qs) i hiq]
         simp only [withExt, show s.extVars.contains p.1 = true from by rw [← sk_inputs]; exact hpin, if_true]
-      · rw [kRen_out ce sl.k.whens.length Q _ _ sl.k.ren 0 x hxr, renEnv_other _ _ _ x hxr]
+      · rw [kRen_out tb ce sl.k.whens.length Q _ _ sl.k.ren 0 x hxr, renEnv_other _ _ _ x hxr]
         have hX0 := hXj 0 hq0
         simp only [Nat.add_zero, List.take_zero, sEnd, List.getElem_cons_zero] at hX0
         by_cases hv : x ∈ ce.vtr.map (·.1)
@@ -1688,6 +1717,16 @@ theorem cyc_qkstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes
   · intro m hm
     simp only [if_neg (fun h => avoidsMaps_occ hthm hm (List.contains_iff_mem.mp h))]
 
+
+def cycQKOk (s : SMachine) (ce : CycEnc) (facts : List Fact) (sl : SKStep) (n : CNode) : Bool :=
+  cycQKOkAt true s ce facts sl n || cycQKOkAt false s ce facts sl n
+
+theorem cyc_qkstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes : List CNode) (hc : checkCyclic facts nodes = true)
+    (sl : SKStep) (n : CNode) (hn : n ∈ nodes) (hok : cycQKOk s ce facts sl n = true) : SKStepHolds s sl := by
+  simp only [cycQKOk, Bool.or_eq_true] at hok
+  rcases hok with h | h
+  · exact cyc_qkstep_sound_at true s ce facts nodes hc sl n hn h
+  · exact cyc_qkstep_sound_at false s ce facts nodes hc sl n hn h
 
 /-- A request allowed, as a node for a machine with flags that hold at every key (`cycAOk` over its sk machine, those
 flags' facts, the flags' keys apart). -/

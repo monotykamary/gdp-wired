@@ -834,15 +834,17 @@ function shared(facts: Fact[], a: NodeSpec, concl: C): E[] {
 // …), as a step's fact reads the time before it, so the cells a step gives are those the next one reads. The first state
 // at t − k, the j-th request at t − (k − j), the state after the last at t.
 export const tBack = (n: number): E => (n === 0 ? v('t$') : less1(tBack(n - 1)))
+// The same times read t − n at once (BridgeRules.lean's tSub; core/translate.ts's step laws over several steps).
+export const tSub = (n: number): E => (n === 0 ? v('t$') : {op: 'sub', a: v('t$'), b: k(n)})
 // `then` over the run (BridgeRules.lean's kσ and kRd): the primed names at t, each later request's inputs (input@j) and
 // the maps it carries (map@j) at its time, the plain names at t − k.
-export function kStepAt(m: Machine, k: number): Subst {
-  const {at} = trace(m), first = at(tBack(k)), last = at(tBack(0))
+export function kStepAt(m: Machine, k: number, time: (n: number) => E = tBack): Subst {
+  const {at} = trace(m), first = at(time(k)), last = at(time(0))
   const vars: Record<string, E> = {...first.vars}, maps: Record<string, (key: E) => E> = {...first.maps}
   for (const x of Object.keys(m.state)) vars[`${x}'`] = last.vars[x]!
   for (const map of Object.keys(m.maps ?? {})) maps[`${map}'`] = last.maps[map]!
   for (let j = 1; j < k; j++) {
-    const a = at(tBack(k - j))
+    const a = at(time(k - j))
     for (const i of m.inputs) vars[`${i}@${j + 1}`] = a.vars[i]!
     for (const c of m.inputMaps ?? []) maps[`${c}@${j + 1}`] = a.maps[c]!
   }
@@ -857,7 +859,7 @@ export const kWhens = (m: Machine, sl: StepLaw): C[] => {
 // machineNodes makes them). Each node: the precondition, k <= t <= T, T < Ω and each step's `when` at its time;
 // the run's facts at the times it reads (each step's, each map cell's step back from where it is read, the functions'
 // facts at the keys the usual proof names), every law at each state but the last (at the keys it names), and `then`.
-export function stepLawNodes(m: Machine, laws: Law[], steps: {law: StepLaw, instances: Instances}[], facts: Fact[], lawNodes: NodeSpec[]): NodeSpec[] {
+export function stepLawNodes(m: Machine, laws: Law[], steps: {law: StepLaw, instances: Instances}[], facts: Fact[], lawNodes: NodeSpec[], time: (n: number) => E = tBack): NodeSpec[] {
   const rank = lawNodes[0]?.rank.length ?? 2
   const {at} = trace(m), flags = flagsOf(m), inline = (c: C) => substC(c, {vars: {}, maps: {}, flags})
   const t = v('t$'), T = v('T$'), mapNames = Object.keys(m.maps ?? {}), traced = [...mapNames, ...(m.inputMaps ?? [])], state = Object.keys(m.state)
@@ -865,10 +867,10 @@ export function stepLawNodes(m: Machine, laws: Law[], steps: {law: StepLaw, inst
   const keysOf = (l: Law) => [...(l.forall ? [l.forall] : []), ...(l.keys ?? [])]
   const tuples = (inst: Instances, l: Law): E[][] => { const ks = keysOf(l), flat = inst[l.name] ?? []; return ks.length ? Array.from({length: Math.floor(flat.length / ks.length)}, (_, i) => flat.slice(i * ks.length, (i + 1) * ks.length)) : [[]] }
   const specs = steps.map(({law: sl, instances: inst}): NodeSpec => {
-    const K = sl.steps ?? 1, times = Array.from({length: K + 1}, (_, j) => tBack(K - j))
+    const K = sl.steps ?? 1, times = Array.from({length: K + 1}, (_, j) => time(K - j))
     const hyps: C[] = [...(m.pre ? [m.pre] : []), le(k(K), t), le(t, T), ...(traced.length ? [{op: '<', a: T, b: omega} as C] : []),
       ...kWhens(m, sl).map((w, j) => substC(w, at(times[j]!)))]
-    const concl = substC(inline(sl.then), kStepAt(m, K))
+    const concl = substC(inline(sl.then), kStepAt(m, K, time))
     // Every law at each state but the last, at the keys the proof names there.
     const uses: NodeSpec['uses'] = times.slice(0, K).flatMap(u => laws.flatMap((l, i) => tuples(inst, l).map(ts => ({
       node: i, subst: {'t$': u, ...Object.fromEntries(keysOf(l).map((kn, q) => [kn, substE(ts[q]!, at(u))]))}, guard: yes}))))
