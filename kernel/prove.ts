@@ -11,7 +11,7 @@
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {type Lin, type Step, add, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
-import {allowNode, allowTranslated, certCyclic, certMs, certOn, certSearch, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
+import {allowNode, allowTranslated, certCyclic, certOn, certSearch, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
 import type {TStats} from '../core/translate.ts'
 import {type Goal, type Instances, type Liveness, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
@@ -1210,17 +1210,17 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
     if (cyclicOn()) crossCyclic('step law', m.name, true, undefined, usualMs, translated)
     if (certOn()) { const c = certCyclic('step law', m.name, translated, undefined, usualMs); if (!c.checked) for (const sl of one) uncovered((sl.steps ?? 1) > 1 ? 'k-step law' : 'step law', m.name, c.why) }
   }
-  const rest = stepLaws.filter(sl => why || !one.includes(sl))
+  // (the rest: k steps over a map a request carries, or a machine no instance covers)
+  const rest = stepLaws.filter(sl => why || !one.includes(sl)), restWhy = (sl: StepLaw) => why ?? `${sl.steps} steps over a map a request carries`
   if (certOn() && certSearch() && out.checked && rest.length && !why) {
     // The rest searched: the laws' nodes (searched), each step law's node (core/cyclic.ts's stepLawNodes).
     const searchedSteps = () => {
       const b = machineNodes(plain, laws, base.proof!.instances)
       return proveCyclic(b.facts, [...b.specs, ...searchedStepNodes(plain, laws, rest.map(sl => ({law: sl, instances: perStep[sl.name] ?? instances})), b.facts, b.specs)])
     }
-    const until = performance.now() + certMs(), c = withDeadline(until, () => certCyclic('step law', m.name, undefined, searchedSteps, performance.now() - t0))
-    const none = `no cyclic proof found${performance.now() > until ? ` within ${certMs()} ms` : ''}`
-    for (const sl of c.checked ? [] : rest) uncovered((sl.steps ?? 1) > 1 ? 'k-step law' : 'step law', m.name, `${why ?? `${sl.steps} steps over a map`}: ${none}`)
-  } else if (cyclicOn() || certOn()) for (const sl of rest) uncovered((sl.steps ?? 1) > 1 ? 'k-step law' : 'step law', m.name, why ?? `${sl.steps} steps over a map`)
+    const c = certCyclic('step law', m.name, undefined, searchedSteps, performance.now() - t0)
+    for (const sl of c.checked ? [] : rest) uncovered((sl.steps ?? 1) > 1 ? 'k-step law' : 'step law', m.name, `${restWhy(sl)}: ${c.why}`)
+  } else if (cyclicOn() || certOn()) for (const sl of rest) uncovered((sl.steps ?? 1) > 1 ? 'k-step law' : 'step law', m.name, restWhy(sl))
   return out
 }
 // Progress (kernel.ts's progressObligations): the laws proven first, then each goal, the every-key laws assumed at every

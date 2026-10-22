@@ -10,7 +10,7 @@ import {grow, minimal, proveBuilt, proveLaws, proveStepLaws, withDeadline} from 
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
 import {type Cyclic, descentGoal, mainGoal, premiseGoal} from '../kernel/cyclic.ts'
-import {allowNode, certMs, closingInsts, reqTS, withWitness, cyclicMachine, foldNodes, hasQuantified, kWhens, machineNodes, type NodeSpec, proveCyclic, routeOf, searchedStepNodes, skMachine, stepLawNodes, tBack, tSub} from '../core/cyclic.ts'
+import {allowNode, certMs, closingInsts, reqTS, withWitness, foldNodes, certMode, uncoveredWhy, hasQuantified, kWhens, machineNodes, type NodeSpec, proveCyclic, routeOf, searchedStepNodes, skMachine, stepLawNodes, tBack, tSub} from '../core/cyclic.ts'
 import type {Fact} from '../kernel/cyclic.ts'
 import {leanLibrary} from './library.ts'
 export {leanLibrary}
@@ -760,8 +760,7 @@ example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : '
 // `<id>.lawN`, `<id>_stepN_holds`, `<id>_liveN_holds`, `<id>_halts`; a machine with flags that hold at every key through
 // its sk machine (BridgeRules.lean's q bridges). What the cyclic route doesn't cover goes the usual way: a law that reads
 // a map at a key read from a map, and whatever no certificate is found for within the deadline (`certReport`).
-const envOf = () => (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
-export const cyclicCerts = () => envOf()?.GDP_CERT !== 'usual'
+export const cyclicCerts = certMode
 let certsOn = false, cycTexts = 0
 // What the last toLean exported from cyclic certificates, and what went the usual way (and why).
 export const certReport: {cyclic: string[], usual: {id: string, why: string}[], translatedSteps: string[]} = {cyclic: [], usual: [], translatedSteps: []}
@@ -843,7 +842,8 @@ export function cycMachineToLean(id: string, given: Machine, laws: Law[], opts: 
   const hm = given.history ? {...given, history: {...given.history, prune: undefined}} : undefined
   const hplain = hm ? historyMachine(hm) : undefined, m = hplain ? hplain.machine : given
   const stepLaws = opts.stepLaws ?? [], gv = opts.ghosts ?? [], lp0 = opts.loop
-  if (!cyclicMachine(skMachine(m), laws)) return {why: 'a law reading a map at a key read from a map'}
+  const why = uncoveredWhy(m, laws)
+  if (why) return {why}
   // With flags that hold at every key, the sk machine's encoding and BridgeRules.lean's q bridges.
   const mq = skMachine(m), Q = hasQuantified(m) ? 'Q' : '', q = hasQuantified(m) ? 'q' : ''
   const lives = (opts.liveness ?? []).map(l => ({l, ...livenessParts(m, l)}))
