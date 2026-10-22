@@ -946,7 +946,7 @@
 "timeout": 1800
 },
 {
-"name": "data-open",
+"name": "data-bst",
 "cmd": "bun examples/data.ts bstInsert 2>&1",
 "cwd": ".",
 "cpu": 2.0,
@@ -954,28 +954,42 @@
 },
 {
 "name": "frontier-datatype-0",
-"cmd": "bun research/frontier/score.ts --track datatype --shard 0/4 --limit 180 2>&1",
+"cmd": "bun research/frontier/score.ts --track datatype --shard 0/6 --limit 180 2>&1",
 "cwd": ".",
 "cpu": 2.0,
 "timeout": 1800
 },
 {
 "name": "frontier-datatype-1",
-"cmd": "bun research/frontier/score.ts --track datatype --shard 1/4 --limit 180 2>&1",
+"cmd": "bun research/frontier/score.ts --track datatype --shard 1/6 --limit 180 2>&1",
 "cwd": ".",
 "cpu": 2.0,
 "timeout": 1800
 },
 {
 "name": "frontier-datatype-2",
-"cmd": "bun research/frontier/score.ts --track datatype --shard 2/4 --limit 180 2>&1",
+"cmd": "bun research/frontier/score.ts --track datatype --shard 2/6 --limit 180 2>&1",
 "cwd": ".",
 "cpu": 2.0,
 "timeout": 1800
 },
 {
 "name": "frontier-datatype-3",
-"cmd": "bun research/frontier/score.ts --track datatype --shard 3/4 --limit 180 2>&1",
+"cmd": "bun research/frontier/score.ts --track datatype --shard 3/6 --limit 180 2>&1",
+"cwd": ".",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "frontier-datatype-4",
+"cmd": "bun research/frontier/score.ts --track datatype --shard 4/6 --limit 180 2>&1",
+"cwd": ".",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "frontier-datatype-5",
+"cmd": "bun research/frontier/score.ts --track datatype --shard 5/6 --limit 180 2>&1",
 "cwd": ".",
 "cpu": 2.0,
 "timeout": 1800
@@ -1342,6 +1356,22 @@
 {
 "name": "lean-data-3",
 "cmd": "ONLY=datafusion,dataflatten bash research/data/lean-data.sh 2>&1",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 2400
+},
+{
+"name": "lean-data-4",
+"cmd": "ONLY=databst,dataroseflat,datarosemirror bash research/data/lean-data.sh 2>&1",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 2400
+},
+{
+"name": "lean-data-5",
+"cmd": "ONLY=databag,datarep,datatakedrop,datadroplen bash research/data/lean-data.sh 2>&1",
 "cwd": ".",
 "cpu": 4.0,
 "memory": 8192,

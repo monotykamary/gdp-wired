@@ -5,10 +5,14 @@
 // lean-kernel/package-check.ts.
 //   - lists: length, append, reverse, a map by an unknown function f, sum, sorted insertion, counting an item
 //   - trees: a node's value between its subtrees; mirror, size, flatten (in order), sum, insertion into a search tree
+//   - rose trees, a mutual pair (a node holds a forest, a forest trees): sum, size, flatten, mirror
+//   - lists of lists (a field of a datatype declared before): concatenation, the lengths summed
+//   - recursion on a natural: replicate, take, drop
 // The broken variants (an append that drops the head, a reverse that repeats it, a mirror that adds 1, an insertion that
-// puts the item first, a search tree insertion that goes the wrong way) are refused with a value that breaks the law.
-// The search tree's insertion law is the one the search doesn't prove (`open`).
-import {type Bool, type DataLaw, type Nat, type Val, data, define, fnParam, law, natural, boolean, self, when, yes, proveData} from '../core/data.ts'
+// puts the item first, a search tree insertion that goes the wrong way or into any tree, a rose flatten that drops the
+// node's value, a rose mirror that drops a tree, a concatenation that drops the first list, a replicate with one more, a
+// drop of one too many) are refused with a value that breaks the law.
+import {type Bool, type DataLaw, type Nat, type Val, data, define, fnParam, law, mutual, natural, boolean, self, when, yes, proveData} from '../core/data.ts'
 
 export const List = data('List', {nil: {}, cons: {head: natural, tail: self}})
 export const Tree = data('Tree', {leaf: {}, node: {left: self, value: natural, right: self}})
@@ -64,6 +68,62 @@ export const bstInsert = (bug?: 'goes the wrong way') => {
 }
 export const bins = bstInsert()
 
+// Rose trees: a node holds a value and a forest of trees, a forest a list of them (a mutual pair, each a field of the
+// other). Their functions call each other: a tree's through its forest's, a forest's through its trees'.
+export const {Rose, Forest} = mutual({Rose: {node: {value: natural, kids: 'Forest'}}, Forest: {nil: {}, cons: {head: 'Rose', tail: 'Forest'}}})
+export const rsum = define('rsum', {t: Rose}, natural, ({t}) => L(t).match({node: ({value, kids}) => N(value).plus(N(fsum(kids)))}))
+export const fsum = define('fsum', {ts: Forest}, natural, ({ts}) => L(ts).match({nil: () => 0, cons: ({head, tail}) => N(rsum(head)).plus(N(fsum(tail)))}))
+// A tree's values in order, the node's first; a forest's, each tree's in turn (`drops the value`: the node's left out).
+export const roseFlatten = (bug?: 'drops the value') => {
+  const [rn, fn] = bug ? ['rflatDrop', 'fflatDrop'] : ['rflat', 'fflat']
+  const rf: ReturnType<typeof define> = define(rn, {t: Rose}, List, ({t}) => L(t).match({node: ({value, kids}) => (bug ? L(ff(kids)) : List.cons(value, ff(kids)))}))
+  const ff: ReturnType<typeof define> = define(fn, {ts: Forest}, List, ({ts}) => L(ts).match({nil: () => List.nil, cons: ({head, tail}) => L(app(rf(head), ff(tail)))}))
+  return rf
+}
+export const rflat = roseFlatten()
+export const rsize = define('rsize', {t: Rose}, natural, ({t}) => L(t).match({node: ({kids}) => N(fsize(kids)).plus(1)}))
+export const fsize = define('fsize', {ts: Forest}, natural, ({ts}) => L(ts).match({nil: () => 0, cons: ({head, tail}) => N(rsize(head)).plus(N(fsize(tail)))}))
+// A tree after one more at a forest's end (`drops it`: the tree given left out).
+export const snoc = (bug?: 'drops it') => {
+  const name = bug ? 'snocDrop' : 'snoc'
+  const f: ReturnType<typeof define> = define(name, {ts: Forest, r: Rose}, Forest, ({ts, r}) => L(ts).match({nil: () => (bug ? Forest.nil : Forest.cons(r, Forest.nil)), cons: ({head, tail}) => Forest.cons(head, f(tail, r))}))
+  return f
+}
+// The mirror: each forest reversed, each tree in it mirrored.
+export const roseMirror = (bug?: 'drops a tree') => {
+  const [rn, fn] = bug ? ['rmirrorDrop', 'fmirrorDrop'] : ['rmirror', 'fmirror'], sn = snoc(bug ? 'drops it' : undefined)
+  const rm: ReturnType<typeof define> = define(rn, {t: Rose}, Rose, ({t}) => L(t).match({node: ({value, kids}) => Rose.node(value, fm(kids))}))
+  const fm: ReturnType<typeof define> = define(fn, {ts: Forest}, Forest, ({ts}) => L(ts).match({nil: () => Forest.nil, cons: ({head, tail}) => L(sn(fm(tail), rm(head)))}))
+  return rm
+}
+export const rmirror = roseMirror()
+
+// Lists of lists: a bag's lists (a field of a datatype declared before), concatenated, their lengths summed.
+export const Bag = data('Bag', {none: {}, more: {items: List, rest: self}})
+export const concat = (bug?: 'drops the first') => {
+  const name = bug ? 'concatDrop' : 'concat'
+  const f: ReturnType<typeof define> = define(name, {b: Bag}, List, ({b}) => L(b).match({none: () => List.nil, more: ({items, rest}) => (bug ? L(f(rest)) : L(app(items, f(rest))))}))
+  return f
+}
+export const cat = concat()
+export const lens = define('lens', {b: Bag}, natural, ({b}) => L(b).match({none: () => 0, more: ({items, rest}) => N(len(items)).plus(N(lens(rest)))}))
+
+// Recursion on a natural: n copies of x (`one more`: n + 1 of them), the first n items and the rest after them (`one
+// too many`: the rest after n + 1).
+export const replicate = (bug?: 'one more') => {
+  const name = bug ? 'replicateMore' : 'replicate'
+  const f: ReturnType<typeof define> = define(name, {n: natural, x: natural}, List, ({n, x}) => N(n).match({zero: () => (bug ? List.cons(x, List.nil) : List.nil), succ: ({pred}) => List.cons(x, f(pred, x))}))
+  return f
+}
+export const rep = replicate()
+export const take = define('take', {n: natural, xs: List}, List, ({n, xs}) => N(n).match({zero: () => List.nil, succ: ({pred}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => List.cons(head, take(pred, tail))})}))
+export const drop = (bug?: 'one too many') => {
+  const name = bug ? 'dropMore' : 'drop'
+  const f: ReturnType<typeof define> = define(name, {n: natural, xs: List}, List, ({n, xs}) => N(n).match({zero: () => (bug ? L(xs).match({nil: () => List.nil, cons: ({tail}) => L(tail)}) : L(xs)), succ: ({pred}) => L(xs).match({nil: () => List.nil, cons: ({tail}) => L(f(pred, tail))})}))
+  return f
+}
+export const drp = drop()
+
 // The laws, each over the functions as declared (a broken variant's law reads the broken function).
 export const laws = {
   lengthAppend: (a = app) => law('length of append', {xs: List, ys: List}, ({xs, ys}) => N(len(a(xs, ys))).eq(N(len(xs)).plus(N(len(ys))))),
@@ -78,6 +138,12 @@ export const laws = {
   insertCount: (i = ins) => law('insertion adds one of the item', {x: natural, y: natural, xs: List}, ({x, y, xs}) => N(count(y, i(x, xs))).eq(when(N(x).eq(y), N(count(y, xs)).plus(1), N(count(y, xs))))),
   insertLength: (i = ins) => law('insertion adds one item', {x: natural, xs: List}, ({x, xs}) => N(len(i(x, xs))).eq(N(len(xs)).plus(1))),
   bstInsert: (i = bins) => law('search tree insertion keeps the order', {x: natural, t: Tree}, ({x, t}) => B(bst(t)).implies(B(bst(i(x, t))))),
+  roseSumFlatten: (fl = rflat) => law('sum of a flattened rose tree', {t: Rose}, ({t}) => N(sum(fl(t))).eq(N(rsum(t)))),
+  roseSizeMirror: (m = rmirror) => law('size of a mirrored rose tree', {t: Rose}, ({t}) => N(rsize(m(t))).eq(N(rsize(t)))),
+  bagLength: (c = cat) => law('length of a concatenation', {b: Bag}, ({b}) => N(len(c(b))).eq(N(lens(b)))),
+  replicateLength: (r = rep) => law('length of n copies', {n: natural, x: natural}, ({n, x}) => N(len(r(n, x))).eq(n)),
+  takeDrop: (d = drp) => law('the first n and the rest', {n: natural, xs: List}, ({n, xs}) => L(app(take(n, xs), d(n, xs))).eq(L(xs))),
+  dropLength: (d = drp) => law('length after dropping n', {n: natural, xs: List}, ({n, xs}) => N(len(d(n, xs))).eq(N(len(xs)).minus(n))),
 } satisfies Record<string, (...a: never[]) => DataLaw>
 
 export const broken = {
@@ -86,11 +152,18 @@ export const broken = {
   mirrorMirror: () => laws.mirrorMirror(mirror('adds one')),
   insertSorted: () => laws.insertSorted(insert('puts the item first')),
   bstInsert: () => laws.bstInsert(bstInsert('goes the wrong way')),
+  // The hypothesis dropped: an insertion into any tree.
+  bstInsertAny: () => law('search tree insertion keeps the order', {x: natural, t: Tree}, ({x, t}) => B(bst(bins(x, t)))),
+  roseSumFlatten: () => laws.roseSumFlatten(roseFlatten('drops the value')),
+  roseSizeMirror: () => laws.roseSizeMirror(roseMirror('drops a tree')),
+  bagLength: () => laws.bagLength(concat('drops the first')),
+  replicateLength: () => laws.replicateLength(replicate('one more')),
+  takeDrop: () => laws.takeDrop(drop('one too many')),
+  dropLength: () => laws.dropLength(drop('one too many')),
 }
 
-// Not proven by the search within its time: the two lemmas it needs (allBelow and allAbove kept by an insertion under
-// a comparison) are found and proven, the law with them is not (research/frontier/README.md).
-export const open = new Set(['bstInsert'])
+// Laws the search doesn't prove within its time (research/frontier/README.md): none.
+export const open = new Set<string>([])
 
 if (import.meta.main) {
   // (`bun examples/data.ts <law>`: that law and its broken variant alone; `-<law>`: all but those)

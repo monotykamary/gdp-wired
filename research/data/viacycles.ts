@@ -29,7 +29,7 @@ const values: Record<string, (...xs: number[]) => number> = {}
 const big = (x: number) => { if (!Number.isSafeInteger(x)) throw new Error('big'); return x }
 for (const d of p.datas) {
   values[tagMap(d.name)] = n => (dec(d, n) as {c: number}).c
-  values[sizeMap(d.name)] = n => { const sz = (v: Value): number => { const o = v as {c: number, f: Value[]}; return 1 + d.ctors[o.c]!.fields.reduce((s, f, i) => s + (f.sort === 'self' ? sz(o.f[i]!) : 0), 0) }; return sz(dec(d, n)) }
+  values[sizeMap(d.name)] = n => { const sz = (v: Value): number => { const o = v as {c: number, f: Value[]}; return 1 + d.ctors[o.c]!.fields.reduce((s, f, i) => s + ((f.sort !== 'nat' && f.sort.data === d.name) ? sz(o.f[i]!) : 0), 0) }; return sz(dec(d, n)) }
   d.ctors.forEach((c, j) => {
     c.fields.forEach((f, i) => { values[fieldMap(d, j, i)] = n => { const v = dec(d, n) as {c: number, f: Value[]}; return v.c === j ? (f.sort === 'nat' ? v.f[i] as number : enc(d, v.f[i]!)) : 0 } })
     if (c.fields.length) values[ctorMap(d, j)] = (...xs) => big(enc(d, {c: j, f: c.fields.map((f, i) => (f.sort === 'nat' ? xs[i]! : dec(d, xs[i]!)))}))
@@ -37,7 +37,7 @@ for (const d of p.datas) {
 }
 for (const f of p.fns) values[f.name] = (...xs) => { const out = evalX(f.body(), new Map(f.params.map((q, i) => [`${f.name}.${q.name}`, typeof q.sort === 'object' ? dec(q.sort as Data, xs[i]!) : xs[i]!])), {}); return big(typeof f.ret === 'object' ? enc(f.ret as Data, out) : out as number) }
 // The order: a field of the datatype has a smaller code (Lean's bijection: z + m·q + r, each field at most q).
-const order: Fact[] = p.datas.map(d => ({name: `order ${d.name}`, keys: ['x$'], holds: {op: 'and', xs: d.ctors.flatMap((c, j) => c.fields.flatMap((f, i): C[] => (f.sort === 'self' ? [{op: 'or', xs: [{op: 'not', x: {op: '=', a: {op: 'get', map: tagMap(d.name), key: {op: 'var', name: 'x$'}} as E, b: {op: 'const', value: j}}}, {op: '<', a: {op: 'get', map: fieldMap(d, j, i), key: {op: 'var', name: 'x$'}}, b: {op: 'var', name: 'x$'}}]}] : [])))}} as Fact))
+const order: Fact[] = p.datas.map(d => ({name: `order ${d.name}`, keys: ['x$'], holds: {op: 'and', xs: d.ctors.flatMap((c, j) => c.fields.flatMap((f, i): C[] => ((f.sort !== 'nat' && f.sort.data === d.name) ? [{op: 'or', xs: [{op: 'not', x: {op: '=', a: {op: 'get', map: tagMap(d.name), key: {op: 'var', name: 'x$'}} as E, b: {op: 'const', value: j}}}, {op: '<', a: {op: 'get', map: fieldMap(d, j, i), key: {op: 'var', name: 'x$'}}, b: {op: 'var', name: 'x$'}}]}] : [])))}} as Fact))
 void unkey
 const t = performance.now()
 const out = findCycles([...fs.facts, ...order], [{name: l.name, concl: encY(p, l.holds, new Map())}], {values, ms: Number(process.argv[3] ?? 30000)})
