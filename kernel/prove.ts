@@ -11,7 +11,7 @@
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {type Lin, type Step, add, k, refuteFast, scale, solve, sub, v} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
-import {allowNode, certCyclic, certMs, certOn, certSearch, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, hasQuantified, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
+import {allowNode, certCyclic, certMs, certOn, certSearch, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
 import type {TStats} from '../core/translate.ts'
 import {type Goal, type Instances, type Liveness, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
@@ -1054,7 +1054,7 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
   const translated = out.proof ? ((st: TStats) => translatedProof(() => JSON.stringify(['machine', mc, laws, inst]), () => timedKind('instance', 0, () => machineNodes(mc, laws, inst, out.proof!, st)), st)) : undefined
   if (cyclicOn()) {
     if (!why) crossCyclic('machine', m.name, out.proven && out.checked, searched, usualMs, translated)
-    else console.error(`cyclic: ${JSON.stringify({kind: 'machine', name: m.name, usual: out.proven && out.checked, uncovered: true, why})}`)
+    else cycLog({kind: 'machine', name: m.name, usual: out.proven && out.checked, uncovered: true, why})
   }
   if (cert && out.proven && out.proof) {
     const c = certCyclic('machine', m.name, translated, searched, usualMs)
@@ -1063,7 +1063,7 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
       out.checked = !hist || hist.goals.every(g => out.proof!.trees[g.name] !== undefined && check(g, out.proof!.trees[g.name]!))
       Object.assign(out.proof, {cyclic: c.proof})
     } else { out.checked = checkLaws(m, laws, out.proof); uncovered('machine', m.name, c.why) }
-  } else if (certOn() && why && out.proven) console.error(`cyclic: ${JSON.stringify({kind: 'machine', name: m.name, cert: true, uncovered: true, why})}`)
+  } else if (certOn() && why && out.proven) cycLog({kind: 'machine', name: m.name, cert: true, uncovered: true, why})
   return out
 }
 // Whether the usual proof's trees are checked (off while GDP_CERT=cyclic makes the certificate a cyclic proof).
