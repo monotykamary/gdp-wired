@@ -228,6 +228,7 @@ class BoatEx:
                     self.past[(r.get("tool"), r.get("task"))] = float(r.get("seconds", 0))
         self.sess = boat.Session(pathlib.Path(runner).name, idle=idle, teardown=teardown, vm_type=vm_type, build=build)
         self.n = 0
+        self.calls = 0
         self.summary = None
 
     def _est(self, args) -> float:
@@ -240,6 +241,7 @@ class BoatEx:
 
     def remote(self, fn, *args):
         self.sess.ensure(1)
+        self.calls += 1
         out = {}
         self.sess.run([{"name": f"call-{fname(fn)}-{int(time.time() * 1000)}", "kind": "py", "module": self.module, "fn": fname(fn), "args": list(args),
                         "limit": self.limit, "weight": 1, "est": 1, **self.extra}], lambda it, row: out.update(row), max_wait=self.max_wait or 600)
@@ -292,6 +294,8 @@ class BoatEx:
             self.summary["batch"] = self.sess.batch
             self.summary["image"] = self.sess.image
             self.boat.log(self.boat.summary_line(self.summary))
+            print(f"{self.n + self.calls} calls on boat", flush=True)
+            self.summary["where"] = {"boat": self.n + self.calls}
         return self.summary
 
 
