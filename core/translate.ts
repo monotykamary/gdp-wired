@@ -236,7 +236,8 @@ export function decide(whole: Goal, conds: C[], inner: (wp: Path) => Tree | unde
     const lin = atoms[0]!, id = canon(lin)
     st.splits++
     const yes = decide(whole, conds.slice(i), inner, st, until, new Map(wp).set(id, {lin, holds: true}))
-    const no = yes && regrow(whole, new Map(wp).set(id, {lin, holds: false}), until)
+    // (the other side refuted by the node's rows as they are, a time below the steps before it say, before it is grown)
+    const np = new Map(wp).set(id, {lin, holds: false}), no = yes && (leafAt(whole, np, true, st) ?? regrow(whole, np, until))
     return yes && no ? {split: lin, yes, no} : undefined
   }
   return inner(wp)

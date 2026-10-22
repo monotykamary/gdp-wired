@@ -26,12 +26,14 @@
 //     Only the facts and uses the usual tree reads are kept.
 //   - then each step law s_j (proveStepLaws): node 3L + 2j after its k steps, rank (t, 0), the usual step law's goal over
 //     the cells at t − k..t − 1 (hyps the precondition, k <= t, t <= T, T < Ω, the assumption and `when` at each step's
-//     time, the state's equations after each step but the last; uses the laws at each of those times), and node
+//     time, the state's equations after each step but the last that the usual tree reads; uses the laws at each of those
+//     times; the times t − n at once, over a map one step back at a time, t − 1 − 1), and node
 //     3L + 2j + 1 the step law itself, rank (t, 2): hyps the precondition, k <= t, t <= T, T < Ω and `when` at each
 //     step's time, its conclusion `then` with plain names at t − k, primed ones at t and a later step's request (i@j) at
 //     its time, facts the step at t − k + 1..t (and the maps' at t), its one use node 3L + 2j, its tree made (`carry`).
 //     Over several steps a later step reads a map as the usual goal's term over the cells at t − k (its laws there a
-//     use only where they read no map), the step law's node reading each cell back to t − k through the maps' steps.
+//     use only where they read no map), the step law's node reading each cell back to t − k through the maps' steps (its
+//     tree carried on its goal sliced first).
 //   - a machine with flags that hold at every key is read as its sk machine, the usual goals' closing hypotheses the
 //     closing facts at their time (`qflagFacts`); a request allowed (`allowTranslated`) two nodes after the laws'.
 //   - recurrences, lemmas n, laws between b: nodes 0..n+b−1 as above (their trees made), using also node 2n + 2b + i
@@ -243,6 +245,7 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
     if (part) {
       const nf = part.from.filter(f => f[0]! >= h0 && f[0]! < base).length, nu = part.from.filter(f => f[0]! >= base && f[0]! < last).length
       const tree = carry(part, nf, nu, st, clock() + 2_000), wide = tree && timedKind('widen', 0, () => widen(part, g, tree))
+      if (env()?.GDP_CYCLIC_DEBUG) console.error(`[carry] ${n1.name}: ${part.hyps.length} of ${g.hyps.length} hyps, ${tree ? (wide ? 'carried, widened' : 'carried, not widened') : 'not carried'}`)
       if (wide) return wide
     }
     return carry(g, n1.insts.length, n1.uses.length, st, clock() + 2_000)
@@ -750,8 +753,8 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
       const carried = m.inputMaps ?? [], overMaps = K > 1 && mapNames.length > 0
       // The times: over a map, one step back at a time (t − 1 − 1, as a step's fact reads the time before it: the cells it
       // gives are the frames' own, with no key to prove equal); else t − n at once (BridgeRules.lean's cycKOk reads both).
-      // (one step back at a time, a time t − n is a term n deep, and each cell's chain of steps back reaches every fact
-      // before it: a node's goals over 32 steps grew as k³, 39 s for the budget rule's against 1.5 s for its usual proof)
+      // (one step back at a time, a time t − n is a term n deep and a premise's slice follows each state's cell back
+      // through every step's fact before it: the budget rule's 32 steps took 39 s against its usual proof's 1.5 s)
       const time = overMaps ? tBack : tSub
       const laterMaps = Object.fromEntries(Array.from({length: K - 1}, (_, j) => j + 2).flatMap(j => carried.map(c => [`${c}@${j}`, {to: `${c}@`, at: time(K - j + 1)}] as const)))
       // The times the steps start from (t − k, ..., t − 1), and the frames: the state before step j its cells at t − k + j − 1
@@ -794,7 +797,9 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
       const a = 3 * L + 2 * q, steps = Array.from({length: K - 1}, (_, j) => ({fact: 1, at: [time(K - j - 1)]}))
       // (the state after each step but the last its equations, hypotheses here as in the usual goal: the step's facts at
       // those times give them where the step law is, `steps` below)
-      const eqs = blocks.slice(0, K - 1).flatMap((b0, j) => g.hyps.slice(b0 + nl + na + (whens[j] ? 1 : 0) + nc, b0 + nl + na + (whens[j] ? 1 : 0) + nc + state.length).map(h => substC(h, frame)))
+      // (those the usual tree reads: each is a premise of this node where the step law uses it, and over a map one that
+      // reads the map after a step is proven through the map's cells back to t − k)
+      const eqs = blocks.slice(0, K - 1).flatMap((b0, j) => { const e0 = b0 + nl + na + (whens[j] ? 1 : 0) + nc; return g.hyps.slice(e0, e0 + state.length).flatMap((h, r) => (used.has(e0 + r) ? [substC(h, frame)] : [])) })
       const closed = cls.flatMap((c, j) => (overMaps && j ? [] : c.filter((_, r) => used.has(blocks[j]! + nl + na + (whens[j] ? 1 : 0) + r))))
       const own = overMaps ? [...assumes.slice(0, na), ...when.slice(0, whens[0] ? 1 : 0), ...later0] : [...assumes, ...when]
       stepSpecs.push({name: `${m.name}: ${sl.name}, after ${K === 1 ? 'a step' : `${K} steps`}`, hyps: conjuncts([...bounds, ...own, ...eqs]), concl: after, rank: [t, k(0)],
