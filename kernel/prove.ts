@@ -189,29 +189,30 @@ export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number,
   profile.goals.push({name: goal.name, ms: performance.now() - t, nodes: profile.nodes - n0, solves: profile.solves - s0, solveMs: profile.solveMs - m0, rowsMs: profile.rowsMs - r0, proven: 'tree' in out})
   return out
 }
-// The share of a root goal's budget, past the capped plain search, the CDCL search gets (GDP_CDCL_SHARE; 0 turns it off).
-// The quick search's nodes (GDP_QUICK_CAP, research/step's comparison).
-const quickCap = Number((globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_QUICK_CAP ?? 64)
-const cdclShare = Number((globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_CDCL_SHARE ?? 0.75)
+// The share of a root goal's budget the CDCL search gets (GDP_CDCL_SHARE; 0 turns it off), and the quick search's nodes
+// before it (GDP_QUICK_CAP; 64 where the CDCL search isn't tried, as before it): research/step's comparisons.
+const proveEnv = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env ?? {}
+const cdclShare = Number(proveEnv.GDP_CDCL_SHARE ?? 0.75), quickCap = Number(proveEnv.GDP_QUICK_CAP ?? 16)
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
+  // Past a few cases, CDCL over the atoms (kernel/cdcl.ts), with most of the budget: a linear goal's refutation there
+  // is a resolution of short clauses, which the tree search would find again in every case that reaches one. Unknown
+  // there, the plain search, the cuts and the plain search again have the rest. Not for a law over k steps in a row
+  // (kernel.ts names its goals `@k steps`): the cuts make its tree a chain of one step's refutations, which the CDCL
+  // search's tree, unfolded, repeats (research/step: four times the Lean text of examples/steps.ts). Nor for products.
+  const root = path.size === 0 && budget.nodes === 0 ? leafConstraints(goal, path) : undefined
+  const cdcl = !!root && cdclShare > 0 && !cellProducts.on && Number(/@(\d+) steps/.exec(goal.name)?.[1] ?? 1) <= 1 && !root.some(r => Object.keys(r.lin).some(isMonomial))
   // At the root: plainly first; where the cases multiply past a budget, through cuts. The plain budget halves with each
   // two open choices (what a plain search's cases grow by), so a long run's steps reach the cuts early.
-  if (path.size === 0 && budget.nodes === 0 && unitFirst && unitsNow) {
+  if (root && unitFirst && unitsNow) {
     // A goal that a few cases settle needs no units (finding them costs a Farkas check per atom); the rest get them.
     unitsNow = false
     try {
-      const quick = growPlain(goal, path, {nodes: 0, until: budget.until, cap: quickCap})
+      const quick = growPlain(goal, path, {nodes: 0, until: budget.until, cap: cdcl ? quickCap : 64})
       if ('tree' in quick || quick.stuck === 'sat' || quick.why === undefined) return quick
     } finally { unitsNow = true }
   }
-  if (path.size === 0 && budget.nodes === 0) {
-    const root = leafConstraints(goal, path)
-    // Past a few cases, CDCL over the atoms (kernel/cdcl.ts), with most of the budget: a linear goal's refutation there
-    // is a resolution of short clauses, which the tree search would find again in every case that reaches one.
-    // Unknown there, the plain search, the cuts and the plain search again have the rest. Not for a law over k steps
-    // in a row (kernel.ts names its goals `@k steps`): the cuts make its tree a chain of one step's refutations, which
-    // the CDCL search's tree, unfolded, repeats (research/step: four times the Lean text of examples/steps.ts).
-    if (cdclShare > 0 && !cellProducts.on && Number(/@(\d+) steps/.exec(goal.name)?.[1] ?? 1) <= 1 && !root.some(r => Object.keys(r.lin).some(isMonomial))) {
+  if (root) {
+    if (cdcl) {
       const now = clock(), end = withinDeadline(budget.until ?? Infinity)
       const out = growCdcl(goal, path, {nodes: 0, until: end === Infinity ? end : now + cdclShare * (end - now)})
       if ('tree' in out || out.stuck === 'sat') return out

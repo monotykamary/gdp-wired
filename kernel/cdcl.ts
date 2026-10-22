@@ -47,7 +47,7 @@ type Clause = {lits: Map<string, boolean>, node: number}
 const env = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env ?? {}
 const lpFill = Number(env.GDP_CDCL_FILL ?? 8), useLp = env.GDP_CDCL_LP !== '0', verify = env.GDP_CDCL_VERIFY === '1'
 // Counters research/step reads (times only while `on`).
-export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions: 0, solveMs: 0, rowsMs: 0, coreMs: 0, unfoldMs: 0, leaves: 0, resolved: 0, coreSize: 0, pathSize: 0, lpMisses: 0, resolved2: 0, unfoldWhy: '', orderMs: 0, boundMs: 0, openMisses: 0, lpMs: 0, lpUnknown: 0, fmCalls: 0, pivots: 0, lpRebuilds: 0, lpRows: 0, lpNnz: 0, lpVars: 0, lpLoad: 0}
+export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions: 0, solveMs: 0, rowsMs: 0, coreMs: 0, unfoldMs: 0, leaves: 0, resolved: 0, coreSize: 0, pathSize: 0, lpMisses: 0, resolved2: 0, unfoldWhy: '', orderMs: 0, boundMs: 0, openMisses: 0, lpMs: 0, lpUnknown: 0, fmCalls: 0, pivots: 0, lpRebuilds: 0, lpRows: 0, lpNnz: 0, lpVars: 0, lpLoad: 0, nodes: 0, boundRounds: 0}
 
 export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?: number}, opts: {maxLeaves?: number} = {}): Outcome {
   const until = budget.until ?? Infinity, st = cdclStats, timing = st.on
@@ -170,6 +170,7 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
     if (ci !== undefined) conflict = clauses[ci]!
     else {
       reader.begin()
+      st.nodes++
       const rowsR = t(() => reader.rows(), ms => { st.rowsMs += ms })
       const full: Constraint[] = rowsR
       if (verify) {
@@ -232,7 +233,7 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
           }
         }
         if (timing) st.boundMs += performance.now() - tb
-        if (forced) continue
+        if (forced) { st.boundRounds++; continue }
       }
       let steps: Step[] | undefined
       let verdict: ReturnType<typeof solve> | undefined
