@@ -3,8 +3,8 @@
 import {expect, test} from 'bun:test'
 import {refuseCyclic} from '../kernel/cyclic.ts'
 import {findCycles, findRank, linE, showE} from './cycles.ts'
-import {proveLoop, proveRule} from './dsl.ts'
-import {accumulator, ackermann, claimCases, euclid, loopCases, mccarthy, phases, ruleCases} from '../examples/cycles.ts'
+import {proveLeadsTo, proveLoop, proveRule} from './dsl.ts'
+import {accumulator, ackermann, claimCases, countUp, euclid, exchange, exchangeLoop, liveCases, loopCases, mccarthy, phases, ruleCases, toProduct, triangle} from '../examples/cycles.ts'
 
 test('claims over functions: each proven and checked by the kernel again, each broken variant refused', () => {
   for (const [c, want] of claimCases()) {
@@ -42,4 +42,18 @@ test('rules reading functions known by their facts: the lemma found in the searc
     expect([r.machine.name, proveRule(r, laws).proven]).toEqual([r.machine.name, want])
     expect(proveRule(r, laws, {search: {cycles: false}}).proven).toBe(false)
   }
+}, 60_000)
+
+test('past linear ranks with coefficients up to 4: the exact LP, products of two variables, ranks in order', () => {
+  expect(findCycles(exchange().facts, exchange().claims).found?.ranks['ex(x, y) <= 5']).toBe('(11·x + 2·y)')
+  expect(findCycles(countUp().facts, countUp().claims).found?.ranks['up(i, n) >= n·n']).toBe('(n·n − i)')
+  expect(findRank(exchangeLoop().loop)).toMatchObject({proven: true, checked: true, found: {rank: '(11·x + 2·y)'}})
+  expect(findRank(toProduct().loop)).toMatchObject({proven: true, checked: true, found: {rank: '(M·N − (i + 1))'}})
+  // A rank the runs' size bounds (32·x + y where x reaches 33) is refused: the triangle's is (x, y).
+  expect(findRank(triangle().loop).found?.rank).toBe('(x, y)')
+}, 60_000)
+
+test('liveness with no rank: the rank found, the broken ones refused', () => {
+  for (const [c, want] of liveCases()) expect([c.name, proveLeadsTo(c.r, c.laws, c.live).proven]).toEqual([c.name, want])
+  expect(proveLeadsTo(liveCases()[2]![0].r, [], liveCases()[2]![0].live).found?.rank).toBe('(2·inbox + outbox)')
 }, 60_000)

@@ -24,7 +24,7 @@ import {wide} from '../examples/wide.ts'
 import {area, areaLaws, counter, counterLaws, escalation, escalationLaws, fillMeter, fillMeterLaws, ladder, ladderLaws, ledger, ledgerLaws, pump, pumpLive, retries, retryLaws, retrySteps, tank, tankLaws} from '../examples/lemmas.ts'
 import {team, teamLaws, teamSteps} from '../examples/sizes.ts'
 import {allDone, batchLaws, batches, everyTaggedTicket, taggedLaws, taggedTickets, everyLoggedTicket, everyRecountedTicket, everyReview, everyTicket, loggedLaws, loggedTickets, recounted, recountedLaws, reviewLaws, reviews, ticketLaws, tickets} from '../examples/liveness.ts'
-import {areaLaws as foundAreaLaws, foundArea, foundInvoices, foundOrgChart, foundRetries, orgChart as bareOrgChart, orgChartLaws as bareOrgChartLaws, retryLaws as foundRetryLaws, retrySteps as foundRetrySteps} from '../examples/discover.ts'
+import {areaLaws as foundAreaLaws, foundArea, foundPyramid, pyramidLaws as foundPyramidLaws, foundInvoices, foundOrgChart, foundRetries, orgChart as bareOrgChart, orgChartLaws as bareOrgChartLaws, retryLaws as foundRetryLaws, retrySteps as foundRetrySteps} from '../examples/discover.ts'
 import {grantLaws, normalizedLaws, patternLaws} from '../examples/scopes.ts'
 import {certReport, leanProject, toLean} from './emit.ts'
 import {foldNodes, machineNodes, proveCyclic, recurNodes} from '../core/cyclic.ts'
@@ -96,7 +96,8 @@ const shard = process.env.SHARD?.split('/').map(Number)
 const cyclicItems = ['mccarthy', 'mutual', 'cycgrowing', 'cycfilled', 'cyccounter', 'cycrollup', 'cyccaps', 'cycfill', 'cyctally', 'cycbudget']
 // The proofs core/cycles.ts finds (examples/cycles.ts's leanItems; the suite's lean-cycles jobs, the loops in a file
 // of their own).
-const foundItems = ['cycmc91', 'cycack', 'cycgcd', 'cycacc', 'cycacc2', 'cycring', 'cycthrough', 'loopphases', 'loopphases3', 'loopother', 'loopeuclid', 'rule91', 'rule91lemma', 'ruledouble', 'ruledoublelemma']
+const foundItems = ['cycmc91', 'cycack', 'cycgcd', 'cycacc', 'cycacc2', 'cycring', 'cycthrough', 'loopphases', 'loopphases3', 'loopother', 'loopeuclid', 'rule91', 'rule91lemma', 'ruledouble', 'ruledoublelemma',
+  'cycexchange', 'cycsquare', 'looptriangle', 'loopexchange', 'loopproduct', 'rulefill', 'rulefilllemma', 'livebatches', 'livepipeline']
 // Datatype laws (core/data.ts, examples/data.ts): each its cyclic proof and the law about the Lean definitions (the
 // suite's lean-data job).
 const dataItems: Record<string, [() => DataLaw, string]> = {
@@ -143,6 +144,7 @@ const file = toLean(([
   // Lemmas nobody stated, found (core/discover.ts): each rule made again with what was found, its laws as given.
   {id: 'foundbackoff', machine: foundRetries().rule.machine, laws: foundRetryLaws(), stepLaws: foundRetrySteps()},
   {id: 'foundarea', machine: foundArea().rule.machine, laws: foundAreaLaws()},
+  {id: 'foundpyramid', machine: foundPyramid().rule.machine, laws: foundPyramidLaws()},
   {id: 'foundinvoices', machine: foundInvoices().rule.machine, laws: invoiceLaws(invoices('states no lemma')), stepLaws: invoiceSteps(invoices('states no lemma'))},
   {id: 'foundorgchart', fold: bareOrgChart().fold, laws: [...bareOrgChart().lemmas, ...foundOrgChart().lemmas, ...bareOrgChartLaws()]},
   // A decision about a carried list: the folds' equations and lemma assumed at the list's end.

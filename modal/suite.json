@@ -1294,7 +1294,7 @@
 },
 {
 "name": "lean-cycles",
-"cmd": "ONLY=cycmc91,cycack,cycgcd,cycacc,cycacc2,cycring,cycthrough,rule91,rule91lemma,ruledouble,ruledoublelemma bash scripts/lean-items.sh 2>&1",
+"cmd": "ONLY=cycmc91,cycack,cycgcd,cycacc,cycacc2,cycring,cycthrough,cycexchange,cycsquare,rule91,rule91lemma,ruledouble,ruledoublelemma,rulefill,rulefilllemma bash scripts/lean-items.sh 2>&1",
 "cwd": ".",
 "cpu": 4.0,
 "memory": 8192,
@@ -1302,7 +1302,7 @@
 },
 {
 "name": "lean-cycles-loops",
-"cmd": "ONLY=loopphases,loopphases3,loopother,loopeuclid bash scripts/lean-items.sh 2>&1",
+"cmd": "ONLY=loopphases,loopphases3,loopother,loopeuclid,looptriangle,loopexchange,loopproduct,livebatches,livepipeline bash scripts/lean-items.sh 2>&1",
 "cwd": ".",
 "cpu": 4.0,
 "memory": 8192,
