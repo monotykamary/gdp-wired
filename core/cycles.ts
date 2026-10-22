@@ -763,7 +763,8 @@ export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): R
   const {comps, left} = lexRanks([0], [node], samples, [...edges.values()], shared, until)
   // Ranks of degree 2 where the linear one leaves turns or the kernel refuses it (while i < N·M: N·M − i, where the runs
   // alone give 299 − i): one product of two variables at a time. The products the loop's own terms read first (a rank
-  // of degree 2 measures what its terms of degree 2 bound), before the invariants; the others after them.
+  // of degree 2 measures what its terms of degree 2 bound), before the invariants; the others after them, within a
+  // quarter of the time.
   const read = productsIn([l.while, l.body, l.state, l.pre ?? yes, l.assume ?? yes]).filter(([x, y]) => names.includes(x) && names.includes(y))
   const rest = products(names).filter(p => !read.some(r => id(r) === id(p)))
   const seen = new Set<string>()
@@ -811,7 +812,8 @@ export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): R
       }
     }
   }
-  tried = quadratic(rest, until)
+  // (the products the loop doesn't read within a quarter of its time: a search that fails tries each of them)
+  tried = quadratic(rest, Math.min(until, performance.now() + (opts.ms ?? 10_000) / 4))
   const late = tried.find(t => 'trees' in t.verdict)
   if (late && 'trees' in late.verdict) return done(late.rank, late.verdict.trees)
   if (!base || 'trees' in base.verdict) return {proven: false, checked: false, why: `no rank, linear or of degree 2, in order, drops on every turn of ${edges.size} sampled`}
