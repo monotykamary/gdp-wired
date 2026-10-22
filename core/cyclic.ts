@@ -52,7 +52,7 @@ import type {C, E, Law, Machine} from './machine.ts'
 import type {Fold, Goal, Instances, StepLaw, Subst, Tree} from '../kernel/kernel.ts'
 import {assumed, boundOf, foldObligations, obligations, substC, substE, witnessesOf} from '../kernel/kernel.ts'
 import {type CNode, type Cyclic, type Fact, type Use, baseHyps, descentGoal, instHyps, mainGoal, premiseGoal, refuseCyclic} from '../kernel/cyclic.ts'
-import {cellProducts, clock, grow, profile, usedHyps, widen, withDeadline} from '../kernel/prove.ts'
+import {cellProducts, clock, grow, profile, usedHyps, widen, withDeadline, withinDeadline} from '../kernel/prove.ts'
 import {type Reads, type Renamer, type TStats, carry, decide, readsFirst, renamer, translate, tstats} from './translate.ts'
 
 // What only the search reads: `opaque`, terms it reads as variables of their own in the node's goal (the trees are the
@@ -462,7 +462,7 @@ export function recurNodes(r: RecurCase, usual?: {lemmas?: UsualProof, between?:
     const carried = own.map((sp, i): NodeSpec => ({...sp, variants: undefined, carry: true, uses: [...sp.uses, i < n ? {node: N + i, subst: {}, guard: le(x, k(0))} : {node: N + i, subst: {}, guard: le(y, x)}]}))
     const rest = [...lemmaAfterT, ...betweenAfterT, ...lemmaStart, ...betweenStart], all = [...withReads(facts, carried, [...carried, ...rest]), ...rest]
     for (const [i, a] of all.slice(0, n + b).entries()) { const o = [...new Set([...shared(facts, a, all[n + b + i]!.concl), ...shared(facts, a, all[N + i]!.concl)].map(e => JSON.stringify(e)))].map(e => JSON.parse(e) as E); if (o.length) all[i] = {...a, opaque: o} }
-    const until = clock() + 10_000
+    const until = withinDeadline(clock() + 10_000)
     return translateMade(facts, all, made, st, until)
   }
 }
@@ -787,7 +787,7 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
     const all = [...nows, ...afters, ...starts, ...stepSpecs]
     for (const [i, a] of nows.entries()) { const o = [...new Set([...shared(facts, a, afters[i]!.concl), ...shared(facts, a, starts[i]!.concl)].map(e => JSON.stringify(e)))].map(e => JSON.parse(e) as E); if (o.length) a.opaque = o }
     // (a translation is bounded by a minute: a step law over 32 steps has a goal of 32 frames at every leaf)
-    const until = clock() + 60_000
+    const until = withinDeadline(clock() + 60_000)
     // (after a step, 1 <= t decided first: t ∸ 1 is then t − 1, and a cell read at a key over the cells at t − 1 has a
     // linear form)
     return translateMade(facts, all, usual!.lawsMade ? made.filter(x => x.node >= 3 * L) : made, st, until)
@@ -999,7 +999,7 @@ export function allowTranslated(given: Machine, laws: Law[], inst: Instances, p:
   const w = and(p.when, reqTS(Object.entries(p.request)), reqTS([]))
   const allowed: NodeSpec = {name, hyps: [...base, renamed(w)], concl: renamed(substC(m.assume, {vars: {}, maps: {}, flags})), rank: [t, k(3)],
     insts: closeHyps.length ? cl : [], uses: [{node: lawNodes.length, subst: {}, guard: yes}], carry: true}
-  const all = [...lawNodes, terms, allowed], whole = mainGoal(facts, all, terms), until = clock() + 10_000
+  const all = [...lawNodes, terms, allowed], whole = mainGoal(facts, all, terms), until = withinDeadline(clock() + 10_000)
   const ren = renamer({s: now, cells: Object.fromEntries(mapNames.map(map => [map, {to: `${map}@`, at: t}]))})
   const tree = timedKind('translate', 0, () => withProducts(() => decide(whole, closeFacts.length ? [le(t, T)] : [], wp => translate(g, whole, usual.tree, ren, st, until, new Map(), wp), st, until)))
   if (!tree) return {specs: [], why: `${terms.name}: not translated`}
@@ -1135,7 +1135,7 @@ export function foldNodes(f: Fold, laws: Law[], usual?: Record<string, Tree>, st
       const o = [...new Set([...shared(facts, b, kids[i]!.concl), ...shared(facts, b, leaves[i]!.concl)].map(e => JSON.stringify(e)))].map(e => JSON.parse(e) as E)
       return {...b, opaque: o.length ? o : undefined}
     })
-    const all = [...carried, ...kids, ...leaves], until = clock() + 10_000
+    const all = [...carried, ...kids, ...leaves], until = withinDeadline(clock() + 10_000)
     return translateMade(facts, all, made, st, until)
   }
 }

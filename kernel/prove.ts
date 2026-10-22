@@ -163,6 +163,8 @@ export function counted<T>(perMs: number, f: () => T): T {
   rate = perMs; deadline = Infinity
   try { return f() } finally { rate = 0; deadline = outer }
 }
+// A budget's end, within the deadline (a translation's own bound, core/cyclic.ts's, kept by the export's GDP_CERT_MS).
+export const withinDeadline = (until: number): number => Math.min(until, deadline)
 export function withDeadline<T>(until: number, f: () => T): T {
   const outer = deadline
   deadline = Math.min(outer, until)

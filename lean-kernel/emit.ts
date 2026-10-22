@@ -10,7 +10,7 @@ import {grow, minimal, proveBuilt, proveLaws, proveStepLaws, withDeadline} from 
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
 import {type Cyclic, descentGoal, mainGoal, premiseGoal} from '../kernel/cyclic.ts'
-import {allowNode, certMs, closingInsts, reqTS, withWitness, foldNodes, certMode, uncoveredWhy, hasQuantified, kWhens, machineNodes, type NodeSpec, proveCyclic, routeOf, searchedStepNodes, skMachine, stepLawNodes, tBack, tSub} from '../core/cyclic.ts'
+import {allowNode, certMs, closingInsts, reqTS, withWitness, foldNodes, certMode, quietly, uncoveredWhy, hasQuantified, kWhens, machineNodes, type NodeSpec, proveCyclic, routeOf, searchedStepNodes, skMachine, stepLawNodes, tBack, tSub} from '../core/cyclic.ts'
 import type {Fact} from '../kernel/cyclic.ts'
 import {leanLibrary} from './library.ts'
 export {leanLibrary}
@@ -786,12 +786,14 @@ example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : '
 // its sk machine (BridgeRules.lean's q bridges). What the cyclic route doesn't cover goes the usual way: a law that reads
 // a map at a key read from a map, and whatever no certificate is found for within the deadline (`certReport`).
 // The usual proof of a machine's laws and step laws, made once per toLean: an item exported the usual way after its
-// cyclic certificate wasn't found (cycMachineProof) reads the proof that search started from, not one made again.
+// cyclic certificate wasn't found (cycMachineProof) reads the proof that search started from, not one made again. It
+// is made with no cyclic certificate of its own (quietly): the export makes the certificate it exports from the usual
+// trees (cycMachineProof), and the usual export reads the trees, so a certificate made here is never read.
 const usualMade = new Map<string, ReturnType<typeof proveStepLaws>>()
 function proveStepLawsOnce(m: Machine, laws: Law[], stepLaws: StepLaw[]): ReturnType<typeof proveStepLaws> {
   const key = JSON.stringify([m, laws, stepLaws]), had = usualMade.get(key)
   if (had) return had
-  const r = proveStepLaws(m, laws, stepLaws)
+  const r = quietly(() => proveStepLaws(m, laws, stepLaws))
   usualMade.set(key, r)
   return r
 }
