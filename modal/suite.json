@@ -925,6 +925,13 @@
 "timeout": 900
 },
 {
+"name": "arith",
+"cmd": "bun test arith.test.ts 2>&1 && cd .. && bun examples/arith.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
 "name": "cyclic",
 "cmd": "bun test cyclic.test.ts 2>&1 && cd .. && bun examples/cyclic.ts 2>&1",
 "cwd": "core",

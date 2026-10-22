@@ -34,6 +34,7 @@ import type {Cyclic} from '../kernel/cyclic.ts'
 import {budget, budgetLaws, fill, fillLaws, mccarthy, mutual, tally, tallyLaws} from '../examples/cyclic.ts'
 import {leanItems as cycleLeanItems} from '../examples/cycles.ts'
 import {filled, growing} from '../examples/lemmas.ts'
+import {billing, billingLaws, evenLaw, ledger as signedLedger, ledgerLaws as signedLedgerLaws, pairs, rota, rotaLaws} from '../examples/arith.ts'
 
 const caps = rule('caps').params({d: nat}).inputs({acct: nat, day: nat, ok: bool}).maps({Acct: 0, Day: 0})
   .flags(({ok, acct, day, d, Acct, Day}) => ({granted: ok.and(Acct.at(acct).lt(1), Day.at(day).lt(d))}))
@@ -127,6 +128,11 @@ const file = toLean(([
   {id: 'minutes', machine: minutes().machine, laws: minuteLaws()},
   {id: 'larger', machine: larger.machine, laws: largerLaws},
   {id: 'room', machine: room().machine, laws: roomLaws(), lean: pairsLean},
+  // Division and remainder by a constant (div$k, mod$k: Lean's / and %), and a law about integers stated over Int.
+  ...[['rota', rota(), rotaLaws], ['billing', billing(), billingLaws], ['dispenser', pairs(), (r: ReturnType<typeof pairs>) => [evenLaw(r)]], ['ledger', signedLedger(), signedLedgerLaws]].map(([id, r, f]) => {
+    const laws = (f as (r: never) => Law[])(r as never)
+    return {id: id as string, machine: (r as {machine: Machine}).machine, laws}
+  }),
   // Recurrences: defined in Lean by the recurrence, their lemmas proven there by induction.
   {id: 'backoff', machine: retries().machine, laws: retryLaws(), stepLaws: retrySteps()},
   {id: 'twos', machine: counter().machine, laws: counterLaws()},

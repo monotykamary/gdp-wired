@@ -312,10 +312,17 @@ theorem ${id}_laws : ∀ maps ρ, evalC ρ maps ${id}_fold.pre = true → ∀ t,
 export function readable(id: string, laws: Law[], vars: string[], maps: string[], reach: {binders: string, hyp: string, call: string, have?: (j: number) => string}): string {
   for (const name of [...vars, ...maps]) if (name === 'ρ' || name === 'μ' || name.includes('«') || name.includes('»')) throw new Error(`${id}: the name ${name} can't be a Lean abbreviation here`)
   const q = (name: string) => `«${name}»`
-  const statement = (law: Law): string => {
+  // Division and remainder by a constant (div$k, mod$k): Lean's x / k and x % k, under the hypothesis that the map is
+  // that function (what the facts' theorem, <id>_facts_hold, takes too), rewritten into the statement.
+  const arithOf = (map: string) => { const m = /^(div|mod)\$(\d+)$/.exec(map); return m ? {op: m[1] === 'div' ? '/' : '%', k: Number(m[2])} : undefined }
+  const arithIn = (law: Law) => [...new Set([...JSON.stringify(law.holds).matchAll(/"op":"get","map":"((?:div|mod)\$\d+)"/g)].map(m => m[1]!))].filter(mp => maps.includes(mp)).sort()
+  const hypName = (map: string) => `h_${map.replace('$', '')}`
+  const arithBinders = (law: Law) => arithIn(law).map(mp => ` (${hypName(mp)} : μ ${q(mp)} = fun x => x ${arithOf(mp)!.op} ${arithOf(mp)!.k})`).join('')
+  const keyName = (law: Law, name: string) => { const j = (law.keys ?? []).indexOf(name); return name === law.forall ? 'k' : j >= 0 ? `k${j + 2}` : undefined }
+  const statement = (law: Law, plain = true): string => {
     const t = (e: E): string => {
       switch (e.op) {
-        case 'var': { const j = (law.keys ?? []).indexOf(e.name); return e.name === law.forall ? 'k' : j >= 0 ? `k${j + 2}` : `ρ ${q(e.name)}` }
+        case 'var': return keyName(law, e.name) ?? `ρ ${q(e.name)}`
         case 'const': return String(e.value)
         case 'add': return `(${t(e.a)} + ${t(e.b)})`
         case 'sub': return `(${t(e.a)} - ${t(e.b)})`
@@ -323,7 +330,7 @@ export function readable(id: string, laws: Law[], vars: string[], maps: string[]
         case 'prod': return `(${t(e.a)} * ${t(e.b)})`
         case 'min': case 'max': return `(${e.op} ${t(e.a)} ${t(e.b)})`
         case 'if': return `(if ${p(e.c)} then ${t(e.then)} else ${t(e.else)})`
-        case 'get': return `(μ ${q(e.map)} (${t(e.key)}))`
+        case 'get': { const a = plain ? arithOf(e.map) : undefined; return a ? `(${t(e.key)} ${a.op} ${a.k})` : `(μ ${q(e.map)} (${t(e.key)}))` }
       }
     }
     const p = (c: C): string => {
@@ -338,16 +345,95 @@ export function readable(id: string, laws: Law[], vars: string[], maps: string[]
         case 'all': throw new Error(`${id}: a law has no quantifier inside`)
       }
     }
-    return law.keys?.length ? `∀ k ${law.keys.map((_, j) => `k${j + 2}`).join(' ')} : Nat, ${p(law.holds)}` : law.forall ? `∀ k : Nat, ${p(law.holds)}` : p(law.holds)
+    return quantified(law, p(law.holds))
   }
+  const quantified = (law: Law, body: string) => (law.keys?.length ? `∀ k ${law.keys.map((_, j) => `k${j + 2}`).join(' ')} : Nat, ${body}` : law.forall ? `∀ k : Nat, ${body}` : body)
+  // Where the source says integer (a variable x beside x$neg: the value x − x$neg, core/dsl.ts's Int), the law again
+  // over Int: each comparison's two sides moved to one, each integer's two naturals read together as its value, x div k
+  // and x mod k of an integer as Lean's Int / and % (pos + (k − 1)·neg's quotient is the value's plus neg, its remainder
+  // the value's). Proven from the law over the naturals by omega. Only for laws whose terms are sums (no if, min, max,
+  // truncation or product): those have no plain statement over Int to give.
+  const ints = vars.filter(x => vars.includes(`${x}$neg`))
+  const intStatement = (law: Law): string | undefined => {
+    type Lin = Map<string, {c: number, show: string}>
+    const plus = (a: Lin, b: Lin, f = 1): Lin => { const out: Lin = new Map([...a].map(([key, v]) => [key, {...v}])); for (const [key, v] of b) { const w = out.get(key); if (w) w.c += f * v.c; else out.set(key, {c: f * v.c, show: v.show}) } return out }
+    const natShow = (e: E): string | undefined => { const r = lin(e); if (!r) return undefined; return statementOfE(e) }
+    const statementOfE = (e: E): string => { const l2: Law = {...law, holds: {op: '=', a: e, b: e}}; return statement({...l2, forall: undefined, keys: undefined} as Law).split(' = ')[0]! }
+    const value = (x: string) => `((ρ ${q(x)} : Int) - ρ ${q(`${x}$neg`)})`
+    // An integer's pos + (k − 1)·neg, read back as the integer.
+    const intKey = (key: E, k: number): string | undefined => {
+      const l = lin(key)
+      if (!l) return undefined
+      const terms = [...l].filter(([, v]) => v.c !== 0)
+      const x = ints.find(i => l.get(`v:${i}`)?.c === 1)
+      return x && terms.length === (k > 1 ? 2 : 1) && (k === 1 || l.get(`v:${x}$neg`)?.c === k - 1) && !l.has('1') ? x : undefined
+    }
+    const lin = (e: E): Lin | undefined => {
+      switch (e.op) {
+        case 'var': { const kn = keyName(law, e.name); return new Map([[`v:${e.name}`, {c: 1, show: kn ? `(${kn} : Int)` : `(ρ ${q(e.name)} : Int)`}]]) }
+        case 'const': return e.value ? new Map([['1', {c: e.value, show: ''}]]) : new Map()
+        case 'add': { const a = lin(e.a), b = lin(e.b); return a && b && plus(a, b) }
+        case 'mul': { const a = lin(e.a); return a && new Map([...a].map(([key, v]) => [key, {c: v.c * e.k, show: v.show}])) }
+        case 'get': {
+          const a = arithOf(e.map), x = a ? intKey(e.key, a.k) : undefined
+          if (a && x) return a.op === '%' ? new Map([[`mod:${a.k}:${x}`, {c: 1, show: `(${value(x)} % ${a.k})`}]]) : new Map([[`div:${a.k}:${x}`, {c: 1, show: `(${value(x)} / ${a.k})`}], [`v:${x}$neg`, {c: 1, show: `(ρ ${q(`${x}$neg`)} : Int)`}]])
+          const shown = natShow(e.key) === undefined ? undefined : statementOfE(e)
+          return shown === undefined ? undefined : new Map([[`get:${shown}`, {c: 1, show: `(${shown} : Int)`}]])
+        }
+        case 'sub': case 'min': case 'max': case 'prod': case 'if': return undefined
+      }
+    }
+    const side = (ts: [string, number][]) => (ts.length ? ts.map(([show, c]) => (c === 1 ? show : `${c} * ${show}`)).join(' + ') : '0')
+    const cmp = (c: Extract<C, {a: E}>): string | undefined => {
+      const a = lin(c.a), b = lin(c.b)
+      if (!a || !b) return undefined
+      const l = plus(a, b, -1)
+      // Each integer's two naturals together: c·x − c·x$neg is c times its value.
+      for (const x of ints) {
+        const pos = l.get(`v:${x}`), neg = l.get(`v:${x}$neg`)
+        if (pos && neg && pos.c === -neg.c && pos.c !== 0) { l.delete(`v:${x}`); l.delete(`v:${x}$neg`); l.set(`int:${x}`, {c: pos.c, show: value(x)}) }
+      }
+      const k0 = l.get('1')?.c ?? 0
+      l.delete('1')
+      const terms = [...l.values()].filter(v => v.c !== 0)
+      const left: [string, number][] = [...terms.filter(v => v.c > 0).map(v => [v.show, v.c] as [string, number]), ...(k0 > 0 ? [[String(k0), 1] as [string, number]] : [])]
+      const right: [string, number][] = [...terms.filter(v => v.c < 0).map(v => [v.show, -v.c] as [string, number]), ...(k0 < 0 ? [[String(-k0), 1] as [string, number]] : [])]
+      return `${side(left)} ${c.op === '<=' ? '≤' : c.op} ${side(right)}`
+    }
+    const p = (c: C): string | undefined => {
+      switch (c.op) {
+        case '<=': case '<': case '=': return cmp(c)
+        case 'and': case 'or': { const xs = c.xs.map(p); return xs.some(x => x === undefined) ? undefined : xs.length ? `(${xs.join(c.op === 'and' ? ' ∧ ' : ' ∨ ')})` : c.op === 'and' ? 'True' : 'False' }
+        case 'not': { const x = p(c.x); return x === undefined ? undefined : `¬(${x})` }
+        case 'flag': case 'all': return undefined
+      }
+    }
+    const reads = new Set([...JSON.stringify(law.holds).matchAll(/"name":"([^"]+)"/g)].map(m => m[1]!))
+    if (!ints.some(x => reads.has(x) || reads.has(`${x}$neg`))) return undefined
+    const body = p(law.holds)
+    return body === undefined ? undefined : quantified(law, body)
+  }
+  const argNames = (binders: string) => [...binders.matchAll(/\((\S+) :/g)].map(m => m[1]!)
   const used = new Set(laws.flatMap(l => [...JSON.stringify(l.holds).matchAll(/"name":"([^"]+)"|"map":"([^"]+)"/g)].map(m => m[1] ?? m[2]!).filter(name => name !== l.forall && !(l.keys ?? []).includes(name))))
   return `namespace ${id}
 ${[...vars.filter(v => used.has(v)).map(v => `abbrev ${q(v)} : Nat := ${vars.indexOf(v)}`), ...maps.filter(mp => used.has(mp)).map(mp => `abbrev ${q(mp)} : Nat := ${maps.indexOf(mp)}`)].join('\n')}
-${laws.map((law, j) => (law.stated ? `-- ${law.name}: as written, with some key; proven (below) with the prover's witness in place\n` : '') + (JSON.stringify(law.holds).includes('"op":"if"') ? `-- ${law.name}: its terms read an if, so no plain statement here (${id}_laws holds it)` : `/-- ${law.name.replace(/-\//g, '- /')} -/
-theorem law${j} ${reach.binders} (h : ${reach.hyp}) : ${statement(law)} := by
-  ${law.keys?.length ? `${reach.have ? reach.have(j) : `have hl : ${id}_e${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])`}
-  exact fun k ${law.keys.map((_, i) => `k${i + 2}`).join(' ')} => (evalC_iff (upd (${law.keys.reduce((acc, key, i) => `upd (${acc}) ${vars.indexOf(key)} k${i + 2}`, 'ρ')}) ${vars.indexOf(law.forall!)} k) μ ${id}_l${j}.holds).mp (hl ${law.keys.map((_, i) => `k${i + 2}`).join(' ')} k)` : `${reach.have ? reach.have(j) : `have hl : ${id}_l${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])`}
-  ${law.forall ? `exact fun k => (evalC_iff (upd ρ ${vars.indexOf(law.forall)} k) μ ${id}_l${j}.holds).mp (hl k)` : `exact (evalC_iff ρ μ ${id}_l${j}.holds).mp hl`}`}`)).join('\n')}
+${laws.map((law, j) => {
+    if (JSON.stringify(law.holds).includes('"op":"if"')) return `-- ${law.name}: its terms read an if, so no plain statement here (${id}_laws holds it)`
+    const hyps = arithBinders(law), names = arithIn(law).map(hypName), rw = names.length ? `have hμ : ${statement(law, false)} := hl'\n  rw [${names.join(', ')}] at hμ\n  exact hμ` : `exact hl'`
+    const own = law.keys?.length ? `${reach.have ? reach.have(j) : `have hl : ${id}_e${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])`}
+  have hl' := fun k ${law.keys.map((_, i) => `k${i + 2}`).join(' ')} => (evalC_iff (upd (${law.keys.reduce((acc, key, i) => `upd (${acc}) ${vars.indexOf(key)} k${i + 2}`, 'ρ')}) ${vars.indexOf(law.forall!)} k) μ ${id}_l${j}.holds).mp (hl ${law.keys.map((_, i) => `k${i + 2}`).join(' ')} k)
+  ${rw}` : `${reach.have ? reach.have(j) : `have hl : ${id}_l${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])`}
+  ${law.forall ? `have hl' := fun k => (evalC_iff (upd ρ ${vars.indexOf(law.forall)} k) μ ${id}_l${j}.holds).mp (hl k)` : `have hl' := (evalC_iff ρ μ ${id}_l${j}.holds).mp hl`}
+  ${rw}`
+    const int = intStatement(law)
+    return (law.stated ? `-- ${law.name}: as written, with some key; proven (below) with the prover's witness in place\n` : '') + `/-- ${law.name.replace(/-\//g, '- /')} -/
+theorem law${j} ${reach.binders}${hyps} (h : ${reach.hyp}) : ${statement(law)} := by
+  ${own}` + (int === undefined ? '' : `
+/-- ${law.name.replace(/-\//g, '- /')}, over Int -/
+theorem law${j}_int ${reach.binders}${hyps} (h : ${reach.hyp}) : ${int} := by
+  have hn := law${j} ${[...argNames(reach.binders), ...names, 'h'].join(' ')}
+  ${law.forall ? `intro k${(law.keys ?? []).map((_, i) => ` k${i + 2}`).join('')}\n  have hn := hn k${(law.keys ?? []).map((_, i) => ` k${i + 2}`).join('')}\n  ` : ''}omega`)
+  }).join('\n')}
 end ${id}`
 }
 

@@ -102,6 +102,7 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
 }
 function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
   const t0 = performance.now(), until = t0 + (opts.ms ?? 20000), rule = isRule(target) ? target : undefined
+  if (rule) { const ks = divisorsIn([...laws, ...stepLaws] as never); if (ks.size) rule.dividesBy(...ks) }
   const m = rule ? rule.machine : target as Machine
   let proofs = 0
   // The rule (or machine) the kernel proves the candidates with: once a remainder is among them, one that declares

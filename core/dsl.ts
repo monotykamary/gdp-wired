@@ -2366,7 +2366,11 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
   return undefined
 }
 const refutedVerdict = (out: NonNullable<ReturnType<typeof refuteByRuns>>): Verdict => ({proven: false, checked: false, goal: out.goal, stuck: 'sat', witness: out.witness, ...(out.run ? {run: out.run} : {})})
+// The divisors some laws read (modBy, divBy), noted on the rule so its machine declares them: a law may come from
+// another instance of the same rule (a factory called twice).
+const noting = <R extends Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>>(r: R, ...xs: object[]): R => { const ks = divisorsIn(xs as never); if (ks.size) r.dividesBy(...ks); return r }
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions = {}): Verdict {
+  noting(r, laws)
   const refuted = refuteByRuns(r, laws)
   if (refuted) return refutedVerdict(refuted)
   const out = proveLaws(r.machine, withKinds(r, laws))
@@ -2374,6 +2378,7 @@ export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws:
   return searched(r, laws, [], v, opts)
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
+  noting(r, laws, stepLaws)
   const refuted = refuteByRuns(r, laws, stepLaws)
   if (refuted) return refutedVerdict(refuted)
   const out = proveStepLaws(r.machine, withKinds(r, laws), stepLaws)
@@ -2412,6 +2417,7 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
 export type {StepLaw}
 export type {Liveness}
 export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: Liveness, opts: {ms?: number} = {}): Verdict {
+  noting(r, laws, l)
   if (Array.isArray(l.rank) && !l.rank.length) {
     const f = findLeadsTo(r.machine, withKinds(r, laws), l, {params: (rand, bound) => r.randomParams(rand, bound), input: (rand, bound, ps) => r.randomInput(rand, bound, ps)}, opts)
     return {proven: f.proven, checked: f.checked, ...(f.goal ? {goal: f.goal, stuck: f.stuck} : {}), ...(f.witness ? {witness: f.witness} : {}), ...(f.why ? {why: f.why} : {}),
