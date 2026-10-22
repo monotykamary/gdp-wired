@@ -126,12 +126,14 @@ drop of the rank along the run is a step law (a node), but that a rank of natura
 the run then takes a helpful step needs an argument over the run itself. Covering it would take a cyclic rule over
 infinite runs (nodes whose conclusions hold eventually, ranked by the run's own time), not this one.
 
-In TypeScript the default (`GDP_CERT=usual` turns it off) makes the same certificates (kernel/prove.ts): laws,
-histories through their plain machine, one-step step laws and k-step laws over no map translated; with `GDP_CERT_SEARCH=1` also flags at every key,
-k-step laws over a map and requests allowed, searched within `GDP_CERT_MS` (10,000 ms), the usual certificate kept where
-none is found. The export searches within the same deadline. Left on the usual rule in `runs/modal/cycexport/final2-search`
-(the suite with both): 6 machines (a law reading a map at a key read from a map), 19 step laws and 22 k-step laws (none
-found in time), and the liveness (27) and loop (67) claims along infinite runs above.
+In TypeScript the default (`GDP_CERT=usual` turns it off) makes the same certificates (kernel/prove.ts), each
+translated from the usual proof: laws (a machine with flags that hold at every key through its sk machine), histories
+through their plain machine, step laws and k-step laws (over a map too: a later step's map the usual goal's term over the
+cells at t − k), requests allowed, recurrences and folds. Where a translation isn't made the usual trees are the
+certificate, checked as before, and the proof is counted uncovered with why; `GDP_CERT_SEARCH=1` searches those first,
+within `GDP_CERT_MS` (10,000 ms). The export searches within the same deadline. Left on the usual rule in
+`runs/modal/cover/final-default` (the suite by default): 6 machines (a law reading a map at a key read from a map), 12
+k-step laws (not translated), and the liveness (27) and loop (67) claims along infinite runs above.
 
 **kernel.ts gap found here, since fixed:** `loopObligations` accepted ranks that read the turn's inputs. `forever`
 (state x from 0, input w, while x < w, x := x + 1, rank w ∸ x) passed kernel.ts's check, yet the loop runs forever when
