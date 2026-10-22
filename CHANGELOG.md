@@ -52,8 +52,7 @@ checked in Lean on the standard axioms (`runs/modal/dataplus/corpus1`).
 
 Every rule the usual route proves now gets its cyclic certificate by translation, the TypeScript certificate searched
 nowhere by default: flags that hold at every key, k-step laws over a map and requests allowed join the laws, step laws,
-recurrences and folds. Left on
-the usual rule, by default, in the whole suite: 112 proofs where 0.19.0 left 1,122 (`runs/modal/cover/final-default`
+recurrences and folds. Left on the usual rule, by default, in the whole suite: 112 proofs where 0.19.0 left 1,122 (`runs/modal/cover/final-default`
 against `runs/modal/flip/default`), the claims about runs that never end (liveness 27, loops 67, whose step laws are
 certified), six laws reading a map at a key read from a map, and 12 k-step laws the translation doesn't make. A
 datatype search's verdict no longer depends on the container it runs in. The trusted code is unchanged (kernel/kernel.ts,
@@ -87,11 +86,11 @@ kernel/cyclic.ts, lean-kernel/*.lean).
   made within their budgets, about 200 s of job time between them (`runs/modal/cover/a3`), so they stay on the usual
   rule.
 - The datatype search's budgets are counted in work, not wall time (kernel/prove.ts's `counted` and `clock`: the
-  solver's rows read and made, each node's rows; core/data.ts's `dataRate`, 150 units a millisecond, above the 59 to 138
-  the corpus's searches do on Modal, `runs/modal/cover/cal2`). Its verdicts are the same in three containers, two of 2
-  vCPU and one of 1 (`runs/modal/cover/data2`: the same lines, reverse of reverse proven in each, in 25.9 s on the
-  first), and the frontier's datatype scores those of 0.19.0 (3, 3, 3 and 2 of 3). The suite's `data` job is split:
-  `data-open` runs the open law (a search tree's insertion), 412.6 s, alone (`runs/modal/cover/final-default`).
+  solver's rows read and made, each node's rows; core/data.ts's `dataRate`, 300 units a millisecond, above the 55 to 240
+  the corpus's searches do on Modal, `runs/modal/cover/data4`'s data-cal), so a budget lets each do at least the work it
+  did in wall time. Its verdicts are the same in a container of 2 vCPU and one of 1 (`runs/modal/cover/data4`: the same
+  lines, reverse of reverse proven in each, in 29.6 s and 23.0 s), every frontier datatype shard 3 of 3. The suite's
+  `data` job is split, the search tree's insertion its own job (`data-bst`).
 - Simpler: `GDP_CYCLIC_STEP` and `GDP_CYCLIC_AFTER` (search-only) are gone, and the switches are listed in one place
   (core/cyclic.ts's header); one reader of `GDP_CERT` (`certMode`, which emit.ts's `cyclicCerts` is); in core/cyclic.ts
   one copy each of a law's keys and tuples, the fresh keys, the functions' facts, the step's update, the laws a node uses
