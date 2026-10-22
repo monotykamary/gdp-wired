@@ -115,7 +115,7 @@ When a law is false, the GPU search finds a real run that breaks it. When a law 
 **What it leaves to Lean or Bend.** Two things, and neither is a gap the next feature closes: proofs the prover would
 have to invent (induction over a recursive structure whose proof needs a lemma nobody stated and `discover` doesn't find, and arithmetic with
 products of unknowns beyond what products of facts and sums of squares give; integer arithmetic with induction or
-with products is undecidable; a lemma you state about a recurrence is proven, but a recursive datatype as a value is Lean's), and shipping an arbitrary algorithm as its proved source (gdp-wired ships the rule as JavaScript; Bend
+with products is undecidable; a lemma you state about a recurrence is proven, and `proveData` finds the induction and lemmas for a recursive datatype as a value, up to six symbols a lemma), and shipping an arbitrary algorithm as its proved source (gdp-wired ships the rule as JavaScript; Bend
 compiles the proved source itself). The full list of what is and isn't in scope is in
 [`docs/comparison.md`](docs/comparison.md#gdp-wireds-scope-in-detail).
 
