@@ -337,7 +337,7 @@ function copyNode(x: {fn: Fn, law: DataLaw}, b: Built, fs: ReturnType<typeof fac
   const w = walker(b, fs, nodeOf, f.name)
   if (!w.inst(`fn ${f.name}`, vs) || !w.inst(`fn ${copy}`, vs)) return undefined
   const body = (g: string) => { const h = fs.facts[fs.at.get(`fn ${g}`)!]!.holds, eq = (h.op === 'and' ? h.xs[0]! : h) as C & {op: '='}; return substE(eq.b, {vars: Object.fromEntries(f.params.map((q, i) => [`${g}.${q.name}`, vs[i]!])), maps: {}, flags: {}}) }
-  if (!w.walkE(body(f.name), body(copy))) { if (process.env.DATA_TRACE) console.error(`[transfer] ${x.law.name}: the bodies differ: ${JSON.stringify(body(f.name)).slice(0, 600)} || ${JSON.stringify(body(copy)).slice(0, 600)}`); return undefined }
+  if (!w.walkE(body(f.name), body(copy))) return undefined
   const scheme = recursive(f) ? schemesOf(b.p, x.law).find(sc => sc.name.startsWith(`recursion of ${f.name} `)) : undefined
   if (recursive(f) && !scheme) return undefined
   const on = scheme?.on, size: E = !on ? k(0) : on.d === 'nat' ? {op: 'var', name: on.v} : {op: 'get', map: `${on.d.name}.size`, key: {op: 'var', name: on.v}}
