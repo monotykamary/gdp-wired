@@ -166,8 +166,8 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
     const decLemmas = (f: Fn): {name: string, text: string}[] => (f.termination?.obligations ?? []).flatMap((o, i) => {
       if (!JSON.stringify(o.law.holds).includes('"op":"call"')) return []
       const names = new Map(o.law.vars.map(v => [v.name, name(v.name)]))
-      const on = o.scheme?.match(/ on ([^,]+)/)?.[1], fnSimp = p.fns.filter(g => g.name !== f.name).map(g => `, ${g.name}`).join('')
-      const close = `all_goals (try simp_all [${p.datas.map(d => `${d.name}.size`).join(', ')}${fnSimp}]) <;> (repeat' split) <;> (try simp_all) <;> omega`
+      const on = o.scheme?.match(/ on ([^,]+)/)?.[1], fnSimp = p.fns.filter(g => g.name !== f.name).map(g => g.name).join(', ')
+      const close = `(try simp only [${fnSimp}] at *) <;> (repeat' split) <;> (try simp only [${p.datas.map(d => `${d.name}.size`).join(', ')}] at *) <;> omega`
       return [{name: `${f.name}_dec${i + 1}`, text: `theorem ${f.name}_dec${i + 1}${o.law.vars.map(v => ` (${name(v.name)} : ${sortLean(v.sort)})`).join('')} :\n    ${lp(o.law.holds, names)} := by\n  ${on && names.has(on) ? `induction ${names.get(on)} <;> ` : ''}${close}`}]
     })
     for (const [i, f] of p.fns.entries()) {

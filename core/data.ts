@@ -369,7 +369,7 @@ function recursion(fn: Fn): Rec {
 // pair or triple of them, a sum of two or of all, then the lexicographic rank core/cycles.ts's LP fits to the runs.
 export type Measure = {comps: {coef: number[], c: number}[]}
 export type Termination = {measure: Measure, text: string, obligations: {law: DataLaw, proof?: CyclicVerdict, scheme?: string, lemmas: string[]}[], ms: number}
-export const terminationMs = {ms: 20_000}
+export const terminationMs = {ms: 10_000}
 const measurable = (s: Sort) => s === 'nat' || s instanceof Data
 function measureOf(name: string, ps: {name: string, sort: Sort}[], m: (string | string[])[]): Measure {
   if (!m.length) throw new Error(`${name}: an empty measure`)
@@ -506,14 +506,36 @@ function candidates(fn: Fn, edges: {s: number[], t: number[]}[]): Measure[] {
   }
   return out
 }
+// An obligation as one node of a cyclic proof (no use, no models): its conclusion, each definition it reads unfolded
+// once, the constructors' facts at the values built, the shape at each size it reads and at its variables of a
+// datatype, the congruences 16 random models' explanations use. The kernel checks it as any cyclic proof; undefined where it isn't proven.
+function directly(law: DataLaw, ms: number): CyclicVerdict | undefined {
+  const p = programOf([law]), fs = factsOf(p), concl = encY(p, law.holds, new Map())
+  varSorts = new Map(law.vars.flatMap(v => (v.sort instanceof Data ? [[v.name, v.sort] as [string, Data]] : [])))
+  const until = clock() + ms
+  const insts = instancesOf(p, fs, {roots: [concl], others: [], depth: 1, shapesAt: [...varSorts.keys()].map(ev), etaAt: [], models: modelsFor(p, law, 16, 3), until})
+  if (clock() > until) return undefined
+  const was = pairedKeys.skip
+  pairedKeys.skip = true
+  try {
+    const v = withDeadline(until, () => proveCyclic(fs.facts, [{name: law.name, hyps: [], concl, rank: [k(0)], insts, uses: []}]))
+    return v.proven && v.checked ? v : undefined
+  } finally { pairedKeys.skip = was }
+}
 function termination(fn: Fn, why: string): Termination {
   return counted(dataRate, () => {
+    if (dataTrace) console.error(`[data] termination of ${fn.name}`)
     const t0 = performance.now(), sites = callSites(fn)
     if (!fn.params.some(p => measurable(p.sort))) throw new Error(`${why}, and it has no parameter a measure reads (a natural or a datatype value)`)
-    const edges = runEdges(fn), until = clock() + terminationMs.ms, tried: string[] = []
+    if (dataTrace) console.error(`[data]   ${sites.length} calls`)
+    const edges = runEdges(fn), until = clock() + terminationMs.ms, tried: string[] = [], seen = new Set<string>()
+    if (dataTrace) console.error(`[data]   its runs: ${edges.length} calls at ${Math.round(performance.now() - t0)} ms`)
     for (const m of candidates(fn, edges)) {
+      if (dataTrace) console.error(`[data]   ${showMeasure(fn, m)} at ${Math.round(performance.now() - t0)} ms`)
       if (clock() > until) { tried.push('out of time'); break }
       const text = showMeasure(fn, m), bad = edges.find(e => !lowers(m, e))
+      if (seen.has(text)) continue
+      seen.add(text)
       if (bad) { if (fn.stated || !tried.length) tried.push(`${text}: a call of its runs doesn't lower it (from ${JSON.stringify(bad.s)} to ${JSON.stringify(bad.t)}, the parameters' sizes)`); continue }
       const obligations: Termination['obligations'] = []
       let failed: string | undefined
@@ -521,10 +543,16 @@ function termination(fn: Fn, why: string): Termination {
         const law = obligation(fn, m, site, i)
         // A call nested in its own argument or condition: the obligation would read the function being taken.
         if (programOf([law]).fns.some(g => g.name === fn.name)) throw new Error(`${why}, and a call to itself is nested in the argument or the condition of another (nested recursion isn't taken)`)
-        // By induction where the obligation has a scheme (a call on a filter of the tail: the filter's own recursion),
-        // else, or then, the definitions unfolded alone.
-        const left = () => Math.max(1, until - clock()), inductive = schemes(programOf([law]), law).length > 0
-        let v = proveData(law, inductive ? {ms: Math.min(12_000, left())} : {induction: false, ms: Math.min(4000, left())})
+        // First one node, the definitions unfolded once (most calls lower the measure by their cases alone); else
+        // proveData: by induction where the obligation has a scheme (a call on a filter of the tail: the filter's own
+        // recursion), else, or then, the definitions unfolded alone.
+        const left = () => Math.max(1, until - clock()), cex = refute(law, 200)
+        if (cex) { failed = `${text}: its call ${i + 1} doesn't lower it at ${JSON.stringify(cex)}`; break }
+        const direct = directly(law, Math.min(2000, left()))
+        if (direct) { obligations.push({law, proof: direct, lemmas: []}); continue }
+        const inductive = schemes(programOf([law]), law).length > 0
+        // (no conjectured lemmas: their making isn't counted in the budget, and a call's decrease mostly needs none)
+        let v = proveData(law, inductive ? {ms: Math.min(12_000, left()), lemmas: false} : {induction: false, ms: Math.min(4000, left())})
         if (inductive && !(v.proven && v.checked) && !v.counterexample && clock() < until) v = proveData(law, {induction: false, ms: Math.min(4000, left())})
         if (!(v.proven && v.checked)) { failed = `${text}: its call ${i + 1} ${v.counterexample ? `doesn't lower it at ${JSON.stringify(v.counterexample)}` : 'not proven to lower it'}`; break }
         obligations.push({law, proof: v.proof, scheme: v.scheme, lemmas: v.lemmas})
@@ -1276,8 +1304,9 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   }
   const shape = (t: E, d?: Data) => { const dd = d ?? dataOfTerm(t); if (dd) { inst(`shape ${dd.name}`, [t]); ctors(note(reads(holdsAt(`shape ${dd.name}`, [t])))) } }
   for (const t of w.shapesAt) shape(t, typeOfVar(p, t))
-  // A size read (a measure's): the shape of its value, which gives the size from the fields.
-  for (const r of [...all]) for (const d of p.datas) if (r.map === sizeMap(d.name)) shape(r.key, d)
+  // A size the goal reads (a measure's, in a well-founded call's obligation): the shape of its value, which gives the
+  // size from the fields.
+  for (const r of reads([w.roots, w.others])) for (const d of p.datas) if (r.map === sizeMap(d.name)) shape(r.key, d)
   if (w.depth >= 2) for (const r of [...all]) for (const d of p.datas) if (r.map === tagMap(d.name)) shape(r.key, d)
   for (const t of w.etaAt) { const d = typeOfVar(p, t) ?? dataOfTerm(t); if (d) { inst(`eta ${d.name}`, [t]); shape(t, d); ctors(note(reads(holdsAt(`eta ${d.name}`, [t])))) } }
   // A constant's tag is read where its tag is (the nullary facts).
