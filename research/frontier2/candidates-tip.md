@@ -48,7 +48,7 @@ can't read (`runs/modal/tip/full2`; a problem may have more than one):
 | a function variable returning a datatype (`(=> a (list a))`) | 4 | 0 | `list_assoc`, `list_concat_map_bind`, `list_return_1`, `list_weird_concat_map_bind` |
 | an uninterpreted sort | 2 | 0 | `isaplanner/prop_46`, `list_weird_is_normal` |
 | an uninterpreted constant | 2 | 0 | `list_elem`, `list_nat_elem` |
-| an existential goal | 2 | 0 | `list_elem_map`, `list_nat_elem_map` |
+| an existential goal (read since: both refuted, the statement false as written; `compare/tip/README.md`) | 2 | 0 | `list_elem_map`, `list_nat_elem_map` |
 | a nested datatype at ever larger instances | 1 | 0 | `polyrec_seq_index` |
 
 And what the translation reads only by changing the statement (112 of the 296 it reads): the goal's own type variables

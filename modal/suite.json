@@ -876,6 +876,13 @@
 "timeout": 900
 },
 {
+"name": "exists",
+"cmd": "bun test exists.test.ts 2>&1 && cd .. && bun examples/exists.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
 "name": "functions",
 "cmd": "bun test functions.test.ts 2>&1 && cd .. && bun examples/functions.ts 2>&1",
 "cwd": "core",
@@ -1049,7 +1056,15 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 2400,
-"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; for f in Live Ghost Refine; do lean -o $f.olean $f.lean > $f.out 2>&1 || { grep -B2 -A25 error $f.out | head -80; echo build-failed $f; exit 1; }; if grep -q -e sorry -e sorryAx $f.out; then echo sorry-in $f; exit 1; fi; grep -e 'Kern.leads' -e 'Kern.sleads' -e 'Kern.loop' -e 'Kern.ghost' -e 'Kern.ever' -e 'Kern.refine' -e 'Kern.srefine' $f.out; done"
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; for f in Live Ghost Refine; do lean -o $f.olean $f.lean > $f.out 2>&1 || { grep -B2 -A25 error $f.out | head -80; echo build-failed $f; exit 1; }; if grep -q -e sorry -e sorryAx $f.out; then echo sorry-in $f; exit 1; fi; grep -e 'Kern.leads' -e 'Kern.sleads' -e 'Kern.loop' -e 'Kern.ghost' -e 'Kern.ever' -e 'Kern.refine' -e 'Kern.srefine' -e 'Kern.some_of' $f.out; done"
+},
+{
+"name": "lean-exists",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 2400,
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live Ghost Refine Bridge BridgeRules Data; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; bun exists-tamper.ts . && lean Exists.lean > exists.out 2>&1; s=$?; grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' exists.out | grep -v -e linter -e Hint -e unused -e '^  ' -e '^$' | tail -20; if grep -q -e sorry -e sorryAx exists.out; then echo sorry; exit 1; fi; [ $s -eq 0 ] || { echo lean-exit $s; exit $s; }; for t in ExistsGhost ExistsTerm; do if lean $t.lean > $t.out 2>&1; then echo tampered-$t-accepted; exit 1; fi; echo tampered-$t-refused: $(grep -m1 -o 'error: [^.]*' $t.out | head -c 160); done; echo lean-exit 0"
 },
 {
 "name": "sizes",

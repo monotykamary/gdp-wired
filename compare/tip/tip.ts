@@ -221,6 +221,26 @@ export function prenex(s: Sx): {vars: {name: string, ty: Sx}[], body: Sx} {
   noQuant(s)
   return {vars: [], body: s}
 }
+// An existential at the goal's end (under its foralls and its implications' conclusions: ∀ v. H ⇒ ∃ x. B), and the goal
+// with something else in its place (the goal's variables, its hypotheses, B's binders and body as the caller rewrites
+// them). Undefined where there is none, or one elsewhere (refused as before, by prenex).
+export function existential(s: Sx): {binders: {name: string, ty: Sx}[], body: Sx, with: (e: Sx) => Sx} | undefined {
+  if (!Array.isArray(s)) return undefined
+  if (s[0] === 'exists') return {binders: (s[1] as Sx[][]).map(b => ({name: b[0] as string, ty: b[1]!})), body: s[2]!, with: e => e}
+  if (s[0] === 'forall' || s[0] === '=>') {
+    const at = s.length - 1, inner = existential(s[at]!)
+    return inner && {...inner, with: e => [...s.slice(0, at), inner.with(e)]}
+  }
+  return undefined
+}
+// s with each free occurrence of a name replaced by a term (a binder of the same name inside hides it).
+export function substSx(s: Sx, name: string, by: Sx): Sx {
+  if (typeof s === 'string') return s === name ? by : s
+  if ((s[0] === 'forall' || s[0] === 'exists' || s[0] === 'lambda') && (s[1] as Sx[][]).some(b => b[0] === name)) return s
+  if (s[0] === 'let' && (s[1] as Sx[][]).some(b => b[0] === name)) return ['let', (s[1] as Sx[][]).map(b => [b[0]!, substSx(b[1]!, name, by)]), s[2]!]
+  if (s[0] === 'match') return ['match', substSx(s[1]!, name, by), (s[2] as Sx[][]).map(c => (Array.isArray(c[0]) && (c[0] as Sx[]).includes(name) ? c : [c[0]!, substSx(c[1]!, name, by)]))]
+  return s.map((x, i) => (i === 0 ? x : substSx(x, name, by)))
+}
 function noQuant(s: Sx): void {
   if (!Array.isArray(s)) return
   if (s[0] === 'exists') throw new Unsupported('an existential goal')

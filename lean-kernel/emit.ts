@@ -309,13 +309,19 @@ theorem ${id}_laws : ∀ maps ρ, evalC ρ maps ${id}_fold.pre = true → ∀ t,
 // abbreviation for its column), proven from the machine's theorem by unfolding the law's own definition. The statement
 // is what a Lean development cites; the column numbers stay inside the namespace.
 // `have`: the line that gives each law as a hypothesis hl (an SEntry's Holds by default; a cyclic proof's, holdsOver).
-export function readable(id: string, laws: Law[], vars: string[], maps: string[], reach: {binders: string, hyp: string, call: string, have?: (j: number) => string}): string {
+// A law with "there exists" (core/exists.ts, `ex` on the law the kernel proved) is stated as the existential it is:
+// `<id>_someN`, ∃ w1 .. wn, P with the bound naturals set to them (updAll, Ghost.lean), from the law proven with its
+// witness terms in place (some_of_subst) or over the machine's ghosts at every reachable state of the machine without
+// them (some_of_ghost); and `<id>.lawN` the same over named variables, each bound natural as w1, w2, ... (`lit`: the
+// condition printer, for P's literal).
+export function readable(id: string, laws: Law[], vars: string[], maps: string[], reach: {binders: string, hyp: string, call: string, have?: (j: number) => string, lit?: (c: C) => string, eLit?: (e: E) => string}): string {
   for (const name of [...vars, ...maps]) if (name === 'ρ' || name === 'μ' || name.includes('«') || name.includes('»')) throw new Error(`${id}: the name ${name} can't be a Lean abbreviation here`)
   const q = (name: string) => `«${name}»`
   const statement = (law: Law): string => {
+    const bound = law.ex?.vars ?? []
     const t = (e: E): string => {
       switch (e.op) {
-        case 'var': { const j = (law.keys ?? []).indexOf(e.name); return e.name === law.forall ? 'k' : j >= 0 ? `k${j + 2}` : `ρ ${q(e.name)}` }
+        case 'var': { const j = (law.keys ?? []).indexOf(e.name), b = bound.indexOf(e.name); return b >= 0 ? `w${b + 1}` : e.name === law.forall ? 'k' : j >= 0 ? `k${j + 2}` : `ρ ${q(e.name)}` }
         case 'const': return String(e.value)
         case 'add': return `(${t(e.a)} + ${t(e.b)})`
         case 'sub': return `(${t(e.a)} - ${t(e.b)})`
@@ -338,16 +344,49 @@ export function readable(id: string, laws: Law[], vars: string[], maps: string[]
         case 'all': throw new Error(`${id}: a law has no quantifier inside`)
       }
     }
-    return law.keys?.length ? `∀ k ${law.keys.map((_, j) => `k${j + 2}`).join(' ')} : Nat, ${p(law.holds)}` : law.forall ? `∀ k : Nat, ${p(law.holds)}` : p(law.holds)
+    const body = law.ex ? `∃ ${bound.map((_, i) => `w${i + 1}`).join(' ')} : Nat, ${p(law.ex.body)}` : p(law.holds)
+    return law.keys?.length ? `∀ k ${law.keys.map((_, j) => `k${j + 2}`).join(' ')} : Nat, ${body}` : law.forall ? `∀ k : Nat, ${body}` : body
+  }
+  const haveOf = (j: number) => (reach.have ? reach.have(j) : `have hl : ${id}_l${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])`)
+  // The existential of law j (one with `ex`): its theorem over the machine's own variables, then over named ones.
+  const someOf = (law: Law, j: number): string => {
+    const ex = law.ex!, lit = reach.lit, eLit = reach.eLit
+    if (!lit || !eLit) throw new Error(`${id}: ${law.name} has "there exists" and no printer for its condition`)
+    if (law.keys?.length || (law.forall && ex.ghost)) throw new Error(`${id}: ${law.name}: "there exists" past one key, or through a ghost under a key, isn't exported`)
+    const ix = (name: string) => { const i = vars.indexOf(name); if (i < 0) throw new Error(`${id}: no variable for ${name}`); return i }
+    const ws = ex.vars.map((_, i) => `w${i + 1}`), at = (env: string, vals: string[]) => `updAll ${env} [${ex.vars.map((n, i) => `(${ix(n)}, ${vals[i]})`).join(', ')}]`
+    const P = `(${lit(ex.body)})`, key = law.forall ? ix(law.forall) : undefined
+    const sigma = ex.sub ? `[${ex.vars.map(n => `(${ix(n)}, ${eLit(ex.sub![n]!)})`).join(', ')}]` : ''
+    const machine = ex.ghost ? `${id}_ghosted.orig` : `${id}_machine`
+    const head = `theorem some${j} : ∀ ρ μ, SReach ${machine} ρ μ → ${key !== undefined ? '∀ k : Nat, ' : ''}∃ ${ws.join(' ')} : Nat, evalC (${at(key !== undefined ? `(upd ρ ${key} k)` : 'ρ', ws)}) μ ${P} = true`
+    const proof = ex.ghost
+      ? `  intro ρ μ h
+  obtain ⟨ρg, hg⟩ := some_of_ghost ${id}_ghosted ${id}_ghostOk [${ex.vars.map(ix).join(', ')}] ${P} (by ${checkBy}) (fun ρ μ h => by
+    ${haveOf(j)}
+    exact hl) ρ μ h
+  exact ⟨${ex.vars.map(n => `ρg ${ix(n)}`).join(', ')}, hg⟩`
+      : `  intro ρ μ h${key !== undefined ? ' k' : ''}
+  ${haveOf(j)}
+  have hs : substC ${sigma} ${P} = ${id}_l${j}.holds := beqC_eq (by ${checkBy})
+  have hq : evalC ${key !== undefined ? `(upd ρ ${key} k)` : 'ρ'} μ (substC ${sigma} ${P}) = true := by rw [hs]; exact hl${key !== undefined ? ' k' : ''}
+  exact ⟨${ex.vars.map(n => `applyS ${sigma} ${key !== undefined ? `(upd ρ ${key} k)` : 'ρ'} μ ${ix(n)}`).join(', ')}, some_of_subst ${sigma} ${P} _ μ hq⟩`
+    const plain = JSON.stringify(ex.body).includes('"op":"if"') ? `-- ${law.name}: its terms read an if, so no plain statement here (some${j} holds it)` : `/-- ${law.name.replace(/-\//g, '- /')} -/
+theorem law${j} ${reach.binders} (h : SReach ${machine} ρ μ) : ${statement(law)} := by
+  ${key !== undefined ? 'intro k\n  ' : ''}obtain ⟨${ws.join(', ')}, hg⟩ := some${j} ρ μ h${key !== undefined ? ' k' : ''}
+  exact ⟨${ws.join(', ')}, (evalC_iff (${at(key !== undefined ? `(upd ρ ${key} k)` : 'ρ', ws)}) μ ${P}).mp hg⟩`
+    return `-- ${law.name}: there exists, proven ${ex.ghost ? 'through ghosts the machine carries' : 'with its witness terms in place'}
+${head} := by
+${proof}
+${plain}`
   }
   const used = new Set(laws.flatMap(l => [...JSON.stringify(l.holds).matchAll(/"name":"([^"]+)"|"map":"([^"]+)"/g)].map(m => m[1] ?? m[2]!).filter(name => name !== l.forall && !(l.keys ?? []).includes(name))))
   return `namespace ${id}
 ${[...vars.filter(v => used.has(v)).map(v => `abbrev ${q(v)} : Nat := ${vars.indexOf(v)}`), ...maps.filter(mp => used.has(mp)).map(mp => `abbrev ${q(mp)} : Nat := ${maps.indexOf(mp)}`)].join('\n')}
-${laws.map((law, j) => (law.stated ? `-- ${law.name}: as written, with some key; proven (below) with the prover's witness in place\n` : '') + (JSON.stringify(law.holds).includes('"op":"if"') ? `-- ${law.name}: its terms read an if, so no plain statement here (${id}_laws holds it)` : `/-- ${law.name.replace(/-\//g, '- /')} -/
+${laws.map((law, j) => (law.ex ? someOf(law, j) : (law.stated ? `-- ${law.name}: as written, with some key; proven (below) with the prover's witness in place\n` : '') + (JSON.stringify(law.holds).includes('"op":"if"') ? `-- ${law.name}: its terms read an if, so no plain statement here (${id}_laws holds it)` : `/-- ${law.name.replace(/-\//g, '- /')} -/
 theorem law${j} ${reach.binders} (h : ${reach.hyp}) : ${statement(law)} := by
   ${law.keys?.length ? `${reach.have ? reach.have(j) : `have hl : ${id}_e${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])`}
   exact fun k ${law.keys.map((_, i) => `k${i + 2}`).join(' ')} => (evalC_iff (upd (${law.keys.reduce((acc, key, i) => `upd (${acc}) ${vars.indexOf(key)} k${i + 2}`, 'ρ')}) ${vars.indexOf(law.forall!)} k) μ ${id}_l${j}.holds).mp (hl ${law.keys.map((_, i) => `k${i + 2}`).join(' ')} k)` : `${reach.have ? reach.have(j) : `have hl : ${id}_l${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])`}
-  ${law.forall ? `exact fun k => (evalC_iff (upd ρ ${vars.indexOf(law.forall)} k) μ ${id}_l${j}.holds).mp (hl k)` : `exact (evalC_iff ρ μ ${id}_l${j}.holds).mp hl`}`}`)).join('\n')}
+  ${law.forall ? `exact fun k => (evalC_iff (upd ρ ${vars.indexOf(law.forall)} k) μ ${id}_l${j}.holds).mp (hl k)` : `exact (evalC_iff ρ μ ${id}_l${j}.holds).mp hl`}`}`))).join('\n')}
 end ${id}`
 }
 
@@ -508,7 +547,9 @@ function machineNames(m: Machine, laws: Law[], allSteps: StepLaw[], stepLaws: St
   const primes = allSteps.length ? Object.keys(m.state).map(s2 => `${s2}'`) : []
   const vars = [...new Set([...m.params, ...m.inputs, ...Object.keys(m.state), ...keysOf, ...keysOf.map(k2 => `${k2}#`), '#', ...flags.map(([f]) => `?${f}`),
     ...quantified.flatMap(qwits), ...boundKeys(m), ...(opts.tamper ? boundKeys(opts.tamper.machine) : []), ...stepLaws.flatMap(sl => (sl.forall ? [sl.forall] : [])), ...(opts.free ?? []),
-    ...primes, ...later, ...Array.from({length: k - 1}, (_, j) => Object.keys(m.state).map(n2 => stateName(n2, j + 1))).flat(), ...(opts.record ?? []).map(f => `r.${f}`)])]
+    ...primes, ...later, ...Array.from({length: k - 1}, (_, j) => Object.keys(m.state).map(n2 => stateName(n2, j + 1))).flat(), ...(opts.record ?? []).map(f => `r.${f}`),
+    // (the naturals a law with "there exists" binds, which its statement sets: core/exists.ts)
+    ...laws.flatMap(l => l.ex?.vars ?? [])])]
   const baseMaps = [...new Set([...Object.keys(m.maps ?? {}), ...Object.keys(m.step.maps ?? {}), ...Object.keys(m.fns ?? {})])]
   const maps = [...new Set([...baseMaps, ...carried, ...(allSteps.length ? Object.keys(m.maps ?? {}).map(mp => `${mp}'`) : []), ...laterMaps])]
   return {vars, maps}
@@ -773,7 +814,7 @@ def ${id}_proof : List SEntry := ${list(laws.map((_, j) => `${id}_e${j}`))}
 theorem ${id}_check : checkSMachine ${id}_machine ${id}_proof = true := by ${checkBy}
 theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_proof, e.Holds ρ M :=
   smachine_sound ${id}_machine ${id}_proof ${id}_check
-${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`})}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
+${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`, lit: c, eLit: e})}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
 example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix)}` : ''}`
@@ -1071,7 +1112,7 @@ ${cycProofText(id, p, [], vars, maps)}
 ${okLemmas}
 ${lawBlocks}
 ${lawsThm}
-${hm ? histBlock() : readable(id, laws, vars, maps, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: '',
+${hm ? histBlock() : readable(id, laws, vars, maps, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: '', lit: c, eLit: e,
   have: j => `have hl : holdsOver ${id}_l${j} μ ${keys2(laws[j]!)} ρ := cyc_machine_holds (${id}_law${j}_holds ρ μ h)`})}${opts.noFacts ? '' : factsProof(id, m, maps, vars, opts.simp)}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix)}` : ''}`}
 }
 
@@ -1404,6 +1445,14 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   for (let item of items) {
     const id = ident(item.id), tItem = performance.now()
     if ('machine' in item) {
+      // Laws with "there exists" go in as the kernel proved them (core/exists.ts): the machine with the ghosts their
+      // witnesses are, each law with its witness terms in place or over its ghosts, each stated again as ∃ (readable).
+      if (item.laws.some(l => l.some?.length)) {
+        const it = item, r = proveStepLaws(it.machine, it.laws, it.stepLaws ?? [])
+        if (!r.proven || !r.laws) throw new Error(`${it.id}: not proven (${r.failed?.stuck ?? ''})`)
+        const ghosts = [...(it.ghosts ?? []), ...Object.keys(r.machine?.state ?? {}).filter(n => !(n in it.machine.state))]
+        item = {...it, machine: r.machine ?? it.machine, laws: r.laws, ...(ghosts.length ? {ghosts} : {})}
+      }
       const m = item.machine
       // Laws with some key go in as the prover proved them: with its witness in place (the stronger law).
       const someKey = (c: C) => JSON.stringify(c).includes('"op":"all"')
@@ -1421,7 +1470,7 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
       const cyc = certsOn ? cycMachineToLean(id, m, item.laws, mopts) : undefined
       if (cyc && 'text' in cyc) certReport.cyclic.push(item.id); else if (cyc) certReport.usual.push({id: item.id, why: cyc.why})
       parts.push(`-- ${item.id}\n${defs}${cyc && 'text' in cyc ? cyc.text : smachineToLean(id, m, item.laws, mopts)}`)
-      theorems.push(`${id}_laws`, ...(m.history ? [`${id}_hlaws`] : []), ...(item.stepLaws ?? []).map((_, j) => `${id}_step${j}_holds`), ...(item.liveness ?? []).map((_, j) => `${id}_live${j}_holds`))
+      theorems.push(`${id}_laws`, ...item.laws.flatMap((l, j) => (l.ex ? [`${id}.some${j}`] : [])), ...(m.history ? [`${id}_hlaws`] : []), ...(item.stepLaws ?? []).map((_, j) => `${id}_step${j}_holds`), ...(item.liveness ?? []).map((_, j) => `${id}_live${j}_holds`))
       if (item.lean?.after) theorems.push(...[...item.lean.after(() => 0).matchAll(/^theorem (\S+)/gm)].map(x2 => x2[1]!))
     } else if ('refinement' in item) {
       const {impl, spec, relation, witness} = item.refinement
@@ -1463,7 +1512,7 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   }
   // The file the items need: Live.lean for a liveness or a loop, Sets.lean (which imports Steps.lean) for any machine.
   return `import History
-${cycTexts ? 'import BridgeRules\n' : ''}${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && item.ghosts?.length) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
+${cycTexts ? 'import BridgeRules\n' : ''}${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && (item.ghosts?.length || item.laws.some(l => l.some?.length))) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0

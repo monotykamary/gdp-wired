@@ -11,8 +11,9 @@ import {Line, invoices, invoiceLaws, invoiceSteps} from '../../examples/invoices
 import {nonlinear} from './nonlinear.ts'
 import {cycleItems} from './cycles.ts'
 import {dataItems} from './datatypes.ts'
+import {existsItems} from './exists.ts'
 
-export type Track = 'invariant' | 'lemma' | 'fold' | 'nonlinear' | 'structure' | 'cycle' | 'datatype'
+export type Track = 'invariant' | 'lemma' | 'fold' | 'nonlinear' | 'structure' | 'cycle' | 'datatype' | 'exists'
 // `broken`: a broken variant (of the item named), which counts when nothing proves it.
 export type Item = {id: string, track: Track, removed: string, broken?: string, today: () => Verdict, frontier?: () => Verdict}
 
@@ -82,4 +83,4 @@ const folds: Item[] = [
     frontier: () => { const {f, laws} = orgChart(); return discoverFold(f, laws).verdict }},
 ]
 
-export const corpus: Item[] = [...invariantItems, ...lemmas, ...folds, ...nonlinear, ...cycleItems, ...dataItems]
+export const corpus: Item[] = [...invariantItems, ...lemmas, ...folds, ...nonlinear, ...cycleItems, ...dataItems, ...existsItems]
