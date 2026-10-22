@@ -1157,6 +1157,7 @@ export const certSearch = () => env()?.GDP_CERT_SEARCH === '1'
 export const certMs = () => Number(env()?.GDP_CERT_MS ?? 10_000)
 export function certCyclic(kind: string, name: string, translated: Translated | undefined, run0: (() => CyclicVerdict) | undefined, usualMs?: number): {checked: boolean, proof?: Cyclic} {
   const run = run0 ?? none
+  for (const key of Object.keys(cyclicProf)) delete cyclicProf[key]
   const st = tstats(), t0 = performance.now()
   let out: CyclicVerdict | undefined, how = 'searched', why: string | undefined
   if (translated) {
@@ -1164,8 +1165,9 @@ export function certCyclic(kind: string, name: string, translated: Translated | 
     if (r.verdict?.proven && r.verdict.checked) { out = r.verdict; how = 'translated' } else { how = 'fallback'; why = r.why ?? (r.verdict && !r.verdict.proven ? `${r.verdict.goal}: ${r.verdict.stuck}` : r.verdict?.why) }
   }
   out ??= run()
-  const checked = out.proven && out.checked
-  console.error(`cyclic: ${JSON.stringify({kind, name, cert: true, usual: true, cyclic: checked, ms: Math.round(performance.now() - t0), ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {})})}`)
+  const checked = out.proven && out.checked, ms = Math.round(performance.now() - t0)
+  const prof = profOn() ? {prof: Object.fromEntries(Object.entries(cyclicProf).map(([key, p]) => [key, Object.fromEntries(Object.entries(p).map(([f, x]) => [f, Math.round(x)]))]))} : {}
+  console.error(`cyclic: ${JSON.stringify({kind, name, cert: true, usual: true, cyclic: checked, ms, ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {}), ...prof})}`)
   return {checked, ...(out.proven ? {proof: out.proof} : {})}
 }
 
