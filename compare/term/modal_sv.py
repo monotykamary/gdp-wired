@@ -108,7 +108,8 @@ def shard(tool: str, t: dict, limit: int) -> dict:
         raise ValueError(tool)
     row["seconds"] = round(time.time() - t0, 2)
     if row["answer"] == "error":
-        row["err"] = (err or out)[-600:]
+        e = err or out
+        row["err"] = e if len(e) <= 900 else e[:300] + " ... " + e[-600:]
     return row
 
 

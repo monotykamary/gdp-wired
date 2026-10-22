@@ -99,6 +99,18 @@ def neg(c):
     return [FLIP[op], c[1], c[2]]
 
 
+def simp(c):
+    """true and false folded away (KoAT2's ARI reader takes neither)."""
+    if isinstance(c, str) or c[0] not in ("and", "or"):
+        return c
+    xs = [simp(x) for x in c[1:]]
+    unit, zero = ("true", "false") if c[0] == "and" else ("false", "true")
+    if zero in xs:
+        return zero
+    xs = [x for x in xs if x != unit]
+    return unit if not xs else xs[0] if len(xs) == 1 else [c[0], *xs]
+
+
 def num(v):
     return str(v) if v >= 0 else ["-", str(-v)]
 
@@ -639,6 +651,8 @@ def emit(prog, start):
         return s if isinstance(s, str) else "(" + " ".join(sx(x) for x in s) + ")"
     for a, b, guards, upd in prog.rules:
         rhs = [upd.get(v, v) for v in vs]
+        guards = [simp(x) for x in guards]
+        guards = [["<", "1", "0"]] if "false" in guards else [x for x in guards if x != "true"]
         g = (["and", *guards] if len(guards) > 1 else guards[0]) if guards else None
         line = f"(rule ({a} {' '.join(vs)}) ({b} {' '.join(sx(x) for x in rhs)})"
         if g:

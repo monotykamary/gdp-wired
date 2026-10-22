@@ -44,11 +44,12 @@ for (const tool of tools) {
 for (const w of wrong) console.log(`  WRONG ${w.tool} ${w.task}: ${w.answer}`)
 for (const c of conflicts) console.log(`  CONFLICT (no certificate either way) ${c}`)
 const solved = (tool: string) => new Set(rows.filter(r => r.tool === tool && decided(r.answer) && !wrong.has(r)).map(r => r.task))
-const others = tools.filter(t => t !== 'gdp'), anyOther = new Set(others.flatMap(t => [...solved(t)]))
-if (tools.includes('gdp')) {
-  const mine = solved('gdp')
-  console.log(`\nsolved by gdp-wired and by no other tool here: ${[...mine].filter(t => !anyOther.has(t)).length} ${JSON.stringify([...mine].filter(t => !anyOther.has(t)))}`)
-  console.log(`solved by some other tool and not gdp-wired: ${[...anyOther].filter(t => !mine.has(t)).length}; by any tool: ${new Set([...mine, ...anyOther]).size}`)
+const ourTools = tools.filter(t => t.startsWith('gdp')), others = tools.filter(t => !t.startsWith('gdp')), anyOther = new Set(others.flatMap(t => [...solved(t)]))
+if (ourTools.length) {
+  // gdp-wired: either translation (gdp, and gdp-scc where it ran)
+  const mine = new Set(ourTools.flatMap(t => [...solved(t)]))
+  console.log(`\nsolved by gdp-wired (${ourTools.join(' or ')}) and by no other tool here: ${[...mine].filter(t => !anyOther.has(t)).length} ${JSON.stringify([...mine].filter(t => !anyOther.has(t)))}`)
+  console.log(`solved by some other tool and not gdp-wired: ${[...anyOther].filter(t => !mine.has(t)).length}; by gdp-wired: ${mine.size}; by any tool: ${new Set([...mine, ...anyOther]).size}`)
   for (const o of others) {
     const s = solved(o)
     console.log(`  ${o}: terminates by ${o} and not by gdp-wired: ${rows.filter(r => r.tool === o && r.answer === 'terminates' && !wrong.has(r) && !mine.has(r.task)).length}; nonterminating by ${o} and not by gdp-wired: ${rows.filter(r => r.tool === o && r.answer === 'nonterminating' && !wrong.has(r) && !mine.has(r.task)).length}; gdp-wired's not ${o}'s: ${[...mine].filter(t => !s.has(t)).length}`)
