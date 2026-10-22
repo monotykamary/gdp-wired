@@ -405,9 +405,10 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number} = {})
       p.pick.cases.set(c, fit)
     }
   }
-  // The whole set with the first choices (most witnesses are the first: what P solves for); where a law's goal fails,
-  // its witness chosen again from that counterexample on (its two goals alone, choose), then the whole set again.
-  for (let pass = 0; ; pass++) {
+  // Each law's witness from its two goals (choose), then the whole set; where a later choice broke a law proven before
+  // (a witness term is a hypothesis of every law), that law's again from the whole set's counterexample, and so on.
+  for (const [i, p] of plans) { const f = choose(i, p, 0); if (f) return f }
+  for (let pass = 1; ; pass++) {
     const {machine, laws: plain, ghosts} = current(), t0 = performance.now()
     const out = proveLaws(machine, plain), done = {...out, laws: out.laws ?? plain, machine, ghosts, witnesses: Object.fromEntries([...plans.values()].map(p => [p.law.name, describe(p, cases)]))}
     if (log) console.error(`exists: pass ${pass} the whole set: ${out.proven ? 'proven' : `${out.failed?.goal} ${out.failed?.stuck}`} (${Math.round(performance.now() - t0)} ms)`)
