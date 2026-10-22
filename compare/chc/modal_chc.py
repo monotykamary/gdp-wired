@@ -4,6 +4,8 @@ same container size under the same wall-clock limit, one tool and a shard of tas
     modal run compare/chc/modal_chc.py --out runs/modal/chc/<name> [--tools gdp,z3,golem,eldarica] [--limit 60]
                                        [--per 1] [--sample 0] [--only <substring>|<substring>]
                                        [--env NAME=value,...] (set for each task's process)
+                                       [--tasks-json <file of task names>]
+    --tools tmpl and --tools given aren't solvers: prof/template.ts and prof/given.ts, for prof/gap.py.
 
 The benchmarks are chc-comp/chc-comp26-benchmarks at a pinned commit, fetched into the image; the track's task list is
 its LIA-Lin.set, each task's expected verdict its .yml's. <out>/results.jsonl has one row per tool and task: the
@@ -67,6 +69,12 @@ def command(tool: str, task: str, limit: int) -> list[str]:
         return ["golem", task]
     if tool == "eldarica":
         return ["eld", task]
+    if tool == "tmpl":
+        # Not a solver: what inferLaws would search on the task (prof/template.ts), for the gap analysis.
+        return ["bun", "compare/chc/prof/template.ts", task]
+    if tool == "given":
+        # Not a solver: proveRule given Spacer's invariant (prof/given.ts), its models in prof/given-models.json.
+        return ["bun", "compare/chc/prof/given.ts", task, "compare/chc/prof/given-models.json", "--ms", str((limit - 5) * 1000)]
     raise ValueError(tool)
 
 
@@ -90,7 +98,7 @@ def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]
             code, out, err = 124, "", "killed"
         secs = round(time.time() - t0, 2)
         lines = [l for l in out.splitlines() if l.strip()]
-        if tool == "gdp":
+        if tool in ("gdp", "tmpl", "given"):
             stages = []
             for l in lines:
                 try:
@@ -129,7 +137,7 @@ def tasks() -> list[dict]:
 
 
 @app.local_entrypoint()
-def main(out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: int = 1, sample: int = 0, only: str = "", env: str = ""):
+def main(out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: int = 1, sample: int = 0, only: str = "", env: str = "", tasks_json: str = ""):
     live = GDP / "modal" / ".live"
     live.mkdir(exist_ok=True)
     ticket = live / f"{app.app_id}"
@@ -141,6 +149,9 @@ def main(out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: i
         all_tasks = tasks.remote()
         (outdir / "tasks.json").write_text(json.dumps(all_tasks, indent=1))
         chosen = [t for t in all_tasks if any(o in t["task"] for o in only.split("|"))]
+        if tasks_json:
+            names = set(json.loads(pathlib.Path(tasks_json).read_text()))
+            chosen = [t for t in chosen if t["task"] in names]
         if sample:
             step = max(1, len(chosen) // sample)
             chosen = chosen[::step][:sample]
