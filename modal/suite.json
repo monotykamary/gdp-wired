@@ -224,6 +224,34 @@
 "timeout": 1800
 },
 {
+"name": "cdcl-fuzz-1",
+"cmd": "FUZZ_SEED=1 FUZZ_SCALE=4 bun test cdcl.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 1800
+},
+{
+"name": "cdcl-fuzz-2",
+"cmd": "FUZZ_SEED=2 FUZZ_SCALE=4 bun test cdcl.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 1800
+},
+{
+"name": "cdcl-fuzz-3",
+"cmd": "FUZZ_SEED=3 FUZZ_SCALE=4 bun test cdcl.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 1800
+},
+{
+"name": "cdcl-fuzz-4",
+"cmd": "FUZZ_SEED=4 FUZZ_SCALE=4 bun test cdcl.test.ts 2>&1",
+"cwd": "kernel",
+"cpu": 1.0,
+"timeout": 1800
+},
+{
 "name": "run-kernel",
 "cmd": "bun run-kernel.ts 2>&1",
 "cwd": "kernel"
