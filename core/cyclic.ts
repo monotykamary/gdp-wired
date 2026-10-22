@@ -1230,13 +1230,15 @@ function cyclicOf(translated: Translated | undefined, run: () => CyclicVerdict, 
   }
   return {out: until === undefined ? run() : withDeadline(until, run), how, ...(why ? {why} : {})}
 }
+// GDP_CYCLIC_PROF=1: where the proof's time went, by goal kind, in its line.
+const profLine = () => (profOn() ? {prof: Object.fromEntries(Object.entries(cyclicProf).map(([key, p]) => [key, Object.fromEntries(Object.entries(p).map(([f, x]) => [f, Math.round(x)]))]))} : {})
 export function crossCyclic(kind: string, name: string, usual: boolean, run0: (() => CyclicVerdict) | undefined, usualMs?: number, translated?: Translated): void {
   const run = run0 ?? none
   for (const key of Object.keys(cyclicProf)) delete cyclicProf[key]
   const route = routeOf(), st = tstats(), t0 = performance.now()
   const {out, how, why} = cyclicOf(route !== 'search' && usual ? translated : undefined, run, st)
   const ms = Math.round(performance.now() - t0), cyclic = out.proven && out.checked
-  const prof = profOn() ? {prof: Object.fromEntries(Object.entries(cyclicProf).map(([key, p]) => [key, Object.fromEntries(Object.entries(p).map(([f, x]) => [f, Math.round(x)]))]))} : {}
+  const prof = profLine()
   let search: {searchMs: number, searchCyclic: boolean} | undefined
   if (route === 'both' && run0) { const s0 = performance.now(), o = run0(); search = {searchMs: Math.round(performance.now() - s0), searchCyclic: o.proven && o.checked} }
   cycLog({kind, name, usual, cyclic, ms, ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {}), ...search, ...prof, ...(out.proven ? {nodes: out.proof.nodes.length, ...(out.why ? {why: out.why} : {})} : {goal: out.goal, stuck: out.stuck})})
@@ -1258,10 +1260,11 @@ export const certMs = () => Number(env()?.GDP_CERT_MS ?? 10_000)
 // true, why}`): its certificate the usual trees.
 export const uncovered = (kind: string, name: string, why: string): void => cycLog({kind, name, uncovered: true, why})
 export function certCyclic(kind: string, name: string, translated: Translated | undefined, run0: (() => CyclicVerdict) | undefined, usualMs?: number): {checked: boolean, proof?: Cyclic, why: string} {
+  for (const key of Object.keys(cyclicProf)) delete cyclicProf[key]
   const st = tstats(), t0 = performance.now(), until = clock() + certMs()
   const {out, how, why} = cyclicOf(translated, (translated && !certSearch() ? undefined : run0) ?? none, st, until)
   const checked = out.proven && out.checked
-  cycLog({kind, name, cert: true, usual: true, cyclic: checked, ms: Math.round(performance.now() - t0), ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {})})
+  cycLog({kind, name, cert: true, usual: true, cyclic: checked, ms: Math.round(performance.now() - t0), ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {}), ...profLine()})
   const late = clock() > until ? ` within ${certMs()} ms` : ''
   return {checked, ...(out.proven ? {proof: out.proof} : {}), why: checked ? '' : `no cyclic proof found${late}${why ? ` (not translated: ${why})` : ''}`}
 }

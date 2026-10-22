@@ -1466,7 +1466,11 @@ function cycProofText(id: string, p: Cyclic, tampered: {what: string, proof: Cyc
   const ix = (name: string) => vars.indexOf(name)
   const facts = list(p.facts.map(f => `⟨${list(f.keys.map(key => String(ix(key))))}, ${c(f.holds)}⟩`))
   // A tampered proof keeps the proof's tables and trees (made for the proof's own goals) under its changed nodes.
-  const enc = (g: Goal, tree: Tree) => { const x = encode({name: `${id}: ${g.name}`, goal: g, tree}, false, true, vars, maps); return `(${x.tab}, ${x.tree})` }
+  // Each table once (`<id>_tabN`): a node's goals (its own, each use's premises and descent) share its hypotheses, so
+  // most of their tables are the same columns, and Lean elaborates each list once instead of once per goal.
+  const tabs = new Map<string, string>()
+  const tabName = (tab: string) => { let name = tabs.get(tab); if (!name) tabs.set(tab, (name = `${id}_tab${tabs.size}`)); return name }
+  const enc = (g: Goal, tree: Tree) => { const x = encode({name: `${id}: ${g.name}`, goal: g, tree}, false, true, vars, maps); return `(${tabName(x.tab)}, ${x.tree})` }
   const nodeLits = (q: Cyclic) => q.nodes.map((n, i) => {
     const o = p.nodes[i]!
     const uses = n.uses.map((u, j) => {
@@ -1476,8 +1480,10 @@ function cycProofText(id: string, p: Cyclic, tampered: {what: string, proof: Cyc
     return {hyps: list(n.hyps.map(c)), concl: c(n.concl), rest: `${list(n.rank.map(e))}, ${list(n.insts.map(t => `(${t.fact}, ${list(t.at.map(e))})`))},\n  ${list(uses)},\n  ${enc(mainGoal(p.facts, p.nodes, o), o.main)}`}
   })
   const nodes = (q: Cyclic) => list(nodeLits(q).map(x => `⟨${x.hyps}, ${x.concl}, ${x.rest}⟩`))
+  const own = nodeLits(p), bad = tampered.map(t => nodes(t.proof))
   return `def ${id}_facts : List Fact := ${facts}
-${nodeLits(p).map((x, i) => `def ${id}_hyps${i} : List C := ${x.hyps}
+${[...tabs].map(([tab, name]) => `def ${name} : List VDef := ${tab}`).join('\n')}
+${own.map((x, i) => `def ${id}_hyps${i} : List C := ${x.hyps}
 def ${id}_concl${i} : C := ${x.concl}
 def ${id}_node${i} : CNode := ⟨${id}_hyps${i}, ${id}_concl${i}, ${x.rest}⟩
 theorem ${id}_node${i}_hyps : ${id}_node${i}.hyps = ${id}_hyps${i} := rfl
@@ -1488,7 +1494,7 @@ theorem ${id}_check : checkCyclic ${id}_facts ${id}_nodes = true := by ${checkBy
 theorem ${id}_sound : ∀ (maps : Nat → Nat → Nat) env, FactsHold ${id}_facts env maps → ∀ n ∈ ${id}_nodes, (∀ c ∈ n.hyps, evalC env maps c = true) → evalC env maps n.concl = true :=
   cyclic_sound ${id}_facts ${id}_nodes ${id}_check
 ${tampered.map((t, j) => `-- TAMPERED: ${t.what}. Lean computes the check to false.
-def ${id}_tampered${j} : List CNode := ${nodes(t.proof)}
+def ${id}_tampered${j} : List CNode := ${bad[j]}
 example : checkCyclic ${id}_facts ${id}_tampered${j} = false := by ${checkBy}`).join('\n')}`
 }
 
