@@ -386,7 +386,7 @@ export function recurNodes(r: RecurCase, usual?: {lemmas?: UsualProof, between?:
   // fx0 as f(0) (a start that reads a function), fx as f(x).
   function translatedRecur(): {specs: NodeSpec[], why?: string} {
     const lemmaAfterT: NodeSpec[] = [], betweenAfterT: NodeSpec[] = [], lemmaStart: NodeSpec[] = [], betweenStart: NodeSpec[] = []
-    const made: {g: Goal, tree: Tree, node: number, ren: Renamer, decide?: C[]}[] = [], N = 2 * n + 2 * b
+    const made: Made[] = [], N = 2 * n + 2 * b
     const factIx = (name: string) => facts.findIndex((q, i) => i >= 2 && q.name === name)
     // A usual goal's hypotheses: the machine's facts at the instances, its precondition and assumption, the laws assumed.
     const layout = (u: UsualProof, i: number) => {
@@ -451,13 +451,7 @@ export function recurNodes(r: RecurCase, usual?: {lemmas?: UsualProof, between?:
     const rest = [...lemmaAfterT, ...betweenAfterT, ...lemmaStart, ...betweenStart], all = [...withReads(facts, carried, [...carried, ...rest]), ...rest]
     for (const [i, a] of all.slice(0, n + b).entries()) { const o = [...new Set([...shared(facts, a, all[n + b + i]!.concl), ...shared(facts, a, all[N + i]!.concl)].map(e => JSON.stringify(e)))].map(e => JSON.parse(e) as E); if (o.length) all[i] = {...a, opaque: o} }
     const until = clock() + 10_000
-    for (const m of made) {
-      const whole = mainGoal(facts, all, all[m.node]!)
-      const tree = timedKind('translate', 0, () => withProducts(() => decide(whole, m.decide ?? [], wp => translate(m.g, whole, m.tree, m.ren, st, until, new Map(), wp), st, until)))
-      if (!tree) return {specs: [], why: `${all[m.node]!.name}: not translated`}
-      all[m.node] = {...all[m.node]!, main: tree}
-    }
-    return {specs: sliced(all)}
+    return translateMade(facts, all, made, st, until)
   }
 }
 
@@ -680,7 +674,7 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
     // read where the usual path has the two keys equal: two cells over time then split apart, `close`)
     // A step law's condition with its primed names read as given, its flags inlined (over the frame before the step).
     const primedOf = (c: C, s0: Subst): C => substC(c, {...s0, flags})
-    const nows: NodeSpec[] = [], afters: NodeSpec[] = [], starts: NodeSpec[] = [], made: {g: Goal, tree: Tree, node: number, ren: Renamer, decide?: C[], reads?: Reads}[] = []
+    const nows: NodeSpec[] = [], afters: NodeSpec[] = [], starts: NodeSpec[] = [], made: Made[] = []
     // A write's key and the keys the usual conclusion reads its map at (each a condition if(K = W, ...)).
     const wkeys = new Set(mapNames.flatMap(map => { const w = m.step.maps?.[map]; return w && !('each' in w) ? [JSON.stringify(inlineE(w.key))] : [] }))
     const readsOf = (c: C): Reads => {
@@ -782,17 +776,23 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
     for (const [i, a] of nows.entries()) { const o = [...new Set([...shared(facts, a, afters[i]!.concl), ...shared(facts, a, starts[i]!.concl)].map(e => JSON.stringify(e)))].map(e => JSON.parse(e) as E); if (o.length) a.opaque = o }
     // (a translation is bounded by a minute: a step law over 32 steps has a goal of 32 frames at every leaf)
     const until = clock() + 60_000
-    for (const x of made) {
-      if (usual!.lawsMade && x.node < 3 * L) continue
-      // (after a step, 1 <= t decided first: t ∸ 1 is then t − 1, and a cell read at a key over the cells at t − 1 has a
-      // linear form)
-      const whole = mainGoal(facts, all, all[x.node]!)
-      const tree = timedKind('translate', 0, () => withProducts(() => decide(whole, x.decide ?? [], wp => readsFirst(whole, x.reads ?? [], x.ren, (p, swaps) => translate(x.g, whole, x.tree, x.ren, st, until, new Map(), p, swaps), st, until, wp), st, until)))
-      if (!tree) return {specs: [], why: `${all[x.node]!.name}: not translated`}
-      all[x.node] = {...all[x.node]!, main: tree}
-    }
-    return {specs: sliced(all)}
+    // (after a step, 1 <= t decided first: t ∸ 1 is then t − 1, and a cell read at a key over the cells at t − 1 has a
+    // linear form)
+    return translateMade(facts, all, usual!.lawsMade ? made.filter(x => x.node >= 3 * L) : made, st, until)
   }
+}
+
+// Each usual tree made a node's (`made`: the usual goal and tree, the node, the renamer, the conditions decided first,
+// the reads a write's key decides first), the node's tree then given (`main`); or why one isn't.
+type Made = {g: Goal, tree: Tree, node: number, ren: Renamer, decide?: C[], reads?: Reads}
+function translateMade(facts: Fact[], all: NodeSpec[], made: Made[], st: TStats, until: number): {specs: NodeSpec[], why?: string} {
+  for (const x of made) {
+    const whole = mainGoal(facts, all, all[x.node]!)
+    const tree = timedKind('translate', 0, () => withProducts(() => decide(whole, x.decide ?? [], wp => readsFirst(whole, x.reads ?? [], x.ren, (p, swaps) => translate(x.g, whole, x.tree, x.ren, st, until, new Map(), p, swaps), st, until, wp), st, until)))
+    if (!tree) return {specs: [], why: `${all[x.node]!.name}: not translated`}
+    all[x.node] = {...all[x.node]!, main: tree}
+  }
+  return {specs: sliced(all)}
 }
 
 // The terms (not a read, a variable or a constant) of a conclusion that a node's facts read too, largest first; none
@@ -1108,7 +1108,7 @@ export function foldNodes(f: Fold, laws: Law[], usual?: Record<string, Tree>, st
   function translatedFold(): {specs: NodeSpec[], why?: string} {
     const goals = new Map(foldObligations(f, laws).map(g => [g.name, g])), sigma = nodeAt(n), sigma0 = at(n), ren = renamer({s: sigma}), ren0 = renamer({s: sigma0})
     const na = (f.pre ? 1 : 0) + (f.assume ? 1 : 0), last = (g: Goal) => (g.hyps.at(-1) as Extract<C, {op: 'not'}>).x
-    const kids: NodeSpec[] = [], leaves: NodeSpec[] = [], made: {g: Goal, tree: Tree, node: number, ren: Renamer}[] = []
+    const kids: NodeSpec[] = [], leaves: NodeSpec[] = [], made: Made[] = []
     for (const [i, l] of laws.entries()) {
       const g0 = goals.get(`${l.name} @leaf`), g1 = goals.get(`${l.name} @node`), t0 = g0 && usual![g0.name], t1 = g1 && usual![g1.name]
       if (!g0 || !g1 || !t0 || !t1 || g0.hyps.length !== na + 1 || g1.hyps.length !== na + 2 * L + 1) return {specs: [], why: `${l.name}: no usual tree, or one of another shape`}
@@ -1124,12 +1124,7 @@ export function foldNodes(f: Fold, laws: Law[], usual?: Record<string, Tree>, st
       return {...b, opaque: o.length ? o : undefined}
     })
     const all = [...carried, ...kids, ...leaves], until = clock() + 10_000
-    for (const m of made) {
-      const tree = timedKind('translate', 0, () => withProducts(() => translate(m.g, mainGoal(facts, all, all[m.node]!), m.tree, m.ren, st, until)))
-      if (!tree) return {specs: [], why: `${all[m.node]!.name}: not translated`}
-      all[m.node] = {...all[m.node]!, main: tree}
-    }
-    return {specs: sliced(all)}
+    return translateMade(facts, all, made, st, until)
   }
 }
 
