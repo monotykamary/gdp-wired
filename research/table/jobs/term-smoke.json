@@ -1,0 +1,47 @@
+[
+ {
+  "name": "Integer_Transition_Systems/Britikov_26/toy3.t2.ari",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/Britikov_26/toy3.t2.ari' --term "
+ },
+ {
+  "name": "Integer_Transition_Systems/From_AProVE_2014/AProVEMath.jar-obl-8.ari",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_AProVE_2014/AProVEMath.jar-obl-8.ari' --term "
+ },
+ {
+  "name": "Integer_Transition_Systems/From_AProVE_2014/AckR.jar-obl-8.ari",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_AProVE_2014/AckR.jar-obl-8.ari' --term "
+ },
+ {
+  "name": "Integer_Transition_Systems/From_AProVE_2014/Continue1.jar-obl-8.ari",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_AProVE_2014/Continue1.jar-obl-8.ari' --term "
+ },
+ {
+  "name": "Integer_Transition_Systems/From_AProVE_2014/ListReverseCyclicList.jar-obl-10.ari",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_AProVE_2014/ListReverseCyclicList.jar-obl-10.ari' --term "
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/p-60.t2_fixed.ari",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/p-60.t2_fixed.ari' --term "
+ },
+ {
+  "name": "termination-crafted/2Nested-1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/2Nested-1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/McCarthy91_Iteration.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/McCarthy91_Iteration.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/WhileFalse.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/WhileFalse.yml' --sv "
+ }
+]

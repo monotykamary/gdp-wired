@@ -1,0 +1,1262 @@
+[
+ {
+  "name": "aeval-benchmarks/multi-phase/s_split_37_000_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'aeval-benchmarks/multi-phase/s_split_37_000_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'aeval-benchmarks/multi-phase/s_split_37_000_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "eldarica-misc/LIA/HOLA/35.c_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/35.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/35.c_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "eldarica-misc/LIA/HOLA/38.c_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/38.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/38.c_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "eldarica-misc/LIA/llreve/barthe_merged_safe.c-1_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'eldarica-misc/LIA/llreve/barthe_merged_safe.c-1_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/llreve/barthe_merged_safe.c-1_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "eldarica-misc/LIA/llreve/fib_merged_safe.c-1_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'eldarica-misc/LIA/llreve/fib_merged_safe.c-1_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/llreve/fib_merged_safe.c-1_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "eldarica-misc/LIA/llreve/loop_merged_safe.c-1_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'eldarica-misc/LIA/llreve/loop_merged_safe.c-1_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/llreve/loop_merged_safe.c-1_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "eldarica-misc/LIA/reve/003-horn_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'eldarica-misc/LIA/reve/003-horn_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/reve/003-horn_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "eldarica-misc/LIA/reve/003b-horn_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'eldarica-misc/LIA/reve/003b-horn_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/reve/003b-horn_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "eldarica-misc/LIA/reve/004-horn_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'eldarica-misc/LIA/reve/004-horn_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/reve/004-horn_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "eldarica-misc/LIA/reve/017-horn_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'eldarica-misc/LIA/reve/017-horn_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/reve/017-horn_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "eldarica-misc/LIA/reve/017b-horn_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'eldarica-misc/LIA/reve/017b-horn_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/reve/017b-horn_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "eldarica-misc/LIA/reve/018-horn_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'eldarica-misc/LIA/reve/018-horn_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/reve/018-horn_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "eldarica-misc/LIA/reve/018b-horn_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'eldarica-misc/LIA/reve/018b-horn_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/reve/018b-horn_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "extra-small-lia/const_mod_1_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'extra-small-lia/const_mod_1_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'extra-small-lia/const_mod_1_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "extra-small-lia/dillig02_m_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'extra-small-lia/dillig02_m_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'extra-small-lia/dillig02_m_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "extra-small-lia/gj2007_m_3_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'extra-small-lia/gj2007_m_3_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'extra-small-lia/gj2007_m_3_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "extra-small-lia/phases_m_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'extra-small-lia/phases_m_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'extra-small-lia/phases_m_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "extra-small-lia/s_multipl_17_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'extra-small-lia/s_multipl_17_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'extra-small-lia/s_multipl_17_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "extra-small-lia/s_multipl_24_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'extra-small-lia/s_multipl_24_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'extra-small-lia/s_multipl_24_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "hcai-bench/arrays_orig/array_fill1_abstracted_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'hcai-bench/arrays_orig/array_fill1_abstracted_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'hcai-bench/arrays_orig/array_fill1_abstracted_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "hcai-bench/svcomp/O0/O0_sum01_true-unreach-call_true-termination_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'hcai-bench/svcomp/O0/O0_sum01_true-unreach-call_true-termination_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'hcai-bench/svcomp/O0/O0_sum01_true-unreach-call_true-termination_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "hcai-bench/svcomp/O3/O3_Addition03_false-no-overflow_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'hcai-bench/svcomp/O3/O3_Addition03_false-no-overflow_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'hcai-bench/svcomp/O3/O3_Addition03_false-no-overflow_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "hcai-bench/svcomp/O3/O3_Addition03_true-unreach-call_true-no-overflow_true-termination_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'hcai-bench/svcomp/O3/O3_Addition03_true-unreach-call_true-no-overflow_true-termination_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'hcai-bench/svcomp/O3/O3_Addition03_true-unreach-call_true-no-overflow_true-termination_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "hcai-bench/svcomp/O3/O3_gcd01_true-unreach-call_true-no-overflow_true-termination_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'hcai-bench/svcomp/O3/O3_gcd01_true-unreach-call_true-no-overflow_true-termination_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'hcai-bench/svcomp/O3/O3_gcd01_true-unreach-call_true-no-overflow_true-termination_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "hcai-bench/svcomp/O3/O3_sum01_true-unreach-call_true-termination_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'hcai-bench/svcomp/O3/O3_sum01_true-unreach-call_true-termination_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'hcai-bench/svcomp/O3/O3_sum01_true-unreach-call_true-termination_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "hcai-bench/svcomp/O3/O3_sum_non_true-unreach-call_true-termination_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'hcai-bench/svcomp/O3/O3_sum_non_true-unreach-call_true-termination_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'hcai-bench/svcomp/O3/O3_sum_non_true-unreach-call_true-termination_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "llreve-bench/muz/loop__barthe2_000_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'llreve-bench/muz/loop__barthe2_000_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'llreve-bench/muz/loop__barthe2_000_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "llreve-bench/muz/loop__barthe_000_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'llreve-bench/muz/loop__barthe_000_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'llreve-bench/muz/loop__barthe_000_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "llreve-bench/smt2/clausified/loop__barthe2-big_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'llreve-bench/smt2/clausified/loop__barthe2-big_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'llreve-bench/smt2/clausified/loop__barthe2-big_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "llreve-bench/smt2/clausified/loop__barthe_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'llreve-bench/smt2/clausified/loop__barthe_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'llreve-bench/smt2/clausified/loop__barthe_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "llreve-bench/smt2/clausified/loop__loop2_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'llreve-bench/smt2/clausified/loop__loop2_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'llreve-bench/smt2/clausified/loop__loop2_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "llreve-bench/smt2/clausified/loop__loop3_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'llreve-bench/smt2/clausified/loop__loop3_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'llreve-bench/smt2/clausified/loop__loop3_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "llreve-bench/smt2/clausified/loop__loop_unswitching_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'llreve-bench/smt2/clausified/loop__loop_unswitching_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'llreve-bench/smt2/clausified/loop__loop_unswitching_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "llreve-bench/smt2/clausified/loop__nested-while_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'llreve-bench/smt2/clausified/loop__nested-while_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'llreve-bench/smt2/clausified/loop__nested-while_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "llreve-bench/smt2/clausified/loop__upcount_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'llreve-bench/smt2/clausified/loop__upcount_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'llreve-bench/smt2/clausified/loop__upcount_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "llreve-bench/smt2/clausified/loop__while-if_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'llreve-bench/smt2/clausified/loop__while-if_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'llreve-bench/smt2/clausified/loop__while-if_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "llreve-bench/smt2/clausified/loop__while_after_while_if_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'llreve-bench/smt2/clausified/loop__while_after_while_if_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'llreve-bench/smt2/clausified/loop__while_after_while_if_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "llreve-bench/smt2/loop__barthe2-big_000_002.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'llreve-bench/smt2/loop__barthe2-big_000_002.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'llreve-bench/smt2/loop__barthe2-big_000_002.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "llreve-bench/smt2/loop__barthe_000_002.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'llreve-bench/smt2/loop__barthe_000_002.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'llreve-bench/smt2/loop__barthe_000_002.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "llreve-bench/smt2/loop__loop3_000_002.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'llreve-bench/smt2/loop__loop3_000_002.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'llreve-bench/smt2/loop__loop3_000_002.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/conc/szymanski_safe_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/conc/szymanski_safe_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/conc/szymanski_safe_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/ctigar/dillig01.c_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/ctigar/dillig01.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/ctigar/dillig01.c_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/ctigar/dillig25.c_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/ctigar/dillig25.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/ctigar/dillig25.c_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/ctigar/dillig28.c_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/ctigar/dillig28.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/ctigar/dillig28.c_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/ctigar/nested.c_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/ctigar/nested.c_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/ctigar/nested.c_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/ctigar/simple_if.c_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/ctigar/simple_if.c_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/ctigar/simple_if.c_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/ctigar/simple_nest.c_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/ctigar/simple_nest.c_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/ctigar/simple_nest.c_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/ctigar/up-nested.c_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/ctigar/up-nested.c_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/ctigar/up-nested.c_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_10_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_10_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_10_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_10_e1_3587_e3_2749_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_10_e1_3587_e3_2749_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_10_e1_3587_e3_2749_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_10_e1_998_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_10_e1_998_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_10_e1_998_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_10_e2_2785_e3_1744_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_10_e2_2785_e3_1744_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_10_e2_2785_e3_1744_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_10_e2_402_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_10_e2_402_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_10_e2_402_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_10_e3_144_e5_2046_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_10_e3_144_e5_2046_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_10_e3_144_e5_2046_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_10_e3_144_e6_4484_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_10_e3_144_e6_4484_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_10_e3_144_e6_4484_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_10_e3_3429_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_10_e3_3429_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_10_e3_3429_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_1_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_1_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_1_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_1_e1_14612_e1_268_e7_501_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_1_e1_14612_e1_268_e7_501_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_1_e1_14612_e1_268_e7_501_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_1_e1_14612_e2_2653_e7_4370_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_1_e1_14612_e2_2653_e7_4370_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_1_e1_14612_e2_2653_e7_4370_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_1_e1_14612_e7_1026_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_1_e1_14612_e7_1026_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_1_e1_14612_e7_1026_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_1_e1_3184_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_1_e1_3184_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_1_e1_3184_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_1_e2_1997_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_1_e2_1997_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_1_e2_1997_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_1_e2_1997_e7_3613_e2_3409_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_1_e2_1997_e7_3613_e2_3409_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_1_e2_1997_e7_3613_e2_3409_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_1_e3_11891_e7_4569_e4_4881_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_1_e3_11891_e7_4569_e4_4881_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_1_e3_11891_e7_4569_e4_4881_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_2_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_2_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_2_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_2_e1_2316_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_2_e1_2316_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_2_e1_2316_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_2_e2_3183_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_2_e2_3183_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_2_e2_3183_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_2_e2_3183_e1_2644_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_2_e2_3183_e1_2644_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_2_e2_3183_e1_2644_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_2_e2_3183_e2_3580_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_2_e2_3183_e2_3580_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_2_e2_3183_e2_3580_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_2_e2_3183_e3_5972_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_2_e2_3183_e3_5972_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_2_e2_3183_e3_5972_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_2_e7_25_e8_3171_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_2_e7_25_e8_3171_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_2_e7_25_e8_3171_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_3_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_3_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_3_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_e1_3755_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_e1_3755_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_e1_3755_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_e2_158_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_e2_158_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_e2_158_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_e3_511_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_e3_511_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_e3_511_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_3_e2_5343_e1_988_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_3_e2_5343_e1_988_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_3_e2_5343_e1_988_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_3_e3_3846_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_3_e3_3846_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_3_e3_3846_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_3_e3_5422_e1_2288_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_3_e3_5422_e1_2288_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_3_e3_5422_e1_2288_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_3_e3_5422_e2_3135_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_3_e3_5422_e2_3135_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_3_e3_5422_e2_3135_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_6_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_6_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_6_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_7_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_7_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_7_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_7_e2_2872_e2_5844_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_7_e2_2872_e2_5844_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_7_e2_2872_e2_5844_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_7_e2_2872_e3_2640_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_7_e2_2872_e3_2640_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_7_e2_2872_e3_2640_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_9_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_9_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_9_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_9_e7_1843_e8_3031_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_9_e7_1843_e8_3031_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_9_e7_1843_e8_3031_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_all_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_all_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_all_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_e1_1759_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_e1_1759_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_e1_1759_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_e2_267_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_e2_267_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_e2_267_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_e3_3628_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_e3_3628_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_e3_3628_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_all_e2_1514_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_all_e2_1514_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_all_e2_1514_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_all_e2_6104_e1_6205_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_all_e2_6104_e1_6205_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_all_e2_6104_e1_6205_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_all_e2_6104_e2_3308_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_all_e2_6104_e2_3308_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_all_e2_6104_e2_3308_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_all_e2_6104_e3_2607_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_all_e2_6104_e3_2607_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_all_e2_6104_e3_2607_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e1_1318_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e1_1318_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e1_1318_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e2_1089_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e2_1089_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e2_1089_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e4_1791_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e4_1791_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e4_1791_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e5_1536_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e5_1536_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e5_1536_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e6_2061_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e6_2061_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e6_2061_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_10_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_10_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_10_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_1_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_1_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_1_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_1_e1_1092_e2_1853_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_1_e1_1092_e2_1853_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_1_e1_1092_e2_1853_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_2_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_2_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_2_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_2_e1_3099_e2_846_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_2_e1_3099_e2_846_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_2_e1_3099_e2_846_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_3_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_3_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_3_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_3_e2_2236_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_3_e2_2236_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_3_e2_2236_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_3_e2_2236_e1_2305_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_3_e2_2236_e1_2305_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_3_e2_2236_e1_2305_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_3_e2_2236_e2_1058_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_3_e2_2236_e2_1058_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_3_e2_2236_e2_1058_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_4_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_4_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_4_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_4_e3_3511_e6_1826_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_4_e3_3511_e6_1826_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_4_e3_3511_e6_1826_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_5_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_5_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_5_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_5_e2_2229_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_5_e2_2229_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_5_e2_2229_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_5_e2_2884_e1_2678_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_5_e2_2884_e1_2678_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_5_e2_2884_e1_2678_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_5_e2_2884_e2_1492_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_5_e2_2884_e2_1492_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_5_e2_2884_e2_1492_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_5_e2_2884_e3_1882_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_5_e2_2884_e3_1882_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_5_e2_2884_e3_1882_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_8_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_8_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_8_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_8_e2_1692_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_8_e2_1692_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_8_e2_1692_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_8_e2_1711_e1_1489_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_8_e2_1711_e1_1489_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_8_e2_1711_e1_1489_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_8_e2_1711_e2_2673_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_8_e2_1711_e2_2673_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_8_e2_1711_e2_2673_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_8_e2_1711_e3_1753_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_8_e2_1711_e3_1753_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_8_e2_1711_e3_1753_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_9_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_9_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_9_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_a3_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_a3_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_a3_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e1_3233_e2_2392_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_a3_e1_3233_e2_2392_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_a3_e1_3233_e2_2392_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e1_3233_e3_2970_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_a3_e1_3233_e3_2970_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_a3_e1_3233_e3_2970_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e2_2086_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_a3_e2_2086_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_a3_e2_2086_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e2_2086_e1_3235_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_a3_e2_2086_e1_3235_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_a3_e2_2086_e1_3235_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e2_2086_e2_2689_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_a3_e2_2086_e2_2689_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_a3_e2_2086_e2_2689_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e2_2086_e3_2542_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_a3_e2_2086_e3_2542_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_a3_e2_2086_e3_2542_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e3_314_e2_2812_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_a3_e3_314_e2_2812_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_a3_e3_314_e2_2812_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_all_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_all_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_all_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_all_e1_1207_e2_3220_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_all_e1_1207_e2_3220_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_all_e1_1207_e2_3220_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_all_e2_2924_e1_768_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_all_e2_2924_e1_768_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_all_e2_2924_e1_768_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_e6_1569_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_e6_1569_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_e6_1569_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e1_1139_e2_2893_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e1_1139_e2_2893_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e1_1139_e2_2893_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e2_3049_e1_946_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e2_3049_e1_946_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e2_3049_e1_946_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_671_e6_1974_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_671_e6_1974_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_671_e6_1974_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/FIREFLY_luke_rt_e2_3460_e1_1455_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/FIREFLY_luke_rt_e2_3460_e1_1455_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/FIREFLY_luke_rt_e2_3460_e1_1455_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ILLINOIS_1_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ILLINOIS_1_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ILLINOIS_1_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ILLINOIS_2_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ILLINOIS_2_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ILLINOIS_2_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e1_834_e2_3395_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ILLINOIS_2_e1_834_e2_3395_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ILLINOIS_2_e1_834_e2_3395_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e2_2367_e1_3182_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ILLINOIS_2_e2_2367_e1_3182_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ILLINOIS_2_e2_2367_e1_3182_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e3_1554_e6_2223_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ILLINOIS_2_e3_1554_e6_2223_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ILLINOIS_2_e3_1554_e6_2223_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ILLINOIS_3_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ILLINOIS_3_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ILLINOIS_3_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_e6_2476_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_e6_2476_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_e6_2476_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ILLINOIS_4_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ILLINOIS_4_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ILLINOIS_4_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ILLINOIS_4_e7_2651_e7_2847_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ILLINOIS_4_e7_2651_e7_2847_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ILLINOIS_4_e7_2651_e7_2847_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ILLINOIS_5_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ILLINOIS_5_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ILLINOIS_5_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ILLINOIS_5_e7_692_e7_2865_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ILLINOIS_5_e7_692_e7_2865_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ILLINOIS_5_e7_692_e7_2865_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ILLINOIS_all_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ILLINOIS_all_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ILLINOIS_all_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ILLINOIS_all_e3_2354_e6_993_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ILLINOIS_all_e3_2354_e6_993_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ILLINOIS_all_e3_2354_e6_993_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MESI_3_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MESI_3_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MESI_3_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MESI_3_e1_2517_e8_2163_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MESI_3_e1_2517_e8_2163_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MESI_3_e1_2517_e8_2163_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MESI_3_e2_819_e1_1145_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MESI_3_e2_819_e1_1145_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MESI_3_e2_819_e1_1145_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MESI_3_e2_819_e4_1595_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MESI_3_e2_819_e4_1595_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MESI_3_e2_819_e4_1595_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MESI_3_e2_819_e6_1459_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MESI_3_e2_819_e6_1459_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MESI_3_e2_819_e6_1459_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MESI_3_e3_2584_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MESI_3_e3_2584_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MESI_3_e3_2584_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MESI_4_e7_1140_e7_433_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MESI_4_e7_1140_e7_433_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MESI_4_e7_1140_e7_433_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MESI_all_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MESI_all_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MESI_all_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MOESI_2_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MOESI_2_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MOESI_2_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MOESI_2_e1_1121_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MOESI_2_e1_1121_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MOESI_2_e1_1121_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MOESI_2_e1_1753_e8_1769_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MOESI_2_e1_1753_e8_1769_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MOESI_2_e1_1753_e8_1769_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MOESI_2_e2_155_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MOESI_2_e2_155_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MOESI_2_e2_155_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MOESI_2_e2_1599_e8_1334_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MOESI_2_e2_1599_e8_1334_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MOESI_2_e2_1599_e8_1334_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MOESI_2_e3_1523_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MOESI_2_e3_1523_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MOESI_2_e3_1523_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e4_578_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e4_578_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e4_578_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e5_1826_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e5_1826_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e5_1826_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e6_2707_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e6_2707_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e6_2707_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e8_1167_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e8_1167_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e8_1167_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MOESI_2_e8_101_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MOESI_2_e8_101_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MOESI_2_e8_101_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MOESI_2_e8_926_e8_2138_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MOESI_2_e8_926_e8_2138_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MOESI_2_e8_926_e8_2138_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/MOESI_all_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/MOESI_all_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/MOESI_all_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/SYNAPSE_123_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/SYNAPSE_123_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/SYNAPSE_123_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/SYNAPSE_123_e8_748_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/SYNAPSE_123_e8_748_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/SYNAPSE_123_e8_748_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/SYNAPSE_123_e8_953_e8_941_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/SYNAPSE_123_e8_953_e8_941_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/SYNAPSE_123_e8_953_e8_941_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/SYNAPSE_all_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/SYNAPSE_all_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/SYNAPSE_all_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e3_1864_e6_1336_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/SYNAPSE_all_e3_1864_e6_1336_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/SYNAPSE_all_e3_1864_e6_1336_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e8_251_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/SYNAPSE_all_e8_251_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/SYNAPSE_all_e8_251_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/car_2_e7_1027_e1_1047_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/car_2_e7_1027_e1_1047_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/car_2_e7_1027_e1_1047_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/car_2_e8_491_e7_826_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/car_2_e8_491_e7_826_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/car_2_e8_491_e7_826_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/car_3_e8_33_e7_220_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/car_3_e8_33_e7_220_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/car_3_e8_33_e7_220_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/car_4_e8_118_e7_178_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/car_4_e8_118_e7_178_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/car_4_e8_118_e7_178_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/car_all_e2_142_e7_209_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/car_all_e2_142_e7_209_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/car_all_e2_142_e7_209_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/car_all_e8_856_e7_578_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/car_all_e8_856_e7_578_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/car_all_e8_856_e7_578_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/fast_1_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/fast_1_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/fast_1_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/fast_1_e7_2044_e8_1396_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/fast_1_e7_2044_e8_1396_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/fast_1_e7_2044_e8_1396_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/fast_1_e8_747_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/fast_1_e8_747_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/fast_1_e8_747_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/fast_1_e8_747_e8_1041_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/fast_1_e8_747_e8_1041_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/fast_1_e8_747_e8_1041_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e1_846_e2_1394_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e1_846_e2_1394_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e1_846_e2_1394_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e1_846_e3_1060_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e1_846_e3_1060_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e1_846_e3_1060_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e1_846_e8_1253_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e1_846_e8_1253_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e1_846_e8_1253_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e2_1102_e2_943_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e2_1102_e2_943_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e2_1102_e2_943_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e2_1102_e3_961_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e2_1102_e3_961_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e2_1102_e3_961_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e2_1102_e8_311_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e2_1102_e8_311_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e2_1102_e8_311_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e8_1567_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e8_1567_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e8_1567_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e8_725_e3_556_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e8_725_e3_556_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e8_725_e3_556_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_3_e3_1275_e2_454_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_3_e3_1275_e2_454_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_3_e3_1275_e2_454_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_3_e3_1275_e3_640_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_3_e3_1275_e3_640_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_3_e3_1275_e3_640_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_4_e2_968_e2_1166_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_4_e2_968_e2_1166_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_4_e2_968_e2_1166_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_4_e2_968_e3_931_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_4_e2_968_e3_931_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_4_e2_968_e3_931_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_4_e3_1091_e2_1317_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_4_e3_1091_e2_1317_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_4_e3_1091_e2_1317_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_4_e3_1091_e3_522_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_4_e3_1091_e3_522_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_4_e3_1091_e3_522_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/peterson_1_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/peterson_1_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/peterson_1_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/peterson_1_e7_4234_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/peterson_1_e7_4234_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/peterson_1_e7_4234_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/peterson_2_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/peterson_2_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/peterson_2_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/peterson_3_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/peterson_3_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/peterson_3_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/peterson_4_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/peterson_4_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/peterson_4_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/peterson_all_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/peterson_all_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/peterson_all_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/readwrit_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/readwrit_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/readwrit_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/rtp_10_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/rtp_10_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/rtp_10_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/rtp_10_e7_106_e7_2564_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/rtp_10_e7_106_e7_2564_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/rtp_10_e7_106_e7_2564_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/rtp_1_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/rtp_1_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/rtp_1_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/rtp_2_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/rtp_2_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/rtp_2_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/rtp_3_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/rtp_3_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/rtp_3_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/rtp_4_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/rtp_4_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/rtp_4_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/rtp_5_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/rtp_5_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/rtp_5_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/rtp_5_e7_3972_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/rtp_5_e7_3972_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/rtp_5_e7_3972_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/rtp_6_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/rtp_6_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/rtp_6_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/rtp_7_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/rtp_7_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/rtp_7_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/rtp_8_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/rtp_8_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/rtp_8_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/rtp_9_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/rtp_9_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/rtp_9_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/rtp_all_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/rtp_all_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/rtp_all_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/rtp_all_e7_2500_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/rtp_all_e7_2500_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/rtp_all_e7_2500_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_1_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_1_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_1_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_1_e7_1669_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_1_e7_1669_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_1_e7_1669_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_2_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_2_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_2_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_3_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_3_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_3_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_3_e7_1312_e8_1916_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_3_e7_1312_e8_1916_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_3_e7_1312_e8_1916_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_3_e8_1703_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_3_e8_1703_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_3_e8_1703_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_3_e8_1703_e8_2560_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_3_e8_1703_e8_2560_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_3_e8_1703_e8_2560_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_4_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_4_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_4_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_4_e7_1775_e7_3320_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_4_e7_1775_e7_3320_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_4_e7_1775_e7_3320_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_5_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_5_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_5_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_5_e7_3307_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_5_e7_3307_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_5_e7_3307_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_6_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_6_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_6_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_6_e7_1096_e7_2688_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_6_e7_1096_e7_2688_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_6_e7_1096_e7_2688_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_7_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_7_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_7_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_7_e1_2192_e1_1852_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_7_e1_2192_e1_1852_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_7_e1_2192_e1_1852_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_7_e1_2192_e7_3516_000.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_7_e1_2192_e7_3516_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_7_e1_2192_e7_3516_000.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_7_e2_2724_e7_524_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_7_e2_2724_e7_524_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_7_e2_2724_e7_524_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_7_e3_59_e7_2122_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_7_e3_59_e7_2122_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_7_e3_59_e7_2122_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_7_e7_3176_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_7_e7_3176_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_7_e7_3176_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_7_e8_2126_e7_78_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_7_e8_2126_e7_78_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_7_e8_2126_e7_78_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_all_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_all_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_all_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_all_e1_2706_e7_1776_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_all_e1_2706_e7_1776_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_all_e1_2706_e7_1776_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_all_e2_1117_e7_553_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_all_e2_1117_e7_553_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_all_e2_1117_e7_553_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_all_e3_557_e7_3464_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_all_e3_557_e7_3464_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_all_e3_557_e7_3464_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_all_e7_1837_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_all_e7_1837_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_all_e7_1837_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/ticket3i_all_e8_505_e7_2450_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/ticket3i_all_e8_505_e7_2450_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/ticket3i_all_e8_505_e7_2450_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/twisted_counters_000_001.yml",
+  "timeout": 700,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/twisted_counters_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/twisted_counters_000_001.yml' --model /data/spacer-models.jsonl  --kernel"
+ }
+]
