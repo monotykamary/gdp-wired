@@ -69,8 +69,9 @@ function check(k: number, w: Record<string, number>): string | undefined {
 }
 // z3's model: the requests' values, by (get-value).
 function z3Run(goal: Goal, inputs: string[][], limit: number): {answer: string, seconds: number, w?: Record<string, number>} {
-  const names = inputs.flat()
-  const text = toSmt(goal).replace('(check-sat)\n', `(check-sat)\n(get-value (${names.map(n => `|${n}|`).join(' ')}))\n`)
+  // (only the inputs the goal reads are declared; one it doesn't read is free, 0 here)
+  const smt = toSmt(goal), names = inputs.flat().filter(n => smt.includes(`(declare-fun |${n}| `))
+  const text = names.length ? smt.replace('(check-sat)\n', `(check-sat)\n(get-value (${names.map(n => `|${n}|`).join(' ')}))\n`) : smt
   writeFileSync('/tmp/bmc.smt2', text)
   const t = performance.now(), p = spawnSync('timeout', [String(Math.max(1, Math.round(limit / 1000))), 'z3', '-smt2', '/tmp/bmc.smt2'], {encoding: 'utf8', maxBuffer: 1 << 28})
   const seconds = Math.round(performance.now() - t) / 1000, out = p.stdout ?? ''

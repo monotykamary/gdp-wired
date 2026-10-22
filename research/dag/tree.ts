@@ -729,11 +729,13 @@ export function openOrder(goal: Goal, path: Path, rows: {lin: Lin}[]): Lin[] {
   let byHyp = openSeen.get(goal)
   if (!byHyp) openSeen.set(goal, (byHyp = new Map()))
   const openOf = (h: C) => { let seen = byHyp.get(h); if (!seen) byHyp.set(h, (seen = {})); return reusing(seen, path, p => { const out: Lin[] = []; openH(h, p, out); return out }) }
-  if (unitFirst) open.push(...unitsOf(goal))
-  if (last >= 0) open.push(...openOf(hyps[last]!))
+  // (pushed one by one: a k-step unrolling's lists outgrow a spread's argument limit)
+  const put = (xs: Lin[]) => { for (const x of xs) open.push(x) }
+  if (unitFirst) put(unitsOf(goal))
+  if (last >= 0) put(openOf(hyps[last]!))
   const near = nearOf(goal)
-  for (const [i, h] of hyps.entries()) if (i !== last && near[i]) open.push(...openOf(h))
-  for (const [i, h] of hyps.entries()) if (i !== last && !near[i]) open.push(...openOf(h))
-  open.push(...openCells(rows, path))
+  for (const [i, h] of hyps.entries()) if (i !== last && near[i]) put(openOf(h))
+  for (const [i, h] of hyps.entries()) if (i !== last && !near[i]) put(openOf(h))
+  put(openCells(rows, path))
   return open
 }

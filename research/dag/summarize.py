@@ -115,6 +115,49 @@ def residual(prof, proven_any):
     print(f"    goals where fixing the yes/no values leaves no numeric atom open (all 8): {zero}")
 
 
+def varsum(closed):
+    print("## vars (runs/modal/dag/vars: vars.ts, every yes/no and finite value fixed at random, 16 a goal)")
+    V = {}
+    for f in glob.glob(str(RUNS / "vars" / "*.log")):
+        js = [json.loads(l) for l in open(f).read().splitlines() if l.startswith("{")]
+        if js:
+            V[pathlib.Path(f).stem] = js[-1]
+    for lab, sel in [("all 332", lambda k: True), ("not closed", lambda k: k not in closed)]:
+        xs = [v for k, v in V.items() if sel(k)]
+        print(f"  {lab}: {len(xs)} goals")
+        for k in ["vars", "yesNo", "finite", "intHalves", "other", "yesNoRead", "finiteRead", "intHalvesRead"]:
+            ys = [x[k] for x in xs]
+            print(f"    {k}: median {med(ys)}, p10 {q(ys, .1)}, p90 {q(ys, .9)}, max {max(ys)}")
+        for k in ["openMedian", "openVarsMedian", "rowsMedian", "rowVarsMedian"]:
+            ys = [x["fixed"][k] for x in xs]
+            print(f"    fixed: {k} per goal: median {med(ys)}, p90 {q(ys, .9)}, max {max(ys)}")
+        vc = collections.Counter()
+        for x in xs:
+            for kk, n in x["fixed"]["verdicts"].items():
+                vc[kk] += n
+        print(f"    fixed: the solver's verdicts {dict(vc)}; samples with nothing left open {sum(x['fixed']['noneOpen'] for x in xs)} of {16 * len(xs)}")
+
+
+def items():
+    print("## items (runs/modal/dag/items: the examples' own root goals, tree.ts against dag.ts, 3 s each)")
+    T = collections.Counter()
+    n = 0
+    for f in sorted(glob.glob(str(RUNS / "items" / "*.log"))):
+        js = [json.loads(l) for l in open(f).read().splitlines() if l.startswith("{")]
+        if not js or "both" not in js[-1]:
+            print(f"  {pathlib.Path(f).stem}: {js[-1] if js else 'no line'}")
+            continue
+        j = js[-1]
+        n += 1
+        for k in ["goals", "treeProven", "treeChecked", "dagProven", "dagChecked", "both", "dagSmallerSteps", "dagLargerSteps", "multiLeaf"]:
+            T[k] += j[k]
+        for k, v in j["tree"].items():
+            T["tree " + k] += v
+        for k, v in j["dag"].items():
+            T["dag " + k] += v
+    print(f"  {n} examples: {dict(T)}")
+
+
 def bmc():
     print("## bmc (runs/modal/dag/bmc: bmc.ts, k = 1..10, 240 s a task)")
     tasks = {t["task"].removesuffix(".yml").replace("/", "__"): t for t in json.loads((pathlib.Path(__file__).resolve().parent / "bmc-tasks.json").read_text())}
@@ -124,8 +167,10 @@ def bmc():
         js = [json.loads(l) for l in open(f).read().splitlines() if l.startswith("{")]
         rows[n] = js
     done = {n: [j for j in js if j.get("done")] for n, js in rows.items()}
-    proto = {n: d[0]["prototypeK"] for n, d in done.items() if d and d[0]["prototypeK"] is not None}
-    z3 = {n: d[0]["z3K"] for n, d in done.items() if d and d[0]["z3K"] is not None}
+    # (the first k at which each engine's model replayed as a checked run, from the per-k lines)
+    first = lambda js, eng, ok: min((j["k"] for j in js if j.get("engine") == eng and ok(j)), default=None)
+    proto = {n: k for n, js in rows.items() if (k := first(js, "prototype", lambda j: j.get("verdict") == "a run (checkDerivation)")) is not None}
+    z3 = {n: k for n, js in rows.items() if (k := first(js, "z3 (reference)", lambda j: j.get("run") == "a run (checkDerivation)")) is not None}
     print(f"  tasks {len(rows)}, finished {sum(1 for d in done.values() if d)}; a checked run found: prototype {len(proto)}, z3 (reference) {len(z3)}, either {len(set(proto) | set(z3))}")
     for lab, d in [("prototype", proto), ("z3", z3)]:
         print(f"    {lab}: k found {dict(sorted(collections.Counter(d.values()).items()))}")
@@ -141,17 +186,68 @@ def bmc():
     print(f"  z3's k minus Golem's derivation length: {dict(sorted(diffs.items()))}")
 
 
+def extras():
+    print("## extras")
+    prof = results("profile", "profile.json")
+    for lab, sel in [("Lustre", lambda k: "lustre" in k), ("other", lambda k: "lustre" not in k)]:
+        xs = [r for k, r in prof.items() if sel(k)]
+        L = sum(r["leavesProcessed"] for r in xs)
+        print(f"  profile, {lab}: {len(xs)} goals, proven {sum(r['outcome'] == 'proven' for r in xs)}, same rows {100 * sum(r['sameRows'] for r in xs) / L:.1f}%, subsumed {100 * sum(r['subsumedByEarlierCore'] for r in xs) / L:.1f}%")
+    d10 = "vmt-chc-benchmarks__lustre__DRAGON_10_000_001"
+    r = prof[d10]
+    print(f"  DRAGON_10, profile: {r['searchMs']} ms, nodes {r['nodes']}, leaves {r['leavesFound']}, same rows {r['sameRows']}, subsumed {r['subsumedByEarlierCore']}, depth {r['depth']}, core {r['coreSize']}, solver {r['solveMs']} ms")
+    for name in ["dag-learn", "cdcl-final"]:
+        r = results(name)[d10]
+        print(f"  DRAGON_10, {name}: {r['outcome']}, " + ", ".join(f"{k} {r[k]}" for k in ["conflicts", "solves", "solveMs", "leaves"] if k in r))
+    sets = {n: {k for k, r in results(n).items() if r["outcome"] == "proven"} for n in ["dag-nolearn", "dag-learn", "cdcl-final", "cdcl-lazy"]}
+    a, b = sets["dag-learn"], sets["dag-nolearn"]
+    print(f"  dag-learn and dag-nolearn: both {len(a & b)}, learn only {len(a - b)}, no-learn only {len(b - a)}; cdcl-final not dag-learn {len(sets['cdcl-final'] - a)}, dag-learn not cdcl-final {len(a - sets['cdcl-final'])}")
+    gap = json.loads((RUNS.parent / "chc2" / "gap-v020.json").read_text())
+    u = set().union(*sets.values())
+    c, pv = collections.Counter(), collections.Counter()
+    for t in TASKS:
+        key = (gap[t]["class"], "Lustre" if "lustre" in t else "other")
+        c[key] += 1
+        pv[key] += t.removesuffix(".yml").replace("/", "__") in u
+    for key in sorted(c):
+        print(f"  class {key}: {pv[key]} of {c[key]} proven by some prototype")
+    tasks = {t["task"].removesuffix(".yml").replace("/", "__"): t for t in json.loads((pathlib.Path(__file__).resolve().parent / "bmc-tasks.json").read_text())}
+    rows = {pathlib.Path(f).stem: [json.loads(l) for l in open(f).read().splitlines() if l.startswith("{")] for f in glob.glob(str(RUNS / "bmc" / "*.log"))}
+    band = lambda cx: "none" if cx is None else "<=5" if cx <= 5 else "6-10" if cx <= 10 else ">10"
+    n, fp, fz = collections.Counter(), collections.Counter(), collections.Counter()
+    for k, js in rows.items():
+        b = band(tasks[k]["cex"])
+        n[b] += 1
+        fp[b] += any(j.get("verdict") == "a run (checkDerivation)" for j in js)
+        fz[b] += any(j.get("run") == "a run (checkDerivation)" for j in js)
+    print(f"  bmc by Golem's length: tasks {dict(n)}, prototype {dict(fp)}, z3 {dict(fz)}")
+    zs = [j["seconds"] for js in rows.values() for j in js if j.get("run") == "a run (checkDerivation)"]
+    ps = [j["searchMs"] for js in rows.values() for j in js if j.get("verdict") == "a run (checkDerivation)"]
+    print(f"  bmc: z3 s on the k found median {med(zs)} max {max(zs)}; prototype ms median {med(ps)} max {max(ps)}; prototype verdicts {dict(collections.Counter(j.get('verdict') for js in rows.values() for j in js if j.get('engine') == 'prototype'))}")
+    ex = collections.Counter(open(f).readline().split()[1] for f in glob.glob(str(RUNS / "bmc" / "*.log")))
+    oom = sum("Out of memory" in open(f).read() for f in glob.glob(str(RUNS / "bmc" / "*.log")))
+    print(f"  bmc job exits {dict(ex)}, out of memory {oom}")
+
+
 if __name__ == "__main__":
     solvers()
     dump()
     prof = profile()
     proven_any = set()
-    for name in ["dag-nolearn", "dag-learn", "cdcl", "cdcl-lazy"]:
+    for name in ["dag-nolearn", "dag-learn", "cdcl-final", "cdcl-lazy"]:
         if (RUNS / name).exists():
             _, P = proto(name)
             proven_any |= set(P)
     tree_proven = {k for k, r in prof.items() if r["outcome"] == "proven"}
+    for name in ["dag-nolearn", "dag-learn", "cdcl-final", "cdcl-lazy"]:
+        R = results(name)
+        both = [(prof[k], r) for k, r in R.items() if r["outcome"] == "proven" and prof.get(k, {}).get("outcome") == "proven"]
+        if both:
+            print(f"  {name} and the tree both prove {len(both)}: tree leaves {sum(a['treeLeaves'] for a, _ in both)}, DAG leaves {sum(b['size']['leaves'] for _, b in both)} (unfolded {sum(b['size']['unfoldedLeaves'] for _, b in both)}); per goal DAG/tree leaves median {med([b['size']['leaves'] / a['treeLeaves'] for a, b in both]):.2f}; search ms, tree median {med([a['searchMs'] for a, _ in both])}, {name} median {med([b['searchMs'] for _, b in both])}")
     print(f"## union: proven by some prototype {len(proven_any)}; by the profiled tree search {len(tree_proven)}; by either {len(proven_any | tree_proven)}; tree-only {len(tree_proven - proven_any)}")
     residual(prof, proven_any | tree_proven)
+    varsum(proven_any | tree_proven)
+    items()
     if (RUNS / "bmc").exists():
         bmc()
+    extras()
