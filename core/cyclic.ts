@@ -13,7 +13,7 @@
 // Beyond those, a node may use any node at any terms (nested, mutual, two ranks in order): `proveCyclic` takes the nodes
 // as they are given (examples/cyclic.ts).
 import type {C, E, Law, Machine} from './machine.ts'
-import type {Fold, Goal, Instances, Subst, Tree} from '../kernel/kernel.ts'
+import type {Fold, Goal, Instances, StepLaw, Subst, Tree} from '../kernel/kernel.ts'
 import {assumed, foldObligations, obligations, substC, substE} from '../kernel/kernel.ts'
 import {type CNode, type Cyclic, type Fact, type Use, baseHyps, descentGoal, instHyps, mainGoal, premiseGoal, refuseCyclic} from '../kernel/cyclic.ts'
 import {cellProducts, grow, profile, usedHyps, widen} from '../kernel/prove.ts'
@@ -713,6 +713,83 @@ function shared(facts: Fact[], a: NodeSpec, concl: C): E[] {
   }
   walk(concl)
   return out.sort((x, y) => JSON.stringify(y).length - JSON.stringify(x).length)
+}
+
+// --- step laws and k-step laws over the run -----------------------------------------------------------------------
+
+// A k-step law (or a step law, k = 1) as a node over the machine's run (BridgeRules.lean's cycKOk, cyc_kstep_sound
+// carries it to the law): the run's last k steps up to time t, each time one step back from the next (t − 1, t − 1 − 1,
+// …), as a step's fact reads the time before it, so the cells a step gives are those the next one reads. The first state
+// at t − k, the j-th request at t − (k − j), the state after the last at t.
+export const tBack = (n: number): E => (n === 0 ? v('t$') : less1(tBack(n - 1)))
+// `then` over the run (BridgeRules.lean's kσ and kRd): the primed names at t, each later request's inputs (input@j) and
+// the maps it carries (map@j) at its time, the plain names at t − k.
+export function kStepAt(m: Machine, k: number): Subst {
+  const {at} = trace(m), first = at(tBack(k)), last = at(tBack(0))
+  const vars: Record<string, E> = {...first.vars}, maps: Record<string, (key: E) => E> = {...first.maps}
+  for (const x of Object.keys(m.state)) vars[`${x}'`] = last.vars[x]!
+  for (const map of Object.keys(m.maps ?? {})) maps[`${map}'`] = last.maps[map]!
+  for (let j = 1; j < k; j++) {
+    const a = at(tBack(k - j))
+    for (const i of m.inputs) vars[`${i}@${j + 1}`] = a.vars[i]!
+    for (const c of m.inputMaps ?? []) maps[`${c}@${j + 1}`] = a.maps[c]!
+  }
+  return {vars, maps, flags: {}}
+}
+// A k-step law's `when`s, one per step (none: 0 <= 0), its flags inlined, as Lean's SKStep has them.
+export const kWhens = (m: Machine, sl: StepLaw): C[] => {
+  const ws = sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when], flags = flagsOf(m)
+  return Array.from({length: sl.steps ?? 1}, (_, j) => (ws[j] ? substC(ws[j]!, {vars: {}, maps: {}, flags}) : yes))
+}
+// The nodes of the step laws, after the laws' (`laws` the machine's, their nodes 0..L−1 at time t, as machineNodes makes
+// them; `rank` their rank's length). Each node: the precondition, k <= t <= T, T < Ω and each step's `when` at its time;
+// the run's facts at the times it reads (each step's, each map cell's step back from where it is read, the functions'
+// facts at the keys the usual proof names), every law at each state but the last (at the keys it names), and `then`.
+export function stepLawNodes(m: Machine, laws: Law[], steps: {law: StepLaw, instances: Instances}[], facts: Fact[], rank: number): NodeSpec[] {
+  const {at} = trace(m), flags = flagsOf(m), inline = (c: C) => substC(c, {vars: {}, maps: {}, flags})
+  const t = v('t$'), T = v('T$'), mapNames = Object.keys(m.maps ?? {}), traced = [...mapNames, ...(m.inputMaps ?? [])], state = Object.keys(m.state)
+  const fi = (name: string) => facts.findIndex(f => f.name === name)
+  const keysOf = (l: Law) => [...(l.forall ? [l.forall] : []), ...(l.keys ?? [])]
+  const tuples = (inst: Instances, l: Law): E[][] => { const ks = keysOf(l), flat = inst[l.name] ?? []; return ks.length ? Array.from({length: Math.floor(flat.length / ks.length)}, (_, i) => flat.slice(i * ks.length, (i + 1) * ks.length)) : [[]] }
+  const specs = steps.map(({law: sl, instances: inst}): NodeSpec => {
+    const K = sl.steps ?? 1, times = Array.from({length: K + 1}, (_, j) => tBack(K - j))
+    const hyps: C[] = [...(m.pre ? [m.pre] : []), le(k(K), t), le(t, T), ...(traced.length ? [{op: '<', a: T, b: omega} as C] : []),
+      ...kWhens(m, sl).map((w, j) => substC(w, at(times[j]!)))]
+    const concl = substC(inline(sl.then), kStepAt(m, K))
+    // Every law at each state but the last, at the keys the proof names there.
+    const uses: NodeSpec['uses'] = times.slice(0, K).flatMap(u => laws.flatMap((l, i) => tuples(inst, l).map(ts => ({
+      node: i, subst: {'t$': u, ...Object.fromEntries(keysOf(l).map((kn, q) => [kn, substE(ts[q]!, at(u))]))}, guard: yes}))))
+    const insts: NodeSpec['insts'] = [
+      ...times.slice(1).map(u => ({fact: fi(`${m.name}: a step`), at: [u]})),
+      ...times.flatMap(u => state.map(st => ({fact: fi(`${m.name}: ${st} is a natural`), at: [u]}))),
+      {fact: fi(`${m.name}: params are naturals`), at: []},
+      ...(m.facts ?? []).flatMap(f => tuples(inst, f).map(ts => ({fact: fi(f.name), at: ts.map(e => substE(e, at(times[0]!)))}))),
+    ]
+    // Each map cell the node reads at a time after the first: that map's step there, back to the time before, and so on.
+    const seen = new Set<string>(), ix = new Map(times.map((u, j) => [JSON.stringify(u), j]))
+    const cellFacts = (x: unknown): void => {
+      if (!x || typeof x !== 'object') return
+      if (Array.isArray(x)) { x.forEach(cellFacts); return }
+      const o = x as Record<string, unknown>
+      if (o.op === 'get' && typeof o.map === 'string' && o.map.endsWith('@') && traced.includes(o.map.slice(0, -1))) {
+        const key = o.key as E
+        if (key.op === 'add' && key.b.op === 'prod' && JSON.stringify(key.b.b) === JSON.stringify(omega)) {
+          const j = ix.get(JSON.stringify(key.a)), map = o.map.slice(0, -1), id = `${map}:${JSON.stringify(key)}`, u = key.a, cell = key.b.a
+          if (j !== undefined && !seen.has(id) && mapNames.includes(map)) {
+            seen.add(id)
+            const more = [...(j > 0 ? ['at a step'] : []), '\'s cells are naturals'].map(what => ({fact: fi(`${m.name}: ${map}${what.startsWith('\'') ? what : ` ${what}`}`), at: [u, cell]}))
+            insts.push(...more)
+            for (const p of more) cellFacts(substC(facts[p.fact]!.holds, vars({'u$': p.at[0]!, 'k$': p.at[1]!})))
+          }
+        }
+      }
+      for (const val of Object.values(o)) cellFacts(val)
+    }
+    cellFacts([hyps, concl, uses.map(us => substC(laws[us.node]!.holds, {...at(us.subst['t$']!), vars: {...at(us.subst['t$']!).vars, ...Object.fromEntries(Object.entries(us.subst).filter(([n]) => n !== 't$'))}}))])
+    for (const p of [...insts]) if (p.fact === fi(`${m.name}: a step`)) cellFacts(substC(facts[p.fact]!.holds, vars({'u$': p.at[0]!})))
+    return {name: `${m.name}: ${sl.name}`, hyps, concl, rank: rank === 1 ? [t] : [t, ...Array.from({length: rank - 1}, () => k(2))], insts: insts.filter(p => p.fact >= 0), uses}
+  })
+  return sliced(withReads(facts, specs))
 }
 
 // --- folds over trees -----------------------------------------------------------------------------------------------

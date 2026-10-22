@@ -10,6 +10,7 @@ import {grow, minimal, proveBuilt, proveLaws, proveStepLaws} from '../kernel/pro
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
 import {type Cyclic, descentGoal, mainGoal, premiseGoal} from '../kernel/cyclic.ts'
+import {cyclicMachine, foldNodes, kWhens, machineNodes, proveCyclic, routeOf, stepLawNodes} from '../core/cyclic.ts'
 import {leanLibrary} from './library.ts'
 export {leanLibrary}
 
@@ -472,6 +473,28 @@ export function machineLit(mm: Machine, t: {e: (x: E) => string, c: (x: C) => st
   ${list((mm.facts ?? []).filter(l => l.keys?.length).map(l => `(⟨${c(l.holds)}, some ${ix(l.forall!)}⟩, ${list(l.keys!.map(k2 => String(ix(k2))))})`))}⟩`
 }
 
+// The names a machine's export numbers first, before those only its goals read: the machine's own (params, inputs, state,
+// flags, the keys of its laws and facts, the keys its writes and quantified flags bind) and its claims' (each step law's
+// key, the state after the step, each later request's names, the state between steps, a history's record). The usual
+// export and the cyclic one (cycMachineToLean) number them alike, so that a machine, a law's statement and a step law are
+// the same Lean text in both.
+function machineNames(m: Machine, laws: Law[], allSteps: StepLaw[], stepLaws: StepLaw[], opts: {tamper?: {machine: Machine}, free?: string[], record?: string[]}): {vars: string[], maps: string[]} {
+  const flags = Object.entries(m.step.flags ?? {}), quantified = flags.filter(([, c]) => c.op === 'all').map(([f]) => f)
+  const qwits = (f: string) => witnessesOf(f, m.step.flags![f] as Extract<C, {op: 'all'}>)
+  const carried = m.inputMaps ?? [], keysOf = [...new Set([...laws, ...(m.facts ?? [])].flatMap(l => [l.forall, ...(l.keys ?? [])].filter((k): k is string => !!k)))]
+  const k = Math.max(1, ...allSteps.map(sl => sl.steps ?? 1))
+  const ext = [...m.inputs, ...quantified.flatMap(f => [`?${f}`, ...qwits(f)])]
+  const later = Array.from({length: k - 1}, (_, j) => ext.map(v => `${v}@${j + 2}`)).flat()
+  const laterMaps = Array.from({length: k - 1}, (_, j) => carried.map(mp => `${mp}@${j + 2}`)).flat()
+  const primes = allSteps.length ? Object.keys(m.state).map(s2 => `${s2}'`) : []
+  const vars = [...new Set([...m.params, ...m.inputs, ...Object.keys(m.state), ...keysOf, ...keysOf.map(k2 => `${k2}#`), '#', ...flags.map(([f]) => `?${f}`),
+    ...quantified.flatMap(qwits), ...boundKeys(m), ...(opts.tamper ? boundKeys(opts.tamper.machine) : []), ...stepLaws.flatMap(sl => (sl.forall ? [sl.forall] : [])), ...(opts.free ?? []),
+    ...primes, ...later, ...Array.from({length: k - 1}, (_, j) => Object.keys(m.state).map(n2 => stateName(n2, j + 1))).flat(), ...(opts.record ?? []).map(f => `r.${f}`)])]
+  const baseMaps = [...new Set([...Object.keys(m.maps ?? {}), ...Object.keys(m.step.maps ?? {}), ...Object.keys(m.fns ?? {})])]
+  const maps = [...new Set([...baseMaps, ...carried, ...(allSteps.length ? Object.keys(m.maps ?? {}).map(mp => `${mp}'`) : []), ...laterMaps])]
+  return {vars, maps}
+}
+
 export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {stepLaws?: StepLaw[], liveness?: Liveness[], tamper?: {what: string, machine: Machine}, simp?: string[], free?: string[],
     ghosts?: string[], after?: (ix: (name: string) => number) => string, historyTampers?: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[],
     refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}, loop?: {loop: Loop, tamper?: {what: string, loop: Loop}}, noFacts?: boolean} = {}): string {
@@ -577,12 +600,8 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
   const lp = r.proof.laws, si = r.proof.instances
   const flags = Object.entries(m.step.flags ?? {}), quantified = flags.filter(([, c]) => c.op === 'all').map(([f]) => f)
   const qwits = (f: string) => witnessesOf(f, m.step.flags![f] as Extract<C, {op: 'all'}>)
-  const carried = m.inputMaps ?? [], facts = m.facts ?? [], keysOf = [...new Set([...laws, ...facts].flatMap(l => [l.forall, ...(l.keys ?? [])].filter((k): k is string => !!k)))]
-  const k = Math.max(1, ...allSteps.map(sl => sl.steps ?? 1))
+  const carried = m.inputMaps ?? [], facts = m.facts ?? []
   const ext = [...m.inputs, ...quantified.flatMap(f => [`?${f}`, ...qwits(f)])]
-  const later = Array.from({length: k - 1}, (_, j) => ext.map(v => `${v}@${j + 2}`)).flat()
-  const laterMaps = Array.from({length: k - 1}, (_, j) => carried.map(mp => `${mp}@${j + 2}`)).flat()
-  const primes = allSteps.length ? Object.keys(m.state).map(s2 => `${s2}'`) : []
   const instOf = (sl: StepLaw) => r.proof!.perStep?.[sl.name] ?? si
   const goalsL = obligations(m, laws, lp.instances), goalsS = allSteps.map(sl => stepLawObligations(m, laws, instOf(sl), sl)[0]!)
   // Weak fairness over sets: each helpful request allowed in its region carrying empty sets (Live.lean's sAllowGoal,
@@ -636,13 +655,9 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
     return r2.proven ? r2 : undefined
   })] as const))
   const allowGoals = [...allowed.values()].flatMap(a => (a ? [a.out.goal!] : []))
-  const vars = [...new Set([...m.params, ...m.inputs, ...Object.keys(m.state), ...keysOf, ...keysOf.map(k2 => `${k2}#`), '#', ...flags.map(([f]) => `?${f}`),
-    ...quantified.flatMap(qwits), ...boundKeys(m), ...(opts.tamper ? boundKeys(opts.tamper.machine) : []), ...stepLaws.flatMap(sl => (sl.forall ? [sl.forall] : [])), ...(opts.free ?? []),
-    ...primes, ...later, ...Array.from({length: k - 1}, (_, j) => Object.keys(m.state).map(n2 => stateName(n2, j + 1))).flat(),
-    ...(hm ? hm.history.record.map(f => `r.${f}`) : []), ...[...goalsL, ...goalsS, ...allowGoals, ...(hplain?.goals ?? [])].flatMap(g => g.hyps.flatMap(varsOf))])]
-  const baseMaps = [...new Set([...Object.keys(m.maps ?? {}), ...Object.keys(m.step.maps ?? {}), ...Object.keys(m.fns ?? {})])]
-  const mapNames = [...new Set([...baseMaps, ...carried, ...(allSteps.length ? Object.keys(m.maps ?? {}).map(mp => `${mp}'`) : []), ...laterMaps,
-    ...[...JSON.stringify([...goalsL, ...goalsS, ...allowGoals]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!)])]
+  const named = machineNames(m, laws, allSteps, stepLaws, {...opts, ...(hm ? {record: hm.history.record} : {})})
+  const vars = [...new Set([...named.vars, ...[...goalsL, ...goalsS, ...allowGoals, ...(hplain?.goals ?? [])].flatMap(g => g.hyps.flatMap(varsOf))])]
+  const mapNames = [...new Set([...named.maps, ...[...JSON.stringify([...goalsL, ...goalsS, ...allowGoals]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!)])]
   const enc = (g: Goal, tree: Tree) => encode({name: `${id}: ${g.name}`, goal: g, tree}, false, true, vars, mapNames)
   const {e, c} = leanTerms(vars, mapNames, id)
   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
@@ -745,6 +760,216 @@ def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
 example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix)}` : ''}`
 }
 
+// --- the cyclic certificate's export (GDP_CYCLIC_CERT=1) ------------------------------------------------------------
+
+// With GDP_CYCLIC_CERT=1 (or toLean's `cyclic`), toLean exports each machine the cyclic route covers from one cyclic
+// proof (kernel/cyclic.ts) of its laws and of every step law its claims bring (its own step laws and k-step laws, a
+// liveness's), carried to the machine by Bridge.lean's cyc_machine_sound and BridgeRules.lean's cyc_kstep_sound,
+// sleads_of_holds (liveness, loops), hreach_plain (histories) and cyc_ghost_holds (ghosts), and each theorem stated as the
+// usual export states it: the same machine, laws, step laws and liveness (machineNames numbers them alike), the same
+// `<id>.lawN`, `<id>_stepN_holds`, `<id>_liveN_holds`, `<id>_halts`. What the cyclic route doesn't cover goes the usual
+// way: a flag that holds at every key, a law that reads a map at a key read from a map, a refinement, and a liveness's
+// weak fairness (its helpful requests proven allowed: a claim about requests the run doesn't take).
+const envOf = () => (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
+export const cyclicCerts = () => envOf()?.GDP_CYCLIC_CERT === '1'
+let certsOn = false, cycTexts = 0
+// What the last toLean exported from cyclic certificates, and what went the usual way (and why).
+export const certReport: {cyclic: string[], usual: {id: string, why: string}[]} = {cyclic: [], usual: []}
+
+// The cyclic proof of a machine's laws and of the step laws its claims bring: the laws' nodes (the usual proof
+// translated, core/translate.ts; or searched), then each step law's (core/cyclic.ts's stepLawNodes, searched).
+function cycMachineProof(m: Machine, laws: Law[], allSteps: StepLaw[]): {p: Cyclic, L: number} | {why: string} {
+  const r = proveStepLaws(m, laws, allSteps)
+  if (!r.proven || !r.proof) return {why: 'not proven the usual way'}
+  const lp = r.proof.laws, instOf = (sl: StepLaw) => r.proof!.perStep?.[sl.name] ?? r.proof!.instances
+  const tries = [...(routeOf() !== 'search' ? [machineNodes(m, laws, lp.instances, {trees: lp.trees})] : []), machineNodes(m, laws, lp.instances)].filter(b => !b.why)
+  let last = 'no nodes'
+  for (const base of tries) {
+    const steps = stepLawNodes(m, laws, allSteps.map(sl => ({law: sl, instances: instOf(sl)})), base.facts, base.specs[0]?.rank.length ?? 2)
+    const v = proveCyclic(base.facts, [...base.specs, ...steps])
+    if (v.proven && v.checked) return {p: v.proof, L: base.specs.length}
+    last = v.proven ? `not checked (${v.why})` : `${v.node}: ${v.goal}: ${v.stuck}`
+  }
+  return {why: last}
+}
+
+// A machine (with a history, ghosts, a liveness or as a loop's) from one cyclic proof, or why it can't be.
+export function cycMachineToLean(id: string, given: Machine, laws: Law[], opts: {stepLaws?: StepLaw[], liveness?: Liveness[], simp?: string[], free?: string[],
+    ghosts?: string[], after?: (ix: (name: string) => number) => string, loop?: {loop: Loop}, noFacts?: boolean} = {}): {text: string} | {why: string} {
+  const hm = given.history ? {...given, history: {...given.history, prune: undefined}} : undefined
+  const hplain = hm ? historyMachine(hm) : undefined, m = hplain ? hplain.machine : given
+  const stepLaws = opts.stepLaws ?? [], gv = opts.ghosts ?? []
+  if (!cyclicMachine(m, laws)) return {why: 'a flag that holds at every key, or a law reading a map at a key read from a map'}
+  const lives = (opts.liveness ?? []).map(l => ({l, ...livenessParts(m, l)}))
+  const allSteps = [...stepLaws, ...lives.flatMap(x => [x.stay, x.cover, ...x.helps])]
+  const made = cycMachineProof(m, laws, allSteps)
+  if ('why' in made) return made
+  const {p, L} = made
+  const named = machineNames(m, laws, allSteps, stepLaws, {...(opts.free ? {free: opts.free} : {}), ...(hm ? {record: hm.history.record} : {})})
+  const sc = cycScope([p], {machine: m, laws})
+  const vars = [...new Set([...named.vars, ...sc.vars])], maps = [...new Set([...named.maps, ...sc.maps])]
+  const {e, c} = leanTerms(vars, maps, id)
+  const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
+  const mx = (name: string) => { const j = maps.indexOf(name); if (j < 0) throw new Error(`${id}: no map for ${name}`); return j }
+  const lit = (mm: Machine) => machineLit(mm, {e, c}, ix, mx)
+  const inline = (c2: C): C => substC(c2, {vars: {}, maps: {}, flags: flagsOfM(m)})
+  const keysOf = (l: Law) => [...(l.forall ? [l.forall] : []), ...(l.keys ?? [])]
+  const keysL = (l: Law) => list(keysOf(l).map(k2 => String(ix(k2))))
+  const state = Object.keys(m.state), carried = m.inputMaps ?? []
+  const primesL = () => list(state.map(s2 => `(${ix(s2)}, ${ix(`${s2}'`)})`)), primeMapsL = () => list(Object.keys(m.maps ?? {}).map(mp => `(${mx(mp)}, ${mx(`${mp}'`)})`))
+  const node = (i: number) => `${id}_node${i}`
+  const kstep = (sk: string, i: number) => `cyc_kstep_sound ${id}_machine ${id}_enc ${id}_facts ${id}_nodes ${id}_check ${sk} ${node(i)} ${node(i)}_mem`
+  // The machine as the usual export defines it: with a history its plain machine, with ghosts the ghosted one, a loop's.
+  const orig: Machine = {...m, state: Object.fromEntries(Object.entries(m.state).filter(([n2]) => !gv.includes(n2))), step: {...m.step, state: Object.fromEntries(Object.entries(m.step.state ?? {}).filter(([n2]) => !gv.includes(n2)))}}
+  const hlit = () => {
+    const h = hm!.history, base: Machine = {...hm!, history: undefined}
+    return `⟨${lit(base)},
+  ${c(h.keep)},
+  ${list(h.record.map(f => String(ix(f))))},
+  ${list(h.record.map(f => String(ix(`r.${f}`))))},
+  ${list(Object.entries(h.sums).map(([name, g]) => `(${ix(name)}, ${e(g)})`))},
+  ${list(Object.entries(h.queries).map(([name, g]) => `(${ix(name)}, ${e(g)})`))},
+  ${list((h.relations ?? []).map(rel => { if (rel.holds.op !== '<=') throw new Error(`${id}: a relation is a <= b`); return `(${c(rel.when)}, ${e(rel.holds.a)}, ${e(rel.holds.b)})` }))}⟩`
+  }
+  const lp0 = opts.loop
+  const loopLit = (lp: Loop) => `⟨${list(lp.inputs.map(name => String(ix(name))))},
+  ${list(Object.entries(lp.state).map(([name, e2]) => `(${ix(name)}, ${e(e2)})`))},
+  ${list(Object.entries(lp.body).map(([name, e2]) => `(${ix(name)}, ${e(e2)})`))},
+  ${c(lp.while)},
+  ${lp.pre ? c(lp.pre) : TRUE},
+  ${lp.assume ? c(lp.assume) : TRUE}⟩`
+  const machineDef = gv.length ? `def ${id}_ghosted : SGhosted := ⟨${lit(orig)},
+  ${list(gv.map(v2 => `(${ix(v2)}, ${e(m.state[v2]!)}, ${e(m.step.state?.[v2] ?? {op: 'var', name: v2})})`))}⟩
+def ${id}_machine : SMachine := ${id}_ghosted.full
+theorem ${id}_ghostOk : sghostOk ${id}_ghosted = true := by ${checkBy}` : hm ? `def ${id}_hist : HMachine := ${hlit()}
+def ${id}_machine : SMachine := ${id}_hist.plain` : lp0 ? `def ${id}_loop : Loop := ${loopLit(lp0.loop)}
+def ${id}_machine : SMachine := ${id}_loop.machine` : `def ${id}_machine : SMachine := ${lit(m)}`
+  const enc = `⟨${['u$', 'k$', 'T$', 'O$', 't$'].map(ix).join(', ')},
+  ${list([...state, ...m.inputs].map(x => `(${ix(x)}, ${mx(`${x}@`)})`))},
+  ${list([...Object.keys(m.maps ?? {}), ...carried].map(x => `(${mx(x)}, ${mx(`${x}@`)})`))}⟩`
+  // Each law: Bridge.lean's check and theorem, then all of them as the usual export's `<id>_laws` states them.
+  const lawBlocks = laws.map((l, j) => `-- ${l.name}
+def ${id}_law${j} : C := ${c(l.holds)}
+def ${id}_l${j} : MLaw := ⟨${id}_law${j}, ${l.forall ? `some ${ix(l.forall)}` : 'none'}⟩
+theorem ${id}_law${j}_ok : cycMOk ${id}_machine ${id}_enc ${id}_facts ${id}_law${j} ${keysL(l)} ${node(j)} = true := by ${checkBy}
+theorem ${id}_law${j}_holds : ∀ ρ M, SReach ${id}_machine ρ M → ∀ ρ' : Nat → Nat, (∀ i, i ∉ ${keysL(l)} → ρ' i = ρ i) → evalC ρ' M ${id}_law${j} = true :=
+  cyc_machine_sound ${id}_machine ${id}_enc ${id}_facts ${id}_nodes ${id}_check ${id}_law${j} ${keysL(l)} ${node(j)} ${node(j)}_mem ${id}_law${j}_ok`).join('\n')
+  const keys2 = (l: Law) => list((l.keys ?? []).map(k2 => String(ix(k2))))
+  const oneOf = (hyp: string) => `simp only [${id}_mlaws, List.mem_cons, List.not_mem_nil, or_false] at ${hyp}`
+  const lawsThm = `def ${id}_mlaws : List (MLaw × List Nat) := ${list(laws.map((l, j) => `(${id}_l${j}, ${keys2(l)})`))}
+theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_mlaws, holdsOver e.1 M e.2 ρ := by
+  intro ρ M h e he
+  ${laws.length ? `${oneOf('he')}
+  rcases he with ${laws.map(() => 'rfl').join(' | ')}
+  ${laws.map((_, j) => `· exact cyc_machine_holds (${id}_law${j}_holds ρ M h)`).join('\n  ')}` : `simp [${id}_mlaws] at he`}`
+  // A history's record goals (leaf goals, as the usual export has them), and its laws over histories.
+  const histBlock = () => {
+    const records = hplain!.goals.map(g => { const out = grow(g); if (!('tree' in out)) throw new Error(`${id}: ${g.name} not proven`); const x2 = encode({name: `${id}: ${g.name}`, goal: g, tree: out.tree}, false, true, vars, maps); return `(${x2.tab}, ${x2.tree})` })
+    const reach = (hyp: string) => `(hreach_plain ${id}_hist ${id}_records ${id}_hcheck ρ μ hist ${hyp})`
+    return `def ${id}_records : List (List VDef × Tree) := ${list(records)}
+theorem ${id}_hcheck : checkHMachine ${id}_hist [] ${id}_records = true := by ${checkBy}
+theorem ${id}_hlaws : ∀ ρ M hist, HReach ${id}_hist ρ M hist → ∀ e ∈ ${id}_mlaws, holdsOver e.1 M e.2 ρ :=
+  fun ρ M hist h => ${id}_laws ρ M (hreach_plain ${id}_hist ${id}_records ${id}_hcheck ρ M hist h)
+${readable(id, laws, vars, maps, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat) (hist : List (Nat → Nat))', hyp: `HReach ${id}_hist ρ μ hist`, call: '',
+  have: j => `have hl : holdsOver ${id}_l${j} μ ${keys2(laws[j]!)} ρ := cyc_machine_holds (${id}_law${j}_holds ρ μ ${reach('h')})`})}`
+  }
+  // The machine's own step laws, one step or k (BridgeRules.lean's cyc_kstep_sound): the SKStep as the usual export
+  // writes it, with no certificate in it.
+  const stepBlocks = stepLaws.map((sl, j) => {
+    const kk = sl.steps ?? 1
+    const ren = Array.from({length: kk}, (_, s2) => (s2 === 0 ? '[]' : list(m.inputs.map(v2 => `(${ix(v2)}, ${ix(`${v2}@${s2 + 1}`)})`))))
+    const mren = Array.from({length: kk}, (_, s2) => (s2 === 0 ? '[]' : list(carried.map(mp => `(${mx(mp)}, ${mx(`${mp}@${s2 + 1}`)})`))))
+    const names = Array.from({length: kk - 1}, (_, s2) => list(state.map(n2 => `(${ix(n2)}, ${ix(stateName(n2, s2 + 1))})`)))
+    return `-- Step law${kk > 1 ? ` over ${kk} steps` : ''}: ${sl.name}
+def ${id}_step${j} : SKStep := ⟨⟨${list(kWhens(m, sl).map(c))},
+  ${c(inline(sl.then))},
+  ${list(ren)},
+  ${primesL()},
+  ${primeMapsL()},
+  [],
+  ([], .leaf [] [] [] [])⟩,
+  ${list(mren)},
+  [], [], [], [], [],
+  ${list(names)}⟩
+theorem ${id}_step${j}_ok : cycKOk ${id}_machine ${id}_enc ${id}_facts ${id}_step${j} ${node(L + j)} = true := by ${checkBy}
+theorem ${id}_step${j}_holds : SKStepHolds ${id}_machine ${id}_step${j} :=
+  ${kstep(`${id}_step${j}`, L + j)} ${id}_step${j}_ok`
+  })
+  // Each liveness from its step laws (BridgeRules.lean's sleads_of_holds), as the usual export states it.
+  let at = L + stepLaws.length
+  const liveBlocks = lives.map(({l, helps}, j) => {
+    const lid = `${id}_live${j}`, s0 = at, c0 = at + 1, h0 = at + 2
+    at += 2 + helps.length
+    return `-- Liveness: ${l.name}
+def ${lid} : Live := ${liveLit(l, {e, c}, ix, primesL(), primeMapsL())}
+theorem ${lid}_ok : sliveOk ${id}_machine ${lid} = true := by ${checkBy}
+theorem ${lid}_stay : SKStepHolds ${id}_machine (liveK ${lid} ${lid}.pend (liveStayC ${lid})) := ${kstep('_', s0)} (by ${checkBy})
+theorem ${lid}_cover : SKStepHolds ${id}_machine (liveK ${lid} ${lid}.pend (liveCoverC ${lid})) := ${kstep('_', c0)} (by ${checkBy})
+theorem ${lid}_helps : ∀ h ∈ ${lid}.helps, SKStepHolds ${id}_machine (liveK ${lid} (liveHelpWhen ${lid} h) (liveHelpThen ${lid})) := by
+  intro h hh
+  simp only [${lid}, List.mem_cons, List.not_mem_nil, or_false] at hh
+  rcases hh with ${helps.map(() => 'rfl').join(' | ')}
+  ${helps.map((_, i) => `· exact ${kstep('_', h0 + i)} (by ${checkBy})`).join('\n  ')}
+/-- ${l.name}: along every run that takes each helpful request infinitely often, \`from\` is followed by \`to\`. -/
+theorem ${lid}_holds (run : SRun ${id}_machine)
+    (fair : ∀ h ∈ ${lid}.helps, ∀ n, ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
+    ∀ n, evalC (run.st n).1 (run.st n).2 ${lid}.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 ${lid}.to = true :=
+  sleads_of_holds ${id}_machine ${lid} ${lid}_ok ${lid}_stay ${lid}_cover ${lid}_helps run fair`
+  })
+  const loopBlock = lp0 ? `/-- ${lp0.loop.name} halts: for params meeting its precondition, no run of turns goes on forever. -/
+theorem ${id}_halts : ∀ maps ρ0, evalC ρ0 maps ${id}_loop.pre = true →
+    ¬ ∃ f : Nat → Nat → Nat, f 0 = applyS ${id}_loop.init ρ0 maps ∧ ∀ n, Turn ${id}_loop maps (f n) (f (n + 1)) :=
+  loop_halts_of ${id}_loop ${id}_live0 rfl rfl (by intro h hh; simp only [${id}_live0, List.mem_singleton] at hh; subst hh; rfl) (by ${checkBy}) ${id}_live0_holds` : ''
+  const ghostBlock = gv.length ? `-- The laws that read no ghost hold of the machine without its ghosts.
+theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈ ${id}_mlaws, avoids ${id}_ghosted.vars e.1.holds = true → holdsOver e.1 M e.2 ρ := by
+  intro ρ M hr e he hav
+  ${laws.length ? `${oneOf('he')}
+  rcases he with ${laws.map(() => 'rfl').join(' | ')}
+  ${laws.map((l, j) => `· exact cyc_machine_holds (cyc_ghost_holds ${id}_ghosted ${id}_ghostOk ${id}_law${j} ${keysL(l)} hav ${id}_law${j}_holds ρ M hr)`).join('\n  ')}` : `simp [${id}_mlaws] at he`}` : ''
+  const records = [...stepBlocks, ...liveBlocks, ...(loopBlock ? [loopBlock] : []), ...(ghostBlock ? [ghostBlock] : [])]
+  cycTexts++
+  return {text: `-- ${m.name}: ${laws.map(l => l.name).join('; ')}, as one cyclic proof (its laws' nodes, then ${allSteps.length} step laws')
+--   (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')}; maps ${maps.map((v2, j) => `${j} ${v2}`).join(', ')})
+${machineDef}
+def ${id}_enc : CycEnc := ${enc}
+${cycProofText(id, p, [], vars, maps)}
+${lawBlocks}
+${lawsThm}
+${hm ? histBlock() : readable(id, laws, vars, maps, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: '',
+  have: j => `have hl : holdsOver ${id}_l${j} μ ${keys2(laws[j]!)} ρ := cyc_machine_holds (${id}_law${j}_holds ρ μ h)`})}${opts.noFacts ? '' : factsProof(id, m, maps, vars, opts.simp)}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix)}` : ''}`}
+}
+
+// A fold from its cyclic proof (Bridge.lean's cyc_fold_sound): the fold numbered as foldToLean numbers it, each law's
+// theorem over trees, and all of them as the usual export's `<id>_laws` states them.
+function cycFoldToLean(id: string, f: Fold, laws: Law[]): {text: string} | {why: string} {
+  const gs = foldObligations(f, laws), trees: Record<string, Tree> = {}
+  for (const g of gs) { const o = grow(g); if (!('tree' in o)) return {why: `${g.name}: not proven the usual way`}; trees[g.name] = o.tree }
+  let p: Cyclic | undefined, why = 'no nodes'
+  for (const base of [...(routeOf() !== 'search' ? [foldNodes(f, laws, trees)] : []), foldNodes(f, laws)].filter(b => !b.why)) {
+    const v = proveCyclic(base.facts, base.specs)
+    if (v.proven && v.checked) { p = v.proof; break }
+    why = v.proven ? `not checked (${v.why})` : `${v.node}: ${v.goal}: ${v.stuck}`
+  }
+  if (!p) return {why}
+  const st = Object.keys(f.leaf), v = (name: string): E => ({op: 'var', name})
+  const sc = cycScope([p], undefined, [...[...f.params, ...f.inputs, ...st, ...st.map(x => `l_${x}`), ...st.map(x => `r_${x}`), 'n$', 'N$'].map(v),
+    ...Object.values(f.leaf), ...Object.values(f.node), ...laws.map((l): E => ({op: 'if', c: l.holds, then: v('n$'), else: v('n$')})),
+    ...['Kind', 'Left', 'Right', ...st, ...f.inputs].map((x): E => ({op: 'get', map: `${x}@`, key: v('n$')}))])
+  const vars = [...new Set([...f.params, ...f.inputs, ...st, ...st.map(n2 => `l_${n2}`), ...st.map(n2 => `r_${n2}`), ...sc.vars])], maps = sc.maps
+  const t = leanTerms(vars, maps, id)
+  cycTexts++
+  return {text: `-- ${f.name}: ${laws.map(law => law.name).join('; ')}, as one cyclic proof  (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')}; maps ${maps.map((v2, j) => `${j} ${v2}`).join(', ')})
+${cycProofText(id, p, [], vars, maps)}
+${cycFoldLean(id, f, laws, vars, maps, t)}
+def ${id}_flaws : List C := ${list(laws.map((_, j) => `${id}_law${j}`))}
+theorem ${id}_laws : ∀ maps ρ, evalC ρ maps ${id}_fold.pre = true → ∀ t, Allowed ${id}_fold ρ maps t →
+    ∀ l ∈ ${id}_flaws, evalC (foldT ${id}_fold ρ maps t) maps l = true := by
+  intro maps ρ hp t ht l hl
+  simp only [${id}_flaws, List.mem_cons, List.not_mem_nil, or_false] at hl
+  rcases hl with ${laws.map(() => 'rfl').join(' | ')}
+  ${laws.map((_, j) => `· exact ${id}_law${j}_holds maps ρ hp t ht`).join('\n  ')}`}
+}
+
 // A function defined by a recurrence (core/dsl.ts recur): its Lean definition by the same recurrence, and its lemmas
 // proven together by induction (each case by omega, its min, max and ifs split first), and its laws between two points
 // by induction on the distance. A function of several arguments is `<name>_rec`, its further arguments first, and the
@@ -819,8 +1044,10 @@ function recurKernel(lean: string, r: Recurrence, uses: Uses, which: 'lemmas' | 
   const cite = (f: Law) => { const j = r.lemmas.findIndex(l => f.name === `${l.name} at x`); return two && j >= 0 ? `(${lean}_lemmas ${args.join(' ')} x)${proj(j, r.lemmas.length)}` : undefined }
   const factsAt = factsProof(id, m, fnNames, vars, [`${id}_ρ`, `${id}_μ`, ...recurDefs], {binders, rho: `(${id}_ρ ${ps})`, mu: `${id}_μ`, cite})
   const unfold = [`${id}_machine`, `${id}_μ`, 'applyS', 'assoc', 'lookup', 'evalE', 'evalC', ...recurDefs].join(', ')
+  // (with cyclic certificates, the machine's laws from its cyclic proof, where it has one)
+  const cyc = certsOn ? cycMachineToLean(id, m, pr.laws, {noFacts: true}) : undefined
   const pre = `
-${smachineToLean(id, m, pr.laws, {noFacts: true})}
+${cyc && 'text' in cyc ? cyc.text : smachineToLean(id, m, pr.laws, {noFacts: true})}
 def ${id}_ρ ${binders} : Nat → Nat := fun i => ${chain(start.map(([n, e]) => [col(n), e]), '0', 'i')}
 noncomputable def ${id}_μ : Nat → Nat → Nat := fun j => ${chain(fnNames.map((n, j) => [j, `(${m.fns![n]!.lean})`]), 'fun _ => 0', 'j')}${factsAt}
 -- The run of ${m.name} that ${two ? 'counts y up from x' : 'counts x up from 0'}: reachable, and holding ${two ? 'y = x + n and f(y)' : 'x = n and f(x)'}.
@@ -842,7 +1069,9 @@ theorem ${id}_run ${binders} : ∀ n, ∃ ρ, SReach ${id}_machine ρ ${id}_μ �
     all_goals simp [sNext, sView, decideFlags, decideQ, flagSub, withInputs, withCarried, ${hs.join(', ')}, ${unfold}]`
   // The lemmas (or the laws between, after the lemmas at y): each the machine's law read on the run.
   const own = two ? r.between.map((_, j) => r.lemmas.length + j) : r.lemmas.map((_, j) => j)
-  const each = (j: number) => `by have h := ${id}_laws ρ ${id}_μ hr ${id}_e${j} (by simp [${id}_proof]); simp [SEntry.Holds, holdsOver, ${id}_e${j}, ${id}_l${j}, MLaw.Holds, evalC, evalE, ${hs.join(', ')}] at h; simpa using h`
+  const each = (j: number) => (cyc && 'text' in cyc
+    ? `by have h := ${id}_law${j}_holds ρ ${id}_μ hr ρ (fun _ _ => rfl); simp [${id}_law${j}, evalC, evalE, ${hs.join(', ')}] at h; simpa using h`
+    : `by have h := ${id}_laws ρ ${id}_μ hr ${id}_e${j} (by simp [${id}_proof]); simp [SEntry.Holds, holdsOver, ${id}_e${j}, ${id}_l${j}, MLaw.Holds, evalC, evalE, ${hs.join(', ')}] at h; simpa using h`)
   const proof = (from: string) => `(obtain ⟨ρ, hr, ${hs.join(', ')}⟩ := ${id}_run ${from}; exact ${own.length === 1 ? `(${each(own[0]!)})` : `⟨${own.map(j => `(${each(j)})`).join(', ')}⟩`})`
   return {pre, proof}
 }
@@ -1003,14 +1232,18 @@ export type LeanItem =
 // `decide +kernel` (Lean's kernel alone). Every such theorem then also rests on an axiom of its own that `#print axioms`
 // names (`…_native.native_decide.ax_…`): it trusts Lean's compiler, its runtime and the C compiler. Defaults to off, or
 // to GDP_LEAN_NATIVE=1 (the suite's quick runs); a release's proofs stay on Lean's kernel and its core axioms.
-export function toLean(items: LeanItem[], opts: {title?: string, native?: boolean} = {}): string {
-  const outer = checkBy
+// `cyclic`: each machine, loop and fold the cyclic route covers from cyclic certificates (see cycMachineToLean); defaults
+// to GDP_CYCLIC_CERT=1. `certReport` then says which items went which way.
+export function toLean(items: LeanItem[], opts: {title?: string, native?: boolean, cyclic?: boolean} = {}): string {
+  const outer = checkBy, outerCerts = certsOn
   const env = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
   checkBy = (opts.native ?? env?.GDP_LEAN_NATIVE === '1') ? 'native_decide' : 'decide +kernel'
+  certsOn = opts.cyclic ?? cyclicCerts()
+  certReport.cyclic = []; certReport.usual = []; cycTexts = 0
   // The proofs found with only the instances their leaves use: the same laws, from fewer hypotheses for Lean to build.
   const wasMinimal = minimal.on
   minimal.on = true
-  try { return toLeanWith(items, opts) } finally { checkBy = outer; minimal.on = wasMinimal }
+  try { return toLeanWith(items, opts) } finally { checkBy = outer; certsOn = outerCerts; minimal.on = wasMinimal }
 }
 function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   const ident = (id: string) => { const s = id.replace(/[^A-Za-z0-9_]/g, '_'); return /^[A-Za-z]/.test(s) ? s : `x_${s}` }
@@ -1042,8 +1275,13 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
       }
       // One twin: every machine goes to Lean as a machine with sets (one with none, if it has none): its laws, step laws,
       // liveness and ghosts in one export; a machine with a history as its plain machine, and its laws over histories.
-      parts.push(`-- ${item.id}\n${recurDefs(m)}${item.lean?.defs ? `${item.lean.defs}\n` : ''}${smachineToLean(id, m, item.laws, {stepLaws: item.stepLaws, ...(item.liveness?.length ? {liveness: item.liveness} : {}),
-        ...(item.ghosts?.length ? {ghosts: item.ghosts} : {}), ...(item.lean?.simp ? {simp: item.lean.simp} : {}), ...(item.lean?.after ? {after: item.lean.after} : {})})}`)
+      // With cyclic certificates, from one cyclic proof where the cyclic route covers it.
+      const mopts = {stepLaws: item.stepLaws, ...(item.liveness?.length ? {liveness: item.liveness} : {}),
+        ...(item.ghosts?.length ? {ghosts: item.ghosts} : {}), ...(item.lean?.simp ? {simp: item.lean.simp} : {}), ...(item.lean?.after ? {after: item.lean.after} : {})}
+      const defs = `${recurDefs(m)}${item.lean?.defs ? `${item.lean.defs}\n` : ''}`
+      const cyc = certsOn ? cycMachineToLean(id, m, item.laws, mopts) : undefined
+      if (cyc && 'text' in cyc) certReport.cyclic.push(item.id); else if (cyc) certReport.usual.push({id: item.id, why: cyc.why})
+      parts.push(`-- ${item.id}\n${defs}${cyc && 'text' in cyc ? cyc.text : smachineToLean(id, m, item.laws, mopts)}`)
       theorems.push(`${id}_laws`, ...(m.history ? [`${id}_hlaws`] : []), ...(item.stepLaws ?? []).map((_, j) => `${id}_step${j}_holds`), ...(item.liveness ?? []).map((_, j) => `${id}_live${j}_holds`))
       if (item.lean?.after) theorems.push(...[...item.lean.after(() => 0).matchAll(/^theorem (\S+)/gm)].map(x2 => x2[1]!))
     } else if ('refinement' in item) {
@@ -1056,7 +1294,10 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
       parts.push(`-- ${item.id}\n${smachineToLean(id, R.machine, laws, {stepLaws: [sl], free, refined})}`)
       theorems.push(`${id}_laws`, `${id}_refines`)
     } else if ('loop' in item) {
-      parts.push(`-- ${item.id}\n${loopToLean(id, item.loop, item.laws ?? [], item.rank)}`)
+      loopObligations(item.loop, item.laws ?? [], item.rank)
+      const cyc = certsOn ? cycMachineToLean(id, loopMachine(item.loop), item.laws ?? [], {liveness: [loopLiveness(item.loop, item.rank)], loop: {loop: item.loop}}) : undefined
+      if (cyc && 'text' in cyc) certReport.cyclic.push(item.id); else if (cyc) certReport.usual.push({id: item.id, why: cyc.why})
+      parts.push(`-- ${item.id}\n${cyc && 'text' in cyc ? cyc.text : loopToLean(id, item.loop, item.laws ?? [], item.rank)}`)
       theorems.push(`${id}_halts`)
     } else if ('cyclic' in item) {
       parts.push(`-- ${item.id}\n${cyclicToLean(id, item.cyclic, item.tampered ?? [], item.after, item.bridge, item.recur, item.fold)}`)
@@ -1065,7 +1306,9 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
         // A datatype law's theorem is in a namespace of the item's (its datatypes and functions are named as declared).
         ...(item.after ? (ts => (item.data ? ts.slice(-1).map(t => `${id}.${t}`) : ts))([...item.after(() => 0, () => 0).matchAll(/^theorem (\S+)/gm)].map(x2 => x2[1]!)) : []))
     } else if ('fold' in item) {
-      parts.push(`-- ${item.id}\n${foldToLean(id, item.fold, item.laws)}`)
+      const cyc = certsOn ? cycFoldToLean(id, item.fold, item.laws) : undefined
+      if (cyc && 'text' in cyc) certReport.cyclic.push(item.id); else if (cyc) certReport.usual.push({id: item.id, why: cyc.why})
+      parts.push(`-- ${item.id}\n${cyc && 'text' in cyc ? cyc.text : foldToLean(id, item.fold, item.laws)}`)
       theorems.push(`${id}_laws`)
     } else {
       // goalToLean names its theorem t<i>; here it is the item's id.
@@ -1076,7 +1319,7 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   }
   // The file the items need: Live.lean for a liveness or a loop, Sets.lean (which imports Steps.lean) for any machine.
   return `import History
-${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && item.ghosts?.length) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
+${cycTexts ? 'import BridgeRules\n' : ''}${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && item.ghosts?.length) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
@@ -1127,6 +1370,14 @@ export function cyclicToLean(id: string, p: Cyclic, tampered: {what: string, pro
     ...(fold ? [...Object.values(fold.fold.leaf), ...Object.values(fold.fold.node), ...fold.laws.map((l): E => ({op: 'if', c: l.holds, then: v('n$'), else: v('n$')}))] : []),
     ...(fold ? ['Kind', 'Left', 'Right', ...fnames, ...fold.fold.inputs].map((x): E => ({op: 'get', map: `${x}@`, key: v('n$')})) : [])])
   const {e, c} = leanTerms(vars, maps, id)
+  const ix = (name: string) => vars.indexOf(name), mx = (map: string) => maps.indexOf(map)
+  return `-- ${p.nodes.map(n => n.name).join('; ')}  (variables ${vars.map((name, j) => `${j} ${name}`).join(', ')}; maps ${maps.map((name, j) => `${j} ${name}`).join(', ')})
+${cycProofText(id, p, tampered, vars, maps)}${bridge ? `\n${cycBridgeLean(id, p, bridge, vars, maps, {e, c})}` : ''}${recur ? `\n${cycRecurLean(id, p, recur, vars, maps, {e, c})}` : ''}${fold ? `\n${cycFoldLean(id, fold.fold, fold.laws, vars, maps, {e, c})}` : ''}${after ? `\n${after(ix, mx)}` : ''}`
+}
+// A cyclic proof as Lean: its facts and nodes (each goal's table and tree, Lean building the goals from the nodes), each
+// node's membership, the check and cyclic_sound's theorem; each tampered proof's check computed to false.
+function cycProofText(id: string, p: Cyclic, tampered: {what: string, proof: Cyclic}[], vars: string[], maps: string[]): string {
+  const {e, c} = leanTerms(vars, maps, id)
   const ix = (name: string) => vars.indexOf(name)
   const facts = list(p.facts.map(f => `⟨${list(f.keys.map(key => String(ix(key))))}, ${c(f.holds)}⟩`))
   // A tampered proof keeps the proof's tables and trees (made for the proof's own goals) under its changed nodes.
@@ -1140,9 +1391,7 @@ export function cyclicToLean(id: string, p: Cyclic, tampered: {what: string, pro
     return {hyps: list(n.hyps.map(c)), concl: c(n.concl), rest: `${list(n.rank.map(e))}, ${list(n.insts.map(t => `(${t.fact}, ${list(t.at.map(e))})`))},\n  ${list(uses)},\n  ${enc(mainGoal(p.facts, p.nodes, o), o.main)}`}
   })
   const nodes = (q: Cyclic) => list(nodeLits(q).map(x => `⟨${x.hyps}, ${x.concl}, ${x.rest}⟩`))
-  const mx = (map: string) => maps.indexOf(map)
-  return `-- ${p.nodes.map(n => n.name).join('; ')}  (variables ${vars.map((name, j) => `${j} ${name}`).join(', ')}; maps ${maps.map((name, j) => `${j} ${name}`).join(', ')})
-def ${id}_facts : List Fact := ${facts}
+  return `def ${id}_facts : List Fact := ${facts}
 ${nodeLits(p).map((x, i) => `def ${id}_hyps${i} : List C := ${x.hyps}
 def ${id}_concl${i} : C := ${x.concl}
 def ${id}_node${i} : CNode := ⟨${id}_hyps${i}, ${id}_concl${i}, ${x.rest}⟩
@@ -1155,7 +1404,7 @@ theorem ${id}_sound : ∀ (maps : Nat → Nat → Nat) env, FactsHold ${id}_fact
   cyclic_sound ${id}_facts ${id}_nodes ${id}_check
 ${tampered.map((t, j) => `-- TAMPERED: ${t.what}. Lean computes the check to false.
 def ${id}_tampered${j} : List CNode := ${nodes(t.proof)}
-example : checkCyclic ${id}_facts ${id}_tampered${j} = false := by ${checkBy}`).join('\n')}${bridge ? `\n${cycBridgeLean(id, p, bridge, vars, maps, {e, c})}` : ''}${recur ? `\n${cycRecurLean(id, p, recur, vars, maps, {e, c})}` : ''}${fold ? `\n${cycFoldLean(id, fold.fold, fold.laws, vars, maps, {e, c})}` : ''}${after ? `\n${after(ix, mx)}` : ''}`
+example : checkCyclic ${id}_facts ${id}_tampered${j} = false := by ${checkBy}`).join('\n')}`
 }
 
 // The variables and maps a cyclic proof names. With a machine it was made from, the machine's own names too (core/cyclic.ts's

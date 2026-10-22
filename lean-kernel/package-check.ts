@@ -26,7 +26,7 @@ import {team, teamLaws, teamSteps} from '../examples/sizes.ts'
 import {allDone, batchLaws, batches, everyTaggedTicket, taggedLaws, taggedTickets, everyLoggedTicket, everyRecountedTicket, everyReview, everyTicket, loggedLaws, loggedTickets, recounted, recountedLaws, reviewLaws, reviews, ticketLaws, tickets} from '../examples/liveness.ts'
 import {areaLaws as foundAreaLaws, foundArea, foundInvoices, foundOrgChart, foundRetries, orgChart as bareOrgChart, orgChartLaws as bareOrgChartLaws, retryLaws as foundRetryLaws, retrySteps as foundRetrySteps} from '../examples/discover.ts'
 import {grantLaws, normalizedLaws, patternLaws} from '../examples/scopes.ts'
-import {leanProject, toLean} from './emit.ts'
+import {certReport, leanProject, toLean} from './emit.ts'
 import {foldNodes, machineNodes, proveCyclic, recurNodes} from '../core/cyclic.ts'
 import {proveLaws} from '../kernel/prove.ts'
 import type {Law, Machine} from '../core/machine.ts'
@@ -95,7 +95,7 @@ const shard = process.env.SHARD?.split('/').map(Number)
 // Built by jobs of their own (modal/suite.json: lean-big's trees and groups; lean-cyclic's cyclic proofs).
 const cyclicItems = ['mccarthy', 'mutual', 'cycgrowing', 'cycfilled', 'cyccounter', 'cycrollup', 'cyccaps', 'cycfill', 'cyctally', 'cycbudget']
 // The proofs core/cycles.ts finds (examples/cycles.ts's leanItems; the suite's lean-cycles jobs, the loops in a file
-// of their own: Live.lean and Cyclic.lean each define lexLtC).
+// of their own).
 const foundItems = ['cycmc91', 'cycack', 'cycgcd', 'cycacc', 'cycacc2', 'cycring', 'cycthrough', 'loopphases', 'loopphases3', 'loopother', 'loopeuclid', 'rule91', 'rule91lemma', 'ruledouble', 'ruledoublelemma']
 // Datatype laws (core/data.ts, examples/data.ts): each its cyclic proof and the law about the Lean definitions (the
 // suite's lean-data job).
@@ -249,3 +249,5 @@ if (!out) throw new Error('usage: bun package-check.ts <empty folder>')
 mkdirSync(out, {recursive: true})
 for (const [name, text] of Object.entries(leanProject(file))) writeFileSync(join(out, name), text)
 console.log(`${Object.keys(leanProject(file)).length} files in ${out}; ${[...file.matchAll(/^theorem /gm)].length} theorems`)
+// With cyclic certificates (GDP_CYCLIC_CERT=1): which items were exported from them, and which went the usual way.
+if (certReport.cyclic.length || certReport.usual.length) console.log(`cyclic certificates: ${certReport.cyclic.length} items (${certReport.cyclic.join(', ')}); the usual way: ${certReport.usual.length}${certReport.usual.map(x => `\n  ${x.id}: ${x.why}`).join('')}`)

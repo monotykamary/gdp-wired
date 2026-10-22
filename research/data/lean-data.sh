@@ -3,7 +3,7 @@
 # lean-kernel/package-check.ts (ONLY=…), every error shown: `ONLY=datalen bash research/data/lean-data.sh`.
 cd lean-kernel
 export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean
-for f in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live Ghost Refine Bridge; do
+for f in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live Ghost Refine Bridge BridgeRules; do
   { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }
 done
 [ -f Data.olean ] || lean -o Data.olean Data.lean 2>&1 | grep -v warning | head -60
