@@ -14,7 +14,7 @@
 // as they are given (examples/cyclic.ts).
 import type {C, E, Law, Machine} from './machine.ts'
 import type {Fold, Goal, Instances, StepLaw, Subst, Tree} from '../kernel/kernel.ts'
-import {assumed, foldObligations, obligations, substC, substE} from '../kernel/kernel.ts'
+import {assumed, boundOf, foldObligations, obligations, substC, substE, witnessesOf} from '../kernel/kernel.ts'
 import {type CNode, type Cyclic, type Fact, type Use, baseHyps, descentGoal, instHyps, mainGoal, premiseGoal, refuseCyclic} from '../kernel/cyclic.ts'
 import {cellProducts, grow, profile, usedHyps, widen} from '../kernel/prove.ts'
 import {type Renamer, type TStats, decide, renamer, translate, tstats} from './translate.ts'
@@ -840,6 +840,63 @@ export function allowNode(m: Machine, laws: Law[], inst: Instances, w: C, facts:
   const rank = lawNodes[0]?.rank.length ?? 2
   const spec: NodeSpec = {name, hyps, concl, rank: [t, ...Array.from({length: rank - 1}, () => k(2))], insts: insts.filter(p => p.fact >= 0), uses}
   return sliced(withReads(facts, [spec], [...lawNodes, spec]))[0]!
+}
+
+// --- flags that hold at every key ------------------------------------------------------------------------------------
+
+// A machine with flags that hold at every key, read as its sk machine (BridgeRules.lean's SMachine.sk): each such flag
+// ?f and its witnesses inputs a request names, a read of the flag `?f = 1`; the closing conditions facts of the run
+// (`qflagFacts`). Untrusted: BridgeRules.lean's cycQMOk checks the facts against the machine.
+const quantifiedOf = (m: Machine) => Object.entries(m.step.flags ?? {}).filter((e): e is [string, Extract<C, {op: 'all'}>] => e[1].op === 'all')
+export const hasQuantified = (m: Machine): boolean => quantifiedOf(m).length > 0
+export function skMachine(m: Machine): Machine {
+  const q = quantifiedOf(m)
+  if (!q.length) return m
+  const flags = Object.fromEntries(Object.entries(m.step.flags ?? {}).map(([f, c]) => [f, c.op === 'all' ? eq(v(`?${f}`), k(1)) : c]))
+  return {...m, inputs: [...m.inputs, ...q.map(([f]) => `?${f}`), ...q.flatMap(([f, c]) => witnessesOf(f, c))], step: {...m.step, flags}}
+}
+// Each flag's closing conditions at each time u <= T (BridgeRules.lean's cycQFacts): 0 or 1; 0, or its body at every
+// value of its keys; 1, or its body failing at the witness.
+export function qflagFacts(m: Machine): Fact[] {
+  const {at} = trace(skMachine(m)), u = v('u$'), T = v('T$')
+  const upTo = (c: C): C => implies(le(u, T), substC(c, at(u)))
+  return quantifiedOf(m).flatMap(([f, q]): Fact[] => {
+    const fv = v(`?${f}`), keys = boundOf(q), wits = witnessesOf(f, q)
+    return [
+      {name: `${m.name}: ?${f} is 0 or 1`, keys: ['u$'], holds: upTo(le(fv, k(1)))},
+      {name: `${m.name}: ?${f} is 0 or its body holds`, keys: ['u$', ...keys], holds: upTo({op: 'or', xs: [eq(fv, k(0)), q.c]})},
+      {name: `${m.name}: ?${f} is 1 or its body fails at the witness`, keys: ['u$'],
+        holds: upTo({op: 'or', xs: [eq(fv, k(1)), {op: 'not', x: substC(q.c, vars(Object.fromEntries(keys.map((key, i) => [key, v(wits[i]!)]))))}]})},
+    ]
+  })
+}
+// The closing facts at the times a node reads the run (each flag's at its time, its body at the keys the usual proof
+// closes it at, read there).
+export function closingInsts(m: Machine, facts: Fact[], insts: Instances[], times: E[]): NodeSpec['insts'] {
+  const {at} = trace(skMachine(m)), fi = (n: string) => facts.findIndex(f => f.name === n), out: NodeSpec['insts'] = [], seen = new Set<string>()
+  const push = (p: NodeSpec['insts'][number]) => { const id = JSON.stringify(p); if (p.fact >= 0 && !seen.has(id)) { seen.add(id); out.push(p) } }
+  for (const [f, q] of quantifiedOf(m)) {
+    const n = boundOf(q).length
+    for (const u of times) {
+      push({fact: fi(`${m.name}: ?${f} is 0 or 1`), at: [u]})
+      push({fact: fi(`${m.name}: ?${f} is 1 or its body fails at the witness`), at: [u]})
+      for (const inst of insts) {
+        const flat = inst[`?${f}`] ?? []
+        for (let i = 0; i + n <= flat.length; i += n) push({fact: fi(`${m.name}: ?${f} is 0 or its body holds`), at: [u, ...flat.slice(i, i + n).map(e => substE(e, at(u)))]})
+      }
+    }
+  }
+  return out
+}
+// The laws' nodes of a machine with such flags: its sk machine's (searched), with the closing facts, each node reading
+// them where the run's step before it and its own time are.
+export function qflagNodes(m: Machine, laws: Law[], instances: Record<string, Instances>): {facts: Fact[], specs: NodeSpec[], why?: string} {
+  const base = machineNodes(skMachine(m), laws, instances)
+  if (base.why) return base
+  const facts = [...base.facts, ...qflagFacts(m)], t = v('t$')
+  const close = closingInsts(m, facts, Object.values(instances), [t, less1(t)])
+  const add = (sp: NodeSpec): NodeSpec => ({...sp, insts: [...sp.insts, ...close], ...(sp.variants ? {variants: sp.variants.map(add)} : {})})
+  return {facts, specs: base.specs.map(add)}
 }
 
 // --- folds over trees -----------------------------------------------------------------------------------------------

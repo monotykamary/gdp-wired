@@ -10,7 +10,8 @@ import {grow, minimal, proveBuilt, proveLaws, proveStepLaws} from '../kernel/pro
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
 import {type Cyclic, descentGoal, mainGoal, premiseGoal} from '../kernel/cyclic.ts'
-import {allowNode, cyclicMachine, foldNodes, kWhens, machineNodes, proveCyclic, routeOf, stepLawNodes} from '../core/cyclic.ts'
+import {allowNode, closingInsts, cyclicMachine, foldNodes, hasQuantified, kWhens, machineNodes, type NodeSpec, proveCyclic, qflagNodes, routeOf, skMachine, stepLawNodes, tBack} from '../core/cyclic.ts'
+import type {Fact} from '../kernel/cyclic.ts'
 import {leanLibrary} from './library.ts'
 export {leanLibrary}
 
@@ -473,6 +474,10 @@ export function machineLit(mm: Machine, t: {e: (x: E) => string, c: (x: C) => st
   ${list((mm.facts ?? []).filter(l => l.keys?.length).map(l => `(⟨${c(l.holds)}, some ${ix(l.forall!)}⟩, ${list(l.keys!.map(k2 => String(ix(k2))))})`))}⟩`
 }
 
+// A request's extended names: its inputs, each flag that holds at every key and its witnesses (Sets.lean's extVars, in
+// the order the usual export lists a later step's names in).
+const extOf = (m: Machine): string[] => [...m.inputs, ...Object.entries(m.step.flags ?? {}).flatMap(([f, c]) => (c.op === 'all' ? [`?${f}`, ...witnessesOf(f, c)] : []))]
+
 // The names a machine's export numbers first, before those only its goals read: the machine's own (params, inputs, state,
 // flags, the keys of its laws and facts, the keys its writes and quantified flags bind) and its claims' (each step law's
 // key, the state after the step, each later request's names, the state between steps, a history's record). The usual
@@ -786,10 +791,20 @@ function cycMachineProof(m: Machine, laws: Law[], allSteps: StepLaw[], allows: {
   const r = proveStepLaws(m, laws, allSteps)
   if (!r.proven || !r.proof) return {why: 'not proven the usual way'}
   const lp = r.proof.laws, instOf = (sl: StepLaw) => r.proof!.perStep?.[sl.name] ?? r.proof!.instances
-  const tries = [...(routeOf() !== 'search' ? [machineNodes(m, laws, lp.instances, {trees: lp.trees})] : []), machineNodes(m, laws, lp.instances)].filter(b => !b.why)
+  // A machine with flags that hold at every key: its sk machine's nodes, the flags' closing facts read where each node
+  // reads the run.
+  const q = hasQuantified(m), mm = skMachine(m)
+  const closing = (sp: NodeSpec, facts: Fact[], insts: Instances[], times: E[]): NodeSpec => {
+    if (!q) return sp
+    const more = closingInsts(m, facts, insts, times), add = (x: NodeSpec): NodeSpec => ({...x, insts: [...x.insts, ...more], ...(x.variants ? {variants: x.variants.map(add)} : {})})
+    return add(sp)
+  }
+  const tries = (q ? [qflagNodes(m, laws, lp.instances)]
+    : [...(routeOf() !== 'search' ? [machineNodes(m, laws, lp.instances, {trees: lp.trees})] : []), machineNodes(m, laws, lp.instances)]).filter(b => !b.why)
   let last = 'no nodes'
   for (const base of tries) {
-    const steps = stepLawNodes(m, laws, allSteps.map(sl => ({law: sl, instances: instOf(sl)})), base.facts, base.specs)
+    const steps = stepLawNodes(mm, laws, allSteps.map(sl => ({law: sl, instances: instOf(sl)})), base.facts, base.specs)
+      .map((sp, i) => closing(sp, base.facts, [instOf(allSteps[i]!)], Array.from({length: (allSteps[i]!.steps ?? 1) + 1}, (_, j) => tBack(j))))
     let specs = [...base.specs, ...steps], v = proveCyclic(base.facts, specs)
     if (!(v.proven && v.checked)) { last = v.proven ? `not checked (${v.why})` : `${v.node}: ${v.goal}: ${v.stuck}`; continue }
     const allowAt = allows.map((group): AllowAt => {
@@ -797,7 +812,8 @@ function cycMachineProof(m: Machine, laws: Law[], allSteps: StepLaw[], allows: {
       const before = specs, out: {node: number, wit: [string, E][]}[] = []
       for (const a of group) {
         const found = withWitness(m, a.request, wit => {
-          const spec = allowNode(m, laws, r.proof!.instances, {op: 'and', xs: [a.when, reqTS(wit)]}, base.facts, base.specs, `${m.name}: allowed`)
+          const spec = closing(allowNode(mm, laws, r.proof!.instances, {op: 'and', xs: [a.when, reqTS(wit)]}, base.facts, base.specs, `${m.name}: allowed`),
+            base.facts, [r.proof!.instances], [{op: 'var', name: 't$'}])
           const v2 = proveCyclic(base.facts, [...specs, spec])
           return v2.proven && v2.checked ? {spec, v2} : undefined
         })
@@ -819,7 +835,9 @@ export function cycMachineToLean(id: string, given: Machine, laws: Law[], opts: 
   const hm = given.history ? {...given, history: {...given.history, prune: undefined}} : undefined
   const hplain = hm ? historyMachine(hm) : undefined, m = hplain ? hplain.machine : given
   const stepLaws = opts.stepLaws ?? [], gv = opts.ghosts ?? [], lp0 = opts.loop
-  if (!cyclicMachine(m, laws)) return {why: Object.values(m.step.flags ?? {}).some(f => f.op === 'all') ? 'a flag that holds at every key' : 'a law reading a map at a key read from a map'}
+  if (!cyclicMachine(skMachine(m), laws)) return {why: 'a law reading a map at a key read from a map'}
+  // With flags that hold at every key, the sk machine's encoding and BridgeRules.lean's q bridges.
+  const mq = skMachine(m), Q = hasQuantified(m) ? 'Q' : '', q = hasQuantified(m) ? 'q' : ''
   const lives = (opts.liveness ?? []).map(l => ({l, ...livenessParts(m, l)}))
   // A refinement's step law: the spec stutters or allows the request it is sent, its `then` Lean's SRefined.allowed (the
   // spec's assumption at the witness, the composite's flags inlined).
@@ -831,7 +849,7 @@ export function cycMachineToLean(id: string, given: Machine, laws: Law[], opts: 
   if ('why' in made) return made
   const {p, L, allowAt} = made
   const named = machineNames(m, laws, allSteps, stepLaws, {...(opts.free ? {free: opts.free} : {}), ...(hm ? {record: hm.history.record} : {})})
-  const sc = cycScope([p], {machine: m, laws})
+  const sc = cycScope([p], {machine: mq, laws})
   const vars = [...new Set([...named.vars, ...sc.vars])], maps = [...new Set([...named.maps, ...sc.maps])]
   const {e, c} = leanTerms(vars, maps, id)
   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
@@ -843,7 +861,7 @@ export function cycMachineToLean(id: string, given: Machine, laws: Law[], opts: 
   const state = Object.keys(m.state), carried = m.inputMaps ?? []
   const primesL = () => list(state.map(s2 => `(${ix(s2)}, ${ix(`${s2}'`)})`)), primeMapsL = () => list(Object.keys(m.maps ?? {}).map(mp => `(${mx(mp)}, ${mx(`${mp}'`)})`))
   const node = (i: number) => `${id}_node${i}`
-  const kstep = (sk: string, i: number) => `cyc_kstep_sound ${id}_machine ${id}_enc ${id}_facts ${id}_nodes ${id}_check ${sk} ${node(i)} ${node(i)}_mem`
+  const kstep = (sk: string, i: number) => `cyc_${q}kstep_sound ${id}_machine ${id}_enc ${id}_facts ${id}_nodes ${id}_check ${sk} ${node(i)} ${node(i)}_mem`
   // The machine as the usual export defines it: with a history its plain machine, with ghosts the ghosted one, a loop's.
   const orig: Machine = {...m, state: Object.fromEntries(Object.entries(m.state).filter(([n2]) => !gv.includes(n2))), step: {...m.step, state: Object.fromEntries(Object.entries(m.step.state ?? {}).filter(([n2]) => !gv.includes(n2)))}}
   const hlit = () => {
@@ -873,15 +891,15 @@ theorem ${id}_ghostOk : sghostOk ${id}_ghosted = true := by ${checkBy}` : hm ? `
 def ${id}_machine : SMachine := ${id}_hist.plain` : lp0 ? `def ${id}_loop : Loop := ${loopLit(lp0.loop)}
 def ${id}_machine : SMachine := ${id}_loop.machine` : `def ${id}_machine : SMachine := ${lit(m)}`
   const enc = `⟨${['u$', 'k$', 'T$', 'O$', 't$'].map(ix).join(', ')},
-  ${list([...state, ...m.inputs].map(x => `(${ix(x)}, ${mx(`${x}@`)})`))},
+  ${list([...state, ...mq.inputs].map(x => `(${ix(x)}, ${mx(`${x}@`)})`))},
   ${list([...Object.keys(m.maps ?? {}), ...carried].map(x => `(${mx(x)}, ${mx(`${x}@`)})`))}⟩`
   // Each law: Bridge.lean's check and theorem, then all of them as the usual export's `<id>_laws` states them.
   const lawBlocks = laws.map((l, j) => `-- ${l.name}
 def ${id}_law${j} : C := ${c(l.holds)}
 def ${id}_l${j} : MLaw := ⟨${id}_law${j}, ${l.forall ? `some ${ix(l.forall)}` : 'none'}⟩
-theorem ${id}_law${j}_ok : cycMOk ${id}_machine ${id}_enc ${id}_facts ${id}_law${j} ${keysL(l)} ${node(j)} = true := by ${checkBy}
+theorem ${id}_law${j}_ok : cyc${Q}MOk ${id}_machine ${id}_enc ${id}_facts ${id}_law${j} ${keysL(l)} ${node(j)} = true := by ${checkBy}
 theorem ${id}_law${j}_holds : ∀ ρ M, SReach ${id}_machine ρ M → ∀ ρ' : Nat → Nat, (∀ i, i ∉ ${keysL(l)} → ρ' i = ρ i) → evalC ρ' M ${id}_law${j} = true :=
-  cyc_machine_sound ${id}_machine ${id}_enc ${id}_facts ${id}_nodes ${id}_check ${id}_law${j} ${keysL(l)} ${node(j)} ${node(j)}_mem ${id}_law${j}_ok`).join('\n')
+  cyc_${q}machine_sound ${id}_machine ${id}_enc ${id}_facts ${id}_nodes ${id}_check ${id}_law${j} ${keysL(l)} ${node(j)} ${node(j)}_mem ${id}_law${j}_ok`).join('\n')
   const keys2 = (l: Law) => list((l.keys ?? []).map(k2 => String(ix(k2))))
   const oneOf = (hyp: string) => `simp only [${id}_mlaws, List.mem_cons, List.not_mem_nil, or_false] at ${hyp}`
   const lawsThm = `def ${id}_mlaws : List (MLaw × List Nat) := ${list(laws.map((l, j) => `(${id}_l${j}, ${keys2(l)})`))}
@@ -905,11 +923,11 @@ ${readable(id, laws, vars, maps, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat
   // writes it, with no certificate in it.
   const stepBlocks = (rf ? [] : stepLaws).map((sl, j) => {
     const kk = sl.steps ?? 1
-    const ren = Array.from({length: kk}, (_, s2) => (s2 === 0 ? '[]' : list(m.inputs.map(v2 => `(${ix(v2)}, ${ix(`${v2}@${s2 + 1}`)})`))))
+    const ren = Array.from({length: kk}, (_, s2) => (s2 === 0 ? '[]' : list(extOf(m).map(v2 => `(${ix(v2)}, ${ix(`${v2}@${s2 + 1}`)})`))))
     const mren = Array.from({length: kk}, (_, s2) => (s2 === 0 ? '[]' : list(carried.map(mp => `(${mx(mp)}, ${mx(`${mp}@${s2 + 1}`)})`))))
     const names = Array.from({length: kk - 1}, (_, s2) => list(state.map(n2 => `(${ix(n2)}, ${ix(stateName(n2, s2 + 1))})`)))
     return `-- Step law${kk > 1 ? ` over ${kk} steps` : ''}: ${sl.name}
-def ${id}_step${j} : SKStep := ⟨⟨${list(kWhens(m, sl).map(c))},
+def ${id}_step${j} : SKStep := ⟨⟨${list(kWhens(mq, sl).map(c))},
   ${c(inline(sl.then))},
   ${list(ren)},
   ${primesL()},
@@ -919,7 +937,7 @@ def ${id}_step${j} : SKStep := ⟨⟨${list(kWhens(m, sl).map(c))},
   ${list(mren)},
   [], [], [], [], [],
   ${list(names)}⟩
-theorem ${id}_step${j}_ok : cycKOk ${id}_machine ${id}_enc ${id}_facts ${id}_step${j} ${node(L + j)} = true := by ${checkBy}
+theorem ${id}_step${j}_ok : cyc${Q}KOk ${id}_machine ${id}_enc ${id}_facts ${id}_step${j} ${node(L + j)} = true := by ${checkBy}
 theorem ${id}_step${j}_holds : SKStepHolds ${id}_machine ${id}_step${j} :=
   ${kstep(`${id}_step${j}`, L + j)} ${id}_step${j}_ok`
   })
@@ -937,7 +955,7 @@ theorem ${lid}_allows : ∀ h ∈ ${lid}.helps, ∃ wit : List (Nat × E), disti
   intro h hh
   simp only [${lid}, List.mem_cons, List.not_mem_nil, or_false] at hh
   rcases hh with ${helps.map(() => 'rfl').join(' | ')}
-  ${al.map((a, i) => `· exact ⟨${lid}_wit${i}, by ${checkBy}, by ${checkBy}, cyc_allow_sound ${id}_machine ${id}_enc ${id}_facts ${id}_nodes ${id}_check _ ${node(a.node)} ${node(a.node)}_mem (by ${checkBy})⟩`).join('\n  ')}
+  ${al.map((a, i) => `· exact ⟨${lid}_wit${i}, by ${checkBy}, by ${checkBy}, cyc_${q}allow_sound ${id}_machine ${id}_enc ${id}_facts ${id}_nodes ${id}_check _ ${node(a.node)} ${node(a.node)}_mem (by ${checkBy})⟩`).join('\n  ')}
 /-- ${l.name}, under weak fairness: along every run that takes each helpful request whenever, from some point on, it
 stays allowed, \`from\` is followed by \`to\`. -/
 theorem ${lid}_holds_wf (run : SRun ${id}_machine)
