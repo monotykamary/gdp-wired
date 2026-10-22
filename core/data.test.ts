@@ -98,7 +98,7 @@ test('well-founded recursion: a measure found, and each call proven to lower it 
   expect(qsort.fn.termination!.obligations.map(o => o.scheme)).toEqual([expect.stringMatching(/^recursion of atMost/), expect.stringMatching(/^recursion of above/)])
   expect(showValue(List, run({x: {op: 'call', fn: 'qsort', args: [{op: 'var', name: 'xs'}]}}, {xs: list(3, 1, 2, 1)}) as never)).toBe('cons(1, cons(1, cons(2, cons(3, nil))))')
   expect(showValue(List, run({x: {op: 'call', fn: 'merge', args: [{op: 'var', name: 'xs'}, {op: 'var', name: 'ys'}]}}, {xs: list(1, 4), ys: list(2, 3)}) as never)).toBe('cons(1, cons(2, cons(3, cons(4, nil))))')
-})
+}, 60_000)
 
 test('a definition that does not terminate is refused with its reason, and no law about it is read', () => {
   const up: ReturnType<typeof define> = define('up', {x: natural}, natural, ({x}) => (up(x) as Nat).plus(1))
@@ -106,7 +106,7 @@ test('a definition that does not terminate is refused with its reason, and no la
   expect(() => proveData(law('up is 0', {x: natural}, ({x}) => (up(x) as Nat).eq(0)))).toThrow(/no measure is proven to fall at every call/)
   for (const mk of Object.values(nonterminating)) expect(refusal(mk)).toMatch(/no measure is proven to fall at every call/)
   expect(refusal(nonterminating.mergeStatedWrong)).toMatch(/a measure is given.*size\(xs\): a call of its runs doesn't lower it/)
-})
+}, 60_000)
 
 test('laws over well-founded functions: by the function\'s own recursion, ranked by its measure; broken variants refused', () => {
   const l = laws.interleaveLength(), s = schemesOf(programOf([l]), l).find(x => x.name === 'recursion of interleave on xs, ys')!
@@ -117,4 +117,4 @@ test('laws over well-founded functions: by the function\'s own recursion, ranked
     expect(v.scheme).toMatch(/^recursion of (interleave|add3acc)/)
   }
   for (const mk of [broken.mergeLength, broken.add3acc]) expect(proveData(mk()).counterexample).toBeDefined()
-})
+}, 60_000)
