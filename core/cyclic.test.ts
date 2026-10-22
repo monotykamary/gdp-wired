@@ -1,10 +1,12 @@
 // Cyclic proofs: the kernel's check (kernel/cyclic.ts) accepts what proveCyclic finds and refuses tampered proofs; the
-// instances (a recurrence, a machine, a fold) agree with the usual rules; nested and mutual inductions no rule had.
+// instances (a recurrence, a machine, a fold) agree with the usual rules, and translate their proofs; nested and mutual
+// inductions no rule had.
 import {expect, test} from 'bun:test'
 import type {E} from './machine.ts'
 import {type Cyclic, refuseCyclic} from '../kernel/cyclic.ts'
 import {foldNodes, machineNodes, proveCyclic, recurNodes} from './cyclic.ts'
-import {proveLaws} from '../kernel/prove.ts'
+import {grow, proveLaws} from '../kernel/prove.ts'
+import {foldObligations} from '../kernel/kernel.ts'
 import {mccarthy, mutual} from '../examples/cyclic.ts'
 import {counter, counterLaws, growing, retries, retryLaws} from '../examples/lemmas.ts'
 import {rollup, rollupLaws} from '../examples/folds.ts'
@@ -49,4 +51,22 @@ test('today\'s rules as instances: a recurrence, a machine, a fold, each with th
     const f = rollup(bug), fn = foldNodes(f.fold, rollupLaws(f)), fv = proveCyclic(fn.facts, fn.specs)
     expect(fv.proven && fv.checked).toBe(!bug)
   }
+})
+
+test('the usual proofs translated: a machine, a fold and a recurrence, each checked by the kernel', () => {
+  const c = counter(), cl = counterLaws(c), cp = proveLaws(c.machine, cl)
+  const mn = machineNodes(c.machine, cl, cp.proof!.instances, cp.proof!)
+  expect(mn.why).toBeUndefined()
+  // (the after-step and start nodes' trees are the usual ones translated, none grown)
+  expect(mn.specs.slice(cl.length).every(sp => sp.main)).toBe(true)
+  const mv = proveCyclic(mn.facts, mn.specs)
+  expect([mv.proven && mv.checked, mv.proven && refuseCyclic(mv.proof)]).toEqual([true, undefined])
+  const f = rollup(), fl = rollupLaws(f), goals = foldObligations(f.fold, fl), trees = Object.fromEntries(goals.map(g => { const o = grow(g); return [g.name, 'tree' in o ? o.tree : undefined] }))
+  const fn = foldNodes(f.fold, fl, trees as never), fv = proveCyclic(fn.facts, fn.specs)
+  expect(fv.proven && fv.checked).toBe(true)
+  const rc = growing().recur!, pl = rc.proofs!.lemmas!, lp = proveLaws(pl.machine, pl.laws), lemmas = {m: pl.machine, laws: pl.laws, proof: lp.proof!}
+  const rn = recurNodes({name: 'growing', args: rc.args, zero: rc.zero, next: rc.next, lemmas: rc.lemmas, between: [], facts: []}, {lemmas})
+  expect(rn.why).toBeUndefined()
+  const rv = proveCyclic(rn.facts, rn.specs)
+  expect(rv.proven && rv.checked).toBe(true)
 })

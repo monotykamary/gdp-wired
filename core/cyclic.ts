@@ -12,6 +12,32 @@
 //     node at rank (n) using every law at both children
 // Beyond those, a node may use any node at any terms (nested, mutual, two ranks in order): `proveCyclic` takes the nodes
 // as they are given (examples/cyclic.ts).
+//
+// Translated (machineNodes, recurNodes, foldNodes given the usual proof; core/translate.ts): what the usual route proved,
+// made a cyclic proof from its trees rather than searched. The facts are the instance's as above (Bridge.lean's
+// cycCanon, recFacts, the fold's table); the nodes, in this order:
+//   - machines, laws l_0..l_{L-1}: node i < L the law at t, rank (t, 1), hyps the precondition, t <= T, T < Ω (cycMOk's
+//     node), facts the start and the step at t and each map's at the keys it reads, uses node L + i (guard 1 <= t) and
+//     node 2L + i (guard t <= 0), its tree made (`carry`). Node L + i the law after a step from t − 1, rank (t, 0):
+//     hyps the precondition, 1 <= t, t <= T, T < Ω and the request's assumption at t − 1, facts the functions' at the
+//     keys the usual proof names, uses the laws at t − 1 at those keys (guard 0 <= 0), its conclusion the law at the
+//     state the step gives over the cells at t − 1 (a write's reads at its key read at the key read), its tree the usual
+//     step tree. Node 2L + i the law at the start, rank (0, 0): the usual start goal, k# as k, its tree the usual one.
+//     Only the facts and uses the usual tree reads are kept.
+//   - then each step law s_j (proveStepLaws): node 3L + 2j after its k steps, rank (t, 0), the usual step law's goal over
+//     the cells at t − k..t − 1 (hyps the precondition, k <= t, t <= T, T < Ω, the assumption and `when` at each step's
+//     time, the state's equations after each step but the last; uses the laws at each of those times), and node
+//     3L + 2j + 1 the step law itself, rank (t, 2): hyps the precondition, k <= t, t <= T, T < Ω and `when` at each
+//     step's time, its conclusion `then` with plain names at t − k, primed ones at t and a later step's request (i@j) at
+//     its time, facts the step at t − k + 1..t (and the maps' at t), its one use node 3L + 2j, its tree made (`carry`).
+//     Several steps only on a machine with no map.
+//   - recurrences, lemmas n, laws between b: nodes 0..n+b−1 as above (their trees made), using also node 2n + 2b + i
+//     (the lemma at the start, guard x <= 0; a law between at y = x, guard y <= x); nodes n + b.. the lemma (law between)
+//     after a step, the usual step goal with x as x − 1, fx as f(x − 1) (y, fy likewise, fx as f(x)); then the start
+//     nodes, rank (0, 0, 0) and (1, 0, 0).
+//   - folds, laws L: node i the law at a node n, rank (n, 1), using node L + i (guard Kind[n] = 1) and node 2L + i (guard
+//     Kind[n] = 0); node L + i from its children, rank (n, 0), hyps n < N, Kind[n] = 1, both children below n and the
+//     assumption at n, uses the laws at both children; node 2L + i at a leaf, rank (n, 0).
 import type {C, E, Law, Machine} from './machine.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
 import type {Fold, Goal, Instances, Subst, Tree} from '../kernel/kernel.ts'
