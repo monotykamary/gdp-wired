@@ -14,8 +14,10 @@
 //     the naturals (the law is then the instance at the naturals); Int read as a natural (only where the problem uses no
 //     subtraction, division, remainder, negative literal or product of two unknowns: then each operation means the same
 //     on naturals, and the change is that Int's variables and fields range over the naturals).
+//   - A datatype field of sort Bool is a value of a datatype of two constructors of no field (false, true): built from
+//     the condition where a constructor is applied, the condition again where a match binds it.
 //   - Refused, with the reason (`Unsupported`): an existential goal, a quantifier elsewhere than outermost or under an
-//     implication's conclusion, a datatype field of sort Bool or of a function sort, a function variable of another
+//     implication's conclusion, a datatype field of a function sort, a function variable of another
 //     sort, a function that returns a function, Int arithmetic beyond the above, a selector of a datatype of several
 //     constructors (partial: TIP leaves it unspecified at the others), recursion that isn't structural (core/data.ts's
 //     check), uninterpreted sorts and constants, a nested datatype at ever larger instances.

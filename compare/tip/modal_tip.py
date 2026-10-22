@@ -45,6 +45,40 @@ pathlib.Path('/smt/convert-errors.json').write_text(json.dumps(log, indent=1))
 print(len(log), 'conversion errors')
 """ % json.dumps(SETS)
 
+# TIP writes a match's default case as `_`, which SMT-LIB 2.6 (and cvc5's parser) doesn't take as a pattern: in the cvc5
+# files, each such case gets a variable pattern of its own instead (a variable pattern matches every value, as `_` does).
+WILD = r"""
+import pathlib, re, json
+def parse(t):
+    out, st = [], [[]]
+    for m in re.finditer(r'\s+|;[^\n]*|\(|\)|\|[^|]*\||"(?:[^"]|"")*"|[^\s()|;"]+', t):
+        x = m.group(0)
+        if x[0].isspace() or x[0] == ';': continue
+        if x == '(': st.append([])
+        elif x == ')': l = st.pop(); st[-1].append(l)
+        else: st[-1].append(x)
+    return st[0]
+n = [0]
+def fix(s):
+    if not isinstance(s, list): return s
+    if s and s[0] == 'match' and len(s) == 3 and isinstance(s[2], list):
+        for c in s[2]:
+            if isinstance(c, list) and c and c[0] == '_':
+                n[0] += 1; c[0] = 'wild_' + str(n[0])
+    return [fix(x) for x in s]
+def show(s): return s if not isinstance(s, list) else '(' + ' '.join(show(x) for x in s) + ')'
+changed = []
+for f in sorted(pathlib.Path('/smt').rglob('*.smt2')):
+    t = f.read_text()
+    if re.search(r'\(\s*_\s', t):
+        n[0] = 0
+        cmds = [fix(c) for c in parse(t)]
+        if n[0]:
+            f.write_text('\n'.join(show(c) for c in cmds) + '\n'); changed.append(str(f))
+pathlib.Path('/smt/wild-patterns.json').write_text(json.dumps(changed, indent=1))
+print(len(changed), 'files with a default case renamed')
+"""
+
 image = (
     modal.Image.from_registry("ubuntu:22.04", add_python="3.12")
     .apt_install("curl", "unzip", "ca-certificates", "git", "build-essential", "libtinfo-dev", "libgmp-dev", "zlib1g-dev", "xz-utils", "coreutils", "netbase")
@@ -62,6 +96,7 @@ image = (
         f"mkdir /bench && curl -fsSL https://codeload.github.com/tip-org/benchmarks/tar.gz/{BENCH_COMMIT} | tar xz -C /bench --strip-components 1",
     )
     .run_commands(f"python3 - <<'EOF'\n{CONVERT}\nEOF")
+    .run_commands(f"python3 - <<'EOF'\n{WILD}\nEOF")
     .env({"PATH": "/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
     .add_local_dir(GDP, "/src/gdp-wired", ignore=["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "modal/**", "private/**",
                                               "vendor/**", "compare/**/*.js", "compare/**/out/**", "lean-kernel/**", "research/**", "static/**", "docs/**"])
@@ -147,7 +182,7 @@ def shard(tool: str, tasks: list[str], limit: int) -> list[dict]:
             answer = answer_of(tool, code, out)
             row = {"tool": tool, "task": task, "answer": answer, "seconds": secs}
         if answer == "error":
-            row["err"] = (err or out)[-600:]
+            row["err"] = (out[-500:] + " || " + "\n".join(l for l in err.splitlines() if "set-logic" not in l and "stricter logic" not in l and "cvc5 will make" not in l)[-500:])
         rows.append(row)
     return rows
 
@@ -160,13 +195,13 @@ def tasks(sets: list[str]) -> dict:
 
 
 @app.function(timeout=900, cpu=2.0)
-def probe() -> str:
+def probe(cmds: list[str]) -> str:
     import subprocess
 
     def sh(c: str) -> str:
         p = subprocess.run(c, shell=True, capture_output=True, text=True)
         return f"$ {c}\n{p.stdout[-3000:]}{p.stderr[-1500:]}"
-    return "\n".join(sh(c) for c in [
+    return "\n".join(sh(c) for c in cmds or [
         "cvc5 --version | head -2", "vampire --version", "bun --version", "cat /smt/convert-errors.json | head -40",
         "find /smt -name '*.smt2' | wc -l; find /vamp -name '*.smt2' | wc -l",
         "cat /smt/isaplanner/prop_01.smt2", "cat /vamp/isaplanner/prop_01.smt2",
@@ -179,7 +214,7 @@ def probe() -> str:
 
 
 @app.local_entrypoint()
-def main(out: str = "", tools: str = "gdp,cvc5,cvc5cg,vampire", limit: int = 60, sets: str = "isaplanner,prod,tip2015,grammars", only: str = "", sample: int = 0, per: int = 1, probe_only: bool = False):
+def main(out: str = "", tools: str = "gdp,cvc5,cvc5cg,vampire", limit: int = 60, sets: str = "isaplanner,prod,tip2015,grammars", only: str = "", sample: int = 0, per: int = 1, probe_only: bool = False, probe_cmd: str = ""):
     live = GDP / "modal" / ".live"
     live.mkdir(exist_ok=True)
     ticket = live / f"{app.app_id}"
@@ -187,7 +222,7 @@ def main(out: str = "", tools: str = "gdp,cvc5,cvc5cg,vampire", limit: int = 60,
     t0 = time.time()
     try:
         if probe_only:
-            print(probe.remote())
+            print(probe.remote([c for c in probe_cmd.split(";;") if c.strip()]))
             return
         outdir = pathlib.Path(out)
         outdir.mkdir(parents=True, exist_ok=True)

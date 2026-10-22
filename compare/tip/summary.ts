@@ -32,7 +32,8 @@ const table = (title: string, keep: (r: Row) => boolean, theorems: boolean) => {
   }
 }
 const gdp = rows.filter(r => r.tool === 'gdp' || r.tool === 'gdptr')
-const translated = new Set(gdp.filter(r => r.answer !== 'unsupported' && r.answer !== 'error' && lastStage(r, 'import')).map(r => r.task))
+// translated: imported, and the translation agreeing with TIP's evaluator (an error there is a translator bug)
+const translated = new Set(gdp.filter(r => lastStage(r, 'import') && !/translation disagrees/.test(why(r))).map(r => r.task))
 table('TIP 2015 theorems', r => !isFalse(r.task), true)
 if (rows.some(r => isFalse(r.task))) table('TIP false/ (false properties)', r => isFalse(r.task), false)
 if (translated.size) {

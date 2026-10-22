@@ -74,10 +74,11 @@ if (translateOnly) done('translated', {changes: tr!.changes})
 
 const given: DataLaw[] = [...tr!.lemmas, ...(conjSize ? conjectures(programOf([tr!.law]), tr!.law, conjMax, conjSize) : [])]
 if (given.length) say({stage: 'lemmas given', n: given.length, hand: tr!.lemmas.map(l => showY(l.holds).slice(0, 200))})
-const v = proveData(tr!.law, given.length ? {ms, lemmas: given} : {ms})
-say({stage: 'prove', proven: v.proven, checked: v.checked, proveMs: v.ms, scheme: v.scheme, lemmas: v.lemmas, tried: v.tried, ...(v.goal ? {goal: v.goal.slice(0, 200), stuck: v.stuck?.slice(0, 200)} : {})})
-if (v.proven && v.checked) done('proven', {changes: tr!.changes, scheme: v.scheme, lemmas: v.lemmas})
-if (v.counterexample) {
+let v: ReturnType<typeof proveData>
+try { v = proveData(tr!.law, given.length ? {ms, lemmas: given} : {ms}) } catch (e) { done('error', {why: `proveData threw: ${(e as Error).message.slice(0, 200)}`}) }
+say({stage: 'prove', proven: v!.proven, checked: v!.checked, proveMs: v!.ms, scheme: v!.scheme, lemmas: v!.lemmas, tried: v!.tried, ...(v!.goal ? {goal: v!.goal.slice(0, 200), stuck: v!.stuck?.slice(0, 200)} : {})})
+if (v!.proven && v!.checked) done('proven', {changes: tr!.changes, scheme: v!.scheme, lemmas: v!.lemmas})
+if (v!.counterexample) {
   // proveData's refutation is the first of refute's samples (seed 7) that breaks the law: found again here, its values
   // given to TIP's evaluator, which must say the goal is false there.
   for (const s of samples(tr!.law.vars, programOf([tr!.law]).params, 400, 7)) {
@@ -90,4 +91,4 @@ if (v.counterexample) {
   }
   done('unknown', {why: 'the counterexample not found again'})
 }
-done('unknown', {changes: tr!.changes, goal: v.goal?.slice(0, 200), stuck: v.stuck?.slice(0, 200)})
+done('unknown', {changes: tr!.changes, goal: v!.goal?.slice(0, 200), stuck: v!.stuck?.slice(0, 200)})
