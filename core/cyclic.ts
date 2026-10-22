@@ -741,11 +741,12 @@ export const kWhens = (m: Machine, sl: StepLaw): C[] => {
   const ws = sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when], flags = flagsOf(m)
   return Array.from({length: sl.steps ?? 1}, (_, j) => (ws[j] ? substC(ws[j]!, {vars: {}, maps: {}, flags}) : yes))
 }
-// The nodes of the step laws, after the laws' (`laws` the machine's, their nodes 0..L−1 at time t, as machineNodes makes
-// them; `rank` their rank's length). Each node: the precondition, k <= t <= T, T < Ω and each step's `when` at its time;
+// The nodes of the step laws, after the laws' (`laws` the machine's, `lawNodes` their nodes, the first L at time t, as
+// machineNodes makes them). Each node: the precondition, k <= t <= T, T < Ω and each step's `when` at its time;
 // the run's facts at the times it reads (each step's, each map cell's step back from where it is read, the functions'
 // facts at the keys the usual proof names), every law at each state but the last (at the keys it names), and `then`.
-export function stepLawNodes(m: Machine, laws: Law[], steps: {law: StepLaw, instances: Instances}[], facts: Fact[], rank: number): NodeSpec[] {
+export function stepLawNodes(m: Machine, laws: Law[], steps: {law: StepLaw, instances: Instances}[], facts: Fact[], lawNodes: NodeSpec[]): NodeSpec[] {
+  const rank = lawNodes[0]?.rank.length ?? 2
   const {at} = trace(m), flags = flagsOf(m), inline = (c: C) => substC(c, {vars: {}, maps: {}, flags})
   const t = v('t$'), T = v('T$'), mapNames = Object.keys(m.maps ?? {}), traced = [...mapNames, ...(m.inputMaps ?? [])], state = Object.keys(m.state)
   const fi = (name: string) => facts.findIndex(f => f.name === name)
@@ -789,7 +790,56 @@ export function stepLawNodes(m: Machine, laws: Law[], steps: {law: StepLaw, inst
     for (const p of [...insts]) if (p.fact === fi(`${m.name}: a step`)) cellFacts(substC(facts[p.fact]!.holds, vars({'u$': p.at[0]!})))
     return {name: `${m.name}: ${sl.name}`, hyps, concl, rank: rank === 1 ? [t] : [t, ...Array.from({length: rank - 1}, () => k(2))], insts: insts.filter(p => p.fact >= 0), uses}
   })
-  return sliced(withReads(facts, specs))
+  return sliced(withReads(facts, specs, [...lawNodes, ...specs]))
+}
+
+// A request allowed (BridgeRules.lean's cycAOk, cyc_allow_sound carries it to the claim): from every reachable state,
+// every request meeting `w` (a helpful request's region and terms), carrying empty sets, is one the machine allows. A node
+// at time t, the request the run takes at t the claim's (no step reads it): the precondition, t <= T, T < Ω, `w` at t,
+// each carried map's cell the assumption reads at t 0, every law at t (rank (t, 2) above theirs), the run's facts at t;
+// its conclusion the assumption at t, flags inlined.
+export function allowNode(m: Machine, laws: Law[], inst: Instances, w: C, facts: Fact[], lawNodes: NodeSpec[], name: string): NodeSpec {
+  const {at} = trace(m), flags = flagsOf(m), t = v('t$'), T = v('T$'), mapNames = Object.keys(m.maps ?? {}), carried = m.inputMaps ?? []
+  const traced = [...mapNames, ...carried], state = Object.keys(m.state), now = at(t)
+  const fi = (n: string) => facts.findIndex(f => f.name === n)
+  const keysOf = (l: Law) => [...(l.forall ? [l.forall] : []), ...(l.keys ?? [])]
+  const tuples = (l: Law): E[][] => { const ks = keysOf(l), flat = inst[l.name] ?? []; return ks.length ? Array.from({length: Math.floor(flat.length / ks.length)}, (_, i) => flat.slice(i * ks.length, (i + 1) * ks.length)) : [[]] }
+  const concl = substC(substC(m.assume ?? yes, {vars: {}, maps: {}, flags}), now)
+  // Each carried cell the conclusion reads at t: 0 (the request carries empty sets).
+  const zeros: C[] = [], seen = new Set<string>()
+  const walk = (x: unknown): void => {
+    if (!x || typeof x !== 'object') return
+    const o = x as Record<string, unknown>
+    if (o.op === 'get' && typeof o.map === 'string' && o.map.endsWith('@') && carried.includes(o.map.slice(0, -1))) {
+      const id = JSON.stringify(o)
+      if (!seen.has(id)) { seen.add(id); zeros.push(eq(o as E, k(0))) }
+    }
+    for (const val of Object.values(o)) walk(val)
+  }
+  walk(concl)
+  const hyps: C[] = [...(m.pre ? [m.pre] : []), le(t, T), ...(traced.length ? [{op: '<', a: T, b: omega} as C] : []), substC(w, now), ...zeros]
+  const uses: NodeSpec['uses'] = laws.flatMap((l, i) => tuples(l).map(ts => ({node: i, subst: Object.fromEntries(keysOf(l).map((kn, q) => [kn, substE(ts[q]!, now)])), guard: yes})))
+  const insts: NodeSpec['insts'] = [{fact: fi(`${m.name}: the start`), at: [t]}, {fact: fi(`${m.name}: a step`), at: [t]},
+    ...state.map(st => ({fact: fi(`${m.name}: ${st} is a natural`), at: [t]})), {fact: fi(`${m.name}: params are naturals`), at: []},
+    ...(m.facts ?? []).flatMap(f => tuples(f).map(ts => ({fact: fi(f.name), at: ts.map(e => substE(e, now))})))]
+  // Each map cell read at t: its start, its step and that it is a natural there.
+  const cells = new Set<string>()
+  const cellWalk = (x: unknown): void => {
+    if (!x || typeof x !== 'object') return
+    const o = x as Record<string, unknown>
+    if (o.op === 'get' && typeof o.map === 'string' && o.map.endsWith('@') && mapNames.includes(o.map.slice(0, -1))) {
+      const key = o.key as E
+      if (key.op === 'add' && JSON.stringify(key.a) === JSON.stringify(t) && key.b.op === 'prod') {
+        const map = o.map.slice(0, -1), cell = key.b.a, id = `${map}:${JSON.stringify(cell)}`
+        if (!cells.has(id)) { cells.add(id); insts.push(...['at the start', 'at a step', '\'s cells are naturals'].map(what => ({fact: fi(`${m.name}: ${map}${what.startsWith('\'') ? what : ` ${what}`}`), at: [t, cell]}))) }
+      }
+    }
+    for (const val of Object.values(o)) cellWalk(val)
+  }
+  cellWalk([hyps, concl, uses.map(us => substC(laws[us.node]!.holds, {...now, vars: {...now.vars, ...us.subst}}))])
+  const rank = lawNodes[0]?.rank.length ?? 2
+  const spec: NodeSpec = {name, hyps, concl, rank: [t, ...Array.from({length: rank - 1}, () => k(2))], insts: insts.filter(p => p.fact >= 0), uses}
+  return sliced(withReads(facts, [spec], [...lawNodes, spec]))[0]!
 }
 
 // --- folds over trees -----------------------------------------------------------------------------------------------

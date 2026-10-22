@@ -527,4 +527,234 @@ theorem cyc_ghost_holds (g : SGhosted) (hg : sghostOk g = true) (law : C) (keys 
     · rw [if_neg hk, hag i (avoids_occ hav hi), hρ' i (fun h => hk (List.contains_iff_mem.mpr h))])] at h
   exact h
 
+/-! A helpful request allowed, and liveness under weak fairness -/
+
+/-- A request allowed: from every reachable state, every request that meets `w`, carrying empty sets, is one the
+machine allows (its assumption holds, the flags decided): what `sallow_sound` proves of the usual certificate. -/
+def AllowHolds (s : SMachine) (w : C) : Prop :=
+  ∀ ρ M, SReach s ρ M → ∀ ι, evalC (withExt s ρ (sReq s ρ M ι noSets)) (withCarried s M noSets) w = true →
+    evalC (sView s ρ M ι noSets).1 (sView s ρ M ι noSets).2 s.f.m.assume = true
+
+-- A carried map's cell at time t, 0: the request at t carries empty sets.
+def cycZeroOk (s : SMachine) (ce : CycEnc) : C → Bool
+  | .eq (.get m (.add (.var a) (.prod _ (.var b)))) (.const 0) => a == ce.t && b == ce.om && s.carried.any (fun c => cycMM ce c == m)
+  | _ => false
+
+/-- A request allowed, as a node at time t over the machine's encoding: the request taken at t (the run's last, which no
+step reads) is the one the claim is about. The node's conclusion is the assumption at t, flags inlined; its hypotheses
+among the precondition, t ≤ T, T < Ω, `w` at t, and a carried map's cell at t being 0. -/
+def cycAOk (s : SMachine) (ce : CycEnc) (facts : List Fact) (w : C) (n : CNode) : Bool :=
+  cycShapeOk s ce [] && cycTermsOk s ce [] && s.wits.isEmpty && cycFactsIn s ce facts
+    && avoids (ce.special ++ flagVars s.f.flags) w && avoidsMaps ce.tm w
+    && beqC n.concl (trC ce (.var ce.t) (inlineC s.f.flags s.f.m.assume))
+    && n.hyps.all (fun h => beqC h s.f.m.pre || beqC h (.le (.var ce.t) (.var ce.T)) || beqC h (.lt (.var ce.T) (.var ce.om))
+      || beqC h (trC ce (.var ce.t) w) || cycZeroOk s ce h)
+
+theorem cycZeroOk_spec {s : SMachine} {ce : CycEnc} {h : C} (hz : cycZeroOk s ce h = true) :
+    ∃ c key, c ∈ s.carried ∧ h = .eq (.get (cycMM ce c) (.add (.var ce.t) (.prod key (.var ce.om)))) (.const 0) := by
+  match h, hz with
+  | .eq (.get m (.add (.var a) (.prod key (.var b)))) (.const 0), hz =>
+    simp only [cycZeroOk, Bool.and_eq_true, beq_iff_eq, List.any_eq_true] at hz
+    obtain ⟨⟨rfl, rfl⟩, c, hc, hm⟩ := hz
+    exact ⟨c, key, hc, by rw [hm]⟩
+
+/-- A cyclic proof of a request's being allowed, checked against the machine's encoding (`cycAOk`). -/
+theorem cyc_allow_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes : List CNode) (hc : checkCyclic facts nodes = true)
+    (w : C) (n : CNode) (hn : n ∈ nodes) (hok : cycAOk s ce facts w n = true) : AllowHolds s w := by
+  simp only [cycAOk, Bool.and_eq_true, List.all_eq_true] at hok
+  obtain ⟨⟨⟨⟨⟨⟨⟨hsh, hte⟩, hwit⟩, hfa⟩, hwv⟩, hwm⟩, hcon⟩, hhy⟩ := hok
+  have hS := cycShape_of hsh
+  have hT := cycTerms_of hte
+  have hW : s.wits = [] := isEmpty_nil hwit
+  have hsp := special_parts hS.dsp
+  intro ρ M hr ι hw
+  obtain ⟨r, T, hr0, hst, hmp⟩ := reach_run hS.q hr
+  -- The run with the request at T (the last, which no step takes) the claim's, carrying empty sets.
+  let r2 : CRun := ⟨r.ρ0, r.st, r.mp, fun u => if u = T then ι else r.ι u, fun u => if u = T then noSets else r.κ u⟩
+  have hNX : ∀ u, u < T → r2.N s u = r.N s u ∧ r2.V s u = r.V s u := fun u hu => by
+    have hne : u ≠ T := Nat.ne_of_lt hu
+    refine ⟨?_, ?_⟩ <;> simp only [CRun.V, CRun.X, CRun.N, r2, if_neg hne]
+  have hr2 : r2.Ok s T := ⟨hr0.maps0, hr0.pre, hr0.facts, hr0.pfacts, hr0.init, fun u hu => by
+    rw [(hNX u hu).1, (hNX u hu).2]; exact hr0.step u hu⟩
+  have hX : r2.X s T = withInputs s.f.m.inputs ρ ι := by simp only [CRun.X, r2, if_pos rfl, hst, if_true]
+  have hN : r2.N s T = withCarried s M noSets := by simp only [CRun.N, r2, if_pos rfl, hmp, if_true]
+  obtain ⟨Q, hQt, hQT, hQo, hQr⟩ : ∃ Q : Nat → Nat, Q ce.t = T ∧ Q ce.T = T ∧ Q ce.om = T + 1 ∧ ∀ i, i ∉ ce.special → Q i = r.ρ0 i :=
+    ⟨fun i => if i = ce.t then T else if i = ce.T then T else if i = ce.om then T + 1 else r.ρ0 i,
+      by simp, by simp [Ne.symm hsp.2.2.2.2.2.1], by simp [Ne.symm hsp.2.2.2.2.2.2, Ne.symm hsp.2.2.2.2.1],
+      fun i hi => by
+        dsimp only
+        rw [if_neg (fun e => hi (in_special (Or.inr (Or.inr (Or.inr (Or.inr e)))))), if_neg (fun e => hi (in_special (Or.inr (Or.inr (Or.inl e))))),
+          if_neg (fun e => hi (in_special (Or.inr (Or.inr (Or.inr (Or.inl e))))))]⟩
+  have hEnv : EnvOk s ce [] r2 T Q := ⟨hQT, hQo, fun i hi => hQr i (notP hi).1⟩
+  have hwt : evalE Q (cycMaps s ce r2 (T + 1)) (.var ce.t) = T := by simp [evalE, hQt]
+  have hF : FactsHold facts Q (cycMaps s ce r2 (T + 1)) := by
+    intro f hf vals
+    have hfi := List.all_eq_true.mp hfa f hf
+    simp only [Bool.or_eq_true] at hfi
+    rcases hfi with hnc | hcan
+    · exact natC_true _ hnc
+    · obtain ⟨g, hg, hb⟩ := List.any_eq_true.mp hcan
+      simp only [factBeq, Bool.and_eq_true, beq_iff_eq] at hb
+      rw [hb.1, beqC_eq hb.2]
+      exact canon_holds hS hT hr2 hg hEnv vals
+  have hH : ∀ c ∈ n.hyps, evalC Q (cycMaps s ce r2 (T + 1)) c = true := by
+    intro c hc
+    have h := hhy c hc
+    simp only [Bool.or_eq_true] at h
+    rcases h with ((((h | h) | h) | h) | h)
+    · rw [beqC_eq h, congr2C (ρ' := r2.ρ0) (M' := r2.mp 0) _ (fun j hj => hEnv.2.2 j (avoids_occ hT.prz hj))
+        (fun m hm => cm_o (avoidsMaps_occ hT.prm hm))]
+      exact hr2.pre
+    · rw [beqC_eq h, evalC_iff]; simp only [holdsC, evalE, hQt, hQT]; omega
+    · rw [beqC_eq h, evalC_iff]; simp only [holdsC, evalE, hQT, hQo]; omega
+    · rw [beqC_eq h, enc_trC hS hT hr2 hEnv hwt (Nat.le_refl T)]
+      rw [congr2C (ρ' := withExt s ρ (sReq s ρ M ι noSets)) (M' := withCarried s M noSets) _ ?_ ?_]
+      · exact hw
+      · intro x hx
+        have hxz := avoids_occ hwv hx
+        rw [withExt_plain hS.q hW, sReq_plain hS.q hW]
+        by_cases hv : x ∈ ce.vtr.map (·.1)
+        · rw [enc_σ_in hS hT hr2 hEnv hwt (Nat.le_refl T) hv, hX]; simp only [withInputs]; split <;> rfl
+        · have hxi : x ∉ s.f.m.inputs := fun h => hv (hS.inv x h)
+          rw [enc_σ_out hS hT hr2 hEnv hwt (Nat.le_refl T) hv, if_neg (fun h => hxi (List.contains_iff_mem.mp h)), ← hst,
+            run_frame hr0 T (Nat.le_refl T) x (fun h => by obtain ⟨p, hp, rfl⟩ := List.mem_map.mp h; exact hv (hS.initv p hp))
+              (fun h => by obtain ⟨p, hp, rfl⟩ := List.mem_map.mp h; exact hv (hS.stepv p hp)) hxi (fun h => hxz (List.mem_append_right _ h))]
+          exact hQr x (fun h => hxz (List.mem_append_left _ h))
+      · intro m hm
+        rw [cv_N (avoidsMaps_occ hwm hm), hN]
+    · obtain ⟨cm, key, hcm, rfl⟩ := cycZeroOk_spec h
+      rw [evalC_iff]
+      simp only [holdsC, evalE, hQt, hQo]
+      rw [read_mm hS.dtm (hS.carm cm hcm) (Nat.le_refl T), hN]
+      simp only [withCarried, List.contains_iff_mem.mpr hcm, if_true, noSets]
+  have hc0 := cyclic_sound facts nodes hc (cycMaps s ce r2 (T + 1)) Q hF n hn hH
+  rw [beqC_eq hcon, enc_nowC hS hT hr2 hEnv hwt (Nat.le_refl T) s.f.m.assume hT.asz hT.asm] at hc0
+  have hv : sView s ρ M ι noSets = (r2.V s T, r2.N s T) := by
+    simp only [sView, decideQ_nil hS.q, CRun.V, hX, hN]
+  rw [hv]; exact hc0
+
+/-- Liveness under weak fairness from its step laws and its helpful requests allowed: `sleads_wf_sound` with the step
+laws' meaning (`SKStepHolds`) and each helpful request's being allowed in its region, with its named inputs and a
+witness for the rest, carrying empty sets (`AllowHolds`, a cyclic proof's through `cyc_allow_sound`), in place of their
+certificates. -/
+theorem sleads_wf_of_holds (s : SMachine) (l : Live) (hok : sliveOk s l = true)
+    (hs : SKStepHolds s (liveK l l.pend (liveStayC l))) (hc : SKStepHolds s (liveK l l.pend (liveCoverC l)))
+    (hh : ∀ h ∈ l.helps, SKStepHolds s (liveK l (liveHelpWhen l h) (liveHelpThen l)))
+    (ha : ∀ h ∈ l.helps, ∃ wit : List (Nat × E), distinct ((h.2 ++ wit).map (·.1)) = true
+      ∧ (∀ p ∈ wit, (s.f.m.inputs.contains p.1 = true ∧ avoids s.extVars (.eq p.2 p.2) = true) ∧ avoidsMaps s.carried (.eq p.2 p.2) = true)
+      ∧ AllowHolds s (.and (liveHelpWhen l h) (reqC wit))) (run : SRun s)
+    (fair : ∀ h ∈ l.helps, ∀ n, (∀ m, n ≤ m → ∃ ι κ, (∀ p ∈ h.2, ι p.1 = evalE (run.st m).1 (run.st m).2 p.2)
+        ∧ evalC (sView s (run.st m).1 (run.st m).2 ι κ).1 (sView s (run.st m).1 (run.st m).2 ι κ).2 s.f.m.assume = true) →
+      ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
+    ∀ n, evalC (run.st n).1 (run.st n).2 l.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 l.to = true := by
+  have hok0 := hok
+  simp only [sliveOk, Bool.and_eq_true, List.all_eq_true] at hok0
+  obtain ⟨⟨⟨hd1, hd2⟩, _⟩, hreqs⟩ := hok0
+  refine leads_view l run.st (fun n => withExt s (run.st n).1 (sReq s (run.st n).1 (run.st n).2 (run.req n).1 (run.req n).2))
+    (fun n => primed l.prime (run.st (n + 1)).1 (withExt s (run.st n).1 (sReq s (run.st n).1 (run.st n).2 (run.req n).1 (run.req n).2)))
+    (fun n => withCarried s (run.st n).2 (run.req n).2) (fun n => primedMaps l.primeMaps (run.st (n + 1)).2 (withCarried s (run.st n).2 (run.req n).2))
+    (fun h n => ∀ p ∈ h.2, (run.req n).1 p.1 = evalE (run.st n).1 (run.st n).2 p.2)
+    (fun h m => ∃ ι κ, (∀ p ∈ h.2, ι p.1 = evalE (run.st m).1 (run.st m).2 p.2)
+        ∧ evalC (sView s (run.st m).1 (run.st m).2 ι κ).1 (sView s (run.st m).1 (run.st m).2 ι κ).2 s.f.m.assume = true) ?_ ?_ ?_ ?_ ?_ ?_ ?_ fair
+  · intro n c hc
+    obtain ⟨hv, hm, hx, hn⟩ := slive_reads hok hc (run.st n).1 (run.st n).2 (run.req n).1 (run.req n).2
+    rw [run.next n]
+    exact view_C hd1 hd2 hv hm hx hn
+  · intro n e he
+    obtain ⟨hv, hm, hx, hn⟩ := slive_reads hok (mem_conds_rank he) (run.st n).1 (run.st n).2 (run.req n).1 (run.req n).2
+    rw [run.next n]
+    exact view_E hd1 hd2 hv hm hx hn
+  · intro n hB
+    have := skstep_holds_one hs rfl rfl rfl _ _ (srun_reach run n) _ _ (run.allowed n) hB
+    rw [run.next n]; exact this
+  · intro n hB
+    have := skstep_holds_one hc rfl rfl rfl _ _ (srun_reach run n) _ _ (run.allowed n) hB
+    rw [run.next n]; exact this
+  · intro h hmem n hB
+    have := skstep_holds_one (hh h hmem) rfl rfl rfl _ _ (srun_reach run n) _ _ (run.allowed n) hB
+    rw [run.next n]; exact this
+  · intro h hmem n hH
+    show evalC (withExt s (run.st n).1 (sReq s (run.st n).1 (run.st n).2 (run.req n).1 (run.req n).2)) (withCarried s (run.st n).2 (run.req n).2) (reqC h.2) = true
+    exact sreq_holds hok hmem (fun p hp' => hH p hp')
+  · -- Enabled in its region: the request with its named inputs as its terms, the rest as the state has them, carrying
+    -- empty sets.
+    intro h hmem n hP hnQ hW
+    obtain ⟨wit, hdist, hwit, hA⟩ := ha h hmem
+    let ρ := (run.st n).1
+    let M := (run.st n).2
+    let ι := applyS (h.2 ++ wit) ρ M
+    have hιp : ∀ p ∈ h.2, ι p.1 = evalE ρ M p.2 := fun p hp' => by
+      simp only [ι, applyS, assoc_distinct hdist (List.mem_append_left _ hp')]
+    have hιw : ∀ p ∈ wit, ι p.1 = evalE ρ M p.2 := fun p hp' => by
+      simp only [ι, applyS, assoc_distinct hdist (List.mem_append_right _ hp')]
+    have hX : ∀ c ∈ liveConds l, evalC (withExt s ρ (sReq s ρ M ι noSets)) (withCarried s M noSets) c = evalC ρ M c := fun c hc' => by
+      obtain ⟨_, _, hx', hn'⟩ := slive_reads hok hc' ρ M ι noSets
+      rw [congrMC _ _ M c hn']; exact congrC _ _ M c hx'
+    have memF : l.from_ ∈ liveConds l := by simp [liveConds]
+    have memT : l.to ∈ liveConds l := by simp [liveConds]
+    have memH : h.1 ∈ liveConds l := by simp only [liveConds, List.mem_append, List.mem_map]; exact Or.inr ⟨h, hmem, rfl⟩
+    refine ⟨ι, noSets, hιp, hA ρ M (srun_reach run n) ι ?_⟩
+    simp only [liveHelpWhen, Live.pend, evalC, Bool.and_eq_true, Bool.not_eq_true']
+    rw [hX _ memF, hX _ memT, hX _ memH]
+    exact ⟨⟨⟨hP, hnQ⟩, hW, sreq_holds hok hmem hιp⟩, sreq_list (fun p hp' => hwit p hp') hιw⟩
+
+/-! Refinements from their laws and step law -/
+
+-- A step law's certificate where none is read (SKStepHolds reads no certificate).
+def noSProof : SProof := ([], [], [], [], [], ([], [], .leaf [] [] [] []))
+
+/-- What a refinement over sets means, from the meaning of its claims (`srefines` with them in place of their
+certificates): with a property `P` of every reachable state of the composite (its laws, a cyclic proof's), the spec's
+precondition holding there, and the composite's step law that the spec stutters or allows every request it is sent
+(`SKStepHolds`, a cyclic proof's through `cyc_kstep_sound`), every reachable state of the implementation is, outside the
+spec's part, a reachable state of the composite where `P` holds, whose spec part is a reachable state of the spec. -/
+theorem srefines_of_holds (r : SRefined) (hok : srOk r = true) (hmo : distinct (r.spec.f.m.maps0.map (·.1)) = true)
+    (P : (Nat → Nat) → (Nat → Nat → Nat) → Prop) (hlaws : ∀ ρ M, SReach r.full ρ M → P ρ M)
+    (hpre : ∀ ρ M, SReach r.full ρ M → evalC ρ M r.spec.f.m.pre = true)
+    (prime primeMaps : List (Nat × Nat)) (p : SProof) (hs : SKStepHolds r.full (srStep r prime primeMaps p))
+    (hfresh : avoids (prime.map (·.2)) r.allowed = true ∧ avoidsMaps (primeMaps.map (·.2)) r.allowed = true)
+    (hw : avoids r.full.wVars r.allowed = true) (hiq : r.full.f.m.inputs.all (fun i => !r.full.qVars.contains i) = true) :
+    ∀ ρ M, SReach r.impl ρ M → ∃ ρc Mc σ Ms, SReach r.full ρc Mc ∧ Agree r.SV ρc ρ ∧ (∀ mp, mp ∉ r.SM → Mc mp = M mp)
+      ∧ SReach r.spec σ Ms ∧ Agree r.X σ ρc ∧ (∀ mp, mp ∉ r.IM → mp ∉ r.spec.carried → Ms mp = Mc mp) ∧ P ρc Mc := by
+  have hiq' : ∀ i, i ∈ r.full.f.m.inputs → i ∉ r.full.qVars := fun i hi hq => by
+    simp only [List.all_eq_true, Bool.not_eq_true'] at hiq
+    have := hiq i hi; rw [List.contains_iff_mem.mpr hq] at this; cases this
+  have hallow : ∀ ρ M, SReach r.full ρ M → ∀ ι κ, evalC (sView r.full ρ M ι κ).1 (sView r.full ρ M ι κ).2 r.full.f.m.assume = true →
+      evalC (sView r.full ρ M ι κ).1 (sView r.full ρ M ι κ).2 (.or r.stutter (substC r.wit r.spec.f.m.assume)) = true := by
+    intro ρ M hr ι κ hA
+    have h := hs ρ M hr (ι, κ) [] rfl ⟨hA, by simp [trueC, evalC, evalE], trivial⟩
+    have h' : evalC (primed prime (sNext r.full ρ M ι κ).1 (withExt r.full ρ (sReq r.full ρ M ι κ)))
+        (primedMaps primeMaps (sNext r.full ρ M ι κ).2 (withCarried r.full M κ)) r.allowed = true := by
+      simpa [srStep, sEnd, sExts, renEnv, renMaps, lookup] using h
+    rw [unprimed_evalC hfresh.1 hfresh.2] at h'
+    -- The request's extended variables, read as the step reads them: the inputs, and each quantified flag decided.
+    have hE : ∀ v, v ∉ r.full.wVars → withExt r.full ρ (sReq r.full ρ M ι κ) v
+        = decideQ r.full (withInputs r.full.f.m.inputs ρ ι) (withCarried r.full M κ) v := by
+      intro v hv
+      simp only [withExt, sReq]
+      by_cases hi : v ∈ r.full.f.m.inputs
+      · have hext : r.full.extVars.contains v = true := List.contains_iff_mem.mpr (by simp [SMachine.extVars, hi])
+        rw [decideQ_other (hiq' v hi)]
+        simp only [hext, if_true, List.contains_iff_mem.mpr hi, withInputs]
+      · have hin : r.full.f.m.inputs.contains v = false := by simpa [List.contains_iff_mem] using hi
+        by_cases hq : v ∈ r.full.qVars
+        · have hext : r.full.extVars.contains v = true := List.contains_iff_mem.mpr (by simp [SMachine.extVars, hq])
+          obtain ⟨q, hq0, rfl⟩ := List.mem_map.mp hq
+          cases hl : lookup (fun q' => q'.1 == q.1) r.full.qflags with
+          | none => have := lookup_none_all hl q hq0; simp at this
+          | some q' => simp only [hext, if_true, hin, Bool.false_eq_true, if_false, hl]
+        · have hext : r.full.extVars.contains v = false := by
+            simp only [SMachine.extVars, List.contains_iff_mem, List.mem_append, not_or]
+            simpa [List.contains_iff_mem] using (⟨hi, hq, hv⟩ : v ∉ r.full.f.m.inputs ∧ v ∉ r.full.qVars ∧ v ∉ r.full.wVars)
+          rw [decideQ_other hq, withInputs_other hi]
+          simp only [hext, Bool.false_eq_true, if_false]
+    rw [congrC _ _ _ r.allowed (fun i hi => hE i (avoids_occ hw hi))] at h'
+    simp only [SRefined.allowed] at h'
+    rw [inline_evalC] at h'
+    exact h'
+  intro ρ M hr
+  obtain ⟨ρc, Mc, hrc, hag, hmag⟩ := srefine_lift r hok hmo hr
+  obtain ⟨σ, Ms, hrs, hags, hmags⟩ := srefine_project r hok hpre hallow hrc
+  exact ⟨ρc, Mc, σ, Ms, hrc, hag, hmag, hrs, hags, hmags, hlaws ρc Mc hrc⟩
+
 end Kern
