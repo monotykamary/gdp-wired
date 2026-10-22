@@ -62,7 +62,7 @@ for (fn, url, line), t in self_t.most_common(30):
 """
 
 
-@app.function(cpu=2.0, memory=8192, timeout=1800)
+@app.function(scaledown_window=2, cpu=2.0, memory=8192, timeout=1800)
 def one(task: str, prof: bool, env: dict) -> str:
     import shutil
     import subprocess

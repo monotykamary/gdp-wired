@@ -77,7 +77,7 @@ def answer_of(tool: str, lines: list[str]) -> str | None:
     raise ValueError(tool)
 
 
-@app.function(cpu=2.0, memory=4096, timeout=3600)
+@app.function(scaledown_window=2, cpu=2.0, memory=4096, timeout=3600)
 def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]:
     import shutil
     import subprocess
@@ -119,13 +119,13 @@ def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]
     return rows
 
 
-@app.function(timeout=600)
+@app.function(scaledown_window=2, timeout=600)
 def tasks() -> list[dict]:
     root = pathlib.Path("/bench")
     return [{"task": str(p.relative_to(root)), "bytes": p.stat().st_size} for p in sorted(root.rglob("*.ari"))]
 
 
-@app.function(timeout=600)
+@app.function(scaledown_window=2, timeout=600)
 def versions() -> dict:
     import subprocess
     run = lambda c: subprocess.run(["bash", "-c", c], capture_output=True, text=True).stdout

@@ -22,7 +22,7 @@ image = modal.Image.from_registry("ubuntu:24.04", add_python="3.12").apt_install
 app = modal.App("gdp-wired-spacer-models", image=image)
 
 
-@app.function(cpu=2.0, memory=4096, timeout=300)
+@app.function(scaledown_window=2, cpu=2.0, memory=4096, timeout=300)
 def model(task: str, engine: str, limit: int) -> dict:
     y = pathlib.Path("/bench") / task
     smt2 = y.parent / re.search(r"^input_files:\s*(\S+)", y.read_text(), re.M).group(1)

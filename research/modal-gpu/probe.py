@@ -9,7 +9,7 @@ image = (
 app = modal.App("hw-gpu-probe", image=image)
 
 
-@app.function(gpu="L4", timeout=300)
+@app.function(scaledown_window=2, gpu="L4", timeout=300)
 def probe() -> str:
     import subprocess
     def sh(c):

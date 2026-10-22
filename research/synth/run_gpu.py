@@ -47,12 +47,12 @@ def run(args: str, script: str = "run.ts") -> dict:
     return {"gpu": gpu, "log": log[-30000:], "result": result}
 
 
-@app.function(gpu="L4", timeout=900)
+@app.function(scaledown_window=2, gpu="L4", timeout=900)
 def synth_l4(args: str = "", script: str = "run.ts") -> dict:
     return run(args, script)
 
 
-@app.function(gpu="H100", timeout=900)
+@app.function(scaledown_window=2, gpu="H100", timeout=900)
 def synth_h100(args: str = "", script: str = "run.ts") -> dict:
     return run(args, script)
 

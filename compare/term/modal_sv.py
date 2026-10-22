@@ -45,7 +45,7 @@ app = modal.App("gdp-wired-term-sv", image=image)
 KOAT_SH = "sed -e 's/\\^/_hat_/g' -e \"s/'/_q_/g\" -e 's/|//g' \"$1\" > /tmp/k.ari && koat2 ari-to-koat /tmp/k.ari --output-file /tmp/t.koat > /dev/null && koat2 analyse --termination -i /tmp/t.koat"
 
 
-@app.function(cpu=2.0, memory=4096, timeout=3600)
+@app.function(scaledown_window=2, cpu=2.0, memory=4096, timeout=3600)
 def shard(tool: str, t: dict, limit: int) -> dict:
     import shutil
     import subprocess
@@ -113,7 +113,7 @@ def shard(tool: str, t: dict, limit: int) -> dict:
     return row
 
 
-@app.function(timeout=600)
+@app.function(scaledown_window=2, timeout=600)
 def tasks() -> list[dict]:
     import re
     out = []
@@ -130,7 +130,7 @@ def tasks() -> list[dict]:
     return out
 
 
-@app.function(timeout=600)
+@app.function(scaledown_window=2, timeout=600)
 def versions() -> dict:
     import subprocess
     run = lambda c: subprocess.run(["bash", "-c", c], capture_output=True, text=True).stdout
