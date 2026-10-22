@@ -589,6 +589,8 @@ class Session:
             log(f"{vm.id}: {e}")
             self.last_error = f"{vm.id}: {str(e)[:200]}"
             vm.dead = True
+            if vm.t_running:  # up but of no use to this batch: stopped now, not at the batch's end
+                boat("stop", vm.id, "--yes", "--json", check=False, timeout=180)
             self._release([vm.id])
 
     def _create(self, n: int, vm_type: str):
@@ -656,6 +658,7 @@ class Session:
             log(f"{vm.id}: {e}")
             self.last_error = f"{vm.id}: {str(e)[:200]}"
             vm.dead = True
+            boat("stop", vm.id, "--yes", "--json", check=False, timeout=180)
             self._release([vm.id])
 
     def enough(self) -> bool:
