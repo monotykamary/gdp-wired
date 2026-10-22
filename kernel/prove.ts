@@ -11,7 +11,7 @@
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {type Lin, type Step, add, k, refuteFast, scale, solve, sub, v} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
-import {certCyclic, certOn, crossCyclic, cyclicOn, machineNodes, proveCyclic, timedKind, translatedCache, uncoveredWhy} from '../core/cyclic.ts'
+import {certCyclic, certOn, crossCyclic, cyclicOn, machineNodes, proveCyclic, timedKind, translatedProof, uncoveredWhy} from '../core/cyclic.ts'
 import type {TStats} from '../core/translate.ts'
 import {type Goal, type Instances, type Liveness, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
@@ -1047,7 +1047,7 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
   if (out.proof) usualProof.last = {m, laws, proof: out.proof}
   const inst = out.proof?.instances ?? instances
   const searched = () => { const {facts, specs} = machineNodes(m, laws, inst); return proveCyclic(facts, specs) }
-  const translated = out.proof && ((st: TStats) => { const {facts, specs, why: w} = timedKind('instance', 0, () => machineNodes(m, laws, inst, out.proof!, st)); return w ? {why: w} : {verdict: proveCyclic(facts, specs, undefined, translatedCache, st)} })
+  const translated = out.proof && ((st: TStats) => translatedProof(JSON.stringify(['machine', m, laws, inst]), () => timedKind('instance', 0, () => machineNodes(m, laws, inst, out.proof!, st)), st))
   if (cyclicOn()) {
     if (!why) crossCyclic('machine', m.name, out.proven && out.checked, searched, usualMs, translated)
     else console.error(`cyclic: ${JSON.stringify({kind: 'machine', name: m.name, usual: out.proven && out.checked, uncovered: true, why})}`)

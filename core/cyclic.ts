@@ -17,7 +17,7 @@ import type {Fold, Goal, Instances, Subst, Tree} from '../kernel/kernel.ts'
 import {assumed, foldObligations, obligations, substC, substE} from '../kernel/kernel.ts'
 import {type CNode, type Cyclic, type Fact, type Use, baseHyps, descentGoal, instHyps, mainGoal, premiseGoal, refuseCyclic} from '../kernel/cyclic.ts'
 import {cellProducts, grow, profile, usedHyps, widen} from '../kernel/prove.ts'
-import {type Renamer, type TStats, carry, decide, renamer, translate, tstats} from './translate.ts'
+import {type Reads, type Renamer, type TStats, carry, decide, renamer, translate, tstats} from './translate.ts'
 
 // What only the search reads: `opaque`, terms it reads as variables of their own in the node's goal (the trees are the
 // goal's still: see `widen`); `variants`, the node stated otherwise (fewer facts, other uses), each tried in turn where
@@ -663,7 +663,27 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
     const naturals = (when: E) => state.map(st2 => ({fact: fi(`${m.name}: ${st2} is a natural`), at: [when]}))
     const params = {fact: fi(`${m.name}: params are naturals`), at: []}
     const goals = new Map(obligations(m, laws, instances).map(g => [g.name, g]))
-    const nows: NodeSpec[] = [], afters: NodeSpec[] = [], starts: NodeSpec[] = [], made: {g: Goal, tree: Tree, node: number, ren: Renamer, decide?: C[]}[] = []
+    // The state the step gives over the frame before it, a write's reads at its key read at the key read instead (as the
+    // map's step fact has them): the usual step goal's conclusion but for those reads, which the translation reads at
+    // the key read where the usual path has the two keys equal (two cells over time then split apart: `close`).
+    const upd: Subst = {flags: {}, vars: Object.fromEntries(state.map(st2 => [st2, inlineE(m.step.state?.[st2] ?? v(st2))])), maps: Object.fromEntries(mapNames.map(map => [map, (kk: E): E => {
+      const w = m.step.maps?.[map]
+      return !w ? get(map, kk) : 'each' in w ? substE(inlineE(w.value), vars({[w.each]: kk})) : {op: 'if', c: eq(kk, inlineE(w.key)), then: readsAt(inlineE(w.value), inlineE(w.key), kk), else: get(map, kk)}
+    }]))}
+    const nows: NodeSpec[] = [], afters: NodeSpec[] = [], starts: NodeSpec[] = [], made: {g: Goal, tree: Tree, node: number, ren: Renamer, decide?: C[], reads?: Reads}[] = []
+    // A write's key and the keys the usual conclusion reads its map at (each a condition if(K = W, ...)).
+    const wkeys = new Set(mapNames.flatMap(map => { const w = m.step.maps?.[map]; return w && !('each' in w) ? [JSON.stringify(inlineE(w.key))] : [] }))
+    const readsOf = (c: C): Reads => {
+      const out: Reads = [], seen = new Set<string>()
+      const walk = (x: unknown): void => {
+        if (!x || typeof x !== 'object') return
+        const o = x as E
+        if (o.op === 'if' && o.c.op === '=' && wkeys.has(JSON.stringify(o.c.b))) { const id = JSON.stringify([o.c.a, o.c.b]); if (!seen.has(id)) { seen.add(id); out.push({at: o.c.a, from: o.c.b}) } }
+        for (const val of Object.values(o)) walk(val)
+      }
+      walk(c)
+      return out
+    }
     for (const [i, l] of laws.entries()) {
       const g0 = goals.get(`${l.name} @start`), g1 = goals.get(`${l.name} @step`), t0 = g0 && usual!.trees[g0.name], t1 = g1 && usual!.trees[g1.name]
       if (!g0 || !g1 || !t0 || !t1) return {specs: [], why: `${l.name}: no usual tree`}
@@ -679,11 +699,11 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
       const used1 = usedHyps(g1, t1), used0 = usedHyps(g0, t0), last = (g: Goal) => (g.hyps.at(-1) as Extract<C, {op: 'not'}>).x
       const concl = substC(l.holds, at(t))
       afters.push({name: `${m.name}: ${l.name}, after a step`, hyps: [...(m.pre ? [m.pre] : []), one, le(t, T), ...omegaHyp, ...(m.assume ? [now(inline(m.assume), less1(t))] : [])],
-        concl: substC(last(g1), sigma), rank: [t, k(0)], insts: [...fn1.filter((_, q) => used1.has(q)), ...naturals(less1(t)), params], uses: uses.filter((_, j) => used1.has(nf + np + na + j))})
+        concl: substC(substC(substC(l.holds, vars(fresh)), upd), pre), rank: [t, k(0)], insts: [...fn1.filter((_, q) => used1.has(q)), ...naturals(less1(t)), params], uses: uses.filter((_, j) => used1.has(nf + np + na + j))})
       starts.push({name: `${m.name}: ${l.name}, at the start`, hyps: m.pre ? [m.pre] : [], concl: substC(last(g0), vars(fresh)), rank: [k(0), k(0)], insts: [...fn0.filter((_, q) => used0.has(q)), params], uses: []})
       nows.push({name: `${m.name}: ${l.name}`, hyps: [...(m.pre ? [m.pre] : []), le(t, T), ...omegaHyp], concl, rank: [t, k(1)], insts: [...run(t), ...mapInsts(concl), ...naturals(t), params],
         uses: [{node: L + i, subst: {}, guard: one}, {node: 2 * L + i, subst: {}, guard: le(t, k(0))}], carry: true})
-      made.push({g: g1, tree: t1, node: L + i, ren, decide: [one]}, {g: g0, tree: t0, node: 2 * L + i, ren: ren0})
+      made.push({g: g1, tree: t1, node: L + i, ren, decide: [one], reads: readsOf(last(g1))}, {g: g0, tree: t0, node: 2 * L + i, ren: ren0})
     }
     const all = [...nows, ...afters, ...starts]
     for (const [i, a] of nows.entries()) { const o = [...new Set([...shared(facts, a, afters[i]!.concl), ...shared(facts, a, starts[i]!.concl)].map(e => JSON.stringify(e)))].map(e => JSON.parse(e) as E); if (o.length) a.opaque = o }
@@ -692,7 +712,7 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
       // (after a step, 1 <= t decided first: t ∸ 1 is then t − 1, and a cell read at a key over the cells at t − 1 has a
       // linear form)
       const whole = mainGoal(facts, all, all[x.node]!)
-      const tree = timedKind('translate', 0, () => withProducts(() => decide(whole, x.decide ?? [], wp => translate(x.g, whole, x.tree, x.ren, st, until, new Map(), wp), st, until)))
+      const tree = timedKind('translate', 0, () => withProducts(() => decide(whole, x.decide ?? [], wp => translate(x.g, whole, x.tree, x.ren, st, until, new Map(), wp, x.reads), st, until)))
       if (!tree) return {specs: [], why: `${all[x.node]!.name}: not translated`}
       all[x.node] = {...all[x.node]!, main: tree}
     }
@@ -812,6 +832,18 @@ export const quietly = <T>(f: () => T): T => { quiet++; try { return f() } final
 // is none (`route` fallback, searched); `search` searches every one; `both` translates and then also searches, each timed
 // apart (`searchMs`, `searchCyclic`), and both verdicts must agree with the usual one.
 export type Translated = (st: TStats) => {verdict?: CyclicVerdict, why?: string}
+// A translated proof by what it was made from (the machine, its laws and instances; a recurrence's or fold's case): a
+// proof made again (a rule proven twice, as the suite does) is the one made before, checked again.
+const proofsMade = new Map<string, Cyclic>()
+export function translatedProof(key: string, build: () => {facts: Fact[], specs: NodeSpec[], why?: string}, st: TStats): {verdict?: CyclicVerdict, why?: string} {
+  const had = proofsMade.get(key)
+  if (had) { st.cached++; const why = timedKind('check', 0, () => refuseCyclic(had)); return {verdict: {proven: true, checked: why === undefined, proof: had, ...(why ? {why} : {})}} }
+  const {facts, specs, why} = build()
+  if (why) return {why}
+  const v = proveCyclic(facts, specs, undefined, translatedCache, st)
+  if (v.proven && v.checked) { if (proofsMade.size >= 1024) proofsMade.clear(); proofsMade.set(key, v.proof) }
+  return {verdict: v}
+}
 export const routeOf = () => env()?.GDP_CYCLIC_ROUTE ?? 'translate'
 export function crossCyclic(kind: string, name: string, usual: boolean, run: () => CyclicVerdict, usualMs?: number, translated?: Translated): void {
   for (const key of Object.keys(cyclicProf)) delete cyclicProf[key]

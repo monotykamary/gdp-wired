@@ -95,10 +95,10 @@ export function renamer(r: Rename): Renamer {
   return lin
 }
 
-// What a translation did: its leaves, those grown again, the splits it made (`decide`, `carry`), and the nodes `carry`
-// made a tree for and those it didn't (then grown).
-export type TStats = {leaves: number, regrown: number, splits: number, carried: number, uncarried: number}
-export const tstats = (): TStats => ({leaves: 0, regrown: 0, splits: 0, carried: 0, uncarried: 0})
+// What a translation did: its leaves, those grown again, the splits it made (`decide`, `carry`), the nodes `carry`
+// made a tree for and those it didn't (then grown), and whether the proof was one made before (core/cyclic.ts).
+export type TStats = {leaves: number, regrown: number, splits: number, carried: number, uncarried: number, cached: number}
+export const tstats = (): TStats => ({leaves: 0, regrown: 0, splits: 0, carried: 0, uncarried: 0, cached: 0})
 const known = (lin: Lin, wp: Path): boolean | undefined => {
   if (Object.keys(lin).every(key => key === '1')) return (lin['1'] ?? 0) <= 0
   const a = wp.get(canon(lin))
@@ -114,18 +114,48 @@ function regrow(whole: Goal, wp: Path, until: number): Tree | undefined {
 }
 
 // The usual tree for `part` read as a tree for `whole` (whose hypotheses hold part's, renamed), from the paths given.
-export function translate(part: Goal, whole: Goal, tree: Tree, ren: Renamer, st: TStats, until: number, pp: Path = new Map(), wp: Path = new Map()): Tree | undefined {
+// `reads`: a write's key W and a key K the conclusion reads its map at (if(K = W, ...)), where the node's conclusion
+// reads at K what the usual one reads at W (a write's reads at its key read at the key read, as the step's facts have
+// them): in the rows of the conclusion, and in a split, a cell at a key the usual path has equal to W and to K is the
+// cell at K; a split so read otherwise is split both ways (the two then the same, else refuted: `close`).
+export type Reads = {at: E, from: E}[]
+export function translate(part: Goal, whole: Goal, tree: Tree, ren: Renamer, st: TStats, until: number, pp: Path = new Map(), wp: Path = new Map(), reads: Reads = []): Tree | undefined {
+  const same = (a: Lin, b: Lin) => { const d = add(a, scale(b, -1)); return !Object.keys(d).length || (known(d, pp) === true && known(scale(d, -1), pp) === true) }
+  const atK = (lin: Lin): Lin => {
+    if (!reads.length) return lin
+    const out: Lin = {}
+    for (const key in lin) {
+      let to = key
+      if (isCell(key)) {
+        const a = keyOf(key)
+        for (const r of reads) { const w = linear(r.from, pp), kk = linear(r.at, pp); if (w && kk && same(a, w) && same(kk, w)) { to = `${key.slice(0, key.indexOf('['))}[${canon(kk)}]`; break } }
+      }
+      out[to] = (out[to] ?? 0) + lin[key]!
+    }
+    return out
+  }
+  const renC = (lin: Lin) => ren(atK(lin), wp)
   if (!('leaf' in tree)) {
     const id = canon(tree.split), wl = ren(tree.split, wp)
-    if (!wl) { st.regrown++; return regrow(whole, wp, until) }
-    const k0 = known(wl, wp)
-    if (k0 !== undefined) return translate(part, whole, k0 ? tree.yes : tree.no, ren, st, until, new Map(pp).set(id, {lin: tree.split, holds: k0}), wp)
+    if (!wl) return close(whole, wp, st, until)
+    const k0 = known(wl, wp), wc = renC(tree.split), twin = wc && canon(wc) !== canon(wl) && Object.keys(wc).some(key => key !== '1') ? wc : undefined
+    const go = (holds: boolean, w: Path): Tree | undefined => {
+      const p2 = new Map(pp).set(id, {lin: tree.split, holds}), next = holds ? tree.yes : tree.no
+      const kt = twin && known(twin, w)
+      if (!twin || kt === holds) return translate(part, whole, next, ren, st, until, p2, w, reads)
+      if (kt !== undefined) return close(whole, w, st, until)
+      st.splits++
+      const tid = canon(twin), a = translate(part, whole, next, ren, st, until, p2, new Map(w).set(tid, {lin: twin, holds}), reads)
+      const b = a && close(whole, new Map(w).set(tid, {lin: twin, holds: !holds}), st, until)
+      return a && b ? (holds ? {split: twin, yes: a, no: b} : {split: twin, yes: b, no: a}) : undefined
+    }
+    if (k0 !== undefined) return go(k0, wp)
     const wid = canon(wl)
-    const yes = translate(part, whole, tree.yes, ren, st, until, new Map(pp).set(id, {lin: tree.split, holds: true}), new Map(wp).set(wid, {lin: wl, holds: true}))
-    const no = yes && translate(part, whole, tree.no, ren, st, until, new Map(pp).set(id, {lin: tree.split, holds: false}), new Map(wp).set(wid, {lin: wl, holds: false}))
+    const yes = go(true, new Map(wp).set(wid, {lin: wl, holds: true}))
+    const no = yes && go(false, new Map(wp).set(wid, {lin: wl, holds: false}))
     return yes && no ? {split: wl, yes, no} : undefined
   }
-  const rp = leafConstraintsReusing(part, pp), rw = leafConstraintsReusing(whole, wp), at = new Map<string, number>()
+  const rp = leafConstraintsReusing(part, pp), rw = leafConstraintsReusing(whole, wp), at = new Map<string, number>(), concl = part.hyps.length - 1
   rw.forEach((r, i) => { const key = canon(r.lin); if (!at.has(key)) at.set(key, i) })
   // Two cells the usual path proves equal (a row of the leaf's from their pair) are cells over time here, at keys
   // (t − 1) + a·Ω and (t − 1) + b·Ω: the path has a = b, and the keys' difference (a − b)·Ω is split (each other side
@@ -144,21 +174,19 @@ export function translate(part: Goal, whole: Goal, tree: Tree, ren: Renamer, st:
       if (kd === true) continue
       if (kd === false) return apart(whole, wp, l, q, st, until)
       st.splits++
-      const id = canon(l), yes = translate(part, whole, tree, ren, st, until, pp, new Map(wp).set(id, {lin: l, holds: true}))
+      const id = canon(l), yes = translate(part, whole, tree, ren, st, until, pp, new Map(wp).set(id, {lin: l, holds: true}), reads)
       const no = yes && apart(whole, new Map(wp).set(id, {lin: l, holds: false}), l, q, st, until)
       return yes && no ? {split: l, yes, no} : undefined
     }
   }
   st.leaves++
-  const map = (i: number): number | undefined => { if (i >= rp.length) return i - rp.length + rw.length; const l = ren(rp[i]!.lin, wp); return l && at.get(canon(l)) }
+  const map = (i: number): number | undefined => { if (i >= rp.length) return i - rp.length + rw.length; const r = rp[i]!, l = r.src && 'fact' in r.src && r.src.fact === concl ? renC(r.lin) : ren(r.lin, wp); return l && at.get(canon(l)) }
   const leaf: Step[] = [], products: [number, number][] = [], squares = (tree.squares ?? []).map(s => ren(s, wp))
   let ok = squares.every(Boolean)
   for (const s of ok ? tree.leaf : []) { if (s.kind !== 'input') { leaf.push(s); continue } const j = map(s.index); if (j === undefined) { ok = false; break } leaf.push({...s, index: j}) }
   for (const [i, j] of ok ? tree.products ?? [] : []) { const a = map(i), b = map(j); if (a === undefined || b === undefined) { ok = false; break } products.push([a, b]) }
   if (ok && checkRefutation(withProducts(rw, products, squares as Lin[]), leaf)) return {leaf, ...(tree.products ? {products} : {}), ...(tree.squares ? {squares: squares as Lin[]} : {})}
-  st.regrown++
-  if ((globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_CYCLIC_DEBUG) console.error(`[translate] ${whole.name}: grown again, ${ok ? 'derivation fails' : `rows missing: ${tree.leaf.flatMap(x => (x.kind === 'input' && map(x.index) === undefined ? [JSON.stringify(rp[x.index]!.src) + ' ' + JSON.stringify(ren(rp[x.index]!.lin, wp))] : [])).join('; ')}`}`)
-  return regrow(whole, wp, until)
+  return close(whole, wp, st, until)
 }
 
 // A path where l >= 1 (two cells' keys apart by l = q·Ω) while q <= 0 is a row: refuted by q·Ω <= 0, the product of
@@ -200,6 +228,105 @@ export function decide(whole: Goal, conds: C[], inner: (wp: Path) => Tree | unde
   return inner(wp)
 }
 
+// A leaf of `g` at the path: a hypothesis false there (its row 1 <= 0), or with `solveIt` the rows refuted by the solver.
+function leafAt(g: Goal, wp: Path, solveIt: boolean, st: TStats): Tree | undefined {
+  const rows = leafConstraintsReusing(g, wp), absurd = rows.findIndex(r => Object.keys(r.lin).every(key => key === '1') && (r.lin['1'] ?? 0) > 0)
+  if (absurd >= 0) { st.leaves++; return {leaf: [{kind: 'input', index: absurd}]} }
+  if (!solveIt) return undefined
+  const fast = rows.length > 60 ? refuteFast(rows) : undefined, v = fast?.kind === 'refuted' ? fast : solve(rows)
+  if (v.kind !== 'refuted') return undefined
+  st.leaves++
+  return {leaf: v.steps}
+}
+const open = (c: C, wp: Path): Lin | undefined => atomsOf(c, wp)?.find(l => known(l, wp) === undefined)
+// Two reads of one function at keys the path doesn't yet prove equal or apart, keys linear (keys through a choice's
+// column after the others: such a column is often one the path decides later).
+function cellAtom(g: Goal, wp: Path): Lin | undefined {
+  const rows = leafConstraintsReusing(g, wp), names = [...new Set(rows.flatMap(r => Object.keys(r.lin)))].filter(isCell)
+  let later: Lin | undefined
+  for (const [i, p] of names.entries()) for (const q of names.slice(i + 1)) {
+    if (p.slice(0, p.indexOf('[')) !== q.slice(0, q.indexOf('['))) continue
+    const d = add(keyOf(p), scale(keyOf(q), -1))
+    if (Object.keys(d).some(key => key !== '1' && isMonomial(key))) continue
+    const column = Object.keys(d).some(key => key.includes('⟦'))
+    for (const l of [d, scale(d, -1)]) if (Object.keys(l).some(key => key !== '1') && known(l, wp) === undefined) { if (!column) return l; later ??= l }
+  }
+  return later
+}
+// A choice the rows read open (an if's condition: a map's write, read at a key that may be the written one).
+// Then one the conclusion refuted reads where it gives no rows yet (a condition read through such a choice).
+const choiceOf = (e: E, wp: Path): Lin | undefined => {
+  if (e.op === 'if') return truth(e.c, wp) === undefined ? open(e.c, wp) : undefined
+  if (e.op !== 'sub' && e.op !== 'min' && e.op !== 'max') return undefined
+  const a = linear(e.a, wp), b = linear(e.b, wp)
+  if (!a || !b) return undefined
+  const d = e.op === 'sub' ? add(b, scale(a, -1)) : add(a, scale(b, -1))
+  return Object.keys(d).some(key => key !== '1') && known(d, wp) === undefined ? d : undefined
+}
+function choiceAtom(g: Goal, wp: Path): Lin | undefined {
+  const rows = leafConstraintsReusing(g, wp)
+  for (const name of new Set(rows.flatMap(r => Object.keys(r.lin)))) {
+    const e = name.startsWith('⟦') ? columnTerm(name) : undefined
+    const l = e && e.op === 'if' ? choiceOf(e, wp) : undefined
+    if (l) return l
+  }
+  let found: Lin | undefined
+  const walk = (x: unknown): void => {
+    if (found || !x || typeof x !== 'object') return
+    const o = x as E
+    if ((o.op === 'if' || o.op === 'sub' || o.op === 'min' || o.op === 'max') && (found = choiceOf(o, wp))) return
+    for (const val of Object.values(o)) walk(val)
+  }
+  walk(g.hyps.at(-1))
+  return found
+}
+// The cells of the conclusion refuted at the path (reads it gives no rows of yet among them).
+function conclCells(g: Goal, wp: Path): string[] {
+  const out: string[] = []
+  const walk = (x: unknown): void => {
+    if (!x || typeof x !== 'object') return
+    const o = x as E
+    if (o.op === 'get' && o.map.endsWith('@')) { const l = linear(o, wp); if (l) out.push(...Object.keys(l)) }
+    for (const val of Object.values(o)) walk(val)
+  }
+  walk(g.hyps.at(-1))
+  return out
+}
+// Two cells over time at keys u + a·Ω and u + b·Ω: a = b decided first, then the keys' difference, its other side
+// refuted by the product (`apart`).
+function omegaPair(g: Goal, wp: Path): {l: Lin, q?: Lin} | undefined {
+  const rows = leafConstraintsReusing(g, wp), names = [...new Set([...rows.flatMap(r => Object.keys(r.lin)), ...conclCells(g, wp)])].filter(isCell)
+  for (const [i, p] of names.entries()) for (const q of names.slice(i + 1)) {
+    if (p.slice(0, p.indexOf('[')) !== q.slice(0, q.indexOf('['))) continue
+    const d = add(keyOf(p), scale(keyOf(q), -1)), q0: Lin = {}
+    if (!Object.keys(d).length || Object.keys(d).some(key => key === '1' || !factorsOf(key).includes(omega))) continue
+    for (const key of Object.keys(d)) { const fs = [...factorsOf(key)]; fs.splice(fs.indexOf(omega), 1); const f = fs.length ? fs.join('*') : '1'; q0[f] = (q0[f] ?? 0) + d[key]! }
+    if (Object.keys(q0).some(key => key.includes('⟦'))) continue
+    const a = known(q0, wp), b = known(scale(q0, -1), wp)
+    if (a === undefined) return {l: q0}
+    if (a && b === undefined) return {l: scale(q0, -1)}
+    if (!(a && b)) continue
+    for (const [l, qq] of [[d, q0], [scale(d, -1), scale(q0, -1)]] as const) if (known(l, wp) === undefined) return {l, q: qq}
+  }
+  return undefined
+}
+// A case of `g` closed: refuted by its rows, else an open choice, two reads of a function or two cells over time split
+// (each then equal), else the goal grown at the path.
+export function close(g: Goal, wp: Path, st: TStats, until: number): Tree | undefined {
+  const l = leafAt(g, wp, true, st)
+  if (l) return l
+  const pick = choiceAtom(g, wp) ?? cellAtom(g, wp), om = pick ? undefined : omegaPair(g, wp), next = pick ?? om?.l
+  if (next && performance.now() < until) {
+    st.splits++
+    const id = canon(next), y = close(g, new Map(wp).set(id, {lin: next, holds: true}), st, until)
+    const no = new Map(wp).set(id, {lin: next, holds: false}), n = y && (om?.q ? apart(g, no, next, om.q, st, until) : close(g, no, st, until))
+    return y && n ? {split: next, yes: y, no: n} : undefined
+  }
+  st.regrown++
+  if ((globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_CYCLIC_DEBUG) console.error(`[close] ${g.name}: grown again at ${[...wp.values()].map(a => `${JSON.stringify(a.lin)} ${a.holds}`).join('; ')}`)
+  return regrow(g, wp, until)
+}
+
 // The node at t's tree, made rather than searched (`carry`): its goal is the law at t refuted against the law at the
 // start or after the step (a use each, under its guard) and the facts that give the cells at t (each under its guard).
 // Splits first decide the uses' guards and the facts' guards (each other side refuted by the node's hypotheses: the
@@ -232,78 +359,11 @@ export function carry(g: Goal, nFacts: number, nUses: number, st: TStats, until:
     for (const val of Object.values(o)) walk(val)
   }
   walk(g.hyps)
-  // Two reads of one function at keys the path doesn't yet prove equal or apart, keys linear (a cell over time is left to
-  // the search: its keys differ by a product).
-  const cellAtom = (wp: Path): Lin | undefined => {
-    const rows = leafConstraintsReusing(g, wp), names = [...new Set(rows.flatMap(r => Object.keys(r.lin)))].filter(isCell)
-    let later: Lin | undefined
-    for (const [i, p] of names.entries()) for (const q of names.slice(i + 1)) {
-      if (p.slice(0, p.indexOf('[')) !== q.slice(0, q.indexOf('['))) continue
-      const d = add(keyOf(p), scale(keyOf(q), -1))
-      if (Object.keys(d).some(key => key !== '1' && isMonomial(key))) continue
-      // (keys through a choice's column after the others: such a column is often one the path decides later)
-      const column = Object.keys(d).some(key => key.includes('⟦'))
-      for (const l of [d, scale(d, -1)]) if (Object.keys(l).some(key => key !== '1') && known(l, wp) === undefined) { if (!column) return l; later ??= l }
-    }
-    return later
-  }
   const guardsIn = (c: C, wp: Path, out: C[]): void => {
     if (c.op === 'and') { for (const x of c.xs) guardsIn(x, wp, out); return }
     if (c.op === 'or' && c.xs.length === 2 && c.xs[0]!.op === 'not') { const t = truth(c.xs[0]!.x, wp); if (t === undefined) out.push(c.xs[0]!.x); else if (t) guardsIn(c.xs[1]!, wp, out) }
   }
-  const open = (c: C, wp: Path): Lin | undefined => atomsOf(c, wp)?.find(l => known(l, wp) === undefined)
-  const leafOf = (wp: Path, solveIt: boolean): Tree | undefined => {
-    const rows = leafConstraintsReusing(g, wp), absurd = rows.findIndex(r => Object.keys(r.lin).every(key => key === '1') && (r.lin['1'] ?? 0) > 0)
-    if (absurd >= 0) { st.leaves++; return {leaf: [{kind: 'input', index: absurd}]} }
-    if (!solveIt) return undefined
-    const fast = rows.length > 60 ? refuteFast(rows) : undefined, v = fast?.kind === 'refuted' ? fast : solve(rows)
-    if (v.kind !== 'refuted') return undefined
-    st.leaves++
-    return {leaf: v.steps}
-  }
-  // A case the rows don't refute: two reads of a function at keys not yet compared split (the reads then equal), else
-  // the goal grown at the path.
-  // A choice the rows read open (an if's condition: a map's write, read at a key that may be the written one).
-  const choiceAtom = (wp: Path): Lin | undefined => {
-    const rows = leafConstraintsReusing(g, wp)
-    for (const name of new Set(rows.flatMap(r => Object.keys(r.lin)))) {
-      const e = name.startsWith('⟦') ? columnTerm(name) : undefined
-      if (e?.op === 'if' && truth(e.c, wp) === undefined) { const l = open(e.c, wp); if (l) return l }
-    }
-    return undefined
-  }
-  // Two cells over time at keys u + a·Ω and u + b·Ω: a = b decided first, then the keys' difference, its other side
-  // refuted by the product (`apart`).
-  const omegaPair = (wp: Path): {l: Lin, q?: Lin} | undefined => {
-    const rows = leafConstraintsReusing(g, wp), names = [...new Set(rows.flatMap(r => Object.keys(r.lin)))].filter(isCell)
-    for (const [i, p] of names.entries()) for (const q of names.slice(i + 1)) {
-      if (p.slice(0, p.indexOf('[')) !== q.slice(0, q.indexOf('['))) continue
-      const d = add(keyOf(p), scale(keyOf(q), -1)), q0: Lin = {}
-      if (!Object.keys(d).length || Object.keys(d).some(key => key === '1' || !factorsOf(key).includes(omega))) continue
-      for (const key of Object.keys(d)) { const fs = [...factorsOf(key)]; fs.splice(fs.indexOf(omega), 1); const f = fs.length ? fs.join('*') : '1'; q0[f] = (q0[f] ?? 0) + d[key]! }
-      if (Object.keys(q0).some(key => key.includes('⟦'))) continue
-      const a = known(q0, wp), b = known(scale(q0, -1), wp)
-      if (a === undefined) return {l: q0}
-      if (a && b === undefined) return {l: scale(q0, -1)}
-      if (!(a && b)) continue
-      for (const [l, qq] of [[d, q0], [scale(d, -1), scale(q0, -1)]] as const) if (known(l, wp) === undefined) return {l, q: qq}
-    }
-    return undefined
-  }
-  const final = (wp: Path): Tree | undefined => {
-    const l = leafOf(wp, true)
-    if (l) return l
-    const pick = choiceAtom(wp) ?? cellAtom(wp), om = pick ? undefined : omegaPair(wp), next = pick ?? om?.l
-    if (next) {
-      st.splits++
-      const id = canon(next), y = final(new Map(wp).set(id, {lin: next, holds: true}))
-      const no = new Map(wp).set(id, {lin: next, holds: false}), n = y && (om?.q ? apart(g, no, next, om.q, st, until) : final(no))
-      return y && n ? {split: next, yes: y, no: n} : undefined
-    }
-    st.regrown++
-    if ((globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_CYCLIC_DEBUG) console.error(`[carry] ${g.name}: grown again at ${[...wp.values()].map(a => `${JSON.stringify(a.lin)} ${a.holds}`).join('; ')}`)
-    return regrow(g, wp, until)
-  }
+  const leafOf = (wp: Path, solveIt: boolean) => leafAt(g, wp, solveIt, st), final = (wp: Path) => close(g, wp, st, until)
   const node = (wp: Path, guardsDone: boolean): Tree | undefined => {
     if (performance.now() > until) return undefined
     // A hypothesis false at the path: the law at t holds there, or a law it is carried from (its guard true) fails.
