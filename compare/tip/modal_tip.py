@@ -146,7 +146,7 @@ def answer_of(tool: str, code: int, out: str) -> str:
     raise ValueError(tool)
 
 
-@app.function(cpu=2.0, memory=4096, timeout=3600)
+@app.function(scaledown_window=2, cpu=2.0, memory=4096, timeout=3600)
 def shard(tool: str, tasks: list[str], limit: int, extra: dict = {}) -> list[dict]:
     import shutil
     import subprocess
@@ -187,14 +187,14 @@ def shard(tool: str, tasks: list[str], limit: int, extra: dict = {}) -> list[dic
     return rows
 
 
-@app.function(timeout=600)
+@app.function(scaledown_window=2, timeout=600)
 def tasks(sets: list[str]) -> dict:
     root = pathlib.Path("/bench/benchmarks")
     out = [str(f.relative_to(root)) for d in sets for f in sorted((root / d).glob("*.smt2"))]
     return {"tasks": out, "convert_errors": json.loads(pathlib.Path("/smt/convert-errors.json").read_text())}
 
 
-@app.function(timeout=900, cpu=2.0)
+@app.function(scaledown_window=2, timeout=900, cpu=2.0)
 def probe(cmds: list[str]) -> str:
     import subprocess
 

@@ -57,17 +57,17 @@ def run(config: dict, mode: str) -> dict:
     return {"gpu": gpu, "vulkan": vulkan, "log": log[-20000:], "chromeLog": chrome, "result": result}
 
 
-@app.function(gpu="L4", timeout=900)
+@app.function(scaledown_window=2, gpu="L4", timeout=900)
 def search_l4(config: dict, mode: str = "dawn") -> dict:
     return run(config, mode)
 
 
-@app.function(gpu="A10G", timeout=900)
+@app.function(scaledown_window=2, gpu="A10G", timeout=900)
 def search_a10g(config: dict, mode: str = "dawn") -> dict:
     return run(config, mode)
 
 
-@app.function(gpu="H100", timeout=900)
+@app.function(scaledown_window=2, gpu="H100", timeout=900)
 def search_h100(config: dict, mode: str = "dawn") -> dict:
     return run(config, mode)
 

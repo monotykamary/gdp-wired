@@ -50,7 +50,7 @@ def library_key(lean_dir: pathlib.Path) -> str:
     return h.hexdigest()[:32]
 
 
-@app.function(cpu=2.0, memory=4096, timeout=900, volumes={"/olean": oleans})
+@app.function(scaledown_window=2, cpu=2.0, memory=4096, timeout=900, volumes={"/olean": oleans})
 def sh(name: str, cmd: str, cwd: str = ".", limit: int = 840) -> dict:
     import shutil
     import subprocess

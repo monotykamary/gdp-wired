@@ -36,12 +36,12 @@ def run(probe: bool = False) -> dict:
     return {"code": p.returncode, "out": p.stdout, "err": p.stderr[-50_000:]}
 
 
-@app.function(gpu="L4", timeout=1800)
+@app.function(scaledown_window=2, gpu="L4", timeout=1800)
 def bench_l4(probe: bool = False) -> dict:
     return run(probe)
 
 
-@app.function(gpu="H100", timeout=1800)
+@app.function(scaledown_window=2, gpu="H100", timeout=1800)
 def bench_h100(probe: bool = False) -> dict:
     return run(probe)
 

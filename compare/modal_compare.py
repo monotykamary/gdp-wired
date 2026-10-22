@@ -36,7 +36,7 @@ image = (
 app = modal.App("gdp-wired-compare", image=image)
 
 
-@app.function(cpu=2.0, memory=4096, timeout=1800)
+@app.function(scaledown_window=2, cpu=2.0, memory=4096, timeout=1800)
 def sh(name: str, cmd: str, limit: int = 1500) -> dict:
     import shutil
     import subprocess
