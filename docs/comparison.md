@@ -126,7 +126,8 @@ What gdp-wired leaves to Lean or Bend is one of two things, and neither is a gap
   structural recursion (on a datatype or a natural, functions calling each other), and laws about them, and `proveData`
   finds the induction (which argument, structural, mutual with a companion per datatype of the group, or by a function's
   own recursion, the cases), and the lemmas from the values (equations up to six symbols, predicates kept by a
-  function): reverse of reverse, the sum of a flattened tree, sorted insertion, the search tree's insertion keeping its
+  function), with a user's own recursive arithmetic on the naturals (≤, +, = by recursion) related to the built-ins by
+  bridge laws it proves first and its non-recursive definitions unfolded: reverse of reverse, the sum of a flattened tree, sorted insertion, the search tree's insertion keeping its
   order, the size of a mirrored rose tree, each checked in Lean as a theorem about the Lean `inductive` (a `mutual` one
   for a group) and functions; a lemma past six symbols is still the wall's.
 - **An arbitrary algorithm shipped as its proved source.** gdp-wired ships the rule as JavaScript. Bend compiles the
