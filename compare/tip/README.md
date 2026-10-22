@@ -76,6 +76,34 @@ by at least one of the three). On the 184 of those whose statement the translati
 - An earlier run, `runs/modal/tip/full1`, had cvc5 refuse 46 files on the `_` pattern; gdp-wired's answers there are
   72 proven (one task fewer translated: Bool fields weren't read yet).
 
+## Existential goals (after 0.20.0)
+
+`runs/modal/tip/full2`'s translation refused 2 theorems for an existential goal, `tip2015/list_elem_map` and
+`tip2015/list_nat_elem_map` (the same file twice): `∀ y f xs. elem y (map f xs) ⇒ ∃ x. f x = y ∧ elem y xs`. The
+translation now reads an existential at the goal's end (`∀ v. H ⇒ ∃ x. B`, core/exists.ts's "there exists"): it proves
+the goal through a witness among the goal's own variables of x's sort (H ⇒ B with it in place, a goal of its own), and
+refutes it through what B says whatever x is (B's conjuncts that read no x, W: ∃ x. B implies W, so a counterexample
+to H ⇒ W is one to the goal), that counterexample confirmed by TIP's evaluator on H ⇒ W. Both laws are checked against
+TIP's evaluator before proving, as every translation is.
+
+gdp-wired alone, `runs/modal/exists/tip-gdp1` (the same image, sets and 60 s; cvc5 and Vampire from `full2`):
+
+| | proven | refuted | wrong (by the table's rule) | solved of 492 | translated | unknown | timeout | unsupported | error |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `full2` (0.20.0) | 73 | 0 | 0 | 73 | 296 | 84 | 135 | 196 | 4 |
+| `exists/tip-gdp1` | 72 | 2 | 2 | 72 | 298 | 87 | 133 | 194 | 4 |
+
+- The two existential goals: refuted in 0.07 s and 0.08 s, at `y = 3, xs = [5]` with `f 5 = 3` (the function variable
+  drawn as a table: f(0..7) = 3, 2, 5, 4, 5, 3, 5, 2). There `elem 3 (map f [5]) = elem 3 [3]` holds and `elem 3 [5]`
+  doesn't, so no x makes `f x = 3 ∧ elem 3 [5]` true: the statement as TIP writes it is false (it reads `elem y xs`
+  where `elem x xs` was presumably meant), at the naturals and at any sort with two values. The table counts a
+  refutation of a file under `benchmarks/tip2015` as wrong, since every such file is meant to be a theorem; these two are
+  the statement's own error, checked by TIP's evaluator. cvc5 answers unknown on both (0.04 s, 0.16 s), cvc5 with
+  conjecture generation and Vampire run out of the 60 s, or answer unknown (`full2`).
+- The other differences against `full2` are at the limit: `prod/prop_36`, proven at 59.73 s there, runs out of time
+  here; 23 tasks move between unknown and out of time, each ending at 37.96 s or later in both runs. The 4 errors are `full2`'s
+  (below).
+
 ## The translation
 
 296 of the 492 theorems translate (`runs/modal/tip/full2`; `runs/modal/tip/tr1` is the first pass, translation only).
@@ -106,7 +134,7 @@ of it changes the statement:
 | a function variable returning a list (`(=> a (list a))`) | 4 | 0 |
 | an uninterpreted sort | 2 | 0 |
 | an uninterpreted constant | 2 | 0 |
-| an existential goal | 2 | 0 |
+| an existential goal (read since, above) | 2 | 0 |
 | a nested datatype at ever larger instances (`polyrec_seq_index`) | 1 | 0 |
 
   The functions that aren't structural: `lmerge` 24, `add3` and `add3acc` 20 each (three-argument recursion), `hmerge`
