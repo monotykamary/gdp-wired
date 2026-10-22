@@ -1,0 +1,106 @@
+{
+ "grammars/packrat_unambigPackrat.smt2": [
+  "(forall ((a A2) (b A2)) (=> (= (linA a) (linA b)) (= a b)))",
+  "(forall ((a B2) (b B2)) (=> (= (linB a) (linB b)) (= a b)))",
+  "(forall ((a A2) (b B2)) (distinct (linA a) (linB b)))"
+ ],
+ "isaplanner/prop_02.smt2": [
+  "(forall ((n Nat) (z Nat) (a Nat) (b Nat)) (= (+2 (ite (== n z) (S a) a) b) (ite (== n z) (S (+2 a b)) (+2 a b))))"
+ ],
+ "isaplanner/prop_03.smt2": [
+  "(forall ((x Nat) (y Nat)) (= (<=2 (S x) (S y)) (<=2 x y)))"
+ ],
+ "isaplanner/prop_04.smt2": [
+  "(forall ((n Nat)) (== n n))"
+ ],
+ "isaplanner/prop_21.smt2": [
+  "(forall ((x Nat) (y Nat)) (= (<=2 (S x) (S y)) (<=2 x y)))"
+ ],
+ "isaplanner/prop_33.smt2": [
+  "(forall ((x Nat) (y Nat)) (= (== x y) (= x y)))"
+ ],
+ "isaplanner/prop_38.smt2": [
+  "(forall ((n Nat)) (== n n))"
+ ],
+ "isaplanner/prop_49.smt2": [
+  "(par (a) (forall ((xs (list a)) (y a) (ys (list a))) (= (butlast (++ xs (cons y ys))) (++ xs (butlast (cons y ys))))))"
+ ],
+ "isaplanner/prop_53.smt2": [
+  "(forall ((n Nat) (x Nat) (xs (list Nat))) (= (count n (insort x xs)) (count n (cons x xs))))"
+ ],
+ "isaplanner/prop_79.smt2": [
+  "(forall ((m Nat)) (= (|-2| m Z) m))"
+ ],
+ "prod/lemma_09.smt2": [
+  "(par (a) (forall ((x (list a)) (y (list a)) (z (list a))) (= (++ (++ x y) z) (++ x (++ y z)))))",
+  "(par (a) (forall ((l (list a)) (z a)) (= (rev (++ l (cons z (_ nil a)))) (cons z (rev l)))))"
+ ],
+ "prod/lemma_14.smt2": [
+  "(par (a) (forall ((w (list a)) (x a) (z (list a))) (= (length (++ w (cons x z))) (S (length (++ w z))))))"
+ ],
+ "prod/prop_14.smt2": [
+  "(forall ((y Nat) (xs (list Nat))) (=> (sorted xs) (sorted (insert y xs))))"
+ ],
+ "prod/prop_35.smt2": [
+  "(forall ((x Nat) (y Nat) (z Nat)) (= (qexp x y z) (*2 (exp x y) z)))",
+  "(forall ((x Nat) (y Nat) (z Nat)) (= (*2 (*2 x y) z) (*2 x (*2 y z))))",
+  "(forall ((x Nat) (y Nat)) (= (*2 x y) (*2 y x)))",
+  "(forall ((x Nat)) (= (*2 x (S Z)) x))"
+ ],
+ "prod/prop_42.smt2": [
+  "(forall ((x Nat) (y (list Nat)) (z (list Nat))) (=> (elem x z) (elem x (union y z))))",
+  "(forall ((x Nat) (y Nat)) (=> (== x y) (= x y)))"
+ ],
+ "tip2015/bin_nat_plus.smt2": [
+  "(forall ((x Bin)) (= (toNat (s x)) (plus (succ zero) (toNat x))))",
+  "(forall ((x Nat) (y Nat) (z Nat)) (= (plus x (plus y z)) (plus (plus x y) z)))",
+  "(forall ((x Nat) (y Nat)) (= (plus x y) (plus y x)))"
+ ],
+ "tip2015/bin_nat_times.smt2": [
+  "(forall ((x Bin)) (= (toNat (s x)) (plus (succ zero) (toNat x))))",
+  "(forall ((x Bin) (y Bin)) (= (toNat (plus2 x y)) (plus (toNat x) (toNat y))))",
+  "(forall ((x Nat) (y Nat) (z Nat)) (= (times2 x (plus y z)) (plus (times2 x y) (times2 x z))))",
+  "(forall ((x Nat) (y Nat) (z Nat)) (= (times2 (plus x y) z) (plus (times2 x z) (times2 y z))))"
+ ],
+ "tip2015/bin_nat_times_assoc.smt2": [
+  "(forall ((x Bin) (y Bin) (z Bin)) (= (times (plus x y) z) (plus (times x z) (times y z))))",
+  "(forall ((x Bin) (y Bin) (z Bin)) (= (plus x (plus y z)) (plus (plus x y) z)))",
+  "(forall ((x Bin) (y Bin)) (= (plus x y) (plus y x)))"
+ ],
+ "tip2015/bin_times_assoc.smt2": [
+  "(forall ((x Bin) (y Bin) (z Bin)) (= (times (plus x y) z) (plus (times x z) (times y z))))",
+  "(forall ((x Bin) (y Bin) (z Bin)) (= (plus x (plus y z)) (plus (plus x y) z)))",
+  "(forall ((x Bin) (y Bin)) (= (plus x y) (plus y x)))"
+ ],
+ "tip2015/int_add_assoc.smt2": [
+  "(forall ((x Nat) (y Nat) (z Nat)) (= (plus2 x (plus2 y z)) (plus2 (plus2 x y) z)))",
+  "(forall ((x Nat) (y Nat)) (= (plus2 x y) (plus2 y x)))",
+  "(forall ((x Nat) (y Nat) (z Nat)) (= (|-2| (plus2 x y) (plus2 x z)) (|-2| y z)))"
+ ],
+ "tip2015/int_add_ident_left.smt2": [
+  "(forall ((x Nat)) (= (plus2 zero x) x))",
+  "(forall ((m Nat)) (= (|-2| zero (succ m)) (N m)))"
+ ],
+ "tip2015/list_nat_deleteAll_count.smt2": [
+  "(forall ((x Nat) (xs (list Nat))) (= (count x (deleteAll x xs)) zero))"
+ ],
+ "tip2015/nat_acc_plus_assoc.smt2": [
+  "(forall ((x Nat) (y Nat)) (= (acc_plus x (succ y)) (succ (acc_plus x y))))",
+  "(forall ((x Nat) (y Nat)) (= (acc_plus x y) (acc_plus y x)))"
+ ],
+ "tip2015/nat_max_assoc.smt2": [
+  "(forall ((x Nat) (y Nat)) (or (leq x y) (leq y x)))",
+  "(forall ((x Nat) (y Nat) (z Nat)) (=> (and (leq x y) (leq y z)) (leq x z)))",
+  "(forall ((x Nat) (y Nat)) (=> (and (leq x y) (leq y x)) (= x y)))"
+ ],
+ "tip2015/sort_ISortCount.smt2": [
+  "(forall ((x Int) (y Int) (xs (list Int))) (= (count x (insert y xs)) (count x (cons y xs))))"
+ ],
+ "tip2015/sort_nat_ISortPermutes.smt2": [
+  "(forall ((x Nat) (ys (list Nat))) (elem x (insert x ys)))",
+  "(forall ((x Nat) (ys (list Nat)) (zs (list Nat))) (=> (isPermutation ys zs) (isPermutation (insert x ys) (cons x zs))))"
+ ],
+ "tip2015/sort_nat_ISortSorts.smt2": [
+  "(forall ((x Nat) (xs (list Nat))) (=> (ordered xs) (ordered (insert x xs))))"
+ ]
+}
