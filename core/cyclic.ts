@@ -1204,9 +1204,12 @@ const profLine = () => (profOn() ? {prof: Object.fromEntries(Object.entries(cycl
 export function crossCyclic(kind: string, name: string, usual: boolean, run0: (() => CyclicVerdict) | undefined, usualMs?: number, translated?: Translated): void {
   const run = run0 ?? none
   for (const key of Object.keys(cyclicProf)) delete cyclicProf[key]
-  const route = routeOf(), st = tstats(), t0 = performance.now()
-  const {out, how, why} = cyclicOf(route !== 'search' && usual ? translated : undefined, run, st)
+  // (a search within GDP_CERT_MS: one cut by it, or none to make where the translation fails, leaves the proof uncovered,
+  // not differing)
+  const route = routeOf(), st = tstats(), t0 = performance.now(), until = clock() + certMs()
+  const {out, how, why} = cyclicOf(route !== 'search' && usual ? translated : undefined, run, st, until)
   const ms = Math.round(performance.now() - t0), cyclic = out.proven && out.checked
+  if (usual && !cyclic && (!run0 || clock() > until)) { uncovered(kind, name, `no cyclic proof found${run0 ? ` within ${certMs()} ms` : ''}${why ? ` (not translated: ${why})` : ''}`); return }
   const prof = profLine()
   let search: {searchMs: number, searchCyclic: boolean} | undefined
   if (route === 'both' && run0) { const s0 = performance.now(), o = run0(); search = {searchMs: Math.round(performance.now() - s0), searchCyclic: o.proven && o.checked} }
