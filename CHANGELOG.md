@@ -50,6 +50,48 @@ checked in Lean on the standard axioms (`runs/modal/dataplus/corpus1`).
   of a type applied to the datatype, `List Rose`: there is no type parameter, a list of trees is a forest declared with
   them); reachability through a structure that changes.
 
+The cycle track widened past linear ranks with small coefficients: ranks that need a coefficient past 4 (the exact LP),
+ranks of degree 2 (products of two variables), a liveness whose rank is found rather than stated, closed forms of
+degree 3, and lemmas about functions of two arguments. Nothing in the kernel or the Lean twin changed: every rank is a
+term the kernel's goals read as they read a stated one (a product as a monomial), and every proof found is checked in
+Lean as before. The cycle and lemma tracks: 27 of 27 items proven where the library alone proves none, the 22 broken
+variants refused by both (`runs/modal/ranks/corpus3`, 1 vCPU a job).
+
+- `core/cycles.ts`, the exact LP: where the ranks' box of coefficients up to 4 has no solution, the rows are solved
+  exactly over the rationals (a two-phase simplex, the least sum of absolute coefficients), the solution scaled to whole
+  numbers; found on the smaller half of the runs and kept only where it holds of all of them, so a coefficient the
+  runs' size forces (32·x + y where x reaches 33) is refused. An exchange (six tokens buy a coin, a coin sells for five):
+  11·x + 2·y, as a claim over its function (77 ms) and as a loop (403 ms).
+- Ranks of degree 2, one product of two variables at a time: a loop's products its own terms read first, before the
+  invariants, the others after them within a quarter of its time; a claim's products it reads, each component a
+  natural only at the ends of the edges it compares. Counting up to a square, `up(i, n) >= n·n`: n·n − i (252 ms);
+  `while i < N·M`: M·N − (i + 1) (391 ms; the linear rank the runs give, 299 − i, the kernel refuses). A triangle (y
+  from x − 1 again as x drops) gets (x, y), linear in order, before any product (314 ms).
+- `findLeadsTo`, and `leadsTo` without `rank`: `proveLeadsTo` finds the rank from the rule's runs (a helpful request in
+  its region lowers it, any other step doesn't raise it), then the kernel's liveness goals with the invariants
+  inferLaws finds. Batches with its rank left out: (waiting, items) (709 ms); a pipeline: 2·inbox + outbox (347 ms).
+- `cycleLemmas` takes functions of two arguments: an exact line, or bounds by 0, k, j or k + j and the tightest
+  constant, each proven alone as a cyclic claim, the proof their nodes side by side (checked again). A capped fill
+  read at (n + 1, cap): `fill(k, j) ≤ k` found (122 ms). A use whose rank is its node's own, term for term, is left out
+  (its guard is false).
+- `core/discover.ts`: closed forms of degree 3, fitted exactly at x = 0..3 (Newton's differences), a closed form tried
+  alone before the other candidates. The sum of the squares: `6·f(x) = 2·x·x·x + 3·x·x + x` (60 ms; Lean:
+  `foundpyramid`).
+- Each new item has a broken variant (a coin that sells for six, a false square bound, a loop whose x never drops, a
+  count that stops at N, a fill read one step ahead, a helpful request that stalls, a false closed form), each refused.
+  Lean: `lean-cycles` takes `cycexchange`, `cycsquare`, `rulefill`, `rulefilllemma`; `lean-cycles-loops` takes
+  `looptriangle`, `loopexchange`, `loopproduct`, `livebatches`, `livepipeline`; every job passing in
+  `runs/modal/ranks/suite1`.
+- Against 0.19.0 in the same wave (three runs each, `runs/modal/ranks/corpus3`'s `rep-*` jobs): every earlier proven
+  item within the runs' spread (medians 0.48 to 1.26 of 0.19.0's); two broken variants refused later, the degree-2
+  search they now try (three phases with y reset 4,929 ms against 2,809 ms; two phases with x never dropping 555 ms
+  against 149 ms).
+- Still out (research/frontier/README.md): a rank of two products at once or of degree 3; a product a claim doesn't
+  read; a liveness rank past linear; a coefficient the runs' size forces; a closed form with products as a
+  generalization; a two-argument function's base case at a constant argument (its paired key's monomials).
+- The suite (`modal/suite.json`, 193 jobs) at this branch: 392.3 s wall, 4,321.5 s of job time, none failed
+  (`runs/modal/ranks/suite1`).
+
 ## 0.19.0
 
 The cyclic proof is the certificate by default. What the usual route proves becomes a cyclic proof from its own trees,
