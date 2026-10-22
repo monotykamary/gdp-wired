@@ -130,12 +130,13 @@ refutes it through what B says whatever x is (B's conjuncts that read no x, W: �
 to H ⇒ W is one to the goal), that counterexample confirmed by TIP's evaluator on H ⇒ W. Both laws are checked against
 TIP's evaluator before proving, as every translation is.
 
-gdp-wired alone, `runs/modal/exists/tip-gdp1` (the same image, sets and 60 s; cvc5 and Vampire from `full2`):
+gdp-wired alone, `runs/modal/exists/tip-gdp2` (the same image, sets and 60 s, on the cheap-wins track's `proveData`;
+cvc5 and Vampire from `full2`), against that track's `runs/modal/cheap/tip3`:
 
-| | proven | refuted | wrong (by the table's rule) | solved of 492 | translated | unknown | timeout | unsupported | error |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `full2` (0.20.0) | 73 | 0 | 0 | 73 | 296 | 84 | 135 | 196 | 4 |
-| `exists/tip-gdp1` | 72 | 2 | 2 | 72 | 298 | 87 | 133 | 194 | 4 |
+| theorems (492) | proven | refuted | wrong (by the table's rule) | translated | unknown | timeout | unsupported | error |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `cheap/tip3` | 137 | 0 | 0 | 296 | 27 | 132 | 196 | 0 |
+| `exists/tip-gdp2` | 137 | 2 | 2 | 298 | 29 | 130 | 194 | 0 |
 
 - The two existential goals: refuted in 0.07 s and 0.08 s, at `y = 3, xs = [5]` with `f 5 = 3` (the function variable
   drawn as a table: f(0..7) = 3, 2, 5, 4, 5, 3, 5, 2). There `elem 3 (map f [5]) = elem 3 [3]` holds and `elem 3 [5]`
@@ -143,10 +144,10 @@ gdp-wired alone, `runs/modal/exists/tip-gdp1` (the same image, sets and 60 s; cv
   where `elem x xs` was presumably meant), at the naturals and at any sort with two values. The table counts a
   refutation of a file under `benchmarks/tip2015` as wrong, since every such file is meant to be a theorem; these two are
   the statement's own error, checked by TIP's evaluator. cvc5 answers unknown on both (0.04 s, 0.16 s), cvc5 with
-  conjecture generation and Vampire run out of the 60 s, or answer unknown (`full2`).
-- The other differences against `full2` are at the limit: `prod/prop_36`, proven at 59.73 s there, runs out of time
-  here; 23 tasks move between unknown and out of time, each ending at 37.96 s or later in both runs. The 4 errors are `full2`'s
-  (below).
+  conjecture generation and Vampire run out of the 60 s or answer unknown (`full2`).
+- Otherwise the same answers as `tip3` but for 12 tasks moving between unknown and out of time, each ending at 41.58 s
+  or later in both runs. `false/`: 17 refuted, as before. On 0.20.0's `proveData` (`runs/modal/exists/tip-gdp1`, against
+  `full2`'s 73): 72 proven and the same 2 refuted, `prod/prop_36` (59.73 s in `full2`) out of time there.
 
 ## The translation
 

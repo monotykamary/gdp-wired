@@ -64,7 +64,7 @@ two new theorems of `Ghost.lean`, `some_of_subst` and `some_of_ghost`, on the st
   (`prof/given.ts`), the 27 tasks whose invariant keeps an existential are all stated now (none was), and the kernel
   proves 7 of them at 60 s (`given5`; 12 at 300 s, `given4-t300`); the 18 with a remainder or a quotient are stated as
   existential quotients, 3 proven.
-- TIP 2015 (`compare/tip/`, `runs/modal/exists/tip-gdp1`): the two existential goals, refused before, are read and
+- TIP 2015 (`compare/tip/`, `runs/modal/exists/tip-gdp2`, 137 proven as the cheap-wins run): the two existential goals, refused before, are read and
   refuted, each counterexample confirmed by TIP's evaluator: `list_elem_map` and `list_nat_elem_map` say
   `∃ x. f x = y ∧ elem y xs` where `elem x xs` was presumably meant, false at `y = 3, xs = [5], f 5 = 3`.
 
