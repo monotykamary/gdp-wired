@@ -23,7 +23,7 @@
 //     check), uninterpreted sorts and constants, a nested datatype at ever larger instances.
 // The background facts a problem asserts (`assert`, true lemmas given as hints) aren't given to proveData: the statement
 // is the goal alone.
-import {type Sx, type Tip, type Ty, type V, BOOL, INT, Unsupported, matchTy, prenex, sameTy, show, showTy, substTy, tyOf} from './tip.ts'
+import {type Sx, type Tip, type Ty, type V, BOOL, INT, Unsupported, evaluate, matchTy, prenex, sameTy, show, showTy, substTy, tyOf} from './tip.ts'
 import {Bool, type Callable, Data, type DataLaw, Nat, type Sort, Val, type Value, boolean, data, define, fnParam, law, mutual, natural, no, programOf, self, when, yes} from '../../core/data.ts'
 
 const NATS: Ty = {k: 'con', name: '$Nat', args: []} // a type variable of the goal, at the naturals
@@ -35,20 +35,24 @@ type Closure =
   | {k: 'lam', params: {name: string, ty: Ty}[], body: Sx, tsub: Map<string, Ty>, captures: Map<string, Bound>, key: string, ty: Ty}
   | {k: 'param', f: (x: Nat) => Nat, pred: boolean, key: string, ty: Ty}
 type Bound = {v: DSL | Closure, ty: Ty}
-type Env = {vars: Map<string, Bound>, tsub: Map<string, Ty>}
+type Env = {vars: Map<string, Bound>, tsub: Map<string, Ty>, raw?: boolean}
 const isClosure = (v: DSL | Closure): v is Closure => !(v instanceof Nat || v instanceof Bool || v instanceof Val)
 
 export type Instance = {tipName: string, gdpName: string, inst: Ty[], argTys: Ty[], retTy: Ty, callable: Callable, specialised: boolean}
 export type Translation = {
   law: DataLaw, tip: Tip, goal: Sx, changes: string[], notes: string[],
   vars: {gdp: string, tip: string, ty: Ty}[], params: {gdp: string, tip: string, ty: Ty, pred: boolean}[],
-  lemmas: DataLaw[], fns: Instance[], datas: number, toTip: (v: Value, ty: Ty) => V, fromTip: (v: V, ty: Ty) => number,
+  lemmas: DataLaw[], fns: Instance[], datas: number, bridges: DataLaw[], toTip: (v: Value, ty: Ty) => V, fromTip: (v: V, ty: Ty) => number,
 }
 
-export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translation {
+export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {inline?: boolean, native?: boolean} = {}): Translation {
   if (tip.sorts.length) throw new Unsupported('an uninterpreted sort')
   if (tip.consts.length) throw new Unsupported('an uninterpreted constant')
   const changes = new Set<string>(), notes = new Set<string>()
+  // `inline` (a diagnostic, not the benchmark's translation): a function that doesn't reach itself through its calls is
+  // inlined at each call, as a function of no argument always is.
+  const callees = (s: Sx, out: Set<string>): Set<string> => { if (typeof s === 'string') { if (tip.funs.has(s)) out.add(s) } else s.forEach(x => callees(x, out)); return out }
+  const recursive = (f: string): boolean => { const seen = new Set<string>(), todo = [...callees(tip.funs.get(f)!.body, new Set())]; while (todo.length) { const g = todo.pop()!; if (g === f) return true; if (seen.has(g)) continue; seen.add(g); todo.push(...callees(tip.funs.get(g)!.body, new Set())) } return false }
   // --- sorts
   const isPeano = (d: string) => {
     const dd = tip.datas.get(d)
@@ -57,6 +61,24 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
     return a!.fields.length === 0 && b!.fields.length === 1 && sameTy(b!.fields[0]!.ty, {k: 'con', name: d, args: []})
   }
   const peanoParts = (d: string) => { const dd = tip.datas.get(d)!, zi = dd.ctors.findIndex(c => !c.fields.length); return {zero: dd.ctors[zi]!.name, succ: dd.ctors[1 - zi]!.name} }
+  // `native` (a diagnostic, not the benchmark's translation): a function of two Peano naturals that computes one of
+  // the built-in comparisons or +, truncated −, min, max (TIP's evaluator agrees at every pair up to 6) is read as that
+  // built-in, and its bridge law (the function equals the built-in, at every pair) is returned to be proven apart.
+  const natives = new Map<string, string>()
+  const peanoV = (d: string, n: number): V => { const {zero, succ} = peanoParts(d); let v: V = {c: zero, a: []}; for (let i = 0; i < n; i++) v = {c: succ, a: [v]}; return v }
+  const peanoN = (v: V): number => { let n = 0, x = v as {c: string, a: V[]}; while (x.a.length) { n++; x = x.a[0] as {c: string, a: V[]} } return n }
+  const ops: Record<string, (a: number, b: number) => number | boolean> = {'<=': (a, b) => a <= b, '<': (a, b) => a < b, '=': (a, b) => a === b, '>=': (a, b) => a >= b, '>': (a, b) => a > b, '+': (a, b) => a + b, '-': (a, b) => Math.max(0, a - b), min: Math.min, max: Math.max}
+  const nativeOf = (f: string): string | undefined => {
+    const fd = tip.funs.get(f)!
+    if (fd.params.length || fd.args.length !== 2 || !fd.args.every(a => a.ty.k === 'con' && isPeano(a.ty.name) && sameTy(a.ty, fd.args[0]!.ty))) return undefined
+    const d = (fd.args[0]!.ty as {name: string}).name, retBool = sameTy(fd.ret, BOOL)
+    if (!retBool && !sameTy(fd.ret, fd.args[0]!.ty)) return undefined
+    const table: (number | boolean)[] = []
+    try { for (let a = 0; a <= 6; a++) for (let b = 0; b <= 6; b++) { const v = evaluate(tip, [f, '$a', '$b'], new Map([['$a', peanoV(d, a)], ['$b', peanoV(d, b)]])); table.push(typeof v === 'boolean' ? v : peanoN(v)) } } catch { return undefined }
+    return Object.keys(ops).find(k => (typeof ops[k]!(0, 0) === 'boolean') === retBool && table.every((v, i) => v === ops[k]!(Math.floor(i / 7), i % 7)))
+  }
+  if (opts.native) for (const f of tip.funs.keys()) { const op = nativeOf(f); if (op) natives.set(f, op) }
+  const nativeApply = (op: string, a: Nat, b: Nat): DSL => (op === '<=' ? a.atMost(b) : op === '<' ? a.lt(b) : op === '=' ? a.eq(b) : op === '>=' ? a.atLeast(b) : op === '>' ? a.gt(b) : op === '+' ? a.plus(b) : op === '-' ? a.minus(b) : op === 'min' ? when(a.atMost(b), a, b) : when(a.atMost(b), b, a))
   const insts = new Map<string, {data: Data, decl: {name: string, params: string[], ctors: {name: string, fields: {name: string, ty: Ty}[]}[]}, args: Ty[], ctorName: Map<string, string>, fieldName: Map<string, string>}>()
   let dataSeq = 0
   const fieldTys = (t: Ty & {k: 'con'}) => { const d = tip.datas.get(t.name)!, m = new Map(d.params.map((p, i) => [p, t.args[i]!])); return d.ctors.map(c => c.fields.map(f => substTy(f.ty, m))) }
@@ -156,8 +178,8 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
     for (const [n, b] of [...c.captures.entries()].sort(([a], [b2]) => (a < b2 ? -1 : 1))) caps.set(n, isClosure(b.v) ? {v: rebuild(b.v, vals), ty: b.ty} : {v: vals.shift()!, ty: b.ty})
     return {...c, captures: caps}
   }
-  const instance = (fname: string, inst: Ty[], closures: (Closure | undefined)[]): Instance => {
-    const fd = tip.funs.get(fname)!, key = `${fname}[${inst.map(showTy).join(',')}]{${closures.map(c => (c ? closureKey(c) : '-')).join(',')}}`
+  const instance = (fname: string, inst: Ty[], closures: (Closure | undefined)[], raw = false): Instance => {
+    const fd = tip.funs.get(fname)!, key = `${fname}[${inst.map(showTy).join(',')}]{${closures.map(c => (c ? closureKey(c) : '-')).join(',')}}${raw ? 'raw' : ''}`
     const had = fns.get(key)
     if (had) return had
     const tsub = new Map(fd.params.map((p, i) => [p, inst[i]!]))
@@ -173,7 +195,7 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
         for (const p of plain) vars.set(fd.args[p.i]!.name, {v: args[p.pname] as DSL, ty: argTys[p.i]!})
         const vals = extra.map(e => args[e.pname] as DSL)
         closures.forEach((c, i) => { if (c) vars.set(fd.args[i]!.name, {v: rebuild(c, vals), ty: argTys[i]!}) })
-        return value(emit(fd.body, {vars, tsub}, retTy))
+        return value(emit(fd.body, {vars, tsub, raw}, retTy))
       })
     const out: Instance = {tipName: fname, gdpName, inst, argTys, retTy, callable, specialised: closures.some(Boolean)}
     fns.set(key, out)
@@ -200,8 +222,13 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
     if (unresolved.length) throw new Error(`${fname}: its sort variables ${unresolved.join(', ')} unresolved`)
     const inst = fd.params.map(p => m.get(p)!), retTy = substTy(fd.ret, m)
     if (!fd.args.length) return emit(fd.body, {vars: new Map(), tsub: new Map(fd.params.map((p, i) => [p, inst[i]!]))}, retTy)
+    if (natives.has(fname) && !env.raw) { notes.add('recursive comparisons and arithmetic read as the built-ins (bridges proven apart)'); return {v: nativeApply(natives.get(fname)!, value(args[0]!) as Nat, value(args[1]!) as Nat), ty: retTy} }
+    if (opts.inline && !recursive(fname)) {
+      notes.add('non-recursive functions inlined')
+      return emit(fd.body, {vars: new Map(fd.args.map((a, i) => [a.name, args[i]!])), tsub: new Map(fd.params.map((p, i) => [p, inst[i]!]))}, retTy)
+    }
     const closures = args.map(b => (isClosure(b.v) ? b.v : undefined))
-    const ins = instance(fname, inst, closures)
+    const ins = instance(fname, inst, closures, env.raw)
     const actual: (DSL)[] = [...args.filter(b => !isClosure(b.v)).map(b => b.v as DSL), ...closures.flatMap(c => (c ? capturedValues(c).map(value) : []))]
     return {v: ins.callable(...(actual as (Val | Nat | Bool)[])) as DSL, ty: retTy}
   }
@@ -305,7 +332,7 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
       case 'let': {
         const vars = new Map(env.vars)
         for (const b of s[1] as Sx[][]) vars.set(b[0] as string, emit(b[1]!, env))
-        return emit(s[2]!, {vars, tsub: env.tsub}, expected)
+        return emit(s[2]!, {vars, tsub: env.tsub, raw: env.raw}, expected)
       }
       case 'lambda': {
         const params = (s[1] as Sx[][]).map(b => ({name: b[0] as string, ty: tyIn(b[1]!, env)}))
@@ -317,7 +344,7 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
         // its sort: the body's at its parameters (a dry run of the body, for the sort alone)
         const probe = new Map(env.vars)
         for (const p of params) probe.set(p.name, p.ty.k === 'fun' ? {v: {k: 'param', f: x => x, pred: false, key: '?', ty: p.ty}, ty: p.ty} : {v: dryValue(p.ty), ty: p.ty})
-        const ret = emit(s[2]!, {vars: probe, tsub: env.tsub}).ty
+        const ret = emit(s[2]!, {vars: probe, tsub: env.tsub, raw: env.raw}).ty
         const ty: Ty = {k: 'fun', args: params.map(p => p.ty), ret}
         return {v: {k: 'lam', params, body: s[2]!, tsub: env.tsub, captures, key, ty}, ty}
       }
@@ -333,7 +360,7 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
       const sel = tip.selectorOf.get(head)!, d = tip.datas.get(sel.data)!
       if (d.ctors.length > 1) throw new Unsupported('a selector of a datatype of several constructors (partial)')
       const of = emit(s[1]!, env), c = d.ctors[0]!
-      return matchOn(['match', '$scrut', [[[c.name, ...c.fields.map((_, i) => `$s${i}`)], `$s${sel.field}`]]], {vars: new Map([...env.vars, ['$scrut', of]]), tsub: env.tsub}, expected)
+      return matchOn(['match', '$scrut', [[[c.name, ...c.fields.map((_, i) => `$s${i}`)], `$s${sel.field}`]]], {vars: new Map([...env.vars, ['$scrut', of]]), tsub: env.tsub, raw: env.raw}, expected)
     }
     if (head.startsWith('is-') && tip.ctorOf.has(head.slice(3))) {
       const cn = head.slice(3), of = emit(s[1]!, env), {data: dn} = tip.ctorOf.get(cn)!
@@ -373,7 +400,7 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
       if (!c) throw new Error(`no case ${cn}`)
       const vars = new Map(env.vars), ci = d.ctors.findIndex(k => k.name === cn)
       if (Array.isArray(c[0])) c[0].slice(1).forEach((b, i) => vars.set(b as string, {v: fromField(fts[ci]![i]!, fields[i]!), ty: fts[ci]![i]!}))
-      const out = emit(c[1]!, {vars, tsub: env.tsub}, ty)
+      const out = emit(c[1]!, {vars, tsub: env.tsub, raw: env.raw}, ty)
       ty ??= out.ty
       return value(out)
     }
@@ -437,6 +464,13 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
     return lawOf(`lemma ${i + 1}`, t.params, t.body).law
   })
   const {law: l, vars, params} = main, g = main
+  const bridges = [...natives].map(([f, op]) => {
+    const ins = instance(f, [], [undefined, undefined], true)
+    return law(`bridge ${f} is ${op}`, {x: natural, y: natural}, ({x, y}) => {
+      const a = ins.callable(x, y) as DSL, b = nativeApply(op, x as Nat, y as Nat)
+      return a instanceof Bool ? a.iff(b as Bool) : (a as Nat).eq(b as Nat)
+    })
+  })
 
   // --- values back to TIP's (for the evaluator)
   const toTip = (v: Value, ty: Ty): V => {
@@ -458,5 +492,5 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
     if (ty.k === 'con' && isPeano(ty.name)) { let n = 0, x = v as {c: string, a: V[]}; while (x.a.length) { n++; x = x.a[0] as {c: string, a: V[]} } return n }
     throw new Error('not a natural')
   }
-  return {law: l, tip, goal: g.body, changes: [...changes], notes: [...notes], vars, params, lemmas: extra, fns: [...fns.values()], datas: insts.size, toTip, fromTip}
+  return {law: l, tip, goal: g.body, changes: [...changes], notes: [...notes], vars, params, lemmas: extra, fns: [...fns.values()], datas: insts.size, bridges, toTip, fromTip}
 }

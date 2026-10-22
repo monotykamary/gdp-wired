@@ -69,3 +69,11 @@ if (g.length) {
   console.log(`translated, unproven by gdp-wired, proven by some other tool: ${g.filter(r => r.answer !== 'proven' && anyOther.has(r.task)).length}; by none: ${g.filter(r => r.answer !== 'proven' && !anyOther.has(r.task)).length}`)
   console.log(`gdp-wired proven and no other tool: ${[...mine].filter(t => !anyOther.has(t)).join(', ') || 'none'}`)
 }
+
+// Solved per directory, each tool (the theorems).
+{
+  const dirs = [...new Set(rows.filter(r => !isFalse(r.task)).map(r => r.task.split('/')[0]!))]
+  console.log(`\n### Proven per directory\n\n| tool | ${dirs.map(d => `${d} (${new Set(rows.filter(r => r.task.startsWith(`${d}/`)).map(r => r.task)).size})`).join(' | ')} |\n| --- | ${dirs.map(() => '---').join(' | ')} |`)
+  for (const tool of tools.filter(t => t !== 'gdptr')) console.log(`| ${names[tool]} | ${dirs.map(d => rows.filter(r => r.tool === tool && r.task.startsWith(`${d}/`) && r.answer === 'proven').length).join(' | ')} |`)
+  console.log(`| gdp-wired: translated | ${dirs.map(d => [...translated].filter(t => t.startsWith(`${d}/`)).length).join(' | ')} |`)
+}

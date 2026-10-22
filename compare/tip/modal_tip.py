@@ -115,12 +115,12 @@ CVC5_FLAGS = {
 VAMPIRE_FLAGS = ["--input_syntax", "smtlib2", "--mode", "portfolio", "--schedule", "induction", "--cores", "2"]
 
 
-def command(tool: str, task: str, limit: int) -> list[str]:
+def command(tool: str, task: str, limit: int, extra: list[str] = []) -> list[str]:
     if tool == "gdptr":
         return ["bun", "compare/tip/solve.ts", f"/bench/benchmarks/{task}", "--translate-only"]
     if tool == "gdp":
         # proveData's own budget 3 s before the limit, so it says unknown rather than being killed
-        return ["bun", "compare/tip/solve.ts", f"/bench/benchmarks/{task}", "--ms", str((limit - 3) * 1000)]
+        return ["bun", "compare/tip/solve.ts", f"/bench/benchmarks/{task}", "--ms", str((limit - 3) * 1000), *extra]
     if tool in CVC5_FLAGS:
         return ["cvc5", *CVC5_FLAGS[tool], f"/smt/{task}"]
     if tool == "vampire":
@@ -147,7 +147,7 @@ def answer_of(tool: str, code: int, out: str) -> str:
 
 
 @app.function(cpu=2.0, memory=4096, timeout=3600)
-def shard(tool: str, tasks: list[str], limit: int) -> list[dict]:
+def shard(tool: str, tasks: list[str], limit: int, extra: dict = {}) -> list[dict]:
     import shutil
     import subprocess
 
@@ -161,7 +161,7 @@ def shard(tool: str, tasks: list[str], limit: int) -> list[dict]:
             rows.append({"tool": tool, "task": task, "answer": "error", "seconds": 0, "err": "tip's translation failed"})
             continue
         try:
-            p = subprocess.run(["timeout", "-k", "5", str(limit), *command(tool, task, limit)], cwd=work, capture_output=True, text=True, timeout=limit + 30)
+            p = subprocess.run(["timeout", "-k", "5", str(limit), *command(tool, task, limit, extra.get(task, []) + extra.get("*", []))], cwd=work, capture_output=True, text=True, timeout=limit + 30)
             code, out, err = p.returncode, p.stdout, p.stderr
         except subprocess.TimeoutExpired:
             code, out, err = 124, "", "killed"
@@ -214,7 +214,7 @@ def probe(cmds: list[str]) -> str:
 
 
 @app.local_entrypoint()
-def main(out: str = "", tools: str = "gdp,cvc5,cvc5cg,vampire", limit: int = 60, sets: str = "isaplanner,prod,tip2015,grammars", only: str = "", sample: int = 0, per: int = 1, probe_only: bool = False, probe_cmd: str = ""):
+def main(out: str = "", tools: str = "gdp,cvc5,cvc5cg,vampire", limit: int = 60, sets: str = "isaplanner,prod,tip2015,grammars", only: str = "", sample: int = 0, per: int = 1, probe_only: bool = False, probe_cmd: str = "", gdp_args: str = "", lemmas: str = ""):
     live = GDP / "modal" / ".live"
     live.mkdir(exist_ok=True)
     ticket = live / f"{app.app_id}"
@@ -227,12 +227,20 @@ def main(out: str = "", tools: str = "gdp,cvc5,cvc5cg,vampire", limit: int = 60,
         outdir = pathlib.Path(out)
         outdir.mkdir(parents=True, exist_ok=True)
         got = tasks.remote(sets.split(","))
-        (outdir / "tasks.json").write_text(json.dumps({"bench": BENCH_COMMIT, "tools": TOOLS_COMMIT, "cvc5": CVC5, "vampire": VAMPIRE, "limit": limit,
+        (outdir / "tasks.json").write_text(json.dumps({"gdp_args": gdp_args, "lemmas": lemmas, "only": only, "bench": BENCH_COMMIT, "tools": TOOLS_COMMIT, "cvc5": CVC5, "vampire": VAMPIRE, "limit": limit,
                                                        "flags": {**CVC5_FLAGS, "vampire": VAMPIRE_FLAGS}, **got}, indent=1))
-        chosen = [t for t in got["tasks"] if any(o in t for o in only.split("|"))]
+        # diagnostics: `--gdp-args` added to every gdp-wired task's command; `--lemmas <json>` ({task: [TIP formula, ..]})
+        # gives those tasks the lemmas (solve.ts --lemma) and runs those tasks alone
+        extra: dict = {"*": gdp_args.split()} if gdp_args else {}
+        if lemmas:
+            given = json.loads(pathlib.Path(lemmas).read_text())
+            for t, ls in given.items():
+                extra[t] = [a for l in ls for a in ("--lemma", l)]
+            only = "|".join(given)
+        chosen = [t for t in got["tasks"] if any(o == t if lemmas else o in t for o in only.split("|"))]
         if sample:
             chosen = chosen[::max(1, len(chosen) // sample)][:sample]
-        shards = [(tool, chosen[i:i + per], limit) for tool in tools.split(",") for i in range(0, len(chosen), per)]
+        shards = [(tool, chosen[i:i + per], limit, extra) for tool in tools.split(",") for i in range(0, len(chosen), per)]
         print(f"{len(chosen)} tasks, {len(shards)} containers", flush=True)
         n = 0
         with (outdir / "results.jsonl").open("w") as f:
