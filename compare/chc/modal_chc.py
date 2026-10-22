@@ -116,6 +116,9 @@ def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]
             row = {"tool": tool, "task": t["task"], "answer": answer, "seconds": secs}
         if answer == "error":
             row["err"] = (err or out)[-600:]
+        elif tool == "given" and "GDP_EXISTS_LOG=1" in env:
+            # (the witness search's log, core/exists.ts, for profiling the given-invariant check)
+            row["log"] = err[-6000:]
         row["expected"] = t["expected"]
         rows.append(row)
     return rows

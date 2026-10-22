@@ -79,7 +79,16 @@ export const noQuantifier = (where: string): never => { throw new Error(`${where
 // A law: a condition on the state and params, and for a map law, `forall` names the key variable it holds at.
 // `keys`: the further keys, for a law about every two keys or more (after `forall`). `stated`: the law as written, when
 // `holds` is the stronger one the prover proved (some key named by a witness).
-export type Law = {name: string, holds: C, forall?: string, keys?: string[], stated?: C}
+export type Law = {name: string, holds: C, forall?: string, keys?: string[], stated?: C, some?: string[], witness?: SomeWitness, ex?: SomeProof}
+// "There exists" (core/exists.ts): a law with `some` is ∃ those naturals. holds (each read by name in `holds`; an
+// integer is two of them, `x` and `x$neg`), after its `forall` key when it has one. The kernel never sees one: it is
+// proven through a witness, `witness` if given, else one the prover finds: a term of the state for each (`terms`, the
+// law proven is holds with them in place), or each a ghost of the machine (`ghost`: a value at the start, over the
+// params, and after each step, over the state before, the request and the ghosts' own values before), the law proven
+// is holds over the ghosts. `ex`, on the law the kernel proved, is what it states: ∃ vars. body, with `sub` the
+// witnesses in place (holds = body with them substituted) or `ghost` (holds = body, its vars the machine's ghosts).
+export type SomeWitness = {terms?: Record<string, E>, ghost?: Record<string, {start: E, step: E}>}
+export type SomeProof = {vars: string[], body: C, sub?: Record<string, E>, ghost?: true}
 
 export {unreachable} from '../kernel/kernel.ts'
 

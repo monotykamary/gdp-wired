@@ -262,6 +262,10 @@ linear terms (the differences the transition preserves) rather than enumerated.
 
 ## F. What a gdp-wired law can't state here (45 tasks)
 
+(Since 0.20.0, every one of these can be stated: an existential is gdp-wired's `exists`, a remainder or quotient an
+existential quotient. Given Spacer's invariant, the kernel proves 7 of the 27 existential ones and 3 of the 18 with a
+remainder at 60 s, 12 of the 27 at 300 s: `compare/chc/README.md`, `runs/modal/exists/given5`, `given4-t300`.)
+
 Spacer's invariant reads a remainder or a quotient (18: `(mod x 2) = 0` for a counter stepping by 2) or keeps an
 existential from its projection (27). Laws over this rule state neither: the rule reads no `modBy(c)`/`divBy(c)`, a CHC
 integer is a pair of naturals, and a law has no quantifier over values. Lacking: a remainder term over an integer slot

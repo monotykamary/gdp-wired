@@ -79,6 +79,11 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   one value, remainders of a value or of a sum or difference of two, x mod 2 = 0 for a counter stepping by 2, and laws
   about every key of a map), each proven by the kernel with yours and handed back as the
   `r.law(...)` call that states it; a false law comes back with the run that breaks it (`examples/infer.ts`).
+- **There exists**: laws that say some value is a witness, `exists(k => x.eq(k.times(2)))` ("x is even"), over
+  naturals, integers, yes/nos or a map's keys, each proven through a witness the prover finds from the kernel's
+  counterexamples (a term of the state, or a ghost the run carries: the witness before, moved by the request's values)
+  or the one given; an existential in the assumption is a value each request brings, and `inferLaws` finds parities
+  and multiples this way. Lean states each as `∃ w, ...`, proven by ⟨witness, proof⟩ (`examples/exists.ts`).
 - **Orderings at any distance**: "a refund never follows a release", through ghost state that watches the rule.
 - **Liveness**: "every ticket issued is served", in every run that keeps sending the requests that help, including under
   weak fairness (`examples/liveness.ts`).
@@ -321,6 +326,17 @@ const soon = retry.law('the next try is at most 64 after the last request', ({ne
   `disjointFrom`, `sameAs`) anywhere in a step or inside a law, `everyKey((i, j) => ...)` in a step for every two keys
   (each read on its own, compared with the other plainly: `i.lt(j)`), `M.each(k => ...)` to write every key, and
   `someKey(k => ..., witness?)` for "some key where", proven through a witness the prover finds or the one given.
+- **There exists** (`exists(kind?, f, witness?)`, core/exists.ts): "some value of the kind (nat, int, bool, upTo(k))
+  where f holds", anywhere in a law where it reads so (under no `not`, not before `implies`), after its `forall` key if
+  it has one. The kernel never sees it: the law it proves is f with a witness term in place (a term of the state, for
+  each bound value), or f over ghosts the machine gains (a value at the start, and after each step one over the
+  witness before, the request and the state before), chosen by the kernel's counterexamples among what f's own atoms
+  solve for, 0, the state, the params, the request's values and shifts of the witness before, per case of the step; a
+  witness given, `exists(k => ..., lo)` or `{start, step: (k, env) => ...}`, is the only one tried. The verdict's
+  `witnesses` says how each reads. In the assumption (`exists(int, k => amount.eq(k.times(5)))`) or a precondition, it
+  is an input or a param the runtimes find (`encodeInput`, `encodeParams`: exact where it is one natural or integer
+  read linearly); a request no witness fits is refused. A run refutes a false one where no value can be a witness,
+  decided the same way.
 - **Functions** (`.fns({perMinute: divBy(60)})`, or `fn(arity, js, {facts, lean})` for your own): read like params that
   take arguments, `perMinute(t)`; the kernel knows each only by its facts (`.facts(...)`, and a library function's
   own), and the Lean export takes them as the hypothesis they are, proving them where the function has a Lean
@@ -403,7 +419,7 @@ Proving and checking: a law over 64 steps proves in about 5 s, and Lean checks i
 | `core/` | Machines, the interpreter and JS compiler, the builders, composition (`compose.ts`), the linear solver and its checker, Houdini invariants, models, the first Lean export |
 | `kernel/` | The trusted kernel and the untrusted prover, with soundness fuzz (`kernel.test.ts`, `history.test.ts`) |
 | `lean-kernel/` | The kernel's Lean twin, its soundness proofs, and the exported trees |
-| `examples/` | The builders at work: `domains/` (187 rules across 21 domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `guide.ts` (the guide's code), `groups.ts` (two groups decided at every pair), `budget.ts`, `gdp.ts` (gdp-ts's example, its checks proven), `datatypes.ts` (records and variants), `lemmas.ts` (recurrences and their lemmas), `invoices.ts` (lists a request carries), `folds.ts` (folds over trees), `trees.ts` (trees and lists of lists in the state), `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `arith.ts` (division and remainder by a constant, integers in rules and datatypes), `lists.ts`, `sizes.ts`, `liveness.ts`, `steps.ts` (laws over up to 64 steps), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
+| `examples/` | The builders at work: `domains/` (187 rules across 21 domains, each with laws and broken variants), `harness.ts` (the triple check), `readme.ts`, `guide.ts` (the guide's code), `groups.ts` (two groups decided at every pair), `budget.ts`, `gdp.ts` (gdp-ts's example, its checks proven), `exists.ts` (laws with "there exists"), `datatypes.ts` (records and variants), `lemmas.ts` (recurrences and their lemmas), `invoices.ts` (lists a request carries), `folds.ts` (folds over trees), `trees.ts` (trees and lists of lists in the state), `composition.ts`, `sets.ts`, `quantifiers.ts`, `functions.ts`, `arith.ts` (division and remainder by a constant, integers in rules and datatypes), `lists.ts`, `sizes.ts`, `liveness.ts`, `steps.ts` (laws over up to 64 steps), and `jev-fabric/` (a Bend project's 59 proven laws, ported) |
 | `docs/` | The comparison with Bend and Lean, and the full scope |
 | `compare/` | The same three rules in gdp-wired, Bend and plain Lean, checked and measured |
 | `research/` | Everything around the library ([`research/README.md`](research/README.md)): the GPU searches (`search/`, `hw/`, `modal-gpu/`), invariant and rank synthesis (`synth/`), relational laws and guard synthesis (`next/`), bit-vector laws (`sat/`), the enumeration and benchmarks (`enum/`, `gpu/`, `perf/`), the first Lean checker (`lean/`) and the first prototype, the audit path (`audit/`) |
