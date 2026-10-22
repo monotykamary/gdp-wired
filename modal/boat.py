@@ -69,10 +69,12 @@ LIVE = pathlib.Path(os.environ.get("GDPW_LIVE") or main_checkout() / "modal" / "
 
 # ------------------------------------------------------------------------------------------------------------- the CLI
 _sem = threading.BoundedSemaphore(int(os.environ.get("GDPW_BOAT_PARALLEL", "48")))
+# the ticks wait on the VM up to 20 s for a finish: their own, wider bound (a `boat` process holds about 12 MB)
+_tick_sem = threading.BoundedSemaphore(int(os.environ.get("GDPW_BOAT_TICKS", "200")))
 
 
-def boat(*args, timeout=120, check=True, stdin=None) -> str:
-    with _sem:
+def boat(*args, timeout=120, check=True, stdin=None, sem=None) -> str:
+    with sem or _sem:
         p = subprocess.run([BOAT, *args], capture_output=True, text=True, timeout=timeout, env=ENV, input=stdin)
     if check and p.returncode != 0:
         raise RuntimeError(f"boat {args[0]} failed ({p.returncode}): {(p.stderr or p.stdout)[-400:]}")
@@ -83,18 +85,18 @@ def bj(*args, timeout=120, check=True):
     return json.loads(boat(*args, "--json", timeout=timeout, check=check))
 
 
-def exec_(vm: str, argv: list[str], timeout: int = 60) -> dict:
-    out = boat("exec", vm, "--timeout", str(timeout), "--json", "--", *argv, timeout=timeout + 60, check=False)
+def exec_(vm: str, argv: list[str], timeout: int = 60, sem=None) -> dict:
+    out = boat("exec", vm, "--timeout", str(timeout), "--json", "--", *argv, timeout=timeout + 60, check=False, sem=sem)
     try:
         return json.loads(out)
     except json.JSONDecodeError:
         return {"exitCode": -1, "stdout": "", "stderr": out[-400:], "success": False}
 
 
-def exec_json(vm: str, argv: list[str], timeout: int = 60, tries: int = 4):
+def exec_json(vm: str, argv: list[str], timeout: int = 60, tries: int = 4, sem=None):
     last = None
     for k in range(tries):
-        r = exec_(vm, argv, timeout)
+        r = exec_(vm, argv, timeout, sem)
         if r.get("exitCode") == 0:
             try:
                 return json.loads(r["stdout"].strip().splitlines()[-1])
@@ -437,14 +439,14 @@ class VM:
 class Session:
     """The VMs a batch holds: leased from the pool, resumed, or created, each prepared with the batch's tree."""
 
-    def __init__(self, label: str, idle: int = 60, teardown: bool = False, vm_type: str = "default", build: bool = True):
+    def __init__(self, label: str, idle: int = 60, teardown: bool = False, vm_type: str = "default", build: bool = True, oleans: bool = True):
         self.batch = time.strftime("%Y%m%d-%H%M%S") + "-" + "".join(random.choice("abcdefghijklmnopqrstuvwxyz0123456789") for _ in range(6))
         self.label, self.idle, self.teardown, self.vm_type = label, idle, teardown, vm_type
         self.reg = Registry()
         self.image = ensure_image(build)  # (raises Unavailable when it's missing and build is off)
         self.key = library_key()
         self.tar = tree_tarball()
-        self.olean, self.olean_names = olean_tarball(self.key)
+        self.olean, self.olean_names = olean_tarball(self.key) if oleans else (None, [])
         self.olean_url = None
         self.agent_b64 = base64.b64encode((HERE / "agent.py").read_bytes()).decode()
         self.vms: dict[str, VM] = {}
@@ -609,7 +611,9 @@ class Session:
             self._release([vm.id])
 
     def enough(self) -> bool:
-        return getattr(self, "_enough", lambda: False)()
+        """Whether the run under way has slots for all it still has to start (no more VMs worth creating)."""
+        f = getattr(self, "_enough", None)
+        return bool(f and f())
 
     # -- preparing
     def _prepare(self, vm: VM):
@@ -674,10 +678,10 @@ class Session:
             self.ready.append(vm)
             self.cv.notify_all()
 
-    def _agent(self, vm: VM, args: list[str], timeout: int = 60, ship: bool = False, tries: int = 4):
+    def _agent(self, vm: VM, args: list[str], timeout: int = 60, ship: bool = False, tries: int = 4, sem=None):
         if ship:  # the agent itself, with the batch's first call to each VM
             return exec_json(vm.id, ["bash", "-c", 'mkdir -p ~/.gdpw && echo "$1" | base64 -d > ~/.gdpw/agent.py.new && mv ~/.gdpw/agent.py.new ~/.gdpw/agent.py && shift && exec python3 ~/.gdpw/agent.py "$@"', "_", self.agent_b64, *args], timeout, tries)
-        return exec_json(vm.id, ["python3", "/home/user/.gdpw/agent.py", *args], timeout, tries)
+        return exec_json(vm.id, ["python3", "/home/user/.gdpw/agent.py", *args], timeout, tries, sem)
 
     def _upload(self, vm: VM, dst: str, data: bytes | None = None):
         data = self.tar if data is None else data
@@ -788,11 +792,11 @@ class Session:
                     if on_start:
                         on_start(it, vm)
                 unsent += [{k: v for k, v in it.items() if k not in ("est", "weight", "vm_type", "meta", "try", "orig")} | {"cpus": it["weight"] * SLOT_CPU} for it in starts]
-                msg = json.dumps({"start": unsent, "acks": acks, "wait": 25 if running else 0}).encode()
+                msg = json.dumps({"start": unsent, "acks": acks, "wait": 20 if running else 0}).encode()
                 b64 = base64.b64encode(msg).decode()
                 parts = [b64[k:k + 100_000] for k in range(0, len(b64), 100_000)]
                 try:
-                    r = self._agent(vm, ["tick", self.batch, *parts], 60, tries=1)
+                    r = self._agent(vm, ["tick", self.batch, *parts], 60, tries=1, sem=_tick_sem)
                     fails = 0
                     acks, unsent = [], []
                 except Exception as e:
@@ -849,6 +853,7 @@ class Session:
                 else:
                     raise Unavailable("no VM left to run on" + (f" ({self.last_error})" if self.last_error else ""))
         all_done.wait(5)
+        self._enough = None
 
     def call(self, module: str, fn: str, args, extra: dict | None = None, limit: int = 600):
         """One function of a runner on one of the session's VMs (the first ready), its result."""

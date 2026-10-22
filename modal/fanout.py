@@ -226,7 +226,7 @@ class BoatEx:
                 with contextlib.suppress(Exception):
                     r = json.loads(l)
                     self.past[(r.get("tool"), r.get("task"))] = float(r.get("seconds", 0))
-        self.sess = boat.Session(pathlib.Path(runner).name, idle=idle, teardown=teardown, vm_type=vm_type, build=build)
+        self.sess = boat.Session(pathlib.Path(runner).name, idle=idle, teardown=teardown, vm_type=vm_type, build=build, oleans=False)
         self.n = 0
         self.calls = 0
         self.summary = None
