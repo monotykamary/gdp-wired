@@ -166,16 +166,17 @@ export const broken = {
 export const open = new Set<string>([])
 
 if (import.meta.main) {
-  const only = process.argv[2]
+  // (`bun examples/data.ts <law>`: that law and its broken variant alone; `-<law>`: all but those)
+  const arg = process.argv[2], skip = (name: string) => (arg?.startsWith('-') ? name === arg.slice(1) : !!arg && name !== arg)
   let failed = false
   for (const [name, mk] of Object.entries(laws)) {
-    if (only && name !== only) continue
+    if (skip(name)) continue
     const v = proveData((mk as () => DataLaw)()), ok = v.proven && v.checked
     console.log(`${ok ? 'ok  ' : open.has(name) ? 'open' : 'FAIL'} ${v.law}: ${v.proven ? `proven, ${v.ms} ms (${v.scheme}${v.lemmas.length ? `; lemmas: ${v.lemmas.join('; ')}` : ''})` : `not proven (${v.goal}: ${v.stuck})`}`)
     failed ||= !ok && !open.has(name)
   }
   for (const [name, mk] of Object.entries(broken)) {
-    if (only && name !== only) continue
+    if (skip(name)) continue
     const v = proveData(mk())
     console.log(`${!v.proven ? 'ok  ' : 'FAIL'} ${v.law} (broken): ${v.proven ? 'proven' : `refused${v.counterexample ? `, broken at ${JSON.stringify(v.counterexample)}` : ''}`}`)
     failed ||= v.proven
