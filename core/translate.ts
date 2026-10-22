@@ -20,6 +20,7 @@ import {cellProducts, clock, grow} from '../kernel/prove.ts'
 // substitution's map there), by its name there.
 export type Rename = {s: Subst, cells?: Record<string, {to: string, at: E}>}
 const omega = 'O$'
+const debugOn = () => !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_CYCLIC_DEBUG
 
 // The kernel's product of two linear forms (kernel.ts's `times`): each monomial its factors sorted, joined by '*'.
 function times(a: Lin, b: Lin): Lin | undefined {
@@ -169,6 +170,10 @@ export function translate(part: Goal, whole: Goal, tree: Tree, ren0: Renamer, st
   for (const s of ok ? tree.leaf : []) { if (s.kind !== 'input') { leaf.push(s); continue } const j = map(s.index); if (j === undefined) { ok = false; break } leaf.push({...s, index: j}) }
   for (const [i, j] of ok ? tree.products ?? [] : []) { const a = map(i), b = map(j); if (a === undefined || b === undefined) { ok = false; break } products.push([a, b]) }
   if (ok && checkRefutation(withProducts(rw, products, squares as Lin[]), leaf)) return {leaf, ...(tree.products ? {products} : {}), ...(tree.squares ? {squares: squares as Lin[]} : {})}
+  if (debugOn()) {
+    const missing = tree.leaf.flatMap(s => (s.kind === 'input' && s.index < rp.length && map(s.index) === undefined ? [s.index] : []))
+    console.error(`[leaf] ${whole.name}: ${ok ? 'rows found, refutation refused' : `${missing.length} rows missing`}${missing.slice(0, 3).map(i => `; ${JSON.stringify(rp[i]!.lin)} as ${JSON.stringify(ren(rp[i]!.lin, wp) ?? 'no form')}${rp[i]!.src ? ` (${JSON.stringify(rp[i]!.src)})` : ''}`).join('')}`)
+  }
   return close(whole, wp, st, until)
 }
 
@@ -231,7 +236,8 @@ export function decide(whole: Goal, conds: C[], inner: (wp: Path) => Tree | unde
     const lin = atoms[0]!, id = canon(lin)
     st.splits++
     const yes = decide(whole, conds.slice(i), inner, st, until, new Map(wp).set(id, {lin, holds: true}))
-    const no = yes && regrow(whole, new Map(wp).set(id, {lin, holds: false}), until)
+    // (the other side refuted by the node's rows as they are, a time below the steps before it say, before it is grown)
+    const np = new Map(wp).set(id, {lin, holds: false}), no = yes && (leafAt(whole, np, true, st) ?? regrow(whole, np, until))
     return yes && no ? {split: lin, yes, no} : undefined
   }
   return inner(wp)

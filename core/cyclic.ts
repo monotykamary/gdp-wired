@@ -26,12 +26,14 @@
 //     Only the facts and uses the usual tree reads are kept.
 //   - then each step law s_j (proveStepLaws): node 3L + 2j after its k steps, rank (t, 0), the usual step law's goal over
 //     the cells at t − k..t − 1 (hyps the precondition, k <= t, t <= T, T < Ω, the assumption and `when` at each step's
-//     time, the state's equations after each step but the last; uses the laws at each of those times), and node
+//     time, the state's equations after each step but the last that the usual tree reads; uses the laws at each of those
+//     times; the times t − n at once, over a map one step back at a time, t − 1 − 1), and node
 //     3L + 2j + 1 the step law itself, rank (t, 2): hyps the precondition, k <= t, t <= T, T < Ω and `when` at each
 //     step's time, its conclusion `then` with plain names at t − k, primed ones at t and a later step's request (i@j) at
 //     its time, facts the step at t − k + 1..t (and the maps' at t), its one use node 3L + 2j, its tree made (`carry`).
 //     Over several steps a later step reads a map as the usual goal's term over the cells at t − k (its laws there a
-//     use only where they read no map), the step law's node reading each cell back to t − k through the maps' steps.
+//     use only where they read no map), the step law's node reading each cell back to t − k through the maps' steps (its
+//     tree carried on its goal sliced first).
 //   - a machine with flags that hold at every key is read as its sk machine, the usual goals' closing hypotheses the
 //     closing facts at their time (`qflagFacts`); a request allowed (`allowTranslated`) two nodes after the laws'.
 //   - recurrences, lemmas n, laws between b: nodes 0..n+b−1 as above (their trees made), using also node 2n + 2b + i
@@ -60,8 +62,9 @@ import {type Reads, type Renamer, type TStats, carry, decide, readsFirst, rename
 // the node isn't proven, a `weak` one (a conclusion that holds outright) leaving no other node to use it.
 // `slice`: its goals grown first on what they read (`slice`, `reached`), as the instances below ask; others are grown whole.
 // `main`: the node's tree already made (a usual proof's, translated: core/translate.ts), taken as it is, its goal not grown;
-// `carry`: its tree made by core/translate.ts's `carry` from its goal (grown as any other where that fails).
-export type NodeSpec = Omit<CNode, 'uses' | 'main'> & {uses: Omit<Use, 'premises' | 'descent'>[], opaque?: E[], variants?: NodeSpec[], weak?: boolean, slice?: boolean, main?: Tree, carry?: boolean}
+// `carry`: its tree made by core/translate.ts's `carry` from its goal (grown as any other where that fails); `sliced`,
+// from its goal sliced first (`carried`).
+export type NodeSpec = Omit<CNode, 'uses' | 'main'> & {uses: Omit<Use, 'premises' | 'descent'>[], opaque?: E[], variants?: NodeSpec[], weak?: boolean, slice?: boolean, main?: Tree, carry?: boolean | 'sliced'}
 export type CyclicVerdict = {proven: true, checked: boolean, proof: Cyclic, why?: string} | {proven: false, checked: false, node: string, goal: string, stuck: string}
 
 const v = (name: string): E => ({op: 'var', name})
@@ -128,9 +131,10 @@ function rebuild(c: C, keep: (j: number) => boolean, at = {j: 0}): C | undefined
 }
 // The hypotheses with a part the goal reaches (whole ones included).
 export function reached(g: Goal, whole: (i: number) => boolean): Set<number> { return slice(g, whole, true) as Set<number> }
-export function slice(g: Goal, whole: (i: number) => boolean): (Goal & {from: number[][]}) | undefined
+// `join: false`: no equation joins the conclusion (the goal's layout kept: core/translate.ts's `carry` reads it).
+export function slice(g: Goal, whole: (i: number) => boolean, hypsOnly?: false, join?: boolean): (Goal & {from: number[][]}) | undefined
 export function slice(g: Goal, whole: (i: number) => boolean, hypsOnly: true): Set<number>
-export function slice(g: Goal, whole: (i: number) => boolean, hypsOnly = false): (Goal & {from: number[][]}) | Set<number> | undefined {
+export function slice(g: Goal, whole: (i: number) => boolean, hypsOnly = false, join = true): (Goal & {from: number[][]}) | Set<number> | undefined {
   const reach = new Set<string>(), parts = g.hyps.map(h => partsOf(h))
   const pieces: (Part & {i: number, j: number, gives?: string, cells: Set<string>})[] = []
   g.hyps.forEach((h, i) => {
@@ -156,7 +160,7 @@ export function slice(g: Goal, whole: (i: number) => boolean, hypsOnly = false):
   // The equations that give a cell the conclusion reads (a step's, the start's) join the conclusion, under their guards:
   // the prover splits the conclusion's atoms first, as the usual rule does a law read after the step.
   const last = g.hyps.length - 1, concl = whole(last) ? cellsIn(g.hyps[last]) : new Set<string>()
-  const joins = (p: typeof pieces[number]) => !!p.gives && concl.has(p.gives)
+  const joins = (p: typeof pieces[number]) => join && !!p.gives && concl.has(p.gives)
   if (kept.size === pieces.length && !pieces.some(joins)) return undefined
   const stays = new Set<string>(), joined: C[] = []
   for (const [q, p] of pieces.entries()) if (kept.has(q)) { if (joins(p)) joined.push(p.guards.reduceRight<C>((acc, x) => ({op: 'or', xs: [x, acc]}), p.c)); else stays.add(`${p.i}:${p.j}`) }
@@ -232,6 +236,20 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
     opaqueOf.set(out, names)
     return out
   }
+  // A node's tree made from its goal (core/translate.ts's `carry`): first on the goal sliced (its facts' parts the
+  // conclusion and the uses reach: a step's equations for state the law doesn't read, whose choices `carry` would
+  // otherwise split at every leaf, left out), the tree then the whole goal's (`widen`); else on the whole goal.
+  const carried = (n1: Omit<CNode, 'uses' | 'main'> & {uses: NodeSpec['uses']}, first: boolean): Tree | undefined => {
+    const g = mainGoal(facts, shapes, n1), h0 = n1.hyps.length, base = baseHyps(facts, n1).length, last = g.hyps.length - 1
+    const part = first && sliceOn() ? slice(g, i => i < h0 || i >= base, false, false) : undefined
+    if (part) {
+      const nf = part.from.filter(f => f[0]! >= h0 && f[0]! < base).length, nu = part.from.filter(f => f[0]! >= base && f[0]! < last).length
+      const tree = carry(part, nf, nu, st, clock() + 2_000), wide = tree && timedKind('widen', 0, () => widen(part, g, tree))
+      if (env()?.GDP_CYCLIC_DEBUG) console.error(`[carry] ${n1.name}: ${part.hyps.length} of ${g.hyps.length} hyps, ${tree ? (wide ? 'carried, widened' : 'carried, not widened') : 'not carried'}`)
+      if (wide) return wide
+    }
+    return carry(g, n1.insts.length, n1.uses.length, st, clock() + 2_000)
+  }
   // A node's goal grown; then the node keeps only the facts and uses its tree reads (the fewer, the fewer hypotheses its
   // goal has for the kernel to read at every leaf, and the fewer uses to prove below); then each use's goals.
   const attempt = ({opaque, variants: _v, weak: _w, slice: sl, main: given0, carry: made, ...n0}: NodeSpec): CNode | Stuck => {
@@ -239,7 +257,7 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
     sliceNow = !!sl
     // A goal's own hypotheses: the node's, and those after its facts and uses.
     const n1 = {...n0, insts: n0.insts.filter(p => facts[p.fact])}
-    const given = given0 ?? (made ? timedKind('carry', 0, () => withProducts(() => carry(mainGoal(facts, shapes, n1), n1.insts.length, n1.uses.length, st, clock() + 2_000))) : undefined)
+    const given = given0 ?? (made ? timedKind('carry', 0, () => withProducts(() => carried(n1, made === 'sliced'))) : undefined)
     if (made && !given0) { if (given) st.carried++; else st.uncarried++ }
     const base = baseHyps(facts, n1).length, mine = (tail: number) => (i: number) => i < n1.hyps.length || i >= base + tail
     const g = given ? undefined : mainGoal(facts, shapes, n1), key = g ? JSON.stringify(g.hyps) : '', before = g && grownBefore.get(key)
@@ -281,7 +299,12 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
         const m = shapes[u.node]
         if (!m) return {proven: false, checked: false, node: n.name, goal: `use of node ${u.node}`, stuck: 'no such node'}
         const premises: Tree[] = []
-        for (const [i, c] of m.hyps.entries()) { const t = whole(premiseGoal(facts, n, u, c, i), n.name, mine2); if ('proven' in t) return t; premises.push(t) }
+        for (const [i, c] of m.hyps.entries()) {
+          const t = whole(premiseGoal(facts, n, u, c, i), n.name, mine2)
+          if ('proven' in t && env()?.GDP_CYCLIC_DEBUG) console.error(`[premise] ${n.name}: use of node ${u.node}, its hypothesis ${i} (${t.stuck}): ${JSON.stringify(substC(c, vars(u.subst)))}`)
+          if ('proven' in t) return t
+          premises.push(t)
+        }
         const descent = whole(descentGoal(facts, n, u, m), n.name, mine2)
         if ('proven' in descent) return descent
         out.push({...u, premises, descent})
@@ -728,11 +751,14 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
       // (k steps: the state after each step a cell at its time, a map read after a step the usual goal's term over the
       // cells at t − k, the step's writes, a map a later request carries (c@j) its cells at its time)
       const carried = m.inputMaps ?? [], overMaps = K > 1 && mapNames.length > 0
-      const laterMaps = Object.fromEntries(Array.from({length: K - 1}, (_, j) => j + 2).flatMap(j => carried.map(c => [`${c}@${j}`, {to: `${c}@`, at: tBack(K - j + 1)}] as const)))
+      // The times: over a map, one step back at a time (t − 1 − 1, as a step's fact reads the time before it: the cells it
+      // gives are the frames' own, with no key to prove equal); else t − n at once (BridgeRules.lean's cycKOk reads both).
+      // (one step back at a time, a time t − n is a term n deep and a premise's slice follows each state's cell back
+      // through every step's fact before it: the budget rule's 32 steps took 39 s against its usual proof's 1.5 s)
+      const time = overMaps ? tBack : tSub
+      const laterMaps = Object.fromEntries(Array.from({length: K - 1}, (_, j) => j + 2).flatMap(j => carried.map(c => [`${c}@${j}`, {to: `${c}@`, at: time(K - j + 1)}] as const)))
       // The times the steps start from (t − k, ..., t − 1), and the frames: the state before step j its cells at t − k + j − 1
       // (n~j the state after step j, at t − k + j), its request read there (i@j).
-      // (one step back at a time, as a step's fact reads the time before it: the cells it gives are the frames' own)
-      const time = tBack
       const frame: Subst = {vars: {...at(time(K)).vars, ...Object.fromEntries(Array.from({length: K}, (_, j) => j + 1).flatMap(j => [
         ...(j >= 2 ? m.inputs.map(i => [`${i}@${j}`, get(`${i}@`, time(K - j + 1))] as const) : []),
         ...(j < K ? state.map(n => [`${n}~${j}`, get(`${n}@`, time(K - j))] as const) : []),
@@ -744,7 +770,8 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
       const lawsAt = (back: number) => lawUses(inst, time(back), e => substE(e, at(time(back))), yes)
       const perStep = Array.from({length: K}, (_, j) => lawsAt(K - j)), fn1 = fnInsts(inst, sig)
       // (a flag at every key: each step's closing hypotheses the closing facts at its time)
-      const cls = Array.from({length: K}, (_, j) => closings(inst, time(K - j), at(time(K - j)))), nc = cls[0]!.length
+      // (its keys over the frame: a key may read a later step's request, a flag read at a later step's witness)
+      const cls = Array.from({length: K}, (_, j) => closings(inst, time(K - j), K === 1 ? at(time(K - j)) : {vars: {...frame.vars, ...at(time(K - j)).vars}, maps: {...frame.maps, ...at(time(K - j)).maps}, flags: {}})), nc = cls[0]!.length
       // Each step's block: its laws, its assumption, its when, its closing hypotheses, then (but after the last) its
       // state's equations.
       const blocks: number[] = []
@@ -770,16 +797,18 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
       const a = 3 * L + 2 * q, steps = Array.from({length: K - 1}, (_, j) => ({fact: 1, at: [time(K - j - 1)]}))
       // (the state after each step but the last its equations, hypotheses here as in the usual goal: the step's facts at
       // those times give them where the step law is, `steps` below)
-      const eqs = blocks.slice(0, K - 1).flatMap((b0, j) => g.hyps.slice(b0 + nl + na + (whens[j] ? 1 : 0) + nc, b0 + nl + na + (whens[j] ? 1 : 0) + nc + state.length).map(h => substC(h, frame)))
+      // (those the usual tree reads: each is a premise of this node where the step law uses it, and over a map one that
+      // reads the map after a step is proven through the map's cells back to t − k)
+      const eqs = blocks.slice(0, K - 1).flatMap((b0, j) => { const e0 = b0 + nl + na + (whens[j] ? 1 : 0) + nc; return g.hyps.slice(e0, e0 + state.length).flatMap((h, r) => (used.has(e0 + r) ? [substC(h, frame)] : [])) })
       const closed = cls.flatMap((c, j) => (overMaps && j ? [] : c.filter((_, r) => used.has(blocks[j]! + nl + na + (whens[j] ? 1 : 0) + r))))
       const own = overMaps ? [...assumes.slice(0, na), ...when.slice(0, whens[0] ? 1 : 0), ...later0] : [...assumes, ...when]
       stepSpecs.push({name: `${m.name}: ${sl.name}, after ${K === 1 ? 'a step' : `${K} steps`}`, hyps: conjuncts([...bounds, ...own, ...eqs]), concl: after, rank: [t, k(0)],
         insts: [...fn1.filter((_, r) => used.has(np + r)), ...closed], uses: perStep.flatMap((us, j) => us.filter((_, r) => used.has(blocks[j]! + r)))})
       // (over a map, each cell the step law and its `when`s read back to t − k, and the closing facts at each later time)
       const back: NodeSpec['insts'] = []
-      if (overMaps) cellChain(m, facts, Array.from({length: K + 1}, (_, j) => time(K - j)), back)([cells, when, later0, instHyps(facts, [...run(t), ...steps])])
+      if (overMaps) cellChain(m, facts, Array.from({length: K + 1}, (_, j) => time(K - j)), back)([cells, when, later0, instHyps(facts, [...run(t), ...steps, ...cls.slice(1).flat()])])
       stepSpecs.push({name: `${m.name}: ${sl.name}`, hyps: [...bounds, ...when], concl: cells, rank: [t, k(2)],
-        insts: [...run(t), ...steps, ...(overMaps ? [...back, ...cls.slice(1).flat()] : mapInsts(cells))], uses: [{node: a, subst: {}, guard: yes}], carry: true})
+        insts: [...run(t), ...steps, ...(overMaps ? [...back, ...cls.slice(1).flat()] : mapInsts(cells))], uses: [{node: a, subst: {}, guard: yes}], carry: overMaps ? 'sliced' : true})
       // (each time decided at least the steps before it first: t ∸ j is then t − j)
       // (and each closing fact's time at most T)
       made.push({g, tree, node: a, ren: renK, decide: [...Array.from({length: K}, (_, j) => le(k(j + 1), t)), ...(nc ? Array.from({length: K}, (_, j) => le(time(j + 1), T)) : [])], reads: K === 1 ? readsOf(last) : []})
@@ -1178,10 +1207,13 @@ export const routeOf = () => env()?.GDP_CYCLIC_ROUTE ?? 'translate'
 const none = (): CyclicVerdict => ({proven: false, checked: false, node: '', goal: 'no instance searched', stuck: 'unknown'})
 // The cyclic proof of what the usual route proved: translated, else (`fallback`, or `searched` where nothing is
 // translated) searched, within `until` where it is given; with why the translation wasn't proven.
-function cyclicOf(translated: Translated | undefined, run: () => CyclicVerdict, st: TStats, until?: number): {out: CyclicVerdict, how: string, why?: string} {
+// A translation within the certificate's budget (GDP_CERT_MS) or four times the usual proof's time, whichever is longer
+// (`translateMs`): one that will fail is cut there, not at its goals' own bounds.
+export const translateMs = (usualMs = 0): number => Math.max(certMs(), 4 * usualMs)
+function cyclicOf(translated: Translated | undefined, run: () => CyclicVerdict, st: TStats, until?: number, usualMs?: number): {out: CyclicVerdict, how: string, why?: string} {
   let how = 'searched', why: string | undefined
   if (translated) {
-    const r = translated(st)
+    const r = withDeadline(clock() + translateMs(usualMs), () => translated(st))
     if (r.verdict?.proven && r.verdict.checked) return {out: r.verdict, how: 'translated'}
     how = 'fallback'; why = r.why ?? (r.verdict && !r.verdict.proven ? `${r.verdict.goal}: ${r.verdict.stuck}` : r.verdict?.why)
   }
@@ -1195,7 +1227,7 @@ export function crossCyclic(kind: string, name: string, usual: boolean, run0: ((
   // (a search within GDP_CERT_MS: one cut by it, or none to make where the translation fails, leaves the proof uncovered,
   // not differing)
   const route = routeOf(), st = tstats(), t0 = performance.now(), until = clock() + certMs()
-  const {out, how, why} = cyclicOf(route !== 'search' && usual ? translated : undefined, run, st, until)
+  const {out, how, why} = cyclicOf(route !== 'search' && usual ? translated : undefined, run, st, until, usualMs)
   const ms = Math.round(performance.now() - t0), cyclic = out.proven && out.checked
   if (usual && !cyclic && (!run0 || clock() > until)) { uncovered(kind, name, `no cyclic proof found${run0 ? ` within ${certMs()} ms` : ''}${why ? ` (not translated: ${why})` : ''}`); return }
   const prof = profLine()
@@ -1223,7 +1255,7 @@ export const uncovered = (kind: string, name: string, why: string): void => cycL
 export function certCyclic(kind: string, name: string, translated: Translated | undefined, run0: (() => CyclicVerdict) | undefined, usualMs?: number): {checked: boolean, proof?: Cyclic, why: string} {
   for (const key of Object.keys(cyclicProf)) delete cyclicProf[key]
   const st = tstats(), t0 = performance.now(), until = clock() + certMs()
-  const {out, how, why} = cyclicOf(translated, (translated && !certSearch() ? undefined : run0) ?? none, st, until)
+  const {out, how, why} = cyclicOf(translated, (translated && !certSearch() ? undefined : run0) ?? none, st, until, usualMs)
   const checked = out.proven && out.checked
   cycLog({kind, name, cert: true, usual: true, cyclic: checked, ms: Math.round(performance.now() - t0), ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {}), ...profLine()})
   const late = clock() > until ? ` within ${certMs()} ms` : ''

@@ -114,6 +114,37 @@ kernel/cyclic.ts, lean-kernel/*.lean).
   premise or a node the translation doesn't prove (`steplaw-k`'s and `hw-check-steps`' random machines, the quantifier
   examples' normal form, derived child and derived authority); where a machine's step laws together aren't translated,
   each is tried alone, so one such law leaves the others theirs.
+- k-step laws' certificates back within a small factor of their usual proofs, none left on the usual rule
+  (`runs/modal/kstep/final-default` against `runs/modal/cover/last-default`). Without a map a time read one step back
+  at a time is a term k deep, and each premise of the step law's node (a state after a step) was grown on a slice that
+  followed each cell back through every step's fact before it: the budget rule's 32 steps took 39,188 ms against its
+  usual proof's 1,503 ms. Such a law's times are t − n at once again (`tSub`, as in 0.19.0; `cycKOk` reads both forms):
+  the budget rule's (leaves, ms, usual ms) at k = 2, 4, 8, 12, 16, 32 were (9, 37, 6), (36, 126, 65), (67, 459, 475),
+  (99, 1,333, 384), (131, 3,131, 442), (259, 39,188, 1,503); now (12, 48, 6), (43, 120, 59), (82, 253, 521), (122, 419,
+  386), (162, 690, 447), (322, 2,482, 1,477). The normal form's 2-step law ran its translation's minute out (60,201 and
+  60,094 ms, 1,874 leaves, 332 grown again): a later step's closing hypotheses read the flag at a later request's
+  witness, and the closing facts' keys were read over the first step's frame alone. Keyed over the whole frame, the
+  later closing facts' cells chained back to t − k, it is translated (3,133 and 2,843 ms, usual 18,096 and 16,751), and
+  derived child and derived authority with it. Over a map, the step law's node is carried on its goal sliced first (a
+  step's equations for state the law doesn't read, whose choices `carry` split at every leaf, left out: the k-step fuzz's
+  worst law 698 leaves before, `runs/modal/kstep/b4`), the tree widened to the whole goal; the node after the steps states only the equations
+  after a step its usual tree reads (each is a premise where the step law uses it). A translation is bounded by
+  `GDP_CERT_MS` or four times its usual proof's time, whichever is longer (`translateMs`), no longer a minute: the
+  longest against its bound in `final-default` is scope grants' 5,982 ms of 11,964.
+  The step-law certificates translated in both runs (1,068, matched by job, law and place in the log): 151,474 ms
+  against 40,977 ms of usual proof (3.70x) before, 69,248 against 32,151 (2.15x) now; in `final-default` all 1,075
+  translated, 78,504 ms against 67,334 (`last-default`: 1,077 of 1,087, the 10 that fell back 136,490 ms). Left on the
+  usual rule: 119 proofs (127), liveness 36, loops 79, the four laws reading a map at a key read from a map.
+  Job seconds, 0.19.0 (`runs/modal/flip/default`) / `last-default` / `final-default`: quantifiers 67.07 / 190.15 /
+  74.61, steplaw-k 40.27 / 142.07 / 79.94, steps 5.75 / 47.35 / 7.1, seqs 31.98 / 58.97 / 46.91, cycles 40.43 / 59.4 /
+  47.46, hw-check-steps 17.97 / 36.59 / 16.03, pairs 34.62 / 52.28 / 41.69 (one container to the next these vary
+  widely: steplaw-k three times in one wave 63.9 to 95.7 s, `runs/modal/kstep/ab4`). `hw-check-steps`' random laws are
+  translated in `final-default`; one fell back in `runs/modal/kstep/ab3` (6,106 ms, a premise not proven within its
+  bound). The suite by default: 194 jobs, none failed, 461.3 s wall, 3,974.9 s of job time; with `--usual`: 194 jobs,
+  none failed, 384.0 s wall, 3,404.0 s (`runs/modal/kstep/final-usual2`; in `final-usual` before it `infer` failed, a
+  test past its 5 s limit at 5,137 ms with the usual trees as certificates, a route nothing here touches: five runs
+  each in one wave, 4bba0d2 one past it at 5,057.91 ms, this branch none, `runs/modal/kstep/infer-usual`).
+  `research/cyclic/ksteps.ts` and `kstepfuzz.ts` time the budget rule's laws and the k-step fuzz's alone.
 - Requests allowed (`proveProgress`, a liveness's helpful requests): `allowTranslated`, the usual allowed goal over the
   cells at t (rank (t, 2)), then BridgeRules.lean's `cycAOk` node (rank (t, 3)) carried from it by the request's
   equations. 26 of 26 translated in `last-default` (0.19.0: 8 left, all).
