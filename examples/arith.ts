@@ -11,9 +11,13 @@
 //   - a signed ledger: a balance that moves by ±3 from 0, read as an integer; it stays a multiple of 3 below zero too
 //     (Euclid's remainder of a negative balance is still in 0..2), and its quotient by 3 counts the moves net (broken:
 //     a fee of 1)
+// And in the datatype language (core/data.ts), signed integers as a sort of their own (`integer`, Lean's Int) beside the
+// naturals: a list of integers, its total and its head; Euclid's division of an integer; a natural's parity (broken: a
+// difference that stays a natural, refuted at x = −2; an odd sum said even)
 import {type Law} from '../core/machine.ts'
 import {type Verdict, bool, nat, oneOf, proveRule, rule, when} from '../core/dsl.ts'
 import {inferLaws} from '../core/infer.ts'
+import {type DataLaw, type Integer, type Nat, type Val, data, define, integer, law, natural, proveData, self} from '../core/data.ts'
 
 export const rota = (bug?: 'lead by the day') => rule('rota').inputs({}).state({day: 0, weekday: 0, lead: 0})
   .step(({day}) => {
@@ -48,6 +52,20 @@ export const ledgerLaws = (r = ledger()): Law[] => [
   r.law('a third of the balance is the net count', ({balance, net}) => balance.divBy(3).eq(net)),
 ]
 
+const I = (v: unknown) => v as Integer, N = (v: unknown) => v as Nat, L = (v: unknown) => v as Val
+export const IntList = data('IntList', {nil: {}, cons: {head: integer, tail: self}})
+export const first = define('first', {xs: IntList}, integer, ({xs}) => L(xs).match({nil: () => 0, cons: ({head}) => I(head)}))
+export const twice = define('twice', {x: integer}, integer, ({x}) => I(x).plus(x))
+export const dataLaws = {
+  firstOfCons: (): DataLaw => law('the first of x + 1 before a list is x + 1', {x: integer, l: IntList}, ({x, l}) => I(first(IntList.cons(I(x).plus(1), l))).eq(I(x).plus(1))),
+  twiceLess: (): DataLaw => law('twice x less x is x', {x: integer}, ({x}) => I(twice(x)).minus(x).eq(x)),
+  euclid: (): DataLaw => law('x = 3·(x div 3) + x mod 3, 0 <= x mod 3 < 3', {x: integer}, ({x}) => I(x).eq(I(x).divBy(3).times(3).plus(I(x).modBy(3))).and(I(x).modBy(3).atLeast(0), I(x).modBy(3).lt(3))),
+  evenSum: (): DataLaw => law('n + n is even', {n: natural}, ({n}) => N(n).plus(n).modBy(2).eq(0)),
+  // broken
+  natural: (): DataLaw => law('x − 1 is never negative', {x: integer}, ({x}) => I(x).minus(1).atLeast(0)),
+  oddSum: (): DataLaw => law('n + n + 1 is even', {n: natural}, ({n}) => N(n).plus(n).plus(1).modBy(2).eq(0)),
+}
+
 if (import.meta.main) {
   const results: [string, boolean, boolean][] = []
   const check = (what: string, v: Verdict, want: boolean) => results.push([what, v.proven && v.checked, want])
@@ -60,6 +78,11 @@ if (import.meta.main) {
     for (const f of v.found) console.log(`     found: ${f.text}`)
   }
   for (const bug of [undefined, 'a fee of 1'] as const) check(`signed ledger${bug ? ` (${bug})` : ''}`, proveRule(ledger(bug), ledgerLaws(ledger(bug)), {search: false}), !bug)
+  for (const [name, f, want] of [['first of cons', dataLaws.firstOfCons, true], ['twice less', dataLaws.twiceLess, true], ['euclid', dataLaws.euclid, true], ['even sum', dataLaws.evenSum, true],
+    ['x − 1 is never negative (false)', dataLaws.natural, false], ['n + n + 1 is even (false)', dataLaws.oddSum, false]] as const) {
+    const v = proveData(f(), {ms: 20000})
+    results.push([`data: ${name}${v.counterexample ? ` (refuted at ${JSON.stringify(v.counterexample)})` : ''}`, v.proven && v.checked, want])
+  }
   for (const [name, got, want] of results) console.log(`${got === want ? 'ok  ' : 'FAIL'} ${name}: ${got ? 'proven' : 'refused'}`)
   if (results.some(([, got, want]) => got !== want)) process.exit(1)
 }

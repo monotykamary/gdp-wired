@@ -34,7 +34,7 @@ import type {Cyclic} from '../kernel/cyclic.ts'
 import {budget, budgetLaws, fill, fillLaws, mccarthy, mutual, tally, tallyLaws} from '../examples/cyclic.ts'
 import {leanItems as cycleLeanItems} from '../examples/cycles.ts'
 import {filled, growing} from '../examples/lemmas.ts'
-import {billing, billingLaws, evenLaw, ledger as signedLedger, ledgerLaws as signedLedgerLaws, pairs, rota, rotaLaws} from '../examples/arith.ts'
+import {billing, billingLaws, dataLaws as arithDataLaws, evenLaw, ledger as signedLedger, ledgerLaws as signedLedgerLaws, pairs, rota, rotaLaws} from '../examples/arith.ts'
 
 const caps = rule('caps').params({d: nat}).inputs({acct: nat, day: nat, ok: bool}).maps({Acct: 0, Day: 0})
   .flags(({ok, acct, day, d, Acct, Day}) => ({granted: ok.and(Acct.at(acct).lt(1), Day.at(day).lt(d))}))
@@ -111,6 +111,9 @@ const dataItems: Record<string, [() => DataLaw, string]> = {
   dataroseflat: [() => dataLaws.roseSumFlatten(), 'sum_rflat'], datarosemirror: [() => dataLaws.roseSizeMirror(), 'rsize_rmirror'],
   databag: [() => dataLaws.bagLength(), 'len_concat'], datarep: [() => dataLaws.replicateLength(), 'len_replicate'],
   datatakedrop: [() => dataLaws.takeDrop(), 'take_drop'], datadroplen: [() => dataLaws.dropLength(), 'len_drop'],
+  // Integers (Lean's Int) and remainders in the datatype language (examples/arith.ts).
+  dataintfirst: [() => arithDataLaws.firstOfCons(), 'first_cons'], datainttwice: [() => arithDataLaws.twiceLess(), 'twice_less'],
+  dataeuclid: [() => arithDataLaws.euclid(), 'int_euclid'], dataevensum: [() => arithDataLaws.evenSum(), 'even_sum'],
 }
 const separately = ['searchtree', 'sheet', 'groups0', 'groups1', 'groups2', 'groups3', ...cyclicItems, ...foundItems, ...Object.keys(dataItems)]
 const file = toLean(([
