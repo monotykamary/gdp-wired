@@ -33,7 +33,7 @@ python3 research/hw/run_gpu.py --backend auto --out runs/backends/hw.json --args
 python3 modal/run.py --backend boat ...      # force boat (no fallback); --backend runpod for a GPU runner; modal as before
 ```
 
-`--backend modal` stays the default. `auto` sends CPU work to boat and GPU work to RunPod, and Modal takes over when the
+From `python3`, `--backend auto` is the default (`modal run` and `--backend modal` are Modal as before). `auto` sends CPU work to boat and GPU work to RunPod, and Modal takes over when the
 primary can't serve: before a batch starts, the whole batch (the provider's API unreachable or erroring, its billing,
 no capacity: boat with no VM to be had within its active-VM and start limits, or its image not built; RunPod out of
 every GPU type in the list, in the secure cloud then the community cloud; a RunPod balance under

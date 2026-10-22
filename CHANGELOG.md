@@ -181,8 +181,8 @@ none failed, that test 2,540 ms (`runs/modal/infer/suite`).
 
 Infrastructure (nothing in the library changed): the experiment runners take `--backend auto|boat|runpod|modal`
 (`modal/fanout.py`, `modal/README.md`). `auto` runs CPU work on a pool of boat.dev VMs (`modal/boat.py`) and GPU work on
-a RunPod pod (`modal/runpod.py`), and moves to Modal what they can't serve, each move logged with its reason; `modal`
-stays the default. The suite on boat: 200 jobs, none failed, 267.7 s wall, 3,002.5 s of job time, $0.032
+a RunPod pod (`modal/runpod.py`), and moves to Modal what they can't serve, each move logged with its reason; `auto` is
+the default from `python3` (`modal run` is Modal as before). The suite on boat: 200 jobs, none failed, 267.7 s wall, 3,002.5 s of job time, $0.032
 (`runs/backends/suite-default`; Modal at the same commit 489.8 s, 4,246.7 s, $0.256, `runs/modal/backends/suite-default`).
 
 - `modal/run.py`: the same jobs, flags and outputs on any backend; `summary.tsv` has a 4th column, the backend.
