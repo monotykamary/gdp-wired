@@ -12,6 +12,32 @@
 //     node at rank (n) using every law at both children
 // Beyond those, a node may use any node at any terms (nested, mutual, two ranks in order): `proveCyclic` takes the nodes
 // as they are given (examples/cyclic.ts).
+//
+// Translated (machineNodes, recurNodes, foldNodes given the usual proof; core/translate.ts): what the usual route proved,
+// made a cyclic proof from its trees rather than searched. The facts are the instance's as above (Bridge.lean's
+// cycCanon, recFacts, the fold's table); the nodes, in this order:
+//   - machines, laws l_0..l_{L-1}: node i < L the law at t, rank (t, 1), hyps the precondition, t <= T, T < Ω (cycMOk's
+//     node), facts the start and the step at t and each map's at the keys it reads, uses node L + i (guard 1 <= t) and
+//     node 2L + i (guard t <= 0), its tree made (`carry`). Node L + i the law after a step from t − 1, rank (t, 0):
+//     hyps the precondition, 1 <= t, t <= T, T < Ω and the request's assumption at t − 1, facts the functions' at the
+//     keys the usual proof names, uses the laws at t − 1 at those keys (guard 0 <= 0), its conclusion the law at the
+//     state the step gives over the cells at t − 1 (a write's reads at its key read at the key read), its tree the usual
+//     step tree. Node 2L + i the law at the start, rank (0, 0): the usual start goal, k# as k, its tree the usual one.
+//     Only the facts and uses the usual tree reads are kept.
+//   - then each step law s_j (proveStepLaws): node 3L + 2j after its k steps, rank (t, 0), the usual step law's goal over
+//     the cells at t − k..t − 1 (hyps the precondition, k <= t, t <= T, T < Ω, the assumption and `when` at each step's
+//     time, the state's equations after each step but the last; uses the laws at each of those times), and node
+//     3L + 2j + 1 the step law itself, rank (t, 2): hyps the precondition, k <= t, t <= T, T < Ω and `when` at each
+//     step's time, its conclusion `then` with plain names at t − k, primed ones at t and a later step's request (i@j) at
+//     its time, facts the step at t − k + 1..t (and the maps' at t), its one use node 3L + 2j, its tree made (`carry`).
+//     Several steps only on a machine with no map.
+//   - recurrences, lemmas n, laws between b: nodes 0..n+b−1 as above (their trees made), using also node 2n + 2b + i
+//     (the lemma at the start, guard x <= 0; a law between at y = x, guard y <= x); nodes n + b.. the lemma (law between)
+//     after a step, the usual step goal with x as x − 1, fx as f(x − 1) (y, fy likewise, fx as f(x)); then the start
+//     nodes, rank (0, 0, 0) and (1, 0, 0).
+//   - folds, laws L: node i the law at a node n, rank (n, 1), using node L + i (guard Kind[n] = 1) and node 2L + i (guard
+//     Kind[n] = 0); node L + i from its children, rank (n, 0), hyps n < N, Kind[n] = 1, both children below n and the
+//     assumption at n, uses the laws at both children; node 2L + i at a leaf, rank (n, 0).
 import type {C, E, Law, Machine} from './machine.ts'
 import type {Fold, Goal, Instances, StepLaw, Subst, Tree} from '../kernel/kernel.ts'
 import {assumed, boundOf, foldObligations, obligations, substC, substE, witnessesOf} from '../kernel/kernel.ts'
@@ -147,8 +173,10 @@ export const translatedCache: Grown = new Map()
 type Stuck = {proven: false, checked: false, node: string, goal: string, stuck: string}
 // `order`: the order the nodes are grown in, by default those with a weak variant first (a variant that uses a weak node
 // is passed over).
-export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = [...specs.keys()].sort((i, j) => Number(!specs[i]!.variants?.some(x => x.weak)) - Number(!specs[j]!.variants?.some(x => x.weak))), grownBefore: Grown = searched, st: TStats = tstats()): CyclicVerdict {
-  const nodes: CNode[] = [], shapes = [...specs], weak = new Set<number>()
+// `made`: the first nodes already made (a proof of the same facts whose nodes these specs begin with), taken as they are.
+export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[], grownBefore: Grown = searched, st: TStats = tstats(), made: CNode[] = []): CyclicVerdict {
+  const order = (order0 ?? [...specs.keys()].sort((i, j) => Number(!specs[i]!.variants?.some(x => x.weak)) - Number(!specs[j]!.variants?.some(x => x.weak)))).filter(i => i >= made.length)
+  const nodes: CNode[] = [...made], shapes = [...specs], weak = new Set<number>()
   let later: number | undefined, refuted = false
   // A goal's tree, and the hypotheses its leaves read (of the whole goal, a weaker goal's read through where they came from).
   const grown = (g: Goal, node: string, own: (i: number) => boolean): {tree: Tree, from: Goal, used: () => Set<number>} | Stuck => {
@@ -492,7 +520,10 @@ const flagsOf = (m: Machine): Record<string, C> => {
 
 // `usual`: the usual proof's trees (kernel/prove.ts's proveLaws, at these instances): the nodes are then the translated
 // instance (see `translatedNodes` below), or none with why not.
-export function machineNodes(m: Machine, laws: Law[], instances: Record<string, Instances>, usual?: {trees: Record<string, Tree>}, st: TStats = tstats()): {facts: Fact[], specs: NodeSpec[], why?: string} {
+// `steps`: one-step step laws to prove too, each with the usual proof's goal and tree (kernel/prove.ts's proveStepLaws).
+export type UsualStep = {sl: StepLaw, inst: Instances, goal: Goal, tree: Tree}
+// `lawsMade`: the laws' nodes are made already (their trees not translated again).
+export function machineNodes(m: Machine, laws: Law[], instances: Record<string, Instances>, usual?: {trees: Record<string, Tree>, steps?: UsualStep[], lawsMade?: boolean}, st: TStats = tstats()): {facts: Fact[], specs: NodeSpec[], why?: string} {
   const {at} = trace(m), flags = flagsOf(m), inline = (t: C) => substC(t, {vars: {}, maps: {}, flags})
   const t = v('t$'), T = v('T$'), u = v('u$'), key = v('k$')
   const inlineE = (e: E) => substE(e, {vars: {}, maps: {}, flags})
@@ -668,6 +699,8 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
       const w = m.step.maps?.[map]
       return !w ? get(map, kk) : 'each' in w ? substE(inlineE(w.value), vars({[w.each]: kk})) : {op: 'if', c: eq(kk, inlineE(w.key)), then: readsAt(inlineE(w.value), inlineE(w.key), kk), else: get(map, kk)}
     }]))}
+    // A step law's condition with its primed names read as given, its flags inlined (over the frame before the step).
+    const primedOf = (c: C, s0: Subst): C => substC(c, {...s0, flags})
     const nows: NodeSpec[] = [], afters: NodeSpec[] = [], starts: NodeSpec[] = [], made: {g: Goal, tree: Tree, node: number, ren: Renamer, decide?: C[], reads?: Reads}[] = []
     // A write's key and the keys the usual conclusion reads its map at (each a condition if(K = W, ...)).
     const wkeys = new Set(mapNames.flatMap(map => { const w = m.step.maps?.[map]; return w && !('each' in w) ? [JSON.stringify(inlineE(w.key))] : [] }))
@@ -703,10 +736,63 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
         uses: [{node: L + i, subst: {}, guard: one}, {node: 2 * L + i, subst: {}, guard: le(t, k(0))}], carry: true})
       made.push({g: g1, tree: t1, node: L + i, ren, decide: [one], reads: readsOf(last(g1))}, {g: g0, tree: t0, node: 2 * L + i, ren: ren0})
     }
-    const all = [...nows, ...afters, ...starts]
+    // One-step step laws (`usual.steps`), each two nodes after the laws' (core/cyclic.ts's header has their shape): after a
+    // step from t − 1, rank (t, 0), the usual step law's goal over the run's cells at t − 1 (its `when` and the request's
+    // assumption hypotheses, the laws at t − 1 at its keys uses), the state after it the step's terms; and the step law
+    // itself, rank (t, 2), over the cells at t − 1 and at t (a primed name at t), carried from the first by the step's
+    // facts at t, its hypotheses the precondition, 1 <= t <= T, T < Ω and `when` at t − 1.
+    const stepSpecs: NodeSpec[] = []
+    for (const [q, u] of (usual!.steps ?? []).entries()) {
+      const {sl, inst, goal: g, tree} = u, whens = sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when], K = sl.steps ?? 1
+      // (k steps: a machine with no map, the state after each step a cell at its time; one step: any the instances cover)
+      if (K > 1 && (mapNames.length || m.inputMaps?.length)) return {specs: [], why: `${sl.name}: steps over a map`}
+      // The times the steps start from (t − k, ..., t − 1), and the frames: the state before step j its cells at t − k + j − 1
+      // (n~j the state after step j, at t − k + j), its request read there (i@j).
+      const time = (back: number): E => (back === 0 ? t : {op: 'sub', a: t, b: k(back)})
+      const frame: Subst = {vars: {...at(time(K)).vars, ...Object.fromEntries(Array.from({length: K}, (_, j) => j + 1).flatMap(j => [
+        ...(j >= 2 ? m.inputs.map(i => [`${i}@${j}`, get(`${i}@`, time(K - j + 1))] as const) : []),
+        ...(j < K ? state.map(n => [`${n}~${j}`, get(`${n}@`, time(K - j))] as const) : []),
+      ]))}, maps: pre.maps, flags: {}}
+      const sig: Subst = K === 1 ? sigma : frame, renK = K === 1 ? ren : renamer({s: frame})
+      // (the usual goal's hypotheses: the precondition, the facts at the instances, then each step's laws, assumption and
+      // `when`, and after each step but the last its state's equations)
+      const nf = assumed(m.facts ?? [], inst).length, np = m.pre ? 1 : 0, na = m.assume ? 1 : 0, nl = assumed(laws, inst).length
+      const lawsAt = (back: number): NodeSpec['uses'] => laws.flatMap((l2, j) => {
+        const ks = keysOf(l2), tb = time(back), ab = at(tb)
+        if (!ks.length) return [{node: j, subst: {'t$': tb}, guard: yes}]
+        const flat = inst[l2.name] ?? []
+        return Array.from({length: Math.floor(flat.length / ks.length)}, (_, r) => ({node: j, subst: {'t$': tb, ...Object.fromEntries(ks.map((kn, c) => [kn, substE(flat[r * ks.length + c]!, ab)]))}, guard: yes}))
+      })
+      const perStep = Array.from({length: K}, (_, j) => lawsAt(K - j)), fn1 = fnInsts(inst, sig)
+      // Each step's block: its laws, its assumption, its when, then (but after the last) its state's equations.
+      const blocks: number[] = []
+      let pos = np + nf
+      for (let j = 0; j < K; j++) { blocks.push(pos); pos += nl + na + (whens[j] ? 1 : 0) + (j < K - 1 ? state.length : 0) }
+      if (g.hyps.length !== pos + 1 || fn1.length !== nf || perStep.some(us => us.length !== nl)) return {specs: [], why: `${sl.name}: a usual goal of another shape`}
+      const used = usedHyps(g, tree), last = (g.hyps.at(-1) as Extract<C, {op: 'not'}>).x
+      const assumes = Array.from({length: K}, (_, j) => (m.assume ? [now(inline(m.assume), time(K - j))] : [])).flat()
+      const when = whens.map((w, j) => now(inline(w), time(K - j)))
+      const bounds = [...(m.pre ? [m.pre] : []), le(k(K), t), le(t, T), ...omegaHyp]
+      const after = K === 1 ? substC(primedOf(sl.then, {vars: Object.fromEntries(state.map(st2 => [`${st2}'`, inlineE(m.step.state?.[st2] ?? v(st2))])), maps: Object.fromEntries(mapNames.map(map => [`${map}'`, upd.maps[map]!])), flags: {}}), pre) : substC(last, frame)
+      const later = Object.fromEntries(Array.from({length: K - 1}, (_, j) => j + 2).flatMap(j => m.inputs.map(i => [`${i}@${j}`, get(`${i}@`, time(K - j + 1))] as const)))
+      const cells = substC(primedOf(sl.then, {vars: {...later, ...Object.fromEntries(state.map(st2 => [`${st2}'`, get(`${st2}@`, t)]))}, maps: Object.fromEntries(mapNames.map(map => [`${map}'`, (kk: E) => get(`${map}@`, pair(t, kk))])), flags: {}}), at(time(K)))
+      const a = 3 * L + 2 * q, steps = Array.from({length: K - 1}, (_, j) => ({fact: 1, at: [time(K - j - 1)]}))
+      // (the state after each step but the last its equations, hypotheses here as in the usual goal: the step's facts at
+      // those times give them where the step law is, `steps` below)
+      const eqs = blocks.slice(0, K - 1).flatMap((b0, j) => g.hyps.slice(b0 + nl + na + (whens[j] ? 1 : 0), b0 + nl + na + (whens[j] ? 1 : 0) + state.length).map(h => substC(h, frame)))
+      stepSpecs.push({name: `${m.name}: ${sl.name}, after ${K === 1 ? 'a step' : `${K} steps`}`, hyps: [...bounds, ...assumes, ...when, ...eqs], concl: after, rank: [t, k(0)],
+        insts: fn1.filter((_, r) => used.has(np + r)), uses: perStep.flatMap((us, j) => us.filter((_, r) => used.has(blocks[j]! + r)))})
+      stepSpecs.push({name: `${m.name}: ${sl.name}`, hyps: [...bounds, ...when], concl: cells, rank: [t, k(2)],
+        insts: [...run(t), ...steps, ...mapInsts(cells)], uses: [{node: a, subst: {}, guard: yes}], carry: true})
+      // (each time decided at least the steps before it first: t ∸ j is then t − j)
+      made.push({g, tree, node: a, ren: renK, decide: Array.from({length: K}, (_, j) => le(k(j + 1), t)), reads: K === 1 ? readsOf(last) : []})
+    }
+    const all = [...nows, ...afters, ...starts, ...stepSpecs]
     for (const [i, a] of nows.entries()) { const o = [...new Set([...shared(facts, a, afters[i]!.concl), ...shared(facts, a, starts[i]!.concl)].map(e => JSON.stringify(e)))].map(e => JSON.parse(e) as E); if (o.length) a.opaque = o }
-    const until = performance.now() + 10_000
+    // (a translation is bounded by a minute: a step law over 32 steps has a goal of 32 frames at every leaf)
+    const until = performance.now() + 60_000
     for (const x of made) {
+      if (usual!.lawsMade && x.node < 3 * L) continue
       // (after a step, 1 <= t decided first: t ∸ 1 is then t − 1, and a cell read at a key over the cells at t − 1 has a
       // linear form)
       const whole = mainGoal(facts, all, all[x.node]!)
@@ -1022,17 +1108,23 @@ export type Translated = (st: TStats) => {verdict?: CyclicVerdict, why?: string}
 // proof made again (a rule proven twice, as the suite does) is the one made and checked before (the same proof: the
 // kernel's check is a function of it, and nothing changes a proof once made). The key's time is GDP_CYCLIC_PROF's `key`.
 const proofsMade = new Map<string, Cyclic>()
-export function translatedProof(key: () => string, build: () => {facts: Fact[], specs: NodeSpec[], why?: string}, st: TStats): {verdict?: CyclicVerdict, why?: string} {
+// `base`: the key of a proof made before whose nodes these begin with (a machine's laws, for its step laws), reused where
+// its facts are these.
+export function translatedProof(key: () => string, build: (reused: boolean) => {facts: Fact[], specs: NodeSpec[], why?: string}, st: TStats, base?: () => string): {verdict?: CyclicVerdict, why?: string} {
   const k0 = timedKind('key', 0, key), had = proofsMade.get(k0)
   if (had) { st.cached++; return {verdict: {proven: true, checked: true, proof: had}} }
-  const {facts, specs, why} = build()
+  const b = base && proofsMade.get(timedKind('key', 0, base)), {facts, specs, why} = build(!!b)
   if (why) return {why}
-  const v = proveCyclic(facts, specs, undefined, translatedCache, st)
+  const made = b && b.nodes.length <= specs.length && JSON.stringify(b.facts) === JSON.stringify(facts) ? b.nodes : []
+  if (b && !made.length) return translatedProof(key, () => build(false), st)
+  const v = proveCyclic(facts, specs, undefined, translatedCache, st, made)
   if (v.proven && v.checked) { if (proofsMade.size >= 1024) proofsMade.clear(); proofsMade.set(k0, v.proof) }
   return {verdict: v}
 }
 export const routeOf = () => env()?.GDP_CYCLIC_ROUTE ?? 'translate'
-export function crossCyclic(kind: string, name: string, usual: boolean, run: () => CyclicVerdict, usualMs?: number, translated?: Translated): void {
+const none = (): CyclicVerdict => ({proven: false, checked: false, node: '', goal: 'no instance searched', stuck: 'unknown'})
+export function crossCyclic(kind: string, name: string, usual: boolean, run0: (() => CyclicVerdict) | undefined, usualMs?: number, translated?: Translated): void {
+  const run = run0 ?? none
   for (const key of Object.keys(cyclicProf)) delete cyclicProf[key]
   const route = routeOf(), st = tstats(), t0 = performance.now()
   let out: CyclicVerdict | undefined, how = 'searched', why: string | undefined
@@ -1044,7 +1136,7 @@ export function crossCyclic(kind: string, name: string, usual: boolean, run: () 
   const ms = Math.round(performance.now() - t0), cyclic = out.proven && out.checked
   const prof = profOn() ? {prof: Object.fromEntries(Object.entries(cyclicProf).map(([key, p]) => [key, Object.fromEntries(Object.entries(p).map(([f, x]) => [f, Math.round(x)]))]))} : {}
   let search: {searchMs: number, searchCyclic: boolean} | undefined
-  if (route === 'both') { const s0 = performance.now(), o = run(); search = {searchMs: Math.round(performance.now() - s0), searchCyclic: o.proven && o.checked} }
+  if (route === 'both' && run0) { const s0 = performance.now(), o = run0(); search = {searchMs: Math.round(performance.now() - s0), searchCyclic: o.proven && o.checked} }
   console.error(`cyclic: ${JSON.stringify({kind, name, usual, cyclic, ms, ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {}), ...search, ...prof, ...(out.proven ? {nodes: out.proof.nodes.length, ...(out.why ? {why: out.why} : {})} : {goal: out.goal, stuck: out.stuck})})}`)
   const lax = env()?.GDP_CYCLIC_LAX === '1'
   if (cyclic !== usual && !lax) throw new Error(`cyclic route: ${kind} ${name} is ${cyclic ? 'proven' : 'not proven'} as a cyclic proof, ${usual ? 'proven' : 'not proven'} the usual way${out.proven ? (out.why ? ` (${out.why})` : '') : ` (${out.goal}: ${out.stuck})`}`)
@@ -1055,7 +1147,8 @@ export function crossCyclic(kind: string, name: string, usual: boolean, run: () 
 // (translated, searched where that fails) and checked by kernel/cyclic.ts; the usual trees are then the translation's
 // input, not checked again (kernel/prove.ts, core/dsl.ts). Each prints a line `cyclic: {..., cert: true}`.
 export const certOn = () => quiet === 0 && env()?.GDP_CERT === 'cyclic'
-export function certCyclic(kind: string, name: string, translated: Translated | undefined, run: () => CyclicVerdict, usualMs?: number): {checked: boolean, proof?: Cyclic} {
+export function certCyclic(kind: string, name: string, translated: Translated | undefined, run0: (() => CyclicVerdict) | undefined, usualMs?: number): {checked: boolean, proof?: Cyclic} {
+  const run = run0 ?? none
   const st = tstats(), t0 = performance.now()
   let out: CyclicVerdict | undefined, how = 'searched', why: string | undefined
   if (translated) {
