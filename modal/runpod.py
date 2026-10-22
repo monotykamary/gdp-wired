@@ -9,7 +9,7 @@ calls run on it one after another, the pod deleted when the batch ends however i
 Each call runs the runner's own function (the one its Modal GPU function wraps) on the pod, imported with a stub
 `modal`, in the same paths as the Modal image (/work/gdp-wired, /opt/dawn, /tmp/result.json), so its output is the
 Modal run's output. The GPU types are tried in order (--gpus, else $GDPW_RUNPOD_GPUS, else GPUS below) until one is
-in stock. Before any call, `vulkaninfo --summary` must list an NVIDIA device, else the batch fails at once.
+in stock, in the secure cloud then the community cloud ($GDPW_RUNPOD_CLOUDS). Before any call, `vulkaninfo --summary` must list an NVIDIA device, else the batch fails at once.
 
 Cost hygiene: the pod's name and this client's pid are in modal/.live/runpod-<name>.json from before the pod exists
 until it's deleted; the pod is deleted in a finally (Ctrl-C, SIGTERM and SIGHUP included); `modal/reap.sh` deletes a
@@ -31,7 +31,8 @@ import time
 HERE = pathlib.Path(__file__).resolve().parent
 GDP = HERE.parent
 sys.path.insert(0, str(HERE))
-GPUS = ["NVIDIA GeForce RTX 4090", "NVIDIA L4", "NVIDIA RTX A5000", "NVIDIA GeForce RTX 3090", "NVIDIA RTX A4000", "NVIDIA L40S"]
+GPUS = ["NVIDIA GeForce RTX 4090", "NVIDIA L4", "NVIDIA RTX A5000", "NVIDIA GeForce RTX 3090", "NVIDIA RTX A4000", "NVIDIA RTX 2000 Ada Generation",
+        "NVIDIA RTX PRO 4000 Blackwell", "NVIDIA A40", "NVIDIA L40S", "NVIDIA L40", "NVIDIA RTX 6000 Ada Generation", "NVIDIA GeForce RTX 5090"]
 KEY = pathlib.Path.home() / ".runpod" / "ssh" / "runpodctl-ssh-key"
 TEMPLATE = "runpod-ubuntu-2404"
 # NVIDIA's Vulkan ICD as the container has it (libGLX_nvidia) needs an X server; its EGL library doesn't
@@ -116,9 +117,10 @@ class Pod:
         self._ticket()
         self.balance0 = balance()
         errs = []
-        for g in self.gpus:
+        clouds = [c for c in os.environ.get("GDPW_RUNPOD_CLOUDS", "SECURE,COMMUNITY").split(",") if c]
+        for cloud, g in [(c, g) for c in clouds for g in self.gpus]:
             self.t_create = time.time()
-            p = subprocess.run(["runpodctl", "pod", "create", "--name", self.name, "--gpu-id", g, "--template-id", TEMPLATE, "--container-disk-in-gb", str(self.disk),
+            p = subprocess.run(["runpodctl", "pod", "create", "--name", self.name, "--gpu-id", g, "--cloud-type", cloud, "--template-id", TEMPLATE, "--container-disk-in-gb", str(self.disk),
                                 "--env", json.dumps({"NVIDIA_DRIVER_CAPABILITIES": "all"}), "--wait", "--wait-timeout", "6m"], capture_output=True, text=True, timeout=480)
             out = p.stdout + p.stderr
             try:
@@ -128,7 +130,7 @@ class Pod:
             if p.returncode == 0 and d.get("id"):
                 self.id, self.info = d["id"], d
                 self._ticket()
-                log(f"pod {self.id} ({g}, ${d.get('costPerHr')}/h) up after {round(time.time() - self.t_create, 1)} s")
+                log(f"pod {self.id} ({g}, {cloud.lower()} cloud, ${d.get('costPerHr')}/h) up after {round(time.time() - self.t_create, 1)} s")
                 return self
             # made but never reachable (or half made): gone before the next type
             for q in json.loads(rp("pod", "list", "--all", check=False) or "[]"):
@@ -136,8 +138,8 @@ class Pod:
                     self.id = q["id"]
                     self._delete()
             self.id = None
-            errs.append(f"{g}: {out.strip().splitlines()[-1] if out.strip() else p.returncode}")
-            log(f"no {g}: {errs[-1][-200:]}")
+            errs.append(f"{g} ({cloud.lower()}): {out.strip().splitlines()[-1][-160:] if out.strip() else p.returncode}")
+            log(f"no {g} in {cloud.lower()} cloud: {errs[-1][-200:]}")
         self.ticket.unlink(missing_ok=True)
         raise NoCapacity("no GPU pod: " + " | ".join(errs))
 

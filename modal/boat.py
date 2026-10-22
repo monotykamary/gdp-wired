@@ -284,7 +284,7 @@ def retire(d: dict, image: str):
     old = [i for i, v in d["vms"].items() if lease_free(v) and v["snapshot"] not in keep]
     for i in old:
         d["vms"].pop(i)
-        threading.Thread(target=boat, args=("delete", i, "--yes", "--json"), kwargs={"check": False}, daemon=True).start()
+        threading.Thread(target=boat, args=("delete", i, "--yes", "--json"), kwargs={"check": False}, daemon=False).start()
     if old:
         log(f"deleted {len(old)} VMs of superseded images")
 
@@ -335,9 +335,10 @@ def reconcile(d: dict, live: dict):
         s = live.get(i)
         if not s or s.get("state") in ("deleted", "deleting"):
             d["vms"].pop(i)
-        elif s.get("dataExpiredAt") or (s.get("state") == "error" and lease_free(d["vms"][i])):
+        elif s.get("dataExpiredAt") or (s.get("state") in ("error", "stopped") and lease_free(d["vms"][i]) and not s.get("snapshotAvailable")):
+            # (a stopped VM with no snapshot can't be resumed: boat stops a VM that young without one)
             d["vms"].pop(i)
-            threading.Thread(target=boat, args=("delete", i, "--yes", "--json"), kwargs={"check": False}, daemon=True).start()
+            threading.Thread(target=boat, args=("delete", i, "--yes", "--json"), kwargs={"check": False}, daemon=False).start()
         else:
             d["vms"][i]["state"] = s.get("state")
 
