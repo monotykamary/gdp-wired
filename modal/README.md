@@ -96,8 +96,8 @@ run's app):
 | Handwired search `--hand` | RTX 4090, the same results (`runs/backends/gpu/hw-hand-runpod.json`) | L4 (`runs/modal/backends/gpu/hw-hand-l4.json`) |
 
 A boat vCPU is faster than a Modal one (the suite's jobs in 71% of Modal's job time, 60% with `--usual`), so a fixed
-limit (60 s) can let it solve more: that is the machine, not the prover. More tasks reach the hard limit there instead
-of the solver's own answer just before it (timeout: CHC 53 against 8, TIP 136 against 177, ITS 113 against 30).
+limit (60 s) can let it solve more: that is the machine, not the prover. How many tasks reach the hard limit (timeout) rather than the
+solver's own unknown just before it differs too: CHC 53 on boat against 8, ITS 113 against 30, TIP 136 against 177.
 The batches above were sized by the plan's limits of the day ($100: 30 starts a minute, 210 an hour), so a large one
 spends minutes bringing VMs up (`bring_up_s` in each `backends.json`; the TIP one counts the wait for starts too). A `large` VM (8 vCPU) ran the same eight jobs, four at a time, in 1.76
 times the job time of two default VMs, two at a time (`runs/backends/large-test`): per unit of work it costs 1.7 times
