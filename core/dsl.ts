@@ -2422,6 +2422,7 @@ export function crossCheckDecision(d: Decision, opts: {trials?: number, bound?: 
 // With no rank stated, the rank is searched for from the loop's runs (core/cycles.ts's findRank), with the invariants it
 // needs (inferLaws), within `ms` (10 s); the verdict is the kernel's on the rank and the laws found, in `found`.
 export const proveLoop = (l: LoopRule<Obj, Obj, Obj>, laws: Law[], opts: {ms?: number} = {}): Verdict => {
+  if (cyclicOn() || certOn()) console.error(`cyclic: ${JSON.stringify({kind: 'loop', name: l.loop.name, uncovered: true, why: 'a claim about runs that never end'})}`)
   if (l.hasRank) return goalsVerdict(loopObligations(l.loop, laws, l.rankTerms))
   const out = findRank(l.loop, laws, opts)
   return {proven: out.proven, checked: out.checked, ...(out.trees ? {trees: out.trees} : {}), ...(out.goal ? {goal: out.goal, stuck: out.stuck} : {}), ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {}),

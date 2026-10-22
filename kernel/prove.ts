@@ -1056,6 +1056,8 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
   else if (certOn() && why && out.proven) console.error(`cyclic: ${JSON.stringify({kind: 'machine', name: m.name, cert: true, uncovered: true, why})}`)
   return out
 }
+// A proof of a kind no cyclic instance covers, counted (`cyclic: {..., uncovered: true}`).
+const uncovered = (kind: string, name: string, why: string) => console.error(`cyclic: ${JSON.stringify({kind, name, uncovered: true, why})}`)
 // Whether the usual proof's trees are checked (off while GDP_CERT=cyclic makes the certificate a cyclic proof).
 export const usualCheck = {on: true}
 // The last machine proof made (core/dsl.ts's recurrences read their machine's, to translate it: core/cyclic.ts).
@@ -1171,6 +1173,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
     leaves += countLeaves(out.tree)
   }
   const proof = {laws: base.proof, instances, ...(Object.keys(perStep).length ? {perStep} : {}), trees}
+  if (cyclicOn() || certOn()) uncovered('step laws', m.name, stepLaws.map(sl => ((sl.steps ?? 1) > 1 ? `${sl.steps}-step` : 'one step')).join(', '))
   return {proven: true, nodes, leaves, checked: checkStepLaws(m, laws, stepLaws, proof), proof}
 }
 // Progress (kernel.ts's progressObligations): the laws proven first, then each goal, the every-key laws assumed at every
@@ -1189,12 +1192,14 @@ export function proveProgress(m: Machine, laws: Law[], p: {name: string, when: C
     nodes += out.nodes
     leaves += countLeaves(out.tree)
   }
+  if (cyclicOn() || certOn()) uncovered('progress', m.name, 'a request allowed')
   return {proven: true, nodes, leaves, checked: progressObligations(m, ls, instances, p).every(g => check(g, trees[g.name]!)), instances, trees}
 }
 // Liveness (kernel.ts's livenessParts): its step laws, proven together. The claim needs no more (a run takes the
 // request, so it is allowed); but a request never allowed would leave the claim about no run, so where a helpful request
 // names every input a client sends and carries no maps, it is proven allowed in its region too.
 export function proveLiveness(m: Machine, laws: Law[], l: Liveness): Report & {steps?: ReturnType<typeof proveStepLaws>} {
+  if (cyclicOn() || certOn()) uncovered('liveness', m.name, 'a claim about runs that never end')
   const {stay, cover, helps} = livenessParts(m, l)
   const a = proveStepLaws(m, laws, [stay, cover, ...helps])
   if (!a.proven || !a.checked) return {proven: false, nodes: a.nodes, leaves: a.leaves, ...(a.failed ? {failed: a.failed} : {}), checked: false}
