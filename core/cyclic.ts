@@ -1099,6 +1099,9 @@ export function foldNodes(f: Fold, laws: Law[], usual?: Record<string, Tree>, st
 const env = () => (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
 let quiet = 0
 export const cyclicOn = () => quiet === 0 && env()?.GDP_CYCLIC === '1'
+// The `cyclic: {...}` lines research/cyclic/ratios.ts reads, printed only with GDP_CYCLIC=1 (the cross-check) or
+// GDP_CYCLIC_LOG=1 (modal/run.py sets it): a user's proofs print nothing.
+export const cycLog = (o: object) => { if (env()?.GDP_CYCLIC === '1' || env()?.GDP_CYCLIC_LOG === '1') console.error(`cyclic: ${JSON.stringify(o)}`) }
 // A search's many trial proofs (core/discover.ts, core/infer.ts) aren't compared: what it finds is proven again.
 export const quietly = <T>(f: () => T): T => { quiet++; try { return f() } finally { quiet-- } }
 // GDP_CYCLIC_ROUTE: `translate` (the default) makes the cyclic proof of what the usual route proved by translating the
@@ -1139,7 +1142,7 @@ export function crossCyclic(kind: string, name: string, usual: boolean, run0: ((
   const prof = profOn() ? {prof: Object.fromEntries(Object.entries(cyclicProf).map(([key, p]) => [key, Object.fromEntries(Object.entries(p).map(([f, x]) => [f, Math.round(x)]))]))} : {}
   let search: {searchMs: number, searchCyclic: boolean} | undefined
   if (route === 'both' && run0) { const s0 = performance.now(), o = run0(); search = {searchMs: Math.round(performance.now() - s0), searchCyclic: o.proven && o.checked} }
-  console.error(`cyclic: ${JSON.stringify({kind, name, usual, cyclic, ms, ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {}), ...search, ...prof, ...(out.proven ? {nodes: out.proof.nodes.length, ...(out.why ? {why: out.why} : {})} : {goal: out.goal, stuck: out.stuck})})}`)
+  cycLog({kind, name, usual, cyclic, ms, ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {}), ...search, ...prof, ...(out.proven ? {nodes: out.proof.nodes.length, ...(out.why ? {why: out.why} : {})} : {goal: out.goal, stuck: out.stuck})})
   const lax = env()?.GDP_CYCLIC_LAX === '1'
   if (cyclic !== usual && !lax) throw new Error(`cyclic route: ${kind} ${name} is ${cyclic ? 'proven' : 'not proven'} as a cyclic proof, ${usual ? 'proven' : 'not proven'} the usual way${out.proven ? (out.why ? ` (${out.why})` : '') : ` (${out.goal}: ${out.stuck})`}`)
   if (search && search.searchCyclic !== usual && !lax) throw new Error(`cyclic route: ${kind} ${name} is ${search.searchCyclic ? 'proven' : 'not proven'} as a cyclic proof searched, ${usual ? 'proven' : 'not proven'} the usual way`)
@@ -1147,8 +1150,8 @@ export function crossCyclic(kind: string, name: string, usual: boolean, run0: ((
 
 // The certificate of every proof the instances above cover is the cyclic one (GDP_CERT=usual: the usual trees, as
 // before 0.19.0), made from the usual proof (translated, searched where that fails) and checked by kernel/cyclic.ts; the
-// usual trees are then the translation's input, not checked again (kernel/prove.ts, core/dsl.ts). Each prints a line
-// `cyclic: {..., cert: true}`.
+// usual trees are then the translation's input, not checked again (kernel/prove.ts, core/dsl.ts). Each logs a line
+// `cyclic: {..., cert: true}` (cycLog).
 export const certOn = () => quiet === 0 && env()?.GDP_CERT !== 'usual'
 // With GDP_CERT=cyclic, what no translation covers (flags that hold at every key, k-step laws over a map) gets a searched
 // certificate too where GDP_CERT_SEARCH=1, each within GDP_CERT_MS (10 s by default), and keeps the usual one where none
@@ -1165,7 +1168,7 @@ export function certCyclic(kind: string, name: string, translated: Translated | 
   }
   out ??= run()
   const checked = out.proven && out.checked
-  console.error(`cyclic: ${JSON.stringify({kind, name, cert: true, usual: true, cyclic: checked, ms: Math.round(performance.now() - t0), ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {})})}`)
+  cycLog({kind, name, cert: true, usual: true, cyclic: checked, ms: Math.round(performance.now() - t0), ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {})})
   return {checked, ...(out.proven ? {proof: out.proof} : {})}
 }
 

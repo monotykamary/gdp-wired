@@ -17,6 +17,10 @@ failed (`runs/modal/flip/default`); with `--usual` 517.7 s and 3,653.4 s, one fa
 found within its budget (`runs/modal/flip/usual`), which proves it, and reads no certificate, in five runs of five
 (`runs/modal/flip/data5-usual`).
 
+A user's proofs print nothing: the `cyclic: {...}` lines research/cyclic/ratios.ts reads come only with GDP_CYCLIC=1 or
+GDP_CYCLIC_LOG=1 (modal/run.py sets it). scripts/smoke.sh checks the cyclic export of a machine with sets
+(`cyc_qmachine_sound`) and, with `toLean`'s `cyclic: false`, the usual one.
+
 - `core/translate.ts`: a usual goal's tree read over a cyclic node's goal. Each column of the usual goal is a linear
   form of the node's (`renamer`: a state variable s as s@[t − 1], a map's cell M[k] as M@[(t − 1) + k·Ω], a fresh key
   k# as k, a term column as its term substituted, a monomial as its factors'), each split the renamed split (one the
