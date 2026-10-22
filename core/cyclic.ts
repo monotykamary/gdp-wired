@@ -454,10 +454,12 @@ function withReads(facts: Fact[], specs: NodeSpec[], nodes: NodeSpec[] = specs):
 // read from a map of the state (a table of nodes: a node's fold at its child), whose cells a run's maps put at keys
 // the prover would have to prove equal through products (`machineNodes` proves those laws far slower than the usual
 // rule, past its budget: research/cyclic/probe.ts).
-export const cyclicMachine = (m: Machine, laws: Law[] = []): boolean => {
+export const cyclicMachine = (m: Machine, laws: Law[] = []): boolean => uncoveredWhy(m, laws) === undefined
+// Why a machine's laws are no instance's (undefined where they are one).
+export const uncoveredWhy = (m: Machine, laws: Law[] = []): string | undefined => {
   const maps = Object.keys(m.maps ?? {})
   const nested = (t: unknown): boolean => { let found = false; const walk = (x: unknown, inKey: boolean): void => { if (found || !x || typeof x !== 'object') return; const o = x as Record<string, unknown>; if (o.op === 'get' && inKey && maps.includes(o.map as string)) { found = true; return } if (o.op === 'get') { walk(o.key, true); return } for (const val of Object.values(o)) walk(val, inKey) }; walk(t, false); return found }
-  return !m.history && !Object.values(m.step.flags ?? {}).some(c => c.op === 'all') && !laws.some(l => nested(l.holds))
+  return m.history ? 'a history' : Object.values(m.step.flags ?? {}).some(c => c.op === 'all') ? 'a flag at every key' : laws.some(l => nested(l.holds)) ? 'a law reading a map at a key read from a map' : undefined
 }
 
 // The run as maps over time: names at time u read as their maps there.
@@ -828,4 +830,21 @@ export function crossCyclic(kind: string, name: string, usual: boolean, run: () 
   const lax = env()?.GDP_CYCLIC_LAX === '1'
   if (cyclic !== usual && !lax) throw new Error(`cyclic route: ${kind} ${name} is ${cyclic ? 'proven' : 'not proven'} as a cyclic proof, ${usual ? 'proven' : 'not proven'} the usual way${out.proven ? (out.why ? ` (${out.why})` : '') : ` (${out.goal}: ${out.stuck})`}`)
   if (search && search.searchCyclic !== usual && !lax) throw new Error(`cyclic route: ${kind} ${name} is ${search.searchCyclic ? 'proven' : 'not proven'} as a cyclic proof searched, ${usual ? 'proven' : 'not proven'} the usual way`)
+}
+
+// GDP_CERT=cyclic: the certificate of every proof the instances above cover is the cyclic one, made from the usual proof
+// (translated, searched where that fails) and checked by kernel/cyclic.ts; the usual trees are then the translation's
+// input, not checked again (kernel/prove.ts, core/dsl.ts). Each prints a line `cyclic: {..., cert: true}`.
+export const certOn = () => quiet === 0 && env()?.GDP_CERT === 'cyclic'
+export function certCyclic(kind: string, name: string, translated: Translated | undefined, run: () => CyclicVerdict, usualMs?: number): {checked: boolean, proof?: Cyclic} {
+  const st = tstats(), t0 = performance.now()
+  let out: CyclicVerdict | undefined, how = 'searched', why: string | undefined
+  if (translated) {
+    const r = translated(st)
+    if (r.verdict?.proven && r.verdict.checked) { out = r.verdict; how = 'translated' } else { how = 'fallback'; why = r.why ?? (r.verdict && !r.verdict.proven ? `${r.verdict.goal}: ${r.verdict.stuck}` : r.verdict?.why) }
+  }
+  out ??= run()
+  const checked = out.proven && out.checked
+  console.error(`cyclic: ${JSON.stringify({kind, name, cert: true, usual: true, cyclic: checked, ms: Math.round(performance.now() - t0), ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {})})}`)
+  return {checked, ...(out.proven ? {proof: out.proof} : {})}
 }

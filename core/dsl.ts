@@ -19,7 +19,7 @@ import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type M
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type StepLaw, type Tree, check, foldObligations, loopObligations} from '../kernel/kernel.ts'
 import {factsFor, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline} from '../kernel/prove.ts'
-import {type Translated, type UsualProof, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedCache} from './cyclic.ts'
+import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedCache} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
 import {cycleLemmas, findRank} from './cycles.ts'
@@ -1257,7 +1257,7 @@ export const recur = <const A extends string = never, U extends Record<string, F
   // The usual proofs, to translate (core/cyclic.ts's recurNodes): the lemmas' machine's, the laws between's.
   let lemmaProof: UsualProof | undefined
   const translatedRecur = (u: {lemmas?: UsualProof, between?: UsualProof}): Translated | undefined => (u.lemmas || !stated.length)
-    ? st => { const {facts, specs, why} = recurNodes(recurCase(u.between ? pairs : []), u, st); return why ? {why} : {verdict: proveCyclic(facts, specs, undefined, translatedCache)} } : undefined
+    ? st => { const {facts, specs, why} = recurNodes(recurCase(u.between ? pairs : []), u, st); return why ? {why} : {verdict: proveCyclic(facts, specs, undefined, translatedCache, st)} } : undefined
   if (stated.length) {
     // A start that reads a function is a param given as that start by a fact (a start reads the params alone).
     const zeroReads = JSON.stringify(zero).includes('"op":"get"')
@@ -1272,6 +1272,7 @@ export const recur = <const A extends string = never, U extends Record<string, F
     verdict = quietly(() => proveRule(r as never, laws, {search: false}))
     lemmaProof = usualProof.last
     if (cyclicOn()) crossCyclic('recurrence', name, verdict.proven && verdict.checked, () => { const {facts, specs} = recurNodes(recurCase([])); return proveCyclic(facts, specs) }, performance.now() - t0, translatedRecur({lemmas: lemmaProof}))
+    if (certOn() && verdict.proven && verdict.checked) verdict = {...verdict, checked: certCyclic('recurrence', name, translatedRecur({lemmas: lemmaProof}), () => { const {facts, specs} = recurNodes(recurCase([])); return proveCyclic(facts, specs) }, performance.now() - t0).checked}
     failed('lemmas', verdict)
     proofs.lemmas = {machine: (r as Rule).machine, laws}
   }
@@ -1309,6 +1310,7 @@ export const recur = <const A extends string = never, U extends Record<string, F
     usualProof.last = undefined
     const t0 = performance.now(), v = quietly(() => proveRule(r as never, laws, {search: false})), usualMs = performance.now() - t0, betweenProof = usualProof.last
     if (cyclicOn()) crossCyclic('recurrence, between', name, v.proven && v.checked, () => { const {facts, specs} = recurNodes(recurCase(pairs)); return proveCyclic(facts, specs) }, usualMs, betweenProof && translatedRecur({lemmas: lemmaProof, between: betweenProof}))
+    if (certOn() && v.proven && v.checked) v.checked = certCyclic('recurrence, between', name, betweenProof && translatedRecur({lemmas: lemmaProof, between: betweenProof}), () => { const {facts, specs} = recurNodes(recurCase(pairs)); return proveCyclic(facts, specs) }, usualMs).checked
     failed('laws between two points', v)
     proofs.between = {machine: (r as Rule).machine, laws}
     verdict = {proven: true, checked: verdict.checked && v.checked}
@@ -2273,14 +2275,14 @@ export class Unproven extends Error {
     super(`${what}: ${verdict.proven ? 'proven, but the kernel did not check the proof' : `not proven${found ? ` (${found})` : ''}`}`)
   }
 }
-const goalsVerdict = (goals: Goal[]): Verdict => {
+const goalsVerdict = (goals: Goal[], checkIt = true): Verdict => {
   const trees: Record<string, Tree> = {}
   for (const g of goals) {
     const out = grow(g)
     if (!('tree' in out)) return {proven: false, checked: false, goal: g.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}
     trees[g.name] = out.tree
   }
-  return {proven: true, checked: goals.every(g => check(g, trees[g.name]!)), trees}
+  return {proven: true, checked: !checkIt || goals.every(g => check(g, trees[g.name]!)), trees}
 }
 // The kinds' laws first, those the caller didn't pass already (by name).
 const withKinds = (r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[]): Law[] => [...r.kindLaws().filter(k => !laws.some(l => l.name === k.name)), ...laws]
@@ -2533,9 +2535,11 @@ export class FoldRule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}
 export const fold = (name: string): FoldRule => new FoldRule({name, params: [], inputs: [], pre: [], assume: []})
 // A fold's laws proven over every tree (a rose fold's own laws, its children's lemmas, with them).
 export const proveFold = (f: {fold: Fold, lemmas?: Law[]}, laws: Law[]): Verdict => {
-  const all = [...(f.lemmas ?? []), ...laws], t0 = performance.now(), v = goalsVerdict(foldObligations(f.fold, all)), usualMs = performance.now() - t0
+  // (GDP_CERT=cyclic: the certificate a cyclic proof, core/cyclic.ts's certCyclic, the usual trees its input)
+  const all = [...(f.lemmas ?? []), ...laws], t0 = performance.now(), v = goalsVerdict(foldObligations(f.fold, all), !certOn()), usualMs = performance.now() - t0
   if (cyclicOn()) crossCyclic('fold', f.fold.name, v.proven && v.checked, () => { const {facts, specs} = foldNodes(f.fold, all); return proveCyclic(facts, specs) }, usualMs,
-    v.trees && (st => { const {facts, specs, why} = foldNodes(f.fold, all, v.trees, st); return why ? {why} : {verdict: proveCyclic(facts, specs, undefined, translatedCache)} }))
+    v.trees && (st => { const {facts, specs, why} = foldNodes(f.fold, all, v.trees, st); return why ? {why} : {verdict: proveCyclic(facts, specs, undefined, translatedCache, st)} }))
+  if (certOn() && v.proven) v.checked = certCyclic('fold', f.fold.name, v.trees && (st => { const {facts, specs, why} = foldNodes(f.fold, all, v.trees, st); return why ? {why} : {verdict: proveCyclic(facts, specs, undefined, translatedCache, st)} }), () => { const {facts, specs} = foldNodes(f.fold, all); return proveCyclic(facts, specs) }, usualMs).checked
   return v
 }
 
