@@ -40,7 +40,7 @@ function localize(rows: {lin: Lin}[], steps: Step[]): {inputs: Lin[], steps: Ste
 // A node of the refutation: a leaf (its decisions, by variable, and a derivation over the rows at its path) or a
 // resolution of two earlier nodes on a variable (`res[0]` the one with the atom as stored true, `res[1]` false).
 type DagNode = {inputs: Lin[], steps: Step[]} | {res: [number, number], on: Lin}
-type Var = {lin: Lin, val?: boolean, level: number, reason?: number, at: number, act: number, phase: boolean}
+type Var = {lin: Lin, terms: [string, number][], val?: boolean, level: number, reason?: number, at: number, act: number, phase: boolean}
 type Clause = {lits: Map<string, boolean>, node: number}
 // GDP_CDCL_LP=0: each node solved by elimination alone (no simplex); GDP_CDCL_FILL (8): the simplex's tableau begun
 // again past this many entries a row the node reads (research/step's comparisons).
@@ -60,7 +60,7 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
   // An atom as a variable: the stored form is the one whose canonical text is the variable's name (the smaller).
   const ensure = (lin: Lin): string => {
     const a = canon(lin), b = canonFlip(lin), flip = b < a, key = flip ? b : a
-    if (!vars.has(key)) vars.set(key, {lin: flip ? atomOf(lin, false).lin : lin, level: -1, at: -1, act: 0, phase: !flip})
+    if (!vars.has(key)) { const stored = flip ? atomOf(lin, false).lin : lin; vars.set(key, {lin: stored, terms: Object.entries(stored).filter(([x0]) => x0 !== '1'), level: -1, at: -1, act: 0, phase: !flip}) }
     return key
   }
   // The root's own decisions are level 0, with no reason: they stay in every clause (the tree starts below them).
@@ -212,8 +212,7 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
           const side = (val: boolean): number[] | undefined => { // the rows that force the stored atom to `val`
             let sum = x.lin['1'] ?? 0
             const used: number[] = []
-            for (const [x0, c] of Object.entries(x.lin)) {
-              if (x0 === '1') continue
+            for (const [x0, c] of x.terms) {
               const b = (c > 0) === val ? hi.get(x0) : lo.get(x0)
               if (!b) return undefined
               sum += c * b[0]; used.push(b[1])

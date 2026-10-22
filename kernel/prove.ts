@@ -190,6 +190,8 @@ export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number,
   return out
 }
 // The share of a root goal's budget, past the capped plain search, the CDCL search gets (GDP_CDCL_SHARE; 0 turns it off).
+// The quick search's nodes (GDP_QUICK_CAP, research/step's comparison).
+const quickCap = Number((globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_QUICK_CAP ?? 64)
 const cdclShare = Number((globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_CDCL_SHARE ?? 0.75)
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
   // At the root: plainly first; where the cases multiply past a budget, through cuts. The plain budget halves with each
@@ -198,7 +200,7 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
     // A goal that a few cases settle needs no units (finding them costs a Farkas check per atom); the rest get them.
     unitsNow = false
     try {
-      const quick = growPlain(goal, path, {nodes: 0, until: budget.until, cap: 64})
+      const quick = growPlain(goal, path, {nodes: 0, until: budget.until, cap: quickCap})
       if ('tree' in quick || quick.stuck === 'sat' || quick.why === undefined) return quick
     } finally { unitsNow = true }
   }

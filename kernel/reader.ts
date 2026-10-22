@@ -43,6 +43,7 @@ function times(a: Lin, b: Lin): Lin | undefined {
   return add(...out)
 }
 const one = k(1)
+const namePair = new WeakMap<Lin, [string, string]>()
 const constantLin = (l: Lin) => Object.entries(l).every(([key, c]) => key === '1' || c === 0)
 
 // The last value made from some parts, made again only when a part is a different object: a node's linear forms are
@@ -80,9 +81,11 @@ export class Reader {
     let constant = true
     for (const key in lin) if (key !== '1') { constant = false; break }
     if (constant) return {...R0, t: (lin['1'] ?? 0) <= 0}
-    const a = canon(lin), x = this.trail.get(a)
+    let names = namePair.get(lin)
+    if (!names) namePair.set(lin, (names = [canon(lin), canonFlip(lin)]))
+    const [a, f] = names, x = this.trail.get(a)
     if (x && x.val !== undefined) return {t: x.val, w: this.unit(a), pos: x.at, fin: true}
-    const f = canonFlip(lin), y = this.trail.get(f)
+    const y = this.trail.get(f)
     if (y && y.val !== undefined) return {t: !y.val, w: this.unit(f), pos: y.at, fin: true}
     return {t: undefined, w: none, pos: -1, fin: false}
   }

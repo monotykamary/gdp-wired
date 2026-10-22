@@ -3,7 +3,7 @@
     modal run research/step/modal_step.py --jobs <jobs.json> --out runs/step/<name>
 
 Modal only: the jobs read research/dag's dumped step goals (runs/modal/dag/goals/, mounted at /goals), the table's
-(runs/step/goals223/, at /goals223), the CHC-COMP'26 LIA-Lin benchmarks at compare/'s pinned commit (/chc) and Spacer's
+(runs/step/goals223/, at /goals223), any other goals kept for a profile (runs/step/extra/, at /extra), the CHC-COMP'26 LIA-Lin benchmarks at compare/'s pinned commit (/chc) and Spacer's
 models of the sat gap tasks (/data/spacer-models.jsonl), none of which modal/run.py's tree carries. jobs.json is a list
 of {"name", "cmd", "limit"?, "collect"?}: cmd runs under bash in /work/gdp-wired (this tree, mounted fresh), killed at
 `limit` seconds (default 120) by `timeout -s KILL`; `collect`, a directory, has its files returned and written under
@@ -38,6 +38,7 @@ for p in sorted(root.rglob('*'), reverse=True):
 """
 GOALS = GDP / "runs" / "modal" / "dag" / "goals"
 GOALS223 = GDP / "runs" / "step" / "goals223"
+EXTRA = GDP / "runs" / "step" / "extra"
 MODELS = GDP.parent / "gdp-wired" / "runs" / "modal" / "chc2" / "spacer-models-sat" / "models.jsonl"
 
 image = (
@@ -61,6 +62,8 @@ if GOALS.exists():
     image = image.add_local_dir(GOALS, "/goals")
 if GOALS223.exists():
     image = image.add_local_dir(GOALS223, "/goals223")
+if EXTRA.exists():
+    image = image.add_local_dir(EXTRA, "/extra")
 app = modal.App("gdp-wired-step", image=image)
 
 
