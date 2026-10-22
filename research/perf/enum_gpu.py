@@ -81,12 +81,12 @@ def run() -> dict:
     return {**info, "bend": bend, "ours": ours, "oursWholeProcess": whole}
 
 
-@app.function(gpu="H100", timeout=900, cpu=8.0)
+@app.function(scaledown_window=2, gpu="H100", timeout=900, cpu=8.0)
 def h100() -> dict:
     return run()
 
 
-@app.function(gpu="L4", timeout=900, cpu=8.0)
+@app.function(scaledown_window=2, gpu="L4", timeout=900, cpu=8.0)
 def l4() -> dict:
     return run()
 

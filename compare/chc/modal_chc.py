@@ -78,7 +78,7 @@ def command(tool: str, task: str, limit: int) -> list[str]:
     raise ValueError(tool)
 
 
-@app.function(cpu=2.0, memory=4096, timeout=3600)
+@app.function(scaledown_window=2, cpu=2.0, memory=4096, timeout=3600)
 def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]:
     import shutil
     import subprocess
@@ -121,7 +121,7 @@ def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]
     return rows
 
 
-@app.function(timeout=600)
+@app.function(scaledown_window=2, timeout=600)
 def tasks() -> list[dict]:
     import re
 
