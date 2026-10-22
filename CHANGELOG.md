@@ -3,6 +3,39 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+`proveData` takes a user's own recursive arithmetic and wrappers: TIP 2015 (492 theorems, 60 s each, 2 vCPU) 137
+proven, was 73, none wrong; 17 of the 68 `false/` properties refuted as before, each confirmed by TIP's evaluator
+(`runs/modal/cheap/tip3`, cvc5's and Vampire's rows from `runs/modal/tip/full2` in `runs/modal/cheap/tip3-with-full2`:
+cvc5 168, with conjecture generation 187, Vampire 189). The datatype corpus unchanged: 15 of 15 laws proven and the 15
+broken variants refused (`runs/modal/cheap/corpus2` against
+`runs/modal/dataplus/corpus1`). The suite: 195 jobs, none failed, 574.2 s wall, 4,242.3 s of job time
+(`runs/modal/cheap/suite1`).
+
+- Through the built-ins (`core/transfer.ts`): a recursive function of one or two naturals that computes a built-in
+  (+, ∸, min, max, ≤, <, =, ≥, >, ≠, x + 1, x ∸ 1, 2·x, x = 0) at every argument up to 6 is a candidate, found by its
+  values, and used only once its bridge law (`plus(a, b) = a + b` at every a, b) is proven by `proveData` itself; a
+  function that reaches it is copied with the built-in in its place and its copy law proven (a node made from the two
+  bodies, else the search). The law said through them is proven by the search, and the law as stated by one more node
+  that uses it, the bridges and copy laws at its calls, and the congruences between them: one cyclic proof the kernel
+  checks, which Lean reads as any other (`lean-data-6`: `leq(n, plus(n, m))`, `geq(x, x)`, a count by the user's own
+  `=`, a law by cases, each a theorem about the Lean definitions). `isaplanner/prop_21` (`n ≤ n + m`, both recursive)
+  was given up after 57 attempts in 5.79 s; now 0.26 s. A candidate that agrees on small values only isn't bridged
+  (its bridge isn't proven). The verdict's `through` names what a proof went through; `transfer: false` keeps the law
+  as stated.
+- Unfolding: a function that isn't recursive is its body wherever the law reaches it (the law, and the copies),
+  before the induction is chosen (`geq x y = leq y x`); a law that would grow past eight times its size so isn't.
+- Cases without induction: where nothing else proves a law, its cases on each variable, its definitions unfolded
+  (`isaplanner/prop_17`, `(n ≤ 0) = (n = 0)`); a law no scheme applies to gets the attempt without induction first.
+- Evaluation within bounds: a natural past 2^53 throws `EvalLimit` (a RangeError) instead of losing precision, and in
+  the search so do calls nested past 1,000 or past 20,000 in one evaluation; `refute` skips such a sample instead of
+  throwing (recursive powers and factorials: 4 TIP tasks no longer errors). `programOf` collects a datatype read only
+  through a constructor, a match or a test (a law with its definitions unfolded).
+- Of TIP's diagnostic classes, all 48 `--native` ones are proven now, all 6 `--inline` ones, the `--today` one, and 10
+  no diagnostic proved; 1 proven before is lost within 60 s (`prod/prop_25`: its law through `+` takes the time the law
+  as stated needed). `compare/tip`'s `--native` and `--inline` do nothing now; `--no-transfer` is the law as stated.
+
 ## 0.20.0
 
 The frontier corpus proven in full: 81 of 81 items where the library alone proves none, every broken variant refused
