@@ -824,14 +824,15 @@ export function stepLawNodes(m: Machine, laws: Law[], steps: {law: StepLaw, inst
 // at time t, the request the run takes at t the claim's (no step reads it): the precondition, t <= T, T < Ω, `w` at t,
 // each carried map's cell the assumption reads at t 0, every law at t (rank (t, 2) above theirs), the run's facts at t;
 // its conclusion the assumption at t, flags inlined.
-export function allowNode(m: Machine, laws: Law[], inst: Instances, w: C, facts: Fact[], lawNodes: NodeSpec[], name: string): NodeSpec {
+export function allowNode(m: Machine, laws: Law[], inst: Instances, w: C, facts: Fact[], lawNodes: NodeSpec[], name: string, extra: NodeSpec['insts'] = []): NodeSpec {
   const {at} = trace(m), flags = flagsOf(m), t = v('t$'), T = v('T$'), mapNames = Object.keys(m.maps ?? {}), carried = m.inputMaps ?? []
   const traced = [...mapNames, ...carried], state = Object.keys(m.state), now = at(t)
   const fi = (n: string) => facts.findIndex(f => f.name === n)
   const keysOf = (l: Law) => [...(l.forall ? [l.forall] : []), ...(l.keys ?? [])]
   const tuples = (l: Law): E[][] => { const ks = keysOf(l), flat = inst[l.name] ?? []; return ks.length ? Array.from({length: Math.floor(flat.length / ks.length)}, (_, i) => flat.slice(i * ks.length, (i + 1) * ks.length)) : [[]] }
   const concl = substC(substC(m.assume ?? yes, {vars: {}, maps: {}, flags}), now)
-  // Each carried cell the conclusion reads at t: 0 (the request carries empty sets).
+  // Each carried cell the conclusion and the facts given at t read there (a flag's body at its witness, say): 0 (the
+  // request carries empty sets).
   const zeros: C[] = [], seen = new Set<string>()
   const walk = (x: unknown): void => {
     if (!x || typeof x !== 'object') return
@@ -842,12 +843,12 @@ export function allowNode(m: Machine, laws: Law[], inst: Instances, w: C, facts:
     }
     for (const val of Object.values(o)) walk(val)
   }
-  walk(concl)
+  walk([concl, instHyps(facts, extra)])
   const hyps: C[] = [...(m.pre ? [m.pre] : []), le(t, T), ...(traced.length ? [{op: '<', a: T, b: omega} as C] : []), substC(w, now), ...zeros]
   const uses: NodeSpec['uses'] = laws.flatMap((l, i) => tuples(l).map(ts => ({node: i, subst: Object.fromEntries(keysOf(l).map((kn, q) => [kn, substE(ts[q]!, now)])), guard: yes})))
   const insts: NodeSpec['insts'] = [{fact: fi(`${m.name}: the start`), at: [t]}, {fact: fi(`${m.name}: a step`), at: [t]},
     ...state.map(st => ({fact: fi(`${m.name}: ${st} is a natural`), at: [t]})), {fact: fi(`${m.name}: params are naturals`), at: []},
-    ...(m.facts ?? []).flatMap(f => tuples(f).map(ts => ({fact: fi(f.name), at: ts.map(e => substE(e, now))})))]
+    ...(m.facts ?? []).flatMap(f => tuples(f).map(ts => ({fact: fi(f.name), at: ts.map(e => substE(e, now))}))), ...extra]
   // Each map cell read at t: its start, its step and that it is a natural there.
   const cells = new Set<string>()
   const cellWalk = (x: unknown): void => {

@@ -813,8 +813,8 @@ function cycMachineProof(m: Machine, laws: Law[], allSteps: StepLaw[], allows: {
       const before = specs, out: {node: number, wit: [string, E][]}[] = []
       for (const a of group) {
         const found = withWitness(m, a.request, wit => {
-          const spec = closing(allowNode(mm, laws, r.proof!.instances, {op: 'and', xs: [a.when, reqTS(wit)]}, base.facts, base.specs, `${m.name}: allowed`),
-            base.facts, [r.proof!.instances], [{op: 'var', name: 't$'}])
+          const spec = allowNode(mm, laws, r.proof!.instances, {op: 'and', xs: [a.when, reqTS(wit)]}, base.facts, base.specs, `${m.name}: allowed`,
+            q ? closingInsts(m, base.facts, [r.proof!.instances, ...Object.values(lp.instances)], [{op: 'var', name: 't$'}], laws) : [])
           const v2 = proveCyclic(base.facts, [...specs, spec])
           return v2.proven && v2.checked ? {spec, v2} : undefined
         })
@@ -846,7 +846,7 @@ export function cycMachineToLean(id: string, given: Machine, laws: Law[], opts: 
   const rfStep: StepLaw | undefined = rf && {...rf.step, when: undefined, then: {op: 'or', xs: [rf.stutter, substC(rf.spec.assume ?? trueC, {vars: Object.fromEntries(Object.entries(rf.wit).map(([inp, t2]) => [`b_${inp}`, t2])), maps: {},
     flags: Object.fromEntries(Object.keys(m.step.flags ?? {}).map(f => [f, {op: 'flag', name: f} as C]))})]}}
   const allSteps = [...(rfStep ? [rfStep] : stepLaws), ...lives.flatMap(x => [x.stay, x.cover, ...x.helps])]
-  const made = cycMachineProof(m, laws, allSteps, lp0 ? [] : lives.map(x => x.helps.map((hs, i) => ({when: hs.when as C, request: livenessHelpful(x.l)[i]!.request}))))
+  const made = cycMachineProof(m, laws, allSteps, lives.map(x => x.helps.map((hs, i) => ({when: hs.when as C, request: livenessHelpful(x.l)[i]!.request}))))
   if ('why' in made) return made
   const {p, L, allowAt} = made
   const named = machineNames(m, laws, allSteps, stepLaws, {...(opts.free ? {free: opts.free} : {}), ...(hm ? {record: hm.history.record} : {})})
