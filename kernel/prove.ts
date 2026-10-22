@@ -9,9 +9,9 @@
 //   - a hypothesis' rows and open atoms, and every term inside them, are reused from an earlier path that decided the
 //     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
 import type {C, E, Law, Machine} from '../core/machine.ts'
-import {type Lin, type Step, add, k, refuteFast, scale, solve, sub, v} from '../core/solver.ts'
+import {type Lin, type Step, add, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
-import {allowNode, certCyclic, certMs, certOn, certSearch, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
+import {allowNode, allowTranslated, certCyclic, certMs, certOn, certSearch, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
 import type {TStats} from '../core/translate.ts'
 import {type Goal, type Instances, type Liveness, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
@@ -151,6 +151,18 @@ export type Outcome = {tree: Tree, nodes: number} | {stuck: 'sat' | 'unknown', w
 // A deadline every goal grown inside `withDeadline` keeps, beside its own budget: a search that proves many things (core/
 // infer.ts, core/discover.ts, the search proveRule falls back on) bounds them all; a goal past it is left `unknown`.
 let deadline = Infinity
+// The clock every budget here reads (grow's `until`, withDeadline's; core/cyclic.ts's and core/data.ts's searches): wall
+// time, or within `counted` the work the prover has done (the solver's rows read and made, each node's rows), `perMs`
+// units a millisecond, so that what a search's budget lets it try, and so its verdict, doesn't depend on the machine's
+// speed. A counted search inside another reads the outer's clock.
+let rate = 0
+export const clock = (): number => (rate ? work.n / rate : performance.now())
+export function counted<T>(perMs: number, f: () => T): T {
+  if (rate) return f()
+  const outer = deadline
+  rate = perMs; deadline = Infinity
+  try { return f() } finally { rate = 0; deadline = outer }
+}
 export function withDeadline<T>(until: number, f: () => T): T {
   const outer = deadline
   deadline = Math.min(outer, until)
@@ -158,7 +170,7 @@ export function withDeadline<T>(until: number, f: () => T): T {
 }
 // `units: false`: the goal's own order, no units first (a caller after a model, not a proof: a run guided by the
 // prover's witnesses, say, whose models units would steer).
-export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number, until?: number, units?: boolean} = {nodes: 0, until: performance.now() + Math.max(20_000, 1_000 * goal.hyps.length)}): Outcome {
+export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number, until?: number, units?: boolean} = {nodes: 0, until: clock() + Math.max(20_000, 1_000 * goal.hyps.length)}): Outcome {
   if (deadline < (budget.until ?? Infinity)) budget.until = deadline
   if (budget.units === false && unitsNow) { unitsNow = false; try { return grow(goal, path, budget) } finally { unitsNow = true } }
   if (proveDump && !path.size && !budget.nodes) { proveDump(goal); }
@@ -196,10 +208,11 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
 function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: number, cap?: number}): Outcome {
   if (budget.cap !== undefined && budget.nodes >= budget.cap) return {stuck: 'unknown', path, why: 'cap'}
   if (profile.on) profile.nodes++
-  if (++budget.nodes > 200_000 || (budget.until !== undefined && performance.now() > budget.until)) return {stuck: 'unknown', path, why: outOfBudget(goal, budget.nodes > 200_000 ? 'nodes' : 'time', path.size)}
+  if (++budget.nodes > 200_000 || (budget.until !== undefined && clock() > budget.until)) return {stuck: 'unknown', path, why: outOfBudget(goal, budget.nodes > 200_000 ? 'nodes' : 'time', path.size)}
   // Rows that read a term column only once a cut has put one on the path; before, the rows a choice-free search uses
   // (what it saw before term columns), renumbered to the whole leaf's when a leaf is found.
   const full = timed(() => rowsAt(goal, path), ms => { profile.rowsMs += ms })
+  work.n += 1 + full.length
   const columns = [...path.values()].some(a => Object.keys(a.lin).some(key => key.startsWith('⟦')))
   const idx = full.flatMap((r, i) => (columns || !Object.keys(r.lin).some(key => key.startsWith('⟦')) ? [i] : []))
   const rows = idx.map(i => full[i]!), at = (i: number) => (i < rows.length ? idx[i]! : full.length + i - rows.length)
@@ -1188,7 +1201,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
   if (!cyclicOn() && !certOn()) return out
   // (a machine with a history: its plain machine's; a flag at every key through its sk machine; k-step laws over a map
   // searched, where GDP_CERT_SEARCH=1; where no cyclic proof is made the usual trees, checked above, stay the certificate)
-  const why = uncoveredWhy(plain, laws), one = stepLaws.filter(sl => (sl.steps ?? 1) === 1 || (!Object.keys(plain.maps ?? {}).length && !plain.inputMaps?.length))
+  const why = uncoveredWhy(plain, laws), one = stepLaws.filter(sl => (sl.steps ?? 1) === 1 || !plain.inputMaps?.length)
   if (!why && one.length && out.checked) {
     const steps = one.map(sl => { const inst = perStep[sl.name] ?? instances, goal = stepLawObligations(m, laws, inst, sl)[0]!; return {sl, inst, goal, tree: trees[goal.name]!} })
     const translated = (st: TStats) => translatedProof(() => JSON.stringify(['steps', plain, laws, base.proof!.instances, steps.map(x => [x.sl, x.inst])]), reused => timedKind('instance', 0, () => machineNodes(plain, laws, base.proof!.instances, {trees: base.proof!.trees, steps, lawsMade: reused}, st)), st,
@@ -1227,18 +1240,24 @@ export function proveProgress(m: Machine, laws: Law[], p: {name: string, when: C
     leaves += countLeaves(out.tree)
   }
   const checked = progressObligations(m, ls, instances, p).every(g => check(g, trees[g.name]!))
-  // (GDP_CERT=cyclic with GDP_CERT_SEARCH=1: a request allowed whose claim is that alone, over a machine without a history
-  // or carried maps, gets core/cyclic.ts's allowNode after the laws' nodes, BridgeRules.lean's cycAOk: from every
-  // reachable state, every request meeting the region, its terms and the witnesses withWitness finds is allowed)
+  // (a request allowed whose claim is that alone, over a machine without a history or carried maps: the laws' nodes,
+  // then the allowed goal translated, core/cyclic.ts's allowTranslated, its last node BridgeRules.lean's cycAOk: from
+  // every reachable state, every request meeting the region and its terms is allowed; where GDP_CERT_SEARCH=1 and that
+  // isn't proven, allowNode searched with the witnesses withWitness finds)
   const alone = JSON.stringify(p.then) === JSON.stringify(trueC) && !m.history && !m.inputMaps?.length && m.assume !== undefined
-  if (certOn() && certSearch() && alone && checked && base.proof) {
-    const until = performance.now() + certMs(), lp = base.proof, q = hasQuantified(m)
+  if (certOn() && alone && checked && base.proof) {
+    const lp = base.proof, q = hasQuantified(m), goal = progressObligations(m, ls, instances, p)[0]!
+    const translated = (st: TStats) => translatedProof(() => JSON.stringify(['allowed', m, ls, lp.instances, instances, p]), reused => {
+      const b = machineNodes(m, ls, lp.instances, {...lp, lawsMade: reused}, st)
+      if (b.why) return b
+      const a = allowTranslated(m, ls, instances, p, {goal, tree: trees[goal.name]!}, b.facts, b.specs, `${m.name}: allowed`, st)
+      return a.why ? {facts: b.facts, specs: [], why: a.why} : {facts: b.facts, specs: [...b.specs, ...a.specs]}
+    }, st, () => JSON.stringify(['machine', m, ls, lp.instances]))
     const allowed = (): CyclicVerdict => {
       const b = machineNodes(m, ls, lp.instances, lp)
       if (b.why || (b.specs[0]?.rank.length ?? 2) < 2) return {proven: false, checked: false, node: m.name, goal: 'allowed', stuck: b.why ?? 'laws ranked by time alone'}
       let last: CyclicVerdict = {proven: false, checked: false, node: m.name, goal: 'allowed', stuck: 'no witness'}
       const found = withWitness(m, p.request, wit => {
-        if (performance.now() > until) return undefined
         const w: C = {op: 'and', xs: [p.when, reqTS(Object.entries(p.request)), reqTS(wit)]}
         const spec = allowNode(skMachine(m), ls, instances, w, b.facts, b.specs, `${m.name}: allowed`,
           q ? closingInsts(m, b.facts, [instances, ...Object.values(lp.instances)], [{op: 'var', name: 't$'}], ls) : [])
@@ -1247,8 +1266,8 @@ export function proveProgress(m: Machine, laws: Law[], p: {name: string, when: C
       })
       return found?.out ?? last
     }
-    const c = withDeadline(until, () => certCyclic('progress', m.name, undefined, allowed, performance.now() - t0))
-    if (!c.checked) uncovered('progress', m.name, `a request allowed: no cyclic proof found${performance.now() > until ? ` within ${certMs()} ms` : ''}`)
+    const c = certCyclic('progress', m.name, translated, certSearch() ? allowed : undefined, performance.now() - t0)
+    if (!c.checked) uncovered('progress', m.name, `a request allowed: ${c.why}`)
   } else if (cyclicOn() || certOn()) uncovered('progress', m.name, alone ? 'a request allowed' : 'a request allowed and a claim after it')
   return {proven: true, nodes, leaves, checked, instances, trees}
 }
