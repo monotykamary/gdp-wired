@@ -940,8 +940,15 @@
 },
 {
 "name": "data",
-"cmd": "bun test data.test.ts 2>&1 && cd .. && bun examples/data.ts 2>&1",
+"cmd": "bun test data.test.ts 2>&1 && cd .. && bun examples/data.ts -bstInsert 2>&1",
 "cwd": "core",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "data-open",
+"cmd": "bun examples/data.ts bstInsert 2>&1",
+"cwd": ".",
 "cpu": 2.0,
 "timeout": 1800
 },

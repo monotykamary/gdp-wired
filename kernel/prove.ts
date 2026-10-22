@@ -1203,12 +1203,18 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
   // searched, where GDP_CERT_SEARCH=1; where no cyclic proof is made the usual trees, checked above, stay the certificate)
   const why = uncoveredWhy(plain, laws), one = stepLaws
   if (!why && one.length && out.checked) {
-    const steps = one.map(sl => { const inst = perStep[sl.name] ?? instances, goal = stepLawObligations(m, laws, inst, sl)[0]!; return {sl, inst, goal, tree: trees[goal.name]!} })
-    const translated = (st: TStats) => translatedProof(() => JSON.stringify(['steps', plain, laws, base.proof!.instances, steps.map(x => [x.sl, x.inst])]), reused => timedKind('instance', 0, () => machineNodes(plain, laws, base.proof!.instances, {trees: base.proof!.trees, steps, lawsMade: reused}, st)), st,
+    const all = one.map(sl => { const inst = perStep[sl.name] ?? instances, goal = stepLawObligations(m, laws, inst, sl)[0]!; return {sl, inst, goal, tree: trees[goal.name]!} })
+    const translatedOf = (steps: typeof all) => (st: TStats) => translatedProof(() => JSON.stringify(['steps', plain, laws, base.proof!.instances, steps.map(x => [x.sl, x.inst])]), reused => timedKind('instance', 0, () => machineNodes(plain, laws, base.proof!.instances, {trees: base.proof!.trees, steps, lawsMade: reused}, st)), st,
       () => JSON.stringify(['machine', plain, laws, base.proof!.instances]))
     const usualMs = performance.now() - t0
-    if (cyclicOn()) crossCyclic('step law', m.name, true, undefined, usualMs, translated)
-    if (certOn()) { const c = certCyclic('step law', m.name, translated, undefined, usualMs); if (!c.checked) for (const sl of one) uncovered((sl.steps ?? 1) > 1 ? 'k-step law' : 'step law', m.name, c.why) }
+    if (cyclicOn()) crossCyclic('step law', m.name, true, undefined, usualMs, translatedOf(all))
+    // (where the step laws' proof together isn't made, each step law's alone: one the translation misses leaves the
+    // others theirs)
+    const together = certOn() ? certCyclic('step law', m.name, translatedOf(all), undefined, usualMs) : undefined
+    if (together && !together.checked) for (const x of all) {
+      const c = all.length > 1 ? certCyclic('step law', m.name, translatedOf([x]), undefined, usualMs) : together
+      if (!c.checked) uncovered((x.sl.steps ?? 1) > 1 ? 'k-step law' : 'step law', m.name, c.why)
+    }
   }
   // (the rest: k steps over a map a request carries, or a machine no instance covers)
   const rest = stepLaws.filter(sl => why || !one.includes(sl)), restWhy = (sl: StepLaw) => why ?? `${sl.steps} steps over a map a request carries`
