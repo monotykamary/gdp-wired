@@ -276,6 +276,11 @@ c.check(); c.prove([c.law('retries within 2', ({retries}) => retries.atMost(2))]
 
 - `.carries('Candidate')`: a set the request brings; `everyKey`, `has`, `subsetOf`, `disjointFrom`, `sameAs`;
   `someKey(k => ..., witness?)` (`examples/sets.ts`, `examples/quantifiers.ts`).
+- `exists(kind?, k => ..., witness?)`: "there exists" in a law ("the balance is a multiple of 5":
+  `exists(int, j => balance.eq(j.times(5)))`), proven through a witness the prover finds (a term of the state, or a
+  ghost carried along the run), or the one given (a term, or `{start, step: (k, env) => ...}`). Write it where it reads
+  as "there exists" (not under `not`, not before `implies`). In `.assume(...)` it is a value each request brings, found
+  by `encodeInput` (`examples/exists.ts`).
 - `everyKey((i, j) => i.lt(j).and(j.lt(n)).implies(New.at(i).lt(New.at(j))))`: a condition at every two keys (or
   three), in a step: each key read on its own (a map's key, or compared with a term that reads no key), the keys
   compared with each other only plainly (`i.lt(j)`, `i.atMost(j)`, `i.eq(j)`). The runtimes decide it on every pair of

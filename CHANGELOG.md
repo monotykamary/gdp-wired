@@ -36,6 +36,38 @@ broken variants refused (`runs/modal/cheap/corpus2` against
   no diagnostic proved; 1 proven before is lost within 60 s (`prod/prop_25`: its law through `+` takes the time the law
   as stated needed). `compare/tip`'s `--native` and `--inline` do nothing now; `--no-transfer` is the law as stated.
 
+"There exists" in laws (`core/exists.ts`, `examples/exists.ts`): `exists(kind?, k => ..., witness?)` over naturals,
+integers, yes/nos or a map's keys, anywhere in a law where it reads so, in the assumption (a value each request brings)
+and in a precondition. The kernel never sees one, and nothing trusted changed in TypeScript: the law it proves is the
+condition with a witness term of the state in place, or the condition over ghosts the machine gains (a value at the
+start, and after each step one over the witness before, the request and the state before), each chosen from the
+kernel's counterexamples. The Lean export states each law as `∃ w1 .. wn : Nat, ...`, proven by ⟨witness, proof⟩ through
+two new theorems of `Ghost.lean`, `some_of_subst` and `some_of_ghost`, on the standard axioms (`runs/modal/exists/lean2`,
+`lean3`: both the usual and the cyclic export check, and two tampered witnesses are refused).
+
+- Witnesses: what the law's own atoms solve for (x = e, x <= e, x < e, an integer's two parts together), 0, the state,
+  the params; for a ghost, its value before, shifted by a constant or by one to four times a value the request or the
+  state carries, the request's values, the state before, and its value before while it still meets the law's conjuncts
+  that read it after the step (else one of those). Each per case of the step (the conditions its updates split on: a
+  CHC rule's clause, say), the counterexamples so far all met. A witness given is the only one tried: the kernel proves
+  the law with it or refuses it, with its counterexample. The verdict's `witnesses` says how each reads ("w starts at 0;
+  after a step w + 1 where go = up, else w").
+- A false one is refused by a run where no value can be a witness, decided exactly where the bound value is one natural
+  or integer read linearly, or a natural read as a map's whole key (`someHolds`); the runtimes find an assumption's
+  witness the same way (`encodeInput`, `encodeParams`), and refuse a request none fits.
+- `inferLaws` proposes congruences, ∃k. v = c·k + r, where the runs keep v's remainder by 2, 3, 4 or a constant of the
+  rule's (`{existentials: false}` turns them off), chosen where no bound rules a counterexample out, and tried with the
+  laws alone where the search ends unproven. The frontier corpus's new exists track: 2 of 2, its broken variant refused
+  (`runs/modal/exists/frontier3`).
+- CHC-COMP LIA-Lin, gdp-wired alone at 60 s (`runs/modal/exists/chc-gdp2`): 375 solved (231 sat, 144 unsat), none
+  wrongly, 5 out of time, against 368 at 0.20.0 (9 more, 2 fewer: `compare/chc/README.md`). Given Spacer's own invariant
+  (`prof/given.ts`), the 27 tasks whose invariant keeps an existential are all stated now (none was), and the kernel
+  proves 7 of them at 60 s (`given5`; 12 at 300 s, `given4-t300`); the 18 with a remainder or a quotient are stated as
+  existential quotients, 3 proven.
+- TIP 2015 (`compare/tip/`, `runs/modal/exists/tip-gdp2`, 137 proven as the cheap-wins run): the two existential goals, refused before, are read and
+  refuted, each counterexample confirmed by TIP's evaluator: `list_elem_map` and `list_nat_elem_map` say
+  `∃ x. f x = y ∧ elem y xs` where `elem x xs` was presumably meant, false at `y = 3, xs = [5], f 5 = 3`.
+
 ## 0.20.0
 
 The frontier corpus proven in full: 81 of 81 items where the library alone proves none, every broken variant refused

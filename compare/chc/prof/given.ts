@@ -2,13 +2,15 @@
 // (translate.ts) and, from <models.json> ({smt2 path under the benchmarks: Spacer's (get-model) output}), each predicate's
 // interpretation stated as gdp-wired laws (one per top-level conjunct, `loc is p → conjunct`, its arguments the
 // predicate's slots i0.., b0..), then proveRule on the law and those, no search. Prints one JSON line: whether every
-// conjunct could be stated (a remainder, a quotient or a quantifier can't: the rule reads no such function), the laws,
-// proven and checked, the stuck goal and the time. A predicate of no arguments whose interpretation is an existential
+// conjunct could be stated (a universal quantifier can't), the laws,
+// proven and checked, the stuck goal and the time. An existential (∃ over Int and Bool) is the law's own (core/exists.ts:
+// proven through a witness the kernel's counterexamples choose), and a remainder or a quotient by a constant is one
+// too (mod e k as e − k·q, q bound with its range). A predicate of no arguments whose interpretation is an existential
 // is left out (nullaryLeftOut), unless a query reads it alone: then it is never reached. What it measures: given the invariant, whether the kernel proves it.
 import {readFileSync} from 'node:fs'
 import {Unsupported, parseChc, parseSx, type Sx} from '../chc.ts'
 import {build} from '../translate.ts'
-import {type Choice, Cond, Int, all, any, choose, no, proveRule, when, yes} from '../../../core/dsl.ts'
+import {type Bool, type Choice, Cond, Int, all, any, bool, choose, exists, int, no, proveRule, when, yes} from '../../../core/dsl.ts'
 import type {Law} from '../../../core/machine.ts'
 import {withDeadline} from '../../../kernel/prove.ts'
 
@@ -23,24 +25,43 @@ const chc = parseChc(readFileSync(file, 'utf8')), b = build(chc), r = b.rule
 const sx = parseSx(text!)
 const defs = (sx.find(x => Array.isArray(x) && x.some(d => Array.isArray(d) && d[0] === 'define-fun')) as Sx[] | undefined ?? []).filter((d): d is Sx[] => Array.isArray(d) && d[0] === 'define-fun')
 
-type V = Int | Cond
+// A let's binding that holds an existential is translated again at each use (each its own binder: two uses of one
+// ∃ are two existentials, as the formula says, not one shared witness).
+type V = Int | Cond | {lazy: () => Int | Cond}
+// A remainder or a quotient by a constant k (mod e k, div e k): e − k·q and q, q an integer the conjunct binds with
+// 0 <= e − k·q <= k − 1 (∃q, exact: q is e's quotient, so the existential reads the same wherever the term sits). The
+// binders are made before the conjunct is read (one per remainder or quotient in it), and handed out as they are met.
+let quotients: Int[] = [], ranges: Cond[] = []
+const countDivs = (s: Sx): number => (typeof s === 'string' ? 0 : s.reduce<number>((n, x) => n + countDivs(x), s[0] === 'div' || s[0] === 'mod' ? 1 : 0))
 const asInt = (v: V): Int => { if (v instanceof Int) return v; throw new Unsupported('an Int expected') }
 const asCond = (v: V): Cond => { if (v instanceof Cond) return v; throw new Unsupported('a Bool expected') }
-const tr = (s: Sx, scope: Map<string, V>): V => {
+const tr = (s: Sx, scope: Map<string, V>): Int | Cond => {
   if (typeof s === 'string') {
     if (s === 'true') return yes
     if (s === 'false') return no
     if (/^\d+$/.test(s)) { const v = Number(s); if (!Number.isSafeInteger(v)) throw new Unsupported(`the numeral ${s}`); return Int.of(v) }
     const v = scope.get(s)
     if (!v) throw new Unsupported(`an unbound symbol ${s}`)
-    return v
+    return v instanceof Int || v instanceof Cond ? v : v.lazy()
   }
   const [op, ...xs] = s as [string, ...Sx[]]
   if (op === '!') return tr(xs[0]!, scope)
   if (op === 'let') {
     const inner = new Map(scope)
-    for (const bd of xs[0] as Sx[][]) inner.set(bd[0] as string, tr(bd[1]!, scope))
+    for (const bd of xs[0] as Sx[][]) inner.set(bd[0] as string, JSON.stringify(bd[1]).includes('"exists"') ? {lazy: () => tr(bd[1]!, scope) as Int | Cond} : tr(bd[1]!, scope))
     return tr(xs[1]!, inner)
+  }
+  // ∃ over Int and Bool binders: an integer, or a yes/no, each its own existential (core/exists.ts).
+  if (op === 'exists') {
+    const binds = xs[0] as Sx[][]
+    const go = (i: number, sc: Map<string, V>): Cond => {
+      if (i === binds.length) return asCond(tr(xs[1]!, sc))
+      const [name, sort] = binds[i] as [string, string]
+      if (sort === 'Int') return exists(int, (x: Int) => go(i + 1, new Map(sc).set(name, x)))
+      if (sort === 'Bool') return exists(bool, (b: Bool) => go(i + 1, new Map(sc).set(name, b)))
+      throw new Unsupported(`an existential over ${sort}`)
+    }
+    return go(0, scope)
   }
   const I = (k: number) => asInt(tr(xs[k]!, scope)), B = (k: number) => asCond(tr(xs[k]!, scope))
   const pairs = (f: (a: Int, c: Int) => Cond) => all(...xs.slice(1).map((_, k) => f(I(k), I(k + 1))))
@@ -55,15 +76,23 @@ const tr = (s: Sx, scope: Map<string, V>): V => {
       if (vars.length > 1) throw new Unsupported('a product')
       return vars.length ? asInt(vars[0]!).times(k) : Int.of(k)
     }
-    case 'mod': case 'div': throw new Unsupported(op)
-    case 'exists': case 'forall': throw new Unsupported('a quantifier')
+    case 'mod': case 'div': {
+      const kx = xs[1]!, k = Number(typeof kx === 'string' ? kx : NaN)
+      if (!Number.isSafeInteger(k) || k <= 0) throw new Unsupported(`${op} by a non-constant`)
+      const q = quotients.shift()
+      if (!q) throw new Unsupported(`${op}: more than the binders made`)
+      const e = I(0), r = e.minus(q.times(k))
+      ranges.push(r.atLeast(0), r.atMost(k - 1))
+      return op === 'div' ? q : r
+    }
+    case 'forall': throw new Unsupported('a quantifier')
     case '<=': return pairs((a, c) => a.atMost(c))
     case '<': return pairs((a, c) => a.lt(c))
     case '>=': return pairs((a, c) => a.atLeast(c))
     case '>': return pairs((a, c) => a.gt(c))
     case '=': case 'distinct': {
       const vs = xs.map(x => tr(x, scope))
-      const eq = (a: V, c: V): Cond => (a instanceof Int ? a.eq(asInt(c)) : choose(a, asCond(c), asCond(c).not()))
+      const eq = (a: Int | Cond, c: Int | Cond): Cond => (a instanceof Int ? a.eq(asInt(c)) : choose(a, asCond(c), asCond(c).not()))
       return op === '=' ? all(...vs.slice(1).map(v => eq(vs[0]!, v))) : all(...vs.flatMap((a, k) => vs.slice(k + 1).map(c => eq(a, c).not())))
     }
     case 'and': return all(...xs.map((_, k) => B(k)))
@@ -105,8 +134,12 @@ for (const d of defs) {
       const law = r.law(`${name} #${k++}`, env => {
         const scope = new Map<string, V>(), n = {Int: 0, Bool: 0}
         for (const [pn, sort] of params as [string, string][]) scope.set(pn, (env as Record<string, V>)[`${sort === 'Int' ? 'i' : 'b'}${n[sort as 'Int' | 'Bool']++}`]!)
-        // The conjunct under the lets it sits in, translated over this env's values.
-        return (env.loc as Choice<string>).is(loc).implies(asCond(tr(letsAround(body, c), scope)))
+        // The conjunct under the lets it sits in, translated over this env's values (a binder made first for each
+        // remainder or quotient it reads).
+        const sx = letsAround(body, c), n0 = countDivs(sx)
+        const inner = (qs: Int[]): Cond => { quotients = [...qs]; ranges = []; const t = asCond(tr(sx, scope)); return all(...ranges, t) }
+        const under = (i: number, qs: Int[]): Cond => (i === n0 ? inner(qs) : exists(int, (q: Int) => under(i + 1, [...qs, q])))
+        return (env.loc as Choice<string>).is(loc).implies(under(0, []))
       })
       laws.push(law)
     } catch (e) {
