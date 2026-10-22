@@ -423,6 +423,36 @@ def library_key(lean_dir: pathlib.Path = GDP / "lean-kernel") -> str:
 
 
 # ------------------------------------------------------------------------------------------------------------- a batch
+class StartGate:
+    """boat's start limits (per minute, hour and day; a creation and a resume each one start), shared by a batch's
+    resumes and creations: take(n) waits for the minute's room and grants up to n, 0 once the hour or the day is spent."""
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.t, self.used, self.st, self.room = 0.0, 0, None, 0
+
+    def take(self, n: int, stop: threading.Event) -> int:
+        while not stop.is_set():
+            with self.lock:
+                if time.time() - self.t > 5:
+                    try:
+                        lim = limits()
+                        self.st, self.room = lim["starts"], lim["currentLimits"]["activeSandboxes"] - lim["activeSandboxes"]
+                        self.t, self.used = time.time(), 0
+                    except Exception:
+                        pass
+                if self.st:
+                    left = min(self.st["hour"]["remaining"], self.st["day"]["remaining"]) - STARTS_RESERVE - self.used
+                    if left <= 0:
+                        return 0
+                    k = min(n, left, self.st["minute"]["remaining"] - self.used)
+                    if k > 0:
+                        self.used += k
+                        return k
+            time.sleep(3)
+        return 0
+
+
 class VM:
     def __init__(self, id: str, type: str, how: str):
         self.id, self.type, self.how = id, type, how
@@ -462,6 +492,7 @@ class Session:
         self.t0 = time.time()
         self.threads: list[threading.Thread] = []
         self.counts = {"leased_running": 0, "resumed": 0, "created": 0}
+        self.gate = StartGate()
         self.last_error = ""
         threading.Thread(target=self._heartbeat, daemon=True).start()
         log(f"batch {self.batch}: image {self.image}, tree {len(self.tar) // 1024} KB, library {self.key[:12]}"
@@ -517,17 +548,24 @@ class Session:
                 up = wait_running([vm.id], 300)
             else:
                 up = False
-                for attempt in range(3):
+                attempt = 0
+                while attempt < 3:
                     # a VM still stopping (the last batch just let it go) takes a resume only once it has stopped
                     for _ in range(60):
                         if states().get(vm.id, {}).get("state") not in ("stopping", "pausing", "snapshotting"):
                             break
                         time.sleep(3)
+                    if not self.gate.take(1, self.stop):
+                        raise RuntimeError("no boat starts left this hour or day (a resume is a start)")
                     with _sem:
                         p = subprocess.run([BOAT, "resume", vm.id, "--json"], capture_output=True, text=True, timeout=300, env=ENV)
                     said = p.stdout + p.stderr
                     if p.returncode != 0 and ("rate_limited" in said or '"status":429' in said):
-                        raise RuntimeError("boat's start limit (a resume counts as a start): " + said.strip()[-200:].split('"error":"')[-1][:120])
+                        if "per hour" in said or "per day" in said:
+                            raise RuntimeError("boat's start limit (a resume counts as a start): " + said.split('"error":"')[-1][:120])
+                        time.sleep(15)  # the minute's starts: the next minute
+                        continue
+                    attempt += 1
                     if p.returncode != 0 and "snapshot_data_expired" in said:
                         # a stopped disk boat no longer keeps (14 days): the VM goes, a new one from the image takes its place
                         log(f"{vm.id}: its stopped disk expired; a new VM instead")
@@ -569,15 +607,14 @@ class Session:
             except Exception:
                 time.sleep(5)
                 continue
-            st = lim["starts"]
-            room = min(st["minute"]["remaining"], st["hour"]["remaining"] - STARTS_RESERVE, st["day"]["remaining"] - STARTS_RESERVE,
-                       lim["currentLimits"]["activeSandboxes"] - lim["activeSandboxes"], n)
+            room = min(lim["currentLimits"]["activeSandboxes"] - lim["activeSandboxes"], n)
             if not lim.get("canStart", True) or room <= 0:
-                if st["hour"]["remaining"] - STARTS_RESERVE <= 0 or st["day"]["remaining"] - STARTS_RESERVE <= 0:
-                    log("no starts left this hour or day: no more VMs for this batch")
-                    break
                 time.sleep(10)
                 continue
+            room = self.gate.take(room, self.stop)
+            if room <= 0:
+                log("no starts left this hour or day: no more VMs for this batch")
+                break
             out = boat("new", "--from", self.image, "--type", vm_type, "--count", str(room), "--ttl", str(BACKSTOP), "--no-env", "--no-monitoring", "--json", timeout=600, check=False)
             ids = []
             for line in out.splitlines():
