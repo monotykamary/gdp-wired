@@ -39,7 +39,7 @@ def log(*a):
 
 
 def fname(fn) -> str:
-    for get in (lambda: fn.__name__, lambda: fn.get_raw_f().__name__, lambda: fn.info.function_name, lambda: fn._info.function_name):
+    for get in (lambda: fn.__name__, lambda: fn._tag_, lambda: fn.get_raw_f().__name__, lambda: fn.info().function_name):
         try:
             n = get()
             if n:
@@ -66,7 +66,8 @@ def reexec_with_modal():
     with contextlib.suppress(Exception):
         first = pathlib.Path(exe).read_text(errors="replace").splitlines()[0]
         py = first[2:].strip().split()[0] if first.startswith("#!") else ""
-        if py and os.path.exists(py) and os.path.realpath(py) != os.path.realpath(sys.executable):
+        # (a venv's python is often a symlink to the same interpreter: compare the paths, not what they resolve to)
+        if py and os.path.exists(py) and os.path.abspath(py) != os.path.abspath(sys.executable):
             os.environ["GDPW_REEXEC"] = "1"
             os.execv(py, [py, *sys.argv])
 
@@ -364,6 +365,8 @@ class AutoEx:
                 yield r
 
     def close(self):
+        if getattr(self, "closed", None) is not None:
+            return self.closed
         s = {}
         try:
             if self.bx:
@@ -375,7 +378,8 @@ class AutoEx:
         if self.why:
             text += " (fallback: " + "; ".join(f"{k}: {r}" for r, k in self.why.items()) + ")"
         print(text, flush=True)
-        return {**s, "where": self.where, "fallbacks": [{"calls": k, "to": "modal", "reason": r} for r, k in self.why.items()]}
+        self.closed = {**s, "where": self.where, "fallbacks": [{"calls": k, "to": "modal", "reason": r} for r, k in self.why.items()]}
+        return self.closed
 
 
 def cli(run, runner: str, doc: str = ""):
@@ -474,6 +478,7 @@ def gpu_cli(main, runner: str):
     import argparse
     import signal
     reexec_with_modal()
+    main = getattr(getattr(main, "info", None), "raw_f", None) or main  # (under the Modal client, the entrypoint wraps it)
     ap = argparse.ArgumentParser()
     for p in inspect.signature(main).parameters.values():
         flag = "--" + p.name.replace("_", "-")
