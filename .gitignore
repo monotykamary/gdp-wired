@@ -2,6 +2,8 @@
 /runs/
 /private/
 runs-kernel.log
+# The CHC gap analysis's input for --tools given (compare/chc/prof/gap.py --write-given-models)
+compare/chc/prof/given-models*.json
 
 # Build output
 node_modules/
