@@ -301,6 +301,8 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
     }
     if (failed || !nodes[i]) return failed ?? {proven: false, checked: false, node: specs[i]!.name, goal: specs[i]!.name, stuck: 'unknown'}
   }
+  // (GDP_CYCLIC_PROF: the nodes made before, checked again within the whole, timed apart too)
+  if (profOn() && made.length) timedKind('check, of the nodes made before', 0, () => refuseCyclic({facts, nodes: made}))
   const proof: Cyclic = {facts, nodes}, why = timedKind('check', 0, () => refuseCyclic(proof))
   return {proven: true, checked: why === undefined, proof, ...(why ? {why} : {})}
 }

@@ -1187,13 +1187,18 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
     leaves += countLeaves(out.tree)
   }
   const proof = {laws: base.proof, instances, ...(Object.keys(perStep).length ? {perStep} : {}), trees}
-  const out = {proven: true, nodes, leaves, checked: checkStepLaws(m, laws, stepLaws, proof), proof}
   // Step laws of a machine the cyclic instances cover (one step, or several over no map) are translated with the laws
   // (core/cyclic.ts); the rest are counted as no instance's.
-  if (!cyclicOn() && !certOn()) return out
   // (a machine with a history: its plain machine's; flags at every key and k-step laws over a map searched, where
   // GDP_CERT_SEARCH=1)
-  const why = uncoveredWhy(plain, laws), one = stepLaws.filter(sl => (sl.steps ?? 1) === 1 || (!Object.keys(plain.maps ?? {}).length && !plain.inputMaps?.length))
+  const modes = cyclicOn() || certOn(), why = modes ? uncoveredWhy(plain, laws) : undefined
+  const one = modes ? stepLaws.filter(sl => (sl.steps ?? 1) === 1 || (!Object.keys(plain.maps ?? {}).length && !plain.inputMaps?.length)) : []
+  // Where the cyclic certificate covers every step law and the laws' certificate checked (GDP_CERT, not the cross-check),
+  // the usual trees are its input, as a machine's laws' are: checkStepLaws (the laws' usual trees again, then the step
+  // laws') isn't run, and the verdict is the certificate's below.
+  const byCert = certOn() && !cyclicOn() && !why && one.length === stepLaws.length && base.checked
+  const out = {proven: true, nodes, leaves, checked: byCert || checkStepLaws(m, laws, stepLaws, proof), proof}
+  if (!modes) return out
   if (!why && one.length && out.checked) {
     const steps = one.map(sl => { const inst = perStep[sl.name] ?? instances, goal = stepLawObligations(m, laws, inst, sl)[0]!; return {sl, inst, goal, tree: trees[goal.name]!} })
     const translated = (st: TStats) => translatedProof(() => JSON.stringify(['steps', plain, laws, base.proof!.instances, steps.map(x => [x.sl, x.inst])]), reused => timedKind('instance', 0, () => machineNodes(plain, laws, base.proof!.instances, {trees: base.proof!.trees, steps, lawsMade: reused}, st)), st,
