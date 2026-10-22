@@ -14,6 +14,18 @@ its conclusion `then` with the plain names at t − k, each later request's inpu
 the primed names at t (`cycKOk`). `cyc_kstep_sound`: such a node of a checked cyclic proof makes the k-step law hold, as
 Sets.lean's `SKStepHolds` states it (the claim `skstep_sound` proves of the usual certificate). The run is the one a
 reachable state ends (`reach_run`), extended by the k requests (`run_ext`).
+
+From those, what the other rules claim, each from its claims' meaning in place of their certificates: liveness under
+fairness (`sleads_of_holds`) and weak fairness (`sleads_wf_of_holds`, a helpful request allowed being a node at the
+run's last request, `cyc_allow_sound`), a history's laws through its plain machine (`hreach_plain`), a ghosted machine's
+laws of the original (`cyc_ghost_holds`), a refinement (`srefines_of_holds`).
+
+Flags that hold at every key (a machine with `qflags`): Bridge.lean's encoding has none. Here the machine is read as its
+sk machine (`SMachine.sk`: the flags and their witnesses inputs a request names), whose runs, every request decided as a
+goal reads it (`sReq`, `CRun.Decided`), are the machine's off the witnesses (`sk_step`, `sk_run`); the encoding adds the
+flags' closing conditions at each time (`cycQFacts`: 0 or 1, 0 or the body at every value of its keys, 1 or the body
+failing at the witness), which hold on such runs (`qfacts_hold`, through Sets.lean's `closing_true`). `cyc_qmachine_sound`,
+`cyc_qkstep_sound` and `cyc_qallow_sound` are the three bridges for them.
 -/
 
 namespace Kern
@@ -756,5 +768,1004 @@ theorem srefines_of_holds (r : SRefined) (hok : srOk r = true) (hmo : distinct (
   obtain ⟨ρc, Mc, hrc, hag, hmag⟩ := srefine_lift r hok hmo hr
   obtain ⟨σ, Ms, hrs, hags, hmags⟩ := srefine_project r hok hpre hallow hrc
   exact ⟨ρc, Mc, σ, Ms, hrc, hag, hmag, hrs, hags, hmags, hlaws ρc Mc hrc⟩
+
+/-! Flags that hold at every key -/
+
+-- The machine with its quantified flags and their witnesses as inputs a request names: no flag holds at every key in
+-- it. A request of the machine is one of its, the flags decided and the witnesses chosen as a goal reads them (`sReq`).
+def SMachine.sk (s : SMachine) : SMachine :=
+  ⟨⟨⟨s.extVars, s.f.m.init, s.f.m.maps0, s.f.m.step, s.f.m.writes, s.f.m.pre, s.f.m.assume⟩, s.f.flags⟩, s.carried, s.every, [], [], s.facts, s.pfacts⟩
+
+section sk
+variable {s : SMachine}
+
+theorem sk_q : s.sk.qflags = [] := rfl
+theorem sk_inputs : s.sk.f.m.inputs = s.extVars := rfl
+
+-- sReq reads the request's inputs alone (and the state where the flags' bodies read it, off the witnesses).
+theorem sReq_inputs {ρ : Nat → Nat} {M : Nat → Nat → Nat} {ι ι' : Nat → Nat} {κ : Nat → Nat → Nat}
+    (h : ∀ v ∈ s.f.m.inputs, ι' v = ι v) : sReq s ρ M ι' κ = sReq s ρ M ι κ := by
+  have hw : withInputs s.f.m.inputs ρ ι' = withInputs s.f.m.inputs ρ ι := by
+    funext v; simp only [withInputs]; split
+    · rename_i hv; exact h v (List.contains_iff_mem.mp hv)
+    · rfl
+  funext v; simp only [sReq, hw]; split
+  · rename_i hv; exact h v (List.contains_iff_mem.mp hv)
+  · rfl
+
+theorem sReq_input {ρ : Nat → Nat} {M : Nat → Nat → Nat} {ι : Nat → Nat} {κ : Nat → Nat → Nat} {v : Nat} (hv : v ∈ s.f.m.inputs) :
+    sReq s ρ M ι κ v = ι v := by simp only [sReq]; rw [if_pos (List.contains_iff_mem.mpr hv)]
+
+theorem sReq_idem (ρ : Nat → Nat) (M : Nat → Nat → Nat) (ι : Nat → Nat) (κ : Nat → Nat → Nat) :
+    sReq s ρ M (sReq s ρ M ι κ) κ = sReq s ρ M ι κ := sReq_inputs (fun _ hv => sReq_input hv)
+
+-- The flags' bodies read no witness, so states that agree off the witnesses decide them alike.
+theorem decideQ_agree (hs : sOk s = true) {X X' : Nat → Nat} (hag : Agree s.wVars X' X) (N : Nat → Nat → Nat) :
+    Agree s.wVars (decideQ s X' N) (decideQ s X N) := by
+  obtain ⟨_, _, _, _, _, hbody, _⟩ := sOk_parts s hs
+  intro v hv
+  simp only [decideQ]
+  cases hl : lookup (fun q => q.1 == v) s.qflags with
+  | none => exact hag v hv
+  | some q =>
+    have hq := (lookup_some hl).1
+    have hb : ∀ k, holdsC (atKeys X' q.2.1 k) N q.2.2 = holdsC (atKeys X q.2.1 k) N q.2.2 := fun k => propext (by
+      rw [← evalC_iff, ← evalC_iff, congrC _ (atKeys X q.2.1 k) N q.2.2 (fun j hj => by
+        simp only [atKeys]; split
+        · rfl
+        · exact hag j (fun h => avoids_occ (hbody q hq).1 hj (List.mem_append_left _ (List.mem_append_right _ h))))])
+    have hiff : (∀ k, holdsC (atKeys X' q.2.1 k) N q.2.2) ↔ (∀ k, holdsC (atKeys X q.2.1 k) N q.2.2) :=
+      forall_congr' (fun k => by rw [hb k])
+    dsimp only
+    by_cases h1 : ∀ k, holdsC (atKeys X q.2.1 k) N q.2.2
+    · rw [if_pos (hiff.mpr h1), if_pos h1]
+    · rw [if_neg (fun h => h1 (hiff.mp h)), if_neg h1]
+
+theorem choose_congr {α : Type} {p q : α → Prop} (h : p = q) (hp : ∃ x, p x) (hq : ∃ x, q x) : Classical.choose hp = Classical.choose hq := by
+  subst h; rfl
+
+theorem witnessKeys_agree (hs : sOk s = true) {X X' : Nat → Nat} (hag : Agree s.wVars X' X) (N : Nat → Nat → Nat) {q : Nat × List Nat × C}
+    (hq : q ∈ s.qflags) : witnessKeys X' N q = witnessKeys X N q := by
+  obtain ⟨_, _, _, _, _, hbody, _⟩ := sOk_parts s hs
+  have hb : ∀ k, holdsC (atKeys X' q.2.1 k) N q.2.2 = holdsC (atKeys X q.2.1 k) N q.2.2 := fun k => propext (by
+    rw [← evalC_iff, ← evalC_iff, congrC _ (atKeys X q.2.1 k) N q.2.2 (fun j hj => by
+      simp only [atKeys]; split
+      · rfl
+      · exact hag j (fun h => avoids_occ (hbody q hq).1 hj (List.mem_append_left _ (List.mem_append_right _ h))))])
+  have hP : (fun k => holdsC (atKeys X' q.2.1 k) N q.2.2) = (fun k => holdsC (atKeys X q.2.1 k) N q.2.2) := funext hb
+  have hp2 : (fun k => ¬holdsC (atKeys X' q.2.1 k) N q.2.2) = (fun k => ¬holdsC (atKeys X q.2.1 k) N q.2.2) := funext fun k => by rw [hb k]
+  unfold witnessKeys
+  split
+  · rename_i h1
+    have h2 : ∃ k, ¬holdsC (atKeys X q.2.1 k) N q.2.2 := by obtain ⟨k, hk⟩ := h1; exact ⟨k, by rwa [← hb k]⟩
+    rw [dif_pos h2]
+    exact choose_congr hp2 h1 h2
+  · rename_i h1
+    have h2 : ¬∃ k, ¬holdsC (atKeys X q.2.1 k) N q.2.2 := fun ⟨k, hk⟩ => h1 ⟨k, by rwa [hb k]⟩
+    rw [dif_neg h2]
+
+theorem sReq_agree (hs : sOk s = true) {ρ ρ' : Nat → Nat} (hag : Agree s.wVars ρ' ρ) (M : Nat → Nat → Nat) (ι : Nat → Nat)
+    (κ : Nat → Nat → Nat) : sReq s ρ' M ι κ = sReq s ρ M ι κ := by
+  have hX : Agree s.wVars (withInputs s.f.m.inputs ρ' ι) (withInputs s.f.m.inputs ρ ι) := fun v hv => by
+    simp only [withInputs]; split
+    · rfl
+    · exact hag v hv
+  funext v
+  simp only [sReq]
+  split
+  · rfl
+  · split
+    · rename_i q hq
+      exact decideQ_agree hs hX _ v (fun h => (ext_apart s hs).2 v (by
+        have := (lookup_some hq); simp only [beq_iff_eq] at this; rw [← this.2]; exact List.mem_map_of_mem this.1) h)
+    · split
+      · split
+        · rename_i q hq
+          split
+          · rw [witnessKeys_agree hs hX _ (lookup_some hq).1]
+          · rfl
+        · rfl
+      · rfl
+
+-- A machine's request read by its sk machine: the view is the goal's view, which agrees with the machine's off the
+-- witnesses.
+theorem sk_inputsView (ρ ρ' : Nat → Nat) (hag : Agree s.wVars ρ' ρ) (M : Nat → Nat → Nat) (ι : Nat → Nat) (κ : Nat → Nat → Nat) :
+    withInputs s.sk.f.m.inputs ρ' (sReq s ρ M ι κ) = withExt s ρ (sReq s ρ M ι κ) := by
+  funext v
+  simp only [withInputs, withExt, sk_inputs]
+  by_cases hv : s.extVars.contains v = true
+  · simp only [hv, ↓reduceIte]
+  · simp only [hv, Bool.false_eq_true, ↓reduceIte]
+    exact hag v (fun h => hv (by simp only [SMachine.extVars, List.contains_iff_mem, List.mem_append]; exact Or.inr h))
+
+theorem sk_view (hs : sOk s = true) {ρ ρ' : Nat → Nat} (hag : Agree s.wVars ρ' ρ) (M : Nat → Nat → Nat) (ι : Nat → Nat) (κ : Nat → Nat → Nat) :
+    Agree s.wVars (sView s.sk ρ' M (sReq s ρ M ι κ) κ).1 (sView s ρ M ι κ).1 ∧ (sView s.sk ρ' M (sReq s ρ M ι κ) κ).2 = (sView s ρ M ι κ).2 := by
+  obtain ⟨hfl, _, _, _, _, _, hflw⟩ := sOk_parts s hs
+  refine ⟨fun i hi => ?_, rfl⟩
+  simp only [sView]
+  rw [decideQ_nil sk_q, sk_inputsView ρ ρ' hag]
+  exact decide_view (Z := s.wVars) (TM := []) hfl hflw (fun _ _ => rfl) (fun j hj _ => (view_agree s ρ M ι κ hs j hj).symm)
+    (fun _ _ => rfl) hi
+
+-- Inlining the flags keeps every variable a term reads but the flags'.
+mutual
+theorem occE_inline (fl : List (Nat × C)) {i : Nat} (hi : flagOf fl i = none) : ∀ e : E, occE i e = true → occE i (inlineE fl e) = true
+  | .var j, h => by
+    have hj : j = i := by simpa [occE] using h
+    subst hj; simp [inlineE, hi, occE]
+  | .const _, h => by simp [occE] at h
+  | .add a b, h => by
+    simp only [occE, Bool.or_eq_true] at h; simp only [inlineE, occE, Bool.or_eq_true]
+    exact h.imp (occE_inline fl hi a) (occE_inline fl hi b)
+  | .sub a b, h => by
+    simp only [occE, Bool.or_eq_true] at h; simp only [inlineE, occE, Bool.or_eq_true]
+    exact h.imp (occE_inline fl hi a) (occE_inline fl hi b)
+  | .mul _ a, h => by simp only [occE] at h; simp only [inlineE, occE]; exact occE_inline fl hi a h
+  | .min a b, h => by
+    simp only [occE, Bool.or_eq_true] at h; simp only [inlineE, occE, Bool.or_eq_true]
+    exact h.imp (occE_inline fl hi a) (occE_inline fl hi b)
+  | .max a b, h => by
+    simp only [occE, Bool.or_eq_true] at h; simp only [inlineE, occE, Bool.or_eq_true]
+    exact h.imp (occE_inline fl hi a) (occE_inline fl hi b)
+  | .prod a b, h => by
+    simp only [occE, Bool.or_eq_true] at h; simp only [inlineE, occE, Bool.or_eq_true]
+    exact h.imp (occE_inline fl hi a) (occE_inline fl hi b)
+  | .ite c t f, h => by
+    simp only [occE, Bool.or_eq_true] at h; simp only [inlineE, occE, Bool.or_eq_true]
+    rcases h with (h | h) | h
+    · exact Or.inl (Or.inl (occC_inline fl hi c h))
+    · exact Or.inl (Or.inr (occE_inline fl hi t h))
+    · exact Or.inr (occE_inline fl hi f h)
+  | .get _ key, h => by simp only [occE] at h; simp only [inlineE, occE]; exact occE_inline fl hi key h
+theorem occC_inline (fl : List (Nat × C)) {i : Nat} (hi : flagOf fl i = none) : ∀ c : C, occC i c = true → occC i (inlineC fl c) = true
+  | .le a b, h => by
+    simp only [occC, Bool.or_eq_true] at h; simp only [inlineC, occC, Bool.or_eq_true]
+    exact h.imp (occE_inline fl hi a) (occE_inline fl hi b)
+  | .lt a b, h => by
+    simp only [occC, Bool.or_eq_true] at h; simp only [inlineC, occC, Bool.or_eq_true]
+    exact h.imp (occE_inline fl hi a) (occE_inline fl hi b)
+  | .eq a b, h => by
+    simp only [occC, Bool.or_eq_true] at h
+    have hd : occC i (.eq (inlineE fl a) (inlineE fl b)) = true := by
+      simp only [occC, Bool.or_eq_true]; exact h.imp (occE_inline fl hi a) (occE_inline fl hi b)
+    simp only [inlineC, eqOrFlag]
+    split
+    · split
+      · rename_i c hc
+        exfalso
+        rcases h with h | h
+        · simp only [occE, beq_iff_eq] at h; subst h; rw [hi] at hc; cases hc
+        · simp [occE] at h
+      · exact hd
+    · exact hd
+  | .and a b, h => by
+    simp only [occC, Bool.or_eq_true] at h; simp only [inlineC, occC, Bool.or_eq_true]
+    exact h.imp (occC_inline fl hi a) (occC_inline fl hi b)
+  | .or a b, h => by
+    simp only [occC, Bool.or_eq_true] at h; simp only [inlineC, occC, Bool.or_eq_true]
+    exact h.imp (occC_inline fl hi a) (occC_inline fl hi b)
+  | .not a, h => by simp only [occC] at h; simp only [inlineC, occC]; exact occC_inline fl hi a h
+end
+
+theorem avoidsE_of_inline {fl : List (Nat × C)} {Z : List Nat} (hz : ∀ i ∈ Z, i ∉ flagVars fl) {e : E}
+    (h : avoidsE Z (inlineE fl e) = true) : avoidsE Z e = true := by
+  simp only [avoidsE, List.all_eq_true, Bool.not_eq_true'] at h ⊢
+  intro i hi
+  cases ho : occE i e
+  · rfl
+  · have hn : flagOf fl i = none := by
+      simp only [flagOf]
+      rw [lookup_none (fun p hp => by
+        simp only [beq_eq_false_iff_ne]; intro he; exact hz _ hi (by rw [← he]; exact List.mem_map_of_mem hp))]
+      rfl
+    have := h i hi; rw [occE_inline fl hn e ho] at this; cases this
+
+theorem sOk_terms (hs : sOk s = true) : (∀ p ∈ s.f.m.step, avoidsE s.wVars (inlineE s.f.flags p.2) = true)
+    ∧ (∀ w ∈ s.f.m.writes, avoidsE s.wVars (inlineE s.f.flags w.2.1) = true ∧ avoidsE s.wVars (inlineE s.f.flags w.2.2) = true)
+    ∧ (∀ w ∈ s.every, avoidsE s.wVars (inlineE s.f.flags w.2.2) = true) ∧ avoids s.wVars s.f.m.assume = true
+    ∧ avoids (s.wVars ++ s.qVars) s.f.m.pre = true := by
+  simp only [sOk, Bool.and_eq_true, List.all_eq_true] at hs
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨_, _⟩, _⟩, _⟩, _⟩, _⟩, _⟩, hpre⟩, hst⟩, hwr⟩, hev⟩, has⟩ := hs
+  exact ⟨hst, fun w hw => hwr w hw, fun w hw => (hev w hw).1.1.1, has, hpre⟩
+
+-- The witnesses are no flags.
+theorem wVars_flags (hs : sOk s = true) : ∀ i ∈ s.wVars, i ∉ flagVars s.f.flags := by
+  obtain ⟨_, _, _, _, hd, _, _⟩ := sOk_parts s hs
+  intro i hi hf
+  exact (distinct_append hd).2.2 i (by simp only [SMachine.extVars, List.mem_append]; exact Or.inr hi) hf
+
+theorem sk_view_eq (ρ ρ' : Nat → Nat) (hag : Agree s.wVars ρ' ρ) (M : Nat → Nat → Nat) (ι : Nat → Nat) (κ : Nat → Nat → Nat) :
+    sView s.sk ρ' M (sReq s ρ M ι κ) κ = (decideFlags s.f.flags (withExt s ρ (sReq s ρ M ι κ)) (withCarried s M κ), withCarried s M κ) := by
+  simp only [sView]; rw [decideQ_nil sk_q, sk_inputsView ρ ρ' hag]; rfl
+
+-- A step of the machine is a step of its sk machine, its request decided: allowed alike, the state after it agreeing
+-- off the witnesses, the maps the same.
+theorem sk_step (hs : sOk s = true) {ρ ρ' : Nat → Nat} (hag : Agree s.wVars ρ' ρ) (M : Nat → Nat → Nat) (ι : Nat → Nat) (κ : Nat → Nat → Nat) :
+    evalC (sView s.sk ρ' M (sReq s ρ M ι κ) κ).1 (sView s.sk ρ' M (sReq s ρ M ι κ) κ).2 s.f.m.assume
+      = evalC (sView s ρ M ι κ).1 (sView s ρ M ι κ).2 s.f.m.assume
+    ∧ Agree s.wVars (sNext s.sk ρ' M (sReq s ρ M ι κ) κ).1 (sNext s ρ M ι κ).1
+    ∧ (sNext s.sk ρ' M (sReq s ρ M ι κ) κ).2 = (sNext s ρ M ι κ).2 := by
+  obtain ⟨hV, hN⟩ := sk_view hs hag M ι κ
+  obtain ⟨hst, hwr, hev, has, _⟩ := sOk_terms hs
+  have hz := wVars_flags hs
+  have hraw : ∀ e : E, avoidsE s.wVars (inlineE s.f.flags e) = true → ∀ j, occE j e = true → j ∉ s.wVars :=
+    fun e he j hj => avoidsE_occ (avoidsE_of_inline hz he) hj
+  have hEq : ∀ e : E, avoidsE s.wVars (inlineE s.f.flags e) = true → ∀ (A B : Nat → Nat), Agree s.wVars A B → ∀ N : Nat → Nat → Nat,
+      evalE A N e = evalE B N e := fun e he A B hab N => congrE A B N e (fun j hj => hab j (hraw e he j hj))
+  refine ⟨?_, fun i hi => ?_, ?_⟩
+  · rw [hN, congrC _ (sView s ρ M ι κ).1 _ s.f.m.assume (fun j hj => hV j (avoids_occ has hj))]
+  · simp only [sNext, applyS]
+    rw [show s.sk.f.m.step = s.f.m.step from rfl]
+    cases ha : assoc s.f.m.step i with
+    | none => show (sView s.sk ρ' M (sReq s ρ M ι κ) κ).1 i = (sView s ρ M ι κ).1 i; exact hV i hi
+    | some e =>
+      show evalE (sView s.sk ρ' M (sReq s ρ M ι κ) κ).1 (sView s.sk ρ' M (sReq s ρ M ι κ) κ).2 e = evalE (sView s ρ M ι κ).1 (sView s ρ M ι κ).2 e
+      obtain ⟨p, hp, rfl⟩ : ∃ p ∈ s.f.m.step, p.2 = e := by
+        simp only [assoc, Option.map_eq_some_iff] at ha; obtain ⟨p, hl, rfl⟩ := ha; exact ⟨p, (lookup_some hl).1, rfl⟩
+      rw [hN]; exact hEq p.2 (hst p hp) _ _ hV _
+  · simp only [sNext]
+    funext mp key
+    show everyMaps s (sView s.sk ρ' M (sReq s ρ M ι κ) κ).1 (sView s.sk ρ' M (sReq s ρ M ι κ) κ).2 mp key = everyMaps s (sView s ρ M ι κ).1 (sView s ρ M ι κ).2 mp key
+    rw [hN]
+    simp only [everyMaps]
+    cases hl : lookup (fun w => w.1 == mp) s.every with
+    | some w =>
+      have hu : Agree s.wVars (upd (sView s.sk ρ' M (sReq s ρ M ι κ) κ).1 w.2.1 key) (upd (sView s ρ M ι κ).1 w.2.1 key) := by
+        intro j hj; simp only [upd]; split
+        · rfl
+        · exact hV j hj
+      exact hEq w.2.2 (hev w (lookup_some hl).1) _ _ hu _
+    | none =>
+      simp only [writeMaps]
+      cases hl2 : lookup (fun w => w.1 == mp) s.f.m.writes with
+      | none => rfl
+      | some w =>
+        obtain ⟨h1, h2⟩ := hwr w (lookup_some hl2).1
+        simp only [hEq w.2.1 h1 _ _ hV, hEq w.2.2 h2 _ _ hV]
+
+-- A run's request at time u decided: its flags and witnesses as a goal reads them from its inputs.
+def CRun.Decided (s : SMachine) (r : CRun) (u : Nat) : Prop := r.ι u = sReq s (r.st u) (r.mp u) (r.ι u) (r.κ u)
+
+-- The run with the request at T (the last, which no step takes) replaced.
+def CRun.last (r : CRun) (T : Nat) (ι : Nat → Nat) (κ : Nat → Nat → Nat) : CRun :=
+  ⟨r.ρ0, r.st, r.mp, fun u => if u = T then ι else r.ι u, fun u => if u = T then κ else r.κ u⟩
+
+theorem last_ok {s' : SMachine} {r : CRun} {T : Nat} (hr : r.Ok s' T) (ι : Nat → Nat) (κ : Nat → Nat → Nat) : (r.last T ι κ).Ok s' T := by
+  have hNX : ∀ u, u < T → (r.last T ι κ).N s' u = r.N s' u ∧ (r.last T ι κ).V s' u = r.V s' u := fun u hu => by
+    have hne : u ≠ T := Nat.ne_of_lt hu
+    refine ⟨?_, ?_⟩ <;> simp only [CRun.V, CRun.X, CRun.N, CRun.last, if_neg hne]
+  exact ⟨hr.maps0, hr.pre, hr.facts, hr.pfacts, hr.init, fun u hu => by rw [(hNX u hu).1, (hNX u hu).2]; exact hr.step u hu⟩
+
+-- The request at T decided from no inputs: a decided last request.
+theorem last_decided {r : CRun} {T : Nat} : (r.last T (sReq s (r.st T) (r.mp T) (fun _ => 0) noSets) noSets).Decided s T := by
+  simp only [CRun.Decided, CRun.last, if_pos rfl]; exact (sReq_idem _ _ _ _).symm
+
+theorem last_other {r : CRun} {T u : Nat} (hu : u ≠ T) (ι : Nat → Nat) (κ : Nat → Nat → Nat) (h : r.Decided s u) : (r.last T ι κ).Decided s u := by
+  simp only [CRun.Decided, CRun.last, if_neg hu]; exact h
+
+-- A reachable state of the machine ends a run of its sk machine, every request of it decided, off the witnesses.
+theorem sk_run (hs : sOk s = true) : ∀ {ρ M}, SReach s ρ M → ∃ (r : CRun) (T : Nat), r.Ok s.sk T ∧ (∀ u, u ≤ T → r.Decided s u)
+    ∧ Agree s.wVars (r.st T) ρ ∧ r.mp T = M := by
+  intro ρ M h
+  induction h with
+  | start ρ M hM hp hf hpf =>
+    exact ⟨⟨ρ, fun _ => applyS s.f.m.init ρ M, fun _ => M, fun _ => sReq s (applyS s.f.m.init ρ M) M (fun _ => 0) noSets, fun _ => noSets⟩, 0,
+      ⟨hM, hp, hf, hpf, rfl, fun u hu => absurd hu (Nat.not_lt_zero u)⟩, fun _ _ => (sReq_idem _ _ _ _).symm, fun _ _ => rfl, rfl⟩
+  | step ρ M ι κ _ ha ih =>
+    obtain ⟨r, T, hr, hd, hag, hmp⟩ := ih
+    obtain ⟨hA, hS, hMn⟩ := sk_step hs hag M ι κ
+    have hr1 := run_snoc_ok sk_q hr rfl hmp (sReq s ρ M ι κ) κ (by show evalC _ _ s.f.m.assume = true; rw [hA]; exact ha)
+    let r1 := r.snoc T (sNext s.sk (r.st T) M (sReq s ρ M ι κ) κ).1 (sNext s.sk (r.st T) M (sReq s ρ M ι κ) κ).2 (sReq s ρ M ι κ) κ
+    obtain ⟨l1, l2, l3, l4, l5, l6⟩ := snoc_last (r := r) (T := T) (sNext s.sk (r.st T) M (sReq s ρ M ι κ) κ).1 (sNext s.sk (r.st T) M (sReq s ρ M ι κ) κ).2 (sReq s ρ M ι κ) κ
+    refine ⟨r1.last (T + 1) (sReq s (r1.st (T + 1)) (r1.mp (T + 1)) (fun _ => 0) noSets) noSets, T + 1, last_ok hr1 _ _, fun u hu => ?_, ?_, ?_⟩
+    · rcases Nat.lt_or_ge u T with hlt | hge
+      · refine last_other (Nat.ne_of_lt (by omega)) _ _ ?_
+        obtain ⟨e1, _, e3, e4⟩ := snoc_early (s := s.sk) (r := r) hlt (sNext s.sk (r.st T) M (sReq s ρ M ι κ) κ).1 (sNext s.sk (r.st T) M (sReq s ρ M ι κ) κ).2 (sReq s ρ M ι κ) κ
+        have h := hd u (Nat.le_of_lt hlt)
+        simp only [CRun.Decided, r1, CRun.snoc, if_pos hlt, if_pos (Nat.le_of_lt hlt)] at h ⊢
+        exact h
+      · rcases Nat.lt_or_ge u (T + 1) with hlt | hge'
+        · have hu : u = T := by omega
+          subst hu
+          refine last_other (by omega) _ _ ?_
+          simp only [CRun.Decided, r1, l3, l4, l5, l6, hmp]
+          rw [sReq_agree hs hag, sReq_idem]
+        · have hu : u = T + 1 := by omega
+          subst hu; exact last_decided
+    · show Agree s.wVars (r1.st (T + 1)) (sNext s ρ M ι κ).1
+      rw [l1]; exact hS
+    · show r1.mp (T + 1) = (sNext s ρ M ι κ).2
+      rw [l2]; exact hMn
+
+-- A guard: where u ≤ T.
+def cycUpTo (ce : CycEnc) (c : C) : C := .or (.not (.le (.var ce.u) (.var ce.T))) (trC ce (.var ce.u) c)
+
+-- The facts the encoding adds for each flag that holds at every key, at each time u ≤ T (Sets.lean's closingHyps read
+-- at u): the flag is 0 or 1; it is 0 or its body holds at every value of its keys; it is 1 or its body fails at the
+-- witness.
+def cycQFacts (s : SMachine) (ce : CycEnc) : List Fact :=
+  s.qflags.flatMap fun q =>
+    [⟨[ce.u], cycUpTo ce (.le (.var q.1) (.const 1))⟩, ⟨ce.u :: q.2.1, cycUpTo ce (.or (.eq (.var q.1) (.const 0)) q.2.2)⟩]
+      ++ (match lookup (fun w => w.1 == q.1) s.wits with
+          | some w => [⟨[ce.u], cycUpTo ce (.or (.eq (.var q.1) (.const 1)) (.not (substC (q.2.1.zip (w.2.map .var)) q.2.2)))⟩]
+          | none => [])
+
+theorem assoc_zip_none : ∀ (ks : List Nat) (ts : List E), ks.length ≤ ts.length → ∀ {j : Nat}, assoc (ks.zip ts) j = none → j ∉ ks
+  | [], _, _, _, _ => by simp
+  | _ :: _, [], h, _, _ => by simp at h
+  | k :: ks, t :: ts, h, j, ha => by
+    simp only [List.zip_cons_cons, assoc, lookup] at ha
+    by_cases hk : k = j
+    · subst hk; simp at ha
+    · simp only [hk, beq_iff_eq, if_false] at ha
+      intro hm
+      rcases List.mem_cons.mp hm with hm | hm
+      · exact hk hm.symm
+      · exact assoc_zip_none ks ts (by simpa using h) (by simpa [assoc] using ha) hm
+
+theorem assoc_zip_self (g : Nat → E) : ∀ (ks : List Nat) {j : Nat}, j ∈ ks → assoc (ks.zip (ks.map g)) j = some (g j)
+  | [], _, h => by simp at h
+  | k :: ks, j, h => by
+    simp only [List.map_cons, List.zip_cons_cons, assoc, lookup]
+    by_cases hk : k = j
+    · subst hk; simp
+    · have hj : j ∈ ks := by rcases List.mem_cons.mp h with h | h; exact absurd h.symm hk; exact h
+      have := assoc_zip_self g ks hj
+      simp only [assoc] at this
+      simp [hk, this]
+
+-- On a decided run, the encoding at a time up to T reads the goal's view of that step (Sets.lean's withExt, sReq).
+theorem sk_X {r : CRun} {u : Nat} (hd : r.Decided s u) :
+    r.X s.sk u = withExt s (r.st u) (sReq s (r.st u) (r.mp u) (r.ι u) (r.κ u)) := by
+  funext v
+  simp only [CRun.X, withInputs, withExt, sk_inputs]
+  by_cases hv : s.extVars.contains v = true
+  · simp only [hv, ↓reduceIte]; exact congrFun hd v
+  · simp only [hv, Bool.false_eq_true, ↓reduceIte]
+
+-- A quantified flag's body reads no added variable, no flag, no map over time, and of the keys none but its own.
+def cycBodyOk (s : SMachine) (ce : CycEnc) (keys : List Nat) : Bool :=
+  s.qflags.all fun q => avoids ce.special q.2.2 && avoidsMaps ce.tm q.2.2 && keys.all (fun k => q.2.1.contains k || !occC k q.2.2)
+    && q.2.1.all (fun k => keys.contains k)
+
+section qfacts
+variable {ce : CycEnc} {keys : List Nat} (hs : sOk s = true) (hS : CycShape s.sk ce keys) (hT : CycTerms s.sk ce keys)
+  {r : CRun} {T : Nat} (hr : r.Ok s.sk T) (hd : ∀ u, u ≤ T → r.Decided s u) (hb : cycBodyOk s ce keys = true)
+  {Q : Nat → Nat} (hQ : EnvOk s.sk ce keys r T Q)
+include hs hS hT hr hd hb hQ
+
+-- A fact over u and some keys, guarded by u ≤ T: true when its condition is, read at the run's step at u.
+theorem upto_true {ks : List Nat} (hks : ∀ x ∈ ks, x = ce.u ∨ x ∈ keys) (hu : ce.u ∈ ks) (vals : Nat → Nat) (c : C)
+    (h : vals ce.u ≤ T → evalC (applyS (cycσ ce (.var ce.u)) (override ks vals Q) (cycMaps s.sk ce r (T + 1))) (cycView s.sk ce r (T + 1) (vals ce.u)) c = true) :
+    evalC (override ks vals Q) (cycMaps s.sk ce r (T + 1)) (cycUpTo ce c) = true := by
+  have hsp := special_parts hS.dsp
+  have hnk : ∀ i, (i = ce.T ∨ i = ce.om) → i ∉ ks := fun i hi hm => by
+    rcases hks i hm with h1 | h1
+    · rcases hi with rfl | rfl
+      · exact hsp.1 h1.symm
+      · exact hsp.2.1 h1.symm
+    · exact hS.ks i h1 (in_special (by rcases hi with rfl | rfl; exact Or.inr (Or.inr (Or.inl rfl)); exact Or.inr (Or.inr (Or.inr (Or.inl rfl)))))
+  have hQ1 : EnvOk s.sk ce keys r T (override ks vals Q) := by
+    refine ⟨?_, ?_, fun i hi => ?_⟩
+    · simp only [override]; rw [if_neg (fun h => hnk ce.T (Or.inl rfl) (List.contains_iff_mem.mp h))]; exact hQ.1
+    · simp only [override]; rw [if_neg (fun h => hnk ce.om (Or.inr rfl) (List.contains_iff_mem.mp h))]; exact hQ.2.1
+    · simp only [override]
+      rw [if_neg (fun h => by
+        rcases hks i (List.contains_iff_mem.mp h) with h1 | h1
+        · exact (notP hi).1 (in_special (Or.inl h1))
+        · exact (notP hi).2.1 h1)]
+      exact hQ.2.2 i hi
+  have hw : evalE (override ks vals Q) (cycMaps s.sk ce r (T + 1)) (.var ce.u) = vals ce.u := by
+    simp only [evalE, override, List.contains_iff_mem.mpr hu, ite_true]
+  simp only [cycUpTo, evalC, Bool.or_eq_true, Bool.not_eq_true']
+  by_cases hle : vals ce.u ≤ T
+  · right; rw [enc_trC hS hT hr hQ1 hw hle]; exact h hle
+  · left; simp only [evalE] at hw; simp only [decide_eq_false_iff_not, evalE, hw, hQ1.1]; exact hle
+
+theorem qbody_parts {q : Nat × List Nat × C} (hq : q ∈ s.qflags) :
+    avoids ce.special q.2.2 = true ∧ avoidsMaps ce.tm q.2.2 = true ∧ (∀ k ∈ keys, q.2.1.contains k = true ∨ occC k q.2.2 = false)
+      ∧ (∀ k ∈ q.2.1, k ∈ keys) := by
+  have h := List.all_eq_true.mp hb q hq
+  simp only [Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at h
+  exact ⟨h.1.1.1, h.1.1.2, h.1.2, fun k hk => List.contains_iff_mem.mp (h.2 k hk)⟩
+
+-- At a time u0 ≤ T, a variable no added name or flag is reads the goal's view of the run's step there.
+theorem upto_view {ks : List Nat} (hks : ∀ x ∈ ks, x = ce.u ∨ x ∈ keys) (vals : Nat → Nat) (hu0 : vals ce.u ≤ T) (hu : ce.u ∈ ks)
+    {j : Nat} (hz : j ∉ cycZ ce keys) (hf : j ∉ flagVars s.f.flags) :
+    applyS (cycσ ce (.var ce.u)) (override ks vals Q) (cycMaps s.sk ce r (T + 1)) j
+      = withExt s (r.st (vals ce.u)) (sReq s (r.st (vals ce.u)) (r.mp (vals ce.u)) (r.ι (vals ce.u)) (r.κ (vals ce.u))) j := by
+  have hsp := special_parts hS.dsp
+  have hQ1 : EnvOk s.sk ce keys r T (override ks vals Q) := by
+    have hnk : ∀ i, (i = ce.T ∨ i = ce.om) → i ∉ ks := fun i hi hm => by
+      rcases hks i hm with h1 | h1
+      · rcases hi with rfl | rfl
+        · exact hsp.1 h1.symm
+        · exact hsp.2.1 h1.symm
+      · exact hS.ks i h1 (in_special (by rcases hi with rfl | rfl; exact Or.inr (Or.inr (Or.inl rfl)); exact Or.inr (Or.inr (Or.inr (Or.inl rfl)))))
+    refine ⟨?_, ?_, fun i hi => ?_⟩
+    · simp only [override]; rw [if_neg (fun h => hnk ce.T (Or.inl rfl) (List.contains_iff_mem.mp h))]; exact hQ.1
+    · simp only [override]; rw [if_neg (fun h => hnk ce.om (Or.inr rfl) (List.contains_iff_mem.mp h))]; exact hQ.2.1
+    · simp only [override]
+      rw [if_neg (fun h => by
+        rcases hks i (List.contains_iff_mem.mp h) with h1 | h1
+        · exact (notP hi).1 (in_special (Or.inl h1))
+        · exact (notP hi).2.1 h1)]
+      exact hQ.2.2 i hi
+  have hw : evalE (override ks vals Q) (cycMaps s.sk ce r (T + 1)) (.var ce.u) = vals ce.u := by
+    simp only [evalE, override, List.contains_iff_mem.mpr hu, ite_true]
+  rw [enc_Y hS hT hr hQ1 hw hu0 hz hf, sk_X (hd _ hu0)]
+
+-- A variable of the goal's view: a quantified flag or a witness is traced, no added name, no flag.
+theorem ext_free {v : Nat} (hv : v ∈ s.extVars) : v ∉ cycZ ce keys ∧ v ∉ flagVars s.f.flags := by
+  obtain ⟨_, _, _, _, hd', _, _⟩ := sOk_parts s hs
+  exact ⟨fun h => hS.zv v h (hS.inv v (by rw [sk_inputs]; exact hv)), (distinct_append hd').2.2 v hv⟩
+
+theorem qflag_ext {q : Nat × List Nat × C} (hq : q ∈ s.qflags) : q.1 ∈ s.extVars := by
+  simp only [SMachine.extVars, SMachine.qVars, List.mem_append, List.mem_map]; exact Or.inl (Or.inr ⟨q, hq, rfl⟩)
+
+-- A body variable, not one of the body's keys: no added name, no flag.
+theorem body_free {q : Nat × List Nat × C} (hq : q ∈ s.qflags) {j : Nat} (hj : occC j q.2.2 = true) (hk : j ∉ q.2.1) :
+    j ∉ cycZ ce keys ∧ j ∉ flagVars s.f.flags := by
+  obtain ⟨hsb, _, hkb, _⟩ := qbody_parts hs hS hT hr hd hb hQ hq
+  obtain ⟨_, _, _, _, _, hbody, _⟩ := sOk_parts s hs
+  refine ⟨fun h => ?_, fun h => avoids_occ (hbody q hq).1 hj (List.mem_append_right _ h)⟩
+  simp only [cycZ, List.mem_append] at h
+  rcases h with h | h
+  · exact avoids_occ hsb hj h
+  · rcases hkb j h with h1 | h1
+    · exact hk (List.contains_iff_mem.mp h1)
+    · rw [hj] at h1; cases h1
+
+theorem qfacts_hold {f : Fact} (hf : f ∈ cycQFacts s ce) (vals : Nat → Nat) :
+    evalC (override f.keys vals Q) (cycMaps s.sk ce r (T + 1)) f.holds = true := by
+  simp only [cycQFacts, List.mem_flatMap, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hf
+  obtain ⟨q, hq, hf⟩ := hf
+  obtain ⟨_, hmb, _, hbk⟩ := qbody_parts hs hS hT hr hd hb hQ hq
+  have hqv := ext_free hs hS hT hr hd hb hQ (qflag_ext hs hS hT hr hd hb hQ hq)
+  -- The maps a body reads, at u0: the step's.
+  have hN : ∀ u0 m, m ∉ ce.tm → cycView s.sk ce r (T + 1) u0 m = withCarried s (r.mp u0) (r.κ u0) m := fun u0 m hm => by
+    rw [cv_N hm]; rfl
+  rcases hf with (rfl | rfl) | hf
+  · -- 0 or 1
+    refine upto_true hs hS hT hr hd hb hQ (fun x hx => by simp at hx; exact Or.inl hx) (by simp) vals _ (fun hu0 => ?_)
+    have hc := closing_true s (r.st (vals ce.u)) (r.mp (vals ce.u)) (r.ι (vals ce.u)) (r.κ (vals ce.u)) hs [] (.le (.var q.1) (.const 1)) (by
+      simp only [closingHyps, List.mem_flatMap]; exact ⟨q, hq, by simp⟩)
+    rw [evalC_iff] at hc ⊢
+    simp only [holdsC, evalE] at hc ⊢
+    rw [upto_view hs hS hT hr hd hb hQ (fun x hx => by simp at hx; exact Or.inl hx) vals hu0 (by simp) hqv.1 hqv.2]; exact hc
+  · -- 0, or the body at every value of the keys
+    have hks : ∀ x ∈ ce.u :: q.2.1, x = ce.u ∨ x ∈ keys := fun x hx => by
+      rcases List.mem_cons.mp hx with h | h; exact Or.inl h; exact Or.inr (hbk x h)
+    refine upto_true hs hS hT hr hd hb hQ hks List.mem_cons_self vals _ (fun hu0 => ?_)
+    let u0 := vals ce.u
+    let consts := q.2.1.map (fun k => E.const (vals k))
+    have hc := closing_true s (r.st u0) (r.mp u0) (r.ι u0) (r.κ u0) hs [(q.1, consts)] (.or (.eq (.var q.1) (.const 0)) (substC (q.2.1.zip consts) q.2.2)) (by
+      simp only [closingHyps, List.mem_flatMap]; exact ⟨q, hq, by simp⟩)
+    rw [evalC_iff] at hc ⊢
+    simp only [holdsC, evalE] at hc ⊢
+    rw [upto_view hs hS hT hr hd hb hQ hks vals hu0 List.mem_cons_self hqv.1 hqv.2]
+    rcases hc with hc | hc
+    · exact Or.inl hc
+    · right
+      rw [← evalC_iff] at hc ⊢
+      rw [subst_evalC] at hc
+      rw [congr2C (ρ' := applyS (q.2.1.zip consts) (withExt s (r.st u0) (sReq s (r.st u0) (r.mp u0) (r.ι u0) (r.κ u0))) (withCarried s (r.mp u0) (r.κ u0)))
+        (M' := withCarried s (r.mp u0) (r.κ u0)) q.2.2 (fun j hj => ?_) (fun m hm => hN u0 m (avoidsMaps_occ hmb hm))]
+      · exact hc
+      · by_cases hjk : j ∈ q.2.1
+        · have hr1 : applyS (q.2.1.zip consts) (withExt s (r.st u0) (sReq s (r.st u0) (r.mp u0) (r.ι u0) (r.κ u0))) (withCarried s (r.mp u0) (r.κ u0)) j = vals j := by
+            simp only [applyS, consts, assoc_zip_self (fun k => E.const (vals k)) q.2.1 hjk, evalE]
+          have hz : (cycσ ce (.var ce.u)).map (·.1) = ce.vtr.map (·.1) := by simp [cycσ]
+          rw [hr1, applyS_other (by rw [hz]; exact fun h => hS.zv j (by simp only [cycZ, List.mem_append]; exact Or.inr (hbk j hjk)) h)]
+          simp only [override, List.contains_iff_mem.mpr (List.mem_cons_of_mem _ hjk), ite_true]
+        · obtain ⟨hz, hfl⟩ := body_free hs hS hT hr hd hb hQ hq hj hjk
+          rw [upto_view hs hS hT hr hd hb hQ hks vals hu0 List.mem_cons_self hz hfl, applyS_other (fun h => hjk (by
+            obtain ⟨p, hp, rfl⟩ := List.mem_map.mp h; exact (List.of_mem_zip hp).1))]
+  · -- 1, or the body failing at the witness
+    cases hl : lookup (fun w => w.1 == q.1) s.wits with
+    | none => rw [hl] at hf; simp at hf
+    | some w =>
+      rw [hl] at hf; simp only [List.mem_singleton] at hf; subst hf
+      refine upto_true hs hS hT hr hd hb hQ (fun x hx => by simp at hx; exact Or.inl hx) (by simp) vals _ (fun hu0 => ?_)
+      let u0 := vals ce.u
+      have hc := closing_true s (r.st u0) (r.mp u0) (r.ι u0) (r.κ u0) hs [] (.or (.eq (.var q.1) (.const 1)) (.not (substC (q.2.1.zip (w.2.map .var)) q.2.2))) (by
+        simp only [closingHyps, List.mem_flatMap]; exact ⟨q, hq, by simp [hl]⟩)
+      have hwv : ∀ v ∈ w.2, v ∈ s.extVars := fun v hv => by
+        simp only [SMachine.extVars, SMachine.wVars, List.mem_append, List.mem_flatMap]
+        exact Or.inr ⟨w, (lookup_some hl).1, hv⟩
+      have hσ : ∀ j, applyS (q.2.1.zip (w.2.map .var)) (applyS (cycσ ce (.var ce.u)) (override [ce.u] vals Q) (cycMaps s.sk ce r (T + 1))) (cycView s.sk ce r (T + 1) u0) j
+          = applyS (q.2.1.zip (w.2.map .var)) (withExt s (r.st u0) (sReq s (r.st u0) (r.mp u0) (r.ι u0) (r.κ u0))) (withCarried s (r.mp u0) (r.κ u0)) j ∨ occC j q.2.2 = false := by
+        intro j
+        by_cases hjo : occC j q.2.2 = true
+        · left
+          simp only [applyS]
+          cases ha : assoc (q.2.1.zip (w.2.map .var)) j with
+          | some e =>
+            obtain ⟨v, hv, rfl⟩ : ∃ v ∈ w.2, e = .var v := by
+              simp only [assoc, Option.map_eq_some_iff] at ha
+              obtain ⟨p, hp, rfl⟩ := ha
+              have := (lookup_some hp).1
+              obtain ⟨_, hpw⟩ := List.of_mem_zip this
+              obtain ⟨v, hv, he⟩ := List.mem_map.mp hpw
+              exact ⟨v, hv, he.symm⟩
+            simp only [evalE]
+            have hf := ext_free hs hS hT hr hd hb hQ (hwv v hv)
+            exact upto_view hs hS hT hr hd hb hQ (fun x hx => by simp at hx; exact Or.inl hx) vals hu0 (by simp) hf.1 hf.2
+          | none =>
+            have hjk : j ∉ q.2.1 := by
+              obtain ⟨_, _, hwd, hcov, _, _, _⟩ := sOk_parts s hs
+              obtain ⟨⟨w', hw', hw1, hlen⟩, _⟩ := hcov q hq
+              simp only [distinctPairs, Bool.and_eq_true] at hwd
+              have hww : w = w' := by
+                have h1 := lookup_unique hwd.1 hw'
+                rw [hw1, hl] at h1; exact Option.some.inj h1
+              subst hww
+              exact assoc_zip_none q.2.1 (w.2.map .var) (by simp [hlen]) ha
+            obtain ⟨hz, hfl⟩ := body_free hs hS hT hr hd hb hQ hq hjo hjk
+            exact upto_view hs hS hT hr hd hb hQ (fun x hx => by simp at hx; exact Or.inl hx) vals hu0 (by simp) hz hfl
+        · right; simpa using hjo
+      rw [evalC_iff] at hc ⊢
+      simp only [holdsC, evalE] at hc ⊢
+      rw [upto_view hs hS hT hr hd hb hQ (fun x hx => by simp at hx; exact Or.inl hx) vals hu0 (by simp) hqv.1 hqv.2]
+      rcases hc with hc | hc
+      · exact Or.inl hc
+      · right
+        intro hn; apply hc
+        rw [← evalC_iff] at hn ⊢
+        rw [subst_evalC]
+        rw [subst_evalC] at hn
+        rw [← congr2C (ρ' := applyS (q.2.1.zip (w.2.map .var)) (withExt s (r.st u0) (sReq s (r.st u0) (r.mp u0) (r.ι u0) (r.κ u0))) (withCarried s (r.mp u0) (r.κ u0)))
+          (M' := withCarried s (r.mp u0) (r.κ u0)) q.2.2 (fun j hj => by rcases hσ j with h | h; exact h; rw [hj] at h; cases h)
+          (fun m hm => hN u0 m (avoidsMaps_occ hmb hm))]
+        exact hn
+
+end qfacts
+
+end sk
+
+section skseq
+variable {s : SMachine}
+
+-- Requests in a row, read by the sk machine: each decided at the machine's state it is taken in.
+noncomputable def skReqs (s : SMachine) : (Nat → Nat) → (Nat → Nat → Nat) → List SRequest → List SRequest
+  | _, _, [] => []
+  | ρ, M, q :: qs => (sReq s ρ M q.1 q.2, q.2) :: skReqs s (sNext s ρ M q.1 q.2).1 (sNext s ρ M q.1 q.2).2 qs
+
+theorem skReqs_length : ∀ (ρ : Nat → Nat) (M : Nat → Nat → Nat) (qs : List SRequest), (skReqs s ρ M qs).length = qs.length
+  | _, _, [] => rfl
+  | ρ, M, q :: qs => by simp [skReqs, skReqs_length _ _ qs]
+
+theorem skReqs_take : ∀ (ρ : Nat → Nat) (M : Nat → Nat → Nat) (qs : List SRequest) (j : Nat), (skReqs s ρ M qs).take j = skReqs s ρ M (qs.take j)
+  | _, _, [], _ => by simp [skReqs]
+  | _, _, _ :: _, 0 => by simp [skReqs]
+  | ρ, M, q :: qs, j + 1 => by simp [skReqs, skReqs_take _ _ qs j]
+
+-- Along requests the machine allows, its sk machine allows theirs, each state agreeing off the witnesses, the maps the
+-- same; each `when` read alike.
+theorem sk_allowed (hs : sOk s = true) : ∀ (ws : List C) (qs : List SRequest) (ρ ρ' : Nat → Nat) (M : Nat → Nat → Nat),
+    Agree s.wVars ρ' ρ → SAllowed s ws ρ M qs → SAllowed s.sk ws ρ' M (skReqs s ρ M qs)
+  | [], _, _, _, _, _, _ => by cases (skReqs _ _ _ _) <;> trivial
+  | _ :: _, [], _, _, _, _, _ => trivial
+  | w :: ws, q :: qs, ρ, ρ', M, hag, hK => by
+    obtain ⟨hA, hW, hrest⟩ := hK
+    obtain ⟨hA', hS', hM'⟩ := sk_step hs hag M q.1 q.2
+    refine ⟨by show evalC _ _ s.f.m.assume = true; rw [hA']; exact hA, ?_, ?_⟩
+    · show evalC (withExt s.sk ρ' (sReq s.sk ρ' M (sReq s ρ M q.1 q.2) q.2)) (withCarried s.sk M q.2) w = true
+      have he : withExt s.sk ρ' (sReq s.sk ρ' M (sReq s ρ M q.1 q.2) q.2) = withInputs s.sk.f.m.inputs ρ' (sReq s ρ M q.1 q.2) := by
+        funext v
+        rw [withExt_plain sk_q rfl, sReq_plain sk_q rfl]
+        simp only [withInputs]; split <;> rfl
+      rw [he, sk_inputsView ρ ρ' hag]; exact hW
+    · show SAllowed s.sk ws (sNext s.sk ρ' M (sReq s ρ M q.1 q.2) q.2).1 (sNext s.sk ρ' M (sReq s ρ M q.1 q.2) q.2).2
+        (skReqs s (sNext s ρ M q.1 q.2).1 (sNext s ρ M q.1 q.2).2 qs)
+      rw [hM']
+      exact sk_allowed hs ws qs _ _ _ hS' hrest
+
+theorem sk_end (hs : sOk s = true) : ∀ (qs : List SRequest) (ρ ρ' : Nat → Nat) (M : Nat → Nat → Nat), Agree s.wVars ρ' ρ →
+    Agree s.wVars (sEnd s.sk ρ' M (skReqs s ρ M qs)).1 (sEnd s ρ M qs).1 ∧ (sEnd s.sk ρ' M (skReqs s ρ M qs)).2 = (sEnd s ρ M qs).2
+  | [], _, _, _, hag => ⟨hag, rfl⟩
+  | q :: qs, ρ, ρ', M, hag => by
+    obtain ⟨_, hS', hM'⟩ := sk_step hs hag M q.1 q.2
+    simp only [skReqs, sEnd]
+    rw [hM']
+    exact sk_end hs qs _ _ _ hS'
+
+-- The j-th request of a row, read by the sk machine.
+theorem skReqs_get : ∀ (ρ : Nat → Nat) (M : Nat → Nat → Nat) (qs : List SRequest) (j : Nat) (h : j < qs.length),
+    (skReqs s ρ M qs)[j]'(by rw [skReqs_length]; exact h)
+      = (sReq s (sEnd s ρ M (qs.take j)).1 (sEnd s ρ M (qs.take j)).2 qs[j].1 qs[j].2, qs[j].2)
+  | _, _, [], _, h => absurd h (Nat.not_lt_zero _)
+  | ρ, M, q :: qs, 0, _ => by simp [skReqs, sEnd]
+  | ρ, M, q :: qs, j + 1, h => by
+    simp only [skReqs, List.getElem_cons_succ, List.take_succ_cons, sEnd, List.length_cons] at h ⊢
+    exact skReqs_get _ _ qs j (by omega)
+
+-- Each step's extended request, as SKStepHolds reads it.
+theorem sExts_get : ∀ (ρ : Nat → Nat) (M : Nat → Nat → Nat) (qs : List SRequest) (j : Nat) (h : j < qs.length),
+    (sExts s ρ M qs)[j]'(by
+      have : ∀ ρ M (qs : List SRequest), (sExts s ρ M qs).length = qs.length := by
+        intro ρ M qs; induction qs generalizing ρ M with
+        | nil => rfl
+        | cons q qs ih => simp [sExts, ih]
+      rw [this]; exact h)
+      = sReq s (sEnd s ρ M (qs.take j)).1 (sEnd s ρ M (qs.take j)).2 qs[j].1 qs[j].2
+  | _, _, [], _, h => absurd h (Nat.not_lt_zero _)
+  | ρ, M, q :: qs, 0, _ => by simp [sExts, sEnd]
+  | ρ, M, q :: qs, j + 1, h => by
+    simp only [sExts, List.getElem_cons_succ, List.take_succ_cons, sEnd, List.length_cons] at h ⊢
+    exact sExts_get _ _ qs j (by omega)
+
+end skseq
+
+-- The keys the quantified flags bind.
+def SMachine.bk (s : SMachine) : List Nat := s.qflags.flatMap (·.2.1)
+
+-- Each exported fact is one of the sk machine's encoding, one a flag that holds at every key adds, or true of every natural.
+def cycQFactsIn (s : SMachine) (ce : CycEnc) (facts : List Fact) : Bool :=
+  facts.all fun f => natC f.holds || (cycCanon s.sk ce ++ cycQFacts s ce).any (factBeq f)
+
+theorem qfacts_all {s : SMachine} {ce : CycEnc} {keys : List Nat} (hs : sOk s = true) (hS : CycShape s.sk ce keys) (hT : CycTerms s.sk ce keys)
+    {r : CRun} {T : Nat} (hr : r.Ok s.sk T) (hd : ∀ u, u ≤ T → r.Decided s u) (hb : cycBodyOk s ce keys = true)
+    {Q : Nat → Nat} (hQ : EnvOk s.sk ce keys r T Q) {facts : List Fact} (hfa : cycQFactsIn s ce facts = true) :
+    FactsHold facts Q (cycMaps s.sk ce r (T + 1)) := by
+  intro f hf vals
+  have hfi := List.all_eq_true.mp hfa f hf
+  simp only [Bool.or_eq_true] at hfi
+  rcases hfi with hnc | hcan
+  · exact natC_true _ hnc
+  · obtain ⟨g, hg, hb'⟩ := List.any_eq_true.mp hcan
+    simp only [factBeq, Bool.and_eq_true, beq_iff_eq] at hb'
+    rw [hb'.1, beqC_eq hb'.2]
+    rcases List.mem_append.mp hg with hg | hg
+    · exact canon_holds hS hT hr hg hQ vals
+    · exact qfacts_hold hs hS hT hr hd hb hQ hg vals
+
+/-- A cyclic proof of a law of a machine with flags that hold at every key, checked against its sk machine's encoding
+with those flags' facts (`cycQMOk`): the law holds in every state the machine reaches, at every value of its keys. -/
+def cycQMOk (s : SMachine) (ce : CycEnc) (facts : List Fact) (law : C) (keys : List Nat) (n : CNode) : Bool :=
+  sOk s && cycShapeOk s.sk ce (keys ++ s.bk) && cycTermsOk s.sk ce (keys ++ s.bk) && cycBodyOk s ce (keys ++ s.bk)
+    && cycLawOk s.sk ce law && cycQFactsIn s ce facts && cycNodeOk s.sk ce law n
+
+theorem cyc_qmachine_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes : List CNode) (hc : checkCyclic facts nodes = true)
+    (law : C) (keys : List Nat) (n : CNode) (hn : n ∈ nodes) (hok : cycQMOk s ce facts law keys n = true) :
+    ∀ ρ M, SReach s ρ M → ∀ ρ' : Nat → Nat, (∀ i, i ∉ keys → ρ' i = ρ i) → evalC ρ' M law = true := by
+  simp only [cycQMOk, Bool.and_eq_true] at hok
+  obtain ⟨⟨⟨⟨⟨⟨hs, hsh⟩, hte⟩, hbo⟩, hlaw⟩, hfa⟩, hnd⟩ := hok
+  have hS := cycShape_of hsh
+  have hT := cycTerms_of hte
+  simp only [cycNodeOk, Bool.and_eq_true] at hnd
+  simp only [cycLawOk, Bool.and_eq_true] at hlaw
+  intro ρ M hreach ρ' hρ'
+  obtain ⟨r, T, hr, hd, hag, hmp⟩ := sk_run hs hreach
+  have hsp := special_parts hS.dsp
+  have hnot : ∀ i, i ∉ ce.special → cycEnv ce T ρ' i = ρ' i := fun i hi => by
+    simp only [cycEnv]
+    rw [if_neg (fun e => hi (in_special (Or.inr (Or.inr (Or.inr (Or.inr e)))))),
+      if_neg (fun e => hi (in_special (Or.inr (Or.inr (Or.inl e))))), if_neg (fun e => hi (in_special (Or.inr (Or.inr (Or.inr (Or.inl e))))))]
+  have hEnv : EnvOk s.sk ce (keys ++ s.bk) r T (cycEnv ce T ρ') := by
+    refine ⟨by simp [cycEnv], by simp [cycEnv, Ne.symm hsp.2.2.2.2.2.2, Ne.symm hsp.2.2.2.2.1], ?_⟩
+    intro i hi
+    obtain ⟨h1, h2, h3, h4⟩ := notP hi
+    have hwi : i ∉ s.wVars := fun h => h3 (hS.inv i (by rw [sk_inputs]; simp only [SMachine.extVars, List.mem_append]; exact Or.inr h))
+    rw [hnot i h1, hρ' i (fun h => h2 (List.mem_append_left _ h)), ← hag i hwi]
+    exact run_frame hr T (Nat.le_refl T) i (fun h => by obtain ⟨p, hp, rfl⟩ := List.mem_map.mp h; exact h3 (hS.initv p hp))
+      (fun h => by obtain ⟨p, hp, rfl⟩ := List.mem_map.mp h; exact h3 (hS.stepv p hp)) (fun h => h3 (hS.inv i h)) h4
+  have hF : FactsHold facts (cycEnv ce T ρ') (cycMaps s.sk ce r (T + 1)) := qfacts_all hs hS hT hr hd hbo hEnv hfa
+  have htT : cycEnv ce T ρ' ce.t = T := by simp [cycEnv]
+  have hH : ∀ c ∈ n.hyps, evalC (cycEnv ce T ρ') (cycMaps s.sk ce r (T + 1)) c = true := by
+    intro c hc
+    have h := List.all_eq_true.mp hnd.2 c hc
+    simp only [Bool.or_eq_true] at h
+    rcases h with (h | h) | h
+    · rw [beqC_eq h, congr2C (ρ' := r.ρ0) (M' := r.mp 0) _ (fun j hj => hEnv.2.2 j (avoids_occ hT.prz hj))
+        (fun m hm => cm_o (avoidsMaps_occ hT.prm hm))]
+      exact hr.pre
+    · rw [beqC_eq h, evalC_iff]; simp only [holdsC, evalE, htT, hEnv.1] <;> omega
+    · rw [beqC_eq h, evalC_iff]; simp only [holdsC, evalE, hEnv.1, hEnv.2.1] <;> omega
+  have hc0 := cyclic_sound facts nodes hc (cycMaps s.sk ce r (T + 1)) (cycEnv ce T ρ') hF n hn hH
+  have htT' : evalE (cycEnv ce T ρ') (cycMaps s.sk ce r (T + 1)) (.var ce.t) = T := htT
+  rw [beqC_eq hnd.1, enc_trC hS hT hr hEnv htT' (Nat.le_refl T)] at hc0
+  rw [congr2C (ρ' := applyS (cycσ ce (.var ce.t)) (cycEnv ce T ρ') (cycMaps s.sk ce r (T + 1))) (M' := cycView s.sk ce r (T + 1) T) law
+    (fun j hj => ?_) (fun m hm => ?_)]
+  · exact hc0
+  · have hj' := avoids_occ hlaw.1 hj
+    have hjs : j ∉ ce.special := fun h => hj' (List.mem_append_left _ h)
+    have hji : j ∉ s.sk.f.m.inputs := fun h => hj' (List.mem_append_right _ h)
+    by_cases hv : j ∈ ce.vtr.map (·.1)
+    · rw [enc_σ_in hS hT hr hEnv htT' (Nat.le_refl T) hv, CRun.X, withInputs_other hji]
+      have hwj : j ∉ s.wVars := fun h => hji (by rw [sk_inputs]; simp only [SMachine.extVars, List.mem_append]; exact Or.inr h)
+      rw [hag j hwj]
+      exact hρ' j (fun hk => hS.zv j (List.mem_append_right _ (List.mem_append_left _ hk)) hv)
+    · rw [enc_σ_out hS hT hr hEnv htT' (Nat.le_refl T) hv, hnot j hjs]
+  · have hm' := avoidsMaps_occ hlaw.2 hm
+    rw [cv_N (fun h => hm' (List.mem_append_left _ h)), N_not_carried (fun h => hm' (List.mem_append_right _ h)), hmp]
+
+
+/-- A k-step law's node for a machine with flags that hold at every key, checked against its sk machine's encoding with
+those flags' facts (`cycKOk` over the sk machine, the flags' keys apart). -/
+def cycQKOk (s : SMachine) (ce : CycEnc) (facts : List Fact) (sl : SKStep) (n : CNode) : Bool :=
+  sOk s && cycShapeOk s.sk ce s.bk && cycTermsOk s.sk ce s.bk && cycBodyOk s ce s.bk && cycQFactsIn s ce facts
+    && sl.k.ren.length == sl.k.whens.length && sl.mren.length == sl.k.whens.length
+    && sl.k.ren.all (fun r => r.all fun p => s.sk.f.m.inputs.contains p.1)
+    && sl.k.prime.all (fun q => (ce.vtr.map (·.1)).contains q.1 && !s.sk.f.m.inputs.contains q.1)
+    && sl.mren.all (fun r => r.all fun p => s.carried.contains p.1 && !ce.tm.contains p.2)
+    && sl.k.primeMaps.all (fun q => (ce.mtr.map (·.1)).contains q.1 && !s.carried.contains q.1 && !ce.tm.contains q.2)
+    && avoids (ce.special ++ s.bk ++ flagVars s.f.flags) sl.k.then_ && avoidsMaps ce.tm sl.k.then_
+    && sl.k.whens.all (fun w => avoids (ce.special ++ s.bk ++ flagVars s.f.flags) w && avoidsMaps ce.tm w)
+    && beqC n.concl (substRC (kσ ce sl) (kRd ce sl) sl.k.then_)
+    && n.hyps.all (fun h => beqC h s.f.m.pre || beqC h (.le (.const sl.k.whens.length) (.var ce.t)) || beqC h (.le (.var ce.t) (.var ce.T))
+      || beqC h (.lt (.var ce.T) (.var ce.om)) || (kWhens ce sl.k.whens.length 0 sl.k.whens).any (beqC h))
+
+theorem cyc_qkstep_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes : List CNode) (hc : checkCyclic facts nodes = true)
+    (sl : SKStep) (n : CNode) (hn : n ∈ nodes) (hok : cycQKOk s ce facts sl n = true) : SKStepHolds s sl := by
+  simp only [cycQKOk, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hok
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hs, hsh⟩, hte⟩, hbo⟩, hfa⟩, hrl⟩, hml⟩, hrin⟩, hpr⟩, hmr⟩, hpm⟩, hthv⟩, hthm⟩, hwh⟩, hcon⟩, hhy⟩ := hok
+  have hS := cycShape_of hsh
+  have hT := cycTerms_of hte
+  have hsp := special_parts hS.dsp
+  have hcz : ∀ x, x ∉ ce.special ++ s.bk ++ flagVars s.f.flags → x ∉ cycZ ce s.bk ∧ x ∉ flagVars s.f.flags := fun x hx =>
+    ⟨fun h => hx (List.mem_append_left _ h), fun h => hx (List.mem_append_right _ h)⟩
+  intro ρ M hr q₁ qs hlen hK
+  obtain ⟨r, T0, hr0, hdec, hag, hmp⟩ := sk_run hs hr
+  have hK' := sk_allowed hs sl.k.whens (q₁ :: qs) ρ (r.st T0) M hag hK
+  have hql : (skReqs s ρ M (q₁ :: qs)).length = (q₁ :: qs).length := skReqs_length _ _ _
+  obtain ⟨r1, hr1, _, hle, hlt, hj, hι⟩ := run_ext sk_q (skReqs s ρ M (q₁ :: qs)) sl.k.whens r T0 (r.st T0) M hr0 rfl hmp (by rw [hql]; simp; omega) hK'
+  rw [hql] at hr1 hj
+  have hk : sl.k.whens.length = (q₁ :: qs).length := by simp; omega
+  -- The state after the first j requests, and the j-th request, as the sk machine's run has them.
+  have hagj : ∀ j, j ≤ (q₁ :: qs).length → Agree s.wVars (r1.st (T0 + j)) (sEnd s ρ M ((q₁ :: qs).take j)).1
+      ∧ r1.mp (T0 + j) = (sEnd s ρ M ((q₁ :: qs).take j)).2 := fun j hj' => by
+    obtain ⟨a, b⟩ := hj j hj'
+    rw [a, b, skReqs_take]; exact sk_end hs _ _ _ M hag
+  have hreqj : ∀ j (h : j < (q₁ :: qs).length), r1.ι (T0 + j) = sReq s (sEnd s ρ M ((q₁ :: qs).take j)).1 (sEnd s ρ M ((q₁ :: qs).take j)).2 (q₁ :: qs)[j].1 (q₁ :: qs)[j].2
+      ∧ r1.κ (T0 + j) = (q₁ :: qs)[j].2 := fun j h => by
+    obtain ⟨a, b⟩ := hι j (by rw [hql]; exact h)
+    have hg := skReqs_get (s := s) ρ M (q₁ :: qs) j h
+    rw [a, b]; simp only [hg, and_self]
+  -- The last request (no step takes it) decided too: every request of the run is.
+  let T' := T0 + (q₁ :: qs).length
+  let r' := r1.last T' (sReq s (r1.st T') (r1.mp T') (fun _ => 0) noSets) noSets
+  have hr' : r'.Ok s.sk T' := last_ok hr1 _ _
+  have hd' : ∀ u, u ≤ T' → r'.Decided s u := by
+    intro u hu
+    by_cases huT : u = T'
+    · subst huT; exact last_decided
+    · refine last_other huT _ _ ?_
+      rcases Nat.lt_or_ge u T0 with hlt0 | hge0
+      · have h := hdec u (Nat.le_of_lt hlt0)
+        obtain ⟨a, b⟩ := hle u (Nat.le_of_lt hlt0)
+        obtain ⟨c', d⟩ := hlt u hlt0
+        simp only [CRun.Decided, a, b, c', d] at h ⊢; exact h
+      · obtain ⟨j, rfl⟩ : ∃ j, u = T0 + j := ⟨u - T0, by omega⟩
+        have hjl : j < (q₁ :: qs).length := by simp only [T'] at hu huT; omega
+        obtain ⟨ha, hm⟩ := hagj j (Nat.le_of_lt hjl)
+        obtain ⟨hι', hκ'⟩ := hreqj j hjl
+        simp only [CRun.Decided, hι', hκ', hm]
+        rw [sReq_agree hs ha, sReq_idem]
+  -- The node's environment: t and T the run's end, Ω one above it, the rest from before the start.
+  obtain ⟨Q, hQt, hQT, hQo, hQr⟩ : ∃ Q : Nat → Nat, Q ce.t = T' ∧ Q ce.T = T' ∧ Q ce.om = T' + 1 ∧ ∀ i, i ∉ ce.special → Q i = r'.ρ0 i :=
+    ⟨fun i => if i = ce.t then T' else if i = ce.T then T' else if i = ce.om then T' + 1 else r'.ρ0 i,
+      by simp, by simp [Ne.symm hsp.2.2.2.2.2.1], by simp [Ne.symm hsp.2.2.2.2.2.2, Ne.symm hsp.2.2.2.2.1],
+      fun i hi => by
+        dsimp only
+        rw [if_neg (fun e => hi (in_special (Or.inr (Or.inr (Or.inr (Or.inr e)))))), if_neg (fun e => hi (in_special (Or.inr (Or.inr (Or.inl e))))),
+          if_neg (fun e => hi (in_special (Or.inr (Or.inr (Or.inr (Or.inl e))))))]⟩
+  have hEnv : EnvOk s.sk ce s.bk r' T' Q := ⟨hQT, hQo, fun i hi => hQr i (notP hi).1⟩
+  have hF : FactsHold facts Q (cycMaps s.sk ce r' (T' + 1)) := qfacts_all hs hS hT hr' hd' hbo hEnv hfa
+  have hframe : ∀ u, u ≤ T' → ∀ i, i ∉ ce.vtr.map (·.1) → i ∉ flagVars s.f.flags → r'.st u i = r'.ρ0 i := fun u hu i hv hf =>
+    run_frame hr' u hu i (fun h => by obtain ⟨p, hp, rfl⟩ := List.mem_map.mp h; exact hv (hS.initv p hp))
+      (fun h => by obtain ⟨p, hp, rfl⟩ := List.mem_map.mp h; exact hv (hS.stepv p hp)) (fun h => hv (hS.inv i h)) hf
+  have hwV : ∀ x, x ∉ ce.vtr.map (·.1) → x ∉ s.extVars := fun x hv h => hv (hS.inv x (by rw [sk_inputs]; exact h))
+  have hwW : ∀ x, x ∉ ce.vtr.map (·.1) → x ∉ s.wVars := fun x hv h => hwV x hv (by simp only [SMachine.extVars, List.mem_append]; exact Or.inr h)
+  -- What the run reads at T0 + j: the goal's view of the j-th step of the machine.
+  have hXj : ∀ j (h : j < (q₁ :: qs).length), r'.X s.sk (T0 + j) = withExt s (sEnd s ρ M ((q₁ :: qs).take j)).1
+      (sReq s (sEnd s ρ M ((q₁ :: qs).take j)).1 (sEnd s ρ M ((q₁ :: qs).take j)).2 (q₁ :: qs)[j].1 (q₁ :: qs)[j].2) := fun j h => by
+    have hne : T0 + j ≠ T' := by simp only [T']; omega
+    show withInputs s.sk.f.m.inputs (r1.st (T0 + j)) (if T0 + j = T' then _ else r1.ι (T0 + j)) = _
+    rw [if_neg hne, (hreqj j h).1]
+    exact sk_inputsView _ _ (hagj j (Nat.le_of_lt h)).1 _ _ _
+  have hNj : ∀ j (h : j < (q₁ :: qs).length), r'.N s.sk (T0 + j) = withCarried s (sEnd s ρ M ((q₁ :: qs).take j)).2 (q₁ :: qs)[j].2 := fun j h => by
+    have hne : T0 + j ≠ T' := by simp only [T']; omega
+    show withCarried s.sk (r1.mp (T0 + j)) (if T0 + j = T' then _ else r1.κ (T0 + j)) = _
+    rw [if_neg hne, (hreqj j h).2, (hagj j (Nat.le_of_lt h)).2]; rfl
+  have hq0 : 0 < (q₁ :: qs).length := by simp
+  have hw0 : evalE Q (cycMaps s.sk ce r' (T' + 1)) (tBack ce sl.k.whens.length) = T0 := by rw [tBack_eval, hQt, hk]; simp only [T']; omega
+  -- The node's hypotheses hold there.
+  have hH : ∀ c ∈ n.hyps, evalC Q (cycMaps s.sk ce r' (T' + 1)) c = true := by
+    intro c hc
+    have h := hhy c hc
+    simp only [Bool.or_eq_true] at h
+    rcases h with (((h | h) | h) | h) | h
+    · rw [beqC_eq h, congr2C (ρ := Q) (M := cycMaps s.sk ce r' (T' + 1)) (ρ' := r'.ρ0) (M' := r'.mp 0) s.f.m.pre
+        (fun j hj => hEnv.2.2 j (avoids_occ hT.prz hj)) (fun m hm => cm_o (avoidsMaps_occ hT.prm hm))]
+      exact hr'.pre
+    · rw [beqC_eq h, evalC_iff]; simp only [holdsC, evalE, hQt, hk]; simp only [T']; omega
+    · rw [beqC_eq h, evalC_iff]; simp only [holdsC, evalE, hQt, hQT]; omega
+    · rw [beqC_eq h, evalC_iff]; simp only [holdsC, evalE, hQT, hQo]; omega
+    · obtain ⟨c', hc', hb⟩ := List.any_eq_true.mp h
+      rw [beqC_eq hb]
+      obtain ⟨i, hi, rfl⟩ := kWhens_mem ce sl.k.whens.length 0 sl.k.whens hc'
+      have hiq : i < (q₁ :: qs).length := by omega
+      have hu : T0 + i ≤ T' := by simp only [T']; omega
+      have hwi : evalE Q (cycMaps s.sk ce r' (T' + 1)) (tBack ce (sl.k.whens.length - (0 + i))) = T0 + i := by rw [tBack_eval, hQt, hk]; simp only [T']; omega
+      have hall := sallowed_at (q₁ :: qs) sl.k.whens ρ M hK i hiq hi
+      have hav := hwh _ (List.getElem_mem hi)
+      rw [enc_trC hS hT hr' hEnv hwi hu]
+      rw [congr2C (ρ' := withExt s (sEnd s ρ M ((q₁ :: qs).take i)).1 (sReq s (sEnd s ρ M ((q₁ :: qs).take i)).1 (sEnd s ρ M ((q₁ :: qs).take i)).2 (q₁ :: qs)[i].1 (q₁ :: qs)[i].2))
+        (M' := withCarried s (sEnd s ρ M ((q₁ :: qs).take i)).2 (q₁ :: qs)[i].2) _ ?_ ?_]
+      · exact hall
+      · intro x hx
+        obtain ⟨hz, hfl⟩ := hcz x (avoids_occ hav.1 hx)
+        rw [enc_Y hS hT hr' hEnv hwi hu hz hfl, hXj i hiq]
+      · intro m hm
+        rw [cv_N (avoidsMaps_occ hav.2 hm), hNj i hiq]
+  have hc0 := cyclic_sound facts nodes hc (cycMaps s.sk ce r' (T' + 1)) Q hF n hn hH
+  rw [beqC_eq hcon] at hc0
+  -- `then` over the run: the maps it reads, then its names.
+  have hTle : T0 ≤ T' := by simp only [T']; omega
+  obtain ⟨hagE, hmE⟩ : Agree s.wVars (r'.st T') (sEnd s ρ M (q₁ :: qs)).1 ∧ r'.mp T' = (sEnd s ρ M (q₁ :: qs)).2 := by
+    have h := hagj (q₁ :: qs).length (Nat.le_refl _); simp only [List.take_length] at h; exact h
+  let Mt : Nat → Nat → Nat := primedMaps sl.k.primeMaps (sEnd s ρ M (q₁ :: qs)).2 (renMaps sl.mren ((q₁ :: qs).map (·.2)) (withCarried s M q₁.2))
+  have hrd : ∀ m key, evalE Q (cycMaps s.sk ce r' (T' + 1)) (kRd ce sl m key)
+      = (fun m => if ce.tm.contains m then cycMaps s.sk ce r' (T' + 1) m else Mt m) m (evalE Q (cycMaps s.sk ce r' (T' + 1)) key) := by
+    intro m key
+    simp only [kRd]
+    cases hq : lookup (fun q => q.2 == m) sl.k.primeMaps with
+    | some q =>
+      obtain ⟨hqm, hqe⟩ := lookup_some hq
+      have hqe' : q.2 = m := by simpa using hqe
+      obtain ⟨⟨hq1, hq2⟩, hq3⟩ := hpm q hqm
+      have hnt : ¬ ce.tm.contains m = true := by rw [← hqe']; simpa using hq3
+      simp only [evalE, tBack_eval, hQt, hQo, Nat.sub_zero]
+      rw [read_mm hS.dtm (List.contains_iff_mem.mp hq1) (Nat.le_refl _), N_not_carried (show q.1 ∉ s.sk.carried from fun h => by simp only [Bool.not_eq_true'] at hq2; rw [List.contains_iff_mem.mpr (show q.1 ∈ s.carried from h)] at hq2; cases hq2), hmE, if_neg hnt]
+      simp only [Mt, primedMaps, hq]
+    | none =>
+      have hkm := kMren_eval sl.mren 0 ((q₁ :: qs).map (·.2)) (withCarried s M q₁.2) m (by simp; omega)
+      cases hkr : kMren 0 sl.mren m with
+      | some p =>
+        obtain ⟨i', hi', hκ', hi0, ⟨p', hp', hp1, hp2⟩, hren⟩ := hkm.2 p.1 p.2 hkr
+        obtain ⟨hcar, hnt0⟩ := hmr _ (List.getElem_mem hi') p' hp'
+        have hnt : ¬ ce.tm.contains m = true := by rw [← hp2]; simpa using hnt0
+        have hiq : i' < (q₁ :: qs).length := by simpa using hκ'
+        simp only [evalE, tBack_eval, hQt, hQo, hi0, Nat.zero_add]
+        rw [show T' - (sl.k.whens.length - i') = T0 + i' by rw [hk]; simp only [T']; omega]
+        rw [read_mm hS.dtm (hS.carm _ (by rw [← hp1]; exact List.contains_iff_mem.mp hcar)) (by simp only [T']; omega), hNj i' hiq, if_neg hnt]
+        simp only [Mt, primedMaps, hq, hren, withCarried, ← hp1, hcar, if_true, List.getElem_map]
+      | none =>
+        rw [enc_rd hS hT hr' hEnv hw0 hTle]
+        simp only [cycView]
+        by_cases ht : ce.tm.contains m = true
+        · rw [if_pos ht, if_pos ht]
+        · rw [if_neg ht, if_neg ht]
+          have h0 := hNj 0 hq0
+          simp only [Nat.add_zero, List.take_zero, sEnd, List.getElem_cons_zero] at h0
+          rw [h0]
+          simp only [Mt, primedMaps, hq, hkm.1 hkr]
+  rw [substR_evalC (kσ ce sl) (kRd ce sl) Q _ _ hrd] at hc0
+  rw [congr2C (ρ' := primed sl.k.prime (sEnd s ρ M (q₁ :: qs)).1 (renEnv sl.k.ren (sExts s ρ M (q₁ :: qs)) (withExt s ρ (sReq s ρ M q₁.1 q₁.2))))
+    (M' := Mt) _ ?_ ?_] at hc0
+  · exact hc0
+  · intro x hx
+    obtain ⟨hz, hfl⟩ := hcz x (avoids_occ hthv hx)
+    simp only [kσ, List.append_assoc]
+    rw [applyS_app, assoc_ren]
+    simp only [primed]
+    cases hq : lookup (fun q => q.2 == x) sl.k.prime with
+    | some q =>
+      obtain ⟨hqm, _⟩ := lookup_some hq
+      obtain ⟨hq1, hq2⟩ := hpr q hqm
+      have hqw : q.1 ∉ s.wVars := fun h => by
+        simp only [Bool.not_eq_true'] at hq2
+        rw [List.contains_iff_mem.mpr (by rw [sk_inputs]; simp only [SMachine.extVars, List.mem_append]; exact Or.inr h)] at hq2; cases hq2
+      simp only [Option.map_some, evalE, tBack_eval, hQt, Nat.sub_zero]
+      rw [read_vm hS.dtm (List.contains_iff_mem.mp hq1), CRun.X, withInputs_other (by simpa using hq2), hagE q.1 hqw]
+    | none =>
+      simp only [Option.map_none]
+      by_cases hxr : x ∈ tgts sl.k.ren
+      · have hel : ∀ ρ M (qs : List SRequest), (sExts s ρ M qs).length = qs.length := by
+          intro ρ M qs; induction qs generalizing ρ M with
+          | nil => rfl
+          | cons q qs ih => simp [sExts, ih]
+        rw [kRen_eval ce sl.k.whens.length Q _ _ _ sl.k.ren 0 (sExts s ρ M (q₁ :: qs)) (by rw [hel]; omega) ?_ x hxr]
+        intro i hi hιl p hp
+        have hpin := hrin _ (List.getElem_mem hi) p hp
+        have hiq : i < (q₁ :: qs).length := by rw [hel] at hιl; exact hιl
+        simp only [evalE, tBack_eval, hQt, Nat.zero_add]
+        rw [show T' - (sl.k.whens.length - i) = T0 + i by rw [hk]; simp only [T']; omega]
+        rw [read_vm hS.dtm (hS.inv _ (List.contains_iff_mem.mp hpin)), hXj i hiq, sExts_get ρ M (q₁ :: qs) i hiq]
+        simp only [withExt, show s.extVars.contains p.1 = true from by rw [← sk_inputs]; exact hpin, if_true]
+      · rw [kRen_out ce sl.k.whens.length Q _ _ sl.k.ren 0 x hxr, renEnv_other _ _ _ x hxr]
+        have hX0 := hXj 0 hq0
+        simp only [Nat.add_zero, List.take_zero, sEnd, List.getElem_cons_zero] at hX0
+        by_cases hv : x ∈ ce.vtr.map (·.1)
+        · rw [enc_σ_in hS hT hr' hEnv hw0 hTle hv, hX0]
+        · rw [enc_σ_out hS hT hr' hEnv hw0 hTle hv, hQr x (fun h => hz (List.mem_append_left _ h))]
+          simp only [withExt, show s.extVars.contains x = false from by simpa [List.contains_iff_mem] using hwV x hv, Bool.false_eq_true, if_false]
+          have h0 := hagj 0 (Nat.zero_le _)
+          simp only [Nat.add_zero, List.take_zero, sEnd] at h0
+          rw [← h0.1 x (hwW x hv)]
+          exact (hframe T0 hTle x hv hfl).symm
+  · intro m hm
+    simp only [if_neg (fun h => avoidsMaps_occ hthm hm (List.contains_iff_mem.mp h))]
+
+
+/-- A request allowed, as a node for a machine with flags that hold at every key (`cycAOk` over its sk machine, those
+flags' facts, the flags' keys apart). -/
+def cycQAOk (s : SMachine) (ce : CycEnc) (facts : List Fact) (w : C) (n : CNode) : Bool :=
+  sOk s && cycShapeOk s.sk ce s.bk && cycTermsOk s.sk ce s.bk && cycBodyOk s ce s.bk && cycQFactsIn s ce facts
+    && avoids (ce.special ++ s.bk ++ flagVars s.f.flags) w && avoidsMaps ce.tm w
+    && beqC n.concl (trC ce (.var ce.t) (inlineC s.f.flags s.f.m.assume))
+    && n.hyps.all (fun h => beqC h s.f.m.pre || beqC h (.le (.var ce.t) (.var ce.T)) || beqC h (.lt (.var ce.T) (.var ce.om))
+      || beqC h (trC ce (.var ce.t) w) || cycZeroOk s ce h)
+
+theorem cyc_qallow_sound (s : SMachine) (ce : CycEnc) (facts : List Fact) (nodes : List CNode) (hc : checkCyclic facts nodes = true)
+    (w : C) (n : CNode) (hn : n ∈ nodes) (hok : cycQAOk s ce facts w n = true) : AllowHolds s w := by
+  simp only [cycQAOk, Bool.and_eq_true, List.all_eq_true] at hok
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hs, hsh⟩, hte⟩, hbo⟩, hfa⟩, hwv⟩, hwm⟩, hcon⟩, hhy⟩ := hok
+  have hS := cycShape_of hsh
+  have hT := cycTerms_of hte
+  have hsp := special_parts hS.dsp
+  intro ρ M hr ι hw
+  obtain ⟨r, T, hr0, hd, hag, hmp⟩ := sk_run hs hr
+  -- The run with the request at T (the last, which no step takes) the claim's, decided, carrying empty sets.
+  let r2 := r.last T (sReq s ρ M ι noSets) noSets
+  have hr2 : r2.Ok s.sk T := last_ok hr0 _ _
+  have hd2 : ∀ u, u ≤ T → r2.Decided s u := by
+    intro u hu
+    by_cases huT : u = T
+    · subst huT
+      simp only [CRun.Decided, r2, CRun.last, ↓reduceIte, hmp]
+      rw [sReq_agree hs hag, sReq_idem]
+    · exact last_other huT _ _ (hd u hu)
+  have hX : r2.X s.sk T = withExt s ρ (sReq s ρ M ι noSets) := by
+    show withInputs s.sk.f.m.inputs (r.st T) (if T = T then sReq s ρ M ι noSets else r.ι T) = _
+    rw [if_pos rfl]; exact sk_inputsView _ _ hag _ _ _
+  have hN : r2.N s.sk T = withCarried s M noSets := by
+    show withCarried s.sk (r.mp T) (if T = T then noSets else r.κ T) = _
+    rw [if_pos rfl, hmp]; rfl
+  obtain ⟨Q, hQt, hQT, hQo, hQr⟩ : ∃ Q : Nat → Nat, Q ce.t = T ∧ Q ce.T = T ∧ Q ce.om = T + 1 ∧ ∀ i, i ∉ ce.special → Q i = r.ρ0 i :=
+    ⟨fun i => if i = ce.t then T else if i = ce.T then T else if i = ce.om then T + 1 else r.ρ0 i,
+      by simp, by simp [Ne.symm hsp.2.2.2.2.2.1], by simp [Ne.symm hsp.2.2.2.2.2.2, Ne.symm hsp.2.2.2.2.1],
+      fun i hi => by
+        dsimp only
+        rw [if_neg (fun e => hi (in_special (Or.inr (Or.inr (Or.inr (Or.inr e)))))), if_neg (fun e => hi (in_special (Or.inr (Or.inr (Or.inl e))))),
+          if_neg (fun e => hi (in_special (Or.inr (Or.inr (Or.inr (Or.inl e))))))]⟩
+  have hEnv : EnvOk s.sk ce s.bk r2 T Q := ⟨hQT, hQo, fun i hi => hQr i (notP hi).1⟩
+  have hwt : evalE Q (cycMaps s.sk ce r2 (T + 1)) (.var ce.t) = T := by simp [evalE, hQt]
+  have hF : FactsHold facts Q (cycMaps s.sk ce r2 (T + 1)) := qfacts_all hs hS hT hr2 hd2 hbo hEnv hfa
+  have hH : ∀ c ∈ n.hyps, evalC Q (cycMaps s.sk ce r2 (T + 1)) c = true := by
+    intro c hc
+    have h := hhy c hc
+    simp only [Bool.or_eq_true] at h
+    rcases h with ((((h | h) | h) | h) | h)
+    · rw [beqC_eq h, congr2C (ρ := Q) (M := cycMaps s.sk ce r2 (T + 1)) (ρ' := r2.ρ0) (M' := r2.mp 0) s.f.m.pre
+        (fun j hj => hEnv.2.2 j (avoids_occ hT.prz hj)) (fun m hm => cm_o (avoidsMaps_occ hT.prm hm))]
+      exact hr2.pre
+    · rw [beqC_eq h, evalC_iff]; simp only [holdsC, evalE, hQt, hQT]; omega
+    · rw [beqC_eq h, evalC_iff]; simp only [holdsC, evalE, hQT, hQo]; omega
+    · rw [beqC_eq h, enc_trC hS hT hr2 hEnv hwt (Nat.le_refl T)]
+      rw [congr2C (ρ' := withExt s ρ (sReq s ρ M ι noSets)) (M' := withCarried s M noSets) _ ?_ ?_]
+      · exact hw
+      · intro x hx
+        have hxz := avoids_occ hwv hx
+        rw [enc_Y hS hT hr2 hEnv hwt (Nat.le_refl T) (fun h => hxz (List.mem_append_left _ h)) (fun h => hxz (List.mem_append_right _ h)), hX]
+      · intro m hm
+        rw [cv_N (avoidsMaps_occ hwm hm), hN]
+    · obtain ⟨cm, key, hcm, rfl⟩ := cycZeroOk_spec h
+      rw [evalC_iff]
+      simp only [holdsC, evalE, hQt, hQo]
+      rw [read_mm hS.dtm (hS.carm cm hcm) (Nat.le_refl T), hN]
+      simp only [withCarried, List.contains_iff_mem.mpr hcm, if_true, noSets]
+  have hc0 := cyclic_sound facts nodes hc (cycMaps s.sk ce r2 (T + 1)) Q hF n hn hH
+  rw [beqC_eq hcon] at hc0
+  change evalC Q _ (trC ce (.var ce.t) (inlineC s.sk.f.flags s.f.m.assume)) = true at hc0
+  rw [enc_nowC hS hT hr2 hEnv hwt (Nat.le_refl T) s.f.m.assume hT.asz hT.asm] at hc0
+  obtain ⟨hV, hNv⟩ := sk_view hs hag M ι noSets
+  have hV2 : r2.V s.sk T = (sView s.sk (r.st T) M (sReq s ρ M ι noSets) noSets).1 := by
+    rw [sk_view_eq _ _ hag]; simp only [CRun.V, hX, hN]; rfl
+  have hN2 : r2.N s.sk T = (sView s ρ M ι noSets).2 := by rw [hN]; rfl
+  obtain ⟨_, _, _, has, _⟩ := sOk_terms hs
+  rw [hV2, hN2, congrC _ (sView s ρ M ι noSets).1 _ s.f.m.assume (fun j hj => hV j (avoids_occ has hj))] at hc0
+  exact hc0
 
 end Kern
