@@ -481,12 +481,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // A point a form is false at; a cell form is judged only at rows that read every map it reads.
   const reads = (f: Form, r: Env) => f.coef.every(([i]) => !atoms[i]!.cell || atoms[i]!.parts.every(([q]) => AT + q in r))
   const falseAt = (f: Form, p: Point) => (f.cells ? p.cells.some(r => reads(f, r) && !holdsRow(f, r)) : !holdsRow(f, p.scalar))
-  // (a congruence only where no bound of the candidates rules the point out, before the counterexample's own forms:
+  // (a remainder or a congruence only where no bound of the candidates rules the point out, before the counterexample's own forms:
   // false at half the states a run doesn't reach, it would otherwise be chosen first everywhere)
   const best = (p: Point, congs = false) => {
     let pickF: Form | undefined, score = -Infinity
     for (const f of pool) {
-      if (chosen.includes(f) || !!f.cong !== congs || !falseAt(f, p)) continue
+      if (chosen.includes(f) || !!(f.cong || f.mod) !== congs || !falseAt(f, p)) continue
       const s = ctis.reduce((k, c) => k + (falseAt(f, c) ? 1 : 0), 0) * 1000 - f.size
       if (s > score) (pickF = f, score = s)
     }
