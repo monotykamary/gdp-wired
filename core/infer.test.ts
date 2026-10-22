@@ -14,6 +14,8 @@ test('a law that needs an invariant: not proven alone, proven with what the sear
     const v = inferLaws(r as never, [law], [], {ms: 15000})
     expect(v).toMatchObject({proven: true, checked: true})
     expect(v.found.length).toBeGreaterThan(0)
+    // Ended by its counted budgets, never by its wall-clock stop: what it found is the same on any machine.
+    expect(v.stats.stopped).toBe(false)
     // The rule's own prover, on the law and what was found: the same verdict.
     expect(proveRule(r as never, [law, ...v.found.map(f => f.law)])).toMatchObject({proven: true, checked: true})
   }
@@ -33,7 +35,7 @@ test('what was found reads as the builder call that states it, and that call, wr
 test('a machine with no rule: the in-flight bound needs s + 50·p <= b + 150 or tighter', () => {
   expect(proveLaws(inflight, [inflightLoss]).proven).toBe(false)
   const v = inferLaws(inflight, [inflightLoss], [], {ms: 15000})
-  expect(v).toMatchObject({proven: true, checked: true})
+  expect(v).toMatchObject({proven: true, checked: true, stats: {stopped: false}})
   expect(proveLaws(inflight, [inflightLoss, ...v.found.map(f => f.law)])).toMatchObject({proven: true, checked: true})
 })
 

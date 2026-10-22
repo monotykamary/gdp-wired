@@ -1,6 +1,7 @@
 // Invariants nobody wrote: a law that holds but isn't inductive, proven with laws the search finds. Nothing here is
 // trusted; what it finds is proven by the kernel with the rule's own laws, as laws of the same rule.
-//   - runs: random runs from the start (params and requests by their kinds, the assumption met) give reachable states
+//   - runs: random runs from the start (params and requests by their kinds, the assumption met) give reachable states,
+//     3,000 kept as samples
 //   - candidates: linear forms Σ c·v ≤ d over the state and the params (an integer as its value, its two naturals
 //     together), up to three terms with small coefficients and the rule's own constants, each d the largest value the
 //     runs reached (and the rule's constants just above it); the same forms where a yes/no, a choice or a small natural
@@ -18,14 +19,24 @@ import {type C, type E, type Law, type Machine, type Request, type State, any, a
 import {type StepLaw, type Verdict, proveRule, proveSteps} from './dsl.ts'
 import {allowed, watch} from './watch.ts'
 import {proveLaw, proveLaws, proveStepLaws, withDeadline} from '../kernel/prove.ts'
+import {work} from './solver.ts'
 
 type AnyRule = Parameters<typeof proveRule>[0]
 type Env = Record<string, number>
 type Rand = (k: number) => number
 
+// The search's budgets are counted in what it did, not timed, so that what it finds is the same on any machine (kernel/
+// prove.ts's `counted` does the same for the datatype search): the runs by the requests they try (`runs`), the rest by
+// the rows it reads, the forms it evaluates, the laws it watches and the kernel's work (the solver's rows), each at its
+// rate a millisecond (`inferRates`). `ms` is that budget in counted milliseconds, and the search's wall time too, a stop:
+// reached, it ends the search where it is (`stats.stopped`; what was found then depends on the machine). Precedence:
+// `timed` times every budget, as before (`ms` the search's, `runsMs` the runs', 500 ms), for a benchmark under a
+// wall-clock limit (compare/chc/solve.ts); else `runsMs`, given, times the runs alone; else everything is counted.
 export type InferOptions = {
-  ms?: number // the whole search's time (20 s)
-  runsMs?: number // the random runs' share (500 ms)
+  ms?: number // the whole search's budget, counted, and its wall time, a stop (20 s)
+  runs?: number // the random runs: at least this many requests tried, and on until the samples are full (16,000; trials at most that many, or 3,000)
+  runsMs?: number // the random runs by wall time instead (500 ms where `timed`)
+  timed?: boolean // every budget by wall time: `ms` the search's, `runsMs` the runs'
   seen?: State[] // reachable states the caller already has (of a rule with no params), beside the runs
   constants?: number[] // more constants for the coefficients and bounds
   maxCandidates?: number // past this many, the search keeps the simplest (60,000)
@@ -37,7 +48,7 @@ export type InferOptions = {
 // What was found: each law as a Law (pass it with the rule's laws), how it reads, and for a rule, the builder call
 // that states it (`r.law(...)`), to paste.
 export type Found = {law: Law, text: string, source?: string}
-export type Inferred = Verdict & {found: Found[], stats: {samples: number, candidates: number, alive: number, proofs: number, ms: number}}
+export type Inferred = Verdict & {found: Found[], stats: {samples: number, candidates: number, alive: number, proofs: number, ms: number, stopped: boolean}}
 
 // An atom: a value the forms read, the naturals it is made of with their signs (an integer is pos − neg); a cell atom
 // is a map's cell at the law's key (its parts are maps).
@@ -51,6 +62,17 @@ type Guard = {atom: number, value: number} | {keyNot: number}
 type Form = {coef: [number, number][], d: number, cells: boolean, guard?: Guard, when?: {coef: [number, number][], d: number}, unreachable?: {atom: number, value: number}, mod?: {k: number, r: number}, cong?: {mod: number, rest: number}, size: number}
 
 const KEY = 'key$found', AT = '@', K = '#', SOME = 'k$found'
+// The counted clock's rates, units a millisecond: about the slowest tenth of what Modal's 1-vCPU containers do in each
+// phase (`runs/modal/infer/after2`, GDP_INFER_TRACE=1: requests tried 85 a ms, rows 13,093, forms evaluated 11,240, the
+// kernel's work 37; laws watched 198 by a fit), so a counted budget runs out no later than a timed one would there.
+// The runs' requests: 16,000, 400 trials of a rule whose every request is allowed. Every search of the suite's and the
+// frontier corpus's then keeps 3,000 samples, at least as many as 500 ms of wall time gave on 2 vCPU (`runs/modal/infer/
+// before`'s cal2 jobs: 29 to 11,625 trials, 745 to 3,000 samples). Of 100 to 3,000 trials (`runs/modal/infer/grid`),
+// 100 lost a corpus item (metered blocks) and 200 to 3,000 none: 400 is a step above the least that lost none.
+export const inferRates = {tries: 100, rows: 10_000, evals: 10_000, watched: 100, work: 40}
+export const inferRuns = 16_000
+// GDP_INFER_TRACE=1: each phase's wall time beside what it counted, to stderr (the calibration's numbers).
+const inferTrace = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_INFER_TRACE
 const seeded = (seed: number): Rand => { let s = seed; return k => { s = (s * 1103515245 + 12345) % 2 ** 31; return Math.floor(s / 2 ** 31 * k) } }
 const isRule = (t: AnyRule | Machine): t is AnyRule => typeof (t as AnyRule).kindsOfState === 'function'
 const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
@@ -105,7 +127,21 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
   return quietly(() => withDeadline(performance.now() + (opts.ms ?? 20000), () => inferLawsSearch(target, laws, stepLaws, opts)))
 }
 function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
-  const t0 = performance.now(), until = t0 + (opts.ms ?? 20000), rule = isRule(target) ? target : undefined
+  const t0 = performance.now(), ms = opts.ms ?? 20000, wallUntil = t0 + ms, rule = isRule(target) ? target : undefined
+  // The clock the budgets read (counted milliseconds since the start, or wall time where `timed`), and the stop.
+  const timed = !!opts.timed, w0 = work.n, used = {tries: 0, rows: 0, evals: 0, watched: 0}
+  const now = (): number => (timed ? performance.now() - t0
+    : used.tries / inferRates.tries + used.rows / inferRates.rows + used.evals / inferRates.evals + used.watched / inferRates.watched + (work.n - w0) / inferRates.work)
+  let stopped = false
+  const stop = () => stopped || (stopped = performance.now() > wallUntil)
+  const until = ms
+  let tp = performance.now(), cp = 0, wp = w0
+  const trace = (what: string, o: Record<string, number | string | boolean> = {}) => {
+    if (!inferTrace) return
+    const t = performance.now(), c = now()
+    ;(globalThis as unknown as {process: {stderr: {write: (s: string) => void}}}).process.stderr.write(`[infer] ${what} ${JSON.stringify({ms: Math.round(t - tp), counted: Math.round(c - cp), work: work.n - wp, ...used, ...o})}\n`)
+    tp = t; cp = c; wp = work.n
+  }
   if (rule) { const ks = divisorsIn([...laws, ...stepLaws] as never); if (ks.size) rule.dividesBy(...ks) }
   const m = rule ? rule.machine : target as Machine
   let proofs = 0
@@ -126,7 +162,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const out = stepLaws.length ? proveStepLaws(mm, ls, stepLaws) : proveLaws(mm, ls)
     return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
   }
-  const stats = (samples: number, candidates: number, alive: number) => ({samples, candidates, alive, proofs, ms: Math.round(performance.now() - t0)})
+  const stats = (samples: number, candidates: number, alive: number) => ({samples, candidates, alive, proofs, ms: Math.round(performance.now() - t0), stopped: stop()})
   const first = opts.first ?? prove(laws)
   if ((first.proven && first.checked) || first.run) return {...first, found: [], stats: stats(0, 0, 0)}
 
@@ -140,13 +176,18 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const samples: Sample[] = [], cap = 3000
   const keep = (s: Sample) => { if (samples.length < cap) samples.push(s); else if (rand(4) === 0) samples[rand(cap)] = s }
   for (const st of opts.seen ?? []) if (!m.params.length) keep({params: {}, st})
+  trace('start')
   const mapsText = (st: State) => JSON.stringify(Object.values(st.maps).map(c => [...c]))
-  const runsUntil = Math.min(until, performance.now() + (opts.runsMs ?? 500))
+  // Counted: `runs` requests tried at least, and on until the samples are full (a trial keeps its start at least, so as
+  // many trials as they hold fill them), the trials at most `runs` or that many. Timed: `runsMs` of wall time.
+  const runsTimed = timed || opts.runsMs !== undefined, runsUntil = Math.min(wallUntil, performance.now() + (opts.runsMs ?? 500)), least = opts.runs ?? inferRuns
+  const moreRuns = (trial: number) => (runsTimed ? performance.now() < runsUntil : trial < Math.max(cap, least) && (used.tries < least || samples.length < cap) && !stop())
+  let trials = 0
   // (an assumption with "there exists", a value the request brings, may admit no request at a small bound, a multiple
   // of 5 but 0, say: a trial whose steps moved nothing doubles the bound at once)
   const skolems = m.inputs.some(i => i.startsWith('some$a'))
-  for (let trial = 0, bound = 2, stuck = false; performance.now() < runsUntil; trial++, bound = trial % 20 === 0 || stuck ? (bound >= 1024 ? 2 : bound * 2) : bound) {
-    stuck = false
+  for (let trial = 0, bound = 2, stuck = false; moreRuns(trial); trial++, bound = trial % 20 === 0 || stuck ? (bound >= 1024 ? 2 : bound * 2) : bound) {
+    stuck = false; trials++
     const params = randomParams(bound)
     if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) continue
     let st: State
@@ -154,6 +195,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     keep({params, st})
     let took = 0
     for (let d = 0, tries = 0; d < 40 && tries < 200; tries++) {
+      used.tries++
       const input = randomInput(params, bound)
       let next: State
       try { if (!allowed(m, run, params, st, input)) continue; next = run.step(params, st, input) } catch { break }
@@ -164,7 +206,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     stuck = skolems && took === 0
   }
 
-  opts.progress?.('runs', {samples: samples.length})
+  opts.progress?.('runs', {samples: samples.length, trials})
+  trace('runs', {samples: samples.length, trials})
 
   // --- atoms and rows --------------------------------------------------------------------------------------------------
   const scalars = Object.keys(m.state), stateSet = new Set(scalars), mapNames = Object.keys(m.maps ?? {}), mapSet = new Set(mapNames)
@@ -247,10 +290,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // guard in one pass over (at most 1,500 of) the rows. Building candidates takes at most a quarter of the time.
   const guards = [...modes].sort((p, q) => Number(!!q.choice) - Number(!!p.choice) || Number(!!q.bool) - Number(!!p.bool)).slice(0, 8)
   const strideS = Math.max(1, Math.ceil(NS / 1500)), strideK = Math.max(1, Math.ceil(NK / 1500))
-  const buildUntil = Math.min(until, performance.now() + (until - performance.now()) / 4)
+  const buildUntil = Math.min(until, now() + (until - now()) / 4)
   for (const [n_, {coef, cells}] of shapes.entries()) {
-    if (forms.length > maxCandidates || (n_ % 256 === 0 && performance.now() > buildUntil)) break
+    if (forms.length > maxCandidates || (n_ % 256 === 0 && (now() > buildUntil || stop()))) break
     const vals = cells ? valsK : valsS, N = cells ? NK : NS, rows = cells ? rowsK : rowsS
+    used.rows += N + (coef.length > 2 ? 0 : Math.ceil(N / (cells ? strideK : strideS)))
     let d = -Infinity
     for (let j = 0; j < N; j++) d = Math.max(d, at(coef, vals, j))
     if (!Number.isFinite(d)) continue
@@ -279,10 +323,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   if (modAtoms.length * (modAtoms.length - 1) <= 2000) for (const [a, i] of modAtoms.entries()) for (const j of modAtoms.slice(a + 1)) modShapes.push([[i, 1], [j, 1]], [[i, 1], [j, -1]])
   const residue = (v: number, k: number) => ((v % k) + k) % k
   // A shape whose runs reached two values or fewer is a bound's (above), not a remainder's.
-  const varied = (coef: [number, number][]) => { const vs = new Set<number>(); for (let j = 0; j < NS && vs.size < 3; j += strideS) vs.add(at(coef, valsS, j)); return vs.size >= 3 }
+  const varied = (coef: [number, number][]) => { const vs = new Set<number>(); for (let j = 0; j < NS && vs.size < 3; j += strideS) { used.rows++; vs.add(at(coef, valsS, j)) } return vs.size >= 3 }
   for (const coef of NS && opts.remainders !== false ? modShapes.filter(varied) : []) for (const k of divisors) {
-    if (forms.length > maxCandidates || performance.now() > buildUntil) break
+    if (forms.length > maxCandidates || now() > buildUntil || stop()) break
     const all = new Set<number>(), byGuard = guards.map(() => new Map<number, Set<number>>())
+    used.rows += Math.ceil(NS / strideS)
     for (let j = 0; j < NS; j += strideS) {
       const r = residue(at(coef, valsS, j), k)
       all.add(r)
@@ -300,6 +345,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const mods = [...new Set([2, 3, 4, ...consts.filter(k => k > 4 && k <= 64)])].slice(0, 6)
     const congOf = (coef: [number, number][]) => {
       const vs = new Set<number>()
+      used.rows += NS
       for (let j = 0; j < NS; j++) vs.add(at(coef, valsS, j))
       if (vs.size < 3) return
       const nat = coef.every(([i, c]) => !atoms[i]!.int && c > 0), list = [...vs]
@@ -313,6 +359,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (st.length <= 24) for (const [a, i] of st.entries()) for (const j of st.slice(a + 1)) { congOf([[i, 1], [j, 1]]); congOf([[i, 1], [j, -1]]) }
   }
   opts.progress?.('candidates', {atoms: A, shapes: shapes.length, forms: forms.length})
+  trace('candidates', {forms: forms.length})
 
   // --- how a form reads, and as a law ------------------------------------------------------------------------------------
   const nameOf = (i: number) => atoms[i]!.name
@@ -400,21 +447,30 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   }
 
   // --- evaluating a form ---------------------------------------------------------------------------------------------
+  // (each row's atom values read once, however many forms are evaluated there: rows are never changed once made)
+  const valuesAt = new WeakMap<Env, Float64Array>()
+  const valuesOf = (env: Env): Float64Array => {
+    let vs = valuesAt.get(env)
+    if (!vs) { vs = new Float64Array(A); for (let i = 0; i < A; i++) vs[i] = valueOf(atoms[i]!, env); valuesAt.set(env, vs) }
+    return vs
+  }
   const holdsRow = (f: Form, env: Env): boolean => {
-    if (f.unreachable) return valueOf(atoms[f.unreachable.atom]!, env) !== f.unreachable.value
+    used.evals++
+    const vs = valuesOf(env)
+    if (f.unreachable) return vs[f.unreachable.atom] !== f.unreachable.value
     if (f.cong) {
       let v = 0
-      for (const [i, c] of f.coef) v += c * valueOf(atoms[i]!, env)
+      for (const [i, c] of f.coef) v += c * vs[i]!
       const nat = f.coef.every(([i, c]) => !atoms[i]!.int && c > 0)
       return ((v - f.cong.rest) % f.cong.mod + f.cong.mod) % f.cong.mod === 0 && (!nat || v >= f.cong.rest)
     }
     if (f.guard) {
-      if ('keyNot' in f.guard) { if (env[K] === valueOf(atoms[f.guard.keyNot]!, env)) return true }
-      else if (valueOf(atoms[f.guard.atom]!, env) !== f.guard.value) return true
+      if ('keyNot' in f.guard) { if (env[K] === vs[f.guard.keyNot]) return true }
+      else if (vs[f.guard.atom] !== f.guard.value) return true
     }
-    if (f.when) { let w = 0; for (const [i, c] of f.when.coef) w += c * valueOf(atoms[i]!, env); if (w > f.when.d) return true }
+    if (f.when) { let w = 0; for (const [i, c] of f.when.coef) w += c * vs[i]!; if (w > f.when.d) return true }
     let s = 0
-    for (const [i, c] of f.coef) s += c * valueOf(atoms[i]!, env)
+    for (const [i, c] of f.coef) s += c * vs[i]!
     return f.mod ? residue(s, f.mod.k) === f.mod.r : s <= f.d
   }
   // At a state: a cell form at every key the maps hold and a fresh one.
@@ -440,11 +496,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // --- Houdini on the runs' neighbors ----------------------------------------------------------------------------------
   let alive = forms.slice().sort((p, q) => p.size - q.size).slice(0, maxCandidates)
   const ctis: Point[] = []
-  const lawful = (params: Env, st: State) => { try { return given.every(l => watch(m, run, l, params, 4).start(st)) } catch { return false } }
-  const houdiniUntil = Math.min(until, performance.now() + Math.max(500, (until - performance.now()) / 4))
-  for (let quiet = 0; samples.length && performance.now() < houdiniUntil && quiet < 3;) {
+  const lawful = (params: Env, st: State) => { used.watched += given.length; try { return given.every(l => watch(m, run, l, params, 4).start(st)) } catch { return false } }
+  const houdiniUntil = Math.min(until, now() + Math.max(500, (until - now()) / 4))
+  for (let quiet = 0; samples.length && now() < houdiniUntil && !stop() && quiet < 3;) {
     const killed = new Set<Form>()
-    for (let tries = 0; tries < 400 && performance.now() < houdiniUntil; tries++) {
+    for (let tries = 0; tries < 400 && now() < houdiniUntil && !stop(); tries++) {
       const base = samples[rand(samples.length)]!, scal = {...base.st.scalars}, maps = {...base.st.maps}
       for (let k = 0, moves = 1 + rand(2); k < moves; k++) {
         if (mapNames.length && rand(2) === 0) {
@@ -467,6 +523,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   }
 
   opts.progress?.('houdini', {alive: alive.length, ctis: ctis.length})
+  trace('houdini', {alive: alive.length})
 
   // --- the kernel ----------------------------------------------------------------------------------------------------
   const lawOf = new Map<Form, Law>()
@@ -477,7 +534,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   let pool = alive.slice(), chosen: Form[] = []
   const goalName = (g: string) => g.replace(/ @[^@]*$/, '')
   let last: Verdict = first
-  const slow = Math.max(3000, (opts.ms ?? 20000) / 10)
+  const slow = Math.max(3000, ms / 10)
   // A point a form is false at; a cell form is judged only at rows that read every map it reads.
   const reads = (f: Form, r: Env) => f.coef.every(([i]) => !atoms[i]!.cell || atoms[i]!.parts.every(([q]) => AT + q in r))
   const falseAt = (f: Form, p: Point) => (f.cells ? p.cells.some(r => reads(f, r) && !holdsRow(f, r)) : !holdsRow(f, p.scalar))
@@ -499,7 +556,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const choiceMode = modes.find(mo => mo.choice && !atoms[mo.atom]!.cell)
   const condAtoms = plain.filter(i => !atoms[i]!.param && i !== choiceMode?.atom)
   const fromCti = (p: Point): Form[] => {
-    const stop = Math.min(until, performance.now() + Math.max(300, (until - performance.now()) / 8))
+    const end = Math.min(until, now() + Math.max(300, (until - now()) / 8))
     const sc = p.scalar, pv = (coef: [number, number][]) => { let v = 0; for (const [i, c] of coef) v += c * valueOf(atoms[i]!, sc); return v }
     const gv = choiceMode ? valueOf(atoms[choiceMode.atom]!, sc) : undefined
     const inGuard: number[] = []
@@ -530,15 +587,17 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     for (const coef of conds) {
       const here = pv(coef)
       for (const d of [...new Set([here, 0, 1, -1])].filter(d => here <= d)) {
-        if (performance.now() > stop) break
+        if (now() > end || stop()) break
         const rows: number[] = []
+        used.rows += inGuard.length
         for (const j of inGuard) if (at(coef, valsS, j) <= d) rows.push(j)
         const when = {coef, d}, base = sizeOf(coef) + 80
         if (!rows.length) { out.push({coef: coef.map(([i, c]) => [i, -c]), d: -d - 1, cells: false, ...(guard ? {guard} : {}), size: base}); continue }
         const stride = Math.max(1, Math.ceil(rows.length / 600))
         for (const [q, sh] of bodies.entries()) {
-          if (q % 256 === 0 && performance.now() > stop) break
+          if (q % 256 === 0 && (now() > end || stop())) break
           const v = pv(sh.coef)
+          used.rows += Math.ceil(rows.length / stride)
           let most = -Infinity, ok = true
           for (let t = 0; t < rows.length; t += stride) { const w = at(sh.coef, valsS, rows[t]!); if (w >= v) { ok = false; break } if (w > most) most = w }
           if (ok && Number.isFinite(most)) out.push({coef: sh.coef, d: most, cells: false, ...(guard ? {guard} : {}), when, size: base + sizeOf(sh.coef)})
@@ -572,11 +631,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (!(whole.proven && whole.checked)) forget()
     return whole
   }
-  for (let iter = 0; iter < 300 && performance.now() < until; iter++) {
-    const began = performance.now()
+  for (let iter = 0; iter < 300 && now() < until && !stop(); iter++) {
+    const began = now(), wall = performance.now()
     last = search([...given, ...chosen.map(lawFor)])
-    const took = performance.now() - began
-    opts.progress?.('proof', {chosen: chosen.length, goal: last.goal ?? '', stuck: last.stuck ?? '', ms: Math.round(took)})
+    const took = now() - began
+    opts.progress?.('proof', {chosen: chosen.length, goal: last.goal ?? '', stuck: last.stuck ?? '', ms: Math.round(performance.now() - wall), counted: Math.round(took)})
     if (last.proven && last.checked) break
     if (!last.goal) break
     const name = goalName(last.goal), stuckOn = chosen.find(f => lawFor(f).name === name)
@@ -602,19 +661,21 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // bounds instead), at most four.
   if (!(last.proven && last.checked)) {
     for (const f of alive.filter(g => g.cong).slice(0, 4)) {
-      if (performance.now() > until) break
+      if (now() > until || stop()) break
       const v = prove([...laws, lawFor(f)])
       if (v.proven && v.checked) { chosen = [f]; last = v; break }
     }
   }
-  if (!(last.proven && last.checked)) return {...last, found: [], stats: stats(samples.length, forms.length, alive.length)}
+  trace('kernel', {chosen: chosen.length, proven: !!(last.proven && last.checked)})
+  if (!(last.proven && last.checked)) { trace('end', {proven: false, stopped: stop()}); return {...last, found: [], stats: stats(samples.length, forms.length, alive.length)} }
   // Take out what the proof doesn't need, the last added first.
   for (const f of [...chosen].reverse()) {
-    if (performance.now() > until) break
+    if (now() > until || stop()) break
     const without = chosen.filter(g => g !== f), v = prove([...laws, ...without.map(lawFor)])
     if (v.proven && v.checked) (chosen = without, last = v)
   }
   const kept = chosen.flatMap(f => (f.mod ? [f.mod.k] : []))
   if (kept.length) rule?.dividesBy(...kept)
+  trace('end', {proven: true, stopped: stop(), found: chosen.map(f => textOf(f)).join('; ')})
   return {...last, found: chosen.map(f => { const law = lawFor(f), text = law.name, source = sourceOf(f, text); return {law, text, ...(source ? {source} : {})} }), stats: stats(samples.length, forms.length, alive.length)}
 }

@@ -153,6 +153,31 @@ searches, 42 of 42 broken variants refused (`runs/modal/arith/frontier2`), its t
 - TIP: Int is the integers where a problem subtracts or negates (the statement unchanged), a natural elsewhere as before,
   now with `div`, `mod` by a positive constant and products of two unknowns.
 
+`inferLaws`' budgets are counted in work, not wall time, so what it finds is the same on any machine. Its test of a law
+that needs an invariant took 3,553 to 4,911 ms in ten `infer` jobs of 1 vCPU (`runs/modal/infer/before`), and one of
+the ten failed its in-flight test (7,005 ms, 900 proofs, not proven); now 1,829 to 2,970 ms, none failed
+(`runs/modal/infer/final`).
+
+- The runs: 16,000 requests tried, and on until the samples are full (3,000), not 500 ms. Every search of the suite's
+  jobs and the frontier corpus keeps 3,000 samples, as many as or more than 500 ms gave on 2 vCPU (745 to 3,000,
+  `before`'s cal2 jobs). The rest (candidates, Houdini, the counterexamples' forms, the kernel's proofs) by the rows
+  read, the forms evaluated, the laws watched and the kernel's work, each at about the slowest tenth of its rate on
+  Modal's 1-vCPU containers (`inferRates`), so a counted budget runs out no later than a timed one would there.
+- `ms` is that budget, and the search's wall time a stop only: `stats.stopped` says it was reached (by none of the
+  searches of `final`'s jobs); core/infer.test.ts asserts it isn't. `runs` sets the runs' requests; `runsMs` times the runs
+  alone; `timed` times everything as before, which `compare/chc/solve.ts` passes (the track's limit is wall time).
+- Each row's atoms are read once, however many forms are evaluated there (Houdini, the counterexamples' choice).
+- The same lines in a 1-vCPU and a 2-vCPU container (`final`'s f1 and f2 jobs, GDP_INFER_TRACE=1: each phase's
+  counts and what was found) for the `infer`, `exists` and `arith` jobs; in `cycles` and the frontier items, the same
+  verdicts and found laws, the counts differing where core/cycles.ts passes what is left of its own wall-clock budget
+  as `ms`. The frontier corpus: 67 of 67 and 24 of 24 broken variants refused, every found law as before (`final`'s
+  frontier-score). CHC-COMP LIA-Lin at 60 s (`runs/modal/infer/chc-final`): 382 solved (238 sat, 144 unsat), none
+  wrongly, against 381 (`arith/chc-gdp`) and 380 for this branch's base rerun (`infer/chc-before`); the 7 tasks
+  answered otherwise than in `arith/chc-gdp`, run three times more with each, are sat in 8 of 21 runs on the base and
+  10 of 21 on this branch, each answer at 43 s or later (`infer/chc-rerun-old-*`, `chc-rerun-new-*`): noise at the
+  limit.
+  `research/perf/infer-cal.ts` runs the corpus' invariant, exists and cycle items for the calibration.
+
 ## 0.20.0
 
 The frontier corpus proven in full: 81 of 81 items where the library alone proves none, every broken variant refused
