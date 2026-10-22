@@ -163,6 +163,8 @@ export function counted<T>(perMs: number, f: () => T): T {
   rate = perMs; deadline = Infinity
   try { return f() } finally { rate = 0; deadline = outer }
 }
+// A budget's end, within the deadline (a translation's own bound, core/cyclic.ts's, kept by the export's GDP_CERT_MS).
+export const withinDeadline = (until: number): number => Math.min(until, deadline)
 export function withDeadline<T>(until: number, f: () => T): T {
   const outer = deadline
   deadline = Math.min(outer, until)
@@ -1200,13 +1202,17 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
     leaves += countLeaves(out.tree)
   }
   const proof = {laws: base.proof, instances, ...(Object.keys(perStep).length ? {perStep} : {}), trees}
-  const out = {proven: true, nodes, leaves, checked: checkStepLaws(m, laws, stepLaws, proof), proof}
   // Step laws of a machine the cyclic instances cover (one step, or several over no map) are translated with the laws
   // (core/cyclic.ts); the rest are counted as no instance's.
-  if (!cyclicOn() && !certOn()) return out
   // (a machine with a history: its plain machine's; a flag at every key through its sk machine; k-step laws over a map
   // searched, where GDP_CERT_SEARCH=1; where no cyclic proof is made the usual trees, checked above, stay the certificate)
-  const why = uncoveredWhy(plain, laws), one = stepLaws
+  const modes = cyclicOn() || certOn(), why = modes ? uncoveredWhy(plain, laws) : undefined, one = stepLaws
+  // Where the cyclic certificate is made below (GDP_CERT, not the cross-check; the laws' certificate checked), the usual
+  // trees are its input, as a machine's laws' are: checkStepLaws (the laws' usual trees again, then the step laws') runs
+  // only where no certificate is made.
+  const byCert = certOn() && !cyclicOn() && !why && one.length > 0 && base.checked
+  const out = {proven: true, nodes, leaves, checked: byCert || checkStepLaws(m, laws, stepLaws, proof), proof}
+  if (!modes) return out
   if (!why && one.length && out.checked) {
     const all = one.map(sl => { const inst = perStep[sl.name] ?? instances, goal = stepLawObligations(m, laws, inst, sl)[0]!; return {sl, inst, goal, tree: trees[goal.name]!} })
     const translatedOf = (steps: typeof all) => (st: TStats) => translatedProof(() => JSON.stringify(['steps', plain, laws, base.proof!.instances, steps.map(x => [x.sl, x.inst])]), reused => timedKind('instance', 0, () => machineNodes(plain, laws, base.proof!.instances, {trees: base.proof!.trees, steps, lawsMade: reused}, st)), st,
@@ -1214,11 +1220,14 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
     const usualMs = performance.now() - t0
     if (cyclicOn()) crossCyclic('step law', m.name, true, undefined, usualMs, translatedOf(all))
     // (where the step laws' proof together isn't made, each step law's alone: one the translation misses leaves the
-    // others theirs)
+    // others theirs; and the usual trees, unchecked where the certificate was to be the verdict, are checked)
     const together = certOn() ? certCyclic('step law', m.name, translatedOf(all), undefined, usualMs) : undefined
-    if (together && !together.checked) for (const x of all) {
-      const c = all.length > 1 ? certCyclic('step law', m.name, translatedOf([x]), undefined, usualMs) : together
-      if (!c.checked) uncovered((x.sl.steps ?? 1) > 1 ? 'k-step law' : 'step law', m.name, c.why)
+    if (together && !together.checked) {
+      if (byCert) out.checked = checkStepLaws(m, laws, stepLaws, proof)
+      for (const x of all) {
+        const c = all.length > 1 ? certCyclic('step law', m.name, translatedOf([x]), undefined, usualMs) : together
+        if (!c.checked) uncovered((x.sl.steps ?? 1) > 1 ? 'k-step law' : 'step law', m.name, c.why)
+      }
     }
   }
   // (the rest: k steps over a map a request carries, or a machine no instance covers)
