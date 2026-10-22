@@ -3,7 +3,16 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.20.0
+
+The frontier corpus proven in full: 81 of 81 items where the library alone proves none, every broken variant refused
+(the search tree's insertion keeping its order, mutual and nested datatypes, recursion on a natural, ranks past linear
+and past coefficient 4, liveness ranks found, closed forms of degree 3; `runs/modal/dataplus/corpus1`,
+`runs/modal/ranks/corpus3`). Every rule the usual route proves now gets its cyclic certificate by translation but the
+claims about runs that never end and four laws reading a map at a key read from a map: 119 proofs on the usual rule in
+the whole suite, 1,122 in 0.19.0's. A step law's certificate costs 2.15x its usual proof, the cyclic Lean export a
+quarter to a half of the text it was. The suite (194 jobs, one after the other): by default 461.3 s wall, 3,974.9 s of job time, none
+failed (`runs/modal/kstep/final-default`); with `--usual` 384.0 s, 3,404.0 s, none failed (`runs/modal/kstep/final-usual2`).
 
 The datatype track's corpus closed and widened: the search tree's insertion keeping its order proven, and datatypes
 that nest or come in mutual groups, and functions recursing on a natural, taken by the search and by the Lean export.
