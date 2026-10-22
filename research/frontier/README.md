@@ -17,6 +17,7 @@ with its soundness proven in the Lean twin.
 | fold | The same for folds over lists and trees | By induction over the items or the tree, as `.carriesList` and `proveFold` already prove stated lemmas |
 | nonlinear | Which products of facts and which squares refute a goal (Positivstellensatz of degree 2, as Lean's `nlinarith`) | A product row, and a square of a linear term, each proven sound in Lean |
 | structure | A representation in which the law needs no induction: a list as positions and a length, so a prefix is a condition about every position below a length (the array property fragment, decidable) | The laws as they are, through `everyKey` |
+| exists | A parity or a multiple nobody stated, as ∃k. v = c·k + r (`exists.ts`: a counter stepping by two, a ledger of multiples of 5) | The law with the existential as a plain law over a ghost witness (core/exists.ts) |
 | cycle | A cyclic proof's shape: each node's rank (linear or of degree 2, in order, from the runs by LP, exact past small coefficients), where each back-edge returns, the companions a stuck claim needs (constants abstracted, bounds on what it reads); a loop's or a liveness's rank and the invariants it needs | The cyclic proof (`kernel/cyclic.ts`), the loop's halting goals, the liveness goals |
 
 ## The corpus
@@ -37,11 +38,13 @@ their sibling laws (`walls.json`), examples/lemmas.ts's rules with no lemma, fol
 | nonlinear | 8 | 0 | 8 |
 | cycle | 21 | 0 | 21 |
 | datatype | 18 | 0 | 18 |
-| all | 81 | 0 | 81 |
+| exists | 2 | 0 | 2 |
+| all | 83 | 0 | 83 |
 
 Now: the suite's `frontier-score` job, `runs/modal/ranks/suite1` (63 / 63, and the 22 broken variants of the cycle and
 lemma tracks refused; the cycle track's times: `runs/modal/ranks/corpus3`); the datatype track, its own `frontier-datatype-0..5` jobs, `runs/modal/dataplus/corpus1` (18 / 18, its 12 broken
-variants refused). The last, `(Σx)² <= n·Σx²` over running samples, is proven by the prover multiplying the goal by n
+variants refused); the exists track (added after 0.20.0), `runs/modal/exists/frontier3` (2 / 2, 581 ms and 1,011 ms,
+its broken variant refused; the prover alone proves neither). The last, `(Σx)² <= n·Σx²` over running samples, is proven by the prover multiplying the goal by n
 before the squares.
 
 ## Structure: path scopes, the case the docs called the wall

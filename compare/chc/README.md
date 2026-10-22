@@ -21,6 +21,61 @@ and Eldarica (2.3).
     modal run compare/chc/modal_chc.py --out <dir> --tools tmpl            # then --tools given --tasks-json <file>
     python3 compare/chc/prof/gap.py --gdp <run> --others <run> --models <dir> --template <run> [--cex <dir>] [--given <run>] --out <file.json>
 
+## There exists (after 0.20.0)
+
+Laws may now say "there exists" (core/exists.ts): proven through a witness term of the state or a ghost the machine
+carries, chosen from the kernel's counterexamples. Two uses here, each against 0.20.0's figures above.
+
+**Spacer's existential invariants, given** (`prof/given.ts`, `--tools given`, 60 s a task as before). The 27 tasks whose
+Spacer invariant keeps an existential from its projection couldn't be stated (`runs/modal/chc2/given-spacer3`: "a
+quantifier", all 27). `given.ts` now states each ∃ over Int and Bool binders as gdp-wired's `exists` (a let-bound one
+translated again at each use, so two uses are two existentials), and a remainder or a quotient by a constant as an
+existential too (mod e k as e − k·q, q bound with 0 <= e − k·q <= k − 1: q is e's quotient, so the binder reads the same
+wherever the term sits). In the 27 the bound variables are integers (23 tasks) or yes/no values (5: the 4 rust-horn tasks, with no integer
+binder, and `O3_gcd01`); no bound integer sits in an equation with a coefficient past 1 (no `x = 2k`): Spacer's
+projections, not parities.
+
+| run | stated | proven | a goal undecided at its budget | the deadline while choosing a witness | out of time (killed) |
+| --- | --- | --- | --- | --- | --- |
+| `chc2/given-spacer3` (0.20.0) | 0 of 27 | 0 | | | |
+| `exists/given5` (60 s) | 27 of 27 | 7 | 5 | 11 | 4 |
+| `exists/given4-t300` (300 s, a diagnostic) | 27 of 27 | 12 | | | |
+
+- Proven at 60 s: `simple-1-01_unsat` (2.42 s), `array_fill1_abstracted` (9.25 s), `bmc-3-test-bmc-3-safe` (11.32 s),
+  `O3_gcd01` (23.84 s), `break_safe.c-1` (40.34 s), `bmc-1-test-bmc-1-safe` (52.37 s), HOLA `01` (55.75 s). At 300 s,
+  besides those, `fib_merged` (70.55 s), `loop_merged` (79.88 s), `loop2_merged` (108.31 s), `bmc-5-test-bmc-diamond-2`
+  (189.61 s), `loop3_merged` (190.83 s). The witnesses are terms of the state (what the invariant's own equations and
+  bounds solve for: `x9 := x4 − x2`, the slots `i4 − i2`, in `fib_merged`'s projection) or, where none fits, ghosts. Runs at the limit move:
+  `runs/modal/exists/given1` (an earlier choice order) proved 8 at 60 s, `fib_merged` and `loop3_merged` at 59.56 s and
+  59.19 s, and not HOLA `01`.
+- What stops the rest is the kernel's time, as in class A: a step goal over 20–150 laws left undecided at the per-goal
+  budget, with the witness in place (HOLA `10`, `21`, `27`, `43`, `barthe_merged`, ...), or the 55 s spent before every
+  law's witness is chosen (each choice a proof of that law's goals with every other law assumed, then the whole set;
+  HOLA's 26–50 predicates bring up to 152 laws). `qrsolv` and `rsolv` (788 and 878 laws) run out of time.
+- The remainders and quotients (17 tasks whose Spacer invariant reads `mod` or `div`, and `array_fill1_even_odd`, which
+  reads both a quantifier and `mod`): stated, every one; proven, `const_mod_1`, `const_mod_2`, `const_mod_3`. The arithmetic track's `mod` and
+  `div` in the kernel state the same without a binder.
+
+**The track, `--tools gdp`** (`runs/modal/exists/chc-gdp2`, 60 s; Spacer, Golem and Eldarica from `runs/modal/chc/full1`,
+together in `runs/modal/exists/chc-combined2`). The search (`inferLaws`) now also proposes congruences, ∃k. v = c·k + r
+for a state value (or the sum or difference of two) whose every sample leaves one remainder by a constant of the rule's
+(2, 3, 4 and the rule's own up to 64), chosen where no bound rules a counterexample out:
+
+| gdp-wired | sat | unsat | wrong | solved of 1,406 | out of time |
+| --- | --- | --- | --- | --- | --- |
+| 0.20.0 (`chc2/v020-gdp`) | 224 | 144 | 0 | 368 | 5 |
+| `exists/chc-gdp2` | 231 | 144 | 0 | 375 | 5 |
+
+- 9 more, 2 fewer. More: `const_mod_1` (13.79 s), `const_mod_3` (15.53 s), `count_by_2_m_nest` (20.69 s), `dillig02_m`
+  (40.57 s), `O3_EvenOdd01` (40.54 s), and four past 58 s (`reve/014`, `reve/014b`, `s_multipl_24`, `gj2007_m_3`). On 4 of the 9 (`const_mod_3`, `count_by_2_m_nest`, `dillig02_m`,
+  `s_multipl_24`) the search's printed stages name an existential candidate; the solve stage doesn't print the
+  invariants found, so for the other 5 the run doesn't say. Fewer: Lustre `_6counters_e8_371_e1_448` (58.16 s at 0.20.0)
+  and `car_4_e7_592_e7_265` (32.28 s), each unknown at the deadline here, no existential goal among their stages.
+- The 27: unknown on 26, out of time on 1 (`fib_merged`), as at 0.20.0 (unknown on 27): their invariants are
+  projections, not the congruences the search proposes; what they need is the shapes of A–E (their classes outside
+  the existential, in `prof/gap.py`'s table above). An earlier run of the same code but the last infer change
+  (`exists/chc-gdp1`): 369 solved, none wrongly, 6 out of time.
+
 ## 0.20.0
 
 Spacer, Golem and Eldarica from `runs/modal/chc/full1` again: the image pins the same releases (Z3 5.3.1, Golem 0.9.0,
