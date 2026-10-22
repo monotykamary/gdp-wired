@@ -391,16 +391,25 @@ def tree_files(root: pathlib.Path = GDP, ignore: list[str] = IGNORE) -> list[str
     return sorted(f for f in set(ls(root, "")) if not _ignored(f, ignore))
 
 
-def tree_tarball(key: str = "") -> bytes:
+def tree_tarball() -> bytes:
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz", compresslevel=6) as tf:
         for f in tree_files():
             tf.add(GDP / f, arcname=f, recursive=False)
-        cache = LIVE / "olean" / key
-        if key and cache.exists():
-            for f in sorted(cache.glob("*.olean")):
-                tf.add(f, arcname=f".gdpw-olean/{f.name}")
     return buf.getvalue()
+
+
+def olean_tarball(key: str) -> tuple[bytes | None, list[str]]:
+    """The Lean library compiled for this key that an earlier batch brought back, for the VMs that lack it."""
+    cache = LIVE / "olean" / key
+    files = sorted(cache.glob("*.olean")) if cache.exists() else []
+    if not files:
+        return None, []
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz", compresslevel=6) as tf:
+        for f in files:
+            tf.add(f, arcname=f.name)
+    return buf.getvalue(), [f.stem for f in files]
 
 
 def library_key(lean_dir: pathlib.Path = GDP / "lean-kernel") -> str:
@@ -417,8 +426,10 @@ class VM:
         self.cpus = TYPES[type][0]
         self.slots = max(1, self.cpus // SLOT_CPU)
         self.t_request = time.time()
+        self.t_running = None
         self.t_ready = None
         self.t_end = None
+        self.src = ""
         self.busy: list[list[float]] = []  # [start, end] per item
         self.dead = False
 
@@ -432,7 +443,9 @@ class Session:
         self.reg = Registry()
         self.image = ensure_image(build)  # (raises Unavailable when it's missing and build is off)
         self.key = library_key()
-        self.tar = tree_tarball(self.key)
+        self.tar = tree_tarball()
+        self.olean, self.olean_names = olean_tarball(self.key)
+        self.olean_url = None
         self.agent_b64 = base64.b64encode((HERE / "agent.py").read_bytes()).decode()
         self.vms: dict[str, VM] = {}
         self.ready: list[VM] = []
@@ -449,7 +462,7 @@ class Session:
         self.last_error = ""
         threading.Thread(target=self._heartbeat, daemon=True).start()
         log(f"batch {self.batch}: image {self.image}, tree {len(self.tar) // 1024} KB, library {self.key[:12]}"
-            f" ({len(list((LIVE / 'olean' / self.key).glob('*.olean'))) if (LIVE / 'olean' / self.key).exists() else 0} .olean shipped)")
+            f" ({len(self.olean_names)} .olean here, {len(self.olean or b'') // 1024} KB, for VMs that lack them)")
 
     # -- acquiring
     def ensure(self, n: int, vm_type: str | None = None):
@@ -505,6 +518,7 @@ class Session:
             boat("extend", vm.id, "--ttl", str(BACKSTOP), "--json", check=False)
             if not wait_running([vm.id], 600):
                 raise RuntimeError("never came up")
+            vm.t_running = time.time()
             self._prepare(vm)
         except Exception as e:
             log(f"{vm.id}: {e}")
@@ -572,6 +586,7 @@ class Session:
         try:
             if not wait_running([vm.id], 600):
                 raise RuntimeError("never came up")
+            vm.t_running = time.time()
             self._prepare(vm)
         except Exception as e:
             log(f"{vm.id}: {e}")
@@ -591,7 +606,17 @@ class Session:
         src = f"/home/user/.gdpw/in-{self.batch}.tar.gz"
         if seed or self.wanted <= 2:
             try:
-                self._upload(vm, src)
+                if seed and self.olean:  # both files in one upload (each ssh session costs seconds to open)
+                    buf = io.BytesIO()
+                    with tarfile.open(fileobj=buf, mode="w") as tf:
+                        for name, data in ((f"in-{self.batch}.tar.gz", self.tar), (f"olean-{self.batch}.tar.gz", self.olean)):
+                            ti = tarfile.TarInfo(name)
+                            ti.size = len(data)
+                            tf.addfile(ti, io.BytesIO(data))
+                    self._upload(vm, f"/home/user/.gdpw/bundle-{self.batch}.tar", buf.getvalue())
+                    exec_json(vm.id, ["bash", "-c", f"cd ~/.gdpw && tar xf bundle-{self.batch}.tar && rm bundle-{self.batch}.tar && echo '{{}}'"], 60)
+                else:
+                    self._upload(vm, src)
             except Exception:
                 if seed:
                     self.seed_vm = None
@@ -602,6 +627,8 @@ class Session:
                 except Exception as e:
                     log(f"seed {vm.id} can't serve ({e}); each VM gets the tree from here")
                 self.seed_done.set()
+                if os.environ.get("GDPW_BOAT_VERBOSE"):
+                    log(f"seed {vm.id}: {'serving' if self.seed_url else 'not serving'}")
         else:
             self.seed_done.wait(900)
             if self.seed_url:
@@ -609,13 +636,23 @@ class Session:
             else:
                 src = f"/home/user/.gdpw/in-{self.batch}.tar.gz"
                 self._upload(vm, src)
-        r = self._agent(vm, ["prep", self.batch, src, self.key], 600, ship=True)
+        osrc = self.olean_url if (src == self.seed_url or vm is self.seed_vm) and self.olean_url else "-"
+        r = self._agent(vm, ["prep", self.batch, src, self.key, osrc, ",".join(self.olean_names)], 600, ship=True)
         if not r.get("ok") and src == self.seed_url:  # the URL failed: straight from here
+            log(f"{vm.id}: the seed's URL failed ({str(r.get('err'))[:200]}); the tree from here")
             src = f"/home/user/.gdpw/in-{self.batch}.tar.gz"
             self._upload(vm, src)
             r = self._agent(vm, ["prep", self.batch, src, self.key], 600, ship=True)
         if not r.get("ok"):
             raise RuntimeError(f"prep failed: {r}")
+        if self.olean and set(self.olean_names) - set(r.get("olean", [])) - set(r.get("shipped", [])) and osrc == "-":
+            dst = f"/home/user/.gdpw/olean-{self.batch}.tar.gz"
+            if vm is not self.seed_vm:
+                self._upload(vm, dst, self.olean)
+            self._agent(vm, ["oleanin", self.key, dst], 120)
+        vm.src = "seed" if src == self.seed_url else "direct"
+        if os.environ.get("GDPW_BOAT_VERBOSE"):
+            log(f"{vm.id} ({vm.how}) running after {round(vm.t_running - vm.t_request, 1)} s, prepared {round(time.time() - vm.t_running, 1)} s later ({vm.src})")
         vm.cpus = r.get("cpus") or vm.cpus
         vm.slots = max(1, vm.cpus // SLOT_CPU)
         vm.t_ready = time.time()
@@ -628,13 +665,14 @@ class Session:
             return exec_json(vm.id, ["bash", "-c", 'mkdir -p ~/.gdpw && echo "$1" | base64 -d > ~/.gdpw/agent.py.new && mv ~/.gdpw/agent.py.new ~/.gdpw/agent.py && shift && exec python3 ~/.gdpw/agent.py "$@"', "_", self.agent_b64, *args], timeout, tries)
         return exec_json(vm.id, ["python3", "/home/user/.gdpw/agent.py", *args], timeout, tries)
 
-    def _upload(self, vm: VM, dst: str):
+    def _upload(self, vm: VM, dst: str, data: bytes | None = None):
+        data = self.tar if data is None else data
         err = ""
         for k in range(4):
             try:
                 with _sem:
-                    p = subprocess.run([BOAT, "ssh", vm.id, "--", f"mkdir -p ~/.gdpw && cat > {dst}.part && mv {dst}.part {dst} && wc -c < {dst}"], input=self.tar, capture_output=True, timeout=600, env=ENV)
-                if p.returncode == 0 and p.stdout.decode().strip().endswith(str(len(self.tar))):
+                    p = subprocess.run([BOAT, "ssh", vm.id, "--", f"mkdir -p ~/.gdpw && cat > {dst}.part && mv {dst}.part {dst} && wc -c < {dst}"], input=data, capture_output=True, timeout=600, env=ENV)
+                if p.returncode == 0 and p.stdout.decode().strip().endswith(str(len(data))):
                     return
                 err = p.stderr.decode()[-300:]
             except Exception as e:
@@ -645,11 +683,14 @@ class Session:
     def _serve(self, vm: VM):
         self.tok = "".join(random.choice("abcdefghijklmnopqrstuvwxyz0123456789") for _ in range(32))
         port = 8765
-        exec_json(vm.id, ["bash", "-c", f"mkdir -p ~/.gdpw/srv/{self.tok} && cp ~/.gdpw/in-{self.batch}.tar.gz ~/.gdpw/srv/{self.tok}/tree.tar.gz && echo '{{}}'"], 60)
+        exec_json(vm.id, ["bash", "-c", f"mkdir -p ~/.gdpw/srv/{self.tok} && cp ~/.gdpw/in-{self.batch}.tar.gz ~/.gdpw/srv/{self.tok}/tree.tar.gz"
+                                        f" && {{ [ ! -f ~/.gdpw/olean-{self.batch}.tar.gz ] || mv ~/.gdpw/olean-{self.batch}.tar.gz ~/.gdpw/srv/{self.tok}/olean.tar.gz; }} && echo '{{}}'"], 60)
         self._agent(vm, ["serve", "/home/user/.gdpw/srv", str(port)], 60, ship=True)
         h = bj("host", vm.id, str(port), "--localhost", "--private")
         u = urllib.parse.urlparse(h["url"])
         self.seed_url = urllib.parse.urlunparse(u._replace(path=f"/{self.tok}/tree.tar.gz"))
+        if self.olean:
+            self.olean_url = urllib.parse.urlunparse(u._replace(path=f"/{self.tok}/olean.tar.gz"))
         # (the URL carries boat's token: it never goes to a log or a file)
 
     # -- running
@@ -886,7 +927,11 @@ class Session:
         held = sum((v.t_end or time.time()) - v.t_request for v in vms)
         busy = sum(union(v.busy) for v in vms)
         ready_held = sum((v.t_end or time.time()) - v.t_ready for v in vms if v.t_ready)
-        return {"vms": len(vms), **self.counts, "types": sorted({v.type for v in vms}), "held_s": round(held, 1), "ready_held_s": round(ready_held, 1),
+        up = [v.t_running - v.t_request for v in vms if v.t_running]
+        prep = [v.t_ready - v.t_running for v in vms if v.t_ready and v.t_running]
+        return {"vms": len(vms), **self.counts, "to_running_s": [round(min(up), 1), round(sorted(up)[len(up) // 2], 1), round(max(up), 1)] if up else None,
+                "prep_s": [round(min(prep), 1), round(sorted(prep)[len(prep) // 2], 1), round(max(prep), 1)] if prep else None,
+                "tree_from_seed": sum(1 for v in vms if v.src == "seed"), "types": sorted({v.type for v in vms}), "held_s": round(held, 1), "ready_held_s": round(ready_held, 1),
                 "busy_s": round(busy, 1), "idle_vm_s": round(ready_held - busy, 1), "bring_up_s": round(held - ready_held, 1),
                 "idle_tail_s": 0 if self.teardown or self.idle <= 0 else self.idle * len([v for v in vms if not v.dead])}
 
@@ -1155,14 +1200,14 @@ def reap():
     print(f"{len(up)} boat VMs up ({len([i for i in up if i in mine])} of the pool)" + "".join(f"\n  not in the pool: {i} {live[i].get('name')}" for i in up if i not in mine))
 
 
-def teardown(everything: bool = False):
-    """Deletes the pool's free VMs that come from an older image (all free VMs with --all)."""
+def teardown(everything: bool = False, vm_type: str = ""):
+    """Deletes the pool's free VMs that come from an older image (all free VMs with --all, or all of a --type)."""
     img = image_name()
     gone = []
     with Registry().locked() as d:
         reconcile(d, sandboxes())
         for i, v in list(d["vms"].items()):
-            if lease_free(v) and (everything or v["snapshot"] != img):
+            if lease_free(v) and (everything or v["snapshot"] != img or v["type"] == vm_type):
                 gone.append(i)
                 d["vms"].pop(i)
     def rm(i):
@@ -1181,6 +1226,7 @@ if __name__ == "__main__":
     sub.add_parser("reap")
     t = sub.add_parser("teardown")
     t.add_argument("--all", action="store_true")
+    t.add_argument("--type", default="", choices=["", "small", "default", "large"])
     i = sub.add_parser("image")
     i.add_argument("--build", action="store_true")
     u = sub.add_parser("usage")
@@ -1191,7 +1237,7 @@ if __name__ == "__main__":
     elif a.cmd == "reap":
         reap()
     elif a.cmd == "teardown":
-        teardown(a.all)
+        teardown(a.all, a.type)
     elif a.cmd == "image":
         if a.build:
             with signals_as_interrupt():

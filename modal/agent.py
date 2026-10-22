@@ -135,7 +135,37 @@ def kill_tree(pid: int):
 
 
 # ----------------------------------------------------------------------------------------------------------------- prep
-def prep(batch: str, source: str, key: str):
+def fetch(source: str, dst: pathlib.Path, jar: pathlib.Path) -> str:
+    """A file from a boat host URL (its token sets a cookie on the first response, then redirects) or a local path."""
+    if source.startswith("https://"):
+        p = subprocess.run(["curl", "-sSfL", "--retry", "4", "-c", str(jar), "-b", str(jar), "-o", str(dst), source], capture_output=True, text=True, timeout=300)
+        return "" if p.returncode == 0 else "download failed: " + p.stderr[-300:]
+    shutil.move(source, dst)
+    return ""
+
+
+def olean_in(key: str, tar: pathlib.Path) -> list[str]:
+    """The Lean library's .olean files for a key, into this VM's cache (each written whole, then renamed in)."""
+    cache = ROOT / "olean" / key
+    cache.mkdir(parents=True, exist_ok=True)
+    got = []
+    with tarfile.open(tar) as tf:
+        for m in tf.getmembers():
+            name = pathlib.Path(m.name).name
+            if name.endswith(".olean") and not (cache / name).exists():
+                data = tf.extractfile(m).read()
+                (cache / f".{name}.in").write_bytes(data)
+                (cache / f".{name}.in").rename(cache / name)
+                got.append(name[:-6])
+    tar.unlink()
+    return got
+
+
+def oleanin(key: str, path: str):
+    print(json.dumps({"ok": True, "got": olean_in(key, pathlib.Path(path))}))
+
+
+def prep(batch: str, source: str, key: str, olean_src: str = "-", names: str = ""):
     t0 = time.time()
     for old in (ROOT / "b").glob("*") if (ROOT / "b").exists() else []:
         if old.name != batch:
@@ -156,30 +186,19 @@ def prep(batch: str, source: str, key: str):
     tree.mkdir(parents=True)
     (d / "jobs").mkdir(exist_ok=True)
     tar = d / "tree.tar.gz"
-    if source.startswith("https://"):
-        jar = d / "cookies"
-        # (a boat host URL: its token sets a cookie on the first response, then redirects)
-        p = subprocess.run(["curl", "-sSfL", "--retry", "4", "-c", str(jar), "-b", str(jar), "-o", str(tar), source], capture_output=True, text=True, timeout=300)
-        if p.returncode != 0:
-            print(json.dumps({"ok": False, "err": "download failed: " + p.stderr[-300:]}))
-            return
-    else:
-        shutil.move(source, tar)
+    err = fetch(source, tar, d / "cookies")
+    if err:
+        print(json.dumps({"ok": False, "err": err}))
+        return
     with tarfile.open(tar) as tf:
         tf.extractall(tree, filter="tar")
     tar.unlink()
-    # the Lean library the client had for this key, shipped with the tree: into this VM's cache
-    shipped = tree / ".gdpw-olean"
+    # the Lean library the client has for this key, fetched only when this VM's cache lacks some of it
     got = []
-    if shipped.exists():
-        cache = ROOT / "olean" / key
-        cache.mkdir(parents=True, exist_ok=True)
-        for f in shipped.glob("*.olean"):
-            if not (cache / f.name).exists():
-                shutil.copy2(f, cache / f".{f.name}.in")
-                (cache / f".{f.name}.in").rename(cache / f.name)
-                got.append(f.stem)
-        shutil.rmtree(shipped)
+    cache = ROOT / "olean" / key
+    if olean_src != "-" and any(not (cache / f"{n}.olean").exists() for n in names.split(",") if n):
+        if not fetch(olean_src, d / "olean.tar.gz", d / "cookies"):
+            got = olean_in(key, d / "olean.tar.gz")
     (d / "key").write_text(key)
     (d / "ready").write_text(str(time.time()))
     have = sorted(f.stem for f in (ROOT / "olean" / key).glob("*.olean")) if (ROOT / "olean" / key).exists() else []
@@ -396,5 +415,5 @@ def oleans(key: str):
 if __name__ == "__main__":
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
     cmd, *rest = sys.argv[1:]
-    {"prep": prep, "tick": tick, "kill": kill, "run": run, "call": call, "collect": collect, "oleans": oleans,
+    {"prep": prep, "oleanin": oleanin, "tick": tick, "kill": kill, "run": run, "call": call, "collect": collect, "oleans": oleans,
      "serve": lambda d, p: serve(d, int(p))}[cmd](*rest)
