@@ -5,9 +5,13 @@
 // lean-kernel/package-check.ts.
 //   - lists: length, append, reverse, a map by an unknown function f, sum, sorted insertion, counting an item
 //   - trees: a node's value between its subtrees; mirror, size, flatten (in order), sum, insertion into a search tree
+//   - rose trees, a mutual pair (a node holds a forest, a forest trees): sum, size, flatten, mirror
+//   - lists of lists (a field of a datatype declared before): concatenation, the lengths summed
+//   - recursion on a natural: replicate, take, drop
 // The broken variants (an append that drops the head, a reverse that repeats it, a mirror that adds 1, an insertion that
-// puts the item first, a search tree insertion that goes the wrong way) are refused with a value that breaks the law.
-// The search tree's insertion law is the one the search doesn't prove (`open`).
+// puts the item first, a search tree insertion that goes the wrong way or into any tree, a rose flatten that drops the
+// node's value, a rose mirror that drops a tree, a concatenation that drops the first list, a replicate with one more, a
+// drop of one too many) are refused with a value that breaks the law.
 import {type Bool, type DataLaw, type Nat, type Val, data, define, fnParam, law, mutual, natural, boolean, self, when, yes, proveData} from '../core/data.ts'
 
 export const List = data('List', {nil: {}, cons: {head: natural, tail: self}})

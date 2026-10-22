@@ -3,6 +3,51 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+The datatype track's corpus closed and widened: the search tree's insertion keeping its order proven, and datatypes
+that nest or come in mutual groups, and functions recursing on a natural, taken by the search and by the Lean export.
+The track: 18 of 18 laws proven where the library alone proves none, its 12 broken variants refused, every proven law
+checked in Lean on the standard axioms (`runs/modal/dataplus/corpus1`).
+
+- `bst(t) → bst(insert(x, t))` proven (20,081 ms in the corpus, 19,415 ms in the `data` job of the same run), within
+  the budget it had. With both its lemmas given it had stayed unproven (its search over at 183,819 ms,
+  `runs/modal/dataplus/prof1`): of the reads its goal matched the allAbove lemma at, the four kept were all at the left
+  subtree, and the use at the right one, which the insertion's other side needs, wasn't kept. A lemma's uses are now
+  four as found, then the rest ranked by the random models in which the lemma's read is the goal's, one per set of
+  values (`lemmaCaps`), each case node keeping four of a lemma among those its models meet. Lean: `databst.bst_insert`.
+- Fields of other datatypes (`core/data.ts`): one declared before (`data('Bag', {none: {}, more: {items: List, rest:
+  self}})`), or one of a group declared together (`mutual({Rose: {node: {value: natural, kids: 'Forest'}}, Forest:
+  {nil: {}, cons: {head: 'Rose', tail: 'Forest'}}})`). A datatype's size counts its group's fields; a group with no
+  value is refused, and so is one whose datatypes with no constructor of no field name each other in a ring (the
+  bijection with the naturals doesn't take it). Functions may call each other: the recursion is checked across the
+  ring, each function's decreasing parameter chosen so every call within it passes a field.
+- Mutual induction: on a variable of a group's datatype, the law and a companion per datatype its fields reach, the
+  law lifted through each function's own call at such a field (`rsize(rmirror(t)) = rsize(t)` at a forest is
+  `fsize(fmirror(ts)) = fsize(ts)`), each node using the others at the fields of their datatypes, each ranked by its own
+  datatype's size. Lemmas are matched against the companions' goals too.
+- Recursion on a natural: `n.match({zero: () => ..., succ: ({pred}) => ...})`, read as `if n = 0 then ... else ...` with
+  `pred` as n − 1; recursion induction at n − 1, ranked by n.
+- The Lean export (`lean-kernel/data.ts`): a group's inductives in a `mutual` block (`deriving instance DecidableEq`),
+  its sizes, codes, decodings and both inverses each in one, the decodings well-founded by (group size + 1)·n plus an
+  order (`weakOrder`); a ring of functions in a `mutual` block; a natural decreasing argument split as 0 or m + 1 in the
+  facts' proofs; a second split round where goals remain. The existing exports read the same but for one tactic
+  (`simp [tupk, tup] <;> omega` where `; omega` failed once simp had closed the goal).
+- `examples/data.ts`: the sum of a flattened rose tree (15,426 ms, its forest companion and the sum of an append), the
+  size of a mirrored rose tree (16,450 ms, with `fsize(snoc(ts, r)) = fsize(ts) + rsize(r)` found), the length of a
+  concatenation of lists (5,628 ms), `length(replicate(n, x)) = n` (139 ms), `append(take(n, xs), drop(n, xs)) = xs`
+  (1,146 ms), `length(drop(n, xs)) = length(xs) − n` (3,639 ms), each a law of the frontier corpus with a broken
+  variant (a flatten that drops the node's value, a mirror that drops a tree, a concatenation that drops the first list,
+  a replicate with one more, a drop of one too many), and the search tree law with its hypothesis dropped; all 12 broken
+  variants refused in 4 to 17 ms. Lean: `dataroseflat.sum_rflat`, `datarosemirror.rsize_rmirror`,
+  `databag.len_concat`, `datarep.len_replicate`, `datatakedrop.take_drop`, `datadroplen.len_drop`.
+- The suite: `frontier-datatype-0..5` (six shards, was four), `lean-data-4` and `lean-data-5` for the new Lean items.
+  In `corpus1` the shards took 69.75 to 153.14 s, `lean-data-0..5` 45.46 to 120.03 s, `data` 125.98 s.
+- Still out (research/frontier/README.md): a lemma past six symbols or of another shape; a companion the functions' own
+  calls don't lift the law to; a ring of functions as a recursion induction; nested datatypes in Lean's sense (a field
+  of a type applied to the datatype, `List Rose`: there is no type parameter, a list of trees is a forest declared with
+  them); reachability through a structure that changes.
+
 ## 0.19.0
 
 The cyclic proof is the certificate by default. What the usual route proves becomes a cyclic proof from its own trees,

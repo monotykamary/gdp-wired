@@ -1,10 +1,13 @@
 // A datatype law's cyclic proof (core/data.ts) as a theorem about the datatype as declared. Untrusted: Lean checks
 // everything this writes. The export (after the proof's facts and nodes, emit.ts's cyclicToLean) is, in a namespace of
 // the item's own:
-//   - each datatype as a Lean `inductive` (its constructors in core/data.ts's order, fields `Nat` or the datatype), its
+//   - each datatype as a Lean `inductive` (its constructors in core/data.ts's order, fields `Nat` or a datatype), its
 //     tag, size and fields as functions, and a bijection with the naturals (`enc`, `dec`, `dec_enc`, `enc_dec`: those of
-//     no field their tag, the rest z + m·q + r, q the fields packed by Data.lean's tupk)
-//   - each function by pattern matching, as written (Lean checks the recursion is structural)
+//     no field their tag, the rest z + m·q + r, q the fields packed by Data.lean's tupk); a group declared together in
+//     `mutual` blocks (its inductives, then its sizes, codes, decodings and the two inverses), its decoding well-founded
+//     by (group size + 1)·n + its order (core/data.ts's weakOrder: a datatype decoding n at fields up to n after those)
+//   - each function by pattern matching, as written (Lean checks the recursion is structural; functions calling each
+//     other in one `mutual` block)
 //   - the model: each map of the encoding as the meaning the facts say it has (a function's map at a key: the function
 //     at the arguments the key pairs, decoded, its value encoded)
 //   - that every fact of the proof holds of the model, each by unfolding and cases on the values it reads

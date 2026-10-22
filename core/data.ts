@@ -6,7 +6,9 @@
 // The encoding: every natural is a value of every datatype (a bijection between the naturals and the datatype's values,
 // which Lean's twin defines and proves), so a value is a natural and two values are equal exactly when they are the same
 // natural. A datatype D is read through maps: `D.tag[x]` (which constructor), `D.<ctor>.<field>[x]` (its fields, 0 under
-// another constructor), `D.size[x]` (1 plus the sizes of its fields of type D: the rank). A constructor of no field is
+// another constructor), `D.size[x]` (1 plus the sizes of its fields of D's group: the rank). A field is a natural, a value
+// of D, of another datatype of D's group (declared together: a rose tree and its forest), or of one declared before (a
+// list of lists); every datatype has its own codes. A constructor of no field is
 // the constant of its tag; one with fields is a map read at its fields (`D.<ctor>[key]`); a function is a map read at
 // its arguments; several arguments are read at their pairing, left-nested (a + b)² + b, as the library reads a function
 // of several arguments (core/dsl.ts's argsKey). The facts, each at every value of its keys:
@@ -18,10 +20,12 @@
 //   - congruence of each map read at a pairing: equal arguments, equal cells (the kernel compares a pairing's
 //     monomials, not its arguments)
 // A law is a node at rank (level, D.size[x]) for an argument x; its uses read it at x's fields (structural induction),
-// or at the arguments of a function's own recursive calls (recursion induction, other arguments changing with them),
-// each where the tag is the case's. Lemmas the law needs are found by the values (theory exploration: equations between
-// terms the random values agree on, then the shapes of a predicate kept), proven the same way at lower levels, and used
-// at the terms of the law they match.
+// or at the arguments of a function's own recursive calls (recursion induction, other arguments changing with them; on a
+// natural n, at n − 1, its rank n), each where the tag is the case's. On a datatype of a group, the law has a companion
+// for each other datatype x's fields reach (the law lifted through each function's own call at such a field), each node
+// using the others at the fields of their datatypes (mutual induction). Lemmas the law needs are found by the values
+// (theory exploration: equations between terms the random values agree on, then the shapes of a predicate kept), proven
+// the same way at lower levels, and used at the terms of the law they match.
 import type {C, E} from './machine.ts'
 import {type Fact} from '../kernel/cyclic.ts'
 import {substC, substE} from '../kernel/kernel.ts'
