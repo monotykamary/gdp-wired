@@ -3,6 +3,64 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+Cyclic proofs translated, not searched: what the usual route proves becomes a cyclic proof from its own trees, at about
+twice its cost where 0.18.0's search took three to seven times, and `GDP_CERT=cyclic` makes that proof the certificate
+of every law the instances cover. Untrusted only: kernel/kernel.ts, kernel/cyclic.ts and the Lean twin are unchanged,
+and every fact is Bridge.lean's (`cycCanon`); the law at t is still the node `cycMOk` reads.
+
+- `core/translate.ts`: a usual goal's tree read over a cyclic node's goal. Each column of the usual goal is a linear
+  form of the node's (`renamer`: a state variable s as s@[t − 1], a map's cell M[k] as M@[(t − 1) + k·Ω], a fresh key
+  k# as k, a term column as its term substituted, a monomial as its factors'), each split the renamed split (one the
+  node's path decides followed, not made again), each leaf's rows found again among the node's at the renamed path.
+  Two cells the usual path has equal are cells over time here: their keys' difference (a − b)·Ω is split, each other
+  side refuted by the product of a − b <= 0 with Ω >= 0 (`apart`). A step's write, read at a key K where the usual
+  conclusion reads it at the write's key W, is decided K = W or apart first (`readsFirst`), the usual cells at W then
+  read at K. A leaf whose rows still aren't there is closed on the node's goal (`close`: its rows solved, an open
+  choice, two reads of a function or two cells over time split), grown by the prover only past that.
+- The instances (`machineNodes`, `recurNodes`, `foldNodes`, given the usual proof; core/cyclic.ts's header has the
+  shape): each law three nodes. At t (rank (t, 1)), its tree made, not searched (`carry`: the uses' and facts' guards
+  decided, then each comparison of the law at t against the law it is carried from, a case where they differ refuted by
+  the step's equations); after a step from t − 1 (rank (t, 0)), the usual step goal over the cells at t − 1, its
+  conclusion as the step's facts have it, its tree the usual one's; at the start (rank (0, 0)), the usual start goal and
+  tree. Only the facts and uses the usual tree reads are kept. A recurrence's lemmas and laws between and a fold's laws
+  likewise (at the start, y = x, a leaf). Step laws are translated too (`proveStepLaws`): one step on any machine the
+  instances cover, several on one with no map; each the step law's usual goal over the cells at t − k..t − 1 and the
+  step law itself over the cells at t − k and t (`then`'s primed names at t), carried by the step's facts, reusing the
+  laws' nodes. A proof made again (the same machine, laws and instances) is the one made and checked before.
+- `GDP_CYCLIC_ROUTE` picks the cross-check's route: `translate` (the default; the search where there is no usual proof
+  or the translation isn't proven), `search` (0.18.0's), `both` (each timed apart in the same process, both verdicts
+  against the usual one). `GDP_CERT=cyclic`: every proof the instances cover gets the cyclic certificate (translated,
+  searched where that fails) and the verdict is its kernel check's; the usual trees are its input, not checked again.
+  The default stays the usual certificate. `research/cyclic/jobs.ts` makes the suite's job list under such settings;
+  `research/cyclic/ratios.ts` prints the routes, the leaves grown again and the proofs no instance covers, by why.
+- In the same run (`runs/modal/cyctrans/both7`, the suite with `--cyclic`, `GDP_CYCLIC_ROUTE=both`, `GDP_CYCLIC_LAX=1`,
+  none differing either way), the usual route against the translation against the search, over the proofs the usual
+  route proved: machines 3,780 proofs, 15,165 ms, 30,487 ms (2.01x), 48,921 ms (3.23x); the normalized scope 4 proofs,
+  2,941 ms, 1,488 ms (0.51x), 31,425 ms (10.69x); recurrences 364, 1,945 ms, 3,422 ms (1.76x), 6,170 ms (3.17x); laws
+  between 190, 523 ms, 1,768 ms (3.38x), 3,899 ms (7.46x); folds 7, 123 ms, 912 ms (7.41x), 1,420 ms (11.54x); step
+  laws (no search to compare) 516, 12,747 ms, 33,532 ms (2.63x). Fell back to the search: none (machines, recurrences,
+  folds and step laws all translated where the usual route proved them; 102 machine, 3 recurrence, 2 between and 9
+  fold comparisons the usual route didn't prove are searched, and none proven). Of 20,360 machine leaves translated, 49
+  were grown again by the prover; of 1,526 recurrence leaves 19; one machine's node at t was grown, not made. 2,644 of
+  the 3,780 machine proofs were ones made before.
+- `GDP_CERT=cyclic` on the whole suite (`runs/modal/cyctrans/cert3`, 189 jobs, none failed): 3,671.2 s of job time
+  against 3,520.4 s plain in the same wave (`plain3`); its certificates: machines 4,000 at 32,172 ms against 15,646 ms
+  for their usual proofs, step laws 516 at 33,111 ms against 12,686 ms, recurrences 364 at 3,334 ms against 1,952 ms,
+  laws between 190 at 1,606 ms against 557 ms, folds 7 at 1,060 ms against 135 ms.
+- Not covered (`both7`, comparisons printed by the cross-check, a rule proven several times counted each time):
+  machines with a history (26,551), with a flag that holds at every key (419), with a law reading a map at a key read
+  from a map (10); step laws on those machines (88 at every key, 13 with a history); k-step laws over a map (357 of 2
+  steps, 263 of 3) or a flag at every key (14); liveness (27) and loops (67), claims about runs that never end; progress
+  (8, a request allowed). A k-step law over a map would need the map's cells at each step's time, which the usual
+  frames don't name.
+- CHC-COMP's LIA-Lin track (the prover is unchanged): 369 solved (225 sat, 144 unsat), none wrongly, 7 out of time
+  (`runs/modal/cyctrans/chc`), against 0.18.0's 367 (`runs/modal/cycspeed/chc-mine`).
+- The suite (`modal/suite.json`, 189 jobs): plain 452.5 s wall, 3,520.4 s of job time, none failed (`plain3`); with
+  `--cyclic` (the translation the default route, every differing verdict failing its job) 465.9 s wall, 3,650.0 s, none
+  failed, none differing (`cyc3`); with `GDP_CERT=cyclic` 457.0 s, 3,671.2 s, none failed (`cert3`).
+
 ## 0.18.0
 
 Cycles found, not shaped: ranks, generalized lemmas and recursive datatypes found as cyclic proofs, which Lean now
