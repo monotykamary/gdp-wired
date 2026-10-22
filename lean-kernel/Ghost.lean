@@ -298,8 +298,74 @@ theorem sever_meaning (g : SGhosted) (hg : sghostOk g = true) {x : Nat} {s0 : E}
         · exact ih.mpr ⟨i, hi, hci⟩
         · exact absurd hci hc
 
+/-! There exists: a law ∃ x. P x (core/exists.ts), proven through its witness. The kernel proves a plain law: P with a
+term of the state for each bound value (`substC σ P`, a witness term), or P over ghosts the machine gains (a ghost
+witness, carried along the run); either way the values the law binds are some assignment of its variables, and
+`updAll` writes that assignment over the state. `some_updAll` is the step from what the kernel proved to ∃: the
+witness's values, written over the state, satisfy P (the state elsewhere as it was). -/
+
+-- The state with each pair's variable set to its value, in order.
+def updAll (ρ : Nat → Nat) : List (Nat × Nat) → Nat → Nat
+  | [] => ρ
+  | p :: ps => updAll (upd ρ p.1 p.2) ps
+
+theorem updAll_val (vs : List Nat) (ρ ρ' : Nat → Nat) (i : Nat) :
+    updAll ρ (vs.map fun j => (j, ρ' j)) i = if i ∈ vs then ρ' i else ρ i := by
+  induction vs generalizing ρ with
+  | nil => simp [updAll]
+  | cons v vs ih =>
+    simp only [List.map_cons, updAll]
+    rw [ih]
+    by_cases hi : i ∈ vs
+    · simp [hi]
+    · by_cases hv : i = v
+      · subst hv; simp [hi, upd]
+      · simp [hi, hv, upd]
+
+-- A state that agrees with ρ outside V, read where c reads of V only variables in vs: ρ with vs set to its values
+-- reads alike.
+theorem evalC_updAll (vs V : List Nat) {ρ ρ' : Nat → Nat} (hag : ∀ i, i ∉ V → ρ' i = ρ i) (c : C)
+    (hc : ∀ i, occC i c = true → i ∈ V → i ∈ vs) (M : Nat → Nat → Nat) :
+    evalC (updAll ρ (vs.map fun i => (i, ρ' i))) M c = evalC ρ' M c := by
+  apply congrC
+  intro i hi
+  rw [updAll_val]
+  by_cases hv : i ∈ vs
+  · simp [hv]
+  · simp only [hv, if_false]
+    exact (hag i (fun hV => hv (hc i hi hV))).symm
+
+/-- A law the kernel proved with witness terms σ in place (`substC σ c`) gives the existential: the terms' values,
+written over the state, satisfy c. -/
+theorem some_of_subst (σ : List (Nat × E)) (c : C) (ρ : Nat → Nat) (M : Nat → Nat → Nat)
+    (h : evalC ρ M (substC σ c) = true) :
+    evalC (updAll ρ ((σ.map (·.1)).map fun i => (i, applyS σ ρ M i))) M c = true := by
+  rw [evalC_updAll (σ.map (·.1)) (σ.map (·.1)) (fun i hi => applyS_other hi ρ M) c (fun _ _ h => h) M, ← subst_evalC]
+  exact h
+
+/-- A law of the ghosted machine over its ghosts vs gives, at every reachable state of the original, the existential:
+the ghosts' values there, written over the state, satisfy it. -/
+theorem some_of_ghost (g : SGhosted) (hg : sghostOk g = true) (vs : List Nat) (c : C)
+    (hc : avoids (g.vars.filter fun i => !vs.contains i) c = true)
+    (hl : ∀ ρ M, SReach g.full ρ M → evalC ρ M c = true) :
+    ∀ ρ M, SReach g.orig ρ M → ∃ ρg : Nat → Nat, evalC (updAll ρ (vs.map fun i => (i, ρg i))) M c = true := by
+  intro ρ M hr
+  obtain ⟨ρg, hrg, hag⟩ := sghost_reach g hg hr
+  have hc' : ∀ i, occC i c = true → i ∈ g.vars → i ∈ vs := by
+    intro i hi hV
+    by_cases hv : i ∈ vs
+    · exact hv
+    · have hp : (!vs.contains i) = true := by
+        cases h : vs.contains i with
+        | false => rfl
+        | true => exact absurd (List.contains_iff_mem.mp h) hv
+      exact absurd (List.mem_filter.mpr ⟨hV, hp⟩) (avoids_occ hc hi)
+  exact ⟨ρg, by rw [evalC_updAll vs g.vars hag c hc' M]; exact hl ρg M hrg⟩
+
 end Kern
 
+#print axioms Kern.some_of_subst
+#print axioms Kern.some_of_ghost
 #print axioms Kern.sghost_reach
 #print axioms Kern.sghost_laws
 #print axioms Kern.sghost_run

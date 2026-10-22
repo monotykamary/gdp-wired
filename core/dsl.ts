@@ -17,6 +17,7 @@
 // both runtimes do.
 import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type MapUpdate, type Request, type State, carriedView, compileFunction, evalC, evalE, interpret, loadJs, numbersOf, pairedArgs} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
+import {someHolds, substVars} from './exists.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type StepLaw, type Tree, check, foldObligations, loopObligations} from '../kernel/kernel.ts'
 import {factsFor, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
@@ -62,10 +63,12 @@ const both = <T>(a: number | undefined, b: number | undefined, f: (a: number, b:
 const known = <T>(xs: (T | undefined)[]): T[] | undefined => (xs.every(x => x !== undefined) ? xs as T[] : undefined)
 
 export class Cond {
-  constructor(readonly c: C, readonly ok?: boolean) {}
+  // `ex`: the existentials (exists) inside, each with whether it reads as "there exists" where it sits (under no not, or
+  // an even number of them): a law, the assumption or a precondition pulls each such one out as ∃ before the whole.
+  constructor(readonly c: C, readonly ok?: boolean, readonly ex?: readonly Bound[]) {}
   and(...xs: Cond[]): Cond { return all(this, ...xs) }
   or(...xs: Cond[]): Cond { return any(this, ...xs) }
-  not(): Cond { return new Cond({op: 'not', x: this.c}, this.ok === undefined ? undefined : !this.ok) }
+  not(): Cond { return new Cond({op: 'not', x: this.c}, this.ok === undefined ? undefined : !this.ok, this.ex?.map(b => ({...b, pos: !b.pos}))) }
   implies(b: Cond): Cond { return any(this.not(), b) }
   iff(b: Cond): Cond { return all(this.implies(b), b.implies(this)) }
 }
@@ -73,8 +76,9 @@ export class Cond {
 export const lit = (v: number): Term => new Term(termOf(v), v)
 export const yes = new Cond({op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}, true)
 export const no = new Cond({op: '<', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}, false)
-export const all = (...cs: Cond[]): Cond => (cs.length === 0 ? yes : cs.length === 1 ? cs[0]! : new Cond({op: 'and', xs: cs.map(c => c.c)}, known(cs.map(c => c.ok))?.every(x => x)))
-export const any = (...cs: Cond[]): Cond => (cs.length === 0 ? no : cs.length === 1 ? cs[0]! : new Cond({op: 'or', xs: cs.map(c => c.c)}, known(cs.map(c => c.ok))?.some(x => x)))
+const exOf = (cs: Cond[]): readonly Bound[] | undefined => (cs.some(c => c.ex?.length) ? cs.flatMap(c => c.ex ?? []) : undefined)
+export const all = (...cs: Cond[]): Cond => (cs.length === 0 ? yes : cs.length === 1 ? cs[0]! : new Cond({op: 'and', xs: cs.map(c => c.c)}, known(cs.map(c => c.ok))?.every(x => x), exOf(cs)))
+export const any = (...cs: Cond[]): Cond => (cs.length === 0 ? no : cs.length === 1 ? cs[0]! : new Cond({op: 'or', xs: cs.map(c => c.c)}, known(cs.map(c => c.ok))?.some(x => x), exOf(cs)))
 export const not = (c: Cond): Cond => c.not()
 export const min = (a: TermLike, b: TermLike): Term => new Term({op: 'min', a: termOf(a), b: termOf(b)}, both(valOf(a), valOf(b), Math.min))
 export const max = (a: TermLike, b: TermLike): Term => new Term({op: 'max', a: termOf(a), b: termOf(b)}, both(valOf(a), valOf(b), Math.max))
@@ -717,6 +721,42 @@ export const someKey = (f: (key: Term) => Cond, witness?: TermLike): Cond => {
   const key = `s$${++boundCounter}`
   const none = everyOk(scope?.keys, k => f(keyTerm(k)).not().ok)
   return new Cond({op: 'not', x: {op: 'all', key, c: f(v(key)).not().c, ...(witness === undefined ? {} : {witness: termOf(witness)})}}, none === undefined ? undefined : !none)
+}
+// There exists a value of `kind` (nat by default; int, bool, upTo(k)...) where f holds (core/exists.ts): in a law,
+// "∃ x. f(x)" wherever it reads so (under no not), proven through a witness the prover finds (a term of the state, or
+// a ghost: a value carried along the run, from the start and through each step) or the one given: a value of the kind
+// over the state (a term witness), or {start, step}, a ghost (start over the params, step over the witness before and
+// the step's own values: the request, the state before, the flags). In the assumption (over the request and the
+// params) or a precondition (over the params), a value the request or the params bring along: the runtimes find it
+// (encodeInput, encodeParams) where it is one natural or integer f reads linearly.
+export type ExistsWitness<V> = V | number | {start: V | number, step: (before: V, env: never) => V | number}
+// An existential a condition carries: its naturals, its body over them, whether it reads as "there exists", the
+// witness given.
+type Bound = {vars: string[], body: C, pos: boolean, terms?: Record<string, E>, start?: Record<string, E>, step?: (env: Record<string, unknown>) => Record<string, E>}
+export function exists(f: (x: Term) => Cond, witness?: ExistsWitness<Term>): Cond
+export function exists<V>(kind: Kind<V>, f: (x: V) => Cond, witness?: ExistsWitness<V>): Cond
+export function exists(a: unknown, b?: unknown, c?: unknown): Cond {
+  const [kind, f, w] = (a instanceof Kind ? [a, b, c] : [nat, a, b]) as [Kind<unknown>, (x: unknown) => Cond, unknown]
+  const name = `some$${++boundCounter}`, value = kind.value(name), body = all(...kind.assume(name), f(value))
+  const store = (x: unknown): Record<string, E> => Object.fromEntries(Object.entries(kind.store(name, x)).map(([n, t]) => [n, termOf(t)]))
+  const ghost = typeof w === 'object' && w !== null && 'step' in w && 'start' in w && typeof (w as {step: unknown}).step === 'function'
+  const given = w === undefined ? {} : ghost
+    ? {start: store((w as {start: unknown}).start), step: (env: Record<string, unknown>) => store((w as {step: (b: unknown, e: never) => unknown}).step(value, env as never))}
+    : {terms: store(w)}
+  return new Cond(body.c, undefined, [...(body.ex ?? []), {vars: kind.vars(name), body: body.c, pos: true, ...given}])
+}
+// A condition's existentials pulled out before it (each reading as "there exists"), their naturals renamed `${prefix}0`,
+// `${prefix}1`, ... (an integer's second part keeping $neg), so a machine built again names them alike.
+function pulledOut(cs: Cond[], what: string, prefix?: string): {cs: C[], vars: string[], bodies: {vars: string[], body: C}[]} {
+  const bs = cs.flatMap(c => c.ex ?? [])
+  if (bs.some(b => !b.pos)) throw new Error(`${what}: exists(...) under a not (or on the left of implies) says "for every value"; state it as a law about every value of a param instead`)
+  const ren: Record<string, E> = {}
+  if (prefix !== undefined) bs.forEach((b, i) => b.vars.forEach(n => { ren[n] = {op: 'var', name: n.endsWith('$neg') ? `${prefix}${i}$neg` : `${prefix}${i}`} }))
+  const r = (c: C) => (prefix === undefined ? c : substVars(c, ren))
+  const vars = bs.flatMap(b => b.vars.map(n => (prefix === undefined ? n : (ren[n] as {name: string}).name)))
+  const out = cs.map(c => r(c.c)), stray = out.flatMap(c => namesIn(c)).filter(n => n.startsWith('some$') && !vars.includes(n) && !/^some\$[ap]\d/.test(n))
+  if (stray.length) throw new Error(`${what}: ${stray[0]} is bound by an exists(...) whose condition was taken apart; keep it whole (and, or, not, implies)`)
+  return {cs: out, vars, bodies: bs.map(b => ({vars: b.vars.map(n => (prefix === undefined ? n : (ren[n] as {name: string}).name)), body: r(b.body)}))}
 }
 // A map from naturals to naturals, every cell starting at `init`. One write per map per step.
 export class MapRef {
@@ -1404,6 +1444,8 @@ let keyCounter = 0
 // The callbacks each law, step law and decision was built from, for crossCheck to run again on concrete values.
 type Sources = {law?: (env: never) => Cond | Forall, step?: {then: (before: never, after: never) => Cond | Forall, when?: (before: never) => Cond}, decision?: {given: (env: never) => Cond | Cond[], then: (env: never) => Cond, own: number}}
 const sources = new WeakMap<object, Sources>()
+// A rule's existentials in its precondition and assumption (core/exists.ts): what encodeParams and encodeInput find.
+const skolemsOf = new WeakMap<object, {params: {vars: string[], body: C}[], inputs: {vars: string[], body: C}[]}>()
 const withSource = <T extends object>(x: T, src: Sources): T => (sources.set(x, src), x)
 // A k-step law's later requests are built over marked names (j:name, which no rule can declare: ':' is reserved); the
 // kernel reads them as name@j.
@@ -1602,9 +1644,21 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   law(name: string, f: (env: P & S & M & Su) => Cond | Forall): Law { return withSource(this.lawOf(name, f(this.env({flags: false, inputs: false, queries: false}) as never)), {law: f as never}) }
   private lawOf(name: string, out: Cond | Forall): Law {
     const key = `key$${++keyCounter}`
-    if (out instanceof Cond) { const p = prenex(out.c, `law ${name}`, key); return p ? {name, forall: key, holds: p} : {name, holds: out.c} }
-    const [k1, more] = keysFor(out), holds = out.forall(v(k1), ...more.map(v)).c
-    return more.length ? {name, forall: k1, keys: more, holds} : {name, forall: k1, holds: prenex(holds, `law ${name}`, k1) ?? holds}
+    if (out instanceof Cond) { const p = prenex(out.c, `law ${name}`, key); return this.someOf(name, out, p ? {name, forall: key, holds: p} : {name, holds: out.c}) }
+    const [k1, more] = keysFor(out), inner = out.forall(v(k1), ...more.map(v)), holds = inner.c
+    return this.someOf(name, inner, more.length ? {name, forall: k1, keys: more, holds} : {name, forall: k1, holds: prenex(holds, `law ${name}`, k1) ?? holds})
+  }
+  // A law's existentials (exists), pulled out before it: `some` its naturals, `witness` the ones given (a ghost's step
+  // read with the step's own values).
+  private someOf(name: string, out: Cond, law: Law): Law {
+    if (!out.ex?.length) return law
+    const {vars} = pulledOut([out], `law ${name}`), bs = out.ex
+    const terms = Object.assign({}, ...bs.map(b => b.terms ?? {})) as Record<string, E>
+    const ghost: Record<string, {start: E, step: E}> = {}
+    const env = bs.some(b => b.step) ? this.env({}) : {}
+    for (const b of bs) if (b.start && b.step) { const st = b.step(env); for (const n of b.vars) ghost[n] = {start: b.start[n] ?? {op: 'const', value: 0}, step: st[n] ?? {op: 'var', name: n}} }
+    const witness = {...(Object.keys(terms).length ? {terms} : {}), ...(Object.keys(ghost).length ? {ghost} : {})}
+    return {...law, some: vars, ...(Object.keys(witness).length ? {witness} : {})}
   }
 
   // What the kinds keep true of the state and of the maps and lists of a kind (Kind.invariant: a flag 0 or 1, a choice or
@@ -1829,8 +1883,15 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
         maps[n] = 'each' in u ? {each: u.each, value: hoist.term(u.value, [u.each])} : {key: hoist.term(u.key), value: hoist.term(u.value)}
       } else state[n] = hoist.term(termOf(u))
     }
-    const pre = [...this.kindAssumptions('params'), ...s.pre.map(f => f(pEnv as never).c)]
-    const assume = [...this.kindAssumptions('inputs'), ...(s.lists2 ?? []).flatMap(([n]) => (env[n] as CarriedList<unknown>).equations().map(c => hoist.cond(c.c))), ...s.assume.map(f => hoist.cond(f(env as never).c))]
+    // An existential in a precondition or the assumption: a value the params or the request bring (a param or an input
+    // the runtimes find, encodeParams and encodeInput), fresh for each existential and, for a request, each step.
+    const pre0 = pulledOut(s.pre.map(f => f(pEnv as never)), `${s.name}: a precondition`, 'some$p'), as0 = pulledOut(s.assume.map(f => f(env as never)), `${s.name}: the assumption`, 'some$a')
+    const known = new Set([...params, ...inputs])
+    for (const b of as0.bodies) { const out = namesIn(b.body).filter(n => !known.has(n) && !as0.vars.includes(n)); if (out.length) throw new Error(`${s.name}: an exists(...) in the assumption reads ${out[0]}: it reads only the params and the request (its value comes with the request)`) }
+    skolemsOf.set(this, {params: pre0.bodies, inputs: as0.bodies})
+    params.push(...pre0.vars); inputs.push(...as0.vars)
+    const pre = [...this.kindAssumptions('params'), ...pre0.cs]
+    const assume = [...this.kindAssumptions('inputs'), ...(s.lists2 ?? []).flatMap(([n]) => (env[n] as CarriedList<unknown>).equations().map(c => hoist.cond(c.c))), ...as0.cs.map(c => hoist.cond(c))]
     placed()
     // Functions, and their facts: each function's own (named after it), then the rule's.
     // The functions a function reads come first, each named <function>.<use>.
@@ -2008,7 +2069,21 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
 
   // --- running it -----------------------------------------------------------------------------------------------------
   // Runtime values (numbers, booleans, choice names, null for a missing value) to the variables the machine reads.
-  encodeParams(values: {[k in keyof P]: Raw}): Record<string, number> { return encode(this.spec.params, values as Record<string, Raw>) }
+  encodeParams(values: {[k in keyof P]: Raw}): Record<string, number> { return this.withSkolems('params', encode(this.spec.params, values as Record<string, Raw>)) }
+  // The values the params or a request bring for the existentials of a precondition or the assumption: each a witness
+  // found (exact for one natural or integer read linearly), or 0 where none is (the precondition or the assumption then
+  // fails, so the params or the request are refused).
+  private withSkolems<T extends Record<string, number | ReadonlyMap<number, number>>>(which: 'params' | 'inputs', out: T, params?: Record<string, number>): T {
+    if (!skolemsOf.has(this)) void this.machine
+    const sk = skolemsOf.get(this)?.[which] ?? []
+    if (!sk.length) return out
+    const m = this.machine, env: Record<string, number> = {...params, ...numbersOf(out as Request)}
+    for (const b of sk) {
+      const w = someHolds(b.body, b.vars, env, {scalars: {}, maps: {}}, m)?.witness ?? {}
+      for (const n of b.vars) { (out as Record<string, number>)[n] = w[n] ?? 0; env[n] = w[n] ?? 0 }
+    }
+    return out
+  }
   // A carried map is a Set of keys (each cell 1), an array of them, or a Map of key to natural; a sequence an array of
   // naturals, a table of them an array of such arrays.
   // A carried list is an array of its items' runtime values (its length and folds computed from them); `params`, what
@@ -2038,7 +2113,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       const given = (values as Record<string, unknown>)[n]
       out[n] = given instanceof Map ? new Map(given as Map<number, number>) : new Map([...(given as Iterable<number>)].map(key => [key, 1] as const))
     }
-    return out
+    return this.withSkolems('inputs', out, params && this.encodeParams(params))
   }
   // Each carried list's folds at its end (what `L.fold.<f>` reads), computed from its items as encodeInput computes
   // them, without running the rule: `foldsOf({Lines: [...]})` → {Lines: {total: 30}}. Only the lists given.
@@ -2053,7 +2128,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // The state's variables declared with a kind (a yes/no, a choice, an integer...), with their kinds.
   kindsOfState(): [string, Kind<unknown>][] { return this.spec.kinded ?? [] }
   // Random params and inputs that meet their kinds (not the user's `pre` or `assume`, which a caller checks).
-  randomParams(rand: Rand, bound: number): Record<string, number> { return Object.assign({}, ...this.spec.params.map(([n, k]) => k.random(n, rand, bound))) }
+  randomParams(rand: Rand, bound: number): Record<string, number> { return this.withSkolems('params', Object.assign({}, ...this.spec.params.map(([n, k]) => k.random(n, rand, bound)))) }
   // The params' values by their kinds, as constants (what a fold that reads them is computed with).
   private paramValues(ps: Record<string, number>): Record<string, unknown> {
     return Object.fromEntries(this.spec.params.map(([n, k]) => [n, k.build(n, part => new Term({op: 'const', value: ps[part]!}, ps[part]!))]))
@@ -2067,7 +2142,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       const l = new CarriedList(n, k, v(`${n}_len`), fs, part => new MapRef(part, 0), {}, ps && this.paramValues(ps)).encode(Array.from({length: rand(bound + 1)}, () => k.sample(rand, bound)))
       Object.assign(out, l.maps, {[`${n}_len`]: l.len})
     }
-    return out
+    return this.withSkolems('inputs', out, ps)
   }
   // The state's scalars as runtime values: each kinded variable as its kind decodes it (an integer as one signed
   // number, a decimal as its number, a choice by name, a string as itself, none as null).
@@ -2260,7 +2335,8 @@ export const loop = (name: string): LoopRule => new LoopRule({name, params: [], 
 // back with its `witness` alone).
 // `found`: what the search found and proved beside the laws (`proveRule`'s, `proveSteps`'s), as laws to pass with them and
 // as lemmas to state in `recur` or `carriesList` (source to paste).
-export type Verdict = {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found}
+// `witnesses`: for each law with "there exists", the witness it was proven through, as it reads.
+export type Verdict = {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found, witnesses?: Record<string, string>}
 // `facts`: lemmas about the rule's functions (those known by their facts) proven from those facts by a cyclic proof
 // (core/cycles.ts), the laws proven with them; `rank`: a loop's rank, found from its runs (`proveLoop` with none).
 export type Found = {laws?: {law: Law, text: string, source?: string}[], lemmas?: Record<string, {lemmas?: string[], between?: string[]}>, facts?: string[], rank?: string}
@@ -2350,7 +2426,7 @@ export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws:
   const refuted = refuteByRuns(r, laws)
   if (refuted) return refutedVerdict(refuted)
   const out = proveLaws(r.machine, withKinds(r, laws))
-  const v: Verdict = {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
+  const v: Verdict = {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {}), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
   return searched(r, laws, [], v, opts)
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {

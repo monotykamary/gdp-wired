@@ -9,6 +9,7 @@
 // request as input@j, and the state and maps after the last step (primed names).
 import {type Law, type Machine, type Request, type State, carriedView, evalC, type interpret, numbersOf} from './machine.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
+import {someHolds} from './exists.ts'
 
 export type Watched = Law | StepLaw
 export const isStepLaw = (w: Watched): w is StepLaw => 'then' in w
@@ -47,7 +48,10 @@ export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound: 
     return go(0, {})
   }
   if (!isStepLaw(w)) {
-    const holds = (st: State) => atKeys(w.forall, keysOf(bound, st), extra => evalC(w.holds, {...params, ...extra}, st, m), w.keys)
+    // A law with "there exists" (core/exists.ts): broken only where no value can be a witness, as far as that is decided
+    // (one natural or integer read linearly); undecided, it is kept.
+    const at = (env: Env, st: State) => (w.some?.length ? someHolds(w.holds, w.some, env, st, m)?.holds ?? true : evalC(w.holds, env, st, m))
+    const holds = (st: State) => atKeys(w.forall, keysOf(bound, st), extra => at({...params, ...extra}, st), w.keys)
     return {start: holds, step: (_before: State, _input: Request, after: State) => holds(after)}
   }
   const k = w.steps ?? 1, whens = w.when === undefined ? [] : Array.isArray(w.when) ? w.when : [w.when]

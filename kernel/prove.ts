@@ -13,6 +13,7 @@ import {type Lin, type Step, add, k, refuteFast, scale, solve, sub, v, work} fro
 import {checkRefutation} from '../core/check.ts'
 import {allowNode, allowTranslated, certCyclic, certOn, certSearch, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
 import type {TStats} from '../core/translate.ts'
+import {proveSome, someLaws} from '../core/exists.ts'
 import {type Goal, type Instances, type Liveness, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
@@ -1018,7 +1019,9 @@ function chooseWitnesses<T extends {name: string}>(items: T[], body: (t: T) => C
   return {items: resolved(true)}
 }
 
-export function proveLaws(m: Machine, laws: Law[]): Report & {laws?: Law[], proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
+export function proveLaws(m: Machine, laws: Law[]): Report & {laws?: Law[], machine?: Machine, ghosts?: string[], witnesses?: Record<string, string>, proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
+  // Laws with "there exists" (core/exists.ts): proven through witnesses, as plain laws of the machine with its ghosts.
+  if (someLaws(laws)) return proveSome(m, laws) as ReturnType<typeof proveLaws>
   if (!laws.some(l => someKeys(l.holds).length)) return proveLawsAsGiven(m, laws)
   const out = chooseWitnesses(laws, l => l.holds, l => (l.forall ? [l.forall] : []), m, ls => { const r = proveLawsAsGiven(m, ls); return r.proven && r.checked }, (l, holds) => ({...l, holds, stated: l.stated ?? l.holds}))
   if ('stuck' in out) return {proven: false, nodes: 0, leaves: 0, failed: {goal: 'witnesses', stuck: out.stuck}, checked: false}
@@ -1028,7 +1031,7 @@ export function proveLaws(m: Machine, laws: Law[]): Report & {laws?: Law[], proo
 // yet); not a proof of the set, which proveLaws gives. Laws with some key go through proveLaws.
 export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>} {
   const law = laws[i]!
-  if (laws.some(l => someKeys(l.holds).length)) {
+  if (laws.some(l => someKeys(l.holds).length) || someLaws(laws)) {
     const r = proveLaws(m, laws)
     return r.proven ? {proven: true} : {proven: false, goal: r.failed!.goal, stuck: r.failed!.stuck, ...(r.failed!.witness ? {witness: r.failed!.witness} : {})}
   }
@@ -1142,19 +1145,21 @@ function proveWith(m: Machine, laws: Law[], instances: Record<string, Instances>
 // Step laws (kernel.ts's stepLawObligations): the laws proven first (they are assumed), then one goal per step law, the
 // every-key laws assumed at every key the step, the laws and the step laws read.
 type StepProof = {laws: {instances: Record<string, Instances>, trees: Record<string, Tree>}, instances: Instances, perStep?: Record<string, Instances>, trees: Record<string, Tree>}
-export function proveStepLaws(m: Machine, given: Law[], stepLaws: StepLaw[]): Report & {laws?: Law[], stepLaws?: StepLaw[], proof?: StepProof} {
-  const base = proveLaws(m, given)
+export function proveStepLaws(given0: Machine, given: Law[], stepLaws: StepLaw[]): Report & {laws?: Law[], machine?: Machine, stepLaws?: StepLaw[], proof?: StepProof} {
+  const base = proveLaws(given0, given)
   if (!base.proven || !base.proof) return {proven: false, nodes: base.nodes, leaves: base.leaves, ...(base.failed ? {failed: base.failed} : {}), checked: false}
   const laws = base.laws ?? given
+  // (laws with "there exists": the step laws over the machine with the ghosts their witnesses are)
+  const m = base.machine ?? given0, mx = base.machine ? {machine: base.machine} : {}
   if (stepLaws.some(sl => someKeys(sl.then).length)) {
     // Each step law's witnesses on its own (a step law assumes no other), the request and the state after among them.
     const plain = m.history ? historyMachine(m).machine : m, after = Object.keys(plain.state).map(n => `${n}'`)
     const out = chooseWitnesses(stepLaws, sl => sl.then, sl => [...(sl.forall ? [sl.forall] : []), ...plain.inputs, ...after], plain,
       sls => sls.every(sl => { const r = proveStepLawsAsGiven(m, laws, [sl], base); return r.proven && r.checked }), (sl, then) => ({...sl, then}))
     if ('stuck' in out) return {proven: false, nodes: base.nodes, leaves: base.leaves, failed: {goal: 'witnesses', stuck: out.stuck}, checked: false}
-    return {...proveStepLawsAsGiven(m, laws, out.items, base), ...(base.laws ? {laws} : {}), stepLaws: out.items}
+    return {...proveStepLawsAsGiven(m, laws, out.items, base), ...(base.laws ? {laws} : {}), ...mx, stepLaws: out.items}
   }
-  return {...proveStepLawsAsGiven(m, laws, stepLaws, base), ...(base.laws ? {laws} : {})}
+  return {...proveStepLawsAsGiven(m, laws, stepLaws, base), ...(base.laws ? {laws} : {}), ...mx}
 }
 function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base: Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}}): Report & {proof?: StepProof} {
   if (!base.proof) return {proven: false, nodes: base.nodes, leaves: base.leaves, checked: false}
