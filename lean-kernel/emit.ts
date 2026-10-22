@@ -60,17 +60,20 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
   // atoms, the leaf's rows, its squares and products). A leaf with a row of no hint (Lean then reads every
   // hypothesis's rows) keeps the whole table. A premise or descent of a cyclic node reads one or two of its
   // hypotheses, so its table is a few columns, not every choice of the node's facts.
+  // Each leaf with its path and rows, found once (the passes below and the tree's text read them in the same order).
+  const leafList: {leaf: Tree & {leaf: Step[], products?: [number, number][], squares?: Lin[]}, path: Path, base: ReturnType<typeof leafConstraints>}[] = []
+  leaves(tree, new Map(), (leaf, path) => { leafList.push({leaf, path, base: leafConstraints(goal, path)}) })
   const reads = new Set<number>(), hintTerms = new Set<string>()
   let whole = !slim
-  if (slim) leaves(tree, new Map(), (leaf, path) => {
-    const base = leafConstraints(goal, path), n0 = base.length
+  if (slim) for (const {leaf, base} of leafList) {
+    const n0 = base.length
     for (const i of [...leaf.leaf.flatMap(st => (st.kind === 'input' && st.index < n0 ? [st.index] : [])), ...(leaf.products ?? []).flat().filter(i => i < n0)]) {
       const src = base[i]!.src
       if (!src) whole = true
       else if ('fact' in src) reads.add(src.fact)
       else if ('term' in src) hintTerms.add(src.term)
     }
-  })
+  }
   const readHyps = whole ? goal.hyps : goal.hyps.filter((_, i) => reads.has(i))
   const readTerms = whole ? [] : [...hintTerms].map(name => columnTerm(name)!)
   // Columns: every variable of the hypotheses, then every cell any leaf uses (and the cells inside their keys),
@@ -100,8 +103,9 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
   }
   readHyps.forEach(choices)
   readTerms.forEach(choices)
-  leaves(tree, new Map(), (leaf, path) => {
-    const base = leafConstraints(goal, path), n0 = base.length
+  const readSubterms = [...readHyps, ...readTerms.map((t): C => ({op: '<=', a: t, b: t}))].flatMap(subterms).filter(e => e.op === 'prod' || e.op === 'get')
+  for (const {leaf, path, base} of leafList) {
+    const n0 = base.length
     const used = whole ? undefined : new Set([...leaf.leaf.flatMap(st => (st.kind === 'input' && st.index < n0 ? [st.index] : [])), ...(leaf.products ?? []).flat().filter(i => i < n0)])
     const rowsHere = whole ? withProducts(base, leaf.products ?? [], leaf.squares)
       : [...base.filter((_, i) => used!.has(i)), ...withProducts(base, leaf.products ?? [], leaf.squares).slice(n0), ...[...path.values()].map(a => ({lin: a.lin}))]
@@ -112,11 +116,11 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
     }
     // Each cell a hypothesis reads under the path, kept or not: two reads of one cell cancel in a row (T − T), yet
     // Lean's linear form of each still needs the cell's column to see the comparison decided.
-    for (const h of [...readHyps, ...readTerms.map((t): C => ({op: '<=', a: t, b: t}))]) for (const e of subterms(h)) {
+    for (const e of readSubterms) {
       if (e.op === 'prod') for (const key of Object.keys(linear(e, path) ?? {})) if (isMonomial(key)) addMono(key)
       if (e.op === 'get') for (const key of Object.keys(linear(e, path) ?? {})) if (isCell(key)) addCell(key)
     }
-  })
+  }
   const depth = (name: string) => name.split('[').length
   // Term columns (open choices, each standing for its term's value) before the cells, whose keys may read them; a
   // monomial with a cell among its factors after the cells.
@@ -151,13 +155,10 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
     : name.startsWith('⟦') ? `.term (${e(columnTerm(name)!)})`
     : `.var ${vars.indexOf(name)}`))
 
-  let leafNo = 0
-  const lean = (t: Tree, path: Path): string => {
-    if (!('leaf' in t)) {
-      const id = canon(t.split)
-      return `.split ${row(t.split)}\n  (${lean(t.yes, new Map(path).set(id, {lin: t.split, holds: true}))})\n  (${lean(t.no, new Map(path).set(id, {lin: t.split, holds: false}))})`
-    }
-    const base = leafConstraints(goal, path), prods = t.products ?? [], squares = t.squares ?? []
+  let leafNo = 0, leafAt = 0
+  const lean = (t: Tree): string => {
+    if (!('leaf' in t)) return `.split ${row(t.split)}\n  (${lean(t.yes)})\n  (${lean(t.no)})`
+    const {path, base} = leafList[leafAt++]!, prods = t.products ?? [], squares = t.squares ?? []
     const rows = withProducts(base, prods, squares).map(r => r.lin), n0 = base.length
     // Only the rows the derivation and the products read, renumbered (the squares follow them, then the products, in
     // order); cuts carry their quotient row (Cert's format).
@@ -197,7 +198,7 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
     const at2 = list(used.map(u => `(${row(rows[u]!)}, ${hint(base[u]!.src)})`)), rest = `${list(steps)} ${list(eqs)} ${list(prods.map(([i, j]) => `(${idx(i)}, ${idx(j)})`))}`
     return squares.length ? `.leafSq ${at2} ${list(squares.map(row))} ${rest}` : `.leafAt ${at2} ${rest}`
   }
-  return {tab: list(tab), tabCols: tab, hyps: list(goal.hyps.map(c)), tree: lean(tree, new Map()), cols, c, e}
+  return {tab: list(tab), tabCols: tab, hyps: list(goal.hyps.map(c)), tree: lean(tree), cols, c, e}
 }
 
 export function goalToLean(ex: Exported, i: number, tamper = false, dropStep = true): string {
@@ -816,6 +817,7 @@ function cycMachineProof(m: Machine, laws: Law[], allSteps: StepLaw[], allows: {
 }
 function cycMachineProofBy(m: Machine, laws: Law[], allSteps: StepLaw[], allows: {when: C, request: Record<string, E>}[][], r: ReturnType<typeof proveStepLaws>, until: number): {p: Cyclic, stepAt: number[], allowAt: AllowAt[]} | {why: string} {
   if (!r.proof) return {why: 'not proven the usual way'}
+  const tStart = performance.now()
   const lp = r.proof.laws, instOf = (sl: StepLaw) => r.proof!.perStep?.[sl.name] ?? r.proof!.instances
   // A machine with flags that hold at every key: its sk machine's nodes, the flags' closing facts read where each node
   // reads the run.
@@ -845,9 +847,12 @@ function cycMachineProofBy(m: Machine, laws: Law[], allSteps: StepLaw[], allows:
     tries.push({facts: base.facts, specs: [...base.specs, ...mine(base.facts, base.specs)], lawNodes: base.specs, stepAt: allSteps.map((_, j) => base.specs.length + j)})
   }
   let last = 'no nodes'
+  const t00 = tStart
   for (const {facts, specs: specs0, lawNodes, stepAt, translated} of tries) {
     if (performance.now() > until) return {why: `past the certificate's deadline (${certMs()} ms)`}
+    const tTry = performance.now()
     let specs = specs0, v = proveCyclic(facts, specs)
+    if (envOf()?.GDP_LEAN_TIMES === '1') console.error(`lean try ${m.name}: ${translated ? 'translated' : 'laws + searched steps'}, ${specs.length} nodes, ${v.proven && v.checked ? 'proven' : 'not'}, ${Math.round(performance.now() - tTry)} ms (${Math.round(tTry - t00)} ms building before)`)
     if (!(v.proven && v.checked)) { last = performance.now() > until ? `past the certificate's deadline (${certMs()} ms)` : v.proven ? `not checked (${v.why})` : `${v.node}: ${v.goal}: ${v.stuck}`; continue }
     const allowAt = allows.map((group): AllowAt => {
       if ((lawNodes[0]?.rank.length ?? 2) < 2) return undefined
