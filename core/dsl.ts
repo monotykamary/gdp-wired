@@ -19,7 +19,7 @@ import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type M
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type StepLaw, type Tree, check, foldObligations, loopObligations} from '../kernel/kernel.ts'
 import {factsFor, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline} from '../kernel/prove.ts'
-import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof} from './cyclic.ts'
+import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, cycLog, foldNodes, proveCyclic, quietly, recurNodes, translatedProof} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
 import {cycleLemmas, findRank} from './cycles.ts'
@@ -2422,7 +2422,7 @@ export function crossCheckDecision(d: Decision, opts: {trials?: number, bound?: 
 // With no rank stated, the rank is searched for from the loop's runs (core/cycles.ts's findRank), with the invariants it
 // needs (inferLaws), within `ms` (10 s); the verdict is the kernel's on the rank and the laws found, in `found`.
 export const proveLoop = (l: LoopRule<Obj, Obj, Obj>, laws: Law[], opts: {ms?: number} = {}): Verdict => {
-  if (cyclicOn() || certOn()) console.error(`cyclic: ${JSON.stringify({kind: 'loop', name: l.loop.name, uncovered: true, why: 'a claim about runs that never end'})}`)
+  if (cyclicOn() || certOn()) cycLog({kind: 'loop', name: l.loop.name, uncovered: true, why: 'a claim about runs that never end'})
   if (l.hasRank) return goalsVerdict(loopObligations(l.loop, laws, l.rankTerms))
   const out = findRank(l.loop, laws, opts)
   return {proven: out.proven, checked: out.checked, ...(out.trees ? {trees: out.trees} : {}), ...(out.goal ? {goal: out.goal, stuck: out.stuck} : {}), ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {}),

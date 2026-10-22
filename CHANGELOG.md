@@ -3,14 +3,23 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.19.0
 
-Cyclic proofs translated, not searched: what the usual route proves becomes a cyclic proof from its own trees, at about
-twice its cost where 0.18.0's search took three to seven times, and `GDP_CERT=cyclic` makes that proof the certificate
-of every law the instances cover; and Lean reads those certificates, each rule's theorem now also stated from the
+The cyclic proof is the certificate by default. What the usual route proves becomes a cyclic proof from its own trees,
+at about twice its cost where 0.18.0's search took three to seven times, and that proof is the certificate of every law
+the instances cover (`GDP_CERT=usual`, `modal/run.py --usual`: the usual trees, as before); and Lean reads those certificates, each rule's theorem now also stated from the
 cyclic proof through a bridge (BridgeRules.lean), so that the trusted base with them is the leaf check, the cyclic rule
 and the bridges. The translation is untrusted only: kernel/kernel.ts and kernel/cyclic.ts are unchanged, and every fact
 of a machine's is Bridge.lean's (`cycCanon`); the law at t is still the node `cycMOk` reads.
+
+The suite at this release (189 jobs, one after the other): by default 485.5 s wall and 4,066.0 s of job time, none
+failed (`runs/modal/flip/default`); with `--usual` 517.7 s and 3,653.4 s, one failed, `data`'s reverse of reverse not
+found within its budget (`runs/modal/flip/usual`), which proves it, and reads no certificate, in five runs of five
+(`runs/modal/flip/data5-usual`).
+
+A user's proofs print nothing: the `cyclic: {...}` lines research/cyclic/ratios.ts reads come only with GDP_CYCLIC=1 or
+GDP_CYCLIC_LOG=1 (modal/run.py sets it). scripts/smoke.sh checks the cyclic export of a machine with sets
+(`cyc_qmachine_sound`) and, with `toLean`'s `cyclic: false`, the usual one.
 
 - `core/translate.ts`: a usual goal's tree read over a cyclic node's goal. Each column of the usual goal is a linear
   form of the node's (`renamer`: a state variable s as s@[t − 1], a map's cell M[k] as M@[(t − 1) + k·Ω], a fresh key
