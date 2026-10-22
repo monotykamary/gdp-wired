@@ -548,6 +548,15 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (!stuckOn) break
     drop(stuckOn)
   }
+  // Unproven: each congruence the runs left alive, with the laws alone (the counterexamples' choice may have gone to the
+  // bounds instead), at most four.
+  if (!(last.proven && last.checked)) {
+    for (const f of alive.filter(g => g.cong).slice(0, 4)) {
+      if (performance.now() > until) break
+      const v = prove([...laws, lawFor(f)])
+      if (v.proven && v.checked) { chosen = [f]; last = v; break }
+    }
+  }
   if (!(last.proven && last.checked)) return {...last, found: [], stats: stats(samples.length, forms.length, alive.length)}
   // Take out what the proof doesn't need, the last added first.
   for (const f of [...chosen].reverse()) {
