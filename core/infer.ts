@@ -111,9 +111,17 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   let proofs = 0
   // The rule (or machine) the kernel proves the candidates with: once a remainder is among them, one that declares
   // div$k and mod$k for its divisors (rule.withDivisors leaves the caller's rule as it was until a found law needs them).
-  let searchRule = rule, mm = m
+  // Only the laws proven read: a search none of whose chosen candidates is a remainder proves with the rule as it is.
+  const byDivisors = new Map<string, {r?: AnyRule, m: Machine}>()
+  const forLaws = (ls: Law[]): {r?: AnyRule, m: Machine} => {
+    const ks = [...divisorsIn(ls.map(l => l.holds))].filter(k2 => !m.fns?.[modName(k2)]).sort((a, b) => a - b), key = ks.join(',')
+    let out = byDivisors.get(key)
+    if (!out) { const r2 = ks.length ? rule?.withDivisors(...ks) : rule; out = {r: r2, m: r2 ? r2.machine : withArithmetic(m, [], ks)}; byDivisors.set(key, out) }
+    return out
+  }
   const prove = (ls: Law[]): Verdict => {
     proofs++
+    const {r: searchRule, m: mm} = forLaws(ls)
     if (searchRule) return stepLaws.length ? proveSteps(searchRule, ls, stepLaws, {search: false}) : proveRule(searchRule, ls, {search: false})
     const out = stepLaws.length ? proveStepLaws(mm, ls, stepLaws) : proveLaws(mm, ls)
     return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
@@ -459,8 +467,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   }
 
   opts.progress?.('houdini', {alive: alive.length, ctis: ctis.length})
-  const used = [...new Set(alive.flatMap(f => (f.mod ? [f.mod.k] : [])))]
-  if (used.length) { searchRule = rule?.withDivisors(...used); mm = searchRule ? searchRule.machine : withArithmetic(m, [], used) }
 
   // --- the kernel ----------------------------------------------------------------------------------------------------
   const lawOf = new Map<Form, Law>()
@@ -556,12 +562,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     for (let i = 0; i < ls.length; i++) {
       if (done.has(ls[i]!.name)) continue
       proofs++
-      const r = proveLaw(mm, ls, i)
+      const r = proveLaw(forLaws(ls).m, ls, i)
       if (!r.proven) return {proven: false, checked: false, goal: r.goal, stuck: r.stuck, ...(r.witness ? {witness: r.witness} : {})}
       done.add(ls[i]!.name)
       if (!chosen.length) base.add(ls[i]!.name)
     }
-    if (stepLaws.length) { proofs++; const r = proveStepLaws(mm, ls, stepLaws); if (!r.proven) return {proven: false, checked: false, ...(r.failed ? {goal: r.failed.goal, stuck: r.failed.stuck, ...(r.failed.witness ? {witness: r.failed.witness} : {})} : {})} }
+    if (stepLaws.length) { proofs++; const r = proveStepLaws(forLaws(ls).m, ls, stepLaws); if (!r.proven) return {proven: false, checked: false, ...(r.failed ? {goal: r.failed.goal, stuck: r.failed.stuck, ...(r.failed.witness ? {witness: r.failed.witness} : {})} : {})} }
     const whole = prove([...laws, ...chosen.map(lawFor)])
     if (!(whole.proven && whole.checked)) forget()
     return whole
