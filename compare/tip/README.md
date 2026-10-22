@@ -38,6 +38,50 @@ Vampire; gdp-wired isn't given them.
 
 ## Results
 
+### After the cheap wins (core/transfer.ts)
+
+`runs/modal/cheap/tip3`: gdp-wired from this branch, every task in its own container, 60 s, the same container
+shape; cvc5's and Vampire's rows are `runs/modal/tip/full2`'s (unchanged tools), the two put together in
+`runs/modal/cheap/tip3-with-full2` (`bun compare/tip/summary.ts runs/modal/cheap/tip3-with-full2`). proveData now
+unfolds functions that aren't recursive, bridges a recursive function of naturals that computes a built-in once the
+bridge law is proven (by proveData itself, first), tries the cases of a variable when no induction proves the law, and
+skips a random value whose evaluation passes its bounds (`--native` and `--inline` are no-ops now; `--no-transfer` is
+the law as stated).
+
+| tool | proven | refuted | wrong | solved of 492 | median s of those solved |
+| --- | --- | --- | --- | --- | --- |
+| cvc5 1.4.2 `--quant-ind` | 168 | 0 | 0 | 168 | 0.03 |
+| cvc5 1.4.2 `--quant-ind --conjecture-gen` | 187 | 0 | 0 | 187 | 0.04 |
+| Vampire 5.1.0 (induction schedule) | 189 | 0 | 0 | 189 | 0.16 |
+| gdp-wired (`proveData`) | 137 | 0 | 0 | 137 | 0.60 |
+
+| tool | isaplanner (86) | prod (74) | tip2015 (326) | grammars (6) |
+| --- | --- | --- | --- | --- |
+| gdp-wired | 54 | 36 | 47 | 0 |
+| gdp-wired: translated | 85 | 74 | 132 | 5 |
+
+- 137 of the 296 translated (was 73): cvc5 142, cvc5 with conjecture generation 164, Vampire 154 on those. On the 184
+  whose statement the translation leaves unchanged, 102 (was 39). Proven by gdp-wired and by none of the three: 12
+  (`isaplanner/prop_47`, `prop_66`, `prop_68`, `prop_77`, `prod/lemma_12`, `lemma_16`, `prop_05`, `prop_10`,
+  `prop_31`, `tip2015/nat_acc_alt_mul_comm`, `list_Select`, `list_nat_Select`).
+- 78 of the 137 through the built-ins or with definitions unfolded (the law said so then proven with no induction 38,
+  by recursion induction 37, one of those with a lemma found, by structural induction 3); 59 as stated.
+- 65 proven that `full2` didn't: every one of the 48 the `--native` diagnostic proved, all 6 of `--inline`'s,
+  `isaplanner/prop_17` (`--today`'s, by cases now), and 10 no diagnostic proved (`isaplanner/prop_77`,
+  `prod/lemma_12`, `lemma_16`, `lemma_19`, `prop_24`, `prop_26`, `prop_47`, `tip2015/nat_acc_plus_same`,
+  `nat_boring_ge_trans`, `nat_boring_gt_trans`; `prop_24` and `nat_acc_plus_same` are the two `--conj-size 8`
+  needed 300 s for).
+- 1 proven in `full2` and not now: `prod/prop_25` (31.38 s there, a timeout here). Its `+` is bridged, and the law said
+  through `+` takes the time the law as stated needed (the search on it isn't reached). The 72 both prove: median
+  1.115 s in `full2`, 0.985 s here.
+- The four `refute` overflows (`fermat_last`, `nat_pow_times`, `nat_pow_pow`, `nat_pow_le_factorial`) are no longer
+  errors (a sample past the evaluation's bounds is skipped): two unknown, two out of time, none proven. The
+  `tip2015/int_*` problems no longer throw with their definitions unfolded; three are proven (`int_add_comm`,
+  `int_add_ident_left`, `int_add_ident_right`). No errors in the run.
+- `false/` (68): 17 refuted, the same 17 as `full2`, each confirmed by TIP's evaluator; none proven.
+
+### The first run
+
 `runs/modal/tip/full2`, every task and tool in its own container. A theorem is solved when proven; a proof of a
 `false/` property, or a refutation of a theorem, is wrong.
 
@@ -176,7 +220,7 @@ The problems' own asserted facts given as lemmas (`diag-asserts`, `--asserts`, 3
 
 ## What the measurement found in the library
 
-Recorded, not fixed (this is a measurement; core/ is unchanged):
+Recorded in the first run, and fixed since (core/transfer.ts, core/data.ts; the results above):
 
 - `refute`'s evaluator overflows the stack on values that recursive `pow` and factorial make large, and proveData throws
   instead of skipping the sample (4 tasks above).

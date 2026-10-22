@@ -31,6 +31,11 @@ naturals of a statement TIP makes for every type.
 
 Rows 10–13 and 16–18 no tool here proves within 60 s; rows 1–9, 14 and 15 at least one does.
 
+Since (`runs/modal/cheap/tip3`, proveData through the built-ins and its definitions unfolded, by cases where no
+induction applies, `refute` skipping a value past its evaluation's bounds: core/transfer.ts): rows 1–5, 7 and 8 are
+proven (0.26 s, 1.06 s, 0.33 s, 0.15 s, 0.22 s, 0.39 s, 0.20 s); row 18 is no longer an error (out of time); row 13
+gives up (unknown, 17.98 s); the rest are still out of time at 60 s.
+
 ## What the language doesn't take
 
 The 196 of TIP 2015's 492 theorems the translation refuses (and 41 of the 68 `false/`), each by the first construct it

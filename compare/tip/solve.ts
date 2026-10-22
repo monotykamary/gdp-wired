@@ -1,12 +1,11 @@
 // One TIP problem through gdp-wired: `bun compare/tip/solve.ts <task.smt2> [--ms 57000] [--translate-only]`.
 // Diagnostics (not the benchmark's run): `--lemma '<TIP formula>'` (repeatable) gives proveData those lemmas to prove
 // and use instead of its own conjectures; `--conj-size k [--conj-max m]` gives it its own conjectures (core/data.ts's
-// `conjectures`) up to k symbols instead of 6, m of them; `--inline`, every function that isn't recursive inlined at its
-// calls (the same statement, written without those definitions); `--today`, proveData without induction (its
-// definitions unfolded, the kernel's prover alone: core/data.ts's proveDataToday); `--asserts`, the facts the problem
-// asserts beside its goal (TIP's hints, which cvc5 and Vampire read as axioms) given as lemmas, each proven first;
-// `--native`, a function of two Peano naturals computing a built-in comparison or +, −, min, max read as the built-in,
-// its bridge law (it equals the built-in) proven first by proveData (translate.ts).
+// `conjectures`) up to k symbols instead of 6, m of them; `--today`, proveData without induction (its definitions
+// unfolded, the kernel's prover alone: core/data.ts's proveDataToday); `--asserts`, the facts the problem asserts beside
+// its goal (TIP's hints, which cvc5 and Vampire read as axioms) given as lemmas, each proven first; `--no-transfer`,
+// proveData with the law as stated only (`transfer: false`: no definition unfolded, no bridge to a built-in).
+// `--inline` and `--native` (the first run's diagnostics) are proveData's own now (core/transfer.ts), and do nothing.
 // An existential goal (∀ v. H ⇒ ∃ x. B) is proven through a witness among its variables (each a law, translate.ts's
 // `some`), or refuted through what it says whatever the witness (B's conjuncts that read no x), its counterexample
 // confirmed by TIP's evaluator on that part of the goal.
@@ -33,7 +32,7 @@ const done = (answer: string, o: object = {}) => { say({stage: 'answer', answer,
 let tip: Tip, tr: Translation
 try {
   tip = parseTip(readFileSync(file, 'utf8'))
-  tr = translate(tip, file.split('/').slice(-2).join('/'), [...lemmaSx, ...(args.includes('--asserts') ? tip.asserts : [])], {inline: args.includes('--inline'), native: args.includes('--native')})
+  tr = translate(tip, file.split('/').slice(-2).join('/'), [...lemmaSx, ...(args.includes('--asserts') ? tip.asserts : [])])
 } catch (e) {
   if (e instanceof Unsupported) done('unsupported', {why: e.message})
   done('unsupported', {why: `translation failed: ${(e as Error).message.slice(0, 300)}`, error: true})
@@ -118,19 +117,10 @@ if (tr!.some) {
 
 const given: DataLaw[] = [...tr!.lemmas, ...(conjSize ? conjectures(programOf([tr!.law]), tr!.law, conjMax, conjSize) : [])]
 if (given.length) say({stage: 'lemmas given', n: given.length, hand: tr!.lemmas.map(l => showY(l.holds).slice(0, 200))})
-// --native: each bridge (a recursive comparison or operation of the problem equals the built-in) proven first
-for (const b of tr!.bridges) {
-  let bv: ReturnType<typeof proveData> | undefined
-  try { bv = proveData(b, {ms: 5000}) } catch (e) { done('error', {why: `proveData threw on a bridge: ${(e as Error).message.slice(0, 200)}`}) }
-  say({stage: 'bridge', law: b.name, proven: bv!.proven && bv!.checked, proveMs: bv!.ms})
-  if (!(bv!.proven && bv!.checked)) done('unknown', {why: `bridge not proven: ${b.name}`})
-}
 let v: ReturnType<typeof proveData>
-try { v = proveData(tr!.law, {ms, ...(given.length ? {lemmas: given} : {}), ...(args.includes('--today') ? {induction: false} : {})}) } catch (e) { done('error', {why: `proveData threw: ${(e as Error).message.slice(0, 200)}`}) }
-// (--native: a law left with no recursive function at all gets proveData without induction too)
-if (args.includes('--native') && !v!.proven && !v!.counterexample) { try { const t = proveData(tr!.law, {ms, induction: false}); if (t.proven) v = t } catch { /* the first verdict stands */ } }
-say({stage: 'prove', proven: v!.proven, checked: v!.checked, proveMs: v!.ms, scheme: v!.scheme, lemmas: v!.lemmas, tried: v!.tried, ...(v!.goal ? {goal: v!.goal.slice(0, 200), stuck: v!.stuck?.slice(0, 200)} : {})})
-if (v!.proven && v!.checked) done('proven', {changes: tr!.changes, scheme: v!.scheme, lemmas: v!.lemmas})
+try { v = proveData(tr!.law, {ms, ...(given.length ? {lemmas: given} : {}), ...(args.includes('--today') ? {induction: false} : {}), ...(args.includes('--no-transfer') ? {transfer: false} : {})}) } catch (e) { done('error', {why: `proveData threw: ${(e as Error).message.slice(0, 200)}`}) }
+say({stage: 'prove', proven: v!.proven, checked: v!.checked, proveMs: v!.ms, scheme: v!.scheme, lemmas: v!.lemmas, tried: v!.tried, ...(v!.through ? {through: v!.through} : {}), ...(v!.goal ? {goal: v!.goal.slice(0, 200), stuck: v!.stuck?.slice(0, 200)} : {})})
+if (v!.proven && v!.checked) done('proven', {changes: tr!.changes, scheme: v!.scheme, lemmas: v!.lemmas, ...(v!.through ? {through: v!.through} : {})})
 if (v!.counterexample) {
   // proveData's refutation is the first of refute's samples (seed 7) that breaks the law: found again here, its values
   // given to TIP's evaluator, which must say the goal is false there.
