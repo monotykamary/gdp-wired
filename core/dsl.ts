@@ -22,7 +22,7 @@ import {factsFor, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, wit
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, cycLog, foldNodes, proveCyclic, quietly, recurNodes, translatedProof} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
-import {cycleLemmas, findRank} from './cycles.ts'
+import {cycleLemmas, findLeadsTo, findRank} from './cycles.ts'
 
 // --- terms and conditions -------------------------------------------------------------------------------------------
 
@@ -1669,11 +1669,12 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   //     rank: ({t, served}) => t.plus(1).minus(served), helpful: () => ({op: 1})})
   //   batches.leadsTo('every batch is done', {from: () => yes, to: ({waiting, items}) => waiting.eq(0).and(items.eq(0)),
   //     rank: ({waiting, items}) => [waiting, items], helpful: [{when: ({items}) => items.gt(0), request: () => ({op: 1})}, {when: ({items}) => items.eq(0), request: () => ({op: 0})}]})
-  leadsTo(name: string, spec: {from: (env: P & S & M & Su) => Cond, to: (env: P & S & M & Su) => Cond, rank: (env: P & S & M & Su) => TermLike | TermLike[],
+  // With no rank, proveLeadsTo finds one from the rule's runs (core/cycles.ts's findLeadsTo).
+  leadsTo(name: string, spec: {from: (env: P & S & M & Su) => Cond, to: (env: P & S & M & Su) => Cond, rank?: (env: P & S & M & Su) => TermLike | TermLike[],
     helpful: ((env: P & S & M & Su) => Record<string, TermLike>) | {when?: (env: P & S & M & Su) => Cond, request: (env: P & S & M & Su) => Record<string, TermLike>}[]}): Liveness {
     const env = this.env({flags: false, inputs: false, queries: false}) as never
     const req = (f: (env: never) => Record<string, TermLike>) => Object.fromEntries(Object.entries(f(env)).map(([n, t]) => [n, termOf(t)]))
-    const r = spec.rank(env), rank = Array.isArray(r) ? r.map(termOf) : termOf(r)
+    const r = spec.rank ? spec.rank(env) : [], rank = Array.isArray(r) ? r.map(termOf) : termOf(r)
     const base = {name, from: spec.from(env).c, to: spec.to(env).c, rank}
     return typeof spec.helpful === 'function' ? {...base, request: req(spec.helpful)} : {...base, helpful: spec.helpful.map(h => ({...(h.when ? {when: h.when(env).c} : {}), request: req(h.request)}))}
   }
@@ -2389,7 +2390,12 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
 }
 export type {StepLaw}
 export type {Liveness}
-export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: Liveness): Verdict {
+export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: Liveness, opts: {ms?: number} = {}): Verdict {
+  if (Array.isArray(l.rank) && !l.rank.length) {
+    const f = findLeadsTo(r.machine, withKinds(r, laws), l, {params: (rand, bound) => r.randomParams(rand, bound), input: (rand, bound, ps) => r.randomInput(rand, bound, ps)}, opts)
+    return {proven: f.proven, checked: f.checked, ...(f.goal ? {goal: f.goal, stuck: f.stuck} : {}), ...(f.witness ? {witness: f.witness} : {}), ...(f.why ? {why: f.why} : {}),
+      ...(f.found ? {found: {rank: f.found.rank, ...(f.laws?.length ? {laws: f.laws.map((law, i) => ({law, text: f.found!.laws[i] ?? law.name}))} : {})}} : {})}
+  }
   const out = proveLiveness(r.machine, withKinds(r, laws), l)
   return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
 }

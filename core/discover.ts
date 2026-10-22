@@ -84,20 +84,27 @@ function linearCands(target: string, forms: Lin[], samples: Record<string, numbe
 }
 const dedupe = (cs: Cand[]) => [...new Map(cs.map(c => [c.name, c])).values()]
 
-// A polynomial in x of degree 2 at most, exact over the rationals, as d·f = a·x·x + b·x + c with whole numbers: fitted to
-// three points, kept when every sample meets it.
+// A polynomial in x of degree 3 at most, exact over the rationals, as d·f = a·x·x·x + b·x·x + c·x + e with whole
+// numbers: fitted to four points (Newton's differences), kept when every sample meets it.
 function closedForm(samples: Record<string, number>[], show: (a: string) => string): Cand[] {
   const at = new Map<number, number>()
   for (const s of samples) { if (at.has(s.x!) && at.get(s.x!) !== s.f) return []; at.set(s.x!, s.f!) }
   if (![0, 1, 2].every(x => at.has(x))) return []
   const [f0, f1, f2] = [at.get(0)!, at.get(1)!, at.get(2)!]
+  const keep = (lin: Record<string, number>): Cand[] => {
+    const g = Object.values(lin).reduce((p, q) => gcd(p, Math.abs(q)), 0)
+    const c: Cand = {name: '', rel: '=', lin: Object.fromEntries(Object.entries(lin).map(([a, k]) => [a, k / g]).filter(([, k]) => k !== 0))}
+    c.name = nameOf(c, show, 'f')
+    return samples.every(s => holds(c, s)) ? [c] : []
+  }
   // f = a x² + b x + c: c = f0, a = (f2 - 2 f1 + f0) / 2, b = f1 - f0 - a; times 2 to keep whole numbers.
   const A = f2 - 2 * f1 + f0, B = 2 * (f1 - f0) - A, C = 2 * f0
-  if (A === 0) return [] // linear: the bounds find it
-  const g = [A, B, C, 2].reduce((p, q) => gcd(p, Math.abs(q)), 0)
-  const c: Cand = {name: '', rel: '=', lin: Object.fromEntries(Object.entries({f: 2 / g, xx: -A / g, x: -B / g, 1: -C / g}).filter(([, k]) => k !== 0))}
-  c.name = nameOf(c, show, 'f')
-  return samples.every(s => holds(c, s)) ? [c] : []
+  const square = A === 0 ? [] : keep({f: 2, xx: -A, x: -B, 1: -C})
+  if (square.length || !at.has(3)) return square
+  // f = Δ0 + Δ1·x + Δ2·x(x − 1)/2 + Δ3·x(x − 1)(x − 2)/6, times 6: x³ by Δ3, x² by 3Δ2 − 3Δ3, x by 6Δ1 − 3Δ2 + 2Δ3.
+  const d1 = f1 - f0, d2 = f2 - 2 * f1 + f0, d3 = at.get(3)! - 3 * f2 + 3 * f1 - f0
+  if (d3 === 0) return [] // degree 2 at most: above, or linear (the bounds find it)
+  return keep({f: 6, xxx: -d3, xx: -(3 * d2 - 3 * d3), x: -(6 * d1 - 3 * d2 + 2 * d3), 1: -6 * f0})
 }
 // The law a goal is of (the kernel names each goal after its law: '<law> @step').
 const lawOfGoal = (goal: string) => goal.replace(/ @(start|step|step law|\d+ steps|leaf|node)$/, '')
@@ -106,8 +113,8 @@ const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a 
 
 // --- recurrences ---------------------------------------------------------------------------------------------------
 
-const showRecur = (a: string) => (a === 'f' ? 'f(x)' : a === 'g' ? 'f(y)' : a === 'xx' ? 'x·x' : a)
-const srcRecur = (a: string) => (a === 'xx' ? 'x.mul(x)' : a)
+const showRecur = (a: string) => (a === 'f' ? 'f(x)' : a === 'g' ? 'f(y)' : a === 'xx' ? 'x·x' : a === 'xxx' ? 'x·x·x' : a)
+const srcRecur = (a: string) => (a === 'xx' ? 'x.mul(x)' : a === 'xxx' ? 'x.mul(x).mul(x)' : a)
 // The function's values: x from 0 to 40 at a few values of each further argument (all of them for two at most).
 function recurSamples(d: FnDef, args: string[]): Record<string, number>[] {
   const f = (typeof d.js === 'function' ? d.js : compileFunction<() => (...a: number[]) => number>([], `return (${d.js})`)()) as (...a: number[]) => number
@@ -117,7 +124,7 @@ function recurSamples(d: FnDef, args: string[]): Record<string, number>[] {
   for (const t of tuples) for (let x = 0; x <= 40; x++) {
     let y: number
     try { y = f(x, ...t) } catch (e) { if (e instanceof RangeError) break; throw e }
-    out.push({x, f: y, xx: x * x, ...Object.fromEntries(args.map((a, i) => [a, t[i]!]))})
+    out.push({x, f: y, xx: x * x, xxx: x * x * x, ...Object.fromEntries(args.map((a, i) => [a, t[i]!]))})
   }
   return out
 }
@@ -144,9 +151,9 @@ function recurCands(samples: Record<string, number>[], args: string[]) {
   return {lemmas, between}
 }
 const recurAtoms = (args: string[], x: Term, f: Term, env: Record<string, Term>, y?: Term, g?: Term): Record<string, Term> =>
-  ({x, f, xx: x.mul(x), ...(y && g ? {y, g} : {}), ...Object.fromEntries(args.map(a => [a, env[a]!]))})
+  ({x, f, xx: x.mul(x), xxx: x.mul(x).mul(x), ...(y && g ? {y, g} : {}), ...Object.fromEntries(args.map(a => [a, env[a]!]))})
 const recurSrc = (c: Cand, args: string[], between: boolean) => {
-  const reads = (a: string) => Object.keys(c.lin).includes(a) || (a === 'x' && 'xx' in c.lin)
+  const reads = (a: string) => Object.keys(c.lin).includes(a) || (a === 'x' && ('xx' in c.lin || 'xxx' in c.lin))
   const names = between ? ['x', 'f', 'y', 'g'] : ['x', 'f']
   let unused = 0
   const params = [...names.map(n => (reads(n) ? n : '_'.repeat(++unused))), ...(args.some(reads) ? [`{${args.filter(reads).join(', ')}}`] : [])]
@@ -239,22 +246,33 @@ export function discover(r: AnyRule, laws: Law[], stepLaws: StepLaw[] = [], firs
 function discoverSearch(r: AnyRule, laws: Law[], stepLaws: StepLaw[], first: Verdict): Discovery {
   if (first.proven && first.checked) return {verdict: first, rule: r, found: {}}
   const {params, fns, lists} = r.parts, ps = natParams(params)
-  // Per function and per list: what is proven, made into the rule.
-  const fnMade: Record<string, Made> = {}
-  for (const [n, d] of fns) {
-    const src = recurOf(d)
-    if (!src) continue
-    const args = [...(src.def.args ?? [])], {lemmas, between} = recurCands(recurSamples(d, args), args)
-    const made = houdiniRecur(d, lemmas, between)
-    if (made && (made.lemmas.length || made.between.length)) fnMade[n] = made
+  // Per function and per list: what is proven, made into the rule. A function with a closed form (of degree 2 or 3,
+  // fitted exactly) first with it alone: it decides the function, and the bounds beside it, which the closed form
+  // implies only through products, are slow to prove by induction; the rest where the laws aren't proven with it.
+  const cands = new Map(fns.flatMap(([n, d]) => { const src = recurOf(d); if (!src) return []; const args = [...(src.def.args ?? [])]; return [[n, recurCands(recurSamples(d, args), args)] as const] }))
+  const exact = (c: Cand) => c.rel === '=' && ('xx' in c.lin || 'xxx' in c.lin)
+  const makeFns = (closedOnly: boolean): Record<string, Made> => {
+    const out: Record<string, Made> = {}
+    for (const [n, d] of fns) {
+      const cs = cands.get(n)
+      if (!cs) continue
+      const closed = cs.lemmas.filter(exact), made = closedOnly && closed.length ? houdiniRecur(d, closed, []) : houdiniRecur(d, cs.lemmas, cs.between)
+      if (made && (made.lemmas.length || made.between.length)) out[n] = made
+    }
+    return out
   }
-  let rule = r.withParts(Object.fromEntries(Object.entries(fnMade).map(([n, m]) => [n, m.d])))
-  const listKept: Record<string, Cand[]> = {}
-  for (const part of lists) {
-    const out = houdiniList(rule, part, listCands(part, params, listSamples(part, params)), ps)
-    if (out && out.kept.length) { rule = out.rule; listKept[part[0]] = out.kept }
+  const withLists = (fnMade: Record<string, Made>) => {
+    let rule = r.withParts(Object.fromEntries(Object.entries(fnMade).map(([n, m]) => [n, m.d])))
+    const listKept: Record<string, Cand[]> = {}
+    for (const part of lists) {
+      const out = houdiniList(rule, part, listCands(part, params, listSamples(part, params)), ps)
+      if (out && out.kept.length) { rule = out.rule; listKept[part[0]] = out.kept }
+    }
+    return {fnMade, rule, listKept, verdict: proveSteps(rule, laws, stepLaws, {search: false})}
   }
-  const verdict = proveSteps(rule, laws, stepLaws, {search: false})
+  let made = [...cands.values()].some(cs => cs.lemmas.some(exact)) ? withLists(makeFns(true)) : undefined
+  if (!made || !(made.verdict.proven && made.verdict.checked)) made = withLists(makeFns(false))
+  const {fnMade, rule, listKept, verdict} = made
   const found = (): Record<string, Found> => ({
     ...Object.fromEntries(Object.entries(fnMade).map(([n, m]) => { const args = [...(recurOf(m.d)!.def.args ?? [])]; return [n, {...(m.lemmas.length ? {lemmas: m.lemmas.map(c => recurSrc(c, args, false))} : {}), ...(m.between.length ? {between: m.between.map(c => recurSrc(c, args, true))} : {})}] })),
     ...Object.fromEntries(Object.entries(listKept).map(([n, cs]) => [n, {lemmas: cs.map(c => listSrc(c, Object.keys(lists.find(l => l[0] === n)![2]), ps, c.target!))}])),
