@@ -501,8 +501,9 @@ export const tagMap = (d: string) => `${d}.tag`, sizeMap = (d: string) => `${d}.
 export const fieldMap = (d: Data, j: number, i: number) => `${d.name}.${d.ctors[j]!.name}.${d.ctors[j]!.fields[i]!.name}`
 export const ctorMap = (d: Data, j: number) => `${d.name}.${d.ctors[j]!.name}`
 
-// `divisors`: the constants the program divides by (mod, div), and 2 where it reads an integer (whose code is halved).
-export type Program = {datas: Data[], fns: Fn[], params: string[], divisors: number[]}
+// `divisors`: the constants the program divides by (mod, div), and 2 where it reads an integer (its code's parity);
+// `ints`: whether it reads an integer.
+export type Program = {datas: Data[], fns: Fn[], params: string[], divisors: number[], ints: boolean}
 // Everything a law reads: the datatypes, the functions (with those they call), the function parameters.
 export function programOf(laws: DataLaw[], extra: Fn[] = []): Program {
   const fs = new Map<string, Fn>(), ds = new Map<string, Data>(), ps = new Set<string>()
@@ -523,11 +524,13 @@ export function programOf(laws: DataLaw[], extra: Fn[] = []): Program {
   // (the recursion of each checked)
   for (const f of order) void f.decreases
   const divs = new Set<number>()
-  const scan = (t: unknown) => walk(t, o => { if (o.op === 'mod' || o.op === 'div' || o.op === 'imod' || o.op === 'idiv') divs.add(o.k as number); if (typeof o.op === 'string' && (intOps.has(o.op) || o.op === 'i<' || o.op === 'i<=')) divs.add(2) })
-  for (const l of laws) { scan(l.holds); if (l.vars.some(v => v.sort === 'int')) divs.add(2) }
-  for (const f of order) { scan(f.body()); if (f.ret === 'int' || f.params.some(q => q.sort === 'int')) divs.add(2) }
-  for (const d of datas) if (d.ctors.some(c => c.fields.some(f => f.sort === 'int'))) divs.add(2)
-  return {datas, fns: order, params: [...ps], divisors: [...divs].sort((a, b) => a - b)}
+  let ints = false
+  const scan = (t: unknown) => walk(t, o => { if (o.op === 'mod' || o.op === 'div' || o.op === 'imod' || o.op === 'idiv') divs.add(o.k as number); if (typeof o.op === 'string' && (intOps.has(o.op) || o.op === 'i<' || o.op === 'i<=')) ints = true })
+  for (const l of laws) { scan(l.holds); if (l.vars.some(v => v.sort === 'int')) ints = true }
+  for (const f of order) { scan(f.body()); if (f.ret === 'int' || f.params.some(q => q.sort === 'int')) ints = true }
+  for (const d of datas) if (d.ctors.some(c => c.fields.some(f => f.sort === 'int'))) ints = true
+  if (ints) divs.add(2)
+  return {datas, fns: order, params: [...ps], divisors: [...divs].sort((a, b) => a - b), ints}
 }
 
 const dataOf = (p: Program, name: string) => p.datas.find(d => d.name === name)!
@@ -535,20 +538,22 @@ const dataOf = (p: Program, name: string) => p.datas.find(d => d.name === name)!
 // at each key read (`arith k`).
 export const divMap = (k: number) => `div$${k}`, modMap = (k: number) => `mod$${k}`
 const arithMap = /^(?:div|mod)\$(\d+)$/
-// Integers by their zigzag code: a code c is the integer p − n with h = c div 2, b = c mod 2, p = (b = 0 ? h : 0),
-// n = (b = 0 ? 0 : h + 1); a pair (p, n) has the code 2(p ∸ n) where n ≤ p, 2(n ∸ p) ∸ 1 elsewhere.
+// Integers by their zigzag code: a code c is the integer p − n, p and n its value's two parts as maps of the code
+// (int$pos, int$neg), known by one fact (`zcode`): c + c mod 2 = 2p + 2n, p = 0 where c is odd, n = 0 where it is even;
+// a pair (p, n) has the code 2(p ∸ n) + (2(n ∸ p) ∸ 1). Neither direction needs an if, so the kernel splits only where a
+// proof needs the sign or the parity.
 export const zig = (z: number): number => (z >= 0 ? 2 * z : -2 * z - 1)
 export const unzig = (c: number): number => (c % 2 === 0 ? c / 2 : -(c + 1) / 2)
 type Pair = [E, E]
 const sumE = (a: E, b: E): E => (a.op === 'const' && a.value === 0 ? b : b.op === 'const' && b.value === 0 ? a : {op: 'add', a, b})
+export const posMap = 'int$pos', negMap = 'int$neg'
 const pairOfCode = (c: E): Pair => {
   if (c.op === 'const') { const z = unzig(c.value); return [k(Math.max(z, 0)), k(Math.max(-z, 0))] }
-  const h = get(divMap(2), c), even = eqC(get(modMap(2), c), k(0))
-  return [{op: 'if', c: even, then: h, else: k(0)}, {op: 'if', c: even, then: k(0), else: {op: 'add', a: h, b: k(1)}}]
+  return [get(posMap, c), get(negMap, c)]
 }
 const codeOfPair = ([pos, neg]: Pair): E => {
   if (neg.op === 'const' && neg.value === 0) return {op: 'mul', k: 2, a: pos}
-  return {op: 'if', c: leC(neg, pos), then: {op: 'mul', k: 2, a: {op: 'sub', a: pos, b: neg}}, else: {op: 'sub', a: {op: 'mul', k: 2, a: {op: 'sub', a: neg, b: pos}}, b: k(1)}}
+  return {op: 'add', a: {op: 'mul', k: 2, a: {op: 'sub', a: pos, b: neg}}, b: {op: 'sub', a: {op: 'mul', k: 2, a: {op: 'sub', a: neg, b: pos}}, b: k(1)}}
 }
 const intOps = new Set(['int', 'iadd', 'isub', 'ineg', 'imul', 'ofnat', 'imod', 'idiv'])
 // An integer term as the two naturals p − n of its value.
@@ -645,6 +650,11 @@ export function factsOf(p: Program): Facts {
     put(`arith ${k2}`, {name: '', keys: ['x$'], holds: andC(eqC(x, {op: 'add', a: {op: 'mul', k: k2, a: get(divMap(k2), x)}, b: get(modMap(k2), x)}), {op: '<', a: get(modMap(k2), x), b: k(k2)})})
     arity.set(divMap(k2), 1); arity.set(modMap(k2), 1)
   }
+  if (p.ints) {
+    const pos = get(posMap, x), neg = get(negMap, x), par = get(modMap(2), x)
+    put('zcode', {name: '', keys: ['x$'], holds: andC(eqC({op: 'add', a: x, b: par}, {op: 'add', a: {op: 'mul', k: 2, a: pos}, b: {op: 'mul', k: 2, a: neg}}), {op: 'or', xs: [eqC(par, k(0)), eqC(pos, k(0))]}, {op: 'or', xs: [eqC(par, k(1)), eqC(neg, k(0))]})})
+    arity.set(posMap, 1); arity.set(negMap, 1)
+  }
   // Every map the encoding reads: the datatypes' tag, size and fields too (each of one argument).
   for (const d of p.datas) {
     arity.set(tagMap(d.name), 1); arity.set(sizeMap(d.name), 1)
@@ -697,6 +707,7 @@ export function codeValues(p: Program): Record<string, (...xs: number[]) => numb
     return f.ret instanceof Data ? encode(f.ret, v) : f.ret === 'int' ? zig(v as number) : v as number
   }
   for (const k2 of p.divisors) { out[divMap(k2)] = n => Math.floor(n / k2); out[modMap(k2)] = n => n % k2 }
+  if (p.ints) { out[posMap] = n => Math.max(unzig(n), 0); out[negMap] = n => Math.max(-unzig(n), 0) }
   return out
 }
 // That a value's fields of its datatype have smaller codes (true of the codes above: each field at most q).
@@ -758,6 +769,8 @@ export class Model {
     }
     const ar = arithMap.exec(map)
     if (ar) { const k2 = Number(ar[1]); return map.startsWith('mod') ? key % k2 : Math.floor(key / k2) }
+    if (map === posMap) return Math.max(unzig(key), 0)
+    if (map === negMap) return Math.max(-unzig(key), 0)
     const prm = this.params[map]
     if (prm) return prm(key)
     throw new Error(`no map ${map}`)
@@ -1027,7 +1040,13 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     frontier = next
   }
   // Euclid's fact at every key a remainder or quotient is read at (a read the facts bring is read too).
-  const ariths = () => { for (const r of [...all]) { const m = arithMap.exec(r.map); if (m) { inst(`arith ${m[1]}`, [r.key]); note(reads(holdsAt(`arith ${m[1]}`, [r.key]))) } } }
+  const ariths = () => {
+    for (let pass = 0; pass < 2; pass++) for (const r of [...all]) {
+      if (r.map === posMap || r.map === negMap) { inst('zcode', [r.key]); note(reads(holdsAt('zcode', [r.key]))) }
+      const m = arithMap.exec(r.map)
+      if (m) { inst(`arith ${m[1]}`, [r.key]); note(reads(holdsAt(`arith ${m[1]}`, [r.key]))) }
+    }
+  }
   ariths()
   lap(`unfolded, ${insts.length} instances, ${all.length} reads`)
   // The classes of a model (or, with none, of every branch): the equalities the instances give there (a function's read
@@ -1394,6 +1413,7 @@ function reached(p: Program, fs: Facts, insts: NodeSpec['insts'], from: unknown[
     if (name.startsWith('fn ')) return [get(name.slice(3), keyOf(q.at))]
     if (name.startsWith('ctor ')) return [get(name.slice(5), keyOf(q.at))]
     if (name.startsWith('arith ')) { const k2 = Number(name.slice(6)); return [get(divMap(k2), q.at[0]!), get(modMap(k2), q.at[0]!)] }
+    if (name === 'zcode') return [get(posMap, q.at[0]!), get(negMap, q.at[0]!)]
     if (name.startsWith('shape ') || name.startsWith('eta ')) { const d = name.split(' ')[1]!; return [get(tagMap(d), q.at[0]!), get(sizeMap(d), q.at[0]!), ...p.datas.filter(x => x.name === d).flatMap(x => x.ctors.flatMap((c, j) => c.fields.map((_, i) => get(fieldMap(x, j, i), q.at[0]!))))] }
     return []
   }

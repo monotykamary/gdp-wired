@@ -13,7 +13,7 @@
 //   - that every fact of the proof holds of the model, each by unfolding and cases on the values it reads
 //   - the law, about the Lean definitions, from cyclic_sound at the law's node
 import type {Cyclic} from '../kernel/cyclic.ts'
-import {type Ctor, type Data, type DataLaw, type FieldSort, type Fn, type Program, type X, type Y, ctorMap, divMap, fieldMap, isDataField, modMap, sizeMap, tagMap, weakOrder} from '../core/data.ts'
+import {type Ctor, type Data, type DataLaw, type FieldSort, type Fn, type Program, type X, type Y, ctorMap, divMap, fieldMap, isDataField, modMap, negMap, posMap, sizeMap, tagMap, weakOrder} from '../core/data.ts'
 
 const name = (s: string) => s.replace(/#(\d+)$/, '_$1').replace(/[^A-Za-z0-9_']/g, '_')
 // The function parameters a function reads, through those it calls.
@@ -105,11 +105,14 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
     const fieldEnc = (f: {sort: FieldSort}, v: string) => (f.sort === 'nat' ? v : f.sort === 'int' ? `Z.enc ${v}` : `${f.sort.data}.enc ${v}`)
     const fieldDec = (f: {sort: FieldSort}, v: string) => (f.sort === 'nat' ? v : f.sort === 'int' ? `(Z.dec ${v})` : `(${f.sort.data}.dec ${v})`)
     // The integers' codes, where the program reads an integer: a bijection with the naturals, as a datatype's.
-    const usesInt = p.divisors.includes(2) && /"(?:sort|ret)":"int"|"op":"(?:int|iadd|isub|ineg|imul|ofnat|imod|idiv|i<|i<=)"/.test(JSON.stringify([p.datas.map(d => d.ctors), p.fns.map(f => ({params: f.params, ret: f.ret, body: f.body()})), law]))
+    const usesInt = p.ints
     if (usesInt) out.push('abbrev Z := Int', 'def Z.enc (z : Int) : Nat := (2 * z).toNat + (-2 * z - 1).toNat',
       'def Z.dec (n : Nat) : Int := if n % 2 = 0 then ((n / 2 : Nat) : Int) else -((n / 2 : Nat) : Int) - 1',
       '@[simp] theorem Z.dec_enc (z : Int) : Z.dec (Z.enc z) = z := by unfold Z.dec Z.enc; split <;> omega',
-      '@[simp] theorem Z.enc_dec (n : Nat) : Z.enc (Z.dec n) = n := by unfold Z.dec Z.enc; split <;> omega', '')
+      '@[simp] theorem Z.enc_dec (n : Nat) : Z.enc (Z.dec n) = n := by unfold Z.dec Z.enc; split <;> omega',
+      '-- The code core/data.ts writes for a value p − n (codeOfPair), read back.',
+      '@[simp] theorem Z.dec_pair (p n : Nat) : Z.dec (2 * (p - n) + (2 * (n - p) - 1)) = (p : Int) - n := by unfold Z.dec; split <;> omega',
+      '@[simp] theorem Z.dec_two (p : Nat) : Z.dec (2 * p) = p := by unfold Z.dec; split <;> omega', '')
     const pat = (d: Data, j: number, used: (i: number) => string | undefined) => `.${d.ctors[j]!.name}${d.ctors[j]!.fields.map((_, i) => ` ${used(i) ?? '_'}`).join('')}`
     for (const ds of groups) {
       const mutualG = ds.length > 1, order = mutualG ? weakOrder(ds) : new Map<string, number>()
@@ -186,6 +189,8 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
     }
     // Division by a constant: Lean's own / and %.
     for (const k2 of p.divisors) { arm(divMap(k2), `k / ${k2}`); arm(modMap(k2), `k % ${k2}`) }
+    // An integer's code read as its value's two parts.
+    if (p.ints) { arm(posMap, '(Z.dec k).toNat'); arm(negMap, '(-(Z.dec k)).toNat') }
     for (const q of p.params) arm(q, `${name(q)} k`)
     out.push(`noncomputable def model${params.map(q => ` (${q} : Nat → Nat)`).join('')} : Nat → Nat → Nat := fun m k =>\n  match m with\n${arms.join('\n')}\n  | _ => 0`, '')
     // Every fact holds of the model: each key a value (a datatype's, by its code), unfolded, the values' cases.
@@ -205,6 +210,7 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
       const head = `  · -- ${f.name}\n    simp only [evalC, evalE${f.keys.map(key => `, override_at ${ks} ${ix(key)} (by decide)`).join('')}]`
       if (kind === 'nullary') return `${head}\n    simp [model, ${dataSimp}]`
       if (kind === 'arith') return `${head}\n    (try simp [model]) <;> omega`
+      if (kind === 'zcode') return `${head}\n    simp [model]\n    unfold Z.dec\n    split <;> (try simp) <;> omega`
       if (kind === 'cong') {
         const n = f.keys.length / 2
         return `${head}\n${f.keys.slice(0, n).map((key, q) => `    by_cases h${q} : vals ${ix(key)} = vals ${ix(f.keys[n + q]!)}`).join('\n')}\n    all_goals simp_all`
@@ -231,7 +237,7 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
       `  have h := ${id}_sound ${M} (fun i => ${env}) (facts_hold${params.map(q => ` ${q}`).join('')} _) _ ${nd}_mem (by simp [${nd}_hyps, ${id}_hyps${node}])`,
       `  rw [${nd}_concl] at h`,
       `  simp [${id}_concl${node}, evalC, evalE, model, unpk_fst, unpk_snd, unpk_sq_fst, unpk_sq_snd, unpk_sqb_fst, unpk_sqb_snd] at h`,
-      `  first | simpa using h | (intros; simp_all)${usesInt ? ' | (simp only [Z.enc] at h; (repeat\' split at h) <;> omega)' : ''}`, '', `end ${id}`)
+      `  first | ${usesInt ? 'omega | grind | ' : ''}simpa using h | (intros; simp_all)`, '', `end ${id}`)
     return out.join('\n')
   }
 }
