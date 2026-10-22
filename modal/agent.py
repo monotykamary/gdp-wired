@@ -138,7 +138,9 @@ def kill_tree(pid: int):
 def fetch(source: str, dst: pathlib.Path, jar: pathlib.Path) -> str:
     """A file from a boat host URL (its token sets a cookie on the first response, then redirects) or a local path."""
     if source.startswith("https://"):
-        p = subprocess.run(["curl", "-sSfL", "--retry", "4", "-c", str(jar), "-b", str(jar), "-o", str(dst), source], capture_output=True, text=True, timeout=300)
+        # (HTTP/1.1: many VMs at once through boat's HTTP/2 front broke streams)
+        p = subprocess.run(["curl", "-sSfL", "--http1.1", "--retry", "5", "--retry-all-errors", "--retry-delay", "1", "-c", str(jar), "-b", str(jar), "-o", str(dst), source],
+                           capture_output=True, text=True, timeout=300)
         return "" if p.returncode == 0 else "download failed: " + p.stderr[-300:]
     shutil.move(source, dst)
     return ""
@@ -403,13 +405,23 @@ def collect(batch: str, part: str):
     print(json.dumps({"parts": max(1, -(-len(data) // size)), "data": base64.b64encode(data[k * size:(k + 1) * size]).decode()}))
 
 
-def oleans(key: str):
+def oleans(key: str, part: str = "-"):
+    """The VM's compiled Lean library for a key: its names (part "-"), or base64 tar.gz parts of 5 MB."""
     cache = ROOT / "olean" / key
-    buf = io.BytesIO()
-    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
-        for f in sorted(cache.glob("*.olean")) if cache.exists() else []:
-            tf.add(f, arcname=f.name)
-    print(json.dumps({"data": base64.b64encode(buf.getvalue()).decode()}))
+    files = sorted(cache.glob("*.olean")) if cache.exists() else []
+    if part == "-":
+        print(json.dumps({"names": [f.stem for f in files]}))
+        return
+    blob = ROOT / f"oleans-{key}.tar.gz"
+    if part == "0" or not blob.exists():
+        buf = io.BytesIO()
+        with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+            for f in files:
+                tf.add(f, arcname=f.name)
+        blob.write_bytes(buf.getvalue())
+    data = blob.read_bytes()
+    size, k = 5_000_000, int(part)
+    print(json.dumps({"parts": max(1, -(-len(data) // size)), "data": base64.b64encode(data[k * size:(k + 1) * size]).decode()}))
 
 
 if __name__ == "__main__":

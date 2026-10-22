@@ -884,24 +884,37 @@ class Session:
         return got
 
     def harvest_oleans(self):
-        """The Lean library this batch compiled, kept here so the next batch ships it to every VM."""
+        """The Lean library this batch compiled, from the VM that has the most of it, kept here so the next batch
+        ships it to the VMs that lack it."""
         cache = LIVE / "olean" / self.key
-        have = lambda: len(list(cache.glob("*.olean"))) if cache.exists() else 0
-        for vm in self.ready:
-            if have() == len(LIBRARY):
-                return
-            if vm.dead:
-                continue
-            try:
-                r = self._agent(vm, ["oleans", self.key], 120)
-                with tarfile.open(fileobj=io.BytesIO(base64.b64decode(r["data"]))) as tf:
-                    names = tf.getnames()
-                    if len(names) > have():
-                        cache.mkdir(parents=True, exist_ok=True)
-                        tf.extractall(cache, filter="data")
-                        log(f"kept {len(names)} .olean files of library {self.key[:12]} from {vm.id}")
-            except Exception as e:
-                log(f"{vm.id}: oleans: {e}")
+        have = len(list(cache.glob("*.olean"))) if cache.exists() else 0
+        if have == len(LIBRARY):
+            return
+        names: dict[str, list] = {}
+
+        def ls(vm):
+            with contextlib.suppress(Exception):
+                names[vm.id] = self._agent(vm, ["oleans", self.key, "-"], 30, tries=1)["names"]
+        ts = [threading.Thread(target=ls, args=(vm,)) for vm in self.ready if not vm.dead]
+        [t.start() for t in ts]
+        [t.join(60) for t in ts]
+        if not names:
+            return
+        best = max(names, key=lambda i: len(names[i]))
+        if len(names[best]) <= have:
+            return
+        vm = self.vms[best]
+        try:
+            first = self._agent(vm, ["oleans", self.key, "0"], 120)
+            parts = [base64.b64decode(first["data"])]
+            for k in range(1, first["parts"]):
+                parts.append(base64.b64decode(self._agent(vm, ["oleans", self.key, str(k)], 120)["data"]))
+            with tarfile.open(fileobj=io.BytesIO(b"".join(parts))) as tf:
+                cache.mkdir(parents=True, exist_ok=True)
+                tf.extractall(cache, filter="data")
+            log(f"kept {len(names[best])} .olean files of library {self.key[:12]} from {vm.id}")
+        except Exception as e:
+            log(f"{vm.id}: oleans: {str(e)[:200]}")
 
     def _heartbeat(self):
         while not self.stop.wait(300):
@@ -1132,8 +1145,11 @@ def boat_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int
                 rows[it["name"]] = row
                 if on_done:
                     on_done(it["name"], row)
+            t_run = time.time()
             sess.run(items, done, on_lost=(lambda it, why: on_lost(it["name"], why)) if on_lost else None, max_wait=max_wait)
+            t_jobs = time.time()
             logs = sess.collect()
+            t_logs = time.time()
             for name in list(rows):
                 lg = logs.get(name, {})
                 for k in range(1, 3):  # a job that ran again: its last run's logs
@@ -1143,6 +1159,7 @@ def boat_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int
                     e += ("\n" if e else "") + str(rows[name]["error"])
                 rows[name].update(out=o, err=e)
             sess.harvest_oleans()
+            sess.phases = {"jobs_s": round(t_jobs - t_run, 1), "collect_s": round(t_logs - t_jobs, 1), "harvest_s": round(time.time() - t_logs, 1)}
     except Unavailable as e:
         if on_lost is None:
             raise
@@ -1151,7 +1168,9 @@ def boat_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int
                 on_lost(it["name"], str(e))
     finally:
         if sess:
+            t_close = time.time()
             summary = sess.close()
+            summary["phases"] = {**getattr(sess, "phases", {}), "close_s": round(time.time() - t_close, 1)}
             summary["dollars_so_far"] = sess.dollars()
             summary["batch"] = sess.batch
             summary["image"] = sess.image
