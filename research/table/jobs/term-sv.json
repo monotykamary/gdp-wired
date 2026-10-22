@@ -1,0 +1,647 @@
+[
+ {
+  "name": "termination-crafted-lit/HeizmannHoenickeLeikePodelski-ATVA2013-Fig6.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/HeizmannHoenickeLeikePodelski-ATVA2013-Fig6.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/2Nested-1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/2Nested-1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/4NestedWith3Variables-1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/4NestedWith3Variables-1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Bangalore-2.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Bangalore-2.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Benghazi.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Benghazi.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Bangalore_v4.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Bangalore_v4.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Benghazi_nondet-2.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Benghazi_nondet-2.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Cairo_step2-1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Cairo_step2-1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Cairo.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Cairo.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Copenhagen_disj-2.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Copenhagen_disj-2.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Gothenburg-1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Gothenburg-1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/McCarthy91_Iteration.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/McCarthy91_Iteration.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/MenloPark.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/MenloPark.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Mysore-2.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Mysore-2.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Nyala-2lex-2.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Nyala-2lex-2.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Piecewise.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Piecewise.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Singapore-2.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Singapore-2.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Parallel.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Parallel.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Gothenburg_v2-1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Gothenburg_v2-1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Thun-2.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Thun-2.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Pure3Phase-1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Pure3Phase-1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/aaron2-1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/aaron2-1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/TelAviv-Amir-Minimum.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/TelAviv-Amir-Minimum.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Toulouse-MultiBranchesToLoop-2.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Toulouse-MultiBranchesToLoop-2.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/aaron3-1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/aaron3-1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/countup-down-nested.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/countup-down-nested.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/easy1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/easy1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-Fig1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-Fig1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-easy1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-easy1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-loops.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-loops.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-random2d.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-random2d.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-random1d-2.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-random1d-2.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-speedpldi2.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-speedpldi2.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-nestedLoop-1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-nestedLoop-1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-speedpldi3.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-speedpldi3.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-speedpldi4.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-speedpldi4.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-wcet2.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-wcet2.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Stockholm-1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Stockholm-1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-while2.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-while2.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-wise.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-wise.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/ChawdharyCookGulwaniSagivYang-ESOP2008-easy1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/ChawdharyCookGulwaniSagivYang-ESOP2008-easy1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/ChenFlurMukhopadhyay-SAS2012-Ex3.01.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/ChenFlurMukhopadhyay-SAS2012-Ex3.01.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/BradleyMannaSipma-CAV2005-Fig1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/BradleyMannaSipma-CAV2005-Fig1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/WhileFalse.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/WhileFalse.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/BrockschmidtCookFuhs-CAV2013-Fig1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/BrockschmidtCookFuhs-CAV2013-Fig1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/BrockschmidtCookFuhs-CAV2013-Fig9a.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/BrockschmidtCookFuhs-CAV2013-Fig9a.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/BrockschmidtCookFuhs-CAV2013-Introduction.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/BrockschmidtCookFuhs-CAV2013-Introduction.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/ChawdharyCookGulwaniSagivYang-ESOP2008-random1d.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/ChawdharyCookGulwaniSagivYang-ESOP2008-random1d.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/ChenFlurMukhopadhyay-SAS2012-Ex2.20.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/ChenFlurMukhopadhyay-SAS2012-Ex2.20.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Pure2Phase-1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Pure2Phase-1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/Toulouse-BranchesToLoop-2.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Toulouse-BranchesToLoop-2.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig7a.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig7a.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig7b.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig7b.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig8a-modified.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig8a-modified.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig8b.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig8b.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/GopanReps-CAV2006-Fig1a.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/GopanReps-CAV2006-Fig1a.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/HarrisLalNoriRajamani-SAS2010-Fig1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/HarrisLalNoriRajamani-SAS2010-Fig1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/HeizmannHoenickeLeikePodelski-ATVA2013-Fig1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/HeizmannHoenickeLeikePodelski-ATVA2013-Fig1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/KroeningSharyginaTsitovichWintersteiger-CAV2010-Ex.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/KroeningSharyginaTsitovichWintersteiger-CAV2010-Ex.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/Urban-WST2013-Fig2.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/Urban-WST2013-Fig2.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/HeizmannHoenickeLeikePodelski-ATVA2013-Fig5.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/HeizmannHoenickeLeikePodelski-ATVA2013-Fig5.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/PodelskiRybalchenko-TACAS2011-Fig2.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/PodelskiRybalchenko-TACAS2011-Fig2.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/LarrazOliverasRodriguez-CarbonellRubio-FMCAD2013-Fig1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/LarrazOliverasRodriguez-CarbonellRubio-FMCAD2013-Fig1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/PodelskiRybalchenko-TACAS2011-Fig4.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/PodelskiRybalchenko-TACAS2011-Fig4.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/Log.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/Log.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/KroeningSharyginaTsitovichWintersteiger-CAV2010-Fig1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/KroeningSharyginaTsitovichWintersteiger-CAV2010-Fig1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/PodelskiRybalchenko-LICS2004-Fig1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/PodelskiRybalchenko-LICS2004-Fig1.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/IntPath.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/IntPath.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/PastaC3.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaC3.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/PastaB1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaB1.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/PastaB14.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaB14.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/PastaA1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaA1.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/PastaB16.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaB16.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/a.09_assume.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/a.09_assume.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/a.08.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/a.08.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/b.03-no-inv_assume.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.03-no-inv_assume.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/Sequence.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/Sequence.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/Urban-WST2013-Fig2-modified1000.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/Urban-WST2013-Fig2-modified1000.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/b.07.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.07.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/Nested-2.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/Nested-2.yml' --sv "
+ },
+ {
+  "name": "termination-crafted-lit/UrbanMine-ESOP2014-Fig3.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/UrbanMine-ESOP2014-Fig3.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/PastaB15.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaB15.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/PastaB7.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaB7.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/b.01.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.01.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/LogAG.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/LogAG.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/PastaA7.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaA7.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/a.06.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/a.06.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/a.07.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/a.07.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/c.07.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/c.07.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/b.05.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.05.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/b.15.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.15.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/PastaB17.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaB17.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/b.18.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.18.yml' --sv "
+ },
+ {
+  "name": "termination-nla/cohencu1-both-t.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-nla/cohencu1-both-t.yml' --sv "
+ },
+ {
+  "name": "termination-nla/cohencu2-both-t.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-nla/cohencu2-both-t.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/DivMinus2.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/DivMinus2.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/PastaC9.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaC9.yml' --sv "
+ },
+ {
+  "name": "termination-nla/cohencu3-both-t.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-nla/cohencu3-both-t.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/b.16.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.16.yml' --sv "
+ },
+ {
+  "name": "termination-nla/cohencu5-both-t.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-nla/cohencu5-both-t.yml' --sv "
+ },
+ {
+  "name": "termination-nla/cohencu4-both-t.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-nla/cohencu4-both-t.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/java_Continue1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/java_Continue1.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/ex3b.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/ex3b.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/java_Sequence.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/java_Sequence.yml' --sv "
+ },
+ {
+  "name": "termination-nla/dijkstra1-both-t.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-nla/dijkstra1-both-t.yml' --sv "
+ },
+ {
+  "name": "termination-nla/ps3-both-t.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-nla/ps3-both-t.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/b.17.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.17.yml' --sv "
+ },
+ {
+  "name": "termination-nla/ps2-both-t.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-nla/ps2-both-t.yml' --sv "
+ },
+ {
+  "name": "termination-nla/sqrt1-both-t.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-nla/sqrt1-both-t.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/b.09-no-inv_assume.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.09-no-inv_assume.yml' --sv "
+ },
+ {
+  "name": "termination-nla/ps4-both-t.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-nla/ps4-both-t.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/b.14.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.14.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/GCD4.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/GCD4.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/GCD3.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/GCD3.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/MinusUserDefined.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/MinusUserDefined.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/ex3a.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/ex3a.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/McCarthyIterative.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/McCarthyIterative.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/b.13.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.13.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/c.08.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/c.08.yml' --sv "
+ },
+ {
+  "name": "termination-nla/ps5-both-t.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-nla/ps5-both-t.yml' --sv "
+ },
+ {
+  "name": "termination-nla/ps6-both-t.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-nla/ps6-both-t.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/c.03.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/c.03.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/c.01_assume.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/c.01_assume.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/a.01.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/a.01.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/java_Nested.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/java_Nested.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/c.02.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/c.02.yml' --sv "
+ },
+ {
+  "name": "termination-restricted-15/c.01-no-inv.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/c.01-no-inv.yml' --sv "
+ },
+ {
+  "name": "termination-nla/hard2-both-t.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-nla/hard2-both-t.yml' --sv "
+ }
+]

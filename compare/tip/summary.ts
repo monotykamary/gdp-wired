@@ -1,4 +1,5 @@
-// The run's tables: `bun compare/tip/summary.ts runs/modal/tip/<name> [--md]`. Per tool, over the TIP 2015 theorems
+// The run's tables: `bun compare/tip/summary.ts runs/modal/tip/<name> [<dir> ...]`, each later directory giving the rows of
+// the tools the ones before it don't have (a gdp-wired run beside another run's cvc5 and Vampire). Per tool, over the TIP 2015 theorems
 // (isaplanner, prod, tip2015, grammars: every one true) and apart over `false/` (every one false): proven, refuted,
 // wrong (a refutation of a theorem, a proof of a false one), the rest. For gdp-wired, the translation's coverage (the
 // reasons refused, the changes to the statement), and every tool again on the tasks gdp-wired translated.
@@ -6,8 +7,11 @@ import {readFileSync} from 'node:fs'
 
 type Stage = Record<string, unknown> & {stage?: string}
 type Row = {tool: string, task: string, answer: string, seconds: number, stages?: Stage[], err?: string}
-const dir = process.argv[2]!
-const rows: Row[] = readFileSync(`${dir}/results.jsonl`, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l))
+const rows: Row[] = []
+for (const dir of process.argv.slice(2).filter(a => !a.startsWith('--'))) {
+  const had = new Set(rows.map(r => r.tool))
+  rows.push(...readFileSync(`${dir}/results.jsonl`, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l) as Row).filter(r => !had.has(r.tool)))
+}
 const tools = ['gdp', 'cvc5', 'cvc5cg', 'vampire', 'gdptr'].filter(t => rows.some(r => r.tool === t))
 const names: Record<string, string> = {gdp: 'gdp-wired (proveData)', cvc5: 'cvc5 1.4.2 --quant-ind', cvc5cg: 'cvc5 1.4.2 --quant-ind --conjecture-gen', vampire: 'Vampire 5.1.0 (induction schedule)', gdptr: 'gdp-wired (translation only)'}
 const isFalse = (t: string) => t.startsWith('false/')
@@ -26,9 +30,13 @@ const table = (title: string, keep: (r: Row) => boolean, theorems: boolean) => {
   console.log(`| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |`)
   for (const tool of tools.filter(t => t !== 'gdptr')) {
     const rs = rows.filter(r => r.tool === tool && keep(r)), k = (a: string) => rs.filter(r => r.answer === a).length
-    const right = rs.filter(r => r.answer === (theorems ? 'proven' : 'refuted')), wrong = rs.filter(r => r.answer === (theorems ? 'refuted' : 'proven'))
+    // gdp-wired's refutation of a theorem is the statement false as TIP writes it: solve.ts answers refuted only where
+    // TIP's own evaluator confirms the counterexample breaks the goal (listed apart, not counted wrong)
+    const confirmed = (r: Row) => tool === 'gdp' && theorems && r.answer === 'refuted'
+    const right = rs.filter(r => r.answer === (theorems ? 'proven' : 'refuted')), wrong = rs.filter(r => r.answer === (theorems ? 'refuted' : 'proven') && !confirmed(r))
     console.log(`| ${names[tool]} | ${k('proven')} | ${k('refuted')} | ${wrong.length} | ${right.length} | ${right.length ? median(right.map(r => r.seconds)).toFixed(2) : '-'} | ${k('unknown')} | ${k('timeout')} | ${k('unsupported')} | ${k('error')} |`)
     for (const w of wrong) console.log(`  WRONG ${tool} ${w.task}: ${w.answer}`)
+    for (const w of rs.filter(confirmed)) console.log(`  FALSE AS TIP WRITES IT (refuted, TIP's evaluator confirms) ${w.task}`)
   }
 }
 const gdp = rows.filter(r => r.tool === 'gdp' || r.tool === 'gdptr')
@@ -50,7 +58,7 @@ for (const [set, keep] of [['theorems', (t: string) => !isFalse(t)], ['false/', 
   console.log('  statement changes among the translated:', count(tr, r => changesOf(r).join(' + ') || 'none'))
   console.log('  refused:', count(rs.filter(r => r.answer === 'unsupported'), r => why(r).replace(/: (F\d+_)?\S+: not structural.*/, '').replace(/F\d+_/g, '')))
   const nonstruct = rs.filter(r => /not structural/.test(why(r)))
-  if (nonstruct.length) console.log('  not structural, by function:', count(nonstruct, r => why(r).match(/F\d+_(\S+?):/)?.[1] ?? '?'))
+  if (nonstruct.length) console.log('  recursion not taken, by function:', count(nonstruct, r => why(r).match(/F\d+_(\S+?):/)?.[1] ?? '?'))
   for (const r of rs.filter(r => r.answer === 'error')) console.log(`  error ${r.task}: ${why(r) || r.err?.slice(-200)}`)
 }
 

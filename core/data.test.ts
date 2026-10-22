@@ -1,10 +1,11 @@
 // Recursive datatypes as values (core/data.ts): the functions run as written, laws proven by cyclic proofs the search
 // finds (checked again by the kernel), broken variants refused with a value that breaks them, a definition that isn't
-// structural recursion refused, and a tampered proof refused by the kernel.
+// structural recursion refused unless its termination is proven (a measure every call lowers, each call's obligation
+// proven by the kernel), and a tampered proof refused by the kernel.
 import {expect, test} from 'bun:test'
 import {type Bool, type Nat, type Val, EvalLimit, data, define, evalX, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, when} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
-import {Bag, Forest, List, Rose, Tree, app, broken, laws, leq, len, mir, rev, same, sorted, ins, through as through_, throughBroken} from '../examples/data.ts'
+import {Bag, Forest, List, Rose, Tree, a3, app, broken, ilv, laws, leq, len, merge, mir, mrg, nonterminating, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken} from '../examples/data.ts'
 
 const list = (...xs: number[]): {c: number, f: unknown[]} => xs.reduceRight<{c: number, f: unknown[]}>((t, h) => ({c: 1, f: [h, t]}), {c: 0, f: []})
 const run = (call: {x: unknown}, env: Record<string, unknown>) => evalX(call.x as never, new Map(Object.entries(env)) as never, {})
@@ -85,6 +86,38 @@ test('laws over the new shapes: proven and checked by the kernel; their broken v
   }
   for (const mk of [broken.roseSumFlatten, broken.roseSizeMirror, broken.bagLength, broken.replicateLength, broken.takeDrop, broken.bstInsertAny]) expect(proveData(mk()).counterexample).toBeDefined()
 })
+
+test('well-founded recursion: a measure found, and each call proven to lower it (every obligation checked by the kernel)', () => {
+  for (const [f, text] of [[mrg, '(size(xs), size(ys))'], [ilv, 'size(xs) + size(ys)'], [a3, '(x, y)'], [qsort, 'size(xs)'], [merge('stated'), 'size(xs) + size(ys)']] as const) {
+    const t = f.fn.termination!
+    expect(t.text).toBe(text)
+    expect(t.obligations.length).toBeGreaterThan(0)
+    for (const o of t.obligations) expect(o.proof?.proven && checkCyclic(o.proof.proof)).toBe(true)
+  }
+  // qsort's calls are on filters of the tail: each obligation by the filter's own recursion
+  expect(qsort.fn.termination!.obligations.map(o => o.scheme)).toEqual([expect.stringMatching(/^recursion of atMost/), expect.stringMatching(/^recursion of above/)])
+  expect(showValue(List, run({x: {op: 'call', fn: 'qsort', args: [{op: 'var', name: 'xs'}]}}, {xs: list(3, 1, 2, 1)}) as never)).toBe('cons(1, cons(1, cons(2, cons(3, nil))))')
+  expect(showValue(List, run({x: {op: 'call', fn: 'merge', args: [{op: 'var', name: 'xs'}, {op: 'var', name: 'ys'}]}}, {xs: list(1, 4), ys: list(2, 3)}) as never)).toBe('cons(1, cons(2, cons(3, cons(4, nil))))')
+}, 60_000)
+
+test('a definition that does not terminate is refused with its reason, and no law about it is read', () => {
+  const up: ReturnType<typeof define> = define('up', {x: natural}, natural, ({x}) => (up(x) as Nat).plus(1))
+  // f(x) = f(x) + 1 has no model: were its equation a fact, x = 0 would follow
+  expect(() => proveData(law('up is 0', {x: natural}, ({x}) => (up(x) as Nat).eq(0)))).toThrow(/no measure is proven to fall at every call/)
+  for (const mk of Object.values(nonterminating)) expect(refusal(mk)).toMatch(/no measure is proven to fall at every call/)
+  expect(refusal(nonterminating.mergeStatedWrong)).toMatch(/a measure is given.*size\(xs\): a call of its runs doesn't lower it/)
+}, 60_000)
+
+test('laws over well-founded functions: by the function\'s own recursion, ranked by its measure; broken variants refused', () => {
+  const l = laws.interleaveLength(), s = schemesOf(programOf([l]), l).find(x => x.name === 'recursion of interleave on xs, ys')!
+  expect(s.uses.length).toBe(1)
+  for (const l2 of [laws.interleaveLength(), laws.add3acc()]) {
+    const v = proveData(l2)
+    expect(v.proven && v.checked && v.proof?.proven && checkCyclic(v.proof.proof)).toBe(true)
+    expect(v.scheme).toMatch(/^recursion of (interleave|add3acc)/)
+  }
+  for (const mk of [broken.mergeLength, broken.add3acc]) expect(proveData(mk()).counterexample).toBeDefined()
+}, 60_000)
 
 test('a law through the built-ins: its bridges proven first, a copy of a function over them proven its copy, the law read back; checked by the kernel', () => {
   for (const [mk, through] of [[through_.leqPlus, ['leq is ≤', 'plus is +']], [through_.geqSelf, ['leq is ≤', 'unfolded: geq']], [through_.occursCons, ['same is =', 'occurs is occurs_bi']]] as const) {

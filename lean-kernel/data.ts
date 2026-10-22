@@ -7,13 +7,15 @@
 //     `mutual` blocks (its inductives, then its sizes, codes, decodings and the two inverses), its decoding well-founded
 //     by (group size + 1)·n + its order (core/data.ts's weakOrder: a datatype decoding n at fields up to n after those)
 //   - each function by pattern matching, as written (Lean checks the recursion is structural; functions calling each
-//     other in one `mutual` block)
+//     other in one `mutual` block); a well-founded one (core/data.ts's `termination`) with `termination_by` its measure
+//     (Data.lean's `Lx`, ordered by `lexLt`, where it has several components) and `decreasing_by` omega, each match's
+//     equation named (`match _h1 : x with`) so the decrease reads the case, an if's condition read as Lean gives it
 //   - the model: each map of the encoding as the meaning the facts say it has (a function's map at a key: the function
 //     at the arguments the key pairs, decoded, its value encoded)
 //   - that every fact of the proof holds of the model, each by unfolding and cases on the values it reads
 //   - the law, about the Lean definitions, from cyclic_sound at the law's node
 import type {Cyclic} from '../kernel/cyclic.ts'
-import {type Ctor, type Data, type DataLaw, type FieldSort, type Fn, type Program, type X, type Y, ctorMap, divMap, fieldMap, isDataField, modMap, negMap, posMap, sizeMap, tagMap, weakOrder} from '../core/data.ts'
+import {type Ctor, type Data, type DataLaw, type FieldSort, type Fn, type Measure, type Program, type X, type Y, ctorMap, divMap, fieldMap, isDataField, modMap, negMap, posMap, sizeMap, tagMap, weakOrder} from '../core/data.ts'
 
 const name = (s: string) => s.replace(/#(\d+)$/, '_$1').replace(/[^A-Za-z0-9_']/g, '_')
 // The function parameters a function reads, through those it calls.
@@ -41,6 +43,9 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
     const sortLean = (s: unknown) => (s === 'nat' ? 'Nat' : s === 'bool' ? 'Bool' : s === 'int' ? 'Int' : (s as Data).name)
     // An integer's code (core/data.ts's zigzag), and back: Z.enc and Z.dec, defined below where the program reads one.
     const encOf = (s: unknown, v: string) => (s === 'nat' || s === 'bool' ? v : s === 'int' ? `Z.enc ${v}` : `${(s as Data).name}.enc ${v}`)
+    // Within a well-founded function's body: its matches' equations, numbered.
+    let hyps: {n: number} | undefined
+    const hyp = () => (hyps ? `_h${++hyps.n} : ` : '')
     // Terms.
     const lx = (x: X, names: Map<string, string>): string => {
       switch (x.op) {
@@ -62,12 +67,13 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
         case 'if': return `(if ${ly(x.c, names)} then ${lx(x.then, names)} else ${lx(x.else, names)})`
         case 'bool': return ly(x.c, names)
         case 'apply': return `(${name(x.param)} ${lx(x.arg, names)})`
+        case 'size': return `(${x.data}.size ${lx(x.of, names)})`
         case 'call': return `(${x.fn}${(fparams.get(x.fn) ?? []).map(q => ` ${name(q)}`).join('')}${x.args.map(a => ` ${lx(a, names)}`).join('')})`
         case 'ctor': { const d = dataOf(x.data), c = d.ctors[x.ctor]!; return x.args.length ? `(${d.name}.${c.name}${x.args.map(a => ` ${lx(a, names)}`).join('')})` : `${d.name}.${c.name}` }
-        case 'natmatch': return `(match ${lx(x.of, names)} with | 0 => ${lx(x.zero, names)} | ${name(x.pred)} + 1 => ${lx(x.succ, names)})`
+        case 'natmatch': return `(match ${hyp()}${lx(x.of, names)} with | 0 => ${lx(x.zero, names)} | ${name(x.pred)} + 1 => ${lx(x.succ, names)})`
         case 'match': {
           const d = dataOf(x.data)
-          return `(match ${lx(x.of, names)} with ${x.cases.map((c, j) => `| .${d.ctors[j]!.name}${c.binds.map(b => ` ${name(b)}`).join('')} => ${lx(c.body, names)}`).join(' ')})`
+          return `(match ${hyp()}${lx(x.of, names)} with ${x.cases.map((c, j) => `| .${d.ctors[j]!.name}${c.binds.map(b => ` ${name(b)}`).join('')} => ${lx(c.body, names)}`).join(' ')})`
         }
       }
     }
@@ -161,8 +167,33 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
     // The functions, as declared: those of a ring (calling each other) in one `mutual` block, where its last is.
     const fnDef = (f: Fn) => {
       const names = new Map(f.params.map(q => [`${f.name}.${q.name}`, name(q.name)]))
-      return `def ${f.name}${(fparams.get(f.name) ?? []).map(q => ` (${name(q)} : Nat → Nat)`).join('')}${f.params.map(q => ` (${name(q.name)} : ${sortLean(q.sort)})`).join('')} : ${sortLean(f.ret)} :=\n  ${lx(f.body(), names)}`
+      const m = f.decreases === undefined ? f.measure : undefined
+      hyps = m && {n: 0}
+      const body = lx(f.body(), names)
+      hyps = undefined
+      const head = `def ${f.name}${(fparams.get(f.name) ?? []).map(q => ` (${name(q)} : Nat → Nat)`).join('')}${f.params.map(q => ` (${name(q.name)} : ${sortLean(q.sort)})`).join('')} : ${sortLean(f.ret)} :=\n  ${body}`
+      if (!m) return head
+      // The measure, each component Σ coef·size + c (its negative part subtracted, as the kernel reads it).
+      const comp = (c: Measure['comps'][number]) => {
+        const term = (i: number) => { const q = f.params[i]!, t = q.sort === 'nat' ? name(q.name) : `(${(q.sort as Data).name}.size ${name(q.name)})`, k = Math.abs(c.coef[i]!); return k === 1 ? t : `${k} * ${t}` }
+        const pos = [...c.coef.flatMap((k, i) => (k > 0 ? [term(i)] : [])), ...(c.c > 0 ? [String(c.c)] : [])], neg = [...c.coef.flatMap((k, i) => (k < 0 ? [term(i)] : [])), ...(c.c < 0 ? [String(-c.c)] : [])]
+        const sum = (ts: string[]) => (ts.length ? ts.join(' + ') : '0')
+        return neg.length ? `(${sum(pos)} - (${sum(neg)}))` : `(${sum(pos)})`
+      }
+      const sizes = p.datas.map(d => `, ${d.name}.size`).join(''), lemmas = decLemmas(f)
+      const withLemmas = lemmas.length ? ` | (${lemmas.map(l => `have := @${l.name}`).join('; ')}; simp_all [lexLt${sizes}] <;> omega)` : ''
+      return `${lemmas.map(l => `${l.text}\n\n`).join('')}${head}\ntermination_by ${m.comps.length === 1 ? comp(m.comps[0]!) : `Lx.mk [${m.comps.map(comp).join(', ')}]`}\ndecreasing_by all_goals first | (simp_all [lexLt${sizes}] <;> omega) | omega${withLemmas}`
     }
+    // A well-founded function's obligations that read other functions (a call on a filter of the tail), each a lemma
+    // about the Lean definitions before it, by induction on the variable the kernel's proof inducted on (where it did),
+    // then the definitions unfolded, each if split, omega.
+    const decLemmas = (f: Fn): {name: string, text: string}[] => (f.termination?.obligations ?? []).flatMap((o, i) => {
+      if (!JSON.stringify(o.law.holds).includes('"op":"call"')) return []
+      const names = new Map(o.law.vars.map(v => [v.name, name(v.name)]))
+      const on = o.scheme?.match(/ on ([^,]+)/)?.[1], fnSimp = p.fns.filter(g => g.name !== f.name).map(g => g.name).join(', ')
+      const close = `(try simp only [${fnSimp}] at *) <;> (repeat' split) <;> (try simp only [${p.datas.map(d => `${d.name}.size`).join(', ')}] at *) <;> omega`
+      return [{name: `${f.name}_dec${i + 1}`, text: `theorem ${f.name}_dec${i + 1}${o.law.vars.map(v => ` (${name(v.name)} : ${sortLean(v.sort)})`).join('')} :\n    ${lp(o.law.holds, names)} := by\n  ${on && names.has(on) ? `induction ${names.get(on)} <;> ` : ''}${close}`}]
+    })
     for (const [i, f] of p.fns.entries()) {
       const ring = p.fns.filter(g => f.ring.includes(g.name))
       if (ring.length < 2) { out.push(fnDef(f)); continue }
@@ -221,8 +252,11 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
       const depth = 2
       const casePat = (D: string, dd: number): string => { const d = dataOf(D); return dd <= 0 ? '_' : d.ctors.map(c => (c.fields.length ? `⟨${c.fields.map(fl => (isDataField(fl.sort) ? casePat(fl.sort.data, dd - 1) : '_')).join(', ')}⟩` : '_')).join(' | ') }
       // A function recursing on a natural: that argument as 0 or m + 1 (where its match is decided).
-      const fnOfFact = kind === 'fn' ? p.fns.find(g => g.name === f.name.slice(3)) : undefined, natDec = fnOfFact?.decreases !== undefined && fnOfFact.params[fnOfFact.decreases]!.sort === 'nat' ? keys[fnOfFact.decreases] : undefined
-      const cases = [...(natDec ? [`rcases hn : vals ${natDec.v} with _ | m`] : []), ...keys.filter(x => x.s !== 'nat' && x.s !== 'Z').map(x => `rcases ${x.x} with ${casePat(x.s, depth)}`)]
+      // (a well-founded one: each natural it matches on)
+      const fnOfFact = kind === 'fn' ? p.fns.find(g => g.name === f.name.slice(3)) : undefined
+      const natSplit = !fnOfFact ? [] : fnOfFact.decreases !== undefined ? (fnOfFact.params[fnOfFact.decreases]!.sort === 'nat' ? [fnOfFact.decreases] : [])
+        : fnOfFact.measure ? fnOfFact.params.flatMap((q, j) => (q.sort === 'nat' && JSON.stringify(fnOfFact.body()).includes(`"op":"natmatch","of":{"op":"var","name":${JSON.stringify(`${fnOfFact.name}.${q.name}`)}}`) ? [j] : [])) : []
+      const cases = [...natSplit.map((j, q) => `rcases hn${q || ''} : vals ${keys[j]!.v} with _ | m${q || ''}`), ...keys.filter(x => x.s !== 'nat' && x.s !== 'Z').map(x => `rcases ${x.x} with ${casePat(x.s, depth)}`)]
       void i
       return `${head}\n${obtain.join('\n')}${obtain.length ? '\n' : ''}    simp [${[...rw, 'model', 'unpk_fst', 'unpk_snd', 'unpk_sq_fst', 'unpk_sq_snd', 'unpk_sqb_fst', 'unpk_sqb_snd'].join(', ')}]\n${cases.length ? `    ${cases.join(' <;> ')}\n` : ''}    all_goals (simp [${[fnSimp, dataSimp].filter(Boolean).join(', ')}])\n    all_goals (try split) <;> (try simp_all) <;> (try omega)\n    all_goals (try split) <;> (try simp_all) <;> (try omega)${usesInt ? '\n    all_goals (simp only [Z.enc] at *; (repeat\' split) <;> omega)' : ''}`
     })

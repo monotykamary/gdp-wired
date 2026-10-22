@@ -1,0 +1,137 @@
+[
+ {
+  "name": "cycle/McCarthy's 91",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/McCarthy'\\''s 91'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/Ackermann",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/Ackermann'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/gcd by subtraction",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/gcd by subtraction'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/an accumulator",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/an accumulator'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/two accumulators",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/two accumulators'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/three functions in a ring",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/three functions in a ring'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/one function read through another",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/one function read through another'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/an exchange",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/an exchange'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/counting up to a square",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/counting up to a square'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/loop: two phases",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/loop: two phases'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/loop: three phases",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/loop: three phases'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/loop: every other turn",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/loop: every other turn'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/loop: gcd by subtraction",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/loop: gcd by subtraction'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/loop: a triangle",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/loop: a triangle'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/loop: an exchange",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/loop: an exchange'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/loop: counting up to a product",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/loop: counting up to a product'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/rule: ninety-one",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/rule: ninety-one'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/rule: doubling",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/rule: doubling'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/rule: capped fill",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/rule: capped fill'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/liveness: batches: every batch gets done",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/liveness: batches: every batch gets done'",
+  "timeout": 600
+ },
+ {
+  "name": "cycle/liveness: pipeline: every job ships",
+  "cmd": "bun research/table/frontier.ts --item 'cycle/liveness: pipeline: every job ships'",
+  "timeout": 600
+ },
+ {
+  "name": "lemma/retry with backoff",
+  "cmd": "bun research/table/frontier.ts --item 'lemma/retry with backoff'",
+  "timeout": 600
+ },
+ {
+  "name": "lemma/two by two",
+  "cmd": "bun research/table/frontier.ts --item 'lemma/two by two'",
+  "timeout": 600
+ },
+ {
+  "name": "lemma/leftover ledger",
+  "cmd": "bun research/table/frontier.ts --item 'lemma/leftover ledger'",
+  "timeout": 600
+ },
+ {
+  "name": "lemma/escalation",
+  "cmd": "bun research/table/frontier.ts --item 'lemma/escalation'",
+  "timeout": 600
+ },
+ {
+  "name": "lemma/area",
+  "cmd": "bun research/table/frontier.ts --item 'lemma/area'",
+  "timeout": 600
+ },
+ {
+  "name": "lemma/pyramid",
+  "cmd": "bun research/table/frontier.ts --item 'lemma/pyramid'",
+  "timeout": 600
+ }
+]

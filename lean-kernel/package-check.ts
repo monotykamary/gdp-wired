@@ -115,6 +115,9 @@ const dataItems: Record<string, [() => DataLaw, string]> = {
   // Integers (Lean's Int) and remainders in the datatype language (examples/arith.ts).
   dataintfirst: [() => arithDataLaws.firstOfCons(), 'first_cons'], datainttwice: [() => arithDataLaws.twiceLess(), 'twice_less'],
   dataeuclid: [() => arithDataLaws.euclid(), 'int_euclid'], dataevensum: [() => arithDataLaws.evenSum(), 'even_sum'],
+  datamerge: [() => dataLaws.mergeLength(), 'len_merge'],
+  datainterleave: [() => dataLaws.interleaveLength(), 'len_interleave'], dataadd3acc: [() => dataLaws.add3acc(), 'add3acc_sum'],
+  datamergestated: [() => dataLaws.mergeStated(), 'len_merge_stated'], dataqsort: [() => dataLaws.qsortSingle(), 'qsort_single'],
   // through the built-ins (core/transfer.ts): the bridges and the copies' laws nodes of the one proof
   databridge: [() => throughLaws.leqPlus(), 'leq_plus'], datainline: [() => throughLaws.geqSelf(), 'geq_self'],
   dataoccurs: [() => throughLaws.occursCons(), 'occurs_cons'], datacases: [() => throughLaws.leqZero(), 'leq_zero'],
