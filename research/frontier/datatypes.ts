@@ -10,6 +10,7 @@ import type {Verdict} from '../../core/dsl.ts'
 import {type DataLaw, type DataVerdict, codeValues, encY, factsOf, orderFacts, programOf, proveData} from '../../core/data.ts'
 import {findCycles} from '../../core/cycles.ts'
 import {broken, laws} from '../../examples/data.ts'
+import {intWalls} from '../../examples/arith.ts'
 import type {Item} from './corpus.ts'
 
 const asVerdict = (v: DataVerdict): Verdict => ({proven: v.proven, checked: v.checked, ...(v.goal ? {goal: v.goal, stuck: v.stuck} : {}),
@@ -24,6 +25,8 @@ function today(l: DataLaw): Verdict {
 const frontier = (l: DataLaw): Verdict => asVerdict(proveData(l))
 
 export const dataItems: Item[] = [
+  // Integers (core/data.ts's integer sort) through recursion.
+  ...Object.entries(intWalls).map(([name, mk]): Item => ({id: `datatype/integers/${name}`, track: 'datatype', removed: 'the induction and any lemma', today: () => today(mk()), frontier: () => frontier(mk())})),
   ...Object.entries(laws).map(([name, mk]): Item => ({id: `datatype/${name}`, track: 'datatype', removed: 'the induction (which argument, where each cycle returns, the rank) and any lemma',
     today: () => today((mk as () => DataLaw)()), frontier: () => frontier((mk as () => DataLaw)())})),
   ...Object.entries(broken).map(([name, mk]): Item => ({id: `datatype/${name} (broken)`, track: 'datatype', removed: 'the induction and any lemma', broken: `datatype/${name}`,

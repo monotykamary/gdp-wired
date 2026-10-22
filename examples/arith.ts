@@ -56,6 +56,15 @@ const I = (v: unknown) => v as Integer, N = (v: unknown) => v as Nat, L = (v: un
 export const IntList = data('IntList', {nil: {}, cons: {head: integer, tail: self}})
 export const first = define('first', {xs: IntList}, integer, ({xs}) => L(xs).match({nil: () => 0, cons: ({head}) => I(head)}))
 export const twice = define('twice', {x: integer}, integer, ({x}) => I(x).plus(x))
+// Integer arithmetic through recursion: the total of a list of integers, of its negation and of an append (walls of
+// research/frontier/datatypes.ts: each decoded and written back as a code at every call, past the search's budget).
+export const total = define('total', {xs: IntList}, integer, ({xs}) => L(xs).match({nil: () => 0, cons: ({head, tail}) => I(head).plus(I(total(tail)))}))
+export const negateAll = define('negateAll', {xs: IntList}, IntList, ({xs}) => L(xs).match({nil: () => IntList.nil as Val, cons: ({head, tail}) => IntList.cons(I(head).negate(), negateAll(tail))}))
+export const appendInts = define('appendInts', {xs: IntList, ys: IntList}, IntList, ({xs, ys}) => L(xs).match({nil: () => L(ys), cons: ({head, tail}) => IntList.cons(head, appendInts(tail, ys))}))
+export const intWalls = {
+  totalNegation: (): DataLaw => law('the total of the negated list is the negated total', {a: IntList}, ({a}) => I(total(negateAll(a))).eq(I(total(a)).negate())),
+  totalAppend: (): DataLaw => law('the total of an append is the sum of the totals', {a: IntList, b: IntList}, ({a, b}) => I(total(appendInts(a, b))).eq(I(total(a)).plus(I(total(b))))),
+}
 export const dataLaws = {
   firstOfCons: (): DataLaw => law('the first of x + 1 before a list is x + 1', {x: integer, l: IntList}, ({x, l}) => I(first(IntList.cons(I(x).plus(1), l))).eq(I(x).plus(1))),
   twiceLess: (): DataLaw => law('twice x less x is x', {x: integer}, ({x}) => I(twice(x)).minus(x).eq(x)),
