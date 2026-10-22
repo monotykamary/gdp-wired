@@ -19,7 +19,7 @@ import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type M
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
 import {someHolds, substVars} from './exists.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type StepLaw, type Tree, check, foldObligations, loopObligations} from '../kernel/kernel.ts'
-import {factsFor, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline} from '../kernel/prove.ts'
+import {certLoop, factsFor, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
@@ -2531,10 +2531,17 @@ export function crossCheckDecision(d: Decision, opts: {trials?: number, bound?: 
 }
 // With no rank stated, the rank is searched for from the loop's runs (core/cycles.ts's findRank), with the invariants it
 // needs (inferLaws), within `ms` (10 s); the verdict is the kernel's on the rank and the laws found, in `found`.
+// The certificate, by default, is the cyclic proof of its halting goals (kernel/prove.ts's certLoop, translated from the
+// usual trees, which are then its input and not checked again); where none is made, the usual trees, checked.
 export const proveLoop = (l: LoopRule<Obj, Obj, Obj>, laws: Law[], opts: {ms?: number} = {}): Verdict => {
-  if (cyclicOn() || certOn()) uncovered('loop', l.loop.name, 'a claim about runs that never end')
-  if (l.hasRank) return goalsVerdict(loopObligations(l.loop, laws, l.rankTerms))
-  const out = findRank(l.loop, laws, opts)
+  if (l.hasRank) {
+    const t0 = performance.now(), goals = loopObligations(l.loop, laws, l.rankTerms), v = goalsVerdict(goals, !certOn())
+    if (!v.proven) return v
+    const c = certLoop(l.loop, laws, l.rankTerms, v.trees!, performance.now() - t0)
+    return c && !c.checked && certOn() ? {...v, checked: goals.every(g => check(g, v.trees![g.name]!))} : v
+  }
+  const t0 = performance.now(), out = findRank(l.loop, laws, opts)
+  if (out.proven && out.checked && out.rank && out.trees) certLoop(l.loop, [...laws, ...(out.laws ?? [])], out.rank, out.trees, performance.now() - t0)
   return {proven: out.proven, checked: out.checked, ...(out.trees ? {trees: out.trees} : {}), ...(out.goal ? {goal: out.goal, stuck: out.stuck} : {}), ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {}),
     ...(out.found ? {found: {rank: out.found.rank, ...(out.laws?.length ? {laws: out.laws.map((law, i) => ({law, text: out.found!.laws[i] ?? law.name}))} : {})}} : {})}
 }

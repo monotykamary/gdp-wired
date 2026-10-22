@@ -36,6 +36,9 @@
 //     tree carried on its goal sliced first).
 //   - a machine with flags that hold at every key is read as its sk machine, the usual goals' closing hypotheses the
 //     closing facts at their time (`qflagFacts`); a request allowed (`allowTranslated`) two nodes after the laws'.
+//   - a loop's halting (`loopNodes`): its machine's laws and its liveness's step laws as above (kernel.ts's
+//     loopObligations); a liveness's certificate is its step laws' proof and its helpful requests' allowed nodes, the
+//     claim about runs that never end read from them as from the usual trees (kernel/prove.ts's proveLiveness).
 //   - recurrences, lemmas n, laws between b: nodes 0..n+b−1 as above (their trees made), using also node 2n + 2b + i
 //     (the lemma at the start, guard x <= 0; a law between at y = x, guard y <= x); nodes n + b.. the lemma (law between)
 //     after a step, the usual step goal with x as x − 1, fx as f(x − 1) (y, fy likewise, fx as f(x)); then the start
@@ -51,8 +54,8 @@
 // research/cyclic/ratios.ts reads; GDP_CYCLIC_PROF=1, where each proof's time went; GDP_CYCLIC_SLICE=0, every goal grown
 // whole; GDP_CYCLIC_DEBUG=1, each goal grown.
 import type {C, E, Law, Machine} from './machine.ts'
-import type {Fold, Goal, Instances, StepLaw, Subst, Tree} from '../kernel/kernel.ts'
-import {assumed, boundOf, foldObligations, obligations, substC, substE, witnessesOf} from '../kernel/kernel.ts'
+import type {Fold, Goal, Instances, Loop, StepLaw, Subst, Tree} from '../kernel/kernel.ts'
+import {assumed, boundOf, foldObligations, livenessParts, loopLiveness, loopMachine, loopObligations, obligations, stepLawObligations, substC, substE, witnessesOf} from '../kernel/kernel.ts'
 import {type CNode, type Cyclic, type Fact, type Use, baseHyps, descentGoal, instHyps, mainGoal, premiseGoal, refuseCyclic} from '../kernel/cyclic.ts'
 import {cellProducts, clock, grow, profile, usedHyps, widen, withDeadline, withinDeadline} from '../kernel/prove.ts'
 import {type Reads, type Renamer, type TStats, carry, decide, readsFirst, renamer, translate, tstats} from './translate.ts'
@@ -525,6 +528,18 @@ export const uncoveredWhy = (m: Machine, laws: Law[] = []): string | undefined =
   const maps = Object.keys(m.maps ?? {})
   const nested = (t: unknown): boolean => { let found = false; const walk = (x: unknown, inKey: boolean): void => { if (found || !x || typeof x !== 'object') return; const o = x as Record<string, unknown>; if (o.op === 'get' && inKey && maps.includes(o.map as string)) { found = true; return } if (o.op === 'get') { walk(o.key, true); return } for (const val of Object.values(o)) walk(val, inKey) }; walk(t, false); return found }
   return m.history ? 'a history' : laws.some(l => nested(l.holds)) ? 'a law reading a map at a key read from a map' : undefined
+}
+
+// A loop's halting as a machine's (kernel.ts's loopObligations: the loop's machine, its laws, and its liveness's step
+// laws: each turn stays or gets there, the rank kept only with its region; some region holds; each turn, helpful, gets
+// there or lowers the rank), its usual trees given: the laws' nodes and the step laws' after them, as machineNodes
+// translates any machine's step laws (each law's instances none: a loop's laws are about no key).
+export function loopNodes(l: Loop, laws: Law[], rank: E | E[], trees: Record<string, Tree>, st: TStats = tstats()): {facts: Fact[], specs: NodeSpec[], why?: string} {
+  loopObligations(l, laws, rank)
+  const m = loopMachine(l), {stay, cover, helps} = livenessParts(m, loopLiveness(l, rank)), instances = Object.fromEntries(laws.map(x => [x.name, {}]))
+  const lawGoals = obligations(m, laws, instances), steps = [stay, cover, ...helps].map(sl => { const goal = stepLawObligations(m, laws, {}, sl)[0]!; return {sl, inst: {}, goal, tree: trees[goal.name]!} })
+  if (lawGoals.some(g => !trees[g.name]) || steps.some(x => !x.tree)) return {facts: [], specs: [], why: 'a goal without its usual tree'}
+  return machineNodes(m, laws, instances, {trees: Object.fromEntries(lawGoals.map(g => [g.name, trees[g.name]!])), steps}, st)
 }
 
 // The run as maps over time: names at time u read as their maps there.

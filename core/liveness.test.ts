@@ -10,7 +10,10 @@ import {count, nat, rule, when} from './dsl.ts'
 import {allowed} from './watch.ts'
 
 test('every ticket is served: proven; the stalling variant refused', () => {
-  expect(proveLiveness(tickets().machine, ticketLaws(), everyTicket())).toMatchObject({proven: true, checked: true})
+  const v = proveLiveness(tickets().machine, ticketLaws(), everyTicket())
+  expect(v).toMatchObject({proven: true, checked: true})
+  // (by default its certificate is its parts' cyclic proofs, none on the usual rule; with GDP_CERT=usual, none is made)
+  expect(v.uncovered ?? []).toEqual([])
   const bad = tickets('stalls with two waiting')
   expect(proveLiveness(bad.machine, ticketLaws(bad), everyTicket(bad)).proven).toBe(false)
 })
