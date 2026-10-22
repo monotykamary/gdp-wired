@@ -132,8 +132,8 @@ through their plain machine, step laws and k-step laws (over a map too: a later 
 cells at t − k), requests allowed, recurrences and folds. Where a translation isn't made the usual trees are the
 certificate, checked as before, and the proof is counted uncovered with why; `GDP_CERT_SEARCH=1` searches those first,
 within `GDP_CERT_MS` (10,000 ms). The export searches within the same deadline. Left on the usual rule in
-`runs/modal/cover/final-default` (the suite by default): 6 machines (a law reading a map at a key read from a map), 12
-k-step laws (not translated), and the liveness (27) and loop (67) claims along infinite runs above.
+`runs/modal/cover/last-default` (the suite by default): 4 machines (a law reading a map at a key read from a map), 8
+k-step laws (not translated), and the liveness (36) and loop (79) claims along infinite runs above.
 
 **kernel.ts gap found here, since fixed:** `loopObligations` accepted ranks that read the turn's inputs. `forever`
 (state x from 0, input w, while x < w, x := x + 1, rank w ∸ x) passed kernel.ts's check, yet the loop runs forever when

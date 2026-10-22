@@ -1237,10 +1237,10 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
 }
 export const attemptMs = {ms: 8000}
 // A datatype search's budgets count work, not wall time (kernel/prove.ts's `counted`: the solver's rows and each node's),
-// 150 units a millisecond: a search finds the same proof on any machine, at any load. On Modal (2 vCPU) the corpus's
-// searches do 59 to 138 units a millisecond (`runs/modal/cover/cal2`), so a budget lets each do at least the work it
-// did there in wall time.
-const dataRate = 150
+// 300 units a millisecond: a search finds the same proof on any machine, at any load. On Modal (2 vCPU) the corpus's
+// searches do 50 to 263 units a millisecond (`runs/modal/cover/data3`, data-cal), so a budget lets each do at least the
+// work it did there in wall time.
+const dataRate = 300
 // A case node's instances, those its models reach: from every read of its conclusion and its uses' (and their guards),
 // through each instance at a read reached (a function's at its call, a constructor's at its cell, a shape or eta at a
 // value whose tag is read), the reads of what it gives where the models take it (an if's taken branch, an implication's
