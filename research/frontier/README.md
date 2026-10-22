@@ -37,13 +37,14 @@ their sibling laws (`walls.json`), examples/lemmas.ts's rules with no lemma, fol
 | fold | 3 | 0 | 3 |
 | nonlinear | 8 | 0 | 8 |
 | cycle | 21 | 0 | 21 |
-| datatype | 18 | 0 | 18 |
+| datatype | 23 | 0 | 23 |
 | exists | 2 | 0 | 2 |
-| all | 83 | 0 | 83 |
+| all | 88 | 0 | 88 |
 
 Now: the suite's `frontier-score` job, `runs/modal/ranks/suite1` (63 / 63, and the 22 broken variants of the cycle and
 lemma tracks refused; the cycle track's times: `runs/modal/ranks/corpus3`); the datatype track, its own `frontier-datatype-0..5` jobs, `runs/modal/dataplus/corpus1` (18 / 18, its 12 broken
-variants refused); the exists track (added after 0.20.0), `runs/modal/exists/frontier3` (2 / 2, 581 ms and 1,011 ms,
+variants refused), and with the well-founded items `runs/modal/wfrec/suite2` (23 / 23, its 18 broken variants and
+definitions that don't terminate refused); the exists track (added after 0.20.0), `runs/modal/exists/frontier3` (2 / 2, 581 ms and 1,011 ms,
 its broken variant refused; the prover alone proves neither). The last, `(Σx)² <= n·Σx²` over running samples, is proven by the prover multiplying the goal by n
 before the squares.
 
@@ -213,7 +214,8 @@ Not found:
 it, or one of a group declared together: `mutual({Rose: {node: {value: nat, kids: 'Forest'}}, Forest: {nil: {}, cons:
 {head: 'Rose', tail: 'Forest'}}})`), functions over it by structural recursion (`define`, checked: every call within a
 ring of functions calling each other passes a field of one parameter bound by a match, or the predecessor of a natural,
-`n.match({zero, succ: ({pred}) => ...})`), and laws about them (`law`); nothing else. Every natural is a value of each datatype (a bijection Lean's twin defines), so a value is a natural and two
+`n.match({zero, succ: ({pred}) => ...})`), or by well-founded recursion (a function whose calls are on any arguments,
+taken once a measure is proven to fall at each call: below), and laws about them (`law`); nothing else. Every natural is a value of each datatype (a bijection Lean's twin defines), so a value is a natural and two
 values are equal when they are the same natural; a datatype is read through maps (its tag, its fields, its size), a
 constructor with fields and a function of several arguments through maps read at the arguments' pairing
 ((a + b)² + b, as the library reads a function of several arguments). The facts: each datatype's shape (the tag one of
@@ -280,12 +282,39 @@ value's fields have smaller codes (so a rank linear in the codes exists). Each b
 | length(replicate n x) = n | not proven | proven, 139 ms | recursion of replicate on n |
 | append(take n xs, drop n xs) = xs | not proven | proven, 1,146 ms | recursion of take on n |
 | length(drop n xs) = length xs − n | not proven | proven, 3,639 ms | recursion of drop on n |
+| length(merge xs ys) = length xs + length ys (well-founded: (size xs, size ys)) | not proven | proven, 4,362 ms | recursion of merge on xs, ys |
+| length(interleave xs ys) = length xs + length ys (size xs + size ys) | not proven | proven, 1,321 ms | recursion of interleave on xs, ys |
+| add3acc x y z = x + y + z (an accumulator: (x, y)) | proven, 336 ms | proven, 132 ms | recursion of add3acc on x, y |
+| length(merge xs ys), the measure stated (size xs + size ys) | not proven | proven, 4,981 ms | recursion of mergeSum on xs, ys |
+| quicksort [x] = [x] (its calls on filters of the tail) | proven, 3,503 ms | proven, 3,351 ms | no induction |
 
 The 12 broken variants are refused by both, each with a value that breaks it (4 to 17 ms): an append that drops the
 head, a reverse that repeats it, a mirror that adds 1 to a value, an insertion that puts the item first, a search tree
 insertion that goes the wrong way, the search tree law with its hypothesis dropped (an insertion into any tree), a
 rose flatten that drops the node's value, a rose mirror that drops a tree, a concatenation that drops the first list,
 a replicate with one more, and a drop of one too many (in the law of take and drop and in the length after a drop).
+The well-founded items' rows are `runs/modal/wfrec/suite2`'s (the others `corpus1`'s), with 6 more variants refused by
+both: a merge that drops an item (108 ms) and an add3acc that forgets one (49 ms), each with a value that breaks it;
+and 4 definitions that don't terminate, refused before their law is read, the reason the measures tried (7 to 168 ms): a
+merge that calls itself on the same lists, an interleave that only swaps them, an add3acc that doesn't lower y, and the
+merge with the measure size xs stated, which its second call doesn't lower.
+
+**Well-founded recursion.** A function whose recursion isn't structural (one function; a ring of them must be
+structural) is taken once its termination is proven: a measure, a lexicographic tuple of components each a sum of
+parameters' sizes (a natural's itself, a datatype value's its size) plus a constant, the user's (`define(..., {measure:
+['xs', 'ys']})`) or the first of a parameter's size, a lexicographic pair or triple, a sum of two or all, and the LP's
+rank over the function's runs (core/cycles.ts's `ranksOfRuns`) that its runs don't contradict; then for each call, a law
+over the path's variables (a match on a variable is the variable at the case's constructor, an if's condition a
+hypothesis) that the measure at the call's arguments is below the measure at the parameters, proven by the kernel in a
+program without the function (one node first, the definitions unfolded once; else proveData's induction: a quicksort's
+call on a filter of the tail by the filter's own recursion). Only then is the function's equation a fact: its body reads
+it only below the argument's measure, so it has exactly one solution (Data.lean's `wf_fix_unique`), and `f(x) = f(x) + 1`
+(no solution) is refused. A law over it is tried by its own call graph (functional induction), each use at a recursive
+call's arguments under the call's path (its ifs too), ranked (level, the measure, 0 or 1). Lean: the function with
+`termination_by` the measure (`Lx`, a tuple ordered by `lexLt`) and `decreasing_by` omega over the match equations; an
+obligation that reads other functions a lemma before it, by induction on the variable the kernel inducted on
+(`dataqsort.qsort_dec1`). `datamerge.len_merge`, `datainterleave.len_interleave`, `dataadd3acc.add3acc_sum`,
+`datamergestated.len_merge_stated`, `dataqsort.qsort_single`: standard axioms only (`lean-data-7`, `runs/modal/wfrec/suite2`).
 
 The search tree's insertion was out before for want of a lemma's use, not of the lemma: with both lemmas given it
 stayed unproven, its search over at 183,819 ms with a case node satisfiable (`runs/modal/dataplus/prof1`, `bst-given-long`).
@@ -316,7 +345,9 @@ give it no edge; its back-edges go to every call the goal reads (`xs := append(x
 lean on the kernel's own congruence, which over pairing keys splits on products. The datatype search keeps its own
 cycle builder for that reason; the two share the kernel, `proveCyclic` and the corpus.
 
-Not found in general: a lemma past six symbols or of another shape than an equation or a kept predicate; an induction
+Not found in general: a termination whose decrease needs a lemma the obligations' search doesn't find without
+conjectures (a heap sort's `toList (hmerge p q)`, a bubble sort's passes, a merge sort's halves), nested recursion (a
+call in its own argument or condition), a ring of functions that isn't structural; a lemma past six symbols or of another shape than an equation or a kept predicate; an induction
 on a term no recursive call makes; a companion of a mutual induction that the functions' own calls don't lift the law
 to (a law reading a rose tree other than through functions recursing on it, or a function whose call at a forest isn't
 one call with its own parameters); a recursion through a ring of functions that is a recursion induction rather than a
