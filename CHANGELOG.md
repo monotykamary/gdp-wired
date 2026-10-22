@@ -101,11 +101,38 @@ of a machine's is Bridge.lean's (`cycCanon`); the law at t is still the node `cy
   under fairness, which no node's conclusion, a condition at one environment, states); progress (in reach as an allowed
   request and the step from it, but `ProgressHolds` is over the FMMachine twin and toLean doesn't export it); a history's
   pruning (the runtimes'); laws reading a map at a key read from a map (the bridge takes them, the builder leaves them).
-- The suite (`modal/suite.json`, 189 jobs) at this track's last commit: plain 441.7 s wall, 3,579.7 s of job time, one
-  failed (`infer`, a test's 5 s limit missed by 0.43 s; 3 of 3 again pass at 3.7 to 4.6 s, `runs/modal/cycexport/infer3`)
-  (`runs/modal/cycexport/final-plain`); with `--cert` (`GDP_CERT=cyclic`, the Lean package jobs exporting from cyclic
-  certificates) 782.6 s wall, 6,269.0 s of job time, none failed (`final-cert`), the difference mostly the resource
-  groups' exports (each searched about ten minutes, two of four then cyclic).
+- The export's search has a deadline (`GDP_CERT_MS`, 10,000 ms by default, kernel/prove.ts's `withDeadline`): where no
+  certificate is found within it the item is exported the usual way, `past the certificate's deadline` its why. In
+  `final2-cert` the resource groups (`groups0..3`) are all exported the usual way, export 48, 28, 38, 25 s and Lean 11,
+  8, 11, 8 s (against 429 to 576 s of export in `final-cert`, two of four then cyclic), and `scopes3` joins `normalform`
+  and `childuse` the usual way (62 of the 65 package items cyclic); `GDP_CERT_MS=600000` gives the longer search back.
+- `GDP_CERT=cyclic` covers more: a machine with a history through its plain machine (`historyMachine`; its laws and step
+  laws translated, the record goals checked as the leaf goals they are), and with `GDP_CERT_SEARCH=1` (off by default:
+  each search costs seconds) a machine with flags that hold at every key (`qflagNodes`), the step laws and k-step laws
+  no translation covers (the laws' nodes, then `searchedStepNodes`: core/cyclic.ts's `stepLawNodes` over the sk machine
+  with the flags' closing facts, which the Lean export now shares) and a request allowed whose claim is that alone
+  (`allowNode`, its witnesses by `withWitness`), each within `GDP_CERT_MS`; where none is found the usual certificate
+  stays and the proof is counted uncovered, its why saying so. The usual route does no more than before: what no
+  instance covers is read only where a cyclic mode is on.
+- Not covered, `GDP_CERT=cyclic` (`runs/modal/cycexport/final2-cert`, against `final-cert` before): machines 209 (a flag
+  at every key 203, a law reading a map at a key read from a map 6; before 11,149, of them 10,944 with a history), step
+  laws 93 (a flag at every key; before 103, 13 of them with a history), k-step laws 718 (2 steps over a map 402, 3
+  steps over a map 300, a flag at every key 16), progress 8, liveness 27 and loops 67. With `GDP_CERT_SEARCH=1` as
+  well (`final2-search`): machines 6 (a law reading a map at a key read from a map), step laws 19 and k-step laws 22
+  (8 at every key, 14 of 2 steps over a map: no certificate found within 10,000 ms), progress 0, liveness 27 and loops
+  67 (claims about runs that never end: their step laws and allowed requests are certified, the argument along an
+  infinite run is kernel.ts's `livenessParts` and the loop's measure). The 35 certificate searches that found none keep
+  the usual verdict (ratios.ts lists them as differing: usual proven, cyclic not found).
+- `infer` against 0.18.0 (`7ab4750`) in the same wave, 10 runs each of `infer.test.ts`'s law that needs an invariant:
+  main 3,380 to 4,677 ms, mean 4,110 ms, median 4,241 ms, none past the 5 s limit
+  (`runs/modal/cycexport/infer10b-main`, kept beside the branch's); this branch 3,307 to 5,231 ms, mean 4,189 ms, median
+  4,185 ms, one past it (`infer10b-branch`). An earlier wave had main past it once in 5 (5,078 ms). No slowdown the runs
+  show; the test runs near its limit on both.
+- The suite (`modal/suite.json`, 189 jobs) at this track's last commit, one after the other: plain 452.0 s wall,
+  3,572.6 s of job time, none failed (`runs/modal/cycexport/final2-plain`); with `--cert` (`GDP_CERT=cyclic`, the Lean
+  package jobs exporting from cyclic certificates) 475.8 s wall, 4,140.3 s of job time, none failed (`final2-cert`;
+  6,269.0 s before the deadline, `final-cert`); with `--cert` and `GDP_CERT_SEARCH=1` 537.5 s wall, 4,528.4 s, none
+  failed (`final2-search`).
 
 ## 0.18.0
 

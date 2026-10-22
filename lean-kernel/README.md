@@ -126,6 +126,13 @@ drop of the rank along the run is a step law (a node), but that a rank of natura
 the run then takes a helpful step needs an argument over the run itself. Covering it would take a cyclic rule over
 infinite runs (nodes whose conclusions hold eventually, ranked by the run's own time), not this one.
 
+In TypeScript `GDP_CERT=cyclic` makes the same certificates (kernel/prove.ts): laws, histories through their plain
+machine, one-step step laws and k-step laws over no map translated; with `GDP_CERT_SEARCH=1` also flags at every key,
+k-step laws over a map and requests allowed, searched within `GDP_CERT_MS` (10,000 ms), the usual certificate kept where
+none is found. The export searches within the same deadline. Left on the usual rule in `runs/modal/cycexport/final2-search`
+(the suite with both): 6 machines (a law reading a map at a key read from a map), 19 step laws and 22 k-step laws (none
+found in time), and the liveness (27) and loop (67) claims along infinite runs above.
+
 **kernel.ts gap found here, since fixed:** `loopObligations` accepted ranks that read the turn's inputs. `forever`
 (state x from 0, input w, while x < w, x := x + 1, rank w ∸ x) passed kernel.ts's check, yet the loop runs forever when
 every turn sends w = x + 1. kernel.ts now refuses such ranks, and a `while` that reads the turn's input; `Trees.lean`
