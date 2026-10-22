@@ -978,12 +978,21 @@ class Session:
                         d["vms"][i]["last_used"] = time.time()
 
     def dollars(self, ids: list[str] | None = None) -> float:
-        since = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(self.t0 - 5))
-        total = 0.0
-        for i in ids or list(self.vms):
-            with contextlib.suppress(Exception):
-                total += bj("usage", i, "--since", since)["dollars"]
-        return round(total, 5)
+        """What boat bills for this batch's VMs since it began (`boat usage`, every VM at once)."""
+        return usage_since(ids or list(self.vms), self.t0 - 5)
+
+
+def usage_since(ids: list[str], t: float) -> float:
+    since = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t))
+    got: list[float] = []
+
+    def one(i):
+        with contextlib.suppress(Exception):
+            got.append(bj("usage", i, "--since", since)["dollars"])
+    ts = [threading.Thread(target=one, args=(i,)) for i in ids]
+    [x.start() for x in ts]
+    [x.join(120) for x in ts]
+    return round(sum(got), 5)
 
 
 def union(iv: list[list[float]]) -> float:
@@ -1284,11 +1293,8 @@ if __name__ == "__main__":
             have = named_snapshots()
             for name, snap, _ in layers():
                 print(f"{name:6} {snap:28} {'ready' if have.get(snap, {}).get('status') == 'ready' else 'missing'}")
-    elif a.cmd == "usage":
-        tot = 0.0
-        for i in Registry().read()["vms"]:
-            with contextlib.suppress(Exception):
-                d = bj("usage", i, "--since", a.since)
-                tot += d["dollars"]
-                print(i, d["seconds"], d["dollars"])
-        print("total", round(tot, 5))
+    elif a.cmd == "usage":  # every pool VM's dollars since a time (ISO 8601 UTC)
+        import datetime
+        t = datetime.datetime.fromisoformat(a.since.replace("Z", "+00:00")).timestamp()
+        ids = list(Registry().read()["vms"])
+        print(f"{len(ids)} VMs, ${usage_since(ids, t)} since {a.since}")
