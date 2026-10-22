@@ -89,7 +89,7 @@ def sh(name: str, cmd: str, cwd: str = ".", limit: int = 840) -> dict:
 
 
 @app.local_entrypoint()
-def main(jobs: str, out: str, native: bool = False, cyclic: bool = False, cert: bool = False):
+def main(jobs: str, out: str, native: bool = False, cyclic: bool = False, usual: bool = False):
     import os
 
     spec = json.loads(pathlib.Path(jobs).read_text())
@@ -111,11 +111,11 @@ def main(jobs: str, out: str, native: bool = False, cyclic: bool = False, cert: 
             # --native: the Lean the jobs generate closes each check by native_decide (emit.ts's toLean `native`).
             # --cyclic: every proof core/cyclic.ts's instances cover is made again as a cyclic proof, a differing verdict
             # failing the job (GDP_CYCLIC=1).
-            # --cert: each proof a cyclic instance covers has its cyclic proof as its certificate, and the Lean export reads
-            # those certificates (GDP_CERT=cyclic: core/cyclic.ts's certOn, lean-kernel/emit.ts's cyclicCerts).
-            pre = ("export GDP_LEAN_NATIVE=1; " if native else "") + ("export GDP_CYCLIC=1; " if cyclic else "") + ("export GDP_CERT=cyclic; " if cert else "")
+            # --usual: each proof's certificate is the usual trees, and the Lean export reads those, not the cyclic proofs
+            # (GDP_CERT=usual: core/cyclic.ts's certOn, lean-kernel/emit.ts's cyclicCerts).
+            pre = ("export GDP_LEAN_NATIVE=1; " if native else "") + ("export GDP_CYCLIC=1; " if cyclic else "") + ("export GDP_CERT=usual; " if usual else "")
             # (every proof made twice, so a test's own time limit is lifted)
-            cmd = lambda c: c.replace("bun test ", "bun test --timeout 600000 ") if cyclic or cert else c
+            cmd = lambda c: c.replace("bun test ", "bun test --timeout 600000 ") if cyclic else c
             calls += [(j["name"], fn.spawn(j["name"], pre + cmd(j["cmd"]), j.get("cwd", "."), timeout - 30)) for j in js]
         rows = collect(calls, outdir)
     finally:  # whatever happened, nothing keeps running (cancelling a finished call is a no-op)

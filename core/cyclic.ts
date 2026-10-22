@@ -1145,10 +1145,11 @@ export function crossCyclic(kind: string, name: string, usual: boolean, run0: ((
   if (search && search.searchCyclic !== usual && !lax) throw new Error(`cyclic route: ${kind} ${name} is ${search.searchCyclic ? 'proven' : 'not proven'} as a cyclic proof searched, ${usual ? 'proven' : 'not proven'} the usual way`)
 }
 
-// GDP_CERT=cyclic: the certificate of every proof the instances above cover is the cyclic one, made from the usual proof
-// (translated, searched where that fails) and checked by kernel/cyclic.ts; the usual trees are then the translation's
-// input, not checked again (kernel/prove.ts, core/dsl.ts). Each prints a line `cyclic: {..., cert: true}`.
-export const certOn = () => quiet === 0 && env()?.GDP_CERT === 'cyclic'
+// The certificate of every proof the instances above cover is the cyclic one (GDP_CERT=usual: the usual trees, as
+// before 0.19.0), made from the usual proof (translated, searched where that fails) and checked by kernel/cyclic.ts; the
+// usual trees are then the translation's input, not checked again (kernel/prove.ts, core/dsl.ts). Each prints a line
+// `cyclic: {..., cert: true}`.
+export const certOn = () => quiet === 0 && env()?.GDP_CERT !== 'usual'
 // With GDP_CERT=cyclic, what no translation covers (flags that hold at every key, k-step laws over a map) gets a searched
 // certificate too where GDP_CERT_SEARCH=1, each within GDP_CERT_MS (10 s by default), and keeps the usual one where none
 // is found then. Off by default: a search costs seconds a proof.

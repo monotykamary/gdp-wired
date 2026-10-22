@@ -751,7 +751,7 @@ example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : '
 
 // --- the cyclic certificate's export (GDP_CERT=cyclic) -------------------------------------------------------------
 
-// With GDP_CERT=cyclic (core/cyclic.ts's certOn: a covered proof's certificate is its cyclic proof; or toLean's
+// By default, or with GDP_CERT=cyclic (core/cyclic.ts's certOn: a covered proof's certificate is its cyclic proof; or toLean's
 // `cyclic`), toLean exports each machine the cyclic route covers from one cyclic
 // proof (kernel/cyclic.ts) of its laws and of every step law its claims bring (its own step laws and k-step laws, a
 // liveness's), carried to the machine by Bridge.lean's cyc_machine_sound and BridgeRules.lean's cyc_kstep_sound,
@@ -761,7 +761,7 @@ example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : '
 // way: a flag that holds at every key, a law that reads a map at a key read from a map, a refinement, and a liveness's
 // weak fairness (its helpful requests proven allowed: a claim about requests the run doesn't take).
 const envOf = () => (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
-export const cyclicCerts = () => envOf()?.GDP_CERT === 'cyclic'
+export const cyclicCerts = () => envOf()?.GDP_CERT !== 'usual'
 let certsOn = false, cycTexts = 0
 // What the last toLean exported from cyclic certificates, and what went the usual way (and why).
 export const certReport: {cyclic: string[], usual: {id: string, why: string}[], translatedSteps: string[]} = {cyclic: [], usual: [], translatedSteps: []}
