@@ -7,6 +7,9 @@
 // asserts beside its goal (TIP's hints, which cvc5 and Vampire read as axioms) given as lemmas, each proven first;
 // `--native`, a function of two Peano naturals computing a built-in comparison or +, −, min, max read as the built-in,
 // its bridge law (it equals the built-in) proven first by proveData (translate.ts).
+// An existential goal (∀ v. H ⇒ ∃ x. B) is proven through a witness among its variables (each a law, translate.ts's
+// `some`), or refuted through what it says whatever the witness (B's conjuncts that read no x), its counterexample
+// confirmed by TIP's evaluator on that part of the goal.
 // Prints one JSON line per stage and a last one with the answer: proven (proveData's cyclic proof, checked by the
 // kernel), refuted (a counterexample that TIP's own evaluator, tip.ts, confirms breaks the goal as TIP states it), unknown,
 // unsupported (and why), or error (a translation that disagrees with TIP's evaluator: a translator bug, never run).
@@ -15,7 +18,7 @@
 //     each function the translation made (those not specialised at a lambda) at 100 values of its arguments
 //   - prove: proveData on the law, its budget --ms (counted in work units, core/data.ts's dataRate)
 import {readFileSync} from 'node:fs'
-import {OutOfFuel, type Sx, type Tip, type V, Unsupported, evaluate, parseSx, parseTip, sameV, showV} from './tip.ts'
+import {OutOfFuel, type Sx, type Tip, type V, Unsupported, evaluate, parseSx, parseTip, prenex, sameV, showV} from './tip.ts'
 import {type Translation, translate} from './translate.ts'
 import {type DataLaw, type Value, conjectures, evalX, evalY, programOf, proveData, randomValue, rng, samples, showY} from '../../core/data.ts'
 
@@ -47,7 +50,7 @@ const tipEnv = (env: Map<string, Value>, params: Record<string, (n: number) => n
   }
   return out
 }
-const tipHolds = (env: Map<string, Value>, params: Record<string, (n: number) => number>) => evaluate(tip!, tr!.goal, tipEnv(env, params)) === true
+const tipHolds = (env: Map<string, Value>, params: Record<string, (n: number) => number>, goal: Sx = tr!.goal) => evaluate(tip!, goal, tipEnv(env, params)) === true
 
 {
   let goals = 0, fuel = 0
@@ -75,7 +78,43 @@ const tipHolds = (env: Map<string, Value>, params: Record<string, (n: number) =>
   }
   say({stage: 'agree', goals, calls, skipped: fuel})
 }
+// An existential goal (translate.ts's `some`): each law it was read as agrees with TIP on its own goal too.
+for (const w of tr!.some?.witnesses ?? []) {
+  const body = prenex(w.sx).body
+  for (const smp of samples(w.law.vars, programOf([w.law]).params, 100, 3)) {
+    let a: boolean, b: boolean
+    try { a = evalY(w.law.holds, smp.env, smp.params); b = tipHolds(smp.env, smp.params, body) } catch (e) { if (e instanceof OutOfFuel || e instanceof RangeError) continue; throw e }
+    if (a !== b) done('error', {why: `translation disagrees with TIP on the witness ${w.terms.join(', ')}`, gdp: a, tip: b})
+  }
+}
 if (translateOnly) done('translated', {changes: tr!.changes})
+// An existential goal: refuted where what it says whatever the witness is (a counterexample TIP's evaluator confirms
+// breaks that: then no witness can make the goal hold there), proven where a witness among its variables proves it.
+if (tr!.some) {
+  const sm = tr!.some, until = performance.now() + ms
+  if (sm.weak) {
+    const wv = proveData(sm.weak.law, {ms: ms / 2}), body = prenex(sm.weak.sx).body
+    say({stage: 'prove', law: 'whatever the witness', proven: wv.proven, checked: wv.checked, counterexample: !!wv.counterexample, proveMs: wv.ms})
+    if (wv.counterexample) for (const smp of samples(sm.weak.law.vars, programOf([sm.weak.law]).params, 400, 7)) {
+      if (evalY(sm.weak.law.holds, smp.env, smp.params)) continue
+      let holds: boolean | string
+      try { holds = tipHolds(smp.env, smp.params, body) } catch (e) { holds = `evaluator: ${(e as Error).message}` }
+      const at = Object.fromEntries([...tipEnv(smp.env, smp.params)].filter(([, x]) => !(typeof x === 'object' && 'fn' in x)).map(([k, x]) => [k, showV(x)]))
+      // (each function variable as the table the sample drew, at 0..7)
+      const fns = Object.fromEntries(tr!.params.map(pm => [pm.tip, Array.from({length: 8}, (_, i) => smp.params[pm.gdp]!(i))]))
+      if (holds === false) done('refuted', {changes: tr!.changes, at, fns, via: 'what the existential says whatever its witness'})
+      break
+    }
+  }
+  for (const w of sm.witnesses) {
+    const left = until - performance.now()
+    if (left < 500) break
+    const wv = proveData(w.law, {ms: left / Math.max(1, sm.witnesses.length)})
+    say({stage: 'prove', law: `witness ${w.terms.join(', ')}`, proven: wv.proven, checked: wv.checked, proveMs: wv.ms})
+    if (wv.proven && wv.checked) done('proven', {changes: tr!.changes, witness: w.terms, scheme: wv.scheme, lemmas: wv.lemmas})
+  }
+  done('unknown', {changes: tr!.changes, why: 'an existential goal: no witness among its variables proves it, and nothing refutes it'})
+}
 
 const given: DataLaw[] = [...tr!.lemmas, ...(conjSize ? conjectures(programOf([tr!.law]), tr!.law, conjMax, conjSize) : [])]
 if (given.length) say({stage: 'lemmas given', n: given.length, hand: tr!.lemmas.map(l => showY(l.holds).slice(0, 200))})

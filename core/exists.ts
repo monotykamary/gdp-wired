@@ -129,8 +129,11 @@ export function someHolds(body: C, vars: string[], env: Env, st: State, m: Machi
   const value = (e: E): number | undefined => { try { return evalE(e, env, st, m) } catch { return undefined } }
   const atoms = atomsOf(body, bound)
   const linearOnly = linearIn(body, bound)
+  // A bound natural read as a map's key: the cells the maps hold, and one past them, are every case a read gives.
+  const cells = new Set<number>()
+  if (JSON.stringify(body).includes('"op":"get"')) for (const c of Object.values(st.maps)) for (const key of c.keys()) cells.add(key)
   const points = (g: Group): number[] => {
-    const ps = new Set<number>([0, 1])
+    const ps = new Set<number>([0, 1, ...cells, ...[...cells].map(c => c + 1)])
     for (const a of atoms) {
       const s = a.k[g[0]!] ?? 0, s2 = g.length === 2 ? (a.k[g[1]!] ?? 0) : 0
       if (!s || (g.length === 2 && s2 !== -s) || Object.keys(a.k).some(n => !g.includes(n))) continue
@@ -167,7 +170,19 @@ function linearIn(c: C, bound: Set<string>): boolean {
     case 'and': case 'or': return c.xs.every(y => linearIn(y, bound))
     case 'flag': return true
     case 'all': return !namesOf(c.c).some(n => bound.has(n))
-    case '<': case '<=': case '=': return lin(c.a, bound) !== undefined && lin(c.b, bound) !== undefined
+    case '<': case '<=': case '=': return (lin(c.a, bound) !== undefined && lin(c.b, bound) !== undefined) || (onlyKeys(c.a, bound) && onlyKeys(c.b, bound))
+  }
+}
+// Every read of a bound natural is a map's whole key (M[x]: piecewise constant, its pieces the cells).
+function onlyKeys(e: E, bound: Set<string>): boolean {
+  if (e.op === 'get' && e.key.op === 'var' && bound.has(e.key.name)) return true
+  if (!namesOf(e).some(n => bound.has(n))) return true
+  switch (e.op) {
+    case 'var': case 'const': return false
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': return onlyKeys(e.a, bound) && onlyKeys(e.b, bound)
+    case 'mul': return onlyKeys(e.a, bound)
+    case 'if': return false
+    case 'get': return false
   }
 }
 

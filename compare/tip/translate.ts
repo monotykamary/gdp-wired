@@ -16,14 +16,15 @@
 //     on naturals, and the change is that Int's variables and fields range over the naturals).
 //   - A datatype field of sort Bool is a value of a datatype of two constructors of no field (false, true): built from
 //     the condition where a constructor is applied, the condition again where a match binds it.
-//   - Refused, with the reason (`Unsupported`): an existential goal, a quantifier elsewhere than outermost or under an
+//   - An existential at the goal's end (∀ v. H ⇒ ∃ x. B): laws without it, each proven or refuted as a goal (`some`).
+//   - Refused, with the reason (`Unsupported`): an existential elsewhere, a quantifier elsewhere than outermost or under an
 //     implication's conclusion, a datatype field of a function sort, a function variable of another
 //     sort, a function that returns a function, Int arithmetic beyond the above, a selector of a datatype of several
 //     constructors (partial: TIP leaves it unspecified at the others), recursion that isn't structural (core/data.ts's
 //     check), uninterpreted sorts and constants, a nested datatype at ever larger instances.
 // The background facts a problem asserts (`assert`, true lemmas given as hints) aren't given to proveData: the statement
 // is the goal alone.
-import {type Sx, type Tip, type Ty, type V, BOOL, INT, Unsupported, evaluate, matchTy, prenex, sameTy, show, showTy, substTy, tyOf} from './tip.ts'
+import {type Sx, type Tip, type Ty, type V, BOOL, INT, Unsupported, evaluate, existential, matchTy, prenex, sameTy, show, showTy, substSx, substTy, tyOf} from './tip.ts'
 import {Bool, type Callable, Data, type DataLaw, Nat, type Sort, Val, type Value, boolean, data, define, fnParam, law, mutual, natural, no, programOf, self, when, yes} from '../../core/data.ts'
 
 const NATS: Ty = {k: 'con', name: '$Nat', args: []} // a type variable of the goal, at the naturals
@@ -43,6 +44,9 @@ export type Translation = {
   law: DataLaw, tip: Tip, goal: Sx, changes: string[], notes: string[],
   vars: {gdp: string, tip: string, ty: Ty}[], params: {gdp: string, tip: string, ty: Ty, pred: boolean}[],
   lemmas: DataLaw[], fns: Instance[], datas: number, bridges: DataLaw[], toTip: (v: Value, ty: Ty) => V, fromTip: (v: V, ty: Ty) => number,
+  // An existential goal's laws (`law` is the first of them): `weak`, what it says whatever the witness (refutes it),
+  // `witnesses`, it with a witness in place (each proves it); each with the TIP goal it states.
+  some?: {binders: string[], weak?: {law: DataLaw, sx: Sx}, witnesses: {law: DataLaw, sx: Sx, terms: string[]}[]},
 }
 
 export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {inline?: boolean, native?: boolean} = {}): Translation {
@@ -458,7 +462,29 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {inli
     return {law: l, vars, params, body: g.body}
   }
   if (tip.goal.params.length) changes.add(`monomorphised: the goal's sort variable${tip.goal.params.length > 1 ? 's' : ''} ${tip.goal.params.join(', ')} at the naturals`)
-  const main = lawOf(name, tip.goal.params, tip.goal.body)
+  // An existential goal, ∀ v. H ⇒ ∃ x. B (core/exists.ts's "there exists", where proveData has no law for it): proven
+  // through a witness among the goal's own variables of x's sort (H ⇒ B with it in place, a law of its own), and
+  // refuted through what B says whatever x is, its conjuncts that read no x (W: ∃ x. B implies W, so a counterexample
+  // to H ⇒ W is one to the goal). Each is a goal without a quantifier, translated as any goal is.
+  const ex = existential(tip.goal.body)
+  let some: Translation['some']
+  if (ex) {
+    const names = new Set(ex.binders.map(b => b.name)), reads = (c: Sx) => { const out = new Set<string>(); freeVars(c, new Set(), out); return [...out].some(n => names.has(n)) }
+    const conj = (b: Sx): Sx[] => (Array.isArray(b) && b[0] === 'and' ? b.slice(1).flatMap(conj) : [b])
+    const free = conj(ex.body).filter(c => !reads(c))
+    const weakSx = free.length ? ex.with(free.length === 1 ? free[0]! : ['and', ...free]) : undefined
+    const outer = prenex(ex.with('true')).vars
+    const options = ex.binders.map(b => outer.filter(v => JSON.stringify(v.ty) === JSON.stringify(b.ty)).map(v => v.name))
+    const combos = options.reduce<string[][]>((acc, os) => acc.flatMap(a => os.map(o => [...a, o])), [[]]).slice(0, 8)
+    const witnesses = combos.filter(c => c.length === ex.binders.length).map(ts => {
+      const sx = ex.with(ex.binders.reduce<Sx>((b, x, i) => substSx(b, x.name, ts[i]!), ex.body))
+      return {law: lawOf(`${name} with ${ex.binders.map((x, i) => `${x.name} := ${ts[i]}`).join(', ')}`, tip.goal.params, sx).law, sx, terms: ts}
+    })
+    if (!weakSx && !witnesses.length) throw new Unsupported('an existential goal with no witness among its variables and nothing it says whatever the witness')
+    some = {binders: ex.binders.map(b => b.name), ...(weakSx ? {weak: {law: lawOf(`${name}, whatever the witness`, tip.goal.params, weakSx).law, sx: weakSx}} : {}), witnesses}
+    notes.add('an existential goal: refuted through what it says whatever the witness, proven through a witness among its variables')
+  }
+  const main = lawOf(name, tip.goal.params, ex ? (some!.weak?.sx ?? some!.witnesses[0]!.sx) : tip.goal.body)
   const extra = lemmas.map((x, i) => {
     const t = Array.isArray(x) && x[0] === 'par' ? {params: x[1] as string[], body: x[2]!} : {params: [], body: x}
     return lawOf(`lemma ${i + 1}`, t.params, t.body).law
@@ -492,5 +518,5 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {inli
     if (ty.k === 'con' && isPeano(ty.name)) { let n = 0, x = v as {c: string, a: V[]}; while (x.a.length) { n++; x = x.a[0] as {c: string, a: V[]} } return n }
     throw new Error('not a natural')
   }
-  return {law: l, tip, goal: g.body, changes: [...changes], notes: [...notes], vars, params, lemmas: extra, fns: [...fns.values()], datas: insts.size, bridges, toTip, fromTip}
+  return {law: l, tip, goal: g.body, changes: [...changes], notes: [...notes], vars, params, lemmas: extra, fns: [...fns.values()], datas: insts.size, bridges, toTip, fromTip, ...(some ? {some} : {})}
 }
