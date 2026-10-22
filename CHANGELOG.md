@@ -101,6 +101,11 @@ of a machine's is Bridge.lean's (`cycCanon`); the law at t is still the node `cy
   under fairness, which no node's conclusion, a condition at one environment, states); progress (in reach as an allowed
   request and the step from it, but `ProgressHolds` is over the FMMachine twin and toLean doesn't export it); a history's
   pruning (the runtimes'); laws reading a map at a key read from a map (the bridge takes them, the builder leaves them).
+- The suite (`modal/suite.json`, 189 jobs) at this track's last commit: plain 441.7 s wall, 3,579.7 s of job time, one
+  failed (`infer`, a test's 5 s limit missed by 0.43 s; 3 of 3 again pass at 3.7 to 4.6 s, `runs/modal/cycexport/infer3`)
+  (`runs/modal/cycexport/final-plain`); with `--cert` (`GDP_CERT=cyclic`, the Lean package jobs exporting from cyclic
+  certificates) 782.6 s wall, 6,269.0 s of job time, none failed (`final-cert`), the difference mostly the resource
+  groups' exports (each searched about ten minutes, two of four then cyclic).
 
 ## 0.18.0
 
