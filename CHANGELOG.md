@@ -7,8 +7,10 @@ noted), each with the command that reproduces it.
 
 Cyclic proofs translated, not searched: what the usual route proves becomes a cyclic proof from its own trees, at about
 twice its cost where 0.18.0's search took three to seven times, and `GDP_CERT=cyclic` makes that proof the certificate
-of every law the instances cover. Untrusted only: kernel/kernel.ts, kernel/cyclic.ts and the Lean twin are unchanged,
-and every fact is Bridge.lean's (`cycCanon`); the law at t is still the node `cycMOk` reads.
+of every law the instances cover; and Lean reads those certificates, each rule's theorem now also stated from the
+cyclic proof through a bridge (BridgeRules.lean), so that the trusted base with them is the leaf check, the cyclic rule
+and the bridges. The translation is untrusted only: kernel/kernel.ts and kernel/cyclic.ts are unchanged, and every fact
+of a machine's is Bridge.lean's (`cycCanon`); the law at t is still the node `cycMOk` reads.
 
 - `core/translate.ts`: a usual goal's tree read over a cyclic node's goal. Each column of the usual goal is a linear
   form of the node's (`renamer`: a state variable s as s@[t − 1], a map's cell M[k] as M@[(t − 1) + k·Ω], a fresh key
@@ -60,6 +62,45 @@ and every fact is Bridge.lean's (`cycCanon`); the law at t is still the node `cy
 - The suite (`modal/suite.json`, 189 jobs): plain 452.5 s wall, 3,520.4 s of job time, none failed (`plain3`); with
   `--cyclic` (the translation the default route, every differing verdict failing its job) 465.9 s wall, 3,650.0 s, none
   failed, none differing (`cyc3`); with `GDP_CERT=cyclic` 457.0 s, 3,671.2 s, none failed (`cert3`).
+
+- `lean-kernel/BridgeRules.lean` (trusted, on top of Bridge.lean, Refine.lean and History.lean; the standard axioms only,
+  no `sorry`): the rules beside a machine's laws carried by cyclic proofs, each to the statement its usual theorem
+  makes. `cyc_kstep_sound`: a node over the run's last k steps up to t (the first state at t − k, the j-th request at
+  its time, `then`'s primed names at t; times one step back at a time or t − n at once) checked by `cycKOk` gives
+  `SKStepHolds`, step laws and k-step laws; the run a reachable state ends is extended by the k requests (`run_ext`).
+  `cyc_allow_sound`: a helpful request allowed (`AllowHolds`) as a node at the run's last request, which no step takes.
+  From those, with the claims' meaning in place of their certificates: liveness (`sleads_of_holds`) and weak fairness
+  (`sleads_wf_of_holds`), a history's laws through its plain machine (`hreach_plain`, the record goals leaf goals still),
+  a ghosted machine's ghost-free laws of the original (`cyc_ghost_holds`), refinements (`srefines_of_holds`). Flags
+  that hold at every key: the machine read as its sk machine (`SMachine.sk`, each such flag and its witnesses inputs a
+  request names), whose runs with every request decided as a goal reads it are the machine's off the witnesses
+  (`sk_step`, `sk_run`), the flags' closing conditions facts of the encoding (`cycQFacts`, true on those runs through
+  Sets.lean's `closing_true`); `cyc_qmachine_sound`, `cyc_qkstep_sound`, `cyc_qallow_sound`. Live.lean's `lexLtC` and
+  `falseC` are `rankLtC` and `noneC` (Cyclic.lean defines the same two, and a file may now import both).
+- The Lean export from cyclic certificates (`GDP_CERT=cyclic`, or `toLean`'s `cyclic`; `modal/run.py --cert`): each
+  machine the cyclic route covers (its laws, step laws, k-step laws, history, ghosts, liveness, a loop's, a refinement's
+  composite, a recurrence's machine) and each fold from one cyclic proof: the laws' nodes translated, step laws'
+  translated where the node is the one `cycKOk` reads (else searched, core/cyclic.ts's `stepLawNodes`), each helpful
+  request allowed a node (`allowNode`), flags at every key through `skMachine`. Every theorem is stated as the usual
+  export states it: the machine and its claims numbered alike (`machineNames`), `<id>.lawN`, `<id>_stepN_holds`,
+  `<id>_liveN_holds(_wf)`, `<id>_halts` and the definitions they name the same text; `research/cyclic/exports.ts`
+  compares two exports. lean-kernel/README.md has the inventory: each rule kernel.ts trusts, its usual Lean theorem, and
+  the cyclic proof and bridge that cover it.
+- The package check both ways in the same run (`runs/modal/cycexport/pkg4`, 4 CPUs a job): of its 65 sharded items 63
+  exported from cyclic certificates (21 machines' step laws translated), 2 the usual way (`normalform`'s two-step law
+  and `childuse`'s, not found by the search); every user-facing statement the same (228 verbatim, 84 the same up to the
+  laws read as a list where the usual export reads its proof's entries), none differing, none missing, the 139
+  definitions they name the same; every item checks in Lean. Lean time a shard, usual against cyclic: 25 s against
+  79 s, 14 s against 113 s, 19 s against 71 s, 30 s against 150 s; the export 30, 10, 10, 21 s against 210, 45, 24, 76
+  s. The resource groups (`groups0..3`): 2 of 4 cyclic, Lean 8, 5, 8, 5 s against 4, 5, 4, 9 s, their export 489 to
+  588 s against 11 to 18 s. The tables of nodes (`searchtree`, `sheet`) stay usual (the builder's `cyclicMachine`).
+  In the same run `lean-bridge` builds Bridge.lean and BridgeRules.lean (49.19 s, every theorem on `propext`,
+  `Classical.choice`, `Quot.sound`), `lean-bridge-sweep` 3,854 checks, none failed (31.82 s), `lean-cyclic` and
+  `lean-cycles` Lean 24 s and 22 s.
+- Not covered: liveness's argument along infinite runs (Live.lean's `leads_view`: an existential over a run's times
+  under fairness, which no node's conclusion, a condition at one environment, states); progress (in reach as an allowed
+  request and the step from it, but `ProgressHolds` is over the FMMachine twin and toLean doesn't export it); a history's
+  pruning (the runtimes'); laws reading a map at a key read from a map (the bridge takes them, the builder leaves them).
 
 ## 0.18.0
 
