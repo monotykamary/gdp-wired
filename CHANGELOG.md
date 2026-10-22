@@ -153,6 +153,19 @@ searches, 42 of 42 broken variants refused (`runs/modal/arith/frontier2`), its t
 - TIP: Int is the integers where a problem subtracts or negates (the statement unchanged), a natural elsewhere as before,
   now with `div`, `mod` by a positive constant and products of two unknowns.
 
+Infrastructure (nothing in the library changed): the experiment runners take `--backend auto|boat|runpod|modal`
+(`modal/fanout.py`, `modal/README.md`). `auto` runs CPU work on a pool of boat.dev VMs (`modal/boat.py`) and GPU work on
+a RunPod pod (`modal/runpod.py`), and moves to Modal what they can't serve, each move logged with its reason; `modal`
+stays the default. The suite on boat: 200 jobs, none failed, 267.7 s wall, 3,002.5 s of job time, $0.032
+(`runs/backends/suite-default`; Modal at the same commit 489.8 s, 4,246.7 s, $0.256, `runs/modal/backends/suite-default`).
+
+- `modal/run.py`: the same jobs, flags and outputs on any backend; `summary.tsv` has a 4th column, the backend.
+- The compare runners (`compare/chc`, `compare/tip`, `compare/term` ITS and SV-COMP): `python3 <runner> --backend ...`,
+  their solvers and benchmarks in the pool's image (`BOAT_SETUP`), the same `results.jsonl`.
+- The GPU runners (`research/hw/run_gpu.py`, `run_synth_gpu.py`, `research/modal-gpu/run_gpu.py`): a RunPod pod per
+  run, Vulkan through NVIDIA's EGL ICD, checked before anything runs.
+- `modal/reap.sh` also releases and stops boat VMs and deletes RunPod pods whose client is gone.
+
 ## 0.20.0
 
 The frontier corpus proven in full: 81 of 81 items where the library alone proves none, every broken variant refused
