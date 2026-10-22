@@ -10,7 +10,7 @@ import {grow, minimal, proveBuilt, proveLaws, proveStepLaws, withDeadline} from 
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
 import {type Cyclic, descentGoal, mainGoal, premiseGoal} from '../kernel/cyclic.ts'
-import {allowNode, certMs, closingInsts, reqTS, withWitness, cyclicMachine, foldNodes, hasQuantified, kWhens, machineNodes, type NodeSpec, proveCyclic, qflagNodes, routeOf, searchedStepNodes, skMachine, stepLawNodes, tBack, tSub} from '../core/cyclic.ts'
+import {allowNode, certMs, closingInsts, reqTS, withWitness, foldNodes, certMode, uncoveredWhy, hasQuantified, kWhens, machineNodes, type NodeSpec, proveCyclic, routeOf, searchedStepNodes, skMachine, stepLawNodes, tBack, tSub} from '../core/cyclic.ts'
 import type {Fact} from '../kernel/cyclic.ts'
 import {leanLibrary} from './library.ts'
 export {leanLibrary}
@@ -782,9 +782,9 @@ example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : '
 // liveness's), carried to the machine by Bridge.lean's cyc_machine_sound and BridgeRules.lean's cyc_kstep_sound,
 // sleads_of_holds (liveness, loops), hreach_plain (histories) and cyc_ghost_holds (ghosts), and each theorem stated as the
 // usual export states it: the same machine, laws, step laws and liveness (machineNames numbers them alike), the same
-// `<id>.lawN`, `<id>_stepN_holds`, `<id>_liveN_holds`, `<id>_halts`. What the cyclic route doesn't cover goes the usual
-// way: a flag that holds at every key, a law that reads a map at a key read from a map, a refinement, and a liveness's
-// weak fairness (its helpful requests proven allowed: a claim about requests the run doesn't take).
+// `<id>.lawN`, `<id>_stepN_holds`, `<id>_liveN_holds`, `<id>_halts`; a machine with flags that hold at every key through
+// its sk machine (BridgeRules.lean's q bridges). What the cyclic route doesn't cover goes the usual way: a law that reads
+// a map at a key read from a map, and whatever no certificate is found for within the deadline (`certReport`).
 // The usual proof of a machine's laws and step laws, made once per toLean: an item exported the usual way after its
 // cyclic certificate wasn't found (cycMachineProof) reads the proof that search started from, not one made again.
 const usualMade = new Map<string, ReturnType<typeof proveStepLaws>>()
@@ -796,7 +796,7 @@ function proveStepLawsOnce(m: Machine, laws: Law[], stepLaws: StepLaw[]): Return
   return r
 }
 const envOf = () => (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
-export const cyclicCerts = () => envOf()?.GDP_CERT !== 'usual'
+export const cyclicCerts = certMode
 let certsOn = false, cycTexts = 0
 // What the last toLean exported from cyclic certificates, and what went the usual way (and why).
 export const certReport: {cyclic: string[], usual: {id: string, why: string}[], translatedSteps: string[]} = {cyclic: [], usual: [], translatedSteps: []}
@@ -829,7 +829,7 @@ function cycMachineProofBy(m: Machine, laws: Law[], allSteps: StepLaw[], allows:
   type Try = {facts: Fact[], specs: NodeSpec[], lawNodes: NodeSpec[], stepAt: number[], translated?: boolean}
   const L = laws.length, mine = (facts: Fact[], lawNodes: NodeSpec[]) => searchedStepNodes(m, laws, allSteps.map(sl => ({law: sl, instances: instOf(sl)})), facts, lawNodes)
   const tries: Try[] = []
-  if (!q && routeOf() !== 'search' && allSteps.length) {
+  if (routeOf() !== 'search' && allSteps.length) {
     const usualSteps = allSteps.map(sl => { const inst = instOf(sl), g = stepLawObligations(m, laws, inst, sl)[0]!; return {sl, inst, goal: g, tree: r.proof!.trees[g.name]!} })
     const tr = usualSteps.every(u => u.tree) ? machineNodes(m, laws, lp.instances, {trees: lp.trees, steps: usualSteps}) : undefined
     if (tr && !tr.why && tr.specs.length === 3 * L + 2 * allSteps.length) {
@@ -842,8 +842,7 @@ function cycMachineProofBy(m: Machine, laws: Law[], allSteps: StepLaw[], allows:
       if (fits) tries.push({facts: tr.facts, specs: tr.specs, lawNodes: tr.specs, stepAt: allSteps.map((_, j) => 3 * L + 2 * j + 1), translated: true})
     }
   }
-  for (const base of (q ? [qflagNodes(m, laws, lp.instances)]
-    : [...(routeOf() !== 'search' ? [machineNodes(m, laws, lp.instances, {trees: lp.trees})] : []), machineNodes(m, laws, lp.instances)]).filter(b => !b.why)) {
+  for (const base of [...(routeOf() !== 'search' ? [machineNodes(m, laws, lp.instances, {trees: lp.trees})] : []), machineNodes(m, laws, lp.instances)].filter(b => !b.why)) {
     tries.push({facts: base.facts, specs: [...base.specs, ...mine(base.facts, base.specs)], lawNodes: base.specs, stepAt: allSteps.map((_, j) => base.specs.length + j)})
   }
   let last = 'no nodes'
@@ -883,7 +882,8 @@ export function cycMachineToLean(id: string, given: Machine, laws: Law[], opts: 
   const hm = given.history ? {...given, history: {...given.history, prune: undefined}} : undefined
   const hplain = hm ? historyMachine(hm) : undefined, m = hplain ? hplain.machine : given
   const stepLaws = opts.stepLaws ?? [], gv = opts.ghosts ?? [], lp0 = opts.loop
-  if (!cyclicMachine(skMachine(m), laws)) return {why: 'a law reading a map at a key read from a map'}
+  const why = uncoveredWhy(m, laws)
+  if (why) return {why}
   // With flags that hold at every key, the sk machine's encoding and BridgeRules.lean's q bridges.
   const mq = skMachine(m), Q = hasQuantified(m) ? 'Q' : '', q = hasQuantified(m) ? 'q' : ''
   const lives = (opts.liveness ?? []).map(l => ({l, ...livenessParts(m, l)}))

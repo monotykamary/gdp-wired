@@ -26,7 +26,8 @@ import type {C, E} from './machine.ts'
 import {type Fact} from '../kernel/cyclic.ts'
 import {substC, substE} from '../kernel/kernel.ts'
 import {type CyclicVerdict, type NodeSpec, proveCyclic} from './cyclic.ts'
-import {pairedKeys, withDeadline} from '../kernel/prove.ts'
+import {clock, counted, pairedKeys, withDeadline} from '../kernel/prove.ts'
+import {work} from './solver.ts'
 
 // --- sorts and the AST ------------------------------------------------------------------------------------------------
 
@@ -558,7 +559,8 @@ export type Lemma = {law: DataLaw, spec?: NodeSpec}
 // `program`: the datatypes and functions the proof's facts are of; `node`: the law's own node in the proof (lemmas' nodes
 // and cases besides).
 export type DataVerdict = {proven: boolean, checked: boolean, law: string, counterexample?: Record<string, string>, proof?: CyclicVerdict, lemmas: string[], scheme?: string, ms: number, goal?: string, stuck?: string, tried: number, program?: Program, node?: number}
-// `patience` multiplies each attempt's time (the search's outcome depends on it: on a busy machine, a larger one).
+// `patience` multiplies each attempt's budget; `ms` the whole search's (120,000 by default). Both are counted in work, not
+// wall time (`dataRate` below), so a verdict is the same on any machine.
 export type Options = {samples?: number, depth?: number, lemmas?: boolean | DataLaw[], ms?: number, induction?: boolean, seed?: number, patience?: number}
 
 // Random values of the law's variables: a law false at one is refuted with it.
@@ -633,7 +635,7 @@ function schemes(p: Program, l: DataLaw): Scheme[] {
 type Want = {roots: unknown[], others: unknown[], depth: number, shapesAt: E[], etaAt: E[], models: {m: Model, env: Record<string, number>}[], every?: boolean, until?: number}
 function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   // Past the attempt's time, what is found so far (the attempt then fails or proves with it).
-  const late = () => w.until !== undefined && performance.now() > w.until
+  const late = () => w.until !== undefined && clock() > w.until
   const tt = performance.now(), lap = (what: string) => { if (dataTrace) console.error(`[data]   instances: ${what} at ${Math.round(performance.now() - tt)} ms`) }
   const insts: NodeSpec['insts'] = [], seen = new Set<string>()
   const inst = (fact: string, at: E[]) => { const i = fs.at.get(fact); if (i === undefined) return; const id = JSON.stringify([i, at]); if (!seen.has(id)) { seen.add(id); insts.push({fact: i, at}) } }
@@ -930,7 +932,7 @@ const dataTrace = !!(globalThis as {process?: {env?: Record<string, string | und
 // Debugging: every congruence a model's closure makes, not only those explanations use.
 const allCong = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.DATA_ALLCONG
 function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, depth: number, lemmas: Proven[], level: number, pool: M[]): {verdict: CyclicVerdict, specs: NodeSpec[]} {
-  const t0 = performance.now()
+  const t0 = clock()
   anchoredAt.clear()
   // A few models for the instances; the whole pool for the cases (a rare case gets its own models from it).
   const models = pool.slice(0, 24), few = (ms: M[]) => ms.slice(0, 16)
@@ -977,13 +979,18 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
     }
   }
   // Each attempt within its own time (a goal past it is left unknown, and the attempt fails).
-  if (dataTrace) console.error(`[data] @${Math.round(performance.now())} ${l.name} (${scheme?.name}) depth ${depth}, ${lemmas.length} lemmas: built in ${Math.round(performance.now() - t0)} ms, ${specs.length} nodes, ${specs.reduce((n, x) => n + x.insts.length, 0)} instances`)
-  if (performance.now() > t0 + attemptMs.ms) return {verdict: {proven: false, checked: false, node: name, goal: name, stuck: 'unknown'}, specs}
+  if (dataTrace) console.error(`[data] @${Math.round(performance.now())} ${l.name} (${scheme?.name}) depth ${depth}, ${lemmas.length} lemmas: built in ${Math.round(clock() - t0)} ms (counted), ${specs.length} nodes, ${specs.reduce((n, x) => n + x.insts.length, 0)} instances`)
+  if (clock() > t0 + attemptMs.ms) return {verdict: {proven: false, checked: false, node: name, goal: name, stuck: 'unknown'}, specs}
   const was = pairedKeys.skip
   pairedKeys.skip = true
   try { return {verdict: withDeadline(t0 + attemptMs.ms, () => proveCyclic(fs.facts, specs)), specs} } finally { pairedKeys.skip = was }
 }
 export const attemptMs = {ms: 8000}
+// A datatype search's budgets count work, not wall time (kernel/prove.ts's `counted`: the solver's rows and each node's),
+// 150 units a millisecond: a search finds the same proof on any machine, at any load. On Modal (2 vCPU) the corpus's
+// searches do 59 to 138 units a millisecond (`runs/modal/cover/cal2`), so a budget lets each do at least the work it
+// did there in wall time.
+const dataRate = 150
 // A case node's instances, those its models reach: from every read of its conclusion and its uses' (and their guards),
 // through each instance at a read reached (a function's at its call, a constructor's at its cell, a shape or eta at a
 // value whose tag is read), the reads of what it gives where the models take it (an if's taken branch, an implication's
@@ -1122,9 +1129,9 @@ function proveWith(p: Program, fs: Facts, l: DataLaw, lemmas: Proven[], level: n
   let tried = 0, last: CyclicVerdict | undefined
   const ss: (Scheme | undefined)[] = opts.induction === false ? [undefined] : schemes(p, l)
   for (const depth of depths.filter(d => d <= (opts.depth ?? 3))) for (const s of ss) {
-    if (performance.now() > until) return {tried, last}
+    if (clock() > until) return {tried, last}
     tried++
-    const {verdict, specs} = (attemptMs.ms = Math.min(per * (opts.patience ?? 1), until - performance.now()), attempt(p, fs, l, s, depth, lemmas, level, models))
+    const {verdict, specs} = (attemptMs.ms = Math.min(per * (opts.patience ?? 1), until - clock()), attempt(p, fs, l, s, depth, lemmas, level, models))
     last = verdict
     if (verdict.proven && verdict.checked) return {out: {law: l, spec: specs.find(n => n.name === specs[specs.length - 1]!.name.replace(/, case \d+$/, ''))!, nodes: specs}, verdict, scheme: s?.name, tried}
   }
@@ -1311,10 +1318,14 @@ export const showY = (y: Y): string => {
 // Prove a law over datatypes: refuted by a random value where one breaks it; else proven by a cycle the search finds,
 // with lemmas found from the values when the law alone isn't (`lemmas: false` turns that off; an array gives lemmas to
 // prove and use instead, which the corpus never does).
-export function proveData(l: DataLaw, opts: Options = {}): DataVerdict {
-  const t0 = performance.now(), until = t0 + (opts.ms ?? 120_000)
+export function proveData(l: DataLaw, opts: Options = {}): DataVerdict { return counted(dataRate, () => proveDataCounted(l, opts)) }
+function proveDataCounted(l: DataLaw, opts: Options): DataVerdict {
+  const t0 = performance.now(), w0 = work.n, until = clock() + (opts.ms ?? 120_000)
   const p = programOf([l, ...(Array.isArray(opts.lemmas) ? opts.lemmas : [])]), fs = factsOf(p)
-  const done = (v: Omit<DataVerdict, 'ms' | 'law'>): DataVerdict => ({law: l.name, ...v, ms: Math.round(performance.now() - t0)})
+  const done = (v: Omit<DataVerdict, 'ms' | 'law'>): DataVerdict => {
+    if (dataTrace) console.error(`[data] ${l.name}: ${work.n - w0} units of work in ${Math.round(performance.now() - t0)} ms`)
+    return {law: l.name, ...v, ms: Math.round(performance.now() - t0)}
+  }
   const cex = refute(l, opts.samples ?? 400)
   if (cex) return done({proven: false, checked: false, counterexample: cex, lemmas: [], tried: 0})
   // The law alone at one unfolding; then lemmas at one unfolding each (the law tried again after each its goal
@@ -1347,9 +1358,9 @@ export function proveData(l: DataLaw, opts: Options = {}): DataVerdict {
   const proven: Proven[] = [], failed = new Set<DataLaw>()
   const lemmasAt = (depth: number) => {
     for (const {c, hit} of ranked) {
-      if (performance.now() > until) return undefined
+      if (clock() > until) return undefined
       if (proven.some(q => q.law === c) || (depth === 2 && !failed.has(c)) || refute(c, 200)) continue
-      const r = proveWith(p2, fs2, c, proven, 1 + proven.length, opts, Math.min(until, performance.now() + (depth === 1 ? 8000 : 12000) * (opts.patience ?? 1)), 5000, [depth])
+      const r = proveWith(p2, fs2, c, proven, 1 + proven.length, opts, Math.min(until, clock() + (depth === 1 ? 8000 : 12000) * (opts.patience ?? 1)), 5000, [depth])
       tried += r.tried
       if (!r.out) { failed.add(c); continue }
       failed.delete(c)
@@ -1367,7 +1378,7 @@ export function proveData(l: DataLaw, opts: Options = {}): DataVerdict {
     () => lemmasAt(2),
     () => ok(proveWith(p2, fs2, l, proven, 1 + proven.length, opts, until, 12000, [3]), proven, p2),
   ]
-  for (const step of steps) { if (performance.now() > until) break; const out = step(); if (out) return out }
+  for (const step of steps) { if (clock() > until) break; const out = step(); if (out) return out }
   return done({proven: false, checked: false, lemmas: [], tried, ...stuckOf(first.last)})
 }
 const stuckOf = (v?: CyclicVerdict) => (v && !v.proven ? {goal: v.goal, stuck: v.stuck} : v && !v.checked ? {goal: 'check', stuck: v.why} : {})

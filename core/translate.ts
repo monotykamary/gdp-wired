@@ -13,7 +13,7 @@ import type {C, E} from './machine.ts'
 import {type Lin, type Step, add, refuteFast, scale, solve} from './solver.ts'
 import {checkRefutation} from './check.ts'
 import {type Goal, type Path, type Subst, type Tree, canon, canonFlip, columnTerm, factorsOf, isCell, isMonomial, leafConstraintsReusing, linear, substE, truth, withProducts} from '../kernel/kernel.ts'
-import {cellProducts, grow} from '../kernel/prove.ts'
+import {cellProducts, clock, grow} from '../kernel/prove.ts'
 
 // How the usual goal's names read in the node's: `s`, a substitution of its variables and maps (which builds the node's
 // goal from the usual one's hypotheses); `cells`, each map whose cell k is read at `at` + k·Ω in the node's goal (the
@@ -336,7 +336,7 @@ export function close(g: Goal, wp: Path, st: TStats, until: number): Tree | unde
   const l = leafAt(g, wp, true, st)
   if (l) return l
   const pick = choiceAtom(g, wp) ?? cellAtom(g, wp), om = pick ? undefined : omegaPair(g, wp), next = pick ?? om?.l
-  if (next && performance.now() < until) {
+  if (next && clock() < until) {
     st.splits++
     const id = canon(next), y = close(g, new Map(wp).set(id, {lin: next, holds: true}), st, until)
     const no = new Map(wp).set(id, {lin: next, holds: false}), n = y && (om?.q ? apart(g, no, next, om.q, st, until) : close(g, no, st, until))
@@ -385,7 +385,7 @@ export function carry(g: Goal, nFacts: number, nUses: number, st: TStats, until:
   }
   const leafOf = (wp: Path, solveIt: boolean) => leafAt(g, wp, solveIt, st), final = (wp: Path) => close(g, wp, st, until)
   const node = (wp: Path, guardsDone: boolean): Tree | undefined => {
-    if (performance.now() > until) return undefined
+    if (clock() > until) return undefined
     // A hypothesis false at the path: the law at t holds there, or a law it is carried from (its guard true) fails.
     if (truth(law, wp) === true || parts.some(p => (p.guard === undefined || truth(p.guard, wp) === true) && truth(p.concl, wp) === false)) return final(wp)
     let next: Lin | undefined
