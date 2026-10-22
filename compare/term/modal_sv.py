@@ -15,7 +15,13 @@ import os
 import pathlib
 import time
 
-import modal
+try:
+    import modal
+except ImportError:  # plain python3, --backend boat: the runner's functions run on boat VMs (modal/fanout.py)
+    import sys
+    sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent.parent / "modal"))
+    from agent import modal_stub
+    modal = modal_stub()
 
 HERE = pathlib.Path(__file__).resolve().parent
 GDP = HERE.parent.parent
@@ -41,6 +47,19 @@ image = (
                                               "vendor/**", "compare/**/*.js", "compare/**/out/**", "docs/**", "static/**", "lean-kernel/.lake/**"])
 )
 app = modal.App("gdp-wired-term-sv", image=image)
+
+# The same image on a boat VM, a layer of the pool's snapshot (modal/boat.py). Ultimate writes into its own directory
+# (as root, a container each, on Modal): each call gets a private overlay of it (BOAT).
+BOAT_SETUP = f"""
+sudo apt-get install -y -q openjdk-21-jre-headless
+sudo pip3 install -q --break-system-packages pycparser==3.0
+curl -fsSL -o /tmp/ua.zip https://github.com/ultimate-pa/ultimate/releases/download/{UA}/UltimateAutomizer-linux.zip && sudo unzip -q -o /tmp/ua.zip -d /opt && rm /tmp/ua.zip
+sudo chown -R "$(id -un)" /opt/UAutomizer-linux
+curl -fsSL -o /tmp/loat https://github.com/LoAT-developers/LoAT/releases/download/{LOAT}/loat-static && sudo install -m 755 /tmp/loat /usr/local/bin/loat
+curl -fsSL https://github.com/aprove-developers/KoAT2-Releases/releases/download/{KOAT}/koat2_static.zst | zstd -d > /tmp/koat2 && sudo install -m 755 /tmp/koat2 /usr/local/bin/koat2
+mkdir -p /sv && cd /sv && for d in {" ".join([*DIRS, "properties"])}; do curl -fsSL "https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/archive/{SV_COMMIT}/sv-benchmarks-{SV_COMMIT}.tar.gz?path=c/$d" | tar xz --strip-components 1; done && ls /sv/c
+"""
+BOAT = {"overlays": ["/opt/UAutomizer-linux"]}
 
 KOAT_SH = "sed -e 's/\\^/_hat_/g' -e \"s/'/_q_/g\" -e 's/|//g' \"$1\" > /tmp/k.ari && koat2 ari-to-koat /tmp/k.ari --output-file /tmp/t.koat > /dev/null && koat2 analyse --termination -i /tmp/t.koat"
 
@@ -140,26 +159,36 @@ def versions() -> dict:
 
 @app.local_entrypoint()
 def main(out: str, tools: str = "gdp,gdp-scc,uautomizer,loat-abmc,koat2", limit: int = 60, only: str = ""):
-    live = GDP / "modal" / ".live"
-    live.mkdir(exist_ok=True)
-    ticket = live / f"{app.app_id}"
-    ticket.write_text(str(os.getpid()))
+    import sys
+    sys.path.insert(0, str(GDP / "modal"))
+    import fanout
+    run(fanout.ModalEx(app), out, tools, limit, only)
+
+
+def run(ex, out: str, tools: str = "gdp,gdp-scc,uautomizer,loat-abmc,koat2", limit: int = 60, only: str = ""):
     outdir = pathlib.Path(out)
     outdir.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     try:
-        all_tasks = tasks.remote()
+        all_tasks = ex.remote(tasks)
         (outdir / "tasks.json").write_text(json.dumps(all_tasks, indent=1))
-        (outdir / "versions.json").write_text(json.dumps({**versions.remote(), "sv_benchmarks": SV_COMMIT, "dirs": DIRS, "uautomizer_release": UA, "loat_release": LOAT, "koat2_release": KOAT, "limit": limit, "tools": tools}, indent=1))
+        (outdir / "versions.json").write_text(json.dumps({**ex.remote(versions), "sv_benchmarks": SV_COMMIT, "dirs": DIRS, "uautomizer_release": UA, "loat_release": LOAT, "koat2_release": KOAT, "limit": limit, "tools": tools}, indent=1))
         chosen = [t for t in all_tasks if any(o in t["task"] for o in only.split("|"))]
         jobs = [(tool, t, limit) for tool in tools.split(",") for t in chosen]
         print(f"{len(chosen)} tasks, {len(jobs)} containers", flush=True)
         with (outdir / "results.jsonl").open("w") as f:
-            for r in shard.starmap(jobs, order_outputs=False, return_exceptions=True):
+            for r in ex.starmap(shard, jobs):
                 if isinstance(r, BaseException):
                     r = {"tool": "?", "task": "?", "answer": "error", "err": repr(r)[:400]}
                 f.write(json.dumps(r) + "\n")
                 f.flush()
     finally:
-        ticket.unlink(missing_ok=True)
+        ex.close()
     print(f"done in {round(time.time() - t0, 1)} s wall")
+
+
+if __name__ == "__main__":
+    import sys
+    sys.path.insert(0, str(GDP / "modal"))
+    import fanout
+    fanout.cli(run, __file__, __doc__)

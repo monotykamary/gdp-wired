@@ -17,7 +17,13 @@ import os
 import pathlib
 import time
 
-import modal
+try:
+    import modal
+except ImportError:  # plain python3, --backend boat: the runner's functions run on boat VMs (modal/fanout.py)
+    import sys
+    sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent.parent / "modal"))
+    from agent import modal_stub
+    modal = modal_stub()
 
 HERE = pathlib.Path(__file__).resolve().parent
 GDP = HERE.parent.parent
@@ -57,6 +63,24 @@ image = (
                                               "vendor/**", "compare/**/*.js", "compare/**/out/**"])
 )
 app = modal.App("gdp-wired-chc", image=image)
+
+# The same image on a boat VM, a layer of the pool's snapshot (modal/boat.py): the benchmarks under /opt/gdpw/chc,
+# mounted at /bench for each call (BOAT).
+BOAT_SETUP = f"""
+curl -fsSL -o /tmp/z3.zip https://github.com/Z3Prover/z3/releases/download/z3-5.3.1/z3-5.3.1-x64-glibc-2.39.zip
+sudo unzip -q -o /tmp/z3.zip -d /opt && sudo ln -sf /opt/z3-5.3.1-x64-glibc-2.39/bin/z3 /usr/local/bin/z3 && z3 --version
+curl -fsSL https://github.com/usi-verification-and-security/golem/releases/download/v0.9.0/golem-x64-linux.tar.bz2 | sudo tar xj -C /opt
+sudo ln -sf "$(find /opt -name golem -type f | head -1)" /usr/local/bin/golem && golem --version
+curl -fsSL https://github.com/uuverifiers/eldarica/releases/download/v2.3/eldarica-x86-linux-static.gz | gunzip | sudo tee /usr/local/bin/eld > /dev/null
+sudo chmod +x /usr/local/bin/eld && eld -h | head -3
+mkdir -p /opt/gdpw/chc/bench && curl -fsSL https://codeload.github.com/chc-comp/chc-comp26-benchmarks/tar.gz/{BENCH_COMMIT} | tar xz -C /opt/gdpw/chc/bench --strip-components 1
+sudo rmdir /bench && sudo ln -s /opt/gdpw/chc/bench /bench
+python3 - <<'PY'
+{KEEP}
+PY
+sudo rm /bench && sudo mkdir /bench && du -sh /opt/gdpw/chc/bench
+"""
+BOAT = {"mounts": {"/bench": "/opt/gdpw/chc/bench"}}
 
 
 def command(tool: str, task: str, limit: int) -> list[str]:
@@ -141,15 +165,18 @@ def tasks() -> list[dict]:
 
 @app.local_entrypoint()
 def main(out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: int = 1, sample: int = 0, only: str = "", env: str = "", tasks_json: str = ""):
-    live = GDP / "modal" / ".live"
-    live.mkdir(exist_ok=True)
-    ticket = live / f"{app.app_id}"
-    ticket.write_text(str(os.getpid()))
+    import sys
+    sys.path.insert(0, str(GDP / "modal"))
+    import fanout
+    run(fanout.ModalEx(app), out, tools, limit, per, sample, only, env, tasks_json)
+
+
+def run(ex, out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: int = 1, sample: int = 0, only: str = "", env: str = "", tasks_json: str = ""):
     outdir = pathlib.Path(out)
     outdir.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     try:
-        all_tasks = tasks.remote()
+        all_tasks = ex.remote(tasks)
         (outdir / "tasks.json").write_text(json.dumps(all_tasks, indent=1))
         chosen = [t for t in all_tasks if any(o in t["task"] for o in only.split("|"))]
         if tasks_json:
@@ -163,7 +190,7 @@ def main(out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: i
         n = 0
         # starmap sends the inputs in batches and yields each shard's rows as it finishes, every container at once.
         with (outdir / "results.jsonl").open("w") as f:
-            for rows in shard.starmap(shards, order_outputs=False, return_exceptions=True):
+            for rows in ex.starmap(shard, shards):
                 if isinstance(rows, BaseException):
                     rows = [{"tool": "?", "task": "?", "answer": "error", "err": repr(rows)[:400]}]
                 for r in rows:
@@ -172,5 +199,12 @@ def main(out: str, tools: str = "gdp,z3,golem,eldarica", limit: int = 60, per: i
                 if n % 100 == 0:
                     print(f"{n}/{len(shards)} shards, {round(time.time() - t0)} s", flush=True)
     finally:
-        ticket.unlink(missing_ok=True)
+        ex.close()
     print(f"done in {round(time.time() - t0, 1)} s wall")
+
+
+if __name__ == "__main__":
+    import sys
+    sys.path.insert(0, str(GDP / "modal"))
+    import fanout
+    fanout.cli(run, __file__, __doc__)

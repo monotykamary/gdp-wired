@@ -17,7 +17,13 @@ import os
 import pathlib
 import time
 
-import modal
+try:
+    import modal
+except ImportError:  # plain python3, --backend boat: the runner's functions run on boat VMs (modal/fanout.py)
+    import sys
+    sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent.parent / "modal"))
+    from agent import modal_stub
+    modal = modal_stub()
 
 HERE = pathlib.Path(__file__).resolve().parent
 GDP = HERE.parent.parent
@@ -102,6 +108,36 @@ image = (
                                               "vendor/**", "compare/**/*.js", "compare/**/out/**", "lean-kernel/**", "research/**", "static/**", "docs/**"])
 )
 app = modal.App("gdp-wired-tip", image=image)
+
+# The same image on a boat VM, a layer of the pool's snapshot (modal/boat.py): the TIP tools built once, bun 1.4.4
+# beside the pool's (first on PATH for each call), the benchmarks under /opt/gdpw/tip mounted at /bench (BOAT).
+BOAT_SETUP = f"""
+sudo apt-get install -y -q build-essential libtinfo-dev libgmp-dev zlib1g-dev netbase
+command -v stack || curl -fsSL https://get.haskellstack.org/ | sh
+rm -rf /tmp/tools && git clone -q https://github.com/tip-org/tools.git /tmp/tools && cd /tmp/tools && git checkout -q {TOOLS_COMMIT}
+cd /tmp/tools && stack --no-terminal setup && stack --no-terminal build tip-lib --copy-bins --local-bin-path /tmp/tipbin
+sudo cp /tmp/tipbin/tip /usr/local/bin/tip && tip --help | head -3
+cd ~ && rm -rf /tmp/tools /tmp/tipbin ~/.stack
+sudo mkdir -p /opt/bun-1.4.4 && curl -fsSL https://bun.sh/install | sudo BUN_INSTALL=/opt/bun-1.4.4 bash -s bun-v1.4.4 && /opt/bun-1.4.4/bin/bun --version
+curl -fsSL -o /tmp/cvc5.zip https://github.com/cvc5/cvc5/releases/download/cvc5-{CVC5}/cvc5-Linux-x86_64-static.zip
+sudo unzip -q -o /tmp/cvc5.zip -d /opt && sudo ln -sf $(find /opt -path '*cvc5-Linux-x86_64-static/bin/cvc5') /usr/local/bin/cvc5 && cvc5 --version | head -1
+curl -fsSL -o /tmp/vampire.zip https://github.com/vprover/vampire/releases/download/{VAMPIRE}/vampire-Linux-X64.zip
+sudo mkdir -p /opt/vampire && sudo unzip -q -o /tmp/vampire.zip -d /opt/vampire && sudo ln -sf $(find /opt/vampire -type f -name 'vampire*' | head -1) /usr/local/bin/vampire
+sudo chmod +x /usr/local/bin/vampire && vampire --version
+mkdir -p /opt/gdpw/tip/bench && curl -fsSL https://codeload.github.com/tip-org/benchmarks/tar.gz/{BENCH_COMMIT} | tar xz -C /opt/gdpw/tip/bench --strip-components 1
+sudo rmdir /bench && sudo ln -s /opt/gdpw/tip/bench /bench
+python3 - <<'PY'
+{CONVERT}
+PY
+python3 - <<'PY'
+{WILD}
+PY
+sudo rm /bench && sudo mkdir /bench
+"""
+# proveData peaks at 4 to 5.5 GB on some tasks (list_PairEvens, sort_MSortBUCount, lemma_07, measured alone): over a
+# Modal container's 4 GB request, which Modal doesn't hold it to. Two to a VM's 8 GB, two such tasks at once ran out of
+# memory, so each call takes a whole default VM (weight 2).
+BOAT = {"mounts": {"/bench": "/opt/gdpw/tip/bench"}, "path": ["/opt/bun-1.4.4/bin"], "weight": 2}
 
 # cvc5: `--quant-ind` (induction by skolemisation with strengthening, Reynolds & Kuncak, VMCAI 2015); `cvc5cg` adds their
 # subgoal generation (`--conjecture-gen`, three conjectures a round) with full saturation of quantifiers, the
@@ -215,18 +251,21 @@ def probe(cmds: list[str]) -> str:
 
 @app.local_entrypoint()
 def main(out: str = "", tools: str = "gdp,cvc5,cvc5cg,vampire", limit: int = 60, sets: str = "isaplanner,prod,tip2015,grammars", only: str = "", sample: int = 0, per: int = 1, probe_only: bool = False, probe_cmd: str = "", gdp_args: str = "", lemmas: str = ""):
-    live = GDP / "modal" / ".live"
-    live.mkdir(exist_ok=True)
-    ticket = live / f"{app.app_id}"
-    ticket.write_text(str(os.getpid()))
+    import sys
+    sys.path.insert(0, str(GDP / "modal"))
+    import fanout
+    run(fanout.ModalEx(app), out, tools, limit, sets, only, sample, per, probe_only, probe_cmd, gdp_args, lemmas)
+
+
+def run(ex, out: str = "", tools: str = "gdp,cvc5,cvc5cg,vampire", limit: int = 60, sets: str = "isaplanner,prod,tip2015,grammars", only: str = "", sample: int = 0, per: int = 1, probe_only: bool = False, probe_cmd: str = "", gdp_args: str = "", lemmas: str = ""):
     t0 = time.time()
     try:
         if probe_only:
-            print(probe.remote([c for c in probe_cmd.split(";;") if c.strip()]))
+            print(ex.remote(probe, [c for c in probe_cmd.split(";;") if c.strip()]))
             return
         outdir = pathlib.Path(out)
         outdir.mkdir(parents=True, exist_ok=True)
-        got = tasks.remote(sets.split(","))
+        got = ex.remote(tasks, sets.split(","))
         (outdir / "tasks.json").write_text(json.dumps({"gdp_args": gdp_args, "lemmas": lemmas, "only": only, "bench": BENCH_COMMIT, "tools": TOOLS_COMMIT, "cvc5": CVC5, "vampire": VAMPIRE, "limit": limit,
                                                        "flags": {**CVC5_FLAGS, "vampire": VAMPIRE_FLAGS}, **got}, indent=1))
         # diagnostics: `--gdp-args` added to every gdp-wired task's command; `--lemmas <json>` ({task: [TIP formula, ..]})
@@ -244,7 +283,7 @@ def main(out: str = "", tools: str = "gdp,cvc5,cvc5cg,vampire", limit: int = 60,
         print(f"{len(chosen)} tasks, {len(shards)} containers", flush=True)
         n = 0
         with (outdir / "results.jsonl").open("w") as f:
-            for rows in shard.starmap(shards, order_outputs=False, return_exceptions=True):
+            for rows in ex.starmap(shard, shards):
                 if isinstance(rows, BaseException):
                     rows = [{"tool": "?", "task": "?", "answer": "error", "err": repr(rows)[:400]}]
                 for r in rows:
@@ -253,5 +292,12 @@ def main(out: str = "", tools: str = "gdp,cvc5,cvc5cg,vampire", limit: int = 60,
                 if n % 100 == 0:
                     print(f"{n}/{len(shards)}, {round(time.time() - t0)} s", flush=True)
     finally:
-        ticket.unlink(missing_ok=True)
+        ex.close()
     print(f"done in {round(time.time() - t0, 1)} s wall")
+
+
+if __name__ == "__main__":
+    import sys
+    sys.path.insert(0, str(GDP / "modal"))
+    import fanout
+    fanout.cli(run, __file__, __doc__)

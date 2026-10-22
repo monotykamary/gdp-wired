@@ -19,3 +19,10 @@ regression suite (`../modal/suite.json`) runs the parts below that it lists.
 | `audit/` | The first prototype, before the kernel: an access spec written once (`spec.ts`) as gdp-ts provers (`gdp.ts`), a Handwired circuit (`circuit.ts`) and a plain JavaScript loop (`js-audit.ts`), compared on generated orgs (`check.ts`); its laws decided over a small model (`laws.ts`, `intent.ts`) and by the solver (`run-predicates.ts`); sequence laws by enumeration and by Farkas certificates (`steps.ts`, `arith-laws.ts`, `certificate.ts`, its own `solver.ts`) |
 
 Each entry point runs from its own folder, e.g. `cd research/audit && bun check.ts 200 200 20 5`.
+
+The GPU runners `hw/run_gpu.py`, `hw/run_synth_gpu.py` and `modal-gpu/run_gpu.py` take `--backend auto|runpod|modal`
+(`../modal/README.md`): `python3 research/hw/run_gpu.py --backend auto --out ... --args=--hand` runs on a RunPod pod,
+and on Modal (its `--gpu`) when RunPod has none of the GPU types in the list or the pod fails; where it ran is in
+`<out>.backend.json`. The search `--hand` and synthesis's bucket cases (`--both --only bucket`) gave the same results,
+times aside, on a RunPod RTX 4090 as on a Modal L4 (`runs/backends/gpu/`, `runs/modal/backends/gpu/`);
+`run_synth_gpu.py --both` stops at its fourth case on both ("synthesis kernels read no maps", `research/hw/synth.ts`).
