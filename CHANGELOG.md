@@ -94,9 +94,10 @@ variants refused by both (`runs/modal/ranks/corpus3`, 1 vCPU a job).
 
 Every rule the usual route proves now gets its cyclic certificate by translation, the TypeScript certificate searched
 nowhere by default: flags that hold at every key, k-step laws over a map and requests allowed join the laws, step laws,
-recurrences and folds. Left on the usual rule, by default, in the whole suite: 112 proofs where 0.19.0 left 1,122 (`runs/modal/cover/final-default`
-against `runs/modal/flip/default`), the claims about runs that never end (liveness 27, loops 67, whose step laws are
-certified), six laws reading a map at a key read from a map, and 12 k-step laws the translation doesn't make. A
+recurrences and folds. Left on the usual rule, by default, in the whole suite (194 jobs, `runs/modal/cover/last-default`): 127 proofs, the
+claims about runs that never end (liveness 36, loops 79, whose step laws are certified), four laws reading a map at a key
+read from a map and 8 k-step laws the translation doesn't make; 0.19.0's suite (189 jobs) left 1,122
+(`runs/modal/flip/default`). A
 datatype search's verdict no longer depends on the container it runs in. The trusted code is unchanged (kernel/kernel.ts,
 kernel/cyclic.ts, lean-kernel/*.lean).
 
@@ -104,18 +105,18 @@ kernel/cyclic.ts, lean-kernel/*.lean).
   flag and its witnesses inputs a request names), the usual goals' closing hypotheses (kernel.ts's `closing`) the
   closing facts (`qflagFacts`, BridgeRules.lean's `cycQFacts`) at the step's time, each time at most T decided first.
   `qflagNodes` is `machineNodes` now (kept, an alias); the Lean export translates these machines too. In
-  `runs/modal/cover/final-default` none is left (0.19.0: 203 machines, 93 step laws, 16 k-step laws).
+  `runs/modal/cover/last-default` none is left for the flags (0.19.0: 203 machines, 93 step laws, 16 k-step laws).
 - k-step laws over a map: a later step reads the map as the usual goal's term over the cells at t − k (its laws there a
   use only where they read no map), its assumption, `when` and closing hypotheses the usual goal's renamed (hypotheses of
   the node after the steps); the step law's node reads each cell back to t − k through the maps' steps (`cellChain`),
   times one step back at a time (`tBack`, as a step's fact reads the time before it; BridgeRules.lean's `cycKOk` reads
-  both forms). A map a later request carries is its cells at that request's time. Left: 12 (0.19.0: 702), each a
+  both forms). A map a later request carries is its cells at that request's time. Left: 8 (0.19.0: 702), each a
   premise or a node the translation doesn't prove (`steplaw-k`'s and `hw-check-steps`' random machines, the quantifier
   examples' normal form, derived child and derived authority); where a machine's step laws together aren't translated,
   each is tried alone, so one such law leaves the others theirs.
 - Requests allowed (`proveProgress`, a liveness's helpful requests): `allowTranslated`, the usual allowed goal over the
   cells at t (rank (t, 2)), then BridgeRules.lean's `cycAOk` node (rank (t, 3)) carried from it by the request's
-  equations. 8 of 8 translated (0.19.0: 8 left).
+  equations. 26 of 26 translated in `last-default` (0.19.0: 8 left, all).
 - A node after a step states its hypotheses as their conjuncts: a premise that is a conjunction of disjunctions,
   refuted against itself, was split case by case through every conjunct (scope grants' decision: not made in 47,216 ms,
   `runs/modal/cover/dbg1`; made in 5,497 ms, `dbg3`).
@@ -123,7 +124,10 @@ kernel/cyclic.ts, lean-kernel/*.lean).
   uncovered with why (`cyclic: {..., uncovered: true, why}`, core/cyclic.ts's `uncovered`); it no longer leaves the proof
   unchecked. A translation that fails is searched only with `GDP_CERT_SEARCH=1` (within `GDP_CERT_MS`), and a translated
   node's goals are grown within 4 s. The cross-check (`GDP_CYCLIC=1`) searches within `GDP_CERT_MS` too, and counts a
-  proof it makes no cyclic proof for there uncovered, not differing.
+  proof it makes no cyclic proof for there uncovered, not differing; a history's record goals are part of the cyclic
+  route's verdict (a broken history, its plain machine's laws proven, read as differing: 20 jobs failed so in
+  `runs/modal/cover/final-cyclic`), and a machine with flags at every key the usual route doesn't prove isn't searched
+  (`pairs`' fuzz, its refused laws each searched up to 10 s, ran past its time there).
 - Not covered still: laws reading a map at a key read from a map. Translated, the search tree's and the sheet's are not
   made within their budgets, about 200 s of job time between them (`runs/modal/cover/a3`), so they stay on the usual
   rule.
@@ -138,9 +142,11 @@ kernel/cyclic.ts, lean-kernel/*.lean).
   one copy each of a law's keys and tuples, the fresh keys, the functions' facts, the step's update, the laws a node uses
   at a time, the map-cell walker and the loop that translates the usual trees (machines, recurrences, folds); the
   translate-then-search of the certificate and the cross-check shared (`cyclicOf`).
-- The suite (190 jobs, one after the other): by default 617.7 s wall and 4,385.3 s of job time, one failed, `infer`'s
-  law that needs an invariant past its 5 s limit, 5,026.53 ms (`runs/modal/cover/final-default`). The same test ten
-  times each in one wave: main (38019b6) 3,652.59 to 5,469.44 ms, two past the limit; this branch 3,751.85 to
+- The suite (194 jobs, one after the other, at this branch's last commit): by default 437.1 s wall and 4,156.9 s of job
+  time, none failed (`runs/modal/cover/last-default`); with `--usual` 335.9 s and 3,590.2 s, none failed (`last-usual`);
+  with `--cyclic` 537.9 s and 4,495.7 s, none failed, none differing (`last-cyclic`). An earlier run by default (190 jobs)
+  had `infer`'s law that needs an invariant past its 5 s limit, 5,026.53 ms (`runs/modal/cover/final-default`); the same
+  test ten times each in one wave: main (38019b6) 3,652.59 to 5,469.44 ms, two past the limit; this branch 3,751.85 to
   4,946.40 ms, none (`runs/modal/cover/infer10-main`, `infer10-branch`).
 
 ## 0.19.0
