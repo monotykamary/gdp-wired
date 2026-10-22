@@ -1257,7 +1257,7 @@ export const recur = <const A extends string = never, U extends Record<string, F
   // The usual proofs, to translate (core/cyclic.ts's recurNodes): the lemmas' machine's, the laws between's.
   let lemmaProof: UsualProof | undefined
   const translatedRecur = (u: {lemmas?: UsualProof, between?: UsualProof}): Translated | undefined => (u.lemmas || !stated.length)
-    ? st => translatedProof(JSON.stringify(['recurrence', recurCase(u.between ? pairs : [])]), () => recurNodes(recurCase(u.between ? pairs : []), u, st), st) : undefined
+    ? st => translatedProof(() => JSON.stringify(['recurrence', recurCase(u.between ? pairs : [])]), () => recurNodes(recurCase(u.between ? pairs : []), u, st), st) : undefined
   if (stated.length) {
     // A start that reads a function is a param given as that start by a fact (a start reads the params alone).
     const zeroReads = JSON.stringify(zero).includes('"op":"get"')
@@ -2539,8 +2539,8 @@ export const proveFold = (f: {fold: Fold, lemmas?: Law[]}, laws: Law[]): Verdict
   // (GDP_CERT=cyclic: the certificate a cyclic proof, core/cyclic.ts's certCyclic, the usual trees its input)
   const all = [...(f.lemmas ?? []), ...laws], t0 = performance.now(), v = goalsVerdict(foldObligations(f.fold, all), !certOn()), usualMs = performance.now() - t0
   if (cyclicOn()) crossCyclic('fold', f.fold.name, v.proven && v.checked, () => { const {facts, specs} = foldNodes(f.fold, all); return proveCyclic(facts, specs) }, usualMs,
-    v.trees && (st => translatedProof(JSON.stringify(['fold', f.fold, all]), () => foldNodes(f.fold, all, v.trees, st), st)))
-  if (certOn() && v.proven) v.checked = certCyclic('fold', f.fold.name, v.trees && (st => translatedProof(JSON.stringify(['fold', f.fold, all]), () => foldNodes(f.fold, all, v.trees, st), st)), () => { const {facts, specs} = foldNodes(f.fold, all); return proveCyclic(facts, specs) }, usualMs).checked
+    v.trees && (st => translatedProof(() => JSON.stringify(['fold', f.fold, all]), () => foldNodes(f.fold, all, v.trees, st), st)))
+  if (certOn() && v.proven) v.checked = certCyclic('fold', f.fold.name, v.trees && (st => translatedProof(() => JSON.stringify(['fold', f.fold, all]), () => foldNodes(f.fold, all, v.trees, st), st)), () => { const {facts, specs} = foldNodes(f.fold, all); return proveCyclic(facts, specs) }, usualMs).checked
   return v
 }
 

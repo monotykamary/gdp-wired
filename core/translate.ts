@@ -243,9 +243,20 @@ function leafAt(g: Goal, wp: Path, solveIt: boolean, st: TStats): Tree | undefin
   if (absurd >= 0) { st.leaves++; return {leaf: [{kind: 'input', index: absurd}]} }
   if (!solveIt) return undefined
   const fast = rows.length > 60 ? refuteFast(rows) : undefined, v = fast?.kind === 'refuted' ? fast : solve(rows)
-  if (v.kind !== 'refuted') return undefined
+  if (v.kind === 'refuted') { st.leaves++; return {leaf: v.steps} }
+  // With monomials about (a law about cap·n over a node's children): each equation about a factor (a cell given by
+  // the facts) times each factor's sign, as the prover's search does (kernel/prove.ts).
+  if (!rows.some(r => Object.keys(r.lin).some(isMonomial))) return undefined
+  const factors = new Set(rows.flatMap(r => Object.keys(r.lin).filter(isMonomial).flatMap(factorsOf)))
+  const byCanon = new Map(rows.map((r, i) => [canon(r.lin), i]))
+  const eqs = rows.flatMap((r, i) => (Object.keys(r.lin).some(key => key !== '1' && factors.has(key)) && byCanon.has(canon(scale(r.lin, -1))) ? [i] : []))
+  const signs = rows.flatMap((r, i) => { const keys = Object.keys(r.lin); return keys.length === 1 && factors.has(keys[0]!) && r.lin[keys[0]!]! < 0 ? [i] : [] })
+  const products = eqs.flatMap(i => signs.map(j => [i, j] as [number, number])).slice(0, 200)
+  if (!products.length) return undefined
+  const w = solve(withProducts(rows, products))
+  if (w.kind !== 'refuted') return undefined
   st.leaves++
-  return {leaf: v.steps}
+  return {leaf: w.steps, products}
 }
 const open = (c: C, wp: Path): Lin | undefined => atomsOf(c, wp)?.find(l => known(l, wp) === undefined)
 // Two reads of one function at keys the path doesn't yet prove equal or apart, keys linear (keys through a choice's
@@ -386,6 +397,10 @@ export function carry(g: Goal, nFacts: number, nUses: number, st: TStats, until:
       for (const c of gs) if ((next = open(c, wp))) break
       if (!next) return node(wp, true)
     } else {
+      // (the rows first: a law whose instances give rows as they are, a single comparison or the conjunctions their
+      // signs open, needs no split)
+      const l = leafOf(wp, true)
+      if (l) return l
       for (const [i, p] of parts.entries()) {
         if (p.guard && truth(p.guard, wp) !== true) continue
         for (const [a, b] of paired[i]!) {

@@ -787,7 +787,8 @@ export function foldNodes(f: Fold, laws: Law[], usual?: Record<string, Tree>, st
   // The usual proof translated, as a machine's is: each law three nodes. At a node, as above, its goal grown: from the
   // law at a leaf (Kind[n] = 0) or from its children (Kind[n] = 1). From its children, rank (n, 0): the usual node goal
   // over the table (an input as its cell at n, l_x and r_x as x at Left[n] and Right[n]), the laws at both children its
-  // uses (the table at n gives each child below N), the assumption at n a hypothesis. At a leaf, rank (n, 0): the usual leaf goal at n.
+  // uses (each child below n a hypothesis, which the table at n gives where the node is used), the assumption at n
+  // too. At a leaf, rank (n, 0): the usual leaf goal at n.
   function translatedFold(): {specs: NodeSpec[], why?: string} {
     const goals = new Map(foldObligations(f, laws).map(g => [g.name, g])), sigma = nodeAt(n), sigma0 = at(n), ren = renamer({s: sigma}), ren0 = renamer({s: sigma0})
     const na = (f.pre ? 1 : 0) + (f.assume ? 1 : 0), last = (g: Goal) => (g.hyps.at(-1) as Extract<C, {op: 'not'}>).x
@@ -796,9 +797,9 @@ export function foldNodes(f: Fold, laws: Law[], usual?: Record<string, Tree>, st
       const g0 = goals.get(`${l.name} @leaf`), g1 = goals.get(`${l.name} @node`), t0 = g0 && usual![g0.name], t1 = g1 && usual![g1.name]
       if (!g0 || !g1 || !t0 || !t1 || g0.hyps.length !== na + 1 || g1.hyps.length !== na + 2 * L + 1) return {specs: [], why: `${l.name}: no usual tree, or one of another shape`}
       const used1 = usedHyps(g1, t1)
-      kids.push({name: `${f.name}: ${l.name}, from its children`, hyps: [...hyps, inner, ...(f.assume ? [substC(f.assume, sigma0)] : [])], concl: substC(last(g1), sigma), rank: [n, k(0)], insts: [{fact: 0, at: [n]}, {fact: 2, at: []}],
+      kids.push({name: `${f.name}: ${l.name}, from its children`, hyps: [...hyps, inner, {op: '<', a: left(n), b: n}, {op: '<', a: right(n), b: n}, ...(f.assume ? [substC(f.assume, sigma0)] : [])], concl: substC(last(g1), sigma), rank: [n, k(0)], insts: [],
         uses: laws.flatMap((_, j) => [left, right].map(c => ({node: j, subst: {'n$': c(n)}, guard: yes}))).filter((_, q) => used1.has(na + q))})
-      leaves.push({name: `${f.name}: ${l.name}, at a leaf`, hyps: [...hyps, eq(kind(n), k(0)), ...(f.assume ? [substC(f.assume, sigma0)] : [])], concl: substC(last(g0), sigma0), rank: [n, k(0)], insts: [{fact: 2, at: []}], uses: []})
+      leaves.push({name: `${f.name}: ${l.name}, at a leaf`, hyps: [...hyps, eq(kind(n), k(0)), ...(f.assume ? [substC(f.assume, sigma0)] : [])], concl: substC(last(g0), sigma0), rank: [n, k(0)], insts: [], uses: []})
       made.push({g: g1, tree: t1, node: L + i, ren}, {g: g0, tree: t0, node: 2 * L + i, ren: ren0})
     }
     const carried = atNode.map((a, i): NodeSpec => {
@@ -831,15 +832,16 @@ export const quietly = <T>(f: () => T): T => { quiet++; try { return f() } final
 // apart (`searchMs`, `searchCyclic`), and both verdicts must agree with the usual one.
 export type Translated = (st: TStats) => {verdict?: CyclicVerdict, why?: string}
 // A translated proof by what it was made from (the machine, its laws and instances; a recurrence's or fold's case): a
-// proof made again (a rule proven twice, as the suite does) is the one made before, checked again.
+// proof made again (a rule proven twice, as the suite does) is the one made and checked before (the same proof: the
+// kernel's check is a function of it, and nothing changes a proof once made). The key's time is GDP_CYCLIC_PROF's `key`.
 const proofsMade = new Map<string, Cyclic>()
-export function translatedProof(key: string, build: () => {facts: Fact[], specs: NodeSpec[], why?: string}, st: TStats): {verdict?: CyclicVerdict, why?: string} {
-  const had = proofsMade.get(key)
-  if (had) { st.cached++; const why = timedKind('check', 0, () => refuseCyclic(had)); return {verdict: {proven: true, checked: why === undefined, proof: had, ...(why ? {why} : {})}} }
+export function translatedProof(key: () => string, build: () => {facts: Fact[], specs: NodeSpec[], why?: string}, st: TStats): {verdict?: CyclicVerdict, why?: string} {
+  const k0 = timedKind('key', 0, key), had = proofsMade.get(k0)
+  if (had) { st.cached++; return {verdict: {proven: true, checked: true, proof: had}} }
   const {facts, specs, why} = build()
   if (why) return {why}
   const v = proveCyclic(facts, specs, undefined, translatedCache, st)
-  if (v.proven && v.checked) { if (proofsMade.size >= 1024) proofsMade.clear(); proofsMade.set(key, v.proof) }
+  if (v.proven && v.checked) { if (proofsMade.size >= 1024) proofsMade.clear(); proofsMade.set(k0, v.proof) }
   return {verdict: v}
 }
 export const routeOf = () => env()?.GDP_CYCLIC_ROUTE ?? 'translate'
