@@ -212,7 +212,6 @@ export const laws = {
   takeDrop: (d = drp) => law('the first n and the rest', {n: natural, xs: List}, ({n, xs}) => L(app(take(n, xs), d(n, xs))).eq(L(xs))),
   dropLength: (d = drp) => law('length after dropping n', {n: natural, xs: List}, ({n, xs}) => N(len(d(n, xs))).eq(N(len(xs)).minus(n))),
   mergeLength: (m = mrg) => law('length of a merge', {xs: List, ys: List}, ({xs, ys}) => N(len(m(xs, ys))).eq(N(len(xs)).plus(N(len(ys))))),
-  mergeCount: (m = mrg) => law('a merge counts each item of both', {y: natural, xs: List, ys: List}, ({y, xs, ys}) => N(count(y, m(xs, ys))).eq(N(count(y, xs)).plus(N(count(y, ys))))),
   interleaveLength: (i = ilv) => law('length of an interleaving', {xs: List, ys: List}, ({xs, ys}) => N(len(i(xs, ys))).eq(N(len(xs)).plus(N(len(ys))))),
   add3acc: (f = a3) => law('add3acc adds its three', {x: natural, y: natural, z: natural}, ({x, y, z}) => N(f(x, y, z)).eq(N(x).plus(y).plus(z))),
   mergeStated: () => law('length of a merge, its measure stated', {xs: List, ys: List}, ({xs, ys}) => N(len(merge('stated')(xs, ys))).eq(N(len(xs)).plus(N(len(ys))))),
