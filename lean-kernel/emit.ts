@@ -6,11 +6,11 @@ import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
 import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type StepLaw, type Tree, boundOf, canon, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, historyMachine, foldObligations, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
-import {grow, minimal, proveBuilt, proveLaws, proveStepLaws} from '../kernel/prove.ts'
+import {grow, minimal, proveBuilt, proveLaws, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
 import {type Cyclic, descentGoal, mainGoal, premiseGoal} from '../kernel/cyclic.ts'
-import {allowNode, closingInsts, cyclicMachine, foldNodes, hasQuantified, kWhens, machineNodes, type NodeSpec, proveCyclic, qflagNodes, routeOf, skMachine, stepLawNodes, tBack, tSub} from '../core/cyclic.ts'
+import {allowNode, certMs, closingInsts, reqTS, withWitness, cyclicMachine, foldNodes, hasQuantified, kWhens, machineNodes, type NodeSpec, proveCyclic, qflagNodes, routeOf, searchedStepNodes, skMachine, stepLawNodes, tBack, tSub} from '../core/cyclic.ts'
 import type {Fact} from '../kernel/cyclic.ts'
 import {leanLibrary} from './library.ts'
 export {leanLibrary}
@@ -322,22 +322,6 @@ end ${id}`
 }
 
 export type ProgressCase = {id: string, name: string, when: C, then: C, request: Record<string, E>, instances: Instances, tamper?: {what: string, when: C}}
-// Live.lean's reqC: each input named by its term, two parts per and.
-const reqTS = (req: [string, E][]): C => (req.length ? {op: 'and', xs: [{op: '=', a: {op: 'var', name: req[0]![0]}, b: req[0]![1]}, reqTS(req.slice(1))]} : {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}})
-// Witnesses for a helpful request's free inputs, for its allowed goal: all free first, then each free input fixed to 0, a
-// state variable or a param (a history's query, say, which its relations bound), the first combination that proves.
-function withWitness<R>(m: Machine, request: Record<string, E>, attempt: (wit: [string, E][]) => R | undefined): {wit: [string, E][], out: R} | undefined {
-  const free = m.inputs.filter(i => !(i in request))
-  const cands: (E | undefined)[] = [undefined, {op: 'const', value: 0}, ...Object.keys(m.state).map(v => ({op: 'var', name: v}) as E), ...m.params.map(v => ({op: 'var', name: v}) as E)]
-  const combos: [string, E][][] = [[]]
-  if (free.length <= 2) {
-    const go = (i: number, acc: [string, E][]) => { if (i === free.length) { if (acc.length) combos.push(acc); return } for (const c of cands) go(i + 1, c ? [...acc, [free[i]!, c]] : acc) }
-    go(0, [])
-  }
-  for (const wit of combos) { const out = attempt(wit); if (out !== undefined) return {wit, out} }
-  return undefined
-}
-
 // A liveness as Live.lean's record: from, to, the rank's parts, each helpful request with its region, the primes.
 function liveLit(l: Liveness, t: {e: (x: E) => string, c: (x: C) => string}, ix: (name: string) => number, primes: string, primeMaps: string): string {
   return `⟨${t.c(l.from)}, ${t.c(l.to)}, ${list(livenessRanks(l).map(t.e))},
@@ -788,25 +772,26 @@ export const certReport: {cyclic: string[], usual: {id: string, why: string}[], 
 // with the first witness (withWitness's order, as the usual export tries them) whose node (core/cyclic.ts's allowNode) is
 // proven; a liveness gets them only if every helpful request has one.
 type AllowAt = {node: number, wit: [string, E][]}[] | undefined
+// Each item's cyclic certificate is made within one deadline (GDP_CERT_MS, 10 s by default), every goal it grows (the
+// translation's leaves grown again, the searched nodes) bounded by it: past it, the item goes the usual way.
 function cycMachineProof(m: Machine, laws: Law[], allSteps: StepLaw[], allows: {when: C, request: Record<string, E>}[][] = []): {p: Cyclic, stepAt: number[], allowAt: AllowAt[]} | {why: string} {
   const r = proveStepLaws(m, laws, allSteps)
   if (!r.proven || !r.proof) return {why: 'not proven the usual way'}
+  const until = performance.now() + certMs()
+  return withDeadline(until, () => cycMachineProofBy(m, laws, allSteps, allows, r, until))
+}
+function cycMachineProofBy(m: Machine, laws: Law[], allSteps: StepLaw[], allows: {when: C, request: Record<string, E>}[][], r: ReturnType<typeof proveStepLaws>, until: number): {p: Cyclic, stepAt: number[], allowAt: AllowAt[]} | {why: string} {
+  if (!r.proof) return {why: 'not proven the usual way'}
   const lp = r.proof.laws, instOf = (sl: StepLaw) => r.proof!.perStep?.[sl.name] ?? r.proof!.instances
   // A machine with flags that hold at every key: its sk machine's nodes, the flags' closing facts read where each node
   // reads the run.
   const q = hasQuantified(m), mm = skMachine(m)
-  const closing = (sp: NodeSpec, facts: Fact[], insts: Instances[], times: E[]): NodeSpec => {
-    if (!q) return sp
-    const more = closingInsts(m, facts, insts, times), add = (x: NodeSpec): NodeSpec => ({...x, insts: [...x.insts, ...more], ...(x.variants ? {variants: x.variants.map(add)} : {})})
-    return add(sp)
-  }
   // The certificates to try, in order: the usual proof translated with its step laws (core/cyclic.ts's machineNodes with
   // `steps`, the certificate GDP_CERT=cyclic makes), where each step law's node is the one BridgeRules.lean's cycKOk reads
   // (the same conclusion and hypotheses among its own); then the laws translated or searched, the step laws' nodes
-  // searched (stepLawNodes).
+  // searched (searchedStepNodes).
   type Try = {facts: Fact[], specs: NodeSpec[], lawNodes: NodeSpec[], stepAt: number[], translated?: boolean}
-  const L = laws.length, mine = (facts: Fact[], lawNodes: NodeSpec[]) => stepLawNodes(mm, laws, allSteps.map(sl => ({law: sl, instances: instOf(sl)})), facts, lawNodes)
-    .map((sp, i) => closing(sp, facts, [instOf(allSteps[i]!)], Array.from({length: (allSteps[i]!.steps ?? 1) + 1}, (_, j) => tBack(j))))
+  const L = laws.length, mine = (facts: Fact[], lawNodes: NodeSpec[]) => searchedStepNodes(m, laws, allSteps.map(sl => ({law: sl, instances: instOf(sl)})), facts, lawNodes)
   const tries: Try[] = []
   if (!q && routeOf() !== 'search' && allSteps.length) {
     const usualSteps = allSteps.map(sl => { const inst = instOf(sl), g = stepLawObligations(m, laws, inst, sl)[0]!; return {sl, inst, goal: g, tree: r.proof!.trees[g.name]!} })
@@ -827,6 +812,7 @@ function cycMachineProof(m: Machine, laws: Law[], allSteps: StepLaw[], allows: {
   }
   let last = 'no nodes'
   for (const {facts, specs: specs0, lawNodes, stepAt, translated} of tries) {
+    if (performance.now() > until) return {why: `past the certificate's deadline (${certMs()} ms)`}
     let specs = specs0, v = proveCyclic(facts, specs)
     if (!(v.proven && v.checked)) { last = v.proven ? `not checked (${v.why})` : `${v.node}: ${v.goal}: ${v.stuck}`; continue }
     const allowAt = allows.map((group): AllowAt => {
@@ -834,6 +820,7 @@ function cycMachineProof(m: Machine, laws: Law[], allSteps: StepLaw[], allows: {
       const before = specs, out: {node: number, wit: [string, E][]}[] = []
       for (const a of group) {
         const found = withWitness(m, a.request, wit => {
+          if (performance.now() > until) return undefined
           const spec = allowNode(mm, laws, r.proof!.instances, {op: 'and', xs: [a.when, reqTS(wit)]}, facts, lawNodes, `${m.name}: allowed`,
             q ? closingInsts(m, facts, [r.proof!.instances, ...Object.values(lp.instances)], [{op: 'var', name: 't$'}], laws) : [])
           const v2 = proveCyclic(facts, [...specs, spec])
@@ -1038,8 +1025,10 @@ function cycFoldToLean(id: string, f: Fold, laws: Law[]): {text: string} | {why:
   const gs = foldObligations(f, laws), trees: Record<string, Tree> = {}
   for (const g of gs) { const o = grow(g); if (!('tree' in o)) return {why: `${g.name}: not proven the usual way`}; trees[g.name] = o.tree }
   let p: Cyclic | undefined, why = 'no nodes'
-  for (const base of [...(routeOf() !== 'search' ? [foldNodes(f, laws, trees)] : []), foldNodes(f, laws)].filter(b => !b.why)) {
-    const v = proveCyclic(base.facts, base.specs)
+  const until = performance.now() + certMs()
+  for (const base of withDeadline(until, () => [...(routeOf() !== 'search' ? [foldNodes(f, laws, trees)] : []), foldNodes(f, laws)].filter(b => !b.why))) {
+    if (performance.now() > until) { why = `past the certificate's deadline (${certMs()} ms)`; break }
+    const v = withDeadline(until, () => proveCyclic(base.facts, base.specs))
     if (v.proven && v.checked) { p = v.proof; break }
     why = v.proven ? `not checked (${v.why})` : `${v.node}: ${v.goal}: ${v.stuck}`
   }

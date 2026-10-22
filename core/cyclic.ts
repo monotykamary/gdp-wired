@@ -1149,6 +1149,11 @@ export function crossCyclic(kind: string, name: string, usual: boolean, run0: ((
 // (translated, searched where that fails) and checked by kernel/cyclic.ts; the usual trees are then the translation's
 // input, not checked again (kernel/prove.ts, core/dsl.ts). Each prints a line `cyclic: {..., cert: true}`.
 export const certOn = () => quiet === 0 && env()?.GDP_CERT === 'cyclic'
+// With GDP_CERT=cyclic, what no translation covers (flags that hold at every key, k-step laws over a map) gets a searched
+// certificate too where GDP_CERT_SEARCH=1, each within GDP_CERT_MS (10 s by default), and keeps the usual one where none
+// is found then. Off by default: a search costs seconds a proof.
+export const certSearch = () => env()?.GDP_CERT_SEARCH === '1'
+export const certMs = () => Number(env()?.GDP_CERT_MS ?? 10_000)
 export function certCyclic(kind: string, name: string, translated: Translated | undefined, run0: (() => CyclicVerdict) | undefined, usualMs?: number): {checked: boolean, proof?: Cyclic} {
   const run = run0 ?? none
   const st = tstats(), t0 = performance.now()
@@ -1161,4 +1166,33 @@ export function certCyclic(kind: string, name: string, translated: Translated | 
   const checked = out.proven && out.checked
   console.error(`cyclic: ${JSON.stringify({kind, name, cert: true, usual: true, cyclic: checked, ms: Math.round(performance.now() - t0), ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {})})}`)
   return {checked, ...(out.proven ? {proof: out.proof} : {})}
+}
+
+// The step laws' searched nodes after the laws' (stepLawNodes over the sk machine), with the flags' closing facts read
+// where each node reads the run on a machine with flags that hold at every key: what GDP_CERT=cyclic's search and the
+// Lean export's (lean-kernel/emit.ts) both try.
+export function searchedStepNodes(m: Machine, laws: Law[], steps: {law: StepLaw, instances: Instances}[], facts: Fact[], lawNodes: NodeSpec[]): NodeSpec[] {
+  const q = hasQuantified(m)
+  return stepLawNodes(skMachine(m), laws, steps, facts, lawNodes).map((sp, i) => {
+    if (!q) return sp
+    const more = closingInsts(m, facts, [steps[i]!.instances], Array.from({length: (steps[i]!.law.steps ?? 1) + 1}, (_, j) => tBack(j)))
+    const add = (x: NodeSpec): NodeSpec => ({...x, insts: [...x.insts, ...more], ...(x.variants ? {variants: x.variants.map(add)} : {})})
+    return add(sp)
+  })
+}
+
+// Live.lean's reqC: each input named by its term, two parts per and.
+export const reqTS = (req: [string, E][]): C => (req.length ? {op: 'and', xs: [{op: '=', a: {op: 'var', name: req[0]![0]}, b: req[0]![1]}, reqTS(req.slice(1))]} : {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}})
+// Witnesses for a helpful request's free inputs, for its allowed goal: all free first, then each free input fixed to 0, a
+// state variable or a param (a history's query, say, which its relations bound), the first combination that proves.
+export function withWitness<R>(m: Machine, request: Record<string, E>, attempt: (wit: [string, E][]) => R | undefined): {wit: [string, E][], out: R} | undefined {
+  const free = m.inputs.filter(i => !(i in request))
+  const cands: (E | undefined)[] = [undefined, {op: 'const', value: 0}, ...Object.keys(m.state).map(v => ({op: 'var', name: v}) as E), ...m.params.map(v => ({op: 'var', name: v}) as E)]
+  const combos: [string, E][][] = [[]]
+  if (free.length <= 2) {
+    const go = (i: number, acc: [string, E][]) => { if (i === free.length) { if (acc.length) combos.push(acc); return } for (const c of cands) go(i + 1, c ? [...acc, [free[i]!, c]] : acc) }
+    go(0, [])
+  }
+  for (const wit of combos) { const out = attempt(wit); if (out !== undefined) return {wit, out} }
+  return undefined
 }
