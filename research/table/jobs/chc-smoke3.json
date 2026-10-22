@@ -1,0 +1,12 @@
+[
+ {
+  "name": "aeval-benchmarks/multi-phase/s_split_21_000_000.yml",
+  "timeout": 420,
+  "cmd": "y=/chc/'aeval-benchmarks/multi-phase/s_split_21_000_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'aeval-benchmarks/multi-phase/s_split_21_000_000.yml' --model /data/spacer-models.jsonl "
+ },
+ {
+  "name": "eldarica-misc/LIA/reve/014-horn_000.yml",
+  "timeout": 420,
+  "cmd": "y=/chc/'eldarica-misc/LIA/reve/014-horn_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/reve/014-horn_000.yml' --model /data/spacer-models.jsonl "
+ }
+]

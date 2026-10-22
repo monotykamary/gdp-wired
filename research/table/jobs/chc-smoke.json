@@ -1,0 +1,32 @@
+[
+ {
+  "name": "aeval-benchmarks/multi-phase/s_split_21_000_000.yml",
+  "timeout": 560,
+  "cmd": "y=/chc/'aeval-benchmarks/multi-phase/s_split_21_000_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'aeval-benchmarks/multi-phase/s_split_21_000_000.yml' --model /data/spacer-models.jsonl "
+ },
+ {
+  "name": "eldarica-misc/LIA/HOLA/01.c_000.yml",
+  "timeout": 560,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/01.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/01.c_000.yml' --model /data/spacer-models.jsonl "
+ },
+ {
+  "name": "eldarica-misc/LIA/reve/014-horn_000.yml",
+  "timeout": 560,
+  "cmd": "y=/chc/'eldarica-misc/LIA/reve/014-horn_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/reve/014-horn_000.yml' --model /data/spacer-models.jsonl "
+ },
+ {
+  "name": "eldarica-misc/LIA/reve/014b-horn_000.yml",
+  "timeout": 560,
+  "cmd": "y=/chc/'eldarica-misc/LIA/reve/014b-horn_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/reve/014b-horn_000.yml' --model /data/spacer-models.jsonl "
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/DRAGON_10_000_001.yml",
+  "timeout": 560,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/DRAGON_10_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/DRAGON_10_000_001.yml' --model /data/spacer-models.jsonl "
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_000_001.yml",
+  "timeout": 560,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_000_001.yml' --model /data/spacer-models.jsonl "
+ }
+]

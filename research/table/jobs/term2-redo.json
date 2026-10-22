@@ -1,0 +1,1262 @@
+[
+ {
+  "name": "Integer_Transition_Systems/From_AProVE_2014/Domino.jar-obl-27.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_AProVE_2014/Domino.jar-obl-27.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/ex27.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/ex27.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_AProVE_2014/PartitionList.jar-obl-16.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_AProVE_2014/PartitionList.jar-obl-16.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_AProVE_2014/Sudoku.jar-obl-14.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_AProVE_2014/Sudoku.jar-obl-14.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_AProVE_2014/TaylorSeriesIte.jar-obl-13.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_AProVE_2014/TaylorSeriesIte.jar-obl-13.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_AProVE_2014/TaylorSeriesRec.jar-obl-13.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_AProVE_2014/TaylorSeriesRec.jar-obl-13.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_AProVE_2014/Test5.jar-obl-11.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_AProVE_2014/Test5.jar-obl-11.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/armc-difficult_foo3.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/armc-difficult_foo3.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/ase_example.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/ase_example.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf10.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf10.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf11.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf11.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf13.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf13.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf12.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf12.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf14.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf14.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf16.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf16.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf15.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf15.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf17.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf17.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf18.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf18.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf19.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf19.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf20.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf20.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf5.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf5.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf6.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf6.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf5.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf5.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf6.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf6.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf7.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf7.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf7.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf7.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf8.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf8.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf9.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf9.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf8.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf8.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bf9.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bf9.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bsort100.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bsort100.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bsort100.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bsort100.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/bubbleSort.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/bubbleSort.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/cnt.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/cnt.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/cnt.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/cnt.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/ex17.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/ex17.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/ex3.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/ex3.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/destroy.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/destroy.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/ex17.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/ex17.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/ex29.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/ex29.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/destroy_seg.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/destroy_seg.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/ex29.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/ex29.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/create_via_tmps.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/create_via_tmps.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/crc.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/crc.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/fun4.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/fun4.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/crc.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/crc.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/create_via_tmps.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/create_via_tmps.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/fun8.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/fun8.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/destroy_seg.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/destroy_seg.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/minmax.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/minmax.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/destroy.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/destroy.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/matmul.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/matmul.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/minmax.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/minmax.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/matmul.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/matmul.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/jacobi.c.i.jacobi.pl.t2.nor.t2.rlgfixed.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/jacobi.c.i.jacobi.pl.t2.nor.t2.rlgfixed.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/matrixsqrt.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/matrixsqrt.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/matmult.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/matmult.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/jacobi.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/jacobi.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/p-55.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/p-55.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/jacobi.c.i.jacobi.pl.t2.fixed.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/jacobi.c.i.jacobi.pl.t2.fixed.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/edn.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/edn.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/jacobi.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/jacobi.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/elmhes.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/elmhes.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/matmult.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/matmult.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/elmhes.c.i.elmhes.pl.t2.fixed.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/elmhes.c.i.elmhes.pl.t2.fixed.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/ex22.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/ex22.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/ex22.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/ex22.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/ex27.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/ex27.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/jacobi.c.i.jacobi.pl.t2.fixed.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/jacobi.c.i.jacobi.pl.t2.fixed.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/two_arrays.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/two_arrays.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/ex4.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/ex4.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/slayer-1-rf.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/slayer-1-rf.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/sas07.cex.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/sas07.cex.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/slayer-1-filtered.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/slayer-1-filtered.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/two_arrays1.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/two_arrays1.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/s1-saved.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/s1-saved.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/fun2b.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/fun2b.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/fun2.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/fun2.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/fun3.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/fun3.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/fun8.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/fun8.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/graycode.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/graycode.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/graycode.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/graycode.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/reverse_seg_cyclic.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/reverse_seg_cyclic.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/reverse.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/reverse.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/traverse.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/traverse.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/print.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/print.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/traverse_seg.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/traverse_seg.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/traverse_seg2.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/traverse_seg2.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/traverse2.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/traverse2.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/loop3.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/loop3.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/loop3.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/loop3.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/ludcmp.c.i.ludcmp.pl.t2.fixed.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/ludcmp.c.i.ludcmp.pl.t2.fixed.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/magic.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/magic.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/ludcmp.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/ludcmp.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/opt-tree.c.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/opt-tree.c.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/traverse_twice.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/traverse_twice.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/ud.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/ud.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/ud.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/ud.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/print.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/print.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/qrdcmp.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/qrdcmp.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/qrdcmp.c.i.qrdcmp.pl.t2.fixed.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/qrdcmp.c.i.qrdcmp.pl.t2.fixed.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/queens.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/queens.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/queens.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/queens.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/queue_1000.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/queue_1000.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/reverse_seg_cyclic.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/reverse_seg_cyclic.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/reverse.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/reverse.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/s1-saved.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/s1-saved.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/selectSort.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/selectSort.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/send-more-money.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/send-more-money.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/send-more-money.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/send-more-money.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/spctrm.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/spctrm.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/sort.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/sort.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/traverse.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/traverse.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/sudoku.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/sudoku.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/traverse2.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/traverse2.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/traverse_seg.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/traverse_seg.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/traverse_seg2.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/traverse_seg2.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/traverse_twice.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/traverse_twice.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/zlib-crc32-BYFOUR.c.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/zlib-crc32-BYFOUR.c.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/fir.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/fir.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/spctrm.c.i.spctrm.pl.t2.fixed.t2.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/spctrm.c.i.spctrm.pl.t2.fixed.t2.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_T2/sort.t2_fixed.ari",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_T2/sort.t2_fixed.ari' --term  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/HeizmannHoenickeLeikePodelski-ATVA2013-Fig6.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/HeizmannHoenickeLeikePodelski-ATVA2013-Fig6.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/2Nested-1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/2Nested-1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/4NestedWith3Variables-1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/4NestedWith3Variables-1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Bangalore-2.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Bangalore-2.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Benghazi.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Benghazi.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Bangalore_v4.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Bangalore_v4.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Benghazi_nondet-2.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Benghazi_nondet-2.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Cairo_step2-1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Cairo_step2-1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Cairo.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Cairo.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Copenhagen_disj-2.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Copenhagen_disj-2.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Gothenburg-1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Gothenburg-1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/McCarthy91_Iteration.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/McCarthy91_Iteration.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/MenloPark.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/MenloPark.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Mysore-2.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Mysore-2.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Nyala-2lex-2.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Nyala-2lex-2.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Piecewise.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Piecewise.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Singapore-2.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Singapore-2.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Parallel.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Parallel.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Gothenburg_v2-1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Gothenburg_v2-1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Thun-2.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Thun-2.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Pure3Phase-1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Pure3Phase-1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/aaron2-1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/aaron2-1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/TelAviv-Amir-Minimum.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/TelAviv-Amir-Minimum.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Toulouse-MultiBranchesToLoop-2.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Toulouse-MultiBranchesToLoop-2.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/aaron3-1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/aaron3-1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/easy1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/easy1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-Fig1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-Fig1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-easy1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-easy1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-loops.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-loops.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-random2d.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-random2d.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-random1d-2.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-random1d-2.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-speedpldi2.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-speedpldi2.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-nestedLoop-1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-nestedLoop-1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-speedpldi3.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-speedpldi3.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-speedpldi4.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-speedpldi4.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-wcet2.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-wcet2.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Stockholm-1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Stockholm-1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-while2.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-while2.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-wise.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-wise.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/ChawdharyCookGulwaniSagivYang-ESOP2008-easy1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/ChawdharyCookGulwaniSagivYang-ESOP2008-easy1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/ChenFlurMukhopadhyay-SAS2012-Ex3.01.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/ChenFlurMukhopadhyay-SAS2012-Ex3.01.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/BradleyMannaSipma-CAV2005-Fig1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/BradleyMannaSipma-CAV2005-Fig1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/WhileFalse.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/WhileFalse.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/BrockschmidtCookFuhs-CAV2013-Fig1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/BrockschmidtCookFuhs-CAV2013-Fig1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/BrockschmidtCookFuhs-CAV2013-Fig9a.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/BrockschmidtCookFuhs-CAV2013-Fig9a.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/BrockschmidtCookFuhs-CAV2013-Introduction.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/BrockschmidtCookFuhs-CAV2013-Introduction.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/ChawdharyCookGulwaniSagivYang-ESOP2008-random1d.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/ChawdharyCookGulwaniSagivYang-ESOP2008-random1d.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/ChenFlurMukhopadhyay-SAS2012-Ex2.20.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/ChenFlurMukhopadhyay-SAS2012-Ex2.20.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Pure2Phase-1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Pure2Phase-1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted/Toulouse-BranchesToLoop-2.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted/Toulouse-BranchesToLoop-2.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig7a.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig7a.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig7b.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig7b.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig8a-modified.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig8a-modified.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig8b.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig8b.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/GopanReps-CAV2006-Fig1a.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/GopanReps-CAV2006-Fig1a.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/HarrisLalNoriRajamani-SAS2010-Fig1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/HarrisLalNoriRajamani-SAS2010-Fig1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/HeizmannHoenickeLeikePodelski-ATVA2013-Fig1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/HeizmannHoenickeLeikePodelski-ATVA2013-Fig1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/KroeningSharyginaTsitovichWintersteiger-CAV2010-Ex.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/KroeningSharyginaTsitovichWintersteiger-CAV2010-Ex.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/Urban-WST2013-Fig2.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/Urban-WST2013-Fig2.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/HeizmannHoenickeLeikePodelski-ATVA2013-Fig5.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/HeizmannHoenickeLeikePodelski-ATVA2013-Fig5.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/PodelskiRybalchenko-TACAS2011-Fig2.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/PodelskiRybalchenko-TACAS2011-Fig2.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/LarrazOliverasRodriguez-CarbonellRubio-FMCAD2013-Fig1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/LarrazOliverasRodriguez-CarbonellRubio-FMCAD2013-Fig1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/PodelskiRybalchenko-TACAS2011-Fig4.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/PodelskiRybalchenko-TACAS2011-Fig4.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/Log.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/Log.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/KroeningSharyginaTsitovichWintersteiger-CAV2010-Fig1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/KroeningSharyginaTsitovichWintersteiger-CAV2010-Fig1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/PodelskiRybalchenko-LICS2004-Fig1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/PodelskiRybalchenko-LICS2004-Fig1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/IntPath.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/IntPath.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/PastaC3.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaC3.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/PastaB1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaB1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/PastaB14.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaB14.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/PastaA1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaA1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/PastaB16.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaB16.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/a.09_assume.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/a.09_assume.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/a.08.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/a.08.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/b.03-no-inv_assume.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.03-no-inv_assume.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/Sequence.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/Sequence.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/Urban-WST2013-Fig2-modified1000.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/Urban-WST2013-Fig2-modified1000.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/b.07.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.07.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/Nested-2.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/Nested-2.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-crafted-lit/UrbanMine-ESOP2014-Fig3.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-crafted-lit/UrbanMine-ESOP2014-Fig3.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/PastaB15.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaB15.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/PastaB7.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaB7.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/b.01.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.01.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/LogAG.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/LogAG.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/PastaA7.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaA7.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/a.06.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/a.06.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/a.07.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/a.07.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/c.07.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/c.07.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/b.05.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.05.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/b.15.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.15.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/PastaB17.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaB17.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/b.18.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.18.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-nla/cohencu1-both-t.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-nla/cohencu1-both-t.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-nla/cohencu2-both-t.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-nla/cohencu2-both-t.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/DivMinus2.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/DivMinus2.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/PastaC9.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/PastaC9.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-nla/cohencu3-both-t.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-nla/cohencu3-both-t.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/b.16.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.16.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-nla/cohencu5-both-t.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-nla/cohencu5-both-t.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-nla/cohencu4-both-t.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-nla/cohencu4-both-t.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/java_Continue1.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/java_Continue1.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/ex3b.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/ex3b.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/java_Sequence.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/java_Sequence.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-nla/dijkstra1-both-t.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-nla/dijkstra1-both-t.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-nla/ps3-both-t.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-nla/ps3-both-t.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/b.17.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.17.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-nla/ps2-both-t.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-nla/ps2-both-t.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-nla/sqrt1-both-t.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-nla/sqrt1-both-t.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/b.09-no-inv_assume.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.09-no-inv_assume.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-nla/ps4-both-t.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-nla/ps4-both-t.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/b.14.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.14.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/GCD4.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/GCD4.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/GCD3.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/GCD3.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/MinusUserDefined.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/MinusUserDefined.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/ex3a.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/ex3a.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/McCarthyIterative.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/McCarthyIterative.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/b.13.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/b.13.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/c.08.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/c.08.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-nla/ps5-both-t.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-nla/ps5-both-t.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-nla/ps6-both-t.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-nla/ps6-both-t.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/c.03.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/c.03.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/c.01_assume.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/c.01_assume.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/a.01.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/a.01.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/java_Nested.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/java_Nested.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/c.02.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/c.02.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-restricted-15/c.01-no-inv.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-restricted-15/c.01-no-inv.yml' --sv  --sampler z3+box --target cpu"
+ },
+ {
+  "name": "termination-nla/hard2-both-t.yml",
+  "timeout": 480,
+  "cmd": "bun research/table/term.ts 'termination-nla/hard2-both-t.yml' --sv  --sampler z3+box --target cpu"
+ }
+]

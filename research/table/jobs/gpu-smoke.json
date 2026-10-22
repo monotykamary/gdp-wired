@@ -1,0 +1,12 @@
+[
+ {
+  "name": "eldarica-misc/LIA/HOLA/28.c_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/28.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/28.c_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "Integer_Transition_Systems/From_AProVE_2014/AProVEMath.jar-obl-8.ari",
+  "timeout": 1200,
+  "cmd": "bun research/table/term.ts 'Integer_Transition_Systems/From_AProVE_2014/AProVEMath.jar-obl-8.ari' --its --koat-s 0 --sampler z3+box --target gpu --twin"
+ }
+]

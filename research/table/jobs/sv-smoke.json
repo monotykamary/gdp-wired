@@ -1,0 +1,17 @@
+[
+ {
+  "name": "termination-crafted/2Nested-1.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/2Nested-1.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/McCarthy91_Iteration.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/McCarthy91_Iteration.yml' --sv "
+ },
+ {
+  "name": "termination-crafted/WhileFalse.yml",
+  "timeout": 300,
+  "cmd": "bun research/table/term.ts 'termination-crafted/WhileFalse.yml' --sv "
+ }
+]
