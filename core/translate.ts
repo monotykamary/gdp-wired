@@ -114,48 +114,31 @@ function regrow(whole: Goal, wp: Path, until: number): Tree | undefined {
 }
 
 // The usual tree for `part` read as a tree for `whole` (whose hypotheses hold part's, renamed), from the paths given.
-// `reads`: a write's key W and a key K the conclusion reads its map at (if(K = W, ...)), where the node's conclusion
-// reads at K what the usual one reads at W (a write's reads at its key read at the key read, as the step's facts have
-// them): in the rows of the conclusion, and in a split, a cell at a key the usual path has equal to W and to K is the
-// cell at K; a split so read otherwise is split both ways (the two then the same, else refuted: `close`).
-export type Reads = {at: E, from: E}[]
-export function translate(part: Goal, whole: Goal, tree: Tree, ren: Renamer, st: TStats, until: number, pp: Path = new Map(), wp: Path = new Map(), reads: Reads = []): Tree | undefined {
-  const same = (a: Lin, b: Lin) => { const d = add(a, scale(b, -1)); return !Object.keys(d).length || (known(d, pp) === true && known(scale(d, -1), pp) === true) }
-  const atK = (lin: Lin): Lin => {
-    if (!reads.length) return lin
+// `swaps`: usual keys read as others (a cell at the first read as the cell at the second): where the path has a write's
+// key W equal to a key K the node's conclusion reads its map at, that conclusion reads at K what the usual one reads at
+// W (a write's reads at its key read at the key read, as the step's facts have them), so the usual cells at W are read
+// as the cells at K (`readsFirst` decides the two equal or apart first).
+export function translate(part: Goal, whole: Goal, tree: Tree, ren0: Renamer, st: TStats, until: number, pp: Path = new Map(), wp: Path = new Map(), swaps: [string, string][] = []): Tree | undefined {
+  const ren: Renamer = swaps.length ? (lin, p) => {
     const out: Lin = {}
     for (const key in lin) {
       let to = key
-      if (isCell(key)) {
-        const a = keyOf(key)
-        for (const r of reads) { const w = linear(r.from, pp), kk = linear(r.at, pp); if (w && kk && same(a, w) && same(kk, w)) { to = `${key.slice(0, key.indexOf('['))}[${canon(kk)}]`; break } }
-      }
+      if (isCell(key)) { const kt = canon(keyOf(key)), sw = swaps.find(x => x[0] === kt); if (sw) to = `${key.slice(0, key.indexOf('['))}[${sw[1]}]` }
       out[to] = (out[to] ?? 0) + lin[key]!
     }
-    return out
-  }
-  const renC = (lin: Lin) => ren(atK(lin), wp)
+    return ren0(out, p)
+  } : ren0
   if (!('leaf' in tree)) {
     const id = canon(tree.split), wl = ren(tree.split, wp)
     if (!wl) return close(whole, wp, st, until)
-    const k0 = known(wl, wp), wc = renC(tree.split), twin = wc && canon(wc) !== canon(wl) && Object.keys(wc).some(key => key !== '1') ? wc : undefined
-    const go = (holds: boolean, w: Path): Tree | undefined => {
-      const p2 = new Map(pp).set(id, {lin: tree.split, holds}), next = holds ? tree.yes : tree.no
-      const kt = twin && known(twin, w)
-      if (!twin || kt === holds) return translate(part, whole, next, ren, st, until, p2, w, reads)
-      if (kt !== undefined) return close(whole, w, st, until)
-      st.splits++
-      const tid = canon(twin), a = translate(part, whole, next, ren, st, until, p2, new Map(w).set(tid, {lin: twin, holds}), reads)
-      const b = a && close(whole, new Map(w).set(tid, {lin: twin, holds: !holds}), st, until)
-      return a && b ? (holds ? {split: twin, yes: a, no: b} : {split: twin, yes: b, no: a}) : undefined
-    }
-    if (k0 !== undefined) return go(k0, wp)
+    const k0 = known(wl, wp)
+    if (k0 !== undefined) return translate(part, whole, k0 ? tree.yes : tree.no, ren0, st, until, new Map(pp).set(id, {lin: tree.split, holds: k0}), wp, swaps)
     const wid = canon(wl)
-    const yes = go(true, new Map(wp).set(wid, {lin: wl, holds: true}))
-    const no = yes && go(false, new Map(wp).set(wid, {lin: wl, holds: false}))
+    const yes = translate(part, whole, tree.yes, ren0, st, until, new Map(pp).set(id, {lin: tree.split, holds: true}), new Map(wp).set(wid, {lin: wl, holds: true}), swaps)
+    const no = yes && translate(part, whole, tree.no, ren0, st, until, new Map(pp).set(id, {lin: tree.split, holds: false}), new Map(wp).set(wid, {lin: wl, holds: false}), swaps)
     return yes && no ? {split: wl, yes, no} : undefined
   }
-  const rp = leafConstraintsReusing(part, pp), rw = leafConstraintsReusing(whole, wp), at = new Map<string, number>(), concl = part.hyps.length - 1
+  const rp = leafConstraintsReusing(part, pp), rw = leafConstraintsReusing(whole, wp), at = new Map<string, number>()
   rw.forEach((r, i) => { const key = canon(r.lin); if (!at.has(key)) at.set(key, i) })
   // Two cells the usual path proves equal (a row of the leaf's from their pair) are cells over time here, at keys
   // (t − 1) + a·Ω and (t − 1) + b·Ω: the path has a = b, and the keys' difference (a − b)·Ω is split (each other side
@@ -174,19 +157,45 @@ export function translate(part: Goal, whole: Goal, tree: Tree, ren: Renamer, st:
       if (kd === true) continue
       if (kd === false) return apart(whole, wp, l, q, st, until)
       st.splits++
-      const id = canon(l), yes = translate(part, whole, tree, ren, st, until, pp, new Map(wp).set(id, {lin: l, holds: true}), reads)
+      const id = canon(l), yes = translate(part, whole, tree, ren0, st, until, pp, new Map(wp).set(id, {lin: l, holds: true}), swaps)
       const no = yes && apart(whole, new Map(wp).set(id, {lin: l, holds: false}), l, q, st, until)
       return yes && no ? {split: l, yes, no} : undefined
     }
   }
   st.leaves++
-  const map = (i: number): number | undefined => { if (i >= rp.length) return i - rp.length + rw.length; const r = rp[i]!, l = r.src && 'fact' in r.src && r.src.fact === concl ? renC(r.lin) : ren(r.lin, wp); return l && at.get(canon(l)) }
+  const map = (i: number): number | undefined => { if (i >= rp.length) return i - rp.length + rw.length; const l = ren(rp[i]!.lin, wp); return l && at.get(canon(l)) }
   const leaf: Step[] = [], products: [number, number][] = [], squares = (tree.squares ?? []).map(s => ren(s, wp))
   let ok = squares.every(Boolean)
   for (const s of ok ? tree.leaf : []) { if (s.kind !== 'input') { leaf.push(s); continue } const j = map(s.index); if (j === undefined) { ok = false; break } leaf.push({...s, index: j}) }
   for (const [i, j] of ok ? tree.products ?? [] : []) { const a = map(i), b = map(j); if (a === undefined || b === undefined) { ok = false; break } products.push([a, b]) }
   if (ok && checkRefutation(withProducts(rw, products, squares as Lin[]), leaf)) return {leaf, ...(tree.products ? {products} : {}), ...(tree.squares ? {squares: squares as Lin[]} : {})}
   return close(whole, wp, st, until)
+}
+
+// A write's key W and a key K the node's conclusion reads its map at (each usual terms, `wl`/`kl` their forms in the
+// node's goal): decided equal or apart first, each in turn (equal, the cells' keys over Ω decided equal too, each other
+// side refuted by the product: `apart`), then `inner` with the usual cells at each W found equal read at its K.
+export type Reads = {k: E, w: E}[]
+export function readsFirst(whole: Goal, reads: Reads, ren: Renamer, inner: (wp: Path, swaps: [string, string][]) => Tree | undefined, st: TStats, until: number, wp: Path = new Map(), swaps: [string, string][] = []): Tree | undefined {
+  if (!reads.length) return inner(wp, swaps)
+  const [r, ...rest] = reads, ku = linear(r!.k, new Map()), wu = linear(r!.w, new Map()), kl = ku && ren(ku, wp), wl = wu && ren(wu, wp)
+  if (!ku || !wu || !kl || !wl) return readsFirst(whole, rest, ren, inner, st, until, wp, swaps)
+  const q = add(kl, scale(wl, -1))
+  if (!Object.keys(q).some(key => key !== '1')) return readsFirst(whole, rest, ren, inner, st, until, wp, swaps)
+  const dq = times(q, {[omega]: 1})
+  // The cases in turn: q <= 0, then -q <= 0 (equal), then the keys over Ω.
+  const steps: {l: Lin, q?: Lin}[] = [{l: q}, {l: scale(q, -1)}, ...(dq ? [{l: dq, q}, {l: scale(dq, -1), q: scale(q, -1)}] : [])]
+  const go = (i: number, p: Path): Tree | undefined => {
+    if (i === steps.length) return readsFirst(whole, rest, ren, inner, st, until, p, [...swaps, [canon(wu), canon(ku)]])
+    const {l, q: qq} = steps[i]!, kd = known(l, p)
+    if (kd === true) return go(i + 1, p)
+    if (kd === false) return i < 2 ? readsFirst(whole, rest, ren, inner, st, until, p, swaps) : apart(whole, p, l, qq!, st, until)
+    st.splits++
+    const id = canon(l), yes = go(i + 1, new Map(p).set(id, {lin: l, holds: true})), no = new Map(p).set(id, {lin: l, holds: false})
+    const n = yes && (i < 2 ? readsFirst(whole, rest, ren, inner, st, until, no, swaps) : apart(whole, no, l, qq!, st, until))
+    return yes && n ? {split: l, yes, no: n} : undefined
+  }
+  return go(0, wp)
 }
 
 // A path where l >= 1 (two cells' keys apart by l = q·Ω) while q <= 0 is a row: refuted by q·Ω <= 0, the product of

@@ -17,7 +17,7 @@ import type {Fold, Goal, Instances, Subst, Tree} from '../kernel/kernel.ts'
 import {assumed, foldObligations, obligations, substC, substE} from '../kernel/kernel.ts'
 import {type CNode, type Cyclic, type Fact, type Use, baseHyps, descentGoal, instHyps, mainGoal, premiseGoal, refuseCyclic} from '../kernel/cyclic.ts'
 import {cellProducts, grow, profile, usedHyps, widen} from '../kernel/prove.ts'
-import {type Reads, type Renamer, type TStats, carry, decide, renamer, translate, tstats} from './translate.ts'
+import {type Reads, type Renamer, type TStats, carry, decide, readsFirst, renamer, translate, tstats} from './translate.ts'
 
 // What only the search reads: `opaque`, terms it reads as variables of their own in the node's goal (the trees are the
 // goal's still: see `widen`); `variants`, the node stated otherwise (fewer facts, other uses), each tried in turn where
@@ -660,8 +660,6 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
       if (!ks.length) return [{fact, at: []}]
       return Array.from({length: Math.floor(flat.length / ks.length)}, (_, i) => ({fact, at: flat.slice(i * ks.length, (i + 1) * ks.length).map(e => substE(substE(e, vars(fresh)), frame))}))
     })
-    const naturals = (when: E) => state.map(st2 => ({fact: fi(`${m.name}: ${st2} is a natural`), at: [when]}))
-    const params = {fact: fi(`${m.name}: params are naturals`), at: []}
     const goals = new Map(obligations(m, laws, instances).map(g => [g.name, g]))
     // The state the step gives over the frame before it, a write's reads at its key read at the key read instead (as the
     // map's step fact has them): the usual step goal's conclusion but for those reads, which the translation reads at
@@ -678,7 +676,7 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
       const walk = (x: unknown): void => {
         if (!x || typeof x !== 'object') return
         const o = x as E
-        if (o.op === 'if' && o.c.op === '=' && wkeys.has(JSON.stringify(o.c.b))) { const id = JSON.stringify([o.c.a, o.c.b]); if (!seen.has(id)) { seen.add(id); out.push({at: o.c.a, from: o.c.b}) } }
+        if (o.op === 'if' && o.c.op === '=' && wkeys.has(JSON.stringify(o.c.b))) { const id = JSON.stringify([o.c.a, o.c.b]); if (!seen.has(id)) { seen.add(id); out.push({k: o.c.a, w: o.c.b}) } }
         for (const val of Object.values(o)) walk(val)
       }
       walk(c)
@@ -699,9 +697,9 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
       const used1 = usedHyps(g1, t1), used0 = usedHyps(g0, t0), last = (g: Goal) => (g.hyps.at(-1) as Extract<C, {op: 'not'}>).x
       const concl = substC(l.holds, at(t))
       afters.push({name: `${m.name}: ${l.name}, after a step`, hyps: [...(m.pre ? [m.pre] : []), one, le(t, T), ...omegaHyp, ...(m.assume ? [now(inline(m.assume), less1(t))] : [])],
-        concl: substC(substC(substC(l.holds, vars(fresh)), upd), pre), rank: [t, k(0)], insts: [...fn1.filter((_, q) => used1.has(q)), ...naturals(less1(t)), params], uses: uses.filter((_, j) => used1.has(nf + np + na + j))})
-      starts.push({name: `${m.name}: ${l.name}, at the start`, hyps: m.pre ? [m.pre] : [], concl: substC(last(g0), vars(fresh)), rank: [k(0), k(0)], insts: [...fn0.filter((_, q) => used0.has(q)), params], uses: []})
-      nows.push({name: `${m.name}: ${l.name}`, hyps: [...(m.pre ? [m.pre] : []), le(t, T), ...omegaHyp], concl, rank: [t, k(1)], insts: [...run(t), ...mapInsts(concl), ...naturals(t), params],
+        concl: substC(substC(substC(l.holds, vars(fresh)), upd), pre), rank: [t, k(0)], insts: [...fn1.filter((_, q) => used1.has(q))], uses: uses.filter((_, j) => used1.has(nf + np + na + j))})
+      starts.push({name: `${m.name}: ${l.name}, at the start`, hyps: m.pre ? [m.pre] : [], concl: substC(last(g0), vars(fresh)), rank: [k(0), k(0)], insts: [...fn0.filter((_, q) => used0.has(q))], uses: []})
+      nows.push({name: `${m.name}: ${l.name}`, hyps: [...(m.pre ? [m.pre] : []), le(t, T), ...omegaHyp], concl, rank: [t, k(1)], insts: [...run(t), ...mapInsts(concl)],
         uses: [{node: L + i, subst: {}, guard: one}, {node: 2 * L + i, subst: {}, guard: le(t, k(0))}], carry: true})
       made.push({g: g1, tree: t1, node: L + i, ren, decide: [one], reads: readsOf(last(g1))}, {g: g0, tree: t0, node: 2 * L + i, ren: ren0})
     }
@@ -712,7 +710,7 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
       // (after a step, 1 <= t decided first: t ∸ 1 is then t − 1, and a cell read at a key over the cells at t − 1 has a
       // linear form)
       const whole = mainGoal(facts, all, all[x.node]!)
-      const tree = timedKind('translate', 0, () => withProducts(() => decide(whole, x.decide ?? [], wp => translate(x.g, whole, x.tree, x.ren, st, until, new Map(), wp, x.reads), st, until)))
+      const tree = timedKind('translate', 0, () => withProducts(() => decide(whole, x.decide ?? [], wp => readsFirst(whole, x.reads ?? [], x.ren, (p, swaps) => translate(x.g, whole, x.tree, x.ren, st, until, new Map(), p, swaps), st, until, wp), st, until)))
       if (!tree) return {specs: [], why: `${all[x.node]!.name}: not translated`}
       all[x.node] = {...all[x.node]!, main: tree}
     }
