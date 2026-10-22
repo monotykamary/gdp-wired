@@ -133,6 +133,50 @@ const arity = (l: string) => A.funs.get(l)!
 const lit = (v: bigint) => (v < 0n ? `(- ${-v})` : `${v}`)
 
 const varsOf = (s: ASx, o = new Set<string>()): Set<string> => { if (typeof s === 'string') { if (isVar(s)) o.add(s) } else s.forEach((x, i) => (i === 0 && typeof x === 'string' ? undefined : varsOf(x, o))); return o }
+function columnsOf(comp: Set<string>, ruleIdx: number[]): Map<string, number[]> {
+  const rel = new Map([...comp].map(l => [l, new Set<number>()]))
+  // per rule: its guard's conjuncts split into definitions (v = e, v a variable the left side doesn't bind, defined
+  // once: an update written as an equation) and conditions (the rest: what the guard reads)
+  const flow = ruleIdx.map(j => {
+    const r = A.rules[j]!, lhsVars = new Set(r.lhs.filter(a => typeof a === 'string' && isVar(a)) as string[])
+    const cs: ASx[] = typeof r.guard !== 'string' && r.guard[0] === 'and' ? r.guard.slice(1) : [r.guard]
+    const defs = new Map<string, Set<string>>(), conds: ASx[] = [], targets = new Map<string, number>()
+    for (const c of cs) if (Array.isArray(c) && c[0] === '=' && c.length === 3) for (const side of [c[1]!, c[2]!]) if (typeof side === 'string' && isVar(side) && !lhsVars.has(side)) targets.set(side, (targets.get(side) ?? 0) + 1)
+    for (const c of cs) {
+      if (Array.isArray(c) && c[0] === '=' && c.length === 3) {
+        const [x, y] = [c[1]!, c[2]!]
+        const v = typeof x === 'string' && isVar(x) && !lhsVars.has(x) && targets.get(x) === 1 && !defs.has(x) ? x : typeof y === 'string' && isVar(y) && !lhsVars.has(y) && targets.get(y) === 1 && !defs.has(y) ? y : undefined
+        if (v) { defs.set(v, varsOf(v === x ? y : x)); continue }
+      }
+      conds.push(c)
+    }
+    const read = new Set<string>()
+    for (const c of conds) varsOf(c, read)
+    return {r, defs, read}
+  })
+  const need = (f: typeof flow[number], vs: Iterable<string>, acc = new Set<string>()): Set<string> => {
+    for (const v of vs) { if (acc.has(v)) continue; acc.add(v); const d = f.defs.get(v); if (d) need(f, d, acc) }
+    return acc
+  }
+  const mark = (f: typeof flow[number], vs: Set<string>) => {
+    let changed = false
+    f.r.lhs.forEach((a, k) => { if (!rel.get(f.r.from)!.has(k) && (!(typeof a === 'string' && isVar(a)) || [...varsOf(a)].some(v => vs.has(v)))) { rel.get(f.r.from)!.add(k); changed = true } })
+    return changed
+  }
+  // what the conditions read, through the definitions; then closed under the updates (a position whose value flows
+  // into a relevant position's new value)
+  for (const f of flow) mark(f, need(f, f.read))
+  for (let changed = true; changed;) {
+    changed = false
+    for (const f of flow) {
+      const vs = new Set<string>()
+      f.r.rhs.forEach((a, k) => { if (rel.get(f.r.to)!.has(k)) varsOf(a, vs) })
+      if (mark(f, need(f, vs))) changed = true
+    }
+  }
+  return new Map([...rel].map(([l, s]) => [l, [...s].sort((a, b) => a - b)]))
+}
+
 // --- sampling ------------------------------------------------------------------------------------------------------------
 type Turn = {rule: number, pre: bigint[], post: bigint[]}
 const turns: Turn[][] = rules.map(() => [])
@@ -185,6 +229,7 @@ if (sampler === 'box' || sampler === 'z3+box') {
   const tSetup = performance.now()
   const target = boxTarget === 'gpu' ? await g.gpuTarget() : {kind: 'cpu' as const}
   const budget = Number(opt('--box-points', String(1 << 22)))
+  const relevantAll = columnsOf(new Set(A.funs.keys()), A.rules.map((_, j) => j))
   const stats: Record<string, unknown>[] = []
   out.boxTarget = {kind: target.kind, setupMs: Math.round(performance.now() - tSetup), adapter: target.kind === 'gpu' ? target.adapter : undefined}
   for (const [j, r] of A.rules.entries()) {
@@ -192,10 +237,16 @@ if (sampler === 'box' || sampler === 'z3+box') {
     if (sampler === 'z3+box' && turns[j]!.length) continue
     const {others} = ruleVars(r)
     const cs: ASx[] = typeof r.guard !== 'string' && r.guard[0] === 'and' ? r.guard.slice(1) : [r.guard]
-    // positions: a variable's first occurrence names the value; anything else a fresh name and an equation
-    const enumerated: string[] = [], extra: ASx[] = []
-    r.lhs.forEach((a, k) => { if (typeof a === 'string' && isVar(a) && !enumerated.includes(a)) enumerated.push(a); else { enumerated.push(`@${k}`); extra.push(['=', a, `@${k}`]) } })
-    const known = new Set(enumerated), defined: [string, ASx][] = []
+    // positions: a variable's first occurrence names the value; anything else a fresh name and an equation. Only the
+    // positions the program reads (relevant: what some guard reads, closed under the updates, over every rule) are
+    // enumerated; the others are 0, and so is a free value nothing relevant reads
+    const enumerated: string[] = [], extra: ASx[] = [], rel = relevantAll.get(r.from) ?? []
+    const zero: [string, ASx][] = []
+    r.lhs.forEach((a, k) => {
+      if (!rel.includes(k)) { if (typeof a === 'string' && isVar(a) && !zero.some(([v]) => v === a) && !enumerated.includes(a)) zero.push([a, '0']); return }
+      if (typeof a === 'string' && isVar(a) && !enumerated.includes(a)) enumerated.push(a); else { enumerated.push(`@${k}`); extra.push(['=', a, `@${k}`]) }
+    })
+    const known = new Set([...enumerated, ...zero.map(([v]) => v)]), defined: [string, ASx][] = [...zero]
     for (let changed = true; changed;) {
       changed = false
       for (const c of cs) {
@@ -205,7 +256,14 @@ if (sampler === 'box' || sampler === 'z3+box') {
         }
       }
     }
-    for (const v of others) if (!known.has(v)) { enumerated.push(v); known.add(v) }
+    // a free value is enumerated when a condition of the guard reads it or a relevant new value does (through the
+    // definitions); else it is 0
+    const defMap = new Map(defined), need = new Set<string>()
+    const pull = (vs: Iterable<string>) => { for (const v of vs) { if (need.has(v)) continue; need.add(v); const e = defMap.get(v); if (e) pull(varsOf(e)) } }
+    for (const c of cs) { const isDef = Array.isArray(c) && c[0] === '=' && c.length === 3 && defined.some(([v, e]) => (c[1] === v && c[2] === e) || (c[2] === v && c[1] === e)); if (!isDef) pull(varsOf(c)) }
+    const relTo = relevantAll.get(r.to) ?? []
+    r.rhs.forEach((a, k) => { if (relTo.includes(k)) pull(varsOf(a)) })
+    for (const v of others) if (!known.has(v)) { if (need.has(v)) enumerated.push(v); else defined.unshift([v, '0']); known.add(v) }
     const d = enumerated.length
     let B = 0
     while ((2 * (B + 1) + 1) ** d <= budget) B++
@@ -270,50 +328,6 @@ const sccs: string[][] = []
   }
   for (const l of locs) if (!index.has(l)) visit(l)
 }
-function columnsOf(comp: Set<string>, ruleIdx: number[]): Map<string, number[]> {
-  const rel = new Map([...comp].map(l => [l, new Set<number>()]))
-  // per rule: its guard's conjuncts split into definitions (v = e, v a variable the left side doesn't bind, defined
-  // once: an update written as an equation) and conditions (the rest: what the guard reads)
-  const flow = ruleIdx.map(j => {
-    const r = A.rules[j]!, lhsVars = new Set(r.lhs.filter(a => typeof a === 'string' && isVar(a)) as string[])
-    const cs: ASx[] = typeof r.guard !== 'string' && r.guard[0] === 'and' ? r.guard.slice(1) : [r.guard]
-    const defs = new Map<string, Set<string>>(), conds: ASx[] = [], targets = new Map<string, number>()
-    for (const c of cs) if (Array.isArray(c) && c[0] === '=' && c.length === 3) for (const side of [c[1]!, c[2]!]) if (typeof side === 'string' && isVar(side) && !lhsVars.has(side)) targets.set(side, (targets.get(side) ?? 0) + 1)
-    for (const c of cs) {
-      if (Array.isArray(c) && c[0] === '=' && c.length === 3) {
-        const [x, y] = [c[1]!, c[2]!]
-        const v = typeof x === 'string' && isVar(x) && !lhsVars.has(x) && targets.get(x) === 1 && !defs.has(x) ? x : typeof y === 'string' && isVar(y) && !lhsVars.has(y) && targets.get(y) === 1 && !defs.has(y) ? y : undefined
-        if (v) { defs.set(v, varsOf(v === x ? y : x)); continue }
-      }
-      conds.push(c)
-    }
-    const read = new Set<string>()
-    for (const c of conds) varsOf(c, read)
-    return {r, defs, read}
-  })
-  const need = (f: typeof flow[number], vs: Iterable<string>, acc = new Set<string>()): Set<string> => {
-    for (const v of vs) { if (acc.has(v)) continue; acc.add(v); const d = f.defs.get(v); if (d) need(f, d, acc) }
-    return acc
-  }
-  const mark = (f: typeof flow[number], vs: Set<string>) => {
-    let changed = false
-    f.r.lhs.forEach((a, k) => { if (!rel.get(f.r.from)!.has(k) && (!(typeof a === 'string' && isVar(a)) || [...varsOf(a)].some(v => vs.has(v)))) { rel.get(f.r.from)!.add(k); changed = true } })
-    return changed
-  }
-  // what the conditions read, through the definitions; then closed under the updates (a position whose value flows
-  // into a relevant position's new value)
-  for (const f of flow) mark(f, need(f, f.read))
-  for (let changed = true; changed;) {
-    changed = false
-    for (const f of flow) {
-      const vs = new Set<string>()
-      f.r.rhs.forEach((a, k) => { if (rel.get(f.r.to)!.has(k)) varsOf(a, vs) })
-      if (mark(f, need(f, vs))) changed = true
-    }
-  }
-  return new Map([...rel].map(([l, s]) => [l, [...s].sort((a, b) => a - b)]))
-}
-
 // --- invariants: Q1 + Q2 per location over the sampled states, Houdini by Z3 over every rule --------------------------------
 const Zc = new Z3(2000)
 Zc.send(declText)
