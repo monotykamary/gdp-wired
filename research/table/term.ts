@@ -233,8 +233,9 @@ if (sampler === 'box' || sampler === 'z3+box') {
   const stats: Record<string, unknown>[] = []
   out.boxTarget = {kind: target.kind, setupMs: Math.round(performance.now() - tSetup), adapter: target.kind === 'gpu' ? target.adapter : undefined}
   for (const [j, r] of A.rules.entries()) {
-    // z3+box: the box only for the rules the runs never took
+    // z3+box: the box only for the rules the runs never took; no box past 40% of the deadline
     if (sampler === 'z3+box' && turns[j]!.length) continue
+    if (performance.now() - T0 > deadline * 0.4) { stats.push({rule: j, skipped: 'deadline'}); continue }
     const {others} = ruleVars(r)
     const cs: ASx[] = typeof r.guard !== 'string' && r.guard[0] === 'and' ? r.guard.slice(1) : [r.guard]
     // positions: a variable's first occurrence names the value; anything else a fresh name and an equation. Only the
