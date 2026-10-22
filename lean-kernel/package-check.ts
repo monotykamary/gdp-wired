@@ -250,4 +250,4 @@ mkdirSync(out, {recursive: true})
 for (const [name, text] of Object.entries(leanProject(file))) writeFileSync(join(out, name), text)
 console.log(`${Object.keys(leanProject(file)).length} files in ${out}; ${[...file.matchAll(/^theorem /gm)].length} theorems`)
 // With cyclic certificates (GDP_CERT=cyclic): which items were exported from them, and which went the usual way.
-if (certReport.cyclic.length || certReport.usual.length) console.log(`cyclic certificates: ${certReport.cyclic.length} items (${certReport.cyclic.join(', ')}); the usual way: ${certReport.usual.length}${certReport.usual.map(x => `\n  ${x.id}: ${x.why}`).join('')}`)
+if (certReport.cyclic.length || certReport.usual.length) console.log(`cyclic certificates: ${certReport.cyclic.length} items (${certReport.cyclic.join(', ')}); the usual way: ${certReport.usual.length}${certReport.usual.map(x => `\n  ${x.id}: ${x.why}`).join('')}\nstep laws translated (the usual proofs', core/translate.ts): ${certReport.translatedSteps.length} machines`)
