@@ -3,7 +3,19 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.21.0
+
+Four new things a law or a rule can say, none of them trusted: recursion that isn't structural (a measure, found or
+given), "there exists" (a witness term or a ghost), division and remainder by a constant with integers in the datatype
+language, and a user's own recursive arithmetic read through the built-ins it computes. The trusted files
+(`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`) are as in 0.20.0; Lean gained three theorems for them (`wf_fix_unique` in Data.lean, `some_of_subst` and
+`some_of_ghost` in Ghost.lean), on the standard axioms. TIP 2015: 140 of 492 proven, 73 at 0.20.0, none wrong
+(`runs/modal/arith/tip-gdp`). CHC-COMP LIA-Lin at 60 s: 382 solved, 368 at 0.20.0, none wrong
+(`runs/modal/infer/chc-final`). `inferLaws` finds the same laws on any machine. The release suites (200 jobs, one after
+the other) ran on boat.dev VMs through the new `--backend auto`, 2 vCPU and 4 GB a job as on Modal: by default 264.4 s
+wall, 2,668.1 s of job time, none failed (`runs/release/0.21.0-default`); `--usual` 268.2 s, 2,503.8 s, none failed
+(`runs/release/0.21.0-usual`). The same suite on Modal at the merged commit before took 489.8 s and 4,246.7 s
+(`runs/modal/backends/suite-default`).
 
 Recursion that isn't structural, in the datatype language (`gdp-wired/data`): a function whose calls are on any
 arguments is taken once its termination is proven, its equation a fact only then. TIP 2015 (`runs/modal/wfrec/tip4`,
