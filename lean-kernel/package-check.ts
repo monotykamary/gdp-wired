@@ -106,7 +106,10 @@ const dataItems: Record<string, [() => DataLaw, string]> = {
   datamaplen: [() => dataLaws.lengthMap(), 'length_map'], datamirror: [() => dataLaws.mirrorMirror(), 'mirror_mirror'],
   datamirrorsize: [() => dataLaws.sizeMirror(), 'size_mirror'], dataflatten: [() => dataLaws.sumFlatten(), 'sum_flatten'],
   datasorted: [() => dataLaws.insertSorted(), 'insert_sorted'], datacount: [() => dataLaws.insertCount(), 'insert_count'],
-  datainslen: [() => dataLaws.insertLength(), 'insert_length'],
+  datainslen: [() => dataLaws.insertLength(), 'insert_length'], databst: [() => dataLaws.bstInsert(), 'bst_insert'],
+  dataroseflat: [() => dataLaws.roseSumFlatten(), 'sum_rflat'], datarosemirror: [() => dataLaws.roseSizeMirror(), 'rsize_rmirror'],
+  databag: [() => dataLaws.bagLength(), 'len_concat'], datarep: [() => dataLaws.replicateLength(), 'len_replicate'],
+  datatakedrop: [() => dataLaws.takeDrop(), 'take_drop'], datadroplen: [() => dataLaws.dropLength(), 'len_drop'],
 }
 const separately = ['searchtree', 'sheet', 'groups0', 'groups1', 'groups2', 'groups3', ...cyclicItems, ...foundItems, ...Object.keys(dataItems)]
 const file = toLean(([
