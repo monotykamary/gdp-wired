@@ -10,10 +10,15 @@
 //     goal): the statement doesn't change. A function of no argument is inlined.
 //   - A function variable of the goal from naturals to naturals is gdp-wired's `fnParam`; one from naturals to Bool is
 //     x ↦ g(x) = 0 for an unknown g (every predicate is one of those, so the quantifier is the same).
+//   - Int: where the problem uses no subtraction, negative literal or product of two unknowns, read as a natural (each
+//     operation means the same on the naturals, + and constant multiples, and div and mod by a positive constant, which
+//     SMT-LIB and the naturals agree on there: a change of the statement, counted, since Int's variables and fields then
+//     range over the naturals); otherwise as gdp-wired's integers (core/data.ts's `integer`, Lean's Int), the statement
+//     unchanged: −, unary minus, constant multiples of any sign, div and mod by a positive constant (SMT-LIB's, Euclid's:
+//     0 ≤ x mod k < k). A product of two unknowns is a product of naturals (`mul`) where Int is read as a natural, and
+//     refused over the integers; division by anything but a positive constant is refused (nonlinear: x = y·q + r).
 //   - What changes the statement, counted apart (`changes`): the goal's own type variables (`par (a) ...`) taken at
-//     the naturals (the law is then the instance at the naturals); Int read as a natural (only where the problem uses no
-//     subtraction, division, remainder, negative literal or product of two unknowns: then each operation means the same
-//     on naturals, and the change is that Int's variables and fields range over the naturals).
+//     the naturals (the law is then the instance at the naturals); Int read as a natural (above).
 //   - A datatype field of sort Bool is a value of a datatype of two constructors of no field (false, true): built from
 //     the condition where a constructor is applied, the condition again where a match binds it.
 //   - Refused, with the reason (`Unsupported`): an existential goal, a quantifier elsewhere than outermost or under an
@@ -24,19 +29,19 @@
 // The background facts a problem asserts (`assert`, true lemmas given as hints) aren't given to proveData: the statement
 // is the goal alone.
 import {type Sx, type Tip, type Ty, type V, BOOL, INT, Unsupported, evaluate, matchTy, prenex, sameTy, show, showTy, substTy, tyOf} from './tip.ts'
-import {Bool, type Callable, Data, type DataLaw, Nat, type Sort, Val, type Value, boolean, data, define, fnParam, law, mutual, natural, no, programOf, self, when, yes} from '../../core/data.ts'
+import {Bool, type Callable, Data, type DataLaw, Integer, Nat, type Sort, Val, type Value, boolean, data, define, fnParam, integer, law, mutual, natural, no, programOf, self, when, yes} from '../../core/data.ts'
 
 const NATS: Ty = {k: 'con', name: '$Nat', args: []} // a type variable of the goal, at the naturals
 const san = (s: string) => s.replace(/[^A-Za-z0-9]/g, c => `_${c.charCodeAt(0).toString(16)}`)
 
-type DSL = Nat | Bool | Val
+type DSL = Nat | Bool | Val | Integer
 // A function value: a lambda (its captured bindings) or a function variable of the goal.
 type Closure =
   | {k: 'lam', params: {name: string, ty: Ty}[], body: Sx, tsub: Map<string, Ty>, captures: Map<string, Bound>, key: string, ty: Ty}
   | {k: 'param', f: (x: Nat) => Nat, pred: boolean, key: string, ty: Ty}
 type Bound = {v: DSL | Closure, ty: Ty}
 type Env = {vars: Map<string, Bound>, tsub: Map<string, Ty>, raw?: boolean}
-const isClosure = (v: DSL | Closure): v is Closure => !(v instanceof Nat || v instanceof Bool || v instanceof Val)
+const isClosure = (v: DSL | Closure): v is Closure => !(v instanceof Nat || v instanceof Bool || v instanceof Val || v instanceof Integer)
 
 export type Instance = {tipName: string, gdpName: string, inst: Ty[], argTys: Ty[], retTy: Ty, callable: Callable, specialised: boolean}
 export type Translation = {
@@ -49,6 +54,12 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {inli
   if (tip.sorts.length) throw new Unsupported('an uninterpreted sort')
   if (tip.consts.length) throw new Unsupported('an uninterpreted constant')
   const changes = new Set<string>(), notes = new Set<string>()
+  // Int as the integers where a natural reading would change what an operation means (above).
+  const literal = (x: Sx) => typeof x === 'string' && /^\d+$/.test(x)
+  // A subtraction or a negation (a negative literal is one): what truncates on the naturals.
+  const needsInt = (x: Sx): boolean => typeof x !== 'string' && (x[0] === '-' || x.some(needsInt))
+  const ints = [...tip.funs.values()].some(f => needsInt(f.body)) || needsInt(tip.goal.body) || lemmas.some(needsInt)
+  if (ints) notes.add('Int as the integers')
   // `inline` (a diagnostic, not the benchmark's translation): a function that doesn't reach itself through its calls is
   // inlined at each call, as a function of no argument always is.
   const callees = (s: Sx, out: Set<string>): Set<string> => { if (typeof s === 'string') { if (tip.funs.has(s)) out.add(s) } else s.forEach(x => callees(x, out)); return out }
@@ -86,7 +97,7 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {inli
     if (t.k === 'var') throw new Error(`an unresolved sort variable ${t.name}`)
     if (t.k === 'fun') throw new Unsupported('a value of a function sort where a datatype value is needed')
     if (t.name === '$Nat') return natural
-    if (t.name === 'Int') { changes.add('Int read as natural'); return natural }
+    if (t.name === 'Int') { if (ints) return integer; changes.add('Int read as natural'); return natural }
     if (t.name === 'Bool') return boolean
     if (!tip.datas.has(t.name)) throw new Unsupported(`the sort ${t.name}`)
     if (isPeano(t.name)) { notes.add('Peano naturals as naturals'); return natural }
@@ -230,7 +241,7 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {inli
     const closures = args.map(b => (isClosure(b.v) ? b.v : undefined))
     const ins = instance(fname, inst, closures, env.raw)
     const actual: (DSL)[] = [...args.filter(b => !isClosure(b.v)).map(b => b.v as DSL), ...closures.flatMap(c => (c ? capturedValues(c).map(value) : []))]
-    return {v: ins.callable(...(actual as (Val | Nat | Bool)[])) as DSL, ty: retTy}
+    return {v: ins.callable(...(actual as (Val | Nat | Bool | Integer)[])) as DSL, ty: retTy}
   }
   const hasVars = (t: Ty, vs: Set<string>): boolean => (t.k === 'var' ? vs.has(t.name) : t.k === 'con' ? t.args.some(a => hasVars(a, vs)) : t.args.some(a => hasVars(a, vs)) || hasVars(t.ret, vs))
   const ctorApp = (cname: string, explicit: Ty[] | undefined, argSx: Sx[], env: Env, expected?: Ty): Bound => {
@@ -258,6 +269,7 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {inli
     if (x instanceof Bool && y instanceof Bool) return x.iff(y)
     if (x instanceof Nat && y instanceof Nat) return x.eq(y)
     if (x instanceof Val && y instanceof Val) return x.eq(y)
+    if (x instanceof Integer && y instanceof Integer) return x.eq(y)
     throw new Error('= of two sorts')
   }
   const arith = new Set(['+', '-', '*', 'div', 'mod', '<', '<=', '>', '>='])
@@ -267,7 +279,11 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {inli
       if (b) return b
       if (s === 'true') return {v: yes, ty: BOOL}
       if (s === 'false') return {v: no, ty: BOOL}
-      if (/^\d+$/.test(s)) { changes.add('Int read as natural'); return {v: natK(Number(s)), ty: INT} }
+      if (/^\d+$/.test(s)) {
+        if (!Number.isSafeInteger(Number(s))) throw new Unsupported(`the numeral ${s}`)
+        if (ints) return {v: new Integer({op: 'int', value: Number(s)}), ty: INT}
+        changes.add('Int read as natural'); return {v: natK(Number(s)), ty: INT}
+      }
       if (tip.ctorOf.has(s)) return ctorApp(s, undefined, [], env, expected)
       if (tip.funs.has(s)) {
         const fd = tip.funs.get(s)!
@@ -295,18 +311,39 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {inli
       return call(f, ts, [], env, expected)
     }
     if (arith.has(head)) {
-      if (head === '-' || head === 'div' || head === 'mod') throw new Unsupported(`Int arithmetic: ${head}`)
-      changes.add('Int read as natural')
-      const xs = s.slice(1).map(x => value(emit(x, env, INT)) as Nat)
-      if (head === '+') return {v: xs.reduce((a, b) => a.plus(b)), ty: INT}
-      if (head === '*') {
-        const lits = s.slice(1).filter(x => typeof x === 'string' && /^\d+$/.test(x)).map(Number)
-        const rest = s.slice(1).flatMap((x, i) => (typeof x === 'string' && /^\d+$/.test(x) ? [] : [xs[i]!]))
-        if (rest.length > 1) throw new Unsupported('Int arithmetic: a product of two unknowns')
-        const k = lits.reduce((a, b) => a * b, 1)
-        return {v: rest.length ? rest[0]!.times(k) : natK(k), ty: INT}
+      // div and mod by a positive constant (a literal): Euclid's on the integers, the naturals' own where Int is one.
+      const divisor = (): number => {
+        const d = s[2]
+        if (s.length !== 3 || typeof d !== 'string' || !/^\d+$/.test(d) || Number(d) < 1 || !Number.isSafeInteger(Number(d))) throw new Unsupported(`Int arithmetic: ${head} by a term that isn't a positive constant (nonlinear)`)
+        return Number(d)
       }
-      const [a, b] = xs as [Nat, Nat]
+      const lits = s.slice(1).filter(literal).map(Number)
+      if (!ints) {
+        changes.add('Int read as natural')
+        const xs = s.slice(1).map(x => value(emit(x, env, INT)) as Nat)
+        if (head === '+') return {v: xs.reduce((a, b) => a.plus(b)), ty: INT}
+        if (head === 'div' || head === 'mod') { const k = divisor(); return {v: head === 'div' ? xs[0]!.divBy(k) : xs[0]!.modBy(k), ty: INT} }
+        if (head === '*') {
+          const rest = s.slice(1).flatMap((x, i) => (literal(x) ? [] : [xs[i]!]))
+          const k = lits.reduce((a, b) => a * b, 1)
+          if (rest.length > 1) { notes.add('a product of two unknowns'); return {v: rest.slice(1).reduce((a, b) => a.mul(b), rest[0]!).times(k), ty: INT} }
+          return {v: rest.length ? rest[0]!.times(k) : natK(k), ty: INT}
+        }
+        const [a, b] = xs as [Nat, Nat]
+        return {v: head === '<' ? a.lt(b) : head === '<=' ? a.atMost(b) : head === '>' ? a.gt(b) : a.atLeast(b), ty: BOOL}
+      }
+      const xs = s.slice(1).map(x => value(emit(x, env, INT)) as Integer)
+      if (head === '+') return {v: xs.reduce((a, b) => a.plus(b)), ty: INT}
+      if (head === '-') return {v: xs.length === 1 ? xs[0]!.negate() : xs.slice(1).reduce((a, b) => a.minus(b), xs[0]!), ty: INT}
+      if (head === 'div' || head === 'mod') { const k = divisor(); return {v: head === 'div' ? xs[0]!.divBy(k) : xs[0]!.modBy(k), ty: INT} }
+      if (head === '*') {
+        const rest = s.slice(1).flatMap((x, i) => (literal(x) ? [] : [xs[i]!]))
+        if (rest.length > 1) throw new Unsupported('Int arithmetic: a product of two unknown integers')
+        const k = lits.reduce((a, b) => a * b, 1)
+        if (!Number.isSafeInteger(k)) throw new Unsupported('a coefficient too large')
+        return {v: rest.length ? rest[0]!.times(k) : new Integer({op: 'int', value: k}), ty: INT}
+      }
+      const [a, b] = xs as [Integer, Integer]
       return {v: head === '<' ? a.lt(b) : head === '<=' ? a.atMost(b) : head === '>' ? a.gt(b) : a.atLeast(b), ty: BOOL}
     }
     switch (head) {
@@ -373,7 +410,7 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {inli
   }
   function dryValue(t: Ty): DSL {
     const s = sortOf(t)
-    return s === natural ? new Nat({op: 'var', name: '$dry'}) : s === boolean ? new Bool({op: 'holds', x: {op: 'var', name: '$dry'}}) : new Val(s as Data, {op: 'var', name: '$dry'})
+    return s === natural ? new Nat({op: 'var', name: '$dry'}) : s === boolean ? new Bool({op: 'holds', x: {op: 'var', name: '$dry'}}) : s === integer ? new Integer({op: 'var', name: '$dry'}) : new Val(s as Data, {op: 'var', name: '$dry'})
   }
   function apply(f: Bound, args: Bound[]): Bound {
     if (!isClosure(f.v)) throw new Error('application of a value')
@@ -425,6 +462,7 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {inli
       if (ty.k === 'fun') {
         const natLike = (t: Ty) => t.k === 'con' && (t.name === '$Nat' || isPeano(t.name) || t.name === 'Int')
         if (ty.args.length !== 1 || !natLike(ty.args[0]!) || !(natLike(ty.ret) || (ty.ret.k === 'con' && ty.ret.name === 'Bool'))) throw new Unsupported(`a function variable of sort ${showTy(ty)}`)
+        if (ints && [ty.args[0]!, ty.ret].some(t => t.k === 'con' && t.name === 'Int')) throw new Unsupported('a function variable over the integers')
         for (const t of [ty.args[0]!, ty.ret]) if (t.k === 'con' && t.name === 'Int') changes.add('Int read as natural')
         const pred = ty.ret.k === 'con' && ty.ret.name === 'Bool', gdp = `p_${san(v.name)}`
         if (pred) notes.add('a predicate variable p as x ↦ g(x) = 0')
