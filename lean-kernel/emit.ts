@@ -814,7 +814,7 @@ function cycMachineProofBy(m: Machine, laws: Law[], allSteps: StepLaw[], allows:
   for (const {facts, specs: specs0, lawNodes, stepAt, translated} of tries) {
     if (performance.now() > until) return {why: `past the certificate's deadline (${certMs()} ms)`}
     let specs = specs0, v = proveCyclic(facts, specs)
-    if (!(v.proven && v.checked)) { last = v.proven ? `not checked (${v.why})` : `${v.node}: ${v.goal}: ${v.stuck}`; continue }
+    if (!(v.proven && v.checked)) { last = performance.now() > until ? `past the certificate's deadline (${certMs()} ms)` : v.proven ? `not checked (${v.why})` : `${v.node}: ${v.goal}: ${v.stuck}`; continue }
     const allowAt = allows.map((group): AllowAt => {
       if ((lawNodes[0]?.rank.length ?? 2) < 2) return undefined
       const before = specs, out: {node: number, wit: [string, E][]}[] = []
