@@ -1,0 +1,1367 @@
+[
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_10_e1_3587_e7_872_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_10_e1_3587_e7_872_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_10_e2_2785_e7_1466_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_10_e2_2785_e7_1466_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_10_e3_144_e7_523_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_10_e3_144_e7_523_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_10_e7_3861_e7_2180_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_10_e7_3861_e7_2180_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_11_e1_1117_e7_4950_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_11_e1_1117_e7_4950_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_12_e1_4640_e7_128_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_12_e1_4640_e7_128_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_12_e2_1618_e7_4732_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_12_e2_1618_e7_4732_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_13_e7_2336_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_13_e7_2336_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_13_e7_2336_e1_541_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_13_e7_2336_e1_541_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_13_e7_2336_e2_1255_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_13_e7_2336_e2_1255_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_13_e7_2336_e3_3117_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_13_e7_2336_e3_3117_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_13_e7_2336_e7_685_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_13_e7_2336_e7_685_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_14_e2_3606_e7_4891_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_14_e2_3606_e7_4891_000.smt2",
+"cex": 5
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_14_e7_3162_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_14_e7_3162_000.smt2",
+"cex": 5
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_14_e7_3162_e1_3998_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_14_e7_3162_e1_3998_000.smt2",
+"cex": 5
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_14_e7_3162_e3_4298_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_14_e7_3162_e3_4298_000.smt2",
+"cex": 5
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_14_e7_3162_e7_3528_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_14_e7_3162_e7_3528_000.smt2",
+"cex": 5
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_2_e7_25_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_2_e7_25_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_2_e7_25_e1_154_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_2_e7_25_e1_154_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_2_e7_25_e2_5340_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_2_e7_25_e2_5340_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_2_e7_25_e3_829_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_2_e7_25_e3_829_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_2_e7_25_e7_4469_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_2_e7_25_e7_4469_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_e7_4070_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_e7_4070_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_3_e7_3211_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_3_e7_3211_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_e7_2499_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_e7_2499_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_4_e7_2077_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_4_e7_2077_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_4_e7_2329_e3_4574_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_4_e7_2329_e3_4574_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_4_e7_2329_e7_3856_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_4_e7_2329_e7_3856_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_5_e2_3018_e7_2443_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_5_e2_3018_e7_2443_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_5_e3_1503_e7_1879_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_5_e3_1503_e7_1879_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_5_e7_2017_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_5_e7_2017_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_5_e7_2017_e1_5832_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_5_e7_2017_e1_5832_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_5_e7_2017_e7_2326_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_5_e7_2017_e7_2326_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_all2_e1_2636_e7_4699_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_all2_e1_2636_e7_4699_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_all2_e1_2636_e8_5957_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_all2_e1_2636_e8_5957_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_all2_e2_2073_e7_1864_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_all2_e2_2073_e7_1864_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_all2_e2_2073_e8_3691_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_all2_e2_2073_e8_3691_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_all2_e3_4612_e7_2291_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_all2_e3_4612_e7_2291_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_all2_e3_4612_e8_5861_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_all2_e3_4612_e8_5861_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_all2_e7_5322_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_all2_e7_5322_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_all2_e7_5406_e7_6697_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_all2_e7_5406_e7_6697_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_all2_e8_4626_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_all2_e8_4626_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_all2_e8_5504_e7_579_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_all2_e8_5504_e7_579_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_e7_2886_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_e7_2886_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_all_e2_6104_e7_5856_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_all_e2_6104_e7_5856_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/DRAGON_all_e7_4065_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/DRAGON_all_e7_4065_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_1_e1_1092_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_1_e1_1092_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_1_e1_1092_e1_1486_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_1_e1_1092_e1_1486_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_1_e1_1092_e3_389_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_1_e1_1092_e3_389_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_1_e1_1092_e7_1119_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_1_e1_1092_e7_1119_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_2_e1_3099_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_2_e1_3099_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_2_e1_3099_e1_3277_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_2_e1_3099_e1_3277_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_2_e1_3099_e3_2660_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_2_e1_3099_e3_2660_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_2_e1_3099_e7_1817_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_2_e1_3099_e7_1817_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_2_e2_3244_e3_1305_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_2_e2_3244_e3_1305_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_2_e3_151_e3_1540_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_2_e3_151_e3_1540_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_2_e7_1776_e2_3202_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_2_e7_1776_e2_3202_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_3_e2_2236_e3_2657_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_3_e2_2236_e3_2657_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_4_e3_3511_e1_2375_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_4_e3_3511_e1_2375_000.smt2",
+"cex": 5
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_4_e3_3511_e4_1464_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_4_e3_3511_e4_1464_000.smt2",
+"cex": 5
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_4_e3_3511_e7_3568_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_4_e3_3511_e7_3568_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_8_e2_1711_e7_1962_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_8_e2_1711_e7_1962_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e1_195_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e1_195_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e1_3233_e1_3123_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e1_3233_e1_3123_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e1_3233_e7_906_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e1_3233_e7_906_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e2_2086_e7_2614_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e2_2086_e7_2614_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e3_314_e1_1979_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e3_314_e1_1979_000.smt2",
+"cex": 5
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e3_314_e4_897_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_a3_e3_314_e4_897_000.smt2",
+"cex": 5
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_all_e1_1207_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_all_e1_1207_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_all_e1_1207_e1_1201_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_all_e1_1207_e1_1201_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_all_e1_1207_e3_1928_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_all_e1_1207_e3_1928_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_all_e1_1207_e7_156_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_all_e1_1207_e7_156_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_all_e2_2924_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_all_e2_2924_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_all_e2_2924_e2_1767_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_all_e2_2924_e2_1767_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_all_e2_2924_e3_3946_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_all_e2_2924_e3_3946_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_all_e2_2924_e7_3371_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_all_e2_2924_e7_3371_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_e1_667_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_e1_667_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_e2_676_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_e2_676_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_e3_2055_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_e3_2055_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_e4_2415_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_e4_2415_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_e5_84_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_e5_84_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_e7_1607_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_e7_1607_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_all_e7_1909_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_all_e7_1909_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1a_e2_284_e7_998_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1a_e2_284_e7_998_000.smt2",
+"cex": 5
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e1_1139_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e1_1139_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e1_1139_e1_1565_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e1_1139_e1_1565_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e1_1139_e3_1839_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e1_1139_e3_1839_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e1_1139_e7_616_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e1_1139_e7_616_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e2_1192_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e2_1192_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e2_3049_e2_698_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e2_3049_e2_698_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e2_3049_e3_2697_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e2_3049_e3_2697_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e2_3049_e7_1173_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e2_3049_e7_1173_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_144_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_144_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_671_e1_725_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_671_e1_725_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_671_e2_2131_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_671_e2_2131_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_671_e3_941_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_671_e3_941_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_671_e4_147_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_671_e4_147_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_671_e5_1637_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_671_e5_1637_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_671_e7_1882_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_671_e7_1882_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e7_2574_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e7_2574_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e7_3191_e7_2146_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e7_3191_e7_2146_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_rt_e2_1315_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_rt_e2_1315_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_rt_e2_3460_e2_2670_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_rt_e2_3460_e2_2670_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_rt_e3_1549_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_luke_rt_e3_1549_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/FIREFLY_u1_e7_3318_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/FIREFLY_u1_e7_3318_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e1_3758_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e1_3758_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e1_834_e1_1895_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e1_834_e1_1895_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e1_834_e3_2931_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e1_834_e3_2931_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e1_834_e7_3738_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e1_834_e7_3738_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e2_2367_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e2_2367_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e2_2367_e2_1561_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e2_2367_e2_1561_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e2_2367_e3_1601_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e2_2367_e3_1601_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e2_2367_e7_2728_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ILLINOIS_2_e2_2367_e7_2728_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_e1_1130_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_e1_1130_000.smt2",
+"cex": 2
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_e2_2545_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_e2_2545_000.smt2",
+"cex": 2
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_e3_979_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_e3_979_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_e4_958_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_e4_958_000.smt2",
+"cex": 2
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_e5_4006_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_e5_4006_000.smt2",
+"cex": 2
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_e7_3447_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_e7_3447_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_3_e2_1872_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_3_e2_1872_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_3_e2_819_e2_562_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_3_e2_819_e2_562_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_3_e2_819_e3_2698_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_3_e2_819_e3_2698_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_3_e2_819_e5_2554_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_3_e2_819_e5_2554_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_3_e2_819_e7_1665_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_3_e2_819_e7_1665_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_3_e2_819_e8_1896_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_3_e2_819_e8_1896_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i1_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i1_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i1_e2_1758_e8_12_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i1_e2_1758_e8_12_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i1_e2_2656_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i1_e2_2656_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i1_e3_188_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i1_e3_188_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i1_e3_2145_e1_2667_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i1_e3_2145_e1_2667_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i1_e3_2145_e2_2228_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i1_e3_2145_e2_2228_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i1_e3_2145_e3_977_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i1_e3_2145_e3_977_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i1_e3_2145_e4_1717_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i1_e3_2145_e4_1717_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i1_e3_2145_e5_2391_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i1_e3_2145_e5_2391_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i1_e3_2145_e6_500_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i1_e3_2145_e6_500_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i1_e3_2145_e8_2325_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i1_e3_2145_e8_2325_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i1_e4_1986_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i1_e4_1986_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i1_e4_1986_e1_1519_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i1_e4_1986_e1_1519_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i2_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i2_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i3_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i3_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i3_e1_2143_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i3_e1_2143_000.smt2",
+"cex": 5
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i3_e1_447_e2_1098_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i3_e1_447_e2_1098_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i3_e1_447_e5_2444_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i3_e1_447_e5_2444_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i3_e1_447_e7_2194_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i3_e1_447_e7_2194_000.smt2",
+"cex": 5
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i4_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i4_000.smt2",
+"cex": 5
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i4_e1_1023_e8_2498_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i4_e1_1023_e8_2498_000.smt2",
+"cex": 6
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i4_e4_1689_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i4_e4_1689_000.smt2",
+"cex": 6
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MESI_i4_e4_1689_e8_290_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MESI_i4_e4_1689_e8_290_000.smt2",
+"cex": 6
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MOESI_2_e1_1753_e1_1510_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MOESI_2_e1_1753_e1_1510_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MOESI_2_e1_1753_e2_615_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MOESI_2_e1_1753_e2_615_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MOESI_2_e1_1753_e3_2021_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MOESI_2_e1_1753_e3_2021_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MOESI_2_e1_1753_e7_1626_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MOESI_2_e1_1753_e7_1626_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MOESI_2_e2_1599_e1_2383_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MOESI_2_e2_1599_e1_2383_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MOESI_2_e2_1599_e2_1815_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MOESI_2_e2_1599_e2_1815_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MOESI_2_e2_1599_e3_1658_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MOESI_2_e2_1599_e3_1658_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MOESI_2_e2_1599_e7_1597_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MOESI_2_e2_1599_e7_1597_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e1_2319_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e1_2319_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e2_2421_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e2_2421_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e3_2294_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e3_2294_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e7_619_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e7_619_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MOESI_2_e7_2607_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MOESI_2_e7_2607_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MOESI_2_e7_2910_e7_1804_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MOESI_2_e7_2910_e7_1804_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MOESI_2_e8_926_e7_961_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MOESI_2_e8_926_e7_961_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/MOESI_all_e3_2032_e3_2788_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/MOESI_all_e3_2032_e3_2788_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/PRODUCER_CONSUMMER_luke_1_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/PRODUCER_CONSUMMER_luke_1_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_123_e2_1350_e8_1354_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_123_e2_1350_e8_1354_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_123_e2_1653_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_123_e2_1653_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_123_e3_302_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_123_e3_302_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_123_e3_302_e1_1141_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_123_e3_302_e1_1141_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_123_e7_837_e3_135_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_123_e7_837_e3_135_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_123_e8_953_e1_1128_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_123_e8_953_e1_1128_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_123_e8_953_e3_271_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_123_e8_953_e3_271_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_2_e1_1239_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_2_e1_1239_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_2_e1_1239_e1_1331_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_2_e1_1239_e1_1331_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_2_e1_1239_e2_74_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_2_e1_1239_e2_74_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_2_e3_216_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_2_e3_216_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_2_e8_1118_e1_667_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_2_e8_1118_e1_667_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_2_e8_1118_e2_237_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_2_e8_1118_e2_237_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_2_e8_1118_e3_1216_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_2_e8_1118_e3_1216_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_3_e1_1303_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_3_e1_1303_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_3_e1_1416_e1_1675_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_3_e1_1416_e1_1675_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_3_e1_1416_e2_753_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_3_e1_1416_e2_753_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_3_e1_1416_e3_1191_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_3_e1_1416_e3_1191_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_3_e3_1041_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_3_e3_1041_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_3_e3_518_e8_922_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_3_e3_518_e8_922_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_3_e8_1329_e1_1270_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_3_e8_1329_e1_1270_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_3_e8_1329_e2_236_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_3_e8_1329_e2_236_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_5_e1_1375_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_5_e1_1375_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_5_e1_811_e1_823_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_5_e1_811_e1_823_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_5_e1_811_e2_1026_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_5_e1_811_e2_1026_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e3_1750_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e3_1750_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e3_1864_e3_495_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e3_1864_e3_495_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e3_1864_e4_34_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e3_1864_e4_34_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e3_1864_e5_1637_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e3_1864_e5_1637_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e3_1864_e7_251_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e3_1864_e7_251_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e8_251_e1_1852_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e8_251_e1_1852_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e8_251_e2_1053_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e8_251_e2_1053_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e8_251_e3_1472_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_all_e8_251_e3_1472_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/SYNAPSE_i1_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/SYNAPSE_i1_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_3_e1_586_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_3_e1_586_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_3_e7_626_e1_305_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_3_e7_626_e1_305_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_3_e8_33_e1_856_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_3_e8_33_e1_856_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_4_e3_57_e5_999_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_4_e3_57_e5_999_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_5_e2_405_e2_1083_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_5_e2_405_e2_1083_000.smt2",
+"cex": 12
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_5_e2_405_e3_473_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_5_e2_405_e3_473_000.smt2",
+"cex": 12
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_5_e2_405_e7_1028_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_5_e2_405_e7_1028_000.smt2",
+"cex": 12
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_5_e2_405_e8_1055_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_5_e2_405_e8_1055_000.smt2",
+"cex": 12
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_5_e3_11_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_5_e3_11_000.smt2",
+"cex": 12
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_5_e3_11_e1_429_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_5_e3_11_e1_429_000.smt2",
+"cex": 12
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_5_e3_11_e5_24_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_5_e3_11_e5_24_000.smt2",
+"cex": 12
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_5_e3_11_e7_693_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_5_e3_11_e7_693_000.smt2",
+"cex": 12
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_6_e2_589_e2_506_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_6_e2_589_e2_506_000.smt2",
+"cex": 13
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_6_e2_893_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_6_e2_893_000.smt2",
+"cex": 13
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_6_e3_294_e1_956_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_6_e3_294_e1_956_000.smt2",
+"cex": 13
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_6_e3_294_e5_979_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_6_e3_294_e5_979_000.smt2",
+"cex": 13
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_all_e1_388_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_all_e1_388_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_all_e1_618_e3_303_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_all_e1_618_e3_303_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_all_e3_1068_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_all_e3_1068_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_all_e3_1068_e1_178_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_all_e3_1068_e1_178_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_all_e3_1068_e3_163_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_all_e3_1068_e3_163_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_all_e3_1068_e5_882_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_all_e3_1068_e5_882_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_all_e8_856_e1_217_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_all_e8_856_e1_217_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/car_all_e8_856_e3_180_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/car_all_e8_856_e3_180_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/durationThm_1_e1_197_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/durationThm_1_e1_197_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/durationThm_1_e7_12_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/durationThm_1_e7_12_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/durationThm_3_e1_36_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/durationThm_3_e1_36_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/fast_1_e7_1035_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/fast_1_e7_1035_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/fast_1_e7_2044_e7_1287_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/fast_1_e7_2044_e7_1287_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/fast_1_e8_747_e7_692_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/fast_1_e8_747_e7_692_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_2_e1_1116_e1_556_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_2_e1_1116_e1_556_000.smt2",
+"cex": 14
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_2_e1_1116_e3_287_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_2_e1_1116_e3_287_000.smt2",
+"cex": 9
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_2_e1_1116_e7_1440_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_2_e1_1116_e7_1440_000.smt2",
+"cex": 14
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_2_e2_704_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_2_e2_704_000.smt2",
+"cex": 24
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_2_e2_704_e3_76_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_2_e2_704_e3_76_000.smt2",
+"cex": 9
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_2_e2_704_e7_810_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_2_e2_704_e7_810_000.smt2",
+"cex": 14
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_2_e3_112_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_2_e3_112_000.smt2",
+"cex": 24
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_3_e3_1117_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_3_e3_1117_000.smt2",
+"cex": null
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_3_e3_1275_e1_1350_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_3_e3_1275_e1_1350_000.smt2",
+"cex": 24
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_3_e3_1275_e4_164_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_3_e3_1275_e4_164_000.smt2",
+"cex": null
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_3_e3_1275_e7_529_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_3_e3_1275_e7_529_000.smt2",
+"cex": null
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_3_e4_1251_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_3_e4_1251_000.smt2",
+"cex": null
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_3_e4_987_e1_1115_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_3_e4_987_e1_1115_000.smt2",
+"cex": null
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_3_e4_987_e3_291_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_3_e4_987_e3_291_000.smt2",
+"cex": null
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_4_e1_821_e5_911_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_4_e1_821_e5_911_000.smt2",
+"cex": null
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_4_e1_917_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_4_e1_917_000.smt2",
+"cex": null
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_4_e2_532_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_4_e2_532_000.smt2",
+"cex": null
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_4_e2_968_e4_801_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_4_e2_968_e4_801_000.smt2",
+"cex": null
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_4_e2_968_e5_991_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_4_e2_968_e5_991_000.smt2",
+"cex": null
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_4_e2_968_e7_860_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_4_e2_968_e7_860_000.smt2",
+"cex": null
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_4_e3_1025_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_4_e3_1025_000.smt2",
+"cex": null
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_4_e3_1091_e1_1044_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_4_e3_1091_e1_1044_000.smt2",
+"cex": 19
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_4_e3_1091_e4_232_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_4_e3_1091_e4_232_000.smt2",
+"cex": null
+},
+{
+"task": "vmt-chc-benchmarks/lustre/metros_4_e5_1150_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/metros_4_e5_1150_000.smt2",
+"cex": null
+},
+{
+"task": "vmt-chc-benchmarks/lustre/peterson_vt_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/peterson_vt_000.smt2",
+"cex": 5
+},
+{
+"task": "vmt-chc-benchmarks/lustre/swimmingpool_1_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/swimmingpool_1_000.smt2",
+"cex": 7
+},
+{
+"task": "vmt-chc-benchmarks/lustre/swimmingpool_1_e7_1621_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/swimmingpool_1_e7_1621_000.smt2",
+"cex": 5
+},
+{
+"task": "vmt-chc-benchmarks/lustre/swimmingpool_2_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/swimmingpool_2_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/swimmingpool_3_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/swimmingpool_3_000.smt2",
+"cex": 4
+},
+{
+"task": "vmt-chc-benchmarks/lustre/swimmingpool_4_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/swimmingpool_4_000.smt2",
+"cex": 5
+},
+{
+"task": "vmt-chc-benchmarks/lustre/swimmingpool_4_e7_2197_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/swimmingpool_4_e7_2197_000.smt2",
+"cex": 5
+},
+{
+"task": "vmt-chc-benchmarks/lustre/swimmingpool_5_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/swimmingpool_5_000.smt2",
+"cex": 6
+},
+{
+"task": "vmt-chc-benchmarks/lustre/swimmingpool_6_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/swimmingpool_6_000.smt2",
+"cex": 7
+},
+{
+"task": "vmt-chc-benchmarks/lustre/swimmingpool_6_e7_10_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/swimmingpool_6_e7_10_000.smt2",
+"cex": 7
+},
+{
+"task": "vmt-chc-benchmarks/lustre/swimmingpool_6_e7_10_e7_341_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/swimmingpool_6_e7_10_e7_341_000.smt2",
+"cex": 7
+},
+{
+"task": "vmt-chc-benchmarks/lustre/swimmingpool_6_e7_10_e8_1713_000.yml",
+"smt2": "vmt-chc-benchmarks/lustre/swimmingpool_6_e7_10_e8_1713_000.smt2",
+"cex": 7
+},
+{
+"task": "vmt-chc-benchmarks/lustre/swimmingpool_7_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/swimmingpool_7_000.smt2",
+"cex": 8
+},
+{
+"task": "vmt-chc-benchmarks/lustre/swimmingpool_8_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/swimmingpool_8_000.smt2",
+"cex": 9
+},
+{
+"task": "vmt-chc-benchmarks/lustre/swimmingpool_9_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/swimmingpool_9_000.smt2",
+"cex": 13
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ticket3i_3_e7_1312_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ticket3i_3_e7_1312_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ticket3i_3_e7_1312_e7_1495_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ticket3i_3_e7_1312_e7_1495_000.smt2",
+"cex": 3
+},
+{
+"task": "vmt-chc-benchmarks/lustre/ticket3i_3_e8_1703_e7_3491_000_001.yml",
+"smt2": "vmt-chc-benchmarks/lustre/ticket3i_3_e8_1703_e7_3491_000.smt2",
+"cex": 3
+}
+]
