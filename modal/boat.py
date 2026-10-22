@@ -557,6 +557,7 @@ class Session:
                         time.sleep(3)
                     if not self.gate.take(1, self.stop):
                         raise RuntimeError("no boat starts left this hour or day (a resume is a start)")
+                    vm.t_request = time.time()  # (billing starts at the resume, not at the wait for a start)
                     with _sem:
                         p = subprocess.run([BOAT, "resume", vm.id, "--json"], capture_output=True, text=True, timeout=300, env=ENV)
                     said = p.stdout + p.stderr

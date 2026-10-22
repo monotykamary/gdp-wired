@@ -91,9 +91,14 @@ run's app):
 | The suite, 200 jobs | 0 failed, 267.7 s wall, 3,002.5 s of job time, $0.032 (`runs/backends/suite-default`) | 0 failed, 489.8 s, 4,246.7 s, $0.256 (`runs/modal/backends/suite-default`) |
 | The suite, `--usual` | 0 failed, 248.4 s, 2,420.4 s, $0.028 (`runs/backends/suite-usual`) | 0 failed, 489.8 s, 4,042.3 s, $0.237 (`runs/modal/backends/suite-usual`) |
 | CHC, gdp on 1,406 tasks | 387 solved, none wrong, 802.4 s wall (the results in by 482 s), $0.405, 192 VMs (`runs/backends/chc-gdp`) | 381 solved, none wrong, 330.1 s, $2.604 (`runs/modal/arith/chc-gdp`) |
+| TIP, gdp on 492 + 68 | 140 proven, none wrong, 333.9 s, $0.210, 119 VMs (`runs/backends/tip-gdp3`) | 140 proven, none wrong, 270.2 s, $0.633 (`runs/modal/arith/tip-gdp`) |
+| ITS (TermComp), gdp on 1,239 | 380 answered, none contradicting Modal's, 381.5 s, $0.392, 170 VMs (`runs/backends/term-gdp`) | 377, 305.8 s, $2.122 (`runs/modal/backends/term-gdp`) |
 | Handwired search `--hand` | RTX 4090, the same results (`runs/backends/gpu/hw-hand-runpod.json`) | L4 (`runs/modal/backends/gpu/hw-hand-l4.json`) |
 
-A boat vCPU is faster than a Modal one (the same jobs in about 70% of the time), so a fixed limit (60 s) can let it
-solve more: that is the machine, not the prover. A `large` VM (8 vCPU) ran the same eight jobs, four at a time, in 1.76
+A boat vCPU is faster than a Modal one (the suite's jobs in 71% of Modal's job time, 60% with `--usual`), so a fixed
+limit (60 s) can let it solve more: that is the machine, not the prover. More tasks reach the hard limit there instead
+of the solver's own answer just before it (timeout: CHC 53 against 8, TIP 136 against 177, ITS 113 against 30).
+The batches above were sized by the plan's limits of the day ($100: 30 starts a minute, 210 an hour), so a large one
+spends minutes bringing VMs up (`bring_up_s` in each `backends.json`; the TIP one counts the wait for starts too). A `large` VM (8 vCPU) ran the same eight jobs, four at a time, in 1.76
 times the job time of two default VMs, two at a time (`runs/backends/large-test`): per unit of work it costs 1.7 times
 as much, so the pool uses default VMs and a large one only for a job that needs 16 GB.
