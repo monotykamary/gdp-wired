@@ -1130,6 +1130,7 @@ export function proveStepLaws(m: Machine, given: Law[], stepLaws: StepLaw[]): Re
 }
 function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base: Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}}): Report & {proof?: StepProof} {
   if (!base.proof) return {proven: false, nodes: base.nodes, leaves: base.leaves, checked: false}
+  const t0 = performance.now()
   const plain = m.history ? historyMachine(m).machine : m
   // Each step law its own instances, from its own goal: the keys the step and the laws read, and its own (a k-step
   // law's later frames read keys no other step law has); where positions shift or a law is about several keys, the
@@ -1173,8 +1174,19 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
     leaves += countLeaves(out.tree)
   }
   const proof = {laws: base.proof, instances, ...(Object.keys(perStep).length ? {perStep} : {}), trees}
-  if (cyclicOn() || certOn()) for (const sl of stepLaws) uncovered((sl.steps ?? 1) > 1 ? 'k-step law' : 'step law', m.name, (sl.steps ?? 1) > 1 ? `${sl.steps} steps` : 'one step')
-  return {proven: true, nodes, leaves, checked: checkStepLaws(m, laws, stepLaws, proof), proof}
+  const out = {proven: true, nodes, leaves, checked: checkStepLaws(m, laws, stepLaws, proof), proof}
+  // Step laws of a machine the cyclic instances cover (one step, or several over no map) are translated with the laws
+  // (core/cyclic.ts); the rest are counted as no instance's.
+  const why = uncoveredWhy(m, laws), one = stepLaws.filter(sl => (sl.steps ?? 1) === 1 || (!Object.keys(plain.maps ?? {}).length && !plain.inputMaps?.length))
+  if ((cyclicOn() || certOn()) && !why && one.length && out.checked) {
+    const steps = one.map(sl => { const inst = perStep[sl.name] ?? instances, goal = stepLawObligations(m, laws, inst, sl)[0]!; return {sl, inst, goal, tree: trees[goal.name]!} })
+    const translated = (st: TStats) => translatedProof(() => JSON.stringify(['steps', m, laws, base.proof!.instances, steps.map(x => [x.sl, x.inst])]), () => timedKind('instance', 0, () => machineNodes(m, laws, base.proof!.instances, {trees: base.proof!.trees, steps}, st)), st)
+    const usualMs = performance.now() - t0
+    if (cyclicOn()) crossCyclic('step law', m.name, true, undefined, usualMs, translated)
+    if (certOn()) out.checked = certCyclic('step law', m.name, translated, undefined, usualMs).checked
+  }
+  if (cyclicOn() || certOn()) for (const sl of stepLaws) if (why || !one.includes(sl)) uncovered((sl.steps ?? 1) > 1 ? 'k-step law' : 'step law', m.name, why ?? `${sl.steps} steps over a map`)
+  return out
 }
 // Progress (kernel.ts's progressObligations): the laws proven first, then each goal, the every-key laws assumed at every
 // key the goals read a map at.
