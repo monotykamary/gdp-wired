@@ -2,7 +2,8 @@
 LoAT and KoAT2, each task in its own container (2 vCPU, 4 GB), each tool under the same wall-clock limit, all at once.
 
     modal run compare/term/modal_term.py --out runs/modal/term/<name> [--tools gdp,loat,loat-abmc,koat2] [--limit 60]
-                                         [--sample 0] [--only <substring>|<substring>] [--env NAME=value,...]
+                                         [--sample 0] [--only <substring>|<substring>] [--tasks-file <names, one a line>]
+                                         [--env NAME=value,...]
 
 The benchmarks are TermCOMP/TPDB-ARI at a pinned commit, fetched into the image. <out>/results.jsonl has one row per
 tool and task: the answer (terminates, nonterminating, unknown, unsupported, timeout, error), the seconds and, for
@@ -54,10 +55,18 @@ def command(tool: str, task: str, limit: int) -> list[str]:
         return ["loat", "--mode", "termination", "--engine", "abmc", task]
     if tool == "koat2":
         return ["bash", "-c", KOAT_SH, "koat", task]
+    # diagnostics: the same runs with the proof printed (kept in the row's `out`), to read which technique answered
+    if tool == "koat2-proof":
+        return ["bash", "-c", KOAT_SH + " --show-proof", "koat", task]
+    if tool == "loat-proof":
+        return ["loat", "--mode", "termination", "--proof", task]
+    if tool == "loat-abmc-proof":
+        return ["loat", "--mode", "termination", "--engine", "abmc", "--proof", task]
     raise ValueError(tool)
 
 
 def answer_of(tool: str, lines: list[str]) -> str | None:
+    tool = tool.removesuffix("-proof")
     if tool.startswith("loat"):
         w = next((l.strip() for l in lines if l.strip() in ("YES", "NO", "MAYBE")), None)
         return {"YES": "terminates", "NO": "nonterminating", "MAYBE": "unknown", None: None}[w]
@@ -101,6 +110,8 @@ def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]
         else:
             answer = answer_of(tool, lines) or ("timeout" if code == 124 else "error")
             row = {"tool": tool, "task": t["task"], "answer": answer, "seconds": secs}
+            if tool.endswith("-proof"):
+                row["out"] = out[:30000]
         if answer == "error":
             row["err"] = (err or out)[-600:]
             row["code"] = code
@@ -122,7 +133,7 @@ def versions() -> dict:
 
 
 @app.local_entrypoint()
-def main(out: str, tools: str = "gdp,loat,loat-abmc,koat2", limit: int = 60, sample: int = 0, only: str = "", env: str = ""):
+def main(out: str, tools: str = "gdp,loat,loat-abmc,koat2", limit: int = 60, sample: int = 0, only: str = "", env: str = "", tasks_file: str = ""):
     live = GDP / "modal" / ".live"
     live.mkdir(exist_ok=True)
     ticket = live / f"{app.app_id}"
@@ -135,6 +146,9 @@ def main(out: str, tools: str = "gdp,loat,loat-abmc,koat2", limit: int = 60, sam
         (outdir / "tasks.json").write_text(json.dumps(all_tasks, indent=1))
         (outdir / "versions.json").write_text(json.dumps({**versions.remote(), "tpdb_ari": ARI_COMMIT, "loat_release": LOAT, "koat2_release": KOAT, "limit": limit, "tools": tools}, indent=1))
         chosen = [t for t in all_tasks if any(o in t["task"] for o in only.split("|"))]
+        if tasks_file:
+            names = set(pathlib.Path(tasks_file).read_text().split())
+            chosen = [t for t in chosen if t["task"] in names]
         if sample:
             step = max(1, len(chosen) // sample)
             chosen = chosen[::step][:sample]

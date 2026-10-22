@@ -1,6 +1,7 @@
 // The run's table: `bun compare/term/summary.ts runs/modal/term/<name> [more run dirs, later rows replacing earlier]`.
 // Per tool: the tasks answered terminates and nonterminating, the wrong ones, solved of all, the median seconds of those
-// solved. No task here comes with a verdict, so an answer is wrong where another tool's opposite answer is certified:
+// solved. A task with an expected verdict (SV-COMP's) has an answer wrong where it is the other. A TermComp task comes
+// with none, so there an answer is wrong where another tool's opposite answer is certified:
 // gdp-wired's terminates is a kernel-checked proof, its nonterminating a lasso ari.ts's evaluator replayed; LoAT's and
 // KoAT2's answers carry no certificate this harness checks, so two of them disagreeing is listed as a conflict, not
 // counted against either. For gdp-wired: why tasks were refused, the features of those translated, and where the
@@ -8,7 +9,7 @@
 import {readFileSync} from 'node:fs'
 
 type Stage = Record<string, unknown>
-type Row = {tool: string, task: string, answer: string, seconds: number, stages?: Stage[], err?: string}
+type Row = {tool: string, task: string, answer: string, seconds: number, stages?: Stage[], err?: string, expected?: string, why?: string, translation?: {features?: string[]}}
 const dirs = process.argv.slice(2)
 const byKey = new Map<string, Row>()
 for (const d of dirs) for (const l of readFileSync(`${d}/results.jsonl`, 'utf8').split('\n').filter(Boolean)) { const r = JSON.parse(l) as Row; byKey.set(`${r.tool}\t${r.task}`, r) }
@@ -17,11 +18,13 @@ const tasks = (JSON.parse(readFileSync(`${dirs[0]}/tasks.json`, 'utf8')) as {tas
 const tools = [...new Set(rows.map(r => r.tool))]
 const count = <T>(xs: T[], f: (x: T) => string) => { const m = new Map<string, number>(); for (const x of xs) m.set(f(x), (m.get(f(x)) ?? 0) + 1); return [...m].sort((a, b) => b[1] - a[1]) }
 const decided = (a: string) => a === 'terminates' || a === 'nonterminating'
-const certified = (r: Row) => r.tool === 'gdp' && decided(r.answer)
+const certified = (r: Row) => r.tool.startsWith('gdp') && decided(r.answer)
 const perTask = new Map<string, Row[]>()
 for (const r of rows) perTask.set(r.task, [...(perTask.get(r.task) ?? []), r])
 const wrong = new Set<Row>(), conflicts: string[] = []
 for (const [task, rs] of perTask) {
+  // a task with an expected verdict (SV-COMP's): wrong is an answer against it
+  if (rs.some(r => r.expected)) { for (const r of rs) if (decided(r.answer) && r.expected && r.answer !== r.expected) wrong.add(r); continue }
   const ds = rs.filter(r => decided(r.answer))
   if (new Set(ds.map(r => r.answer)).size < 2) continue
   const cert = ds.filter(certified)
@@ -53,7 +56,7 @@ if (tools.includes('gdp')) {
   const gdp = rows.filter(r => r.tool === 'gdp'), last = (r: Row, k: string) => r.stages?.findLast(s => s.stage === k)
   const imported = gdp.filter(r => last(r, 'import'))
   console.log(`\ngdp-wired: ${imported.length} translated, ${gdp.filter(r => r.answer === 'unsupported').length} refused`)
-  console.log('refused:', count(gdp.filter(r => r.answer === 'unsupported'), r => String(last(r, 'answer')?.why).replace(/\d+/g, 'N')))
+  console.log('refused:', count(gdp.filter(r => r.answer === 'unsupported'), r => String(r.why ?? last(r, 'answer')?.why).replace(/\d+/g, 'N')))
   console.log('features of those translated:', count(imported.flatMap(r => (last(r, 'import')!.features as string[]).length ? last(r, 'import')!.features as string[] : ['none']), x => x))
   console.log('answered by:', count(gdp.filter(r => decided(r.answer)), r => `${r.answer} by ${String(last(r, 'answer')?.by)}`))
   const why = (r: Row) => {
