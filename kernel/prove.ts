@@ -1173,7 +1173,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
     leaves += countLeaves(out.tree)
   }
   const proof = {laws: base.proof, instances, ...(Object.keys(perStep).length ? {perStep} : {}), trees}
-  if (cyclicOn() || certOn()) uncovered('step laws', m.name, stepLaws.map(sl => ((sl.steps ?? 1) > 1 ? `${sl.steps}-step` : 'one step')).join(', '))
+  if (cyclicOn() || certOn()) for (const sl of stepLaws) uncovered((sl.steps ?? 1) > 1 ? 'k-step law' : 'step law', m.name, (sl.steps ?? 1) > 1 ? `${sl.steps} steps` : 'one step')
   return {proven: true, nodes, leaves, checked: checkStepLaws(m, laws, stepLaws, proof), proof}
 }
 // Progress (kernel.ts's progressObligations): the laws proven first, then each goal, the every-key laws assumed at every
