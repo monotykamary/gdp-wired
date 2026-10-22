@@ -104,6 +104,14 @@ function atomsOf(c: C, bound: Set<string>, out: Atom[] = []): Atom[] {
     }
   }
 }
+// The conjuncts of c that read a bound value, through and, and an or whose other parts read none (an implication's
+// conclusion: a guard on the state).
+function conjunctsOf(c: C, bound: Set<string>): C[] {
+  const reads = (d: C) => namesOf(d).some(n => bound.has(n))
+  if (c.op === 'and') return c.xs.flatMap(d => conjunctsOf(d, bound))
+  if (c.op === 'or') { const rd = c.xs.filter(reads); if (rd.length === 1) return conjunctsOf(rd[0]!, bound) }
+  return reads(c) ? [c] : []
+}
 // The values a group's atoms solve for, each with its neighbours: x = R+ − R− (or its negation), x + 1, x − 1.
 function solved(atoms: Atom[], g: Group): Cand[] {
   const out: Cand[] = []
@@ -250,7 +258,15 @@ function planOf(m: Machine, law: Law): Plan {
     const moved: Cand[] = [1, 2, 3, 4].flatMap(q => valuesLike(g, [...m.inputs, ...state]).flatMap(c => (g.length === 2
       ? [[add(own[0]!, by(q, c[0]!)), add(own[1]!, by(q, c[1]!))], [add(own[0]!, by(q, c[1]!)), add(own[1]!, by(q, c[0]!))]]
       : [[add(own[0]!, by(q, c[0]!))], [sub(own[0]!, by(q, c[0]!))]])))
-    return dedupe([own, ...solved(atoms, g).map(c => c.map(t => substVarsE(t, after))), ...valuesLike(g, m.inputs), ...shifted, ...moved, ...valuesLike(g, [...state, ...m.params]), zero(g)])
+    const plain = dedupe([own, ...solved(atoms, g).map(c => c.map(t => substVarsE(t, after))), ...valuesLike(g, m.inputs), ...shifted, ...moved, ...valuesLike(g, [...state, ...m.params]), zero(g)])
+    // (and the value before while it still works after the step, else one of those: P over the state after with every
+    // ghost's value before as the condition, a witness that moves only when it must, a quotient's, say)
+    if (readsMaps(law.holds)) return plain
+    // (the condition: P's conjuncts that read this value and no other bound one, where there are some: a quotient's
+    // range, say; else all of P)
+    const mine = conjunctsOf(law.holds, bound).filter(c => { const ns = namesOf(c); return g.some(n => ns.includes(n)) && !ns.some(n => bound.has(n) && !g.includes(n)) })
+    const keep = substVars(mine.length ? {op: 'and', xs: mine} : law.holds, after)
+    return [...plain, ...plain.slice(1).map(t => t.map((x, j): E => ({op: 'if', c: keep, then: own[j]!, else: x})))]
   })
   const w = law.witness
   const given = !!(w?.terms || w?.ghost)
@@ -289,9 +305,16 @@ const stOf = (w: Env, m: Machine): State => ({scalars: total(w), maps: Object.fr
 const evalOr = (e: E, env: Env, m: Machine): number | undefined => { try { return evalE(e, total(env), stOf(env, m), m) } catch { return undefined } }
 const holdsOr = (c: C, env: Env, m: Machine): boolean | undefined => { try { return evalC(c, total(env), stOf(env, m), m) } catch { return undefined } }
 
-// The candidates' indices, one per group, in order of their sum, whose values satisfy `ok` (up to `cap` tried).
-function firstFit(lists: Cand[][], ok: (cs: Cand[]) => boolean, cap = 20000): number[] | undefined {
+// The candidates' indices, one per group, whose values satisfy `ok`: every group at the same index first (the lists
+// are made alike, so one kind of witness for all: each quotient's, say), then one group moved from `from`, then in
+// order of their sum (up to `cap` tried).
+function firstFit(lists: Cand[][], ok: (cs: Cand[]) => boolean, from?: number[], cap = 20000): number[] | undefined {
   const n = lists.length, sizes = lists.map(l => l.length)
+  const test = (pick: number[]) => ok(pick.map((x, j) => lists[j]![x]!))
+  if (n > 1) {
+    for (let x = 0; x < Math.min(...sizes); x++) { const pick = lists.map(() => x); if (test(pick)) return pick }
+    if (from) for (let j = 0; j < n; j++) for (let x = 0; x < sizes[j]!; x++) { const pick = [...from]; pick[j] = x; if (test(pick)) return pick }
+  }
   let tried = 0
   for (let s = 0; s <= sizes.reduce((a, b) => a + b, 0); s++) {
     const go = (i: number, left: number, at: number[]): number[] | undefined => {
@@ -330,14 +353,19 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number} = {})
     return {machine: b.machine, laws: out, ghosts: b.ghosts}
   }
   const rounds = opts.rounds ?? 24
-  for (const [i, p] of plans) {
+  const log = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_EXISTS_LOG === '1'
+  // Each law's witness until its goals are proven with every law assumed (choose); then the whole set, and where a
+  // later choice broke a law proven before (a witness term is a hypothesis of every law), that law's again.
+  const choose = (i: number, p: Plan, pass: number, first?: {goal: string, stuck: string, witness?: Record<string, number>}): SomeReport | undefined => {
     for (let round = 0; ; round++) {
-      const now = current(), r = proveLaw(now.machine, now.laws, i)
-      if (r.proven) break
+      const now = current(), t0 = performance.now(), r: ReturnType<typeof proveLaw> = round === 0 && first ? {proven: false, ...first} : proveLaw(now.machine, now.laws, i)
+      if (log) console.error(`exists: pass ${pass} round ${round} "${p.law.name}" ${p.pick.mode} ${describe(p, cases).slice(0, 160)}: ${r.proven ? 'proven' : `${r.goal} ${r.stuck}`} (${Math.round(performance.now() - t0)} ms)`)
+      if (r.proven) return undefined
       const fail = (stuck: string): SomeReport => ({proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: r.goal, stuck, ...(r.witness ? {witness: r.witness} : {})}})
       // A witness given: the kernel proves the law with it, or refuses it here, with its counterexample.
       if (p.given) return {proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: r.goal, stuck: r.stuck, ...(r.witness ? {witness: r.witness} : {}), why: `the witness given for "${p.law.name}" does not prove it`}}
-      if (round >= rounds || withinDeadline(Infinity) <= performance.now()) return fail(`no witness found for "${p.law.name}" in ${rounds} rounds (${r.stuck}): name one (exists(kind, f, witness))`)
+      if (withinDeadline(Infinity) <= performance.now()) return fail(`the deadline passed choosing a witness for "${p.law.name}" (${r.stuck})`)
+      if (round >= rounds) return fail(`no witness found for "${p.law.name}" in ${rounds} rounds (${r.stuck}): name one (exists(kind, f, witness))`)
       if (r.stuck !== 'sat' || !r.witness) {
         if (p.pick.mode === 'term' && !p.law.forall && !p.given) { p.pick = {mode: 'ghost', start: p.groups.map(() => 0), cases: new Map()}; continue }
         return fail(r.stuck)
@@ -355,7 +383,7 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number} = {})
       if (p.pick.mode === 'term') {
         p.seen.term.push(after)
         const old = p.pick.at
-        const fit = blind ? nextBlind(p.terms, old) : firstFit(p.terms, cs => p.seen.term.every(e => sat(at(cs, p.groups, e), e)))
+        const fit = blind ? nextBlind(p.terms, old) : firstFit(p.terms, cs => p.seen.term.every(e => sat(at(cs, p.groups, e), e)), old)
         if (fit && key(fit) !== key(old)) { p.pick = {mode: 'term', at: fit}; continue }
         if (!p.law.forall && !p.given) { p.pick = {mode: 'ghost', start: p.groups.map(() => 0), cases: new Map()}; continue }
         return fail(`no witness term found for "${p.law.name}" (${r.goal}): name one (exists(kind, f, witness))`)
@@ -363,7 +391,7 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number} = {})
       if (atStart) {
         p.seen.start.push(after)
         const old = p.pick.start
-        const fit = blind ? nextBlind(p.starts, old) : firstFit(p.starts, cs => p.seen.start.every(e => sat(at(cs, p.groups, e), e)))
+        const fit = blind ? nextBlind(p.starts, old) : firstFit(p.starts, cs => p.seen.start.every(e => sat(at(cs, p.groups, e), e)), old)
         if (!fit || key(fit) === key(old)) return fail(`no witness at the start found for "${p.law.name}": name one (exists(kind, f, witness))`)
         p.pick.start = fit
         continue
@@ -372,14 +400,22 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number} = {})
       seen.push({before: env0, after})
       p.seen.step.set(c, seen)
       const old = p.pick.cases.get(c) ?? p.pick.cases.get(-1) ?? p.groups.map(() => 0)
-      const fit = blind ? nextBlind(p.steps, old) : firstFit(p.steps, cs => seen.every(e => sat(at(cs, p.groups, e.before), e.after)))
+      const fit = blind ? nextBlind(p.steps, old) : firstFit(p.steps, cs => seen.every(e => sat(at(cs, p.groups, e.before), e.after)), old)
       if (!fit || key(fit) === key(old)) return fail(`no witness after a step found for "${p.law.name}" (${cases[c] ? 'in one case of the step' : 'the step'}): name one (exists(kind, f, witness))`)
       p.pick.cases.set(c, fit)
     }
   }
-  const {machine, laws: plain, ghosts} = current()
-  const out = proveLaws(machine, plain)
-  return {...out, laws: out.laws ?? plain, machine, ghosts, witnesses: Object.fromEntries([...plans.values()].map(p => [p.law.name, describe(p, cases)]))}
+  // The whole set with the first choices (most witnesses are the first: what P solves for); where a law's goal fails,
+  // its witness chosen again from that counterexample on (its two goals alone, choose), then the whole set again.
+  for (let pass = 0; ; pass++) {
+    const {machine, laws: plain, ghosts} = current(), t0 = performance.now()
+    const out = proveLaws(machine, plain), done = {...out, laws: out.laws ?? plain, machine, ghosts, witnesses: Object.fromEntries([...plans.values()].map(p => [p.law.name, describe(p, cases)]))}
+    if (log) console.error(`exists: pass ${pass} the whole set: ${out.proven ? 'proven' : `${out.failed?.goal} ${out.failed?.stuck}`} (${Math.round(performance.now() - t0)} ms)`)
+    const j = out.proven || !out.failed || pass > 8 ? undefined : [...plans.keys()].find(k => out.failed!.goal.startsWith(`${laws[k]!.name} @`))
+    if (j === undefined) return done
+    const f = choose(j, plans.get(j)!, pass, out.failed!.stuck === 'sat' ? out.failed! : undefined)
+    if (f) return f
+  }
 }
 const renamedWitness = (w: SomeWitness, ren: Record<string, E>): SomeWitness => {
   const name = (n: string) => (ren[n] as {name: string} | undefined)?.name ?? n

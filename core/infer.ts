@@ -267,7 +267,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     }
     const st = plain.filter(i => !atoms[i]!.param && !modeOf(i))
     for (const i of st) congOf([[i, 1]])
-    for (const [a, i] of st.entries()) for (const j of st.slice(a + 1)) { congOf([[i, 1], [j, 1]]); congOf([[i, 1], [j, -1]]) }
+    if (st.length <= 24) for (const [a, i] of st.entries()) for (const j of st.slice(a + 1)) { congOf([[i, 1], [j, 1]]); congOf([[i, 1], [j, -1]]) }
   }
   opts.progress?.('candidates', {atoms: A, shapes: shapes.length, forms: forms.length})
 
