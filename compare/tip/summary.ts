@@ -30,9 +30,13 @@ const table = (title: string, keep: (r: Row) => boolean, theorems: boolean) => {
   console.log(`| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |`)
   for (const tool of tools.filter(t => t !== 'gdptr')) {
     const rs = rows.filter(r => r.tool === tool && keep(r)), k = (a: string) => rs.filter(r => r.answer === a).length
-    const right = rs.filter(r => r.answer === (theorems ? 'proven' : 'refuted')), wrong = rs.filter(r => r.answer === (theorems ? 'refuted' : 'proven'))
+    // gdp-wired's refutation of a theorem is the statement false as TIP writes it: solve.ts answers refuted only where
+    // TIP's own evaluator confirms the counterexample breaks the goal (listed apart, not counted wrong)
+    const confirmed = (r: Row) => tool === 'gdp' && theorems && r.answer === 'refuted'
+    const right = rs.filter(r => r.answer === (theorems ? 'proven' : 'refuted')), wrong = rs.filter(r => r.answer === (theorems ? 'refuted' : 'proven') && !confirmed(r))
     console.log(`| ${names[tool]} | ${k('proven')} | ${k('refuted')} | ${wrong.length} | ${right.length} | ${right.length ? median(right.map(r => r.seconds)).toFixed(2) : '-'} | ${k('unknown')} | ${k('timeout')} | ${k('unsupported')} | ${k('error')} |`)
     for (const w of wrong) console.log(`  WRONG ${tool} ${w.task}: ${w.answer}`)
+    for (const w of rs.filter(confirmed)) console.log(`  FALSE AS TIP WRITES IT (refuted, TIP's evaluator confirms) ${w.task}`)
   }
 }
 const gdp = rows.filter(r => r.tool === 'gdp' || r.tool === 'gdptr')
