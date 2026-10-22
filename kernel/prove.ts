@@ -11,7 +11,7 @@
 import type {C, E, Law, Machine} from '../core/machine.ts'
 import {type Lin, type Step, add, k, refuteFast, scale, solve, sub, v} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
-import {allowNode, certCyclic, certMs, certOn, certSearch, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, hasQuantified, machineNodes, proveCyclic, qflagNodes, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncoveredWhy} from '../core/cyclic.ts'
+import {allowNode, certCyclic, certMs, certOn, certSearch, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, hasQuantified, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
 import type {TStats} from '../core/translate.ts'
 import {type Goal, type Instances, type Liveness, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
@@ -1039,38 +1039,33 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
       focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
     })
   })
-  // (GDP_CERT=cyclic: a covered machine's certificate is its cyclic proof, core/cyclic.ts's certCyclic; the usual trees
-  // are its input, not checked again)
+  // (by default a covered machine's certificate is its cyclic proof, core/cyclic.ts's certCyclic, the usual trees its
+  // input, not checked again; where none is made, the usual trees are checked and the proof counted uncovered)
   // (what no instance covers, read only where a cyclic mode is on: the usual route's own proofs, inferLaws' trial ones
   // among them, do nothing more than before)
   // A machine with a history: its laws are its plain machine's (historyMachine; the record goals leaf goals beside them).
   const modes = cyclicOn() || certOn(), hist = modes && m.history ? historyMachine(m) : undefined, mc = hist ? hist.machine : m
-  const why = modes ? uncoveredWhy(mc, laws) : undefined
-  // (flags that hold at every key: searched, where GDP_CERT_SEARCH=1)
-  const q = why === 'a flag at every key' && certOn() && certSearch(), cert = certOn() && (!why || q)
-  usualCheck.on = !cert || q
+  const why = modes ? uncoveredWhy(mc, laws) : undefined, cert = certOn() && !why
+  usualCheck.on = !cert
   const t0 = performance.now(), out = (() => { try { return proveThinned(m, laws, {...instances}) } finally { usualCheck.on = true } })(), usualMs = performance.now() - t0
   if (out.proof) usualProof.last = {m, laws, proof: out.proof}
   const inst = out.proof?.instances ?? instances
-  const searched = () => { const {facts, specs} = q ? qflagNodes(mc, laws, inst) : machineNodes(mc, laws, inst); return proveCyclic(facts, specs) }
-  const translated = !q && out.proof ? ((st: TStats) => translatedProof(() => JSON.stringify(['machine', mc, laws, inst]), () => timedKind('instance', 0, () => machineNodes(mc, laws, inst, out.proof!, st)), st)) : undefined
+  const searched = () => { const {facts, specs} = machineNodes(mc, laws, inst); return proveCyclic(facts, specs) }
+  const translated = out.proof ? ((st: TStats) => translatedProof(() => JSON.stringify(['machine', mc, laws, inst]), () => timedKind('instance', 0, () => machineNodes(mc, laws, inst, out.proof!, st)), st)) : undefined
   if (cyclicOn()) {
     if (!why) crossCyclic('machine', m.name, out.proven && out.checked, searched, usualMs, translated)
     else console.error(`cyclic: ${JSON.stringify({kind: 'machine', name: m.name, usual: out.proven && out.checked, uncovered: true, why})}`)
   }
   if (cert && out.proven && out.proof) {
-    const until = performance.now() + certMs(), c = q ? withDeadline(until, () => certCyclic('machine', m.name, undefined, searched, usualMs)) : certCyclic('machine', m.name, translated, searched, usualMs)
-    if (q && !c.checked) uncovered('machine', m.name, `${why}: no cyclic proof found${performance.now() > until ? ` within ${certMs()} ms` : ''}`)
-    else {
+    const c = certCyclic('machine', m.name, translated, searched, usualMs)
+    if (c.checked) {
       // (a history's record goals checked as they are: leaf goals)
-      const records = !hist || hist.goals.every(g => out.proof!.trees[g.name] !== undefined && check(g, out.proof!.trees[g.name]!))
-      out.checked = c.checked && records; Object.assign(out.proof, {cyclic: c.proof})
-    }
+      out.checked = !hist || hist.goals.every(g => out.proof!.trees[g.name] !== undefined && check(g, out.proof!.trees[g.name]!))
+      Object.assign(out.proof, {cyclic: c.proof})
+    } else { out.checked = checkLaws(m, laws, out.proof); uncovered('machine', m.name, c.why) }
   } else if (certOn() && why && out.proven) console.error(`cyclic: ${JSON.stringify({kind: 'machine', name: m.name, cert: true, uncovered: true, why})}`)
   return out
 }
-// A proof of a kind no cyclic instance covers, counted (`cyclic: {..., uncovered: true}`).
-const uncovered = (kind: string, name: string, why: string) => console.error(`cyclic: ${JSON.stringify({kind, name, uncovered: true, why})}`)
 // Whether the usual proof's trees are checked (off while GDP_CERT=cyclic makes the certificate a cyclic proof).
 export const usualCheck = {on: true}
 // The last machine proof made (core/dsl.ts's recurrences read their machine's, to translate it: core/cyclic.ts).
@@ -1191,8 +1186,8 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
   // Step laws of a machine the cyclic instances cover (one step, or several over no map) are translated with the laws
   // (core/cyclic.ts); the rest are counted as no instance's.
   if (!cyclicOn() && !certOn()) return out
-  // (a machine with a history: its plain machine's; flags at every key and k-step laws over a map searched, where
-  // GDP_CERT_SEARCH=1)
+  // (a machine with a history: its plain machine's; a flag at every key through its sk machine; k-step laws over a map
+  // searched, where GDP_CERT_SEARCH=1; where no cyclic proof is made the usual trees, checked above, stay the certificate)
   const why = uncoveredWhy(plain, laws), one = stepLaws.filter(sl => (sl.steps ?? 1) === 1 || (!Object.keys(plain.maps ?? {}).length && !plain.inputMaps?.length))
   if (!why && one.length && out.checked) {
     const steps = one.map(sl => { const inst = perStep[sl.name] ?? instances, goal = stepLawObligations(m, laws, inst, sl)[0]!; return {sl, inst, goal, tree: trees[goal.name]!} })
@@ -1200,13 +1195,13 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
       () => JSON.stringify(['machine', plain, laws, base.proof!.instances]))
     const usualMs = performance.now() - t0
     if (cyclicOn()) crossCyclic('step law', m.name, true, undefined, usualMs, translated)
-    if (certOn()) out.checked = certCyclic('step law', m.name, translated, undefined, usualMs).checked
+    if (certOn()) { const c = certCyclic('step law', m.name, translated, undefined, usualMs); if (!c.checked) for (const sl of one) uncovered((sl.steps ?? 1) > 1 ? 'k-step law' : 'step law', m.name, c.why) }
   }
   const rest = stepLaws.filter(sl => why || !one.includes(sl))
-  if (certOn() && certSearch() && out.checked && rest.length && (!why || why === 'a flag at every key')) {
+  if (certOn() && certSearch() && out.checked && rest.length && !why) {
     // The rest searched: the laws' nodes (searched), each step law's node (core/cyclic.ts's stepLawNodes).
     const searchedSteps = () => {
-      const b = why ? qflagNodes(plain, laws, base.proof!.instances) : machineNodes(plain, laws, base.proof!.instances)
+      const b = machineNodes(plain, laws, base.proof!.instances)
       return proveCyclic(b.facts, [...b.specs, ...searchedStepNodes(plain, laws, rest.map(sl => ({law: sl, instances: perStep[sl.name] ?? instances})), b.facts, b.specs)])
     }
     const until = performance.now() + certMs(), c = withDeadline(until, () => certCyclic('step law', m.name, undefined, searchedSteps, performance.now() - t0))
@@ -1239,7 +1234,7 @@ export function proveProgress(m: Machine, laws: Law[], p: {name: string, when: C
   if (certOn() && certSearch() && alone && checked && base.proof) {
     const until = performance.now() + certMs(), lp = base.proof, q = hasQuantified(m)
     const allowed = (): CyclicVerdict => {
-      const b = q ? qflagNodes(m, ls, lp.instances) : machineNodes(m, ls, lp.instances, lp)
+      const b = machineNodes(m, ls, lp.instances, lp)
       if (b.why || (b.specs[0]?.rank.length ?? 2) < 2) return {proven: false, checked: false, node: m.name, goal: 'allowed', stuck: b.why ?? 'laws ranked by time alone'}
       let last: CyclicVerdict = {proven: false, checked: false, node: m.name, goal: 'allowed', stuck: 'no witness'}
       const found = withWitness(m, p.request, wit => {

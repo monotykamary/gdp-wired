@@ -7,7 +7,7 @@
 import {mkdirSync, writeFileSync} from 'node:fs'
 import type {Law, Machine} from '../../core/machine.ts'
 import {domains} from '../../examples/index.ts'
-import {cyclicMachine, foldNodes, machineNodes, recurNodes} from '../../core/cyclic.ts'
+import {cyclicMachine, foldNodes, hasQuantified, machineNodes, recurNodes} from '../../core/cyclic.ts'
 import {cycEncodingLean, cycFoldCheckLean, cycRecurCheckLean} from '../../lean-kernel/emit.ts'
 import * as lemmas from '../../examples/lemmas.ts'
 import * as functions from '../../examples/functions.ts'
@@ -26,7 +26,8 @@ for (const d of domains) {
     const variants: [string, typeof c.rule, Law[]][] = [[c.name, c.rule, c.laws], ...c.broken.map((b): [string, typeof c.rule, Law[]] => [`${c.name} (${b.name})`, b.rule, b.laws])]
     for (const [what, rule, ls] of variants) {
       const m = rule.machine
-      if (!cyclicMachine(m, ls)) { outside++; continue }
+      // (a flag at every key: BridgeRules.lean's cycQMOk, through the sk machine, which this sweep doesn't read)
+      if (!cyclicMachine(m, ls) || hasQuantified(m)) { outside++; continue }
       const {facts, specs} = machineNodes(m, ls, {})
       parts.push(`-- ${what}\n${cycEncodingLean(`c${machines}`, facts, specs, {machine: m, laws: ls})}`)
       machines++
