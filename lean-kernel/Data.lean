@@ -16,7 +16,14 @@ of that model, and concludes the law about the Lean definitions from `cyclic_sou
 - `cun`, the naturals onto the pairs, in order of their sum (`cun 0 = (0, 0)`, then each pair after the last), with
   `cpair` its inverse (`cun_cpair`, `cpair_cun`): a bijection, the one a datatype's codes are built from, each part at
   most the whole (`cun_fst_le`, `cun_snd_le`) so a value's fields have smaller codes;
-- `tup q k i`, the i-th of k naturals packed in q by `tupk` (`tup_tupk`), at most q (`tup_le`).
+- `tup q k i`, the i-th of k naturals packed in q by `tupk` (`tup_tupk`), at most q (`tup_le`);
+- `wf_fix_unique`: a definition by well-founded recursion has exactly one solution. core/data.ts takes a function whose
+  recursion isn't structural once the kernel has proven that each of its calls lowers a measure (a lexicographic tuple
+  of naturals, the order of the cyclic ranks, `lexLt`) under the path to the call; its body, read as a functional F of
+  the function, then reads it only below the argument's measure, and such an F has one fixpoint. So the function's
+  equation, a fact of its proofs, has a model (what they conclude isn't vacuous), and only one: the function as written.
+  An export defines such a function with `termination_by` the same measure, `Lx` (a tuple, ordered by `lexLt`) where
+  it has several components, and Lean checks the decrease again.
 -/
 
 namespace Kern
@@ -177,6 +184,37 @@ theorem tup_le : ∀ (k i q : Nat), tup q k i ≤ q
 @[simp] theorem tup_one (q i : Nat) : tup q 1 i = q := rfl
 @[simp] theorem tupk_one (x : Nat) : tupk [x] = x := rfl
 @[simp] theorem tupk_cons (x y : Nat) (ys : List Nat) : tupk (x :: y :: ys) = cpair x (tupk (y :: ys)) := rfl
+
+/-! ### Definitions by well-founded recursion -/
+
+/-- A functional that reads its function only at arguments of lower measure (lexicographic, as the cyclic ranks are
+ordered) has exactly one fixpoint: a function satisfying `f x = F f x` at every argument, and every other one equal to
+it. `F g x = F h x` wherever g and h agree below x's measure: a body whose calls (under the path the argument takes)
+are each at a lower measure. -/
+theorem wf_fix_unique {α β : Type} [Inhabited β] (μ : α → List Nat) (F : (α → β) → α → β)
+    (hF : ∀ (g h : α → β) (x : α), (∀ y, lexLt (μ y) (μ x) → g y = h y) → F g x = F h x) :
+    ∃ f : α → β, (∀ x, f x = F f x) ∧ ∀ f' : α → β, (∀ x, f' x = F f' x) → f' = f := by
+  classical
+  have wf : WellFounded (InvImage lexLt μ) := InvImage.wf μ lexLt_wf
+  let G : (x : α) → ((y : α) → InvImage lexLt μ y x → β) → β :=
+    fun x rec => F (fun y => if h : lexLt (μ y) (μ x) then rec y h else default) x
+  have hfix : ∀ x, wf.fix G x = F (wf.fix G) x := by
+    intro x
+    rw [wf.fix_eq G x]
+    apply hF
+    intro y hy
+    simp [hy]
+  refine ⟨wf.fix G, hfix, fun f' hf' => funext fun x => ?_⟩
+  exact wf.induction (C := fun x => f' x = wf.fix G x) x (fun x ih => by
+    rw [hf' x, hfix x]
+    exact hF f' (wf.fix G) x (fun y hy => ih y hy))
+
+/-- A measure of several components for `termination_by`: the tuple, ordered by `lexLt` (an export's measures all have
+one length). -/
+structure Lx where
+  l : List Nat
+
+instance : WellFoundedRelation Lx := ⟨fun a b => lexLt a.l b.l, InvImage.wf Lx.l lexLt_wf⟩
 
 /-! ### Facts at their keys -/
 

@@ -102,6 +102,12 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   goal reads), and the lemma a stuck one needs (g(x, 0) = 2x through g(x, a) = a + 2x; a bound on another function);
   `proveLoop` with no rank finds it (two phases' (x, y)) and the invariants it needs; the kernel checks the cyclic
   proof (`examples/cycles.ts`).
+- **Recursive datatypes as values** (`gdp-wired/data`): lists, trees, rose trees and their forests, declared by their
+  constructors; functions over them by structural recursion, or by any recursion whose termination is proven first (a
+  merge of two lists, a quicksort: the measure found, (size xs, size ys) or a sum of sizes, and each call's decrease
+  proven by the kernel before the function's equation is used; one that doesn't terminate is refused with the reason);
+  `proveData` finds the induction (structural, mutual, or the function's own call graph ranked by its measure) and the
+  lemmas, each proof checked in Lean against the `inductive` and the functions as declared (`examples/data.ts`).
 - **Records and variants**: inputs, state, results, map cells and list items made of named fields, or one of several
   cases each with fields of its own (a payment by card or in cash, a seat free, held or sold), every case covered
   (`examples/datatypes.ts`).
@@ -120,7 +126,8 @@ When a law is false, the GPU search finds a real run that breaks it. When a law 
 **What it leaves to Lean or Bend.** Two things, and neither is a gap the next feature closes: proofs the prover would
 have to invent (induction over a recursive structure whose proof needs a lemma nobody stated and `discover` doesn't find, and arithmetic with
 products of unknowns beyond what products of facts and sums of squares give; integer arithmetic with induction or
-with products is undecidable; a lemma you state about a recurrence is proven, and `proveData` finds the induction and lemmas for a recursive datatype as a value, up to six symbols a lemma), and shipping an arbitrary algorithm as its proved source (gdp-wired ships the rule as JavaScript; Bend
+with products is undecidable; a lemma you state about a recurrence is proven, and `proveData` finds the induction and lemmas for a recursive datatype as a value, up to six symbols a lemma, for
+functions structural or whose termination it proves), and shipping an arbitrary algorithm as its proved source (gdp-wired ships the rule as JavaScript; Bend
 compiles the proved source itself). The full list of what is and isn't in scope is in
 [`docs/comparison.md`](docs/comparison.md#gdp-wireds-scope-in-detail).
 

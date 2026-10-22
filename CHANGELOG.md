@@ -5,6 +5,54 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+Recursion that isn't structural, in the datatype language (`gdp-wired/data`): a function whose calls are on any
+arguments is taken once its termination is proven, its equation a fact only then. TIP 2015 (`runs/modal/wfrec/tip4`,
+gdp-wired at 60 s, cvc5 and Vampire from `full2`): 62 of the 155 theorems refused for recursion that isn't structural
+translate now, 3 of them proven, 140 of 492 proven (the cheap wins' 137, none of those lost), wrong 0. The datatype
+corpus: 23 of 23 laws proven, its 18 broken variants and definitions that don't terminate refused
+(`runs/modal/wfrec/suite2`'s `frontier-datatype-0..5`). The suite (`modal/suite.json`, 198 jobs) at this branch: 513.8 s
+wall, 4,426.3 s of job time, none failed (`runs/modal/wfrec/suite2`).
+
+- Termination (core/data.ts, "well-founded recursion"): where no parameter is structural, a measure, a lexicographic
+  tuple of sums of parameters' sizes (a natural's itself, a datatype value's its size) plus a constant: the user's
+  (`define(name, params, ret, body, {measure: ['xs', 'ys']})`, a component of several names their sum), else the first
+  of a size, a lexicographic pair or triple, a sum of two or of all, then core/cycles.ts's LP rank over the function's
+  runs (`ranksOfRuns`), that its runs (each call from the parameters' sizes to the arguments') don't contradict. Each
+  call's obligation, a law over the path's variables (a match on a variable is the case's constructor at new variables,
+  an if's condition a hypothesis), is proven by the kernel in a program without the function: one node first, the
+  definitions unfolded once and 16 models' congruences; else proveData's induction without conjectured lemmas (a
+  quicksort's call on a filter of the tail by the filter's own recursion). 10 s of counted work a function. Refused,
+  with the measures tried: a definition that doesn't terminate (`f(x) = f(x) + 1`, whose equation as a fact would prove
+  anything), nested recursion (a call in its own argument or condition), a ring of functions that isn't structural.
+- Soundness (lean-kernel/Data.lean's `wf_fix_unique`): a functional that reads its function only below the argument's
+  measure (`lexLt`, the cyclic ranks' order) has exactly one fixpoint, so the taken equation has a model and only one,
+  the function as written. Standard axioms only.
+- Functional induction: a law over such a function is tried by its call graph, each use at a recursive call's arguments
+  under the call's path (its ifs' conditions too), ranked (level, the measure, 0 or 1), every rank of the program padded
+  to its widest measure (1 where every recursion is structural, so the structural proofs are as before); the functions
+  unfolded where a matched parameter is a constructor's value; a size the goal reads gets its value's shape.
+- A `size` term (`xs.size()`): 1 plus a value's fields' sizes of its group, read by measures and by laws.
+- The Lean export (lean-kernel/data.ts): such a function with `termination_by` its measure (Data.lean's `Lx`, a tuple
+  ordered by `lexLt`, where it has several components) and `decreasing_by` omega over the match equations it names
+  (`match _h1 : xs with`); an obligation that reads other functions is a lemma before it, by induction on the variable
+  the kernel inducted on (`dataqsort.qsort_dec1`). New items, `lean-data-7`: `datamerge.len_merge`,
+  `datainterleave.len_interleave`, `dataadd3acc.add3acc_sum`, `datamergestated.len_merge_stated`,
+  `dataqsort.qsort_single`, each on the standard axioms (`runs/modal/wfrec/suite2`).
+- `examples/data.ts`: the merge of two sorted lists ((size xs, size ys) found; its length, 3,651 ms in the `data` job),
+  lists interleaved (size xs + size ys; 928 ms), add3acc ((x, y); 34 ms), the merge with its measure stated (4,107 ms),
+  a quicksort on filters of the tail (`qsort [x] = [x]`, 1,521 ms); broken: a merge that drops an item, an add3acc that
+  forgets one (each refused with a value), and 4 definitions that don't terminate (a merge on the same lists, an
+  interleave that only swaps, an add3acc that keeps y, a merge whose stated measure size xs its second call doesn't
+  lower), refused with the reason. Each a frontier corpus item (`research/frontier/datatypes.ts`).
+- TIP (`compare/tip/`): of the 155, 62 translate (`add3` 20, `add3acc` 20, `nubBy` 8, `qsort` 8, `op` 4, `interleave` 2,
+  by the function `full2` named first), 3 proven (`list_Interleave`, `list_nat_Interleave`, `weird_nat_add3_spec`), 5
+  refuted: `weird_nat_mul3_same` and `weird_nat_mul3acc_*`, false as TIP writes them (`mul3acc` adds `add3acc x y z`
+  where `mul3` adds the predecessors' `add3`; mul3acc(2, 1, 1) = 5, mul3(2, 1, 1) = 2), each counterexample confirmed
+  by TIP's evaluator. Still refused, with the reason: termination not proven 87 (a sort whose decrease needs a lemma
+  about another function, `toList (hmerge p q)` and the like; `idiv`, which never ends at y = 0), a ring of functions
+  that isn't structural 6. summary.ts lists a refutation TIP's evaluator confirms apart from the wrong ones, and reads
+  several run directories (a gdp-wired run beside `full2`'s tools).
+
 `proveData` takes a user's own recursive arithmetic and wrappers: TIP 2015 (492 theorems, 60 s each, 2 vCPU) 137
 proven, was 73, none wrong; 17 of the 68 `false/` properties refuted as before, each confirmed by TIP's evaluator
 (`runs/modal/cheap/tip3`, cvc5's and Vampire's rows from `runs/modal/tip/full2` in `runs/modal/cheap/tip3-with-full2`:

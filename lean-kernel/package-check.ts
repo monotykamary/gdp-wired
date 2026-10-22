@@ -111,6 +111,9 @@ const dataItems: Record<string, [() => DataLaw, string]> = {
   dataroseflat: [() => dataLaws.roseSumFlatten(), 'sum_rflat'], datarosemirror: [() => dataLaws.roseSizeMirror(), 'rsize_rmirror'],
   databag: [() => dataLaws.bagLength(), 'len_concat'], datarep: [() => dataLaws.replicateLength(), 'len_replicate'],
   datatakedrop: [() => dataLaws.takeDrop(), 'take_drop'], datadroplen: [() => dataLaws.dropLength(), 'len_drop'],
+  datamerge: [() => dataLaws.mergeLength(), 'len_merge'],
+  datainterleave: [() => dataLaws.interleaveLength(), 'len_interleave'], dataadd3acc: [() => dataLaws.add3acc(), 'add3acc_sum'],
+  datamergestated: [() => dataLaws.mergeStated(), 'len_merge_stated'], dataqsort: [() => dataLaws.qsortSingle(), 'qsort_single'],
   // through the built-ins (core/transfer.ts): the bridges and the copies' laws nodes of the one proof
   databridge: [() => throughLaws.leqPlus(), 'leq_plus'], datainline: [() => throughLaws.geqSelf(), 'geq_self'],
   dataoccurs: [() => throughLaws.occursCons(), 'occurs_cons'], datacases: [() => throughLaws.leqZero(), 'leq_zero'],

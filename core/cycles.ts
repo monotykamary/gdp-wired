@@ -478,6 +478,13 @@ function lexRanks(idx: number[], nodes: Node[], samples: Sampled[][], edges: Edg
   return {comps, left: left.length}
 }
 const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b))
+// The same over named naturals and the edges of runs alone (core/data.ts: a recursive function's calls, each from its
+// parameters' sizes to its arguments'): each component's coefficient per variable and its constant.
+export function ranksOfRuns(vars: string[], points: Env[], edges: {s: Env, t: Env}[], ms = 1000): {comps: {coef: Record<string, number>, c: number}[], left: number} {
+  const node: Node = {name: 'runs', hyps: [], concl: yes, vars, level: 0, given: true}
+  const {comps, left} = lexRanks([0], [node], [points.map(env => ({env, calls: new Set<string>()}))], edges.map(e => ({from: 0, to: 0, s: e.s, t: e.t})), shared, performance.now() + ms)
+  return {comps: comps.map(c => ({coef: Object.fromEntries(vars.map((x, j) => [x, c[shared(0, j)] ?? 0])), c: c[shared(0, 'b')] ?? 0})), left}
+}
 const compE = (c: Comp, n: number, node: Node, name: Naming): E => unfeat(linE(Object.fromEntries(node.vars.map((x, j) => [x, c[name(n, j)] ?? 0])), c[name(n, 'b')] ?? 0))
 // Ranks of degree 2: a product of two of a node's variables (a square too) a further variable of the LP, its value at
 // each sample the product's, one product at a time (a sparse template: with every product at once, the runs fit a rank

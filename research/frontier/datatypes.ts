@@ -5,11 +5,13 @@
 //   - core/cycles.ts's `findCycles` on the law as a claim over the encoding's facts, with each map's values on the
 //     codes Lean's twin defines (`codeValues`) and that a value's fields have smaller codes (`orderFacts`), so a rank
 //     linear in the codes exists for it to find
-// Either proving the law counts for today. A broken variant is an item too (`broken`): it counts when nothing proves it.
+// Either proving the law counts for today. A broken variant is an item too (`broken`): it counts when nothing proves it;
+// so is a definition that doesn't terminate (`nonterminating`): refused, its reason the measures tried, before its law is
+// read, by both.
 import type {Verdict} from '../../core/dsl.ts'
 import {type DataLaw, type DataVerdict, codeValues, encY, factsOf, orderFacts, programOf, proveData} from '../../core/data.ts'
 import {findCycles} from '../../core/cycles.ts'
-import {broken, laws} from '../../examples/data.ts'
+import {broken, laws, nonterminating, refusal} from '../../examples/data.ts'
 import type {Item} from './corpus.ts'
 
 const asVerdict = (v: DataVerdict): Verdict => ({proven: v.proven, checked: v.checked, ...(v.goal ? {goal: v.goal, stuck: v.stuck} : {}),
@@ -22,10 +24,15 @@ function today(l: DataLaw): Verdict {
   return {proven: out.proven, checked: out.checked, ...(out.goal ? {goal: out.goal, stuck: out.stuck} : {}), ...(out.why ? {why: out.why} : {})}
 }
 const frontier = (l: DataLaw): Verdict => asVerdict(proveData(l))
+// A law whose definitions aren't taken (one doesn't terminate): refused with the reason, nothing proven.
+const taken = (mk: () => DataLaw, f: (l: DataLaw) => Verdict): Verdict => { const why = refusal(mk); return why ? {proven: false, checked: false, why} : f(mk()) }
+const variantOf: Record<keyof typeof nonterminating, keyof typeof laws> = {mergeStays: 'mergeLength', interleaveSwaps: 'interleaveLength', add3accKeeps: 'add3acc', mergeStatedWrong: 'mergeStated'}
 
 export const dataItems: Item[] = [
   ...Object.entries(laws).map(([name, mk]): Item => ({id: `datatype/${name}`, track: 'datatype', removed: 'the induction (which argument, where each cycle returns, the rank) and any lemma',
     today: () => today((mk as () => DataLaw)()), frontier: () => frontier((mk as () => DataLaw)())})),
   ...Object.entries(broken).map(([name, mk]): Item => ({id: `datatype/${name} (broken)`, track: 'datatype', removed: 'the induction and any lemma', broken: `datatype/${name}`,
     today: () => today(mk()), frontier: () => frontier(mk())})),
+  ...Object.entries(nonterminating).map(([name, mk]): Item => ({id: `datatype/${name} (doesn't terminate)`, track: 'datatype', removed: 'the measure and its proof', broken: `datatype/${variantOf[name as keyof typeof nonterminating]}`,
+    today: () => taken(mk, today), frontier: () => taken(mk, frontier)})),
 ]

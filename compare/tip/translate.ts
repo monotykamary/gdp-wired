@@ -1,5 +1,6 @@
 // A TIP problem as a gdp-wired datatype law (core/data.ts): its datatypes declared by their constructors, its functions
-// by structural recursion, its goal a law. What is read, and how:
+// by their recursion (structural, or well-founded: core/data.ts finds a measure and proves every call lowers it before
+// the function's equation is a fact), its goal a law. What is read, and how:
 //   - A datatype is taken at each instance the problem uses (`list` at the naturals is its own datatype): the
 //     instances whose fields reach each other are declared together (`mutual`), the rest in order. A datatype of the
 //     shape of the naturals (no parameter, a constructor of no field and one of a single field of itself, Z and S) is
@@ -20,8 +21,10 @@
 //   - Refused, with the reason (`Unsupported`): an existential elsewhere, a quantifier elsewhere than outermost or under an
 //     implication's conclusion, a datatype field of a function sort, a function variable of another
 //     sort, a function that returns a function, Int arithmetic beyond the above, a selector of a datatype of several
-//     constructors (partial: TIP leaves it unspecified at the others), recursion that isn't structural (core/data.ts's
-//     check), uninterpreted sorts and constants, a nested datatype at ever larger instances.
+//     constructors (partial: TIP leaves it unspecified at the others), recursion whose termination core/data.ts doesn't
+//     prove (no measure found and proven to fall at every call: `idiv x 0` never ends, and TIP's define-fun-rec doesn't
+//     say so), nested recursion, a ring of functions that isn't structural, uninterpreted sorts and constants, a nested
+//     datatype at ever larger instances.
 // The background facts a problem asserts (`assert`, true lemmas given as hints) aren't given to proveData: the statement
 // is the goal alone.
 import {type Sx, type Tip, type Ty, type V, BOOL, INT, Unsupported, existential, matchTy, prenex, sameTy, show, showTy, substSx, substTy, tyOf} from './tip.ts'
@@ -431,7 +434,9 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
     } catch (e) {
       if (e instanceof Unsupported) throw e
       const m = (e as Error).message
-      if (/not structural recursion/.test(m)) throw new Unsupported(`recursion that isn't structural: ${m}`)
+      if (/a ring of functions is taken by structural recursion only/.test(m)) throw new Unsupported(`a ring of functions that isn't structural recursion: ${m}`)
+      if (/nested recursion/.test(m)) throw new Unsupported(`nested recursion: ${m}`)
+      if (/not structural recursion/.test(m)) throw new Unsupported(`recursion whose termination isn't proven: ${m}`)
       throw e
     }
     return {law: l, vars, params, body: g.body}

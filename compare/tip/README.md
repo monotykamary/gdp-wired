@@ -38,6 +38,47 @@ Vampire; gdp-wired isn't given them.
 
 ## Results
 
+### Recursion that isn't structural (well-founded, after the existentials)
+
+`runs/modal/wfrec/tip4`: gdp-wired alone at the `lang/wfrec` branch (with main's cheap wins and existentials merged),
+the same image, sets, container shape and 60 s; cvc5 and Vampire from `full2` (`bun compare/tip/summary.ts
+runs/modal/wfrec/tip4 runs/modal/tip/full2`). core/data.ts now takes a function whose recursion isn't structural once
+its termination is proven: a measure (a parameter's size, a lexicographic tuple of them, a sum, or the LP's rank from
+the function's runs) and, for each call, the kernel's proof that the measure falls under the path to the call; only then
+is its equation a fact (core/data.ts, "well-founded recursion"). A law over such a function is tried by its own call
+graph, ranked by the measure.
+
+| theorems (492) | proven | refuted | wrong | translated | unknown | timeout | unsupported | error |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `cheap/tip3` (the baseline) | 137 | 0 | 0 | 296 | 27 | 132 | 196 | 0 |
+| `wfrec/tip4` | 140 | 7 | 0 | 360 | 48 | 165 | 132 | 0 |
+
+- Of the 155 theorems `full2` refused for recursion that isn't structural, 62 translate now. Proven 3:
+  `tip2015/list_Interleave`, `list_nat_Interleave` (`interleave (evens xs) (odds xs) = xs`, interleave's measure
+  size xs + size ys, by its own recursion) and `weird_nat_add3_spec`; 35 out of time, 19 unknown, and 5 refuted:
+  `weird_nat_mul3_same`, `weird_nat_mul3acc_assoc1..3`, `weird_nat_mul3acc_spec`. Those 5 are false as TIP writes them:
+  `mul3acc` adds `add3acc x y z` where `mul3` adds `add3 x2 x3 x4` (the predecessors), so mul3acc(2, 1, 1) =
+  1 + add3acc(0, 0, add3acc(2, 1, 1)) = 5 while mul3(2, 1, 1) = 2; each counterexample is confirmed by TIP's evaluator,
+  and none of cvc5, cvc5 with conjecture generation or Vampire proves any of them (`full2`). The 62, by the function
+  `full2` refused first: `add3` 20, `add3acc` 20, `nubBy` 8, `qsort` 8, `op` 4, `interleave` 2. On those 62, within 60 s
+  in `full2`: cvc5 12, cvc5 with conjecture generation 8, Vampire 15.
+- wrong 0. The table lists apart a refutation whose counterexample TIP's evaluator confirms breaks the goal as written
+  (solve.ts answers refuted only then): the 5 above and the existentials' 2 (`list_elem_map`, `list_nat_elem_map`,
+  below); by the earlier rule (every refutation of a `tip2015` file wrong) they would count 7.
+- No theorem `tip3` proved is lost; the 3 above are the gain (137 to 140). 360 translate (296 before, 2 of the 64 more
+  the existential goals).
+- The 93 still refused, each with its reason (`unsupported`, the measures tried): termination not proven 87 (`toList`
+  16, `idiv` 12, `bmerge`, `bubsort`, `mergingbu`, `mergingbu2`, `ssort` 8 each, `nmsorttd`, `twoThirds`, `third` 4
+  each, `mod2`, `subst`, `flatten1` 2 each, `flatten3` 1) and a ring of functions that isn't structural 6 (`models` 5,
+  `linTerm` 1). `idiv x y = if x < y then 0 else S (idiv (x − y) y)` never ends at y = 0 (its runs show the call from
+  (1, 0) to (1, 0)): TIP's `define-fun-rec` asserts an equation with no solution there, and refusing it is the point.
+  The heap and bottom-up merge sorts `full2` refused at their merges (`hmerge`, `lmerge`) are refused now at the
+  sort's own recursion (`toList`, `mergingbu`, `mergingbu2`), whose decrease needs a lemma about another function
+  (`toList (hmerge p q)` below `toList (Node p y q)` needs the size of a merge; likewise a bubble sort's pass lowering
+  the inversions, a merge sort's halves), which the obligations' search, run without conjectured lemmas, doesn't find.
+- `false/` (68): 18 refuted (17 before, and `false/mergesort_merge_comm`, now translated), each confirmed by TIP's
+  evaluator; none proven.
+
 ### After the cheap wins (core/transfer.ts)
 
 `runs/modal/cheap/tip3`: gdp-wired from this branch, every task in its own container, 60 s, the same container
@@ -171,7 +212,7 @@ of it changes the statement:
 
 | reason | theorems | `false/` |
 | --- | --- | --- |
-| recursion that isn't structural (no parameter that every recursive call passes a field of) | 155 | 10 |
+| recursion that isn't structural (no parameter that every recursive call passes a field of; 62 of the 155 taken since, as well-founded recursion, above) | 155 | 10 |
 | Int subtraction | 14 | 23 |
 | Int division | 12 | 6 |
 | Int remainder | 2 | 1 |

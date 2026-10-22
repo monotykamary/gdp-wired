@@ -108,6 +108,7 @@ function rewriter(bridges: Map<string, Op>, copies: Map<string, string>, unfold:
       case 'if': return {op: 'if', c: ry(x.c), then: rx(x.then), else: rx(x.else)}
       case 'bool': return {op: 'bool', c: ry(x.c)}
       case 'apply': return {op: 'apply', param: x.param, arg: rx(x.arg)}
+      case 'size': return {op: 'size', data: x.data, of: rx(x.of)}
       case 'ctor': return {...x, args: x.args.map(rx)}
       case 'match': return {...x, of: rx(x.of), cases: x.cases.map(c => ({binds: c.binds, body: rx(c.body)}))}
       case 'natmatch': return {...x, of: rx(x.of), zero: rx(x.zero), succ: rx(x.succ)}
