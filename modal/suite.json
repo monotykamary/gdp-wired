@@ -932,6 +932,13 @@
 "timeout": 900
 },
 {
+"name": "arith",
+"cmd": "bun test arith.test.ts 2>&1 && cd .. && bun examples/arith.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
 "name": "cyclic",
 "cmd": "bun test cyclic.test.ts 2>&1 && cd .. && bun examples/cyclic.ts 2>&1",
 "cwd": "core",
@@ -1403,6 +1410,14 @@
 {
 "name": "lean-data-7",
 "cmd": "ONLY=datamerge,datainterleave,dataadd3acc,datamergestated,dataqsort bash research/data/lean-data.sh 2>&1",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 2400
+},
+{
+"name": "lean-data-8",
+"cmd": "ONLY=dataintfirst,datainttwice,dataeuclid,dataevensum bash research/data/lean-data.sh 2>&1",
 "cwd": ".",
 "cpu": 4.0,
 "memory": 8192,

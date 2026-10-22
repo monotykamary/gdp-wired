@@ -14,7 +14,7 @@
 //     added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
-import {type C, type E, type Law, type Machine, type Request, type State, any, atMost, evalC, get, interpret, n, not, plus, same, times, x} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type State, any, atMost, divisorsIn, evalC, get, interpret, machineTerms, modName, n, not, plus, same, times, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, proveRule, proveSteps} from './dsl.ts'
 import {allowed, watch} from './watch.ts'
 import {proveLaw, proveLaws, proveStepLaws, withDeadline} from '../kernel/prove.ts'
@@ -32,6 +32,7 @@ export type InferOptions = {
   first?: Verdict // the laws' verdict alone, when the caller has it already
   progress?: (phase: string, info: Record<string, number | string>) => void // told as each phase ends
   existentials?: boolean // congruences as "there exists" (∃k. v = c·k + r), where the runs keep v's remainder (true)
+  remainders?: boolean // remainders (v mod k = r, a guard where only some runs keep one) where the runs keep one (true); with false, congruences instead (`existentials`)
 }
 // What was found: each law as a Law (pass it with the rule's laws), how it reads, and for a rule, the builder call
 // that states it (`r.law(...)`), to paste.
@@ -44,9 +45,10 @@ type Atom = {name: string, parts: [string, 1 | -1][], param: boolean, int: boole
 type Guard = {atom: number, value: number} | {keyNot: number}
 // `when`: a linear condition the form holds under (Σ c·v ≤ d over scalars), beside its guard; the search makes such forms
 // from a counterexample to induction no candidate rules out.
-// `cong`: not a bound but a congruence, ∃k. Σ c·v = mod·k + rest (core/exists.ts: proven through a witness, a ghost
-// the kernel's counterexamples choose), k a natural or, over an integer, an integer.
-type Form = {coef: [number, number][], d: number, cells: boolean, guard?: Guard, when?: {coef: [number, number][], d: number}, unreachable?: {atom: number, value: number}, cong?: {mod: number, rest: number}, size: number}
+// `mod`: the form is a remainder, (Σ c·v) mod k = r (d unused). `cong`: a congruence, ∃k. Σ c·v = mod·k + rest
+// (core/exists.ts: proven through a witness, a ghost the kernel's counterexamples choose), k a natural or, over an
+// integer, an integer; the same claim, made only where remainders are off (InferOptions.remainders).
+type Form = {coef: [number, number][], d: number, cells: boolean, guard?: Guard, when?: {coef: [number, number][], d: number}, unreachable?: {atom: number, value: number}, mod?: {k: number, r: number}, cong?: {mod: number, rest: number}, size: number}
 
 const KEY = 'key$found', AT = '@', K = '#', SOME = 'k$found'
 const seeded = (seed: number): Rand => { let s = seed; return k => { s = (s * 1103515245 + 12345) % 2 ** 31; return Math.floor(s / 2 ** 31 * k) } }
@@ -104,12 +106,24 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
 }
 function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
   const t0 = performance.now(), until = t0 + (opts.ms ?? 20000), rule = isRule(target) ? target : undefined
+  if (rule) { const ks = divisorsIn([...laws, ...stepLaws] as never); if (ks.size) rule.dividesBy(...ks) }
   const m = rule ? rule.machine : target as Machine
   let proofs = 0
+  // The rule (or machine) the kernel proves the candidates with: once a remainder is among them, one that declares
+  // div$k and mod$k for its divisors (rule.withDivisors leaves the caller's rule as it was until a found law needs them).
+  // Only the laws proven read: a search none of whose chosen candidates is a remainder proves with the rule as it is.
+  const byDivisors = new Map<string, {r?: AnyRule, m: Machine}>()
+  const forLaws = (ls: Law[]): {r?: AnyRule, m: Machine} => {
+    const ks = [...divisorsIn(ls.map(l => l.holds))].filter(k2 => !m.fns?.[modName(k2)]).sort((a, b) => a - b), key = ks.join(',')
+    let out = byDivisors.get(key)
+    if (!out) { const r2 = ks.length ? rule?.withDivisors(...ks) : rule; out = {r: r2, m: r2 ? r2.machine : withArithmetic(m, [], ks)}; byDivisors.set(key, out) }
+    return out
+  }
   const prove = (ls: Law[]): Verdict => {
     proofs++
-    if (rule) return stepLaws.length ? proveSteps(rule, ls, stepLaws, {search: false}) : proveRule(rule, ls, {search: false})
-    const out = stepLaws.length ? proveStepLaws(m, ls, stepLaws) : proveLaws(m, ls)
+    const {r: searchRule, m: mm} = forLaws(ls)
+    if (searchRule) return stepLaws.length ? proveSteps(searchRule, ls, stepLaws, {search: false}) : proveRule(searchRule, ls, {search: false})
+    const out = stepLaws.length ? proveStepLaws(mm, ls, stepLaws) : proveLaws(mm, ls)
     return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
   }
   const stats = (samples: number, candidates: number, alive: number) => ({samples, candidates, alive, proofs, ms: Math.round(performance.now() - t0)})
@@ -256,10 +270,33 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     keyNots.forEach((s, g) => { if (cells && Number.isFinite(away[g]!) && away[g]! < d) forms.push({coef, d: away[g]!, cells, guard: {keyNot: s}, size: sizeOf(coef) + 60}) })
   }
   for (const mode of modes) if (!atoms[mode.atom]!.cell) for (const value of mode.values) if (NS && !valsS[mode.atom]!.includes(value)) forms.push({coef: [], d: 0, cells: false, unreachable: {atom: mode.atom, value}, size: 1})
-  // Congruences: a state value (or the sum or difference of two) whose every sample leaves one remainder by a constant
-  // of the rule's (2 first), with at least three values reached: ∃k. v = c·k + r. (A rule with a remainder function
-  // states the same with it; this is the form without one.)
-  if (opts.existentials !== false && NS) {
+  // Remainders: a value, or the sum or difference of two, at one remainder by k in every run (or in every run where a
+  // guard holds), k each divisor the rule and its laws read (modBy, divBy) and 2: x mod 2 = 0 for a counter that steps
+  // by 2, the parity of a sum that two counters keep. No form above states one (no linear bound does).
+  // The moduli: the divisors the rule and its laws read, then 2, 3, 4 and the rule's own constants up to 64 (six in all).
+  const divisors = [...new Set([...[...divisorsIn([...machineTerms(m), ...laws.map(l => l.holds)])].filter(k => k >= 2 && k <= 1_000_000).sort((p, q) => p - q), 2, 3, 4, ...consts.filter(k => k > 4 && k <= 64)])].slice(0, 6)
+  const modAtoms = terms.filter(i => !atoms[i]!.param && !modeOf(i)?.bool), modShapes: [number, number][][] = modAtoms.map(i => [[i, 1]])
+  if (modAtoms.length * (modAtoms.length - 1) <= 2000) for (const [a, i] of modAtoms.entries()) for (const j of modAtoms.slice(a + 1)) modShapes.push([[i, 1], [j, 1]], [[i, 1], [j, -1]])
+  const residue = (v: number, k: number) => ((v % k) + k) % k
+  // A shape whose runs reached two values or fewer is a bound's (above), not a remainder's.
+  const varied = (coef: [number, number][]) => { const vs = new Set<number>(); for (let j = 0; j < NS && vs.size < 3; j += strideS) vs.add(at(coef, valsS, j)); return vs.size >= 3 }
+  for (const coef of NS && opts.remainders !== false ? modShapes.filter(varied) : []) for (const k of divisors) {
+    if (forms.length > maxCandidates || performance.now() > buildUntil) break
+    const all = new Set<number>(), byGuard = guards.map(() => new Map<number, Set<number>>())
+    for (let j = 0; j < NS; j += strideS) {
+      const r = residue(at(coef, valsS, j), k)
+      all.add(r)
+      guards.forEach((mode, g) => { const v = valsS[mode.atom]![j]!, b = byGuard[g]!; if (!b.has(v)) b.set(v, new Set()); b.get(v)!.add(r) })
+    }
+    const size = sizeOf(coef) + 30 + k
+    if (all.size === 1) { forms.push({coef, d: 0, cells: false, mod: {k, r: [...all][0]!}, size}); continue }
+    guards.forEach((mode, g) => { if (coef.some(([i]) => i === mode.atom)) return; for (const [value, rs] of byGuard[g]!) if (rs.size === 1 && mode.values.includes(value)) forms.push({coef, d: 0, cells: false, guard: {atom: mode.atom, value}, mod: {k, r: [...rs][0]!}, size: size + 50}) })
+  }
+  // Congruences, where remainders are off: a state value (or the sum or difference of two) whose every sample leaves
+  // one remainder by a constant of the rule's (2 first), with at least three values reached: ∃k. v = c·k + r. The
+  // remainder above says the same without a quantifier, so the kernel proves it as it stands (no witness to choose),
+  // under a guard where only some runs keep it, and Lean states it with %: that is the form tried by default.
+  if (opts.remainders === false && opts.existentials !== false && NS) {
     const mods = [...new Set([2, 3, 4, ...consts.filter(k => k > 4 && k <= 64)])].slice(0, 6)
     const congOf = (coef: [number, number][]) => {
       const vs = new Set<number>()
@@ -296,7 +333,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (f.unreachable) return `${nameOf(f.unreachable.atom)} is never ${shownValue(f.unreachable.atom, f.unreachable.value)}`
     if (f.cong) return `∃k. ${f.coef.map(([i, c], j) => `${j ? (c > 0 ? ' + ' : ' − ') : c < 0 ? '−' : ''}${nameOf(i)}`).join('')} = ${f.cong.mod}·k${f.cong.rest ? ` + ${f.cong.rest}` : ''}`
     const {l, r} = sides(f), within = allowedValues(f)
-    const body = within ? `${nameOf(f.coef[0]![0])} is ${within.map(v => shownValue(f.coef[0]![0], v)).join(' or ')}` : `${l} <= ${r}`
+    const body = f.mod ? `${f.coef.map(([i, c], j) => `${c < 0 ? (j ? ' − ' : '−') : j ? ' + ' : ''}${nameOf(i)}`).join('')} mod ${f.mod.k} = ${f.mod.r}` : within ? `${nameOf(f.coef[0]![0])} is ${within.map(v => shownValue(f.coef[0]![0], v)).join(' or ')}` : `${l} <= ${r}`
     const under = f.when ? (({l: wl, r: wr}) => `${wl} <= ${wr} → `)(sides({coef: f.when.coef, d: f.when.d, cells: false, size: 0})) : ''
     const guarded = !f.guard ? under + body : 'keyNot' in f.guard ? `k = ${nameOf(f.guard.keyNot)} or ${body}` : `${nameOf(f.guard.atom)} is ${shownValue(f.guard.atom, f.guard.value)} → ${under}${body}`
     return f.cells ? `every k: ${guarded}` : guarded
@@ -316,6 +353,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       return value === 0 ? atMost(n(1), e) : value === lastValue ? atMost(e, n(value - 1)) : not(same(e, n(value)))
     }
     if (f.unreachable) return notAt(f.unreachable.atom, f.unreachable.value)
+    if (f.mod) {
+      // Σ c·v = P − N over naturals (P the positive parts, N the negative ones), whose remainder by k is that of the
+      // natural P + (k − 1)·N.
+      const {k: dk, r} = f.mod, neg = partsOf(f, -1), e = get(modName(dk), sum([...partsOf(f, 1), ...neg.map(t => times(dk - 1, t))]))
+      const body = same(e, n(r))
+      return !f.guard ? body : 'keyNot' in f.guard ? any(same(x(KEY), x(atoms[f.guard.keyNot]!.parts[0]![0])), body) : any(notAt(f.guard.atom, f.guard.value), body)
+    }
     // Σ = c·k + r, k = SOME (an integer's two parts where Σ reads an integer or a difference): the negative parts and
     // c·k's negative part on the other side.
     if (f.cong) {
@@ -329,7 +373,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   }
   // The builder call, for a rule whose atoms are its own variables (naturals, or integers alone).
   const sourceOf = (f: Form, text: string): string | undefined => {
-    if (!rule || f.when) return undefined
+    if (!rule || f.when || f.mod) return undefined
     const used = [...new Set([...f.coef.map(([i]) => i), ...(f.guard ? ['keyNot' in f.guard ? f.guard.keyNot : f.guard.atom] : []), ...(f.unreachable ? [f.unreachable.atom] : [])])]
     const ints = f.coef.filter(([i]) => atoms[i]!.int).length
     if (ints && ints !== f.coef.length) return undefined
@@ -371,7 +415,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (f.when) { let w = 0; for (const [i, c] of f.when.coef) w += c * valueOf(atoms[i]!, env); if (w > f.when.d) return true }
     let s = 0
     for (const [i, c] of f.coef) s += c * valueOf(atoms[i]!, env)
-    return s <= f.d
+    return f.mod ? residue(s, f.mod.k) === f.mod.r : s <= f.d
   }
   // At a state: a cell form at every key the maps hold and a fresh one.
   type Point = {scalar: Env, cells: Env[]}
@@ -437,12 +481,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // A point a form is false at; a cell form is judged only at rows that read every map it reads.
   const reads = (f: Form, r: Env) => f.coef.every(([i]) => !atoms[i]!.cell || atoms[i]!.parts.every(([q]) => AT + q in r))
   const falseAt = (f: Form, p: Point) => (f.cells ? p.cells.some(r => reads(f, r) && !holdsRow(f, r)) : !holdsRow(f, p.scalar))
-  // (a congruence only where no bound of the candidates rules the point out, before the counterexample's own forms:
+  // (a remainder or a congruence only where no bound of the candidates rules the point out, before the counterexample's own forms:
   // false at half the states a run doesn't reach, it would otherwise be chosen first everywhere)
   const best = (p: Point, congs = false) => {
     let pickF: Form | undefined, score = -Infinity
     for (const f of pool) {
-      if (chosen.includes(f) || !!f.cong !== congs || !falseAt(f, p)) continue
+      if (chosen.includes(f) || !!(f.cong || f.mod) !== congs || !falseAt(f, p)) continue
       const s = ctis.reduce((k, c) => k + (falseAt(f, c) ? 1 : 0), 0) * 1000 - f.size
       if (s > score) (pickF = f, score = s)
     }
@@ -518,12 +562,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     for (let i = 0; i < ls.length; i++) {
       if (done.has(ls[i]!.name)) continue
       proofs++
-      const r = proveLaw(m, ls, i)
+      const r = proveLaw(forLaws(ls).m, ls, i)
       if (!r.proven) return {proven: false, checked: false, goal: r.goal, stuck: r.stuck, ...(r.witness ? {witness: r.witness} : {})}
       done.add(ls[i]!.name)
       if (!chosen.length) base.add(ls[i]!.name)
     }
-    if (stepLaws.length) { proofs++; const r = proveStepLaws(m, ls, stepLaws); if (!r.proven) return {proven: false, checked: false, ...(r.failed ? {goal: r.failed.goal, stuck: r.failed.stuck, ...(r.failed.witness ? {witness: r.failed.witness} : {})} : {})} }
+    if (stepLaws.length) { proofs++; const r = proveStepLaws(forLaws(ls).m, ls, stepLaws); if (!r.proven) return {proven: false, checked: false, ...(r.failed ? {goal: r.failed.goal, stuck: r.failed.stuck, ...(r.failed.witness ? {witness: r.failed.witness} : {})} : {})} }
     const whole = prove([...laws, ...chosen.map(lawFor)])
     if (!(whole.proven && whole.checked)) forget()
     return whole
@@ -570,5 +614,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const without = chosen.filter(g => g !== f), v = prove([...laws, ...without.map(lawFor)])
     if (v.proven && v.checked) (chosen = without, last = v)
   }
+  const kept = chosen.flatMap(f => (f.mod ? [f.mod.k] : []))
+  if (kept.length) rule?.dividesBy(...kept)
   return {...last, found: chosen.map(f => { const law = lawFor(f), text = law.name, source = sourceOf(f, text); return {law, text, ...(source ? {source} : {})} }), stats: stats(samples.length, forms.length, alive.length)}
 }

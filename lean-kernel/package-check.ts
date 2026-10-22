@@ -34,6 +34,7 @@ import type {Cyclic} from '../kernel/cyclic.ts'
 import {budget, budgetLaws, fill, fillLaws, mccarthy, mutual, tally, tallyLaws} from '../examples/cyclic.ts'
 import {leanItems as cycleLeanItems} from '../examples/cycles.ts'
 import {filled, growing} from '../examples/lemmas.ts'
+import {billing, billingLaws, dataLaws as arithDataLaws, evenLaw, ledger as signedLedger, ledgerLaws as signedLedgerLaws, pairs, rota, rotaLaws} from '../examples/arith.ts'
 import {leanItems as existsLeanItems} from '../examples/exists.ts'
 
 const caps = rule('caps').params({d: nat}).inputs({acct: nat, day: nat, ok: bool}).maps({Acct: 0, Day: 0})
@@ -111,6 +112,9 @@ const dataItems: Record<string, [() => DataLaw, string]> = {
   dataroseflat: [() => dataLaws.roseSumFlatten(), 'sum_rflat'], datarosemirror: [() => dataLaws.roseSizeMirror(), 'rsize_rmirror'],
   databag: [() => dataLaws.bagLength(), 'len_concat'], datarep: [() => dataLaws.replicateLength(), 'len_replicate'],
   datatakedrop: [() => dataLaws.takeDrop(), 'take_drop'], datadroplen: [() => dataLaws.dropLength(), 'len_drop'],
+  // Integers (Lean's Int) and remainders in the datatype language (examples/arith.ts).
+  dataintfirst: [() => arithDataLaws.firstOfCons(), 'first_cons'], datainttwice: [() => arithDataLaws.twiceLess(), 'twice_less'],
+  dataeuclid: [() => arithDataLaws.euclid(), 'int_euclid'], dataevensum: [() => arithDataLaws.evenSum(), 'even_sum'],
   datamerge: [() => dataLaws.mergeLength(), 'len_merge'],
   datainterleave: [() => dataLaws.interleaveLength(), 'len_interleave'], dataadd3acc: [() => dataLaws.add3acc(), 'add3acc_sum'],
   datamergestated: [() => dataLaws.mergeStated(), 'len_merge_stated'], dataqsort: [() => dataLaws.qsortSingle(), 'qsort_single'],
@@ -136,6 +140,11 @@ const file = toLean(([
   {id: 'minutes', machine: minutes().machine, laws: minuteLaws()},
   {id: 'larger', machine: larger.machine, laws: largerLaws},
   {id: 'room', machine: room().machine, laws: roomLaws(), lean: pairsLean},
+  // Division and remainder by a constant (div$k, mod$k: Lean's / and %), and a law about integers stated over Int.
+  ...[['rota', rota(), rotaLaws], ['billing', billing(), billingLaws], ['dispenser', pairs(), (r: ReturnType<typeof pairs>) => [evenLaw(r)]], ['ledger', signedLedger(), signedLedgerLaws]].map(([id, r, f]) => {
+    const laws = (f as (r: never) => Law[])(r as never)
+    return {id: id as string, machine: (r as {machine: Machine}).machine, laws}
+  }),
   // Recurrences: defined in Lean by the recurrence, their lemmas proven there by induction.
   {id: 'backoff', machine: retries().machine, laws: retryLaws(), stepLaws: retrySteps()},
   {id: 'twos', machine: counter().machine, laws: counterLaws()},

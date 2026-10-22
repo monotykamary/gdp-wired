@@ -116,6 +116,43 @@ two new theorems of `Ghost.lean`, `some_of_subst` and `some_of_ghost`, on the st
   refuted, each counterexample confirmed by TIP's evaluator: `list_elem_map` and `list_nat_elem_map` say
   `∃ x. f x = y ∧ elem y xs` where `elem x xs` was presumably meant, false at `y = 3, xs = [5], f 5 = 3`.
 
+Division and remainder by a constant, and integers in the datatype language. Nothing trusted changed: `x.modBy(k)` and
+`x.divBy(k)` are the rule's functions mod$k and div$k, which the kernel knows by two facts it already decides
+(x = k·(x div k) + x mod k, x mod k < k), and Lean proves both of its own `%` and `/` by `omega`. CHC-COMP LIA-Lin at 60 s
+(`runs/modal/arith/chc-gdp`): 381 solved (237 sat, 144 unsat), none wrongly, 8 out of time, against 375 on main
+(`exists/chc-gdp2`) and 368 at 0.20.0; of the 18 tasks whose Spacer invariant reads a remainder or a quotient, 7 (3 on
+main, 0 at 0.20.0). TIP 2015 (`runs/modal/arith/tip-gdp`): 140 proven as on main (`wfrec/tip4`), none wrong, and 23 of
+the 68 `false/` properties refuted, was 18 (the queues, which subtract on Int). The frontier corpus: 90 of 92 by the
+searches, 42 of 42 broken variants refused (`runs/modal/arith/frontier2`), its two new integer items the walls they are.
+
+- Rules: `modBy(k)` and `divBy(k)` on any term, k a constant ≥ 1 (a law, a step, a decision); on an integer, Euclid's
+  (−7 div 2 is −4, −7 mod 2 is 1), the remainder of the natural pos + (k − 1)·neg. The rule declares div$k and mod$k for
+  every divisor its terms and laws read (a law from another instance of the rule too); the runtimes compute
+  `Math.floor(x / k)` and `x % k`, so a rule that divides is still refuted by runs. Division by a term isn't offered:
+  x = y·q + r is a product of two unknowns (`examples/arith.ts`: a rota, quarter-hour billing, a pair dispenser, a signed
+  ledger, each with a broken variant refused).
+- Lean: a law reading x div k or x mod k states `x / k` and `x % k` (under `μ «mod$k» = fun x => x % k`, the hypothesis the
+  facts' theorem takes too), and a law about an integer is stated again over `Int` (`law0_int`: ((ρ «x» : Int) − ρ
+  «x$neg») % 3 = 0, by `omega` from the law over the naturals). `lean-package` checks the four examples.
+- `inferLaws` proposes remainders, v mod k = r for a state value or the sum or difference of two whose runs keep one
+  (under a guard where only some runs do), k the divisors the rule reads, 2, 3, 4 and its constants up to 64, chosen
+  where no bound rules a counterexample out. Where the existentials' congruence would say the same, the remainder is the
+  one proposed (a plain law: no witness to choose, a guard, `%` in Lean); `{remainders: false}` gives the congruences.
+- Signed integers, two designs measured on 215 CHC tasks (`runs/modal/arith/intdesign-*`): pairs of naturals (kept),
+  pairs written unnormalized (46 solved, as the pairs), and the kernel over integers prototyped in TypeScript alone on
+  branch `lang/arith-int-proto` (49 solved, 10.7% less time on the sat tasks all three solve), not taken: it would change
+  the Lean twin's semantics everywhere for that (`compare/chc/README.md`).
+- The datatype language: `integer`, a sort beside `natural` (Lean's `Int`): +, −, negation, multiples of any sign,
+  comparisons, Euclid's `modBy`/`divBy`, integer fields and parameters; a natural's `modBy`, `divBy` and `mul` (a product
+  of two). An integer is its zigzag code (a bijection with the naturals, as a datatype's), its value two parts of the code
+  read by one fact, so the encoding has no if; Lean's export defines `Z.enc`/`Z.dec`, proves the facts by `omega` and
+  closes each law over `Int` (`lean-data` items `first_cons`, `twice_less`, `int_euclid`, `even_sum`). A law that calls
+  no function is tried by its cases first. Integer arithmetic through recursion (a list's total through its negation)
+  is past the search's budget (research/frontier's `datatype/integers`).
+- CHC: a clause's `mod` and `div` by a positive constant are the rule's own (were request values).
+- TIP: Int is the integers where a problem subtracts or negates (the statement unchanged), a natural elsewhere as before,
+  now with `div`, `mod` by a positive constant and products of two unknowns.
+
 ## 0.20.0
 
 The frontier corpus proven in full: 81 of 81 items where the library alone proves none, every broken variant refused

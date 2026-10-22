@@ -111,6 +111,49 @@ export const any = (...xs: C[]): C => ({op: 'or', xs})
 export const not = (c: C): C => ({op: 'not', x: c})
 export const bit = (name: string): C => any(same(x(name), n(0)), same(x(name), n(1)))
 
+// --- division and remainder by a constant ------------------------------------------------------------------------
+// x div k and x mod k, for a constant k >= 1, are reads of two functions of the rule, div$k and mod$k, at x. The kernel
+// knows them by two facts: x = k·div$k(x) + mod$k(x), and mod$k(x) < k (both naturals, as every value is), which fix
+// both values (Euclid's division), so a goal about them is Presburger arithmetic the kernel already decides: nothing
+// new is trusted. The runtimes compute them as Math.floor(x / k) and x % k; the Lean export defines them as Lean's
+// x / k and x % k and proves the two facts of those by omega.
+export const divName = (k: number): string => `div$${k}`
+export const modName = (k: number): string => `mod$${k}`
+const arithRe = /^(div|mod)\$(\d+)$/
+export const isArithmetic = (name: string): boolean => arithRe.test(name)
+export const divisor = (k: number, what: string): number => {
+  if (!Number.isSafeInteger(k) || k < 1) throw new RangeError(`${what} divides by a whole number at least 1, not ${k}`)
+  return k
+}
+// The constants some terms divide by.
+export function divisorsIn(ts: readonly (E | C)[], out: Set<number> = new Set()): Set<number> {
+  for (const t of ts) for (const m of JSON.stringify(t).matchAll(/"op":"get","map":"(?:div|mod)\$(\d+)"/g)) out.add(Number(m[1]))
+  return out
+}
+// The two functions and their facts for each divisor: what a machine that divides by k declares.
+export function arithmetic(ks: Iterable<number>): {fns: Record<string, Fn>, facts: Law[]} {
+  const fns: Record<string, Fn> = {}, facts: Law[] = []
+  for (const k of [...new Set(ks)].sort((a, b) => a - b)) {
+    const d = divName(k), r = modName(k), key = `x$${r}`, at = (map: string): E => get(map, x(key))
+    fns[d] = {js: `x => Math.floor(x / ${k})`, lean: `fun x => x / ${k}`}
+    fns[r] = {js: `x => x % ${k}`, lean: `fun x => x % ${k}`}
+    facts.push({name: `${r}: x = ${k}·(x div ${k}) + x mod ${k}`, forall: key, holds: same(x(key), plus(times(k, at(d)), at(r)))},
+      {name: `${r}: x mod ${k} < ${k}`, forall: key, holds: less(at(r), n(k))})
+  }
+  return {fns, facts}
+}
+// A machine with the functions and facts of every divisor its terms (or the laws given) read, those it lacks added.
+export function withArithmetic(m: Machine, more: readonly (E | C)[] = [], ks: Iterable<number> = []): Machine {
+  const all = divisorsIn(more, divisorsIn(machineTerms(m), new Set(ks)))
+  const {fns, facts} = arithmetic([...all].filter(k => !m.fns?.[modName(k)]))
+  if (!Object.keys(fns).length) return m
+  return {...m, fns: {...m.fns, ...fns}, facts: [...(m.facts ?? []), ...facts]}
+}
+// Every term and condition a machine holds.
+export const machineTerms = (m: Machine): (E | C)[] => [...Object.values(m.state), ...Object.values(m.step.flags ?? {}), ...Object.values(m.step.state ?? {}),
+  ...Object.values(m.step.maps ?? {}).flatMap(w => ('key' in w ? [w.key, w.value] : [w.value])), ...(m.pre ? [m.pre] : []), ...(m.assume ? [m.assume] : []),
+  ...(m.facts ?? []).map(f => f.holds), ...(m.history ? [m.history.keep, ...Object.values(m.history.sums), ...Object.values(m.history.queries), ...(m.history.relations ?? []).flatMap(r => [r.when, r.holds])] : [])]
+
 // --- the runtime ---------------------------------------------------------------------------------------------------
 
 // Both runtimes compute over the naturals the proofs are about only while values stay JavaScript's exact integers: every

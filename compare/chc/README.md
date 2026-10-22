@@ -76,6 +76,69 @@ for a state value (or the sum or difference of two) whose every sample leaves on
   the existential, in `prof/gap.py`'s table above). An earlier run of the same code but the last infer change
   (`exists/chc-gdp1`): 369 solved, none wrongly, 6 out of time.
 
+## Division, remainders and integers (after 0.20.0)
+
+A rule now reads `x.modBy(k)` and `x.divBy(k)` for a constant k ≥ 1, on naturals and on integers (Euclid's: 0 ≤ x mod k
+< k): the rule's functions mod$k and div$k, known to the kernel by x = k·(x div k) + x mod k and x mod k < k (nothing new
+is trusted; Lean proves both facts of `%` and `/` by `omega`). Two uses here:
+
+- `translate.ts` reads a clause's `mod` and `div` by a positive constant as `Int.modBy`/`Int.divBy`, where it took a
+  request value q with k·q ≤ e ≤ k·q + k − 1 before: an invariant can now read the same remainder the clause does.
+- `inferLaws` proposes remainders, v mod k = r for a state value or the sum or difference of two whose runs keep one
+  remainder (where only some runs do, under the guard they share: `loc is p1 → i0 mod 2 = 0`), k among the divisors the
+  rule reads, then 2, 3, 4 and the rule's own constants up to 64 (six in all), a shape whose runs reached 3 values or
+  more. They are chosen as the congruences are, where no bound rules a counterexample out. Where both would apply, the
+  remainder is the one proposed (the congruence, ∃k. v = c·k + r, with `{remainders: false}`): it is a plain law, so the
+  kernel proves it as it stands, with no witness or ghost to choose, it takes a guard (a CHC invariant is per predicate),
+  and Lean states it with `%`.
+
+**Integers: two designs measured** (`runs/modal/arith/intdesign-*`, 215 tasks: every seventh of the 1,406 and 16 of the
+18 of the remainder class, 60 s each; the prototype on a branch of its own, `lang/arith-int-proto`, chosen per run by
+`GDP_CHC_INT`). A CHC integer is a pair of naturals today, p − n, normalized where it is written (p ∸ n, n ∸ p).
+`raw` writes the pair as computed (no truncation, so no case of the kernel's to decide which side is 0); `native` is one
+variable the TypeScript kernel reads without a naturality row, with negative constants and factors (design (b): the
+kernel over integers, measured before any Lean proof was written for it).
+
+| encoding | solved of 215 | sat | unsat | wrong | out of time | the 27 sat tasks all three solve: s in all |
+| --- | --- | --- | --- | --- | --- | --- |
+| pairs, normalized (0.20.0's) | 46 | 28 | 18 | 0 | 0 | 613.6 |
+| pairs, as computed | 46 | 28 | 18 | 0 | 2 | 581.7 |
+| native integers (TypeScript kernel only) | 49 | 31 | 18 | 0 | 1 | 547.9 |
+
+Native integers solved 4 more and 1 fewer (2 of the 4 at 51.85 s and 58.45 s), and took 10.7% less time on the 27 sat
+tasks all three solve (pairs as computed: 5.2% less). The first native run, `intdesign-native`, erred on 77 tasks (the
+kernel's check that a law's constants are naturals); `intdesign-native2` excepts it, and drops the cyclic encoding's
+"each state value is a natural" fact for an integer, which would otherwise make the prototype unsound. The gain is that of
+one column less per integer in each leaf; the cost is a trusted change to the Lean twin's semantics (every term and
+valuation of Kernel.lean, Cyclic.lean, Sets.lean and the bridges is over `Nat`), and every proof checked again. Kept:
+pairs, normalized, as they were (nothing trusted changes); the Lean export now states each law about an integer over
+`Int` as well (`law0_int`, by `omega` from the law over the naturals).
+
+**The track, `--tools gdp`** (`runs/modal/arith/chc-gdp`, 60 s, at this branch merged with main):
+
+| gdp-wired | sat | unsat | wrong | solved of 1,406 | out of time |
+| --- | --- | --- | --- | --- | --- |
+| 0.20.0 (`chc2/v020-gdp`) | 224 | 144 | 0 | 368 | 5 |
+| main, existentials (`exists/chc-gdp2`) | 231 | 144 | 0 | 375 | 5 |
+| this branch (`arith/chc-gdp`) | 237 | 144 | 0 | 381 | 8 |
+
+- Against main: 11 more (`s_split_08`, `s_split_21`, `s_split_28`, `s_mutants_22`, `loop_merged_safe`, `const_mod_2`,
+  `count_by_2`, `phases_m`, `s_multipl_17` and Lustre `car_4_e7_592_e7_265`, `_6counters_e8_371_e1_448`), 5 fewer
+  (`count_by_2_m_nest`, `bug15_safe`, `reve/014b`, `O3_EvenOdd01`, `gj2007_m_3`). Against 0.20.0: 14 more, 1 fewer.
+  Out of time 8, 6 of them unknown on main.
+- The 18 whose Spacer invariant reads a remainder (16) or a quotient (2): 7 solved (`s_split_21`, `const_mod_1`,
+  `const_mod_2`, `const_mod_3`, `dillig02_m`, `phases_m`, `s_multipl_17`), 3 on main, none at 0.20.0. Not: HOLA `34`, `38`,
+  `42`, `array_fill1_even_odd`, the two `digits10` (a quotient by 10), the five Lustre `DRAGON_all2` (each a remainder
+  inside a disjunction over 30-odd values, beside the class-A step goal).
+- Runs at the limit move. The 23 tasks where a first run of this branch and 0.20.0 differed, run again twice at 0.20.0
+  and six times here as the search changed (`arith/chcdiff-*`): 0.20.0 solved 7 and 9; this branch 16 and 16 (head1-2,
+  remainders chosen like any candidate), 15 and 11 (head3-4, after main's existentials merged), 19 and 18 (head5-6,
+  remainders chosen only where no bound rules the counterexample out, as shipped). Five tasks 0.20.0 solves in every run
+  (`reve/027`, `027b`, `yz_plus_minus_2`, `loop__upcount`, `loop__while_after_while_if`) were lost in head1-4, a
+  remainder chosen first and a slow proof after it, and are solved in head5-6. The full runs: `arith/chc-gdp-premerge`
+  (the first, 375, 17 out of time), `arith/chc-gdp-prewfrec` (382, before main's well-founded recursion merged; 12 out of
+  time), `arith/chc-gdp` (381, above).
+
 ## 0.20.0
 
 Spacer, Golem and Eldarica from `runs/modal/chc/full1` again: the image pins the same releases (Z3 5.3.1, Golem 0.9.0,

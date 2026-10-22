@@ -40,10 +40,16 @@ import {proveThrough, transferPlan} from './transfer.ts'
 export const self = {self: true} as const
 export const natural = 'nat' as const
 export const boolean = 'bool' as const
-// A field is a natural or a value of a datatype: the datatype itself, another of its group (declared with it by
-// `mutual`), or one declared before it (a list of lists, say).
-export type FieldSort = 'nat' | {data: string}
-export type Sort = 'nat' | 'bool' | Data
+// A signed integer (Lean's Int): opt-in, beside the naturals, whose truncated subtraction keeps its meaning. Encoded as
+// its zigzag code (z ↦ 2z for z ≥ 0, −2z − 1 below), a bijection with the naturals like a datatype's, so a value is one
+// natural and two values are equal exactly when their codes are; its arithmetic reads a code as two naturals, p − n
+// (from the code's quotient and remainder by 2), and writes the result's code back (`encI`, `codeOfPair`).
+export const integer = 'int' as const
+// A field is a natural, an integer or a value of a datatype: the datatype itself, another of its group (declared with
+// it by `mutual`), or one declared before it (a list of lists, say).
+export type FieldSort = 'nat' | 'int' | {data: string}
+export type Sort = 'nat' | 'bool' | 'int' | Data
+export const isDataField = (s: FieldSort): s is {data: string} => typeof s === 'object'
 export type Ctor = {name: string, fields: {name: string, sort: FieldSort}[]}
 
 // Terms: naturals, conditions as values (0 or 1), datatype values; `match` binds a case's fields by name.
@@ -52,6 +58,16 @@ export type X =
   | {op: 'nat', value: number}
   | {op: 'add' | 'sub' | 'min' | 'max', a: X, b: X}
   | {op: 'mul', k: number, a: X}
+  | {op: 'prod', a: X, b: X} // a product of two naturals
+  | {op: 'mod' | 'div', k: number, a: X} // a natural's remainder and quotient by a constant k >= 1
+  // integers: a literal, sums, differences, negation, a constant multiple (any sign), a natural as an integer, and
+  // Euclid's quotient and remainder by a constant k >= 1 (0 <= x mod k < k, as SMT-LIB and Lean's Int / and % read them)
+  | {op: 'int', value: number}
+  | {op: 'iadd' | 'isub', a: X, b: X}
+  | {op: 'ineg', a: X}
+  | {op: 'imul', k: number, a: X}
+  | {op: 'ofnat', a: X}
+  | {op: 'imod' | 'idiv', k: number, a: X}
   | {op: 'if', c: Y, then: X, else: X}
   | {op: 'call', fn: string, args: X[]}
   | {op: 'ctor', data: string, ctor: number, args: X[]}
@@ -63,6 +79,7 @@ export type X =
   | {op: 'size', data: string, of: X}
 export type Y =
   | {op: '<' | '<=' | '=', a: X, b: X}
+  | {op: 'i<' | 'i<=', a: X, b: X} // integers compared by value ('=' compares codes, which is the same)
   | {op: 'and' | 'or', xs: Y[]}
   | {op: 'not', x: Y}
   | {op: 'is', data: string, of: X, ctor: number}
@@ -78,6 +95,11 @@ export class Nat {
   plus(b: NatLike): Nat { return new Nat({op: 'add', a: this.x, b: natX(b)}) }
   minus(b: NatLike): Nat { return new Nat({op: 'sub', a: this.x, b: natX(b)}) }
   times(k: number): Nat { return new Nat({op: 'mul', k, a: this.x}) }
+  // A product of two naturals (the kernel multiplies it out; nonlinear: what proves it is products of facts and squares).
+  mul(b: NatLike): Nat { return new Nat({op: 'prod', a: this.x, b: natX(b)}) }
+  modBy(k: number): Nat { return new Nat({op: 'mod', k: divisorOf(k), a: this.x}) }
+  divBy(k: number): Nat { return new Nat({op: 'div', k: divisorOf(k), a: this.x}) }
+  toInt(): Integer { return new Integer({op: 'ofnat', a: this.x}) }
   lt(b: NatLike): Bool { return new Bool({op: '<', a: this.x, b: natX(b)}) }
   atMost(b: NatLike): Bool { return new Bool({op: '<=', a: this.x, b: natX(b)}) }
   gt(b: NatLike): Bool { return new Bool({op: '<', a: natX(b), b: this.x}) }
@@ -86,15 +108,38 @@ export class Nat {
   ne(b: NatLike): Bool { return this.eq(b).not() }
   // A natural as 0 or the successor of another (`pred`): recursion on a natural passes `pred` where this is a parameter.
   // oxlint-disable-next-line typescript/no-explicit-any
-  match(cases: {zero: () => Nat | Bool | Val | number, succ: (f: {pred: Nat}) => Nat | Bool | Val | number}): any {
+  match(cases: {zero: () => Nat | Bool | Val | Integer | number, succ: (f: {pred: Nat}) => Nat | Bool | Val | Integer | number}): any {
     const pred = bindName('pred'), zero = cases.zero(), succ = cases.succ({pred: new Nat({op: 'var', name: pred})})
-    const body = (o: unknown): X => (typeof o === 'number' ? natX(o) : o instanceof Bool ? {op: 'bool', c: o.y} : (o as Nat | Val).x)
+    const int = zero instanceof Integer || succ instanceof Integer
+    const body = (o: unknown): X => (typeof o === 'number' ? (int ? intX(o) : natX(o)) : o instanceof Bool ? {op: 'bool', c: o.y} : (o as Nat | Val).x)
     const x: X = {op: 'natmatch', of: this.x, zero: body(zero), pred, succ: body(succ)}
-    return (zero instanceof Bool ? new Bool({op: 'holds', x}) : zero instanceof Val ? new Val(zero.data, x) : new Nat(x)) as never
+    return (zero instanceof Bool ? new Bool({op: 'holds', x}) : zero instanceof Val ? new Val(zero.data, x) : int ? new Integer(x) : new Nat(x)) as never
   }
 }
 export type NatLike = Nat | number
 const natX = (t: NatLike): X => (typeof t === 'number' ? {op: 'nat', value: t} : t.x)
+const divisorOf = (k: number): number => { if (!Number.isSafeInteger(k) || k < 1) throw new RangeError(`a divisor is a whole number at least 1, not ${k}`); return k }
+// An integer's term; a number is a literal (any sign).
+export class Integer {
+  constructor(readonly x: X) {}
+  plus(b: IntegerLike): Integer { return new Integer({op: 'iadd', a: this.x, b: intX(b)}) }
+  minus(b: IntegerLike): Integer { return new Integer({op: 'isub', a: this.x, b: intX(b)}) }
+  negate(): Integer { return new Integer({op: 'ineg', a: this.x}) }
+  times(k: number): Integer { if (!Number.isSafeInteger(k)) throw new RangeError(`${k} is not an integer`); return new Integer({op: 'imul', k, a: this.x}) }
+  modBy(k: number): Integer { return new Integer({op: 'imod', k: divisorOf(k), a: this.x}) }
+  divBy(k: number): Integer { return new Integer({op: 'idiv', k: divisorOf(k), a: this.x}) }
+  lt(b: IntegerLike): Bool { return new Bool({op: 'i<', a: this.x, b: intX(b)}) }
+  atMost(b: IntegerLike): Bool { return new Bool({op: 'i<=', a: this.x, b: intX(b)}) }
+  gt(b: IntegerLike): Bool { return new Bool({op: 'i<', a: intX(b), b: this.x}) }
+  atLeast(b: IntegerLike): Bool { return new Bool({op: 'i<=', a: intX(b), b: this.x}) }
+  eq(b: IntegerLike): Bool { return new Bool({op: '=', a: this.x, b: intX(b)}) }
+  ne(b: IntegerLike): Bool { return this.eq(b).not() }
+}
+export type IntegerLike = Integer | number
+// An integer function's result: a natural literal in a branch (a match's case, an if's arm) is the integer's.
+const intResult = (x: X): X => (x.op === 'nat' ? {op: 'int', value: x.value} : x.op === 'if' ? {...x, then: intResult(x.then), else: intResult(x.else)}
+  : x.op === 'match' ? {...x, cases: x.cases.map(c => ({...c, body: intResult(c.body)}))} : x.op === 'natmatch' ? {...x, zero: intResult(x.zero), succ: intResult(x.succ)} : x)
+const intX = (t: IntegerLike): X => { if (typeof t !== 'number') return t.x; if (!Number.isSafeInteger(t)) throw new RangeError(`${t} is not an integer`); return {op: 'int', value: t} }
 export class Bool {
   constructor(readonly y: Y) {}
   and(...bs: Bool[]): Bool { return new Bool({op: 'and', xs: [this.y, ...bs.map(b => b.y)]}) }
@@ -109,7 +154,7 @@ export class Val {
   constructor(readonly data: Data, readonly x: X) {}
   // Every case covered; each case's fields by name (a natural, or a value of the datatype).
   // oxlint-disable-next-line typescript/no-explicit-any
-  match(cases: Record<string, (fields: Record<string, any>) => Nat | Bool | Val | number>): any {
+  match(cases: Record<string, (fields: Record<string, any>) => Nat | Bool | Val | Integer | number>): any {
     const d = this.data
     const built = d.ctors.map(c => {
       const f = cases[c.name]
@@ -119,9 +164,11 @@ export class Val {
       return {binds, out: f(fields)}
     })
     const first = built[0]!.out
-    const body = (o: unknown): X => (typeof o === 'number' ? natX(o) : o instanceof Bool ? {op: 'bool', c: o.y} : (o as Nat | Val).x)
+    // A case that is an integer makes every case's number an integer's literal.
+    const int = built.some(b => b.out instanceof Integer)
+    const body = (o: unknown): X => (typeof o === 'number' ? (int ? intX(o) : natX(o)) : o instanceof Bool ? {op: 'bool', c: o.y} : (o as Nat | Val).x)
     const x: X = {op: 'match', data: d.name, of: this.x, cases: built.map(b => ({binds: b.binds, body: body(b.out)}))}
-    return (first instanceof Bool ? new Bool({op: 'holds', x}) : first instanceof Val ? new Val(first.data, x) : new Nat(x)) as never
+    return (first instanceof Bool ? new Bool({op: 'holds', x}) : first instanceof Val ? new Val(first.data, x) : int ? new Integer(x) : new Nat(x)) as never
   }
   is(ctor: string): Bool { return new Bool({op: 'is', data: this.data.name, of: this.x, ctor: this.data.index(ctor)}) }
   // Its size: 1 plus the sizes of its fields of its datatype's group (a list's length plus 1, a tree's nodes and leaves).
@@ -130,13 +177,14 @@ export class Val {
   ne(b: Val): Bool { return this.eq(b).not() }
 }
 // A value of a sort from its term.
-export const wrap = (s: Sort, x: X): Nat | Bool | Val => (s === 'nat' ? new Nat(x) : s === 'bool' ? new Bool({op: 'holds', x}) : new Val(s, x))
-const xOf = (s: Sort, v: unknown): X => (s === 'nat' ? natX(v as NatLike) : s === 'bool' ? {op: 'bool', c: (v as Bool).y} : (v as Val).x)
-export function when<T extends Nat | Val | Bool | number>(c: Bool, a: T, b: T): T extends number ? Nat : T {
+export const wrap = (s: Sort, x: X): Nat | Bool | Val | Integer => (s === 'nat' ? new Nat(x) : s === 'bool' ? new Bool({op: 'holds', x}) : s === 'int' ? new Integer(x) : new Val(s, x))
+const xOf = (s: Sort, v: unknown): X => (s === 'nat' ? natX(v as NatLike) : s === 'bool' ? {op: 'bool', c: (v as Bool).y} : s === 'int' ? intX(v as IntegerLike) : (v as Val).x)
+export function when<T extends Nat | Val | Bool | Integer | number>(c: Bool, a: T, b: T): T extends number ? Nat : T {
   if (a instanceof Bool) return new Bool({op: 'or', xs: [{op: 'and', xs: [c.y, a.y]}, {op: 'and', xs: [{op: 'not', x: c.y}, (b as Bool).y]}]}) as never
-  const ax = typeof a === 'number' ? natX(a) : (a as Nat | Val).x, bx = typeof b === 'number' ? natX(b) : (b as Nat | Val).x
+  const int = a instanceof Integer || b instanceof Integer, lit = (t: number) => (int ? intX(t) : natX(t))
+  const ax = typeof a === 'number' ? lit(a) : (a as Nat | Val).x, bx = typeof b === 'number' ? lit(b) : (b as Nat | Val).x
   const x: X = {op: 'if', c: c.y, then: ax, else: bx}
-  return (a instanceof Val ? new Val(a.data, x) : new Nat(x)) as never
+  return (a instanceof Val ? new Val(a.data, x) : int ? new Integer(x) : new Nat(x)) as never
 }
 
 // A datatype: its constructors, each with fields that are naturals or values of a datatype (`self`, another of its group,
@@ -146,22 +194,22 @@ const declared = new Map<string, Data>()
 let declaredSeq = 0
 export const dataNamed = (name: string): Data => { const d = declared.get(name); if (!d) throw new Error(`no datatype ${name}`); return d }
 // A field's sort; whether it is of the datatype's group (the fields its size counts, and an induction descends into).
-export const fieldSort = (f: {sort: FieldSort}): Sort => (f.sort === 'nat' ? 'nat' : dataNamed(f.sort.data))
-export const inGroup = (d: Data, f: {sort: FieldSort}): boolean => f.sort !== 'nat' && d.group.includes(f.sort.data)
+export const fieldSort = (f: {sort: FieldSort}): Sort => (f.sort === 'nat' || f.sort === 'int' ? f.sort : dataNamed(f.sort.data))
+export const inGroup = (d: Data, f: {sort: FieldSort}): boolean => isDataField(f.sort) && d.group.includes(f.sort.data)
 export class Data {
   readonly ctors: Ctor[]
   readonly seq = ++declaredSeq
   constructor(readonly name: string, decl: Record<string, Record<string, FieldSort>>, readonly group: string[] = [name]) {
     if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(name)) throw new Error(`${name}: a datatype's name is letters and digits`)
     const all: Ctor[] = Object.entries(decl).map(([c, fs]) => ({name: c, fields: Object.entries(fs).map(([f, s]) => ({name: f, sort: s}))}))
-    for (const c of all) for (const f of c.fields) if (f.sort !== 'nat' && !group.includes(f.sort.data) && !declared.has(f.sort.data)) throw new Error(`${name}.${c.name}.${f.name}: no datatype ${f.sort.data}`)
-    const rank = (c: Ctor) => (!c.fields.length ? 0 : c.fields.every(f => !(f.sort !== 'nat' && group.includes(f.sort.data))) ? 1 : 2)
+    for (const c of all) for (const f of c.fields) if (isDataField(f.sort) && !group.includes(f.sort.data) && !declared.has(f.sort.data)) throw new Error(`${name}.${c.name}.${f.name}: no datatype ${f.sort.data}`)
+    const rank = (c: Ctor) => (!c.fields.length ? 0 : c.fields.every(f => !(isDataField(f.sort) && group.includes(f.sort.data))) ? 1 : 2)
     this.ctors = [...all].sort((a, b) => rank(a) - rank(b))
     declared.set(name, this)
   }
   index(ctor: string): number { const i = this.ctors.findIndex(c => c.name === ctor); if (i < 0) throw new Error(`${this.name} has no constructor ${ctor}`); return i }
   get nullary(): number { return this.ctors.filter(c => !c.fields.length).length }
-  make(ctor: string, ...args: (Val | NatLike)[]): Val {
+  make(ctor: string, ...args: (Val | NatLike | Integer)[]): Val {
     const j = this.index(ctor), c = this.ctors[j]!
     if (args.length !== c.fields.length) throw new Error(`${this.name}.${ctor} takes ${c.fields.length} fields`)
     return new Val(this, {op: 'ctor', data: this.name, ctor: j, args: c.fields.map((f, i) => xOf(fieldSort(f), args[i]))})
@@ -176,7 +224,7 @@ function groupHeights(group: string[]): Map<string, number> {
   for (let changed = true; changed;) {
     changed = false
     for (const n of group) for (const c of dataNamed(n).ctors) {
-      const v = c.fields.reduce((m, f) => (f.sort !== 'nat' && group.includes(f.sort.data) ? Math.max(m, 1 + h.get(f.sort.data)!) : m), 0)
+      const v = c.fields.reduce((m, f) => (isDataField(f.sort) && group.includes(f.sort.data) ? Math.max(m, 1 + h.get(f.sort.data)!) : m), 0)
       if (v < h.get(n)!) { h.set(n, v); changed = true }
     }
   }
@@ -203,7 +251,7 @@ export function weakOrder(ds: Data[]): Map<string, number> {
     busy.add(d.name)
     const o = 1 + Math.max(0, ...d.ctors.flatMap(c => c.fields.flatMap(f => (inGroup(d, f) && (f.sort as {data: string}).data !== d.name ? [visit(dataNamed((f.sort as {data: string}).data))] : []))))
     busy.delete(d.name)
-    if (d.ctors.some(c => c.fields.some(f => f.sort !== 'nat' && f.sort.data === d.name)) && weak(d)) throw new Error(`${d.name}: no constructor of no field and its first constructor has a field of ${d.name}, which the bijection with the naturals doesn't take`)
+    if (d.ctors.some(c => c.fields.some(f => isDataField(f.sort) && f.sort.data === d.name)) && weak(d)) throw new Error(`${d.name}: no constructor of no field and its first constructor has a field of ${d.name}, which the bijection with the naturals doesn't take`)
     out.set(d.name, o)
     return o
   }
@@ -214,14 +262,15 @@ type Decl = Record<string, Record<string, unknown>>
 const normField = (own: string, group: string[]) => (s: unknown): FieldSort => {
   if (s === self) return {data: own}
   if (s === 'nat' || (s && typeof s === 'object' && 'nat' in s)) return 'nat'
+  if (s === 'int') return 'int'
   if (s instanceof Data) return {data: s.name}
   if (typeof s === 'string' && group.includes(s)) return {data: s}
-  throw new Error(`${own}: a field is natural, self, a datatype declared before, or a name of its group`)
+  throw new Error(`${own}: a field is natural, integer, self, a datatype declared before, or a name of its group`)
 }
-const withCtors = (d: Data) => { for (const c of d.ctors) Object.defineProperty(d, c.name, c.fields.length ? {value: (...args: (Val | NatLike)[]) => d.make(c.name, ...args)} : {get: () => d.make(c.name)}) }
+const withCtors = (d: Data) => { for (const c of d.ctors) Object.defineProperty(d, c.name, c.fields.length ? {value: (...args: (Val | NatLike | Integer)[]) => d.make(c.name, ...args)} : {get: () => d.make(c.name)}) }
 // `data('List', {nil: {}, cons: {head: natural, tail: self}})`: `List.nil`, `List.cons(h, t)`, and `xs.match({...})`. A
 // field may be a datatype declared before (`data('Bag', {none: {}, more: {items: List, rest: self}})`).
-export function data<const D extends Decl>(name: string, decl: D): Data & {[c in keyof D]: keyof D[c] extends never ? Val : (...args: (Val | NatLike)[]) => Val} {
+export function data<const D extends Decl>(name: string, decl: D): Data & {[c in keyof D]: keyof D[c] extends never ? Val : (...args: (Val | NatLike | Integer)[]) => Val} {
   const d = new Data(name, Object.fromEntries(Object.entries(decl).map(([c, fs]) => [c, Object.fromEntries(Object.entries(fs as object).map(([f, s]) => [f, normField(name, [name])(s)]))])))
   checkGroup([d]); withCtors(d)
   return d as never
@@ -246,10 +295,10 @@ export function mutual<const G extends Record<string, Decl>>(decls: G): {[n in k
 // several names their sum, `{measure: [['xs', 'ys']]}`): that measure, not searched, and no structural recursion tried.
 export type Fn = {name: string, params: {name: string, sort: Sort}[], ret: Sort, body: () => X, readonly decreases?: number, readonly ring: string[], paramFns: string[],
   readonly measure?: Measure, readonly termination?: Termination, stated?: Measure}
-export type Callable = ((...args: (Val | NatLike | Bool)[]) => any) & {fn: Fn}
+export type Callable = ((...args: (Val | NatLike | Bool | Integer)[]) => any) & {fn: Fn}
 type Rec = {decreases?: number, ring: string[], measure?: Measure, termination?: Termination}
 const fns = new Map<string, Fn>()
-export function define(name: string, params: Record<string, Sort>, ret: Sort, body: (args: Record<string, any>) => Nat | Bool | Val | number, opts: {measure?: (string | string[])[]} = {}): Callable {
+export function define(name: string, params: Record<string, Sort>, ret: Sort, body: (args: Record<string, any>) => Nat | Bool | Val | Integer | number, opts: {measure?: (string | string[])[]} = {}): Callable {
   if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(name)) throw new Error(`${name}: a function's name is letters and digits`)
   const ps = Object.entries(params).map(([n, s]) => ({name: n, sort: s}))
   const stated = opts.measure && measureOf(name, ps, opts.measure)
@@ -262,7 +311,7 @@ export function define(name: string, params: Record<string, Sort>, ret: Sort, bo
   const fn = {name, params: ps, ret, paramFns: [] as string[], stated, body: () => {
     if (!built) {
       const args = Object.fromEntries(ps.map(p => [p.name, wrap(p.sort, {op: 'var', name: `${name}.${p.name}`})]))
-      built = xOf(ret, body(args))
+      built = ret === 'int' ? intResult(xOf(ret, body(args))) : xOf(ret, body(args))
       fn.paramFns = [...new Set(paramsIn(built))]
       walk(built, o => { if (o.op === 'call' && !fns.has(o.fn as string)) throw new Error(`${name} calls ${String(o.fn)}, which isn't defined`) })
     }
@@ -270,7 +319,7 @@ export function define(name: string, params: Record<string, Sort>, ret: Sort, bo
   }, get decreases() { return got().decreases }, get ring() { return got().ring }, get measure() { return got().measure }, get termination() { return got().termination },
   set rec(r: Rec) { rec = r }} as Fn & {rec: Rec}
   fns.set(name, fn)
-  const call = (...args: (Val | NatLike | Bool)[]) => {
+  const call = (...args: (Val | NatLike | Bool | Integer)[]) => {
     if (args.length !== ps.length) throw new Error(`${name} takes ${ps.length} arguments`)
     return wrap(ret, {op: 'call', fn: name, args: ps.map((p, i) => xOf(p.sort, args[i]))})
   }
@@ -408,7 +457,7 @@ function callSites(fn: Fn): Site[] {
   const at = (sh: Map<string, X>, name: string): X | undefined => { let t = sh.get(name); while (t && t.op === 'var' && sh.has(t.name)) t = sh.get(t.name); return t }
   const goY = (y: Y, w: Path): void => {
     switch (y.op) {
-      case '<': case '<=': case '=': goX(y.a, w); goX(y.b, w); return
+      case '<': case '<=': case '=': case 'i<': case 'i<=': goX(y.a, w); goX(y.b, w); return
       case 'and': case 'or': y.xs.forEach(z => goY(z, w)); return
       case 'not': goY(y.x, w); return
       case 'is': goX(y.of, w); return
@@ -418,8 +467,9 @@ function callSites(fn: Fn): Site[] {
   const goX = (x: X, w: Path): void => {
     switch (x.op) {
       case 'var': case 'nat': return
-      case 'add': case 'sub': case 'min': case 'max': goX(x.a, w); goX(x.b, w); return
-      case 'mul': goX(x.a, w); return
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case 'iadd': case 'isub': goX(x.a, w); goX(x.b, w); return
+      case 'mul': case 'mod': case 'div': case 'imul': case 'imod': case 'idiv': case 'ineg': case 'ofnat': goX(x.a, w); return
+      case 'int': return
       case 'apply': goX(x.arg, w); return
       case 'size': goX(x.of, w); return
       case 'bool': goY(x.c, w); return
@@ -597,6 +647,17 @@ export function evalX(x: X, env: Env, params: Record<string, (n: number) => numb
     case 'min': return Math.min(asNat(evalX(x.a, env, params, d)), asNat(evalX(x.b, env, params, d)))
     case 'max': return Math.max(asNat(evalX(x.a, env, params, d)), asNat(evalX(x.b, env, params, d)))
     case 'mul': return exact(x.k * asNat(evalX(x.a, env, params, d)))
+    case 'prod': return exact(asNat(evalX(x.a, env, params, d)) * asNat(evalX(x.b, env, params, d)))
+    case 'mod': return asNat(evalX(x.a, env, params, d)) % x.k
+    case 'div': return Math.floor(asNat(evalX(x.a, env, params, d)) / x.k)
+    case 'int': return x.value
+    case 'iadd': return exact(asNat(evalX(x.a, env, params, d)) + asNat(evalX(x.b, env, params, d)))
+    case 'isub': return exact(asNat(evalX(x.a, env, params, d)) - asNat(evalX(x.b, env, params, d)))
+    case 'ineg': return -asNat(evalX(x.a, env, params, d))
+    case 'imul': return exact(x.k * asNat(evalX(x.a, env, params, d)))
+    case 'ofnat': return asNat(evalX(x.a, env, params, d))
+    case 'imod': return euclidMod(asNat(evalX(x.a, env, params, d)), x.k)
+    case 'idiv': { const v = asNat(evalX(x.a, env, params, d)); return (v - euclidMod(v, x.k)) / x.k }
     case 'if': return evalY(x.c, env, params, d) ? evalX(x.then, env, params, d) : evalX(x.else, env, params, d)
     case 'bool': return evalY(x.c, env, params, d) ? 1 : 0
     case 'apply': return params[x.param]!(asNat(evalX(x.arg, env, params, d)))
@@ -636,6 +697,8 @@ export function evalY(y: Y, env: Env, params: Record<string, (n: number) => numb
   switch (y.op) {
     case '<': return asNat(evalX(y.a, env, params, d)) < asNat(evalX(y.b, env, params, d))
     case '<=': return asNat(evalX(y.a, env, params, d)) <= asNat(evalX(y.b, env, params, d))
+    case 'i<': return asNat(evalX(y.a, env, params, d)) < asNat(evalX(y.b, env, params, d))
+    case 'i<=': return asNat(evalX(y.a, env, params, d)) <= asNat(evalX(y.b, env, params, d))
     case '=': return same(evalX(y.a, env, params, d), evalX(y.b, env, params, d))
     case 'and': return y.xs.every(z => evalY(z, env, params, d))
     case 'or': return y.xs.some(z => evalY(z, env, params, d))
@@ -644,10 +707,11 @@ export function evalY(y: Y, env: Env, params: Record<string, (n: number) => numb
     case 'holds': return evalX(y.x, env, params, d) === 1
   }
 }
+const euclidMod = (v: number, k: number) => ((v % k) + k) % k
 const same = (a: Value, b: Value): boolean => (typeof a === 'number' || typeof b === 'number' ? a === b : a.c === b.c && a.f.every((x, i) => same(x, b.f[i]!)))
 export const showValue = (d: Sort, v: Value): string => {
   if (typeof v === 'number') return String(v)
-  if (d === 'nat' || d === 'bool') return JSON.stringify(v)
+  if (d === 'nat' || d === 'bool' || d === 'int') return JSON.stringify(v)
   const c = d.ctors[v.c]!
   return c.fields.length ? `${c.name}(${c.fields.map((f, i) => showValue(fieldSort(f), v.f[i]!)).join(', ')})` : c.name
 }
@@ -659,6 +723,7 @@ export const rng = (seed: number): Rand => () => { seed = (seed * 1103515245 + 1
 export function randomValue(s: Sort, rand: Rand, size: number, natMax = 5): Value {
   if (s === 'nat') return Math.floor(rand() * (natMax + 1))
   if (s === 'bool') return rand() < 0.5 ? 0 : 1
+  if (s === 'int') return Math.floor(rand() * (2 * natMax + 1)) - natMax
   // The leaves: constructors of no field of the group, or (a datatype with none, a rose tree) those of least height.
   const base = s.ctors.filter(c => c.fields.every(f => !inGroup(s, f)))
   const leaves = base.length ? base : s.ctors.filter(c => s.ctorHeight(c) === s.height)
@@ -700,7 +765,9 @@ export const tagMap = (d: string) => `${d}.tag`, sizeMap = (d: string) => `${d}.
 export const fieldMap = (d: Data, j: number, i: number) => `${d.name}.${d.ctors[j]!.name}.${d.ctors[j]!.fields[i]!.name}`
 export const ctorMap = (d: Data, j: number) => `${d.name}.${d.ctors[j]!.name}`
 
-export type Program = {datas: Data[], fns: Fn[], params: string[]}
+// `divisors`: the constants the program divides by (mod, div), and 2 where it reads an integer (its code's parity);
+// `ints`: whether it reads an integer.
+export type Program = {datas: Data[], fns: Fn[], params: string[], divisors: number[], ints: boolean}
 // Everything a law reads: the datatypes, the functions (with those they call), the function parameters.
 export function programOf(laws: DataLaw[], extra: Fn[] = []): Program {
   const fs = new Map<string, Fn>(), ds = new Map<string, Data>(), ps = new Set<string>()
@@ -723,12 +790,63 @@ export function programOf(laws: DataLaw[], extra: Fn[] = []): Program {
   for (const f of fs.values()) place(f)
   // (the recursion of each checked)
   for (const f of order) void f.decreases
-  return {datas, fns: order, params: [...ps]}
+  const divs = new Set<number>()
+  let ints = false
+  const scan = (t: unknown) => walk(t, o => { if (o.op === 'mod' || o.op === 'div' || o.op === 'imod' || o.op === 'idiv') divs.add(o.k as number); if (typeof o.op === 'string' && (intOps.has(o.op) || o.op === 'i<' || o.op === 'i<=')) ints = true })
+  for (const l of laws) { scan(l.holds); if (l.vars.some(v => v.sort === 'int')) ints = true }
+  for (const f of order) { scan(f.body()); if (f.ret === 'int' || f.params.some(q => q.sort === 'int')) ints = true }
+  for (const d of datas) if (d.ctors.some(c => c.fields.some(f => f.sort === 'int'))) ints = true
+  if (ints) divs.add(2)
+  return {datas, fns: order, params: [...ps], divisors: [...divs].sort((a, b) => a - b), ints}
 }
 
 const dataOf = (p: Program, name: string) => p.datas.find(d => d.name === name)!
+// Division and remainder by a constant: the maps div$k and mod$k (core/machine.ts names them so), known by Euclid's fact
+// at each key read (`arith k`).
+export const divMap = (k: number) => `div$${k}`, modMap = (k: number) => `mod$${k}`
+const arithMap = /^(?:div|mod)\$(\d+)$/
+// Integers by their zigzag code: a code c is the integer p − n, p and n its value's two parts as maps of the code
+// (int$pos, int$neg), known by one fact (`zcode`): c + c mod 2 = 2p + 2n, p = 0 where c is odd, n = 0 where it is even;
+// a pair (p, n) has the code 2(p ∸ n) + (2(n ∸ p) ∸ 1). Neither direction needs an if, so the kernel splits only where a
+// proof needs the sign or the parity.
+export const zig = (z: number): number => (z >= 0 ? 2 * z : -2 * z - 1)
+export const unzig = (c: number): number => (c % 2 === 0 ? c / 2 : -(c + 1) / 2)
+type Pair = [E, E]
+const sumE = (a: E, b: E): E => (a.op === 'const' && a.value === 0 ? b : b.op === 'const' && b.value === 0 ? a : {op: 'add', a, b})
+export const posMap = 'int$pos', negMap = 'int$neg'
+const pairOfCode = (c: E): Pair => {
+  if (c.op === 'const') { const z = unzig(c.value); return [k(Math.max(z, 0)), k(Math.max(-z, 0))] }
+  return [get(posMap, c), get(negMap, c)]
+}
+const codeOfPair = ([pos, neg]: Pair): E => {
+  if (neg.op === 'const' && neg.value === 0) return {op: 'mul', k: 2, a: pos}
+  return {op: 'add', a: {op: 'mul', k: 2, a: {op: 'sub', a: pos, b: neg}}, b: {op: 'sub', a: {op: 'mul', k: 2, a: {op: 'sub', a: neg, b: pos}}, b: k(1)}}
+}
+const intOps = new Set(['int', 'iadd', 'isub', 'ineg', 'imul', 'ofnat', 'imod', 'idiv'])
+// An integer term as the two naturals p − n of its value.
+function encI(p: Program, x: X, env: Map<string, E>): Pair {
+  if (x.op === 'int') return [k(Math.max(x.value, 0)), k(Math.max(-x.value, 0))]
+  if (x.op === 'iadd' || x.op === 'isub') {
+    const [a, b] = [encI(p, x.a, env), encI(p, x.b, env)]
+    return x.op === 'iadd' ? [sumE(a[0], b[0]), sumE(a[1], b[1])] : [sumE(a[0], b[1]), sumE(a[1], b[0])]
+  }
+  if (x.op === 'ineg') { const [pos, neg] = encI(p, x.a, env); return [neg, pos] }
+  if (x.op === 'imul') { const [pos, neg] = encI(p, x.a, env), m = Math.abs(x.k), sc = (e: E): E => (m === 1 ? e : {op: 'mul', k: m, a: e}); return x.k >= 0 ? [sc(pos), sc(neg)] : [sc(neg), sc(pos)] }
+  if (x.op === 'ofnat') return [encX(p, x.a, env), k(0)]
+  // pos + (k − 1)·neg is the value plus k·neg: the same remainder, and the quotient plus neg.
+  if (x.op === 'imod' || x.op === 'idiv') {
+    const [pos, neg] = encI(p, x.a, env), t = x.k === 1 ? pos : sumE(pos, {op: 'mul', k: x.k - 1, a: neg})
+    return x.op === 'imod' ? [get(modMap(x.k), t), k(0)] : [get(divMap(x.k), t), neg]
+  }
+  return pairOfCode(encX(p, x, env))
+}
 export function encX(p: Program, x: X, env: Map<string, E>): E {
   switch (x.op) {
+    case 'prod': return {op: 'prod', a: encX(p, x.a, env), b: encX(p, x.b, env)}
+    case 'mod': return get(modMap(x.k), encX(p, x.a, env))
+    case 'div': return get(divMap(x.k), encX(p, x.a, env))
+    case 'int': return k(zig(x.value))
+    case 'iadd': case 'isub': case 'ineg': case 'imul': case 'ofnat': case 'imod': case 'idiv': return codeOfPair(encI(p, x, env))
     case 'var': return env.get(x.name) ?? ev(x.name)
     case 'nat': return k(x.value)
     case 'add': case 'sub': case 'min': case 'max': return {op: x.op, a: encX(p, x.a, env), b: encX(p, x.b, env)}
@@ -753,7 +871,11 @@ export function encX(p: Program, x: X, env: Map<string, E>): E {
 }
 export function encY(p: Program, y: Y, env: Map<string, E>): C {
   switch (y.op) {
-    case '<': case '<=': case '=': return {op: y.op, a: encX(p, y.a, env), b: encX(p, y.b, env)}
+    case 'i<': case 'i<=': { const [a, b] = [encI(p, y.a, env), encI(p, y.b, env)]; return {op: y.op === 'i<' ? '<' : '<=', a: sumE(a[0], b[1]), b: sumE(b[0], a[1])} }
+    // Two integers where one is arithmetic: equal values (the same as equal codes, without writing the sum's code).
+    case '=': if (intOps.has(y.a.op) || intOps.has(y.b.op)) { const [a, b] = [encI(p, y.a, env), encI(p, y.b, env)]; return {op: '=', a: sumE(a[0], b[1]), b: sumE(b[0], a[1])} }
+      return {op: '=', a: encX(p, y.a, env), b: encX(p, y.b, env)}
+    case '<': case '<=': return {op: y.op, a: encX(p, y.a, env), b: encX(p, y.b, env)}
     case 'and': case 'or': return {op: y.op, xs: y.xs.map(z => encY(p, z, env))}
     case 'not': return {op: 'not', x: encY(p, y.x, env)}
     case 'is': return eqC(get(tagMap(y.data), encX(p, y.of, env)), k(y.ctor))
@@ -791,6 +913,16 @@ export function factsOf(p: Program): Facts {
     const body = encX(p, f.body(), new Map())
     put(`fn ${f.name}`, {name: '', keys, holds: andC(eqC(get(f.name, keyOf(keys.map(ev))), body), ...(f.ret === 'bool' ? [leC(get(f.name, keyOf(keys.map(ev))), k(1))] : []))})
   }
+  // Euclid's division by each divisor: x = k·(x div k) + x mod k, x mod k < k.
+  for (const k2 of p.divisors) {
+    put(`arith ${k2}`, {name: '', keys: ['x$'], holds: andC(eqC(x, {op: 'add', a: {op: 'mul', k: k2, a: get(divMap(k2), x)}, b: get(modMap(k2), x)}), {op: '<', a: get(modMap(k2), x), b: k(k2)})})
+    arity.set(divMap(k2), 1); arity.set(modMap(k2), 1)
+  }
+  if (p.ints) {
+    const pos = get(posMap, x), neg = get(negMap, x), par = get(modMap(2), x)
+    put('zcode', {name: '', keys: ['x$'], holds: andC(eqC({op: 'add', a: x, b: par}, {op: 'add', a: {op: 'mul', k: 2, a: pos}, b: {op: 'mul', k: 2, a: neg}}), {op: 'or', xs: [eqC(par, k(0)), eqC(pos, k(0))]}, {op: 'or', xs: [eqC(par, k(1)), eqC(neg, k(0))]})})
+    arity.set(posMap, 1); arity.set(negMap, 1)
+  }
   // Every map the encoding reads: the datatypes' tag, size and fields too (each of one argument).
   for (const d of p.datas) {
     arity.set(tagMap(d.name), 1); arity.set(sizeMap(d.name), 1)
@@ -819,13 +951,13 @@ export function decode(d: Data, n: number): Value {
   const z = d.nullary, m = d.ctors.length - z
   if (n < z) return {c: n, f: []}
   const q = Math.floor((n - z) / m), j = z + ((n - z) % m), c = d.ctors[j]!
-  return {c: j, f: c.fields.map((f, i) => { const x = tup(q, c.fields.length, i); return f.sort === 'nat' ? x : decode(dataNamed(f.sort.data), x) })}
+  return {c: j, f: c.fields.map((f, i) => { const x = tup(q, c.fields.length, i); return f.sort === 'nat' ? x : f.sort === 'int' ? unzig(x) : decode(dataNamed(f.sort.data), x) })}
 }
 export function encode(d: Data, v: Value): number {
   const o = v as {c: number, f: Value[]}, z = d.nullary, m = d.ctors.length - z
   if (o.c < z) return o.c
   const c = d.ctors[o.c]!
-  return safe(z + m * tupk(c.fields.map((f, i) => (f.sort === 'nat' ? o.f[i] as number : encode(dataNamed(f.sort.data), o.f[i]!)))) + (o.c - z))
+  return safe(z + m * tupk(c.fields.map((f, i) => (f.sort === 'nat' ? o.f[i] as number : f.sort === 'int' ? zig(o.f[i] as number) : encode(dataNamed(f.sort.data), o.f[i]!)))) + (o.c - z))
 }
 // Each map of the encoding as a function of its arguments, on the codes (for core/cycles.ts's runs).
 export function codeValues(p: Program): Record<string, (...xs: number[]) => number> {
@@ -834,19 +966,21 @@ export function codeValues(p: Program): Record<string, (...xs: number[]) => numb
     out[tagMap(d.name)] = n => (decode(d, n) as {c: number}).c
     out[sizeMap(d.name)] = n => sizeOf(d, decode(d, n))
     d.ctors.forEach((c, j) => {
-      c.fields.forEach((f, i) => { out[fieldMap(d, j, i)] = n => { const v = decode(d, n) as {c: number, f: Value[]}; return v.c === j ? (f.sort === 'nat' ? v.f[i] as number : encode(dataNamed(f.sort.data), v.f[i]!)) : 0 } })
-      if (c.fields.length) out[ctorMap(d, j)] = (...xs) => encode(d, {c: j, f: c.fields.map((f, i) => (f.sort === 'nat' ? xs[i]! : decode(dataNamed(f.sort.data), xs[i]!)))})
+      c.fields.forEach((f, i) => { out[fieldMap(d, j, i)] = n => { const v = decode(d, n) as {c: number, f: Value[]}; return v.c === j ? (f.sort === 'nat' ? v.f[i] as number : f.sort === 'int' ? zig(v.f[i] as number) : encode(dataNamed(f.sort.data), v.f[i]!)) : 0 } })
+      if (c.fields.length) out[ctorMap(d, j)] = (...xs) => encode(d, {c: j, f: c.fields.map((f, i) => (f.sort === 'nat' ? xs[i]! : f.sort === 'int' ? unzig(xs[i]!) : decode(dataNamed(f.sort.data), xs[i]!)))})
     })
   }
   for (const f of p.fns) out[f.name] = (...xs) => {
-    const v = evalX(f.body(), new Map(f.params.map((q, i) => [`${f.name}.${q.name}`, q.sort instanceof Data ? decode(q.sort, xs[i]!) : xs[i]!])), {})
-    return f.ret instanceof Data ? encode(f.ret, v) : v as number
+    const v = evalX(f.body(), new Map(f.params.map((q, i) => [`${f.name}.${q.name}`, q.sort instanceof Data ? decode(q.sort, xs[i]!) : q.sort === 'int' ? unzig(xs[i]!) : xs[i]!])), {})
+    return f.ret instanceof Data ? encode(f.ret, v) : f.ret === 'int' ? zig(v as number) : v as number
   }
+  for (const k2 of p.divisors) { out[divMap(k2)] = n => Math.floor(n / k2); out[modMap(k2)] = n => n % k2 }
+  if (p.ints) { out[posMap] = n => Math.max(unzig(n), 0); out[negMap] = n => Math.max(-unzig(n), 0) }
   return out
 }
 // That a value's fields of its datatype have smaller codes (true of the codes above: each field at most q).
 export const orderFacts = (p: Program): Fact[] => p.datas.map(d => ({name: `order ${d.name}`, keys: ['x$'], holds: andC(yesC, ...d.ctors.flatMap((c, j) =>
-  c.fields.flatMap((f, i): C[] => (f.sort !== 'nat' && f.sort.data === d.name ? [implies(eqC(get(tagMap(d.name), ev('x$')), k(j)), {op: '<', a: get(fieldMap(d, j, i), ev('x$')), b: ev('x$')})] : []))))}))
+  c.fields.flatMap((f, i): C[] => (isDataField(f.sort) && f.sort.data === d.name ? [implies(eqC(get(tagMap(d.name), ev('x$')), k(j)), {op: '<', a: get(fieldMap(d, j, i), ev('x$')), b: ev('x$')})] : []))))}))
 
 // --- concrete models: a value of the encoding at random values (which terms are equal, for congruences and matches) ----
 
@@ -873,8 +1007,8 @@ export class Model {
     return v
   }
   // A value of a sort as the encoding's natural, and back.
-  code(s: Sort, v: Value): number { return s instanceof Data ? this.id(s, v) : (v as number) }
-  decode(s: Sort, n: number): Value { return s instanceof Data ? this.value(s, n) : n }
+  code(s: Sort, v: Value): number { return s instanceof Data ? this.id(s, v) : s === 'int' ? zig(v as number) : (v as number) }
+  decode(s: Sort, n: number): Value { return s instanceof Data ? this.value(s, n) : s === 'int' ? unzig(n) : n }
   private memo = new Map<string, number>()
   read(map: string, key: number): number {
     const at = `${map}|${key}`, had = this.memo.get(at)
@@ -899,8 +1033,12 @@ export class Model {
       const as = unkey(key, f.params.length)
       const env: Env = new Map(f.params.map((q, i) => [`${f.name}.${q.name}`, this.decode(q.sort, as[i]!)]))
       const out = evalX(f.body(), env, this.params)
-      return f.ret === 'nat' || f.ret === 'bool' ? out as number : this.id(f.ret, out)
+      return f.ret === 'nat' || f.ret === 'bool' ? out as number : f.ret === 'int' ? zig(out as number) : this.id(f.ret, out)
     }
+    const ar = arithMap.exec(map)
+    if (ar) { const k2 = Number(ar[1]); return map.startsWith('mod') ? key % k2 : Math.floor(key / k2) }
+    if (map === posMap) return Math.max(unzig(key), 0)
+    if (map === negMap) return Math.max(-unzig(key), 0)
     const prm = this.params[map]
     if (prm) return prm(key)
     throw new Error(`no map ${map}`)
@@ -1000,7 +1138,7 @@ function partner(f: Fn, to: Data): {fn: Fn, args: (number | X)[]} | undefined {
     const t = x as X
     if (t.op === 'match' && t.of.op === 'var' && t.of.name === own) {
       const d = dataNamed(t.data)
-      t.cases.forEach((c, j) => go(c.body, new Set([...fields, ...c.binds.filter((_, i) => { const fl = d.ctors[j]!.fields[i]!; return fl.sort !== 'nat' && fl.sort.data === to.name })])))
+      t.cases.forEach((c, j) => go(c.body, new Set([...fields, ...c.binds.filter((_, i) => { const fl = d.ctors[j]!.fields[i]!; return isDataField(fl.sort) && fl.sort.data === to.name })])))
       return
     }
     if (t.op === 'call') {
@@ -1159,7 +1297,7 @@ function schemes(p: Program, l: DataLaw): Scheme[] {
     if (!(v.sort instanceof Data)) continue
     const d = v.sort, x = ev(v.name), mut = mutualScheme(l, v.name, d)
     if (mut) { out.push(mut); continue }
-    add({name: `structure of ${v.name}`, on: {v: v.name, d}, uses: d.ctors.flatMap((c, j) => c.fields.flatMap((f, i) => (f.sort !== 'nat' && f.sort.data === d.name ? [{subst: {[v.name]: get(fieldMap(d, j, i), x)}, guard: eqC(get(tagMap(d.name), x), k(j))}] : [])))})
+    add({name: `structure of ${v.name}`, on: {v: v.name, d}, uses: d.ctors.flatMap((c, j) => c.fields.flatMap((f, i) => (isDataField(f.sort) && f.sort.data === d.name ? [{subst: {[v.name]: get(fieldMap(d, j, i), x)}, guard: eqC(get(tagMap(d.name), x), k(j))}] : [])))})
   }
   return out
 }
@@ -1208,6 +1346,15 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     }
     frontier = next
   }
+  // Euclid's fact at every key a remainder or quotient is read at (a read the facts bring is read too).
+  const ariths = () => {
+    for (let pass = 0; pass < 2; pass++) for (const r of [...all]) {
+      if (r.map === posMap || r.map === negMap) { inst('zcode', [r.key]); note(reads(holdsAt('zcode', [r.key]))) }
+      const m = arithMap.exec(r.map)
+      if (m) { inst(`arith ${m[1]}`, [r.key]); note(reads(holdsAt(`arith ${m[1]}`, [r.key]))) }
+    }
+  }
+  ariths()
   lap(`unfolded, ${insts.length} instances, ${all.length} reads`)
   // The classes of a model (or, with none, of every branch): the equalities the instances give there (a function's read
   // equal to the branch of its body the model takes, a constructor's field to its argument, eta, an implication's
@@ -1299,7 +1446,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   }
   lap(`by constructors, ${insts.length} instances, ${all.length} reads`)
   const dataOfTerm = (t: E): Data | undefined => {
-    if (t.op === 'get') { for (const d of p.datas) if (t.map === tagMap(d.name) || t.map === sizeMap(d.name)) return d; const f = fnOfMap(t.map); if (f && f.ret instanceof Data) return f.ret; for (const d of p.datas) for (const [j, c] of d.ctors.entries()) { if (c.fields.length && t.map === ctorMap(d, j)) return d; for (const [i, fl] of c.fields.entries()) if (fl.sort !== 'nat' && t.map === fieldMap(d, j, i)) return dataNamed(fl.sort.data) } }
+    if (t.op === 'get') { for (const d of p.datas) if (t.map === tagMap(d.name) || t.map === sizeMap(d.name)) return d; const f = fnOfMap(t.map); if (f && f.ret instanceof Data) return f.ret; for (const d of p.datas) for (const [j, c] of d.ctors.entries()) { if (c.fields.length && t.map === ctorMap(d, j)) return d; for (const [i, fl] of c.fields.entries()) if (isDataField(fl.sort) && t.map === fieldMap(d, j, i)) return dataNamed(fl.sort.data) } }
     return undefined
   }
   const shape = (t: E, d?: Data) => { const dd = d ?? dataOfTerm(t); if (dd) { inst(`shape ${dd.name}`, [t]); ctors(note(reads(holdsAt(`shape ${dd.name}`, [t])))) } }
@@ -1377,6 +1524,8 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
     if (allCong) for (const es of adj.values()) for (const e of es) if (e.cong) { const k2 = JSON.stringify([e.cong.map, e.cong.x, e.cong.y]), k3 = JSON.stringify([e.cong.map, e.cong.y, e.cong.x]); if (!used.has(k2) && !used.has(k3)) used.set(k2, {map: e.cong.map, at: [...e.cong.x, ...e.cong.y], n: 1}) }
   }
   for (const d of used.values()) if (!w.every || d.n >= w.models.length) inst(`cong ${d.map}`, d.at)
+  for (const q of [...insts]) note(reads(holdsAt(fs.facts[q.fact]!.name, q.at)))
+  ariths()
   lap(`congruences, ${insts.length} instances, ${w.models.length} models`)
   return insts
 }
@@ -1575,6 +1724,8 @@ function reached(p: Program, fs: Facts, insts: NodeSpec['insts'], from: unknown[
     const name = fs.facts[q.fact]!.name
     if (name.startsWith('fn ')) return [get(name.slice(3), keyOf(q.at))]
     if (name.startsWith('ctor ')) return [get(name.slice(5), keyOf(q.at))]
+    if (name.startsWith('arith ')) { const k2 = Number(name.slice(6)); return [get(divMap(k2), q.at[0]!), get(modMap(k2), q.at[0]!)] }
+    if (name === 'zcode') return [get(posMap, q.at[0]!), get(negMap, q.at[0]!)]
     if (name.startsWith('shape ') || name.startsWith('eta ')) { const d = name.split(' ')[1]!; return [get(tagMap(d), q.at[0]!), get(sizeMap(d), q.at[0]!), ...p.datas.filter(x => x.name === d).flatMap(x => x.ctors.flatMap((c, j) => c.fields.map((_, i) => get(fieldMap(x, j, i), q.at[0]!))))] }
     return []
   }
@@ -1897,6 +2048,15 @@ export const showX = (x: X): string => {
     case 'sub': return `${showX(x.a)} − ${showX(x.b)}`
     case 'min': case 'max': return `${x.op}(${showX(x.a)}, ${showX(x.b)})`
     case 'mul': return `${x.k}·${showX(x.a)}`
+    case 'prod': return `${showX(x.a)}·${showX(x.b)}`
+    case 'mod': case 'imod': return `${showX(x.a)} mod ${x.k}`
+    case 'div': case 'idiv': return `${showX(x.a)} div ${x.k}`
+    case 'int': return String(x.value)
+    case 'iadd': return `${showX(x.a)} + ${showX(x.b)}`
+    case 'isub': return `${showX(x.a)} − ${showX(x.b)}`
+    case 'ineg': return `−${showX(x.a)}`
+    case 'imul': return `${x.k}·${showX(x.a)}`
+    case 'ofnat': return showX(x.a)
     case 'if': return `if ${showY(x.c)} then ${showX(x.then)} else ${showX(x.else)}`
     case 'bool': return showY(x.c)
     case 'apply': return `${x.param}(${showX(x.arg)})`
@@ -1910,6 +2070,7 @@ export const showX = (x: X): string => {
 export const showY = (y: Y): string => {
   switch (y.op) {
     case '<': case '<=': case '=': return `${showX(y.a)} ${y.op} ${showX(y.b)}`
+    case 'i<': case 'i<=': return `${showX(y.a)} ${y.op.slice(1)} ${showX(y.b)}`
     case 'and': return y.xs.map(showY).join(' and ')
     case 'or': return y.xs.map(showY).join(' or ')
     case 'not': return `not (${showY(y.x)})`
@@ -1964,6 +2125,8 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
     return lemmas.filter(q => seen.has(nodes.indexOf(nodes.find(n => n.name === q.spec.name)!))).map(q => q.law.name)
   }
   const ok = (r: ReturnType<typeof proveWith>, lemmas: Proven[], prog = p) => (tried += r.tried, r.out ? (out = r.out, done({proven: true, checked: true, proof: r.verdict, lemmas: used(r.out, lemmas), scheme: r.scheme, tried, program: prog, node: r.out.nodes.indexOf(r.out.spec)})) : undefined)
+  // A law that calls no function (arithmetic alone: an integer's, a remainder's) has nothing to induct on: its cases.
+  if (phase !== 'rest' && opts.induction !== false && !JSON.stringify(l.holds).includes('"op":"call"')) { const c = ok(proveWith(p, fs, l, base, lv + 1, opts, until, 3000, [1, 2], 'cases'), base); if (c) return c }
   const first = phase === 'rest' ? undefined : proveWith(p, fs, l, base, lv + 1, opts, until, 6000, [1], 'plain')
   const one = first && ok(first, base)
   if (one) return one

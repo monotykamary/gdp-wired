@@ -15,7 +15,7 @@
 //
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
-import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type MapUpdate, type Request, type State, carriedView, compileFunction, evalC, evalE, interpret, loadJs, numbersOf, pairedArgs} from './machine.ts'
+import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type MapUpdate, type Request, type State, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
 import {someHolds, substVars} from './exists.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type StepLaw, type Tree, check, foldObligations, loopObligations} from '../kernel/kernel.ts'
@@ -50,6 +50,11 @@ export class Term {
   minus(b: TermLike): Term { return new Term({op: 'sub', a: this.e, b: termOf(b)}, both(this.val, valOf(b), (x, y) => Math.max(0, x - y))) }
   times(k: number): Term { return new Term({op: 'mul', k: naturalConst(k), a: this.e}, both(this.val, k, (x, y) => x * y)) }
   mul(b: TermLike): Term { return new Term({op: 'prod', a: this.e, b: termOf(b)}, both(this.val, valOf(b), (x, y) => x * y)) }
+  // x div k and x mod k, rounded down, for a constant k >= 1: the rule's functions div$k and mod$k at x, which the
+  // kernel knows by x = k·(x div k) + x mod k and x mod k < k (machine.ts's arithmetic). Division by a term that isn't a
+  // constant has no such fact in linear arithmetic (x = y·q + r is a product of two unknowns), so it isn't offered.
+  modBy(k: number): Term { divisor(k, 'modBy'); return new Term({op: 'get', map: modName(k), key: this.e}, this.val === undefined ? undefined : this.val % k) }
+  divBy(k: number): Term { divisor(k, 'divBy'); return new Term({op: 'get', map: divName(k), key: this.e}, this.val === undefined ? undefined : Math.floor(this.val / k)) }
   lt(b: TermLike): Cond { return new Cond({op: '<', a: this.e, b: termOf(b)}, both(this.val, valOf(b), (x, y) => x < y)) }
   atMost(b: TermLike): Cond { return new Cond({op: '<=', a: this.e, b: termOf(b)}, both(this.val, valOf(b), (x, y) => x <= y)) }
   gt(b: TermLike): Cond { return new Cond({op: '<', a: termOf(b), b: this.e}, both(this.val, valOf(b), (x, y) => x > y)) }
@@ -248,6 +253,11 @@ export class Int {
   min(b: IntLike): Int { return when(this.atMost(b), this, b) }
   max(b: IntLike): Int { return when(this.atLeast(b), this, b) }
   get isNegative(): Cond { return this.neg.gt(this.pos) }
+  // x mod k and x div k for a constant k >= 1, as SMT-LIB and Lean's Int read them for k > 0: x = k·(x div k) + x mod k
+  // with 0 <= x mod k < k (so -7 div 2 is -4 and -7 mod 2 is 1). Over the naturals: pos + (k − 1)·neg is x + k·neg,
+  // the same remainder, and its quotient is x div k + neg, so both are the natural division of that one natural.
+  modBy(k: number): Term { divisor(k, 'modBy'); return add(this.pos, this.neg.times(k - 1)).modBy(k) }
+  divBy(k: number): Int { divisor(k, 'divBy'); return new Int(add(this.pos, this.neg.times(k - 1)).divBy(k), this.neg) }
   // |value|, and the value where it is not negative (0 below).
   get abs(): Term { return this.pos.minus(this.neg).plus(this.neg.minus(this.pos)) }
   get clamped(): Term { return this.pos.minus(this.neg) }
@@ -1484,6 +1494,9 @@ type Spec = {
   lists2?: [string, Kind<unknown>, Record<string, ListFold<unknown>>, Record<string, ListLemma>][]
   fns?: [string, FnDef][]
   facts?: ((env: never) => Record<string, Cond | Forall>)[]
+  // The divisors the rule's laws, step laws, liveness and decisions divide by (modBy, divBy): the machine declares
+  // div$k and mod$k for each, beside those its own terms read. Shared by every rule made from this one.
+  arith?: Set<number>
   flags: ((env: never) => Record<string, Cond>)[]
   step?: (env: never) => Record<string, TermLike | MapWrite | undefined>
   pre: ((p: never) => Cond)[]
@@ -1644,9 +1657,9 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   law(name: string, f: (env: P & S & M & Su) => Cond | Forall): Law { return withSource(this.lawOf(name, f(this.env({flags: false, inputs: false, queries: false}) as never)), {law: f as never}) }
   private lawOf(name: string, out: Cond | Forall): Law {
     const key = `key$${++keyCounter}`
-    if (out instanceof Cond) { const p = prenex(out.c, `law ${name}`, key); return this.someOf(name, out, p ? {name, forall: key, holds: p} : {name, holds: out.c}) }
+    if (out instanceof Cond) { const p = prenex(out.c, `law ${name}`, key); return this.divides(this.someOf(name, out, p ? {name, forall: key, holds: p} : {name, holds: out.c})) }
     const [k1, more] = keysFor(out), inner = out.forall(v(k1), ...more.map(v)), holds = inner.c
-    return this.someOf(name, inner, more.length ? {name, forall: k1, keys: more, holds} : {name, forall: k1, holds: prenex(holds, `law ${name}`, k1) ?? holds})
+    return this.divides(this.someOf(name, inner, more.length ? {name, forall: k1, keys: more, holds} : {name, forall: k1, holds: prenex(holds, `law ${name}`, k1) ?? holds}))
   }
   // A law's existentials (exists), pulled out before it: `some` its naturals, `witness` the ones given (a ghost's step
   // read with the step's own values).
@@ -1660,6 +1673,12 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const witness = {...(Object.keys(terms).length ? {terms} : {}), ...(Object.keys(ghost).length ? {ghost} : {})}
     return {...law, some: vars, ...(Object.keys(witness).length ? {witness} : {})}
   }
+  // What a law, a step law or a decision divides by, noted so the machine declares it (Spec.arith).
+  private divides<T extends object>(x: T): T { if (this.spec.arith) divisorsIn([x as never], this.spec.arith); return x }
+  // Divide by these too (inferLaws' candidates): the machine declares div$k and mod$k for each.
+  dividesBy(...ks: number[]): this { for (const k of ks) (this.spec.arith ??= new Set()).add(divisor(k, 'dividesBy')); return this }
+  // The same rule dividing by these too, its own divisors left as they are.
+  withDivisors(...ks: number[]): this { return this.with({arith: new Set([...(this.spec.arith ?? []), ...ks.map(k => divisor(k, 'withDivisors'))])}) }
 
   // What the kinds keep true of the state and of the maps and lists of a kind (Kind.invariant: a flag 0 or 1, a choice or
   // a case in range, a presence bit 0 or 1), as laws: proveRule, proveSteps and proveLeadsTo prove them beside the laws
@@ -1687,9 +1706,9 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const after = this.afterEnv()
     const out = then(env, after as never), w = when ? {when: when(env).c} : {}
     const key = `key$${++keyCounter}`, src: Sources = {step: {then: then as never, ...(when ? {when: when as never} : {})}}
-    if (out instanceof Cond) { const p = prenex(out.c, `step law ${name}`, key); return withSource(p ? {name, forall: key, then: p, ...w} : {name, then: out.c, ...w}, src) }
+    if (out instanceof Cond) { const p = prenex(out.c, `step law ${name}`, key); return withSource(this.divides(p ? {name, forall: key, then: p, ...w} : {name, then: out.c, ...w}), src) }
     const [k1, more] = keysFor(out), c = out.forall(v(k1), ...more.map(v)).c
-    return withSource(more.length ? {name, forall: k1, keys: more, then: c, ...w} : {name, forall: k1, then: prenex(c, `step law ${name}`, k1) ?? c, ...w}, src)
+    return withSource(this.divides(more.length ? {name, forall: k1, keys: more, then: c, ...w} : {name, forall: k1, then: prenex(c, `step law ${name}`, k1) ?? c, ...w}), src)
   }
 
   // A law about k steps in a row (k from 2 to 64): `then(first, last, requests)` relates what the first step reads to the
@@ -1710,9 +1729,9 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     while (whens.length && whens.at(-1) === undefined) whens.pop()
     const w = whens.length ? {when: whens.map(c => (c ?? lit(0).atMost(0)).c)} : {}
     const key = `key$${++keyCounter}`
-    if (out instanceof Cond) { const p = prenex(out.c, `step law ${name}`, key); return p ? {name, steps: k, forall: key, then: marked(p), ...w} : {name, steps: k, then: marked(out.c), ...w} }
+    if (out instanceof Cond) { const p = prenex(out.c, `step law ${name}`, key); return this.divides(p ? {name, steps: k, forall: key, then: marked(p), ...w} : {name, steps: k, then: marked(out.c), ...w}) }
     const [k1, more] = keysFor(out), c = out.forall(v(k1), ...more.map(v)).c
-    return more.length ? {name, steps: k, forall: k1, keys: more, then: marked(c), ...w} : {name, steps: k, forall: k1, then: marked(prenex(c, `step law ${name}`, k1) ?? c), ...w}
+    return this.divides(more.length ? {name, steps: k, forall: k1, keys: more, then: marked(c), ...w} : {name, steps: k, forall: k1, then: marked(prenex(c, `step law ${name}`, k1) ?? c), ...w})
   }
 
   // "Whenever `from` holds, `to` holds later", in every run that takes each helpful request infinitely often: proven by
@@ -1731,7 +1750,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const req = (f: (env: never) => Record<string, TermLike>) => Object.fromEntries(Object.entries(f(env)).map(([n, t]) => [n, termOf(t)]))
     const r = spec.rank ? spec.rank(env) : [], rank = Array.isArray(r) ? r.map(termOf) : termOf(r)
     const base = {name, from: spec.from(env).c, to: spec.to(env).c, rank}
-    return typeof spec.helpful === 'function' ? {...base, request: req(spec.helpful)} : {...base, helpful: spec.helpful.map(h => ({...(h.when ? {when: h.when(env).c} : {}), request: req(h.request)}))}
+    return this.divides(typeof spec.helpful === 'function' ? {...base, request: req(spec.helpful)} : {...base, helpful: spec.helpful.map(h => ({...(h.when ? {when: h.when(env).c} : {}), request: req(h.request)}))})
   }
 
   // A decision: whenever the params and the request meet `given`, `then` holds. Decisions don't read the state; the
@@ -1745,8 +1764,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const t = then(env).c
     const lists = (this.spec.lists2 ?? []).map(([n]) => (env as Record<string, unknown>)[n] as CarriedList<unknown>)
     const listed = lists.flatMap(l => l.equationsAt(uniqueTerms([l.len, l.len.minus(1), ...keysRead([...hyps, t], l.maps)])).map(c => c.c))
-    const goal: Goal = {name, hyps: [...listed, ...hyps, {op: 'not', x: t}]}
-    const facts = this.spec.fns?.length || this.spec.facts?.length ? factsFor(this.machine, goal) : []
+    const goal: Goal = this.divides({name, hyps: [...listed, ...hyps, {op: 'not', x: t}]})
+    const facts = this.spec.fns?.length || this.spec.facts?.length || this.spec.arith?.size ? factsFor(this.machine, goal) : []
     const d: Decision = {name, rule: this as Rule<Obj>, given: hyps, then: t, goal: {name, hyps: [...facts, ...goal.hyps]}}
     if ([...(Array.isArray(g) ? g : [g]).map(c => c.c), t].some(quantifiedIn)) {
       const conds = (e: never) => { const own = given(e); return {given$: all(...(Array.isArray(own) ? own : [own])), then$: then(e)} }
@@ -1928,7 +1947,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
         ...(s.prune ? {prune: {order: pruneOrder![0]!, after: termOf(s.prune.after(pEnv as never))}} : {}),
       }
     }
-    return m
+    return withArithmetic(m, [], s.arith ?? [])
   }
 
   // --- the builders checked ------------------------------------------------------------------------------------------
@@ -2177,7 +2196,7 @@ const expandParts = <T extends Record<string, unknown>>(updates: T): T => {
 }
 const encode = (kinds: [string, Kind<unknown>][], values: Record<string, Raw>): Record<string, number> => Object.assign({}, ...kinds.map(([n, k]) => k.encode(n, values[n])))
 
-export const rule = (name: string): Rule => new Rule({name, params: [], inputs: [], state: [], maps: [], flags: [], pre: [], assume: [], sums: [], queries: []})
+export const rule = (name: string): Rule => new Rule({name, params: [], inputs: [], state: [], maps: [], flags: [], pre: [], assume: [], sums: [], queries: [], arith: new Set()})
 
 // The values a rule's callbacks receive, for helpers written outside the chain (a decision's condition, a shared law):
 // `(env: DecisionEnv<typeof r>) => ...`.
@@ -2374,7 +2393,8 @@ const refuteBudget = {trials: 60, depth: 6, bound: 3, ms: 150}
 const deeperBudget = {trials: 600, depth: 24, bound: 8, ms: 1500, seed: 29}
 function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[] = [], budget: typeof refuteBudget & {seed?: number} = refuteBudget): {goal: string, witness: Record<string, number>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}} | undefined {
   const m = r.machine
-  if (Object.keys(m.fns ?? {}).length || m.facts?.length) return undefined
+  // Division by a constant is a function too, but its facts fix its value, so a run computing it is a run of the rule.
+  if (Object.keys(m.fns ?? {}).some(f => !isArithmetic(f)) || m.facts?.some(f => !isArithmetic(f.name.slice(0, f.name.indexOf(':'))))) return undefined
   const run = interpret(m), rand = seeded(budget.seed ?? 13), until = performance.now() + budget.ms, bound = budget.bound
   const shown = (input: Request) => Object.fromEntries(Object.entries(input).map(([n, x]) => [n, typeof x === 'number' ? x : Object.fromEntries(x as ReadonlyMap<number, number>)]))
   try {
@@ -2422,7 +2442,11 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
   return undefined
 }
 const refutedVerdict = (out: NonNullable<ReturnType<typeof refuteByRuns>>): Verdict => ({proven: false, checked: false, goal: out.goal, stuck: 'sat', witness: out.witness, ...(out.run ? {run: out.run} : {})})
+// The divisors some laws read (modBy, divBy), noted on the rule so its machine declares them: a law may come from
+// another instance of the same rule (a factory called twice).
+const noting = <R extends Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>>(r: R, ...xs: object[]): R => { const ks = divisorsIn(xs as never); if (ks.size) r.dividesBy(...ks); return r }
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions = {}): Verdict {
+  noting(r, laws)
   const refuted = refuteByRuns(r, laws)
   if (refuted) return refutedVerdict(refuted)
   const out = proveLaws(r.machine, withKinds(r, laws))
@@ -2430,6 +2454,7 @@ export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws:
   return searched(r, laws, [], v, opts)
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
+  noting(r, laws, stepLaws)
   const refuted = refuteByRuns(r, laws, stepLaws)
   if (refuted) return refutedVerdict(refuted)
   const out = proveStepLaws(r.machine, withKinds(r, laws), stepLaws)
@@ -2468,6 +2493,7 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
 export type {StepLaw}
 export type {Liveness}
 export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: Liveness, opts: {ms?: number} = {}): Verdict {
+  noting(r, laws, l)
   if (laws.some(law => law.some?.length)) throw new Error(`${r.machine.name}: a law with "there exists" goes to proveRule or proveSteps; a liveness takes plain laws (the ones its proof printed, Verdict.witnesses)`)
   if (Array.isArray(l.rank) && !l.rank.length) {
     const f = findLeadsTo(r.machine, withKinds(r, laws), l, {params: (rand, bound) => r.randomParams(rand, bound), input: (rand, bound, ps) => r.randomInput(rand, bound, ps)}, opts)
