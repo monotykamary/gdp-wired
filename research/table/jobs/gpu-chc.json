@@ -1,0 +1,202 @@
+[
+ {
+  "name": "eldarica-misc/LIA/HOLA/28.c_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/28.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/28.c_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "eldarica-misc/LIA/HOLA/27.c_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/27.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/27.c_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "eldarica-misc/LIA/HOLA/03.c_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/03.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/03.c_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "eldarica-misc/LIA/HOLA/38.c_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/38.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/38.c_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_4_e2_968_e2_1166_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_4_e2_968_e2_1166_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_4_e2_968_e2_1166_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "extra-small-lia/three_dots_moving_2_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'extra-small-lia/three_dots_moving_2_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'extra-small-lia/three_dots_moving_2_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_3_e3_1275_e3_640_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_3_e3_1275_e3_640_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_3_e3_1275_e3_640_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_4_e3_1091_e3_522_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_4_e3_1091_e3_522_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_4_e3_1091_e3_522_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "eldarica-misc/LIA/HOLA/19.c_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/19.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/19.c_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "eldarica-misc/LIA/HOLA/17.c_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/17.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/17.c_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "eldarica-misc/LIA/HOLA/37.c_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/37.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/37.c_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_4_e2_968_e3_931_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_4_e2_968_e3_931_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_4_e2_968_e3_931_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_3_e3_1275_e2_454_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_3_e3_1275_e2_454_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_3_e3_1275_e2_454_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "eldarica-misc/LIA/HOLA/24.c_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/24.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/24.c_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_4_e3_1091_e2_1317_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_4_e3_1091_e2_1317_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_4_e3_1091_e2_1317_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e1_846_e1_1317_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e1_846_e1_1317_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e1_846_e1_1317_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "eldarica-misc/LIA/HOLA/11.c_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/11.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/11.c_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e2_1102_e3_961_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e2_1102_e3_961_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e2_1102_e3_961_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "eldarica-misc/LIA/HOLA/33.c_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/33.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/33.c_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e2_1102_e1_317_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e2_1102_e1_317_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e2_1102_e1_317_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e1_846_e3_1060_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e1_846_e3_1060_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e1_846_e3_1060_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/ctigar/id_build.c_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/ctigar/id_build.c_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/ctigar/id_build.c_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e2_1102_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e2_1102_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e2_1102_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e8_725_e3_556_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e8_725_e3_556_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e8_725_e3_556_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e7_1255_e7_12_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e7_1255_e7_12_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e7_1255_e7_12_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/cd_e7_621_e8_714_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/cd_e7_621_e8_714_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/cd_e7_621_e8_714_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/cd_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/cd_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/cd_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e2_1102_e7_1163_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e2_1102_e7_1163_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e2_1102_e7_1163_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "eldarica-misc/LIA/HOLA/29.c_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/29.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/29.c_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e1_846_e7_397_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e1_846_e7_397_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e1_846_e7_397_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "eldarica-misc/LIA/HOLA/02.c_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/02.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/02.c_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e2_1102_e8_311_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e2_1102_e8_311_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e2_1102_e8_311_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "eldarica-misc/BV/qarmc/qrsolv_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'eldarica-misc/BV/qarmc/qrsolv_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/BV/qarmc/qrsolv_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e7_1255_e8_598_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e7_1255_e8_598_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e7_1255_e8_598_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/lustre/metros_1_e7_606_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/lustre/metros_1_e7_606_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/lustre/metros_1_e7_606_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "eldarica-misc/LIA/HOLA/25.c_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/25.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/25.c_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "eldarica-misc/LIA/llreve/fib_merged_safe.c-1_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'eldarica-misc/LIA/llreve/fib_merged_safe.c-1_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/llreve/fib_merged_safe.c-1_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "eldarica-misc/LIA/HOLA/35.c_000.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'eldarica-misc/LIA/HOLA/35.c_000.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'eldarica-misc/LIA/HOLA/35.c_000.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ },
+ {
+  "name": "vmt-chc-benchmarks/ctigar/bound.c_000_001.yml",
+  "timeout": 900,
+  "cmd": "y=/chc/'vmt-chc-benchmarks/ctigar/bound.c_000_001.yml'; f=$(dirname \"$y\")/$(sed -n 's/^input_files:[[:space:]]*//p' \"$y\" | head -1); bun research/table/chc.ts \"$f\" --task 'vmt-chc-benchmarks/ctigar/bound.c_000_001.yml' --model /data/spacer-models.jsonl --table-target gpu --gpu-only"
+ }
+]

@@ -1,0 +1,137 @@
+[
+ {
+  "name": "grammars/packrat_unambigPackrat.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'grammars/packrat_unambigPackrat.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'grammars/packrat_unambigPackrat.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "isaplanner/prop_02.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'isaplanner/prop_02.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'isaplanner/prop_02.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "isaplanner/prop_03.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'isaplanner/prop_03.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'isaplanner/prop_03.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "isaplanner/prop_04.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'isaplanner/prop_04.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'isaplanner/prop_04.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "isaplanner/prop_21.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'isaplanner/prop_21.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'isaplanner/prop_21.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "isaplanner/prop_33.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'isaplanner/prop_33.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'isaplanner/prop_33.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "isaplanner/prop_38.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'isaplanner/prop_38.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'isaplanner/prop_38.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "isaplanner/prop_49.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'isaplanner/prop_49.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'isaplanner/prop_49.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "isaplanner/prop_53.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'isaplanner/prop_53.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'isaplanner/prop_53.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "isaplanner/prop_79.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'isaplanner/prop_79.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'isaplanner/prop_79.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "prod/lemma_09.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'prod/lemma_09.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'prod/lemma_09.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "prod/lemma_14.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'prod/lemma_14.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'prod/lemma_14.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "prod/prop_14.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'prod/prop_14.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'prod/prop_14.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "prod/prop_35.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'prod/prop_35.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'prod/prop_35.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "prod/prop_42.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'prod/prop_42.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'prod/prop_42.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "tip2015/bin_nat_plus.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'tip2015/bin_nat_plus.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'tip2015/bin_nat_plus.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "tip2015/bin_nat_times.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'tip2015/bin_nat_times.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'tip2015/bin_nat_times.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "tip2015/bin_nat_times_assoc.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'tip2015/bin_nat_times_assoc.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'tip2015/bin_nat_times_assoc.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "tip2015/bin_times_assoc.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'tip2015/bin_times_assoc.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'tip2015/bin_times_assoc.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "tip2015/int_add_assoc.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'tip2015/int_add_assoc.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'tip2015/int_add_assoc.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "tip2015/int_add_ident_left.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'tip2015/int_add_ident_left.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'tip2015/int_add_ident_left.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "tip2015/list_nat_deleteAll_count.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'tip2015/list_nat_deleteAll_count.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'tip2015/list_nat_deleteAll_count.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "tip2015/nat_acc_plus_assoc.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'tip2015/nat_acc_plus_assoc.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'tip2015/nat_acc_plus_assoc.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "tip2015/nat_max_assoc.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'tip2015/nat_max_assoc.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'tip2015/nat_max_assoc.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "tip2015/sort_ISortCount.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'tip2015/sort_ISortCount.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'tip2015/sort_ISortCount.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "tip2015/sort_nat_ISortPermutes.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'tip2015/sort_nat_ISortPermutes.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'tip2015/sort_nat_ISortPermutes.smt2' --vars-from-lemmas --fp-target gpu"
+ },
+ {
+  "name": "tip2015/sort_nat_ISortSorts.smt2",
+  "timeout": 1200,
+  "cmd": "bun research/table/tip.ts /tip/benchmarks/'tip2015/sort_nat_ISortSorts.smt2' --lemmas compare/tip/lemmas-sample30.json --task 'tip2015/sort_nat_ISortSorts.smt2' --vars-from-lemmas --fp-target gpu"
+ }
+]
