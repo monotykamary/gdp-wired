@@ -242,6 +242,14 @@ The search, untrusted, finds the cycle:
   its uses at the reads its largest side matches (argument by argument, up to the classes, and only where a random
   value makes them equal): four of a lemma as found, then the rest ranked by the models in which the lemma's read is
   the goal's, one per set of values, and each case node keeping four of a lemma among those its models meet.
+- **Through the built-ins** (`core/transfer.ts`), where the law alone at one unfolding isn't proven: its calls to
+  functions that aren't recursive unfolded, and a recursive function of one or two naturals that computes a built-in
+  (+, ∸, min, max, ≤, <, =, ≥, >, ≠, x + 1, x ∸ 1, 2·x, x = 0) at every argument up to 6 bridged to it once its bridge
+  law (the function is the built-in, everywhere) is proven by the search; a function that reaches one is copied with
+  the built-in in its place, the copy's law (f = its copy) a node made from the two bodies (or the search's). The law
+  said through them is proven by the search, and the law as stated by one more node using it, each bridge and copy law
+  at the calls it reads and the congruences between them: all nodes of the one cyclic proof, read by Lean as any other.
+  Without induction last: the law by the cases of a variable, its definitions unfolded.
 
 `today` is what the library proves of the same law with the same facts, without the search: the kernel's prover on
 the law with the definitions unfolded and no cycle, and `findCycles` with the maps' values on the codes and that a

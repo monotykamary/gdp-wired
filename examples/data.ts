@@ -13,6 +13,8 @@
 //     interleaved (the two swapped at each call: size xs + size ys), a sum of three naturals with an accumulator
 //     (add3acc: (x, y)), the same merge with its measure stated, and a quicksort (each call on a filter of the tail:
 //     its decrease proven by induction on the filter)
+//   - a user's own ≤, +, = on the naturals by recursion, a wrapper over them that isn't recursive, a count by the own =:
+//     laws proven through the built-ins (core/transfer.ts), the bridges proven first
 // The broken variants (an append that drops the head, a reverse that repeats it, a mirror that adds 1, an insertion that
 // puts the item first, a search tree insertion that goes the wrong way or into any tree, a rose flatten that drops the
 // node's value, a rose mirror that drops a tree, a concatenation that drops the first list, a replicate with one more, a
@@ -20,7 +22,7 @@
 // the law; the definitions that don't terminate (a merge that calls itself on the same lists, an interleave that only
 // swaps them, an add3acc that doesn't lower y, a merge whose stated measure a call doesn't lower) are refused, with the
 // reason, before any law about them is read.
-import {type Bool, type DataLaw, type Nat, type Val, data, define, fnParam, law, mutual, natural, boolean, programOf, self, when, yes, proveData} from '../core/data.ts'
+import {type Bool, type DataLaw, type Nat, type Val, data, define, fnParam, law, mutual, natural, boolean, no, programOf, self, when, yes, proveData} from '../core/data.ts'
 
 export const List = data('List', {nil: {}, cons: {head: natural, tail: self}})
 export const Tree = data('Tree', {leaf: {}, node: {left: self, value: natural, right: self}})
@@ -167,6 +169,28 @@ export const atMost = define('atMost', {v: natural, xs: List}, List, ({v, xs}) =
 export const above = define('above', {v: natural, xs: List}, List, ({v, xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => when(N(v).lt(head), List.cons(head, above(v, tail)), L(above(v, tail)))}))
 export const qsort: ReturnType<typeof define> = define('qsort', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => L(app(qsort(atMost(head, tail)), List.cons(head, qsort(above(head, tail)))))}))
 
+// A user's own arithmetic on the naturals, by recursion (as a library ported from a proof assistant writes it): ≤, +,
+// an equality, a count by it, and a definition that isn't recursive over them (≥ as ≤ the other way). proveData proves
+// each of these agrees with the built-in (its bridge, by recursion induction), and the laws through the built-ins.
+export const leq = define('leq', {x: natural, y: natural}, boolean, ({x, y}) => N(x).match({zero: () => yes, succ: ({pred: p}) => N(y).match({zero: () => no, succ: ({pred: q}) => B(leq(p, q))})}))
+export const plus = define('plus', {x: natural, y: natural}, natural, ({x, y}) => N(x).match({zero: () => N(y), succ: ({pred}) => N(plus(pred, y)).plus(1)}))
+export const same = define('same', {x: natural, y: natural}, boolean, ({x, y}) => N(x).match({zero: () => N(y).eq(0), succ: ({pred: p}) => N(y).match({zero: () => no, succ: ({pred: q}) => B(same(p, q))})}))
+export const geq = define('geq', {x: natural, y: natural}, boolean, ({x, y}) => B(leq(y, x)))
+export const occurs = define('occurs', {y: natural, xs: List}, natural, ({y, xs}) => L(xs).match({nil: () => 0, cons: ({head, tail}) => when(B(same(head, y)), N(occurs(y, tail)).plus(1), N(occurs(y, tail)))}))
+export const through = {
+  // n ≤ n + m, both the user's: not a shape the conjectures make; proven through x ≤ y and x + y.
+  leqPlus: () => law('n is at most n plus m', {n: natural, m: natural}, ({n, m}) => B(leq(n, plus(n, m)))),
+  // geq x x: geq isn't recursive (unfolded), leq bridged.
+  geqSelf: () => law('x is at least itself', {x: natural}, ({x}) => B(geq(x, x))),
+  // the count of n after n: same(n, n) is n = n through its bridge, the count read through its copy.
+  occursCons: () => law('one more of n after n', {n: natural, xs: List}, ({n, xs}) => N(occurs(n, List.cons(n, xs))).eq(N(occurs(n, xs)).plus(1))),
+  // n ≤ 0 only when n = 0: by the cases of n, no induction.
+  leqZero: () => law('at most zero is zero', {n: natural}, ({n}) => B(leq(n, 0)).implies(B(same(n, 0)))),
+}
+export const throughBroken = {
+  leqPlus: () => law('n plus m is at most n', {n: natural, m: natural}, ({n, m}) => B(leq(plus(n, m), n))),
+}
+
 // The laws, each over the functions as declared (a broken variant's law reads the broken function).
 export const laws = {
   lengthAppend: (a = app) => law('length of append', {xs: List, ys: List}, ({xs, ys}) => N(len(a(xs, ys))).eq(N(len(xs)).plus(N(len(ys))))),
@@ -237,7 +261,13 @@ if (import.meta.main) {
     console.log(`${ok ? 'ok  ' : open.has(name) ? 'open' : 'FAIL'} ${v.law}: ${v.proven ? `proven, ${v.ms} ms (${v.scheme}${v.lemmas.length ? `; lemmas: ${v.lemmas.join('; ')}` : ''})` : `not proven (${v.goal}: ${v.stuck})`}`)
     failed ||= !ok && !open.has(name)
   }
-  for (const [name, mk] of Object.entries(broken)) {
+  for (const [name, mk] of Object.entries(through)) {
+    if (skip(name)) continue
+    const v = proveData(mk()), ok = v.proven && v.checked
+    console.log(`${ok ? 'ok  ' : 'FAIL'} ${v.law}: ${v.proven ? `proven, ${v.ms} ms (${v.scheme}${v.lemmas.length ? `; lemmas: ${v.lemmas.join('; ')}` : ''})` : `not proven (${v.goal}: ${v.stuck})`}`)
+    failed ||= !ok
+  }
+  for (const [name, mk] of [...Object.entries(broken), ...Object.entries(throughBroken).map(([n, f]) => [`${n} (through)`, f] as const)]) {
     if (skip(name)) continue
     const v = proveData(mk())
     console.log(`${!v.proven ? 'ok  ' : 'FAIL'} ${v.law} (broken): ${v.proven ? 'proven' : `refused${v.counterexample ? `, broken at ${JSON.stringify(v.counterexample)}` : ''}`}`)

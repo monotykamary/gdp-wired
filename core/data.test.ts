@@ -3,9 +3,9 @@
 // structural recursion refused unless its termination is proven (a measure every call lowers, each call's obligation
 // proven by the kernel), and a tampered proof refused by the kernel.
 import {expect, test} from 'bun:test'
-import {type Nat, type Val, data, define, evalX, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY} from './data.ts'
+import {type Bool, type Nat, type Val, EvalLimit, data, define, evalX, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, when} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
-import {Bag, Forest, List, Rose, Tree, a3, app, broken, ilv, laws, len, merge, mir, mrg, nonterminating, qsort, refusal, rev, sorted, ins} from '../examples/data.ts'
+import {Bag, Forest, List, Rose, Tree, a3, app, broken, ilv, laws, leq, len, merge, mir, mrg, nonterminating, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken} from '../examples/data.ts'
 
 const list = (...xs: number[]): {c: number, f: unknown[]} => xs.reduceRight<{c: number, f: unknown[]}>((t, h) => ({c: 1, f: [h, t]}), {c: 0, f: []})
 const run = (call: {x: unknown}, env: Record<string, unknown>) => evalX(call.x as never, new Map(Object.entries(env)) as never, {})
@@ -118,3 +118,30 @@ test('laws over well-founded functions: by the function\'s own recursion, ranked
   }
   for (const mk of [broken.mergeLength, broken.add3acc]) expect(proveData(mk()).counterexample).toBeDefined()
 }, 60_000)
+
+test('a law through the built-ins: its bridges proven first, a copy of a function over them proven its copy, the law read back; checked by the kernel', () => {
+  for (const [mk, through] of [[through_.leqPlus, ['leq is ≤', 'plus is +']], [through_.geqSelf, ['leq is ≤', 'unfolded: geq']], [through_.occursCons, ['same is =', 'occurs is occurs_bi']]] as const) {
+    const v = proveData(mk())
+    expect(v.proven && v.checked && v.proof?.proven && checkCyclic(v.proof.proof)).toBe(true)
+    for (const t of through) expect(v.through).toContain(t)
+  }
+  // by the cases of n alone (n ≤ 0 is n = 0, both ways), and the broken one refused
+  expect(proveData(law('at most zero is zero', {n: natural}, ({n}) => (leq(n, 0) as Bool).iff(same(n, 0) as Bool))).proven).toBe(true)
+  expect(proveData(throughBroken.leqPlus()).counterexample).toBeDefined()
+})
+
+test('a function that agrees with + on small values only: its bridge is not proven, and nothing false is proven through it', () => {
+  // x + y up to x = 7, then 0
+  const near: ReturnType<typeof define> = define('nearPlus', {x: natural, y: natural}, natural, ({x, y}) => (x as Nat).match({zero: () => y as Nat, succ: ({pred}) => when(pred.atLeast(7), 0 as number, (near(pred, y) as Nat).plus(1) as never)}))
+  const v = proveData(law('nearPlus adds', {x: natural, y: natural}, ({x, y}) => (near(x, y) as Nat).eq((x as Nat).plus(y))), {ms: 5_000})
+  expect(v.proven).toBe(false)
+})
+
+test('evaluation within bounds: a natural past 2^53 throws, a sample past the bounds is skipped, a datatype read only through a constructor is collected', () => {
+  const big: ReturnType<typeof define> = define('bigPower', {n: natural}, natural, ({n}) => (n as Nat).match({zero: () => 1, succ: ({pred}) => (big(pred) as Nat).times(100_000)}))
+  expect(() => evalX({op: 'call', fn: 'bigPower', args: [{op: 'nat', value: 5}]}, new Map(), {})).toThrow(EvalLimit)
+  expect(refute(law('a power is at least one', {n: natural}, ({n}) => (big(n) as Nat).atLeast(1)))).toBeUndefined()
+  const l = law('the head of one item', {n: natural}, ({n}) => (List.cons(n, List.nil).match({nil: () => 0, cons: ({head}) => head as Nat}) as Nat).eq(n))
+  expect(programOf([l]).datas.map(d => d.name)).toContain('List')
+  expect(proveData(l).proven).toBe(true)
+})

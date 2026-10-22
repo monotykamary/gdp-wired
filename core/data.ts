@@ -33,6 +33,7 @@ import {type CyclicVerdict, type NodeSpec, proveCyclic} from './cyclic.ts'
 import {clock, counted, pairedKeys, withDeadline} from '../kernel/prove.ts'
 import {work} from './solver.ts'
 import {ranksOfRuns} from './cycles.ts'
+import {proveThrough, transferPlan} from './transfer.ts'
 
 // --- sorts and the AST ------------------------------------------------------------------------------------------------
 
@@ -70,7 +71,7 @@ export type Y =
 // --- the surface ------------------------------------------------------------------------------------------------------
 
 let fresh = 0
-const bindName = (field: string) => `${field}#${++fresh}`
+export const bindName = (field: string) => `${field}#${++fresh}`
 
 export class Nat {
   constructor(readonly x: X) {}
@@ -548,57 +549,71 @@ export function law(name: string, vars: Record<string, Sort>, holds: (vs: Record
 export type Value = number | {c: number, f: Value[]}
 type Env = Map<string, Value>
 const fnOf = (name: string) => { const f = fns.get(name); if (!f) throw new Error(`no function ${name}`); return f }
+// A function by its name, if one is defined (core/transfer.ts names its copies apart from every other).
+export const fnNamed = (name: string): Fn | undefined => fns.get(name)
 const asNat = (v: Value) => v as number
-export function evalX(x: X, env: Env, params: Record<string, (n: number) => number>): Value {
+// Evaluation within bounds: a natural past 2^53 (no longer exact) always throws EvalLimit, and within the search
+// (`evalBounds.on`: proveData, refute) so do calls nested past `depth` or past `calls` of one call's evaluation, which
+// recursive powers and factorials reach on small values. The sample that needs one is skipped (refute), the model's
+// read is unknown (the search).
+export class EvalLimit extends RangeError {}
+export const evalBounds = {on: false, depth: 1000, calls: 20_000}
+let evalCalls = 0
+const exact = (n: number): number => { if (n > Number.MAX_SAFE_INTEGER) throw new EvalLimit('past 2^53'); return n }
+export function evalX(x: X, env: Env, params: Record<string, (n: number) => number>, d = 0): Value {
   switch (x.op) {
     case 'var': { const v = env.get(x.name); if (v === undefined) throw new Error(`unbound ${x.name}`); return v }
     case 'nat': return x.value
-    case 'add': return asNat(evalX(x.a, env, params)) + asNat(evalX(x.b, env, params))
-    case 'sub': return Math.max(0, asNat(evalX(x.a, env, params)) - asNat(evalX(x.b, env, params)))
-    case 'min': return Math.min(asNat(evalX(x.a, env, params)), asNat(evalX(x.b, env, params)))
-    case 'max': return Math.max(asNat(evalX(x.a, env, params)), asNat(evalX(x.b, env, params)))
-    case 'mul': return x.k * asNat(evalX(x.a, env, params))
-    case 'if': return evalY(x.c, env, params) ? evalX(x.then, env, params) : evalX(x.else, env, params)
-    case 'bool': return evalY(x.c, env, params) ? 1 : 0
-    case 'apply': return params[x.param]!(asNat(evalX(x.arg, env, params)))
-    case 'size': return sizeOf(dataNamed(x.data), evalX(x.of, env, params))
-    case 'ctor': return {c: x.ctor, f: x.args.map(a => evalX(a, env, params))}
+    case 'add': return exact(asNat(evalX(x.a, env, params, d)) + asNat(evalX(x.b, env, params, d)))
+    case 'sub': return Math.max(0, asNat(evalX(x.a, env, params, d)) - asNat(evalX(x.b, env, params, d)))
+    case 'min': return Math.min(asNat(evalX(x.a, env, params, d)), asNat(evalX(x.b, env, params, d)))
+    case 'max': return Math.max(asNat(evalX(x.a, env, params, d)), asNat(evalX(x.b, env, params, d)))
+    case 'mul': return exact(x.k * asNat(evalX(x.a, env, params, d)))
+    case 'if': return evalY(x.c, env, params, d) ? evalX(x.then, env, params, d) : evalX(x.else, env, params, d)
+    case 'bool': return evalY(x.c, env, params, d) ? 1 : 0
+    case 'apply': return params[x.param]!(asNat(evalX(x.arg, env, params, d)))
+    case 'size': return sizeOf(dataNamed(x.data), evalX(x.of, env, params, d))
+    case 'ctor': return {c: x.ctor, f: x.args.map(a => evalX(a, env, params, d))}
     case 'natmatch': {
-      const n = asNat(evalX(x.of, env, params))
-      if (n === 0) return evalX(x.zero, env, params)
+      const n = asNat(evalX(x.of, env, params, d))
+      if (n === 0) return evalX(x.zero, env, params, d)
       const e2 = new Map(env); e2.set(x.pred, n - 1)
-      return evalX(x.succ, e2, params)
+      return evalX(x.succ, e2, params, d)
     }
     case 'match': {
-      const v = evalX(x.of, env, params) as {c: number, f: Value[]}, cs = x.cases[v.c]!
+      const v = evalX(x.of, env, params, d) as {c: number, f: Value[]}, cs = x.cases[v.c]!
       const e2 = new Map(env)
       cs.binds.forEach((b, i) => e2.set(b, v.f[i]!))
-      return evalX(cs.body, e2, params)
+      return evalX(cs.body, e2, params, d)
     }
     case 'call': {
-      const f = fnOf(x.fn), body = f.body(), vals = x.args.map(a => evalX(a, env, params))
+      const f = fnOf(x.fn), body = f.body(), vals = x.args.map(a => evalX(a, env, params, d))
       const e2: Env = new Map(f.params.map((p, i) => [`${f.name}.${p.name}`, vals[i]!]))
-      if (tracing?.fn !== f.name) return evalX(body, e2, params)
+      if (evalBounds.on) {
+        if (d === 0) evalCalls = 0
+        if (d >= evalBounds.depth || ++evalCalls > evalBounds.calls) throw new EvalLimit(`${f.name}: past the evaluation's bounds`)
+      }
+      if (tracing?.fn !== f.name) return evalX(body, e2, params, d + 1)
       // A run of a function whose termination is being proven: each call recorded, the run cut past its fuel.
       const t = tracing
       if (--t.fuel < 0) throw new RangeError('out of fuel')
       const top = t.stack.at(-1)
       if (top) t.edge(top, vals)
       t.stack.push(vals)
-      try { return evalX(body, e2, params) } finally { t.stack.pop() }
+      try { return evalX(body, e2, params, d + 1) } finally { t.stack.pop() }
     }
   }
 }
-export function evalY(y: Y, env: Env, params: Record<string, (n: number) => number>): boolean {
+export function evalY(y: Y, env: Env, params: Record<string, (n: number) => number>, d = 0): boolean {
   switch (y.op) {
-    case '<': return asNat(evalX(y.a, env, params)) < asNat(evalX(y.b, env, params))
-    case '<=': return asNat(evalX(y.a, env, params)) <= asNat(evalX(y.b, env, params))
-    case '=': return same(evalX(y.a, env, params), evalX(y.b, env, params))
-    case 'and': return y.xs.every(z => evalY(z, env, params))
-    case 'or': return y.xs.some(z => evalY(z, env, params))
-    case 'not': return !evalY(y.x, env, params)
-    case 'is': return (evalX(y.of, env, params) as {c: number}).c === y.ctor
-    case 'holds': return evalX(y.x, env, params) === 1
+    case '<': return asNat(evalX(y.a, env, params, d)) < asNat(evalX(y.b, env, params, d))
+    case '<=': return asNat(evalX(y.a, env, params, d)) <= asNat(evalX(y.b, env, params, d))
+    case '=': return same(evalX(y.a, env, params, d), evalX(y.b, env, params, d))
+    case 'and': return y.xs.every(z => evalY(z, env, params, d))
+    case 'or': return y.xs.some(z => evalY(z, env, params, d))
+    case 'not': return !evalY(y.x, env, params, d)
+    case 'is': return (evalX(y.of, env, params, d) as {c: number}).c === y.ctor
+    case 'holds': return evalX(y.x, env, params, d) === 1
   }
 }
 const same = (a: Value, b: Value): boolean => (typeof a === 'number' || typeof b === 'number' ? a === b : a.c === b.c && a.f.every((x, i) => same(x, b.f[i]!)))
@@ -647,7 +662,7 @@ const yesC: C = leC(k(0), k(0))
 const pairE = (a: E, b: E): E => { const s: E = {op: 'add', a, b}; return {op: 'add', a: {op: 'prod', a: s, b: s}, b} }
 export const keyOf = (args: E[]): E => args.slice(1).reduce(pairE, args[0]!)
 // The arguments of a key built by keyOf (n of them), read back from its shape.
-function argsOf(key: E, n: number): E[] | undefined {
+export function argsOf(key: E, n: number): E[] | undefined {
   if (n === 1) return [key]
   if (key.op !== 'add' || key.a.op !== 'prod' || key.a.a.op !== 'add') return undefined
   const left = argsOf(key.a.a.a, n - 1)
@@ -667,6 +682,8 @@ export function programOf(laws: DataLaw[], extra: Fn[] = []): Program {
     if (o.op === 'call' && !fs.has(o.fn as string)) { const f = fnOf(o.fn as string); fs.set(f.name, f); f.params.forEach(p => addSort(p.sort)); addSort(f.ret); visit(f.body()) }
     if (o.op === 'apply') ps.add(o.param as string)
     if (o.op === 'size') addSort(dataNamed(o.data as string))
+    // (a datatype read only through a constructor, a match or a test of one: a law with a definition unfolded)
+    if ((o.op === 'ctor' || o.op === 'match' || o.op === 'is') && typeof o.data === 'string') addSort(dataNamed(o.data))
   })
   for (const l of laws) { l.vars.forEach(v => addSort(v.sort)); visit(l.holds) }
   for (const f of extra) visit({op: 'call', fn: f.name, args: []})
@@ -908,20 +925,27 @@ export function unkey(key: number, n: number): number[] {
 export type Lemma = {law: DataLaw, spec?: NodeSpec}
 // `program`: the datatypes and functions the proof's facts are of; `node`: the law's own node in the proof (lemmas' nodes
 // and cases besides).
-export type DataVerdict = {proven: boolean, checked: boolean, law: string, counterexample?: Record<string, string>, proof?: CyclicVerdict, lemmas: string[], scheme?: string, ms: number, goal?: string, stuck?: string, tried: number, program?: Program, node?: number}
+// `through`: a law proven as said with the built-ins and its definitions unfolded (core/transfer.ts), what it went through.
+export type DataVerdict = {proven: boolean, checked: boolean, law: string, counterexample?: Record<string, string>, proof?: CyclicVerdict, lemmas: string[], scheme?: string, ms: number, goal?: string, stuck?: string, tried: number, program?: Program, node?: number, through?: string[]}
 // `patience` multiplies each attempt's budget; `ms` the whole search's (120,000 by default). Both are counted in work, not
 // wall time (`dataRate` below), so a verdict is the same on any machine.
-export type Options = {samples?: number, depth?: number, lemmas?: boolean | DataLaw[], ms?: number, induction?: boolean, seed?: number, patience?: number}
+// `transfer: false` keeps the law as stated (core/transfer.ts: its non-recursive definitions unfolded, the built-ins its
+// own recursive functions agree with).
+export type Options = {samples?: number, depth?: number, lemmas?: boolean | DataLaw[], ms?: number, induction?: boolean, seed?: number, patience?: number, transfer?: boolean}
 
 // Random values of the law's variables: a law false at one is refuted with it.
+// A sample whose evaluation passes the bounds (EvalLimit, or the stack) is skipped.
 export function refute(l: DataLaw, n = 400, seed = 7): Record<string, string> | undefined {
-  for (const s of samples(l.vars, programOf([l]).params, n, seed)) {
-    let ok: boolean
-    try { ok = evalY(l.holds, s.env, s.params) } catch (e) { throw new Error(`${l.name}: ${(e as Error).message}`) }
-    if (!ok) return Object.fromEntries(l.vars.map(v => [v.name, showValue(v.sort, s.env.get(v.name)!)]))
-  }
-  return undefined
+  return bounded(() => {
+    for (const s of samples(l.vars, programOf([l]).params, n, seed)) {
+      let ok: boolean
+      try { ok = evalY(l.holds, s.env, s.params) } catch (e) { if (e instanceof RangeError) continue; throw new Error(`${l.name}: ${(e as Error).message}`) }
+      if (!ok) return Object.fromEntries(l.vars.map(v => [v.name, showValue(v.sort, s.env.get(v.name)!)]))
+    }
+    return undefined
+  })
 }
+const bounded = <T>(f: () => T): T => { const was = evalBounds.on; evalBounds.on = true; try { return f() } finally { evalBounds.on = was } }
 
 // The node of a law: its variables (each a plain variable of the encoding), its conclusion, rank (level, size of the
 // variable inducted on), the uses of the scheme, and the facts at every term its goal reads, to `depth` unfoldings.
@@ -1152,7 +1176,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
       inst(`fn ${f.name}`, as)
       const body = reads(holdsAt(`fn ${f.name}`, as))
       ctors(note(body))
-      next.push(...body)
+      for (const b of body) next.push(b)
     }
     frontier = next
   }
@@ -1367,7 +1391,7 @@ function matches(pattern: E, vars: Set<string>, t: E, s: Record<string, E>): Rec
   return out
 }
 
-type Proven = {law: DataLaw, spec: NodeSpec, nodes: NodeSpec[]}
+export type Proven = {law: DataLaw, spec: NodeSpec, nodes: NodeSpec[]}
 type M = {m: Model, env: Record<string, number>}
 // The cases of a law: a decision tree over the guards its unfolded calls evaluate (a function's body's ifs, at the
 // branch each random model takes), those over the law's variables and their fields alone, at most four deep. Each leaf
@@ -1666,16 +1690,20 @@ function modelsFor(p: Program, l: DataLaw, n: number, seed: number) {
 }
 
 // Prove a law with the lemmas given (each proven, with its nodes), trying each scheme at each depth.
-function proveWith(p: Program, fs: Facts, l: DataLaw, lemmas: Proven[], level: number, opts: Options, until: number, per: number, depths: number[]): {out?: Proven, verdict?: CyclicVerdict, scheme?: string, tried: number, last?: CyclicVerdict} {
+// `without`: 'plain', the law with no induction where no scheme applies; 'cases', no induction, then by the cases of
+// each variable (a natural's zero and successor, a datatype's constructors), none of them using the law again.
+function proveWith(p: Program, fs: Facts, l: DataLaw, lemmas: Proven[], level: number, opts: Options, until: number, per: number, depths: number[], without?: 'plain' | 'cases'): {out?: Proven, verdict?: CyclicVerdict, scheme?: string, tried: number, last?: CyclicVerdict} {
   const models = modelsFor(p, l, 240, opts.seed ?? 3)
   let tried = 0, last: CyclicVerdict | undefined
-  const ss: (Scheme | undefined)[] = opts.induction === false ? [undefined] : schemes(p, l)
+  const cases = l.vars.flatMap((v): Scheme[] => (v.sort === 'nat' || v.sort instanceof Data ? [{name: `cases of ${v.name}`, on: {v: v.name, d: v.sort}, uses: []}] : []))
+  const found = opts.induction === false || without === 'cases' ? [] : schemes(p, l)
+  const ss: (Scheme | undefined)[] = opts.induction === false ? [undefined] : without === 'cases' ? [undefined, ...cases] : without === 'plain' && !found.length ? [undefined] : found
   for (const depth of depths.filter(d => d <= (opts.depth ?? 3))) for (const s of ss) {
     if (clock() > until) return {tried, last}
     tried++
     const {verdict, specs, main} = (attemptMs.ms = Math.min(per * (opts.patience ?? 1), until - clock()), attempt(p, fs, l, s, depth, lemmas, level, models))
     last = verdict
-    if (verdict.proven && verdict.checked) return {out: {law: l, spec: specs[main]!, nodes: specs}, verdict, scheme: s?.name, tried}
+    if (verdict.proven && verdict.checked) return {out: {law: l, spec: specs[main]!, nodes: specs}, verdict, scheme: s?.name ?? (without ? 'no induction' : undefined), tried}
   }
   return {tried, last}
 }
@@ -1864,33 +1892,57 @@ export const showY = (y: Y): string => {
 // Prove a law over datatypes: refuted by a random value where one breaks it; else proven by a cycle the search finds,
 // with lemmas found from the values when the law alone isn't (`lemmas: false` turns that off; an array gives lemmas to
 // prove and use instead, which the corpus never does).
-export function proveData(l: DataLaw, opts: Options = {}): DataVerdict { return counted(dataRate, () => proveDataCounted(l, opts)) }
+export function proveData(l: DataLaw, opts: Options = {}): DataVerdict { return counted(dataRate, () => bounded(() => proveDataCounted(l, opts))) }
 function proveDataCounted(l: DataLaw, opts: Options): DataVerdict {
-  const t0 = performance.now(), w0 = work.n, until = clock() + (opts.ms ?? 120_000)
-  const p = programOf([l, ...(Array.isArray(opts.lemmas) ? opts.lemmas : [])]), fs = factsOf(p)
-  const done = (v: Omit<DataVerdict, 'ms' | 'law'>): DataVerdict => {
+  const t0 = performance.now(), until = clock() + (opts.ms ?? 120_000)
+  // Where the law calls a non-recursive function, or reaches a recursive one that agrees with a built-in (core/transfer.ts):
+  // the law alone at one unfolding first, then the law said through them, then the rest of the search on the law.
+  const plan = opts.transfer === false || opts.induction === false || Array.isArray(opts.lemmas) ? undefined : transferPlan(l)
+  if (!plan) return searchIn(l, opts, until).verdict
+  const quick = searchIn(l, opts, until, undefined, 'first').verdict
+  if (quick.proven || quick.counterexample) return quick
+  // (a law said through its definitions past what the encoding's terms take is left as stated)
+  let through: ReturnType<typeof proveThrough>
+  try { through = proveThrough(l, plan, opts, until) } catch (e) { if (!(e instanceof RangeError)) throw e }
+  if (through?.proven) return {...through, ms: Math.round(performance.now() - t0)}
+  const rest = searchIn(l, opts, until, undefined, 'rest').verdict
+  return {...rest, tried: rest.tried + quick.tried + (through?.tried ?? 0), ms: Math.round(performance.now() - t0), ...(rest.goal || rest.proven ? {} : {goal: quick.goal, stuck: quick.stuck})}
+}
+// The search on a law: in its own program, or (`ctx`) in one given, above lemmas proven before in it (`base`, its nodes at
+// levels up to `level`), where `out` is the proof's nodes, for a proof that reads it (core/transfer.ts). `phase`: 'first'
+// is the refutation and the law alone at one unfolding, 'rest' all after those.
+export type SearchCtx = {p: Program, fs: Facts, base: Proven[], level: number}
+export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchCtx, phase: 'all' | 'first' | 'rest' = 'all'): {verdict: DataVerdict, out?: Proven} {
+  const t0 = performance.now(), w0 = work.n
+  const p = ctx?.p ?? programOf([l, ...(Array.isArray(opts.lemmas) ? opts.lemmas : [])]), fs = ctx?.fs ?? factsOf(p)
+  const base = ctx?.base ?? [], lv = ctx?.level ?? 0
+  let out: Proven | undefined
+  const done = (v: Omit<DataVerdict, 'ms' | 'law'>): {verdict: DataVerdict, out?: Proven} => {
     if (dataTrace) console.error(`[data] ${l.name}: ${work.n - w0} units of work in ${Math.round(performance.now() - t0)} ms`)
-    return {law: l.name, ...v, ms: Math.round(performance.now() - t0)}
+    return {verdict: {law: l.name, ...v, ms: Math.round(performance.now() - t0)}, out}
   }
-  const cex = refute(l, opts.samples ?? 400)
-  if (cex) return done({proven: false, checked: false, counterexample: cex, lemmas: [], tried: 0})
+  if (phase !== 'rest') {
+    const cex = refute(l, opts.samples ?? 400)
+    if (cex) return done({proven: false, checked: false, counterexample: cex, lemmas: [], tried: 0})
+  }
   // The law alone at one unfolding; then lemmas at one unfolding each (the law tried again after each its goal
-  // matches); then the law at two; then lemmas at two; last the law at three. A lemma is named in the verdict when the
-  // proof uses it.
+  // matches); then the law at two; then lemmas at two; last the law at three, and without induction (by cases). A lemma
+  // is named in the verdict when the proof uses it.
   let tried = 0
   const used = (r: NonNullable<ReturnType<typeof proveWith>['out']>, lemmas: Proven[]) => {
     const nodes = r.nodes, seen = new Set<number>(), todo = [nodes.indexOf(r.spec)]
     while (todo.length) { const i = todo.pop()!; if (seen.has(i)) continue; seen.add(i); for (const u of nodes[i]!.uses) todo.push(u.node) }
     return lemmas.filter(q => seen.has(nodes.indexOf(nodes.find(n => n.name === q.spec.name)!))).map(q => q.law.name)
   }
-  const ok = (r: ReturnType<typeof proveWith>, lemmas: Proven[], prog = p) => (tried += r.tried, r.out ? done({proven: true, checked: true, proof: r.verdict, lemmas: used(r.out, lemmas), scheme: r.scheme, tried, program: prog, node: r.out.nodes.indexOf(r.out.spec)}) : undefined)
-  const first = proveWith(p, fs, l, [], 1, opts, until, 6000, [1])
-  const one = ok(first, [])
+  const ok = (r: ReturnType<typeof proveWith>, lemmas: Proven[], prog = p) => (tried += r.tried, r.out ? (out = r.out, done({proven: true, checked: true, proof: r.verdict, lemmas: used(r.out, lemmas), scheme: r.scheme, tried, program: prog, node: r.out.nodes.indexOf(r.out.spec)})) : undefined)
+  const first = phase === 'rest' ? undefined : proveWith(p, fs, l, base, lv + 1, opts, until, 6000, [1], 'plain')
+  const one = first && ok(first, base)
   if (one) return one
+  if (phase === 'first') return done({proven: false, checked: false, lemmas: [], tried, ...stuckOf(first!.last)})
   const without = opts.lemmas === false || opts.induction === false
-  if (without) return ok(proveWith(p, fs, l, [], 1, opts, until, 20000, [2, 3]), []) ?? done({proven: false, checked: false, lemmas: [], tried, ...stuckOf(first.last)})
+  if (without) return ok(proveWith(p, fs, l, base, lv + 1, opts, until, 20000, [2, 3]), base) ?? (opts.induction === false ? undefined : ok(proveWith(p, fs, l, base, lv + 1, opts, until, 3000, [1, 2], 'cases'), base)) ?? done({proven: false, checked: false, lemmas: [], tried, ...stuckOf(first?.last)})
   const cands = Array.isArray(opts.lemmas) ? opts.lemmas : conjectures(p, l)
-  const p2 = programOf([l, ...cands]), fs2 = factsOf(p2)
+  const p2 = ctx ? p : programOf([l, ...cands]), fs2 = ctx ? fs : factsOf(p2)
   // Each scheme's goals: the law's, and each companion's (a lemma may be what only a companion's goal reads).
   const goalOf = (law: DataLaw, uses: SchemeUse[], on: Scheme['on'], concls: C[], shapes?: E[]) => {
     const concl = encY(p2, law.holds, new Map()), ihc = uses.map(u => substC(concls[u.member ?? 0] ?? concl, {vars: u.subst, maps: {}, flags: {}}))
@@ -1904,32 +1956,36 @@ function proveDataCounted(l: DataLaw, opts: Options): DataVerdict {
   // Those the goal matches first, of those the ones of the law's shape (an implication for an implication) first.
   const implication = (y: Y) => y.op === 'or' && y.xs.length === 2 && y.xs[0]!.op === 'not'
   const score = (c: DataLaw, hit: boolean) => (hit ? 2 : 0) + (implication(c.holds) === implication(l.holds) ? 1 : 0)
+  if (dataTrace) console.error(`[data] ${l.name}: ${cands.length} conjectures at ${Math.round(clock())} of ${Math.round(until)}`)
   const ranked = cands.map(c => ({c, hit: matchesGoal(c)})).sort((a, b) => score(b.c, b.hit) - score(a.c, a.hit))
-  const proven: Proven[] = [], failed = new Set<DataLaw>()
+  // The lemmas proven: those given (`base`) and those found, each found one a level above the last.
+  const proven: Proven[] = [...base], failed = new Set<DataLaw>(), level = () => lv + 1 + proven.length - base.length
   const lemmasAt = (depth: number) => {
     for (const {c, hit} of ranked) {
       if (clock() > until) return undefined
       if (proven.some(q => q.law === c) || (depth === 2 && !failed.has(c)) || refute(c, 200)) continue
-      const r = proveWith(p2, fs2, c, proven, 1 + proven.length, opts, Math.min(until, clock() + (depth === 1 ? 8000 : 12000) * (opts.patience ?? 1)), 5000, [depth])
+      const r = proveWith(p2, fs2, c, proven, level(), opts, Math.min(until, clock() + (depth === 1 ? 8000 : 12000) * (opts.patience ?? 1)), 5000, [depth])
       tried += r.tried
       if (!r.out) { failed.add(c); continue }
       failed.delete(c)
       proven.push(r.out)
       if (!hit && implication(c.holds) !== implication(l.holds)) continue
-      const again = ok(proveWith(p2, fs2, l, proven, 1 + proven.length, opts, until, 6000, depth === 1 ? [1] : [1, 2]), proven, p2)
+      const again = ok(proveWith(p2, fs2, l, proven, level(), opts, until, 6000, depth === 1 ? [1] : [1, 2]), proven, p2)
       if (again) return again
     }
     return undefined
   }
-  const steps: (() => DataVerdict | undefined)[] = [
+  const steps: (() => ReturnType<typeof done> | undefined)[] = [
     () => lemmasAt(1),
-    () => ok(proveWith(p, fs, l, [], 1, opts, until, 30000, [2]), []),
-    () => (proven.length ? ok(proveWith(p2, fs2, l, proven, 1 + proven.length, opts, until, 30000, [2]), proven, p2) : undefined),
+    () => ok(proveWith(p, fs, l, base, lv + 1, opts, until, 30000, [2]), base),
+    () => (proven.length > base.length ? ok(proveWith(p2, fs2, l, proven, level(), opts, until, 30000, [2]), proven, p2) : undefined),
     () => lemmasAt(2),
-    () => ok(proveWith(p2, fs2, l, proven, 1 + proven.length, opts, until, 12000, [3]), proven, p2),
+    () => ok(proveWith(p2, fs2, l, proven, level(), opts, until, 12000, [3]), proven, p2),
+    // No induction: the law by the cases of a variable (or none), its definitions unfolded.
+    () => ok(proveWith(p, fs, l, base, lv + 1, opts, until, 3000, [1, 2], 'cases'), base),
   ]
-  for (const step of steps) { if (clock() > until) break; const out = step(); if (out) return out }
-  return done({proven: false, checked: false, lemmas: [], tried, ...stuckOf(first.last)})
+  for (const [i, step] of steps.entries()) { if (clock() > until) break; if (dataTrace) console.error(`[data] ${l.name}: step ${i} at ${Math.round(clock())} of ${Math.round(until)}`); const r = step(); if (r) return r }
+  return done({proven: false, checked: false, lemmas: [], tried, ...stuckOf(first?.last)})
 }
 const stuckOf = (v?: CyclicVerdict) => (v && !v.proven ? {goal: v.goal, stuck: v.stuck} : v && !v.checked ? {goal: 'check', stuck: v.why} : {})
 

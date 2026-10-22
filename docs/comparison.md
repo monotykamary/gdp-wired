@@ -130,7 +130,8 @@ What gdp-wired leaves to Lean or Bend is one of two things, and neither is a gap
   and `proveData` finds the induction (which argument, structural, mutual with a companion per datatype of the group, or
   by a function's own recursion, its call graph ranked by its measure where it is well-founded, the cases), and the
   lemmas from the values (equations up to six symbols, predicates kept by a
-  function): reverse of reverse, the sum of a flattened tree, sorted insertion, the search tree's insertion keeping its
+  function), with a user's own recursive arithmetic on the naturals (≤, +, = by recursion) related to the built-ins by
+  bridge laws it proves first and its non-recursive definitions unfolded: reverse of reverse, the sum of a flattened tree, sorted insertion, the search tree's insertion keeping its
   order, the size of a mirrored rose tree, the length of a merge, each checked in Lean as a theorem about the Lean
   `inductive` (a `mutual` one for a group) and functions (a well-founded one with `termination_by` its measure); a lemma
   past six symbols, a termination whose decrease needs a lemma the search doesn't find (a bubble sort's passes, a merge

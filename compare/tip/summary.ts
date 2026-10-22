@@ -62,7 +62,11 @@ const g = rows.filter(r => r.tool === 'gdp' && !isFalse(r.task) && translated.ha
 if (g.length) {
   console.log('\n### gdp-wired on the translated theorems\n')
   console.log('answers:', count(g, r => r.answer))
-  console.log('proven by scheme kind:', count(g.filter(r => r.answer === 'proven'), r => `${str(lastStage(r, 'answer')?.scheme).replace(/ of .*/, '')}${(lastStage(r, 'answer')?.lemmas as string[] | undefined)?.length ? ' + lemmas' : ''}`))
+  // (a law proven through the built-ins or its definitions unfolded, core/transfer.ts: its bridges and copy laws among
+  // its lemmas, counted apart from the lemmas of the law said through them)
+  const kind = (r: Row) => { const a = lastStage(r, 'answer'), through = (a?.through as string[] | undefined) ?? [], lemmas = ((a?.lemmas as string[] | undefined) ?? []).length - through.filter(t => !t.startsWith('unfolded')).length
+    return `${str(a?.scheme).replace(/, through the law .*/, '').replace(/ of .*/, '')}${lemmas > 0 ? ' + lemmas' : ''}${through.length ? ' (through the built-ins or unfolded)' : ''}` }
+  console.log('proven by scheme kind:', count(g.filter(r => r.answer === 'proven'), kind))
   const solved = (tool: string) => new Set(rows.filter(r => r.tool === tool && !isFalse(r.task) && r.answer === 'proven').map(r => r.task))
   const mine = solved('gdp')
   for (const t of tools.filter(t => t !== 'gdp' && t !== 'gdptr')) {
