@@ -108,6 +108,19 @@ def exec_json(vm: str, argv: list[str], timeout: int = 60, tries: int = 4, sem=N
     raise RuntimeError(f"{vm}: {last}")
 
 
+def stop_vm(vm: str) -> bool:
+    """Stops a VM; one boat can't stop (its final snapshot failed: a broken VM) is deleted instead. True if stopped."""
+    out = boat("stop", vm, "--yes", "--json", check=False, timeout=180)
+    if "Final snapshot failed" in out or "stop aborted" in out:
+        log(f"{vm}: boat can't stop it ({out.split('error')[1][:100] if 'error' in out else ''}); deleted")
+        boat("delete", vm, "--yes", "--json", check=False, timeout=180)
+        with contextlib.suppress(Exception):
+            with Registry().locked() as d:
+                d["vms"].pop(vm, None)
+        return False
+    return True
+
+
 def limits() -> dict:
     return bj("limits")
 
@@ -590,7 +603,7 @@ class Session:
             self.last_error = f"{vm.id}: {str(e)[:200]}"
             vm.dead = True
             if vm.t_running:  # up but of no use to this batch: stopped now, not at the batch's end
-                boat("stop", vm.id, "--yes", "--json", check=False, timeout=180)
+                stop_vm(vm.id)
             self._release([vm.id])
 
     def _create(self, n: int, vm_type: str):
@@ -658,7 +671,7 @@ class Session:
             log(f"{vm.id}: {e}")
             self.last_error = f"{vm.id}: {str(e)[:200]}"
             vm.dead = True
-            boat("stop", vm.id, "--yes", "--json", check=False, timeout=180)
+            stop_vm(vm.id)
             self._release([vm.id])
 
     def enough(self) -> bool:
@@ -1002,7 +1015,7 @@ class Session:
             if self.teardown:
                 boat("delete", vm.id, "--yes", "--json", check=False, timeout=180)
             elif self.idle <= 0:
-                boat("stop", vm.id, "--yes", "--json", check=False, timeout=180)
+                stop_vm(vm.id)
             else:
                 boat("extend", vm.id, "--ttl", str(self.idle), "--json", check=False)
         ts = [threading.Thread(target=wind, args=(vm,)) for vm in vms]
@@ -1288,7 +1301,7 @@ def reap():
         exec_(i, ["bash", "-c", f"python3 ~/.gdpw/agent.py kill {b} 2>/dev/null || true"], 60)
         print(f"released {i} (client gone), killed batch {b}")
     for i in set(stop) | {i for i, _ in kill}:
-        boat("stop", i, "--yes", "--json", check=False, timeout=180)
+        stop_vm(i)
         print(f"stopped idle {i}")
     for t in LIVE.glob("boat-build-*.json"):
         b = json.loads(t.read_text())
