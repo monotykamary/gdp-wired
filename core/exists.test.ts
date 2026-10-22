@@ -99,13 +99,16 @@ test('with step laws, and in a rule proven by proveSteps', () => {
   expect(proveSteps(e, evenLaws(e), [up], {search: false})).toMatchObject({proven: true, checked: true})
 }, 60_000)
 
-test('inferLaws finds a congruence as an existential, with the source to paste', () => {
+test('inferLaws finds a congruence as an existential, with the source to paste (remainders off; by default the same claim is a remainder)', () => {
   const r = rule('steps of two').inputs({go: oneOf('up', 'down', 'stay')}).state({x: 0})
     .step(({go, x}) => ({x: when(go.is('up'), x.plus(2), when(go.is('down'), x.minus(2), x))}))
-  const v = inferLaws(r, [r.law('x is never 7', ({x}) => x.ne(7))], [], {ms: 15000})
+  const plain = inferLaws(r, [r.law('x is never 7', ({x}) => x.ne(7))], [], {ms: 15000})
+  expect(plain).toMatchObject({proven: true, checked: true})
+  expect(plain.found.map(f => f.text)).toContain('x mod 2 = 0')
+  const v = inferLaws(r, [r.law('x is never 7', ({x}) => x.ne(7))], [], {ms: 15000, remainders: false})
   expect(v).toMatchObject({proven: true, checked: true})
   expect(v.found.map(f => f.source)).toContain("r.law('∃k. x = 2·k', ({x}) => exists(k => x.eq(k.times(2))))")
-  const off = inferLaws(r, [r.law('x is never 7', ({x}) => x.ne(7))], [], {ms: 3000, existentials: false})
+  const off = inferLaws(r, [r.law('x is never 7', ({x}) => x.ne(7))], [], {ms: 3000, remainders: false, existentials: false})
   expect(off.found.some(f => f.law.some)).toBe(false)
 }, 60_000)
 

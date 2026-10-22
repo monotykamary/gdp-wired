@@ -18,7 +18,7 @@
 //     and the same call at the arguments said another way. Its goal is equalities; nothing is assumed.
 // The bridges and the copies' laws are nodes like any lemma's, at levels below the law's.
 import type {C, E} from './machine.ts'
-import {type DataLaw, type DataVerdict, type Fn, type Options, type Program, type Proven, type SearchCtx, type Sort, type X, type Y, Bool, Nat, Val, argsOf, bindName, define, encX, encY, evalX, factsOf, fnNamed, programOf, schemesOf, searchIn} from './data.ts'
+import {type DataLaw, type DataVerdict, type Fn, type Options, type Program, type Proven, type SearchCtx, type Sort, type X, type Y, Bool, Integer, Nat, Val, argsOf, bindName, define, encX, encY, evalX, factsOf, fnNamed, programOf, schemesOf, searchIn} from './data.ts'
 import {type NodeSpec, proveCyclic} from './cyclic.ts'
 import {clock, pairedKeys, withDeadline} from '../kernel/prove.ts'
 import {substE} from '../kernel/kernel.ts'
@@ -105,6 +105,10 @@ function rewriter(bridges: Map<string, Op>, copies: Map<string, string>, unfold:
       case 'nat': return x
       case 'add': case 'sub': case 'min': case 'max': return {op: x.op, a: rx(x.a), b: rx(x.b)}
       case 'mul': return {op: 'mul', k: x.k, a: rx(x.a)}
+      case 'prod': case 'iadd': case 'isub': return {op: x.op, a: rx(x.a), b: rx(x.b)}
+      case 'mod': case 'div': case 'imod': case 'idiv': case 'imul': return {op: x.op, k: x.k, a: rx(x.a)}
+      case 'ineg': case 'ofnat': return {op: x.op, a: rx(x.a)}
+      case 'int': return x
       case 'if': return {op: 'if', c: ry(x.c), then: rx(x.then), else: rx(x.else)}
       case 'bool': return {op: 'bool', c: ry(x.c)}
       case 'apply': return {op: 'apply', param: x.param, arg: rx(x.arg)}
@@ -122,7 +126,7 @@ function rewriter(bridges: Map<string, Op>, copies: Map<string, string>, unfold:
   }
   const ry = (y: Y): Y => {
     switch (y.op) {
-      case '<': case '<=': case '=': return {op: y.op, a: rx(y.a), b: rx(y.b)}
+      case '<': case '<=': case '=': case 'i<': case 'i<=': return {op: y.op, a: rx(y.a), b: rx(y.b)}
       case 'and': case 'or': return {op: y.op, xs: y.xs.map(ry)}
       case 'not': return {op: 'not', x: ry(y.x)}
       case 'is': return {...y, of: rx(y.of)}
@@ -131,7 +135,7 @@ function rewriter(bridges: Map<string, Op>, copies: Map<string, string>, unfold:
   }
   return {rx, ry}
 }
-const valueOf = (s: Sort, x: X): Nat | Bool | Val => (s === 'nat' ? new Nat(x) : s === 'bool' ? new Bool(x.op === 'bool' ? x.c : {op: 'holds', x}) : new Val(s, x))
+const valueOf = (s: Sort, x: X): Nat | Bool | Val | Integer => (s === 'nat' ? new Nat(x) : s === 'bool' ? new Bool(x.op === 'bool' ? x.c : {op: 'holds', x}) : s === 'int' ? new Integer(x) : new Val(s, x))
 // The copies made, by function and bridges (a law proven again reads the same copies).
 const made = new WeakMap<Fn, Map<string, string>>()
 const freshName = (base: string) => { let n = base; for (let i = 2; fnNamed(n); i++) n = `${base}${i}`; return n }

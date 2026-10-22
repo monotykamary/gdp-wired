@@ -7,14 +7,16 @@
 //
 // Each clause is planned first: a body argument that is a plain variable names that slot; an equality x = e whose x is
 // still free defines x (so a clause's head values are terms of the state and the request, not values the request must
-// guess); the variables left are the request's; div and mod by a constant k take one more request value q each, with
-// k·q ≤ e ≤ k·q + k − 1. Nonlinear clauses (two predicates in a body) and sorts other than Int and Bool are refused.
+// guess); the variables left are the request's; div and mod by a positive constant k are the rule's own (Int's divBy and
+// modBy: SMT-LIB's Euclidean division, x = k·(x div k) + x mod k, 0 ≤ x mod k < k), so an invariant can read them too.
+// Nonlinear clauses (two predicates in a body), division by anything but a positive constant, and sorts other than Int
+// and Bool are refused.
 import {type Chc, type Clause, type Sort, type Sx, Unsupported, evalSx, type Val} from './chc.ts'
 import type {C} from '../../core/machine.ts'
 import {Choice, Cond, Int, all, any, bool, choose, int, no, oneOf, rule, when, yes} from '../../core/dsl.ts'
 
 type Bound = {kind: 'slot', sort: Sort, k: number} | {kind: 'def', sx: Sx} | {kind: 'input', sort: Sort, k: number}
-export type Plan = {clause: Clause, bound: Map<string, Bound>, guard: Sx[], extra: Sx[], ints: number, divs: number}
+export type Plan = {clause: Clause, bound: Map<string, Bound>, guard: Sx[], extra: Sx[], ints: number}
 
 const varsIn = (s: Sx, out = new Set<string>(), shadow = new Set<string>()): Set<string> => {
   if (typeof s === 'string') { if (!shadow.has(s)) out.add(s); return out }
@@ -26,8 +28,6 @@ const varsIn = (s: Sx, out = new Set<string>(), shadow = new Set<string>()): Set
   for (const x of s.slice(1)) varsIn(x, out, shadow)
   return out
 }
-// Every element, the head too: a let's first binding is a list in head position.
-const countDivs = (s: Sx): number => (typeof s === 'string' ? 0 : s.reduce<number>((n, x) => n + countDivs(x), s[0] === 'div' || s[0] === 'mod' ? 1 : 0))
 const constOf = (s: Sx): bigint | undefined => {
   try { const v = evalSx(s, new Map()); return typeof v === 'bigint' ? v : undefined } catch { return undefined }
 }
@@ -85,8 +85,7 @@ export function plan(c: Clause, preds: Chc['preds']): Plan {
   guard.push(...rest)
   const n = {Int: 0, Bool: 0}
   for (const [v, sort] of c.vars) if (!bound.has(v)) bound.set(v, {kind: 'input', sort, k: n[sort]++})
-  const all: Sx[] = [...guard, ...extra, ...(c.head?.args ?? []), ...[...bound.values()].flatMap(b => (b.kind === 'def' ? [b.sx] : []))]
-  return {clause: c, bound, guard, extra, ints: n.Int, divs: all.reduce<number>((k, s) => k + countDivs(s), 0)}
+  return {clause: c, bound, guard, extra, ints: n.Int}
 }
 
 export type Built = ReturnType<typeof build>
@@ -96,7 +95,7 @@ export function build(chc: Chc, name = 'chc') {
   const plans = chc.clauses.map(c => plan(c, chc.preds))
   const nInt = Math.max(0, ...[...chc.preds.values()].map(s => s.filter(x => x === 'Int').length))
   const nBool = Math.max(0, ...[...chc.preds.values()].map(s => s.filter(x => x === 'Bool').length))
-  const inInt = Math.max(0, ...plans.map(p => p.ints + p.divs))
+  const inInt = Math.max(0, ...plans.map(p => p.ints))
   const inBool = Math.max(0, ...plans.map(p => [...p.bound.values()].filter(b => b.kind === 'input' && b.sort === 'Bool').length))
   const range = (k: number, f: (j: number) => string) => Array.from({length: k}, (_, j) => f(j))
   const clauseNames = range(plans.length, j => `c${j}`) as [string, ...string[]]
@@ -110,8 +109,6 @@ export function build(chc: Chc, name = 'chc') {
   const clauses = (env: Record<string, unknown>) => {
     const fires: Cond[] = [], heads: {loc: string, values: Record<string, Int | Cond>}[] = []
     plans.forEach(p => {
-      const side: Cond[] = []
-      let nextDiv = p.ints
       const memo = new Map<string, Int | Cond>()
       const asInt = (v: Int | Cond, s: Sx): Int => { if (v instanceof Int) return v; throw new Unsupported(`an Int expected: ${JSON.stringify(s).slice(0, 60)}`) }
       const asCond = (v: Int | Cond, s: Sx): Cond => { if (v instanceof Cond) return v; throw new Unsupported(`a Bool expected: ${JSON.stringify(s).slice(0, 60)}`) }
@@ -151,9 +148,8 @@ export function build(chc: Chc, name = 'chc') {
           case 'div': case 'mod': {
             const k = constOf(xs[1]!)
             if (k === undefined || k <= 0n) throw new Unsupported(`${op} by a non-constant or non-positive divisor`)
-            const e = I(0), q = env[`x${nextDiv++}`] as Int, kq = q.times(Number(k))
-            side.push(kq.atMost(e), e.atMost(kq.plus(Number(k) - 1)))
-            return op === 'div' ? q : e.minus(kq)
+            if (k > BigInt(Number.MAX_SAFE_INTEGER)) throw new Unsupported('a divisor too large')
+            return op === 'div' ? I(0).divBy(Number(k)) : Int.of(I(0).modBy(Number(k)))
           }
           case 'abs': { const e = I(0); return when(e.isNegative, e.negate(), e) }
           case '<=': return pairs((a, b) => a.atMost(b))
@@ -186,7 +182,7 @@ export function build(chc: Chc, name = 'chc') {
         const n = {Int: 0, Bool: 0}
         chc.preds.get(p.clause.head.pred)!.forEach((sort, k) => { head.values[`${sort === 'Int' ? 'i' : 'b'}${n[sort]++}`] = tr(p.clause.head!.args[k]!, top) })
       }
-      fires.push(all((env.loc as Choice<string>).is(at), ...conds, ...side))
+      fires.push(all((env.loc as Choice<string>).is(at), ...conds))
       heads.push(head)
     })
     return {fires, heads}

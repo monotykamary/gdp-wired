@@ -38,6 +38,38 @@ Vampire; gdp-wired isn't given them.
 
 ## Results
 
+### Integers, division and remainders (after the well-founded recursion)
+
+`runs/modal/arith/tip-gdp`: gdp-wired alone at the `lang/arith` branch (main's cheap wins, existentials and well-founded
+recursion merged), the same image, sets, container shape and 60 s. The translation reads Int as gdp-wired's integers
+(core/data.ts's `integer`, Lean's `Int`) where a problem subtracts or negates (the statement unchanged: −, unary minus,
+constant multiples of any sign, `div` and `mod` by a positive constant as SMT-LIB's, Euclid's); elsewhere as a natural,
+as before, now with `div` and `mod` by a positive constant (`Nat.divBy`, `modBy`) and a product of two unknowns (`mul`).
+Division by a term that isn't a positive constant is refused with that reason (nonlinear: x = y·q + r), and so is a
+product of two integers.
+
+| theorems (492) | proven | refuted | wrong | translated | unknown | timeout | unsupported | error |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `wfrec/tip4` (the baseline) | 140 | 7 | 0 | 360 | 48 | 165 | 132 | 0 |
+| `arith/tip-gdp` | 140 | 7 | 0 | 363 | 50 | 166 | 129 | 0 |
+
+- The same 140 proven, the same 7 refuted (false as TIP writes them, each confirmed by TIP's evaluator, above). `false/`
+  (68): 23 refuted, was 18: the five queue properties (`queue1_QueueL`, `queue1_QueueR`, `queue2_QueueL`,
+  `queue2_QueueR`, `queue3_QueueL`), which subtract on Int, now translated over the integers and refuted, each
+  counterexample confirmed by TIP's evaluator (`queue1_QueueL` at `(EnqR (EnqL 1 Empty) 5)`).
+- The 30 theorems `full2` refused for Int arithmetic (subtraction 14, division 12, remainder 2, a product of two unknowns
+  2): 3 translate and run out of time (`list_PairEvens`, `list_PairUnpair`: `mod (length xs) 2`; `bin_times`: a product
+  of two naturals); 26 are refused next by their recursion (18 "termination isn't proven": `msorttd` recurses on `take k x` and `drop k x`
+  with k = `div (length x) 2`, whose decrease needs a lemma about them; `nmsorttd`'s `half1`, `twoThirds`, `third` and
+  McCarthy's 91 recurse on an Int, and no integer is a measure; 8 "a ring of functions that isn't structural"), and `nicomachus_theorem` multiplies two integers. Of the
+  31 such `false/` properties, 5 are refuted (above), 1 unknown, 1 out of time, 24 refused by their recursion.
+- Int read as a natural, a change of the statement: 15 translated theorems, was 12 (the three above); Int as the
+  integers, the statement as written: 6 problems, the queues (`queue3_QueueR` unknown).
+- What the integer sort proves, and doesn't, on its own (`examples/arith.ts`, research/frontier's `datatype/integers`):
+  laws over integer arithmetic without recursion, a constructor's integer field, Euclid's division of a negative value;
+  not a list's integer total through its negation or an append (each call's code decoded and written back, past the
+  search's budget).
+
 ### Recursion that isn't structural (well-founded, after the existentials)
 
 `runs/modal/wfrec/tip4`: gdp-wired alone at the `lang/wfrec` branch (with main's cheap wins and existentials merged),
