@@ -36,13 +36,13 @@ their sibling laws (`walls.json`), examples/lemmas.ts's rules with no lemma, fol
 | fold | 3 | 0 | 3 |
 | nonlinear | 8 | 0 | 8 |
 | cycle | 13 | 0 | 13 |
-| datatype | 12 | 0 | 11 |
-| all | 66 | 0 | 65 |
+| datatype | 18 | 0 | 18 |
+| all | 72 | 0 | 72 |
 
 Now: the suite's `frontier-score` job, `runs/modal/cycsearch/suite1` (54 / 54, and the cycle track's 13 broken variants
-refused; the cycle track's times: `runs/modal/cycsearch/corpus1`); the datatype track, its own `frontier-datatype-0..3`
-jobs, `runs/modal/cycdata/suite2` (11 / 12, its 5 broken variants refused). The last, `(Σx)² <= n·Σx²` over running samples, is
-proven by the prover multiplying the goal by n before the squares.
+refused; the cycle track's times: `runs/modal/cycsearch/corpus1`); the datatype track, its own `frontier-datatype-0..5` jobs, `runs/modal/dataplus/corpus1` (18 / 18, its 12 broken
+variants refused). The last, `(Σx)² <= n·Σx²` over running samples, is proven by the prover multiplying the goal by n
+before the squares.
 
 ## Structure: path scopes, the case the docs called the wall
 
@@ -150,9 +150,11 @@ products); bounds on a function of two arguments; a machine's liveness (`proveLe
 ## Datatype track: `proveData`
 
 `core/data.ts` (`gdp-wired/data`) takes recursive datatypes as values. A user declares a datatype by its constructors
-(`data('List', {nil: {}, cons: {head: nat, tail: self}})`), functions over it by structural recursion (`define`,
-checked: every recursive call passes a field of one parameter bound by a match), and laws about them (`law`); nothing
-else. Every natural is a value of each datatype (a bijection Lean's twin defines), so a value is a natural and two
+(`data('List', {nil: {}, cons: {head: nat, tail: self}})`; a field a natural, the datatype, a datatype declared before
+it, or one of a group declared together: `mutual({Rose: {node: {value: nat, kids: 'Forest'}}, Forest: {nil: {}, cons:
+{head: 'Rose', tail: 'Forest'}}})`), functions over it by structural recursion (`define`, checked: every call within a
+ring of functions calling each other passes a field of one parameter bound by a match, or the predecessor of a natural,
+`n.match({zero, succ: ({pred}) => ...})`), and laws about them (`law`); nothing else. Every natural is a value of each datatype (a bijection Lean's twin defines), so a value is a natural and two
 values are equal when they are the same natural; a datatype is read through maps (its tag, its fields, its size), a
 constructor with fields and a function of several arguments through maps read at the arguments' pairing
 ((a + b)² + b, as the library reads a function of several arguments). The facts: each datatype's shape (the tag one of
@@ -166,8 +168,11 @@ The search, untrusted, finds the cycle:
 
 - **Which induction.** Structural induction on each argument of a datatype (the uses at its fields, where the tag is
   the constructor's), and recursion induction from each recursive function the law calls on its variables (the uses at
-  the arguments of its own recursive calls, other arguments changing with them). The rank is (level, size of the
-  argument, 0 or 1).
+  the arguments of its own recursive calls, other arguments changing with them; on a natural n at n − 1). The rank is
+  (level, size of the argument, 0 or 1), a natural's size itself. On an argument of a group's datatype, mutual
+  induction: the law and a companion for each other datatype its fields reach, the law lifted through each function's
+  own call at such a field (`rsize(rmirror(t)) = rsize(t)` at a forest is `fsize(fmirror(ts)) = fsize(ts)`), each node
+  using the one of each field's datatype at that field, its rank that datatype's size.
 - **Cases.** The law's node uses one node per case (a decision tree over the guards the unfolded definitions evaluate,
   split where 240 random values disagree), each with only what its case needs: the definitions unfolded at the calls
   its conclusion makes (one or two deep, and where an argument equals a constructor's value), the instances the models
@@ -179,43 +184,64 @@ The search, untrusted, finds the cycle:
   that a function keeps a predicate (under a comparison of two naturals). Those a read of the law's goal matches go
   first; each is proven the same way (one unfolding, then two) at a lower level, and the law is tried again with it,
   its uses at the reads its largest side matches (argument by argument, up to the classes, and only where a random
-  value makes them equal).
+  value makes them equal): four of a lemma as found, then the rest ranked by the models in which the lemma's read is
+  the goal's, one per set of values, and each case node keeping four of a lemma among those its models meet.
 
 `today` is what the library proves of the same law with the same facts, without the search: the kernel's prover on
 the law with the definitions unfolded and no cycle, and `findCycles` with the maps' values on the codes and that a
 value's fields have smaller codes (so a rank linear in the codes exists). Each broken variant must be refused. Modal,
-2 vCPU a job, `runs/modal/cycdata/suite2` (`frontier-datatype-0..3`; the lemmas found as the search reports them, `runs/modal/cycdata/batch5`):
+2 vCPU a job, `runs/modal/dataplus/corpus1` (`frontier-datatype-0..5`; the lemmas found as the search reports them, the
+`data` job of the same run):
 
 | Law | Today | Frontier | Found |
 | --- | --- | --- | --- |
-| length(append xs ys) = length xs + length ys | not proven | proven, 560 ms | recursion of append on xs |
-| append is associative | not proven | proven, 1,496 ms | recursion of append on xs |
-| reverse(reverse xs) = xs | not proven | proven, 25,770 ms | recursion of reverse on xs, with reverse(append(xs, [n])) = n :: reverse(xs) |
-| map fusion: map f (map g xs) = map (f ∘ g) xs, any f and g | not proven | proven, 839 ms | recursion of map g on xs |
-| length(map f xs) = length xs | not proven | proven, 225 ms | recursion of map f on xs |
-| mirror(mirror t) = t | not proven | proven, 1,089 ms | recursion of mirror on t |
-| size(mirror t) = size t | not proven | proven, 478 ms | recursion of mirror on t |
-| sum(flatten t) = the tree's sum | not proven | proven, 13,778 ms | recursion of flatten on t, with sum(cons(sum(xs), ys)) = sum(append(xs, ys)) |
-| sorted xs → sorted (insert x xs) | not proven | proven, 45,055 ms | recursion of sorted on xs, two unfoldings deep |
-| count y (insert x xs) = count y xs + (1 if x = y) | not proven | proven, 2,089 ms | recursion of insert on xs |
-| length(insert x xs) = length xs + 1 | not proven | proven, 342 ms | recursion of insert on xs |
-| bst t → bst (insert x t) | not proven | not proven | |
+| length(append xs ys) = length xs + length ys | not proven | proven, 576 ms | recursion of append on xs |
+| append is associative | not proven | proven, 2,283 ms | recursion of append on xs |
+| reverse(reverse xs) = xs | not proven | proven, 25,991 ms | recursion of reverse on xs, with reverse(append(xs, [n])) = n :: reverse(xs) |
+| map fusion: map f (map g xs) = map (f ∘ g) xs, any f and g | not proven | proven, 699 ms | recursion of map g on xs |
+| length(map f xs) = length xs | not proven | proven, 211 ms | recursion of map f on xs |
+| mirror(mirror t) = t | not proven | proven, 1,069 ms | recursion of mirror on t |
+| size(mirror t) = size t | not proven | proven, 564 ms | recursion of mirror on t |
+| sum(flatten t) = the tree's sum | not proven | proven, 11,859 ms | recursion of flatten on t, with sum(cons(sum(xs), ys)) = sum(append(xs, ys)) |
+| sorted xs → sorted (insert x xs) | not proven | proven, 42,660 ms | recursion of sorted on xs, two unfoldings deep |
+| count y (insert x xs) = count y xs + (1 if x = y) | not proven | proven, 2,960 ms | recursion of insert on xs |
+| length(insert x xs) = length xs + 1 | not proven | proven, 416 ms | recursion of insert on xs |
+| bst t → bst (insert x t) | not proven | proven, 20,081 ms | recursion of bst on t, with allBelow(t, v) ∧ x < v → allBelow(insert(x, t), v) and the allAbove one |
+| rose tree: sum(flatten t) = the tree's sum | not proven | proven, 15,426 ms | mutual structure of t (its forest's sum(fflat ts) = fsum ts), with the sum of an append as above |
+| rose tree: size(mirror t) = size t | not proven | proven, 16,450 ms | mutual structure of t (fsize(fmirror ts) = fsize ts), with fsize(snoc(ts, r)) = fsize ts + rsize r |
+| lists of lists: length(concat b) = the lengths' sum | not proven | proven, 5,628 ms | recursion of concat on b, with length(append(xs, ys)) = length xs + length ys |
+| length(replicate n x) = n | not proven | proven, 139 ms | recursion of replicate on n |
+| append(take n xs, drop n xs) = xs | not proven | proven, 1,146 ms | recursion of take on n |
+| length(drop n xs) = length xs − n | not proven | proven, 3,639 ms | recursion of drop on n |
 
-The five broken variants (an append that drops the head, a reverse that repeats it, a mirror that adds 1 to a value,
-an insertion that puts the item first, a search tree insertion that goes the wrong way) are refused by both, each with
-a value that breaks it (4 to 7 ms).
+The 12 broken variants are refused by both, each with a value that breaks it (4 to 17 ms): an append that drops the
+head, a reverse that repeats it, a mirror that adds 1 to a value, an insertion that puts the item first, a search tree
+insertion that goes the wrong way, the search tree law with its hypothesis dropped (an insertion into any tree), a
+rose flatten that drops the node's value, a rose mirror that drops a tree, a concatenation that drops the first list,
+a replicate with one more, and a drop of one too many (in the law of take and drop and in the length after a drop).
 
-The lemmas found are the classic ones: `reverse(append(xs, [n])) = n :: reverse(xs)` for reverse of reverse, and the
-sum of an append for the sum of a flattened tree, which the search states as `sum(cons(sum(xs), ys)) =
-sum(append(xs, ys))` (with `sum(append(xs, [0])) = sum(xs)`, proven before it and used). Every proven law is checked in Lean
-(the suite's `lean-data-0..3`, `runs/modal/cycdata/suite2`, the standard axioms only) as a theorem about the datatype as declared: `lean-kernel/data.ts` writes the
-datatypes as Lean `inductive`s and the functions by pattern matching, a bijection between each datatype and the
-naturals (`enc`, `dec`, with `dec_enc` and `enc_dec`, from Data.lean's `cun`/`cpair`), the model (each map as the
-facts say it is), proves every fact of the proof true of the model, and states the law about the Lean definitions:
+The search tree's insertion was out before for want of a lemma's use, not of the lemma: with both lemmas given it
+stayed unproven, its search over at 183,819 ms with a case node satisfiable (`runs/modal/dataplus/prof1`, `bst-given-long`).
+The goal's reads matched the allAbove lemma at four places a model can make equal, each at the left subtree (through
+the classes of every branch of the insertion at once), and the four kept of a lemma were those; the use at the right
+subtree, which the insertion's other side needs, wasn't among them. Ranked by the models where the lemma's read is the
+goal's, and kept per case among those its models meet, it is there: the law is proven in 20,081 ms above and in
+19,415 ms in the same run's `data` job, every other law of examples/data.ts still proven there.
+
+The lemmas found are the classic ones: `reverse(append(xs, [n])) = n :: reverse(xs)` for reverse of reverse, the sum
+of an append for the sum of a flattened tree (stated as `sum(cons(sum(xs), ys)) = sum(append(xs, ys))`, with
+`sum(append(xs, [0])) = sum(xs)` proven before it and used), and for the rose mirror the size of a forest with one tree
+more at its end. Every proven law is checked in Lean (the suite's `lean-data-0..5`, `runs/modal/dataplus/corpus1`, the
+standard axioms only) as a theorem about the datatype as declared: `lean-kernel/data.ts` writes the datatypes as Lean
+`inductive`s (a group as one `mutual` block) and the functions by pattern matching (a ring of them in a `mutual` block),
+a bijection between each datatype and the naturals (`enc`, `dec`, with `dec_enc` and `enc_dec`, from Data.lean's
+`cun`/`cpair`; a group's decodings well-founded by (group size + 1)·n plus an order that puts a datatype decoding n at
+fields up to n after the datatypes those fields name), the model (each map as the facts say it is), proves every fact
+of the proof true of the model, and states the law about the Lean definitions:
 `datarev.reverse_reverse (xs : List) : reverse (reverse xs) = xs`,
-`dataflatten.sum_flatten (t : Tree) : sum (flatten t) = tsum t`,
-`datafusion.map_fusion (f g : Nat → Nat) (xs : List) : mapF f (mapG g xs) = mapFG f g xs`,
-`datasorted.insert_sorted (x : Nat) (xs : List) : sorted xs = true → sorted (insert x xs) = true`.
+`databst.bst_insert (x : Nat) (t : Tree) : bst t = true → bst (bstInsert x t) = true`,
+`datarosemirror.rsize_rmirror (t : Rose) : rsize (rmirror t) = rsize t`,
+`datatakedrop.take_drop (n : Nat) (xs : List) : append (take n xs) (drop n xs) = xs`.
 
 `core/cycles.ts`'s `findCycles` doesn't take these laws (its `today` above): it fits ranks linear in the variables
 from runs over a grid of naturals, but a list's code squares with each item (codes past 2^53 after a few), so the runs
@@ -223,11 +249,13 @@ give it no edge; its back-edges go to every call the goal reads (`xs := append(x
 lean on the kernel's own congruence, which over pairing keys splits on products. The datatype search keeps its own
 cycle builder for that reason; the two share the kernel, `proveCyclic` and the corpus.
 
-Not proven: the search tree's insertion keeping the order (`bst(t) → bst(insert(x, t))`). Its two lemmas
-(`allBelow(t, v) ∧ x < v → allBelow(insert(x, t), v)` and the `allAbove` one) are found and proven; the law with them
-is not, within its time. Not found in general: a lemma past six symbols or of another shape than an equation or a kept
-predicate, an induction on a term no recursive call makes, mutual or nested datatypes (a field of another datatype, a
-list of trees), and functions defined by recursion on a natural.
+Not found in general: a lemma past six symbols or of another shape than an equation or a kept predicate; an induction
+on a term no recursive call makes; a companion of a mutual induction that the functions' own calls don't lift the law
+to (a law reading a rose tree other than through functions recursing on it, or a function whose call at a forest isn't
+one call with its own parameters); a recursion through a ring of functions that is a recursion induction rather than a
+structural one (the ring's calls give no use; mutual structural induction does); and nested datatypes in Lean's sense,
+a field of a type applied to the datatype itself (`List Rose`): there is no type parameter, so a list of trees is a
+forest declared with them.
 
 ### Reachability through a structure that changes
 
@@ -236,7 +264,7 @@ rule may hold such a value in its state and replace it at each step (a sorted li
 those above), but a linked structure a rule mutates is a heap: a map from addresses to cells whose links the step
 rewrites, aliasing and cycles allowed. Reachability there is a least fixpoint over a map that changes: "y is reachable
 from x" is an existential (some path), not a structural recursion (the heap has no decreasing argument; with fuel it is
-recursion on a natural, which the datatype search doesn't take), and the step's law needs a frame lemma about every
+recursion on a natural, which the datatype search now takes, though not over a map that changes), and the step's law needs a frame lemma about every
 path not through the written cell, an induction on the path's length inside the induction over the run's steps. The
 cyclic kernel can state that (a node ranked (t, n), lexicographic), but no instance builds such nodes, and the
 witness a step's new path needs (the path the law claims after the write) is a term no fact names.

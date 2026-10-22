@@ -6,7 +6,9 @@
 // The encoding: every natural is a value of every datatype (a bijection between the naturals and the datatype's values,
 // which Lean's twin defines and proves), so a value is a natural and two values are equal exactly when they are the same
 // natural. A datatype D is read through maps: `D.tag[x]` (which constructor), `D.<ctor>.<field>[x]` (its fields, 0 under
-// another constructor), `D.size[x]` (1 plus the sizes of its fields of type D: the rank). A constructor of no field is
+// another constructor), `D.size[x]` (1 plus the sizes of its fields of D's group: the rank). A field is a natural, a value
+// of D, of another datatype of D's group (declared together: a rose tree and its forest), or of one declared before (a
+// list of lists); every datatype has its own codes. A constructor of no field is
 // the constant of its tag; one with fields is a map read at its fields (`D.<ctor>[key]`); a function is a map read at
 // its arguments; several arguments are read at their pairing, left-nested (a + b)² + b, as the library reads a function
 // of several arguments (core/dsl.ts's argsKey). The facts, each at every value of its keys:
@@ -18,10 +20,12 @@
 //   - congruence of each map read at a pairing: equal arguments, equal cells (the kernel compares a pairing's
 //     monomials, not its arguments)
 // A law is a node at rank (level, D.size[x]) for an argument x; its uses read it at x's fields (structural induction),
-// or at the arguments of a function's own recursive calls (recursion induction, other arguments changing with them),
-// each where the tag is the case's. Lemmas the law needs are found by the values (theory exploration: equations between
-// terms the random values agree on, then the shapes of a predicate kept), proven the same way at lower levels, and used
-// at the terms of the law they match.
+// or at the arguments of a function's own recursive calls (recursion induction, other arguments changing with them; on a
+// natural n, at n − 1, its rank n), each where the tag is the case's. On a datatype of a group, the law has a companion
+// for each other datatype x's fields reach (the law lifted through each function's own call at such a field), each node
+// using the others at the fields of their datatypes (mutual induction). Lemmas the law needs are found by the values
+// (theory exploration: equations between terms the random values agree on, then the shapes of a predicate kept), proven
+// the same way at lower levels, and used at the terms of the law they match.
 import type {C, E} from './machine.ts'
 import {type Fact} from '../kernel/cyclic.ts'
 import {substC, substE} from '../kernel/kernel.ts'
@@ -33,7 +37,9 @@ import {pairedKeys, withDeadline} from '../kernel/prove.ts'
 export const self = {self: true} as const
 export const natural = 'nat' as const
 export const boolean = 'bool' as const
-type FieldSort = 'nat' | 'self'
+// A field is a natural or a value of a datatype: the datatype itself, another of its group (declared with it by
+// `mutual`), or one declared before it (a list of lists, say).
+export type FieldSort = 'nat' | {data: string}
 export type Sort = 'nat' | 'bool' | Data
 export type Ctor = {name: string, fields: {name: string, sort: FieldSort}[]}
 
@@ -47,6 +53,7 @@ export type X =
   | {op: 'call', fn: string, args: X[]}
   | {op: 'ctor', data: string, ctor: number, args: X[]}
   | {op: 'match', data: string, of: X, cases: {binds: string[], body: X}[]}
+  | {op: 'natmatch', of: X, zero: X, pred: string, succ: X}
   | {op: 'apply', param: string, arg: X}
   | {op: 'bool', c: Y}
 export type Y =
@@ -72,6 +79,14 @@ export class Nat {
   atLeast(b: NatLike): Bool { return new Bool({op: '<=', a: natX(b), b: this.x}) }
   eq(b: NatLike): Bool { return new Bool({op: '=', a: this.x, b: natX(b)}) }
   ne(b: NatLike): Bool { return this.eq(b).not() }
+  // A natural as 0 or the successor of another (`pred`): recursion on a natural passes `pred` where this is a parameter.
+  // oxlint-disable-next-line typescript/no-explicit-any
+  match(cases: {zero: () => Nat | Bool | Val | number, succ: (f: {pred: Nat}) => Nat | Bool | Val | number}): any {
+    const pred = bindName('pred'), zero = cases.zero(), succ = cases.succ({pred: new Nat({op: 'var', name: pred})})
+    const body = (o: unknown): X => (typeof o === 'number' ? natX(o) : o instanceof Bool ? {op: 'bool', c: o.y} : (o as Nat | Val).x)
+    const x: X = {op: 'natmatch', of: this.x, zero: body(zero), pred, succ: body(succ)}
+    return (zero instanceof Bool ? new Bool({op: 'holds', x}) : zero instanceof Val ? new Val(zero.data, x) : new Nat(x)) as never
+  }
 }
 export type NatLike = Nat | number
 const natX = (t: NatLike): X => (typeof t === 'number' ? {op: 'nat', value: t} : t.x)
@@ -95,7 +110,7 @@ export class Val {
       const f = cases[c.name]
       if (!f) throw new Error(`${d.name}: match has no case ${c.name}`)
       const binds = c.fields.map(fl => bindName(fl.name))
-      const fields = Object.fromEntries(c.fields.map((fl, i) => [fl.name, wrap(fl.sort === 'nat' ? 'nat' : d, {op: 'var', name: binds[i]!})]))
+      const fields = Object.fromEntries(c.fields.map((fl, i) => [fl.name, wrap(fieldSort(fl), {op: 'var', name: binds[i]!})]))
       return {binds, out: f(fields)}
     })
     const first = built[0]!.out
@@ -117,54 +132,124 @@ export function when<T extends Nat | Val | Bool | number>(c: Bool, a: T, b: T): 
   return (a instanceof Val ? new Val(a.data, x) : new Nat(x)) as never
 }
 
-// A datatype: its constructors, each with fields that are naturals or values of the datatype itself (`self`). Its
-// constructors are ordered as Lean's bijection numbers them: those of no field, then those with no field of the
-// datatype, then the rest; a datatype with no constructor of the first two kinds has no value and is refused.
+// A datatype: its constructors, each with fields that are naturals or values of a datatype (`self`, another of its group,
+// or one declared before it). Its constructors are ordered as Lean's bijection numbers them: those of no field, then
+// those with no field of its group, then the rest; a group with a datatype that has no value is refused.
+const declared = new Map<string, Data>()
+let declaredSeq = 0
+export const dataNamed = (name: string): Data => { const d = declared.get(name); if (!d) throw new Error(`no datatype ${name}`); return d }
+// A field's sort; whether it is of the datatype's group (the fields its size counts, and an induction descends into).
+export const fieldSort = (f: {sort: FieldSort}): Sort => (f.sort === 'nat' ? 'nat' : dataNamed(f.sort.data))
+export const inGroup = (d: Data, f: {sort: FieldSort}): boolean => f.sort !== 'nat' && d.group.includes(f.sort.data)
 export class Data {
   readonly ctors: Ctor[]
-  constructor(readonly name: string, decl: Record<string, Record<string, typeof self | 'nat' | {nat: true}>>) {
-    const all: Ctor[] = Object.entries(decl).map(([c, fs]) => ({name: c, fields: Object.entries(fs).map(([f, s]) => ({name: f, sort: s === self ? 'self' as const : 'nat' as const}))}))
-    const rank = (c: Ctor) => (!c.fields.length ? 0 : c.fields.every(f => f.sort === 'nat') ? 1 : 2)
-    this.ctors = [...all].sort((a, b) => rank(a) - rank(b))
-    if (!this.ctors.some(c => rank(c) < 2)) throw new Error(`${name}: every constructor has a field of ${name}, so it has no value`)
+  readonly seq = ++declaredSeq
+  constructor(readonly name: string, decl: Record<string, Record<string, FieldSort>>, readonly group: string[] = [name]) {
     if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(name)) throw new Error(`${name}: a datatype's name is letters and digits`)
+    const all: Ctor[] = Object.entries(decl).map(([c, fs]) => ({name: c, fields: Object.entries(fs).map(([f, s]) => ({name: f, sort: s}))}))
+    for (const c of all) for (const f of c.fields) if (f.sort !== 'nat' && !group.includes(f.sort.data) && !declared.has(f.sort.data)) throw new Error(`${name}.${c.name}.${f.name}: no datatype ${f.sort.data}`)
+    const rank = (c: Ctor) => (!c.fields.length ? 0 : c.fields.every(f => !(f.sort !== 'nat' && group.includes(f.sort.data))) ? 1 : 2)
+    this.ctors = [...all].sort((a, b) => rank(a) - rank(b))
+    declared.set(name, this)
   }
   index(ctor: string): number { const i = this.ctors.findIndex(c => c.name === ctor); if (i < 0) throw new Error(`${this.name} has no constructor ${ctor}`); return i }
   get nullary(): number { return this.ctors.filter(c => !c.fields.length).length }
   make(ctor: string, ...args: (Val | NatLike)[]): Val {
     const j = this.index(ctor), c = this.ctors[j]!
     if (args.length !== c.fields.length) throw new Error(`${this.name}.${ctor} takes ${c.fields.length} fields`)
-    return new Val(this, {op: 'ctor', data: this.name, ctor: j, args: c.fields.map((f, i) => xOf(f.sort === 'nat' ? 'nat' : this, args[i]))})
+    return new Val(this, {op: 'ctor', data: this.name, ctor: j, args: c.fields.map((f, i) => xOf(fieldSort(f), args[i]))})
   }
+  // How many constructors deep its smallest value is (a constructor of no field of the group: 0), and each constructor's.
+  ctorHeight(c: Ctor): number { return c.fields.reduce((h, f) => (inGroup(this, f) ? Math.max(h, 1 + dataNamed((f.sort as {data: string}).data).height) : h), 0) }
+  get height(): number { return groupHeights(this.group).get(this.name)! }
+}
+// The heights of a group's datatypes (least fixpoint; Infinity where a datatype has no value).
+function groupHeights(group: string[]): Map<string, number> {
+  const h = new Map(group.map(n => [n, Infinity]))
+  for (let changed = true; changed;) {
+    changed = false
+    for (const n of group) for (const c of dataNamed(n).ctors) {
+      const v = c.fields.reduce((m, f) => (f.sort !== 'nat' && group.includes(f.sort.data) ? Math.max(m, 1 + h.get(f.sort.data)!) : m), 0)
+      if (v < h.get(n)!) { h.set(n, v); changed = true }
+    }
+  }
+  return h
+}
+// A group's checks: each datatype has a value, and Lean's decoding terminates (a datatype every constructor of which has
+// a field of the group and none of no field decodes n at fields up to n itself: those must not call each other in a ring).
+function checkGroup(ds: Data[]) {
+  const hs = groupHeights(ds.map(d => d.name))
+  for (const d of ds) if (hs.get(d.name) === Infinity) throw new Error(`${d.name}: every constructor has a field of ${ds.length > 1 ? 'its group' : d.name} that has no value, so it has no value`)
+  void weakOrder(ds)
+}
+// A datatype is weak when its code n may be decoded at fields up to n (no constructor of no field, the first of the rest
+// with a field of the group); the order Lean's measure numbers them in (each weak one after the group's datatypes its
+// fields name), or a refusal.
+export function weakOrder(ds: Data[]): Map<string, number> {
+  const weak = (d: Data) => d.nullary === 0 && d.ctors[0]!.fields.some(f => inGroup(d, f))
+  const out = new Map<string, number>(), busy = new Set<string>()
+  const visit = (d: Data): number => {
+    const had = out.get(d.name)
+    if (had !== undefined) return had
+    if (!weak(d)) { out.set(d.name, 0); return 0 }
+    if (busy.has(d.name)) throw new Error(`${d.name}: its group's datatypes with no constructor of no field name each other in a ring, which the bijection with the naturals doesn't take`)
+    busy.add(d.name)
+    const o = 1 + Math.max(0, ...d.ctors.flatMap(c => c.fields.flatMap(f => (inGroup(d, f) && (f.sort as {data: string}).data !== d.name ? [visit(dataNamed((f.sort as {data: string}).data))] : []))))
+    busy.delete(d.name)
+    if (d.ctors.some(c => c.fields.some(f => f.sort !== 'nat' && f.sort.data === d.name)) && weak(d)) throw new Error(`${d.name}: no constructor of no field and its first constructor has a field of ${d.name}, which the bijection with the naturals doesn't take`)
+    out.set(d.name, o)
+    return o
+  }
+  ds.forEach(visit)
+  return out
 }
 type Decl = Record<string, Record<string, unknown>>
-// `data('List', {nil: {}, cons: {head: nat, tail: self}})`: `List.nil`, `List.cons(h, t)`, and `xs.match({...})`.
+const normField = (own: string, group: string[]) => (s: unknown): FieldSort => {
+  if (s === self) return {data: own}
+  if (s === 'nat' || (s && typeof s === 'object' && 'nat' in s)) return 'nat'
+  if (s instanceof Data) return {data: s.name}
+  if (typeof s === 'string' && group.includes(s)) return {data: s}
+  throw new Error(`${own}: a field is natural, self, a datatype declared before, or a name of its group`)
+}
+const withCtors = (d: Data) => { for (const c of d.ctors) Object.defineProperty(d, c.name, c.fields.length ? {value: (...args: (Val | NatLike)[]) => d.make(c.name, ...args)} : {get: () => d.make(c.name)}) }
+// `data('List', {nil: {}, cons: {head: natural, tail: self}})`: `List.nil`, `List.cons(h, t)`, and `xs.match({...})`. A
+// field may be a datatype declared before (`data('Bag', {none: {}, more: {items: List, rest: self}})`).
 export function data<const D extends Decl>(name: string, decl: D): Data & {[c in keyof D]: keyof D[c] extends never ? Val : (...args: (Val | NatLike)[]) => Val} {
-  const norm = Object.fromEntries(Object.entries(decl).map(([c, fs]) => [c, Object.fromEntries(Object.entries(fs as object).map(([f, s]) => [f, s === self ? self : 'nat' as const]))]))
-  const d = new Data(name, norm)
-  for (const c of d.ctors) Object.defineProperty(d, c.name, c.fields.length ? {value: (...args: (Val | NatLike)[]) => d.make(c.name, ...args)} : {get: () => d.make(c.name)})
+  const d = new Data(name, Object.fromEntries(Object.entries(decl).map(([c, fs]) => [c, Object.fromEntries(Object.entries(fs as object).map(([f, s]) => [f, normField(name, [name])(s)]))])))
+  checkGroup([d]); withCtors(d)
   return d as never
+}
+// Datatypes declared together, each field naming one of the group by its name (a mutual pair: a rose tree and its
+// forest, `mutual({Rose: {node: {value: natural, kids: 'Forest'}}, Forest: {nil: {}, cons: {head: 'Rose', tail: 'Forest'}}})`).
+// oxlint-disable-next-line typescript/no-explicit-any
+export function mutual<const G extends Record<string, Decl>>(decls: G): {[n in keyof G]: Data & Record<string, any>} {
+  const group = Object.keys(decls)
+  const ds = group.map(n => new Data(n, Object.fromEntries(Object.entries(decls[n]!).map(([c, fs]) => [c, Object.fromEntries(Object.entries(fs as object).map(([f, s]) => [f, normField(n, group)(s)]))])), group))
+  checkGroup(ds); ds.forEach(withCtors)
+  return Object.fromEntries(ds.map(d => [d.name, d])) as never
 }
 
 // A function by structural recursion: its parameters' sorts, the sort it returns, its body over the parameters (it may
-// call itself, and functions defined before it). `define` checks the recursion is structural: every call to itself
-// passes, at one parameter fixed for the function, a field of that parameter bound by a match.
-export type Fn = {name: string, params: {name: string, sort: Sort}[], ret: Sort, body: () => X, decreases?: number, paramFns: string[]}
+// call itself, and functions defined before or after it: functions that call each other are mutually recursive).
+// `define` checks the recursion is structural: every call within a ring of functions calling each other passes, at the
+// callee's parameter fixed for it, a field (or a field's field) of the caller's, bound by a match.
+// `decreases`: that parameter; `ring`: the functions of its ring, itself among them (checked when first read).
+export type Fn = {name: string, params: {name: string, sort: Sort}[], ret: Sort, body: () => X, readonly decreases?: number, readonly ring: string[], paramFns: string[]}
 export type Callable = ((...args: (Val | NatLike | Bool)[]) => any) & {fn: Fn}
 const fns = new Map<string, Fn>()
 export function define(name: string, params: Record<string, Sort>, ret: Sort, body: (args: Record<string, any>) => Nat | Bool | Val | number): Callable {
   if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(name)) throw new Error(`${name}: a function's name is letters and digits`)
   const ps = Object.entries(params).map(([n, s]) => ({name: n, sort: s}))
-  let built: X | undefined
-  const fn: Fn = {name, params: ps, ret, paramFns: [], body: () => {
+  let built: X | undefined, rec: {decreases?: number, ring: string[]} | undefined
+  const fn = {name, params: ps, ret, paramFns: [] as string[], body: () => {
     if (!built) {
       const args = Object.fromEntries(ps.map(p => [p.name, wrap(p.sort, {op: 'var', name: `${name}.${p.name}`})]))
       built = xOf(ret, body(args))
-      fn.decreases = decreasing(fn, built)
       fn.paramFns = [...new Set(paramsIn(built))]
+      walk(built, o => { if (o.op === 'call' && !fns.has(o.fn as string)) throw new Error(`${name} calls ${String(o.fn)}, which isn't defined`) })
     }
     return built
-  }}
+  }, get decreases() { return (rec ??= recursion(fn)).decreases }, get ring() { return (rec ??= recursion(fn)).ring }, set rec(r: {decreases?: number, ring: string[]}) { rec = r }} as Fn & {rec: {decreases?: number, ring: string[]}}
   fns.set(name, fn)
   const call = (...args: (Val | NatLike | Bool)[]) => {
     if (args.length !== ps.length) throw new Error(`${name} takes ${ps.length} arguments`)
@@ -184,9 +269,9 @@ function walk(t: unknown, f: (o: Record<string, unknown>) => void): void {
   for (const v of Object.values(o)) walk(v, f)
 }
 
-// The parameter every recursive call passes a field of (bound by a match on that parameter), or a refusal.
-function decreasing(fn: Fn, body: X): number | undefined {
-  const calls: {args: X[], fieldsOf: Map<string, string>}[] = []
+// The calls a body makes, each with what its bound names are fields of (a parameter, through matches).
+function callsIn(body: X): {fn: string, args: X[], fieldsOf: Map<string, string>}[] {
+  const calls: {fn: string, args: X[], fieldsOf: Map<string, string>}[] = []
   const go = (x: unknown, fieldsOf: Map<string, string>): void => {
     if (!x || typeof x !== 'object') return
     if (Array.isArray(x)) { x.forEach(y => go(y, fieldsOf)); return }
@@ -197,18 +282,44 @@ function decreasing(fn: Fn, body: X): number | undefined {
       o.cases.forEach(c => { const m = new Map(fieldsOf); if (of) c.binds.forEach(b => m.set(b, of)); go(c.body, m) })
       return
     }
-    if (o.op === 'call' && o.fn === fn.name) calls.push({args: o.args, fieldsOf})
-    if (o.op === 'call' && o.fn !== fn.name && !fns.has(o.fn)) throw new Error(`${fn.name} calls ${o.fn}, which isn't defined`)
+    if (o.op === 'natmatch') {
+      go(o.of, fieldsOf); go(o.zero, fieldsOf)
+      const of = o.of.op === 'var' ? (fieldsOf.get(o.of.name) ?? o.of.name) : undefined, m = new Map(fieldsOf)
+      if (of) m.set(o.pred, of)
+      go(o.succ, m)
+      return
+    }
+    if (o.op === 'call') calls.push({fn: o.fn, args: o.args, fieldsOf})
     for (const v of Object.values(o)) go(v, fieldsOf)
   }
   go(body, new Map())
-  if (!calls.length) return undefined
-  for (const [i, p] of fn.params.entries()) {
-    if (p.sort === 'nat' || p.sort === 'bool') continue
-    const own = `${fn.name}.${p.name}`
-    if (calls.every(c => { const a = c.args[i]!; return a.op === 'var' && c.fieldsOf.get(a.name) === own })) return i
+  return calls
+}
+// A function's ring (the functions it calls that call it back, itself among them) and the parameter of each every call
+// within the ring passes a field of, or a refusal. Each of the ring is given its own.
+function recursion(fn: Fn): {decreases?: number, ring: string[]} {
+  const callees = (f: Fn) => [...new Set(callsIn(f.body()).map(c => c.fn))]
+  const reach = (from: string): Set<string> => { const seen = new Set<string>(), todo = [from]; while (todo.length) { const g = todo.pop()!; for (const h of callees(fnOf(g))) if (!seen.has(h)) { seen.add(h); todo.push(h) } } return seen }
+  const mine = reach(fn.name)
+  const ring = [...mine].filter(g => g === fn.name || reach(g).has(fn.name))
+  if (!mine.has(fn.name)) { (fn as Fn & {rec: unknown}).rec = {ring: [fn.name]}; return {ring: [fn.name]} }
+  const members = [fn.name, ...ring.filter(g => g !== fn.name)].map(fnOf)
+  const options = members.map(f => f.params.flatMap((p, i) => (p.sort instanceof Data || p.sort === 'nat' ? [i] : [])))
+  const calls = members.map(f => callsIn(f.body()).filter(c => ring.includes(c.fn)))
+  // The first choice (by parameter order) every call within the ring meets.
+  const choose = (i: number, chosen: number[]): number[] | undefined => {
+    if (i === members.length) {
+      const ok = members.every((f, a) => calls[a]!.every(c => { const b = members.findIndex(g => g.name === c.fn), arg = c.args[chosen[b]!]!; return arg.op === 'var' && c.fieldsOf.get(arg.name) === `${f.name}.${f.params[chosen[a]!]!.name}` }))
+      return ok ? chosen : undefined
+    }
+    for (const o of options[i]!) { const r = choose(i + 1, [...chosen, o]); if (r) return r }
+    return undefined
   }
-  throw new Error(`${fn.name}: not structural recursion (no parameter whose field every recursive call passes)`)
+  const got = choose(0, [])
+  if (!got) throw new Error(`${fn.name}: not structural recursion (no parameter whose field every recursive call passes${members.length > 1 ? `, in its ring ${members.map(f => f.name).join(', ')}` : ''})`)
+  const names = members.map(f => f.name)
+  members.forEach((f, a) => { (f as Fn & {rec: unknown}).rec = {decreases: got[a], ring: names} })
+  return {decreases: got[0], ring: names}
 }
 
 // A law: its variables' sorts and what holds of them.
@@ -238,6 +349,12 @@ export function evalX(x: X, env: Env, params: Record<string, (n: number) => numb
     case 'bool': return evalY(x.c, env, params) ? 1 : 0
     case 'apply': return params[x.param]!(asNat(evalX(x.arg, env, params)))
     case 'ctor': return {c: x.ctor, f: x.args.map(a => evalX(a, env, params))}
+    case 'natmatch': {
+      const n = asNat(evalX(x.of, env, params))
+      if (n === 0) return evalX(x.zero, env, params)
+      const e2 = new Map(env); e2.set(x.pred, n - 1)
+      return evalX(x.succ, e2, params)
+    }
     case 'match': {
       const v = evalX(x.of, env, params) as {c: number, f: Value[]}, cs = x.cases[v.c]!
       const e2 = new Map(env)
@@ -268,7 +385,7 @@ export const showValue = (d: Sort, v: Value): string => {
   if (typeof v === 'number') return String(v)
   if (d === 'nat' || d === 'bool') return JSON.stringify(v)
   const c = d.ctors[v.c]!
-  return c.fields.length ? `${c.name}(${c.fields.map((f, i) => showValue(f.sort === 'nat' ? 'nat' : d, v.f[i]!)).join(', ')})` : c.name
+  return c.fields.length ? `${c.name}(${c.fields.map((f, i) => showValue(fieldSort(f), v.f[i]!)).join(', ')})` : c.name
 }
 
 // Random values: small naturals (so that comparisons and equalities between them happen), values of up to `size`
@@ -278,11 +395,13 @@ export const rng = (seed: number): Rand => () => { seed = (seed * 1103515245 + 1
 export function randomValue(s: Sort, rand: Rand, size: number, natMax = 5): Value {
   if (s === 'nat') return Math.floor(rand() * (natMax + 1))
   if (s === 'bool') return rand() < 0.5 ? 0 : 1
-  const leaves = s.ctors.filter(c => c.fields.every(f => f.sort === 'nat'))
+  // The leaves: constructors of no field of the group, or (a datatype with none, a rose tree) those of least height.
+  const base = s.ctors.filter(c => c.fields.every(f => !inGroup(s, f)))
+  const leaves = base.length ? base : s.ctors.filter(c => s.ctorHeight(c) === s.height)
   const pick = size <= 0 || rand() < 0.25 ? leaves : s.ctors
   const c = pick[Math.floor(rand() * pick.length)]!, j = s.ctors.indexOf(c)
-  const rec = c.fields.filter(f => f.sort === 'self').length
-  return {c: j, f: c.fields.map(f => randomValue(f.sort === 'nat' ? 'nat' : s, rand, Math.floor((size - 1) / Math.max(1, rec)), natMax))}
+  const rec = c.fields.filter(f => inGroup(s, f)).length
+  return {c: j, f: c.fields.map(f => randomValue(fieldSort(f), rand, inGroup(s, f) ? Math.floor((size - 1) / Math.max(1, rec)) : Math.min(3, size), natMax))}
 }
 // A random function of a natural: a table of small values.
 export const randomFn = (rand: Rand, natMax = 5): ((n: number) => number) => { const t = new Map<number, number>(); return n => { if (!t.has(n)) t.set(n, Math.floor(rand() * (natMax + 1))); return t.get(n)! } }
@@ -321,18 +440,22 @@ export type Program = {datas: Data[], fns: Fn[], params: string[]}
 // Everything a law reads: the datatypes, the functions (with those they call), the function parameters.
 export function programOf(laws: DataLaw[], extra: Fn[] = []): Program {
   const fs = new Map<string, Fn>(), ds = new Map<string, Data>(), ps = new Set<string>()
-  const addSort = (s: Sort) => { if (s instanceof Data) ds.set(s.name, s) }
+  // A datatype with those its fields name (its group, those declared before it).
+  const addSort = (s: Sort) => { if (s instanceof Data && !ds.has(s.name)) { ds.set(s.name, s); for (const c of s.ctors) for (const f of c.fields) addSort(fieldSort(f)) } }
   const visit = (t: unknown) => walk(t, o => {
     if (o.op === 'call' && !fs.has(o.fn as string)) { const f = fnOf(o.fn as string); fs.set(f.name, f); f.params.forEach(p => addSort(p.sort)); addSort(f.ret); visit(f.body()) }
     if (o.op === 'apply') ps.add(o.param as string)
   })
   for (const l of laws) { l.vars.forEach(v => addSort(v.sort)); visit(l.holds) }
   for (const f of extra) visit({op: 'call', fn: f.name, args: []})
-  const datas = [...new Map([...ds.values()].map(d => [d.name, d])).values()]
+  // In order of declaration (each after those its fields name; a group together).
+  const datas = [...ds.values()].sort((a, b) => a.seq - b.seq)
   // Functions in definition order (each after those it calls).
   const order: Fn[] = [], seen = new Set<string>()
   const place = (f: Fn) => { if (seen.has(f.name)) return; seen.add(f.name); walk(f.body(), o => { if (o.op === 'call' && o.fn !== f.name) place(fnOf(o.fn as string)) }); order.push(f) }
   for (const f of fs.values()) place(f)
+  // (the recursion of each checked)
+  for (const f of order) void f.decreases
   return {datas, fns: order, params: [...ps]}
 }
 
@@ -348,6 +471,11 @@ export function encX(p: Program, x: X, env: Map<string, E>): E {
     case 'apply': return get(x.param, encX(p, x.arg, env))
     case 'call': return get(x.fn, keyOf(x.args.map(a => encX(p, a, env))))
     case 'ctor': { const d = dataOf(p, x.data); return x.args.length ? get(ctorMap(d, x.ctor), keyOf(x.args.map(a => encX(p, a, env)))) : k(x.ctor) }
+    case 'natmatch': {
+      const of = encX(p, x.of, env), e2 = new Map(env)
+      e2.set(x.pred, {op: 'sub', a: of, b: k(1)})
+      return {op: 'if', c: eqC(of, k(0)), then: encX(p, x.zero, env), else: encX(p, x.succ, e2)}
+    }
     case 'match': {
       const d = dataOf(p, x.data), of = encX(p, x.of, env)
       const bodies = x.cases.map((c, j) => { const e2 = new Map(env); c.binds.forEach((b, i) => e2.set(b, get(fieldMap(d, j, i), of))); return encX(p, c.body, e2) })
@@ -375,7 +503,7 @@ export function factsOf(p: Program): Facts {
     const tag = get(tagMap(d.name), x), size = (t: E) => get(sizeMap(d.name), t)
     // Under tag j: the size, and every field of another constructor 0 (what Lean's model reads there).
     const under = (c: Ctor, j: number): C => {
-      const sz = c.fields.flatMap((f, i) => (f.sort === 'self' ? [size(get(fieldMap(d, j, i), x))] : [])).reduce<E>((a, b) => ({op: 'add', a, b}), k(1))
+      const sz = c.fields.flatMap((f, i) => (inGroup(d, f) ? [get(sizeMap((f.sort as {data: string}).data), get(fieldMap(d, j, i), x))] : [])).reduce<E>((a, b) => ({op: 'add', a, b}), k(1))
       const others = d.ctors.flatMap((c2, j2) => (j2 === j ? [] : c2.fields.map((_, i2) => eqC(get(fieldMap(d, j2, i2), x), k(0)))))
       return andC(eqC(size(x), sz), ...others)
     }
@@ -423,13 +551,13 @@ export function decode(d: Data, n: number): Value {
   const z = d.nullary, m = d.ctors.length - z
   if (n < z) return {c: n, f: []}
   const q = Math.floor((n - z) / m), j = z + ((n - z) % m), c = d.ctors[j]!
-  return {c: j, f: c.fields.map((f, i) => { const x = tup(q, c.fields.length, i); return f.sort === 'nat' ? x : decode(d, x) })}
+  return {c: j, f: c.fields.map((f, i) => { const x = tup(q, c.fields.length, i); return f.sort === 'nat' ? x : decode(dataNamed(f.sort.data), x) })}
 }
 export function encode(d: Data, v: Value): number {
   const o = v as {c: number, f: Value[]}, z = d.nullary, m = d.ctors.length - z
   if (o.c < z) return o.c
   const c = d.ctors[o.c]!
-  return safe(z + m * tupk(c.fields.map((f, i) => (f.sort === 'nat' ? o.f[i] as number : encode(d, o.f[i]!)))) + (o.c - z))
+  return safe(z + m * tupk(c.fields.map((f, i) => (f.sort === 'nat' ? o.f[i] as number : encode(dataNamed(f.sort.data), o.f[i]!)))) + (o.c - z))
 }
 // Each map of the encoding as a function of its arguments, on the codes (for core/cycles.ts's runs).
 export function codeValues(p: Program): Record<string, (...xs: number[]) => number> {
@@ -438,8 +566,8 @@ export function codeValues(p: Program): Record<string, (...xs: number[]) => numb
     out[tagMap(d.name)] = n => (decode(d, n) as {c: number}).c
     out[sizeMap(d.name)] = n => sizeOf(d, decode(d, n))
     d.ctors.forEach((c, j) => {
-      c.fields.forEach((f, i) => { out[fieldMap(d, j, i)] = n => { const v = decode(d, n) as {c: number, f: Value[]}; return v.c === j ? (f.sort === 'nat' ? v.f[i] as number : encode(d, v.f[i]!)) : 0 } })
-      if (c.fields.length) out[ctorMap(d, j)] = (...xs) => encode(d, {c: j, f: c.fields.map((f, i) => (f.sort === 'nat' ? xs[i]! : decode(d, xs[i]!)))})
+      c.fields.forEach((f, i) => { out[fieldMap(d, j, i)] = n => { const v = decode(d, n) as {c: number, f: Value[]}; return v.c === j ? (f.sort === 'nat' ? v.f[i] as number : encode(dataNamed(f.sort.data), v.f[i]!)) : 0 } })
+      if (c.fields.length) out[ctorMap(d, j)] = (...xs) => encode(d, {c: j, f: c.fields.map((f, i) => (f.sort === 'nat' ? xs[i]! : decode(dataNamed(f.sort.data), xs[i]!)))})
     })
   }
   for (const f of p.fns) out[f.name] = (...xs) => {
@@ -450,7 +578,7 @@ export function codeValues(p: Program): Record<string, (...xs: number[]) => numb
 }
 // That a value's fields of its datatype have smaller codes (true of the codes above: each field at most q).
 export const orderFacts = (p: Program): Fact[] => p.datas.map(d => ({name: `order ${d.name}`, keys: ['x$'], holds: andC(yesC, ...d.ctors.flatMap((c, j) =>
-  c.fields.flatMap((f, i): C[] => (f.sort === 'self' ? [implies(eqC(get(tagMap(d.name), ev('x$')), k(j)), {op: '<', a: get(fieldMap(d, j, i), ev('x$')), b: ev('x$')})] : []))))}))
+  c.fields.flatMap((f, i): C[] => (f.sort !== 'nat' && f.sort.data === d.name ? [implies(eqC(get(tagMap(d.name), ev('x$')), k(j)), {op: '<', a: get(fieldMap(d, j, i), ev('x$')), b: ev('x$')})] : []))))}))
 
 // --- concrete models: a value of the encoding at random values (which terms are equal, for congruences and matches) ----
 
@@ -494,8 +622,8 @@ export class Model {
       if (map === tagMap(d.name)) return (this.value(d, key) as {c: number}).c
       if (map === sizeMap(d.name)) return sizeOf(d, this.value(d, key))
       for (const [j, c] of d.ctors.entries()) {
-        for (const [i, f] of c.fields.entries()) if (map === fieldMap(d, j, i)) { const v = this.value(d, key) as {c: number, f: Value[]}; return v.c === j ? this.code(f.sort === 'nat' ? 'nat' : d, v.f[i]!) : 0 }
-        if (c.fields.length && map === ctorMap(d, j)) { const as = unkey(key, c.fields.length); return this.id(d, {c: j, f: c.fields.map((f, i) => this.decode(f.sort === 'nat' ? 'nat' : d, as[i]!))}) }
+        for (const [i, f] of c.fields.entries()) if (map === fieldMap(d, j, i)) { const v = this.value(d, key) as {c: number, f: Value[]}; return v.c === j ? this.code(fieldSort(f), v.f[i]!) : 0 }
+        if (c.fields.length && map === ctorMap(d, j)) { const as = unkey(key, c.fields.length); return this.id(d, {c: j, f: c.fields.map((f, i) => this.decode(fieldSort(f), as[i]!))}) }
       }
     }
     const f = p.fns.find(g => g.name === map)
@@ -544,7 +672,7 @@ export class Model {
     }
   }
 }
-export const sizeOf = (d: Data, v: Value): number => { const o = v as {c: number, f: Value[]}; return 1 + d.ctors[o.c]!.fields.reduce((s, f, i) => s + (f.sort === 'self' ? sizeOf(d, o.f[i]!) : 0), 0) }
+export const sizeOf = (d: Data, v: Value): number => { const o = v as {c: number, f: Value[]}; return 1 + d.ctors[o.c]!.fields.reduce((s, f, i) => s + (inGroup(d, f) ? sizeOf(fieldSort(f) as Data, o.f[i]!) : 0), 0) }
 const isqrt = (n: number) => { let s = Math.floor(Math.sqrt(n)); while (s * s > n) s--; while ((s + 1) * (s + 1) <= n) s++; return s }
 export function unkey(key: number, n: number): number[] {
   if (n === 1) return [key]
@@ -573,7 +701,100 @@ export function refute(l: DataLaw, n = 400, seed = 7): Record<string, string> | 
 
 // The node of a law: its variables (each a plain variable of the encoding), its conclusion, rank (level, size of the
 // variable inducted on), the uses of the scheme, and the facts at every term its goal reads, to `depth` unfoldings.
-type Scheme = {name: string, on?: {v: string, d: Data}, uses: {subst: Record<string, E>, guard: C}[]}
+// A use may read another node of the scheme (`member`: a companion, below).
+type SchemeUse = {subst: Record<string, E>, guard: C, member?: number}
+// `on`: the variable whose size is the rank (a natural's is itself, recursion on a natural).
+type Scheme = {name: string, on?: {v: string, d: Data | 'nat'}, uses: SchemeUse[], companions?: Companion[]}
+// Mutual induction on a variable of a datatype of a group (a rose tree and its forest): the law, and for each other
+// datatype of the group its fields reach, a companion, the law said of a value of that datatype; each node uses the one
+// of each field's datatype at that field (member 0 the law, i the i-th companion).
+type Companion = {law: DataLaw, on: {v: string, d: Data}, uses: SchemeUse[]}
+// The function a function f calls at its decreasing argument's field of datatype `to` (a rose tree's sum, at its forest:
+// the forest's sum): the call, the same for every such field, its other arguments f's own parameters or closed terms.
+function partner(f: Fn, to: Data): {fn: Fn, args: (number | X)[]} | undefined {
+  const di = f.decreases
+  if (di === undefined) return undefined
+  const own = `${f.name}.${f.params[di]!.name}`, found = new Map<string, {fn: Fn, args: (number | X)[]}>()
+  let bad = false
+  const go = (x: unknown, fields: Set<string>): void => {
+    if (!x || typeof x !== 'object') return
+    if (Array.isArray(x)) { x.forEach(y => go(y, fields)); return }
+    const t = x as X
+    if (t.op === 'match' && t.of.op === 'var' && t.of.name === own) {
+      const d = dataNamed(t.data)
+      t.cases.forEach((c, j) => go(c.body, new Set([...fields, ...c.binds.filter((_, i) => { const fl = d.ctors[j]!.fields[i]!; return fl.sort !== 'nat' && fl.sort.data === to.name })])))
+      return
+    }
+    if (t.op === 'call') {
+      const g = fnOf(t.fn), gd = g.decreases, at = gd === undefined ? undefined : t.args[gd]
+      if (at?.op === 'var' && fields.has(at.name)) {
+        const args = t.args.map((a, i): number | X | undefined => (i === gd ? -1 : a.op === 'var' && a.name.startsWith(`${f.name}.`) ? f.params.findIndex(q => `${f.name}.${q.name}` === a.name) : !JSON.stringify(a).includes('"op":"var"') ? a : undefined))
+        if (args.some(a => a === undefined)) bad = true
+        else found.set(JSON.stringify([g.name, args]), {fn: g, args: args as (number | X)[]})
+      }
+    }
+    for (const v of Object.values(t)) go(v, fields)
+  }
+  go(f.body(), new Set())
+  return !bad && found.size === 1 ? [...found.values()][0] : undefined
+}
+// The law said of a value of datatype `to` in place of v: v a variable of `to`, and each call whose decreasing argument
+// is then of `to` (no longer of its own datatype) its function's partner at `to`; none where a sort no longer fits (an
+// argument, a comparison).
+function companionOf(l: DataLaw, v: string, to: Data, name: string): DataLaw | undefined {
+  // (a sort unknown, an if's or a match's, fits any)
+  const sorts = new Map<string, Sort>(l.vars.map(x => [x.name, x.sort])), same = (a?: Sort, b?: Sort) => a === undefined || b === undefined || (a instanceof Data ? a.name : a) === (b instanceof Data ? b.name : b)
+  const sortOf = (x: X, renamed: boolean): Sort | undefined => (x.op === 'var' ? (renamed && x.name === name ? to : sorts.get(x.name)) : x.op === 'call' ? fnOf(x.fn).ret : x.op === 'ctor' ? dataNamed(x.data) : x.op === 'match' || x.op === 'if' ? undefined : 'nat')
+  let ok = true
+  const lift = (t: unknown): unknown => {
+    if (!ok) return t
+    if (Array.isArray(t)) return t.map(lift)
+    if (!t || typeof t !== 'object') return t
+    const o = t as X
+    if (o.op === 'var' && o.name === v) return {op: 'var', name}
+    if (o.op === 'call') {
+      const f = fnOf(o.fn), di = f.decreases, as = o.args.map(a => lift(a) as X)
+      if (di !== undefined && !same(sortOf(as[di]!, true), sortOf(o.args[di]!, false))) {
+        const pt = partner(f, to)
+        if (!pt || !same(sortOf(as[di]!, true), to)) { ok = false; return o }
+        const args = pt.args.map(a => (a === -1 ? as[di]! : typeof a === 'number' ? as[a]! : a))
+        if (args.some((a, i) => i !== pt.fn.decreases && !same(sortOf(a, true), pt.fn.params[i]!.sort))) { ok = false; return o }
+        return {op: 'call', fn: pt.fn.name, args}
+      }
+      if (as.some((a, i) => !same(sortOf(a, true), f.params[i]!.sort))) { ok = false; return o }
+      return {...o, args: as}
+    }
+    if (o.op === 'ctor') { const d = dataNamed(o.data), as = o.args.map(a => lift(a) as X); if (as.some((a, i) => !same(sortOf(a, true), fieldSort(d.ctors[o.ctor]!.fields[i]!)))) ok = false; return {...o, args: as} }
+    const out = Object.fromEntries(Object.entries(o).map(([key, x]) => [key, lift(x)])) as Record<string, unknown>
+    if (out.op === '=' && !same(sortOf(out.a as X, true), sortOf(out.b as X, true))) ok = false
+    const om = o as X
+    if (om.op === 'match' && !same(sortOf(out.of as X, true), dataNamed(om.data))) ok = false
+    return out
+  }
+  const holds = lift(l.holds) as Y
+  if (!ok || !JSON.stringify(holds).includes(JSON.stringify({op: 'var', name}))) return undefined
+  return {name: `${l.name}, at ${to.name}`, vars: l.vars.map(x => (x.name === v ? {name, sort: to} : x)), holds, params: l.params}
+}
+// The mutual scheme on v: the companions of the datatypes v's fields reach (through the group), or none.
+function mutualScheme(l: DataLaw, v: string, d: Data): Scheme | undefined {
+  const at = new Map<string, {law: DataLaw, v: string}>([[d.name, {law: l, v}]]), todo = [d]
+  while (todo.length) {
+    const x = todo.shift()!, from = at.get(x.name)!
+    for (const c of x.ctors) for (const f of c.fields) {
+      if (!inGroup(x, f) || at.has((f.sort as {data: string}).data)) continue
+      const to = dataNamed((f.sort as {data: string}).data), name = `${v}${to.name}`, law = companionOf(from.law, from.v, to, name)
+      if (!law) return undefined
+      at.set(to.name, {law, v: name}); todo.push(to)
+    }
+  }
+  if (at.size < 2) return undefined
+  const order = [...at.keys()]
+  const usesOf = (x: Data, xv: string): SchemeUse[] => x.ctors.flatMap((c, j) => c.fields.flatMap((f, i) => (inGroup(x, f) && at.has((f.sort as {data: string}).data)
+    ? [{subst: {[at.get((f.sort as {data: string}).data)!.v]: get(fieldMap(x, j, i), ev(xv))}, guard: eqC(get(tagMap(x.name), ev(xv)), k(j)), member: order.indexOf((f.sort as {data: string}).data)}] : [])))
+  return {name: `mutual structure of ${v}`, on: {v, d}, uses: usesOf(d, v), companions: order.slice(1).map(n => { const x = dataNamed(n), a = at.get(n)!; return {law: a.law, on: {v: a.v, d: x}, uses: usesOf(x, a.v)} })}
+}
+// The inductions the search tries for a law (its schemes), for tests.
+export const schemesOf = (p: Program, l: DataLaw): Scheme[] => schemes(p, l)
 function schemes(p: Program, l: DataLaw): Scheme[] {
   const out: Scheme[] = [], seen = new Set<string>()
   const add = (s: Scheme) => { const id = JSON.stringify(s.uses); if (!seen.has(id)) { seen.add(id); out.push(s) } }
@@ -586,7 +807,7 @@ function schemes(p: Program, l: DataLaw): Scheme[] {
     if (f.decreases === undefined) return
     const at = args[f.decreases]!
     if (at.op !== 'var' || !l.vars.some(v => v.name === at.name)) return
-    const d = f.params[f.decreases]!.sort as Data
+    const d = f.params[f.decreases]!.sort as Data | 'nat'
     const formal = new Map(f.params.map((q, i) => [`${f.name}.${q.name}`, args[i]!.op === 'var' && l.vars.some(v => v.name === (args[i] as {name: string}).name) ? ev((args[i] as {name: string}).name) : undefined]))
     const uses: Scheme['uses'] = []
     const go = (x: unknown, env: Map<string, E>, guard: C[]): void => {
@@ -597,6 +818,14 @@ function schemes(p: Program, l: DataLaw): Scheme[] {
         go(t.of, env, guard)
         const dd = dataOf(p, t.data), of = encX(p, t.of, env)
         t.cases.forEach((c, j) => { const e2 = new Map(env); c.binds.forEach((b, i) => e2.set(b, get(fieldMap(dd, j, i), of))); go(c.body, e2, [...guard, eqC(get(tagMap(dd.name), of), k(j))]) })
+        return
+      }
+      if (t.op === 'natmatch') {
+        go(t.of, env, guard)
+        const of = encX(p, t.of, env), e2 = new Map(env)
+        go(t.zero, env, [...guard, eqC(of, k(0))])
+        e2.set(t.pred, {op: 'sub', a: of, b: k(1)})
+        go(t.succ, e2, [...guard, {op: 'not', x: eqC(of, k(0))}])
         return
       }
       if (t.op === 'call' && t.fn === f.name) {
@@ -616,11 +845,13 @@ function schemes(p: Program, l: DataLaw): Scheme[] {
     go(f.body(), env, [])
     if (uses.length) add({name: `recursion of ${f.name} on ${at.name}`, on: {v: at.name, d}, uses})
   })
-  // Structural induction on each variable of a datatype, the others fixed.
+  // Structural induction on each variable of a datatype, the others fixed; mutual where its fields reach another of its
+  // group (the law and its companions), plain where they reach none or no companion is found.
   for (const v of l.vars) {
     if (!(v.sort instanceof Data)) continue
-    const d = v.sort, x = ev(v.name)
-    add({name: `structure of ${v.name}`, on: {v: v.name, d}, uses: d.ctors.flatMap((c, j) => c.fields.flatMap((f, i) => (f.sort === 'self' ? [{subst: {[v.name]: get(fieldMap(d, j, i), x)}, guard: eqC(get(tagMap(d.name), x), k(j))}] : [])))})
+    const d = v.sort, x = ev(v.name), mut = mutualScheme(l, v.name, d)
+    if (mut) { out.push(mut); continue }
+    add({name: `structure of ${v.name}`, on: {v: v.name, d}, uses: d.ctors.flatMap((c, j) => c.fields.flatMap((f, i) => (f.sort !== 'nat' && f.sort.data === d.name ? [{subst: {[v.name]: get(fieldMap(d, j, i), x)}, guard: eqC(get(tagMap(d.name), x), k(j))}] : [])))})
   }
   return out
 }
@@ -739,7 +970,9 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
         if (!f || f.decreases === undefined) continue
         const as = argsOf(r.key, f.params.length)
         if (!as) continue
-        const own = as[f.decreases]!, d = f.params[f.decreases]!.sort as Data, root = cl.find(tid(own))
+        const d0 = f.params[f.decreases]!.sort
+        if (!(d0 instanceof Data)) continue
+        const own = as[f.decreases]!, d = d0, root = cl.find(tid(own))
         const built = (t: E) => (t.op === 'get' && d.ctors.some((c, j) => c.fields.length && t.map === ctorMap(d, j))) || (t.op === 'const' && t.value < d.nullary)
         const cands = built(own) ? [own] : [...cl.terms.values()].filter(t => built(t) && cl.find(tid(t)) === root)
         for (const t of cands) {
@@ -758,7 +991,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   }
   lap(`by constructors, ${insts.length} instances, ${all.length} reads`)
   const dataOfTerm = (t: E): Data | undefined => {
-    if (t.op === 'get') { for (const d of p.datas) if (t.map === tagMap(d.name) || t.map === sizeMap(d.name)) return d; const f = fnOfMap(t.map); if (f && f.ret instanceof Data) return f.ret; for (const d of p.datas) for (const [j, c] of d.ctors.entries()) { if (c.fields.length && t.map === ctorMap(d, j)) return d; for (const [i, fl] of c.fields.entries()) if (fl.sort === 'self' && t.map === fieldMap(d, j, i)) return d } }
+    if (t.op === 'get') { for (const d of p.datas) if (t.map === tagMap(d.name) || t.map === sizeMap(d.name)) return d; const f = fnOfMap(t.map); if (f && f.ret instanceof Data) return f.ret; for (const d of p.datas) for (const [j, c] of d.ctors.entries()) { if (c.fields.length && t.map === ctorMap(d, j)) return d; for (const [i, fl] of c.fields.entries()) if (fl.sort !== 'nat' && t.map === fieldMap(d, j, i)) return dataNamed(fl.sort.data) } }
     return undefined
   }
   const shape = (t: E, d?: Data) => { const dd = d ?? dataOfTerm(t); if (dd) { inst(`shape ${dd.name}`, [t]); ctors(note(reads(holdsAt(`shape ${dd.name}`, [t])))) } }
@@ -929,12 +1162,11 @@ function casesOf(p: Program, unfolded: C[], vars: Set<string>, models: M[]): Cas
 const dataTrace = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.DATA_TRACE
 // Debugging: every congruence a model's closure makes, not only those explanations use.
 const allCong = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.DATA_ALLCONG
-function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, depth: number, lemmas: Proven[], level: number, pool: M[]): {verdict: CyclicVerdict, specs: NodeSpec[]} {
+function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, depth: number, lemmas: Proven[], level: number, pool: M[]): {verdict: CyclicVerdict, specs: NodeSpec[], main: number} {
   const t0 = performance.now()
   anchoredAt.clear()
   // A few models for the instances; the whole pool for the cases (a rare case gets its own models from it).
-  const models = pool.slice(0, 24), few = (ms: M[]) => ms.slice(0, 16)
-  const concl = encY(p, l.holds, new Map())
+  const few = (ms: M[]) => ms.slice(0, 16)
   const specs: NodeSpec[] = [], where = new Map<string, number>()
   for (const lm of lemmas) {
     const local = new Map<number, number>()
@@ -944,44 +1176,62 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
       specs.push({...n, uses: n.uses.map(u => ({...u, node: local.get(u.node) ?? u.node}))})
     })
   }
-  const me = specs.length, name = `${l.name}${scheme ? ` (${scheme.name})` : ''}`
-  varSorts = new Map(l.vars.flatMap(v => (v.sort instanceof Data ? [[v.name, v.sort] as [string, Data]] : [])))
-  const size = scheme?.on ? get(sizeMap(scheme.on.d.name), ev(scheme.on.v)) : k(0)
-  const rank = (sub: number): E[] => [k(level), size, k(sub)]
-  const ih = (scheme?.uses ?? []).map(u => ({node: me, subst: u.subst, guard: u.guard}))
-  const shapesAt = scheme?.on ? [ev(scheme.on.v)] : []
-  const ihConcls = ih.map(u => substC(concl, {vars: u.subst, maps: {}, flags: {}}))
-  // Uses of the lemmas, where a lemma's largest read matches a read of this goal (unfolded), its key up to the equalities
-  // the unfolded definitions give (any branch); twice over, the uses' own conclusions read the second time.
-  const pre = instancesOf(p, fs, {roots: [concl], others: ihConcls, depth, shapesAt, etaAt: [], models: [], until: t0 + attemptMs.ms})
-  const lemmaUses = lemmaUsesFor(p, fs, lemmas.map(lm => ({law: lm.law, node: where.get(lm.spec.name)!, concl: specs[where.get(lm.spec.name)!]!.concl})), [concl, ihConcls], pre, models)
-  const uses = [...ih, ...lemmaUses]
-  if (dataTrace) for (const u of lemmaUses) console.error(`[data]   lemma use ${specs[u.node]!.name.slice(0, 40)} at ${Object.entries(u.subst).map(([x, t]) => `${x} := ${JSON.stringify(t).slice(0, 80)}`).join('; ')}`)
-  const useConcl = (u: NodeSpec['uses'][number]) => substC(u.node === me ? concl : specs[u.node]!.concl, {vars: u.subst, maps: {}, flags: {}})
-  // The lemmas' conclusions are unfolded like the law's (they are what the goal reads, said another way); the cycle's
-  // own uses only from depth 3.
-  const instsFor = (ms: M[], us: NodeSpec['uses'], every = false) => instancesOf(p, fs, {roots: [concl], others: us.map(useConcl), depth, shapesAt, etaAt: [...shapesAt, ...valuesCompared(p, l)], models: ms, every, until: t0 + attemptMs.ms})
-  const cases = scheme ? casesOf(p, pre.filter(q => fs.facts[q.fact]!.name.startsWith('fn ')).map(q => holdsAt(fs, q)), new Set(l.vars.map(v => v.name)), pool) : []
-  if (cases.length <= 1) {
-    specs.push({name, hyps: [], concl, rank: rank(0), insts: instsFor(models, uses), uses})
-  } else {
-    specs.push({name, hyps: [], concl, rank: rank(1), insts: [], uses: cases.map((c, i) => ({node: me + 1 + i, subst: {}, guard: andC(yesC, ...c.lits)}))})
+  // The scheme's nodes: the law's, then each companion's (a mutual induction), each its own models. A use of member i
+  // reads node -1 - i until the nodes are placed.
+  const members = [{law: l, on: scheme?.on, uses: scheme?.uses ?? [], pool}, ...(scheme?.companions ?? []).map(c => ({...c, pool: modelsFor(p, c.law, pool.length, 5)}))]
+  const concls = members.map(mb => encY(p, mb.law.holds, new Map()))
+  const base = specs.length, title = `${l.name}${scheme ? ` (${scheme.name})` : ''}`
+  varSorts = new Map(members.flatMap(mb => mb.law.vars.flatMap(v => (v.sort instanceof Data ? [[v.name, v.sort] as [string, Data]] : []))))
+  const lemmaNodes = lemmas.map(lm => ({law: lm.law, node: where.get(lm.spec.name)!, concl: specs[where.get(lm.spec.name)!]!.concl}))
+  const useConcl = (u: NodeSpec['uses'][number]) => substC(u.node < 0 ? concls[-1 - u.node]! : specs[u.node]!.concl, {vars: u.subst, maps: {}, flags: {}})
+  type Planned = Omit<NodeSpec, 'rank'> & {sub: number, cases?: C[]}
+  const plans: Planned[][] = []
+  for (const [mi, mb] of members.entries()) {
+    const models = mb.pool.slice(0, 24), concl = concls[mi]!, name = mi === 0 ? title : `${title}, at ${(mb.on!.d as Data).name}`
+    const ih = mb.uses.map(u => ({node: -1 - (u.member ?? mi), subst: u.subst, guard: u.guard}))
+    const shapesAt = mb.on && mb.on.d !== 'nat' ? [ev(mb.on.v)] : []
+    const ihConcls = ih.map(useConcl)
+    // Uses of the lemmas, where a lemma's largest read matches a read of this goal (unfolded), its key up to the
+    // equalities the unfolded definitions give (any branch); twice over, the uses' own conclusions read the second time.
+    const pre = instancesOf(p, fs, {roots: [concl], others: ihConcls, depth, shapesAt, etaAt: [], models: [], until: t0 + attemptMs.ms})
+    const lemmaUses = lemmaUsesFor(p, fs, lemmaNodes, [concl, ihConcls], pre, models)
+    const uses = [...ih, ...lemmaUses]
+    if (dataTrace) for (const u of lemmaUses) console.error(`[data]   lemma use ${specs[u.node]!.name.slice(0, 40)} at ${Object.entries(u.subst).map(([x, t]) => `${x} := ${JSON.stringify(t).slice(0, 80)}`).join('; ')}`)
+    // The lemmas' conclusions are unfolded like the law's (they are what the goal reads, said another way); the cycle's
+    // own uses only from depth 3.
+    const instsFor = (ms: M[], us: NodeSpec['uses'], every = false) => instancesOf(p, fs, {roots: [concl], others: us.map(useConcl), depth, shapesAt, etaAt: [...shapesAt, ...valuesCompared(p, mb.law)], models: ms, every, until: t0 + attemptMs.ms})
+    const cases = scheme ? casesOf(p, pre.filter(q => fs.facts[q.fact]!.name.startsWith('fn ')).map(q => holdsAt(fs, q)), new Set(mb.law.vars.map(v => v.name)), mb.pool) : []
+    if (cases.length <= 1) {
+      // One node: four uses of a lemma, twelve in all, the best first (as lemmaUsesFor ranks them).
+      const one = capUses(uses, 12)
+      plans.push([{name, hyps: [], concl, sub: 0, insts: instsFor(models, one), uses: one}])
+      continue
+    }
+    const plan: Planned[] = [{name, hyps: [], concl, sub: 1, insts: [], uses: [], cases: cases.map(c => andC(yesC, ...c.lits))}]
     for (const [i, c] of cases.entries()) {
       // The uses whose guard some model of the case meets (all, for a case no model reaches).
       const holdsIn = (g: C) => !c.models || c.models.some(({m, env}) => { try { return m.evalC(g, env) } catch { return true } })
       // A lemma's use where its read is the goal's read it matched, in every model of the case.
       const applies = (u: NodeSpec['uses'][number]) => { const at = matchedAt.get(u); return !at || !c.models || c.models.every(({m, env}) => { try { return m.evalE(at.goal, env) === m.evalE(at.lemma, env) } catch { return false } }) }
-      const us = uses.filter(u => holdsIn(u.guard) && applies(u))
+      const us = capUses(uses.filter(u => holdsIn(u.guard) && applies(u)))
       const ms = few(c.models ?? c.near ?? models)
-      specs.push({name: `${name}, case ${i + 1}`, hyps: c.lits, concl, rank: rank(0), insts: reached(p, fs, instsFor(ms, us), [c.lits, concl, us.map(u => [u.guard, useConcl(u)]), shapesAt], ms), uses: us})
+      plan.push({name: `${name}, case ${i + 1}`, hyps: c.lits, concl, sub: 0, insts: reached(p, fs, instsFor(ms, us), [c.lits, concl, us.map(u => [u.guard, useConcl(u)]), shapesAt], ms), uses: us})
     }
+    plans.push(plan)
   }
+  // Placed: each member's node, then its cases; a main node with cases uses them, at rank (level, size, 1) above theirs.
+  const offsets = plans.map((_, i) => base + plans.slice(0, i).reduce((n, q) => n + q.length, 0))
+  for (const [mi, plan] of plans.entries()) {
+    const mb = members[mi]!, size = !mb.on ? k(0) : mb.on.d === 'nat' ? ev(mb.on.v) : get(sizeMap(mb.on.d.name), ev(mb.on.v))
+    for (const {sub, cases, ...n} of plan) specs.push({...n, rank: [k(level), size, k(sub)], uses: cases ? cases.map((g, i) => ({node: offsets[mi]! + 1 + i, subst: {}, guard: g})) : n.uses.map(u => (u.node < 0 ? {...u, node: offsets[-1 - u.node]!} : u))})
+  }
+  const name = title
   // Each attempt within its own time (a goal past it is left unknown, and the attempt fails).
   if (dataTrace) console.error(`[data] @${Math.round(performance.now())} ${l.name} (${scheme?.name}) depth ${depth}, ${lemmas.length} lemmas: built in ${Math.round(performance.now() - t0)} ms, ${specs.length} nodes, ${specs.reduce((n, x) => n + x.insts.length, 0)} instances`)
-  if (performance.now() > t0 + attemptMs.ms) return {verdict: {proven: false, checked: false, node: name, goal: name, stuck: 'unknown'}, specs}
+  if (performance.now() > t0 + attemptMs.ms) return {verdict: {proven: false, checked: false, node: name, goal: name, stuck: 'unknown'}, specs, main: base}
   const was = pairedKeys.skip
   pairedKeys.skip = true
-  try { return {verdict: withDeadline(t0 + attemptMs.ms, () => proveCyclic(fs.facts, specs)), specs} } finally { pairedKeys.skip = was }
+  try { return {verdict: withDeadline(t0 + attemptMs.ms, () => proveCyclic(fs.facts, specs)), specs, main: base} } finally { pairedKeys.skip = was }
 }
 export const attemptMs = {ms: 8000}
 // A case node's instances, those its models reach: from every read of its conclusion and its uses' (and their guards),
@@ -1065,6 +1315,10 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number
   walk([from, insts.map(q => holdsAt(fs, q))], o => { if (o.op === 'get') reads.push(o as unknown as E) })
   for (let round = 0; round < 2; round++) {
     const fresh: E[] = []
+    // The candidates of a round, each scored by the models where the lemma's read is the goal's (a match through every
+    // branch's classes holds only in some), two that give the lemma's variables the same values in every model one.
+    type Cand = {use: NodeSpec['uses'][number], at: {goal: E, lemma: E}, score: number, fp: string, size: number}
+    const cands: Cand[] = []
     // The newest lemma first (the one the law is tried again for).
     for (const lm of [...lemmas].reverse()) {
       if (round > 0 && out.some(u => u.node === lm.node)) continue
@@ -1082,19 +1336,49 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number
           if (Object.keys(sub).length !== vars.size) continue
           // Where a model gives the lemma's arguments the goal read's (a match through every branch's classes may be none).
           const there = pats.map(a => substE(a, {vars: sub, maps: {}, flags: {}}))
-          if (models.length && !models.some(({m, env}) => { try { return there.every((a, q) => m.evalE(a, env) === m.evalE(args[q]!, env)) } catch { return false } })) continue
+          const score = models.length ? models.filter(({m, env}) => { try { return there.every((a, q) => m.evalE(a, env) === m.evalE(args[q]!, env)) } catch { return false } }).length : 1
+          if (!score) continue
           const k2 = JSON.stringify([lm.node, sub])
-          if (seen.has(k2) || out.length >= 12 || out.filter(u => u.node === lm.node).length >= 4) continue
+          if (seen.has(k2)) continue
           seen.add(k2)
-          out.push({node: lm.node, subst: sub, guard: yesC})
-          matchedAt.set(out.at(-1)!, {goal: t, lemma: substE(top, {vars: sub, maps: {}, flags: {}})})
-          walk(substC(lm.concl, {vars: sub, maps: {}, flags: {}}), o => { if (o.op === 'get') fresh.push(o as unknown as E) })
+          const names = Object.keys(sub).sort()
+          const fp = models.length ? JSON.stringify([lm.node, models.map(({m, env}) => names.map(x => { try { return m.evalE(sub[x]!, env) } catch { return -1 } }))]) : k2
+          cands.push({use: {node: lm.node, subst: sub, guard: yesC}, at: {goal: t, lemma: substE(top, {vars: sub, maps: {}, flags: {}})}, score, fp, size: k2.length})
         }
       }
     }
+    // First, as found: four of a lemma, twelve in all (the next round reads their conclusions). Then the rest, best first
+    // (the most models, then the smallest terms), one of each set of values, up to `perLemma` of a lemma and `total` in
+    // all: a case node keeps those its models meet, `perCase` of a lemma (attempt's `applies`), so a use that holds in
+    // one case only (the insertion's other side) isn't crowded out by those found first.
+    const fps = new Set<string>(), first = new Set<Cand>()
+    const take = (c: Cand) => { fps.add(c.fp); out.push(c.use); matchedAt.set(c.use, c.at) }
+    for (const c of cands) {
+      if (out.length >= 12 || out.filter(u => u.node === c.use.node).length >= 4) continue
+      take(c); first.add(c)
+      walk(substC(lemmas.find(lm => lm.node === c.use.node)!.concl, {vars: c.use.subst, maps: {}, flags: {}}), o => { if (o.op === 'get') fresh.push(o as unknown as E) })
+    }
+    const rest = cands.filter(c => !first.has(c)).sort((a, b) => b.score - a.score || a.size - b.size)
+    for (const c of rest) if (!fps.has(c.fp) && out.length < lemmaCaps.total && out.filter(u => u.node === c.use.node).length < lemmaCaps.perLemma) take(c)
     reads = fresh
   }
   return out
+}
+// How many uses of lemmas a goal gets: the candidates kept (`perLemma` of each lemma, `total`), and of those a case node
+// keeps (`perCase` of each lemma, those its models meet).
+export const lemmaCaps = {perLemma: 8, total: 24, perCase: 4}
+// A node's uses: the scheme's (the cycle's, read at nodes not yet placed) all, `perCase` of each lemma, `total` lemma
+// uses in all, in the order given.
+function capUses(uses: NodeSpec['uses'], total = Infinity): NodeSpec['uses'] {
+  const per = new Map<number, number>()
+  let all = 0
+  return uses.filter(u => {
+    if (u.node < 0) return true
+    const n = per.get(u.node) ?? 0
+    if (n >= lemmaCaps.perCase || all >= total) return false
+    per.set(u.node, n + 1); all++
+    return true
+  })
 }
 // The equalities a condition may give: those in a positive place (a conjunction's parts, a disjunction's disjuncts that
 // aren't negations, so an implication's conclusion and never its premise).
@@ -1124,9 +1408,9 @@ function proveWith(p: Program, fs: Facts, l: DataLaw, lemmas: Proven[], level: n
   for (const depth of depths.filter(d => d <= (opts.depth ?? 3))) for (const s of ss) {
     if (performance.now() > until) return {tried, last}
     tried++
-    const {verdict, specs} = (attemptMs.ms = Math.min(per * (opts.patience ?? 1), until - performance.now()), attempt(p, fs, l, s, depth, lemmas, level, models))
+    const {verdict, specs, main} = (attemptMs.ms = Math.min(per * (opts.patience ?? 1), until - performance.now()), attempt(p, fs, l, s, depth, lemmas, level, models))
     last = verdict
-    if (verdict.proven && verdict.checked) return {out: {law: l, spec: specs.find(n => n.name === specs[specs.length - 1]!.name.replace(/, case \d+$/, ''))!, nodes: specs}, verdict, scheme: s?.name, tried}
+    if (verdict.proven && verdict.checked) return {out: {law: l, spec: specs[main]!, nodes: specs}, verdict, scheme: s?.name, tried}
   }
   return {tried, last}
 }
@@ -1161,7 +1445,7 @@ export function conjectures(p: Program, l: DataLaw, max = 24, maxSize = 6): Data
       return out
     }
     for (const f of fnsUsed) for (const args of build(f.params.map(q => q.sort), size - 1)) addT({x: {op: 'call', fn: f.name, args: args.map(a => a.x)}, sort: f.ret, size})
-    for (const d of p.datas) d.ctors.forEach((c, j) => { if (c.fields.length) for (const args of build(c.fields.map(f => (f.sort === 'nat' ? 'nat' : d)), size - 1)) addT({x: {op: 'ctor', data: d.name, ctor: j, args: args.map(a => a.x)}, sort: d, size}) })
+    for (const d of p.datas) d.ctors.forEach((c, j) => { if (c.fields.length) for (const args of build(c.fields.map(f => fieldSort(f)), size - 1)) addT({x: {op: 'ctor', data: d.name, ctor: j, args: args.map(a => a.x)}, sort: d, size}) })
     for (const [a2, b2] of build(['nat', 'nat'], size - 1)) if (JSON.stringify(a2!.x) <= JSON.stringify(b2!.x)) addT({x: {op: 'add', a: a2!.x, b: b2!.x}, sort: 'nat', size})
     if (classes.size > 6000) break
   }
@@ -1295,6 +1579,7 @@ export const showX = (x: X): string => {
     case 'call': return `${x.fn}(${x.args.map(showX).join(', ')})`
     case 'ctor': { const d = [...fns.values()].length >= 0 ? x.data : x.data; return `${d}.${x.ctor}${x.args.length ? `(${x.args.map(showX).join(', ')})` : ''}` }
     case 'match': return `match ${showX(x.of)}`
+    case 'natmatch': return `match ${showX(x.of)}`
   }
 }
 export const showY = (y: Y): string => {
@@ -1334,11 +1619,15 @@ export function proveData(l: DataLaw, opts: Options = {}): DataVerdict {
   if (without) return ok(proveWith(p, fs, l, [], 1, opts, until, 20000, [2, 3]), []) ?? done({proven: false, checked: false, lemmas: [], tried, ...stuckOf(first.last)})
   const cands = Array.isArray(opts.lemmas) ? opts.lemmas : conjectures(p, l)
   const p2 = programOf([l, ...cands]), fs2 = factsOf(p2)
-  const goalOf = (s: Scheme | undefined) => {
-    const concl = encY(p2, l.holds, new Map()), ihc = (s?.uses ?? []).map(u => substC(concl, {vars: u.subst, maps: {}, flags: {}}))
-    return {from: [concl, ihc], insts: instancesOf(p2, fs2, {roots: [concl], others: ihc, depth: 2, shapesAt: s?.on ? [ev(s.on.v)] : [], etaAt: [], models: []})}
+  // Each scheme's goals: the law's, and each companion's (a lemma may be what only a companion's goal reads).
+  const goalOf = (law: DataLaw, uses: SchemeUse[], on: Scheme['on'], concls: C[]) => {
+    const concl = encY(p2, law.holds, new Map()), ihc = uses.map(u => substC(concls[u.member ?? 0] ?? concl, {vars: u.subst, maps: {}, flags: {}}))
+    return {from: [concl, ihc], insts: instancesOf(p2, fs2, {roots: [concl], others: ihc, depth: 2, shapesAt: on && on.d !== 'nat' ? [ev(on.v)] : [], etaAt: [], models: []})}
   }
-  const goals = schemes(p2, l).map(goalOf)
+  const goals = schemes(p2, l).flatMap(s => {
+    const all = [{law: l, uses: s.uses, on: s.on}, ...(s.companions ?? [])], concls = all.map(m => encY(p2, m.law.holds, new Map()))
+    return all.map((m, i) => goalOf(m.law, m.uses.map(u => ({...u, member: u.member ?? i})), m.on, concls))
+  })
   const matchesGoal = (c: DataLaw) => goals.some(g => lemmaUsesFor(p2, fs2, [{law: c, node: 0, concl: encY(p2, c.holds, new Map())}], g.from, g.insts).length > 0)
   // Those the goal matches first, of those the ones of the law's shape (an implication for an implication) first.
   const implication = (y: Y) => y.op === 'or' && y.xs.length === 2 && y.xs[0]!.op === 'not'
