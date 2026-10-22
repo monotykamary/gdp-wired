@@ -34,6 +34,7 @@ import type {Cyclic} from '../kernel/cyclic.ts'
 import {budget, budgetLaws, fill, fillLaws, mccarthy, mutual, tally, tallyLaws} from '../examples/cyclic.ts'
 import {leanItems as cycleLeanItems} from '../examples/cycles.ts'
 import {filled, growing} from '../examples/lemmas.ts'
+import {leanItems as existsLeanItems} from '../examples/exists.ts'
 
 const caps = rule('caps').params({d: nat}).inputs({acct: nat, day: nat, ok: bool}).maps({Acct: 0, Day: 0})
   .flags(({ok, acct, day, d, Acct, Day}) => ({granted: ok.and(Acct.at(acct).lt(1), Day.at(day).lt(d))}))
@@ -121,6 +122,8 @@ const file = toLean(([
   {id: 'authority', machine: auth.machine, laws: authorityLaws(auth), stepLaws: [...authoritySteps(auth), ...authorityPairs(auth)]},
   {id: 'inline', machine: inlineAuthority().machine, laws: inlineLaws(), stepLaws: inlineSteps()},
   {id: 'members', machine: members().machine, laws: memberLaws(), stepLaws: memberSteps()},
+  // There exists (core/exists.ts): each law stated as ∃ and proven by ⟨witness, proof⟩, through a witness term or ghosts.
+  ...existsLeanItems().map(item => ({...item, id: `exists_${item.id}`})),
   // A flag read at a later step's witness: the first step's check where the second's would fail.
   {id: 'normalform', machine: normalForm().machine, laws: normalFormLaws(), stepLaws: normalFormSteps()},
   {id: 'childuse', machine: childUse().machine, laws: childUseLaws(), stepLaws: childUseSteps()},
