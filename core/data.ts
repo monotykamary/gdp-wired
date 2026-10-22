@@ -32,6 +32,7 @@ import {substC, substE} from '../kernel/kernel.ts'
 import {type CyclicVerdict, type NodeSpec, proveCyclic} from './cyclic.ts'
 import {clock, counted, pairedKeys, withDeadline} from '../kernel/prove.ts'
 import {work} from './solver.ts'
+import {ranksOfRuns} from './cycles.ts'
 
 // --- sorts and the AST ------------------------------------------------------------------------------------------------
 
@@ -57,6 +58,8 @@ export type X =
   | {op: 'natmatch', of: X, zero: X, pred: string, succ: X}
   | {op: 'apply', param: string, arg: X}
   | {op: 'bool', c: Y}
+  // A value's size (1 plus the sizes of its fields of its datatype's group): what a measure reads
+  | {op: 'size', data: string, of: X}
 export type Y =
   | {op: '<' | '<=' | '=', a: X, b: X}
   | {op: 'and' | 'or', xs: Y[]}
@@ -120,6 +123,8 @@ export class Val {
     return (first instanceof Bool ? new Bool({op: 'holds', x}) : first instanceof Val ? new Val(first.data, x) : new Nat(x)) as never
   }
   is(ctor: string): Bool { return new Bool({op: 'is', data: this.data.name, of: this.x, ctor: this.data.index(ctor)}) }
+  // Its size: 1 plus the sizes of its fields of its datatype's group (a list's length plus 1, a tree's nodes and leaves).
+  size(): Nat { return new Nat({op: 'size', data: this.data.name, of: this.x}) }
   eq(b: Val): Bool { return new Bool({op: '=', a: this.x, b: b.x}) }
   ne(b: Val): Bool { return this.eq(b).not() }
 }
@@ -230,19 +235,30 @@ export function mutual<const G extends Record<string, Decl>>(decls: G): {[n in k
   return Object.fromEntries(ds.map(d => [d.name, d])) as never
 }
 
-// A function by structural recursion: its parameters' sorts, the sort it returns, its body over the parameters (it may
-// call itself, and functions defined before or after it: functions that call each other are mutually recursive).
-// `define` checks the recursion is structural: every call within a ring of functions calling each other passes, at the
-// callee's parameter fixed for it, a field (or a field's field) of the caller's, bound by a match.
-// `decreases`: that parameter; `ring`: the functions of its ring, itself among them (checked when first read).
-export type Fn = {name: string, params: {name: string, sort: Sort}[], ret: Sort, body: () => X, readonly decreases?: number, readonly ring: string[], paramFns: string[]}
+// A function: its parameters' sorts, the sort it returns, its body over the parameters (it may call itself, and
+// functions defined before or after it: functions that call each other are mutually recursive). Its recursion is checked
+// when first read: structural (every call within a ring of functions calling each other passes, at the callee's
+// parameter fixed for it, a field, or a field's field, of the caller's, bound by a match; or a natural's predecessor),
+// else well-founded (one function, not a ring: a measure every call lowers, proven, below). `decreases`: that parameter;
+// `ring`: the functions of its ring, itself among them; `measure` and `termination`: a well-founded one's measure and the
+// kernel's proofs that every call lowers it. `measure` given (`{measure: ['xs', 'ys']}`, lexicographic; a component of
+// several names their sum, `{measure: [['xs', 'ys']]}`): that measure, not searched, and no structural recursion tried.
+export type Fn = {name: string, params: {name: string, sort: Sort}[], ret: Sort, body: () => X, readonly decreases?: number, readonly ring: string[], paramFns: string[],
+  readonly measure?: Measure, readonly termination?: Termination, stated?: Measure}
 export type Callable = ((...args: (Val | NatLike | Bool)[]) => any) & {fn: Fn}
+type Rec = {decreases?: number, ring: string[], measure?: Measure, termination?: Termination}
 const fns = new Map<string, Fn>()
-export function define(name: string, params: Record<string, Sort>, ret: Sort, body: (args: Record<string, any>) => Nat | Bool | Val | number): Callable {
+export function define(name: string, params: Record<string, Sort>, ret: Sort, body: (args: Record<string, any>) => Nat | Bool | Val | number, opts: {measure?: (string | string[])[]} = {}): Callable {
   if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(name)) throw new Error(`${name}: a function's name is letters and digits`)
   const ps = Object.entries(params).map(([n, s]) => ({name: n, sort: s}))
-  let built: X | undefined, rec: {decreases?: number, ring: string[]} | undefined
-  const fn = {name, params: ps, ret, paramFns: [] as string[], body: () => {
+  const stated = opts.measure && measureOf(name, ps, opts.measure)
+  let built: X | undefined, rec: Rec | undefined, failed: Error | undefined
+  // The recursion, checked once (a refusal kept and given again).
+  const got = (): Rec => {
+    if (failed) throw failed
+    try { return (rec ??= recursion(fn)) } catch (e) { failed = e as Error; throw e }
+  }
+  const fn = {name, params: ps, ret, paramFns: [] as string[], stated, body: () => {
     if (!built) {
       const args = Object.fromEntries(ps.map(p => [p.name, wrap(p.sort, {op: 'var', name: `${name}.${p.name}`})]))
       built = xOf(ret, body(args))
@@ -250,7 +266,8 @@ export function define(name: string, params: Record<string, Sort>, ret: Sort, bo
       walk(built, o => { if (o.op === 'call' && !fns.has(o.fn as string)) throw new Error(`${name} calls ${String(o.fn)}, which isn't defined`) })
     }
     return built
-  }, get decreases() { return (rec ??= recursion(fn)).decreases }, get ring() { return (rec ??= recursion(fn)).ring }, set rec(r: {decreases?: number, ring: string[]}) { rec = r }} as Fn & {rec: {decreases?: number, ring: string[]}}
+  }, get decreases() { return got().decreases }, get ring() { return got().ring }, get measure() { return got().measure }, get termination() { return got().termination },
+  set rec(r: Rec) { rec = r }} as Fn & {rec: Rec}
   fns.set(name, fn)
   const call = (...args: (Val | NatLike | Bool)[]) => {
     if (args.length !== ps.length) throw new Error(`${name} takes ${ps.length} arguments`)
@@ -298,7 +315,7 @@ function callsIn(body: X): {fn: string, args: X[], fieldsOf: Map<string, string>
 }
 // A function's ring (the functions it calls that call it back, itself among them) and the parameter of each every call
 // within the ring passes a field of, or a refusal. Each of the ring is given its own.
-function recursion(fn: Fn): {decreases?: number, ring: string[]} {
+function recursion(fn: Fn): Rec {
   const callees = (f: Fn) => [...new Set(callsIn(f.body()).map(c => c.fn))]
   const reach = (from: string): Set<string> => { const seen = new Set<string>(), todo = [from]; while (todo.length) { const g = todo.pop()!; for (const h of callees(fnOf(g))) if (!seen.has(h)) { seen.add(h); todo.push(h) } } return seen }
   const mine = reach(fn.name)
@@ -316,11 +333,206 @@ function recursion(fn: Fn): {decreases?: number, ring: string[]} {
     for (const o of options[i]!) { const r = choose(i + 1, [...chosen, o]); if (r) return r }
     return undefined
   }
-  const got = choose(0, [])
-  if (!got) throw new Error(`${fn.name}: not structural recursion (no parameter whose field every recursive call passes${members.length > 1 ? `, in its ring ${members.map(f => f.name).join(', ')}` : ''})`)
+  const got = fn.stated ? undefined : choose(0, [])
+  if (!got) {
+    const why = `${fn.name}: not structural recursion (no parameter whose field every recursive call passes${members.length > 1 ? `, in its ring ${members.map(f => f.name).join(', ')}` : ''}${fn.stated ? '; a measure is given' : ''})`
+    if (members.length > 1) throw new Error(`${why}, and a ring of functions is taken by structural recursion only`)
+    const t = termination(fn, why)
+    return {ring: [fn.name], measure: t.measure, termination: t}
+  }
   const names = members.map(f => f.name)
   members.forEach((f, a) => { (f as Fn & {rec: unknown}).rec = {decreases: got[a], ring: names} })
   return {decreases: got[0], ring: names}
+}
+
+// --- well-founded recursion -------------------------------------------------------------------------------------------
+//
+// A function whose recursion isn't structural is taken when a measure is proven to fall at every call it makes to itself.
+// A measure is a lexicographic tuple of components, each Σ coef·size(parameter) + c (a natural's size itself, a datatype
+// value's its size: 1 plus its fields' of the group), read truncated at 0. For each call the body makes to itself, its
+// obligation is a law over the function's parameters: under the path to the call (the cases its matches take, the
+// conditions of its ifs), the measure at the call's arguments is below the measure at the parameters. Each obligation is
+// proven by proveData (a cyclic proof the kernel checks) in a program without the function: its facts are those of the
+// datatypes and of the functions already taken, never the equation of the function being taken (nor one of a call
+// nested in an argument or a condition: that is refused). Only then is the function's equation a fact.
+//
+// Why that is sound (lean-kernel/Data.lean's `wf_fix_unique`): the body, read as a functional F of the function, reads
+// the function only at the calls on the path the arguments take, each at a lower measure; so F g x = F h x wherever g and
+// h agree below x's measure, and a functional with that property has exactly one fixpoint. The equation then has a
+// solution (the facts have a model: what the cyclic proofs conclude isn't vacuous) and only one (it is the function as
+// written, which Lean's export defines by `termination_by` the same measure). Without the proof, `f(x) = f(x) + 1` would
+// be a fact with no model, from which the kernel would prove anything.
+//
+// The measure: one the user gives, else the first of these the function's runs don't contradict (each call recorded
+// from the parameters' sizes to the arguments') and whose obligations are proven: a parameter's size, a lexicographic
+// pair or triple of them, a sum of two or of all, then the lexicographic rank core/cycles.ts's LP fits to the runs.
+export type Measure = {comps: {coef: number[], c: number}[]}
+export type Termination = {measure: Measure, text: string, obligations: {law: DataLaw, proof?: CyclicVerdict, scheme?: string, lemmas: string[]}[], ms: number}
+export const terminationMs = {ms: 20_000}
+const measurable = (s: Sort) => s === 'nat' || s instanceof Data
+function measureOf(name: string, ps: {name: string, sort: Sort}[], m: (string | string[])[]): Measure {
+  if (!m.length) throw new Error(`${name}: an empty measure`)
+  return {comps: m.map(c => {
+    const names = typeof c === 'string' ? [c] : c
+    return {coef: ps.map(p => names.filter(n => n === p.name).length), c: names.every(n => ps.some(p => p.name === n && measurable(p.sort))) ? 0 : (() => { throw new Error(`${name}: a measure names its parameters of a datatype or naturals (${names.join(', ')})`) })()}
+  })}
+}
+export const showMeasure = (f: Pick<Fn, 'params'>, m: Measure): string => {
+  const comp = (c: Measure['comps'][number]) => {
+    const parts = c.coef.flatMap((k, i) => (k ? [`${k < 0 ? '−' : ''}${Math.abs(k) === 1 ? '' : `${Math.abs(k)}·`}${f.params[i]!.sort === 'nat' ? f.params[i]!.name : `size(${f.params[i]!.name})`}`] : []))
+    const t = [...parts, ...(c.c ? [String(c.c)] : [])].join(' + ').replace(/\+ −/g, '− ')
+    return t || '0'
+  }
+  return m.comps.length === 1 ? comp(m.comps[0]!) : `(${m.comps.map(comp).join(', ')})`
+}
+// A component at arguments, as a term (its negative part subtracted, truncated as the encoding reads it).
+const sizeX = (s: Sort, a: X): X => (s === 'nat' ? a : {op: 'size', data: (s as Data).name, of: a})
+export function measureX(f: Pick<Fn, 'params'>, c: Measure['comps'][number], args: X[]): X {
+  const pos: X[] = [], neg: X[] = []
+  c.coef.forEach((k, i) => { if (!k) return; const t = sizeX(f.params[i]!.sort, args[i]!); (k > 0 ? pos : neg).push(Math.abs(k) === 1 ? t : {op: 'mul', k: Math.abs(k), a: t}) })
+  if (c.c > 0) pos.push({op: 'nat', value: c.c})
+  if (c.c < 0) neg.push({op: 'nat', value: -c.c})
+  const sum = (ts: X[]): X => (ts.length ? ts.reduce((a, b) => ({op: 'add', a, b})) : {op: 'nat', value: 0})
+  return neg.length ? {op: 'sub', a: sum(pos), b: sum(neg)} : sum(pos)
+}
+const lexY = (as: X[], bs: X[]): Y => (as.length === 1 ? {op: '<', a: as[0]!, b: bs[0]!} : {op: 'or', xs: [{op: '<', a: as[0]!, b: bs[0]!}, {op: 'and', xs: [{op: '=', a: as[0]!, b: bs[0]!}, lexY(as.slice(1), bs.slice(1))]}]})
+// The calls a body makes to fn, each with its path: a match on a variable (a parameter, or a field a match bound) is the
+// variable at the case's constructor, its fields new variables (`shape`), as a natural matched is 0 or its predecessor
+// plus 1; an if's condition, or a match on another term (its other cases true), wraps the law (`wrap`). A case that
+// contradicts one taken before on its path is never reached, and its calls have none.
+type Site = {args: X[], wrap: (y: Y) => Y, shape: Map<string, X>, vars: {name: string, sort: Sort}[]}
+function callSites(fn: Fn): Site[] {
+  const out: Site[] = [], yesX: X = {op: 'bool', c: yes.y}
+  type Path = {wrap: Site['wrap'], shape: Map<string, X>, vars: Site['vars']}
+  const at = (sh: Map<string, X>, name: string): X | undefined => { let t = sh.get(name); while (t && t.op === 'var' && sh.has(t.name)) t = sh.get(t.name); return t }
+  const goY = (y: Y, w: Path): void => {
+    switch (y.op) {
+      case '<': case '<=': case '=': goX(y.a, w); goX(y.b, w); return
+      case 'and': case 'or': y.xs.forEach(z => goY(z, w)); return
+      case 'not': goY(y.x, w); return
+      case 'is': goX(y.of, w); return
+      case 'holds': goX(y.x, w); return
+    }
+  }
+  const goX = (x: X, w: Path): void => {
+    switch (x.op) {
+      case 'var': case 'nat': return
+      case 'add': case 'sub': case 'min': case 'max': goX(x.a, w); goX(x.b, w); return
+      case 'mul': goX(x.a, w); return
+      case 'apply': goX(x.arg, w); return
+      case 'size': goX(x.of, w); return
+      case 'bool': goY(x.c, w); return
+      case 'ctor': x.args.forEach(a => goX(a, w)); return
+      case 'call': x.args.forEach(a => goX(a, w)); if (x.fn === fn.name) out.push({args: x.args, ...w}); return
+      case 'if': goY(x.c, w); goX(x.then, {...w, wrap: y => w.wrap({op: 'or', xs: [{op: 'not', x: x.c}, y]})}); goX(x.else, {...w, wrap: y => w.wrap({op: 'or', xs: [x.c, y]})}); return
+      case 'match': {
+        goX(x.of, w)
+        const d = dataNamed(x.data), v = x.of.op === 'var' ? x.of.name : undefined, had = v ? at(w.shape, v) : undefined
+        x.cases.forEach((c, j) => {
+          if (v && had?.op === 'ctor') {
+            // matched before on this path: the same case, its fields the ones bound then; another, never reached
+            if (had.ctor === j) goX(c.body, {...w, shape: new Map([...w.shape, ...c.binds.map((b, i) => [b, had.args[i]!] as [string, X])])})
+            return
+          }
+          if (v && !had) {
+            const fields = c.binds.map((b, i) => ({name: b, sort: fieldSort(d.ctors[j]!.fields[i]!)}))
+            goX(c.body, {wrap: w.wrap, shape: new Map([...w.shape, [v, {op: 'ctor', data: x.data, ctor: j, args: c.binds.map(b => ({op: 'var', name: b}) as X)}]]), vars: [...w.vars, ...fields]})
+            return
+          }
+          goX(c.body, {...w, wrap: y => w.wrap({op: 'holds', x: {op: 'match', data: x.data, of: x.of, cases: x.cases.map((c2, i) => ({binds: c2.binds, body: i === j ? {op: 'bool', c: y} : yesX}))}})})
+        })
+        return
+      }
+      case 'natmatch': {
+        goX(x.of, w)
+        const v = x.of.op === 'var' ? x.of.name : undefined
+        if (v && !at(w.shape, v)) {
+          goX(x.zero, {...w, shape: new Map([...w.shape, [v, {op: 'nat', value: 0}]])})
+          goX(x.succ, {wrap: w.wrap, shape: new Map([...w.shape, [v, {op: 'add', a: {op: 'var', name: x.pred}, b: {op: 'nat', value: 1}}]]), vars: [...w.vars, {name: x.pred, sort: 'nat'}]})
+          return
+        }
+        goX(x.zero, {...w, wrap: y => w.wrap({op: 'holds', x: {op: 'natmatch', of: x.of, zero: {op: 'bool', c: y}, pred: x.pred, succ: yesX}})})
+        goX(x.succ, {...w, wrap: y => w.wrap({op: 'holds', x: {op: 'natmatch', of: x.of, zero: yesX, pred: x.pred, succ: {op: 'bool', c: y}}})})
+        return
+      }
+    }
+  }
+  goX(fn.body(), {wrap: y => y, shape: new Map(), vars: fn.params.map(q => ({name: `${fn.name}.${q.name}`, sort: q.sort}))})
+  return out
+}
+// The obligation of a call: under its path, the measure at its arguments below the measure at the parameters, a law over
+// the path's variables (the parameters not matched, the fields of the cases taken).
+function obligation(fn: Fn, m: Measure, s: Site, i: number): DataLaw {
+  const own = fn.params.map(q => ({op: 'var', name: `${fn.name}.${q.name}`}) as X)
+  const shaped = (t: unknown): unknown => (Array.isArray(t) ? t.map(shaped) : t && typeof t === 'object' ? ((t as X).op === 'var' && s.shape.has((t as {name: string}).name) ? shaped(s.shape.get((t as {name: string}).name)) : Object.fromEntries(Object.entries(t).map(([key, v]) => [key, shaped(v)]))) : t)
+  const holds = shaped(s.wrap(lexY(m.comps.map(c => measureX(fn, c, s.args)), m.comps.map(c => measureX(fn, c, own))))) as Y
+  return {name: `${fn.name}'s call ${i + 1} lowers ${showMeasure(fn, m)}`, vars: s.vars.filter(v => !s.shape.has(v.name)), holds, params: [...new Set(paramsIn(holds))]}
+}
+// The calls the function's runs make, each from its parameters' sizes to its arguments' (random arguments, up to 2,000
+// calls a run: a run past that is cut, its calls kept).
+let tracing: {fn: string, stack: Value[][], fuel: number, edge: (from: Value[], to: Value[]) => void} | undefined
+function runEdges(fn: Fn): {s: number[], t: number[]}[] {
+  const rand = rng(17), edges = new Map<string, {s: number[], t: number[]}>()
+  const feat = (vs: Value[]) => fn.params.map((p, i) => (p.sort === 'nat' ? vs[i] as number : p.sort instanceof Data ? sizeOf(p.sort, vs[i]!) : 0))
+  const tables = new Map<string, (n: number) => number>()
+  const params = new Proxy({}, {get: (_, key: string) => tables.get(key) ?? (tables.set(key, randomFn(rand)), tables.get(key))}) as Record<string, (n: number) => number>
+  for (let i = 0; i < 120 && edges.size < 400; i++) {
+    const vals = fn.params.map(p => randomValue(p.sort, rand, 1 + (i % 7)))
+    tracing = {fn: fn.name, stack: [], fuel: 2000, edge: (a, b) => { const e = {s: feat(a), t: feat(b)}; edges.set(JSON.stringify(e), e) }}
+    try { evalX({op: 'call', fn: fn.name, args: vals.map((_, j) => ({op: 'var', name: `$a${j}`}))}, new Map(vals.map((v, j) => [`$a${j}`, v])), params) } catch { /* cut: its calls kept */ } finally { tracing = undefined }
+  }
+  return [...edges.values()]
+}
+const valueOf = (c: Measure['comps'][number], xs: number[]) => Math.max(0, c.coef.reduce((a, k, i) => a + k * xs[i]!, c.c))
+const lowers = (m: Measure, e: {s: number[], t: number[]}): boolean => {
+  for (const c of m.comps) { const a = valueOf(c, e.t), b = valueOf(c, e.s); if (a < b) return true; if (a > b) return false }
+  return false
+}
+function candidates(fn: Fn, edges: {s: number[], t: number[]}[]): Measure[] {
+  if (fn.stated) return [fn.stated]
+  const ix = fn.params.flatMap((p, i) => (measurable(p.sort) ? [i] : [])), n = fn.params.length
+  const one = (i: number) => ({coef: fn.params.map((_, j) => (j === i ? 1 : 0)), c: 0}), sum = (is: number[]) => ({coef: fn.params.map((_, j) => (is.includes(j) ? 1 : 0)), c: 0})
+  const out: Measure[] = ix.map(i => ({comps: [one(i)]}))
+  for (const i of ix) for (const j of ix) if (i !== j) out.push({comps: [one(i), one(j)]})
+  for (const [a, i] of ix.entries()) for (const j of ix.slice(a + 1)) out.push({comps: [sum([i, j])]})
+  if (ix.length <= 4) for (const i of ix) for (const j of ix) for (const k of ix) if (i !== j && j !== k && i !== k) out.push({comps: [one(i), one(j), one(k)]})
+  if (ix.length > 2) out.push({comps: [sum(ix)]})
+  // The LP's rank over the runs (coefficients and constants), where the runs give edges.
+  if (edges.length) {
+    const vars = ix.map(i => `p${i}`), env = (xs: number[]) => Object.fromEntries(ix.map(i => [`p${i}`, xs[i]!]))
+    const r = ranksOfRuns(vars, edges.flatMap(e => [env(e.s), env(e.t)]), edges.map(e => ({s: env(e.s), t: env(e.t)})))
+    if (!r.left && r.comps.length) out.push({comps: r.comps.map(c => ({coef: Array.from({length: n}, (_, j) => c.coef[`p${j}`] ?? 0), c: c.c}))})
+  }
+  return out
+}
+function termination(fn: Fn, why: string): Termination {
+  return counted(dataRate, () => {
+    const t0 = performance.now(), sites = callSites(fn)
+    if (!fn.params.some(p => measurable(p.sort))) throw new Error(`${why}, and it has no parameter a measure reads (a natural or a datatype value)`)
+    const edges = runEdges(fn), until = clock() + terminationMs.ms, tried: string[] = []
+    for (const m of candidates(fn, edges)) {
+      if (clock() > until) { tried.push('out of time'); break }
+      const text = showMeasure(fn, m), bad = edges.find(e => !lowers(m, e))
+      if (bad) { if (fn.stated || !tried.length) tried.push(`${text}: a call of its runs doesn't lower it (from ${JSON.stringify(bad.s)} to ${JSON.stringify(bad.t)}, the parameters' sizes)`); continue }
+      const obligations: Termination['obligations'] = []
+      let failed: string | undefined
+      for (const [i, site] of sites.entries()) {
+        const law = obligation(fn, m, site, i)
+        // A call nested in its own argument or condition: the obligation would read the function being taken.
+        if (programOf([law]).fns.some(g => g.name === fn.name)) throw new Error(`${why}, and a call to itself is nested in the argument or the condition of another (nested recursion isn't taken)`)
+        // By induction where the obligation has a scheme (a call on a filter of the tail: the filter's own recursion),
+        // else, or then, the definitions unfolded alone.
+        const left = () => Math.max(1, until - clock()), inductive = schemes(programOf([law]), law).length > 0
+        let v = proveData(law, inductive ? {ms: Math.min(12_000, left())} : {induction: false, ms: Math.min(4000, left())})
+        if (inductive && !(v.proven && v.checked) && !v.counterexample && clock() < until) v = proveData(law, {induction: false, ms: Math.min(4000, left())})
+        if (!(v.proven && v.checked)) { failed = `${text}: its call ${i + 1} ${v.counterexample ? `doesn't lower it at ${JSON.stringify(v.counterexample)}` : 'not proven to lower it'}`; break }
+        obligations.push({law, proof: v.proof, scheme: v.scheme, lemmas: v.lemmas})
+      }
+      if (!failed) return {measure: m, text, obligations, ms: Math.round(performance.now() - t0)}
+      tried.push(failed)
+    }
+    throw new Error(`${why}, and no measure is proven to fall at every call${tried.length ? ` (${tried.slice(0, 3).join('; ')})` : ''}`)
+  })
 }
 
 // A law: its variables' sorts and what holds of them.
@@ -349,6 +561,7 @@ export function evalX(x: X, env: Env, params: Record<string, (n: number) => numb
     case 'if': return evalY(x.c, env, params) ? evalX(x.then, env, params) : evalX(x.else, env, params)
     case 'bool': return evalY(x.c, env, params) ? 1 : 0
     case 'apply': return params[x.param]!(asNat(evalX(x.arg, env, params)))
+    case 'size': return sizeOf(dataNamed(x.data), evalX(x.of, env, params))
     case 'ctor': return {c: x.ctor, f: x.args.map(a => evalX(a, env, params))}
     case 'natmatch': {
       const n = asNat(evalX(x.of, env, params))
@@ -363,9 +576,16 @@ export function evalX(x: X, env: Env, params: Record<string, (n: number) => numb
       return evalX(cs.body, e2, params)
     }
     case 'call': {
-      const f = fnOf(x.fn), body = f.body()
-      const e2: Env = new Map(f.params.map((p, i) => [`${f.name}.${p.name}`, evalX(x.args[i]!, env, params)]))
-      return evalX(body, e2, params)
+      const f = fnOf(x.fn), body = f.body(), vals = x.args.map(a => evalX(a, env, params))
+      const e2: Env = new Map(f.params.map((p, i) => [`${f.name}.${p.name}`, vals[i]!]))
+      if (tracing?.fn !== f.name) return evalX(body, e2, params)
+      // A run of a function whose termination is being proven: each call recorded, the run cut past its fuel.
+      const t = tracing
+      if (--t.fuel < 0) throw new RangeError('out of fuel')
+      const top = t.stack.at(-1)
+      if (top) t.edge(top, vals)
+      t.stack.push(vals)
+      try { return evalX(body, e2, params) } finally { t.stack.pop() }
     }
   }
 }
@@ -446,6 +666,7 @@ export function programOf(laws: DataLaw[], extra: Fn[] = []): Program {
   const visit = (t: unknown) => walk(t, o => {
     if (o.op === 'call' && !fs.has(o.fn as string)) { const f = fnOf(o.fn as string); fs.set(f.name, f); f.params.forEach(p => addSort(p.sort)); addSort(f.ret); visit(f.body()) }
     if (o.op === 'apply') ps.add(o.param as string)
+    if (o.op === 'size') addSort(dataNamed(o.data as string))
   })
   for (const l of laws) { l.vars.forEach(v => addSort(v.sort)); visit(l.holds) }
   for (const f of extra) visit({op: 'call', fn: f.name, args: []})
@@ -470,6 +691,7 @@ export function encX(p: Program, x: X, env: Map<string, E>): E {
     case 'if': return {op: 'if', c: encY(p, x.c, env), then: encX(p, x.then, env), else: encX(p, x.else, env)}
     case 'bool': return {op: 'if', c: encY(p, x.c, env), then: k(1), else: k(0)}
     case 'apply': return get(x.param, encX(p, x.arg, env))
+    case 'size': return get(sizeMap(x.data), encX(p, x.of, env))
     case 'call': return get(x.fn, keyOf(x.args.map(a => encX(p, a, env))))
     case 'ctor': { const d = dataOf(p, x.data); return x.args.length ? get(ctorMap(d, x.ctor), keyOf(x.args.map(a => encX(p, a, env)))) : k(x.ctor) }
     case 'natmatch': {
@@ -706,7 +928,9 @@ export function refute(l: DataLaw, n = 400, seed = 7): Record<string, string> | 
 // A use may read another node of the scheme (`member`: a companion, below).
 type SchemeUse = {subst: Record<string, E>, guard: C, member?: number}
 // `on`: the variable whose size is the rank (a natural's is itself, recursion on a natural).
-type Scheme = {name: string, on?: {v: string, d: Data | 'nat'}, uses: SchemeUse[], companions?: Companion[]}
+// A function's own recursion when it is well-founded (its call graph, functional induction): `rank`, its measure at the
+// law's arguments (each component a term over the law's variables), `shapes` the values of a datatype it reads.
+type Scheme = {name: string, on?: {v: string, d: Data | 'nat'}, uses: SchemeUse[], companions?: Companion[], rank?: E[], shapes?: E[]}
 // Mutual induction on a variable of a datatype of a group (a rose tree and its forest): the law, and for each other
 // datatype of the group its fields reach, a companion, the law said of a value of that datatype; each node uses the one
 // of each field's datatype at that field (member 0 the law, i the i-th companion).
@@ -795,6 +1019,24 @@ function mutualScheme(l: DataLaw, v: string, d: Data): Scheme | undefined {
     ? [{subst: {[at.get((f.sort as {data: string}).data)!.v]: get(fieldMap(x, j, i), ev(xv))}, guard: eqC(get(tagMap(x.name), ev(xv)), k(j)), member: order.indexOf((f.sort as {data: string}).data)}] : [])))
   return {name: `mutual structure of ${v}`, on: {v, d}, uses: usesOf(d, v), companions: order.slice(1).map(n => { const x = dataNamed(n), a = at.get(n)!; return {law: a.law, on: {v: a.v, d: x}, uses: usesOf(x, a.v)} })}
 }
+// The width of a program's ranks' middle: its widest measure (1 when every recursion is structural).
+const rankWidth = (p: Program) => Math.max(1, ...p.fns.map(f => (f.decreases === undefined ? f.measure?.comps.length ?? 1 : 1)))
+// Where a well-founded scheme's node wants a datatype's shape: at the values its measure reads, and at those its measure
+// reads at each use (a constructor's value a call passes: its size from its fields).
+function rankShapes(shapes: E[], rank: E[], uses: SchemeUse[]): E[] {
+  const out = new Map<string, E>(shapes.map(e => [tid(e), e]))
+  walk(uses.map(u => rank.map(e => substE(e, {vars: u.subst, maps: {}, flags: {}}))), o => { if (o.op === 'get' && (o.map as string).endsWith('.size')) out.set(tid(o.key as E), o.key as E) })
+  return [...out.values()]
+}
+// The parameters a function's definition is decided at when they are a constructor's value: a structural one's
+// decreasing parameter (a datatype's), a well-founded one's parameters of a datatype its body matches on.
+function unfoldAt(f: Fn): number[] {
+  if (f.decreases !== undefined) return f.params[f.decreases]!.sort instanceof Data ? [f.decreases] : []
+  if (!f.measure) return []
+  const out = new Set<number>()
+  walk(f.body(), o => { if (o.op === 'match' && (o.of as X).op === 'var') { const i = f.params.findIndex(q => `${f.name}.${q.name}` === (o.of as {name: string}).name); if (i >= 0 && f.params[i]!.sort instanceof Data) out.add(i) } })
+  return [...out]
+}
 // The inductions the search tries for a law (its schemes), for tests.
 export const schemesOf = (p: Program, l: DataLaw): Scheme[] => schemes(p, l)
 function schemes(p: Program, l: DataLaw): Scheme[] {
@@ -806,10 +1048,11 @@ function schemes(p: Program, l: DataLaw): Scheme[] {
     if (o.op !== 'call') return
     const f = fnOf(o.fn as string), args = o.args as X[]
     f.body()
-    if (f.decreases === undefined) return
-    const at = args[f.decreases]!
-    if (at.op !== 'var' || !l.vars.some(v => v.name === at.name)) return
-    const d = f.params[f.decreases]!.sort as Data | 'nat'
+    const m = f.decreases === undefined ? f.measure : undefined
+    if (f.decreases === undefined && !m) return
+    const at = args[f.decreases ?? 0]!
+    if (!m && (at.op !== 'var' || !l.vars.some(v => v.name === at.name))) return
+    const d = f.params[f.decreases ?? 0]!.sort as Data | 'nat'
     const formal = new Map(f.params.map((q, i) => [`${f.name}.${q.name}`, args[i]!.op === 'var' && l.vars.some(v => v.name === (args[i] as {name: string}).name) ? ev((args[i] as {name: string}).name) : undefined]))
     const uses: Scheme['uses'] = []
     const go = (x: unknown, env: Map<string, E>, guard: C[]): void => {
@@ -830,6 +1073,12 @@ function schemes(p: Program, l: DataLaw): Scheme[] {
         go(t.succ, e2, [...guard, {op: 'not', x: eqC(of, k(0))}])
         return
       }
+      // (a well-founded call's descent may need its if's condition: x − y below x where y ≤ x)
+      if (m && t.op === 'if') {
+        const c = encY(p, t.c, env)
+        go(t.c, env, guard); go(t.then, env, [...guard, c]); go(t.else, env, [...guard, {op: 'not', x: c}])
+        return
+      }
       if (t.op === 'call' && t.fn === f.name) {
         const subst: Record<string, E> = {}
         let ok = true
@@ -845,7 +1094,12 @@ function schemes(p: Program, l: DataLaw): Scheme[] {
     }
     const env = new Map<string, E>([...formal].flatMap(([key, e]) => (e ? [[key, e] as [string, E]] : [])))
     go(f.body(), env, [])
-    if (uses.length) add({name: `recursion of ${f.name} on ${at.name}`, on: {v: at.name, d}, uses})
+    if (!uses.length) return
+    if (!m) { add({name: `recursion of ${f.name} on ${(at as {name: string}).name}`, on: {v: (at as {name: string}).name, d}, uses}); return }
+    // Well-founded: ranked by the measure at the law's arguments; the law's variables it reads named.
+    const read = f.params.flatMap((q, i) => (m.comps.some(c => c.coef[i]) && args[i]!.op === 'var' && l.vars.some(v => v.name === (args[i] as {name: string}).name) ? [{i, v: (args[i] as {name: string}).name}] : []))
+    add({name: `recursion of ${f.name} on ${read.map(r => r.v).join(', ') || 'its arguments'}`, uses, rank: m.comps.map(c => encX(p, measureX(f, c, args), new Map())),
+      shapes: read.filter(r => f.params[r.i]!.sort instanceof Data).map(r => ev(r.v))})
   })
   // Structural induction on each variable of a datatype, the others fixed; mutual where its fields reach another of its
   // group (the law and its companions), plain where they reach none or no companion is found.
@@ -969,16 +1223,15 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
       for (const q of insts) { const name = fs.facts[q.fact]!.name; if (name.startsWith('fn ')) done.add(sigOf(name.slice(3), q.at)) }
       for (const r of [...all]) {
         const f = fnOfMap(r.map)
-        if (!f || f.decreases === undefined) continue
+        if (!f) continue
         const as = argsOf(r.key, f.params.length)
         if (!as) continue
-        const d0 = f.params[f.decreases]!.sort
-        if (!(d0 instanceof Data)) continue
-        const own = as[f.decreases]!, d = d0, root = cl.find(tid(own))
+        for (const di of unfoldAt(f)) {
+        const own = as[di]!, d = f.params[di]!.sort as Data, root = cl.find(tid(own))
         const built = (t: E) => (t.op === 'get' && d.ctors.some((c, j) => c.fields.length && t.map === ctorMap(d, j))) || (t.op === 'const' && t.value < d.nullary)
         const cands = built(own) ? [own] : [...cl.terms.values()].filter(t => built(t) && cl.find(tid(t)) === root)
         for (const t of cands) {
-          const as2 = as.map((a, i) => (i === f.decreases ? t : a)), rid = JSON.stringify({map: f.name, key: keyOf(as2)}), key2 = JSON.stringify([fs.at.get(`fn ${f.name}`), as2])
+          const as2 = as.map((a, i) => (i === di ? t : a)), rid = JSON.stringify({map: f.name, key: keyOf(as2)}), key2 = JSON.stringify([fs.at.get(`fn ${f.name}`), as2])
           const anchor = {read: tid(get(f.name, r.key)), arg: own, value: t}, had = anchoredAt.get(key2) ?? []
           if (!had.some(x => x.read === anchor.read)) anchoredAt.set(key2, [...had, anchor])
           if (unfolded.has(rid) || extra >= 12 || done.has(sigOf(f.name, as2))) continue
@@ -987,6 +1240,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
           inst(`fn ${f.name}`, as2)
           note([{map: f.name, key: keyOf(as2)}])
           ctors(note(reads(holdsAt(`fn ${f.name}`, as2))))
+        }
         }
       }
     }
@@ -998,6 +1252,8 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   }
   const shape = (t: E, d?: Data) => { const dd = d ?? dataOfTerm(t); if (dd) { inst(`shape ${dd.name}`, [t]); ctors(note(reads(holdsAt(`shape ${dd.name}`, [t])))) } }
   for (const t of w.shapesAt) shape(t, typeOfVar(p, t))
+  // A size read (a measure's): the shape of its value, which gives the size from the fields.
+  for (const r of [...all]) for (const d of p.datas) if (r.map === sizeMap(d.name)) shape(r.key, d)
   if (w.depth >= 2) for (const r of [...all]) for (const d of p.datas) if (r.map === tagMap(d.name)) shape(r.key, d)
   for (const t of w.etaAt) { const d = typeOfVar(p, t) ?? dataOfTerm(t); if (d) { inst(`eta ${d.name}`, [t]); shape(t, d); ctors(note(reads(holdsAt(`eta ${d.name}`, [t])))) } }
   // A constant's tag is read where its tag is (the nullary facts).
@@ -1180,7 +1436,7 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
   }
   // The scheme's nodes: the law's, then each companion's (a mutual induction), each its own models. A use of member i
   // reads node -1 - i until the nodes are placed.
-  const members = [{law: l, on: scheme?.on, uses: scheme?.uses ?? [], pool}, ...(scheme?.companions ?? []).map(c => ({...c, pool: modelsFor(p, c.law, pool.length, 5)}))]
+  const members: {law: DataLaw, on?: Scheme['on'], uses: SchemeUse[], pool: M[], rank?: E[], shapes?: E[]}[] = [{law: l, on: scheme?.on, uses: scheme?.uses ?? [], pool, rank: scheme?.rank, shapes: scheme?.shapes}, ...(scheme?.companions ?? []).map(c => ({...c, pool: modelsFor(p, c.law, pool.length, 5)}))]
   const concls = members.map(mb => encY(p, mb.law.holds, new Map()))
   const base = specs.length, title = `${l.name}${scheme ? ` (${scheme.name})` : ''}`
   varSorts = new Map(members.flatMap(mb => mb.law.vars.flatMap(v => (v.sort instanceof Data ? [[v.name, v.sort] as [string, Data]] : []))))
@@ -1191,7 +1447,7 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
   for (const [mi, mb] of members.entries()) {
     const models = mb.pool.slice(0, 24), concl = concls[mi]!, name = mi === 0 ? title : `${title}, at ${(mb.on!.d as Data).name}`
     const ih = mb.uses.map(u => ({node: -1 - (u.member ?? mi), subst: u.subst, guard: u.guard}))
-    const shapesAt = mb.on && mb.on.d !== 'nat' ? [ev(mb.on.v)] : []
+    const shapesAt = mb.rank ? rankShapes(mb.shapes ?? [], mb.rank, mb.uses) : mb.on && mb.on.d !== 'nat' ? [ev(mb.on.v)] : []
     const ihConcls = ih.map(useConcl)
     // Uses of the lemmas, where a lemma's largest read matches a read of this goal (unfolded), its key up to the
     // equalities the unfolded definitions give (any branch); twice over, the uses' own conclusions read the second time.
@@ -1225,7 +1481,9 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
   const offsets = plans.map((_, i) => base + plans.slice(0, i).reduce((n, q) => n + q.length, 0))
   for (const [mi, plan] of plans.entries()) {
     const mb = members[mi]!, size = !mb.on ? k(0) : mb.on.d === 'nat' ? ev(mb.on.v) : get(sizeMap(mb.on.d.name), ev(mb.on.v))
-    for (const {sub, cases, ...n} of plan) specs.push({...n, rank: [k(level), size, k(sub)], uses: cases ? cases.map((g, i) => ({node: offsets[mi]! + 1 + i, subst: {}, guard: g})) : n.uses.map(u => (u.node < 0 ? {...u, node: offsets[-1 - u.node]!} : u))})
+    // (level, the measure or the size, 0 or 1), the measure's place padded to the program's widest measure
+    const comps = mb.rank ?? [size], mid = [...comps, ...Array.from({length: rankWidth(p) - comps.length}, () => k(0))]
+    for (const {sub, cases, ...n} of plan) specs.push({...n, rank: [k(level), ...mid, k(sub)], uses: cases ? cases.map((g, i) => ({node: offsets[mi]! + 1 + i, subst: {}, guard: g})) : n.uses.map(u => (u.node < 0 ? {...u, node: offsets[-1 - u.node]!} : u))})
   }
   const name = title
   // Each attempt within its own time (a goal past it is left unknown, and the attempt fails).
@@ -1517,8 +1775,10 @@ export function conjectures(p: Program, l: DataLaw, max = 24, maxSize = 6): Data
   const kept: {a: X, b: X, vs: Set<string>}[] = []
   // The definitions, unfolded at a constructor: f(.., C(x, y), ..) → its case's body, where that is a plain term.
   for (const f of fnsUsed) {
-    const body = f.body(), di = f.decreases
-    if (body.op !== 'match' || di === undefined || body.of.op !== 'var' || body.of.name !== `${f.name}.${f.params[di]!.name}`) continue
+    // (a structural function's decreasing parameter, a well-founded one's the body matches on first)
+    const body = f.body(), top = body.op === 'match' && body.of.op === 'var' ? f.params.findIndex(q => `${f.name}.${q.name}` === (body.of as {name: string}).name) : -1
+    const di = f.decreases ?? (f.measure ? top : -1)
+    if (body.op !== 'match' || di < 0 || di !== top) continue
     const d = f.params[di]!.sort as Data
     body.cases.forEach((c, j) => {
       if (JSON.stringify(c.body).match(/"op":"(match|if|bool|apply)"/)) return
@@ -1583,6 +1843,7 @@ export const showX = (x: X): string => {
     case 'if': return `if ${showY(x.c)} then ${showX(x.then)} else ${showX(x.else)}`
     case 'bool': return showY(x.c)
     case 'apply': return `${x.param}(${showX(x.arg)})`
+    case 'size': return `size(${showX(x.of)})`
     case 'call': return `${x.fn}(${x.args.map(showX).join(', ')})`
     case 'ctor': { const d = [...fns.values()].length >= 0 ? x.data : x.data; return `${d}.${x.ctor}${x.args.length ? `(${x.args.map(showX).join(', ')})` : ''}` }
     case 'match': return `match ${showX(x.of)}`
@@ -1631,13 +1892,13 @@ function proveDataCounted(l: DataLaw, opts: Options): DataVerdict {
   const cands = Array.isArray(opts.lemmas) ? opts.lemmas : conjectures(p, l)
   const p2 = programOf([l, ...cands]), fs2 = factsOf(p2)
   // Each scheme's goals: the law's, and each companion's (a lemma may be what only a companion's goal reads).
-  const goalOf = (law: DataLaw, uses: SchemeUse[], on: Scheme['on'], concls: C[]) => {
+  const goalOf = (law: DataLaw, uses: SchemeUse[], on: Scheme['on'], concls: C[], shapes?: E[]) => {
     const concl = encY(p2, law.holds, new Map()), ihc = uses.map(u => substC(concls[u.member ?? 0] ?? concl, {vars: u.subst, maps: {}, flags: {}}))
-    return {from: [concl, ihc], insts: instancesOf(p2, fs2, {roots: [concl], others: ihc, depth: 2, shapesAt: on && on.d !== 'nat' ? [ev(on.v)] : [], etaAt: [], models: []})}
+    return {from: [concl, ihc], insts: instancesOf(p2, fs2, {roots: [concl], others: ihc, depth: 2, shapesAt: shapes ?? (on && on.d !== 'nat' ? [ev(on.v)] : []), etaAt: [], models: []})}
   }
   const goals = schemes(p2, l).flatMap(s => {
-    const all = [{law: l, uses: s.uses, on: s.on}, ...(s.companions ?? [])], concls = all.map(m => encY(p2, m.law.holds, new Map()))
-    return all.map((m, i) => goalOf(m.law, m.uses.map(u => ({...u, member: u.member ?? i})), m.on, concls))
+    const all = [{law: l, uses: s.uses, on: s.on, shapes: s.shapes}, ...(s.companions ?? [])], concls = all.map(m => encY(p2, m.law.holds, new Map()))
+    return all.map((m, i) => goalOf(m.law, m.uses.map(u => ({...u, member: u.member ?? i})), m.on, concls, 'shapes' in m ? m.shapes : undefined))
   })
   const matchesGoal = (c: DataLaw) => goals.some(g => lemmaUsesFor(p2, fs2, [{law: c, node: 0, concl: encY(p2, c.holds, new Map())}], g.from, g.insts).length > 0)
   // Those the goal matches first, of those the ones of the law's shape (an implication for an implication) first.

@@ -8,11 +8,19 @@
 //   - rose trees, a mutual pair (a node holds a forest, a forest trees): sum, size, flatten, mirror
 //   - lists of lists (a field of a datatype declared before): concatenation, the lengths summed
 //   - recursion on a natural: replicate, take, drop
+//   - recursion that isn't structural, each function's termination proven before its equation is used: the merge of two
+//     sorted lists (one list shorter at each call, the other the same: the measure (size xs, size ys), found), lists
+//     interleaved (the two swapped at each call: size xs + size ys), a sum of three naturals with an accumulator
+//     (add3acc: (x, y)), the same merge with its measure stated, and a quicksort (each call on a filter of the tail:
+//     its decrease proven by induction on the filter)
 // The broken variants (an append that drops the head, a reverse that repeats it, a mirror that adds 1, an insertion that
 // puts the item first, a search tree insertion that goes the wrong way or into any tree, a rose flatten that drops the
 // node's value, a rose mirror that drops a tree, a concatenation that drops the first list, a replicate with one more, a
-// drop of one too many) are refused with a value that breaks the law.
-import {type Bool, type DataLaw, type Nat, type Val, data, define, fnParam, law, mutual, natural, boolean, self, when, yes, proveData} from '../core/data.ts'
+// drop of one too many, a merge that drops an item, an add3acc that forgets one) are refused with a value that breaks
+// the law; the definitions that don't terminate (a merge that calls itself on the same lists, an interleave that only
+// swaps them, an add3acc that doesn't lower y, a merge whose stated measure a call doesn't lower) are refused, with the
+// reason, before any law about them is read.
+import {type Bool, type DataLaw, type Nat, type Val, data, define, fnParam, law, mutual, natural, boolean, programOf, self, when, yes, proveData} from '../core/data.ts'
 
 export const List = data('List', {nil: {}, cons: {head: natural, tail: self}})
 export const Tree = data('Tree', {leaf: {}, node: {left: self, value: natural, right: self}})
@@ -124,6 +132,41 @@ export const drop = (bug?: 'one too many') => {
 }
 export const drp = drop()
 
+// Recursion that isn't structural. The merge of two sorted lists: each call drops the head of one list and passes the
+// other whole (`drops an item`: the second list's head left out; `stays`: the call on the same lists where the second
+// head is smaller, which never ends; `stated`: the measure given, size xs + size ys; `stated wrong`: size xs alone, which
+// the second call doesn't lower).
+export const merge = (bug?: 'drops an item' | 'stays' | 'stated' | 'stated wrong') => {
+  const name = !bug ? 'merge' : bug === 'drops an item' ? 'mergeDrop' : bug === 'stays' ? 'mergeStay' : bug === 'stated' ? 'mergeSum' : 'mergeWrong'
+  const f: ReturnType<typeof define> = define(name, {xs: List, ys: List}, List, ({xs, ys}) => L(xs).match({nil: () => L(ys), cons: ({head: x, tail: xt}) => L(ys).match({nil: () => L(xs), cons: ({head: y, tail: yt}) =>
+    when(N(x).atMost(y), List.cons(x, f(xt, ys)), bug === 'drops an item' ? L(f(xs, yt)) : bug === 'stays' ? L(f(xs, ys)) : List.cons(y, f(xs, yt)))})}), bug === 'stated' ? {measure: [['xs', 'ys']]} : bug === 'stated wrong' ? {measure: ['xs']} : {})
+  return f
+}
+export const mrg = merge()
+// Two lists interleaved: the head of the first, then the second interleaved with the first's tail (`swaps only`: the two
+// swapped and nothing dropped, which never ends).
+export const interleave = (bug?: 'swaps only') => {
+  const name = bug ? 'interleaveSwap' : 'interleave'
+  const f: ReturnType<typeof define> = define(name, {xs: List, ys: List}, List, ({xs, ys}) => L(xs).match({nil: () => L(ys), cons: ({head, tail}) => (bug ? L(f(ys, xs)) : List.cons(head, f(ys, tail)))}))
+  return f
+}
+export const ilv = interleave()
+// x + y + z with an accumulator: x moved into y, then y into z (`forgets one`: a step of y that doesn't add to z;
+// `keeps y`: a step that doesn't lower y, which never ends).
+export const add3acc = (bug?: 'forgets one' | 'keeps y') => {
+  const name = !bug ? 'add3acc' : bug === 'forgets one' ? 'add3accForget' : 'add3accKeep'
+  const f: ReturnType<typeof define> = define(name, {x: natural, y: natural, z: natural}, natural, ({x, y, z}) => N(x).match({
+    zero: () => N(y).match({zero: () => z, succ: ({pred}) => (bug === 'forgets one' ? N(f(0, pred, z)) : bug === 'keeps y' ? N(f(0, y, N(z).plus(1))) : N(f(0, pred, N(z).plus(1))))}),
+    succ: ({pred}) => N(f(pred, N(y).plus(1), z))}))
+  return f
+}
+export const a3 = add3acc()
+// A quicksort: the items of the tail at most the head sorted, the head, those above it sorted. Each call is on a filter
+// of the tail, so its decrease (the filter no longer than the tail) is proven by induction on the filter.
+export const atMost = define('atMost', {v: natural, xs: List}, List, ({v, xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => when(N(head).atMost(v), List.cons(head, atMost(v, tail)), L(atMost(v, tail)))}))
+export const above = define('above', {v: natural, xs: List}, List, ({v, xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => when(N(v).lt(head), List.cons(head, above(v, tail)), L(above(v, tail)))}))
+export const qsort: ReturnType<typeof define> = define('qsort', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => L(app(qsort(atMost(head, tail)), List.cons(head, qsort(above(head, tail)))))}))
+
 // The laws, each over the functions as declared (a broken variant's law reads the broken function).
 export const laws = {
   lengthAppend: (a = app) => law('length of append', {xs: List, ys: List}, ({xs, ys}) => N(len(a(xs, ys))).eq(N(len(xs)).plus(N(len(ys))))),
@@ -144,6 +187,12 @@ export const laws = {
   replicateLength: (r = rep) => law('length of n copies', {n: natural, x: natural}, ({n, x}) => N(len(r(n, x))).eq(n)),
   takeDrop: (d = drp) => law('the first n and the rest', {n: natural, xs: List}, ({n, xs}) => L(app(take(n, xs), d(n, xs))).eq(L(xs))),
   dropLength: (d = drp) => law('length after dropping n', {n: natural, xs: List}, ({n, xs}) => N(len(d(n, xs))).eq(N(len(xs)).minus(n))),
+  mergeLength: (m = mrg) => law('length of a merge', {xs: List, ys: List}, ({xs, ys}) => N(len(m(xs, ys))).eq(N(len(xs)).plus(N(len(ys))))),
+  mergeCount: (m = mrg) => law('a merge counts each item of both', {y: natural, xs: List, ys: List}, ({y, xs, ys}) => N(count(y, m(xs, ys))).eq(N(count(y, xs)).plus(N(count(y, ys))))),
+  interleaveLength: (i = ilv) => law('length of an interleaving', {xs: List, ys: List}, ({xs, ys}) => N(len(i(xs, ys))).eq(N(len(xs)).plus(N(len(ys))))),
+  add3acc: (f = a3) => law('add3acc adds its three', {x: natural, y: natural, z: natural}, ({x, y, z}) => N(f(x, y, z)).eq(N(x).plus(y).plus(z))),
+  mergeStated: () => law('length of a merge, its measure stated', {xs: List, ys: List}, ({xs, ys}) => N(len(merge('stated')(xs, ys))).eq(N(len(xs)).plus(N(len(ys))))),
+  qsortSingle: () => law('quicksort of one item', {x: natural}, ({x}) => L(qsort(List.cons(x, List.nil))).eq(List.cons(x, List.nil))),
 } satisfies Record<string, (...a: never[]) => DataLaw>
 
 export const broken = {
@@ -160,7 +209,20 @@ export const broken = {
   replicateLength: () => laws.replicateLength(replicate('one more')),
   takeDrop: () => laws.takeDrop(drop('one too many')),
   dropLength: () => laws.dropLength(drop('one too many')),
+  mergeLength: () => laws.mergeLength(merge('drops an item')),
+  add3acc: () => laws.add3acc(add3acc('forgets one')),
 }
+
+// Definitions that don't terminate, or whose measure isn't the one given: each refused (the law about it never read),
+// its reason the measures tried.
+export const nonterminating = {
+  mergeStays: () => laws.mergeLength(merge('stays')),
+  interleaveSwaps: () => laws.interleaveLength(interleave('swaps only')),
+  add3accKeeps: () => laws.add3acc(add3acc('keeps y')),
+  mergeStatedWrong: () => laws.mergeLength(merge('stated wrong')),
+}
+// Its refusal (the reason), or undefined when the definitions it reads are taken.
+export const refusal = (mk: () => DataLaw): string | undefined => { try { programOf([mk()]); return undefined } catch (e) { return (e as Error).message } }
 
 // Laws the search doesn't prove within its time (research/frontier/README.md): none.
 export const open = new Set<string>([])
@@ -180,6 +242,12 @@ if (import.meta.main) {
     const v = proveData(mk())
     console.log(`${!v.proven ? 'ok  ' : 'FAIL'} ${v.law} (broken): ${v.proven ? 'proven' : `refused${v.counterexample ? `, broken at ${JSON.stringify(v.counterexample)}` : ''}`}`)
     failed ||= v.proven
+  }
+  for (const [name, mk] of Object.entries(nonterminating)) {
+    if (skip(name)) continue
+    const why = refusal(mk)
+    console.log(`${why ? 'ok  ' : 'FAIL'} ${name} (doesn't terminate): ${why ? `refused: ${why}` : 'taken'}`)
+    failed ||= !why
   }
   if (failed) process.exit(1)
 }

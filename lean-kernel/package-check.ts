@@ -110,6 +110,9 @@ const dataItems: Record<string, [() => DataLaw, string]> = {
   dataroseflat: [() => dataLaws.roseSumFlatten(), 'sum_rflat'], datarosemirror: [() => dataLaws.roseSizeMirror(), 'rsize_rmirror'],
   databag: [() => dataLaws.bagLength(), 'len_concat'], datarep: [() => dataLaws.replicateLength(), 'len_replicate'],
   datatakedrop: [() => dataLaws.takeDrop(), 'take_drop'], datadroplen: [() => dataLaws.dropLength(), 'len_drop'],
+  datamerge: [() => dataLaws.mergeLength(), 'len_merge'], datamergecount: [() => dataLaws.mergeCount(), 'count_merge'],
+  datainterleave: [() => dataLaws.interleaveLength(), 'len_interleave'], dataadd3acc: [() => dataLaws.add3acc(), 'add3acc_sum'],
+  datamergestated: [() => dataLaws.mergeStated(), 'len_merge_stated'], dataqsort: [() => dataLaws.qsortSingle(), 'qsort_single'],
 }
 const separately = ['searchtree', 'sheet', 'groups0', 'groups1', 'groups2', 'groups3', ...cyclicItems, ...foundItems, ...Object.keys(dataItems)]
 const file = toLean(([
