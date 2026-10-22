@@ -219,6 +219,7 @@ class BoatEx:
         self.module = str(pathlib.Path(runner).resolve().relative_to(GDP))
         cfg = boat.runner_boat(self.module)
         self.extra = {k: v for k, v in cfg.items() if k in ("mounts", "path", "overlays", "env")}
+        self.weight = int(cfg.get("weight", 1))  # slots a call takes (a runner whose calls need more than 4 GB says 2)
         self.vms, self.max_vms, self.limit, self.max_wait = vms, max_vms, limit, max_wait
         self.past = {}
         if durations:  # a results.jsonl of an earlier run: each (tool, task)'s seconds, to start the longest first
@@ -256,7 +257,7 @@ class BoatEx:
         for a in args:
             self.n += 1
             items.append({"name": f"{name}-{self.n}", "kind": "py", "module": self.module, "fn": name, "args": list(a), "limit": self.limit,
-                          "weight": 1, "est": self._est(list(a)), **self.extra})
+                          "weight": self.weight, "est": self._est(list(a)), **self.extra})
         slots = self.boat.TYPES[self.sess.vm_type][0] // self.boat.SLOT_CPU
         n = self.boat.plan_vms(items, slots, self.vms, self.max_vms)
         self.boat.log(f"{len(items)} calls of {name} on up to {n} {self.sess.vm_type} VM(s)")

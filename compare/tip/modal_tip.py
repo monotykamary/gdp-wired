@@ -134,7 +134,10 @@ python3 - <<'PY'
 PY
 sudo rm /bench && sudo mkdir /bench
 """
-BOAT = {"mounts": {"/bench": "/opt/gdpw/tip/bench"}, "path": ["/opt/bun-1.4.4/bin"]}
+# proveData peaks at 4 to 5.5 GB on some tasks (list_PairEvens, sort_MSortBUCount, lemma_07, measured alone): over a
+# Modal container's 4 GB request, which Modal doesn't hold it to. Two to a VM's 8 GB, two such tasks at once ran out of
+# memory, so each call takes a whole default VM (weight 2).
+BOAT = {"mounts": {"/bench": "/opt/gdpw/tip/bench"}, "path": ["/opt/bun-1.4.4/bin"], "weight": 2}
 
 # cvc5: `--quant-ind` (induction by skolemisation with strengthening, Reynolds & Kuncak, VMCAI 2015); `cvc5cg` adds their
 # subgoal generation (`--conjecture-gen`, three conjectures a round) with full saturation of quantifiers, the

@@ -486,6 +486,13 @@ class Session:
             retire(d, self.image)
             free = [i for i, v in d["vms"].items() if v["snapshot"] == self.image and v["type"] == vm_type and lease_free(v) and i not in self.vms]
             free.sort(key=lambda i: (d["vms"][i].get("state") not in RUNNING, -d["vms"][i].get("last_used", 0)))
+            up = [i for i in free if d["vms"][i].get("state") in RUNNING]
+            try:  # a stopped VM takes a start to resume: no more of them than the plan has starts left
+                st = limits()["starts"]
+                starts = max(0, min(st["hour"]["remaining"], st["day"]["remaining"]) - STARTS_RESERVE)
+            except Exception:
+                starts = need
+            free = up + [i for i in free if i not in up][:starts]
             for i in free[:need]:
                 d["vms"][i]["lease"] = {"pid": os.getpid(), "host": socket.gethostname(), "batch": self.batch, "since": time.time(), "label": self.label}
                 mine.append((i, d["vms"][i].get("state")))
@@ -519,6 +526,8 @@ class Session:
                     with _sem:
                         p = subprocess.run([BOAT, "resume", vm.id, "--json"], capture_output=True, text=True, timeout=300, env=ENV)
                     said = p.stdout + p.stderr
+                    if p.returncode != 0 and ("rate_limited" in said or '"status":429' in said):
+                        raise RuntimeError("boat's start limit (a resume counts as a start): " + said.strip()[-200:].split('"error":"')[-1][:120])
                     if p.returncode != 0 and "snapshot_data_expired" in said:
                         # a stopped disk boat no longer keeps (14 days): the VM goes, a new one from the image takes its place
                         log(f"{vm.id}: its stopped disk expired; a new VM instead")
@@ -957,7 +966,7 @@ class Session:
         [t.start() for t in ts]
         [t.join(timeout=400) for t in ts]
         self._release([v.id for v in vms], deleted=self.teardown)
-        held = sum((v.t_end or time.time()) - v.t_request for v in vms)
+        held = sum((v.t_end or time.time()) - v.t_request for v in vms if v.t_running)  # (a VM that never ran bills nothing)
         busy = sum(union(v.busy) for v in vms)
         ready_held = sum((v.t_end or time.time()) - v.t_ready for v in vms if v.t_ready)
         up = [v.t_running - v.t_request for v in vms if v.t_running]
@@ -1023,7 +1032,8 @@ def signals_as_interrupt():
 def plan_vms(items: list[dict], slots_per_vm: int, override: int = 0, cap: int = 0) -> int:
     """Enough VMs that the longest item bounds the batch (no more help), fewer when VMs come at the plan's start rate:
     with W slot-seconds of work, r starts a second and c slots a VM, n VMs arriving over n/r seconds finish by about
-    W/(c n) + n/(2r), least at n = sqrt(2 r W / c). VMs the pool already holds come without a start."""
+    W/(c n) + n/(2r), least at n = sqrt(2 r W / c). boat counts a resume as a start, as a creation is: only the pool's
+    VMs still up (within their idle time) come without one."""
     if override:
         return override
     if not items:
@@ -1034,13 +1044,13 @@ def plan_vms(items: list[dict], slots_per_vm: int, override: int = 0, cap: int =
     useful = min(useful, sum(it["weight"] for it in items) // max(1, slots_per_vm) + 1, len(items))
     try:
         lim = limits()
-        pool = sum(1 for v in Registry().read()["vms"].values() if lease_free(v))
+        up = sum(1 for v in Registry().read()["vms"].values() if lease_free(v) and v.get("state") in RUNNING)
         rate = max(lim["currentLimits"]["creationRatePerMinute"], 1) / 60
-        by_rate = pool + math.ceil(math.sqrt(2 * rate * W / slots_per_vm))
-        room = lim["currentLimits"]["activeSandboxes"] - lim["activeSandboxes"] + pool
+        by_rate = up + math.ceil(math.sqrt(2 * rate * W / slots_per_vm))
+        room = lim["currentLimits"]["activeSandboxes"] - lim["activeSandboxes"] + up
         st = lim["starts"]
         starts = min(st["hour"]["remaining"], st["day"]["remaining"]) - STARTS_RESERVE
-        n = min(useful, by_rate, room, pool + max(0, starts))
+        n = min(useful, by_rate, room, up + max(0, starts))
     except Exception:
         n = min(useful, 10)
     if cap:
@@ -1099,8 +1109,9 @@ def preflight(want: int = 1, vm_type: str = "default") -> tuple[str | None, dict
     room = lim["currentLimits"]["activeSandboxes"] - lim["activeSandboxes"]
     st = lim["starts"]
     starts = max(0, min(st["minute"]["remaining"], st["hour"]["remaining"] - STARTS_RESERVE, st["day"]["remaining"] - STARTS_RESERVE))
-    resumable = min(len(free) - up, max(0, room))
-    creatable = min(starts, max(0, room - resumable))
+    # (a resume is a start to boat, as a creation is)
+    resumable = min(len(free) - up, max(0, room), starts)
+    creatable = min(starts - resumable, max(0, room - resumable))
     can = up + resumable + creatable
     info = {"free_up": up, "free_stopped": len(free) - up, "active_room": room, "starts_now": starts, "can": can}
     if can <= 0:
