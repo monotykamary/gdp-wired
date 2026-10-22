@@ -1201,7 +1201,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
   if (!cyclicOn() && !certOn()) return out
   // (a machine with a history: its plain machine's; a flag at every key through its sk machine; k-step laws over a map
   // searched, where GDP_CERT_SEARCH=1; where no cyclic proof is made the usual trees, checked above, stay the certificate)
-  const why = uncoveredWhy(plain, laws), one = stepLaws.filter(sl => (sl.steps ?? 1) === 1 || !plain.inputMaps?.length)
+  const why = uncoveredWhy(plain, laws), one = stepLaws
   if (!why && one.length && out.checked) {
     const steps = one.map(sl => { const inst = perStep[sl.name] ?? instances, goal = stepLawObligations(m, laws, inst, sl)[0]!; return {sl, inst, goal, tree: trees[goal.name]!} })
     const translated = (st: TStats) => translatedProof(() => JSON.stringify(['steps', plain, laws, base.proof!.instances, steps.map(x => [x.sl, x.inst])]), reused => timedKind('instance', 0, () => machineNodes(plain, laws, base.proof!.instances, {trees: base.proof!.trees, steps, lawsMade: reused}, st)), st,

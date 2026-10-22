@@ -568,6 +568,8 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
   ]
   const fi = (name: string) => facts.findIndex(f => f.name === name)
   const closings = (inst: Instances, u: E, frame: Subst) => closingsAt(given, laws, facts, inst, u, frame)
+  // Every law at time u, at the keys the proof names it at, each key's term read by `key`, under `guard`.
+  const lawUses = (inst: Instances, u: E, key: (e: E) => E, guard: C): NodeSpec['uses'] => laws.flatMap((l2, j) => tuples(inst, l2).map(ts => ({node: j, subst: {'t$': u, ...Object.fromEntries(keysOf(l2).map((kn, r) => [kn, key(ts[r]!)]))}, guard})))
   // The usual proof's fresh key k# of a law about every key, the node's own k; the functions' facts at the keys the
   // proof names, over a frame; the state the step gives over the frame before it, a write's reads at its key read at the
   // key read instead (as the map's step fact has them: the same cells there).
@@ -610,12 +612,7 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
     })
     const stepNodes = laws.map((l): NodeSpec => {
       const inst = instances[l.name] ?? {}, concl = substC(substC(substC(l.holds, vars(fresh)), upd), pre)
-      const uses: NodeSpec['uses'] = laws.flatMap((l2, j) => {
-        const ks = keysOf(l2)
-        if (!ks.length) return [{node: j, subst: {'t$': less1(t)}, guard: one}]
-        const flat = inst[l2.name] ?? []
-        return Array.from({length: Math.floor(flat.length / ks.length)}, (_, q) => ({node: j, subst: {'t$': less1(t), ...Object.fromEntries(ks.map((kn, r) => [kn, over(flat[q * ks.length + r]!, pre)]))}, guard: one}))
-      })
+      const uses = lawUses(inst, less1(t), e => over(e, pre), one)
       // (the request the step assumes a hypothesis of its own, which the law at t has from the step's fact: the step's
       // equations are no hypothesis of this goal)
       const hyps = [...(m.pre ? [m.pre] : []), one, le(t, T), ...omegaHyp, ...(m.assume ? [now(inline(m.assume), less1(t))] : [])], name = `${m.name}: ${l.name}, after a step`
@@ -644,12 +641,7 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
       return JSON.stringify(a) === JSON.stringify(b) || !fnReads(read(b)).some(c => reads.has(c)) ? [a] : [a, b]
     }
     // The laws at the step before, at the keys the machine's proof assumes them at.
-    const uses: NodeSpec['uses'] = laws.flatMap((l2, j) => {
-      const ks = keysOf(l2)
-      if (!ks.length) return [{node: j, subst: {'t$': less1(t)}, guard: le(k(1), t)}]
-      const flat = inst[l2.name] ?? []
-      return Array.from({length: Math.floor(flat.length / ks.length)}, (_, i) => ({node: j, subst: {'t$': less1(t), ...Object.fromEntries(ks.map((kn, q) => [kn, before(flat[i * ks.length + q]!)]))}, guard: le(k(1), t)}))
-    })
+    const uses = lawUses(inst, less1(t), before, le(k(1), t))
     // The functions' facts at the keys the proof names, over the frame before the step (at t = 0, the start's).
     const factInsts = (m.facts ?? []).flatMap(f => {
       const ks = keysOf(f), flat = inst[f.name] ?? [], fact = fi(f.name)
@@ -706,12 +698,7 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
       const g0 = goals.get(`${l.name} @start`), g1 = goals.get(`${l.name} @step`), t0 = g0 && usual!.trees[g0.name], t1 = g1 && usual!.trees[g1.name]
       if (!g0 || !g1 || !t0 || !t1) return {specs: [], why: `${l.name}: no usual tree`}
       const inst = instances[l.name] ?? {}, nf = assumed(m.facts ?? [], inst).length, np = m.pre ? 1 : 0, na = m.assume ? 1 : 0
-      const uses: NodeSpec['uses'] = laws.flatMap((l2, j) => {
-        const ks = keysOf(l2)
-        if (!ks.length) return [{node: j, subst: {'t$': less1(t)}, guard: yes}]
-        const flat = inst[l2.name] ?? []
-        return Array.from({length: Math.floor(flat.length / ks.length)}, (_, q) => ({node: j, subst: {'t$': less1(t), ...Object.fromEntries(ks.map((kn, r) => [kn, substE(flat[q * ks.length + r]!, sigma)]))}, guard: yes}))
-      })
+      const uses = lawUses(inst, less1(t), e => substE(e, sigma), yes)
       const fn1 = fnInsts(inst, pre), fn0 = fnInsts(inst, vars({})), cl = closings(inst, less1(t), pre), nb = nf + np + na + uses.length
       if (g1.hyps.length !== nb + cl.length + 1 || g0.hyps.length !== nf + np + 1 || fn1.length !== nf) return {specs: [], why: `${l.name}: a usual goal of another shape`}
       const used1 = usedHyps(g1, t1), used0 = usedHyps(g0, t0), last = (g: Goal) => (g.hyps.at(-1) as Extract<C, {op: 'not'}>).x
@@ -733,10 +720,9 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
     for (const [q, u] of (usual!.steps ?? []).entries()) {
       const {sl, inst, goal: g, tree} = u, whens = sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when], K = sl.steps ?? 1
       // (k steps: the state after each step a cell at its time, a map read after a step the usual goal's term over the
-      // cells at t − k, the step's writes; one step: any machine the instances cover; k steps over a map a request
-      // carries: not yet, the later requests' maps no cells of the run's here)
-      if (K > 1 && m.inputMaps?.length) return {specs: [], why: `${sl.name}: ${K} steps over a map a request carries`}
-      const overMaps = K > 1 && mapNames.length > 0
+      // cells at t − k, the step's writes, a map a later request carries (c@j) its cells at its time)
+      const carried = m.inputMaps ?? [], overMaps = K > 1 && mapNames.length > 0
+      const laterMaps = Object.fromEntries(Array.from({length: K - 1}, (_, j) => j + 2).flatMap(j => carried.map(c => [`${c}@${j}`, {to: `${c}@`, at: tBack(K - j + 1)}] as const)))
       // The times the steps start from (t − k, ..., t − 1), and the frames: the state before step j its cells at t − k + j − 1
       // (n~j the state after step j, at t − k + j), its request read there (i@j).
       // (one step back at a time, as a step's fact reads the time before it: the cells it gives are the frames' own)
@@ -744,17 +730,12 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
       const frame: Subst = {vars: {...at(time(K)).vars, ...Object.fromEntries(Array.from({length: K}, (_, j) => j + 1).flatMap(j => [
         ...(j >= 2 ? m.inputs.map(i => [`${i}@${j}`, get(`${i}@`, time(K - j + 1))] as const) : []),
         ...(j < K ? state.map(n => [`${n}~${j}`, get(`${n}@`, time(K - j))] as const) : []),
-      ]))}, maps: K === 1 ? pre.maps : at(time(K)).maps, flags: {}}
-      const sig: Subst = K === 1 ? sigma : frame, renK = K === 1 ? ren : renamer({s: frame, cells: Object.fromEntries(mapNames.map(map => [map, {to: `${map}@`, at: time(K)}]))})
+      ]))}, maps: K === 1 ? pre.maps : {...at(time(K)).maps, ...Object.fromEntries(Object.entries(laterMaps).map(([n, c]) => [n, (kk: E) => get(c.to, pair(c.at, kk))]))}, flags: {}}
+      const sig: Subst = K === 1 ? sigma : frame, renK = K === 1 ? ren : renamer({s: frame, cells: {...Object.fromEntries([...mapNames, ...carried].map(map => [map, {to: `${map}@`, at: time(K)}])), ...laterMaps}})
       // (the usual goal's hypotheses: the precondition, the facts at the instances, then each step's laws, assumption and
       // `when`, and after each step but the last its state's equations)
       const nf = assumed(m.facts ?? [], inst).length, np = m.pre ? 1 : 0, na = m.assume ? 1 : 0, nl = assumed(laws, inst).length
-      const lawsAt = (back: number): NodeSpec['uses'] => laws.flatMap((l2, j) => {
-        const ks = keysOf(l2), tb = time(back), ab = at(tb)
-        if (!ks.length) return [{node: j, subst: {'t$': tb}, guard: yes}]
-        const flat = inst[l2.name] ?? []
-        return Array.from({length: Math.floor(flat.length / ks.length)}, (_, r) => ({node: j, subst: {'t$': tb, ...Object.fromEntries(ks.map((kn, c) => [kn, substE(flat[r * ks.length + c]!, ab)]))}, guard: yes}))
-      })
+      const lawsAt = (back: number) => lawUses(inst, time(back), e => substE(e, at(time(back))), yes)
       const perStep = Array.from({length: K}, (_, j) => lawsAt(K - j)), fn1 = fnInsts(inst, sig)
       // (a flag at every key: each step's closing hypotheses the closing facts at its time)
       const cls = Array.from({length: K}, (_, j) => closings(inst, time(K - j), at(time(K - j)))), nc = cls[0]!.length
@@ -779,7 +760,7 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
       const bounds = [...(m.pre ? [m.pre] : []), le(k(K), t), le(t, T), ...omegaHyp]
       const after = K === 1 ? substC(primedOf(sl.then, {vars: Object.fromEntries(state.map(st2 => [`${st2}'`, inlineE(m.step.state?.[st2] ?? v(st2))])), maps: Object.fromEntries(mapNames.map(map => [`${map}'`, upd.maps[map]!])), flags: {}}), pre) : substC(last, frame)
       const later = Object.fromEntries(Array.from({length: K - 1}, (_, j) => j + 2).flatMap(j => m.inputs.map(i => [`${i}@${j}`, get(`${i}@`, time(K - j + 1))] as const)))
-      const cells = substC(primedOf(sl.then, {vars: {...later, ...Object.fromEntries(state.map(st2 => [`${st2}'`, get(`${st2}@`, t)]))}, maps: Object.fromEntries(mapNames.map(map => [`${map}'`, (kk: E) => get(`${map}@`, pair(t, kk))])), flags: {}}), at(time(K)))
+      const cells = substC(primedOf(sl.then, {vars: {...later, ...Object.fromEntries(state.map(st2 => [`${st2}'`, get(`${st2}@`, t)]))}, maps: {...Object.fromEntries(mapNames.map(map => [`${map}'`, (kk: E) => get(`${map}@`, pair(t, kk))])), ...frame.maps}, flags: {}}), at(time(K)))
       const a = 3 * L + 2 * q, steps = Array.from({length: K - 1}, (_, j) => ({fact: 1, at: [time(K - j - 1)]}))
       // (the state after each step but the last its equations, hypotheses here as in the usual goal: the step's facts at
       // those times give them where the step law is, `steps` below)
