@@ -1399,5 +1399,13 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 2400
+},
+{
+"name": "lean-data-7",
+"cmd": "ONLY=datamerge,datainterleave,dataadd3acc,datamergestated,dataqsort bash research/data/lean-data.sh 2>&1",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 2400
 }
 ]
