@@ -193,9 +193,14 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
       if ('atom' in src) return `.atom ${path.size - 1 - src.atom}` // Lean's path has the latest decision first
       if ('fact' in src) return `.fact ${src.fact}`
       const j = 'pair' in src ? pairs.indexOf([...src.pair].sort().join('\n')) : col.get('nat' in src ? src.nat : src.term) ?? -1
-      return j < 0 ? '.any' : 'pair' in src ? `.eq ${j}` : 'nat' in src ? `.nat ${j}` : `.term ${j}`
+      return j < 0 ? '.any' : 'pair' in src ? `.eq ${eqAt.get(j)}` : 'nat' in src ? `.nat ${j}` : `.term ${j}`
     }
-    const at2 = list(used.map(u => `(${row(rows[u]!)}, ${hint(base[u]!.src)})`)), rest = `${list(steps)} ${list(eqs)} ${list(prods.map(([i, j]) => `(${idx(i)}, ${idx(j)})`))}`
+    // (slim: only the pairs a row's hint names, renumbered; Lean reads the rest only for a row of no hint, which a slim
+    // table has none of)
+    const pairAt = (src?: RowSrc) => (src && 'pair' in src ? pairs.indexOf([...src.pair].sort().join('\n')) : -1)
+    const keepEqs = slim && !whole ? [...new Set(used.map(u => pairAt(base[u]!.src)).filter(j => j >= 0))] : eqs.map((_, j) => j)
+    const eqAt = new Map(keepEqs.map((j, i) => [j, i]))
+    const at2 = list(used.map(u => `(${row(rows[u]!)}, ${hint(base[u]!.src)})`)), rest = `${list(steps)} ${list(keepEqs.map(j => eqs[j]!))} ${list(prods.map(([i, j]) => `(${idx(i)}, ${idx(j)})`))}`
     return squares.length ? `.leafSq ${at2} ${list(squares.map(row))} ${rest}` : `.leafAt ${at2} ${rest}`
   }
   return {tab: list(tab), tabCols: tab, hyps: list(goal.hyps.map(c)), tree: lean(tree), cols, c, e}

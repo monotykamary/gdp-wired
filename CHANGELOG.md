@@ -149,6 +149,62 @@ kernel/cyclic.ts, lean-kernel/*.lean).
   test ten times each in one wave: main (38019b6) 3,652.59 to 5,469.44 ms, two past the limit; this branch 3,751.85 to
   4,946.40 ms, none (`runs/modal/cover/infer10-main`, `infer10-branch`).
 
+The cyclic certificate cheaper to check in Lean and to export: the cyclic export's text about a quarter to a half of
+what it was, each item's usual proof made once and without a TypeScript certificate the export never read, and the
+step laws a cyclic certificate covers no longer checked the usual way as well. Untrusted only: kernel/kernel.ts,
+kernel/cyclic.ts and lean-kernel/*.lean unchanged.
+
+- `lean-kernel/emit.ts`, a cyclic proof's text (`cycProofText`): each table once (`<id>_tabN`), each term column's term
+  once (`<id>_termN`), each goal's table and tree once where two goals have the same (`<id>_goalN`), since a node's goals
+  (its own, each use's premises and descent) share its hypotheses and so mostly their columns; a table only the columns
+  Lean reads (`encode`'s `slim`: every row a leaf uses has a hint, and Lean computes only the hinted hypotheses' rows,
+  Kernel.lean's `srcRows`, so a premise's table is a few columns, not every choice of the node's facts), a leaf's cell
+  pairs only those its hints name; the data defs `noncomputable` where `decide +kernel` checks them (no code for Lean
+  to compile; `def` with `native_decide`). The bytes a shard's file (`runs/modal/perf2/variant2`, `size1`): 0.81 to 0.92
+  MB against 1.87 to 3.40 MB before (`authority` 197 KB against 2,278 KB, `tabs2`, `leanprof1`); the usual export's
+  0.30 to 0.50 MB.
+- What every law's and step law's check reads alike, proven once a machine: `<id>_factsIn` (the exported facts among the
+  encoding's), and with no flag at every key `<id>_shape` and `<id>_terms` at no keys; each `cycMOk`, `cycKOk` and
+  `cycAOk` theorem unfolds its check and reads those as true (`simp only`) before `decide +kernel`. Lean on shard 1 with
+  only those checks kept (the rest `sorry`) takes the CPU time of none kept: 58.0 s and 57.8 s against 60.1 s
+  (`runs/modal/perf2/variant3`).
+- The export's usual proofs (`proveStepLawsOnce`): made once per `toLean` (an item exported the usual way after its
+  cyclic certificate wasn't found reads the proof the search started from) and `quietly`, with no TypeScript certificate
+  (the export makes its own from the usual trees; one made in `proveStepLaws` was never read: normal form's k-step law
+  spent 60 s there before the export's own 10 s deadline). A translation's own bound is within the export's deadline
+  (kernel/prove.ts's `withinDeadline`). `encode` finds each leaf's rows once (three passes read them).
+  `GDP_LEAN_TIMES=1` prints each item's export time and each certificate tried.
+- `kernel/prove.ts`: step laws the cyclic certificate covers aren't checked the usual way first (`checkStepLaws`, which
+  read the laws' usual trees again, then the step laws'); it runs where no certificate is made, as a machine's laws'
+  check does. `GDP_CYCLIC_PROF` lines are on the certificate's lines too (the made nodes' check timed apart).
+- In one container, the same items exported with emit.ts at d04850c (the tables, the slim tables, the shared checks)
+  and at 9431e00, each checked by Lean twice (`runs/modal/perf2/ab1`; 4 CPUs): shard 0 57.3, 54.1 s against 63.7, 60.0 s; shard 1 36.3,
+  34.1 s against 80.8, 69.8 s; shard 2 42.0, 42.4 s against 70.9, 66.3 s; shard 3 71.7, 68.3 s against 80.7, 72.0 s.
+  With main's tree at 9431e00 against this branch's whole tree in one container (`abtree1`, items as each tree's
+  package check has them): shard 1 37.9, 36.5 s against 99.5, 97.6 s; shard 2 34.5, 39.8 s against 59.5, 57.6 s; shard 0
+  71.5, 72.6 s against 93.4, 76.9 s; shard 3 81.2, 81.7 s against 74.1, 76.3 s (`scopes3` cyclic now, where 9431e00
+  exported it the usual way past the deadline).
+- The suites in one wave, one after the other, 9431e00 against this branch (`runs/modal/perf2/w2-base-default`,
+  `w2-base-usual`, `w2-default`, `w2-usual`): by default 479.7 s wall and 4,132.9 s of job time (189 jobs) against
+  438.4 s and 4,074.9 s (194 jobs; the 189 both have, 3,709.8 s), the 49 Lean jobs both have 1,334.0 s against 1,093.4
+  s; with `--usual` 456.7 s and 3,562.6 s against 345.8 s and 3,617.6 s (the 189 both have, 3,205.1 s). None failed.
+  Lean a package shard (`lean-items.sh`'s `lean`), by default against `--usual` in the same tree: 9431e00 103, 74, 71 s
+  against 13, 20, 33 s; this branch 80, 25, 53 s against 22, 8, 17 s (shards 1 to 3; the shards' items aren't
+  9431e00's: the datatype and rank tracks added some). The export: 34, 23, 41 s against 9, 10, 20 s; 33, 8, 16 s
+  against 13, 6, 10 s. `lean-groups-0..3`: 39.2, 30.0, 32.0, 35.3 s against 11.0, 9.7, 19.8, 20.2 s.
+- The certificates both runs made (`w2-base-default`, `w2-default`, matched by job, kind, name and occurrence): machines
+  14,549, usual 41,307 ms and cyclic 58,131 ms (1.41x) against 36,608 and 53,055 ms (1.45x); recurrences 364, 1.89x
+  against 1.96x; laws between 190, 2.99x against 2.77x; folds 7, 7.95x against 7.84x; step laws 427, usual 8,557 ms and
+  cyclic 23,549 ms against 5,620 and 68,429 ms: a machine's step-law certificate now covers its step laws together, the
+  ones 9431e00 left uncovered among them (k steps over a map, flags at every key), and where that fails each alone; two
+  of normal form's (quantifiers) spend 60 s each and fall back (`fellBack` in its lines).
+- Not done: a Lean shard is still 3.1x to 3.6x its usual export's (by default against `--usual` above), not 1.5x. With
+  the text halved, Lean's time is the kernel's `decide +kernel` of `checkCyclic` (the premise and descent goals each
+  read the node's whole hypotheses) and the elaboration of the goals' trees (trace.profiler with synchronous elaboration, `leanprof7`, `leanprof8`:
+  `scopes3_check` 28.3 s, its two nodes 15.8 s and 19.7 s); a check one theorem a node, which Lean could check in
+  parallel, made no difference (`ab3`, `ab4`). A step-law certificate checks the laws' nodes again (3,667 ms of 8,410 ms
+  of its check in `tsprof2`); skipping them needs kernel/cyclic.ts to remember checked nodes, a trusted change left out.
+
 ## 0.19.0
 
 The cyclic proof is the certificate by default. What the usual route proves becomes a cyclic proof from its own trees,
