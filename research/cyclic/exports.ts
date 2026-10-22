@@ -1,5 +1,5 @@
 // The Lean export from cyclic certificates against the usual one: `bun research/cyclic/exports.ts <usual.lean>
-// <cyclic.lean>` (two Proofs.lean files package-check.ts wrote for the same items, without and with GDP_CYCLIC_CERT=1).
+// <cyclic.lean>` (two Proofs.lean files package-check.ts wrote for the same items, without and with GDP_CERT=cyclic).
 // Each theorem a user cites (`<id>.lawN`, `<id>_stepN_holds`, `<id>_liveN_holds`, `<id>_liveN_holds_wf`, `<id>_halts`,
 // `<id>_refines`, `<id>_laws`, `<id>_hlaws`, `<id>_orig_laws`, a corollary) is compared by its statement's text, and each
 // definition a statement names (the machine, a history, a ghosted machine, a refinement, a loop, a fold, a liveness) by its

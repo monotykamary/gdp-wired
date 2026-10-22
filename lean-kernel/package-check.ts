@@ -249,5 +249,5 @@ if (!out) throw new Error('usage: bun package-check.ts <empty folder>')
 mkdirSync(out, {recursive: true})
 for (const [name, text] of Object.entries(leanProject(file))) writeFileSync(join(out, name), text)
 console.log(`${Object.keys(leanProject(file)).length} files in ${out}; ${[...file.matchAll(/^theorem /gm)].length} theorems`)
-// With cyclic certificates (GDP_CYCLIC_CERT=1): which items were exported from them, and which went the usual way.
+// With cyclic certificates (GDP_CERT=cyclic): which items were exported from them, and which went the usual way.
 if (certReport.cyclic.length || certReport.usual.length) console.log(`cyclic certificates: ${certReport.cyclic.length} items (${certReport.cyclic.join(', ')}); the usual way: ${certReport.usual.length}${certReport.usual.map(x => `\n  ${x.id}: ${x.why}`).join('')}`)

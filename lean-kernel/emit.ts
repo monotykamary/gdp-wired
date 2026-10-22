@@ -765,9 +765,10 @@ def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
 example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix)}` : ''}`
 }
 
-// --- the cyclic certificate's export (GDP_CYCLIC_CERT=1) ------------------------------------------------------------
+// --- the cyclic certificate's export (GDP_CERT=cyclic) -------------------------------------------------------------
 
-// With GDP_CYCLIC_CERT=1 (or toLean's `cyclic`), toLean exports each machine the cyclic route covers from one cyclic
+// With GDP_CERT=cyclic (core/cyclic.ts's certOn: a covered proof's certificate is its cyclic proof; or toLean's
+// `cyclic`), toLean exports each machine the cyclic route covers from one cyclic
 // proof (kernel/cyclic.ts) of its laws and of every step law its claims bring (its own step laws and k-step laws, a
 // liveness's), carried to the machine by Bridge.lean's cyc_machine_sound and BridgeRules.lean's cyc_kstep_sound,
 // sleads_of_holds (liveness, loops), hreach_plain (histories) and cyc_ghost_holds (ghosts), and each theorem stated as the
@@ -776,7 +777,7 @@ example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : '
 // way: a flag that holds at every key, a law that reads a map at a key read from a map, a refinement, and a liveness's
 // weak fairness (its helpful requests proven allowed: a claim about requests the run doesn't take).
 const envOf = () => (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
-export const cyclicCerts = () => envOf()?.GDP_CYCLIC_CERT === '1'
+export const cyclicCerts = () => envOf()?.GDP_CERT === 'cyclic'
 let certsOn = false, cycTexts = 0
 // What the last toLean exported from cyclic certificates, and what went the usual way (and why).
 export const certReport: {cyclic: string[], usual: {id: string, why: string}[]} = {cyclic: [], usual: []}
@@ -1304,7 +1305,7 @@ export type LeanItem =
 // names (`…_native.native_decide.ax_…`): it trusts Lean's compiler, its runtime and the C compiler. Defaults to off, or
 // to GDP_LEAN_NATIVE=1 (the suite's quick runs); a release's proofs stay on Lean's kernel and its core axioms.
 // `cyclic`: each machine, loop and fold the cyclic route covers from cyclic certificates (see cycMachineToLean); defaults
-// to GDP_CYCLIC_CERT=1. `certReport` then says which items went which way.
+// to GDP_CERT=cyclic. `certReport` then says which items went which way.
 export function toLean(items: LeanItem[], opts: {title?: string, native?: boolean, cyclic?: boolean} = {}): string {
   const outer = checkBy, outerCerts = certsOn
   const env = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
