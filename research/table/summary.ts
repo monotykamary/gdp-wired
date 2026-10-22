@@ -5,7 +5,8 @@ import {readFileSync} from 'node:fs'
 
 const [kind, ...dirs] = process.argv.slice(2)
 type Job = {name: string, code: number, seconds: number, out: string, err: string}
-const jobs: Job[] = dirs.flatMap(d => readFileSync(`${d}/results.jsonl`, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l) as Job))
+// later run directories replace earlier ones, job by job
+const jobs: Job[] = [...new Map(dirs.flatMap(d => readFileSync(`${d}/results.jsonl`, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l) as Job)).map(j => [j.name, j])).values()]
 const resultOf = (j: Job): Record<string, any> | undefined => {
   for (const l of j.out.split('\n').reverse()) { if (!l.startsWith('{')) continue; try { const x = JSON.parse(l); if (x.stage === 'result') return x } catch { /* partial line */ } }
   return undefined
