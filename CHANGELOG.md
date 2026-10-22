@@ -156,7 +156,8 @@ searches, 42 of 42 broken variants refused (`runs/modal/arith/frontier2`), its t
 `inferLaws`' budgets are counted in work, not wall time, so what it finds is the same on any machine. Its test of a law
 that needs an invariant took 3,553 to 4,911 ms in ten `infer` jobs of 1 vCPU (`runs/modal/infer/before`), and one of
 the ten failed its in-flight test (7,005 ms, 900 proofs, not proven); now 1,829 to 2,970 ms, none failed
-(`runs/modal/infer/final`).
+(`runs/modal/infer/final`). The suite (`modal/suite.json`, 200 jobs) at this branch: 484.3 s wall, 4,396.3 s of job time,
+none failed, that test 2,540 ms (`runs/modal/infer/suite`).
 
 - The runs: 16,000 requests tried, and on until the samples are full (3,000), not 500 ms. Every search of the suite's
   jobs and the frontier corpus keeps 3,000 samples, as many as or more than 500 ms gave on 2 vCPU (745 to 3,000,
