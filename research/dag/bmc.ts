@@ -77,7 +77,8 @@ function z3Run(goal: Goal, inputs: string[][], limit: number): {answer: string, 
   const answer = out.split('\n')[0]?.trim() || (p.status === 124 ? 'timeout' : 'error')
   if (answer !== 'sat') return {answer, seconds}
   const w: Record<string, number> = {}
-  for (const mm of out.matchAll(/\(\|([^|]+)\| (\(- (\d+)\)|\d+)\)/g)) w[mm[1]!] = mm[3] !== undefined ? -Number(mm[3]) : Number(mm[2])
+  // (z3 writes a symbol in bars only where it needs them: c@0 is a simple symbol)
+  for (const mm of out.matchAll(/\((\|[^|]+\||[^\s()|]+) (\(- (\d+)\)|\d+)\)/g)) w[mm[1]!.replace(/^\|(.*)\|$/, '$1')] = mm[3] !== undefined ? -Number(mm[3]) : Number(mm[2])
   return {answer, seconds, w}
 }
 

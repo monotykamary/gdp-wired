@@ -5,6 +5,8 @@
   profile   profile.ts (the tree search, instrumented) on each dumped goal.json [--sample names-file]
   dag       dag.ts (the DAG search) on each dumped goal.json, its certificate checked by check-dag.ts
   cdcl      cdcl.ts (CDCL over the atoms, the same certificate) likewise [--no-bounds]
+  vars      vars.ts (the goal's variables by class, and the reading with every yes/no and finite value fixed)
+  items     items.ts on each example the test script runs (the tree against the DAG on the library's own goals)
   bmc       bmc.ts on each unsat Lustre task with a Golem derivation (bmc-tasks.json), k = 1..10
 """
 import json
@@ -44,6 +46,12 @@ def main(kind: str, extra: list[str]):
         for t in names:
             jobs.append({"name": safe(t), "limit": int(ms) // 1000 + 60, "collect": "/tmp/out",
                          "cmd": f"bun research/dag/{script} /goals/{safe(t)}/goal.json --ms {ms} --out /tmp/out {flags}".strip()})
+    elif kind == "vars":
+        for t in names:
+            jobs.append({"name": safe(t), "limit": 120, "cmd": f"bun research/dag/vars.ts /goals/{safe(t)}/goal.json"})
+    elif kind == "items":
+        for x in "readme guide composition sets quantifiers functions datatypes lemmas discover invoices folds trees pairs groups charts xstate infer cyclic cycles data scopes lists sizes liveness budget gdp steps".split():
+            jobs.append({"name": x, "limit": 1800, "cmd": f"bun research/dag/items.ts examples/{x}.ts --max 200 --ms 3000"})
     elif kind == "bmc":
         for t in json.loads((HERE / "bmc-tasks.json").read_text()):
             jobs.append({"name": safe(t["task"]), "limit": 300, "cmd": f"bun research/dag/bmc.ts /bench/{t['smt2']} --k 10 --ms 240000"})
