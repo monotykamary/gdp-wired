@@ -174,8 +174,10 @@ export const translatedCache: Grown = new Map()
 type Stuck = {proven: false, checked: false, node: string, goal: string, stuck: string}
 // `order`: the order the nodes are grown in, by default those with a weak variant first (a variant that uses a weak node
 // is passed over).
-export function proveCyclic(facts: Fact[], specs: NodeSpec[], order: number[] = [...specs.keys()].sort((i, j) => Number(!specs[i]!.variants?.some(x => x.weak)) - Number(!specs[j]!.variants?.some(x => x.weak))), grownBefore: Grown = searched, st: TStats = tstats()): CyclicVerdict {
-  const nodes: CNode[] = [], shapes = [...specs], weak = new Set<number>()
+// `made`: the first nodes already made (a proof of the same facts whose nodes these specs begin with), taken as they are.
+export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[], grownBefore: Grown = searched, st: TStats = tstats(), made: CNode[] = []): CyclicVerdict {
+  const order = (order0 ?? [...specs.keys()].sort((i, j) => Number(!specs[i]!.variants?.some(x => x.weak)) - Number(!specs[j]!.variants?.some(x => x.weak)))).filter(i => i >= made.length)
+  const nodes: CNode[] = [...made], shapes = [...specs], weak = new Set<number>()
   let later: number | undefined, refuted = false
   // A goal's tree, and the hypotheses its leaves read (of the whole goal, a weaker goal's read through where they came from).
   const grown = (g: Goal, node: string, own: (i: number) => boolean): {tree: Tree, from: Goal, used: () => Set<number>} | Stuck => {
@@ -521,7 +523,8 @@ const flagsOf = (m: Machine): Record<string, C> => {
 // instance (see `translatedNodes` below), or none with why not.
 // `steps`: one-step step laws to prove too, each with the usual proof's goal and tree (kernel/prove.ts's proveStepLaws).
 export type UsualStep = {sl: StepLaw, inst: Instances, goal: Goal, tree: Tree}
-export function machineNodes(m: Machine, laws: Law[], instances: Record<string, Instances>, usual?: {trees: Record<string, Tree>, steps?: UsualStep[]}, st: TStats = tstats()): {facts: Fact[], specs: NodeSpec[], why?: string} {
+// `lawsMade`: the laws' nodes are made already (their trees not translated again).
+export function machineNodes(m: Machine, laws: Law[], instances: Record<string, Instances>, usual?: {trees: Record<string, Tree>, steps?: UsualStep[], lawsMade?: boolean}, st: TStats = tstats()): {facts: Fact[], specs: NodeSpec[], why?: string} {
   const {at} = trace(m), flags = flagsOf(m), inline = (t: C) => substC(t, {vars: {}, maps: {}, flags})
   const t = v('t$'), T = v('T$'), u = v('u$'), key = v('k$')
   const inlineE = (e: E) => substE(e, {vars: {}, maps: {}, flags})
@@ -790,6 +793,7 @@ export function machineNodes(m: Machine, laws: Law[], instances: Record<string, 
     // (a translation is bounded by a minute: a step law over 32 steps has a goal of 32 frames at every leaf)
     const until = performance.now() + 60_000
     for (const x of made) {
+      if (usual!.lawsMade && x.node < 3 * L) continue
       // (after a step, 1 <= t decided first: t ∸ 1 is then t − 1, and a cell read at a key over the cells at t − 1 has a
       // linear form)
       const whole = mainGoal(facts, all, all[x.node]!)
@@ -918,12 +922,16 @@ export type Translated = (st: TStats) => {verdict?: CyclicVerdict, why?: string}
 // proof made again (a rule proven twice, as the suite does) is the one made and checked before (the same proof: the
 // kernel's check is a function of it, and nothing changes a proof once made). The key's time is GDP_CYCLIC_PROF's `key`.
 const proofsMade = new Map<string, Cyclic>()
-export function translatedProof(key: () => string, build: () => {facts: Fact[], specs: NodeSpec[], why?: string}, st: TStats): {verdict?: CyclicVerdict, why?: string} {
+// `base`: the key of a proof made before whose nodes these begin with (a machine's laws, for its step laws), reused where
+// its facts are these.
+export function translatedProof(key: () => string, build: (reused: boolean) => {facts: Fact[], specs: NodeSpec[], why?: string}, st: TStats, base?: () => string): {verdict?: CyclicVerdict, why?: string} {
   const k0 = timedKind('key', 0, key), had = proofsMade.get(k0)
   if (had) { st.cached++; return {verdict: {proven: true, checked: true, proof: had}} }
-  const {facts, specs, why} = build()
+  const b = base && proofsMade.get(timedKind('key', 0, base)), {facts, specs, why} = build(!!b)
   if (why) return {why}
-  const v = proveCyclic(facts, specs, undefined, translatedCache, st)
+  const made = b && b.nodes.length <= specs.length && JSON.stringify(b.facts) === JSON.stringify(facts) ? b.nodes : []
+  if (b && !made.length) return translatedProof(key, () => build(false), st)
+  const v = proveCyclic(facts, specs, undefined, translatedCache, st, made)
   if (v.proven && v.checked) { if (proofsMade.size >= 1024) proofsMade.clear(); proofsMade.set(k0, v.proof) }
   return {verdict: v}
 }

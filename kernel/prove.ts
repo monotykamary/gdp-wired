@@ -1180,7 +1180,8 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
   const why = uncoveredWhy(m, laws), one = stepLaws.filter(sl => (sl.steps ?? 1) === 1 || (!Object.keys(plain.maps ?? {}).length && !plain.inputMaps?.length))
   if ((cyclicOn() || certOn()) && !why && one.length && out.checked) {
     const steps = one.map(sl => { const inst = perStep[sl.name] ?? instances, goal = stepLawObligations(m, laws, inst, sl)[0]!; return {sl, inst, goal, tree: trees[goal.name]!} })
-    const translated = (st: TStats) => translatedProof(() => JSON.stringify(['steps', m, laws, base.proof!.instances, steps.map(x => [x.sl, x.inst])]), () => timedKind('instance', 0, () => machineNodes(m, laws, base.proof!.instances, {trees: base.proof!.trees, steps}, st)), st)
+    const translated = (st: TStats) => translatedProof(() => JSON.stringify(['steps', m, laws, base.proof!.instances, steps.map(x => [x.sl, x.inst])]), reused => timedKind('instance', 0, () => machineNodes(m, laws, base.proof!.instances, {trees: base.proof!.trees, steps, lawsMade: reused}, st)), st,
+      () => JSON.stringify(['machine', m, laws, base.proof!.instances]))
     const usualMs = performance.now() - t0
     if (cyclicOn()) crossCyclic('step law', m.name, true, undefined, usualMs, translated)
     if (certOn()) out.checked = certCyclic('step law', m.name, translated, undefined, usualMs).checked
