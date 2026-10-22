@@ -849,6 +849,8 @@ class Session:
                 except Exception as e:
                     fails += 1
                     log(f"{vm.id}: tick failed ({fails}): {str(e)[:200]}")
+                    if "not found (404)" in str(e):  # the VM is gone (deleted): no use asking again
+                        fails = 8
                     if fails >= 8:
                         vm.dead = True
                         log(f"{vm.id}: given up")
