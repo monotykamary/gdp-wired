@@ -128,20 +128,26 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   for (const st of opts.seen ?? []) if (!m.params.length) keep({params: {}, st})
   const mapsText = (st: State) => JSON.stringify(Object.values(st.maps).map(c => [...c]))
   const runsUntil = Math.min(until, performance.now() + (opts.runsMs ?? 500))
-  for (let trial = 0, bound = 2; performance.now() < runsUntil; trial++, bound = trial % 20 === 0 ? (bound >= 1024 ? 2 : bound * 2) : bound) {
+  // (an assumption with "there exists", a value the request brings, may admit no request at a small bound, a multiple
+  // of 5 but 0, say: a trial whose steps moved nothing doubles the bound at once)
+  const skolems = m.inputs.some(i => i.startsWith('some$a'))
+  for (let trial = 0, bound = 2, stuck = false; performance.now() < runsUntil; trial++, bound = trial % 20 === 0 || stuck ? (bound >= 1024 ? 2 : bound * 2) : bound) {
+    stuck = false
     const params = randomParams(bound)
     if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) continue
     let st: State
     try { st = run.init(params) } catch { continue }
     keep({params, st})
+    let took = 0
     for (let d = 0, tries = 0; d < 40 && tries < 200; tries++) {
       const input = randomInput(params, bound)
       let next: State
       try { if (!allowed(m, run, params, st, input)) continue; next = run.step(params, st, input) } catch { break }
       d++
-      if (JSON.stringify(next.scalars) !== JSON.stringify(st.scalars) || mapsText(next) !== mapsText(st)) keep({params, st: next})
+      if (JSON.stringify(next.scalars) !== JSON.stringify(st.scalars) || mapsText(next) !== mapsText(st)) { keep({params, st: next}); took++ }
       st = next
     }
+    stuck = skolems && took === 0
   }
 
   opts.progress?.('runs', {samples: samples.length})
