@@ -50,8 +50,8 @@ the end; boat stops a released VM after `--idle` seconds (60) unless another bat
 reuse running VMs, and stopped VMs bill no compute. `--teardown` deletes the batch's VMs instead;
 `python3 modal/boat.py teardown [--all | --type large]` deletes free ones. Each VM is 4 vCPU and 8 GB: two slots of
 2 vCPU and 4 GB (Modal's container), a job of 4 vCPU or 8 GB a whole VM, the one job that asks for 8 vCPU and 16 GB a
-`large` VM. Jobs start longest first by the last run's times (`--durations`, else the newest `summary.tsv` or
-`results.jsonl` with the same names), each in a mount namespace of its own: a private `/tmp`, a fresh copy of the
+`large` VM. Jobs start longest first by the last run's times (`--durations`: a `summary.tsv`, or a runner's
+`results.jsonl`; for `run.py` else the newest `summary.tsv` with the same jobs), each in a mount namespace of its own: a private `/tmp`, a fresh copy of the
 batch's tree at `/work/gdp-wired` (as on Modal), its runner's paths (`/bench`), its own CPUs (`taskset`, so `nproc` is
 its share), under `timeout -s KILL`.
 

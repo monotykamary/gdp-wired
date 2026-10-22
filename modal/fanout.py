@@ -89,6 +89,8 @@ class ModalCtx:
         live.mkdir(exist_ok=True)
         self.ticket = live / f"{self.app.app_id}"
         self.ticket.write_text(str(os.getpid()))
+        if self.ctx:
+            log(f"Modal app {self.app.app_id}")
         return self
 
     def __exit__(self, *exc):
