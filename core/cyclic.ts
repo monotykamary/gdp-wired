@@ -898,7 +898,9 @@ export function qflagFacts(m: Machine): Fact[] {
 }
 // The closing facts at the times a node reads the run (each flag's at its time, its body at the keys the usual proof
 // closes it at, read there).
-export function closingInsts(m: Machine, facts: Fact[], insts: Instances[], times: E[]): NodeSpec['insts'] {
+export function closingInsts(m: Machine, facts: Fact[], insts: Instances[], times: E[], laws: Law[] = []): NodeSpec['insts'] {
+  // (a law's fresh key k#, which the usual proof's keys may read, the node's own k)
+  const fresh = vars(Object.fromEntries(laws.flatMap(x => (x.forall ? [[`${x.forall}#`, v(x.forall)]] : []))))
   const {at} = trace(skMachine(m)), fi = (n: string) => facts.findIndex(f => f.name === n), out: NodeSpec['insts'] = [], seen = new Set<string>()
   const push = (p: NodeSpec['insts'][number]) => { const id = JSON.stringify(p); if (p.fact >= 0 && !seen.has(id)) { seen.add(id); out.push(p) } }
   for (const [f, q] of quantifiedOf(m)) {
@@ -908,7 +910,7 @@ export function closingInsts(m: Machine, facts: Fact[], insts: Instances[], time
       push({fact: fi(`${m.name}: ?${f} is 1 or its body fails at the witness`), at: [u]})
       for (const inst of insts) {
         const flat = inst[`?${f}`] ?? []
-        for (let i = 0; i + n <= flat.length; i += n) push({fact: fi(`${m.name}: ?${f} is 0 or its body holds`), at: [u, ...flat.slice(i, i + n).map(e => substE(e, at(u)))]})
+        for (let i = 0; i + n <= flat.length; i += n) push({fact: fi(`${m.name}: ?${f} is 0 or its body holds`), at: [u, ...flat.slice(i, i + n).map(e => substE(substE(e, fresh), at(u)))]})
       }
     }
   }
@@ -920,7 +922,7 @@ export function qflagNodes(m: Machine, laws: Law[], instances: Record<string, In
   const base = machineNodes(skMachine(m), laws, instances)
   if (base.why) return base
   const facts = [...base.facts, ...qflagFacts(m)], t = v('t$')
-  const close = closingInsts(m, facts, Object.values(instances), [t, less1(t)])
+  const close = closingInsts(m, facts, Object.values(instances), [t, less1(t)], laws)
   const add = (sp: NodeSpec): NodeSpec => ({...sp, insts: [...sp.insts, ...close], ...(sp.variants ? {variants: sp.variants.map(add)} : {})})
   return {facts, specs: base.specs.map(add)}
 }
