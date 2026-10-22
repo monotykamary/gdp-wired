@@ -92,6 +92,63 @@ variants refused by both (`runs/modal/ranks/corpus3`, 1 vCPU a job).
 - The suite (`modal/suite.json`, 193 jobs) at this branch: 392.3 s wall, 4,321.5 s of job time, none failed
   (`runs/modal/ranks/suite1`).
 
+Every rule the usual route proves now gets its cyclic certificate by translation, the TypeScript certificate searched
+nowhere by default: flags that hold at every key, k-step laws over a map and requests allowed join the laws, step laws,
+recurrences and folds. Left on the usual rule, by default, in the whole suite (194 jobs, `runs/modal/cover/last-default`): 127 proofs, the
+claims about runs that never end (liveness 36, loops 79, whose step laws are certified), four laws reading a map at a key
+read from a map and 8 k-step laws the translation doesn't make; 0.19.0's suite (189 jobs) left 1,122
+(`runs/modal/flip/default`). A
+datatype search's verdict no longer depends on the container it runs in. The trusted code is unchanged (kernel/kernel.ts,
+kernel/cyclic.ts, lean-kernel/*.lean).
+
+- Flags that hold at every key, translated (core/cyclic.ts's `machineNodes`): the machine read as its sk machine (each
+  flag and its witnesses inputs a request names), the usual goals' closing hypotheses (kernel.ts's `closing`) the
+  closing facts (`qflagFacts`, BridgeRules.lean's `cycQFacts`) at the step's time, each time at most T decided first.
+  `qflagNodes` is `machineNodes` now (kept, an alias); the Lean export translates these machines too. In
+  `runs/modal/cover/last-default` none is left for the flags (0.19.0: 203 machines, 93 step laws, 16 k-step laws).
+- k-step laws over a map: a later step reads the map as the usual goal's term over the cells at t − k (its laws there a
+  use only where they read no map), its assumption, `when` and closing hypotheses the usual goal's renamed (hypotheses of
+  the node after the steps); the step law's node reads each cell back to t − k through the maps' steps (`cellChain`),
+  times one step back at a time (`tBack`, as a step's fact reads the time before it; BridgeRules.lean's `cycKOk` reads
+  both forms). A map a later request carries is its cells at that request's time. Left: 8 (0.19.0: 702), each a
+  premise or a node the translation doesn't prove (`steplaw-k`'s and `hw-check-steps`' random machines, the quantifier
+  examples' normal form, derived child and derived authority); where a machine's step laws together aren't translated,
+  each is tried alone, so one such law leaves the others theirs.
+- Requests allowed (`proveProgress`, a liveness's helpful requests): `allowTranslated`, the usual allowed goal over the
+  cells at t (rank (t, 2)), then BridgeRules.lean's `cycAOk` node (rank (t, 3)) carried from it by the request's
+  equations. 26 of 26 translated in `last-default` (0.19.0: 8 left, all).
+- A node after a step states its hypotheses as their conjuncts: a premise that is a conjunction of disjunctions,
+  refuted against itself, was split case by case through every conjunct (scope grants' decision: not made in 47,216 ms,
+  `runs/modal/cover/dbg1`; made in 5,497 ms, `dbg3`).
+- Where no cyclic proof is made the usual trees are the certificate, checked by kernel.ts, and the proof is counted
+  uncovered with why (`cyclic: {..., uncovered: true, why}`, core/cyclic.ts's `uncovered`); it no longer leaves the proof
+  unchecked. A translation that fails is searched only with `GDP_CERT_SEARCH=1` (within `GDP_CERT_MS`), and a translated
+  node's goals are grown within 4 s. The cross-check (`GDP_CYCLIC=1`) searches within `GDP_CERT_MS` too, and counts a
+  proof it makes no cyclic proof for there uncovered, not differing; a history's record goals are part of the cyclic
+  route's verdict (a broken history, its plain machine's laws proven, read as differing: 20 jobs failed so in
+  `runs/modal/cover/final-cyclic`), and a machine with flags at every key the usual route doesn't prove isn't searched
+  (`pairs`' fuzz, its refused laws each searched up to 10 s, ran past its time there).
+- Not covered still: laws reading a map at a key read from a map. Translated, the search tree's and the sheet's are not
+  made within their budgets, about 200 s of job time between them (`runs/modal/cover/a3`), so they stay on the usual
+  rule.
+- The datatype search's budgets are counted in work, not wall time (kernel/prove.ts's `counted` and `clock`: the
+  solver's rows read and made, each node's rows; core/data.ts's `dataRate`, 300 units a millisecond, above the 55 to 240
+  the corpus's searches do on Modal, `runs/modal/cover/data4`'s data-cal), so a budget lets each do at least the work it
+  did in wall time. Its verdicts are the same in a container of 2 vCPU and one of 1 (`runs/modal/cover/data4`: the same
+  lines, reverse of reverse proven in each, in 29.6 s and 23.0 s), every frontier datatype shard 3 of 3. The suite's
+  `data` job is split, the search tree's insertion its own job (`data-bst`).
+- Simpler: `GDP_CYCLIC_STEP` and `GDP_CYCLIC_AFTER` (search-only) are gone, and the switches are listed in one place
+  (core/cyclic.ts's header); one reader of `GDP_CERT` (`certMode`, which emit.ts's `cyclicCerts` is); in core/cyclic.ts
+  one copy each of a law's keys and tuples, the fresh keys, the functions' facts, the step's update, the laws a node uses
+  at a time, the map-cell walker and the loop that translates the usual trees (machines, recurrences, folds); the
+  translate-then-search of the certificate and the cross-check shared (`cyclicOf`).
+- The suite (194 jobs, one after the other, at this branch's last commit): by default 437.1 s wall and 4,156.9 s of job
+  time, none failed (`runs/modal/cover/last-default`); with `--usual` 335.9 s and 3,590.2 s, none failed (`last-usual`);
+  with `--cyclic` 537.9 s and 4,495.7 s, none failed, none differing (`last-cyclic`). An earlier run by default (190 jobs)
+  had `infer`'s law that needs an invariant past its 5 s limit, 5,026.53 ms (`runs/modal/cover/final-default`); the same
+  test ten times each in one wave: main (38019b6) 3,652.59 to 5,469.44 ms, two past the limit; this branch 3,751.85 to
+  4,946.40 ms, none (`runs/modal/cover/infer10-main`, `infer10-branch`).
+
 ## 0.19.0
 
 The cyclic proof is the certificate by default. What the usual route proves becomes a cyclic proof from its own trees,
