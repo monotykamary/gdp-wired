@@ -22,6 +22,8 @@ const twos = () => recur('twos', {zero: 0, next: (x, y) => when(x.lt(5), y.plus(
 const leftovers = () => recur('leftovers', {fns: {rem: modBy(7)}, zero: 0, next: (x, l, {rem}) => l.plus(rem(x))}, {})
 const growing = () => recur('growing', {zero: 1, next: (_, d) => min(d.times(2), 64)}, {})
 const squares = () => recur('squares', {zero: 0, next: (x, p) => p.plus(x.times(2)).plus(1)}, {})
+// The sum of the squares up to x: a closed form of degree 3, 6·f(x) = 2·x·x·x + 3·x·x + x.
+const pyramid = () => recur('pyramid', {zero: 0, next: (x, p) => p.plus(x.plus(1).mul(x.plus(1)))}, {})
 const lemma = (id: string, removed: string, build: () => {r: Parameters<typeof proveSteps>[0], laws: Law[]}): Item => ({
   id: `lemma/${id}`, track: 'lemma', removed, today: () => { const {r, laws} = build(); return proveSteps(r, laws, [], {search: false}) },
   frontier: () => { const {r, laws} = build(); return discover(r, laws).verdict },
@@ -45,7 +47,15 @@ const lemmas: Item[] = [
     const r = rule('area').inputs({}).state({n: 0, a: 0}).fns({sq: squares()}).step(({n, sq}) => ({n: n.plus(1), a: sq(n.plus(1))}))
     return {r, laws: [r.law('the area is n·n', ({a, n}) => a.eq(n.mul(n)))]}
   }),
+  lemma('pyramid', 'pyramid: 6·f(x) = 2·x·x·x + 3·x·x + x (degree 3)', () => pyramidRule()),
+  // A false closed form (2n where n is): refused, the runs breaking it (proveSteps: the runs, then discover).
+  {id: 'lemma/pyramid (claims 2n³ + 3n² + 2n)', track: 'lemma', removed: 'pyramid: its closed form', broken: 'pyramid', today: () => { const {r, laws} = pyramidRule(true); return proveSteps(r, laws, [], {search: false}) },
+    frontier: () => { const {r, laws} = pyramidRule(true); return proveSteps(r, laws, []) }},
 ]
+function pyramidRule(bug = false) {
+  const r = rule(`pyramid${bug ? ' (claims 2n³ + 3n² + 2n)' : ''}`).inputs({}).state({n: 0, a: 0}).fns({sq: pyramid()}).step(({n, sq}) => ({n: n.plus(1), a: sq(n.plus(1))}))
+  return {r, laws: [r.law('six times the sum of the squares', ({a, n}) => a.times(6).eq(n.mul(n).mul(n).times(2).plus(n.mul(n).times(3)).plus(bug ? n.times(2) : n)))]}
+}
 
 // Folds with no lemma: examples/invoices.ts's ledgers, and examples/folds.ts's org chart with its children's lemmas taken out.
 const metered = () => {

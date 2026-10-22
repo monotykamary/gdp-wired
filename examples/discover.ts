@@ -25,6 +25,11 @@ export const squares = () => recur('square', {zero: 0, next: (x, p) => p.plus(x.
 export const area = () => rule('area').inputs({}).state({n: 0, a: 0}).fns({sq: squares()}).step(({n, sq}) => ({n: n.plus(1), a: sq(n.plus(1))}))
 export const areaLaws = (r = area()): Law[] => [r.law('the area is n·n', ({a, n}) => a.eq(n.mul(n)))]
 export const foundArea = () => { const r = area(); return discover(r, areaLaws(r)) }
+// The sum of the squares up to x, of degree 3: 6·f(x) = 2·x·x·x + 3·x·x + x, fitted exactly to four values.
+export const pyramid = () => recur('pyramid', {zero: 0, next: (x, p) => p.plus(x.plus(1).mul(x.plus(1)))})
+export const pyramidRule = () => rule('pyramid').inputs({}).state({n: 0, a: 0}).fns({sq: pyramid()}).step(({n, sq}) => ({n: n.plus(1), a: sq(n.plus(1))}))
+export const pyramidLaws = (r = pyramidRule()): Law[] => [r.law('six times the sum of the squares', ({a, n}) => a.times(6).eq(n.mul(n).mul(n).times(2).plus(n.mul(n).times(3)).plus(n)))]
+export const foundPyramid = () => { const r = pyramidRule(); return discover(r, pyramidLaws(r)) }
 export const foundInvoices = () => { const r = invoices('states no lemma'); return discover(r, invoiceLaws(r), invoiceSteps(r)) }
 export const orgChart = () => fold('org chart').params({cap: nat}).inputs({pay: nat})
   .leaf(({pay, cap}) => ({cost: min(pay, cap), heads: 1, depth: 0}))
@@ -39,7 +44,7 @@ export const tooSoon = () => { const r = retries(); return discover(r, [r.law('t
 
 if (import.meta.main) {
   const results: [string, boolean, boolean][] = []
-  for (const [what, out] of [['retry with backoff', foundRetries], ['area', foundArea], ['invoices', foundInvoices]] as const) {
+  for (const [what, out] of [['retry with backoff', foundRetries], ['area', foundArea], ['pyramid', foundPyramid], ['invoices', foundInvoices]] as const) {
     const o = out()
     results.push([what, o.verdict.proven && o.verdict.checked, true])
     for (const [n, f] of Object.entries(o.found)) console.log(`  ${what}, ${n}: ${[...(f.lemmas ?? []), ...(f.between ?? [])].join('; ')}`)
