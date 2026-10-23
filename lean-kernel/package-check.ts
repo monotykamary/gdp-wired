@@ -36,6 +36,9 @@ import {leanItems as cycleLeanItems} from '../examples/cycles.ts'
 import {filled, growing} from '../examples/lemmas.ts'
 import {billing, billingLaws, dataLaws as arithDataLaws, evenLaw, ledger as signedLedger, ledgerLaws as signedLedgerLaws, pairs, rota, rotaLaws} from '../examples/arith.ts'
 import {leanItems as existsLeanItems} from '../examples/exists.ts'
+import {pagesMayBeEmpty, retryForever, ringReader} from '../examples/nonterm.ts'
+import {proveNeverEnds} from '../core/dsl.ts'
+import {type Recur, checkRecur} from '../kernel/kernel.ts'
 
 const caps = rule('caps').params({d: nat}).inputs({acct: nat, day: nat, ok: bool}).maps({Acct: 0, Day: 0})
   .flags(({ok, acct, day, d, Acct, Day}) => ({granted: ok.and(Acct.at(acct).lt(1), Day.at(day).lt(d))}))
@@ -128,6 +131,18 @@ const file = toLean(([
   {id: 'window', machine: window.machine, laws: [window.law('window ceiling', ({ours, c}) => ours.atMost(c))]},
   {id: 'trial', goal: failsClosed.goal},
   {id: 'pages', loop: pages.loop, rank: pages.rankTerms},
+  // Runs that never end (examples/nonterm.ts) through Kern.never_ends_of, each with tampered twins the checks refuse:
+  // the set less one of its states (the cycle doesn't close), every param 0 (the stem ends outside the set).
+  ...([['pagesforever', pagesMayBeEmpty], ['retryforever', retryForever], ['ringforever', ringReader]] as [string, Parameters<typeof proveNeverEnds>[0]][]).map(([id, l]) => {
+    const v = proveNeverEnds(l, {ms: 5000})
+    if (!v.proven || !v.checked) throw new Error(`${id}: no run that never ends found`)
+    const r = v.recur!, set = r.set
+    const tampered: {what: string, recur: Recur}[] = [
+      ...(set.op === 'or' && set.xs.length > 1 ? [{what: 'the set less one of its states', recur: {...r, set: {op: 'or' as const, xs: set.xs.slice(1)}}}] : []),
+      {what: 'every param 0', recur: {...r, start: Object.fromEntries(Object.keys(r.start).map(n => [n, 0]))}},
+    ].filter(t => !checkRecur(v.loop!, t.recur))
+    return {id, neverEnds: v.loop!, recur: r, tampered}
+  }),
   {id: 'escrow', machine: escrowWatched(), laws: escrowLaws, stepLaws: escrowSteps, ghosts: ['released'], lean: {after: escrowRunsLean}},
   {id: 'authority', machine: auth.machine, laws: authorityLaws(auth), stepLaws: [...authoritySteps(auth), ...authorityPairs(auth)]},
   {id: 'inline', machine: inlineAuthority().machine, laws: inlineLaws(), stepLaws: inlineSteps()},

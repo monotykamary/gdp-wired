@@ -192,6 +192,16 @@ proveLoop(gcd, [gcd.law('a >= 1', ({a}) => a.atLeast(1)), gcd.law('b >= 1', ({b}
 
 `while` and the rank read the state and params, never a turn's input.
 
+That some run never ends is a claim of its own: `proveNeverEnds(loop, {from?, ms?})` finds a run that goes on forever (a
+closed set of states and the turn taken from each, a start and a stem into it), checked by the kernel and by Lean
+(toLean's `{id, neverEnds: v.loop, recur: v.recur}`). A loop can't be proven both ways.
+
+```ts
+const pages = loop('pages').params({total: nat}).inputs({page: nat}).state({cur: 0})
+  .while(({cur, total}) => cur.lt(total)).body(({cur, page, total}) => ({cur: cur.plus(min(page, total.minus(cur)))}))
+proveNeverEnds(pages) // proven: an empty page, again and again
+```
+
 ## Statecharts
 
 A workflow with many states reads better as a table than as a chain of `when`s. `chart` compiles one to a rule:
