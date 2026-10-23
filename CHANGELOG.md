@@ -3,7 +3,18 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.22.0
+
+The step goals of wide transitions proven: a CDCL search over a goal's atoms, with short reasons and an incremental
+simplex, whose refutation is unfolded into the tree the kernel already checks. Nothing trusted changed
+(`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts` and `lean-kernel/` are as in 0.21.0). research/dag's 332 CHC
+step goals: 332 proven, 43 at 0.21.0 (`runs/step/grow7`, `runs/step/base-goals332`). CHC-COMP LIA-Lin at 60 s on
+Modal: 518 solved, 0.21.0 the same day 381, none wrong (`runs/step/chc3-modal`, `runs/step/chc-base-modal`). Loops and
+liveness get their cyclic certificate by translation: 4 proofs left on the usual rule in the suite, 119 at 0.21.0
+(`runs/live/suite`). The second frontier corpus, 42 benchmark tasks and their broken variants, scored at 0.21.0: 3 of
+42 (`runs/corpus2/baseline-0.21.0`). The release suites (204 jobs, one after the other) on boat.dev VMs, 2 vCPU and
+4 GB a job: by default 307.8 s wall, 3,073.9 s of job time, none failed (`runs/release/0.22.0-default`); `--usual`
+264.7 s, 2,418.3 s, none failed (`runs/release/0.22.0-usual`).
 
 The step goals of wide transitions, which the tree search left undecided, are proven by a second search: CDCL over a
 goal's atoms (`kernel/cdcl.ts`), its refutation unfolded into the kernel's own tree. Nothing trusted changed
