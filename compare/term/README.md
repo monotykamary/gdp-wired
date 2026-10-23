@@ -70,9 +70,11 @@ For C, `c2ari.py` reads main and the functions it calls (each call inlined), ove
 constant as C's truncation toward zero (a fresh quotient q with x − k·q in [0, k) for x >= 0 and k·q − x in [0, k)
 for x < 0). Arithmetic is on unbounded integers: the same as C on every run where no signed operation overflows
 (undefined behavior, which the tasks' verdicts assume away); no task here uses long, whose values would be left
-unbounded. 226 of the 282 tasks translate (24 with products of variables, 15 with division by a constant); refused:
-recursion 28, pointers and the heap 10, unsigned types 10, arrays 6, a call inside a larger expression 2
-(`runs/modal/term/sv3`).
+unbounded. Values narrower than int (char, short, _Bool) and casts that convert are refused: C converts what is
+stored to the type's range, which unbounded integers don't (no task here has one). 226 of the 282 tasks translate (24
+with products of variables, 15 with division by a constant); refused: recursion 28, pointers and the heap 10, unsigned
+types 10, arrays 6, a call inside a larger expression 2 (`runs/modal/term/sv3`). The ITS translation folds constants
+exactly and refuses one past 2^53, which the kernel's numbers can't hold (no ITS task has one).
 
 ## Results
 
@@ -124,23 +126,35 @@ the task's expected verdict.
 
 ### Ranks from the relation (Unreleased)
 
-Each tool against its own base, c215ded (0.22.0), the same day, on Modal (2 vCPU, 4 GB a task, 60 s): ITS from
-`runs/ranks/its-base` and `its-mine`, SV-COMP from `sv-base` and `sv-mine`. No answer contradicts another's: not
-LoAT's or KoAT2's (`full1`, `koat-fix1`), any earlier gdp-wired run's (`gdp2`, `runs/backends/term-gdp`,
-`runs/table/term`), the base's lassos, or SV-COMP's expected verdicts.
+With the runs that never end (below), on Modal (2 vCPU, 4 GB a task, 60 s), the same day: this branch
+(`runs/ranks/r3-its-merged`, `r3-sv-merged`) against main at 2477b4a (`r2-its-main`, `r2-sv-main`: runs that never
+end, no ranks from the relation) and 0.22.0 (`r2-its-base`, `r2-sv-base`). No answer contradicts another: not
+LoAT's or KoAT2's (`full1`, `koat-fix1`), any other run's, earlier gdp-wired runs' (`gdp2`, `runs/backends/term-gdp`),
+or SV-COMP's expected verdicts.
 
-| translation | ITS terminates | nonterminating | solved of 1,239 (base) | SV terminates | nonterminating | solved of 282 (base) |
+| | ITS terminates | nonterminating | solved of 1,239 | SV terminates | nonterminating | solved of 282 |
 | --- | --- | --- | --- | --- | --- | --- |
-| the task's statement (`gdp`) | 572 (56) | 325 (320) | 897 (376) | 136 (0) | 47 (47) | 183 (47) |
-| per component (`gdp-scc`) | 583 (155) | 323 (324) | 906 (479) | 125 (41) | 47 (47) | 172 (88) |
+| the task's statement (`gdp`), here | 570 | 461 | 1,031 | 135 | 47 | 182 |
+| 2477b4a | 56 | 452 | 508 | 0 | 47 | 47 |
+| 0.22.0 | 56 | 320 | 376 | 0 | 47 | 47 |
+| per component (`gdp-scc`), here | 580 | 463 | 1,043 | 125 | 47 | 172 |
+| 2477b4a | 155 | 463 | 618 | 39 | 47 | 86 |
+| 0.22.0 | 155 | 325 | 480 | 39 | 47 | 86 |
 
-- Lost against the base: 4 lassos on 3 ITS tasks (`2.t2`, `AlternatingGrowReduce2.jar-obl-9`, and `agafp.t2_fixed`
-  per component; the late lasso search is random and bounded by time, and the faithful `agafp.t2_fixed`'s was found
-  here, not there). No proof was lost.
-- On the tasks both answer the same, the times are the base's (ITS terminating, the task's statement: median 2.70 s
-  base, 2.65 s here); the median over all solved rises (ITS 0.09 s to 8.94 s), the new proofs being slower ones.
-- Of the 572 ITS proofs on the task's statement, 522 read the location (a rank per location) and 13 needed invariants;
-  on SV 136 and 26. Certificates: 260 cyclic, 268 the usual trees, 44 not made within the limit (SV: 1, 117, 18).
+- Answered by 2477b4a and not here: 5 nonterminating ITS tasks on each statement (its second recurrent-set search
+  found them past 43 s; here the rank search has 70% of the time); against 0.22.0, 1 and 3 lassos (the lasso stages
+  are random and bounded by time).
+- On the tasks both answer alike the times are 2477b4a's (ITS, the task's statement: median 0.15 s each); a
+  terminating answer's rank comes at a median 9.4 s (p95 21.4 s), the first stages' 6 s included.
+- An earlier run of the ranks alone, before the runs that never end, against 0.22.0 (`runs/ranks/its-mine`,
+  `its-base`, `sv-mine`, `sv-base`): ITS 897 and 906, SV 183 and 172. Of its 572 ITS proofs on the task's statement,
+  522 read the location and 13 needed invariants (SV 136 and 26); certificates 260 cyclic, 268 the usual trees, 44
+  not made within the limit (SV 1, 117, 18).
+- The independent check of these answers (branch verify/ranks) found two translator bugs, fixed: constants folded in
+  doubles (now BigInt, past 2^53 refused) and C's conversions to char, short and _Bool read as the identity (now
+  refused). No benchmark translation changed (`runs/ranks/translations-its.txt`, `translations-sv-c2ari.txt`,
+  `translations-sv-loops.txt`); its adversarial programs are tests (`adversarial/`, `adversarial.test.ts`,
+  `c2ari_test.py`).
 
 ### Runs that never end, after 0.22.0
 

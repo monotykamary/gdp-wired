@@ -7,15 +7,30 @@ noted), each with the command that reproduces it.
 
 Ranks from a loop's relation, not only its runs: each path of a turn read exactly (its vertices, rays and lines), a
 rank per location, blocks in order, multiphase, with invariants by Houdini, every rank still proven by the kernel.
-Nothing trusted changed (`kernel/`, `core/check.ts` and `lean-kernel/` are as in 0.22.0). TermComp's integer
-transition systems at 60 s on Modal, against 0.22.0 the same day: on the task's statement 897 solved (572 terminating,
-325 nonterminating), 0.22.0 376 (56, 320); per component 906 (583, 323), 0.22.0 479 (155, 324); LoAT abmc 776, KoAT2
-601 (`runs/modal/term/full1`). SV-COMP's termination tasks: 183 (136, 47), 0.22.0 47 (0, 47); per component 172 (125,
-47), 0.22.0 88 (41, 47); Ultimate Automizer 224. No answer contradicts another tool's, a lasso or an expected verdict
-(`runs/ranks/its-mine`, `its-base`, `sv-mine`, `sv-base`). The second frontier corpus's rank, nonlinear-rank,
-sampling and nested-recursion items: 11 of 15 proven, 0.22.0 0, every broken variant refused (`runs/ranks/c2-mine`,
-`c2-base`); round 1's cycle items as before, 21 of 21, broken 21 of 21 (`runs/ranks/c1-mine`, `c1-base`).
+Nothing trusted changed (`kernel/`, `core/check.ts` and `lean-kernel/` are as in 0.22.0). With the runs that never
+end (below), TermComp's integer transition systems at 60 s on Modal, the same day against main at 2477b4a (runs
+that never end, no ranks from the relation) and 0.22.0: on the task's statement 1,031 solved (570 terminating, 461
+nonterminating), 2477b4a 508 (56, 452), 0.22.0 376 (56, 320); per component 1,043 (580, 463), 2477b4a 618 (155,
+463), 0.22.0 480 (155, 325); LoAT abmc 776, KoAT2 601 (`runs/modal/term/full1`). SV-COMP's termination tasks: 182
+(135, 47), 2477b4a and 0.22.0 47 (0, 47); per component 172 (125, 47), both 86 (39, 47); Ultimate Automizer 224. No
+answer contradicts another tool's, a lasso, any other run's or an expected verdict (`runs/ranks/r3-its-merged`,
+`r2-its-main`, `r2-its-base`, `r3-sv-merged`, `r2-sv-main`, `r2-sv-base`). Not answered here and answered by
+2477b4a: 5 nonterminating ITS tasks on each statement (its second recurrent-set search found them past 43 s, where
+here the rank search has 70% of the time), and 1 and 3 lassos 0.22.0 found (the lasso stages are random and bounded
+by time; 2477b4a missed 3 and 2 of 0.22.0's too). The second frontier corpus's rank, nonlinear-rank, sampling and
+nested-recursion items: 11 of 15 proven, 0.22.0 0, every broken variant refused (`runs/ranks/c2-mine`, `c2-base`);
+round 1's cycle items as before, 21 of 21, broken 21 of 21 (`runs/ranks/c1-mine`, `c1-base`). An independent check
+(branch verify/ranks, research/verify-ranks) held every answer, and found two translator bugs that predate this
+work, fixed here (below).
 
+- Two translator fixes, each giving a wrong "terminates" on a small task: `compare/term/translate.ts` folded constants
+  in doubles (3 · 3002399751580331 and 2^52 + 2^52 both 2^53), now in BigInt, a constant past 2^53 refusing the task;
+  `compare/term/c2ari.py` read C's conversions as the identity (a char stored past 127, a cast to short, a _Bool set
+  to 2), now refusing values narrower than int and casts that convert. No benchmark translation changed: all 1,239 ITS
+  loops, all 282 SV-COMP ARI files and their 226 loops are the same before and after
+  (`runs/ranks/translations-its.txt`, `translations-sv-c2ari.txt`, `translations-sv-loops.txt`). The check's
+  adversarial programs are tests now (`compare/term/adversarial/`, `adversarial.test.ts`, `c2ari_test.py`; the suite's
+  `term-adversarial` and `term-c2ari`): none that runs forever is answered terminating.
 - The relation (`core/relation.ts`): one turn of a Loop as linear paths: `while`, the assumption and the laws in
   disjunctive form, each `if` decided by the values a path pins (pc = 3, t = 1) or split, each truncated difference
   split on its sign. Two naturals every row and value reads only as their difference, whose values after the turn are
@@ -33,18 +48,19 @@ sampling and nested-recursion items: 11 of 15 proven, 0.22.0 0, every broken var
   paths' atoms too; those false at a sampled start dropped; Houdini over the relation (a path past the generators' cap
   checked atom by atom by the integer solver); the fewest the rank needs, each dropped in turn and the rest closed
   again; then laws (pc ≠ ℓ ∨ atom) the kernel proves inductive with the halting goals.
-- `findRank`: the runs' rank first as before, its LP within 30% of the time and its check within 40%; then the
+- `findRank`: the runs' rank first as before, its LP within 10% of the time and its check within 20%; then the
   relation's rank; degree 2 over the products the loop reads; the relation's rank with invariants; inferLaws as before.
   The DSL loops' ranks are the ones they were (`core/cycles.test.ts`), and a test of the relation's ranks on the corpus
   tasks with their broken variants refused.
 - compare/term/solve.ts prints the answer once the kernel has checked the trees again, and again with the certificate
-  once it is made: 44 ITS proofs ran past the limit making a cyclic certificate (`not made`).
+  once it is made (44 ITS proofs ran past the limit making a cyclic certificate, `not made`); the rank search has 70%
+  of the time left after the first stages, the second recurrent-set search the rest.
 - Groups (research/frontier2): ranks that read no parameter, ranks in order, ranks per location (Continue1, p-60,
   AckR, Alternate, toy3); multiphase (polyrank1, 2Nested-1); the sampling group (AProVEMath, ListReverseCyclicList,
   WhileFalse: no run needed); McCarthy91_Iteration with 4 invariants. Not proven: Piecewise (min(p, q): one atom's
   regions are not enough) and Toulouse-BranchesToLoop-2 (it needs x ≠ 0, a disjunction).
-- On the tasks both answer, the times are 0.22.0's (ITS terminating, the task's statement: median 2.70 s, here 2.65 s);
-  4 lassos on 3 tasks were not found again in the late, random lasso search, and others were.
+- On the tasks both answer alike, the times are 2477b4a's (ITS, the task's statement: median 0.15 s each); a
+  terminating answer's rank comes at a median 9.4 s, p95 21.4 s, of which the first stages are 6 s.
 
 A run that never ends, stated and proven: `proveNeverEnds(loop)` claims that some run of a loop goes on forever (the
 claim a halting proof refutes), with a closed recurrent set as its certificate, checked by the kernel and again by Lean.
