@@ -852,6 +852,79 @@ export function loopObligations(l: Loop, laws: Law[], rank: E | E[]): Goal[] {
   return [...obligations(m, laws, {}), ...[stay, cover, ...helps].map(sl => stepLawObligations(m, laws, {}, sl)[0]!)]
 }
 
+// --- loops: a run that never ends ----------------------------------------------------------------------------------------
+
+// The claim (Lean: NonTerm.lean's `NeverEnds`): for some params meeting the precondition, a run of turns from the start
+// goes on forever. The certificate is a closed recurrent set with its successor given (`never_ends_of`): `set`, a
+// condition over the state and params; `wit`, a term per input over the state and params, the turn taken from a state of
+// the set; `start`, the params' values (every other name 0); `stem`, each turn's inputs (an input not named is 0) from the
+// start into the set. The start and the stem are evaluated exactly, as Lean's naturals (bigint, ∸ truncating); the
+// closure goal is a kernel goal: a state of the set whose witnessed turn fails `while` or the assumption, or ends outside
+// the set. Refuted, the witnessed turn from the set's states, again and again, is a run that never ends. A loop's
+// halting (loopObligations) and this claim contradict each other (`halts_not_never_ends`).
+export type Recur = {start: Record<string, number>, stem: Record<string, number>[], set: C, wit: Record<string, E>, tree: Tree}
+// The closure goal, built as Lean's recurGoal builds it: [set, ¬(while ∧ (assume ∧ set after the body)), each read at the
+// witnessed request].
+export function recurGoal(l: Loop, r: Pick<Recur, 'set' | 'wit'>): Goal {
+  const w: Subst = {vars: r.wit, maps: {}, flags: {}}
+  return {name: `${l.name} never ends: the set is closed`, hyps: [r.set, {op: 'not', x: {op: 'and', xs: [substC(l.while, w), substC(l.assume ?? trueC, w),
+    substC(substC(r.set, {vars: l.body, maps: {}, flags: {}}), w)]}}]}
+}
+// Lean's evalE and evalC over naturals with every map cell 0 (NonTerm.lean's noMaps): exact, never rounded.
+const natE = (e: E, env: Record<string, bigint>): bigint => {
+  switch (e.op) {
+    case 'var': return env[e.name] ?? 0n
+    case 'const': return BigInt(e.value)
+    case 'add': return natE(e.a, env) + natE(e.b, env)
+    case 'sub': { const d = natE(e.a, env) - natE(e.b, env); return d > 0n ? d : 0n }
+    case 'mul': return BigInt(e.k) * natE(e.a, env)
+    case 'prod': return natE(e.a, env) * natE(e.b, env)
+    case 'min': { const a = natE(e.a, env), b = natE(e.b, env); return a < b ? a : b }
+    case 'max': { const a = natE(e.a, env), b = natE(e.b, env); return a > b ? a : b }
+    case 'if': return natC(e.c, env) ? natE(e.then, env) : natE(e.else, env)
+    case 'get': return 0n
+    default: return unreachable(e)
+  }
+}
+const natC = (c: C, env: Record<string, bigint>): boolean => {
+  switch (c.op) {
+    case '<=': return natE(c.a, env) <= natE(c.b, env)
+    case '<': return natE(c.a, env) < natE(c.b, env)
+    case '=': return natE(c.a, env) === natE(c.b, env)
+    case 'and': return c.xs.every(x => natC(x, env))
+    case 'or': return c.xs.some(x => natC(x, env))
+    case 'not': return !natC(c.x, env)
+    case 'flag': case 'all': throw new Error('a loop reads no flag')
+    default: return unreachable(c)
+  }
+}
+// Lean's checkRecur: the witness sets only inputs; the start meets the precondition; the stem's turns meet `while` and
+// the assumption, and the state after them is in the set; the closure goal's tree checks. A certificate outside the
+// language (names the loop doesn't declare, values that aren't naturals, a set reading a turn's input) is refused.
+export function checkRecur(l: Loop, r: Recur): boolean {
+  const names = [...l.params, ...l.inputs, ...Object.keys(l.state)], values = (o: Record<string, number>) => Object.values(o).every(x => Number.isSafeInteger(x) && x >= 0)
+  distinct(l.name, names)
+  for (const name of Object.keys(l.body)) if (!(name in l.state)) throw new Error(`${l.name}'s body sets ${name}, which isn't in its state`)
+  inScope(`${l.name}'s start`, Object.values(l.state), l.params)
+  inScope(l.name, [...Object.values(l.body), ...(l.assume ? [l.assume] : [])], names)
+  inScope(`${l.name}'s while`, [l.while], [...l.params, ...Object.keys(l.state)])
+  inScope(`${l.name}'s precondition`, l.pre ? [l.pre] : [], l.params)
+  inScope(`${l.name}'s recurrent set and witness`, [r.set, ...Object.values(r.wit)], [...l.params, ...Object.keys(l.state)])
+  if (![...Object.values(l.state), ...Object.values(l.body), ...Object.values(r.wit)].every(natural) || ![l.while, r.set, ...(l.pre ? [l.pre] : []), ...(l.assume ? [l.assume] : [])].every(naturalC)) throw new Error('outside the kernel')
+  if (!Object.keys(r.start).every(n => l.params.includes(n)) || !values(r.start) || !r.stem.every(t => Object.keys(t).every(n => l.inputs.includes(n)) && values(t))) throw new Error(`${l.name}: a start names params and a stem's turn inputs, each a natural`)
+  if (!Object.keys(r.wit).every(n => l.inputs.includes(n))) return false
+  let env: Record<string, bigint> = Object.fromEntries(names.map(n => [n, BigInt(r.start[n] ?? 0)]))
+  if (!natC(l.pre ?? trueC, env)) return false
+  const apply = (body: Record<string, E>, at: Record<string, bigint>) => ({...at, ...Object.fromEntries(Object.entries(body).map(([n, e]) => [n, natE(e, at)]))})
+  env = apply(l.state, env)
+  for (const turn of r.stem) {
+    const at = {...env, ...Object.fromEntries(l.inputs.map(n => [n, BigInt(turn[n] ?? 0)]))}
+    if (!natC(l.while, at) || !natC(l.assume ?? trueC, at)) return false
+    env = apply(l.body, at)
+  }
+  return natC(r.set, env) && check(recurGoal(l, r), r.tree)
+}
+
 // --- progress: laws with "there is a request" ----------------------------------------------------------------------
 
 // "In every reachable state where `when` holds, some request makes `then` true of the step": proven by naming the
