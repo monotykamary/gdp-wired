@@ -97,7 +97,8 @@ export function when(c: Cond, then: Decimal | number, otherwise: Decimal): Decim
 export function when(c: Cond, then: IntLike, otherwise: IntLike): Int
 export function when<K extends string>(c: Cond, then: Choice<K> | NoInfer<K>, otherwise: Choice<K>): Choice<K>
 export function when<K extends string>(c: Cond, then: Choice<K>, otherwise: Choice<K> | NoInfer<K>): Choice<K>
-export function when(c: Cond, then: Str, otherwise: Str): Str
+export function when(c: Cond, then: Str, otherwise: Str | string): Str
+export function when(c: Cond, then: string, otherwise: Str): Str
 export function when<V>(c: Cond, then: Maybe<V>, otherwise: Maybe<V>): Maybe<V>
 export function when(c: Cond, then: Cond, otherwise: Cond): Cond
 export function when<C extends Cases, T extends string>(c: Cond, then: Variant<C, T>, otherwise: Variant<C, T>): Variant<C, T>
@@ -117,6 +118,9 @@ export function when(c: Cond, then: unknown, otherwise: unknown): unknown {
   if (typeof then === 'string' && otherwise instanceof Choice) return when(c, otherwise.of(then), otherwise)
   if (then instanceof Choice && otherwise instanceof Choice) return new Choice(when(c, then.n, otherwise.n), then.values)
   if (then instanceof Str && otherwise instanceof Str) return then.choose(c, otherwise)
+  // A string beside a string value is that string: when(claimed, who, '').
+  if (then instanceof Str && typeof otherwise === 'string') return then.choose(c, then.literal(otherwise))
+  if (typeof then === 'string' && otherwise instanceof Str) return otherwise.literal(then).choose(c, otherwise)
   if (then instanceof Maybe && otherwise instanceof Maybe) return new Maybe(when(c, then.present, otherwise.present), when(c, then.inner as never, otherwise.inner as never))
   return pickNumbers(c, then as IntLike | Decimal, otherwise as IntLike | Decimal)
 }
@@ -622,6 +626,8 @@ export class Str {
   get patterns(): string[] { return [...this.bits.keys()] }
   // This string where c holds, else `other` (the patterns both declare).
   choose(c: Cond, other: Str): Str { return new Str(when(c, this.id, other.id), when(c, this.length, other.length), new Map([...this.bits].filter(([p]) => other.bits.has(p)).map(([p, b]) => [p, when(c, b, other.bits.get(p)!)]))) }
+  // A literal as a string value with this one's patterns (each bit as the literal matches it).
+  literal(text: string): Str { return new Str(lit(literal(text)), lit(text.length), new Map([...this.bits.keys()].map(p => [p, lit(globMatch(p, text) ? 1 : 0)]))) }
   // The string matches `pattern`, one the kind declared.
   like(pattern: string): Cond {
     const b = this.bits.get(pattern)

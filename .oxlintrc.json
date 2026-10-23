@@ -31,6 +31,7 @@
     "runs/**",
     "private/**",
     "node_modules/**",
-    "dist/**"
+    "dist/**",
+    "research/extract/results/**"
   ]
 }

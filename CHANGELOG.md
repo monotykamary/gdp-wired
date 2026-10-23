@@ -3,6 +3,77 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+Rules read from the code that ships (`gdp-wired/extract`, core/extract.ts): `extract(code, {entry})` reads a reducer,
+`useReducer`'s, functions over one record, a Redux Toolkit slice or a class whose methods write its fields, through the
+TypeScript compiler, and returns the rule that steps the same way, as a builder value and as the source that makes it
+(`toSource`); `extractXState` reads an XState machine's guards and actions, named in `setup()` or inline in the config,
+for `fromXState`. The extractor is untrusted: each rule is run beside the code it was read from, and any difference
+refuses it. Nothing trusted changed (`kernel/`, `core/check.ts` and `lean-kernel/` are as in 0.22.0).
+
+- The subset: integers (a literal that isn't one refused; division only as Math.floor or Math.ceil of x / k for a
+  constant k; % by a constant of a natural, since JavaScript's takes the sign of x), booleans, string-literal unions,
+  strings set and compared, records and nested records (spreads, shorthand), Map and Record state keyed by numbers or
+  strings (get, set, has, delete, [k], ?? or || a default), conditionals, ternaries, && || ?? (the right side's effects
+  on its own path), early returns, switch on a tag (fall-through, default), Math.min, max and abs, Date.now() as an
+  input read once a step, throws as the rule's assumption (or a constructor's as its precondition), helpers, methods and
+  getters of the same files inlined, relative imports read. Each number is a natural where the code keeps it one (a
+  subtraction printed as `minus` only where solver.ts proves it at most what it subtracts from, under the branch's
+  conditions, the code's refusals and an XState transition's guard), an integer elsewhere. Refused, each where it is
+  and why: loops, arrays, floats, async, try/catch, a write to the state a reducer is given (React and Redux keep the
+  old state), a throw after a method wrote a field, two keys of one map written in one step, a map replaced whole, a
+  reference into a map held across a set, `extends`, a module's own mutable state, closures, Math.random, Date.now()
+  read twice in a step, other modules' code, v4 `cond` (which fromXState would drop), a machine made by a function.
+- The check (core/extract-check.ts): the code compiled by TypeScript and run in node:vm with a counter on every branch
+  arm, the rule through `rule.interpreter()` and `rule.compiled()` (compared too): runs from the start (random requests,
+  near the boundaries, the time moving on or back), single steps from drawn states, and single steps from proveSteps'
+  witnesses for each branch condition over the state and the request; every state variable, map cell, method result and
+  refusal compared. Past 2^53 the code rounds where the rule's runtime refuses: counted apart, the run ended there. An
+  XState chart is checked by `conforms` against XState's own actor. Each map's representation (a key it doesn't hold
+  holds the defaults) is handed out as `invariants`, inductive, to prove laws beside.
+- Widened along the way, each for a refusal of real code: `fromXState`'s `inline` (guards and actions written in the
+  config, given by their place in it) and machines with no states (root transitions only); `when(c, str, 'x')`, a
+  literal beside a string value, as beside a choice.
+- On 22 examples from open-source code, each pinned (research/extract/sources.json: react.dev, redux's examples and
+  Redux Toolkit's template, statelyai/xstate's examples, five rate limiters): 10 extracted, 12 refused with the place
+  and the reason (`runs/extract/batch4`, research/extract/results/ours.jsonl). The 5 step functions: 11,955 requests
+  in runs from the start, 2,000 steps from drawn states, 20 steps from the prover's witnesses (of 22 conditions asked;
+  conditions over a map's cells aren't), 2,338 requests both refused, 14 steps past 2^53, 11,623 steps where the
+  generated JavaScript agreed with the interpreter, 10 of their 10 branch arms reached; the 5 XState machines: 16,000
+  events. Refused: a reducer that mutates its state (react.dev's own pitfall), an array (redux's todos), `invoke`,
+  `onDone`, `always`, an undefined context, a fractional rate, `#private` fields, a destructured constructor argument,
+  an optional field (the limiter package's request queue, in the file its bucket imports), two functions with no
+  initial state (a sub-reducer, an Express middleware).
+- research/realworld's 41 sources (its sources.json at 6c675e4, read as it is, the whole file): none extracted
+  (research/extract/results/realworld.jsonl). 20 aren't TypeScript or JavaScript (Solidity 7, Go 6, Python 2, Ruby 2,
+  Lua 1, Zig 1, CoffeeScript 1); of the 21 that are: `extends` 7, a machine made by a function 4, a function that isn't
+  a step over a state 3, an export that isn't a function 2, and one each of a `Date` field, a Map as a constructor's
+  argument, an array, a null context, a v4 `cond`. So no corpus law could be compared on an extracted rule.
+- The laws of the 10 extracted examples, beside a rule written by hand the corpus's way (research/extract/verdicts.ts):
+  27 laws, the same verdict for each, 17 proven and 10 refuted on both sides (research/extract/results/verdicts.jsonl).
+  Before the representation invariants were handed out, 2 of 27 differed (`runs/extract/batch2`): step laws about the
+  Redux cart's quantities, refuted of the extracted rule from a state no object of the code is in (a key it doesn't hold
+  with a count), proven of the rule by hand, which has no such state.
+- core/extract.test.ts, 31 tests: the shapes, and programs where a naive reading would be wrong, each refused with the
+  reason or extracted and checked: aliasing (a write through a second name for a copy; objects chosen by the path), a
+  write through a reference to the given state, a shallow copy's nested object, a Map's own set, two names into one map,
+  a reference held across a set, overflow, floats and division, a negative dividend's %, NaN and Math.min(), short-
+  circuit effects, a throw mid-update (a method's, refused; a reducer's, extracted), a getter with effects, closures and
+  module state, Date.now() twice, Math.random, loose equality with a string. A check that catches the extractor itself:
+  an XState guard and action read the same payload field as two inputs, and the chart and XState parted on the first
+  run that sent them; fixed, and the test keeps it.
+- Dependencies: `typescript` an optional peer (the extractor reads with it); `@reduxjs/toolkit` 2.13.0 dev only (the
+  check runs a slice through Redux Toolkit itself). The corpus's code is fetched at its commit, not committed.
+- The suite on Modal beside main at this branch's base (5c3f947; main has since moved), the suite with the new `extract`
+  job: by default 474.5 s wall, 4,708.6 s of job time, none failed, the base 572.7 s and 4,727.5 s, none failed
+  (`runs/extract/suite-default-2`, the base's `suite-default-2`); `--usual` 491.9 s and 4,307.2 s, the base 494.0 s and
+  4,300.6 s, none failed there and one here: `lean-nonterm`, whose `conformance.ts --nonterm` (certificates from a
+  300 ms search) failed the same way in the base's first default run and passed 4 of 4 times on each side when run
+  alone (`runs/extract/suite-usual`, `nonterm4`). On the 206 jobs both ran: 4,699.4 s and 4,727.5 s by default,
+  4,298.9 s and 4,300.6 s `--usual`. Modal's billing for the work: $0.870 here (four extraction batches $0.011, three
+  suites, the lean-nonterm reruns), $0.851 for the base.
+
 ## 0.23.0
 
 Every benchmark moved, two trusted additions came with their Lean proofs first, and a real-world corpus joins the

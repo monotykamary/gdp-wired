@@ -14,5 +14,5 @@
     "noUncheckedIndexedAccess": true
   },
   "include": ["**/*.ts"],
-  "exclude": ["vendor/**", "runs/**", "private/**", "node_modules/**", "dist/**"]
+  "exclude": ["vendor/**", "runs/**", "private/**", "node_modules/**", "dist/**", "research/extract/results/**"]
 }

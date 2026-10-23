@@ -69,6 +69,14 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   machine runs as, with each guard and action it names given again in gdp-wired's terms, and `conforms(chart, machine,
   createActor)` drives XState's own actor and the compiled rule with the same random events, comparing every state and
   context; what a chart can't run the same way is refused when built, with the reason (`examples/xstate.ts`).
+- **Rules read from the code** (`gdp-wired/extract`): `extract(code, {entry})` reads a reducer, `useReducer`'s, functions
+  over one record, or a class whose methods write its fields, and returns the rule that steps the same way, as a builder
+  value and as source to keep (`toSource`); `extractXState` reads an XState machine's guards and actions, named or
+  inline, for `fromXState`. The extractor is untrusted: each rule is run beside the code it was read from (requests
+  from the start, steps from drawn states and from the prover's counterexamples, every state, cell, result and refusal
+  compared, the code's branches counted), and a difference refuses it. Its subset (integers, booleans, string-literal
+  unions, records, Map and Record keyed state, branches and early returns, throws as refusals, `Date.now()` as an
+  input) and what it refuses, each with the place and the reason, are in `core/extract.ts`.
 - **What nobody stated, looked for when the prover alone stops**: where `proveRule` or `proveSteps` doesn't prove the laws
   and no run breaks them, it looks for lemmas about the rule's recurrences and lists (`discover`), lemmas about the
   functions it knows by their facts (`cycleLemmas`, each proven by a cyclic proof) and then invariants (`inferLaws`),
@@ -455,7 +463,8 @@ The npm package is built from `core/`, `kernel/` and `lean-kernel/` alone; nothi
 ## Running
 
 The npm package is the library: the builders (`gdp-wired`), the runtimes (`gdp-wired/machine`), composition
-(`gdp-wired/compose`), XState machines as charts (`gdp-wired/xstate`), lemmas nobody stated (`gdp-wired/discover`), invariant
+(`gdp-wired/compose`), XState machines as charts (`gdp-wired/xstate`), rules read from the code (`gdp-wired/extract`, with
+`typescript` installed), lemmas nobody stated (`gdp-wired/discover`), invariant
 inference (`gdp-wired/infer`), the
 Lean export (`gdp-wired/lean`), the kernel (`gdp-wired/kernel`), the prover (`gdp-wired/prove`), the derivation checker
 and solver (`gdp-wired/check`, `gdp-wired/solver`). Everything else here (examples, comparisons, the Lean twin, the GPU
