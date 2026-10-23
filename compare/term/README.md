@@ -144,10 +144,10 @@ The ITS track again, `gdp` alone, on Modal (the boat pool had no VM to spare): 0
   db2 and db3 had a replayed lasso in an earlier run (`runs/modal/term/gdp2`, gdp-scc); Velroyen08-fib and
   NonPeriodicNonterm2, which no other tool answers, were read by hand (a Fibonacci pair past a fixed bound never meets
   it again; a counter that doubles each time it meets the other).
-- Lean: every recurrent set of the first run of this branch, 127 (`runs/nonterm/after-its`), is a theorem
-  `NeverEnds <task>_loop` that Lean 4.34.0 checks (`decide +kernel`, on `propext`, `Classical.choice`, `Quot.sound`;
-  `runs/nonterm/bench-lean`, the 22 of two shards that ran out of memory or time one at a time, `bench-lean2`; up to
-  30.4 min for a shard of 11, 8.4 min for one certificate alone).
+- Lean: every recurrent set of the run, 131, is a theorem `NeverEnds <task>_loop` that Lean 4.34.0 checks (`decide
+  +kernel`, on `propext`, `Classical.choice`, `Quot.sound`; `recur-lean.ts --shard i/32`, at most 1,865.9 s a shard on
+  Modal, 4 CPUs: `runs/nonterm/after2-lean`). The 127 of an earlier run of this branch checked as well
+  (`runs/nonterm/bench-lean`, `bench-lean2`).
 - SV-COMP: unchanged; every nonterminating task another tool answers and gdp-wired doesn't is one the C translation
   refuses.
 

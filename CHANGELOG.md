@@ -5,6 +5,61 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+A run that never ends, stated and proven: `proveNeverEnds(loop)` claims that some run of a loop goes on forever (the
+claim a halting proof refutes), with a closed recurrent set as its certificate, checked by the kernel and again by Lean.
+TermComp's ITS at 60 s on Modal, `gdp` alone: 450 nonterminating and 56 terminating, 0.22.0 the same day 320 and 56
+(`runs/nonterm/after2-its`, `runs/nonterm/base-its`); no answer contradicts another tool's or the other run's. SV-COMP
+unchanged (47 nonterminating, none wrong). The suites on Modal: by default 206 jobs, 0 failed, 519.9 s wall, 4,600.0 s
+of job time (`runs/nonterm/suite-default`), 0.22.0's 204 jobs 490.4 s and 4,786.0 s (`runs/nonterm/base-suite-default`);
+`--usual` 206 jobs, 0 failed, 504.2 s and 4,297.4 s (`runs/nonterm/suite-usual`), 0.22.0 469.5 s and 4,255.8 s
+(`runs/nonterm/base-suite-usual`). boat had no starts to spare, so these ran on Modal; 0.22.0's release suites on boat
+are `runs/release/0.22.0-*`.
+
+**The trusted base grows.** `lean-kernel/NonTerm.lean` (new, on top of `Live.lean`, 275 lines) and its twin in
+`kernel/kernel.ts` (`checkRecur`, `recurGoal`: 73 lines, 56 of code):
+- `Kern.NeverEnds l`: for some maps and some params meeting the precondition, a run of turns from the start that goes
+  on forever, the negation of `loop_halts_of`'s conclusion.
+- The certificate (`Recur`): a condition over the state and params (the set), a term per input over the state and
+  params (the turn taken from each of its states), the params as values and a stem of turns' inputs from the start into
+  the set, each state on the way held as its values on a domain. `checkRecur` evaluates the start and the stem exactly
+  and refutes the closure goal (a state of the set whose witnessed turn fails the guard or the assumption, or ends
+  outside the set) with the kernel's tree. The run after the stem is the witnessed turn again and again, built by
+  recursion: no choice.
+- `Kern.never_ends_of`: a checked certificate gives `NeverEnds l` (`propext`, `Classical.choice`, `Quot.sound`, through
+  the leaf check's `sound`). `Kern.halts_not_never_ends` (no axioms) and `Kern.never_ends_refutes_halts`: no loop both
+  halts and has a run that never ends.
+- kernel.ts's checker mirrors Lean's: Lean's `checkRecur` computes kernel.ts's answer on 127 certificates, found,
+  tampered and forged (`lean-kernel/conformance.ts --nonterm`, the suite's `lean-nonterm`).
+
+- **The search** (`core/nonterm.ts`, untrusted): lassos of random runs (the set the cycle's states, each turn's inputs
+  given at its state); policies, runs whose inputs are terms over the state (by mode, the first allowed of a few
+  assignments from pools of constants and values ± 1, grown where the run would stop); a recurrent set fitted to a
+  policy's run (bounds, sums and differences of the integer values, one atom per counterexample the prover gives), its
+  closure proven by `grow`, which tries kernel/cdcl.ts's CDCL first.
+- **The API and the export:** `proveNeverEnds(loop, {from?, ms?})` (dsl); toLean's `{id, neverEnds, recur, tampered?}`
+  as `<id>_never_ends : NeverEnds <id>_loop` by `never_ends_of`, each tampered certificate's check computed to false;
+  `examples/nonterm.ts`, three loops that never end (pagination with empty pages, a retry with no cap, a ring reader)
+  beside twins that halt; the package check builds all three in Lean.
+- **Tests:** core/conformance.test.ts: every certificate the checker accepts holds on the reference run; the found ones
+  accepted; tampered ones refused (the set not closed, not reached by its stem or start, a lasso's cycle that doesn't
+  close) and no tree closes a changed set. core/nonterm.test.ts: no loop proven both to halt and to have a run that
+  never ends, on 10 loops and 6 ITS tasks (3 and their terminating twins).
+- **Termination benchmark** (compare/term/solve.ts: a recurrent set for 4 s after the first lassos, and with 3/5 of
+  what is left after the rank search). ITS: 133 tasks answered that 0.22.0 left (131 unknown, 2 timeouts), 3 answered
+  by 0.22.0's lasso not (timing of the lasso stage); the 56 terminating the same tasks. Of the 133, 105 are LoAT's NO
+  too, 24 are lassos replayed by ari.ts's evaluator, 2 had a replayed lasso in an earlier run (db2, db3) and 2 no other
+  tool answers (Velroyen08-fib, NonPeriodicNonterm2, read by hand). None is a task LoAT, LoAT abmc or KoAT2 proves
+  terminating. Lean checks every recurrent set of the run, 131 of 131, as `NeverEnds <task>_loop` on `propext`,
+  `Classical.choice`, `Quot.sound` (compare/term/recur-lean.ts, 32 shards, at most 1,865.9 s a shard on Modal, 4 CPUs:
+  `runs/nonterm/after2-lean`).
+- **The second frontier corpus:** nontermination was a language gap; five items now (`research/frontier2/nonterm.ts`:
+  toy2, toy4, Choose, NO_10, EvenOdd, each LoAT NO with no lasso at 0.21.0), each with its terminating twin (KoAT2
+  Finite, `runs/corpus2/truth-nonterm`): today (lassos only) 0 / 5, frontier 5 / 5, twins refused 5 / 5
+  (`runs/corpus2/nonterm-items2`).
+- Cost: boat $0.905 (the Lean rechecks $0.66 and $0.24, the corpus $0.005, a probe $0.001); Modal 206,125 s of job
+  time over the benchmark runs, the suites and the truth checks, plus the Lean recheck's 12,817.7 s (and a first one stopped for the machine going offline), the day's dollars
+  not yet in Modal's billing report.
+
 Infrastructure (nothing in the library changed): the boat backend paces its VM starts.
 
 - boat's starts are spent by plan (a resume is a start; `boat limits` is read at every batch, so a new plan takes
