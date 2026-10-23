@@ -1,4 +1,4 @@
-// One CHC-COMP task through gdp-wired: `bun compare/chc/solve.ts <task.smt2> [--runs-ms 5000] [--bmc-ms 10000] [--no-houdini]`.
+// One CHC-COMP task through gdp-wired: `bun compare/chc/solve.ts <task.smt2> [--runs-ms 5000] [--bmc-ms 15000] [--no-houdini]`.
 // Prints one JSON line per stage and a last one with the answer: sat (the law proven and the kernel's check passed),
 // unsat (a run reaching error that the CHC itself confirms, checkDerivation), unknown, or unsupported (and why).
 //   - import: the CHC read and built as a rule (translate.ts)
@@ -8,7 +8,7 @@
 //   - guided: runs the prover guides, each request a model of its clause's condition where the run is (the clauses that
 //     derive false tried first at each state)
 //   - bmc: bounded runs (core/bmc.ts), a model of the kernel's k-step goal from the start to error, k = 1, 2, ...,
-//     within --bmc-ms (10,000)
+//     within --bmc-ms (15,000)
 //   - houdini: the library's search for the invariants the law needs (core/infer.ts), from the states the runs reached:
 //     candidates per predicate (loc = p → a bound, a difference, a sum), those a run's state breaks dropped, then the
 //     kernel's counterexamples to induction choosing which to add; `--old-houdini`, this folder's first Houdini
@@ -27,7 +27,7 @@ import {substC} from '../../kernel/kernel.ts'
 // GDP_CHC_ARGS: more flags, read before the command line's (a run's knobs, through modal_chc.py's --env).
 const args = [process.argv[2]!, ...(process.env.GDP_CHC_ARGS ?? '').split(' ').filter(Boolean), ...process.argv.slice(3)], file = args[0]!
 const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 ? d : Number(args[i + 1]) }
-const bmcMs = opt('--bmc-ms', 10000), runsMs = opt('--runs-ms', 5000), guideMs = opt('--guide-ms', 8000), houdiniMs = opt('--houdini-ms', 60000), useHoudini = !args.includes('--no-houdini'), oldHoudini = args.includes('--old-houdini')
+const bmcMs = opt('--bmc-ms', 15000), runsMs = opt('--runs-ms', 5000), guideMs = opt('--guide-ms', 8000), houdiniMs = opt('--houdini-ms', 60000), useHoudini = !args.includes('--no-houdini'), oldHoudini = args.includes('--old-houdini')
 const t0 = performance.now(), ms = () => Math.round(performance.now() - t0)
 const say = (o: object) => console.log(JSON.stringify({task: file, ms: ms(), ...o}))
 const done = (answer: string, o: object = {}) => { say({stage: 'answer', answer, ...o}); process.exit(0) }
