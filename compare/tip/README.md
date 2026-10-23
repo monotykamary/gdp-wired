@@ -40,24 +40,30 @@ Vampire; gdp-wired isn't given them.
 
 ### Lemmas the search finds and uses (gen/lemmas)
 
-`runs/lem/tip`: this branch, and `runs/lem/tip-base`: 0.22.0 (c215ded), launched together on Modal (boat had no VM
-starts left), the same image, sets (`false/` too), container shape and 60 s.
+`runs/lem/tip-final`: this branch, and `runs/lem/tip-final-base`: 0.22.0 (c215ded), launched together on Modal (boat
+had no VM starts left), the same image, sets (`false/` too), container shape and 60 s.
 
 | theorems (492) | proven | refuted | wrong | unknown | timeout | unsupported |
 | --- | --- | --- | --- | --- | --- | --- |
-| `lem/tip-base` (0.22.0) | 140 | 7 | 0 | 53 | 163 | 129 |
-| `lem/tip` | 180 | 7 | 0 | 56 | 120 | 129 |
+| `lem/tip-final-base` (0.22.0) | 140 | 7 | 0 | 50 | 166 | 129 |
+| `lem/tip-final` | 176 | 7 | 0 | 57 | 123 | 129 |
 
-- 42 proven that 0.22.0 didn't, 2 lost (`prod/prop_10` unknown at 49.64 s, `tip2015/regexp_RecEps` out of time;
-  29.77 s and 18.28 s in the base run). `false/` (68): 23 refuted in both, each confirmed by TIP's evaluator, none proven.
-- By how they are proven: 30 `weird_nat` problems through bridges to sums (add3 and add3acc 9 each, mul2, mul3 and
-  mul3acc 11 through copies over those bridges, op 1); 6 by the law alone at two unfoldings, found early or with more
-  time (`isaplanner/prop_59`, `prop_60`, `prop_63`, `prop_64`, `prop_67`, `tip2015/list_PairOdds`); 2 by arguments
-  equal by arithmetic (`isaplanner/prop_13`, `prop_42`: a definition on the naturals unfolded at n + 1); 4 with
-  conjectured lemmas over three variables, generalised apart from two: `prod/prop_12` by qrev's recursion with `qrev
-  (x ++ y) z = qrev y (qrev x z)` (an accumulator's), and with no induction `prod/prop_34` (`mult x y z = x·y + z`, the
-  same), `tip2015/tree_Flatten2` (`flatten2 t xs ++ ys = flatten2 t (xs ++ ys)`) and `prod/prop_23` (`++`
-  associative, and the length of an append).
+- 37 proven that 0.22.0 didn't, 1 lost (`tip2015/regexp_RecEps`, out of time; 27.6 s in the base run). `false/` (68):
+  23 refuted in both, each confirmed by TIP's evaluator, none proven.
+- By how they are proven: 30 `weird_nat` problems through bridges to sums (add3 and add3acc 9 each; mul2, mul3 and
+  mul3acc 11 through copies over those bridges; op 1); 4 by the law alone at two unfoldings, tried before any
+  conjecture (`isaplanner/prop_59`, `prop_63`, `prop_64`, `prop_67`); 2 by arguments equal by arithmetic
+  (`isaplanner/prop_13`, `prop_42`: a definition on the naturals unfolded at n + 1); 1 with a conjectured lemma over
+  three naturals, generalised apart from two, and no induction: `prod/prop_34` from `mult x y z = x·y + z` (an
+  accumulator's).
+- Two earlier commits of the branch, each run beside its own base the same way, proved more and cost the suite time:
+  - tried the law again after each lemma without induction only, by its schemes after every third (`runs/lem/tip`
+    against `tip-base`: 180 and 140, with `isaplanner/prop_60`, `prod/prop_12`, `prod/prop_23`, `list_PairOdds`,
+    `tree_Flatten2`); the suite's search tree insertion took 194.8 s against 20.4 s (`runs/lem/suite-default-1`,
+    `suite-base-default-1`);
+  - ranked the conjectures bottom up, lower functions first (`runs/lem/tip-final-2` against `tip-final-base-2`: 176 and
+    140, with `prod/prop_12` and without `prod/prop_10`); the datatype corpus's reverseReverse took 72.6 s against
+    22.3 s (`runs/lem/suite-default-2`, `suite-base-default-2`).
 - What each change gave, on all of TIP (each run a step of the branch, so a row is the changes up to it; the backend
   varied as boat's starts allowed, which moves the timeouts):
 
@@ -67,10 +73,11 @@ starts left), the same image, sets (`false/` too), container shape and 60 s.
 | `runs/lem/tip-perf1` | Modal | 140 | structural term ids and shared substitution: 165 timeouts to 146, no proof more |
 | `runs/lem/tip-v2` | Modal | 177 | ranks padded through the bridges, sums of naturals bridged, conjectures generalised apart, the law at two unfoldings early |
 | `runs/lem/tip-v3` | Modal | 176 | decreases proven with lemmas: 20 more translated, all 20 out of time, none proven (reverted) |
-| `runs/lem/tip-v4` | boat | 179 | lemma uses through other uses' conclusions; lemmas ranked bottom up |
+| `runs/lem/tip-v4` | boat | 179 | lemma uses through other uses' conclusions; lemmas ranked bottom up (reverted) |
 | `runs/lem/tip-v5` | boat | 181 | rounds of doubling time (replaced) |
 | `runs/lem/tip-v6` | boat | 182 | the order: the goal's lemmas time-boxed, then the law alone with more time |
-| `runs/lem/tip` | Modal | 180 | lemma attempts bounded by number |
+| `runs/lem/tip-v7` | Modal | 179 | the law again after a lemma without induction only (replaced) |
+| `runs/lem/tip-final` | Modal | 176 | lemma attempts bounded by number; the law by its schemes after each of the goal's lemmas; the conjectures ranked as before |
 
 - A diagnostic (`runs/lem/nolem1`, `--opts '{"lemmas":false}'`, the 216 unproven at `tip-perf1`): 39 proven with no
   conjectures at all, the deeper law alone, which the conjectures' rounds had crowded out of the 60 s.
