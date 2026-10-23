@@ -140,6 +140,68 @@ untouched, so its 1-vCPU timing wasn't measured again.
   recurrence), `core/cycles.test.ts` (ranks 0 and a variable alone, and a helpful step that misses the goal refused).
   Each fails on main.
 
+k-induction: a law that one step doesn't keep but k steps in a row do is proven, with its Lean proof first. Trusted
+additions: `lean-kernel/KInd.lean`'s `kind_sound` (a checked certificate makes the law hold in every reachable state, on
+`propext`, `Classical.choice` and `Quot.sound`), then kernel.ts's `checkKInduction`, its twin. CHC-COMP LIA-Lin at
+60 s on Modal, main at 6b2e2df launched beside it each time, none wrong: 799 and 800 solved (534 sat in both runs,
+265 and 266 unsat), main 785 and 777 (519 and 511 sat, 266 unsat) (`runs/kind/chc-mine2`, `chc-base2`, `chc-mine`,
+`chc-base`). Of the 17 sat tasks the gen/unsat track found k-inductive and main leaves unsolved, 14 solved, main 0 of
+17 (`kind17-mine3`, `kind17-main3`). The real-world corpus's verdicts unchanged.
+
+- The certificate (`KInd`, `checkKInd`): a plain law L (no key), k, and the trees. The base: L's start goal, and for
+  each 1 ≤ j < k the k-step goal of j steps (Sets.lean's `checkSKStep`) whose first state is the start (`startC`: each
+  state variable its start term) with L there, and L before each later step; the step: the k-step goal of k steps with
+  L before each, L after them refuted (primed names, Live.lean's `primeC`). Lean builds every `when` and `then` from L;
+  the certificate brings only k, the trees, the instances and the names later requests are read by. The proof is a
+  strong induction on the length of the run that reaches a state (`sreach_from`, `SPath`): shorter than k, a base;
+  longer, the step from the state k requests back, L holding at each state after it by the induction (`sallowed_rep`,
+  `kind_then`, `start_meets`). kernel.ts: `kInductionSteps` builds the same k-step laws from L, `kInductionStart` its
+  start goal, `checkKInduction` checks them (the laws' proof, the start, `checkStepLaws`). Lean's checks are kernel.ts's
+  plus what the twin's proof reads (the law reads no request's name, flag or later name; the start reads the params).
+- Conformance (core/conformance.ts's `kindCases`): shift registers and rotations whose law is k-inductive for one least
+  k (1 to 4), with a map and a second law in some, and each certificate's twins: k said to be k + 1, a base depth left
+  out, the step's tree for k given for k − 1 (the law k-inductive only at k), the step's tree for k inside a
+  certificate for k + 1, the law read stricter. kernel.ts accepts every certificate found and refuses every twin but
+  the stricter law where it is still true (each accepted one holds on the reference's runs); Lean's `checkKInd`
+  computes kernel.ts's answer on every one (lean-kernel/conformance.ts --kind, the suite's `lean-kind`: 24 machines,
+  33 certificates checked true and 79 twins computed to kernel.ts's answer, by default).
+- The search (core/kind.ts, untrusted): k = 2, 3, ... on the counted clock, each step goal decided by CDCL's model
+  search (kernel/cdcl.ts, as core/bmc.ts asks it); refuted, the laws it assumes proven once (their usual trees, no
+  cyclic certificate), the start goal and the base goals grown, the step's tree CDCL's, unfolded (prove.ts's grow keeps
+  CDCL off goals over k steps; here the plain search's cases multiply with every step). `proveRule` tries it on the
+  plain laws as one, the rule's kinds assumed, after the shallow bounded runs, within a twentieth of the search's budget
+  (at most 500 ms), and reports `k`. Lean: the LeanItem `kInduction` and smachineToLean's `kind` write a `KInd` through
+  `kind_sound`; examples/kinduction.ts (a clamped pipeline, k = 3; a token ring, k = 4; the unclamped pipeline refused
+  with a run).
+- compare/chc/solve.ts: compare/chc/kind.ts runs the search beside the other stages, a second process at nice 19 on
+  the container's second CPU, from the import to the search's deadline, and answers sat when it proves the law. On the
+  CDCL search's trees the counted clock runs about twenty times past wall time (compare/chc/prof/kind-tree.ts,
+  `runs/kind/tree1`), so there the wall stop is the budget, as for every stage under the track's wall-clock limit. At
+  the same priority the invariant search lost answers to it: of the 41 tasks either side answered alone in the first
+  run, 30, 31 and 32 answered here, 32 and 35 at nice 19, main 9, 16 and 18 (`ch-mine-*`, `ch-nice-*`, `ch-base-*`).
+- The second run (at nice 19), 21 gained and 7 lost. Gained by k-induction, 15: s_split_36 (k = 3), bug15_safe (10),
+  hysteresis_2, _3 and _all (3), fast_2_e8_460 (3) and 9 metros_1 variants (4), each in all three runs of it; and by
+  the invariant search, 6 (s_split_04, simple.c, xy0.c, DRAGON_9_e7_1843_e3_5316, DRAGON_all_e3_4821_e1_1318,
+  durationThm_2_e1_118). Lost: break_merged_safe, 015-horn, xy10.c, durationThm_2 (the invariant search) and
+  O3_id_o10 (unsat by bounded runs, found at 22.2 s in main), each answered in 1 or 2 of the 2 reruns here and in 1 or
+  2 of main's 3 runs; break_safe (here 1 of 3, main 3 of 3; in the first run's set the reverse, here 3 of 3 and main 1
+  of 3) and FIREFLY_4_e3_3511_e5_3248 (here 0 of 8 runs, main 2 of 6), where the search beside it slows the invariant
+  search (`ch2-mine-*`, `ch2-base-*`, `ch-*`). The first run (same priority) gained 32 and lost 9, every loss the
+  invariant search's.
+- k-induction answered 133 tasks in the second run (k = 2: 62, 3: 39, 4: 24, 5: 4, 6: 3, 10: 1; the first run's 132
+  among them), 118 of which main answered by the invariant search. Each of the 133, searched again by
+  compare/chc/prof/kind-lean.ts and written as Lean, checked by Lean: `task_kind_holds` on the standard axioms
+  (`kindlean1`, `kindlean2`, `kindlean3`; a metros certificate is about 1.9 MB of Lean and takes 3.5 to 6 minutes). Not solved of the 17: HOLA/04.c (k = 11: the step
+  decided past 30 s), bmc-3 (k = 9: a base goal of 7 steps not grown in time) and fast_2 (k = 3: no tree in time).
+- The real-world corpus (311 laws, `runs/kind/rw-mine2`, `rw-main2`): 218 proven, 17 refuted, 75 unknown, 1 error on
+  both sides, law by law; none needed k-induction within its 500 ms. The second frontier corpus: 27 of 47 on both sides,
+  every broken variant refused (47 of 47), the same outcome per item but two TIP items unproven on both sides (out of
+  time on one side, not proven on the other) (`f2-mine`, `f2-base`). search.test.ts's tests on
+  1 vCPU, ten runs each beside main's: "an invariant nobody wrote" 1,559 ms median (at most 1,839), main 1,067 (1,427),
+  the k-induction it tries first; the rest within noise (`infer-mine`, `infer-base`).
+- The suites (215 jobs, 2 new: `kinduction`, `lean-kind`): by default 758.7 s wall, 4,972.2 s of job time, none failed
+  (`runs/kind/suite-default`); `--usual` 581.2 s and 4,626.8 s, none failed (`suite-usual`).
+
 Rules read from the code that ships (`gdp-wired/extract`, core/extract.ts): `extract(code, {entry})` reads a reducer,
 `useReducer`'s, functions over one record, a Redux Toolkit slice or a class whose methods write its fields, through the
 TypeScript compiler, and returns the rule that steps the same way, as a builder value and as the source that makes it

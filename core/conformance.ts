@@ -1,8 +1,9 @@
 // The conformance generator: random terms and conditions over every operation of E and C (the op lists must name every
 // op, or this file doesn't type-check), concrete inputs and map cells, and the reference value from evalE and evalC.
 // core/conformance.test.ts holds every consumer of terms to it; lean-kernel/conformance.ts writes its cases for Lean.
-import {type C, type E, type Machine, type State, evalC, evalE} from './machine.ts'
-import {type Loop, type QC, type QE, type QGoal, type QMachine, type Recur, type Tree, recurGoal, trueC} from '../kernel/kernel.ts'
+import {type C, type E, type Law, type Machine, type State, evalC, evalE, interpret} from './machine.ts'
+import {type Goal, type KInduction, type Loop, type QC, type QE, type QGoal, type QMachine, type Recur, type Tree, checkKInduction, kInductionStart, kInductionSteps, recurGoal, stepLawObligations, trueC} from '../kernel/kernel.ts'
+import {type KindProof, proveKInduction} from './kind.ts'
 import type {Step} from './solver.ts'
 import {type Rat, q} from './q.ts'
 import {evalQC, evalQE} from './rationals.ts'
@@ -329,3 +330,69 @@ export function qtampered(tree: Tree): {what: string, tree: Tree}[] {
   ]
   return out.flatMap(x => (x.tree ? [{what: x.what, tree: x.tree}] : []))
 }
+
+// --- k-induction certificates (kernel.ts's checkKInduction, KInd.lean's checkKInd) --------------------------------------
+
+// Random machines with a law that is k-inductive for one least k: a shift register (x1 := w, each next the one before,
+// the law about the last: k = its length), a rotation (each register the next, the last the first: k = their number),
+// each start and request at most c, some with a map written and a second law the first doesn't need; the certificate
+// core/kind.ts finds, and its tampered twins, each with kernel.ts's answer: the same certificate for k + 1; a base depth
+// left out; the step's tree for k given as k − 1's (the law k-inductive only at k); the step's tree for k given as
+// k + 1's, beside a certificate for k + 1; the law read stricter. `lean`: the twin as KInd.lean's certificate (its k,
+// the base depths it keeps, its law), for lean-kernel/conformance.ts --kind.
+export type KindTamper = {what: string, kl: KInduction, proof: KindProof, lean?: {k: number, base: number[], law?: C}}
+export type KindCase = {m: Machine, laws: Law[], law: Law, family: string, kl: KInduction, proof: KindProof, start: Goal, tampers: KindTamper[]}
+export function randomKindMachine(): {m: Machine, laws: Law[], law: Law, family: string} {
+  const family = pick(['shift', 'rotate'] as const), d = 1 + rand(4), c = 1 + rand(5), xs = Array.from({length: d}, (_, i) => `x${i + 1}`)
+  const withMap = rand(2) === 1, second = rand(2) === 1
+  const state: Record<string, E> = Object.fromEntries(xs.map(x => [x, k(rand(c + 1))])), step: Record<string, E> = {}
+  if (family === 'shift') { step.x1 = v('w'); for (let i = 1; i < d; i++) step[xs[i]!] = v(xs[i - 1]!) }
+  else for (let i = 0; i < d; i++) step[xs[i]!] = v(xs[(i + 1) % d]!)
+  if (second) { state.y = k(0); step.y = {op: 'add', a: v('y'), b: v('w')} }
+  const m: Machine = {name: `${family} ${d} ${c}`, params: [], inputs: ['w'], state, step: {state: step, ...(withMap ? {maps: {M: {key: v('w'), value: v(xs[0]!)}}} : {})},
+    ...(withMap ? {maps: {M: 0}} : {}), assume: {op: '<=', a: v('w'), b: k(c)}}
+  const law: Law = {name: 'bounded', holds: {op: '<=', a: v(family === 'shift' ? xs[d - 1]! : 'x1'), b: k(c)}}
+  return {m, laws: second ? [{name: 'y counts', holds: {op: '<=', a: k(0), b: v('y')}}] : [], law, family}
+}
+// The reference: random runs from the start (each request allowed), the law read by evalC at every state.
+export function kindReference(m: Machine, law: Law, runs = 30, steps = 12): boolean {
+  const it = interpret(m)
+  for (let r = 0; r < runs; r++) {
+    let st = it.init({})
+    for (let j = 0; j <= steps; j++) {
+      if (!evalC(law.holds, {}, st, m)) return false
+      try { st = it.step({}, st, {w: rand(8)}) } catch (e) { if (e instanceof RangeError) continue; throw e }
+    }
+  }
+  return true
+}
+export function kindCases(n: number, ms = 3000): KindCase[] {
+  const out: KindCase[] = []
+  const stepOf = (m: Machine, laws: Law[], kl: KInduction) => stepLawObligations(m, laws, {}, kInductionSteps(m, kl).at(-1)!)[0]!.name
+  for (let i = 0; i < n; i++) {
+    const {m, laws, law, family} = randomKindMachine()
+    const f = proveKInduction(m, laws, law, {ms, from: 1})
+    if (!f.proven || !f.checked || !f.proof || !f.kl) throw new Error(`${m.name}: no k-induction found (${f.why})`)
+    const kl = f.kl, kk = kl.k, proof = f.proof, ls = f.laws!, all = Array.from({length: kk - 1}, (_, j) => j)
+    const tampers: KindTamper[] = [{what: `k said to be ${kk + 1}`, kl: {law, k: kk + 1}, proof, lean: {k: kk + 1, base: all}}]
+    if (kk > 1) {
+      const baseName = stepLawObligations(m, ls, {}, kInductionSteps(m, kl)[kk - 2]!)[0]!.name
+      tampers.push({what: `the base of depth ${kk - 1} left out`, kl, proof: {...proof, trees: Object.fromEntries(Object.entries(proof.trees).filter(([name]) => name !== baseName))}, lean: {k: kk, base: all.slice(0, -1)}})
+      const lower: KInduction = {law, k: kk - 1}
+      tampers.push({what: `k-inductive only at k = ${kk}: the step's tree for ${kk} given for ${kk - 1}`, kl: lower, proof: {...proof, trees: {...proof.trees, [stepOf(m, ls, lower)]: proof.trees[stepOf(m, ls, kl)]!}}, lean: {k: kk - 1, base: all.slice(0, -1)}})
+    }
+    const up = proveKInduction(m, laws, law, {ms, from: kk + 1, to: kk + 1})
+    if (up.proven && up.proof) {
+      const higher: KInduction = {law, k: kk + 1}
+      tampers.push({what: `the step's tree for k = ${kk} in a certificate for ${kk + 1}`, kl: higher, proof: {...up.proof, trees: {...up.proof.trees, [stepOf(m, ls, higher)]: proof.trees[stepOf(m, ls, kl)]!}}})
+    }
+    const le = law.holds as {a: E, b: {value: number}}, stricter: C = {op: '<=', a: le.a, b: k(Math.max(0, le.b.value - 1))}
+    // (Lean's twin of this one: refused, the certificate with its law changed; accepted, a certificate of its own)
+    const strict: KindTamper = {what: 'the law read stricter', kl: {law: {...law, holds: stricter}, k: kk}, proof}
+    tampers.push(kindAnswer({m, laws: ls}, strict) ? strict : {...strict, lean: {k: kk, base: all, law: stricter}})
+    out.push({m, laws: ls, law, family, kl, proof, start: kInductionStart(m, kl, {}), tampers})
+  }
+  return out
+}
+// kernel.ts's answer (a refusal by an error is a refusal).
+export const kindAnswer = (c: {m: Machine, laws: Law[]}, t: {kl: KInduction, proof: KindProof}): boolean => { try { return checkKInduction(c.m, c.laws, t.kl, t.proof) } catch { return false } }
