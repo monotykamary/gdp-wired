@@ -1,0 +1,14 @@
+(format LCTRS)
+(theory Ints)
+(fun l0 (-> Int Int Int))
+(fun l1 (-> Int Int Int))
+(fun l2 (-> Int Int Int))
+(entrypoint l0)
+(rule (l0 x^0 y^0) (l1 x^1 y^1) :guard (= x^1 0))
+(rule (l1 x^0 y^0) (l1 x^1 y^1) :guard 
+	(or 
+		(and (or (> y^0 1) (< y^0 0)) (> 100 x^0) (= 1 (- x^1 x^0)) (= y^1 y^0)) 
+		(and (or (> y^0 1) (< y^0 0)) (>= x^0 100) (= 1 (- x^1 x^0)) (= y^1 0))
+	) 
+)
+(rule (l1 x^0 y^0) (l2 x^1 y^1) :guard (= y^0 0))

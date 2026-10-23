@@ -1,0 +1,80 @@
+[
+ {
+  "name": "lasso-AProVEMath_jar-obl-8",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo '== research/frontier2/tasks/its/AProVEMath.jar-obl-8.broken.ari'; timeout -s KILL 60 bun compare/term/solve.ts research/frontier2/tasks/its/AProVEMath.jar-obl-8.broken.ari --limit 20 2>&1 | tail -1 | cut -c1-3000",
+  "cpu": 2.0,
+  "timeout": 120
+ },
+ {
+  "name": "lasso-AckR_jar-obl-8",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo '== research/frontier2/tasks/its/AckR.jar-obl-8.broken.ari'; timeout -s KILL 60 bun compare/term/solve.ts research/frontier2/tasks/its/AckR.jar-obl-8.broken.ari --limit 20 2>&1 | tail -1 | cut -c1-3000",
+  "cpu": 2.0,
+  "timeout": 120
+ },
+ {
+  "name": "lasso-Alternate_jar-obl-10",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo '== research/frontier2/tasks/its/Alternate.jar-obl-10.broken.ari'; timeout -s KILL 60 bun compare/term/solve.ts research/frontier2/tasks/its/Alternate.jar-obl-10.broken.ari --limit 20 2>&1 | tail -1 | cut -c1-3000",
+  "cpu": 2.0,
+  "timeout": 120
+ },
+ {
+  "name": "lasso-Continue1_jar-obl-8",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo '== research/frontier2/tasks/its/Continue1.jar-obl-8.broken.ari'; timeout -s KILL 60 bun compare/term/solve.ts research/frontier2/tasks/its/Continue1.jar-obl-8.broken.ari --limit 20 2>&1 | tail -1 | cut -c1-3000",
+  "cpu": 2.0,
+  "timeout": 120
+ },
+ {
+  "name": "lasso-ListReverseCyclicList_jar-obl-10",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo '== research/frontier2/tasks/its/ListReverseCyclicList.jar-obl-10.broken.ari'; timeout -s KILL 60 bun compare/term/solve.ts research/frontier2/tasks/its/ListReverseCyclicList.jar-obl-10.broken.ari --limit 20 2>&1 | tail -1 | cut -c1-3000",
+  "cpu": 2.0,
+  "timeout": 120
+ },
+ {
+  "name": "lasso-p-60_t2_fixed",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo '== research/frontier2/tasks/its/p-60.t2_fixed.broken.ari'; timeout -s KILL 60 bun compare/term/solve.ts research/frontier2/tasks/its/p-60.t2_fixed.broken.ari --limit 20 2>&1 | tail -1 | cut -c1-3000",
+  "cpu": 2.0,
+  "timeout": 120
+ },
+ {
+  "name": "lasso-polyrank1_t2",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo '== research/frontier2/tasks/its/polyrank1.t2.broken.ari'; timeout -s KILL 60 bun compare/term/solve.ts research/frontier2/tasks/its/polyrank1.t2.broken.ari --limit 20 2>&1 | tail -1 | cut -c1-3000",
+  "cpu": 2.0,
+  "timeout": 120
+ },
+ {
+  "name": "lasso-toy3_t2",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo '== research/frontier2/tasks/its/toy3.t2.broken.ari'; timeout -s KILL 60 bun compare/term/solve.ts research/frontier2/tasks/its/toy3.t2.broken.ari --limit 20 2>&1 | tail -1 | cut -c1-3000",
+  "cpu": 2.0,
+  "timeout": 120
+ },
+ {
+  "name": "lasso-2Nested-1",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo '== research/frontier2/tasks/sv/2Nested-1.broken.ari'; timeout -s KILL 60 bun compare/term/solve.ts research/frontier2/tasks/sv/2Nested-1.broken.ari --limit 20 2>&1 | tail -1 | cut -c1-3000",
+  "cpu": 2.0,
+  "timeout": 120
+ },
+ {
+  "name": "lasso-McCarthy91_Iteration",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo '== research/frontier2/tasks/sv/McCarthy91_Iteration.broken.ari'; timeout -s KILL 60 bun compare/term/solve.ts research/frontier2/tasks/sv/McCarthy91_Iteration.broken.ari --limit 20 2>&1 | tail -1 | cut -c1-3000",
+  "cpu": 2.0,
+  "timeout": 120
+ },
+ {
+  "name": "lasso-Piecewise",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo '== research/frontier2/tasks/sv/Piecewise.broken.ari'; timeout -s KILL 60 bun compare/term/solve.ts research/frontier2/tasks/sv/Piecewise.broken.ari --limit 20 2>&1 | tail -1 | cut -c1-3000",
+  "cpu": 2.0,
+  "timeout": 120
+ },
+ {
+  "name": "lasso-Toulouse-BranchesToLoop-2",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo '== research/frontier2/tasks/sv/Toulouse-BranchesToLoop-2.broken.ari'; timeout -s KILL 60 bun compare/term/solve.ts research/frontier2/tasks/sv/Toulouse-BranchesToLoop-2.broken.ari --limit 20 2>&1 | tail -1 | cut -c1-3000",
+  "cpu": 2.0,
+  "timeout": 120
+ },
+ {
+  "name": "lasso-WhileFalse",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo '== research/frontier2/tasks/sv/WhileFalse.broken.ari'; timeout -s KILL 60 bun compare/term/solve.ts research/frontier2/tasks/sv/WhileFalse.broken.ari --limit 20 2>&1 | tail -1 | cut -c1-3000",
+  "cpu": 2.0,
+  "timeout": 120
+ }
+]

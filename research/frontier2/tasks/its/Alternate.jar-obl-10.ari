@@ -1,0 +1,1327 @@
+(format LCTRS)
+(theory Ints)
+(fun __init (-> Int Int Int Int Int Int Int Int Int Int))
+(fun f1172_0_createNode_Return (-> Int Int Int Int Int Int Int Int Int Int))
+(fun
+f1242_0_alternate_InvokeMethod
+(-> Int Int Int Int Int Int Int Int Int Int))
+(fun f1247_0_copy_InvokeMethod (-> Int Int Int Int Int Int Int Int Int Int))
+(fun f1_0_main_Load (-> Int Int Int Int Int Int Int Int Int Int))
+(fun f2035_0_random_GT (-> Int Int Int Int Int Int Int Int Int Int))
+(fun f2504_0_createTree_LE (-> Int Int Int Int Int Int Int Int Int Int))
+(fun f2521_0_main_InvokeMethod (-> Int Int Int Int Int Int Int Int Int Int))
+(fun f252_0_main_InvokeMethod (-> Int Int Int Int Int Int Int Int Int Int))
+(fun f2530_0_main_InvokeMethod (-> Int Int Int Int Int Int Int Int Int Int))
+(fun f2588_0_createTree_NONNULL (-> Int Int Int Int Int Int Int Int Int Int))
+(fun f2589_0_main_InvokeMethod (-> Int Int Int Int Int Int Int Int Int Int))
+(fun
+f2671_0_createTree_FieldAccess
+(-> Int Int Int Int Int Int Int Int Int Int))
+(fun f2712_0_createTree_LE (-> Int Int Int Int Int Int Int Int Int Int))
+(fun
+f2777_0_createTree_FieldAccess
+(-> Int Int Int Int Int Int Int Int Int Int))
+(fun f355_0_createTree_Return (-> Int Int Int Int Int Int Int Int Int Int))
+(fun f61_0_createTree_Return (-> Int Int Int Int Int Int Int Int Int Int))
+(fun f701_0_createTree_Return (-> Int Int Int Int Int Int Int Int Int Int))
+(fun f702_0_createTree_Return (-> Int Int Int Int Int Int Int Int Int Int))
+(fun f741_0_random_GT (-> Int Int Int Int Int Int Int Int Int Int))
+(fun f756_0_copy_NONNULL (-> Int Int Int Int Int Int Int Int Int Int))
+(fun f845_0_alternate_NONNULL (-> Int Int Int Int Int Int Int Int Int Int))
+(fun f875_0_createTree_NE (-> Int Int Int Int Int Int Int Int Int Int))
+(entrypoint __init)
+(rule
+(f1_0_main_Load arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f252_0_main_InvokeMethod
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and (and (and (<= arg1P arg1) (> arg1 0)) (> arg1P 0)) (= 0 arg2P)))
+(rule
+(f1_0_main_Load arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f252_0_main_InvokeMethod
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and (and (<= arg1P arg1) (> arg1 0)) (> arg1P 0)))
+(rule
+(f61_0_createTree_Return arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f252_0_main_InvokeMethod
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and (> arg1P 0) (= 0 arg2P)))
+(rule
+(f252_0_main_InvokeMethod arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f355_0_createTree_Return
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and (and (<= arg1P arg1) (> arg1 0)) (> arg1P 0)))
+(rule
+(f355_0_createTree_Return arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f845_0_alternate_NONNULL
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (<= (+ arg1P 1) arg1) (<= (+ arg2P 1) arg1))
+(<= (+ arg3P 1) arg1))
+(<= (+ arg4P 1) arg1))
+(> arg1 0))
+(> arg1P (- 1)))
+(> arg2P (- 1)))
+(> arg3P (- 1)))
+(> arg4P (- 1)))
+)
+(rule
+(f1_0_main_Load arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2521_0_main_InvokeMethod
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and (and (and (<= arg1P arg1) (> arg1 0)) (> arg1P 0)) (> arg2P 0)))
+(rule
+(f701_0_createTree_Return arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2521_0_main_InvokeMethod
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg1) (<= (+ arg1P 1) arg2)) (<= arg2P arg2))
+(> arg1 0))
+(> arg2 1))
+(> arg1P 0))
+(> arg2P 1))
+(<= (+ arg4 2) arg2))
+(= arg3 arg3P))
+(= arg4 arg4P))
+)
+(rule
+(f252_0_main_InvokeMethod arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2530_0_main_InvokeMethod
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and (and (and (<= arg1P arg1) (> arg1 0)) (> arg1P 0)) (> arg2P 0)))
+(rule
+(f702_0_createTree_Return arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2530_0_main_InvokeMethod
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg1) (<= (+ arg1P 1) arg2)) (<= arg2P arg2))
+(> arg1 0))
+(> arg2 1))
+(> arg1P 0))
+(> arg2P 1))
+(<= (+ arg3 2) arg2))
+(= arg3 arg3P))
+)
+(rule
+(f2530_0_main_InvokeMethod arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f845_0_alternate_NONNULL
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (<= (+ arg1P 1) arg1) (<= (+ arg1P 1) arg2))
+(<= (+ arg2P 1) arg1))
+(<= (+ arg2P 1) arg2))
+(<= arg3P arg2))
+(<= (+ arg4P 1) arg1))
+(<= (+ arg4P 1) arg2))
+(> arg1 0))
+(> arg2 0))
+(> arg1P (- 1)))
+(> arg2P (- 1)))
+(> arg3P 0))
+(> arg4P (- 1)))
+(<= (+ arg3 2) arg2))
+)
+(rule
+(f2521_0_main_InvokeMethod arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2589_0_main_InvokeMethod
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg1) (<= arg1P arg2)) (<= arg2P arg2))
+(> arg1 0))
+(> arg2 0))
+(> arg1P 0))
+(> arg2P 0))
+(<= (+ arg4P 2) arg2))
+(<= (+ arg4 2) arg2))
+(= arg4 arg3P))
+)
+(rule
+(f2589_0_main_InvokeMethod arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f845_0_alternate_NONNULL
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg2) (<= arg2P arg2)) (<= (+ arg3P 1) arg1))
+(<= (+ arg3P 1) arg2))
+(<= arg4P arg2))
+(> arg1 0))
+(> arg2 0))
+(> arg1P 0))
+(> arg2P 0))
+(> arg3P (- 1)))
+(> arg4P 0))
+(<= (+ arg4 2) arg2))
+(<= (+ arg3 2) arg2))
+)
+(rule
+(f2521_0_main_InvokeMethod arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f845_0_alternate_NONNULL
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg2) (<= arg2P arg2)) (<= arg4P arg2))
+(> arg1 0))
+(> arg2 0))
+(> arg1P 0))
+(> arg2P 0))
+(> arg3P 0))
+(> arg4P 0))
+(<= (+ arg4 2) arg2))
+)
+(rule
+(f1_0_main_Load arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f741_0_random_GT arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and (> arg1 0) (> arg2 (- 1))))
+(rule
+(f252_0_main_InvokeMethod arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f741_0_random_GT arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(exists ((x79 Int)) (and (> arg1 0) (> x79 (- 1)))))
+(rule
+(f2521_0_main_InvokeMethod arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f741_0_random_GT arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(exists
+((x82 Int))
+(and
+(and (and (> arg1 0) (> x82 (- 1))) (> arg2 0))
+(<= (+ arg4 2) arg2))
+)
+)
+(rule
+(f741_0_random_GT arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f875_0_createTree_NE arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(exists
+((x88 Int))
+(and
+(and (and (> x88 (- 1)) (< x88 arg2P)) (= 0 arg1P))
+(= (+ x88 1) arg3P))
+)
+)
+(rule
+(f741_0_random_GT arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f875_0_createTree_NE arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(exists
+((x90 Int))
+(and
+(and (and (< x90 arg2P) (> arg1P (- 1))) (> x90 (- 1)))
+(= (+ x90 1) arg3P))
+)
+)
+(rule
+(f1172_0_createNode_Return arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2504_0_createTree_LE arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and
+(and (and (and (> arg2P 1) (> arg1P 1)) (= arg1 arg3P)) (= arg2 arg4P))
+(= arg3 arg5P))
+)
+(rule
+(f875_0_createTree_NE arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2504_0_createTree_LE arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and
+(and
+(and
+(and (and (and (> arg1 0) (> arg3 0)) (> arg2P 1)) (> arg1P 1))
+(= arg1 arg3P))
+(= arg2 arg4P))
+(= arg3 arg5P))
+)
+(rule
+(f875_0_createTree_NE arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2504_0_createTree_LE arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and
+(and
+(and (and (and (> arg1 0) (> arg3 0)) (> arg2P 1)) (> arg1P 1))
+(= arg1 arg3P))
+(= arg2 arg4P))
+)
+(rule
+(f2504_0_createTree_LE arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2588_0_createTree_NONNULL
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (>= arg5 arg4) (> arg4 (- 1))) (> arg3 0))
+(<= arg2P arg1))
+(<= arg3P arg2))
+(<= (+ arg4P 1) arg2))
+(> arg1 0))
+(> arg2 0))
+(> arg2P 0))
+(> arg3P 0))
+(> arg4P (- 1)))
+(<= (+ arg7P 2) arg1))
+(<= (+ arg8P 2) arg1))
+(<= (+ arg9P 2) arg2))
+(= arg3 arg1P))
+(= arg4 arg5P))
+(= arg5 arg6P))
+)
+(rule
+(f2588_0_createTree_NONNULL arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2504_0_createTree_LE arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg2) (<= (+ arg2P 2) arg3)) (<= arg2P arg4))
+(> arg2 0))
+(> arg3 2))
+(> arg4 0))
+(> arg1P 0))
+(> arg2P 0))
+(<= (+ arg7 2) arg2))
+(<= (+ arg8 2) arg2))
+(<= (+ arg9 2) arg3))
+(= (- arg1 1) arg3P))
+(= arg5 arg4P))
+(= arg6 arg5P))
+)
+(rule
+(f2588_0_createTree_NONNULL arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2671_0_createTree_FieldAccess
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (>= arg6 arg5) (> arg1 0)) (<= arg2P arg2))
+(<= arg3P arg3))
+(> arg2 0))
+(> arg3 1))
+(> arg4 (- 1)))
+(> arg2P 0))
+(> arg3P 1))
+(<= (+ arg7 2) arg2))
+(<= (+ arg8 2) arg2))
+(<= (+ arg9 2) arg3))
+(= arg1 arg1P))
+(= arg5 arg4P))
+(= arg6 arg5P))
+(= arg8 arg6P))
+(= arg9 arg7P))
+)
+(rule
+(f2588_0_createTree_NONNULL arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2671_0_createTree_FieldAccess
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (>= arg6 arg5) (> arg1 0)) (<= arg2P arg2))
+(<= arg3P arg3))
+(> arg2 0))
+(> arg3 1))
+(> arg4 (- 1)))
+(> arg2P 0))
+(> arg3P 1))
+(<= (+ arg7 2) arg2))
+(<= (+ arg8 2) arg2))
+(<= (+ arg9 2) arg3))
+(= arg1 arg1P))
+(= arg5 arg4P))
+(= arg8 arg6P))
+(= arg9 arg7P))
+)
+(rule
+(f2504_0_createTree_LE arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2712_0_createTree_LE arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (> arg3 0) (> arg4 (- 1))) (< arg5 arg4))
+(> arg5 (- 1)))
+(<= arg2P arg1))
+(<= arg3P arg2))
+(> arg1 0))
+(> arg2 0))
+(> arg2P 0))
+(> arg3P 0))
+(<= (+ arg7P 2) arg1))
+(<= (+ arg8P 2) arg1))
+(= arg3 arg1P))
+(= 0 arg4P))
+(= arg4 arg5P))
+(= (+ arg5 1) arg6P))
+)
+(rule
+(f2504_0_createTree_LE arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2712_0_createTree_LE arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (> arg3 0) (> arg4 (- 1))) (< arg5 arg4))
+(> arg5 (- 1)))
+(> arg4P (- 1)))
+(<= arg2P arg1))
+(<= arg3P arg2))
+(> arg1 0))
+(> arg2 0))
+(> arg2P 0))
+(> arg3P 0))
+(<= (+ arg7P 2) arg1))
+(<= (+ arg8P 2) arg1))
+(= arg3 arg1P))
+(= arg4 arg5P))
+(= (+ arg5 1) arg6P))
+)
+(rule
+(f2671_0_createTree_FieldAccess arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2504_0_createTree_LE arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and (and (and (> arg2 0) (> arg3 1)) (> arg1P 0)) (> arg2P 0))
+(<= (+ arg6 2) arg2))
+(<= (+ arg7 2) arg3))
+(= (- arg1 1) arg3P))
+(= arg4 arg4P))
+(= arg5 arg5P))
+)
+(rule
+(f2671_0_createTree_FieldAccess arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2504_0_createTree_LE arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (<= (- arg1P 2) arg2) (<= (- arg1P 2) arg3))
+(<= (- arg2P 2) arg2))
+(<= (- arg2P 2) arg3))
+(> arg2 1))
+(> arg3 1))
+(> arg1P 3))
+(> arg2P 3))
+(<= (+ arg6 2) arg2))
+(<= (+ arg6 2) arg3))
+(= arg6 arg7))
+(= (- arg1 1) arg3P))
+(= arg4 arg4P))
+(= arg5 arg5P))
+)
+(rule
+(f2712_0_createTree_LE arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2588_0_createTree_NONNULL
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (<= arg2P arg2) (<= arg3P arg3)) (<= (+ arg4P 1) arg3))
+(> arg2 0))
+(> arg3 0))
+(> arg2P 0))
+(> arg3P 0))
+(> arg4P (- 1)))
+(<= (+ arg7 2) arg2))
+(<= (+ arg8 2) arg2))
+(<= (+ arg9P 2) arg3))
+(= 0 arg4))
+(= arg1 arg1P))
+(= arg5 arg5P))
+(= arg6 arg6P))
+(= arg7 arg7P))
+(= arg8 arg8P))
+)
+(rule
+(f2712_0_createTree_LE arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2504_0_createTree_LE arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg2) (> arg4 0)) (<= (+ arg2P 2) arg3))
+(> arg2 0))
+(> arg3 2))
+(> arg1P 0))
+(> arg2P 0))
+(<= (+ arg7 2) arg2))
+(<= (+ arg8 2) arg2))
+(= (- arg1 1) arg3P))
+(= arg5 arg4P))
+(= arg6 arg5P))
+)
+(rule
+(f2712_0_createTree_LE arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2777_0_createTree_FieldAccess
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (and (> arg4 0) (> arg6 0)) (> arg1 0)) (<= arg2P arg2))
+(<= arg3P arg3))
+(> arg2 0))
+(> arg3 1))
+(> arg2P 0))
+(> arg3P 1))
+(<= (+ arg7 2) arg2))
+(<= (+ arg8 2) arg2))
+(<= (+ arg7P 2) arg3))
+(= arg1 arg1P))
+(= arg5 arg4P))
+(= arg6 arg5P))
+(= arg7 arg6P))
+)
+(rule
+(f2712_0_createTree_LE arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2777_0_createTree_FieldAccess
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (and (> arg4 0) (> arg6 0)) (> arg1 0)) (<= arg2P arg2))
+(<= arg3P arg3))
+(> arg2 0))
+(> arg3 1))
+(> arg2P 0))
+(> arg3P 1))
+(<= (+ arg7 2) arg2))
+(<= (+ arg8 2) arg2))
+(<= (+ arg7P 2) arg3))
+(= arg1 arg1P))
+(= arg5 arg4P))
+(= arg7 arg6P))
+)
+(rule
+(f2777_0_createTree_FieldAccess arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2504_0_createTree_LE arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and (and (and (> arg2 0) (> arg3 1)) (> arg1P 0)) (> arg2P 0))
+(<= (+ arg6 2) arg2))
+(<= (+ arg7 2) arg3))
+(= (- arg1 1) arg3P))
+(= arg4 arg4P))
+(= arg5 arg5P))
+)
+(rule
+(f2777_0_createTree_FieldAccess arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2504_0_createTree_LE arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (<= (- arg1P 2) arg2) (<= (- arg1P 2) arg3))
+(<= (- arg2P 2) arg2))
+(<= (- arg2P 2) arg3))
+(> arg2 1))
+(> arg3 1))
+(> arg1P 3))
+(> arg2P 3))
+(<= (+ arg6 2) arg2))
+(<= (+ arg6 2) arg3))
+(= arg6 arg7))
+(= (- arg1 1) arg3P))
+(= arg4 arg4P))
+(= arg5 arg5P))
+)
+(rule
+(f845_0_alternate_NONNULL arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f756_0_copy_NONNULL arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and
+(and
+(and
+(and (and (<= arg1P arg3) (> arg1 (- 1))) (> arg2 (- 1)))
+(> arg3 (- 1)))
+(> arg4 (- 1)))
+(> arg1P (- 1)))
+)
+(rule
+(f845_0_alternate_NONNULL arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f756_0_copy_NONNULL arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and (<= (+ arg1P 1) arg1) (<= (+ arg1P 1) arg2))
+(<= (+ arg1P 1) arg4))
+(> arg1 0))
+(> arg2 0))
+(> arg3 (- 1)))
+(> arg4 0))
+(> arg1P (- 1)))
+)
+(rule
+(f845_0_alternate_NONNULL arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f845_0_alternate_NONNULL
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg3) (<= arg2P arg3)) (<= (+ arg3P 2) arg1))
+(<= (+ arg3P 2) arg2))
+(<= (+ arg3P 2) arg4))
+(<= arg4P arg3))
+(> arg1 1))
+(> arg2 1))
+(> arg3 (- 1)))
+(> arg4 1))
+(> arg1P (- 1)))
+(> arg2P (- 1)))
+(> arg3P (- 1)))
+(> arg4P (- 1)))
+)
+(rule
+(f845_0_alternate_NONNULL arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f1242_0_alternate_InvokeMethod
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg1) (<= arg1P arg2)) (<= arg1P arg4))
+(<= arg3P arg3))
+(<= (+ arg4P 2) arg1))
+(<= (+ arg4P 2) arg2))
+(<= (+ arg4P 2) arg4))
+(<= (+ arg6P 2) arg1))
+(<= (+ arg6P 2) arg2))
+(<= (+ arg6P 2) arg4))
+(> arg1 4))
+(> arg2 4))
+(> arg3 (- 1)))
+(> arg4 4))
+(> arg1P 4))
+(> arg2P 2))
+(> arg3P (- 1)))
+(> arg4P (- 1)))
+(> arg6P (- 1)))
+)
+(rule
+(f845_0_alternate_NONNULL arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f1242_0_alternate_InvokeMethod
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg1) (<= arg1P arg2)) (<= arg1P arg4))
+(<= arg3P arg3))
+(<= (+ arg4P 2) arg1))
+(<= (+ arg4P 2) arg2))
+(<= (+ arg4P 2) arg4))
+(<= (+ arg6P 2) arg1))
+(<= (+ arg6P 2) arg2))
+(<= (+ arg6P 2) arg4))
+(> arg1 4))
+(> arg2 4))
+(> arg3 (- 1)))
+(> arg4 4))
+(> arg1P 4))
+(> arg2P 2))
+(> arg3P (- 1)))
+(> arg4P (- 1)))
+(> arg6P (- 1)))
+)
+(rule
+(f845_0_alternate_NONNULL arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f1242_0_alternate_InvokeMethod
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg1) (<= arg1P arg2)) (<= arg1P arg4))
+(<= arg3P arg3))
+(<= (+ arg4P 2) arg1))
+(<= (+ arg4P 2) arg2))
+(<= (+ arg4P 2) arg4))
+(<= (+ arg6P 2) arg1))
+(<= (+ arg6P 2) arg2))
+(<= (+ arg6P 2) arg4))
+(> arg1 4))
+(> arg2 4))
+(> arg3 (- 1)))
+(> arg4 4))
+(> arg1P 4))
+(> arg2P 2))
+(> arg3P (- 1)))
+(> arg4P (- 1)))
+(> arg6P (- 1)))
+)
+(rule
+(f845_0_alternate_NONNULL arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f1242_0_alternate_InvokeMethod
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg1) (<= arg1P arg2)) (<= arg1P arg4))
+(<= (+ arg2P 2) arg1))
+(<= (+ arg2P 2) arg2))
+(<= (- arg2P 2) arg3))
+(<= (+ arg2P 2) arg4))
+(<= arg3P arg3))
+(<= (+ arg4P 2) arg1))
+(<= (+ arg4P 2) arg2))
+(<= (+ arg4P 2) arg4))
+(<= (+ arg6P 2) arg1))
+(<= (+ arg6P 2) arg2))
+(<= (+ arg6P 2) arg4))
+(> arg1 3))
+(> arg2 3))
+(> arg3 (- 1)))
+(> arg4 3))
+(> arg1P 3))
+(> arg2P 1))
+(> arg3P (- 1)))
+(> arg4P (- 1)))
+(> arg6P (- 1)))
+)
+(rule
+(f1242_0_alternate_InvokeMethod arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f845_0_alternate_NONNULL
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg3) (<= arg2P arg3)) (<= (+ arg3P 2) arg1))
+(<= arg3P arg4))
+(<= arg3P arg6))
+(<= arg4P arg3))
+(> arg1 2))
+(> arg2 0))
+(> arg3 (- 1)))
+(> arg4 (- 1)))
+(> arg6 (- 1)))
+(> arg1P (- 1)))
+(> arg2P (- 1)))
+(> arg3P (- 1)))
+(> arg4P (- 1)))
+)
+(rule
+(f756_0_copy_NONNULL arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f756_0_copy_NONNULL arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and (and (<= (+ arg1P 1) arg1) (> arg1 0)) (> arg1P (- 1))))
+(rule
+(f756_0_copy_NONNULL arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f756_0_copy_NONNULL arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and (and (<= (+ arg1P 2) arg1) (> arg1 1)) (> arg1P (- 1))))
+(rule
+(f756_0_copy_NONNULL arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f1247_0_copy_InvokeMethod
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg1) (<= (+ arg2P 2) arg1)) (<= (+ arg3P 2) arg1))
+(> arg1 4))
+(> arg1P 4))
+(> arg2P (- 1)))
+(> arg3P (- 1)))
+)
+(rule
+(f756_0_copy_NONNULL arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f1247_0_copy_InvokeMethod
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg1) (<= (+ arg2P 2) arg1)) (<= (+ arg3P 2) arg1))
+(> arg1 4))
+(> arg1P 4))
+(> arg2P (- 1)))
+(> arg3P (- 1)))
+)
+(rule
+(f756_0_copy_NONNULL arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f1247_0_copy_InvokeMethod
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg1) (<= (+ arg2P 2) arg1)) (<= (+ arg3P 2) arg1))
+(> arg1 4))
+(> arg1P 4))
+(> arg2P (- 1)))
+(> arg3P (- 1)))
+)
+(rule
+(f756_0_copy_NONNULL arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f1247_0_copy_InvokeMethod
+arg1P
+arg2P
+arg3P
+arg4P
+arg5P
+arg6P
+arg7P
+arg8P
+arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg1) (<= (+ arg2P 2) arg1)) (<= (+ arg3P 2) arg1))
+(> arg1 3))
+(> arg1P 3))
+(> arg2P (- 1)))
+(> arg3P (- 1)))
+)
+(rule
+(f1247_0_copy_InvokeMethod arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f756_0_copy_NONNULL arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and (and (<= (+ arg1P 2) arg1) (<= arg1P arg2)) (<= arg1P arg3))
+(> arg1 2))
+(> arg2 (- 1)))
+(> arg3 (- 1)))
+(> arg1P (- 1)))
+)
+(rule
+(f875_0_createTree_NE arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2035_0_random_GT arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and
+(and (and (and (> arg1 0) (> arg2 (- 1))) (> arg3 0)) (= arg2 arg2P))
+(= arg3 arg3P))
+)
+(rule
+(f2588_0_createTree_NONNULL arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2035_0_random_GT arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (and (> arg5 (- 1)) (>= arg6 arg5)) (> arg1 0)) (> arg2 0))
+(> arg3 1))
+(> arg4 (- 1)))
+(<= (+ arg7 2) arg2))
+(<= (+ arg8 2) arg2))
+(<= (+ arg9 2) arg3))
+(= arg5 arg2P))
+(= arg6 arg3P))
+)
+(rule
+(f2712_0_createTree_LE arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f2035_0_random_GT arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (and (> arg1 0) (> arg6 0)) (> arg5 (- 1))) (> arg4 0))
+(> arg2 0))
+(> arg3 1))
+(<= (+ arg7 2) arg2))
+(<= (+ arg8 2) arg2))
+(= arg5 arg2P))
+(= arg6 arg3P))
+)
+(rule
+(__init arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9)
+(f1_0_main_Load arg1P arg2P arg3P arg4P arg5P arg6P arg7P arg8P arg9P))

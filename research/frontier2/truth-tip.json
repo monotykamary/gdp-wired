@@ -1,0 +1,287 @@
+[
+ {
+  "name": "solve-broken-isaplanner_prop_49",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo research/frontier2/tasks/tip/isaplanner/prop_49.broken.smt2; timeout -s KILL 120 bun compare/tip/solve.ts research/frontier2/tasks/tip/isaplanner/prop_49.broken.smt2 --ms 57000 2>&1 | tail -3",
+  "cpu": 2.0,
+  "memory": 8192,
+  "timeout": 300
+ },
+ {
+  "name": "eval-isaplanner_prop_49",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/isaplanner/prop_49.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "eval-broken-isaplanner_prop_49",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/isaplanner/prop_49.broken.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "solve-broken-isaplanner_prop_53",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo research/frontier2/tasks/tip/isaplanner/prop_53.broken.smt2; timeout -s KILL 120 bun compare/tip/solve.ts research/frontier2/tasks/tip/isaplanner/prop_53.broken.smt2 --ms 57000 2>&1 | tail -3",
+  "cpu": 2.0,
+  "memory": 8192,
+  "timeout": 300
+ },
+ {
+  "name": "eval-isaplanner_prop_53",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/isaplanner/prop_53.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "eval-broken-isaplanner_prop_53",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/isaplanner/prop_53.broken.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "solve-broken-isaplanner_prop_84",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo research/frontier2/tasks/tip/isaplanner/prop_84.broken.smt2; timeout -s KILL 120 bun compare/tip/solve.ts research/frontier2/tasks/tip/isaplanner/prop_84.broken.smt2 --ms 57000 2>&1 | tail -3",
+  "cpu": 2.0,
+  "memory": 8192,
+  "timeout": 300
+ },
+ {
+  "name": "eval-isaplanner_prop_84",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/isaplanner/prop_84.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "eval-broken-isaplanner_prop_84",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/isaplanner/prop_84.broken.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "solve-broken-prod_lemma_09",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo research/frontier2/tasks/tip/prod/lemma_09.broken.smt2; timeout -s KILL 120 bun compare/tip/solve.ts research/frontier2/tasks/tip/prod/lemma_09.broken.smt2 --ms 57000 2>&1 | tail -3",
+  "cpu": 2.0,
+  "memory": 8192,
+  "timeout": 300
+ },
+ {
+  "name": "eval-prod_lemma_09",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/prod/lemma_09.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "eval-broken-prod_lemma_09",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/prod/lemma_09.broken.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "solve-broken-prod_prop_14",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo research/frontier2/tasks/tip/prod/prop_14.broken.smt2; timeout -s KILL 120 bun compare/tip/solve.ts research/frontier2/tasks/tip/prod/prop_14.broken.smt2 --ms 57000 2>&1 | tail -3",
+  "cpu": 2.0,
+  "memory": 8192,
+  "timeout": 300
+ },
+ {
+  "name": "eval-prod_prop_14",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/prod/prop_14.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "eval-broken-prod_prop_14",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/prod/prop_14.broken.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "solve-broken-prod_prop_35",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo research/frontier2/tasks/tip/prod/prop_35.broken.smt2; timeout -s KILL 120 bun compare/tip/solve.ts research/frontier2/tasks/tip/prod/prop_35.broken.smt2 --ms 57000 2>&1 | tail -3",
+  "cpu": 2.0,
+  "memory": 8192,
+  "timeout": 300
+ },
+ {
+  "name": "eval-prod_prop_35",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/prod/prop_35.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "eval-broken-prod_prop_35",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/prod/prop_35.broken.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "solve-broken-prod_prop_42",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo research/frontier2/tasks/tip/prod/prop_42.broken.smt2; timeout -s KILL 120 bun compare/tip/solve.ts research/frontier2/tasks/tip/prod/prop_42.broken.smt2 --ms 57000 2>&1 | tail -3",
+  "cpu": 2.0,
+  "memory": 8192,
+  "timeout": 300
+ },
+ {
+  "name": "eval-prod_prop_42",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/prod/prop_42.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "eval-broken-prod_prop_42",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/prod/prop_42.broken.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "solve-broken-tip2015_bin_nat_plus",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo research/frontier2/tasks/tip/tip2015/bin_nat_plus.broken.smt2; timeout -s KILL 120 bun compare/tip/solve.ts research/frontier2/tasks/tip/tip2015/bin_nat_plus.broken.smt2 --ms 57000 2>&1 | tail -3",
+  "cpu": 2.0,
+  "memory": 8192,
+  "timeout": 300
+ },
+ {
+  "name": "eval-tip2015_bin_nat_plus",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/tip2015/bin_nat_plus.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "eval-broken-tip2015_bin_nat_plus",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/tip2015/bin_nat_plus.broken.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "solve-broken-tip2015_list_PairOdds",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo research/frontier2/tasks/tip/tip2015/list_PairOdds.broken.smt2; timeout -s KILL 120 bun compare/tip/solve.ts research/frontier2/tasks/tip/tip2015/list_PairOdds.broken.smt2 --ms 57000 2>&1 | tail -3",
+  "cpu": 2.0,
+  "memory": 8192,
+  "timeout": 300
+ },
+ {
+  "name": "eval-tip2015_list_PairOdds",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/tip2015/list_PairOdds.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "eval-broken-tip2015_list_PairOdds",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/tip2015/list_PairOdds.broken.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "solve-broken-tip2015_mccarthy91_M1",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo research/frontier2/tasks/tip/tip2015/mccarthy91_M1.broken.smt2; timeout -s KILL 120 bun compare/tip/solve.ts research/frontier2/tasks/tip/tip2015/mccarthy91_M1.broken.smt2 --ms 57000 2>&1 | tail -3",
+  "cpu": 2.0,
+  "memory": 8192,
+  "timeout": 300
+ },
+ {
+  "name": "eval-tip2015_mccarthy91_M1",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/tip2015/mccarthy91_M1.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "eval-broken-tip2015_mccarthy91_M1",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/tip2015/mccarthy91_M1.broken.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "solve-broken-tip2015_mccarthy91_M2",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo research/frontier2/tasks/tip/tip2015/mccarthy91_M2.broken.smt2; timeout -s KILL 120 bun compare/tip/solve.ts research/frontier2/tasks/tip/tip2015/mccarthy91_M2.broken.smt2 --ms 57000 2>&1 | tail -3",
+  "cpu": 2.0,
+  "memory": 8192,
+  "timeout": 300
+ },
+ {
+  "name": "eval-tip2015_mccarthy91_M2",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/tip2015/mccarthy91_M2.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "eval-broken-tip2015_mccarthy91_M2",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/tip2015/mccarthy91_M2.broken.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "solve-broken-tip2015_nat_pow_pow",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo research/frontier2/tasks/tip/tip2015/nat_pow_pow.broken.smt2; timeout -s KILL 120 bun compare/tip/solve.ts research/frontier2/tasks/tip/tip2015/nat_pow_pow.broken.smt2 --ms 57000 2>&1 | tail -3",
+  "cpu": 2.0,
+  "memory": 8192,
+  "timeout": 300
+ },
+ {
+  "name": "eval-tip2015_nat_pow_pow",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/tip2015/nat_pow_pow.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "eval-broken-tip2015_nat_pow_pow",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/tip2015/nat_pow_pow.broken.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "solve-broken-tip2015_sort_HSortCount",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo research/frontier2/tasks/tip/tip2015/sort_HSortCount.broken.smt2; timeout -s KILL 120 bun compare/tip/solve.ts research/frontier2/tasks/tip/tip2015/sort_HSortCount.broken.smt2 --ms 57000 2>&1 | tail -3",
+  "cpu": 2.0,
+  "memory": 8192,
+  "timeout": 300
+ },
+ {
+  "name": "eval-tip2015_sort_HSortCount",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/tip2015/sort_HSortCount.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "eval-broken-tip2015_sort_HSortCount",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/tip2015/sort_HSortCount.broken.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "solve-broken-tip2015_sort_nat_ISortPermutes",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo research/frontier2/tasks/tip/tip2015/sort_nat_ISortPermutes.broken.smt2; timeout -s KILL 120 bun compare/tip/solve.ts research/frontier2/tasks/tip/tip2015/sort_nat_ISortPermutes.broken.smt2 --ms 57000 2>&1 | tail -3",
+  "cpu": 2.0,
+  "memory": 8192,
+  "timeout": 300
+ },
+ {
+  "name": "eval-tip2015_sort_nat_ISortPermutes",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/tip2015/sort_nat_ISortPermutes.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "eval-broken-tip2015_sort_nat_ISortPermutes",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/tip2015/sort_nat_ISortPermutes.broken.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "solve-broken-tip2015_weird_nat_add3acc_spec",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; echo research/frontier2/tasks/tip/tip2015/weird_nat_add3acc_spec.broken.smt2; timeout -s KILL 120 bun compare/tip/solve.ts research/frontier2/tasks/tip/tip2015/weird_nat_add3acc_spec.broken.smt2 --ms 57000 2>&1 | tail -3",
+  "cpu": 2.0,
+  "memory": 8192,
+  "timeout": 300
+ },
+ {
+  "name": "eval-tip2015_weird_nat_add3acc_spec",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/tip2015/weird_nat_add3acc_spec.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ },
+ {
+  "name": "eval-broken-tip2015_weird_nat_add3acc_spec",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 600 bun research/frontier2/tipeval.ts research/frontier2/tasks/tip/tip2015/weird_nat_add3acc_spec.broken.smt2 --n 5000 2>&1",
+  "cpu": 1.0,
+  "timeout": 900
+ }
+]

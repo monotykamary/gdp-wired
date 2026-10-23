@@ -1,0 +1,235 @@
+(format LCTRS)
+(theory Ints)
+(fun __init (-> Int Int Int Int Int))
+(fun f172_0_createList_LE (-> Int Int Int Int Int))
+(fun f1_0_main_Load (-> Int Int Int Int Int))
+(fun f355_0_reverse_NULL (-> Int Int Int Int Int))
+(fun f370_0_reverse_FieldAccess (-> Int Int Int Int Int))
+(fun f385_0_reverse_FieldAccess (-> Int Int Int Int Int))
+(entrypoint __init)
+(rule
+(f1_0_main_Load arg1 arg2 arg3 arg4)
+(f172_0_createList_LE arg1P arg2P arg3P arg4P)
+:guard
+(exists
+((x4 Int))
+(and
+(and
+(and
+(and
+(and
+(and (and (> x4 (- 1)) (> arg2 0)) (<= (- arg1P 1) arg1))
+(<= (- arg2P 1) arg1))
+(> arg1 0))
+(> arg1P 1))
+(> arg2P 1))
+(= (- x4 2) arg3P))
+)
+)
+(rule
+(f172_0_createList_LE arg1 arg2 arg3 arg4)
+(f172_0_createList_LE arg1P arg2P arg3P arg4P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg1) (> arg3 0)) (<= (- arg2P 2) arg2))
+(> arg1 0))
+(> arg2 0))
+(> arg1P 0))
+(> arg2P 2))
+(= arg3 arg3P))
+)
+(rule
+(f172_0_createList_LE arg1 arg2 arg3 arg4)
+(f355_0_reverse_NULL arg1P arg2P arg3P arg4P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg1) (< arg3 1)) (<= arg1P arg2))
+(<= arg2P arg1))
+(<= arg2P arg2))
+(> arg1 1))
+(> arg2 1))
+(> arg1P 1))
+(> arg2P 1))
+)
+(rule
+(f172_0_createList_LE arg1 arg2 arg3 arg4)
+(f355_0_reverse_NULL arg1P arg2P arg3P arg4P)
+:guard
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg1) (< arg3 1)) (<= (- arg1P 1) arg2))
+(> arg1 1))
+(> arg2 0))
+(> arg1P 1))
+(> arg2P (- 1)))
+)
+(rule
+(f172_0_createList_LE arg1 arg2 arg3 arg4)
+(f355_0_reverse_NULL arg1P arg2P arg3P arg4P)
+:guard
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg1) (< arg3 1)) (<= (- arg1P 1) arg2))
+(> arg1 1))
+(> arg2 0))
+(> arg1P 1))
+(> arg2P 0))
+)
+(rule
+(f172_0_createList_LE arg1 arg2 arg3 arg4)
+(f370_0_reverse_FieldAccess arg1P arg2P arg3P arg4P)
+:guard
+(and
+(and
+(and
+(and
+(and (and (<= arg1P arg1) (< arg3 1)) (<= (- arg1P 1) arg2))
+(> arg1 1))
+(> arg2 0))
+(> arg1P 1))
+(> arg2P 0))
+)
+(rule
+(f355_0_reverse_NULL arg1 arg2 arg3 arg4)
+(f385_0_reverse_FieldAccess arg1P arg2P arg3P arg4P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (<= (+ arg1P 1) arg2) (<= arg2P arg2)) (<= arg3P arg1))
+(<= (+ arg4P 1) arg2))
+(> arg1 0))
+(> arg2 0))
+(> arg1P (- 1)))
+(> arg2P 0))
+(> arg3P 0))
+(> arg4P (- 1)))
+)
+(rule
+(f385_0_reverse_FieldAccess arg1 arg2 arg3 arg4)
+(f355_0_reverse_NULL arg1P arg2P arg3P arg4P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (<= arg2P arg1) (<= (+ arg2P 1) arg2)) (<= arg2P arg4))
+(> arg1 (- 1)))
+(> arg2 0))
+(> arg3 0))
+(> arg4 (- 1)))
+(> arg1P 2))
+(> arg2P (- 1)))
+)
+(rule
+(f385_0_reverse_FieldAccess arg1 arg2 arg3 arg4)
+(f355_0_reverse_NULL arg1P arg2P arg3P arg4P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (<= (- arg1P 3) arg1) (<= (- arg1P 2) arg2))
+(<= (- arg1P 2) arg3))
+(<= (- arg1P 3) arg4))
+(<= arg2P arg1))
+(<= (+ arg2P 1) arg2))
+(<= (+ arg2P 1) arg3))
+(<= arg2P arg4))
+(> arg1 (- 1)))
+(> arg2 0))
+(> arg3 0))
+(> arg4 (- 1)))
+(> arg1P 2))
+(> arg2P (- 1)))
+)
+(rule
+(f370_0_reverse_FieldAccess arg1 arg2 arg3 arg4)
+(f370_0_reverse_FieldAccess arg1P arg2P arg3P arg4P)
+:guard
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (> arg3 0) (> arg4 0)) (< arg4P arg4))
+(<= (- arg1P 2) arg1))
+(> arg1 0))
+(> arg2 2))
+(> arg1P 2))
+(> arg2P 0))
+(= arg3 arg3P))
+)
+(rule
+(f370_0_reverse_FieldAccess arg1 arg2 arg3 arg4)
+(f385_0_reverse_FieldAccess arg1P arg2P arg3P arg4P)
+:guard
+(exists
+((x66 Int) (x65 Int))
+(and
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (> x66 0) (> x65 (- 1))) (< x66 x65))
+(<= (- arg3P 2) arg1))
+(> arg1 0))
+(> arg2 2))
+(> arg1P (- 1)))
+(> arg2P 0))
+(> arg3P 2))
+(> arg4P (- 1)))
+)
+)
+(rule
+(f370_0_reverse_FieldAccess arg1 arg2 arg3 arg4)
+(f355_0_reverse_NULL arg1P arg2P arg3P arg4P)
+:guard
+(exists
+((x73 Int) (x74 Int))
+(and
+(and
+(and
+(and
+(and
+(and
+(and (and (> x73 (- 1)) (< x74 x73)) (<= (- arg1P 2) arg1))
+(<= arg1P arg2))
+(<= arg2P arg1))
+(> arg1 0))
+(> arg2 2))
+(> arg1P 2))
+(> arg2P 0))
+)
+)
+(rule (__init arg1 arg2 arg3 arg4) (f1_0_main_Load arg1P arg2P arg3P arg4P))

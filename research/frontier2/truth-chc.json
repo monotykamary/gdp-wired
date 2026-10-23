@@ -1,0 +1,176 @@
+[
+ {
+  "name": "t00",
+  "cmd": "echo \"FIREFLY_1_000.smt2\"; echo expected: sat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/FIREFLY_1_000.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/FIREFLY_1_000.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/FIREFLY_1_000.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t01",
+  "cmd": "echo \"FIREFLY_1_e1_1092_000.smt2\"; echo expected: unsat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/FIREFLY_1_e1_1092_000.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/FIREFLY_1_e1_1092_000.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/FIREFLY_1_e1_1092_000.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t02",
+  "cmd": "echo \"MESI_i3_e1_447_e3_1180_000.smt2\"; echo expected: sat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/MESI_i3_e1_447_e3_1180_000.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/MESI_i3_e1_447_e3_1180_000.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/MESI_i3_e1_447_e3_1180_000.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t03",
+  "cmd": "echo \"MESI_i3_e1_447_e2_1098_000.smt2\"; echo expected: unsat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/MESI_i3_e1_447_e2_1098_000.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/MESI_i3_e1_447_e2_1098_000.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/MESI_i3_e1_447_e2_1098_000.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t04",
+  "cmd": "echo \"hysteresis_2_000.smt2\"; echo expected: sat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/hysteresis_2_000.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/hysteresis_2_000.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/hysteresis_2_000.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t05",
+  "cmd": "echo \"hysteresis_2_000.broken.smt2\"; echo expected: unsat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/hysteresis_2_000.broken.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/hysteresis_2_000.broken.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/hysteresis_2_000.broken.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t06",
+  "cmd": "echo \"s_split_34_000.smt2\"; echo expected: sat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/s_split_34_000.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/s_split_34_000.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/s_split_34_000.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t07",
+  "cmd": "echo \"s_split_34_000.broken.smt2\"; echo expected: unsat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/s_split_34_000.broken.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/s_split_34_000.broken.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/s_split_34_000.broken.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t08",
+  "cmd": "echo \"simple.c_000.smt2\"; echo expected: sat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/simple.c_000.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/simple.c_000.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/simple.c_000.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t09",
+  "cmd": "echo \"simple.c_000.broken.smt2\"; echo expected: unsat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/simple.c_000.broken.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/simple.c_000.broken.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/simple.c_000.broken.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t10",
+  "cmd": "echo \"015-horn_000.smt2\"; echo expected: sat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/015-horn_000.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/015-horn_000.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/015-horn_000.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t11",
+  "cmd": "echo \"015-horn_000.broken.smt2\"; echo expected: unsat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/015-horn_000.broken.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/015-horn_000.broken.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/015-horn_000.broken.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t12",
+  "cmd": "echo \"gulwani_fig1a.c_000.smt2\"; echo expected: sat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/gulwani_fig1a.c_000.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/gulwani_fig1a.c_000.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/gulwani_fig1a.c_000.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t13",
+  "cmd": "echo \"gulwani_fig1a.c_000.broken.smt2\"; echo expected: unsat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/gulwani_fig1a.c_000.broken.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/gulwani_fig1a.c_000.broken.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/gulwani_fig1a.c_000.broken.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t14",
+  "cmd": "echo \"three_dots_moving_2_000.smt2\"; echo expected: sat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/three_dots_moving_2_000.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/three_dots_moving_2_000.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/three_dots_moving_2_000.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t15",
+  "cmd": "echo \"three_dots_moving_2_000.broken.smt2\"; echo expected: unsat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/three_dots_moving_2_000.broken.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/three_dots_moving_2_000.broken.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/three_dots_moving_2_000.broken.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t16",
+  "cmd": "echo \"loop__loop2_000.smt2\"; echo expected: sat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/loop__loop2_000.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/loop__loop2_000.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/loop__loop2_000.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t17",
+  "cmd": "echo \"loop__loop2_000.broken.smt2\"; echo expected: unsat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/loop__loop2_000.broken.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/loop__loop2_000.broken.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/loop__loop2_000.broken.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t18",
+  "cmd": "echo \"break_safe.c-1_000.smt2\"; echo expected: sat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/break_safe.c-1_000.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/break_safe.c-1_000.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/break_safe.c-1_000.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t19",
+  "cmd": "echo \"break_safe.c-1_000.broken.smt2\"; echo expected: unsat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/break_safe.c-1_000.broken.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/break_safe.c-1_000.broken.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/break_safe.c-1_000.broken.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t20",
+  "cmd": "echo \"38.c_000.smt2\"; echo expected: sat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/38.c_000.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/38.c_000.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/38.c_000.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t21",
+  "cmd": "echo \"38.c_000.broken.smt2\"; echo expected: unsat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/38.c_000.broken.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/38.c_000.broken.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/38.c_000.broken.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t22",
+  "cmd": "echo \"durationThm_1_e1_197_000.smt2\"; echo expected: unsat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/durationThm_1_e1_197_000.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/durationThm_1_e1_197_000.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/durationThm_1_e1_197_000.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t23",
+  "cmd": "echo \"durationThm_1_000.smt2\"; echo expected: sat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/durationThm_1_000.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/durationThm_1_000.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/durationThm_1_000.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t24",
+  "cmd": "echo \"O0_terminator_01_false-unreach-call_true-termination_000.smt2\"; echo expected: unsat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/O0_terminator_01_false-unreach-call_true-termination_000.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/O0_terminator_01_false-unreach-call_true-termination_000.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/O0_terminator_01_false-unreach-call_true-termination_000.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t25",
+  "cmd": "echo \"O0_terminator_01_false-unreach-call_true-termination_000.broken.smt2\"; echo expected: sat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/O0_terminator_01_false-unreach-call_true-termination_000.broken.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/O0_terminator_01_false-unreach-call_true-termination_000.broken.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/O0_terminator_01_false-unreach-call_true-termination_000.broken.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t26",
+  "cmd": "echo \"s_split_01_000.smt2\"; echo expected: unsat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/s_split_01_000.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/s_split_01_000.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/s_split_01_000.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "t27",
+  "cmd": "echo \"s_split_01_000.broken.smt2\"; echo expected: sat; echo \"z3 (spacer): $(timeout -s KILL 200 z3 fp.engine=spacer research/frontier2/tasks/chc/s_split_01_000.broken.smt2 | head -1)\"; timeout -s KILL 200 golem --print-witness research/frontier2/tasks/chc/s_split_01_000.broken.smt2 > /tmp/golem.out 2>&1; echo \"golem: $(head -1 /tmp/golem.out)\"; echo \"golem derivation steps: $(grep -c -- '->' /tmp/golem.out || true)\"; echo \"eldarica: $(timeout -s KILL 200 eld research/frontier2/tasks/chc/s_split_01_000.broken.smt2 2>&1 | grep -E '^(sat|unsat|unknown)' | head -1)\"",
+  "cpu": 2.0,
+  "timeout": 900
+ },
+ {
+  "name": "inv-s_split_01-broken",
+  "cmd": "echo s_split_01_000.broken.smt2: its invariant checked by z3, three unsat expected; timeout -s KILL 60 z3 research/frontier2/tasks/chc/s_split_01_000.broken.invariant.smt2",
+  "cpu": 2.0,
+  "timeout": 300
+ }
+]

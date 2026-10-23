@@ -109,6 +109,55 @@ cyclic certificate.
   TreesBig.lean, HistoryTrees.lean, StepLaw.lean and Steps.lean's demos; `lean-ksteps`, `lean-jev-fabric`). The
   usual trees stay either way: they are what core/translate.ts translates.
 
+The second frontier corpus (`research/frontier2/`): 42 benchmark tasks that gdp-wired's 0.21.0 benchmark runs left
+unproven and another tool solved, each standing for a group of tasks that fail for one reason, with 42 broken
+variants. The interface is round 1's (`corpus.ts`, `score.ts`, `jobs.ts`), so a search track scores on it the same
+way. Each item is the task itself, its file vendored at the benchmark's pinned commit and read by the translation its
+benchmark run used (compare/chc, compare/tip, compare/term). Each is checked true outside the library, and each broken
+variant false. The score at 0.21.0 (`runs/corpus2/baseline-0.21.0`, 168 jobs on boat VMs, 2 vCPU each, 618.3 s wall,
+3,058.0 s of job time): the prover alone 0 of 42, with its search 3 of 42, the 42 broken variants refused. Nothing in
+the library changed.
+
+- 14 CHC-COMP LIA-Lin tasks, from groups of 825 tasks still unsolved at 0.21.0 (`runs/modal/infer/chc-final` against
+  the 0.20.0 gap map, `groups_chc.py`):
+  - a step goal over a wide Lustre transition left undecided even given the invariant (195 tasks);
+  - invariants within the templates the search misses (39 Lustre, 15 others);
+  - a program counter in bits (38);
+  - clauses of several linear literals (113);
+  - atoms over four or more values (71);
+  - remainders and projections (34);
+  - derivations of false no run finds (273 Lustre, 30 others).
+
+  Each was checked by Spacer, Golem and Eldarica (`runs/corpus2/truth-chc`).
+- 15 TIP 2015 problems, among them:
+  - lemmas about other functions (prod/lemma_09, isaplanner/prop_53, prod/prop_14, prod/prop_42, sort_nat_ISortPermutes);
+  - an accumulator's generalisation (prod/prop_35, isaplanner/prop_49, weird_nat_add3acc_spec);
+  - two lists together (isaplanner/prop_84) and more time (list_PairOdds);
+  - integer arithmetic through recursion (bin_nat_plus, nat_pow_pow);
+  - a termination needing another function's lemma (sort_HSortCount);
+  - McCarthy's nested recursion on an Int (mccarthy91_M1, M2).
+
+  Each was checked by Vampire or cvc5 at 600 s where they prove it, and otherwise by TIP's theorem and its evaluator
+  at 5,000 random values (`runs/corpus2/truth-tip-tools`, `truth-tip-eval`).
+- 13 termination tasks (8 TermComp ITS, 5 SV-COMP), from `failures.ts`'s classes (447 ITS and 129 SV tasks another
+  tool proves terminating and gdp-wired doesn't):
+  - ranks reading no param;
+  - a rank in order or per location;
+  - multiphase ranks, a rank by a sign, min(p, q);
+  - McCarthy's 91 as a loop;
+  - loops whose turns the runs don't sample.
+
+  Each was checked by KoAT2, LoAT or SV-COMP's verdict with Ultimate Automizer, and polyrank1's multiphase rank by z3.
+  Each broken variant was checked by LoAT's NO, and five by a lasso `checkLasso` confirms.
+- Proven at 0.21.0 by the search alone:
+  - `reve/015` (16,748 ms) and `break_safe.c-1` (19,863 ms): the benchmark pipeline's 60 s of wall time and its
+    runs' samples were the obstacle there, not the invariant's shape;
+  - `list_PairOdds`, its group being more time (141,925 ms of wall time on 57 s of counted work).
+- Language gaps recorded (README): nontermination (212 ITS tasks: a law is about every run, and the library has no
+  claim that some run never ends); TIP's refusals (function variables returning a list 4, uninterpreted sorts 2 and
+  constants 2, a product of two integers 1, a nested datatype 1, rings of functions that aren't structural 14); and
+  SV-COMP's C translation refusals (56).
+
 ## 0.21.0
 
 Four new things a law or a rule can say, none of them trusted: recursion that isn't structural (a measure, found or
