@@ -103,9 +103,9 @@ const joinExtras = 24, joinTries = 40, joinBits = 7, joinKeys = 128, joinAttempt
 // GDP_JOIN_CORE=0: the join's goals by the prover's trees alone, as before (else a model, or a refutation's core, of the
 // CDCL search first, at a quarter of the goal's budget).
 // GDP_JOIN_NEVERS=0: each control state no run reached a form of its own, as before (else one form for all of them,
-// until it is broken twice).
+// until it is first broken).
 const joinNevers = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_NEVERS !== '0'
-const joinNeversBreaks = 2
+const joinNeversBreaks = 1
 const joinCore = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_CORE !== '0'
 // Cubes blocked where no candidate rules a counterexample out (GDP_JOIN_CUBES=0: none): at most 48 in all, each tried 8
 // times, its predecessors blocked first 3 deep, each query's budget 2 s (counted, or wall time where timed).
@@ -801,7 +801,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           push({coef: t, d: hi, cells: false, ...guard, size: 0})
         })
       }
-      // (broken a few times, each its own form from then on, so that a state joined in changes only the forms that
+      // (once broken, each its own form from then on, so that a state joined in changes only the forms that
       // read its own control state, not every proof that read them all)
       if (nev.length > 1 && joinNevers && neversBroken < joinNeversBreaks) push({coef: [], d: 0, cells: false, nevers: nev, size: 1})
       else for (const ats of nev) push({coef: [], d: 0, cells: false, ...(ats.length > 1 ? {never: ats} : {unreachable: ats[0]!}), size: 1})
