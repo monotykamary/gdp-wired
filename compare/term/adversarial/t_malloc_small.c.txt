@@ -1,0 +1,12 @@
+// expect: terminates. A 1-byte cell is too small for an int: *p is undefined behaviour, where the run ends.
+#include <stdlib.h>
+int main() {
+  int *p = malloc(1);
+  if (p == 0) {
+    return 0;
+  }
+  while (1) {
+    *p = 0;
+  }
+  return 0;
+}

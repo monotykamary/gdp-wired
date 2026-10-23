@@ -1,0 +1,15 @@
+// expect: nonterminating
+// set(&x) + get(&x): no globals, so c2ari sees neither call write anything and keeps its order (set first, get reads
+// 0); C may call get first (reads 1), and then the loop never breaks.
+int set(int *p) { *p = 0; return 0; }
+int get(int *p) { return *p; }
+int main(void) {
+  int x;
+  int y;
+  while (1) {
+    x = 1;
+    y = set(&x) + get(&x);
+    if (y == 0) break;
+  }
+  return 0;
+}

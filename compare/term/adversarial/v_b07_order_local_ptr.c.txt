@@ -1,0 +1,13 @@
+// expect: nonterminating
+// x + set(&x): C leaves the order unspecified; reading x before the call (clang's order) gives y = 1 forever.
+int set(int *p) { *p = 0; return 0; }
+int main(void) {
+  int x;
+  int y;
+  while (1) {
+    x = 1;
+    y = x + set(&x);
+    if (y == 0) break;
+  }
+  return 0;
+}

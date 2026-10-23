@@ -1,0 +1,15 @@
+// expect: nonterminating. p and q are one cell: *q = 4 is *p, and the loop runs forever (where malloc returns null, the
+// program ends at once, and where it doesn't, it never does).
+#include <stdlib.h>
+int main() {
+  int *p = malloc(sizeof(int));
+  if (p == 0) {
+    return 0;
+  }
+  *p = 3;
+  int *q = p;
+  *q = 4;
+  while (*p == 4) {
+  }
+  return 0;
+}

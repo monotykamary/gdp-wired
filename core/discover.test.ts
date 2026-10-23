@@ -1,5 +1,5 @@
 import {expect, test} from 'bun:test'
-import {fold, max, min, nat, proveFold, proveSteps, recur, rule} from './dsl.ts'
+import {fold, max, min, nat, proveFold, proveSteps, recur, rule, when} from './dsl.ts'
 import {discover} from './discover.ts'
 import {compileFunction} from './machine.ts'
 import {foundArea, foundInvoices, foundOrgChart, foundRetries, orgChart, orgChartLaws, retries, retryLaws, retrySteps, tooSoon} from '../examples/discover.ts'
@@ -70,3 +70,15 @@ test("a tree's folds: the reports' lemmas of an org chart, products of the cap a
 test('a law that does not hold stays unproven', () => {
   expect(tooSoon().verdict.proven).toBe(false)
 })
+
+// The real-world corpus's p-retry: a delay minTimeout · factor^k, whose values pass 2^53 by k = 40 at a factor of 40.
+// The samples kept them (inexact floats) and a candidate fitted to them held a constant no term can, so the search
+// threw (`290760102328562900 is not a natural`). A run of samples stops where its values stop being exact.
+test('a recurrence whose values pass 2^53: the lemma its law needs found, nothing thrown', () => {
+  const delay = recur('delay', {args: ['minTimeout', 'factor'], zero: ({minTimeout}) => minTimeout, next: (_, d, {factor}) => d.mul(max(factor, 1))})
+  const r = rule('retry').params({minTimeout: nat, factor: nat}).inputs({fail: nat}).state({consumed: 0, waited: 0}).fns({delay})
+    .step(({fail, consumed, minTimeout, factor, delay}) => ({consumed: when(fail.gt(0), consumed.plus(1), consumed), waited: delay(consumed, minTimeout, factor)}))
+  const v = proveSteps(r, [], [r.stepLaw('a retry waits at least minTimeout', ({minTimeout}, after) => after.waited.atLeast(minTimeout))], {search: {ms: 20_000}})
+  expect(v).toMatchObject({proven: true, checked: true})
+  expect(v.found?.lemmas?.delay?.lemmas).toContain("'f(x) >= minTimeout': (_, f, {minTimeout}) => f.atLeast(minTimeout)")
+}, 60_000)

@@ -1,0 +1,11 @@
+// expect: nonterminating. -7 % d with d = 2 is -1 (the sign of the dividend; a floor modulo gives 1).
+int main() {
+  int d = __VERIFIER_nondet_int();
+  if (d != 2) {
+    return 0;
+  }
+  int x = -7;
+  while (x % d == -1) {
+  }
+  return 0;
+}

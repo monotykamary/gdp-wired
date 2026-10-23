@@ -1,0 +1,9 @@
+// expect: nonterminating. x > 2 holds, so y is 1 and c is 1: the loop runs forever.
+int main() {
+  int x = 3;
+  int y = (x > 2) ? 1 : 0;
+  int c = (x == 3);
+  while (y + c == 2) {
+  }
+  return 0;
+}

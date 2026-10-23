@@ -1,0 +1,10 @@
+// expect: terminates
+// gcc's enum bool is unsigned int: x < b converts x = -1 to 4294967295, so the test is false and the loop is skipped.
+// Read as _Bool (promoted to int), -1 < 1 holds forever.
+typedef enum { false, true } bool;
+int main(void) {
+  bool b = true;
+  int x = -1;
+  while (x < b) { }
+  return 0;
+}

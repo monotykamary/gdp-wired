@@ -1,0 +1,12 @@
+// expect: nonterminating. g(1) calls g(0), which returns, then g(2); g(2) calls g(1) first: the calls g(1), g(2),
+// g(1), ... never come back, each made after a call that does (calls that only dive in, or only return, miss it).
+int g(int x) {
+  if (x <= 0) {
+    return 0;
+  }
+  return g(x - 1) + g(x + 1);
+}
+int main() {
+  g(1);
+  return 0;
+}

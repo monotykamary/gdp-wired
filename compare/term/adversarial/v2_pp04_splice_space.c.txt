@@ -1,0 +1,10 @@
+// expect: nonterminating
+// A backslash, a space, then the newline: gcc and clang splice it anyway (an extension, with a warning), so x = 0
+// is comment to them; the standard does not splice. The two compilers are the reference here.
+int main(void) {
+  int x = 1;
+  // the reset below is disabled \ 
+  x = 0;
+  while (x == 1) { }
+  return 0;
+}

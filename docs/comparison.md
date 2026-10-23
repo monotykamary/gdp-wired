@@ -126,7 +126,9 @@ What gdp-wired leaves to Lean or Bend is one of two things, and neither is a gap
   structural recursion (on a datatype or a natural, functions calling each other) or by well-founded recursion (calls
   on any arguments: a merge of two lists, an accumulator, a quicksort on filters of the tail; a measure, a lexicographic
   tuple of argument sizes or a sum of them, found or stated, each call's decrease proven by the kernel under its path
-  before the function's equation is a fact, Data.lean's `wf_fix_unique` the reason that is sound), and laws about them,
+  before the function's equation is a fact, Data.lean's `wf_fix_unique` the reason that is sound; a ring of functions
+  calling each other with a measure each, `wf_fix_unique_ring`; a decrease through a size law about the function of
+  the argument, the law conjectured, proven by induction and used), and laws about them,
   and `proveData` finds the induction (which argument, structural, mutual with a companion per datatype of the group, or
   by a function's own recursion, its call graph ranked by its measure where it is well-founded, the cases), and the
   lemmas from the values (equations up to six symbols, predicates kept by a

@@ -1,0 +1,12 @@
+// expect: nonterminating
+// g += f(): the read of g and the call are indeterminately sequenced; read first, g stays 1.
+int g;
+int f(void) { g = 0; return 0; }
+int main(void) {
+  while (1) {
+    g = 1;
+    g += f();
+    if (g == 0) break;
+  }
+  return 0;
+}

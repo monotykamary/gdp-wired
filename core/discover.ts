@@ -80,9 +80,11 @@ function linearCands(target: string, forms: Lin[], samples: Record<string, numbe
     }
   }
   for (const c of out) { c.name = nameOf(c, show, target); c.target = target }
-  return dedupe(out.filter(c => samples.every(s => holds(c, s))))
+  return dedupe(out.filter(c => exact(c) && samples.every(s => holds(c, s))))
 }
 const dedupe = (cs: Cand[]) => [...new Map(cs.map(c => [c.name, c])).values()]
+// A statement whose coefficients are naturals a term can hold (a fit to values near 2^53 can make one that isn't).
+const exact = (c: Cand) => Object.values(c.lin).every(Number.isSafeInteger)
 
 // A polynomial in x of degree 3 at most, exact over the rationals, as d·f = a·x·x·x + b·x·x + c·x + e with whole
 // numbers: fitted to four points (Newton's differences), kept when every sample meets it.
@@ -95,7 +97,7 @@ function closedForm(samples: Record<string, number>[], show: (a: string) => stri
     const g = Object.values(lin).reduce((p, q) => gcd(p, Math.abs(q)), 0)
     const c: Cand = {name: '', rel: '=', lin: Object.fromEntries(Object.entries(lin).map(([a, k]) => [a, k / g]).filter(([, k]) => k !== 0))}
     c.name = nameOf(c, show, 'f')
-    return samples.every(s => holds(c, s)) ? [c] : []
+    return exact(c) && samples.every(s => holds(c, s)) ? [c] : []
   }
   // f = a x² + b x + c: c = f0, a = (f2 - 2 f1 + f0) / 2, b = f1 - f0 - a; times 2 to keep whole numbers.
   const A = f2 - 2 * f1 + f0, B = 2 * (f1 - f0) - A, C = 2 * f0
@@ -124,6 +126,8 @@ function recurSamples(d: FnDef, args: string[]): Record<string, number>[] {
   for (const t of tuples) for (let x = 0; x <= 40; x++) {
     let y: number
     try { y = f(x, ...t) } catch (e) { if (e instanceof RangeError) break; throw e }
+    // (past 2^53 a value isn't exact, and no statement a lemma makes may hold its constants: the run stops there too)
+    if (!Number.isSafeInteger(y) || y < 0) break
     out.push({x, f: y, xx: x * x, xxx: x * x * x, ...Object.fromEntries(args.map((a, i) => [a, t[i]!]))})
   }
   return out
@@ -146,7 +150,7 @@ function recurCands(samples: Record<string, number>[], args: string[]) {
     {name: '', rel: '<=', lin: {f: 1, g: -1}},
     {name: '', rel: '<=', lin: {g: 1, f: -1}},
     ...(steepest ? [{name: '', rel: '<=', lin: {g: 1, x: steepest, f: -1, y: -steepest}}] : []),
-  ] as Cand[]).filter(c => pairs.every(p => holds(c, p)))
+  ] as Cand[]).filter(c => exact(c) && pairs.every(p => holds(c, p)))
   for (const c of between) c.name = nameOf(c, showRecur, 'g')
   return {lemmas, between}
 }
