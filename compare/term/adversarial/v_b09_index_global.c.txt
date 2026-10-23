@@ -1,0 +1,11 @@
+// expect: nonterminating
+// a[g] = f(): the index and the call are unsequenced; with g read first, a[1] stays 0.
+int g;
+int a[2];
+int f(void) { g = 1; return 5; }
+int main(void) {
+  g = 0;
+  a[g] = f();
+  while (a[1] == 0) { }
+  return 0;
+}

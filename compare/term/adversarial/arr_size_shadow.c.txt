@@ -1,0 +1,11 @@
+// expect: nonterminating. a's size is the local K, 5 (a variable-length array), not the enum constant K = 3: a[4] is
+// in bounds, becomes 1, and the loop runs forever. Read as 3 elements, a[4] would be out of bounds and the run cut.
+typedef enum { K = 3 } E;
+int main(void) {
+  int K = 5;
+  int a[K];
+  a[4] = 1;
+  while (a[4] == 1) {
+  }
+  return 0;
+}

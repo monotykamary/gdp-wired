@@ -1,5 +1,8 @@
 """Adversarial C programs (adversarial/*.c.txt: from the independent check of the ranks, research/verify-ranks on
-verify/ranks, and the C front end's own): conversions to char, short and _Bool, unsigned arithmetic, the usual
+verify/ranks; the C front end's own; and v_*, from the independent check of the C front end, research/verify-sv on
+verify/sv-front: static locals, objects a pointer names later in the text, overflow on the side && and || don't
+evaluate, constant indices, enum types, the preprocessor, unspecified evaluation order, a reach_error that returns, a
+goto past a declaration): conversions to char, short and _Bool, unsigned arithmetic, the usual
 arithmetic conversions, the data model, recursion (globals and values across calls, calls that never return, depth
 past the inlining), arrays (an index that is not a constant, large arrays), pointers (aliases, malloc'd cells, free),
 division and remainder, the ternary operator, calls inside expressions, and undefined behaviour (where the run ends,

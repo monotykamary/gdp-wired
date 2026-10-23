@@ -1,0 +1,10 @@
+// expect: nonterminating
+// A local named like an enum constant: a[K] reads a[5] (the local), not a[3]. const_reads takes K for the constant 3,
+// so the 100-element array keeps only element 3 and a read at the local's value has no case.
+typedef enum { K = 3 } E;
+int a[100];
+int main(void) {
+  int K = 5;
+  while (a[K] == 0) { }
+  return 0;
+}

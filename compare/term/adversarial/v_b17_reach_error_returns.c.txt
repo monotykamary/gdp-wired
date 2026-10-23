@@ -1,0 +1,9 @@
+// expect: nonterminating
+// The task's own reach_error has an empty body: a call returns, and the loop goes on forever. c2ari ends the run at
+// every call to reach_error, whatever its body.
+void reach_error(void) { }
+int main(void) {
+  int x = 0;
+  while (x == 0) { reach_error(); }
+  return 0;
+}

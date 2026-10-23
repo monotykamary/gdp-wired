@@ -1,0 +1,10 @@
+// expect: nonterminating
+// A macro's continuation line is code to c2ari (clean() drops only the # line): here the line `x = 0;` belongs to the
+// macro, which is never used, so x stays 1.
+int main(void) {
+  int x = 1;
+#define RESET \
+  x = 0;
+  while (x == 1) { }
+  return 0;
+}

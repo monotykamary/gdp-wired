@@ -15,15 +15,20 @@ compound assignments, if, while, do-while, for, break, continue, return, goto an
 x − d·q between 0 and d, its sign x's), comparisons, && || !, ~, the ternary operator and a condition used as a value,
 casts; __VERIFIER_nondet_<type>() anywhere an expression may be (a fresh value in the type's range),
 __VERIFIER_assume(c) (the run goes on only where c holds), and abort(), exit(), reach_error(), __VERIFIER_error() (the
-run ends). The program's locations are the system's; a run is the program's execution: every variable starts as C
-starts it (a global at its initializer or 0, a local at any value of its type: reading it before it is written is
-indeterminate, so any value is what the task can do), and the entry's own values are overwritten on the first step.
+run ends) where the task doesn't define them (a task's own reach_error is its own function, unless its body is just a
+call to an end it doesn't define). The program's locations are the system's; a run is the program's execution: every
+variable starts as C starts it (a global or a static local in main at its initializer or 0, a local at any value of its
+type: reading it before it is written is indeterminate, so any value is what the task can do), and the entry's own
+values are overwritten on the first step. The preprocessor: lines spliced and comments left out as C's phases 2 and 3
+do; #include of stdlib.h, stdio.h, assert.h or stdbool.h and line markers left out; any other directive refused.
 
 The values, exactly C's (the SV-COMP data model: LP64 or ILP32, char signed, two's complement): every value is an
 integer in its type's range. An unsigned operation's result is taken modulo 2^n (a fresh k with r − 2^n·k in
 [0, 2^n)); C's conversions are made where C makes them (the integer promotions, the usual arithmetic conversions, on
 assignment, argument, return and cast): to an unsigned type modulo 2^n; to a narrower signed type modulo 2^n into its
 range (implementation-defined; gcc's, which every SV-COMP platform uses); to _Bool, 0 or 1 (any nonzero value is 1).
+An enum's type is gcc's: unsigned int where none of its constants is negative, else int (its constants are ints); a
+task's typedef of bool is its own type, stdbool's bool is _Bool.
 
 Undefined behaviour ends the run: a signed operation whose result is out of its type's range (unless the task
 declares none can be: then no run has one and nothing is checked), a division by zero, an access out of an array's
@@ -39,8 +44,9 @@ alloca calls in main or in functions it calls, each executed at most once (no lo
 malloc may return null; free makes its cell dead. *p is the object p points to (each object a case of the rule);
 pointers are copied, compared for equality and with 0, passed and returned; every pointer read through has one
 pointee type; no pointer arithmetic. Arrays of n elements: an element per variable, an access at an index that is not
-a constant one case per element; past 64 elements, only the elements read at a constant index are kept (an array
-read at any other index is refused), a write elsewhere in the bounds changing nothing read.
+a constant one case per element; past 64 elements, only the elements read at a constant index (int constants under
++ - *, no names) are kept (an array read at any other index is refused), a write elsewhere in the bounds changing
+nothing read.
 
 Recursion (a cycle of calls among the functions main reaches): a call to a function already being inlined L deep is a
 boundary, and the two translations differ there; each is exact for its one answer and the other is not read from it:
@@ -63,8 +69,12 @@ What the translation changes, said once here: nothing past what the recursion an
 
 Refused, by reason, the data first (prescan): structs, floats, pointers to pointers, function pointers, pointer
 arithmetic; then the code: calls to functions with no body (but the ones above); a call in a conditional part of an
-expression (after && or ||, in a ternary's branch), or beside another call that may write a global or end the run
-(their order is unspecified); bitwise and, or, xor and shifts; switch; static locals.
+expression (after && or ||, in a ternary's branch); where C leaves an expression's order unspecified and it can matter:
+two calls in one expression, one of which may write a global or through a pointer or end the run (but a call inside
+another's arguments, which comes first); a call that may write a global the rest of the expression reads (an
+assignment's target included: g += f(), a[g] = f()), or that may write through a pointer in an expression that reads
+any variable (x + set(&x), pick(x, set(&x))); bitwise and, or, xor and shifts; switch; static locals outside main's
+outermost block, or with goto.
 """
 import json
 import re
@@ -145,6 +155,11 @@ def base_type(names):
     unsigned = "unsigned" in names
     if "float" in names or "double" in names:
         raise Refused("floats")
+    if len(n) == 1 and n[0] in TYPEDEFS:  # (a task's own bool, typedef'd as an enum, before stdbool's)
+        t = TYPEDEFS[n[0]]
+        if isinstance(t, Refused):
+            raise t
+        return t
     if n == ["_Bool"] or n == ["bool"]:
         return BOOL
     if n == ["char"]:
@@ -193,7 +208,7 @@ def type_of(t):
     if isinstance(t, (c_ast.Struct, c_ast.Union)):
         raise Refused("structs")
     if isinstance(t, c_ast.Enum):
-        return INT
+        return enum_type(t)
     if isinstance(t, c_ast.FuncDecl):
         raise Refused("function pointers")
     if isinstance(t, c_ast.IdentifierType):
@@ -203,6 +218,33 @@ def type_of(t):
 
 TYPEDEFS = {}
 ENUMS = {}
+ENUM_TAGS = {}
+
+
+def enum_type(t):
+    """An enum's type, gcc's (C11 6.7.2.2p4 leaves it to the implementation): unsigned int where no constant is
+    negative, else int; its constants (each an int, the one before it + 1 where it has no value) recorded."""
+    if t.values is None:
+        if t.name in ENUM_TAGS:
+            return ENUM_TAGS[t.name]
+        raise Refused("an enum declared nowhere")
+    v, vals = -1, []
+    for e in t.values.enumerators:
+        if e.value is None:
+            v = v + 1
+        else:
+            c = const_expr(e.value)
+            if c is None:
+                raise Refused("an enum value that isn't a constant")
+            v = c
+        if not rng(INT)[0] <= v <= rng(INT)[1]:
+            raise Refused("an enum constant past int's range")
+        ENUMS[e.name] = v
+        vals.append(v)
+    ty = INT if any(x < 0 for x in vals) else ity(False, 32, 3)
+    if t.name:
+        ENUM_TAGS[t.name] = ty
+    return ty
 
 
 def const_expr(e):
@@ -428,6 +470,7 @@ class Main:
         lo, hi = rng(t)
         if c is not None:
             if not lo <= c <= hi:
+                self.ub += 1
                 g.append("false")
             return V(sx, t)
         self.p.features.add("overflow checked")
@@ -610,8 +653,9 @@ class Main:
     # Calls inside an expression: each evaluated first, into a fresh variable, inner calls before outer ones. Their
     # order is C's to choose (unspecified): where it can matter (a call may write a global or end the run) and two are
     # siblings, refused.
-    def hoist(self, e, cur, keep=False):
-        """`keep`: e is a call itself, inlined by the caller: only its arguments' calls are hoisted."""
+    def hoist(self, e, cur, keep=False, extra=()):
+        """`keep`: e is a call itself, inlined by the caller: only its arguments' calls are hoisted. `extra`: the names
+        the rest of the full expression reads (an assignment's target, read by += or by its index)."""
         calls = []
 
         def walk(x, cond):
@@ -640,16 +684,22 @@ class Main:
         walk(e, False)
         if not calls:
             return cur, e
-        if len(calls) > 1:
-            impure = [c.name.name for c in calls if self.info["writes"][c.name.name] or self.info["ends"][c.name.name]]
-            if impure:
-                nested = all(self.inside(calls[i], calls[i + 1]) for i in range(len(calls) - 1))
-                if not nested:
-                    raise Refused("calls in one expression whose order can matter (a call may write a global or end the run)")
-        if any(self.info["writes"][c.name.name] for c in calls):
-            reads = self.reads(e)
-            if any(reads & self.info["writes"][c.name.name] for c in calls):
-                raise Refused("a call in an expression that reads a global the call writes")
+        # what each call may do that another part of the expression could see: write a global, write through a
+        # pointer (to anything: a local whose address was passed), end the run
+        eff = {id(c): self.info["writes"][c.name.name] | ({"*"} if self.info["ptrwrites"][c.name.name] else set()) |
+               ({"end"} if self.info["ends"][c.name.name] else set()) for c in calls}
+        if len(calls) > 1 and any(eff.values()):
+            nested = all(self.inside(calls[i], calls[i + 1]) for i in range(len(calls) - 1))
+            if not nested:
+                raise Refused("calls in one expression whose order can matter (a call may write a global or through a pointer, or end the run)")
+        for c in calls:
+            if not eff[id(c)] - {"end"}:
+                continue
+            rest = self.reads(e, skip=c) | set(extra)  # what the rest of the expression reads, unsequenced with c
+            if "*" in eff[id(c)] and rest:
+                raise Refused("a call that writes through a pointer in an expression that reads a variable (their order is unspecified)")
+            if rest & eff[id(c)]:
+                raise Refused("a call in an expression that reads a global the call writes (their order is unspecified)")
         subst = {}
         for c in calls:  # post-order: arguments' calls first
             name = c.name.name
@@ -678,12 +728,19 @@ class Main:
         F().visit(b)
         return bool(found)
 
-    def reads(self, e):
+    def reads(self, e, skip=None):
+        """The names e reads (not the functions it calls), leaving out the call `skip` (its arguments included)."""
         out = set()
 
         class R(c_ast.NodeVisitor):
             def visit_ID(s, n):
                 out.add(n.name)
+
+            def visit_FuncCall(s, n):
+                if n is skip:
+                    return
+                for a in (n.args.exprs if n.args else []):
+                    s.visit(a)
         R().visit(e)
         return out
 
@@ -746,9 +803,14 @@ class Main:
         # a read of a pointer: null, or an object that is alive (indeterminate or freed: undefined behaviour)
         self.ub += 1
         alts = [["=", u, "0"]]
-        for k, (_, _, alive) in enumerate(self.p.cells, 1):
+        for k, (_, _, alive) in enumerate(self.cells(), 1):
             alts.append(["=", u, str(k)] if alive is None else ["and", ["=", u, str(k)], [">=", alive, "1"]])
         g.append(["or", *alts] if len(alts) > 1 else alts[0])
+
+    def cells(self):
+        """Every object a pointer can name in the whole program (the first pass's list: a pointer read early in the
+        text can name an object whose address is taken later), or, in the first pass, the ones so far."""
+        return self.all_cells if self.all_cells is not None else self.p.cells
 
     def cell_of(self, u):
         for k, (s, _, _) in enumerate(self.p.cells, 1):
@@ -773,7 +835,7 @@ class Main:
         if self.deref_ty != pt:
             raise Refused("pointers of two pointee types")
         out = []
-        for k, (s, ct, alive) in enumerate(self.p.cells, 1):
+        for k, (s, ct, alive) in enumerate(self.cells(), 1):
             if alive is None and ct != pt:
                 raise Refused("pointers of two pointee types")
             out.append(([["=", u, str(k)]] + ([["=", alive, "1"]] if alive is not None else []), s))
@@ -900,6 +962,8 @@ class Main:
             raise Refused(f"the operator {e.op}")
         if isinstance(e, c_ast.FuncCall):
             name = e.name.name if isinstance(e.name, c_ast.ID) else None
+            if name in self.funcs:
+                raise Refused("a call inside an expression")
             t = nondet_type(name)
             if t is not None:
                 return V(p.nondet(t, guards), t)
@@ -920,7 +984,9 @@ class Main:
             guards.append(["or", conj(c, *ga, ["=", r, a.sx]), conj(neg(c), *gb, ["=", r, b.sx])])
             return V(r, t)
         if isinstance(e, c_ast.ArrayRef):
-            cases = [x for x in self.element_cases(e, guards) if x[1] is not None]
+            cases = self.element_cases(e, guards)
+            if any(x[1] is None for x in cases):  # (const_reads keeps every element a read can see: checked here)
+                raise Refused("an array of more than 64 elements read at an element the translation didn't keep")
             d = p.new("d")
             alts = [conj(*c, ["=", d, s]) for c, s, _ in cases]
             self.ub += 1
@@ -1097,15 +1163,23 @@ class Main:
 
     def decl(self, s, cur):
         p = self.p
-        if s.storage and "static" in s.storage and not self.main_top():
+        static = bool(s.storage and "static" in s.storage)
+        if static and not self.main_top():
             raise Refused("static locals")
+        if static and self.info["goto"]:
+            raise Refused("static locals with goto")
         if s.storage and "extern" in s.storage:
             raise Refused("extern variables")
         k = type_of(s.type)
         if k == VOID:
             raise Refused("a void variable")
         if k[0] == "a":
-            return self.decl_array(s, k, cur, zero=False)
+            t = s.type
+            while isinstance(t, c_ast.TypeDecl):
+                t = t.type
+            if isinstance(t, c_ast.ArrayDecl) and any(any(n in sc for sc in self.scopes) for n in self.reads(t.dim)):
+                raise Refused("an array whose size reads a variable")  # (a name shadowing an enum constant)
+            return self.decl_array(s, k, cur, zero=static)
         u = p.var(s.name, k)
         self.types[u] = k
         if self.main_top() and s.name in self.addr_taken:
@@ -1115,7 +1189,7 @@ class Main:
             p.features.add("pointers")
             if s.init is None:
                 nxt = p.loc()
-                p.rule(cur, nxt, [], {u: "-1"})
+                p.rule(cur, nxt, [], {u: "0" if static else "-1"})
                 return nxt
             return self.assign_ptr(cur, u, s.init, [])
         g = []
@@ -1125,7 +1199,7 @@ class Main:
             cur, init = self.hoist(s.init, cur)
             val = self.conv(self.term(init, g), k, g)
         else:
-            val = p.nondet(k, g)
+            val = "0" if static else p.nondet(k, g)  # a static local starts at 0 (C11 6.7.9p10)
         nxt = p.loc()
         p.rule(cur, nxt, g, {u: val})
         return nxt
@@ -1194,7 +1268,8 @@ class Main:
             if s.op == "=" and isinstance(s.lvalue, c_ast.ID) and self.callee(s.rvalue):
                 u = self.lookup(s.lvalue.name)
                 return self.inline(s.rvalue, cur, u, self.types[u])
-            cur, rv = self.hoist(s.rvalue, cur)
+            # the target's own reads (its index, the pointer, or itself for +=) are unsequenced with the right side's calls
+            cur, rv = self.hoist(s.rvalue, cur, extra=() if s.op == "=" and isinstance(s.lvalue, c_ast.ID) else self.reads(s.lvalue))
             g = []
             r = self.term(rv, g)
             if s.op == "=":
@@ -1212,6 +1287,8 @@ class Main:
             return self.stmt(s.expr, cur, brk, cont, end)
         if isinstance(s, c_ast.FuncCall):
             name = s.name.name if isinstance(s.name, c_ast.ID) else None
+            if name in self.funcs:  # the task's own definition first (a reach_error that returns, say)
+                return self.inline(s, cur)
             if name in ASSUME:
                 cur, a = self.hoist(s.args.exprs[0], cur)
                 g = []
@@ -1367,7 +1444,7 @@ class Main:
         u = self.lookup(e.name)
         nxt = p.loc()
         p.rule(cur, nxt, [["=", u, "0"]])
-        for k, (_, _, alive) in enumerate(p.cells, 1):
+        for k, (_, _, alive) in enumerate(self.cells(), 1):
             if alive is not None:
                 p.rule(cur, nxt, [["=", u, str(k)], [">=", alive, "1"]], {alive: "0"})
         return nxt
@@ -1408,20 +1485,24 @@ def prescan(nodes):
             raise Refused(why)
 
 
-def enum_value(v, i):
-    if v is None:
-        return i
-    c = const_expr(v)
-    if c is None:
-        raise Refused("an enum value that isn't a constant")
-    return c
+HEADERS = ("stdlib.h", "stdio.h", "assert.h", "stdbool.h")
 
 
 def clean(text):
-    """What pycparser doesn't read, left out: comments, preprocessor lines, and GCC's __attribute__((...)), __extension__,
-    __restrict, __inline."""
+    """What pycparser doesn't read, left out: lines spliced (backslash-newline) and comments, as C's translation phases
+    2 and 3 do; then the preprocessor's directives: #include of a standard header whose names the translation knows
+    (malloc, NULL, bool, true, false; any other name it declares is refused where it is used) and line markers, left
+    out; any other directive (#define, #if, ...) refused. Then GCC's __attribute__((...)), __extension__, __restrict,
+    __inline."""
+    text = text.replace("\\\n", "")
     text = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
     text = re.sub(r"//[^\n]*", "", text)
+    for l in re.findall(r"^\s*#[^\n]*", text, flags=re.M):
+        d = l.strip()[1:].strip()
+        m = re.fullmatch(r'include\s*[<"]([\w./]+)[>"]', d)
+        if m and m.group(1) in HEADERS or re.fullmatch(r'(line\s+)?\d+(\s+"[^"]*")?(\s+\d+)*', d):
+            continue
+        raise Refused(f"a preprocessor directive (#{d.split()[0] if d.split() else ''})")
     text = re.sub(r"^\s*#[^\n]*", "", text, flags=re.M)
     out, i = [], 0
     while i < len(text):
@@ -1463,7 +1544,7 @@ def analyse(main, funcs, globs):
                 if isinstance(n.name, c_ast.ID):
                     if n.name.name in funcs:
                         calls.add(n.name.name)
-                    if n.name.name in ENDS or n.name.name in ASSUME:
+                    if (n.name.name in ENDS or n.name.name in ASSUME) and n.name.name not in funcs:
                         ends = True
                 s.generic_visit(n)
 
@@ -1507,6 +1588,7 @@ def analyse(main, funcs, globs):
     rec = {k for k in funcs if k in reach(k) and k in reach("main")}
     writes = {k: set(d[k][1]).union(*[d[j][1] for j in reach(k)]) for k in funcs}
     ends = {k: d[k][2] or any(d[j][2] for j in reach(k)) for k in funcs}
+    ptrwrites = {k: "*" in writes[k] for k in funcs}
     for k in funcs:
         if "*" in writes[k]:
             writes[k] = set(writes[k]) | gnames
@@ -1529,7 +1611,31 @@ def analyse(main, funcs, globs):
             s.generic_visit(n)
     for f in [main, *funcs.values(), *globs]:
         Vis().visit(f)
-    return {"writes": writes, "ends": ends, "recursive": rec, "goto": gotos[0], "addr": addr, "pointers": ptrs[0]}
+    return {"writes": writes, "ptrwrites": ptrwrites, "ends": ends, "recursive": rec, "goto": gotos[0], "addr": addr, "pointers": ptrs[0]}
+
+
+def const_index(e):
+    """An index the translation reads as this same constant whatever the scope: decimal, octal or hex int constants
+    under + - * and unary -, every value in int's range (no name, no suffix, no conversion), or None."""
+    if isinstance(e, c_ast.Constant):
+        if e.type != "int" or re.search(r"[uUlL]", e.value):
+            return None
+        try:
+            v, t = constant(e)
+        except Refused:
+            return None
+        return v if t == INT else None
+    if isinstance(e, c_ast.UnaryOp) and e.op in ("-", "+"):
+        v = const_index(e.expr)
+        v = None if v is None else (-v if e.op == "-" else v)
+    elif isinstance(e, c_ast.BinaryOp) and e.op in ("+", "-", "*"):
+        a, b = const_index(e.left), const_index(e.right)
+        if a is None or b is None:
+            return None
+        v = a + b if e.op == "+" else a - b if e.op == "-" else a * b
+    else:
+        return None
+    return v if v is not None and rng(INT)[0] <= v <= rng(INT)[1] else None
 
 
 def const_reads(funcs_and_main):
@@ -1541,7 +1647,7 @@ def const_reads(funcs_and_main):
         if isinstance(n, c_ast.Assignment):
             if isinstance(n.lvalue, c_ast.ArrayRef) and n.op == "=":
                 lv = n.lvalue
-                c = const_expr(lv.subscript)
+                c = const_index(lv.subscript)
                 if isinstance(lv.name, c_ast.ID) and c is not None:
                     reads.setdefault(lv.name.name, set()).add(c)  # written at a constant: kept
                 visit(lv.subscript)
@@ -1551,7 +1657,7 @@ def const_reads(funcs_and_main):
             visit(n.rvalue)
             return
         if isinstance(n, c_ast.ArrayRef) and isinstance(n.name, c_ast.ID):
-            c = const_expr(n.subscript)
+            c = const_index(n.subscript)
             if c is None:
                 bad.add(n.name.name)
             else:
@@ -1570,38 +1676,40 @@ def translate(text, data_model="LP64", no_overflow=False, mode=None, depth=None)
     DM["ptr"] = 64 if data_model == "LP64" else 32
     TYPEDEFS.clear()
     ENUMS.clear()
+    ENUM_TAGS.clear()
     ast = c_parser.CParser().parse(clean(text))
     main = None
     globs, funcs = [], {}
     for ext in ast.ext:
         if isinstance(ext, c_ast.Typedef):
-            t = ext.type.type
-            if isinstance(t, c_ast.Enum):
-                for i, e in enumerate(t.values.enumerators if t.values else []):
-                    ENUMS[e.name] = enum_value(e.value, i)
-                TYPEDEFS[ext.name] = INT
-            else:
-                try:
-                    TYPEDEFS[ext.name] = type_of(ext.type)
-                except Refused as e:
-                    TYPEDEFS[ext.name] = e
+            try:
+                TYPEDEFS[ext.name] = type_of(ext.type)
+            except Refused as e:
+                TYPEDEFS[ext.name] = e
         elif isinstance(ext, c_ast.FuncDef):
             if ext.decl.name == "main":
                 main = ext
-            elif ext.decl.name not in ENDS and nondet_type(ext.decl.name) is None and ext.decl.name not in ASSUME:
+            else:
                 funcs[ext.decl.name] = ext
         elif isinstance(ext, c_ast.Decl):
             if isinstance(ext.type, c_ast.FuncDecl):
                 continue
-            if isinstance(ext.type, c_ast.TypeDecl) and isinstance(ext.type.type, c_ast.Enum) and ext.name is None:
-                for i, e in enumerate(ext.type.type.values.enumerators):
-                    ENUMS[e.name] = enum_value(e.value, i)
+            en = ext.type if isinstance(ext.type, c_ast.Enum) else ext.type.type if isinstance(ext.type, c_ast.TypeDecl) else None
+            if isinstance(en, c_ast.Enum) and ext.name is None:
+                enum_type(en)
                 continue
             if ext.name is None:
                 continue
             globs.append(ext)
     if main is None:
         raise Refused("no main")
+    # every function the task defines is its own, but an end (reach_error, abort, ...) whose body is just a call to an
+    # end the task doesn't define (`void reach_error() { __assert_fail(...); }`), which ends the run as that one does
+    for k in [k for k, f in funcs.items() if k in ENDS]:
+        items = funcs[k].body.block_items or []
+        if len(items) == 1 and isinstance(items[0], c_ast.FuncCall) and isinstance(items[0].name, c_ast.ID) and \
+                items[0].name.name in ENDS and items[0].name.name not in funcs:
+            del funcs[k]
     prescan([main, *funcs.values(), *globs])
     info = analyse(main, funcs, globs)
     if info["recursive"] and mode not in ("terminates", "nonterminating"):
@@ -1623,8 +1731,20 @@ def translate(text, data_model="LP64", no_overflow=False, mode=None, depth=None)
 
 
 def build(main, funcs, globs, info, no_overflow, mode, depth):
+    """The system; where pointers name objects, twice: the second pass's dereferences know every object the first
+    found (the same objects, numbered the same, the passes being the same code on the same program)."""
+    prog, start = build1(main, funcs, globs, info, no_overflow, mode, depth, None)
+    if not prog.cells:
+        return prog, start
+    prog2, start2 = build1(main, funcs, globs, info, no_overflow, mode, depth, list(prog.cells))
+    assert prog2.cells == prog.cells
+    return prog2, start2
+
+
+def build1(main, funcs, globs, info, no_overflow, mode, depth, all_cells):
     prog = Program(no_overflow)
     m = Main(prog, funcs, info, mode, depth)
+    m.all_cells = all_cells
     m.addr_taken = info["addr"]
     m.addressable = set()
     m.deref_ty = None
@@ -1674,7 +1794,8 @@ def build(main, funcs, globs, info, no_overflow, mode, depth):
     # (each is written before it is read: a 64-bit type's range, past what the kernel's numbers hold, is left out)
     vs = prog.vars
     g0 = []
-    init = {v: prog.nondet(prog.kinds[v] if prog.kinds[v][0] != "i" or rng(prog.kinds[v])[1] < 2 ** 53 else ("u",), g0) for v in vs}
+    # (with goto a declaration can be jumped past, and a variable read before it is written: the range kept)
+    init = {v: prog.nondet(prog.kinds[v] if prog.kinds[v][0] != "i" or rng(prog.kinds[v])[1] < 2 ** 53 or info["goto"] else ("u",), g0) for v in vs}
     prog.rules.insert(0, (start, first, g0, init))
     return prog, start
 
