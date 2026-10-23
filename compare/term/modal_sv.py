@@ -95,29 +95,73 @@ def shard(tool: str, t: dict, limit: int) -> dict:
         if answer == "error":
             row["err"] = (err or out)[-600:]
         return row
-    # the others read gdp-wired's translation
-    code, ari, err = run(["python3", "compare/term/c2ari.py", c], limit)
+    # the others read gdp-wired's translation (the task's data model, and whether it declares no signed overflow); a
+    # recursive program has two, each exact for one answer: --for terminates, --for nonterminating
+    yml = f"/sv/c/{t['task']}"
+    code, ari, err = run(["python3", "compare/term/c2ari.py", c, "--yml", yml, "--for", "terminates"], limit)
     info = json.loads(err.strip().splitlines()[-1]) if err.strip() else {}
     row["translation"] = info
     if code != 0:
         row.update(answer="unsupported", seconds=round(time.time() - t0, 2), why=info.get("refused", err[-300:]))
         return row
     pathlib.Path("/tmp/t.ari").write_text(ari)
+    split = info.get("split", False)
+    if split:
+        code, ari2, err2 = run(["python3", "compare/term/c2ari.py", c, "--yml", yml, "--for", "nonterminating"], limit - (time.time() - t0))
+        row["translation_nt"] = json.loads(err2.strip().splitlines()[-1]) if err2.strip() else {}
+        if code != 0:
+            row.update(answer="unsupported", seconds=round(time.time() - t0, 2), why=row["translation_nt"].get("refused", err2[-300:]))
+            return row
+        pathlib.Path("/tmp/t-nt.ari").write_text(ari2)
     left = limit - (time.time() - t0)
-    if tool in ("gdp", "gdp-scc"):
-        code, out, err = run(["bun", "compare/term/solve.ts", "/tmp/t.ari", "--limit", str(int(left)), *(["--scc"] if tool == "gdp-scc" else [])], left)
-        stages = []
+
+    def stages_of(out):
+        st = []
         for l in out.splitlines():
             try:
-                stages.append(json.loads(l))
+                st.append(json.loads(l))
             except json.JSONDecodeError:
                 pass
-        answer = (stages[-1] if stages else {}).get("answer", "timeout" if code == 124 else "error")
-        row.update(answer=answer, stages=stages)
+        return st
+    if tool in ("gdp", "gdp-scc"):
+        cmd = lambda f, *more: ["timeout", "-k", "5", str(max(1, int(left))), "bun", "compare/term/solve.ts", f, "--limit", str(int(left)), *(["--scc"] if tool == "gdp-scc" else []), *more]
+        if not split:
+            code, out, err = run(cmd("/tmp/t.ari")[4:], left)
+            stages = stages_of(out)
+            answer = (stages[-1] if stages else {}).get("answer", "timeout" if code == 124 else "error")
+            row.update(answer=answer, stages=stages)
+        else:
+            # the two side by side (a vCPU each), each searching only for its answer
+            ps = [subprocess.Popen(cmd(f, "--want", w), cwd=work, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                  for f, w in (("/tmp/t.ari", "terminates"), ("/tmp/t-nt.ari", "nonterminating"))]
+            outs = []
+            for q in ps:
+                try:
+                    o, e = q.communicate(timeout=left + 30)
+                except subprocess.TimeoutExpired:
+                    q.kill()
+                    o, e = q.communicate()
+                outs.append((q.returncode, o, e))
+            st_t, st_n = stages_of(outs[0][1]), stages_of(outs[1][1])
+            a_t = (st_t[-1] if st_t else {}).get("answer")
+            a_n = (st_n[-1] if st_n else {}).get("answer")
+            if a_t == "terminates" and a_n == "nonterminating":
+                answer = "error"
+                row["err"] = "both answers"
+            elif a_t == "terminates" or a_n == "nonterminating":
+                answer = a_t if a_t == "terminates" else a_n
+            elif a_t is None and a_n is None:
+                answer = "timeout" if outs[0][0] == 124 else "error"
+            else:
+                answer = "unknown"
+            err = outs[0][2] + outs[1][2]
+            row.update(answer=answer, stages=st_t, stages_nt=st_n)
     elif tool in ("loat", "loat-abmc"):
         code, out, err = run(["loat", "--mode", "termination", *(["--engine", "abmc"] if tool == "loat-abmc" else []), "/tmp/t.ari"], left)
         w = next((l.strip() for l in out.splitlines() if l.strip() in ("YES", "NO", "MAYBE")), None)
         answer = {"YES": "terminates", "NO": "nonterminating", "MAYBE": "unknown"}.get(w or "", "timeout" if code == 124 else "error")
+        if split and answer == "nonterminating":
+            answer = "unknown"  # read on the translation exact only for "terminates"
         row["answer"] = answer
     elif tool == "koat2":
         code, out, err = run(["bash", "-c", KOAT_SH, "koat", "/tmp/t.ari"], left)

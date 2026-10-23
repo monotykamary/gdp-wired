@@ -1,0 +1,9 @@
+// expect: terminates. x + 1 overflows at INT_MAX, undefined behaviour, where the run ends (as SV-COMP's verdicts read
+// it). Over unbounded integers x grows forever: no run is infinite without undefined behaviour.
+int main() {
+  int x = 1;
+  while (x > 0) {
+    x = x + 1;
+  }
+  return 0;
+}

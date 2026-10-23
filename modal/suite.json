@@ -991,7 +991,7 @@
 "name": "term-c2ari",
 "cmd": "{ python3 -c 'import pycparser' 2>/dev/null || pip install -q pycparser==3.0 2>/dev/null || pip3 install -q --break-system-packages pycparser==3.0; } && python3 c2ari_test.py 2>&1",
 "cwd": "compare/term",
-"cpu": 1.0,
+"cpu": 2.0,
 "timeout": 600
 },
 {

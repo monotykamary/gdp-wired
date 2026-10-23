@@ -1,0 +1,12 @@
+// expect: nonterminating. f(n) calls f(n + 1) while n < 10 and f(n - 1) past it: the calls go up and down between 9
+// and 10 forever, no frame returning and no value overflowing.
+int f(int n) {
+  if (n < 10) {
+    return f(n + 1);
+  }
+  return f(n - 1);
+}
+int main() {
+  f(0);
+  return 0;
+}

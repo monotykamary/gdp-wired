@@ -1,0 +1,15 @@
+// expect: terminates. f recurses at most 100 deep and returns.
+int f(int n) {
+  if (n <= 0) {
+    return 0;
+  }
+  return f(n - 1) + 1;
+}
+int main() {
+  int x = __VERIFIER_nondet_int();
+  if (x < 0 || x > 100) {
+    return 0;
+  }
+  f(x);
+  return 0;
+}
