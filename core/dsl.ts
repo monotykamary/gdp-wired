@@ -18,12 +18,13 @@
 import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type MapUpdate, type Request, type State, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
 import {someHolds, substVars} from './exists.ts'
-import {type Fold, type Goal, type Liveness, type Loop, type StepLaw, type Tree, check, foldObligations, loopObligations} from '../kernel/kernel.ts'
+import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations} from '../kernel/kernel.ts'
 import {certLoop, factsFor, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
 import {cycleLemmas, findLeadsTo, findRank} from './cycles.ts'
+import {findNeverEnds} from './nonterm.ts'
 
 // --- terms and conditions -------------------------------------------------------------------------------------------
 
@@ -2544,6 +2545,20 @@ export const proveLoop = (l: LoopRule<Obj, Obj, Obj>, laws: Law[], opts: {ms?: n
   if (out.proven && out.checked && out.rank && out.trees) certLoop(l.loop, [...laws, ...(out.laws ?? [])], out.rank, out.trees, performance.now() - t0)
   return {proven: out.proven, checked: out.checked, ...(out.trees ? {trees: out.trees} : {}), ...(out.goal ? {goal: out.goal, stuck: out.stuck} : {}), ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {}),
     ...(out.found ? {found: {rank: out.found.rank, ...(out.laws?.length ? {laws: out.laws.map((law, i) => ({law, text: out.found!.laws[i] ?? law.name}))} : {})}} : {})}
+}
+
+// "Some run never ends", the claim a halting loop refutes (NonTerm.lean's NeverEnds): for some params meeting the
+// precondition, and `from` where it is given (it strengthens the precondition), a run of turns from the start that goes
+// on forever. Searched within `ms` (10 s) by core/nonterm.ts: a closed recurrent set with the turn from each of its
+// states given by terms (a lasso's set is the cycle's states), a start and a stem into it; the kernel checks the stem and
+// that the set is closed (kernel.ts's checkRecur), and Lean checks it again from toLean's `{id, neverEnds: v.loop, recur:
+// v.recur}` (Kern.never_ends_of). `run`: the start and the stem's turns; `by`: a lasso, a policy's lasso or a set.
+export type NeverEnds = Verdict & {recur?: Recur, loop?: Loop, by?: string}
+export function proveNeverEnds<P extends Obj, I extends Obj, S extends Obj>(l: LoopRule<P, I, S>, opts: {ms?: number, from?: (p: P) => Cond} = {}): NeverEnds {
+  const loop = (opts.from ? l.pre(opts.from) : l).loop
+  const f = findNeverEnds(loop, {ms: opts.ms ?? 10_000})
+  if (!f.recur) return {proven: false, checked: false, ...(f.why ? {why: f.why} : {}), loop}
+  return {proven: f.proven, checked: f.checked && checkRecur(loop, f.recur), recur: f.recur, loop, ...(f.by ? {by: f.by} : {}), run: {params: f.recur.start, trace: f.recur.stem}}
 }
 
 // --- folds over trees ---------------------------------------------------------------------------------------------------
