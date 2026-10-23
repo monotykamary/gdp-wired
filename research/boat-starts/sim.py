@@ -37,7 +37,7 @@ BOOT = 10.0
 PREP = {"run.py": 22.0, "runner": 10.0}
 OVERHEAD = {"run.py": 0.0, "runner": 5.0}  # calibrate.py: the least error against the old runs' progress lines
 VM_DOLLARS_S = 1e-5  # a default VM (4 vCPU): $0.036 an hour; a large one (8 vCPU) twice that
-RESERVE = 10
+RESERVE = (10, 10)  # (day, hour) never spent: the code before; the policy's "reserve" overrides (boat.py: 60, 15)
 MAX_WAIT = 120  # --max-wait's default
 RETRY = 60  # a batch short of VMs asks for starts again this often (Session.run's top-up)
 PLANS = {"100": (30, 210, 840, 300), "500": (65, 420, 1680, 1000), "2000": (90, 600, 2400, 2000), "inf": (10**6, 10**7, 10**8, 10**6), "minute": (30, 10**7, 10**8, 300)}
@@ -151,7 +151,8 @@ class Sim:
 
     def left(self):
         """Starts left this hour and day after the reserve (what plan_vms and the gate read)."""
-        return max(0, min(self.lim_hour - self.count(3600), self.lim_day - self.count(86400)) - RESERVE)
+        rd, rh = self.p.get("reserve", RESERVE)
+        return max(0, min(self.lim_hour - self.count(3600) - rh, self.lim_day - self.count(86400) - rd))
 
     def room_now(self):
         return max(0, min(self.lim_min - self.count(60), self.left(), self.lim_active - self.active))
@@ -161,8 +162,9 @@ class Sim:
         left last fewer than H hours, or the hour's left are fewer than p (the pace would spend the hour)."""
         a = self.p["adaptive"]
         p = self.count(3600)
-        day_left = self.lim_day - self.count(86400) - RESERVE
-        hour_left = self.lim_hour - p - RESERVE
+        rd, rh = self.p.get("reserve", RESERVE)
+        day_left = self.lim_day - self.count(86400) - rd
+        hour_left = self.lim_hour - p - rh
         if a.get("exhaust"):  # at this pace the starts left run out within the long idle time itself
             return p > 0 and min(day_left, hour_left) < p * a["long"] / 3600
         return p > 0 and (day_left < p * a["H"] or (a.get("hour") and hour_left < p))
@@ -463,14 +465,16 @@ def load(path):
 BASE = {"idle": 60, "share": 1 / 4, "min_budget": 2, "check_resume": True, "topup": True, "wait": 600}
 # the chosen policy: BASE, and a released VM up 900 s instead of 60 only when, at the last hour's pace, the starts
 # left (hour and day) run out within those 900 s (modal/boat.py's release_idle)
-NEW = dict(BASE, adaptive={"exhaust": True, "long": 900})
+# and (the coordinator's decisions) at most 30 starts a batch, the last 60 of the day and 15 of the hour kept for the
+# account's other project
+NEW = dict(BASE, adaptive={"exhaust": True, "long": 900}, cap=30, reserve=(60, 15))
 OLDNEW = {"idle": 300, "idle_scarce": 900, "scarce_below": 100, "share": 1 / 4, "min_budget": 2, "check_resume": True, "topup": True, "wait": 600}
 POLICIES = {
     "old": {"idle": 60},
     "new": NEW,
     "base (new without the longer idle)": BASE,
-    "new+cap30": dict(NEW, cap=30),
-    "new+cap50": dict(NEW, cap=50),
+    "new, no reserve": dict(NEW, reserve=RESERVE),
+    "new, no reserve, no cap": dict(NEW, reserve=RESERVE, cap=None),
     "idle300/scarce900": OLDNEW,
     # one change at a time
     "old+idle300": {"idle": 300},

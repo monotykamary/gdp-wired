@@ -51,14 +51,17 @@ SLOT_CPU, SLOT_MEM = 2, 4096  # a slot: Modal's default container
 TYPES = {"small": (2, 4096), "default": (4, 8192), "large": (8, 16384)}  # vCPU, MB
 LIBRARY = ["Cert", "Kernel", "Cyclic", "Progress", "StepLaw", "Steps", "Sets", "History", "Live", "Ghost", "Refine", "Bridge", "BridgeRules", "Data"]
 BACKSTOP = 900  # the TTL a held VM keeps renewing: a VM whose client is gone stops within this
-STARTS_RESERVE = 10  # starts of the day and the hour never spent by one batch
+# The account's starts are shared with another project's pool (its setup takes a few to a few dozen a day): this pool
+# never spends the last RESERVE_DAY of the rolling day nor the last RESERVE_HOUR of the hour (under either policy).
+RESERVE_DAY = int(os.environ.get("GDPW_BOAT_RESERVE_DAY", "60"))
+RESERVE_HOUR = int(os.environ.get("GDPW_BOAT_RESERVE_HOUR", "15"))
 # How a batch spends the plan's starts (research/boat-starts: the simulation of today's mix and the runs that chose
 # it). GDPW_BOAT_POLICY=old restores the policy before, to compare: as many VMs as speed a batch up, released VMs up
 # 60 s, no waiting for a VM when no start is left.
 OLD = os.environ.get("GDPW_BOAT_POLICY", "") == "old"
 SHARE = float(os.environ.get("GDPW_BOAT_SHARE", "0.25"))  # a batch starts at most this share of the starts left
 MIN_STARTS = 2  # (but this many, while any are left)
-MAX_STARTS = int(os.environ.get("GDPW_BOAT_MAX_STARTS", "0"))  # and at most this many (0: no cap; for a bigger plan, see scale.txt)
+MAX_STARTS = int(os.environ.get("GDPW_BOAT_MAX_STARTS", "30"))  # and at most this many (0: no cap; scale.txt)
 IDLE = 60  # a released VM stays up this long (boat stops it then; a resume later is a start)...
 IDLE_LONG = 900  # ...and this long when, at the last hour's pace, the starts left run out within it
 WAIT_STARTS = 0 if OLD else 600  # with no start to be had, wait this long for a VM another batch releases
@@ -142,9 +145,9 @@ def limits() -> dict:
 
 
 def starts_left(lim: dict) -> int:
-    """The starts the plan has left this hour and day, minus the reserve."""
+    """The starts the plan has left this hour and day, minus what's kept for the account's other users."""
     st = lim["starts"]
-    return min(st["hour"]["remaining"], st["day"]["remaining"]) - STARTS_RESERVE
+    return min(st["hour"]["remaining"] - RESERVE_HOUR, st["day"]["remaining"] - RESERVE_DAY)
 
 
 def budget(left: int) -> int:
@@ -508,7 +511,7 @@ class StartGate:
                     except Exception:
                         pass
                 if self.st:
-                    left = min(self.st["hour"]["remaining"], self.st["day"]["remaining"]) - STARTS_RESERVE - self.used
+                    left = starts_left({"starts": self.st}) - self.used
                     if left <= 0:
                         return 0
                     k = min(n, left, self.st["minute"]["remaining"] - self.used)
@@ -1323,7 +1326,7 @@ def preflight(want: int = 1, vm_type: str = "default") -> tuple[str | None, dict
     st = lim["starts"]
     # (a resume is a start to boat, as a creation is; the minute's starts come back within the minute, so only the
     # old policy counts them out)
-    starts = max(0, min(st["hour"]["remaining"] - STARTS_RESERVE, st["day"]["remaining"] - STARTS_RESERVE, *([st["minute"]["remaining"]] if OLD else [])))
+    starts = max(0, min(starts_left(lim), *([st["minute"]["remaining"]] if OLD else [])))
     resumable = min(len(free) - up, max(0, room), starts)
     creatable = min(starts - resumable, max(0, room - resumable))
     can = up + resumable + creatable
