@@ -212,7 +212,7 @@ function relOf(l: Loop): Relation | undefined {
   if (rels.has(l)) return rels.get(l)
   // (a path that reads a product, which the relation stands for by a natural of its own, is left out: the search keeps
   // to the linear paths, and the kernel checks what it finds against the loop itself)
-  let r = relationOf(l, [], 4000, {fast: true})
+  let r = relationOf(l)
   if (r && !r.exact) {
     const lin = (p: Path) => ![...p.rows.flatMap(vars), ...Object.values(p.post).flatMap(vars)].some(x => x.startsWith('π('))
     const keep = r.paths.map(lin)

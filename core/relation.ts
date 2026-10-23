@@ -115,29 +115,56 @@ function assert(c: C, p: PP, positive: boolean, n: {left: number}): PP[] {
 // The body's value of a state variable on a path: its ifs decided or split, a truncated difference at the top kept
 // whole (an integer's part, if it is one).
 // An if and the ifs of its else branches, one after another (a long chain of rules is no deeper a recursion).
+// (A condition the pins decide alone, pc = 3 and t = 1 on a path that pins both, is read at them first: a chain of a
+// rule per case, for every path, is then a walk, not a split of each case.)
 function chain<T>(e: E, p: PP, n: {left: number}, leaf: (e: E, p: PP, n: {left: number}) => [PP, T][]): [PP, T][] {
   const out: [PP, T][] = []
   let cur = e, ps = [p]
   while (cur.op === 'if' && ps.length) {
-    const c = cur.c, then = cur.then
-    if (fast) {
-      // (`fast`: a condition the pins decide is taken or passed over at once, as assert would)
-      const next: PP[] = []
-      for (const q of ps) {
-        const d = decided(c, q.pins)
-        if (d === true) out.push(...leaf(then, q, n))
-        else if (d === false) next.push(q)
-        else { for (const r of assert(c, q, true, n)) out.push(...leaf(then, r, n)); next.push(...assert(c, q, false, n)) }
-      }
-      ps = next; cur = cur.else
-      continue
+    const c = cur.c, then = cur.then, next: PP[] = []
+    for (const q of ps) {
+      const t = truthAt(c, q.pins)
+      if (t === true) { out.push(...leaf(then, q, n)); continue }
+      if (t === false) { next.push(q); continue }
+      for (const r of assert(c, q, true, n)) out.push(...leaf(then, r, n))
+      next.push(...assert(c, q, false, n))
     }
-    for (const q of ps) for (const r of assert(c, q, true, n)) out.push(...leaf(then, r, n))
-    ps = ps.flatMap(q => assert(c, q, false, n))
+    ps = next
     cur = cur.else
   }
   for (const q of ps) out.push(...leaf(cur, q, n))
   return out
+}
+// A term's value, and a condition's truth, where the pins decide them (undefined where a name isn't pinned).
+function valueAt(e: E, pins: Record<string, number>): number | undefined {
+  switch (e.op) {
+    case 'var': return pins[e.name]
+    case 'const': return e.value
+    case 'mul': { const a = valueAt(e.a, pins); return a === undefined ? undefined : e.k * a }
+    case 'if': { const c = truthAt(e.c, pins); return c === undefined ? undefined : valueAt(c ? e.then : e.else, pins) }
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': {
+      const a = valueAt(e.a, pins), b = a === undefined ? undefined : valueAt(e.b, pins)
+      if (a === undefined || b === undefined) return undefined
+      return e.op === 'add' ? a + b : e.op === 'sub' ? Math.max(0, a - b) : e.op === 'min' ? Math.min(a, b) : e.op === 'max' ? Math.max(a, b) : a * b
+    }
+    case 'get': return undefined
+  }
+}
+function truthAt(c: C, pins: Record<string, number>): boolean | undefined {
+  switch (c.op) {
+    case '<': case '<=': case '=': {
+      const a = valueAt(c.a, pins), b = a === undefined ? undefined : valueAt(c.b, pins)
+      if (a === undefined || b === undefined) return undefined
+      return c.op === '<' ? a < b : c.op === '<=' ? a <= b : a === b
+    }
+    case 'and': case 'or': {
+      let open = false
+      for (const x of c.xs) { const t = truthAt(x, pins); if (t === undefined) open = true; else if (t === (c.op === 'or')) return t }
+      return open ? undefined : c.op === 'and'
+    }
+    case 'not': { const t = truthAt(c.x, pins); return t === undefined ? undefined : !t }
+    case 'flag': case 'all': return undefined
+  }
 }
 function valueOf(e: E, p: PP, n: {left: number}): [PP, Val][] {
   if (e.op === 'if') return chain(e, p, n, valueOf)
@@ -146,31 +173,8 @@ function valueOf(e: E, p: PP, n: {left: number}): [PP, Val][] {
 }
 
 // The relation of one turn, or undefined where it isn't linear in this sense (a map, a flag, past `cap` alternatives).
-// `fast`: the ifs a path's pins decide (a translated task's `pc = 3 ∧ t = 1`) read at once, not through `assert`: the same
-// relation, with less of the budget spent on the rules a path isn't (core/accel.ts; the ranks' search reads it as before).
-export function relationOf(l: Loop, laws: Law[] = [], cap = 4000, opts: {fast?: boolean} = {}): Relation | undefined {
-  fast = !!opts.fast
-  try { return build(l, laws, cap) } catch (e) { if (e instanceof Refused || e instanceof RangeError) return undefined; throw e } finally { fast = false }
-}
-let fast = false
-// A condition's value where the pins fix every name it reads (comparisons of pinned names and constants, and their
-// and, or and not), else undefined.
-function decided(c: C, pins: Record<string, number>): boolean | undefined {
-  const val = (e: E) => (e.op === 'const' ? e.value : e.op === 'var' ? pins[e.name] : undefined)
-  switch (c.op) {
-    case '<': case '<=': case '=': {
-      const a = val(c.a), b = val(c.b)
-      if (a === undefined || b === undefined) return undefined
-      return c.op === '=' ? a === b : c.op === '<=' ? a <= b : a < b
-    }
-    case 'and': case 'or': {
-      let all = true
-      for (const x of c.xs) { const d = decided(x, pins); if (d === (c.op === 'or')) return d; if (d === undefined) all = false }
-      return all ? c.op === 'and' : undefined
-    }
-    case 'not': { const d = decided(c.x, pins); return d === undefined ? undefined : !d }
-    case 'flag': case 'all': return undefined
-  }
+export function relationOf(l: Loop, laws: Law[] = [], cap = 4000): Relation | undefined {
+  try { return build(l, laws, cap) } catch (e) { if (e instanceof Refused || e instanceof RangeError) return undefined; throw e }
 }
 function build(l: Loop, laws: Law[], cap: number): Relation {
   const n = {left: cap * 500}, state = Object.keys(l.state), prime = (x: string) => `${x}′`
@@ -317,6 +321,8 @@ const norm = (x: bigint[]): bigint[] => { const g = x.reduce(bgcd, 0n); return g
 const dot = (a: bigint[], b: bigint[]) => a.reduce((s, x, i) => s + x * b[i]!, 0n)
 export function generators(rows: Lin[], names: string[], nats: string[] = [], cap = 600, until = Infinity): Generators | undefined {
   const n = names.length, at = new Map(names.map((x, i) => [x, i]))
+  // (a row over a name not given has no place: no generators, rather than its coefficient dropped)
+  if (rows.some(r => Object.keys(r).some(x => x !== '1' && !at.has(x)))) return undefined
   const hs: bigint[][] = [...rows.map(r => { const h = Array.from({length: n + 1}, () => 0n); for (const [x, c] of Object.entries(r)) { if (x === '1') h[n] = BigInt(c); else h[at.get(x)!] = BigInt(c) } return h }),
     ...nats.filter(x => at.has(x)).map(x => { const h = Array.from({length: n + 1}, () => 0n); h[at.get(x)!] = -1n; return h }),
     Array.from({length: n + 1}, (_, i) => (i === n ? -1n : 0n))]

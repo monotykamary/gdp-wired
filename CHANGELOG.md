@@ -5,6 +5,86 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+Ranks split by several conditions, and a rank search fast enough for programs of a hundred locations. Measured after
+merging main at 98bfabe (gen/sv-front's C front end among it), at 60 s on Modal, launched together with main at that
+commit, both under this branch's harness (below): TermComp's integer transition systems on the task's statement 1,073
+solved (613 terminating, 460 nonterminating), main 1,022 (567, 455); per component 1,072 (611, 461), main 1,044 (580,
+464); KoAT2 601 terminating in this harness (`runs/modal/term/full1`, `koat-fix1`). SV-COMP's termination tasks 224
+(169, 55), main 211 (156, 55); per component 206 (151, 55), main 199 (144, 55); Ultimate Automizer 224. Both leads (ITS
+terminating over KoAT2, SV-COMP level with Ultimate Automizer) are this harness's and unconfirmed until the
+competitions' own setup runs them. None wrong: every SV-COMP answer is its expected verdict (no errors), and no answer
+contradicts another tool's, a lasso or any of this track's or main's runs (`runs/ranks2/m-its-mine`, `m-its-base`,
+`m-sv-mine`, `m-sv-base`; `m-its-compare.txt`, `m-sv-compare.txt`). Nothing trusted changed (`kernel/`, `core/check.ts`,
+`lean-kernel/`); every rank is still proven by the kernel on the task's own loop.
+
+- Regions (core/cycles.ts's `relationRank`): a component with no rank is split by one atom, then, with invariants to
+  find, two at once; the atoms are the signs of what a path adds to a value (y := y + x: x ≥ 1) and the atoms its
+  paths read (q < p for min(p, q)). Each sign vector at a location is a node; the kernel's term reads the atoms.
+- Disjunctive invariants: with invariants (`rankWithInvariants`), each region's own, by Houdini over every path of the
+  relation split the same way (every location, so a disjunction made before the loop, x := 1 or x := −1, is kept), each
+  a law pc = ℓ ∧ the signs → atom that the kernel proves inductive with the rest. Toulouse-BranchesToLoop-2 (x ≠ 0) is
+  proven now, in the frontier corpus and within solve.ts's time on SV-COMP; Piecewise (min(p, q)) at the edge of
+  findRank's 51 s in the corpus (proven in the run before the merge, not in the one after); their broken variants
+  refused.
+- A location no run reaches (KoAT2's `1 ≤ 0`): `1 ≤ 0` is a candidate at every location, kept where every path into it
+  leaves from states the rest rule out; and x − y = c where a path sets x := y + c and keeps y. ex17's loop with no
+  guard sits past an i < 0 that never holds: unreachable, the rest has a rank.
+- The relation (core/relation.ts): a condition the path's pins decide alone (pc = 3 and t = 1) is read at them, so a
+  chain of a rule per case is walked, not split per case: reverse, traverse and print (80 to 100 locations), refused
+  before at the paths' budget, have their relation. `generators` refuses a row over a name it isn't given (a region's
+  atom over a name the path didn't read had its coefficient dropped, a wrong split the kernel then refused).
+- The rank's LP: in floating point first (`floatSolve`, Dantzig's rule, Bland's after degenerate pivots; the rows scaled
+  to their largest entry, then as they are), read back as fractions, scaled to integers and kept only where every row
+  holds exactly (BigInt); tiny values solved again as 0 where the tolerance hid a row of a vertex at 2^31. Infeasible
+  where both passes say so; else an exact refutation (solver.ts's `refuteFast`, rational) or the exact simplex, now
+  fraction-free (each row integers over one denominator; no divisor per entry). On the relation's rows the integer
+  boxes are skipped (the least Σ|u| is as small a rank). A shared template reads the component's live names only; a
+  component may have 16 blocks (8). Two spreads of thousands of values as arguments (a stack overflow, ex22) are loops.
+- `findRank`: the relation's search has a third of the time left (a half), so the search with invariants after it has
+  more.
+- Harness (compare/term/modal_term.py, modal_sv.py): a row's answer is the last one printed, so a proof whose answer was
+  printed before its certificate keeps it when the run stops making the certificate (cert `not made`), as solve.ts
+  intends. The base runs used the same harness.
+- Gained on the statement, ITS (after the merge): 46 terminating (the reverse/traverse/print family 9, juLinkedList*
+  7, elmhes 2, ex17 2, fun2 2, fun2b, fun3, java_Diff, java_DivWithoutMinus, java_AProVEMathRecursive, polyrank3 to 5,
+  p-43 2, slayer-n3 2, sas07, qrdcmp, RSA, BinarySearch, PartitionList, RetValRec, SortCount, florian_new_ex,
+  florian_sumit, ex27, eric, s1-saved) and 10 nonterminating (by the unchanged lasso and recurrent-set stages, whose
+  time moved). Lost: no terminating task; 5 nonterminating (DivTernary2, FlattenTreeListRec, agafp_fixed, db2_fixed,
+  n-40_fixed), each found by main in its second recurrent-set or lasso search (22 to 58 s), searches bounded by time
+  and random (their runs differ from run to run). Per component: 31 terminating and 2 nonterminating gained, 5
+  nonterminating lost (each a recurrent set or lasso main found, 4 to 35 s). SV-COMP: 14 terminating gained
+  (Toulouse-BranchesToLoop-2, 4NestedWith3Variables-1, Gothenburg_v2-1, MenloPark, DivMinus2, IntPath, gcd01-2,
+  cohencu5, mannadiv, ps2, sqrt1, BradleyMannaSipma-CAV2005-Fig1, CookSeeZuleger-TACAS2013-Fig7b, -Fig8b); Singapore-2
+  lost (42.2 s on main); per component 7 gained, none lost.
+- Before the merge (against main at 6b2e2df, the same night, `runs/ranks2/h-*`): ITS 1,078 (615, 463), main 1,033
+  (572, 461); per component 1,073 (612, 461), main 1,045 (583, 462); SV-COMP 189 (142, 47), main 182 (135, 47).
+- An answer printed before its certificate is a kernel-checked one: compare/term/solve.ts prints `answer: terminates,
+  cert: not made` only once `prove` has returned ok, which it does only when every goal of loopObligations on the loop
+  as translated has a tree that kernel.ts's `check` accepts (`missing` empty); per component, only once every
+  component's has. The certificate is made after, and the answer printed with it is the same answer. So the
+  harness's last answer printed is never an unchecked one.
+- Still missed where KoAT2 proves termination: 25 (17 by neither translation): deep nests that need more blocks than the
+  time allows (jacobi, ludcmp, spctrm, sudoku), and ranks the kernel takes longer than the limit to prove (magic, ns,
+  ud, opt-tree: 25 to 35 s for one goal on Modal); `bun compare/term/failures.ts` gives `runs/ranks2/h-failures.txt`.
+- The frontier corpora (after the merge, beside main at 98bfabe): the second's rank, nonlinear-rank, sampling and
+  nested-recursion items 12 of 15, main 11 (Toulouse-BranchesToLoop-2 gained; Piecewise proven before the merge at
+  findRank's 51 s, at its edge, not in this run), every broken variant refused; round 1's cycle items 21 of 21, broken 21
+  of 21, as main (`runs/ranks2/m-corp-mine-c2.md`, `-c1.md`, `m-corp-base-c2.md`, `-c1.md`). The real-world corpus,
+  before the merge: the same verdicts as main, law for law (218 proven, 17 refuted, 75 unknown, 1 error;
+  `h-corp-mine-rw.json`, `g-corp-base-rw.json`).
+- Tests: core/cycles.test.ts's relation test adds Toulouse-BranchesToLoop-2 and its broken variant. The probes
+  (`term-adversarial`, `term-c2ari`: 66 programs, none answered against the program) pass. The suites on Modal after
+  the merge: by default 217 jobs, 0 failed, 540.3 s wall, 5,577.2 s of job time (`runs/ranks2/m-suite-default`);
+  `--usual` 217 jobs, 0 failed, 607.6 s, 5,200.2 s (`m-suite-usual`).
+- 1 vCPU after the merge, ten of each interleaved with main at 98bfabe in one batch (`runs/ranks2/m-onecpu`): data's
+  nearPlus min, median and max 1,788, 2,820 and 3,341 ms against main's 1,892, 2,346 and 3,343; nearSucc 1,441, 2,074
+  and 2,505 against 1,447, 1,790 and 2,414; add3acc 1,123, 1,664 and 2,096 against 1,187, 1,459 and 2,062; infer's
+  four-value join 4,012, 5,885 and 7,782 against 3,944, 5,351 and 7,771; none failed.
+- The search reads the shared clock (gen/termlemmas' `clock()`), its float pivots counted as work (an eighth of an
+  exact pivot's), so a counted search's verdict doesn't depend on the machine's speed.
+- Cost: Modal $25.08366 for this track's 58 apps before the merge and $5.95577 for its 10 after (main's base runs
+  included), on 2026-10-23 UTC (`modal billing report --for today`, before the day closes); no boat.
+
 Runs that never end, from the loop's relation: a cycle of its paths, its n-fold run read in closed form, the set it
 keeps closed, and a stem into it from runs whose loops are taken n times at once (core/accel.ts). Nothing trusted
 changed (`kernel/`, `core/check.ts`, `lean-kernel/` as at 6b2e2df): each answer is the same certificate as before,
@@ -59,6 +139,23 @@ unconfirmed under the competition's own setup.
   checked one a job, `its-lean1-shard5`, Test4.jar-obl-10's in 62 minutes, the rest within 2.5).
 - Cost: Modal, about 153,600 s of task time for the benchmark, corpus and suite runs here and their bases, 5,968 s and
   4,106 s for the Lean checks; the day's dollars not yet in Modal's billing report.
+
+## 0.24.0
+
+CHC-COMP's unsat side caught up most of the way, SV-COMP is read from C as C runs, and two trusted additions came with
+their Lean proofs first. At 60 s on Modal, none wrong: CHC-COMP LIA-Lin 938 solved (540 sat, 398 unsat), 801 for main
+launched beside it (`runs/bmc2/chc-merged1`, `runs/bmc2/chc-main5`), 782 at 0.23.0; two tasks whose expected verdict
+rests on one tool's vote (or a placeholder) are answered unsat with derivations of 999,002 and 280,277 steps, each
+checked twice, and listed apart as disputed (`compare/chc/disputed.json`). SV-COMP's termination tasks 213, 182 for
+main beside it (`runs/svfront/f5-mine`, `f5-base`), after three independent checks of the C front end (176 probes, none
+answered against how the C runs). TIP 2015 183 of 492 (`runs/termlem/tip4`), 181 at 0.23.0. The real-world corpus:
+237 of 311 laws proven with nothing stated, 218 at 0.23.0, liveness 18 of 35 (0). Trusted additions: k-induction
+(`lean-kernel/KInd.lean`'s `kind_sound`, then `kernel/kernel.ts`'s `checkKInduction`, 39 lines), solving 14 of the 17
+CHC tasks known to be k-inductive; and rings of mutually recursive functions (`lean-kernel/Data.lean`'s
+`wf_fix_unique_ring`), each on the standard axioms. Rules can now be read from TypeScript (`gdp-wired/extract`), each
+checked against the code it was read from. The release suites (217 jobs, one after the other) on Modal: by default
+624.7 s wall, 5,686.2 s of job time, none failed (`runs/release/0.24.0-default`); `--usual` 576.2 s, 5,169.4 s, none
+failed (`runs/release/0.24.0-usual`).
 
 Bounded runs faster and longer: CHC-COMP LIA-Lin at 60 s on Modal, 923 answered (526 sat, 397 unsat), main (6b2e2df)
 launched beside it 783 (517, 266); unsat 131 more and none fewer, sat 17 more and 8 fewer, out of time 5 against 8

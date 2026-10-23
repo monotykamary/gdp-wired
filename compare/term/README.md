@@ -3,8 +3,9 @@
 gdp-wired proves a loop halts with `proveLoop` and no rank stated: core/cycles.ts's `findRank` takes the rank from the
 loop's runs (linear by LP, the exact LP past coefficient 4, degree 2 one product at a time, tuples in order), then from
 the loop's relation (core/relation.ts: its linear paths over the integers its pairs of naturals are, each path's
-generators; a rank per location, blocks in order, each nested to depth 3, where none, invariants by Houdini over the
-relation), with the invariants `inferLaws` finds, and the kernel checks the halting goals. This directory runs it on termination problems
+generators; a rank per location, blocks in order, each nested to depth 3; where none, regions split by one or two
+atoms, invariants by Houdini over the relation, a location's and each region's own), with the invariants `inferLaws`
+finds, and the kernel checks the halting goals. This directory runs it on termination problems
 it didn't write, beside tools built for them, every task in its own Modal container (2 vCPU, 4 GB) under the same 60 s
 wall-clock limit for every tool:
 
