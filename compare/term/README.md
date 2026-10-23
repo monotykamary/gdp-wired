@@ -96,10 +96,10 @@ arrays, 3 with pointers); refused: strings read through pointer arithmetic or ca
 matter 9 (`cstr*`, `strchr-2`, `LexIndexValue-Pointer-2`), an array of 1,048 read at an index that is not a constant
 2, `sqrt` (no body) 2. The 192 of the 226 that translated before translate as before, character for character; the
 34 others have their overflow checks now (and `aviad`'s one unreachable rule left out)
-(`runs/svfront/translations-main`, `translations-mine`). `c2ari_test.py`'s 60 adversarial programs (conversions, the
+(`runs/svfront/translations-main`, `translations-mine`). `c2ari_test.py`'s 66 adversarial programs (conversions, the
 data model, recursion, arrays, pointers, division, undefined behaviour where it is and isn't evaluated, and the 21 of
-the independent check's 93 that found defects, branch verify/sv-front) are never answered against how they run; nor are
-the check's 93 (`runs/svfront/suite-default-2`, `verify-fix1`). The ITS translation folds constants exactly and refuses one
+the independent check's 93 that found defects, branch verify/sv-front, and 6 of its re-check's 52) are never answered
+against how they run; nor are the check's 145 (`runs/svfront/suite-default-3`, `verify-fix2`). The ITS translation folds constants exactly and refuses one
 past 2^53, which the kernel's numbers can't hold (no ITS task has one; a C task's 64-bit range is refused the same way).
 
 ## Results

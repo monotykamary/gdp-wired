@@ -312,6 +312,19 @@ within the time where four other runs proved it at 26 to 33 s). Suites after mer
 jobs, none failed, 640.8 s wall, 5,350.6 s of job time (`suite-default-2`); `--usual` 217, none failed, 602.9 s wall,
 4,961.4 s (`suite-usual-2`).
 
+Its re-check (branch verify/sv-front-2: 52 more programs) found 2 more defects, fixed: the order check read `*p` as
+reading only p (now a dereference reads every object the program takes the address of, and every allocated cell:
+`*p + f()` and `*p += f()` with f writing the global p names are refused); and comments were stripped by regular
+expressions, so a /* inside a // comment or a string literal began one (now one pass left to right, as C's lexer reads,
+string and character literals kept whole). Refused as compilers read them differently: trigraphs, and a backslash with
+spaces before its newline. All 145 programs: no run answers against how C runs (`runs/svfront/verify-fix2`); 6 join
+`c2ari_test.py` (66, none answered against the program). The 282 tasks' translations unchanged, both recursion
+translations and --unchecked (`translations-fix2`). SV-COMP beside main at 5055882: 213 (158, 55), main 182 (135, 47);
+per component 200, main 172; none wrong, none lost (`f5-mine`, `f5-base`). Suites: by default 217 jobs, none failed,
+533.6 s wall, 5,227.8 s of job time (`suite-default-3`); `--usual` 217, none failed, 593.2 s wall, 4,837.5 s
+(`suite-usual-3`). Not done (it loses answers, it isn't unsound): a call before && or ? is sequenced first, so
+`f() && g` could be allowed where f writes g; it is still refused.
+
 ## 0.23.0
 
 Every benchmark moved, two trusted additions came with their Lean proofs first, and a real-world corpus joins the
