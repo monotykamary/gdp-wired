@@ -30,7 +30,7 @@ import type {Goal, Liveness, Loop, Subst, Tree} from '../kernel/kernel.ts'
 import {check, livenessHelpful, livenessParts, loopLiveness, loopMachine, loopObligations, substC, substE} from '../kernel/kernel.ts'
 import {type Cyclic, type Fact, checkCyclic, factsAvoid, lexLt} from '../kernel/cyclic.ts'
 import {type NodeSpec, proveCyclic} from './cyclic.ts'
-import {type Lin, canon, gcd, plus, refuteFast, solve, vars, work} from './solver.ts'
+import {type Lin, canon, gcd, konst, plus, refuteFast, solve, subst, times, vars, work} from './solver.ts'
 import {clock, grow, proveLaws, proveLiveness, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {inferLaws} from './infer.ts'
 import {bgcd} from './q.ts'
@@ -877,8 +877,6 @@ export function findCycles(facts: Fact[], claims: Claim[], opts: CycleOptions = 
 // its least constant.) The kernel proves the halting goals with it, as with any rank.
 type GPath = {from: number, to: number, gens: Generators, post: Record<string, Lin>, rows: Lin[]}
 type Template = {depth: number, own: boolean, tag: string, names: string[]} // names: a shared template's (the component's live names)
-const konstL = (c: number): Lin => (c ? {1: c} : {})
-const scaleL = (a: Lin, f: number): Lin => { const o: Lin = {}; if (f) for (const x in a) o[x] = a[x]! * f; return o }
 // A form over the relation's names as the kernel's term (an integer's coefficient on its two parts), read truncated.
 const termOf = (rel: Relation, f: Lin): E => {
   const coef: Record<string, number> = {}
@@ -951,9 +949,9 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
     // (each row once; one that reads no unknown and holds, along a name the template doesn't read, left out)
     const out = new Map<string, Lin>()
     for (const r of [
-      ...p.gens.vertices.map(g => plus(scaleL(h(env(g), tOf(g)), -1), {1: c * tOf(g)})),
-      ...p.gens.rays.map(g => scaleL(h(env(g), 0), -1)),
-      ...p.gens.lines.flatMap(g => [h(env(g), 0), scaleL(h(env(g), 0), -1)]),
+      ...p.gens.vertices.map(g => plus(times(h(env(g), tOf(g)), -1), {1: c * tOf(g)})),
+      ...p.gens.rays.map(g => times(h(env(g), 0), -1)),
+      ...p.gens.lines.flatMap(g => [h(env(g), 0), times(h(env(g), 0), -1)]),
     ]) if (Object.keys(r).some(x => x !== '1') || (r['1'] ?? 0) > 0) out.set(canon(r), r)
     return [...out.values()]
   }
@@ -1026,7 +1024,6 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
   // (if atom then f else g). With invariants (`inv`), each node's own first, by Houdini over every path of the relation
   // split the same way: disjunctive invariants (x ≤ −1 where x ≥ 1 fails, after x := 1 or x := −1), each a law
   // (pc = ℓ ∧ the signs → atom) the kernel proves inductive with the rest.
-  const after1 = (p: GPath, a: Lin): Lin => { let o: Lin = {}; for (const [x, c] of Object.entries(a)) o = plus(o, x !== '1' && p.post[x] ? scaleL(p.post[x]!, c) : {[x]: c}); return o }
   const side = (a: Lin, yes: boolean): Lin => (yes ? a : plus({1: 1}, a, -1))
   const regionLaws: Law[] = [], regionTexts: string[] = []
   const regions = (c: number, paths: GPath[]): {parts: E[][], sizes: number[]} | undefined => {
@@ -1056,7 +1053,7 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
       // or x := −1 on the way in)
       const K = as.length, base = nodeLoc.length, node = (n: number, bits: number) => base + (n << K) + bits
       for (const n of values.keys()) for (let b = 0; b < 1 << K; b++) nodeLoc.push(n)
-      const sides = (p: GPath, bits: number, after: boolean) => as.map((a, i) => side(after ? after1(p, a) : a, ((bits >> i) & 1) === 0))
+      const sides = (p: GPath, bits: number, after: boolean) => as.map((a, i) => side(after ? subst(a, p.post) : a, ((bits >> i) & 1) === 0))
       // (undefined where a path's generators aren't found, past their cap or the time: a path left out is no path ranked)
       const splitOf = (ps: GPath[], extra: (n: number) => Lin[] = () => []): GPath[] | undefined => {
         const out: GPath[] = []
@@ -1127,7 +1124,7 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
   }
   // per location, its component's parts in order (0 past them), the heights first where paths join components
   const width = Math.max(0, ...parts.map(p => p?.length ?? 0))
-  const columns: E[][] = [...(gpaths.some(p => comp[p.from] !== comp[p.to]) ? [values.map((_, n) => termOf(rel, konstL(heightOf(comp[n]!))))] : []),
+  const columns: E[][] = [...(gpaths.some(p => comp[p.from] !== comp[p.to]) ? [values.map((_, n) => termOf(rel, konst(heightOf(comp[n]!))))] : []),
     ...Array.from({length: width}, (_, j) => values.map((_, n) => parts[comp[n]!]?.[j]?.[n] ?? k(0)))]
   const rank = columns.map(terms => {
     let e = terms.at(-1) ?? k(0)
@@ -1136,7 +1133,7 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
   })
   if (!rank.length) rank.push(k(0))
   const linear = [...new Set(comp)].every(c => lins[c] || !parts[c])
-  const forms = linear ? [...(gpaths.some(p => comp[p.from] !== comp[p.to]) ? [values.map((_, n) => konstL(heightOf(comp[n]!)))] : []),
+  const forms = linear ? [...(gpaths.some(p => comp[p.from] !== comp[p.to]) ? [values.map((_, n) => konst(heightOf(comp[n]!)))] : []),
     ...Array.from({length: width}, (_, j) => values.map((_, n) => lins[comp[n]!]?.[j]?.[n] ?? {}))] : undefined
   return {rank, text: `(${rank.map(showE).join(', ')})`, blocks: sizes, laws: regionLaws, texts: regionTexts, ...(forms ? {forms} : {})}
 }
@@ -1169,14 +1166,14 @@ export function rankWithInvariants(l: Loop, laws: Law[], until: number): {rank: 
   const atoms: Lin[] = [...new Map(rel.paths.flatMap(p => p.rows).filter(r => vars(r).length > 1 && Object.keys(r).every(x => x === '1' || names.has(x))).map(r => [canon(r), r] as const)).values()]
   // per location, over the names live there: their bounds at the constants, then (a second try) the paths' atoms too
   // (and 1 ≤ 0: the location unreachable, where every path into it leaves from states the rest rule out)
-  const bounds = values.map((_, n) => [{1: 1}, ...at[n]!.flatMap(x => K.flatMap((c): Lin[] => [plus({[x]: 1}, konstL(-c)), plus({[x]: -1}, konstL(c))]))])
+  const bounds = values.map((_, n) => [{1: 1}, ...at[n]!.flatMap(x => K.flatMap((c): Lin[] => [plus({[x]: 1}, konst(-c)), plus({[x]: -1}, konst(c))]))])
   // and what a path's assignments leave where it goes: x := y + c with y kept, x − y = c there (KoAT2's 2 + X₄ = X₁)
   const copies = values.map((): Lin[] => [])
   for (const [i, p] of rel.paths.entries()) for (const [x, f] of Object.entries(p.post)) {
     const ys = Object.keys(f).filter(y => y !== '1')
     if (ys.length !== 1 || f[ys[0]!] !== 1 || ys[0] === x || !names.has(ys[0]!)) continue
     const y = ys[0]!, kept = p.post[y] ? id(p.post[y]) === id({[y]: 1}) : true
-    if (kept) copies[toOf(i)]!.push(plus({[x]: 1, [y]: -1}, konstL(-(f['1'] ?? 0))), plus({[x]: -1, [y]: 1}, konstL(f['1'] ?? 0)))
+    if (kept) copies[toOf(i)]!.push(plus({[x]: 1, [y]: -1}, konst(-(f['1'] ?? 0))), plus({[x]: -1, [y]: 1}, konst(f['1'] ?? 0)))
   }
   const withAtoms = values.map((_, n) => [...bounds[n]!, ...atoms.filter(a => Object.keys(a).every(x => x === '1' || at[n]!.includes(x))), ...copies[n]!.filter(a => Object.keys(a).every(x => x === '1' || at[n]!.includes(x)))])
   // the starts: random params (the precondition's), the state they begin in

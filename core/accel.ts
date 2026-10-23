@@ -28,18 +28,13 @@
 import type {C, E} from './machine.ts'
 import type {Loop} from '../kernel/kernel.ts'
 import {type Path, type Relation, relationOf} from './relation.ts'
-import {type Lin, canon, gcd, konst, plus, solve, times, vars} from './solver.ts'
+import {type Lin, canon, gcd, konst, plus, solve, subst, times, vars} from './solver.ts'
 
 // `targets`: the set's parts, each a location and its rows over the relation's names (R_j), for a stem's search.
 export type Target = {loc: number, rows: Lin[]}
 export type Accelerated = {set: C, wit: Record<string, E>, cycle: number[], locs: number[], targets: Target[]}
 
 const K = (value: number): E => ({op: 'const', value}), V = (name: string): E => ({op: 'var', name})
-const subst = (l: Lin, m: Record<string, Lin>): Lin => {
-  let o: Lin = konst(l['1'] ?? 0)
-  for (const x of vars(l)) o = plus(o, m[x] ?? {[x]: 1}, l[x]!)
-  return o
-}
 const isConst = (l: Lin) => vars(l).length === 0
 // (a row's coefficients divided by their common divisor, its constant rounded up: an integer row as tight as it goes)
 const tight = (l: Lin): Lin => {

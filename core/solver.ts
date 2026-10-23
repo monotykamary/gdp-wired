@@ -69,6 +69,8 @@ export const vars = (lin: Lin) => Object.keys(lin).filter(key => key !== '1')
 export const plus = (a: Lin, b: Lin, f = 1): Lin => { const o: Lin = {...a}; for (const x in b) { o[x] = (o[x] ?? 0) + f * b[x]!; if (!o[x]) delete o[x] } return o }
 export const times = (a: Lin, f: number): Lin => { const o: Lin = {}; if (f) for (const x in a) o[x] = a[x]! * f; return o }
 export const konst = (c: number): Lin => (c ? {1: c} : {})
+// l with each name of m's replaced by its form there
+export const subst = (l: Lin, m: Record<string, Lin>): Lin => { let o: Lin = {}; for (const [x, c] of Object.entries(l)) o = plus(o, x !== '1' && m[x] ? times(m[x]!, c) : {[x]: c}); return o }
 export const canon = (l: Lin) => JSON.stringify(Object.keys(l).sort().map(x => [x, l[x]]))
 
 // maxRows: elimination can square the rows each round; past this many live rows, or a round that would make more than

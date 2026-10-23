@@ -15,7 +15,7 @@
 import type {C, E, Law} from './machine.ts'
 import type {Loop} from '../kernel/kernel.ts'
 import {clock} from '../kernel/prove.ts'
-import {type Lin, canon, konst, plus, solve, times, vars, work} from './solver.ts'
+import {type Lin, canon, konst, plus, solve, subst, times, vars, work} from './solver.ts'
 import {bgcd} from './q.ts'
 
 export type Path = {
@@ -391,8 +391,7 @@ export function houdini(rel: Relation, cands: Lin[][], locOf: (i: number) => [nu
       if (!g) {
         // past the generators' cap: each candidate after the turn refuted by the integer solver, or dropped
         const nat = rel.nats.filter(x => ns.includes(x)).map((x): Lin => ({[x]: -1}))
-        const through = (c: Lin): Lin => { let o: Lin = {}; for (const [y, k] of Object.entries(c)) o = plus(o, y !== '1' && p.post[y] ? times(p.post[y]!, k) : {[y]: k}); return o }
-        const keep = H[b]!.filter(c => clock() < until && solve([...rows, ...nat, plus(konst(1), through(c), -1)].map(lin => ({lin, label: ''})), 4000).kind === 'refuted')
+        const keep = H[b]!.filter(c => clock() < until && solve([...rows, ...nat, plus(konst(1), subst(c, p.post), -1)].map(lin => ({lin, label: ''})), 4000).kind === 'refuted')
         if (keep.length < H[b]!.length) { H[b] = keep; changed = true }
         continue
       }
