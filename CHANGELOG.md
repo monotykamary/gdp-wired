@@ -5,6 +5,49 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+Lemmas the datatype search finds and uses. TIP 2015 at 60 s on Modal: 176 of 492 proven, 0.22.0 the same day 140, none
+wrong (`runs/lem/tip-final`, `runs/lem/tip-final-base`; `false/`: 23 refuted in both, each confirmed by TIP's
+evaluator, none proven). Nothing trusted changed (`kernel/`, `core/check.ts` and `lean-kernel/` are as in 0.22.0). The
+second frontier corpus's TIP items: frontier 2 of 15, 0.22.0 1 that day, every broken variant refused in both
+(`runs/lem/corpus2-tip-final`, `corpus2-tip-final-base`). The suite on Modal beside 0.22.0's: by default 455.2 s wall,
+4,501.7 s of job time, none failed, 0.22.0 506.4 s and 4,328.8 s (`runs/lem/suite-default`, `suite-base-default`);
+`--usual` 537.6 s and 4,217.3 s, none failed, 0.22.0 487.3 s and 4,047.7 s (`runs/lem/suite-usual`,
+`suite-base-usual`). The first frontier corpus's datatype track scores as at 0.22.0 in both modes.
+
+- Terms by their structure (core/data.ts's `sid`): a key's pairing reads its arguments again, so a nested read's text
+  grows exponentially with its depth; the search keyed terms by that text. Ids over shared objects, a substitution that
+  keeps them shared, and traversals that visit an object once are linear in the objects. TIP's timeouts at 0.22.0's
+  proofs: 165 to 146 (`runs/datafix/tip`, `runs/lem/tip-perf1`).
+- Bridges (core/transfer.ts): a well-founded function of naturals that computes a sum Σ cᵢ·xᵢ + c₀ of up to four of them
+  (add3, add3acc: x + y + z) is bridged like +, its bridge proven by its own recursion; and a node read through the
+  bridges takes the program's widest measure in its rank (the kernel refuses ranks of two lengths, so a law through a
+  well-founded function's proof was never read back). 30 of the 37 gains: add3 and add3acc 9 each, mul2, mul3 and
+  mul3acc 11 through copies over them, op 1.
+- Conjectures: told apart also on 40 values that fill their size (where three butlasts of anything are empty on the
+  short ones); an equation reading a variable twice generalised apart (`(xs ++ xs) ++ ys = xs ++ (xs ++ ys)` is ++'s
+  associativity over three lists; prod/prop_34 from `mult x y z = x·y + z`); a predicate kept over either variable of
+  a sort (`elem x z ⇒ elem x (union y z)`).
+- Lemma uses through other uses' conclusions (two lemmas chained by rewriting); arguments equal by arithmetic one
+  class (`(n + 1) ∸ 1` and n: isaplanner/prop_13 and prop_42, a definition on the naturals unfolded at n + 1).
+- The order of the search: the law at two unfoldings before any conjecture (isaplanner/prop_59, 63, 64, 67); the
+  lemmas the goal reads within 30% of the time left, the law again after each, without induction first; the law alone
+  with more time; the other lemmas; an attempt that failed within its time not repeated, and passes bounded by number.
+  Diagnostic: with no conjectures at all, 39 of the 216 unproven at `tip-perf1` (`runs/lem/nolem1`).
+- Tried and left out: decreases proven with lemmas (a size bound on another function, the toList and pairwise passes'
+  91 refusals): 20 more TIP problems translated and all 20 out of time, none proven (`runs/lem/tip-v3`); lemmas ranked
+  bottom up, and the law tried by its schemes only after every third lemma: more TIP (180, `runs/lem/tip`) and the
+  suite's search tree insertion at 194.8 s against 20.4 s, the datatype corpus's reverseReverse at 72.6 s against
+  22.3 s (`runs/lem/suite-default-1`, `suite-default-2`, beside their bases). compare/tip/README.md has each step's run.
+- The `data` job: data.test.ts 14.55 s by default and 12.73 s `--usual` against 8.25 s and 8.07 s (two tests added, a
+  linear bridge and a generalisation), the limited tests under their 5 s (nearPlus 3,121.95 ms, nearSucc 2,393.35 ms
+  by default); on one machine the examples took 67.5 s and 68.5 s against 56.6 s and 63.1 s, data.test.ts 4.6 s against
+  3.6 s (`runs/lem/local-data`). The time is attempts' instances, which aren't counted work: the searches stop at the
+  same counted budget, and the new conjectures' attempts take more of the wall. On 1 vCPU (ten `data` jobs each, this
+  branch's and main's at dd36f67 interleaved in one Modal batch, `runs/lem/data-1cpu`): nearPlus min, median and max
+  1,751, 2,756 and 3,439 ms against main's 1,812, 2,508 and 2,811; nearSucc 1,512, 2,178 and 2,462 against 1,142, 1,555
+  and 1,783; none failed; the job 180.8 s median against 153.5 s.
+- `compare/tip/solve.ts --opts '<json>'`: proveData's options, for diagnostics.
+
 A run that never ends, stated and proven: `proveNeverEnds(loop)` claims that some run of a loop goes on forever (the
 claim a halting proof refutes), with a closed recurrent set as its certificate, checked by the kernel and again by Lean.
 TermComp's ITS at 60 s on Modal, `gdp` alone: 450 nonterminating and 56 terminating, 0.22.0 the same day 320 and 56

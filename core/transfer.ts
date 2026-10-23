@@ -19,54 +19,73 @@
 //     and the same call at the arguments said another way. Its goal is equalities; nothing is assumed.
 // The bridges and the copies' laws are nodes like any lemma's, at levels below the law's.
 import type {C, E} from './machine.ts'
-import {type DataLaw, type DataVerdict, type Fn, type Options, type Program, type Proven, type SearchCtx, type Sort, type X, type Y, Bool, Integer, Nat, Val, argsOf, bindName, define, encX, encY, evalX, factsOf, fnNamed, programOf, schemesOf, searchIn} from './data.ts'
+import {type DataLaw, type DataVerdict, type Fn, type Options, type Program, type Proven, type SearchCtx, type Sort, type X, type Y, Bool, Integer, Nat, Val, argsOf, bindName, define, encX, encY, evalX, factsOf, fnNamed, programOf, rankWidth, schemesOf, searchIn} from './data.ts'
 import {type NodeSpec, proveCyclic} from './cyclic.ts'
 import {clock, pairedKeys, withDeadline} from '../kernel/prove.ts'
 import {substE} from '../kernel/kernel.ts'
 
 // --- the built-ins a function may compute ------------------------------------------------------------------------------
 
-type Op = {name: string, args: 1 | 2, ret: 'nat' | 'bool', x: (a: X, b: X) => X, at: (a: number, b: number) => number}
+type Op = {name: string, args: number, ret: 'nat' | 'bool', x: (as: X[]) => X, at: (ns: number[]) => number}
 const nat = (value: number): X => ({op: 'nat', value})
 const cond = (c: Y): X => ({op: 'bool', c})
 const OPS: Op[] = [
-  {name: '+', args: 2, ret: 'nat', x: (a, b) => ({op: 'add', a, b}), at: (a, b) => a + b},
-  {name: '∸', args: 2, ret: 'nat', x: (a, b) => ({op: 'sub', a, b}), at: (a, b) => Math.max(0, a - b)},
-  {name: 'min', args: 2, ret: 'nat', x: (a, b) => ({op: 'min', a, b}), at: Math.min},
-  {name: 'max', args: 2, ret: 'nat', x: (a, b) => ({op: 'max', a, b}), at: Math.max},
-  {name: '≤', args: 2, ret: 'bool', x: (a, b) => cond({op: '<=', a, b}), at: (a, b) => +(a <= b)},
-  {name: '<', args: 2, ret: 'bool', x: (a, b) => cond({op: '<', a, b}), at: (a, b) => +(a < b)},
-  {name: '=', args: 2, ret: 'bool', x: (a, b) => cond({op: '=', a, b}), at: (a, b) => +(a === b)},
-  {name: '≥', args: 2, ret: 'bool', x: (a, b) => cond({op: '<=', a: b, b: a}), at: (a, b) => +(a >= b)},
-  {name: '>', args: 2, ret: 'bool', x: (a, b) => cond({op: '<', a: b, b: a}), at: (a, b) => +(a > b)},
-  {name: '≠', args: 2, ret: 'bool', x: (a, b) => cond({op: 'not', x: {op: '=', a, b}}), at: (a, b) => +(a !== b)},
-  {name: 'x + 1', args: 1, ret: 'nat', x: a => ({op: 'add', a, b: nat(1)}), at: a => a + 1},
-  {name: 'x ∸ 1', args: 1, ret: 'nat', x: a => ({op: 'sub', a, b: nat(1)}), at: a => Math.max(0, a - 1)},
-  {name: '2·x', args: 1, ret: 'nat', x: a => ({op: 'mul', k: 2, a}), at: a => 2 * a},
-  {name: 'x = 0', args: 1, ret: 'bool', x: a => cond({op: '=', a, b: nat(0)}), at: a => +(a === 0)},
+  {name: '+', args: 2, ret: 'nat', x: ([a, b]) => ({op: 'add', a: a!, b: b!}), at: ([a, b]) => a! + b!},
+  {name: '∸', args: 2, ret: 'nat', x: ([a, b]) => ({op: 'sub', a: a!, b: b!}), at: ([a, b]) => Math.max(0, a! - b!)},
+  {name: 'min', args: 2, ret: 'nat', x: ([a, b]) => ({op: 'min', a: a!, b: b!}), at: ([a, b]) => Math.min(a!, b!)},
+  {name: 'max', args: 2, ret: 'nat', x: ([a, b]) => ({op: 'max', a: a!, b: b!}), at: ([a, b]) => Math.max(a!, b!)},
+  {name: '≤', args: 2, ret: 'bool', x: ([a, b]) => cond({op: '<=', a: a!, b: b!}), at: ([a, b]) => +(a! <= b!)},
+  {name: '<', args: 2, ret: 'bool', x: ([a, b]) => cond({op: '<', a: a!, b: b!}), at: ([a, b]) => +(a! < b!)},
+  {name: '=', args: 2, ret: 'bool', x: ([a, b]) => cond({op: '=', a: a!, b: b!}), at: ([a, b]) => +(a! === b!)},
+  {name: '≥', args: 2, ret: 'bool', x: ([a, b]) => cond({op: '<=', a: b!, b: a!}), at: ([a, b]) => +(a! >= b!)},
+  {name: '>', args: 2, ret: 'bool', x: ([a, b]) => cond({op: '<', a: b!, b: a!}), at: ([a, b]) => +(a! > b!)},
+  {name: '≠', args: 2, ret: 'bool', x: ([a, b]) => cond({op: 'not', x: {op: '=', a: a!, b: b!}}), at: ([a, b]) => +(a! !== b!)},
+  {name: 'x + 1', args: 1, ret: 'nat', x: ([a]) => ({op: 'add', a: a!, b: nat(1)}), at: ([a]) => a! + 1},
+  {name: 'x ∸ 1', args: 1, ret: 'nat', x: ([a]) => ({op: 'sub', a: a!, b: nat(1)}), at: ([a]) => Math.max(0, a! - 1)},
+  {name: '2·x', args: 1, ret: 'nat', x: ([a]) => ({op: 'mul', k: 2, a: a!}), at: ([a]) => 2 * a!},
+  {name: 'x = 0', args: 1, ret: 'bool', x: ([a]) => cond({op: '=', a: a!, b: nat(0)}), at: ([a]) => +(a! === 0)},
 ]
+// A sum Σ cᵢ·xᵢ + c₀ of naturals (cᵢ, c₀ ≥ 0): the built-in of a function of three or four naturals (add3, add3acc), or
+// of one or two that none of OPS is.
+const linear = (cs: number[], c0: number): Op => {
+  const names = ['x', 'y', 'z', 'w'], name = [...cs.flatMap((c, i) => (c ? [`${c === 1 ? '' : `${c}·`}${names[i]}`] : [])), ...(c0 || cs.every(c => !c) ? [String(c0)] : [])].join(' + ')
+  const term = (a: X, c: number): X => (c === 1 ? a : {op: 'mul', k: c, a})
+  return {name, args: cs.length, ret: 'nat', at: ns => cs.reduce((t, c, i) => t + c * ns[i]!, c0),
+    x: as => { const parts = [...cs.flatMap((c, i) => (c ? [term(as[i]!, c)] : [])), ...(c0 || cs.every(c => !c) ? [nat(c0)] : [])]; return parts.slice(1).reduce<X>((t, x) => ({op: 'add', a: t, b: x}), parts[0]!) }}
+}
 const fnOf = (name: string): Fn => { const f = fnNamed(name); if (!f) throw new Error(`no function ${name}`); return f }
 const recursive = (f: Fn) => f.decreases !== undefined
-// The built-in a recursive function of naturals computes at every argument up to 6 (one argument: up to 12), if one.
+// Recursive at all (structural, or well-founded): never unfolded at a call.
+const taken = (f: Fn) => recursive(f) || f.measure !== undefined
+// The built-in a recursive function of naturals (structural, or well-founded: its termination proven) computes at every
+// argument up to 6 (one argument: up to 12; three: up to 5; four: up to 3), if one.
 function builtinOf(f: Fn): Op | undefined {
-  if (!recursive(f) || f.paramFns.length || !(f.ret === 'nat' || f.ret === 'bool') || !f.params.every(q => q.sort === 'nat')) return undefined
+  if (!taken(f) || f.paramFns.length || !(f.ret === 'nat' || f.ret === 'bool') || !f.params.every(q => q.sort === 'nat')) return undefined
   const n = f.params.length
-  return OPS.find(op => {
-    if (op.args !== n || op.ret !== f.ret) return false
-    try {
-      for (let a = 0; a <= (n === 1 ? 12 : 6); a++) for (let b = 0; b <= (n === 1 ? 0 : 6); b++) {
-        if (evalX({op: 'call', fn: f.name, args: [nat(a), nat(b)].slice(0, n)}, new Map(), {}) !== op.at(a, b)) return false
-      }
-    } catch { return false }
-    return true
-  })
+  if (n < 1 || n > 4) return undefined
+  const top = [12, 6, 5, 3][n - 1]!, points: number[][] = [[]]
+  for (let i = 0; i < n; i++) points.splice(0, points.length, ...points.flatMap(p => Array.from({length: top + 1}, (_, a) => [...p, a])))
+  const values = new Map<string, number>()
+  const at = (ns: number[]): number | undefined => {
+    const key = ns.join(',')
+    if (!values.has(key)) { try { values.set(key, evalX({op: 'call', fn: f.name, args: ns.map(nat)}, new Map(), {}) as number) } catch { return undefined } }
+    return values.get(key)
+  }
+  const agrees = (op: Op) => points.every(ns => at(ns) === op.at(ns))
+  const named = OPS.find(op => op.args === n && op.ret === f.ret && agrees(op))
+  if (named || f.ret !== 'nat') return named
+  // (its value at zero and at each unit point, then checked at every point)
+  const c0 = at(Array(n).fill(0)), cs = Array.from({length: n}, (_, i) => { const e = Array(n).fill(0); e[i] = 1; const v = at(e); return v === undefined || c0 === undefined ? -1 : v - c0 })
+  if (c0 === undefined || cs.some(c => c < 0)) return undefined
+  const op = linear(cs, c0)
+  return agrees(op) ? op : undefined
 }
 // Whether `y` is f's bridge law: f at distinct variables equal (either side) to the built-in at them.
 function isBridge(y: Y, f: Fn, op: Op): boolean {
   if (y.op !== '=') return false
   const sides: [X, X][] = [[y.a, y.b], [y.b, y.a]]
   return sides.some(([c, x]) => c.op === 'call' && c.fn === f.name && c.args.every(a => a.op === 'var') && new Set(c.args.map(a => JSON.stringify(a))).size === c.args.length
-    && JSON.stringify(x) === JSON.stringify(op.x(c.args[0]!, c.args[1] ?? nat(0))))
+    && JSON.stringify(x) === JSON.stringify(op.x(c.args)))
 }
 const callsOf = (t: unknown): string[] => { const out: string[] = []; walkO(t, o => { if (o.op === 'call') out.push(o.fn as string) }); return out }
 function walkO(t: unknown, f: (o: Record<string, unknown>) => void): void {
@@ -84,7 +103,7 @@ export type Plan = {bridges: Map<string, Op>, unfolds: boolean}
 export function transferPlan(l: DataLaw): Plan | undefined {
   const p = programOf([l]), bridges = new Map<string, Op>()
   for (const f of p.fns) { const op = builtinOf(f); if (op && !isBridge(l.holds, f, op)) bridges.set(f.name, op) }
-  const unfolds = p.fns.some(f => !recursive(f))
+  const unfolds = p.fns.some(f => !taken(f))
   return bridges.size || unfolds ? {bridges, unfolds} : undefined
 }
 
@@ -128,8 +147,8 @@ function rewriter(bridges: Map<string, Op>, copies: Map<string, string>, unfold:
       case 'natmatch': return {...x, of: rx(x.of), zero: rx(x.zero), succ: rx(x.succ)}
       case 'call': {
         const op = bridges.get(x.fn)
-        if (op) return op.x(rx(x.args[0]!), x.args[1] ? rx(x.args[1]) : nat(0))
-        if (unfold && !recursive(fnOf(x.fn))) { if (++unfolded > 400) throw new RangeError('unfolded past 400 calls'); return rx(instantiate(fnOf(x.fn), x.args)) }
+        if (op) return op.x(x.args.map(rx))
+        if (unfold && !taken(fnOf(x.fn))) { if (++unfolded > 400) throw new RangeError('unfolded past 400 calls'); return rx(instantiate(fnOf(x.fn), x.args)) }
         return {op: 'call', fn: copies.get(x.fn) ?? x.fn, args: x.args.map(rx)}
       }
     }
@@ -156,7 +175,7 @@ type Built = {p: Program, lstar: DataLaw, bridges: {fn: Fn, op: Op, law: DataLaw
 function build(l: DataLaw, bridged: Map<string, Op>, unfold: boolean): Built | undefined {
   // Copied: a function that calls a bridged one, or (unfolding) one that isn't recursive, or a copied one; a function
   // that isn't recursive is unfolded where it is called instead.
-  const p0 = programOf([l]), reach = new Set<string>(), unfolded = (n: string) => unfold && !recursive(fnOf(n))
+  const p0 = programOf([l]), reach = new Set<string>(), unfolded = (n: string) => unfold && !taken(fnOf(n))
   for (let changed = true; changed;) { changed = false; for (const f of p0.fns) if (!bridged.has(f.name) && !unfolded(f.name) && !reach.has(f.name) && callsOf(f.body()).some(g => bridged.has(g) || unfolded(g) || reach.has(g))) { reach.add(f.name); changed = true } }
   if ([...reach].some(n => fnOf(n).ring.length > 1)) return undefined
   const key = `${unfold}|${[...bridged].map(([f, op]) => `${f}:${op.name}`).sort().join(',')}`, copies = new Map<string, string>()
@@ -187,7 +206,7 @@ function build(l: DataLaw, bridged: Map<string, Op>, unfold: boolean): Built | u
   const p1 = programOf([lstar]), back = new Map([...copies].map(([a, b]) => [b, a]))
   const bridges = [...bridged].map(([f, op]) => {
     const fn = fnOf(f), vs = fn.params.map(q => q.name)
-    return {fn, op, law: {name: `${f} is ${op.name}`, vars: fn.params.map(q => ({name: q.name, sort: q.sort})), holds: {op: '=', a: {op: 'call', fn: f, args: vs.map(v)}, b: op.x(v(vs[0]!), vs[1] ? v(vs[1]) : nat(0))}, params: []} as DataLaw}
+    return {fn, op, law: {name: `${f} is ${op.name}`, vars: fn.params.map(q => ({name: q.name, sort: q.sort})), holds: {op: '=', a: {op: 'call', fn: f, args: vs.map(v)}, b: op.x(vs.map(v))}, params: []} as DataLaw}
   })
   const equivs = p1.fns.filter(f => back.has(f.name)).map(c => {
     const fn = fnOf(back.get(c.name)!), vs = fn.params.map(q => q.name), params = [...new Set(fn.paramFns)]
@@ -264,7 +283,7 @@ export function proveThrough(l: DataLaw, plan: Plan, opts: Options, until: numbe
     specs.push(node)
     const v = verify(fs, specs, Math.max(until, clock() + 3000))
     if (!v.proven || !v.checked) return undefined
-    const through = [...b.bridges.map(x => `${x.fn.name} is ${x.op.name}`), ...b.equivs.map(x => x.law.name), ...(b.unfolded ? [`unfolded: ${programOf([l]).fns.filter(f => !recursive(f)).map(f => f.name).join(', ')}`] : [])]
+    const through = [...b.bridges.map(x => `${x.fn.name} is ${x.op.name}`), ...b.equivs.map(x => x.law.name), ...(b.unfolded ? [`unfolded: ${programOf([l]).fns.filter(f => !taken(f)).map(f => f.name).join(', ')}`] : [])]
     return {law: l.name, proven: true, checked: true, proof: v, lemmas: [...b.bridges.map(x => x.law.name), ...b.equivs.map(x => x.law.name), ...r.verdict.lemmas], scheme: `${r.verdict.scheme ?? 'no induction'}, through the law ${b.lstar.name}`, tried, program: b.p, node: specs.length - 1, ms: Math.round(performance.now() - t0), through}
   }
 }
@@ -290,9 +309,9 @@ function walker(b: Built, fs: ReturnType<typeof factsOf>, nodeOf: Map<string, nu
     const br = bridgeOf.get(f.name)
     if (br) {
       if (!use(br.law.name, Object.fromEntries(f.params.map((q, i) => [q.name, as[i]!])))) return undefined
-      return substE(encX(p, br.op.x({op: 'var', name: 'a$'}, {op: 'var', name: 'b$'}), new Map()), {vars: {'a$': as[0]!, 'b$': as[1] ?? k(0)}, maps: {}, flags: {}})
+      return substE(encX(p, br.op.x(as.map((_, i) => ({op: 'var', name: `a$${i}`}))), new Map()), {vars: Object.fromEntries(as.map((a, i) => [`a$${i}`, a])), maps: {}, flags: {}})
     }
-    if (!recursive(f) && b.unfolded) return inst(`fn ${f.name}`, as) ? factBody(f, as) : undefined
+    if (!taken(f) && b.unfolded) return inst(`fn ${f.name}`, as) ? factBody(f, as) : undefined
     const copy = b.copies.get(f.name)
     if (!copy) return undefined
     if (f.name === own) return {op: 'get', map: copy, key: a.key}
@@ -337,11 +356,14 @@ function walker(b: Built, fs: ReturnType<typeof factsOf>, nodeOf: Map<string, nu
   return {walkC, walkE, insts, uses, inst}
 }
 
+// A node's rank is (level, the measure's place, 0 or 1), the measure's place as wide as the program's widest measure
+// (core/data.ts's attempt): the zeros after the `n` components given, so every node's rank has one length.
+const pad = (p: Program, n: number): E[] => Array.from({length: rankWidth(p) - n}, () => k(0))
 // The law's node: its conclusion, using the law said through the bridges (at its own variables) and the walk's reasons.
 function lawNode(l: DataLaw, b: Built, fs: ReturnType<typeof factsOf>, nodeOf: Map<string, number>, lnode: number, level: number): NodeSpec | undefined {
   const w = walker(b, fs, nodeOf), concl = encY(b.p, l.holds, new Map())
   if (!w.walkC(concl, encY(b.p, b.lstar.holds, new Map()))) return undefined
-  return {name: `${l.name} (through ${b.lstar.name})`, hyps: [], concl, rank: [k(level), k(0), k(0)], insts: w.insts, uses: [{node: lnode, subst: {}, guard: yes}, ...w.uses]}
+  return {name: `${l.name} (through ${b.lstar.name})`, hyps: [], concl, rank: [k(level), ...pad(b.p, 0), k(0)], insts: w.insts, uses: [{node: lnode, subst: {}, guard: yes}, ...w.uses]}
 }
 
 // A copy's law, f(xs) = f'(xs), as one node at index `self`: both definitions' facts at xs, their bodies walked together
@@ -357,6 +379,6 @@ function copyNode(x: {fn: Fn, law: DataLaw}, b: Built, fs: ReturnType<typeof fac
   if (recursive(f) && !scheme) return undefined
   const on = scheme?.on, size: E = !on ? k(0) : on.d === 'nat' ? {op: 'var', name: on.v} : {op: 'get', map: `${on.d.name}.size`, key: {op: 'var', name: on.v}}
   if (on && on.d !== 'nat') w.inst(`shape ${on.d.name}`, [{op: 'var', name: on.v}])
-  return {name: `${x.law.name} (its copy, made)`, hyps: [], concl: encY(b.p, x.law.holds, new Map()), rank: [k(level), size, k(0)], insts: w.insts,
+  return {name: `${x.law.name} (its copy, made)`, hyps: [], concl: encY(b.p, x.law.holds, new Map()), rank: [k(level), size, ...pad(b.p, 1), k(0)], insts: w.insts,
     uses: [...(scheme?.uses ?? []).map(u => ({node: self, subst: u.subst, guard: u.guard})), ...w.uses]}
 }
