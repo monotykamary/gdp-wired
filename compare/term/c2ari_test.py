@@ -1,4 +1,4 @@
-"""Adversarial C programs (adversarial/*.c, from the independent check of the ranks, research/verify-ranks on
+"""Adversarial C programs (adversarial/*.c.txt, from the independent check of the ranks, research/verify-ranks on
 verify/ranks, and one more): conversions to char, short and _Bool, which wrap or make 0 or 1 where unbounded integers
 would not. Each runs forever ("expect: nonterminating"), and none may be answered terminates: c2ari.py refuses it,
 or, translated, solve.ts doesn't answer terminates.
@@ -16,7 +16,7 @@ sys.path.insert(0, str(HERE))
 import c2ari  # noqa: E402
 
 failed = []
-probes = sorted((HERE / "adversarial").glob("*.c"))
+probes = sorted((HERE / "adversarial").glob("*.c.txt"))  # (.c.txt: a batch's tree leaves out *.c)
 assert len(probes) >= 5, probes
 for f in probes:
     text = f.read_text()
