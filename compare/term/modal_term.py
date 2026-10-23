@@ -120,7 +120,9 @@ def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]
                     stages.append(json.loads(l))
                 except json.JSONDecodeError:
                     pass
-            last = stages[-1] if stages else {}
+            # the last answer printed: a proof's answer comes once the kernel has checked its trees again, before its
+            # certificate is made, so a run stopped while making it keeps the answer (cert "not made")
+            last = next((s for s in reversed(stages) if "answer" in s), {})
             answer = last.get("answer", "timeout" if code == 124 else "error")
             row = {"tool": tool, "task": t["task"], "answer": answer, "seconds": secs, "stages": stages}
         else:
@@ -131,6 +133,8 @@ def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]
         if answer == "error":
             row["err"] = (err or out)[-600:]
             row["code"] = code
+        elif "CYCLES_TRACE" in extra or "PROVE_TRACE" in extra:
+            row["trace"] = err[-20000:]  # a diagnostic run: the search's trace kept
         rows.append(row)
     return rows
 

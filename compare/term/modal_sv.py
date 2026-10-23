@@ -132,12 +132,17 @@ def shard(tool: str, t: dict, limit: int) -> dict:
             except json.JSONDecodeError:
                 pass
         return st
+
+    # the last answer printed: a proof's answer comes once the kernel has checked its trees again, before its certificate
+    # is made, so a run stopped while making it keeps the answer (cert "not made")
+    def last_answer(st):
+        return next((x for x in reversed(st) if "answer" in x), {}).get("answer")
     if tool in ("gdp", "gdp-scc"):
         cmd = lambda f, *more: ["timeout", "-k", "5", str(max(1, int(left))), "bun", "compare/term/solve.ts", f, "--limit", str(int(left)), *(["--scc"] if tool == "gdp-scc" else []), *more]
         if not split and not unchecked:
             code, out, err = run(cmd("/tmp/t.ari")[4:], left)
             stages = stages_of(out)
-            answer = (stages[-1] if stages else {}).get("answer", "timeout" if code == 124 else "error")
+            answer = last_answer(stages) or ("timeout" if code == 124 else "error")
             row.update(answer=answer, stages=stages)
         else:
             # the two side by side (a vCPU each): a recursive program's two translations, each searching only for its
@@ -154,8 +159,8 @@ def shard(tool: str, t: dict, limit: int) -> dict:
                     o, e = q.communicate()
                 outs.append((q.returncode, o, e))
             st_t, st_n = stages_of(outs[0][1]), stages_of(outs[1][1])
-            a_t = (st_t[-1] if st_t else {}).get("answer")
-            a_n = (st_n[-1] if st_n else {}).get("answer")
+            a_t = last_answer(st_t)
+            a_n = last_answer(st_n)
             if a_t == "terminates" and a_n == "nonterminating":
                 answer = "error"
                 row["err"] = "both answers"
