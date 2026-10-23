@@ -184,7 +184,7 @@ bounded()
 if (useHoudini && !oldHoudini) {
   // --houdini-ms is the stage's deadline from the start; the search is timed (`timed`), as the track's limit is wall time
   // for every solver, not counted as it is by default
-  const h = inferLaws(r, [law], [], {ms: Math.max(1000, houdiniMs - ms()), timed: true, seen, first: direct, progress: (phase, info) => say({stage: `infer ${phase}`, ...info})})
+  const h = inferLaws(r, [law], [], {ms: Math.max(1000, houdiniMs - ms()), timed: true, minimize: false, seen, first: direct, progress: (phase, info) => say({stage: `infer ${phase}`, ...info})})
   say({stage: 'houdini', engine: 'infer', candidates: h.stats.candidates, alive: h.stats.alive, kept: h.found.length, proofs: h.stats.proofs, proven: h.proven && h.checked, ...(h.proven ? {} : {why: `${h.goal ?? ''} ${h.stuck ?? ''}`.trim().slice(0, 120)})})
   if (h.proven && h.checked) done('sat', {by: 'houdini', invariants: h.found.length})
 }
