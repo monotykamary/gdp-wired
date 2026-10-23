@@ -31,8 +31,8 @@ import type {Law} from './machine.ts'
 import * as I from './extract-ir.ts'
 import type {B, N} from './extract-ir.ts'
 import {type MapDecl, type Model, Refusal, type Term, type Var} from './extract-read.ts'
-import {type ReadOptions, isSlice, readClass, readFunctions, readSlice} from './extract-shapes.ts'
-import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, pb, pk, pterm, sortsOf} from './extract-print.ts'
+import {type ReadOptions, isFactory, isSlice, readClass, readFactory, readFunctions, readSlice} from './extract-shapes.ts'
+import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, pb, pidx, pk, pterm, sortsOf} from './extract-print.ts'
 import {type CheckOptions, type Evidence, check} from './extract-check.ts'
 
 export type ExtractOptions = ReadOptions & {
@@ -69,7 +69,7 @@ export function extract(code: string, opts: ExtractOptions): Extraction {
     const isClass = opts.shape ? opts.shape === 'class' : new RegExp(`\\bclass\\s+${opts.entry}\\b|\\b${opts.entry}\\s*=\\s*class\\b`).test(code)
     // The file sits in the working directory, so its imports (xstate, say) resolve as the project's do.
     const cwd = (globalThis as {process?: {cwd?: () => string}}).process?.cwd?.() ?? '.', at = `${cwd}/${file}`
-    model = isClass ? readClass(code, at, opts) : isSlice(code, opts.entry) ? readSlice(code, at, opts) : readFunctions(code, at, opts)
+    model = isClass ? readClass(code, at, opts) : isSlice(code, opts.entry) ? readSlice(code, at, opts) : isFactory(code, file, opts.entry) ? readFactory(code, at, opts) : readFunctions(code, at, opts)
     model.file = file
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
@@ -123,7 +123,8 @@ function evaluate(body: string): Rule {
 function invariantsOf(m: Model, sorts: Sorts): string[] {
   const empty = (d: MapDecl, f: Var) => (f.sort.k === 'num' ? `.eq(0)` : f.sort.k === 'bool' ? `.not()` : f.sort.k === 'choice' ? `.is(${JSON.stringify(f.sort.values[0])})` : `.eq('')`)
   void sorts
-  return m.maps.map(d => `r.law(${JSON.stringify(`${d.name}: a key it doesn't hold holds the defaults`)}, ({${d.name}}) => forall(k => any(${d.name}.at(k).has, all(${d.fields.map(f => `${d.name}.at(k).${f.name}${empty(d, f)}`).join(', ')}))))`)
+  return [...m.maps.map(d => `r.law(${JSON.stringify(`${d.name}: a key it doesn't hold holds the defaults`)}, ({${d.name}}) => forall(k => any(${d.name}.at(k).has, all(${d.fields.map(f => `${d.name}.at(k).${f.name}${empty(d, f)}`).join(', ')}))))`),
+    ...(m.lists ?? []).map(d => `r.law(${JSON.stringify(`${d.name}: nothing past its end`)}, ({${d.name}}) => ${d.name}.within())`)]
 }
 function evaluateLaws(r: Rule, xs: string[]): Law[] {
   if (!xs.length) return []
@@ -135,7 +136,7 @@ function moduleOf(m: Model, body: string, file: string): string {
   const used = NAMES.filter(n => new RegExp(`(^|[^.\\w$])${n}\\(|(^|[^.\\w$])${n}\\b(?!\\s*:)`).test(body.replace(/'[^']*'/g, "''")) || (n === 'rule'))
   const ident = identOf(m)
   return [
-    `// Extracted by gdp-wired/extract from ${file} (${m.entry}, ${m.shape === 'class' ? 'a class' : m.shape === 'reducer' ? 'a step function' : 'functions over one record'}).`,
+    `// Extracted by gdp-wired/extract from ${file} (${m.entry}, ${m.factory ? 'a factory of an object of functions' : m.shape === 'class' ? 'a class' : m.shape === 'reducer' ? 'a step function' : 'functions over one record'}).`,
     `// Checked against the code it was read from; read again with extract() after the code changes.`,
     `import {${[...new Set([...used, ...(m.maps.length ? ['all', 'any', 'forall'] : [])])].sort((a, b) => a.localeCompare(b)).join(', ')}} from 'gdp-wired'`,
     '',
@@ -165,6 +166,7 @@ function builderOf(m: Model, sorts: Sorts): string {
   }
   if (m.state.length) lines.push(`  .state({${m.state.map(v => `${v.name}: ${start(v)}`).join(', ')}})`)
   if (m.maps.length) lines.push(`  .maps({${m.maps.map((d: MapDecl) => `${d.name}: ${mapKind(d, sorts)}.from(${mapEmpty(d)})`).join(', ')}})`)
+  if (m.lists?.length) lines.push(`  .items({${m.lists.map(d => `${d.name}: ${kindOf(d.fields[0]!, sorts, `${d.name}.$item`)}`).join(', ')}})`)
   const envOf = (...xs: object[]) => {
     const vars = new Set<string>(), maps = new Set<string>()
     for (const x of xs) I.varsOf(x as N, vars, maps)
@@ -195,9 +197,19 @@ function builderOf(m: Model, sorts: Sorts): string {
     const vals = d.fields.map(f => `${f.name}: ${pterm(w.vals[f.name]!, P, {m, sorts, atoms: [w.has]}, `${n}.${f.name}`)}`)
     outs.push([n, `${n}.set(${pk(w.key, P, ctx())}, {has: ${pb(w.has, P, ctx())}, ${vals.join(', ')}})`])
   }
+  // A list's write: its apply over the operations by cases (each under its condition).
+  const lw = Object.entries(m.listWrites ?? {})
+  for (const [n, ops] of lw) {
+    const one = (o: (typeof ops)[number]) => {
+      const at = {m, sorts, atoms: [o.when]}, when = pb(o.when, P, ctx())
+      return o.op === 'push' ? `${n}.push(${pterm(o.x, P, at, `${n}.$item`)}, ${when})` : o.op === 'pop' ? `${n}.pop(${when})` : `${n}.set(when(${when}, ${pidx(o.i, P, at)}, 0), ${pterm(o.x, P, at, `${n}.$item`)}, ${when})`
+    }
+    outs.push([`...${n}`, `${n}.apply(${ops.map(one).join(', ')})`])
+  }
   const all = [...defs, ...outs.map(([, x]) => x)].join('\n')
-  const env = withChoices(envOf(...writes.map(([, t]) => t.e), ...mw.flatMap(([, w]) => [w.has, w.key, ...Object.values(w.vals).map(t => t.e)])), all, P, mw.map(([n]) => n))
-  const ret = `{${outs.map(([n, x]) => `${n}: ${x}`).join(', ')}}`
+  const lterms = lw.flatMap(([, ops]) => ops.flatMap(o => [o.when, ...(o.op === 'pop' ? [] : [o.x.e]), ...(o.op === 'set' ? [o.i] : [])]))
+  const env = withChoices(envOf(...writes.map(([, t]) => t.e), ...mw.flatMap(([, w]) => [w.has, w.key, ...Object.values(w.vals).map(t => t.e)]), ...lterms), all, P, [...mw.map(([n]) => n), ...lw.map(([n]) => n)])
+  const ret = `{${outs.map(([n, x]) => (n.startsWith('...') ? `...${x}` : `${n}: ${x}`)).join(', ')}}`
   lines.push(defs.length ? `  .step((${env}) => {\n${defs.map(d => `    ${d}`).join('\n')}\n    return ${ret}\n  })` : `  .step((${env}) => (${ret}))`)
   return lines.join('\n')
 }

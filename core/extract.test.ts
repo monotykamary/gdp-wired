@@ -136,7 +136,7 @@ test('functions over one record, each an event; a Record keyed by strings with ?
 })
 
 test('what the subset does not read is refused where it is, with the reason', () => {
-  refused(ts('export function r(s: {xs: number[]}, a: {type: "push"}) { return s }', 'r', {init: {xs: []}}), /an array/)
+  refused(ts('export function r(s: {xs: {a: number}[]}, a: {type: "push"}) { return s }', 'r', {init: {xs: []}}), /an array of records/)
   refused(ts('export function r(s: {n: number}, a: {k: number}): {n: number} { for (let i = 0; i < a.k; i++) {} return s }', 'r', {init: {n: 0}}), /a loop/)
   refused(ts('export class C { n = 0; async go(): Promise<void> { this.n++ } }', 'C'), /async/)
   refused(ts('const Mixin = (b: any) => class extends b {}\nexport class C extends Mixin(Object) { n = 0; go(): void { this.n++ } }', 'C'), /a class a call makes \(a mixin\)/)
@@ -524,4 +524,79 @@ test('Dates as naturals: new Date(), getTime(), setTime() where the Date is held
   refused(ts('export class W { a = new Date(0); b = new Date(0); same(): boolean { return this.a === this.b } }', 'W'), /whether they are one object/)
   // the clock read twice in a step (the two reads may differ)
   refused(ts('export class W { a = 0; go(): void { const t = new Date(); this.a = Date.now() - t.getTime() } }', 'W'), /read twice/)
+})
+
+// --- an object a factory makes: its state is what its functions close over -------------------------------------------
+test('a factory\'s object: the variables its functions close over are its state, a helper writing them inlined', () => {
+  const x = ok(ts(`
+    export function counter(limit: number) {
+      if (limit < 1) throw new Error('limit')
+      let n = 0
+      const seen = new Map<string, number>()
+      function bump(by: number): void { n += by }
+      return {
+        inc(by: number): boolean { if (by < 1) throw new Error('by'); if (n + by > limit) return false; bump(by); return true },
+        get: (): number => n,
+        mark(k: string): void { seen.set(k, n) },
+      }
+    }`, 'counter'))
+  expect(x.source).toContain('.params({limit: nat})')
+  expect(x.source).toContain('.pre(({limit}) => limit.atLeast(1))')
+  expect(x.source).toContain('.maps({seen:')
+  expect(x.notes.join(' ')).toContain('its state is what they close over (limit, n, seen)')
+  // a law over the extracted rule: the count never passes the limit
+  const r = x.rule!, v = proveRule(r, [...(x.invariants ?? []), r.law('n stays within the limit', ({n, limit}: any) => n.atMost(limit))])
+  expect(v).toMatchObject({proven: true, checked: true})
+})
+
+test('a factory\'s object: state outside the factory, this, a value beside the functions and async are refused', () => {
+  // closed over a module-level let: every object would share it (and the check's fresh objects would part from the rule)
+  refused(ts('let total = 0\nexport function make() { let n = 0; return {inc(): void { n++; total++ }} }', 'make'), /a module-level let/)
+  refused(ts('export function make() { let n = 0; return {inc(): void { n++ }, peek(): number { return this.inc.length } } }', 'make'), /this in an object a factory makes/)
+  refused(ts('export function make() { let n = 0; return {inc(): void { n++ }, size: 3} }', 'make'), /a value the object returns beside its functions/)
+  refused(ts('export function make() { let n = 0; return {async inc(): Promise<void> { n++ }} }', 'make'), /async/)
+  refused(ts('export function make() { let n = 0; for (let i = 0; i < 2; i++) n++; return {inc(): void { n++ }} }', 'make'), /a factory read here declares its state/)
+  refused(ts('export function make() { const n = 0; return {inc(): void { // @ts-ignore\n n++ }} }', 'make'), /is a const/)
+})
+
+// --- arrays, as lists --------------------------------------------------------------------------------------------------
+test('arrays as lists: push, pop, length, an item read and set within the array; a reducer\'s [...xs, x]', () => {
+  const x = ok(ts(`
+    export class Recent {
+      limit = 3
+      xs: number[] = []
+      add(v: number): number { if (v < 0) throw new Error('v'); if (this.xs.length >= this.limit) return this.xs.length; return this.xs.push(v) }
+      last(): number { const y = this.xs.pop(); return y ?? 0 }
+      bump(i: number): void { if (i >= 0 && i < this.xs.length) { const a = this.xs; a[i] = this.xs[i]! + 1 } }
+      first(): number { return this.xs[0] ?? 0 }
+    }`, 'Recent'))
+  expect(x.source).toContain('.items({xs: nat})')
+  expect(x.source).toMatch(/\.\.\.xs\.apply\(xs\.push\(/)
+  const r = x.rule!, v = proveRule(r, [...(x.invariants ?? []), r.law('at most three items', ({xs}: any) => xs.len.atMost(3))])
+  expect(v).toMatchObject({proven: true, checked: true})
+  const y = ok(ts(`
+    type S = {xs: number[], n: number}
+    export function r(s: S, a: {type: 'add', v: number} | {type: 'count'}): S {
+      switch (a.type) {
+        case 'add': return a.v < 0 ? s : {...s, xs: [...s.xs, a.v]}
+        case 'count': return {...s, n: s.xs.length}
+      }
+    }`, 'r', {init: {xs: [], n: 0}}))
+  // the item pushed is an integer input (the code doesn't refuse it below 0: it leaves the state as it is)
+  expect(y.source).toContain('.items({xs: int})')
+  expect(y.source).toContain("...xs.apply(xs.push(v, all(type.is('add'), v.atLeast(0))))")
+})
+
+test('arrays: one array in two places, a write to the state given, past the end, two writes, a read after a write are refused', () => {
+  // two fields holding one array: a push through one is the other's (the rule's lists are two)
+  refused(ts('export class C { xs: number[] = []; ys: number[] = []; tie(): void { this.ys = this.xs } add(): void { this.xs.push(1) } }', 'C'), /another array \(one array in two places/)
+  // React and Redux keep the old state
+  refused(ts('type S = {xs: number[]}\nexport function r(s: S, a: {type: "add"}): S { s.xs.push(1); return {xs: s.xs} }', 'r', {init: {xs: []}}), /in the state it was given/)
+  // an index the code doesn't keep within the array: past the end the array grows with holes
+  refused(ts('export class C { xs: number[] = []; put(i: number): void { this.xs[i] = 1 } }', 'C'), /an index the code doesn't keep within the array/)
+  refused(ts('export class C { xs: number[] = []; two(): void { this.xs.push(1); this.xs.push(2) } }', 'C'), /a second write to xs in one step|read after it is written/)
+  refused(ts('export class C { xs: number[] = []; n = 0; go(): void { this.xs.push(1); this.n = this.xs.length } }', 'C'), /read after it is written in one step/)
+  refused(ts('export class C { xs: number[] = [1, 2]; go(): void { this.xs.push(1) } }', 'C'), /starts with items/)
+  refused(ts('export class C { xs: number[] = []; has(v: number): boolean { return this.xs.includes(v) } }', 'C'), /the array method includes/)
+  refused(ts('export class C { xs: string[] = []; go(): void {} }', 'C'), /an array of strings/)
 })

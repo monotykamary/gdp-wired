@@ -173,6 +173,8 @@ export function sortsOf(m: Model, given: Record<string, 'nat' | 'int'> = {}): {s
   const cellNums = m.maps.flatMap(d => d.fields.filter(f => f.sort.k === 'num').map(f => `${d.name}.${f.name}`))
   for (const v of nums(m.state)) sorts.set(v.name, given[v.name] ?? 'nat')
   for (const c of cellNums) sorts.set(c, given[c] ?? 'nat')
+  // A list's length is a natural; its items naturals until one written may be below 0.
+  for (const d of m.lists ?? []) { sorts.set(`${d.name}_len`, 'nat'); if (d.fields[0]!.sort.k === 'num') sorts.set(`${d.name}.$item`, given[`${d.name}.$item`] ?? 'nat') }
   for (let changed = true; changed;) {
     changed = false
     for (const v of nums(m.state)) {
@@ -184,6 +186,11 @@ export function sortsOf(m: Model, given: Record<string, 'nat' | 'int'> = {}): {s
       const n = `${d.name}.${f.name}`, w = m.mapWrites[d.name]?.vals[f.name]
       if (f.sort.k !== 'num' || sorts.get(n) === 'int' || given[n]) continue
       if (w && w.s === 'num' && !natOK(w.e, withAtom(ctx0(), m.mapWrites[d.name]!.has))) { sorts.set(n, 'int'); changed = true }
+    }
+    for (const d of m.lists ?? []) {
+      const n = `${d.name}.$item`
+      if (d.fields[0]!.sort.k !== 'num' || sorts.get(n) === 'int' || given[n]) continue
+      if ((m.listWrites?.[d.name] ?? []).some(o => o.op !== 'pop' && o.x.s === 'num' && !natOK(o.x.e, withAtom(ctx0(), o.when)))) { sorts.set(n, 'int'); changed = true }
     }
   }
   for (const v of nums(m.state)) if (sorts.get(v.name) === 'int') notes.push(`${v.name}: an integer (a step may take it below 0, or it starts there)`)
@@ -245,7 +252,7 @@ function pn(e: N, P: Printer, ctx: Ctx, mode: 'nat' | 'int', recv = false): stri
       const side = (x: N, c: Ctx) => pn(x, P, c, nat ? 'nat' : natOK(x, c) ? 'nat' : 'int')
       return `when(${pb(e.c, P, ctx)}, ${side(e.a, ca)}, ${side(e.b, cb)})`
     }
-    case 'cell': { const v = `${e.map}.at(${pk(e.key, P, ctx)}).${e.field}`; return !nat && recv && P.sorts.get(`${e.map}.${e.field}`) === 'nat' ? `Int.of(${v})` : v }
+    case 'cell': { const v = cellText(e, P, ctx); return !nat && recv && P.sorts.get(`${e.map}.${e.field}`) === 'nat' ? `Int.of(${v})` : v }
   }
 }
 // A number in its own mode at this place: a natural's terms where it is one, else Int's.
@@ -280,9 +287,16 @@ export function pb(c: B, P: Printer, ctx: Ctx): string {
       const s = (k: K) => (k.op === 'svar' ? k.name : k.op === 'slit' ? q(k.value) : pk(k, P, ctx))
       return c.a.op === 'svar' ? `${c.a.name}.eq(${s(c.b)})` : c.b.op === 'svar' ? `${c.b.name}.eq(${s(c.a)})` : `${pk(c.a, P, ctx)}.eq(${pk(c.b, P, ctx)})`
     }
-    case 'cell': return `${c.map}.at(${pk(c.key, P, ctx)}).${c.field}`
+    case 'cell': return cellText(c, P, ctx)
   }
 }
+// A map's cell field, or a list's item (read where the index is within it: an integer index is at least 0 there).
+function cellText(c: {map: string, key: K, field: string}, P: Printer, ctx: Ctx): string {
+  if (c.field !== '$item') return `${c.map}.at(${pk(c.key, P, ctx)}).${c.field}`
+  return `${c.map}.at(${c.key.op === 'num' ? pidx(c.key.e, P, ctx) : pk(c.key, P, ctx)})`
+}
+// A list's index, where it is read or set within the list: a natural, or an integer clamped at 0 (the same there).
+export const pidx = (i: N, P: Printer, ctx: Ctx): string => (natOK(i, ctx) ? pn(i, P, ctx, 'nat') : `${pn(i, P, ctx, 'int', true)}.clamped`)
 // A choice: a literal is written as the choice's own value where nothing else gives the choice (`status.of('open')`).
 export function pl(l: L, P: Printer, ctx: Ctx, bare = false): string {
   switch (l.op) {
@@ -294,7 +308,7 @@ export function pl(l: L, P: Printer, ctx: Ctx, bare = false): string {
       return `${w}.of(${q(l.value)})`
     }
     case 'ite': return `when(${pb(l.c, P, ctx)}, ${pl(l.a, P, ctx, l.b.op !== 'lit')}, ${pl(l.b, P, ctx, l.a.op !== 'lit' || l.b.op !== 'lit' ? l.a.op !== 'lit' : false)})`
-    case 'cell': return `${l.map}.at(${pk(l.key, P, ctx)}).${l.field}`
+    case 'cell': return cellText(l, P, ctx)
   }
 }
 export function pk(k: K, P: Printer, ctx: Ctx): string {

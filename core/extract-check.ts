@@ -36,7 +36,7 @@ export type Evidence = {
 }
 
 // --- the code, instrumented and loaded ------------------------------------------------------------------------------
-export function instrument(code: string, file: string, tail = ''): {js: string, arms: Arm[]} {
+export function instrument(code: string, file: string, tail = '', extra: [number, string][] = []): {js: string, arms: Arm[]} {
   const sf = ts.createSourceFile(file, code, ts.ScriptTarget.ES2022, true, scriptKind(file))
   const arms: Arm[] = [], edits: [number, string][] = []
   const loc = (n: ts.Node) => { const {line, character} = sf.getLineAndCharacterOfPosition(n.getStart()); return `${file.split('/').pop()}:${line + 1}:${character + 1}` }
@@ -64,6 +64,7 @@ export function instrument(code: string, file: string, tail = ''): {js: string, 
     ts.forEachChild(n, visit)
   }
   visit(sf)
+  edits.push(...extra)
   // Later positions first; at one position, in the order made reversed (a closing paren before the next opening one).
   const order = edits.map((e, i) => [...e, i] as const).sort((a, b) => b[0] - a[0] || b[2] - a[2])
   let out = code
@@ -73,9 +74,9 @@ export function instrument(code: string, file: string, tail = ''): {js: string, 
   return {js, arms}
 }
 export type Sandbox = {ctx: Context, counts: number[], call: (f: string, self: unknown, args: unknown[]) => {ok: true, value: unknown} | {ok: false, error: string}, setNow: (n: number) => void, get: (name: string) => unknown}
-export function sandbox(code: string, file: string, expose: string[], modules: Record<string, unknown> = {}, init?: string, files: Record<string, string> = {}): Sandbox & {arms: Arm[]} {
+export function sandbox(code: string, file: string, expose: string[], modules: Record<string, unknown> = {}, init?: string, files: Record<string, string> = {}, extra: [number, string][] = []): Sandbox & {arms: Arm[]} {
   const vm = vmOf()
-  const {js, arms} = instrument(code, file, init ? `\n;(globalThis as any).__gdpInit = () => (${init});\n` : '')
+  const {js, arms} = instrument(code, file, init ? `\n;(globalThis as any).__gdpInit = () => (${init});\n` : '', extra)
   const counts = arms.map(() => 0)
   let now = 0
   const stub = (name: string) => new Proxy({}, {
@@ -123,7 +124,7 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
 
 // --- snapshots: a state as its leaves and its maps' present keys ----------------------------------------------------
 type Cells = Record<string, Record<string, Raw>>
-export type Snap = {leaves: Record<string, Raw>, maps: Record<string, Cells>}
+export type Snap = {leaves: Record<string, Raw>, maps: Record<string, Cells>, lists?: Record<string, Raw[]>}
 const isMap = (x: unknown): x is Map<unknown, unknown> => Object.prototype.toString.call(x) === '[object Map]'
 class Outside extends Error {}
 class Refused extends Error {}
@@ -169,6 +170,14 @@ function snapOf(v: unknown, layout: Layout, m: Model, consts: (t: N | B | I.L) =
       out.maps[d.name] = cells
       return out
     }
+    case 'list': {
+      const d = m.lists!.find(x => x.name === layout.name)!
+      if (!Array.isArray(v)) throw new Error(`${path} is ${JSON.stringify(v)}, not an array`)
+      // Every index an item (an array with holes, or more than its own indices, is not a list).
+      if (Object.keys(v).length !== v.length) throw new Error(`${path} has holes or fields beside its items`)
+      ;(out.lists ??= {})[d.name] = v.map((x, i) => checkCell(x, d.fields[0]!, `${path}[${i}]`))
+      return out
+    }
     case 'const': {
       const want = layout.value.s === 'str' ? (layout.value.e.op === 'slit' ? layout.value.e.value : undefined) : consts(layout.value.e)
       if (v !== want) throw new Error(`${path} is ${JSON.stringify(v)}, the constant ${JSON.stringify(want)} the rule takes it for`)
@@ -196,19 +205,21 @@ function valueOf(s: Snap, layout: Layout, m: Model, consts: (t: N | B | I.L) => 
         const entries = Object.entries(s.maps[d.name] ?? {}).map(([k, c]) => [d.key === 'num' ? Number(k) : k, d.scalar ? dated(d.fields[0]!, c.value!) : Object.fromEntries(d.fields.map(f => [f.name, dated(f, c[f.name]!)]))])
         return {$map: d.js, entries}
       }
+      case 'list': return s.lists?.[l.name] ?? []
       case 'const': return l.value.s === 'str' ? (l.value.e.op === 'slit' ? l.value.e.value : undefined) : consts(l.value.e)
     }
   }
   ctx.__in = JSON.stringify(tree(layout))
   return vmOf().runInContext('JSON.parse(__in, (k, v) => v && typeof v === "object" && v.$map ? (v.$map === "Map" ? new Map(v.entries) : Object.fromEntries(v.entries)) : v && typeof v === "object" && "$date" in v ? new Date(v.$date) : v)', ctx)
 }
-const showSnap = (s: Snap) => JSON.stringify({...s.leaves, ...Object.fromEntries(Object.entries(s.maps).map(([k, v]) => [k, v]))})
+const showSnap = (s: Snap) => JSON.stringify({...s.leaves, ...Object.fromEntries(Object.entries(s.maps).map(([k, v]) => [k, v])), ...(s.lists ?? {})})
 const sameSnap = (a: Snap, b: Snap): string | undefined => {
   for (const k of new Set([...Object.keys(a.leaves), ...Object.keys(b.leaves)])) if (a.leaves[k] !== b.leaves[k]) return `${k} is ${JSON.stringify(a.leaves[k])} in the code, ${JSON.stringify(b.leaves[k])} in the rule`
   for (const k of new Set([...Object.keys(a.maps), ...Object.keys(b.maps)])) {
     const x = a.maps[k] ?? {}, y = b.maps[k] ?? {}
     for (const key of new Set([...Object.keys(x), ...Object.keys(y)])) if (JSON.stringify(x[key]) !== JSON.stringify(y[key])) return `${k}[${key}] is ${JSON.stringify(x[key])} in the code, ${JSON.stringify(y[key])} in the rule`
   }
+  for (const k of new Set([...Object.keys(a.lists ?? {}), ...Object.keys(b.lists ?? {})])) if (JSON.stringify(a.lists?.[k] ?? []) !== JSON.stringify(b.lists?.[k] ?? [])) return `${k} is ${JSON.stringify(a.lists?.[k] ?? [])} in the code, ${JSON.stringify(b.lists?.[k] ?? [])} in the rule`
   return undefined
 }
 
@@ -227,8 +238,10 @@ function ruleSnap(r: Rule, m: Model, st: State, sorts: Sorts): Snap {
     }
     maps[md.name] = cells
   }
+  const lists: Record<string, Raw[]> = {}
+  for (const ld of m.lists ?? []) lists[ld.name] = (d[ld.name] ?? []) as Raw[]
   void sorts
-  return {leaves, maps}
+  return {leaves, maps, ...(m.lists?.length ? {lists} : {})}
 }
 // A snapshot as a state of the rule (each variable and cell by its kind).
 function ruleState(base: State, s: Snap, m: Model, sorts: Sorts): State {
@@ -240,6 +253,12 @@ function ruleState(base: State, s: Snap, m: Model, sorts: Sorts): State {
       const key = d.key === 'str' ? intern(k) : Number(k)
       for (const [part, x] of Object.entries(kind.encode(d.name, {has: true, ...c}))) if (x !== 0) (maps[part] ??= new Map()).set(key, x)
     }
+  }
+  // A list: its items at their indices, its length.
+  for (const d of m.lists ?? []) {
+    const kind = kindOfVar(d.fields[0]!, sorts, `${d.name}.$item`), xs = s.lists?.[d.name] ?? []
+    scalars[`${d.name}_len`] = xs.length
+    xs.forEach((x, i) => { for (const [part, y] of Object.entries(kind.encode(d.name, x))) if (y !== 0) (maps[part] ??= new Map()).set(i, y) })
   }
   return {...base, scalars, maps}
 }
@@ -279,7 +298,10 @@ export type CheckOptions = {runs?: number, depth?: number, states?: number, seed
 export function check(code: string, file: string, m: Model, r: Rule, sorts: Sorts, opts: CheckOptions & {given?: Record<string, 'nat' | 'int'>} = {}): Evidence {
   const t0 = performance.now(), rand = seeded(opts.seed ?? 7), bound = opts.bound ?? 12
   const isClass = m.shape === 'class', fns = m.shape === 'class' ? [m.entry] : [...new Set(m.events.map(e => e.call))]
-  const box = sandbox(code, file, fns, opts.modules, m.initSource, opts.files)
+  const box = sandbox(code, file, fns, opts.modules, m.initSource, opts.files, m.factory ? [[m.factory.at, m.factory.text]] : [])
+  // An object a factory makes: its state is what its functions close over, read and set through the two functions the
+  // check added to it.
+  const stateOf = (self: unknown): unknown => (m.factory ? (box.call('$get', self, []) as {ok: boolean, value?: unknown}).value : self)
   const interp = r.interpreter(), gen = r.compiled(), machine = r.machine
   const ev: Evidence = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: box.arms.length, hit: 0, missed: []}, ms: 0}
   const consts = constantsOf(m), strs = ['a', 'b', 'c', '']
@@ -341,7 +363,7 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
       if (isClass) {
         const self = side.self!, res = box.call('$method', self, [e.call, args])
         if (!res.ok) code = {refused: res.error}
-        else code = {snap: snapOf(self, m.layout, m, evalAt(params)), out: res.value as Raw, self}
+        else code = {snap: snapOf(stateOf(self), m.layout, m, evalAt(params)), out: res.value as Raw, self}
       } else {
         const input = valueOf(side.snap, m.layout, m, evalAt(params), box.ctx), before = JSON.stringify(input, mapReplacer)
         const res = box.call(e.call, undefined, [input, ...args.slice(1)])
@@ -381,7 +403,7 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
     }
     if ('refused' in code && 'refused' in rule!) {
       // A refusal leaves the state as it was: the object the code threw from must be as it was too.
-      if (isClass) { try { const after = snapOf(side.self, m.layout, m, evalAt(params)), d = sameSnap(after, side.snap); if (d) return `${where}: ${req} ${from}: the code throws (${code.refused}) after changing the object: ${d}` } catch (x) { return `${where}: ${req} ${from}: the code throws after changing the object (${(x as Error).message})` } }
+      if (isClass) { try { const after = snapOf(stateOf(side.self), m.layout, m, evalAt(params)), d = sameSnap(after, side.snap); if (d) return `${where}: ${req} ${from}: the code throws (${code.refused}) after changing the object: ${d}` } catch (x) { return `${where}: ${req} ${from}: the code throws after changing the object (${(x as Error).message})` } }
       ev.refusedBoth++
       return undefined
     }
@@ -410,8 +432,11 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
     return undefined
   }
   // A class's object: made by its constructor, or set to a snapshot.
-  if (isClass) vmOf().runInContext(`__gdp.$method = function (name, args) { return this[name](...args) }; __gdp.$new = function (...args) { return new __gdp[${JSON.stringify(m.entry)}](...args) }; __gdp.$at = function (fields) { return Object.assign(Object.create(__gdp[${JSON.stringify(m.entry)}].prototype), fields) }`, box.ctx)
-  const objectAt = (snap: Snap, params: Record<string, Raw>): object => box.call('$at', undefined, [valueOf(snap, m.layout, m, evalAt(params), box.ctx)]).ok ? (box.ctx.__r as {value: object}).value : (() => { throw new Error('could not make the object') })()
+  const E = JSON.stringify(m.entry)
+  if (isClass && !m.factory) vmOf().runInContext(`__gdp.$method = function (name, args) { return this[name](...args) }; __gdp.$new = function (...args) { return new __gdp[${E}](...args) }; __gdp.$at = function (fields) { return Object.assign(Object.create(__gdp[${E}].prototype), fields) }`, box.ctx)
+  if (m.factory) vmOf().runInContext(`__gdp.$method = function (name, args) { return this[name](...args) }; __gdp.$new = function (...args) { return __gdp[${E}](...args) }; __gdp.$get = function () { return this.__gdpGet() }; __gdp.$at = function (fields, args) { const o = __gdp[${E}](...args); o.__gdpSet(fields); return o }`, box.ctx)
+  const ctorValues = (params: Record<string, Raw>) => (m.ctorArgs ?? []).filter(n => !m.params.find(v => v.name === n)?.note?.startsWith('Date.now()')).map(n => (n.startsWith('$map:') ? vmOf().runInContext(n === '$map:Map' ? 'new Map()' : '({})', box.ctx) : params[n]))
+  const objectAt = (snap: Snap, params: Record<string, Raw>): object => box.call('$at', undefined, [valueOf(snap, m.layout, m, evalAt(params), box.ctx), ctorValues(params)]).ok ? (box.ctx.__r as {value: object}).value : (() => { throw new Error(`could not make the object: ${(box.ctx.__r as {error?: string}).error}`) })()
   const drawParams = (): Record<string, Raw> => Object.fromEntries(m.params.map(v => [v.name, v.note?.startsWith('Date.now()') ? rand(10_000) : draw(v.sort, sorts, v.name, rand, consts, bound, strs)]))
   const start = (params: Record<string, Raw>): {side?: Side, st?: State, ps?: Record<string, number>, problem?: string} => {
     const ctorRefuses = (() => { const pre = evalTerm(m.pre, params); return pre !== true })()
@@ -426,7 +451,7 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
       if (!made.ok) return ruleRefuses ? {} : {problem: `new ${m.entry}(${JSON.stringify(params)}) throws (${made.error}), the rule's precondition holds`}
       if (ruleRefuses) return {problem: `new ${m.entry}(${JSON.stringify(params)}) is made, the rule's ${ps === undefined ? 'param kinds refuse' : 'precondition refuses'} it`}
       const st = interp.init(ps!)
-      try { const snap = snapOf(made.value, m.layout, m, evalAt(params)); const diff = sameSnap(snap, ruleSnap(r, m, st, sorts)); if (diff) return {problem: `new ${m.entry}(${JSON.stringify(params)}): ${diff}`}; return {side: {snap, self: made.value as object}, st, ps: ps!} }
+      try { const snap = snapOf(stateOf(made.value), m.layout, m, evalAt(params)); const diff = sameSnap(snap, ruleSnap(r, m, st, sorts)); if (diff) return {problem: `new ${m.entry}(${JSON.stringify(params)}): ${diff}`}; return {side: {snap, self: made.value as object}, st, ps: ps!} }
       catch (x) { return {problem: `new ${m.entry}: ${(x as Error).message}`} }
     }
     const st = interp.init(ps ?? {}), snap = ruleSnap(r, m, st, sorts)
@@ -468,11 +493,13 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
       }
       maps[d.name] = cells
     }
+    const lists: Record<string, Raw[]> = {}
+    for (const d of m.lists ?? []) { const f = d.fields[0]!; lists[d.name] = Array.from({length: rand(4)}, () => { let x = draw(f.sort, sorts, `${d.name}.$item`, rand, consts, bound, strs); if (typeof x === 'number' && sorts.get(`${d.name}.$item`) === 'nat') x = Math.abs(x); return x }) }
     for (const v of m.state) if (v.name in leaves && v.sort.k === 'num' && Math.abs(leaves[v.name] as number) > Number.MAX_SAFE_INTEGER / 4) leaves[v.name] = rand(bound)
     // A Date's time within its range (a Date past it is invalid in the code: no state of the code holds one).
     for (const v of m.state) if (v.name in leaves && v.sort.k === 'num' && v.sort.date && Math.abs(leaves[v.name] as number) > 8.64e15) leaves[v.name] = rand(bound)
     for (const d of m.maps) for (const f of d.fields) if (f.sort.k === 'num' && f.sort.date) for (const c of Object.values(maps[d.name] ?? {})) if (Math.abs(c[f.name] as number) > 8.64e15) c[f.name] = rand(bound)
-    return {leaves, maps}
+    return {leaves, maps, ...(m.lists?.length ? {lists} : {})}
   }
   const fromState = (params: Record<string, Raw>, snap: Snap, inputs: Record<string, Raw>, e: (typeof m.events)[number], where: string): string | undefined => {
     let ps: Record<string, number>
