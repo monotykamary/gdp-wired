@@ -142,7 +142,7 @@ sound.
 | --- | --- | --- |
 | `kernel/kernel.ts`, `core/check.ts` | **Yes** | Turns a rule and its laws into goals, and checks a proof tree for each: case splits on linear facts, then a linear refutation at each leaf |
 | `kernel/cyclic.ts` | **Yes** | Cyclic proofs: builds each node's goals (its own, and for each node it uses, that node's hypotheses and that the rank drops) and checks each tree with kernel.ts's check. Its twin is `lean-kernel/Cyclic.lean` (`cyclic_sound`), and `lean-kernel/Bridge.lean` carries a cyclic proof of a machine's law, a recurrence's lemmas or a fold's law back to the rule itself |
-| `kernel/prove.ts` | No | Finds the proof trees. If it's wrong, the kernel rejects the tree |
+| `kernel/prove.ts`, `kernel/cdcl.ts` | No | Find the proof trees: case splits, and CDCL over a goal's atoms whose refutation is unfolded into a tree. If they're wrong, the kernel rejects the tree |
 | `lean-kernel/` | Optional | The kernel's twin in Lean 4.34.0, every rule proven sound there with the standard axioms only. The exporter sends the kernel's real trees; tampered ones compute to false |
 | `research/search/`, `research/synth/`, `research/hw/` | No | The GPU searches for breaking runs, and invariant and rank synthesis. Every hit is replayed or proven before it counts |
 | `core/dsl.ts`, `core/compose.ts`, the runtimes | No | The builders and combinators compile to the kernel's plain values; the runtimes are held to a reference evaluator |

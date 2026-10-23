@@ -3,6 +3,54 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+The step goals of wide transitions, which the tree search left undecided, are proven by a second search: CDCL over a
+goal's atoms (`kernel/cdcl.ts`), its refutation unfolded into the kernel's own tree. Nothing trusted changed
+(`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts` and `lean-kernel/` are as in 0.21.0): the certificate is the
+tree kernel.ts already checks, so no DAG certificate was needed. research/dag's 332 CHC step goals (287 Lustre), each
+alone with its own budget (a second a hypothesis, at least 20 s, within 55 s): 332 proven, 43 at 0.21.0 (Lustre 287
+and 10); search median 1,044.5 ms (p90 3,538 ms) where 0.21.0's 43 took 12,108 ms; certificates median 83 leaves, on
+the 43 both prove 97 against 394; none rejected by the kernel (`runs/step/grow7`, `runs/step/base-goals332`).
+research/table's step goals (its 223 tasks run again with `--kernel`, the kept relations saved: 221 got a model and 197
+of them stop on a step goal, `runs/step/table`): 194 proven and 3 satisfiable, 34 and 3 at 0.21.0; median 835.5 ms
+against 13,337 ms, leaves median 54 against 432 (`runs/step/grow7t`, `runs/step/base-goals223`). Given each kept model
+whole (compare/chc/prof/given.ts, 55 s): 181 of the 221 proven, 14 at 0.21.0, the rest a witness for an existential
+not found (31) or the 55 s spent (9) (`runs/step/given7`, `runs/step/base-given223`). CHC-COMP LIA-Lin at 60 s on
+Modal: 518 solved (374 sat, 144 unsat), 0.21.0 the same day 381 (237, 144), none wrong (`runs/step/chc3-modal`,
+`runs/step/chc-base-modal`; on boat 0.21.0 solved 385, `runs/step/chc-base`, and this branch's boat run was stopped
+unfinished when boat had no VM starts left). The suite (204 jobs: 4 new) on boat.dev VMs: by default 312.9 s wall, 2,887.4 s of job
+time, none failed (`runs/step/suite-final`), 0.21.0's 200 jobs 328.8 s and 2,776.9 s (2,871.3 s now on those 200,
+`runs/step/suite-base-boat`); `--usual` 207.3 s and 2,550.8 s, none failed (`runs/step/suite-final-usual`), 0.21.0
+296.7 s and 2,377.2 s (2,531.8 s now on its 200, `runs/step/suite-base-usual`).
+
+- Shorter cores (`kernel/reader.ts`): a refuted node's clause is the decisions the rows its derivation reads need, each
+  row with its reason: a conjunction false needs one false part, a disjunction's last open part needs the others
+  false, a term's value the decisions its choices took (not every decision its hypothesis' facts read, research/dag's
+  cores). The same search with research/dag's cores proves 69 of the 332 (`runs/step/cdcl1full`), with the reasons 329
+  (`runs/step/cdcl1`): a clause has 11.1 decisions on average where the trail has 59.5.
+- Cheaper nodes (`kernel/simplex.ts`): each node's rows go to a floating-point simplex in general form whose tableau
+  is kept from node to node; an infeasible row's bounds are refuted exactly (core/solver.ts), and the elimination runs
+  only where no case is left open. 329 again at median 2,826 ms against 4,600 ms (`runs/step/cdcl2`); the tableau begun
+  again once it fills past 8 entries a row the node reads: on `DRAGON_11` 11,681 ms and proven, where the filled tableau
+  (27,464 entries in 438 rows) spent 49,366 ms of 60,140 in pivots and ran out (`runs/step/prof7`). `kernel/reader.ts`
+  reads the rows again only where the trail changed what they read (a value with no open read kept while the trail
+  keeps its reason): 332 of 332 by the search alone, median 1,619.5 ms (`runs/step/cdcl6`).
+- The refutation is a resolution DAG of those clauses, unfolded into a tree (a resolution on an atom the path leaves
+  open is a split; a leaf's derivation found again among the rows at its tree path, in kernel.ts's order, or those rows
+  refuted afresh): on the 332, 50,353 leaves in all, median 83, max 3,043 (`runs/step/grow7`).
+- `growRoot`: the quick search at 16 nodes, then CDCL with 3/4 of what is left, then the plain search, the cuts and
+  the plain search as before. Not for a law over k steps in a row (the cuts make its tree a chain of one step's
+  refutations, which the unfolded DAG repeats: examples/steps.ts's Lean text 1,306,965 bytes against 276,111 and its
+  Lean check 152.24 s against 32.8 s with it, `runs/step/ksteps1`; identical without, `runs/step/ksteps2`), nor for
+  products, nor inside a cyclic proof's search. The quick search's cap: 64 nodes give 170 of the 221 rules, 16 give 179
+  and 4 give 181 (`runs/step/given6`, `given6q16`, `given6q4`), the suite's job time over 0.21.0's 200 jobs 2,921.0 s (an
+  earlier commit of this branch), 2,866.4 s and 3,252.9 s (`runs/step/suite3`, `suite-q16`, `suite-q4`).
+- Tests: `kernel/cdcl.test.ts` (four suite shards) refutes random linear goals larger than kernel.test.ts's, checks every
+  tree with kernel.ts, finds no model of a refuted goal by brute force, agrees with the plain search on what is
+  satisfiable, and with `GDP_CDCL_VERIFY=1` compares reader.ts's rows with kernel.ts's at every node and unfolded leaf.
+  research/step: the runs (`modal_step.py`, `jobs.py`, `goal.ts`, `tally.py`, `suite-times.py`).
+
 ## 0.21.0
 
 Four new things a law or a rule can say, none of them trusted: recursion that isn't structural (a measure, found or

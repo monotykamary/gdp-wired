@@ -1,0 +1,171 @@
+// Untrusted: an incremental simplex over the rows a search reads at its nodes (each row lin <= 0), in floating point,
+// as an SMT solver's arithmetic does it (Dutertre and de Moura's general form). A row of one variable is a bound on
+// it; any other row is a bound on a slack, one per linear form up to a factor (each slack a basic variable of the
+// tableau, its form over the nonbasic ones). `load` makes a node's rows the bounds (the tableau and the basis are kept
+// from the node before, so a node that differs a little from the last costs a few pivots, not an elimination);
+// `check` pivots until every basic variable is within its bounds (Bland's rule) or a row can't be: its explanation,
+// the rows whose bounds it reads, is a rational refutation's support. Floating point only picks the rows: the caller
+// refutes them exactly (core/solver.ts) and the kernel checks that; a verdict the floats misjudge costs a fallback.
+// Bounds are rounded to integers (every variable is a natural, every form an integer combination): what a cut of the
+// row by its coefficients' divisor gives, which the exact elimination makes as well.
+import type {Lin} from '../core/solver.ts'
+
+const eps = 1e-9
+// A bound's tolerance: relative past 1 (values drift by a few ulps a pivot).
+const tol = (b: number) => 1e-7 * Math.max(1, Math.abs(b))
+type Form = {slack: string, g: number, terms: [string, number][]} // the row's variable part is g · (the slack's form)
+const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
+const formMemo = new WeakMap<Lin, Form | {single: string, c: number} | null>()
+function formOf(lin: Lin): Form | {single: string, c: number} | null {
+  let out = formMemo.get(lin)
+  if (out !== undefined) return out
+  const keys = Object.keys(lin).filter(key => key !== '1' && lin[key] !== 0).sort()
+  if (!keys.length) out = null
+  else if (keys.length === 1) out = {single: keys[0]!, c: lin[keys[0]!]!}
+  else {
+    let g = 0
+    for (const key of keys) g = gcd(g, lin[key]!)
+    if (lin[keys[0]!]! < 0) g = -g
+    const terms = keys.map(key => [key, lin[key]! / g] as [string, number])
+    out = {slack: `σ(${terms.map(([key, c]) => `${key}:${c}`).join(',')})`, g, terms}
+  }
+  formMemo.set(lin, out)
+  return out
+}
+
+export type SimplexVerdict = {kind: 'sat'} | {kind: 'conflict', rows: number[]} | {kind: 'unknown'}
+
+export class Simplex {
+  private index = new Map<string, number>()
+  private lo: number[] = []
+  private hi: number[] = []
+  private loWhy: number[] = []
+  private hiWhy: number[] = []
+  private val: number[] = []
+  // A basic variable's row: basic = Σ coef · nonbasic. rowOf[x] its row, or -1 for a nonbasic one; colOf[x] the rows
+  // a nonbasic x appears in.
+  private rowOf: number[] = []
+  private rows: {basic: number, coef: Map<number, number>}[] = []
+  private colOf: Set<number>[] = []
+  pivots = 0
+  private varOf(name: string): number {
+    let j = this.index.get(name)
+    if (j !== undefined) return j
+    j = this.val.length
+    this.index.set(name, j)
+    this.lo.push(-Infinity); this.hi.push(Infinity); this.loWhy.push(-1); this.hiWhy.push(-1)
+    this.val.push(0); this.rowOf.push(-1); this.colOf.push(new Set())
+    return j
+  }
+  // A slack for a form: basic, its row the form with each basic variable in it replaced by that one's row.
+  private slackOf(f: Form): number {
+    const had = this.index.get(f.slack)
+    if (had !== undefined) return had
+    const coef = new Map<number, number>()
+    const addTo = (j: number, c: number) => { const x = (coef.get(j) ?? 0) + c; if (Math.abs(x) < eps) coef.delete(j); else coef.set(j, x) }
+    for (const [name, c] of f.terms) {
+      const j = this.varOf(name), r = this.rowOf[j]!
+      if (r < 0) addTo(j, c)
+      else for (const [k, a] of this.rows[r]!.coef) addTo(k, c * a)
+    }
+    const s = this.varOf(f.slack), r = this.rows.length
+    this.rows.push({basic: s, coef})
+    this.rowOf[s] = r
+    for (const j of coef.keys()) this.colOf[j]!.add(r)
+    let value = 0
+    for (const [j, c] of coef) value += c * this.val[j]!
+    this.val[s] = value
+    return s
+  }
+  // A node's rows as the bounds (a natural's own row x >= 0 among them). A pair of bounds that cross is a conflict at
+  // once.
+  load(rows: {lin: Lin}[]): SimplexVerdict {
+    for (let j = 0; j < this.val.length; j++) { this.lo[j] = -Infinity; this.hi[j] = Infinity; this.loWhy[j] = -1; this.hiWhy[j] = -1 }
+    const tighten = (j: number, upper: boolean, b: number, why: number) => {
+      if (upper) { if (b < this.hi[j]!) { this.hi[j] = b; this.hiWhy[j] = why } }
+      else if (b > this.lo[j]!) { this.lo[j] = b; this.loWhy[j] = why }
+    }
+    for (const [i, r] of rows.entries()) {
+      const f = formOf(r.lin), k = r.lin['1'] ?? 0
+      if (f === null) { if (k > 0) return {kind: 'conflict', rows: [i]}; continue }
+      if ('single' in f) { const j = this.varOf(f.single); if (f.c > 0) tighten(j, true, Math.floor(-k / f.c + eps), i); else tighten(j, false, Math.ceil(k / -f.c - eps), i); continue }
+      const s = this.slackOf(f)
+      // g·form + k <= 0
+      if (f.g > 0) tighten(s, true, Math.floor(-k / f.g + eps), i); else tighten(s, false, Math.ceil(k / -f.g - eps), i)
+    }
+    for (let j = 0; j < this.val.length; j++) if (this.lo[j]! > this.hi[j]! + eps) return {kind: 'conflict', rows: [this.loWhy[j]!, this.hiWhy[j]!].filter(x => x >= 0)}
+    // Nonbasic variables into their bounds, then each basic one computed afresh from its row (no drift from the shifts
+    // of earlier nodes).
+    for (let j = 0; j < this.val.length; j++) {
+      if (this.rowOf[j]! >= 0) continue
+      const x = this.val[j]!
+      this.val[j] = x < this.lo[j]! ? this.lo[j]! : x > this.hi[j]! ? this.hi[j]! : x
+    }
+    for (const row of this.rows) {
+      let value = 0
+      for (const [j, c] of row.coef) value += c * this.val[j]!
+      this.val[row.basic] = value
+    }
+    return {kind: 'sat'}
+  }
+  private shift(j: number, d: number) {
+    this.val[j]! += d
+    for (const r of this.colOf[j]!) { const row = this.rows[r]!; this.val[row.basic]! += row.coef.get(j)! * d }
+  }
+  check(maxPivots = 5_000): SimplexVerdict {
+    for (let n = 0; n < maxPivots; n++) {
+      // Bland: the violated basic variable of least index, then the nonbasic one of least index that can move.
+      let b = -1
+      for (const row of this.rows) {
+        const j = row.basic, x = this.val[j]!
+        if ((x < this.lo[j]! - tol(this.lo[j]!) || x > this.hi[j]! + tol(this.hi[j]!)) && (b < 0 || j < b)) b = j
+      }
+      if (b < 0) return {kind: 'sat'}
+      const row = this.rows[this.rowOf[b]!]!, below = this.val[b]! < this.lo[b]!
+      let e = -1
+      for (const [j, a] of row.coef) {
+        if (e >= 0 && j > e) continue
+        const up = below === a > 0 // whether x_j must rise
+        if (up ? this.val[j]! < this.hi[j]! - eps : this.val[j]! > this.lo[j]! + eps) e = j
+      }
+      if (e < 0) {
+        const why = [below ? this.loWhy[b]! : this.hiWhy[b]!]
+        for (const [j, a] of row.coef) why.push(below === a > 0 ? this.hiWhy[j]! : this.loWhy[j]!)
+        return {kind: 'conflict', rows: [...new Set(why)].filter(x => x >= 0)}
+      }
+      const target = below ? this.lo[b]! : this.hi[b]!
+      this.pivot(b, e, target)
+      this.pivots++
+    }
+    return {kind: 'unknown'}
+  }
+  // x_b leaves the basis for x_e, x_b set to `target`.
+  private pivot(b: number, e: number, target: number) {
+    const r = this.rowOf[b]!, row = this.rows[r]!, a = row.coef.get(e)!
+    // x_e = (x_b − Σ_{j≠e} c_j x_j) / a
+    const theta = (target - this.val[b]!) / a
+    this.shift(e, theta) // moves x_b to target and every other basic variable with x_e
+    const ecoef = new Map<number, number>()
+    for (const [j, c] of row.coef) if (j !== e) ecoef.set(j, -c / a)
+    ecoef.set(b, 1 / a)
+    for (const j of row.coef.keys()) this.colOf[j]!.delete(r)
+    row.basic = e; row.coef = ecoef
+    this.rowOf[e] = r; this.rowOf[b] = -1
+    for (const j of ecoef.keys()) this.colOf[j]!.add(r)
+    // Every other row reading x_e: substitute.
+    for (const q of [...this.colOf[e]!]) {
+      if (q === r) continue
+      const other = this.rows[q]!, c = other.coef.get(e)!
+      other.coef.delete(e); this.colOf[e]!.delete(q)
+      for (const [j, d] of ecoef) {
+        const x = (other.coef.get(j) ?? 0) + c * d
+        if (Math.abs(x) < eps) { if (other.coef.delete(j)) this.colOf[j]!.delete(q) } else { if (!other.coef.has(j)) this.colOf[j]!.add(q); other.coef.set(j, x) }
+      }
+    }
+    this.colOf[e]!.delete(r)
+    for (const j of ecoef.keys()) this.colOf[j]!.add(r)
+  }
+  get size(): number { return this.rows.length }
+  get nnz(): number { let n = 0; for (const r of this.rows) n += r.coef.size; return n }
+  get vars(): number { return this.val.length }
+}

@@ -14,6 +14,7 @@ import {checkRefutation} from '../core/check.ts'
 import {allowNode, allowTranslated, certCyclic, certOn, certSearch, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
 import type {TStats} from '../core/translate.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
+import {growCdcl} from './cdcl.ts'
 import {type Goal, type Instances, type Liveness, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
@@ -71,7 +72,7 @@ function openH(c: C, path: Path, out: Lin[], positive = true): void {
 // keys a pairing builds ((a + b)² + b, keys whose difference has monomials) are left uncompared: that encoding states
 // their congruence as facts, and comparing their keys only brings products into leaves its linear rows decide.
 export const pairedKeys = {skip: false}
-function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
+export function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
   const names = [...new Set(rows.flatMap(r => Object.keys(r.lin)))].filter(isCell)
   const out: Lin[] = []
   const keyText = (n: string) => n.slice(n.indexOf('[') + 1, -1)
@@ -188,19 +189,35 @@ export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number,
   profile.goals.push({name: goal.name, ms: performance.now() - t, nodes: profile.nodes - n0, solves: profile.solves - s0, solveMs: profile.solveMs - m0, rowsMs: profile.rowsMs - r0, proven: 'tree' in out})
   return out
 }
+// The share of a root goal's budget the CDCL search gets (GDP_CDCL_SHARE; 0 turns it off), and the quick search's nodes
+// before it (GDP_QUICK_CAP; 64 where the CDCL search isn't tried, as before it): research/step's comparisons.
+const proveEnv = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env ?? {}
+const cdclShare = Number(proveEnv.GDP_CDCL_SHARE ?? 0.75), quickCap = Number(proveEnv.GDP_QUICK_CAP ?? 16)
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
+  // Past a few cases, CDCL over the atoms (kernel/cdcl.ts), with most of the budget: a linear goal's refutation there
+  // is a resolution of short clauses, which the tree search would find again in every case that reaches one. Unknown
+  // there, the plain search, the cuts and the plain search again have the rest. Not for a law over k steps in a row
+  // (kernel.ts names its goals `@k steps`): the cuts make its tree a chain of one step's refutations, which the CDCL
+  // search's tree, unfolded, repeats (research/step: four times the Lean text of examples/steps.ts). Nor for products.
+  const root = path.size === 0 && budget.nodes === 0 ? leafConstraints(goal, path) : undefined
+  const cdcl = !!root && cdclShare > 0 && !cellProducts.on && Number(/@(\d+) steps/.exec(goal.name)?.[1] ?? 1) <= 1 && !root.some(r => Object.keys(r.lin).some(isMonomial))
   // At the root: plainly first; where the cases multiply past a budget, through cuts. The plain budget halves with each
   // two open choices (what a plain search's cases grow by), so a long run's steps reach the cuts early.
-  if (path.size === 0 && budget.nodes === 0 && unitFirst && unitsNow) {
+  if (root && unitFirst && unitsNow) {
     // A goal that a few cases settle needs no units (finding them costs a Farkas check per atom); the rest get them.
     unitsNow = false
     try {
-      const quick = growPlain(goal, path, {nodes: 0, until: budget.until, cap: 64})
+      const quick = growPlain(goal, path, {nodes: 0, until: budget.until, cap: cdcl ? quickCap : 64})
       if ('tree' in quick || quick.stuck === 'sat' || quick.why === undefined) return quick
     } finally { unitsNow = true }
   }
-  if (path.size === 0 && budget.nodes === 0) {
-    const open = new Set(leafConstraints(goal, path).flatMap(r => Object.keys(r.lin)).filter(n => n.startsWith('⟦') && columnTerm(n)?.op === 'if')).size
+  if (root) {
+    if (cdcl) {
+      const now = clock(), end = withinDeadline(budget.until ?? Infinity)
+      const out = growCdcl(goal, path, {nodes: 0, until: end === Infinity ? end : now + cdclShare * (end - now)})
+      if ('tree' in out || out.stuck === 'sat') return out
+    }
+    const open = new Set(root.flatMap(r => Object.keys(r.lin)).filter(n => n.startsWith('⟦') && columnTerm(n)?.op === 'if')).size
     const plain = growPlain(goal, path, {nodes: 0, until: budget.until, cap: Math.max(32, Math.round(4_000 / 2 ** (open / 2)))})
     if ('tree' in plain || plain.stuck === 'sat' || plain.why === undefined) return plain
     const cut = withCuts(goal, path, budget)
@@ -223,22 +240,7 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
     const {steps, products, squares} = products0 || squares0 ? trimmed(rows.length, steps0, products0 ?? [], squares0 ?? []) : {steps: steps0, products: undefined, squares: undefined}
     return {leaf: steps.map(st => (st.kind === 'input' ? {...st, index: at(st.index)} : st)), ...(products?.length ? {products: products.map(([i, j]) => [at(i), at(j)] as [number, number])} : {}), ...(squares?.length ? {squares} : {})}
   }
-  // The conclusion's own atoms first (the goal's last hypothesis is the law refuted): a case it doesn't read is often
-  // one no refutation needs, and splitting it first multiplies every case after it.
-  const open: Lin[] = []
-  const hyps = goal.hyps, last = hyps.length - 1
-  let byHyp = openSeen.get(goal)
-  if (!byHyp) openSeen.set(goal, (byHyp = new Map()))
-  const openOf = (h: C) => { let seen = byHyp.get(h); if (!seen) byHyp.set(h, (seen = {})); return reusing(seen, path, p => { const out: Lin[] = []; openH(h, p, out); return out }) }
-  // Then the hypotheses about only the names the conclusion reads (an assumption about another key, a witness, can
-  // wait: a refutation seldom needs it), then the rest, each group in the goal's order.
-  if (unitFirst && unitsNow) open.push(...unitsOf(goal))
-  if (last >= 0) open.push(...openOf(hyps[last]!))
-  const near = nearOf(goal)
-  for (const [i, h] of hyps.entries()) if (i !== last && near[i]) open.push(...openOf(h))
-  for (const [i, h] of hyps.entries()) if (i !== last && !near[i]) open.push(...openOf(h))
-  open.push(...openCells(rows, path))
-  const next = open.find(lin => Object.keys(lin).some(key => key !== '1') && !path.has(canon(lin)) && !path.has(canonFlip(lin)))
+  const next = openAt(goal, path, rows).find(lin => Object.keys(lin).some(key => key !== '1') && !path.has(canon(lin)) && !path.has(canonFlip(lin)))
   // With a case still to split, only "refuted or not" matters (a witness here goes unused): a large system is tried by
   // its Farkas rows alone, and left to the split if they don't refute it. Elimination to the last variable, which a
   // satisfiable system needs to say so, is kept for small systems and for the leaves, where its answer is the outcome.
@@ -455,7 +457,7 @@ function squareForms(rows: {lin: Lin}[]): Lin[] {
 // A leaf's rows, by its path's decisions in order (what they are a function of): a lift reads every leaf of a subtree
 // at its own path, found when it was grown, and at the path without the split, which the next lift up reads again.
 const rowsSeen = new WeakMap<Goal, Map<string, ReturnType<typeof leafConstraintsReusing>>>()
-function rowsAt(goal: Goal, path: Path): ReturnType<typeof leafConstraintsReusing> {
+export function rowsAt(goal: Goal, path: Path): ReturnType<typeof leafConstraintsReusing> {
   let byPath = rowsSeen.get(goal)
   if (!byPath) rowsSeen.set(goal, (byPath = new Map()))
   let id = ''
@@ -541,7 +543,7 @@ export function widen(part: Goal, whole: Goal, tree: Tree, opaque: Record<string
 // Whether each hypothesis reads only names the goal's conclusion (its last hypothesis) reads.
 const nearSeen = new WeakMap<Goal, boolean[]>()
 const namesOf = (t: unknown): string[] => (t === undefined ? [] : [...JSON.stringify(t).matchAll(/"(?:name|map)":"([^"]+)"/g)].map(m => m[1]!))
-function nearOf(goal: Goal): boolean[] {
+export function nearOf(goal: Goal): boolean[] {
   let out = nearSeen.get(goal)
   if (!out) {
     const theirs = new Set(namesOf(goal.hyps.at(-1)))
@@ -555,6 +557,8 @@ function nearOf(goal: Goal): boolean[] {
 // GDP_UNITS=0 leaves them in the goal's order (for comparing).
 const unitFirst = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_UNITS !== '0'
 let unitsNow = true
+// The units growPlain splits first, where it does (kernel/cdcl.ts reads them too).
+export const unitAtoms = (goal: Goal): Lin[] => (unitFirst && unitsNow ? unitsOf(goal) : [])
 const unitSeen = new WeakMap<Goal, Lin[]>()
 function unitsOf(goal: Goal): Lin[] {
   let out = unitSeen.get(goal)
@@ -590,6 +594,27 @@ function unitsOf(goal: Goal): Lin[] {
 }
 // Each hypothesis' open atoms, as at an earlier path that decided the same atoms it reads (kernel.ts's reusing).
 const openSeen = new WeakMap<Goal, Map<C, Seen<Lin[]>>>()
+// The atoms a split may take at the path, in the order growPlain tries them (some may be decided already). The
+// conclusion's own atoms first (the goal's last hypothesis is the law refuted): a case it doesn't read is often one no
+// refutation needs, and splitting it first multiplies every case after it. Then the hypotheses about only the names
+// the conclusion reads (an assumption about another key, a witness, can wait: a refutation seldom needs it), then the
+// rest, each group in the goal's order, then pairs of cells.
+export function openAt(goal: Goal, path: Path, rows: {lin: Lin}[]): Lin[] {
+  const open: Lin[] = []
+  const hyps = goal.hyps, last = hyps.length - 1
+  let byHyp = openSeen.get(goal)
+  if (!byHyp) openSeen.set(goal, (byHyp = new Map()))
+  const openOf = (h: C) => { let seen = byHyp.get(h); if (!seen) byHyp.set(h, (seen = {})); return reusing(seen, path, p => { const out: Lin[] = []; openH(h, p, out); return out }) }
+  // (pushed one by one: a k-step unrolling's lists outgrow a spread's argument limit)
+  const put = (xs: Lin[]) => { for (const x of xs) open.push(x) }
+  if (unitFirst && unitsNow) put(unitsOf(goal))
+  if (last >= 0) put(openOf(hyps[last]!))
+  const near = nearOf(goal)
+  for (const [i, h] of hyps.entries()) if (i !== last && near[i]) put(openOf(h))
+  for (const [i, h] of hyps.entries()) if (i !== last && !near[i]) put(openOf(h))
+  put(openCells(rows, path))
+  return open
+}
 
 // What ran out, for a goal left unknown: its size, how deep the case splits went, and the two shapes that usually cause it.
 function outOfBudget(goal: Goal, limit: 'nodes' | 'time', depth: number): string {
