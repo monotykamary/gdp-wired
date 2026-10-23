@@ -134,13 +134,10 @@ const keyValue = (cell: string, w: Record<string, number>): number | undefined =
 // a bound of the join may take beside the atoms' own.
 function comparisons(m: Machine, laws: Law[], atoms: Atom[], coords: number[]): [number, number][][] {
   const lin = (e: E, k: number, out: Map<string, number>): boolean => {
-    switch (e.op) {
-      case 'const': out.set('1', (out.get('1') ?? 0) + k * e.value); return true
-      case 'var': out.set(e.name, (out.get(e.name) ?? 0) + k); return true
-      case 'add': return lin(e.a, k, out) && lin(e.b, k, out)
-      case 'mul': return lin(e.a, k * e.k, out)
-      default: return false
-    }
+    if (e.op === 'const') { out.set('1', (out.get('1') ?? 0) + k * e.value); return true }
+    if (e.op === 'var') { out.set(e.name, (out.get(e.name) ?? 0) + k); return true }
+    if (e.op === 'add') return lin(e.a, k, out) && lin(e.b, k, out)
+    return e.op === 'mul' && lin(e.a, k * e.k, out)
   }
   // A request's value that some step puts in a state variable as it is (a clause's head argument, say) stands for that
   // variable: a comparison over the request then reads as one over the state it makes.
