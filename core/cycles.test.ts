@@ -80,4 +80,7 @@ test('ranks from the relation: per location, in order, multiphase, with invarian
   }
   expect(halts('sv/McCarthy91_Iteration.ari', true)).toBe(true)
   expect(halts('sv/McCarthy91_Iteration.broken.ari', true)).toBe(false)
+  // regions with their own invariants: x is 1 or −1 (x ≠ 0, a disjunction), 100 − y where x ≥ 1, 100 − z where not
+  expect(halts('sv/Toulouse-BranchesToLoop-2.ari', true)).toBe(true)
+  expect(halts('sv/Toulouse-BranchesToLoop-2.broken.ari', true)).toBe(false)
 }, 120_000)

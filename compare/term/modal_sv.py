@@ -112,7 +112,8 @@ def shard(tool: str, t: dict, limit: int) -> dict:
                 stages.append(json.loads(l))
             except json.JSONDecodeError:
                 pass
-        answer = (stages[-1] if stages else {}).get("answer", "timeout" if code == 124 else "error")
+        # the last answer printed (one printed before the certificate is made counts if the run stops while making it)
+        answer = next((s for s in reversed(stages) if "answer" in s), {}).get("answer", "timeout" if code == 124 else "error")
         row.update(answer=answer, stages=stages)
     elif tool in ("loat", "loat-abmc"):
         code, out, err = run(["loat", "--mode", "termination", *(["--engine", "abmc"] if tool == "loat-abmc" else []), "/tmp/t.ari"], left)
