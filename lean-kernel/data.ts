@@ -130,6 +130,8 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
       else out.push(...inductive(ds[0]!), 'deriving DecidableEq', '')
       for (const d of ds) out.push(`def ${d.name}.tag : ${d.name} → Nat`, ...d.ctors.map((_, j) => `  | ${pat(d, j, () => undefined)} => ${j}`))
       out.push(...block(ds, d => [`def ${d.name}.size : ${d.name} → Nat`, ...d.ctors.map((c, j) => `  | ${pat(d, j, i => (inG(d, c.fields[i]!) ? `x${i}` : undefined))} => 1${c.fields.flatMap((f, i) => (inG(d, f) ? [` + ${fieldT(f)}.size x${i}`] : [])).join('')}`)]))
+      // (a size is at least 1: what a well-founded decrease by a field reads of the other fields)
+      for (const d of ds) out.push(`theorem ${d.name}.size_pos (x : ${d.name}) : 0 < ${d.name}.size x := by cases x <;> simp only [${d.name}.size] <;> omega`)
       const z = (d: Data) => d.nullary, m = (d: Data) => d.ctors.length - d.nullary
       const codeOf = (c: Ctor) => `tupk [${c.fields.map((f, i) => fieldEnc(f, `x${i}`)).join(', ')}]`
       out.push(...block(ds, d => [`def ${d.name}.enc : ${d.name} → Nat`, ...d.ctors.map((c, j) => (j < z(d) ? `  | ${pat(d, j, () => undefined)} => ${j}` : `  | ${pat(d, j, i => `x${i}`)} => ${z(d)} + ${m(d)} * ${codeOf(c)} + ${j - z(d)}`))]))
@@ -164,6 +166,13 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
         ...datCalls(d).map(([kk, i, F]) => `  all_goals (try rw [${F}.enc_dec (tup ${q(d)} ${kk} ${i})])`),
         `  all_goals (first | omega | (simp [tupk, tup] <;> omega))`, ...wf(d)]), '')
     }
+    // The values of a datatype a body's matches bind, by their Lean names.
+    const bindsOf = (body: X): [string, Data][] => {
+      const out2: [string, Data][] = []
+      const go = (t: unknown): void => { if (!t || typeof t !== 'object') return; if (Array.isArray(t)) { t.forEach(go); return } const o = t as X; if (o.op === 'match') { const d = dataOf(o.data); o.cases.forEach((c, j) => c.binds.forEach((b, i) => { const fs = d.ctors[j]!.fields[i]!.sort; if (isDataField(fs)) out2.push([name(b), dataOf(fs.data)]) })) } for (const v of Object.values(o)) go(v) }
+      go(body)
+      return out2
+    }
     // The functions, as declared: those of a ring (calling each other) in one `mutual` block, where its last is.
     const fnDef = (f: Fn) => {
       const names = new Map(f.params.map(q => [`${f.name}.${q.name}`, name(q.name)]))
@@ -182,23 +191,46 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
       }
       const sizes = p.datas.map(d => `, ${d.name}.size`).join(''), lemmas = decLemmas(f)
       const withLemmas = lemmas.length ? ` | (${lemmas.map(l => `have := @${l.name}`).join('; ')}; simp_all [lexLt${sizes}] <;> omega)` : ''
-      return `${lemmas.map(l => `${l.text}\n\n`).join('')}${head}\ntermination_by ${m.comps.length === 1 ? comp(m.comps[0]!) : `Lx.mk [${m.comps.map(comp).join(', ')}]`}\ndecreasing_by all_goals first | (simp_all [lexLt${sizes}] <;> omega) | omega${withLemmas}`
+      // each value of a datatype the body names (a parameter, a field a match binds) at least 1 in size, where it is in scope
+      const named: [string, Data][] = [...f.params.flatMap(q => (typeof q.sort === 'object' ? [[name(q.name), q.sort as Data] as [string, Data]] : [])), ...bindsOf(f.body())]
+      const pos = named.length ? ` | (${named.map(([v, d]) => `(try have := ${d.name}.size_pos ${v})`).join('; ')}; simp_all [lexLt${sizes}] <;> omega)` : ''
+      return `${head}\ntermination_by ${m.comps.length === 1 ? comp(m.comps[0]!) : `Lx.mk [${m.comps.map(comp).join(', ')}]`}\ndecreasing_by all_goals first | (simp_all [lexLt${sizes}] <;> omega) | omega${withLemmas}${pos}`
     }
+    // (a well-founded function's decrease lemmas before it, or before its ring's `mutual` block)
+    const lemmasBefore = (fs: Fn[]) => fs.flatMap(f => (f.decreases === undefined && f.measure ? decLemmas(f) : []).map(l => `${l.text}\n`))
     // A well-founded function's obligations that read other functions (a call on a filter of the tail), each a lemma
     // about the Lean definitions before it, by induction on the variable the kernel's proof inducted on (where it did),
     // then the definitions unfolded, each if split, omega.
+    // A size law an obligation's proof used (core/data.ts's sizeLaws): a lemma about the function it reads, by functional
+    // induction on its first variable (else plain induction), each case unfolded, split, omega; the obligation's theorem
+    // then has it at each of its variables of the law's sorts.
     const decLemmas = (f: Fn): {name: string, text: string}[] => (f.termination?.obligations ?? []).flatMap((o, i) => {
       if (!JSON.stringify(o.law.holds).includes('"op":"call"')) return []
       const names = new Map(o.law.vars.map(v => [v.name, name(v.name)]))
-      const on = o.scheme?.match(/ on ([^,]+)/)?.[1], fnSimp = p.fns.filter(g => g.name !== f.name).map(g => g.name).join(', ')
-      const close = `(try simp only [${fnSimp}] at *) <;> (repeat' split) <;> (try simp only [${p.datas.map(d => `${d.name}.size`).join(', ')}] at *) <;> omega`
-      return [{name: `${f.name}_dec${i + 1}`, text: `theorem ${f.name}_dec${i + 1}${o.law.vars.map(v => ` (${name(v.name)} : ${sortLean(v.sort)})`).join('')} :\n    ${lp(o.law.holds, names)} := by\n  ${on && names.has(on) ? `induction ${names.get(on)} <;> ` : ''}${close}`}]
+      const on = o.scheme?.match(/ on ([^,]+)/)?.[1], fnSimp = p.fns.filter(g => !f.ring.includes(g.name)).map(g => g.name).join(', ')
+      const sizeSimp = p.datas.map(d => `${d.name}.size`).join(', ')
+      const close = `(try simp only [${fnSimp}] at *) <;> (repeat' split) <;> (try simp only [${sizeSimp}] at *) <;> omega`
+      const laws = (o.lemmaLaws ?? []).map((l, j) => {
+        const lnames = new Map(l.vars.map(v => [v.name, name(v.name)])), id = `${f.name}_dec${i + 1}_law${j + 1}`
+        let g: string | undefined
+        walk(l.holds, t => { if (t.op === 'call' && !g) g = t.fn as string })
+        const v0 = name(l.vars.find(v => typeof v.sort === 'object')?.name ?? l.vars[0]!.name), simp = `simp_all [${[g, ...fnSimp.split(', ')].filter(Boolean).join(', ')}, ${sizeSimp}]`
+        const others = l.vars.filter(v => name(v.name) !== v0).map(v => lnames.get(v.name)!)
+        const tries = [`induction ${v0} using ${g}.induct`, `induction ${v0}`, ...(others.length ? [`induction ${v0} generalizing ${others.join(' ')}`] : [])]
+        const text = `theorem ${id}${l.vars.map(v => ` (${lnames.get(v.name)} : ${sortLean(v.sort)})`).join('')} :\n    ${lp(l.holds, lnames)} := by\n  first ${tries.map(t => `| (${t} <;> ${simp} <;> omega)`).join(' ')}`
+        // at every tuple of the obligation's variables of the law's sorts
+        const at = l.vars.reduce<string[][]>((acc, v) => acc.flatMap(a => o.law.vars.filter(w => sortLean(w.sort) === sortLean(v.sort)).map(w => [...a, names.get(w.name)!])), [[]]).slice(0, 16)
+        return {id, text, haves: at.map(as => `(have := ${id} ${as.join(' ')})`)}
+      })
+      const haves = laws.flatMap(l => l.haves)
+      return [...laws.map(l => ({name: l.id, text: l.text})), {name: `${f.name}_dec${i + 1}`, text: `theorem ${f.name}_dec${i + 1}${o.law.vars.map(v => ` (${name(v.name)} : ${sortLean(v.sort)})`).join('')} :\n    ${lp(o.law.holds, names)} := by\n  ${haves.length ? `${haves.join('; ')}; ` : ''}${on && names.has(on) ? `induction ${names.get(on)} <;> ` : ''}${close}`}]
     })
+    const walk = (t: unknown, fn: (o: Record<string, unknown>) => void): void => { if (!t || typeof t !== 'object') return; if (Array.isArray(t)) { t.forEach(x => walk(x, fn)); return } fn(t as Record<string, unknown>); for (const v of Object.values(t)) walk(v, fn) }
     for (const [i, f] of p.fns.entries()) {
       const ring = p.fns.filter(g => f.ring.includes(g.name))
-      if (ring.length < 2) { out.push(fnDef(f)); continue }
+      if (ring.length < 2) { out.push(...lemmasBefore([f]), fnDef(f)); continue }
       if (p.fns.slice(i + 1).some(g => f.ring.includes(g.name))) continue
-      out.push('mutual', ...ring.map(fnDef), 'end')
+      out.push(...lemmasBefore(ring), 'mutual', ...ring.map(fnDef), 'end')
     }
     out.push('')
     // The model: each map the proof reads, as its meaning.

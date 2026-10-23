@@ -6,7 +6,7 @@ import {expect, test} from 'bun:test'
 import {type Bool, type Nat, type Val, EvalLimit, conjectures, data, define, evalX, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, when} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
 import {transferPlan} from './transfer.ts'
-import {Bag, Forest, List, Rose, Tree, a3, app, broken, drp, ilv, laws, leq, len, merge, mir, mrg, nonterminating, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken} from '../examples/data.ts'
+import {Bag, Forest, List, Rose, Tree, a3, adversarial, app, broken, drp, ilv, laws, leq, len, merge, mergeRuns, mir, mrg, nonterminating, paren, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken, tokens, wellFounded} from '../examples/data.ts'
 
 const list = (...xs: number[]): {c: number, f: unknown[]} => xs.reduceRight<{c: number, f: unknown[]}>((t, h) => ({c: 1, f: [h, t]}), {c: 0, f: []})
 const run = (call: {x: unknown}, env: Record<string, unknown>) => evalX(call.x as never, new Map(Object.entries(env)) as never, {})
@@ -100,6 +100,25 @@ test('well-founded recursion: a measure found, and each call proven to lower it 
   expect(showValue(List, run({x: {op: 'call', fn: 'qsort', args: [{op: 'var', name: 'xs'}]}}, {xs: list(3, 1, 2, 1)}) as never)).toBe('cons(1, cons(1, cons(2, cons(3, nil))))')
   expect(showValue(List, run({x: {op: 'call', fn: 'merge', args: [{op: 'var', name: 'xs'}, {op: 'var', name: 'ys'}]}}, {xs: list(1, 4), ys: list(2, 3)}) as never)).toBe('cons(1, cons(2, cons(3, cons(4, nil))))')
 }, 60_000)
+
+test('a ring of functions that is not structural recursion: a measure each (one length), each call within the ring proven to lower the callee\'s below the caller\'s', () => {
+  // tokens reads paren at the same value: size(e) + 1 at tokens, size(e) at paren, found from the calls' relation
+  expect([tokens.fn.termination!.text, paren.fn.termination!.text]).toEqual(['size(e) + 1', 'size(e)'])
+  expect(tokens.fn.ring).toEqual(['tokens', 'paren'])
+  for (const t of [tokens.fn.termination!, paren.fn.termination!]) for (const o of t.obligations) expect(o.proof?.proven && checkCyclic(o.proof.proof)).toBe(true)
+  // mergeRuns' call is on the runs merged in pairs: a size law about pairwise, proven by induction, then used
+  const o = mergeRuns.fn.termination!.obligations[0]!
+  expect(mergeRuns.fn.termination!.text).toBe('size(rs)')
+  expect(o.lemmas).toEqual([expect.stringMatching(/^size law: size\(pairwise\(rs0\)\) <= size\(rs0\)/)])
+  expect(o.proof?.proven && checkCyclic(o.proof.proof)).toBe(true)
+  for (const mk of Object.values(wellFounded)) { const v = proveData(mk()); expect(v.proven && v.checked && v.proof?.proven && checkCyclic(v.proof.proof)).toBe(true) }
+}, 60_000)
+
+test('definitions that do not terminate, made to look as if they do (rings, a size law true of short lists only, a guard past the runs\' values), are refused with the measures tried', () => {
+  for (const [name, mk] of Object.entries(adversarial)) expect(refusal(mk), name).toMatch(/no measure is proven to fall at every call|nested recursion isn't taken|no parameter a measure reads/)
+  // a measure each was tried and refused, by a call of the runs or its obligation
+  for (const name of ['passRound', 'lowerRaise', 'swapRing', 'lateRing', 'stepUp', 'nearTail', 'nearTailRing', 'ringStatedWrong'] as const) expect(refusal(adversarial[name]), name).toMatch(/(doesn't lower it|not proven to lower it)/)
+}, 120_000)
 
 test('a definition that does not terminate is refused with its reason, and no law about it is read', () => {
   const up: ReturnType<typeof define> = define('up', {x: natural}, natural, ({x}) => (up(x) as Nat).plus(1))

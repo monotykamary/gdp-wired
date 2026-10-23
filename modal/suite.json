@@ -1479,5 +1479,21 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 2400
+},
+{
+"name": "lean-rings",
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Cyclic Data; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; bun conformance.ts --rings 24 > RingConformance.lean && lean RingConformance.lean 2>&1 | tail -20; s=${PIPESTATUS[0]}; grep -c '^mutual' RingConformance.lean; head -5 RingConformance.lean | tail -1; echo lean-exit $s; exit $s",
+"cwd": "lean-kernel",
+"cpu": 2.0,
+"memory": 4096,
+"timeout": 1200
+},
+{
+"name": "lean-data-9",
+"cmd": "ONLY=dataring,dataruns bash research/data/lean-data.sh 2>&1",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 2400
 }
 ]

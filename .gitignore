@@ -26,5 +26,6 @@ modal/.live/
 .DS_Store
 lean-kernel/Conformance.lean
 lean-kernel/NonTermConformance.lean
+lean-kernel/RingConformance.lean
 lean-kernel/Examples*.lean
 dist/

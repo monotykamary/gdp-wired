@@ -5,6 +5,7 @@ import {type C, type E, type Machine, type State, evalC, evalE} from './machine.
 import {type Loop, type Recur, recurGoal, trueC} from '../kernel/kernel.ts'
 import {grow} from '../kernel/prove.ts'
 import {findNeverEnds} from './nonterm.ts'
+import {type Callable, type Measure, type Nat, define, natural, when} from './data.ts'
 
 export const E_OPS = ['var', 'const', 'add', 'sub', 'mul', 'prod', 'min', 'max', 'if', 'get'] as const satisfies readonly E['op'][]
 export const C_OPS = ['<', '<=', '=', 'and', 'or', 'not', 'flag'] as const satisfies readonly C['op'][]
@@ -148,4 +149,103 @@ export function recurCases(n: number, ms = 300): RecurCase[] {
     if (f.lasso && r.set.op === 'or' && r.set.xs.length > 1 && open({op: 'or', xs: r.set.xs.slice(0, -1)})) out.push({loop, family, what: "a lasso's cycle that doesn't close: its set less one state", recur: {...r, set: {op: 'or', xs: r.set.xs.slice(0, -1)}}})
   }
   return out
+}
+
+// --- rings of functions by well-founded recursion (core/data.ts's termination, Data.lean's wf_fix_unique_ring) -------
+//
+// Random rings of two functions over naturals, from families whose runs end and families that run forever from some
+// start, each written twice: by core/data.ts's `define`, and as the reference, a JavaScript twin run with fuel that
+// records every call within the ring (from the caller's arguments to the callee's).
+//   - down: f(0) = c, f(p + 1) = g(p); g passes n round (g(n) = f(n)) or lowers it (g(0) = c, g(p + 1) = f(p)): ends
+//   - up: f as down, g(n) = f(n + k), k ≥ 1: never ends from f(1)
+//   - late: f(n) = g(n) from n ≥ L, else f(0) = c, f(p + 1) = f(p); g(n) = f(n): never ends from f(L)
+//   - lateDown: late, but g lowers n (g(0) = c, g(p + 1) = f(p)): ends
+//   - pair: f(0, m) = m, f(p + 1, m) = g(m, p); g(x, y) = f(x, y): ends (n + m falls at each call of f)
+//   - swapKeep: f(0, m) = m, f(p + 1, m) = g(m, p + 1); g(x, y) = f(x, y): never ends from f(1, 1)
+// A ring taken must end on the reference's runs, a ring that runs forever must be refused, and the measures of one taken,
+// tampered (the functions' measures swapped; each function's constant dropped; every component's coefficients negated),
+// must be refused by core/data.ts's checkMeasures wherever a call of the reference's runs doesn't lower them.
+export type RingCase = {name: string, family: string, fns: [Callable, Callable], ends: boolean, arity: number, run: (at: number, args: number[], fuel: {n: number}, calls: RingCall[]) => number, lean: (fm: string, gm: string) => string}
+export type RingCall = {from: number, to: number, s: number[], t: number[]}
+let ringSeq = 0
+export function ringCase(): RingCase {
+  const family = pick(['down', 'up', 'late', 'lateDown', 'pair', 'swapKeep'] as const), c = rand(3), kUp = 1 + rand(2), L = 3 + rand(10), lowers = rand(2) === 1
+  const id = `ring${++ringSeq}${family}`, fName = `${id}F`, gName = `${id}G`
+  const N = (x: unknown) => x as Nat
+  let f: Callable, g: Callable
+  // the reference: each function a step reading the other through `call`, out of fuel past `fuel.n` calls
+  type Js = (args: number[], call: (to: number, args: number[]) => number) => number
+  let js: [Js, Js], lean: (fm: string, gm: string) => string
+  const fDown: Js = ([n], call) => (n! === 0 ? c : call(1, [n! - 1]))
+  const gDown: Js = ([n], call) => (lowers ? (n! === 0 ? c : call(0, [n! - 1])) : call(0, [n!]))
+  const leanDown = `def ${fName} (n : Nat) : Nat := match n with | 0 => ${c} | p + 1 => ${gName} p`
+  const leanG = lowers ? `def ${gName} (n : Nat) : Nat := match n with | 0 => ${c} | p + 1 => ${fName} p` : `def ${gName} (n : Nat) : Nat := ${fName} n`
+  const two = (fd: string, fm: string, gd: string, gm: string) => `mutual\n${fd}\ntermination_by ${fm}\ndecreasing_by all_goals (simp_all [lexLt] <;> omega)\n${gd}\ntermination_by ${gm}\ndecreasing_by all_goals (simp_all [lexLt] <;> omega)\nend`
+  switch (family) {
+    case 'down':
+      f = define(fName, {n: natural}, natural, ({n}) => N(n).match({zero: () => c, succ: ({pred}) => N(g(pred))}))
+      g = lowers ? define(gName, {n: natural}, natural, ({n}) => N(n).match({zero: () => c, succ: ({pred}) => N(f(pred))})) : define(gName, {n: natural}, natural, ({n}) => N(f(n)))
+      js = [fDown, gDown]; lean = (fm, gm) => two(leanDown, fm, leanG, gm)
+      break
+    case 'up':
+      f = define(fName, {n: natural}, natural, ({n}) => N(n).match({zero: () => c, succ: ({pred}) => N(g(pred))}))
+      g = define(gName, {n: natural}, natural, ({n}) => N(f(N(n).plus(kUp))))
+      js = [fDown, ([n], call) => call(0, [n! + kUp])]; lean = () => ''
+      break
+    case 'late': case 'lateDown': {
+      const down = family === 'lateDown'
+      f = define(fName, {n: natural}, natural, ({n}) => when(N(n).atLeast(L), N(g(n)), N(n).match({zero: () => c, succ: ({pred}) => N(f(pred))})))
+      g = down ? define(gName, {n: natural}, natural, ({n}) => N(n).match({zero: () => c, succ: ({pred}) => N(f(pred))})) : define(gName, {n: natural}, natural, ({n}) => N(f(n)))
+      js = [([n], call) => (n! >= L ? call(1, [n!]) : n! === 0 ? c : call(0, [n! - 1])), down ? ([n], call) => (n! === 0 ? c : call(0, [n! - 1])) : ([n], call) => call(0, [n!])]
+      lean = (fm, gm) => two(`def ${fName} (n : Nat) : Nat := if ${L} ≤ n then ${gName} n else match n with | 0 => ${c} | p + 1 => ${fName} p`, fm, `def ${gName} (n : Nat) : Nat := match n with | 0 => ${c} | p + 1 => ${fName} p`, gm)
+      break
+    }
+    case 'pair': case 'swapKeep': {
+      const keep = family === 'swapKeep'
+      f = define(fName, {n: natural, m: natural}, natural, ({n, m}) => N(n).match({zero: () => N(m), succ: ({pred}) => N(keep ? g(m, n) : g(m, pred))}))
+      g = define(gName, {x: natural, y: natural}, natural, ({x, y}) => N(f(x, y)))
+      js = [([n, m], call) => (n! === 0 ? m! : call(1, keep ? [m!, n!] : [m!, n! - 1])), ([x, y], call) => call(0, [x!, y!])]
+      lean = (fm, gm) => two(`def ${fName} (n m : Nat) : Nat := match n with | 0 => m | p + 1 => ${gName} m p`, fm, `def ${gName} (x y : Nat) : Nat := ${fName} x y`, gm)
+      break
+    }
+  }
+  const run = (at: number, args: number[], fuel: {n: number}, calls: RingCall[]): number => {
+    const call = (from: number) => (to: number, as: number[]): number => {
+      if (--fuel.n < 0) throw new RangeError('out of fuel')
+      calls.push({from, to, s: [...argsOf(from)], t: as})
+      return go(to, as)
+    }
+    const stack: number[][] = []
+    const argsOf = (_from: number) => stack.at(-1)!
+    const go = (i: number, as: number[]): number => { stack.push(as); try { return js[i]!(as, call(i)) } finally { stack.pop() } }
+    return go(at, args)
+  }
+  return {name: id, family, fns: [f!, g!], ends: family === 'down' || family === 'lateDown' || family === 'pair', arity: family === 'pair' || family === 'swapKeep' ? 2 : 1, run, lean: lean!}
+}
+// The reference's runs from f and g at every start up to 16 (each argument), within `fuel` calls: whether all end, and
+// the calls they make.
+export function ringReference(r: RingCase, fuel = 4000): {ends: boolean, calls: RingCall[]} {
+  const calls: RingCall[] = []
+  let ends = true
+  const starts = r.arity === 1 ? Array.from({length: 17}, (_, n) => [n]) : Array.from({length: 17 * 17}, (_, i) => [i % 17, Math.floor(i / 17)])
+  for (const at of [0, 1]) for (const s of starts) { try { r.run(at, s, {n: fuel}, calls) } catch (e) { if (!(e instanceof RangeError)) throw e; ends = false } }
+  return {ends, calls}
+}
+// Whether measures (each function's, as core/data.ts reads them: lexicographic, each component truncated at 0) fall at
+// every call the reference recorded.
+export function ringLowers(ms: Measure[], calls: RingCall[]): boolean {
+  const val = (c: Measure['comps'][number], xs: number[]) => Math.max(0, c.coef.reduce((a, k, i) => a + k * xs[i]!, c.c))
+  return calls.every(e => {
+    for (const [j, c] of ms[e.to]!.comps.entries()) { const a = val(c, e.t), b = val(ms[e.from]!.comps[j]!, e.s); if (a < b) return true; if (a > b) return false }
+    return false
+  })
+}
+// The tampered measures of a ring taken, each named.
+export function tamperedMeasures(ms: Measure[]): {what: string, ms: Measure[]}[] {
+  const neg = (m: Measure): Measure => ({comps: m.comps.map(c => ({coef: c.coef.map(k => -k), c: -c.c}))})
+  return [
+    {what: 'swapped between the functions', ms: [ms[1]!, ms[0]!]},
+    {what: "each function's constants dropped", ms: ms.map(m => ({comps: m.comps.map(c => ({...c, c: 0}))}))},
+    {what: 'negated', ms: ms.map(neg)},
+  ]
 }
