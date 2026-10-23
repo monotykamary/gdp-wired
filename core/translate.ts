@@ -13,7 +13,8 @@ import {type C, type E, walk} from './machine.ts'
 import {type Lin, type Step, add, env, refuteFast, scale, solve} from './solver.ts'
 import {checkRefutation} from './check.ts'
 import {type Goal, type Path, type Subst, type Tree, canon, canonFlip, columnTerm, factorsOf, isCell, isMonomial, leafConstraintsReusing, linear, substE, truth, withProducts} from '../kernel/kernel.ts'
-import {cellProducts, clock, grow} from '../kernel/prove.ts'
+import {cellProducts, clock, grow, parseKey} from '../kernel/prove.ts'
+import {times} from '../kernel/reader.ts'
 
 // How the usual goal's names read in the node's: `s`, a substitution of its variables and maps (which builds the node's
 // goal from the usual one's hypotheses); `cells`, each map whose cell k is read at `at` + k·Ω in the node's goal (the
@@ -22,31 +23,8 @@ export type Rename = {s: Subst, cells?: Record<string, {to: string, at: E}>}
 const omega = 'O$'
 const debugOn = () => !!env.GDP_CYCLIC_DEBUG
 
-// The kernel's product of two linear forms (kernel.ts's `times`): each monomial its factors sorted, joined by '*'.
-function times(a: Lin, b: Lin): Lin | undefined {
-  const out: Lin[] = []
-  for (const [p, cp] of Object.entries(a)) for (const [q, cq] of Object.entries(b)) {
-    if (p.includes('⟦') || q.includes('⟦')) return undefined
-    const fs = [...(p === '1' ? [] : factorsOf(p)), ...(q === '1' ? [] : factorsOf(q))].sort()
-    out.push({[fs.length ? fs.join('*') : '1']: cp * cq})
-  }
-  return add(...out)
-}
 // A cell's key, from its name (`M[key]`, the key's canonical text, whose names may be cells themselves).
-function keyOf(cell: string): Lin {
-  const text = cell.slice(cell.indexOf('[') + 1, -1), out: Lin = {}
-  let depth = 0, start = 0
-  for (let i = 0; i <= text.length; i++) {
-    const ch = text[i]
-    if (ch === '[') depth++
-    else if (ch === ']') depth--
-    else if ((ch === ',' && depth === 0) || i === text.length) {
-      if (i > start) { const part = text.slice(start, i), at = part.lastIndexOf(':'); out[part.slice(0, at)] = Number(part.slice(at + 1)) }
-      start = i + 1
-    }
-  }
-  return out
-}
+const keyOf = (cell: string): Lin => parseKey(cell.slice(cell.indexOf('[') + 1, -1))
 
 // A linear form of the usual goal read in the node's, at the node's path: undefined where a column has no linear form
 // there (a product of a term column).

@@ -37,7 +37,8 @@ type LV = R & Kept & {lin: Lin | undefined}
 type FV = Kept & {rows: Row[], fin: boolean}
 export type Row = {lin: Lin, w: W, label: ''}
 
-function times(a: Lin, b: Lin): Lin | undefined {
+// The kernel's product of two linear forms (kernel.ts's `times`): each monomial its factors sorted, joined by '*'.
+export function times(a: Lin, b: Lin): Lin | undefined {
   const out: Lin[] = []
   for (const [p, cp] of Object.entries(a)) for (const [q, cq] of Object.entries(b)) {
     if (p.includes('⟦') || q.includes('⟦')) return undefined

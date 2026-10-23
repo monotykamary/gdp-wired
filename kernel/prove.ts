@@ -78,7 +78,7 @@ export function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
   const out: Lin[] = []
   const keyText = (n: string) => n.slice(n.indexOf('[') + 1, -1)
   // (each name's map and key read once: the pairs are quadratic in the names)
-  const maps = names.map(n => n.slice(0, n.indexOf('['))), keys = names.map(n => parse(keyText(n)))
+  const maps = names.map(n => n.slice(0, n.indexOf('['))), keys = names.map(n => parseKey(keyText(n)))
   for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
     if (maps[i] !== maps[j]) continue
     const d = sub(keys[i]!, keys[j]!)
@@ -112,7 +112,8 @@ const quotient = (d: Lin): Lin | undefined => {
 }
 // The cells' key differences split at their quotient's equality, by canonical text: their quotient.
 const cellDiffs = new Map<string, Lin>()
-function parse(text: string): Lin {
+// A key's canonical text read back as its linear form.
+export function parseKey(text: string): Lin {
   const out: Lin = {}
   let depth = 0, start = 0
   for (let i = 0; i <= text.length; i++) {
