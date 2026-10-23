@@ -497,13 +497,14 @@ const holdsExactly = (rows: Lin[], w: Record<string, number>): boolean => rows.e
 })
 function exactSolve(rows: Lin[], until: number): Record<string, number> | undefined {
   // (the rows scaled to their largest entry first, then as they are: either way the tolerance may hide what a row of a
-  // vertex at 2^31 says, a coefficient 2^−31 read as 0 or 0 as 2^−31)
+  // vertex at 2^31 says, a coefficient 2^−31 read as 0 or 0 as 2^−31; infeasible where both say so)
   const t0 = performance.now(), first = floatSolve(rows, until), second = first && first !== 'infeasible' ? first : floatSolve(rows, until, false)
   const fast = second && second !== 'infeasible' ? second : first === 'infeasible' && second === 'infeasible' ? 'infeasible' : undefined
   if (lpTrace) console.error(`[lp] ${rows.length} rows ${new Set(rows.flatMap(l => Object.keys(l))).size} unknowns: ${fast === undefined ? 'undefined' : fast === 'infeasible' ? 'infeasible' : 'found'} ${Math.round(performance.now() - t0)} ms`)
-  if (fast && fast !== 'infeasible') return fast
-  // (no point found: a refutation over the rationals, Farkas' rows picked by the floats and checked by elimination on
-  // them, which the exact simplex below would take far longer to give; the exact simplex where there is none)
+  if (fast === 'infeasible') return undefined
+  if (fast) return fast
+  // (no point read back, or the two disagree: a refutation over the rationals, Farkas' rows picked by the floats and
+  // checked by elimination on them, which the exact simplex below would take far longer to give; else the exact simplex)
   if (refuteFast(rows.map(lin => ({lin, label: ''})), 2_000, false)?.kind === 'refuted') return undefined
   const xs = [...new Set(rows.flatMap(l => Object.keys(l)).filter(x => x !== '1'))].sort(), n = xs.length, m = rows.length
   // Columns: p (n), q (n), a slack per row (m), an artificial per row (m); the right-hand side last.
