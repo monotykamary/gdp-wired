@@ -1,0 +1,7 @@
+; expect: nonterminating
+; x' + x = 0: x' = -x, period 2
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(entrypoint f)
+(rule (f x) (f xp) :guard (and (distinct x 0) (= (+ xp x) 0)))

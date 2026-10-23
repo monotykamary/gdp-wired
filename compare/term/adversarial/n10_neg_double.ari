@@ -1,0 +1,7 @@
+; expect: nonterminating
+; x := -2x never reaches 0 (diverges, no lasso)
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(entrypoint f)
+(rule (f x) (f (* (- 2) x)) :guard (distinct x 0))

@@ -1,0 +1,9 @@
+; expect: nonterminating
+; h has more arguments than the cut point; the cycle through it keeps x
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(fun h (-> Int Int Int Int))
+(entrypoint f)
+(rule (f x) (h x x 0) :guard (> x 0))
+(rule (h a b c) (f (+ (- a b) b c)))

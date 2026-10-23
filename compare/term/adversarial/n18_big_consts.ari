@@ -1,0 +1,7 @@
+; expect: nonterminating
+; x + (2^52 - 2^52) = x
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(entrypoint f)
+(rule (f x) (f (+ x (- 4503599627370496 4503599627370496))) :guard (< x 4503599627370496))

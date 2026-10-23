@@ -1,0 +1,7 @@
+; expect: terminates
+; x > 0: x div 2
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(entrypoint f)
+(rule (f x) (f (div x 2)) :guard (> x 0))

@@ -1,0 +1,7 @@
+; expect: nonterminating
+; 3 * 3002399751580331 = 9007199254740993 and 2^52 + 2^52 = 9007199254740992 differ, so the guard holds and f(x) loops on itself; folded in doubles both are 9007199254740992
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(entrypoint f)
+(rule (f x) (f x) :guard (distinct (* 3 3002399751580331) (+ 4503599627370496 4503599627370496)))

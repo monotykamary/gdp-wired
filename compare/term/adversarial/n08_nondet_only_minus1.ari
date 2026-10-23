@@ -1,0 +1,7 @@
+; expect: nonterminating
+; y in {-1, 1, 2}: only y = -1 keeps going
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(entrypoint f)
+(rule (f x) (f (- x y)) :guard (and (> x 0) (> y (- 2)) (< y 3) (not (= y 0))))

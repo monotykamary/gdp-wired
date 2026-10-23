@@ -1,0 +1,8 @@
+; expect: nonterminating
+; counts up from -3 to -1 and resets
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(entrypoint f)
+(rule (f x) (f (+ x 1)) :guard (< x (- 1)))
+(rule (f x) (f (- 3)) :guard (= x (- 1)))

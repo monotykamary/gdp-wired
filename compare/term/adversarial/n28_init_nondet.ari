@@ -1,0 +1,9 @@
+; expect: nonterminating
+; __init picks any x; x < 0 then loops
+(format LCTRS)
+(theory Ints)
+(fun i (-> Int Int))
+(fun f (-> Int Int))
+(entrypoint i)
+(rule (i a) (f x))
+(rule (f x) (f x) :guard (<= x (- 7)))

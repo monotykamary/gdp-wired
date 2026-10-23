@@ -1,0 +1,7 @@
+; expect: nonterminating
+; x' = t, t = x + y', y' = z: z >= 0 keeps x > 0
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int Int Int))
+(entrypoint f)
+(rule (f x y z) (f xp yp z) :guard (and (> x 0) (= xp t) (= t (+ x yp)) (= yp z)))

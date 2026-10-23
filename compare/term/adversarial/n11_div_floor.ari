@@ -1,0 +1,7 @@
+; expect: nonterminating
+; -1 div 2 = -1 in SMT-LIB (truncation would give 0)
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(entrypoint f)
+(rule (f x) (f (div x 2)) :guard (< x 0))

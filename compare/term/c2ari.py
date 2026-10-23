@@ -3,10 +3,10 @@ Refused (exit 2, the reason on stderr as one JSON line) where the program leaves
 
 The subset: main and the functions it calls, each call inlined (f(...);, x = f(...); and return f(...);, its parameters
 fresh variables set to the arguments, its body over the globals and them), over signed integer variables (int, long,
-short, char, _Bool, enums; locals and globals); assignments, ++/--, compound assignments, if, while, do-while, for,
+enums; locals and globals); assignments, ++/--, compound assignments, if, while, do-while, for,
 break, continue, return, goto and labels; expressions with + - * (products of variables too), / and % by a positive
 constant k (the quotient a fresh value q with x − k·q in [0, k) for x >= 0 and k·q − x in [0, k) for x < 0: C's
-truncation toward zero), comparisons, && || !, casts between those types; __VERIFIER_nondet_<signed type>() anywhere an
+truncation toward zero), comparisons, && || !, casts that convert nothing (to long, or to int in a program with no long); __VERIFIER_nondet_<signed type>() anywhere an
 expression may be (a fresh value in the type's range), __VERIFIER_assume(c) (the run goes on only where c holds), and
 abort(), exit(), reach_error(), __VERIFIER_error() (the run ends). The program's locations are the system's; a run is
 the program's execution: every variable starts as C starts it (a global at its initializer or 0, a local at any value
@@ -18,7 +18,8 @@ no signed operation overflows (signed overflow is undefined behavior; the tasks'
 long's (or long long's) values are left unbounded where C bounds them to 64 bits (counted in the output's features).
 
 Refused, by reason, the data first (prescan): the heap (malloc), pointers, arrays, structs, floats, unsigned types
-(arithmetic modulo 2^n); recursion (a cycle of calls from main); then the code: a call inside a larger expression,
+(arithmetic modulo 2^n); values narrower than int (char, short, _Bool: what is stored is converted to the type's
+range, wrapped or made 0 or 1) and casts that convert (to those, or to int where a long is about); recursion (a cycle of calls from main); then the code: a call inside a larger expression,
 calls to functions with no body; division or remainder by anything but a positive constant; bitwise operators and
 shifts; the ternary operator, and a condition used as a value; side effects inside an expression (x++ in a
 condition); switch.
@@ -131,6 +132,8 @@ class Program:
         return f"l{self.nlocs - 1}"
 
     def var(self, name, kind):
+        if kind[0] == "int" and kind[1] < 32:
+            raise Refused("a value narrower than int (char, short, _Bool: C converts what is stored to its range)")
         u = f"v_{name}" if f"v_{name}" not in self.kinds else f"v_{name}_{len(self.vars)}"
         self.vars.append(u)
         self.kinds[u] = kind
@@ -241,7 +244,12 @@ class Main:
                 return num(ENUMS[e.name])
             return self.lookup(e.name)
         if isinstance(e, c_ast.Cast):
-            kind_of(e.to_type.type)
+            # a conversion is the identity only to a type at least as wide: to long, or to int with no long about
+            k = kind_of(e.to_type.type)
+            if k[0] == "int" and k[1] < 32:
+                raise Refused("a cast narrower than int (C converts the value to its range)")
+            if k[0] == "int" and any(c[0] == "long" for c in self.p.kinds.values()):
+                raise Refused("a cast to int where a long may be converted (C converts the value to its range)")
             return self.term(e.expr, guards)
         if isinstance(e, c_ast.UnaryOp):
             if e.op == "-":
