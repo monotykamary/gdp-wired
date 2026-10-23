@@ -274,12 +274,12 @@ const renameC = (c: C, names: Set<string>, f: (x: string) => string): C => {
 // along a line). Found by double description over the homogenized cone {(x, t): rows ≤ 0, t ≥ 0} (Motzkin), in
 // integers: each generator's entries divided by their common divisor, a vertex (x, t) with t > 0 standing for x / t.
 // The rows are integer rows (x < y is x + 1 ≤ y), so a condition proven over a path's rational points holds of its
-// integer ones; past `cap` generators, or entries past 2^53, there are none.
+// integer ones; past `cap` generators, entries past 2^53, or `until`, there are none.
 export type Generators = {names: string[], vertices: number[][], rays: number[][], lines: number[][]} // each entry over names, then t
 const bgcd = (a: bigint, b: bigint): bigint => { if (a < 0n) a = -a; if (b < 0n) b = -b; while (b) [a, b] = [b, a % b]; return a }
 const norm = (x: bigint[]): bigint[] => { const g = x.reduce(bgcd, 0n); return g > 1n ? x.map(y => y / g) : x }
 const dot = (a: bigint[], b: bigint[]) => a.reduce((s, x, i) => s + x * b[i]!, 0n)
-export function generators(rows: Lin[], names: string[], nats: string[] = [], cap = 2000): Generators | undefined {
+export function generators(rows: Lin[], names: string[], nats: string[] = [], cap = 600, until = Infinity): Generators | undefined {
   const n = names.length, at = new Map(names.map((x, i) => [x, i]))
   const hs: bigint[][] = [...rows.map(r => { const h = Array.from({length: n + 1}, () => 0n); for (const [x, c] of Object.entries(r)) { if (x === '1') h[n] = BigInt(c); else h[at.get(x)!] = BigInt(c) } return h }),
     ...nats.filter(x => at.has(x)).map(x => { const h = Array.from({length: n + 1}, () => 0n); h[at.get(x)!] = -1n; return h }),
@@ -300,6 +300,7 @@ export function generators(rows: Lin[], names: string[], nats: string[] = [], ca
     const pos = rays.filter((_, i) => val[i]! > 0n), neg = rays.filter((_, i) => val[i]! < 0n), zero = rays.filter((_, i) => val[i]! === 0n)
     const next = [...zero.map(r => ({v: r.v, zero: new Set([...r.zero, hi])})), ...neg]
     const vp = new Map(pos.map(r => [r, dot(h, r.v)])), vn = new Map(neg.map(r => [r, dot(h, r.v)]))
+    if (performance.now() > until) return undefined
     for (const p of pos) for (const q of neg) {
       // adjacent: no other ray is zero wherever both are
       const common = [...p.zero].filter(j => q.zero.has(j))
@@ -345,7 +346,7 @@ export function houdini(rel: Relation, cands: Lin[][], locOf: (i: number) => [nu
       if (!H[b]!.length) continue
       const rows = [...p.rows, ...tight(H[a]!)]
       const ns = [...new Set([...rows.flatMap(vars), ...Object.values(p.post).flatMap(vars)])].sort()
-      const g = generators(rows, ns, rel.nats)
+      const g = generators(rows, ns, rel.nats, 600, until)
       if (!g) return undefined
       if (!g.vertices.length) continue // no point: the path never runs where the candidates hold
       const at = (x: number[], t: number, c: Lin): number => {

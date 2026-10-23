@@ -777,7 +777,7 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
     if (performance.now() > until) return {why: 'out of time on the relation'}
     const rows = [...p.rows, ...(extra[fromOf(i)] ?? [])]
     const ns = [...new Set([...rows.flatMap(r => Object.keys(r)), ...Object.values(p.post).flatMap(r => Object.keys(r)), ...every])].filter(x => x !== '1').sort()
-    const gens = generators(rows, ns, rel.nats)
+    const gens = generators(rows, ns, rel.nats, 600, until)
     if (!gens) return {why: 'a path past the generators\' cap'}
     if (gens.vertices.length) gpaths.push({from: fromOf(i), to: toOf(i), gens, post: p.post})
   }
