@@ -87,10 +87,11 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
     x.val = val; x.level = level(); x.at = trail.length; x.phase = val; stamps[x.at] = ++stampN
     if (reason === undefined) delete x.reason; else x.reason = reason
     trail.push(name)
+    reader.touch(name)
   }
   const undoTo = (l: number) => {
     const keep = levels[l] ?? trail.length
-    while (trail.length > Math.max(keep, fixed)) { const x = vars.get(trail.pop()!)!; delete x.val; x.level = -1; delete x.reason }
+    while (trail.length > Math.max(keep, fixed)) { const name = trail.pop()!, x = vars.get(name)!; delete x.val; x.level = -1; delete x.reason; reader.touch(name) }
     levels.length = l
   }
   const addClause = (lits: Map<string, boolean>, node: number): number => {
@@ -343,10 +344,10 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
 function unfold(goal: Goal, nodes: DagNode[], top: number, root: Path, maxLeaves: number, until: number): Tree | undefined {
   const stack: {name: string, lin: Lin, holds: boolean}[] = [], on = new Map<string, {val: boolean, at: number}>(), stamps: number[] = []
   let stampN = 0, leaves = 0
-  const push = (name: string, lin: Lin, holds: boolean) => { on.set(name, {val: holds, at: stack.length}); stamps[stack.length] = ++stampN; stack.push({name, lin, holds}) }
-  const pop = () => { on.delete(stack.pop()!.name) }
-  for (const [key, a] of root) push(key, a.lin, a.holds)
   const reader = new Reader(goal, {get: name => on.get(name), stamp: at => stamps[at]!, size: () => stack.length, lin: at => stack[at]!})
+  const push = (name: string, lin: Lin, holds: boolean) => { on.set(name, {val: holds, at: stack.length}); stamps[stack.length] = ++stampN; stack.push({name, lin, holds}); reader.touch(name) }
+  const pop = () => { const name = stack.pop()!.name; on.delete(name); reader.touch(name) }
+  for (const [key, a] of root) push(key, a.lin, a.holds)
   const go = (i: number): Tree | undefined => {
     const n = nodes[i]!
     if ('res' in n) {

@@ -12,5 +12,5 @@ const go = (x: C | E): void => { if (x.op === 'var') { names.set(x.name, (names.
 r.hyps.forEach(go)
 const kinds = new Map<string, number>()
 for (const n of names.keys()) { const kind = n.includes('~') ? `state~${n.split('~')[1]}` : n.includes('@') ? `input@${n.split('@')[1]}` : /^[xyc]/.test(n) ? 'input@1' : 'other:' + n; kinds.set(kind, (kinds.get(kind) ?? 0) + 1) }
-console.log([...kinds].sort())
+console.log([...kinds].sort((a, b) => a[0].localeCompare(b[0])))
 console.log('once', [...names].filter(([, c]) => c === 1).length, 'twice', [...names].filter(([, c]) => c === 2).length)

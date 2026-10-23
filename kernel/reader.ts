@@ -5,6 +5,10 @@
 // keeps its reason (Kleene truth is monotone in the path), so it is kept across the search's nodes for as long as the
 // trail keeps the latest decision of its reason (one stamp a trail position: the trail is a stack, so the position's
 // stamp unchanged means every position below it is too). A value with an open read is found again at each node.
+// A value with an open read is also kept while nothing it read has changed: each value's reads are noted (the values
+// and the atoms it read), and a change of the trail at an atom (`touch`, which the search calls at each decision and
+// each one taken back) marks every value that read it, and every value that read those, to be found again. A value
+// found again would be the same (it is a function of what it read), so the search is as it was, only faster.
 // Nothing here is trusted: the rows it gives are the kernel's (the search's tree is checked by kernel.ts at the end,
 // and each leaf's derivation is found again among kernel.ts's rows when the search's refutation is unfolded).
 import type {C, E} from '../core/machine.ts'
@@ -59,6 +63,8 @@ function same<T>(site: number, owner: object, a: unknown, b: unknown, c: unknown
   return out
 }
 
+// GDP_READER_CLEAN=0: values with an open read found again at every node, as before (for comparing).
+const keepClean = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_READER_CLEAN !== '0'
 export class Reader {
   private node = 0
   private natRows = new Map<string, Row>()
@@ -66,12 +72,51 @@ export class Reader {
   private ls = new Map<E, LV>()
   private ts = new Map<C, TV>()
   private fs: (FV | undefined)[] = []
+  private os: ({lins: Lin[], node: number} | undefined)[] = []
   constructor(readonly goal: Goal, readonly trail: Trail) {}
-  // A new node: values with an open read are found again.
+  // A new node: values with an open read are found again, unless nothing they read has changed.
   begin() { this.node++ }
-  private ok(x: Kept & {fin: boolean}): boolean {
-    if (x.node === this.node) return true
-    return x.fin && (x.pos < 0 || (x.pos < this.trail.size() && this.trail.stamp(x.pos) === x.stamp))
+  // The reads: a value's key (its term, condition, or a hypothesis' facts or open atoms) → the keys of the values that
+  // read it; an atom's name → the keys of the values that read it. A clean key's value stands.
+  private up = new Map<object, Set<object>>()
+  private byAtom = new Map<string, Set<object>>()
+  private clean = new Set<object>()
+  private frame: object | undefined
+  private factKeys: object[] = []
+  private openKeys: object[] = []
+  private read(key: object) {
+    if (!this.frame) return
+    let s = this.up.get(key)
+    if (!s) this.up.set(key, (s = new Set()))
+    s.add(this.frame)
+  }
+  private readAtom(name: string) {
+    if (!this.frame) return
+    let s = this.byAtom.get(name)
+    if (!s) this.byAtom.set(name, (s = new Set()))
+    s.add(this.frame)
+  }
+  private within<T>(key: object, f: () => T): T {
+    const was = this.frame
+    this.frame = key
+    try { return f() } finally { this.frame = was }
+  }
+  // The trail changed at this atom (decided, or taken back): every value that read it, and every reader of those, all
+  // the way up (a value kept as final reads below it values that are not clean).
+  touch(name: string) {
+    const todo = [...(this.byAtom.get(name) ?? [])], seen = new Set<object>()
+    while (todo.length) {
+      const key = todo.pop()!
+      if (seen.has(key)) continue
+      seen.add(key)
+      this.clean.delete(key)
+      for (const p of this.up.get(key) ?? []) todo.push(p)
+    }
+  }
+  private ok(x: Kept & {fin: boolean}, key: object): boolean {
+    if ((keepClean && this.clean.has(key)) || x.node === this.node) return true
+    if (x.fin && (x.pos < 0 || (x.pos < this.trail.size() && this.trail.stamp(x.pos) === x.stamp))) { this.clean.add(key); return true }
+    return false
   }
   private kept(r: R): Kept { return {pos: r.pos, stamp: r.pos < 0 ? 0 : this.trail.stamp(r.pos), node: this.node} }
   private units = new Map<string, W>()
@@ -83,15 +128,21 @@ export class Reader {
     if (constant) return {...R0, t: (lin['1'] ?? 0) <= 0}
     let names = namePair.get(lin)
     if (!names) namePair.set(lin, (names = [canon(lin), canonFlip(lin)]))
-    const [a, f] = names, x = this.trail.get(a)
+    const [a, f] = names
+    this.readAtom(a); this.readAtom(f)
+    const x = this.trail.get(a)
     if (x && x.val !== undefined) return {t: x.val, w: this.unit(a), pos: x.at, fin: true}
     const y = this.trail.get(f)
     if (y && y.val !== undefined) return {t: !y.val, w: this.unit(f), pos: y.at, fin: true}
     return {t: undefined, w: none, pos: -1, fin: false}
   }
   linear(e: E): LV {
+    this.read(e)
     const had = this.ls.get(e)
-    if (had && this.ok(had)) return had
+    if (had && this.ok(had, e)) return had
+    return this.within(e, () => this.linear0(e))
+  }
+  private linear0(e: E): LV {
     let lin: Lin | undefined, r: R = R0
     switch (e.op) {
       case 'var': lin = e.name === '1' || /[*[\],:⟦]/.test(e.name) ? undefined : same(0, e, 0, 0, 0, () => v(e.name)); break
@@ -120,6 +171,7 @@ export class Reader {
     // (an open value's reason is what its decided parts need: only the column's own value is open)
     const out: LV = {lin, w: r.w, fin: r.fin, ...this.kept(r)}
     this.ls.set(e, out)
+    this.clean.add(e)
     return out
   }
   private atoms(c: Extract<C, {a: E}>): {when: Lin[], unless: Lin[][], r: R} | undefined {
@@ -135,8 +187,12 @@ export class Reader {
     return {...atoms, r}
   }
   truth(c: C): TV {
+    this.read(c)
     const had = this.ts.get(c)
-    if (had && this.ok(had)) return had
+    if (had && this.ok(had, c)) return had
+    return this.within(c, () => this.truth0(c))
+  }
+  private truth0(c: C): TV {
     let t: boolean | undefined, r: R
     switch (c.op) {
       case 'flag': throw new Error('flags are inlined before the kernel sees them')
@@ -168,6 +224,7 @@ export class Reader {
     // once the column's choice is decided, so a value through an open term is found again at each node).
     const out: TV = {t, w: r.w, fin: t !== undefined && r.fin, ...this.kept(r)}
     this.ts.set(c, out)
+    this.clean.add(c)
     return out
   }
   // kernel.ts's facts, each row with its reason; final when nothing it read is open.
@@ -209,12 +266,17 @@ export class Reader {
     }
   }
   facts(i: number): FV {
+    const key = (this.factKeys[i] ??= {})
+    this.read(key)
     const had = this.fs[i]
-    if (had && this.ok(had)) return had
-    const rows: Row[] = [], r = this.factsOf(this.goal.hyps[i]!, true, rows)
-    const out: FV = {rows, fin: r.fin, ...this.kept(r)}
-    this.fs[i] = out
-    return out
+    if (had && this.ok(had, key)) return had
+    return this.within(key, () => {
+      const rows: Row[] = [], r = this.factsOf(this.goal.hyps[i]!, true, rows)
+      const out: FV = {rows, fin: r.fin, ...this.kept(r)}
+      this.fs[i] = out
+      this.clean.add(key)
+      return out
+    })
   }
   // kernel.ts's termRows, each row with its reason (the forms made again only when a part's form is a new object).
   termRows(name: string): Row[] {
@@ -287,8 +349,16 @@ export class Reader {
   }
   // prove.ts's open atoms of a hypothesis (openH), in its order; none for a hypothesis whose facts are final.
   open(i: number, out: Lin[]): void {
-    if (this.facts(i).fin) return
-    this.openH(this.goal.hyps[i]!, out, true)
+    const key = (this.openKeys[i] ??= {}), had = this.os[i]
+    if (had && ((keepClean && this.clean.has(key)) || had.node === this.node)) { for (const lin of had.lins) out.push(lin); return }
+    const lins = this.within(key, () => {
+      const mine: Lin[] = []
+      if (!this.facts(i).fin) this.openH(this.goal.hyps[i]!, mine, true)
+      return mine
+    })
+    this.os[i] = {lins, node: this.node}
+    this.clean.add(key)
+    for (const lin of lins) out.push(lin)
   }
   private openE(e: E, out: Lin[]): void {
     switch (e.op) {

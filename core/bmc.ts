@@ -22,11 +22,11 @@
 // The budget is read off prove.ts's clock inside `counted` (the kernel's work, bmcRate units a millisecond), so the
 // search is the same on any machine; a wall-clock stop beside it (`wall`) is for callers under a wall-clock limit.
 import {type C, type E, type Law, type Machine, type Request, type State, evalC, evalE, interpret, isArithmetic, loadJs, numbersOf} from './machine.ts'
-import {stepLawObligations, substC} from '../kernel/kernel.ts'
+import {stepLawObligations, substC, substE} from '../kernel/kernel.ts'
 import {clock, counted} from '../kernel/prove.ts'
 import {REFUTED, growCdcl} from '../kernel/cdcl.ts'
 import {allowed} from './watch.ts'
-import {simpC} from './nonterm.ts'
+import {simpC, simpE} from './nonterm.ts'
 
 export type BoundedRun = {law: string, depth: number, witness: Record<string, number>, params: Record<string, number>, trace: Request[]}
 export type BmcOptions = {
@@ -189,39 +189,57 @@ export function replay(m: Machine, laws: Law[], run: {params: Record<string, num
 }
 
 // A forced run: from the start, each step the one the rule allows (a machine without params whose requests choose among
-// a few cases, each request value below a bound its assumption states, the others read as 0 and as 1 alike), taken by
-// the compiled rule until a step breaks a law, the run reaches a state with two ways on or none, or `steps` or `wall`
-// runs out. A deterministic loop's long runs (CHC-COMP's s_split: 10,002 steps; the k-step goals fold to false without
-// a case past depth 64) are its runs; any other machine stops within a few steps. The run, as a bounded run's.
-export function forcedRun(m: Machine, laws: Law[], opts: {steps: number, wall: number}): BoundedRun | undefined {
+// a few cases, each request value below a bound its assumption states, the others 0), taken by the compiled rule until a
+// step breaks a law, the run reaches a state with no way on, or `steps` or `wall` runs out. A step is forced where one
+// case moves the state and that case reads no other request value; at most `guesses` steps aren't (a start of free
+// values taken as 0, two ways on taken by the first). A deterministic loop's long runs (CHC-COMP's s_split: 10,002
+// steps; the k-step goals fold to false without a case past depth 64) are its runs; a machine whose steps read their
+// requests stops within a few steps. The run, as a bounded run's.
+export function forcedRun(m: Machine, laws: Law[], opts: {steps: number, wall: number, guesses?: number}): BoundedRun | undefined {
   if (m.params.length || !laws.length || !bmcFits(m, laws)) return undefined
   // Each input bounded by the assumption (a top-level i < c or i <= c, c at most 64): its values; the others free.
   const bound = new Map<string, number>()
   for (const c of m.assume ? top(m.assume) : []) if ((c.op === '<' || c.op === '<=') && c.a.op === 'var' && c.b.op === 'const' && m.inputs.includes(c.a.name)) bound.set(c.a.name, Math.min(bound.get(c.a.name) ?? Infinity, c.op === '<' ? c.b.value : c.b.value + 1))
   const finite = m.inputs.filter(i => (bound.get(i) ?? Infinity) <= 64), free = m.inputs.filter(i => !finite.includes(i))
-  const choices: Record<string, number>[] = [{}]
-  for (const i of finite) { const n = bound.get(i)!; choices.splice(0, choices.length, ...choices.flatMap(ch => Array.from({length: n}, (_, v) => ({...ch, [i]: v})))); if (choices.length > 256) return undefined }
+  let choices: Record<string, number>[] = [{}]
+  for (const i of finite) { const n = bound.get(i)!; choices = choices.flatMap(ch => Array.from({length: n}, (_, v) => ({...ch, [i]: v}))); if (choices.length > 256) return undefined }
+  // Whether a case reads a free value: its assumption and updates with the case put in.
+  const conds: C[] = [...(m.assume ? [m.assume] : []), ...Object.values(m.step.flags ?? {})], updates = Object.values(m.step.state ?? {})
+  const reads = choices.map(ch => {
+    const s = {vars: Object.fromEntries(Object.entries(ch).map(([n, v]) => [n, {op: 'const', value: v} as E])), maps: {}, flags: {}}
+    const ns = occurrences([...conds.map(c => simpC(substC(c, s))), ...updates.map(e => simpE(substE(e, s)))])
+    return free.some(i => ns.has(i))
+  })
+  // Each case's assumption's top-level equations of a state value and a constant (where a CHC clause's body is), read
+  // before the step is taken.
+  const at = choices.map(ch => {
+    const s = {vars: Object.fromEntries(Object.entries(ch).map(([n, v]) => [n, {op: 'const', value: v} as E])), maps: {}, flags: {}}
+    return (m.assume ? top(simpC(substC(m.assume, s))) : []).flatMap(c => (c.op === '=' && c.a.op === 'var' && c.a.name in m.state && c.b.op === 'const' ? [[c.a.name, c.b.value] as const] : []))
+  })
+  // The rule with its assumption as a value (bmc$ok: 1 where the request is allowed), so a refused request throws nothing.
+  const ok = 'bmc$ok'
+  if (ok in m.state) return undefined
   let js
-  try { js = loadJs(m) } catch { return undefined }
-  const same = (a: State, b: State) => { for (const key in a.scalars) if (a.scalars[key] !== b.scalars[key]) return false; return true }
-  const take = (st: State, input: Request): State | undefined => { try { return js.step({}, js.fork(st), input) } catch (e) { if (e instanceof RangeError) return undefined; throw e } }
+  try { js = loadJs({...m, state: {...m.state, [ok]: {op: 'const', value: 1}}, step: {...m.step, state: {...m.step.state, [ok]: m.assume ? {op: 'if', c: m.assume, then: {op: 'const', value: 1}, else: {op: 'const', value: 0}} : {op: 'const', value: 1}}}, assume: undefined}) } catch { return undefined }
+  const same = (a: State, b: State) => { for (const key in a.scalars) if (key !== ok && a.scalars[key] !== b.scalars[key]) return false; return true }
+  const take = (st: State, input: Request): State | undefined => { try { const next = js.step({}, js.fork(st), input); return next.scalars[ok] === 1 ? next : undefined } catch (e) { if (e instanceof RangeError) return undefined; throw e } }
   const broken = (st: State) => laws.find(l => !evalC(l.holds, {}, st, m))?.name
-  let st: State = js.init({})
+  const requests = choices.map(ch => ({...Object.fromEntries(free.map(i => [i, 0])), ...ch}) as Request)
+  let st: State = js.init({}), guesses = opts.guesses ?? 2
   const trace: Request[] = []
   for (let n = 0; n < opts.steps && (n % 256 || performance.now() < opts.wall); n++) {
-    let next: State | undefined, request: Request | undefined
-    for (const ch of choices) {
-      const zero: Request = {...Object.fromEntries(free.map(i => [i, 0])), ...ch}, one: Request = {...Object.fromEntries(free.map(i => [i, i.endsWith('$neg') ? 0 : 1])), ...ch}
-      const a = take(st, zero), b = take(st, one)
-      if (!a && !b) continue
-      if (!a || !b || !same(a, b)) return undefined // (a free value the step reads)
+    let next: State | undefined, request: Request | undefined, forced = true
+    for (const [j, input] of requests.entries()) {
+      if (at[j]!.some(([n, v]) => st.scalars[n] !== v)) continue
+      const a = take(st, input)
+      if (!a) continue
       const law = broken(a)
-      if (law !== undefined) return {law, depth: n + 1, witness: {...st.scalars, ...numbersOf(zero)}, params: {}, trace: [...trace, zero]}
+      if (law !== undefined) { const {[ok]: _, ...before} = st.scalars; return {law, depth: n + 1, witness: {...before, ...numbersOf(input)}, params: {}, trace: [...trace, input]} }
       if (same(a, st)) continue
-      if (next && !same(next, a)) return undefined // (two ways on)
-      next = a; request = zero
+      if (reads[j]) forced = false
+      if (!next) { next = a; request = input } else if (!same(next, a)) forced = false
     }
-    if (!next) return undefined
+    if (!next || (!forced && --guesses < 0)) return undefined
     trace.push(request!); st = next
   }
   return undefined
