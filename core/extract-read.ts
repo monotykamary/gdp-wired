@@ -18,7 +18,8 @@ export class Retype extends Error {
 }
 
 // --- sorts and shapes -----------------------------------------------------------------------------------------------
-export type Sort = {k: 'num'} | {k: 'bool'} | {k: 'choice', values: string[]} | {k: 'str'}
+// A number may be a Date's time (a Date is its milliseconds: read by getTime(), set by setTime(), made by new Date()).
+export type Sort = {k: 'num', date?: true} | {k: 'bool'} | {k: 'choice', values: string[]} | {k: 'str'}
 export type Shape = Sort | {k: 'rec', fields: [string, Shape][]} | {k: 'map', key: 'num' | 'str', val: Shape, js: 'Map' | 'record'}
 // A rule variable: its sort, and where it comes from.
 export type Var = {name: string, sort: Sort, role: 'param' | 'input' | 'state', note?: string}
@@ -47,6 +48,8 @@ export type Model = {
   initSource?: string,
   // The spans of the entry's file the step reads (for the branches counted).
   spans?: [number, number][],
+  // For a class: what each method's result is kept as (core/extract-shapes.ts's Result).
+  results?: Record<string, {k: 'scalar', name: string} | {k: 'rec', fields: [string, string][]} | {k: 'maybe', name: string, missing: string, null: boolean}>,
 }
 
 // --- values ---------------------------------------------------------------------------------------------------------
@@ -123,7 +126,8 @@ export function shapeOf(t: ts.Type, checker: ts.TypeChecker, at: ts.Node): Shape
       return {k: 'map', key: keySort(shapeOf(kt, checker, at), at), val: shapeOf(vt, checker, at), js: 'Map'}
     }
     if (checker.isArrayType(t) || checker.isTupleType(t)) return refuse(at, `${checker.typeToString(t)}: an array (lists are not in the subset yet)`)
-    if (name === 'Set' || name === 'Date' || name === 'Promise') return refuse(at, `a ${name}`)
+    if (name === 'Date') return {k: 'num', date: true}
+    if (name === 'Set' || name === 'Promise') return refuse(at, `a ${name}`)
     const sidx = checker.getIndexInfoOfType(t, ts.IndexKind.String), nidx = checker.getIndexInfoOfType(t, ts.IndexKind.Number)
     if (sidx || nidx) {
       if (checker.getPropertiesOfType(t).length) return refuse(at, `${checker.typeToString(t)}: named fields beside an index signature`)
@@ -150,8 +154,10 @@ export type Setup = {
   vars: Map<string, Var>, maps: Map<string, MapDecl>,
   // Inputs an untyped (JavaScript) record grows as the code reads it: their sorts by how they are compared.
   lazySorts: Map<string, Sort>,
-  // The class being read: its members by name.
+  // The class being read: its members by name, through the classes it extends (the most derived first: `this.m()`
+  // is the entry's own m or the nearest it inherits; `super.m()` the nearest above the class it is written in).
   cls?: ts.ClassLikeDeclaration,
+  chain?: ts.ClassLikeDeclaration[],
   // Date.now(): the input it reads (made on first use), or the param a constructor reads.
   now?: string, nowRole: 'input' | 'param',
   hints: WeakMap<object, string>,
@@ -348,6 +354,7 @@ export class Exec {
       if (!(st.declarationList.flags & (ts.NodeFlags.Const | ts.NodeFlags.Let))) refuse(st, 'var (let or const are in the subset)')
       let q = p
       for (const d of st.declarationList.declarations) {
+        if (isDate(this.s.checker.getTypeAtLocation(d.name)) && !freshDate(d.initializer)) refuse(d, `${d.name.getText()}: a second name for a Date (its time is read where it is held: getTime())`)
         let v: V = {t: 'undef'}
         if (d.initializer) [v, q] = this.ev(d.initializer, q)
         q = this.bind(d.name, v, q)
@@ -500,7 +507,7 @@ export class Exec {
     if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) return [{t: 'str', e: {op: 'slit', value: e.text}}, p]
     if (e.kind === ts.SyntaxKind.TrueKeyword) return [{t: 'bool', e: I.T}, p]
     if (e.kind === ts.SyntaxKind.FalseKeyword) return [{t: 'bool', e: I.F}, p]
-    if (e.kind === ts.SyntaxKind.NullKeyword) return this.s.xstate ? [{t: 'undef', null: true}, p] : refuse(e, 'null')
+    if (e.kind === ts.SyntaxKind.NullKeyword) return [{t: 'undef', null: true}, p]
     if (e.kind === ts.SyntaxKind.ThisKeyword) { if (!p.heap.has('this')) refuse(e, 'this outside a class'); return [{t: 'ref', id: 'this'}, p] }
     if (ts.isIdentifier(e)) return this.name(e, p)
     if (ts.isPropertyAccessExpression(e) || ts.isElementAccessExpression(e)) return this.access(e, p)
@@ -607,6 +614,7 @@ export class Exec {
     if (op === S.LessThanEqualsToken) return [{t: 'bool', e: I.cmp('<=', n(l, e.left), n(r, e.right))}, q2]
     if (op === S.GreaterThanToken) return [{t: 'bool', e: I.cmp('<', n(r, e.right), n(l, e.left))}, q2]
     if (op === S.GreaterThanEqualsToken) return [{t: 'bool', e: I.cmp('<=', n(r, e.right), n(l, e.left))}, q2]
+    if ((op === S.EqualsEqualsEqualsToken || op === S.EqualsEqualsToken || op === S.ExclamationEqualsEqualsToken || op === S.ExclamationEqualsToken) && (isDate(this.s.checker.getTypeAtLocation(e.left)) || isDate(this.s.checker.getTypeAtLocation(e.right)))) return refuse(e, 'two Dates compared by === (that is whether they are one object; their times are compared by getTime())')
     if (op === S.EqualsEqualsEqualsToken || op === S.EqualsEqualsToken) return [{t: 'bool', e: this.equal(l, r, e, op === S.EqualsEqualsToken)}, q2]
     if (op === S.ExclamationEqualsEqualsToken || op === S.ExclamationEqualsToken) return [{t: 'bool', e: I.not(this.equal(l, r, e, op === S.ExclamationEqualsToken))}, q2]
     if (op === S.PlusToken || op === S.MinusToken || op === S.AsteriskToken || op === S.PercentToken) return [this.arith(op, l, r, e, q2), q2]
@@ -662,6 +670,8 @@ export class Exec {
     const fields = new Map<string, V>()
     for (const prop of e.properties) {
       if (ts.isSpreadAssignment(prop)) {
+        const st = this.s.checker.getTypeAtLocation(prop.expression)
+        if (this.s.checker.getPropertiesOfType(st).some(x => isDate(this.s.checker.getTypeOfSymbolAtLocation(x, prop)))) refuse(prop, 'a spread of an object holding a Date (the copy and the original share it)')
         const [v, q2] = this.ev(prop.expression, q); q = q2
         const src = v.t === 'ref' ? this.obj(q, v.id) : undefined
         if (src?.k !== 'rec') return refuse(prop, 'a spread of other than an object')
@@ -669,6 +679,7 @@ export class Exec {
         for (const [f, fv] of src.fields) fields.set(f, fv)
       } else if (ts.isPropertyAssignment(prop)) {
         const name = ts.isIdentifier(prop.name) || ts.isStringLiteral(prop.name) ? prop.name.text : refuse(prop, 'a computed field name on an object')
+        if (isDate(this.s.checker.getTypeAtLocation(prop.initializer)) && !freshDate(prop.initializer)) refuse(prop, `${name}: a Date held elsewhere (one object in two places)`)
         const [v, q2] = this.ev(prop.initializer, q); q = q2
         fields.set(name, v)
       } else if (ts.isShorthandPropertyAssignment(prop)) {
@@ -764,7 +775,7 @@ export class Exec {
       return [nv, {...p, heap: new Map(p.heap).set(v.id, {...o, fields})}]
     }
     if (v.id === 'this' && this.s.cls) {
-      const member = this.s.cls.members.find(m => m.name && memberName(m.name) === f)
+      const member = this.member(f)
       if (member && ts.isGetAccessorDeclaration(member)) return this.inline({decl: member, self: 'this'}, [], at, p)
       if (member && ts.isMethodDeclaration(member)) return refuse(at, `the method ${f} as a value`)
     }
@@ -841,8 +852,15 @@ export class Exec {
     }
   }
   // Assignment: to a local, a field (of this, or of an object the step made), a map's key, or through a cell.
-  assign(target: ts.Expression, v: V, p: Path): Path {
-    if (ts.isParenthesizedExpression(target)) return this.assign(target.expression, v, p)
+  assign(target: ts.Expression, v: V, p: Path, setTime = false): Path {
+    if (ts.isParenthesizedExpression(target)) return this.assign(target.expression, v, p, setTime)
+    // A Date is an object: one written where it is held is a new one (new Date(...)), or its time set (setTime); one taken
+    // from another place would be shared by both (a setTime through one moves the other).
+    if (!setTime && isDate(this.s.checker.getTypeAtLocation(target))) {
+      const rhs = ts.isBinaryExpression(target.parent) && target.parent.left === target ? target.parent.right : undefined
+      const fresh = (x: ts.Expression | undefined): boolean => !!x && (ts.isParenthesizedExpression(x) ? fresh(x.expression) : ts.isNewExpression(x) && ts.isIdentifier(x.expression) && x.expression.text === 'Date')
+      if (!fresh(rhs)) return refuse(target, `${text(target)} set to a Date held elsewhere (one object in two places: a setTime through one moves the other)`)
+    }
     if (ts.isIdentifier(target)) {
       if (!p.locals.has(target.text)) return refuse(target, `${target.text}: an assignment to a name outside the step`)
       const sym = this.s.checker.getSymbolAtLocation(target), decl = sym?.valueDeclaration
@@ -927,9 +945,28 @@ export class Exec {
       // A function the factory is given: its answer is an input of the step (any value of its type), read once.
       if (ts.isIdentifier(obj) && p.locals.get(obj.text)?.t === 'outside') return this.outside(e, `${(p.locals.get(obj.text) as {path: string}).path}.${m}`, p)
       if (obj.kind === ts.SyntaxKind.ThisKeyword && this.s.cls) {
-        const member = this.s.cls.members.find(x => x.name && memberName(x.name) === m)
+        const member = this.member(m)
         if (member && ts.isMethodDeclaration(member)) { const [args, q] = this.args(e.arguments, p); return this.inline({decl: member, self: 'this'}, args, e, q) }
       }
+      // super.m(): the nearest m above the class the call is written in (resolved where it is written, not by the object).
+      if (obj.kind === ts.SyntaxKind.SuperKeyword && this.s.chain) {
+        let c: ts.Node | undefined = e
+        while (c && !ts.isClassLike(c)) c = c.parent
+        const k = this.s.chain.indexOf(c as ts.ClassLikeDeclaration), member = k >= 0 ? this.member(m, k + 1) : undefined
+        if (!member || !ts.isMethodDeclaration(member)) return refuse(e, `super.${m}: no method ${m} above ${(c as ts.ClassLikeDeclaration | undefined)?.name?.text ?? 'this class'}`)
+        const [args, q] = this.args(e.arguments, p)
+        return this.inline({decl: member, self: 'this'}, args, e, q)
+      }
+      // A Date's time: getTime() (or valueOf()) reads it; setTime(t) sets it where the Date is (a field, not a second
+      // name for it).
+      if (isDate(this.s.checker.getTypeAtLocation(obj)) && (m === 'getTime' || m === 'valueOf') && !e.arguments.length) { const [v, q] = this.ev(obj, p); return [{t: 'num', e: this.num(v, obj, q)}, q] }
+      if (isDate(this.s.checker.getTypeAtLocation(obj)) && m === 'setTime' && e.arguments.length === 1) {
+        const target = ts.isParenthesizedExpression(obj) ? obj.expression : obj
+        if (!ts.isPropertyAccessExpression(target) && !ts.isElementAccessExpression(target)) return refuse(e, `setTime on ${text(target)}, a second name for a Date (its time is set where it is held)`)
+        const [v, q] = this.ev(e.arguments[0]!, p), t: V = {t: 'num', e: this.num(v, e.arguments[0]!, q)}
+        return [t, this.assign(target, t, q, true)]
+      }
+      if (isDate(this.s.checker.getTypeAtLocation(obj))) return refuse(e, `Date.prototype.${m} (a Date's time is read by getTime and set by setTime)`)
       const [base, q] = this.ev(obj, p), b = this.deref(q, base)
       const o = b.t === 'ref' ? this.obj(q, b.id) : undefined
       if (o?.k === 'map' && b.t === 'ref') {
@@ -970,6 +1007,14 @@ export class Exec {
     const v = this.newVar(path.split('.').pop()!, sh, 'input', `${path}(): the answer of a function the machine is given (any value of its type)`)
     x.outside.set(v.name, {path, sort: sh})
     return [Exec.valueOf(v), q]
+  }
+  // A member of the class by name, from the most derived (or from the k-th class up).
+  member(name: string, from = 0): ts.ClassElement | undefined {
+    for (const c of (this.s.chain ?? (this.s.cls ? [this.s.cls] : [])).slice(from)) {
+      const m = c.members.find(x => x.name && memberName(x.name) === name && !(ts.isMethodDeclaration(x) && !x.body))
+      if (m) return m
+    }
+    return undefined
   }
   private math(m: string, e: ts.CallExpression, p: Path): [V, Path] {
     if (m === 'floor' || m === 'ceil') {
@@ -1018,7 +1063,15 @@ export class Exec {
       const id = this.id('map')
       return [{t: 'ref', id}, {...q, heap: new Map(q.heap).set(id, {...src, origin: 'fresh'})}]
     }
-    if (ts.isIdentifier(c) && c.text === 'Date') return refuse(e, 'new Date() (Date.now() is how the subset reads the time)')
+    // new Date(): the time now (a read of Date.now()); new Date(t): the time t.
+    if (ts.isIdentifier(c) && c.text === 'Date' && !p.locals.has('Date')) {
+      const a = e.arguments ?? []
+      if (!a.length) return this.now(e as never, p)
+      if (a.length !== 1) return refuse(e, 'new Date(y, m, ...) (a calendar date)')
+      const [v, q] = this.ev(a[0]!, p)
+      if (v.t !== 'num') return refuse(e, 'new Date of other than a number of milliseconds')
+      return [v, q]
+    }
     return refuse(e, `new ${text(c)}`)
   }
   // A function of the same module, or a method or getter of the class, run where it is called.
@@ -1032,6 +1085,7 @@ export class Exec {
       let q: Path = {...p, locals: new Map()}
       d.parameters.forEach((param, i) => {
         if (param.dotDotDotToken) refuse(param, 'a rest parameter')
+        if (isDate(this.s.checker.getTypeAtLocation(param))) refuse(param, `${param.name.getText()}: a Date passed as an argument (a second name for it)`)
         let v = args[i]
         if (v === undefined) { if (!param.initializer) refuse(at, 'a call with fewer arguments than the function takes'); const [dv, q2] = this.ev(param.initializer!, q); v = dv; q = q2 }
         q = this.bind(param.name, v, q)
@@ -1051,6 +1105,8 @@ export class Exec {
 // A map set on one path and not the other: a generation of its own, so a reference read before either is stale.
 // Missing as null or as undefined, the same on both sides (a value that is null on one and undefined on the other has
 // three cases a rule's maybe doesn't hold).
+const freshDate = (x: ts.Expression | undefined): boolean => !!x && (ts.isParenthesizedExpression(x) ? freshDate(x.expression) : ts.isNewExpression(x) && ts.isIdentifier(x.expression) && x.expression.text === 'Date')
+export const isDate = (t: ts.Type): boolean => t.getSymbol()?.getName() === 'Date' || t.aliasSymbol?.getName() === 'Date'
 const nullOf = (at: ts.Node, a: V, b: V): {null?: true} => {
   const kind = (x: V) => (x.t === 'opt' || x.t === 'undef' ? (x.null ? 'null' : 'undefined') : undefined)
   const ka = kind(a), kb = kind(b)

@@ -79,6 +79,7 @@ export function extract(code: string, opts: ExtractOptions): Extraction {
   try {
     const s = sortsOf(model, opts.domains)
     sorts = s.sorts
+    datesInRange(model, sorts)
     notes.push(...model.notes, ...s.notes)
     body = builderOf(model, sorts)
     source = moduleOf(model, body, file)
@@ -92,6 +93,20 @@ export function extract(code: string, opts: ExtractOptions): Extraction {
   const evidence = check(code, file, model, rule, sorts, {...opts.check, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})})
   if (evidence.mismatch) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `the rule and the code differ: ${evidence.mismatch}`}], notes}
   return {ok: true, rule, ...(invariants.length ? {invariants} : {}), source, model, sorts, evidence, refusals: [], notes}
+}
+// A Date holds a time within ±8.64e15 ms; past it the code's Date is invalid (NaN). The rule refuses a step that would
+// set one there (as it refuses a sum past 2^53), and a start there: its claim stops at the Date's range.
+const DATE_MAX = 8_640_000_000_000_000
+function datesInRange(m: Model, sorts: Sorts) {
+  const out = (e: N, at: string) => (sorts.get(at) === 'nat' ? I.cmp('<', I.num(DATE_MAX), e) : I.or(I.cmp('<', I.num(DATE_MAX), e), I.cmp('<', e, I.num(-DATE_MAX))))
+  const dated = m.state.filter(v => v.sort.k === 'num' && v.sort.date)
+  const over: B[] = []
+  for (const v of dated) { const w = m.writes[v.name]; if (w?.s === 'num') over.push(out(w.e, v.name)) }
+  for (const d of m.maps) for (const f of d.fields) if (f.sort.k === 'num' && f.sort.date) { const w = m.mapWrites[d.name]; const t = w?.vals[f.name]; if (t?.s === 'num') over.push(I.and(w!.has, out(t.e, `${d.name}.${f.name}`))) }
+  if (over.length) m.refuse = I.or(m.refuse, ...over)
+  const starts = dated.filter(v => m.init[v.name]?.s === 'num').map(v => I.not(out((m.init[v.name] as Term & {s: 'num'}).e, v.name)))
+  if (starts.length) m.pre = I.and(m.pre, ...starts)
+  if (over.length || starts.length) m.notes.push('a Date holds a time within ±8.64e15 ms: a step that would set one past it is refused (the code\'s Date would be invalid)')
 }
 // The module a user keeps: the rule, with what it was read from and how it was checked.
 export const toSource = (x: Extraction): string => x.source ?? ''

@@ -431,71 +431,159 @@ export function readClass(code: string, file: string, opts: ReadOptions): Model 
   const written = attempt(code, file, opts, new Set()).written
   return attempt(code, file, opts, written).model
 }
+// The classes a class extends, the most derived first: each one the files read declare (a class made by a call, a
+// mixin, or one from another module is refused where it is named).
+function chainOf(s: Setup, cls: ts.ClassLikeDeclaration): ts.ClassLikeDeclaration[] {
+  const chain = [cls]
+  for (let c = cls; ;) {
+    const h = c.heritageClauses?.find(x => x.token === ts.SyntaxKind.ExtendsKeyword)
+    if (!h) return chain
+    const e = h.types[0]!.expression
+    if (!ts.isIdentifier(e) && !ts.isPropertyAccessExpression(e)) return refuse(h, `extends ${e.getText().slice(0, 60)}: a class a call makes (a mixin), not one the files read declare`)
+    let sym = s.checker.getSymbolAtLocation(ts.isPropertyAccessExpression(e) ? e.name : e)
+    if (sym && sym.flags & ts.SymbolFlags.Alias) sym = s.checker.getAliasedSymbol(sym)
+    const decl = sym?.declarations?.find(ts.isClassLike)
+    if (!decl) return refuse(h, `extends ${e.getText()}: no class of the files read (another module's, or not a class)`)
+    if (!s.ours(decl.getSourceFile())) return refuse(h, `extends ${e.getText()}, a class from another module (not among the files read)`)
+    if (chain.includes(decl)) return refuse(h, 'a class that extends itself')
+    chain.push(decl); c = decl
+  }
+}
+// What a method returns, kept: a value (`m_result`), a record of values (`m_result_<field>`), or a value that may be
+// missing (`m_result`, and `m_result_missing` where it is null or undefined).
+export type Result = {k: 'scalar', name: string} | {k: 'rec', fields: [string, string][]} | {k: 'maybe', name: string, missing: string, null: boolean}
 function attempt(code: string, file: string, opts: ReadOptions, written: Set<string>): {model: Model, written: Set<string>} {
   const s = setupOf(code, file, {}, opts.files), cls = findClass(s.sf, opts.entry), first = written.size === 0
   s.cls = cls
-  // `implements` is a type's only (nothing at run time); `extends` brings another class's fields and methods.
-  if (cls.heritageClauses?.some(h => h.token === ts.SyntaxKind.ExtendsKeyword)) refuse(cls, 'a class that extends another')
-  const ctor = cls.members.find(ts.isConstructorDeclaration)
-  if (ctor) (s.spans ??= []).push([ctor.getStart(), ctor.end])
-  type Field = {name: string, shape: Shape, node: ts.Node, init?: ts.Expression}
+  // `implements` is a type's only (nothing at run time); `extends` brings another class's fields and methods: each
+  // member resolved statically, from the entry class up (this.m() the entry's own or the nearest inherited; super.m()
+  // the nearest above the class it is written in).
+  const chain = chainOf(s, cls)
+  s.chain = chain
+  if (chain.length > 1) s.notes.add(`${opts.entry} extends ${chain.slice(1).map(c => c.name?.text ?? '(a class)').join(', which extends ')}: its fields and methods are read with them, each method the nearest the object has`)
+  const ownCtor = (c: ts.ClassLikeDeclaration) => c.members.find((m): m is ts.ConstructorDeclaration => ts.isConstructorDeclaration(m) && !!m.body)
+  // The constructor the object is made with: the entry's, or the nearest it inherits.
+  const ctorAt = chain.findIndex(ownCtor), ctor = ctorAt >= 0 ? ownCtor(chain[ctorAt]!) : undefined
+  for (const c of chain) { const k = ownCtor(c); if (k && k.getSourceFile() === s.sf) (s.spans ??= []).push([k.getStart(), k.end]) }
+  type Field = {name: string, shape: Shape, node: ts.Node, init?: ts.Expression, of: ts.ClassLikeDeclaration}
   const fields: Field[] = []
-  for (const m of cls.members) {
-    if (ts.isPropertyDeclaration(m)) {
-      if (ts.isPrivateIdentifier(m.name)) refuse(m, `${m.name.text}: a #private field (the check reads the object's fields; \`private\` is in the subset)`)
-      if (has(m, ts.SyntaxKind.StaticKeyword)) refuse(m, 'a static field (state shared by every object)')
-      fields.push({name: memberName(m.name), shape: shapeOf(s.checker.getTypeAtLocation(m), s.checker, m), node: m, ...(m.initializer ? {init: m.initializer} : {})})
-    } else if (ts.isSetAccessorDeclaration(m)) refuse(m, 'a setter')
-    else if (ts.isMethodDeclaration(m) && ts.isPrivateIdentifier(m.name)) refuse(m, 'a #private method')
-    else if (ts.isIndexSignatureDeclaration(m) || ts.isClassStaticBlockDeclaration(m)) refuse(m, 'a static block or index signature')
+  const addField = (f: Field) => { if (fields.some(x => x.name === f.name)) refuse(f.node, `${f.name}: a field declared again in a class that extends one with it`); fields.push(f) }
+  for (const c of [...chain].reverse()) {
+    for (const m of c.members) {
+      if (ts.isPropertyDeclaration(m)) {
+        if (ts.isPrivateIdentifier(m.name)) refuse(m, `${m.name.text}: a #private field (the check reads the object's fields; \`private\` is in the subset)`)
+        if (has(m, ts.SyntaxKind.StaticKeyword)) refuse(m, 'a static field (state shared by every object)')
+        if (has(m, ts.SyntaxKind.AbstractKeyword) || has(m, ts.SyntaxKind.DeclareKeyword)) continue
+        addField({name: memberName(m.name), shape: shapeOf(s.checker.getTypeAtLocation(m), s.checker, m), node: m, ...(m.initializer ? {init: m.initializer} : {}), of: c})
+      } else if (ts.isSetAccessorDeclaration(m)) refuse(m, 'a setter')
+      else if (ts.isMethodDeclaration(m) && ts.isPrivateIdentifier(m.name)) refuse(m, 'a #private method')
+      else if (ts.isIndexSignatureDeclaration(m) || ts.isClassStaticBlockDeclaration(m)) refuse(m, 'a static block or index signature')
+    }
+    const k = ownCtor(c)
+    for (const p of k?.parameters ?? []) if (ts.isParameterPropertyDeclaration(p, k!)) addField({name: (p.name as ts.Identifier).text, shape: shapeOf(s.checker.getTypeAtLocation(p), s.checker, p), node: p, of: c})
   }
-  for (const p of ctor?.parameters ?? []) if (ts.isParameterPropertyDeclaration(p, ctor!)) fields.push({name: (p.name as ts.Identifier).text, shape: shapeOf(s.checker.getTypeAtLocation(p), s.checker, p), node: p})
   const ex0 = new Exec(s)
   const constant = (f: Field) => !first && !written.has(f.name) && f.shape.k !== 'map'
   // The state's variables first (so they keep the fields' names), then the params.
   const stateHeap: Heap = new Map(), thisFields = new Map<string, V>(), layout: [string, Layout][] = [], stateLayout: [string, Layout][] = []
   for (const f of fields) if (!constant(f)) { const r = build(ex0, f.shape, [f.name], stateHeap, 'this', f.node); thisFields.set(f.name, r.v); layout.push([f.name, r.layout]); stateLayout.push([f.name, r.layout]) }
-  // The constructor, run over its arguments (the params): what each field starts at, and what it refuses (the pre).
+  // The constructor, run over its arguments (the params): what each field starts at, and what it refuses (the pre). A
+  // class that extends another runs the other's at super(...) (or, with no constructor of its own, first, with the
+  // same arguments), then its own field initializers, then the rest of its constructor.
   s.nowRole = 'param'
   const ctorArgs: string[] = [], ctorHeap: Heap = new Map(), ctorFields = new Map<string, V>(fields.map(f => [f.name, {t: 'undef'}]))
   ctorHeap.set('this', {k: 'rec', fields: ctorFields, origin: 'fresh'})
   let cp: Path = {pc: [], locals: new Map(), heap: ctorHeap, wrote: [], nows: 0}
   const exC = new Exec(s)
   s.ctor = true
+  const empty = new Set<string>(), mapArgs = new Map<string, string>()
+  const setThis = (q: Path, f: string, v: V): Path => { const o = q.heap.get('this') as Rec; return {...q, heap: new Map(q.heap).set('this', {...o, fields: new Map(o.fields).set(f, v)})} }
+  const argValues: V[] = []
   for (const p of ctor?.parameters ?? []) {
     if (!ts.isIdentifier(p.name)) refuse(p, 'a destructured constructor argument')
     const sh = shapeOf(s.checker.getTypeAtLocation(p), s.checker, p)
-    if (sh.k !== 'num' && sh.k !== 'bool' && sh.k !== 'choice') refuse(p, `${p.name.getText()}: a constructor argument that isn't a number, a boolean or a union of literals`)
+    // A Map given to the constructor: the field it becomes starts as that Map, taken here as empty (as callers make it).
+    if (sh.k === 'map') { ctorArgs.push(`$map:${sh.js}`); argValues.push({t: 'undef'}); mapArgs.set((p.name as ts.Identifier).text, `$map:${sh.js}`); continue }
+    if (sh.k !== 'num' && sh.k !== 'bool' && sh.k !== 'choice') refuse(p, `${p.name.getText()}: a constructor argument that isn't a number, a boolean, a union of literals or a Map`)
+    if ((sh as Sort).k === 'num' && (sh as {date?: true}).date) refuse(p, `${p.name.getText()}: a Date given to the constructor (the object would share it with its caller)`)
     const x = exC.newVar(p.name.getText(), sh as Sort, 'param', 'a constructor argument')
     ctorArgs.push(x.name)
-    cp = exC.bind(p.name, Exec.valueOf(x), cp)
-    if (ts.isParameterPropertyDeclaration(p, ctor!)) { const o = cp.heap.get('this') as Rec; cp = {...cp, heap: new Map(cp.heap).set('this', {...o, fields: new Map(o.fields).set(p.name.text, Exec.valueOf(x))})} }
+    argValues.push(Exec.valueOf(x))
   }
-  const empty = new Set<string>()
-  for (const f of fields) if (f.init) {
-    if (f.shape.k === 'map') { if (!isMapInit(f.init)) refuse(f.init, `${f.name} starts with entries (a map starts empty in the subset)`); empty.add(f.name); continue }
-    const [v, q] = exC.ev(f.init, cp); cp = q
-    const o = cp.heap.get('this') as Rec
-    cp = {...cp, heap: new Map(cp.heap).set('this', {...o, fields: new Map(o.fields).set(f.name, v)})}
-  }
-  const body = (ctor?.body?.statements ?? []).filter(st => {
+  // The statements of one constructor that set a map field (to an empty map, or to the Map given): a map that starts
+  // empty, not a write.
+  const mapInits = (k: ts.ConstructorDeclaration, locals: Map<string, V>) => (k.body?.statements ?? []).filter(st => {
     if (!ts.isExpressionStatement(st) || !ts.isBinaryExpression(st.expression) || st.expression.operatorToken.kind !== ts.SyntaxKind.EqualsToken) return true
     const l = st.expression.left
     if (!ts.isPropertyAccessExpression(l) || l.expression.kind !== ts.SyntaxKind.ThisKeyword) return true
     const f = fields.find(x => x.name === memberName(l.name))
     if (f?.shape.k !== 'map') return true
-    if (!isMapInit(st.expression.right)) refuse(st, `${f.name} starts with entries (a map starts empty in the subset)`)
+    const r = st.expression.right, rn = ts.isIdentifier(r) ? r.text : undefined, given = rn && locals.get(rn)?.t === 'undef' && k === ctor ? mapArgs.get(rn) : undefined
+    if (given) {
+      if ([...empty].some(x => x === f.name)) refuse(st, `${f.name} set twice`)
+      if (s.notes.has(`maparg:${rn}`)) refuse(st, `the Map ${rn} given to two fields (one Map in two places)`)
+      s.notes.add(`maparg:${rn}`)
+      s.notes.add(`${f.name} is the Map given to the constructor (${rn}): it starts empty here, as the code's callers make it (\`new ${opts.entry}(new Map())\`); a Map given with entries, or changed by its caller after, is outside this rule`)
+    } else if (!isMapInit(r)) refuse(st, `${f.name} starts with entries (a map starts empty in the subset)`)
     empty.add(f.name)
     return false
   })
-  const cflow = exC.block(body, cp)
-  if (cflow.rets.some(([, v]) => v.t !== 'undef')) refuse(ctor!, 'a constructor that returns a value')
-  const ends = [...cflow.rets.map(([p]) => p), ...(cflow.live ? [cflow.live] : [])]
+  const fieldInits = (c: ts.ClassLikeDeclaration, q: Path): Path => {
+    for (const f of fields) if (f.of === c && f.init) {
+      if (f.shape.k === 'map') { if (!isMapInit(f.init)) refuse(f.init, `${f.name} starts with entries (a map starts empty in the subset)`); empty.add(f.name); continue }
+      const [v, q2] = exC.ev(f.init, q)
+      q = setThis(q2, f.name, v)
+    }
+    return q
+  }
+  const ends: Path[] = []
+  const construct = (k: number, args: V[], q: Path, at: ts.Node): Path | undefined => {
+    const c = chain[k]!, own = ownCtor(c)
+    if (!own) {
+      // No constructor of its own: the one above with the same arguments, then its field initializers.
+      const q2 = k + 1 < chain.length ? construct(k + 1, args, q, at) : q
+      return q2 && fieldInits(c, q2)
+    }
+    const outer = q.locals
+    let r: Path = {...q, locals: new Map()}
+    own.parameters.forEach((p, i) => {
+      if (!ts.isIdentifier(p.name)) refuse(p, 'a destructured constructor argument')
+      let v = args[i]
+      if (v === undefined) { if (!p.initializer) refuse(at, 'super(...) with fewer arguments than the constructor takes'); const [dv, r2] = exC.ev(p.initializer!, r); v = dv; r = r2 }
+      r = exC.bind(p.name, v, r)
+    })
+    const props = (x: Path) => own.parameters.reduce((y, p) => (ts.isParameterPropertyDeclaration(p, own) ? setThis(y, (p.name as ts.Identifier).text, y.locals.get((p.name as ts.Identifier).text)!) : y), x)
+    const body = mapInits(own, r.locals)
+    const sup = body.findIndex(st => ts.isExpressionStatement(st) && ts.isCallExpression(st.expression) && st.expression.expression.kind === ts.SyntaxKind.SuperKeyword)
+    if (k + 1 < chain.length && sup < 0) refuse(own, 'a constructor of a class that extends another with no super(...) at its top level')
+    const run = (stmts: readonly ts.Statement[], x: Path): Path | undefined => {
+      const f = exC.block(stmts, x)
+      if (f.rets.some(([, v]) => v.t !== 'undef')) refuse(own, 'a constructor that returns a value')
+      ends.push(...f.rets.map(([p]) => ({...p, locals: outer})))
+      return f.live
+    }
+    let live: Path | undefined
+    if (k + 1 < chain.length) {
+      const before = run(body.slice(0, sup), r)
+      if (!before) return undefined
+      const call = (body[sup] as ts.ExpressionStatement).expression as ts.CallExpression
+      let at2 = before
+      const sargs: V[] = []
+      for (const a of call.arguments) { if (ts.isSpreadElement(a)) refuse(a, 'a spread argument'); const [v, q2] = exC.ev(a, at2); sargs.push(v); at2 = q2 }
+      const above = construct(k + 1, sargs, at2, call)
+      if (!above) return undefined
+      live = run(body.slice(sup + 1), fieldInits(c, props({...above, locals: at2.locals})))
+    } else live = run(body, fieldInits(c, props(r)))
+    return live && {...live, locals: outer}
+  }
+  const made0 = construct(0, argValues, cp, ctor ?? cls)
+  if (made0) ends.push(made0)
   const cend = ends.reduceRight<Path | undefined>((acc, x) => exC.merge(x, acc, ctor ?? cls), undefined) ?? refuse(ctor ?? cls, 'a constructor that always throws')
   s.ctor = false
+  for (const n of [...s.notes]) if (n.startsWith('maparg:')) s.notes.delete(n)
   const pre = I.not(refusalOf(exC))
   const made = (cend.heap.get('this') as Rec).fields
-  for (const f of fields) if (f.shape.k === 'map' && !empty.has(f.name)) refuse(f.node, `${f.name}: a map field must start as new Map() or {}`)
+  for (const f of fields) if (f.shape.k === 'map' && !empty.has(f.name)) refuse(f.node, `${f.name}: a map field must start as new Map() or {} (or the Map the constructor is given)`)
   // Each field's start, over the params: a state variable's init, or a constant field's value in every method.
   const init: Record<string, Term> = {}
   const startOf = (v: V, lay: Layout, at: ts.Node) => {
@@ -516,26 +604,61 @@ function attempt(code: string, file: string, opts: ReadOptions, written: Set<str
   }
   s.now = undefined; s.nowRole = 'input'
   stateHeap.set('this', {k: 'rec', fields: thisFields, origin: 'this'})
-  // The methods: each public one an event, run from the state as variables.
-  const methods = cls.members.filter((m): m is ts.MethodDeclaration => ts.isMethodDeclaration(m) && !has(m, ts.SyntaxKind.StaticKeyword) && !has(m, ts.SyntaxKind.PrivateKeyword) && !has(m, ts.SyntaxKind.ProtectedKeyword))
-    .filter(m => !opts.methods || opts.methods.includes(memberName(m.name)))
-  if (opts.methods) for (const n of opts.methods) if (!methods.some(m => memberName(m.name) === n)) refuse(cls, `no public method ${n}`)
+  // The methods: each public one an event (the nearest of each name, through the classes it extends), run from the
+  // state as variables.
+  const seenNames = new Set<string>(), methods: ts.MethodDeclaration[] = []
+  for (const c of chain) for (const m of c.members) {
+    if (!ts.isMethodDeclaration(m) || seenNames.has(memberName(m.name))) continue
+    if (!m.body && has(m, ts.SyntaxKind.AbstractKeyword)) continue
+    seenNames.add(memberName(m.name))
+    if (has(m, ts.SyntaxKind.StaticKeyword) || has(m, ts.SyntaxKind.PrivateKeyword) || has(m, ts.SyntaxKind.ProtectedKeyword)) continue
+    if (!opts.methods || opts.methods.includes(memberName(m.name))) methods.push(m)
+  }
+  if (opts.methods) for (const n of opts.methods) if (!methods.some(m => memberName(m.name) === n)) {
+    const st = chain.flatMap(c => c.members).find(m => ts.isMethodDeclaration(m) && memberName(m.name) === n && has(m, ts.SyntaxKind.StaticKeyword))
+    refuse(st ?? cls, st ? `${n} is static (a function of the class, not a step of an object): the subset reads an object's methods` : `no public method ${n}`)
+  }
   if (!methods.length) refuse(cls, 'a class with no public methods (no events)')
   const mnames = methods.map(m => memberName(m.name)), ev = ex0.newVar('method', {k: 'choice', values: mnames}, 'input'), evL = {op: 'var' as const, name: ev.name, values: mnames}
   const outputs: string[] = [], perMethod: {sel: B, sv: StateVal, refuse: B}[] = [], events: Event[] = []
-  const outVars = new Map<string, Var>()
+  const results: Record<string, Result> = {}, outVars = new Map<string, Var[]>()
+  const outVar = (name: string, sort: Sort, what: string) => { const x = ex0.newVar(name, sort, 'state', what); outputs.push(x.name); return x }
   for (const m of methods) {
     const name = memberName(m.name), sig = s.checker.getSignatureFromDeclaration(m)!, rt = s.checker.getReturnTypeOfSignature(sig)
     if (has(m, ts.SyntaxKind.AsyncKeyword) || m.asteriskToken) refuse(m, `${name}: an async or generator method (its steps interleave with others)`)
-    if (!(rt.flags & (ts.TypeFlags.Void | ts.TypeFlags.Undefined))) {
-      const sh = shapeOf(rt, s.checker, m)
-      if (sh.k !== 'num' && sh.k !== 'bool' && sh.k !== 'choice') refuse(m, `${name} returns ${sh.k === 'str' ? 'a string' : 'a compound value'} (a result kept is a number, a boolean or a union of literals)`)
-      const x = ex0.newVar(`${name}_result`, sh as Sort, 'state', `what ${name} returned, at the step that called it (its default at others)`)
-      outVars.set(name, x); outputs.push(x.name)
+    if (rt.flags & (ts.TypeFlags.Void | ts.TypeFlags.Undefined)) continue
+    const what = `what ${name} returned, at the step that called it (its default at others)`
+    // A value that may be missing (T | null, T | undefined): the value, and whether it is missing.
+    const parts = rt.isUnion() ? rt.types : [rt], missing = parts.filter(x => x.flags & (ts.TypeFlags.Null | ts.TypeFlags.Undefined)), rest = parts.filter(x => !(x.flags & (ts.TypeFlags.Null | ts.TypeFlags.Undefined)))
+    if (missing.length && rest.length) {
+      if (missing.length > 1) refuse(m, `${name} returns null or undefined (two ways missing)`)
+      const rt1 = rest.length === 1 ? rest[0]! : rest.every(x => x.flags & ts.TypeFlags.BooleanLiteral) ? s.checker.getBooleanType() : undefined
+      const sh = rt1 ? shapeOf(rt1, s.checker, m) : rest.every(x => x.flags & ts.TypeFlags.StringLiteral) ? {k: 'choice' as const, values: rest.map(x => (x as ts.StringLiteralType).value)} : refuse(m, `${name} returns ${s.checker.typeToString(rt)}`)
+      if (sh.k !== 'num' && sh.k !== 'bool' && sh.k !== 'choice') refuse(m, `${name} returns ${s.checker.typeToString(rt)} (a result kept is a number, a boolean or a union of literals, or a record of them)`)
+      if ((sh as {date?: true}).date) refuse(m, `${name} returns a Date (the caller would share it with the object)`)
+      const x = outVar(`${name}_result`, sh as Sort, what), y = outVar(`${name}_result_missing`, {k: 'bool'}, `whether ${name} returned ${missing[0]!.flags & ts.TypeFlags.Null ? 'null' : 'undefined'}`)
+      results[name] = {k: 'maybe', name: x.name, missing: y.name, null: !!(missing[0]!.flags & ts.TypeFlags.Null)}; outVars.set(name, [x, y])
       layout.push([`${name}()`, {k: 'scalar', name: x.name}])
+      continue
     }
+    const sh = shapeOf(rt, s.checker, m)
+    if (sh.k === 'rec') {
+      const vs = sh.fields.map(([f, fs]) => {
+        if (fs.k !== 'num' && fs.k !== 'bool' && fs.k !== 'choice') return refuse(m, `${name} returns a record whose ${f} is ${fs.k === 'str' ? 'a string' : 'compound'}`)
+        if ((fs as {date?: true}).date) return refuse(m, `${name} returns a record holding a Date (the caller would share it with the object)`)
+        return [f, outVar(`${name}_result_${f}`, fs as Sort, `${what}: its ${f}`)] as const
+      })
+      results[name] = {k: 'rec', fields: vs.map(([f, x]) => [f, x.name])}; outVars.set(name, vs.map(([, x]) => x))
+      layout.push([`${name}()`, {k: 'rec', fields: vs.map(([f, x]) => [f, {k: 'scalar', name: x.name}])}])
+      continue
+    }
+    if (sh.k !== 'num' && sh.k !== 'bool' && sh.k !== 'choice') refuse(m, `${name} returns ${sh.k === 'str' ? 'a string' : 'a compound value'} (a result kept is a number, a boolean or a union of literals, or a record of them)`)
+    if ((sh as {date?: true}).date) refuse(m, `${name} returns a Date (the caller would share it with the object)`)
+    const x = outVar(`${name}_result`, sh as Sort, what)
+    results[name] = {k: 'scalar', name: x.name}; outVars.set(name, [x])
+    layout.push([`${name}()`, {k: 'scalar', name: x.name}])
   }
-  for (const m of methods) (s.spans ??= []).push([m.getStart(), m.end])
+  for (const m of methods) if (m.getSourceFile() === s.sf) (s.spans ??= []).push([m.getStart(), m.end])
   for (const m of methods) {
     const name = memberName(m.name), ex = new Exec(s), sel = I.is(evL, name)
     let p: Path = {pc: [sel], locals: new Map(), heap: new Map(stateHeap), wrote: [], nows: 0}
@@ -553,7 +676,24 @@ function attempt(code: string, file: string, opts: ReadOptions, written: Set<str
     const outs: [Path, StateVal][] = [...flow.rets, ...(flow.live ? [[flow.live, {t: 'undef'} as V] as [Path, V]] : [])].map(([rp, rv]) => {
       const self = rp.heap.get('this') as Rec, sv: StateVal = {leaves: new Map(), maps: new Map()}
       for (const [f, lay] of stateLayout) materialize(ex, self.fields.get(f)!, lay, rp, m, sv)
-      for (const [mn, x] of outVars) sv.leaves.set(x.name, mn === name ? (rv.t === 'undef' ? refuse(m, `${name} returns nothing on some path`) : outValue(ex, rv, x, rp, m)) : Exec.defaultOf(x.sort))
+      for (const [mn, xs] of outVars) {
+        if (mn !== name) { for (const x of xs) sv.leaves.set(x.name, Exec.defaultOf(x.sort)); continue }
+        const r = results[mn]!
+        if (r.k === 'scalar') { sv.leaves.set(r.name, rv.t === 'undef' ? refuse(m, `${name} returns nothing on some path`) : outValue(ex, rv, xs[0]!, rp, m)); continue }
+        if (r.k === 'maybe') {
+          const missingKind = (x: V) => (x.t === 'undef' ? x.null === r.null : x.t === 'opt' ? !!x.null === r.null || (x.has.op === 'const' && x.has.v) : true)
+          if (!missingKind(rv)) refuse(m, `${name} returns ${r.null ? 'undefined' : 'null'} where its type says ${r.null ? 'null' : 'undefined'}`)
+          const has = rv.t === 'undef' ? I.F : rv.t === 'opt' ? rv.has : I.T, inner = rv.t === 'undef' ? undefined : rv.t === 'opt' ? rv.v : rv
+          const there = inner ? outValue(ex, inner, xs[0]!, {...rp, pc: [...rp.pc, has]}, m) : Exec.defaultOf(xs[0]!.sort)
+          sv.leaves.set(r.name, ex.mergeScalar(has, there, Exec.defaultOf(xs[0]!.sort), m))
+          sv.leaves.set(r.missing, {t: 'bool', e: I.not(has)})
+          continue
+        }
+        // A record returned: a fresh one (a field of the state's own objects would be shared with the caller).
+        const d = rv.t === 'ref' ? rp.heap.get(rv.id) : undefined
+        if (rv.t !== 'ref' || d?.k !== 'rec' || d.origin !== 'fresh') refuse(m, `${name} returns ${rv.t === 'ref' ? "an object of the state's own (the caller would share it)" : 'other than a record'}`)
+        r.fields.forEach(([f, n], i) => sv.leaves.set(n, outValue(ex, (d as Rec).fields.get(f) ?? refuse(m, `${name} returns a record without ${f}`), xs[i]!, rp, m)))
+      }
       return [rp, sv]
     })
     perMethod.push({sel, sv: joinAll(ex, outs, m), refuse: refusalOf(ex)})
@@ -562,7 +702,7 @@ function attempt(code: string, file: string, opts: ReadOptions, written: Set<str
   // The methods together: each variable by the method called.
   let final = perMethod.at(-1)!.sv
   for (let i = perMethod.length - 2; i >= 0; i--) final = mergeVals(ex0, perMethod[i]!.sel, perMethod[i]!.sv, final, cls)
-  for (const x of outVars.values()) init[x.name] = termOf(Exec.defaultOf(x.sort))
+  for (const xs of outVars.values()) for (const x of xs) init[x.name] = termOf(Exec.defaultOf(x.sort))
   const wrote = new Set<string>()
   for (const [f, lay] of layout) {
     const leaves: string[] = []
@@ -571,6 +711,7 @@ function attempt(code: string, file: string, opts: ReadOptions, written: Set<str
     if (leaves.some(n => (n.startsWith('map:') ? final.maps.get(n.slice(4)) !== undefined : !sameTerm(final.leaves.get(n)!, Exec.valueOf(s.vars.get(n)!))))) wrote.add(f)
   }
   const model = finish(s, {name: opts.entry, shape: 'class', file, entry: opts.entry, layout: {k: 'rec', fields: layout}, init, final, refuse: I.or(...perMethod.map(x => I.and(x.sel, x.refuse))), pre, events, outputs, event: ev.name, ctorArgs})
+  model.results = results
   return {model, written: wrote}
 }
 function constLayout(v: V, p: Path, at: ts.Node): Layout {

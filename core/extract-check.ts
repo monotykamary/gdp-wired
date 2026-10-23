@@ -109,7 +109,8 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
     loaded.set(at, m.exports)
     return m.exports
   }
-  vm.runInContext('Date.now = () => __now(); Math.random = () => { throw new Error("Math.random in a step") }', ctx)
+  // The clock is the request's: Date.now() and new Date() read it.
+  vm.runInContext('globalThis.Date = new Proxy(Date, {construct: (D, a) => (a.length ? new D(...a) : new D(__now())), get: (D, k) => (k === "now" ? () => __now() : D[k])}); Math.random = () => { throw new Error("Math.random in a step") }', ctx)
   vm.runInContext(`${js}\n;globalThis.__gdp = {${expose.map(n => { if (n === 'default') return 'default: module.exports.default'; const [h, ...rest] = n.split('.'); return `${JSON.stringify(n)}: (typeof ${h} !== 'undefined' ? ${h} : module.exports.${h})${rest.map(x => `.${x}`).join('')}` }).join(', ')}};`, ctx, {timeout: 2000, filename: file})
   const script = new vm.Script('globalThis.__r = (() => { try { return {ok: true, value: __gdp[__f].apply(__self, __args)} } catch (e) { return {ok: false, error: String(e && e.message || e)} } })()')
   const call = (f: string, self: unknown, args: unknown[]) => {
@@ -131,6 +132,8 @@ function snapOf(v: unknown, layout: Layout, m: Model, consts: (t: N | B | I.L) =
   switch (layout.k) {
     case 'scalar': {
       const sort = m.state.find(x => x.name === layout.name)?.sort
+      // A Date: its time.
+      if (sort?.k === 'num' && sort.date) { if (!isDateValue(v)) throw new Error(`${path} is ${JSON.stringify(v)}, not a Date`); v = (v as Date).getTime(); if (Number.isNaN(v)) throw new Outside(`${path} is an invalid Date (past ±8.64e15 ms)`) }
       if (sort?.k === 'num' && !(typeof v === 'number' && Number.isSafeInteger(v))) {
         if (typeof v === 'number') throw new Outside(`${path} is ${v}`)
         throw new Error(`${path} is ${JSON.stringify(v)}, not a number`)
@@ -173,7 +176,9 @@ function snapOf(v: unknown, layout: Layout, m: Model, consts: (t: N | B | I.L) =
     }
   }
 }
+const isDateValue = (x: unknown): boolean => Object.prototype.toString.call(x) === '[object Date]'
 function checkCell(x: unknown, f: Var, path: string): Raw {
+  if (f.sort.k === 'num' && f.sort.date) { if (!isDateValue(x)) throw new Error(`${path} is ${JSON.stringify(x)}, not a Date`); x = (x as Date).getTime(); if (Number.isNaN(x)) throw new Outside(`${path} is an invalid Date (past ±8.64e15 ms)`) }
   if (f.sort.k === 'num') { if (typeof x === 'number' && Number.isSafeInteger(x)) return x; if (typeof x === 'number') throw new Outside(`${path} is ${x}`); throw new Error(`${path} is ${JSON.stringify(x)}, not a number`) }
   if (f.sort.k === 'bool') { if (typeof x === 'boolean') return x; throw new Error(`${path} is ${JSON.stringify(x)}, not a boolean`) }
   if (f.sort.k === 'choice') { if (typeof x === 'string' && f.sort.values.includes(x)) return x; throw new Error(`${path} is ${JSON.stringify(x)}`) }
@@ -183,18 +188,19 @@ function checkCell(x: unknown, f: Var, path: string): Raw {
 function valueOf(s: Snap, layout: Layout, m: Model, consts: (t: N | B | I.L) => Raw, ctx: Context): unknown {
   const tree = (l: Layout): unknown => {
     switch (l.k) {
-      case 'scalar': return s.leaves[l.name]
+      case 'scalar': { const sort = m.state.find(x => x.name === l.name)?.sort; return sort?.k === 'num' && sort.date ? {$date: s.leaves[l.name]} : s.leaves[l.name] }
       case 'rec': return Object.fromEntries(l.fields.filter(([f]) => !f.endsWith('()')).map(([f, sub]) => [f, tree(sub)]))
       case 'map': {
         const d = m.maps.find(x => x.name === l.name)!
-        const entries = Object.entries(s.maps[d.name] ?? {}).map(([k, c]) => [d.key === 'num' ? Number(k) : k, d.scalar ? c.value : c])
+        const dated = (f: Var, x: Raw) => (f.sort.k === 'num' && f.sort.date ? {$date: x} : x)
+        const entries = Object.entries(s.maps[d.name] ?? {}).map(([k, c]) => [d.key === 'num' ? Number(k) : k, d.scalar ? dated(d.fields[0]!, c.value!) : Object.fromEntries(d.fields.map(f => [f.name, dated(f, c[f.name]!)]))])
         return {$map: d.js, entries}
       }
       case 'const': return l.value.s === 'str' ? (l.value.e.op === 'slit' ? l.value.e.value : undefined) : consts(l.value.e)
     }
   }
   ctx.__in = JSON.stringify(tree(layout))
-  return vmOf().runInContext('JSON.parse(__in, (k, v) => v && typeof v === "object" && v.$map ? (v.$map === "Map" ? new Map(v.entries) : Object.fromEntries(v.entries)) : v)', ctx)
+  return vmOf().runInContext('JSON.parse(__in, (k, v) => v && typeof v === "object" && v.$map ? (v.$map === "Map" ? new Map(v.entries) : Object.fromEntries(v.entries)) : v && typeof v === "object" && "$date" in v ? new Date(v.$date) : v)', ctx)
 }
 const showSnap = (s: Snap) => JSON.stringify({...s.leaves, ...Object.fromEntries(Object.entries(s.maps).map(([k, v]) => [k, v]))})
 const sameSnap = (a: Snap, b: Snap): string | undefined => {
@@ -294,7 +300,8 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
   // One request, both sides, from a state given as a snapshot (and, for a class, the object).
   type Side = {snap: Snap, self?: object}
   const request = (params: Record<string, Raw>, inputs: Record<string, Raw>, e: (typeof m.events)[number]) => {
-    const build = (a: Arg): unknown => (a.k === 'input' ? inputs[a.name] : a.k === 'lit' ? a.value : a.k === 'rec' ? Object.fromEntries(a.fields.map(([f, x]) => [f, build(x)])) : a.k === 'lazy'
+    const dateIn = (n: string) => { const x = m.inputs.find(v => v.name === n); return x?.sort.k === 'num' && x.sort.date ? vmOf().runInContext(`new Date(${Number(inputs[n])})`, box.ctx) : inputs[n] }
+    const build = (a: Arg): unknown => (a.k === 'input' ? dateIn(a.name) : a.k === 'lit' ? a.value : a.k === 'rec' ? Object.fromEntries(a.fields.map(([f, x]) => [f, build(x)])) : a.k === 'lazy'
       ? Object.fromEntries([...m.inputs].filter(v => m.lazy?.get(v.name)?.prefix === a.prefix).map(v => [m.lazy!.get(v.name)!.field, inputs[v.name]]))
       : undefined)
     void params
@@ -382,9 +389,21 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
     if ('refused' in rule!) return `${where}: ${req} ${from}: the rule refuses it (${rule.refused}), the code doesn't`
     const ruleSide = ruleSnap(r, m, (rule as {st: State}).st, sorts), diff = sameSnap(code.snap, ruleSide)
     if (diff) return `${where}: ${req} ${from}: ${diff}`
-    if (isClass && code.out !== undefined) {
-      const o = m.outputs.find(n => n === `${e.call}_result`)
-      if (o !== undefined && r.decode((rule as {st: State}).st)[o] !== code.out) return `${where}: ${req} ${from}: ${e.call} returns ${JSON.stringify(code.out)}, the rule's ${o} is ${JSON.stringify(r.decode((rule as {st: State}).st)[o])}`
+    if (isClass) {
+      // The method's result, as the rule keeps it: a value, a record's fields, or a value and whether it is missing.
+      const res = m.results?.[e.call], d = r.decode((rule as {st: State}).st)
+      const bad = (what: string) => `${where}: ${req} ${from}: ${e.call} returns ${JSON.stringify(code.out)}, ${what}`
+      if (res?.k === 'scalar' && d[res.name] !== code.out) return bad(`the rule's ${res.name} is ${JSON.stringify(d[res.name])}`)
+      if (res?.k === 'rec') {
+        const o = code.out as Record<string, unknown> | undefined
+        if (typeof o !== 'object' || o === null || Object.keys(o).length !== res.fields.length) return bad('not a record of the fields the rule keeps')
+        for (const [f, n] of res.fields) if (o[f] !== d[n]) return bad(`the rule's ${n} is ${JSON.stringify(d[n])}`)
+      }
+      if (res?.k === 'maybe') {
+        const gone = code.out === (res.null ? null : undefined)
+        if (gone !== d[res.missing]) return bad(`the rule's ${res.missing} is ${JSON.stringify(d[res.missing])}`)
+        if (!gone && d[res.name] !== code.out) return bad(`the rule's ${res.name} is ${JSON.stringify(d[res.name])}`)
+      }
     }
     next.side = {snap: code.snap, ...(code.self ? {self: code.self} : {})}
     next.st = (rule as {st: State}).st
@@ -401,7 +420,8 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
     if (isClass) {
       const now0 = m.params.find(v => v.note?.startsWith('Date.now()'))
       if (now0) box.setNow(params[now0.name] as number)
-      const made = box.call('$new', undefined, (m.ctorArgs ?? []).filter(n => n !== now0?.name).map(n => params[n]))
+      // A Map the constructor is given: an empty one, made in the code's realm.
+      const made = box.call('$new', undefined, (m.ctorArgs ?? []).filter(n => n !== now0?.name).map(n => (n.startsWith('$map:') ? vmOf().runInContext(n === '$map:Map' ? 'new Map()' : '({})', box.ctx) : params[n])))
       const ruleRefuses = ps === undefined || ctorRefuses
       if (!made.ok) return ruleRefuses ? {} : {problem: `new ${m.entry}(${JSON.stringify(params)}) throws (${made.error}), the rule's precondition holds`}
       if (ruleRefuses) return {problem: `new ${m.entry}(${JSON.stringify(params)}) is made, the rule's ${ps === undefined ? 'param kinds refuse' : 'precondition refuses'} it`}
@@ -449,6 +469,9 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
       maps[d.name] = cells
     }
     for (const v of m.state) if (v.name in leaves && v.sort.k === 'num' && Math.abs(leaves[v.name] as number) > Number.MAX_SAFE_INTEGER / 4) leaves[v.name] = rand(bound)
+    // A Date's time within its range (a Date past it is invalid in the code: no state of the code holds one).
+    for (const v of m.state) if (v.name in leaves && v.sort.k === 'num' && v.sort.date && Math.abs(leaves[v.name] as number) > 8.64e15) leaves[v.name] = rand(bound)
+    for (const d of m.maps) for (const f of d.fields) if (f.sort.k === 'num' && f.sort.date) for (const c of Object.values(maps[d.name] ?? {})) if (Math.abs(c[f.name] as number) > 8.64e15) c[f.name] = rand(bound)
     return {leaves, maps}
   }
   const fromState = (params: Record<string, Raw>, snap: Snap, inputs: Record<string, Raw>, e: (typeof m.events)[number], where: string): string | undefined => {

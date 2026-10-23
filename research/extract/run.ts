@@ -10,13 +10,15 @@
 import {mkdirSync, readFileSync, writeFileSync, appendFileSync} from 'node:fs'
 import {join} from 'node:path'
 import * as xstate from 'xstate'
+import * as xstate4 from 'xstate4'
+import ts from 'typescript'
 import * as rtk from '@reduxjs/toolkit'
 import {extract, extractXState} from '../../core/extract.ts'
 import {fetchSource, importsOf} from './fetch.ts'
 
 type Ours = {id: string, repo: string, commit: string, path: string, lines?: string, file?: string, entry: string, shape?: 'xstate' | 'class' | 'functions', functions?: string[], methods?: string[], init?: unknown, close?: string, domains?: Record<string, 'nat' | 'int'>, licence: string, note: string}
 type Real = {item: string, domain: string, role: string, repo: string, commit: string, licence: string, language: string, path: string, lines: string, export: string}
-type Job = {set: 'ours' | 'realworld', id: string, role?: string, repo: string, commit: string, path: string, lines?: string, file: string, entry: string, shape?: 'xstate' | 'class' | 'functions', functions?: string[], methods?: string[], init?: unknown, close?: string, domains?: Record<string, 'nat' | 'int'>, language: string}
+type Job = {set: 'ours' | 'realworld', id: string, role?: string, repo: string, commit: string, path: string, lines?: string, pinned?: string, file: string, entry: string, shape?: 'xstate' | 'class' | 'functions', functions?: string[], methods?: string[], init?: unknown, close?: string, domains?: Record<string, 'nat' | 'int'>, language: string}
 
 const here = import.meta.dir, args = process.argv.slice(2)
 const flag = (n: string) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined }
@@ -28,9 +30,21 @@ const ours: Job[] = (JSON.parse(readFileSync(join(here, 'sources.json'), 'utf8')
 const real: Job[] = (JSON.parse(readFileSync(join(here, 'realworld-sources.json'), 'utf8')) as Real[]).map(s => {
   const m = /^([\w$]+)(?:\.([\w$]+))?(?:\s*\(([^)]*)\))?/.exec(s.export.trim())
   const entry = m?.[1] ?? s.export, method = m?.[2], list = m?.[3]?.split(',').map(x => x.trim().replace(/\{.*$/, '')).filter(x => /^[\w$]+$/.test(x))
-  return {set: 'realworld', id: `${s.item} :: ${s.path}`, role: s.role, repo: s.repo, commit: s.commit, path: s.path, file: s.path.split('/').pop()!, entry, language: s.language,
+  return {set: 'realworld', id: `${s.item} :: ${s.path}`, role: s.role, repo: s.repo, commit: s.commit, path: s.path, pinned: s.lines, file: s.path.split('/').pop()!, entry, language: s.language,
     ...(s.domain === 'xstate' ? {shape: 'xstate' as const} : {}), ...(method ? {methods: [method]} : list?.length ? {methods: list} : {})}
 })
+// A class the corpus names without its methods: the public methods its pinned lines hold (the code the item mirrors).
+const methodsIn = (code: string, file: string, cls: string, lines: string): string[] | undefined => {
+  const sf = ts.createSourceFile(file, code, ts.ScriptTarget.ES2022, true), ranges = lines.split(',').map(r => r.split('-').map(Number) as [number, number?]).map(([a, b]) => [a, b ?? a] as const)
+  const line = (pos: number) => sf.getLineAndCharacterOfPosition(pos).line + 1
+  const c = sf.statements.find((x): x is ts.ClassDeclaration => ts.isClassDeclaration(x) && x.name?.text === cls)
+  if (!c) return undefined
+  const priv = (m: ts.ClassElement) => ts.canHaveModifiers(m) && ts.getModifiers(m)?.some(k => k.kind === ts.SyntaxKind.PrivateKeyword || k.kind === ts.SyntaxKind.ProtectedKeyword || k.kind === ts.SyntaxKind.StaticKeyword)
+  const ms = c.members.filter((m): m is ts.MethodDeclaration => ts.isMethodDeclaration(m) && !priv(m) && !ts.isPrivateIdentifier(m.name) && ranges.some(([a, b]) => line(m.getStart()) <= b && line(m.end) >= a))
+  return ms.length ? ms.map(m => m.name.getText()) : undefined
+}
+// The XState a machine is written for: v4's options argument, `cond` or its typings (setup() is v5's).
+const v4 = (code: string) => !/\bsetup\s*\(/.test(code) && /\bcond\s*:|predictableActionArguments|\bInterpreter\b|\bservices\s*:|\bschema\s*:/.test(code)
 const jobs = [...(set === 'realworld' ? [] : ours), ...(set === 'ours' ? [] : real)].filter(j => !only || j.id.includes(only))
 
 const slice = (text: string, lines?: string) => {
@@ -67,12 +81,15 @@ for (const j of jobs) {
       if (shape === 'xstate') {
         const files = j.lines ? {} : await importsOf(j, code)
         if (Object.keys(files).length) row.files = Object.keys(files)
-        const x = extractXState(code, {file: j.file, entry: j.entry, xstate: xstate as never, ...(Object.keys(files).length ? {files} : {}), check: {runs: 200, depth: 16}})
+        const x = extractXState(code, {file: j.file, entry: j.entry, xstate: (v4(code) ? xstate4 : xstate) as never, ...(Object.keys(files).length ? {files} : {}), check: {runs: 200, depth: 16}})
+        if (v4(code)) row.xstate = 4
         Object.assign(row, {ok: x.ok, shape, ...(x.ok ? {} : {refusal: x.refusals[0], reason: reason(x.refusals[0]?.what ?? '')}), ...(x.evidence ? {evidence: x.evidence} : {}), notes: x.notes})
         if (x.source) writeFileSync(join(out, 'rules', `${j.id.replace(/[^\w.-]+/g, '_')}.ts`), x.source)
       } else {
         const files = j.lines ? {} : await importsOf(j, code)
         if (Object.keys(files).length) row.files = Object.keys(files)
+        const pinnedMethods = !j.methods && shape === 'class' && j.pinned ? methodsIn(code, j.file, j.entry, j.pinned) : undefined
+        if (pinnedMethods) { j.methods = pinnedMethods; row.methods = pinnedMethods }
         const x = extract(code, {file: j.file, entry: j.entry, ...(Object.keys(files).length ? {files} : {}), ...(shape === 'class' ? {shape: 'class' as const} : {shape: 'functions' as const}),
           ...(j.functions ? {functions: j.functions} : {}), ...(j.methods ? {methods: j.methods} : {}), ...(j.init !== undefined ? {init: j.init} : {}), ...(j.domains ? {domains: j.domains} : {}), check: {runs: 200, depth: 12, states: 400, modules: {'@reduxjs/toolkit': rtk, xstate}}})
         Object.assign(row, {ok: x.ok, shape, ...(x.ok ? {} : {refusal: x.refusals[0], reason: reason(x.refusals[0]?.what ?? '')}), ...(x.evidence ? {evidence: x.evidence} : {}), notes: x.notes})
