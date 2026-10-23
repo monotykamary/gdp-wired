@@ -311,9 +311,7 @@ function search(l: Loop, opts: NeverEndsOptions): NeverEndsVerdict {
   } catch (e) { if (!(e instanceof Overflow)) return done({proven: false, checked: false, why: (e as Error).message.slice(0, 200)}) }
 
   if (opts.lassos) return done({proven: false, checked: false, why: `no lasso in ${stats.runs} runs`})
-  // 1b. Accelerated cycles (core/accel.ts): a set from the relation's cycles, its closure proven; then a stem into it, from
-  // a state a random run reached (the shortest stem), else a bounded run to it (core/bmc.ts: the kernel's k-step goal's
-  // model, the set's complement as the law it breaks), cut where it first enters the set.
+  // 1b. Accelerated cycles (core/accel.ts): a set from a cycle of the relation, a stem into it, its closure proven.
   if ((opts.accel ?? 0.4) > 0) {
     const accelUntil = Math.min(until, now() + (until - now()) * (opts.accel ?? 0.4)), m = loopMachine(l)
     try {
@@ -355,7 +353,7 @@ function search(l: Loop, opts: NeverEndsOptions): NeverEndsVerdict {
             if (++n >= 4) break
           }
         }
-        // (a set no accelerated run reaches, searched to the end, is left: a bounded run wouldn't reach it either)
+        // (a set the accelerated runs' search, run to its end, doesn't reach is left: the time goes to sets a run reaches)
         if (!stems.length && report.exhausted) continue
         // (a set with a stem is likely: its closure may take most of what is left, past the stage's share; one without,
         // the stage's share and at most 4 s)
