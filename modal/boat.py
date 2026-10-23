@@ -2,7 +2,7 @@
 stopped between them (a stopped VM bills no compute and keeps its disk), resumed per batch, stopped again a short idle
 time after it, and deleted only on teardown or when the image changes.
 
-    python3 modal/run.py --backend boat --jobs modal/suite.json --out runs/backends/suite [--vms N] [--idle 300]
+    python3 modal/run.py --backend boat --jobs modal/suite.json --out runs/backends/suite [--vms N] [--idle 60]
     python3 modal/boat.py status | reap | cold | teardown [--all] | image [--build] | usage <since ISO>
 
 The image is one named snapshot, `gdpw-<hash>`, built in layers (bun and Lean, then each compare runner's solvers and
@@ -15,9 +15,10 @@ VM's TTL is the idle time, after which boat stops it.
 
 Starts are what the plan rations (a resume is one): a batch spends at most a share of those left (budget()), a VM is
 resumed only while the batch still needs it, a batch with more work than slots takes VMs other batches release while
-they're still up (no start), and with no start left a batch waits for those rather than going to Modal at once. A
-released VM stays up 300 s. The plan's limits are read from `boat limits` at every batch. GDPW_BOAT_POLICY=old: the
-policy before.
+they're still up (no start), and with no start left a batch waits for those within --max-wait, then goes to Modal.
+A released VM stays up 60 s, for a back-to-back batch, and never longer to save starts (boat's terms, TOS-6: no
+parking idle compute). The plan's limits are read from `boat limits` at every batch. GDPW_BOAT_POLICY=old: the policy
+before.
 
 A batch: the worktree as git sees it (tracked and untracked files that aren't ignored, with the submodules', minus the
 same paths modal/run.py leaves out) goes to one VM, which serves it to the others through a token-gated boat URL, and
@@ -56,14 +57,13 @@ BACKSTOP = 900  # the TTL a held VM keeps renewing: a VM whose client is gone st
 RESERVE_DAY = int(os.environ.get("GDPW_BOAT_RESERVE_DAY", "60"))
 RESERVE_HOUR = int(os.environ.get("GDPW_BOAT_RESERVE_HOUR", "15"))
 # How a batch spends the plan's starts (research/boat-starts: the simulation of today's mix and the runs that chose
-# it). GDPW_BOAT_POLICY=old restores the policy before, to compare: as many VMs as speed a batch up, released VMs up
-# 60 s, no waiting for a VM when no start is left.
+# it). GDPW_BOAT_POLICY=old restores the policy before, to compare: as many VMs as speed a batch up, no waiting for a
+# released VM when no start is left.
 OLD = os.environ.get("GDPW_BOAT_POLICY", "") == "old"
 SHARE = float(os.environ.get("GDPW_BOAT_SHARE", "0.25"))  # a batch starts at most this share of the starts left
 MIN_STARTS = 2  # (but this many, while any are left)
-MAX_STARTS = int(os.environ.get("GDPW_BOAT_MAX_STARTS", "50"))  # and at most this many (0: no cap; tune-500.txt)
-IDLE = 60 if OLD else int(os.environ.get("GDPW_BOAT_IDLE", "300"))  # a released VM stays up this long, for the next batch
-WAIT_STARTS = 0 if OLD else 600  # with no start to be had, wait this long for a VM another batch releases
+MAX_STARTS = int(os.environ.get("GDPW_BOAT_MAX_STARTS", "30"))  # and at most this many (0: no cap; tune-500.txt)
+IDLE = 60  # a released VM stays up this long, for a back-to-back batch; never longer to save starts (boat's TOS-6)
 
 
 class Unavailable(RuntimeError):
@@ -158,13 +158,6 @@ def budget(left: int) -> int:
         return left
     k = min(left, max(MIN_STARTS, math.floor(SHARE * left)))
     return min(k, MAX_STARTS) if MAX_STARTS else k
-
-
-def release_idle(lim: dict | None = None) -> int:
-    """How long a released VM stays up (--idle overrides it). 300 s: on the $500 plan, wall time first, a VM kept up
-    for the next batch (any track's, or one topping up) beat a 60 s idle and one that grows only when starts run
-    short (research/boat-starts/tune-500.txt)."""
-    return IDLE
 
 
 def sandboxes() -> dict:
@@ -1026,9 +1019,8 @@ class Session:
         sp.start()
         if not OLD:
             threading.Thread(target=topup, daemon=True).start()
-        if max_wait and self.short and WAIT_STARTS > max_wait:
-            log(f"no start to be had: waiting up to {WAIT_STARTS} s for VMs other batches release")
-            max_wait = WAIT_STARTS
+        if max_wait and self.short and not self.vms:
+            log(f"no start to be had: waiting up to --max-wait ({max_wait} s) for a VM another batch releases, then Modal")
         while not all_done.wait(1):
             if self.stop.is_set():
                 raise KeyboardInterrupt
@@ -1137,7 +1129,7 @@ class Session:
                 break
             time.sleep(1)
         vms = [v for v in list(self.vms.values()) if not v.skipped]
-        idle = self.idle if self.idle is not None else release_idle()
+        idle = self.idle if self.idle is not None else IDLE
         self.idle_used = idle
 
         def wind(vm: VM):
@@ -1324,10 +1316,11 @@ def preflight(want: int = 1, vm_type: str = "default") -> tuple[str | None, dict
     info = {"free_up": up, "free_stopped": len(free) - up, "active_room": room, "starts_now": starts, "can": can, "leased": leased}
     if can <= 0:
         why = "boat at its active-VM limit" if room <= 0 else "no boat starts left this hour or day" if starts <= 0 else "no boat VM to be had"
-        if WAIT_STARTS and starts <= 0 and room > 0 and leased:
-            # other batches hold VMs: one they release (still up, so no start) is had sooner and cheaper than Modal
-            info["wait"] = WAIT_STARTS
-            log(f"{why}; {leased} VMs leased by other batches: waiting up to {WAIT_STARTS} s for one they release")
+        if not OLD and starts <= 0 and room > 0 and leased:
+            # other batches hold VMs: one they release within --max-wait (still up, so no start) is had sooner and
+            # cheaper than Modal; none by then, the batch goes to Modal
+            info["wait"] = True
+            log(f"{why}; {leased} VMs leased by other batches: waiting within --max-wait for one they release")
             return None, info
         return why, info
     return None, info

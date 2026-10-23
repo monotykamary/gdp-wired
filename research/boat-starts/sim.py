@@ -471,14 +471,18 @@ BASE = {"idle": 60, "share": 1 / 4, "min_budget": 2, "check_resume": True, "topu
 # and (the coordinator's decisions) at most 30 starts a batch, the last 60 of the day and 15 of the hour kept for the
 # account's other project
 NEW100 = dict(BASE, adaptive={"exhaust": True, "long": 900}, cap=30, reserve=(60, 15))  # the $100 plan's choice
-# the defaults chosen for $500, wall time first (tune.py, tune-500.txt): a quarter of the starts left, at most 50 a
-# batch, released VMs up 300 s
-NEW = dict(BASE, idle=300, cap=50, reserve=(60, 15))
+# the $500 choice of c985479 (wall time first, tune-500.txt): released VMs up 300 s, at most 50 a batch
+NEW300 = dict(BASE, idle=300, cap=50, reserve=(60, 15))
+# the defaults (boat's terms, TOS-6: no idle compute parked to save starts): released VMs up 60 s, a quarter of the
+# starts left and at most 30 a batch (the better cap at 60 s on $500: tune-500.txt), the reserve, and with no start
+# left a wait within --max-wait (120 s) for a released VM, then Modal
+NEW = dict(BASE, idle=60, cap=30, reserve=(60, 15), wait=MAX_WAIT)
 OLDNEW = {"idle": 300, "idle_scarce": 900, "scarce_below": 100, "share": 1 / 4, "min_budget": 2, "check_resume": True, "topup": True, "wait": 600}
 POLICIES = {
     "old": {"idle": 60},
     "new": NEW,
     "new for $100 (cap 30, 60 s idle, 900 s when short)": NEW100,
+    "c985479 ($500: 300 s idle, cap 50)": NEW300,
     "base (new without the longer idle)": BASE,
     "new, no reserve": dict(NEW100, reserve=RESERVE),
     "new, no reserve, no cap": dict(NEW100, reserve=RESERVE, cap=None),
