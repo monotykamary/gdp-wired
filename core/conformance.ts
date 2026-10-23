@@ -123,13 +123,27 @@ export function recurReference(l: Loop, r: Recur, turns = 60): boolean {
   }
   return true
 }
-// The cases: each loop's certificate where the search finds one (else one forged: the guard as the set, w := 0), and
+// A regression, fixed (runs/ranks/suite3-usual's lean-nonterm, made again with FUZZ_SEED=8, cases 0 and 1): the
+// certificate the search found for `climb 0 2`, whose tree cuts rows by 2, and its twin with the set made every state.
+// The twin's tree is the found one's, which doesn't refute the twin's goal: kernel.ts refuses it, and Lean must too. The
+// exporter once wrote that tree against the twin's goal, where a cut's row isn't even, so its quotient as -0.5: no Lean
+// term, and the check failed to elaborate rather than compute false. Now a tree is written against a goal it refutes.
+export function recurRegressions(): RecurCase[] {
+  const loop = JSON.parse(LOOP) as Loop, found = JSON.parse(FOUND) as Recur
+  return [
+    {loop, family: 'climb', what: 'found', recur: found},
+    {loop, family: 'climb', what: 'the set not closed: every state', recur: {...found, set: trueC}},
+  ]
+}
+const LOOP = "{\"params\":[\"p\"],\"inputs\":[\"w\"],\"state\":{\"x\":{\"op\":\"var\",\"name\":\"p\"},\"y\":{\"op\":\"const\",\"value\":0}},\"name\":\"climb 0 2\",\"while\":{\"op\":\"<=\",\"a\":{\"op\":\"const\",\"value\":0},\"b\":{\"op\":\"var\",\"name\":\"x\"}},\"body\":{\"x\":{\"op\":\"add\",\"a\":{\"op\":\"var\",\"name\":\"x\"},\"b\":{\"op\":\"const\",\"value\":2}},\"y\":{\"op\":\"add\",\"a\":{\"op\":\"var\",\"name\":\"y\"},\"b\":{\"op\":\"var\",\"name\":\"w\"}}},\"assume\":{\"op\":\"<=\",\"a\":{\"op\":\"var\",\"name\":\"w\"},\"b\":{\"op\":\"const\",\"value\":1}}}"
+const FOUND = "{\"start\":{\"p\":1},\"stem\":[],\"set\":{\"op\":\"and\",\"xs\":[{\"op\":\"=\",\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"op\":\"var\",\"name\":\"p\"}},{\"op\":\"=\",\"a\":{\"op\":\"const\",\"value\":0},\"b\":{\"op\":\"var\",\"name\":\"y\"}}]},\"wit\":{\"w\":{\"op\":\"var\",\"name\":\"y\"}},\"tree\":{\"split\":{\"x\":-1},\"yes\":{\"split\":{\"1\":-1,\"y\":1},\"yes\":{\"split\":{\"1\":1,\"p\":-1},\"yes\":{\"split\":{\"1\":-1,\"p\":1},\"yes\":{\"split\":{\"y\":-2},\"yes\":{\"leaf\":[{\"kind\":\"input\",\"index\":8},{\"kind\":\"input\",\"index\":9},{\"kind\":\"cut\",\"of\":1,\"g\":2},{\"kind\":\"combine\",\"a\":0,\"b\":2,\"ma\":1,\"mb\":1}]},\"no\":{\"leaf\":[{\"kind\":\"input\",\"index\":4},{\"kind\":\"cut\",\"of\":0,\"g\":2},{\"kind\":\"input\",\"index\":7},{\"kind\":\"combine\",\"a\":1,\"b\":2,\"ma\":1,\"mb\":1}]}},\"no\":{\"leaf\":[{\"kind\":\"input\",\"index\":3},{\"kind\":\"input\",\"index\":5},{\"kind\":\"combine\",\"a\":0,\"b\":1,\"ma\":1,\"mb\":1}]}},\"no\":{\"leaf\":[{\"kind\":\"input\",\"index\":2},{\"kind\":\"input\",\"index\":3},{\"kind\":\"combine\",\"a\":1,\"b\":0,\"ma\":1,\"mb\":1}]}},\"no\":{\"leaf\":[{\"kind\":\"input\",\"index\":1},{\"kind\":\"input\",\"index\":5},{\"kind\":\"combine\",\"a\":0,\"b\":1,\"ma\":1,\"mb\":1}]}},\"no\":{\"leaf\":[{\"kind\":\"input\",\"index\":0},{\"kind\":\"input\",\"index\":5},{\"kind\":\"combine\",\"a\":0,\"b\":1,\"ma\":1,\"mb\":1}]}}}"
+// The cases (the search on the counted clock, so the same seed gives the same cases): each loop's certificate where the search finds one (else one forged: the guard as the set, w := 0), and
 // its tampered twins, each named by what was changed.
 export function recurCases(n: number, ms = 300): RecurCase[] {
-  const out: RecurCase[] = []
+  const out: RecurCase[] = [...recurRegressions()]
   for (let i = 0; i < n; i++) {
     const {loop, family} = randomLoop()
-    const f = findNeverEnds(loop, {ms, seed: 1 + i})
+    const f = findNeverEnds(loop, {ms, seed: 1 + i, counted: 1000})
     if (!f.recur) {
       out.push({loop, family, what: 'forged: the guard as the set', recur: {start: {p: 30}, stem: [], set: loop.while, wit: {w: k(0)}, tree: {leaf: []}}})
       continue

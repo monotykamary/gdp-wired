@@ -11,7 +11,8 @@
 import {expect, test} from 'bun:test'
 import {type C, type E, compileFunction, conditionCases, interpret, loadJs} from './machine.ts'
 import {type Case, C_OPS, CELLS, E_OPS, VARS, inlineC, inlineE, machineOf, randomCase, recurCases, recurReference, reference, seen, stateOf} from './conformance.ts'
-import {check, checkRecur, recurGoal} from '../kernel/kernel.ts'
+import {type Loop, type Recur, check, checkRecur, recurGoal} from '../kernel/kernel.ts'
+import {recurLean} from '../lean-kernel/emit.ts'
 import {grow} from '../kernel/prove.ts'
 import {expressions} from '../research/search/compile.ts'
 
@@ -95,8 +96,13 @@ test('every consumer of terms agrees with the reference evaluator, or refuses', 
 // that doesn't close), and where the set was changed no tree closes it (the prover finds a state of it that leaves it).
 // lean-kernel/conformance.ts --nonterm writes the same cases for Lean's checkRecur.
 test('nontermination certificates: accepted ones hold on the reference run, tampered ones are refused', () => {
-  const counts: Record<string, {n: number, accepted: number}> = {}
+  const counts: Record<string, {n: number, accepted: number}> = {}, found = new Map<Loop, Recur>()
   for (const c of recurCases(Math.round(60 * scale))) {
+    // Its Lean text, as lean-kernel/conformance.ts --nonterm writes it: every number an integer (Lean's Int has no
+    // fraction), so Lean computes an answer on it rather than refusing to read it.
+    if (c.what === 'found') found.set(c.loop, c.recur)
+    const text = recurLean('case', c.loop, found.get(c.loop) ?? c.recur).recur(c.recur)
+    expect(/\d\.\d|e[+-]?\d|NaN|Infinity/.test(text), `${c.loop.name}: ${c.what}: a number Lean can't read`).toBe(false)
     let ok = false
     try { ok = checkRecur(c.loop, c.recur) } catch { ok = false }
     const at = (counts[c.what] ??= {n: 0, accepted: 0})
