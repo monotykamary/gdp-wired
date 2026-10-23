@@ -2499,13 +2499,12 @@ export function conjectures(p: Program, l: DataLaw, max = 24, maxSize = 6): Data
     }
     return true
   }
-  const substX = (x: X, sub: Map<string, X>): X => JSON.parse(JSON.stringify(x), (_, v) => (v && typeof v === 'object' && v.op === 'var' && sub.has(v.name) ? sub.get(v.name) : v))
   const norm = (x: X, depth = 0): X => {
     if (depth > 30) return x
     let t: X = JSON.parse(JSON.stringify(x))
     if (t.op === 'call' || t.op === 'ctor') t = {...t, args: t.args.map(a2 => norm(a2, depth + 1))}
     if (t.op === 'add') { const [a2, b2] = [norm(t.a, depth + 1), norm(t.b, depth + 1)]; if (a2.op === 'nat' && a2.value === 0) return b2; if (b2.op === 'nat' && b2.value === 0) return a2; t = JSON.stringify(a2) <= JSON.stringify(b2) ? {op: 'add', a: a2, b: b2} : {op: 'add', a: b2, b: a2} }
-    for (const r of rules) { const sub = new Map<string, X>(); if (matchX(r.l, t, r.vs, sub)) return norm(substX(r.r, sub), depth + 1) }
+    for (const r of rules) { const sub = new Map<string, X>(); if (matchX(r.l, t, r.vs, sub)) return norm(substXs(r.r, sub), depth + 1) }
     return t
   }
   // The law in the same names (its variables by sort, in order of appearance).
