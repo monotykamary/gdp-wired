@@ -102,8 +102,9 @@ test('well-founded recursion: a measure found, and each call proven to lower it 
     expect(t.obligations.length).toBeGreaterThan(0)
     for (const o of t.obligations) expect(o.proof?.proven && checkCyclic(o.proof.proof)).toBe(true)
   }
-  // qsort's calls are on filters of the tail: each obligation by the filter's own recursion
-  expect(qsort.fn.termination!.obligations.map(o => o.scheme)).toEqual([expect.stringMatching(/^recursion of atMost/), expect.stringMatching(/^recursion of above/)])
+  // qsort's calls are on filters of the tail: each obligation through a size law about the filter (no longer than the
+  // tail), proven by the filter's own recursion
+  expect(qsort.fn.termination!.obligations.map(o => o.lemmas)).toEqual([[expect.stringMatching(/^size law: size\(atMost\(/)], [expect.stringMatching(/^size law: size\(above\(/)]])
   expect(showValue(List, run({x: {op: 'call', fn: 'qsort', args: [{op: 'var', name: 'xs'}]}}, {xs: list(3, 1, 2, 1)}) as never)).toBe('cons(1, cons(1, cons(2, cons(3, nil))))')
   expect(showValue(List, run({x: {op: 'call', fn: 'merge', args: [{op: 'var', name: 'xs'}, {op: 'var', name: 'ys'}]}}, {xs: list(1, 4), ys: list(2, 3)}) as never)).toBe('cons(1, cons(2, cons(3, cons(4, nil))))')
 }, 60_000)
