@@ -1,0 +1,14 @@
+// expect: nonterminating. f returns 7 at every depth, so r is 7 and the loop runs forever. A call's value read as
+// anything fixed (0, or the argument) would end it.
+int f(int n) {
+  if (n <= 0) {
+    return 7;
+  }
+  return f(n - 1);
+}
+int main() {
+  int r = f(5);
+  while (r == 7) {
+  }
+  return 0;
+}

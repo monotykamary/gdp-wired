@@ -5,74 +5,85 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
-Rules read from the code that ships (`gdp-wired/extract`, core/extract.ts): `extract(code, {entry})` reads a reducer,
-`useReducer`'s, functions over one record, a Redux Toolkit slice or a class whose methods write its fields, through the
-TypeScript compiler, and returns the rule that steps the same way, as a builder value and as the source that makes it
-(`toSource`); `extractXState` reads an XState machine's guards and actions, named in `setup()` or inline in the config,
-for `fromXState`. The extractor is untrusted: each rule is run beside the code it was read from, and any difference
-refuses it. Nothing trusted changed (`kernel/`, `core/check.ts` and `lean-kernel/` are as in 0.22.0).
+Ranks split by several conditions, and a rank search fast enough for programs of a hundred locations. Measured after
+merging main at 98bfabe (gen/sv-front's C front end among it), at 60 s on Modal, launched together with main at that
+commit, both under this branch's harness (below): TermComp's integer transition systems on the task's statement 1,073
+solved (613 terminating, 460 nonterminating), main 1,022 (567, 455); per component 1,072 (611, 461), main 1,044 (580,
+464); KoAT2 601 terminating in this harness (`runs/modal/term/full1`, `koat-fix1`). SV-COMP's termination tasks 224
+(169, 55), main 211 (156, 55); per component 206 (151, 55), main 199 (144, 55); Ultimate Automizer 224. Both leads (ITS
+terminating over KoAT2, SV-COMP level with Ultimate Automizer) are this harness's and unconfirmed until the
+competitions' own setup runs them. None wrong: every SV-COMP answer is its expected verdict (no errors), and no answer
+contradicts another tool's, a lasso or any of this track's or main's runs (`runs/ranks2/m-its-mine`, `m-its-base`,
+`m-sv-mine`, `m-sv-base`; `m-its-compare.txt`, `m-sv-compare.txt`). Nothing trusted changed (`kernel/`, `core/check.ts`,
+`lean-kernel/`); every rank is still proven by the kernel on the task's own loop.
 
-- The subset: integers (a literal that isn't one refused; division only as Math.floor or Math.ceil of x / k for a
-  constant k; % by a constant of a natural, since JavaScript's takes the sign of x), booleans, string-literal unions,
-  strings set and compared, records and nested records (spreads, shorthand), Map and Record state keyed by numbers or
-  strings (get, set, has, delete, [k], ?? or || a default), conditionals, ternaries, && || ?? (the right side's effects
-  on its own path), early returns, switch on a tag (fall-through, default), Math.min, max and abs, Date.now() as an
-  input read once a step, throws as the rule's assumption (or a constructor's as its precondition), helpers, methods and
-  getters of the same files inlined, relative imports read. Each number is a natural where the code keeps it one (a
-  subtraction printed as `minus` only where solver.ts proves it at most what it subtracts from, under the branch's
-  conditions, the code's refusals and an XState transition's guard), an integer elsewhere. Refused, each where it is
-  and why: loops, arrays, floats, async, try/catch, a write to the state a reducer is given (React and Redux keep the
-  old state), a throw after a method wrote a field, two keys of one map written in one step, a map replaced whole, a
-  reference into a map held across a set, `extends`, a module's own mutable state, closures, Math.random, Date.now()
-  read twice in a step, other modules' code, v4 `cond` (which fromXState would drop), a machine made by a function.
-- The check (core/extract-check.ts): the code compiled by TypeScript and run in node:vm with a counter on every branch
-  arm, the rule through `rule.interpreter()` and `rule.compiled()` (compared too): runs from the start (random requests,
-  near the boundaries, the time moving on or back), single steps from drawn states, and single steps from proveSteps'
-  witnesses for each branch condition over the state and the request; every state variable, map cell, method result and
-  refusal compared. Past 2^53 the code rounds where the rule's runtime refuses: counted apart, the run ended there. An
-  XState chart is checked by `conforms` against XState's own actor. Each map's representation (a key it doesn't hold
-  holds the defaults) is handed out as `invariants`, inductive, to prove laws beside.
-- Widened along the way, each for a refusal of real code: `fromXState`'s `inline` (guards and actions written in the
-  config, given by their place in it) and machines with no states (root transitions only); `when(c, str, 'x')`, a
-  literal beside a string value, as beside a choice.
-- On 22 examples from open-source code, each pinned (research/extract/sources.json: react.dev, redux's examples and
-  Redux Toolkit's template, statelyai/xstate's examples, five rate limiters): 10 extracted, 12 refused with the place
-  and the reason (`runs/extract/batch4`, research/extract/results/ours.jsonl). The 5 step functions: 11,955 requests
-  in runs from the start, 2,000 steps from drawn states, 20 steps from the prover's witnesses (of 22 conditions asked;
-  conditions over a map's cells aren't), 2,338 requests both refused, 14 steps past 2^53, 11,623 steps where the
-  generated JavaScript agreed with the interpreter, 10 of their 10 branch arms reached; the 5 XState machines: 16,000
-  events. Refused: a reducer that mutates its state (react.dev's own pitfall), an array (redux's todos), `invoke`,
-  `onDone`, `always`, an undefined context, a fractional rate, `#private` fields, a destructured constructor argument,
-  an optional field (the limiter package's request queue, in the file its bucket imports), two functions with no
-  initial state (a sub-reducer, an Express middleware).
-- research/realworld's 41 sources (its sources.json at 6c675e4, read as it is, the whole file): none extracted
-  (research/extract/results/realworld.jsonl). 20 aren't TypeScript or JavaScript (Solidity 7, Go 6, Python 2, Ruby 2,
-  Lua 1, Zig 1, CoffeeScript 1); of the 21 that are: `extends` 7, a machine made by a function 4, a function that isn't
-  a step over a state 3, an export that isn't a function 2, and one each of a `Date` field, a Map as a constructor's
-  argument, an array, a null context, a v4 `cond`. So no corpus law could be compared on an extracted rule.
-- The laws of the 10 extracted examples, beside a rule written by hand the corpus's way (research/extract/verdicts.ts):
-  27 laws, the same verdict for each, 17 proven and 10 refuted on both sides (research/extract/results/verdicts.jsonl).
-  Before the representation invariants were handed out, 2 of 27 differed (`runs/extract/batch2`): step laws about the
-  Redux cart's quantities, refuted of the extracted rule from a state no object of the code is in (a key it doesn't hold
-  with a count), proven of the rule by hand, which has no such state.
-- core/extract.test.ts, 31 tests: the shapes, and programs where a naive reading would be wrong, each refused with the
-  reason or extracted and checked: aliasing (a write through a second name for a copy; objects chosen by the path), a
-  write through a reference to the given state, a shallow copy's nested object, a Map's own set, two names into one map,
-  a reference held across a set, overflow, floats and division, a negative dividend's %, NaN and Math.min(), short-
-  circuit effects, a throw mid-update (a method's, refused; a reducer's, extracted), a getter with effects, closures and
-  module state, Date.now() twice, Math.random, loose equality with a string. A check that catches the extractor itself:
-  an XState guard and action read the same payload field as two inputs, and the chart and XState parted on the first
-  run that sent them; fixed, and the test keeps it.
-- Dependencies: `typescript` an optional peer (the extractor reads with it); `@reduxjs/toolkit` 2.13.0 dev only (the
-  check runs a slice through Redux Toolkit itself). The corpus's code is fetched at its commit, not committed.
-- The suite on Modal beside main at this branch's base (5c3f947; main has since moved), the suite with the new `extract`
-  job: by default 474.5 s wall, 4,708.6 s of job time, none failed, the base 572.7 s and 4,727.5 s, none failed
-  (`runs/extract/suite-default-2`, the base's `suite-default-2`); `--usual` 491.9 s and 4,307.2 s, the base 494.0 s and
-  4,300.6 s, none failed there and one here: `lean-nonterm`, whose `conformance.ts --nonterm` (certificates from a
-  300 ms search) failed the same way in the base's first default run and passed 4 of 4 times on each side when run
-  alone (`runs/extract/suite-usual`, `nonterm4`). On the 206 jobs both ran: 4,699.4 s and 4,727.5 s by default,
-  4,298.9 s and 4,300.6 s `--usual`. Modal's billing for the work: $0.870 here (four extraction batches $0.011, three
-  suites, the lean-nonterm reruns), $0.851 for the base.
+- Regions (core/cycles.ts's `relationRank`): a component with no rank is split by one atom, then, with invariants to
+  find, two at once; the atoms are the signs of what a path adds to a value (y := y + x: x ≥ 1) and the atoms its
+  paths read (q < p for min(p, q)). Each sign vector at a location is a node; the kernel's term reads the atoms.
+- Disjunctive invariants: with invariants (`rankWithInvariants`), each region's own, by Houdini over every path of the
+  relation split the same way (every location, so a disjunction made before the loop, x := 1 or x := −1, is kept), each
+  a law pc = ℓ ∧ the signs → atom that the kernel proves inductive with the rest. Toulouse-BranchesToLoop-2 (x ≠ 0) is
+  proven now, in the frontier corpus and within solve.ts's time on SV-COMP; Piecewise (min(p, q)) at the edge of
+  findRank's 51 s in the corpus (proven in the run before the merge, not in the one after); their broken variants
+  refused.
+- A location no run reaches (KoAT2's `1 ≤ 0`): `1 ≤ 0` is a candidate at every location, kept where every path into it
+  leaves from states the rest rule out; and x − y = c where a path sets x := y + c and keeps y. ex17's loop with no
+  guard sits past an i < 0 that never holds: unreachable, the rest has a rank.
+- The relation (core/relation.ts): a condition the path's pins decide alone (pc = 3 and t = 1) is read at them, so a
+  chain of a rule per case is walked, not split per case: reverse, traverse and print (80 to 100 locations), refused
+  before at the paths' budget, have their relation. `generators` refuses a row over a name it isn't given (a region's
+  atom over a name the path didn't read had its coefficient dropped, a wrong split the kernel then refused).
+- The rank's LP: in floating point first (`floatSolve`, Dantzig's rule, Bland's after degenerate pivots; the rows scaled
+  to their largest entry, then as they are), read back as fractions, scaled to integers and kept only where every row
+  holds exactly (BigInt); tiny values solved again as 0 where the tolerance hid a row of a vertex at 2^31. Infeasible
+  where both passes say so; else an exact refutation (solver.ts's `refuteFast`, rational) or the exact simplex, now
+  fraction-free (each row integers over one denominator; no divisor per entry). On the relation's rows the integer
+  boxes are skipped (the least Σ|u| is as small a rank). A shared template reads the component's live names only; a
+  component may have 16 blocks (8). Two spreads of thousands of values as arguments (a stack overflow, ex22) are loops.
+- `findRank`: the relation's search has a third of the time left (a half), so the search with invariants after it has
+  more.
+- Harness (compare/term/modal_term.py, modal_sv.py): a row's answer is the last one printed, so a proof whose answer was
+  printed before its certificate keeps it when the run stops making the certificate (cert `not made`), as solve.ts
+  intends. The base runs used the same harness.
+- Gained on the statement, ITS (after the merge): 46 terminating (the reverse/traverse/print family 9, juLinkedList*
+  7, elmhes 2, ex17 2, fun2 2, fun2b, fun3, java_Diff, java_DivWithoutMinus, java_AProVEMathRecursive, polyrank3 to 5,
+  p-43 2, slayer-n3 2, sas07, qrdcmp, RSA, BinarySearch, PartitionList, RetValRec, SortCount, florian_new_ex,
+  florian_sumit, ex27, eric, s1-saved) and 10 nonterminating (by the unchanged lasso and recurrent-set stages, whose
+  time moved). Lost: no terminating task; 5 nonterminating (DivTernary2, FlattenTreeListRec, agafp_fixed, db2_fixed,
+  n-40_fixed), each found by main in its second recurrent-set or lasso search (22 to 58 s), searches bounded by time
+  and random (their runs differ from run to run). Per component: 31 terminating and 2 nonterminating gained, 5
+  nonterminating lost (each a recurrent set or lasso main found, 4 to 35 s). SV-COMP: 14 terminating gained
+  (Toulouse-BranchesToLoop-2, 4NestedWith3Variables-1, Gothenburg_v2-1, MenloPark, DivMinus2, IntPath, gcd01-2,
+  cohencu5, mannadiv, ps2, sqrt1, BradleyMannaSipma-CAV2005-Fig1, CookSeeZuleger-TACAS2013-Fig7b, -Fig8b); Singapore-2
+  lost (42.2 s on main); per component 7 gained, none lost.
+- Before the merge (against main at 6b2e2df, the same night, `runs/ranks2/h-*`): ITS 1,078 (615, 463), main 1,033
+  (572, 461); per component 1,073 (612, 461), main 1,045 (583, 462); SV-COMP 189 (142, 47), main 182 (135, 47).
+- An answer printed before its certificate is a kernel-checked one: compare/term/solve.ts prints `answer: terminates,
+  cert: not made` only once `prove` has returned ok, which it does only when every goal of loopObligations on the loop
+  as translated has a tree that kernel.ts's `check` accepts (`missing` empty); per component, only once every
+  component's has. The certificate is made after, and the answer printed with it is the same answer. So the
+  harness's last answer printed is never an unchecked one.
+- Still missed where KoAT2 proves termination: 25 (17 by neither translation): deep nests that need more blocks than the
+  time allows (jacobi, ludcmp, spctrm, sudoku), and ranks the kernel takes longer than the limit to prove (magic, ns,
+  ud, opt-tree: 25 to 35 s for one goal on Modal); `bun compare/term/failures.ts` gives `runs/ranks2/h-failures.txt`.
+- The frontier corpora (after the merge, beside main at 98bfabe): the second's rank, nonlinear-rank, sampling and
+  nested-recursion items 12 of 15, main 11 (Toulouse-BranchesToLoop-2 gained; Piecewise proven before the merge at
+  findRank's 51 s, at its edge, not in this run), every broken variant refused; round 1's cycle items 21 of 21, broken 21
+  of 21, as main (`runs/ranks2/m-corp-mine-c2.md`, `-c1.md`, `m-corp-base-c2.md`, `-c1.md`). The real-world corpus,
+  before the merge: the same verdicts as main, law for law (218 proven, 17 refuted, 75 unknown, 1 error;
+  `h-corp-mine-rw.json`, `g-corp-base-rw.json`).
+- Tests: core/cycles.test.ts's relation test adds Toulouse-BranchesToLoop-2 and its broken variant. The probes
+  (`term-adversarial`, `term-c2ari`: 66 programs, none answered against the program) pass. The suites on Modal after
+  the merge: by default 217 jobs, 0 failed, 540.3 s wall, 5,577.2 s of job time (`runs/ranks2/m-suite-default`);
+  `--usual` 217 jobs, 0 failed, 607.6 s, 5,200.2 s (`m-suite-usual`).
+- 1 vCPU after the merge, ten of each interleaved with main at 98bfabe in one batch (`runs/ranks2/m-onecpu`): data's
+  nearPlus min, median and max 1,788, 2,820 and 3,341 ms against main's 1,892, 2,346 and 3,343; nearSucc 1,441, 2,074
+  and 2,505 against 1,447, 1,790 and 2,414; add3acc 1,123, 1,664 and 2,096 against 1,187, 1,459 and 2,062; infer's
+  four-value join 4,012, 5,885 and 7,782 against 3,944, 5,351 and 7,771; none failed.
+- The search reads the shared clock (gen/termlemmas' `clock()`), its float pivots counted as work (an eighth of an
+  exact pivot's), so a counted search's verdict doesn't depend on the machine's speed.
+- Cost: Modal $25.08366 for this track's 58 apps before the merge and $5.95577 for its 10 after (main's base runs
+  included), on 2026-10-23 UTC (`modal billing report --for today`, before the day closes); no boat.
 
 Disjunctive invariants in the join (`core/infer.ts`): a counterexample no candidate rules out is blocked as IC3 blocks
 a cube, by relative induction, its literals cut down to the core of the CDCL search's refutation (`kernel/cdcl.ts`'s
@@ -157,6 +168,395 @@ again gave 555 sat (`runs/chcsat/final3/chc-k2`), main three more times the same
 - Sizes: `core/infer.ts` +191 −22, `kernel/cdcl.ts` +34 −7, `compare/chc/solve.ts` +1 −1.
 - Cost: Modal $65.99 for this track's 114 apps (`modal billing report`, today's and yesterday's figures before the day
   closes); no boat.
+
+## 0.24.0
+
+CHC-COMP's unsat side caught up most of the way, SV-COMP is read from C as C runs, and two trusted additions came with
+their Lean proofs first. At 60 s on Modal, none wrong: CHC-COMP LIA-Lin 938 solved (540 sat, 398 unsat), 801 for main
+launched beside it (`runs/bmc2/chc-merged1`, `runs/bmc2/chc-main5`), 782 at 0.23.0; two tasks whose expected verdict
+rests on one tool's vote (or a placeholder) are answered unsat with derivations of 999,002 and 280,277 steps, each
+checked twice, and listed apart as disputed (`compare/chc/disputed.json`). SV-COMP's termination tasks 213, 182 for
+main beside it (`runs/svfront/f5-mine`, `f5-base`), after three independent checks of the C front end (176 probes, none
+answered against how the C runs). TIP 2015 183 of 492 (`runs/termlem/tip4`), 181 at 0.23.0. The real-world corpus:
+237 of 311 laws proven with nothing stated, 218 at 0.23.0, liveness 18 of 35 (0). Trusted additions: k-induction
+(`lean-kernel/KInd.lean`'s `kind_sound`, then `kernel/kernel.ts`'s `checkKInduction`, 39 lines), solving 14 of the 17
+CHC tasks known to be k-inductive; and rings of mutually recursive functions (`lean-kernel/Data.lean`'s
+`wf_fix_unique_ring`), each on the standard axioms. Rules can now be read from TypeScript (`gdp-wired/extract`), each
+checked against the code it was read from. The release suites (217 jobs, one after the other) on Modal: by default
+624.7 s wall, 5,686.2 s of job time, none failed (`runs/release/0.24.0-default`); `--usual` 576.2 s, 5,169.4 s, none
+failed (`runs/release/0.24.0-usual`).
+
+Bounded runs faster and longer: CHC-COMP LIA-Lin at 60 s on Modal, 923 answered (526 sat, 397 unsat), main (6b2e2df)
+launched beside it 783 (517, 266); unsat 131 more and none fewer, sat 17 more and 8 fewer, out of time 5 against 8
+(`runs/bmc2/chc-mine4-b15`, `runs/bmc2/chc-base4`). Every unsat answer is a run the compiled rule takes and
+`checkDerivation` confirms against the CHC; none contradicts Spacer's or Golem's verdict, and 20 are tasks neither
+answered. Two derivations refute their task's expected verdict, both checked again by a simulation of the clauses:
+`s_split_50_000_001` (999,002 steps; its verdict sat is LoAT's vote alone) and `s_split_22_000_001` (280,277 steps; a
+placeholder verdict, no vote): compare/chc/disputed.json records them, `summary.ts` lists them as disputed (neither
+right nor wrong), and their derivations are kept (`runs/bmc2/disputed/`, checked again by research/bmc2/disputed.py). Lustre's 321 unsat tasks: 147 to 254; by Golem's
+derivation length, 4 steps 18/81 to 78/81, 5 or more 9/59 to 19/59; the round-2 corpus's group H 108 to 215 of 273. Its
+derivation items 3 of 3 (main 2): `s_split_01`'s 10,002 steps in 260 ms. Nothing trusted changed (`kernel/kernel.ts`,
+`kernel/cyclic.ts`, `core/check.ts` and `lean-kernel/` are as at 6b2e2df).
+
+- core/bmc.ts: each goal relaxed (an integer pair written as any two naturals of the difference, which every read of
+  a pair is; the interpreter normalizes, and where it refuses the run the goal itself is asked) and reduced (copies and
+  constants put in, definitions nothing reads dropped and put back into the model); the deeper goals one growing goal
+  for one CDCL search (kernel/cdcl.ts's `cdclSession`: each depth's query assumed by an activation atom and set aside
+  at the next, so learned clauses, activities, phases and the simplex carry over), its cone of influence; a forced run
+  first (a deterministic loop run by the compiled rule, up to 30% of the stage and a million steps); the counted
+  clock's rate 250 units a ms (252 measured at the median, 168 at main).
+- kernel/reader.ts keeps a value with an open read while nothing it read has changed (`touch` at each change of the
+  trail marks its readers): research/dag's 332 step goals give the same trees, by `growCdcl` and by `grow`, as at 0.23.0,
+  in half the search time (608.4 s to 303.9 s; 638.7 s to 360.9 s); 734 bounded-run goals searched alike with and
+  without it (`runs/bmc2/eq332-1`, `eq3`, `eq2`).
+- compare/chc/solve.ts's `bmc` stage 15 s (was 10): beside main in three batches, 10 s against 15 s solved 902 and 910,
+  904 and 914, 909 and 923; 20 s 917 and 923 (compare/chc/README.md, `runs/bmc2/chc-*`).
+- The stage alone on the 475 unsat tasks (56 s): 407, main 312; within 10 s 365, main 244 (`runs/bmc2/only-inc3`,
+  `only-base1`).
+- The other benchmarks beside main, launched together: TIP 2015 182 proven, main 181 (`isaplanner/prop_51` more, none
+  fewer; `runs/bmc2/tip-mine`, `tip-base`); SV-COMP termination 182 and 182, every answer the same (`sv-*`); TermComp
+  ITS 1,029, main 1,026 (10 more, 7 fewer, each where the lasso and rank searches, random and bounded by wall time,
+  finish near the limit, `its-*`); research/realworld's 311 laws: every verdict as main's (`rw-mine3`, `rw-base`).
+  The second frontier corpus: frontier 28 of 47, main 27, every broken variant refused in both (`corpus2-mine2`,
+  `corpus2-base1`).
+- The infer and data tests on 1 vCPU, ten jobs each side interleaved (`runs/bmc2/onecpu`): none failed; data's "agrees
+  with + on small values only" median 2,447 ms, max 3,341, main 2,985 and 3,665; infer's slowest median 4,895 ms, max
+  5,814, main 5,302 and 6,052. search.test's "a search that finds nothing" 0.89 to 1.18 s, main 0.53 to 0.84 s (its
+  counter is a deterministic loop, run forward until the forced run's share is spent), within its 8 s.
+- A new test (core/search.test.ts): a deterministic loop broken after 10,000 steps, refuted by its forced run.
+- After merging main at 5055882 (k-induction on the second vCPU beside every stage; the bounded runs' stage unchanged
+  in the first process's time plan): CHC-COMP 938 answered (540 sat, 398 unsat, 2 of them the disputed labels above),
+  main 5055882 launched beside it 801 (536, 265); unsat 133 more and none fewer, sat 10 more and 6 fewer (5 solved
+  past 58 s in main, and `s_split_42_000_000`), sat by k-induction 134 against main's 133 (`runs/bmc2/chc-merged1`,
+  `chc-main5`). The 332 step goals: the same trees by growCdcl and by grow (`runs/bmc2/eq4`). The suite (217 jobs): by
+  default 552.7 s wall, 5,164.0 s of job time, none failed (`suite-merged-default`); `--usual` 569.4 s and 4,888.9 s,
+  none failed (`suite-merged-usual`). The infer and data tests on 1 vCPU beside main's, interleaved (`onecpu2`,
+  `onecpu3`): none failed; "a search that finds nothing" median 1.2 s against 0.8 s (above), the rest within the runs'
+  spread (the infer join test median 6,004 and 5,511 ms in two runs, main's 5,334 and 5,944).
+- The suite (213 jobs) on Modal at this branch's last commit: by default 552.0 s wall, 5,042.3 s of job time, none
+  failed (`runs/bmc2/suite-default2`); `--usual` 526.0 s and 4,497.3 s, none failed (`suite-usual2`). Main's default
+  run beside an earlier commit here: on the 207 jobs both passed, 4,833.9 s of job time against 4,846.9 s
+  (`suite-base-default`, `suite-default`; main's other 6 failed in that checkout, which lacked the vendored sources).
+
+Termination through lemmas: a ring of functions calling each other taken by well-founded recursion (a measure each),
+and a call's decrease proven through size laws about the function of its argument, conjectured, proven by induction
+and used. **Trusted change:** `lean-kernel/Data.lean`'s `wf_fix_unique_ring` (a functional over a ring's tuple of
+functions that reads each only below its measure has exactly one fixpoint; `#print axioms`: propext, Classical.choice,
+Quot.sound), proven before core/data.ts accepts a ring, whose acceptance mirrors its condition: each call within the
+ring, under its path, lowers the callee's measure at the call's arguments below the caller's at its parameters, each
+obligation proven by the kernel in a program without the ring. `kernel/` and `core/check.ts` are as before. TIP 2015 at
+60 s on Modal, beside main at c1a0fb5 launched at the same time (`runs/termlem/tip2`, `tip2-base`): 177 of 492 proven in
+both, the same 177, and the same 30 refuted (23 in `false/`, each confirmed by TIP's evaluator, none proven); none
+wrong. Unsupported 112 against 129: 17 theorems translated now (the 8 bottom-up merge sorts `sort_*MSortBU*`, the 8
+`MSortBU2`, `grammars/simp_expr_unambig4`'s ring), none proven within the 60 s, and 8 of `false/` (the regexp `reck`
+rings), none refuted; none lost. An earlier step (`runs/termlem/tip1`, `tip1-base`: 179 against 177, the three more
+near 60 s on both sides) took the size laws after a while of induction and lost `sort_nat_QSort*` (4) to the budget;
+fixed (below).
+
+- Rings (`core/data.ts`'s `termination`, one code path for a function and a ring): the calls within the ring with their
+  paths, the runs recorded per call (caller to callee), the obligations as before but across functions, measures padded
+  to one length (`lexLt`). A call to the ring nested in another's argument or condition is refused at once (nested
+  recursion). `checkMeasures`: measures given to a ring checked as `termination` checks its own (for conformance).
+- The calls' relation (`callRelation`): a location per function, a path per call, the caller's parameters' sizes and the
+  callee's arguments' bounded by the sizes of the path's variables (`sizeBounds`, fitted to the path's values, naturals
+  up to 40 so a guard is met), ranked by core/cycles.ts's relation search per location (`rankOfPaths`, its forms per
+  location now returned beside its terms): `tokens`/`paren`'s size(e) + 1 and size(e), `linTerm`/`lin`'s. Then the runs'
+  LP, now per node (`ranksOfCalls`; `ranksOfRuns` the ring of one), and each function's parameters' sum.
+- Size laws (`sizeLaws`): for each function an obligation reads, S(g(y…)) + a ≤ S(yᵢ) [+ S(yⱼ)] + b at the bound its
+  values give (an equation's upper half only), and 2·g(n) ≤ n + b for a natural of one natural; given to proveData as
+  lemmas with `lemmasFirst` (no attempt of the law alone first: its lemmas proven by induction, the law tried after
+  each), then proveData by induction, then unfolded, all within the function's counted 10 s as before.
+- proveData: a lemma about a function used where the goal reads that function (a size law no longer at every size the
+  goal reads); a goal that reads sizes gets the shapes at the sizes its shapes read, `depth` rounds (size(xs) is 1 plus
+  its tail's, whose size is its own shape's: a recursion two fields deep); recursion induction through a function's
+  ring (evens through odds: recursion of evens at the tail's tail).
+- The wall-clock leak research/refine found: core/cycles.ts's and core/relation.ts's deadlines read kernel/prove.ts's
+  `clock()` (wall time outside a counted search, as before; counted work inside one), and the exact LP's pivots and the
+  generators count as work; `ranksOfRuns`' 1,000 ms inside core/data.ts's counted termination search was wall time.
+- Lean export (`lean-kernel/data.ts`): a ring in one `mutual` block, each with `termination_by` its measure; a
+  datatype's `size_pos` used where a decrease needs another field's size; the size laws an obligation used as theorems
+  before it (functional induction, then plain), each at the obligation's variables of its sorts. Package items
+  `dataring` (`tokens_positive`) and `dataruns` (`merge_runs_one`), the suite's `lean-data-9`: Lean checks both, on the
+  three axioms.
+- Conformance (`core/conformance.ts`'s `ringCase`): rings of two functions over naturals from six families, each with a
+  JavaScript reference run with fuel: a ring taken ends on every reference run and its measures fall at every recorded
+  call, a ring that runs forever (`up`, `late`, `swapKeep`) is refused, `down`, `lateDown` and `pair` are taken, and
+  the measures taken, tampered (swapped between the functions, constants dropped, negated), are refused by
+  checkMeasures wherever a recorded call contradicts them (the suite's eight conformance jobs, `runs/termlem/suite2-default`: 192 rings, the 108 that end all taken, the 84 that
+  never end all refused, 282 of 282 tampered measures refused); `lean-kernel/conformance.ts --rings` writes the rings taken with their
+  measures for Lean (`lean-rings`: 12 rings, Lean checks every call's decrease).
+- Adversarial definitions (`examples/data.ts`'s `adversarial`, core/data.test.ts): twelve that don't terminate, made to
+  look as if they did, each refused with the measures tried: a ring passing its argument round, one lowering and one
+  raising it, a ring swapping two lists, a ring that loops past n ≥ 9 (beyond the runs' values), even/odd stepping up,
+  a call on a helper no longer than its argument up to 9 items only (its size law refuted by its own induction), the
+  same through a ring, 0 calling 1 calling 0, a sum of two that stays, f(n) = f(f(n)), an integer counted down, a ring
+  whose stated measures don't fall. `wellFounded`: the ring and a bottom-up merge sort over `pairwise`.
+- TIP's translator classifies a ring's refusal by its message (`, in its ring `), as before by its old one.
+- After merging main at 7727716 (lang/edges, lang/reals, gen/unsat, gen/extract, research/realworld and the fixes):
+  TIP beside 7727716 launched at the same time, 183 of 492 proven against 181, the same 30 refuted, none wrong, none
+  lost (`isaplanner/prop_51` and `prop_60` the two more, at 56.4 s and 49.9 s); the same 25 translated now
+  (`runs/termlem/tip4`, `tip4-base`). The suites (215 jobs) by default 571.7 s wall, 5,421.7 s of job time, none failed
+  (`runs/termlem/suite4-default`); `--usual` 586.0 s and 4,932.6 s, none failed (`suite4-usual`).
+- What is still refused among the 105 and the 14, and why: bubsort (8: inversions, no size measure), bmerge (8) and
+  toList (16: the size laws about evens/odds and hmerge are conjectured but not proven within the budget; 60 s each
+  doesn't either), ssort (8: needs a membership lemma), idiv (12: idiv(x, 0) never ends; TIP calls it at 2 and 3),
+  third, twoThirds and nmsorttd-half1 on Int (12: below 0 they never end), McCarthy's 91 (2) and subst (2: nested),
+  flatten1 and flatten3 (3: a weighted measure), mod2 (2), msorttd and nmsorttd (8: a chain of size laws past the
+  budget); the 13 rings left are nested (stooge, nstooge, models).
+- The suites on Modal (210 jobs: 3 new, `lean-data-9`, `lean-rings` and the data tests'): by default 614.5 s wall,
+  5,211.1 s of job time, none failed (`runs/termlem/suite2-default`); `--usual` 480.2 s and 4,507.3 s, none failed
+  (`suite2-usual`). Round 1 and round 2 of the frontier corpora, against c1a0fb5 the same day: every item's verdict the
+  same, round 1 frontier 90 / 92 and broken 42 / 42 in both (the datatype track's items among them), round 2 25 / 47 and
+  47 / 47 in both (`runs/termlem/c1-mine`, `c1-base`, `c2-mine`, `c2-base`).
+- The `data` job's tests on 1 vCPU (ten each, this branch's and c1a0fb5's interleaved in one Modal batch,
+  `runs/termlem/data-1cpu`): nearPlus min, median and max 1,744, 2,302 and 2,582 ms against main's 2,216, 3,013 and
+  3,768; nearSucc 1,357, 1,753 and 1,947 against 1,652, 2,309 and 2,698; none failed. data.test.ts took 70.1 s median
+  against 13.7 s: the new tests (the twelve adversarial definitions refused, each within its counted budget: 59.4 s
+  and 40.0 s on 2 vCPU in `suite2-default` and `suite2-usual`; the rings; the size laws).
+
+What the real-world corpus (research/realworld) found in gdp-wired itself, fixed. Nothing trusted changed (`kernel/kernel.ts`,
+`core/check.ts` and `lean-kernel/` as they were). The corpus on Modal (311 jobs, 2 vCPU each), this branch beside main
+the same day: at main 6b2e2df, proven 237 against 218, refuted 18 against 17, neither 56 against 76, liveness 18 of 35
+against 0 (`runs/rwfix/score2`, `base2`); before main took gen/extract and lang/reals, at 6f03586, 237 against 218,
+16 against 15, 58 against 78 (main's 77 unknown and one error) (`runs/rwfix/score`, `base`). Every one of main's
+refutations is still refuted, and nothing went from refuted to proven. The 20 changed verdicts, the same in both
+pairs: 18 liveness laws proven with the rank 0 found; p-retry's "an uncapped retry waits at least minTimeout" proven
+(main threw), through the lemma found `f(x) >= minTimeout`; BullMQ's "an exponential retry waits at least the base
+delay" refuted (main: unknown), a law error triaged as one (`triage/queuebreaker.json`: with delay 0 the code retries
+at once and the rule leaves its ghost `until` as it was). With rank 0 stated, `rank0.ts` proves the same 18 on Modal
+(`runs/rwfix/extra`; the README's 19 was a local run). Suites, each mode after the other, on Modal: at 6f03586's base
+210 jobs, by default 485.4 s wall and 5,002.9 s of job time, `--usual` 516.8 s and 4,740.2 s, none failed
+(`runs/rwfix/suite-default`, `-usual`); merged with main, 213 jobs, by default 639.6 s and 5,025.4 s, none failed
+(`runs/rwfix/suite2-default`); `--usual` 729.0 s and 4,535.9 s, none failed (`runs/rwfix/suite2-usual`). The `data` job's paths (core/data.ts and what it calls) are
+untouched, so its 1-vCPU timing wasn't measured again.
+
+- `fromXState` dropped XState v4's `cond` without a word, so a v4 config was proven with fewer guards than it has. It
+  now refuses every key it doesn't read, by name (a node's, the root's, a transition's), rather than dropping it: v4's
+  `in`, `strict`, `activities`, `onEntry` and `onExit`, `''` (v4's eventless transition), events XState raises itself
+  (`xstate.*`, `done.state.*`, `done.invoke.*`, `error.*`), an initial transition given as an object, `history` or
+  `target` off a history node, `context` below the root, an unknown state type. It reads `cond` as v4 does, the guard
+  v5 calls `guard` (a name, or `{type, ...params}`, the params its other keys): a v4 machine with `cond` guards and
+  params runs as v4's own interpreter (xstate 4.34.0, 3,600 steps, checked by hand) and its laws prove. Each XState
+  ignores the other's key and takes the transition unguarded, so `cond` in a v5 machine and `guard` in a v4 one are
+  refused (the version read off the machine; a plain config is read by the key it uses). `reenter` and v4's
+  `internal` are read as changing nothing a chart shows (they choose which entry and exit actions run, and those write
+  no context here), which `conforms` confirms against both XStates on self, child and ancestor targets. For gen/extract:
+  the API is the same (its `inline` guards and actions kept beside `cond`); a config it took before with a key it
+  ignored is refused now; `extractXState` still refuses `cond` itself (its machines are v5's), its reason reworded. None of the corpus's six machines
+  was scored through a dropped guard: five are charts by hand with their `cond` guards written in, and gapless.js's
+  config (v5's `guard`) builds as before and conforms to XState's actor over 19,200 steps
+  (`repro/conform-gapless.ts`, `runs/rwfix/extra`); `repro/xstate-refusals.ts` gives each shipped machine the same
+  first refusal as before.
+- A map read at a key that reads a flag (`M.at(when(big, a, b))`) threw `unknown flag` from the kernel: the prover
+  (`kernel/prove.ts`'s readKeys) offered that key, flag and all, as an instance, and the kernel's goals inline flags.
+  The prover now inlines the flags in the keys it offers, as the goals read them; such a rule proves (ERC20's
+  allowance slot written with its `approves` flag in the key no longer throws). The kernel is unchanged: it never sees
+  such a key from the prover.
+- `refuteByRuns` skipped every rule that read a function other than division by a constant, so a false law over one
+  came back unknown. Its runs compute each function by its JavaScript, as the rule runs it, and draw params only where
+  every fact holds (one about the params alone exactly, one about every key at each key up to twice the bound, or each
+  tuple up to the bound), so a recurrence's induction machines (fx a param, given as f(x)) get no run that isn't one.
+  Every rule function carries its JavaScript, so a random table would be a run the rule can't take; none is drawn.
+- `proveDecision(d, {ms})` honours a budget, on the prover's clock (the counted one inside a counted search); past
+  it the verdict is unknown. With none, as before. The corpus passes its 60 s.
+- `discover` threw on p-retry's delay, minTimeout · factor^k: its samples kept values past 2^53, and a candidate fitted
+  to them held a constant no term can (`290760102328562900 is not a natural`). A run of samples stops where its values
+  stop being safe integers, and a candidate with a coefficient that isn't one is dropped.
+- With no rank stated, `findLeadsTo` fitted a rank to the helpful steps that stay pending, and where every helpful
+  step reaches `to` at once there are none: 0 of the corpus's 35 liveness laws. It tries the trivial ranks first, where
+  the runs allow them: 0 (no helpful step sampled stays pending), then each state variable alone that every such step
+  lowers and no other raises (up to four); then the fit; then the invariants a rank needs, for the fitted rank or else
+  rank 0.
+- Tests: `core/xstate.test.ts` (the refused keys; v4's cond against v5's guard), `core/dsl.test.ts` (a flag in a map
+  key; a decision past its budget unknown in 300 ms, about 11 s with none), `core/functions.test.ts` (a false law
+  through a function refuted by a run; a fact over the params keeps a true law), `core/discover.test.ts` (the p-retry
+  recurrence), `core/cycles.test.ts` (ranks 0 and a variable alone, and a helpful step that misses the goal refused).
+  Each fails on main.
+
+k-induction: a law that one step doesn't keep but k steps in a row do is proven, with its Lean proof first. Trusted
+additions: `lean-kernel/KInd.lean`'s `kind_sound` (a checked certificate makes the law hold in every reachable state, on
+`propext`, `Classical.choice` and `Quot.sound`), then kernel.ts's `checkKInduction`, its twin. CHC-COMP LIA-Lin at
+60 s on Modal, main at 6b2e2df launched beside it each time, none wrong: 799 and 800 solved (534 sat in both runs,
+265 and 266 unsat), main 785 and 777 (519 and 511 sat, 266 unsat) (`runs/kind/chc-mine2`, `chc-base2`, `chc-mine`,
+`chc-base`). Of the 17 sat tasks the gen/unsat track found k-inductive and main leaves unsolved, 14 solved, main 0 of
+17 (`kind17-mine3`, `kind17-main3`). The real-world corpus's verdicts unchanged.
+
+- The certificate (`KInd`, `checkKInd`): a plain law L (no key), k, and the trees. The base: L's start goal, and for
+  each 1 ≤ j < k the k-step goal of j steps (Sets.lean's `checkSKStep`) whose first state is the start (`startC`: each
+  state variable its start term) with L there, and L before each later step; the step: the k-step goal of k steps with
+  L before each, L after them refuted (primed names, Live.lean's `primeC`). Lean builds every `when` and `then` from L;
+  the certificate brings only k, the trees, the instances and the names later requests are read by. The proof is a
+  strong induction on the length of the run that reaches a state (`sreach_from`, `SPath`): shorter than k, a base;
+  longer, the step from the state k requests back, L holding at each state after it by the induction (`sallowed_rep`,
+  `kind_then`, `start_meets`). kernel.ts: `kInductionSteps` builds the same k-step laws from L, `kInductionStart` its
+  start goal, `checkKInduction` checks them (the laws' proof, the start, `checkStepLaws`). Lean's checks are kernel.ts's
+  plus what the twin's proof reads (the law reads no request's name, flag or later name; the start reads the params).
+- Conformance (core/conformance.ts's `kindCases`): shift registers and rotations whose law is k-inductive for one least
+  k (1 to 4), with a map and a second law in some, and each certificate's twins: k said to be k + 1, a base depth left
+  out, the step's tree for k given for k − 1 (the law k-inductive only at k), the step's tree for k inside a
+  certificate for k + 1, the law read stricter. kernel.ts accepts every certificate found and refuses every twin but
+  the stricter law where it is still true (each accepted one holds on the reference's runs); Lean's `checkKInd`
+  computes kernel.ts's answer on every one (lean-kernel/conformance.ts --kind, the suite's `lean-kind`: 24 machines,
+  33 certificates checked true and 79 twins computed to kernel.ts's answer, by default).
+- The search (core/kind.ts, untrusted): k = 2, 3, ... on the counted clock, each step goal decided by CDCL's model
+  search (kernel/cdcl.ts, as core/bmc.ts asks it); refuted, the laws it assumes proven once (their usual trees, no
+  cyclic certificate), the start goal and the base goals grown, the step's tree CDCL's, unfolded (prove.ts's grow keeps
+  CDCL off goals over k steps; here the plain search's cases multiply with every step). `proveRule` tries it on the
+  plain laws as one, the rule's kinds assumed, after the shallow bounded runs, within a twentieth of the search's budget
+  (at most 500 ms), and reports `k`. Lean: the LeanItem `kInduction` and smachineToLean's `kind` write a `KInd` through
+  `kind_sound`; examples/kinduction.ts (a clamped pipeline, k = 3; a token ring, k = 4; the unclamped pipeline refused
+  with a run).
+- compare/chc/solve.ts: compare/chc/kind.ts runs the search beside the other stages, a second process at nice 19 on
+  the container's second CPU, from the import to the search's deadline, and answers sat when it proves the law. On the
+  CDCL search's trees the counted clock runs about twenty times past wall time (compare/chc/prof/kind-tree.ts,
+  `runs/kind/tree1`), so there the wall stop is the budget, as for every stage under the track's wall-clock limit. At
+  the same priority the invariant search lost answers to it: of the 41 tasks either side answered alone in the first
+  run, 30, 31 and 32 answered here, 32 and 35 at nice 19, main 9, 16 and 18 (`ch-mine-*`, `ch-nice-*`, `ch-base-*`).
+- The second run (at nice 19), 21 gained and 7 lost. Gained by k-induction, 15: s_split_36 (k = 3), bug15_safe (10),
+  hysteresis_2, _3 and _all (3), fast_2_e8_460 (3) and 9 metros_1 variants (4), each in all three runs of it; and by
+  the invariant search, 6 (s_split_04, simple.c, xy0.c, DRAGON_9_e7_1843_e3_5316, DRAGON_all_e3_4821_e1_1318,
+  durationThm_2_e1_118). Lost: break_merged_safe, 015-horn, xy10.c, durationThm_2 (the invariant search) and
+  O3_id_o10 (unsat by bounded runs, found at 22.2 s in main), each answered in 1 or 2 of the 2 reruns here and in 1 or
+  2 of main's 3 runs; break_safe (here 1 of 3, main 3 of 3; in the first run's set the reverse, here 3 of 3 and main 1
+  of 3) and FIREFLY_4_e3_3511_e5_3248 (here 0 of 8 runs, main 2 of 6), where the search beside it slows the invariant
+  search (`ch2-mine-*`, `ch2-base-*`, `ch-*`). The first run (same priority) gained 32 and lost 9, every loss the
+  invariant search's.
+- k-induction answered 133 tasks in the second run (k = 2: 62, 3: 39, 4: 24, 5: 4, 6: 3, 10: 1; the first run's 132
+  among them), 118 of which main answered by the invariant search. Each of the 133, searched again by
+  compare/chc/prof/kind-lean.ts and written as Lean, checked by Lean: `task_kind_holds` on the standard axioms
+  (`kindlean1`, `kindlean2`, `kindlean3`; a metros certificate is about 1.9 MB of Lean and takes 3.5 to 6 minutes). Not solved of the 17: HOLA/04.c (k = 11: the step
+  decided past 30 s), bmc-3 (k = 9: a base goal of 7 steps not grown in time) and fast_2 (k = 3: no tree in time).
+- The real-world corpus (311 laws, `runs/kind/rw-mine2`, `rw-main2`): 218 proven, 17 refuted, 75 unknown, 1 error on
+  both sides, law by law; none needed k-induction within its 500 ms. The second frontier corpus: 27 of 47 on both sides,
+  every broken variant refused (47 of 47), the same outcome per item but two TIP items unproven on both sides (out of
+  time on one side, not proven on the other) (`f2-mine`, `f2-base`). search.test.ts's tests on
+  1 vCPU, ten runs each beside main's: "an invariant nobody wrote" 1,559 ms median (at most 1,839), main 1,067 (1,427),
+  the k-induction it tries first; the rest within noise (`infer-mine`, `infer-base`).
+- The suites (215 jobs, 2 new: `kinduction`, `lean-kind`): by default 758.7 s wall, 4,972.2 s of job time, none failed
+  (`runs/kind/suite-default`); `--usual` 581.2 s and 4,626.8 s, none failed (`suite-usual`).
+
+Rules read from the code that ships (`gdp-wired/extract`, core/extract.ts): `extract(code, {entry})` reads a reducer,
+`useReducer`'s, functions over one record, a Redux Toolkit slice or a class whose methods write its fields, through the
+TypeScript compiler, and returns the rule that steps the same way, as a builder value and as the source that makes it
+(`toSource`); `extractXState` reads an XState machine's guards and actions, named in `setup()` or inline in the config,
+for `fromXState`. The extractor is untrusted: each rule is run beside the code it was read from, and any difference
+refuses it. Nothing trusted changed (`kernel/`, `core/check.ts` and `lean-kernel/` are as in 0.22.0).
+
+- The subset: integers (a literal that isn't one refused; division only as Math.floor or Math.ceil of x / k for a
+  constant k; % by a constant of a natural, since JavaScript's takes the sign of x), booleans, string-literal unions,
+  strings set and compared, records and nested records (spreads, shorthand), Map and Record state keyed by numbers or
+  strings (get, set, has, delete, [k], ?? or || a default), conditionals, ternaries, && || ?? (the right side's effects
+  on its own path), early returns, switch on a tag (fall-through, default), Math.min, max and abs, Date.now() as an
+  input read once a step, throws as the rule's assumption (or a constructor's as its precondition), helpers, methods and
+  getters of the same files inlined, relative imports read. Each number is a natural where the code keeps it one (a
+  subtraction printed as `minus` only where solver.ts proves it at most what it subtracts from, under the branch's
+  conditions, the code's refusals and an XState transition's guard), an integer elsewhere. Refused, each where it is
+  and why: loops, arrays, floats, async, try/catch, a write to the state a reducer is given (React and Redux keep the
+  old state), a throw after a method wrote a field, two keys of one map written in one step, a map replaced whole, a
+  reference into a map held across a set, `extends`, a module's own mutable state, closures, Math.random, Date.now()
+  read twice in a step, other modules' code, v4 `cond` (which fromXState would drop), a machine made by a function.
+- The check (core/extract-check.ts): the code compiled by TypeScript and run in node:vm with a counter on every branch
+  arm, the rule through `rule.interpreter()` and `rule.compiled()` (compared too): runs from the start (random requests,
+  near the boundaries, the time moving on or back), single steps from drawn states, and single steps from proveSteps'
+  witnesses for each branch condition over the state and the request; every state variable, map cell, method result and
+  refusal compared. Past 2^53 the code rounds where the rule's runtime refuses: counted apart, the run ended there. An
+  XState chart is checked by `conforms` against XState's own actor. Each map's representation (a key it doesn't hold
+  holds the defaults) is handed out as `invariants`, inductive, to prove laws beside.
+- Widened along the way, each for a refusal of real code: `fromXState`'s `inline` (guards and actions written in the
+  config, given by their place in it) and machines with no states (root transitions only); `when(c, str, 'x')`, a
+  literal beside a string value, as beside a choice.
+- On 22 examples from open-source code, each pinned (research/extract/sources.json: react.dev, redux's examples and
+  Redux Toolkit's template, statelyai/xstate's examples, five rate limiters): 10 extracted, 12 refused with the place
+  and the reason (`runs/extract/batch4`, research/extract/results/ours.jsonl). The 5 step functions: 11,955 requests
+  in runs from the start, 2,000 steps from drawn states, 20 steps from the prover's witnesses (of 22 conditions asked;
+  conditions over a map's cells aren't), 2,338 requests both refused, 14 steps past 2^53, 11,623 steps where the
+  generated JavaScript agreed with the interpreter, 10 of their 10 branch arms reached; the 5 XState machines: 16,000
+  events. Refused: a reducer that mutates its state (react.dev's own pitfall), an array (redux's todos), `invoke`,
+  `onDone`, `always`, an undefined context, a fractional rate, `#private` fields, a destructured constructor argument,
+  an optional field (the limiter package's request queue, in the file its bucket imports), two functions with no
+  initial state (a sub-reducer, an Express middleware).
+- research/realworld's 41 sources (its sources.json at 6c675e4, read as it is, the whole file): none extracted
+  (research/extract/results/realworld.jsonl). 20 aren't TypeScript or JavaScript (Solidity 7, Go 6, Python 2, Ruby 2,
+  Lua 1, Zig 1, CoffeeScript 1); of the 21 that are: `extends` 7, a machine made by a function 4, a function that isn't
+  a step over a state 3, an export that isn't a function 2, and one each of a `Date` field, a Map as a constructor's
+  argument, an array, a null context, a v4 `cond`. So no corpus law could be compared on an extracted rule.
+- The laws of the 10 extracted examples, beside a rule written by hand the corpus's way (research/extract/verdicts.ts):
+  27 laws, the same verdict for each, 17 proven and 10 refuted on both sides (research/extract/results/verdicts.jsonl).
+  Before the representation invariants were handed out, 2 of 27 differed (`runs/extract/batch2`): step laws about the
+  Redux cart's quantities, refuted of the extracted rule from a state no object of the code is in (a key it doesn't hold
+  with a count), proven of the rule by hand, which has no such state.
+- core/extract.test.ts, 31 tests: the shapes, and programs where a naive reading would be wrong, each refused with the
+  reason or extracted and checked: aliasing (a write through a second name for a copy; objects chosen by the path), a
+  write through a reference to the given state, a shallow copy's nested object, a Map's own set, two names into one map,
+  a reference held across a set, overflow, floats and division, a negative dividend's %, NaN and Math.min(), short-
+  circuit effects, a throw mid-update (a method's, refused; a reducer's, extracted), a getter with effects, closures and
+  module state, Date.now() twice, Math.random, loose equality with a string. A check that catches the extractor itself:
+  an XState guard and action read the same payload field as two inputs, and the chart and XState parted on the first
+  run that sent them; fixed, and the test keeps it.
+- Dependencies: `typescript` an optional peer (the extractor reads with it); `@reduxjs/toolkit` 2.13.0 dev only (the
+  check runs a slice through Redux Toolkit itself). The corpus's code is fetched at its commit, not committed.
+- The suite on Modal beside main at this branch's base (5c3f947; main has since moved), the suite with the new `extract`
+  job: by default 474.5 s wall, 4,708.6 s of job time, none failed, the base 572.7 s and 4,727.5 s, none failed
+  (`runs/extract/suite-default-2`, the base's `suite-default-2`); `--usual` 491.9 s and 4,307.2 s, the base 494.0 s and
+  4,300.6 s, none failed there and one here: `lean-nonterm`, whose `conformance.ts --nonterm` (certificates from a
+  300 ms search) failed the same way in the base's first default run and passed 4 of 4 times on each side when run
+  alone (`runs/extract/suite-usual`, `nonterm4`). On the 206 jobs both ran: 4,699.4 s and 4,727.5 s by default,
+  4,298.9 s and 4,300.6 s `--usual`. Modal's billing for the work: $0.870 here (four extraction batches $0.011, three
+  suites, the lean-nonterm reruns), $0.851 for the base.
+
+SV-COMP's C programs, faithfully and more of them (`compare/term/c2ari.py`): C's integer types and conversions on the
+task's data model (unsigned arithmetic modulo 2^n, the usual arithmetic conversions, narrowing as gcc does it, _Bool
+0 or 1), undefined behaviour ending the run (a signed overflow, checked unless the task's .yml declares none; division
+by zero; an access out of bounds or through a bad pointer), division by any divisor, the ternary operator, calls
+inside expressions, arrays of a fixed size, pointers to a fixed set of objects (&x, malloc, alloca, free), and
+recursion as two translations, each exact for its one answer (for "terminates" a call either never returns, its frame
+forgotten, or returns any value and writes any value to the globals it may write; for "nonterminating" calls inlined
+4 deep, past that never returning); solve.ts `--want` searches for one answer. Nothing trusted changed. 271 of the
+282 tasks translate (226 before); the 192 that translated before and have no overflow to check translate character
+for character as before (`runs/svfront/translations-main`, `translations-mine`). At 60 s on Modal, launched together
+with main at 6b2e2df: 213 solved (158 terminating, 55 not), main 181 (134, 47); per component 199 (144, 55), main 172
+(125, 47); none wrong against the tasks' expected verdicts, none lost (`runs/svfront/f2-mine`, `f2-base`). Ultimate
+Automizer 224 (`runs/modal/term/sv2`); 16 of the 213 it doesn't answer, 27 of its 224 not here (18 loops whose rank
+isn't found, 6 recursive programs needing what a call returns, 4BitCounterPointer, and 2 nonterminating). 38
+adversarial C programs (`compare/term/adversarial/*.c.txt`, `c2ari_test.py`: conversions, the data model, recursion,
+arrays, pointers, division, undefined behaviour where it is and isn't evaluated) are never answered against how they
+run (`runs/svfront/probes2`). Suites: by default 213 jobs, none failed, 595.3 s wall, 5,213.5 s of job time
+(`runs/svfront/suite-default`); `--usual` 213 jobs, none failed, 504.5 s wall, 4,895.0 s (`suite-usual`); `term-c2ari`
+now takes 2 vCPU.
+
+An independent check of the C front end (branch verify/sv-front, research/verify-sv: 93 adversarial C programs, run
+natively under gcc and clang with UBSan) found 20 answered against how C runs, from 8 defects, now fixed, each
+modelled or refused: static locals in main start at 0; a pointer read knows every object the program takes the address
+of or allocates (two passes, the second with the first's objects), not only those earlier in the text; an overflowing
+constant on the side of && or || that isn't evaluated no longer ends the run; an array past 64 elements keeps the
+elements read at plain int constant indices only (no names, suffixes or wrapping), anything else refused; an enum's
+type is gcc's (unsigned int where no constant is negative, constants counted from the one before), and a task's typedef
+of bool is its own; preprocessor directives other than #include of a known standard header are refused (no task has
+one); C's unspecified evaluation order is refused wherever it can matter (two calls one of which writes a global or
+through a pointer or ends the run, a call writing what the rest of the expression reads, an assignment's target
+included); a task's own reach_error that returns is its own function. Also: with goto, the entry's 64-bit values keep
+their range (a declaration jumped past), and an array whose size reads a variable is refused. All 93 programs are now
+answered by no run against how C runs (`runs/svfront/verify-fix1`); 21 of them join `c2ari_test.py` (60 programs, none
+answered against the program, `suite-default-2`). The 282 tasks' translations are unchanged, character for character,
+for both recursion translations and --unchecked; 4 refusals' messages reworded (`translations-fix`). SV-COMP beside
+main at 5055882, launched together: 213 (158, 55), main 182 (135, 47); per component 199, main 172, none wrong, none lost
+(`runs/svfront/f4-mine`, `f4-base`); a run before it answered 212 (`f3-mine`: gcd01-2, translated the same, not proven
+within the time where four other runs proved it at 26 to 33 s). Suites after merging main at 5055882: by default 217
+jobs, none failed, 640.8 s wall, 5,350.6 s of job time (`suite-default-2`); `--usual` 217, none failed, 602.9 s wall,
+4,961.4 s (`suite-usual-2`).
+
+Its re-check (branch verify/sv-front-2: 52 more programs) found 2 more defects, fixed: the order check read `*p` as
+reading only p (now a dereference reads every object the program takes the address of, and every allocated cell:
+`*p + f()` and `*p += f()` with f writing the global p names are refused); and comments were stripped by regular
+expressions, so a /* inside a // comment or a string literal began one (now one pass left to right, as C's lexer reads,
+string and character literals kept whole). Refused as compilers read them differently: trigraphs, and a backslash with
+spaces before its newline. All 145 programs: no run answers against how C runs (`runs/svfront/verify-fix2`); 6 join
+`c2ari_test.py` (66, none answered against the program). The 282 tasks' translations unchanged, both recursion
+translations and --unchecked (`translations-fix2`). SV-COMP beside main at 5055882: 213 (158, 55), main 182 (135, 47);
+per component 200, main 172; none wrong, none lost (`f5-mine`, `f5-base`). Suites: by default 217 jobs, none failed,
+533.6 s wall, 5,227.8 s of job time (`suite-default-3`); `--usual` 217, none failed, 593.2 s wall, 4,837.5 s
+(`suite-usual-3`). Not done (it loses answers, it isn't unsound): a call before && or ? is sequenced first, so
+`f() && g` could be allowed where f writes g; it is still refused.
 
 ## 0.23.0
 

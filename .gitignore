@@ -26,10 +26,13 @@ modal/.live/
 .DS_Store
 lean-kernel/Conformance.lean
 lean-kernel/NonTermConformance.lean
+lean-kernel/RingConformance.lean
 lean-kernel/Examples*.lean
 dist/
 lean-kernel/RatConformance.lean
 lean-kernel/RatExamples.lean
+lean-kernel/KindConformance.lean
+lean-kernel/KindExamples.lean
 
 # The extractor corpus's fetched sources (the code is its authors'; fetched again at the pinned commit)
 /research/extract/.cache/

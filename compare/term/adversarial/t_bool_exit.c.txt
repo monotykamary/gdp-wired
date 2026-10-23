@@ -1,0 +1,8 @@
+// expect: terminates. b + 2 is 2, and stored in a _Bool it is 1: the loop ends after one turn.
+int main() {
+  _Bool b = 0;
+  while (b != 1) {
+    b = b + 2;
+  }
+  return 0;
+}

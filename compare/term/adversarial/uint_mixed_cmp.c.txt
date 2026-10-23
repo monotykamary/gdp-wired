@@ -1,0 +1,9 @@
+// expect: nonterminating. y < x compares y converted to unsigned (C's usual arithmetic conversions): -1 is UINT_MAX,
+// not below 5, so !(y < x) holds forever. Compared as integers, -1 < 5 and the loop ends at once.
+int main() {
+  int y = -1;
+  unsigned int x = 5;
+  while (!(y < x)) {
+  }
+  return 0;
+}

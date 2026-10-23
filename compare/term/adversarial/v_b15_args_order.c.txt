@@ -1,0 +1,15 @@
+// expect: nonterminating
+// pick(x, set(&x)): the arguments' order is unspecified; x evaluated first (clang's order) passes 1, and the loop
+// never breaks.
+int set(int *p) { *p = 0; return 0; }
+int pick(int a, int b) { return a + b; }
+int main(void) {
+  int x;
+  int y;
+  while (1) {
+    x = 1;
+    y = pick(x, set(&x));
+    if (y == 0) break;
+  }
+  return 0;
+}

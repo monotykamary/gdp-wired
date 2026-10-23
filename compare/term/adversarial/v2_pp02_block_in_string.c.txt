@@ -1,0 +1,12 @@
+// expect: terminates
+// A /* inside a string literal starts no comment: x = 0 runs. Read as a comment, it swallows x = 0 up to the */ in a
+// later string, and what is left still parses.
+extern void __assert_fail(const char *, const char *, unsigned int, const char *);
+int main(void) {
+  int x = 1;
+  if (x == 2) __assert_fail("/*", "f", 1, "g");
+  x = 0;
+  if (x == 3) __assert_fail("h", "i", 2, "*/");
+  while (x == 1) { }
+  return 0;
+}

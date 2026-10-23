@@ -1,0 +1,10 @@
+// expect: terminates. a[2] is out of bounds, undefined behaviour, where the run ends.
+int main() {
+  int a[2];
+  int i = 0;
+  while (1) {
+    a[i] = 0;
+    i++;
+  }
+  return 0;
+}

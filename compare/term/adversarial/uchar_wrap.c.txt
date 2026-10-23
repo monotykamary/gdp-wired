@@ -1,0 +1,9 @@
+// expect: nonterminating. c is an unsigned char: c++ from 255 is 0, so c < 256 holds forever. Over unbounded integers
+// c reaches 256.
+int main() {
+  unsigned char c = 0;
+  while (c < 256) {
+    c++;
+  }
+  return 0;
+}

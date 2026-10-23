@@ -1,0 +1,9 @@
+// expect: nonterminating. x == 0 holds, so y + 1 (which would overflow) is never evaluated: no undefined behaviour,
+// and the loop runs forever. Checking y + 1's overflow on every turn would cut the run.
+int main() {
+  int x = 0;
+  int y = 2147483647;
+  while (x == 0 || y + 1 > 0) {
+  }
+  return 0;
+}

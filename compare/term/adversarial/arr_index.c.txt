@@ -1,0 +1,13 @@
+// expect: nonterminating. a[i] with i = 2 is a[2]: it becomes 5 and the loop reads it forever.
+int main() {
+  int a[4];
+  a[0] = 0;
+  a[1] = 0;
+  a[2] = 0;
+  a[3] = 0;
+  int i = 2;
+  a[i] = 5;
+  while (a[2] == 5) {
+  }
+  return 0;
+}

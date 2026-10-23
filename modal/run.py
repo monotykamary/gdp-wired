@@ -41,7 +41,7 @@ image = (
         "/root/.elan/bin/lean --version",
     )
     .env({"PATH": "/root/.bun/bin:/root/.elan/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
-    .add_local_dir(GDP, "/src/gdp-wired", ignore=["vendor/handwired/lab/recovery-*/**", "**/*.olean", "**/*.ilean", "**/*.c", "**/node_modules/**", "**/runs/**", "modal/**", "private/**/bench/**",
+    .add_local_dir(GDP, "/src/gdp-wired", ignore=[".git/**", "**/.git", "**/.git/**", "vendor/handwired/lab/recovery-*/**", "**/*.olean", "**/*.ilean", "**/*.c", "**/node_modules/**", "**/runs/**", "modal/**", "private/**/bench/**",
                                               # the Handwired fork: its sources and lab/json-search, which research/hw/ and research/enum/ import
                                               "vendor/handwired/lab/ui-exploration/**", "vendor/handwired/lab/knuth-plass/**", "vendor/handwired/assets/**", "vendor/handwired/tests/**", "vendor/gdp-ts/examples/**"])
 )

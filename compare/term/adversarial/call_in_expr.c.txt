@@ -1,0 +1,10 @@
+// expect: nonterminating. f(1) + f(2) is 5.
+int f(int x) {
+  return x + 1;
+}
+int main() {
+  int y = f(1) + f(2);
+  while (y == 5) {
+  }
+  return 0;
+}

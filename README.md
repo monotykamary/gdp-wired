@@ -68,7 +68,8 @@ All of these are proven automatically, and each proof is also a Lean theorem:
 - **XState machines** (`gdp-wired/xstate`): `fromXState(machine, {guards, actions})` builds the chart an XState v5
   machine runs as, with each guard and action it names given again in gdp-wired's terms, and `conforms(chart, machine,
   createActor)` drives XState's own actor and the compiled rule with the same random events, comparing every state and
-  context; what a chart can't run the same way is refused when built, with the reason (`examples/xstate.ts`).
+  context; what a chart can't run the same way, and any key it doesn't read, is refused when built, with the reason
+  (`examples/xstate.ts`). A v4 machine's `cond` is read as its guard.
 - **Rules read from the code** (`gdp-wired/extract`): `extract(code, {entry})` reads a reducer, `useReducer`'s, functions
   over one record, or a class whose methods write its fields, and returns the rule that steps the same way, as a builder
   value and as source to keep (`toSource`); `extractXState` reads an XState machine's guards and actions, named or
