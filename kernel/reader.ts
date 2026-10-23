@@ -84,8 +84,10 @@ export class Reader {
   private frame: object | undefined
   private factKeys: object[] = []
   private openKeys: object[] = []
+  private lastUp = new WeakMap<object, object>()
   private read(key: object) {
-    if (!this.frame) return
+    if (!this.frame || this.lastUp.get(key) === this.frame) return
+    this.lastUp.set(key, this.frame)
     let s = this.up.get(key)
     if (!s) this.up.set(key, (s = new Set()))
     s.add(this.frame)

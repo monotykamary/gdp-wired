@@ -35,6 +35,13 @@ function localize(rows: {lin: Lin}[], steps: Step[]): {inputs: Lin[], steps: Ste
   })
   return {inputs, steps: out}
 }
+// An atom's variable: the smaller of its canonical text and its flip's (remembered per form).
+const keyMemo = new WeakMap<Lin, string>()
+const keyOf = (lin: Lin): string => {
+  let key = keyMemo.get(lin)
+  if (key === undefined) { const a = canon(lin), b = canonFlip(lin); keyMemo.set(lin, (key = b < a ? b : a)) }
+  return key
+}
 // --- the search -----------------------------------------------------------------------------------------------------------
 
 // A node of the refutation: a leaf (its decisions, by variable, and a derivation over the rows at its path) or a
@@ -62,8 +69,8 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
   let inc = 1
   // An atom as a variable: the stored form is the one whose canonical text is the variable's name (the smaller).
   const ensure = (lin: Lin): string => {
-    const a = canon(lin), b = canonFlip(lin), flip = b < a, key = flip ? b : a
-    if (!vars.has(key)) { const stored = flip ? atomOf(lin, false).lin : lin; vars.set(key, {lin: stored, terms: Object.entries(stored).filter(([x0]) => x0 !== '1'), level: -1, at: -1, act: 0, phase: !flip}) }
+    const key = keyOf(lin)
+    if (!vars.has(key)) { const flip = key !== canon(lin), stored = flip ? atomOf(lin, false).lin : lin; vars.set(key, {lin: stored, terms: Object.entries(stored).filter(([x0]) => x0 !== '1'), level: -1, at: -1, act: 0, phase: !flip}) }
     return key
   }
   // The root's own decisions are level 0, with no reason: they stay in every clause (the tree starts below them).
@@ -78,7 +85,7 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
     lin: at => { const name = trail[at]!, x = vars.get(name)!; return {name, lin: x.lin, holds: x.val!} },
   })
   const last = goal.hyps.length - 1, near = nearOf(goal)
-  const decidedLin = (lin: Lin) => vars.get(canon(lin))?.val !== undefined || vars.get(canonFlip(lin))?.val !== undefined
+  const decidedLin = (lin: Lin) => vars.get(keyOf(lin))?.val !== undefined
   const fixed = trail.length
   const level = () => levels.length
   const pathOf = (): Path => new Map(trail.map(name => { const x = vars.get(name)!; return [name, {lin: x.lin, holds: x.val!}] }))

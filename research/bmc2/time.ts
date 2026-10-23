@@ -18,7 +18,7 @@ for (const [label, hyps] of [['relaxed', d!.hyps]] as const) {
   cdclStats.on = true
   const t1 = performance.now()
   let used = 0
-  const out = counted(200, () => { const s = clock(); const o = growCdcl({name: g.name, hyps}, new Map(), {nodes: 0, until: clock() + 60000}, {model: true, wall: performance.now() + 30000}); used = clock() - s; return o })
+  const out = counted(200, () => { const s = clock(); const o = growCdcl({name: g.name, hyps}, new Map(), {nodes: 0, until: clock() + 1e9}, {model: true, wall: performance.now() + 60000}); used = clock() - s; return o })
   const {nodes, decisions, conflicts, rowsMs, orderMs, boundMs, lpMs, solveMs, pivots, coreMs} = cdclStats
   console.log(label, JSON.stringify({out: 'tree' in out ? 'tree' : [out.stuck, out.why], wall: Math.round(performance.now() - t1), counted: Math.round(used), nodes, decisions, conflicts, rowsMs: Math.round(rowsMs), orderMs: Math.round(orderMs), boundMs: Math.round(boundMs), lpMs: Math.round(lpMs), solveMs: Math.round(solveMs), coreMs: Math.round(coreMs), pivots}))
 }
