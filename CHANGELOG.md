@@ -9,7 +9,10 @@ Derivations of false found together (core/bmc.ts, bounded runs). CHC-COMP LIA-Li
 sat (782 solved), main the same day 144 and 528 (672), none wrong either way, no unsat answer but a derivation
 `checkDerivation` confirmed (`runs/unsat/chc`, `runs/unsat/chc-base`; four runs of main that day gave 528 to 533 sat).
 Lustre's 321 unsat tasks: 38 to 147. Nothing trusted changed. The second frontier corpus: derivation 2 of 3 (main 0),
-frontier 16 of 47 (main 14), every broken variant refused in both (`runs/unsat/corpus2`, `corpus2-base`).
+frontier 16 of 47 (main 14), every broken variant refused in both (`runs/unsat/corpus2-final`, `corpus2-base`);
+durationThm_1_e1_197 by the deeper depths after the invariant search (5.3 s), O0_terminator_01 by the shallow ones
+(0.4 s). The suites pass by default and with `--usual` (`runs/unsat/suite-default3`: lean-nonterm failed once, its
+generator's wall-timed search making a 127th case; 3 runs again pass, `runs/unsat/nonterm-recheck`; `suite-usual`).
 
 - A run of k steps from the start that breaks a law, as a model of the kernel's own k-step goal (kernel.ts's
   `stepLawObligations`) with its start constants folded in (core/nonterm.ts's folding, now shared); the run then taken
