@@ -59,6 +59,11 @@ fixed (below).
   same through a ring, 0 calling 1 calling 0, a sum of two that stays, f(n) = f(f(n)), an integer counted down, a ring
   whose stated measures don't fall. `wellFounded`: the ring and a bottom-up merge sort over `pairwise`.
 - TIP's translator classifies a ring's refusal by its message (`, in its ring `), as before by its old one.
+- After merging main at 7727716 (lang/edges, lang/reals, gen/unsat, gen/extract, research/realworld and the fixes):
+  TIP beside 7727716 launched at the same time, 183 of 492 proven against 181, the same 30 refuted, none wrong, none
+  lost (`isaplanner/prop_51` and `prop_60` the two more, at 56.4 s and 49.9 s); the same 25 translated now
+  (`runs/termlem/tip4`, `tip4-base`). The suites (215 jobs) by default 571.7 s wall, 5,421.7 s of job time, none failed
+  (`runs/termlem/suite4-default`); `--usual` 586.0 s and 4,932.6 s, none failed (`suite4-usual`).
 - What is still refused among the 105 and the 14, and why: bubsort (8: inversions, no size measure), bmerge (8) and
   toList (16: the size laws about evens/odds and hmerge are conjectured but not proven within the budget; 60 s each
   doesn't either), ssort (8: needs a membership lemma), idiv (12: idiv(x, 0) never ends; TIP calls it at 2 and 3),
