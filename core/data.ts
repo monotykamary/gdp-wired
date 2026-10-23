@@ -2487,18 +2487,6 @@ export function conjectures(p: Program, l: DataLaw, max = 24, maxSize = 6): Data
   // Rewriting with the equations kept, each oriented from its larger side; one that rewrites to itself is dropped.
   type Rule = {l: X, r: X, vs: Set<string>}
   const rules: Rule[] = []
-  const matchX = (pat: X, t: X, vs: Set<string>, sub: Map<string, X>): boolean => {
-    if (pat.op === 'var' && vs.has(pat.name)) { const had = sub.get(pat.name); if (had) return JSON.stringify(had) === JSON.stringify(t); sub.set(pat.name, t); return true }
-    if (pat.op !== t.op) return false
-    const po = pat as Record<string, unknown>, to = t as Record<string, unknown>
-    for (const key of Object.keys(po)) {
-      const a2 = po[key], b2 = to[key]
-      if (Array.isArray(a2)) { if (!Array.isArray(b2) || a2.length !== b2.length || !a2.every((x, i) => matchX(x as X, b2[i] as X, vs, sub))) return false }
-      else if (a2 && typeof a2 === 'object') { if (!b2 || typeof b2 !== 'object' || !matchX(a2 as X, b2 as X, vs, sub)) return false }
-      else if (a2 !== b2) return false
-    }
-    return true
-  }
   const norm = (x: X, depth = 0): X => {
     if (depth > 30) return x
     let t: X = JSON.parse(JSON.stringify(x))
@@ -2640,6 +2628,13 @@ function canonText(y: Y, vars: {name: string, sort: Sort}[]): string {
 }
 const substXs = (x: X, sub: Map<string, X>): X => (sub.size ? JSON.parse(JSON.stringify(x), (_, v) => (v && typeof v === 'object' && v.op === 'var' && sub.has(v.name) ? sub.get(v.name) : v)) : x)
 const sameX = (a: X, b: X) => JSON.stringify(a) === JSON.stringify(b)
+// Whether t is pat with each of `free` given a term (in `sub`, one term a name).
+const matchX = (pat: unknown, t: unknown, free: Set<string>, sub: Map<string, X>): boolean => {
+  if (pat && typeof pat === 'object' && (pat as X).op === 'var' && free.has((pat as {name: string}).name)) { const n = (pat as {name: string}).name, had = sub.get(n); if (had) return sameX(had, t as X); sub.set(n, t as X); return true }
+  if (Array.isArray(pat)) return Array.isArray(t) && pat.length === t.length && pat.every((x, i) => matchX(x, t[i], free, sub))
+  if (pat && typeof pat === 'object') { if (!t || typeof t !== 'object' || Array.isArray(t)) return false; const po = pat as Record<string, unknown>, to = t as Record<string, unknown>; return Object.keys(po).length === Object.keys(to).length && Object.keys(po).every(key => matchX(po[key], to[key], free, sub)) }
+  return pat === t
+}
 // A term with its definitions unfolded where they are decided: a call whose body, its parameters given, decides its
 // first choice (the match, natmatch or if at its top, and the ones in the case taken) is that case's term (else the
 // call stays); a match of a constructor, a natmatch of a constant or of a successor (x + k), an if whose condition the
@@ -2753,19 +2748,13 @@ function stepsOf(p: Program, l: DataLaw): DataLaw[] {
   const rewrite = (x: X, from: X, to: X): X => { const f = JSON.stringify(from); return JSON.parse(JSON.stringify(x), (_, v) => (v && typeof v === 'object' && v.op && JSON.stringify(v) === f ? to : v)) }
   // The hypothesis at any values of the law's other variables (`free`): from's instances rewritten to to's, outermost
   // first (qrev (x, a :: y) to rev x ++ (a :: y), the hypothesis read at y := a :: y). Whether one was.
-  const matchP = (pat: unknown, t: unknown, free: Set<string>, sub: Map<string, X>): boolean => {
-    if (pat && typeof pat === 'object' && (pat as X).op === 'var' && free.has((pat as {name: string}).name)) { const n = (pat as {name: string}).name, had = sub.get(n); if (had) return sameX(had, t as X); sub.set(n, t as X); return true }
-    if (Array.isArray(pat)) return Array.isArray(t) && pat.length === t.length && pat.every((x, i) => matchP(x, t[i], free, sub))
-    if (pat && typeof pat === 'object') { if (!t || typeof t !== 'object' || Array.isArray(t)) return false; const po = pat as Record<string, unknown>, to = t as Record<string, unknown>; return Object.keys(po).length === Object.keys(to).length && Object.keys(po).every(key => matchP(po[key], to[key], free, sub)) }
-    return pat === t
-  }
   const rewriteP = (x: X, from: X, to: X, free: Set<string>): {x: X, hit: boolean} => {
     let hit = false
     const go = (t: unknown): unknown => {
       if (!t || typeof t !== 'object') return t
       if (Array.isArray(t)) return t.map(go)
       const sub = new Map<string, X>()
-      if ((t as X).op && matchP(from, t, free, sub)) { hit = true; return substXs(to, sub) }
+      if ((t as X).op && matchX(from, t, free, sub)) { hit = true; return substXs(to, sub) }
       return Object.fromEntries(Object.entries(t).map(([key, v]) => [key, go(v)]))
     }
     return {x: go(x) as X, hit}
