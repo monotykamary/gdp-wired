@@ -27,7 +27,7 @@ import {clock, counted} from '../kernel/prove.ts'
 import {REFUTED, cdclSession, growCdcl} from '../kernel/cdcl.ts'
 import type {Outcome} from '../kernel/prove.ts'
 import {allowed} from './watch.ts'
-import {simpC, simpE} from './nonterm.ts'
+import {isF as isFalse, isT as isTrue, simpC, simpE} from './nonterm.ts'
 import {env} from './solver.ts'
 
 export type BoundedRun = {law: string, depth: number, witness: Record<string, number>, params: Record<string, number>, trace: Request[]}
@@ -73,8 +73,6 @@ export function bmcGoal(m: Machine, laws: Law[], k: number) {
 // terms folded (core/nonterm.ts's simpC), until none is left; the names fixed, with their values (a model's part), or
 // undefined where a hypothesis folds to false (no model).
 const top = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(top) : [c])
-const isFalse = (c: C) => (c.op === '<' || c.op === '<=') && c.a.op === 'const' && c.b.op === 'const' && (c.op === '<' ? c.a.value >= c.b.value : c.a.value > c.b.value)
-const isTrue = (c: C) => c.op === '<=' && c.a.op === 'const' && c.b.op === 'const' && c.a.value <= c.b.value
 export function fixed(hyps: C[]): {hyps: C[], fixed: Record<string, number>} | undefined {
   const values: Record<string, number> = {}
   let cs = hyps.flatMap(top)

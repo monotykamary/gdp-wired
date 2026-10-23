@@ -42,8 +42,8 @@ export type NeverEndsVerdict = {proven: boolean, checked: boolean, recur?: Recur
 
 type Env = Record<string, number>
 const T: C = trueC, F: C = {op: '<', a: K(0), b: K(0)}
-const isT = (c: C) => c.op === '<=' && c.a.op === 'const' && c.b.op === 'const' && c.a.value <= c.b.value
-const isF = (c: C) => (c.op === '<' && c.a.op === 'const' && c.b.op === 'const' && c.a.value >= c.b.value) || (c.op === '<=' && c.a.op === 'const' && c.b.op === 'const' && c.a.value > c.b.value)
+export const isT = (c: C) => c.op === '<=' && c.a.op === 'const' && c.b.op === 'const' && c.a.value <= c.b.value
+export const isF = (c: C) => (c.op === '<' && c.a.op === 'const' && c.b.op === 'const' && c.a.value >= c.b.value) || (c.op === '<=' && c.a.op === 'const' && c.b.op === 'const' && c.a.value > c.b.value)
 const and = (xs: C[]): C => { const ys = xs.flatMap(x => (x.op === 'and' ? x.xs : [x])).filter(x => !isT(x)); return ys.some(isF) ? F : ys.length === 0 ? T : ys.length === 1 ? ys[0]! : {op: 'and', xs: ys} }
 const or = (xs: C[]): C => { const ys = xs.flatMap(x => (x.op === 'or' ? x.xs : [x])).filter(x => !isF(x)); return ys.some(isT) ? T : ys.length === 0 ? F : ys.length === 1 ? ys[0]! : {op: 'or', xs: ys} }
 const plus = (a: E, b: E): E => (a.op === 'const' && a.value === 0 ? b : b.op === 'const' && b.value === 0 ? a : a.op === 'const' && b.op === 'const' ? K(a.value + b.value) : {op: 'add', a, b})

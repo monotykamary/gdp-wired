@@ -29,7 +29,7 @@
 import {type C, type E, argsKey, atMost as leC, get, n as k, same as eqC, walk, x as ev} from './machine.ts'
 import {type Fact} from '../kernel/cyclic.ts'
 import {substC, substE} from '../kernel/kernel.ts'
-import {type CyclicVerdict, type NodeSpec, proveCyclic} from './cyclic.ts'
+import {type CyclicVerdict, type NodeSpec, and as andC, implies, proveCyclic} from './cyclic.ts'
 import {clock, counted, pairedKeys, withDeadline} from '../kernel/prove.ts'
 import {env, work} from './solver.ts'
 import {rankOfPaths, ranksOfCalls, showC} from './cycles.ts'
@@ -938,8 +938,6 @@ export function samples(vars: {name: string, sort: Sort}[], paramNames: string[]
 
 // --- the encoding -----------------------------------------------------------------------------------------------------
 
-const andC = (...xs: C[]): C => (xs.length === 1 ? xs[0]! : {op: 'and', xs})
-const implies = (a: C, b: C): C => ({op: 'or', xs: [{op: 'not', x: a}, b]})
 const yesC: C = leC(k(0), k(0))
 export const keyOf = argsKey
 // The arguments of a key built by keyOf (n of them), read back from its shape.

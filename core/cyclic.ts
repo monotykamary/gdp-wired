@@ -72,10 +72,10 @@ export type NodeSpec = Omit<CNode, 'uses' | 'main'> & {uses: Omit<Use, 'premises
 export type CyclicVerdict = {proven: true, checked: boolean, proof: Cyclic, why?: string} | {proven: false, checked: false, node: string, goal: string, stuck: string}
 
 const less1 = (a: E): E => ({op: 'sub', a, b: k(1)})
-const and = (...xs: C[]): C => (xs.length === 1 ? xs[0]! : {op: 'and', xs})
-const implies = (a: C, b: C): C => ({op: 'or', xs: [{op: 'not', x: a}, b]})
+export const and = (...xs: C[]): C => (xs.length === 1 ? xs[0]! : {op: 'and', xs})
+export const implies = (a: C, b: C): C => ({op: 'or', xs: [{op: 'not', x: a}, b]})
 const yes: C = le(k(0), k(0))
-const vars = (s: Record<string, E>): Subst => ({vars: s, maps: {}, flags: {}})
+export const vars = (s: Record<string, E>): Subst => ({vars: s, maps: {}, flags: {}})
 // A map's cell at time u and key k, in the run's one map over both: u + k·Ω, where Ω is above the run's length T, so
 // that no two (u, k) with u <= T meet (u < Ω). Linear in u, and two keys' cells differ by (k − k')·Ω.
 const omega = v('O$')
