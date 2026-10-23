@@ -135,6 +135,7 @@
     "oxlint": "1.88.0",
     "oxlint-tsgolint": "7.0.2004",
     "typescript": "5.9.3",
-    "xstate": "5.33.2"
+    "xstate": "5.33.2",
+    "xstate4": "npm:xstate@4.38.3"
   }
 }

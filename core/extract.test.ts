@@ -287,9 +287,9 @@ test('time: Date.now() is an input read once; twice in one step is refused; Math
   refused(ts('export class T { a = 0; go(): void { this.a = Math.floor(Math.random()) } }', 'T'), /random/)
 })
 
-test('loose equality of a number with a string, and a string as a condition, are refused', () => {
+test('loose equality of a number with a string is refused; a string as a condition is whether it is empty', () => {
   refused(ts('export class T { n = 0; go(s: string): void { if (this.n == (s as any)) this.n++ } }', 'T'), /comparison of a num with a str|string/)
-  refused(ts('export class T { n = 0; go(s: string): void { if (s) this.n++ } }', 'T'), /string as a condition/)
+  ok(ts('export class T { n = 0; go(s: string): void { if (s) this.n++ } }', 'T'))
 })
 
 test('truthiness of 0, fall-through, and a postfix increment\'s old value', () => {
@@ -347,8 +347,9 @@ test('XState: a payload read by a guard and an action; a context that goes below
       actions: {add: assign({total: ({context, event}) => context.total + (event.type === 'ADD' ? event.amount : 0)}), take: assign({total: ({context}) => context.total - 1})},
     }).createMachine({id: 'tally', initial: 'open', context: {total: 0}, states: {open: {on: {ADD: {target: 'open', guard: 'small', actions: 'add'}, TAKE: {actions: 'take'}, CLOSE: 'closed'}}, closed: {type: 'final'}}})`),
   {file: 'tally.ts', entry: 'tally', xstate, check: {runs: 60, depth: 10}})
-  // event.type isn't a payload field: reading it is refused (fromXState gives each event's transitions their own guard).
-  expect(x.ok).toBe(false)
+  // event.type is which event it is: the chart's own event
+  if (!x.ok) throw new Error(JSON.stringify(x.refusals))
+  expect(x.source).toContain('"small": ({event, amount}) => all(event.is(\'ADD\'), amount.atMost(3))')
   const y = extractXState(machineFile(`
     export const tally = setup({
       types: {} as {context: {total: number}, events: {type: 'ADD', amount: number} | {type: 'TAKE', amount: number} | {type: 'CLOSE', amount: number}},
@@ -363,11 +364,9 @@ test('XState: a payload read by a guard and an action; a context that goes below
 
 test('XState: v4 cond, a machine made by a function, and what fromXState refuses, each refused with the reason', () => {
   const v4 = extractXState(machineFile(`export const m = setup({guards: {ok: () => true}}).createMachine({initial: 'a', states: {a: {on: {GO: {target: 'b', cond: 'ok'}}}, b: {}}})`), {file: 'm.ts', entry: 'm', xstate})
-  expect(v4.refusals[0]!.what).toMatch(/v4 `cond`/)
-  const fn = extractXState(machineFile(`export function makeM() { return setup({}).createMachine({initial: 'a', states: {a: {}}}) }`), {file: 'm.ts', entry: 'makeM', xstate})
-  expect(fn.refusals[0]!.what).toMatch(/made by a function/)
-  const after = extractXState(machineFile(`export const m = setup({}).createMachine({initial: 'a', states: {a: {after: {1000: 'b'}}, b: {}}})`), {file: 'm.ts', entry: 'm', xstate})
-  expect(after.refusals[0]!.what).toMatch(/fromXState: .*`after`/)
+  expect(v4.refusals[0]!.what).toMatch(/v4's `cond` in an XState v5 machine/)
+  const after = extractXState(machineFile(`export const m = setup({}).createMachine({initial: 'a', states: {a: {after: {1000: 'b', 2000: 'c'}}, b: {}, c: {}}})`), {file: 'm.ts', entry: 'm', xstate})
+  expect(after.refusals[0]!.what).toMatch(/fromXState: .*two timers in one state/)
 })
 
 test('XState: inline assign actions and an inline guard, given by their place in the config; a machine with no states', () => {

@@ -65,7 +65,9 @@ for (const j of jobs) {
       if (j.close) code += `\n${j.close}\n`
       const shape = j.shape ?? (new RegExp(`\\bclass\\s+${j.entry}\\b`).test(code) ? 'class' : /\bcreateMachine\b/.test(code) && !/\bfunction\s+\w+\s*\(\s*state/.test(code) ? 'xstate' : 'functions')
       if (shape === 'xstate') {
-        const x = extractXState(code, {file: j.file, entry: j.entry, xstate: xstate as never, check: {runs: 200, depth: 16}})
+        const files = j.lines ? {} : await importsOf(j, code)
+        if (Object.keys(files).length) row.files = Object.keys(files)
+        const x = extractXState(code, {file: j.file, entry: j.entry, xstate: xstate as never, ...(Object.keys(files).length ? {files} : {}), check: {runs: 200, depth: 16}})
         Object.assign(row, {ok: x.ok, shape, ...(x.ok ? {} : {refusal: x.refusals[0], reason: reason(x.refusals[0]?.what ?? '')}), ...(x.evidence ? {evidence: x.evidence} : {}), notes: x.notes})
         if (x.source) writeFileSync(join(out, 'rules', `${j.id.replace(/[^\w.-]+/g, '_')}.ts`), x.source)
       } else {

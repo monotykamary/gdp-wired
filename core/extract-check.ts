@@ -78,16 +78,17 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
   const {js, arms} = instrument(code, file, init ? `\n;(globalThis as any).__gdpInit = () => (${init});\n` : '')
   const counts = arms.map(() => 0)
   let now = 0
+  const stub = (name: string) => new Proxy({}, {
+    get: (_, k) => { if (k === '__esModule' || typeof k === 'symbol') return undefined; throw new Error(`the check loads no module ${name} (its ${String(k)} was read)`) },
+    ownKeys: () => [],
+  })
   const module = {exports: {} as Record<string, unknown>}
   const ctx = vm.createContext({
     __cov: (i: number) => { counts[i]!++ }, __now: () => now, module, exports: module.exports,
     // A relative import among the files given: loaded in this VM (not counted: the branches are the entry's). A module
     // the step doesn't name (React, for the component beside a reducer): a stub that throws when read, so a step that
     // reads it fails the check rather than running without it.
-    require: (name: string) => (name in modules ? modules[name] : name.startsWith('.') && Object.keys(files).length ? load(ENTRY, name) : new Proxy({}, {
-      get: (_, k) => { if (k === '__esModule' || typeof k === 'symbol') return undefined; throw new Error(`the check loads no module ${name} (its ${String(k)} was read)`) },
-      ownKeys: () => [],
-    })),
+    require: (name: string) => (name in modules ? modules[name] : name.startsWith('.') && Object.keys(files).length ? load(ENTRY, name) : stub(name)),
     console: {log() {}, warn() {}, error() {}, info() {}, debug() {}},
   })
   // The files given, by their place beside the entry's; each loaded once.
@@ -99,8 +100,12 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
     const m = {exports: {} as Record<string, unknown>}
     loaded.set(at, m.exports)
     const js = ts.transpileModule(abs[at]!, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true, jsx: ts.JsxEmit.React}, fileName: at.replace(/\.js$/, '.ts').replace(/\.jsx$/, '.tsx')}).outputText
-    const f = vm.runInContext(`(function (module, exports, require) {${js}\n})`, ctx) as (m: unknown, e: unknown, r: unknown) => void
-    f(m, m.exports, (s2: string) => (s2 in modules ? modules[s2] : s2.startsWith('.') ? load(at, s2) : (() => { throw new Error(`the check loads no module ${s2}`) })()))
+    // A file that doesn't load here (it reads import.meta, a browser's globals): a stub that throws when read, so a step
+    // that reads it fails the check rather than running without it.
+    try {
+      const f = vm.runInContext(`(function (module, exports, require) {${js}\n})`, ctx) as (m: unknown, e: unknown, r: unknown) => void
+      f(m, m.exports, (s2: string) => (s2 in modules ? modules[s2] : s2.startsWith('.') ? load(at, s2) : stub(s2)))
+    } catch (e) { const st = stub(`${spec} (${(e as Error).message})`); loaded.set(at, st); return st }
     loaded.set(at, m.exports)
     return m.exports
   }

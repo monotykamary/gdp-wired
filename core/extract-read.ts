@@ -52,7 +52,13 @@ export type Model = {
 // --- values ---------------------------------------------------------------------------------------------------------
 type V =
   | {t: 'num', e: N} | {t: 'bool', e: B} | {t: 'choice', e: L, values: string[]} | {t: 'str', e: K}
-  | {t: 'ref', id: string} | {t: 'cell', map: string, key: K, gen: number} | {t: 'opt', has: B, v: V} | {t: 'undef'}
+  | {t: 'ref', id: string} | {t: 'cell', map: string, key: K, gen: number}
+  // A value that may be missing, and one that is: missing as undefined, or as null where `null` says so.
+  | {t: 'opt', has: B, v: V, null?: true} | {t: 'undef', null?: true}
+  // An object of functions from outside (a factory's argument): a call is an answer from outside, an input.
+  | {t: 'outside', path: string}
+  // A value of a type outside the subset (an event's payload object): kept only where nothing reads it.
+  | {t: 'opaque', what: string}
   // One of two objects by a condition: reads by cases, a write to each where it is the one (so aliasing is kept).
   | {t: 'phi', c: B, a: V, b: V}
 type Rec = {k: 'rec', fields: Map<string, V>, origin: 'fresh' | 'input' | 'this' | 'shared', lazy?: {prefix: string}}
@@ -158,6 +164,9 @@ export type Setup = {
   ours: (sf: ts.SourceFile) => boolean,
   // The code the step reads, as spans of the entry's file: the entry, its methods, the functions inlined.
   spans?: [number, number][],
+  // XState's guards and actions: null is a value; a payload of a type outside the subset is opaque (refused where read);
+  // each answer of a function from outside, the input it is (by the function's path), read once.
+  xstate?: {outside: Map<string, {path: string, sort: Sort}>},
 }
 
 export class Exec {
@@ -249,12 +258,12 @@ export class Exec {
       const values = va.t === 'choice' ? va.values : (vb as {values: string[]}).values
       return {t: 'choice', e: I.lite(c, this.asChoice(va, values, at), this.asChoice(vb, values, at)), values}
     }
-    if (va.t === 'undef' && vb.t === 'undef') return va
+    if (va.t === 'undef' && vb.t === 'undef') return va.null === vb.null ? va : refuse(at, 'null on one path and undefined on another')
     if (va.t === 'opt' || vb.t === 'opt' || va.t === 'undef' || vb.t === 'undef') {
       const [ha, xa] = va.t === 'opt' ? [va.has, va.v] : va.t === 'undef' ? [I.F, undefined] : [I.T, va]
       const [hb, xb] = vb.t === 'opt' ? [vb.has, vb.v] : vb.t === 'undef' ? [I.F, undefined] : [I.T, vb]
-      const v = !xa ? xb! : !xb ? xa : this.mergeV(c, xa, xb, a, b, heap, pairs, at)
-      return {t: 'opt', has: I.bite(c, ha, hb), v}
+      const v = !xa && !xb ? refuse(at, 'a value missing on both paths') : !xa ? xb! : !xb ? xa : this.mergeV(c, xa, xb, a, b, heap, pairs, at)
+      return {t: 'opt', has: I.bite(c, ha, hb), v, ...nullOf(at, va, vb)}
     }
     if (va.t === 'cell' && vb.t === 'cell' && va.map === vb.map) {
       // Current on both paths (the map not set since it was read on either): current in the map merged.
@@ -271,10 +280,12 @@ export class Exec {
   private mergeObj(c: B, oa: Obj, ob: Obj, a: Path, b: Path, heap: Heap, pairs: Map<string, string>, at: ts.Node, two = false): Obj {
     if (oa.k === 'alias' && ob.k === 'alias') return {k: 'alias', to: this.mergeV(c, oa.to, ob.to, a, b, heap, pairs, at)}
     if (oa.k === 'rec' && ob.k === 'rec') {
-      const fa = [...oa.fields.keys()].sort().join(), fb = [...ob.fields.keys()].sort().join()
+      // An untyped record grows a field as it is read (an input): read on one path, it is there on the other too.
+      const fA = oa.lazy && ob.lazy ? new Map([...ob.fields, ...oa.fields]) : oa.fields, fB = oa.lazy && ob.lazy ? new Map([...oa.fields, ...ob.fields]) : ob.fields
+      const fa = [...fA.keys()].sort().join(), fb = [...fB.keys()].sort().join()
       if (fa !== fb) return refuse(at, 'an object with other fields by the path taken')
       const origin = oa.origin === 'input' || ob.origin === 'input' ? 'input' : oa.origin === 'shared' || ob.origin === 'shared' ? 'shared' : oa.origin
-      return {k: 'rec', origin, fields: new Map([...oa.fields].map(([f, v]) => [f, this.mergeV(c, v, ob.fields.get(f)!, a, b, heap, pairs, at)])), ...(oa.lazy ? {lazy: oa.lazy} : {})}
+      return {k: 'rec', origin, fields: new Map([...fA].map(([f, v]) => [f, this.mergeV(c, v, fB.get(f)!, a, b, heap, pairs, at)])), ...(oa.lazy ? {lazy: oa.lazy} : {})}
     }
     if (oa.k === 'map' && ob.k === 'map') {
       if (oa.base !== ob.base) return refuse(at, 'one of two maps by the path taken')
@@ -438,29 +449,39 @@ export class Exec {
       case 'bool': return v.e
       case 'num': return I.not(I.cmp('=', v.e, I.num(0)))
       case 'choice': return v.values.includes('') ? I.not(I.is(v.e, '')) : I.T
-      case 'str': return v.e.op === 'slit' ? (v.e.value ? I.T : I.F) : refuse(at, 'a string as a condition')
-      case 'ref': case 'cell': case 'phi': return I.T
+      // A string is truthy where it isn't empty.
+      case 'str': return v.e.op === 'slit' ? (v.e.value ? I.T : I.F) : I.not(I.keq(v.e, {op: 'slit', value: ''}))
+      case 'ref': case 'cell': case 'phi': case 'outside': return I.T
       case 'opt': return I.and(v.has, this.truthy(v.v, at))
       case 'undef': return I.F
+      case 'opaque': return refuse(at, `${text(at)} read as a condition: ${v.what}`)
     }
   }
   num(v: V, at: ts.Node, p: Path): N {
     if (v.t === 'num') return v.e
     if (v.t === 'opt' && this.known(p, v.has)) return this.num(v.v, at, p)
     if (v.t === 'opt') return refuse(at, `${text(at)} may be missing (undefined): give a default (?? 0) or check for it first`)
-    return refuse(at, `${text(at)} is a ${v.t === 'bool' ? 'boolean' : v.t === 'choice' || v.t === 'str' ? 'string' : v.t === 'undef' ? 'undefined' : 'object'} where a number is read`)
+    if (v.t === 'opaque') return refuse(at, `${text(at)} read as a number: ${v.what}`)
+    return refuse(at, `${text(at)} is a ${v.t === 'bool' ? 'boolean' : v.t === 'choice' || v.t === 'str' ? 'string' : v.t === 'undef' ? (v.null ? 'null' : 'undefined') : 'object'} where a number is read`)
   }
   private bool(v: V, at: ts.Node): B { return v.t === 'bool' ? v.e : refuse(at, `${text(at)} where a boolean is read`) }
-  equal(a: V, b: V, at: ts.Node): B {
+  equal(a: V, b: V, at: ts.Node, loose = false): B {
+    if (a.t === 'opaque' || b.t === 'opaque') return refuse(at, `${text(at)} compares ${(a.t === 'opaque' ? a : b as {what: string}).what}`)
+    // Missing values: null and undefined are == to each other, === each to itself; one that may be missing is equal to a
+    // missing one where it is missing, to a value where it is there and equal.
+    if (a.t === 'opt' || b.t === 'opt' || (a.t === 'undef' && b.t === 'undef')) {
+      const parts = (x: V): [B, V | undefined, boolean] => (x.t === 'opt' ? [x.has, x.v, !!x.null] : x.t === 'undef' ? [I.F, undefined, !!x.null] : [I.T, x, false])
+      const [ha, va, na] = parts(a), [hb, vb, nb] = parts(b)
+      const bothMissing = loose || na === nb ? I.and(I.not(ha), I.not(hb)) : I.F
+      return I.or(bothMissing, va && vb ? I.and(ha, hb, this.equal(va, vb, at, loose)) : I.F)
+    }
     if (a.t === 'num' && b.t === 'num') return I.cmp('=', a.e, b.e)
     if (a.t === 'bool' && b.t === 'bool') return I.or(I.and(a.e, b.e), I.and(I.not(a.e), I.not(b.e)))
     if (a.t === 'choice' && (b.t === 'choice' || b.t === 'str')) return I.leq(a.e, b.t === 'str' && b.e.op === 'slit' && !a.values.includes(b.e.value) ? I.llit(b.e.value, [...a.values, b.e.value]) : this.asChoice(b, a.values, at))
     if (b.t === 'choice' && a.t === 'str') return this.equal(b, a, at)
     if (a.t === 'str' && b.t === 'str') return I.keq(a.e, b.e)
-    if (a.t === 'undef' || b.t === 'undef') {
-      const o = a.t === 'undef' ? b : a
-      return o.t === 'undef' ? I.T : o.t === 'opt' ? I.not(o.has) : I.F
-    }
+    // A missing value and one that is there: never equal.
+    if (a.t === 'undef' || b.t === 'undef') return I.F
     return refuse(at, `a comparison of a ${a.t} with a ${b.t}`)
   }
   ev(e: ts.Expression, p: Path): [V, Path] {
@@ -479,7 +500,7 @@ export class Exec {
     if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) return [{t: 'str', e: {op: 'slit', value: e.text}}, p]
     if (e.kind === ts.SyntaxKind.TrueKeyword) return [{t: 'bool', e: I.T}, p]
     if (e.kind === ts.SyntaxKind.FalseKeyword) return [{t: 'bool', e: I.F}, p]
-    if (e.kind === ts.SyntaxKind.NullKeyword) return refuse(e, 'null')
+    if (e.kind === ts.SyntaxKind.NullKeyword) return this.s.xstate ? [{t: 'undef', null: true}, p] : refuse(e, 'null')
     if (e.kind === ts.SyntaxKind.ThisKeyword) { if (!p.heap.has('this')) refuse(e, 'this outside a class'); return [{t: 'ref', id: 'this'}, p] }
     if (ts.isIdentifier(e)) return this.name(e, p)
     if (ts.isPropertyAccessExpression(e) || ts.isElementAccessExpression(e)) return this.access(e, p)
@@ -586,8 +607,8 @@ export class Exec {
     if (op === S.LessThanEqualsToken) return [{t: 'bool', e: I.cmp('<=', n(l, e.left), n(r, e.right))}, q2]
     if (op === S.GreaterThanToken) return [{t: 'bool', e: I.cmp('<', n(r, e.right), n(l, e.left))}, q2]
     if (op === S.GreaterThanEqualsToken) return [{t: 'bool', e: I.cmp('<=', n(r, e.right), n(l, e.left))}, q2]
-    if (op === S.EqualsEqualsEqualsToken || op === S.EqualsEqualsToken) return [{t: 'bool', e: this.equal(l, r, e)}, q2]
-    if (op === S.ExclamationEqualsEqualsToken || op === S.ExclamationEqualsToken) return [{t: 'bool', e: I.not(this.equal(l, r, e))}, q2]
+    if (op === S.EqualsEqualsEqualsToken || op === S.EqualsEqualsToken) return [{t: 'bool', e: this.equal(l, r, e, op === S.EqualsEqualsToken)}, q2]
+    if (op === S.ExclamationEqualsEqualsToken || op === S.ExclamationEqualsToken) return [{t: 'bool', e: I.not(this.equal(l, r, e, op === S.ExclamationEqualsToken))}, q2]
     if (op === S.PlusToken || op === S.MinusToken || op === S.AsteriskToken || op === S.PercentToken) return [this.arith(op, l, r, e, q2), q2]
     if (op === S.SlashToken) return refuse(e, 'a division (its result may be a fraction): Math.floor(x / k) for a constant k is in the subset')
     if (op === S.AsteriskAsteriskToken) return refuse(e, 'a power')
@@ -684,11 +705,11 @@ export class Exec {
       const values = x.t === 'choice' ? x.values : (y as {values: string[]}).values
       return {t: 'choice', e: I.lite(c, this.asChoice(x, values, at), this.asChoice(y, values, at)), values}
     }
-    if (x.t === 'undef' && y.t === 'undef') return x
+    if (x.t === 'undef' && y.t === 'undef') return x.null === y.null ? x : refuse(at, 'null or undefined by a condition')
     if (x.t === 'opt' || y.t === 'opt' || x.t === 'undef' || y.t === 'undef') {
       const [hx, vx] = x.t === 'opt' ? [x.has, x.v] : x.t === 'undef' ? [I.F, undefined] : [I.T, x]
       const [hy, vy] = y.t === 'opt' ? [y.has, y.v] : y.t === 'undef' ? [I.F, undefined] : [I.T, y]
-      return {t: 'opt', has: I.bite(c, hx, hy), v: !vx ? vy! : !vy ? vx : this.phiV(c, vx, vy, at)}
+      return {t: 'opt', has: I.bite(c, hx, hy), v: !vx ? vy! : !vy ? vx : this.phiV(c, vx, vy, at), ...nullOf(at, x, y)}
     }
     if (x.t === 'ref' && y.t === 'ref' && x.id === y.id) return x
     const refs = ['ref', 'cell', 'phi']
@@ -713,6 +734,7 @@ export class Exec {
       const x = cell.vals.get(f)
       return x ? [x, p] : refuse(at, `no field ${f}`)
     }
+    if (v.t === 'outside') return refuse(at, `${text(at)}: a function from outside used as a value`)
     if (v.t !== 'ref') return refuse(at, `${text(at)}: a field of a ${v.t}`)
     const o = this.obj(p, v.id)
     if (o?.k !== 'rec') return refuse(at, `${text(at)}: a field of a map`)
@@ -721,7 +743,18 @@ export class Exec {
     if (o.lazy) {
       // Its sort: compared with literals, a choice among them; else its type where it has one (an XState event's
       // payload, typed by setup's types); else a number.
-      const typed = (() => { const t = this.s.checker.getTypeAtLocation(at); if (t.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) return undefined; const sh = shapeOf(t, this.s.checker, at); return sh.k === 'num' || sh.k === 'bool' || sh.k === 'choice' || sh.k === 'str' ? sh : undefined })()
+      // In XState's guards and actions, a payload field of a type outside the subset (an object, a value that may be
+      // missing) is opaque: refused where it is read, kept where it is only passed on.
+      let opaque: string | undefined
+      const typed = (() => {
+        const t = this.s.checker.getTypeAtLocation(at)
+        if (t.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) { if (this.s.xstate && t.flags & ts.TypeFlags.Unknown) opaque = `${text(at)} is of type unknown`; return undefined }
+        let sh: Shape
+        try { sh = shapeOf(t, this.s.checker, at) } catch (x) { if (this.s.xstate && x instanceof Refusal) { opaque = x.what; return undefined } throw x }
+        if (this.s.xstate && sh.k !== 'num' && sh.k !== 'bool' && sh.k !== 'choice' && sh.k !== 'str') opaque = `${text(at)} is a ${sh.k === 'rec' ? 'record' : 'map'} (not a value the subset reads)`
+        return sh.k === 'num' || sh.k === 'bool' || sh.k === 'choice' || sh.k === 'str' ? sh : undefined
+      })()
+      if (opaque) return [{t: 'opaque', what: opaque}, p]
       const path = `${o.lazy.prefix}${f}`, sort = this.s.lazySorts.get(path) ?? typed ?? {k: 'num'}
       // The same field read again (in another guard or action, say) is the same input.
       const seen = [...this.s.lazy].find(([, l]) => l.prefix === o.lazy!.prefix && l.field === f)?.[0]
@@ -891,6 +924,8 @@ export class Exec {
         return [{t: 'undef'}, p]
       }
       if (ts.isIdentifier(obj) && ['Number', 'Object', 'JSON', 'Array', 'String', 'Promise', 'performance'].includes(obj.text)) return refuse(e, `${obj.text}.${m}`)
+      // A function the factory is given: its answer is an input of the step (any value of its type), read once.
+      if (ts.isIdentifier(obj) && p.locals.get(obj.text)?.t === 'outside') return this.outside(e, `${(p.locals.get(obj.text) as {path: string}).path}.${m}`, p)
       if (obj.kind === ts.SyntaxKind.ThisKeyword && this.s.cls) {
         const member = this.s.cls.members.find(x => x.name && memberName(x.name) === m)
         if (member && ts.isMethodDeclaration(member)) { const [args, q] = this.args(e.arguments, p); return this.inline({decl: member, self: 'this'}, args, e, q) }
@@ -911,6 +946,9 @@ export class Exec {
       return refuse(e, `${text(callee)}: a method the subset doesn't read`)
     }
     if (ts.isIdentifier(callee)) {
+      // Boolean(x): whether x is truthy.
+      if (callee.text === 'Boolean' && !p.locals.has('Boolean') && e.arguments.length === 1) { const [v, q] = this.ev(e.arguments[0]!, p); return [{t: 'bool', e: this.truthy(v, e.arguments[0]!)}, q] }
+      if (p.locals.get(callee.text)?.t === 'outside') return this.outside(e, (p.locals.get(callee.text) as {path: string}).path, p)
       const sym = this.resolved(callee), decl = sym?.valueDeclaration
       const fn = decl && ts.isFunctionDeclaration(decl) ? decl : decl && ts.isVariableDeclaration(decl) && decl.initializer && (ts.isArrowFunction(decl.initializer) || ts.isFunctionExpression(decl.initializer)) ? decl.initializer : undefined
       if (fn && this.s.ours(fn.getSourceFile())) { const [args, q] = this.args(e.arguments, p); return this.inline({decl: fn}, args, e, q) }
@@ -918,6 +956,20 @@ export class Exec {
       return refuse(e, `${callee.text}: a call the subset doesn't read`)
     }
     return refuse(e, 'a call the subset doesn\'t read')
+  }
+  private outside(e: ts.CallExpression, path: string, p: Path): [V, Path] {
+    const x = this.s.xstate ?? refuse(e, `${path}: a function from outside`)
+    if (e.arguments.some(impure)) refuse(e, `${path}(...) with arguments that have effects`)
+    const [, q] = this.args(e.arguments, p)
+    const t = this.s.checker.getTypeAtLocation(e)
+    if (t.flags & (ts.TypeFlags.Void | ts.TypeFlags.Undefined)) { this.s.notes.add(`${path}() is an effect outside the machine (it returns nothing; left out)`); return [{t: 'undef'}, q] }
+    if (t.getSymbol()?.getName() === 'Promise') return refuse(e, `${path}() returns a promise (an answer that comes later is an actor's, invoked)`)
+    const sh = shapeOf(t, this.s.checker, e)
+    if (sh.k !== 'num' && sh.k !== 'bool' && sh.k !== 'choice' && sh.k !== 'str') return refuse(e, `${path}() returns a compound value`)
+    if ([...x.outside.values()].some(o => o.path === path)) return refuse(e, `${path}() read in two places (each call may answer differently)`)
+    const v = this.newVar(path.split('.').pop()!, sh, 'input', `${path}(): the answer of a function the machine is given (any value of its type)`)
+    x.outside.set(v.name, {path, sort: sh})
+    return [Exec.valueOf(v), q]
   }
   private math(m: string, e: ts.CallExpression, p: Path): [V, Path] {
     if (m === 'floor' || m === 'ceil') {
@@ -997,6 +1049,14 @@ export class Exec {
 }
 
 // A map set on one path and not the other: a generation of its own, so a reference read before either is stale.
+// Missing as null or as undefined, the same on both sides (a value that is null on one and undefined on the other has
+// three cases a rule's maybe doesn't hold).
+const nullOf = (at: ts.Node, a: V, b: V): {null?: true} => {
+  const kind = (x: V) => (x.t === 'opt' || x.t === 'undef' ? (x.null ? 'null' : 'undefined') : undefined)
+  const ka = kind(a), kb = kind(b)
+  if (ka && kb && ka !== kb) refuse(at, 'a value that may be null on one side and undefined on the other')
+  return ka === 'null' || kb === 'null' ? {null: true} : {}
+}
 const mergedGen = (a: MapObj, b: MapObj) => (a.gen === b.gen ? a.gen : Math.max(a.gen, b.gen) + 1)
 // The module an import names, for a refusal.
 const moduleOf = (d: ts.Declaration): string => { let n: ts.Node = d; while (n && !ts.isImportDeclaration(n)) n = n.parent; return n && ts.isImportDeclaration(n) && ts.isStringLiteral(n.moduleSpecifier) ? ` ('${n.moduleSpecifier.text}')` : '' }
