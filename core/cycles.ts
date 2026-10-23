@@ -34,7 +34,7 @@ import {type Lin, canon, gcd, plus, refuteFast, solve, vars, work} from './solve
 import {clock, grow, proveLaws, proveLiveness, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {inferLaws} from './infer.ts'
 import {bgcd} from './q.ts'
-import {type Generators, type Relation, generators, houdini, relationOf} from './relation.ts'
+import {type Generators, type Relation, generators, houdini, relationOf, tightBounds} from './relation.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
 
 export type Claim = {name: string, hyps?: C[], concl: C}
@@ -1201,20 +1201,8 @@ export function rankWithInvariants(l: Loop, laws: Law[], until: number): {rank: 
     }
     return {laws: out, texts}
   }
-  // of the bounds on one name each way, the tightest (the others follow from it: the same set)
-  const tightest = (hs: Lin[]): Lin[] => {
-    // (a location no run reaches: 1 ≤ 0 alone)
-    const never = hs.find(c => Object.keys(c).every(x => x === '1') && (c['1'] ?? 0) > 0)
-    if (never) return [never]
-    const best = new Map<string, Lin>(), rest: Lin[] = []
-    for (const c of hs) {
-      const xs = vars(c)
-      if (xs.length !== 1) { rest.push(c); continue }
-      const x = xs[0]!, key = `${x}${Math.sign(c[x]!)}`, b = (c['1'] ?? 0) / Math.abs(c[x]!), was = best.get(key)
-      if (!was || b > (was['1'] ?? 0) / Math.abs(was[x]!)) best.set(key, c)
-    }
-    return [...best.values(), ...rest]
-  }
+  // of the bounds on one name each way, the tightest (the same set); a location no run reaches: 1 ≤ 0 alone
+  const tightest = (hs: Lin[]): Lin[] => { const never = hs.find(c => Object.keys(c).every(x => x === '1') && (c['1'] ?? 0) > 0); return never ? [never] : tightBounds(hs) }
   let H: Lin[][] = [], found: ReturnType<typeof relationRank> = {why: 'no invariant'}
   const t1 = clock()
   for (const [i, cands] of [bounds, withAtoms].entries()) {

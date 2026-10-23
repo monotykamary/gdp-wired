@@ -357,6 +357,18 @@ export function generators(rows: Lin[], names: string[], nats: string[] = [], ca
   return {names, vertices: rays.filter(r => r.v[n]! > 0n).map(r => num(r.v)), rays: rays.filter(r => r.v[n]! === 0n).map(r => num(r.v)), lines: lines.map(num)}
 }
 
+// Of the bounds on one name each way, the tightest (the others follow from it), then the rows of more names.
+export const tightBounds = (cs: Lin[]): Lin[] => {
+  const best = new Map<string, Lin>(), rest: Lin[] = []
+  for (const c of cs) {
+    const xs = vars(c)
+    if (xs.length !== 1) { rest.push(c); continue }
+    const x = xs[0]!, key = `${x}${Math.sign(c[x]!)}`, b = (c['1'] ?? 0) / Math.abs(c[x]!), was = best.get(key)
+    if (!was || b > (was['1'] ?? 0) / Math.abs(was[x]!)) best.set(key, c)
+  }
+  return [...best.values(), ...rest]
+}
+
 // --- invariants: Houdini over the relation --------------------------------------------------------------------------
 //
 // Candidate atoms per location (each lin ≤ 0 over the relation's names), those that fail at a start dropped by the
@@ -365,25 +377,14 @@ export function generators(rows: Lin[], names: string[], nats: string[] = [], ca
 // inductive over the relation (so over the loop, where the relation is exact); the kernel proves it again as laws.
 export function houdini(rel: Relation, cands: Lin[][], locOf: (i: number) => [number, number], until: number): Lin[][] | undefined {
   const H = cands.map(cs => [...new Map(cs.map(c => [canon(c), c])).values()])
-  // A path's rows with the candidates at its start: of the bounds on one name, only the tightest each way (the others
-  // add no vertex).
-  const tight = (cs: Lin[]): Lin[] => {
-    const best = new Map<string, Lin>(), rest: Lin[] = []
-    for (const c of cs) {
-      const xs = vars(c)
-      if (xs.length !== 1) { rest.push(c); continue }
-      const x = xs[0]!, s = Math.sign(c[x]!), key = `${x}${s}`, b = (c['1'] ?? 0) / Math.abs(c[x]!), was = best.get(key)
-      if (!was || b > (was['1'] ?? 0) / Math.abs(was[x]!)) best.set(key, c)
-    }
-    return [...best.values(), ...rest]
-  }
   for (let round = 0, changed = true; changed && round < 50; round++) {
     changed = false
     for (const [i, p] of rel.paths.entries()) {
       if (clock() > until) return undefined
       const [a, b] = locOf(i)
       if (!H[b]!.length) continue
-      const rows = [...p.rows, ...tight(H[a]!)]
+      // (a path's rows with the candidates at its start, the tightest bounds of them: the others add no vertex)
+      const rows = [...p.rows, ...tightBounds(H[a]!)]
       // (the names the candidates at the target read too: one the path reads nowhere is free there, a line)
       const ns = [...new Set([...rows.flatMap(vars), ...Object.values(p.post).flatMap(vars), ...H[b]!.flatMap(vars)])].sort()
       const g = generators(rows, ns, rel.nats, 600, until)
