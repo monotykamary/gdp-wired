@@ -1086,6 +1086,21 @@
 "timeout": 900
 },
 {
+"name": "nonterm",
+"cwd": "core",
+"cpu": 2.0,
+"timeout": 900,
+"cmd": "bun test nonterm.test.ts 2>&1 && cd .. && bun examples/nonterm.ts 2>&1"
+},
+{
+"name": "lean-nonterm",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800,
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets Live; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; lean -o NonTerm.olean NonTerm.lean > nonterm.out 2>&1 || { grep -B2 -A25 error nonterm.out | head -80; echo build-failed NonTerm; exit 1; }; if grep -q -e sorry -e sorryAx nonterm.out; then echo sorry-in NonTerm; exit 1; fi; grep Kern. nonterm.out; bun conformance.ts --nonterm 40 > NonTermConformance.lean && (time lean NonTermConformance.lean) > ntc.out 2>&1; s=$?; tail -20 ntc.out; grep -c '^example' NonTermConformance.lean; head -6 NonTermConformance.lean | tail -2; echo lean-exit $s; exit $s"
+},
+{
 "name": "lean-live-ghost-refine",
 "cwd": "lean-kernel",
 "cpu": 4.0,

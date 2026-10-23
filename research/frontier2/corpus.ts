@@ -12,6 +12,7 @@ import type {Verdict} from '../../core/dsl.ts'
 import {chcItems} from './chc.ts'
 import {tipItems} from './tip.ts'
 import {termItems} from './term.ts'
+import {nontermItems} from './nonterm.ts'
 
 // The areas, each a reason the library fails on a group of tasks (README.md has the groups and their counts).
 export type Track =
@@ -30,6 +31,7 @@ export type Track =
   | 'rank' // a rank of a shape the search finds but doesn't fit (reading no param, in order)
   | 'nonlinear rank' // a rank past linear: multiphase, by cases of a sign, a min
   | 'sampling' // a loop whose runs the search doesn't sample (inputs an equation pins, no turn at all)
+  | 'nontermination' // a run that never ends: no state repeats on it, or the random runs don't reach where it starts
 
 // The tasks an item stands for: its benchmark and file, and the group of the README it is one of.
 export type Source = {benchmark: 'CHC-COMP 2026 LIA-Lin' | 'TIP 2015' | 'TermComp ITS' | 'SV-COMP termination', task: string, group: string}
@@ -37,4 +39,4 @@ export type Source = {benchmark: 'CHC-COMP 2026 LIA-Lin' | 'TIP 2015' | 'TermCom
 // checked true (or, for a broken variant, false) outside the library.
 export type Item = {id: string, track: Track, removed: string, broken?: string, today: () => Verdict, frontier?: () => Verdict, source?: Source, truth?: string}
 
-export const corpus: Item[] = [...chcItems, ...tipItems, ...termItems]
+export const corpus: Item[] = [...chcItems, ...tipItems, ...termItems, ...nontermItems]

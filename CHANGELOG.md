@@ -45,6 +45,113 @@ second frontier corpus's TIP items: frontier 2 of 15, 0.22.0 1 that day, every b
   same counted budget, and the new conjectures' attempts take more of the wall.
 - `compare/tip/solve.ts --opts '<json>'`: proveData's options, for diagnostics.
 
+A run that never ends, stated and proven: `proveNeverEnds(loop)` claims that some run of a loop goes on forever (the
+claim a halting proof refutes), with a closed recurrent set as its certificate, checked by the kernel and again by Lean.
+TermComp's ITS at 60 s on Modal, `gdp` alone: 450 nonterminating and 56 terminating, 0.22.0 the same day 320 and 56
+(`runs/nonterm/after2-its`, `runs/nonterm/base-its`); no answer contradicts another tool's or the other run's. SV-COMP
+unchanged (47 nonterminating, none wrong). The suites on Modal: by default 206 jobs, 0 failed, 519.9 s wall, 4,600.0 s
+of job time (`runs/nonterm/suite-default`), 0.22.0's 204 jobs 490.4 s and 4,786.0 s (`runs/nonterm/base-suite-default`);
+`--usual` 206 jobs, 0 failed, 504.2 s and 4,297.4 s (`runs/nonterm/suite-usual`), 0.22.0 469.5 s and 4,255.8 s
+(`runs/nonterm/base-suite-usual`). boat had no starts to spare, so these ran on Modal; 0.22.0's release suites on boat
+are `runs/release/0.22.0-*`.
+
+**The trusted base grows.** `lean-kernel/NonTerm.lean` (new, on top of `Live.lean`, 275 lines) and its twin in
+`kernel/kernel.ts` (`checkRecur`, `recurGoal`: 73 lines, 56 of code):
+- `Kern.NeverEnds l`: for some maps and some params meeting the precondition, a run of turns from the start that goes
+  on forever, the negation of `loop_halts_of`'s conclusion.
+- The certificate (`Recur`): a condition over the state and params (the set), a term per input over the state and
+  params (the turn taken from each of its states), the params as values and a stem of turns' inputs from the start into
+  the set, each state on the way held as its values on a domain. `checkRecur` evaluates the start and the stem exactly
+  and refutes the closure goal (a state of the set whose witnessed turn fails the guard or the assumption, or ends
+  outside the set) with the kernel's tree. The run after the stem is the witnessed turn again and again, built by
+  recursion: no choice.
+- `Kern.never_ends_of`: a checked certificate gives `NeverEnds l` (`propext`, `Classical.choice`, `Quot.sound`, through
+  the leaf check's `sound`). `Kern.halts_not_never_ends` (no axioms) and `Kern.never_ends_refutes_halts`: no loop both
+  halts and has a run that never ends.
+- kernel.ts's checker mirrors Lean's: Lean's `checkRecur` computes kernel.ts's answer on 127 certificates, found,
+  tampered and forged (`lean-kernel/conformance.ts --nonterm`, the suite's `lean-nonterm`).
+
+- **The search** (`core/nonterm.ts`, untrusted): lassos of random runs (the set the cycle's states, each turn's inputs
+  given at its state); policies, runs whose inputs are terms over the state (by mode, the first allowed of a few
+  assignments from pools of constants and values ± 1, grown where the run would stop); a recurrent set fitted to a
+  policy's run (bounds, sums and differences of the integer values, one atom per counterexample the prover gives), its
+  closure proven by `grow`, which tries kernel/cdcl.ts's CDCL first.
+- **The API and the export:** `proveNeverEnds(loop, {from?, ms?})` (dsl); toLean's `{id, neverEnds, recur, tampered?}`
+  as `<id>_never_ends : NeverEnds <id>_loop` by `never_ends_of`, each tampered certificate's check computed to false;
+  `examples/nonterm.ts`, three loops that never end (pagination with empty pages, a retry with no cap, a ring reader)
+  beside twins that halt; the package check builds all three in Lean.
+- **Tests:** core/conformance.test.ts: every certificate the checker accepts holds on the reference run; the found ones
+  accepted; tampered ones refused (the set not closed, not reached by its stem or start, a lasso's cycle that doesn't
+  close) and no tree closes a changed set. core/nonterm.test.ts: no loop proven both to halt and to have a run that
+  never ends, on 10 loops and 6 ITS tasks (3 and their terminating twins).
+- **Termination benchmark** (compare/term/solve.ts: a recurrent set for 4 s after the first lassos, and with 3/5 of
+  what is left after the rank search). ITS: 133 tasks answered that 0.22.0 left (131 unknown, 2 timeouts), 3 answered
+  by 0.22.0's lasso not (timing of the lasso stage); the 56 terminating the same tasks. Of the 133, 105 are LoAT's NO
+  too, 24 are lassos replayed by ari.ts's evaluator, 2 had a replayed lasso in an earlier run (db2, db3) and 2 no other
+  tool answers (Velroyen08-fib, NonPeriodicNonterm2, read by hand). None is a task LoAT, LoAT abmc or KoAT2 proves
+  terminating. Lean checks every recurrent set of the run, 131 of 131, as `NeverEnds <task>_loop` on `propext`,
+  `Classical.choice`, `Quot.sound` (compare/term/recur-lean.ts, 32 shards, at most 1,865.9 s a shard on Modal, 4 CPUs:
+  `runs/nonterm/after2-lean`).
+- **The second frontier corpus:** nontermination was a language gap; five items now (`research/frontier2/nonterm.ts`:
+  toy2, toy4, Choose, NO_10, EvenOdd, each LoAT NO with no lasso at 0.21.0), each with its terminating twin (KoAT2
+  Finite, `runs/corpus2/truth-nonterm`): today (lassos only) 0 / 5, frontier 5 / 5, twins refused 5 / 5
+  (`runs/corpus2/nonterm-items2`).
+- Cost: boat $0.905 (the Lean rechecks $0.66 and $0.24, the corpus $0.005, a probe $0.001); Modal 206,125 s of job
+  time over the benchmark runs, the suites and the truth checks, plus the Lean recheck's 12,817.7 s (and a first one stopped for the machine going offline), the day's dollars
+  not yet in Modal's billing report.
+
+Invariants from the samples' hull, made inductive (`core/infer.ts`, the join): per control state, the affine hull of
+the states the runs reached and each direction's largest value there, then Houdini on the cone of the caller's laws by
+relative induction, the kernel's models as counterexamples. Nothing trusted changed (`kernel/kernel.ts`,
+`kernel/cyclic.ts`, `core/check.ts` and `lean-kernel/` are as in 0.22.0). CHC-COMP LIA-Lin at 60 s, gdp alone, this
+branch and 0.22.0 (c215ded) one after the other on Modal: 670 solved (526 sat, 144 unsat) against 510 (366, 144), none
+wrong either (`runs/inv/chc`, `runs/inv/chc-base`); 166 only this branch solved, 6 only 0.22.0 (five Lustre tasks and
+llreve's break_safe.c-1, which 0.22.0 solved in 26.39 to 38.9 s and this branch leaves unknown at the limit). The
+second frontier corpus, 8 of 42 against 3 of 42, every broken variant refused in both (`runs/inv/corpus2-after`,
+`runs/inv/corpus2-before`, Modal).
+
+- The join, where the old search would begin choosing candidates: the control state is the choice (loc) and, where
+  the reached choices times their valuations are at most 128, the yes/nos (a program counter in bits: per pc its own
+  hull, a pc no run reached a clause `never …`). Per control state: the hull's equalities (exact, over ℤ: a point
+  joined in removes the dimensions it leaves; at most 4 values, coefficients up to 1,000, as laws) and each direction's
+  largest value (each value up and down, pairs of them where there are at most 10 values, and the rule's own
+  comparisons over the state, a request's value read as the state it makes).
+- Houdini on the cone, not the whole set: the caller's laws first, then each form their trees read (`usedHyps`). Each
+  goal is proven with as little of the set assumed as will do: none, then the forms that rule out the kernel's model
+  (those of the cone first), two at a time, as IC3's relative induction, then the whole set. A model the whole set
+  allows is a counterexample to induction: its successor, and those of short walks from it, are joined in (the hull
+  grows; a bound rises to the next of the rule's constants and their sums, then to a constant, then goes). A model that
+  breaks a caller's law adds a candidate of the old search's that rules it out. The cone proven, it is the answer, and
+  the old search proves it as a set as before. Unproven within 60 % of the budget, the old search runs as it did,
+  from the same candidates and counterexamples.
+- Kernel searches counted in its work unless the search is timed, so a counted search finds the same on any machine.
+  `GDP_JOIN=0` turns the join off.
+- By CHC group (research/frontier2's, the tasks left at 0.21.0), 0.22.0 against this branch: A 113 → 165 of 195,
+  B 7 → 30 of 39, G 1 → 9 of 15, C 0 → 10 of 38, D 1 → 9 of 113, E 3 → 28 of 71, F 1 → 7 of 34, H and I 1 and 1 as
+  before; outside the groups 381 → 408 of 581. Where the join ended in a proof (502 tasks, at an earlier commit,
+  `runs/inv/chc-join4`) it took a median 0.967 s, p90 6.174 s.
+- The second corpus's new items: FIREFLY_1 (`1 <= b13`) and MESI_i3_e1_447_e3_1180 (`1 <= b8`, `i6 <= 0`, `0 <= i4`),
+  simple.c (per pc in bits), three_dots_moving_2 (`i1 + i2 <= 2·i0 + i3` among three, from the start clause's
+  comparison) and loop2 (equalities over four values); reve 015 and break_safe.c-1 as before.
+- Measured and left out, each no gain on the same tasks (`runs/inv/dev80-*`, 79 tasks, Modal): candidates tried as IC3
+  would before one is added, and a counterexample to a cone form ruled out before it is joined (675 against 670 on all
+  1,406, `runs/inv/chc-join4`, `chc-join6`); IC3's lemma from a counterexample's cube (68, 68 and 67 of 79); a request
+  the assumption refuses mended by local search, as WalkSAT does (67 against 67); the join at 0.35 of the budget
+  (662 against 670, `runs/inv/chc-join5`).
+- `examples/infer.ts`: three accounts and moves between them, one account within the total paid in, which needs
+  `a + b + c <= total` (the old search's forms of three values don't hold it); a test in `core/infer.test.ts`.
+- The suite (204 jobs) on Modal, 0.22.0 and this branch one after the other, as boat had no starts left: by default
+  0.22.0 491.5 s wall and 4,796.4 s of job time, this branch 480.1 s and 4,604.1 s, none failed (`runs/inv/suite-base`,
+  `runs/inv/suite`; a first run failed the new test on bun's 5 s limit for a test, now 60 s as the other searches'
+  tests have, `runs/inv/suite-try1`); `--usual` 482.5 s and 4,351.6 s against 444.9 s and 4,237.4 s, none failed
+  (`runs/inv/suite-base-usual`, `runs/inv/suite-usual`). The release's boat runs, for scale: 307.8 s and 3,073.9 s,
+  `--usual` 264.7 s and 2,418.3 s (`runs/release/0.22.0-default`, `-usual`). The first frontier corpus 90 of 92, its 42
+  broken variants refused, in all three.
+- Sizes: `core/infer.ts` 681 → 987 lines (+313, −7), `core/infer.test.ts` +10 −1, `examples/infer.ts` +16 −1,
+  `research/inv/one.ts` +11 (inferLaws on one CHC task as the corpus runs it).
+- Cost: Modal $22.60314 for this track's 29 apps today (`modal billing report --for today`, today's figures before the
+  day closes); boat $0.01892 (the runner's lines, four batches).
+
 Infrastructure (nothing in the library changed): the boat backend paces its VM starts.
 
 - boat's starts are spent by plan (a resume is a start; `boat limits` is read at every batch, so a new plan takes
