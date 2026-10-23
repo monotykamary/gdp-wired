@@ -103,7 +103,8 @@ function neverEnds(ms: number, tag: string): void {
   if (ms < 200) return
   let v
   try { v = findNeverEnds(loop, {ms}) } catch (e) { say({stage: 'recur', tag, error: (e as Error).message.slice(0, 300)}); return }
-  say({stage: 'recur', tag, proven: v.proven, checked: v.checked, ...(v.by ? {by: v.by} : {}), ...(v.why ? {why: v.why} : {}), ...v.stats})
+  const {ms: searchMs, ...counts} = v.stats
+  say({stage: 'recur', tag, proven: v.proven, checked: v.checked, ...(v.by ? {by: v.by} : {}), ...(v.why ? {why: v.why} : {}), searchMs, ...counts})
   if (!(v.proven && v.checked && v.recur)) return
   const r = v.recur, size = JSON.stringify(r.set).length + JSON.stringify(r.wit).length
   let replay: string | undefined
