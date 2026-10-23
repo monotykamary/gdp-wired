@@ -22,7 +22,7 @@ wall-clock limit for every tool:
 | `scc.ts` | The second translation, a stronger statement counted apart: each strongly connected component of the locations, chained (the paths between cut points composed into one rule each), from any state at its cut points |
 | `solve.ts` | One task: lassos from the loop's runs (2 s), a recurrent set (core/nonterm.ts, 4 s), `findRank` with all but 9 s of the limit, the kernel's check again on the loop as translated (the answer printed then, and again with the certificate once made), a recurrent set again (3/5 of what is left) and lassos with the rest; `--scc` for the second translation |
 | `recur-lean.ts` | The recurrent sets of a run's answers (each printed in its `recur`) as Lean theorems `NeverEnds <task>_loop` by Kern.never_ends_of; `--shard i/n` |
-| `c2ari.py` | An SV-COMP C program as an ARI system (pycparser): main and the functions it calls inlined, signed integers, the C subset in its header; refusals with their reason |
+| `c2ari.py` | An SV-COMP C program as an ARI system (pycparser): main and the functions it calls inlined, C's integer types and conversions on the task's data model, arrays, pointers to a fixed set of objects, undefined behaviour ending the run, recursion as two translations (one per answer); the subset in its header; refusals with their reason |
 | `modal_term.py` | The ITS track on Modal: gdp-wired (`gdp`, `gdp-scc`), LoAT, LoAT with `--engine abmc`, KoAT2; `koat2-proof` and `loat-proof`, the same runs with their proofs kept |
 | `modal_sv.py` | The SV-COMP tasks on Modal: gdp-wired on its translation, Ultimate Automizer on the C program, LoAT and KoAT2 on gdp-wired's translation |
 | `summary.ts` | The tables below from run directories (later rows replacing earlier ones) |
@@ -65,16 +65,41 @@ linear facts fitted to a run whose inputs are terms over the state), a start and
 checked by the kernel (kernel.ts's checkRecur) and printed (`recur`) for Lean (`recur-lean.ts`); a lasso among those is
 replayed by ari.ts's evaluator too.
 
-For C, `c2ari.py` reads main and the functions it calls (each call inlined), over signed integer variables, with
-`__VERIFIER_nondet_*` a fresh value in its type's range, `__VERIFIER_assume` a guard, and `/` and `%` by a positive
-constant as C's truncation toward zero (a fresh quotient q with x − k·q in [0, k) for x >= 0 and k·q − x in [0, k)
-for x < 0). Arithmetic is on unbounded integers: the same as C on every run where no signed operation overflows
-(undefined behavior, which the tasks' verdicts assume away); no task here uses long, whose values would be left
-unbounded. Values narrower than int (char, short, _Bool) and casts that convert are refused: C converts what is
-stored to the type's range, which unbounded integers don't (no task here has one). 226 of the 282 tasks translate (24
-with products of variables, 15 with division by a constant); refused: recursion 28, pointers and the heap 10, unsigned
-types 10, arrays 6, a call inside a larger expression 2 (`runs/modal/term/sv3`). The ITS translation folds constants
-exactly and refuses one past 2^53, which the kernel's numbers can't hold (no ITS task has one).
+For C, `c2ari.py` reads main and the functions it calls (each call inlined, a call inside an expression evaluated
+first into a fresh variable), over C's integer types with their values exactly C's on the task's data model (LP64 or
+ILP32, from its .yml; char signed, two's complement): unsigned arithmetic modulo 2^n (a fresh k with r − 2^n·k in the
+range), the integer promotions and the usual arithmetic conversions (-1 < 5u is false), a conversion to an unsigned
+type modulo 2^n, to a narrower signed type modulo 2^n into its range (gcc's), to _Bool 0 or 1; `/` and `%` by any
+divisor as C's truncation toward zero; the ternary operator and conditions as values; arrays of a fixed size (an
+element per variable; past 64 elements, the ones read at a constant index); pointers to a fixed set of objects
+(globals and main's outermost locals whose address is taken, cells of a malloc, calloc or alloca executed at most
+once; malloc may return null; free makes the cell dead). Undefined behaviour ends the run: a signed result out of its
+type's range (checked unless the task declares no-overflow true), division by zero, an access out of bounds or through
+a null, freed, too small or indeterminate pointer, a function's value used after it reached its closing brace. That is
+how SV-COMP's expected verdicts read it: `cohencu1-both-t` is expected to terminate though its test 6·n + 6 <= k
+overflows at k = INT_MAX (wrapped, it would hold forever), and `Binomial`, `TerminatorRec02` and
+`RecursiveMultiplication-1` overflow and are expected to terminate. A run that never ends is then one with no
+undefined behaviour, and "terminates" means every run ends or reaches it.
+
+Recursion has two translations, each exact for one answer and read only for it (`--for`; solve.ts `--want`, the two
+side by side in the container): for "terminates", every call to a recursive function either enters the function's
+own copy with the caller's frame forgotten (a call that never returns) or skips the call, its value and every global
+the function may write any value of their types (a call that returns): every infinite run of the program is one of
+these (its depth grows forever, or some frame is never left and every later call it makes returns), so the system has
+more runs and its termination is the program's. For "nonterminating", calls are inlined exactly up to 4 deep (fewer
+where the system would grow past 400,000 rule-slots) and past that only enter the function's own copy, a return out
+of it ending the run: every run of the system is a run of the program, so an infinite one is the program's. Where
+overflow is checked, `--unchecked` (no checks, unbounded integers) is a third translation, for "terminates" only
+(every run of the program is a prefix of one of its runs), run beside the checked one. 271 of the 282 tasks translate
+(28 with recursion, 38 with overflow checked, 33 with products of variables, 25 with division, 10 unsigned, 4 with
+arrays, 3 with pointers); refused: strings read through pointer arithmetic or calls whose order is unspecified and can
+matter 9 (`cstr*`, `strchr-2`, `LexIndexValue-Pointer-2`), an array of 1,048 read at an index that is not a constant
+2, `sqrt` (no body) 2. The 192 of the 226 that translated before translate as before, character for character; the
+34 others have their overflow checks now (and `aviad`'s one unreachable rule left out)
+(`runs/svfront/translations-main`, `translations-mine`). `c2ari_test.py`'s 38 adversarial programs (conversions, the
+data model, recursion, arrays, pointers, division, undefined behaviour where it is and isn't evaluated) are never
+answered against how they run (`runs/svfront/probes2`). The ITS translation folds constants exactly and refuses one
+past 2^53, which the kernel's numbers can't hold (no ITS task has one; a C task's 64-bit range is refused the same way).
 
 ## Results
 
@@ -123,6 +148,34 @@ the task's expected verdict.
   coefficient past 4.
 - Not run: the Lean twin on the ranks found (every proof here is the kernel's, checked twice: in `findRank`, and again
   in solve.ts on the obligations of the loop as translated).
+
+### The C front end (Unreleased)
+
+SV-COMP's 282 tasks on Modal at 60 s, `gdp` and `gdp-scc`, this branch (`runs/svfront/f2-mine`) and main at 6b2e2df
+(`f2-base`) launched together; wrong is an answer against the task's expected verdict.
+
+| | terminates | nonterminating | unsupported | wrong | solved of 282 |
+| --- | --- | --- | --- | --- | --- |
+| the task's statement (`gdp`), here | 158 | 55 | 11 | 0 | 213 |
+| main | 134 | 47 | 56 | 0 | 181 |
+| per component (`gdp-scc`), here | 144 | 55 | 11 | 0 | 199 |
+| main | 125 | 47 | 56 | 0 | 172 |
+| Ultimate Automizer v0.3.1 (`runs/modal/term/sv2`) | 171 | 53 | | 0 | 224 |
+
+- Gained (`gdp`), none lost: 25 tasks refused before (17 terminating: 12 recursive, `twisted` and `java_LogBuiltIn`
+  (a call's value returned), the two `SyntaxSupportPointer01`, `Arrays01`; 8 nonterminating: 4 recursive by the
+  nonterminating translation, `Arrays02`, `NonTermination3-1`, `-2`, `dijkstra1-both-nt-2` (unsigned)), and 7 unknown
+  before: `cohencu2`, `3`, `6`, `7`
+  and `Copenhagen_disj-2` (the overflow checks bound the values), `Pure3Phase-1`, `LeikeHeizmann-TACAS2014-Ex9`.
+  `Benghazi_nondet-2`'s answer comes from the unchecked translation (the checked one proved it in 1 of 4 runs). Answer
+  times: median 10.3 s for the gained ones (at most 43.6 s).
+- 16 answered here and not by Ultimate Automizer (`Ackermann-2`, `Fibonacci01-2`, `MutualRecursion_1b`,
+  `LeeJonesBen-Amram-POPL2001-Ex5`, `Arrays01`, `dijkstra1-both-nt-2`, the four `cohencu`, ...); 27 the other way:
+  18 loops of the exact translation whose rank isn't found (6 of them `gdp-scc` proves), 5 recursive programs whose
+  rank needs what a call returns (`McCarthy91_Recursion`, `NestedRecursion_1b`, `1c`, `1d`, `rec_counter3`: the
+  terminates translation lets a call return any value), `TwoWay` (a param fixed to 1 the rank needs),
+  `4BitCounterPointer`, and 2 nonterminating (`MutualRecursion_1a`: a call that never returns is made after a call
+  at the same depth that does; `divbin1-both-nt`: unsigned, its lasso's wrap values not drawn).
 
 ### Ranks from the relation (Unreleased)
 

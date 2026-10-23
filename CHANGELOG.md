@@ -74,6 +74,25 @@ refuses it. Nothing trusted changed (`kernel/`, `core/check.ts` and `lean-kernel
   4,298.9 s and 4,300.6 s `--usual`. Modal's billing for the work: $0.870 here (four extraction batches $0.011, three
   suites, the lean-nonterm reruns), $0.851 for the base.
 
+SV-COMP's C programs, faithfully and more of them (`compare/term/c2ari.py`): C's integer types and conversions on the
+task's data model (unsigned arithmetic modulo 2^n, the usual arithmetic conversions, narrowing as gcc does it, _Bool
+0 or 1), undefined behaviour ending the run (a signed overflow, checked unless the task's .yml declares none; division
+by zero; an access out of bounds or through a bad pointer), division by any divisor, the ternary operator, calls
+inside expressions, arrays of a fixed size, pointers to a fixed set of objects (&x, malloc, alloca, free), and
+recursion as two translations, each exact for its one answer (for "terminates" a call either never returns, its frame
+forgotten, or returns any value and writes any value to the globals it may write; for "nonterminating" calls inlined
+4 deep, past that never returning); solve.ts `--want` searches for one answer. Nothing trusted changed. 271 of the
+282 tasks translate (226 before); the 192 that translated before and have no overflow to check translate character
+for character as before (`runs/svfront/translations-main`, `translations-mine`). At 60 s on Modal, launched together
+with main at 6b2e2df: 213 solved (158 terminating, 55 not), main 181 (134, 47); per component 199 (144, 55), main 172
+(125, 47); none wrong against the tasks' expected verdicts, none lost (`runs/svfront/f2-mine`, `f2-base`). Ultimate
+Automizer 224 (`runs/modal/term/sv2`); 16 of the 213 it doesn't answer, 27 of its 224 not here (18 loops whose rank
+isn't found, 6 recursive programs needing what a call returns, 4BitCounterPointer, and 2 nonterminating). 38
+adversarial C programs (`compare/term/adversarial/*.c.txt`, `c2ari_test.py`: conversions, the data model, recursion,
+arrays, pointers, division, undefined behaviour where it is and isn't evaluated) are never answered against how they
+run (`runs/svfront/probes2`). Suites: by default 213 jobs, none failed, 595.3 s wall, 5,213.5 s of job time
+(`runs/svfront/suite-default`); `term-c2ari` now takes 2 vCPU.
+
 ## 0.23.0
 
 Every benchmark moved, two trusted additions came with their Lean proofs first, and a real-world corpus joins the
