@@ -24,7 +24,8 @@
 import {type C, type E, type Law, type Machine, type Request, type State, evalC, evalE, interpret, isArithmetic, loadJs, numbersOf} from './machine.ts'
 import {stepLawObligations, substC, substE} from '../kernel/kernel.ts'
 import {clock, counted} from '../kernel/prove.ts'
-import {REFUTED, growCdcl} from '../kernel/cdcl.ts'
+import {REFUTED, cdclSession, growCdcl} from '../kernel/cdcl.ts'
+import type {Outcome} from '../kernel/prove.ts'
 import {allowed} from './watch.ts'
 import {simpC, simpE} from './nonterm.ts'
 
@@ -54,8 +55,9 @@ export function bmcFits(m: Machine, laws: Law[]): boolean {
 export const bmcRate = 250
 // A forced run's share of the budget, and its steps at most (a derivation checkDerivation replays step by step).
 const forcedShare = 0.3, forcedSteps = 1_000_000
-// GDP_BMC_RELAX=0: no relaxed goal first (for comparing).
-const useRelax = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_BMC_RELAX !== '0'
+// GDP_BMC_RELAX=0: no relaxed goal first; GDP_BMC_INC=0: each depth's goal a search of its own (for comparing).
+const env = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env ?? {}
+const useRelax = env.GDP_BMC_RELAX !== '0', useInc = env.GDP_BMC_INC !== '0'
 
 // The goal of depth k: a run of k steps from the start whose last state breaks a law.
 export function bmcGoal(m: Machine, laws: Law[], k: number) {
@@ -246,6 +248,55 @@ export function forcedRun(m: Machine, laws: Law[], opts: {steps: number, wall: n
   return undefined
 }
 
+// The deeper goals as one growing goal, for one CDCL search kept from depth to depth (kernel/cdcl.ts's cdclSession):
+// each step's hypotheses written once, in names that stay (the state after step j as n~j, the j-th request as input@j),
+// relaxed and folded as above (each name of the step a constant or another name fixes put in, never one of an earlier
+// step's), and each depth's last state breaking a law a hypothesis of its own, `act@k >= 1 or <the law broken at ~k>`,
+// assumed by act@k <= 0 at depth k and set aside (act@k >= 1) at depth k + 1. Every clause the search learns is then a
+// consequence of the hypotheses it has, at every later depth too. For machines whose goals read no function and no
+// flag (whose kernel goals carry no fact this one would lack); the others, and a relaxed model the interpreter refuses,
+// are asked as before, depth by depth.
+function unrolled(m: Machine, laws: Law[]) {
+  const goal = {name: 'a bounded run', hyps: [] as C[]}, sub: Record<string, E> = {}, defs: [string, E][] = []
+  const v = (name: string): E => ({op: 'var', name}), K = (value: number): E => ({op: 'const', value})
+  const stateAt = (j: number): Record<string, E> => Object.fromEntries(Object.keys(m.state).map(n => [n, j === 0 ? m.state[n]! : v(`${n}~${j}`)]))
+  const put = (c: C): C => simpC(substC(c, {vars: sub, maps: {}, flags: {}}))
+  let k = 0, dead = false
+  const session = cdclSession(goal, new Map(), {model: true})
+  // Step j's hypotheses: its request allowed, each state value its term; folded; undefined where they can't hold.
+  const step = (j: number): C[] | undefined => {
+    const before = stateAt(j - 1), inputs = Object.fromEntries(m.inputs.map(i => [i, v(j === 1 ? i : `${i}@${j}`)]))
+    const at = {vars: {...before, ...inputs}, maps: {}, flags: {}}
+    const own = new Set([...Object.values(inputs).map(e => (e as {name: string}).name), ...Object.keys(m.state).map(n => `${n}~${j}`)])
+    const raw: C[] = [...(j === 1 && m.pre ? [m.pre] : []), ...(m.assume ? [substC(m.assume, at)] : []), ...Object.keys(m.state).map((n): C => ({op: '=', a: v(`${n}~${j}`), b: substE(m.step.state?.[n] ?? v(n), at)}))]
+    let cs = (useRelax ? relax(raw) : undefined) ?? raw
+    for (;;) {
+      cs = cs.map(put).flatMap(top)
+      if (cs.some(isFalse)) return undefined
+      cs = cs.filter(c => !isTrue(c))
+      const h = cs.find(c => c.op === '=' && ((c.a.op === 'var' && own.has(c.a.name) && !(c.a.name in sub) && (c.b.op === 'const' || (c.b.op === 'var' && c.b.name !== c.a.name))) || (c.b.op === 'var' && own.has(c.b.name) && !(c.b.name in sub) && c.a.op === 'const')))
+      if (!h || h.op !== '=') return cs
+      const [n, e] = h.a.op === 'var' && own.has(h.a.name) && !(h.a.name in sub) ? [h.a.name, h.b] : [(h.b as {name: string}).name, h.a]
+      sub[n] = e; defs.push([n, e])
+      for (const x of Object.keys(sub)) if (sub[x]!.op === 'var' && (sub[x] as {name: string}).name === n) sub[x] = e
+    }
+  }
+  // The next depth: its hypotheses added, and asked; the query folded to false is refuted with no search.
+  const next = (b: {nodes: number, until?: number}, wall?: number): {k: number, out: Outcome | 'refuted' | 'impossible'} => {
+    k++
+    if (dead) return {k, out: 'impossible'}
+    const cs = step(k)
+    if (!cs) { dead = true; return {k, out: 'impossible'} }
+    if (k > 1) goal.hyps.push({op: '<=', a: K(1), b: v(`act@${k - 1}`)})
+    goal.hyps.push(...cs)
+    const query = put(substC({op: 'not', x: {op: 'and', xs: laws.map(l => l.holds)}}, {vars: stateAt(k), maps: {}, flags: {}}))
+    if (isFalse(query)) return {k, out: 'refuted'}
+    goal.hyps.push({op: 'or', xs: [{op: '<=', a: K(1), b: v(`act@${k}`)}, query]})
+    return {k, out: session.run(b, wall, {[`act@${k}`]: 1})}
+  }
+  return {next, defs}
+}
+
 export function findBoundedRun(m: Machine, laws: Law[], opts: BmcOptions): BoundedRun | undefined {
   if (!laws.length || !bmcFits(m, laws)) return undefined
   const last = Math.min(64, opts.depth ?? 64)
@@ -255,8 +306,18 @@ export function findBoundedRun(m: Machine, laws: Law[], opts: BmcOptions): Bound
   if (forced) return forced
   return counted(bmcRate, () => {
     const until = clock() + opts.ms
+    const inc = useInc && !(opts.from && opts.from > 1) && !Object.keys(m.fns ?? {}).length && !Object.keys(m.step.flags ?? {}).length ? unrolled(m, laws) : undefined
     for (let k = opts.from ?? 1; k <= last && clock() < until && !(opts.wall !== undefined && performance.now() > opts.wall); k++) {
       const t0 = clock()
+      if (inc) {
+        const {out} = inc.next({nodes: 0, until}, opts.wall)
+        if (out === 'impossible') { opts.progress?.(k, 'refuted', Math.round(clock() - t0)); return undefined }
+        if (out === 'refuted' || 'tree' in out || out.why === REFUTED) { opts.progress?.(k, 'refuted', Math.round(clock() - t0)); continue }
+        if (out.stuck !== 'sat' || !out.witness) { opts.progress?.(k, 'unknown', Math.round(clock() - t0)); return undefined }
+        const run = runOf(m, putBack(m, out.witness, inc.defs), k), broken = replay(m, laws, run)
+        if (broken) { opts.progress?.(k, 'sat', Math.round(clock() - t0)); return {law: broken.law, witness: broken.witness, depth: broken.steps, params: run.params, trace: run.trace.slice(0, broken.steps)} }
+        // (a model the interpreter refuses: the goal itself asked at this depth, below)
+      }
       let goal
       try { goal = bmcGoal(m, laws, k) } catch { return undefined }
       const f = fixed(goal.hyps)
@@ -271,7 +332,7 @@ export function findBoundedRun(m: Machine, laws: Law[], opts: BmcOptions): Bound
         const run = runOf(m, putBack(m, {...out.witness, ...f.fixed}, r.defs), k), broken = replay(m, laws, run)
         return broken ? {law: broken.law, witness: broken.witness, depth: broken.steps, params: run.params, trace: run.trace.slice(0, broken.steps)} : 'sat'
       }
-      const relaxed = useRelax ? relax(f.hyps) : undefined
+      const relaxed = useRelax && !inc ? relax(f.hyps) : undefined
       let got = relaxed ? ask(relaxed) : 'sat'
       if (got === 'sat') got = ask(f.hyps)
       opts.progress?.(k, typeof got === 'string' ? got : 'sat', Math.round(clock() - t0))

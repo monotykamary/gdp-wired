@@ -60,7 +60,16 @@ export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions
 // outcome `unknown` with `why` REFUTED; each decision's phase is the simplex's point's (phaseAtPoint); past `opts.wall` (wall time) the search stops as past its budget.
 export const REFUTED = 'refuted, not unfolded'
 export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?: number}, opts: {maxLeaves?: number, model?: boolean, wall?: number} = {}): Outcome {
-  const until = budget.until ?? Infinity, st = cdclStats, timing = st.on
+  return cdclSession(goal, root, opts).run(budget, opts.wall)
+}
+// A search kept from one run to the next (core/bmc.ts's deeper goals): its atoms, their activities and phases, its learned
+// clauses and the simplex's tableau. Between runs the caller may add hypotheses to the goal (goal.hyps grows; none is
+// taken away), so every clause learned stays a consequence of the goal. A run may assume an atom (`assume`, decided
+// first, at level 1): where the search learns it false the run ends refuted (REFUTED), as where nothing is assumed and
+// the goal is refuted. Each run's own budget: nodes, `until` on the counted clock, `wall`.
+export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, model?: boolean} = {}) {
+  let until = Infinity, budget: {nodes: number, until?: number} = {nodes: 0}, wall: number | undefined, assumed: [string, boolean] | undefined
+  const st = cdclStats, timing = st.on
   const t = <T>(f: () => T, add: (ms: number) => void): T => { if (!timing) return f(); const t0 = performance.now(); try { return f() } finally { add(performance.now() - t0) } }
   st.runs++
   const vars = new Map<string, Var>(), trail: string[] = [], levels: number[] = []
@@ -84,7 +93,8 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
     get: name => vars.get(name), stamp: at => stamps[at]!, size: () => trail.length,
     lin: at => { const name = trail[at]!, x = vars.get(name)!; return {name, lin: x.lin, holds: x.val!} },
   })
-  const last = goal.hyps.length - 1, near = nearOf(goal)
+  let last = goal.hyps.length - 1
+  const near = nearOf(goal)
   const decidedLin = (lin: Lin) => vars.get(keyOf(lin))?.val !== undefined
   const fixed = trail.length
   const level = () => levels.length
@@ -185,163 +195,178 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
   }
   let restartAt = 32, nRestart = 0, sinceRestart = 0
   const stuck = (kind: 'sat' | 'unknown', why: string, extra: {witness?: Record<string, number>} = {}): Outcome => ({stuck: kind, path: pathOf(), why, ...extra})
-  for (;;) {
-    if (++budget.nodes > 200_000 || clock() > until || (opts.wall !== undefined && performance.now() > opts.wall)) return stuck('unknown', budget.nodes > 200_000 ? 'nodes' : 'time')
-    let conflict: Clause | undefined
-    const ci = propagate()
-    if (ci !== undefined) conflict = clauses[ci]!
-    else {
-      reader.begin()
-      st.nodes++
-      const rowsR = t(() => reader.rows(), ms => { st.rowsMs += ms })
-      const full: Constraint[] = rowsR
-      if (verify) {
-        const mine = new Set(rowsR.map(r => canon(r.lin))), theirs = new Set(leafConstraints(goal, pathOf()).map(r => canon(r.lin)))
-        if (mine.size !== theirs.size || [...mine].some(x => !theirs.has(x))) throw new Error(`reader.ts's rows differ from kernel.ts's at a node of ${goal.name}`)
-      }
-      work.n += 1 + full.length
-      // (the elimination below reads term columns' rows only once the trail has an atom about one, as growPlain does)
-      let columns = false
-      for (let i = 0; i < trail.length && !columns; i++) for (const key in vars.get(trail[i]!)!.lin) if (key.startsWith('⟦')) { columns = true; break }
-      const idx = columns ? undefined : full.flatMap((r, i) => (namesOf(r.lin).some(key => key.startsWith('⟦')) ? [] : [i]))
-      const rows = idx ? idx.map(i => full[i]!) : full, at = (i: number) => (!idx ? i : i < rows.length ? idx[i]! : full.length + i - rows.length)
-      // The candidates, in growPlain's order: the units, the conclusion's open atoms, the hypotheses' near it, the
-      // rest, pairs of cells.
-      const cands = t(() => {
-        const out: Lin[] = [...unitAtoms(goal)]
-        if (last >= 0) reader.open(last, out)
-        for (let i = 0; i < last; i++) if (near[i]) reader.open(i, out)
-        for (let i = 0; i < last; i++) if (!near[i]) reader.open(i, out)
-        if (rows.some(r => namesOf(r.lin).some(isCell))) for (const x of openCells(rows, pathOf())) out.push(x)
-        const seen = new Set<Lin>()
-        return out.filter(lin => !seen.has(lin) && (seen.add(lin), namesOf(lin).length > 0) && !decidedLin(lin))
-      }, ms => { st.orderMs += ms })
-      const open = cands.length > 0
-      // Bound propagation: an open atom its variables' bounds (the single-variable rows) decide.
-      const tb = timing ? performance.now() : 0
-      if (open) {
-        const lo = new Map<string, [number, number]>(), hi = new Map<string, [number, number]>()
-        full.forEach((r, i) => {
-          const ks = namesOf(r.lin)
-          if (ks.length !== 1) return
-          const x0 = ks[0]!, c = r.lin[x0]!, k0 = r.lin['1'] ?? 0
-          if (c > 0) { const b = Math.floor(-k0 / c); if (b < (hi.get(x0)?.[0] ?? Infinity)) hi.set(x0, [b, i]) }
-          else if (c < 0) { const b = Math.ceil(k0 / -c); if (b > (lo.get(x0)?.[0] ?? -Infinity)) lo.set(x0, [b, i]) }
-        })
-        let forced = 0
-        for (const lin of cands) {
-          const name = ensure(lin), x = vars.get(name)!
-          if (x.val !== undefined || namesOf(x.lin).some(key => key.startsWith('⟦'))) continue // (a term column's rows read differently once its choice is decided)
-          const side = (val: boolean): number[] | undefined => { // the rows that force the stored atom to `val`
-            let sum = x.lin['1'] ?? 0
-            const used: number[] = []
-            for (const [x0, c] of x.terms) {
-              const b = (c > 0) === val ? hi.get(x0) : lo.get(x0)
-              if (!b) return undefined
-              sum += c * b[0]; used.push(b[1])
-            }
-            return (val ? sum <= 0 : sum >= 1) ? used : undefined
-          }
-          for (const val of [true, false]) {
-            const used = side(val)
-            if (!used) continue
-            const w = new Set<string>()
-            for (const i of used) for (const n of rowsR[i]!.w) w.add(n)
-            clauses.push({lits: new Map([[name, !val]]), node: -1})
-            pending.set(clauses.length - 1, {w, used: used.map(i => full[i]!.lin), name, val})
-            assign(name, val, clauses.length - 1)
-            forced++
-            break
-          }
-        }
-        if (timing) st.boundMs += performance.now() - tb
-        if (forced) { st.boundRounds++; continue }
-      }
-      let steps: Step[] | undefined, lpSat = false
-      let verdict: ReturnType<typeof solve> | undefined
-      t(() => {
-        // The simplex first (warm from the node before): a conflict's rows, refuted exactly, are the leaf. With a case
-        // still open, a node it finds feasible is split; with none, the exact elimination below decides it (integers).
-        if (sx) {
-          const t0 = timing ? performance.now() : 0
-          // (a tableau that has gathered many more forms than a node reads is begun again: every pivot updates them all)
-          if (sx.size > 4 * full.length + 500 || sx.nnz > lpFill * full.length) { sx = new Simplex(); st.lpRebuilds++ }
-          const p0 = sx.pivots
-          let lp = sx.load(full)
-          if (lp.kind === 'sat') lp = sx.check()
-          if (timing) { st.lpMs += performance.now() - t0; st.pivots += sx.pivots - p0; st.lpRows = sx.size; st.lpNnz = sx.nnz; st.lpVars = sx.vars; st.lpLoad = full.length; if (lp.kind === 'unknown') st.lpUnknown++ }
-          if (lp.kind === 'conflict') {
-            const support = lp.rows.sort((x, y) => x - y), out = solve(support.map(i => full[i]!))
-            if (out.kind === 'refuted') steps = out.steps.map(s => (s.kind === 'input' ? {...s, index: support[s.index]!} : s))
-            else st.lpMisses++
-          }
-          lpSat = lp.kind === 'sat'
-          if (steps || (open && lp.kind === 'sat')) return
-        }
-        st.fmCalls++
-        if (open && rows.length > 60) { const fast = refuteFast(rows); if (fast?.kind === 'refuted') steps = fast.steps.map(s => (s.kind === 'input' ? {...s, index: at(s.index)} : s)) }
-        if (!steps) {
-          verdict = open && rows.length > 60 ? solve(rows, 2 * rows.length) : solve(rows)
-          if (verdict.kind === 'refuted') steps = verdict.steps.map(s => (s.kind === 'input' ? {...s, index: at(s.index)} : s))
-        }
-        if (!steps && open && !columns && full.length > rows.length) { const fast = refuteFast(full); if (fast?.kind === 'refuted') steps = fast.steps }
-      }, ms => { st.solveMs += ms })
-      if (steps) conflict = leafAt(rowsR, steps)
-      else {
-        if (opts.model && lpSat && sx && open) phaseAtPoint(cands, sx)
-        // A decision: the open atom of highest activity (the first candidate among equals).
-        let pick: string | undefined, best = -1
-        for (const lin of cands) { const name = ensure(lin), x = vars.get(name)!; if (x.val === undefined && x.act > best) { best = x.act; pick = name } }
-        if (!pick && verdict?.kind === 'unknown') {
-          for (const [x0, value] of Object.entries(verdict.point ?? {})) {
-            if (Math.abs(value - Math.round(value)) < 1e-9 || isMonomial(x0)) continue
-            const c = Math.floor(value), lin: Lin = c === 0 ? {[x0]: 1} : {[x0]: 1, 1: -c}
-            if (!decidedLin(lin)) { pick = ensure(lin); break }
-          }
-        }
-        // Nothing open by this reading: the kernel's own reading of the trail (prove.ts's) has the last word.
-        if (!pick) {
-          const p = pathOf(), more = openAt(goal, p, rowsAt(goal, p)).find(lin => Object.keys(lin).some(key => key !== '1') && !decidedLin(lin))
-          if (more) { st.openMisses++; pick = ensure(more) }
-        }
-        if (!pick) return verdict?.kind === 'sat' ? stuck('sat', 'a model', {witness: verdict.witness}) : stuck('unknown', 'no split')
-        levels.push(trail.length)
-        st.decisions++
-        assign(pick, vars.get(pick)!.phase)
-        continue
-      }
-    }
-    // Conflict analysis.
-    st.conflicts++; sinceRestart++
-    let c = conflict
+  const run = (b: {nodes: number, until?: number}, w?: number, assume?: Lin): Outcome => {
+    budget = b; until = b.until ?? Infinity; wall = w; last = goal.hyps.length - 1
+    restartAt = 32; nRestart = 0; sinceRestart = 0
+    undoTo(0); qhead = Math.min(qhead, trail.length) // (a run before this one may have left decisions)
+    if (assume) { const name = ensure(assume); assumed = [name, name === canon(assume)] } else assumed = undefined
+    return search()
+  }
+  const search = (): Outcome => {
     for (;;) {
-      if (!c.lits.size) {
-        if (opts.model) return {stuck: 'unknown', path: new Map(), why: REFUTED}
-        const tree = t(() => unfold(goal, nodes, c.node, root, opts.maxLeaves ?? 20_000, until), ms => { st.unfoldMs += ms })
-        if (!tree) return stuck('unknown', 'unfold')
-        st.proven++
-        return {tree, nodes: budget.nodes}
+      if (++budget.nodes > 200_000 || clock() > until || (wall !== undefined && performance.now() > wall)) return stuck('unknown', budget.nodes > 200_000 ? 'nodes' : 'time')
+      let conflict: Clause | undefined
+      const ci = propagate()
+      if (ci !== undefined) conflict = clauses[ci]!
+      else if (assumed && vars.get(assumed[0])!.val === !assumed[1]) return {stuck: 'unknown', path: new Map(), why: REFUTED}
+      else if (assumed && vars.get(assumed[0])!.val === undefined) {
+        levels.push(trail.length)
+        assign(assumed[0], assumed[1])
+        continue
+      } else {
+        reader.begin()
+        st.nodes++
+        const rowsR = t(() => reader.rows(), ms => { st.rowsMs += ms })
+        const full: Constraint[] = rowsR
+        if (verify) {
+          const mine = new Set(rowsR.map(r => canon(r.lin))), theirs = new Set(leafConstraints(goal, pathOf()).map(r => canon(r.lin)))
+          if (mine.size !== theirs.size || [...mine].some(x => !theirs.has(x))) throw new Error(`reader.ts's rows differ from kernel.ts's at a node of ${goal.name}`)
+        }
+        work.n += 1 + full.length
+        // (the elimination below reads term columns' rows only once the trail has an atom about one, as growPlain does)
+        let columns = false
+        for (let i = 0; i < trail.length && !columns; i++) for (const key in vars.get(trail[i]!)!.lin) if (key.startsWith('⟦')) { columns = true; break }
+        const idx = columns ? undefined : full.flatMap((r, i) => (namesOf(r.lin).some(key => key.startsWith('⟦')) ? [] : [i]))
+        const rows = idx ? idx.map(i => full[i]!) : full, at = (i: number) => (!idx ? i : i < rows.length ? idx[i]! : full.length + i - rows.length)
+        // The candidates, in growPlain's order: the units, the conclusion's open atoms, the hypotheses' near it, the
+        // rest, pairs of cells.
+        const cands = t(() => {
+          const out: Lin[] = [...unitAtoms(goal)]
+          if (last >= 0) reader.open(last, out)
+          for (let i = 0; i < last; i++) if (near[i]) reader.open(i, out)
+          for (let i = 0; i < last; i++) if (!near[i]) reader.open(i, out)
+          if (rows.some(r => namesOf(r.lin).some(isCell))) for (const x of openCells(rows, pathOf())) out.push(x)
+          const seen = new Set<Lin>()
+          return out.filter(lin => !seen.has(lin) && (seen.add(lin), namesOf(lin).length > 0) && !decidedLin(lin))
+        }, ms => { st.orderMs += ms })
+        const open = cands.length > 0
+        // Bound propagation: an open atom its variables' bounds (the single-variable rows) decide.
+        const tb = timing ? performance.now() : 0
+        if (open) {
+          const lo = new Map<string, [number, number]>(), hi = new Map<string, [number, number]>()
+          full.forEach((r, i) => {
+            const ks = namesOf(r.lin)
+            if (ks.length !== 1) return
+            const x0 = ks[0]!, c = r.lin[x0]!, k0 = r.lin['1'] ?? 0
+            if (c > 0) { const b = Math.floor(-k0 / c); if (b < (hi.get(x0)?.[0] ?? Infinity)) hi.set(x0, [b, i]) }
+            else if (c < 0) { const b = Math.ceil(k0 / -c); if (b > (lo.get(x0)?.[0] ?? -Infinity)) lo.set(x0, [b, i]) }
+          })
+          let forced = 0
+          for (const lin of cands) {
+            const name = ensure(lin), x = vars.get(name)!
+            if (x.val !== undefined || namesOf(x.lin).some(key => key.startsWith('⟦'))) continue // (a term column's rows read differently once its choice is decided)
+            const side = (val: boolean): number[] | undefined => { // the rows that force the stored atom to `val`
+              let sum = x.lin['1'] ?? 0
+              const used: number[] = []
+              for (const [x0, c] of x.terms) {
+                const b = (c > 0) === val ? hi.get(x0) : lo.get(x0)
+                if (!b) return undefined
+                sum += c * b[0]; used.push(b[1])
+              }
+              return (val ? sum <= 0 : sum >= 1) ? used : undefined
+            }
+            for (const val of [true, false]) {
+              const used = side(val)
+              if (!used) continue
+              const w = new Set<string>()
+              for (const i of used) for (const n of rowsR[i]!.w) w.add(n)
+              clauses.push({lits: new Map([[name, !val]]), node: -1})
+              pending.set(clauses.length - 1, {w, used: used.map(i => full[i]!.lin), name, val})
+              assign(name, val, clauses.length - 1)
+              forced++
+              break
+            }
+          }
+          if (timing) st.boundMs += performance.now() - tb
+          if (forced) { st.boundRounds++; continue }
+        }
+        let steps: Step[] | undefined, lpSat = false
+        let verdict: ReturnType<typeof solve> | undefined
+        t(() => {
+          // The simplex first (warm from the node before): a conflict's rows, refuted exactly, are the leaf. With a case
+          // still open, a node it finds feasible is split; with none, the exact elimination below decides it (integers).
+          if (sx) {
+            const t0 = timing ? performance.now() : 0
+            // (a tableau that has gathered many more forms than a node reads is begun again: every pivot updates them all)
+            if (sx.size > 4 * full.length + 500 || sx.nnz > lpFill * full.length) { sx = new Simplex(); st.lpRebuilds++ }
+            const p0 = sx.pivots
+            let lp = sx.load(full)
+            if (lp.kind === 'sat') lp = sx.check()
+            if (timing) { st.lpMs += performance.now() - t0; st.pivots += sx.pivots - p0; st.lpRows = sx.size; st.lpNnz = sx.nnz; st.lpVars = sx.vars; st.lpLoad = full.length; if (lp.kind === 'unknown') st.lpUnknown++ }
+            if (lp.kind === 'conflict') {
+              const support = lp.rows.sort((x, y) => x - y), out = solve(support.map(i => full[i]!))
+              if (out.kind === 'refuted') steps = out.steps.map(s => (s.kind === 'input' ? {...s, index: support[s.index]!} : s))
+              else st.lpMisses++
+            }
+            lpSat = lp.kind === 'sat'
+            if (steps || (open && lp.kind === 'sat')) return
+          }
+          st.fmCalls++
+          if (open && rows.length > 60) { const fast = refuteFast(rows); if (fast?.kind === 'refuted') steps = fast.steps.map(s => (s.kind === 'input' ? {...s, index: at(s.index)} : s)) }
+          if (!steps) {
+            verdict = open && rows.length > 60 ? solve(rows, 2 * rows.length) : solve(rows)
+            if (verdict.kind === 'refuted') steps = verdict.steps.map(s => (s.kind === 'input' ? {...s, index: at(s.index)} : s))
+          }
+          if (!steps && open && !columns && full.length > rows.length) { const fast = refuteFast(full); if (fast?.kind === 'refuted') steps = fast.steps }
+        }, ms => { st.solveMs += ms })
+        if (steps) conflict = leafAt(rowsR, steps)
+        else {
+          if (opts.model && lpSat && sx && open) phaseAtPoint(cands, sx)
+          // A decision: the open atom of highest activity (the first candidate among equals).
+          let pick: string | undefined, best = -1
+          for (const lin of cands) { const name = ensure(lin), x = vars.get(name)!; if (x.val === undefined && x.act > best) { best = x.act; pick = name } }
+          if (!pick && verdict?.kind === 'unknown') {
+            for (const [x0, value] of Object.entries(verdict.point ?? {})) {
+              if (Math.abs(value - Math.round(value)) < 1e-9 || isMonomial(x0)) continue
+              const c = Math.floor(value), lin: Lin = c === 0 ? {[x0]: 1} : {[x0]: 1, 1: -c}
+              if (!decidedLin(lin)) { pick = ensure(lin); break }
+            }
+          }
+          // Nothing open by this reading: the kernel's own reading of the trail (prove.ts's) has the last word.
+          if (!pick) {
+            const p = pathOf(), more = openAt(goal, p, rowsAt(goal, p)).find(lin => Object.keys(lin).some(key => key !== '1') && !decidedLin(lin))
+            if (more) { st.openMisses++; pick = ensure(more) }
+          }
+          if (!pick) return verdict?.kind === 'sat' ? stuck('sat', 'a model', {witness: verdict.witness}) : stuck('unknown', 'no split')
+          levels.push(trail.length)
+          st.decisions++
+          assign(pick, vars.get(pick)!.phase)
+          continue
+        }
+      }
+      // Conflict analysis.
+      st.conflicts++; sinceRestart++
+      let c = conflict
+      for (;;) {
+        if (!c.lits.size) {
+          if (opts.model) return {stuck: 'unknown', path: new Map(), why: REFUTED}
+          const tree = t(() => unfold(goal, nodes, c.node, root, opts.maxLeaves ?? 20_000, until), ms => { st.unfoldMs += ms })
+          if (!tree) return stuck('unknown', 'unfold')
+          st.proven++
+          return {tree, nodes: budget.nodes}
+        }
+        const top = Math.max(...[...c.lits.keys()].map(name => vars.get(name)!.level))
+        if (top < level()) { undoTo(top); qhead = trail.length }
+        const here = [...c.lits.keys()].filter(name => vars.get(name)!.level === top)
+        if (top === 0) { c = resolveOn(c, here.reduce((a, b) => (vars.get(a)!.at > vars.get(b)!.at ? a : b))); continue }
+        if (here.length === 1) break
+        const latest = here.reduce((a, b) => (vars.get(a)!.at > vars.get(b)!.at ? a : b))
+        if (vars.get(latest)!.reason === undefined) break
+        c = resolveOn(c, latest)
       }
       const top = Math.max(...[...c.lits.keys()].map(name => vars.get(name)!.level))
-      if (top < level()) { undoTo(top); qhead = trail.length }
       const here = [...c.lits.keys()].filter(name => vars.get(name)!.level === top)
-      if (top === 0) { c = resolveOn(c, here.reduce((a, b) => (vars.get(a)!.at > vars.get(b)!.at ? a : b))); continue }
-      if (here.length === 1) break
-      const latest = here.reduce((a, b) => (vars.get(a)!.at > vars.get(b)!.at ? a : b))
-      if (vars.get(latest)!.reason === undefined) break
-      c = resolveOn(c, latest)
+      bump(c.lits)
+      const learned = addClause(c.lits, c.node)
+      if (here.length !== 1) { undoTo(Math.max(0, top - 1)); qhead = Math.min(qhead, trail.length); continue }
+      const uip = here[0]!
+      undoTo(Math.max(0, ...[...c.lits.keys()].filter(name => name !== uip).map(name => vars.get(name)!.level)))
+      qhead = trail.length
+      assign(uip, !c.lits.get(uip)!, learned)
+      if (sinceRestart >= restartAt) { sinceRestart = 0; restartAt = 32 * luby(++nRestart); undoTo(0); qhead = Math.min(qhead, trail.length) }
     }
-    const top = Math.max(...[...c.lits.keys()].map(name => vars.get(name)!.level))
-    const here = [...c.lits.keys()].filter(name => vars.get(name)!.level === top)
-    bump(c.lits)
-    const learned = addClause(c.lits, c.node)
-    if (here.length !== 1) { undoTo(Math.max(0, top - 1)); qhead = Math.min(qhead, trail.length); continue }
-    const uip = here[0]!
-    undoTo(Math.max(0, ...[...c.lits.keys()].filter(name => name !== uip).map(name => vars.get(name)!.level)))
-    qhead = trail.length
-    assign(uip, !c.lits.get(uip)!, learned)
-    if (sinceRestart >= restartAt) { sinceRestart = 0; restartAt = 32 * luby(++nRestart); undoTo(0); qhead = Math.min(qhead, trail.length) }
   }
+  return {run}
 }
 
 // The DAG as a kernel tree below `root`, walked depth first with a reader of its own (the tree's path is a stack, as
