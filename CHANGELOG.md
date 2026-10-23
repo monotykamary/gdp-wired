@@ -5,6 +5,58 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+Bounded runs faster and longer: CHC-COMP LIA-Lin at 60 s on Modal, 923 answered (526 sat, 397 unsat), main (6b2e2df)
+launched beside it 783 (517, 266); unsat 131 more and none fewer, sat 17 more and 8 fewer, out of time 5 against 8
+(`runs/bmc2/chc-mine4-b15`, `runs/bmc2/chc-base4`). Every unsat answer is a run the compiled rule takes and
+`checkDerivation` confirms against the CHC; none contradicts Spacer's or Golem's verdict, and 20 are tasks neither
+answered. Two derivations refute their task's expected verdict, both checked again by a simulation of the clauses:
+`s_split_50_000_001` (999,002 steps; its verdict sat is LoAT's vote alone) and `s_split_22_000_001` (280,277 steps; a
+placeholder verdict, no vote): compare/chc/disputed.json records them, `summary.ts` lists them as disputed (neither
+right nor wrong), and their derivations are kept (`runs/bmc2/disputed/`, checked again by research/bmc2/disputed.py). Lustre's 321 unsat tasks: 147 to 254; by Golem's
+derivation length, 4 steps 18/81 to 78/81, 5 or more 9/59 to 19/59; the round-2 corpus's group H 108 to 215 of 273. Its
+derivation items 3 of 3 (main 2): `s_split_01`'s 10,002 steps in 260 ms. Nothing trusted changed (`kernel/kernel.ts`,
+`kernel/cyclic.ts`, `core/check.ts` and `lean-kernel/` are as at 6b2e2df).
+
+- core/bmc.ts: each goal relaxed (an integer pair written as any two naturals of the difference, which every read of
+  a pair is; the interpreter normalizes, and where it refuses the run the goal itself is asked) and reduced (copies and
+  constants put in, definitions nothing reads dropped and put back into the model); the deeper goals one growing goal
+  for one CDCL search (kernel/cdcl.ts's `cdclSession`: each depth's query assumed by an activation atom and set aside
+  at the next, so learned clauses, activities, phases and the simplex carry over), its cone of influence; a forced run
+  first (a deterministic loop run by the compiled rule, up to 30% of the stage and a million steps); the counted
+  clock's rate 250 units a ms (252 measured at the median, 168 at main).
+- kernel/reader.ts keeps a value with an open read while nothing it read has changed (`touch` at each change of the
+  trail marks its readers): research/dag's 332 step goals give the same trees, by `growCdcl` and by `grow`, as at 0.23.0,
+  in half the search time (608.4 s to 303.9 s; 638.7 s to 360.9 s); 734 bounded-run goals searched alike with and
+  without it (`runs/bmc2/eq332-1`, `eq3`, `eq2`).
+- compare/chc/solve.ts's `bmc` stage 15 s (was 10): beside main in three batches, 10 s against 15 s solved 902 and 910,
+  904 and 914, 909 and 923; 20 s 917 and 923 (compare/chc/README.md, `runs/bmc2/chc-*`).
+- The stage alone on the 475 unsat tasks (56 s): 407, main 312; within 10 s 365, main 244 (`runs/bmc2/only-inc3`,
+  `only-base1`).
+- The other benchmarks beside main, launched together: TIP 2015 182 proven, main 181 (`isaplanner/prop_51` more, none
+  fewer; `runs/bmc2/tip-mine`, `tip-base`); SV-COMP termination 182 and 182, every answer the same (`sv-*`); TermComp
+  ITS 1,029, main 1,026 (10 more, 7 fewer, each where the lasso and rank searches, random and bounded by wall time,
+  finish near the limit, `its-*`); research/realworld's 311 laws: every verdict as main's (`rw-mine3`, `rw-base`).
+  The second frontier corpus: frontier 28 of 47, main 27, every broken variant refused in both (`corpus2-mine2`,
+  `corpus2-base1`).
+- The infer and data tests on 1 vCPU, ten jobs each side interleaved (`runs/bmc2/onecpu`): none failed; data's "agrees
+  with + on small values only" median 2,447 ms, max 3,341, main 2,985 and 3,665; infer's slowest median 4,895 ms, max
+  5,814, main 5,302 and 6,052. search.test's "a search that finds nothing" 0.89 to 1.18 s, main 0.53 to 0.84 s (its
+  counter is a deterministic loop, run forward until the forced run's share is spent), within its 8 s.
+- A new test (core/search.test.ts): a deterministic loop broken after 10,000 steps, refuted by its forced run.
+- After merging main at 5055882 (k-induction on the second vCPU beside every stage; the bounded runs' stage unchanged
+  in the first process's time plan): CHC-COMP 938 answered (540 sat, 398 unsat, 2 of them the disputed labels above),
+  main 5055882 launched beside it 801 (536, 265); unsat 133 more and none fewer, sat 10 more and 6 fewer (5 solved
+  past 58 s in main, and `s_split_42_000_000`), sat by k-induction 134 against main's 133 (`runs/bmc2/chc-merged1`,
+  `chc-main5`). The 332 step goals: the same trees by growCdcl and by grow (`runs/bmc2/eq4`). The suite (217 jobs): by
+  default 552.7 s wall, 5,164.0 s of job time, none failed (`suite-merged-default`); `--usual` 569.4 s and 4,888.9 s,
+  none failed (`suite-merged-usual`). The infer and data tests on 1 vCPU beside main's, interleaved (`onecpu2`,
+  `onecpu3`): none failed; "a search that finds nothing" median 1.2 s against 0.8 s (above), the rest within the runs'
+  spread (the infer join test median 6,004 and 5,511 ms in two runs, main's 5,334 and 5,944).
+- The suite (213 jobs) on Modal at this branch's last commit: by default 552.0 s wall, 5,042.3 s of job time, none
+  failed (`runs/bmc2/suite-default2`); `--usual` 526.0 s and 4,497.3 s, none failed (`suite-usual2`). Main's default
+  run beside an earlier commit here: on the 207 jobs both passed, 4,833.9 s of job time against 4,846.9 s
+  (`suite-base-default`, `suite-default`; main's other 6 failed in that checkout, which lacked the vendored sources).
+
 Termination through lemmas: a ring of functions calling each other taken by well-founded recursion (a measure each),
 and a call's decrease proven through size laws about the function of its argument, conjectured, proven by induction
 and used. **Trusted change:** `lean-kernel/Data.lean`'s `wf_fix_unique_ring` (a functional over a ring's tuple of
