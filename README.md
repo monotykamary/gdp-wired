@@ -106,6 +106,13 @@ All of these are proven automatically, and each proof is also a Lean theorem:
 - **Runs that never end**: `proveNeverEnds(loop)` proves some run of a loop goes on forever (pagination that accepts an
   empty page, a retry with no cap): a closed recurrent set with the turn from each of its states given, a start and a
   stem into it, checked by the kernel and again in Lean (`NonTerm.lean`'s `never_ends_of`; `examples/nonterm.ts`).
+- **Rules over the rationals** (`gdp-wired/rationals`): `ratRule` with `rat` and `nonneg` params, inputs and state,
+  each value an exact rational (0.1 is 1/10, a third is 1/3: nothing scaled to cents or encoded as naturals), terms
+  linear (+, −, × and ÷ by a constant, min, max, when). Linear arithmetic over ℚ is decidable: a law is proven by
+  trees whose leaves are Farkas certificates with strict rows, or refuted by an exact run from the start. A fee split,
+  a rate limiter with fractional tokens and a ledger in decimals, and 12 laws true over one of ℕ and ℚ and false over
+  the other, each decided both ways (`examples/rationals.ts`); the proofs again in Lean (`Rationals.lean`'s
+  `Q.machine_sound`). Products of unknowns and transcendental functions stay outside.
 - **Recursive datatypes as values** (`gdp-wired/data`): lists, trees, rose trees and their forests, declared by their
   constructors; functions over them by structural recursion, or by any recursion whose termination is proven first (a
   merge of two lists, a quicksort: the measure found, (size xs, size ys) or a sum of sizes, and each call's decrease
