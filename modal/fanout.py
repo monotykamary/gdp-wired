@@ -392,7 +392,7 @@ def cli(run, runner: str, doc: str = ""):
     import signal
     reexec_with_modal()
     ap = argparse.ArgumentParser(description=(doc or "").split("\n\n")[0])
-    ap.add_argument("--backend", default="modal", choices=["modal", "auto", "boat"])
+    ap.add_argument("--backend", default="auto", choices=["modal", "auto", "boat"])
     ap.add_argument("--vms", type=int, default=0, help="boat VMs for the batch (default: by the work and the plan's limits)")
     ap.add_argument("--max-vms", type=int, default=0, help="at most this many VMs, and the batch's cap on its starts (default 50: GDPW_BOAT_MAX_STARTS)")
     ap.add_argument("--idle", type=int, default=None, help="seconds a released VM stays up before boat stops it (0: stop at once; default 60)")
@@ -490,7 +490,7 @@ def gpu_cli(main, runner: str):
         elif isinstance(p.default, bool):
             ap.add_argument(flag, action="store_true", default=p.default, dest=p.name)
         else:
-            ap.add_argument(flag, type=type(p.default), default=p.default, dest=p.name)
+            ap.add_argument(flag, type=type(p.default), default="auto" if p.name == "backend" else p.default, dest=p.name)
     a = ap.parse_args()
 
     def h(sig, frame):

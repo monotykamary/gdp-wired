@@ -7,7 +7,7 @@ on every run (so edits need no rebuild).
 `--backend auto` runs the same jobs, with the same flags and outputs, on boat.dev VMs (modal/boat.py: a pool kept
 stopped between batches, 2 vCPU and 4 GB a slot) and moves to Modal what boat can't serve (modal/fanout.py); summary.tsv
 gets a 4th column, the backend each job ran on, and the final line says where they ran, why any moved and what the VMs
-cost. `modal` is the default; `--backend auto` tries boat first and `--backend boat` forces it (boat is backup compute).
+cost. `auto` is the default from `python3`; `--backend boat` forces boat; `modal` (and `modal run`) is Modal as before.
 
 jobs.json is a list of {"name", "cmd", "cwd"?, "cpu"?, "memory"?, "timeout"?}; cmd runs under bash in gdp-wired/<cwd>.
 Each job's output lands in <out>/<name>.log, and <out>/summary.tsv has name, exit code and seconds.
@@ -159,12 +159,12 @@ if __name__ == "__main__":
     sys.path.insert(0, str(HERE))
     import fanout
     fanout.reexec_with_modal()
-    ap = argparse.ArgumentParser(description="modal/run.py's jobs on a backend: modal (the default), auto (boat, Modal when boat can't), boat")
+    ap = argparse.ArgumentParser(description="modal/run.py's jobs on a backend: auto (the default: boat, Modal when boat can't), boat, modal")
     ap.add_argument("--jobs", required=True)
     ap.add_argument("--out", required=True)
     for f in ("native", "cyclic", "usual", "teardown"):
         ap.add_argument(f"--{f}", action="store_true")
-    ap.add_argument("--backend", default="modal", choices=["modal", "auto", "boat"])
+    ap.add_argument("--backend", default="auto", choices=["modal", "auto", "boat"])
     ap.add_argument("--vms", type=int, default=0, help="boat VMs for the batch (default: by the jobs' last times and the plan's limits)")
     ap.add_argument("--max-vms", type=int, default=0, help="at most this many VMs, and the batch's cap on its starts (default 50: GDPW_BOAT_MAX_STARTS)")
     ap.add_argument("--idle", type=int, default=-1, help="seconds a released VM stays up before boat stops it (0: stop at once; default 60)")

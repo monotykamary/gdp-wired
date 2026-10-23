@@ -157,8 +157,6 @@ second frontier corpus, 8 of 42 against 3 of 42, every broken variant refused in
 
 Infrastructure (nothing in the library changed): the boat backend paces its VM starts.
 
-- The runners' default backend is Modal again (`--backend modal`); boat's start limits proved too tight for the research volume, so `--backend auto` or `boat` uses it as backup compute.
-
 - boat's starts are spent by plan (a resume is a start; `boat limits` is read at every batch, so a new plan takes
   effect on the next one). A batch starts at most a quarter of the starts left this hour and day and at most 50
   (`GDPW_BOAT_MAX_STARTS`, `--max-vms` for a run); the last 60 starts of the rolling day and 15 of the hour are left
