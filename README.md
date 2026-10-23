@@ -103,6 +103,9 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   goal reads), and the lemma a stuck one needs (g(x, 0) = 2x through g(x, a) = a + 2x; a bound on another function);
   `proveLoop` with no rank finds it (two phases' (x, y)) and the invariants it needs; the kernel checks the cyclic
   proof (`examples/cycles.ts`).
+- **Runs that never end**: `proveNeverEnds(loop)` proves some run of a loop goes on forever (pagination that accepts an
+  empty page, a retry with no cap): a closed recurrent set with the turn from each of its states given, a start and a
+  stem into it, checked by the kernel and again in Lean (`NonTerm.lean`'s `never_ends_of`; `examples/nonterm.ts`).
 - **Recursive datatypes as values** (`gdp-wired/data`): lists, trees, rose trees and their forests, declared by their
   constructors; functions over them by structural recursion, or by any recursion whose termination is proven first (a
   merge of two lists, a quicksort: the measure found, (size xs, size ys) or a sum of sizes, and each call's decrease
