@@ -1,0 +1,13 @@
+// expect: nonterminating
+// *p += f(): p points to g, f writes g; the read of *p and the call are unsequenced. Read first, g ends at 1.
+int g;
+int f(void) { g = 0; return 0; }
+int main(void) {
+  int *p = &g;
+  while (1) {
+    g = 1;
+    *p += f();
+    if (g == 0) break;
+  }
+  return 0;
+}

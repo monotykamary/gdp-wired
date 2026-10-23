@@ -1,0 +1,15 @@
+// expect: nonterminating
+// *p + f(): p points to g, and f writes g directly. Their order is unspecified; *p read first (clang's order) gives
+// y = 1 forever. Should be refused.
+int g;
+int f(void) { g = 0; return 0; }
+int main(void) {
+  int *p = &g;
+  int y = 0;
+  while (1) {
+    g = 1;
+    y = *p + f();
+    if (y == 0) break;
+  }
+  return 0;
+}

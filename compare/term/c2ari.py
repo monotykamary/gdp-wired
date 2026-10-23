@@ -20,7 +20,8 @@ call to an end it doesn't define). The program's locations are the system's; a r
 variable starts as C starts it (a global or a static local in main at its initializer or 0, a local at any value of its
 type: reading it before it is written is indeterminate, so any value is what the task can do), and the entry's own
 values are overwritten on the first step. The preprocessor: lines spliced and comments left out as C's phases 2 and 3
-do; #include of stdlib.h, stdio.h, assert.h or stdbool.h and line markers left out; any other directive refused.
+do (one pass, string and character literals kept whole); a trigraph, or a backslash with spaces before its newline,
+refused (compilers and modes read them differently); #include of stdlib.h, stdio.h, assert.h or stdbool.h and line markers left out; any other directive refused.
 
 The values, exactly C's (the SV-COMP data model: LP64 or ILP32, char signed, two's complement): every value is an
 integer in its type's range. An unsigned operation's result is taken modulo 2^n (a fresh k with r − 2^n·k in
@@ -73,7 +74,8 @@ expression (after && or ||, in a ternary's branch); where C leaves an expression
 two calls in one expression, one of which may write a global or through a pointer or end the run (but a call inside
 another's arguments, which comes first); a call that may write a global the rest of the expression reads (an
 assignment's target included: g += f(), a[g] = f()), or that may write through a pointer in an expression that reads
-any variable (x + set(&x), pick(x, set(&x))); bitwise and, or, xor and shifts; switch; static locals outside main's
+any variable (x + set(&x), pick(x, set(&x))), a dereference reading every object whose address the program takes (and
+every allocated cell): *p + f() with f writing a global p may name; bitwise and, or, xor and shifts; switch; static locals outside main's
 outermost block, or with goto.
 """
 import json
@@ -729,12 +731,20 @@ class Main:
         return bool(found)
 
     def reads(self, e, skip=None):
-        """The names e reads (not the functions it calls), leaving out the call `skip` (its arguments included)."""
+        """The names e reads (not the functions it calls), leaving out the call `skip` (its arguments included); a
+        dereference reads every object a pointer can name (every global and local whose address the program takes, and
+        any allocated cell, `*`)."""
         out = set()
+        addr = self.info["addr"]
 
         class R(c_ast.NodeVisitor):
             def visit_ID(s, n):
                 out.add(n.name)
+
+            def visit_UnaryOp(s, n):
+                if n.op == "*":
+                    out.update(addr | {"*"})
+                s.visit(n.expr)
 
             def visit_FuncCall(s, n):
                 if n is skip:
@@ -1488,15 +1498,53 @@ def prescan(nodes):
 HEADERS = ("stdlib.h", "stdio.h", "assert.h", "stdbool.h")
 
 
+def strip_comments(text):
+    """C's translation phases 1 to 3, the parts a C99 task can meet: a trigraph (??/ and the rest, which C99 replaces
+    and gnu modes don't) and a backslash with spaces before its newline (which gcc and clang splice and C doesn't) are
+    refused; backslash-newline splices lines; then one pass left to right, as the lexer reads: string and character
+    literals kept whole (a /* or // inside one is text), a // comment to the end of its line, a /* comment to its first
+    */, each comment one space."""
+    text = text.replace("\r\n", "\n")
+    if re.search(r"\?\?[=/'()!<>-]", text):
+        raise Refused("a trigraph (C99 replaces it, gnu modes don't)")
+    if re.search(r"\\[ \t\f\v]+\n", text):
+        raise Refused("a backslash with spaces before its newline (gcc and clang splice it, C doesn't)")
+    text = text.replace("\\\n", "")
+    out, i, n = [], 0, len(text)
+    while i < n:
+        c = text[i]
+        if c in "\"'":
+            j = i + 1
+            while j < n and text[j] != c:
+                if text[j] == "\n":
+                    raise Refused("a literal that runs past its line")
+                j += 2 if text[j] == "\\" else 1
+            out.append(text[i:j + 1])
+            i = j + 1
+        elif text.startswith("//", i):
+            j = text.find("\n", i)
+            j = n if j < 0 else j
+            out.append(" ")
+            i = j
+        elif text.startswith("/*", i):
+            j = text.find("*/", i + 2)
+            if j < 0:
+                raise Refused("a comment with no end")
+            out.append(" ")
+            i = j + 2
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
+
+
 def clean(text):
     """What pycparser doesn't read, left out: lines spliced (backslash-newline) and comments, as C's translation phases
     2 and 3 do; then the preprocessor's directives: #include of a standard header whose names the translation knows
     (malloc, NULL, bool, true, false; any other name it declares is refused where it is used) and line markers, left
     out; any other directive (#define, #if, ...) refused. Then GCC's __attribute__((...)), __extension__, __restrict,
     __inline."""
-    text = text.replace("\\\n", "")
-    text = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
-    text = re.sub(r"//[^\n]*", "", text)
+    text = strip_comments(text)
     for l in re.findall(r"^\s*#[^\n]*", text, flags=re.M):
         d = l.strip()[1:].strip()
         m = re.fullmatch(r'include\s*[<"]([\w./]+)[>"]', d)
