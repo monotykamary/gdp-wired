@@ -9,6 +9,7 @@
 //     derive false tried first at each state)
 //   - bmc: bounded runs (core/bmc.ts), a model of the kernel's k-step goal from the start to error, k = 1, 2, ...,
 //     within --bmc-ms (10,000)
+//   - kind: k-induction (core/kind.ts), the law over k = 2, 3, ... steps in a row, within --kind-ms (15,000)
 //   - houdini: the library's search for the invariants the law needs (core/infer.ts), from the states the runs reached:
 //     candidates per predicate (loc = p → a bound, a difference, a sum), those a run's state breaks dropped, then the
 //     kernel's counterexamples to induction choosing which to add; `--old-houdini`, this folder's first Houdini
@@ -20,6 +21,7 @@ import {proveRule} from '../../core/dsl.ts'
 import {houdini} from './houdini.ts'
 import {inferLaws} from '../../core/infer.ts'
 import {findBoundedRun} from '../../core/bmc.ts'
+import {proveKInduction} from '../../core/kind.ts'
 import type {C, E, State} from '../../core/machine.ts'
 import {grow} from '../../kernel/prove.ts'
 import {substC} from '../../kernel/kernel.ts'
@@ -180,6 +182,15 @@ const seen: State[] = []
 }
 
 bounded()
+
+// k-induction (core/kind.ts): the law over k = 2, 3, ... steps in a row, the rule's kinds assumed, within --kind-ms
+// (15,000), counted and in wall time; proven, the kernel's checkKInduction has checked it.
+const kindMs = opt('--kind-ms', 15000)
+if (kindMs > 0) {
+  const kd = proveKInduction(r.machine, r.kindLaws(), law, {ms: kindMs, wall: performance.now() + Math.min(kindMs, Math.max(0, houdiniMs - 2000 - ms()))})
+  say({stage: 'kind', proven: kd.proven, checked: kd.checked, ...(kd.k ? {k: kd.k} : {}), depths: kd.depths, ...(kd.why ? {why: kd.why.slice(0, 120)} : {})})
+  if (kd.proven && kd.checked) done('sat', {by: 'kind', k: kd.k})
+}
 
 if (useHoudini && !oldHoudini) {
   // --houdini-ms is the stage's deadline from the start; the search is timed (`timed`), as the track's limit is wall time

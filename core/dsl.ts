@@ -24,6 +24,7 @@ import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cycli
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
 import {findBoundedRun} from './bmc.ts'
+import {conjunction, proveKInduction} from './kind.ts'
 import {cycleLemmas, findLeadsTo, findRank} from './cycles.ts'
 import {findNeverEnds} from './nonterm.ts'
 
@@ -2363,7 +2364,8 @@ export const loop = (name: string): LoopRule => new LoopRule({name, params: [], 
 // `found`: what the search found and proved beside the laws (`proveRule`'s, `proveSteps`'s), as laws to pass with them and
 // as lemmas to state in `recur` or `carriesList` (source to paste).
 // `witnesses`: for each law with "there exists", the witness it was proven through, as it reads.
-export type Verdict = {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found, witnesses?: Record<string, string>}
+// `k`: the laws were proven by k-induction (core/kind.ts; KInd.lean's kind_sound), as one, over k steps in a row.
+export type Verdict = {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found, witnesses?: Record<string, string>, k?: number}
 // `facts`: lemmas about the rule's functions (those known by their facts) proven from those facts by a cyclic proof
 // (core/cycles.ts), the laws proven with them; `rank`: a loop's rank, found from its runs (`proveLoop` with none).
 export type Found = {laws?: {law: Law, text: string, source?: string}[], lemmas?: Record<string, {lemmas?: string[], between?: string[]}>, facts?: string[], rank?: string}
@@ -2491,6 +2493,13 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   const refutedBy = (b: NonNullable<ReturnType<typeof bounded>>): Verdict => refutedVerdict({goal: `${b.law} @step (a run of ${b.depth} steps from the start)`, witness: b.witness, run: {params: b.params, trace: b.trace.map(shownRequest)}})
   const shallow = bounded(Math.min(250, total / 40), 1)
   if (shallow) return refutedBy(shallow)
+  // k-induction (core/kind.ts): the plain laws as one, over k = 2, 3, ... steps in a row, the rule's kinds assumed;
+  // within a twentieth of the budget (at most 500 ms, counted and in wall time).
+  if (!stepLaws.length && laws.every(l => !l.forall && !l.keys?.length && !l.some?.length)) {
+    const ms = Math.min(500, total / 20), kinds = withKinds(r, []).filter(k => !laws.some(l => l.name === k.name))
+    const kd = proveKInduction(r.machine, kinds, conjunction(laws), {ms, wall: performance.now() + ms})
+    if (kd.proven && kd.checked) return {proven: true, checked: true, k: kd.k!}
+  }
   let rule = r, lemmas: Found['lemmas']
   const {fns, lists} = r.parts
   if (lists.length || fns.some(([, d]) => recurOf(d))) {
