@@ -2420,8 +2420,9 @@ export function calculated(p: Program, l: DataLaw, depth = 2, max = 6): DataLaw[
     }
   }
   go(l, depth)
-  // (the base cases' first: a step's proof often needs one, nil's right identity under length's)
-  return [...out.filter(c => based.has(c)), ...out.filter(c => !based.has(c))].slice(0, max)
+  // (the generalised steps first, in their order, then the base cases (a step's proof often needs one: nil's right
+  // identity under length's), then the steps as they stand)
+  return [...out.filter(c => general.has(c)), ...out.filter(c => based.has(c)), ...out.filter(c => !general.has(c) && !based.has(c))].slice(0, max)
 }
 // A law's text with its variables named by sort in order of appearance (two laws alike up to their names, one text).
 function canonText(y: Y, vars: {name: string, sort: Sort}[]): string {
@@ -2741,7 +2742,7 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   // conjectures are costly to make. One out of its time is tried again below, with more.
   if (!Array.isArray(opts.lemmas)) { const two = ok(proveWith(p, fs, l, base, lv + 1, opts, until, 3000, [2]), base); if (two) return two }
   // The steps the law's inductions leave (lemma calculation), then the conjectures from the values.
-  const tc = performance.now(), calc = Array.isArray(opts.lemmas) ? [] : calculated(p, l, 2, 4)
+  const tc = performance.now(), calc = Array.isArray(opts.lemmas) ? [] : calculated(p, l, 2, 6)
   if (dataTrace) console.error(`[data] ${l.name}: ${calc.length} calculated in ${Math.round(performance.now() - tc)} ms`)
   const cands = Array.isArray(opts.lemmas) ? opts.lemmas : [...calc, ...conjectures(p, l)]
   if (dataTrace) for (const c of calc) console.error(`[data]   calculated ${c.name.slice(0, 200)}`)
@@ -2783,7 +2784,7 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
     const queue = ranked.filter(r => (which === 'hits') === r.hit), retry: DataLaw[] = [], retried = new Set<DataLaw>()
     for (let i = 0; i < queue.length || retry.length;) {
       if (n >= most || tries >= 3 * most || clock() > end) break
-      if (extra >= most) retry.length = 0
+      if (extra >= most) { retry.length = 0; if (i >= queue.length) break }
       const again2 = retry.length > 0, c = again2 ? retry.shift()! : queue[i++]!.c
       if (proven.some(q => q.law === c) || refuted.has(c)) continue
       if (!again2 && calcSet.has(c) && extra >= most) continue
