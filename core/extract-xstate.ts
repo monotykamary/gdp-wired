@@ -61,7 +61,7 @@ export function extractXState(code: string, opts: XStateOptions): XStateExtracti
     const ctx0 = machine.config.context
     if (ctx0 !== undefined && (typeof ctx0 !== 'object' || ctx0 === null)) refuse(config ?? c, 'a context computed by a function')
     // The context's variables and the payload's inputs, in one setup the guards and actions are read with.
-    const s: Setup = {checker, sf, names: new Set(), vars: new Map(), maps: new Map(), lazySorts: new Map(), nowRole: 'input', hints: new WeakMap(), notes: new Set(), lazy: new Map()}
+    const s: Setup = {ours: f => f === sf, checker, sf, names: new Set(), vars: new Map(), maps: new Map(), lazySorts: new Map(), nowRole: 'input', hints: new WeakMap(), notes: new Set(), lazy: new Map()}
     const ex = new Exec(s), ctxVars = new Map<string, Var>(), init0: Record<string, Term> = {}
     for (const [k, v] of Object.entries(ctx0 ?? {})) {
       if (typeof v === 'number' && Number.isSafeInteger(v)) { const x = ex.newVar(k, {k: 'num'}, 'state'); ctxVars.set(k, x); init0[x.name] = {s: 'num', e: I.num(v)} }
