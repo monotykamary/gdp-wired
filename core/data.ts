@@ -746,15 +746,14 @@ function proveMeasures(ring: Fn[], sites: Site[], ms: Measure[], until: number):
     if (cex) return {failed: `${text}: its ${call} doesn't lower it at ${JSON.stringify(cex)}`}
     const direct = directly(law, Math.min(2000, left()))
     if (direct) { obligations[site.from]!.push({law, proof: direct, lemmas: []}); continue }
-    const lemmas = sizeLaws(law, names)
+    // (proveData without conjectured lemmas: their making isn't counted in the budget; by induction a while first, a
+    // call on a filter of the tail mostly needing none, then the size laws, then the rest of the time)
+    const inductive = schemes(programOf([law]), law).length > 0, lemmas = sizeLaws(law, names)
     if (dataTrace && lemmas.length) console.error(`[data]   ${law.name}: ${lemmas.map(c => c.name).join('; ')}`)
-    let v: DataVerdict | undefined = lemmas.length ? proveData(law, {lemmas, lemmasFirst: true, ms: Math.min(8000, 0.6 * left())}) : undefined
-    if (!v?.proven && clock() < until) {
-      const inductive = schemes(programOf([law]), law).length > 0
-      // (no conjectured lemmas: their making isn't counted in the budget, and a call's decrease mostly needs none)
-      v = proveData(law, inductive ? {ms: Math.min(12_000, left()), lemmas: false} : {induction: false, ms: Math.min(4000, left())})
-      if (inductive && !(v.proven && v.checked) && !v.counterexample && clock() < until) v = proveData(law, {induction: false, ms: Math.min(4000, left())})
-    }
+    let v: DataVerdict | undefined = inductive ? proveData(law, {ms: Math.min(lemmas.length ? 4000 : 12_000, left()), lemmas: false}) : undefined
+    if (!v?.proven && !v?.counterexample && lemmas.length && clock() < until) v = proveData(law, {lemmas, lemmasFirst: true, ms: Math.min(8000, 0.6 * left())})
+    if (!v?.proven && !v?.counterexample && inductive && lemmas.length && clock() < until) v = proveData(law, {ms: Math.min(8000, left()), lemmas: false})
+    if (!v?.proven && !v?.counterexample && clock() < until) v = proveData(law, {induction: false, ms: Math.min(4000, left())})
     if (!v || !(v.proven && v.checked)) return {failed: `${text}: its ${call} ${v?.counterexample ? `doesn't lower it at ${JSON.stringify(v.counterexample)}` : 'not proven to lower it'}`}
     const used = v
     obligations[site.from]!.push({law, proof: used.proof, scheme: used.scheme, lemmas: used.lemmas, lemmaLaws: lemmas.filter(c => used.lemmas.includes(c.name))})
@@ -1445,28 +1444,36 @@ function schemes(p: Program, l: DataLaw): Scheme[] {
     const d = f.params[f.decreases ?? 0]!.sort as Data | 'nat'
     const formal = new Map(f.params.map((q, i) => [`${f.name}.${q.name}`, args[i]!.op === 'var' && l.vars.some(v => v.name === (args[i] as {name: string}).name) ? ev((args[i] as {name: string}).name) : undefined]))
     const uses: Scheme['uses'] = []
-    const go = (x: unknown, env: Map<string, E>, guard: C[]): void => {
+    // (`through`: the functions of f's ring whose bodies are read in place of their calls, once each: evens through
+    // odds, which call each other, is recursion of evens at the tail's tail)
+    const go = (x: unknown, env: Map<string, E>, guard: C[], through = new Set<string>()): void => {
       if (!x || typeof x !== 'object') return
-      if (Array.isArray(x)) { x.forEach(y => go(y, env, guard)); return }
+      if (Array.isArray(x)) { x.forEach(y => go(y, env, guard, through)); return }
       const t = x as X
+      if (t.op === 'call' && t.fn !== f.name && f.ring.includes(t.fn) && !through.has(t.fn)) {
+        const g = fnOf(t.fn)
+        go(t.args, env, guard, through)
+        go(g.body(), new Map([...env, ...g.params.map((q, i) => [`${g.name}.${q.name}`, encX(p, t.args[i]!, env)] as [string, E])]), guard, new Set([...through, t.fn]))
+        return
+      }
       if (t.op === 'match') {
-        go(t.of, env, guard)
+        go(t.of, env, guard, through)
         const dd = dataOf(p, t.data), of = encX(p, t.of, env)
-        t.cases.forEach((c, j) => { const e2 = new Map(env); c.binds.forEach((b, i) => e2.set(b, get(fieldMap(dd, j, i), of))); go(c.body, e2, [...guard, eqC(get(tagMap(dd.name), of), k(j))]) })
+        t.cases.forEach((c, j) => { const e2 = new Map(env); c.binds.forEach((b, i) => e2.set(b, get(fieldMap(dd, j, i), of))); go(c.body, e2, [...guard, eqC(get(tagMap(dd.name), of), k(j))], through) })
         return
       }
       if (t.op === 'natmatch') {
-        go(t.of, env, guard)
+        go(t.of, env, guard, through)
         const of = encX(p, t.of, env), e2 = new Map(env)
-        go(t.zero, env, [...guard, eqC(of, k(0))])
+        go(t.zero, env, [...guard, eqC(of, k(0))], through)
         e2.set(t.pred, {op: 'sub', a: of, b: k(1)})
-        go(t.succ, e2, [...guard, {op: 'not', x: eqC(of, k(0))}])
+        go(t.succ, e2, [...guard, {op: 'not', x: eqC(of, k(0))}], through)
         return
       }
       // (a well-founded call's descent may need its if's condition: x − y below x where y ≤ x)
       if (m && t.op === 'if') {
         const c = encY(p, t.c, env)
-        go(t.c, env, guard); go(t.then, env, [...guard, c]); go(t.else, env, [...guard, {op: 'not', x: c}])
+        go(t.c, env, guard, through); go(t.then, env, [...guard, c], through); go(t.else, env, [...guard, {op: 'not', x: c}], through)
         return
       }
       if (t.op === 'call' && t.fn === f.name) {
@@ -1480,7 +1487,7 @@ function schemes(p: Program, l: DataLaw): Scheme[] {
         })
         if (ok && Object.keys(subst).length) uses.push({subst, guard: andC(yesC, ...guard)})
       }
-      for (const v of Object.values(t)) go(v, env, guard)
+      for (const v of Object.values(t)) go(v, env, guard, through)
     }
     const env = new Map<string, E>([...formal].flatMap(([key, e]) => (e ? [[key, e] as [string, E]] : [])))
     go(f.body(), env, [])

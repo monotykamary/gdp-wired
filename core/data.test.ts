@@ -72,9 +72,16 @@ test('a group with no value, and a ring of datatypes the bijection with the natu
 
 test('mutual recursion is checked across its ring, and a law on a rose tree gets its forest companion', () => {
   const {Rt, Fr} = mutual({Rt: {nd: {v: natural, ks: 'Fr'}}, Fr: {no: {}, more: {h: 'Rt', t: 'Fr'}}})
+  // a ring that isn't structural (badR passes a constant): taken by well-founded recursion, a measure each (badR's call
+  // of badF at Fr.no is below badR's own size by its constant); one that passes its tree round in a forest is refused
   const bad: ReturnType<typeof define> = define('badR', {t: Rt}, natural, ({t}) => (t as Val).match({nd: () => badF(Fr.no)}))
   const badF: ReturnType<typeof define> = define('badF', {ts: Fr}, natural, ({ts}) => (ts as Val).match({no: () => 0, more: ({h}) => (bad(h) as Nat).plus(1)}))
-  expect(() => programOf([law('bad', {t: Rt}, ({t}) => (bad(t) as Nat).eq(0))])).toThrow(/structural/)
+  expect(() => programOf([law('bad', {t: Rt}, ({t}) => (bad(t) as Nat).eq(0))])).not.toThrow()
+  expect([...bad.fn.ring].sort()).toEqual(['badF', 'badR'])
+  for (const f of [bad, badF]) for (const o of f.fn.termination!.obligations) expect(o.proof?.proven && checkCyclic(o.proof.proof)).toBe(true)
+  const loopR: ReturnType<typeof define> = define('loopR', {t: Rt}, natural, ({t}) => loopF(Fr.more(t, Fr.no)) as Nat)
+  const loopF: ReturnType<typeof define> = define('loopF', {ts: Fr}, natural, ({ts}) => (ts as Val).match({no: () => 0, more: ({h}) => (loopR(h) as Nat).plus(1)}))
+  expect(() => programOf([law('loop', {t: Rt}, ({t}) => (loopR(t) as Nat).eq(0))])).toThrow(/structural.*no measure is proven to fall/)
   const l = laws.roseSizeMirror(), s = schemesOf(programOf([l]), l).find(x => x.name === 'mutual structure of t')!
   expect(s.companions!.map(c => showY(c.law.holds))).toEqual(['fsize(fmirror(tForest)) = fsize(tForest)'])
 })

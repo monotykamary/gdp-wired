@@ -217,7 +217,8 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
         const v0 = name(l.vars.find(v => typeof v.sort === 'object')?.name ?? l.vars[0]!.name), simp = `simp_all [${[g, ...fnSimp.split(', ')].filter(Boolean).join(', ')}, ${sizeSimp}]`
         const others = l.vars.filter(v => name(v.name) !== v0).map(v => lnames.get(v.name)!)
         const tries = [`induction ${v0} using ${g}.induct`, `induction ${v0}`, ...(others.length ? [`induction ${v0} generalizing ${others.join(' ')}`] : [])]
-        const text = `theorem ${id}${l.vars.map(v => ` (${lnames.get(v.name)} : ${sortLean(v.sort)})`).join('')} :\n    ${lp(l.holds, lnames)} := by\n  first ${tries.map(t => `| (${t} <;> ${simp} <;> omega)`).join(' ')}`
+        // (an if the definition's case reads split, its sizes unfolded again)
+        const text = `theorem ${id}${l.vars.map(v => ` (${lnames.get(v.name)} : ${sortLean(v.sort)})`).join('')} :\n    ${lp(l.holds, lnames)} := by\n  first ${tries.map(t => `| (${t} <;> ${simp} <;> (repeat' split) <;> (try simp_all [${sizeSimp}]) <;> omega)`).join(' ')}`
         // at every tuple of the obligation's variables of the law's sorts
         const at = l.vars.reduce<string[][]>((acc, v) => acc.flatMap(a => o.law.vars.filter(w => sortLean(w.sort) === sortLean(v.sort)).map(w => [...a, names.get(w.name)!])), [[]]).slice(0, 16)
         return {id, text, haves: at.map(as => `(have := ${id} ${as.join(' ')})`)}
