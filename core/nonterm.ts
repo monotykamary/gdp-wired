@@ -28,7 +28,7 @@ export type NeverEndsOptions = {ms?: number, seed?: number, maxTurns?: number, l
 // at), so a caller can replay it on its own semantics.
 export type NeverEndsVerdict = {proven: boolean, checked: boolean, recur?: Recur, by?: 'lasso' | 'policy lasso' | 'recurrent set', why?: string,
   lasso?: {params: Record<string, number>, stem: Record<string, number>[], cycle: Record<string, number>[]},
-  stats: {runs: number, turns: number, policies: number, rounds: number, ms: number, lassoTried: number}}
+  stats: {runs: number, turns: number, policies: number, rounds: number, ms: number, lassoTried: number, goalSize: number}}
 
 type Env = Record<string, number>
 const K = (value: number): E => ({op: 'const', value}), V = (name: string): E => ({op: 'var', name})
@@ -70,6 +70,21 @@ function simpC(c: C): C {
     case 'flag': case 'all': return c
   }
 }
+
+// A goal's size as the kernel reads it: its terms written out (shared parts counted at each use). A closure goal past
+// GOAL_MAX is not tried: the witness's ifs read inside the body's multiply, and the kernel would not finish within the
+// budget (one task's goal was 163 million nodes).
+const sizeMemo = new WeakMap<object, number>()
+export function goalSize(x: unknown): number {
+  if (typeof x !== 'object' || x === null) return 1
+  const m = sizeMemo.get(x)
+  if (m !== undefined) return m
+  let n = 1
+  for (const v of Object.values(x)) n += goalSize(v)
+  sizeMemo.set(x, n)
+  return n
+}
+const GOAL_MAX = 300_000
 
 // --- running the loop ---------------------------------------------------------------------------------------------------
 
@@ -164,7 +179,7 @@ export function findNeverEnds(l: Loop, opts: NeverEndsOptions = {}): NeverEndsVe
   const t0 = performance.now(), until = t0 + (opts.ms ?? 10_000), maxTurns = opts.maxTurns ?? 400
   let seed = opts.seed ?? 7
   const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
-  const stats = {runs: 0, turns: 0, policies: 0, rounds: 0, ms: 0, lassoTried: 0}
+  const stats = {runs: 0, turns: 0, policies: 0, rounds: 0, ms: 0, lassoTried: 0, goalSize: 0}
   const done = (v: Omit<NeverEndsVerdict, 'stats'>): NeverEndsVerdict => ({...v, stats: {...stats, ms: Math.round(performance.now() - t0)}})
   const stateNames = Object.keys(l.state), kept = [...l.params, ...stateNames]
   const allObs = observables(kept), inObs = observables(l.inputs)
@@ -212,9 +227,14 @@ export function findNeverEnds(l: Loop, opts: NeverEndsOptions = {}): NeverEndsVe
     }
     return input
   }
-  type Visit = {params: Env, stem: Env[], st: Env, run?: {n: number}}
+  // A state a run reached: its params, the run's turns' inputs (shared by every visit of the run) and how many of them
+  // lead here.
+  type Visit = {params: Env, trail: Env[], at: number, st: Env, run?: {n: number}}
+  const stemOf = (v: Visit) => v.trail.slice(0, v.at)
   const certify = (r: Omit<Recur, 'tree'>, by: NeverEndsVerdict['by'], ms = 8000): NeverEndsVerdict | undefined => {
     const goal = recurGoal(l, r)
+    stats.goalSize = Math.max(stats.goalSize, goalSize(goal.hyps))
+    if (goalSize(goal.hyps) > GOAL_MAX) return undefined
     const out = grow(goal, new Map(), {nodes: 0, until: Math.min(until, performance.now() + ms)})
     if (!('tree' in out)) return undefined
     const recur: Recur = {...r, tree: out.tree}
@@ -226,14 +246,14 @@ export function findNeverEnds(l: Loop, opts: NeverEndsOptions = {}): NeverEndsVe
   const params = (ps: Env): Record<string, number> => Object.fromEntries(l.params.map(n => [n, ps[n] ?? 0]))
   // A lasso: the set is the cycle's states (the params and the state), each turn's inputs given at its state.
   const lassoRecur = (v: Visit, cycle: {st: Env, input: Env}[], by: NeverEndsVerdict['by']): NeverEndsVerdict | undefined => {
-    if (cycle.length > 64) return undefined
+    if (cycle.length > 64 || cycle.length * kept.length > 600) return undefined
     stats.lassoTried++
     const at = (st: Env) => and(kept.map(n => eq(V(n), K(st[n] ?? 0))))
     const set = or(cycle.map(c => at(c.st)))
     const wit: Record<string, E> = {}
     for (const n of l.inputs) wit[n] = cycle.slice(0, -1).reduceRight<E>((acc, c) => ite(at(c.st), K(c.input[n] ?? 0), acc), K(cycle.at(-1)!.input[n] ?? 0))
-    const out = certify({start: params(v.params), stem: asStem(v.stem), set, wit}, by)
-    return out && {...out, lasso: {params: params(v.params), stem: asStem(v.stem), cycle: asStem(cycle.map(c => c.input))}}
+    const out = certify({start: params(v.params), stem: asStem(stemOf(v)), set, wit}, by)
+    return out && {...out, lasso: {params: params(v.params), stem: asStem(stemOf(v)), cycle: asStem(cycle.map(c => c.input))}}
   }
 
   // 1. Random runs: the states they reach, each with its stem; a lasso on the way is tried at once.
@@ -244,12 +264,12 @@ export function findNeverEnds(l: Loop, opts: NeverEndsOptions = {}): NeverEndsVe
       if (!ps) continue
       let st = start(ps)
       const stem: Env[] = [], seen = new Map<string, number>(), trail: Env[] = [], run = {n: 0}
-      visits.push({params: ps, stem: [], st, run})
-      for (let n = 0; n < 3000; n++) {
+      visits.push({params: ps, trail: stem, at: 0, st, run})
+      for (let n = 0; n < 3000 && performance.now() < until; n++) {
         const key = keyOf(st), back = seen.get(key)
         if (back !== undefined) {
           const cycle = trail.slice(back).map((s, j) => ({st: s, input: stem[back + j]!}))
-          const v = lassoRecur({params: ps, stem: stem.slice(0, back), st: trail[back]!}, cycle, 'lasso')
+          const v = lassoRecur({params: ps, trail: stem, at: back, st: trail[back]!}, cycle, 'lasso')
           if (v) return v
           break
         }
@@ -259,9 +279,9 @@ export function findNeverEnds(l: Loop, opts: NeverEndsOptions = {}): NeverEndsVe
         if (!next) break
         stem.push(input!); stats.turns++; run.n++
         st = next
-        if (n % 50 === 49 || n < 8) visits.push({params: ps, stem: [...stem], st, run})
+        if (n % 50 === 49 || n < 8) visits.push({params: ps, trail: stem, at: stem.length, st, run})
       }
-      visits.push({params: ps, stem: [...stem], st, run})
+      visits.push({params: ps, trail: stem, at: stem.length, st, run})
     }
   } catch (e) { if (!(e instanceof Overflow)) return done({proven: false, checked: false, why: (e as Error).message.slice(0, 200)}) }
 
@@ -274,7 +294,8 @@ export function findNeverEnds(l: Loop, opts: NeverEndsOptions = {}): NeverEndsVe
     for (const x of allObs) for (const c of [0, 1, -1]) terms.push(iAdd(iObs(x), c))
     return terms
   })
-  const evalT = (t: ITerm, env: Env) => cE(t.p)(env) - cE(t.n)(env)
+  const compiled = new Map<ITerm, [(env: Env) => number, (env: Env) => number]>()
+  const evalT = (t: ITerm, env: Env) => { let f = compiled.get(t); if (!f) { f = [cE(t.p), cE(t.n)]; compiled.set(t, f) } return f[0](env) - f[1](env) }
   const fuzzy = (c: C): ((env: Env) => number) => {
     if (c.op === 'and') { const xs = c.xs.map(fuzzy); return env => xs.reduce((s, x) => s + x(env), 0) / xs.length }
     if (c.op === 'or') { const xs = c.xs.map(fuzzy); return env => Math.max(...xs.map(x => x(env))) }
@@ -292,9 +313,11 @@ export function findNeverEnds(l: Loop, opts: NeverEndsOptions = {}): NeverEndsVe
   }
   // The seeds: states of the longest runs, the shallowest first (a short stem), then the rest by depth.
   const longest = Math.max(0, ...visits.map(v => v.run?.n ?? 0))
-  const order = visits.map((v, i) => ({v, i, d: v.stem.length, long: (v.run?.n ?? 0) >= Math.min(200, longest) ? 0 : 1}))
+  const order = visits.map((v, i) => ({v, i, d: v.at, long: (v.run?.n ?? 0) >= Math.min(200, longest) ? 0 : 1}))
     .sort((a, b) => a.long - b.long || a.d - b.d || a.i - b.i)
-  const seeds = order.map(x => x.v)
+  // (and, in turn, the deepest: a run that went on is past the choices its start needed)
+  const deep = [...order].sort((a, b) => b.d - a.d || a.i - b.i), seeds: Visit[] = []
+  for (let j = 0; j < order.length; j++) seeds.push(order[j]!.v, deep[j]!.v)
   for (let s = 0; s < seeds.length * 3 && performance.now() < until; s++) {
     const v = seeds[s % seeds.length]!
     stats.policies++
@@ -313,13 +336,16 @@ export function findNeverEnds(l: Loop, opts: NeverEndsOptions = {}): NeverEndsVe
         if (!next && chain.length < 4) {
           // A local search on how much of the turn's condition an assignment meets (a conjunction the share of its
           // parts, a disjunction its best part), one input at a time, from a few random starts.
-          for (let restart = 0; restart < 6 && !next; restart++) {
-            const a = pools.map(p => (restart === 0 ? 0 : rand(p.length)))
+          for (let restart = 0; restart < 6 && !next && performance.now() < until; restart++) {
+            const zero = restart === 0 && rand(3) === 0, a = pools.map(p => (zero ? 0 : rand(p.length)))
             let best = degree(st, inputOf(a, st))
-            for (let sweep = 0; sweep < 4 && best < 1; sweep++) {
+            for (let sweep = 0; sweep < 4 && best < 1 && performance.now() < until; sweep++) {
               let moved = false
               for (const i of pools.map((_, j) => j).sort(() => rand(2) - 0.5)) {
-                for (let j = 0; j < pools[i]!.length && best < 1; j++) {
+                // (a wide pool is tried at 24 of its terms, drawn afresh each sweep)
+                const tries = pools[i]!.length <= 24 ? pools[i]!.map((_, j) => j) : Array.from({length: 24}, () => rand(pools[i]!.length))
+                for (const j of tries) {
+                  if (best >= 1) break
                   const was = a[i]!
                   a[i] = j
                   const d = degree(st, inputOf(a, st))
@@ -340,7 +366,7 @@ export function findNeverEnds(l: Loop, opts: NeverEndsOptions = {}): NeverEndsVe
     } catch (e) { if (e instanceof Overflow) stop = states.length >= 40 ? 'long' : 'stuck'; else continue }
     if (stop === 'repeat') {
       const cycle = states.slice(back).map((x, j) => ({st: x, input: inputs[back + j]!}))
-      const out = lassoRecur({params: v.params, stem: [...v.stem, ...inputs.slice(0, back)], st: states[back]!}, cycle, 'policy lasso')
+      const out = lassoRecur({params: v.params, trail: [...stemOf(v), ...inputs.slice(0, back)], at: v.at + back, st: states[back]!}, cycle, 'policy lasso')
       if (out) return out
     }
     if (stop === 'stuck' && states.length < 40) continue
@@ -375,16 +401,18 @@ export function findNeverEnds(l: Loop, opts: NeverEndsOptions = {}): NeverEndsVe
       return and([or(ms.map(modeCond)), ...ms.map(m => or([{op: 'not', x: modeCond(m)}, and(atoms.get(m)!.map(a => atomC(a, allObs)))]))])
     }
     const first = burn
-    const stemTo = {start: params(v.params), stem: asStem([...v.stem, ...inputs.slice(0, first)])}
+    const stemTo = {start: params(v.params), stem: asStem([...stemOf(v), ...inputs.slice(0, first)])}
     for (let round = 0; round < 40 && performance.now() < until; round++) {
       stats.rounds++
       const set = setOf()
       const goal = recurGoal(l, {set, wit})
+      stats.goalSize = Math.max(stats.goalSize, goalSize(goal.hyps))
+      if (goalSize(goal.hyps) > GOAL_MAX) break
       const out = grow(goal, new Map(), {nodes: 0, until: Math.min(until, performance.now() + 6000)})
       if ('tree' in out) {
         // The stem: to the first state of the run (from the start, through the seed's stem and the policy's turns) in
         // the set.
-        const inSet = cC(set), all = [...v.stem, ...inputs]
+        const inSet = cC(set), all = [...stemOf(v), ...inputs]
         let at = start(v.params), cut = stemTo.stem.length
         for (let j = 0; j <= all.length; j++) {
           if (inSet(at)) { cut = j; break }
