@@ -263,12 +263,18 @@ function unrolled(m: Machine, laws: Law[]) {
   const put = (c: C): C => simpC(substC(c, {vars: sub, maps: {}, flags: {}}))
   let k = 0, dead = false
   const session = cdclSession(goal, new Map(), {model: true})
+  // The cone of influence: the state values the laws, the assumption or the precondition read, and those the updates of
+  // these read, again until no more; the others' terms are left out at every step (no hypothesis reads them, and the
+  // interpreter takes the run's own values).
+  const live = new Set<string>(), names = (xs: (C | E)[]) => [...occurrences(xs).keys()].filter(n => n in m.state)
+  const todo = names([...laws.map(l => l.holds), ...(m.assume ? [m.assume] : []), ...(m.pre ? [m.pre] : [])])
+  while (todo.length) { const n = todo.pop()!; if (live.has(n)) continue; live.add(n); todo.push(...names([m.step.state?.[n] ?? v(n)])) }
   // Step j's hypotheses: its request allowed, each state value its term; folded; undefined where they can't hold.
   const step = (j: number): C[] | undefined => {
     const before = stateAt(j - 1), inputs = Object.fromEntries(m.inputs.map(i => [i, v(j === 1 ? i : `${i}@${j}`)]))
     const at = {vars: {...before, ...inputs}, maps: {}, flags: {}}
     const own = new Set([...Object.values(inputs).map(e => (e as {name: string}).name), ...Object.keys(m.state).map(n => `${n}~${j}`)])
-    const raw: C[] = [...(j === 1 && m.pre ? [m.pre] : []), ...(m.assume ? [substC(m.assume, at)] : []), ...Object.keys(m.state).map((n): C => ({op: '=', a: v(`${n}~${j}`), b: substE(m.step.state?.[n] ?? v(n), at)}))]
+    const raw: C[] = [...(j === 1 && m.pre ? [m.pre] : []), ...(m.assume ? [substC(m.assume, at)] : []), ...[...live].map((n): C => ({op: '=', a: v(`${n}~${j}`), b: substE(m.step.state?.[n] ?? v(n), at)}))]
     let cs = (useRelax ? relax(raw) : undefined) ?? raw
     for (;;) {
       cs = cs.map(put).flatMap(top)
