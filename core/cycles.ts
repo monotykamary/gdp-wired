@@ -1410,9 +1410,9 @@ export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sample
   const trivial: E[][] = [...(strong.size ? [] : [[zero]]), ...Object.keys(m.state).filter(x => keeps(x) && lowers(x)).slice(0, 4).map(name => [{op: 'var', name} as E])]
   const rankText = (rank: E[]) => `(${rank.map(showE).join(', ')})`
   for (const [i, rank] of trivial.entries()) {
-    const ms = until - performance.now()
+    const ms = until - clock()
     if (ms < 200) break
-    const v = withDeadline(performance.now() + ms * (i === 0 && !strong.size ? 0.5 : 0.25), () => proveLiveness(m, laws, {...l, rank}))
+    const v = withDeadline(clock() + ms * (i === 0 && !strong.size ? 0.5 : 0.25), () => proveLiveness(m, laws, {...l, rank}))
     if (v.proven && v.checked) return {proven: true, checked: true, rank, laws: [], found: {rank: rankText(rank), laws: []}}
     tried.set(id(rank), v)
   }

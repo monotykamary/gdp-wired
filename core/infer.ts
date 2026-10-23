@@ -209,7 +209,7 @@ function comparisons(m: Machine, laws: Law[], atoms: Atom[], coords: number[]): 
 }
 
 export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
-  return quietly(() => withDeadline(performance.now() + (opts.ms ?? 20000), () => inferLawsSearch(target, laws, stepLaws, opts)))
+  return quietly(() => withDeadline(clock() + (opts.ms ?? 20000), () => inferLawsSearch(target, laws, stepLaws, opts)))
 }
 function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
   const t0 = performance.now(), ms = opts.ms ?? 20000, wallUntil = t0 + ms, rule = isRule(target) ? target : undefined

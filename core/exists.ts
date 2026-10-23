@@ -15,7 +15,7 @@
 // counterexample so far, per case of the step (the conditions its updates split on: the request's clause, say).
 // A law under a `forall` key takes witness terms only (a ghost per key would be a map).
 import {type C, type E, type Law, type Machine, type SomeProof, type SomeWitness, type State, evalC, evalE, walk} from './machine.ts'
-import {type Report, proveLaw, proveLaws, withinDeadline} from '../kernel/prove.ts'
+import {type Report, clock, proveLaw, proveLaws, withinDeadline} from '../kernel/prove.ts'
 
 type Env = Record<string, number>
 // A bound value's naturals: [x], or an integer's [x, x$neg].
@@ -360,7 +360,7 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number} = {})
       const fail = (stuck: string): SomeReport => ({proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: r.goal, stuck, ...(r.witness ? {witness: r.witness} : {})}})
       // A witness given: the kernel proves the law with it, or refuses it here, with its counterexample.
       if (p.given) return {proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: r.goal, stuck: r.stuck, ...(r.witness ? {witness: r.witness} : {}), why: `the witness given for "${p.law.name}" does not prove it`}}
-      if (withinDeadline(Infinity) <= performance.now()) return fail(`the deadline passed choosing a witness for "${p.law.name}" (${r.stuck})`)
+      if (withinDeadline(Infinity) <= clock()) return fail(`the deadline passed choosing a witness for "${p.law.name}" (${r.stuck})`)
       if (round >= rounds) return fail(`no witness found for "${p.law.name}" in ${rounds} rounds (${r.stuck}): name one (exists(kind, f, witness))`)
       if (r.stuck !== 'sat' || !r.witness) {
         if (p.pick.mode === 'term' && !p.law.forall && !p.given) { p.pick = {mode: 'ghost', start: p.groups.map(() => 0), cases: new Map()}; continue }
