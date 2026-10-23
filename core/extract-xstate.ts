@@ -3,8 +3,8 @@
 // each guard and action `setup({guards, actions})` names read from its source by the extractor's executor, printed as
 // the bridge fromXState takes: a guard as its condition, an `assign` as the context it writes. The chart is then run
 // beside XState's own actor (`conforms`) on random events with payloads, every state and context compared, the code's
-// branches counted; any difference refuses it. Refused besides what fromXState refuses: v4 `cond` (fromXState reads v5
-// `guard`, so a `cond` would be dropped), a machine made by a function, guards and actions with params, actions that
+// branches counted; any difference refuses it. Refused besides what fromXState refuses: v4 `cond` (the machines read are
+// v5's, and XState v5 ignores a `cond`, taking the transition unguarded), a machine made by a function, guards and actions with params, actions that
 // raise, send or spawn.
 import ts from 'typescript'
 import * as dsl from './dsl.ts'
@@ -51,9 +51,9 @@ export function extractXState(code: string, opts: XStateOptions): XStateExtracti
       const v = strip(p.initializer)
       return ts.isObjectLiteralExpression(v) ? v : refuse(v, `setup's ${name} as other than an object of them`)
     }
-    // v4's `cond` (fromXState reads v5 `guard`): refused where it is, not dropped.
+    // v4's `cond` (XState v5 ignores it): refused where it is, not dropped.
     const config = c.arguments[0]
-    const visit = (n: ts.Node) => { if (ts.isPropertyAssignment(n) && n.name.getText() === 'cond') refuse(n, 'a v4 `cond` (XState v5 and fromXState read `guard`: the condition would be dropped)'); ts.forEachChild(n, visit) }
+    const visit = (n: ts.Node) => { if (ts.isPropertyAssignment(n) && n.name.getText() === 'cond') refuse(n, 'a v4 `cond` (XState v5 reads `guard` and takes this transition unguarded: name the guard in `guard`)'); ts.forEachChild(n, visit) }
     if (config) visit(config)
     // The machine as XState builds it, from the code loaded with the real xstate.
     const box = sandbox(code, file, [opts.entry], {xstate: opts.xstate})

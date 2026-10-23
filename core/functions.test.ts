@@ -3,7 +3,7 @@
 // functions alike, and every law holds on random runs (the broken variant broken by one); and the refusals.
 import {expect, test} from 'bun:test'
 import {type Machine, interpret, loadJs} from './machine.ts'
-import {divBy, everyKey, fn, forall, fun, min, modBy, nat, proveDecision, rule, upTo} from './dsl.ts'
+import {divBy, everyKey, fn, forall, fun, min, modBy, nat, proveDecision, proveRule, rule, upTo} from './dsl.ts'
 import {larger, largerLaws, minuteLaws, minutes} from '../examples/functions.ts'
 import {checkLaws, obligations} from '../kernel/kernel.ts'
 import {proveLaws} from '../kernel/prove.ts'
@@ -103,4 +103,23 @@ test('decisions assume the functions\' facts where they read them; fun: a functi
   expect(proveDecision(reserve.law('a grant leaves something', () => [], o => o.granted.implies(o.left.gt(0)))).proven).toBe(false)
   expect(reserve.rule.machine.state).toEqual({'out.granted': {op: 'const', value: 0}, 'out.left': {op: 'const', value: 0}})
   expect(() => fun('f').inputs({x: nat}).run({x: 1})).toThrow('f: no result (returns)')
+})
+
+// The real-world corpus: the random runs skipped every rule that read a function the kernel knows by its facts alone
+// (a window's floor(now / w) written with fn), so a false law over one came back unknown. The runs compute it by its
+// JavaScript, as the rule runs, with params only where its facts hold; a run that breaks the law refutes it.
+test('a false law through a function known by its facts: refuted by a run; params its facts refuse never drawn', () => {
+  const win = fn(2, (x: number, d: number) => (d ? Math.floor(x / d) : 0), {facts: f => ({'q(x, d) <= x': forall((x, d) => f(x, d).atMost(x))})})
+  // the count is never reset at a new window: past cap, the law breaks
+  const r = rule('window').params({cap: nat, w: nat}).fns({win}).inputs({now: nat}).state({count: 0, at: 0})
+    .step(({now, count, w, win}) => ({count: count.plus(1), at: win(now, w)}))
+  const v = proveRule(r, [r.law('at most cap a window', ({count, cap}) => count.atMost(cap))], {search: {ms: 2000}})
+  expect(v).toMatchObject({proven: false, stuck: 'sat'})
+  expect(v.run?.trace.length).toBeGreaterThan(0)
+  // A fact about the params (fx is f at x, as a recurrence's induction machines take it): a run from params that break
+  // it is no run of the rule, so none is drawn and the true law isn't refuted.
+  const sq = fn(1, (x: number) => x * x, {facts: f => ({'f(x) >= x': forall(x => f(x).atLeast(x))})})
+  const s = rule('square at x').params({x: nat, fx: nat}).fns({sq}).facts(({x, fx, sq}) => ({'fx is sq(x)': fx.eq(sq(x))})).inputs({}).state({y: 0})
+    .step(({fx}) => ({y: fx}))
+  expect(proveRule(s, [s.law('y is 0 or at least x', ({y, x}) => y.eq(0).or(y.atLeast(x)))], {search: false})).toMatchObject({proven: true, checked: true})
 })

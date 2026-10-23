@@ -6,7 +6,7 @@ import {type Machine, type State, interpret, search} from './machine.ts'
 import {admitFlagged, boundedLoss, capLaws, loss, windowCeiling, windowLimit} from './models.ts'
 import {proveLaws} from '../kernel/prove.ts'
 import {wide} from '../examples/wide.ts'
-import {type DecisionEnv, type Rule, Cond, all, bool, count, forall, fun, loop, maybe, min, nat, oneOf, proveDecision, proveLoop, proveRule, proveSteps, relation, rule, upTo, when} from './dsl.ts'
+import {type DecisionEnv, type Rule, type Term, Cond, all, bool, count, forall, fun, loop, maybe, min, nat, oneOf, proveDecision, proveLoop, proveRule, proveSteps, relation, rule, upTo, when} from './dsl.ts'
 
 let seed = Number(process.env.FUZZ_SEED ?? 777)
 const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
@@ -216,3 +216,28 @@ test('a decision reading conditions about every key is proven as a step law of i
   expect(proveDecision(flipped).proven).toBe(false)
   expect([plain.steps, proveDecision(plain).proven]).toEqual([undefined, true])
 })
+
+// The real-world corpus (ERC20, TigerBeetle): a map read at a key that reads a flag threw `unknown flag` from the
+// kernel, as the prover offered that key, flag and all, as an instance of a law about every key. The prover inlines the
+// flag (as the kernel's goals do), and the proof is checked.
+test('a flag inside a map key: the law about every key proven, nothing thrown', () => {
+  const r = rule('flag key').params({cap: nat}).inputs({a: nat, b: nat, n: nat}).state({total: 0}).maps({M: 0, N: 0})
+    .flags(({n, cap}) => ({big: n.gt(cap)}))
+    .step(({a, b, n, big, M, N, total}) => ({M: M.set(when(big, a, b), N.at(a)), N: N.set(a, N.at(a).plus(n)), total: total.plus(n)}))
+  // (M's cells come from N's, so the law needs N's too: the search finds it, and every instance at the key when(big, a, b))
+  expect(proveRule(r, [r.law('every cell of M within the total', ({M, total}) => forall(k => M.at(k).atMost(total)))], {search: {ms: 10_000}})).toMatchObject({proven: true, checked: true})
+}, 30_000)
+
+// The real-world corpus: proveDecision took no budget, and a relate ran 120 s. Now it takes `ms` as the others do.
+test('a decision honours its budget: past it, unknown; within it, proven', () => {
+  const holes = (n: number) => {
+    const names = Array.from({length: n + 1}, (_, i) => `x${i}`), at = (e: object, x: string) => (e as Record<string, Term>)[x]!
+    // n + 1 pigeons in n holes, no two in one: never (the prover splits its way through every placement)
+    return rule('holes').inputs(Object.fromEntries(names.map(x => [x, nat]))).state({z: 0}).decide('pigeonhole',
+      e => [...names.map(x => at(e, x).lt(n)), ...names.flatMap((x, i) => names.slice(i + 1).map(y => at(e, x).eq(at(e, y)).not()))], e => at(e, 'x0').lt(0))
+  }
+  const t = performance.now(), v = proveDecision(holes(6), {ms: 300}), took = performance.now() - t
+  expect(v).toMatchObject({proven: false, stuck: 'unknown'})
+  expect(took).toBeLessThan(3000) // (about 11 s with no budget)
+  expect(proveDecision(holes(4), {ms: 20_000})).toMatchObject({proven: true, checked: true})
+}, 30_000)

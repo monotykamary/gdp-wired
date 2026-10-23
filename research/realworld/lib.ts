@@ -2,7 +2,7 @@
 // each written as a gdp-wired rule that mirrors the code's params, inputs, state and step, with the laws a reviewer
 // would ask about. Each law is proven with nothing stated beyond the rule and the law itself: `proveRule` /
 // `proveSteps` with the default search at a budget of `ms` (60 s in the scored run), `proveLeadsTo` with no rank given
-// (the search finds one), `proveDecision` for a claim about one request.
+// (the search finds one), `proveDecision` for a claim about one request, within `ms` too.
 import {type Liveness, type StepLaw, type Verdict, proveDecision, proveLeadsTo, proveRule, proveSteps} from '../../core/dsl.ts'
 import type {Law} from '../../core/machine.ts'
 
@@ -101,7 +101,7 @@ export const leadsTo = (r: AnyRule, l: Liveness, intent: Intent, why: string, ki
 }
 // A claim about one request (an access check, an entitlement).
 export const decision = (d: AnyDecision, kind: LawKind, intent: Intent, why: string): RealLaw =>
-  ({name: d.name, kind, intent, why, form: 'decision', prove: () => proveDecision(d)})
+  ({name: d.name, kind, intent, why, form: 'decision', prove: ms => proveDecision(d, {ms})})
 // A chart's law or step law: with the chart's structural laws, which `chart.prove` adds itself.
 export const chartLaw = (c: AnyChart, law: Law, kind: LawKind, intent: Intent, why: string): RealLaw =>
   ({name: law.name, kind, intent, why, form: 'invariant', prove: ms => proveRule(c.rule, [...c.chartLaws(), law], search(ms))})

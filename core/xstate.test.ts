@@ -4,8 +4,8 @@
 // no chart counterpart is refused with the reason.
 import {expect, test} from 'bun:test'
 import {assign, createActor, createMachine, setup, stateIn} from 'xstate'
-import {conforms, fromXState} from './xstate.ts'
-import {nat} from './dsl.ts'
+import {type Guard, conforms, fromXState} from './xstate.ts'
+import {type Term, nat, no} from './dsl.ts'
 import {orderConfig, xorder, xorderLaws} from '../examples/xstate.ts'
 
 // The example's config, with XState's own guards and actions.
@@ -64,4 +64,41 @@ test('what a chart cannot run the same way is refused, with the reason', () => {
   expect(build({initial: 'a', states: {a: {initial: 'p', states: {p: {initial: 'q', states: {q: {}}}, h: {type: 'history'}}, on: {X: 'a.h'}}}})).toThrow(/shallow history over nested states/)
   // an action that writes nothing is fine when said so
   expect(build({initial: 'a', states: {a: {entry: 'log', on: {X: 'a'}}}}, {actions: {log: null}})).not.toThrow()
+})
+
+// The real-world corpus found v4's `cond` dropped: a v4 config was taken with its guards gone, so laws were proven of a
+// machine with fewer guards than the real one. Every key fromXState doesn't read is refused now, and `cond` is read as
+// v4 reads it.
+test('every key fromXState does not read is refused, by name, rather than dropped', () => {
+  const build = (config: Record<string, unknown>, opts = {}) => () => fromXState(config, opts)
+  const v5 = (config: Record<string, unknown>) => () => fromXState(createMachine(config as never), {guards: {ok: () => no}})
+  // XState v5 doesn't read `cond` (it takes the transition unguarded), nor v4 `guard`: a v5 machine with `cond` refused
+  expect(v5({initial: 'a', states: {a: {on: {X: {target: 'b', cond: 'ok'}}}, b: {}}})).toThrow(/`cond` in an XState v5 machine, which doesn't read it/)
+  expect(build({initial: 'a', states: {a: {on: {X: {target: 'b', cond: 'ok', guard: 'ok'}}}, b: {}}})).toThrow(/both `guard` and v4's `cond`/)
+  expect(build({initial: 'a', states: {a: {on: {X: {target: 'b', in: '#m.a'}}}, b: {}}})).toThrow(/v4's `in` guard/)
+  expect(build({initial: 'a', strict: true, states: {a: {on: {X: 'b'}}, b: {}}})).toThrow(/v4's `strict`/)
+  expect(build({initial: 'a', states: {a: {activities: ['beep'], on: {X: 'b'}}, b: {}}})).toThrow(/v4's `activities`/)
+  expect(build({initial: 'a', states: {a: {onEntry: 'log', on: {X: 'b'}}, b: {}}})).toThrow(/v4's `onEntry`/)
+  expect(build({initial: 'a', states: {a: {on: {'': 'b', X: 'b'}}, b: {}}})).toThrow(/eventless transition/)
+  expect(build({initial: 'a', states: {a: {on: {'xstate.done.state.a': 'b', X: 'b'}}, b: {}}})).toThrow(/an event XState raises itself/)
+  expect(build({initial: {target: 'a', actions: 'log'}, states: {a: {on: {X: 'a'}}}})).toThrow(/an initial transition given as an object/)
+  expect(build({initial: 'a', states: {a: {on: {X: {target: 'a', delay: 5}}}}})).toThrow(/`delay`, a key fromXState doesn't read/)
+  expect(build({initial: 'a', states: {a: {invoke: undefined, onEnter: 'x', on: {X: 'a'}}}})).toThrow(/`onEnter`, a key fromXState doesn't read/)
+  expect(build({initial: 'a', states: {a: {context: {n: 0}, on: {X: 'a'}}}})).toThrow(/`context`, a key fromXState doesn't read/)
+  // what changes nothing a run shows is taken: descriptions, metadata, tags, reenter and v4's internal (which change only
+  // which entry and exit actions run), v4's action-order flags
+  expect(build({initial: 'a', predictableActionArguments: true, description: 'd', states: {a: {tags: ['t'], meta: {}, on: {X: {target: 'a', reenter: true, description: 'x'}, Y: {target: 'a', internal: false}}}}})).not.toThrow()
+})
+
+test("v4's cond read as the guard v5 calls guard, its params the object's other keys: the same runs as XState's", () => {
+  const cfg = (key: 'cond' | 'guard') => ({id: 'retry', initial: 'idle', context: {n: 0}, states: {
+    idle: {on: {GO: 'busy'}},
+    busy: {on: {FAIL: [{target: 'busy', [key]: key === 'cond' ? {type: 'under', max: 2} : {type: 'under', params: {max: 2}}, actions: 'count'}, {target: 'failed'}], OK: {target: 'done', [key]: 'never'}}},
+    failed: {type: 'final'}, done: {type: 'final'}}})
+  const bridge = {guards: {under: (({n}, p) => (n as Term).lt((p as {max: number}).max)) as Guard, never: () => no}, actions: {count: ({n}: Record<string, Term>) => ({n: n!.plus(1)})}}
+  // the v4 config's chart against v5's actor of the same machine with `guard`
+  const real = setup({guards: {under: ({context}, p: {max: number}) => context.n < p.max, never: () => false}, actions: {count: assign({n: ({context}) => context.n + 1})}}).createMachine(cfg('guard') as never)
+  const c = fromXState(cfg('cond'), bridge)
+  expect(conforms(c, real, createActor, {runs: 200, depth: 10})).toEqual({checked: 2000})
+  expect(c.prove([c.law('a guard that never holds is never passed', env => env.in('done').not()), c.law('at most two retries counted', ({n}) => n.atMost(2))])).toMatchObject({proven: true, checked: true})
 })
