@@ -14,15 +14,18 @@ over one of ℕ and ℚ and false over the other (5 true over ℚ only: halving 
 is s, ...; 7 over ℕ only: x < y gives x + 1 ≤ y, 2s ≠ 1, a difference is never negative, ...), 12 of 12 decided both
 ways (`examples/rationals.ts`, the suite's `rationals`). Nothing existing changes: every Lean export of the examples
 (21 domains, key names renumbered in order), the package check's Proofs.lean (4 shards), the sets export and the
-600-case conformance file are the same as 5c3f947's (`runs/reals/exports`, `runs/reals/exports2`).
+600-case conformance file are the same as 5c3f947's (`runs/reals/exports`, `runs/reals/exports2`), and again
+after check.ts's integral mode was made Cert.lean's check exactly, with the conformance and tamper jobs passing
+(`runs/reals/recheck`).
 
 **The trusted base grows.** `lean-kernel/Rationals.lean` (new, on top of `Kernel.lean`, 946 lines) and its twins,
-`kernel/kernel.ts`'s rational section (185 lines, 162 of code) and `core/check.ts` (22 lines in, 10 out):
+`kernel/kernel.ts`'s rational section (185 lines, 162 of code) and `core/check.ts` (23 lines in, 10 out):
 - Cert's rows read at a rational point, each strict or not. `Q.checkQ` replays Cert's steps with no cut, a
   combination strict when either row is, and accepts a last row of zero coefficients with a constant > 0, or ≥ 0 and
   strict. `Q.checkQ_sound`: no rational point satisfies the rows. The naturals' and integers' check is the same
   replay with the cut, the one step whose soundness needs an integer point (Cert's `cut_sound`): check.ts's
-  `checkRefutation(rows, steps, integral)` is both (`integral` false: no cut, every coefficient a safe integer).
+  `checkRefutation(rows, steps, integral)` is both: `integral` false, no cut, strict rows, every coefficient a safe
+  integer; by default exactly Cert.lean's check, no row strict, as before.
 - Terms over ℚ (`QE`: variables, rational constants, +, − not truncated, × by a rational constant, min, max, if;
   `QC`: ≤, <, =, and, or, not). A term's linear form is a row over a positive denominator, a comparison's row a
   positive multiple of a − b; a split's no side is −l < 0; a leaf claims rows found among its own. `Q.sound`: an
