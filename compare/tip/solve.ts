@@ -4,7 +4,8 @@
 // `conjectures`) up to k symbols instead of 6, m of them; `--today`, proveData without induction (its definitions
 // unfolded, the kernel's prover alone: core/data.ts's proveDataToday); `--asserts`, the facts the problem asserts beside
 // its goal (TIP's hints, which cvc5 and Vampire read as axioms) given as lemmas, each proven first; `--no-transfer`,
-// proveData with the law as stated only (`transfer: false`: no definition unfolded, no bridge to a built-in).
+// proveData with the law as stated only (`transfer: false`: no definition unfolded, no bridge to a built-in); `--opts
+// '<json>'`, proveData's options (core/data.ts's Options) over the run's.
 // `--inline` and `--native` (the first run's diagnostics) are proveData's own now (core/transfer.ts), and do nothing.
 // An existential goal (∀ v. H ⇒ ∃ x. B) is proven through a witness among its variables (each a law, translate.ts's
 // `some`), or refuted through what it says whatever the witness (B's conjuncts that read no x), its counterexample
@@ -118,7 +119,7 @@ if (tr!.some) {
 const given: DataLaw[] = [...tr!.lemmas, ...(conjSize ? conjectures(programOf([tr!.law]), tr!.law, conjMax, conjSize) : [])]
 if (given.length) say({stage: 'lemmas given', n: given.length, hand: tr!.lemmas.map(l => showY(l.holds).slice(0, 200))})
 let v: ReturnType<typeof proveData>
-try { v = proveData(tr!.law, {ms, ...(given.length ? {lemmas: given} : {}), ...(args.includes('--today') ? {induction: false} : {}), ...(args.includes('--no-transfer') ? {transfer: false} : {})}) } catch (e) { done('error', {why: `proveData threw: ${(e as Error).message.slice(0, 200)}`}) }
+try { v = proveData(tr!.law, {ms, ...(given.length ? {lemmas: given} : {}), ...(args.includes('--today') ? {induction: false} : {}), ...(args.includes('--no-transfer') ? {transfer: false} : {}), ...(args.includes('--opts') ? JSON.parse(args[args.indexOf('--opts') + 1]!) as object : {})}) } catch (e) { done('error', {why: `proveData threw: ${(e as Error).message.slice(0, 200)}`}) }
 say({stage: 'prove', proven: v!.proven, checked: v!.checked, proveMs: v!.ms, scheme: v!.scheme, lemmas: v!.lemmas, tried: v!.tried, ...(v!.through ? {through: v!.through} : {}), ...(v!.goal ? {goal: v!.goal.slice(0, 200), stuck: v!.stuck?.slice(0, 200)} : {})})
 if (v!.proven && v!.checked) done('proven', {changes: tr!.changes, scheme: v!.scheme, lemmas: v!.lemmas, ...(v!.through ? {through: v!.through} : {})})
 if (v!.counterexample) {
