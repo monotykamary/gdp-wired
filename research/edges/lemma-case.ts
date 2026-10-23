@@ -1,8 +1,10 @@
-// The lemma use a case node loses (compare/tip/README.md, lang/edges: why tip2015/list_assoc isn't proven): bind over an
+// The lemma use a case node lost (compare/tip/README.md, lang/edges: why tip2015/list_assoc wasn't proven): bind over an
 // append, (a ++ b) >>= g = (a >>= g) ++ (b >>= g), with ++ associative given as a lemma. With g's values a recursive
-// function of the element (`W=x`: rep x) it is proven; with an unknown's (`W=g`: rep (g x)) it isn't: in the case
-// a = x :: t, b = [] the use of associativity it needs holds in 15 of the node's 24 models and is ranked under uses
-// that hold in 19, and the case keeps four (lemmaCaps.perCase). `DATA_TRACE=1` shows the attempts.
+// function of the element (`W=x`: rep x) it was proven; with an unknown's (`W=g`: rep (g x)) it wasn't: in the case
+// a = x :: t, b = [] the use of associativity it needs held in 15 of the node's 24 models, was ranked under uses that
+// held in 19, and the node kept eight (lemmaCaps.perLemma). Proven now both ways (gen/tip-lemmas): the uses past the
+// node's caps are kept for its cases, and a case takes those whose sides are both its own terms, up to the equalities
+// its models take (core/data.ts's caseJoins). `DATA_TRACE=1` shows the attempts.
 //   W=x bun research/edges/lemma-case.ts; W=g bun research/edges/lemma-case.ts
 import {type Nat, type Val, data, define, fnParam, law, natural, self, proveData} from '../../core/data.ts'
 const L = (v: unknown) => v as Val, N = (v: unknown) => v as Nat

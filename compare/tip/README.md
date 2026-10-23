@@ -38,6 +38,108 @@ Vampire; gdp-wired isn't given them.
 
 ## Results
 
+### The lemma search: calculated steps, uses ranked per case, merged schemes (gen/tip-lemmas)
+
+After merging main at 54bbec9 (0.24.0): every tool in one batch on Modal, 60 s, the same image and container shape
+(`runs/tiplem/final-tools`: this branch, cvc5, cvc5cg and Vampire through `--tools gdp,cvc5,cvc5cg,vampire`;
+`runs/tiplem/final-main`: gdp-wired at main 54bbec9, launched with it).
+
+| theorems (492) | proven | wrong | `false/` (68) refuted | `false/` proven (wrong) | errors |
+| --- | --- | --- | --- | --- | --- |
+| gdp-wired, this branch | 197 | 0 | 23 | 0 | 0 |
+| Vampire 5.1.0 | 193 | 0 | 0 | 0 | 0 |
+| cvc5 1.4.2, conjecture generation | 187 | 0 | 0 | 6 | 2 |
+| gdp-wired, main 54bbec9 | 183 | 0 | 23 | 0 | 0 |
+| cvc5 1.4.2 | 168 | 0 | 0 | 1 | 0 |
+
+- gdp-wired's refutations (on both sides the same 7 theorems, the `tip2015` ones TIP writes false, and 23 of `false/`)
+  each have a counterexample TIP's evaluator confirms breaks the goal as written. cvc5's 1 and 6 proofs of `false/`
+  properties are `full2`'s (`regexp_deluxe_FromToConj`; with conjecture generation also `graph_bt3`, `graph_bt4`,
+  `graph_bt5`, `graph_btp5`, `show_bin_lists_assoc`).
+- Against main: gained 15 (the 14 below and `prod/lemma_12`, 56.40 s, out of time on main in this run), lost
+  `isaplanner/prop_61` (55.34 s on main). The median time of the 182 both prove: 0.74 s here, 0.745 s on main.
+- Against Vampire: 51 proven here and not by Vampire, 47 by Vampire and not here (of those, 16 not translated here,
+  20 out of time, 11 unknown). The three other tools prove 221 between them.
+- The lead over Vampire (197 to 193) is this harness's: 60 s, our installs, our container. It is unconfirmed until a
+  run under TIP's own setup.
+
+Before the merge, against main at 6b2e2df:
+
+`runs/tiplem/tip-8`: this branch, and `runs/tiplem/tip-base-8`: main at 6b2e2df, launched together on Modal (`--backend
+modal`), the same image, sets (`false/` too), container shape and 60 s.
+
+| theorems (492) | proven | refuted | wrong | unknown | timeout | unsupported |
+| --- | --- | --- | --- | --- | --- | --- |
+| `tiplem/tip-base-8` (main 6b2e2df) | 181 | 7 | 0 | 54 | 125 | 125 |
+| `tiplem/tip-8` | 193 | 7 | 0 | 57 | 110 | 125 |
+
+- `false/` (68): 23 refuted in both, none proven; the 7 theorems refuted are the same in both (the `tip2015` ones TIP
+  writes false).
+- Gained 14 (how each is proven): by calculated lemmas `prod/lemma_23` (5.13 s; multiplication associative, through
+  the built-ins with `mul(y + n, z) = mul(y, z) + mul(n, z)` calculated from its step), `isaplanner/prop_20` (14.23 s)
+  and `prod/prop_48` (15.41 s) (the length of an insertion, from the sort's step), `tip2015/nat_alt_mul_same` (9.82 s)
+  and `nat_acc_alt_mul_same` (8.88 s) (alt_mul's step at a successor calculated, its commutativity conjectured),
+  `tip2015/list_assoc` (58.08 s: bind over an append, calculated from the law's step, and ++ associative from that
+  one's); by merged schemes `isaplanner/prop_41` (11.40 s), `prop_55` (20.62 s), `prop_57` (3.53 s), `prop_81`
+  (3.63 s); by a case's arithmetic `prop_50` (53.16 s), `prop_56` (2.82 s), `prod/lemma_05` (29.16 s); by the split on
+  an unknown function's guard `isaplanner/prop_14` (12.19 s, filter by p).
+- Lost 2: `isaplanner/prop_51` (54.12 s on main) is proven by both sides in some runs and not others (main in 3 of
+  the six pairs `tip-3` to `tip-8`, here in 2); `prod/lemma_12` is proven by main in all six (34.93 s to 59.57 s) and
+  here in `tip-3` and `tip-4` only: its lemma pass now spends more of its time (the cases' wider uses make each
+  attempt with a lemma slower in wall time for the same counted work), and its proof, the law at two unfoldings after
+  the pass, comes past 60 s. The cause, found after: a lemma's constructor matched by its fields gave those attempts
+  186 instances in place of 146, each then out of its counted time (counted work, not wall time); matched so now only
+  for a lemma no read matches as it stands, and it is proven again (above).
+- Over the branch's runs, each beside main launched with it (`runs/tiplem/tip-3` to `tip-8`, each at the branch as it
+  then was; `tip-6`, with a bug since fixed, left out): 195, 194, 194, 194 and 193 against 181, 183, 183, 182 and 181.
+- The median time of the 179 both prove: 0.83 s here, 0.64 s on main.
+- `list_assoc`, the lang/edges finding: its lemma `(a ++ b) >>= g = (a >>= g) ++ (b >>= g)` was found and not proven,
+  because the use of ++'s associativity its case `a = x :: t, b = []` needs wasn't among the node's eight (ranked by the
+  models of all its cases). Now a node keeps its candidates past the caps for its cases, and a case takes up to two of
+  them whose sides are both terms of its own (up to the equalities the case's models take): `research/edges/lemma-case.ts`
+  is proven both ways. The proof also needs the lemma itself first: lemma calculation gives it (the law's step with
+  `t >>= f` and `f x` generalised), and then ++ associative (its own step's).
+
+What the search does now, in core/data.ts:
+- **Lemma calculation** (`calculated`, `reduceX`): for each variable of the law a scheme could induct on, and each of its
+  datatype's constructors, the law at that constructor of fresh fields, its definitions unfolded where they are decided
+  (a call whose body's first choice is decided by the arguments; an undecided choice inside a term kept as it is, its
+  binders renamed by depth), the induction's hypothesis used as a rewrite (either way, also at other values of the law's
+  other variables: `qrev x (a :: y)`), and what is left unequal, each subterm common to both sides a fresh variable, a
+  conjecture; the base cases' too. Those random values don't refute come first, generalised steps first, then base
+  cases; a generalised one's own steps are calculated again. They have their own count in a lemma pass (as many as the
+  pass proves, 3 s each), and the law is tried again after the last of them.
+- **Uses per case** (`caseJoins`): above.
+- **Again after a lemma**: a conjecture of the pass that failed is tried once more after each lemma proven, within the
+  same count.
+- **Merged schemes**: each pair of recursion schemes on different variables, their uses taken two at once where they
+  substitute a variable alike (n, m and xs all smaller at once for `drop n (take m xs)`); a call whose argument is a term
+  gives such a half (`take n (xs ++ ys)`: n only). In the law's first attempts at one unfolding, a third of an attempt's
+  time each; four at most.
+- **A case's classes** (`instancesOf`'s): its conditions' equalities; linear forms through a class's constant and, in a
+  model, a truncated difference whose left side is at least its right read as their difference; in the congruence
+  phase, natural arguments of a function that are truncated differences equal in every model of the case, one class (an
+  explanation takes such a step only where the facts give none). A case split on a guard that reads an unknown
+  function at an abstract value's code (`filter p`). A lemma's constructor matched against any value of its datatype
+  by its fields.
+
+What is left: the 167 translated theorems not proven in `tip-8`, by what they need (the frontier2 classes, counted from
+the run's laws), and how many another tool proves at 60 s (`runs/modal/tip/full2`):
+
+| group | unproven here | of those, out of time | another tool proves | on main |
+| --- | --- | --- | --- | --- |
+| a conditional law (an implication, an iff, injectivity: nub, permutations, regular expressions, grammars) | 54 | 36 | 10 | 54 |
+| sorting (a sort's count, permutation or order) | 29 | 15 | 0 | 30 |
+| binary and signed integers as datatypes | 23 | 18 | 7 | 23 |
+| take, drop, zip and rotate at lengths (arithmetic of positions) | 21 | 18 | 13 | 27 |
+| an accumulator or a reversal (rev, qrev, flatten2, qfac, qexp) | 17 | 6 | 4 | 17 |
+| arithmetic on naturals (weird_nat, powers, halves and evens) | 16 | 12 | 3 | 21 |
+| a predicate over a list (escape, select, relaxed prefix) | 7 | 5 | 2 | 7 |
+
+The group attacked is the one the other tools prove most of (on main 19 of its 27): proven here 7 of them
+(`isaplanner/prop_41`, `prop_50`, `prop_55`, `prop_56`, `prop_57`, `prop_81`, `prod/lemma_05`), `prop_51` lost (above).
+The conditional laws are the largest, and other tools prove 10 of their 54.
+
 ### Termination through lemmas (gen/termlemmas)
 
 `runs/termlem/tip2`: this branch, and `runs/termlem/tip2-base`: main at c1a0fb5, launched together on Modal, gdp-wired
