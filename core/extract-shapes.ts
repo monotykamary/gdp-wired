@@ -434,7 +434,8 @@ export function readClass(code: string, file: string, opts: ReadOptions): Model 
 function attempt(code: string, file: string, opts: ReadOptions, written: Set<string>): {model: Model, written: Set<string>} {
   const s = setupOf(code, file, {}, opts.files), cls = findClass(s.sf, opts.entry), first = written.size === 0
   s.cls = cls
-  if (cls.heritageClauses?.length) refuse(cls, 'a class that extends another')
+  // `implements` is a type's only (nothing at run time); `extends` brings another class's fields and methods.
+  if (cls.heritageClauses?.some(h => h.token === ts.SyntaxKind.ExtendsKeyword)) refuse(cls, 'a class that extends another')
   const ctor = cls.members.find(ts.isConstructorDeclaration)
   if (ctor) (s.spans ??= []).push([ctor.getStart(), ctor.end])
   type Field = {name: string, shape: Shape, node: ts.Node, init?: ts.Expression}

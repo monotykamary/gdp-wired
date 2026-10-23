@@ -44,7 +44,7 @@ const reason = (what: string): string => {
     [/not TypeScript or JavaScript/, 'language'], [/another module|from another module/, 'imports'], [/async|await|generator/, 'async'],
     [/a loop/, 'loop'], [/an array|lists are not/, 'arrays'], [/string|template/, 'strings'], [/safe integer|division|a power|fraction/, 'floats and division'],
     [/no type the subset reads|any or unknown/, 'untyped'], [/fromXState: .*`(invoke|after|always|onDone)`/, 'xstate: invoke, after, always or onDone'], [/fromXState: .*inline/, 'xstate: inline actions or guards'],
-    [/fromXState/, 'xstate: other'], [/made by a function|makes the machine/, 'xstate: a machine made by a function'], [/v4 `cond`/, 'xstate: v4 cond'], [/extends another/, 'class extends'],
+    [/v4 `cond`/, 'xstate: v4 cond'], [/fromXState/, 'xstate: other'], [/made by a function|makes the machine/, 'xstate: a machine made by a function'], [/extends another/, 'class extends'],
     [/state it was given/, 'mutates its argument'], [/differ/, 'check: a difference'], [/no function|no class|no machine/, 'entry not found'], [/may be missing|undefined/, 'missing values'],
     [/function value|a call the subset|a method the subset|new /, 'calls and objects outside the subset'], [/try\/catch/, 'try/catch'],
   ]
