@@ -3,7 +3,22 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.23.0
+
+Every benchmark moved, two trusted additions came with their Lean proofs first, and a real-world corpus joins the
+scoreboard. At 60 s on Modal, none wrong: CHC-COMP LIA-Lin 782 solved (518 sat, 264 unsat), 510 at 0.22.0 the same week
+(`runs/unsat/chc`, `runs/inv/chc-base`); TIP 2015 181 of 492 proven, 140 at 0.22.0 (`runs/edges/tip`,
+`runs/lem/tip-final-base`); TermComp's ITS 1,035 answered (572 terminating, 463 not), 376 at 0.22.0
+(`runs/ranks/r4-its-merged`, `runs/ranks/r2-its-base`); SV-COMP's termination tasks 181, 47 at 0.22.0
+(`runs/ranks/r4-sv-merged`). An independent check of the new termination proofs found two translator bugs (constants
+folded in floating point, C narrowing ignored), fixed here; no reported answer was wrong. The real-world corpus
+(`research/realworld/`): 51 rules and state machines from open-source code, 311 laws, 218 proven with nothing stated, 15
+refuted, each a suspected bug in the original code. Trusted additions: a run that never ends (`lean-kernel/NonTerm.lean`'s
+`never_ends_of`, then `kernel/kernel.ts`'s `checkRecur`), and linear arithmetic over the rationals
+(`lean-kernel/Rationals.lean`'s `checkQ_sound`, `sound`, `machine_sound`, then kernel.ts's rational check and
+`core/check.ts`'s rational mode, its integral mode exactly as before), each on the standard axioms. The release suites
+(212 jobs, one after the other) on Modal: by default 649.7 s wall, 4,951.6 s of job time, none failed
+(`runs/release/0.23.0-default-2`); `--usual` 568.4 s, 4,595.5 s, none failed (`runs/release/0.23.0-usual-2`).
 
 Ranks from a loop's relation, not only its runs: each path of a turn read exactly (its vertices, rays and lines), a
 rank per location, blocks in order, multiphase, with invariants by Houdini, every rank still proven by the kernel.
