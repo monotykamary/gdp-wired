@@ -207,8 +207,11 @@ export function forcedRun(m: Machine, laws: Law[], opts: {steps: number, wall: n
   let choices: Record<string, number>[] = [{}]
   for (const i of finite) { const n = bound.get(i)!; choices = choices.flatMap(ch => Array.from({length: n}, (_, v) => ({...ch, [i]: v}))); if (choices.length > 256) return undefined }
   // Whether a case reads a free value: its assumption and updates with the case put in.
-  // (the step's flags put in first: each a condition of the step, read where the terms read it)
-  const flags = {vars: {}, maps: {}, flags: m.step.flags ?? {}}
+  // (the step's flags put in first: each a condition of the step, read where the terms read it, and each over the flags
+  // before it, as kernel.ts's flagsOf reads them)
+  const inlined: Record<string, C> = {}
+  for (const [f, c] of Object.entries(m.step.flags ?? {})) inlined[f] = substC(c, {vars: {}, maps: {}, flags: inlined})
+  const flags = {vars: {}, maps: {}, flags: inlined}
   const assume = m.assume && substC(m.assume, flags)
   const conds: C[] = assume ? [assume] : [], updates = Object.values(m.step.state ?? {}).map(e => substE(e, flags))
   const reads = choices.map(ch => {
