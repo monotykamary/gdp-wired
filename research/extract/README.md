@@ -12,7 +12,7 @@ checked against itself by running both (core/extract-check.ts); a difference ref
 | `fetch.ts` | the files at their commits, cached in `.cache/` (not committed) |
 | `collect.ts` | a batch's logs into `results/` |
 | `jobs.json` | the batch: the tests, both lists, the verdicts |
-| `results/` | the last batch's (`runs/extract/batch3`): `ours.jsonl`, `realworld.jsonl` (one line per source: extracted or refused, where and why, the check's evidence), `verdicts.jsonl`, `rules/` (the rules extracted, as `toSource` prints them) |
+| `results/` | the last batch's (`runs/extract/batch4`, at 2658278): `ours.jsonl`, `realworld.jsonl` (one line per source: extracted or refused, where and why, the check's evidence), `verdicts.jsonl`, `rules/` (the rules extracted, as `toSource` prints them) |
 
 ```sh
 python3 modal/run.py --backend modal --jobs research/extract/jobs.json --out runs/extract/<name> && sh modal/reap.sh

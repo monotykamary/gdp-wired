@@ -1,0 +1,28 @@
+{"id":"react.dev/useReducer/counter","law":"the age never goes below 42","expect":"true","extracted":{"verdict":"proven","ms":20},"hand":{"verdict":"proven","ms":11},"agree":true}
+{"id":"react.dev/useReducer/counter","law":"the age stays at most 100","expect":"false","extracted":{"verdict":"refuted","ms":1309},"hand":{"verdict":"refuted","ms":1023},"agree":true}
+{"id":"react.dev/useReducer/counter","law":"each action adds one","expect":"true","extracted":{"verdict":"proven","ms":13},"hand":{"verdict":"proven","ms":10},"agree":true}
+{"id":"react.dev/useReducer/form","law":"the age never goes below 42","expect":"true","extracted":{"verdict":"proven","ms":29},"hand":{"verdict":"proven","ms":19},"agree":true}
+{"id":"react.dev/useReducer/form","law":"the name stays Taylor","expect":"false","extracted":{"verdict":"refuted","ms":0},"hand":{"verdict":"refuted","ms":0},"agree":true}
+{"id":"react.dev/useReducer/form","law":"incremented_age keeps the name","expect":"true","extracted":{"verdict":"proven","ms":55},"hand":{"verdict":"proven","ms":43},"agree":true}
+{"id":"redux/shopping-cart/cart","invariants":["state: a key it doesn't hold holds the defaults"],"proven":true}
+{"id":"redux/shopping-cart/cart","law":"a quantity never goes down","expect":"true","extracted":{"verdict":"proven","ms":109},"hand":{"verdict":"proven","ms":36},"agree":true}
+{"id":"redux/shopping-cart/cart","law":"an add counts one more of its product","expect":"true","extracted":{"verdict":"proven","ms":84},"hand":{"verdict":"proven","ms":33},"agree":true}
+{"id":"redux/shopping-cart/cart","law":"no product is added twice","expect":"false","extracted":{"verdict":"refuted","ms":0},"hand":{"verdict":"refuted","ms":0},"agree":true}
+{"id":"redux/todos/visibilityFilter","law":"another action keeps the filter","expect":"true","extracted":{"verdict":"proven","ms":48},"hand":{"verdict":"proven","ms":28},"agree":true}
+{"id":"redux/todos/visibilityFilter","law":"the filter is always SHOW_ALL","expect":"false","extracted":{"verdict":"refuted","ms":0},"hand":{"verdict":"refuted","ms":0},"agree":true}
+{"id":"redux/counter/counterSlice","law":"the value never goes below 0","expect":"false","extracted":{"verdict":"refuted","ms":0},"hand":{"verdict":"refuted","ms":0},"agree":true}
+{"id":"redux/counter/counterSlice","law":"a pending fetch is loading","expect":"true","extracted":{"verdict":"proven","ms":40},"hand":{"verdict":"proven","ms":29},"agree":true}
+{"id":"redux/counter/counterSlice","law":"the status is never failed","expect":"false","extracted":{"verdict":"refuted","ms":0},"hand":{"verdict":"refuted","ms":0},"agree":true}
+{"id":"redux/counter/counterSlice","law":"an increment adds one","expect":"true","extracted":{"verdict":"proven","ms":34},"hand":{"verdict":"proven","ms":23},"agree":true}
+{"id":"xstate/examples/toggle","law":"a toggle from inactive goes to active","expect":"true","extracted":{"verdict":"proven","ms":28},"hand":{"verdict":"proven","ms":8},"agree":true}
+{"id":"xstate/examples/toggle","law":"it is never active","expect":"false","extracted":{"verdict":"refuted","ms":0},"hand":{"verdict":"refuted","ms":0},"agree":true}
+{"id":"xstate/examples/counter","law":"the count never goes below 0","expect":"false","extracted":{"verdict":"refuted","ms":0},"hand":{"verdict":"refuted","ms":0},"agree":true}
+{"id":"xstate/examples/counter","law":"an increment adds one","expect":"true","extracted":{"verdict":"proven","ms":32},"hand":{"verdict":"proven","ms":23},"agree":true}
+{"id":"xstate/examples/counter","law":"a decrement takes one","expect":"true","extracted":{"verdict":"proven","ms":26},"hand":{"verdict":"proven","ms":9},"agree":true}
+{"id":"xstate/examples/7guis-counter-react","law":"the count never goes below 0","expect":"true","extracted":{"verdict":"proven","ms":11},"hand":{"verdict":"proven","ms":3},"agree":true}
+{"id":"xstate/examples/7guis-counter-react","law":"the count stays at most 5","expect":"false","extracted":{"verdict":"refuted","ms":0},"hand":{"verdict":"refuted","ms":0},"agree":true}
+{"id":"xstate/examples/7guis-counter-vue","law":"the count never goes below 0","expect":"true","extracted":{"verdict":"proven","ms":12},"hand":{"verdict":"proven","ms":3},"agree":true}
+{"id":"xstate/examples/7guis-counter-vue","law":"an increase adds one","expect":"true","extracted":{"verdict":"proven","ms":17},"hand":{"verdict":"proven","ms":5},"agree":true}
+{"id":"xstate/examples/express-workflow","law":"a timer at red turns green and counts a cycle","expect":"true","extracted":{"verdict":"proven","ms":53},"hand":{"verdict":"proven","ms":9},"agree":true}
+{"id":"xstate/examples/express-workflow","law":"a cycle is counted only on the way to green","expect":"true","extracted":{"verdict":"proven","ms":27},"hand":{"verdict":"proven","ms":10},"agree":true}
+{"id":"xstate/examples/express-workflow","law":"the cycles stay below 3","expect":"false","extracted":{"verdict":"refuted","ms":5},"hand":{"verdict":"refuted","ms":5},"agree":true}
