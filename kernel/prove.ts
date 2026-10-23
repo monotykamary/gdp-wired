@@ -732,18 +732,18 @@ function fractional(point: Record<string, number> | undefined, path: Path): Lin 
 }
 
 // The keys a proof assumes the every-key laws at: every key the step and the laws read, and the fresh key of the goal.
+// Each map read of a term (inE) or a condition (inC) given to f, outermost first, a quantified flag's body included.
+const eachRead = (f: (e: Extract<E, {op: 'get'}>) => void) => {
+  const inE = (e: E): void => { if (e.op === 'get') { f(e); inE(e.key) } else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul') inE(e.a); else if ('a' in e) (inE(e.a), inE(e.b)) }
+  const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? inC(c.c) : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
+  return {inE, inC}
+}
 // A key bound by a quantified flag or a write at every key isn't one: those reads are at every key already.
 function readKeys(m: Machine, laws: Law[]): E[] {
   const out = new Map<string, E>()
   const bound = new Set<string>([...Object.values(m.step.flags ?? {}).flatMap(c => (c.op === 'all' ? boundOf(c) : [])), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : []))])
   const free = (e: E) => !JSON.stringify(e).match(/"name":"([^"]+)"/g)?.some(n => bound.has(n.slice(8, -1)))
-  const inE = (e: E): void => {
-    if (e.op === 'get') { if (free(e.key)) out.set(JSON.stringify(e.key), e.key); inE(e.key) }
-    else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else))
-    else if (e.op === 'mul') inE(e.a)
-    else if ('a' in e) (inE(e.a), inE(e.b))
-  }
-  const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? inC(c.c) : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
+  const {inE, inC} = eachRead(e => { if (free(e.key)) out.set(JSON.stringify(e.key), e.key) })
   Object.values(m.step.state ?? {}).forEach(inE)
   Object.values(m.step.flags ?? {}).forEach(inC)
   for (const w of Object.values(m.step.maps ?? {})) { if (!('each' in w)) { out.set(JSON.stringify(w.key), w.key); inE(w.key) } inE(w.value) }
@@ -762,14 +762,7 @@ function keysInlined(m: Machine, keys: E[]): E[] {
 const shifts = (m: Machine) => Object.values(m.step.maps ?? {}).some(w => 'each' in w && !plainKey(w.value, w.each))
 // The keys some goals read a map at.
 function mapKeys(goals: Goal[]): E[] {
-  const out = new Map<string, E>()
-  const inE = (e: E): void => {
-    if (e.op === 'get') { out.set(JSON.stringify(e.key), e.key); inE(e.key) }
-    else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else))
-    else if (e.op === 'mul') inE(e.a)
-    else if ('a' in e) (inE(e.a), inE(e.b))
-  }
-  const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? inC(c.c) : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
+  const out = new Map<string, E>(), {inC} = eachRead(e => { out.set(JSON.stringify(e.key), e.key) })
   for (const g of goals) g.hyps.forEach(inC)
   return [...out.values()]
 }
@@ -805,14 +798,7 @@ const related = (keys: E[], focus: string[], n: number): E[][] => {
 const tuples = (keys: E[], n: number): E[] => (n === 0 ? [] : n === 1 ? keys : keys.flatMap(a => { const rest = tuples(keys, n - 1); return Array.from({length: rest.length / (n - 1)}, (_, t) => [a, ...rest.slice(t * (n - 1), (t + 1) * (n - 1))]).flat() }))
 // The keys some goals read a function at.
 function fnKeys(m: Machine, goals: Goal[]): E[] {
-  const fns = Object.keys(m.fns ?? {}), out = new Map<string, E>()
-  const inE = (e: E): void => {
-    if (e.op === 'get') { if (fns.includes(e.map)) out.set(JSON.stringify(e.key), e.key); inE(e.key) }
-    else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else))
-    else if (e.op === 'mul') inE(e.a)
-    else if ('a' in e) (inE(e.a), inE(e.b))
-  }
-  const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? inC(c.c) : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
+  const fns = Object.keys(m.fns ?? {}), out = new Map<string, E>(), {inC} = eachRead(e => { if (fns.includes(e.map)) out.set(JSON.stringify(e.key), e.key) })
   for (const g of goals) g.hyps.forEach(inC)
   return [...out.values()]
 }
@@ -912,9 +898,7 @@ function instancesFor(m: Machine, laws: Law[], build: (inst: Instances) => Goal[
 // Untrusted: fewer instances still make a checked proof, and where they don't prove a goal the full set is tried.
 const triggers = (body: C, key: string): {map: string, at: E}[] => {
   const out: {map: string, at: E}[] = [], mentions = (e: E): boolean => JSON.stringify(e).includes(`"name":${JSON.stringify(key)}`)
-  const inE = (e: E): void => { if (e.op === 'get') { if (mentions(e.key)) out.push({map: e.map, at: e.key}); inE(e.key) } else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul') inE(e.a); else if ('a' in e) (inE(e.a), inE(e.b)) }
-  const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? inC(c.c) : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
-  inC(body)
+  eachRead(e => { if (mentions(e.key)) out.push({map: e.map, at: e.key}) }).inC(body)
   return out
 }
 const substKey = (e: E, key: string, by: E): E => JSON.parse(JSON.stringify(e).replaceAll(`{"op":"var","name":${JSON.stringify(key)}}`, JSON.stringify(by))) as E
@@ -938,8 +922,7 @@ function triggered(m: Machine, laws: Law[], inst: Instances, build: (inst: Insta
   const out: Instances = Object.fromEntries(Object.entries(inst).map(([n, ks]) => [n, bodies.has(n) ? tuplesOf(n, ks).filter(kept).flat() : ks]))
   for (let round = 0; round < 8; round++) {
     const reads = new Set<string>()
-    const inE = (e: E): void => { if (e.op === 'get') { reads.add(`${e.map}|${JSON.stringify(e.key)}`); inE(e.key) } else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul') inE(e.a); else if ('a' in e) (inE(e.a), inE(e.b)) }
-    const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? inC(c.c) : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
+    const {inC} = eachRead(e => { reads.add(`${e.map}|${JSON.stringify(e.key)}`) })
     for (const g of build(out)) g.hyps.forEach(inC)
     let grew = false
     for (const [n, {keys, per}] of bodies) {
