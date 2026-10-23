@@ -9,7 +9,9 @@ import {mkdirSync, readFileSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import * as xstate from 'xstate'
 import {extract, extractXState} from '../../core/extract.ts'
-import {type Verdict, int, oneOf, proveRule, proveSteps, rule} from '../../core/dsl.ts'
+import {fetchSource, importsOf} from './fetch.ts'
+import {type Verdict, bool, forall, int, nat, oneOf, proveRule, proveSteps, record, rule, str, when} from '../../core/dsl.ts'
+import * as rtk from '@reduxjs/toolkit'
 import {chart} from '../../core/chart.ts'
 import type {Law} from '../../core/machine.ts'
 import type {StepLaw} from '../../kernel/kernel.ts'
@@ -17,16 +19,10 @@ import type {StepLaw} from '../../kernel/kernel.ts'
 const here = import.meta.dir, args = process.argv.slice(2), outAt = args.indexOf('--out')
 const out = outAt >= 0 ? args[outAt + 1]! : join(here, '../../runs/extract/verdicts-local')
 mkdirSync(out, {recursive: true})
-type Src = {id: string, repo: string, commit: string, path: string, lines?: string, file?: string, entry: string, shape?: string, init?: unknown}
+type Src = {id: string, repo: string, commit: string, path: string, lines?: string, file?: string, entry: string, shape?: string, init?: unknown, domains?: Record<string, 'nat' | 'int'>}
 const sources = JSON.parse(readFileSync(join(here, 'sources.json'), 'utf8')) as Src[]
 const code = async (s: Src) => {
-  const cache = join(here, '.cache', s.repo, s.commit, s.path)
-  let text: string
-  try { text = readFileSync(cache, 'utf8') } catch {
-    const res = await fetch(`https://raw.githubusercontent.com/${s.repo}/${s.commit}/${s.path}`)
-    text = await res.text()
-    mkdirSync(join(cache, '..'), {recursive: true}); writeFileSync(cache, text)
-  }
+  const text = await fetchSource(s)
   if (!s.lines) return text
   const [a, b] = s.lines.split('-').map(Number) as [number, number]
   return text.split('\n').slice(a - 1, b).join('\n')
@@ -47,6 +43,46 @@ const cases: Case[] = [
       ['the age never goes below 42', 'true', r => r.law('the age never goes below 42', ({age}: Any) => age.atLeast(42))],
       ['the age stays at most 100', 'false', r => r.law('the age stays at most 100', ({age}: Any) => age.atMost(100))],
       ['each action adds one', 'true', r => r.stepLaw('each action adds one', ({age}: Any, after: Any) => after.age.eq(age.plus(1)))],
+    ]},
+  {id: 'react.dev/useReducer/form', kind: 'rule',
+    // useReducer.md:263-279: incremented_age adds one to the age, changed_name sets the name; any other throws.
+    hand: () => rule('react.dev form').inputs({type: oneOf('incremented_age', 'changed_name'), nextName: str()}).state({name: str().from('Taylor'), age: 42})
+      .step(({type, name, nextName, age}) => ({name: when(type.is('changed_name'), nextName, name), age: when(type.is('incremented_age'), age.plus(1), age)})),
+    laws: [
+      ['the age never goes below 42', 'true', r => r.law('the age never goes below 42', ({age}: Any) => age.atLeast(42))],
+      ['the name stays Taylor', 'false', r => r.law('the name stays Taylor', ({name}: Any) => name.eq('Taylor'))],
+      ['incremented_age keeps the name', 'true', r => r.stepLaw('incremented_age keeps the name', ({name}: Any, a: Any) => a.name.eq(name), ({type}: Any) => type.is('incremented_age'))],
+    ]},
+  {id: 'redux/shopping-cart/cart', kind: 'rule',
+    // cart.js:24-31: ADD_TO_CART counts one more of the product; any other action keeps the quantities.
+    hand: () => rule('cart quantities').inputs({type: oneOf('ADD_TO_CART', 'OTHER'), productId: nat}).maps({state: record({has: bool, value: nat}).from({has: false, value: 0})})
+      .step(({type, productId, state}) => ({state: state.set(productId, {has: state.at(productId).has.or(type.is('ADD_TO_CART')), value: when(type.is('ADD_TO_CART'), state.at(productId).value.plus(1), state.at(productId).value)})})),
+    laws: [
+      ['a quantity never goes down', 'true', r => r.stepLaw('a quantity never goes down', ({state}: Any, a: Any) => forall(k => state.at(k).value.atMost(a.state.at(k).value)))],
+      ['an add counts one more of its product', 'true', r => r.stepLaw('an add counts one more of its product', ({state, productId}: Any, a: Any) => a.state.at(productId).value.eq(state.at(productId).value.plus(1)), ({type}: Any) => type.is('ADD_TO_CART'))],
+      ['no product is added twice', 'false', r => r.law('no product is added twice', ({state}: Any) => forall(k => state.at(k).value.atMost(1)))],
+    ]},
+  {id: 'redux/todos/visibilityFilter', kind: 'rule',
+    // visibilityFilter.js:3-10: SET_VISIBILITY_FILTER sets the filter; any other action keeps it.
+    hand: () => rule('visibility filter').inputs({type: oneOf('SET_VISIBILITY_FILTER', 'OTHER'), filter: str()}).state({state: str().from('SHOW_ALL')})
+      .step(({type, filter, state}) => ({state: when(type.is('SET_VISIBILITY_FILTER'), filter, state)})),
+    laws: [
+      ['another action keeps the filter', 'true', r => r.stepLaw('another action keeps the filter', ({state}: Any, a: Any) => a.state.eq(state), ({type}: Any) => type.is('SET_VISIBILITY_FILTER').not())],
+      ['the filter is always SHOW_ALL', 'false', r => r.law('the filter is always SHOW_ALL', ({state}: Any) => state.eq('SHOW_ALL'))],
+    ]},
+  {id: 'redux/counter/counterSlice', kind: 'rule',
+    // counterSlice.ts:29-62: increment, decrement, incrementByAmount; the fetch's pending, fulfilled and rejected.
+    hand: () => rule('counter slice').inputs({type: oneOf('counter/increment', 'counter/decrement', 'counter/incrementByAmount', 'counter/fetchCount/pending', 'counter/fetchCount/fulfilled', 'counter/fetchCount/rejected', 'OTHER'), payload: int})
+      .state({value: int.from(0), status: oneOf('idle', 'loading', 'failed').from('idle')})
+      .step(({type, payload, value, status}) => ({
+        value: when(type.is('counter/increment'), value.plus(1), when(type.is('counter/decrement'), value.minus(1), when(type.is('counter/incrementByAmount').or(type.is('counter/fetchCount/fulfilled')), value.plus(payload), value))),
+        status: when(type.is('counter/fetchCount/pending'), status.of('loading'), when(type.is('counter/fetchCount/fulfilled'), status.of('idle'), when(type.is('counter/fetchCount/rejected'), status.of('failed'), status))),
+      })),
+    laws: [
+      ['the value never goes below 0', 'false', r => r.law('the value never goes below 0', ({value}: Any) => value.atLeast(0))],
+      ['a pending fetch is loading', 'true', r => r.stepLaw('a pending fetch is loading', (_: Any, a: Any) => a.status.is('loading'), ({type}: Any) => type.is('counter/fetchCount/pending'))],
+      ['the status is never failed', 'false', r => r.law('the status is never failed', ({status}: Any) => status.is('failed').not())],
+      ['an increment adds one', 'true', r => r.stepLaw('an increment adds one', ({value}: Any, a: Any) => a.value.eq(value.plus(1)), ({type}: Any) => type.is('counter/increment'))],
     ]},
   {id: 'xstate/examples/toggle', kind: 'chart',
     hand: () => chart('toggle').states({inactive: {}, active: {}}).on('toggle', {from: 'inactive', to: 'active'}).on('toggle', {from: 'active', to: 'inactive'}),
@@ -88,7 +124,9 @@ const rows: Record<string, unknown>[] = []
 for (const k of cases) {
   const s = sources.find(x => x.id === k.id)!
   const text = await code(s), file = s.file ?? s.path.split('/').pop()!
-  const x = k.kind === 'chart' ? extractXState(text, {file, entry: s.entry, xstate: xstate as never}) : extract(text, {file, entry: s.entry, ...(s.init !== undefined ? {init: s.init} : {})})
+  const files = s.lines ? {} : await importsOf(s, text)
+  const x = k.kind === 'chart' ? extractXState(text, {file, entry: s.entry, xstate: xstate as never}) : extract(text, {file, entry: s.entry, ...(s.init !== undefined ? {init: s.init} : {}), ...(s.domains ? {domains: s.domains} : {}),
+    ...(Object.keys(files).length ? {files} : {}), check: {modules: {'@reduxjs/toolkit': rtk, xstate}}})
   if (!x.ok) { rows.push({id: k.id, extracted: false, refusal: x.refusals[0]}); console.log(`${k.id}: not extracted (${x.refusals[0]?.what})`); continue }
   const extracted: Any = k.kind === 'chart' ? (x as Any).chart : (x as Any).rule, hand = k.hand()
   for (const [name, expect, mk] of k.laws) {
