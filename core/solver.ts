@@ -1,16 +1,23 @@
-// Linear arithmetic over the integers, inside the library. A conjunction of constraints `lin <= 0` is decided by
-// Fourier–Motzkin elimination with integer cuts, and every answer carries evidence that a small checker verifies:
+// Linear arithmetic over the integers and over the rationals, inside the library. A conjunction of constraints
+// `lin <= 0` (or `lin < 0`, strict) is decided by Fourier–Motzkin elimination with integer cuts, and every answer
+// carries evidence that a small checker verifies:
 //   refuted  a derivation: input rows, positive combinations of two rows, and cuts (divide a row's variable
 //            coefficients by their common divisor g and round the constant up), ending in `positive <= 0`
 //   sat      an integer witness, checked by evaluating every input constraint at it
 //   unknown  elimination was inexact for the integers and no witness was found (never a wrong answer)
 // Elimination of x is exact for the integers when every pair it combines has a coefficient ±1 on x (the Omega test's
 // exact shadow). Then a rational solution of the rest extends to an integer x, so back-substitution finds a witness.
+// Over the rationals (`integral` false) the same elimination is exact with no cut at all (a combination of a strict
+// row is strict), so the answer is refuted or sat, the witness exact (`rational`), the derivation one check.ts takes
+// with no cut: the integers are this with the cut rule, and a strict row over them is lin + 1 <= 0.
+
+import {type Rat, Q0, Q1, q, qadd, qcmp, qdiv, qneg, qnum, qrow, qsub} from './q.ts'
 
 export type Lin = Record<string, number> // variable -> coefficient, '1' -> constant
 // lin <= 0. `src`: where a leaf's row comes from (the path's i-th atom, a hypothesis's facts, a column's naturality, a pair
 // of equal cells, a term column's rows), a hint for Lean's check, which looks there first.
-export type Constraint = {lin: Lin, label: string, src?: RowSrc}
+// `strict`: lin < 0 (over the rationals; over the integers a strict row is written lin + 1 <= 0 instead).
+export type Constraint = {lin: Lin, label: string, src?: RowSrc, strict?: boolean}
 export type RowSrc = {atom: number} | {fact: number} | {nat: string} | {pair: [string, string]} | {term: string}
 
 export const v = (name: string): Lin => ({[name]: 1})
@@ -53,7 +60,7 @@ export type Step =
   | {kind: 'cut', of: number, g: number}
 export type Verdict =
   | {kind: 'refuted', steps: Step[]}
-  | {kind: 'sat', witness: Record<string, number>}
+  | {kind: 'sat', witness: Record<string, number>, rational?: Record<string, Rat>} // rational: the exact witness over ℚ
   | {kind: 'unknown', point?: Record<string, number>} // point: a rational solution, a hint for where to split
 
 const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
@@ -63,13 +70,14 @@ const vars = (lin: Lin) => Object.keys(lin).filter(key => key !== '1')
 // five times as many before merging them, it gives up with `unknown`.
 // The rows the solver has read and made, which a counted search reads as its clock (kernel/prove.ts's `counted`).
 export const work = {n: 0}
-export function solve(constraints: Constraint[], maxRows = 20_000): Verdict {
+export function solve(constraints: Constraint[], maxRows = 20_000, integral = true): Verdict {
   work.n += constraints.length
   const steps: Step[] = []
-  const lins: Lin[] = []
-  const push = (step: Step, lin: Lin) => (steps.push(step), lins.push(lin), lins.length - 1)
-  // A row after its cut, if its variables share a divisor.
+  const lins: Lin[] = [], stricts: boolean[] = []
+  const push = (step: Step, lin: Lin, strict = false) => (steps.push(step), lins.push(lin), stricts.push(strict), lins.length - 1)
+  // A row after its cut, if its variables share a divisor (over the integers only).
   const tighten = (index: number) => {
+    if (!integral) return index
     const lin = lins[index]!
     let g = 0
     for (const key in lin) if (key !== '1') { g = gcd(g, lin[key]!); if (g === 1) return index }
@@ -79,10 +87,14 @@ export function solve(constraints: Constraint[], maxRows = 20_000): Verdict {
     const constant = Math.ceil((lin['1'] ?? 0) / g)
     return push({kind: 'cut', of: index, g}, add(cut, k(constant)))
   }
-  let rows = constraints.map((c, index) => tighten(push({kind: 'input', index}, c.lin)))
-  // A row with no variable and a positive constant (kept per row: a row never changes once pushed).
+  let rows = constraints.map((c, index) => tighten(push({kind: 'input', index}, c.lin, !integral && c.strict === true)))
+  // A row with no variable and a positive constant, or a strict one with a constant >= 0 (kept per row: a row never
+  // changes once pushed).
   const contra: boolean[] = []
-  const isContra = (r: number) => (contra[r] ??= (lins[r]!['1'] ?? 0) > 0 && Object.keys(lins[r]!).every(key => key === '1'))
+  const isContra = (r: number) => (contra[r] ??= ((lins[r]!['1'] ?? 0) > 0 || (stricts[r]! && (lins[r]!['1'] ?? 0) >= 0)) && Object.keys(lins[r]!).every(key => key === '1'))
+  // Over the rationals every coefficient must stay a safe integer (none is rounded); past that, unknown.
+  let inexact = false
+  const pushExact = (step: Step, lin: Lin, strict: boolean) => { if (!integral && !Object.values(lin).every(c => Number.isSafeInteger(c))) inexact = true; return push(step, lin, strict) }
   const contradiction = () => rows.find(isContra)
   const eliminated: {x: string, rows: number[]}[] = []
   let exact = true
@@ -98,7 +110,7 @@ export function solve(constraints: Constraint[], maxRows = 20_000): Verdict {
     const byKey = new Map(rows.map(r => [key(r), r]))
     for (const r of rows) {
       const neg = byKey.get(negKey(r))
-      if (neg === undefined || neg === r) continue
+      if (neg === undefined || neg === r || stricts[r] || stricts[neg]) continue
       let x: string | undefined
       for (const name in lins[r]!) if (name !== '1' && Math.abs(lins[r]![name]!) === 1) { x = name; break }
       if (x === undefined) continue
@@ -109,7 +121,7 @@ export function solve(constraints: Constraint[], maxRows = 20_000): Verdict {
         if (o === up || o === down) continue
         const c = lins[o]![x] ?? 0
         if (c === 0) next.push(o)
-        else next.push(tighten(push({kind: 'combine', a: o, b: c > 0 ? down : up, ma: 1, mb: Math.abs(c)}, add(lins[o]!, scale(lins[c > 0 ? down : up]!, Math.abs(c))))))
+        else next.push(tighten(pushExact({kind: 'combine', a: o, b: c > 0 ? down : up, ma: 1, mb: Math.abs(c)}, add(lins[o]!, scale(lins[c > 0 ? down : up]!, Math.abs(c))), stricts[o]!)))
       }
       eliminated.push({x, rows: [up, down]})
       rows = next
@@ -154,23 +166,24 @@ export function solve(constraints: Constraint[], maxRows = 20_000): Verdict {
     const next = rows.filter(r => (lins[r]![choice.x] ?? 0) === 0)
     for (const p of choice.pos) for (const n of choice.neg) {
       const a = lins[p]![choice.x]!, b = -lins[n]![choice.x]!
-      const combined = push({kind: 'combine', a: p, b: n, ma: b / gcd(a, b), mb: a / gcd(a, b)}, add(scale(lins[p]!, b / gcd(a, b)), scale(lins[n]!, a / gcd(a, b))))
+      const combined = pushExact({kind: 'combine', a: p, b: n, ma: b / gcd(a, b), mb: a / gcd(a, b)}, add(scale(lins[p]!, b / gcd(a, b)), scale(lins[n]!, a / gcd(a, b))), stricts[p]! || stricts[n]!)
       next.push(tighten(combined))
     }
-    // Rows with the same variable part: only the tightest (largest constant) matters; rows with no variables that hold
-    // say nothing.
+    // Rows with the same variable part: only the tightest (largest constant, strict before not at the same) matters;
+    // rows with no variables that hold say nothing.
     const best = new Map<string, number>()
     for (const r of next) {
       const lin = lins[r]!, sig = sigOf(r)
-      if (sig === '[]' && (lin['1'] ?? 0) <= 0) continue
+      if (sig === '[]' && !isContra(r)) continue
       const seen = best.get(sig)
-      if (seen === undefined || (lins[seen]!['1'] ?? 0) < (lin['1'] ?? 0)) best.set(sig, r)
+      if (seen === undefined || (lins[seen]!['1'] ?? 0) < (lin['1'] ?? 0) || (stricts[r]! && !stricts[seen] && (lins[seen]!['1'] ?? 0) === (lin['1'] ?? 0))) best.set(sig, r)
     }
     rows = [...best.values()]
-    if (rows.length > maxRows) return {kind: 'unknown'}
+    if (rows.length > maxRows || inexact) return {kind: 'unknown'}
   }
   const found = contradiction()
-  if (found !== undefined) return {kind: 'refuted', steps: prune(steps, found)}
+  if (found !== undefined) return inexact ? {kind: 'unknown'} : {kind: 'refuted', steps: prune(steps, found)}
+  if (!integral) return inexact ? {kind: 'unknown'} : satOverQ(constraints, eliminated, lins, stricts)
   // A rational solution the same way (cuts only remove non-integer points, so bounds never cross): where to split.
   const rational: Record<string, number> = {}
   for (const {x, rows: bounds} of [...eliminated].reverse()) {
@@ -202,6 +215,30 @@ export function solve(constraints: Constraint[], maxRows = 20_000): Verdict {
   return holds ? {kind: 'sat', witness: point} : {kind: 'unknown', point: rational}
 }
 
+// Over the rationals elimination is exact: back-substitution, last eliminated first, gives each variable an exact value
+// within its bounds (strict ones kept strict): 0 where it may be, else the integer nearest its bounds that fits, else
+// the midpoint. The witness is checked on every input exactly; a miss (none should happen) is unknown, never sat.
+function satOverQ(constraints: Constraint[], eliminated: {x: string, rows: number[]}[], lins: Lin[], stricts: boolean[]): Verdict {
+  const at: Record<string, Rat> = {}
+  for (const {x, rows: bounds} of [...eliminated].reverse()) {
+    let lo: {v: Rat, strict: boolean} | undefined, hi: {v: Rat, strict: boolean} | undefined
+    for (const r of bounds) {
+      const lin = lins[r]!, a = lin[x]!
+      // a·x + rest (<|<=) 0: x (<|<=) −rest/a when a > 0, x (>|>=) −rest/a when a < 0.
+      const rest = qrow(Object.fromEntries(Object.entries(lin).filter(([key]) => key !== x)), at), b = qdiv(qneg(rest), q(a)), strict = stricts[r]!
+      if (a > 0) { if (!hi || qcmp(b, hi.v) < 0 || (qcmp(b, hi.v) === 0 && strict)) hi = {v: b, strict} }
+      else if (!lo || qcmp(b, lo.v) > 0 || (qcmp(b, lo.v) === 0 && strict)) lo = {v: b, strict}
+    }
+    const fits = (v: Rat) => (!lo || qcmp(v, lo.v) > 0 || (!lo.strict && qcmp(v, lo.v) === 0)) && (!hi || qcmp(v, hi.v) < 0 || (!hi.strict && qcmp(v, hi.v) === 0))
+    const floor = (v: Rat) => q(v.num >= 0n ? v.num / v.den : -((-v.num + v.den - 1n) / v.den))
+    const tries = [Q0, ...(lo ? [floor(lo.v), qadd(floor(lo.v), Q1)] : []), ...(hi ? [floor(hi.v), qsub(floor(hi.v), Q1)] : [])]
+    at[x] = tries.find(fits) ?? (lo && hi ? qdiv(qadd(lo.v, hi.v), q(2)) : lo ? qadd(lo.v, Q1) : qsub(hi!.v, Q1))
+  }
+  for (const c of constraints) for (const key of vars(c.lin)) at[key] ??= Q0
+  const holds = constraints.every(c => { const s = qcmp(qrow(c.lin, at), Q0); return c.strict ? s < 0 : s <= 0 })
+  return holds ? {kind: 'sat', witness: Object.fromEntries(Object.entries(at).map(([key, v]) => [key, qnum(v)])), rational: at} : {kind: 'unknown'}
+}
+
 // Only the steps the contradiction depends on, renumbered.
 function prune(steps: Step[], last: number): Step[] {
   const keep = new Set<number>()
@@ -227,7 +264,9 @@ function prune(steps: Step[], last: number): Step[] {
 // derivation, renumbered to the whole system's rows. Floating point only picks the rows: the derivation is exact, and
 // the checker sees nothing else. Undefined when no λ turns up (a system with a rational solution, or one the floats
 // misjudge): the caller goes on as without it.
-export function refuteFast(constraints: Constraint[], maxRows = 2_000): Verdict | undefined {
+// (Over the rationals, `integral` false, the elimination on the support has no cut; a refutation that needs a strict
+// row's strictness, Σ λ·c = 0, isn't looked for here: the caller's own elimination finds it.)
+export function refuteFast(constraints: Constraint[], maxRows = 2_000, integral = true): Verdict | undefined {
   const m = constraints.length
   if (m === 0) return undefined
   const names = [...new Set(constraints.flatMap(c => vars(c.lin)))], n = names.length
@@ -270,7 +309,7 @@ export function refuteFast(constraints: Constraint[], maxRows = 2_000): Verdict 
   const support: number[] = []
   for (let r = 0; r < R; r++) if (basis[r]! < m && T[r]![cols]! > eps) support.push(basis[r]!)
   if (!support.length) return undefined
-  const sub = solve(support.sort((a, b) => a - b).map(i => constraints[i]!))
+  const sub = solve(support.sort((a, b) => a - b).map(i => constraints[i]!), 20_000, integral)
   if (sub.kind !== 'refuted') return undefined
   return {kind: 'refuted', steps: sub.steps.map(st => (st.kind === 'input' ? {...st, index: support[st.index]!} : st))}
 }

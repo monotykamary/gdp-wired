@@ -7,7 +7,9 @@
 // the rows whose bounds it reads, is a rational refutation's support. Floating point only picks the rows: the caller
 // refutes them exactly (core/solver.ts) and the kernel checks that; a verdict the floats misjudge costs a fallback.
 // Bounds are rounded to integers (every variable is a natural, every form an integer combination): what a cut of the
-// row by its coefficients' divisor gives, which the exact elimination makes as well.
+// row by its coefficients' divisor gives, which the exact elimination makes as well. Over the rationals (`integral`
+// false) nothing is rounded, and a strict row's bound is moved in by a hair (1e-7, relative): the floats only pick a
+// conflict's rows, which the exact elimination then refutes, strictness and all, or doesn't.
 import type {Lin} from '../core/solver.ts'
 
 const eps = 1e-9
@@ -36,6 +38,7 @@ function formOf(lin: Lin): Form | {single: string, c: number} | null {
 export type SimplexVerdict = {kind: 'sat'} | {kind: 'conflict', rows: number[]} | {kind: 'unknown'}
 
 export class Simplex {
+  constructor(readonly integral = true) {}
   private index = new Map<string, number>()
   private lo: number[] = []
   private hi: number[] = []
@@ -79,19 +82,27 @@ export class Simplex {
   }
   // A node's rows as the bounds (a natural's own row x >= 0 among them). A pair of bounds that cross is a conflict at
   // once.
-  load(rows: {lin: Lin}[]): SimplexVerdict {
+  load(rows: {lin: Lin, strict?: boolean}[]): SimplexVerdict {
     for (let j = 0; j < this.val.length; j++) { this.lo[j] = -Infinity; this.hi[j] = Infinity; this.loWhy[j] = -1; this.hiWhy[j] = -1 }
     const tighten = (j: number, upper: boolean, b: number, why: number) => {
       if (upper) { if (b < this.hi[j]!) { this.hi[j] = b; this.hiWhy[j] = why } }
       else if (b > this.lo[j]!) { this.lo[j] = b; this.loWhy[j] = why }
     }
+    const integral = this.integral
+    // c·x + k <= 0: x <= −k/c (c > 0) or x >= k/−c (c < 0); rounded to integers, or over the rationals moved in when
+    // strict.
+    const bound = (c: number, j: number, k: number, i: number, strict: boolean | undefined) => {
+      const b = c > 0 ? -k / c : k / -c
+      if (integral) { if (c > 0) tighten(j, true, Math.floor(b + eps), i); else tighten(j, false, Math.ceil(b - eps), i); return }
+      const d = strict ? 1e-7 * Math.max(1, Math.abs(b)) : 0
+      if (c > 0) tighten(j, true, b - d, i); else tighten(j, false, b + d, i)
+    }
     for (const [i, r] of rows.entries()) {
       const f = formOf(r.lin), k = r.lin['1'] ?? 0
-      if (f === null) { if (k > 0) return {kind: 'conflict', rows: [i]}; continue }
-      if ('single' in f) { const j = this.varOf(f.single); if (f.c > 0) tighten(j, true, Math.floor(-k / f.c + eps), i); else tighten(j, false, Math.ceil(k / -f.c - eps), i); continue }
-      const s = this.slackOf(f)
+      if (f === null) { if (k > 0 || (!integral && r.strict && k >= 0)) return {kind: 'conflict', rows: [i]}; continue }
+      if ('single' in f) { bound(f.c, this.varOf(f.single), k, i, !integral && r.strict); continue }
       // g·form + k <= 0
-      if (f.g > 0) tighten(s, true, Math.floor(-k / f.g + eps), i); else tighten(s, false, Math.ceil(k / -f.g - eps), i)
+      bound(f.g, this.slackOf(f), k, i, !integral && r.strict)
     }
     for (let j = 0; j < this.val.length; j++) if (this.lo[j]! > this.hi[j]! + eps) return {kind: 'conflict', rows: [this.loWhy[j]!, this.hiWhy[j]!].filter(x => x >= 0)}
     // Nonbasic variables into their bounds, then each basic one computed afresh from its row (no drift from the shifts

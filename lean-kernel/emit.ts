@@ -1673,6 +1673,9 @@ ${theorems.map(t => `#print axioms ${t}`).join('\n')}
 `
 }
 
+// Rules over the rationals (core/rationals.ts), each through Rationals.lean's Q.machine_sound: lean-kernel/qlean.ts.
+export {rationalsToLean} from './qlean.ts'
+
 // A Lake project that builds the twin and the file: `lake build` in its folder checks every proof.
 export function leanProject(file: string, opts: {name?: string} = {}): Record<string, string> {
   const name = opts.name ?? 'Proofs'

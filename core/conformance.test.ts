@@ -10,9 +10,12 @@
 // Each consumer either agrees or refuses with an error; undefined, NaN or a silent different answer fails.
 import {expect, test} from 'bun:test'
 import {type C, type E, compileFunction, conditionCases, interpret, loadJs} from './machine.ts'
-import {type Case, C_OPS, CELLS, E_OPS, VARS, inlineC, inlineE, machineOf, randomCase, recurCases, recurReference, reference, seen, stateOf} from './conformance.ts'
-import {type Loop, type Recur, check, checkRecur, recurGoal} from '../kernel/kernel.ts'
+import {type Case, C_OPS, CELLS, E_OPS, QC_OPS, QE_OPS, VARS, inlineC, inlineE, machineOf, qcoverage, qgoals, qmachineOf, qreference, qtampered, randomCase, randomQCase, recurCases, recurReference, reference, seen, stateOf} from './conformance.ts'
+import {type Loop, type Recur, check, checkQTree, checkRecur, recurGoal} from '../kernel/kernel.ts'
 import {recurLean} from '../lean-kernel/emit.ts'
+import {growQ} from '../kernel/qprove.ts'
+import {q, qeq} from './q.ts'
+import {evalQC, interpretQ, loadQJs} from './rationals.ts'
 import {grow} from '../kernel/prove.ts'
 import {expressions} from '../research/search/compile.ts'
 
@@ -116,3 +119,42 @@ test('nontermination certificates: accepted ones hold on the reference run, tamp
   for (const what of ['found', 'the set not closed: every state', 'the set not reached: a start whose stem ends outside it', 'the set not reached: a stem turn the guard or the assumption refuses', "a lasso's cycle that doesn't close: its set less one state", 'forged: the guard as the set']) expect(counts[what]?.n ?? 0, what).toBeGreaterThan(0)
   console.log(`nontermination: ${Object.entries(counts).map(([w, x]) => `${w} ${x.accepted}/${x.n} accepted`).join('; ')}`)
 }, 600_000)
+
+// Rationals: the interpreter and the generated JavaScript against the reference (exact), and the kernel on each case's
+// goals: the claim negated, with every variable fixed, is proven, and the tree checks; the claim itself, which the
+// case's values satisfy, is never proven (the search ends at a model the reference confirms); each proven tree's
+// tampered twins are refused. Lean computes the same answers on these cases (lean-kernel/conformance.ts --rationals).
+test('rationals: every consumer of rational terms agrees with the reference; tampered certificates are refused', () => {
+  let proven = 0, models = 0, tampered = 0
+  for (let trial = 0; trial < 300 * scale; trial++) {
+    const k = randomQCase(1 + rand(3)), ref = qreference(k), m = qmachineOf(k), none = {}
+    const input = k.env
+    for (const run of [interpretQ(m), loadQJs(m)]) {
+      const out = run.step(none, {out: q(0), ok: q(0)}, input)
+      expect(qeq(out.out!, ref.value)).toBe(true)
+      expect(qeq(out.ok!, q(ref.holds ? 1 : 0))).toBe(true)
+    }
+    const goals = qgoals(k)
+    for (const g of goals.proven) {
+      const out = growQ(g)
+      expect('tree' in out, `${g.name}: ${'stuck' in out ? out.stuck : ''} ${JSON.stringify(k, (_, x) => (typeof x === 'bigint' ? String(x) : x))}`).toBe(true)
+      if (!('tree' in out)) continue
+      expect(checkQTree(g, out.tree)).toBe(true)
+      proven++
+      for (const t of qtampered(out.tree)) { expect(checkQTree(g, t.tree), t.what).toBe(false); tampered++ }
+    }
+    for (const g of goals.models) {
+      const out = growQ(g)
+      if ('tree' in out) expect(checkQTree(g, out.tree)).toBe(false)
+      else {
+        expect(out.stuck).toBe('sat')
+        const at = Object.fromEntries(VARS.map(x => [x, out.rational?.[x] ?? q(0)]))
+        expect(g.hyps.every(h => evalQC(h, at))).toBe(true)
+        models++
+      }
+    }
+  }
+  expect(qcoverage).toEqual([true, true])
+  for (const op of [...QE_OPS, ...QC_OPS]) expect(seen[`q${op}`] ?? 0, op).toBeGreaterThan(0)
+  console.log(`rationals: ${proven} goals proven and checked, ${models} models found and confirmed, ${tampered} tampered trees refused`)
+})

@@ -1107,6 +1107,21 @@
 "cmd": "bun test nonterm.test.ts 2>&1 && cd .. && bun examples/nonterm.ts 2>&1"
 },
 {
+"name": "rationals",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900,
+"cmd": "bun test rationals.test.ts 2>&1 && cd .. && bun examples/rationals.ts 2>&1"
+},
+{
+"name": "lean-rationals",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800,
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; lean -o Rationals.olean Rationals.lean > rationals.out 2>&1 || { grep -B2 -A25 error rationals.out | head -80; echo build-failed Rationals; exit 1; }; if grep -q -e sorry -e sorryAx rationals.out; then echo sorry-in Rationals; exit 1; fi; grep Q. rationals.out; bun conformance.ts --rationals 150 > RatConformance.lean && bun qlean.ts > RatExamples.lean && (time lean RatConformance.lean) > rc.out 2>&1; s=$?; tail -20 rc.out; grep -c '^example' RatConformance.lean; sed -n 4,5p RatConformance.lean; (time lean RatExamples.lean) > re.out 2>&1; t=$?; grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' re.out | tail -20; grep -c 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' re.out; [ $s -eq 0 ] && s=$t; echo lean-exit $s; exit $s"
+},
+{
 "name": "lean-nonterm",
 "cwd": "lean-kernel",
 "cpu": 4.0,
