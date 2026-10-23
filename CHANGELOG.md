@@ -42,7 +42,10 @@ second frontier corpus's TIP items: frontier 2 of 15, 0.22.0 1 that day, every b
   linear bridge and a generalisation), the limited tests under their 5 s (nearPlus 3,121.95 ms, nearSucc 2,393.35 ms
   by default); on one machine the examples took 67.5 s and 68.5 s against 56.6 s and 63.1 s, data.test.ts 4.6 s against
   3.6 s (`runs/lem/local-data`). The time is attempts' instances, which aren't counted work: the searches stop at the
-  same counted budget, and the new conjectures' attempts take more of the wall.
+  same counted budget, and the new conjectures' attempts take more of the wall. On 1 vCPU (ten `data` jobs each, this
+  branch's and main's at dd36f67 interleaved in one Modal batch, `runs/lem/data-1cpu`): nearPlus min, median and max
+  1,751, 2,756 and 3,439 ms against main's 1,812, 2,508 and 2,811; nearSucc 1,512, 2,178 and 2,462 against 1,142, 1,555
+  and 1,783; none failed; the job 180.8 s median against 153.5 s.
 - `compare/tip/solve.ts --opts '<json>'`: proveData's options, for diagnostics.
 
 A run that never ends, stated and proven: `proveNeverEnds(loop)` claims that some run of a loop goes on forever (the
