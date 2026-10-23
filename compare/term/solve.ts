@@ -6,10 +6,13 @@
 //     certificate (`cert`) the cyclic proof those trees translate to where it is made within the limit
 //     (kernel/prove.ts's certLoop), else the usual trees (`usual`, and why)
 //   - nonterminating: a lasso, a run of the translated loop (gdp-wired's interpreter, random turns) that comes back to a
-//     state it was in, replayed as the task's own steps and confirmed by ari.ts's evaluator, which uses no gdp-wired code
+//     state it was in, replayed as the task's own steps and confirmed by ari.ts's evaluator, which uses no gdp-wired code;
+//     or a recurrent set (core/nonterm.ts's findNeverEnds: a closed set of states, the turn from each given by terms, a
+//     start and a stem into it), its closure goal's tree checked by the kernel (kernel.ts's checkRecur), the certificate
+//     printed (`recur`) for NonTerm.lean's never_ends_of; a lasso among them replayed by ari.ts's evaluator too
 //   - unknown (and why: the rank the runs gave and the goal the kernel refused, or no rank), or unsupported (and why)
-// The time: a lasso search first (2 s), then the rank search with all but a margin of the limit, then lassos again with
-// what is left. `--scc`: the rank search on each strongly connected component of the locations, chained, from any
+// The time: a lasso search first (2 s), a recurrent set (4 s, `--recur-ms`), then the rank search with all but a margin
+// of the limit, then a recurrent set again (3/5 of what is left) and lassos with the rest. `--scc`: the rank search on each strongly connected component of the locations, chained, from any
 // state at its cut points (scc.ts: a stronger statement, counted apart); a task with no cycle of locations is proven
 // whole. The lassos are always the task's own runs.
 import {readFileSync} from 'node:fs'
@@ -20,10 +23,11 @@ import {findRank, showE} from '../../core/cycles.ts'
 import {interpret} from '../../core/machine.ts'
 import {check, loopMachine, loopObligations} from '../../kernel/kernel.ts'
 import {certLoop, withDeadline} from '../../kernel/prove.ts'
+import {findNeverEnds} from '../../core/nonterm.ts'
 
 const args = process.argv.slice(2), file = args[0]!
 const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 ? d : Number(args[i + 1]) }
-const limit = opt('--limit', 60), lassoMs = opt('--lasso-ms', 2000), margin = opt('--margin', 9), scc = args.includes('--scc')
+const limit = opt('--limit', 60), lassoMs = opt('--lasso-ms', 2000), margin = opt('--margin', 9), scc = args.includes('--scc'), ntMs = opt('--recur-ms', 4000)
 const t0 = performance.now(), ms = () => Math.round(performance.now() - t0)
 const say = (o: object) => console.log(JSON.stringify({ms: ms(), ...o}))
 const done = (answer: string, o: object = {}) => { say({stage: 'answer', answer, ...o}); process.exit(0) }
@@ -92,6 +96,31 @@ function lassos(until: number): void {
 lassos(Math.min(t0 + lassoMs, t0 + limit * 1000))
 say({stage: 'lassos', runs, turns, refused: refusedWitness})
 
+// --- runs that never end: a closed recurrent set with its turn given (core/nonterm.ts), its closure goal's tree checked
+// by the kernel (kernel.ts's checkRecur; NonTerm.lean's never_ends_of). Where the set is a lasso's, the lasso is also
+// turned back into the task's steps and replayed by ari.ts's evaluator.
+function neverEnds(ms: number, tag: string): void {
+  if (ms < 200) return
+  let v
+  try { v = findNeverEnds(loop, {ms}) } catch (e) { say({stage: 'recur', tag, error: (e as Error).message.slice(0, 300)}); return }
+  say({stage: 'recur', tag, proven: v.proven, checked: v.checked, ...(v.by ? {by: v.by} : {}), ...(v.why ? {why: v.why} : {}), ...v.stats})
+  if (!(v.proven && v.checked && v.recur)) return
+  const r = v.recur, size = JSON.stringify(r.set).length + JSON.stringify(r.wit).length
+  let replay: string | undefined
+  if (v.lasso) {
+    try {
+      const ps = v.lasso.params
+      let st = run.init(ps)
+      const steps: Step[] = []
+      for (const input of [...v.lasso.stem, ...v.lasso.cycle]) { steps.push(stepOf(b!, ps, st.scalars, input)); st = run.step(ps, st, input) }
+      const start = Array.from({length: b!.slots}, (_, j) => String((ps[`a${j}`] ?? 0) - (ps[`a${j}$n`] ?? 0)))
+      replay = checkLasso(task!, {start, stem: steps.slice(0, v.lasso.stem.length), cycle: steps.slice(v.lasso.stem.length)}) ?? 'confirmed'
+    } catch (e) { replay = `not replayed: ${(e as Error).message.slice(0, 120)}` }
+  }
+  done('nonterminating', {by: 'recurrent set', kind: v.by, stem: r.stem.length, setSize: size, ...(replay ? {replay} : {}), recur: size < 200_000 ? r : undefined})
+}
+neverEnds(Math.min(ntMs, limit * 1000 - ms() - 1000), 'first')
+
 // --- the rank ---------------------------------------------------------------------------------------------------------
 // findRank on a loop, then the kernel again on the loop as translated: every goal of its halting, with the rank and the
 // laws found.
@@ -136,6 +165,7 @@ if (scc && comps.length) {
   if (out.ok) done('terminates', {by: 'rank', rank: out.rank, laws: out.laws, goals: out.goals, cert: out.cert})
   why = out.why!
 }
+neverEnds(((limit - 2) * 1000 - ms()) * 0.6, 'again')
 lassos(t0 + (limit - 2) * 1000)
 say({stage: 'lassos', runs, turns, refused: refusedWitness})
 done('unknown', {why})
