@@ -78,7 +78,7 @@ export const inferRuns = 16_000
 // GDP_INFER_TRACE=1: each phase's wall time beside what it counted, to stderr (the calibration's numbers).
 const inferTrace = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_INFER_TRACE
 const inferEnv = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env ?? {}
-const joinOn = inferEnv.GDP_JOIN !== '0', joinShare = Number(inferEnv.GDP_JOIN_SHARE ?? 0.6), joinQueryMs = Number(inferEnv.GDP_JOIN_QMS ?? 8000), joinWalk = Number(inferEnv.GDP_JOIN_WALK ?? 8), joinPairs = Number(inferEnv.GDP_JOIN_PAIRS ?? 10), joinRaises = Number(inferEnv.GDP_JOIN_RAISES ?? 2), joinCoef = Number(inferEnv.GDP_JOIN_COEF ?? 1000), joinSparse = Number(inferEnv.GDP_JOIN_SPARSE ?? 4), joinExtras = Number(inferEnv.GDP_JOIN_EXTRAS ?? 24), joinTries = Number(inferEnv.GDP_JOIN_TRIES ?? 40), joinBits = Number(inferEnv.GDP_JOIN_BITS ?? 6), joinAttempts = Number(inferEnv.GDP_JOIN_ATTEMPTS ?? 6), joinAdd = Number(inferEnv.GDP_JOIN_ADD ?? 2), joinKeys = Number(inferEnv.GDP_JOIN_KEYS ?? 64), joinRequestMs = Number(inferEnv.GDP_JOIN_RMS ?? 150)
+const joinOn = inferEnv.GDP_JOIN !== '0', joinShare = Number(inferEnv.GDP_JOIN_SHARE ?? 0.6), joinQueryMs = Number(inferEnv.GDP_JOIN_QMS ?? 8000), joinWalk = Number(inferEnv.GDP_JOIN_WALK ?? 8), joinPairs = Number(inferEnv.GDP_JOIN_PAIRS ?? 10), joinRaises = Number(inferEnv.GDP_JOIN_RAISES ?? 2), joinCoef = Number(inferEnv.GDP_JOIN_COEF ?? 1000), joinSparse = Number(inferEnv.GDP_JOIN_SPARSE ?? 4), joinExtras = Number(inferEnv.GDP_JOIN_EXTRAS ?? 24), joinTries = Number(inferEnv.GDP_JOIN_TRIES ?? 40), joinBits = Number(inferEnv.GDP_JOIN_BITS ?? 7), joinAttempts = Number(inferEnv.GDP_JOIN_ATTEMPTS ?? 6), joinAdd = Number(inferEnv.GDP_JOIN_ADD ?? 2), joinKeys = Number(inferEnv.GDP_JOIN_KEYS ?? 128), joinRequestMs = Number(inferEnv.GDP_JOIN_RMS ?? 150)
 const seeded = (seed: number): Rand => { let s = seed; return k => { s = (s * 1103515245 + 12345) % 2 ** 31; return Math.floor(s / 2 ** 31 * k) } }
 const isRule = (t: AnyRule | Machine): t is AnyRule => typeof (t as AnyRule).kindsOfState === 'function'
 const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
@@ -681,7 +681,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // The control state: the choice (loc) and, where they are few, the yes/nos (a program counter in bits), each of its
     // values reached a part of its own.
     const jChoice = modes.find(mo => mo.choice && !atoms[mo.atom]!.cell), bits = modes.filter(mo => mo.bool && !atoms[mo.atom]!.cell && !atoms[mo.atom]!.param)
-    const keyModes = [...(jChoice ? [jChoice] : []), ...(bits.length && bits.length <= joinBits && (jChoice?.values.length ?? 1) * 2 ** bits.length <= joinKeys ? bits : [])]
+    const locsReached = jChoice ? new Set(valsS[jChoice.atom]!).size : 1
+    const keyModes = [...(jChoice ? [jChoice] : []), ...(bits.length && bits.length <= joinBits && locsReached * 2 ** bits.length <= joinKeys ? bits : [])]
     const keyAtoms = keyModes.map(mo => mo.atom), coords = plain.filter(i => !keyAtoms.includes(i)), CN = coords.length
     const dirs: [number, number][][] = []
     for (const i of coords) dirs.push([[i, 1]], [[i, -1]])
@@ -731,7 +732,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const formsNow = (): Form[] => {
       const out: Form[] = [], seenT = new Set<string>()
       const push = (f: Form) => { const t = textOf(f); if (!seenT.has(t) && !names.has(t)) { seenT.add(t); out.push(f) } }
+      // (a choice's value no state reached: one form, whatever the yes/nos)
+      const reachedFirst = new Set([...groups.keys()].map(k2 => k2.split(',')[0]))
       for (const combo of combos) {
+        if (combo.length > 1 && !reachedFirst.has(String(combo[0]))) { if (combo.slice(1).every(v => v === 0)) push({coef: [], d: 0, cells: false, unreachable: {atom: keyAtoms[0]!, value: combo[0]!}, size: 1}); continue }
         const ats = combo.map((value, k) => ({atom: keyAtoms[k]!, value})), grp = groups.get(combo.join(','))
         const guard = ats.length ? {guard: ats[0]!, ...(ats.length > 1 ? {also: ats.slice(1)} : {})} : {}
         if (!grp) { if (ats.length) push({coef: [], d: 0, cells: false, ...(ats.length > 1 ? {never: ats} : {unreachable: ats[0]!}), size: 1}); continue }
@@ -875,8 +879,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         extras.push(next); continue
       }
       const after = post!, postP = pointOf(params, after)
-      // (a model past what doubles hold exactly, or one the interpreter reads otherwise: nothing to join)
-      if (!set.some(f => !holdsAt(f, postP))) { why = 'no violation'; opts.progress?.('join', {round: rounds, set: set.length, ms: qms, result: why}); break }
+      // (a model the interpreter reads otherwise, a quotient's term the kernel left free, say: nothing to join, and the
+      // goal is set aside)
+      if (!set.some(f => !holdsAt(f, postP))) { blocked.add(todo); opts.progress?.('join', {round: rounds, set: set.length, ms: qms, result: 'no violation', goal: todo.slice(0, 60)}); continue }
       const j0 = joins, d0 = dropped
       reach(postP)
       // short walks from the state joined: every state they reach is a successor of one the invariant holds at
