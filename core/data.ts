@@ -2355,23 +2355,7 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   const implication = (y: Y) => y.op === 'or' && y.xs.length === 2 && y.xs[0]!.op === 'not'
   const score = (c: DataLaw, hit: boolean) => (hit ? 2 : 0) + (implication(c.holds) === implication(l.holds) ? 1 : 0)
   if (dataTrace) console.error(`[data] ${l.name}: ${cands.length} conjectures at ${Math.round(clock())} of ${Math.round(until)}${cands.map(c => `\n[data]   conjecture ${c.name.slice(0, 160)}`).join('')}`)
-  // Of one score, bottom up: a lemma about the functions lower in the calls first (++'s associativity before rev's
-  // lemmas, which may read it), then about fewer of them.
-  const height = new Map<string, number>()
-  const heightOf = (f: string, seen = new Set<string>()): number => {
-    if (height.has(f)) return height.get(f)!
-    if (seen.has(f)) return 0
-    seen.add(f)
-    const callees: string[] = []
-    walk(fnOf(f).body(), o => { if (o.op === 'call' && o.fn !== f) callees.push(o.fn as string) })
-    const h = 1 + Math.max(0, ...callees.map(g => heightOf(g, seen)))
-    height.set(f, h)
-    return h
-  }
-  const reads = (c: DataLaw) => { const fsOf = new Set<string>(); walk(c.holds, o => { if (o.op === 'call') fsOf.add(o.fn as string) }); return [...fsOf] }
-  const below = (c: DataLaw) => { const r = reads(c); return [Math.max(0, ...r.map(f => heightOf(f))), r.length] }
-  const order = (a: {c: DataLaw, hit: boolean}, b: {c: DataLaw, hit: boolean}) => { const [ha, na] = below(a.c), [hb, nb] = below(b.c); return score(b.c, b.hit) - score(a.c, a.hit) || ha! - hb! || na! - nb! }
-  const ranked = cands.map(c => ({c, hit: matchesGoal(c)})).sort(order)
+  const ranked = cands.map(c => ({c, hit: matchesGoal(c)})).sort((a, b) => score(b.c, b.hit) - score(a.c, a.hit))
   // The lemmas proven: those given (`base`) and those found, each found one a level above the last.
   const proven: Proven[] = [...base], failed = new Set<DataLaw>(), level = () => lv + 1 + proven.length - base.length
   // A pass of lemmas: of those the goal reads (`hits`) or the others, each proven at one unfolding (8 s of counted work
