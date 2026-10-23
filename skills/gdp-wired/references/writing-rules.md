@@ -202,6 +202,24 @@ const pages = loop('pages').params({total: nat}).inputs({page: nat}).state({cur:
 proveNeverEnds(pages) // proven: an empty page, again and again
 ```
 
+## Rules over the rationals
+
+Fees in fractions, tokens that refill by a fraction, a ledger in decimals: `ratRule` (`gdp-wired/rationals`) takes
+rationals as they are. 0.1 is 1/10 and a third is 1/3, every run is exact (bigint fractions), and the laws are proven
+by linear arithmetic over ℚ, decidable, so a law is proven or refuted by a run from the start (or, where it isn't
+inductive, unproven with the step that breaks it, as `proveRule`'s).
+
+```ts
+const limiter = ratRule('limiter').params({cap: nonneg}).inputs({cost: nonneg}).state({tokens: ({cap}) => cap})
+  .assume(({cost, tokens, cap}) => cost.atMost(rmin(cap, tokens.plus('0.4'))))
+  .step(({tokens, cap, cost}) => ({tokens: rmin(cap, tokens.plus('0.4')).minus(cost)}))
+proveRatRule(limiter, [limiter.law('within the cap', ({tokens, cap}) => tokens.atLeast(0).and(tokens.atMost(cap)))])
+```
+
+A rule is all rationals or all naturals. A natural is a rational that is integral, and over ℚ `x < y` doesn't give
+`x + 1 ≤ y`, `s ∸ c + c` isn't `s`, and nothing lies strictly between 0 and 1 only over ℕ: keep counts in `rule`.
+Terms are linear: `times` and `over` take a constant, and a product of two unknowns is refused (`w.times(h)`).
+
 ## Statecharts
 
 A workflow with many states reads better as a table than as a chain of `when`s. `chart` compiles one to a rule:

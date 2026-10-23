@@ -1,4 +1,4 @@
-// One CHC-COMP task through gdp-wired: `bun compare/chc/solve.ts <task.smt2> [--runs-ms 5000] [--no-houdini]`.
+// One CHC-COMP task through gdp-wired: `bun compare/chc/solve.ts <task.smt2> [--runs-ms 5000] [--bmc-ms 10000] [--no-houdini]`.
 // Prints one JSON line per stage and a last one with the answer: sat (the law proven and the kernel's check passed),
 // unsat (a run reaching error that the CHC itself confirms, checkDerivation), unknown, or unsupported (and why).
 //   - import: the CHC read and built as a rule (translate.ts)
@@ -7,6 +7,8 @@
 //     that doubles per round
 //   - guided: runs the prover guides, each request a model of its clause's condition where the run is (the clauses that
 //     derive false tried first at each state)
+//   - bmc: bounded runs (core/bmc.ts), a model of the kernel's k-step goal from the start to error, k = 1, 2, ...,
+//     within --bmc-ms (10,000)
 //   - houdini: the library's search for the invariants the law needs (core/infer.ts), from the states the runs reached:
 //     candidates per predicate (loc = p → a bound, a difference, a sum), those a run's state breaks dropped, then the
 //     kernel's counterexamples to induction choosing which to add; `--old-houdini`, this folder's first Houdini
@@ -17,13 +19,15 @@ import {type Step, build, checkDerivation} from './translate.ts'
 import {proveRule} from '../../core/dsl.ts'
 import {houdini} from './houdini.ts'
 import {inferLaws} from '../../core/infer.ts'
+import {findBoundedRun} from '../../core/bmc.ts'
 import type {C, E, State} from '../../core/machine.ts'
 import {grow} from '../../kernel/prove.ts'
 import {substC} from '../../kernel/kernel.ts'
 
-const args = process.argv.slice(2), file = args[0]!
+// GDP_CHC_ARGS: more flags, read before the command line's (a run's knobs, through modal_chc.py's --env).
+const args = [process.argv[2]!, ...(process.env.GDP_CHC_ARGS ?? '').split(' ').filter(Boolean), ...process.argv.slice(3)], file = args[0]!
 const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 ? d : Number(args[i + 1]) }
-const runsMs = opt('--runs-ms', 5000), guideMs = opt('--guide-ms', 8000), houdiniMs = opt('--houdini-ms', 60000), useHoudini = !args.includes('--no-houdini'), oldHoudini = args.includes('--old-houdini')
+const bmcMs = opt('--bmc-ms', 10000), runsMs = opt('--runs-ms', 5000), guideMs = opt('--guide-ms', 8000), houdiniMs = opt('--houdini-ms', 60000), useHoudini = !args.includes('--no-houdini'), oldHoudini = args.includes('--old-houdini')
 const t0 = performance.now(), ms = () => Math.round(performance.now() - t0)
 const say = (o: object) => console.log(JSON.stringify({task: file, ms: ms(), ...o}))
 const done = (answer: string, o: object = {}) => { say({stage: 'answer', answer, ...o}); process.exit(0) }
@@ -62,6 +66,18 @@ const direct = proveRule(r, [law], {search: false})
 say({stage: 'prove', proven: direct.proven, checked: direct.checked, ...(direct.stuck ? {stuck: direct.stuck.slice(0, 120)} : {})})
 if (direct.proven && direct.checked) done('sat', {by: 'prove'})
 if (direct.run) unsat('prove', direct.run.trace.map(t => decodeRequest(t)))
+
+// Bounded runs (core/bmc.ts): a run of k steps from the start that reaches error, for k = 1, 2, ..., each a model of the
+// kernel's k-step goal; within --bmc-ms, counted and in wall time (the track's limit is wall time), and the limit.
+const bounded = () => {
+  if (bmcMs <= 0) return
+  // each depth tried: [k, its outcome's letter (refuted, sat, unknown), counted ms, wall ms]
+  const depths: [number, string, number, number][] = []
+  let w0 = ms()
+  const found = findBoundedRun(r.machine, [law], {ms: bmcMs, wall: performance.now() + Math.min(bmcMs, Math.max(0, houdiniMs - 2000 - ms())), progress: (k, o, c) => { depths.push([k, o[0]!, c, ms() - w0]); w0 = ms() }})
+  say({stage: 'bmc', depth: depths.at(-1)?.[0] ?? 0, found: !!found, depths})
+  if (found) unsat('bmc', found.trace.map(t => decodeRequest(t as Record<string, unknown>)))
+}
 
 function decodeRequest(t: Record<string, unknown>): Record<string, number | boolean | string> {
   const out: Record<string, number | boolean | string> = {c: b!.clauseNames[t.c as number]!}
@@ -162,6 +178,8 @@ const seen: State[] = []
   }
   say({stage: 'guided', trials, steps})
 }
+
+bounded()
 
 if (useHoudini && !oldHoudini) {
   // --houdini-ms is the stage's deadline from the start; the search is timed (`timed`), as the track's limit is wall time

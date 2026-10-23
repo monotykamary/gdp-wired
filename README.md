@@ -70,6 +70,14 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   createActor)` drives XState's own actor and the compiled rule with the same random events, comparing every state and
   context; what a chart can't run the same way, and any key it doesn't read, is refused when built, with the reason
   (`examples/xstate.ts`). A v4 machine's `cond` is read as its guard.
+- **Rules read from the code** (`gdp-wired/extract`): `extract(code, {entry})` reads a reducer, `useReducer`'s, functions
+  over one record, or a class whose methods write its fields, and returns the rule that steps the same way, as a builder
+  value and as source to keep (`toSource`); `extractXState` reads an XState machine's guards and actions, named or
+  inline, for `fromXState`. The extractor is untrusted: each rule is run beside the code it was read from (requests
+  from the start, steps from drawn states and from the prover's counterexamples, every state, cell, result and refusal
+  compared, the code's branches counted), and a difference refuses it. Its subset (integers, booleans, string-literal
+  unions, records, Map and Record keyed state, branches and early returns, throws as refusals, `Date.now()` as an
+  input) and what it refuses, each with the place and the reason, are in `core/extract.ts`.
 - **What nobody stated, looked for when the prover alone stops**: where `proveRule` or `proveSteps` doesn't prove the laws
   and no run breaks them, it looks for lemmas about the rule's recurrences and lists (`discover`), lemmas about the
   functions it knows by their facts (`cycleLemmas`, each proven by a cyclic proof) and then invariants (`inferLaws`),
@@ -107,6 +115,13 @@ All of these are proven automatically, and each proof is also a Lean theorem:
 - **Runs that never end**: `proveNeverEnds(loop)` proves some run of a loop goes on forever (pagination that accepts an
   empty page, a retry with no cap): a closed recurrent set with the turn from each of its states given, a start and a
   stem into it, checked by the kernel and again in Lean (`NonTerm.lean`'s `never_ends_of`; `examples/nonterm.ts`).
+- **Rules over the rationals** (`gdp-wired/rationals`): `ratRule` with `rat` and `nonneg` params, inputs and state,
+  each value an exact rational (0.1 is 1/10, a third is 1/3: nothing scaled to cents or encoded as naturals), terms
+  linear (+, −, × and ÷ by a constant, min, max, when). Linear arithmetic over ℚ is decidable: a law is proven by
+  trees whose leaves are Farkas certificates with strict rows, or refuted by an exact run from the start. A fee split,
+  a rate limiter with fractional tokens and a ledger in decimals, and 12 laws true over one of ℕ and ℚ and false over
+  the other, each decided both ways (`examples/rationals.ts`); the proofs again in Lean (`Rationals.lean`'s
+  `Q.machine_sound`). Products of unknowns and transcendental functions stay outside.
 - **Recursive datatypes as values** (`gdp-wired/data`): lists, trees, rose trees and their forests, declared by their
   constructors; functions over them by structural recursion, or by any recursion whose termination is proven first (a
   merge of two lists, a quicksort: the measure found, (size xs, size ys) or a sum of sizes, and each call's decrease
@@ -449,7 +464,8 @@ The npm package is built from `core/`, `kernel/` and `lean-kernel/` alone; nothi
 ## Running
 
 The npm package is the library: the builders (`gdp-wired`), the runtimes (`gdp-wired/machine`), composition
-(`gdp-wired/compose`), XState machines as charts (`gdp-wired/xstate`), lemmas nobody stated (`gdp-wired/discover`), invariant
+(`gdp-wired/compose`), XState machines as charts (`gdp-wired/xstate`), rules read from the code (`gdp-wired/extract`, with
+`typescript` installed), lemmas nobody stated (`gdp-wired/discover`), invariant
 inference (`gdp-wired/infer`), the
 Lean export (`gdp-wired/lean`), the kernel (`gdp-wired/kernel`), the prover (`gdp-wired/prove`), the derivation checker
 and solver (`gdp-wired/check`, `gdp-wired/solver`). Everything else here (examples, comparisons, the Lean twin, the GPU

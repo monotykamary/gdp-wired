@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type Recur, type StepLaw, type Tree, boundOf, checkRecur, recurGoal, canon, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, historyMachine, foldObligations, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
+import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type Recur, type StepLaw, type Tree, boundOf, check, checkRecur, recurGoal, canon, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, historyMachine, foldObligations, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {grow, minimal, proveBuilt, proveLaws, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
@@ -173,7 +173,13 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
         return `.combine ${s.a} ${s.b} ${int(s.ma)} ${int(s.mb)}`
       }
       const from = replay[s.of]!
-      const q: Lin = Object.fromEntries(Object.entries(from).filter(([key]) => key !== '1').map(([key, v]) => [key, v / s.g]))
+      // A cut's quotient is the row it divides (Cert.lean's cutOk: coefs = g · q over the integers). A tree read against a
+      // goal it doesn't refute can cut a row g doesn't divide: that is no derivation of this goal, and a quotient written
+      // as a fraction isn't Lean (Int has no fractional literal), so it is refused here, never printed.
+      const q: Lin = Object.fromEntries(Object.entries(from).filter(([key]) => key !== '1').map(([key, v]) => {
+        if (!Number.isInteger(v / s.g)) throw new Error(`${ex.name}: a cut by ${s.g} of a row it doesn't divide (${key}: ${v}); the tree doesn't refute this goal`)
+        return [key, v / s.g]
+      }))
       const cc = Math.ceil((from['1'] ?? 0) / s.g)
       replay.push({...q, 1: cc})
       return `.cut ${s.of} ${int(s.g)} ${sparse(dense(q))} ${int(cc)}`
@@ -293,7 +299,7 @@ def ${id}_tampered${j} : Recur := ${recur(t.recur)}
 example : checkRecur ${id}_loop ${id}_tampered${j} = false := by ${checkBy}`).join('')}`
 }
 // The loop and a certificate as NonTerm.lean's Loop and Recur (the domain every variable; a certificate whose tree
-// doesn't read its own goal carries `fallback`'s table and tree). lean-kernel/conformance.ts prints its cases with it.
+// doesn't refute its own goal carries `fallback`'s table and tree, which refutes `fallback`'s). lean-kernel/conformance.ts prints its cases with it.
 export function recurLean(id: string, l: Loop, fallback: Recur): {vars: string[], loop: string, recur: (r: Recur) => string} {
   const vars = [...l.params, ...l.inputs, ...Object.keys(l.state)]
   const {e, c} = leanTerms(vars, [], id)
@@ -307,8 +313,13 @@ export function recurLean(id: string, l: Loop, fallback: Recur): {vars: string[]
   const vals = (o: Record<string, number>) => list(Object.entries(o).map(([name, v]) => `(${ix(name)}, ${v})`))
   const recur = (rr: Recur) => {
     const enc = (g: Recur) => encode({name: `${id}: ${l.name} never ends`, goal: recurGoal(l, g), tree: g.tree}, false, true, vars, [])
-    let coded: ReturnType<typeof enc>
-    try { coded = enc(rr) } catch { coded = enc(fallback) }
+    // The tree is written against the goal it refutes: the certificate's own where kernel.ts's check accepts it there,
+    // else `fallback`'s (which must check), and Lean reads it against the goal it builds from `rr` either way. So every
+    // number written is one kernel.ts's check replayed: integers, every cut dividing its row.
+    const fits = (g: Recur) => { try { return check(recurGoal(l, g), g.tree) } catch { return false } }
+    // (neither refuting its goal, as a forged certificate's: a leaf with no step, the tree that refutes nothing)
+    const by = fits(rr) ? rr : fits(fallback) ? fallback : undefined
+    const coded = by ? enc(by) : {tab: '[]', tree: '.leafAt [] [] [] []'}
     return `⟨${list(vars.map((_, j) => String(j)))},
   ${vals(rr.start)},
   ${list(rr.stem.map(vals))},
@@ -1661,6 +1672,9 @@ ${parts.join('\n\n')}
 ${theorems.map(t => `#print axioms ${t}`).join('\n')}
 `
 }
+
+// Rules over the rationals (core/rationals.ts), each through Rationals.lean's Q.machine_sound: lean-kernel/qlean.ts.
+export {rationalsToLean} from './qlean.ts'
 
 // A Lake project that builds the twin and the file: `lake build` in its folder checks every proof.
 export function leanProject(file: string, opts: {name?: string} = {}): Record<string, string> {
