@@ -88,6 +88,10 @@
       "types": "./dist/core/gdp.d.ts",
       "default": "./dist/core/gdp.js"
     },
+    "./extract": {
+      "types": "./dist/core/extract.d.ts",
+      "default": "./dist/core/extract.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -99,10 +103,14 @@
     "node": ">=20"
   },
   "peerDependencies": {
-    "@gdp-ts/core": ">=0.1.0"
+    "@gdp-ts/core": ">=0.1.0",
+    "typescript": ">=5.0.0"
   },
   "peerDependenciesMeta": {
     "@gdp-ts/core": {
+      "optional": true
+    },
+    "typescript": {
       "optional": true
     }
   },
