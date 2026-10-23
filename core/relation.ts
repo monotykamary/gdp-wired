@@ -14,7 +14,8 @@
 // for them (u − w becomes P − N exactly), and a rank over them is over the integer. Each is named by its first part.
 import type {C, E, Law} from './machine.ts'
 import type {Loop} from '../kernel/kernel.ts'
-import {type Lin, solve} from './solver.ts'
+import {clock} from '../kernel/prove.ts'
+import {type Lin, solve, work} from './solver.ts'
 
 export type Path = {
   rows: Lin[] // each lin <= 0, over the integers (`ints`) and naturals (`nats`) of the relation
@@ -300,7 +301,9 @@ export function generators(rows: Lin[], names: string[], nats: string[] = [], ca
     const pos = rays.filter((_, i) => val[i]! > 0n), neg = rays.filter((_, i) => val[i]! < 0n), zero = rays.filter((_, i) => val[i]! === 0n)
     const next = [...zero.map(r => ({v: r.v, zero: new Set([...r.zero, hi])})), ...neg]
     const vp = new Map(pos.map(r => [r, dot(h, r.v)])), vn = new Map(neg.map(r => [r, dot(h, r.v)]))
-    if (performance.now() > until) return undefined
+    // (counted as work: a counted search's clock runs while the generators are made)
+    work.n += 1 + ((rays.length + pos.length * neg.length) * (n + 1) >> 4)
+    if (clock() > until) return undefined
     for (const p of pos) for (const q of neg) {
       // adjacent: no other ray is zero wherever both are
       const common = [...p.zero].filter(j => q.zero.has(j))
@@ -341,7 +344,7 @@ export function houdini(rel: Relation, cands: Lin[][], locOf: (i: number) => [nu
   for (let round = 0, changed = true; changed && round < 50; round++) {
     changed = false
     for (const [i, p] of rel.paths.entries()) {
-      if (performance.now() > until) return undefined
+      if (clock() > until) return undefined
       const [a, b] = locOf(i)
       if (!H[b]!.length) continue
       const rows = [...p.rows, ...tight(H[a]!)]
@@ -352,7 +355,7 @@ export function houdini(rel: Relation, cands: Lin[][], locOf: (i: number) => [nu
         // past the generators' cap: each candidate after the turn refuted by the integer solver, or dropped
         const nat = rel.nats.filter(x => ns.includes(x)).map((x): Lin => ({[x]: -1}))
         const through = (c: Lin): Lin => { let o: Lin = {}; for (const [y, k] of Object.entries(c)) o = plus(o, y !== '1' && p.post[y] ? times(p.post[y]!, k) : {[y]: k}); return o }
-        const keep = H[b]!.filter(c => performance.now() < until && solve([...rows, ...nat, plus(konst(1), through(c), -1)].map(lin => ({lin, label: ''})), 4000).kind === 'refuted')
+        const keep = H[b]!.filter(c => clock() < until && solve([...rows, ...nat, plus(konst(1), through(c), -1)].map(lin => ({lin, label: ''})), 4000).kind === 'refuted')
         if (keep.length < H[b]!.length) { H[b] = keep; changed = true }
         continue
       }

@@ -10,7 +10,9 @@
 // Each consumer either agrees or refuses with an error; undefined, NaN or a silent different answer fails.
 import {expect, test} from 'bun:test'
 import {type C, type E, compileFunction, conditionCases, interpret, loadJs} from './machine.ts'
-import {type Case, C_OPS, CELLS, E_OPS, QC_OPS, QE_OPS, VARS, inlineC, inlineE, machineOf, qcoverage, qgoals, qmachineOf, qreference, qtampered, randomCase, randomQCase, recurCases, recurReference, reference, seen, stateOf} from './conformance.ts'
+import {type Case, C_OPS, CELLS, E_OPS, QC_OPS, QE_OPS, VARS, inlineC, inlineE, machineOf, qcoverage, qgoals, qmachineOf, qreference, qtampered, randomCase, randomQCase, recurCases, recurReference, reference, ringCase, ringLowers, ringReference, seen, stateOf, tamperedMeasures} from './conformance.ts'
+import {type Termination, checkMeasures} from './data.ts'
+import {checkCyclic} from '../kernel/cyclic.ts'
 import {type Loop, type Recur, check, checkQTree, checkRecur, recurGoal} from '../kernel/kernel.ts'
 import {recurLean} from '../lean-kernel/emit.ts'
 import {growQ} from '../kernel/qprove.ts'
@@ -118,6 +120,39 @@ test('nontermination certificates: accepted ones hold on the reference run, tamp
   }
   for (const what of ['found', 'the set not closed: every state', 'the set not reached: a start whose stem ends outside it', 'the set not reached: a stem turn the guard or the assumption refuses', "a lasso's cycle that doesn't close: its set less one state", 'forged: the guard as the set']) expect(counts[what]?.n ?? 0, what).toBeGreaterThan(0)
   console.log(`nontermination: ${Object.entries(counts).map(([w, x]) => `${w} ${x.accepted}/${x.n} accepted`).join('; ')}`)
+}, 600_000)
+
+// Rings of functions by well-founded recursion (core/data.ts's termination; Data.lean's wf_fix_unique_ring): a ring
+// taken ends on every reference run, and each call's obligation was checked by the kernel; a ring that runs forever is
+// refused; a ring that ends is taken in the families its measures reach (a location's constant, a sum); its measures
+// tampered are refused by checkMeasures wherever a call of the reference's runs doesn't lower them.
+// lean-kernel/conformance.ts --rings writes the rings taken, with their measures, for Lean's termination_by.
+test('rings of functions: taken ones end on the reference runs, never-ending ones are refused, tampered measures refused', () => {
+  const counts: Record<string, {n: number, taken: number}> = {}, tamper: Record<string, {n: number, refused: number}> = {}
+  for (let i = 0; i < Math.round(24 * scale); i++) {
+    const r = ringCase(), ref = ringReference(r)
+    expect(ref.ends, `${r.name}: the reference`).toBe(r.ends)
+    let taken: (Termination | undefined)[] | undefined
+    try { taken = r.fns.map(f => (void f.fn.ring, f.fn.termination)) } catch { taken = undefined }
+    const at = (counts[r.family] ??= {n: 0, taken: 0})
+    at.n++
+    if (!taken) continue
+    at.taken++
+    expect(ref.ends, `${r.name}: taken, yet it runs forever`).toBe(true)
+    // (a ring that is structural recursion has no measure)
+    if (!taken.every(t => t)) continue
+    expect(ringLowers(taken.map(t => t!.measure), ref.calls), `${r.name}: its measures`).toBe(true)
+    for (const t of taken) for (const o of t!.obligations) expect(o.proof?.proven && checkCyclic(o.proof.proof), o.law.name).toBe(true)
+    for (const tm of tamperedMeasures(taken.map(t => t!.measure))) {
+      if (ringLowers(tm.ms, ref.calls)) continue
+      const v = checkMeasures(r.fns.map(f => f.fn), tm.ms, 4000), tt = (tamper[tm.what] ??= {n: 0, refused: 0})
+      tt.n++
+      if (!v.proven) tt.refused++
+      expect(v.proven, `${r.name}: measures ${tm.what}`).toBe(false)
+    }
+  }
+  for (const fam of ['down', 'lateDown', 'pair']) if (counts[fam]) expect(counts[fam]!.taken, fam).toBe(counts[fam]!.n)
+  console.log(`rings: ${Object.entries(counts).map(([w, x]) => `${w} ${x.taken}/${x.n} taken`).join('; ')}; tampered: ${Object.entries(tamper).map(([w, x]) => `${w} ${x.refused}/${x.n} refused`).join('; ')}`)
 }, 600_000)
 
 // Rationals: the interpreter and the generated JavaScript against the reference (exact), and the kernel on each case's

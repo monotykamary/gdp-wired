@@ -30,8 +30,8 @@ import type {Goal, Liveness, Loop, Subst, Tree} from '../kernel/kernel.ts'
 import {check, livenessHelpful, livenessParts, loopLiveness, loopMachine, loopObligations, substC, substE} from '../kernel/kernel.ts'
 import {type Cyclic, type Fact, checkCyclic, factsAvoid, lexLt} from '../kernel/cyclic.ts'
 import {type NodeSpec, proveCyclic} from './cyclic.ts'
-import {type Lin, solve} from './solver.ts'
-import {grow, proveLaws, proveLiveness, proveStepLaws, withDeadline} from '../kernel/prove.ts'
+import {type Lin, solve, work} from './solver.ts'
+import {clock, grow, proveLaws, proveLiveness, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {inferLaws} from './infer.ts'
 import {type Generators, type Relation, generators, houdini, relationOf} from './relation.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
@@ -313,7 +313,7 @@ function lp(must: Lin[], pool: Lin[], until: number, scale = 1, signs: boolean[]
       const b = x.startsWith('b:') ? (wide ? bound * scale : bound) : bound
       rows.push({[x]: 1, 1: -b}, natural ? {[x]: -1} : {[x]: -1, 1: -b})
     }
-    for (let round = 0; round < 40 && performance.now() < until; round++) {
+    for (let round = 0; round < 40 && clock() < until; round++) {
       const out = solve(rows.map(lin => ({lin, label: ''})), 4000)
       if (out.kind !== 'sat') break
       const bad = pool.filter(l => valueAt(l, out.witness) > 0).sort((a, b) => valueAt(b, out.witness) - valueAt(a, out.witness))
@@ -346,7 +346,9 @@ const qlt = (a: Q, b: Q) => a.n * b.d < b.n * a.d
 function simplex(T: Q[][], basis: number[], cost: Q[], open: (j: number) => boolean, until: number): boolean {
   const cols = cost.length
   for (let it = 0; it < 5000; it++) {
-    if (performance.now() > until) return false
+    // (each pivot counted as work, as the solver's rows are: a counted search's clock runs while it solves)
+    work.n += 1 + ((T.length * cols) >> 6)
+    if (clock() > until) return false
     let enter = -1
     for (let j = 0; j < cols && enter < 0; j++) {
       if (!open(j) || basis.includes(j)) continue
@@ -426,7 +428,7 @@ function exactSolve(rows: Lin[], until: number): Record<string, number> | undefi
 function exactLp(must: Lin[], pool: Lin[], until: number, whole = false): Record<string, number> | undefined {
   const size = (l: Lin) => { let m = 0; for (const x in l) if (x !== '1') m = Math.max(m, Math.abs(l[x]!)); return m }
   const sizes = pool.map(size), half = sizes.reduce((a, b) => Math.max(a, b), 0) / 2, small = whole ? pool : pool.filter((_, i) => sizes[i]! <= half), rows = [...must]
-  for (let round = 0; round < 40 && performance.now() < until; round++) {
+  for (let round = 0; round < 40 && clock() < until; round++) {
     const w = exactSolve(rows, until)
     if (!w) return undefined
     // The twelve most violated, in one pass.
@@ -456,13 +458,13 @@ function lexRanks(idx: number[], nodes: Node[], samples: Sampled[][], edges: Edg
   let left = [...new Map(edges.map(e => { const l = delta(e); return [id(l), l] as const })).values()]
   let keep = [...new Map(weak.map(e => { const l = delta(e); return [id(l), l] as const })).values()].filter(l => !left.some(x => id(x) === id(l)))
   const comps: Comp[] = []
-  while (left.length && comps.length < 4 && performance.now() < until) {
+  while (left.length && comps.length < 4 && clock() < until) {
     let sum: Comp = {}
     const strict = (l: Lin) => valueAt(l, sum) < 0
     // One try per pattern of signs (which unknowns an edge raises and lowers): edges alike drop alike, mostly.
     const tried = new Set<string>(), sign = (l: Lin) => id(Object.keys(l).filter(x => x !== '1').sort().map(x => `${x}${Math.sign(l[x]!)}`))
     for (const l of left) {
-      if (strict(l) || performance.now() > until || tried.has(sign(l)) || tried.size > 40) continue
+      if (strict(l) || clock() > until || tried.has(sign(l)) || tried.size > 40) continue
       tried.add(sign(l))
       const w = lp([plus(l, {1: 1})], [...left, ...keep, ...points], until, scale)
       if (w) sum = plus(sum, w) as Comp
@@ -481,11 +483,20 @@ function lexRanks(idx: number[], nodes: Node[], samples: Sampled[][], edges: Edg
 }
 const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b))
 // The same over named naturals and the edges of runs alone (core/data.ts: a recursive function's calls, each from its
-// parameters' sizes to its arguments'): each component's coefficient per variable and its constant.
+// parameters' sizes to its arguments'): each component's coefficient per variable and its constant. Several nodes (a
+// ring of functions calling each other, each its own names; `nodes`), each its own coefficients and constant per
+// component (a rank per location: (size(x), 1) at one function, (size(x), 0) at the one it calls with x). Its budget,
+// `ms`, is read on the shared clock (kernel/prove.ts's `clock`): counted work inside a counted search, its pivots counted
+// as the solver's rows are, so a counted search's verdict doesn't depend on the machine's speed.
 export function ranksOfRuns(vars: string[], points: Env[], edges: {s: Env, t: Env}[], ms = 1000): {comps: {coef: Record<string, number>, c: number}[], left: number} {
-  const node: Node = {name: 'runs', hyps: [], concl: yes, vars, level: 0, given: true}
-  const {comps, left} = lexRanks([0], [node], [points.map(env => ({env, calls: new Set<string>()}))], edges.map(e => ({from: 0, to: 0, s: e.s, t: e.t})), shared, performance.now() + ms)
-  return {comps: comps.map(c => ({coef: Object.fromEntries(vars.map((x, j) => [x, c[shared(0, j)] ?? 0])), c: c[shared(0, 'b')] ?? 0})), left}
+  const r = ranksOfCalls([vars], points.map(env => ({node: 0, env})), edges.map(e => ({from: 0, to: 0, s: e.s, t: e.t})), ms)
+  return {comps: r.comps.map(c => c[0]!), left: r.left}
+}
+export function ranksOfCalls(nodes: string[][], points: {node: number, env: Env}[], edges: {from: number, to: number, s: Env, t: Env}[], ms = 1000): {comps: {coef: Record<string, number>, c: number}[][], left: number} {
+  const ns: Node[] = nodes.map((vars, i) => ({name: `runs ${i}`, hyps: [], concl: yes, vars, level: 0, given: true}))
+  const name = nodes.length === 1 ? shared : own(ns), idx = nodes.map((_, i) => i)
+  const {comps, left} = lexRanks(idx, ns, nodes.map((_, i) => points.filter(p => p.node === i).map(p => ({env: p.env, calls: new Set<string>()}))), edges, name, clock() + ms)
+  return {comps: comps.map(c => ns.map((nd, n) => ({coef: Object.fromEntries(nd.vars.map((x, j) => [x, c[name(n, j)] ?? 0])), c: c[name(n, 'b')] ?? 0}))), left}
 }
 const compE = (c: Comp, n: number, node: Node, name: Naming): E => unfeat(linE(Object.fromEntries(node.vars.map((x, j) => [x, c[name(n, j)] ?? 0])), c[name(n, 'b')] ?? 0))
 // Ranks of degree 2: a product of two of a node's variables (a square too) a further variable of the LP, its value at
@@ -662,7 +673,7 @@ export function claimInstances(facts: Fact[], claim: Claim, depth = 2): NodeSpec
   return instancesFor(facts, {eqs, arity, values: {}, memo: new Map(), fuel: 0, depth: 0}, nodeOf(claim, 0, true), depth).insts
 }
 export function findCycles(facts: Fact[], claims: Claim[], opts: CycleOptions = {}): CycleVerdict {
-  const t0 = performance.now(), until = t0 + (opts.ms ?? 10_000), depth = opts.depth ?? 1
+  const t0 = clock(), until = t0 + (opts.ms ?? 10_000), depth = opts.depth ?? 1
   const {eqs, arity} = equations(facts)
   const cx: Ctx = {eqs, arity, values: opts.values ?? {}, memo: new Map(), fuel: 20_000, depth: 0}
   const big = Math.max(0, ...constsOf([facts.map(f => f.holds), claims]).filter(c => c <= 1000))
@@ -677,7 +688,7 @@ export function findCycles(facts: Fact[], claims: Claim[], opts: CycleOptions = 
     if ('why' in b) return {failed: nodes[0]!, verdict: {proven: false, checked: false, why: b.why}}
     if (trace) for (const sp of b.specs) console.error(`[cycles] ${sp.name}: rank (${sp.rank.map(showE).join(', ')}), ${sp.insts.length} instances, uses ${sp.uses.map(u => `${u.node}@{${Object.entries(u.subst).map(([x, t]) => `${x} := ${showE(t)}`).join(', ')}}`).join(' ')}`)
     const out = withDeadline(until, () => proveCyclic(facts, b.specs))
-    if (trace) console.error(`[cycles] ${out.proven ? 'proven' : `${out.node}: ${out.goal} ${out.stuck}`} at ${Math.round(performance.now() - t0)} ms`)
+    if (trace) console.error(`[cycles] ${out.proven ? 'proven' : `${out.node}: ${out.goal} ${out.stuck}`} at ${Math.round(clock() - t0)} ms`)
     if (!out.proven) { const at = nodes.find(n => n.name === out.node) ?? nodes[0]!; return {failed: at, verdict: {proven: false, checked: false, goal: out.goal, stuck: out.stuck}} }
     const found: CycleFound = {ranks: Object.fromEntries(nodes.map((n, i) => [n.name, `(${b.ranks[i]!.map(showE).join(', ')})`])), companions: nodes.filter(n => !n.given && !claims.some(c => c.name === n.name)).map(n => `${showC(n.concl)}${n.hyps.length ? ` where ${showC(and(...n.hyps))}` : ''}`), uses: b.uses}
     return {proven: {proven: true, checked: out.checked, proof: out.proof, specs: b.specs, kept: nodes.map(n => n.name), found, ...(out.why ? {why: out.why} : {})}}
@@ -686,16 +697,16 @@ export function findCycles(facts: Fact[], claims: Claim[], opts: CycleOptions = 
   // dropped in turn where the rest are proven without it (only what the claims need is kept).
   const attempt = (start: Node[], depth: number, quad?: [string, string]): CycleVerdict => {
     let nodes = start, done: CycleVerdict | undefined
-    for (let round = 0; round <= start.length && nodes.length && performance.now() < until && !done; round++) {
+    for (let round = 0; round <= start.length && nodes.length && clock() < until && !done; round++) {
       const t = once(nodes, depth, quad)
       if ('proven' in t) { done = t.proven; break }
       if (t.failed.given) return t.verdict
       nodes = nodes.filter(n => n !== t.failed)
     }
-    if (!done) return {proven: false, checked: false, why: performance.now() >= until ? 'out of time' : 'every candidate dropped'}
+    if (!done) return {proven: false, checked: false, why: clock() >= until ? 'out of time' : 'every candidate dropped'}
     if (opts.houdini) return done
     for (const c of nodes.filter(n => !n.given)) {
-      if (performance.now() >= until) break
+      if (clock() >= until) break
       const rest = nodes.filter(n => n !== c), t = once(rest, depth, quad)
       if ('proven' in t && t.proven.checked) (nodes = rest, done = t.proven)
     }
@@ -716,7 +727,7 @@ export function findCycles(facts: Fact[], claims: Claim[], opts: CycleOptions = 
   ]
   const tried = new Set<string>()
   for (const [d, t, quad] of tries) {
-    if (performance.now() >= until) break
+    if (clock() >= until) break
     const nodes = t()
     if (tried.has(id([d, nodes.map(n => n.name), quad]))) continue
     tried.add(id([d, nodes.map(n => n.name), quad]))
@@ -773,12 +784,20 @@ const locations = (rel: Relation) => {
   }
   return {values, fromOf, toOf, names, at: live.map(s => [...s].sort())}
 }
-function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []): {rank: E[], text: string, blocks: number[]} | {why: string} {
+// A rank from a relation made elsewhere (core/data.ts: a ring of functions' calls, a location per function, each
+// call's argument sizes bounded from its parameters' and fields'): per location, each component's linear form over the
+// names (no regions: those read an atom, not a form).
+export function rankOfPaths(name: string, rel: Relation, until: number): {forms: Lin[][], values: number[]} | {why: string} {
+  const r = relationRank({name} as Loop, rel, until)
+  if (!('rank' in r)) return r
+  return r.forms ? {forms: r.forms, values: locations(rel).values} : {why: 'a rank by regions'}
+}
+function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []): {rank: E[], text: string, blocks: number[], forms?: Lin[][]} | {why: string} {
   const {values, fromOf, toOf, names, at} = locations(rel)
   const every = [...new Set(at.flat())].sort()
   const gpaths: GPath[] = []
   for (const [i, p] of rel.paths.entries()) {
-    if (performance.now() > until) return {why: 'out of time on the relation'}
+    if (clock() > until) return {why: 'out of time on the relation'}
     const rows = [...p.rows, ...(extra[fromOf(i)] ?? [])]
     const ns = [...new Set([...rows.flatMap(r => Object.keys(r)), ...Object.values(p.post).flatMap(r => Object.keys(r)), ...every])].filter(x => x !== '1').sort()
     const gens = generators(rows, ns, rel.nats, 600, until)
@@ -831,7 +850,7 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
     const must: Lin[] = []
     let w: Record<string, number> | undefined
     for (const p of left) {
-      if (performance.now() > until) break
+      if (clock() > until) break
       if (w && sat(w, strict.get(p)!)) continue
       const rows = strict.get(p)!, w2 = lp([...must, ...rows], left.filter(q => q !== p).flatMap(weakOf), until, scale, undefined, true)
       if (w2) { must.push(...rows); w = w2 }
@@ -848,15 +867,15 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
   const ranked = (paths: GPath[], tag0: string, until: number): {parts: Lin[][], sizes: number[]} | {why: string} => {
     let left = paths
     const mine: Lin[][] = [], sizes: number[] = []
-    while (left.length && mine.length < 8 && performance.now() < until) {
+    while (left.length && mine.length < 8 && clock() < until) {
       const tag = `${tag0}${mine.length}.`
       // depth 1 first, all at once then one path after another; then deeper
       const order: [Template, boolean][] = [1, 2, 3].flatMap(depth => [false, true].flatMap(greedy => [false, true].map((own): [Template, boolean] => [{depth, own, tag}, greedy])))
       let found: {w: Record<string, number>, strict: GPath[], tp: Template} | undefined
       for (const [tp, greedy] of order) {
-        if (found || performance.now() > until) break
-        const t1 = performance.now(), b = block(tp, left, greedy, until)
-        if (trace) console.error(`[cycles] ${l.name}: block ${tag} depth ${tp.depth}${tp.own ? ' own' : ''}${greedy ? ' greedy' : ''}: ${b ? b.strict.length : 'none'} of ${left.length} paths, ${Math.round(performance.now() - t1)} ms`)
+        if (found || clock() > until) break
+        const t1 = clock(), b = block(tp, left, greedy, until)
+        if (trace) console.error(`[cycles] ${l.name}: block ${tag} depth ${tp.depth}${tp.own ? ' own' : ''}${greedy ? ' greedy' : ''}: ${b ? b.strict.length : 'none'} of ${left.length} paths, ${Math.round(clock() - t1)} ms`)
         if (b && b.strict.length) found = {...b, tp}
       }
       if (!found) return {why: `no block of a nested rank per location is strict on any of the ${left.length} paths left (of ${gpaths.length})`}
@@ -869,7 +888,7 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
       sizes.push(tp.depth)
       left = left.filter(p => !strict.includes(p))
     }
-    if (left.length) return {why: performance.now() >= until ? 'out of time on the relation' : 'past 8 components'}
+    if (left.length) return {why: clock() >= until ? 'out of time on the relation' : 'past 8 components'}
     return {parts: mine, sizes}
   }
   // Regions: a component with no rank, its locations split by an atom its paths read (q < p: min(p, q); y ≥ 2: a
@@ -887,7 +906,7 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
     atoms.sort((a, b) => Object.keys(b).length - Object.keys(a).length)
     const locs = values.flatMap((_, n) => (comp[n] === c ? [n] : []))
     for (const [ai, a] of atoms.slice(0, 8).entries()) {
-      if (performance.now() > until) return undefined
+      if (clock() > until) return undefined
       const base = nodeLoc.length, node = (n: number, yes: boolean) => base + 2 * locs.indexOf(n) + (yes ? 0 : 1)
       for (const n of locs) nodeLoc.push(n, n)
       const split: GPath[] = []
@@ -906,14 +925,16 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
     return undefined
   }
   const parts: E[][][] = [] // per component of the locations: its parts, each a term per location
+  const lins: (Lin[][] | undefined)[] = [] // the same as forms, where no regions were needed
   const sizes: number[] = []
   for (const c of [...new Set(comp)].sort((a, b) => a - b)) {
     // (half the time left for the component as it is: the regions have the rest)
-    const inner = gpaths.filter(p => comp[p.from] === c && comp[p.to] === c), out = ranked(inner, `${c}.`, performance.now() + (until - performance.now()) / 2)
-    if ('parts' in out) { parts[c] = out.parts.map(fs => values.map((_, n) => termOf(rel, fs[n]!))); sizes.push(...out.sizes); continue }
+    const inner = gpaths.filter(p => comp[p.from] === c && comp[p.to] === c), out = ranked(inner, `${c}.`, clock() + (until - clock()) / 2)
+    if ('parts' in out) { parts[c] = out.parts.map(fs => values.map((_, n) => termOf(rel, fs[n]!))); lins[c] = out.parts; sizes.push(...out.sizes); continue }
     const r = regions(c, inner)
     if (!r) return out
     parts[c] = r.parts
+    lins[c] = undefined
     sizes.push(...r.sizes)
   }
   // per location, its component's parts in order (0 past them), the heights first where paths join components
@@ -926,7 +947,10 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
     return e
   })
   if (!rank.length) rank.push(k(0))
-  return {rank, text: `(${rank.map(showE).join(', ')})`, blocks: sizes}
+  const linear = [...new Set(comp)].every(c => lins[c] || !parts[c])
+  const forms = linear ? [...(gpaths.some(p => comp[p.from] !== comp[p.to]) ? [values.map((_, n) => konstL(heightOf(comp[n]!)))] : []),
+    ...Array.from({length: width}, (_, j) => values.map((_, n) => lins[comp[n]!]?.[j]?.[n] ?? {}))] : undefined
+  return {rank, text: `(${rank.map(showE).join(', ')})`, blocks: sizes, ...(forms ? {forms} : {})}
 }
 
 // Invariants first, so a rank may assume them: atoms per location (each name's bounds at the constants the paths
@@ -992,10 +1016,10 @@ export function rankWithInvariants(l: Loop, laws: Law[], until: number): {rank: 
     return [...best.values(), ...rest]
   }
   let H: Lin[][] = [], found: ReturnType<typeof relationRank> = {why: 'no invariant'}
-  const t1 = performance.now()
+  const t1 = clock()
   for (const [i, cands] of [bounds, withAtoms].entries()) {
-    if (performance.now() > until) break
-    const closed = houdini(rel, atStarts(cands), locOf, i ? until : performance.now() + (until - performance.now()) / 2)
+    if (clock() > until) break
+    const closed = houdini(rel, atStarts(cands), locOf, i ? until : clock() + (until - clock()) / 2)
     if (!closed || !closed.some(h => h.length)) continue
     H = closed.map(tightest)
     found = relationRank(l, rel, until, H)
@@ -1004,7 +1028,7 @@ export function rankWithInvariants(l: Loop, laws: Law[], until: number): {rank: 
   }
   if (!('rank' in found)) return found
   // fewer: a location's atoms at once, then one atom at a time, within ten times the first search's time
-  const stop = Math.min(until, performance.now() + Math.max(500, 10 * (performance.now() - t1)))
+  const stop = Math.min(until, clock() + Math.max(500, 10 * (clock() - t1)))
   const without = (drop: (n: number, h: Lin) => boolean): boolean => {
     const fewer = houdini(rel, H.map((g, n) => g.filter(h => !drop(n, h))), locOf, stop)
     if (!fewer || fewer.flat().length === H.flat().length) return false
@@ -1012,8 +1036,8 @@ export function rankWithInvariants(l: Loop, laws: Law[], until: number): {rank: 
     if ('rank' in r) { H = fewer; found = r; return true }
     return false
   }
-  for (const n of H.keys()) { if (performance.now() > stop) break; if (H[n]!.length) without(m => m === n) }
-  for (const [n, hs] of H.map((h, n) => [n, [...h]] as const)) for (const h of hs) { if (performance.now() > stop) break; if (H[n]!.includes(h)) without((m, g) => m === n && g === h) }
+  for (const n of H.keys()) { if (clock() > stop) break; if (H[n]!.length) without(m => m === n) }
+  for (const [n, hs] of H.map((h, n) => [n, [...h]] as const)) for (const h of hs) { if (clock() > stop) break; if (H[n]!.includes(h)) without((m, g) => m === n && g === h) }
   return {rank: found.rank, text: found.text, ...asLaws(H)}
 }
 // --- loops ----------------------------------------------------------------------------------------------------------
@@ -1033,12 +1057,12 @@ const goalsProven = (goals: Goal[]): {trees: Record<string, Tree>} | {goal: stri
 // turn that stays in the loop an edge; then the kernel's halting goals, with invariants inferLaws finds for them where
 // the rank needs one.
 export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): RankVerdict {
-  const t0 = performance.now(), until = t0 + (opts.ms ?? 10_000), rand = seeded(23)
+  const t0 = clock(), until = t0 + (opts.ms ?? 10_000), rand = seeded(23)
   const cx: Ctx = {eqs: new Map(), arity: new Map(), values: {}, memo: new Map(), fuel: Infinity, depth: 0}
   const state = Object.keys(l.state), names = [...state, ...l.params].sort()
   const node: Node = {name: l.name, hyps: [], concl: yes, vars: names, level: 0, given: true}
   const points = new Map<string, Env>(), edges = new Map<string, Edge>()
-  for (const bound of [2, 4, 8, 16, 32]) for (let trial = 0; trial < 40 && performance.now() < t0 + 1000; trial++) {
+  for (const bound of [2, 4, 8, 16, 32]) for (let trial = 0; trial < 40 && clock() < t0 + 1000; trial++) {
     const ps = Object.fromEntries(l.params.map(p => [p, rand(bound + 1)]))
     if (l.pre && evC(cx, l.pre, ps) !== true) continue
     let st: Env = {}
@@ -1070,7 +1094,7 @@ export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): R
   const quadratic = (ps: [string, string][], until: number): {rank: E[], verdict: ReturnType<typeof goalsProven>}[] => {
     const out: {rank: E[], verdict: ReturnType<typeof goalsProven>}[] = []
     for (const p of ps) {
-      if (performance.now() > until) break
+      if (clock() > until) break
       const d = withProducts([node], samples, [...edges.values()], [p]), r = lexRanks([0], d.nodes, d.samples, d.edges, shared, until)
       if (!r.comps.length || r.left) continue
       const r2 = r.comps.map(c => compE(c, 0, d.nodes[0]!, shared))
@@ -1098,9 +1122,9 @@ export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): R
   // reads; then the relation's rank with invariants. (A search that throws, a stack too deep for a large loop say,
   // gives way to the rest.)
   const safely = <T extends object>(f: () => T): T | {why: string} => { try { return f() } catch (e) { return {why: `the relation's search threw: ${(e as Error).message.slice(0, 120)}`} } }
-  const relT0 = performance.now(), rel = safely(() => rankOfRelation(l, laws, performance.now() + (until - performance.now()) / 2))
+  const relT0 = clock(), rel = safely(() => rankOfRelation(l, laws, clock() + (until - clock()) / 2))
   let relWhy = 'rank' in rel ? `the kernel refused ${rel.text}` : rel.why
-  if (trace) console.error(`[cycles] ${l.name}: the relation's rank ${'rank' in rel ? rel.text : rel.why} (from ${Math.round(relT0 - t0)} ms to ${Math.round(performance.now() - t0)} ms)`)
+  if (trace) console.error(`[cycles] ${l.name}: the relation's rank ${'rank' in rel ? rel.text : rel.why} (from ${Math.round(relT0 - t0)} ms to ${Math.round(clock() - t0)} ms)`)
   if ('rank' in rel) {
     const verdict = withDeadline(until, () => goalsProven(loopObligations(l, laws, rel.rank)))
     if ('trees' in verdict) return done(rel.rank, verdict.trees)
@@ -1112,7 +1136,7 @@ export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): R
   if (won && 'trees' in won.verdict) return done(won.rank, won.verdict.trees)
   if (!('rank' in rel)) {
     // invariants first: the relation's rank where they hold, with as few of them as it needs
-    const inv = safely(() => rankWithInvariants(l, laws, performance.now() + (until - performance.now()) / 2))
+    const inv = safely(() => rankWithInvariants(l, laws, clock() + (until - clock()) / 2))
     if (trace) console.error(`[cycles] ${l.name}: the relation's rank with invariants ${'rank' in inv ? `${inv.text} with ${inv.texts.join('; ')}` : inv.why}`)
     if ('rank' in inv) {
       const verdict = withDeadline(until, () => goalsProven(loopObligations(l, [...laws, ...inv.laws], inv.rank)))
@@ -1127,7 +1151,7 @@ export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): R
   const base = tried[0]
   if (base && !('trees' in base.verdict)) {
     const rank = base.rank, m = loopMachine(l), {stay, cover, helps} = livenessParts(m, loopLiveness(l, rank))
-    const ms = (until - performance.now()) * (rest.length ? 0.5 : 1)
+    const ms = (until - clock()) * (rest.length ? 0.5 : 1)
     if (ms > 300) {
       const inf = inferLaws(m, laws, [stay, cover, ...helps] as StepLaw[], {ms})
       const kept = inf.found.filter(f => !f.law.forall && !f.law.keys?.length), more = kept.map(f => f.law)
@@ -1138,7 +1162,7 @@ export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): R
     }
   }
   // (the products the loop doesn't read within a quarter of its time: a search that fails tries each of them)
-  tried = quadratic(rest, Math.min(until, performance.now() + (opts.ms ?? 10_000) / 4))
+  tried = quadratic(rest, Math.min(until, clock() + (opts.ms ?? 10_000) / 4))
   const late = tried.find(t => 'trees' in t.verdict)
   if (late && 'trees' in late.verdict) return done(late.rank, late.verdict.trees)
   if (!base || 'trees' in base.verdict) return {proven: false, checked: false, why: `no rank, linear or of degree 2, in order, drops on every turn of ${edges.size} sampled; the relation: ${relWhy}`}
@@ -1157,14 +1181,14 @@ export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): R
 export type Sampler = {params: (rand: (n: number) => number, bound: number) => Record<string, number>, input: (rand: (n: number) => number, bound: number, ps: Record<string, number>) => Request}
 export type LeadsVerdict = {proven: boolean, checked: boolean, rank?: E[], laws?: Law[], found?: {rank: string, laws: string[]}, goal?: string, stuck?: string, witness?: Record<string, number>, why?: string}
 export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sampler, opts: {ms?: number} = {}): LeadsVerdict {
-  const t0 = performance.now(), until = t0 + (opts.ms ?? 10_000), rand = seeded(29), run = interpret(m)
+  const t0 = clock(), until = t0 + (opts.ms ?? 10_000), rand = seeded(29), run = interpret(m)
   const names = [...Object.keys(m.state), ...m.params].sort(), helpful = livenessHelpful(l)
   const node: Node = {name: l.name, hyps: [], concl: yes, vars: names, level: 0, given: true}
   const env = (ps: Env, st: State): Env => ({...ps, ...st.scalars})
   const holds = (c: C, ps: Env, st: State) => { try { return evalMC(c, env(ps, st), st, m) } catch { return undefined } }
   const pending = (ps: Env, st: State) => holds(l.from, ps, st) === true && holds(l.to, ps, st) === false
   const points = new Map<string, Env>(), strong = new Map<string, Edge>(), weak = new Map<string, Edge>()
-  for (const bound of [2, 4, 8, 16]) for (let trial = 0; trial < 20 && performance.now() < t0 + 1000; trial++) {
+  for (const bound of [2, 4, 8, 16]) for (let trial = 0; trial < 20 && clock() < t0 + 1000; trial++) {
     let ps: Env
     try { ps = sample.params(rand, bound) } catch { continue }
     if (m.pre && holds(m.pre, ps, {scalars: {}, maps: {}}) !== true) continue
@@ -1213,7 +1237,7 @@ export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sample
   const text = rankText(rank), lv: Liveness = {...l, rank}
   const first = tried.get(id(rank)) ?? withDeadline(until, () => proveLiveness(m, laws, lv))
   if (first.proven && first.checked) return {proven: true, checked: true, rank, laws: [], found: {rank: text, laws: []}}
-  const ms = until - performance.now()
+  const ms = until - clock()
   if (ms > 300) {
     const {stay, cover, helps} = livenessParts(m, lv), inf = inferLaws(m, laws, [stay, cover, ...helps], {ms})
     const kept = inf.found.filter(f => !f.law.forall && !f.law.keys?.length), more = kept.map(f => f.law)
@@ -1235,7 +1259,7 @@ export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sample
 // dropped in turn where the laws don't need it.
 export type LemmaFound = {law: Law, text: string}
 export function cycleLemmas(m: Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: {ms?: number} = {}): {proven: boolean, checked: boolean, machine?: Machine, found: LemmaFound[], proof?: Cyclic, why?: string} {
-  const until = performance.now() + (opts.ms ?? 10_000)
+  const until = clock() + (opts.ms ?? 10_000)
   const fns = Object.entries(m.fns ?? {}).filter(([, f]) => !f.recur && (f.arity ?? 1) === 1)
   const fns2 = Object.entries(m.fns ?? {}).filter(([, f]) => !f.recur && f.arity === 2 && f.call)
   if ((!fns.length && !fns2.length) || !m.facts?.length) return {proven: false, checked: false, found: [], why: 'no function known by its facts'}
@@ -1288,13 +1312,13 @@ export function cycleLemmas(m: Machine, laws: Law[], stepLaws: StepLaw[] = [], o
   const unique = [...new Map(claims.map(c => [c.name, c])).values()], two = (c: Claim) => m.fns?.[readsOf(c.concl)[0]?.map ?? '']?.arity === 2
   const proofs = new Map<string, Cyclic>()
   for (const c of unique.filter(two)) {
-    if (performance.now() >= until) break
-    const o = findCycles(facts, [c], {ms: Math.min(1000, (until - performance.now()) * 0.1), values, houdini: true, generalize: false})
+    if (clock() >= until) break
+    const o = findCycles(facts, [c], {ms: Math.min(1000, (until - clock()) * 0.1), values, houdini: true, generalize: false})
     if (o.proven && o.checked && o.proof) proofs.set(c.name, o.proof)
   }
   const ones = unique.filter(c => !two(c))
   if (!ones.length && !proofs.size) return {proven: false, checked: false, found: [], why: unique.length ? 'no lemma proven' : 'no lemma fits the values'}
-  const out: CycleVerdict = ones.length ? findCycles(facts, ones, {ms: Math.max(0, until - performance.now()) * 0.6, values, houdini: true, generalize: false}) : {proven: true, checked: true, kept: []}
+  const out: CycleVerdict = ones.length ? findCycles(facts, ones, {ms: Math.max(0, until - clock()) * 0.6, values, houdini: true, generalize: false}) : {proven: true, checked: true, kept: []}
   if ((!out.proven || !out.checked || !out.kept?.length) && !proofs.size) return {proven: false, checked: false, found: [], why: out.why ?? 'no lemma proven'}
   const kept = [...(out.proven && out.checked ? out.kept ?? [] : []), ...proofs.keys()]
   const sideBySide = (ps: Cyclic[]): Cyclic | undefined => {
@@ -1316,7 +1340,7 @@ export function cycleLemmas(m: Machine, laws: Law[], stepLaws: StepLaw[] = [], o
   let best = proveWith(found)
   if (!best.ok) return {proven: false, checked: false, found: [], why: `lemmas proven (${found.map(f => f.text).join('; ')}), the laws not with them`}
   for (const f of [...found]) {
-    if (performance.now() >= until) break
+    if (clock() >= until) break
     const rest = found.filter(g => g !== f), again = proveWith(rest)
     if (again.ok) (found = rest, best = again)
   }

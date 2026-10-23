@@ -5,6 +5,82 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+Termination through lemmas: a ring of functions calling each other taken by well-founded recursion (a measure each),
+and a call's decrease proven through size laws about the function of its argument, conjectured, proven by induction
+and used. **Trusted change:** `lean-kernel/Data.lean`'s `wf_fix_unique_ring` (a functional over a ring's tuple of
+functions that reads each only below its measure has exactly one fixpoint; `#print axioms`: propext, Classical.choice,
+Quot.sound), proven before core/data.ts accepts a ring, whose acceptance mirrors its condition: each call within the
+ring, under its path, lowers the callee's measure at the call's arguments below the caller's at its parameters, each
+obligation proven by the kernel in a program without the ring. `kernel/` and `core/check.ts` are as before. TIP 2015 at
+60 s on Modal, beside main at c1a0fb5 launched at the same time (`runs/termlem/tip2`, `tip2-base`): 177 of 492 proven in
+both, the same 177, and the same 30 refuted (23 in `false/`, each confirmed by TIP's evaluator, none proven); none
+wrong. Unsupported 112 against 129: 17 theorems translated now (the 8 bottom-up merge sorts `sort_*MSortBU*`, the 8
+`MSortBU2`, `grammars/simp_expr_unambig4`'s ring), none proven within the 60 s, and 8 of `false/` (the regexp `reck`
+rings), none refuted; none lost. An earlier step (`runs/termlem/tip1`, `tip1-base`: 179 against 177, the three more
+near 60 s on both sides) took the size laws after a while of induction and lost `sort_nat_QSort*` (4) to the budget;
+fixed (below).
+
+- Rings (`core/data.ts`'s `termination`, one code path for a function and a ring): the calls within the ring with their
+  paths, the runs recorded per call (caller to callee), the obligations as before but across functions, measures padded
+  to one length (`lexLt`). A call to the ring nested in another's argument or condition is refused at once (nested
+  recursion). `checkMeasures`: measures given to a ring checked as `termination` checks its own (for conformance).
+- The calls' relation (`callRelation`): a location per function, a path per call, the caller's parameters' sizes and the
+  callee's arguments' bounded by the sizes of the path's variables (`sizeBounds`, fitted to the path's values, naturals
+  up to 40 so a guard is met), ranked by core/cycles.ts's relation search per location (`rankOfPaths`, its forms per
+  location now returned beside its terms): `tokens`/`paren`'s size(e) + 1 and size(e), `linTerm`/`lin`'s. Then the runs'
+  LP, now per node (`ranksOfCalls`; `ranksOfRuns` the ring of one), and each function's parameters' sum.
+- Size laws (`sizeLaws`): for each function an obligation reads, S(g(y…)) + a ≤ S(yᵢ) [+ S(yⱼ)] + b at the bound its
+  values give (an equation's upper half only), and 2·g(n) ≤ n + b for a natural of one natural; given to proveData as
+  lemmas with `lemmasFirst` (no attempt of the law alone first: its lemmas proven by induction, the law tried after
+  each), then proveData by induction, then unfolded, all within the function's counted 10 s as before.
+- proveData: a lemma about a function used where the goal reads that function (a size law no longer at every size the
+  goal reads); a goal that reads sizes gets the shapes at the sizes its shapes read, `depth` rounds (size(xs) is 1 plus
+  its tail's, whose size is its own shape's: a recursion two fields deep); recursion induction through a function's
+  ring (evens through odds: recursion of evens at the tail's tail).
+- The wall-clock leak research/refine found: core/cycles.ts's and core/relation.ts's deadlines read kernel/prove.ts's
+  `clock()` (wall time outside a counted search, as before; counted work inside one), and the exact LP's pivots and the
+  generators count as work; `ranksOfRuns`' 1,000 ms inside core/data.ts's counted termination search was wall time.
+- Lean export (`lean-kernel/data.ts`): a ring in one `mutual` block, each with `termination_by` its measure; a
+  datatype's `size_pos` used where a decrease needs another field's size; the size laws an obligation used as theorems
+  before it (functional induction, then plain), each at the obligation's variables of its sorts. Package items
+  `dataring` (`tokens_positive`) and `dataruns` (`merge_runs_one`), the suite's `lean-data-9`: Lean checks both, on the
+  three axioms.
+- Conformance (`core/conformance.ts`'s `ringCase`): rings of two functions over naturals from six families, each with a
+  JavaScript reference run with fuel: a ring taken ends on every reference run and its measures fall at every recorded
+  call, a ring that runs forever (`up`, `late`, `swapKeep`) is refused, `down`, `lateDown` and `pair` are taken, and
+  the measures taken, tampered (swapped between the functions, constants dropped, negated), are refused by
+  checkMeasures wherever a recorded call contradicts them (the suite's eight conformance jobs, `runs/termlem/suite2-default`: 192 rings, the 108 that end all taken, the 84 that
+  never end all refused, 282 of 282 tampered measures refused); `lean-kernel/conformance.ts --rings` writes the rings taken with their
+  measures for Lean (`lean-rings`: 12 rings, Lean checks every call's decrease).
+- Adversarial definitions (`examples/data.ts`'s `adversarial`, core/data.test.ts): twelve that don't terminate, made to
+  look as if they did, each refused with the measures tried: a ring passing its argument round, one lowering and one
+  raising it, a ring swapping two lists, a ring that loops past n ≥ 9 (beyond the runs' values), even/odd stepping up,
+  a call on a helper no longer than its argument up to 9 items only (its size law refuted by its own induction), the
+  same through a ring, 0 calling 1 calling 0, a sum of two that stays, f(n) = f(f(n)), an integer counted down, a ring
+  whose stated measures don't fall. `wellFounded`: the ring and a bottom-up merge sort over `pairwise`.
+- TIP's translator classifies a ring's refusal by its message (`, in its ring `), as before by its old one.
+- After merging main at 7727716 (lang/edges, lang/reals, gen/unsat, gen/extract, research/realworld and the fixes):
+  TIP beside 7727716 launched at the same time, 183 of 492 proven against 181, the same 30 refuted, none wrong, none
+  lost (`isaplanner/prop_51` and `prop_60` the two more, at 56.4 s and 49.9 s); the same 25 translated now
+  (`runs/termlem/tip4`, `tip4-base`). The suites (215 jobs) by default 571.7 s wall, 5,421.7 s of job time, none failed
+  (`runs/termlem/suite4-default`); `--usual` 586.0 s and 4,932.6 s, none failed (`suite4-usual`).
+- What is still refused among the 105 and the 14, and why: bubsort (8: inversions, no size measure), bmerge (8) and
+  toList (16: the size laws about evens/odds and hmerge are conjectured but not proven within the budget; 60 s each
+  doesn't either), ssort (8: needs a membership lemma), idiv (12: idiv(x, 0) never ends; TIP calls it at 2 and 3),
+  third, twoThirds and nmsorttd-half1 on Int (12: below 0 they never end), McCarthy's 91 (2) and subst (2: nested),
+  flatten1 and flatten3 (3: a weighted measure), mod2 (2), msorttd and nmsorttd (8: a chain of size laws past the
+  budget); the 13 rings left are nested (stooge, nstooge, models).
+- The suites on Modal (210 jobs: 3 new, `lean-data-9`, `lean-rings` and the data tests'): by default 614.5 s wall,
+  5,211.1 s of job time, none failed (`runs/termlem/suite2-default`); `--usual` 480.2 s and 4,507.3 s, none failed
+  (`suite2-usual`). Round 1 and round 2 of the frontier corpora, against c1a0fb5 the same day: every item's verdict the
+  same, round 1 frontier 90 / 92 and broken 42 / 42 in both (the datatype track's items among them), round 2 25 / 47 and
+  47 / 47 in both (`runs/termlem/c1-mine`, `c1-base`, `c2-mine`, `c2-base`).
+- The `data` job's tests on 1 vCPU (ten each, this branch's and c1a0fb5's interleaved in one Modal batch,
+  `runs/termlem/data-1cpu`): nearPlus min, median and max 1,744, 2,302 and 2,582 ms against main's 2,216, 3,013 and
+  3,768; nearSucc 1,357, 1,753 and 1,947 against 1,652, 2,309 and 2,698; none failed. data.test.ts took 70.1 s median
+  against 13.7 s: the new tests (the twelve adversarial definitions refused, each within its counted budget: 59.4 s
+  and 40.0 s on 2 vCPU in `suite2-default` and `suite2-usual`; the rings; the size laws).
+
 What the real-world corpus (research/realworld) found in gdp-wired itself, fixed. Nothing trusted changed (`kernel/kernel.ts`,
 `core/check.ts` and `lean-kernel/` as they were). The corpus on Modal (311 jobs, 2 vCPU each), this branch beside main
 the same day: at main 6b2e2df, proven 237 against 218, refuted 18 against 17, neither 56 against 76, liveness 18 of 35
