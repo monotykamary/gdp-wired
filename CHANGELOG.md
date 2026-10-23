@@ -3,6 +3,49 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+Ranks from a loop's relation, not only its runs: each path of a turn read exactly (its vertices, rays and lines), a
+rank per location, blocks in order, multiphase, with invariants by Houdini, every rank still proven by the kernel.
+Nothing trusted changed (`kernel/`, `core/check.ts` and `lean-kernel/` are as in 0.22.0). TermComp's integer
+transition systems at 60 s on Modal, against 0.22.0 the same day: on the task's statement 897 solved (572 terminating,
+325 nonterminating), 0.22.0 376 (56, 320); per component 906 (583, 323), 0.22.0 479 (155, 324); LoAT abmc 776, KoAT2
+601 (`runs/modal/term/full1`). SV-COMP's termination tasks: 183 (136, 47), 0.22.0 47 (0, 47); per component 172 (125,
+47), 0.22.0 88 (41, 47); Ultimate Automizer 224. No answer contradicts another tool's, a lasso or an expected verdict
+(`runs/ranks/its-mine`, `its-base`, `sv-mine`, `sv-base`). The second frontier corpus's rank, nonlinear-rank,
+sampling and nested-recursion items: 11 of 15 proven, 0.22.0 0, every broken variant refused (`runs/ranks/c2-mine`,
+`c2-base`); round 1's cycle items as before, 21 of 21, broken 21 of 21 (`runs/ranks/c1-mine`, `c1-base`).
+
+- The relation (`core/relation.ts`): one turn of a Loop as linear paths: `while`, the assumption and the laws in
+  disjunctive form, each `if` decided by the values a path pins (pc = 3, t = 1) or split, each truncated difference
+  split on its sign. Two naturals every row and value reads only as their difference, whose values after the turn are
+  complementary differences (u := P ∸ N, w := N ∸ P), are one integer, u − w: no split, the rank over the integer.
+  Each path's generators by double description, in integers.
+- Ranks from it (`core/cycles.ts`'s `rankOfRelation`): each condition at every point of a path is rows over the rank's
+  coefficients at the path's generators (Podelski–Rybalchenko with generators in place of Farkas' multipliers), solved
+  by the exact LP over all the rows. Blocks in order (Bradley–Manna–Sipma), each strict on as many paths as one after
+  another allows and kept by the rest, each a nested rank of depth 1 to 3 (Leike–Heizmann's; multiphase: y + 1 then x
+  for x := x + y; y := y − 1), linear per location (the natural every path pins: the program counter), over the names
+  live there. The location graph's components are ranked apart below their heights. A component with no rank is split
+  by an atom its paths read, each side its own template (toy3's y ≥ 2). The kernel's terms: f + 1 truncated per block
+  part, an if-chain over the locations.
+- Invariants first (`rankWithInvariants`): per location, bounds at the paths' constants over the live names, then the
+  paths' atoms too; those false at a sampled start dropped; Houdini over the relation (a path past the generators' cap
+  checked atom by atom by the integer solver); the fewest the rank needs, each dropped in turn and the rest closed
+  again; then laws (pc ≠ ℓ ∨ atom) the kernel proves inductive with the halting goals.
+- `findRank`: the runs' rank first as before, its LP within 30% of the time and its check within 40%; then the
+  relation's rank; degree 2 over the products the loop reads; the relation's rank with invariants; inferLaws as before.
+  The DSL loops' ranks are the ones they were (`core/cycles.test.ts`), and a test of the relation's ranks on the corpus
+  tasks with their broken variants refused.
+- compare/term/solve.ts prints the answer once the kernel has checked the trees again, and again with the certificate
+  once it is made: 44 ITS proofs ran past the limit making a cyclic certificate (`not made`).
+- Groups (research/frontier2): ranks that read no parameter, ranks in order, ranks per location (Continue1, p-60,
+  AckR, Alternate, toy3); multiphase (polyrank1, 2Nested-1); the sampling group (AProVEMath, ListReverseCyclicList,
+  WhileFalse: no run needed); McCarthy91_Iteration with 4 invariants. Not proven: Piecewise (min(p, q): one atom's
+  regions are not enough) and Toulouse-BranchesToLoop-2 (it needs x ≠ 0, a disjunction).
+- On the tasks both answer, the times are 0.22.0's (ITS terminating, the task's statement: median 2.70 s, here 2.65 s);
+  4 lassos on 3 tasks were not found again in the late, random lasso search, and others were.
+
 ## 0.22.0
 
 The step goals of wide transitions proven: a CDCL search over a goal's atoms, with short reasons and an incremental

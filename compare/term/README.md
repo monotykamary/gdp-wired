@@ -1,8 +1,10 @@
 # Termination benchmarks through gdp-wired
 
 gdp-wired proves a loop halts with `proveLoop` and no rank stated: core/cycles.ts's `findRank` takes the rank from the
-loop's runs (linear by LP, the exact LP past coefficient 4, degree 2 one product at a time, tuples in order), with the
-invariants `inferLaws` finds, and the kernel checks the halting goals. This directory runs it on termination problems
+loop's runs (linear by LP, the exact LP past coefficient 4, degree 2 one product at a time, tuples in order), then from
+the loop's relation (core/relation.ts: its linear paths over the integers its pairs of naturals are, each path's
+generators; a rank per location, blocks in order, each nested to depth 3, where none, invariants by Houdini over the
+relation), with the invariants `inferLaws` finds, and the kernel checks the halting goals. This directory runs it on termination problems
 it didn't write, beside tools built for them, every task in its own Modal container (2 vCPU, 4 GB) under the same 60 s
 wall-clock limit for every tool:
 
@@ -18,7 +20,7 @@ wall-clock limit for every tool:
 | `ari.ts` | The ARI format read (`(format LCTRS)`, `(theory Ints)`: locations, an entrypoint, rules with guards), and an evaluator of a rule on integer values (BigInt) that uses no gdp-wired code; `checkLasso` replays a nontermination witness on it |
 | `translate.ts` | A task as a kernel `Loop`, the same statement (below); `stepOf` turns a turn of the loop back into the task's step for the witness |
 | `scc.ts` | The second translation, a stronger statement counted apart: each strongly connected component of the locations, chained (the paths between cut points composed into one rule each), from any state at its cut points |
-| `solve.ts` | One task: lassos from the loop's runs (2 s), `findRank` with all but 9 s of the limit, the kernel's check again on the loop as translated, lassos again with what is left; `--scc` for the second translation |
+| `solve.ts` | One task: lassos from the loop's runs (2 s), `findRank` with all but 9 s of the limit, the kernel's check again on the loop as translated (the answer printed then, and again with the certificate once made), lassos again with what is left; `--scc` for the second translation |
 | `c2ari.py` | An SV-COMP C program as an ARI system (pycparser): main and the functions it calls inlined, signed integers, the C subset in its header; refusals with their reason |
 | `modal_term.py` | The ITS track on Modal: gdp-wired (`gdp`, `gdp-scc`), LoAT, LoAT with `--engine abmc`, KoAT2; `koat2-proof` and `loat-proof`, the same runs with their proofs kept |
 | `modal_sv.py` | The SV-COMP tasks on Modal: gdp-wired on its translation, Ultimate Automizer on the C program, LoAT and KoAT2 on gdp-wired's translation |
@@ -114,6 +116,26 @@ the task's expected verdict.
   coefficient past 4.
 - Not run: the Lean twin on the ranks found (every proof here is the kernel's, checked twice: in `findRank`, and again
   in solve.ts on the obligations of the loop as translated).
+
+### Ranks from the relation (Unreleased)
+
+Each tool against its own base, c215ded (0.22.0), the same day, on Modal (2 vCPU, 4 GB a task, 60 s): ITS from
+`runs/ranks/its-base` and `its-mine`, SV-COMP from `sv-base` and `sv-mine`. No answer contradicts another's: not
+LoAT's or KoAT2's (`full1`, `koat-fix1`), any earlier gdp-wired run's (`gdp2`, `runs/backends/term-gdp`,
+`runs/table/term`), the base's lassos, or SV-COMP's expected verdicts.
+
+| translation | ITS terminates | nonterminating | solved of 1,239 (base) | SV terminates | nonterminating | solved of 282 (base) |
+| --- | --- | --- | --- | --- | --- | --- |
+| the task's statement (`gdp`) | 572 (56) | 325 (320) | 897 (376) | 136 (0) | 47 (47) | 183 (47) |
+| per component (`gdp-scc`) | 583 (155) | 323 (324) | 906 (479) | 125 (41) | 47 (47) | 172 (88) |
+
+- Lost against the base: 4 lassos on 3 ITS tasks (`2.t2`, `AlternatingGrowReduce2.jar-obl-9`, and `agafp.t2_fixed`
+  per component; the late lasso search is random and bounded by time, and the faithful `agafp.t2_fixed`'s was found
+  here, not there). No proof was lost.
+- On the tasks both answer the same, the times are the base's (ITS terminating, the task's statement: median 2.70 s
+  base, 2.65 s here); the median over all solved rises (ITS 0.09 s to 8.94 s), the new proofs being slower ones.
+- Of the 572 ITS proofs on the task's statement, 522 read the location (a rank per location) and 13 needed invariants;
+  on SV 136 and 26. Certificates: 260 cyclic, 268 the usual trees, 44 not made within the limit (SV: 1, 117, 18).
 
 ## Where gdp-wired stops
 
