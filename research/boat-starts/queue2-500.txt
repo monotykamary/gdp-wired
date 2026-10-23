@@ -1,0 +1,212 @@
+plan $500 (65, 420, 1680), reserve 60 a day and 15 an hour; day 3 of each replay; walls (s) from submission to the last job; bench over 3x: benchmark runs slower than 990.3 s
+v    submit     bg/day  policy                      starts  slot-h/start  util   Modal (batches, $)  boat $  suite med/max  bench med/max  bench>3x  background done
+1.0  observed        0  new (per batch, cap 50)       897          0.24  0.787     0 ($    0.0)     4.9  (210, 291)     (686, 949)     0/12      -
+1.0  observed        0  queue rr drain D=600 max=100    475          0.47  0.913     0 ($    0.0)    4.44  (683, 1473)    (854, 1314)    5/12      -
+1.0  observed        0  queue srpt drain D=300 max=100    748           0.3  0.866     0 ($    0.0)     4.7  (311, 995)     (420, 1304)    2/12      -
+1.0  observed        0  queue srpt drain D=450 max=100    586          0.38  0.891     0 ($    0.0)    4.56  (437, 995)     (488, 1304)    2/12      -
+1.0  observed        0  queue srpt drain D=600 max=100    473          0.48  0.906     0 ($    0.0)    4.47  (512, 988)     (620, 1297)    2/12      -
+1.0  observed        0  queue srpt drain D=600 max=150    541          0.42  0.899     0 ($    0.0)    4.52  (525, 701)     (613, 905)     0/12      -
+1.0  observed        0  queue srpt drain D=900 max=100    331          0.68  0.931     0 ($    0.0)    4.37  (672, 1187)    (910, 1369)    3/12      -
+1.0  observed        2  new (per batch, cap 50)      1001          0.24  0.789     0 ($    0.0)    5.44  (210, 291)     (686, 949)     0/12      2/2 runs
+1.0  observed        2  queue rr drain D=600 max=100    445          0.59  0.929     0 ($    0.0)    5.08  (750, 1490)    (854, 1314)    5/12      1/2 runs
+1.0  observed        2  queue srpt drain D=300 max=100    700          0.38  0.889     0 ($    0.0)    5.32  (321, 1187)    (420, 1304)    2/12      1/2 runs
+1.0  observed        2  queue srpt drain D=450 max=100    559          0.47  0.908     0 ($    0.0)    5.19  (463, 1243)    (476, 1304)    2/12      1/2 runs
+1.0  observed        2  queue srpt drain D=600 max=100    443          0.59  0.922     0 ($    0.0)     5.1  (545, 1190)    (620, 1297)    2/12      1/2 runs
+1.0  observed        2  queue srpt drain D=600 max=150    511          0.51  0.916     0 ($    0.0)    5.14  (531, 1190)    (613, 905)     0/12      1/2 runs
+1.0  observed        2  queue srpt drain D=900 max=100    304          0.86  0.944     0 ($    0.0)     5.0  (725, 2554)    (906, 1369)    3/12      1/2 runs
+1.0  serial          0  new (per batch, cap 50)       946          0.23  0.774     0 ($    0.0)    4.99  (204, 301)     (590, 840)     0/12      -
+1.0  serial          0  queue rr drain D=600 max=100    621          0.36  0.894     0 ($    0.0)    4.48  (527, 1032)    (647, 805)     0/12      -
+1.0  serial          0  queue srpt drain D=300 max=100    991          0.23   0.83     0 ($    0.0)    4.86  (298, 567)     (397, 534)     0/12      -
+1.0  serial          0  queue srpt drain D=450 max=100    684          0.33  0.875     0 ($    0.0)    4.64  (405, 534)     (489, 578)     0/12      -
+1.0  serial          0  queue srpt drain D=600 max=100    579          0.38  0.889     0 ($    0.0)     4.5  (520, 720)     (623, 678)     0/12      -
+1.0  serial          0  queue srpt drain D=600 max=150    579          0.38  0.889     0 ($    0.0)     4.5  (520, 720)     (623, 678)     0/12      -
+1.0  serial          0  queue srpt drain D=900 max=100    386          0.58  0.921     0 ($    0.0)    4.34  (674, 975)     (908, 988)     0/12      -
+1.0  serial          2  new (per batch, cap 50)      1046          0.23  0.778     0 ($    0.0)    5.51  (204, 301)     (590, 840)     0/12      2/2 runs
+1.0  serial          2  queue rr drain D=600 max=100    555          0.48  0.915     0 ($    0.0)    5.23  (670, 5746)    (628, 1129)    1/12      2/2 runs
+1.0  serial          2  queue srpt drain D=300 max=100   1075          0.24  0.842     0 ($    0.0)    5.61  (311, 1537)    (398, 445)     0/12      1/2 runs
+1.0  serial          2  queue srpt drain D=450 max=100    772          0.34  0.886     0 ($    0.0)    5.28  (395, 1069)    (506, 526)     0/12      1/2 runs
+1.0  serial          2  queue srpt drain D=600 max=100    506          0.51  0.911     0 ($    0.0)    5.13  (493, 939)     (633, 669)     0/12      1/2 runs
+1.0  serial          2  queue srpt drain D=600 max=150    506          0.51  0.911     0 ($    0.0)    5.13  (493, 939)     (633, 669)     0/12      1/2 runs
+1.0  serial          2  queue srpt drain D=900 max=100    378           0.7   0.94     0 ($    0.0)    5.08  (738, 2449)    (910, 961)     0/12      2/2 runs
+1.0  pipelined       0  new (per batch, cap 50)       763          0.28  0.773     0 ($    0.0)    4.99  (232, 580)     (489, 1007)    1/12      -
+1.0  pipelined       0  queue rr drain D=600 max=100    374          0.61  0.926     0 ($    0.0)    4.41  (621, 1262)    (671, 1100)    1/12      -
+1.0  pipelined       0  queue srpt drain D=300 max=100    536          0.43  0.897     0 ($    0.0)    4.63  (288, 1028)    (479, 1314)    2/12      -
+1.0  pipelined       0  queue srpt drain D=450 max=100    449          0.51  0.911     0 ($    0.0)    4.55  (343, 1930)    (524, 802)     0/12      -
+1.0  pipelined       0  queue srpt drain D=600 max=100    320          0.71  0.939     0 ($    0.0)    4.38  (357, 1068)    (633, 1005)    1/12      -
+1.0  pipelined       0  queue srpt drain D=600 max=150    368          0.63  0.932     0 ($    0.0)    4.48  (404, 712)     (637, 679)     0/12      -
+1.0  pipelined       0  queue srpt drain D=900 max=100    270          0.84  0.944     0 ($    0.0)     4.3  (580, 1900)    (903, 1648)    3/12      -
+1.0  pipelined       2  new (per batch, cap 50)       839          0.28  0.767     0 ($    0.0)     5.6  (216, 621)     (496, 949)     0/12      2/2 runs
+1.0  pipelined       2  queue rr drain D=600 max=100    309          0.86  0.944     0 ($    0.0)    5.09  (789, 2781)    (876, 1436)    4/12      1/2 runs
+1.0  pipelined       2  queue srpt drain D=300 max=100    333           0.8  0.948     0 ($    0.0)    5.06  (503, 1273)    (658, 1093)    2/12      1/2 runs
+1.0  pipelined       2  queue srpt drain D=450 max=100    249          1.08   0.96     0 ($    0.0)    5.03  (552, 1915)    (818, 1850)    4/12      1/2 runs
+1.0  pipelined       2  queue srpt drain D=600 max=100    266           1.0  0.958     0 ($    0.0)     5.0  (528, 1602)    (700, 1300)    1/12      1/2 runs
+1.0  pipelined       2  queue srpt drain D=600 max=150    285          0.95  0.952     0 ($    0.0)    5.12  (535, 1683)    (649, 1207)    1/12      1/2 runs
+1.0  pipelined       2  queue srpt drain D=900 max=100    243           1.1  0.959     0 ($    0.0)     5.0  (897, 2537)    (865, 1540)    4/12      1/2 runs
+2.0  observed        0  new (per batch, cap 50)      1512          0.28  0.789     0 ($    0.0)    9.78  (210, 429)     (788, 2956)    1/24      -
+2.0  observed        0  queue rr drain D=600 max=100    950          0.47  0.913     0 ($    0.0)    8.89  (683, 1473)    (854, 1314)    10/24     -
+2.0  observed        0  queue srpt drain D=300 max=100   1496           0.3  0.866     0 ($    0.0)    9.39  (311, 995)     (420, 1304)    4/24      -
+2.0  observed        0  queue srpt drain D=450 max=100   1172          0.38  0.891     0 ($    0.0)    9.12  (437, 995)     (488, 1304)    4/24      -
+2.0  observed        0  queue srpt drain D=600 max=100    946          0.48  0.906     0 ($    0.0)    8.94  (512, 988)     (620, 1297)    4/24      -
+2.0  observed        0  queue srpt drain D=600 max=150   1082          0.42  0.899     0 ($    0.0)    9.03  (525, 701)     (613, 905)     0/24      -
+2.0  observed        0  queue srpt drain D=900 max=100    662          0.68  0.931     0 ($    0.0)    8.73  (672, 1187)    (910, 1369)    6/24      -
+2.0  observed        2  new (per batch, cap 50)      1573          0.29  0.795     0 ($    0.0)   10.25  (210, 429)     (748, 2580)    1/24      2/2 runs
+2.0  observed        2  queue rr drain D=600 max=100    890          0.54  0.922     0 ($    0.0)     9.3  (684, 1929)    (854, 1314)    10/24     2/2 runs
+2.0  observed        2  queue srpt drain D=300 max=100   1463          0.33  0.875     0 ($    0.0)     9.8  (319, 1187)    (420, 1304)    4/24      2/2 runs
+2.0  observed        2  queue srpt drain D=450 max=100   1127          0.42    0.9     0 ($    0.0)    9.52  (463, 1243)    (476, 1304)    4/24      2/2 runs
+2.0  observed        2  queue srpt drain D=600 max=100    886          0.54  0.915     0 ($    0.0)    9.34  (545, 1190)    (620, 1297)    4/24      2/2 runs
+2.0  observed        2  queue srpt drain D=600 max=150   1022          0.47  0.909     0 ($    0.0)    9.43  (531, 1190)    (613, 905)     0/24      2/2 runs
+2.0  observed        2  queue srpt drain D=900 max=100    641          0.74  0.936     0 ($    0.0)    9.16  (707, 2554)    (902, 1369)    6/24      2/2 runs
+2.0  serial          0  new (per batch, cap 50)      1517          0.28   0.78     0 ($    0.0)    9.89  (206, 1024)    (584, 2100)    3/24      -
+2.0  serial          0  queue rr drain D=600 max=100   1156          0.39  0.898     0 ($    0.0)    8.95  (546, 1136)    (651, 1251)    1/24      -
+2.0  serial          0  queue srpt drain D=300 max=100   1620          0.27  0.859    16 ($   1.15)     9.3  (303, 2484)    (399, 1658)    1/23      -
+2.0  serial          0  queue srpt drain D=450 max=100   1401          0.32  0.878     0 ($    0.0)    9.22  (400, 742)     (492, 692)     0/24      -
+2.0  serial          0  queue srpt drain D=600 max=100   1052          0.42  0.905     0 ($    0.0)    8.89  (493, 799)     (619, 709)     0/24      -
+2.0  serial          0  queue srpt drain D=600 max=150   1055          0.42  0.904     0 ($    0.0)    8.89  (494, 799)     (619, 709)     0/24      -
+2.0  serial          0  queue srpt drain D=900 max=100    646          0.69  0.935     0 ($    0.0)    8.54  (689, 1034)    (909, 961)     0/24      -
+2.0  serial          2  new (per batch, cap 50)      1569          0.29  0.797     0 ($    0.0)   10.22  (216, 429)     (637, 2320)    3/24      2/2 runs
+2.0  serial          2  queue rr drain D=600 max=100   1143          0.41  0.907     0 ($    0.0)    9.32  (571, 1893)    (661, 1007)    1/24      2/2 runs
+2.0  serial          2  queue srpt drain D=300 max=100   1399          0.28  0.866    24 ($   9.49)    8.16  (294, 873)     (411, 953)     0/19      2/2 runs
+2.0  serial          2  queue srpt drain D=450 max=100   1313          0.33   0.88     3 ($   5.21)    8.83  (403, 587)     (521, 1566)    1/22      2/2 runs
+2.0  serial          2  queue srpt drain D=600 max=100   1119          0.42  0.901     0 ($    0.0)    9.47  (459, 811)     (620, 669)     0/24      2/2 runs
+2.0  serial          2  queue srpt drain D=600 max=150   1126          0.42    0.9     0 ($    0.0)    9.48  (467, 811)     (619, 672)     0/24      2/2 runs
+2.0  serial          2  queue srpt drain D=900 max=100    640          0.74   0.94     0 ($    0.0)    9.12  (689, 1049)    (909, 965)     0/25      2/2 runs
+2.0  pipelined       0  new (per batch, cap 50)      1524          0.28  0.773     0 ($    0.0)    9.98  (220, 638)     (463, 750)     0/24      -
+2.0  pipelined       0  queue rr drain D=600 max=100    795          0.57   0.93     0 ($    0.0)    8.76  (657, 1461)    (779, 1351)    10/24     -
+2.0  pipelined       0  queue srpt drain D=300 max=100   1021          0.45  0.904     0 ($    0.0)    9.09  (291, 1484)    (458, 1647)    4/24      -
+2.0  pipelined       0  queue srpt drain D=450 max=100    857          0.54  0.915     0 ($    0.0)    9.04  (366, 1510)    (515, 895)     0/24      -
+2.0  pipelined       0  queue srpt drain D=600 max=100    802          0.57  0.927     0 ($    0.0)    8.87  (551, 1629)    (614, 1092)    1/24      -
+2.0  pipelined       0  queue srpt drain D=600 max=150    791          0.58  0.927     0 ($    0.0)    8.94  (434, 946)     (617, 1088)    2/24      -
+2.0  pipelined       0  queue srpt drain D=900 max=100    585          0.78  0.946     0 ($    0.0)    8.66  (536, 1330)    (908, 1278)    3/24      -
+2.0  pipelined       2  new (per batch, cap 50)      1384          0.33  0.788     0 ($    0.0)   10.35  (210, 380)     (608, 831)     0/24      2/2 runs
+2.0  pipelined       2  queue rr drain D=600 max=100    599           0.8  0.941     0 ($    0.0)    9.18  (594, 2150)    (1060, 2173)   12/24     2/2 runs
+2.0  pipelined       2  queue srpt drain D=300 max=100   1026          0.47  0.909     0 ($    0.0)    9.63  (313, 1484)    (453, 1184)    3/24      2/2 runs
+2.0  pipelined       2  queue srpt drain D=450 max=100    758          0.64  0.935     0 ($    0.0)    9.29  (363, 1625)    (601, 1974)    6/24      2/2 runs
+2.0  pipelined       2  queue srpt drain D=600 max=100    621          0.77  0.942     0 ($    0.0)    9.16  (474, 1823)    (660, 1722)    4/24      2/2 runs
+2.0  pipelined       2  queue srpt drain D=600 max=150    667          0.72  0.934     0 ($    0.0)    9.31  (449, 1471)    (612, 1245)    2/24      2/2 runs
+2.0  pipelined       2  queue srpt drain D=900 max=100    523          0.92   0.95     0 ($    0.0)     9.1  (706, 1526)    (899, 1455)    8/24      2/2 runs
+3.0  observed        0  new (per batch, cap 50)      1620          0.31  0.803    41 ($  18.92)   11.37  (210, 1024)    (868, 2874)    6/29      -
+3.0  observed        0  queue rr drain D=600 max=100   1425          0.47  0.913     0 ($    0.0)   13.33  (683, 1473)    (854, 1314)    15/36     -
+3.0  observed        0  queue srpt drain D=300 max=100   1620          0.24  0.838    55 ($  33.53)    8.53  (311, 1032)    (420, 920)     0/21      -
+3.0  observed        0  queue srpt drain D=450 max=100   1620           0.4  0.896    31 ($   5.27)   12.96  (438, 1450)    (488, 8256)    6/34      -
+3.0  observed        0  queue srpt drain D=600 max=100   1419          0.48  0.906     0 ($    0.0)   13.41  (512, 988)     (620, 1297)    6/36      -
+3.0  observed        0  queue srpt drain D=600 max=150   1575          0.41  0.897     8 ($   2.96)   13.11  (525, 1276)    (607, 919)     0/35      -
+3.0  observed        0  queue srpt drain D=900 max=100    993          0.68  0.931     0 ($    0.0)    13.1  (672, 1187)    (910, 1369)    9/36      -
+3.0  observed        2  new (per batch, cap 50)      1620           0.3  0.789    43 ($  22.53)   11.16  (216, 538)     (765, 5239)    3/26      2/2 runs
+3.0  observed        2  queue rr drain D=600 max=100   1390           0.5  0.918     0 ($    0.0)   13.77  (683, 1929)    (854, 1314)    15/36     2/2 runs
+3.0  observed        2  queue srpt drain D=300 max=100   1620          0.29  0.862    51 ($  27.77)    9.86  (334, 2228)    (419, 1304)    2/24      2/2 runs
+3.0  observed        2  queue srpt drain D=450 max=100   1620          0.35  0.881    27 ($  15.58)   11.69  (414, 1243)    (468, 2106)    1/30      2/2 runs
+3.0  observed        2  queue srpt drain D=600 max=100   1384          0.51  0.911     0 ($    0.0)   13.83  (512, 1190)    (620, 1297)    6/36      2/2 runs
+3.0  observed        2  queue srpt drain D=600 max=150   1588          0.44  0.904     0 ($    0.0)   13.97  (525, 1190)    (613, 905)     0/36      2/2 runs
+3.0  observed        2  queue srpt drain D=900 max=100    983          0.71  0.934     0 ($    0.0)   13.54  (672, 2554)    (902, 1369)    9/36      2/2 runs
+3.0  serial          0  new (per batch, cap 50)      1620          0.27  0.777    44 ($  24.59)   10.26  (210, 1156)    (601, 1294)    1/24      -
+3.0  serial          0  queue rr drain D=600 max=100   1465          0.43  0.904     2 ($   0.56)   12.44  (585, 1979)    (697, 1447)    3/32      -
+3.0  serial          0  queue srpt drain D=300 max=100   1620          0.24  0.841    57 ($  33.78)    8.33  (311, 2029)    (408, 1412)    2/20      -
+3.0  serial          0  queue srpt drain D=450 max=100   1620          0.36  0.884    28 ($  16.52)    11.9  (412, 3031)    (490, 6427)    1/30      -
+3.0  serial          0  queue srpt drain D=600 max=100   1287           0.5  0.909     0 ($    0.0)    13.2  (509, 802)     (619, 675)     0/35      -
+3.0  serial          0  queue srpt drain D=600 max=150   1320          0.49  0.908     0 ($    0.0)   13.24  (525, 1012)    (625, 694)     0/35      -
+3.0  serial          0  queue srpt drain D=900 max=100   1053          0.65  0.924     0 ($    0.0)    13.1  (639, 1586)    (905, 1026)    3/37      -
+3.0  serial          2  new (per batch, cap 50)      1620          0.29  0.806    38 ($  21.37)   10.35  (230, 2993)    (711, 1239)    3/24      2/2 runs
+3.0  serial          2  queue rr drain D=600 max=100   1470          0.47  0.917     0 ($    0.0)   13.48  (569, 7901)    (693, 1169)    5/35      2/2 runs
+3.0  serial          2  queue srpt drain D=300 max=100   1620          0.34   0.88    44 ($  15.27)   11.12  (314, 15163)   (477, 3867)    4/26      2/2 runs
+3.0  serial          2  queue srpt drain D=450 max=100   1620          0.34  0.881    32 ($  15.84)   11.17  (435, 2995)    (504, 5553)    1/26      2/2 runs
+3.0  serial          2  queue srpt drain D=600 max=100   1335          0.49  0.912     0 ($    0.0)   13.58  (505, 7886)    (617, 829)     0/34      2/2 runs
+3.0  serial          2  queue srpt drain D=600 max=150   1470          0.44   0.91     1 ($   0.24)   13.49  (527, 7882)    (625, 1132)    1/34      2/2 runs
+3.0  serial          2  queue srpt drain D=900 max=100    975          0.72  0.933     0 ($    0.0)   12.69  (678, 1859)    (909, 1026)    3/36      2/2 runs
+3.0  pipelined       0  new (per batch, cap 50)      1620          0.39  0.806    20 ($   1.92)    14.1  (232, 957)     (631, 2926)    7/36      -
+3.0  pipelined       0  queue rr drain D=600 max=100   1244          0.55  0.926     0 ($    0.0)   13.18  (631, 1317)    (703, 1236)    9/36      -
+3.0  pipelined       0  queue srpt drain D=300 max=100   1588          0.42  0.899     5 ($   3.09)   13.22  (326, 7272)    (509, 1591)    6/35      -
+3.0  pipelined       0  queue srpt drain D=450 max=100   1293          0.53  0.914     0 ($    0.0)   13.51  (365, 1179)    (515, 1326)    3/36      -
+3.0  pipelined       0  queue srpt drain D=600 max=100   1035          0.66  0.932     0 ($    0.0)   13.12  (467, 1476)    (646, 1420)    6/36      -
+3.0  pipelined       0  queue srpt drain D=600 max=150   1120          0.61  0.927     0 ($    0.0)   13.29  (468, 1024)    (612, 1109)    2/36      -
+3.0  pipelined       0  queue srpt drain D=900 max=100    894          0.76  0.943     0 ($    0.0)   12.98  (489, 1228)    (928, 1426)    6/36      -
+3.0  pipelined       2  new (per batch, cap 50)      1620          0.35  0.745    18 ($  12.36)   13.77  (232, 1302)    (459, 2320)    6/31      2/2 runs
+3.0  pipelined       2  queue rr drain D=600 max=100   1127          0.63  0.934     0 ($    0.0)   13.66  (610, 1785)    (866, 1950)    9/36      2/2 runs
+3.0  pipelined       2  queue srpt drain D=300 max=100   1453          0.49  0.913     0 ($    0.0)   13.99  (314, 1863)    (477, 1567)    2/36      2/2 runs
+3.0  pipelined       2  queue srpt drain D=450 max=100   1243          0.57  0.926     0 ($    0.0)   13.78  (408, 1591)    (514, 1295)    4/36      2/2 runs
+3.0  pipelined       2  queue srpt drain D=600 max=100    967          0.73  0.937     0 ($    0.0)   13.55  (449, 2067)    (681, 2321)    10/36     2/2 runs
+3.0  pipelined       2  queue srpt drain D=600 max=150    988          0.72  0.935     0 ($    0.0)   13.78  (424, 816)     (629, 1457)    3/36      2/2 runs
+3.0  pipelined       2  queue srpt drain D=900 max=100    874          0.81  0.942     0 ($    0.0)   13.54  (577, 1824)    (917, 1426)    8/36      2/2 runs
+4.0  observed        0  new (per batch, cap 50)      1620          0.31  0.803    95 ($  44.68)   11.36  (216, 1003)    (841, 4128)    6/29      -
+4.0  observed        0  queue rr drain D=600 max=100   1620          0.56  0.927     3 ($   0.65)   17.34  (760, 7450)    (854, 4834)    22/47     -
+4.0  observed        0  queue srpt drain D=300 max=100   1620          0.25  0.842   149 ($  59.35)    8.72  (342, 3651)    (422, 922)     0/22      -
+4.0  observed        0  queue srpt drain D=450 max=100   1620          0.34  0.877   118 ($  41.91)   11.26  (414, 3843)    (476, 2688)    2/30      -
+4.0  observed        0  queue srpt drain D=600 max=100   1620          0.49   0.91    28 ($  12.22)   15.73  (512, 2611)    (613, 1386)    8/43      -
+4.0  observed        0  queue srpt drain D=600 max=150   1620           0.4  0.891    75 ($  31.59)   13.02  (512, 3853)    (607, 2908)    1/35      -
+4.0  observed        0  queue srpt drain D=900 max=100   1296           0.7  0.932     0 ($    0.0)   17.46  (728, 1075)    (910, 1384)    12/48     -
+4.0  observed        2  new (per batch, cap 50)      1620          0.33  0.808    90 ($  44.26)   11.88  (217, 1799)    (841, 6363)    6/29      2/2 runs
+4.0  observed        2  queue rr drain D=600 max=100   1620          0.57  0.928     9 ($   0.68)   17.37  (817, 5305)    (855, 2233)    21/47     2/2 runs
+4.0  observed        2  queue srpt drain D=300 max=100   1620          0.27  0.855   146 ($  59.12)    9.26  (350, 21676)   (408, 1825)    1/23      2/2 runs
+4.0  observed        2  queue srpt drain D=450 max=100   1620          0.34  0.881   122 ($  44.99)   11.29  (456, 21676)   (467, 1346)    1/29      2/2 runs
+4.0  observed        2  queue srpt drain D=600 max=100   1620           0.5  0.912    47 ($  11.33)   16.46  (545, 6115)    (613, 1880)    7/44      2/2 runs
+4.0  observed        2  queue srpt drain D=600 max=150   1620          0.42  0.897    76 ($  29.78)   13.73  (512, 21676)   (607, 909)     0/36      2/2 runs
+4.0  observed        2  queue srpt drain D=900 max=100   1289          0.72  0.935     0 ($    0.0)    17.5  (697, 1299)    (910, 1384)    12/48     2/2 runs
+4.0  serial          0  new (per batch, cap 50)      1620           0.3  0.813   104 ($  41.09)   10.81  (210, 992)     (693, 4032)    6/27      -
+4.0  serial          0  queue rr drain D=600 max=100   1616          0.51  0.918    15 ($    6.9)    16.3  (682, 5634)    (766, 6701)    16/44     -
+4.0  serial          0  queue srpt drain D=300 max=100   1620          0.27   0.85   153 ($  56.16)     9.3  (288, 2134)    (412, 7295)    1/23      -
+4.0  serial          0  queue srpt drain D=450 max=100   1620          0.37  0.884    97 ($   39.2)    12.2  (423, 2510)    (532, 6941)    6/33      -
+4.0  serial          0  queue srpt drain D=600 max=100   1620          0.44  0.901    31 ($  19.38)   14.52  (525, 5854)    (623, 7781)    7/38      -
+4.0  serial          0  queue srpt drain D=600 max=150   1620          0.46  0.902    38 ($   15.6)   15.11  (525, 2357)    (628, 7299)    4/40      -
+4.0  serial          0  queue srpt drain D=900 max=100   1311          0.68  0.933     0 ($    0.0)   16.96  (629, 1372)    (907, 1101)    3/48      -
+4.0  serial          2  new (per batch, cap 50)      1620          0.31  0.787    95 ($   42.3)   11.62  (243, 1837)    (745, 3130)    7/27      2/2 runs
+4.0  serial          2  queue rr drain D=600 max=100   1562          0.51  0.918    34 ($  16.86)   14.55  (601, 15660)   (704, 5158)    9/39      2/2 runs
+4.0  serial          2  queue srpt drain D=300 max=100   1620          0.36  0.883   119 ($  41.42)   11.92  (303, 4579)    (423, 18837)   5/31      2/2 runs
+4.0  serial          2  queue srpt drain D=450 max=100   1620          0.38   0.89    91 ($  33.17)   12.48  (424, 14693)   (508, 15996)   2/31      2/2 runs
+4.0  serial          2  queue srpt drain D=600 max=100   1538          0.47  0.912    43 ($  22.25)   14.48  (473, 15547)   (621, 1055)    3/37      2/2 runs
+4.0  serial          2  queue srpt drain D=600 max=150   1538          0.47  0.912    43 ($  22.25)   14.48  (473, 15547)   (621, 1055)    3/37      2/2 runs
+4.0  serial          2  queue srpt drain D=900 max=100   1257          0.74  0.938     0 ($    0.0)   17.66  (681, 2561)    (915, 1062)    4/49      2/2 runs
+4.0  pipelined       0  new (per batch, cap 50)      1620          0.34   0.79    96 ($  39.12)   12.56  (216, 994)     (604, 2244)    4/32      -
+4.0  pipelined       0  queue rr drain D=600 max=100   1581          0.57  0.932     1 ($   0.55)   17.72  (776, 2110)    (873, 2268)    13/48     -
+4.0  pipelined       0  queue srpt drain D=300 max=100   1620          0.41  0.896    37 ($  30.19)   13.11  (331, 1883)    (513, 2447)    8/32      -
+4.0  pipelined       0  queue srpt drain D=450 max=100   1544          0.47  0.906    30 ($  22.13)   14.39  (386, 1809)    (517, 2370)    3/38      -
+4.0  pipelined       0  queue srpt drain D=600 max=100   1549          0.58  0.925     0 ($    0.0)   17.33  (454, 1495)    (630, 1219)    4/47      -
+4.0  pipelined       0  queue srpt drain D=600 max=150   1554          0.55  0.922     4 ($   7.83)   16.86  (434, 1107)    (609, 872)     0/44      -
+4.0  pipelined       0  queue srpt drain D=900 max=100   1065          0.85  0.948     0 ($    0.0)   16.68  (740, 1868)    (885, 1434)    10/47     -
+4.0  pipelined       2  new (per batch, cap 50)      1620          0.37  0.789    72 ($  36.21)   13.53  (232, 2083)    (661, 4203)    5/32      2/2 runs
+4.0  pipelined       2  queue rr drain D=600 max=100   1499          0.63  0.923     0 ($    0.0)   17.75  (635, 1695)    (691, 1457)    14/47     2/2 runs
+4.0  pipelined       2  queue srpt drain D=300 max=100   1620          0.45  0.909    42 ($   23.0)   14.57  (305, 3057)    (465, 1541)    5/37      2/2 runs
+4.0  pipelined       2  queue srpt drain D=450 max=100   1487          0.58  0.917    14 ($   7.39)   16.71  (364, 1717)    (599, 2803)    7/43      2/2 runs
+4.0  pipelined       2  queue srpt drain D=600 max=100   1406          0.68  0.933     0 ($    0.0)   17.55  (543, 1788)    (639, 1758)    10/48     2/2 runs
+4.0  pipelined       2  queue srpt drain D=600 max=150   1553          0.58  0.927     1 ($   2.13)   17.62  (447, 1098)    (608, 877)     0/46      2/2 runs
+4.0  pipelined       2  queue srpt drain D=900 max=100    961          0.96  0.951     0 ($    0.0)   16.83  (618, 1210)    (905, 1087)    3/48      2/2 runs
+5.0  observed        0  new (per batch, cap 50)      1620          0.38  0.798   136 ($  57.72)   13.78  (232, 1093)    (804, 4582)    11/34     -
+5.0  observed        0  queue rr drain D=600 max=100   1620          0.64   0.93    32 ($  11.11)   19.98  (775, 10729)   (868, 5906)    25/52     -
+5.0  observed        0  queue srpt drain D=300 max=100   1620          0.27  0.846   189 ($   84.3)     9.3  (321, 2429)    (434, 3194)    2/24      -
+5.0  observed        0  queue srpt drain D=450 max=100   1620           0.4  0.893   139 ($  57.54)   13.12  (440, 2495)    (488, 3269)    9/35      -
+5.0  observed        0  queue srpt drain D=600 max=100   1620           0.6  0.916    45 ($  19.73)   18.96  (508, 4295)    (646, 2548)    9/50      -
+5.0  observed        0  queue srpt drain D=600 max=150   1620          0.49  0.907    98 ($  39.87)   15.81  (508, 15541)   (620, 17907)   2/43      -
+5.0  observed        0  queue srpt drain D=900 max=100   1575          0.72  0.934     0 ($    0.0)   21.97  (621, 1117)    (910, 1412)    15/60     -
+5.0  observed        2  new (per batch, cap 50)      1620           0.4  0.807   127 ($  55.24)    14.6  (255, 2145)    (942, 4659)    14/35     2/2 runs
+5.0  observed        2  queue rr drain D=600 max=100   1620          0.67  0.933    27 ($   8.56)   20.94  (716, 9896)    (1086, 8123)   28/55     2/2 runs
+5.0  observed        2  queue srpt drain D=300 max=100   1620           0.3   0.86   184 ($  81.96)   10.05  (342, 2784)    (435, 3586)    2/25      2/2 runs
+5.0  observed        2  queue srpt drain D=450 max=100   1620          0.37  0.883   148 ($  66.55)   12.25  (440, 30597)   (467, 3840)    4/31      2/2 runs
+5.0  observed        2  queue srpt drain D=600 max=100   1620          0.48  0.904    87 ($  46.33)   15.58  (530, 5067)    (620, 3976)    3/42      2/2 runs
+5.0  observed        2  queue srpt drain D=600 max=150   1620          0.46  0.905   114 ($  49.25)   14.85  (505, 15904)   (613, 4039)    2/39      2/2 runs
+5.0  observed        2  queue srpt drain D=900 max=100   1559          0.75  0.936     0 ($    0.0)   22.39  (621, 1341)    (910, 1412)    15/60     2/2 runs
+5.0  serial          0  new (per batch, cap 50)      1620          0.34  0.803   158 ($  65.02)   12.32  (243, 1727)    (714, 14157)   8/30      -
+5.0  serial          0  queue rr drain D=600 max=100   1620          0.54  0.921    31 ($  14.41)   16.99  (618, 12603)   (850, 10291)   16/45     -
+5.0  serial          0  queue srpt drain D=300 max=100   1620           0.3  0.868   191 ($  72.56)   10.08  (303, 3366)    (416, 4968)    4/26      -
+5.0  serial          0  queue srpt drain D=450 max=100   1620          0.41  0.891   157 ($  56.52)   13.26  (415, 4561)    (523, 8365)    4/34      -
+5.0  serial          0  queue srpt drain D=600 max=100   1620          0.47   0.91   102 ($  42.71)   14.94  (529, 13106)   (633, 9671)    7/39      -
+5.0  serial          0  queue srpt drain D=600 max=150   1620          0.47   0.91   102 ($  42.71)   14.94  (529, 13106)   (633, 9671)    7/39      -
+5.0  serial          0  queue srpt drain D=900 max=100   1381          0.79  0.935     3 ($   2.31)   21.13  (664, 1596)    (917, 1348)    7/59      -
+5.0  serial          2  new (per batch, cap 50)      1620          0.37  0.804   145 ($  61.93)   13.52  (248, 1842)    (729, 7476)    11/33     2/2 runs
+5.0  serial          2  queue rr drain D=600 max=100   1620          0.53  0.925    90 ($  32.77)   16.81  (674, 5558)    (776, 3251)    12/44     2/2 runs
+5.0  serial          2  queue srpt drain D=300 max=100   1620          0.41  0.895   121 ($   32.4)   13.62  (311, 34223)   (422, 17370)   5/32      2/2 runs
+5.0  serial          2  queue srpt drain D=450 max=100   1620          0.41  0.892   151 ($  53.99)   13.34  (441, 15892)   (520, 16618)   2/33      2/2 runs
+5.0  serial          2  queue srpt drain D=600 max=100   1620          0.47  0.906    95 ($  43.52)   15.19  (472, 7988)    (630, 1550)    3/37      2/2 runs
+5.0  serial          2  queue srpt drain D=600 max=150   1620          0.47  0.911   118 ($  55.71)   14.93  (505, 2067)    (625, 1327)    3/38      2/2 runs
+5.0  serial          2  queue srpt drain D=900 max=100   1516          0.65   0.93    19 ($  18.62)   19.19  (692, 5021)    (920, 1509)    4/52      2/2 runs
+5.0  pipelined       0  new (per batch, cap 50)      1620          0.56  0.804    44 ($  18.14)   20.47  (301, 4310)    (689, 14231)   12/52     -
+5.0  pipelined       0  queue rr drain D=600 max=100   1392          0.83  0.947     0 ($    0.0)   21.86  (736, 2618)    (1103, 1949)   34/60     -
+5.0  pipelined       0  queue srpt drain D=300 max=100   1620          0.68  0.933    12 ($   4.36)    21.2  (348, 2316)    (679, 2275)    18/55     -
+5.0  pipelined       0  queue srpt drain D=450 max=100   1371          0.75  0.934    11 ($   13.7)   19.89  (361, 2261)    (564, 2146)    9/53      -
+5.0  pipelined       0  queue srpt drain D=600 max=100   1379          0.83  0.938     0 ($    0.0)   22.08  (564, 1653)    (656, 1679)    13/60     -
+5.0  pipelined       0  queue srpt drain D=600 max=150   1559          0.65  0.926    21 ($  16.89)   19.64  (455, 9872)    (637, 1063)    2/51      -
+5.0  pipelined       0  queue srpt drain D=900 max=100   1163          0.98  0.952     0 ($    0.0)   21.61  (763, 1829)    (915, 1508)    12/60     -
+5.0  pipelined       2  new (per batch, cap 50)      1620          0.53  0.847    82 ($  31.22)   18.09  (296, 1902)    (798, 4135)    19/47     2/2 runs
+5.0  pipelined       2  queue rr drain D=600 max=100   1430          0.81  0.949     5 ($   1.21)   21.87  (859, 6907)    (955, 2822)    26/58     2/2 runs
+5.0  pipelined       2  queue srpt drain D=300 max=100   1364          0.73  0.937    39 ($  19.15)   19.21  (355, 13492)   (575, 1882)    13/49     2/2 runs
+5.0  pipelined       2  queue srpt drain D=450 max=100   1504          0.78   0.94     0 ($    0.0)   22.52  (361, 2249)    (570, 2308)    19/60     2/2 runs
+5.0  pipelined       2  queue srpt drain D=600 max=100   1514          0.77   0.94     0 ($    0.0)   22.43  (474, 1611)    (643, 1674)    11/60     2/2 runs
+5.0  pipelined       2  queue srpt drain D=600 max=150   1591          0.66  0.929     9 ($  14.94)   20.24  (455, 1343)    (598, 1107)    1/52      2/2 runs
+5.0  pipelined       2  queue srpt drain D=900 max=100   1146          1.02  0.953     0 ($    0.0)   22.12  (740, 2021)    (896, 1698)    10/60     2/2 runs

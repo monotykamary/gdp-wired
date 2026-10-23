@@ -133,6 +133,11 @@ class Sim:
         d = self.days.get(k, {"held": 0.0, "busy": 0.0, "tail": 0.0})
         return round((d["held"] + d["tail"]) * VM_DOLLARS_S, 3), round((d["held"] - d["busy"] + d["tail"]) * VM_DOLLARS_S, 3)
 
+    def ended(self, B):
+        """A batch is done (or on Modal): a submission driver (subs.py) may send the track's next one."""
+        if getattr(self, "on_end", None):
+            self.on_end(B.b, self.now)
+
     def at(self, t, f, *a):
         heapq.heappush(self.ev, (t, next(self.seq), f, a))
 
@@ -206,6 +211,7 @@ class Sim:
         self.batches.append(B)
         if not b["jobs"]:
             B.end = self.now
+            self.ended(B)
             return
         self.running.append(B)
         types = {}
@@ -266,6 +272,7 @@ class Sim:
                 B.q[(t, w)] = []
         if B.left == 0 and B.end is None:
             B.end = self.now
+            self.ended(B)
             self.running.remove(B)
             for w in list(B.vms):
                 if w.batch is B:
@@ -278,6 +285,7 @@ class Sim:
 
     def to_modal(self, B):
         B.modal, B.end, B.left = True, self.now, 0
+        self.ended(B)
         B.q, B.qn = {}, {}
         B.waited = self.now - B.t0
         if B in self.running:
@@ -367,6 +375,7 @@ class Sim:
         B.done_t.append(self.now - B.t0)
         if B.left == 0:
             B.end = self.now
+            self.ended(B)
             self.running.remove(B)
             for w in list(B.vms):
                 if w.batch is B:
