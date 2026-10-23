@@ -741,7 +741,8 @@ export function findCycles(facts: Fact[], claims: Claim[], opts: CycleOptions = 
 // y + 1 then x for x := x + y; y := y − 1), linear per location (the natural every path fixes: the program counter),
 // coefficients shared by the locations first, then each its own over the names live there. A block's kernel terms
 // are fⱼ + 1 read truncated, in order: on a path it is strict on, the first fⱼ that is ≥ 0 drops and those before it
-// stay 0; on one it keeps (each fⱼ' ≤ fⱼ), none rises. The kernel proves the halting goals with it, as with any rank.
+// stay 0; on one it keeps (each fⱼ' ≤ fⱼ), none rises. (Of depth 1, f ≥ 1 where it drops, and f itself: the same rank,
+// its least constant.) The kernel proves the halting goals with it, as with any rank.
 type GPath = {from: number, to: number, gens: Generators, post: Record<string, Lin>}
 type Template = {depth: number, own: boolean, tag: string}
 const plusL = (a: Lin, b: Lin, f = 1): Lin => { const o: Lin = {...a}; for (const x in b) { o[x] = (o[x] ?? 0) + f * b[x]!; if (!o[x]) delete o[x] } return o }
@@ -809,7 +810,7 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
   const strictRows = (tp: Template, p: GPath): Lin[] => [
     ...holds(p, delta(tp, 0, p), 1),
     ...Array.from({length: tp.depth - 1}, (_, j) => holds(p, (x, t) => plusL(delta(tp, j + 1, p)(x, t), fAt(tp, j, p.from, x, t)), 1)).flat(),
-    ...holds(p, (x, t) => fAt(tp, tp.depth - 1, p.from, x, t), 0),
+    ...holds(p, (x, t) => fAt(tp, tp.depth - 1, p.from, x, t), tp.depth === 1 ? 1 : 0),
   ]
   const weakRows = (tp: Template, p: GPath): Lin[] => Array.from({length: tp.depth}, (_, j) => holds(p, delta(tp, j, p), 0)).flat()
   const scale = 1 + Math.max(0, ...gpaths.flatMap(p => p.gens.vertices.flatMap(g => g.map(Math.abs))))
@@ -856,7 +857,7 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
       for (let j = 0; j < tp.depth; j++) mine.push(values.map((_, n) => {
         const f: Lin = {}
         for (const x of varsAt(tp, n)) { const a = w[unknown(tp, j, n, x)] ?? 0; if (a) f[x] = a }
-        return plusL(f, {1: 1 + (w[unknown(tp, j, n, 1)] ?? 0)})
+        return plusL(f, {1: (tp.depth === 1 ? 0 : 1) + (w[unknown(tp, j, n, 1)] ?? 0)})
       }))
       sizes.push(tp.depth)
       left = left.filter(p => !strict.includes(p))
