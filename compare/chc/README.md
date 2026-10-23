@@ -143,12 +143,21 @@ the default. At 15 s (`chc-mine4-b15` beside `chc-base4`): unsat 131 more, none 
 (`runs/modal/chc2/combined-v020`); 20 are tasks neither answered at 60 s, all aeval-unsafe's s_split but one
 (`metros_4_e2_968_e6_236`). Out of time 5 (main 8).
 
-- **Two expected verdicts the derivations refute.** `aeval-unsafe/s_split_50_000_001` (expected sat, the majority
-  vote LoAT's alone): a derivation of 999,002 steps, confirmed by `checkDerivation`, and by a simulation of the clauses
-  in Python (D counts modulo 2,000, B grows while D < 1,000 and A while D >= 1,000: after 499 periods B − A is 0,
-and 1,000 steps later, at C = 999,000, it is 1,000);
-  `summary.ts` counts it wrong against the vote. `s_split_22_000_001` (expected sat, a placeholder verdict, no vote):
-  280,277 steps, likewise. No tool answered either at CHC-COMP'26's runs here.
+- **Disputed labels** (compare/chc/disputed.json; `summary.ts` lists them as `disputed`, neither right nor wrong):
+
+  | task | label | its source | our answer | derivation |
+  | --- | --- | --- | --- | --- |
+  | `aeval-unsafe/s_split_50_000_001` | sat | the majority vote, LoAT's alone | unsat | 999,002 steps |
+  | `aeval-unsafe/s_split_22_000_001` | sat | a placeholder (auto-added), no vote | unsat | 280,277 steps |
+
+  Each derivation is confirmed by `checkDerivation` (each clause evaluated on the values, no gdp-wired code) and by
+  research/bmc2/disputed.py, which replays the derivation file on the clauses written out by hand and checks the query
+  at its end (s_split_50: D counts modulo 2,000, B grows while D < 1,000 and A while D >= 1,000, so after 499 periods
+  B − A is 0 and 1,000 steps later, at C = 999,000, it is 1,000; s_split_22: the third argument grows by 3 every third
+  step and reaches 280,275 with the first). Spacer, Golem and Eldarica each run out of time on both at 60 s
+  (`runs/modal/chc2/combined-v020`). The derivations: `runs/bmc2/disputed/s_split_50_000_001.json.gz`,
+  `s_split_22_000_001.json.gz` (each step's clause, request and the predicate's arguments after it; written by
+  research/bmc2/derivation.ts, `runs/bmc2/disputed-run`).
 - Lustre's 321 unsat tasks by Golem's derivation length (`chc-base4` → `chc-mine4-b15`): 2 steps 8/8 → 8/8, 3 steps
   111/148 → 148/148, 4 steps 18/81 → 78/81, 5 or more 9/59 → 19/59, no derivation 1/25 → 1/25; 147 → 254. Group H of
   the round-2 corpus (273): 108 → 215 (2: 4/4, 3: 126/126, 4: 75/78, 5 or more: 10/50).

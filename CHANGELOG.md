@@ -10,8 +10,9 @@ launched beside it 783 (517, 266); unsat 131 more and none fewer, sat 17 more an
 (`runs/bmc2/chc-mine4-b15`, `runs/bmc2/chc-base4`). Every unsat answer is a run the compiled rule takes and
 `checkDerivation` confirms against the CHC; none contradicts Spacer's or Golem's verdict, and 20 are tasks neither
 answered. Two derivations refute their task's expected verdict, both checked again by a simulation of the clauses:
-`s_split_50_000_001` (999,002 steps; its verdict sat is LoAT's vote alone, so `summary.ts` counts it wrong) and
-`s_split_22_000_001` (280,277 steps; a placeholder verdict, no vote). Lustre's 321 unsat tasks: 147 to 254; by Golem's
+`s_split_50_000_001` (999,002 steps; its verdict sat is LoAT's vote alone) and `s_split_22_000_001` (280,277 steps; a
+placeholder verdict, no vote): compare/chc/disputed.json records them, `summary.ts` lists them as disputed (neither
+right nor wrong), and their derivations are kept (`runs/bmc2/disputed/`, checked again by research/bmc2/disputed.py). Lustre's 321 unsat tasks: 147 to 254; by Golem's
 derivation length, 4 steps 18/81 to 78/81, 5 or more 9/59 to 19/59; the round-2 corpus's group H 108 to 215 of 273. Its
 derivation items 3 of 3 (main 2): `s_split_01`'s 10,002 steps in 260 ms. Nothing trusted changed (`kernel/kernel.ts`,
 `kernel/cyclic.ts`, `core/check.ts` and `lean-kernel/` are as at 6b2e2df).
