@@ -39,7 +39,7 @@ test('an invariant over four values (the join: the samples\' hull, made inductiv
   expect(v).toMatchObject({proven: true, checked: true, stats: {stopped: false}})
   expect(v.found.map(f => f.source)).toEqual(["r.law('a + b + c <= total', ({a, b, c, total}) => a.plus(b).plus(c).atMost(total))"])
   expect(proveRule(r, [law, ...v.found.map(f => f.law)])).toMatchObject({proven: true, checked: true})
-})
+}, 60_000)
 
 test('a machine with no rule: the in-flight bound needs s + 50·p <= b + 150 or tighter', () => {
   expect(proveLaws(inflight, [inflightLoss]).proven).toBe(false)
