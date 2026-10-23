@@ -5,14 +5,16 @@
 // For k = from, from + 1, ...: the step's goal first (k states where the law held and the steps between, the law after
 // them refuted), its verdict asked of kernel/cdcl.ts's search for a model alone (as core/bmc.ts asks a bounded run's):
 // a model is a run of k steps that keeps the law and then breaks it, which a larger k may rule out; refuted, the step's
-// tree is grown: CDCL's, unfolded (else prove.ts's grow, the plain search and its cuts). Then the base, each depth's goal grown once (it doesn't depend on k), and
-// the law's start goal. A base goal with a model is a run from the start that breaks the law: the search stops there
+// tree is grown: CDCL's, unfolded (else prove.ts's grow, the plain search and its cuts). The laws it assumes are proven,
+// and the law's start goal grown, once the first step goal is refuted. Then the base, each depth's goal grown once (it
+// doesn't depend on k). A base goal with a model is a run from the start that breaks the law: the search stops there
 // (core/bmc.ts finds the run). Everything is on prove.ts's counted clock (`rate` units of the kernel's work a ms), with a
 // wall-clock stop beside it for callers under a wall-clock limit.
 import type {C, Law, Machine} from './machine.ts'
 import {type Goal, type Instances, type KInduction, type Tree, checkKInduction, historyMachine, kInductionStart, kInductionSteps, stepLawObligations} from '../kernel/kernel.ts'
 import {clock, counted, grow, proveLaws, type Outcome} from '../kernel/prove.ts'
 import {REFUTED, growCdcl} from '../kernel/cdcl.ts'
+import {quietly} from './cyclic.ts'
 
 export type KindProof = {laws: {instances: Record<string, Instances>, trees: Record<string, Tree>}, instances: Instances, trees: Record<string, Tree>}
 export type KindResult = {proven: boolean, checked: boolean, k?: number, kl?: KInduction, proof?: KindProof, laws?: Law[],
@@ -34,9 +36,6 @@ export function proveKInduction(m: Machine, laws: Law[], law: Law, opts: KindOpt
   if (!kindFits(m, laws, law)) return {proven: false, checked: false, depths, why: 'a law or fact about every key, a flag at every key, or a carried map'}
   return counted(opts.rate ?? 200, () => {
     const until = clock() + opts.ms, over = () => clock() > until || (opts.wall !== undefined && performance.now() > opts.wall)
-    const base = proveLaws(m, laws)
-    if (!base.proven || !base.checked || !base.proof) return {proven: false, checked: false, depths, why: 'the laws it assumes are not proven'}
-    const assumed = base.laws ?? laws
     // A goal's tree: CDCL's, unfolded (prove.ts's grow keeps CDCL off a goal over k steps, for the size of the tree its
     // cuts would make smaller; but here the plain search's cases multiply with every step), else the plain search's.
     const treeOf = (g: Goal): Outcome => {
@@ -44,10 +43,20 @@ export function proveKInduction(m: Machine, laws: Law[], law: Law, opts: KindOpt
       if ('tree' in c || c.stuck === 'sat' || over()) return c
       return grow(g, new Map(), {nodes: 0, until})
     }
-    const trees: Record<string, Tree> = {}
-    const start = kInductionStart(m, {law, k: 1}, {}), s0 = treeOf(start)
-    if (!('tree' in s0)) return {proven: false, checked: false, depths, why: `${start.name}: ${s0.stuck}`}
-    trees[start.name] = s0.tree
+    const trees: Record<string, Tree> = {}, assumed = laws
+    // The laws it assumes (their usual proof: no cyclic certificate is made for it here, checkKInduction reads the usual
+    // trees) and the start goal: once, after the first step goal refuted (a step goal is decided over them as
+    // hypotheses; only a certificate needs their proof).
+    let base: ReturnType<typeof proveLaws> | undefined
+    const prepared = (): string | undefined => {
+      if (base) return undefined
+      base = quietly(() => proveLaws(m, laws))
+      if (!base.proven || !base.checked || !base.proof) return 'the laws it assumes are not proven'
+      const start = kInductionStart(m, {law, k: 1}, {}), s0 = treeOf(start)
+      if (!('tree' in s0)) return `${start.name}: ${s0.stuck}`
+      trees[start.name] = s0.tree
+      return undefined
+    }
     for (let k = Math.max(1, opts.from ?? 2); k <= Math.min(64, opts.to ?? 64) && !over(); k++) {
       const t0 = clock(), kl: KInduction = {law, k}, steps = kInductionSteps(m, kl), last = steps.at(-1)!
       const goal = stepLawObligations(m, assumed, {}, last)[0]!
@@ -57,6 +66,8 @@ export function proveKInduction(m: Machine, laws: Law[], law: Law, opts: KindOpt
         if (decided.stuck === 'sat') continue
         return {proven: false, checked: false, depths, why: `${goal.name}: unknown`}
       }
+      const why = prepared()
+      if (why) { depths.push([k, 'r', Math.round(clock() - t0)]); return {proven: false, checked: false, depths, why} }
       const st = treeOf(goal)
       if (!('tree' in st)) { depths.push([k, 't', Math.round(clock() - t0)]); return {proven: false, checked: false, depths, why: `${goal.name}: refuted, but no tree within the budget`} }
       depths.push([k, 'r', Math.round(clock() - t0)])
@@ -69,7 +80,7 @@ export function proveKInduction(m: Machine, laws: Law[], law: Law, opts: KindOpt
         if (!('tree' in b)) return {proven: false, checked: false, depths, why: `${g.name}: ${b.stuck === 'sat' ? 'a run from the start breaks it' : 'unknown'}`}
         trees[g.name] = b.tree
       }
-      const proof: KindProof = {laws: base.proof, instances: {}, trees}
+      const proof: KindProof = {laws: base!.proof!, instances: {}, trees}
       const checked = checkKInduction(m, assumed, kl, proof)
       return {proven: true, checked, k, kl, proof, laws: assumed, depths}
     }
