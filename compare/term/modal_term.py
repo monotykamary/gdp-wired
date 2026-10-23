@@ -127,7 +127,8 @@ def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]
             answer = answer_of(tool, lines) or ("timeout" if code == 124 else "error")
             row = {"tool": tool, "task": t["task"], "answer": answer, "seconds": secs}
             if tool.endswith("-proof"):
-                row["out"] = out[:30000]
+                # (a long proof: its head and its end, where the proof's steps are)
+                row["out"] = out if len(out) <= 30000 else out[:10000] + "\n[...]\n" + out[-100000:]
         if answer == "error":
             row["err"] = (err or out)[-600:]
             row["code"] = code

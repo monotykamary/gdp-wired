@@ -119,6 +119,18 @@ function chain<T>(e: E, p: PP, n: {left: number}, leaf: (e: E, p: PP, n: {left: 
   let cur = e, ps = [p]
   while (cur.op === 'if' && ps.length) {
     const c = cur.c, then = cur.then
+    if (fast) {
+      // (`fast`: a condition the pins decide is taken or passed over at once, as assert would)
+      const next: PP[] = []
+      for (const q of ps) {
+        const d = decided(c, q.pins)
+        if (d === true) out.push(...leaf(then, q, n))
+        else if (d === false) next.push(q)
+        else { for (const r of assert(c, q, true, n)) out.push(...leaf(then, r, n)); next.push(...assert(c, q, false, n)) }
+      }
+      ps = next; cur = cur.else
+      continue
+    }
     for (const q of ps) for (const r of assert(c, q, true, n)) out.push(...leaf(then, r, n))
     ps = ps.flatMap(q => assert(c, q, false, n))
     cur = cur.else
@@ -133,8 +145,31 @@ function valueOf(e: E, p: PP, n: {left: number}): [PP, Val][] {
 }
 
 // The relation of one turn, or undefined where it isn't linear in this sense (a map, a flag, past `cap` alternatives).
-export function relationOf(l: Loop, laws: Law[] = [], cap = 4000): Relation | undefined {
-  try { return build(l, laws, cap) } catch (e) { if (e instanceof Refused || e instanceof RangeError) return undefined; throw e }
+// `fast`: the ifs a path's pins decide (a translated task's `pc = 3 ∧ t = 1`) read at once, not through `assert`: the same
+// relation, with less of the budget spent on the rules a path isn't (core/accel.ts; the ranks' search reads it as before).
+export function relationOf(l: Loop, laws: Law[] = [], cap = 4000, opts: {fast?: boolean} = {}): Relation | undefined {
+  fast = !!opts.fast
+  try { return build(l, laws, cap) } catch (e) { if (e instanceof Refused || e instanceof RangeError) return undefined; throw e } finally { fast = false }
+}
+let fast = false
+// A condition's value where the pins fix every name it reads (comparisons of pinned names and constants, and their
+// and, or and not), else undefined.
+function decided(c: C, pins: Record<string, number>): boolean | undefined {
+  const val = (e: E) => (e.op === 'const' ? e.value : e.op === 'var' ? pins[e.name] : undefined)
+  switch (c.op) {
+    case '<': case '<=': case '=': {
+      const a = val(c.a), b = val(c.b)
+      if (a === undefined || b === undefined) return undefined
+      return c.op === '=' ? a === b : c.op === '<=' ? a <= b : a < b
+    }
+    case 'and': case 'or': {
+      let all = true
+      for (const x of c.xs) { const d = decided(x, pins); if (d === (c.op === 'or')) return d; if (d === undefined) all = false }
+      return all ? c.op === 'and' : undefined
+    }
+    case 'not': { const d = decided(c.x, pins); return d === undefined ? undefined : !d }
+    case 'flag': case 'all': return undefined
+  }
 }
 function build(l: Loop, laws: Law[], cap: number): Relation {
   const n = {left: cap * 500}, state = Object.keys(l.state), prime = (x: string) => `${x}′`
