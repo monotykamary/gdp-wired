@@ -1,0 +1,32 @@
+plan $500 (65, 420, 1680), reserve 60 a day and 15 an hour; day 3 of each replay
+v    policy                  starts  to Modal: batches jobs $   boat $ (idle $)  suite wall median / slowest  benchmark wall median / slowest
+1.0  new (per batch, cap 50)    897    0      0     0.0   4.903 (1.045)  suite 209.9 / 290.9  bench 685.5 / 949.4  unfinished 0
+1.0  queue 25                   402    0      0     0.0   4.308 ( 0.33)  suite 4370.0 / 9532.8  bench 6891.6 / 8010.5  unfinished 0
+1.0  queue 50                   974    0      0     0.0   4.837 (0.762)  suite 267.0 / 4472.2  bench 1806.0 / 2805.2  unfinished 0
+1.0  queue 100                 1620    3    608     0.6   5.339 (1.239)  suite 264.8 / 913.2  bench 834.6 / 1448.8  unfinished 0
+1.0  queue adaptive H=600       559    0      0     0.0   4.506 (0.432)  suite 592.5 / 1346.3  bench 709.4 / 1207.9  unfinished 0
+1.0  queue adaptive H=300       863    0      0     0.0   4.733 ( 0.66)  suite 319.6 / 858.4  bench 491.0 / 1394.9  unfinished 0
+2.0  new (per batch, cap 50)   1512    0      0     0.0   9.775 ( 2.06)  suite 209.9 / 428.8  bench 787.9 / 2955.8  unfinished 0
+2.0  queue 25                   804    0      0     0.0   8.615 ( 0.66)  suite 4370.0 / 9532.8  bench 6891.6 / 8010.5  unfinished 0
+2.0  queue 50                  1620   34  12140   18.82   6.703 ( 1.26)  suite 242.7 / 4472.2  bench 718.2 / 2805.2  unfinished 0
+2.0  queue 100                 1620   70  18636   27.44   5.339 (1.239)  suite 264.8 / 913.2  bench 834.6 / 1448.8  unfinished 0
+2.0  queue adaptive H=600      1118    0      0     0.0   9.012 (0.863)  suite 592.5 / 1346.3  bench 709.4 / 1207.9  unfinished 0
+2.0  queue adaptive H=300      1620    4    574    0.68   9.155 ( 1.23)  suite 420.4 / 8790.1  bench 400.1 / 3020.0  unfinished 9
+3.0  new (per batch, cap 50)   1620   41  12176   18.92  11.374 (2.239)  suite 209.9 / 1023.5  bench 867.5 / 2874.1  unfinished 0
+3.0  queue 25                  1185    0      0     0.0  12.901 (0.968)  suite 4370.0 / 9532.8  bench 6891.6 / 8054.1  unfinished 0
+3.0  queue 50                  1620  101  30168   45.66   6.703 ( 1.26)  suite 242.7 / 4472.2  bench 718.2 / 2805.2  unfinished 0
+3.0  queue 100                 1620  137  36664   54.28   5.339 (1.239)  suite 264.8 / 913.2  bench 834.6 / 1448.8  unfinished 0
+3.0  queue adaptive H=600      1620    7    436    0.34  13.444 (1.258)  suite 682.5 / 9152.4  bench 711.6 / 1207.9  unfinished 0
+3.0  queue adaptive H=300      1620   60  18538   27.41   9.168 ( 1.23)  suite 420.4 / 32151.0  bench 400.1 / 3020.0  unfinished 9
+4.0  new (per batch, cap 50)   1620   95  29150   44.68  11.363 (2.242)  suite 215.9 / 1002.7  bench 840.9 / 4127.6  unfinished 0
+4.0  queue 25                   796    0      0     0.0  16.576 (0.677)  suite 6563.3 / 11721.7  bench 7450.8 / 10721.8  unfinished 0
+4.0  queue 50                  1620  105  31376   47.69  16.032 (1.279)  suite 663.5 / 15240.6  bench 1807.4 / 7306.5  unfinished 0
+4.0  queue 100                 1620  180  53016   79.45   5.562 (1.239)  suite 289.0 / 1656.8  bench 834.6 / 1461.4  unfinished 0
+4.0  queue adaptive H=600      1620   50  16548   25.51  16.129 (1.248)  suite 842.2 / 20384.1  bench 713.8 / 2699.7  unfinished 0
+4.0  queue adaptive H=300      1620  127  35610   53.43    9.29 (1.239)  suite 451.1 / 43379.2  bench 400.1 / 1942.0  unfinished 0
+5.0  new (per batch, cap 50)   1620  136  38820   57.72   13.78 (2.788)  suite 232.1 / 1093.3  bench 803.5 / 4581.5  unfinished 0
+5.0  queue 25                   535    0      0     0.0  20.424 ( 0.55)  suite 9064.2 / 12997.0  bench 8994.5 / 13147.8  unfinished 0
+5.0  queue 50                  1620   82  21937    31.6  16.573 (1.299)  suite 1814.6 / 29304.1  bench 1815.0 / 4661.6  unfinished 0
+5.0  queue 100                 1620  222  60615   89.08   8.147 (1.319)  suite 435.9 / 4459.9  bench 1335.3 / 3207.5  unfinished 0
+5.0  queue adaptive H=600      1620   20   7009    9.29  22.518 (1.445)  suite 1152.4 / 16028.7  bench 745.1 / 9481.7  unfinished 0
+5.0  queue adaptive H=300      1620  170  43878   63.62  11.967 (1.266)  suite 543.0 / 48014.2  bench 1010.2 / 6776.7  unfinished 0

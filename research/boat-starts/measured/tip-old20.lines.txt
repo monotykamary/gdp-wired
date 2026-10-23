@@ -1,0 +1,11 @@
+[boat] batch 20261023-145830-a02u8y: image gdpw-9fee57bd731c, tree 3630 KB, library 503f0f3e691c (0 .olean here, 0 KB, for VMs that lack them)
+[boat] 492 calls of shard on up to 20 default VM(s)
+100/492, 162 s
+200/492, 342 s
+300/492, 461 s
+400/492, 551 s
+[boat] boat: 20 VMs (0 created, 20 resumed, 0 already up; 20 starts, the account's day 1538 to 1601), $0.13742 so far (boat usage), 869.8 idle VM-s of 13184.5 held ready, 531.7 VM-s bringing up, then up to 1200 VM-s idle before they stop
+493 calls on boat
+493 calls on boat
+done in 721.1 s wall
+EXIT 0

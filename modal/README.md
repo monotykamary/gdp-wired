@@ -68,10 +68,27 @@ its share), under `timeout -s KILL`.
 - boat keeps a stopped VM's disk 14 days: a VM whose disk expired, or that stopped without a snapshot, is deleted and
   replaced from the image; a VM stopped for 12 days is resumed and stopped again when a batch runs.
 - Starts: boat counts a creation **and a resume** as a start (its 429: "create, fork and resume each count as one
-  start"; the $100 plan: 30 a minute, 210 an hour, 840 a day, 300 VMs up). Only a VM still up within its idle time
-  comes without one, so the pool spares boot time and keeps caches warm, not starts. A batch's size follows the work
-  (enough VMs that its longest job bounds it), the start rate (VMs arriving over time: about sqrt(2 r W / c)) and the
-  starts left; with none left, `auto` sends the batch to Modal.
+  start"); the plan caps them a minute, an hour and a day (`boat limits`, read at every batch, so a change of
+  plan takes effect on the next batch, with no restart or setting). The hour is a rolling 60 minutes
+  (`research/boat-starts/limits-log.tsv`: a start first counted at 02:41:15Z left the hour's count between 03:39:59Z
+  and 03:42:01Z); the day
+  didn't reset at 00:00 UTC (at 02:33Z it still counted every start since 17:00Z the day before). How a batch spends
+  them (`research/boat-starts/`: today's batches replayed by `sim.py`, the defaults chosen by `tune.py` and these runs):
+  - a batch starts at most a quarter of the starts left this hour and day, and at most 50 (`GDPW_BOAT_MAX_STARTS`;
+    `--max-vms N` sets a run's cap, higher for an urgent run; `--vms N` asks for N outright), on top of the VMs up and
+    free; it runs more jobs per VM, in its slots, longest first, rather than spending the hour;
+  - the account's other users keep the last 60 starts of the rolling day and 15 of the hour
+    (`GDPW_BOAT_RESERVE_DAY`, `GDPW_BOAT_RESERVE_HOUR`): this pool counts them as not there;
+  - a stopped VM is resumed only while the batch still needs it (the VMs it has lack slots for what's left);
+  - while a batch has more work than slots, VMs other batches release (still within their 60 s, so no start) join it,
+    and once starts are back after it ran short, it asks for its share again;
+  - with no start left and other batches holding VMs, `auto` waits for one they release within `--max-wait`, then
+    sends the batch to Modal;
+  - a released VM stays up 60 s (`--idle`) for a back-to-back batch and never longer to save starts: boat's terms
+    (TOS-6) forbid parking idle compute to get around a rate limit.
+
+  `GDPW_BOAT_POLICY=old` runs the policy before (as many VMs as speed a batch up, about sqrt(2 r W / c) at r starts a
+  second, with no share, cap or waiting), to compare.
 - Safety: every VM a batch holds has a TTL of 15 minutes, renewed while the client lives, so a VM whose client died
   stops by itself; Ctrl-C, SIGTERM and SIGHUP kill the batch's jobs and release its VMs; `reap.sh` releases leases of
   dead clients, kills what they left running and stops VMs left up past their idle time.
@@ -94,6 +111,21 @@ run's app):
 | TIP, gdp on 492 + 68 | 140 proven, none wrong, 333.9 s, $0.210, 119 VMs (`runs/backends/tip-gdp3`) | 140 proven, none wrong, 270.2 s, $0.633 (`runs/modal/arith/tip-gdp`) |
 | ITS (TermComp), gdp on 1,239 | 380 answered, none contradicting Modal's, 381.5 s, $0.392, 170 VMs (`runs/backends/term-gdp`) | 377, 305.8 s, $2.122 (`runs/modal/backends/term-gdp`) |
 | Handwired search `--hand` | RTX 4090, the same results (`runs/backends/gpu/hw-hand-runpod.json`) | L4 (`runs/modal/backends/gpu/hw-hand-l4.json`) |
+
+Starts per batch, on the $500 plan (65 starts a minute, 420 an hour, 1,680 a day), at the same commit and tree, the
+old policy (`GDPW_BOAT_POLICY=old`) against the new; each figure from the run named (its `backends.json`, copied with
+its summary lines to `research/boat-starts/measured/`):
+
+| Work | Old policy | New (60 s idle, a quarter of the starts left, at most 50) | Verdicts |
+| --- | --- | --- | --- |
+| CHC, gdp on 1,406 tasks | 214 VMs, 211 starts, 563.7 s, $0.9588 (`runs/starts/chc-old`) | 50 VMs, 47 starts, 725.1 s, $0.33333 (`runs/starts/chc-c985479`, cap 50); 30 VMs, 30 starts, 1,116.4 s, $0.32189 (`runs/starts/chc-new`, cap 30) | no contradiction; 521 and 522 definite answers (cap 30 vs old), the rest time-limit flips (sat or unsat against unknown or timeout), as between two new runs (20 differ) |
+| The suite, 204 jobs | 11 VMs, 11 starts, 245.4 s, $0.0273 (`runs/starts/suite-old`) | 5 VMs, 1 start (4 up), 429.4 s, $0.02518, with 19 starts left in the day (`runs/starts/suite-new`) | 204 exit codes the same |
+| TIP, gdp on 492 | 20 VMs (`--max-vms 20`), 20 starts, 721.1 s, $0.13742 (`runs/starts/tip-old20`) | 27 VMs, 27 starts, 542.3 s, $0.13566 (`runs/starts/tip-new`) | no contradiction; 277 and 276 proven, one a timeout in the old run |
+
+Modal's CHC (`runs/modal/arith/chc-gdp`, an earlier commit) took 330.1 s, against 725.1 s on the new policy's 50 VMs and
+1,116.4 s on 30. `chc-c985479` and `suite-c985479` (8 VMs, 6 starts and 2 up, 290.8 s, $0.02485) ran with 300 s of
+idle (that commit's default) and are otherwise the new policy. The simulation of today's mix (`research/boat-starts/sim.txt`, `scale.txt`, `tune-500.txt`)
+has the starts a day and the walls at 1x to 4x today's volume.
 
 A boat vCPU is faster than a Modal one (the suite's jobs in 71% of Modal's job time, 60% with `--usual`), so a fixed
 limit (60 s) can let it solve more: that is the machine, not the prover. How many tasks reach the hard limit (timeout) rather than the

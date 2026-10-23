@@ -1,0 +1,22 @@
+[boat] batch 20261023-132750-tqkuo3: image gdpw-9fee57bd731c, tree 3629 KB, library 503f0f3e691c (0 .olean here, 0 KB, for VMs that lack them)
+[boat] 0 VMs up and free, 30 starts of the 404 left: 30 VMs (the old policy: 214)
+[boat] 1406 calls of shard on up to 30 default VM(s)
+100/1406 shards, 138 s
+200/1406 shards, 206 s
+300/1406 shards, 261 s
+400/1406 shards, 311 s
+500/1406 shards, 377 s
+600/1406 shards, 470 s
+700/1406 shards, 554 s
+800/1406 shards, 624 s
+900/1406 shards, 719 s
+1000/1406 shards, 810 s
+1100/1406 shards, 880 s
+1200/1406 shards, 938 s
+1300/1406 shards, 1015 s
+1400/1406 shards, 1104 s
+[boat] boat: 30 VMs (0 created, 30 resumed, 0 already up; 30 starts, the account's day 1080 to 1221), $0.32189 so far (boat usage), 876.2 idle VM-s of 31509.8 held ready, 671.8 VM-s bringing up, then up to 1800 VM-s idle before they stop
+1407 calls on boat
+1407 calls on boat
+done in 1116.4 s wall
+EXIT 0
