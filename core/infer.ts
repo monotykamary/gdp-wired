@@ -25,7 +25,7 @@
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
 import {type C, type E, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, get, interpret, machineTerms, modName, n, not, plus, same, seeded, times, withArithmetic, x} from './machine.ts'
-import {type StepLaw, type Verdict, proveRule, proveSteps} from './dsl.ts'
+import {type StepLaw, type Verdict, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, watch} from './watch.ts'
 import {clock, counted, grow, proveLaw, proveLaws, proveStepLaws, usedHyps, withDeadline} from '../kernel/prove.ts'
 import {obligations, substC} from '../kernel/kernel.ts'
@@ -245,7 +245,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const {r: searchRule, m: mm} = forLaws(ls)
     if (searchRule) return stepLaws.length ? proveSteps(searchRule, ls, stepLaws, {search: false}) : proveRule(searchRule, ls, {search: false})
     const out = stepLaws.length ? proveStepLaws(mm, ls, stepLaws) : proveLaws(mm, ls)
-    return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
+    return verdictOf(out)
   }
   const stats = (samples: number, candidates: number, alive: number) => ({samples, candidates, alive, proofs, ms: Math.round(performance.now() - t0), stopped: stop()})
   const first = opts.first ?? prove(laws)

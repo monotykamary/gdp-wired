@@ -19,7 +19,7 @@ import {type C, type E, type Fn, argsKey, type Law, type Recurrence, type Machin
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
 import {someHolds, substVars} from './exists.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations} from '../kernel/kernel.ts'
-import {certLoop, clock, factsFor, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline} from '../kernel/prove.ts'
+import {type Report, certLoop, clock, factsFor, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
@@ -2462,6 +2462,8 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
   } catch { return undefined }
   return undefined
 }
+// The kernel's report as a verdict: its first goal left unproven, with its counterexample and why.
+export const verdictOf = (out: Report): Verdict => ({proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})})
 const refutedVerdict = (out: NonNullable<ReturnType<typeof refuteByRuns>>): Verdict => ({proven: false, checked: false, goal: out.goal, stuck: 'sat', witness: out.witness, ...(out.run ? {run: out.run} : {})})
 // The divisors some laws read (modBy, divBy), noted on the rule so its machine declares them: a law may come from
 // another instance of the same rule (a factory called twice).
@@ -2474,7 +2476,7 @@ export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws:
   // (A step law broken so is refused, proveSteps below: it holds from every state the laws allow, reached or not.)
   if (refuted) return refuted.run ? refutedVerdict(refuted) : searched(r, laws, [], refutedVerdict(refuted), opts)
   const out = proveLaws(r.machine, withKinds(r, laws))
-  const v: Verdict = {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {}), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
+  const v: Verdict = {...verdictOf(out), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
   return searched(r, laws, [], v, opts)
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
@@ -2482,7 +2484,7 @@ export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws
   const refuted = refuteByRuns(r, laws, stepLaws)
   if (refuted) return refutedVerdict(refuted)
   const out = proveStepLaws(r.machine, withKinds(r, laws), stepLaws)
-  const v: Verdict = {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
+  const v = verdictOf(out)
   return searched(r, laws, stepLaws, v, opts)
 }
 // The search, where the prover alone didn't prove the laws and nothing refuted them: the lemmas first where the rule has
@@ -2546,7 +2548,7 @@ export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, la
       ...(f.found ? {found: {rank: f.found.rank, ...(f.laws?.length ? {laws: f.laws.map((law, i) => ({law, text: f.found!.laws[i] ?? law.name}))} : {})}} : {})}
   }
   const out = proveLiveness(r.machine, withKinds(r, laws), l)
-  return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
+  return verdictOf(out)
 }
 // `ms`: the budget (the prover's own per goal, 20 s or a second a hypothesis, where none is given), on the clock the
 // prover reads (the counted one inside a counted search): past it the verdict is unknown.
