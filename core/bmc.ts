@@ -8,9 +8,20 @@
 // at depth k says no run of k steps breaks the laws; the depths grow until the budget, or 64 (the kernel's bound on k),
 // runs out.
 //
+// Before the search each goal is made smaller, keeping its models (`reduce`): a name equal to another name or a constant
+// replaced by it, and a definition (n = e) of a name nothing else reads dropped (the cone of influence: a state value no
+// later step and no law reads, a request value only its own equation reads), each name put back into the model from
+// its definition. And it is first asked relaxed (`relax`): an integer is a pair of naturals (n, n$neg) normalized where
+// it is written (n = a ∸ b, n$neg = b ∸ a: one case of the kernel's per pair and step), and every read of a pair is of
+// its difference (dsl.ts's Int: sums, comparisons, products by constants, remainders and quotients alike), so the pair
+// written as any two naturals of difference a − b (n + b = a + n$neg) is the same integer to every later read. The
+// relaxed goal has every model of the goal; a run it gives is taken by the interpreter, which normalizes, and where
+// that run breaks no law (a read of a pair the relaxation doesn't keep), the goal itself is asked at that depth. A
+// relaxed goal refuted is the goal refuted.
+//
 // The budget is read off prove.ts's clock inside `counted` (the kernel's work, bmcRate units a millisecond), so the
 // search is the same on any machine; a wall-clock stop beside it (`wall`) is for callers under a wall-clock limit.
-import {type C, type E, type Law, type Machine, type Request, type State, evalC, interpret, isArithmetic, numbersOf} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type State, evalC, evalE, interpret, isArithmetic, loadJs, numbersOf} from './machine.ts'
 import {stepLawObligations, substC} from '../kernel/kernel.ts'
 import {clock, counted} from '../kernel/prove.ts'
 import {REFUTED, growCdcl} from '../kernel/cdcl.ts'
@@ -40,6 +51,10 @@ export function bmcFits(m: Machine, laws: Law[]): boolean {
 // 340 units a ms at the 90th percentile, 190 at the median). The CDCL search counts its rows, which a goal of many atoms
 // and few rows a node keeps low, so a caller under a wall-clock limit gives a wall stop too.
 export const bmcRate = 200
+// A forced run's share of the budget, and its steps at most (a derivation checkDerivation replays step by step).
+const forcedShare = 0.3, forcedSteps = 1_000_000
+// GDP_BMC_RELAX=0: no relaxed goal first (for comparing).
+const useRelax = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_BMC_RELAX !== '0'
 
 // The goal of depth k: a run of k steps from the start whose last state breaks a law.
 export function bmcGoal(m: Machine, laws: Law[], k: number) {
@@ -54,10 +69,10 @@ export function bmcGoal(m: Machine, laws: Law[], k: number) {
 // The goal with its constants put in: each name a hypothesis fixes (n = c, at the top) replaced by its value and the
 // terms folded (core/nonterm.ts's simpC), until none is left; the names fixed, with their values (a model's part), or
 // undefined where a hypothesis folds to false (no model).
+const top = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(top) : [c])
+const isFalse = (c: C) => (c.op === '<' || c.op === '<=') && c.a.op === 'const' && c.b.op === 'const' && (c.op === '<' ? c.a.value >= c.b.value : c.a.value > c.b.value)
+const isTrue = (c: C) => c.op === '<=' && c.a.op === 'const' && c.b.op === 'const' && c.a.value <= c.b.value
 export function fixed(hyps: C[]): {hyps: C[], fixed: Record<string, number>} | undefined {
-  const top = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(top) : [c])
-  const isFalse = (c: C) => (c.op === '<' || c.op === '<=') && c.a.op === 'const' && c.b.op === 'const' && (c.op === '<' ? c.a.value >= c.b.value : c.a.value > c.b.value)
-  const isTrue = (c: C) => c.op === '<=' && c.a.op === 'const' && c.b.op === 'const' && c.a.value <= c.b.value
   const values: Record<string, number> = {}
   let cs = hyps.flatMap(top)
   for (;;) {
@@ -71,6 +86,80 @@ export function fixed(hyps: C[]): {hyps: C[], fixed: Record<string, number>} | u
     if (cs.some(isFalse)) return undefined
     cs = cs.filter(c => !isTrue(c))
   }
+}
+
+// Each name's occurrences in some terms (a goal's terms are trees as the kernel reads them).
+const occurrences = (xs: (C | E)[], out = new Map<string, number>()): Map<string, number> => {
+  const go = (x: C | E): void => {
+    switch (x.op) {
+      case 'var': out.set(x.name, (out.get(x.name) ?? 0) + 1); return
+      case 'const': case 'flag': return
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': case '<': case '<=': case '=': go(x.a); go(x.b); return
+      case 'mul': go(x.a); return
+      case 'if': go(x.c); go(x.then); go(x.else); return
+      case 'get': go(x.key); return
+      case 'and': case 'or': x.xs.forEach(go); return
+      case 'not': go(x.x); return
+      case 'all': go(x.c); return
+    }
+  }
+  xs.forEach(go)
+  return out
+}
+
+// The goal relaxed (above): each pair written normalized at a step (n = a ∸ b and n$neg = b ∸ a, its partner the name
+// with $neg before the step's ~j) as one equation of differences.
+const partnerOf = (n: string) => (n.includes('$neg') ? undefined : n.replace(/(~\d+)?$/, j => `$neg${j}`))
+const alike = (a: E, b: E) => a === b || JSON.stringify(a) === JSON.stringify(b)
+export function relax(hyps: C[]): C[] | undefined {
+  const defs = new Map<string, {h: C, e: {a: E, b: E}}>()
+  for (const h of hyps) if (h.op === '=' && h.a.op === 'var' && h.b.op === 'sub') defs.set(h.a.name, {h, e: h.b})
+  const gone = new Set<C>(), out: C[] = []
+  for (const [n, {h, e}] of defs) {
+    const p = partnerOf(n), d = p === undefined ? undefined : defs.get(p)
+    if (!d || !alike(e.a, d.e.b) || !alike(e.b, d.e.a)) continue
+    gone.add(h); gone.add(d.h)
+    out.push({op: '=', a: {op: 'add', a: {op: 'var', name: n}, b: e.b}, b: {op: 'add', a: e.a, b: {op: 'var', name: p!}}})
+  }
+  return out.length ? [...hyps.filter(h => !gone.has(h)), ...out] : undefined
+}
+
+// The goal made smaller with its models kept (above): the hypotheses left, and the names taken out with their terms,
+// in the order taken (a later one's term may read an earlier one's name, never the other way), or undefined where a
+// hypothesis folds to false.
+export function reduce(hyps: C[]): {hyps: C[], defs: [string, E][]} | undefined {
+  let cs = hyps
+  const defs: [string, E][] = []
+  for (;;) {
+    const n = occurrences(cs), sub: Record<string, E> = {}, drop = new Set<C>()
+    for (const h of cs) {
+      if (h.op !== '=') continue
+      for (const [a, e] of [[h.a, h.b], [h.b, h.a]] as const) {
+        if (a.op !== 'var' || a.name in sub || occurrences([e]).has(a.name)) continue
+        const copy = (e.op === 'var' && !(e.name in sub)) || e.op === 'const'
+        if (n.get(a.name) !== 1 && !copy) continue
+        drop.add(h); defs.push([a.name, e])
+        if (copy) sub[a.name] = e
+        break
+      }
+    }
+    if (!drop.size) return {hyps: cs, defs}
+    // (a copy's name may be another's copy: each replaced by the end of its chain)
+    for (const n0 of Object.keys(sub)) { let e = sub[n0]!; for (let i = 0; e.op === 'var' && sub[e.name] && i < 64; i++) e = sub[e.name]!; sub[n0] = e }
+    const s = {vars: sub, maps: {}, flags: {}}, any = Object.keys(sub).length > 0
+    cs = cs.filter(h => !drop.has(h)).map(h => (any ? simpC(substC(h, s)) : h)).flatMap(top)
+    if (cs.some(isFalse)) return undefined
+    cs = cs.filter(c => !isTrue(c))
+  }
+}
+// A model's names taken out put back, the last taken first (each term read at the model, a name it doesn't give 0).
+export function putBack(m: Machine, w: Record<string, number>, defs: [string, E][]): Record<string, number> {
+  const out = {...w}
+  for (const [n, e] of [...defs].reverse()) {
+    for (const x of occurrences([e]).keys()) if (!(x in out)) out[x] = 0
+    try { out[n] = evalE(e, out, {scalars: {}, maps: {}}, m) } catch { out[n] = 0 }
+  }
+  return out
 }
 
 // The run a model names: the params, the first request by plain names, the j-th (j >= 2) as input@j.
@@ -99,9 +188,52 @@ export function replay(m: Machine, laws: Law[], run: {params: Record<string, num
   } catch (e) { if (e instanceof RangeError) return undefined; throw e }
 }
 
+// A forced run: from the start, each step the one the rule allows (a machine without params whose requests choose among
+// a few cases, each request value below a bound its assumption states, the others read as 0 and as 1 alike), taken by
+// the compiled rule until a step breaks a law, the run reaches a state with two ways on or none, or `steps` or `wall`
+// runs out. A deterministic loop's long runs (CHC-COMP's s_split: 10,002 steps; the k-step goals fold to false without
+// a case past depth 64) are its runs; any other machine stops within a few steps. The run, as a bounded run's.
+export function forcedRun(m: Machine, laws: Law[], opts: {steps: number, wall: number}): BoundedRun | undefined {
+  if (m.params.length || !laws.length || !bmcFits(m, laws)) return undefined
+  // Each input bounded by the assumption (a top-level i < c or i <= c, c at most 64): its values; the others free.
+  const bound = new Map<string, number>()
+  for (const c of m.assume ? top(m.assume) : []) if ((c.op === '<' || c.op === '<=') && c.a.op === 'var' && c.b.op === 'const' && m.inputs.includes(c.a.name)) bound.set(c.a.name, Math.min(bound.get(c.a.name) ?? Infinity, c.op === '<' ? c.b.value : c.b.value + 1))
+  const finite = m.inputs.filter(i => (bound.get(i) ?? Infinity) <= 64), free = m.inputs.filter(i => !finite.includes(i))
+  const choices: Record<string, number>[] = [{}]
+  for (const i of finite) { const n = bound.get(i)!; choices.splice(0, choices.length, ...choices.flatMap(ch => Array.from({length: n}, (_, v) => ({...ch, [i]: v})))); if (choices.length > 256) return undefined }
+  let js
+  try { js = loadJs(m) } catch { return undefined }
+  const same = (a: State, b: State) => { for (const key in a.scalars) if (a.scalars[key] !== b.scalars[key]) return false; return true }
+  const take = (st: State, input: Request): State | undefined => { try { return js.step({}, js.fork(st), input) } catch (e) { if (e instanceof RangeError) return undefined; throw e } }
+  const broken = (st: State) => laws.find(l => !evalC(l.holds, {}, st, m))?.name
+  let st: State = js.init({})
+  const trace: Request[] = []
+  for (let n = 0; n < opts.steps && (n % 256 || performance.now() < opts.wall); n++) {
+    let next: State | undefined, request: Request | undefined
+    for (const ch of choices) {
+      const zero: Request = {...Object.fromEntries(free.map(i => [i, 0])), ...ch}, one: Request = {...Object.fromEntries(free.map(i => [i, i.endsWith('$neg') ? 0 : 1])), ...ch}
+      const a = take(st, zero), b = take(st, one)
+      if (!a && !b) continue
+      if (!a || !b || !same(a, b)) return undefined // (a free value the step reads)
+      const law = broken(a)
+      if (law !== undefined) return {law, depth: n + 1, witness: {...st.scalars, ...numbersOf(zero)}, params: {}, trace: [...trace, zero]}
+      if (same(a, st)) continue
+      if (next && !same(next, a)) return undefined // (two ways on)
+      next = a; request = zero
+    }
+    if (!next) return undefined
+    trace.push(request!); st = next
+  }
+  return undefined
+}
+
 export function findBoundedRun(m: Machine, laws: Law[], opts: BmcOptions): BoundedRun | undefined {
   if (!laws.length || !bmcFits(m, laws)) return undefined
   const last = Math.min(64, opts.depth ?? 64)
+  // A forced run first, within forcedShare of the budget (as wall time: it is the compiled rule's, not the kernel's).
+  const now = performance.now(), end = Math.min(opts.wall ?? Infinity, now + opts.ms)
+  const forced = forcedRun(m, laws, {steps: forcedSteps, wall: now + forcedShare * (end - now)})
+  if (forced) return forced
   return counted(bmcRate, () => {
     const until = clock() + opts.ms
     for (let k = opts.from ?? 1; k <= last && clock() < until && !(opts.wall !== undefined && performance.now() > opts.wall); k++) {
@@ -110,13 +242,22 @@ export function findBoundedRun(m: Machine, laws: Law[], opts: BmcOptions): Bound
       try { goal = bmcGoal(m, laws, k) } catch { return undefined }
       const f = fixed(goal.hyps)
       if (!f) { opts.progress?.(k, 'refuted', Math.round(clock() - t0)); continue }
-      const out = growCdcl({name: goal.name, hyps: f.hyps}, new Map(), {nodes: 0, until}, {model: true, ...(opts.wall !== undefined ? {wall: opts.wall} : {})})
-      const refuted = !('tree' in out) && out.why === REFUTED
-      opts.progress?.(k, refuted ? 'refuted' : 'tree' in out ? 'refuted' : out.stuck, Math.round(clock() - t0))
-      if (refuted || 'tree' in out) continue
-      if (out.stuck !== 'sat' || !out.witness) return undefined
-      const run = runOf(m, {...out.witness, ...f.fixed}, k), broken = replay(m, laws, run)
-      return broken ? {law: broken.law, witness: broken.witness, depth: broken.steps, params: run.params, trace: run.trace.slice(0, broken.steps)} : undefined
+      // The goal asked (relaxed or as it is), reduced: refuted, or a run that breaks a law, or neither (undefined).
+      const ask = (hyps: C[]): 'refuted' | 'sat' | 'unknown' | BoundedRun => {
+        const r = reduce(hyps)
+        if (!r) return 'refuted'
+        const out = growCdcl({name: goal.name, hyps: r.hyps}, new Map(), {nodes: 0, until}, {model: true, ...(opts.wall !== undefined ? {wall: opts.wall} : {})})
+        if ('tree' in out || out.why === REFUTED) return 'refuted'
+        if (out.stuck !== 'sat' || !out.witness) return 'unknown'
+        const run = runOf(m, putBack(m, {...out.witness, ...f.fixed}, r.defs), k), broken = replay(m, laws, run)
+        return broken ? {law: broken.law, witness: broken.witness, depth: broken.steps, params: run.params, trace: run.trace.slice(0, broken.steps)} : 'sat'
+      }
+      const relaxed = useRelax ? relax(f.hyps) : undefined
+      let got = relaxed ? ask(relaxed) : 'sat'
+      if (got === 'sat') got = ask(f.hyps)
+      opts.progress?.(k, typeof got === 'string' ? got : 'sat', Math.round(clock() - t0))
+      if (got === 'refuted') continue
+      return typeof got === 'string' ? undefined : got
     }
     return undefined
   })
