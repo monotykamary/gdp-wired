@@ -4,12 +4,12 @@
 import type {Rat} from '../kernel/kernel.ts'
 
 export type {Rat}
-const gcd = (a: bigint, b: bigint): bigint => { a = a < 0n ? -a : a; b = b < 0n ? -b : b; while (b) [a, b] = [b, a % b]; return a }
+export const bgcd = (a: bigint, b: bigint): bigint => { a = a < 0n ? -a : a; b = b < 0n ? -b : b; while (b) [a, b] = [b, a % b]; return a }
 export const q = (num: bigint | number, den: bigint | number = 1n): Rat => {
   let n = BigInt(num), d = BigInt(den)
   if (d === 0n) throw new RangeError('a rational with denominator 0')
   if (d < 0n) { n = -n; d = -d }
-  const g = gcd(n, d) || 1n
+  const g = bgcd(n, d) || 1n
   return {num: n / g, den: d / g}
 }
 export const Q0 = q(0), Q1 = q(1)

@@ -30,9 +30,10 @@ import type {Goal, Liveness, Loop, Subst, Tree} from '../kernel/kernel.ts'
 import {check, livenessHelpful, livenessParts, loopLiveness, loopMachine, loopObligations, substC, substE} from '../kernel/kernel.ts'
 import {type Cyclic, type Fact, checkCyclic, factsAvoid, lexLt} from '../kernel/cyclic.ts'
 import {type NodeSpec, proveCyclic} from './cyclic.ts'
-import {type Lin, refuteFast, solve, work} from './solver.ts'
+import {type Lin, gcd, refuteFast, solve, work} from './solver.ts'
 import {clock, grow, proveLaws, proveLiveness, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {inferLaws} from './infer.ts'
+import {bgcd} from './q.ts'
 import {type Generators, type Relation, generators, houdini, relationOf} from './relation.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
 
@@ -335,7 +336,6 @@ function lp(must: Lin[], pool: Lin[], until: number, scale = 1, signs: boolean[]
 
 // Rationals over BigInt, always reduced, the denominator positive.
 type Q = {n: bigint, d: bigint}
-const bgcd = (a: bigint, b: bigint): bigint => { if (a < 0n) a = -a; if (b < 0n) b = -b; while (b) [a, b] = [b, a % b]; return a }
 const q = (n: bigint, d = 1n): Q => { if (d < 0n) (n = -n, d = -d); const g = bgcd(n, d) || 1n; return g === 1n ? {n, d} : {n: n / g, d: d / g} }
 const Q0 = q(0n)
 const qadd = (a: Q, b: Q): Q => (a.d === b.d ? q(a.n + b.n, a.d) : q(a.n * b.d + b.n * a.d, a.d * b.d))
@@ -611,7 +611,6 @@ function lexRanks(idx: number[], nodes: Node[], samples: Sampled[][], edges: Edg
   }
   return {comps, left: left.length}
 }
-const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b))
 // The same over named naturals and the edges of runs alone (core/data.ts: a recursive function's calls, each from its
 // parameters' sizes to its arguments'): each component's coefficient per variable and its constant. Several nodes (a
 // ring of functions calling each other, each its own names; `nodes`), each its own coefficients and constant per

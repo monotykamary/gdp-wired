@@ -63,7 +63,7 @@ export type Verdict =
   | {kind: 'sat', witness: Record<string, number>, rational?: Record<string, Rat>} // rational: the exact witness over ℚ
   | {kind: 'unknown', point?: Record<string, number>} // point: a rational solution, a hint for where to split
 
-const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
+export const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
 const vars = (lin: Lin) => Object.keys(lin).filter(key => key !== '1')
 
 // maxRows: elimination can square the rows each round; past this many live rows, or a round that would make more than

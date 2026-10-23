@@ -29,7 +29,8 @@ import {type StepLaw, type Verdict, proveRule, proveSteps} from './dsl.ts'
 import {allowed, watch} from './watch.ts'
 import {clock, counted, grow, proveLaw, proveLaws, proveStepLaws, usedHyps, withDeadline} from '../kernel/prove.ts'
 import {obligations, substC} from '../kernel/kernel.ts'
-import {work} from './solver.ts'
+import {gcd, work} from './solver.ts'
+import {bgcd} from './q.ts'
 import {REFUTED, type Refuted, growCdcl} from '../kernel/cdcl.ts'
 
 type AnyRule = Parameters<typeof proveRule>[0]
@@ -113,7 +114,6 @@ const joinCubeMax = 48, joinCubeTries = 8, joinCubeDepth = 3, joinCubeMs = 2000
 // Once a cube is in the set, the join has 0.3 of what is left of its time (the search below the rest).
 const joinCubeWindow = 0.3
 const isRule = (t: AnyRule | Machine): t is AnyRule => typeof (t as AnyRule).kindsOfState === 'function'
-const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
 
 // The constants a machine's expressions hold, and the factors it multiplies by.
 function constantsOf(m: Machine, laws: Law[]): number[] {
@@ -741,7 +741,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const fine = bounds, coarse = [...new Set([0, ...consts.flatMap(k => [k, -k])])].sort((p2, q2) => p2 - q2)
     type Group = {eqs: bigint[][], hi: number[], raised: number[]}
     const groups = new Map<string, Group>()
-    const bgcd = (a2: bigint, b2: bigint): bigint => { a2 = a2 < 0n ? -a2 : a2; b2 = b2 < 0n ? -b2 : b2; while (b2) [a2, b2] = [b2, a2 % b2]; return a2 }
     const normal = (e: bigint[]) => { let g2 = 0n; for (const x2 of e) g2 = bgcd(g2, x2); if (g2 > 1n) for (let k = 0; k < e.length; k++) e[k]! /= g2; const lead = e.find(x2 => x2 !== 0n); if (lead !== undefined && lead < 0n) for (let k = 0; k < e.length; k++) e[k] = -e[k]!; return e }
     const dirValue = (t: [number, number][], vs: Float64Array | number[]) => { let v = 0; for (const [i, c] of t) v += c * vs[i]!; return v }
     const residual = (e: bigint[], vs: Float64Array | number[]) => { let r = e[CN]!; for (let k = 0; k < CN; k++) if (e[k]) r += e[k]! * BigInt(vs[coords[k]!]!); return r }

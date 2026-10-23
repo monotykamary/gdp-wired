@@ -16,6 +16,7 @@ import type {C, E, Law} from './machine.ts'
 import type {Loop} from '../kernel/kernel.ts'
 import {clock} from '../kernel/prove.ts'
 import {type Lin, solve, work} from './solver.ts'
+import {bgcd} from './q.ts'
 
 export type Path = {
   rows: Lin[] // each lin <= 0, over the integers (`ints`) and naturals (`nats`) of the relation
@@ -316,7 +317,6 @@ const renameC = (c: C, names: Set<string>, f: (x: string) => string): C => {
 // The rows are integer rows (x < y is x + 1 ≤ y), so a condition proven over a path's rational points holds of its
 // integer ones; past `cap` generators, entries past 2^53, or `until`, there are none.
 export type Generators = {names: string[], vertices: number[][], rays: number[][], lines: number[][]} // each entry over names, then t
-const bgcd = (a: bigint, b: bigint): bigint => { if (a < 0n) a = -a; if (b < 0n) b = -b; while (b) [a, b] = [b, a % b]; return a }
 const norm = (x: bigint[]): bigint[] => { const g = x.reduce(bgcd, 0n); return g > 1n ? x.map(y => y / g) : x }
 const dot = (a: bigint[], b: bigint[]) => a.reduce((s, x, i) => s + x * b[i]!, 0n)
 export function generators(rows: Lin[], names: string[], nats: string[] = [], cap = 600, until = Infinity): Generators | undefined {

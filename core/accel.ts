@@ -28,7 +28,7 @@
 import type {C, E} from './machine.ts'
 import type {Loop} from '../kernel/kernel.ts'
 import {type Path, type Relation, relationOf} from './relation.ts'
-import {type Lin, solve} from './solver.ts'
+import {type Lin, gcd, solve} from './solver.ts'
 
 // `targets`: the set's parts, each a location and its rows over the relation's names (R_j), for a stem's search.
 export type Target = {loc: number, rows: Lin[]}
@@ -47,7 +47,6 @@ const subst = (l: Lin, m: Record<string, Lin>): Lin => {
 const canon = (l: Lin) => JSON.stringify(Object.keys(l).sort().map(x => [x, l[x]]))
 const isConst = (l: Lin) => vars(l).length === 0
 // (a row's coefficients divided by their common divisor, its constant rounded up: an integer row as tight as it goes)
-const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
 const tight = (l: Lin): Lin => {
   const g = vars(l).reduce((s, x) => gcd(s, l[x]!), 0)
   if (g <= 1) return l

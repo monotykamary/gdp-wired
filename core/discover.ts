@@ -14,6 +14,7 @@ import {quietly} from './cyclic.ts'
 import {type C, type E, type Law, type Machine, type State, any, atMost, compileFunction, evalC, evalE, n, plus, prod, same, seeded, times, x} from './machine.ts'
 import {type FnDef, type Kind, type ListFold, type ListLemma, type StepLaw, type Verdict, Cond, Rule, Term, Unproven, lit, proveFold, proveSteps, recur, recurOf} from './dsl.ts'
 import {type Fold} from '../kernel/kernel.ts'
+import {gcd} from './solver.ts'
 
 type Obj = object
 type AnyRule = Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>
@@ -110,7 +111,6 @@ function closedForm(samples: Record<string, number>[], show: (a: string) => stri
 // The law a goal is of (the kernel names each goal after its law: '<law> @step').
 const lawOfGoal = (goal: string) => goal.replace(/ @(start|step|step law|\d+ steps|leaf|node)$/, '')
 const isGoalOf = (goal: string) => (c: Cand) => { const law = lawOfGoal(goal); return law === c.name || law === `${c.name} at y` }
-const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
 
 // --- recurrences ---------------------------------------------------------------------------------------------------
 
