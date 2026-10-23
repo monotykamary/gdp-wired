@@ -127,25 +127,26 @@ the task's expected verdict.
 ### Ranks from the relation (Unreleased)
 
 With the runs that never end (below), on Modal (2 vCPU, 4 GB a task, 60 s), the same day: this branch
-(`runs/ranks/r3-its-merged`, `r3-sv-merged`) against main at 2477b4a (`r2-its-main`, `r2-sv-main`: runs that never
+(`runs/ranks/r4-its-merged`, `r4-sv-merged`) against main at 2477b4a (`r2-its-main`, `r2-sv-main`: runs that never
 end, no ranks from the relation) and 0.22.0 (`r2-its-base`, `r2-sv-base`). No answer contradicts another: not
 LoAT's or KoAT2's (`full1`, `koat-fix1`), any other run's, earlier gdp-wired runs' (`gdp2`, `runs/backends/term-gdp`),
 or SV-COMP's expected verdicts.
 
 | | ITS terminates | nonterminating | solved of 1,239 | SV terminates | nonterminating | solved of 282 |
 | --- | --- | --- | --- | --- | --- | --- |
-| the task's statement (`gdp`), here | 570 | 461 | 1,031 | 135 | 47 | 182 |
+| the task's statement (`gdp`), here | 572 | 463 | 1,035 | 134 | 47 | 181 |
 | 2477b4a | 56 | 452 | 508 | 0 | 47 | 47 |
 | 0.22.0 | 56 | 320 | 376 | 0 | 47 | 47 |
-| per component (`gdp-scc`), here | 580 | 463 | 1,043 | 125 | 47 | 172 |
+| per component (`gdp-scc`), here | 582 | 463 | 1,045 | 125 | 47 | 172 |
 | 2477b4a | 155 | 463 | 618 | 39 | 47 | 86 |
 | 0.22.0 | 155 | 325 | 480 | 39 | 47 | 86 |
 
-- Answered by 2477b4a and not here: 5 nonterminating ITS tasks on each statement (its second recurrent-set search
-  found them past 43 s; here the rank search has 70% of the time); against 0.22.0, 1 and 3 lassos (the lasso stages
+- Answered by 2477b4a and not here: 5 and 7 nonterminating ITS tasks (found there between 5.8 s and 55.3 s,
+  5 of the 12 past 40 s, by searches bounded by time and random; here the rank search has 70% of the time); against 0.22.0, 1 and 2 lassos (the lasso stages
   are random and bounded by time).
 - On the tasks both answer alike the times are 2477b4a's (ITS, the task's statement: median 0.15 s each); a
-  terminating answer's rank comes at a median 9.4 s (p95 21.4 s), the first stages' 6 s included.
+  terminating answer's rank comes at a median 9.4 s (p95 21.9 s), the first stages' 6 s included. An earlier run of this
+  branch (`r3-its-merged`, `r3-sv-merged`) answered 1,031, 1,043, 182 and 172; SV's one more is a proof at 51.4 s.
 - An earlier run of the ranks alone, before the runs that never end, against 0.22.0 (`runs/ranks/its-mine`,
   `its-base`, `sv-mine`, `sv-base`): ITS 897 and 906, SV 183 and 172. Of its 572 ITS proofs on the task's statement,
   522 read the location and 13 needed invariants (SV 136 and 26); certificates 260 cyclic, 268 the usual trees, 44

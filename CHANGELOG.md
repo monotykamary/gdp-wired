@@ -9,14 +9,14 @@ Ranks from a loop's relation, not only its runs: each path of a turn read exactl
 rank per location, blocks in order, multiphase, with invariants by Houdini, every rank still proven by the kernel.
 Nothing trusted changed (`kernel/`, `core/check.ts` and `lean-kernel/` are as in 0.22.0). With the runs that never
 end (below), TermComp's integer transition systems at 60 s on Modal, the same day against main at 2477b4a (runs
-that never end, no ranks from the relation) and 0.22.0: on the task's statement 1,031 solved (570 terminating, 461
-nonterminating), 2477b4a 508 (56, 452), 0.22.0 376 (56, 320); per component 1,043 (580, 463), 2477b4a 618 (155,
-463), 0.22.0 480 (155, 325); LoAT abmc 776, KoAT2 601 (`runs/modal/term/full1`). SV-COMP's termination tasks: 182
-(135, 47), 2477b4a and 0.22.0 47 (0, 47); per component 172 (125, 47), both 86 (39, 47); Ultimate Automizer 224. No
-answer contradicts another tool's, a lasso, any other run's or an expected verdict (`runs/ranks/r3-its-merged`,
-`r2-its-main`, `r2-its-base`, `r3-sv-merged`, `r2-sv-main`, `r2-sv-base`). Not answered here and answered by
-2477b4a: 5 nonterminating ITS tasks on each statement (its second recurrent-set search found them past 43 s, where
-here the rank search has 70% of the time), and 1 and 3 lassos 0.22.0 found (the lasso stages are random and bounded
+that never end, no ranks from the relation) and 0.22.0: on the task's statement 1,035 solved (572 terminating, 463
+nonterminating), 2477b4a 508 (56, 452), 0.22.0 376 (56, 320); per component 1,045 (582, 463), 2477b4a 618 (155,
+463), 0.22.0 480 (155, 325); LoAT abmc 776, KoAT2 601 (`runs/modal/term/full1`). SV-COMP's termination tasks: 181
+(134, 47), 2477b4a and 0.22.0 47 (0, 47); per component 172 (125, 47), both 86 (39, 47); Ultimate Automizer 224. No
+answer contradicts another tool's, a lasso, any other run's or an expected verdict (`runs/ranks/r4-its-merged`,
+`r2-its-main`, `r2-its-base`, `r4-sv-merged`, `r2-sv-main`, `r2-sv-base`). Not answered here and answered by
+2477b4a: 5 and 7 nonterminating ITS tasks (found there between 5.8 s and 55.3 s, 5 of the 12 past 40 s, by
+searches bounded by time and random, where here the rank search has 70% of the time), and 1 and 2 lassos 0.22.0 found (the lasso stages are random and bounded
 by time; 2477b4a missed 3 and 2 of 0.22.0's too). The second frontier corpus's rank, nonlinear-rank, sampling and
 nested-recursion items: 11 of 15 proven, 0.22.0 0, every broken variant refused (`runs/ranks/c2-mine`, `c2-base`);
 round 1's cycle items as before, 21 of 21, broken 21 of 21 (`runs/ranks/c1-mine`, `c1-base`). An independent check
@@ -60,7 +60,15 @@ work, fixed here (below).
   WhileFalse: no run needed); McCarthy91_Iteration with 4 invariants. Not proven: Piecewise (min(p, q): one atom's
   regions are not enough) and Toulouse-BranchesToLoop-2 (it needs x ≠ 0, a disjunction).
 - On the tasks both answer alike, the times are 2477b4a's (ITS, the task's statement: median 0.15 s each); a
-  terminating answer's rank comes at a median 9.4 s, p95 21.4 s, of which the first stages are 6 s.
+  terminating answer's rank comes at a median 9.4 s, p95 21.9 s, of which the first stages are 6 s.
+- The suites (208 jobs: 2 new, `term-adversarial` 29.7 s and `term-c2ari` 1.7 s) on Modal: by default 592.7 s wall,
+  4,832.1 s of job time, none failed (`runs/ranks/suite4-default`), main at c42ce7f the same day 567.2 s and 4,753.8 s
+  (`suite3-main-default`; 4,800.7 s here on its 206 jobs, `cycles` the most, 71.5 s more); `--usual` 474.8 s and
+  4,420.7 s, none failed (`suite4-usual`), main 513.2 s and 4,378.7 s (`suite3-main-usual`; 4,388.5 s on its 206). An
+  earlier `--usual` run here failed `lean-nonterm` once (`suite3-usual`): one of core/conformance.ts's recurrent-set
+  certificates, found within 300 ms of wall time and so different each run, on which kernel.ts and NonTerm.lean
+  answered differently (its tree has a cut by a fractional coefficient); nothing of the nontermination check or the
+  trusted base is changed here, and it passed in the two runs after (`suite4-default`, `suite4-usual`).
 
 Lemmas the datatype search finds and uses. TIP 2015 at 60 s on Modal: 176 of 492 proven, 0.22.0 the same day 140, none
 wrong (`runs/lem/tip-final`, `runs/lem/tip-final-base`; `false/`: 23 refuted in both, each confirmed by TIP's
