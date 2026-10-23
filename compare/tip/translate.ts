@@ -8,9 +8,21 @@
 //   - A polymorphic function is taken at each instance it is called at (monomorphisation of the functions: the goal is
 //     about the instances it calls). A function with a function argument is taken at each function it is passed (a
 //     lambda, specialised into the body, the variables it captures as further arguments; or a function variable of the
-//     goal): the statement doesn't change. A function of no argument is inlined.
+//     goal): the statement doesn't change. This is defunctionalisation with every closure known where it is applied:
+//     each lambda a constructor of its own (its key), its captures its fields (the further arguments), `apply` the match
+//     on it resolved in the body; TIP never stores a function in a field, returns one, or passes a new lambda to a call
+//     that recurs, so no closure value is left to match at run time (core/data.ts's `closures` is that datatype, for
+//     the library's users). A function of no argument is inlined.
+//   - The goal's own sort variables (`par (a) ...`) and the uninterpreted sorts (`declare-sort S 0`) are abstract sorts
+//     (core/data.ts's `opaque`, each its own): values read by equality alone, which TIP's typing gives (no polymorphic
+//     function can order or add a value of a sort variable) and the library checks, so the law proven is the statement
+//     at every sort, unchanged (core/data.ts says why). `--naturals` (solve.ts) takes them at the naturals instead.
+//   - An uninterpreted constant or function (`declare-const`, `declare-fun`, at an instance of its sort variables) is an
+//     unknown function of its arguments' sorts (core/data.ts's `unknownFn`; a constant one of none): the law is about
+//     every value of it, as TIP's statement is about every model.
 //   - A function variable of the goal from naturals to naturals is gdp-wired's `fnParam`; one from naturals to Bool is
-//     x ↦ g(x) = 0 for an unknown g (every predicate is one of those, so the quantifier is the same).
+//     x ↦ g(x) = 0 for an unknown g (every predicate is one of those, so the quantifier is the same); one of any other
+//     sort (into a list, of an abstract sort, of several arguments) an unknown function of its sorts (`unknownFn`).
 //   - Int: where the problem uses no subtraction, negative literal or product of two unknowns, read as a natural (each
 //     operation means the same on the naturals, + and constant multiples, and div and mod by a positive constant, which
 //     SMT-LIB and the naturals agree on there: a change of the statement, counted, since Int's variables and fields then
@@ -18,22 +30,23 @@
 //     unchanged: −, unary minus, constant multiples of any sign, div and mod by a positive constant (SMT-LIB's, Euclid's:
 //     0 ≤ x mod k < k). A product of two unknowns is a product of naturals (`mul`) where Int is read as a natural, and
 //     refused over the integers; division by anything but a positive constant is refused (nonlinear: x = y·q + r).
-//   - What changes the statement, counted apart (`changes`): the goal's own type variables (`par (a) ...`) taken at
-//     the naturals (the law is then the instance at the naturals); Int read as a natural (above).
+//   - What changes the statement, counted apart (`changes`): Int read as a natural (above); with `--naturals`, the goal's
+//     own sort variables taken at the naturals (the law is then the instance at the naturals).
 //   - A datatype field of sort Bool is a value of a datatype of two constructors of no field (false, true): built from
 //     the condition where a constructor is applied, the condition again where a match binds it.
 //   - An existential at the goal's end (∀ v. H ⇒ ∃ x. B): laws without it, each proven or refuted as a goal (`some`).
 //   - Refused, with the reason (`Unsupported`): an existential elsewhere, a quantifier elsewhere than outermost or under an
-//     implication's conclusion, a datatype field of a function sort, a function variable of another
-//     sort, a function that returns a function, Int arithmetic beyond the above, a selector of a datatype of several
+//     implication's conclusion, a datatype field of a function sort, a function variable of a function or of an integer,
+//     a function that returns a function, Int arithmetic beyond the above, a selector of a datatype of several
 //     constructors (partial: TIP leaves it unspecified at the others), recursion whose termination core/data.ts doesn't
 //     prove (no measure found and proven to fall at every call: `idiv x 0` never ends, and TIP's define-fun-rec doesn't
-//     say so), nested recursion, a ring of functions that isn't structural, uninterpreted sorts and constants, a nested
-//     datatype at ever larger instances.
+//     say so), nested recursion, a ring of functions that isn't structural, an uninterpreted sort of arguments, an
+//     uninterpreted constant at two sorts (TIP's evaluator gives a name one value), a nested datatype at ever larger
+//     instances (no finite set of instances: monomorphisation doesn't end).
 // The background facts a problem asserts (`assert`, true lemmas given as hints) aren't given to proveData: the statement
 // is the goal alone.
 import {type Sx, type Tip, type Ty, type V, BOOL, INT, Unsupported, existential, matchTy, prenex, sameTy, show, showTy, substSx, substTy, tyOf} from './tip.ts'
-import {Bool, type Callable, Data, type DataLaw, Integer, Nat, type Sort, Val, type Value, boolean, data, define, fnParam, integer, law, mutual, natural, no, programOf, self, when, yes} from '../../core/data.ts'
+import {Bool, type Callable, Data, type DataLaw, Integer, Nat, type Sort, Val, type Value, boolean, data, define, evalX, fnParam, integer, law, mutual, natural, no, opaque, programOf, self, unknownFn, when, yes} from '../../core/data.ts'
 
 const NATS: Ty = {k: 'con', name: '$Nat', args: []} // a type variable of the goal, at the naturals
 const san = (s: string) => s.replace(/[^A-Za-z0-9]/g, c => `_${c.charCodeAt(0).toString(16)}`)
@@ -42,7 +55,7 @@ type DSL = Nat | Bool | Val | Integer
 // A function value: a lambda (its captured bindings) or a function variable of the goal.
 type Closure =
   | {k: 'lam', params: {name: string, ty: Ty}[], body: Sx, tsub: Map<string, Ty>, captures: Map<string, Bound>, key: string, ty: Ty}
-  | {k: 'param', f: (x: Nat) => Nat, pred: boolean, key: string, ty: Ty}
+  | {k: 'param', apply: (args: DSL[]) => DSL, key: string, ty: Ty}
 type Bound = {v: DSL | Closure, ty: Ty}
 type Env = {vars: Map<string, Bound>, tsub: Map<string, Ty>, raw?: boolean}
 const isClosure = (v: DSL | Closure): v is Closure => !(v instanceof Nat || v instanceof Bool || v instanceof Val || v instanceof Integer)
@@ -50,7 +63,9 @@ const isClosure = (v: DSL | Closure): v is Closure => !(v instanceof Nat || v in
 export type Instance = {tipName: string, gdpName: string, inst: Ty[], argTys: Ty[], retTy: Ty, callable: Callable, specialised: boolean}
 export type Translation = {
   law: DataLaw, tip: Tip, goal: Sx, changes: string[], notes: string[],
-  vars: {gdp: string, tip: string, ty: Ty}[], params: {gdp: string, tip: string, ty: Ty, pred: boolean}[],
+  // A function variable of the goal, or an uninterpreted constant or function (`const`): `eval`, its value as TIP's
+  // evaluator reads it, at a sample's tables of the unknowns.
+  vars: {gdp: string, tip: string, ty: Ty}[], params: {gdp: string, tip: string, ty: Ty, pred: boolean, const?: boolean, eval: (tables: Record<string, (n: number) => number>) => V}[],
   lemmas: DataLaw[], fns: Instance[], datas: number, toTip: (v: Value, ty: Ty) => V, fromTip: (v: V, ty: Ty) => number,
   // An existential goal's laws (`law` is the first of them): `weak`, what it says whatever the witness (refutes it),
   // `witnesses`, it with a witness in place (each proves it); each with the TIP goal it states.
@@ -59,10 +74,12 @@ export type Translation = {
 
 // (The diagnostics `inline` and `native` of the first run are proveData's own now, core/transfer.ts: a function that
 // isn't recursive unfolded, a recursive one that computes a built-in bridged to it once the bridge is proven.)
-export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translation {
-  if (tip.sorts.length) throw new Unsupported('an uninterpreted sort')
-  if (tip.consts.length) throw new Unsupported('an uninterpreted constant')
+// `sorts`: the goal's sort variables as abstract sorts (each its own, read by equality alone: the statement for every
+// sort), or at the naturals (the instance there, a change of the statement).
+export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {sorts?: 'abstract' | 'naturals'} = {}): Translation {
+  const abstractVars = (opts.sorts ?? 'abstract') === 'abstract'
   const changes = new Set<string>(), notes = new Set<string>()
+  for (const [s2, n] of tip.sortArity) if (n > 0) throw new Unsupported(`an uninterpreted sort of ${n} arguments (${s2})`)
   // Int as the integers where a natural reading would change what an operation means (above).
   const literal = (x: Sx) => typeof x === 'string' && /^\d+$/.test(x)
   // A subtraction or a negation (a negative literal is one): what truncates on the naturals.
@@ -80,10 +97,15 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
   const insts = new Map<string, {data: Data, decl: {name: string, params: string[], ctors: {name: string, fields: {name: string, ty: Ty}[]}[]}, args: Ty[], ctorName: Map<string, string>, fieldName: Map<string, string>}>()
   let dataSeq = 0
   const fieldTys = (t: Ty & {k: 'con'}) => { const d = tip.datas.get(t.name)!, m = new Map(d.params.map((p, i) => [p, t.args[i]!])); return d.ctors.map(c => c.fields.map(f => substTy(f.ty, m))) }
+  // An abstract sort (core/data.ts's `opaque`): an uninterpreted sort, or a sort variable of the goal (`$T_a`).
+  const abstracts = new Map<string, Data>()
+  const isAbstract = (t: Ty) => t.k === 'con' && !t.args.length && (t.name.startsWith('$T_') || tip.sortArity.has(t.name))
+  const abstractOf = (key: string): Data => { let d = abstracts.get(key); if (!d) { d = opaque(`A${++dataSeq}_${san(key.replace(/^\$T_/, '')).slice(0, 30)}`); abstracts.set(key, d) } return d }
   const sortOf = (t: Ty): Sort => {
     if (t.k === 'var') throw new Error(`an unresolved sort variable ${t.name}`)
     if (t.k === 'fun') throw new Unsupported('a value of a function sort where a datatype value is needed')
     if (t.name === '$Nat') return natural
+    if (isAbstract(t)) { notes.add(t.name.startsWith('$T_') ? 'the goal\'s sort variables as abstract sorts (equality only)' : 'an uninterpreted sort as an abstract sort (equality only)'); return abstractOf(t.name) }
     if (t.name === 'Int') { if (ints) return integer; changes.add('Int read as natural'); return natural }
     if (t.name === 'Bool') return boolean
     if (!tip.datas.has(t.name)) throw new Unsupported(`the sort ${t.name}`)
@@ -111,7 +133,7 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
         const u = todo.pop()!
         for (const fs of fieldTys(u)) for (const f of fs) {
           fieldSortOk(f)
-          if (f.k !== 'con' || ['Int', 'Bool', '$Nat'].includes(f.name) || isPeano(f.name) || insts.has(showTy(f))) continue
+          if (f.k !== 'con' || ['Int', 'Bool', '$Nat'].includes(f.name) || isAbstract(f) || isPeano(f.name) || insts.has(showTy(f))) continue
           if (!tip.datas.has(f.name)) throw new Unsupported(`the sort ${f.name}`)
           const k = showTy(f)
           if (!seen.has(k)) { if (seen.size > 40) throw new Unsupported('a nested datatype at ever larger instances'); seen.set(k, f); todo.push(f) }
@@ -201,6 +223,37 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
   }
   const value = (b: Bound): DSL => { if (isClosure(b.v)) throw new Unsupported('a function value where a datatype value is needed'); return b.v }
   const natK = (n: number) => new Nat({op: 'nat', value: n})
+  // An uninterpreted constant or function (declare-const, declare-fun) at an instance of its sort variables: an unknown
+  // function of its arguments' sorts (core/data.ts's `unknownFn`; a constant one of no arguments, read at one key): the
+  // law is then about every value of it, as TIP's statement is about every model. One instance of each (TIP's evaluator
+  // gives a name one value).
+  const unknowns: Translation['params'] = [], unknownAt = new Map<string, {u: ReturnType<typeof unknownFn>, at: string, retTy: Ty}>()
+  const constApp = (cname: string, explicit: Ty[] | undefined, argSx: Sx[], env: Env, expected?: Ty): Bound => {
+    const cd = tip.constDecls.get(cname)!
+    if (argSx.length !== cd.args.length) throw new Unsupported(`${cname} applied to ${argSx.length} of its ${cd.args.length} arguments`)
+    const vs = new Set(cd.params), m = new Map<string, Ty>()
+    if (explicit) cd.params.forEach((q, i) => m.set(q, explicit[i]!))
+    const args = argSx.map((a, i) => { const want = substTy(cd.args[i]!, m), b = emit(a, env, hasVars(want, vs) ? undefined : want); if (!matchTy(cd.args[i]!, b.ty, vs, m)) throw new Error(`${cname}: argument ${i} of sort ${showTy(b.ty)}`); return b })
+    if (expected && cd.params.some(q => !m.has(q))) matchTy(cd.ret, expected, vs, m)
+    if (cd.params.some(q => !m.has(q))) throw new Error(`${cname}: its sort variables unresolved`)
+    const argTys = cd.args.map(t => substTy(t, m)), retTy = substTy(cd.ret, m), at = `${argTys.map(showTy).join(',')}->${showTy(retTy)}`
+    let had = unknownAt.get(cname)
+    if (had && had.at !== at) throw new Unsupported(`an uninterpreted constant at two sorts (${cname})`)
+    if (!had) {
+      const gdp = `k${unknowns.length + 1}_${san(cname)}`.slice(0, 40), u = unknownFn(gdp, argTys.map(sortOf), sortOf(retTy))
+      had = {u, at, retTy}
+      unknownAt.set(cname, had)
+      notes.add('an uninterpreted constant as an unknown of its sort')
+      unknowns.push({gdp, tip: cname, ty: argTys.length ? {k: 'fun', args: argTys, ret: retTy} : retTy, pred: false, const: true, eval: tables => (argTys.length ? {fn: (xs: V[]) => evalUnknown(u, argTys, retTy, xs, tables)} : evalUnknown(u, [], retTy, [], tables))})
+    }
+    return {v: had.u(...args.map(value)) as DSL, ty: retTy}
+  }
+  // An unknown's value at TIP's arguments, as TIP's: the term at variables, evaluated at a sample's tables.
+  const evalUnknown = (u: ReturnType<typeof unknownFn>, argTys: Ty[], retTy: Ty, xs: V[], tables: Record<string, (n: number) => number>): V => {
+    const vars = argTys.map((t, i) => wrapVar(sortOf(t), `$u${i}`)), out = u(...vars) as DSL
+    return toTip(evalX(out instanceof Bool ? {op: 'bool', c: out.y} : out.x, new Map(argTys.map((t, i) => [`$u${i}`, toGdp(xs[i]!, t)])), tables), retTy)
+  }
+  const wrapVar = (s: Sort, n: string): DSL => (s === natural ? new Nat({op: 'var', name: n}) : s === boolean ? new Bool({op: 'holds', x: {op: 'var', name: n}}) : s === integer ? new Integer({op: 'var', name: n}) : new Val(s as Data, {op: 'var', name: n}))
 
   // --- terms
   const tyIn = (s: Sx, env: Env, extra: string[] = []) => substTy(tyOf(s, new Set([...env.tsub.keys(), ...extra])), env.tsub)
@@ -267,6 +320,7 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
         changes.add('Int read as natural'); return {v: natK(Number(s)), ty: INT}
       }
       if (tip.ctorOf.has(s)) return ctorApp(s, undefined, [], env, expected)
+      if (tip.constDecls.has(s)) return constApp(s, undefined, [], env, expected)
       if (tip.funs.has(s)) {
         const fd = tip.funs.get(s)!
         if (!fd.args.length) return call(s, undefined, [], env, expected)
@@ -282,14 +336,16 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
       // (_ f T ..) applied to arguments
       const f = head[1] as string, ts = head.slice(2).map(t => tyIn(t, env))
       if (tip.ctorOf.has(f)) return ctorApp(f, ts, s.slice(1), env, expected)
+      if (tip.constDecls.has(f)) return constApp(f, ts, s.slice(1), env, expected)
       if (tip.funs.has(f)) return call(f, ts, s.slice(1), env, expected)
       throw new Error(`instantiation of ${f}`)
     }
     if (typeof head !== 'string') throw new Error(`head ${show(head)}`)
     if (head === '_' || head === 'as') {
       const f = s[1] as string, ts = s.slice(2).map(t => tyIn(t, env))
-      if (head === 'as') { const t = ts[0]!; return tip.ctorOf.has(f) ? ctorApp(f, undefined, [], env, t) : call(f, undefined, [], env, t) }
+      if (head === 'as') { const t = ts[0]!; return tip.ctorOf.has(f) ? ctorApp(f, undefined, [], env, t) : tip.constDecls.has(f) ? constApp(f, undefined, [], env, t) : call(f, undefined, [], env, t) }
       if (tip.ctorOf.has(f)) return ctorApp(f, ts, [], env, expected)
+      if (tip.constDecls.has(f)) return constApp(f, ts, [], env, expected)
       return call(f, ts, [], env, expected)
     }
     if (arith.has(head)) {
@@ -362,7 +418,7 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
         const key = `L(${show(s)}|${[...env.tsub.entries()].map(([k, t]) => `${k}=${showTy(t)}`).join(',')}|${[...captures.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([n, b]) => `${n}:${isClosure(b.v) ? closureKey(b.v) : showTy(b.ty)}`).join(',')})`
         // its sort: the body's at its parameters (a dry run of the body, for the sort alone)
         const probe = new Map(env.vars)
-        for (const p of params) probe.set(p.name, p.ty.k === 'fun' ? {v: {k: 'param', f: x => x, pred: false, key: '?', ty: p.ty}, ty: p.ty} : {v: dryValue(p.ty), ty: p.ty})
+        for (const p of params) probe.set(p.name, p.ty.k === 'fun' ? {v: {k: 'param', apply: ([x]) => x!, key: '?', ty: p.ty}, ty: p.ty} : {v: dryValue(p.ty), ty: p.ty})
         const ret = emit(s[2]!, {vars: probe, tsub: env.tsub, raw: env.raw}).ty
         const ty: Ty = {k: 'fun', args: params.map(p => p.ty), ret}
         return {v: {k: 'lam', params, body: s[2]!, tsub: env.tsub, captures, key, ty}, ty}
@@ -387,6 +443,7 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
       return {v: (value(of) as Val).is(`K_${san(cn)}`), ty: BOOL}
     }
     if (env.vars.has(head)) return apply(env.vars.get(head)!, s.slice(1).map(x => emit(x, env)))
+    if (tip.constDecls.has(head)) return constApp(head, undefined, s.slice(1), env, expected)
     if (tip.funs.has(head)) return call(head, undefined, s.slice(1), env, expected)
     throw new Error(`unknown ${head}`)
   }
@@ -398,9 +455,9 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
     if (!isClosure(f.v)) throw new Error('application of a value')
     const c = f.v
     if (c.k === 'param') {
-      if (args.length !== 1) throw new Unsupported('a function variable of several arguments')
-      const x = c.f(value(args[0]!) as Nat)
-      return {v: c.pred ? x.eq(0) : x, ty: (c.ty as Ty & {k: 'fun'}).ret}
+      const ft = c.ty as Ty & {k: 'fun'}
+      if (args.length !== ft.args.length) throw new Unsupported('a function variable applied to fewer or more arguments than it takes')
+      return {v: c.apply(args.map(value)), ty: ft.ret}
     }
     const n = Math.min(c.params.length, args.length), vars = new Map(c.captures)
     c.params.slice(0, n).forEach((p, i) => vars.set(p.name, args[i]!))
@@ -436,21 +493,33 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
   // --- the goal (and lemmas given to try, the same way)
   const lawOf = (lname: string, gparams: string[], body: Sx) => {
     const g = prenex(body)
-    const tsub = new Map(gparams.map(p => [p, NATS]))
+    const tsub = new Map(gparams.map(p => [p, abstractVars ? {k: 'con', name: `$T_${p}`, args: []} as Ty : NATS]))
     const vars: Translation['vars'] = [], params: Translation['params'] = [], sorts: Record<string, Sort> = {}
     const fnVars = new Map<string, Closure>()
     for (const v of g.vars) {
       const ty = substTy(tyOf(v.ty, new Set(gparams)), tsub)
       if (ty.k === 'fun') {
         const natLike = (t: Ty) => t.k === 'con' && (t.name === '$Nat' || isPeano(t.name) || t.name === 'Int')
-        if (ty.args.length !== 1 || !natLike(ty.args[0]!) || !(natLike(ty.ret) || (ty.ret.k === 'con' && ty.ret.name === 'Bool'))) throw new Unsupported(`a function variable of sort ${showTy(ty)}`)
-        if (ints && [ty.args[0]!, ty.ret].some(t => t.k === 'con' && t.name === 'Int')) throw new Unsupported('a function variable over the integers')
-        for (const t of [ty.args[0]!, ty.ret]) if (t.k === 'con' && t.name === 'Int') changes.add('Int read as natural')
-        const pred = ty.ret.k === 'con' && ty.ret.name === 'Bool', gdp = `p_${san(v.name)}`
-        if (pred) notes.add('a predicate variable p as x ↦ g(x) = 0')
-        const f = fnParam(gdp)
-        fnVars.set(v.name, {k: 'param', f: x => f(x), pred, key: gdp, ty})
-        params.push({gdp, tip: v.name, ty, pred})
+        const gdp = `p_${san(v.name)}`
+        if (ty.args.length === 1 && natLike(ty.args[0]!) && (natLike(ty.ret) || (ty.ret.k === 'con' && ty.ret.name === 'Bool'))) {
+          if (ints && [ty.args[0]!, ty.ret].some(t => t.k === 'con' && t.name === 'Int')) throw new Unsupported('a function variable over the integers')
+          for (const t of [ty.args[0]!, ty.ret]) if (t.k === 'con' && t.name === 'Int') changes.add('Int read as natural')
+          const pred = ty.ret.k === 'con' && ty.ret.name === 'Bool'
+          if (pred) notes.add('a predicate variable p as x ↦ g(x) = 0')
+          const f = fnParam(gdp)
+          fnVars.set(v.name, {k: 'param', apply: ([x]) => (pred ? f(x as Nat).eq(0) : f(x as Nat)), key: gdp, ty})
+          params.push({gdp, tip: v.name, ty, pred, eval: tables => ({fn: ([x]) => { const y = tables[gdp]!(fromTip(x!, ty.args[0]!)); return pred ? y === 0 : toTip(y, ty.ret) }})})
+          continue
+        }
+        // Any other: an unknown function of its arguments' sorts (core/data.ts's `unknownFn`: one unknown of a natural read
+        // at its arguments' keys, a datatype's value decoded from it), every function of that sort one of those.
+        if (ty.args.some(t => t.k === 'fun') || ty.ret.k === 'fun') throw new Unsupported(`a function variable of sort ${showTy(ty)}`)
+        if (ints && ty.args.some(t => t.k === 'con' && t.name === 'Int')) throw new Unsupported('a function variable of an integer')
+        let u: ReturnType<typeof unknownFn>
+        try { u = unknownFn(gdp, ty.args.map(sortOf), sortOf(ty.ret)) } catch (e) { throw new Unsupported(`a function variable of sort ${showTy(ty)}: ${(e as Error).message}`) }
+        notes.add('a function variable as an unknown function, its results decoded from an unknown of a natural')
+        fnVars.set(v.name, {k: 'param', apply: xs => u(...xs) as DSL, key: gdp, ty})
+        params.push({gdp, tip: v.name, ty, pred: false, eval: tables => ({fn: (xs: V[]) => evalUnknown(u, ty.args, ty.ret, xs, tables)})})
         continue
       }
       const gdp = `v_${san(v.name)}`
@@ -479,7 +548,7 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
     }
     return {law: l, vars, params, body: g.body}
   }
-  if (tip.goal.params.length) changes.add(`monomorphised: the goal's sort variable${tip.goal.params.length > 1 ? 's' : ''} ${tip.goal.params.join(', ')} at the naturals`)
+  if (tip.goal.params.length && !abstractVars) changes.add(`monomorphised: the goal's sort variable${tip.goal.params.length > 1 ? 's' : ''} ${tip.goal.params.join(', ')} at the naturals`)
   // An existential goal, ∀ v. H ⇒ ∃ x. B (core/exists.ts's "there exists", where proveData has no law for it): proven
   // through a witness among the goal's own variables of x's sort (H ⇒ B with it in place, a law of its own), and
   // refuted through what B says whatever x is, its conjuncts that read no x (W: ∃ x. B implies W, so a counterexample
@@ -509,9 +578,11 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
   })
   const {law: l, vars, params} = main, g = main
   // --- values back to TIP's (for the evaluator)
-  const toTip = (v: Value, ty: Ty): V => {
+  function toTip(v: Value, ty: Ty): V {
     if (ty.k !== 'con') throw new Error('a function value')
     if (ty.name === '$Nat' || ty.name === 'Int') return BigInt(v as number)
+    // (an abstract value: its code, TIP's evaluator's value of an uninterpreted sort or a sort variable)
+    if (isAbstract(ty)) return BigInt((v as {f: number[]}).f[0]!)
     if (ty.name === 'Bool') return typeof v === 'object' ? boolData().ctors[v.c]!.name === 'K_true' : v === 1
     if (isPeano(ty.name)) {
       const {zero, succ} = peanoParts(ty.name)
@@ -523,10 +594,22 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = []): Translatio
     const tipC = ins.ctorName.get(c.name)!, fts = fieldTys(ty)[tip.datas.get(ty.name)!.ctors.findIndex(k => k.name === tipC)]!
     return {c: tipC, a: o.f.map((x, i) => toTip(x, fts[i]!))}
   }
-  const fromTip = (v: V, ty: Ty): number => {
+  // TIP's value as the translation's (toTip's inverse).
+  function toGdp(v: V, ty: Ty): Value {
+    if (ty.k !== 'con') throw new Error('a function value')
+    if (typeof v === 'bigint') return isAbstract(ty) ? {c: 0, f: [Number(v)]} : Number(v)
+    if (typeof v === 'boolean') return +v
+    if ('fn' in v) throw new Error('a function value')
+    if (isPeano(ty.name)) return fromTip(v, ty)
+    const ins = insts.get(showTy(ty))
+    if (!ins) throw new Error(`no instance ${showTy(ty)}`)
+    const j = ins.data.ctors.findIndex(c => ins.ctorName.get(c.name) === v.c), fts = fieldTys(ty)[tip.datas.get(ty.name)!.ctors.findIndex(k => k.name === v.c)]!
+    return {c: j, f: v.a.map((x, i) => (isBoolTy(fts[i]!) ? {c: boolData().ctors.findIndex(c => c.name === (x === true ? 'K_true' : 'K_false')), f: []} : toGdp(x, fts[i]!)))}
+  }
+  function fromTip(v: V, ty: Ty): number {
     if (typeof v === 'bigint') return Number(v)
     if (ty.k === 'con' && isPeano(ty.name)) { let n = 0, x = v as {c: string, a: V[]}; while (x.a.length) { n++; x = x.a[0] as {c: string, a: V[]} } return n }
     throw new Error('not a natural')
   }
-  return {law: l, tip, goal: g.body, changes: [...changes], notes: [...notes], vars, params, lemmas: extra, fns: [...fns.values()], datas: insts.size, toTip, fromTip, ...(some ? {some} : {})}
+  return {law: l, tip, goal: g.body, changes: [...changes], notes: [...notes], vars, params: [...params, ...unknowns], lemmas: extra, fns: [...fns.values()], datas: insts.size, toTip, fromTip, ...(some ? {some} : {})}
 }
