@@ -113,6 +113,15 @@ def shard(tool: str, t: dict, limit: int) -> dict:
             row.update(answer="unsupported", seconds=round(time.time() - t0, 2), why=row["translation_nt"].get("refused", err2[-300:]))
             return row
         pathlib.Path("/tmp/t-nt.ari").write_text(ari2)
+    # signed overflow checked (the task declares none impossible): beside it, the translation that checks none, read
+    # only for "terminates" (gdp-wired's tools)
+    unchecked = tool in ("gdp", "gdp-scc") and not split and "overflow checked" in info.get("features", [])
+    if unchecked:
+        code, ari3, err3 = run(["python3", "compare/term/c2ari.py", c, "--yml", yml, "--unchecked"], limit - (time.time() - t0))
+        row["translation_unchecked"] = json.loads(err3.strip().splitlines()[-1]) if err3.strip() else {}
+        unchecked = code == 0
+        if unchecked:
+            pathlib.Path("/tmp/t-u.ari").write_text(ari3)
     left = limit - (time.time() - t0)
 
     def stages_of(out):
@@ -125,15 +134,17 @@ def shard(tool: str, t: dict, limit: int) -> dict:
         return st
     if tool in ("gdp", "gdp-scc"):
         cmd = lambda f, *more: ["timeout", "-k", "5", str(max(1, int(left))), "bun", "compare/term/solve.ts", f, "--limit", str(int(left)), *(["--scc"] if tool == "gdp-scc" else []), *more]
-        if not split:
+        if not split and not unchecked:
             code, out, err = run(cmd("/tmp/t.ari")[4:], left)
             stages = stages_of(out)
             answer = (stages[-1] if stages else {}).get("answer", "timeout" if code == 124 else "error")
             row.update(answer=answer, stages=stages)
         else:
-            # the two side by side (a vCPU each), each searching only for its answer
-            ps = [subprocess.Popen(cmd(f, "--want", w), cwd=work, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                  for f, w in (("/tmp/t.ari", "terminates"), ("/tmp/t-nt.ari", "nonterminating"))]
+            # the two side by side (a vCPU each): a recursive program's two translations, each searching only for its
+            # answer; or the checked translation (both answers) and the unchecked one (terminates)
+            pair = (("/tmp/t.ari", ["--want", "terminates"]), ("/tmp/t-nt.ari", ["--want", "nonterminating"])) if split else \
+                (("/tmp/t-u.ari", ["--want", "terminates"]), ("/tmp/t.ari", []))
+            ps = [subprocess.Popen(cmd(f, *w), cwd=work, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for f, w in pair]
             outs = []
             for q in ps:
                 try:
@@ -148,6 +159,8 @@ def shard(tool: str, t: dict, limit: int) -> dict:
             if a_t == "terminates" and a_n == "nonterminating":
                 answer = "error"
                 row["err"] = "both answers"
+            elif not split and a_n in ("terminates", "nonterminating"):
+                answer = a_n  # the checked translation's own answer
             elif a_t == "terminates" or a_n == "nonterminating":
                 answer = a_t if a_t == "terminates" else a_n
             elif a_t is None and a_n is None:
@@ -155,7 +168,7 @@ def shard(tool: str, t: dict, limit: int) -> dict:
             else:
                 answer = "unknown"
             err = outs[0][2] + outs[1][2]
-            row.update(answer=answer, stages=st_t, stages_nt=st_n)
+            row.update(answer=answer, **({"stages": st_t, "stages_nt": st_n} if split else {"stages": st_n, "stages_unchecked": st_t}))
     elif tool in ("loat", "loat-abmc"):
         code, out, err = run(["loat", "--mode", "termination", *(["--engine", "abmc"] if tool == "loat-abmc" else []), "/tmp/t.ari"], left)
         w = next((l.strip() for l in out.splitlines() if l.strip() in ("YES", "NO", "MAYBE")), None)

@@ -55,7 +55,11 @@ boundary, and the two translations differ there; each is exact for its one answe
     function's own copy only, a return out of it ending the run: every run of the system is a run of the program up
     to there (entering a call and running on inside it), so an infinite one is the program's.
 
-What the translation changes, said once here: nothing past what the two recursion translations say.
+`--unchecked`: no signed operation is checked for overflow (arithmetic on unbounded integers past it). Every run of
+the program is then a prefix of one of the system's (the same until its undefined behaviour, where the program's run
+ends), so the system's termination is the program's: a translation for "terminates" only, beside the checked one.
+
+What the translation changes, said once here: nothing past what the recursion and --unchecked translations say.
 
 Refused, by reason, the data first (prescan): structs, floats, pointers to pointers, function pointers, pointer
 arithmetic; then the code: calls to functions with no body (but the ones above); a call in a conditional part of an
@@ -1712,7 +1716,8 @@ def main():
     opt = lambda k: args[args.index(k) + 1] if k in args else None
     dm, no_overflow = read_yml(opt("--yml")) if opt("--yml") else ("LP64", False)
     dm = opt("--data-model") or dm
-    no_overflow = no_overflow or "--no-overflow" in args
+    unchecked = "--unchecked" in args and not no_overflow and "--no-overflow" not in args
+    no_overflow = no_overflow or "--no-overflow" in args or unchecked
     mode = opt("--for")
     try:
         text = open(path).read()
@@ -1720,7 +1725,8 @@ def main():
         sys.stdout.write(emit(prog, start))
         split = any(f.startswith("recursion (") for f in prog.features)
         sys.stderr.write(json.dumps({"translated": True, "locations": prog.nlocs, "vars": len(prog.vars), "rules": len(prog.rules), "features": sorted(prog.features),
-                                     "data_model": dm, "no_overflow": no_overflow, **({"for": mode} if split else {}), "split": split}) + "\n")
+                                     "data_model": dm, "no_overflow": no_overflow, **({"for": mode} if split else {}), "split": split,
+                                     **({"unchecked": True, "for": "terminates"} if unchecked else {})}) + "\n")
     except Refused as e:
         sys.stderr.write(json.dumps({"refused": str(e)}) + "\n")
         sys.exit(2)
