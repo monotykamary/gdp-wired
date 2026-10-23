@@ -3,10 +3,10 @@
 // structural recursion refused unless its termination is proven (a measure every call lowers, each call's obligation
 // proven by the kernel), and a tampered proof refused by the kernel.
 import {expect, test} from 'bun:test'
-import {type Bool, type Nat, type Val, EvalLimit, data, define, evalX, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, when} from './data.ts'
+import {type Bool, type Nat, type Val, EvalLimit, conjectures, data, define, evalX, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, when} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
 import {transferPlan} from './transfer.ts'
-import {Bag, Forest, List, Rose, Tree, a3, app, broken, ilv, laws, leq, len, merge, mir, mrg, nonterminating, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken} from '../examples/data.ts'
+import {Bag, Forest, List, Rose, Tree, a3, app, broken, drp, ilv, laws, leq, len, merge, mir, mrg, nonterminating, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken} from '../examples/data.ts'
 
 const list = (...xs: number[]): {c: number, f: unknown[]} => xs.reduceRight<{c: number, f: unknown[]}>((t, h) => ({c: 1, f: [h, t]}), {c: 0, f: []})
 const run = (call: {x: unknown}, env: Record<string, unknown>) => evalX(call.x as never, new Map(Object.entries(env)) as never, {})
@@ -153,6 +153,30 @@ test('a function that agrees with x + 1 on small values only, read inside a larg
   expect(v.counterexample).toBeUndefined()
   expect(v.through).toBeUndefined()
   expect(v.stopped).toBe(true)
+})
+
+test('a function of three naturals that computes their sum (add3acc, by well-founded recursion): its bridge proven by its own recursion, a law read through it; one that agrees with a sum on small values only is not proven to', () => {
+  const l = law('add3acc is symmetric in its first two', {x: natural, y: natural, z: natural}, ({x, y, z}) => (a3(x, y, z) as Nat).eq(a3(y, x, z) as Nat))
+  expect(transferPlan(l)?.bridges.get('add3acc')?.name).toBe('x + y + z')
+  const v = proveData(l)
+  expect(v.proven && v.checked && v.proof?.proven && checkCyclic(v.proof.proof)).toBe(true)
+  expect(v.through).toContain('add3acc is x + y + z')
+  // x + y + z up to x = 5 (the bridge's check reads each argument up to 5), then 0
+  const near: ReturnType<typeof define> = define('nearSum3', {x: natural, y: natural, z: natural}, natural, ({x, y, z}) => (x as Nat).match({zero: () => (y as Nat).plus(z as Nat), succ: ({pred}) => when(pred.atLeast(5), 0 as number, (near(pred, y, z) as Nat).plus(1) as never)}))
+  const l2 = law('nearSum3 is symmetric in its first two', {x: natural, y: natural, z: natural}, ({x, y, z}) => (near(x, y, z) as Nat).eq(near(y, x, z) as Nat))
+  expect(transferPlan(l2)?.bridges.get('nearSum3')?.name).toBe('x + y + z')
+  // (no conjectures: their attempts' instances aren't counted work, and the bridge's own search is what is checked)
+  const v2 = proveData(l2, {ms: 1000, lemmas: false})
+  expect(v2.proven).toBe(false)
+  expect(v2.through).toBeUndefined()
+})
+
+test('theory exploration: an equation over two lists generalised apart (append\'s associativity, over three), and a lemma use through another\'s conclusion', () => {
+  const l = laws.lengthAppend(), names = conjectures(programOf([l]), l).map(c => c.name)
+  expect(names).toContain('append(append(list1, list2), list3) = append(list1, append(list2, list3))')
+  // drop of a successor is the definition at n + 1, whose predecessor (n + 1) ∸ 1 is n: one class, by arithmetic
+  const v = proveData(law('drop of one more', {n: natural, x: natural, xs: List}, ({n, x, xs}) => (drp((n as Nat).plus(1), List.cons(x, xs)) as Val).eq(drp(n, xs) as Val)), {ms: 5000})
+  expect(v.proven && v.checked && v.proof?.proven && checkCyclic(v.proof.proof)).toBe(true)
 })
 
 test('evaluation within bounds: a natural past 2^53 throws, a sample past the bounds is skipped, a datatype read only through a constructor is collected', () => {
