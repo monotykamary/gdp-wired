@@ -746,13 +746,12 @@ function proveMeasures(ring: Fn[], sites: Site[], ms: Measure[], until: number):
     if (cex) return {failed: `${text}: its ${call} doesn't lower it at ${JSON.stringify(cex)}`}
     const direct = directly(law, Math.min(2000, left()))
     if (direct) { obligations[site.from]!.push({law, proof: direct, lemmas: []}); continue }
-    // (proveData without conjectured lemmas: their making isn't counted in the budget; by induction a while first, a
-    // call on a filter of the tail mostly needing none, then the size laws, then the rest of the time)
+    // (the size laws first, each proven once and used, within 60% of the time left; then proveData without conjectured
+    // lemmas, whose making isn't counted in the budget: by induction, then the definitions unfolded alone)
     const inductive = schemes(programOf([law]), law).length > 0, lemmas = sizeLaws(law, names)
     if (dataTrace && lemmas.length) console.error(`[data]   ${law.name}: ${lemmas.map(c => c.name).join('; ')}`)
-    let v: DataVerdict | undefined = inductive ? proveData(law, {ms: Math.min(lemmas.length ? 4000 : 12_000, left()), lemmas: false}) : undefined
-    if (!v?.proven && !v?.counterexample && lemmas.length && clock() < until) v = proveData(law, {lemmas, lemmasFirst: true, ms: Math.min(8000, 0.6 * left())})
-    if (!v?.proven && !v?.counterexample && inductive && lemmas.length && clock() < until) v = proveData(law, {ms: Math.min(8000, left()), lemmas: false})
+    let v: DataVerdict | undefined = lemmas.length ? proveData(law, {lemmas, lemmasFirst: true, ms: Math.min(8000, 0.6 * left())}) : undefined
+    if (!v?.proven && !v?.counterexample && inductive && clock() < until) v = proveData(law, {ms: Math.min(12_000, left()), lemmas: false})
     if (!v?.proven && !v?.counterexample && clock() < until) v = proveData(law, {induction: false, ms: Math.min(4000, left())})
     if (!v || !(v.proven && v.checked)) return {failed: `${text}: its ${call} ${v?.counterexample ? `doesn't lower it at ${JSON.stringify(v.counterexample)}` : 'not proven to lower it'}`}
     const used = v
@@ -1673,13 +1672,19 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   // size from the fields.
   for (const r of reads([w.roots, w.others])) for (const d of p.datas) if (r.map === sizeMap(d.name)) shape(r.key, d)
   // Where it does, the sizes those shapes read in turn (a field's, a value built's), `depth` rounds: size(x) is 1 plus
-  // its tail's, and the tail's size is its own shape's.
-  if (reads([w.roots, w.others]).some(r => p.datas.some(d => r.map === sizeMap(d.name)))) {
-    const shaped = new Set<string>()
-    for (let round = 0; round < w.depth; round++) {
-      const more = all.filter(r => p.datas.some(d => r.map === sizeMap(d.name)) && !shaped.has(sid(r.key)))
-      if (!more.length) break
-      for (const r of more) { shaped.add(sid(r.key)); shape(r.key, p.datas.find(d => r.map === sizeMap(d.name))) }
+  // its tail's, and the tail's size is its own shape's (a size law of a recursion two fields deep).
+  {
+    const sizeOf = (r: {map: string}) => p.datas.find(d => r.map === sizeMap(d.name))
+    let todo = reads([w.roots, w.others]).filter(r => sizeOf(r)).map(r => r.key)
+    const shaped = new Set(todo.map(t => sid(t)))
+    for (let round = 0; round < w.depth && todo.length; round++) {
+      const next: E[] = []
+      for (const t of todo) {
+        const d = sizeOf({map: (reads([w.roots, w.others]).find(r => sid(r.key) === sid(t) && sizeOf(r)) ?? {map: ''}).map}) ?? dataOfTerm(t)
+        if (!d) continue
+        for (const r of reads(holdsAt(`shape ${d.name}`, [t]))) if (sizeOf(r) && !shaped.has(sid(r.key))) { shaped.add(sid(r.key)); shape(r.key, sizeOf(r)); next.push(r.key) }
+      }
+      todo = next
     }
   }
   if (w.depth >= 2) for (const r of [...all]) for (const d of p.datas) if (r.map === tagMap(d.name)) shape(r.key, d)
