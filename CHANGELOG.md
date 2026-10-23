@@ -5,6 +5,58 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+The lemma search on TIP 2015 (core/data.ts): lemmas calculated from the induction steps the definitions leave, lemma
+uses ranked within each case, induction schemes merged, and a case's arithmetic read into its classes. TIP 2015 at 60 s
+on Modal: 193 of 492 proven, main (6b2e2df) launched beside it 181, none wrong (`runs/tiplem/tip-8`, `tip-base-8`;
+`false/`: 23 refuted in both, none proven; the same 7 theorems refuted, those TIP writes false). Vampire's 189 and
+cvc5's 187 with conjecture generation are `runs/modal/tip/full2`'s, the same harness at 60 s, not run beside these;
+the lead is unconfirmed until a run under TIP's own setup. Nothing trusted changed (`kernel/kernel.ts`,
+`kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/` are as in 0.23.0).
+
+- Lemma calculation (Zeno's, HipSpec's; `calculated`, `reduceX`): for each variable a scheme inducts on and each of its
+  constructors, the law at that constructor of fresh fields, its definitions unfolded where they are decided, the
+  hypothesis (the law at each recursive field, at any values of the law's other variables: an accumulator's) used as a
+  rewrite either way, and what is left unequal, its subterms common to both sides each a fresh variable, is a
+  conjecture; the base cases too. Those random values don't refute are tried first, a generalised one's own step
+  calculated again (bind over an append from `list_assoc`, then ++ associative from it). They have their own count in a
+  pass (most of it, 3 s each), and the law is tried again after the last of them.
+- Lemma uses ranked per case: past the node's caps, its candidate uses are kept for its cases (96), and a case takes up
+  to two more whose sides are both its own terms, up to the equalities its models take (`caseJoins`).
+  `research/edges/lemma-case.ts` (the lang/edges finding: the use `list_assoc`'s case needs was ranked out by models of
+  other cases) is proven both ways now.
+- A conjecture of a pass that failed is tried once more after a lemma is proven (HipSpec's loop).
+- Merged schemes (Boyer and Moore's): two recursion schemes' uses at once where they agree, `drop n (take m xs)` by n,
+  m and xs together; a scheme whose argument is a term (take n (xs ++ ys)) is one half of such a pair. At one unfolding,
+  in the law's first attempts only, within a third of an attempt's time.
+- A case's classes: its conditions' equalities, linear forms through its constants and its models (n + m ∸ 1 and
+  m ∸ 1 one form where n = 0 and m ≥ 1), and natural arguments that are truncated differences equal in every model of
+  the case one class in the congruence phase (n ∸ len xs and (n ∸ 1) ∸ len (tail xs), xs a cons); a split on an unknown
+  function's guard (filter by p); a lemma's constructor matched by its fields.
+- Faster, the same verdicts: conjectures matched against the goals at once (6 s of uncounted work to under 1 s on
+  `bin_plus_comm`); kernel/prove.ts's `openCells` reads each cell's key once (`prod/lemma_10`: 70 s of wall time to 23 s,
+  the same answer).
+- Gained 14: by calculated lemmas `prod/lemma_23`, `isaplanner/prop_20`,
+  `prod/prop_48`, `tip2015/nat_alt_mul_same`, `nat_acc_alt_mul_same`, `list_assoc` (58.08 s, at the limit); by merged
+  schemes `isaplanner/prop_41`, `prop_55`, `prop_57`, `prop_81`; by a case's arithmetic `prop_50`, `prop_56`,
+  `prod/lemma_05`; by the split on an unknown guard `isaplanner/prop_14`. Lost 2 at the limit, both slower here:
+  `isaplanner/prop_51` (54.12 s on main) and `prod/lemma_12` (59.57 s). Over the branch's runs, each beside main
+  launched with it: 195, 194, 194, 194 and 193 against 181, 183, 183, 182 and 181 (`runs/tiplem/tip-3` to `tip-8`, a
+  run with a bug fixed since left out). The median time of the 179 both prove: 0.83 s here, 0.64 s on main.
+- What is left (the 167 translated and unproven, compare/tip/README.md): conditional laws 54, sorting 29, binary and
+  signed integers 23, take, drop, zip and rotate at lengths 21 (13 proven by another tool; 27 and 19 on main),
+  accumulators and reversals 17, arithmetic on naturals 16, predicates over a list 7.
+- The datatype corpus (round 1, `runs/tiplem/f1-mine-3`, `f1-base-3`): 90 of 92 and 42 of 42 broken variants refused, as
+  on main; round 2's (`f2-mine-3`, `f2-base-3`): 27 of 47 and 47 of 47 refused, every item as on main (its TIP items: 2 of
+  15 in both). The real-world corpus's verdicts: all 311 the same (`runs/tiplem/rw-mine`, `rw-base`). `data.test.ts`'s
+  through-the-built-ins test reads n ≤ m + n: n ≤ n + m is now proven by plus's own recursion.
+- The suites on Modal: by default 213 jobs, none failed, 681.8 s wall, 5,233.5 s of job time
+  (`runs/tiplem/suite-default-2`); `--usual` 497.3 s and 4,718.8 s, none failed (`suite-usual-2`). The 5 s tests on
+  1 vCPU, ten jobs each side interleaved with main, in three batches: `data`'s nearPlus at most 3,320.17, 3,143.19 and
+  3,780.45 ms here (medians 2,835.98, 2,894.925 and 2,991.35 ms), 3,873.73, 3,077.19 and 3,406.48 ms on main (2,990.475,
+  2,364.635 and 2,825.62 ms); `infer`'s slowest test (an invariant over four values, under its own longer limit) at most
+  6,287.44 ms here and 6,940.21 ms on main (`runs/tiplem/t2-mine` at d523095, `onecpu-mine` and `onecpu2-mine` at
+  11ec6e2, the code measured above).
+
 Rules read from the code that ships (`gdp-wired/extract`, core/extract.ts): `extract(code, {entry})` reads a reducer,
 `useReducer`'s, functions over one record, a Redux Toolkit slice or a class whose methods write its fields, through the
 TypeScript compiler, and returns the rule that steps the same way, as a builder value and as the source that makes it
