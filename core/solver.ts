@@ -87,7 +87,7 @@ export function solve(constraints: Constraint[], maxRows = 20_000, integral = tr
     const constant = Math.ceil((lin['1'] ?? 0) / g)
     return push({kind: 'cut', of: index, g}, add(cut, k(constant)))
   }
-  let rows = constraints.map((c, index) => tighten(push({kind: 'input', index}, c.lin, c.strict === true)))
+  let rows = constraints.map((c, index) => tighten(push({kind: 'input', index}, c.lin, !integral && c.strict === true)))
   // A row with no variable and a positive constant, or a strict one with a constant >= 0 (kept per row: a row never
   // changes once pushed).
   const contra: boolean[] = []

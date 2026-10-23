@@ -2,12 +2,13 @@
 // A derivation refutes its constraints when every step replays: an input is that constraint, a combination adds two
 // earlier rows with positive integer multipliers (strict when either row is), a cut divides every variable coefficient
 // of an earlier row by g > 0 (each must be divisible) and rounds the constant up, and the last row has no variable and
-// a positive constant, or a constant >= 0 and is strict (0 < 0 is false).
+// a positive constant, or (over the rationals) a constant >= 0 and is strict (0 < 0 is false).
 // One check for both domains: over the rationals (`integral` false: Rationals.lean's checkQ) a derivation is a Farkas
 // certificate with strict rows, and a cut, the one step whose soundness needs an integer point (Cert.lean's cut_sound),
-// is refused; over the integers (the default: Cert.lean's check) a cut is allowed, so the naturals and the integers
-// are the rationals plus that rule. Rows over the rationals come with integer coefficients (a leaf's linear forms over
-// a positive denominator, kernel.ts), and every coefficient made must stay a safe integer, so none is rounded.
+// is refused; over the integers (the default: Cert.lean's check, exactly) a cut is allowed and no row is strict (a
+// strict row over the integers is lin + 1 <= 0), so the naturals and the integers are the rationals plus that rule.
+// Rows over the rationals come with integer coefficients (a leaf's linear forms over a positive denominator,
+// kernel.ts), and every coefficient made must stay a safe integer, so none is rounded.
 // A witness satisfies its constraints when every one of them evaluates to at most 0 at it.
 import type {Constraint, Lin, Step} from './solver.ts'
 
@@ -21,7 +22,7 @@ export function checkRefutation(constraints: Constraint[], steps: Step[], integr
       if (!(Number.isInteger(s.index) && s.index >= 0 && s.index < constraints.length)) return false
       const c = constraints[s.index]!
       if (!integral && !exact(c.lin)) return false
-      rows.push(c.lin); strict.push(c.strict === true)
+      rows.push(c.lin); strict.push(!integral && c.strict === true)
     } else if (s.kind === 'combine') {
       if (!(s.a < i && s.b < i && Number.isInteger(s.ma) && Number.isInteger(s.mb) && s.ma > 0 && s.mb > 0)) return false
       if (!integral && !(Number.isInteger(s.a) && Number.isInteger(s.b) && s.a >= 0 && s.b >= 0)) return false

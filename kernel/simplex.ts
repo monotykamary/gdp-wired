@@ -99,10 +99,10 @@ export class Simplex {
     }
     for (const [i, r] of rows.entries()) {
       const f = formOf(r.lin), k = r.lin['1'] ?? 0
-      if (f === null) { if (k > 0 || (r.strict && k >= 0)) return {kind: 'conflict', rows: [i]}; continue }
-      if ('single' in f) { bound(f.c, this.varOf(f.single), k, i, r.strict); continue }
+      if (f === null) { if (k > 0 || (!integral && r.strict && k >= 0)) return {kind: 'conflict', rows: [i]}; continue }
+      if ('single' in f) { bound(f.c, this.varOf(f.single), k, i, !integral && r.strict); continue }
       // g·form + k <= 0
-      bound(f.g, this.slackOf(f), k, i, r.strict)
+      bound(f.g, this.slackOf(f), k, i, !integral && r.strict)
     }
     for (let j = 0; j < this.val.length; j++) if (this.lo[j]! > this.hi[j]! + eps) return {kind: 'conflict', rows: [this.loWhy[j]!, this.hiWhy[j]!].filter(x => x >= 0)}
     // Nonbasic variables into their bounds, then each basic one computed afresh from its row (no drift from the shifts

@@ -4,6 +4,8 @@
 import {expect, test} from 'bun:test'
 import {adversarial, decided, feeLaws, feeSplit, ledger, ledgerLaws, limiter, limiterLaws} from '../examples/rationals.ts'
 import {checkQMachine} from '../kernel/kernel.ts'
+import {checkRefutation} from './check.ts'
+import {type Step, solve} from './solver.ts'
 import {q, qeq} from './q.ts'
 import {type QEnv, interpretQ, loadQJs, nonneg, proveQMachine, proveRatRule, ratRule, rlit} from './rationals.ts'
 
@@ -49,6 +51,17 @@ test('the runtimes compute exactly, interpreted and compiled alike', () => {
     expect(qeq(s.a!, q(27, 100))).toBe(true)
     expect(qeq(s.b!, q(3, 100))).toBe(true)
   }
+})
+
+test('check.ts: strictness counts over the rationals only; over the integers the check is Cert.lean\'s, strictness ignored', () => {
+  // x < 0 and x >= 0: refuted over ℚ by their sum (0 < 0); over the integers the same rows read as x <= 0 and x >= 0,
+  // which x = 0 satisfies, so the same derivation is refused, as Cert.lean's check (no strictness) refuses it.
+  const rows = [{lin: {x: 1}, label: '', strict: true}, {lin: {x: -1}, label: ''}]
+  const steps: Step[] = [{kind: 'input', index: 0}, {kind: 'input', index: 1}, {kind: 'combine', a: 0, b: 1, ma: 1, mb: 1}]
+  expect(checkRefutation(rows, steps, false)).toBe(true)
+  expect(checkRefutation(rows, steps)).toBe(false)
+  expect(solve(rows, 20_000, false).kind).toBe('refuted')
+  expect(solve(rows).kind).toBe('sat')
 })
 
 test('a product of two unknowns is refused: nonlinear arithmetic is outside these certificates', () => {
