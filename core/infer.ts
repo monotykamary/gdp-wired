@@ -113,6 +113,9 @@ const joinCubes = (globalThis as {process?: {env?: Record<string, string | undef
 const joinCubeMax = 48, joinCubeTries = 8, joinCubeDepth = 3, joinCubeMs = 2000
 // Once a cube is in the set, the join has 0.3 of what is left of its time (the search below the rest).
 const joinCubeWindow = 0.3
+// GDP_JOIN_DOWN=0: a blocked cube kept as its refutation's core cuts it (no literal dropped); joinDownQueries, the
+// queries a cube's generalization may ask.
+const joinDown = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_DOWN !== '0', joinDownQueries = 24
 const seeded = (seed: number): Rand => { let s = seed; return k => { s = (s * 1103515245 + 12345) % 2 ** 31; return Math.floor(s / 2 ** 31 * k) } }
 const isRule = (t: AnyRule | Machine): t is AnyRule => typeof (t as AnyRule).kindsOfState === 'function'
 const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
@@ -951,6 +954,27 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // cube made smaller to leave the predecessor's successor out. Each cube blocked is a form of the set (a
     // disjunction: never all its literals), which the join keeps or drops as any other.
     let cubed = 0, cubeWhy = '', cubeUntil = Infinity
+    // IC3's generalization of a cube blocked (Bradley's down, literal dropping as Een, Mishchenko and Brayton's): the
+    // literals taken out a part at a time (half of them, then quarters, ..., then one by one), a part kept out where the
+    // cube without it still leaves the start and the samples out and is still blocked relative to the same laws (the
+    // refutation's core then cutting it further); within joinDownQueries queries. A cube's core reads most of its
+    // literals where the step's terms are a chain of ifs (research/dag: a refutation's core is nearly its whole path), so
+    // the core alone leaves a cube of every control value; Spacer's clauses on these tasks read two to four.
+    const down = (c: Lit[], frame: Law[]): Lit[] => {
+      let cur = c, queries = 0
+      for (let part = Math.ceil(cur.length / 2); part >= 1 && queries < joinDownQueries && now() < jUntil && !stop(); part = part === 1 ? 0 : Math.ceil(part / 2)) {
+        for (let i = 0; i < cur.length && cur.length > 1 && queries < joinDownQueries && now() < jUntil && !stop();) {
+          const cand = [...cur.slice(0, i), ...cur.slice(i + part)]
+          if (!cand.length || (initVec && inCube(cand, initVec)) || S.some(s2 => inCube(cand, s2))) { i += part; continue }
+          queries++
+          const r = queryWith(cand, frame)
+          if (!r?.ok) { i += part; continue }
+          const cut = cand.filter((_, j) => r.core.has(j))
+          cur = cut.length && !(initVec && inCube(cut, initVec)) && !S.some(s2 => inCube(cut, s2)) ? cut : cand
+        }
+      }
+      return cur
+    }
     const blockCube = (v: Float64Array, depth: number, within: Form[]): Form[] => {
       let c = cubeOf(v)
       const made: Form[] = []
@@ -964,7 +988,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         if (r.ok) {
           const c2 = c.filter((_, j) => r.core.has(j))
           if (initVec && inCube(c2, initVec)) { const l = c.find(l2 => !litHolds(l2, initVec!)); if (l) c2.push(l) }
-          made.push(formOf(outOfSamples(c2, c) ? c2 : c))
+          const c3 = outOfSamples(c2, c) ? c2 : c
+          made.push(formOf(joinDown ? down(c3, [...ctx, ...made].map(lawFor).filter(l => l.name !== textOf(formOf(c3)))) : c3))
           break
         }
         if (!r.post) { cubeWhy = 'no step'; break }
