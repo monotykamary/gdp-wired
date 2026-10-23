@@ -1,0 +1,5 @@
+[boat] batch 20261023-151146-apla9t: image gdpw-9fee57bd731c, tree 3630 KB, library 503f0f3e691c (14 .olean here, 11157 KB, for VMs that lack them)
+[boat] 0 VMs up and free, 4 starts of the 19 left: 4 VMs (the old policy: 8)
+[boat] 204 jobs on 4 default VM(s) + 1 large (times from the last run)
+204 jobs, 0 failed, 429.4 s wall, 3270.7 s of job time; 204 on boat
+EXIT 0

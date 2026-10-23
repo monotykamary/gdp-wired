@@ -1,0 +1,49 @@
+{
+ "backend": "auto",
+ "wall_s": 245.4,
+ "where": {
+  "boat": 204
+ },
+ "fallbacks": [],
+ "boat": {
+  "vms": 11,
+  "leased_running": 0,
+  "resumed": 11,
+  "created": 0,
+  "topped_up": 0,
+  "not_resumed": 0,
+  "account_day": "858 to 869",
+  "to_running_s": [
+   8.2,
+   8.4,
+   9.6
+  ],
+  "prep_s": [
+   14.0,
+   17.1,
+   26.4
+  ],
+  "tree_from_seed": 10,
+  "types": [
+   "default",
+   "large"
+  ],
+  "held_s": 2485.0,
+  "ready_held_s": 2193.3,
+  "busy_s": 2125.1,
+  "idle_vm_s": 68.2,
+  "bring_up_s": 291.7,
+  "idle_tail_s": 660,
+  "idle_s": 60,
+  "starts": 11,
+  "phases": {
+   "jobs_s": 223.3,
+   "collect_s": 1.4,
+   "harvest_s": 0.0,
+   "close_s": 3.8
+  },
+  "dollars_so_far": 0.0273,
+  "batch": "20261023-111531-boqee9",
+  "image": "gdpw-9fee57bd731c"
+ }
+}

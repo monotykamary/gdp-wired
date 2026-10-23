@@ -1,0 +1,15 @@
+[boat] batch 20261023-113253-6sppux: image gdpw-9fee57bd731c, tree 3628 KB, library 503f0f3e691c (0 .olean here, 0 KB, for VMs that lack them)
+[boat] 1406 calls of shard on up to 214 default VM(s)
+100/1406 shards, 86 s
+200/1406 shards, 107 s
+300/1406 shards, 116 s
+400/1406 shards, 143 s
+500/1406 shards, 172 s
+600/1406 shards, 181 s
+700/1406 shards, 205 s
+800/1406 shards, 229 s
+900/1406 shards, 240 s
+[boat] boat: 214 VMs (47 created, 156 resumed, 0 already up; 203 starts), $0 so far (boat usage), 124427.8 idle VM-s of 148423.3 held ready, 7332.8 VM-s bringing up
+1407 calls on boat
+952 calls on boat (fallback: 455: every boat VM lost (bx_sxtanj9a: boat list failed (1): {"error":"could not reach the Boat API at https://boat.dev: error sending request for url (https://boat.dev/api/boat/sandboxes?limit=200&state=init,provisioning,provisioned,cloni))
+EXIT 1

@@ -1,0 +1,15 @@
+{
+ "backend": "auto",
+ "wall_s": 55.5,
+ "where": {
+  "modal": 1
+ },
+ "fallbacks": [
+  {
+   "jobs": 1,
+   "to": "modal",
+   "reason": "no boat starts left this hour or day"
+  }
+ ],
+ "boat": null
+}

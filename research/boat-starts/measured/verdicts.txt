@@ -1,0 +1,31 @@
+runs/starts/chc-new vs runs/starts/chc-old (results.jsonl): 1406 entries, 1373 the same, 33 differ
+  contradictions (two definite answers that differ): 0
+  unknown -> timeout: 21
+  sat -> unknown: 4
+  unknown -> sat: 4
+  timeout -> unknown: 3
+  unknown -> unsat: 1
+  definite answers: 521 and 522
+runs/starts/chc-c985479 vs runs/starts/chc-old (results.jsonl): 1406 entries, 1370 the same, 36 differ
+  contradictions (two definite answers that differ): 0
+  unknown -> timeout: 18
+  sat -> unknown: 7
+  unknown -> sat: 5
+  timeout -> unknown: 5
+  timeout -> unsat: 1
+  definite answers: 523 and 522
+runs/starts/tip-new vs runs/starts/tip-old20 (results.jsonl): 492 entries, 462 the same, 30 differ
+  contradictions (two definite answers that differ): 0
+  timeout -> unknown: 19
+  unknown -> timeout: 10
+  proven -> timeout: 1
+  definite answers: 277 and 276
+runs/starts/suite-new vs runs/starts/suite-old (summary.tsv): 204 entries, 204 the same, 0 differ
+runs/starts/suite-c985479 vs runs/starts/suite-old (summary.tsv): 204 entries, 204 the same, 0 differ
+runs/starts/chc-new vs runs/starts/chc-c985479 (results.jsonl): 1406 entries, 1386 the same, 20 differ
+  contradictions (two definite answers that differ): 0
+  unknown -> timeout: 9
+  unknown -> sat: 5
+  sat -> unknown: 3
+  timeout -> unknown: 3
+  definite answers: 521 and 523
