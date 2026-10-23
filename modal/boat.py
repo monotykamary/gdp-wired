@@ -2,7 +2,7 @@
 stopped between them (a stopped VM bills no compute and keeps its disk), resumed per batch, stopped again a short idle
 time after it, and deleted only on teardown or when the image changes.
 
-    python3 modal/run.py --backend boat --jobs modal/suite.json --out runs/backends/suite [--vms N] [--idle 60]
+    python3 modal/run.py --backend boat --jobs modal/suite.json --out runs/backends/suite [--vms N] [--idle 300]
     python3 modal/boat.py status | reap | cold | teardown [--all] | image [--build] | usage <since ISO>
 
 The image is one named snapshot, `gdpw-<hash>`, built in layers (bun and Lean, then each compare runner's solvers and
@@ -16,8 +16,8 @@ VM's TTL is the idle time, after which boat stops it.
 Starts are what the plan rations (a resume is one): a batch spends at most a share of those left (budget()), a VM is
 resumed only while the batch still needs it, a batch with more work than slots takes VMs other batches release while
 they're still up (no start), and with no start left a batch waits for those rather than going to Modal at once. A
-released VM stays up 60 s, or 900 s when the starts left would run out within that at the last hour's pace
-(release_idle()). GDPW_BOAT_POLICY=old: the policy before.
+released VM stays up 300 s. The plan's limits are read from `boat limits` at every batch. GDPW_BOAT_POLICY=old: the
+policy before.
 
 A batch: the worktree as git sees it (tracked and untracked files that aren't ignored, with the submodules', minus the
 same paths modal/run.py leaves out) goes to one VM, which serves it to the others through a token-gated boat URL, and
@@ -61,9 +61,8 @@ RESERVE_HOUR = int(os.environ.get("GDPW_BOAT_RESERVE_HOUR", "15"))
 OLD = os.environ.get("GDPW_BOAT_POLICY", "") == "old"
 SHARE = float(os.environ.get("GDPW_BOAT_SHARE", "0.25"))  # a batch starts at most this share of the starts left
 MIN_STARTS = 2  # (but this many, while any are left)
-MAX_STARTS = int(os.environ.get("GDPW_BOAT_MAX_STARTS", "30"))  # and at most this many (0: no cap; scale.txt)
-IDLE = 60  # a released VM stays up this long (boat stops it then; a resume later is a start)...
-IDLE_LONG = 900  # ...and this long when, at the last hour's pace, the starts left run out within it
+MAX_STARTS = int(os.environ.get("GDPW_BOAT_MAX_STARTS", "50"))  # and at most this many (0: no cap; tune-500.txt)
+IDLE = 60 if OLD else int(os.environ.get("GDPW_BOAT_IDLE", "300"))  # a released VM stays up this long, for the next batch
 WAIT_STARTS = 0 if OLD else 600  # with no start to be had, wait this long for a VM another batch releases
 
 
@@ -162,18 +161,10 @@ def budget(left: int) -> int:
 
 
 def release_idle(lim: dict | None = None) -> int:
-    """How long a released VM stays up. A VM kept up costs its idle time ($0.009 for 900 s), a start costs nothing
-    until the starts run out, when it sends work to Modal: so IDLE_LONG only if the starts left (hour and day) run
-    out within it at the pace of the last hour (its starts), else IDLE. (research/boat-starts/scale.txt: at today's
-    volume this spends no more idle than 60 s always; at twice it keeps the work off Modal.)"""
-    if OLD:
-        return IDLE
-    try:
-        lim = lim or limits()
-        pace = lim["starts"]["hour"]["used"]
-        return IDLE_LONG if pace > 0 and starts_left(lim) < pace * IDLE_LONG / 3600 else IDLE
-    except Exception:
-        return IDLE
+    """How long a released VM stays up (--idle overrides it). 300 s: on the $500 plan, wall time first, a VM kept up
+    for the next batch (any track's, or one topping up) beat a 60 s idle and one that grows only when starts run
+    short (research/boat-starts/tune-500.txt)."""
+    return IDLE
 
 
 def sandboxes() -> dict:

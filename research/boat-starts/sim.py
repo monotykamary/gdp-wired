@@ -189,8 +189,11 @@ class Sim:
         if self.p.get("share") is not None:
             left = self.left()
             budget = min(left, max(self.p.get("min_budget", 2), math.floor(self.p["share"] * left)))
-            if self.p.get("cap"):
-                budget = min(budget, self.p["cap"])
+            cap = self.p.get("cap")
+            if self.p.get("cap_short") and self.count(3600) * self.p["cap_short"][1] > left:
+                cap = self.p["cap_short"][0]  # at the last hour's pace the starts left last under H hours: the lower cap
+            if cap:
+                budget = min(budget, cap)
             n = min(n, up + budget)
         elif self.p.get("cap"):
             n = min(n, self.p["cap"])
@@ -467,14 +470,18 @@ BASE = {"idle": 60, "share": 1 / 4, "min_budget": 2, "check_resume": True, "topu
 # left (hour and day) run out within those 900 s (modal/boat.py's release_idle)
 # and (the coordinator's decisions) at most 30 starts a batch, the last 60 of the day and 15 of the hour kept for the
 # account's other project
-NEW = dict(BASE, adaptive={"exhaust": True, "long": 900}, cap=30, reserve=(60, 15))
+NEW100 = dict(BASE, adaptive={"exhaust": True, "long": 900}, cap=30, reserve=(60, 15))  # the $100 plan's choice
+# the defaults chosen for $500, wall time first (tune.py, tune-500.txt): a quarter of the starts left, at most 50 a
+# batch, released VMs up 300 s
+NEW = dict(BASE, idle=300, cap=50, reserve=(60, 15))
 OLDNEW = {"idle": 300, "idle_scarce": 900, "scarce_below": 100, "share": 1 / 4, "min_budget": 2, "check_resume": True, "topup": True, "wait": 600}
 POLICIES = {
     "old": {"idle": 60},
     "new": NEW,
+    "new for $100 (cap 30, 60 s idle, 900 s when short)": NEW100,
     "base (new without the longer idle)": BASE,
-    "new, no reserve": dict(NEW, reserve=RESERVE),
-    "new, no reserve, no cap": dict(NEW, reserve=RESERVE, cap=None),
+    "new, no reserve": dict(NEW100, reserve=RESERVE),
+    "new, no reserve, no cap": dict(NEW100, reserve=RESERVE, cap=None),
     "idle300/scarce900": OLDNEW,
     # one change at a time
     "old+idle300": {"idle": 300},
@@ -540,7 +547,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("mix")
     ap.add_argument("--policy", action="append", default=[])
-    ap.add_argument("--plan", default="100")
+    ap.add_argument("--plan", default="500")
     ap.add_argument("--rows", action="store_true")
     a = ap.parse_args()
     mix = load(a.mix)
