@@ -88,7 +88,10 @@ for (const d of domains) row(d, corpus.filter(i => i.domain === d))
 row('**all**', corpus)
 p()
 const proven = scored.filter(x => x.r!.outcome === 'proven')
-p(`- Items: ${corpus.length}; fully expressible: ${corpus.filter(i => i.expressible === 'full').length} (${pct(corpus.filter(i => i.expressible === 'full').length, corpus.length)}); none of it: ${corpus.filter(i => i.expressible === 'none').length}.`)
+// A gap of `scope` (left out by choice) or `external` (state another system holds, sent in) isn't the language's.
+const notLanguage = new Set(['scope', 'external'])
+const noLanguageGap = corpus.filter(i => i.gaps.every(g => notLanguage.has(g.gap)))
+p(`- Items: ${corpus.length}; fully expressible (every part of the step said exactly as the code does it): ${corpus.filter(i => i.expressible === 'full').length} (${pct(corpus.filter(i => i.expressible === 'full').length, corpus.length)}); with no language gap (what is left out is by choice or held by another system): ${noLanguageGap.length} (${pct(noLanguageGap.length, corpus.length)}); none of it: ${corpus.filter(i => i.expressible === 'none').length}.`)
 const unstated = corpus.flatMap(i => i.unstated ?? [])
 p(`- Laws: ${lawRuns.length} stated (${scored.length} run), ${unstated.length} more a reviewer would ask that the language can't state; proven with nothing stated: ${proven.length} (${pct(proven.length, scored.length)} of those run, ${pct(proven.length, scored.length + unstated.length)} counting the unstated).`)
 for (const kind of ['safety', 'liveness', 'access', 'step'] as const) {
@@ -99,16 +102,39 @@ p(`- Median time per law: ${median(scored.map(x => x.r!.ms))} ms over all laws r
 const refuted = scored.filter(x => x.r!.outcome === 'refuted')
 const tri = (v: Triage['verdict']) => refuted.filter(x => triage[`${x.it.id}#${x.l.name}`]?.verdict === v).length
 p(`- Refuted: ${refuted.length}: real bugs ${tri('bug')}, modelling errors ${tri('model')}, law errors ${tri('law')}, not triaged ${refuted.length - tri('bug') - tri('model') - tri('law')}.`)
+// Why the rest weren't proven, from where the prover and the search stopped.
+const unknown = scored.filter(x => x.r!.outcome !== 'proven' && x.r!.outcome !== 'refuted')
+const reason = (r: Run): string => {
+  const t = [r.goal, r.stuck, r.why, r.error].filter(Boolean).join(' ')
+  if (r.outcome === 'timeout') return 'killed at 150 s'
+  if (r.outcome === 'error') return 'the library threw'
+  if (/no linear rank/.test(t)) return 'liveness: no rank found (no helpful step sampled lowers a linear rank)'
+  if (/rank .* from the runs/.test(t)) return "liveness: a rank fitted to the runs, the kernel's goals not proven with it"
+  if (/time budget ran out/.test(t)) return "the prover's budget ran out on a goal (a wide rule)"
+  if (/search found nothing/.test(t)) return 'not inductive alone, and the search found no invariant that proves it'
+  if (/@step law sat|@\d+ steps sat/.test(t)) return 'a step law broken from a state no run was shown to reach (it needs an invariant)'
+  return t.slice(0, 80)
+}
+const reasons = new Map<string, number>()
+for (const x of unknown) reasons.set(reason(x.r!), (reasons.get(reason(x.r!)) ?? 0) + 1)
+p(`- Not proven nor refuted: ${unknown.length}, of which:`)
+for (const [k, n] of [...reasons].sort((a, b) => b[1] - a[1])) p(`  - ${n}: ${k}`)
+const bugsNoRun = unknown.filter(x => triage[`${x.it.id}#${x.l.name}`]?.verdict === 'bug')
+p(`  - (${bugsNoRun.length} of them are laws the original code breaks, each shown by a repro: the search found no run within its budget)`)
 const viaSearch = proven.filter(x => x.r!.found?.length)
 p(`- Proven only through the search's finds (invariants, lemmas, a rank): ${viaSearch.length} of ${proven.length}.`)
 p()
 
 // The gaps, ranked by the items they block (an item counts once per gap).
-p('| Gap | Items | Of which wholly blocked | What |')
+p('| Gap | Items | Laws it blocks | What |')
 p('| --- | --- | --- | --- |')
 const gapKeys = Object.keys(GAPS) as (keyof typeof GAPS)[]
-const gapRows = gapKeys.map(g => ({g, items: corpus.filter(i => i.gaps.some(x => x.gap === g)), whole: corpus.filter(i => i.gaps.some(x => x.gap === g && x.blocks === 'item'))})).filter(x => x.items.length).sort((a, b) => b.items.length - a.items.length)
-for (const {g, items, whole} of gapRows) p(`| ${g} | ${items.length} | ${whole.length} | ${GAPS[g]} |`)
+const gapRows = gapKeys.map(g => ({g, items: corpus.filter(i => i.gaps.some(x => x.gap === g))})).filter(x => x.items.length).sort((a, b) => b.items.length - a.items.length)
+
+for (const {g, items} of gapRows) {
+  const laws = new Set(corpus.flatMap(i => i.gaps.filter(x => x.gap === g).flatMap(x => (x.laws ?? []).map(l => `${i.id}#${l}`))))
+  p(`| ${notLanguage.has(g) ? `(${g})` : g} | ${items.length} | ${laws.size || ''} | ${GAPS[g]} |`)
+}
 p()
 
 // Every law.

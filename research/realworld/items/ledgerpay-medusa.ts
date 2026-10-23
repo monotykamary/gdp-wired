@@ -84,7 +84,7 @@ const orderItemQuantities: RealItem = {
   summary: "An order item's fulfilled, shipped, delivered, return-requested, received, dismissed and written-off quantities, each action validated against the others before it changes one.",
   expressible: 'partial',
   gaps: [
-    {gap: 'other', blocks: 'part', detail: 'quantities are BigNumbers and may be fractional; the rule takes integers (every validate compares them the same way)'},
+    {gap: 'float', blocks: 'part', detail: 'quantities are BigNumbers and may be fractional; the rule takes integers (every validate compares them the same way)'},
   ],
   laws: [
     invariant(o, o.law('never more fulfilled than ordered', ({fulfilled, quantity}) => fulfilled.atMost(quantity)),
@@ -193,7 +193,7 @@ const captureRefund: RealItem = {
   summary: "A payment's captures (up to the authorized amount, none once canceled) and refunds (up to what is captured), with idempotency keys that replay a succeeded refund and resume a failed or stale pending one.",
   expressible: 'partial',
   gaps: [
-    {gap: 'other', blocks: 'part', detail: 'amounts are BigNumbers rounded to the currency precision (Intl.NumberFormat) and compared with an epsilon; the rule takes amounts in the smallest unit, where both are exact'},
+    {gap: 'float', blocks: 'part', detail: 'amounts are BigNumbers rounded to the currency precision (Intl.NumberFormat) and compared with an epsilon; the rule takes amounts in the smallest unit, where both are exact'},
     {gap: 'async', blocks: 'part', detail: 'the capture or refund row commits before the provider call, outside the row lock; the rule makes each call one step, so a refund between a capture and its provider failure (which deletes the capture) is not a run of the rule'},
   ],
   laws: [

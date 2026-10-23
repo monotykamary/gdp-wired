@@ -69,7 +69,7 @@ export const items: RealItem[] = [{
   summary: 'A proposer schedules an operation with at least the minimum delay; once ready (and its predecessor done) an executor runs it once; a canceller may cancel it while pending.',
   expressible: 'partial',
   gaps: [
-    {gap: 'other', blocks: 'part', detail: 'roles are fixed for a run (one proposer, who is also the canceller; one executor or the open role): AccessControl grants and revocations by the admin are left out'},
+    {gap: 'scope', blocks: 'part', detail: 'roles are fixed for a run (one proposer, who is also the canceller; one executor or the open role): AccessControl grants and revocations by the admin are left out'},
     {gap: 'external', blocks: 'part', detail: 'the operation\'s calls (and any reentrancy into the timelock from them) are not run; updateDelay is a request from `self`, which on chain only an executed operation can make'},
   ],
   laws: [

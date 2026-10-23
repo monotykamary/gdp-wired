@@ -90,7 +90,7 @@ export const items: RealItem[] = [{
   gaps: [
     {gap: 'unbounded-collection', blocks: 'part', detail: 'one warehouse: allocate_stocks fills a line from the channel\'s stocks sorted by its allocation strategy (sort_stocks, :268-313); batches are one line, or two for decrease_allocations'},
     {gap: 'external', blocks: 'part', detail: 'checkout reservations (check_reservations, :243-265), preorders, channel and shipping-zone stock filters, and stock quantity set by staff mutations are left out'},
-    {gap: 'other', blocks: 'part', detail: 'Django\'s bulk_update with a duplicate object (the first one wins) is modelled from Django\'s documented behaviour, not from code in the repo'},
+    {gap: 'external', blocks: 'part', detail: 'Django\'s bulk_update with a duplicate object (the first one wins) is modelled from Django\'s documented behaviour, not from code in the repo'},
   ],
   laws: [
     invariant(r, r.law("the stock's allocated count is the sum of its allocations", ({qa, allocSum}) => qa.eq(allocSum)),

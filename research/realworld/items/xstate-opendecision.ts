@@ -49,8 +49,8 @@ export const items: RealItem[] = [{
   expressible: 'partial',
   gaps: [
     {gap: 'async', blocks: 'part', detail: 'invoke (the authenticate promise, the openWebsocket callback actor with its own 5 s setTimeout) and `after: {retry_delay}`: their completions and the timer are events from outside; the delay min(retries * 1000, 20000) is not time the chart waits'},
-    {gap: 'other', blocks: 'part', detail: 'fromXState refuses it: `after` on retry (first), and `invoke`; its v4 guard `cond: "underRetryLimit"` is not read by fromXState at all (it reads v5 `guard` only: a v4 cond is dropped without a refusal); the chart is by hand'},
-    {gap: 'other', blocks: 'part', detail: 'id, yDoc, onSync and token (objects and strings) as whether they are set'},
+    {gap: 'chart-subset', blocks: 'part', detail: 'fromXState refuses it: `after` on retry (first), and `invoke`; its v4 guard `cond: "underRetryLimit"` is not read by fromXState at all (it reads v5 `guard` only: a v4 cond is dropped without a refusal); the chart is by hand'},
+    {gap: 'scope', blocks: 'part', detail: 'id, yDoc, onSync and token (objects and strings) as whether they are set'},
   ],
   laws: [
     chartLaw(c, c.law('the retries stay within the retry limit', ({retries, retryLimit}) => retries.atMost(retryLimit)),

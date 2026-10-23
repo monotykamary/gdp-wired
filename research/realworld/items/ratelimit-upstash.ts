@@ -241,7 +241,7 @@ export const items: RealItem[] = [{
   expressible: 'partial',
   gaps: [
     {gap: 'float', blocks: 'part', detail: 'script :77-79 math.floor((1 - (now % window) / window) * previous) in doubles is sometimes one below the exact floor((window - now % window) * previous / window) (window 5, now % window 4, previous 5: 0.9999999999999998 floors to 0, not 1; 52396 of 1.2M sampled cases, never above); the rule lets the weighted count be either'},
-    {gap: 'other', blocks: 'part', detail: 'refunds (a negative rate, script :81-82 skips the check): a bucket may go below 0 and the weighted floor of a negative count is not modelled; the rule sends rates >= 0 only'},
+    {gap: 'scope', blocks: 'part', detail: 'refunds (a negative rate, script :81-82 skips the check): a bucket may go below 0 and the weighted floor of a negative count is not modelled; the rule sends rates >= 0 only'},
     {gap: 'nonlinear', blocks: 'law', laws: ['a rejected caller is admitted two windows later'], detail: 'bucket × window and (window - now % window) × previous: the helpful request lands in an empty pair of windows only through products of unknowns'},
     {gap: 'external', blocks: 'part', detail: 'dynamicLimits (single.ts:328-331, script :59-66): the limit read from a Redis key; `tokens` is a fixed param (the default)'},
   ],

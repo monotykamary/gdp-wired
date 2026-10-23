@@ -54,7 +54,7 @@ export const items: RealItem[] = [{
   gaps: [
     {gap: 'float', blocks: 'part', detail: 'tokens and limit are float64, elapsed time is ns read as float seconds (rate.go:396, :422-427): the rule uses whole ticks and a whole rate per tick; with floats a shortfall below 1e-9 s of tokens truncates to a 0 wait (rate.go:410, time.Duration(duration)) and is granted'},
     {gap: 'nonlinear', blocks: 'part', detail: 'elapsed × limit (rate.go:395, tokensFromDuration) is a product of two unknowns in the step'},
-    {gap: 'other', blocks: 'part', detail: 'only AllowN (maxFutureReserve 0): ReserveN / WaitN (debt, a negative token count), Cancel and SetLimitAt / SetBurstAt are left out'},
+    {gap: 'scope', blocks: 'part', detail: 'only AllowN (maxFutureReserve 0): ReserveN / WaitN (debt, a negative token count), Cancel and SetLimitAt / SetBurstAt are left out'},
   ],
   laws: [
     invariant(r, r.law('the bucket never holds more than burst tokens', ({tokens, burst}) => tokens.atMost(burst)),

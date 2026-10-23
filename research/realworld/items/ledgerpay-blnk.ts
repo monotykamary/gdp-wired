@@ -84,7 +84,7 @@ export const items: RealItem[] = [{
   expressible: 'partial',
   gaps: [
     {gap: 'float', blocks: 'part', detail: 'OverdraftLimit is a float64 turned into precise units by decimal rounding (model.go:186-191), and a transaction without a PreciseAmount has its float Amount converted; the rule takes the precise limit and amount'},
-    {gap: 'other', blocks: 'part', detail: 'RollbackInflight* take any big.Int, negative too; the rule takes amounts of at least 0 (the callers pass a transaction\'s PreciseAmount)'},
+    {gap: 'scope', blocks: 'part', detail: 'RollbackInflight* take any big.Int, negative too; the rule takes amounts of at least 0 (the callers pass a transaction\'s PreciseAmount)'},
     {gap: 'external', blocks: 'part', detail: 'QueuedDebitBalance (set from the database when queued checks are on) is left out of the available funds'},
   ],
   laws: [

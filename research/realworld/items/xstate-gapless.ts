@@ -177,7 +177,7 @@ export const items: RealItem[] = [{
   summary: 'Per-track audio playback: HTML5 until the Web Audio buffer is decoded, then a mid-stream hand-over to Web Audio; preloading, gapless scheduling, deactivation back to idle, and a fetch-and-decode child spawned once.',
   expressible: 'partial',
   gaps: [
-    {gap: 'other', blocks: 'part', detail: 'fromXState refuses the shipped config: the root START_FETCH runs an inline assign and spawnChild (track.machine.ts:166-181), BUFFER_READY has an inline guard `({context}) => context.pendingPlay` (:251, :363); the rule is the same config with the two named (conform-gapless.ts: no divergence from the original)'},
+    {gap: 'chart-subset', blocks: 'part', detail: 'fromXState refuses the shipped config: the root START_FETCH runs an inline assign and spawnChild (track.machine.ts:166-181), BUFFER_READY has an inline guard `({context}) => context.pendingPlay` (:251, :363); the rule is the same config with the two named (conform-gapless.ts: no divergence from the original)'},
     {gap: 'async', blocks: 'part', detail: 'spawnChild(fetchDecode): the child\'s replies (BUFFER_READY, BUFFER_ERROR, URL_RESOLVED) arrive as events from outside, in any order and any number of times (the child sends one outcome)'},
     {gap: 'external', blocks: 'part', detail: 'the guard canPlayWebAudio reads the Track object (Track.ts:205: this.ctx && this.audioBuffer && this.gainNode): sent in with the request as webAudioReady'},
     {gap: 'float', blocks: 'part', detail: 'seekTarget, scheduledStartContextTime and the element\'s currentTime (freezePausedTime, Track.ts:284-290) are float seconds: whole units here'},

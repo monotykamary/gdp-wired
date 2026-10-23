@@ -312,7 +312,7 @@ export const items: RealItem[] = [{
   expressible: 'partial',
   gaps: [
     {gap: 'unbounded-collection', blocks: 'part', detail: 'the rolling window (Settings.BucketPeriod > 0): a ring of per-bucket Counts rolled by age, with subtract() rescanning every bucket (counter.go:52-212); only the fixed window (one bucket, BucketPeriod <= 0) is modelled'},
-    {gap: 'other', blocks: 'part', detail: 'ReadyToTrip is a user function of Counts; the default (ConsecutiveFailures > 5, gobreaker.go:177-179) is modelled'},
+    {gap: 'scope', blocks: 'part', detail: 'ReadyToTrip is a user function of Counts; the default (ConsecutiveFailures > 5, gobreaker.go:177-179) is modelled'},
   ],
   laws: [
     invariant(g, g.law('half-open admits at most maxRequests requests', ({st, requests, exclusions, maxRequests}) => st.is('halfOpen').implies(requests.minus(exclusions).atMost(maxRequests))),
@@ -342,7 +342,7 @@ export const items: RealItem[] = [{
   expressible: 'partial',
   gaps: [
     {gap: 'async', blocks: 'part', detail: 'a call made while HalfOpen awaits the test and calls execute() again (CircuitBreakerPolicy.ts:237-243): modelled as a request that changes nothing, the caller retrying with a later request'},
-    {gap: 'other', blocks: 'part', detail: 'halfOpenAfter as a backoff factory (a user IBackoff whose duration varies with attemptNo) and initialState hydration (:153-177) are not modelled; a constant halfOpenAfter is'},
+    {gap: 'scope', blocks: 'part', detail: 'halfOpenAfter as a backoff factory (a user IBackoff whose duration varies with attemptNo) and initialState hydration (:153-177) are not modelled; a constant halfOpenAfter is'},
   ],
   laws: [
     stepLaw(c, c.stepLaw('an open circuit stays open on a call before halfOpenAfter', (_, after) => after.st.is('Open'), ({op, st, now, openedAt, halfOpenAfter}) => op.is('execute').and(st.is('Open'), now.lt(openedAt.plus(halfOpenAfter)))),
@@ -381,7 +381,7 @@ items.push({
     {gap: 'float', blocks: 'part', detail: 'fail() compares `stats.failures / stats.fires * 100 > errorThresholdPercentage` in binary floating point (circuit.js:993-994); written as the exact failures * 100 > threshold * fires, which differs at some points (7 / 25 * 100 is 28.000000000000004 > 28)'},
     {gap: 'nonlinear', blocks: 'part', detail: 'the threshold test multiplies the errorThresholdPercentage param by the window\'s fire count, two unknowns'},
     {gap: 'async', blocks: 'part', detail: 'the window rotates on a setInterval (status.js:83) and the reset and warm-up timers are setTimeouts (circuit.js:278, :318): sent in as requests (the rotation count with each request; the timers as events at a time past their delay)'},
-    {gap: 'other', blocks: 'part', detail: 'not modelled: the semaphore (capacity, default Number.MAX_SAFE_INTEGER), the cache and coalescing (off by default), enable()/disable(), shutdown(), fallbacks (they change what the caller gets, not the state), and a restore that also passes `status`'},
+    {gap: 'scope', blocks: 'part', detail: 'not modelled: the semaphore (capacity, default Number.MAX_SAFE_INTEGER), the cache and coalescing (off by default), enable()/disable(), shutdown(), fallbacks (they change what the caller gets, not the state), and a restore that also passes `status`'},
   ],
   laws: [
     stepLaw(o, o.stepLaw('an open breaker rejects every call', ({admitted}) => admitted.not(), ({op, st}) => op.is('fire').and(st.is('open'))),

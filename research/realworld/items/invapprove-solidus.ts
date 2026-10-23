@@ -65,7 +65,7 @@ export const items: RealItem[] = [{
   expressible: 'partial',
   gaps: [
     {gap: 'external', blocks: 'part', detail: 'backordered inventory units are rows of another table, created by the packer and canceled with their shipment: here a count changed by two environment requests'},
-    {gap: 'other', blocks: 'part', detail: 'the backorderable flag starts false (StockLocation#propagate_variant uses the location\'s backorderable_default); one stock item'},
+    {gap: 'scope', blocks: 'part', detail: 'the backorderable flag starts false (StockLocation#propagate_variant uses the location\'s backorderable_default); one stock item'},
   ],
   // A liveness law (every backordered unit is eventually filled as stock arrives) was left out: units can keep being
   // backordered from outside without bound, so it is not a property of this code.

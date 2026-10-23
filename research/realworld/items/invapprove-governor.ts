@@ -127,7 +127,7 @@ export const items: RealItem[] = [{
   gaps: [
     {gap: 'external', blocks: 'part', detail: 'vote weights (ERC20Votes checkpoints at the snapshot) and the quorum at the snapshot are inputs and a param; the proposal\'s calls are not run (reentrancy, relay and onlyGovernance calls are left out)'},
     {gap: 'unbounded-collection', blocks: 'part', detail: 'one proposal: proposals are independent records keyed by id, so laws about one hold for each'},
-    {gap: 'other', blocks: 'part', detail: 'votingDelay, votingPeriod, minDelay and the timelock\'s roles are fixed for a run (settings changed only by governance proposals)'},
+    {gap: 'scope', blocks: 'part', detail: 'votingDelay, votingPeriod, minDelay and the timelock\'s roles are fixed for a run (settings changed only by governance proposals)'},
   ],
   laws: [
     // Stated first for every setup ("a proposal's calls run only after it succeeded and was queued"), these two laws

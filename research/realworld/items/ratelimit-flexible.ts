@@ -88,7 +88,7 @@ export const items: RealItem[] = [{
   expressible: 'partial',
   gaps: [
     {gap: 'async', blocks: 'part', detail: 'execEvenly (RateLimiterMemory.js:32-41) resolves a let-through consume after a setTimeout delay; the decision and the record are the same, the delay is not modelled'},
-    {gap: 'other', blocks: 'part', detail: 'points may be negative and durations fractional (RateLimiterAbstract.js:5-6, "must be a finite number"); the rule takes naturals, durations in whole seconds'},
+    {gap: 'scope', blocks: 'part', detail: 'points may be negative and durations fractional (RateLimiterAbstract.js:5-6, "must be a finite number"); the rule takes naturals, durations in whole seconds'},
   ],
   laws: [
     // Stated first as "no record lets through more than points beyond its start value and its rewards" (start +

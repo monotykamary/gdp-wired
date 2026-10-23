@@ -94,7 +94,7 @@ export const items: RealItem[] = [{
   expressible: 'partial',
   gaps: [
     {gap: 'async', blocks: 'part', detail: 'the setInterval timer (memory-store.ts:72-74) and the response events that trigger a decrement (rate-limit.ts:558-598) are requests the environment sends: the timer at most once per windowMs, a decrement once per earlier hit'},
-    {gap: 'other', blocks: 'part', detail: '`limit` may be a function of the request (rate-limit.ts:455-457); the rule takes it as a fixed param'},
+    {gap: 'scope', blocks: 'part', detail: '`limit` may be a function of the request (rate-limit.ts:455-457); the rule takes it as a fixed param'},
   ],
   laws: [
     invariant(r, r.law('no client window lets through more than limit hits beyond its own hits taken back', ({Admitted, Own, limit}) => forall(k => Admitted.at(k).atMost(limit.plus(Own.at(k))))),

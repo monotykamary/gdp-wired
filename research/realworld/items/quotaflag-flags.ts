@@ -207,8 +207,8 @@ const flagdItem: RealItem = {
   gaps: [
     {gap: 'hash', blocks: 'part', detail: 'murmur3.Sum32 of the CBOR-encoded [flagKey, targetingKey] (or the explicit bucketing value) is not computed: the bucket it gives is the param'},
     {gap: 'nonlinear', blocks: 'part', detail: 'bucket = (hash * totalWeight) >> 32 multiplies two unknowns; the bucket is given (below the total, every value reached)'},
-    {gap: 'other', blocks: 'law', detail: 'a law about two evaluations of one user under two weightings (stickiness as the weights change: the bucket moves with the total) compares two runs of the loop; relate takes one request, not two runs', laws: ['raising a variant\'s weight at the same total keeps its users']},
-    {gap: 'other', blocks: 'law', detail: '"any variant with weight > 0 receives some traffic" says some bucket picks it: an exists over the param, across runs', laws: ['every variant of positive weight is chosen for some bucket']},
+    {gap: 'two-run', blocks: 'law', detail: 'a law about two evaluations of one user under two weightings (stickiness as the weights change: the bucket moves with the total) compares two runs of the loop; relate takes one request, not two runs', laws: ['raising a variant\'s weight at the same total keeps its users']},
+    {gap: 'two-run', blocks: 'law', detail: '"any variant with weight > 0 receives some traffic" says some bucket picks it: an exists over the param, across runs', laws: ['every variant of positive weight is chosen for some bucket']},
   ],
   laws: [
     stepLaw(fd, fd.stepLaw('a variant of weight 0 is never chosen', ({weight}, after) => after.done.implies(weight.gt(0)), ({done}) => done.not()),

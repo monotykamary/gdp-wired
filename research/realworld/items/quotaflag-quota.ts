@@ -77,7 +77,7 @@ const k8sItem: RealItem = {
   gaps: [
     {gap: 'external', blocks: 'part', detail: 'the evaluator (Handles, Matches with scope selectors, Constraints, Usage of an object), the other quotas of the namespace and UpdateQuotaStatus are inputs: their outcomes'},
     {gap: 'async', blocks: 'part', detail: 'checkQuotas batches the waiters of a namespace and retries a failed status write against fresh quotas; one waiter per step here (a batch whose write succeeds is the sequence of its waiters)'},
-    {gap: 'other', blocks: 'part', detail: 'one quota; usage goes down only through the quota controller\'s recalculation (outside admission), which is not modelled'},
+    {gap: 'scope', blocks: 'part', detail: 'one quota; usage goes down only through the quota controller\'s recalculation (outside admission), which is not modelled'},
   ],
   laws: [
     // Stated first for every request ('every admitted request leaves the usage it charges within the hard limits', the

@@ -96,10 +96,10 @@ export const items: RealItem[] = [{
   summary: 'The Authenticator\'s password reset: request a code for the username, then validate and submit the code and new password (or resend the code), resolving with the next step for the parent.',
   expressible: 'partial',
   gaps: [
-    {gap: 'other', blocks: 'part', detail: 'a parallel state below the root (confirmResetPassword: validation beside submission): a chart runs regions only at the top, so the validation region is the context field `validation`'},
+    {gap: 'chart-subset', blocks: 'part', detail: 'a parallel state below the root (confirmResetPassword: validation beside submission): a chart runs regions only at the top, so the validation region is the context field `validation`'},
     {gap: 'async', blocks: 'part', detail: 'invoke of handleResetPassword, validateFields (twice: one per region), handleConfirmResetPassword: their onDone/onError are events from outside, only in the invoking state'},
-    {gap: 'other', blocks: 'part', detail: 'fromXState refuses it: `always` on init (first; here the event INIT); also the nested parallel state, invoke, entry/exit actions writing the context (folded into transitions), v4 `cond` (fromXState reads only v5 `guard`), sendUpdate'},
-    {gap: 'other', blocks: 'part', detail: 'form values, touched fields, username and the error messages (records and strings) as whether the error and the field errors are set'},
+    {gap: 'chart-subset', blocks: 'part', detail: 'fromXState refuses it: `always` on init (first; here the event INIT); also the nested parallel state, invoke, entry/exit actions writing the context (folded into transitions), v4 `cond` (fromXState reads only v5 `guard`), sendUpdate'},
+    {gap: 'scope', blocks: 'part', detail: 'form values, touched fields, username and the error messages (records and strings) as whether the error and the field errors are set'},
   ],
   laws: [
     chartStep(c, c.stepLaw('resolved is never left', (_, after) => after.in('resolved'), b => b.in('resolved')),

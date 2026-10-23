@@ -60,7 +60,7 @@ export const items: RealItem[] = [{
   summary: 'A CSR is approved or denied through /approval and issued through /status; Approved and Denied are exclusive, no such condition is ever removed, and the certificate, once set, is immutable.',
   expressible: 'partial',
   gaps: [
-    {gap: 'other', blocks: 'part', detail: 'conditions are counted per type (Approved, Denied, Failed): their order, reasons, messages, timestamps and other condition types are not kept, and an /approval update that rewrites an Approved condition\'s reason is the same update as one that keeps it'},
+    {gap: 'scope', blocks: 'part', detail: 'conditions are counted per type (Approved, Denied, Failed): their order, reasons, messages, timestamps and other condition types are not kept, and an /approval update that rewrites an Approved condition\'s reason is the same update as one that keeps it'},
     {gap: 'string', blocks: 'part', detail: 'the certificate\'s PEM and x509 parsing is an input (whether the new content is valid), the content an interned value'},
     {gap: 'external', blocks: 'part', detail: 'who may call /approval (the `approve` verb on the signer, checked by the CertificateApproval admission plugin) and the signers that issue certificates are outside the API server\'s validation'},
   ],

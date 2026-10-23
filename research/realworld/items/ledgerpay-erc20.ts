@@ -67,7 +67,7 @@ export const items: RealItem[] = [{
   summary: 'Token balances and allowances: a transfer moves value between balances, transferFrom spends an allowance (unless infinite), mint and burn change the total supply.',
   expressible: 'partial',
   gaps: [
-    {gap: 'other', blocks: 'part', detail: 'the allowances are a mapping of mappings; the rule keys one map by owner * 2^26 + spender, one key per pair only for addresses below 2^26 (gdp-wired has no map keyed by two values, and a constant of 2^160 is not a safe integer)'},
+    {gap: 'two-key-map', blocks: 'part', detail: 'the allowances are a mapping of mappings; the rule keys one map by owner * 2^26 + spender, one key per pair only for addresses below 2^26 (gdp-wired has no map keyed by two values, and a constant of 2^160 is not a safe integer)'},
   ],
   laws: [
     invariant(r, r.law('the balances sum to the total supply', ({held, totalSupply}) => held.eq(totalSupply)),

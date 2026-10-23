@@ -123,7 +123,7 @@ export const items: RealItem[] = [{
   summary: 'Reservations hold stock at a location: creating or growing one checks the level\'s available quantity unless it allows backorders; deleting, soft-deleting and restoring one moves reserved_quantity back.',
   expressible: 'partial',
   gaps: [
-    {gap: 'other', blocks: 'part', detail: 'quantities are BigNumber decimals (fractional quantities are tested); the rule uses integers, and a request\'s quantities are naturals (the module itself does not check signs)'},
+    {gap: 'float', blocks: 'part', detail: 'quantities are BigNumber decimals (fractional quantities are tested); the rule uses integers, and a request\'s quantities are naturals (the module itself does not check signs)'},
     {gap: 'unbounded-collection', blocks: 'part', detail: 'a batch of any length (createReservationItems, updateReservationItems, delete by line item or location) is one item or, for creation, two at one location; one inventory item'},
     {gap: 'external', blocks: 'part', detail: 'soft delete and restore are MikroORM\'s (deleted_at filtered out of list): restore of an id already live is assumed to leave it live and the list to return it'},
   ],

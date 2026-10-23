@@ -57,7 +57,7 @@ export const items: RealItem[] = [{
   expressible: 'partial',
   gaps: [
     {gap: 'async', blocks: 'part', detail: 'invoke of four fromPromise actors (prepareSession, uploadParts, completeSession, abortSession): their onDone/onError are events from outside, sent only in the invoking state; the parts\' own worker pool and retries (deps.uploadParts) are outside the machine'},
-    {gap: 'other', blocks: 'part', detail: 'fromXState refuses it: invoke on initializing (first); also an action with inline `params` functions (recordFailure, :103-105); the chart is by hand'},
+    {gap: 'chart-subset', blocks: 'part', detail: 'fromXState refuses it: invoke on initializing (first); also an action with inline `params` functions (recordFailure, :103-105); the chart is by hand'},
     {gap: 'external', blocks: 'part', detail: 'the guard abortRequested reads the Uploader (deps.abortRequested(), :82-84): sent in with START'},
   ],
   laws: [

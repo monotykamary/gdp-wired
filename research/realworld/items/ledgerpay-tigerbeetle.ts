@@ -160,9 +160,9 @@ export const items: RealItem[] = [{
   summary: 'Accounts with pending and posted debits and credits; transfers posted at once or held pending and later posted (up to the held amount), voided or expired, each at most once, under the limit flags and the u128 overflow checks.',
   expressible: 'partial',
   gaps: [
-    {gap: 'other', blocks: 'part', detail: 'linked chains (flags.linked: a chain of events succeeding or failing together, rolled back on error) are not modelled: each event is its own request'},
-    {gap: 'other', blocks: 'part', detail: 'imported events (flags.imported: user-supplied timestamps, with their own checks) are not modelled'},
-    {gap: 'other', blocks: 'part', detail: 'the expiry pulse expires every due pending transfer in one operation; the rule expires one per request, which covers every order but also lets other events run between them'},
+    {gap: 'batch', blocks: 'part', detail: 'linked chains (flags.linked: a chain of events succeeding or failing together, rolled back on error) are not modelled: each event is its own request'},
+    {gap: 'scope', blocks: 'part', detail: 'imported events (flags.imported: user-supplied timestamps, with their own checks) are not modelled'},
+    {gap: 'batch', blocks: 'part', detail: 'the expiry pulse expires every due pending transfer in one operation; the rule expires one per request, which covers every order but also lets other events run between them'},
   ],
   laws: [
     invariant(r, r.law('an account that forbids it never has more debits than credits', ({A}) => forall(k => A.at(k).dnec.implies(A.at(k).dp.plus(A.at(k).dpo).atMost(A.at(k).cpo)))),

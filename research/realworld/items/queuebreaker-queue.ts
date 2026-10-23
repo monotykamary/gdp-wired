@@ -260,7 +260,7 @@ export const items: RealItem[] = [{
   expressible: 'partial',
   gaps: [
     {gap: 'float', blocks: 'part', detail: 'backoff jitter (backoffs.ts:13-16, :25-29: Math.floor(Math.random() * ...)) is not modelled; jitter 0, the default, is'},
-    {gap: 'other', blocks: 'part', detail: 'a custom backoffStrategy (a user function, its -1 meaning no retry, job.ts:729), repeatable jobs exempt from the stall limit (moveStalledJobsToWait-9.lua:77-99), lock tokens (removeLock) and flows (parent/child dependencies) are not modelled'},
+    {gap: 'scope', blocks: 'part', detail: 'a custom backoffStrategy (a user function, its -1 meaning no retry, job.ts:729), repeatable jobs exempt from the stall limit (moveStalledJobsToWait-9.lua:77-99), lock tokens (removeLock) and flows (parent/child dependencies) are not modelled'},
     {gap: 'async', blocks: 'part', detail: 'the stalled checker runs on a timer in two passes (marking active jobs, then moving those whose lock expired): written as one stall event on an active job'},
   ],
   laws: [
@@ -302,7 +302,7 @@ export const items: RealItem[] = [{
   expressible: 'partial',
   gaps: [
     {gap: 'float', blocks: 'part', detail: 'the backoff `exp(least(attempts, 10)) * interval \'1 second\'` (failJobs.ts:123) is a float rounded to microseconds: known only by its bounds, e seconds from attempt 1 and e^10 seconds up to attempt 10'},
-    {gap: 'other', blocks: 'part', detail: 'named job queues (the queue row locked with the job), priorities, task ids and forbidden flags only choose which job a fetch takes; admin functions (complete_jobs, permanently_fail_jobs, reschedule_jobs) and add_job\'s job_key replace are not modelled'},
+    {gap: 'scope', blocks: 'part', detail: 'named job queues (the queue row locked with the job), priorities, task ids and forbidden flags only choose which job a fetch takes; admin functions (complete_jobs, permanently_fail_jobs, reschedule_jobs) and add_job\'s job_key replace are not modelled'},
   ],
   laws: [
     invariant(w, w.law('a job is attempted at most max_attempts times', ({attempts, maxAttempts}) => attempts.atMost(maxAttempts)),
@@ -335,7 +335,7 @@ export const items: RealItem[] = [{
   gaps: [
     {gap: 'float', blocks: 'part', detail: 'the backoff\'s jitter, `2 ^ LEAST(16, retry_count + 1) / 2 * random()` seconds (plans.ts:3401-3404), is a float the rule takes as an input (`wait`); only LEAST(retry_delay_max, it) is said'},
     {gap: 'nonlinear', blocks: 'part', detail: 'GREATEST(retry_delay, 1) times 2^LEAST(16, retry_count + 1): a param times a function of the state, not constrained on `wait`'},
-    {gap: 'other', blocks: 'part', detail: 'queue policies (singleton, stately, groups, key_strict_fifo), dependencies, heartbeats, dead letters and restore() are not modelled'},
+    {gap: 'scope', blocks: 'part', detail: 'queue policies (singleton, stately, groups, key_strict_fifo), dependencies, heartbeats, dead letters and restore() are not modelled'},
   ],
   laws: [
     // Stated first for every run ('a job is claimed at most retryLimit + 1 times'), this law was refuted: fetch, cancel,

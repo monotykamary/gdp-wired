@@ -78,7 +78,7 @@ export const items: RealItem[] = [{
   expressible: 'partial',
   gaps: [
     {gap: 'async', blocks: 'part', detail: 'invoke of the playbackRun callback actor (its sendBack events come from outside) and `after: {1200: ...}` in reconnecting (the timer firing is the event RECONNECT)'},
-    {gap: 'other', blocks: 'part', detail: 'fromXState refuses it: `always` in idle (first; folded by hand into the one transition that can end in idle with canConnect); also an inline guard on the root SET_URL, `after`, `invoke`, an entry action writing the context (active\'s clearError, folded into the transitions entering active), `emit` actions (not modelled), `reenter`'},
+    {gap: 'chart-subset', blocks: 'part', detail: 'fromXState refuses it: `always` in idle (first; folded by hand into the one transition that can end in idle with canConnect); also an inline guard on the root SET_URL, `after`, `invoke`, an entry action writing the context (active\'s clearError, folded into the transitions entering active), `emit` actions (not modelled), `reenter`'},
     {gap: 'string', blocks: 'part', detail: 'the url (string | null) as maybe(nat), urls interned as numbers and the empty string as 0; the error message as whether one is set'},
   ],
   laws: [

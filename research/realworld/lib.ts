@@ -45,6 +45,7 @@ export type RealLaw = {
   prove: (ms: number) => Verdict
   // How it is proven (set by the helpers): a decision's `sat` with a witness is a counterexample request, a refutation.
   form?: 'invariant' | 'step' | 'leadsTo' | 'decision'
+  live?: {r: AnyRule, l: Liveness} // a liveness law's rule and claim, for diagnostics (rank0.ts)
 }
 
 // A language gap: what of the code the rule could not say as the code does it. `gap` is a short key from GAPS (so the
@@ -52,7 +53,7 @@ export type RealLaw = {
 // laws named could not be stated), 'part' (a part of the step is approximated; the item isn't fully expressible).
 export type Gap = {gap: Gap_, blocks: 'item' | 'law' | 'part', detail: string, laws?: string[]}
 export const GAPS = {
-  'float': 'arithmetic on binary floating point (Math.floor of a float, a rate in tokens per ms)',
+  'float': 'non-integer arithmetic: binary floating point (Math.floor of a float, a rate in tokens per ms), or decimals of unbounded precision (BigNumber quantities)',
   'nonlinear': 'a product of two unknowns the prover does not decide (rate × elapsed time)',
   'division': 'division or remainder by a value that is not a constant',
   'string': 'strings compared other than for equality: globs, regexes, prefixes, parsing',
@@ -64,6 +65,11 @@ export const GAPS = {
   'dynamic-policy': 'a policy that is data loaded at run time (a model file, policy text) rather than code',
   'exceptions': 'control flow by throwing and catching',
   'external': 'state held outside the code read (a database query, Redis script atomicity, another service)',
+  'chart-subset': 'a statechart construct chart / fromXState does not take: invoke, after, always, inline guards and actions, entry/exit actions writing the context, a parallel state below the root',
+  'two-key-map': 'a map keyed by two values (a mapping of mappings, a link table), encoded as one key',
+  'two-run': 'a law comparing two runs of a rule (stickiness as the params change), not two requests of one run',
+  'batch': 'a batch of operations that succeed or fail together (linked events, a transaction rolled back), or one operation over every due record',
+  'scope': 'not a language gap: a part of the code left out of the rule by choice (an option, an admin path, a setting fixed for a run, a value shape simplified)',
   'other': 'see detail',
 } as const
 export type Gap_ = keyof typeof GAPS
@@ -91,7 +97,7 @@ export const stepLaw = (r: AnyRule, sl: StepLaw, kind: LawKind, intent: Intent, 
 // "Whenever from, later to" under fairness, with no rank and no invariant given (the spec leaves `rank` out: the search finds both).
 export const leadsTo = (r: AnyRule, l: Liveness, intent: Intent, why: string, kind: LawKind = 'liveness'): RealLaw => {
   if (!Array.isArray(l.rank) || l.rank.length) throw new Error(`${l.name}: a corpus liveness states no rank (leave rank out)`)
-  return {name: l.name, kind, intent, why, form: 'leadsTo', prove: ms => proveLeadsTo(r, [], l, {ms})}
+  return {name: l.name, kind, intent, why, form: 'leadsTo', live: {r, l}, prove: ms => proveLeadsTo(r, [], l, {ms})}
 }
 // A claim about one request (an access check, an entitlement).
 export const decision = (d: AnyDecision, kind: LawKind, intent: Intent, why: string): RealLaw =>

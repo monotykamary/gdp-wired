@@ -69,8 +69,8 @@ export const items: RealItem[] = [{
   expressible: 'partial',
   gaps: [
     {gap: 'async', blocks: 'part', detail: 'invoke (connectStream and shutdown promises, the consumeStream callback actor) and `after: {reconnectBackoff}`: their completions and the timer are events sent from outside (CONNECT_DONE/ERROR, SHUTDOWN_DONE/ERROR, RETRY, WAKE/OFFSET/STREAM_END), each only in the state that owns it; the delay\'s length (backoffMs) is not time the chart waits'},
-    {gap: 'other', blocks: 'part', detail: 'fromXState refuses it: invoke on running.connecting (first), and also after, inline assign actions and guards, entry/exit actions that write the context; the chart is by hand, the entry and exit writes folded into the transitions that enter connecting or leave streaming'},
-    {gap: 'other', blocks: 'part', detail: 'context objects (response, streamResetError, drainError) as whether they are set'},
+    {gap: 'chart-subset', blocks: 'part', detail: 'fromXState refuses it: invoke on running.connecting (first), and also after, inline assign actions and guards, entry/exit actions that write the context; the chart is by hand, the entry and exit writes folded into the transitions that enter connecting or leave streaming'},
+    {gap: 'scope', blocks: 'part', detail: 'context objects (response, streamResetError, drainError) as whether they are set'},
   ],
   laws: [
     chartLaw(c, c.law('the backoff stays between 1 s and 30 s', ({backoffMs}) => backoffMs.atLeast(INITIAL).and(backoffMs.atMost(MAX))),

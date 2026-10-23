@@ -77,7 +77,7 @@ export const items: RealItem[] = [{
   expressible: 'partial',
   gaps: [
     {gap: 'async', blocks: 'part', detail: 'the heartbeat is a setInterval (LocalDatastore.coffee:22-38) and the queue drains on promises (Bottleneck.coffee:158-205): the heartbeat is a request sent at any time, the queue (priorities, highWater, the BLOCK strategy of __submit__, :120-131) is not modelled'},
-    {gap: 'other', blocks: 'part', detail: 'updateSettings (:54-59) and a negative incrementReservoir (any number, :88) are left out; weights and settings are naturals'},
+    {gap: 'scope', blocks: 'part', detail: 'updateSettings (:54-59) and a negative incrementReservoir (any number, :88) are left out; weights and settings are naturals'},
   ],
   laws: [
     invariant(r, r.law('no more weight runs at once than maxConcurrent', ({hasMax, running, maxConcurrent}) => hasMax.implies(running.atMost(maxConcurrent))),

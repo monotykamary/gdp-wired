@@ -70,7 +70,7 @@ export const items: RealItem[] = [{
   summary: "A payment's states (checkout, processing, pending, completed, failed, void, invalid) under the gem's six events, its capture (which resets the amount to what was captured) and its refunds (up to the amount less earlier refunds).",
   expressible: 'partial',
   gaps: [
-    {gap: 'other', blocks: 'part', detail: 'authorize!, purchase! and void_transaction! (each an event or two around a gateway call) are not their own requests: the rule has their events one at a time, which covers every order they fire them in, and more'},
+    {gap: 'scope', blocks: 'part', detail: 'authorize!, purchase! and void_transaction! (each an event or two around a gateway call) are not their own requests: the rule has their events one at a time, which covers every order they fire them in, and more'},
   ],
   laws: [
     // Refuted, and kept: a suspected real bug (triage/ledgerpay.json, repro/solidus-refund-capture.rb). A refund of

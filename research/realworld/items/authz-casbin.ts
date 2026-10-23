@@ -119,7 +119,7 @@ const rmItem: RealItem = {
   gaps: [
     {gap: 'recursion', blocks: 'part', detail: 'Role.hasRole (defaultRoleManager.ts:57-71) recurses over the link graph to depth maxHierarchyLevel (a param, 10 by default, from the enforcer); the rule computes hasLink only for maxHierarchyLevel <= 1 (equal names or one direct link: `.pre`), and every law about inherited roles is unstated',
       laws: ['hasLink is transitive within maxHierarchyLevel', 'deleting the last path revokes the inherited role', 'no inheritance deeper than maxHierarchyLevel']},
-    {gap: 'other', blocks: 'part', detail: 'a map keyed by a pair of names: links are the cells name1 * 64 + name2 of one map, with every interned name assumed below 64 (no two-key maps; a param bound would be a product of two unknowns)'},
+    {gap: 'two-key-map', blocks: 'part', detail: 'a map keyed by a pair of names: links are the cells name1 * 64 + name2 of one map, with every interned name assumed below 64 (no two-key maps; a param bound would be a product of two unknowns)'},
     {gap: 'string', blocks: 'part', detail: 'pattern matching functions (addMatchingFunc, addDomainMatchingFunc: globs or regexes over role and domain names, :194-221) are left out; the rule is the role manager without them'},
   ],
   laws: [

@@ -1,57 +1,57 @@
 {
-  "inventory/medusa/reservations#a batch created without backorder never takes more than is available": {
-    "verdict": "bug",
-    "note": "Suspected real bug (module level). ensureInventoryLevels checks each item of a createReservationItems batch against the level's available_quantity read before the batch (inventory-module.ts:183-185), then adds the batch's total: two reservations of 1 at a level stocked 1 with nothing reserved, no backorder, reserve 2. Confirmed on @medusajs/inventory@2.22.0's own code over in-memory storage. Workflows may confirm inventory first; the module's own check does not hold for a batch.",
-    "repro": "research/realworld/repro/medusa.ts"
-  },
-  "inventory/medusa/reservations#an update without backorder never takes more than is available where the reservation ends up": {
-    "verdict": "bug",
-    "note": "Suspected real bug. updateReservationItems_ with a new location_id and an unchanged quantity checks the new location for `data.quantity ? data.quantity - reservation.quantity : 0` = 0 more (inventory-module.ts:656-672), then adds the whole reservation there (:629-638): a reservation of 3 moved to a location stocked 0 reserves 3 of 0 without backorder. Confirmed on the original module code.",
-    "repro": "research/realworld/repro/medusa.ts"
-  },
-  "inventory/medusa/reservations#the reserved quantity at a location is what its live reservations hold": {
-    "verdict": "bug",
-    "note": "Suspected real bugs, two paths. (1) Moving a reservation: the old location's -quantity adjustment is computed (:617-628) but applied only to levels ensureInventoryLevels returned (:684-702), which are the new location's: the old level keeps the reservation's quantity forever. (2) restoreReservationItems_ on an id that is already live lists it again and adds its quantity again (:780-796, :1179-1229): reserved 4 for live reservations of 2. Both confirmed on the original module code; the search's run uses the restore path.",
-    "repro": "research/realworld/repro/medusa.ts"
-  },
-  "inventory/saleor/allocations#the stock's allocated count is the sum of its allocations": {
-    "verdict": "bug",
-    "note": "Suspected real bug. deallocate_stock appends one Stock instance per allocation, each with quantity_allocated = F(...) - n (management.py:399-405), and saves them with Stock.objects.bulk_update (:449). For two order lines allocated on one stock (two lines of one variant), the list holds that stock twice; Django's bulk_update writes only the first of duplicate objects (its CASE WHEN on the pk), so Stock.quantity_allocated drops by the first line's amount only while both Allocation rows drop. allocate_stocks (:203-213) and _reduce_quantity_allocated_for_stocks (:509-516) aggregate per stock first; deallocate_stock does not. The repro runs Django's bulk_update with a duplicate object on SQLite.",
-    "repro": "research/realworld/repro/saleor-bulk-update.py"
-  },
-  "inventory/saleor/allocations#a deallocation returns to the stock exactly what it takes from the allocations": {
-    "verdict": "bug",
-    "note": "The same mechanism as the stock's allocated count law: decrease_allocations for two lines on one stock lowers quantity_allocated by the first line's deallocation only.",
-    "repro": "research/realworld/repro/saleor-bulk-update.py"
-  },
-  "inventory/vendure/stockMovements#stock allocated never goes negative": {
-    "verdict": "bug",
-    "note": "Suspected real bug (with a caller that triggers it). createReleasesForOrderLines and createSalesForOrder free min(quantity, the line's Allocation records) (default-stock-location-strategy.ts:79-106), and Allocation records are never reduced, so a second release (or a release after a sale) of the same line frees the same stock again: stock 5, allocate 1, release 1, release 1 gives stockAllocated -1 (and allocations made before the level row exists are not counted, while later releases are). Confirmed on @vendure/core@2.3.4's own services over in-memory repositories. OrderModifier.cancelOrderByOrderLines guards with allocations + sales - releases (order-modifier.ts:305), but OrderModifier.updateOrderLineQuantity (order-modifier.ts:220-250) passes the line's new quantity to both createCancellationsForOrderLines and createReleasesForOrderLines with no such guard.",
-    "repro": "research/realworld/repro/conform-vendure.ts"
-  },
-  "inventory/vendure/stockMovements#a line's sales and releases never free more than it allocated": {
-    "verdict": "bug",
-    "note": "The same mechanism: the strategy reads the line's Allocation records and never what was already sold or released.",
-    "repro": "research/realworld/repro/conform-vendure.ts"
-  },
-  "inventory/vendure/stockMovements#a sale takes from the allocated stock exactly what it takes from stock on hand": {
-    "verdict": "law",
-    "note": "Original name of the restated law. Refuted by a sale before the stock level row exists: updateStockOnHandForLocation creates the row with stockOnHand -n, updateStockAllocatedForLocation finds no row and does nothing. The original does it; variants get their level when created, so the law was restated for an existing level.",
-    "repro": "research/realworld/repro/conform-vendure.ts"
-  },
-  "approval/openzeppelin/Governor#a proposal's calls run only after it succeeded and was queued": {
-    "verdict": "law",
-    "note": "Original name. Refuted with an additional timelock proposer: it schedules the proposal's batch (same calls and salt, so the same operation id) on the TimelockController and an executor runs it while the proposal is Pending/Active/Canceled; GovernorTimelockControl's state() consults the timelock only for Queued. The original does this (reasoned from TimelockController.scheduleBatch/executeBatch and GovernorTimelockControl._queueOperations/_cancel); GovernorTimelockControl.sol:19-22 documents it as the risk of extra proposers, so the law was restated for the governor as the only proposer.",
-    "repro": "research/realworld/repro/governor.ts"
-  },
-  "approval/openzeppelin/Governor#a canceled proposal's calls never run": {
-    "verdict": "law",
-    "note": "Original name (restated with the first, by the same documented warning): GovernorTimelockControl._cancel cancels only an operation it queued (_timelockIds), so an operation another proposer scheduled for the same calls still runs after the proposer cancels a Pending proposal. Shown by replaying tlSchedule, propose, cancel, wait, tlExecute.",
-    "repro": "research/realworld/repro/governor.ts"
-  },
-  "approval/kubernetes/csrConditions#a denied request never has a certificate": {
-    "verdict": "law",
-    "note": "Refuted: /status sets a valid certificate on a CSR with no conditions (validation.go:328-335 checks only that a non-empty certificate is not changed, and the PEM), then /approval adds Denied (validateConditions checks exclusivity with Approved, not the certificate). The API server does this; types.go:191-194 describe the signers' behaviour, which the API server leaves to them. Kept as stated: no property inside this code says it.",
-    "repro": "research/realworld/repro/k8s-csr.ts"
-  }
+ "inventory/medusa/reservations#a batch created without backorder never takes more than is available": {
+  "verdict": "bug",
+  "note": "Suspected real bug (module level). ensureInventoryLevels checks each item of a createReservationItems batch against the level's available_quantity read before the batch (inventory-module.ts:183-185), then adds the batch's total: two reservations of 1 at a level stocked 1 with nothing reserved, no backorder, reserve 2. Confirmed on @medusajs/inventory@2.22.0's own code over in-memory storage. Workflows may confirm inventory first; the module's own check does not hold for a batch.",
+  "repro": "research/realworld/repro/medusa.ts"
+ },
+ "inventory/medusa/reservations#an update without backorder never takes more than is available where the reservation ends up": {
+  "verdict": "bug",
+  "note": "Suspected real bug. updateReservationItems_ with a new location_id and an unchanged quantity checks the new location for `data.quantity ? data.quantity - reservation.quantity : 0` = 0 more (inventory-module.ts:656-672), then adds the whole reservation there (:629-638): a reservation of 3 moved to a location stocked 0 reserves 3 of 0 without backorder. Confirmed on the original module code.",
+  "repro": "research/realworld/repro/medusa.ts"
+ },
+ "inventory/medusa/reservations#the reserved quantity at a location is what its live reservations hold": {
+  "verdict": "bug",
+  "note": "Suspected real bugs, two paths. (1) Moving a reservation: the old location's -quantity adjustment is computed (:617-628) but applied only to levels ensureInventoryLevels returned (:684-702), which are the new location's: the old level keeps the reservation's quantity forever. (2) restoreReservationItems_ on an id that is already live lists it again and adds its quantity again (:780-796, :1179-1229): reserved 4 for live reservations of 2. Both confirmed on the original module code; the search's run uses the restore path.",
+  "repro": "research/realworld/repro/medusa.ts"
+ },
+ "inventory/saleor/allocations#the stock's allocated count is the sum of its allocations": {
+  "verdict": "bug",
+  "note": "Suspected real bug. deallocate_stock appends one Stock instance per allocation, each with quantity_allocated = F(...) - n (management.py:399-405), and saves them with Stock.objects.bulk_update (:449). For two order lines allocated on one stock (two lines of one variant), the list holds that stock twice; Django's bulk_update writes only the first of duplicate objects (its CASE WHEN on the pk), so Stock.quantity_allocated drops by the first line's amount only while both Allocation rows drop. allocate_stocks (:203-213) and _reduce_quantity_allocated_for_stocks (:509-516) aggregate per stock first; deallocate_stock does not. The repro runs Django's bulk_update with a duplicate object on SQLite.",
+  "repro": "research/realworld/repro/saleor-bulk-update.py"
+ },
+ "inventory/saleor/allocations#a deallocation returns to the stock exactly what it takes from the allocations": {
+  "verdict": "bug",
+  "note": "The same mechanism as the stock's allocated count law: decrease_allocations for two lines on one stock lowers quantity_allocated by the first line's deallocation only.",
+  "repro": "research/realworld/repro/saleor-bulk-update.py"
+ },
+ "inventory/vendure/stockMovements#stock allocated never goes negative": {
+  "verdict": "bug",
+  "note": "Suspected real bug (with a caller that triggers it). createReleasesForOrderLines and createSalesForOrder free min(quantity, the line's Allocation records) (default-stock-location-strategy.ts:79-106), and Allocation records are never reduced, so a second release (or a release after a sale) of the same line frees the same stock again: stock 5, allocate 1, release 1, release 1 gives stockAllocated -1 (and allocations made before the level row exists are not counted, while later releases are). Confirmed on @vendure/core@2.3.4's own services over in-memory repositories. OrderModifier.cancelOrderByOrderLines guards with allocations + sales - releases (order-modifier.ts:305), but OrderModifier.updateOrderLineQuantity (order-modifier.ts:220-250) passes the line's new quantity to both createCancellationsForOrderLines and createReleasesForOrderLines with no such guard.",
+  "repro": "research/realworld/repro/conform-vendure.ts"
+ },
+ "inventory/vendure/stockMovements#a line's sales and releases never free more than it allocated": {
+  "verdict": "bug",
+  "note": "The same mechanism: the strategy reads the line's Allocation records and never what was already sold or released.",
+  "repro": "research/realworld/repro/conform-vendure.ts"
+ },
+ "inventory/vendure/stockMovements#a sale takes from the allocated stock exactly what it takes from stock on hand": {
+  "verdict": "law",
+  "note": "Original name of the restated law. Refuted by a sale before the stock level row exists: updateStockOnHandForLocation creates the row with stockOnHand -n, updateStockAllocatedForLocation finds no row and does nothing. The original does it; variants get their level when created, so the law was restated for an existing level.",
+  "repro": "research/realworld/repro/conform-vendure.ts"
+ },
+ "approval/openzeppelin/Governor#a proposal's calls run only after it succeeded and was queued": {
+  "verdict": "law",
+  "note": "Original name. Refuted with an additional timelock proposer: it schedules the proposal's batch (same calls and salt, so the same operation id) on the TimelockController and an executor runs it while the proposal is Pending/Active/Canceled; GovernorTimelockControl's state() consults the timelock only for Queued. The original does this (reasoned from TimelockController.scheduleBatch/executeBatch and GovernorTimelockControl._queueOperations/_cancel); GovernorTimelockControl.sol:19-22 documents it as the risk of extra proposers, so the law was restated for the governor as the only proposer.",
+  "repro": "research/realworld/repro/governor.ts"
+ },
+ "approval/openzeppelin/Governor#a canceled proposal's calls never run": {
+  "verdict": "law",
+  "note": "Original name (restated with the first, by the same documented warning): GovernorTimelockControl._cancel cancels only an operation it queued (_timelockIds), so an operation another proposer scheduled for the same calls still runs after the proposer cancels a Pending proposal. Shown by replaying tlSchedule, propose, cancel, wait, tlExecute.",
+  "repro": "research/realworld/repro/governor.ts"
+ },
+ "approval/kubernetes/csrConditions#a denied request never has a certificate": {
+  "verdict": "law",
+  "note": "the original allows it: /status sets a valid certificate before any approval, then /approval adds Denied (types.go:194 describes what signers do, not what the API server enforces); kept as stated, so it stays in the corpus as a false law the search must not prove",
+  "repro": "research/realworld/repro/k8s-csr.ts"
+ }
 }

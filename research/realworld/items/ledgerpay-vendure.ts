@@ -97,7 +97,7 @@ export const items: RealItem[] = [{
   expressible: 'partial',
   gaps: [
     {gap: 'external', blocks: 'part', detail: "the checks read the order's payments, modifications, variants, stock and fulfillments from the database; the rule takes the predicates and sums the code computes as inputs, each free of the others"},
-    {gap: 'other', blocks: 'part', detail: 'only the default process: orderOptions.process may merge in other processes (mergeTransitionDefinitions), and onTransitionEnd (placing the order, allocating stock) is not modelled'},
+    {gap: 'scope', blocks: 'part', detail: 'only the default process: orderOptions.process may merge in other processes (mergeTransitionDefinitions), and onTransitionEnd (placing the order, allocating stock) is not modelled'},
   ],
   laws: [
     chartStep(c, c.stepLaw('a cancelled order stays cancelled', (_, after) => after.in('Cancelled'), b => b.in('Cancelled')),
