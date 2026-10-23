@@ -1000,7 +1000,8 @@ export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): R
     }
   }
   const samples: Sampled[][] = [[...points.values()].map(env => ({env, calls: new Set()}))]
-  const {comps, left} = lexRanks([0], [node], samples, [...edges.values()], shared, until)
+  // (the runs' LP within 30% of the time: the relation's search below has its share)
+  const {comps, left} = lexRanks([0], [node], samples, [...edges.values()], shared, Math.min(until, t0 + 0.3 * (opts.ms ?? 10_000)))
   // Ranks of degree 2 where the linear one leaves turns or the kernel refuses it (while i < N·M: N·M − i, where the runs
   // alone give 299 − i): one product of two variables at a time. The products the loop's own terms read first (a rank
   // of degree 2 measures what its terms of degree 2 bound), before the invariants; the others after them, within a
@@ -1031,23 +1032,29 @@ export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): R
   let tried: {rank: E[], verdict: ReturnType<typeof goalsProven>}[] = []
   if (comps.length && !left) {
     seen.add(id(linear))
-    tried.push({rank: linear, verdict: withDeadline(until, () => goalsProven(loopObligations(l, laws, linear)))})
+    // (its check within 40% of the time: the relation's search below has its share)
+    tried.push({rank: linear, verdict: withDeadline(Math.min(until, t0 + 0.4 * (opts.ms ?? 10_000)), () => goalsProven(loopObligations(l, laws, linear)))})
+    if ('trees' in tried[0]!.verdict) return done(linear, tried[0]!.verdict.trees)
   }
-  tried.push(...quadratic(read, until))
-  const won = tried.find(t => 'trees' in t.verdict)
-  if (won && 'trees' in won.verdict) return done(won.rank, won.verdict.trees)
-  // The relation's rank (per location, in phases, its turns the relation's counterexamples), within half the time left.
-  const rel = rankOfRelation(l, laws, performance.now() + (until - performance.now()) / 2)
+  // The relation's rank (per location, in phases), within half the time left; then degree 2 over the products the loop
+  // reads; then the relation's rank with invariants. (A search that throws, a stack too deep for a large loop say,
+  // gives way to the rest.)
+  const safely = <T extends object>(f: () => T): T | {why: string} => { try { return f() } catch (e) { return {why: `the relation's search threw: ${(e as Error).message.slice(0, 120)}`} } }
+  const relT0 = performance.now(), rel = safely(() => rankOfRelation(l, laws, performance.now() + (until - performance.now()) / 2))
   let relWhy = 'rank' in rel ? `the kernel refused ${rel.text}` : rel.why
-  if (trace) console.error(`[cycles] ${l.name}: the relation's rank ${'rank' in rel ? rel.text : rel.why}`)
+  if (trace) console.error(`[cycles] ${l.name}: the relation's rank ${'rank' in rel ? rel.text : rel.why} (from ${Math.round(relT0 - t0)} ms to ${Math.round(performance.now() - t0)} ms)`)
   if ('rank' in rel) {
     const verdict = withDeadline(until, () => goalsProven(loopObligations(l, laws, rel.rank)))
     if ('trees' in verdict) return done(rel.rank, verdict.trees)
     if (trace) console.error(`[cycles] ${l.name}: the kernel refused ${rel.text} at ${verdict.goal}`)
     relWhy = `the kernel refused ${rel.text.slice(0, 300)} at ${verdict.goal}`
-  } else {
+  }
+  tried.push(...quadratic(read, until))
+  const won = tried.find(t => 'trees' in t.verdict)
+  if (won && 'trees' in won.verdict) return done(won.rank, won.verdict.trees)
+  if (!('rank' in rel)) {
     // invariants first: the relation's rank where they hold, with as few of them as it needs
-    const inv = rankWithInvariants(l, laws, performance.now() + (until - performance.now()) / 2)
+    const inv = safely(() => rankWithInvariants(l, laws, performance.now() + (until - performance.now()) / 2))
     if (trace) console.error(`[cycles] ${l.name}: the relation's rank with invariants ${'rank' in inv ? `${inv.text} with ${inv.texts.join('; ')}` : inv.why}`)
     if ('rank' in inv) {
       const verdict = withDeadline(until, () => goalsProven(loopObligations(l, [...laws, ...inv.laws], inv.rank)))

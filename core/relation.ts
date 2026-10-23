@@ -69,7 +69,7 @@ function alts(e: E, p: PP, n: {left: number}): [PP, Lin][] {
       if (!vars(b).length) return [r, times(a, b['1'] ?? 0)]
       return [r, {[`π(${[id(a), id(b)].sort().join('·')})`]: 1}]
     }))
-    case 'if': return [...assert(e.c, p, true, n).flatMap(q => alts(e.then, q, n)), ...assert(e.c, p, false, n).flatMap(q => alts(e.else, q, n))]
+    case 'if': return chain(e, p, n, alts)
     case 'get': throw new Refused('a map')
   }
 }
@@ -113,18 +113,31 @@ function assert(c: C, p: PP, positive: boolean, n: {left: number}): PP[] {
 }
 // The body's value of a state variable on a path: its ifs decided or split, a truncated difference at the top kept
 // whole (an integer's part, if it is one).
+// An if and the ifs of its else branches, one after another (a long chain of rules is no deeper a recursion).
+function chain<T>(e: E, p: PP, n: {left: number}, leaf: (e: E, p: PP, n: {left: number}) => [PP, T][]): [PP, T][] {
+  const out: [PP, T][] = []
+  let cur = e, ps = [p]
+  while (cur.op === 'if' && ps.length) {
+    const c = cur.c, then = cur.then
+    for (const q of ps) for (const r of assert(c, q, true, n)) out.push(...leaf(then, r, n))
+    ps = ps.flatMap(q => assert(c, q, false, n))
+    cur = cur.else
+  }
+  for (const q of ps) out.push(...leaf(cur, q, n))
+  return out
+}
 function valueOf(e: E, p: PP, n: {left: number}): [PP, Val][] {
-  if (e.op === 'if') return [...assert(e.c, p, true, n).flatMap(q => valueOf(e.then, q, n)), ...assert(e.c, p, false, n).flatMap(q => valueOf(e.else, q, n))]
+  if (e.op === 'if') return chain(e, p, n, valueOf)
   if (e.op === 'sub') return alts(e.a, p, n).flatMap(([q, a]) => alts(e.b, q, n).map(([r, b]): [PP, Val] => [r, {sub: [a, b]}]))
   return alts(e, p, n).map(([q, l]) => [q, {lin: l}])
 }
 
 // The relation of one turn, or undefined where it isn't linear in this sense (a map, a flag, past `cap` alternatives).
 export function relationOf(l: Loop, laws: Law[] = [], cap = 4000): Relation | undefined {
-  try { return build(l, laws, cap) } catch (e) { if (e instanceof Refused) return undefined; throw e }
+  try { return build(l, laws, cap) } catch (e) { if (e instanceof Refused || e instanceof RangeError) return undefined; throw e }
 }
 function build(l: Loop, laws: Law[], cap: number): Relation {
-  const n = {left: cap * 8}, state = Object.keys(l.state), prime = (x: string) => `${x}′`
+  const n = {left: cap * 500}, state = Object.keys(l.state), prime = (x: string) => `${x}′`
   // the turn: while, the assumption and the laws, then each state variable's value after it
   type Raw = {p: PP, vals: Record<string, Val>}
   let ps: PP[] = [{rows: [], pins: {}}]
