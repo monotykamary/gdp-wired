@@ -265,7 +265,7 @@ export function proveThrough(l: DataLaw, plan: Plan, opts: Options, until: numbe
     // (through the bridges and unfolded: half the time left, the other half through the unfolding alone, the functions
     // as written)
     const again = b.unfolded && bridged.size > 0
-    const r = searchIn(b.lstar, opts, again ? clock() + (until - clock()) / 2 : until, {p: b.p, fs, base: [], level: 0})
+    const r = searchIn(b.lstar, opts, again ? clock() + (until - clock()) / 2 : until, {p: b.p, fs, base: [], level: 0, merge: true})
     tried += r.verdict.tried
     if (!r.out && again && clock() < until) { bridged = new Map(); continue }
     if (!r.out) return {...r.verdict, proven: false, checked: false, law: l.name, counterexample: undefined, tried}

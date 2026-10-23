@@ -178,8 +178,11 @@ export const same = define('same', {x: natural, y: natural}, boolean, ({x, y}) =
 export const geq = define('geq', {x: natural, y: natural}, boolean, ({x, y}) => B(leq(y, x)))
 export const occurs = define('occurs', {y: natural, xs: List}, natural, ({y, xs}) => L(xs).match({nil: () => 0, cons: ({head, tail}) => when(B(same(head, y)), N(occurs(y, tail)).plus(1), N(occurs(y, tail)))}))
 export const through = {
-  // n ≤ n + m, both the user's: not a shape the conjectures make; proven through x ≤ y and x + y.
+  // n ≤ n + m, both the user's: not a shape the conjectures make; proven by plus's own recursion on n (a case's
+  // classes take its condition n ≠ 0, where plus (n, m) is a successor and leq unfolds).
   leqPlus: () => law('n is at most n plus m', {n: natural, m: natural}, ({n, m}) => B(leq(n, plus(n, m)))),
+  // n ≤ m + n: by no recursion of either; proven through x ≤ y and x + y.
+  leqPlusLeft: () => law('n is at most m plus n', {n: natural, m: natural}, ({n, m}) => B(leq(n, plus(m, n)))),
   // geq x x: geq isn't recursive (unfolded), leq bridged.
   geqSelf: () => law('x is at least itself', {x: natural}, ({x}) => B(geq(x, x))),
   // the count of n after n: same(n, n) is n = n through its bridge, the count read through its copy.

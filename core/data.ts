@@ -1411,8 +1411,12 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   // equalities where its premise holds, a use's where its guard does), closed under reading one map at arguments of one
   // class (by signatures: the map and the arguments' classes), each merge with why (a fact, or a congruence).
   type Closure = {find: (x: string) => string, terms: Map<string, E>, adj: Map<string, {to: string, cong?: {map: string, x: E[], y: E[]}, twin?: boolean}[]>, truthOf: (c: C) => boolean | undefined}
+  // `twins`: natural arguments of a function equal in every model of a case (its node's), one class too, with the
+  // congruences that reads at them then meet (where the case's arguments agree by arithmetic its facts give: n ∸ len xs
+  // and (n ∸ 1) ∸ len (tail xs), xs a cons); an explanation takes such a step only where the facts give none.
   const twinValues = new Map<string, string | null>()
-  const closure = (model?: M): Closure => {
+  const truncated = (t: E): boolean => t.op === 'sub' || ((t.op === 'add' || t.op === 'mul') && (truncated(t.a) || (t.op === 'add' && truncated(t.b))))
+  const closure = (model?: M, twins = false): Closure => {
     const parent = new Map<string, string>(), terms = new Map<string, E>(), adj: Closure['adj'] = new Map()
     const find = (x: string): string => { let r = x; while (parent.has(r)) r = parent.get(r)!; return r }
     const linked = new Set<string>()
@@ -1461,18 +1465,18 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
       if (!had) byForm.set(f, t)
       else if (tid(had) !== tid(t)) edge(had, t)
     }
-    // Natural arguments of a function equal in every model given (a case's), one class too: n ∸ len xs and
-    // (n ∸ 1) ∸ len (tail xs) where xs is a cons; what the models agree on the kernel proves or refutes from the facts.
-    if (w.hyps && w.models.length >= 4) {
+    if (twins && w.hyps && w.models.length >= 4) {
       const byValue = new Map<string, E>()
       for (const [map, list] of cells) {
         const f = fnOfMap(map)
         if (!f) continue
         for (const x of list) for (const [i, t] of x.as.entries()) {
-          if (f.params[i]?.sort !== 'nat' || t.op === 'const') continue
+          // (a difference, truncated, the form linear forms leave: n ∸ len xs; not a value the facts give, x for run [] x)
+          if (f.params[i]?.sort !== 'nat' || !truncated(t)) continue
           const id = tid(t)
           let vs = twinValues.get(id)
-          if (vs === undefined) { vs = null; try { vs = JSON.stringify(w.models.map(({m, env}) => m.evalE(t, env))) } catch { /* past the models' bounds */ } twinValues.set(id, vs) }
+          // (a value the same in every model is no witness: it is a constant's, or the models' chance)
+          if (vs === undefined) { vs = null; try { const xs = w.models.map(({m, env}) => m.evalE(t, env)); if (new Set(xs).size > 1) vs = JSON.stringify(xs) } catch { /* past the models' bounds */ } twinValues.set(id, vs) }
           if (vs === null) continue
           const had = byValue.get(vs)
           if (!had) byValue.set(vs, t)
@@ -1550,7 +1554,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   const used = new Map<string, {map: string, at: E[], n: number}>()
   for (const model of w.models) {
     if (late()) break
-    const {find, adj, truthOf} = closure(model)
+    const {find, adj, truthOf} = closure(model, true)
     const counted = new Set<string>(), explained = new Set<string>()
     const explain = (a2: string, b2: string): void => {
       const key = a2 < b2 ? `${a2}|${b2}` : `${b2}|${a2}`
@@ -1560,7 +1564,7 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
       // A path through no constant first: two terms the model gives one value aren't equal for that alone (each needs
       // its own facts), and a congruence between them is what the proof can use; else one through a constant.
       const isConst = (x: string) => x !== a2 && x !== b2 && x.startsWith('{"op":"const"')
-      // (and through no two arguments the models alone agree on, where the facts give a path)
+      // (and through no twins, where the facts give a path)
       for (const [avoid, noTwin] of [[true, true], [false, true], [false, false]]) {
         if (back.has(b2)) break
         back.clear(); back.set(a2, {from: ''}); queue.length = 0; queue.push(a2)
@@ -1739,11 +1743,22 @@ function valuesCompared(p: Program, l: DataLaw): E[] {
 
 // Where a lemma's terms appear in a goal: a substitution of its variables by terms of the goal, for each term of the goal
 // that one of the lemma's sides matches (its variables read anywhere, the rest exactly).
+// A constructor in the lemma matches any value of its datatype too, by its fields' reads (rev (y ++ [z]) at rev (y ++ x),
+// z the head of x: where x is no such constructor, a case the use's models then refuse).
 function matches(pattern: E, vars: Set<string>, t: E, s: Record<string, E>): Record<string, E> | undefined {
   if (pattern.op === 'var' && vars.has(pattern.name)) {
     const had = s[pattern.name]
     if (had) return sid(had) === sid(t) ? s : undefined
     return {...s, [pattern.name]: t}
+  }
+  if (pattern.op === 'get' && (t.op !== 'get' || t.map !== pattern.map)) {
+    const at = pattern.map.indexOf('.'), d = at > 0 ? declared.get(pattern.map.slice(0, at)) : undefined, j = d ? d.ctors.findIndex((c, i) => c.fields.length > 0 && ctorMap(d, i) === pattern.map) : -1
+    if (d && j >= 0) {
+      const fs2 = argsOf(pattern.key, d.ctors[j]!.fields.length)
+      let out: Record<string, E> | undefined = s
+      for (const [i, f] of (fs2 ?? []).entries()) { if (!out) break; out = matches(f, vars, get(fieldMap(d, j, i), t), out) }
+      return fs2 ? out : undefined
+    }
   }
   if (pattern.op !== t.op) return undefined
   const po = pattern as unknown as Record<string, unknown>, to = t as unknown as Record<string, unknown>
@@ -2157,7 +2172,8 @@ const settled = new WeakMap<Facts, Set<string>>()
 // `without`: 'plain', the law with no induction where no scheme applies; 'cases', no induction, then by the cases of
 // each variable (a natural's zero and successor, a datatype's constructors), none of them using the law again; 'first',
 // no induction before the schemes (a law that follows from its lemmas by rewriting).
-function proveWith(p: Program, fs: Facts, l: DataLaw, lemmas: Proven[], level: number, opts: Options, until: number, per: number, depths: number[], without?: 'plain' | 'cases' | 'first'): {out?: Proven, verdict?: CyclicVerdict, scheme?: string, tried: number, last?: CyclicVerdict} {
+// `merge`: the merged schemes too (schemes, below), at one unfolding: the law's first attempts only.
+function proveWith(p: Program, fs: Facts, l: DataLaw, lemmas: Proven[], level: number, opts: Options, until: number, per: number, depths: number[], without?: 'plain' | 'cases' | 'first', merge = false): {out?: Proven, verdict?: CyclicVerdict, scheme?: string, tried: number, last?: CyclicVerdict} {
   const models = modelsFor(p, l, 240, opts.seed ?? 3)
   let tried = 0, last: CyclicVerdict | undefined
   const cases = l.vars.flatMap((v): Scheme[] => (v.sort === 'nat' || v.sort instanceof Data ? [{name: `cases of ${v.name}`, on: {v: v.name, d: v.sort}, uses: []}] : []))
@@ -2166,11 +2182,15 @@ function proveWith(p: Program, fs: Facts, l: DataLaw, lemmas: Proven[], level: n
   const done = settled.get(fs) ?? settled.set(fs, new Set()).get(fs)!
   for (const depth of depths.filter(d => d <= (opts.depth ?? 3))) for (const s of ss) {
     if (clock() > until) return {tried, last}
+    // (a merged scheme at one unfolding only, in the law's first attempts: its cases are each scheme's at once, many at
+    // two, and every proof by one found so far needed no lemma)
+    if (s?.merged && (depth > 1 || !merge)) continue
     const key = JSON.stringify([l.name, s?.name, depth, level, lemmas.map(q => q.spec.name), opts.seed])
     if (done.has(key)) continue
     tried++
     const t1 = clock()
-    const {verdict, specs, main} = (attemptMs.ms = Math.min(per * (opts.patience ?? 1), until - clock()), attempt(p, fs, l, s, depth, lemmas, level, models))
+    // (and within a third of an attempt's time: a merged scheme's proof, where there is one, is short)
+    const {verdict, specs, main} = (attemptMs.ms = Math.min(per * (opts.patience ?? 1) / (s?.merged ? 3 : 1), until - clock()), attempt(p, fs, l, s, depth, lemmas, level, models))
     last = verdict
     if (nodeTrace && !verdict.proven && new RegExp(nodeTrace).test(verdict.goal)) { const n = specs.find(x => x.name === verdict.goal); if (n) console.error(`[node] ${n.name}: ${verdict.stuck}\n hyps: ${n.hyps.map(showC).join(' ; ')}\n concl: ${showC(n.concl)}\n uses:\n   ${n.uses.map(u => `${specs[u.node]?.name.slice(0, 40)}: ${showC(substC(specs[u.node]!.concl, {vars: u.subst, maps: {}, flags: {}}))} if ${showC(u.guard)}`).join('\n   ')}\n instances:\n   ${n.insts.map(q => `${fs.facts[q.fact]!.name}: ${showC(holdsAt(fs, q))}`).join('\n   ')}`) }
     if (dataTrace) console.error(`[data]   -> ${verdict.proven ? (verdict.checked ? 'proven' : `not checked: ${verdict.why}`) : `${verdict.goal}: ${verdict.stuck}`}`)
@@ -2390,16 +2410,18 @@ export function calculated(p: Program, l: DataLaw, depth = 2, max = 6): DataLaw[
   const go = (law: DataLaw, d: number) => {
     if (d <= 0 || out.length >= 3 * max) return
     for (const c of stepsOf(p, law)) {
-      const text = canonText(c.holds, c.vars)
-      if (seen.has(text)) continue
-      seen.add(text)
+      // (an equation and its mirror one)
+      const text = canonText(c.holds, c.vars), y = c.holds as {op: '=', a: X, b: X}, mirror = canonText({op: '=', a: y.b, b: y.a}, c.vars)
+      if (seen.has(text) || seen.has(mirror)) continue
+      seen.add(text); seen.add(mirror)
       if (refute(c, 200)) continue
       if (general.has(c)) go(c, d - 1)
       out.push(c)
     }
   }
   go(l, depth)
-  return out.slice(0, max)
+  // (the base cases' first: a step's proof often needs one, nil's right identity under length's)
+  return [...out.filter(c => based.has(c)), ...out.filter(c => !based.has(c))].slice(0, max)
 }
 // A law's text with its variables named by sort in order of appearance (two laws alike up to their names, one text).
 function canonText(y: Y, vars: {name: string, sort: Sort}[]): string {
@@ -2509,7 +2531,7 @@ const alpha = (t: X, level = 0): X => {
   return red(x) ?? x
 }
 // The steps a law's inductions leave, each as a conjecture (lemma calculation, above).
-const general = new WeakSet<DataLaw>()
+const general = new WeakSet<DataLaw>(), based = new WeakSet<DataLaw>()
 function stepsOf(p: Program, l: DataLaw): DataLaw[] {
   if (l.holds.op !== '=') return []
   const eq = l.holds, out: DataLaw[] = []
@@ -2520,6 +2542,25 @@ function stepsOf(p: Program, l: DataLaw): DataLaw[] {
   const freshVar = (s: Sort): X => { const name = `${s instanceof Data ? s.name.toLowerCase() : 'n'}_c${++fresh}`; sorts.set(name, s); return {op: 'var', name} }
   const has = (x: unknown, t: X): boolean => JSON.stringify(x).includes(JSON.stringify(t))
   const rewrite = (x: X, from: X, to: X): X => { const f = JSON.stringify(from); return JSON.parse(JSON.stringify(x), (_, v) => (v && typeof v === 'object' && v.op && JSON.stringify(v) === f ? to : v)) }
+  // The hypothesis at any values of the law's other variables (`free`): from's instances rewritten to to's, outermost
+  // first (qrev (x, a :: y) to rev x ++ (a :: y), the hypothesis read at y := a :: y). Whether one was.
+  const matchP = (pat: unknown, t: unknown, free: Set<string>, sub: Map<string, X>): boolean => {
+    if (pat && typeof pat === 'object' && (pat as X).op === 'var' && free.has((pat as {name: string}).name)) { const n = (pat as {name: string}).name, had = sub.get(n); if (had) return sameX(had, t as X); sub.set(n, t as X); return true }
+    if (Array.isArray(pat)) return Array.isArray(t) && pat.length === t.length && pat.every((x, i) => matchP(x, t[i], free, sub))
+    if (pat && typeof pat === 'object') { if (!t || typeof t !== 'object' || Array.isArray(t)) return false; const po = pat as Record<string, unknown>, to = t as Record<string, unknown>; return Object.keys(po).length === Object.keys(to).length && Object.keys(po).every(key => matchP(po[key], to[key], free, sub)) }
+    return pat === t
+  }
+  const rewriteP = (x: X, from: X, to: X, free: Set<string>): {x: X, hit: boolean} => {
+    let hit = false
+    const go = (t: unknown): unknown => {
+      if (!t || typeof t !== 'object') return t
+      if (Array.isArray(t)) return t.map(go)
+      const sub = new Map<string, X>()
+      if ((t as X).op && matchP(from, t, free, sub)) { hit = true; return substXs(to, sub) }
+      return Object.fromEntries(Object.entries(t).map(([key, v]) => [key, go(v)]))
+    }
+    return {x: go(x) as X, hit}
+  }
   // (the subterms of a term with a call in them, outermost first)
   const subterms = (x: X): X[] => { const acc: X[] = []; const go = (t: unknown) => { if (!t || typeof t !== 'object') return; if (Array.isArray(t)) { t.forEach(go); return } const o = t as X; if ((o.op === 'call' || o.op === 'ctor' || o.op === 'add') && JSON.stringify(o).includes('"op":"call"') || o.op === 'match' || o.op === 'natmatch' || o.op === 'if') { acc.push(o); if (o.op === 'match' || o.op === 'natmatch' || o.op === 'if') return }; for (const v of Object.values(o)) go(v) }; go(x); return acc }
   const lawOf = (a: X, b: X): DataLaw | undefined => {
@@ -2548,20 +2589,22 @@ function stepsOf(p: Program, l: DataLaw): DataLaw[] {
     }
     return [ga, gb]
   }
+  const bases: {v: {name: string}, at: X}[] = []
   for (const v of l.vars) {
     const d = v.sort
     const cases: {at: X, rec: X[]}[] = []
-    if (d === 'nat') { const m = freshVar('nat'); cases.push({at: {op: 'add', a: m, b: {op: 'nat', value: 1}}, rec: [m]}) }
+    // (the base cases too, after every step: rev (y ++ [z]) = z :: rev y, the nil case of rev (x ++ (y ++ [z])))
+    if (d === 'nat') { const m = freshVar('nat'); cases.push({at: {op: 'add', a: m, b: {op: 'nat', value: 1}}, rec: [m]}); bases.push({v, at: {op: 'nat', value: 0}}) }
     else if (d instanceof Data && !d.abstract) for (const [j, c] of d.ctors.entries()) {
-      if (!c.fields.some(f => isDataField(f.sort) && f.sort.data === d.name)) continue
       const fields = c.fields.map(f => freshVar(fieldSort(f)))
+      if (!c.fields.some(f => isDataField(f.sort) && f.sort.data === d.name)) { bases.push({v, at: {op: 'ctor', data: d.name, ctor: j, args: fields}}); continue }
       cases.push({at: {op: 'ctor', data: d.name, ctor: j, args: fields}, rec: fields.filter((_, i) => { const f = c.fields[i]!; return isDataField(f.sort) && f.sort.data === d.name })})
     }
     for (const cs of cases) {
       const at = (x: X, to: X) => reduceX(substXs(x, new Map([[v.name, to]])))
       const a = at(eq.a, cs.at), b = at(eq.b, cs.at)
       if (sameX(a, b)) continue
-      const ihs = cs.rec.map(r => [at(eq.a, r), at(eq.b, r)] as [X, X])
+      const ihs = cs.rec.map(r => [at(eq.a, r), at(eq.b, r)] as [X, X]), free = new Set(l.vars.filter(w => w.name !== v.name).map(w => w.name))
       // (`common`: a rewrite of a variable, kept only where its sides then share a term to generalise)
       const tries: {x: X, y: X, common?: boolean}[] = []
       for (const [ia, ib] of ihs) for (const [from, to] of [[ia, ib], [ib, ia]] as [X, X][]) {
@@ -2572,6 +2615,8 @@ function stepsOf(p: Program, l: DataLaw): DataLaw[] {
           continue
         }
         if (has(a, from) || has(b, from)) tries.push({x: reduceX(rewrite(a, from, to)), y: reduceX(rewrite(b, from, to))})
+        // (else the hypothesis at other values of the law's other variables, where they differ: an accumulator's)
+        else if (free.size) { const ra = rewriteP(a, from, to, free), rb = rewriteP(b, from, to, free); if (ra.hit || rb.hit) tries.push({x: reduceX(ra.x), y: reduceX(rb.x)}) }
       }
       // (and the step as unfolded, where no rewrite gave one and none closed it)
       if (tries.some(t => !t.common && sameX(t.x, t.y))) continue
@@ -2586,6 +2631,12 @@ function stepsOf(p: Program, l: DataLaw): DataLaw[] {
         if (c && !out.some(o => canonText(o.holds, o.vars) === canonText(c.holds, c.vars))) { if (generalised) general.add(c); out.push(c) }
       }
     }
+  }
+  for (const {v, at} of bases) {
+    const a = reduceX(substXs(eq.a, new Map([[v.name, at]]))), b = reduceX(substXs(eq.b, new Map([[v.name, at]])))
+    if (sameX(a, b)) continue
+    const [ga, gb] = generalise(a, b), c = lawOf(ga, gb)
+    if (c && !out.some(o => canonText(o.holds, o.vars) === canonText(c.holds, c.vars))) { based.add(c); out.push(c) }
   }
   return out
 }
@@ -2652,7 +2703,8 @@ function proveDataCounted(l: DataLaw, opts: Options, until: number): DataVerdict
 // The search on a law: in its own program, or (`ctx`) in one given, above lemmas proven before in it (`base`, its nodes at
 // levels up to `level`), where `out` is the proof's nodes, for a proof that reads it (core/transfer.ts). `phase`: 'first'
 // is the refutation and the law alone at one unfolding, 'rest' all after those.
-export type SearchCtx = {p: Program, fs: Facts, base: Proven[], level: number}
+// `merge`: the merged schemes are tried (the law's own search, and the law said through the built-ins; not a bridge's).
+export type SearchCtx = {p: Program, fs: Facts, base: Proven[], level: number, merge?: boolean}
 export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchCtx, phase: 'all' | 'first' | 'rest' = 'all'): {verdict: DataVerdict, out?: Proven} {
   const t0 = performance.now(), w0 = work.n
   const p = ctx?.p ?? programOf([l, ...(Array.isArray(opts.lemmas) ? opts.lemmas : [])]), fs = ctx?.fs ?? factsOf(p)
@@ -2678,7 +2730,7 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   const ok = (r: ReturnType<typeof proveWith>, lemmas: Proven[], prog = p) => (tried += r.tried, r.out ? (out = r.out, done({proven: true, checked: true, proof: r.verdict, lemmas: used(r.out, lemmas), scheme: r.scheme, tried, program: prog, node: r.out.nodes.indexOf(r.out.spec)})) : undefined)
   // A law that calls no function (arithmetic alone: an integer's, a remainder's) has nothing to induct on: its cases.
   if (phase !== 'rest' && opts.induction !== false && !JSON.stringify(l.holds).includes('"op":"call"')) { const c = ok(proveWith(p, fs, l, base, lv + 1, opts, until, 3000, [1, 2], 'cases'), base); if (c) return c }
-  const first = phase === 'rest' ? undefined : proveWith(p, fs, l, base, lv + 1, opts, until, 6000, [1], 'plain')
+  const first = phase === 'rest' ? undefined : proveWith(p, fs, l, base, lv + 1, opts, until, 6000, [1], 'plain', !ctx || ctx.merge === true)
   const one = first && ok(first, base)
   if (one) return one
   if (phase === 'first') return done({proven: false, checked: false, lemmas: [], tried, ...stuckOf(first!.last)})
@@ -2742,7 +2794,9 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
       proven.push(r.out)
       n++; since++
       for (const q of queue.slice(0, i)) if (failed.has(q.c) && !retried.has(q.c)) { retried.add(q.c); retry.push(q.c) }
-      // (as before the passes: again after a lemma the goal reads, or one of the law's shape, an implication for one)
+      // (as before the passes: again after a lemma the goal reads, or one of the law's shape, an implication for one; a
+      // calculated step's after the last of them, whose proofs read each other)
+      if (calcSet.has(c) && !retry.length && i < queue.length && calcSet.has(queue[i]!.c)) continue
       if (which === 'hits' || implication(c.holds) === implication(l.holds)) { since = 0; const r2 = again('first'); if (r2) return r2 }
     }
     return since ? again('first') : undefined

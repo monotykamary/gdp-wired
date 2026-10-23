@@ -77,9 +77,11 @@ export function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
   const names = [...new Set(rows.flatMap(r => Object.keys(r.lin)))].filter(isCell)
   const out: Lin[] = []
   const keyText = (n: string) => n.slice(n.indexOf('[') + 1, -1)
-  for (const [i, p] of names.entries()) for (const q of names.slice(i + 1)) {
-    if (p.slice(0, p.indexOf('[')) !== q.slice(0, q.indexOf('['))) continue
-    const d = sub(parse(keyText(p)), parse(keyText(q)))
+  // (each name's map and key read once: the pairs are quadratic in the names)
+  const maps = names.map(n => n.slice(0, n.indexOf('['))), keys = names.map(n => parse(keyText(n)))
+  for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
+    if (maps[i] !== maps[j]) continue
+    const d = sub(keys[i]!, keys[j]!)
     if (pairedKeys.skip && Object.keys(d).some(isMonomial)) continue
     const dec = (lin: Lin) => path.get(canon(lin))?.holds ?? (path.has(canonFlip(lin)) ? !path.get(canonFlip(lin))!.holds : undefined)
     // Two cells of a run's map (core/cyclic.ts: time u and key k at u + k·Ω) at keys k·Ω and k'·Ω: k = k' first, a

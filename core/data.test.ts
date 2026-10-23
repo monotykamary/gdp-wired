@@ -121,7 +121,8 @@ test('laws over well-founded functions: by the function\'s own recursion, ranked
 }, 60_000)
 
 test('a law through the built-ins: its bridges proven first, a copy of a function over them proven its copy, the law read back; checked by the kernel', () => {
-  for (const [mk, through] of [[through_.leqPlus, ['leq is ≤', 'plus is +']], [through_.geqSelf, ['leq is ≤', 'unfolded: geq']], [through_.occursCons, ['same is =', 'occurs is occurs_bi']]] as const) {
+  expect(proveData(through_.leqPlus())).toMatchObject({proven: true, checked: true})
+  for (const [mk, through] of [[through_.leqPlusLeft, ['leq is ≤', 'plus is +']], [through_.geqSelf, ['leq is ≤', 'unfolded: geq']], [through_.occursCons, ['same is =', 'occurs is occurs_bi']]] as const) {
     const v = proveData(mk())
     expect(v.proven && v.checked && v.proof?.proven && checkCyclic(v.proof.proof)).toBe(true)
     for (const t of through) expect(v.through).toContain(t)
