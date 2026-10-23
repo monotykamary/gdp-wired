@@ -42,6 +42,10 @@ derivation items 3 of 3 (main 2): `s_split_01`'s 10,002 steps in 260 ms. Nothing
   5,814, main 5,302 and 6,052. search.test's "a search that finds nothing" 0.89 to 1.18 s, main 0.53 to 0.84 s (its
   counter is a deterministic loop, run forward until the forced run's share is spent), within its 8 s.
 - A new test (core/search.test.ts): a deterministic loop broken after 10,000 steps, refuted by its forced run.
+- The suite (213 jobs) on Modal at this branch's last commit: by default 552.0 s wall, 5,042.3 s of job time, none
+  failed (`runs/bmc2/suite-default2`); `--usual` 526.0 s and 4,497.3 s, none failed (`suite-usual2`). Main's default
+  run beside an earlier commit here: on the 207 jobs both passed, 4,833.9 s of job time against 4,846.9 s
+  (`suite-base-default`, `suite-default`; main's other 6 failed in that checkout, which lacked the vendored sources).
 
 
 Rules read from the code that ships (`gdp-wired/extract`, core/extract.ts): `extract(code, {entry})` reads a reducer,
