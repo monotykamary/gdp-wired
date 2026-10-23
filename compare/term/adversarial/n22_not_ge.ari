@@ -1,0 +1,7 @@
+; expect: nonterminating
+; not (x >= 0): x := x - 1
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(entrypoint f)
+(rule (f x) (f (- x 1)) :guard (not (>= x 0)))

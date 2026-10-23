@@ -26,9 +26,14 @@ import type {Loop} from '../../kernel/kernel.ts'
 const K = (value: number): E => ({op: 'const', value})
 const V = (name: string): E => ({op: 'var', name})
 const isK = (e: E, v?: number) => e.op === 'const' && (v === undefined || e.value === v)
-const add = (a: E, b: E): E => (isK(a, 0) ? b : isK(b, 0) ? a : a.op === 'const' && b.op === 'const' ? K(a.value + b.value) : {op: 'add', a, b})
+// Folded exactly (in BigInt): a constant past 2^53, which the kernel's numbers can't hold, refuses the task.
+const exact = (x: bigint): E => {
+  if (x > BigInt(Number.MAX_SAFE_INTEGER) || -x > BigInt(Number.MAX_SAFE_INTEGER)) throw new Unsupported(`a constant past 2^53: ${x}`)
+  return K(Number(x))
+}
+const add = (a: E, b: E): E => (isK(a, 0) ? b : isK(b, 0) ? a : a.op === 'const' && b.op === 'const' ? exact(BigInt(a.value) + BigInt(b.value)) : {op: 'add', a, b})
 const sub = (a: E, b: E): E => (isK(b, 0) ? a : a.op === 'const' && b.op === 'const' ? K(Math.max(0, a.value - b.value)) : isK(a, 0) ? K(0) : {op: 'sub', a, b})
-const mul = (k: number, a: E): E => (k === 0 || isK(a, 0) ? K(0) : k === 1 ? a : a.op === 'const' ? K(k * a.value) : {op: 'mul', k, a})
+const mul = (k: number, a: E): E => (k === 0 || isK(a, 0) ? K(0) : k === 1 ? a : a.op === 'const' ? exact(BigInt(k) * BigInt(a.value)) : {op: 'mul', k, a})
 const prod = (a: E, b: E): E => (a.op === 'const' ? mul(a.value, b) : b.op === 'const' ? mul(b.value, a) : {op: 'prod', a, b})
 const and = (xs: C[]): C => { const ys = xs.flatMap(x => (x.op === 'and' ? x.xs : [x])); return ys.length === 1 ? ys[0]! : {op: 'and', xs: ys} }
 const or = (xs: C[]): C => (xs.length === 1 ? xs[0]! : {op: 'or', xs})

@@ -1,0 +1,7 @@
+; expect: nonterminating
+; x := x - y with y < 0 grows x
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int Int))
+(entrypoint f)
+(rule (f x y) (f (- x y) y) :guard (and (> x 0) (< y 0)))

@@ -1,0 +1,7 @@
+; expect: nonterminating
+; the guard reads x, x reads y: y >= 0 keeps x > 0
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int Int))
+(entrypoint f)
+(rule (f x y) (f (+ x y) y) :guard (> x 0))

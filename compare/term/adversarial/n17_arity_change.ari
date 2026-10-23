@@ -1,0 +1,9 @@
+; expect: nonterminating
+; f(x, y) -> g(x) -> f(x, x) while x > 0
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int Int))
+(fun g (-> Int Int))
+(entrypoint f)
+(rule (f x y) (g x) :guard (> y 0))
+(rule (g x) (f x z) :guard (and (= z x) (> x 0)))

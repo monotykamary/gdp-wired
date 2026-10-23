@@ -1,0 +1,7 @@
+; expect: nonterminating
+; x < 0 kept: a negative start loops on itself
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(entrypoint f)
+(rule (f x) (f x) :guard (< x 0))

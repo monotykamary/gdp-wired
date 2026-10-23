@@ -1,0 +1,7 @@
+; expect: nonterminating
+; y any nonzero: y = -1 grows x (an encoding with natural inputs would terminate)
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(entrypoint f)
+(rule (f x) (f (- x y)) :guard (and (> x 0) (distinct y 0)))

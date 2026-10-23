@@ -1,8 +1,10 @@
 # Termination benchmarks through gdp-wired
 
 gdp-wired proves a loop halts with `proveLoop` and no rank stated: core/cycles.ts's `findRank` takes the rank from the
-loop's runs (linear by LP, the exact LP past coefficient 4, degree 2 one product at a time, tuples in order), with the
-invariants `inferLaws` finds, and the kernel checks the halting goals. This directory runs it on termination problems
+loop's runs (linear by LP, the exact LP past coefficient 4, degree 2 one product at a time, tuples in order), then from
+the loop's relation (core/relation.ts: its linear paths over the integers its pairs of naturals are, each path's
+generators; a rank per location, blocks in order, each nested to depth 3, where none, invariants by Houdini over the
+relation), with the invariants `inferLaws` finds, and the kernel checks the halting goals. This directory runs it on termination problems
 it didn't write, beside tools built for them, every task in its own Modal container (2 vCPU, 4 GB) under the same 60 s
 wall-clock limit for every tool:
 
@@ -18,7 +20,7 @@ wall-clock limit for every tool:
 | `ari.ts` | The ARI format read (`(format LCTRS)`, `(theory Ints)`: locations, an entrypoint, rules with guards), and an evaluator of a rule on integer values (BigInt) that uses no gdp-wired code; `checkLasso` replays a nontermination witness on it |
 | `translate.ts` | A task as a kernel `Loop`, the same statement (below); `stepOf` turns a turn of the loop back into the task's step for the witness |
 | `scc.ts` | The second translation, a stronger statement counted apart: each strongly connected component of the locations, chained (the paths between cut points composed into one rule each), from any state at its cut points |
-| `solve.ts` | One task: lassos from the loop's runs (2 s), a recurrent set (core/nonterm.ts, 4 s), `findRank` with all but 9 s of the limit, the kernel's check again on the loop as translated, a recurrent set again (3/5 of what is left) and lassos with the rest; `--scc` for the second translation |
+| `solve.ts` | One task: lassos from the loop's runs (2 s), a recurrent set (core/nonterm.ts, 4 s), `findRank` with all but 9 s of the limit, the kernel's check again on the loop as translated (the answer printed then, and again with the certificate once made), a recurrent set again (3/5 of what is left) and lassos with the rest; `--scc` for the second translation |
 | `recur-lean.ts` | The recurrent sets of a run's answers (each printed in its `recur`) as Lean theorems `NeverEnds <task>_loop` by Kern.never_ends_of; `--shard i/n` |
 | `c2ari.py` | An SV-COMP C program as an ARI system (pycparser): main and the functions it calls inlined, signed integers, the C subset in its header; refusals with their reason |
 | `modal_term.py` | The ITS track on Modal: gdp-wired (`gdp`, `gdp-scc`), LoAT, LoAT with `--engine abmc`, KoAT2; `koat2-proof` and `loat-proof`, the same runs with their proofs kept |
@@ -68,9 +70,11 @@ For C, `c2ari.py` reads main and the functions it calls (each call inlined), ove
 constant as C's truncation toward zero (a fresh quotient q with x − k·q in [0, k) for x >= 0 and k·q − x in [0, k)
 for x < 0). Arithmetic is on unbounded integers: the same as C on every run where no signed operation overflows
 (undefined behavior, which the tasks' verdicts assume away); no task here uses long, whose values would be left
-unbounded. 226 of the 282 tasks translate (24 with products of variables, 15 with division by a constant); refused:
-recursion 28, pointers and the heap 10, unsigned types 10, arrays 6, a call inside a larger expression 2
-(`runs/modal/term/sv3`).
+unbounded. Values narrower than int (char, short, _Bool) and casts that convert are refused: C converts what is
+stored to the type's range, which unbounded integers don't (no task here has one). 226 of the 282 tasks translate (24
+with products of variables, 15 with division by a constant); refused: recursion 28, pointers and the heap 10, unsigned
+types 10, arrays 6, a call inside a larger expression 2 (`runs/modal/term/sv3`). The ITS translation folds constants
+exactly and refuses one past 2^53, which the kernel's numbers can't hold (no ITS task has one).
 
 ## Results
 
@@ -119,6 +123,39 @@ the task's expected verdict.
   coefficient past 4.
 - Not run: the Lean twin on the ranks found (every proof here is the kernel's, checked twice: in `findRank`, and again
   in solve.ts on the obligations of the loop as translated).
+
+### Ranks from the relation (Unreleased)
+
+With the runs that never end (below), on Modal (2 vCPU, 4 GB a task, 60 s), the same day: this branch
+(`runs/ranks/r4-its-merged`, `r4-sv-merged`) against main at 2477b4a (`r2-its-main`, `r2-sv-main`: runs that never
+end, no ranks from the relation) and 0.22.0 (`r2-its-base`, `r2-sv-base`). No answer contradicts another: not
+LoAT's or KoAT2's (`full1`, `koat-fix1`), any other run's, earlier gdp-wired runs' (`gdp2`, `runs/backends/term-gdp`),
+or SV-COMP's expected verdicts.
+
+| | ITS terminates | nonterminating | solved of 1,239 | SV terminates | nonterminating | solved of 282 |
+| --- | --- | --- | --- | --- | --- | --- |
+| the task's statement (`gdp`), here | 572 | 463 | 1,035 | 134 | 47 | 181 |
+| 2477b4a | 56 | 452 | 508 | 0 | 47 | 47 |
+| 0.22.0 | 56 | 320 | 376 | 0 | 47 | 47 |
+| per component (`gdp-scc`), here | 582 | 463 | 1,045 | 125 | 47 | 172 |
+| 2477b4a | 155 | 463 | 618 | 39 | 47 | 86 |
+| 0.22.0 | 155 | 325 | 480 | 39 | 47 | 86 |
+
+- Answered by 2477b4a and not here: 5 and 7 nonterminating ITS tasks (found there between 5.8 s and 55.3 s,
+  5 of the 12 past 40 s, by searches bounded by time and random; here the rank search has 70% of the time); against 0.22.0, 1 and 2 lassos (the lasso stages
+  are random and bounded by time).
+- On the tasks both answer alike the times are 2477b4a's (ITS, the task's statement: median 0.15 s each); a
+  terminating answer's rank comes at a median 9.4 s (p95 21.9 s), the first stages' 6 s included. An earlier run of this
+  branch (`r3-its-merged`, `r3-sv-merged`) answered 1,031, 1,043, 182 and 172; SV's one more is a proof at 51.4 s.
+- An earlier run of the ranks alone, before the runs that never end, against 0.22.0 (`runs/ranks/its-mine`,
+  `its-base`, `sv-mine`, `sv-base`): ITS 897 and 906, SV 183 and 172. Of its 572 ITS proofs on the task's statement,
+  522 read the location and 13 needed invariants (SV 136 and 26); certificates 260 cyclic, 268 the usual trees, 44
+  not made within the limit (SV 1, 117, 18).
+- The independent check of these answers (branch verify/ranks) found two translator bugs, fixed: constants folded in
+  doubles (now BigInt, past 2^53 refused) and C's conversions to char, short and _Bool read as the identity (now
+  refused). No benchmark translation changed (`runs/ranks/translations-its.txt`, `translations-sv-c2ari.txt`,
+  `translations-sv-loops.txt`); its adversarial programs are tests (`adversarial/`, `adversarial.test.ts`,
+  `c2ari_test.py`).
 
 ### Runs that never end, after 0.22.0
 

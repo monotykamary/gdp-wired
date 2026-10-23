@@ -1,0 +1,7 @@
+; expect: terminates
+; x < n: x + 1, n any integer
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int Int))
+(entrypoint f)
+(rule (f x n) (f (+ x 1) n) :guard (< x n))

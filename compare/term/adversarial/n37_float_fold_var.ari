@@ -1,0 +1,7 @@
+; expect: nonterminating
+; x' = x + 3 * 3002399751580331 - 9007199254740992 = x + 1 (exactly), while x < 0 ... no: x' = x - 1 + (3 * 3002399751580331 - 9007199254740992), i.e. x' = x, a lasso for x > 0; folded in doubles the step is x - 1 and the loop would end
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(entrypoint f)
+(rule (f x) (f (+ (- x 1) (* 3 3002399751580331) (- 4503599627370496) (- 4503599627370496))) :guard (> x 0))

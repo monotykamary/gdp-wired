@@ -2,7 +2,12 @@
 // refused; the broken variants are refused; the ranks are the small ones the runs give.
 import {expect, test} from 'bun:test'
 import {refuseCyclic} from '../kernel/cyclic.ts'
-import {findCycles, findRank, linE, showE} from './cycles.ts'
+import {readFileSync} from 'node:fs'
+import {findCycles, findRank, linE, rankOfRelation, rankWithInvariants, showE} from './cycles.ts'
+import {check, loopObligations} from '../kernel/kernel.ts'
+import {grow} from '../kernel/prove.ts'
+import {parseAri} from '../compare/term/ari.ts'
+import {build} from '../compare/term/translate.ts'
 import {proveLeadsTo, proveLoop, proveRule} from './dsl.ts'
 import {accumulator, ackermann, claimCases, countUp, euclid, exchange, exchangeLoop, liveCases, loopCases, mccarthy, phases, ruleCases, toProduct, triangle} from '../examples/cycles.ts'
 
@@ -57,3 +62,22 @@ test('liveness with no rank: the rank found, the broken ones refused', () => {
   for (const [c, want] of liveCases()) expect([c.name, proveLeadsTo(c.r, c.laws, c.live).proven]).toEqual([c.name, want])
   expect(proveLeadsTo(liveCases()[2]![0].r, [], liveCases()[2]![0].live).found?.rank).toBe('(2·inbox + outbox)')
 }, 60_000)
+
+// The relation's ranks (rankOfRelation, rankWithInvariants): TermComp and SV-COMP tasks from the second frontier corpus,
+// as the benchmark translates them; each rank's halting goals proven and checked by the kernel, and each task's broken
+// variant (a run that never ends) given none the kernel takes.
+test('ranks from the relation: per location, in order, multiphase, with invariants; the broken variants refused', () => {
+  const dir = `${import.meta.dir}/../research/frontier2/tasks`
+  const loopOf = (f: string) => build(parseAri(readFileSync(`${dir}/${f}`, 'utf8')), f).loop
+  const halts = (f: string, invariants = false): boolean => {
+    const ms = f.includes('.broken.') ? 2_000 : 10_000, l = loopOf(f), r = invariants ? rankWithInvariants(l, [], performance.now() + ms) : rankOfRelation(l, [], performance.now() + ms)
+    if (!('rank' in r)) return false
+    return loopObligations(l, 'laws' in r ? r.laws : [], r.rank).every(g => { const o = grow(g); return 'tree' in o && check(g, o.tree) })
+  }
+  for (const f of ['its/Continue1.jar-obl-8', 'its/p-60.t2_fixed', 'its/AckR.jar-obl-8', 'its/Alternate.jar-obl-10', 'its/toy3.t2', 'its/polyrank1.t2', 'sv/2Nested-1', 'its/AProVEMath.jar-obl-8', 'sv/WhileFalse']) {
+    expect([f, halts(`${f}.ari`)]).toEqual([f, true])
+    expect([f, halts(`${f}.broken.ari`), halts(`${f}.broken.ari`, true)]).toEqual([f, false, false])
+  }
+  expect(halts('sv/McCarthy91_Iteration.ari', true)).toBe(true)
+  expect(halts('sv/McCarthy91_Iteration.broken.ari', true)).toBe(false)
+}, 120_000)

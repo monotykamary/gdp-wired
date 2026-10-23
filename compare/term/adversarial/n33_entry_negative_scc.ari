@@ -1,0 +1,9 @@
+; expect: nonterminating
+; only a negative entry reaches the loop, which then diverges
+(format LCTRS)
+(theory Ints)
+(fun i (-> Int Int))
+(fun f (-> Int Int))
+(entrypoint i)
+(rule (i x) (f x) :guard (< x 0))
+(rule (f x) (f (- x 1)) :guard (< x 5))

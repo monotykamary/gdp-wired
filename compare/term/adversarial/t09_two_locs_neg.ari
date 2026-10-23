@@ -1,0 +1,9 @@
+; expect: terminates
+; f(x) -> g(x + 1) while x < -2; g(x) -> f(x)
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(fun g (-> Int Int))
+(entrypoint f)
+(rule (f x) (g (+ x 1)) :guard (< x (- 2)))
+(rule (g x) (f x))

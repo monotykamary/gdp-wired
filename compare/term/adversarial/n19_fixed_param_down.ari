@@ -1,0 +1,7 @@
+; expect: nonterminating
+; x < n, x := x - 1 diverges (n fixed)
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int Int))
+(entrypoint f)
+(rule (f x n) (f (- x 1) n) :guard (< x n))

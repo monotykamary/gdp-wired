@@ -1,0 +1,7 @@
+; expect: nonterminating
+; -1 mod 2 = 1 in SMT-LIB (truncation would give -1)
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(entrypoint f)
+(rule (f x) (f x) :guard (and (< x 0) (= (mod x 2) 1)))

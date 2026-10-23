@@ -1,0 +1,7 @@
+; expect: nonterminating
+; f(x, x) loops
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int Int))
+(entrypoint f)
+(rule (f x x) (f x x))

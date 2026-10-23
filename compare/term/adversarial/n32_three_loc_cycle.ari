@@ -1,0 +1,11 @@
+; expect: nonterminating
+; f -> g -> h -> f, x net unchanged
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(fun g (-> Int Int))
+(fun h (-> Int Int))
+(entrypoint f)
+(rule (f x) (g (+ x 1)) :guard (> x 0))
+(rule (g x) (h (- x 2)))
+(rule (h x) (f (+ x 1)))

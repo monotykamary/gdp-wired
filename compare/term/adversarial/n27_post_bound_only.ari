@@ -1,0 +1,7 @@
+; expect: nonterminating
+; x' with bounds only: x - 1 <= x' <= x + 1
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(entrypoint f)
+(rule (f x) (f xp) :guard (and (> x 0) (<= (- x 1) xp) (<= xp (+ x 1))))

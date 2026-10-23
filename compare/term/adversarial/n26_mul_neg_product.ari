@@ -1,0 +1,7 @@
+; expect: nonterminating
+; x := x * y with y = -1: period 2, |x| kept
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int Int))
+(entrypoint f)
+(rule (f x y) (f (* x y) y) :guard (and (distinct x 0) (= y (- 1))))

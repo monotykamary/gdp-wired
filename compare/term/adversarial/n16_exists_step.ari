@@ -1,0 +1,7 @@
+; expect: nonterminating
+; y = x + z, z in {-1, 1}: z = 1 forever
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(entrypoint f)
+(rule (f x) (f y) :guard (exists ((z Int)) (and (= y (+ x z)) (> z (- 2)) (< z 2) (distinct z 0) (> x 0))))

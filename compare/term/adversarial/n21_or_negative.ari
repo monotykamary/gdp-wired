@@ -1,0 +1,7 @@
+; expect: nonterminating
+; x > 0 or x < -10: x - 1 from -11 never stops
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int))
+(entrypoint f)
+(rule (f x) (f (- x 1)) :guard (or (> x 0) (< x (- 10))))

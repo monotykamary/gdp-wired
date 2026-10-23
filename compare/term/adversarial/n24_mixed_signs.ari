@@ -1,0 +1,7 @@
+; expect: nonterminating
+; x := y - x, y := y: x0 = 1, y = 2 gives 1 forever
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int Int))
+(entrypoint f)
+(rule (f x y) (f (- y x) y) :guard (and (> x 0) (> y x)))

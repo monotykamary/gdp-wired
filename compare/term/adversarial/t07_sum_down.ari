@@ -1,0 +1,7 @@
+; expect: terminates
+; x + y > 0: both down
+(format LCTRS)
+(theory Ints)
+(fun f (-> Int Int Int))
+(entrypoint f)
+(rule (f x y) (f (- x 1) (- y 1)) :guard (> (+ x y) 0))
