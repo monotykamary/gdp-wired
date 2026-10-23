@@ -68,7 +68,8 @@ All of these are proven automatically, and each proof is also a Lean theorem:
 - **XState machines** (`gdp-wired/xstate`): `fromXState(machine, {guards, actions})` builds the chart an XState v5
   machine runs as, with each guard and action it names given again in gdp-wired's terms, and `conforms(chart, machine,
   createActor)` drives XState's own actor and the compiled rule with the same random events, comparing every state and
-  context; what a chart can't run the same way is refused when built, with the reason (`examples/xstate.ts`).
+  context; what a chart can't run the same way, and any key it doesn't read, is refused when built, with the reason
+  (`examples/xstate.ts`). A v4 machine's `cond` is read as its guard.
 - **What nobody stated, looked for when the prover alone stops**: where `proveRule` or `proveSteps` doesn't prove the laws
   and no run breaks them, it looks for lemmas about the rule's recurrences and lists (`discover`), lemmas about the
   functions it knows by their facts (`cycleLemmas`, each proven by a cyclic proof) and then invariants (`inferLaws`),

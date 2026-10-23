@@ -54,13 +54,13 @@ function constructs(config: Node): string[] {
     for (const [e, spec] of transitions) for (const t of list(spec)) {
       if (!t || typeof t !== 'object') continue
       const o = t as Record<string, unknown>
-      if (o.cond !== undefined) out.add(`a v4 \`cond\` guard (${at} on ${e})`)
+      // (fromXState reads it now; the scored run was made when it dropped it unrefused)
+      if (o.cond !== undefined) out.add(`a v4 \`cond\` guard (${at} on ${e}): read as the guard in a v4 machine`)
       if (typeof o.guard === 'function') out.add(`an inline guard ${fnName(o.guard)} (${at} on ${e})`)
       for (const a of list(o.actions)) {
         if (typeof a === 'function') out.add(`an inline action ${fnName(a)} (${at} on ${e})`)
         else if (a && typeof a === 'object' && typeof (a as {params?: unknown}).params === 'function') out.add(`an action with inline params (${at} on ${e})`)
       }
-      if (o.reenter !== undefined) out.add(`\`reenter\` (${at} on ${e}): not read by fromXState`)
     }
     for (const [k, kid] of Object.entries(n.states ?? {})) walk(kid, path ? `${path}.${k}` : k, depth + 1)
   }

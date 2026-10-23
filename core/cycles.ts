@@ -1188,11 +1188,30 @@ export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sample
       st = next
     }
   }
+  // The trivial ranks first, where the runs allow them: the constant 0 (every helpful step in its region reaches `to` at
+  // once: none sampled stays pending, which leaves the fit below nothing to fit), then each state variable alone (every
+  // helpful step sampled that stays pending lowers it, and no other raises it), up to four of them. Rank 0 may take half
+  // of what is left, each variable a quarter.
+  const zero: E = {op: 'const', value: 0}, tried = new Map<string, ReturnType<typeof proveLiveness>>()
+  const keeps = (x: string) => [...weak.values()].every(e => e.t[x]! <= e.s[x]!), lowers = (x: string) => [...strong.values()].every(e => e.t[x]! < e.s[x]!)
+  const trivial: E[][] = [...(strong.size ? [] : [[zero]]), ...Object.keys(m.state).filter(x => keeps(x) && lowers(x)).slice(0, 4).map(name => [{op: 'var', name} as E])]
+  const rankText = (rank: E[]) => `(${rank.map(showE).join(', ')})`
+  for (const [i, rank] of trivial.entries()) {
+    const ms = until - performance.now()
+    if (ms < 200) break
+    const v = withDeadline(performance.now() + ms * (i === 0 && !strong.size ? 0.5 : 0.25), () => proveLiveness(m, laws, {...l, rank}))
+    if (v.proven && v.checked) return {proven: true, checked: true, rank, laws: [], found: {rank: rankText(rank), laws: []}}
+    tried.set(id(rank), v)
+  }
   const samples: Sampled[][] = [[...points.values()].map(env => ({env, calls: new Set()}))]
   const {comps, left} = lexRanks([0], [node], samples, [...strong.values()], shared, until, false, [...weak.values()])
-  if (!comps.length || left) return {proven: false, checked: false, why: `no linear rank, in order, that ${strong.size} helpful steps sampled lower and ${weak.size} others keep`}
-  const rank = comps.map(c => compE(c, 0, node, shared)), text = `(${rank.map(showE).join(', ')})`, lv: Liveness = {...l, rank}
-  const first = withDeadline(until, () => proveLiveness(m, laws, lv))
+  const noRank = `no linear rank, in order, that ${strong.size} helpful steps sampled lower and ${weak.size} others keep`
+  const fitted = comps.length && !left ? comps.map(c => compE(c, 0, node, shared)) : undefined
+  // Past the fit, the invariants a rank needs: the fitted one's, or else rank 0's where the runs allow it.
+  const rank = fitted ?? (strong.size ? undefined : [zero])
+  if (!rank) return {proven: false, checked: false, why: noRank}
+  const text = rankText(rank), lv: Liveness = {...l, rank}
+  const first = tried.get(id(rank)) ?? withDeadline(until, () => proveLiveness(m, laws, lv))
   if (first.proven && first.checked) return {proven: true, checked: true, rank, laws: [], found: {rank: text, laws: []}}
   const ms = until - performance.now()
   if (ms > 300) {
@@ -1203,7 +1222,9 @@ export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sample
       if (again.proven && again.checked) return {proven: true, checked: true, rank, laws: more, found: {rank: text, laws: kept.map(f => f.text)}}
     }
   }
-  return {proven: false, checked: false, rank, found: {rank: text, laws: []}, ...(first.failed ? {goal: first.failed.goal, stuck: first.failed.stuck, ...(first.failed.witness ? {witness: first.failed.witness} : {})} : {}), why: `rank ${text} from the runs; the kernel's goals not proven with it`}
+  const failed = first.failed ? {goal: first.failed.goal, stuck: first.failed.stuck, ...(first.failed.witness ? {witness: first.failed.witness} : {})} : {}
+  if (!fitted) return {proven: false, checked: false, ...failed, why: `${noRank}; rank ${text}, which the runs allow, not proven, nor with the invariants found`}
+  return {proven: false, checked: false, rank, found: {rank: text, laws: []}, ...failed, why: `rank ${text} from the runs; the kernel's goals not proven with it`}
 }
 
 // --- functions a rule reads -----------------------------------------------------------------------------------------

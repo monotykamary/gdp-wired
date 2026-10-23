@@ -5,6 +5,58 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+What the real-world corpus (research/realworld) found in gdp-wired itself, fixed. Nothing trusted changed (`kernel/kernel.ts`,
+`core/check.ts` and `lean-kernel/` as they were). The corpus again on Modal, the same day, beside main at 6f03586 (311
+jobs each, 2 vCPU): proven 237 against 218, refuted 16 against 15, neither 58 against 78 (main's 78: 77 unknown, one
+error); liveness 18 of 35 against 0 (`runs/rwfix/score`, `runs/rwfix/base`). Every one of main's 15 refutations is
+still refuted, and nothing went from refuted to proven. The changed verdicts: 18 liveness laws proven with the rank 0
+found; p-retry's "an uncapped retry waits at least minTimeout" proven (main threw), through the lemma found
+`f(x) >= minTimeout`; BullMQ's "an exponential retry waits at least the base delay" refuted (main: unknown), a law
+error triaged as one (`triage/queuebreaker.json`: with delay 0 the code retries at once and the rule leaves its ghost
+`until` as it was). With rank 0 stated, `rank0.ts` proves the same 18 on Modal (the README's 19 was a local run).
+
+- `fromXState` dropped XState v4's `cond` without a word, so a v4 config was proven with fewer guards than it has. It
+  now refuses every key it doesn't read, by name (a node's, the root's, a transition's), rather than dropping it: v4's
+  `in`, `strict`, `activities`, `onEntry` and `onExit`, `''` (v4's eventless transition), events XState raises itself
+  (`xstate.*`, `done.state.*`, `done.invoke.*`, `error.*`), an initial transition given as an object, `history` or
+  `target` off a history node, `context` below the root, an unknown state type. It reads `cond` as v4 does, the guard
+  v5 calls `guard` (a name, or `{type, ...params}`, the params its other keys): a v4 machine with `cond` guards and
+  params runs as v4's own interpreter (xstate 4.34.0, 3,600 steps, checked by hand) and its laws prove. Each XState
+  ignores the other's key and takes the transition unguarded, so `cond` in a v5 machine and `guard` in a v4 one are
+  refused (the version read off the machine; a plain config is read by the key it uses). `reenter` and v4's
+  `internal` are read as changing nothing a chart shows (they choose which entry and exit actions run, and those write
+  no context here), which `conforms` confirms against both XStates on self, child and ancestor targets. For gen/extract:
+  the API is the same; a config it took before with a key it ignored is refused now. None of the corpus's six machines
+  was scored through a dropped guard: five are charts by hand with their `cond` guards written in, and gapless.js's
+  config (v5's `guard`) builds as before and conforms to XState's actor over 19,200 steps
+  (`repro/conform-gapless.ts`, `runs/rwfix/extra`); `repro/xstate-refusals.ts` gives each shipped machine the same
+  first refusal as before.
+- A map read at a key that reads a flag (`M.at(when(big, a, b))`) threw `unknown flag` from the kernel: the prover
+  (`kernel/prove.ts`'s readKeys) offered that key, flag and all, as an instance, and the kernel's goals inline flags.
+  The prover now inlines the flags in the keys it offers, as the goals read them; such a rule proves (ERC20's
+  allowance slot written with its `approves` flag in the key no longer throws). The kernel is unchanged: it never sees
+  such a key from the prover.
+- `refuteByRuns` skipped every rule that read a function other than division by a constant, so a false law over one
+  came back unknown. Its runs compute each function by its JavaScript, as the rule runs it, and draw params only where
+  every fact holds (one about the params alone exactly, one about every key at each key up to twice the bound, or each
+  tuple up to the bound), so a recurrence's induction machines (fx a param, given as f(x)) get no run that isn't one.
+  Every rule function carries its JavaScript, so a random table would be a run the rule can't take; none is drawn.
+- `proveDecision(d, {ms})` honours a budget, on the prover's clock (the counted one inside a counted search); past
+  it the verdict is unknown. With none, as before. The corpus passes its 60 s.
+- `discover` threw on p-retry's delay, minTimeout · factor^k: its samples kept values past 2^53, and a candidate fitted
+  to them held a constant no term can (`290760102328562900 is not a natural`). A run of samples stops where its values
+  stop being safe integers, and a candidate with a coefficient that isn't one is dropped.
+- With no rank stated, `findLeadsTo` fitted a rank to the helpful steps that stay pending, and where every helpful
+  step reaches `to` at once there are none: 0 of the corpus's 35 liveness laws. It tries the trivial ranks first, where
+  the runs allow them: 0 (no helpful step sampled stays pending), then each state variable alone that every such step
+  lowers and no other raises (up to four); then the fit; then the invariants a rank needs, for the fitted rank or else
+  rank 0.
+- Tests: `core/xstate.test.ts` (the refused keys; v4's cond against v5's guard), `core/dsl.test.ts` (a flag in a map
+  key; a decision past its budget unknown in 300 ms, about 11 s with none), `core/functions.test.ts` (a false law
+  through a function refuted by a run; a fact over the params keeps a true law), `core/discover.test.ts` (the p-retry
+  recurrence), `core/cycles.test.ts` (ranks 0 and a variable alone, and a helpful step that misses the goal refused).
+  Each fails on main.
+
 Ranks from a loop's relation, not only its runs: each path of a turn read exactly (its vertices, rays and lines), a
 rank per location, blocks in order, multiphase, with invariants by Houdini, every rank still proven by the kernel.
 Nothing trusted changed (`kernel/`, `core/check.ts` and `lean-kernel/` are as in 0.22.0). With the runs that never
