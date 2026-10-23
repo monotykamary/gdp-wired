@@ -1,0 +1,4 @@
+[boat] batch 20261023-111531-boqee9: image gdpw-9fee57bd731c, tree 3628 KB, library 503f0f3e691c (14 .olean here, 11157 KB, for VMs that lack them)
+[boat] 204 jobs on 10 default VM(s) + 1 large (times from the last run)
+204 jobs, 0 failed, 245.4 s wall, 3342.9 s of job time; 204 on boat
+EXIT 0

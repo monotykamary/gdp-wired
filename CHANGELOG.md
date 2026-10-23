@@ -168,6 +168,25 @@ the library changed.
   claim that some run never ends); TIP's refusals (function variables returning a list 4, uninterpreted sorts 2 and
   constants 2, a product of two integers 1, a nested datatype 1, rings of functions that aren't structural 14); and
   SV-COMP's C translation refusals (56).
+- boat's starts are spent by plan (a resume is a start; `boat limits` is read at every batch, so a new plan takes
+  effect on the next one). A batch starts at most a quarter of the starts left this hour and day and at most 50
+  (`GDPW_BOAT_MAX_STARTS`, `--max-vms` for a run); the last 60 starts of the rolling day and 15 of the hour are left
+  to the account's other users (`GDPW_BOAT_RESERVE_DAY`, `GDPW_BOAT_RESERVE_HOUR`); a stopped VM is resumed only while
+  the batch needs it; VMs other batches release join a batch with more work than slots; with no start left, `auto`
+  waits within `--max-wait` for one, then goes to Modal. A released VM stays up 60 s and never longer to save starts
+  (boat's terms, TOS-6). `GDPW_BOAT_POLICY=old` runs the policy before.
+  - On the $500 plan, CHC (gdp, 1,406 tasks): the old policy 211 starts, 563.7 s, $0.9588 (`runs/starts/chc-old`);
+    cap 50, 47 starts, 725.1 s, $0.33333 (`runs/starts/chc-c985479`); cap 30, 30 starts, 1,116.4 s, $0.32189
+    (`runs/starts/chc-new`); Modal 330.1 s (`runs/modal/arith/chc-gdp`). TIP: 27 starts, 542.3 s (`runs/starts/tip-new`);
+    the suite: 1 start and 4 VMs up, 429.4 s (`runs/starts/suite-new`). No verdict contradicts the old policy's
+    (`research/boat-starts/measured/verdicts.txt`).
+  - Today's batches replayed (`research/boat-starts/sim.py`): the old sizing would have needed 5,260 starts to keep
+    them all on boat; on the $100 plan it got 830 and sent 14 batches to Modal; the new defaults take 598, sending none
+    (`sim.txt`).
+- Fixed: a pool VM boat can't stop and whose disk is gone (it answers no exec and stays up, billed) is deleted, where a
+  batch took it as up and waited for it; a job needing a VM type none of which came goes to Modal after `--max-wait`
+  instead of holding the batch; a released VM's lease is cleared only by the batch that holds it; `reap.sh` stops a
+  free VM only past the idle time its batch gave it.
 
 A law that is its own bridge (core/transfer.ts: `f(x, y) = x + y`, f a recursive function that agrees with the built-in
 up to 6) is searched once, as the law, not first as its bridge and then again as itself. The suite's `data` job failed

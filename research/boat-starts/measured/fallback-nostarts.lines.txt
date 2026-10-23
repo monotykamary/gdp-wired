@@ -1,0 +1,1 @@
+1 jobs, 0 failed, 55.5 s wall, 30.0 s of job time; 1 on modal (fallback: 1 job: no boat starts left this hour or day)
