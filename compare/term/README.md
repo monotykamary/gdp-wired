@@ -151,6 +151,66 @@ the task's expected verdict.
 - Not run: the Lean twin on the ranks found (every proof here is the kernel's, checked twice: in `findRank`, and again
   in solve.ts on the obligations of the loop as translated).
 
+### Accelerated cycles (Unreleased)
+
+After merging main at 54bbec9 (gen/ranks2's rank splits, gen/sv-front's C front end), launched together with main
+at that commit (`runs/accel2/its-mine`, `its-base`, `sv-mine`, `sv-base`):
+
+| | ITS terminates | nonterminating | solved of 1,239 | SV terminates | nonterminating | solved of 282 |
+| --- | --- | --- | --- | --- | --- | --- |
+| the task's statement (`gdp`), here | 612 | 519 | 1,131 | 170 | 55 | 225 |
+| 54bbec9 | 612 | 461 | 1,073 | 170 | 55 | 225 |
+| per component (`gdp-scc`), here | 612 | 521 | 1,133 | 151 | 55 | 206 |
+| 54bbec9 | 611 | 463 | 1,074 | 152 | 55 | 207 |
+
+LoAT's default engine (532) leads on nonterminating tasks: 13 more than `gdp` here, 11 more than `gdp-scc`. Gained 59
+nonterminating on each statement, lost one lasso each (db3.t2_fixed, db2.t2_fixed: found by main's lasso stage at 46
+to 50 s); SV-COMP's per-component loss, cohencu5-both-t, is a rank search bounded by time, proved by main in 6 of 10
+runs and here in 1 of 10 (4 of 9 with the accelerated stage off: `runs/accel2/svre-*`). The relation is one: ranks2's
+shortcut for the ifs a path's pins decide, always on, and 6b2e2df's relation wherever both build
+(`runs/accel2/relsame2`). Lean checks 40 of the 57 new accelerated sets, drawn at random, 40 of 40
+(`runs/accel2/lean-sample`). The figures below are the run before the merge, beside 6b2e2df.
+
+Recurrent sets from the relation's cycles (core/accel.ts), between the random runs and the policies in
+core/nonterm.ts's search, on Modal (2 vCPU, 4 GB a task, 60 s): this branch (`runs/accel/its-mine1`, `sv-mine1`)
+against main at 6b2e2df launched at the same time (`its-base1`, `sv-base1`). No answer contradicts another: not
+LoAT's, LoAT abmc's or KoAT2's (`runs/modal/term/full1`), the other run's, or SV-COMP's expected verdicts.
+
+| | ITS terminates | nonterminating | solved of 1,239 | SV terminates | nonterminating | solved of 282 |
+| --- | --- | --- | --- | --- | --- | --- |
+| the task's statement (`gdp`), here | 571 | 523 | 1,094 | 135 | 47 | 182 |
+| 6b2e2df | 574 | 458 | 1,032 | 135 | 47 | 182 |
+| per component (`gdp-scc`), here | 582 | 525 | 1,107 | 125 | 47 | 172 |
+| 6b2e2df | 580 | 463 | 1,043 | 125 | 47 | 172 |
+| LoAT (`full1`), the nonterminating leader | 2 | 532 | | | | |
+| LoAT abmc (`full1`) | 284 | 492 | | | | |
+
+The leader on nonterminating ITS tasks in this harness is LoAT's default engine, 532: 9 more than `gdp` here and 7
+more than `gdp-scc`; LoAT abmc's 492 is passed.
+
+- Nonterminating, gained 65 (`gdp`) and 62 (`gdp-scc`), lost none; 64 and 62 of them are LoAT's NO too, the other a
+  lasso replayed by ari.ts's evaluator (db3.t2_fixed). Of `gdp`'s 523, 192 are accelerated sets, 323 solve.ts's own
+  lassos, 8 the older recurrent sets; the 63 new accelerated ones come at a median 3.5 s (p90 45.1 s).
+- Terminating, `gdp`: 2 gained, 5 lost, all five at the rank search's limit; run again (`runs/accel/lost5-mine`,
+  `lost5-base`), this branch proves all five and 6b2e2df three. Nothing of the rank search changed.
+- SV-COMP: the same answers; its 61 nonterminating tasks are 47 answered and 14 the C translation refuses.
+- Lean: all 200 recurrent sets of the run (192 accelerated) are theorems `NeverEnds <task>_loop` that Lean 4.34.0
+  checks, on `propext`, `Classical.choice`, `Quot.sound` (`recur-lean.ts --shard i/32`, `runs/accel/its-lean1`; one
+  shard's 7 one a job, `its-lean1-shard5`: Test4.jar-obl-10's in 62 minutes).
+- The tasks LoAT or LoAT abmc answers NO and `gdp` doesn't: 77 at 0.23.0's run (`runs/ranks/r4-its-merged`), 18 here (60 of the 77 answered),
+  each read against LoAT's proof (`runs/accel/loat-proof2`, `runs/modal/term/diag-loat`): a product in the loop that
+  the set needs (Velroyen08-complInterv's (x + 1)², factorial's s1·s2, RandomHard's products in its guard,
+  MysteriousProgram's accelerated loop of a quadratic closed form), 4; an inner loop that runs 13 times inside the
+  cycle (KnapsackDP: past the 6 choices the cycles are enumerated to, and no random run gets there), 1; a closure goal
+  past what the kernel is given (s1 and s1-striped, 4: 163 to 346 million nodes, the cap 5 million), 4; a goal the
+  kernel didn't close in the time left (tqli_fixed and tqli's `nor.t2.rlgfixed` twin: a cycle of 16 turns, 0.7 million
+  nodes; tqli.t2's like goal closed in 22 s on a laptop; `gdp-scc` answers both), 2; no candidate from the cycles
+  enumerated in the time (hqr, 3: LoAT's set is on a cycle of 13 of its chained steps; pgarch, 2, and slayer-3-new, of
+  203 and 426 locations, whose LoAT proofs, 0.1 MB kept of each, show the run but not the clause it ends in), 6; sets
+  closed on a cycle no stem reaches (fun9: 4, each closed within 0.2 s, the accelerated runs' search exhausted; LoAT's
+  set is on another cycle), 1. One of the 18 (hqr's `nor.t2.rlgfixed` twin) was answered by a lasso at
+  0.23.0's run, by chance of the random runs.
+
 ### The C front end (Unreleased)
 
 SV-COMP's 282 tasks on Modal at 60 s, `gdp` and `gdp-scc`, this branch (`runs/svfront/f2-mine`) and main at 6b2e2df

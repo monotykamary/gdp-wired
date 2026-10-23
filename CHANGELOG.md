@@ -85,6 +85,80 @@ contradicts another tool's, a lasso or any of this track's or main's runs (`runs
 - Cost: Modal $25.08366 for this track's 58 apps before the merge and $5.95577 for its 10 after (main's base runs
   included), on 2026-10-23 UTC (`modal billing report --for today`, before the day closes); no boat.
 
+Runs that never end, from the loop's relation: a cycle of its paths, its n-fold run read in closed form, the set it
+keeps closed, and a stem into it from runs whose loops are taken n times at once (core/accel.ts). Nothing trusted
+changed (`kernel/`, `core/check.ts`, `lean-kernel/`): each answer is the same certificate as before, kernel.ts's
+`checkRecur` and NonTerm.lean's `never_ends_of`. Measured after merging main at 54bbec9 (gen/ranks2 among it), at 60
+s on Modal, launched together with main at that commit: TermComp's ITS on the task's statement 1,131 solved (612
+terminating, 519 nonterminating), main 1,073 (612, 461); per component 1,133 (612, 521), main 1,074 (611, 463).
+The nonterminating leader in the same harness is LoAT's default engine, 532 (LoAT abmc 492; `runs/modal/term/full1`):
+13 behind it on the task's statement, 11 per component; no lead, past LoAT abmc only, and any comparison unconfirmed
+under the competition's own setup. SV-COMP's termination tasks: 225 (170, 55) as main, per component 206 (151, 55)
+against 207 (152, 55). No answer contradicts another tool's, the other run's or an expected verdict
+(`runs/accel2/its-mine`, `its-base`, `sv-mine`, `sv-base`).
+
+- **Cycles** of the relation (core/relation.ts's paths, each from a location to a location): closed walks by their
+  least rotation, by how many choices they make among a location's paths (at most 6; straight-line code costs none),
+  each turn's inputs left open and a walk cut where its rows are refuted (core/solver.ts); a self-loop also twice over
+  (x := −x); then the cycles the random runs take. A turn's inputs as terms of the state before it (a row's equation, a
+  bound) or constants from a model of two rounds.
+- **Closed forms:** the cycle is one affine loop (guard G, update U). An atom g ≤ 0 of G holds after every n turns where
+  its forward differences along the run, Δ^{k+1}g = Δ^k g∘U − Δ^k g, are ≤ 0 at the start (g(Uⁿx) = Σ C(n, k)·Δ^k g:
+  translations, triangular and geometric updates); the set is G with the differences to degree 3, Houdini dropping a
+  difference U doesn't keep. On the loop: per turn of the cycle, at its location, the states from which the rest of
+  it is allowed and ends in the set (the weakest precondition), the witness by location (the commonest value with no
+  condition).
+- **Stems:** a state a random run reached; else a run found over the relation from the start, a path at a time or a
+  self-loop that is a translation taken n times at once (rows at its first and last turn), pruned where its rows are
+  refuted, then run on the loop itself (a stem of 5,000 turns in the tests); else, once the set is closed, a bounded
+  run (core/bmc.ts). A set no such run reaches is not tried, and a set with a stem may take most of the time left.
+- **The relation:** gen/ranks2's decided-branch shortcut (an `if` a path's pins decide read at them, always on) is
+  the one in core/relation.ts; this branch's own (`relationOf(..., {fast: true})`, the same rule) is gone, and both
+  searches read the one relation. On all 1,239 ITS tasks it is 6b2e2df's relation wherever both build (1,168 at the
+  usual cap, 55 at 100,000), 12 built only now, 4 by neither (`runs/accel2/relsame2`, as `runs/accel/relsame1` for
+  the flag).
+- **Beside main at 54bbec9:** nonterminating gained 59 on each statement, lost 1 (`gdp`: db3.t2_fixed, `gdp-scc`:
+  db2.t2_fixed, each a lasso main's lasso stage found at 46 to 50 s; the first run below found db3.t2_fixed here and
+  not at 6b2e2df); 57 and 59 of the gains are LoAT's NO, the other two lassos replayed by ari.ts's evaluator; the new
+  accelerated answers at a median 3.6 s (p90 42.5 s). Terminating unchanged on the task's statement (612 both), one
+  more per component. SV-COMP: `gdp` GCD3 lost and another gained, both at the limit; `gdp-scc` lost
+  cohencu5-both-t, a rank search bounded by time: run again, main proved it in 6 of 10 runs, this branch in 1 of 10
+  and this branch with the accelerated stage off in 4 of 9 (`runs/accel2/svre-*`), so the stage's first seconds may
+  cost the rank search there (not found why). ITS misses beside LoAT: 21, the 18 below with tqli.t2, its `fixed.t2`
+  twin, Test4 and agafp, and tqli_fixed answered: closures and lassos that land near the limit move between runs.
+  Round 2's nontermination items: 5 / 5, broken 5 / 5, as main (`nt-mine`, `nt-base`). The suites: by default 217
+  jobs, none failed, 650.9 s wall, 5,687.8 s of job time, main 622.2 s and 5,371.3 s; `--usual` 595.5 s and 5,062.4
+  s, main 587.1 s and 4,968.5 s (`suite-*`), `lean-nonterm` passing in all four, `nonterm` 55.2 s against 39.5 s
+  (the new test), the rest spread over unrelated jobs both ways. Lean: 40 of the 57 new accelerated sets, drawn at
+  random, each a theorem `NeverEnds <task>_loop` that Lean 4.34.0 checks on `propext`, `Classical.choice`,
+  `Quot.sound`, 40 of 40, at most 118 s a job (`runs/accel2/lean-sample`).
+- **Before the merge, beside main at 6b2e2df** (`runs/accel/its-mine1`, `its-base1`, `sv-mine1`, `sv-base1`): ITS
+  1,094 (571, 523) against 1,032 (574, 458), per component 1,107 (582, 525) against 1,043 (580, 463); SV-COMP the
+  same answers, 182 (135, 47) and 172 (125, 47).
+- Where it landed at 6b2e2df: of its 458 nonterminating answers, 129 are accelerated sets now (they come before the
+  policies), the rest as they were. Nonterminating gained 65 (`gdp`) and 62 (`gdp-scc`), lost none; 64 and 62 are
+  LoAT's NO too, the other a lasso replayed by ari.ts's evaluator. Terminating `gdp` 2 gained and 5 lost at the rank
+  search's limit; run again, this branch proves all five and 6b2e2df three (`runs/accel/lost5-*`). The 77 ITS tasks
+  LoAT answers NO and 0.23.0's run didn't: 60 answered; the 18 left (17 of the 77, and one a lasso found by chance
+  at 0.23.0) each read against LoAT's proof in compare/term/README.md.
+- Tests: core/nonterm.test.ts's three tasks no other stage finds (a sign that alternates while |x| grows, a free value
+  chosen 14, a stem of 5,000 turns), each with its terminating twin proven to halt and not found. The second corpus's
+  nontermination items: 5 / 5, every broken variant refused, as at 6b2e2df, each by an accelerated set now (sets of
+  206 to 444 bytes against 518 to 1,510, stems of 0 to 101 turns against 1 to 3,008); both corpora's verdicts as at
+  6b2e2df (round 1: 90 / 92, broken 42 / 42; round 2: 27 / 47, broken 47 / 47; `runs/accel/c1-*`, `c2-*`).
+- The suites on Modal: by default 213 jobs, none failed, 692.5 s wall, 5,106.6 s of job time (`runs/accel/suite-default`);
+  `--usual` 213, none failed, 505.5 s, 4,567.4 s (`suite-usual`). 6b2e2df beside them: 6 failed in its checkout (no
+  vendor/handwired, which hw-check and check read), and on the 207 jobs both passed 4,793.1 s and 4,522.8 s against
+  4,919.3 s and 4,361.8 s here; `nonterm` 53.6 s against 39.6 s (the new test).
+- compare/term/modal_term.py's `-proof` tools keep a long proof's head and its last 100 kB (where its steps are), not
+  its first 30 kB.
+- Lean: every recurrent set of this branch's ITS run (`gdp`), 200 (192 accelerated), is a theorem `NeverEnds
+  <task>_loop` Lean 4.34.0 checks by `never_ends_of`, on `propext`, `Classical.choice`, `Quot.sound`
+  (compare/term/recur-lean.ts: 193 in 31 of 32 shards, `runs/accel/its-lean1`; the 32nd's 7 killed at 50 minutes and
+  checked one a job, `its-lean1-shard5`, Test4.jar-obl-10's in 62 minutes, the rest within 2.5).
+- Cost: Modal, about 153,600 s of task time for the benchmark, corpus and suite runs here and their bases, 5,968 s and
+  4,106 s for the Lean checks; the day's dollars not yet in Modal's billing report.
+
 ## 0.24.0
 
 CHC-COMP's unsat side caught up most of the way, SV-COMP is read from C as C runs, and two trusted additions came with

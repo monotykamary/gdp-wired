@@ -60,3 +60,36 @@ test('a certificate goes to Lean as Kern.never_ends_of, its tampered twins as ch
   expect(text).toContain('theorem climb_never_ends : NeverEnds climb_loop :=')
   expect(text).toContain('example : checkRecur climb_loop climb_tampered0 = false')
 })
+
+// Accelerated cycles (core/accel.ts): sets from the relation's cycles, stems from runs with their loops taken n times at
+// once. Each task here is LoAT's NO with no lasso and no fitted set at 0.23.0; its twin terminates, and isn't proven
+// never to end.
+const ari = (name: string, rules: string) => build(parseAri(`(format LCTRS)\n(theory Ints)\n${['l0', 'l1', 'l2'].map(f => `(fun ${f} (-> Int Int))`).join('\n')}\n(entrypoint l0)\n${rules}`), name).loop
+// x alternates sign and grows: x > 0 gives −x − 1, x < 0 gives −x + 1 (two turns: x + 2); the set x ≠ 0 at l1 is no
+// conjunction. The twin's |x| falls by one each turn.
+const alternate = ari('alternate', '(rule (l0 x0) (l1 x0))\n(rule (l1 x0) (l1 y0) :guard (and (> x0 0) (= y0 (- (- 0 x0) 1))))\n(rule (l1 x0) (l1 y0) :guard (and (< x0 0) (= y0 (+ (- 0 x0) 1))))')
+const alternateTwin = ari('alternate, falling', '(rule (l0 x0) (l1 x0))\n(rule (l1 x0) (l1 y0) :guard (and (> x0 0) (= y0 (+ (- 0 x0) 1))))\n(rule (l1 x0) (l1 y0) :guard (and (< x0 0) (= y0 (- (- 0 x0) 1))))')
+// a value chosen each turn: x' free with x' >= 0, and the loop runs while x = 14 (the choice 14, a model's constant)
+const choose = ari('choose 14', '(rule (l0 x0) (l1 x0))\n(rule (l1 x0) (l1 y0) :guard (and (= x0 14) (>= y0 0)))')
+const chooseTwin = ari('choose 14, then below', '(rule (l0 x0) (l1 x0))\n(rule (l1 x0) (l1 y0) :guard (and (= x0 14) (>= y0 0) (< y0 14)))')
+// a stem of 5,000 turns: x counts from 0 to 5,000 at l1, then climbs at l2 for ever (a random run, or a bounded one of
+// 24 turns, never gets there); the twin climbs down at l2 instead.
+const longStem = ari('a long stem', '(rule (l0 x0) (l1 y0) :guard (= y0 0))\n(rule (l1 x0) (l1 y0) :guard (and (< x0 5000) (= y0 (+ x0 1))))\n(rule (l1 x0) (l2 x0) :guard (>= x0 5000))\n(rule (l2 x0) (l2 y0) :guard (and (>= x0 5000) (= y0 (+ x0 1))))')
+const longStemTwin = ari('a long stem, then down', '(rule (l0 x0) (l1 y0) :guard (= y0 0))\n(rule (l1 x0) (l1 y0) :guard (and (< x0 5000) (= y0 (+ x0 1))))\n(rule (l1 x0) (l2 x0) :guard (>= x0 5000))\n(rule (l2 x0) (l2 y0) :guard (and (>= x0 5000) (= y0 (- x0 1))))')
+
+test('accelerated cycles: each found and checked, its twin halting and not found', () => {
+  for (const l of [alternate, choose, longStem]) {
+    const n = findNeverEnds(l, {ms: 4000})
+    expect(n.proven && n.checked, l.name).toBe(true)
+    expect(n.by, l.name).toBe('accelerated')
+    expect(checkRecur(l, n.recur!), l.name).toBe(true)
+  }
+  expect(findNeverEnds(longStem, {ms: 4000}).recur!.stem.length).toBeGreaterThan(5000)
+  for (const l of [alternateTwin, chooseTwin, longStemTwin]) {
+    expect(findNeverEnds(l, {ms: 2000}).proven, l.name).toBe(false)
+    const r = findRank(l, [], {ms: 4000})
+    expect(r.proven && r.checked, `${l.name} halts`).toBe(true)
+  }
+  // without the stage, none of the three (the lassos, policies and fitted sets miss them)
+  for (const l of [alternate, longStem]) expect(findNeverEnds(l, {ms: 2000, accel: 0}).proven, l.name).toBe(false)
+}, 120_000)
