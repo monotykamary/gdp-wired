@@ -38,7 +38,9 @@ PREP = {"run.py": 22.0, "runner": 10.0}
 OVERHEAD = {"run.py": 0.0, "runner": 5.0}  # calibrate.py: the least error against the old runs' progress lines
 VM_DOLLARS_S = 1e-5  # a default VM (4 vCPU): $0.036 an hour; a large one (8 vCPU) twice that
 RESERVE = 10
-PLANS = {"100": (30, 210, 840, 300), "500": (65, 420, 1680, 1000), "inf": (10**6, 10**7, 10**8, 10**6), "minute": (30, 10**7, 10**8, 300)}
+MAX_WAIT = 120  # --max-wait's default
+RETRY = 60  # a batch short of VMs asks for starts again this often (Session.run's top-up)
+PLANS = {"100": (30, 210, 840, 300), "500": (65, 420, 1680, 1000), "2000": (90, 600, 2400, 2000), "inf": (10**6, 10**7, 10**8, 10**6), "minute": (30, 10**7, 10**8, 300)}
 # $ per job-second on Modal: each the README's run (modal billing report) over its job seconds
 MODAL_RATE = {"chc": 2.604 / 65830.4, "tip": 0.633 / 14016.7, "term": 2.122 / 50466.6, "run.py": 0.256 / 4246.7}
 
@@ -78,6 +80,7 @@ class Batch:
         self.vms, self.left, self.want = [], len(b["jobs"]), {}
         self.starts = self.warm = 0
         self.end, self.modal, self.waited, self.done_t = None, False, 0.0, []
+        self.modal_jobs, self.modal_seconds = 0, 0.0  # jobs of it that went to Modal while the rest ran on boat
 
     def take(self, vtype, free):
         """The longest queued job of this type whose weight fits `free` slots: (seconds, weight), or None."""
@@ -221,8 +224,47 @@ class Sim:
         if self.p.get("wait") and any(C.vms and C.end is None for C in self.running):
             self.waiting.append(B)
             self.at(self.now + self.p["wait"], self.give_up, B)
+            self.at(self.now + RETRY, self.retry, B)
         else:
             self.to_modal(B)
+
+    def retry(self, B):
+        """A batch that wanted VMs when no start was left, every RETRY s (Session.run's top-up): once starts are
+        back and it still has more work than slots, its share of them (no more than it lacks)."""
+        if B.end is not None or B.modal:
+            return
+        if B not in self.waiting and B.enough("default"):
+            return
+        left = self.left()
+        if left > 0 and B not in self.pending:
+            lack = math.ceil((B.qn.get("default", 0) - B.slots.get("default", 0)) / 2)
+            budget = min(left, max(self.p.get("min_budget", 2), math.floor(self.p.get("share", 1) * left)))
+            if B in self.waiting:
+                self.waiting.remove(B)
+            B.want["default"] = max(0, min(lack, budget))
+            self.pending.append(B)
+            self.dispatch()
+        self.at(self.now + RETRY, self.retry, B)
+
+    def strand(self, B):
+        """Jobs that need a VM type the batch got none of, once no more VMs come for it: on Modal (the run loop's
+        "no boat large VM to be had", after --max-wait)."""
+        if B.end is not None:
+            return
+        have = {v.type for v in B.vms if v.batch is B}
+        for (t, w), xs in list(B.q.items()):
+            if t not in have and xs:
+                B.modal_jobs += len(xs)
+                B.modal_seconds += sum(xs)
+                B.qn[t] -= len(xs)
+                B.left -= len(xs)
+                B.q[(t, w)] = []
+        if B.left == 0 and B.end is None:
+            B.end = self.now
+            self.running.remove(B)
+            for w in list(B.vms):
+                if w.batch is B:
+                    self.release(w)
 
     def give_up(self, B):
         if B in self.waiting:
@@ -263,6 +305,12 @@ class Sim:
                         self.pending.remove(C)
                         if not C.vms:
                             self.no_vm(C)
+                            continue
+                        if any(k > 0 for t, k in C.want.items() if t != "default"):
+                            self.at(max(self.now, C.t0 + MAX_WAIT), self.strand, C)
+                        if C.want.get("default", 0) > 0 and self.p.get("topup"):  # short of VMs: asks again later
+                            self.at(self.now + RETRY, self.retry, C)
+                        C.want = {t: 0 for t in C.want}
                     return
                 t = next((t for t, k in B.want.items() if k > 0), None)
                 if t is None:
@@ -346,6 +394,9 @@ class Sim:
             W = self.waiting.pop(0)
             W.waited = self.now - W.t0
             self.lease(v, W, warm=True)
+            if any(k > 0 for t, k in W.want.items() if t != "default"):  # its large VM: a start, or Modal (strand)
+                self.pending.append(W)
+                self.dispatch()
             return
         if self.p.get("topup"):
             best = None
@@ -374,13 +425,14 @@ class Sim:
             rows.append({"run": b["run"], "t0": B.t0, "wall": round((B.end if B.end is not None else self.now) - B.t0, 1), "starts": B.starts,
                          "warm": B.warm, "vms": len({v.id for v in B.vms}), "modal": B.modal, "jobs": len(b["jobs"]),
                          "slot_s": round(sum(j[0] * j[1] for j in b["jobs"]), 1), "waited": round(B.waited, 1),
-                         "modal_dollars": round(sum(j[0] for j in b["jobs"]) * modal_rate(b), 4) if B.modal else 0.0})
+                         "modal_dollars": round((sum(j[0] for j in b["jobs"]) if B.modal else B.modal_seconds) * modal_rate(b), 4),
+                         "modal_part": B.modal_jobs, "done": B.end is not None})
         mult = lambda v: 2 if v.type == "large" else 1
         busy = sum(v.busy * mult(v) for v in self.vms)
         held = sum(v.held_s * mult(v) for v in self.vms)
         tail = sum(v.tail_s * mult(v) for v in self.vms)
         return {"starts": len(self.starts), "max_hour_starts": max_window(self.starts, 3600), "batches": len(rows),
-                "modal_batches": sum(r["modal"] for r in rows), "modal_jobs": sum(r["jobs"] for r in rows if r["modal"]),
+                "modal_batches": sum(r["modal"] for r in rows), "modal_jobs": sum(r["jobs"] if r["modal"] else r["modal_part"] for r in rows), "unfinished": sum(not r["done"] for r in rows),
                 "modal_dollars": round(sum(r["modal_dollars"] for r in rows), 3),
                 "busy_vm_h": round(busy / 3600, 2), "in_batch_idle_vm_h": round((held - busy) / 3600, 2), "tail_idle_vm_h": round(tail / 3600, 2),
                 "boat_dollars": round((held + tail) * VM_DOLLARS_S, 3), "idle_dollars": round((held - busy + tail) * VM_DOLLARS_S, 3), "rows": rows}
@@ -417,6 +469,8 @@ POLICIES = {
     "old": {"idle": 60},
     "new": NEW,
     "base (new without the longer idle)": BASE,
+    "new+cap30": dict(NEW, cap=30),
+    "new+cap50": dict(NEW, cap=50),
     "idle300/scarce900": OLDNEW,
     # one change at a time
     "old+idle300": {"idle": 300},

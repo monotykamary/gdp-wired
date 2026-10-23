@@ -58,6 +58,7 @@ STARTS_RESERVE = 10  # starts of the day and the hour never spent by one batch
 OLD = os.environ.get("GDPW_BOAT_POLICY", "") == "old"
 SHARE = float(os.environ.get("GDPW_BOAT_SHARE", "0.25"))  # a batch starts at most this share of the starts left
 MIN_STARTS = 2  # (but this many, while any are left)
+MAX_STARTS = int(os.environ.get("GDPW_BOAT_MAX_STARTS", "0"))  # and at most this many (0: no cap; for a bigger plan, see scale.txt)
 IDLE = 60  # a released VM stays up this long (boat stops it then; a resume later is a start)...
 IDLE_LONG = 900  # ...and this long when, at the last hour's pace, the starts left run out within it
 WAIT_STARTS = 0 if OLD else 600  # with no start to be had, wait this long for a VM another batch releases
@@ -151,7 +152,10 @@ def budget(left: int) -> int:
     the hour isn't spent by the first big batch (the old policy: all of them)."""
     if left <= 0:
         return 0
-    return left if OLD else min(left, max(MIN_STARTS, math.floor(SHARE * left)))
+    if OLD:
+        return left
+    k = min(left, max(MIN_STARTS, math.floor(SHARE * left)))
+    return min(k, MAX_STARTS) if MAX_STARTS else k
 
 
 def release_idle(lim: dict | None = None) -> int:
@@ -725,6 +729,7 @@ class Session:
             room = self.gate.take(room, self.stop)
             if room <= 0:
                 log("no starts left this hour or day: no more VMs for this batch")
+                self.short = True
                 break
             out = boat("new", "--from", self.image, "--type", vm_type, "--count", str(room), "--ttl", str(BACKSTOP), "--no-env", "--no-monitoring", "--json", timeout=600, check=False)
             ids = []
@@ -1003,7 +1008,9 @@ class Session:
 
         def topup():
             """More work than slots: VMs other batches released (still up, so no start) join this one as they come,
-            and, when the batch has no VM at all, as many as its share once starts are back."""
+            and, when the batch got fewer than it asked for because no start was left, its share once starts are
+            back (asked at most once a minute, no more than it lacks)."""
+            asked = 0.0
             while not all_done.wait(10) and not self.stop.is_set():
                 with lock:
                     q = [it for it in queue if not it.get("vm_type")]
@@ -1013,12 +1020,13 @@ class Session:
                     continue
                 per = TYPES[self.vm_type][0] // SLOT_CPU
                 got = self.lease_up(math.ceil(short / per), self.vm_type)
-                if not got and not alive and self.short:
+                if not got and self.short and time.time() - asked > 60:
+                    asked = time.time()
                     with contextlib.suppress(Exception):
-                        k = budget(starts_left(limits()))
+                        k = min(budget(starts_left(limits())), math.ceil(short / per))
                         if k > 0:
-                            log(f"starts are back: {min(k, math.ceil(short / per))} VMs")
-                            self.ensure(min(k, math.ceil(short / per)))
+                            log(f"starts are back: {k} VMs more")
+                            self.ensure(len(alive) + k)
 
         sp = threading.Thread(target=spawn_workers, daemon=True)
         sp.start()

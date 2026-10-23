@@ -34,21 +34,22 @@ def third_day(r, ref):
     by = {x["run"]: x for x in ref["rows"]}
     sd = sorted(x["wall"] / by[x["run"]]["wall"] for x in rows if not x["modal"] and by[x["run"]]["wall"] > 0 and x["slot_s"] >= 60)
     q = lambda p: round(sd[min(len(sd) - 1, int(p * len(sd)))], 2) if sd else None
-    return {"batches": len(rows), "starts": sum(x["starts"] for x in rows), "modal": sum(x["modal"] for x in rows), "modal_jobs": sum(x["jobs"] for x in rows if x["modal"]),
+    return {"batches": len(rows), "starts": sum(x["starts"] for x in rows), "modal": sum(x["modal"] for x in rows), "modal_jobs": sum(x["jobs"] if x["modal"] else x["modal_part"] for x in rows), "unfinished": sum(not x["done"] for x in rows),
             "modal_dollars": round(sum(x["modal_dollars"] for x in rows), 2), "p50": q(0.5), "p90": q(0.9), "max": sd[-1] if sd else None}
 
 
 POLS = sys.argv[2:] or ["old", "new"]
-print("v/day  plan  policy                            starts  batches  to Modal: batches (jobs)   Modal $  boat $ (idle $)  boat+Modal $   wall/unlimited: median p90 max   (all day 3's)")
+PLANS = __import__("os").environ.get("SCALE_PLANS", "100,500").split(",")
+print("v/day  plan  policy                            starts  batches  to Modal: batches (jobs)   Modal $  boat $ (idle $)  boat+Modal $   wall/unlimited: median p90 max  unfinished   (all day 3's)")
 VS = [float(x) for x in __import__("os").environ.get("SCALE_V", "1,2,2.5,3,4,5,6").split(",")]
 for v in VS:
     m = replay(v)
     ref = sim.Sim(m, sim.POLICIES["old"], "inf").run().report()
-    for plan in ("100", "500"):
+    for plan in PLANS:
         for pol in POLS:
             S = sim.Sim(m, sim.POLICIES[pol], plan).run()
             r = S.report()
             d = third_day(r, ref)
             boat_d, idle_d = S.day_dollars(2)
             print(f"{v:5}  ${plan:4} {pol:32}  {d['starts']:6}  {d['batches']:6}  {d['modal']:4} ({d['modal_jobs']:6})  {d['modal_dollars']:8.2f}  {boat_d:6.2f} ({idle_d:5.2f})  {boat_d + d['modal_dollars']:8.2f}"
-                  f"   {d['p50']} {d['p90']} {round(d['max'], 2) if d['max'] else None}")
+                  f"   {d['p50']} {d['p90']} {round(d['max'], 2) if d['max'] else None}  {d['unfinished']}")
