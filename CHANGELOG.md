@@ -6,12 +6,16 @@ noted), each with the command that reproduces it.
 ## Unreleased
 
 The lemma search on TIP 2015 (core/data.ts): lemmas calculated from the induction steps the definitions leave, lemma
-uses ranked within each case, induction schemes merged, and a case's arithmetic read into its classes. TIP 2015 at 60 s
-on Modal: 193 of 492 proven, main (6b2e2df) launched beside it 181, none wrong (`runs/tiplem/tip-8`, `tip-base-8`;
-`false/`: 23 refuted in both, none proven; the same 7 theorems refuted, those TIP writes false). Vampire's 189 and
-cvc5's 187 with conjecture generation are `runs/modal/tip/full2`'s, the same harness at 60 s, not run beside these;
-the lead is unconfirmed until a run under TIP's own setup. Nothing trusted changed (`kernel/kernel.ts`,
-`kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/` are as in 0.23.0).
+uses ranked within each case, induction schemes merged, and a case's arithmetic read into its classes. Measured after
+merging main at 54bbec9 (0.24.0), TIP 2015 at 60 s on Modal, every tool in one batch through compare/tip/modal_tip.py
+(`runs/tiplem/final-tools`: this branch, cvc5, cvc5 with conjecture generation and Vampire; `runs/tiplem/final-main`:
+main at 54bbec9, launched with it): this branch 197 of 492 proven, Vampire 193, cvc5 with conjecture generation 187,
+main 183, cvc5 168. Wrong: none here or on main (each refutation's counterexample confirmed by TIP's evaluator; the 7
+theorems refuted on both are the `tip2015` ones TIP writes false); Vampire none; cvc5 proves 1 of the 68 `false/`
+properties and with conjecture generation 6, as in `runs/modal/tip/full2`. `false/`: 23 refuted here and on main,
+none by Vampire or cvc5. The lead over Vampire is this harness's (60 s, our installs) and unconfirmed until TIP's own
+setup runs it. Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/` are as
+in 0.24.0).
 
 - Lemma calculation (Zeno's, HipSpec's; `calculated`, `reduceX`): for each variable a scheme inducts on and each of its
   constructors, the law at that constructor of fresh fields, its definitions unfolded where they are decided, the
@@ -31,31 +35,38 @@ the lead is unconfirmed until a run under TIP's own setup. Nothing trusted chang
 - A case's classes: its conditions' equalities, linear forms through its constants and its models (n + m ∸ 1 and
   m ∸ 1 one form where n = 0 and m ≥ 1), and natural arguments that are truncated differences equal in every model of
   the case one class in the congruence phase (n ∸ len xs and (n ∸ 1) ∸ len (tail xs), xs a cons); a split on an unknown
-  function's guard (filter by p); a lemma's constructor matched by its fields.
+  function's guard (filter by p); a lemma's constructor matched by its fields, for a lemma no read matches as it stands.
 - Faster, the same verdicts: conjectures matched against the goals at once (6 s of uncounted work to under 1 s on
   `bin_plus_comm`); kernel/prove.ts's `openCells` reads each cell's key once (`prod/lemma_10`: 70 s of wall time to 23 s,
   the same answer).
-- Gained 14: by calculated lemmas `prod/lemma_23`, `isaplanner/prop_20`,
-  `prod/prop_48`, `tip2015/nat_alt_mul_same`, `nat_acc_alt_mul_same`, `list_assoc` (58.08 s, at the limit); by merged
-  schemes `isaplanner/prop_41`, `prop_55`, `prop_57`, `prop_81`; by a case's arithmetic `prop_50`, `prop_56`,
-  `prod/lemma_05`; by the split on an unknown guard `isaplanner/prop_14`. Lost 2 at the limit, both slower here:
-  `isaplanner/prop_51` (54.12 s on main) and `prod/lemma_12` (59.57 s). Over the branch's runs, each beside main
-  launched with it: 195, 194, 194, 194 and 193 against 181, 183, 183, 182 and 181 (`runs/tiplem/tip-3` to `tip-8`, a
-  run with a bug fixed since left out). The median time of the 179 both prove: 0.83 s here, 0.64 s on main.
-- What is left (the 167 translated and unproven, compare/tip/README.md): conditional laws 54, sorting 29, binary and
-  signed integers 23, take, drop, zip and rotate at lengths 21 (13 proven by another tool; 27 and 19 on main),
-  accumulators and reversals 17, arithmetic on naturals 16, predicates over a list 7.
-- The datatype corpus (round 1, `runs/tiplem/f1-mine-3`, `f1-base-3`): 90 of 92 and 42 of 42 broken variants refused, as
-  on main; round 2's (`f2-mine-3`, `f2-base-3`): 27 of 47 and 47 of 47 refused, every item as on main (its TIP items: 2 of
-  15 in both). The real-world corpus's verdicts: all 311 the same (`runs/tiplem/rw-mine`, `rw-base`). `data.test.ts`'s
-  through-the-built-ins test reads n ≤ m + n: n ≤ n + m is now proven by plus's own recursion.
-- The suites on Modal: by default 213 jobs, none failed, 681.8 s wall, 5,233.5 s of job time
-  (`runs/tiplem/suite-default-2`); `--usual` 497.3 s and 4,718.8 s, none failed (`suite-usual-2`). The 5 s tests on
-  1 vCPU, ten jobs each side interleaved with main, in three batches: `data`'s nearPlus at most 3,320.17, 3,143.19 and
-  3,780.45 ms here (medians 2,835.98, 2,894.925 and 2,991.35 ms), 3,873.73, 3,077.19 and 3,406.48 ms on main (2,990.475,
-  2,364.635 and 2,825.62 ms); `infer`'s slowest test (an invariant over four values, under its own longer limit) at most
-  6,287.44 ms here and 6,940.21 ms on main (`runs/tiplem/t2-mine` at d523095, `onecpu-mine` and `onecpu2-mine` at
-  11ec6e2, the code measured above).
+- Gained 15 against main in that batch: by calculated lemmas `prod/lemma_23`, `isaplanner/prop_20`, `prod/prop_48`,
+  `tip2015/nat_alt_mul_same`, `nat_acc_alt_mul_same`, `list_assoc` (46.23 s); by merged schemes `isaplanner/prop_41`,
+  `prop_55`, `prop_57`, `prop_81`; by a case's arithmetic `prop_50`, `prop_56`, `prod/lemma_05`; by the split on an
+  unknown guard `isaplanner/prop_14`; and `prod/lemma_12` (56.40 s), out of time on main in this run. Lost 1:
+  `isaplanner/prop_61` (55.34 s on main, at the limit on both sides in earlier runs). The median time of the 182 both
+  prove: 0.74 s here, 0.745 s on main. Before the merge, beside main at 6b2e2df, five runs gave 195, 194, 194, 194 and
+  193 against 181, 183, 183, 182 and 181 (`runs/tiplem/tip-3` to `tip-8`).
+- `prod/lemma_12`, lost before the merge: a lemma's constructor matched by its fields gave its attempts with a lemma 186
+  instances in place of 146, each then out of its counted time; matched so now only for a lemma that no read matches
+  as it stands (proven again, 18.3 s locally).
+- What is left (the 167 translated and unproven at 6b2e2df's measurement, compare/tip/README.md): conditional laws 54,
+  sorting 29, binary and signed integers 23, take, drop, zip and rotate at lengths 21 (13 proven by another tool; 27
+  and 19 on main), accumulators and reversals 17, arithmetic on naturals 16, predicates over a list 7.
+- Against main at 54bbec9, launched together: the datatype corpus (round 1, `runs/tiplem/g1-mine`, `g1-main`) 90 of 92,
+  42 of 42 broken variants refused, every item as on main; round 2 (`g2-mine`, `g2-main`) 30 of 47, 47 of 47 refused,
+  every item as on main (its TIP items 2 of 15 on both); the real-world corpus (`gr-mine`, `gr-main`): 237 of 311
+  proven, every verdict as on main. `data.test.ts`'s through-the-built-ins test reads n ≤ m + n: n ≤ n + m is now
+  proven by plus's own recursion.
+- The 5 s tests on 1 vCPU, ten jobs each side interleaved with main at 54bbec9 (`runs/tiplem/final1cpu-mine`): `data`'s
+  nearPlus at most 3,535.08 ms here (median 2,609.63 ms), 3,355.13 ms on main (2,748.105 ms). Before the merge, three
+  batches against 6b2e2df: at most 3,320.17, 3,143.19 and 3,780.45 ms here, 3,873.73, 3,077.19 and 3,406.48 ms there
+  (`runs/tiplem/t2-mine`, `onecpu-mine`, `onecpu2-mine`).
+- The suites (217 jobs) on Modal after the merge: by default 572.0 s wall, 5,279.7 s of job time, none failed
+  (`runs/tiplem/suite-default-4`); `--usual` 708.3 s and 4,816.4 s, none failed (`suite-usual-3`). The default run
+  before (`suite-default-3`) failed one job, `pairs`: its test "two groups of effects" ran 837 s, past its job's limit
+  (as once before the merge, `suite-default-1`, where the other jobs ran slow too); alone on 1 vCPU it passed 10 of 10
+  here (at most 9,713.3 ms) and 10 of 10 on main (at most 8,438.69 ms), interleaved (`runs/tiplem/final1cpu-mine`). It
+  reads no core/data.ts; kernel/prove.ts's `openCells` change gives the same cells in the same order.
 
 Ranks split by several conditions, and a rank search fast enough for programs of a hundred locations. Measured after
 merging main at 98bfabe (gen/sv-front's C front end among it), at 60 s on Modal, launched together with main at that

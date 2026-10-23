@@ -40,6 +40,31 @@ Vampire; gdp-wired isn't given them.
 
 ### The lemma search: calculated steps, uses ranked per case, merged schemes (gen/tip-lemmas)
 
+After merging main at 54bbec9 (0.24.0): every tool in one batch on Modal, 60 s, the same image and container shape
+(`runs/tiplem/final-tools`: this branch, cvc5, cvc5cg and Vampire through `--tools gdp,cvc5,cvc5cg,vampire`;
+`runs/tiplem/final-main`: gdp-wired at main 54bbec9, launched with it).
+
+| theorems (492) | proven | wrong | `false/` (68) refuted | `false/` proven (wrong) | errors |
+| --- | --- | --- | --- | --- | --- |
+| gdp-wired, this branch | 197 | 0 | 23 | 0 | 0 |
+| Vampire 5.1.0 | 193 | 0 | 0 | 0 | 0 |
+| cvc5 1.4.2, conjecture generation | 187 | 0 | 0 | 6 | 2 |
+| gdp-wired, main 54bbec9 | 183 | 0 | 23 | 0 | 0 |
+| cvc5 1.4.2 | 168 | 0 | 0 | 1 | 0 |
+
+- gdp-wired's refutations (on both sides the same 7 theorems, the `tip2015` ones TIP writes false, and 23 of `false/`)
+  each have a counterexample TIP's evaluator confirms breaks the goal as written. cvc5's 1 and 6 proofs of `false/`
+  properties are `full2`'s (`regexp_deluxe_FromToConj`; with conjecture generation also `graph_bt3`, `graph_bt4`,
+  `graph_bt5`, `graph_btp5`, `show_bin_lists_assoc`).
+- Against main: gained 15 (the 14 below and `prod/lemma_12`, 56.40 s, out of time on main in this run), lost
+  `isaplanner/prop_61` (55.34 s on main). The median time of the 182 both prove: 0.74 s here, 0.745 s on main.
+- Against Vampire: 51 proven here and not by Vampire, 47 by Vampire and not here (of those, 16 not translated here,
+  20 out of time, 11 unknown). The three other tools prove 221 between them.
+- The lead over Vampire (197 to 193) is this harness's: 60 s, our installs, our container. It is unconfirmed until a
+  run under TIP's own setup.
+
+Before the merge, against main at 6b2e2df:
+
 `runs/tiplem/tip-8`: this branch, and `runs/tiplem/tip-base-8`: main at 6b2e2df, launched together on Modal (`--backend
 modal`), the same image, sets (`false/` too), container shape and 60 s.
 
@@ -62,7 +87,9 @@ modal`), the same image, sets (`false/` too), container shape and 60 s.
   the six pairs `tip-3` to `tip-8`, here in 2); `prod/lemma_12` is proven by main in all six (34.93 s to 59.57 s) and
   here in `tip-3` and `tip-4` only: its lemma pass now spends more of its time (the cases' wider uses make each
   attempt with a lemma slower in wall time for the same counted work), and its proof, the law at two unfoldings after
-  the pass, comes past 60 s.
+  the pass, comes past 60 s. The cause, found after: a lemma's constructor matched by its fields gave those attempts
+  186 instances in place of 146, each then out of its counted time (counted work, not wall time); matched so now only
+  for a lemma no read matches as it stands, and it is proven again (above).
 - Over the branch's runs, each beside main launched with it (`runs/tiplem/tip-3` to `tip-8`, each at the branch as it
   then was; `tip-6`, with a bug since fixed, left out): 195, 194, 194, 194 and 193 against 181, 183, 183, 182 and 181.
 - The median time of the 179 both prove: 0.83 s here, 0.64 s on main.
