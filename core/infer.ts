@@ -27,7 +27,7 @@ import {quietly} from './cyclic.ts'
 import {type C, type E, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, get, interpret, machineTerms, modName, n, not, plus, same, times, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, proveRule, proveSteps} from './dsl.ts'
 import {allowed, watch} from './watch.ts'
-import {clock, counted, grow, proveLaw, proveLaws, proveStepLaws, usedHyps, withDeadline} from '../kernel/prove.ts'
+import {clock, counted, grow, proveLaw, proveLaws, proveStepLaws, usedHyps, withDeadline, withTrees} from '../kernel/prove.ts'
 import {obligations, substC} from '../kernel/kernel.ts'
 import {work} from './solver.ts'
 import {REFUTED, type Refuted, growCdcl} from '../kernel/cdcl.ts'
@@ -1156,7 +1156,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   }
   for (let iter = 0; iter < 300 && now() < until && !stop(); iter++) {
     const began = now(), wall = performance.now()
-    last = search([...given, ...chosen.map(lawFor)])
+    // (each law proven alone, then the set as a whole: the same goals, grown once)
+    last = withTrees(() => search([...given, ...chosen.map(lawFor)]))
     const took = now() - began
     opts.progress?.('proof', {chosen: chosen.length, goal: last.goal ?? '', stuck: last.stuck ?? '', ms: Math.round(performance.now() - wall), counted: Math.round(took)})
     if (last.proven && last.checked) break
