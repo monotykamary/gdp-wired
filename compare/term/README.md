@@ -137,8 +137,11 @@ LoAT's, LoAT abmc's or KoAT2's (`runs/modal/term/full1`), the other run's, or SV
 | 6b2e2df | 574 | 458 | 1,032 | 135 | 47 | 182 |
 | per component (`gdp-scc`), here | 582 | 525 | 1,107 | 125 | 47 | 172 |
 | 6b2e2df | 580 | 463 | 1,043 | 125 | 47 | 172 |
-| LoAT (`full1`) | 2 | 532 | | | | |
+| LoAT (`full1`), the nonterminating leader | 2 | 532 | | | | |
 | LoAT abmc (`full1`) | 284 | 492 | | | | |
+
+The leader on nonterminating ITS tasks in this harness is LoAT's default engine, 532: 9 more than `gdp` here and 7
+more than `gdp-scc`; LoAT abmc's 492 is passed.
 
 - Nonterminating, gained 65 (`gdp`) and 62 (`gdp-scc`), lost none; 64 and 62 of them are LoAT's NO too, the other a
   lasso replayed by ari.ts's evaluator (db3.t2_fixed). Of `gdp`'s 523, 192 are accelerated sets, 323 solve.ts's own

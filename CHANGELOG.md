@@ -10,11 +10,12 @@ keeps closed, and a stem into it from runs whose loops are taken n times at once
 changed (`kernel/`, `core/check.ts`, `lean-kernel/` as at 6b2e2df): each answer is the same certificate as before,
 kernel.ts's `checkRecur` and NonTerm.lean's `never_ends_of`. TermComp's ITS at 60 s on Modal, against main at 6b2e2df
 launched at the same time: on the task's statement 1,094 solved (571 terminating, 523 nonterminating), 6b2e2df 1,032
-(574, 458); per component 1,107 (582, 525), 6b2e2df 1,043 (580, 463); LoAT 532 and LoAT abmc 492 nonterminating in
-the same harness (`runs/modal/term/full1`). SV-COMP's termination tasks: the same answers, 182 (135, 47) and 172
+(574, 458); per component 1,107 (582, 525), 6b2e2df 1,043 (580, 463). The nonterminating leader in the same harness
+is LoAT's default engine, 532 (LoAT abmc 492; `runs/modal/term/full1`): 9 behind it on the task's statement, 7 per
+component. SV-COMP's termination tasks: the same answers, 182 (135, 47) and 172
 (125, 47). No answer contradicts another tool's, the other run's or an expected verdict (`runs/accel/its-mine1`,
-`its-base1`, `sv-mine1`, `sv-base1`). Ahead of LoAT abmc and behind LoAT's default engine on nonterminating ITS
-tasks here; unconfirmed under the competition's own setup.
+`its-base1`, `sv-mine1`, `sv-base1`). No lead here: past LoAT abmc only, not the leader; any comparison is
+unconfirmed under the competition's own setup.
 
 - **Cycles** of the relation (core/relation.ts's paths, each from a location to a location): closed walks by their
   least rotation, by how many choices they make among a location's paths (at most 6; straight-line code costs none),
