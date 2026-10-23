@@ -7,8 +7,8 @@
 //     that doubles per round
 //   - guided: runs the prover guides, each request a model of its clause's condition where the run is (the clauses that
 //     derive false tried first at each state)
-//   - bmc: bounded runs (core/bmc.ts), a model of the kernel's k-step goal from the start to error, k = 1, 2, ...,
-//     within --bmc-ms (15,000)
+//   - bmc: bounded runs (core/bmc.ts): a deterministic loop's forced run, then a model of a k-step goal from the start
+//     to error, k = 1, 2, ..., within --bmc-ms (15,000)
 //   - houdini: the library's search for the invariants the law needs (core/infer.ts), from the states the runs reached:
 //     candidates per predicate (loc = p → a bound, a difference, a sum), those a run's state breaks dropped, then the
 //     kernel's counterexamples to induction choosing which to add; `--old-houdini`, this folder's first Houdini
@@ -67,8 +67,9 @@ say({stage: 'prove', proven: direct.proven, checked: direct.checked, ...(direct.
 if (direct.proven && direct.checked) done('sat', {by: 'prove'})
 if (direct.run) unsat('prove', direct.run.trace.map(t => decodeRequest(t)))
 
-// Bounded runs (core/bmc.ts): a run of k steps from the start that reaches error, for k = 1, 2, ..., each a model of the
-// kernel's k-step goal; within --bmc-ms, counted and in wall time (the track's limit is wall time), and the limit.
+// Bounded runs (core/bmc.ts): a deterministic loop's forced run, then a run of k steps from the start that reaches error,
+// for k = 1, 2, ..., each a model of a k-step goal; within --bmc-ms, counted and in wall time (the track's limit is wall
+// time), and the limit.
 const bounded = () => {
   if (bmcMs <= 0) return
   // each depth tried: [k, its outcome's letter (refuted, sat, unknown), counted ms, wall ms]
