@@ -2741,7 +2741,7 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   // conjectures are costly to make. One out of its time is tried again below, with more.
   if (!Array.isArray(opts.lemmas)) { const two = ok(proveWith(p, fs, l, base, lv + 1, opts, until, 3000, [2]), base); if (two) return two }
   // The steps the law's inductions leave (lemma calculation), then the conjectures from the values.
-  const tc = performance.now(), calc = Array.isArray(opts.lemmas) ? [] : calculated(p, l)
+  const tc = performance.now(), calc = Array.isArray(opts.lemmas) ? [] : calculated(p, l, 2, 4)
   if (dataTrace) console.error(`[data] ${l.name}: ${calc.length} calculated in ${Math.round(performance.now() - tc)} ms`)
   const cands = Array.isArray(opts.lemmas) ? opts.lemmas : [...calc, ...conjectures(p, l)]
   if (dataTrace) for (const c of calc) console.error(`[data]   calculated ${c.name.slice(0, 200)}`)
@@ -2775,19 +2775,23 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   // rewriting), then by its schemes: after each lemma the goal reads or of the law's shape, else at the end of the pass.
   const refuted = new Set<DataLaw>()
   const lemmaPass = (which: 'hits' | 'others', most: number, end: number, cap: number, depths: number[]): ReturnType<typeof done> | undefined => {
-    let n = 0, since = 0, tries = 0
+    // (`extra`: the calculated steps' attempts and the second ones, at most `most`, beside the conjectures' 3·most)
+    let n = 0, since = 0, tries = 0, extra = 0
     const again = (how: 'first') => ok(proveWith(p2, fs2, l, proven, level(), opts, until, cap, depths, how), proven, p2)
     // A conjecture of this pass that failed is tried once more after a lemma is proven (HipSpec's loop: bind over an
     // append needs ++ associative, proven after it); first those, then the next of the ranking.
     const queue = ranked.filter(r => (which === 'hits') === r.hit), retry: DataLaw[] = [], retried = new Set<DataLaw>()
     for (let i = 0; i < queue.length || retry.length;) {
       if (n >= most || tries >= 3 * most || clock() > end) break
+      if (extra >= most) retry.length = 0
       const again2 = retry.length > 0, c = again2 ? retry.shift()! : queue[i++]!.c
       if (proven.some(q => q.law === c) || refuted.has(c)) continue
+      if (!again2 && calcSet.has(c) && extra >= most) continue
       if (!again2 && refute(c, 200)) { refuted.add(c); continue }
-      tries++
+      if (again2 || calcSet.has(c)) extra++
+      else tries++
       // (a calculated step half a conjecture's time: there are few, and one past its time is seldom the one)
-      const r = proveWith(p2, fs2, c, proven, level(), opts, Math.min(end, clock() + (calcSet.has(c) ? 4000 : 8000) * (opts.patience ?? 1)), 5000, [1])
+      const r = proveWith(p2, fs2, c, proven, level(), opts, Math.min(end, clock() + (calcSet.has(c) ? 3000 : 8000) * (opts.patience ?? 1)), 5000, [1])
       tried += r.tried
       if (!r.out) { failed.add(c); continue }
       failed.delete(c)
