@@ -1,0 +1,27 @@
+{
+  "quota/kubernetes/ResourceQuota.CheckRequest#every admitted request leaves the usage it charges within the hard limits": {
+    "verdict": "law",
+    "note": "Refuted by a status write: CheckRequest skips the hard-limit check for the status subresource (controller.go:614, added in commit 27706a0b 'Add quota support for PVC with VolumeAttributesClass') and still adds the usage, so used can pass hard. The original does it (repro: a status create with usage r0=1 against hard r0=0 is admitted with used r0=1; the same request without the subresource is refused). By design: a status write reports what was already admitted. The law is removed; the corpus keeps 'an admitted request leaves every resource it charges within its hard limit', the same claim for every request but status writes.",
+    "repro": "research/realworld/repro/k8s-status-quota.go"
+  },
+  "quota/kubernetes/ResourceQuota.CheckRequest#an admitted request leaves every resource it charges within its hard limit": {
+    "verdict": "law",
+    "note": "The restated intent of the refuted 'every admitted request leaves the usage it charges within the hard limits': the check holds for every request but status writes. Proven.",
+    "repro": "research/realworld/repro/k8s-status-quota.go"
+  },
+  "quota/litellm/maxBudgetChecks#a team whose spend has reached its max_budget is refused": {
+    "verdict": "bug",
+    "note": "Suspected real bug (an inconsistency, low severity). team_max_budget_check (auth_checks.py:6386) refuses only at spend > max_budget, so a team whose spend equals its max_budget is admitted, while the key (:5912), user, org and window checks refuse at spend >= max_budget. The original does it (repro: key at spend 1.0 of 1.0 refused, team at 1.0 of 1.0 admitted). The repo's own tests/e2e/quota_management/budgets/BUDGET_CODE_MATRIX.md:38-39 lists it under 'flags from the code' as 'Comparison operators are inconsistent ... Spend exactly at max_budget blocks a key but not a team', not as an intent. Law and rule kept; no issue opened.",
+    "repro": "research/realworld/repro/litellm-team-budget.py"
+  },
+  "quota/litellm/maxBudgetChecks#a key's spend passes its max_budget by at most one request's cost": {
+    "verdict": "law",
+    "note": "Refuted by requests admitted while others are in flight: each read-time check reads the spend counter before any response's cost is added, so n overlapping requests overshoot by n costs. The original does it (repro: two requests at spend 0.9 of 1.0 both admitted, 1.9 after both charges). The read-time check is not meant to bound concurrent overspend: LiteLLM's pre-call reservation (budget_reservation.py, its 'concurrent-overspend protection') is. Restated as 'while requests do not overlap, a key's spend passes its max_budget by at most one request's cost' (an overlap ghost in the rule).",
+    "repro": "research/realworld/repro/litellm-team-budget.py"
+  },
+  "quota/litellm/maxBudgetChecks#while requests do not overlap, a key's spend passes its max_budget by at most one request's cost": {
+    "verdict": "law",
+    "note": "The restated law (see the original's entry). Unknown at 3 s locally: it needs 'no overlap implies at most one in flight, admitted below the budget', which the search did not find.",
+    "repro": "research/realworld/repro/litellm-team-budget.py"
+  }
+}

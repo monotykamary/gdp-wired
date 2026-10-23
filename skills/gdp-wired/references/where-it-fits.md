@@ -10,6 +10,7 @@ Numbers: `compare/README.md` in the gdp-wired repo (one Modal run, median of 5, 
 
 ## Use gdp-wired for
 
+- Linear laws over the rationals: fees in fractions, fractional tokens, ledgers in decimals (`ratRule`).
 - Budgets, caps, quotas, rate limits, sliding windows, ledgers, escrows, workflows, approvals, access policies,
   entitlements: anything that is params + requests + state + a step.
 - Invariants, per-key laws, one-step and k-step laws, histories, orderings at any distance (ghosts), liveness under
@@ -28,7 +29,10 @@ from a proven `guard` or `gate` ([with gdp-ts](gdp-ts.md)): the policy is proven
 - Products of unknowns beyond what products of facts and sums of squares give (the prover tries both, as Lean's
   `nlinarith`; a map's cell may be a factor). Integer arithmetic with induction or products is undecidable; no
   automatic prover closes all of it.
-- Reals, and claims about a recursive structure that need a lemma nobody stated (or encoded as a number a Lean
+- Nonlinear reals (products of unknowns, roots, a polynomial's sign) and transcendental functions (exp, log, sin):
+  real closed fields are decidable, but not by linear certificates, and with exp or sin it isn't decidable at all.
+  Linear laws over the rationals stay here (`ratRule`, `gdp-wired/rationals`): decimals, fractions, rates, exactly.
+- Claims about a recursive structure that need a lemma nobody stated (or encoded as a number a Lean
   function decodes). Records and variants stay here, as values, in maps and in lists (`record`, `variant`, `.maps`,
   `.items`), and so do lists a request carries with folds over them (`.carriesList`), folds over a tree given as a
   value (`fold`, `proveFold`, any number of children with `.children`), and trees and lists of lists in a rule's state

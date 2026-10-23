@@ -1,0 +1,41 @@
+{
+  "circuit breaker/cockatiel/ConsecutiveBreaker#at most one half-open test runs at a time": {
+    "verdict": "bug",
+    "note": "Suspected real bug. A call admitted while Closed that fails after the circuit went half-open runs breaker.failure (the ConsecutiveBreaker count is still past the threshold) and open() from HalfOpen (CircuitBreakerPolicy.ts:226-233, :321-337), so the circuit reopens while its test is in flight; the next call past halfOpenAfter starts a second test, and the first test's success then closes the circuit with the second still running. Run (search, depth 8): threshold 0, halfOpenAfter 0: execute, execute, closedDone handled, execute (test 1), closedDone handled (stale), execute (test 2). The original 3.2.1 does it (repro, threshold 1). Polly handles the same race by ignoring results that arrive while Open (ConsecutiveCountCircuitController.cs:48, :78). Found by machine search() locally; the 3 s prover search found no run.",
+    "repro": "research/realworld/repro/cockatiel-stale-failure.ts"
+  },
+  "circuit breaker/cockatiel/ConsecutiveBreaker#a half-open circuit reopens only on its test failing": {
+    "verdict": "bug",
+    "note": "Suspected real bug, the same behaviour: a stale Closed-era failure moves HalfOpen to Open (the repro prints 'after the stale B fails: Open tests in flight: 1'), against CircuitBreakerPolicy.ts:21-25 'Success of subsequent action/s controls onward transition to Open or Closed state'. Locally unknown at 3 s (the step law's witness is that state; the run is the repro's).",
+    "repro": "research/realworld/repro/cockatiel-stale-failure.ts"
+  },
+  "circuit breaker/opossum/CircuitBreaker#no call is let through within resetTimeout of the breaker opening": {
+    "verdict": "bug",
+    "note": "Suspected real bug. LAST_TIMER_AT, which toJSON() exports as state.lastTimerAt, is set once, when the constructor runs `_startTimer(this)` (circuit.js:315-316, :348); the 'open' listener it returns never updates it. A breaker remade from the state of one that opened just now comes back half-open whenever the old breaker is older than resetTimeout (:361-368) and lets a call through at once. Rule run (replayed with the compiled rule): t0 1, resetTimeout 10: open at 20, restore at 20, fire at 20 -> admitted. The original 10.0.0 does it: the repro restores a breaker opened 0 ms earlier (resetTimeout 200 ms) as halfOpen and the next call goes through. Locally unknown at 3 s.",
+    "repro": "research/realworld/repro/opossum-lasttimerat.ts"
+  },
+  "circuit breaker/opossum/CircuitBreaker#a failure in half-open reopens the breaker": {
+    "verdict": "bug",
+    "note": "Suspected real bug. fail() returns under warm-up before its half-open check (circuit.js:988 then :992-997), so with allowWarmUp a breaker that goes half-open during the warm-up (opened by open(), a health check or a restored state, then resetTimeout passing) ignores its trial's failure; PENDING_CLOSE is already false (:724), no timer is armed, every later call is rejected (:711), and it stays half-open for good, also after the warm-up ends. Rule run: allowWarmUp, rollingCountTimeout 100, resetTimeout 10: open at 1, resetTimer at 11, fire at 11, done failure at 12 -> still halfOpen; fire at 13 rejected. The original 10.0.0 does it (repro). Against :337-340 'If that attempt is successful, the circuit will be closed. Otherwise it remains open.' Locally unknown at 3 s.",
+    "repro": "research/realworld/repro/opossum-warmup-halfopen.ts"
+  },
+  "circuit breaker/opossum/CircuitBreaker#a half-open breaker closes or reopens": {
+    "verdict": "bug",
+    "note": "Suspected real bug, the same warm-up case seen as liveness: once the trial's failure is ignored, no request leaves half-open (no call is admitted, no timer is armed). Locally unknown at 3 s.",
+    "repro": "research/realworld/repro/opossum-warmup-halfopen.ts"
+  },
+  "queue/pg-boss/retry#a job is claimed at most retryLimit + 1 times": {
+    "verdict": "law",
+    "note": "Refuted (proveRule's search, 5 s): retry_limit 0: fetch, cancel, resume, fetch claims the job twice; resumeJobs puts a cancelled job back to created and the claim after it counts (plans.ts:2817, :3011-3035). The original does it (from the SQL). resume() is a deliberate re-run by hand, not a retry: restated as 'without a resume, a job is claimed at most retryLimit + 1 times'.",
+    "repro": "research/realworld/repro/pg-boss-resume.ts"
+  },
+  "queue/pg-boss/retry#without a resume, a job is claimed at most retryLimit + 1 times": {
+    "verdict": "law",
+    "note": "The restatement of 'a job is claimed at most retryLimit + 1 times' (refuted by a manual resume, which re-runs the job on purpose).",
+    "repro": "research/realworld/repro/pg-boss-resume.ts"
+  },
+  "queue/bullmq/jobRetry#an exponential retry waits at least the base delay": {
+    "verdict": "law",
+    "note": "A law error, not a bug: refuted once the random runs computed the rule's functions (fix/realworld; the scored run skipped every rule that read one, so it was unknown). The run: backoff exponential with delay 0, a fetch then a failure at now 8. With delay 0 the backoff is Math.round(2^(attemptsMade - 1) * 0) = 0 (backoffs.ts:31), and job.ts:775-799 retries at once (retryJob, back to wait) rather than moving the job to delayed, so the rule leaves its ghost `until` as it was (0) and the law reads until >= now + delay = 8. The code waits 0 >= delay there, which is what the law means; it is stated too strongly (it should read `until` only where the retry moved the job to delayed, or need delay > 0). Kept as stated, so the corpus stays as scored. Reasoned from the rule's mapping comments; no repro run."
+  }
+}

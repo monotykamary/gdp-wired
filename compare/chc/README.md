@@ -10,9 +10,10 @@ and Eldarica (2.3).
 | `chc.ts` | The CHC-COMP format read (S-expressions, predicates, clauses), and an evaluator of a clause on values that uses no gdp-wired code |
 | `translate.ts` | A linear CHC system as a rule: the state is where a derivation is (start, a predicate, error) and the predicate's arguments; a request names a clause that fires where the run is (the rule's assumption) and the values it leaves free, so each update reads the clause named alone. The law: error is never reached. `checkDerivation` checks a run against the CHC itself |
 | `houdini.ts` | The first Houdini (`--old-houdini`): candidate laws per predicate (bounds, differences, sums, booleans, unreachable), those a run's state breaks dropped, then rounds of `proveRule` until the rest are inductive together |
-| `solve.ts` | One task: import, `proveRule` on the law, random runs of the compiled rule, runs the prover guides (each request a model of its clause's condition where the run is, the clauses that derive false tried first), then the library's invariant search (`inferLaws`, core/infer.ts) from the states the runs reached. Answers sat (a proof the kernel checked), unsat (a run reaching error that `checkDerivation` confirms), unknown or unsupported |
+| `solve.ts` | One task: import, `proveRule` on the law, random runs of the compiled rule, runs the prover guides (each request a model of its clause's condition where the run is, the clauses that derive false tried first), bounded runs (core/bmc.ts: a model of the kernel's k-step goal from the start to error, 10 s), then the library's invariant search (`inferLaws`, core/infer.ts) from the states the runs reached. Answers sat (a proof the kernel checked), unsat (a run reaching error that `checkDerivation` confirms), unknown or unsupported |
 | `modal_chc.py` | The track on Modal: every task in its own container (2 vCPU, 4 GB), each tool under the same 60 s wall-clock limit, all at once (`starmap`) |
 | `summary.ts` | The table below from a run's `results.jsonl`, with wrong answers counted against each task's expected verdict where some tool decided it at CHC-COMP'26 |
+| `prof/kind.ts` | Not a solver (`--tools kind`): whether the law is k-inductive, a measure of what k-induction would add |
 | `prof/` | A Modal profiler for one task's `proveRule`; `spacer_models.py`, the invariants Spacer finds for given tasks (or, with `--engine golem`, Golem's derivations of false); `template.ts` (`--tools tmpl`), what `inferLaws` would search on a task (its atoms, coefficient magnitudes and shape limits); `given.ts` (`--tools given`), `proveRule` given Spacer's invariant as laws; `gap.py`, the gap to Spacer by the shape of its invariant and what gdp-wired did |
 
     modal run compare/chc/modal_chc.py --out runs/modal/chc/<name> [--tools gdp,z3,golem,eldarica] [--limit 60]
@@ -20,6 +21,71 @@ and Eldarica (2.3).
     modal run compare/chc/prof/spacer_models.py --out <dir> --tasks-json <file> [--engine golem]
     modal run compare/chc/modal_chc.py --out <dir> --tools tmpl            # then --tools given --tasks-json <file>
     python3 compare/chc/prof/gap.py --gdp <run> --others <run> --models <dir> --template <run> [--cex <dir>] [--given <run>] --out <file.json>
+
+## Bounded runs (after 0.22.0)
+
+An unsat answer is a run that `checkDerivation` confirms against the CHC, step by step; until now the runs came from
+random requests and the guided runs (each step a model of one clause), which rarely reach a failure that needs several
+steps' requests chosen together. `solve.ts`'s `bmc` stage (after the guided runs, 10 s) asks for them together:
+core/bmc.ts builds the kernel's own k-step goal (kernel.ts's `stepLawObligations`, `steps: k`) from the start state to
+a state at error, puts its constants in (core/nonterm.ts's folding), and asks kernel/cdcl.ts for a model alone (no
+refutation unfolded into a tree; each decision's phase the incremental simplex's point's), k = 1, 2, ... The model is
+a run: the compiled rule takes it, and `checkDerivation` confirms it or the stage goes on. Nothing trusted changed.
+
+**The track** (`runs/unsat/chc`, 60 s, beside `runs/unsat/chc-base`, main 5c3f947 launched at the same time, both on
+Modal):
+
+| gdp-wired | sat | unsat | wrong | solved of 1,406 | out of time |
+| --- | --- | --- | --- | --- | --- |
+| 5c3f947 (`chc-base`) | 528 | 144 | 0 | 672 | 3 |
+| bounded runs (`chc`) | 518 | 264 | 0 | 782 | 9 |
+
+- Unsat: 120 more, none fewer; 120 of the 264 by the `bmc` stage. Every one is a derivation `checkDerivation`
+  confirmed, and none contradicts Spacer's or Golem's verdict (`runs/modal/chc2/combined-v020`).
+- Sat: 4 more, 14 fewer. Four runs of main the same day gave 528, 530, 532 and 533 (`runs/unsat/base1` to `base4`):
+  the 10 s the stage takes come from the invariant search, which loses the tasks it proved last.
+- Lustre's 321 unsat tasks: 38 to 147. The round-2 corpus's groups (`research/frontier2`, from 0.21.0): H (unsat
+  Lustre, 273) 1 to 108; I (unsat, the others, 30) 1 to 12. Of H's 273 by Golem's derivation length, solved: 2 steps 4
+  of 4, 3 steps 89 of 126, 4 steps 15 of 78, 5 or more 0 of 50 (15 have no Golem derivation).
+- Out of time, 9 (main 3): each in the invariant search, which starts 10 s later; main answered unknown on 7 of the 9
+  and ran out of time on 2.
+
+**The stage alone** (`--runs-ms 0 --guide-ms 0 --no-houdini`, the stage until 56 s; the 475 unsat tasks):
+
+| the CDCL search asked for a model | unsat | Lustre (321) | the others (154) |
+| --- | --- | --- | --- |
+| phases as stored (`runs/unsat/bmc-only-off`) | 280 | 180 | 100 |
+| each decision's phase at the simplex's point (`bmc-only-phase`, kept) | 320 | 218 | 102 |
+| every open atom decided at once at the point (`bmc-only-batch`) | 271 | 169 | 102 |
+| kept, runs of at most k steps (the machine stopped at error; k = 1, 2, 3, 4, 6, 8, 12, ...; `bmc-only-upto1`) | 322 | 218 | 104 |
+
+The kept stage found 139 within 2 s, 212 within 10 s, 245 within 20 s, 284 within 56 s (`bmc-only-upto0`). Of the
+ones runs or guided runs find, it misses the long loops (s_split's 102 to 1,253 steps; past depth 64, the kernel's
+bound on k). The at-most-k depths gave 2 more and were left out: no fewer depths' time to save.
+
+**Its budget**, each against main launched with it (sat, unsat):
+
+| run | stages before the invariant search | sat | unsat | main's sat, unsat |
+| --- | --- | --- | --- | --- |
+| `chc-c5000` | runs 5 s, guided 8 s, bounded 5 s | 524 | 248 | 532, 144 (`base3`) |
+| `chc-c8000` | runs 5, guided 8, bounded 8 | 518 | 263 | 532, 144 |
+| `chc-c10000` | runs 5, guided 8, bounded 10 | 521 | 265 | 532, 144 |
+| `chc-b15000` | runs 5, guided 8, bounded 15 | 508 | 292 | 528, 144 (`base2`) |
+| `chc-b20000` | runs 5, guided 8, bounded 20 | 497 | 303 | 528, 144 |
+| `chc-b25000` | runs 5, guided 8, bounded 25 | 471 | 307 | 528, 144 |
+| `chc-d1` | runs 3, guided 3, bounded 10 | 521 | 262 | 533, 144 (`base4`) |
+| `chc-d2` | runs 5, no guided runs, bounded 10 | 520 | 250 | 533, 144 |
+| `chc-d3` | runs 2, guided 2, bounded 12 | 517 | 276 | 533, 144 |
+
+Shorter random and guided runs didn't give the sat side its time back (`d1`, `d2`, `d3`: 517 to 521 sat against
+main's 533) and lost unsat tasks the guided runs find (`d1`, `d3`: 3; `d2`: 15). 10 s is the default: from 15 s to 20 s
+(`b15000`, `b20000`, beside the same main), 11 more unsat and 11 fewer sat. A second process for the stage on the container's other vCPU
+(`runs/unsat/chc-p1`) was dropped: 539 of the 1,406 containers failed (Modal's `RemoteError`) and the first process's
+stages ran past their deadlines.
+
+**k-induction** (`prof/kind.ts`, `runs/unsat/kind1`, the 403 sat tasks main leaves unsolved, 55 s): 17 are
+k-inductive (13 Lustre; k = 3: 5, 4: 9, 9, 10, 11: one each). The kernel's proofs are 1-inductive, so a k-inductive
+law isn't a checked answer without a new trusted rule; not kept.
 
 ## There exists (after 0.20.0)
 

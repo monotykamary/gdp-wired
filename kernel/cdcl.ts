@@ -49,7 +49,10 @@ const lpFill = Number(env.GDP_CDCL_FILL ?? 8), useLp = env.GDP_CDCL_LP !== '0', 
 // Counters research/step reads (times only while `on`).
 export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions: 0, solveMs: 0, rowsMs: 0, coreMs: 0, unfoldMs: 0, leaves: 0, resolved: 0, coreSize: 0, pathSize: 0, lpMisses: 0, resolved2: 0, unfoldWhy: '', orderMs: 0, boundMs: 0, openMisses: 0, lpMs: 0, lpUnknown: 0, fmCalls: 0, pivots: 0, lpRebuilds: 0, lpRows: 0, lpNnz: 0, lpVars: 0, lpLoad: 0, nodes: 0, boundRounds: 0}
 
-export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?: number}, opts: {maxLeaves?: number} = {}): Outcome {
+// `opts.model`: only whether the goal has a model is wanted (core/bmc.ts): a refutation isn't unfolded into a tree, its
+// outcome `unknown` with `why` REFUTED; each decision's phase is the simplex's point's (phaseAtPoint); past `opts.wall` (wall time) the search stops as past its budget.
+export const REFUTED = 'refuted, not unfolded'
+export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?: number}, opts: {maxLeaves?: number, model?: boolean, wall?: number} = {}): Outcome {
   const until = budget.until ?? Infinity, st = cdclStats, timing = st.on
   const t = <T>(f: () => T, add: (ms: number) => void): T => { if (!timing) return f(); const t0 = performance.now(); try { return f() } finally { add(performance.now() - t0) } }
   st.runs++
@@ -161,10 +164,21 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
     c.lits = made.lits; c.node = made.node
   }, ms => { st.coreMs += ms })
   const luby = (i: number): number => { let n = 1; while ((1 << n) - 1 < i + 1) n++; return (1 << n) - 1 === i + 1 ? 1 << (n - 1) : luby(i + 1 - (1 << (n - 1))) }
+  // With a model wanted: each open atom's phase (no term column's) set to its value at the simplex's point, which meets
+  // every row read (over the rationals), so a decision tends to stay feasible (runs/unsat/bmc-only-phase: 320 of
+  // CHC-COMP's 475 unsat tasks, 280 without; each atom decided at once at the point instead, 271).
+  const phaseAtPoint = (cands: Lin[], lp: Simplex) => {
+    for (const lin of cands) {
+      const x = vars.get(ensure(lin))!
+      if (x.val !== undefined || x.terms.some(([key]) => key.startsWith('⟦'))) continue
+      const at = lp.holds(x.lin)
+      if (at !== undefined) x.phase = at
+    }
+  }
   let restartAt = 32, nRestart = 0, sinceRestart = 0
   const stuck = (kind: 'sat' | 'unknown', why: string, extra: {witness?: Record<string, number>} = {}): Outcome => ({stuck: kind, path: pathOf(), why, ...extra})
   for (;;) {
-    if (++budget.nodes > 200_000 || clock() > until) return stuck('unknown', budget.nodes > 200_000 ? 'nodes' : 'time')
+    if (++budget.nodes > 200_000 || clock() > until || (opts.wall !== undefined && performance.now() > opts.wall)) return stuck('unknown', budget.nodes > 200_000 ? 'nodes' : 'time')
     let conflict: Clause | undefined
     const ci = propagate()
     if (ci !== undefined) conflict = clauses[ci]!
@@ -235,7 +249,7 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
         if (timing) st.boundMs += performance.now() - tb
         if (forced) { st.boundRounds++; continue }
       }
-      let steps: Step[] | undefined
+      let steps: Step[] | undefined, lpSat = false
       let verdict: ReturnType<typeof solve> | undefined
       t(() => {
         // The simplex first (warm from the node before): a conflict's rows, refuted exactly, are the leaf. With a case
@@ -253,6 +267,7 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
             if (out.kind === 'refuted') steps = out.steps.map(s => (s.kind === 'input' ? {...s, index: support[s.index]!} : s))
             else st.lpMisses++
           }
+          lpSat = lp.kind === 'sat'
           if (steps || (open && lp.kind === 'sat')) return
         }
         st.fmCalls++
@@ -265,6 +280,7 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
       }, ms => { st.solveMs += ms })
       if (steps) conflict = leafAt(rowsR, steps)
       else {
+        if (opts.model && lpSat && sx && open) phaseAtPoint(cands, sx)
         // A decision: the open atom of highest activity (the first candidate among equals).
         let pick: string | undefined, best = -1
         for (const lin of cands) { const name = ensure(lin), x = vars.get(name)!; if (x.val === undefined && x.act > best) { best = x.act; pick = name } }
@@ -292,6 +308,7 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
     let c = conflict
     for (;;) {
       if (!c.lits.size) {
+        if (opts.model) return {stuck: 'unknown', path: new Map(), why: REFUTED}
         const tree = t(() => unfold(goal, nodes, c.node, root, opts.maxLeaves ?? 20_000, until), ms => { st.unfoldMs += ms })
         if (!tree) return stuck('unknown', 'unfold')
         st.proven++

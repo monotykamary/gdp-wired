@@ -11,7 +11,7 @@ and apart, `benchmarks/false` (68 false properties), to test refutations.
 | File | What |
 | --- | --- |
 | `tip.ts` | TIP's format read (S-expressions, `declare-datatype(s)` with `par`, `define-fun(s)-rec`, `match`, `lambda`, `@`, `prove`), and an evaluator of a TIP program on values. It uses no gdp-wired code |
-| `translate.ts` | A TIP problem as a `proveData` law: each datatype at the instances the problem uses (mutual where their fields reach each other), Peano naturals as naturals, each polymorphic function at its instances, a higher-order function specialised at the lambdas it is passed, a function variable of the goal as `fnParam`. Every refusal has a reason, and every change to the statement is recorded (below) |
+| `translate.ts` | A TIP problem as a `proveData` law: each datatype at the instances the problem uses (mutual where their fields reach each other), Peano naturals as naturals, each polymorphic function at its instances, a higher-order function specialised at the lambdas it is passed, the goal's sort variables and TIP's uninterpreted sorts as abstract sorts, an uninterpreted constant or function and a function variable of the goal as unknown functions (`fnParam` where it is one of a natural). Every refusal has a reason, and every change to the statement is recorded (below) |
 | `solve.ts` | One task: translate, check the translation against TIP's evaluator on random values (the goal at 200 values, each function at 100), then `proveData` with the run's budget. Answers proven (the kernel checked the cyclic proof), refuted (a counterexample TIP's evaluator confirms breaks the goal as TIP states it), unknown, unsupported, or error. Its diagnostic flags are below |
 | `modal_tip.py` | The run on Modal: every task and tool in its own container (2 vCPU, 4 GB), each tool under the same 60 s wall-clock limit, all at once. The image builds the TIP tools (`tip-org/tools` at `ca4c414`, with Stack) and makes cvc5's and Vampire's files once |
 | `summary.ts` | The tables below from a run's `results.jsonl` |
@@ -52,6 +52,59 @@ only, the sets above and `false/`, 60 s.
   `sort_*MSortBU*` and `sort_*MSortBU2*` (16: mergingbu's call on `pairwise`, a size law about it proven and used) and
   `grammars/simp_expr_unambig4` (`linTerm` and `lin`, a ring: size(x) + 1 and size(x)), none proven in the time; in
   `false/` the 8 regexp `reck` rings, none refuted. None lost.
+
+### Abstract sorts, unknown functions and constants (lang/edges)
+
+`runs/edges/tip`: this branch, and `runs/edges/tip-base2`: main at 5c3f947, launched together on Modal (`--backend
+modal`), the same image, sets (`false/` too), container shape and 60 s. The translation now reads a goal's sort
+variables (`par (a) ...`) and TIP's uninterpreted sorts (`declare-sort S 0`) as abstract sorts (core/data.ts's `opaque`:
+read by equality alone, so the law proven is the statement at every sort, not its instance at the naturals), an
+uninterpreted constant or function (`declare-const`, `declare-fun`) as an unknown of its sort, and a function variable of
+any sort but a function's or an integer's (into a list, of an abstract sort, of several arguments) as an unknown
+function (core/data.ts's `unknownFn`). `--naturals` (solve.ts) takes the sort variables at the naturals as before.
+
+| theorems (492) | proven | refuted | wrong | translated | unknown | timeout | unsupported | proven, statement unchanged |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `edges/tip-base2` (main 5c3f947) | 178 | 7 | 0 | 363 | 56 | 122 | 129 | 136 |
+| `edges/tip` | 181 | 7 | 0 | 367 | 58 | 121 | 125 | 180 |
+
+- Newly translated 4: proven 3, `isaplanner/prop_46` (0.58 s, zip of an empty list of `Any`), `tip2015/list_return_1`
+  (11.33 s, `[x] >>= f = f x`: a lemma `xs ++ [] = xs` at f's value), `list_concat_map_bind` (0.64 s); out of time 1,
+  `list_assoc` (`(m >>= f) >>= g = m >>= (λx. f x >>= g)`, below). Of the 129 refused before, 10 theorems were refused
+  for no termination reason (the 4, and these 6): `list_weird_concat_map_bind` and `list_weird_is_normal` translate past
+  their sort and function variable and are refused at `weird_concat`'s termination (its call on `cons xs xss` keeps
+  the outer length: a lexicographic measure through a field that isn't of the list's group, the termination track's);
+  `list_elem` and `list_nat_elem` past their constant `undefined`, at their existential (`∃ y. x = at xs y`: no witness
+  among the goal's variables, the index of x is no term of the problem); `polyrec_seq_index` and `nicomachus_theorem`
+  stay outside (below).
+- The statement: 180 of the 181 proven are TIP's statement unchanged (main: 136 of 178), the other reading Int as a
+  natural. Every one of the 120 theorems with sort variables that translate is now read at every sort (44 proven); main
+  took all 116 of them at the naturals.
+- Lost 1, at the limit: `isaplanner/prop_51` (57.4 s on main, out of the 60 s here; 51.9 s in the run before,
+  `runs/edges/tip-base`). Gained 1 beside the new: `tip2015/list_nat_PairOdds` (33.43 s; out of time on main this run).
+  A run before the last change (`runs/edges/tip-p1` against `tip-base`, launched together): 181 and 180, the same 3
+  gains, `prop_51` and `prop_61` (both 51.9 s on main) out of time; there abstract values were drawn unlike the
+  naturals, and `false/queue3_QueueL` went unrefuted. They are drawn as the naturals are now (core/data.ts's
+  `randomValue`), and it is refuted as on main.
+- `false/` (68): 23 refuted in both, each confirmed by TIP's evaluator; none proven. The 30 refutations are the same
+  tasks in both runs (the 7 of `tip2015` false as TIP writes them, above).
+- The median time of the 177 both prove: 0.65 s on main, 0.64 s here.
+- `list_assoc` needs `(a ++ b) >>= g = (a >>= g) ++ (b >>= g)` with g unknown. The search finds it as a conjecture and
+  doesn't prove it: in its induction's case `a = x :: t, b = []`, the lemma use it needs (++ associative at g's value
+  at x) is ranked by the models of all the node's cases, where it holds in 15 of 24, under uses that hold in 19, and a
+  case keeps four (core/data.ts's `lemmaCaps.perCase`). With g's values those of a recursive function of x the same
+  proof is found; with a read of an unknown (`rep (g x)`, no decoding at all) it isn't (`research/edges/lemma-case.ts`,
+  run locally). A general finding about the lemma uses, recorded here and left: ranking them within the case is a
+  search change for every law, beyond this track.
+- Outside, and why. `polyrec_seq_index`: `Seq a` holds a `Seq (pair a (Maybe a))`, so its instances never end, and
+  `index` recurses at each of them (polymorphic recursion); a datatype language of instances fixed in advance can't
+  declare it, and a sound route (one untyped datatype of every instance, its laws under a typing predicate) is not
+  cheap. `nicomachus_theorem`: `cubes n = sum n · sum n` over Int, a product of two integers (the integers' encoding
+  has constant multiples only; a product needs a new operation in Lean's export, trusted) and, apart from it, not a
+  consequence of its definitions: `sum (x) = sum (x − 1) + x` for every x ≠ 0 leaves `sum (−1)` free (and `cubes (−1)`
+  with it), so at n = −1 the goal holds only in some models; core/data.ts would refuse `sum` for its termination at a
+  negative argument even with products, rightly. Read at the naturals it would be another statement. `false/
+  imperative_Apa`: the same product, and `run`, whose `While` doesn't terminate.
 
 ### Lemmas the search finds and uses (gen/lemmas)
 
@@ -313,9 +366,9 @@ of it changes the statement:
 | Int division | 12 | 6 |
 | Int remainder | 2 | 1 |
 | Int product of two unknowns | 2 | 1 |
-| a function variable returning a list (`(=> a (list a))`) | 4 | 0 |
-| an uninterpreted sort | 2 | 0 |
-| an uninterpreted constant | 2 | 0 |
+| a function variable returning a list (`(=> a (list a))`; read since, above) | 4 | 0 |
+| an uninterpreted sort (read since, above) | 2 | 0 |
+| an uninterpreted constant (read since, above) | 2 | 0 |
 | an existential goal (read since, above) | 2 | 0 |
 | a nested datatype at ever larger instances (`polyrec_seq_index`) | 1 | 0 |
 

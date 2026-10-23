@@ -54,10 +54,12 @@ export type Tip = {
   datas: Map<string, DataDecl>, funs: Map<string, FunDecl>,
   ctorOf: Map<string, {data: string, index: number}>, selectorOf: Map<string, {data: string, ctor: number, field: number}>,
   goal: {params: string[], body: Sx}, asserts: Sx[], sorts: string[], consts: string[],
+  // An uninterpreted constant or function (`declare-const`, `declare-fun`): its sort variables, arguments and result.
+  constDecls: Map<string, {params: string[], args: Ty[], ret: Ty}>, sortArity: Map<string, number>,
 }
 
 export function parseTip(text: string): Tip {
-  const tip: Tip = {datas: new Map(), funs: new Map(), ctorOf: new Map(), selectorOf: new Map(), goal: undefined as never, asserts: [], sorts: [], consts: []}
+  const tip: Tip = {datas: new Map(), funs: new Map(), ctorOf: new Map(), selectorOf: new Map(), goal: undefined as never, asserts: [], sorts: [], consts: [], constDecls: new Map(), sortArity: new Map()}
   const dataDecl = (name: string, s: Sx) => {
     let params: string[] = [], body = s as Sx[]
     if (Array.isArray(s) && s[0] === 'par') { params = s[1] as string[]; body = s[2] as Sx[] }
@@ -97,8 +99,15 @@ export function parseTip(text: string): Tip {
       const g = cmd[1]!
       tip.goal = Array.isArray(g) && g[0] === 'par' ? {params: g[1] as string[], body: g[2]!} : {params: [], body: g}
     } else if (op === 'assert') tip.asserts.push(cmd[1]!)
-    else if (op === 'declare-sort') tip.sorts.push(cmd[1] as string)
-    else if (op === 'declare-const' || op === 'declare-fun') tip.consts.push(cmd[1] as string)
+    else if (op === 'declare-sort') { tip.sorts.push(cmd[1] as string); tip.sortArity.set(cmd[1] as string, Number(cmd[2] ?? 0)) }
+    else if (op === 'declare-const' || op === 'declare-fun') {
+      // (declare-const c T), (declare-const c (par (a) T)), (declare-fun f (T..) R), (declare-fun f (par (a) ((T..) R)))
+      const name = cmd[1] as string, rest = cmd.slice(2), par = Array.isArray(rest[0]) && rest[0][0] === 'par' ? rest[0] : undefined
+      const params = par ? par[1] as string[] : [], tv = new Set(params), body = par ? (op === 'declare-const' ? [par[2]!] : par[2] as Sx[]) : rest
+      const [args, ret] = op === 'declare-const' ? [[], body[0]!] : [body[0] as Sx[], body[1]!]
+      tip.consts.push(name)
+      tip.constDecls.set(name, {params, args: args.map(a => tyOf(a, tv)), ret: tyOf(ret, tv)})
+    }
     else if (op === 'check-sat' || op === 'set-logic' || op === 'set-info' || op === 'set-option' || op === 'exit') continue
     else throw new Unsupported(`the command ${String(op)}`)
   }
@@ -120,7 +129,8 @@ export function sameV(a: V, b: V): boolean {
 }
 
 // Evaluate a TIP term. Quantifiers are not evaluated (a goal's are bound by the caller); `fuel` bounds the calls.
-export function evaluate(tip: Tip, s: Sx, env: Map<string, V>, fuel = {n: 200_000}): V {
+// `globals`: the uninterpreted constants and functions (declare-const, declare-fun), seen in every function's body too.
+export function evaluate(tip: Tip, s: Sx, env: Map<string, V>, fuel = {n: 200_000}, globals: Map<string, V> = new Map()): V {
   const go = (s: Sx, env: Map<string, V>): V => {
     if (typeof s === 'string') {
       if (env.has(s)) return env.get(s)!
@@ -195,7 +205,7 @@ export function evaluate(tip: Tip, s: Sx, env: Map<string, V>, fuel = {n: 200_00
   const call = (name: string, xs: V[]): V => {
     if (--fuel.n < 0) throw new OutOfFuel('out of fuel')
     const f = tip.funs.get(name)!
-    return go(f.body, new Map(f.args.map((a, i) => [a.name, xs[i]!])))
+    return go(f.body, new Map([...globals, ...f.args.map((a, i) => [a.name, xs[i]!] as const)]))
   }
   return go(s, env)
 }

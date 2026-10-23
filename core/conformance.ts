@@ -2,7 +2,10 @@
 // op, or this file doesn't type-check), concrete inputs and map cells, and the reference value from evalE and evalC.
 // core/conformance.test.ts holds every consumer of terms to it; lean-kernel/conformance.ts writes its cases for Lean.
 import {type C, type E, type Machine, type State, evalC, evalE} from './machine.ts'
-import {type Loop, type Recur, recurGoal, trueC} from '../kernel/kernel.ts'
+import {type Loop, type QC, type QE, type QGoal, type QMachine, type Recur, type Tree, recurGoal, trueC} from '../kernel/kernel.ts'
+import type {Step} from './solver.ts'
+import {type Rat, q} from './q.ts'
+import {evalQC, evalQE} from './rationals.ts'
 import {grow} from '../kernel/prove.ts'
 import {findNeverEnds} from './nonterm.ts'
 import {type Callable, type Measure, type Nat, define, natural, when} from './data.ts'
@@ -124,13 +127,27 @@ export function recurReference(l: Loop, r: Recur, turns = 60): boolean {
   }
   return true
 }
-// The cases: each loop's certificate where the search finds one (else one forged: the guard as the set, w := 0), and
+// A regression, fixed (runs/ranks/suite3-usual's lean-nonterm, made again with FUZZ_SEED=8, cases 0 and 1): the
+// certificate the search found for `climb 0 2`, whose tree cuts rows by 2, and its twin with the set made every state.
+// The twin's tree is the found one's, which doesn't refute the twin's goal: kernel.ts refuses it, and Lean must too. The
+// exporter once wrote that tree against the twin's goal, where a cut's row isn't even, so its quotient as -0.5: no Lean
+// term, and the check failed to elaborate rather than compute false. Now a tree is written against a goal it refutes.
+export function recurRegressions(): RecurCase[] {
+  const loop = JSON.parse(LOOP) as Loop, found = JSON.parse(FOUND) as Recur
+  return [
+    {loop, family: 'climb', what: 'found', recur: found},
+    {loop, family: 'climb', what: 'the set not closed: every state', recur: {...found, set: trueC}},
+  ]
+}
+const LOOP = "{\"params\":[\"p\"],\"inputs\":[\"w\"],\"state\":{\"x\":{\"op\":\"var\",\"name\":\"p\"},\"y\":{\"op\":\"const\",\"value\":0}},\"name\":\"climb 0 2\",\"while\":{\"op\":\"<=\",\"a\":{\"op\":\"const\",\"value\":0},\"b\":{\"op\":\"var\",\"name\":\"x\"}},\"body\":{\"x\":{\"op\":\"add\",\"a\":{\"op\":\"var\",\"name\":\"x\"},\"b\":{\"op\":\"const\",\"value\":2}},\"y\":{\"op\":\"add\",\"a\":{\"op\":\"var\",\"name\":\"y\"},\"b\":{\"op\":\"var\",\"name\":\"w\"}}},\"assume\":{\"op\":\"<=\",\"a\":{\"op\":\"var\",\"name\":\"w\"},\"b\":{\"op\":\"const\",\"value\":1}}}"
+const FOUND = "{\"start\":{\"p\":1},\"stem\":[],\"set\":{\"op\":\"and\",\"xs\":[{\"op\":\"=\",\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"op\":\"var\",\"name\":\"p\"}},{\"op\":\"=\",\"a\":{\"op\":\"const\",\"value\":0},\"b\":{\"op\":\"var\",\"name\":\"y\"}}]},\"wit\":{\"w\":{\"op\":\"var\",\"name\":\"y\"}},\"tree\":{\"split\":{\"x\":-1},\"yes\":{\"split\":{\"1\":-1,\"y\":1},\"yes\":{\"split\":{\"1\":1,\"p\":-1},\"yes\":{\"split\":{\"1\":-1,\"p\":1},\"yes\":{\"split\":{\"y\":-2},\"yes\":{\"leaf\":[{\"kind\":\"input\",\"index\":8},{\"kind\":\"input\",\"index\":9},{\"kind\":\"cut\",\"of\":1,\"g\":2},{\"kind\":\"combine\",\"a\":0,\"b\":2,\"ma\":1,\"mb\":1}]},\"no\":{\"leaf\":[{\"kind\":\"input\",\"index\":4},{\"kind\":\"cut\",\"of\":0,\"g\":2},{\"kind\":\"input\",\"index\":7},{\"kind\":\"combine\",\"a\":1,\"b\":2,\"ma\":1,\"mb\":1}]}},\"no\":{\"leaf\":[{\"kind\":\"input\",\"index\":3},{\"kind\":\"input\",\"index\":5},{\"kind\":\"combine\",\"a\":0,\"b\":1,\"ma\":1,\"mb\":1}]}},\"no\":{\"leaf\":[{\"kind\":\"input\",\"index\":2},{\"kind\":\"input\",\"index\":3},{\"kind\":\"combine\",\"a\":1,\"b\":0,\"ma\":1,\"mb\":1}]}},\"no\":{\"leaf\":[{\"kind\":\"input\",\"index\":1},{\"kind\":\"input\",\"index\":5},{\"kind\":\"combine\",\"a\":0,\"b\":1,\"ma\":1,\"mb\":1}]}},\"no\":{\"leaf\":[{\"kind\":\"input\",\"index\":0},{\"kind\":\"input\",\"index\":5},{\"kind\":\"combine\",\"a\":0,\"b\":1,\"ma\":1,\"mb\":1}]}}}"
+// The cases (the search on the counted clock, so the same seed gives the same cases): each loop's certificate where the search finds one (else one forged: the guard as the set, w := 0), and
 // its tampered twins, each named by what was changed.
 export function recurCases(n: number, ms = 300): RecurCase[] {
-  const out: RecurCase[] = []
+  const out: RecurCase[] = [...recurRegressions()]
   for (let i = 0; i < n; i++) {
     const {loop, family} = randomLoop()
-    const f = findNeverEnds(loop, {ms, seed: 1 + i})
+    const f = findNeverEnds(loop, {ms, seed: 1 + i, counted: 1000})
     if (!f.recur) {
       out.push({loop, family, what: 'forged: the guard as the set', recur: {start: {p: 30}, stem: [], set: loop.while, wit: {w: k(0)}, tree: {leaf: []}}})
       continue
@@ -248,4 +265,67 @@ export function tamperedMeasures(ms: Measure[]): {what: string, ms: Measure[]}[]
     {what: "each function's constants dropped", ms: ms.map(m => ({comps: m.comps.map(c => ({...c, c: 0}))}))},
     {what: 'negated', ms: ms.map(neg)},
   ]
+}
+
+// --- rationals (kernel.ts's rational section, Rationals.lean) -------------------------------------------------------
+// Random terms and conditions over every op of QE and QC (the lists must name every op), rational values with small
+// numerators and denominators of either sign, and the reference: core/rationals.ts's evalQE and evalQC, exact.
+export const QE_OPS = ['var', 'const', 'add', 'sub', 'mul', 'min', 'max', 'if'] as const satisfies readonly QE['op'][]
+export const QC_OPS = ['<', '<=', '=', 'and', 'or', 'not'] as const satisfies readonly QC['op'][]
+export const qcoverage: [Covers<QE['op'], typeof QE_OPS>, Covers<QC['op'], typeof QC_OPS>] = [true, true]
+export const randRat = (): Rat => q(rand(13) - 6, 1 + rand(4))
+export function qterm(d: number): QE {
+  const op = d <= 0 ? pick(['var', 'const'] as const) : pick(QE_OPS)
+  seen[`q${op}`] = (seen[`q${op}`] ?? 0) + 1
+  switch (op) {
+    case 'var': return {op, name: pick(VARS)}
+    case 'const': return {op, q: randRat()}
+    case 'mul': return {op, k: randRat(), a: qterm(d - 1)}
+    case 'add': case 'sub': case 'min': case 'max': return {op, a: qterm(d - 1), b: qterm(d - 1)}
+    case 'if': return {op, c: qcond(d - 1), then: qterm(d - 1), else: qterm(d - 1)}
+  }
+}
+export function qcond(d: number): QC {
+  const op = pick(QC_OPS)
+  seen[`q${op}`] = (seen[`q${op}`] ?? 0) + 1
+  switch (op) {
+    case '<': case '<=': case '=': return {op, a: qterm(d), b: qterm(d)}
+    case 'and': case 'or': return {op, a: qcond(d - 1), b: qcond(d - 1)}
+    case 'not': return {op, x: qcond(d - 1)}
+  }
+}
+export type QCase = {t: QE, c: QC, env: Record<string, Rat>}
+export const randomQCase = (depth: number): QCase => ({t: qterm(depth), c: qcond(depth - 1), env: Object.fromEntries(VARS.map(x => [x, randRat()]))})
+export const qreference = (k: QCase): {value: Rat, holds: boolean} => ({value: evalQE(k.t, k.env), holds: evalQC(k.c, k.env)})
+export const qmachineOf = (k: QCase): QMachine => ({name: 'qconformance', params: [], inputs: [...VARS], state: {out: {op: 'const', q: q(0)}, ok: {op: 'const', q: q(0)}},
+  step: {out: k.t, ok: {op: 'if', c: k.c, then: {op: 'const', q: q(1)}, else: {op: 'const', q: q(0)}}}})
+// The goals a case gives the kernel: every variable fixed at its value, with the claim (the term's value, the
+// condition's truth) negated, which no point satisfies; and the claim itself, which the case's values satisfy.
+export function qgoals(k: QCase): {proven: QGoal[], models: QGoal[]} {
+  const ref = qreference(k)
+  const fixed: QC[] = VARS.map(x => ({op: '=', a: {op: 'var', name: x}, b: {op: 'const', q: k.env[x]!}}))
+  const claims: [string, QC][] = [['value', {op: '=', a: k.t, b: {op: 'const', q: ref.value}}], ['truth', ref.holds ? k.c : {op: 'not', x: k.c}]]
+  return {proven: claims.map(([w, c]) => ({name: w, hyps: [...fixed, {op: 'not', x: c}]})), models: claims.map(([w, c]) => ({name: `not ${w}`, hyps: [...fixed, c]}))}
+}
+// A tree's tampered twins, each refused by the kernel (and by Lean): a multiplier made 0 or negative, a cut (no cut
+// over the rationals), an input out of range, a combination that names itself; every leaf at once.
+export function qtampered(tree: Tree): {what: string, tree: Tree}[] {
+  const each = (f: (steps: Step[]) => Step[] | undefined): Tree | undefined => {
+    let changed = false
+    const go = (t: Tree): Tree => {
+      if ('leaf' in t) { const s = f(t.leaf); if (s) changed = true; return {leaf: s ?? t.leaf} }
+      return {split: t.split, yes: go(t.yes), no: go(t.no)}
+    }
+    const out = go(tree)
+    return changed ? out : undefined
+  }
+  const firstCombine = (steps: Step[]) => steps.findIndex(s => s.kind === 'combine')
+  const out: {what: string, tree: Tree | undefined}[] = [
+    {what: 'a multiplier negated', tree: each(steps => { const i = firstCombine(steps); return i < 0 ? undefined : steps.map((s, j) => (j === i && s.kind === 'combine' ? {...s, ma: -s.ma} : s)) })},
+    {what: 'a multiplier 0', tree: each(steps => { const i = firstCombine(steps); return i < 0 ? undefined : steps.map((s, j) => (j === i && s.kind === 'combine' ? {...s, mb: 0} : s)) })},
+    {what: 'a cut', tree: each(steps => [...steps, {kind: 'cut', of: steps.length - 1, g: 1}])},
+    {what: 'an input out of range', tree: each(steps => steps.map(s => (s.kind === 'input' ? {...s, index: s.index + 1000} : s)))},
+    {what: 'a combination of itself', tree: each(steps => { const i = firstCombine(steps); return i < 0 ? undefined : steps.map((s, j) => (j === i && s.kind === 'combine' ? {...s, a: j} : s)) })},
+  ]
+  return out.flatMap(x => (x.tree ? [{what: x.what, tree: x.tree}] : []))
 }

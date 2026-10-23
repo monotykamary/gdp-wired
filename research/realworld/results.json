@@ -1,0 +1,4301 @@
+[
+ {
+  "item": "circuit breaker/opossum/CircuitBreaker",
+  "law": 0,
+  "name": "an open breaker rejects every call",
+  "outcome": "proven",
+  "ms": 4780,
+  "found": [
+   "pendingClose is yes → st is halfOpen"
+  ]
+ },
+ {
+  "item": "approval/gitea/reviews",
+  "law": 2,
+  "name": "with DismissStaleApprovals, a push that changes the diff leaves no approval counted",
+  "outcome": "proven",
+  "ms": 13144
+ },
+ {
+  "item": "approval/openzeppelin/TimelockController",
+  "law": 5,
+  "name": "only the proposer schedules",
+  "outcome": "proven",
+  "ms": 214
+ },
+ {
+  "item": "ledger/blnk/balances",
+  "law": 0,
+  "name": "every balance is its credits less its debits",
+  "outcome": "proven",
+  "ms": 9350
+ },
+ {
+  "item": "auth/lucia/validateSession",
+  "law": 1,
+  "name": "validation never shortens a session",
+  "outcome": "proven",
+  "ms": 828
+ },
+ {
+  "item": "circuit breaker/gobreaker/CircuitBreaker",
+  "law": 2,
+  "name": "a failure in half-open opens the breaker",
+  "outcome": "proven",
+  "ms": 5512
+ },
+ {
+  "item": "inventory/saleor/allocations",
+  "law": 1,
+  "name": "allocations never exceed the stock unless a fulfilment was let exceed it",
+  "outcome": "proven",
+  "ms": 3181,
+  "found": [
+   "every k: Row[k] is 0 → Alloc[k] <= 0"
+  ]
+ },
+ {
+  "item": "xstate/open-decision/websocket",
+  "law": 5,
+  "name": "a synced connection resets the retries",
+  "outcome": "unknown",
+  "ms": 22,
+  "goal": "a synced connection resets the retries @step law",
+  "stuck": "sat",
+  "witness": {
+   "state": 3,
+   "retryLimit": 3,
+   "retries": 4,
+   "hasDoc": 0,
+   "hasToken": 1,
+   "event": 4
+  }
+ },
+ {
+  "item": "feature flag/flagd/fractional",
+  "law": 3,
+  "name": "a chosen variant never changes",
+  "outcome": "proven",
+  "ms": 89
+ },
+ {
+  "item": "rate limit/upstash-ratelimit/slidingWindow",
+  "law": 1,
+  "name": "a rejected request leaves the window's remaining tokens spendable",
+  "outcome": "refuted",
+  "ms": 6,
+  "goal": "a rejected request leaves the window's remaining tokens spendable @step law",
+  "stuck": "sat",
+  "run": {
+   "params": {
+    "tokens": 1,
+    "window": 2
+   },
+   "trace": [
+    {
+     "now": 3,
+     "n": 3,
+     "b": 1,
+     "pw": 0
+    }
+   ]
+  }
+ },
+ {
+  "item": "xstate/vef-framework-react/uploader",
+  "law": 9,
+  "name": "a started upload ends succeeded, failed or aborted",
+  "outcome": "unknown",
+  "ms": 6922,
+  "goal": "a started upload ends succeeded, failed or aborted: each step stays or gets there, the rank kept only with its region @step law",
+  "stuck": "sat",
+  "why": "rank (2 + 2·aborts + prepares − (completes + 2·kills + 2·uploads)) from the runs; the kernel's goals not proven with it",
+  "witness": {
+   "prepares": 0,
+   "aborts": 0,
+   "uploads": 0,
+   "kills": 0,
+   "latched": 0,
+   "completes": 3,
+   "state": 3,
+   "event": 1
+  },
+  "found": [
+   "rank (2 + 2·aborts + prepares − (completes + 2·kills + 2·uploads))"
+  ]
+ },
+ {
+  "item": "quota/kubernetes/ResourceQuota.CheckRequest",
+  "law": 4,
+  "name": "a resource the quota does not limit is never charged",
+  "outcome": "proven",
+  "ms": 289
+ },
+ {
+  "item": "ledger/openzeppelin/ERC20",
+  "law": 5,
+  "name": "transferFrom spends the allowance it uses",
+  "outcome": "proven",
+  "ms": 396
+ },
+ {
+  "item": "circuit breaker/cockatiel/ConsecutiveBreaker",
+  "law": 0,
+  "name": "an open circuit stays open on a call before halfOpenAfter",
+  "outcome": "proven",
+  "ms": 343
+ },
+ {
+  "item": "feature flag/growthbook/forceRuleRollout",
+  "law": 0,
+  "name": "a rule with coverage 0 serves nobody",
+  "outcome": "proven",
+  "ms": 29
+ },
+ {
+  "item": "payment/solidus/Payment",
+  "law": 1,
+  "name": "a failed, void or invalid payment never changes state",
+  "outcome": "proven",
+  "ms": 480
+ },
+ {
+  "item": "payment/solidus/Payment",
+  "law": 0,
+  "name": "refunds never exceed the payment amount",
+  "outcome": "refuted",
+  "ms": 106,
+  "goal": "refunds never exceed the payment amount @step",
+  "stuck": "sat",
+  "run": {
+   "params": {
+    "amount0": 6,
+    "requireRefundable": 0
+   },
+   "trace": [
+    {
+     "ev": 2,
+     "amt": 3,
+     "full": 0,
+     "ok": 1
+    },
+    {
+     "ev": 0,
+     "amt": 2,
+     "full": 1,
+     "ok": 1
+    },
+    {
+     "ev": 7,
+     "amt": 6,
+     "full": 0,
+     "ok": 0
+    },
+    {
+     "ev": 2,
+     "amt": 4,
+     "full": 1,
+     "ok": 0
+    },
+    {
+     "ev": 6,
+     "amt": 2,
+     "full": 0,
+     "ok": 0
+    }
+   ]
+  }
+ },
+ {
+  "item": "feature flag/growthbook/forceRuleRollout",
+  "law": 1,
+  "name": "raising the coverage never removes a user who was in",
+  "outcome": "proven",
+  "ms": 106
+ },
+ {
+  "item": "circuit breaker/cockatiel/ConsecutiveBreaker",
+  "law": 1,
+  "name": "at most one half-open test runs at a time",
+  "outcome": "unknown",
+  "ms": 20577,
+  "goal": "at most one half-open test runs at a time @step",
+  "stuck": "sat",
+  "why": "the search found nothing that proves it in 20197 ms",
+  "witness": {
+   "last": 0,
+   "halfOpenAfter": 0,
+   "openedAt": 0,
+   "outcome": 0,
+   "now": 0,
+   "tests": 1,
+   "st": 1,
+   "op": 0
+  }
+ },
+ {
+  "item": "ledger/openzeppelin/ERC20",
+  "law": 4,
+  "name": "only its owner, a spender it approved, or a burn lowers a balance",
+  "outcome": "proven",
+  "ms": 464
+ },
+ {
+  "item": "xstate/vef-framework-react/uploader",
+  "law": 8,
+  "name": "ABORT while idle changes nothing",
+  "outcome": "proven",
+  "ms": 389
+ },
+ {
+  "item": "rate limit/upstash-ratelimit/slidingWindow",
+  "law": 0,
+  "name": "no window admits more than tokens",
+  "outcome": "proven",
+  "ms": 2857,
+  "found": [
+   "every k: Admitted[k] <= Count[k]"
+  ]
+ },
+ {
+  "item": "feature flag/flagd/fractional",
+  "law": 2,
+  "name": "the chosen variant's range holds the bucket",
+  "outcome": "proven",
+  "ms": 1579,
+  "found": [
+   "done is no → rangeEnd <= bucket"
+  ]
+ },
+ {
+  "item": "xstate/open-decision/websocket",
+  "law": 4,
+  "name": "CLOSE ends an open connection",
+  "outcome": "refuted",
+  "ms": 196,
+  "goal": "CLOSE ends an open connection @step law",
+  "stuck": "sat",
+  "run": {
+   "params": {},
+   "trace": [
+    {
+     "event": 5
+    },
+    {
+     "event": 5
+    },
+    {
+     "event": 7
+    },
+    {
+     "event": 1
+    },
+    {
+     "event": 2
+    },
+    {
+     "event": 8
+    },
+    {
+     "event": 2
+    },
+    {
+     "event": 4
+    },
+    {
+     "event": 6
+    },
+    {
+     "event": 3
+    },
+    {
+     "event": 6
+    },
+    {
+     "event": 0
+    },
+    {
+     "event": 6
+    },
+    {
+     "event": 3
+    },
+    {
+     "event": 7
+    },
+    {
+     "event": 1
+    }
+   ]
+  }
+ },
+ {
+  "item": "inventory/saleor/allocations",
+  "law": 0,
+  "name": "the stock's allocated count is the sum of its allocations",
+  "outcome": "refuted",
+  "ms": 276,
+  "goal": "the stock's allocated count is the sum of its allocations @step",
+  "stuck": "sat",
+  "run": {
+   "params": {
+    "track": 0,
+    "d": 7
+   },
+   "trace": [
+    {
+     "op": 4,
+     "line": 2,
+     "q": 8,
+     "line2": 7,
+     "q2": 5,
+     "allocate": 1,
+     "exceed": 0
+    },
+    {
+     "op": 5,
+     "line": 6,
+     "q": 8,
+     "line2": 6,
+     "q2": 3,
+     "allocate": 0,
+     "exceed": 0
+    },
+    {
+     "op": 4,
+     "line": 2,
+     "q": 4,
+     "line2": 4,
+     "q2": 4,
+     "allocate": 0,
+     "exceed": 0
+    },
+    {
+     "op": 3,
+     "line": 2,
+     "q": 5,
+     "line2": 8,
+     "q2": 2,
+     "allocate": 0,
+     "exceed": 0
+    },
+    {
+     "op": 3,
+     "line": 4,
+     "q": 8,
+     "line2": 1,
+     "q2": 0,
+     "allocate": 1,
+     "exceed": 0
+    },
+    {
+     "op": 2,
+     "line": 0,
+     "q": 1,
+     "line2": 2,
+     "q2": 8,
+     "allocate": 0,
+     "exceed": 0
+    },
+    {
+     "op": 3,
+     "line": 8,
+     "q": 3,
+     "line2": 1,
+     "q2": 1,
+     "allocate": 1,
+     "exceed": 0
+    },
+    {
+     "op": 1,
+     "line": 0,
+     "q": 7,
+     "line2": 5,
+     "q2": 0,
+     "allocate": 0,
+     "exceed": 0
+    },
+    {
+     "op": 2,
+     "line": 3,
+     "q": 0,
+     "line2": 0,
+     "q2": 1,
+     "allocate": 0,
+     "exceed": 0
+    },
+    {
+     "op": 2,
+     "line": 4,
+     "q": 1,
+     "line2": 8,
+     "q2": 5,
+     "allocate": 1,
+     "exceed": 0
+    }
+   ]
+  }
+ },
+ {
+  "item": "circuit breaker/gobreaker/CircuitBreaker",
+  "law": 3,
+  "name": "the breaker closes only from half-open",
+  "outcome": "proven",
+  "ms": 6407
+ },
+ {
+  "item": "auth/lucia/validateSession",
+  "law": 0,
+  "name": "an expired session is never validated",
+  "outcome": "proven",
+  "ms": 609
+ },
+ {
+  "item": "ledger/blnk/balances",
+  "law": 1,
+  "name": "every inflight balance is its inflight credits less its inflight debits",
+  "outcome": "proven",
+  "ms": 11444
+ },
+ {
+  "item": "approval/openzeppelin/TimelockController",
+  "law": 4,
+  "name": "only the executor executes, unless the role is open",
+  "outcome": "proven",
+  "ms": 188
+ },
+ {
+  "item": "approval/gitea/reviews",
+  "law": 3,
+  "name": "only approve and reject reviews are dismissed or undismissed",
+  "outcome": "proven",
+  "ms": 11872
+ },
+ {
+  "item": "circuit breaker/opossum/CircuitBreaker",
+  "law": 1,
+  "name": "no call is let through within resetTimeout of the breaker opening",
+  "outcome": "unknown",
+  "ms": 11835,
+  "goal": "no call is let through within resetTimeout of the breaker opening @step law",
+  "stuck": "sat",
+  "why": "the search found nothing that proves it in 10255 ms",
+  "witness": {
+   "resetTimeout": 0,
+   "lives": 0,
+   "lastBucket": 0,
+   "last": 0,
+   "filtered": 0,
+   "outcome": 0,
+   "armed": 0,
+   "warmDone": 0,
+   "allowWarmUp": 0,
+   "st": 1,
+   "now": 0,
+   "trippedAt": 1,
+   "bucket": 0,
+   "buckets": 1,
+   "life": 0,
+   "pendingClose": 1,
+   "op": 0
+  }
+ },
+ {
+  "item": "circuit breaker/opossum/CircuitBreaker",
+  "law": 3,
+  "name": "a failure in half-open reopens the breaker",
+  "outcome": "unknown",
+  "ms": 10040,
+  "goal": "a failure in half-open reopens the breaker @step law",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 8581 ms",
+  "witness": {
+   "lives": 0,
+   "lastBucket": 0,
+   "last": 0,
+   "inflight": 1,
+   "armed": 0,
+   "pendingClose": 0,
+   "outcome": 1,
+   "bucket": 0,
+   "now": 0,
+   "buckets": 1,
+   "life": 0,
+   "warmDone": 0,
+   "st": 2,
+   "allowWarmUp": 1,
+   "filtered": 0,
+   "op": 1
+  }
+ },
+ {
+  "item": "approval/openzeppelin/TimelockController",
+  "law": 6,
+  "name": "every scheduled operation becomes ready",
+  "outcome": "unknown",
+  "ms": 1763,
+  "goal": "every scheduled operation becomes ready: each step stays or gets there, the rank kept only with its region @step law",
+  "stuck": "sat",
+  "why": "rank (167 + d + minDelay + minDelay$some + t0 − (executor + minDelay0 + now + open + self)) from the runs; the kernel's goals not proven with it",
+  "witness": {
+   "minDelay": 0,
+   "self": 0,
+   "executor": 0,
+   "dt": 0,
+   "now": 0,
+   "id": 0,
+   "pred$some": 0,
+   "open": 0,
+   "minDelay0": 1,
+   "t0": 2,
+   "Ts[d:1]": 3,
+   "Ts[id:1]": 3,
+   "minDelay$some": 0,
+   "op": 0,
+   "d": 0
+  },
+  "found": [
+   "rank (167 + d + minDelay + minDelay$some + t0 − (executor + minDelay0 + now + open + self))"
+  ]
+ },
+ {
+  "item": "approval/gitea/reviews",
+  "law": 1,
+  "name": "after a reviewer approves or rejects, none of their other reviews counts",
+  "outcome": "proven",
+  "ms": 16537
+ },
+ {
+  "item": "auth/lucia/validateSession",
+  "law": 2,
+  "name": "no session outlives sessionExpiresIn past the latest time seen",
+  "outcome": "proven",
+  "ms": 616
+ },
+ {
+  "item": "ledger/blnk/balances",
+  "law": 3,
+  "name": "money is conserved",
+  "outcome": "proven",
+  "ms": 2043
+ },
+ {
+  "item": "circuit breaker/gobreaker/CircuitBreaker",
+  "law": 1,
+  "name": "an open breaker admits no request before its timeout",
+  "outcome": "proven",
+  "ms": 4225
+ },
+ {
+  "item": "inventory/saleor/allocations",
+  "law": 2,
+  "name": "an allocation takes all of the line or nothing",
+  "outcome": "proven",
+  "ms": 568
+ },
+ {
+  "item": "feature flag/flagd/fractional",
+  "law": 0,
+  "name": "a variant of weight 0 is never chosen",
+  "outcome": "unknown",
+  "ms": 20,
+  "goal": "a variant of weight 0 is never chosen @step law",
+  "stuck": "sat",
+  "witness": {
+   "bucket": 2,
+   "rangeEnd": 5,
+   "i": 2,
+   "done": 0,
+   "chosen": 7,
+   "start": 5,
+   "weight": 0
+  }
+ },
+ {
+  "item": "xstate/open-decision/websocket",
+  "law": 6,
+  "name": "an opening connection ends connected or failed",
+  "outcome": "unknown",
+  "ms": 12132,
+  "goal": "an opening connection ends connected or failed: each step stays or gets there, the rank kept only with its region @step law",
+  "stuck": "sat",
+  "why": "rank (1 + hasDoc + retryLimit − (retries + state)) from the runs; the kernel's goals not proven with it",
+  "witness": {
+   "retryLimit": 0,
+   "hasToken": 0,
+   "retries": 1,
+   "hasDoc": 0,
+   "state": 1,
+   "event": 8
+  },
+  "found": [
+   "rank (1 + hasDoc + retryLimit − (retries + state))"
+  ]
+ },
+ {
+  "item": "rate limit/upstash-ratelimit/slidingWindow",
+  "law": 2,
+  "name": "a request blocked by the cache changes no count",
+  "outcome": "proven",
+  "ms": 673
+ },
+ {
+  "item": "circuit breaker/cockatiel/ConsecutiveBreaker",
+  "law": 3,
+  "name": "a half-open circuit reopens only on its test failing",
+  "outcome": "unknown",
+  "ms": 25,
+  "goal": "a half-open circuit reopens only on its test failing @step law",
+  "stuck": "sat",
+  "witness": {
+   "threshold": 0,
+   "halfOpenAfter": 1,
+   "st": 2,
+   "openedAt": 2,
+   "attemptNo": 4,
+   "counters": 7,
+   "failures": 2,
+   "inClosed": 4,
+   "tests": 7,
+   "last": 0,
+   "op": 1,
+   "outcome": 1,
+   "now": 1
+  }
+ },
+ {
+  "item": "feature flag/growthbook/forceRuleRollout",
+  "law": 3,
+  "name": "a user without the hash attribute is never in a percentage rollout",
+  "outcome": "proven",
+  "ms": 18
+ },
+ {
+  "item": "payment/solidus/Payment",
+  "law": 2,
+  "name": "when required, a refund only on a completed or pending payment",
+  "outcome": "proven",
+  "ms": 480
+ },
+ {
+  "item": "payment/solidus/Payment",
+  "law": 3,
+  "name": "a capture never lowers what was captured",
+  "outcome": "proven",
+  "ms": 303
+ },
+ {
+  "item": "feature flag/growthbook/forceRuleRollout",
+  "law": 2,
+  "name": "widening the range never removes a user who was in",
+  "outcome": "proven",
+  "ms": 79
+ },
+ {
+  "item": "circuit breaker/cockatiel/ConsecutiveBreaker",
+  "law": 2,
+  "name": "a successful test closes a half-open circuit",
+  "outcome": "proven",
+  "ms": 516
+ },
+ {
+  "item": "rate limit/upstash-ratelimit/slidingWindow",
+  "law": 3,
+  "name": "a rejected caller is admitted two windows later",
+  "outcome": "unknown",
+  "ms": 37,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 20 others keep"
+ },
+ {
+  "item": "feature flag/flagd/fractional",
+  "law": 1,
+  "name": "once the weights read pass the bucket, a variant is chosen",
+  "outcome": "proven",
+  "ms": 96
+ },
+ {
+  "item": "inventory/saleor/allocations",
+  "law": 3,
+  "name": "a deallocation returns to the stock exactly what it takes from the allocations",
+  "outcome": "unknown",
+  "ms": 39,
+  "goal": "a deallocation returns to the stock exactly what it takes from the allocations @step law",
+  "stuck": "sat",
+  "witness": {
+   "track": 0,
+   "d": 0,
+   "quantity": 1,
+   "quantity$neg": 1,
+   "qa": 1,
+   "qa$neg": 7,
+   "allocSum": 0,
+   "exceeded": 3,
+   "op": 5,
+   "line": 3,
+   "q": 2,
+   "line2": 0,
+   "q2": 0,
+   "allocate": 1,
+   "exceed": 1
+  }
+ },
+ {
+  "item": "circuit breaker/gobreaker/CircuitBreaker",
+  "law": 0,
+  "name": "half-open admits at most maxRequests requests",
+  "outcome": "proven",
+  "ms": 4244
+ },
+ {
+  "item": "ledger/blnk/balances",
+  "law": 2,
+  "name": "no inflight debit is ever negative",
+  "outcome": "proven",
+  "ms": 1020
+ },
+ {
+  "item": "auth/lucia/validateSession",
+  "law": 3,
+  "name": "a deleted session never comes back",
+  "outcome": "unknown",
+  "ms": 6484,
+  "goal": "a deleted session never comes back @step",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 5881 ms",
+  "witness": {
+   "fresh": 0,
+   "valid": 0,
+   "userExists": 0,
+   "next": 0,
+   "sid": 0,
+   "Sess.live[sid:1]": 0,
+   "key$39#": 0,
+   "Sess.live[key$39#:1]": 0,
+   "op": 0,
+   "Ended[key$39#:1]": 1,
+   "Ended[sid:1]": 1
+  }
+ },
+ {
+  "item": "approval/gitea/reviews",
+  "law": 0,
+  "name": "two counted approvals are never by the same reviewer",
+  "outcome": "unknown",
+  "ms": 102932,
+  "goal": "two counted approvals are never by the same reviewer @step",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 62541 ms",
+  "witness": {
+   "By[w?all$2:1]": 0,
+   "id": 0,
+   "Stale[w?all$5:1]": 0,
+   "Stale[key$54:1]": 0,
+   "Stale[w?all$4:1]": 0,
+   "Stale[cur:1]": 0,
+   "Stale[key$53#:1]": 0,
+   "Stale[l1:1]": 0,
+   "stale": 0,
+   "dismissStale": 0,
+   "changed": 0,
+   "dismiss": 0,
+   "closed": 0,
+   "empty": 0,
+   "hasComments": 0,
+   "type": 0,
+   "Dis[l1:1]": 0,
+   "Off[l1:1]": 0,
+   "Dis[w?all$1:1]": 0,
+   "Off[w?all$1:1]": 0,
+   "cur": 1,
+   "w?all$5": 2,
+   "w?all$3": 3,
+   "l1": 4,
+   "w?all$4": 5,
+   "next": 6,
+   "By[key$54:1]": 1,
+   "Stale[l2:1]": 0,
+   "Stale[w?all$3:1]": 0,
+   "Stale[w?all$2:1]": 0,
+   "Stale[w?all$1:1]": 0,
+   "Stale[id:1]": 0,
+   "By[w?all$4:1]": 0,
+   "Ty[id:1]": 1,
+   "Dis[cur:1]": 0,
+   "Off[cur:1]": 0,
+   "Dis[w?all$3:1]": 0,
+   "Dis[l2:1]": 0,
+   "Dis[id:1]": 0,
+   "By[w?all$1:1]": 1,
+   "By[l2:1]": 1,
+   "By[l1:1]": 1,
+   "w?all$2": 5,
+   "Ty[l2:1]": 1,
+   "Ty[w?all$2:1]": 1,
+   "Ty[w?all$4:1]": 1,
+   "Ty[w?all$5:1]": 1,
+   "w?all$1": 1,
+   "Off[w?all$3:1]": 0,
+   "key$53#": 0,
+   "Off[l2:1]": 0,
+   "key$54": 3,
+   "By[w?all$5:1]": 1,
+   "l2": 3,
+   "By[w?all$3:1]": 1,
+   "Ty[w?all$3:1]": 1,
+   "Ty[key$54:1]": 1,
+   "Ty[key$53#:1]": 1,
+   "Ty[l1:1]": 4,
+   "Off[key$54:1]": 0,
+   "doer": 1,
+   "Dis[key$54:1]": 0,
+   "Dis[key$53#:1]": 0,
+   "By[cur:1]": 1,
+   "op": 3,
+   "By[key$53#:1]": 1,
+   "isOff": 1,
+   "?all$5": 0,
+   "?all$3": 0,
+   "Ty[w?all$1:1]": 5,
+   "?all$1": 0,
+   "Dis[w?all$5:1]": 1,
+   "Off[w?all$5:1]": 1,
+   "Dis[w?all$4:1]": 1,
+   "Off[w?all$4:1]": 1,
+   "Dis[w?all$2:1]": 1,
+   "Off[w?all$2:1]": 1,
+   "Off[id:1]": 1,
+   "Off[key$53#:1]": 1,
+   "?all$4": 1,
+   "l2$some": 1,
+   "?all$2": 1,
+   "l1$some": 1,
+   "Ty[cur:1]": 5,
+   "cur$some": 1
+  }
+ },
+ {
+  "item": "circuit breaker/opossum/CircuitBreaker",
+  "law": 2,
+  "name": "half-open lets one call through",
+  "outcome": "proven",
+  "ms": 6169,
+  "found": [
+   "trials is 1 → pendingClose <= 0"
+  ]
+ },
+ {
+  "item": "approval/openzeppelin/TimelockController",
+  "law": 3,
+  "name": "a cancelled or unscheduled operation never executes",
+  "outcome": "proven",
+  "ms": 178
+ },
+ {
+  "item": "circuit breaker/opossum/CircuitBreaker",
+  "law": 6,
+  "name": "an open breaker goes half-open once resetTimeout passes",
+  "outcome": "unknown",
+  "ms": 45,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 0 others keep"
+ },
+ {
+  "item": "circuit breaker/gobreaker/CircuitBreaker",
+  "law": 4,
+  "name": "a state change starts a new generation",
+  "outcome": "proven",
+  "ms": 5683
+ },
+ {
+  "item": "xstate/open-decision/websocket",
+  "law": 3,
+  "name": "OPEN while connected changes nothing",
+  "outcome": "proven",
+  "ms": 298
+ },
+ {
+  "item": "ledger/openzeppelin/ERC20",
+  "law": 3,
+  "name": "a transfer neither creates nor destroys tokens",
+  "outcome": "proven",
+  "ms": 431
+ },
+ {
+  "item": "circuit breaker/cockatiel/ConsecutiveBreaker",
+  "law": 6,
+  "name": "an open circuit lets a test through once halfOpenAfter passes",
+  "outcome": "unknown",
+  "ms": 66,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 4 others keep"
+ },
+ {
+  "item": "quota/kubernetes/ResourceQuota.CheckRequest",
+  "law": 2,
+  "name": "a dry run changes no usage",
+  "outcome": "proven",
+  "ms": 440
+ },
+ {
+  "item": "feature flag/growthbook/forceRuleRollout",
+  "law": 6,
+  "name": "a filtered-out user is never served the forced value",
+  "outcome": "proven",
+  "ms": 12
+ },
+ {
+  "item": "quota/librechat/balanceReservation",
+  "law": 8,
+  "name": "every held reservation is eventually freed",
+  "outcome": "unknown",
+  "ms": 154,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 12 others keep"
+ },
+ {
+  "item": "quota/kubernetes/ResourceQuota.CheckRequest",
+  "law": 3,
+  "name": "admission never lowers usage",
+  "outcome": "proven",
+  "ms": 651
+ },
+ {
+  "item": "ledger/openzeppelin/ERC20",
+  "law": 2,
+  "name": "the total supply never passes the uint256 bound",
+  "outcome": "proven",
+  "ms": 386
+ },
+ {
+  "item": "xstate/open-decision/websocket",
+  "law": 2,
+  "name": "a dropped connection under the limit is retried",
+  "outcome": "proven",
+  "ms": 310
+ },
+ {
+  "item": "feature flag/flagd/fractional",
+  "law": 4,
+  "name": "the chosen variant is one the loop read",
+  "outcome": "proven",
+  "ms": 117
+ },
+ {
+  "item": "circuit breaker/gobreaker/CircuitBreaker",
+  "law": 5,
+  "name": "a state change clears the failure counts",
+  "outcome": "proven",
+  "ms": 10454
+ },
+ {
+  "item": "circuit breaker/opossum/CircuitBreaker",
+  "law": 7,
+  "name": "a half-open breaker closes or reopens",
+  "outcome": "unknown",
+  "ms": 10907,
+  "goal": "a half-open breaker closes or reopens: each step stays or gets there, the rank kept only with its region @step law",
+  "stuck": "sat",
+  "why": "rank (pendingClose) from the runs; the kernel's goals not proven with it",
+  "witness": {
+   "lives": 0,
+   "lastBucket": 0,
+   "last": 0,
+   "filtered": 0,
+   "outcome": 0,
+   "armed": 0,
+   "warmDone": 0,
+   "allowWarmUp": 0,
+   "bucket": 0,
+   "now": 0,
+   "buckets": 1,
+   "life": 0,
+   "pendingClose": 0,
+   "st": 2,
+   "op": 6
+  },
+  "found": [
+   "rank (pendingClose)"
+  ]
+ },
+ {
+  "item": "approval/openzeppelin/TimelockController",
+  "law": 2,
+  "name": "an operation executes only after its predecessor is done",
+  "outcome": "proven",
+  "ms": 311
+ },
+ {
+  "item": "approval/openzeppelin/TimelockController",
+  "law": 0,
+  "name": "every operation executes at most once",
+  "outcome": "unknown",
+  "ms": 34145,
+  "goal": "every operation executes at most once @step",
+  "stuck": "sat",
+  "why": "the search found nothing that proves it in 33816 ms",
+  "witness": {
+   "dt": 0,
+   "now": 0,
+   "executor": 0,
+   "minDelay$some": 0,
+   "pred$some": 0,
+   "open": 0,
+   "Ts[id:1]": 2,
+   "t0": 2,
+   "Runs[key$89#:1]": 1,
+   "Runs[]": 1,
+   "Runs[id:1]": 1,
+   "id": 0,
+   "Pred[id:1]": 0,
+   "sender": 0,
+   "op": 2,
+   "key$89#": 0
+  }
+ },
+ {
+  "item": "circuit breaker/opossum/CircuitBreaker",
+  "law": 5,
+  "name": "a failing call opens a closed breaker only past the threshold",
+  "outcome": "proven",
+  "ms": 2178
+ },
+ {
+  "item": "ledger/blnk/balances",
+  "law": 5,
+  "name": "no balance overdraws past the largest limit it sourced under",
+  "outcome": "unknown",
+  "ms": 50775,
+  "goal": "no balance overdraws past the largest limit it sourced under @step",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 48855 ms",
+  "witness": {
+   "B.debit[key$115#:1]": 0,
+   "B.debit$neg[key$115#:1]": 0,
+   "B.idebit$neg[key$115#:1]": 0,
+   "B.balance$neg[dst:1]": 0,
+   "src": 0,
+   "limit": 1,
+   "amt": 1,
+   "B.credit$neg[key$115#:1]": 0,
+   "MaxLimit[dst:1]": 1,
+   "B.idebit[key$115#:1]": 2,
+   "B.balance[dst:1]": 3,
+   "MaxLimit[key$115#:1]": 1,
+   "MaxLimit[src:1]": 1,
+   "B.idebit$neg[dst:1]": 0,
+   "B.idebit$neg[src:1]": 0,
+   "B.balance[key$115#:1]": 3,
+   "B.balance[src:1]": 3,
+   "B.idebit[dst:1]": 2,
+   "B.idebit[src:1]": 2,
+   "B.balance$neg[key$115#:1]": 0,
+   "B.balance$neg[src:1]": 0,
+   "B.credit[key$115#:1]": 0,
+   "Unbounded[key$115#:1]": 0,
+   "Unbounded[dst:1]": 0,
+   "dst": 0,
+   "inflight": 0,
+   "Unbounded[src:1]": 0,
+   "key$115#": 0,
+   "overdraft": 1,
+   "status": 0
+  }
+ },
+ {
+  "item": "auth/lucia/validateSession",
+  "law": 4,
+  "name": "invalidateUserSessions ends every session of the user",
+  "outcome": "proven",
+  "ms": 531
+ },
+ {
+  "item": "inventory/saleor/allocations",
+  "law": 4,
+  "name": "every line's allocation can be released",
+  "outcome": "unknown",
+  "ms": 234,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 36 others keep"
+ },
+ {
+  "item": "xstate/open-decision/websocket",
+  "law": 0,
+  "name": "the retries stay within the retry limit",
+  "outcome": "proven",
+  "ms": 18950,
+  "found": [
+   "never state is retry and hasDoc is yes and hasToken is no",
+   "hasDoc is yes and hasToken is yes → state is retry → 10 <= retryLimit",
+   "state is retry → retries <= 9",
+   "never state is retry and hasDoc is no and hasToken is no",
+   "never state is retry and hasDoc is no and hasToken is yes",
+   "never state is connected and hasDoc is yes and hasToken is no",
+   "hasDoc is yes and hasToken is yes → state is connected → 10 <= retryLimit",
+   "hasDoc is yes and hasToken is yes → state is connected → retryLimit <= 10",
+   "never state is connected and hasDoc is no and hasToken is no",
+   "never state is connected and hasDoc is no and hasToken is yes",
+   "hasDoc is yes and hasToken is yes → state is authenticating → 10 <= retryLimit",
+   "hasDoc is yes and hasToken is no → state is authenticating → 10 <= retryLimit",
+   "hasDoc is yes and hasToken is yes → state is authenticating → retryLimit <= 10",
+   "hasDoc is yes and hasToken is no → state is authenticating → retryLimit <= 10",
+   "never state is authenticating and hasDoc is no and hasToken is yes",
+   "never state is authenticating and hasDoc is no and hasToken is no",
+   "never state is unconnected and hasDoc is yes and hasToken is yes",
+   "never state is unconnected and hasDoc is no and hasToken is yes",
+   "never state is unconnected and hasDoc is yes and hasToken is no",
+   "hasDoc is no and hasToken is no → state is unconnected → 10 <= retryLimit",
+   "hasDoc is yes and hasToken is yes → state is retry → retryLimit <= 10",
+   "hasDoc is no and hasToken is no → state is unconnected → retryLimit <= 10"
+  ]
+ },
+ {
+  "item": "quota/kubernetes/ResourceQuota.CheckRequest",
+  "law": 1,
+  "name": "a request that would pass a hard limit changes no usage",
+  "outcome": "proven",
+  "ms": 735
+ },
+ {
+  "item": "ledger/openzeppelin/ERC20",
+  "law": 0,
+  "name": "the balances sum to the total supply",
+  "outcome": "proven",
+  "ms": 474
+ },
+ {
+  "item": "circuit breaker/cockatiel/ConsecutiveBreaker",
+  "law": 5,
+  "name": "an isolated circuit holds a handle",
+  "outcome": "proven",
+  "ms": 465
+ },
+ {
+  "item": "payment/solidus/Payment",
+  "law": 4,
+  "name": "a processing payment is resolved",
+  "outcome": "unknown",
+  "ms": 66,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 13 others keep"
+ },
+ {
+  "item": "feature flag/growthbook/forceRuleRollout",
+  "law": 5,
+  "name": "full coverage includes every hashed user",
+  "outcome": "proven",
+  "ms": 50
+ },
+ {
+  "item": "access/cedar-examples/documentCloud",
+  "law": 8,
+  "name": "the modify ACL never decides viewing",
+  "outcome": "proven",
+  "ms": 261
+ },
+ {
+  "item": "feature flag/growthbook/forceRuleRollout",
+  "law": 4,
+  "name": "a rule with no range and no coverage includes everyone",
+  "outcome": "proven",
+  "ms": 12
+ },
+ {
+  "item": "circuit breaker/cockatiel/ConsecutiveBreaker",
+  "law": 4,
+  "name": "isolation ends only by a dispose",
+  "outcome": "proven",
+  "ms": 559
+ },
+ {
+  "item": "ledger/openzeppelin/ERC20",
+  "law": 1,
+  "name": "no balance exceeds the total supply",
+  "outcome": "unknown",
+  "ms": 1773,
+  "goal": "no balance exceeds the total supply @step",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 1119 ms",
+  "witness": {
+   "Bal[from:67108864,sender:1]": 1,
+   "spender": 0,
+   "Bal[key$118#:1]": 1,
+   "totalSupply": 1,
+   "value": 1,
+   "to": 1,
+   "sender": 2,
+   "max": 1,
+   "Bal[sender:1]": 1,
+   "key$118#": 1,
+   "from": 0,
+   "op": 0
+  }
+ },
+ {
+  "item": "quota/kubernetes/ResourceQuota.CheckRequest",
+  "law": 0,
+  "name": "an admitted request leaves every resource it charges within its hard limit",
+  "outcome": "proven",
+  "ms": 891
+ },
+ {
+  "item": "xstate/open-decision/websocket",
+  "law": 1,
+  "name": "error is never left",
+  "outcome": "proven",
+  "ms": 249
+ },
+ {
+  "item": "ledger/blnk/balances",
+  "law": 4,
+  "name": "inflight money is conserved",
+  "outcome": "proven",
+  "ms": 1808
+ },
+ {
+  "item": "circuit breaker/gobreaker/CircuitBreaker",
+  "law": 6,
+  "name": "an open breaker goes half-open once its timeout passes",
+  "outcome": "unknown",
+  "ms": 40,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 0 others keep"
+ },
+ {
+  "item": "circuit breaker/opossum/CircuitBreaker",
+  "law": 4,
+  "name": "a success in half-open closes the breaker",
+  "outcome": "proven",
+  "ms": 2485
+ },
+ {
+  "item": "approval/openzeppelin/TimelockController",
+  "law": 1,
+  "name": "an operation executes no sooner than the minimum delay after it was scheduled",
+  "outcome": "unknown",
+  "ms": 3028,
+  "goal": "an operation executes no sooner than the minimum delay after it was scheduled @step law",
+  "stuck": "sat",
+  "why": "the search found nothing that proves it in 2808 ms",
+  "witness": {
+   "dt": 0,
+   "now": 0,
+   "executor": 0,
+   "Ts[id:1]": 2,
+   "pred$some": 0,
+   "minDelay$some": 0,
+   "open": 0,
+   "t0": 2,
+   "ReadyAt[id:1]": 3,
+   "op": 2,
+   "Pred[id:1]": 0,
+   "sender": 0
+  }
+ },
+ {
+  "item": "rate limit/express-rate-limit/MemoryStore",
+  "law": 3,
+  "name": "a refused client is let through once its window has passed",
+  "outcome": "unknown",
+  "ms": 43,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 46 others keep"
+ },
+ {
+  "item": "rate limit/bottleneck/LocalDatastore",
+  "law": 3,
+  "name": "two jobs start at least minTime apart",
+  "outcome": "unknown",
+  "ms": 7871,
+  "goal": "two jobs start at least minTime apart @step law",
+  "stuck": "sat",
+  "why": "the search found nothing that proves it in 7328 ms",
+  "witness": {
+   "minTime": 0,
+   "clock": 0,
+   "nextRequest": 0,
+   "weight": 0,
+   "running": 0,
+   "hasMaximum": 0,
+   "hasIncrease": 0,
+   "hasRefresh": 0,
+   "hasRes0": 0,
+   "now": 0,
+   "lastStart": 1,
+   "res": 0,
+   "maxConcurrent": 0,
+   "started": 1,
+   "hasRes": 1,
+   "hasMax": 1,
+   "op": 0
+  }
+ },
+ {
+  "item": "ledger/tigerbeetle/transfers",
+  "law": 0,
+  "name": "an account that forbids it never has more debits than credits",
+  "outcome": "unknown",
+  "ms": 115426,
+  "goal": "every T cell is a value of its kind @step",
+  "stuck": "unknown",
+  "why": "the prover's time budget ran out at 34 hypotheses, 0 case splits deep. Each case a step decides multiplies the cases to refute, so many interacting cases can outgrow it: state the law over fewer steps (a one-step law and an invariant often give the same), or split it into laws about fewer conditions; the search found nothing that proves it in 60006 ms"
+ },
+ {
+  "item": "approval/kubernetes/csrConditions",
+  "law": 0,
+  "name": "Approved and Denied are never both set",
+  "outcome": "proven",
+  "ms": 572
+ },
+ {
+  "item": "payment/medusa/orderItemQuantities",
+  "law": 2,
+  "name": "only a cancelled fulfilment takes the delivered past the fulfilled",
+  "outcome": "proven",
+  "ms": 632
+ },
+ {
+  "item": "payment/vendure/orderProcess",
+  "law": 2,
+  "name": "a placed order is cancelled only with every line cancelled",
+  "outcome": "unknown",
+  "ms": 8346,
+  "goal": "a placed order is cancelled only with every line cancelled @step law",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 5780 ms",
+  "witness": {
+   "total": 0,
+   "paid": 0,
+   "allDelivered": 0,
+   "partDelivered": 0,
+   "allShipped": 0,
+   "partShipped": 0,
+   "authorized": 0,
+   "stock": 0,
+   "shipping": 0,
+   "customer": 0,
+   "variants": 0,
+   "covered": 0,
+   "event": 11,
+   "allCancelled": 0,
+   "state": 11
+  }
+ },
+ {
+  "item": "xstate/radio-room/radioStream",
+  "law": 1,
+  "name": "a fourth consecutive failure gives up",
+  "outcome": "proven",
+  "ms": 1321
+ },
+ {
+  "item": "access/kubernetes/rbacRuleAllows",
+  "law": 0,
+  "name": "without the verb or \"*\", a rule allows nothing",
+  "outcome": "proven",
+  "ms": 198
+ },
+ {
+  "item": "access/kubernetes/rbacRuleAllows",
+  "law": 1,
+  "name": "a rule naming only non-empty resources never allows an unnamed request",
+  "outcome": "proven",
+  "ms": 266
+ },
+ {
+  "item": "xstate/radio-room/radioStream",
+  "law": 0,
+  "name": "the retries stay within 3",
+  "outcome": "proven",
+  "ms": 898
+ },
+ {
+  "item": "payment/vendure/orderProcess",
+  "law": 3,
+  "name": "an order ships only once its payment is authorized or settled",
+  "outcome": "proven",
+  "ms": 5141,
+  "found": [
+   "never state is PaymentSettled and paid is no",
+   "never state is Modifying and paid is no",
+   "never state is ArrangingAdditionalPayment and paid is no",
+   "never state is PaymentAuthorized and paid is no"
+  ]
+ },
+ {
+  "item": "payment/medusa/orderItemQuantities",
+  "law": 3,
+  "name": "never more returned than fulfilled",
+  "outcome": "refuted",
+  "ms": 6,
+  "goal": "never more returned than fulfilled @step",
+  "stuck": "sat",
+  "run": {
+   "params": {
+    "q0": 2
+   },
+   "trace": [
+    {
+     "op": 5,
+     "q": 3,
+     "q$neg": 0
+    },
+    {
+     "op": 7,
+     "q": 0,
+     "q$neg": 2
+    }
+   ]
+  }
+ },
+ {
+  "item": "approval/kubernetes/csrConditions",
+  "law": 1,
+  "name": "an Approved, Denied or Failed condition is never removed",
+  "outcome": "proven",
+  "ms": 581
+ },
+ {
+  "item": "ledger/tigerbeetle/transfers",
+  "law": 1,
+  "name": "an account that forbids it never has more credits than debits",
+  "outcome": "unknown",
+  "ms": 116136,
+  "goal": "every T cell is a value of its kind @step",
+  "stuck": "unknown",
+  "why": "the prover's time budget ran out at 34 hypotheses, 0 case splits deep. Each case a step decides multiplies the cases to refute, so many interacting cases can outgrow it: state the law over fewer steps (a one-step law and an invariant often give the same), or split it into laws about fewer conditions; the search found nothing that proves it in 60006 ms"
+ },
+ {
+  "item": "rate limit/bottleneck/LocalDatastore",
+  "law": 2,
+  "name": "the heartbeat's increase never lifts the reservoir past reservoirIncreaseMaximum",
+  "outcome": "proven",
+  "ms": 693
+ },
+ {
+  "item": "queue/bullmq/jobRetry",
+  "law": 6,
+  "name": "every job completes or fails for good",
+  "outcome": "unknown",
+  "ms": 9390,
+  "goal": "every job completes or fails for good: each step stays or gets there, the rank kept only with its region @step law",
+  "stuck": "sat",
+  "why": "rank (68 + 44·attempts + 25·backoff + 16·delay + 44·maxStalledCount + 6·maxStartedAttempts + st − (atm + 99·ats + 2·defa + last + 2·stc + until)) from the runs; the kernel's goals not proven with it",
+  "witness": {
+   "maxStartedAttempts": 0,
+   "maxStalledCount": 0,
+   "delay": 0,
+   "until": 0,
+   "stc": 0,
+   "ats": 0,
+   "backoff": 0,
+   "attempts": 0,
+   "last": 66,
+   "atm*delay": 0,
+   "delay*delay*delay*delay*delay*delay*delay*delay": 0,
+   "delay*delay*delay*delay*delay*delay*delay": 0,
+   "delay*delay*delay*delay*delay*delay": 0,
+   "delay*delay*delay*delay*delay": 0,
+   "atm*delay*delay*delay*delay*delay*delay*delay": 0,
+   "atm*delay*delay*delay*delay*delay*delay": 0,
+   "atm*delay*delay*delay*delay*delay": 0,
+   "atm*delay*delay*delay*delay": 0,
+   "atm*atm*delay*delay*delay*delay*delay*delay": 0,
+   "atm*atm*delay*delay*delay*delay*delay": 0,
+   "atm*atm*delay*delay*delay*delay": 0,
+   "atm*atm*delay*delay*delay": 0,
+   "atm*atm*atm*delay*delay*delay*delay*delay": 0,
+   "atm*atm*atm*delay*delay*delay*delay": 0,
+   "atm*atm*atm*delay*delay*delay": 0,
+   "atm*atm*atm*delay*delay": 0,
+   "atm*atm*atm*atm*delay*delay*delay*delay": 0,
+   "atm*atm*atm*atm*delay*delay*delay": 0,
+   "atm*atm*atm*atm*delay*delay": 0,
+   "atm*atm*atm*atm*delay": 0,
+   "atm*atm*atm*atm*atm*delay*delay*delay": 0,
+   "atm*atm*atm*atm*atm*delay*delay": 0,
+   "atm*atm*atm*atm*atm*delay": 0,
+   "atm*atm*atm*atm*atm*atm*delay*delay": 0,
+   "atm*atm*atm*atm*atm*atm*delay": 0,
+   "atm*atm*atm*atm*atm*atm*atm*delay": 0,
+   "atm*atm*atm*atm*atm*atm": 0,
+   "delay*delay*delay*delay": 0,
+   "delay*delay*delay": 0,
+   "delay*delay": 0,
+   "atm*delay*delay*delay": 0,
+   "atm*delay*delay": 0,
+   "atm*atm*delay*delay": 0,
+   "atm*atm*delay": 0,
+   "atm*atm*atm*delay": 0,
+   "unrecoverable": 0,
+   "atm*atm*atm": 0,
+   "now": 66,
+   "expo[atm*atm:1,atm*delay:2,delay:1,delay*delay:1]": 0,
+   "expo[1:4,atm:4,atm*atm:1,atm*delay:2,delay:5,delay*delay:1]": 0,
+   "expo[1:1,atm*atm:3,atm*atm*atm*atm:1,atm*atm*atm*delay:4,atm*atm*delay:2,atm*atm*delay*delay:6,atm*delay:6,atm*delay*delay:4,atm*delay*delay*delay:4,delay:3,delay*delay:4,delay*delay*delay:2,delay*delay*delay*delay:1]": 0,
+   "expo[1:1,atm:2,atm*atm:1,atm*delay:2,delay:3,delay*delay:1]": 0,
+   "expo[1:2,atm:6,atm*atm:7,atm*atm*atm:4,atm*atm*atm*atm:1,atm*atm*atm*delay:4,atm*atm*delay:14,atm*atm*delay*delay:6,atm*delay:18,atm*delay*delay:16,atm*delay*delay*delay:4,delay:9,delay*delay:12,delay*delay*delay:6,delay*delay*delay*delay:1]": 1,
+   "expo[atm*atm:1,atm*atm*atm*atm:2,atm*atm*atm*atm*atm*atm:2,atm*atm*atm*atm*atm*atm*atm*atm:1,atm*atm*atm*atm*atm*atm*atm*delay:8,atm*atm*atm*atm*atm*atm*delay:4,atm*atm*atm*atm*atm*atm*delay*delay:28,atm*atm*atm*atm*atm*delay:12,atm*atm*atm*atm*atm*delay*delay:24,atm*atm*atm*atm*atm*delay*delay*delay:56,atm*atm*atm*atm*delay:6,atm*atm*atm*atm*delay*delay:36,atm*atm*atm*atm*delay*delay*delay:60,atm*atm*atm*atm*delay*delay*delay*delay:70,atm*atm*atm*delay:8,atm*atm*atm*delay*delay:24,atm*atm*atm*delay*delay*delay:64,atm*atm*atm*delay*delay*delay*delay:80,atm*atm*atm*delay*delay*delay*delay*delay:56,atm*atm*delay:4,atm*atm*delay*delay:18,atm*atm*delay*delay*delay:40,atm*atm*delay*delay*delay*delay:66,atm*atm*delay*delay*delay*delay*delay:60,atm*atm*delay*delay*delay*delay*delay*delay:28,atm*delay:2,atm*delay*delay:8,atm*delay*delay*delay:20,atm*delay*delay*delay*delay:32,atm*delay*delay*delay*delay*delay:36,atm*delay*delay*delay*delay*delay*delay:24,atm*delay*delay*delay*delay*delay*delay*delay:8,delay:1,delay*delay:3,delay*delay*delay:6,delay*delay*delay*delay:9,delay*delay*delay*delay*delay:10,delay*delay*delay*delay*delay*delay:8,delay*delay*delay*delay*delay*delay*delay:4,delay*delay*delay*delay*delay*delay*delay*delay:1]": 0,
+   "expo[atm*atm:1,atm*atm*atm*atm:1,atm*atm*atm*delay:4,atm*atm*delay:2,atm*atm*delay*delay:6,atm*delay:2,atm*delay*delay:4,atm*delay*delay*delay:4,delay:1,delay*delay:2,delay*delay*delay:2,delay*delay*delay*delay:1]": 0,
+   "atm*atm": 0,
+   "atm*atm*atm*atm*atm*atm*atm*atm": 0,
+   "atm*atm*atm*atm": 0,
+   "atm": 0,
+   "st": 0,
+   "op": 0,
+   "defa": 1
+  },
+  "found": [
+   "rank (68 + 44·attempts + 25·backoff + 16·delay + 44·maxStalledCount + 6·maxStartedAttempts + st − (atm + 99·ats + 2·defa + last + 2·stc + until))"
+  ]
+ },
+ {
+  "item": "rate limit/express-rate-limit/MemoryStore",
+  "law": 2,
+  "name": "the timer drops only clients whose window has passed",
+  "outcome": "unknown",
+  "ms": 5757,
+  "goal": "the timer drops only clients whose window has passed @step law",
+  "stuck": "sat",
+  "why": "the search found nothing that proves it in 5320 ms",
+  "witness": {
+   "lastTick": 0,
+   "clock": 0,
+   "earlier": 0,
+   "okD": 0,
+   "windowMs": 1,
+   "skips": 0,
+   "now": 1,
+   "Reset[key$234:1]": 2,
+   "Where[key$234:1]": 1,
+   "op": 2
+  }
+ },
+ {
+  "item": "payment/medusa/captureRefund",
+  "law": 4,
+  "name": "a pending refund with a key is resolved once retried",
+  "outcome": "unknown",
+  "ms": 112,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 1 others keep"
+ },
+ {
+  "item": "rate limit/express-rate-limit/MemoryStore",
+  "law": 0,
+  "name": "no client window lets through more than limit hits beyond its own hits taken back",
+  "outcome": "unknown",
+  "ms": 7395,
+  "goal": "no client window lets through more than limit hits beyond its own hits taken back @step",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 7104 ms",
+  "witness": {
+   "Own[key:1]": 0,
+   "clock": 0,
+   "Hits[key:1]": 0,
+   "key": 0,
+   "okD": 0,
+   "windowMs": 1,
+   "skips": 0,
+   "Where[key:1]": 1,
+   "earlier": 0,
+   "now": 0,
+   "Reset[key:1]": 1,
+   "limit": 1,
+   "Own[key$230#:1]": 0,
+   "Admitted[key$230#:1]": 1,
+   "Admitted[key:1]": 1,
+   "op": 0,
+   "key$230#": 0
+  }
+ },
+ {
+  "item": "rate limit/bottleneck/LocalDatastore",
+  "law": 0,
+  "name": "no more weight runs at once than maxConcurrent",
+  "outcome": "proven",
+  "ms": 548
+ },
+ {
+  "item": "queue/bullmq/jobRetry",
+  "law": 4,
+  "name": "an exponential retry waits at least the base delay",
+  "outcome": "unknown",
+  "ms": 7093,
+  "goal": "an exponential retry waits at least the base delay @step law",
+  "stuck": "sat",
+  "why": "the search found nothing that proves it in 5696 ms",
+  "witness": {
+   "last": 0,
+   "atm*atm*atm": 0,
+   "atm*delay": 0,
+   "delay*delay*delay*delay*delay*delay*delay*delay": 0,
+   "delay*delay*delay*delay*delay*delay*delay": 0,
+   "delay*delay*delay*delay*delay*delay": 0,
+   "delay*delay*delay*delay*delay": 0,
+   "atm*delay*delay*delay*delay*delay*delay*delay": 0,
+   "atm*delay*delay*delay*delay*delay*delay": 0,
+   "atm*delay*delay*delay*delay*delay": 0,
+   "atm*delay*delay*delay*delay": 0,
+   "atm*atm*delay*delay*delay*delay*delay*delay": 0,
+   "atm*atm*delay*delay*delay*delay*delay": 0,
+   "atm*atm*delay*delay*delay*delay": 0,
+   "atm*atm*delay*delay*delay": 0,
+   "atm*atm*atm*delay*delay*delay*delay*delay": 0,
+   "atm*atm*atm*delay*delay*delay*delay": 0,
+   "atm*atm*atm*delay*delay*delay": 0,
+   "atm*atm*atm*delay*delay": 0,
+   "atm*atm*atm*atm*delay*delay*delay*delay": 0,
+   "atm*atm*atm*atm*delay*delay*delay": 0,
+   "atm*atm*atm*atm*delay*delay": 0,
+   "atm*atm*atm*atm*delay": 0,
+   "atm*atm*atm*atm*atm*delay*delay*delay": 0,
+   "atm*atm*atm*atm*atm*delay*delay": 0,
+   "atm*atm*atm*atm*atm*delay": 0,
+   "atm*atm*atm*atm*atm*atm*delay*delay": 0,
+   "atm*atm*atm*atm*atm*atm*delay": 0,
+   "atm*atm*atm*atm*atm*atm*atm*delay": 0,
+   "atm*atm*atm*atm*atm*atm": 0,
+   "delay*delay*delay*delay": 0,
+   "delay*delay*delay": 0,
+   "atm*delay*delay*delay": 0,
+   "atm*delay*delay": 0,
+   "atm*atm*delay*delay": 0,
+   "atm*atm*delay": 0,
+   "atm*atm*atm*delay": 0,
+   "delay*delay": 0,
+   "ats": 0,
+   "atm": 0,
+   "now": 0,
+   "maxStartedAttempts": 1,
+   "attempts": 2,
+   "expo[atm*atm:1,atm*delay:2,delay:1,delay*delay:1]": 2,
+   "delay": 3,
+   "expo[1:4,atm:4,atm*atm:1,atm*delay:2,delay:5,delay*delay:1]": 8,
+   "expo[1:1,atm*atm:3,atm*atm*atm*atm:1,atm*atm*atm*delay:4,atm*atm*delay:2,atm*atm*delay*delay:6,atm*delay:6,atm*delay*delay:4,atm*delay*delay*delay:4,delay:3,delay*delay:4,delay*delay*delay:2,delay*delay*delay*delay:1]": 8,
+   "expo[1:1,atm:2,atm*atm:1,atm*delay:2,delay:3,delay*delay:1]": 4,
+   "expo[1:2,atm:6,atm*atm:7,atm*atm*atm:4,atm*atm*atm*atm:1,atm*atm*atm*delay:4,atm*atm*delay:14,atm*atm*delay*delay:6,atm*delay:18,atm*delay*delay:16,atm*delay*delay*delay:4,delay:9,delay*delay:12,delay*delay*delay:6,delay*delay*delay*delay:1]": 11,
+   "expo[atm*atm:1,atm*atm*atm*atm:2,atm*atm*atm*atm*atm*atm:2,atm*atm*atm*atm*atm*atm*atm*atm:1,atm*atm*atm*atm*atm*atm*atm*delay:8,atm*atm*atm*atm*atm*atm*delay:4,atm*atm*atm*atm*atm*atm*delay*delay:28,atm*atm*atm*atm*atm*delay:12,atm*atm*atm*atm*atm*delay*delay:24,atm*atm*atm*atm*atm*delay*delay*delay:56,atm*atm*atm*atm*delay:6,atm*atm*atm*atm*delay*delay:36,atm*atm*atm*atm*delay*delay*delay:60,atm*atm*atm*atm*delay*delay*delay*delay:70,atm*atm*atm*delay:8,atm*atm*atm*delay*delay:24,atm*atm*atm*delay*delay*delay:64,atm*atm*atm*delay*delay*delay*delay:80,atm*atm*atm*delay*delay*delay*delay*delay:56,atm*atm*delay:4,atm*atm*delay*delay:18,atm*atm*delay*delay*delay:40,atm*atm*delay*delay*delay*delay:66,atm*atm*delay*delay*delay*delay*delay:60,atm*atm*delay*delay*delay*delay*delay*delay:28,atm*delay:2,atm*delay*delay:8,atm*delay*delay*delay:20,atm*delay*delay*delay*delay:32,atm*delay*delay*delay*delay*delay:36,atm*delay*delay*delay*delay*delay*delay:24,atm*delay*delay*delay*delay*delay*delay*delay:8,delay:1,delay*delay:3,delay*delay*delay:6,delay*delay*delay*delay:9,delay*delay*delay*delay*delay:10,delay*delay*delay*delay*delay*delay:8,delay*delay*delay*delay*delay*delay*delay:4,delay*delay*delay*delay*delay*delay*delay*delay:1]": 11,
+   "expo[atm*atm:1,atm*atm*atm*atm:1,atm*atm*atm*delay:4,atm*atm*delay:2,atm*atm*delay*delay:6,atm*delay:2,atm*delay*delay:4,atm*delay*delay*delay:4,delay:1,delay*delay:2,delay*delay*delay:2,delay*delay*delay*delay:1]": 4,
+   "atm*atm": 1,
+   "atm*atm*atm*atm*atm*atm*atm*atm": 25,
+   "atm*atm*atm*atm": 7,
+   "backoff": 2,
+   "defa": 0,
+   "unrecoverable": 0,
+   "st": 1,
+   "op": 2
+  }
+ },
+ {
+  "item": "ledger/tigerbeetle/transfers",
+  "law": 3,
+  "name": "pending debits equal pending credits",
+  "outcome": "unknown",
+  "ms": 109473,
+  "goal": "every T cell is a value of its kind @step",
+  "stuck": "unknown",
+  "why": "the prover's time budget ran out at 27 hypotheses, 0 case splits deep. Each case a step decides multiplies the cases to refute, so many interacting cases can outgrow it: state the law over fewer steps (a one-step law and an invariant often give the same), or split it into laws about fewer conditions; the search found nothing that proves it in 59973 ms"
+ },
+ {
+  "item": "payment/medusa/orderItemQuantities",
+  "law": 1,
+  "name": "only a cancelled fulfilment takes the shipped past the fulfilled",
+  "outcome": "proven",
+  "ms": 626
+ },
+ {
+  "item": "approval/kubernetes/csrConditions",
+  "law": 3,
+  "name": "once populated, the certificate never changes",
+  "outcome": "proven",
+  "ms": 366
+ },
+ {
+  "item": "queue/graphile-worker/jobLifecycle",
+  "law": 5,
+  "name": "a locked job is eventually unlocked",
+  "outcome": "unknown",
+  "ms": 26,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 7 others keep"
+ },
+ {
+  "item": "payment/vendure/orderProcess",
+  "law": 1,
+  "name": "an order is settled only when settled payments cover its total",
+  "outcome": "proven",
+  "ms": 3917
+ },
+ {
+  "item": "xstate/radio-room/radioStream",
+  "law": 2,
+  "name": "reaching playback resets the retries",
+  "outcome": "proven",
+  "ms": 1935
+ },
+ {
+  "item": "access/kubernetes/rbacRuleAllows",
+  "law": 3,
+  "name": "a non-resource request needs a matching URL",
+  "outcome": "proven",
+  "ms": 2177
+ },
+ {
+  "item": "access/kubernetes/rbacRuleAllows",
+  "law": 2,
+  "name": "\"*\" everywhere and no names allows every resource request",
+  "outcome": "proven",
+  "ms": 589
+ },
+ {
+  "item": "xstate/radio-room/radioStream",
+  "law": 3,
+  "name": "a stream fails with its error set",
+  "outcome": "proven",
+  "ms": 1428
+ },
+ {
+  "item": "payment/vendure/orderProcess",
+  "law": 0,
+  "name": "a cancelled order stays cancelled",
+  "outcome": "proven",
+  "ms": 1786
+ },
+ {
+  "item": "queue/graphile-worker/jobLifecycle",
+  "law": 4,
+  "name": "only the lock holder or the 4-hour sweep unlocks a job",
+  "outcome": "proven",
+  "ms": 448
+ },
+ {
+  "item": "approval/kubernetes/csrConditions",
+  "law": 2,
+  "name": "only the approval subresource sets Approved or Denied",
+  "outcome": "proven",
+  "ms": 539
+ },
+ {
+  "item": "payment/medusa/orderItemQuantities",
+  "law": 0,
+  "name": "never more fulfilled than ordered",
+  "outcome": "proven",
+  "ms": 602
+ },
+ {
+  "item": "ledger/tigerbeetle/transfers",
+  "law": 2,
+  "name": "posted debits equal posted credits",
+  "outcome": "unknown",
+  "ms": 109080,
+  "goal": "every T cell is a value of its kind @step",
+  "stuck": "unknown",
+  "why": "the prover's time budget ran out at 27 hypotheses, 0 case splits deep. Each case a step decides multiplies the cases to refute, so many interacting cases can outgrow it: state the law over fewer steps (a one-step law and an invariant often give the same), or split it into laws about fewer conditions; the search found nothing that proves it in 59414 ms"
+ },
+ {
+  "item": "queue/bullmq/jobRetry",
+  "law": 5,
+  "name": "a delayed job is promoted once its delay passes",
+  "outcome": "unknown",
+  "ms": 126,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 0 others keep"
+ },
+ {
+  "item": "rate limit/bottleneck/LocalDatastore",
+  "law": 1,
+  "name": "a job registers only when the reservoir holds its weight",
+  "outcome": "proven",
+  "ms": 576
+ },
+ {
+  "item": "rate limit/express-rate-limit/MemoryStore",
+  "law": 1,
+  "name": "a decrement never lowers a count the store has reset",
+  "outcome": "unknown",
+  "ms": 25680,
+  "goal": "a decrement never lowers a count the store has reset @step law",
+  "stuck": "sat",
+  "why": "the search found nothing that proves it in 25175 ms",
+  "witness": {
+   "clock": 0,
+   "key": 0,
+   "Old[key:1]": 1,
+   "okD": 0,
+   "windowMs": 1,
+   "Where[key:1]": 1,
+   "now": 0,
+   "Reset[key:1]": 1,
+   "Hits[key$232:1]": 1,
+   "earlier": 1,
+   "Hits[key:1]": 1,
+   "skips": 1,
+   "op": 1,
+   "key$232": 0
+  }
+ },
+ {
+  "item": "queue/bullmq/jobRetry",
+  "law": 1,
+  "name": "a completed job is never retried",
+  "outcome": "proven",
+  "ms": 983
+ },
+ {
+  "item": "payment/medusa/captureRefund",
+  "law": 1,
+  "name": "never more refunded than captured",
+  "outcome": "proven",
+  "ms": 924
+ },
+ {
+  "item": "ledger/tigerbeetle/transfers",
+  "law": 6,
+  "name": "only voiding or expiry moves a closed account",
+  "outcome": "unknown",
+  "ms": 106782,
+  "goal": "every T cell is a value of its kind @step",
+  "stuck": "unknown",
+  "why": "the prover's time budget ran out at 26 hypotheses, 0 case splits deep. Each case a step decides multiplies the cases to refute, so many interacting cases can outgrow it: state the law over fewer steps (a one-step law and an invariant often give the same), or split it into laws about fewer conditions; the search found nothing that proves it in 58579 ms"
+ },
+ {
+  "item": "queue/graphile-worker/jobLifecycle",
+  "law": 0,
+  "name": "a job is attempted at most max_attempts times",
+  "outcome": "proven",
+  "ms": 280
+ },
+ {
+  "item": "payment/medusa/orderItemQuantities",
+  "law": 4,
+  "name": "never more written off than ordered",
+  "outcome": "refuted",
+  "ms": 9,
+  "goal": "never more written off than ordered @step",
+  "stuck": "sat",
+  "run": {
+   "params": {
+    "q0": 2
+   },
+   "trace": [
+    {
+     "op": 5,
+     "q": 3,
+     "q$neg": 0
+    },
+    {
+     "op": 7,
+     "q": 0,
+     "q$neg": 2
+    },
+    {
+     "op": 10,
+     "q": 0,
+     "q$neg": 2
+    },
+    {
+     "op": 9,
+     "q": 0,
+     "q$neg": 3
+    }
+   ]
+  }
+ },
+ {
+  "item": "payment/vendure/orderProcess",
+  "law": 4,
+  "name": "a modifying order always gets out of Modifying",
+  "outcome": "unknown",
+  "ms": 208,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 0 others keep"
+ },
+ {
+  "item": "xstate/radio-room/radioStream",
+  "law": 7,
+  "name": "a reconnect wait always ends",
+  "outcome": "unknown",
+  "ms": 190,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 28 others keep"
+ },
+ {
+  "item": "rate limit/rate-limiter-flexible/RateLimiterMemory",
+  "law": 1,
+  "name": "a key over its points refuses every consume until its record expires",
+  "outcome": "proven",
+  "ms": 256
+ },
+ {
+  "item": "rate limit/rate-limiter-flexible/RateLimiterMemory",
+  "law": 0,
+  "name": "a record lets through nothing, or no more than points beyond its start value and its rewards",
+  "outcome": "unknown",
+  "ms": 2829,
+  "goal": "a record lets through nothing, or no more than points beyond its start value and its rewards @step",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 2373 ms",
+  "witness": {
+   "Rewarded[key$236#:1]": 0,
+   "clock": 0,
+   "Val[key:1]": 0,
+   "key": 0,
+   "okD": 0,
+   "custom": 0,
+   "Admitted[key$236#:1]": 1,
+   "points": 1,
+   "pts": 1,
+   "Val$neg[key:1]": 0,
+   "now": 0,
+   "Start[key$236#:1]": 0,
+   "Rewarded[key:1]": 0,
+   "Start[key:1]": 0,
+   "Start$neg[key$236#:1]": 0,
+   "Admitted[key:1]": 1,
+   "Start$neg[key:1]": 0,
+   "Exp[key:1]": 0,
+   "Has[key:1]": 1,
+   "op": 0,
+   "key$236#": 0
+  }
+ },
+ {
+  "item": "xstate/radio-room/radioStream",
+  "law": 6,
+  "name": "an element event outside active changes nothing",
+  "outcome": "proven",
+  "ms": 11727
+ },
+ {
+  "item": "payment/medusa/orderItemQuantities",
+  "law": 5,
+  "name": "a receipt never takes the requested count below zero",
+  "outcome": "proven",
+  "ms": 295
+ },
+ {
+  "item": "queue/graphile-worker/jobLifecycle",
+  "law": 1,
+  "name": "a failed attempt waits at least e seconds",
+  "outcome": "proven",
+  "ms": 1966,
+  "found": [
+   "attempts is 0 → lockedBy <= 0"
+  ]
+ },
+ {
+  "item": "ledger/tigerbeetle/transfers",
+  "law": 7,
+  "name": "a pending transfer with a timeout is resolved in the end",
+  "outcome": "unknown",
+  "ms": 143,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 0 others keep"
+ },
+ {
+  "item": "payment/medusa/captureRefund",
+  "law": 0,
+  "name": "never more captured than authorized",
+  "outcome": "proven",
+  "ms": 1148
+ },
+ {
+  "item": "queue/bullmq/jobRetry",
+  "law": 0,
+  "name": "a job is finished at most max(attempts, 1) times",
+  "outcome": "unknown",
+  "ms": 9777,
+  "goal": "a job is finished at most max(attempts, 1) times @step",
+  "stuck": "sat",
+  "why": "the search found nothing that proves it in 9052 ms",
+  "witness": {
+   "last": 0,
+   "unrecoverable": 0,
+   "backoff": 0,
+   "attempts": 0,
+   "now": 0,
+   "atm": 1,
+   "maxStartedAttempts": 0,
+   "defa": 0,
+   "st": 1,
+   "op": 1
+  }
+ },
+ {
+  "item": "rate limit/bottleneck/LocalDatastore",
+  "law": 4,
+  "name": "a reservoir below its refresh amount is refreshed",
+  "outcome": "unknown",
+  "ms": 46,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 8 others keep"
+ },
+ {
+  "item": "queue/bullmq/jobRetry",
+  "law": 2,
+  "name": "an unrecoverable error fails the job for good",
+  "outcome": "proven",
+  "ms": 1063
+ },
+ {
+  "item": "payment/medusa/captureRefund",
+  "law": 2,
+  "name": "a canceled payment is never captured",
+  "outcome": "proven",
+  "ms": 1455
+ },
+ {
+  "item": "ledger/tigerbeetle/transfers",
+  "law": 5,
+  "name": "a post never posts more than was pending",
+  "outcome": "unknown",
+  "ms": 106480,
+  "goal": "every T cell is a value of its kind @step",
+  "stuck": "unknown",
+  "why": "the prover's time budget ran out at 26 hypotheses, 0 case splits deep. Each case a step decides multiplies the cases to refute, so many interacting cases can outgrow it: state the law over fewer steps (a one-step law and an invariant often give the same), or split it into laws about fewer conditions; the search found nothing that proves it in 58225 ms"
+ },
+ {
+  "item": "queue/graphile-worker/jobLifecycle",
+  "law": 3,
+  "name": "a completed job is never run again",
+  "outcome": "proven",
+  "ms": 521
+ },
+ {
+  "item": "approval/kubernetes/csrConditions",
+  "law": 5,
+  "name": "a denied request never has a certificate",
+  "outcome": "unknown",
+  "ms": 1767,
+  "goal": "a denied request never has a certificate @step",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 1513 ms",
+  "witness": {
+   "nF": 0,
+   "newCert": 1,
+   "d": 1,
+   "f": 0,
+   "a": 2,
+   "nD": 1,
+   "nA": 2,
+   "cert": 0,
+   "path": 1,
+   "certValid": 1,
+   "allTrue": 1
+  }
+ },
+ {
+  "item": "payment/medusa/orderItemQuantities",
+  "law": 7,
+  "name": "every requested return is received in the end",
+  "outcome": "unknown",
+  "ms": 299,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 364 others keep"
+ },
+ {
+  "item": "xstate/radio-room/radioStream",
+  "law": 4,
+  "name": "the stream connects only with a url",
+  "outcome": "refuted",
+  "ms": 247,
+  "goal": "the stream connects only with a url @step",
+  "stuck": "sat",
+  "run": {
+   "params": {},
+   "trace": [
+    {
+     "event": 3,
+     "u": 8
+    },
+    {
+     "event": 3,
+     "u": 5
+    },
+    {
+     "event": 0,
+     "u": 7
+    },
+    {
+     "event": 0,
+     "u": 1
+    },
+    {
+     "event": 2,
+     "u": 6
+    },
+    {
+     "event": 8,
+     "u": 5
+    },
+    {
+     "event": 0,
+     "u": 3
+    },
+    {
+     "event": 2,
+     "u": 0
+    }
+   ]
+  }
+ },
+ {
+  "item": "access/kubernetes/rbacRuleAllows",
+  "law": 5,
+  "name": "with no resource names, the name never matters",
+  "outcome": "proven",
+  "ms": 6317
+ },
+ {
+  "item": "rate limit/rate-limiter-flexible/RateLimiterMemory",
+  "law": 2,
+  "name": "a refused consume with blockDuration blocks the key for blockDuration the first time",
+  "outcome": "proven",
+  "ms": 275
+ },
+ {
+  "item": "rate limit/rate-limiter-flexible/RateLimiterMemory",
+  "law": 3,
+  "name": "a refused key is let through once its record expires, unless it never expires",
+  "outcome": "unknown",
+  "ms": 47,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 49 others keep"
+ },
+ {
+  "item": "access/kubernetes/rbacRuleAllows",
+  "law": 4,
+  "name": "a subresource needs its own grant",
+  "outcome": "proven",
+  "ms": 203
+ },
+ {
+  "item": "xstate/radio-room/radioStream",
+  "law": 5,
+  "name": "TEARDOWN drops the stream and forgets the url",
+  "outcome": "proven",
+  "ms": 2091
+ },
+ {
+  "item": "payment/medusa/orderItemQuantities",
+  "law": 6,
+  "name": "an update never sets the quantity below the fulfilled",
+  "outcome": "proven",
+  "ms": 279
+ },
+ {
+  "item": "approval/kubernetes/csrConditions",
+  "law": 4,
+  "name": "every request holds at most one Approved condition",
+  "outcome": "proven",
+  "ms": 1934,
+  "found": [
+   "nA + nD <= 1",
+   "nF <= 1"
+  ]
+ },
+ {
+  "item": "queue/graphile-worker/jobLifecycle",
+  "law": 2,
+  "name": "a failed attempt waits at most e^10 seconds",
+  "outcome": "proven",
+  "ms": 452
+ },
+ {
+  "item": "ledger/tigerbeetle/transfers",
+  "law": 4,
+  "name": "a pending transfer is resolved at most once",
+  "outcome": "unknown",
+  "ms": 104955,
+  "goal": "every T cell is a value of its kind @step",
+  "stuck": "unknown",
+  "why": "the prover's time budget ran out at 26 hypotheses, 0 case splits deep. Each case a step decides multiplies the cases to refute, so many interacting cases can outgrow it: state the law over fewer steps (a one-step law and an invariant often give the same), or split it into laws about fewer conditions; the search found nothing that proves it in 57135 ms"
+ },
+ {
+  "item": "payment/medusa/captureRefund",
+  "law": 3,
+  "name": "a replayed refund moves no funds",
+  "outcome": "proven",
+  "ms": 1598
+ },
+ {
+  "item": "queue/bullmq/jobRetry",
+  "law": 3,
+  "name": "a job started maxStartedAttempts times is not retried",
+  "outcome": "proven",
+  "ms": 1034
+ },
+ {
+  "item": "auth/node-oidc-provider/refreshTokenRotation",
+  "law": 5,
+  "name": "at most one live refresh token per grant",
+  "outcome": "proven",
+  "ms": 14398,
+  "found": [
+   "every k: Tok.st[k] is 1 → Tok.grant[k] + 1 <= nextGrant"
+  ]
+ },
+ {
+  "item": "xstate/gapless.js/track",
+  "law": 3,
+  "name": "Web Audio plays only a loaded buffer",
+  "outcome": "proven",
+  "ms": 5667
+ },
+ {
+  "item": "queue/pg-boss/retry",
+  "law": 3,
+  "name": "a backoff retry waits at most retryDelayMax",
+  "outcome": "proven",
+  "ms": 926
+ },
+ {
+  "item": "feature flag/unleash-client-node/flexibleRollout",
+  "law": 5,
+  "name": "a strategy without a stickiness id serves nobody",
+  "outcome": "proven",
+  "ms": 27
+ },
+ {
+  "item": "rate limit/golang-x-time/AllowN",
+  "law": 1,
+  "name": "a refused request changes nothing",
+  "outcome": "proven",
+  "ms": 239
+ },
+ {
+  "item": "auth/keycloak/bruteForceProtector",
+  "law": 2,
+  "name": "too many OTP failures disable the user",
+  "outcome": "proven",
+  "ms": 1232
+ },
+ {
+  "item": "approval/openzeppelin/Governor",
+  "law": 1,
+  "name": "a proposal's calls run at most once",
+  "outcome": "unknown",
+  "ms": 17881,
+  "goal": "a proposal's calls run at most once @step",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 17517 ms",
+  "witness": {
+   "dt": 0,
+   "ts": 0,
+   "againstVotes": 0,
+   "abstainVotes": 0,
+   "quorum": 0,
+   "db": 0,
+   "bn": 0,
+   "votingPeriod": 0,
+   "HasVoted[sender:1]": 0,
+   "support": 0,
+   "Ts": 2,
+   "eta": 1,
+   "voteStart": 1,
+   "others": 0,
+   "open": 0,
+   "t0": 2,
+   "forVotes": 1,
+   "b0": 2,
+   "runs": 1,
+   "canceled": 0,
+   "executed": 0,
+   "op": 3
+  }
+ },
+ {
+  "item": "approval/openzeppelin/Governor",
+  "law": 0,
+  "name": "with the governor as the timelock's only proposer, a proposal's calls run only after it succeeded and was queued",
+  "outcome": "unknown",
+  "ms": 17242,
+  "goal": "with the governor as the timelock's only proposer, a proposal's calls run only after it succeeded and was queued @step law",
+  "stuck": "sat",
+  "why": "the search found nothing that proves it in 16317 ms",
+  "witness": {
+   "dt": 0,
+   "ts": 0,
+   "Ts": 2,
+   "support": 0,
+   "HasVoted[sender:1]": 0,
+   "canceled": 0,
+   "b0": 1,
+   "t0": 2,
+   "op": 6,
+   "open": 1,
+   "executed": 1,
+   "others": 0
+  }
+ },
+ {
+  "item": "auth/keycloak/bruteForceProtector",
+  "law": 3,
+  "name": "with permanent lockout, too many temporary lockouts disable the user",
+  "outcome": "proven",
+  "ms": 2232
+ },
+ {
+  "item": "rate limit/golang-x-time/AllowN",
+  "law": 0,
+  "name": "the bucket never holds more than burst tokens",
+  "outcome": "proven",
+  "ms": 116
+ },
+ {
+  "item": "feature flag/unleash-client-node/flexibleRollout",
+  "law": 4,
+  "name": "a user failing the constraints is never served by the strategy",
+  "outcome": "proven",
+  "ms": 26
+ },
+ {
+  "item": "queue/pg-boss/retry",
+  "law": 2,
+  "name": "a job with no retries left fails for good",
+  "outcome": "proven",
+  "ms": 1194
+ },
+ {
+  "item": "auth/node-oidc-provider/refreshTokenRotation",
+  "law": 4,
+  "name": "presenting a consumed token revokes its whole grant",
+  "outcome": "proven",
+  "ms": 1304
+ },
+ {
+  "item": "xstate/gapless.js/track",
+  "law": 2,
+  "name": "the fetch-and-decode child is spawned at most once",
+  "outcome": "proven",
+  "ms": 41236,
+  "found": [
+   "webAudioLoadingState is NONE → fetches <= 0"
+  ]
+ },
+ {
+  "item": "queue/pg-boss/retry",
+  "law": 0,
+  "name": "without a resume, a job is claimed at most retryLimit + 1 times",
+  "outcome": "proven",
+  "ms": 13317,
+  "found": [
+   "started is yes and resumed is no → st is retry → claims <= retryLimit",
+   "never st is created and started is yes and resumed is no",
+   "started is yes and resumed is no → st is active → claims <= retryCount + 1",
+   "never st is active and started is no and resumed is no",
+   "started is no and resumed is no → st is failed → claims <= 0",
+   "started is no and resumed is no → st is created → claims <= 0",
+   "started is yes and resumed is no → st is retry → claims <= retryCount + 1",
+   "started is no and resumed is no → st is retry → claims <= 0",
+   "started is yes and resumed is no → st is failed → retryLimit <= retryCount"
+  ]
+ },
+ {
+  "item": "xstate/gapless.js/track",
+  "law": 0,
+  "name": "DEACTIVATE from any state lands in idle",
+  "outcome": "proven",
+  "ms": 7790
+ },
+ {
+  "item": "rate limit/golang-x-time/AllowN",
+  "law": 2,
+  "name": "no more is granted than burst plus rate times the latest time seen",
+  "outcome": "refuted",
+  "ms": 4,
+  "goal": "no more is granted than burst plus rate times the latest time seen @step",
+  "stuck": "sat",
+  "run": {
+   "params": {
+    "rate": 1,
+    "burst": 3,
+    "inf": 0
+   },
+   "trace": [
+    {
+     "t": 0,
+     "n": 2
+    },
+    {
+     "t": 3,
+     "n": 2
+    },
+    {
+     "t": 1,
+     "n": 0
+    },
+    {
+     "t": 2,
+     "n": 3
+    },
+    {
+     "t": 1,
+     "n": 0
+    },
+    {
+     "t": 3,
+     "n": 3
+    }
+   ]
+  }
+ },
+ {
+  "item": "auth/keycloak/bruteForceProtector",
+  "law": 1,
+  "name": "a temporary lockout waits at most maxFailureWaitSeconds",
+  "outcome": "proven",
+  "ms": 2286
+ },
+ {
+  "item": "inventory/medusa/reservations",
+  "law": 5,
+  "name": "every live reservation can be released",
+  "outcome": "unknown",
+  "ms": 1024,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 12 others keep"
+ },
+ {
+  "item": "approval/openzeppelin/Governor",
+  "law": 2,
+  "name": "with the governor as the timelock's only proposer, a canceled proposal's calls never run",
+  "outcome": "unknown",
+  "ms": 7915,
+  "goal": "with the governor as the timelock's only proposer, a canceled proposal's calls never run @step law",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 7293 ms",
+  "witness": {
+   "dt": 0,
+   "ts": 0,
+   "support": 0,
+   "HasVoted[sender:1]": 0,
+   "b0": 1,
+   "Ts": 2,
+   "t0": 2,
+   "op": 6,
+   "executed": 0,
+   "others": 0,
+   "open": 1,
+   "canceled": 1
+  }
+ },
+ {
+  "item": "access/node-casbin/roleManager",
+  "law": 5,
+  "name": "with maxHierarchyLevel 0 only a name itself is held",
+  "outcome": "proven",
+  "ms": 229
+ },
+ {
+  "item": "access/node-casbin/roleManager",
+  "law": 4,
+  "name": "a link changes only for the pair named",
+  "outcome": "proven",
+  "ms": 207
+ },
+ {
+  "item": "rate limit/upstash-ratelimit/tokenBucket",
+  "law": 4,
+  "name": "a rejected caller is admitted once it waits for a refill",
+  "outcome": "unknown",
+  "ms": 108,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 93 others keep"
+ },
+ {
+  "item": "approval/openzeppelin/Governor",
+  "law": 3,
+  "name": "every account is counted at most once",
+  "outcome": "proven",
+  "ms": 6078,
+  "found": [
+   "every k: Counted[k] is 1 → 1 <= HasVoted[k]"
+  ]
+ },
+ {
+  "item": "auth/keycloak/bruteForceProtector",
+  "law": 0,
+  "name": "past the failure factor, a failure disables the user at once",
+  "outcome": "unknown",
+  "ms": 47386,
+  "goal": "past the failure factor, a failure disables the user at once @step law",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 45647 ms",
+  "witness": {
+   "maxDeltaSec": 0,
+   "inc": 1,
+   "permReason": 0,
+   "enabled": 0,
+   "sec[1:1,factor:3,factor*factor:1]": 2147483647,
+   "factor*factor": 2147483646996,
+   "last": 1,
+   "cat": 0,
+   "maxWaitSec": 1,
+   "quickMs": 2147483647000,
+   "minQuickSec": 1,
+   "sec[now:1]": 2147483647,
+   "factor*floorDiv[1:1,factor:3,factor*factor:1]": 1,
+   "now": 2147483647000,
+   "floorDiv[1:1,factor:3,factor*factor:1]*inc": 0,
+   "multiple": 1,
+   "perm": 0,
+   "op": 0,
+   "factor": 1,
+   "exists": 1
+  }
+ },
+ {
+  "item": "inventory/medusa/reservations",
+  "law": 4,
+  "name": "only reservations change the reserved quantity",
+  "outcome": "proven",
+  "ms": 1767
+ },
+ {
+  "item": "rate limit/golang-x-time/AllowN",
+  "law": 3,
+  "name": "a refused caller is granted one event once it waits long enough",
+  "outcome": "unknown",
+  "ms": 71,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 309 others keep"
+ },
+ {
+  "item": "xstate/gapless.js/track",
+  "law": 1,
+  "name": "DEACTIVATE keeps the buffer's loading state",
+  "outcome": "proven",
+  "ms": 7790
+ },
+ {
+  "item": "queue/pg-boss/retry",
+  "law": 1,
+  "name": "a completed job is never retried",
+  "outcome": "proven",
+  "ms": 823
+ },
+ {
+  "item": "queue/pg-boss/retry",
+  "law": 5,
+  "name": "an expired active job is failed or retried",
+  "outcome": "unknown",
+  "ms": 56,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 9 others keep"
+ },
+ {
+  "item": "auth/node-oidc-provider/refreshTokenRotation",
+  "law": 3,
+  "name": "only the client the token was issued to can use it",
+  "outcome": "proven",
+  "ms": 1164
+ },
+ {
+  "item": "rate limit/upstash-ratelimit/fixedWindow",
+  "law": 2,
+  "name": "a request blocked by the cache changes no count",
+  "outcome": "proven",
+  "ms": 623
+ },
+ {
+  "item": "xstate/gapless.js/track",
+  "law": 5,
+  "name": "a buffer ready while preloading never leaves the track in loading",
+  "outcome": "proven",
+  "ms": 7323
+ },
+ {
+  "item": "inventory/vendure/stockMovements",
+  "law": 1,
+  "name": "a line's sales and releases never free more than it allocated",
+  "outcome": "refuted",
+  "ms": 68,
+  "goal": "a line's sales and releases never free more than it allocated @step",
+  "stuck": "sat",
+  "run": {
+   "params": {
+    "track": 1,
+    "d": 8
+   },
+   "trace": [
+    {
+     "op": 1,
+     "line": 8,
+     "q": 7,
+     "n": 3,
+     "n$neg": 0
+    },
+    {
+     "op": 1,
+     "line": 0,
+     "q": 2,
+     "n": 8,
+     "n$neg": 0
+    },
+    {
+     "op": 1,
+     "line": 0,
+     "q": 4,
+     "n": 0,
+     "n$neg": 6
+    },
+    {
+     "op": 1,
+     "line": 8,
+     "q": 4,
+     "n": 5,
+     "n$neg": 0
+    },
+    {
+     "op": 1,
+     "line": 0,
+     "q": 4,
+     "n": 0,
+     "n$neg": 4
+    },
+    {
+     "op": 4,
+     "line": 8,
+     "q": 6,
+     "n": 1,
+     "n$neg": 0
+    },
+    {
+     "op": 0,
+     "line": 0,
+     "q": 0,
+     "n": 0,
+     "n$neg": 7
+    },
+    {
+     "op": 0,
+     "line": 3,
+     "q": 6,
+     "n": 0,
+     "n$neg": 6
+    },
+    {
+     "op": 3,
+     "line": 0,
+     "q": 5,
+     "n": 7,
+     "n$neg": 0
+    },
+    {
+     "op": 4,
+     "line": 5,
+     "q": 0,
+     "n": 0,
+     "n$neg": 4
+    },
+    {
+     "op": 2,
+     "line": 8,
+     "q": 6,
+     "n": 4,
+     "n$neg": 0
+    }
+   ]
+  }
+ },
+ {
+  "item": "feature flag/unleash-client-node/flexibleRollout",
+  "law": 3,
+  "name": "a 100% rollout serves every user with an id who passes the constraints",
+  "outcome": "proven",
+  "ms": 31
+ },
+ {
+  "item": "inventory/medusa/reservations",
+  "law": 0,
+  "name": "a reservation created without backorder never takes more than is available",
+  "outcome": "proven",
+  "ms": 1695
+ },
+ {
+  "item": "auth/keycloak/bruteForceProtector",
+  "law": 4,
+  "name": "a successful login clears the failure count",
+  "outcome": "proven",
+  "ms": 8692,
+  "found": [
+   "exists is no → fails + notBefore <= 0"
+  ]
+ },
+ {
+  "item": "access/node-casbin/roleManager",
+  "law": 0,
+  "name": "every link joins two known roles",
+  "outcome": "proven",
+  "ms": 564
+ },
+ {
+  "item": "rate limit/upstash-ratelimit/tokenBucket",
+  "law": 0,
+  "name": "a rejected request leaves the bucket unchanged",
+  "outcome": "proven",
+  "ms": 20715
+ },
+ {
+  "item": "rate limit/upstash-ratelimit/tokenBucket",
+  "law": 1,
+  "name": "an admitted request takes no more tokens than the bucket holds",
+  "outcome": "proven",
+  "ms": 24474
+ },
+ {
+  "item": "access/node-casbin/roleManager",
+  "law": 1,
+  "name": "a name always inherits itself",
+  "outcome": "proven",
+  "ms": 142
+ },
+ {
+  "item": "inventory/medusa/reservations",
+  "law": 1,
+  "name": "a batch created without backorder never takes more than is available",
+  "outcome": "unknown",
+  "ms": 29599,
+  "goal": "a batch created without backorder never takes more than is available @step law",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 27357 ms",
+  "witness": {
+   "id": 0,
+   "Stocked[loc:1]": 0,
+   "Reserved[loc:1]": 0,
+   "newBack": 0,
+   "newBack$some": 0,
+   "newQ$some": 0,
+   "ResBack[id:1]": 0,
+   "Res[id:1]": 0,
+   "Stocked$neg[loc:1]": 1,
+   "q": 1,
+   "q2": 1,
+   "ResBack[newLoc:1]": 0,
+   "ResBack[loc:1]": 0,
+   "Res[newLoc:1]": 0,
+   "Res[loc:1]": 0,
+   "Lvl[newLoc:1]": 1,
+   "Lvl[id:1]": 1,
+   "newLoc": 0,
+   "loc": 0,
+   "Reserved$neg[loc:1]": 2,
+   "back2": 0,
+   "back": 0,
+   "Lvl[loc:1]": 1,
+   "op": 2,
+   "newLoc$some": 1
+  }
+ },
+ {
+  "item": "auth/keycloak/bruteForceProtector",
+  "law": 5,
+  "name": "a permanent lockout is never lifted by a login",
+  "outcome": "proven",
+  "ms": 1729
+ },
+ {
+  "item": "approval/openzeppelin/Governor",
+  "law": 6,
+  "name": "a queued proposal is eventually executed or canceled",
+  "outcome": "unknown",
+  "ms": 99,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 0 others keep"
+ },
+ {
+  "item": "feature flag/unleash-client-node/flexibleRollout",
+  "law": 2,
+  "name": "a 0% rollout serves nobody through the strategy",
+  "outcome": "proven",
+  "ms": 13
+ },
+ {
+  "item": "inventory/vendure/stockMovements",
+  "law": 0,
+  "name": "stock allocated never goes negative",
+  "outcome": "refuted",
+  "ms": 17,
+  "goal": "stock allocated never goes negative @step",
+  "stuck": "sat",
+  "run": {
+   "params": {
+    "track": 1,
+    "d": 1
+   },
+   "trace": [
+    {
+     "op": 1,
+     "line": 2,
+     "q": 3,
+     "n": 1,
+     "n$neg": 0
+    },
+    {
+     "op": 0,
+     "line": 1,
+     "q": 0,
+     "n": 2,
+     "n$neg": 0
+    },
+    {
+     "op": 4,
+     "line": 2,
+     "q": 1,
+     "n": 1,
+     "n$neg": 0
+    }
+   ]
+  }
+ },
+ {
+  "item": "auth/node-oidc-provider/refreshTokenRotation",
+  "law": 2,
+  "name": "a refresh token past its expiry is never served",
+  "outcome": "proven",
+  "ms": 1088
+ },
+ {
+  "item": "xstate/gapless.js/track",
+  "law": 4,
+  "name": "while Web Audio plays the track reports WEBAUDIO",
+  "outcome": "proven",
+  "ms": 3519
+ },
+ {
+  "item": "rate limit/upstash-ratelimit/fixedWindow",
+  "law": 3,
+  "name": "a rejected caller is admitted in a later window",
+  "outcome": "unknown",
+  "ms": 127,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 160 others keep"
+ },
+ {
+  "item": "queue/pg-boss/retry",
+  "law": 4,
+  "name": "a stale settle never touches a newer attempt",
+  "outcome": "proven",
+  "ms": 805
+ },
+ {
+  "item": "rate limit/upstash-ratelimit/fixedWindow",
+  "law": 1,
+  "name": "a rejected request leaves the window's remaining tokens spendable",
+  "outcome": "refuted",
+  "ms": 8,
+  "goal": "a rejected request leaves the window's remaining tokens spendable @step law",
+  "stuck": "sat",
+  "run": {
+   "params": {
+    "tokens": 1,
+    "window": 3
+   },
+   "trace": [
+    {
+     "now": 2,
+     "refund": 0,
+     "n": 3,
+     "b": 0
+    }
+   ]
+  }
+ },
+ {
+  "item": "xstate/gapless.js/track",
+  "law": 6,
+  "name": "a buffer error while Web Audio plays changes nothing",
+  "outcome": "proven",
+  "ms": 8058
+ },
+ {
+  "item": "auth/node-oidc-provider/refreshTokenRotation",
+  "law": 0,
+  "name": "a rotated token's old value is rejected",
+  "outcome": "unknown",
+  "ms": 27201,
+  "goal": "a rotated token's old value is rejected @2 steps",
+  "stuck": "sat",
+  "why": "the search found nothing that proves it in 25288 ms",
+  "witness": {
+   "nextGrant": 0,
+   "ttl": 0,
+   "now@2": 0,
+   "client@2": 0,
+   "rotates@2": 0,
+   "served": 0,
+   "revokeGrant": 0,
+   "now": 1,
+   "Tok.exp[token:1]": 2,
+   "Grant.exp[Tok.grant[token:1]:1]": 2,
+   "nextTok": 0,
+   "Tok.st[Tok.grant[token:1]:1]": 1,
+   "served~1": 1,
+   "nextGrant~1": 0,
+   "nextTok~1": 1,
+   "Reused[token:1]": 1,
+   "Grant.live[token:1]": 1,
+   "token": 0,
+   "Reused[Tok.grant[token:1]:1]": 1,
+   "Reused[token@2:1]": 1,
+   "Grant.live[token@2:1]": 1,
+   "Tok.grant[token:1]": 0,
+   "checksOk@2": 1,
+   "client": 0,
+   "token@2": 0,
+   "rotates": 1,
+   "checksOk": 1,
+   "Grant.client[Tok.grant[token:1]:1]": 0,
+   "Grant.live[Tok.grant[token:1]:1]": 1,
+   "Tok.client[token:1]": 0,
+   "Tok.st[token:1]": 1,
+   "op": 1,
+   "op@2": 1
+  }
+ },
+ {
+  "item": "inventory/vendure/stockMovements",
+  "law": 2,
+  "name": "once the stock level exists, a sale takes from the allocated stock exactly what it takes from stock on hand",
+  "outcome": "proven",
+  "ms": 768
+ },
+ {
+  "item": "feature flag/unleash-client-node/flexibleRollout",
+  "law": 0,
+  "name": "a disabled feature serves nobody",
+  "outcome": "proven",
+  "ms": 18
+ },
+ {
+  "item": "approval/openzeppelin/Governor",
+  "law": 4,
+  "name": "only the proposer cancels, and only while pending",
+  "outcome": "proven",
+  "ms": 1273
+ },
+ {
+  "item": "inventory/medusa/reservations",
+  "law": 3,
+  "name": "the reserved quantity at a location is what its live reservations hold",
+  "outcome": "refuted",
+  "ms": 994,
+  "goal": "the reserved quantity at a location is what its live reservations hold @step",
+  "stuck": "sat",
+  "run": {
+   "params": {
+    "d": 7
+   },
+   "trace": [
+    {
+     "op": 3,
+     "loc": 0,
+     "q": 1,
+     "back": 0,
+     "q2": 4,
+     "back2": 1,
+     "id": 1,
+     "newQ$some": 1,
+     "newQ": 2,
+     "newLoc$some": 1,
+     "newLoc": 5,
+     "newBack$some": 1,
+     "newBack": 1,
+     "adj": 5,
+     "adj$neg": 0
+    },
+    {
+     "op": 3,
+     "loc": 2,
+     "q": 2,
+     "back": 1,
+     "q2": 6,
+     "back2": 1,
+     "id": 2,
+     "newQ$some": 1,
+     "newQ": 4,
+     "newLoc$some": 0,
+     "newLoc": 1,
+     "newBack$some": 1,
+     "newBack": 0,
+     "adj": 7,
+     "adj$neg": 0
+    },
+    {
+     "op": 0,
+     "loc": 6,
+     "q": 0,
+     "back": 0,
+     "q2": 7,
+     "back2": 0,
+     "id": 7,
+     "newQ$some": 1,
+     "newQ": 2,
+     "newLoc$some": 1,
+     "newLoc": 0,
+     "newBack$some": 1,
+     "newBack": 1,
+     "adj": 0,
+     "adj$neg": 0
+    },
+    {
+     "op": 0,
+     "loc": 0,
+     "q": 3,
+     "back": 1,
+     "q2": 1,
+     "back2": 1,
+     "id": 0,
+     "newQ$some": 1,
+     "newQ": 8,
+     "newLoc$some": 0,
+     "newLoc": 8,
+     "newBack$some": 1,
+     "newBack": 0,
+     "adj": 4,
+     "adj$neg": 0
+    },
+    {
+     "op": 3,
+     "loc": 8,
+     "q": 6,
+     "back": 1,
+     "q2": 1,
+     "back2": 1,
+     "id": 0,
+     "newQ$some": 1,
+     "newQ": 3,
+     "newLoc$some": 1,
+     "newLoc": 1,
+     "newBack$some": 1,
+     "newBack": 0,
+     "adj": 4,
+     "adj$neg": 0
+    },
+    {
+     "op": 3,
+     "loc": 5,
+     "q": 5,
+     "back": 0,
+     "q2": 6,
+     "back2": 0,
+     "id": 2,
+     "newQ$some": 1,
+     "newQ": 5,
+     "newLoc$some": 0,
+     "newLoc": 2,
+     "newBack$some": 1,
+     "newBack": 0,
+     "adj": 0,
+     "adj$neg": 8
+    },
+    {
+     "op": 4,
+     "loc": 5,
+     "q": 8,
+     "back": 0,
+     "q2": 3,
+     "back2": 1,
+     "id": 6,
+     "newQ$some": 1,
+     "newQ": 5,
+     "newLoc$some": 1,
+     "newLoc": 3,
+     "newBack$some": 1,
+     "newBack": 1,
+     "adj": 0,
+     "adj$neg": 6
+    },
+    {
+     "op": 1,
+     "loc": 8,
+     "q": 8,
+     "back": 0,
+     "q2": 3,
+     "back2": 0,
+     "id": 1,
+     "newQ$some": 1,
+     "newQ": 3,
+     "newLoc$some": 1,
+     "newLoc": 3,
+     "newBack$some": 1,
+     "newBack": 1,
+     "adj": 5,
+     "adj$neg": 0
+    },
+    {
+     "op": 3,
+     "loc": 2,
+     "q": 4,
+     "back": 0,
+     "q2": 2,
+     "back2": 0,
+     "id": 8,
+     "newQ$some": 1,
+     "newQ": 0,
+     "newLoc$some": 0,
+     "newLoc": 4,
+     "newBack$some": 1,
+     "newBack": 1,
+     "adj": 8,
+     "adj$neg": 0
+    },
+    {
+     "op": 3,
+     "loc": 5,
+     "q": 5,
+     "back": 1,
+     "q2": 1,
+     "back2": 0,
+     "id": 2,
+     "newQ$some": 1,
+     "newQ": 8,
+     "newLoc$some": 1,
+     "newLoc": 8,
+     "newBack$some": 1,
+     "newBack": 1,
+     "adj": 0,
+     "adj$neg": 4
+    },
+    {
+     "op": 6,
+     "loc": 8,
+     "q": 4,
+     "back": 1,
+     "q2": 2,
+     "back2": 0,
+     "id": 1,
+     "newQ$some": 0,
+     "newQ": 4,
+     "newLoc$some": 1,
+     "newLoc": 2,
+     "newBack$some": 1,
+     "newBack": 1,
+     "adj": 0,
+     "adj$neg": 5
+    },
+    {
+     "op": 6,
+     "loc": 3,
+     "q": 1,
+     "back": 1,
+     "q2": 6,
+     "back2": 0,
+     "id": 8,
+     "newQ$some": 0,
+     "newQ": 4,
+     "newLoc$some": 1,
+     "newLoc": 8,
+     "newBack$some": 1,
+     "newBack": 0,
+     "adj": 0,
+     "adj$neg": 5
+    },
+    {
+     "op": 0,
+     "loc": 4,
+     "q": 6,
+     "back": 0,
+     "q2": 7,
+     "back2": 1,
+     "id": 1,
+     "newQ$some": 1,
+     "newQ": 5,
+     "newLoc$some": 0,
+     "newLoc": 6,
+     "newBack$some": 1,
+     "newBack": 1,
+     "adj": 3,
+     "adj$neg": 0
+    },
+    {
+     "op": 8,
+     "loc": 7,
+     "q": 1,
+     "back": 0,
+     "q2": 4,
+     "back2": 1,
+     "id": 1,
+     "newQ$some": 1,
+     "newQ": 3,
+     "newLoc$some": 1,
+     "newLoc": 7,
+     "newBack$some": 1,
+     "newBack": 0,
+     "adj": 0,
+     "adj$neg": 2
+    },
+    {
+     "op": 4,
+     "loc": 1,
+     "q": 6,
+     "back": 1,
+     "q2": 7,
+     "back2": 0,
+     "id": 8,
+     "newQ$some": 0,
+     "newQ": 0,
+     "newLoc$some": 1,
+     "newLoc": 0,
+     "newBack$some": 1,
+     "newBack": 1,
+     "adj": 5,
+     "adj$neg": 0
+    },
+    {
+     "op": 0,
+     "loc": 0,
+     "q": 5,
+     "back": 1,
+     "q2": 3,
+     "back2": 1,
+     "id": 4,
+     "newQ$some": 1,
+     "newQ": 5,
+     "newLoc$some": 0,
+     "newLoc": 6,
+     "newBack$some": 1,
+     "newBack": 1,
+     "adj": 0,
+     "adj$neg": 3
+    },
+    {
+     "op": 1,
+     "loc": 8,
+     "q": 2,
+     "back": 0,
+     "q2": 4,
+     "back2": 1,
+     "id": 0,
+     "newQ$some": 1,
+     "newQ": 1,
+     "newLoc$some": 1,
+     "newLoc": 1,
+     "newBack$some": 1,
+     "newBack": 1,
+     "adj": 0,
+     "adj$neg": 1
+    },
+    {
+     "op": 2,
+     "loc": 1,
+     "q": 0,
+     "back": 1,
+     "q2": 4,
+     "back2": 0,
+     "id": 4,
+     "newQ$some": 1,
+     "newQ": 2,
+     "newLoc$some": 1,
+     "newLoc": 7,
+     "newBack$some": 1,
+     "newBack": 0,
+     "adj": 2,
+     "adj$neg": 0
+    },
+    {
+     "op": 2,
+     "loc": 0,
+     "q": 6,
+     "back": 1,
+     "q2": 1,
+     "back2": 0,
+     "id": 2,
+     "newQ$some": 1,
+     "newQ": 4,
+     "newLoc$some": 1,
+     "newLoc": 8,
+     "newBack$some": 1,
+     "newBack": 1,
+     "adj": 7,
+     "adj$neg": 0
+    },
+    {
+     "op": 6,
+     "loc": 2,
+     "q": 4,
+     "back": 1,
+     "q2": 2,
+     "back2": 1,
+     "id": 0,
+     "newQ$some": 0,
+     "newQ": 4,
+     "newLoc$some": 1,
+     "newLoc": 8,
+     "newBack$some": 1,
+     "newBack": 0,
+     "adj": 7,
+     "adj$neg": 0
+    }
+   ]
+  }
+ },
+ {
+  "item": "access/node-casbin/roleManager",
+  "law": 3,
+  "name": "after deleteLink, name1 no longer inherits name2 directly",
+  "outcome": "unknown",
+  "ms": 1548,
+  "goal": "after deleteLink, name1 no longer inherits name2 directly @step law",
+  "stuck": "sat",
+  "why": "the search found nothing that proves it in 1188 ms",
+  "witness": {
+   "b": 1,
+   "answer": 0,
+   "maxLevel": 0,
+   "a": 0,
+   "Link[a:64,b:1]": 1,
+   "Known[b:1]": 0,
+   "Known[a:1]": 1,
+   "op": 1
+  }
+ },
+ {
+  "item": "rate limit/upstash-ratelimit/tokenBucket",
+  "law": 3,
+  "name": "tokens never exceed maxTokens plus what was refunded",
+  "outcome": "proven",
+  "ms": 15652
+ },
+ {
+  "item": "rate limit/upstash-ratelimit/tokenBucket",
+  "law": 2,
+  "name": "only a refund lifts the tokens past maxTokens",
+  "outcome": "proven",
+  "ms": 17522
+ },
+ {
+  "item": "access/node-casbin/roleManager",
+  "law": 2,
+  "name": "after addLink, name1 inherits name2 directly",
+  "outcome": "proven",
+  "ms": 222
+ },
+ {
+  "item": "inventory/medusa/reservations",
+  "law": 2,
+  "name": "an update without backorder never takes more than is available where the reservation ends up",
+  "outcome": "unknown",
+  "ms": 23272,
+  "goal": "an update without backorder never takes more than is available where the reservation ends up @step law",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 21224 ms",
+  "witness": {
+   "⟦73⟧": 0,
+   "Stocked[newLoc:1]": 0,
+   "Reserved[newLoc:1]": 0,
+   "back2": 0,
+   "back": 0,
+   "Stocked$neg[newLoc:1]": 1,
+   "ResLoc[id:1]": 1,
+   "ResQty[id:1]": 1,
+   "newQ": 1,
+   "Res[ResLoc'[id:1]:1]": 1,
+   "Res[newLoc:1]": 1,
+   "Res[loc:1]": 1,
+   "ResBack[ResLoc'[id:1]:1]": 0,
+   "ResBack[newLoc:1]": 0,
+   "ResBack[loc:1]": 0,
+   "Lvl[ResLoc'[id:1]:1]": 1,
+   "Lvl[id:1]": 1,
+   "ResLoc'[id:1]": 0,
+   "id": 0,
+   "newLoc": 0,
+   "loc": 0,
+   "Reserved$neg[newLoc:1]": 1,
+   "Lvl[newLoc:1]": 1,
+   "newBack": 0,
+   "ResBack[id:1]": 0,
+   "Lvl[loc:1]": 1,
+   "Lvl[⟦73⟧:1]": 1,
+   "Res[id:1]": 1,
+   "newQ$some": 1,
+   "newBack$some": 1,
+   "op": 3,
+   "newLoc$some": 1
+  }
+ },
+ {
+  "item": "approval/openzeppelin/Governor",
+  "law": 5,
+  "name": "votes are counted only while the vote is active",
+  "outcome": "proven",
+  "ms": 1098
+ },
+ {
+  "item": "feature flag/unleash-client-node/flexibleRollout",
+  "law": 1,
+  "name": "raising the rollout never removes a user who was in",
+  "outcome": "proven",
+  "ms": 89
+ },
+ {
+  "item": "inventory/vendure/stockMovements",
+  "law": 3,
+  "name": "stock of a variant that does not track inventory moves only by adjustment",
+  "outcome": "proven",
+  "ms": 484
+ },
+ {
+  "item": "xstate/gapless.js/track",
+  "law": 7,
+  "name": "a pending play starts on Web Audio or is dropped once the buffer is ready",
+  "outcome": "unknown",
+  "ms": 381,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 9 others keep"
+ },
+ {
+  "item": "rate limit/upstash-ratelimit/fixedWindow",
+  "law": 0,
+  "name": "no window admits more than tokens beyond what was refunded in it",
+  "outcome": "proven",
+  "ms": 2930,
+  "found": [
+   "every k: Admitted[k] <= Count[k] + Refunded[k]"
+  ]
+ },
+ {
+  "item": "auth/node-oidc-provider/refreshTokenRotation",
+  "law": 1,
+  "name": "once reuse is detected, no token of that grant is live",
+  "outcome": "unknown",
+  "ms": 49623,
+  "goal": "once reuse is detected, no token of that grant is live @step",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 38798 ms",
+  "witness": {
+   "Tok.grant[Tok.grant[token:1]:1]": 0,
+   "Reused[token:1]": 0,
+   "Grant.live[nextGrant:1]": 0,
+   "Grant.live[token:1]": 0,
+   "served": 0,
+   "revokeGrant": 0,
+   "rotates": 0,
+   "checksOk": 0,
+   "Grant.live[key$44#:1]": 0,
+   "token": 1,
+   "nextGrant": 2,
+   "Grant.live[Tok.grant[nextGrant:1]:1]": 0,
+   "Grant.live[Tok.grant[Tok.grant[key$44#:1]:1]:1]": 0,
+   "Grant.live[Tok.grant[Tok.grant[Tok.grant[token:1]:1]:1]:1]": 0,
+   "Grant.live[Tok.grant[key$44#:1]:1]": 0,
+   "Grant.live[Tok.grant[Tok.grant[token:1]:1]:1]": 0,
+   "Grant.live[Tok.grant[token:1]:1]": 0,
+   "Reused[key$44#:1]": 0,
+   "Reused[Tok.grant[⟦90⟧:1]:1]": 0,
+   "Reused[Tok.grant[token:1]:1]": 0,
+   "Tok.grant[Tok.grant[nextGrant:1]:1]": 0,
+   "Tok.grant[Tok.grant[Tok.grant[key$44#:1]:1]:1]": 0,
+   "Tok.grant[Tok.grant[Tok.grant[Tok.grant[token:1]:1]:1]:1]": 0,
+   "Tok.grant[nextGrant:1]": 0,
+   "⟦90⟧": 2,
+   "Tok.grant[⟦90⟧:1]": 0,
+   "Tok.grant[Tok.grant[key$44#:1]:1]": 0,
+   "Tok.grant[Tok.grant[Tok.grant[token:1]:1]:1]": 0,
+   "Reused[Tok.grant[Tok.grant[nextGrant:1]:1]:1]": 0,
+   "Tok.st[Tok.grant[nextGrant:1]:1]": 1,
+   "Reused[Tok.grant[Tok.grant[Tok.grant[key$44#:1]:1]:1]:1]": 0,
+   "Tok.st[Tok.grant[Tok.grant[key$44#:1]:1]:1]": 1,
+   "Reused[Tok.grant[Tok.grant[Tok.grant[Tok.grant[token:1]:1]:1]:1]:1]": 0,
+   "Tok.st[Tok.grant[Tok.grant[Tok.grant[token:1]:1]:1]:1]": 1,
+   "Reused[Tok.grant[nextGrant:1]:1]": 0,
+   "Reused[Tok.grant[Tok.grant[key$44#:1]:1]:1]": 0,
+   "Tok.st[Tok.grant[key$44#:1]:1]": 1,
+   "Reused[Tok.grant[Tok.grant[Tok.grant[token:1]:1]:1]:1]": 0,
+   "Tok.st[Tok.grant[Tok.grant[token:1]:1]:1]": 1,
+   "Reused[Tok.grant[key$44#:1]:1]": 0,
+   "Tok.st[Tok.grant[token:1]:1]": 1,
+   "Tok.st[key$44#:1]": 1,
+   "Reused[Tok.grant[Tok.grant[token:1]:1]:1]": 0,
+   "nextTok": 0,
+   "Tok.grant[key$44#:1]": 0,
+   "Tok.grant[token:1]": 0,
+   "Tok.st[nextGrant:1]": 1,
+   "Reused[⟦90⟧:1]": 1,
+   "Reused[nextGrant:1]": 1,
+   "key$44#": 0,
+   "Tok.st[token:1]": 0,
+   "op": 0
+  }
+ },
+ {
+  "item": "queue/p-retry/pRetry",
+  "law": 2,
+  "name": "no retry waits past maxRetryTime",
+  "outcome": "proven",
+  "ms": 831
+ },
+ {
+  "item": "xstate/amplify-ui/forgotPassword",
+  "law": 4,
+  "name": "every request to Cognito starts with the error cleared",
+  "outcome": "proven",
+  "ms": 1095
+ },
+ {
+  "item": "circuit breaker/polly/ConsecutiveCountCircuitController",
+  "law": 0,
+  "name": "an open circuit admits no call before the break ends",
+  "outcome": "proven",
+  "ms": 372
+ },
+ {
+  "item": "xstate/electric/pullWakeRunner",
+  "law": 0,
+  "name": "the backoff stays between 1 s and 30 s",
+  "outcome": "proven",
+  "ms": 468
+ },
+ {
+  "item": "access/node-casbin/effectorStream",
+  "law": 5,
+  "name": "priority: the first decisive policy decides",
+  "outcome": "proven",
+  "ms": 1590
+ },
+ {
+  "item": "ledger/openzeppelin/RefundEscrow",
+  "law": 2,
+  "name": "until closed, every refundee's deposit is covered by the balance",
+  "outcome": "unknown",
+  "ms": 1719,
+  "goal": "until closed, every refundee's deposit is covered by the balance @step",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 1426 ms",
+  "witness": {
+   "Deposits[key$102#:1]": 1,
+   "owner": 0,
+   "who": 0,
+   "beneficiary": 1,
+   "balance": 1,
+   "Deposits[who:1]": 1,
+   "key$102#": 1,
+   "sender": 0,
+   "op": 4,
+   "st": 1
+  }
+ },
+ {
+  "item": "auth/better-auth/twoFactorOTP",
+  "law": 5,
+  "name": "a right code clears the account's failures",
+  "outcome": "proven",
+  "ms": 1107
+ },
+ {
+  "item": "xstate/vef-framework-react/uploader",
+  "law": 0,
+  "name": "the parts are uploaded at most once",
+  "outcome": "proven",
+  "ms": 2775,
+  "found": [
+   "state is initializing → uploads <= 0",
+   "state is idle → uploads <= 0"
+  ]
+ },
+ {
+  "item": "access/cedar-examples/documentCloud",
+  "law": 5,
+  "name": "the owner can always view their document",
+  "outcome": "proven",
+  "ms": 39
+ },
+ {
+  "item": "quota/librechat/balanceReservation",
+  "law": 7,
+  "name": "an applied auto-refill is eventually settled",
+  "outcome": "unknown",
+  "ms": 144,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 12 others keep"
+ },
+ {
+  "item": "quota/librechat/balanceReservation",
+  "law": 6,
+  "name": "once settled, every applied auto-refill is recorded",
+  "outcome": "unknown",
+  "ms": 12560,
+  "goal": "once settled, every applied auto-refill is recorded @step",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 12334 ms",
+  "witness": {
+   "refillTx": 0,
+   "hasReserved": 0,
+   "refillOn": 0,
+   "refills": 1,
+   "recorded": 1,
+   "clears": 1,
+   "op": 7,
+   "pending": 1
+  }
+ },
+ {
+  "item": "access/cedar-examples/documentCloud",
+  "law": 4,
+  "name": "a blocked user never sees the blocker's documents",
+  "outcome": "proven",
+  "ms": 34
+ },
+ {
+  "item": "xstate/vef-framework-react/uploader",
+  "law": 1,
+  "name": "the backend session is aborted at most once",
+  "outcome": "proven",
+  "ms": 3636,
+  "found": [
+   "state is initializing → aborts <= 0",
+   "state is uploading → aborts <= 0",
+   "state is completing → aborts <= 0",
+   "state is idle → aborts <= 0"
+  ]
+ },
+ {
+  "item": "auth/better-auth/twoFactorOTP",
+  "law": 4,
+  "name": "maxFailedAttempts failures lock the account",
+  "outcome": "proven",
+  "ms": 768
+ },
+ {
+  "item": "ledger/openzeppelin/RefundEscrow",
+  "law": 3,
+  "name": "the state never returns to Active",
+  "outcome": "proven",
+  "ms": 223
+ },
+ {
+  "item": "access/node-casbin/effectorStream",
+  "law": 4,
+  "name": "once decided, the result never changes",
+  "outcome": "proven",
+  "ms": 804
+ },
+ {
+  "item": "xstate/electric/pullWakeRunner",
+  "law": 1,
+  "name": "a stream response is held only while streaming",
+  "outcome": "proven",
+  "ms": 494
+ },
+ {
+  "item": "circuit breaker/polly/ConsecutiveCountCircuitController",
+  "law": 1,
+  "name": "a half-open circuit admits no call while a trial blocks it",
+  "outcome": "proven",
+  "ms": 335
+ },
+ {
+  "item": "xstate/amplify-ui/forgotPassword",
+  "law": 5,
+  "name": "a code is never requested while a confirmation is pending",
+  "outcome": "proven",
+  "ms": 1146
+ },
+ {
+  "item": "queue/p-retry/pRetry",
+  "law": 3,
+  "name": "an uncapped retry waits at least minTimeout",
+  "outcome": "error",
+  "ms": 361,
+  "error": "RangeError: 290760102328562900 is not a natural\n    at naturalConst (/work/gdp-wired/core/dsl.ts:32:52)\n    at termOf (/work/gdp-wired/core/dsl.ts:37:58)\n    at lit (/work/gdp-wired/core/dsl.ts:82:50)\n    at map (native:1:11)\n    at termOfSide (/work/gdp-wired/core/discover.ts:40:19)\n    at condOf (/work/gdp-wired/core/discover.ts:44:68)\n    at <anonymous> (/work/gdp-wired/core/dsl.ts:1297:73)\n    at map (native:1:11)\n    at recur (/work/gdp-wired/core/dsl.ts:1297:41)\n    at houdiniRecur (/work/gdp-wired/core/discover.ts:171:20)"
+ },
+ {
+  "item": "queue/p-retry/pRetry",
+  "law": 1,
+  "name": "no retry waits longer than maxTimeout",
+  "outcome": "proven",
+  "ms": 664
+ },
+ {
+  "item": "circuit breaker/polly/ConsecutiveCountCircuitController",
+  "law": 3,
+  "name": "a failure in half-open breaks the circuit for another durationOfBreak",
+  "outcome": "proven",
+  "ms": 480
+ },
+ {
+  "item": "xstate/electric/pullWakeRunner",
+  "law": 3,
+  "name": "a successful connect resets the backoff",
+  "outcome": "proven",
+  "ms": 624
+ },
+ {
+  "item": "ledger/openzeppelin/RefundEscrow",
+  "law": 1,
+  "name": "the beneficiary and the refundees are never both paid",
+  "outcome": "proven",
+  "ms": 9382,
+  "found": [
+   "balance + toBeneficiary <= deposited",
+   "st is Refunding → toBeneficiary <= 0",
+   "balance + refunded <= deposited",
+   "st is Closed → refunded <= 0",
+   "st is Active → deposited <= balance"
+  ]
+ },
+ {
+  "item": "xstate/vef-framework-react/uploader",
+  "law": 3,
+  "name": "succeeded is never left",
+  "outcome": "proven",
+  "ms": 397
+ },
+ {
+  "item": "access/cedar-examples/documentCloud",
+  "law": 6,
+  "name": "the owner never loses the right to share",
+  "outcome": "proven",
+  "ms": 63
+ },
+ {
+  "item": "quota/librechat/balanceReservation",
+  "law": 4,
+  "name": "the reserved total is never negative",
+  "outcome": "unknown",
+  "ms": 11059,
+  "goal": "the reserved total is never negative @step",
+  "stuck": "sat",
+  "why": "a model; the search found nothing that proves it in 10582 ms",
+  "witness": {
+   "Exp[id:1]": 0,
+   "reserved$neg": 0,
+   "recorded": 0,
+   "pending": 0,
+   "clears": 0,
+   "refillOn": 0,
+   "hasReserved": 0,
+   "reserved": 0,
+   "now": 0,
+   "amount": 1,
+   "Held[id:1]": 1,
+   "op": 1
+  }
+ },
+ {
+  "item": "quota/librechat/balanceReservation",
+  "law": 5,
+  "name": "an applied auto-refill is recorded at most once",
+  "outcome": "proven",
+  "ms": 10165,
+  "found": [
+   "recorded is no → refillTx + 1 <= refills"
+  ]
+ },
+ {
+  "item": "access/cedar-examples/documentCloud",
+  "law": 7,
+  "name": "the public can view a public document",
+  "outcome": "refuted",
+  "ms": 39,
+  "goal": "the public can view a public document",
+  "stuck": "sat",
+  "witness": {
+   "pBlocksOwner": 0,
+   "ownerBlocksP": 0,
+   "inManage": 0,
+   "inModify": 0,
+   "theDrive": 0,
+   "publicAccess": 1,
+   "authenticated": 0,
+   "isPrivate": 0,
+   "inView": 1,
+   "isPublic": 1,
+   "action": 1
+  }
+ },
+ {
+  "item": "xstate/vef-framework-react/uploader",
+  "law": 2,
+  "name": "a failure is recorded exactly when the upload failed",
+  "outcome": "proven",
+  "ms": 451
+ },
+ {
+  "item": "ledger/openzeppelin/RefundEscrow",
+  "law": 0,
+  "name": "no more is paid out than was deposited",
+  "outcome": "proven",
+  "ms": 9355,
+  "found": [
+   "balance + toBeneficiary <= deposited",
+   "balance + refunded <= deposited",
+   "st is Refunding → toBeneficiary <= 0",
+   "st is Active → deposited <= balance",
+   "st is Closed → 1 <= balance → refunded + toBeneficiary <= 0"
+  ]
+ },
+ {
+  "item": "xstate/electric/pullWakeRunner",
+  "law": 2,
+  "name": "STOP while running always goes to stopping",
+  "outcome": "proven",
+  "ms": 734
+ },
+ {
+  "item": "circuit breaker/polly/ConsecutiveCountCircuitController",
+  "law": 2,
+  "name": "a success in half-open closes the circuit",
+  "outcome": "proven",
+  "ms": 373
+ },
+ {
+  "item": "xstate/amplify-ui/forgotPassword",
+  "law": 6,
+  "name": "a submitted new password ends resolved or back at the form",
+  "outcome": "unknown",
+  "ms": 9096,
+  "goal": "a submitted new password ends resolved or back at the form: each step stays or gets there, the rank kept only with its region @step law",
+  "stuck": "sat",
+  "why": "rank (1 + confirms + requests + startStep + step − state) from the runs; the kernel's goals not proven with it",
+  "witness": {
+   "requests": 0,
+   "confirms": 0,
+   "validation": 0,
+   "fieldErrors": 0,
+   "remoteError": 0,
+   "step": 0,
+   "startStep": 0,
+   "next": 0,
+   "event": 9,
+   "state": 4
+  },
+  "found": [
+   "rank (1 + confirms + requests + startStep + step − state)"
+  ]
+ },
+ {
+  "item": "queue/p-retry/pRetry",
+  "law": 0,
+  "name": "the retries consumed never exceed retries",
+  "outcome": "proven",
+  "ms": 442
+ },
+ {
+  "item": "queue/p-retry/pRetry",
+  "law": 4,
+  "name": "an AbortError stops retrying",
+  "outcome": "proven",
+  "ms": 504
+ },
+ {
+  "item": "circuit breaker/polly/ConsecutiveCountCircuitController",
+  "law": 6,
+  "name": "an isolated circuit stays isolated until reset",
+  "outcome": "proven",
+  "ms": 282
+ },
+ {
+  "item": "xstate/amplify-ui/forgotPassword",
+  "law": 2,
+  "name": "a new password is sent only after the fields validate",
+  "outcome": "proven",
+  "ms": 1118
+ },
+ {
+  "item": "access/node-casbin/effectorStream",
+  "law": 3,
+  "name": "deny-override: once evaluated, allowed exactly when no policy denies",
+  "outcome": "proven",
+  "ms": 18246,
+  "found": [
+   "never done is no and res is yes and rec is yes and sawAllow is no and sawDeny is yes",
+   "never done is no and res is yes and rec is yes and sawAllow is yes and sawDeny is yes",
+   "never done is no and res is yes and rec is no and sawAllow is no and sawDeny is yes",
+   "never done is no and res is yes and rec is no and sawAllow is yes and sawDeny is yes",
+   "never done is no and res is no and rec is yes and sawAllow is no and sawDeny is yes",
+   "never done is no and res is no and rec is yes and sawAllow is yes and sawDeny is yes",
+   "never done is no and res is no and rec is no and sawAllow is yes and sawDeny is yes",
+   "res is no and rec is no and sawAllow is no and sawDeny is yes → done is no → expr <= 0",
+   "never done is no and res is yes and rec is yes and sawAllow is no and sawDeny is no",
+   "never done is no and res is no and rec is yes and sawAllow is yes and sawDeny is no",
+   "never done is no and res is no and rec is no and sawAllow is yes and sawDeny is no",
+   "res is yes and rec is yes and sawAllow is yes and sawDeny is no → done is no → 2 <= expr",
+   "res is yes and rec is no and sawAllow is yes and sawDeny is no → done is no → 1 <= expr",
+   "res is yes and rec is no and sawAllow is no and sawDeny is no → done is no → 1 <= expr",
+   "never done is no and res is no and rec is yes and sawAllow is no and sawDeny is no"
+  ]
+ },
+ {
+  "item": "xstate/electric/pullWakeRunner",
+  "law": 6,
+  "name": "a started runner always comes back to stopped",
+  "outcome": "unknown",
+  "ms": 233,
+  "why": "no linear rank, in order, that 5 helpful steps sampled lower and 16 others keep"
+ },
+ {
+  "item": "auth/better-auth/twoFactorOTP",
+  "law": 3,
+  "name": "a locked account accepts no code",
+  "outcome": "proven",
+  "ms": 983
+ },
+ {
+  "item": "ledger/openzeppelin/RefundEscrow",
+  "law": 4,
+  "name": "only the owner changes the state",
+  "outcome": "proven",
+  "ms": 210
+ },
+ {
+  "item": "xstate/vef-framework-react/uploader",
+  "law": 6,
+  "name": "an abort in an active phase always tears the session down",
+  "outcome": "proven",
+  "ms": 244
+ },
+ {
+  "item": "quota/litellm/maxBudgetChecks",
+  "law": 1,
+  "name": "a team whose spend has reached its max_budget is refused",
+  "outcome": "refuted",
+  "ms": 7,
+  "goal": "a team whose spend has reached its max_budget is refused @step law",
+  "stuck": "sat",
+  "run": {
+   "params": {
+    "keyLimited": 0,
+    "keyMax": 1,
+    "teamLimited": 1,
+    "teamMax": 0,
+    "maxCost": 2
+   },
+   "trace": [
+    {
+     "op": 0,
+     "cost": 0
+    }
+   ]
+  }
+ },
+ {
+  "item": "access/cedar-examples/documentCloud",
+  "law": 3,
+  "name": "a private document is open to its owner only",
+  "outcome": "proven",
+  "ms": 61
+ },
+ {
+  "item": "quota/librechat/balanceReservation",
+  "law": 1,
+  "name": "releasing an unknown or already released reservation changes nothing",
+  "outcome": "proven",
+  "ms": 970
+ },
+ {
+  "item": "inventory/solidus/stockItem",
+  "law": 1,
+  "name": "backordered units filled never exceed the stock received",
+  "outcome": "proven",
+  "ms": 325
+ },
+ {
+  "item": "inventory/solidus/stockItem",
+  "law": 0,
+  "name": "a stock item that is not backorderable never has a negative count",
+  "outcome": "proven",
+  "ms": 343
+ },
+ {
+  "item": "quota/librechat/balanceReservation",
+  "law": 0,
+  "name": "an admission reserves only credits no other request holds",
+  "outcome": "proven",
+  "ms": 14706,
+  "found": [
+   "hasReserved is no → reserved <= 0"
+  ]
+ },
+ {
+  "item": "access/cedar-examples/documentCloud",
+  "law": 2,
+  "name": "the owner can delete their document",
+  "outcome": "refuted",
+  "ms": 53,
+  "goal": "the owner can delete their document",
+  "stuck": "sat",
+  "why": "a model",
+  "witness": {
+   "publicAccess": 0,
+   "inManage": 0,
+   "inModify": 0,
+   "isPrivate": 0,
+   "inView": 0,
+   "theDrive": 0,
+   "owner": 0,
+   "pid": 0,
+   "pBlocksOwner": 0,
+   "ownerBlocksP": 0,
+   "isPublic": 0,
+   "authenticated": 1,
+   "action": 2
+  }
+ },
+ {
+  "item": "quota/litellm/maxBudgetChecks",
+  "law": 0,
+  "name": "a key whose spend has reached its max_budget is refused",
+  "outcome": "proven",
+  "ms": 176
+ },
+ {
+  "item": "xstate/vef-framework-react/uploader",
+  "law": 7,
+  "name": "a phase that rejects always ends in failed",
+  "outcome": "proven",
+  "ms": 469
+ },
+ {
+  "item": "ledger/openzeppelin/RefundEscrow",
+  "law": 5,
+  "name": "a refund only while refunding",
+  "outcome": "proven",
+  "ms": 253
+ },
+ {
+  "item": "auth/better-auth/twoFactorOTP",
+  "law": 2,
+  "name": "an expired code is never accepted",
+  "outcome": "proven",
+  "ms": 561
+ },
+ {
+  "item": "access/node-casbin/effectorStream",
+  "law": 2,
+  "name": "allow-override: allowed exactly when some policy allows",
+  "outcome": "proven",
+  "ms": 1330
+ },
+ {
+  "item": "xstate/amplify-ui/forgotPassword",
+  "law": 3,
+  "name": "a completed reset resolves as RESET_PASSWORD_COMPLETE",
+  "outcome": "proven",
+  "ms": 1192
+ },
+ {
+  "item": "circuit breaker/polly/ConsecutiveCountCircuitController",
+  "law": 7,
+  "name": "an open circuit goes half-open once the break ends",
+  "outcome": "unknown",
+  "ms": 104,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 3 others keep"
+ },
+ {
+  "item": "queue/p-retry/pRetry",
+  "law": 5,
+  "name": "a settled call is never attempted again",
+  "outcome": "proven",
+  "ms": 442
+ },
+ {
+  "item": "circuit breaker/polly/ConsecutiveCountCircuitController",
+  "law": 5,
+  "name": "a closed circuit has fewer consecutive failures than allowed",
+  "outcome": "proven",
+  "ms": 335
+ },
+ {
+  "item": "xstate/amplify-ui/forgotPassword",
+  "law": 1,
+  "name": "it resolves only after a confirmation was sent",
+  "outcome": "proven",
+  "ms": 4881,
+  "found": [
+   "state is confirmResetPassword.pending → 1 <= confirms"
+  ]
+ },
+ {
+  "item": "xstate/electric/pullWakeRunner",
+  "law": 5,
+  "name": "START while not stopped changes nothing",
+  "outcome": "proven",
+  "ms": 702
+ },
+ {
+  "item": "access/node-casbin/effectorStream",
+  "law": 0,
+  "name": "allow-and-deny: any matching deny denies",
+  "outcome": "proven",
+  "ms": 6740,
+  "found": [
+   "never done is no and res is no and rec is yes and sawAllow is no and sawDeny is yes",
+   "never done is no and res is no and rec is yes and sawAllow is yes and sawDeny is yes",
+   "never done is no and res is no and rec is no and sawAllow is yes and sawDeny is yes",
+   "res is no and rec is no and sawAllow is no and sawDeny is yes → done is no → expr <= 0",
+   "never done is no and res is no and rec is yes and sawAllow is no and sawDeny is no",
+   "never done is no and res is no and rec is yes and sawAllow is yes and sawDeny is no",
+   "never done is no and res is no and rec is no and sawAllow is yes and sawDeny is no"
+  ]
+ },
+ {
+  "item": "auth/better-auth/twoFactorOTP",
+  "law": 0,
+  "name": "at most allowedAttempts guesses are compared per code",
+  "outcome": "proven",
+  "ms": 12648,
+  "found": [
+   "never has is yes and isLocked is yes and ok is yes",
+   "isLocked is yes and ok is no → has is yes → compared <= attempts",
+   "isLocked is no and ok is yes → has is yes → compared <= 0",
+   "isLocked is no and ok is no → has is yes → compared <= attempts",
+   "never has is no and isLocked is yes and ok is yes",
+   "isLocked is yes and ok is no → has is yes → 1 <= lockOn",
+   "never has is no and isLocked is yes and ok is no"
+  ]
+ },
+ {
+  "item": "xstate/vef-framework-react/uploader",
+  "law": 5,
+  "name": "aborted is never left",
+  "outcome": "proven",
+  "ms": 390
+ },
+ {
+  "item": "access/cedar-examples/documentCloud",
+  "law": 0,
+  "name": "an unauthenticated request is always denied",
+  "outcome": "proven",
+  "ms": 50
+ },
+ {
+  "item": "quota/litellm/maxBudgetChecks",
+  "law": 2,
+  "name": "while requests do not overlap, a key's spend passes its max_budget by at most one request's cost",
+  "outcome": "unknown",
+  "ms": 4994,
+  "goal": "while requests do not overlap, a key's spend passes its max_budget by at most one request's cost @step",
+  "stuck": "sat",
+  "why": "the search found nothing that proves it in 4830 ms",
+  "witness": {
+   "keyMax": 0,
+   "keySpend": 1,
+   "maxCost": 1,
+   "cost": 1,
+   "teamLimited": 0,
+   "inflight": 1,
+   "keyLimited": 1,
+   "op": 1,
+   "overlapped": 0
+  }
+ },
+ {
+  "item": "inventory/solidus/stockItem",
+  "law": 2,
+  "name": "stock received fills waiting backordered units first",
+  "outcome": "proven",
+  "ms": 8973
+ },
+ {
+  "item": "quota/librechat/balanceReservation",
+  "law": 2,
+  "name": "a renewal never revives a released reservation",
+  "outcome": "proven",
+  "ms": 681
+ },
+ {
+  "item": "quota/librechat/balanceReservation",
+  "law": 3,
+  "name": "a reservation that has not expired is never pruned",
+  "outcome": "proven",
+  "ms": 511
+ },
+ {
+  "item": "inventory/solidus/stockItem",
+  "law": 3,
+  "name": "a stock movement of a variant that does not track inventory never changes the count",
+  "outcome": "proven",
+  "ms": 455
+ },
+ {
+  "item": "access/cedar-examples/documentCloud",
+  "law": 1,
+  "name": "only the owner can delete a document",
+  "outcome": "proven",
+  "ms": 52
+ },
+ {
+  "item": "xstate/vef-framework-react/uploader",
+  "law": 4,
+  "name": "failed is never left",
+  "outcome": "proven",
+  "ms": 234
+ },
+ {
+  "item": "auth/better-auth/twoFactorOTP",
+  "law": 1,
+  "name": "a code is accepted at most once",
+  "outcome": "proven",
+  "ms": 9630,
+  "found": [
+   "never has is yes and isLocked is yes and ok is yes",
+   "isLocked is yes and ok is no → has is yes → accepted <= 0",
+   "isLocked is no and ok is no → has is yes → accepted <= 0",
+   "isLocked is no and ok is yes → has is yes → accepted <= 0",
+   "never has is no and isLocked is yes and ok is yes",
+   "isLocked is yes and ok is no → has is yes → 1 <= lockOn",
+   "never has is no and isLocked is yes and ok is no"
+  ]
+ },
+ {
+  "item": "ledger/openzeppelin/RefundEscrow",
+  "law": 6,
+  "name": "once refunding, every deposit is refunded",
+  "outcome": "unknown",
+  "ms": 49,
+  "why": "no linear rank, in order, that 0 helpful steps sampled lower and 1 others keep"
+ },
+ {
+  "item": "access/node-casbin/effectorStream",
+  "law": 1,
+  "name": "allow-and-deny: no matching allow, no access",
+  "outcome": "proven",
+  "ms": 532
+ },
+ {
+  "item": "xstate/electric/pullWakeRunner",
+  "law": 4,
+  "name": "a second reset while streaming changes nothing",
+  "outcome": "proven",
+  "ms": 717
+ },
+ {
+  "item": "xstate/amplify-ui/forgotPassword",
+  "law": 0,
+  "name": "resolved is never left",
+  "outcome": "proven",
+  "ms": 872
+ },
+ {
+  "item": "circuit breaker/polly/ConsecutiveCountCircuitController",
+  "law": 4,
+  "name": "a late result while open does not extend the break",
+  "outcome": "proven",
+  "ms": 472
+ },
+ {
+  "item": "queue/p-retry/pRetry",
+  "law": 6,
+  "name": "with finite retries every call settles",
+  "outcome": "unknown",
+  "ms": 7877,
+  "goal": "with finite retries every call settles: each step stays or gets there, the rank kept only with its region @step law",
+  "stuck": "sat",
+  "why": "rank (1 + maxTimeout + minTimeout + retries − (attempts + consumed + hasMaxTimeout + waited)) from the runs; the kernel's goals not proven with it",
+  "witness": {
+   "resumeAt": 0,
+   "consumed*minTimeout": 0,
+   "consumed*factor": 0,
+   "consumed*consumed*consumed": 0,
+   "consumed*consumed": 0,
+   "minTimeout*minTimeout*minTimeout": 0,
+   "minTimeout*minTimeout": 0,
+   "factor*minTimeout": 0,
+   "consumed*minTimeout*minTimeout": 0,
+   "consumed*consumed*minTimeout": 0,
+   "attempts": 0,
+   "delay[consumed*consumed*consumed*consumed:1,consumed*consumed*consumed*minTimeout:4,consumed*consumed*factor:2,consumed*consumed*minTimeout:2,consumed*consumed*minTimeout*minTimeout:6,consumed*factor*minTimeout:4,consumed*minTimeout*minTimeout:4,consumed*minTimeout*minTimeout*minTimeout:4,factor:1,factor*factor:1,factor*minTimeout:2,factor*minTimeout*minTimeout:2,minTimeout*minTimeout:1,minTimeout*minTimeout*minTimeout:2,minTimeout*minTimeout*minTimeout*minTimeout:1]": 0,
+   "consumed": 0,
+   "factor": 0,
+   "now": 0,
+   "waited": 3,
+   "maxTimeout": 0,
+   "retries": 1,
+   "maxRetryTime": 1,
+   "minTimeout": 2,
+   "delay[1:16,consumed:32,consumed*consumed:24,consumed*consumed*consumed:8,consumed*consumed*consumed*consumed:1,consumed*consumed*consumed*minTimeout:4,consumed*consumed*factor:2,consumed*consumed*minTimeout:26,consumed*consumed*minTimeout*minTimeout:6,consumed*factor:8,consumed*factor*minTimeout:4,consumed*minTimeout:56,consumed*minTimeout*minTimeout:28,consumed*minTimeout*minTimeout*minTimeout:4,factor:9,factor*factor:1,factor*minTimeout:10,factor*minTimeout*minTimeout:2,minTimeout:40,minTimeout*minTimeout:33,minTimeout*minTimeout*minTimeout:10,minTimeout*minTimeout*minTimeout*minTimeout:1]": 0,
+   "delay[1:1,consumed:4,consumed*consumed:6,consumed*consumed*consumed:4,consumed*consumed*consumed*consumed:1,consumed*consumed*consumed*minTimeout:4,consumed*consumed*factor:2,consumed*consumed*minTimeout:14,consumed*consumed*minTimeout*minTimeout:6,consumed*factor:4,consumed*factor*minTimeout:4,consumed*minTimeout:16,consumed*minTimeout*minTimeout:16,consumed*minTimeout*minTimeout*minTimeout:4,factor:3,factor*factor:1,factor*minTimeout:6,factor*minTimeout*minTimeout:2,minTimeout:6,minTimeout*minTimeout:11,minTimeout*minTimeout*minTimeout:6,minTimeout*minTimeout*minTimeout*minTimeout:1]": 0,
+   "hasMaxTimeout": 1,
+   "typeError": 0,
+   "abort": 0,
+   "ok": 0,
+   "forever": 0,
+   "consume": 1,
+   "retry": 1,
+   "hasMaxRetryTime": 1,
+   "st": 0
+  },
+  "found": [
+   "rank (1 + maxTimeout + minTimeout + retries − (attempts + consumed + hasMaxTimeout + waited))"
+  ]
+ }
+]

@@ -1089,3 +1089,188 @@ export function foldObligations(f: Fold, laws: Law[]): Goal[] {
   const node = step(holds(from(), [...assume, ...laws.flatMap(h => [substC(h.holds, side('l_')), substC(h.holds, side('r_'))])]), {vars: f.node, maps: {}})
   return laws.flatMap(law => [goal(`${law.name} @leaf`, leaf, atEnd(leaf, law.holds)), goal(`${law.name} @node`, node, atEnd(node, law.holds))])
 }
+
+// --- rationals: Rationals.lean's twin --------------------------------------------------------------------------------
+// A goal over the rationals: hypotheses over terms whose values are rationals (variables, rational constants, +, −
+// not truncated, × by a rational constant, min, max, if; ≤, <, =, and, or, not), with no naturality row and no term
+// column. A term's linear form is a row with integer coefficients over a positive denominator, computed exactly
+// (bigint), as Lean's `linear`; a split's no side is the strict row −lin < 0; a leaf's derivation is checked by
+// check.ts with no cut (Rationals.lean's checkQ). Each function below is the Lean definition of the same name in
+// namespace Q; the exporter writes each leaf's inputs as the rows Lean finds among its own (`claimOk`).
+export type Rat = {num: bigint, den: bigint}
+export type QE =
+  | {op: 'var', name: string}
+  | {op: 'const', q: Rat}
+  | {op: 'add' | 'sub' | 'min' | 'max', a: QE, b: QE}
+  | {op: 'mul', k: Rat, a: QE}
+  | {op: 'if', c: QC, then: QE, else: QE}
+export type QC = {op: '<=' | '<' | '=', a: QE, b: QE} | {op: 'and' | 'or', a: QC, b: QC} | {op: 'not', x: QC}
+export type QGoal = {name: string, hyps: QC[]}
+// A row: coefficients by variable (none zero) and a constant; a form is a row over a positive denominator.
+export type QRow = {cs: Map<string, bigint>, c: bigint}
+export type LF = {row: QRow, den: bigint}
+const bgcd = (a: bigint, b: bigint): bigint => { a = a < 0n ? -a : a; b = b < 0n ? -b : b; while (b) [a, b] = [b, a % b]; return a }
+// Lean's q.num and q.den: the reduced fraction (a denominator <= 0 is no rational).
+export const ratNorm = (q: Rat): Rat => {
+  if (q.den <= 0n) throw new Error('a rational has a positive denominator')
+  const g = bgcd(q.num, q.den) || 1n
+  return {num: q.num / g, den: q.den / g}
+}
+const rscale = (m: bigint, r: QRow): QRow => ({cs: new Map(m === 0n ? [] : [...r.cs].map(([x, c]) => [x, m * c])), c: m * r.c})
+const radd = (a: QRow, b: QRow): QRow => {
+  const cs = new Map(a.cs)
+  for (const [x, c] of b.cs) { const s = (cs.get(x) ?? 0n) + c; if (s === 0n) cs.delete(x); else cs.set(x, s) }
+  return {cs, c: a.c + b.c}
+}
+export const qdif = (a: LF, b: LF): QRow => radd(rscale(b.den, a.row), rscale(-a.den, b.row))
+// A row as a Lin, its coefficients safe integers (else undefined: a row past 2^53 is not read, so the check is weaker,
+// never wrong); and its key, as `canon` writes a Lin (zero coefficients dropped: Lean's `same` compares by value).
+export const qLin = (r: QRow): Lin | undefined => {
+  const out: Lin = {}
+  for (const [x, c] of r.cs) { if (c < -(2n ** 53n) + 1n || c > 2n ** 53n - 1n) return undefined; out[x] = Number(c) }
+  if (r.c !== 0n) { if (r.c < -(2n ** 53n) + 1n || r.c > 2n ** 53n - 1n) return undefined; out['1'] = Number(r.c) }
+  return out
+}
+const linRow = (lin: Lin): QRow | undefined => {
+  if (!Object.values(lin).every(c => Number.isSafeInteger(c))) return undefined
+  const cs = new Map<string, bigint>()
+  for (const [x, c] of Object.entries(lin)) if (x !== '1' && c !== 0) cs.set(x, BigInt(c))
+  return {cs, c: BigInt(lin['1'] ?? 0)}
+}
+const rowKey = (r: QRow): string | undefined => { const lin = qLin(r); return lin && canon(lin) }
+export function qdec(path: Path, r: QRow): boolean | undefined {
+  if (r.cs.size === 0) return r.c <= 0n
+  const key = rowKey(r)
+  return key === undefined ? undefined : path.get(key)?.holds
+}
+export function qlinear(e: QE, path: Path): LF | undefined {
+  switch (e.op) {
+    case 'var': return e.name === '1' ? undefined : {row: {cs: new Map([[e.name, 1n]]), c: 0n}, den: 1n}
+    case 'const': { const q = ratNorm(e.q); return {row: {cs: new Map(), c: q.num}, den: q.den} }
+    case 'add': case 'sub': {
+      const a = qlinear(e.a, path), b = qlinear(e.b, path)
+      if (!a || !b) return undefined
+      return {row: e.op === 'add' ? radd(rscale(b.den, a.row), rscale(a.den, b.row)) : qdif(a, b), den: a.den * b.den}
+    }
+    case 'mul': { const k = ratNorm(e.k), a = qlinear(e.a, path); return a && {row: rscale(k.num, a.row), den: k.den * a.den} }
+    case 'min': case 'max': {
+      const a = qlinear(e.a, path), b = qlinear(e.b, path)
+      if (!a || !b) return undefined
+      const d = qdec(path, qdif(a, b))
+      return d === undefined ? undefined : (d === (e.op === 'min')) ? a : b
+    }
+    case 'if': { const t = qtruth(e.c, path); return t === undefined ? undefined : qlinear(t ? e.then : e.else, path) }
+    default: return unreachable(e)
+  }
+}
+export function qtruth(c: QC, path: Path): boolean | undefined {
+  switch (c.op) {
+    case '<=': case '<': case '=': {
+      const a = qlinear(c.a, path), b = qlinear(c.b, path)
+      if (!a || !b) return undefined
+      if (c.op === '<=') return qdec(path, qdif(a, b))
+      if (c.op === '<') { const d = qdec(path, qdif(b, a)); return d === undefined ? undefined : !d }
+      const d1 = qdec(path, qdif(a, b)), d2 = qdec(path, qdif(b, a))
+      return d1 === false || d2 === false ? false : d1 === true && d2 === true ? true : undefined
+    }
+    case 'and': case 'or': {
+      const ta = qtruth(c.a, path), tb = qtruth(c.b, path), dominant = c.op === 'or'
+      return ta === dominant || tb === dominant ? dominant : ta === !dominant && tb === !dominant ? !dominant : undefined
+    }
+    case 'not': { const t = qtruth(c.x, path); return t === undefined ? undefined : !t }
+    default: return unreachable(c)
+  }
+}
+// The rows (each with its strictness) a hypothesis gives under the path when it has the truth value `pos`.
+export function qfacts(c: QC, path: Path, pos = true): [QRow, boolean][] {
+  switch (c.op) {
+    case 'not': return qfacts(c.x, path, !pos)
+    case 'and': case 'or': {
+      // and when true, or when false: both parts; otherwise the part the other one's truth leaves.
+      if ((c.op === 'and') === pos) return [...qfacts(c.a, path, pos), ...qfacts(c.b, path, pos)]
+      if (qtruth(c.a, path) === !pos) return qfacts(c.b, path, pos)
+      if (qtruth(c.b, path) === !pos) return qfacts(c.a, path, pos)
+      return []
+    }
+    case '<=': case '<': case '=': {
+      const a = qlinear(c.a, path), b = qlinear(c.b, path)
+      if (!a || !b) return []
+      if (c.op === '<=') return pos ? [[qdif(a, b), false]] : [[qdif(b, a), true]]
+      if (c.op === '<') return pos ? [[qdif(a, b), true]] : [[qdif(b, a), false]]
+      if (pos) return [[qdif(a, b), false], [qdif(b, a), false]]
+      if (qdec(path, qdif(a, b)) === true) return [[qdif(a, b), true]]
+      if (qdec(path, qdif(b, a)) === true) return [[qdif(b, a), true]]
+      return []
+    }
+    default: return unreachable(c)
+  }
+}
+// A leaf's rows: the path's atoms (l <= 0, or −l < 0), then each hypothesis' facts; a row past 2^53 is left out.
+export function qLeafRows(goal: QGoal, path: Path): Constraint[] {
+  const rows: [QRow, boolean][] = [...[...path.values()].map(a => (a.holds ? [linRow(a.lin)!, false] : [rscale(-1n, linRow(a.lin)!), true]) as [QRow, boolean]),
+    ...goal.hyps.flatMap(h => qfacts(h, path))]
+  return rows.flatMap(([r, strict]) => { const lin = qLin(r); return lin ? [{lin, label: '', strict}] : [] })
+}
+// A split on a row the path decides already (or a constant one) is refused, as Lean's checkT refuses it.
+export function checkQTree(goal: QGoal, tree: Tree, path: Path = new Map()): boolean {
+  if ('leaf' in tree) return !tree.products?.length && !tree.squares?.length && checkRefutation(qLeafRows(goal, path), tree.leaf, false)
+  const row = linRow(tree.split), lin = row && qLin(row)
+  if (!row || !lin || qdec(path, row) !== undefined) return false
+  const key = canon(lin)
+  return checkQTree(goal, tree.yes, new Map(path).set(key, {lin, holds: true})) && checkQTree(goal, tree.no, new Map(path).set(key, {lin, holds: false}))
+}
+
+// Step machines over the rationals (Rationals.lean's Machine): params, inputs and state are rationals; `state` is each
+// state variable's start over the params, `step` its value after a request (a variable it leaves out keeps its value).
+export type QMachine = {name: string, params: string[], inputs: string[], state: Record<string, QE>, step: Record<string, QE>, pre?: QC, assume?: QC}
+export type QLaw = {name: string, holds: QC}
+export const qTrue: QC = {op: '<=', a: {op: 'const', q: {num: 0n, den: 1n}}, b: {op: 'const', q: {num: 0n, den: 1n}}}
+export function qSubstE(e: QE, s: Record<string, QE>): QE {
+  switch (e.op) {
+    case 'var': return Object.hasOwn(s, e.name) ? s[e.name]! : e
+    case 'const': return e
+    case 'mul': return {...e, a: qSubstE(e.a, s)}
+    case 'if': return {op: 'if', c: qSubstC(e.c, s), then: qSubstE(e.then, s), else: qSubstE(e.else, s)}
+    case 'add': case 'sub': case 'min': case 'max': return {...e, a: qSubstE(e.a, s), b: qSubstE(e.b, s)}
+    default: return unreachable(e)
+  }
+}
+export function qSubstC(c: QC, s: Record<string, QE>): QC {
+  switch (c.op) {
+    case 'not': return {op: 'not', x: qSubstC(c.x, s)}
+    case 'and': case 'or': return {op: c.op, a: qSubstC(c.a, s), b: qSubstC(c.b, s)}
+    case '<=': case '<': case '=': return {op: c.op, a: qSubstE(c.a, s), b: qSubstE(c.b, s)}
+    default: return unreachable(c)
+  }
+}
+export function qOccurs(t: QE | QC, names: string[]): boolean {
+  switch (t.op) {
+    case 'var': return names.includes(t.name)
+    case 'const': return false
+    case 'mul': return qOccurs(t.a, names)
+    case 'not': return qOccurs(t.x, names)
+    case 'if': return qOccurs(t.c, names) || qOccurs(t.then, names) || qOccurs(t.else, names)
+    case 'and': case 'or': return qOccurs(t.a, names) || qOccurs(t.b, names)
+    case 'add': case 'sub': case 'min': case 'max': case '<=': case '<': case '=': return qOccurs(t.a, names) || qOccurs(t.b, names)
+    default: return unreachable(t)
+  }
+}
+// startGoal and stepGoal: the law refuted at the start, and after a step from where every law and the request's
+// assumption hold.
+export function qObligations(m: QMachine, laws: QLaw[], law: QLaw): {start: QGoal, step: QGoal} {
+  const pre = m.pre ?? qTrue, assume = m.assume ?? qTrue
+  return {
+    start: {name: `${law.name} @start`, hyps: [pre, {op: 'not', x: qSubstC(law.holds, m.state)}]},
+    step: {name: `${law.name} @step`, hyps: [pre, assume, ...laws.map(l => l.holds), {op: 'not', x: qSubstC(law.holds, m.step)}]},
+  }
+}
+// checkMachine: the precondition reads no input and no state variable, no law reads an input, and each law's start
+// and step goals are refuted by its trees.
+export function checkQMachine(m: QMachine, laws: QLaw[], trees: Record<string, {start: Tree, step: Tree}>): boolean {
+  const assigned = [...m.inputs, ...Object.keys(m.state), ...Object.keys(m.step)]
+  if (m.pre && qOccurs(m.pre, assigned)) return false
+  return laws.every(law => {
+    const t = trees[law.name], goals = qObligations(m, laws, law)
+    return !!t && !qOccurs(law.holds, m.inputs) && checkQTree(goals.start, t.start) && checkQTree(goals.step, t.step)
+  })
+}

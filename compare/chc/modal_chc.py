@@ -96,6 +96,9 @@ def command(tool: str, task: str, limit: int) -> list[str]:
     if tool == "tmpl":
         # Not a solver: what inferLaws would search on the task (prof/template.ts), for the gap analysis.
         return ["bun", "compare/chc/prof/template.ts", task]
+    if tool == "kind":
+        # Not a solver: whether the law is k-inductive (prof/kind.ts), a measure of what k-induction would add.
+        return ["bun", "compare/chc/prof/kind.ts", task, "--ms", str((limit - 5) * 1000)]
     if tool == "given":
         # Not a solver: proveRule given Spacer's invariant (prof/given.ts), its models in prof/given-models.json.
         return ["bun", "compare/chc/prof/given.ts", task, "compare/chc/prof/given-models.json", "--ms", str((limit - 5) * 1000)]
@@ -122,7 +125,7 @@ def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]
             code, out, err = 124, "", "killed"
         secs = round(time.time() - t0, 2)
         lines = [l for l in out.splitlines() if l.strip()]
-        if tool in ("gdp", "tmpl", "given"):
+        if tool in ("gdp", "tmpl", "given", "kind"):
             stages = []
             for l in lines:
                 try:
