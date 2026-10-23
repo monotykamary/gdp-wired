@@ -30,7 +30,7 @@ import type {Goal, Liveness, Loop, Subst, Tree} from '../kernel/kernel.ts'
 import {check, livenessHelpful, livenessParts, loopLiveness, loopMachine, loopObligations, substC, substE} from '../kernel/kernel.ts'
 import {type Cyclic, type Fact, checkCyclic, factsAvoid, lexLt} from '../kernel/cyclic.ts'
 import {type NodeSpec, proveCyclic} from './cyclic.ts'
-import {type Lin, canon, gcd, konst, plus, refuteFast, solve, subst, times, vars, work} from './solver.ts'
+import {type Lin, canon, gcd, konst, pivot, plus, ratioRow, refuteFast, solve, subst, times, vars, work} from './solver.ts'
 import {clock, grow, proveLaws, proveLiveness, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {inferLaws} from './infer.ts'
 import {bgcd} from './q.ts'
@@ -430,19 +430,10 @@ function floatSolve(rows: Lin[], until: number, equil = true, again = true): Rec
       if (stalled < 50) { let low = -eps; for (let j = 0; j < cols; j++) if (z[j]! < low && open(j)) { low = z[j]!; enter = j } }
       else for (let j = 0; j < cols; j++) if (z[j]! < -eps && open(j)) { enter = j; break }
       if (enter < 0) return true
-      let leave = -1, best = Infinity
-      for (let r = 0; r < T.length; r++) {
-        const a = T[r]![enter]!
-        if (a > eps) { const ratio = T[r]![cols]! / a; if (ratio < best - eps || (Math.abs(ratio - best) <= eps && basis[r]! < basis[leave]!)) { best = ratio; leave = r } }
-      }
+      const [leave, best] = ratioRow(T, basis, enter, cols, eps)
       if (leave < 0) return false
       stalled = best <= eps ? stalled + 1 : 0
-      const p = T[leave]!, pv = p[enter]!
-      for (let j = 0; j <= cols; j++) p[j]! /= pv
-      for (let r = 0; r < T.length; r++) if (r !== leave) { const f = T[r]![enter]!; if (f !== 0) { const row = T[r]!; for (let j = 0; j <= cols; j++) row[j]! -= f * p[j]! } }
-      const f = z[enter]!
-      if (f !== 0) for (let j = 0; j <= cols; j++) z[j]! -= f * p[j]!
-      basis[leave] = enter
+      pivot(T, z, basis, leave, enter, cols)
     }
     return false
   }
@@ -455,10 +446,7 @@ function floatSolve(rows: Lin[], until: number, equil = true, again = true): Rec
     let j = -1
     for (let c = 0; c < 2 * n + m; c++) if (Math.abs(T[i]![c]!) > eps) { j = c; break }
     if (j < 0) { T.splice(i, 1); basis.splice(i, 1); continue }
-    const p = T[i]!, pv = p[j]!
-    for (let c = 0; c <= cols; c++) p[c]! /= pv
-    for (let r = 0; r < T.length; r++) if (r !== i) { const f = T[r]![j]!; if (f !== 0) { const row = T[r]!; for (let c = 0; c <= cols; c++) row[c]! -= f * p[c]! } }
-    basis[i] = j
+    pivot(T, undefined, basis, i, j, cols)
   }
   if (!run(j => (j < 2 * n ? 1 : 0), j => !art(j))) return undefined
   const val = (j: number) => { const i = basis.indexOf(j); return i < 0 ? 0 : T[i]![cols]! }

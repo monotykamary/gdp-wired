@@ -265,6 +265,24 @@ function prune(steps: Step[], last: number): Step[] {
   })
 }
 
+// A float simplex's steps (refuteFast's, cycles.ts's floatSolve): the row leaving where a column enters, the least ratio
+// (Bland's tie-break by basis index; -1: unbounded), and its pivot, the reduced costs z with it.
+export const ratioRow = (T: Float64Array[], basis: number[], enter: number, cols: number, eps: number): [number, number] => {
+  let leave = -1, best = Infinity
+  for (let r = 0; r < T.length; r++) {
+    const a = T[r]![enter]!
+    if (a > eps) { const ratio = T[r]![cols]! / a; if (ratio < best - eps || (Math.abs(ratio - best) <= eps && basis[r]! < basis[leave]!)) { best = ratio; leave = r } }
+  }
+  return [leave, best]
+}
+export function pivot(T: Float64Array[], z: Float64Array | undefined, basis: number[], leave: number, enter: number, cols: number): void {
+  const p = T[leave]!, pv = p[enter]!
+  for (let j = 0; j <= cols; j++) p[j]! /= pv
+  for (let r = 0; r < T.length; r++) if (r !== leave) { const f = T[r]![enter]!; if (f !== 0) { const row = T[r]!; for (let j = 0; j <= cols; j++) row[j]! -= f * p[j]! } }
+  const f = z ? z[enter]! : 0
+  if (f !== 0) for (let j = 0; j <= cols; j++) z![j]! -= f * p[j]!
+  basis[leave] = enter
+}
 // A refutation found fast, where there is one over the rationals: Farkas' lemma says rows a·x + c <= 0 (x free) have no
 // rational solution exactly when some λ >= 0 has Σ λ·a = 0 and Σ λ·c > 0. A floating-point simplex looks for such λ
 // (phase one on Σ λ·a = 0, Σ λ·c = 1), and elimination on the rows it uses alone (usually a handful) gives the
@@ -299,18 +317,9 @@ export function refuteFast(constraints: Constraint[], maxRows = 2_000, integral 
     let enter = -1
     for (let j = 0; j < cols; j++) if (z[j]! < -eps) { enter = j; break }
     if (enter < 0) break
-    let leave = -1, best = Infinity
-    for (let r = 0; r < R; r++) {
-      const a = T[r]![enter]!
-      if (a > eps) { const ratio = T[r]![cols]! / a; if (ratio < best - eps || (Math.abs(ratio - best) <= eps && basis[r]! < basis[leave]!)) { best = ratio; leave = r } }
-    }
+    const [leave] = ratioRow(T, basis, enter, cols, eps)
     if (leave < 0) return undefined // unbounded: cannot happen in phase one; give up rather than guess
-    const p = T[leave]!, pv = p[enter]!
-    for (let j = 0; j <= cols; j++) p[j]! /= pv
-    for (let r = 0; r < R; r++) if (r !== leave) { const f = T[r]![enter]!; if (f !== 0) { const row = T[r]!; for (let j = 0; j <= cols; j++) row[j]! -= f * p[j]! } }
-    const f = z[enter]!
-    if (f !== 0) for (let j = 0; j <= cols; j++) z[j]! -= f * p[j]!
-    basis[leave] = enter
+    pivot(T, z, basis, leave, enter, cols)
   }
   if (-z[cols]! > 1e-7) return undefined // the artificials can't all leave: no λ, so a rational solution exists
   const support: number[] = []
