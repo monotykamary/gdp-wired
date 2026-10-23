@@ -158,7 +158,7 @@ the default. At 15 s (`chc-mine4-b15` beside `chc-base4`): unsat 131 more, none 
   (`runs/modal/chc2/combined-v020`). The derivations: `runs/bmc2/disputed/s_split_50_000_001.json.gz`,
   `s_split_22_000_001.json.gz` (each step's clause, request and the predicate's arguments after it; written by
   research/bmc2/derivation.ts, `runs/bmc2/disputed-run`).
-- Merged with main at 5055882 (k-induction on the second vCPU): 540 sat, 398 unsat (2 disputed), 940 answered, main
+- Merged with main at 5055882 (k-induction on the second vCPU): 540 sat, 398 unsat (2 disputed), 938 answered, main
   5055882 beside it 536, 265, 801; sat by k-induction 134 and 133 (`runs/bmc2/chc-merged1`, `chc-main5`).
 - Lustre's 321 unsat tasks by Golem's derivation length (`chc-base4` → `chc-mine4-b15`): 2 steps 8/8 → 8/8, 3 steps
   111/148 → 148/148, 4 steps 18/81 → 78/81, 5 or more 9/59 → 19/59, no derivation 1/25 → 1/25; 147 → 254. Group H of
