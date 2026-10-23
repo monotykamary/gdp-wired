@@ -28,3 +28,5 @@ lean-kernel/Conformance.lean
 lean-kernel/NonTermConformance.lean
 lean-kernel/Examples*.lean
 dist/
+lean-kernel/RatConformance.lean
+lean-kernel/RatExamples.lean

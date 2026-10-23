@@ -266,7 +266,7 @@ export function proveQMachine(m: QMachine, laws: QLaw[], opts: {ms?: number} = {
 }
 // A rule's laws: refuted by a run from the start if one breaks them within `depth` requests, else proven by induction
 // (or not, with the step that breaks one from where they all hold).
-export function proveRatRule(r: RatRule<string, string, string>, laws: QLaw[], opts: {depth?: number, ms?: number} = {}): QVerdict {
-  const m = r.machine
+export function proveRatRule(r: RatRule<string, string, string> | QMachine, laws: QLaw[], opts: {depth?: number, ms?: number} = {}): QVerdict {
+  const m = r instanceof RatRule ? r.machine : r
   return refuteQ(m, laws, opts.depth ?? 3) ?? proveQMachine(m, laws, opts)
 }
