@@ -125,6 +125,7 @@
   },
   "devDependencies": {
     "@gdp-ts/core": "0.1.0",
+    "@reduxjs/toolkit": "2.13.0",
     "@types/bun": "1.3.1",
     "@webgpu/types": "0.1.66",
     "oxlint": "1.88.0",

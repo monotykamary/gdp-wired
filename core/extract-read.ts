@@ -11,6 +11,11 @@ import type {B, K, L, N} from './extract-ir.ts'
 export class Refusal extends Error {
   constructor(readonly where: string, readonly what: string) { super(`${where}: ${what}`) }
 }
+// An untyped input read as one sort and used as another (a field of a JavaScript action, written to a string): the
+// read starts again with the input of that sort.
+export class Retype extends Error {
+  constructor(readonly path: string, readonly sort: Sort) { super(`${path} is a ${sort.k}`) }
+}
 
 // --- sorts and shapes -----------------------------------------------------------------------------------------------
 export type Sort = {k: 'num'} | {k: 'bool'} | {k: 'choice', values: string[]} | {k: 'str'}
@@ -18,10 +23,10 @@ export type Shape = Sort | {k: 'rec', fields: [string, Shape][]} | {k: 'map', ke
 // A rule variable: its sort, and where it comes from.
 export type Var = {name: string, sort: Sort, role: 'param' | 'input' | 'state', note?: string}
 // A map of the state: its cells are records of `fields` (one, `value`, for a map of scalars) and `has` (the key holds one).
-export type MapDecl = {name: string, key: 'num' | 'str', fields: Var[], scalar: boolean, js: 'Map' | 'record'}
+export type MapDecl = {name: string, key: 'num' | 'str', fields: Var[], scalar: boolean, js: 'Map' | 'record', untyped?: boolean}
 // Where each of the code's values is in the rule: the state's tree, leaf by leaf.
 export type Layout = {k: 'scalar', name: string} | {k: 'rec', fields: [string, Layout][]} | {k: 'map', name: string} | {k: 'const', value: Term}
-export type Term = {s: 'num', e: N} | {s: 'bool', e: B} | {s: 'choice', e: L}
+export type Term = {s: 'num', e: N} | {s: 'bool', e: B} | {s: 'choice', e: L} | {s: 'str', e: K}
 // How a request is made of the code: the call, and its arguments built from the rule's inputs.
 export type Arg = {k: 'input', name: string} | {k: 'lit', value: string} | {k: 'rec', fields: [string, Arg][]} | {k: 'state'} | {k: 'lazy', prefix: string}
 export type Event = {select: Record<string, string>, call: string, args: Arg[]}
@@ -40,6 +45,8 @@ export type Model = {
   // The inputs an untyped record grew (by its prefix and field), and the code's own initial state (its source text).
   lazy?: Map<string, {prefix: string, field: string}>,
   initSource?: string,
+  // The spans of the entry's file the step reads (for the branches counted).
+  spans?: [number, number][],
 }
 
 // --- values ---------------------------------------------------------------------------------------------------------
@@ -63,12 +70,25 @@ const refuse = (n: ts.Node, what: string): never => { throw new Refusal(where(n)
 const text = (n: ts.Node) => n.getText().replace(/\s+/g, ' ').slice(0, 60)
 
 // --- the program ----------------------------------------------------------------------------------------------------
-export function program(code: string, file: string): {sf: ts.SourceFile, checker: ts.TypeChecker} {
+// A path, normalized (posix: the files are a repository's).
+export const normalize = (path: string): string => {
+  const out: string[] = []
+  for (const seg of path.split('/')) { if (seg === '..') out.pop(); else if (seg !== '.' && seg !== '') out.push(seg) }
+  return `${path.startsWith('/') ? '/' : ''}${out.join('/')}`
+}
+// The file a relative import names among those given: as TypeScript resolves it (the extensions, then an index).
+export const resolveIn = (files: Record<string, string>, from: string, spec: string): string | undefined => {
+  const base = normalize(`${from.split('/').slice(0, -1).join('/')}/${spec}`), bare = base.replace(/\.(js|jsx|mjs|cjs)$/, '')
+  return [base, ...['.ts', '.tsx', '.js', '.jsx', '.mjs'].map(x => `${bare}${x}`), ...['/index.ts', '/index.tsx', '/index.js'].map(x => `${base}${x}`)].find(c => c in files)
+}
+export function program(code: string, file: string, extra: Record<string, string> = {}): {sf: ts.SourceFile, checker: ts.TypeChecker} {
   const options: ts.CompilerOptions = {target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, strict: true, noEmit: true, allowJs: true, checkJs: false, skipLibCheck: true, lib: ['lib.es2022.d.ts'], types: [], jsx: ts.JsxEmit.Preserve}
   const host = ts.createCompilerHost(options), getSourceFile = host.getSourceFile.bind(host), readFile = host.readFile.bind(host), fileExists = host.fileExists.bind(host)
-  host.getSourceFile = (name, lang, ...rest) => (name === file ? ts.createSourceFile(name, code, lang, true, scriptKind(file)) : getSourceFile(name, lang, ...rest))
-  host.readFile = name => (name === file ? code : readFile(name))
-  host.fileExists = name => name === file || fileExists(name)
+  host.getSourceFile = (name, lang, ...rest) => (name === file ? ts.createSourceFile(name, code, lang, true, scriptKind(file)) : name in extra ? ts.createSourceFile(name, extra[name]!, lang, true, scriptKind(name)) : getSourceFile(name, lang, ...rest))
+  host.readFile = name => (name === file ? code : name in extra ? extra[name] : readFile(name))
+  host.fileExists = name => name === file || name in extra || fileExists(name)
+  const dirExists = host.directoryExists?.bind(host), dirs = new Set(Object.keys(extra).flatMap(f => f.split('/').slice(1, -1).map((_, i, a) => `/${a.slice(0, i + 1).join('/')}`)))
+  host.directoryExists = d => dirs.has(d.replace(/\/$/, '')) || (dirExists ? dirExists(d) : true)
   const p = ts.createProgram([file], options, host)
   return {sf: p.getSourceFile(file)!, checker: p.getTypeChecker()}
 }
@@ -134,6 +154,10 @@ export type Setup = {
   lazy: Map<string, {prefix: string, field: string}>,
   // While a constructor runs: `new Map()` and `{}` are a map that starts empty.
   ctor?: boolean,
+  // The files read (the entry's, and those its relative imports name): their declarations are the step's to inline.
+  ours: (sf: ts.SourceFile) => boolean,
+  // The code the step reads, as spans of the entry's file: the entry, its methods, the functions inlined.
+  spans?: [number, number][],
 }
 
 export class Exec {
@@ -273,7 +297,8 @@ export class Exec {
     if (a.t === 'num' && b.t === 'num') return {t: 'num', e: I.nite(c, a.e, b.e)}
     if (a.t === 'bool' && b.t === 'bool') return {t: 'bool', e: I.bite(c, a.e, b.e)}
     if (a.t === 'choice' && b.t === 'choice') return {t: 'choice', e: I.lite(c, a.e, b.e), values: a.values}
-    return refuse(at, 'a map cell of another kind by the path taken')
+    if (a.t === 'str' && b.t === 'str') return {t: 'str', e: I.kite(c, a.e, b.e)}
+    return refuse(at, 'a value of another kind by the path taken')
   }
   baseCell(m: MapDecl, key: K): {has: B, vals: Map<string, V>} {
     return {has: {op: 'cell', map: m.name, key, field: 'has'}, vals: new Map(m.fields.map(f => [f.name, Exec.cellOf(m, key, f)]))}
@@ -497,13 +522,13 @@ export class Exec {
     if (local) return [local, p]
     if (e.text === 'undefined') return [{t: 'undef'}, p]
     if (e.text === 'Infinity' || e.text === 'NaN') return refuse(e, `${e.text} (the subset's numbers are integers)`)
-    const sym = this.s.checker.getSymbolAtLocation(e)
+    const sym = this.resolved(e)
     const decl = sym?.valueDeclaration ?? sym?.declarations?.[0]
-    if (decl && ts.isVariableDeclaration(decl) && decl.initializer && decl.getSourceFile() === this.s.sf && ts.isVariableStatement(decl.parent.parent) && decl.parent.parent.parent === this.s.sf) {
+    if (decl && ts.isVariableDeclaration(decl) && decl.initializer && this.s.ours(decl.getSourceFile()) && ts.isVariableStatement(decl.parent.parent) && ts.isSourceFile(decl.parent.parent.parent)) {
       if (!(decl.parent.flags & ts.NodeFlags.Const)) return refuse(e, `${e.text}: a module-level let (state outside the step)`)
       if (ts.isArrowFunction(decl.initializer) || ts.isFunctionExpression(decl.initializer)) return refuse(e, `${e.text}: a function used as a value`)
       // A module-level const: its value, an object read-only (every call shares it).
-      const id = `shared.${e.text}`
+      const id = `shared.${decl.getSourceFile().fileName}:${e.text}`
       if (p.heap.has(id)) return [{t: 'ref', id}, p]
       const [v, q] = this.ev(decl.initializer, {pc: [], locals: new Map(), heap: p.heap, wrote: [], nows: 0})
       if (v.t !== 'ref') return [v, p]
@@ -514,8 +539,11 @@ export class Exec {
       return [{t: 'ref', id}, {...p, heap}]
     }
     if (decl && ts.isEnumMember(decl)) return refuse(e, 'an enum')
-    if (sym?.declarations?.some(d => ts.isImportSpecifier(d) || ts.isImportClause(d) || ts.isNamespaceImport(d))) return refuse(e, `${e.text}: a name from another module (the extractor reads one file)`)
-    if (decl && decl.getSourceFile() !== this.s.sf) return refuse(e, `${e.text}: a name from another module`)
+    if (!decl || sym?.declarations?.some(d => ts.isImportSpecifier(d) || ts.isImportClause(d) || ts.isNamespaceImport(d))) {
+      const imp = this.s.checker.getSymbolAtLocation(e)?.declarations?.find(d => ts.isImportSpecifier(d) || ts.isImportClause(d) || ts.isNamespaceImport(d))
+      if (imp) return refuse(e, `${e.text}: a name from another module${moduleOf(imp)} (not among the files read)`)
+    }
+    if (decl && !this.s.ours(decl.getSourceFile())) return refuse(e, `${e.text}: a name from another module (not among the files read)`)
     return refuse(e, `${e.text}: a name the step can't read`)
   }
   private prefix(e: ts.PrefixUnaryExpression, p: Path): [V, Path] {
@@ -547,7 +575,8 @@ export class Exec {
       const [runs, keeps] = op === S.AmpersandAmpersandToken ? [c, I.not(c)] : [I.not(c), c]
       if (runs.op === 'const' && !runs.v) return [op === S.QuestionQuestionToken && l.t === 'opt' ? l.v : l, q]
       const [r, qr] = this.ev(e.right, this.withCond(q, runs))
-      const kept = op === S.QuestionQuestionToken && l.t === 'opt' ? l.v : l
+      // The left kept: by ?? where it is there, by || where it is truthy (so there too).
+      const kept = (op === S.QuestionQuestionToken || op === S.BarBarToken) && l.t === 'opt' ? l.v : l
       if (keeps.op === 'const' && !keeps.v) return [r, {...qr, pc: q.pc}]
       return this.joinValues(runs, qr, r, this.withCond(q, keeps), kept, e)
     }
@@ -579,7 +608,13 @@ export class Exec {
   }
   private object(e: ts.ObjectLiteralExpression, p: Path): [V, Path] {
     const t = this.s.checker.getTypeAtLocation(e)
-    const isMap = !!(this.s.checker.getIndexInfoOfType(t, ts.IndexKind.String) || this.s.checker.getIndexInfoOfType(t, ts.IndexKind.Number)) && !this.s.checker.getPropertiesOfType(t).length
+    let isMap = !!(this.s.checker.getIndexInfoOfType(t, ts.IndexKind.String) || this.s.checker.getIndexInfoOfType(t, ts.IndexKind.Number)) && !this.s.checker.getPropertiesOfType(t).length
+    // Untyped (JavaScript, `{}`): a record keyed by strings where what it spreads first is one.
+    const first = e.properties[0]
+    if (!isMap && first && ts.isSpreadAssignment(first) && !impure(first.expression) && e.properties.some(x => ts.isPropertyAssignment(x) && ts.isComputedPropertyName(x.name))) {
+      const [v0, q0] = this.ev(first.expression, p)
+      if (v0.t === 'ref' && this.obj(q0, v0.id)?.k === 'map') isMap = true
+    }
     let q = p
     if (isMap) {
       // A record keyed by strings or numbers, made by spreading another and setting keys: a copy of that map.
@@ -629,6 +664,8 @@ export class Exec {
     return o
   }
   private key(v: V, at: ts.Node, m: MapDecl): K {
+    // An untyped record ({} in JavaScript) read at a number: keyed by numbers, and the step read again.
+    if (m.untyped && m.key === 'str' && v.t === 'num') throw new Retype(`$key:${m.name}`, {k: 'num'})
     if (m.key === 'num') {
       if (v.t !== 'num') return refuse(at, 'a key of other than a number for a map keyed by numbers')
       return {op: 'num', e: v.e}
@@ -827,6 +864,13 @@ export class Exec {
       return {...q, heap, wrote: o.origin === 'this' ? [...new Set([...q.wrote, f])] : q.wrote}
   }
 
+  // A name's symbol, through an import to what it names.
+  resolved(e: ts.Node): ts.Symbol | undefined {
+    const sym = this.s.checker.getSymbolAtLocation(e)
+    if (sym && sym.flags & ts.SymbolFlags.Alias) { try { return this.s.checker.getAliasedSymbol(sym) } catch { return sym } }
+    return sym
+  }
+
   // --- calls -----------------------------------------------------------------------------------------------------
   private args(xs: readonly ts.Expression[], p: Path): [V[], Path] {
     const out: V[] = []
@@ -867,10 +911,10 @@ export class Exec {
       return refuse(e, `${text(callee)}: a method the subset doesn't read`)
     }
     if (ts.isIdentifier(callee)) {
-      const sym = this.s.checker.getSymbolAtLocation(callee), decl = sym?.valueDeclaration
+      const sym = this.resolved(callee), decl = sym?.valueDeclaration
       const fn = decl && ts.isFunctionDeclaration(decl) ? decl : decl && ts.isVariableDeclaration(decl) && decl.initializer && (ts.isArrowFunction(decl.initializer) || ts.isFunctionExpression(decl.initializer)) ? decl.initializer : undefined
-      if (fn && fn.getSourceFile() === this.s.sf) { const [args, q] = this.args(e.arguments, p); return this.inline({decl: fn}, args, e, q) }
-      if (decl && decl.getSourceFile() !== this.s.sf) return refuse(e, `${callee.text}: a function from another module`)
+      if (fn && this.s.ours(fn.getSourceFile())) { const [args, q] = this.args(e.arguments, p); return this.inline({decl: fn}, args, e, q) }
+      if (!decl || !this.s.ours(decl.getSourceFile())) return refuse(e, `${callee.text}: a function from another module (not among the files read)`)
       return refuse(e, `${callee.text}: a call the subset doesn't read`)
     }
     return refuse(e, 'a call the subset doesn\'t read')
@@ -928,6 +972,7 @@ export class Exec {
   // A function of the same module, or a method or getter of the class, run where it is called.
   inline(f: Callable, args: V[], at: ts.Node, p: Path): [V, Path] {
     if (++this.depth > 24) return refuse(at, 'calls nested too deep (recursion is not in the subset)')
+    if (f.decl.getSourceFile() === this.s.sf) (this.s.spans ??= []).push([f.decl.getStart(), f.decl.end])
     try {
       const d = f.decl
       if (ts.isMethodDeclaration(d) || ts.isFunctionDeclaration(d)) if (d.modifiers?.some(m => m.kind === ts.SyntaxKind.AsyncKeyword) || d.asteriskToken) return refuse(at, 'an async or generator function')
@@ -953,8 +998,10 @@ export class Exec {
 
 // A map set on one path and not the other: a generation of its own, so a reference read before either is stale.
 const mergedGen = (a: MapObj, b: MapObj) => (a.gen === b.gen ? a.gen : Math.max(a.gen, b.gen) + 1)
+// The module an import names, for a refusal.
+const moduleOf = (d: ts.Declaration): string => { let n: ts.Node = d; while (n && !ts.isImportDeclaration(n)) n = n.parent; return n && ts.isImportDeclaration(n) && ts.isStringLiteral(n.moduleSpecifier) ? ` ('${n.moduleSpecifier.text}')` : '' }
 // Names JavaScript itself declares, and those a rule's builders hand out beside the code's.
-const RESERVED = new Set(['event', 'in', 'last', 'key', 'value', 'has', 'constructor', 'prototype', '__proto__', 'Math', 'Date', 'Int', 'when', 'min', 'max', 'all', 'any', 'not', 'yes', 'no', 'lit', 'intern', 'nat', 'int', 'bool', 'oneOf', 'str', 'record', 'rule', 'p', 'fromXState'])
+const RESERVED = new Set(['event', 'in', 'last', 'constructor', 'prototype', '__proto__', 'Math', 'Date', 'Int', 'when', 'min', 'max', 'all', 'any', 'not', 'yes', 'no', 'lit', 'intern', 'nat', 'int', 'bool', 'oneOf', 'str', 'record', 'rule', 'p', 'fromXState'])
 export const memberName = (n: ts.PropertyName | ts.MemberName): string => (ts.isIdentifier(n) || ts.isPrivateIdentifier(n) || ts.isStringLiteral(n) || ts.isNumericLiteral(n) ? n.text : n.getText())
 const boundNames = (n: ts.BindingName): string[] => (ts.isIdentifier(n) ? [n.text] : n.elements.flatMap(el => (ts.isOmittedExpression(el) ? [] : boundNames(el.name))))
 // Whether an expression may have effects (an assignment, an increment, a call other than an error's constructor).

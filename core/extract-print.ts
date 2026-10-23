@@ -310,7 +310,21 @@ export function pk(k: K, P: Printer, ctx: Ctx): string {
 export function pterm(t: Term, P: Printer, ctx: Ctx, target?: string): string {
   if (t.s === 'num') return target && P.sorts.get(target) === 'nat' ? pn(t.e, P, ctx, 'nat') : target ? pn(t.e, P, ctx, 'int') : pnum(t.e, P, ctx)
   if (t.s === 'bool') return pb(t.e, P, ctx)
+  if (t.s === 'str') return pstr(t.e, P, ctx, true)
   return pl(t.e, P, ctx, true)
+}
+// A string: a variable (a Str), a literal written whole, or one of two Strs by a condition.
+function pstr(k: K, P: Printer, ctx: Ctx, top = false): string {
+  if (k.op === 'svar') return k.name
+  if (k.op === 'slit') { if (top) return q(k.value); throw new Refusal(P.m.file, `the literal '${k.value}' chosen by a condition (a string by cases is of two strings the rule holds)`) }
+  if (k.op === 'kite') {
+    const d = decided(k.c, ctx)
+    if (d !== undefined) return pstr(d ? k.a : k.b, P, ctx, top)
+    // A literal beside a string value is written as itself (when reads it as that string); two literals have none.
+    const lits = (k.a.op === 'slit' ? 1 : 0) + (k.b.op === 'slit' ? 1 : 0)
+    return `when(${pb(k.c, P, ctx)}, ${pstr(k.a, P, withAtom(ctx, k.c), lits < 2)}, ${pstr(k.b, P, withAtom(ctx, I.not(k.c)), lits < 2)})`
+  }
+  throw new Refusal(P.m.file, 'a number where a string is written')
 }
 
 // The kind of a variable, as the builders declare it.

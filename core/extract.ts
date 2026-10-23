@@ -30,7 +30,7 @@ import type {Rule} from './dsl.ts'
 import * as I from './extract-ir.ts'
 import type {B, N} from './extract-ir.ts'
 import {type MapDecl, type Model, Refusal, type Term, type Var} from './extract-read.ts'
-import {type ReadOptions, readClass, readFunctions} from './extract-shapes.ts'
+import {type ReadOptions, isSlice, readClass, readFunctions, readSlice} from './extract-shapes.ts'
 import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, pb, pk, pterm, sortsOf} from './extract-print.ts'
 import {type CheckOptions, type Evidence, check} from './extract-check.ts'
 
@@ -64,7 +64,7 @@ export function extract(code: string, opts: ExtractOptions): Extraction {
     const isClass = opts.shape ? opts.shape === 'class' : new RegExp(`\\bclass\\s+${opts.entry}\\b|\\b${opts.entry}\\s*=\\s*class\\b`).test(code)
     // The file sits in the working directory, so its imports (xstate, say) resolve as the project's do.
     const cwd = (globalThis as {process?: {cwd?: () => string}}).process?.cwd?.() ?? '.', at = `${cwd}/${file}`
-    model = isClass ? readClass(code, at, opts) : readFunctions(code, at, opts)
+    model = isClass ? readClass(code, at, opts) : isSlice(code, opts.entry) ? readSlice(code, at, opts) : readFunctions(code, at, opts)
     model.file = file
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
@@ -83,7 +83,7 @@ export function extract(code: string, opts: ExtractOptions): Extraction {
   }
   let rule: Rule
   try { rule = evaluate(body) } catch (e) { return {ok: false, source, model, sorts, refusals: [{where: file, what: `the rule printed doesn't build: ${(e as Error).message}`}], notes} }
-  const evidence = check(code, file, model, rule, sorts, opts.check)
+  const evidence = check(code, file, model, rule, sorts, {...opts.check, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})})
   if (evidence.mismatch) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `the rule and the code differ: ${evidence.mismatch}`}], notes}
   return {ok: true, rule, source, model, sorts, evidence, refusals: [], notes}
 }
@@ -127,6 +127,7 @@ function builderOf(m: Model, sorts: Sorts): string {
     const at = pterm(t, P, ctx(), v.name)
     if (v.sort.k === 'num') return sorts.get(v.name) === 'nat' ? (ps.length ? fn(at) : at) : `int.from(${ps.length ? fn(at) : at})`
     if (v.sort.k === 'bool') return `bool.from(${ps.length ? fn(at) : at === 'yes' ? 'true' : at === 'no' ? 'false' : at})`
+    if (v.sort.k === 'str') return `str().from(${ps.length ? fn(at) : at})`
     return `${kindOf(v, sorts)}.from(${ps.length ? fn(at) : at})`
   }
   if (m.state.length) lines.push(`  .state({${m.state.map(v => `${v.name}: ${start(v)}`).join(', ')}})`)

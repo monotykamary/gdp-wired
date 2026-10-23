@@ -381,3 +381,52 @@ test('XState: inline assign actions and an inline guard, given by their place in
   const c = x.chart!
   expect(c.prove([c.law('the count never goes below 0', ({count}: any) => count.atLeast(0))])).toMatchObject({proven: true, checked: true})
 })
+
+// --- widened: strings, other files, Redux Toolkit -------------------------------------------------------------------
+import * as rtk from '@reduxjs/toolkit'
+
+test('a string field: set and compared, nothing else read of it', () => {
+  const x = ok(ts(`
+    type S = {owner: string, locked: boolean}
+    export function r(s: S, a: {type: 'claim', who: string} | {type: 'release', who: string}): S {
+      if (a.type === 'claim') { if (s.locked) throw new Error('taken'); return {owner: a.who, locked: true} }
+      if (!s.locked || s.owner !== a.who) throw new Error('not yours')
+      return {owner: '', locked: false}
+    }`, 'r', {init: {owner: '', locked: false}}))
+  expect(x.source).toContain("owner: str().from('')")
+})
+
+test('constants from another file of the repository: read, and loaded in the check', () => {
+  const x = ok(extract(`
+    import {ADD, RESET} from './types'
+    export default function count(state = 0, action) {
+      switch (action.type) { case ADD: return state + 1; case RESET: return 0; default: return state }
+    }`, {file: 'count.js', entry: 'default', files: {'./types.js': "export const ADD = 'count/add'\nexport const RESET = 'count/reset'\n"}, check: budget}))
+  expect(x.source).toContain("type: oneOf('count/add', 'count/reset', '@@other')")
+  expect(x.source).toContain('rule("count")')
+  refused(extract(`import {ADD} from './types'\nexport default function c(state = 0, action) { return action.type === ADD ? state + 1 : state }`, {file: 'c.js', entry: 'default', check: budget}), /from another module \('.\/types'\)/)
+})
+
+test('a Redux Toolkit slice: case reducers on the draft, a thunk\'s cases, checked against Redux Toolkit itself', () => {
+  const code = `
+    import {createAsyncThunk, createSlice, type PayloadAction} from '@reduxjs/toolkit'
+    type S = {value: number, status: 'idle' | 'loading' | 'failed'}
+    const initialState: S = {value: 0, status: 'idle'}
+    export const load = createAsyncThunk('counter/load', async (n: number) => n)
+    export const counter = createSlice({
+      name: 'counter', initialState,
+      reducers: {
+        increment: state => { state.value += 1 },
+        decrement: state => { if (state.value > 0) state.value -= 1 },
+        set: (state, action: PayloadAction<number>) => ({...state, value: action.payload}),
+      },
+      extraReducers: builder => {
+        builder.addCase(load.pending, state => { state.status = 'loading' }).addCase(load.fulfilled, (state, action) => { state.status = 'idle'; state.value += action.payload })
+      },
+    })`
+  const x = ok(extract(code, {file: 'counter.ts', entry: 'counter', check: {...budget, modules: {'@reduxjs/toolkit': rtk}}}))
+  expect(x.source).toContain("'counter/increment', 'counter/decrement', 'counter/set', 'counter/load/pending', 'counter/load/fulfilled', '@@other'")
+  // Writing the draft and returning another value: immer throws, so the extractor refuses it.
+  refused(extract(code.replace("set: (state, action: PayloadAction<number>) => ({...state, value: action.payload})", "set: (state, action: PayloadAction<number>) => { state.status = 'idle'; return {...state, value: action.payload} }"),
+    {file: 'counter.ts', entry: 'counter', check: {...budget, modules: {'@reduxjs/toolkit': rtk}}}), /immer throws/)
+})

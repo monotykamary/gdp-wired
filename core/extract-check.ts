@@ -22,13 +22,13 @@ const vmOf = (): VM => { const m = proc?.getBuiltinModule?.('node:vm'); if (!m) 
 import {Int, Term, bool, int, intern, interned, nat, no, oneOf, str, type Kind, type Rule, type StepLaw, proveSteps} from './dsl.ts'
 import {type Request, type State} from './machine.ts'
 import {allowed} from './watch.ts'
-import {type Arg, type Layout, type MapDecl, type Model, type Var, scriptKind} from './extract-read.ts'
+import {type Arg, type Layout, type MapDecl, type Model, type Var, normalize, resolveIn, scriptKind} from './extract-read.ts'
 import * as I from './extract-ir.ts'
 import type {B, N} from './extract-ir.ts'
 import type {Sorts} from './extract-print.ts'
 
 type Raw = number | boolean | string
-export type Arm = {label: string, where: string}
+export type Arm = {label: string, where: string, pos: number}
 export type Coverage = {arms: number, hit: number, missed: string[]}
 export type Evidence = {
   runs: number, requests: number, fromStates: number, probes: {conditions: number, witnesses: number, steps: number},
@@ -40,7 +40,7 @@ export function instrument(code: string, file: string, tail = ''): {js: string, 
   const sf = ts.createSourceFile(file, code, ts.ScriptTarget.ES2022, true, scriptKind(file))
   const arms: Arm[] = [], edits: [number, string][] = []
   const loc = (n: ts.Node) => { const {line, character} = sf.getLineAndCharacterOfPosition(n.getStart()); return `${file.split('/').pop()}:${line + 1}:${character + 1}` }
-  const arm = (label: string, n: ts.Node) => { arms.push({label, where: loc(n)}); return arms.length - 1 }
+  const arm = (label: string, n: ts.Node) => { arms.push({label, where: loc(n), pos: n.getStart()}); return arms.length - 1 }
   const visit = (n: ts.Node) => {
     if (ts.isIfStatement(n)) {
       const t = arm('if: then', n)
@@ -73,7 +73,7 @@ export function instrument(code: string, file: string, tail = ''): {js: string, 
   return {js, arms}
 }
 export type Sandbox = {ctx: Context, counts: number[], call: (f: string, self: unknown, args: unknown[]) => {ok: true, value: unknown} | {ok: false, error: string}, setNow: (n: number) => void, get: (name: string) => unknown}
-export function sandbox(code: string, file: string, expose: string[], modules: Record<string, unknown> = {}, init?: string): Sandbox & {arms: Arm[]} {
+export function sandbox(code: string, file: string, expose: string[], modules: Record<string, unknown> = {}, init?: string, files: Record<string, string> = {}): Sandbox & {arms: Arm[]} {
   const vm = vmOf()
   const {js, arms} = instrument(code, file, init ? `\n;(globalThis as any).__gdpInit = () => (${init});\n` : '')
   const counts = arms.map(() => 0)
@@ -81,16 +81,31 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
   const module = {exports: {} as Record<string, unknown>}
   const ctx = vm.createContext({
     __cov: (i: number) => { counts[i]!++ }, __now: () => now, module, exports: module.exports,
-    // A module the step doesn't name (React, for the component beside a reducer): loaded as a stub that throws when
-    // read, so a step that reads it fails the check rather than running without it.
-    require: (name: string) => (name in modules ? modules[name] : new Proxy({}, {
+    // A relative import among the files given: loaded in this VM (not counted: the branches are the entry's). A module
+    // the step doesn't name (React, for the component beside a reducer): a stub that throws when read, so a step that
+    // reads it fails the check rather than running without it.
+    require: (name: string) => (name in modules ? modules[name] : name.startsWith('.') && Object.keys(files).length ? load(ENTRY, name) : new Proxy({}, {
       get: (_, k) => { if (k === '__esModule' || typeof k === 'symbol') return undefined; throw new Error(`the check loads no module ${name} (its ${String(k)} was read)`) },
       ownKeys: () => [],
     })),
     console: {log() {}, warn() {}, error() {}, info() {}, debug() {}},
   })
+  // The files given, by their place beside the entry's; each loaded once.
+  const ENTRY = `/v/${file.split('/').pop()}`, abs = Object.fromEntries(Object.entries(files).map(([p, c]) => [normalize(`/v/${p}`), c])), loaded = new Map<string, unknown>()
+  const load = (from: string, spec: string): unknown => {
+    const at = resolveIn(abs, from, spec)
+    if (!at) throw new Error(`the check has no file for ${spec}`)
+    if (loaded.has(at)) return loaded.get(at)
+    const m = {exports: {} as Record<string, unknown>}
+    loaded.set(at, m.exports)
+    const js = ts.transpileModule(abs[at]!, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true, jsx: ts.JsxEmit.React}, fileName: at.replace(/\.js$/, '.ts').replace(/\.jsx$/, '.tsx')}).outputText
+    const f = vm.runInContext(`(function (module, exports, require) {${js}\n})`, ctx) as (m: unknown, e: unknown, r: unknown) => void
+    f(m, m.exports, (s2: string) => (s2 in modules ? modules[s2] : s2.startsWith('.') ? load(at, s2) : (() => { throw new Error(`the check loads no module ${s2}`) })()))
+    loaded.set(at, m.exports)
+    return m.exports
+  }
   vm.runInContext('Date.now = () => __now(); Math.random = () => { throw new Error("Math.random in a step") }', ctx)
-  vm.runInContext(`${js}\n;globalThis.__gdp = {${expose.map(n => (n === 'default' ? 'default: module.exports.default' : `${n}: (typeof ${n} !== 'undefined' ? ${n} : module.exports.${n})`)).join(', ')}};`, ctx, {timeout: 2000, filename: file})
+  vm.runInContext(`${js}\n;globalThis.__gdp = {${expose.map(n => { if (n === 'default') return 'default: module.exports.default'; const [h, ...rest] = n.split('.'); return `${JSON.stringify(n)}: (typeof ${h} !== 'undefined' ? ${h} : module.exports.${h})${rest.map(x => `.${x}`).join('')}` }).join(', ')}};`, ctx, {timeout: 2000, filename: file})
   const script = new vm.Script('globalThis.__r = (() => { try { return {ok: true, value: __gdp[__f].apply(__self, __args)} } catch (e) { return {ok: false, error: String(e && e.message || e)} } })()')
   const call = (f: string, self: unknown, args: unknown[]) => {
     Object.assign(ctx, {__f: f, __self: self, __args: args})
@@ -117,6 +132,7 @@ function snapOf(v: unknown, layout: Layout, m: Model, consts: (t: N | B | I.L) =
       }
       if (sort?.k === 'bool' && typeof v !== 'boolean') throw new Error(`${path} is ${JSON.stringify(v)}, not a boolean`)
       if (sort?.k === 'choice' && !(typeof v === 'string' && sort.values.includes(v))) throw new Error(`${path} is ${JSON.stringify(v)}, not one of its literals`)
+      if (sort?.k === 'str' && typeof v !== 'string') throw new Error(`${path} is ${JSON.stringify(v)}, not a string`)
       out.leaves[layout.name] = v as Raw
       return out
     }
@@ -146,7 +162,7 @@ function snapOf(v: unknown, layout: Layout, m: Model, consts: (t: N | B | I.L) =
       return out
     }
     case 'const': {
-      const want = consts(layout.value.e)
+      const want = layout.value.s === 'str' ? (layout.value.e.op === 'slit' ? layout.value.e.value : undefined) : consts(layout.value.e)
       if (v !== want) throw new Error(`${path} is ${JSON.stringify(v)}, the constant ${JSON.stringify(want)} the rule takes it for`)
       return out
     }
@@ -169,7 +185,7 @@ function valueOf(s: Snap, layout: Layout, m: Model, consts: (t: N | B | I.L) => 
         const entries = Object.entries(s.maps[d.name] ?? {}).map(([k, c]) => [d.key === 'num' ? Number(k) : k, d.scalar ? c.value : c])
         return {$map: d.js, entries}
       }
-      case 'const': return consts(l.value.e)
+      case 'const': return l.value.s === 'str' ? (l.value.e.op === 'slit' ? l.value.e.value : undefined) : consts(l.value.e)
     }
   }
   ctx.__in = JSON.stringify(tree(layout))
@@ -248,11 +264,11 @@ function draw(sort: Var['sort'], sorts: Sorts, name: string, rand: Rand, near: n
 }
 
 // --- the check ------------------------------------------------------------------------------------------------------
-export type CheckOptions = {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean, probeMs?: number, modules?: Record<string, unknown>}
-export function check(code: string, file: string, m: Model, r: Rule, sorts: Sorts, opts: CheckOptions = {}): Evidence {
+export type CheckOptions = {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean, probeMs?: number, modules?: Record<string, unknown>, files?: Record<string, string>}
+export function check(code: string, file: string, m: Model, r: Rule, sorts: Sorts, opts: CheckOptions & {given?: Record<string, 'nat' | 'int'>} = {}): Evidence {
   const t0 = performance.now(), rand = seeded(opts.seed ?? 7), bound = opts.bound ?? 12
-  const isClass = m.shape === 'class', fns = m.shape === 'class' ? [m.entry] : m.entry.split(',')
-  const box = sandbox(code, file, fns, opts.modules, m.initSource)
+  const isClass = m.shape === 'class', fns = m.shape === 'class' ? [m.entry] : [...new Set(m.events.map(e => e.call))]
+  const box = sandbox(code, file, fns, opts.modules, m.initSource, opts.files)
   const interp = r.interpreter(), gen = r.compiled(), machine = r.machine
   const ev: Evidence = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: box.arms.length, hit: 0, missed: []}, ms: 0}
   const consts = constantsOf(m), strs = ['a', 'b', 'c', '']
@@ -260,9 +276,13 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
   // A term over the params at their values (a constant field, a start).
   const evalAt = (env: Record<string, Raw>) => (t: N | B | I.L): Raw => evalTerm(t, env)
   const fail = (what: string): Evidence => { ev.mismatch = what; return finish() }
+  // The arms of the code the step reads (the entry, its methods, the functions it inlines; a class's constructor too).
+  const inSpan = (a: Arm) => !m.spans || m.spans.some(([s0, e0]) => a.pos >= s0 && a.pos < e0)
+  const counted = box.arms.map((a, i) => [a, i] as const).filter(([a]) => inSpan(a))
+  ev.coverage.arms = counted.length
   const finish = (): Evidence => {
-    ev.coverage.hit = box.counts.filter(c => c > 0).length
-    ev.coverage.missed = box.arms.filter((_, i) => box.counts[i] === 0).map(a => `${a.label} at ${a.where}`)
+    ev.coverage.hit = counted.filter(([, i]) => box.counts[i]! > 0).length
+    ev.coverage.missed = counted.filter(([, i]) => box.counts[i] === 0).map(([a]) => `${a.label} at ${a.where}`)
     ev.ms = Math.round(performance.now() - t0)
     return ev
   }
@@ -283,7 +303,9 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
       if (v.name in e.select) { inputs[v.name] = e.select[v.name]!; continue }
       if (v.note?.startsWith('Date.now()')) { const d = rand(6); lastNow = d === 0 ? Math.max(0, lastNow - rand(50)) : d === 1 ? rand(10_000) : lastNow + rand(d * 40); inputs[v.name] = lastNow; continue }
       const keys = Object.values(st.maps).flatMap(c => Object.keys(c))
-      inputs[v.name] = draw(v.sort, sorts, v.name, rand, near, bound, [...strs, ...keys])
+      // An input given as a natural (domains) is drawn as one: the claim is for those, as the user said.
+      const x = draw(v.sort, sorts, v.name, rand, near, bound, [...strs, ...keys])
+      inputs[v.name] = opts.given?.[v.name] === 'nat' && typeof x === 'number' ? Math.abs(x) : x
     }
     return {e, inputs}
   }

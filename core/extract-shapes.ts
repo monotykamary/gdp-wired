@@ -6,10 +6,14 @@
 import ts from 'typescript'
 import * as I from './extract-ir.ts'
 import type {B} from './extract-ir.ts'
-import {type Arg, type Event, Exec, type Heap, type Layout, type MapDecl, type MapObj, type Model, type Path, type Rec, Refusal, type Setup, type Shape, type Sort, type Term, type V, type Var, memberName, program, shapeOf} from './extract-read.ts'
+import {type Arg, type Event, Exec, type Heap, type Layout, type MapDecl, type MapObj, type Model, type Path, type Rec, Refusal, Retype, type Setup, type Shape, type Sort, type Term, type V, type Var, memberName, normalize, program, shapeOf} from './extract-read.ts'
 
 export type ReadOptions = {
   entry: string,
+  // Other files of the repository the entry's relative imports name (by their path beside the entry's).
+  files?: Record<string, string>,
+  // Sorts of untyped inputs (a JavaScript action's fields), by their path: found by the reader itself (Retype).
+  typed?: Record<string, Sort>,
   // Several functions over one record, each an event (the entry is the first).
   functions?: string[],
   // The methods that are events (by default every public one).
@@ -21,9 +25,10 @@ const at0 = (sf: ts.SourceFile): ts.Node => sf.statements[0] ?? sf
 const where = (n: ts.Node) => { const sf = n.getSourceFile(), {line, character} = sf.getLineAndCharacterOfPosition(n.getStart()); return `${sf.fileName.split('/').pop()}:${line + 1}:${character + 1}` }
 const refuse = (n: ts.Node, what: string): never => { throw new Refusal(where(n), what) }
 
-function setupOf(code: string, file: string): Setup {
-  const {sf, checker} = program(code, file)
-  return {checker, sf, names: new Set(), vars: new Map(), maps: new Map(), lazySorts: new Map(), nowRole: 'input', hints: new WeakMap(), notes: new Set(), lazy: new Map()}
+function setupOf(code: string, file: string, typed: Record<string, Sort> = {}, files: Record<string, string> = {}): Setup {
+  const root = file.slice(0, file.length - (file.split('/').pop()!.length)), extra = Object.fromEntries(Object.entries(files).map(([p, c]) => [normalize(`${root}${p}`), c]))
+  const {sf, checker} = program(code, file, extra)
+  return {ours: f => f === sf || f.fileName in extra, checker, sf, names: new Set(), vars: new Map(), maps: new Map(), lazySorts: new Map(Object.entries(typed)), nowRole: 'input', hints: new WeakMap(), notes: new Set(), lazy: new Map()}
 }
 
 // The state's tree: a variable per scalar, a heap object per record, a map per keyed field.
@@ -31,7 +36,8 @@ function build(ex: Exec, shape: Shape, path: string[], heap: Heap, origin: Rec['
   const name = path.join('_') || 'state'
   switch (shape.k) {
     case 'num': case 'bool': case 'choice': { const x = ex.newVar(name, shape, 'state'); return {layout: {k: 'scalar', name: x.name}, v: Exec.valueOf(x)} }
-    case 'str': return refuse(at, `${name}: a string in the state (strings are in the subset as map keys and inputs only)`)
+    // A string: compared for equality and set (str(), interned), nothing else read of it.
+    case 'str': { const x = ex.newVar(name, shape, 'state'); return {layout: {k: 'scalar', name: x.name}, v: Exec.valueOf(x)} }
     case 'rec': {
       const fields = new Map<string, V>(), layout: [string, Layout][] = []
       for (const [f, s] of shape.fields) { const r = build(ex, s, [...path, f], heap, origin, at); fields.set(f, r.v); layout.push([f, r.layout]) }
@@ -74,8 +80,14 @@ function materialize(ex: Exec, v: V, layout: Layout, p: Path, at: ts.Node, out: 
     case 'scalar': {
       const sort = ex.s.vars.get(layout.name)!.sort
       if (v.t === 'opt') { if (!ex.known(p, v.has)) refuse(at, `${layout.name} may be set to undefined`); v = v.v }
-      const ok = (sort.k === 'num' && v.t === 'num') || (sort.k === 'bool' && v.t === 'bool') || (sort.k === 'choice' && (v.t === 'choice' || v.t === 'str'))
-      if (!ok) refuse(at, `${layout.name} is set to a ${v.t}`)
+      const ok = (sort.k === 'num' && v.t === 'num') || (sort.k === 'bool' && v.t === 'bool') || (sort.k === 'choice' && (v.t === 'choice' || v.t === 'str')) || (sort.k === 'str' && v.t === 'str')
+      if (!ok) {
+        // An untyped input written here: of this field's sort, and the step read again.
+        const e = v.t === 'num' || v.t === 'bool' ? v.e : v.t === 'str' ? v.e : undefined
+        const name = e && (e.op === 'var' || e.op === 'svar') ? e.name : undefined, lz = name ? ex.s.lazy.get(name) : undefined
+        if (lz && !ex.s.lazySorts.has(`${lz.prefix}${lz.field}`)) throw new Retype(`${lz.prefix}${lz.field}`, sort)
+        refuse(at, `${layout.name} is set to a ${v.t}`)
+      }
       out.leaves.set(layout.name, sort.k === 'choice' ? {t: 'choice', e: ex.asChoice(v, sort.values, at), values: sort.values} : v)
       return out
     }
@@ -120,8 +132,8 @@ function joinAll(ex: Exec, outs: [Path, StateVal][], at: ts.Node): StateVal {
   }
   return acc
 }
-const termOf = (v: V): Term => (v.t === 'num' ? {s: 'num', e: v.e} : v.t === 'bool' ? {s: 'bool', e: v.e} : v.t === 'choice' ? {s: 'choice', e: v.e} : (() => { throw new Error(`a ${v.t} as a term`) })())
-const sameTerm = (a: V, b: V) => (a.t === 'num' || a.t === 'bool' || a.t === 'choice') && (b.t === 'num' || b.t === 'bool' || b.t === 'choice') && I.same(a.e, b.e)
+const termOf = (v: V): Term => (v.t === 'num' ? {s: 'num', e: v.e} : v.t === 'bool' ? {s: 'bool', e: v.e} : v.t === 'choice' ? {s: 'choice', e: v.e} : v.t === 'str' ? {s: 'str', e: v.e} : (() => { throw new Error(`a ${v.t} as a term`) })())
+const sameTerm = (a: V, b: V) => (a.t === 'num' || a.t === 'bool' || a.t === 'choice' || a.t === 'str') && (b.t === 'num' || b.t === 'bool' || b.t === 'choice' || b.t === 'str') && I.same(a.e, b.e)
 const refusalOf = (ex: Exec): B => I.or(...ex.throws.map(t => I.and(...t.pc)))
 
 // --- the initial state, as the code writes it -----------------------------------------------------------------------
@@ -154,17 +166,18 @@ function constValue(e: ts.Expression, s: Setup): Raw {
   }
   if (ts.isArrayLiteralExpression(e)) return refuse(e, 'an array (lists are not in the subset yet)')
   if (ts.isIdentifier(e)) {
-    const decl = s.checker.getSymbolAtLocation(e)?.valueDeclaration
+    const decl = aliased(s, e)?.valueDeclaration
     if (decl && ts.isVariableDeclaration(decl) && decl.initializer && decl.parent.flags & ts.NodeFlags.Const) return constValue(decl.initializer, s)
     return refuse(e, `${e.text}: an initial state the subset can't read (give it in init)`)
   }
   return refuse(e, 'an initial state the subset can\'t read (give it in init)')
 }
+const aliased = (s: Setup, e: ts.Node): ts.Symbol | undefined => { const sym = s.checker.getSymbolAtLocation(e); return sym && sym.flags & ts.SymbolFlags.Alias ? s.checker.getAliasedSymbol(sym) : sym }
 // An expression's object literal, through consts.
 function literalOf(e: ts.Expression, s: Setup): ts.Expression | undefined {
   if (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isSatisfiesExpression(e)) return literalOf(e.expression, s)
   if (ts.isObjectLiteralExpression(e)) return e
-  if (ts.isIdentifier(e)) { const d = s.checker.getSymbolAtLocation(e)?.valueDeclaration; return d && ts.isVariableDeclaration(d) && d.initializer && d.parent.flags & ts.NodeFlags.Const ? literalOf(d.initializer, s) : undefined }
+  if (ts.isIdentifier(e)) { const d = aliased(s, e)?.valueDeclaration; return d && ts.isVariableDeclaration(d) && d.initializer && d.parent.flags & ts.NodeFlags.Const ? literalOf(d.initializer, s) : undefined }
   if (ts.isPropertyAccessExpression(e)) { const o = literalOf(e.expression, s); const p = o && ts.isObjectLiteralExpression(o) ? o.properties.find((x): x is ts.PropertyAssignment => ts.isPropertyAssignment(x) && x.name.getText() === e.name.text) : undefined; return p && literalOf(p.initializer, s) }
   return undefined
 }
@@ -175,6 +188,7 @@ function initLeaves(raw: unknown, layout: Layout, s: Setup, at: ts.Node, out: Re
       if (sort.k === 'num' && typeof raw === 'number' && Number.isSafeInteger(raw)) out[layout.name] = {s: 'num', e: I.num(raw)}
       else if (sort.k === 'bool' && typeof raw === 'boolean') out[layout.name] = {s: 'bool', e: raw ? I.T : I.F}
       else if (sort.k === 'choice' && typeof raw === 'string' && sort.values.includes(raw)) out[layout.name] = {s: 'choice', e: I.llit(raw, sort.values)}
+      else if (sort.k === 'str' && typeof raw === 'string') out[layout.name] = {s: 'str', e: {op: 'slit', value: raw}}
       else refuse(at, `the initial ${layout.name} (${String(raw)}) is not of its type`)
       return out
     }
@@ -209,18 +223,23 @@ function findFunction(sf: ts.SourceFile, name: string): ts.FunctionLikeDeclarati
     if (name === 'default' && ts.isExportAssignment(st) && (ts.isArrowFunction(st.expression) || ts.isFunctionExpression(st.expression))) return st.expression
     if (name === 'default' && ts.isExportAssignment(st) && ts.isIdentifier(st.expression)) return findFunction(sf, st.expression.text)
   }
-  for (const st of sf.statements) if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) if (ts.isIdentifier(d.name) && d.name.text === name && d.initializer && ts.isCallExpression(d.initializer) && ts.isIdentifier(d.initializer.expression) && d.initializer.expression.text === 'createSlice') refuse(d, 'createSlice (Redux Toolkit): its case reducers write immer drafts in place (not in the subset yet)')
   return refuse(at0(sf), `no function ${name} in the file`)
 }
 // The string literals the code compares a record's fields with (case labels, ===): those fields are choices.
-function literalsOf(body: ts.Node, param: string): Map<string, string[]> {
+function literalsOf(body: ts.Node, param: string, s?: Setup): Map<string, string[]> {
   const out = new Map<string, string[]>()
   const pathOf = (e: ts.Expression): string | undefined => {
     if (ts.isParenthesizedExpression(e)) return pathOf(e.expression)
     if (ts.isPropertyAccessExpression(e)) { if (ts.isIdentifier(e.expression) && e.expression.text === param) return e.name.text; const p = pathOf(e.expression); return p && `${p}_${e.name.text}` }
     return undefined
   }
-  const add = (path: string | undefined, lit: ts.Expression) => { if (path && (ts.isStringLiteral(lit) || ts.isNoSubstitutionTemplateLiteral(lit))) { const xs = out.get(path) ?? []; if (!xs.includes(lit.text)) xs.push(lit.text); out.set(path, xs) } }
+  // A literal, or a const naming one (an action type from a constants module).
+  const textOf = (lit: ts.Expression): string | undefined => {
+    if (ts.isStringLiteral(lit) || ts.isNoSubstitutionTemplateLiteral(lit)) return lit.text
+    if (s && (ts.isIdentifier(lit) || ts.isPropertyAccessExpression(lit))) { try { const v = constValue(lit, s); return typeof v === 'string' ? v : undefined } catch { return undefined } }
+    return undefined
+  }
+  const add = (path: string | undefined, lit: ts.Expression) => { const t = textOf(lit); if (path && t !== undefined) { const xs = out.get(path) ?? []; if (!xs.includes(t)) xs.push(t); out.set(path, xs) } }
   const visit = (n: ts.Node) => {
     if (ts.isBinaryExpression(n) && [ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsEqualsToken, ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsToken].includes(n.operatorToken.kind)) { add(pathOf(n.left), n.right); add(pathOf(n.right), n.left) }
     if (ts.isSwitchStatement(n)) for (const cl of n.caseBlock.clauses) if (ts.isCaseClause(cl)) add(pathOf(n.expression), cl.expression)
@@ -235,10 +254,10 @@ const OTHER = '@@other'
 type ArgOf = {v: V, events: {select: Record<string, string>, arg: Arg}[], heap: [string, Rec][]}
 function argOf(ex: Exec, param: ts.ParameterDeclaration, prefix: string, body: ts.Node): ArgOf {
   const s = ex.s, t = s.checker.getTypeAtLocation(param), pname = ts.isIdentifier(param.name) ? param.name.text : 'arg'
-  const lits = ts.isIdentifier(param.name) ? literalsOf(body, param.name.text) : new Map<string, string[]>()
+  const lits = ts.isIdentifier(param.name) ? literalsOf(body, param.name.text, s) : new Map<string, string[]>()
   // Untyped (JavaScript): its fields as the code reads them, numbers unless compared with string literals.
   if (t.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) {
-    for (const [path, xs] of lits) s.lazySorts.set(`${prefix}${path}`, {k: 'choice', values: [...xs, OTHER]})
+    for (const [path, xs] of lits) if (!s.lazySorts.has(`${prefix}${path}`)) s.lazySorts.set(`${prefix}${path}`, {k: 'choice', values: [...xs, OTHER]})
     const id = `input.${prefix}${pname}`
     s.notes.add(`${pname} is untyped: its fields are inputs as the code reads them (numbers, or a choice among the literals it is compared with and ${OTHER})`)
     const disc = [...lits.keys()].find(k => !k.includes('_'))
@@ -302,7 +321,13 @@ function argOf(ex: Exec, param: ts.ParameterDeclaration, prefix: string, body: t
 const sortOf = (sh: Shape, lits: string[]): Sort => (sh.k === 'str' && lits.length ? {k: 'choice', values: [...lits, OTHER]} : sh.k === 'num' || sh.k === 'bool' || sh.k === 'choice' || sh.k === 'str' ? sh : (() => { throw new Error('a compound sort') })())
 
 export function readFunctions(code: string, file: string, opts: ReadOptions): Model {
-  const s = setupOf(code, file), names = opts.functions ?? [opts.entry], fns = names.map(n => findFunction(s.sf, n))
+  // Read again while an untyped input turns out to be of another sort than a number.
+  for (let typed = {...opts.typed}; ;) {
+    try { return readFunctionsOnce(code, file, {...opts, typed}) } catch (e) { if (!(e instanceof Retype) || e.path in typed) throw e; typed = {...typed, [e.path]: e.sort} }
+  }
+}
+function readFunctionsOnce(code: string, file: string, opts: ReadOptions): Model {
+  const s = setupOf(code, file, opts.typed, opts.files), names = opts.functions ?? [opts.entry], fns = names.map(n => findFunction(s.sf, n))
   const first = fns[0]!, sp = first.parameters[0] ?? refuse(first, 'a step function takes the state first')
   // The initial state: given, a default parameter, useReducer's second argument, or `initialState`.
   let raw: unknown = opts.init, initSource: string | undefined, initExpr: ts.Expression | undefined
@@ -322,20 +347,24 @@ export function readFunctions(code: string, file: string, opts: ReadOptions): Mo
   if (st.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) {
     if (initExpr) { st = s.checker.getBaseTypeOfLiteralType(s.checker.getTypeAtLocation(initExpr)); s.notes.add(`the state is untyped: its type is the initial state's (${s.checker.typeToString(st)})`) }
   }
-  let shape = st.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown) && raw !== undefined ? shapeOfRaw(raw, sp, s) : shapeOf(st, s.checker, sp)
+  let shape = st.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown) && raw !== undefined ? shapeOfRaw(raw, sp, s) : shapeOf(st, s.checker, sp), untypedMap = false
   // Untyped and starting as {}: a record keyed by strings, of numbers (what [key] writes; the check runs it).
-  if (shape.k === 'rec' && !shape.fields.length && typeof raw === 'object' && raw !== null && !Object.keys(raw).length && s.checker.typeToString(s.checker.getTypeAtLocation(sp)) === 'any') {
-    shape = {k: 'map', key: 'str', val: {k: 'num'}, js: 'record'}
-    s.notes.add('the state is untyped and starts as {}: read as a record of numbers keyed by strings')
+  if (shape.k === 'rec' && !shape.fields.length && typeof raw === 'object' && raw !== null && !Object.keys(raw).length) {
+    const byNum = opts.typed?.['$key:state']?.k === 'num'
+    shape = {k: 'map', key: byNum ? 'num' : 'str', val: {k: 'num'}, js: 'record'}
+    s.notes.add(`the state starts as {} with no fields of its own: read as a record of numbers keyed by ${byNum ? 'numbers (as the step reads it)' : 'strings'}`)
+    untypedMap = true
   }
   for (const [i, f] of fns.entries()) {
     const p0 = f.parameters[0] ?? refuse(f, `${names[i]} takes no state`)
     if (i > 0 && s.checker.typeToString(s.checker.getTypeAtLocation(p0)) !== s.checker.typeToString(s.checker.getTypeAtLocation(sp))) refuse(p0, `${names[i]} takes another state than ${names[0]}`)
   }
   const ex0 = new Exec(s), heap: Heap = new Map(), {layout, v: stateV} = build(ex0, shape, [], heap, 'input', sp)
+  if (untypedMap) for (const d of s.maps.values()) d.untyped = true
   const init = initLeaves(raw, layout, s, sp)
   const multi = fns.length > 1, ev = multi ? ex0.newVar('fn', {k: 'choice', values: names}, 'input') : undefined
   const outs: [Path, StateVal][] = [], throws: B[] = [], events: Event[] = []
+  for (const f of fns) (s.spans ??= []).push([f.getStart(), f.end])
   fns.forEach((f, i) => {
     const ex = new Exec(s), sel = ev ? I.is({op: 'var', name: ev.name, values: names}, names[i]!) : I.T
     const h: Heap = new Map(heap)
@@ -368,7 +397,9 @@ export function readFunctions(code: string, file: string, opts: ReadOptions): Mo
     if (v) e.select[v[0]] = value
   }
   const final = joinAll(ex0, outs, first)
-  return finish(s, {name: names[0] === 'default' ? 'reducer' : names[0]!, shape: multi ? 'functions' : 'reducer', file, entry: names.join(','), layout, init, final,
+  // A default export by its function's own name.
+  const own = ts.isFunctionDeclaration(first) ? first.name?.text : ts.isVariableDeclaration(first.parent) && ts.isIdentifier(first.parent.name) ? first.parent.name.text : undefined
+  return finish(s, {name: names[0] === 'default' ? own ?? 'reducer' : names[0]!, shape: multi ? 'functions' : 'reducer', file, entry: names.join(','), layout, init, final,
     refuse: I.or(...throws), pre: I.T, events, outputs: [], ...(ev ? {event: ev.name} : {}), ...(initSource ? {initSource} : {})})
 }
 
@@ -380,7 +411,7 @@ function finish(s: Setup, m: {name: string, shape: Model['shape'], file: string,
   for (const [n, w] of m.final.maps) if (w) mapWrites[n] = {key: w.key, has: w.has, vals: Object.fromEntries([...w.vals].map(([f, v]) => [f, termOf(v)]))}
   return {name: m.name, shape: m.shape, file: m.file, entry: m.entry, params: vars.filter(v => v.role === 'param'), inputs: vars.filter(v => v.role === 'input'), state: vars.filter(v => v.role === 'state'),
     maps: [...s.maps.values()], init: m.init, writes, mapWrites, outputs: m.outputs, refuse: m.refuse, pre: m.pre, layout: m.layout, events: m.events, notes: [...s.notes], hints: s.hints,
-    ...(m.event ? {event: m.event} : {}), ...(m.ctorArgs ? {ctorArgs: m.ctorArgs} : {}), ...(s.lazy.size ? {lazy: s.lazy} : {}), ...(m.initSource ? {initSource: m.initSource} : {})}
+    ...(m.event ? {event: m.event} : {}), ...(m.ctorArgs ? {ctorArgs: m.ctorArgs} : {}), ...(s.lazy.size ? {lazy: s.lazy} : {}), ...(m.initSource ? {initSource: m.initSource} : {}), ...(s.spans ? {spans: s.spans} : {})}
 }
 
 // --- classes --------------------------------------------------------------------------------------------------------
@@ -401,10 +432,11 @@ export function readClass(code: string, file: string, opts: ReadOptions): Model 
   return attempt(code, file, opts, written).model
 }
 function attempt(code: string, file: string, opts: ReadOptions, written: Set<string>): {model: Model, written: Set<string>} {
-  const s = setupOf(code, file), cls = findClass(s.sf, opts.entry), first = written.size === 0
+  const s = setupOf(code, file, {}, opts.files), cls = findClass(s.sf, opts.entry), first = written.size === 0
   s.cls = cls
   if (cls.heritageClauses?.length) refuse(cls, 'a class that extends another')
   const ctor = cls.members.find(ts.isConstructorDeclaration)
+  if (ctor) (s.spans ??= []).push([ctor.getStart(), ctor.end])
   type Field = {name: string, shape: Shape, node: ts.Node, init?: ts.Expression}
   const fields: Field[] = []
   for (const m of cls.members) {
@@ -502,6 +534,7 @@ function attempt(code: string, file: string, opts: ReadOptions, written: Set<str
       layout.push([`${name}()`, {k: 'scalar', name: x.name}])
     }
   }
+  for (const m of methods) (s.spans ??= []).push([m.getStart(), m.end])
   for (const m of methods) {
     const name = memberName(m.name), ex = new Exec(s), sel = I.is(evL, name)
     let p: Path = {pc: [sel], locals: new Map(), heap: new Map(stateHeap), wrote: [], nows: 0}
@@ -552,4 +585,137 @@ function outValue(ex: Exec, v: V, x: Var, p: Path, at: ts.Node): V {
   if (x.sort.k === 'bool' && v.t === 'bool') return v
   if (x.sort.k === 'choice' && (v.t === 'choice' || v.t === 'str')) return {t: 'choice', e: ex.asChoice(v, x.sort.values, at), values: x.sort.values}
   return refuse(at, `returns a ${v.t} where its type says ${x.sort.k}`)
+}
+
+// --- Redux Toolkit slices -------------------------------------------------------------------------------------------
+// createSlice({name, initialState, reducers, extraReducers}): each case reducer (and each builder.addCase of
+// extraReducers) an event of its action type; it runs on a copy of the state (immer's draft, written in place), and the
+// state after is the draft, or the value it returns. Writing the draft and returning another value is refused (immer
+// throws there). The check runs the slice's own reducer (Redux Toolkit itself, in the check's modules).
+const sliceOf = (sf: ts.SourceFile, name: string): ts.ObjectLiteralExpression | undefined => {
+  for (const st of sf.statements) if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) {
+    if (!ts.isIdentifier(d.name) || d.name.text !== name || !d.initializer) continue
+    const c = d.initializer
+    if (ts.isCallExpression(c) && ts.isIdentifier(c.expression) && c.expression.text === 'createSlice' && c.arguments[0] && ts.isObjectLiteralExpression(c.arguments[0])) return c.arguments[0]
+  }
+  return undefined
+}
+export const isSlice = (code: string, entry: string) => new RegExp(`\\b${entry}\\s*=\\s*createSlice\\s*\\(`).test(code)
+export function readSlice(code: string, file: string, opts: ReadOptions): Model {
+  for (let typed = {...opts.typed}; ;) {
+    try { return readSliceOnce(code, file, {...opts, typed}) } catch (e) { if (!(e instanceof Retype) || e.path in typed) throw e; typed = {...typed, [e.path]: e.sort} }
+  }
+}
+function readSliceOnce(code: string, file: string, opts: ReadOptions): Model {
+  const s = setupOf(code, file, opts.typed, opts.files), cfg = sliceOf(s.sf, opts.entry) ?? refuse(at0(s.sf), `no createSlice ${opts.entry} in the file`)
+  const prop = (k: string) => cfg.properties.find((p): p is ts.PropertyAssignment | ts.ShorthandPropertyAssignment => (ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p)) && p.name.getText() === k)
+  // A shorthand entry's value: the variable it names (its initializer, for a const).
+  const valueOf = (p: ts.PropertyAssignment | ts.ShorthandPropertyAssignment): ts.Expression => {
+    if (ts.isPropertyAssignment(p)) return p.initializer
+    const d = s.checker.getShorthandAssignmentValueSymbol(p)?.valueDeclaration
+    return d && ts.isVariableDeclaration(d) && d.initializer && d.parent.flags & ts.NodeFlags.Const ? d.initializer : p.name
+  }
+  const nameP = prop('name'), initP = prop('initialState')
+  if (!nameP || !initP) return refuse(cfg, 'a slice without a name or an initialState')
+  const sliceName = constValue(valueOf(nameP), s)
+  if (typeof sliceName !== 'string') return refuse(nameP, 'a slice name that is not a string')
+  // Its value from the initializer; its type as written there (a declared CounterState, not its literals' types).
+  const initExpr = valueOf(initP), raw = opts.init ?? constValue(initExpr, s)
+  let st = s.checker.getTypeAtLocation(ts.isPropertyAssignment(initP) ? initP.initializer : initP.name)
+  if (st.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) st = s.checker.getBaseTypeOfLiteralType(st)
+  const shape = st.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown) ? shapeOfRaw(raw, initExpr, s) : shapeOf(s.checker.getBaseTypeOfLiteralType(st), s.checker, initExpr)
+  const ex0 = new Exec(s), heap: Heap = new Map(), {layout, v: stateV} = build(ex0, shape, [], heap, 'input', initExpr)
+  const init = initLeaves(raw, layout, s, initExpr)
+  // The cases: each reducer `key: (state, action) => ...` of type `name/key`; each addCase(creator, reducer).
+  const cases: [string, ts.Expression][] = []
+  const reducers = prop('reducers')
+  const rv = reducers && valueOf(reducers)
+  if (rv && !ts.isObjectLiteralExpression(rv)) refuse(rv, 'reducers given other than as an object of them')
+  for (const p of (rv as ts.ObjectLiteralExpression | undefined)?.properties ?? []) {
+    if (ts.isMethodDeclaration(p)) { cases.push([`${sliceName}/${p.name.getText()}`, p as never]); continue }
+    if (!ts.isPropertyAssignment(p)) { refuse(p, 'a case reducer written other than key: function'); continue }
+    const f = p.initializer
+    if (!ts.isArrowFunction(f) && !ts.isFunctionExpression(f)) refuse(f, 'a case reducer with a prepare callback, or not a function')
+    cases.push([`${sliceName}/${p.name.getText()}`, f])
+  }
+  const extra = prop('extraReducers')
+  if (extra) {
+    const fn = valueOf(extra)
+    if (!ts.isArrowFunction(fn) && !ts.isFunctionExpression(fn)) return refuse(fn, 'extraReducers other than a builder callback')
+    const builder = fn.parameters[0]?.name.getText() ?? ''
+    // The action creator's type: a thunk's pending, fulfilled or rejected (createAsyncThunk's prefix), or createAction's.
+    const typeOf = (a: ts.Expression): string => {
+      if (ts.isPropertyAccessExpression(a) && ['pending', 'fulfilled', 'rejected'].includes(a.name.text) && ts.isIdentifier(a.expression)) {
+        const d = s.checker.getSymbolAtLocation(a.expression)?.valueDeclaration
+        const c = d && ts.isVariableDeclaration(d) ? d.initializer : undefined
+        if (c && ts.isCallExpression(c) && ts.isIdentifier(c.expression) && c.expression.text === 'createAsyncThunk' && c.arguments[0]) { const pre = constValue(c.arguments[0], s); if (typeof pre === 'string') return `${pre}/${a.name.text}` }
+      }
+      if (ts.isIdentifier(a)) {
+        const d = s.checker.getSymbolAtLocation(a)?.valueDeclaration, c = d && ts.isVariableDeclaration(d) ? d.initializer : undefined
+        if (c && ts.isCallExpression(c) && ts.isIdentifier(c.expression) && c.expression.text === 'createAction' && c.arguments[0]) { const t = constValue(c.arguments[0], s); if (typeof t === 'string') return t }
+      }
+      const t = constValue(a, s)
+      return typeof t === 'string' ? t : refuse(a, 'an addCase of an action creator the subset can\'t name')
+    }
+    const chain = (e: ts.Expression): void => {
+      e = ts.isParenthesizedExpression(e) ? e.expression : e
+      if (ts.isIdentifier(e) && e.text === builder) return
+      if (!ts.isCallExpression(e) || !ts.isPropertyAccessExpression(e.expression)) return void refuse(e, 'extraReducers other than builder.addCase(...) calls')
+      const m = e.expression.name.text
+      if (m !== 'addCase') return void refuse(e, `builder.${m} (addCase is in the subset)`)
+      chain(e.expression.expression)
+      cases.push([typeOf(e.arguments[0]!), e.arguments[1]!])
+    }
+    const body = fn.body
+    if (ts.isBlock(body)) for (const stmt of body.statements) { if (!ts.isExpressionStatement(stmt)) refuse(stmt, 'extraReducers other than builder calls'); else chain(stmt.expression) }
+    else chain(body)
+  }
+  if (!cases.length) return refuse(cfg, 'a slice with no case reducers')
+  const types = [...new Set(cases.map(([t]) => t)), OTHER]
+  const ev = ex0.newVar('type', {k: 'choice', values: types}, 'input'), evL = {op: 'var' as const, name: ev.name, values: types}
+  const outs: [B, StateVal][] = [], refusals: B[] = []
+  // The draft: a copy of the state's objects, written in place.
+  const draftOf = (h: Heap): {heap: Heap, v: V} => {
+    const ids = new Map<string, string>(), out: Heap = new Map(h)
+    const copy = (x: V): V => {
+      if (x.t !== 'ref') return x
+      const known = ids.get(x.id)
+      if (known) return {t: 'ref', id: known}
+      const o = h.get(x.id)!, id = `draft.${x.id}`
+      ids.set(x.id, id)
+      out.set(id, o.k === 'rec' ? {...o, origin: 'fresh', fields: new Map([...o.fields].map(([f, y]) => [f, copy(y)]))} : o.k === 'map' ? {...o, origin: 'fresh'} : o)
+      return {t: 'ref', id}
+    }
+    return {heap: out, v: copy(stateV)}
+  }
+  for (const [, f] of cases) (s.spans ??= []).push([f.getStart(), f.end])
+  for (const [type, f] of cases) {
+    const ex = new Exec(s), sel = I.is(evL, type)
+    const fn = f as ts.ArrowFunction | ts.FunctionExpression
+    if (!ts.isArrowFunction(fn) && !ts.isFunctionExpression(fn) && !ts.isMethodDeclaration(fn)) { refuse(f, 'a case reducer that is not a function'); continue }
+    const d = draftOf(heap), actionId = 'input.action'
+    let p: Path = {pc: [sel], locals: new Map(), heap: new Map([...d.heap, [actionId, {k: 'rec', fields: new Map(), origin: 'input', lazy: {prefix: ''}}]]), wrote: [], nows: 0}
+    if (fn.parameters[0]) p = ex.bind(fn.parameters[0].name, d.v, p)
+    if (fn.parameters[1]) p = ex.bind(fn.parameters[1].name, {t: 'ref', id: actionId}, p)
+    const ends: [Path, V][] = []
+    if (fn.body && !ts.isBlock(fn.body)) { const [v, q] = ex.ev(fn.body as ts.Expression, p); ends.push([q, v]) }
+    else { const flow = ex.block((fn.body as ts.Block).statements, p); ends.push(...flow.rets, ...(flow.live ? [[flow.live, {t: 'undef'} as V] as [Path, V]] : [])) }
+    const written = (q: Path) => [...d.heap.keys()].some(id => id.startsWith('draft.') && q.heap.get(id) !== d.heap.get(id))
+    const states: [Path, StateVal][] = ends.map(([q, v]) => {
+      const self = v.t === 'ref' && v.id === (d.v as {id?: string}).id
+      if (v.t !== 'undef' && !self && written(q)) refuse(fn, `the case reducer for ${type} writes the draft and returns another value (immer throws there)`)
+      return [q, materialize(ex, v.t === 'undef' || self ? d.v : v, layout, q, fn)]
+    })
+    outs.push([sel, joinAll(ex, states, fn)])
+    refusals.push(refusalOf(ex))
+  }
+  // Any other action: the state as it was (a slice's reducer passes it through).
+  const same: StateVal = materialize(ex0, stateV, layout, {pc: [], locals: new Map(), heap, wrote: [], nows: 0}, cfg)
+  let final = same
+  for (let i = outs.length - 1; i >= 0; i--) final = mergeVals(ex0, outs[i]![0], outs[i]![1], final, cfg)
+  // A request: {type, ...the fields the case reducers read of the action}.
+  const fields: [string, Arg][] = [...s.lazy].filter(([, l]) => l.prefix === '').map(([n, l]) => [l.field, {k: 'input', name: n}])
+  const events: Event[] = types.map(t => ({select: {[ev.name]: t}, call: `${opts.entry}.reducer`, args: [{k: 'state'}, {k: 'rec', fields: [['type', {k: 'lit', value: t}], ...fields.filter(([f]) => f !== 'type')]}]}))
+  s.notes.add(`a Redux Toolkit slice: ${cases.length} case reducers on immer's draft, any other action passing the state through`)
+  return finish(s, {name: opts.entry, shape: 'reducer', file, entry: opts.entry, layout, init, final, refuse: I.or(...refusals), pre: I.T, events, outputs: [], event: ev.name, initSource: initExpr.getText()})
 }
