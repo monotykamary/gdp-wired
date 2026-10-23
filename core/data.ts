@@ -2021,13 +2021,13 @@ const settled = new WeakMap<Facts, Set<string>>()
 // Prove a law with the lemmas given (each proven, with its nodes), trying each scheme at each depth.
 // `without`: 'plain', the law with no induction where no scheme applies; 'cases', no induction, then by the cases of
 // each variable (a natural's zero and successor, a datatype's constructors), none of them using the law again; 'first',
-// no induction before the schemes (a law that follows from its lemmas by rewriting); 'alone', no induction only.
-function proveWith(p: Program, fs: Facts, l: DataLaw, lemmas: Proven[], level: number, opts: Options, until: number, per: number, depths: number[], without?: 'plain' | 'cases' | 'first' | 'alone'): {out?: Proven, verdict?: CyclicVerdict, scheme?: string, tried: number, last?: CyclicVerdict} {
+// no induction before the schemes (a law that follows from its lemmas by rewriting).
+function proveWith(p: Program, fs: Facts, l: DataLaw, lemmas: Proven[], level: number, opts: Options, until: number, per: number, depths: number[], without?: 'plain' | 'cases' | 'first'): {out?: Proven, verdict?: CyclicVerdict, scheme?: string, tried: number, last?: CyclicVerdict} {
   const models = modelsFor(p, l, 240, opts.seed ?? 3)
   let tried = 0, last: CyclicVerdict | undefined
   const cases = l.vars.flatMap((v): Scheme[] => (v.sort === 'nat' || v.sort instanceof Data ? [{name: `cases of ${v.name}`, on: {v: v.name, d: v.sort}, uses: []}] : []))
   const found = opts.induction === false || without === 'cases' ? [] : schemes(p, l)
-  const ss: (Scheme | undefined)[] = opts.induction === false ? [undefined] : without === 'cases' ? [undefined, ...cases] : without === 'plain' && !found.length ? [undefined] : without === 'first' ? [undefined, ...found] : without === 'alone' ? [undefined] : found
+  const ss: (Scheme | undefined)[] = opts.induction === false ? [undefined] : without === 'cases' ? [undefined, ...cases] : without === 'plain' && !found.length ? [undefined] : without === 'first' ? [undefined, ...found] : found
   const done = settled.get(fs) ?? settled.set(fs, new Set()).get(fs)!
   for (const depth of depths.filter(d => d <= (opts.depth ?? 3))) for (const s of ss) {
     if (clock() > until) return {tried, last}
@@ -2377,13 +2377,12 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   // A pass of lemmas: of those the goal reads (`hits`) or the others, each proven at one unfolding (8 s of counted work
   // a lemma, 5 s an attempt), until `most` are proven, three times as many tried, or the pass's time is spent (`end`).
   // (An attempt's instances aren't counted work, so a pass of many short attempts is bounded by their number too.) The
-  // law is tried again with
-  // every lemma proven so far: after each of the goal's without induction (a law that follows from them by rewriting),
-  // and with its schemes after every third and at the end of the pass (the others': at the end only).
+  // law is tried again with every lemma proven so far, without induction first (a law that follows from them by
+  // rewriting), then by its schemes: after each lemma the goal reads or of the law's shape, else at the end of the pass.
   const refuted = new Set<DataLaw>()
   const lemmaPass = (which: 'hits' | 'others', most: number, end: number, cap: number, depths: number[]): ReturnType<typeof done> | undefined => {
     let n = 0, since = 0, tries = 0
-    const again = (how: 'alone' | 'first') => ok(proveWith(p2, fs2, l, proven, level(), opts, until, cap, how === 'alone' ? [1] : depths, how), proven, p2)
+    const again = (how: 'first') => ok(proveWith(p2, fs2, l, proven, level(), opts, until, cap, depths, how), proven, p2)
     for (const {c, hit} of ranked) {
       if (n >= most || tries >= 3 * most || clock() > end) break
       if ((which === 'hits') !== hit || proven.some(q => q.law === c) || refuted.has(c)) continue
@@ -2395,10 +2394,8 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
       failed.delete(c)
       proven.push(r.out)
       n++; since++
-      if (which === 'hits') {
-        const r2 = since >= 3 ? (since = 0, again('first')) : again('alone')
-        if (r2) return r2
-      }
+      // (as before the passes: again after a lemma the goal reads, or one of the law's shape, an implication for one)
+      if (which === 'hits' || implication(c.holds) === implication(l.holds)) { since = 0; const r2 = again('first'); if (r2) return r2 }
     }
     return since ? again('first') : undefined
   }
