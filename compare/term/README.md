@@ -96,9 +96,10 @@ arrays, 3 with pointers); refused: strings read through pointer arithmetic or ca
 matter 9 (`cstr*`, `strchr-2`, `LexIndexValue-Pointer-2`), an array of 1,048 read at an index that is not a constant
 2, `sqrt` (no body) 2. The 192 of the 226 that translated before translate as before, character for character; the
 34 others have their overflow checks now (and `aviad`'s one unreachable rule left out)
-(`runs/svfront/translations-main`, `translations-mine`). `c2ari_test.py`'s 38 adversarial programs (conversions, the
-data model, recursion, arrays, pointers, division, undefined behaviour where it is and isn't evaluated) are never
-answered against how they run (`runs/svfront/probes2`). The ITS translation folds constants exactly and refuses one
+(`runs/svfront/translations-main`, `translations-mine`). `c2ari_test.py`'s 60 adversarial programs (conversions, the
+data model, recursion, arrays, pointers, division, undefined behaviour where it is and isn't evaluated, and the 21 of
+the independent check's 93 that found defects, branch verify/sv-front) are never answered against how they run; nor are
+the check's 93 (`runs/svfront/suite-default-2`, `verify-fix1`). The ITS translation folds constants exactly and refuses one
 past 2^53, which the kernel's numbers can't hold (no ITS task has one; a C task's 64-bit range is refused the same way).
 
 ## Results
@@ -176,6 +177,9 @@ SV-COMP's 282 tasks on Modal at 60 s, `gdp` and `gdp-scc`, this branch (`runs/sv
   terminates translation lets a call return any value), `TwoWay` (a param fixed to 1 the rank needs),
   `4BitCounterPointer`, and 2 nonterminating (`MutualRecursion_1a`: a call that never returns is made after a call
   at the same depth that does; `divbin1-both-nt`: unsigned, its lasso's wrap values not drawn).
+- After the independent check's fixes (the translations unchanged), beside main at 5055882: 213 (158, 55), main 182
+  (135, 47); per component 199, main 172; none wrong (`runs/svfront/f4-mine`, `f4-base`). One run before it answered
+  212 (`f3-mine`: `gcd01-2`, the same translation, unproven where four other runs proved it at 26 to 33 s).
 
 ### Ranks from the relation (Unreleased)
 

@@ -291,6 +291,27 @@ run (`runs/svfront/probes2`). Suites: by default 213 jobs, none failed, 595.3 s 
 (`runs/svfront/suite-default`); `--usual` 213 jobs, none failed, 504.5 s wall, 4,895.0 s (`suite-usual`); `term-c2ari`
 now takes 2 vCPU.
 
+An independent check of the C front end (branch verify/sv-front, research/verify-sv: 93 adversarial C programs, run
+natively under gcc and clang with UBSan) found 20 answered against how C runs, from 8 defects, now fixed, each
+modelled or refused: static locals in main start at 0; a pointer read knows every object the program takes the address
+of or allocates (two passes, the second with the first's objects), not only those earlier in the text; an overflowing
+constant on the side of && or || that isn't evaluated no longer ends the run; an array past 64 elements keeps the
+elements read at plain int constant indices only (no names, suffixes or wrapping), anything else refused; an enum's
+type is gcc's (unsigned int where no constant is negative, constants counted from the one before), and a task's typedef
+of bool is its own; preprocessor directives other than #include of a known standard header are refused (no task has
+one); C's unspecified evaluation order is refused wherever it can matter (two calls one of which writes a global or
+through a pointer or ends the run, a call writing what the rest of the expression reads, an assignment's target
+included); a task's own reach_error that returns is its own function. Also: with goto, the entry's 64-bit values keep
+their range (a declaration jumped past), and an array whose size reads a variable is refused. All 93 programs are now
+answered by no run against how C runs (`runs/svfront/verify-fix1`); 21 of them join `c2ari_test.py` (60 programs, none
+answered against the program, `suite-default-2`). The 282 tasks' translations are unchanged, character for character,
+for both recursion translations and --unchecked; 4 refusals' messages reworded (`translations-fix`). SV-COMP beside
+main at 5055882, launched together: 213 (158, 55), main 182 (135, 47); per component 199, main 172, none wrong, none lost
+(`runs/svfront/f4-mine`, `f4-base`); a run before it answered 212 (`f3-mine`: gcd01-2, translated the same, not proven
+within the time where four other runs proved it at 26 to 33 s). Suites after merging main at 5055882: by default 217
+jobs, none failed, 640.8 s wall, 5,350.6 s of job time (`suite-default-2`); `--usual` 217, none failed, 602.9 s wall,
+4,961.4 s (`suite-usual-2`).
+
 ## 0.23.0
 
 Every benchmark moved, two trusted additions came with their Lean proofs first, and a real-world corpus joins the
