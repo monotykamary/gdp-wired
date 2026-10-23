@@ -466,12 +466,12 @@ function floatSolve(rows: Lin[], until: number, equil = true, again = true): Rec
   }
   if (!run(j => (j < 2 * n ? 1 : 0), j => !art(j))) return undefined
   const val = (j: number) => { const i = basis.indexOf(j); return i < 0 ? 0 : T[i]![cols]! }
-  const u = xs.map((_, j) => val(j) - val(n + j)), top = Math.max(1e-300, ...u.map(Math.abs))
-  // read back: tiny values (relative to the largest) as 0 or kept (a coefficient 1/2^31 against a bound of the int
-  // range is one), each the nearest fraction, the whole scaled to
+  const u = xs.map((_, j) => val(j) - val(n + j))
+  // read back: tiny values kept or as 0 (a coefficient 1/2^31 against a bound of the int range is one, or the floats'
+  // error), each the nearest fraction, the whole scaled to
   // integers, with and without their common divisor; the first that every row holds of exactly
-  for (const [snap, most] of [[1e-7, 10_000], [1e-7, 1_000_000], [0, 1_000_000], [0, 2 ** 32]] as const) {
-    const fr = u.map(x => (Math.abs(x) <= snap * top ? [0, 1] : nearFraction(Math.abs(x), most)) as [number, number])
+  for (const [snap, most] of [[0, 10_000], [1e-7, 10_000], [1e-7, 1_000_000], [0, 2 ** 32]] as const) {
+    const fr = u.map(x => (Math.abs(x) <= snap ? [0, 1] : nearFraction(Math.abs(x), most)) as [number, number])
     let lcm = 1n
     for (const [, d] of fr) lcm = lcm / bgcd(lcm, BigInt(d)) * BigInt(d)
     const ints = u.map((x, j) => BigInt(Math.sign(x) * fr[j]![0]) * (lcm / BigInt(fr[j]![1]))), g = ints.reduce((a, b) => bgcd(a, b), 0n) || 1n
@@ -484,7 +484,7 @@ function floatSolve(rows: Lin[], until: number, equil = true, again = true): Rec
   }
   // Else the tiny values as 0 exactly, the LP solved again over the rest: within the tolerance a coefficient of 2^−31
   // against a vertex at 2^31 is a drop of 1 the exact rows don't allow.
-  const zero = new Set(xs.filter((_, j) => u[j] !== 0 && Math.abs(u[j]!) <= 1e-7 * top))
+  const zero = new Set(xs.filter((_, j) => u[j] !== 0 && Math.abs(u[j]!) <= 1e-7))
   if (!again || !zero.size) return undefined
   const fewer = floatSolve(rows.map(r => Object.fromEntries(Object.entries(r).filter(([x]) => !zero.has(x)))), until, equil, false)
   return fewer && fewer !== 'infeasible' && holdsExactly(rows, fewer) ? fewer : undefined
@@ -496,14 +496,14 @@ const holdsExactly = (rows: Lin[], w: Record<string, number>): boolean => rows.e
   return s <= 0n
 })
 function exactSolve(rows: Lin[], until: number): Record<string, number> | undefined {
-  // (the rows scaled to their largest entry first, then as they are: scaled, a coefficient forced to 0 by a row of a
-  // vertex at 2^31 may be read as 2^−31 within the tolerance)
-  const t0 = performance.now(), first = floatSolve(rows, until), fast = first === undefined ? floatSolve(rows, until, false) : first
+  // (the rows scaled to their largest entry first, then as they are: either way the tolerance may hide what a row of a
+  // vertex at 2^31 says, a coefficient 2^−31 read as 0 or 0 as 2^−31)
+  const t0 = performance.now(), first = floatSolve(rows, until), second = first && first !== 'infeasible' ? first : floatSolve(rows, until, false)
+  const fast = second && second !== 'infeasible' ? second : first === 'infeasible' && second === 'infeasible' ? 'infeasible' : undefined
   if (lpTrace) console.error(`[lp] ${rows.length} rows ${new Set(rows.flatMap(l => Object.keys(l))).size} unknowns: ${fast === undefined ? 'undefined' : fast === 'infeasible' ? 'infeasible' : 'found'} ${Math.round(performance.now() - t0)} ms`)
-  if (fast === 'infeasible') return undefined
-  if (fast) return fast
-  // (no point the floats read back: a refutation over the rationals first, Farkas' rows by the floats and checked by
-  // elimination on them, which the exact simplex below would take far longer to say)
+  if (fast && fast !== 'infeasible') return fast
+  // (no point found: a refutation over the rationals, Farkas' rows picked by the floats and checked by elimination on
+  // them, which the exact simplex below would take far longer to give; the exact simplex where there is none)
   if (refuteFast(rows.map(lin => ({lin, label: ''})), 2_000, false)?.kind === 'refuted') return undefined
   const xs = [...new Set(rows.flatMap(l => Object.keys(l)).filter(x => x !== '1'))].sort(), n = xs.length, m = rows.length
   // Columns: p (n), q (n), a slack per row (m), an artificial per row (m); the right-hand side last.
