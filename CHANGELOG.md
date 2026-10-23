@@ -3,22 +3,7 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## 0.24.0
-
-CHC-COMP's unsat side caught up most of the way, SV-COMP is read from C as C runs, and two trusted additions came with
-their Lean proofs first. At 60 s on Modal, none wrong: CHC-COMP LIA-Lin 938 solved (540 sat, 398 unsat), 801 for main
-launched beside it (`runs/bmc2/chc-merged1`, `runs/bmc2/chc-main5`), 782 at 0.23.0; two tasks whose expected verdict
-rests on one tool's vote (or a placeholder) are answered unsat with derivations of 999,002 and 280,277 steps, each
-checked twice, and listed apart as disputed (`compare/chc/disputed.json`). SV-COMP's termination tasks 213, 182 for
-main beside it (`runs/svfront/f5-mine`, `f5-base`), after three independent checks of the C front end (176 probes, none
-answered against how the C runs). TIP 2015 183 of 492 (`runs/termlem/tip4`), 181 at 0.23.0. The real-world corpus:
-237 of 311 laws proven with nothing stated, 218 at 0.23.0, liveness 18 of 35 (0). Trusted additions: k-induction
-(`lean-kernel/KInd.lean`'s `kind_sound`, then `kernel/kernel.ts`'s `checkKInduction`, 39 lines), solving 14 of the 17
-CHC tasks known to be k-inductive; and rings of mutually recursive functions (`lean-kernel/Data.lean`'s
-`wf_fix_unique_ring`), each on the standard axioms. Rules can now be read from TypeScript (`gdp-wired/extract`), each
-checked against the code it was read from. The release suites (217 jobs, one after the other) on Modal: by default
-624.7 s wall, 5,686.2 s of job time, none failed (`runs/release/0.24.0-default`); `--usual` 576.2 s, 5,169.4 s, none
-failed (`runs/release/0.24.0-usual`).
+## Unreleased
 
 Ranks split by several conditions, and a rank search fast enough for programs of a hundred locations. Measured after
 merging main at 98bfabe (gen/sv-front's C front end among it), at 60 s on Modal, launched together with main at that
@@ -99,6 +84,23 @@ contradicts another tool's, a lasso or any of this track's or main's runs (`runs
   exact pivot's), so a counted search's verdict doesn't depend on the machine's speed.
 - Cost: Modal $25.08366 for this track's 58 apps before the merge and $5.95577 for its 10 after (main's base runs
   included), on 2026-10-23 UTC (`modal billing report --for today`, before the day closes); no boat.
+
+## 0.24.0
+
+CHC-COMP's unsat side caught up most of the way, SV-COMP is read from C as C runs, and two trusted additions came with
+their Lean proofs first. At 60 s on Modal, none wrong: CHC-COMP LIA-Lin 938 solved (540 sat, 398 unsat), 801 for main
+launched beside it (`runs/bmc2/chc-merged1`, `runs/bmc2/chc-main5`), 782 at 0.23.0; two tasks whose expected verdict
+rests on one tool's vote (or a placeholder) are answered unsat with derivations of 999,002 and 280,277 steps, each
+checked twice, and listed apart as disputed (`compare/chc/disputed.json`). SV-COMP's termination tasks 213, 182 for
+main beside it (`runs/svfront/f5-mine`, `f5-base`), after three independent checks of the C front end (176 probes, none
+answered against how the C runs). TIP 2015 183 of 492 (`runs/termlem/tip4`), 181 at 0.23.0. The real-world corpus:
+237 of 311 laws proven with nothing stated, 218 at 0.23.0, liveness 18 of 35 (0). Trusted additions: k-induction
+(`lean-kernel/KInd.lean`'s `kind_sound`, then `kernel/kernel.ts`'s `checkKInduction`, 39 lines), solving 14 of the 17
+CHC tasks known to be k-inductive; and rings of mutually recursive functions (`lean-kernel/Data.lean`'s
+`wf_fix_unique_ring`), each on the standard axioms. Rules can now be read from TypeScript (`gdp-wired/extract`), each
+checked against the code it was read from. The release suites (217 jobs, one after the other) on Modal: by default
+624.7 s wall, 5,686.2 s of job time, none failed (`runs/release/0.24.0-default`); `--usual` 576.2 s, 5,169.4 s, none
+failed (`runs/release/0.24.0-usual`).
 
 Bounded runs faster and longer: CHC-COMP LIA-Lin at 60 s on Modal, 923 answered (526 sat, 397 unsat), main (6b2e2df)
 launched beside it 783 (517, 266); unsat 131 more and none fewer, sat 17 more and 8 fewer, out of time 5 against 8
