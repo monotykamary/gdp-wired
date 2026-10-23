@@ -1,0 +1,27 @@
+{
+  "access/cedar-examples/documentCloud#the owner can delete their document": {
+    "verdict": "bug",
+    "note": "Suspected real bug (in an example policy set). The README says owners delete their documents (\"DeleteDocument: Only the owner should be able do this\"), but policies.cedar has no permit for DeleteDocument at all (the README's own snippet names Action::\"deleteDocument\", which is not in the schema). The Cedar engine (cedar-wasm 4.14.0) denies alice deleting her own unblocked document, authenticated, with no determining policy. A decision: its counterexample is a witness request, not a run, so score.ts reports it as unknown.",
+    "repro": "research/realworld/repro/cedar-documentcloud.ts"
+  },
+  "access/cedar-examples/documentCloud#the public can view a public document": {
+    "verdict": "bug",
+    "note": "Suspected real bug (in an example; the intent is the README's, which is ambiguous). The README calls Public \"a principal that represents an un-authenticated user\" that \"can view only when explicitly permitted\", but the forbid at policies.cedar:108-109 denies every request whose context has is_authenticated false, Public::\"public\" included: Cedar denies the unauthenticated public view of alice_public (publicAccess \"view\", not private) by policy13 and allows it only when the request claims is_authenticated true. Also, entities.json names the Public entity Public::\"unauthenticated\" while the policies name Public::\"public\". A decision: score.ts reports it as unknown (witness, no run).",
+    "repro": "research/realworld/repro/cedar-documentcloud.ts"
+  },
+  "access/kubernetes/rbacRuleAllows#a rule naming resources never allows an unnamed request": {
+    "verdict": "law",
+    "note": "Refuted with a rule whose ResourceNames lists \"\": the original RuleAllows (v1.37.1) allows `create pods` (no name) by ResourceNames [\"\"] and denies it by [\"web\"]. The whitelist matches the empty name like any other; the docs' claim (resourceNames cannot restrict create) is about rules that name real resources. Restated as \"a rule naming only non-empty resources never allows an unnamed request\".",
+    "repro": "research/realworld/repro/k8s-rulenames.sh"
+  },
+  "access/kubernetes/rbacRuleAllows#a rule naming only non-empty resources never allows an unnamed request": {
+    "verdict": "law",
+    "note": "The restatement of \"a rule naming resources never allows an unnamed request\" (refuted by ResourceNames [\"\"], confirmed on the original); proven.",
+    "repro": "research/realworld/repro/k8s-rulenames.sh"
+  },
+  "auth/keycloak/bruteForceProtector#past the failure factor, a failure disables the user at once": {
+    "verdict": "bug",
+    "note": "Suspected real bug (Y2038). The prover's witness is a failure at 2147483647000 ms (2038-01-19T03:14:07Z): DefaultBruteForceProtector.java:137-141 caps notBefore at Integer.MAX_VALUE, and isTemporarilyDisabled (:275-277) compares currTime = now / 1000 >= Integer.MAX_VALUE against it, so from that second on no temporary lockout ever takes effect (the comment at :139 assumes currTime < Integer.MAX_VALUE). No JVM here: the repro reasons from the source fetched at the pinned commit, evaluates the Java arithmetic, and replays the run on the rule. At 3 s the outcome is unknown (a @step witness, the search's random runs do not reach 2^31 s); the repro's run is a real run from the start.",
+    "repro": "research/realworld/repro/keycloak-y2038.ts"
+  }
+}

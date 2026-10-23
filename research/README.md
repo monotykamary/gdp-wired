@@ -9,6 +9,7 @@ regression suite (`../modal/suite.json`) runs the parts below that it lists.
 | [`search/`](search/) | Counterexample search on the GPU: a hand-written WGSL kernel over every run of a bounded space, its u32 JavaScript twin, the CPU search |
 | [`hw/`](hw/) | The same searches, and synthesis's kernels, compiled to the Handwired fork's word stages ([`README-synth.md`](hw/README-synth.md)) |
 | [`modal-gpu/`](modal-gpu/) | The Handwired searches on Modal GPUs, through Dawn on NVIDIA's Vulkan driver |
+| [`realworld/`](realworld/) | The real-world corpus: 51 items of open-source budget, quota, rate-limit, ledger, payment, auth, access, workflow, queue, breaker, flag, inventory and approval code as rules, 311 laws, scored with nothing stated; its suspected bugs, each with a repro |
 | [`synth/`](synth/) | Invariants and ranks found on the GPU, proven by the kernel |
 | [`next/`](next/) | Guards synthesized from laws, relational laws (migrations, tenant isolation), a ReBAC audit |
 | [`sat/`](sat/) | Bit-vector laws: bit-blasted, solved, LRAT-checked in TypeScript, optionally by Lean |

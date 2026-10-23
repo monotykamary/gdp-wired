@@ -1,0 +1,10 @@
+{
+ "ledger/openzeppelin/RefundEscrow#every refundee's deposit is covered by the balance": {
+  "verdict": "law",
+  "note": "refuted (a run: close, then beneficiaryWithdraw): once Closed and the beneficiary paid, depositsOf still returns the old credits against a balance of 0, and no withdrawal is allowed then; restated as 'until closed, ...'"
+ },
+ "ledger/openzeppelin/RefundEscrow#no more is paid out than was deposited": {
+  "verdict": "model",
+  "note": "first written without Address.sendValue's require(balance >= amount) (Address.sol:65), so the truncated balance.minus(deposit) broke conservation in the rule but not in the code; the guard added"
+ }
+}

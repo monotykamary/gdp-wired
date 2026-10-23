@@ -1,0 +1,52 @@
+{
+  "payment/medusa/orderItemQuantities#never more shipped than fulfilled": {
+    "verdict": "law",
+    "note": "Refuted by fulfil 1, ship 1, cancel the fulfilment of 1 (shipped 1 > fulfilled 0); @medusajs/order@2.22.0 does the same. CANCEL_ITEM_FULFILLMENT checks only the fulfilled count; the module leaves 'not a shipped fulfilment' to core-flows cancel-order-fulfillment.ts:127 (`if (fulfillment.shipped_at)` throws). Restated as the step law 'only a cancelled fulfilment takes the shipped past the fulfilled'.",
+    "repro": "research/realworld/repro/conform-medusa-order.ts"
+  },
+  "payment/medusa/orderItemQuantities#never more delivered than fulfilled": {
+    "verdict": "law",
+    "note": "Refuted by fulfil 1, deliver 1, cancel the fulfilment of 1; the original does the same. Same reason as the shipped law (the workflow refuses to cancel a shipped fulfilment; a delivered one not marked shipped was not traced). Restated as 'only a cancelled fulfilment takes the delivered past the fulfilled'.",
+    "repro": "research/realworld/repro/conform-medusa-order.ts"
+  },
+  "payment/medusa/orderItemQuantities#only a cancelled fulfilment takes the shipped past the fulfilled": {
+    "verdict": "law",
+    "note": "The restatement of 'never more shipped than fulfilled' (refuted, see that entry); proven.",
+    "repro": "research/realworld/repro/conform-medusa-order.ts"
+  },
+  "payment/medusa/orderItemQuantities#only a cancelled fulfilment takes the delivered past the fulfilled": {
+    "verdict": "law",
+    "note": "The restatement of 'never more delivered than fulfilled' (refuted, see that entry); proven.",
+    "repro": "research/realworld/repro/conform-medusa-order.ts"
+  },
+  "payment/medusa/orderItemQuantities#never more returned than fulfilled": {
+    "verdict": "bug",
+    "note": "Suspected real bug at the module's action level. With positive quantities: fulfil 1, return 1, receive 1, return 1, receive 1 leaves return_received_quantity 2 for 1 fulfilled: RETURN_ITEM (return-item.ts:51-61) checks `fulfilled - return_requested` and forgets what was already received. The search's run is a negative quantity: CANCEL_RETURN_ITEM of -2 passes `!quantity` and `-2 > return_requested` and raises return_requested to 2 with nothing fulfilled. @medusajs/order@2.22.0 does both. The admin route that feeds RETURN_ITEM takes `quantity: z.number()` with no minimum (api/admin/returns/validators.ts:128) and request-item-return.ts:99-104 checks no quantity; whether something else upstream stops either was not found.",
+    "repro": "research/realworld/repro/conform-medusa-order.ts"
+  },
+  "payment/medusa/orderItemQuantities#never more written off than ordered": {
+    "verdict": "bug",
+    "note": "Suspected real bug at the module's action level (lower confidence: the claim workflows that emit WRITE_OFF_ITEM were not traced). WRITE_OFF_ITEM (write-off-item.ts:48-53) compares one action's quantity with the item's quantity, not the total written off: two write-offs of 2 on an item of 2 write off 4. The search's run: REINSTATE_ITEM of -3 (any quantity not above the item's passes) raises written_off_quantity to 3 of 2. The original does both.",
+    "repro": "research/realworld/repro/conform-medusa-order.ts"
+  },
+  "payment/vendure/orderProcess#a placed order is cancelled only with every line cancelled": {
+    "verdict": "bug",
+    "note": "Suspected real bug. Local search: unknown (a state witness, no run within 3 s); a run exists and the original does it: Created, AddingItems, ArrangingPayment, PaymentAuthorized, ArrangingAdditionalPayment, Cancelled with a line still of quantity 1. default-order-process.ts:283-285 `if (toState === 'Cancelled') { return; }` inside the checkAdditionalPaymentsAmount block returns from onTransitionStart itself, so checkAllItemsBeforeCancel (:364-374, documented at :115-121 'Prevents transition to the Cancelled state unless all OrderItems are already cancelled. @default true') never runs from ArrangingAdditionalPayment; from PaymentAuthorized the same cancel is refused. Found by the conformance harness first (as a modelling error in the rule, fixed).",
+    "repro": "research/realworld/repro/conform-vendure-order.ts"
+  },
+  "payment/vendure/orderProcess#an order ships only once its payment has settled": {
+    "verdict": "law",
+    "note": "Not refuted by the local search (unknown), but a run breaks it and Vendure 2.2.7 does it: Created, AddingItems, ArrangingPayment, PaymentAuthorized, Modifying, Shipped with only an Authorized payment (createFulfillment checks no payment state, and ArrangingAdditionalPayment counts Authorized payments as covering). An inferred law that overstated the intent: restated as 'an order ships only once its payment is authorized or settled'.",
+    "repro": "research/realworld/repro/conform-vendure-order.ts"
+  },
+  "payment/vendure/orderProcess#an order ships only once its payment is authorized or settled": {
+    "verdict": "law",
+    "note": "The restatement of 'an order ships only once its payment has settled' (see that entry).",
+    "repro": "research/realworld/repro/conform-vendure-order.ts"
+  },
+  "payment/solidus/Payment#refunds never exceed the payment amount": {
+    "verdict": "bug",
+    "note": "Suspected real bug (from the source; ActiveRecord models, not run). With the default configuration a Spree::Refund of the whole amount is valid on a pending (authorized) payment (refund.rb:89-109; refundable_payment_states default %w[completed pending]), and a later partial capture! sets the payment's amount to what was captured (processing.rb:88 `update!(amount: captured_amount)`), below the refunds: credit_allowed (payment.rb:93-95) goes negative. The search's run takes the deprecated path (a refund while processing, allowed unless require_refundable_payment_state), then pend, then capture! of 2 of 6.",
+    "repro": "research/realworld/repro/solidus-refund-capture.rb"
+  }
+}

@@ -244,6 +244,18 @@ Infrastructure (nothing in the library changed): the boat backend paces its VM s
   instead of holding the batch; a released VM's lease is cleared only by the batch that holds it; `reap.sh` stops a
   free VM only past the idle time its batch gave it.
 
+- The real-world corpus (`research/realworld/`): 51 items of open-source code (rate limiters, quotas, ledgers,
+  escrow, payments, sessions and OAuth, RBAC and Cedar policies, real XState machines, job queues, circuit breakers,
+  feature flags, inventory, approvals; MIT, Apache-2.0, BSD and ISC, each pinned to a commit) written as rules with 311
+  laws a reviewer would ask about, each proven with nothing stated (60 s of search a law, 311 jobs on Modal,
+  `runs/realworld/r1`, the table in `results.md`): 218 proven (70.1%; 77.3% of the 282 believed true), 15 refuted,
+  78 open, none wrong; liveness 0 of 35, of which `rank0.ts` proves 19 once the constant rank 0 is stated (the rank
+  search misses it). Every refutation is a suspected real bug in the original code (20 in all with the ones found
+  past the prover, each with a repro under `repro/`; none reported upstream). The language gaps, ranked by items:
+  async 19, float 16, ordered scans of a collection 8, nonlinear 7, statechart constructs `fromXState` refuses 6
+  (every real machine as shipped; it also drops v4 `cond` without a refusal). `sources.json` lists the pinned sources
+  for gen/extract.
+
 ## 0.22.0
 
 The step goals of wide transitions proven: a CDCL search over a goal's atoms, with short reasons and an incremental
