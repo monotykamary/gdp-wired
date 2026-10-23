@@ -43,12 +43,12 @@ for v in [float(x) for x in a.v.split(",")]:
               f"   {sum(x['modal'] for x in rows):3} (${round(sum(x['modal_dollars'] for x in rows), 2):6})  {sum(x['starts'] for x in rows):6}  {b:6} ({i})")
 
 print()
-print("the defaults (sim.NEW: 60 s idle, cap 30, waits within --max-wait), c985479's (sim.NEW300) and the $100 plan's (sim.NEW100); the old policy for reference")
+print("the defaults (sim.NEW: 60 s idle, cap 50, waits within --max-wait), c985479's (sim.NEW300) and the $100 plan's (sim.NEW100); the old policy for reference")
 print("v    plan  policy                                  bench median  bench max  suite max  to Modal (batches, $)  starts  boat $ (idle $)")
 for v in [float(x) for x in a.v.split(",")]:
     m = replay(v)
     for plan in ("100", "500"):
-        for name in ("new", "c985479 ($500: 300 s idle, cap 50)", "new for $100 (cap 30, 60 s idle, 900 s when short)", "old"):
+        for name in ("new", "new with cap 30", "c985479 ($500: 300 s idle, cap 50)", "new for $100 (cap 30, 60 s idle, 900 s when short)", "old"):
             S = sim.Sim(m, sim.POLICIES[name], plan).run()
             rows = [x for x in S.report()["rows"] if 2 * DAY <= x["t0"] < 3 * DAY]
             bench = sorted(x["wall"] for x in rows if x["jobs"] >= 500 and not x["modal"])

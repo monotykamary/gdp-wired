@@ -62,7 +62,7 @@ RESERVE_HOUR = int(os.environ.get("GDPW_BOAT_RESERVE_HOUR", "15"))
 OLD = os.environ.get("GDPW_BOAT_POLICY", "") == "old"
 SHARE = float(os.environ.get("GDPW_BOAT_SHARE", "0.25"))  # a batch starts at most this share of the starts left
 MIN_STARTS = 2  # (but this many, while any are left)
-MAX_STARTS = int(os.environ.get("GDPW_BOAT_MAX_STARTS", "30"))  # and at most this many (0: no cap; tune-500.txt)
+MAX_STARTS = int(os.environ.get("GDPW_BOAT_MAX_STARTS", "50"))  # and at most this many a batch (0: no cap; --max-vms sets it for a run)
 IDLE = 60  # a released VM stays up this long, for a back-to-back batch; never longer to save starts (boat's TOS-6)
 
 
@@ -149,15 +149,17 @@ def starts_left(lim: dict) -> int:
     return min(st["hour"]["remaining"] - RESERVE_HOUR, st["day"]["remaining"] - RESERVE_DAY)
 
 
-def budget(left: int) -> int:
+def budget(left: int, cap: int = 0) -> int:
     """The starts one batch may spend of those left: a share, so that the tracks running at once all get some and
-    the hour isn't spent by the first big batch (the old policy: all of them)."""
+    the hour isn't spent by the first big batch, and at most `cap` (--max-vms for a run, else MAX_STARTS; the old
+    policy: all of them)."""
     if left <= 0:
         return 0
     if OLD:
         return left
     k = min(left, max(MIN_STARTS, math.floor(SHARE * left)))
-    return min(k, MAX_STARTS) if MAX_STARTS else k
+    cap = cap or MAX_STARTS
+    return min(k, cap) if cap else k
 
 
 def sandboxes() -> dict:
@@ -548,6 +550,7 @@ class Session:
         self.counts = {"leased_running": 0, "resumed": 0, "created": 0, "topped_up": 0, "not_resumed": 0}
         self.gate = StartGate()
         self.last_error = ""
+        self.max_starts = 0  # this batch's cap on its starts (--max-vms), else MAX_STARTS
         self.short = False  # no start was to be had for VMs the batch wanted: run() waits longer for released ones
         try:
             self.day0 = limits()["starts"]["day"]["used"]  # the account's starts of the day, before (and after, in close)
@@ -583,7 +586,7 @@ class Session:
                 starts = need
             if need > len(up) and starts <= 0:
                 self.short = True
-            free = up + [i for i in free if i not in up][:budget(starts)]
+            free = up + [i for i in free if i not in up][:budget(starts, self.max_starts)]
             for i in free[:need]:
                 d["vms"][i]["lease"] = {"pid": os.getpid(), "host": socket.gethostname(), "batch": self.batch, "since": time.time(), "label": self.label}
                 mine.append((i, d["vms"][i].get("state")))
@@ -593,11 +596,11 @@ class Session:
             self._go(self._bring_up, vm, state in RUNNING)
         rest = need - len(mine)
         if not OLD:  # what the batch starts in all (its resumes and creations) stays within its budget
-            rest = min(rest, budget(starts) - sum(1 for _, s in mine if s not in RUNNING))
+            rest = min(rest, budget(starts, self.max_starts) - sum(1 for _, s in mine if s not in RUNNING))
         if rest > 0 and starts > 0:
             self._go(self._create, rest, vm_type)
         elif need > len(mine):
-            log("no starts left this hour or day: no more VMs for this batch" if starts <= 0 else f"{need - len(mine)} VMs fewer: the batch's share of the starts left ({budget(starts)} of {starts})")
+            log("no starts left this hour or day: no more VMs for this batch" if starts <= 0 else f"{need - len(mine)} VMs fewer: the batch's share of the starts left ({budget(starts, self.max_starts)} of {starts})")
 
     def lease_up(self, k: int, vm_type: str) -> int:
         """Leases up to k pool VMs that are up and free (released by another batch less than its idle time ago), so
@@ -1010,7 +1013,7 @@ class Session:
                 if not got and self.short and time.time() - asked > 60:
                     asked = time.time()
                     with contextlib.suppress(Exception):
-                        k = min(budget(starts_left(limits())), math.ceil(short / per))
+                        k = min(budget(starts_left(limits()), self.max_starts), math.ceil(short / per))
                         if k > 0:
                             log(f"starts are back: {k} VMs more")
                             self.ensure(len(alive) + k)
@@ -1228,7 +1231,7 @@ def plan_vms(items: list[dict], slots_per_vm: int, override: int = 0, cap: int =
     with W slot-seconds of work, r starts a second and c slots a VM, n VMs arriving over n/r seconds finish by about
     W/(c n) + n/(2r), least at n = sqrt(2 r W / c). boat counts a resume as a start, as a creation is: only the pool's
     VMs still up (within their idle time) come without one. Of the starts left this hour and day, a batch takes its
-    budget() (a quarter), so a big batch runs longer on fewer VMs (two slots each, longest first) instead of
+    budget() (a quarter, at most MAX_STARTS or `cap`), so a big batch runs longer on fewer VMs (two slots each, longest first) instead of
     spending the hour; more VMs join it as other batches release theirs (Session.run's top-up)."""
     if override:
         return override
@@ -1246,9 +1249,9 @@ def plan_vms(items: list[dict], slots_per_vm: int, override: int = 0, cap: int =
         by_rate = up + math.ceil(math.sqrt(2 * rate * W / slots_per_vm))
         room = lim["currentLimits"]["activeSandboxes"] - lim["activeSandboxes"] + up
         starts = max(0, starts_left(lim))
-        n = min(useful, by_rate, room, up + budget(starts))
+        n = min(useful, by_rate, room, up + budget(starts, cap))
         if n < min(useful, by_rate, room, up + starts):
-            log(f"{up} VMs up and free, {budget(starts)} starts of the {starts} left: {n} VMs (the old policy: {min(useful, by_rate, room, up + starts)})")
+            log(f"{up} VMs up and free, {budget(starts, cap)} starts of the {starts} left: {n} VMs (the old policy: {min(useful, by_rate, room, up + starts)})")
     except Exception:
         n = min(useful, 10)
     if cap:
@@ -1362,6 +1365,7 @@ def boat_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int
     try:
         with signals_as_interrupt():
             sess = Session(f"run.py {outdir.name}", idle=idle, teardown=teardown, vm_type=vm_type, build=on_lost is None)
+            sess.max_starts = max_vms
             plain = [it for it in items if not it.get("vm_type")]
             bigs: dict[str, int] = {}
             for it in items:

@@ -231,6 +231,7 @@ class BoatEx:
                     r = json.loads(l)
                     self.past[(r.get("tool"), r.get("task"))] = float(r.get("seconds", 0))
         self.sess = boat.Session(pathlib.Path(runner).name, idle=idle, teardown=teardown, vm_type=vm_type, build=build, oleans=False)
+        self.sess.max_starts = max_vms
         self.n = 0
         self.calls = 0
         self.summary = None
@@ -393,7 +394,7 @@ def cli(run, runner: str, doc: str = ""):
     ap = argparse.ArgumentParser(description=(doc or "").split("\n\n")[0])
     ap.add_argument("--backend", default="auto", choices=["modal", "auto", "boat"])
     ap.add_argument("--vms", type=int, default=0, help="boat VMs for the batch (default: by the work and the plan's limits)")
-    ap.add_argument("--max-vms", type=int, default=0)
+    ap.add_argument("--max-vms", type=int, default=0, help="at most this many VMs, and the batch's cap on its starts (default 50: GDPW_BOAT_MAX_STARTS)")
     ap.add_argument("--idle", type=int, default=None, help="seconds a released VM stays up before boat stops it (0: stop at once; default 60)")
     ap.add_argument("--teardown", action="store_true", help="delete the batch's VMs at the end instead of stopping them")
     ap.add_argument("--vm-type", default="default", choices=["small", "default", "large"])

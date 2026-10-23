@@ -166,7 +166,7 @@ if __name__ == "__main__":
         ap.add_argument(f"--{f}", action="store_true")
     ap.add_argument("--backend", default="auto", choices=["modal", "auto", "boat"])
     ap.add_argument("--vms", type=int, default=0, help="boat VMs for the batch (default: by the jobs' last times and the plan's limits)")
-    ap.add_argument("--max-vms", type=int, default=0)
+    ap.add_argument("--max-vms", type=int, default=0, help="at most this many VMs, and the batch's cap on its starts (default 50: GDPW_BOAT_MAX_STARTS)")
     ap.add_argument("--idle", type=int, default=-1, help="seconds a released VM stays up before boat stops it (0: stop at once; default 60)")
     ap.add_argument("--vm-type", default="default", choices=["small", "default", "large"])
     ap.add_argument("--durations", default="", help="a summary.tsv whose times order the jobs (default: the last run's)")
