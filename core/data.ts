@@ -199,6 +199,8 @@ export const inGroup = (d: Data, f: {sort: FieldSort}): boolean => isDataField(f
 export class Data {
   readonly ctors: Ctor[]
   readonly seq = ++declaredSeq
+  // An abstract sort (`opaque`, below): its values read by equality alone.
+  abstract = false
   constructor(readonly name: string, decl: Record<string, Record<string, FieldSort>>, readonly group: string[] = [name]) {
     if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(name)) throw new Error(`${name}: a datatype's name is letters and digits`)
     const all: Ctor[] = Object.entries(decl).map(([c, fs]) => ({name: c, fields: Object.entries(fs).map(([f, s]) => ({name: f, sort: s}))}))
@@ -630,6 +632,7 @@ export type DataLaw = {name: string, vars: {name: string, sort: Sort}[], holds: 
 export function law(name: string, vars: Record<string, Sort>, holds: (vs: Record<string, any>) => Bool): DataLaw {
   const vs = Object.entries(vars).map(([n, s]) => ({name: n, sort: s}))
   const y = holds(Object.fromEntries(vs.map(v => [v.name, wrap(v.sort, {op: 'var', name: v.name})]))).y
+  equalityOnly(name, y)
   return {name, vars: vs, holds: y, params: [...new Set(paramsIn(y))]}
 }
 
@@ -737,6 +740,9 @@ export function randomValue(s: Sort, rand: Rand, size: number, natMax = 5, full 
   if (s === 'nat') return Math.floor(rand() * (natMax + 1))
   if (s === 'bool') return rand() < 0.5 ? 0 : 1
   if (s === 'int') return Math.floor(rand() * (2 * natMax + 1)) - natMax
+  // (an abstract value drawn as a natural is: the same draws, so a law at an abstract sort meets the values it would at
+  // the naturals)
+  if (s.abstract) return {c: 0, f: [Math.floor(rand() * (natMax + 1))]}
   // The leaves: constructors of no field of the group, or (a datatype with none, a rose tree) those of least height.
   const base = s.ctors.filter(c => c.fields.every(f => !inGroup(s, f)))
   const leaves = base.length ? base : s.ctors.filter(c => s.ctorHeight(c) === s.height)
@@ -2424,3 +2430,150 @@ const stuckOf = (v?: CyclicVerdict) => (v && !v.proven ? {goal: v.goal, stuck: v
 
 // The law with no cycle: its definitions unfolded, the kernel's prover alone (what the library proves without the search).
 export const proveDataToday = (l: DataLaw): DataVerdict => proveData(l, {induction: false})
+
+// --- abstract sorts, unknown functions, closures ----------------------------------------------------------------------
+//
+// An abstract sort, `opaque('Elem')`: values a law compares for equality and passes around (arguments, results, fields,
+// an if's choice), and nothing else. It is an ordinary datatype of one constructor of one natural (`el`), so the kernel
+// and Lean's twin see what they see of any datatype; the restriction is a check (`equalityOnly`, at every `law`): a
+// match, a constructor, a test or a size of an abstract sort, in the law or in a function it reaches, is refused, save
+// in the sort's own codecs below (its code and its value at a code), which only an unknown function's encoding reaches.
+//
+// Why a law proven so holds at every sort, not only at the naturals the encoding is (what TIP's `declare-sort` and a
+// goal's `par` claim): a law is ∀ x̄. φ(x̄), φ evaluated by the program's equations. Suppose φ false at values of some
+// nonempty set S. The evaluation is finite, so it reads finitely many elements of S: send them injectively into the
+// naturals (S may be finite, of one element even: the naturals being infinite, an injection always exists, which is why
+// the domain proven over must be infinite). A program that reads elements only by equality, choices and moves computes
+// at the images the images of what it computed at S: every comparison answers the same (the map is injective), every
+// other step moves a value; an unknown function is arbitrary, so it may take the images too. So φ is false at the
+// images, against the proof at the naturals. The check makes the premise true: an order (x < y), arithmetic, a
+// constant of the sort (el(0)) or a match on its code would tell the encoding apart from S, and is refused. What the
+// proof uses is beside the point (the kernel may compare codes): the proof is about the naturals, and the claim moved
+// to S is the law, which reads equality alone. Lean's twin states the law about the inductive `Elem`, whose code no
+// definition of the law reads: no arithmetic fact about the sort is in the statement it checks.
+const codecs = new Set<string>(), made = new Map<string, Callable>()
+const madeFn = (name: string, mk: () => Callable): Callable => { let f = made.get(name); if (!f) { f = mk(); made.set(name, f); codecs.add(name) } return f }
+export function opaque(name: string): Data {
+  const d = data(name, {el: {code: natural}}) as Data
+  d.abstract = true
+  return d
+}
+function equalityOnly(name: string, y: Y): void {
+  if (![...declared.values()].some(d => d.abstract)) return
+  const seen = new Set<string>()
+  const go = (t: unknown, where: string): void => walk(t, o => {
+    if ((o.op === 'match' || o.op === 'ctor' || o.op === 'is' || o.op === 'size') && dataNamed(o.data as string).abstract)
+      throw new Error(`${where} reads ${o.data as string}, an abstract sort, beyond equality (${o.op === 'ctor' ? 'a constant of it' : o.op === 'size' ? 'its size' : 'its code'}): its values may only be compared and passed around`)
+    if (o.op === 'call' && !codecs.has(o.fn as string) && !seen.has(o.fn as string)) { seen.add(o.fn as string); go(fnOf(o.fn as string).body(), o.fn as string) }
+  })
+  go(y, name)
+}
+
+// An unknown function between any sorts, `unknownFn('f', [natural], List)`: a law about it is about every such function.
+// It is one unknown g of a natural (`fnParam`) read at its arguments' key a: their codes (each injective: a natural
+// itself, a condition 0 or 1, an abstract value its code, a datatype value its constructor and its fields' codes)
+// paired, ⟨x, y⟩ = (x + y)² + y being the library's pairing (injective; the function `pairing`). A result of a natural
+// is g(a) (of one natural argument, f(x) is fnParam's f(x)), a condition g(a) = 0 (the predicate every predicate is), an
+// integer g(a)'s zigzag decoding, an abstract value the one of code g(a). A datatype's value is decoded at most
+// g(⟨a, 0⟩) constructors deep: its node at place p (the root 0, the i-th field of the node at p at B·p + i + 1, B the
+// most fields of a constructor among the datatypes it reaches: a heap's numbering, injective) is the constructor
+// g(⟨a, 3p + 1⟩) says (0, 1, ..: the first ones, the last for the rest), its natural there g(⟨a, 3p + 2⟩), a field of
+// another datatype (one declared before, not of its group) decoded from its place g(⟨a, 3p⟩) deep, and at depth 0 the
+// value of least height. All of it is ordinary functions of the datatype language (structural recursion on the depth):
+// nothing trusted reads it, and the places grow by a constant factor a level, not by squaring.
+// Why every function is one of these (the law about every g is then the law about every function): the points read are
+// ⟨a, 3p + k⟩ for the argument's key a, the node's place p and what is read k, distinct for distinct triples, so for
+// any function F a g reads at each argument's points F's value there: its depth, its constructors, its naturals.
+const natN = (n: NatLike): Nat => (typeof n === 'number' ? new Nat({op: 'nat', value: n}) : n)
+// (by recursion on x, ⟨0, y⟩ = y·y + y and ⟨x + 1, y⟩ = ⟨x, y⟩ + 2x + 2y + 1, so that it is a function the search keeps
+// as one: unfolded, the square of a square is past what the kernel's arithmetic relates, and a read of it at equal
+// arguments is the same read, which the search's congruences see; on x, an argument's key, which is a variable where
+// Lean's twin reads the definition, not a successor it would unfold)
+const pairN = (a: NatLike, b: NatLike): Nat => madeFn('pairing', () => {
+  const f: Callable = define('pairing', {x: natural, y: natural}, natural, ({x, y}) => (x as Nat).match({zero: () => (y as Nat).mul(y as Nat).plus(y as Nat), succ: ({pred}) => (f(pred, y) as Nat).plus(pred.times(2)).plus((y as Nat).times(2)).plus(1)}))
+  return f
+})(a, b) as Nat
+const asNatV = (v: unknown) => v as Nat
+// A value's code, injectively.
+function codeOf(s: Sort, v: unknown): Nat {
+  if (s === 'nat') return natN(v as NatLike)
+  if (s === 'bool') return when(v as Bool, 1, 0)
+  if (s === 'int') throw new Error('an unknown function of an integer argument isn\'t taken')
+  return asNatV(encoder(s)(v as Val))
+}
+function encoder(d: Data): Callable {
+  if (d.abstract) return madeFn(`${d.name}_code`, () => define(`${d.name}_code`, {x: d}, natural, ({x}) => (x as Val).match({el: ({code}) => code as Nat})))
+  for (const c of d.ctors) for (const f of c.fields) if (f.sort === 'int') throw new Error(`${d.name}: an unknown function of a datatype with an integer field isn't taken`)
+  return madeFn(`${d.name}_code`, () => define(`${d.name}_code`, {x: d}, natural, ({x}) => (x as Val).match(Object.fromEntries(d.ctors.map((c, j) => [c.name,
+    (fs: Record<string, unknown>) => pairN(c.fields.length ? c.fields.map(f => codeOf(fieldSort(f), fs[f.name])).reduce((a, b) => pairN(a, b)) : 0, j)])))))
+}
+const valueOfCode = (d: Data, n: NatLike): Val => madeFn(`${d.name}_of`, () => define(`${d.name}_of`, {n: natural}, d, ({n: c}) => d.make('el', c as Nat)))(n) as Val
+// A value of a sort of no constructors (a natural, a condition, an integer, an abstract value) from a natural.
+function primOf(s: Sort, n: Nat): Nat | Bool | Integer | Val {
+  if (s === 'nat') return n
+  if (s === 'bool') return n.eq(0)
+  if (s === 'int') return when(n.modBy(2).eq(0), n.divBy(2).toInt(), n.divBy(2).toInt().negate().minus(1))
+  return valueOfCode(s as Data, n)
+}
+const decodable = (s: Sort): s is Data => s instanceof Data && !s.abstract
+// The datatypes a decoding reaches, and the most fields of their constructors (B).
+function reachOf(d: Data, out = new Set<Data>()): Set<Data> {
+  if (out.has(d)) return out
+  out.add(d)
+  for (const c of d.ctors) for (const f of c.fields) { const s = fieldSort(f); if (decodable(s)) reachOf(s, out) }
+  return out
+}
+// The value of datatype x at key a, place p, depth: the decoders of g (`gname`), one for each datatype, B its branching.
+function decoder(gname: string, x: Data, b: number): Callable {
+  const name = (y: Data) => `${gname}_${y.name}_dec`
+  return madeFn(name(x), () => define(name(x), {a: natural, p: natural, depth: natural}, x, ({a, p, depth}) => (depth as Nat).match({
+    zero: () => leastOf(x),
+    succ: ({pred}) => {
+      const g = fnParam(gname), at = (k: number) => g(pairN(a as Nat, (p as Nat).times(3).plus(k)))
+      const vals = x.ctors.map(c => x.make(c.name, ...c.fields.map((f, i) => {
+        const s = fieldSort(f), q = (p as Nat).times(b).plus(i + 1)
+        if (!decodable(s)) return primOf(s, g(pairN(a as Nat, q.times(3).plus(2)))) as Val
+        // (a field of the group one level less deep; of another datatype, as deep as its own place says)
+        return decoder(gname, s, b)(a, q, x.group.includes(s.name) ? pred : g(pairN(a as Nat, q.times(3)))) as Val
+      })))
+      const tag = at(1)
+      return vals.slice(0, -1).reduceRight((acc, v, j) => when(tag.eq(j), v, acc), vals.at(-1)!)
+    }})))
+}
+// A datatype's value of least height (a constructor of least height, its naturals 0).
+function leastOf(d: Data): Val {
+  const c = d.ctors.find(k => d.ctorHeight(k) === d.height)!
+  return d.make(c.name, ...c.fields.map(f => { const s = fieldSort(f); return s === 'nat' ? 0 : s === 'int' ? new Integer({op: 'int', value: 0}) : (s as Data).abstract ? valueOfCode(s as Data, 0) : leastOf(s as Data) }))
+}
+export function unknownFn(name: string, from: Sort[], to: Sort): ((...args: unknown[]) => Nat | Bool | Val | Integer) & {param: string} {
+  if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(name)) throw new Error(`${name}: an unknown function's name is letters and digits`)
+  for (const s of from) if (s instanceof Data) encoder(s)
+  const b = decodable(to) ? Math.max(1, ...[...reachOf(to)].flatMap(d => d.ctors.map(c => c.fields.length))) : 0
+  return Object.assign((...args: unknown[]) => {
+    if (args.length !== from.length) throw new Error(`${name} takes ${from.length} arguments`)
+    const a = args.length ? args.map((v, i) => codeOf(from[i]!, v)).reduce((x, y) => pairN(x, y)) : natN(0), g = fnParam(name)
+    return decodable(to) ? decoder(name, to, b)(a, 0, g(pairN(a, 0))) as Val : primOf(to, g(a))
+  }, {param: name})
+}
+
+// Closures (defunctionalisation): a datatype of the functions a field or an argument may hold, one constructor for each
+// with the values it captures as fields, and `apply`, which matches on the closure: `closures('Op', {x: natural},
+// natural, {inc: {apply: (_, {x}) => x.plus(1)}, add: {fields: {k: natural}, apply: ({k}, {x}) => x.plus(k)}})`. A field
+// of sort `Op` is a function-typed field; `Op.add(3)` is a closure; `apply(c, x)` its application. With `unknown: 'other'`,
+// a constructor `other(code)` whose application is an unknown function of the code and the arguments: a law about every
+// closure is then about every function too (each is other(0) for some unknown function). Closures are ordinary values
+// and `apply` an ordinary function: the search and the kernel see nothing new.
+export function closures(name: string, args: Record<string, Sort>, ret: Sort,
+  // oxlint-disable-next-line typescript/no-explicit-any
+  cases: Record<string, {fields?: Record<string, unknown>, apply: (fields: Record<string, any>, args: Record<string, any>) => Nat | Bool | Val | Integer | number}>, opts: {unknown?: string} = {}): {data: Data & Record<string, any>, apply: Callable} {
+  if ('c' in args) throw new Error(`${name}: an argument named c (the closure's own name in apply)`)
+  const decl: Record<string, Record<string, unknown>> = Object.fromEntries(Object.entries(cases).map(([c, x]) => [c, x.fields ?? {}]))
+  if (opts.unknown) decl[opts.unknown] = {code: natural}
+  const d = data(name, decl as Decl) as Data & Record<string, unknown>
+  const u = opts.unknown ? unknownFn(`${name}_${opts.unknown}`, ['nat', ...Object.values(args)], ret) : undefined
+  const apply = define(`${name}_apply`, {c: d, ...args}, ret, a => (a.c as Val).match({
+    ...Object.fromEntries(Object.entries(cases).map(([c, x]) => [c, (fs: Record<string, unknown>) => x.apply(fs, Object.fromEntries(Object.keys(args).map(k => [k, a[k]])))])),
+    ...(u ? {[opts.unknown!]: ({code}: Record<string, unknown>) => u(code, ...Object.keys(args).map(k => a[k])) as Nat} : {}),
+  }))
+  return {data: d as never, apply}
+}

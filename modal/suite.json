@@ -1479,5 +1479,20 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 2400
+},
+{
+"name": "abstract",
+"cmd": "bun test abstract.test.ts 2>&1 && cd .. && bun test compare/tip/translate.test.ts 2>&1 && bun examples/abstract.ts 2>&1",
+"cwd": "core",
+"cpu": 2.0,
+"timeout": 1800
+},
+{
+"name": "lean-edges",
+"cmd": "ONLY=catAssoc,countCat,firstCons,bindReturn,mapLength bash research/edges/lean-edges.sh 2>&1",
+"cwd": ".",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 2400
 }
 ]

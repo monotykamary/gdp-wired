@@ -5,7 +5,8 @@
 // unfolded, the kernel's prover alone: core/data.ts's proveDataToday); `--asserts`, the facts the problem asserts beside
 // its goal (TIP's hints, which cvc5 and Vampire read as axioms) given as lemmas, each proven first; `--no-transfer`,
 // proveData with the law as stated only (`transfer: false`: no definition unfolded, no bridge to a built-in); `--opts
-// '<json>'`, proveData's options (core/data.ts's Options) over the run's.
+// '<json>'`, proveData's options (core/data.ts's Options) over the run's; `--naturals`, the goal's sort variables at the
+// naturals (the instance there), not as abstract sorts.
 // `--inline` and `--native` (the first run's diagnostics) are proveData's own now (core/transfer.ts), and do nothing.
 // An existential goal (∀ v. H ⇒ ∃ x. B) is proven through a witness among its variables (each a law, translate.ts's
 // `some`), or refuted through what it says whatever the witness (B's conjuncts that read no x), its counterexample
@@ -20,7 +21,7 @@
 import {readFileSync} from 'node:fs'
 import {OutOfFuel, type Sx, type Tip, type V, Unsupported, evaluate, parseSx, parseTip, prenex, sameV, showV} from './tip.ts'
 import {type Translation, translate} from './translate.ts'
-import {type DataLaw, type Value, conjectures, evalX, evalY, programOf, proveData, randomValue, rng, samples, showY} from '../../core/data.ts'
+import {type DataLaw, type Value, conjectures, evalX, evalY, programOf, proveData, randomFn, randomValue, rng, samples, showY} from '../../core/data.ts'
 
 const args = process.argv.slice(2), file = args[0]!
 const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 ? d : Number(args[i + 1]) }
@@ -33,24 +34,24 @@ const done = (answer: string, o: object = {}) => { say({stage: 'answer', answer,
 let tip: Tip, tr: Translation
 try {
   tip = parseTip(readFileSync(file, 'utf8'))
-  tr = translate(tip, file.split('/').slice(-2).join('/'), [...lemmaSx, ...(args.includes('--asserts') ? tip.asserts : [])])
+  tr = translate(tip, file.split('/').slice(-2).join('/'), [...lemmaSx, ...(args.includes('--asserts') ? tip.asserts : [])], {sorts: args.includes('--naturals') ? 'naturals' : 'abstract'})
 } catch (e) {
   if (e instanceof Unsupported) done('unsupported', {why: e.message})
   done('unsupported', {why: `translation failed: ${(e as Error).message.slice(0, 300)}`, error: true})
 }
 say({stage: 'import', changes: tr!.changes, notes: tr!.notes, vars: tr!.vars.length, params: tr!.params.length, fns: tr!.fns.length, specialised: tr!.fns.filter(f => f.specialised).length, datas: tr!.datas, law: showY(tr!.law.holds).slice(0, 400)})
 
-// A sample's values as TIP's: each variable's, and each function variable as the table the sample drew.
+// A sample's values as TIP's: each variable's, each function variable and uninterpreted constant as the sample's tables
+// of its unknowns make it (translate.ts's `eval`).
 const tipEnv = (env: Map<string, Value>, params: Record<string, (n: number) => number>): Map<string, V> => {
   const out = new Map<string, V>()
   for (const v of tr!.vars) out.set(v.tip, tr!.toTip(env.get(v.gdp)!, v.ty))
-  for (const p of tr!.params) {
-    const f = params[p.gdp]!, ty = p.ty as {k: 'fun', args: [typeof p.ty], ret: typeof p.ty}
-    out.set(p.tip, {fn: ([x]) => { const y = f(tr!.fromTip(x!, ty.args[0])); return p.pred ? y === 0 : tr!.toTip(y, ty.ret) }})
-  }
+  for (const p of tr!.params) out.set(p.tip, p.eval(params))
   return out
 }
-const tipHolds = (env: Map<string, Value>, params: Record<string, (n: number) => number>, goal: Sx = tr!.goal) => evaluate(tip!, goal, tipEnv(env, params)) === true
+const tipHolds = (env: Map<string, Value>, params: Record<string, (n: number) => number>, goal: Sx = tr!.goal) => { const e = tipEnv(env, params); return evaluate(tip!, goal, e, undefined, consts(params)) === true }
+// The uninterpreted constants and functions at a sample's tables (TIP's evaluator reads them in every body).
+const consts = (params: Record<string, (n: number) => number>) => new Map(tr!.params.filter(p => p.const).map(p => [p.tip, p.eval(params)]))
 
 {
   let goals = 0, fuel = 0
@@ -69,9 +70,11 @@ const tipHolds = (env: Map<string, Value>, params: Record<string, (n: number) =>
     for (let i = 0; i < 100; i++) {
       const vals = fn.params.map(p => randomValue(p.sort, rand, 1 + (i % 6)))
       const env = new Map(fn.params.map((p, j) => [`$a${j}`, vals[j]!]))
+      // (an uninterpreted constant a function reads, at a table of its own: the same in both)
+      const tables = Object.fromEntries(params.map(p => [p, randomFn(rand)])), cs = consts(tables)
       let got: Value, want: V
-      try { got = evalX({op: 'call', fn: fn.name, args: fn.params.map((_, j) => ({op: 'var', name: `$a${j}`}))}, env, {}) } catch (e) { if (e instanceof RangeError) { fuel++; continue } throw e }
-      try { want = evaluate(tip!, [f.tipName, ...f.argTys.map((_, j) => `$a${j}`)], new Map(f.argTys.map((t, j) => [`$a${j}`, tr!.toTip(vals[j]!, t)]))) } catch (e) { if (e instanceof OutOfFuel || e instanceof RangeError) { fuel++; continue } throw e }
+      try { got = evalX({op: 'call', fn: fn.name, args: fn.params.map((_, j) => ({op: 'var', name: `$a${j}`}))}, env, tables) } catch (e) { if (e instanceof RangeError) { fuel++; continue } throw e }
+      try { want = evaluate(tip!, [f.tipName, ...f.argTys.map((_, j) => `$a${j}`)], new Map([...cs, ...f.argTys.map((t, j) => [`$a${j}`, tr!.toTip(vals[j]!, t)] as const)]), undefined, cs) } catch (e) { if (e instanceof OutOfFuel || e instanceof RangeError) { fuel++; continue } throw e }
       if (!sameV(tr!.toTip(got, f.retTy), want)) done('error', {why: `translation disagrees with TIP on ${f.tipName}`, args: vals.map((v, j) => showV(tr!.toTip(v, f.argTys[j]!))), gdp: showV(tr!.toTip(got, f.retTy)), tip: showV(want)})
       calls++
     }

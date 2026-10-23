@@ -70,6 +70,72 @@ work, fixed here (below).
   answered differently (its tree has a cut by a fractional coefficient); nothing of the nontermination check or the
   trusted base is changed here, and it passed in the two runs after (`suite4-default`, `suite4-usual`).
 
+The language's edges: what an automatic prover can still say about values it may not look into and functions it isn't
+given. TIP 2015 at 60 s on Modal: 181 of 492 proven, main (5c3f947) launched beside it 178, none wrong; 180 of the 181
+with TIP's statement unchanged, against 136 of 178 (`runs/edges/tip`, `runs/edges/tip-base2`; `false/`: 23 refuted in
+both, the same 30 refutations in all, each confirmed by TIP's evaluator, none proven). Nothing trusted changed
+(`kernel/`, `core/check.ts`, `lean-kernel/`).
+
+- **Abstract sorts** (`opaque('Elem')`, core/data.ts): values a law compares by equality and passes around, and nothing
+  else; an ordinary datatype of one constructor of one natural, so the kernel and Lean's twin see what they see of any
+  datatype, with a check at every `law` that refuses a match, a constructor, a test or a size of the sort in the law
+  or any function it reaches (save the sort's own codecs, which only an unknown function's encoding reaches). Why a law
+  proven so holds at every sort: a counterexample over any set S reads finitely many elements; sent injectively into
+  the naturals (an injection exists because the naturals are infinite: a proof over a finite domain wouldn't carry),
+  a program that reads elements only by equality, choices and moves computes the images, and an unknown function may
+  take them too, so the law would fail at the naturals, where it is proven. An order, arithmetic, a constant of the
+  sort or a match on its code would tell the encoding apart, and is what the check refuses. Lean's twin states the law
+  about the inductive `Elem`, whose code no definition of the law reads: no arithmetic fact about the sort is in its
+  statement. An abstract value is drawn at random as a natural is (the same draws), so refutations are the naturals'.
+- **Unknown functions** (`unknownFn('f', [Elem], List)`): any function between sorts, from one unknown g of a natural
+  read at keys of its arguments' injective codes paired (⟨x, y⟩ = (x + y)² + y, `pairing`, a function by recursion so
+  the search keeps it whole); a natural, condition, integer or abstract result g at the key (of one natural argument,
+  fnParam's f(x) and the predicate g(x) = 0 exactly); a datatype's value decoded at most g(⟨a, 0⟩) constructors deep,
+  each node at its heap place p its constructor from g(⟨a, 3p + 1⟩), its naturals from g(⟨a, 3p + 2⟩). Every function
+  is one of these (the points read are distinct for distinct arguments, places and reads, so some g reads any
+  function's values), so the law about every g is the law about every function; it is all ordinary functions of the
+  datatype language. An uninterpreted constant is an unknown function of no argument.
+- **Closures** (`closures(name, args, ret, cases, {unknown})`): defunctionalisation as a datatype of the functions a field
+  may hold, one constructor each with its captures as fields, and `apply`; with `unknown`, a constructor whose
+  application is an unknown function, so a law about every closure is about every function too.
+- **TIP** (compare/tip): a goal's sort variables and `declare-sort` are abstract sorts (`--naturals`, the instance at
+  the naturals as before); `declare-const`/`declare-fun` unknowns (TIP's evaluator sees them in every body); a function
+  variable of any sort but a function's or an integer's an unknown function. Newly translated 4, proven 3
+  (`isaplanner/prop_46`, `tip2015/list_return_1`, `list_concat_map_bind`), `list_assoc` out of time; 4 more read past
+  their sorts and constants to another refusal (`list_weird_*` 2 at weird_concat's termination, `list_elem`,
+  `list_nat_elem` at an existential with no witness among their variables); outside, with the reason in
+  compare/tip/README.md: `polyrec_seq_index` (a nested datatype: polymorphic recursion, no finite set of instances),
+  `nicomachus_theorem` (a product of two integers, and over Int not a consequence of its definitions: `sum (−1)` is
+  free). Lost 1 at the limit (`isaplanner/prop_51`, 57.4 s on main). Lambdas were already specialised at each closure
+  (defunctionalisation resolved where applied); TIP stores no function in a field and returns none, so nothing more.
+  Found and left: `list_assoc`'s lemma use is lost in a case node, ranked by all the cases' models
+  (`research/edges/lemma-case.ts`, no unknown decoding needed to see it).
+- Adversarial tests (core/abstract.test.ts 17, compare/tip/translate.test.ts 13, each refused or refuted, a TIP one
+  confirmed by TIP's evaluator): an order of elements, a constant of the sort, its size, a function reading its code, a
+  constructor test (refused); at most two elements, every element the default, two defaults one, an unknown function
+  injective, an involution, constant, its lists of at most two items, `f x ++ f x = f x`, a predicate somewhere true,
+  equal lengths making equal lists, two closures mixed up, every closure growing; in TIP, at most two elements at a
+  sort variable, all of a declared sort equal, every element a constant, two constants equal, `undefined` every
+  element, a `declare-fun` injective, `[x] >>= f = f x ++ f x`, two function variables equal, two lambdas and one lambda
+  at two captures mixed up (refuted); a sort of arguments, a function variable of a function or over the integers
+  (refused). And the decoding onto: a table that makes [3, 1, 4], read back.
+- Lean: `research/edges/lean-edges.sh` (the suite's `lean-edges`) checks catAssoc, countCat, firstCons, bindReturn and
+  mapLength of `examples/abstract.ts` again in Lean. Two shapes of the export's tactics aren't closed, neither new
+  here (`PROBE=1` shows each with no abstract sort, unknown or closure): a datatype of two constructors with fields
+  (`(2·x + 1) / 2 = x` left after simp: closures of two with captures) and two constructor values compared inside a
+  disjunction (a membership by equality). Both are in `lean-kernel/data.ts`; the kernel's proofs stand.
+- Corpora: the first's datatype track 23 of 25, its 18 broken variants refused, as main; the second's TIP items
+  frontier 2 of 15, every broken variant refused, as main (`runs/edges/corpus-r1`, `-r2`, beside `corpus-base-*`). The
+  suite on Modal: by default 208 jobs, 0 failed, 492.5 s wall, 4,896.1 s of job time (`runs/edges/suite-default`);
+  `--usual` 208 jobs, 0 failed, 546.7 s and 4,698.7 s (`runs/edges/suite-usual`).
+- The `data` job on 1 vCPU (ten each, this branch's and main's interleaved in one Modal batch, `runs/edges/data-1cpu`):
+  nearPlus min, median and max 2,486, 2,957 and 3,931 ms against main's 2,247, 2,799 and 3,980; nearSucc 1,918, 2,323
+  and 2,664 against 1,757, 2,187 and 2,901; none failed.
+- Sizes: core/data.ts +153 (97 code, 56 comment), compare/tip/translate.ts +116 −33, tip.ts +15 −5, solve.ts +14 −11;
+  new: core/abstract.test.ts 64, compare/tip/translate.test.ts 64, examples/abstract.ts 86, research/edges/ 76.
+- Cost: Modal $3.76188 for this track's 12 apps today (`modal billing report --for today`, before the day closes);
+  no boat.
+
 Lemmas the datatype search finds and uses. TIP 2015 at 60 s on Modal: 176 of 492 proven, 0.22.0 the same day 140, none
 wrong (`runs/lem/tip-final`, `runs/lem/tip-final-base`; `false/`: 23 refuted in both, each confirmed by TIP's
 evaluator, none proven). Nothing trusted changed (`kernel/`, `core/check.ts` and `lean-kernel/` are as in 0.22.0). The

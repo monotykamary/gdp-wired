@@ -112,6 +112,11 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   proven by the kernel before the function's equation is used; one that doesn't terminate is refused with the reason);
   `proveData` finds the induction (structural, mutual, or the function's own call graph ranked by its measure) and the
   lemmas, each proof checked in Lean against the `inductive` and the functions as declared (`examples/data.ts`).
+  An abstract sort (`opaque('Elem')`: values compared by equality alone, any other read refused) makes a law hold at
+  every element type, not only the naturals; `unknownFn('f', [Elem], List)` is any function between sorts (a law about
+  every f, every default, every callback); `closures(...)` is a datatype of functions with its `apply`, for fields that
+  hold functions (`examples/abstract.ts`; Lean's twin doesn't yet close two shapes of its export there: a datatype of
+  two constructors with fields, and two constructor values compared inside a disjunction).
 - **Records and variants**: inputs, state, results, map cells and list items made of named fields, or one of several
   cases each with fields of its own (a payment by card or in cash, a seat free, held or sold), every case covered
   (`examples/datatypes.ts`).
