@@ -23,6 +23,7 @@ import {certLoop, factsFor, grow, proveLaws, proveLiveness, proveStepLaws, usual
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
+import {findBoundedRun} from './bmc.ts'
 import {cycleLemmas, findLeadsTo, findRank} from './cycles.ts'
 import {findNeverEnds} from './nonterm.ts'
 
@@ -2390,14 +2391,15 @@ const withKinds = (r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[])
 // interpreter took. A rule that reads functions is skipped: the kernel knows them only by their facts (a recurrence's
 // induction machine reads the function it proves things about), so a run computing them proves nothing about the goal.
 const refuteBudget = {trials: 60, depth: 6, bound: 3, ms: 150}
+// A request as a run's trace shows it: each map it carries as an object of its cells.
+const shownRequest = (input: Request) => Object.fromEntries(Object.entries(input).map(([n, x]) => [n, typeof x === 'number' ? x : Object.fromEntries(x as ReadonlyMap<number, number>)]))
 // The search's own runs, before it looks for what the laws need: deeper and wider, from another seed.
 const deeperBudget = {trials: 600, depth: 24, bound: 8, ms: 1500, seed: 29}
 function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[] = [], budget: typeof refuteBudget & {seed?: number} = refuteBudget): {goal: string, witness: Record<string, number>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}} | undefined {
   const m = r.machine
   // Division by a constant is a function too, but its facts fix its value, so a run computing it is a run of the rule.
   if (Object.keys(m.fns ?? {}).some(f => !isArithmetic(f)) || m.facts?.some(f => !isArithmetic(f.name.slice(0, f.name.indexOf(':'))))) return undefined
-  const run = interpret(m), rand = seeded(budget.seed ?? 13), until = performance.now() + budget.ms, bound = budget.bound
-  const shown = (input: Request) => Object.fromEntries(Object.entries(input).map(([n, x]) => [n, typeof x === 'number' ? x : Object.fromEntries(x as ReadonlyMap<number, number>)]))
+  const run = interpret(m), rand = seeded(budget.seed ?? 13), until = performance.now() + budget.ms, bound = budget.bound, shown = shownRequest
   try {
     for (let trial = 0; trial < budget.trials && performance.now() < until; trial++) {
       const params = r.randomParams(rand, bound)
@@ -2449,7 +2451,10 @@ const noting = <R extends Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>>(r: R, ..
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions = {}): Verdict {
   noting(r, laws)
   const refuted = refuteByRuns(r, laws)
-  if (refuted) return refutedVerdict(refuted)
+  // A state the laws allow whose step breaks one, with no run to it (a wide rule's: what the kernel's step goal would end
+  // at), is a counterexample to induction: the laws may still hold, so the search goes on from it, as from the kernel's.
+  // (A step law broken so is refused, proveSteps below: it holds from every state the laws allow, reached or not.)
+  if (refuted) return refuted.run ? refutedVerdict(refuted) : searched(r, laws, [], refutedVerdict(refuted), opts)
   const out = proveLaws(r.machine, withKinds(r, laws))
   const v: Verdict = {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {}), ...(out.witnesses && out.proven ? {witnesses: out.witnesses} : {})}
   return searched(r, laws, [], v, opts)
@@ -2470,6 +2475,10 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   const deeper = refuteByRuns(r, laws, stepLaws, deeperBudget)
   if (deeper?.run) return refutedVerdict(deeper)
   const until = performance.now() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000)
+  // Bounded runs (core/bmc.ts): a law broken k steps from the start, a model of the kernel's k-step goal, the run taken
+  // by the interpreter; a tenth of the search's budget, counted and in wall time, at most a second.
+  const bmcMs = Math.min(1000, (until - performance.now()) / 10), bounded = findBoundedRun(r.machine, laws, {ms: bmcMs, wall: performance.now() + bmcMs})
+  if (bounded) return refutedVerdict({goal: `${bounded.law} @step (a run of ${bounded.depth} steps from the start)`, witness: bounded.witness, run: {params: bounded.params, trace: bounded.trace.map(shownRequest)}})
   let rule = r, lemmas: Found['lemmas']
   const {fns, lists} = r.parts
   if (lists.length || fns.some(([, d]) => recurOf(d))) {

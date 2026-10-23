@@ -1,7 +1,7 @@
 // proveRule and proveSteps search for what the laws need where the prover alone doesn't prove them and no run breaks
 // them: lemmas (core/discover.ts), then invariants (core/infer.ts). `{search: false}` is the prover alone.
 import {expect, test} from 'bun:test'
-import {proveRule, proveSteps, rule} from './dsl.ts'
+import {nat, proveRule, proveSteps, rule, when} from './dsl.ts'
 import {bucket, bucketLaw, pool, poolLaw} from '../examples/infer.ts'
 import {retries, retryLaws, retrySteps} from '../examples/lemmas.ts'
 
@@ -37,4 +37,17 @@ test('a search that finds nothing says so, within its time', () => {
   const t = performance.now(), v = proveRule(r, [law], {search: {ms: 2000}})
   expect(v.proven).toBe(false)
   expect(performance.now() - t).toBeLessThan(8000)
+})
+
+test('a law broken only past where random runs go is refuted by a bounded run, which the interpreter takes', () => {
+  // A lock of five codes: each step's code must be the next one (37, 512, 9, 1000, 77). No random run guesses them; the
+  // model of the kernel's 5-step goal from the start (core/bmc.ts) names them.
+  const codes = [37, 512, 9, 1000, 77]
+  const r = rule('lock').inputs({code: nat}).state({stage: 0})
+    .step(({stage, code}) => ({stage: codes.reduceRight((rest, c, i) => when(stage.eq(i).and(code.eq(c)), stage.plus(1), rest), stage)}))
+  const law = r.law('the lock stays shut', ({stage}) => stage.atMost(4))
+  const v = proveRule(r, [law], {search: {ms: 4000}})
+  expect(v.proven).toBe(false)
+  expect(v.goal).toContain('a run of 5 steps')
+  expect(v.run?.trace.map(t => t.code)).toEqual(codes)
 })

@@ -41,11 +41,16 @@ const eq = (a: E, b: E): C => ({op: '=', a, b})
 const plus = (a: E, b: E): E => (a.op === 'const' && a.value === 0 ? b : b.op === 'const' && b.value === 0 ? a : a.op === 'const' && b.op === 'const' ? K(a.value + b.value) : {op: 'add', a, b})
 const minus = (a: E, b: E): E => (b.op === 'const' && b.value === 0 ? a : a.op === 'const' && b.op === 'const' ? K(Math.max(0, a.value - b.value)) : {op: 'sub', a, b})
 const times = (k: number, a: E): E => (k === 0 ? K(0) : k === 1 ? a : a.op === 'const' ? K(k * a.value) : {op: 'mul', k, a})
-const ite = (c: C, a: E, b: E): E => (isT(c) ? a : isF(c) ? b : JSON.stringify(a) === JSON.stringify(b) ? a : {op: 'if', c, then: a, else: b})
+const ite = (c: C, a: E, b: E): E => (isT(c) ? a : isF(c) ? b : a === b || JSON.stringify(a) === JSON.stringify(b) ? a : {op: 'if', c, then: a, else: b})
 
 // Constants folded: a term or condition with the same value everywhere, smaller (a policy's conditions read the mode as
-// its constants, which decides most of a translated loop's cases).
-function simpE(e: E): E {
+// its constants, which decides most of a translated loop's cases; core/bmc.ts, a run's start and its fixed requests).
+// Each shared part is folded once.
+const simpMemo = new WeakMap<E | C, E | C>()
+const memo = <T extends E | C>(x: T, f: (x: T) => T): T => { const hit = simpMemo.get(x); if (hit) return hit as T; const out = f(x); simpMemo.set(x, out); return out }
+export const simpE = (e: E): E => memo(e, simpE0)
+export const simpC = (c: C): C => memo(c, simpC0)
+function simpE0(e: E): E {
   switch (e.op) {
     case 'var': case 'const': return e
     case 'add': return plus(simpE(e.a), simpE(e.b))
@@ -57,7 +62,7 @@ function simpE(e: E): E {
     case 'get': return {op: 'get', map: e.map, key: simpE(e.key)}
   }
 }
-function simpC(c: C): C {
+function simpC0(c: C): C {
   switch (c.op) {
     case '<=': case '<': case '=': {
       const a = simpE(c.a), b = simpE(c.b)
