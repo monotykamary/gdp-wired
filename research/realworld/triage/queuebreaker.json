@@ -33,5 +33,9 @@
     "verdict": "law",
     "note": "The restatement of 'a job is claimed at most retryLimit + 1 times' (refuted by a manual resume, which re-runs the job on purpose).",
     "repro": "research/realworld/repro/pg-boss-resume.ts"
+  },
+  "queue/bullmq/jobRetry#an exponential retry waits at least the base delay": {
+    "verdict": "law",
+    "note": "A law error, not a bug: refuted once the random runs computed the rule's functions (fix/realworld; the scored run skipped every rule that read one, so it was unknown). The run: backoff exponential with delay 0, a fetch then a failure at now 8. With delay 0 the backoff is Math.round(2^(attemptsMade - 1) * 0) = 0 (backoffs.ts:31), and job.ts:775-799 retries at once (retryJob, back to wait) rather than moving the job to delayed, so the rule leaves its ghost `until` as it was (0) and the law reads until >= now + delay = 8. The code waits 0 >= delay there, which is what the law means; it is stated too strongly (it should read `until` only where the retry moved the job to delayed, or need delay > 0). Kept as stated, so the corpus stays as scored. Reasoned from the rule's mapping comments; no repro run."
   }
 }

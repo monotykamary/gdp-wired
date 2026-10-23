@@ -1,0 +1,9 @@
+// expect: nonterminating. *p is x: x becomes 1 and the loop runs forever.
+int main() {
+  int x = 0;
+  int *p = &x;
+  *p = 1;
+  while (x == 1) {
+  }
+  return 0;
+}

@@ -20,13 +20,16 @@
 // node's value, a rose mirror that drops a tree, a concatenation that drops the first list, a replicate with one more, a
 // drop of one too many, a merge that drops an item, an add3acc that forgets one) are refused with a value that breaks
 // the law; the definitions that don't terminate (a merge that calls itself on the same lists, an interleave that only
-// swaps them, an add3acc that doesn't lower y, a merge whose stated measure a call doesn't lower) are refused, with the
-// reason, before any law about them is read.
-import {type Bool, type DataLaw, type Nat, type Val, data, define, fnParam, law, mutual, natural, boolean, no, programOf, self, when, yes, proveData} from '../core/data.ts'
+// swaps them, an add3acc that doesn't lower y, a merge whose stated measure a call doesn't lower; and `adversarial`'s
+// twelve: rings that pass a value round, lower and raise it, swap two, step past a guard the runs don't reach, a call
+// on a helper no longer than its argument up to 9 items only, a nested call, an integer's) are refused, with the
+// reason, before any law about them is read. `wellFounded`: a ring of two functions (a measure each) and a merge sort
+// whose call's decrease needs a size law about the function of its argument.
+import {type Bool, type DataLaw, type Integer, type Nat, type Val, data, define, fnParam, integer, law, mutual, natural, boolean, no, programOf, self, when, yes, proveData} from '../core/data.ts'
 
 export const List = data('List', {nil: {}, cons: {head: natural, tail: self}})
 export const Tree = data('Tree', {leaf: {}, node: {left: self, value: natural, right: self}})
-const L = (v: unknown) => v as Val, N = (v: unknown) => v as Nat, B = (v: unknown) => v as Bool
+const L = (v: unknown) => v as Val, N = (v: unknown) => v as Nat, B = (v: unknown) => v as Bool, I = (v: unknown) => v as Integer
 
 export const len = define('len', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: ({tail}) => N(len(tail)).plus(1)}))
 export const sum = define('sum', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: ({head, tail}) => N(sum(tail)).plus(head)}))
@@ -169,6 +172,55 @@ export const atMost = define('atMost', {v: natural, xs: List}, List, ({v, xs}) =
 export const above = define('above', {v: natural, xs: List}, List, ({v, xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => when(N(v).lt(head), List.cons(head, above(v, tail)), L(above(v, tail)))}))
 export const qsort: ReturnType<typeof define> = define('qsort', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => L(app(qsort(atMost(head, tail)), List.cons(head, qsort(above(head, tail)))))}))
 
+// A ring of two functions that isn't structural recursion (lean-kernel/Data.lean's wf_fix_unique_ring): an expression's
+// tokens, a sum's read through `paren` at the same value, each of whose operands' read at a field. Their measures, one
+// a function, found from the calls' relation: size(e) + 1 at `tokens`, size(e) at `paren`.
+export const Expr = data('Expr', {atom: {}, sum: {a: self, b: self}})
+export const tokens: ReturnType<typeof define> = define('tokens', {e: Expr}, natural, ({e}) => L(e).match({atom: () => 1, sum: () => N(paren(e)).plus(2)}))
+export const paren: ReturnType<typeof define> = define('paren', {e: Expr}, natural, ({e}) => L(e).match({atom: () => 1, sum: ({a, b}) => N(tokens(a)).plus(N(tokens(b))).plus(1)}))
+// A merge sort from the bottom up: a list of sorted runs merged in pairs (`pairwise`) until one is left. Its call is on
+// the runs merged in pairs, no more than the runs (a size law about `pairwise`, conjectured from its values, proven by
+// induction and used in the decrease's proof).
+export const Runs = data('Runs', {none: {}, run: {first: List, rest: self}})
+export const pairwise: ReturnType<typeof define> = define('pairwise', {rs: Runs}, Runs, ({rs}) => L(rs).match({none: () => Runs.none, run: ({first, rest}) => L(rest).match({none: () => Runs.run(first, Runs.none), run: ({first: second, rest: more}) => Runs.run(mrg(first, second), pairwise(more))})}))
+export const mergeRuns: ReturnType<typeof define> = define('mergeRuns', {rs: Runs}, List, ({rs}) => L(rs).match({none: () => List.nil, run: ({first, rest}) => L(rest).match({none: () => L(first), run: () => L(mergeRuns(pairwise(rs)))})}))
+export const wellFounded = {
+  tokensPositive: () => law('an expression has a token', {e: Expr}, ({e}) => N(tokens(e)).atLeast(1)),
+  mergeRunsOne: () => law('one run merged is itself', {xs: List}, ({xs}) => L(mergeRuns(Runs.run(xs, Runs.none))).eq(L(xs))),
+} satisfies Record<string, () => DataLaw>
+
+// Definitions that don't terminate, made to look as if they did (core/data.test.ts): each refused with the measures
+// tried, before any law about it is read. Taken as an equation, any of them would let the kernel prove anything.
+const nearTail = define('nearTail', {xs: List}, List, ({xs}) => L(xs).match({nil: () => List.nil, cons: ({head, tail}) => when(N(len(tail)).atLeast(9), List.cons(head, L(xs)), L(tail))}))
+const loops = {
+  // a ring that passes its argument round
+  passRound: () => { const f: ReturnType<typeof define> = define('passA', {xs: List}, natural, ({xs}) => N(g(xs))), g: ReturnType<typeof define> = define('passB', {xs: List}, natural, ({xs}) => N(f(xs))); return f },
+  // one lowers its argument, the other builds it back
+  lowerRaise: () => { const f: ReturnType<typeof define> = define('lowerA', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: ({tail}) => N(g(tail))})), g: ReturnType<typeof define> = define('raiseB', {xs: List}, natural, ({xs}) => N(f(List.cons(0, xs)))); return f },
+  // a ring that lowers n below 9 and passes it round from 9 up: past the runs' values
+  lateRing: () => { const f: ReturnType<typeof define> = define('lateA', {n: natural}, natural, ({n}) => when(N(n).atLeast(9), N(g(n)), N(n).match({zero: () => 0, succ: ({pred}) => N(f(pred))}))), g: ReturnType<typeof define> = define('lateB', {n: natural}, natural, ({n}) => N(f(n))); return f },
+  // two lists swapped at each call, through the ring
+  swapRing: () => { const f: ReturnType<typeof define> = define('swapA', {xs: List, ys: List}, natural, ({xs, ys}) => L(xs).match({nil: () => 0, cons: () => N(g(ys, xs))})), g: ReturnType<typeof define> = define('swapB', {xs: List, ys: List}, natural, ({xs, ys}) => N(f(ys, xs))); return f },
+  // even and odd, but odd steps up two
+  stepUp: () => { const f: ReturnType<typeof define> = define('evenUp', {n: natural}, natural, ({n}) => N(n).match({zero: () => 1, succ: ({pred}) => N(g(pred))})), g: ReturnType<typeof define> = define('oddUp', {n: natural}, natural, ({n}) => N(n).match({zero: () => 0, succ: ({pred}) => N(f(N(pred).plus(3)))})); return f },
+  // a call on a helper no longer than its argument up to 9 items, longer past them: the size law its values suggest is
+  // false, and its induction fails
+  nearTail: () => { const f: ReturnType<typeof define> = define('nearTailLoop', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: () => N(f(nearTail(xs)))})); return f },
+  // the same through a ring
+  nearTailRing: () => { const f: ReturnType<typeof define> = define('nearRingA', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: () => N(g(nearTail(xs)))})), g: ReturnType<typeof define> = define('nearRingB', {xs: List}, natural, ({xs}) => N(f(xs))); return f },
+  // 0 calls 1 and 1 calls 0
+  upDown: () => { const f: ReturnType<typeof define> = define('upDown', {n: natural}, natural, ({n}) => N(n).match({zero: () => N(f(1)), succ: ({pred}) => N(f(pred))})); return f },
+  // a sum of two that stays: (x + 1, y) to (x, y + 1), (0, y + 1) to (y + 1, y)
+  sumStays: () => { const f: ReturnType<typeof define> = define('sumStays', {x: natural, y: natural}, natural, ({x, y}) => N(x).match({zero: () => N(y).match({zero: () => 0, succ: ({pred}) => N(f(N(pred).plus(1), pred))}), succ: ({pred}) => N(f(pred, N(y).plus(1)))})); return f },
+  // nested and never ending: f(n) = f(f(n))
+  nested: () => { const f: ReturnType<typeof define> = define('nestedLoop', {n: natural}, natural, ({n}) => N(f(f(n)))); return f },
+  // on an integer (no measure reads one): below 0 it never ends
+  intDown: () => { const f: ReturnType<typeof define> = define('intDown', {i: integer}, natural, ({i}) => when(I(i).eq(0), 0 as number, N(f(I(i).minus(1))) as never)); return f },
+  // a ring whose measures are given and don't fall: (size xs) at both, the call passing xs round
+  ringStatedWrong: () => { const f: ReturnType<typeof define> = define('statedA', {xs: List}, natural, ({xs}) => L(xs).match({nil: () => 0, cons: ({tail}) => N(g(tail))}), {measure: ['xs']}), g: ReturnType<typeof define> = define('statedB', {xs: List}, natural, ({xs}) => N(f(List.cons(1, xs))), {measure: ['xs']}); return f },
+}
+export const adversarial = Object.fromEntries(Object.entries(loops).map(([name, mk]) => [name, () => { const f = mk(); return law(`${name} is 0`, Object.fromEntries(f.fn.params.map(p => [p.name, p.sort])) as never, vs => N(f(...f.fn.params.map(p => vs[p.name]))).eq(0)) }])) as Record<keyof typeof loops, () => DataLaw>
+
 // A user's own arithmetic on the naturals, by recursion (as a library ported from a proof assistant writes it): ≤, +,
 // an equality, a count by it, and a definition that isn't recursive over them (≥ as ≤ the other way). proveData proves
 // each of these agrees with the built-in (its bridge, by recursion induction), and the laws through the built-ins.
@@ -275,7 +327,13 @@ if (import.meta.main) {
     console.log(`${!v.proven ? 'ok  ' : 'FAIL'} ${v.law} (broken): ${v.proven ? 'proven' : `refused${v.counterexample ? `, broken at ${JSON.stringify(v.counterexample)}` : ''}`}`)
     failed ||= v.proven
   }
-  for (const [name, mk] of Object.entries(nonterminating)) {
+  for (const [name, mk] of Object.entries(wellFounded)) {
+    if (skip(name)) continue
+    const v = proveData(mk()), ok = v.proven && v.checked
+    console.log(`${ok ? 'ok  ' : 'FAIL'} ${v.law}: ${v.proven ? `proven, ${v.ms} ms (${v.scheme})` : `not proven (${v.goal}: ${v.stuck})`}`)
+    failed ||= !ok
+  }
+  for (const [name, mk] of [...Object.entries(nonterminating), ...Object.entries(adversarial)]) {
     if (skip(name)) continue
     const why = refusal(mk)
     console.log(`${why ? 'ok  ' : 'FAIL'} ${name} (doesn't terminate): ${why ? `refused: ${why}` : 'taken'}`)

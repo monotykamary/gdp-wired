@@ -113,6 +113,21 @@ The group attacked is the one the other tools prove most of (on main 19 of its 2
 (`isaplanner/prop_41`, `prop_50`, `prop_55`, `prop_56`, `prop_57`, `prop_81`, `prod/lemma_05`), `prop_51` lost (above).
 The conditional laws are the largest, and other tools prove 10 of their 54.
 
+### Termination through lemmas (gen/termlemmas)
+
+`runs/termlem/tip2`: this branch, and `runs/termlem/tip2-base`: main at c1a0fb5, launched together on Modal, gdp-wired
+only, the sets above and `false/`, 60 s.
+
+| theorems (492) | proven | refuted | wrong | unknown | timeout | unsupported |
+| --- | --- | --- | --- | --- | --- | --- |
+| `termlem/tip2-base` (c1a0fb5) | 177 | 7 | 0 | 53 | 126 | 129 |
+| `termlem/tip2` | 177 | 7 | 0 | 56 | 140 | 112 |
+
+- The same 177 proven and the same 30 refuted (23 in `false/`). Translated now: the bottom-up merge sorts
+  `sort_*MSortBU*` and `sort_*MSortBU2*` (16: mergingbu's call on `pairwise`, a size law about it proven and used) and
+  `grammars/simp_expr_unambig4` (`linTerm` and `lin`, a ring: size(x) + 1 and size(x)), none proven in the time; in
+  `false/` the 8 regexp `reck` rings, none refuted. None lost.
+
 ### Abstract sorts, unknown functions and constants (lang/edges)
 
 `runs/edges/tip`: this branch, and `runs/edges/tip-base2`: main at 5c3f947, launched together on Modal (`--backend
@@ -165,6 +180,8 @@ function (core/data.ts's `unknownFn`). `--naturals` (solve.ts) takes the sort va
   with it), so at n = −1 the goal holds only in some models; core/data.ts would refuse `sum` for its termination at a
   negative argument even with products, rightly. Read at the naturals it would be another statement. `false/
   imperative_Apa`: the same product, and `run`, whose `While` doesn't terminate.
+
+### Lemmas the search finds and uses (gen/lemmas)
 
 `runs/lem/tip-final`: this branch, and `runs/lem/tip-final-base`: 0.22.0 (c215ded), launched together on Modal (boat
 had no VM starts left), the same image, sets (`false/` too), container shape and 60 s.

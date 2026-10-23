@@ -1,0 +1,12 @@
+// expect: nonterminating. A 1000-element array read only at 999: the write at the index i = 999 is that element, so
+// a[999] is 3 and the loop runs forever. A write at an index that isn't a constant read as changing nothing would leave
+// it at 1.
+int main() {
+  int a[1000];
+  a[999] = 1;
+  int i = 999;
+  a[i] = 3;
+  while (a[999] == 3) {
+  }
+  return 0;
+}

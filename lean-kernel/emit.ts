@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type Fold, type Goal, type Instances, type Liveness, type Loop, type Path, type Recur, type StepLaw, type Tree, boundOf, check, checkRecur, recurGoal, canon, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, historyMachine, foldObligations, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
+import {type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type StepLaw, type Tree, boundOf, check, checkRecur, recurGoal, canon, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, historyMachine, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {grow, minimal, proveBuilt, proveLaws, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
@@ -13,6 +13,7 @@ import {type Cyclic, descentGoal, mainGoal, premiseGoal} from '../kernel/cyclic.
 import {allowNode, certMs, closingInsts, reqTS, withWitness, foldNodes, certMode, quietly, uncoveredWhy, hasQuantified, kWhens, machineNodes, type NodeSpec, proveCyclic, routeOf, searchedStepNodes, skMachine, stepLawNodes, tBack, tSub} from '../core/cyclic.ts'
 import type {Fact} from '../kernel/cyclic.ts'
 import {leanLibrary} from './library.ts'
+import {proveKInduction} from '../core/kind.ts'
 export {leanLibrary}
 
 export type Exported = {name: string, goal: Goal, tree: Tree}
@@ -696,9 +697,14 @@ function machineNames(m: Machine, laws: Law[], allSteps: StepLaw[], stepLaws: St
   return {vars, maps}
 }
 
+// A k-induction to export with a machine: the law and k, and the law's start goal with its tree and instances (the
+// k-step goals' trees come with the machine's step-law proof, seeded with seedStepProof); `tamper`, its tampered twins.
+// A tampered twin: its k, the base depths it keeps (indices into the k-step laws' base), the law, and kernel.ts's answer.
+export type KindLean = {kl: KInduction, start: {goal: Goal, tree: Tree, inst: Instances}, tampers?: {what: string, k: number, base: number[], law?: C, expect: boolean}[]}
 export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {stepLaws?: StepLaw[], liveness?: Liveness[], tamper?: {what: string, machine: Machine}, simp?: string[], free?: string[],
     ghosts?: string[], after?: (ix: (name: string) => number) => string, historyTampers?: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[],
-    refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}, loop?: {loop: Loop, tamper?: {what: string, loop: Loop}}, noFacts?: boolean} = {}): string {
+    refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}, loop?: {loop: Loop, tamper?: {what: string, loop: Loop}}, noFacts?: boolean,
+    kind?: KindLean} = {}): string {
   const hm = given.history ? {...given, history: {...given.history, prune: undefined}} : undefined
   const hplain = hm ? historyMachine(hm) : undefined, stepLaws = opts.stepLaws ?? [], rf = opts.refined, gv = opts.ghosts ?? []
   const m = hplain ? hplain.machine : given
@@ -710,14 +716,13 @@ export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {s
   type Claim = {steps: StepLaw[], allows: Allow[], render: (h: Helpers) => string}
   const claims: Claim[] = []
   const claimSteps = () => claims.flatMap(cl => cl.steps)
-  // The machine's own step laws, one step or k (Sets.lean's skstep_sound).
-  if (!rf) stepLaws.forEach((sl, j) => claims.push({steps: [sl], allows: [], render: h => {
+  // A step law's SKStep literal: its whens, then, the names its later requests and states are read by, its proof.
+  const skLit = (h: Helpers, sl: StepLaw): string => {
     const {pr, inst} = h.step(sl), kk = sl.steps ?? 1
     const whens = sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when]
     const ren = Array.from({length: kk}, (_, s2) => (s2 === 0 ? '[]' : list(ext.map(v => `(${ix(v)}, ${ix(`${v}@${s2 + 1}`)})`))))
     const mren = Array.from({length: kk}, (_, s2) => (s2 === 0 ? '[]' : list(carried.map(mp => `(${mx(mp)}, ${mx(`${mp}@${s2 + 1}`)})`))))
-    return `-- Step law${kk > 1 ? ` over ${kk} steps` : ''}: ${sl.name}
-def ${id}_step${j} : SKStep := ⟨⟨${list(Array.from({length: kk}, (_, s2) => (whens[s2] ? c(inline(whens[s2]!)) : TRUE)))},
+    return `⟨⟨${list(Array.from({length: kk}, (_, s2) => (whens[s2] ? c(inline(whens[s2]!)) : TRUE)))},
   ${c(inline(sl.then))},
   ${list(ren)},
   ${list(Object.keys(m.state).map(s2 => `(${ix(s2)}, ${ix(`${s2}'`)})`))},
@@ -730,10 +735,38 @@ def ${id}_step${j} : SKStep := ⟨⟨${list(Array.from({length: kk}, (_, s2) => 
   ${list(pinsts(inst))},
   ${list(pfinsts(inst))},
   ${pr.hyps},
-  ${list(Array.from({length: kk - 1}, (_, s2) => list(Object.keys(m.state).map(n2 => `(${ix(n2)}, ${ix(stateName(n2, s2 + 1))})`))))}⟩
+  ${list(Array.from({length: kk - 1}, (_, s2) => list(Object.keys(m.state).map(n2 => `(${ix(n2)}, ${ix(stateName(n2, s2 + 1))})`))))}⟩`
+  }
+  // The machine's own step laws, one step or k (Sets.lean's skstep_sound).
+  if (!rf) stepLaws.forEach((sl, j) => claims.push({steps: [sl], allows: [], render: h => `-- Step law${(sl.steps ?? 1) > 1 ? ` over ${sl.steps} steps` : ''}: ${sl.name}
+def ${id}_step${j} : SKStep := ${skLit(h, sl)}
 theorem ${id}_step${j}_holds : SKStepHolds ${id}_machine ${id}_step${j} :=
-  skstep_sound ${id}_machine ${id}_proof ${id}_step${j} ${id}_check (by ${checkBy})`
-  }}))
+  skstep_sound ${id}_machine ${id}_proof ${id}_step${j} ${id}_check (by ${checkBy})`}))
+  // k-induction (KInd.lean's kind_sound): Lean builds each base goal's and the step's whens and then from the law; the
+  // trees, instances and names are the k-step laws' kernel.ts made (kInductionSteps), the start goal's tree its own.
+  const kd = opts.kind
+  if (kd) {
+    const kSteps = kInductionSteps(m, kd.kl)
+    claims.push({steps: kSteps, allows: [], render: h => {
+      const st = enc(kd.start.goal, kd.start.tree), kid = `${id}_kind`, k = kd.kl.k, base = kSteps.slice(0, -1)
+      const lit = (law: C, k2: number, bases: StepLaw[]) => `⟨${c(law)}, ${k2},
+  ${list(Object.keys(m.state).map(s2 => `(${ix(s2)}, ${ix(`${s2}'`)})`))},
+  ${list(Object.keys(m.maps ?? {}).map(mp => `(${mx(mp)}, ${mx(`${mp}'`)})`))},
+  ${list(finsts(kd.start.inst))},
+  ${list(pfinsts(kd.start.inst))},
+  (${st.tab}, ${st.hyps}, ${st.tree}),
+  ${list(bases.map(sl => skLit(h, sl)))},
+  ${skLit(h, kSteps.at(-1)!)}⟩`
+      return `-- k-induction, k = ${k}: ${kd.kl.law.name}
+def ${kid} : KInd := ${lit(kd.kl.law.holds, k, base)}
+theorem ${kid}_check : checkKInd ${id}_machine ${id}_proof ${kid} = true := by ${checkBy}
+/-- ${kd.kl.law.name}, by k-induction (k = ${k}): it holds in every reachable state. -/
+theorem ${kid}_holds : ∀ ρ M, SReach ${id}_machine ρ M → evalC ρ M ${kid}.law = true :=
+  kind_sound ${id}_machine ${id}_proof ${kid} ${id}_check ${kid}_check${(kd.tampers ?? []).map(t => `
+-- TAMPERED: ${t.what}. Lean computes the check to ${t.expect}, kernel.ts's answer.
+example : checkKInd ${id}_machine ${id}_proof ${lit(t.law ?? kd.kl.law.holds, t.k, t.base.map(j => base[j]!))} = ${t.expect} := by ${checkBy}`).join('')}`
+    }})
+  }
   // A refinement (Refine.lean's SRefined): its step law, that the spec stutters or allows the request it is sent; srefines
   // says what the whole means.
   if (rf) claims.push({steps: [stepLaws[0]!], allows: [], render: h => {
@@ -857,7 +890,7 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
   })] as const))
   const allowGoals = [...allowed.values()].flatMap(a => (a ? [a.out.goal!] : []))
   const named = machineNames(m, laws, allSteps, stepLaws, {...opts, ...(hm ? {record: hm.history.record} : {})})
-  const vars = [...new Set([...named.vars, ...[...goalsL, ...goalsS, ...allowGoals, ...(hplain?.goals ?? [])].flatMap(g => g.hyps.flatMap(varsOf))])]
+  const vars = [...new Set([...named.vars, ...[...goalsL, ...goalsS, ...allowGoals, ...(hplain?.goals ?? []), ...(opts.kind ? [opts.kind.start.goal] : [])].flatMap(g => g.hyps.flatMap(varsOf))])]
   const mapNames = [...new Set([...named.maps, ...[...JSON.stringify([...goalsL, ...goalsS, ...allowGoals]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!)])]
   const enc = (g: Goal, tree: Tree) => encode({name: `${id}: ${g.name}`, goal: g, tree}, false, true, vars, mapNames)
   const {e, c} = leanTerms(vars, mapNames, id)
@@ -984,6 +1017,8 @@ function proveStepLawsOnce(m: Machine, laws: Law[], stepLaws: StepLaw[]): Return
   usualMade.set(key, r)
   return r
 }
+// A proof made elsewhere (core/kind.ts's k-induction search), as the one the export reads for these step laws.
+export const seedStepProof = (m: Machine, laws: Law[], stepLaws: StepLaw[], r: ReturnType<typeof proveStepLaws>) => { usualMade.set(JSON.stringify([m, laws, stepLaws]), r) }
 const envOf = () => (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
 export const cyclicCerts = certMode
 let certsOn = false, cycTexts = 0
@@ -1537,6 +1572,9 @@ export type LeanItem =
   | {id: string, neverEnds: Loop, recur: Recur, tampered?: {what: string, recur: Recur}[]}
   // A fold over trees (a fold rule's `.fold`) and its laws, through Kern.fold_sound.
   | {id: string, fold: Fold, laws: Law[]}
+  // A law proven by k-induction (core/kind.ts's search, from k = 1, or at `k`), through KInd.lean's kind_sound, with the
+  // laws it assumes (proven inductive as ever); `<id>_kind_holds`.
+  | {id: string, kInduction: {machine: Machine, laws: Law[], law: Law, k?: number, ms?: number}}
   | {id: string, goal: Goal}
   // A cyclic proof (kernel/cyclic.ts) through Cyclic.lean's cyclic_sound; each tampered one computed to false.
   // `bridge`: the machine and laws the proof was made from (core/cyclic.ts's machineNodes), so that Bridge.lean's
@@ -1644,6 +1682,15 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
         ...(item.recur ? [...item.recur.lemmas.map((_, j) => `${id}_lemma${j}`), ...item.recur.between.map((_, j) => `${id}_between${j}`)] : []),
         // A datatype law's theorem is in a namespace of the item's (its datatypes and functions are named as declared).
         ...(item.after ? (ts => (item.data ? ts.slice(-1).map(t => `${id}.${t}`) : ts))([...item.after(() => 0, () => 0).matchAll(/^theorem (\S+)/gm)].map(x2 => x2[1]!)) : []))
+    } else if ('kInduction' in item) {
+      const {machine: m, laws, law, k, ms} = item.kInduction
+      const f = proveKInduction(m, laws, law, {ms: ms ?? 30_000, from: k ?? 1, to: k ?? 64})
+      if (!f.proven || !f.checked || !f.proof || !f.kl) throw new Error(`${item.id}: not proven by k-induction (${f.why ?? ''})`)
+      const plain = m.history ? historyMachine(m).machine : m
+      seedStepProof(plain, f.laws!, kInductionSteps(m, f.kl), {proven: true, checked: true, nodes: 0, leaves: 0, proof: f.proof})
+      const start = kInductionStart(m, f.kl, {})
+      parts.push(`-- ${item.id}\n${recurDefs(plain)}${smachineToLean(id, plain, f.laws!, {kind: {kl: f.kl, start: {goal: start, tree: f.proof.trees[start.name]!, inst: {}}}})}`)
+      theorems.push(`${id}_laws`, `${id}_kind_holds`)
     } else if ('fold' in item) {
       const cyc = certsOn ? cycFoldToLean(id, item.fold, item.laws) : undefined
       if (cyc && 'text' in cyc) certReport.cyclic.push(item.id); else if (cyc) certReport.usual.push({id: item.id, why: cyc.why})
@@ -1659,7 +1706,7 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   }
   // The file the items need: Live.lean for a liveness or a loop, Sets.lean (which imports Steps.lean) for any machine.
   return `import History
-${items.some(item => 'neverEnds' in item) ? 'import NonTerm\n' : ''}${cycTexts ? 'import BridgeRules\n' : ''}${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && (item.ghosts?.length || item.laws.some(l => l.some?.length))) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
+${items.some(item => 'neverEnds' in item) ? 'import NonTerm\n' : ''}${items.some(item => 'kInduction' in item) ? 'import KInd\n' : ''}${cycTexts ? 'import BridgeRules\n' : ''}${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && (item.ghosts?.length || item.laws.some(l => l.some?.length))) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0

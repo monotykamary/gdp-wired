@@ -23,7 +23,11 @@ of that model, and concludes the law about the Lean definitions from `cyclic_sou
   the function, then reads it only below the argument's measure, and such an F has one fixpoint. So the function's
   equation, a fact of its proofs, has a model (what they conclude isn't vacuous), and only one: the function as written.
   An export defines such a function with `termination_by` the same measure, `Lx` (a tuple, ordered by `lexLt`) where
-  it has several components, and Lean checks the decrease again.
+  it has several components, and Lean checks the decrease again;
+- `wf_fix_unique_ring`: the same for a ring of functions calling each other (mutual recursion), each with its own
+  measure (all of one length): one functional over the ring's tuple of functions, reading each only below the measure
+  of the argument it is called at. An export defines the ring in one `mutual` block, each function with `termination_by`
+  its measure.
 -/
 
 namespace Kern
@@ -208,6 +212,41 @@ theorem wf_fix_unique {α β : Type} [Inhabited β] (μ : α → List Nat) (F : 
   exact wf.induction (C := fun x => f' x = wf.fix G x) x (fun x ih => by
     rw [hf' x, hfix x]
     exact hF f' (wf.fix G) x (fun y hy => ih y hy))
+
+/-- A ring of functions calling each other (one per index i, each `α i → β i`), read as one functional F over the ring's
+tuple, that reads each function of the ring only at arguments of lower measure than its own argument's (the measures
+of the ring's functions, one per function, all of one length, compared by `lexLt`), has exactly one fixpoint: a tuple
+satisfying `f i x = F f i x` for every function and argument, and every other tuple equal to it. core/data.ts takes a
+ring that isn't structural recursion once the kernel has proven that each call within the ring, under its path, lowers
+the callee's measure at the call's arguments below the caller's at its parameters: that is `hF`, each function's body
+reading the ring's functions only at those calls. `wf_fix_unique` is the ring of one. -/
+theorem wf_fix_unique_ring {ι : Type} {α β : ι → Type} [∀ i, Inhabited (β i)] (μ : (i : ι) → α i → List Nat)
+    (F : ((i : ι) → α i → β i) → (i : ι) → α i → β i)
+    (hF : ∀ (g h : (i : ι) → α i → β i) (i : ι) (x : α i),
+      (∀ (j : ι) (y : α j), lexLt (μ j y) (μ i x) → g j y = h j y) → F g i x = F h i x) :
+    ∃ f : (i : ι) → α i → β i, (∀ i x, f i x = F f i x) ∧
+      ∀ f' : (i : ι) → α i → β i, (∀ i x, f' i x = F f' i x) → f' = f := by
+  classical
+  -- the ring's arguments as one type (a function's index and its argument), ordered by the measure there
+  let m : (Σ i, α i) → List Nat := fun p => μ p.1 p.2
+  have wf : WellFounded (InvImage lexLt m) := InvImage.wf m lexLt_wf
+  let G : (p : Σ i, α i) → ((q : Σ i, α i) → InvImage lexLt m q p → β q.1) → β p.1 :=
+    fun p rec => F (fun j y => if h : lexLt (μ j y) (μ p.1 p.2) then rec ⟨j, y⟩ h else default) p.1 p.2
+  let f : (i : ι) → α i → β i := fun i x => wf.fix G ⟨i, x⟩
+  have hfix : ∀ i x, f i x = F f i x := by
+    intro i x
+    show wf.fix G ⟨i, x⟩ = F f i x
+    rw [wf.fix_eq G ⟨i, x⟩]
+    apply hF
+    intro j y hy
+    simp [hy, f]
+  refine ⟨f, hfix, fun f' hf' => ?_⟩
+  have key : ∀ p : Σ i, α i, f' p.1 p.2 = f p.1 p.2 := fun p =>
+    wf.induction (C := fun p => f' p.1 p.2 = f p.1 p.2) p (fun p ih => by
+      rw [hf' p.1 p.2, hfix p.1 p.2]
+      exact hF f' f p.1 p.2 (fun j y hy => ih ⟨j, y⟩ hy))
+  funext i x
+  exact key ⟨i, x⟩
 
 /-- A measure of several components for `termination_by`: the tuple, ordered by `lexLt` (an export's measures all have
 one length). -/

@@ -1,0 +1,13 @@
+// expect: nonterminating. The infinite loop is 11 calls deep, deeper than any inlining the translation makes.
+void f(int n) {
+  if (n > 0) {
+    f(n - 1);
+    return;
+  }
+  while (1) {
+  }
+}
+int main() {
+  f(10);
+  return 0;
+}

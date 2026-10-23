@@ -1,0 +1,9 @@
+// expect: terminates. x-- from 0 is UINT_MAX (unsigned arithmetic is modulo 2^32): x < 10 fails and the loop ends.
+// Over unbounded integers x goes down forever.
+int main() {
+  unsigned int x = 0;
+  while (x < 10) {
+    x--;
+  }
+  return 0;
+}

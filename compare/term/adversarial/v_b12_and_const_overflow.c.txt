@@ -1,0 +1,7 @@
+// expect: nonterminating
+// x != 0 is false, so && never evaluates the overflowing constant: !(false) holds forever.
+int main(void) {
+  int x = 0;
+  while (!(x != 0 && 2147483647 + 1 > 0)) { }
+  return 0;
+}

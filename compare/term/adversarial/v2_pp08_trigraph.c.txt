@@ -1,0 +1,11 @@
+// cc: -std=c99
+// expect: nonterminating
+// In C99 (trigraphs on, as -std=c99 has them) ??/ is a backslash: the comment's line splices and x = 0 is comment.
+// gnu modes ignore trigraphs. SV-COMP's tasks say language_version c99.
+int main(void) {
+  int x = 1;
+  // the reset below is disabled ??/
+  x = 0;
+  while (x == 1) { }
+  return 0;
+}

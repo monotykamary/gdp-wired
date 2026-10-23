@@ -5,21 +5,54 @@
 // With --nonterm, the nontermination certificates instead (core/conformance.ts's recurCases: found, tampered, forged),
 // each as `checkRecur loop recur = b` with b kernel.ts's checkRecur's answer, for NonTerm.lean's checkRecur to compute:
 //   bun conformance.ts --nonterm [loops] > NonTermConformance.lean && lean NonTermConformance.lean
+// With --kind, the k-induction certificates (core/conformance.ts's kindCases: found, and the tampered twins Lean's
+// KInd states), each machine through emit.ts's smachineToLean with its KInd and `checkKInd … = b`, b kernel.ts's answer:
+//   bun conformance.ts --kind [machines] > KindConformance.lean && lean KindConformance.lean
 // With --rationals, the rational cases (core/conformance.ts's randomQCase): values, proven goals' trees, their tampered
 // twins and models, each with kernel.ts's answer, for Rationals.lean to compute:
 //   bun conformance.ts --rationals [cases] > RatConformance.lean && lean RatConformance.lean
-import {CELLS, INIT, VARS, qgoals, qreference, qtampered, randomCase, randomQCase, recurCases, reference, reseed} from '../core/conformance.ts'
+import {CELLS, INIT, VARS, qgoals, qreference, qtampered, randomCase, randomQCase, recurCases, reference, reseed, ringCase, kindAnswer, kindCases} from '../core/conformance.ts'
+import type {Measure, Termination} from '../core/data.ts'
+import {kInductionStart, kInductionSteps} from '../kernel/kernel.ts'
 import type {Loop, QGoal, Recur} from '../kernel/kernel.ts'
 import {canon, checkQTree, checkRecur} from '../kernel/kernel.ts'
 import {growQ} from '../kernel/qprove.ts'
 import {type Rat, q} from '../core/q.ts'
 import type {Lin} from '../core/solver.ts'
 import {type LeafTamper, qCondLean, qTermLean, qTreeLean, ratLean} from './qlean.ts'
-import {recurLean} from './emit.ts'
+import {recurLean, seedStepProof, smachineToLean} from './emit.ts'
 import {leanTerms} from './lean-terms.ts'
 
 reseed(Number(process.env.FUZZ_SEED ?? 4242))
-const nonterm = process.argv.includes('--nonterm'), rationals = process.argv.includes('--rationals')
+const nonterm = process.argv.includes('--nonterm'), rationals = process.argv.includes('--rationals'), kind = process.argv.includes('--kind')
+if (kind) {
+  const count0 = Number(process.argv.filter(a => !a.startsWith('--'))[2] ?? 12), out: string[] = [], tally: Record<string, number> = {}
+  kindCases(count0).forEach((c, i) => {
+    const found = kindAnswer(c, c)
+    seedStepProof(c.m, c.laws, kInductionSteps(c.m, c.kl), {proven: true, checked: true, nodes: 0, leaves: 0, proof: c.proof})
+    const tampers = c.tampers.flatMap(t => (t.lean ? [{what: t.what, ...t.lean, expect: kindAnswer(c, t)}] : []))
+    for (const t of [{what: 'found', expect: found}, ...tampers]) tally[`${t.what.replace(/\d+/g, 'k')}: ${t.expect}`] = (tally[`${t.what.replace(/\d+/g, 'k')}: ${t.expect}`] ?? 0) + 1
+    if (!found) throw new Error(`${c.m.name}: kernel.ts refuses the certificate found`)
+    out.push(smachineToLean(`kind${i}`, c.m, c.laws, {kind: {kl: c.kl, start: {goal: c.start, tree: c.proof.trees[c.start.name]!, inst: {}}, tampers}, noFacts: true}))
+    // A twin kernel.ts accepts (the law read stricter, still true) goes to Lean as a certificate of its own: its goals
+    // built from its law, the trees the same.
+    c.tampers.forEach((t, j) => {
+      if (t.lean || !kindAnswer(c, t) || t.kl.k !== c.kl.k) return
+      seedStepProof(c.m, c.laws, kInductionSteps(c.m, t.kl), {proven: true, checked: true, nodes: 0, leaves: 0, proof: t.proof})
+      const start = kInductionStart(c.m, t.kl, {})
+      out.push(`-- ${t.what}: accepted by kernel.ts\n${smachineToLean(`kind${i}t${j}`, c.m, c.laws, {kind: {kl: t.kl, start: {goal: start, tree: t.proof.trees[start.name]!, inst: {}}}, noFacts: true})}`)
+      tally[`${t.what.replace(/\d+/g, 'k')}: true`] = (tally[`${t.what.replace(/\d+/g, 'k')}: true`] ?? 0) + 1
+    })
+  })
+  console.log(`import KInd
+open Kern Cert
+
+/-! ${count0} machines with k-inductive laws from core/conformance.ts's kindCases (${Object.entries(tally).map(([w, n]) => `${w} ${n}`).join('; ')}):
+each certificate's check, KInd.lean's checkKInd, computes kernel.ts's answer. -/
+
+${out.join('\n\n')}`)
+  process.exit(0)
+}
 if (rationals) {
   // Rationals: each case's term and condition through Q.evalE and Q.evalC; each proven goal's tree (kernel.ts's answer
   // true), its tampered twins (the kernel's answer false), and its leaves written wrong for Lean alone (a claimed row's
@@ -89,6 +122,35 @@ open Cert Kern
 Rationals.lean's evalE, evalC and checkGoal compute kernel.ts's answers. -/
 
 ${out.join('\n')}`)
+  process.exit(0)
+}
+// With --rings, the rings of functions core/data.ts takes by well-founded recursion (core/conformance.ts's ringCase), each
+// as one `mutual` block with `termination_by` the measures it found (Data.lean's Lx where they have several
+// components), for Lean to check the decrease of every call again:
+//   bun conformance.ts --rings [cases] > RingConformance.lean && lean RingConformance.lean
+if (process.argv.includes('--rings')) {
+  const n = Number(process.argv.filter(a => !a.startsWith('--'))[2] ?? 24), out: string[] = [], tally: Record<string, number> = {}
+  const comp = (ps: string[], c: Measure['comps'][number]) => {
+    const pos = [...c.coef.flatMap((k, i) => (k > 0 ? [`${k} * ${ps[i]}`] : [])), ...(c.c > 0 ? [String(c.c)] : [])], neg = [...c.coef.flatMap((k, i) => (k < 0 ? [`${-k} * ${ps[i]}`] : [])), ...(c.c < 0 ? [String(-c.c)] : [])]
+    const sum = (ts: string[]) => (ts.length ? ts.join(' + ') : '0')
+    return neg.length ? `(${sum(pos)} - (${sum(neg)}))` : `(${sum(pos)})`
+  }
+  for (let i = 0; i < n; i++) {
+    const r = ringCase()
+    let ts: (Termination | undefined)[]
+    try { ts = r.fns.map(f => (void f.fn.ring, f.fn.termination)) } catch { tally[`${r.family}: refused`] = (tally[`${r.family}: refused`] ?? 0) + 1; continue }
+    if (!ts.every(t => t)) { tally[`${r.family}: structural`] = (tally[`${r.family}: structural`] ?? 0) + 1; continue }
+    const mOf = (j: number) => { const f = r.fns[j]!.fn, m = ts[j]!.measure, ps = f.params.map(q => q.name); return m.comps.length === 1 ? comp(ps, m.comps[0]!) : `Lx.mk [${m.comps.map(c => comp(ps, c)).join(', ')}]` }
+    out.push(`-- ${r.name}: ${ts.map(t => t!.text).join('; ')}\nnamespace ${r.name}\n${r.lean(mOf(0), mOf(1))}\nend ${r.name}`)
+    tally[`${r.family}: taken`] = (tally[`${r.family}: taken`] ?? 0) + 1
+  }
+  console.log(`import Data
+open Kern
+set_option linter.unusedSimpArgs false
+
+/-! ${out.length} rings of functions core/data.ts took by well-founded recursion (core/conformance.ts's ringCase; ${Object.entries(tally).map(([w, k]) => `${w} ${k}`).join('; ')}): Lean checks each call's decrease again under the measures found. -/
+
+${out.join('\n\n')}`)
   process.exit(0)
 }
 const count = Number(process.argv.filter(a => !a.startsWith('--'))[2] ?? (nonterm ? 40 : 400))

@@ -1,0 +1,8 @@
+// expect: terminates. c++ from 127 stores 128 in a signed char, -128 (gcc's conversion): c > 0 fails.
+int main() {
+  signed char c = 1;
+  while (c > 0) {
+    c++;
+  }
+  return 0;
+}

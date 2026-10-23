@@ -2,7 +2,7 @@
 // `lake build` (modal/suite.json's lean-package job). Usage: bun package-check.ts <empty folder>
 import {mkdirSync, writeFileSync} from 'node:fs'
 import {type DataLaw, proveData} from '../core/data.ts'
-import {laws as dataLaws, through as throughLaws} from '../examples/data.ts'
+import {laws as dataLaws, through as throughLaws, wellFounded as wellFoundedLaws} from '../examples/data.ts'
 import {dataLean} from './data.ts'
 import {join} from 'node:path'
 import {bool, count, forall, loop, maybe, min, nat, oneOf, relation, rule, yes} from '../core/dsl.ts'
@@ -121,6 +121,9 @@ const dataItems: Record<string, [() => DataLaw, string]> = {
   datamerge: [() => dataLaws.mergeLength(), 'len_merge'],
   datainterleave: [() => dataLaws.interleaveLength(), 'len_interleave'], dataadd3acc: [() => dataLaws.add3acc(), 'add3acc_sum'],
   datamergestated: [() => dataLaws.mergeStated(), 'len_merge_stated'], dataqsort: [() => dataLaws.qsortSingle(), 'qsort_single'],
+  // a ring that isn't structural (one mutual block, each with termination_by its measure), and a call's decrease
+  // through a size law about the function of its argument
+  dataring: [() => wellFoundedLaws.tokensPositive(), 'tokens_positive'], dataruns: [() => wellFoundedLaws.mergeRunsOne(), 'merge_runs_one'],
   // through the built-ins (core/transfer.ts): the bridges and the copies' laws nodes of the one proof
   databridge: [() => throughLaws.leqPlus(), 'leq_plus'], datainline: [() => throughLaws.geqSelf(), 'geq_self'],
   dataoccurs: [() => throughLaws.occursCons(), 'occurs_cons'], datacases: [() => throughLaws.leqZero(), 'leq_zero'],

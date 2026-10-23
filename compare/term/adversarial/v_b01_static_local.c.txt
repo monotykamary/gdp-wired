@@ -1,0 +1,7 @@
+// expect: terminates
+// A static local in main's outermost block starts at 0 (C11 6.7.9p10): the loop is never entered.
+int main(void) {
+  static int x;
+  while (x != 0) { }
+  return 0;
+}

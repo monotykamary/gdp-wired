@@ -1,0 +1,10 @@
+// c2ari: data_model=ILP32
+// expect: nonterminating. On ILP32 an unsigned long has 32 bits: 4294967295 + 1 is 0, and the loop runs while x is 0.
+// With 64 bits (LP64) x would be 4294967296 and the loop would end.
+int main() {
+  unsigned long x = 4294967295UL;
+  x = x + 1;
+  while (x == 0) {
+  }
+  return 0;
+}
