@@ -145,12 +145,28 @@ function constValue(e: ts.Expression, s: Setup): Raw {
     }
     return out
   }
+  if (ts.isPropertyAccessExpression(e)) {
+    // A field of a const's object literal: that field's own initializer (the others aren't read).
+    const lit = literalOf(e.expression, s)
+    const prop = lit && ts.isObjectLiteralExpression(lit) ? lit.properties.find((x): x is ts.PropertyAssignment => ts.isPropertyAssignment(x) && x.name.getText() === e.name.text) : undefined
+    if (!prop) return refuse(e, `${e.getText()}: an initial state the subset can't read (give it in init)`)
+    return constValue(prop.initializer, s)
+  }
+  if (ts.isArrayLiteralExpression(e)) return refuse(e, 'an array (lists are not in the subset yet)')
   if (ts.isIdentifier(e)) {
     const decl = s.checker.getSymbolAtLocation(e)?.valueDeclaration
     if (decl && ts.isVariableDeclaration(decl) && decl.initializer && decl.parent.flags & ts.NodeFlags.Const) return constValue(decl.initializer, s)
     return refuse(e, `${e.text}: an initial state the subset can't read (give it in init)`)
   }
   return refuse(e, 'an initial state the subset can\'t read (give it in init)')
+}
+// An expression's object literal, through consts.
+function literalOf(e: ts.Expression, s: Setup): ts.Expression | undefined {
+  if (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isSatisfiesExpression(e)) return literalOf(e.expression, s)
+  if (ts.isObjectLiteralExpression(e)) return e
+  if (ts.isIdentifier(e)) { const d = s.checker.getSymbolAtLocation(e)?.valueDeclaration; return d && ts.isVariableDeclaration(d) && d.initializer && d.parent.flags & ts.NodeFlags.Const ? literalOf(d.initializer, s) : undefined }
+  if (ts.isPropertyAccessExpression(e)) { const o = literalOf(e.expression, s); const p = o && ts.isObjectLiteralExpression(o) ? o.properties.find((x): x is ts.PropertyAssignment => ts.isPropertyAssignment(x) && x.name.getText() === e.name.text) : undefined; return p && literalOf(p.initializer, s) }
+  return undefined
 }
 function initLeaves(raw: unknown, layout: Layout, s: Setup, at: ts.Node, out: Record<string, Term> = {}): Record<string, Term> {
   switch (layout.k) {
@@ -173,6 +189,15 @@ function initLeaves(raw: unknown, layout: Layout, s: Setup, at: ts.Node, out: Re
   }
 }
 
+// An untyped state's shape from its initial value given (numbers, booleans, records of them).
+function shapeOfRaw(raw: unknown, at: ts.Node, s: Setup): Shape {
+  s.notes.add('the state is untyped: its type is the initial state\'s given')
+  if (typeof raw === 'number') return {k: 'num'}
+  if (typeof raw === 'boolean') return {k: 'bool'}
+  if (typeof raw === 'object' && raw !== null && !(raw instanceof Map) && Object.keys(raw).length) return {k: 'rec', fields: Object.entries(raw).map(([f, x]) => [f, shapeOfRaw(x, at, s)])}
+  return refuse(at, `an untyped state whose initial value (${JSON.stringify(raw)}) says no type: annotate it`)
+}
+
 // --- step functions -------------------------------------------------------------------------------------------------
 function findFunction(sf: ts.SourceFile, name: string): ts.FunctionLikeDeclaration {
   for (const st of sf.statements) {
@@ -182,7 +207,9 @@ function findFunction(sf: ts.SourceFile, name: string): ts.FunctionLikeDeclarati
       if (ts.isArrowFunction(init) || ts.isFunctionExpression(init)) return init
     }
     if (name === 'default' && ts.isExportAssignment(st) && (ts.isArrowFunction(st.expression) || ts.isFunctionExpression(st.expression))) return st.expression
+    if (name === 'default' && ts.isExportAssignment(st) && ts.isIdentifier(st.expression)) return findFunction(sf, st.expression.text)
   }
+  for (const st of sf.statements) if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) if (ts.isIdentifier(d.name) && d.name.text === name && d.initializer && ts.isCallExpression(d.initializer) && ts.isIdentifier(d.initializer.expression) && d.initializer.expression.text === 'createSlice') refuse(d, 'createSlice (Redux Toolkit): its case reducers write immer drafts in place (not in the subset yet)')
   return refuse(at0(sf), `no function ${name} in the file`)
 }
 // The string literals the code compares a record's fields with (case labels, ===): those fields are choices.
@@ -277,25 +304,35 @@ const sortOf = (sh: Shape, lits: string[]): Sort => (sh.k === 'str' && lits.leng
 export function readFunctions(code: string, file: string, opts: ReadOptions): Model {
   const s = setupOf(code, file), names = opts.functions ?? [opts.entry], fns = names.map(n => findFunction(s.sf, n))
   const first = fns[0]!, sp = first.parameters[0] ?? refuse(first, 'a step function takes the state first')
-  const st = s.checker.getTypeAtLocation(sp), shape = shapeOf(st, s.checker, sp)
-  for (const [i, f] of fns.entries()) {
-    const p0 = f.parameters[0] ?? refuse(f, `${names[i]} takes no state`)
-    if (s.checker.typeToString(s.checker.getTypeAtLocation(p0)) !== s.checker.typeToString(st)) refuse(p0, `${names[i]} takes another state than ${names[0]}`)
-  }
-  const ex0 = new Exec(s), heap: Heap = new Map(), {layout, v: stateV} = build(ex0, shape, [], heap, 'input', sp)
   // The initial state: given, a default parameter, useReducer's second argument, or `initialState`.
-  let raw: unknown = opts.init, initSource: string | undefined
+  let raw: unknown = opts.init, initSource: string | undefined, initExpr: ts.Expression | undefined
   if (raw === undefined) {
-    let expr: ts.Expression | undefined = sp.initializer
-    if (!expr) {
-      const visit = (n: ts.Node) => { if (!expr && ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'useReducer' && n.arguments[0] && ts.isIdentifier(n.arguments[0]) && names.includes(n.arguments[0].text)) { if (n.arguments.length > 2) refuse(n, 'useReducer with an init function'); expr = n.arguments[1] } ts.forEachChild(n, visit) }
+    initExpr = sp.initializer
+    if (!initExpr) {
+      const visit = (n: ts.Node) => { if (!initExpr && ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'useReducer' && n.arguments[0] && ts.isIdentifier(n.arguments[0]) && names.includes(n.arguments[0].text)) { if (n.arguments.length > 2) refuse(n, 'useReducer with an init function'); initExpr = n.arguments[1] } ts.forEachChild(n, visit) }
       visit(s.sf)
     }
-    if (!expr) for (const stmt of s.sf.statements) if (ts.isVariableStatement(stmt)) for (const d of stmt.declarationList.declarations) if (ts.isIdentifier(d.name) && d.name.text === 'initialState' && d.initializer) expr = d.initializer
-    if (!expr) refuse(sp, 'no initial state: a default parameter, useReducer(reducer, initial), a const initialState, or init')
-    raw = constValue(expr!, s)
-    initSource = expr!.getText()
+    if (!initExpr) for (const stmt of s.sf.statements) if (ts.isVariableStatement(stmt)) for (const d of stmt.declarationList.declarations) if (ts.isIdentifier(d.name) && d.name.text === 'initialState' && d.initializer) initExpr = d.initializer
+    if (!initExpr) refuse(sp, 'no initial state: a default parameter, useReducer(reducer, initial), a const initialState, or init')
+    raw = constValue(initExpr!, s)
+    initSource = initExpr!.getText()
   }
+  // The state's type: its own, or (untyped JavaScript) the initial state's.
+  let st = s.checker.getTypeAtLocation(sp)
+  if (st.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) {
+    if (initExpr) { st = s.checker.getBaseTypeOfLiteralType(s.checker.getTypeAtLocation(initExpr)); s.notes.add(`the state is untyped: its type is the initial state's (${s.checker.typeToString(st)})`) }
+  }
+  let shape = st.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown) && raw !== undefined ? shapeOfRaw(raw, sp, s) : shapeOf(st, s.checker, sp)
+  // Untyped and starting as {}: a record keyed by strings, of numbers (what [key] writes; the check runs it).
+  if (shape.k === 'rec' && !shape.fields.length && typeof raw === 'object' && raw !== null && !Object.keys(raw).length && s.checker.typeToString(s.checker.getTypeAtLocation(sp)) === 'any') {
+    shape = {k: 'map', key: 'str', val: {k: 'num'}, js: 'record'}
+    s.notes.add('the state is untyped and starts as {}: read as a record of numbers keyed by strings')
+  }
+  for (const [i, f] of fns.entries()) {
+    const p0 = f.parameters[0] ?? refuse(f, `${names[i]} takes no state`)
+    if (i > 0 && s.checker.typeToString(s.checker.getTypeAtLocation(p0)) !== s.checker.typeToString(s.checker.getTypeAtLocation(sp))) refuse(p0, `${names[i]} takes another state than ${names[0]}`)
+  }
+  const ex0 = new Exec(s), heap: Heap = new Map(), {layout, v: stateV} = build(ex0, shape, [], heap, 'input', sp)
   const init = initLeaves(raw, layout, s, sp)
   const multi = fns.length > 1, ev = multi ? ex0.newVar('fn', {k: 'choice', values: names}, 'input') : undefined
   const outs: [Path, StateVal][] = [], throws: B[] = [], events: Event[] = []

@@ -64,15 +64,16 @@ const text = (n: ts.Node) => n.getText().replace(/\s+/g, ' ').slice(0, 60)
 
 // --- the program ----------------------------------------------------------------------------------------------------
 export function program(code: string, file: string): {sf: ts.SourceFile, checker: ts.TypeChecker} {
-  const options: ts.CompilerOptions = {target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, strict: true, noEmit: true, allowJs: true, checkJs: false, skipLibCheck: true, lib: ['lib.es2022.d.ts'], types: []}
+  const options: ts.CompilerOptions = {target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, strict: true, noEmit: true, allowJs: true, checkJs: false, skipLibCheck: true, lib: ['lib.es2022.d.ts'], types: [], jsx: ts.JsxEmit.Preserve}
   const host = ts.createCompilerHost(options), getSourceFile = host.getSourceFile.bind(host), readFile = host.readFile.bind(host), fileExists = host.fileExists.bind(host)
-  host.getSourceFile = (name, lang, ...rest) => (name === file ? ts.createSourceFile(name, code, lang, true, file.endsWith('.js') ? ts.ScriptKind.JS : ts.ScriptKind.TS) : getSourceFile(name, lang, ...rest))
+  host.getSourceFile = (name, lang, ...rest) => (name === file ? ts.createSourceFile(name, code, lang, true, scriptKind(file)) : getSourceFile(name, lang, ...rest))
   host.readFile = name => (name === file ? code : readFile(name))
   host.fileExists = name => name === file || fileExists(name)
   const p = ts.createProgram([file], options, host)
   return {sf: p.getSourceFile(file)!, checker: p.getTypeChecker()}
 }
 
+export const scriptKind = (file: string): ts.ScriptKind => (/\.jsx$/.test(file) ? ts.ScriptKind.JSX : /\.tsx$/.test(file) ? ts.ScriptKind.TSX : /\.[cm]?js$/.test(file) ? ts.ScriptKind.JS : ts.ScriptKind.TS)
 // The shape a type has in the subset.
 export function shapeOf(t: ts.Type, checker: ts.TypeChecker, at: ts.Node): Shape {
   if (t.flags & (ts.TypeFlags.NumberLike)) return {k: 'num'}
@@ -513,6 +514,7 @@ export class Exec {
       return [{t: 'ref', id}, {...p, heap}]
     }
     if (decl && ts.isEnumMember(decl)) return refuse(e, 'an enum')
+    if (sym?.declarations?.some(d => ts.isImportSpecifier(d) || ts.isImportClause(d) || ts.isNamespaceImport(d))) return refuse(e, `${e.text}: a name from another module (the extractor reads one file)`)
     if (decl && decl.getSourceFile() !== this.s.sf) return refuse(e, `${e.text}: a name from another module`)
     return refuse(e, `${e.text}: a name the step can't read`)
   }
@@ -680,8 +682,13 @@ export class Exec {
     const x = o.fields.get(f)
     if (x) return [x, p]
     if (o.lazy) {
-      const path = `${o.lazy.prefix}${f}`, sort = this.s.lazySorts.get(path) ?? {k: 'num'}
-      const nvar = this.newVar(path, sort, 'input'), nv = Exec.valueOf(nvar)
+      // Its sort: compared with literals, a choice among them; else its type where it has one (an XState event's
+      // payload, typed by setup's types); else a number.
+      const typed = (() => { const t = this.s.checker.getTypeAtLocation(at); if (t.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) return undefined; const sh = shapeOf(t, this.s.checker, at); return sh.k === 'num' || sh.k === 'bool' || sh.k === 'choice' || sh.k === 'str' ? sh : undefined })()
+      const path = `${o.lazy.prefix}${f}`, sort = this.s.lazySorts.get(path) ?? typed ?? {k: 'num'}
+      // The same field read again (in another guard or action, say) is the same input.
+      const seen = [...this.s.lazy].find(([, l]) => l.prefix === o.lazy!.prefix && l.field === f)?.[0]
+      const nvar = seen ? this.s.vars.get(seen)! : this.newVar(path, sort, 'input'), nv = Exec.valueOf(nvar)
       this.s.lazy.set(nvar.name, {prefix: o.lazy.prefix, field: f})
       const fields = new Map(o.fields).set(f, nv)
       return [nv, {...p, heap: new Map(p.heap).set(v.id, {...o, fields})}]
@@ -957,7 +964,7 @@ export function impure(e: ts.Node): boolean {
     if (found) return
     if (ts.isBinaryExpression(n) && n.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && n.operatorToken.kind <= ts.SyntaxKind.LastAssignment) found = true
     else if ((ts.isPrefixUnaryExpression(n) || ts.isPostfixUnaryExpression(n)) && (n.operator === ts.SyntaxKind.PlusPlusToken || n.operator === ts.SyntaxKind.MinusMinusToken)) found = true
-    else if (ts.isCallExpression(n)) found = true
+    else if (ts.isCallExpression(n) && !(ts.isIdentifier(n.expression) && /Error$/.test(n.expression.text))) found = true
     else if (ts.isNewExpression(n) && !(ts.isIdentifier(n.expression) && /Error$/.test(n.expression.text))) found = true
     else if (ts.isPropertyAccessExpression(n) && !ts.isCallExpression(n.parent)) {
       // A getter may run code: only reads of plain names, `this.x` and `obj.x` are taken as pure.

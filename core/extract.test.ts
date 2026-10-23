@@ -306,3 +306,78 @@ test('a check that finds a difference refuses the extraction with it', () => {
   // the check, never adopted: here, a negative key into a map keyed by naturals is refused before it gets that far.
   refused(ts('export class M { m = new Map<number, number>(); put(k: number): void { this.m.set(k, 1) } }', 'M'), /negative/)
 })
+
+// --- XState ---------------------------------------------------------------------------------------------------------
+import * as xstate from 'xstate'
+import {extractXState} from './extract.ts'
+const machineFile = (body: string) => `import {setup, assign, stateIn} from 'xstate'\n${body}`
+
+test('an XState machine: guards and assign actions read from setup(), the chart run beside XState\'s actor', () => {
+  const x = extractXState(machineFile(`
+    export const order = setup({
+      guards: {canRetry: ({context}) => context.retries < 2, unshipped: stateIn({active: 'paid'})},
+      actions: {count: assign({retries: ({context}) => context.retries + 1}), notify: () => {}},
+    }).createMachine({
+      id: 'order', initial: 'new', context: {retries: 0},
+      states: {
+        new: {on: {PAY: 'active', FAIL: {target: 'new', guard: 'canRetry', actions: ['count', 'notify']}}},
+        active: {initial: 'paid', states: {paid: {on: {SHIP: 'shipped'}}, shipped: {}}, on: {REFUND: {target: 'refunded', guard: 'unshipped'}}},
+        refunded: {type: 'final'},
+      },
+    })`), {file: 'order.ts', entry: 'order', xstate, check: {runs: 100, depth: 12}})
+  if (!x.ok) throw new Error(JSON.stringify(x.refusals))
+  expect(x.source).toContain('"canRetry": ({retries}) => retries.lt(2)')
+  expect(x.source).toContain('"unshipped": env => env.in("active.paid")')
+  expect(x.evidence!.events).toBe(1200)
+  const c = x.chart!
+  expect(c.prove([c.law('the retries stay within 2', ({retries}: any) => retries.atMost(2))])).toMatchObject({proven: true, checked: true})
+})
+
+test('XState: a payload read by a guard and an action; a context that goes below 0 is an integer', () => {
+  const x = extractXState(machineFile(`
+    export const tally = setup({
+      types: {} as {context: {total: number}, events: {type: 'ADD', amount: number} | {type: 'TAKE'} | {type: 'CLOSE'}},
+      guards: {small: ({event}) => event.type === 'ADD' && event.amount <= 3},
+      actions: {add: assign({total: ({context, event}) => context.total + (event.type === 'ADD' ? event.amount : 0)}), take: assign({total: ({context}) => context.total - 1})},
+    }).createMachine({id: 'tally', initial: 'open', context: {total: 0}, states: {open: {on: {ADD: {target: 'open', guard: 'small', actions: 'add'}, TAKE: {actions: 'take'}, CLOSE: 'closed'}}, closed: {type: 'final'}}})`),
+  {file: 'tally.ts', entry: 'tally', xstate, check: {runs: 60, depth: 10}})
+  // event.type isn't a payload field: reading it is refused (fromXState gives each event's transitions their own guard).
+  expect(x.ok).toBe(false)
+  const y = extractXState(machineFile(`
+    export const tally = setup({
+      types: {} as {context: {total: number}, events: {type: 'ADD', amount: number} | {type: 'TAKE', amount: number} | {type: 'CLOSE', amount: number}},
+      guards: {small: ({event}) => event.amount <= 3},
+      actions: {add: assign({total: ({context, event}) => context.total + event.amount}), take: assign({total: ({context}) => context.total - 1})},
+    }).createMachine({id: 'tally', initial: 'open', context: {total: 0}, states: {open: {on: {ADD: {target: 'open', guard: 'small', actions: 'add'}, TAKE: {actions: 'take'}, CLOSE: 'closed'}}, closed: {type: 'final'}}})`),
+  {file: 'tally.ts', entry: 'tally', xstate, check: {runs: 60, depth: 10}})
+  if (!y.ok) throw new Error(JSON.stringify(y.refusals))
+  expect(y.source).toContain('context: {total: int.from(0)}')
+  expect(y.source).toContain('inputs: {amount: int}')
+})
+
+test('XState: v4 cond, a machine made by a function, and what fromXState refuses, each refused with the reason', () => {
+  const v4 = extractXState(machineFile(`export const m = setup({guards: {ok: () => true}}).createMachine({initial: 'a', states: {a: {on: {GO: {target: 'b', cond: 'ok'}}}, b: {}}})`), {file: 'm.ts', entry: 'm', xstate})
+  expect(v4.refusals[0]!.what).toMatch(/v4 `cond`/)
+  const fn = extractXState(machineFile(`export function makeM() { return setup({}).createMachine({initial: 'a', states: {a: {}}}) }`), {file: 'm.ts', entry: 'makeM', xstate})
+  expect(fn.refusals[0]!.what).toMatch(/made by a function/)
+  const after = extractXState(machineFile(`export const m = setup({}).createMachine({initial: 'a', states: {a: {after: {1000: 'b'}}, b: {}}})`), {file: 'm.ts', entry: 'm', xstate})
+  expect(after.refusals[0]!.what).toMatch(/fromXState: .*`after`/)
+})
+
+test('XState: inline assign actions and an inline guard, given by their place in the config; a machine with no states', () => {
+  const x = extractXState(`import {createMachine, assign} from 'xstate'
+    export const counter = createMachine({
+      id: 'counter', context: {count: 0},
+      on: {
+        increment: {actions: assign({count: ({context}) => context.count + 1})},
+        decrement: {guard: ({context}) => context.count > 0, actions: assign({count: ({context}) => context.count - 1})},
+      },
+    })`, {file: 'counter.ts', entry: 'counter', xstate, check: {runs: 80, depth: 12}})
+  if (!x.ok) throw new Error(JSON.stringify(x.refusals))
+  expect(x.source).toContain('counter.config.on.increment.actions, ({count}) => ({count: count.plus(1)})')
+  expect(x.source).toContain('[counter.config.on.decrement.guard, ({count}) => count.gt(0)]')
+  // The guard keeps the count a natural: the decrement's minus is proven at most the count.
+  expect(x.source).not.toContain('int.from')
+  const c = x.chart!
+  expect(c.prove([c.law('the count never goes below 0', ({count}: any) => count.atLeast(0))])).toMatchObject({proven: true, checked: true})
+})

@@ -38,6 +38,9 @@ export type Bridge = {
   // The context's kinds where the machine's initial context isn't plain numbers and booleans (or to override them).
   context?: Record<string, number | {kind: Kind<unknown>, init: unknown}>,
   guards?: Record<string, Guard>, actions?: Record<string, Action>, events?: string[],
+  // Guards and actions written inline in the config, each given again by the function the config holds (what
+  // gdp-wired/extract reads them as): `new Map([[machine.config.on.INC.actions, ({count}) => ({count: count.plus(1)})]])`.
+  inline?: {guards?: ReadonlyMap<unknown, Guard>, actions?: ReadonlyMap<unknown, Action>},
 }
 
 type Info = {node: XNode, segs: string[], parent?: Info, history?: {deep: boolean}}
@@ -89,12 +92,15 @@ export function fromXState(machine: MachineLike, opts: Bridge = {}): Chart<Obj, 
   // Guards and actions, named and given again.
   const guardOf = (where: string, g: unknown): Guard | undefined => {
     if (g === undefined) return undefined
+    const given = opts.inline?.guards?.get(g)
+    if (given) return env => given(env)
     const [n, params] = typeof g === 'string' ? [g, undefined] : typeof g === 'object' && g && typeof (g as {type?: unknown}).type === 'string' ? [(g as {type: string}).type, (g as {params?: unknown}).params] : [undefined, undefined]
     if (n === undefined) return refuse(where, `an inline guard${typeof g === 'function' && (g as {type?: string}).type ? ` (${(g as {type?: string}).type})` : ''}: name it in setup({guards}) and give its condition in guards`)
     const f = opts.guards?.[n] ?? refuse(where, `the guard ${n}: give its condition in guards`)
     return env => f(env, params)
   }
   const actionsOf = (where: string, as: XAction[]): ((env: Obj) => Obj)[] => as.flatMap(a => {
+    if (opts.inline?.actions?.has(a)) { const f = opts.inline.actions.get(a); return f ? [(env: Obj) => f(env)] : [] }
     const [n, params] = typeof a === 'string' ? [a, undefined] : typeof a === 'object' && a && typeof a.type === 'string' ? [a.type, a.params] : [undefined, undefined]
     if (n === undefined) return refuse(where, `an inline action${typeof a === 'function' && (a as {type?: string}).type ? ` (${(a as {type?: string}).type})` : ''}: name it in setup({actions}) and give the context it writes in actions`)
     if (!opts.actions || !(n in opts.actions)) return refuse(where, `the action ${n}: give the context it writes in actions (null if it writes none)`)
@@ -125,7 +131,7 @@ export function fromXState(machine: MachineLike, opts: Bridge = {}): Chart<Obj, 
   if (parallel) {
     for (const r of top) if (!infos.some(x => x.parent === r && x.node.type !== 'history')) refuse(pathOf(r), 'a region with no states of its own')
     c = c.regions(Object.fromEntries(top.map(r => [r.segs[0]!, nodeOf(r)])))
-  } else c = c.states(nodeOf(infos[0]!).states ?? refuse('', 'no states'), root.initial ? {initial: root.initial} : {})
+  } else c = c.states(nodeOf(infos[0]!).states ?? {[STATELESS]: {}}, root.initial ? {initial: root.initial} : {})
   if (opts.events) c = c.events(...opts.events)
 
   // The transitions, in document order (the chart takes the most specific source first, then the first declared, as
@@ -142,7 +148,7 @@ export function fromXState(machine: MachineLike, opts: Bridge = {}): Chart<Obj, 
       const set = composed(actionsOf(where, list(o.actions))), when = guardOf(where, o.guard)
       // Where it applies: its state; for the root, every top state but a final one (XState stops there), or in a
       // parallel machine the region its target is in (the first region, for one with no target).
-      const from = i.segs.length ? pathOf(i) : parallel ? (to ? to.to.segs[0]! : top[0]!.segs[0]!) : top.filter(x => x.node.type !== 'final' && x.node.type !== 'history').map(pathOf)
+      const from = i.segs.length ? pathOf(i) : parallel ? (to ? to.to.segs[0]! : top[0]!.segs[0]!) : top.length ? top.filter(x => x.node.type !== 'final' && x.node.type !== 'history').map(pathOf) : STATELESS
       if (set) { const region = parallel ? String(list(from)[0]).split('.')[0]! : 'state'; writers.set(event, (writers.get(event) ?? new Set()).add(region)) }
       c = c.on(event, {from, ...(to ? {to: pathOf(to.to), fresh: !to.viaHistory} : {}), ...(when ? {when} : {}), ...(set ? {set: set as never} : {})})
     }
@@ -151,6 +157,8 @@ export function fromXState(machine: MachineLike, opts: Bridge = {}): Chart<Obj, 
   return c
 }
 
+// A machine with no states (its root's transitions only): one state of the chart's, XState's value {} there.
+const STATELESS = '(machine)'
 function contextOf(root: XNode, given: Bridge['context'], refuse: (where: string, what: string) => never): Record<string, number | {kind: Kind<unknown>, init: unknown}> {
   const out: Record<string, number | {kind: Kind<unknown>, init: unknown}> = {}
   if (root.context !== undefined && typeof root.context !== 'object') { if (!given) refuse('', 'a context computed by a function: give its kinds in context'); return {...given} }
@@ -180,7 +188,7 @@ export function conforms(c: Chart<Obj, Obj, Obj>, machine: MachineLike, createAc
   const valueOf = (d: Obj): unknown => {
     const nest = (path: string): unknown => path.split('.').reduceRight<unknown>((acc, seg) => (acc === undefined ? seg : {[seg]: acc}), undefined)
     if (root.type === 'parallel') return Object.fromEntries(Object.keys(root.states ?? {}).filter(k => root.states![k]!.type !== 'history').map(k => [k, nest(String(d[k]))]))
-    return nest(String(d.state))
+    return d.state === STATELESS ? {} : nest(String(d.state))
   }
   const contextKeys = Object.keys((root.context && typeof root.context === 'object' ? root.context : {}) as Obj)
   let checked = 0

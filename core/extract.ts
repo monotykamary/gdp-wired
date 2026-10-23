@@ -218,3 +218,4 @@ function hoist(m: Model, P: Printer, roots: object[]) {
 }
 export type {Evidence, Model, Term}
 export {Refusal}
+export {extractXState, type XStateExtraction, type XStateOptions} from './extract-xstate.ts'

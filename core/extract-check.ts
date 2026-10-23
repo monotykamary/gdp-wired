@@ -22,7 +22,7 @@ const vmOf = (): VM => { const m = proc?.getBuiltinModule?.('node:vm'); if (!m) 
 import {Int, Term, bool, int, intern, interned, nat, no, oneOf, str, type Kind, type Rule, type StepLaw, proveSteps} from './dsl.ts'
 import {type Request, type State} from './machine.ts'
 import {allowed} from './watch.ts'
-import type {Arg, Layout, MapDecl, Model, Var} from './extract-read.ts'
+import {type Arg, type Layout, type MapDecl, type Model, type Var, scriptKind} from './extract-read.ts'
 import * as I from './extract-ir.ts'
 import type {B, N} from './extract-ir.ts'
 import type {Sorts} from './extract-print.ts'
@@ -37,7 +37,7 @@ export type Evidence = {
 
 // --- the code, instrumented and loaded ------------------------------------------------------------------------------
 export function instrument(code: string, file: string, tail = ''): {js: string, arms: Arm[]} {
-  const sf = ts.createSourceFile(file, code, ts.ScriptTarget.ES2022, true, file.endsWith('.js') ? ts.ScriptKind.JS : ts.ScriptKind.TS)
+  const sf = ts.createSourceFile(file, code, ts.ScriptTarget.ES2022, true, scriptKind(file))
   const arms: Arm[] = [], edits: [number, string][] = []
   const loc = (n: ts.Node) => { const {line, character} = sf.getLineAndCharacterOfPosition(n.getStart()); return `${file.split('/').pop()}:${line + 1}:${character + 1}` }
   const arm = (label: string, n: ts.Node) => { arms.push({label, where: loc(n)}); return arms.length - 1 }
@@ -69,7 +69,7 @@ export function instrument(code: string, file: string, tail = ''): {js: string, 
   let out = code
   for (const [pos, txt] of order) out = out.slice(0, pos) + txt + out.slice(pos)
   out += tail
-  const js = ts.transpileModule(out, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true}, fileName: file.replace(/\.js$/, '.ts')}).outputText
+  const js = ts.transpileModule(out, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true, jsx: ts.JsxEmit.React}, fileName: file.replace(/\.js$/, '.ts').replace(/\.jsx$/, '.tsx')}).outputText
   return {js, arms}
 }
 export type Sandbox = {ctx: Context, counts: number[], call: (f: string, self: unknown, args: unknown[]) => {ok: true, value: unknown} | {ok: false, error: string}, setNow: (n: number) => void, get: (name: string) => unknown}
@@ -81,11 +81,16 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
   const module = {exports: {} as Record<string, unknown>}
   const ctx = vm.createContext({
     __cov: (i: number) => { counts[i]!++ }, __now: () => now, module, exports: module.exports,
-    require: (name: string) => { if (name in modules) return modules[name]; throw new Error(`the check loads no module ${name}`) },
+    // A module the step doesn't name (React, for the component beside a reducer): loaded as a stub that throws when
+    // read, so a step that reads it fails the check rather than running without it.
+    require: (name: string) => (name in modules ? modules[name] : new Proxy({}, {
+      get: (_, k) => { if (k === '__esModule' || typeof k === 'symbol') return undefined; throw new Error(`the check loads no module ${name} (its ${String(k)} was read)`) },
+      ownKeys: () => [],
+    })),
     console: {log() {}, warn() {}, error() {}, info() {}, debug() {}},
   })
   vm.runInContext('Date.now = () => __now(); Math.random = () => { throw new Error("Math.random in a step") }', ctx)
-  vm.runInContext(`${js}\n;globalThis.__gdp = {${expose.map(n => (n === 'default' ? 'default: module.exports.default' : n)).join(', ')}};`, ctx, {timeout: 2000, filename: file})
+  vm.runInContext(`${js}\n;globalThis.__gdp = {${expose.map(n => (n === 'default' ? 'default: module.exports.default' : `${n}: (typeof ${n} !== 'undefined' ? ${n} : module.exports.${n})`)).join(', ')}};`, ctx, {timeout: 2000, filename: file})
   const script = new vm.Script('globalThis.__r = (() => { try { return {ok: true, value: __gdp[__f].apply(__self, __args)} } catch (e) { return {ok: false, error: String(e && e.message || e)} } })()')
   const call = (f: string, self: unknown, args: unknown[]) => {
     Object.assign(ctx, {__f: f, __self: self, __args: args})

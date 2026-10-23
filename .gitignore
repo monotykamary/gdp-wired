@@ -28,3 +28,6 @@ lean-kernel/Conformance.lean
 lean-kernel/NonTermConformance.lean
 lean-kernel/Examples*.lean
 dist/
+
+# The extractor corpus's fetched sources (the code is its authors'; fetched again at the pinned commit)
+/research/extract/.cache/
