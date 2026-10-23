@@ -16,7 +16,8 @@ const ms = Number(arg('--ms') ?? 60_000)
 
 type Outcome = 'proven' | 'refuted' | 'unknown' | 'timeout' | 'error'
 type Run = {item: string, law: number, name: string, outcome: Outcome, ms: number, goal?: string, stuck?: string, why?: string, run?: Verdict['run'], witness?: Record<string, number>, found?: string[], error?: string}
-const outcome = (v: Verdict): Outcome => (v.proven && v.checked ? 'proven' : v.run ? 'refuted' : 'unknown')
+// A decision has no state: the request its `sat` comes with is a counterexample, as a run is for a rule.
+const outcome = (v: Verdict, decision: boolean): Outcome => (v.proven && v.checked ? 'proven' : v.run || (decision && v.stuck === 'sat' && v.witness) ? 'refuted' : 'unknown')
 function foundText(v: Verdict): string[] | undefined {
   const f = v.found
   if (!f) return undefined
@@ -28,7 +29,7 @@ const runLaw = (it: RealItem, k: number): Run => {
   const t = performance.now()
   try {
     const v = l.prove(ms), found = foundText(v)
-    return {item: it.id, law: k, name: l.name, outcome: outcome(v), ms: Math.round(performance.now() - t), goal: v.goal, stuck: v.stuck, ...(v.why ? {why: v.why.slice(0, 400)} : {}),
+    return {item: it.id, law: k, name: l.name, outcome: outcome(v, l.form === 'decision'), ms: Math.round(performance.now() - t), goal: v.goal, stuck: v.stuck, ...(v.why ? {why: v.why.slice(0, 400)} : {}),
       ...(v.run ? {run: v.run} : {}), ...(v.witness && !v.run ? {witness: v.witness} : {}), ...(found?.length ? {found} : {})}
   } catch (e) {
     return {item: it.id, law: k, name: l.name, outcome: 'error', ms: Math.round(performance.now() - t), error: String((e as Error).stack ?? e).slice(0, 600)}
@@ -116,7 +117,7 @@ p('| --- | --- | --- | --- | --- | --- | --- |')
 const esc = (s: string) => s.replace(/\|/g, '\\|').replace(/\n/g, ' ')
 for (const {it, l, r} of lawRuns) {
   const t = triage[`${it.id}#${l.name}`]
-  const note = !r ? '' : r.outcome === 'proven' ? (r.found?.join('; ') ?? '') : r.outcome === 'refuted' ? `${t ? `**${t.verdict}**: ${t.note} ` : ''}run: ${JSON.stringify(r.run)}` : [r.goal, r.stuck, r.why, r.error].filter(Boolean).join('; ')
+  const note = !r ? '' : r.outcome === 'proven' ? (r.found?.join('; ') ?? '') : r.outcome === 'refuted' ? `${t ? `**${t.verdict}**: ${t.note} ` : ''}${r.run ? `run: ${JSON.stringify(r.run)}` : `request: ${JSON.stringify(r.witness)}`}` : [r.goal, r.stuck, r.why, r.error].filter(Boolean).join('; ')
   p(`| ${esc(it.id)} | ${esc(l.name)} | ${l.kind} | ${l.intent} | ${r?.outcome ?? 'not run'} | ${r?.ms ?? ''} | ${esc(note).slice(0, 400)} |`)
 }
 const missing = lawRuns.filter(x => !x.r)

@@ -7,7 +7,11 @@ import type {RealItem} from './lib.ts'
 const dir = new URL('./items/', import.meta.url)
 const files = readdirSync(dir).filter(f => f.endsWith('.ts')).sort()
 export const corpus: RealItem[] = []
-for (const f of files) corpus.push(...((await import(new URL(f, dir).href)) as {items?: RealItem[]}).items ?? [])
+// A file that fails to load is named on stderr and left out (another file's items still load); `broken` lists them.
+export const broken: {file: string, error: string}[] = []
+for (const f of files) {
+  try { corpus.push(...((await import(new URL(f, dir).href)) as {items?: RealItem[]}).items ?? []) } catch (e) { broken.push({file: f, error: String(e)}); console.error(`corpus: items/${f} left out: ${String(e).slice(0, 300)}`) }
+}
 const ids = new Set<string>()
 for (const it of corpus) {
   if (ids.has(it.id)) throw new Error(`two items named ${it.id}`)

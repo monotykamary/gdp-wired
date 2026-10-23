@@ -1,0 +1,32 @@
+{
+  "rate limit/upstash-ratelimit/fixedWindow#a rejected request leaves the window's remaining tokens spendable": {
+    "verdict": "bug",
+    "note": "Suspected real bug, the class PR #156 fixed in tokenBucket only. The script INCRBYs before the limit is checked (single.ts:17, TS :219), so a request whose rate is larger than what is left is refused but still counted: fixedWindow(10) with 8 used, rate 5 is refused and leaves 13, so a following rate 2 is refused too (the 2 tokens left are gone). For rate 1 this is harmless (the count is already at the limit); the docs (:158-160 'each request ... increases a counter') describe the counter, not the lost entitlement. Repro runs the npm package with its own Lua.",
+    "repro": "research/realworld/repro/upstash-rejected-consumes.ts"
+  },
+  "rate limit/upstash-ratelimit/slidingWindow#a rejected request leaves the window's remaining tokens spendable": {
+    "verdict": "bug",
+    "note": "Suspected real bug, same class as PR #156: the script checks previous-weighted + current >= limit without the rate (single.ts:82), then INCRBYs and the TS reports failure when the total passes the limit (:92, :340). slidingWindow(10) with 8 used: rate 5 refused, the current bucket left at 13, rate 2 then refused; the over-count also weighs on the next window as its previous bucket. Repro runs the npm package with its own Lua.",
+    "repro": "research/realworld/repro/upstash-rejected-consumes.ts"
+  },
+  "rate limit/express-rate-limit/MemoryStore#a decrement never lowers a count the store has reset": {
+    "verdict": "bug",
+    "note": "Suspected real bug. rate-limit.ts:545 skips the decrement when Date.now() >= resetTime.getTime(), per its comment so as not to lower a count the store has reset; but resetTime is the Client's own Date, which MemoryStore.resetClient moves forward in place (memory-store.ts:174). Once a later hit has reset the client, a failed request of the earlier window passes the check and is taken back from the new window. Not found by the 3 s local search (the run needs a hit, a hit after the reset, a decrement); found by reading the witness and confirmed on a real express server: windowMs 400, limit 1, skipFailedRequests: a slow request of window 1 fails after window 2 started, and window 2 lets through 2 requests (control with the slow request succeeding: the second is refused).",
+    "repro": "research/realworld/repro/express-rate-limit-decrement.ts"
+  },
+  "rate limit/express-rate-limit/MemoryStore#no client window lets through more than limit hits beyond its own hits taken back": {
+    "verdict": "bug",
+    "note": "The safety consequence of the same mutated resetTime: a decrement of an earlier window's hit credits the current window, which then lets through limit + 1 with none of its own requests taken back. Same repro.",
+    "repro": "research/realworld/repro/express-rate-limit-decrement.ts"
+  },
+  "rate limit/golang-x-time/AllowN#no more is granted than burst plus rate times the latest time seen": {
+    "verdict": "bug",
+    "note": "Real behaviour, already reported upstream (golang/go#65508, open). reserveN sets lim.last = t when granting even if t is before lim.last (rate.go:378; advance only clamps elapsed to 0, :389-391), so the time between the new last and the old one is credited again: rate 1/s, burst 3, AllowN at 0,3,1,2,1,3 s grants 7 events by t = 3 s against 3 + 3 = 6 (control with time never going back: 4). Concurrent Allow() callers read time.Now() before the lock, so times that go back are what the lock sees. Whether t may go back is not documented; the doc's informal rate claim (rate.go:35-37) is what it breaks.",
+    "repro": "research/realworld/repro/go-rate-backwards.ts"
+  },
+  "rate limit/rate-limiter-flexible/RateLimiterMemory#no record lets through more than points beyond its start value and its rewards": {
+    "verdict": "law",
+    "note": "The first statement (start + admitted <= points + rewarded) was refuted by set(key, 2) with points 0: a record may be made above the limit with nothing let through. The code does that (repro); the law overstated it. Restated as 'a record lets through nothing, or no more than points beyond its start value and its rewards'.",
+    "repro": "research/realworld/repro/rlf-set-start.ts"
+  }
+}

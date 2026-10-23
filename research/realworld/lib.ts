@@ -43,6 +43,8 @@ export type RealLaw = {
   intent: Intent
   why: string // the doc or test line it comes from (quoted, short), or what the intent was inferred from
   prove: (ms: number) => Verdict
+  // How it is proven (set by the helpers): a decision's `sat` with a witness is a counterexample request, a refutation.
+  form?: 'invariant' | 'step' | 'leadsTo' | 'decision'
 }
 
 // A language gap: what of the code the rule could not say as the code does it. `gap` is a short key from GAPS (so the
@@ -82,20 +84,20 @@ export type RealItem = {
 const search = (ms: number) => ({search: {ms}})
 // An invariant, alone, with the default search.
 export const invariant = (r: AnyRule, law: Law, kind: LawKind, intent: Intent, why: string): RealLaw =>
-  ({name: law.name, kind, intent, why, prove: ms => proveRule(r, [law], search(ms))})
+  ({name: law.name, kind, intent, why, form: 'invariant', prove: ms => proveRule(r, [law], search(ms))})
 // A one-step (or k-step) law, alone: the search finds the invariants it assumes.
 export const stepLaw = (r: AnyRule, sl: StepLaw, kind: LawKind, intent: Intent, why: string): RealLaw =>
-  ({name: sl.name, kind, intent, why, prove: ms => proveSteps(r, [], [sl], search(ms))})
+  ({name: sl.name, kind, intent, why, form: 'step', prove: ms => proveSteps(r, [], [sl], search(ms))})
 // "Whenever from, later to" under fairness, with no rank and no invariant given (the spec leaves `rank` out: the search finds both).
 export const leadsTo = (r: AnyRule, l: Liveness, intent: Intent, why: string, kind: LawKind = 'liveness'): RealLaw => {
   if (!Array.isArray(l.rank) || l.rank.length) throw new Error(`${l.name}: a corpus liveness states no rank (leave rank out)`)
-  return {name: l.name, kind, intent, why, prove: ms => proveLeadsTo(r, [], l, {ms})}
+  return {name: l.name, kind, intent, why, form: 'leadsTo', prove: ms => proveLeadsTo(r, [], l, {ms})}
 }
 // A claim about one request (an access check, an entitlement).
 export const decision = (d: AnyDecision, kind: LawKind, intent: Intent, why: string): RealLaw =>
-  ({name: d.name, kind, intent, why, prove: () => proveDecision(d)})
+  ({name: d.name, kind, intent, why, form: 'decision', prove: () => proveDecision(d)})
 // A chart's law or step law: with the chart's structural laws, which `chart.prove` adds itself.
 export const chartLaw = (c: AnyChart, law: Law, kind: LawKind, intent: Intent, why: string): RealLaw =>
-  ({name: law.name, kind, intent, why, prove: ms => proveRule(c.rule, [...c.chartLaws(), law], search(ms))})
+  ({name: law.name, kind, intent, why, form: 'invariant', prove: ms => proveRule(c.rule, [...c.chartLaws(), law], search(ms))})
 export const chartStep = (c: AnyChart, sl: StepLaw, kind: LawKind, intent: Intent, why: string): RealLaw =>
-  ({name: sl.name, kind, intent, why, prove: ms => proveSteps(c.rule, c.chartLaws(), [sl], search(ms))})
+  ({name: sl.name, kind, intent, why, form: 'step', prove: ms => proveSteps(c.rule, c.chartLaws(), [sl], search(ms))})
