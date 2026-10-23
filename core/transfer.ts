@@ -5,8 +5,9 @@
 //     copies below (each again, down to the recursive functions), so the induction is chosen on what the law means. A
 //     law that grows past eight times its size so (definitions unfolded into each other's arguments) isn't unfolded.
 //   - Bridges: a recursive function of one or two naturals that computes a built-in (+, ∸, min, max, ≤, <, =, ≥, >, ≠,
-//     x + 1, x ∸ 1, 2·x, x = 0) at every argument up to 6 (12 for one) is a candidate; its bridge law (the function is the
-//     built-in, at every argument) is proven by the search first, and only a bridge proven is used.
+//     x + 1, x ∸ 1, 2·x, x = 0) at every argument up to 6 (12 for one) is a candidate, unless its bridge law (the function
+//     is the built-in, at every argument) is the law itself; the bridge law is proven by the search first, and only a
+//     bridge proven is used.
 //   - Copies: a recursive function that calls a bridged one, one unfolded, or a copied one is copied with the built-in,
 //     the body or the copy in its place, and its copy law (it is its copy at every argument) proven: one node made from
 //     the two bodies walked together (its recursive calls by the node's own induction, at its recursion's uses), or,
@@ -60,6 +61,13 @@ function builtinOf(f: Fn): Op | undefined {
     return true
   })
 }
+// Whether `y` is f's bridge law: f at distinct variables equal (either side) to the built-in at them.
+function isBridge(y: Y, f: Fn, op: Op): boolean {
+  if (y.op !== '=') return false
+  const sides: [X, X][] = [[y.a, y.b], [y.b, y.a]]
+  return sides.some(([c, x]) => c.op === 'call' && c.fn === f.name && c.args.every(a => a.op === 'var') && new Set(c.args.map(a => JSON.stringify(a))).size === c.args.length
+    && JSON.stringify(x) === JSON.stringify(op.x(c.args[0]!, c.args[1] ?? nat(0))))
+}
 const callsOf = (t: unknown): string[] => { const out: string[] = []; walkO(t, o => { if (o.op === 'call') out.push(o.fn as string) }); return out }
 function walkO(t: unknown, f: (o: Record<string, unknown>) => void): void {
   if (Array.isArray(t)) { t.forEach(x => walkO(x, f)); return }
@@ -69,11 +77,13 @@ function walkO(t: unknown, f: (o: Record<string, unknown>) => void): void {
 }
 
 // What a law may go through: the bridges' candidates (by their values), and the functions it reaches that aren't
-// recursive (unfolded). None of either: the law as stated.
+// recursive (unfolded). None of either: the law as stated. A candidate whose bridge law is the law itself isn't one:
+// its search would be the law's own, done again on the law after it (core/data.test.ts's nearPlus: 114,197 units of
+// work for the bridge, then 35,367 for the law, `runs/datafix/trace0`).
 export type Plan = {bridges: Map<string, Op>, unfolds: boolean}
 export function transferPlan(l: DataLaw): Plan | undefined {
   const p = programOf([l]), bridges = new Map<string, Op>()
-  for (const f of p.fns) { const op = builtinOf(f); if (op) bridges.set(f.name, op) }
+  for (const f of p.fns) { const op = builtinOf(f); if (op && !isBridge(l.holds, f, op)) bridges.set(f.name, op) }
   const unfolds = p.fns.some(f => !recursive(f))
   return bridges.size || unfolds ? {bridges, unfolds} : undefined
 }

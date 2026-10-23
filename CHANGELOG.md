@@ -158,6 +158,34 @@ the library changed.
   constants 2, a product of two integers 1, a nested datatype 1, rings of functions that aren't structural 14); and
   SV-COMP's C translation refusals (56).
 
+A law that is its own bridge (core/transfer.ts: `f(x, y) = x + y`, f a recursive function that agrees with the built-in
+up to 6) is searched once, as the law, not first as its bridge and then again as itself. The suite's `data` job failed
+now and then on core/data.test.ts's nearPlus law (x + y up to x = 7, then 0), which sat at bun's 5 s test limit:
+7,860.63 and 5,026.99 ms in two of eight jobs (`runs/live/base479`), 5,506.90 ms in one of eight (`runs/live/data8`),
+5,009.33 ms (`runs/live/data3`), 5,097.97 ms (`runs/live/suite`). Wall time didn't decide it: the search's budget is
+already counted (`dataRate`), and its work was the same in containers of 1 and 2 vCPU, the bridge 114,197 units, the law
+after it 35,367, its last lemma round begun at 496 of its 5,000 counted ms (`runs/datafix/trace0`). The search was done
+twice. Now one search of 114,688 units, the same in each container, with the same verdict (not proven, 35 tried, stuck
+at the same case): 2,100 to 3,069 ms alone where it took 3,758 to 5,280 ms (`runs/datafix/near-after`,
+`runs/datafix/near-base`, three each on 1 and 2 vCPU). No limit and no budget changed.
+
+- Ten `data` jobs on 1 vCPU: that test took 2,814.32 to 4,954.97 ms at a42dc81 (`runs/datafix/before`), now
+  1,885.99 to 3,168.36 ms (`runs/datafix/after`), none failed in either.
+- A false bridge that the samples miss, its bridge law not the law, keeps its test (core/data.test.ts): `nearSucc` is
+  n + 1 up to n = 12, then 0, read in `nearSucc(n) >= n + 1`. The bridge `nearSucc is x + 1` is in the plan; neither it
+  nor the law is proven or refuted, the law isn't proven through it, and each search ends at its counted budget of
+  200 ms, which proveData's verdict now says (`stopped`). Its searches do the same work on 1 and 2 vCPU (75,370 and
+  75,256 units at 250 ms, `runs/datafix/probe`). In ten `data` jobs on 1 vCPU it took 1,054.37 to 1,979.37 ms and the
+  nearPlus test 1,932.74 to 2,936.32 ms, none failed (`runs/datafix/after2`); the suite with it, 204 jobs on boat VMs,
+  252.2 s wall, 3,308.8 s of job time, none failed (`runs/datafix/suite2`).
+- The suite (204 jobs, on Modal): by default 546.4 s wall, 4,473.3 s of job time, none failed, that test 2,983.40 ms
+  (`runs/datafix/suite`); with `--usual` 427.1 s and 4,099.5 s, none failed, 3,194.31 ms (`runs/datafix/suite-usual`).
+  The frontier jobs' verdicts are a42dc81's line for line (`runs/datafix/frontier-base`): the datatype track today 2
+  of 25 and with its search 23 of 25, the rest 8 of 67 and 67 of 67, every broken variant refused.
+- TIP (`compare/tip/modal_tip.py --tools gdp`, 492 tasks on Modal): 140 proven and 7 refuted, the same tasks as
+  a42dc81's run (`runs/datafix/tip`, `runs/datafix/tip-base`). Ten tasks differ between unknown and a 60 s timeout;
+  run twice more on each side (`runs/datafix/tip-flip-*`), each gave both answers within one side's runs.
+
 ## 0.21.0
 
 Four new things a law or a rule can say, none of them trusted: recursion that isn't structural (a measure, found or
