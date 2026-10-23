@@ -1950,15 +1950,16 @@ function valuesCompared(p: Program, l: DataLaw): E[] {
 
 // Where a lemma's terms appear in a goal: a substitution of its variables by terms of the goal, for each term of the goal
 // that one of the lemma's sides matches (its variables read anywhere, the rest exactly).
-// A constructor in the lemma matches any value of its datatype too, by its fields' reads (rev (y ++ [z]) at rev (y ++ x),
+// A constructor in the lemma matches any value of its datatype too (`fieldMatch`), by its fields' reads (rev (y ++ [z]) at rev (y ++ x),
 // z the head of x: where x is no such constructor, a case the use's models then refuse).
+const fieldMatch = {on: false}
 function matches(pattern: E, vars: Set<string>, t: E, s: Record<string, E>): Record<string, E> | undefined {
   if (pattern.op === 'var' && vars.has(pattern.name)) {
     const had = s[pattern.name]
     if (had) return sid(had) === sid(t) ? s : undefined
     return {...s, [pattern.name]: t}
   }
-  if (pattern.op === 'get' && (t.op !== 'get' || t.map !== pattern.map)) {
+  if (fieldMatch.on && pattern.op === 'get' && (t.op !== 'get' || t.map !== pattern.map)) {
     const at = pattern.map.indexOf('.'), d = at > 0 ? declared.get(pattern.map.slice(0, at)) : undefined, j = d ? d.ctors.findIndex((c, i) => c.fields.length > 0 && ctorMap(d, i) === pattern.map) : -1
     if (d && j >= 0) {
       const fs2 = argsOf(pattern.key, d.ctors[j]!.fields.length)
@@ -2228,45 +2229,51 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number
       // every size the goal reads)
       const callsFn = (t: E) => { let yes = false; walk(t, o => { if (o.op === 'get' && fs.arity.has(o.map as string) && p.fns.some(f => f.name === o.map)) yes = true }); return yes }
       const tops = tops0.some(callsFn) ? tops0.filter(callsFn) : tops0
-      for (const top of tops) {
-        const n = fs.arity.get(top.map) ?? 1, pats = argsOf(top.key, n)
-        // A pattern's match at a term alone, once (a match given others' bindings is it, where it agrees with them).
-        const alone = pats?.map(() => new Map<E, Record<string, E> | undefined>())
-        const matchAt = (q: number, m: E, sb: Record<string, E>): Record<string, E> | undefined => {
-          const memo = alone![q]!
-          if (!memo.has(m)) memo.set(m, matches(pats![q]!, vars, m, {}))
-          const r = memo.get(m)
-          if (!r) return undefined
-          let out = sb
-          for (const [x, v] of Object.entries(r)) { const had = sb[x]; if (had) { if (sid(had) !== sid(v)) return undefined } else out = out === sb ? {...sb, [x]: v} : (out[x] = v, out) }
-          return out
-        }
-        for (const t of reads) {
-          if (t.op !== 'get' || t.map !== top.map) continue
-          // (one use is all `hits` asks of a lemma)
-          if (hits?.has(lm.node)) break
-          // Each argument of the read matched up to its class (a key of several arguments is their pairing).
-          const args = argsOf(t.key, n)
-          if (!pats || !args) continue
-          let subs: Record<string, E>[] = [{}]
-          for (const q of pats.keys()) { const ms = members(args[q]!).slice(0, 256); subs = subs.flatMap(sb => ms.flatMap(m => { const r = matchAt(q, m, sb); return r ? [r] : [] })).slice(0, 512) }
-          for (const sub of subs) {
-            if (Object.keys(sub).length !== vars.size) continue
-            // Where a model gives the lemma's arguments the goal read's (a match through every branch's classes may be none).
-            const there = pats.map(a => substE(a, {vars: sub, maps: {}, flags: {}}))
-            const score = models.length ? models.filter(({m, env}) => { try { return there.every((a, q) => m.evalE(a, env) === m.evalE(args[q]!, env)) } catch { return false } }).length : 1
-            if (!score) continue
-            const k2 = sid([lm.node, sub])
-            if (seen.has(k2)) continue
-            seen.add(k2)
-            const names = Object.keys(sub).sort()
-            const fp = models.length ? JSON.stringify([lm.node, models.map(({m, env}) => names.map(x => { try { return m.evalE(sub[x]!, env) } catch { return -1 } }))]) : k2
-            const use = {node: lm.node, subst: sub, guard: yesC}
-            if (hits) { hits.add(lm.node); break }
-            cands.push({use, at: {goal: t, lemma: substE(top, {vars: sub, maps: {}, flags: {}})}, score, fp, size: textLength([lm.node, sub])})
+      // (a constructor matched by its fields only for a lemma no read matches as it stands: the uses would multiply)
+      for (const byFields of [false, true]) {
+        if (byFields && cands.some(c => c.use.node === lm.node)) break
+        fieldMatch.on = byFields
+        for (const top of tops) {
+          const n = fs.arity.get(top.map) ?? 1, pats = argsOf(top.key, n)
+          // A pattern's match at a term alone, once (a match given others' bindings is it, where it agrees with them).
+          const alone = pats?.map(() => new Map<E, Record<string, E> | undefined>())
+          const matchAt = (q: number, m: E, sb: Record<string, E>): Record<string, E> | undefined => {
+            const memo = alone![q]!
+            if (!memo.has(m)) memo.set(m, matches(pats![q]!, vars, m, {}))
+            const r = memo.get(m)
+            if (!r) return undefined
+            let out = sb
+            for (const [x, v] of Object.entries(r)) { const had = sb[x]; if (had) { if (sid(had) !== sid(v)) return undefined } else out = out === sb ? {...sb, [x]: v} : (out[x] = v, out) }
+            return out
+          }
+          for (const t of reads) {
+            if (t.op !== 'get' || t.map !== top.map) continue
+            // (one use is all `hits` asks of a lemma)
+            if (hits?.has(lm.node)) break
+            // Each argument of the read matched up to its class (a key of several arguments is their pairing).
+            const args = argsOf(t.key, n)
+            if (!pats || !args) continue
+            let subs: Record<string, E>[] = [{}]
+            for (const q of pats.keys()) { const ms = members(args[q]!).slice(0, 256); subs = subs.flatMap(sb => ms.flatMap(m => { const r = matchAt(q, m, sb); return r ? [r] : [] })).slice(0, 512) }
+            for (const sub of subs) {
+              if (Object.keys(sub).length !== vars.size) continue
+              // Where a model gives the lemma's arguments the goal read's (a match through every branch's classes may be none).
+              const there = pats.map(a => substE(a, {vars: sub, maps: {}, flags: {}}))
+              const score = models.length ? models.filter(({m, env}) => { try { return there.every((a, q) => m.evalE(a, env) === m.evalE(args[q]!, env)) } catch { return false } }).length : 1
+              if (!score) continue
+              const k2 = sid([lm.node, sub])
+              if (seen.has(k2)) continue
+              seen.add(k2)
+              const names = Object.keys(sub).sort()
+              const fp = models.length ? JSON.stringify([lm.node, models.map(({m, env}) => names.map(x => { try { return m.evalE(sub[x]!, env) } catch { return -1 } }))]) : k2
+              const use = {node: lm.node, subst: sub, guard: yesC}
+              if (hits) { hits.add(lm.node); break }
+              cands.push({use, at: {goal: t, lemma: substE(top, {vars: sub, maps: {}, flags: {}})}, score, fp, size: textLength([lm.node, sub])})
+            }
           }
         }
       }
+      fieldMatch.on = false
     }
     if (hits) { for (const c of cands) hits.add(c.use.node); return [] }
     // First, as found: four of a lemma, twelve in all (the next round reads their conclusions). Then the rest, best first
