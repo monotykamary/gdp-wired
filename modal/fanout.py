@@ -394,7 +394,7 @@ def cli(run, runner: str, doc: str = ""):
     ap.add_argument("--backend", default="auto", choices=["modal", "auto", "boat"])
     ap.add_argument("--vms", type=int, default=0, help="boat VMs for the batch (default: by the work and the plan's limits)")
     ap.add_argument("--max-vms", type=int, default=0)
-    ap.add_argument("--idle", type=int, default=None, help="seconds a released VM stays up before boat stops it (0: stop at once; default 300, 900 while starts are short)")
+    ap.add_argument("--idle", type=int, default=None, help="seconds a released VM stays up before boat stops it (0: stop at once; default 60, 900 when the starts left would run out within it)")
     ap.add_argument("--teardown", action="store_true", help="delete the batch's VMs at the end instead of stopping them")
     ap.add_argument("--vm-type", default="default", choices=["small", "default", "large"])
     ap.add_argument("--durations", default="", help="an earlier results.jsonl: the longest calls start first")

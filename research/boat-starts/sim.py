@@ -109,11 +109,26 @@ class Sim:
         self.pending = []  # batches that want starts
         self.waiting = []  # batches with no VM, waiting for one another batch releases
         self.dispatch_at = None
+        self.days = {}
         for i in range(stopped):  # a pool of stopped VMs to resume (calibration)
             v = VMx(i, "default")
             v.ever = True
             self.vms.append(v)
             self.stopped.setdefault("default", []).append(v)
+
+    def book(self, kind, t0, t1, v, frac=1.0):
+        """VM-seconds of a kind (held by a batch, busy, up after release) by day (day k: [k, k+1) days from 0)."""
+        m = (2 if v.type == "large" else 1) * frac
+        while t1 > t0:
+            k = int(t0 // 86400)
+            e = min(t1, (k + 1) * 86400)
+            d = self.days.setdefault(k, {"held": 0.0, "busy": 0.0, "tail": 0.0})
+            d[kind] += (e - t0) * m
+            t0 = e
+
+    def day_dollars(self, k):
+        d = self.days.get(k, {"held": 0.0, "busy": 0.0, "tail": 0.0})
+        return round((d["held"] + d["tail"]) * VM_DOLLARS_S, 3), round((d["held"] - d["busy"] + d["tail"]) * VM_DOLLARS_S, 3)
 
     def at(self, t, f, *a):
         heapq.heappush(self.ev, (t, next(self.seq), f, a))
@@ -137,6 +152,17 @@ class Sim:
 
     def room_now(self):
         return max(0, min(self.lim_min - self.count(60), self.left(), self.lim_active - self.active))
+
+    def short_projected(self):
+        """Will the starts run out before the work does? At the last hour's pace p (its starts), the day's starts
+        left last fewer than H hours, or the hour's left are fewer than p (the pace would spend the hour)."""
+        a = self.p["adaptive"]
+        p = self.count(3600)
+        day_left = self.lim_day - self.count(86400) - RESERVE
+        hour_left = self.lim_hour - p - RESERVE
+        if a.get("exhaust"):  # at this pace the starts left run out within the long idle time itself
+            return p > 0 and min(day_left, hour_left) < p * a["long"] / 3600
+        return p > 0 and (day_left < p * a["H"] or (a.get("hour") and hour_left < p))
 
     # ------------------------------------------------------------------ sizing
     def plan_old(self, items, up):
@@ -213,6 +239,7 @@ class Sim:
     def lease(self, v, B, warm):
         if warm:
             v.tail_s += self.now - v.free_t
+            self.book("tail", v.free_t, self.now, v)
             self.upfree[v.type].pop(v.id, None)
             B.warm += 1
         else:
@@ -282,6 +309,7 @@ class Sim:
         B = v.batch
         v.free += j[1]
         v.busy += j[0] * j[1] / v.slots
+        self.book("busy", self.now - j[0], self.now, v, j[1] / v.slots)
         B.left -= 1
         B.done_t.append(self.now - B.t0)
         if B.left == 0:
@@ -296,10 +324,13 @@ class Sim:
     def release(self, v):
         B = v.batch
         v.held_s += self.now - v.lease_t
+        self.book("held", v.lease_t, self.now, v)
         B.slots[v.type] -= v.slots
         v.batch, v.free_t, v.gen = None, self.now, v.gen + 1
         v.free = v.slots
         idle = self.p.get("idle", 60)
+        if self.p.get("adaptive") and self.short_projected():
+            idle = self.p["adaptive"]["long"]
         if self.p.get("idle_scarce") and self.left() < self.p["scarce_below"]:  # starts short: a VM kept up is cheaper
             idle = self.p["idle_scarce"]
         if self.p.get("floor"):
@@ -329,6 +360,7 @@ class Sim:
     def stop(self, v, gen):
         if v.gen == gen and v.batch is None and v.up:
             v.tail_s += self.now - v.free_t
+            self.book("tail", v.free_t, self.now, v)
             v.up, v.free_t = False, None
             self.upfree[v.type].pop(v.id, None)
             self.stopped.setdefault(v.type, []).append(v)
@@ -376,10 +408,16 @@ def load(path):
     return mix
 
 
-NEW = {"idle": 300, "idle_scarce": 900, "scarce_below": 100, "share": 1 / 4, "min_budget": 2, "check_resume": True, "topup": True, "wait": 600}
+BASE = {"idle": 60, "share": 1 / 4, "min_budget": 2, "check_resume": True, "topup": True, "wait": 600}
+# the chosen policy: BASE, and a released VM up 900 s instead of 60 only when, at the last hour's pace, the starts
+# left (hour and day) run out within those 900 s (modal/boat.py's release_idle)
+NEW = dict(BASE, adaptive={"exhaust": True, "long": 900})
+OLDNEW = {"idle": 300, "idle_scarce": 900, "scarce_below": 100, "share": 1 / 4, "min_budget": 2, "check_resume": True, "topup": True, "wait": 600}
 POLICIES = {
     "old": {"idle": 60},
     "new": NEW,
+    "base (new without the longer idle)": BASE,
+    "idle300/scarce900": OLDNEW,
     # one change at a time
     "old+idle300": {"idle": 300},
     "old+idle600": {"idle": 600},
@@ -400,9 +438,18 @@ POLICIES = {
     "share1/4+topup+wait600+idle120/scarce600": {"idle": 120, "idle_scarce": 600, "scarce_below": 100, "share": 1 / 4, "check_resume": True, "topup": True, "wait": 600},
     "share1/4+topup+wait600+idle60/scarce900": {"idle": 60, "idle_scarce": 900, "scarce_below": 100, "share": 1 / 4, "check_resume": True, "topup": True, "wait": 600},
     "share1/4+topup+wait600+idle300/scarce900": {"idle": 300, "idle_scarce": 900, "scarce_below": 100, "share": 1 / 4, "check_resume": True, "topup": True, "wait": 600},
-    "new/scarce1800": dict(NEW, idle_scarce=1800),
-    "new/scarce3600": dict(NEW, idle_scarce=3600),
-    "new/scarce1800/below50": dict(NEW, idle_scarce=1800, scarce_below=50),
+    "base+exhaust600": dict(BASE, adaptive={"exhaust": True, "long": 600}),
+    "base+exhaust900": dict(BASE, adaptive={"exhaust": True, "long": 900}),
+    "base+exhaust1800": dict(BASE, adaptive={"exhaust": True, "long": 1800}),
+    "base+exhaust3600": dict(BASE, adaptive={"exhaust": True, "long": 3600}),
+    "base+adapt H2/600": dict(BASE, adaptive={"H": 2, "long": 600}),
+    "base+adapt H4/600": dict(BASE, adaptive={"H": 4, "long": 600}),
+    "base+adapt H8/600": dict(BASE, adaptive={"H": 8, "long": 600}),
+    "base+adapt H4/1800": dict(BASE, adaptive={"H": 4, "long": 1800}),
+    "base+adapt H8/1800": dict(BASE, adaptive={"H": 8, "long": 1800}),
+    "base+adapt H4/1800+hour": dict(BASE, adaptive={"H": 4, "long": 1800, "hour": True}),
+    "base+adapt H4/600+hour": dict(BASE, adaptive={"H": 4, "long": 600, "hour": True}),
+    "base+adapt H8/1800+hour": dict(BASE, adaptive={"H": 8, "long": 1800, "hour": True}),
     "share1/3+topup+wait600+idle300": {"idle": 300, "share": 1 / 3, "check_resume": True, "topup": True, "wait": 600},
     "share1/8+topup+wait600+idle300": {"idle": 300, "share": 1 / 8, "check_resume": True, "topup": True, "wait": 600},
     "share1/4cap40+topup+wait600+idle300": {"idle": 300, "share": 1 / 4, "cap": 40, "check_resume": True, "topup": True, "wait": 600},

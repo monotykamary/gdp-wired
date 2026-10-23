@@ -1,7 +1,8 @@
 """Does a plan's day of starts carry more of today's work? Today's mix replayed `v` times a day (each replay `24/v`
 hours after the one before, so replays overlap once v > 24 / the mix's span), over three days; the figures are the
-third day's (the rolling day's starts then come from replays only): its starts, its batches that fell back to Modal,
-and its batches' walls over the same batch's wall with unlimited starts.
+third day's (the rolling day's starts then come from replays only): its starts, its batches that fell back to Modal
+and Modal's dollars for them, boat's dollars for the day's VM-seconds (idle ones apart: held by a batch but not running
+a job, or up after a release), and its batches' walls over the same batch's wall with unlimited starts.
 
     python3 research/boat-starts/scale.py research/boat-starts/mix.json [policy ...] > research/boat-starts/scale.txt
 """
@@ -38,13 +39,16 @@ def third_day(r, ref):
 
 
 POLS = sys.argv[2:] or ["old", "new"]
-print("v/day  plan  policy  starts(day 3)  batches  to Modal (jobs, $)   wall / unlimited: median p90 max   boat $ over 3 days (idle $)")
-for v in [1, 2, 2.5, 3, 4, 5, 6]:
+print("v/day  plan  policy                            starts  batches  to Modal: batches (jobs)   Modal $  boat $ (idle $)  boat+Modal $   wall/unlimited: median p90 max   (all day 3's)")
+VS = [float(x) for x in __import__("os").environ.get("SCALE_V", "1,2,2.5,3,4,5,6").split(",")]
+for v in VS:
     m = replay(v)
     ref = sim.Sim(m, sim.POLICIES["old"], "inf").run().report()
     for plan in ("100", "500"):
         for pol in POLS:
-            r = sim.Sim(m, sim.POLICIES[pol], plan).run().report()
+            S = sim.Sim(m, sim.POLICIES[pol], plan).run()
+            r = S.report()
             d = third_day(r, ref)
-            print(f"{v:5}  ${plan:4} {pol:32}  {d['starts']:6}  {d['batches']:6}  {d['modal']:4} ({d['modal_jobs']:6}, ${d['modal_dollars']:7.2f})"
-                  f"   {d['p50']} {d['p90']} {round(d['max'], 2) if d['max'] else None}   ${r['boat_dollars']} (${r['idle_dollars']})")
+            boat_d, idle_d = S.day_dollars(2)
+            print(f"{v:5}  ${plan:4} {pol:32}  {d['starts']:6}  {d['batches']:6}  {d['modal']:4} ({d['modal_jobs']:6})  {d['modal_dollars']:8.2f}  {boat_d:6.2f} ({idle_d:5.2f})  {boat_d + d['modal_dollars']:8.2f}"
+                  f"   {d['p50']} {d['p90']} {round(d['max'], 2) if d['max'] else None}")

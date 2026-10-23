@@ -2,7 +2,11 @@
 unlimited starts (the reference)               starts 5260 (most in an hour 3344)  modal  0 batches     0 jobs $ 0.000  boat $ 9.579 (idle $5.721: 70.57 in batches + 88.35 after, VM-h)  wall/unlimited: median 1.0 p90 1.0 max 1.0
 old                                            starts  830 (most in an hour 200)  modal 15 batches  5644 jobs $ 8.990  boat $ 3.268 (idle $0.711: 5.98 in batches + 13.76 after, VM-h)  wall/unlimited: median 1.0 p90 15.89 max 21.67
     chc-gdp 452 s/105  chc-base 942 s/45  tip-gdp3 241 s/111  term-gdp 527 s/61  suite-default 210 s/12  chc modal  tip modal  term modal
-new                                            starts  542 (most in an hour 195)  modal  0 batches     0 jobs $ 0.000  boat $ 9.825 (idle $5.967: 24.96 in batches + 140.78 after, VM-h)  wall/unlimited: median 1.0 p90 5.61 max 11.37
+new                                            starts  607 (most in an hour 194)  modal  0 batches     0 jobs $ 0.000  boat $ 4.854 (idle $0.996: 15.96 in batches + 11.69 after, VM-h)  wall/unlimited: median 1.0 p90 9.8 max 22.25
+    chc-gdp 1180 s/31  chc-base 1019 s/60  tip-gdp3 354 s/49  term-gdp 918 s/33  suite-default 210 s/12  chc 2282 s/43  tip 2138 s/13  term 2144 s/23
+base (new without the longer idle)             starts  608 (most in an hour 195)  modal  0 batches     0 jobs $ 0.000  boat $ 4.809 (idle $0.951: 15.62 in batches + 10.79 after, VM-h)  wall/unlimited: median 1.0 p90 9.8 max 22.43
+    chc-gdp 1180 s/31  chc-base 1019 s/60  tip-gdp3 354 s/49  term-gdp 918 s/33  suite-default 210 s/12  chc 2291 s/42  tip 2156 s/15  term 2150 s/22
+idle300/scarce900                              starts  542 (most in an hour 195)  modal  0 batches     0 jobs $ 0.000  boat $ 9.825 (idle $5.967: 24.96 in batches + 140.78 after, VM-h)  wall/unlimited: median 1.0 p90 5.61 max 11.37
     chc-gdp 1180 s/31  chc-base 759 s/119  tip-gdp3 348 s/50  term-gdp 406 s/73  suite-default 210 s/12  chc 263 s/161  tip 719 s/75  term 665 s/68
 old+idle300                                    starts  823 (most in an hour 200)  modal  9 batches  5216 jobs $ 8.550  boat $ 5.696 (idle $3.083: 10.53 in batches + 75.1 after, VM-h)  wall/unlimited: median 1.0 p90 4.59 max 18.07
     chc-gdp 452 s/105  chc-base 850 s/52  tip-gdp3 241 s/111  term-gdp 524 s/63  suite-default 210 s/12  chc modal  tip modal  term modal
@@ -40,12 +44,30 @@ share1/4+topup+wait600+idle60/scarce900        starts  585 (most in an hour 194)
     chc-gdp 1180 s/31  chc-base 1019 s/60  tip-gdp3 354 s/49  term-gdp 918 s/33  suite-default 210 s/12  chc 294 s/133  tip 808 s/62  term 760 s/57
 share1/4+topup+wait600+idle300/scarce900       starts  542 (most in an hour 195)  modal  0 batches     0 jobs $ 0.000  boat $ 9.825 (idle $5.967: 24.96 in batches + 140.78 after, VM-h)  wall/unlimited: median 1.0 p90 5.61 max 11.37
     chc-gdp 1180 s/31  chc-base 759 s/119  tip-gdp3 348 s/50  term-gdp 406 s/73  suite-default 210 s/12  chc 263 s/161  tip 719 s/75  term 665 s/68
-new/scarce1800                                 starts  542 (most in an hour 196)  modal  0 batches     0 jobs $ 0.000  boat $11.632 (idle $7.774: 24.94 in batches + 190.99 after, VM-h)  wall/unlimited: median 1.0 p90 5.69 max 11.37
-    chc-gdp 1180 s/31  chc-base 759 s/119  tip-gdp3 354 s/49  term-gdp 918 s/33  suite-default 210 s/12  chc 263 s/161  tip 719 s/75  term 665 s/68
-new/scarce3600                                 starts  488 (most in an hour 195)  modal  0 batches     0 jobs $ 0.000  boat $14.750 (idle $10.892: 24.96 in batches + 277.58 after, VM-h)  wall/unlimited: median 1.0 p90 5.69 max 11.37
-    chc-gdp 1180 s/31  chc-base 759 s/119  tip-gdp3 217 s/82  term-gdp 918 s/33  suite-default 210 s/12  chc 263 s/161  tip 719 s/75  term 665 s/68
-new/scarce1800/below50                         starts  544 (most in an hour 196)  modal  0 batches     0 jobs $ 0.000  boat $10.691 (idle $6.833: 24.98 in batches + 164.84 after, VM-h)  wall/unlimited: median 1.0 p90 5.61 max 11.37
-    chc-gdp 1180 s/31  chc-base 759 s/119  tip-gdp3 348 s/50  term-gdp 412 s/72  suite-default 210 s/12  chc 263 s/161  tip 719 s/75  term 665 s/68
+base+exhaust600                                starts  608 (most in an hour 195)  modal  0 batches     0 jobs $ 0.000  boat $ 4.820 (idle $0.962: 15.62 in batches + 11.09 after, VM-h)  wall/unlimited: median 1.0 p90 9.8 max 22.43
+    chc-gdp 1180 s/31  chc-base 1019 s/60  tip-gdp3 354 s/49  term-gdp 918 s/33  suite-default 210 s/12  chc 2291 s/42  tip 2156 s/15  term 2150 s/22
+base+exhaust900                                starts  607 (most in an hour 194)  modal  0 batches     0 jobs $ 0.000  boat $ 4.854 (idle $0.996: 15.96 in batches + 11.69 after, VM-h)  wall/unlimited: median 1.0 p90 9.8 max 22.25
+    chc-gdp 1180 s/31  chc-base 1019 s/60  tip-gdp3 354 s/49  term-gdp 918 s/33  suite-default 210 s/12  chc 2282 s/43  tip 2138 s/13  term 2144 s/23
+base+exhaust1800                               starts  581 (most in an hour 194)  modal  0 batches     0 jobs $ 0.000  boat $ 8.336 (idle $4.478: 12.38 in batches + 112.0 after, VM-h)  wall/unlimited: median 1.0 p90 6.29 max 11.37
+    chc-gdp 1180 s/31  chc-base 1019 s/60  tip-gdp3 354 s/49  term-gdp 918 s/33  suite-default 210 s/12  chc 297 s/132  tip 811 s/61  term 762 s/56
+base+exhaust3600                               starts  514 (most in an hour 193)  modal  0 batches     0 jobs $ 0.000  boat $11.575 (idle $7.717: 12.85 in batches + 201.5 after, VM-h)  wall/unlimited: median 1.0 p90 6.29 max 11.37
+    chc-gdp 1180 s/31  chc-base 1019 s/60  tip-gdp3 217 s/82  term-gdp 918 s/33  suite-default 210 s/12  chc 294 s/133  tip 808 s/62  term 760 s/57
+base+adapt H2/600                              starts  608 (most in an hour 195)  modal  0 batches     0 jobs $ 0.000  boat $ 4.820 (idle $0.962: 15.62 in batches + 11.09 after, VM-h)  wall/unlimited: median 1.0 p90 9.8 max 22.43
+    chc-gdp 1180 s/31  chc-base 1019 s/60  tip-gdp3 354 s/49  term-gdp 918 s/33  suite-default 210 s/12  chc 2291 s/42  tip 2156 s/15  term 2150 s/22
+base+adapt H4/600                              starts  588 (most in an hour 195)  modal  0 batches     0 jobs $ 0.000  boat $ 6.953 (idle $3.095: 12.73 in batches + 73.25 after, VM-h)  wall/unlimited: median 1.0 p90 6.29 max 11.37
+    chc-gdp 1180 s/31  chc-base 1019 s/60  tip-gdp3 354 s/49  term-gdp 918 s/33  suite-default 210 s/12  chc 297 s/132  tip 811 s/61  term 762 s/56
+base+adapt H8/600                              starts  561 (most in an hour 195)  modal  0 batches     0 jobs $ 0.000  boat $ 7.974 (idle $4.116: 13.85 in batches + 100.48 after, VM-h)  wall/unlimited: median 1.0 p90 6.29 max 11.37
+    chc-gdp 1180 s/31  chc-base 961 s/64  tip-gdp3 354 s/49  term-gdp 918 s/33  suite-default 210 s/12  chc 266 s/144  tip 742 s/51  term 674 s/62
+base+adapt H4/1800                             starts  580 (most in an hour 194)  modal  0 batches     0 jobs $ 0.000  boat $ 9.145 (idle $5.287: 12.38 in batches + 134.48 after, VM-h)  wall/unlimited: median 1.0 p90 6.29 max 11.37
+    chc-gdp 1180 s/31  chc-base 1019 s/60  tip-gdp3 354 s/49  term-gdp 918 s/33  suite-default 210 s/12  chc 297 s/132  tip 811 s/61  term 762 s/56
+base+adapt H8/1800                             starts  551 (most in an hour 197)  modal  0 batches     0 jobs $ 0.000  boat $12.391 (idle $8.533: 17.26 in batches + 219.77 after, VM-h)  wall/unlimited: median 1.0 p90 6.22 max 11.37
+    chc-gdp 1180 s/31  chc-base 916 s/65  tip-gdp3 354 s/49  term-gdp 907 s/34  suite-default 210 s/12  chc 263 s/151  tip 729 s/76  term 665 s/65
+base+adapt H4/1800+hour                        starts  577 (most in an hour 194)  modal  0 batches     0 jobs $ 0.000  boat $10.124 (idle $6.266: 12.59 in batches + 161.48 after, VM-h)  wall/unlimited: median 1.0 p90 6.29 max 11.37
+    chc-gdp 1180 s/31  chc-base 1019 s/60  tip-gdp3 354 s/49  term-gdp 918 s/33  suite-default 210 s/12  chc 294 s/133  tip 808 s/62  term 760 s/57
+base+adapt H4/600+hour                         starts  579 (most in an hour 195)  modal  0 batches     0 jobs $ 0.000  boat $ 7.258 (idle $3.400: 12.49 in batches + 81.95 after, VM-h)  wall/unlimited: median 1.0 p90 6.29 max 11.37
+    chc-gdp 1180 s/31  chc-base 1019 s/60  tip-gdp3 354 s/49  term-gdp 918 s/33  suite-default 210 s/12  chc 294 s/133  tip 808 s/62  term 760 s/57
+base+adapt H8/1800+hour                        starts  551 (most in an hour 197)  modal  0 batches     0 jobs $ 0.000  boat $12.391 (idle $8.533: 17.26 in batches + 219.77 after, VM-h)  wall/unlimited: median 1.0 p90 6.22 max 11.37
+    chc-gdp 1180 s/31  chc-base 916 s/65  tip-gdp3 354 s/49  term-gdp 907 s/34  suite-default 210 s/12  chc 263 s/151  tip 729 s/76  term 665 s/65
 share1/3+topup+wait600+idle300                 starts  638 (most in an hour 200)  modal  0 batches     0 jobs $ 0.000  boat $ 6.550 (idle $2.692: 12.36 in batches + 62.42 after, VM-h)  wall/unlimited: median 1.0 p90 6.75 max 21.33
     chc-gdp 1001 s/37  chc-base 663 s/141  tip-gdp3 290 s/66  term-gdp 337 s/90  suite-default 210 s/12  chc 2161 s/44  tip 2050 s/13  term 2009 s/19
 share1/8+topup+wait600+idle300                 starts  416 (most in an hour 173)  modal  0 batches     0 jobs $ 0.000  boat $ 5.707 (idle $1.849: 11.0 in batches + 40.36 after, VM-h)  wall/unlimited: median 1.0 p90 9.54 max 19.38
