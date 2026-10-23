@@ -3,7 +3,19 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.25.0
+
+Ahead of or level with the leading tools on four of the six measures we run, in our harness (60 s on Modal, 2 vCPU, the
+rivals as installed in compare/), and nothing trusted changed since 0.24.0 (`kernel/kernel.ts`, `kernel/cyclic.ts`,
+`core/check.ts` and the Lean files as they were). None wrong anywhere. TIP 2015 197 of 492, in one batch with Vampire
+193, cvc5 with conjecture generation 187 and cvc5 168 (`runs/tiplem/final-tools`), 181 at 0.23.0. TermComp's ITS 1,131
+answered (612 terminating, 519 not) beside main's 1,073 (`runs/accel2/its-mine`, `its-base`); KoAT2 proves 601
+terminating and LoAT's default engine 532 nonterminating (compare/term/README.md). SV-COMP's termination tasks 225,
+Ultimate Automizer 224. CHC-COMP LIA-Lin 966 (569 sat, 397 unsat) beside 935 (`runs/chcsat/`), Spacer 1,163. These
+leads are ours to confirm under each competition's own setup (its time limit, scoring and current entrants); until then
+they are measurements in this harness. The release suites (217 jobs, one after the other) on Modal: by default 649.4 s
+wall, 5,354.0 s of job time, none failed (`runs/release/0.25.0-default`); `--usual` 669.4 s, 5,005.6 s, none failed
+(`runs/release/0.25.0-usual`).
 
 The lemma search on TIP 2015 (core/data.ts): lemmas calculated from the induction steps the definitions leave, lemma
 uses ranked within each case, induction schemes merged, and a case's arithmetic read into its classes. Measured after
