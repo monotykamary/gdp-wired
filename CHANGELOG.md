@@ -171,6 +171,13 @@ at the same case): 2,100 to 3,069 ms alone where it took 3,758 to 5,280 ms (`run
 
 - Ten `data` jobs on 1 vCPU: that test took 2,814.32 to 4,954.97 ms at a42dc81 (`runs/datafix/before`), now
   1,885.99 to 3,168.36 ms (`runs/datafix/after`), none failed in either.
+- A false bridge that the samples miss, its bridge law not the law, keeps its test (core/data.test.ts): `nearSucc` is
+  n + 1 up to n = 12, then 0, read in `nearSucc(n) >= n + 1`. The bridge `nearSucc is x + 1` is in the plan; neither it
+  nor the law is proven or refuted, the law isn't proven through it, and each search ends at its counted budget of
+  200 ms, which proveData's verdict now says (`stopped`). Its searches do the same work on 1 and 2 vCPU (75,370 and
+  75,256 units at 250 ms, `runs/datafix/probe`). In ten `data` jobs on 1 vCPU it took 1,054.37 to 1,979.37 ms and the
+  nearPlus test 1,932.74 to 2,936.32 ms, none failed (`runs/datafix/after2`); the suite with it, 204 jobs on boat VMs,
+  252.2 s wall, 3,308.8 s of job time, none failed (`runs/datafix/suite2`).
 - The suite (204 jobs, on Modal): by default 546.4 s wall, 4,473.3 s of job time, none failed, that test 2,983.40 ms
   (`runs/datafix/suite`); with `--usual` 427.1 s and 4,099.5 s, none failed, 3,194.31 ms (`runs/datafix/suite-usual`).
   The frontier jobs' verdicts are a42dc81's line for line (`runs/datafix/frontier-base`): the datatype track today 2

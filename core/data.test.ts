@@ -5,6 +5,7 @@
 import {expect, test} from 'bun:test'
 import {type Bool, type Nat, type Val, EvalLimit, data, define, evalX, law, mutual, natural, programOf, proveData, refute, schemesOf, self, showValue, showY, when} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
+import {transferPlan} from './transfer.ts'
 import {Bag, Forest, List, Rose, Tree, a3, app, broken, ilv, laws, leq, len, merge, mir, mrg, nonterminating, qsort, refusal, rev, same, sorted, ins, through as through_, throughBroken} from '../examples/data.ts'
 
 const list = (...xs: number[]): {c: number, f: unknown[]} => xs.reduceRight<{c: number, f: unknown[]}>((t, h) => ({c: 1, f: [h, t]}), {c: 0, f: []})
@@ -135,6 +136,23 @@ test('a function that agrees with + on small values only: its bridge is not prov
   const near: ReturnType<typeof define> = define('nearPlus', {x: natural, y: natural}, natural, ({x, y}) => (x as Nat).match({zero: () => y as Nat, succ: ({pred}) => when(pred.atLeast(7), 0 as number, (near(pred, y) as Nat).plus(1) as never)}))
   const v = proveData(law('nearPlus adds', {x: natural, y: natural}, ({x, y}) => (near(x, y) as Nat).eq((x as Nat).plus(y))), {ms: 5_000})
   expect(v.proven).toBe(false)
+})
+
+test('a function that agrees with x + 1 on small values only, read inside a larger law: its bridge is tried and not proven, and nothing false is proven through it', () => {
+  // n + 1 up to n = 12, then 0: the samples (naturals up to 5) and the bridge's check (up to 12) see x + 1. The law isn't
+  // its bridge: through it, n + 1 >= n + 1 would hold. Each search ends at its counted budget, the same on any machine.
+  const inc: ReturnType<typeof define> = define('nearSucc', {n: natural}, natural, ({n}) => (n as Nat).match({zero: () => 1, succ: ({pred}) => when(pred.atLeast(12), 0 as number, (inc(pred) as Nat).plus(1) as never)}))
+  const l = law('nearSucc is above n', {n: natural}, ({n}) => (inc(n) as Nat).atLeast((n as Nat).plus(1)))
+  expect(transferPlan(l)?.bridges.get('nearSucc')?.name).toBe('x + 1')
+  const bridge = proveData(law('nearSucc is x + 1', {n: natural}, ({n}) => (inc(n) as Nat).eq((n as Nat).plus(1))), {ms: 200})
+  expect(bridge.proven).toBe(false)
+  expect(bridge.counterexample).toBeUndefined()
+  expect(bridge.stopped).toBe(true)
+  const v = proveData(l, {ms: 200})
+  expect(v.proven).toBe(false)
+  expect(v.counterexample).toBeUndefined()
+  expect(v.through).toBeUndefined()
+  expect(v.stopped).toBe(true)
 })
 
 test('evaluation within bounds: a natural past 2^53 throws, a sample past the bounds is skipped, a datatype read only through a constructor is collected', () => {

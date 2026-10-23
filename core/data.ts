@@ -1092,7 +1092,8 @@ export type Lemma = {law: DataLaw, spec?: NodeSpec}
 // `program`: the datatypes and functions the proof's facts are of; `node`: the law's own node in the proof (lemmas' nodes
 // and cases besides).
 // `through`: a law proven as said with the built-ins and its definitions unfolded (core/transfer.ts), what it went through.
-export type DataVerdict = {proven: boolean, checked: boolean, law: string, counterexample?: Record<string, string>, proof?: CyclicVerdict, lemmas: string[], scheme?: string, ms: number, goal?: string, stuck?: string, tried: number, program?: Program, node?: number, through?: string[]}
+// `stopped` (proveData's): its counted budget, `ms`, ran out, so the search ended there, not with nothing left to try.
+export type DataVerdict = {proven: boolean, checked: boolean, law: string, counterexample?: Record<string, string>, proof?: CyclicVerdict, lemmas: string[], scheme?: string, ms: number, goal?: string, stuck?: string, tried: number, program?: Program, node?: number, through?: string[], stopped?: boolean}
 // `patience` multiplies each attempt's budget; `ms` the whole search's (120,000 by default). Both are counted in work, not
 // wall time (`dataRate` below), so a verdict is the same on any machine.
 // `transfer: false` keeps the law as stated (core/transfer.ts: its non-recursive definitions unfolded, the built-ins its
@@ -2082,9 +2083,11 @@ export const showY = (y: Y): string => {
 // Prove a law over datatypes: refuted by a random value where one breaks it; else proven by a cycle the search finds,
 // with lemmas found from the values when the law alone isn't (`lemmas: false` turns that off; an array gives lemmas to
 // prove and use instead, which the corpus never does).
-export function proveData(l: DataLaw, opts: Options = {}): DataVerdict { return counted(dataRate, () => bounded(() => proveDataCounted(l, opts))) }
-function proveDataCounted(l: DataLaw, opts: Options): DataVerdict {
-  const t0 = performance.now(), until = clock() + (opts.ms ?? 120_000)
+export function proveData(l: DataLaw, opts: Options = {}): DataVerdict {
+  return counted(dataRate, () => bounded(() => { const until = clock() + (opts.ms ?? 120_000), v = proveDataCounted(l, opts, until); return {...v, stopped: clock() > until} }))
+}
+function proveDataCounted(l: DataLaw, opts: Options, until: number): DataVerdict {
+  const t0 = performance.now()
   // Where the law calls a non-recursive function, or reaches a recursive one that agrees with a built-in (core/transfer.ts):
   // the law alone at one unfolding first, then the law said through them, then the rest of the search on the law.
   const plan = opts.transfer === false || opts.induction === false || Array.isArray(opts.lemmas) ? undefined : transferPlan(l)
