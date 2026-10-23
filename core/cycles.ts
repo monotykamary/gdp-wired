@@ -25,7 +25,7 @@
 // values (a constant on a region, a line, bounds), proves them from the facts as cyclic claims (Houdini), and proves the
 // laws with them as facts.
 import type {C, E, Law, Machine, Request, State} from './machine.ts'
-import {atMost as le, compileFunction, evalC as evalMC, evalE as evalME, fnValue, get, interpret, minus as sub, n as k, pairedArgs, plus as add, same as eqC, seeded, walk, x as v} from './machine.ts'
+import {argsKey, atMost as le, compileFunction, evalC as evalMC, evalE as evalME, fnValue, get, interpret, minus as sub, n as k, pairedArgs, plus as add, same as eqC, seeded, walk, x as v} from './machine.ts'
 import type {Goal, Liveness, Loop, Subst, Tree} from '../kernel/kernel.ts'
 import {check, livenessHelpful, livenessParts, loopLiveness, loopMachine, loopObligations, substC, substE} from '../kernel/kernel.ts'
 import {type Cyclic, type Fact, checkCyclic, factsAvoid, lexLt} from '../kernel/cyclic.ts'
@@ -51,8 +51,7 @@ const and = (...xs: C[]): C => (xs.length === 1 ? xs[0]! : {op: 'and', xs})
 const yes: C = le(k(0), k(0))
 const vs = (s: Record<string, E>): Subst => ({vars: s, maps: {}, flags: {}})
 const id = (t: unknown) => JSON.stringify(t)
-export const pairE = (a: E, b: E): E => { const s = add(a, b); return add({op: 'prod', a: s, b: s}, b) }
-export const argsKey = (args: E[]): E => args.slice(1).reduce(pairE, args[0]!)
+export {argsKey}
 
 // Σ coef·x + c as a term over the naturals: the negative part subtracted (truncated, as the kernel reads sub).
 export const linE = (coef: Record<string, number>, c: number): E => {

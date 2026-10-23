@@ -292,7 +292,10 @@ const callOf = (fn: Fn): ((...args: number[]) => number) => {
   if (!f) { f = compileFunction<() => (...args: number[]) => number>([], `return (${fn.call})`)(); compiledCalls.set(fn, f) }
   return f
 }
-// The n arguments a key pairs (left-nested, ((a, b), c)..., each pair (s)² + b with s = a + b), if it is their pairing.
+// A key of several arguments: their pairing, left-nested, ((a, b), c)..., each pair (s)² + b with s = a + b.
+export const pairE = (a: E, b: E): E => { const s = plus(a, b); return plus(prod(s, s), b) }
+export const argsKey = (args: E[]): E => args.slice(1).reduce(pairE, args[0]!)
+// The n arguments a key pairs (argsKey's), if it is their pairing.
 const paired = new WeakMap<E, Map<number, E[] | undefined>>()
 export function pairedArgs(key: E, n: number): E[] | undefined {
   let byN = paired.get(key)

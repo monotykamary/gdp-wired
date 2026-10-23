@@ -15,7 +15,7 @@
 //
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
-import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
+import {type C, type E, type Fn, argsKey, type Law, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
 import {someHolds, substVars} from './exists.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations} from '../kernel/kernel.ts'
@@ -1426,8 +1426,6 @@ const flatFns = (defs: [string, FnDef][]): [string, FnDef, Record<string, FnTerm
   const uses = Object.entries(d.uses ?? {}).map(([u, ud]) => [`${n}.${u}`, ud] as [string, FnDef])
   return [...flatFns(uses), [n, d, Object.fromEntries(uses.map(([un, ud]) => [un.slice(n.length + 1), fnTerm(un, ud)]))] as [string, FnDef, Record<string, FnTerm>]]
 })
-const pairE = (a: E, b: E): E => { const s: E = {op: 'add', a, b}; return {op: 'add', a: {op: 'prod', a: s, b: s}, b} }
-const argsKey = (args: E[]): E => args.slice(1).reduce(pairE, args[0]!)
 // A function's JavaScript as one function of its key: its arguments unpaired (left-nested, as argsKey pairs them).
 const jsOf = (d: FnDef): string => (typeof d.js === 'string' ? d.js : String(d.js))
 const fnSource = (name: string, d: FnDef): string => {

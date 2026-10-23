@@ -26,7 +26,7 @@
 // using the others at the fields of their datatypes (mutual induction). Lemmas the law needs are found by the values
 // (theory exploration: equations between terms the random values agree on, then the shapes of a predicate kept), proven
 // the same way at lower levels, and used at the terms of the law they match.
-import {type C, type E, atMost as leC, get, n as k, same as eqC, walk, x as ev} from './machine.ts'
+import {type C, type E, argsKey, atMost as leC, get, n as k, same as eqC, walk, x as ev} from './machine.ts'
 import {type Fact} from '../kernel/cyclic.ts'
 import {substC, substE} from '../kernel/kernel.ts'
 import {type CyclicVerdict, type NodeSpec, proveCyclic} from './cyclic.ts'
@@ -941,8 +941,7 @@ export function samples(vars: {name: string, sort: Sort}[], paramNames: string[]
 const andC = (...xs: C[]): C => (xs.length === 1 ? xs[0]! : {op: 'and', xs})
 const implies = (a: C, b: C): C => ({op: 'or', xs: [{op: 'not', x: a}, b]})
 const yesC: C = leC(k(0), k(0))
-const pairE = (a: E, b: E): E => { const s: E = {op: 'add', a, b}; return {op: 'add', a: {op: 'prod', a: s, b: s}, b} }
-export const keyOf = (args: E[]): E => args.slice(1).reduce(pairE, args[0]!)
+export const keyOf = argsKey
 // The arguments of a key built by keyOf (n of them), read back from its shape.
 export function argsOf(key: E, n: number): E[] | undefined {
   if (n === 1) return [key]
