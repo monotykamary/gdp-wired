@@ -10,8 +10,8 @@
 // Each consumer either agrees or refuses with an error; undefined, NaN or a silent different answer fails.
 import {expect, test} from 'bun:test'
 import {type C, type E, compileFunction, conditionCases, interpret, loadJs} from './machine.ts'
-import {type Case, C_OPS, CELLS, E_OPS, VARS, inlineC, inlineE, machineOf, randomCase, reference, seen, stateOf} from './conformance.ts'
-import {check} from '../kernel/kernel.ts'
+import {type Case, C_OPS, CELLS, E_OPS, VARS, inlineC, inlineE, machineOf, randomCase, recurCases, recurReference, reference, seen, stateOf} from './conformance.ts'
+import {check, checkRecur, recurGoal} from '../kernel/kernel.ts'
 import {grow} from '../kernel/prove.ts'
 import {expressions} from '../research/search/compile.ts'
 
@@ -87,4 +87,26 @@ test('every consumer of terms agrees with the reference evaluator, or refuses', 
   // Every op was exercised.
   for (const op of [...E_OPS, ...C_OPS]) expect(seen[op] ?? 0, op).toBeGreaterThan(20 * scale)
   console.log(`conformance: ${cases} cases (${Object.entries(seen).map(([o, c]) => `${o} ${c}`).join(', ')}); kernel proved ${kernelProved}, unknown ${kernelUnknown} (products); u32 twin ${u32}; symbolic ${symbolic}`)
+}, 600_000)
+
+// Nontermination certificates (kernel.ts's checkRecur): every certificate the checker accepts holds on the reference's
+// run (the stem replayed by evalE and evalC, then the witnessed turn again and again, each allowed and in the set);
+// every one the search found is accepted; every tampered one is refused (the set not closed, not reached, a lasso's cycle
+// that doesn't close), and where the set was changed no tree closes it (the prover finds a state of it that leaves it).
+// lean-kernel/conformance.ts --nonterm writes the same cases for Lean's checkRecur.
+test('nontermination certificates: accepted ones hold on the reference run, tampered ones are refused', () => {
+  const counts: Record<string, {n: number, accepted: number}> = {}
+  for (const c of recurCases(Math.round(60 * scale))) {
+    let ok = false
+    try { ok = checkRecur(c.loop, c.recur) } catch { ok = false }
+    const at = (counts[c.what] ??= {n: 0, accepted: 0})
+    at.n++
+    if (ok) at.accepted++
+    if (ok) expect(recurReference(c.loop, c.recur), `${c.loop.name}: ${c.what}`).toBe(true)
+    if (c.what === 'found') expect(ok, c.loop.name).toBe(true)
+    if (c.what !== 'found') expect(ok, `${c.loop.name}: ${c.what}`).toBe(false)
+    if (c.what.startsWith('the set not closed') || c.what.startsWith("a lasso's cycle")) expect('tree' in grow(recurGoal(c.loop, c.recur)), `${c.loop.name}: ${c.what}`).toBe(false)
+  }
+  for (const what of ['found', 'the set not closed: every state', 'the set not reached: a start whose stem ends outside it', 'the set not reached: a stem turn the guard or the assumption refuses', "a lasso's cycle that doesn't close: its set less one state", 'forged: the guard as the set']) expect(counts[what]?.n ?? 0, what).toBeGreaterThan(0)
+  console.log(`nontermination: ${Object.entries(counts).map(([w, x]) => `${w} ${x.accepted}/${x.n} accepted`).join('; ')}`)
 }, 600_000)

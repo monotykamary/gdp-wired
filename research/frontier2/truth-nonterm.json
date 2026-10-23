@@ -1,0 +1,68 @@
+[
+ {
+  "name": "its-toy2_t2",
+  "cmd": "command -v loat >/dev/null || curl -fsSL -o /usr/local/bin/loat https://github.com/LoAT-developers/LoAT/releases/download/v0.9.10/loat-static && chmod +x /usr/local/bin/loat; command -v koat2 >/dev/null || (curl -fsSL https://github.com/aprove-developers/KoAT2-Releases/releases/download/v2.7.0/koat2_static.zst | zstd -d > /usr/local/bin/koat2 && chmod +x /usr/local/bin/koat2); loat --version 2>&1 | head -2; koat2 --version 2>&1 | head -1; echo '== research/frontier2/tasks/its/toy2.t2.ari'; echo '-- loat'; timeout -s KILL 70 loat --mode termination research/frontier2/tasks/its/toy2.t2.ari 2>&1 | head -c 4000; echo '-- loat-abmc'; timeout -s KILL 70 loat --mode termination --engine abmc research/frontier2/tasks/its/toy2.t2.ari 2>&1 | head -c 4000; echo '-- koat2'; timeout -s KILL 70 bash -c 'sed -e '\\''s/\\^/_hat_/g'\\'' -e \"s/'\\''/_q_/g\" -e '\\''s/|//g'\\'' \"$1\" > /tmp/t.ari && koat2 ari-to-koat /tmp/t.ari --output-file /tmp/t.koat > /dev/null && koat2 analyse --termination -i /tmp/t.koat --show-proof' koat research/frontier2/tasks/its/toy2.t2.ari 2>&1 | head -c 30000; echo '-- done'",
+  "cpu": 2.0,
+  "timeout": 300
+ },
+ {
+  "name": "its-toy2_t2_broken",
+  "cmd": "command -v loat >/dev/null || curl -fsSL -o /usr/local/bin/loat https://github.com/LoAT-developers/LoAT/releases/download/v0.9.10/loat-static && chmod +x /usr/local/bin/loat; command -v koat2 >/dev/null || (curl -fsSL https://github.com/aprove-developers/KoAT2-Releases/releases/download/v2.7.0/koat2_static.zst | zstd -d > /usr/local/bin/koat2 && chmod +x /usr/local/bin/koat2); loat --version 2>&1 | head -2; koat2 --version 2>&1 | head -1; echo '== research/frontier2/tasks/its/toy2.t2.broken.ari'; echo '-- loat'; timeout -s KILL 70 loat --mode termination research/frontier2/tasks/its/toy2.t2.broken.ari 2>&1 | head -c 4000; echo '-- loat-abmc'; timeout -s KILL 70 loat --mode termination --engine abmc research/frontier2/tasks/its/toy2.t2.broken.ari 2>&1 | head -c 4000; echo '-- koat2'; timeout -s KILL 70 bash -c 'sed -e '\\''s/\\^/_hat_/g'\\'' -e \"s/'\\''/_q_/g\" -e '\\''s/|//g'\\'' \"$1\" > /tmp/t.ari && koat2 ari-to-koat /tmp/t.ari --output-file /tmp/t.koat > /dev/null && koat2 analyse --termination -i /tmp/t.koat --show-proof' koat research/frontier2/tasks/its/toy2.t2.broken.ari 2>&1 | head -c 30000; echo '-- done'",
+  "cpu": 2.0,
+  "timeout": 300
+ },
+ {
+  "name": "its-toy4_t2",
+  "cmd": "command -v loat >/dev/null || curl -fsSL -o /usr/local/bin/loat https://github.com/LoAT-developers/LoAT/releases/download/v0.9.10/loat-static && chmod +x /usr/local/bin/loat; command -v koat2 >/dev/null || (curl -fsSL https://github.com/aprove-developers/KoAT2-Releases/releases/download/v2.7.0/koat2_static.zst | zstd -d > /usr/local/bin/koat2 && chmod +x /usr/local/bin/koat2); loat --version 2>&1 | head -2; koat2 --version 2>&1 | head -1; echo '== research/frontier2/tasks/its/toy4.t2.ari'; echo '-- loat'; timeout -s KILL 70 loat --mode termination research/frontier2/tasks/its/toy4.t2.ari 2>&1 | head -c 4000; echo '-- loat-abmc'; timeout -s KILL 70 loat --mode termination --engine abmc research/frontier2/tasks/its/toy4.t2.ari 2>&1 | head -c 4000; echo '-- koat2'; timeout -s KILL 70 bash -c 'sed -e '\\''s/\\^/_hat_/g'\\'' -e \"s/'\\''/_q_/g\" -e '\\''s/|//g'\\'' \"$1\" > /tmp/t.ari && koat2 ari-to-koat /tmp/t.ari --output-file /tmp/t.koat > /dev/null && koat2 analyse --termination -i /tmp/t.koat --show-proof' koat research/frontier2/tasks/its/toy4.t2.ari 2>&1 | head -c 30000; echo '-- done'",
+  "cpu": 2.0,
+  "timeout": 300
+ },
+ {
+  "name": "its-toy4_t2_broken",
+  "cmd": "command -v loat >/dev/null || curl -fsSL -o /usr/local/bin/loat https://github.com/LoAT-developers/LoAT/releases/download/v0.9.10/loat-static && chmod +x /usr/local/bin/loat; command -v koat2 >/dev/null || (curl -fsSL https://github.com/aprove-developers/KoAT2-Releases/releases/download/v2.7.0/koat2_static.zst | zstd -d > /usr/local/bin/koat2 && chmod +x /usr/local/bin/koat2); loat --version 2>&1 | head -2; koat2 --version 2>&1 | head -1; echo '== research/frontier2/tasks/its/toy4.t2.broken.ari'; echo '-- loat'; timeout -s KILL 70 loat --mode termination research/frontier2/tasks/its/toy4.t2.broken.ari 2>&1 | head -c 4000; echo '-- loat-abmc'; timeout -s KILL 70 loat --mode termination --engine abmc research/frontier2/tasks/its/toy4.t2.broken.ari 2>&1 | head -c 4000; echo '-- koat2'; timeout -s KILL 70 bash -c 'sed -e '\\''s/\\^/_hat_/g'\\'' -e \"s/'\\''/_q_/g\" -e '\\''s/|//g'\\'' \"$1\" > /tmp/t.ari && koat2 ari-to-koat /tmp/t.ari --output-file /tmp/t.koat > /dev/null && koat2 analyse --termination -i /tmp/t.koat --show-proof' koat research/frontier2/tasks/its/toy4.t2.broken.ari 2>&1 | head -c 30000; echo '-- done'",
+  "cpu": 2.0,
+  "timeout": 300
+ },
+ {
+  "name": "its-Choose_jar-obl-8",
+  "cmd": "command -v loat >/dev/null || curl -fsSL -o /usr/local/bin/loat https://github.com/LoAT-developers/LoAT/releases/download/v0.9.10/loat-static && chmod +x /usr/local/bin/loat; command -v koat2 >/dev/null || (curl -fsSL https://github.com/aprove-developers/KoAT2-Releases/releases/download/v2.7.0/koat2_static.zst | zstd -d > /usr/local/bin/koat2 && chmod +x /usr/local/bin/koat2); loat --version 2>&1 | head -2; koat2 --version 2>&1 | head -1; echo '== research/frontier2/tasks/its/Choose.jar-obl-8.ari'; echo '-- loat'; timeout -s KILL 70 loat --mode termination research/frontier2/tasks/its/Choose.jar-obl-8.ari 2>&1 | head -c 4000; echo '-- loat-abmc'; timeout -s KILL 70 loat --mode termination --engine abmc research/frontier2/tasks/its/Choose.jar-obl-8.ari 2>&1 | head -c 4000; echo '-- koat2'; timeout -s KILL 70 bash -c 'sed -e '\\''s/\\^/_hat_/g'\\'' -e \"s/'\\''/_q_/g\" -e '\\''s/|//g'\\'' \"$1\" > /tmp/t.ari && koat2 ari-to-koat /tmp/t.ari --output-file /tmp/t.koat > /dev/null && koat2 analyse --termination -i /tmp/t.koat --show-proof' koat research/frontier2/tasks/its/Choose.jar-obl-8.ari 2>&1 | head -c 30000; echo '-- done'",
+  "cpu": 2.0,
+  "timeout": 300
+ },
+ {
+  "name": "its-Choose_jar-obl-8_broken",
+  "cmd": "command -v loat >/dev/null || curl -fsSL -o /usr/local/bin/loat https://github.com/LoAT-developers/LoAT/releases/download/v0.9.10/loat-static && chmod +x /usr/local/bin/loat; command -v koat2 >/dev/null || (curl -fsSL https://github.com/aprove-developers/KoAT2-Releases/releases/download/v2.7.0/koat2_static.zst | zstd -d > /usr/local/bin/koat2 && chmod +x /usr/local/bin/koat2); loat --version 2>&1 | head -2; koat2 --version 2>&1 | head -1; echo '== research/frontier2/tasks/its/Choose.jar-obl-8.broken.ari'; echo '-- loat'; timeout -s KILL 70 loat --mode termination research/frontier2/tasks/its/Choose.jar-obl-8.broken.ari 2>&1 | head -c 4000; echo '-- loat-abmc'; timeout -s KILL 70 loat --mode termination --engine abmc research/frontier2/tasks/its/Choose.jar-obl-8.broken.ari 2>&1 | head -c 4000; echo '-- koat2'; timeout -s KILL 70 bash -c 'sed -e '\\''s/\\^/_hat_/g'\\'' -e \"s/'\\''/_q_/g\" -e '\\''s/|//g'\\'' \"$1\" > /tmp/t.ari && koat2 ari-to-koat /tmp/t.ari --output-file /tmp/t.koat > /dev/null && koat2 analyse --termination -i /tmp/t.koat --show-proof' koat research/frontier2/tasks/its/Choose.jar-obl-8.broken.ari 2>&1 | head -c 30000; echo '-- done'",
+  "cpu": 2.0,
+  "timeout": 300
+ },
+ {
+  "name": "its-NO_10_jar-obl-8",
+  "cmd": "command -v loat >/dev/null || curl -fsSL -o /usr/local/bin/loat https://github.com/LoAT-developers/LoAT/releases/download/v0.9.10/loat-static && chmod +x /usr/local/bin/loat; command -v koat2 >/dev/null || (curl -fsSL https://github.com/aprove-developers/KoAT2-Releases/releases/download/v2.7.0/koat2_static.zst | zstd -d > /usr/local/bin/koat2 && chmod +x /usr/local/bin/koat2); loat --version 2>&1 | head -2; koat2 --version 2>&1 | head -1; echo '== research/frontier2/tasks/its/NO_10.jar-obl-8.ari'; echo '-- loat'; timeout -s KILL 70 loat --mode termination research/frontier2/tasks/its/NO_10.jar-obl-8.ari 2>&1 | head -c 4000; echo '-- loat-abmc'; timeout -s KILL 70 loat --mode termination --engine abmc research/frontier2/tasks/its/NO_10.jar-obl-8.ari 2>&1 | head -c 4000; echo '-- koat2'; timeout -s KILL 70 bash -c 'sed -e '\\''s/\\^/_hat_/g'\\'' -e \"s/'\\''/_q_/g\" -e '\\''s/|//g'\\'' \"$1\" > /tmp/t.ari && koat2 ari-to-koat /tmp/t.ari --output-file /tmp/t.koat > /dev/null && koat2 analyse --termination -i /tmp/t.koat --show-proof' koat research/frontier2/tasks/its/NO_10.jar-obl-8.ari 2>&1 | head -c 30000; echo '-- done'",
+  "cpu": 2.0,
+  "timeout": 300
+ },
+ {
+  "name": "its-NO_10_jar-obl-8_broken",
+  "cmd": "command -v loat >/dev/null || curl -fsSL -o /usr/local/bin/loat https://github.com/LoAT-developers/LoAT/releases/download/v0.9.10/loat-static && chmod +x /usr/local/bin/loat; command -v koat2 >/dev/null || (curl -fsSL https://github.com/aprove-developers/KoAT2-Releases/releases/download/v2.7.0/koat2_static.zst | zstd -d > /usr/local/bin/koat2 && chmod +x /usr/local/bin/koat2); loat --version 2>&1 | head -2; koat2 --version 2>&1 | head -1; echo '== research/frontier2/tasks/its/NO_10.jar-obl-8.broken.ari'; echo '-- loat'; timeout -s KILL 70 loat --mode termination research/frontier2/tasks/its/NO_10.jar-obl-8.broken.ari 2>&1 | head -c 4000; echo '-- loat-abmc'; timeout -s KILL 70 loat --mode termination --engine abmc research/frontier2/tasks/its/NO_10.jar-obl-8.broken.ari 2>&1 | head -c 4000; echo '-- koat2'; timeout -s KILL 70 bash -c 'sed -e '\\''s/\\^/_hat_/g'\\'' -e \"s/'\\''/_q_/g\" -e '\\''s/|//g'\\'' \"$1\" > /tmp/t.ari && koat2 ari-to-koat /tmp/t.ari --output-file /tmp/t.koat > /dev/null && koat2 analyse --termination -i /tmp/t.koat --show-proof' koat research/frontier2/tasks/its/NO_10.jar-obl-8.broken.ari 2>&1 | head -c 30000; echo '-- done'",
+  "cpu": 2.0,
+  "timeout": 300
+ },
+ {
+  "name": "its-EvenOdd_jar-obl-8",
+  "cmd": "command -v loat >/dev/null || curl -fsSL -o /usr/local/bin/loat https://github.com/LoAT-developers/LoAT/releases/download/v0.9.10/loat-static && chmod +x /usr/local/bin/loat; command -v koat2 >/dev/null || (curl -fsSL https://github.com/aprove-developers/KoAT2-Releases/releases/download/v2.7.0/koat2_static.zst | zstd -d > /usr/local/bin/koat2 && chmod +x /usr/local/bin/koat2); loat --version 2>&1 | head -2; koat2 --version 2>&1 | head -1; echo '== research/frontier2/tasks/its/EvenOdd.jar-obl-8.ari'; echo '-- loat'; timeout -s KILL 70 loat --mode termination research/frontier2/tasks/its/EvenOdd.jar-obl-8.ari 2>&1 | head -c 4000; echo '-- loat-abmc'; timeout -s KILL 70 loat --mode termination --engine abmc research/frontier2/tasks/its/EvenOdd.jar-obl-8.ari 2>&1 | head -c 4000; echo '-- koat2'; timeout -s KILL 70 bash -c 'sed -e '\\''s/\\^/_hat_/g'\\'' -e \"s/'\\''/_q_/g\" -e '\\''s/|//g'\\'' \"$1\" > /tmp/t.ari && koat2 ari-to-koat /tmp/t.ari --output-file /tmp/t.koat > /dev/null && koat2 analyse --termination -i /tmp/t.koat --show-proof' koat research/frontier2/tasks/its/EvenOdd.jar-obl-8.ari 2>&1 | head -c 30000; echo '-- done'",
+  "cpu": 2.0,
+  "timeout": 300
+ },
+ {
+  "name": "its-EvenOdd_jar-obl-8_broken",
+  "cmd": "command -v loat >/dev/null || curl -fsSL -o /usr/local/bin/loat https://github.com/LoAT-developers/LoAT/releases/download/v0.9.10/loat-static && chmod +x /usr/local/bin/loat; command -v koat2 >/dev/null || (curl -fsSL https://github.com/aprove-developers/KoAT2-Releases/releases/download/v2.7.0/koat2_static.zst | zstd -d > /usr/local/bin/koat2 && chmod +x /usr/local/bin/koat2); loat --version 2>&1 | head -2; koat2 --version 2>&1 | head -1; echo '== research/frontier2/tasks/its/EvenOdd.jar-obl-8.broken.ari'; echo '-- loat'; timeout -s KILL 70 loat --mode termination research/frontier2/tasks/its/EvenOdd.jar-obl-8.broken.ari 2>&1 | head -c 4000; echo '-- loat-abmc'; timeout -s KILL 70 loat --mode termination --engine abmc research/frontier2/tasks/its/EvenOdd.jar-obl-8.broken.ari 2>&1 | head -c 4000; echo '-- koat2'; timeout -s KILL 70 bash -c 'sed -e '\\''s/\\^/_hat_/g'\\'' -e \"s/'\\''/_q_/g\" -e '\\''s/|//g'\\'' \"$1\" > /tmp/t.ari && koat2 ari-to-koat /tmp/t.ari --output-file /tmp/t.koat > /dev/null && koat2 analyse --termination -i /tmp/t.koat --show-proof' koat research/frontier2/tasks/its/EvenOdd.jar-obl-8.broken.ari 2>&1 | head -c 30000; echo '-- done'",
+  "cpu": 2.0,
+  "timeout": 300
+ },
+ {
+  "name": "its-toy2_t2_broken_entry",
+  "cmd": "command -v loat >/dev/null || curl -fsSL -o /usr/local/bin/loat https://github.com/LoAT-developers/LoAT/releases/download/v0.9.10/loat-static && chmod +x /usr/local/bin/loat; command -v koat2 >/dev/null || (curl -fsSL https://github.com/aprove-developers/KoAT2-Releases/releases/download/v2.7.0/koat2_static.zst | zstd -d > /usr/local/bin/koat2 && chmod +x /usr/local/bin/koat2); loat --version 2>&1 | head -2; koat2 --version 2>&1 | head -1; echo '== research/frontier2/tasks/its/toy2.t2.broken.entry.ari'; echo '-- loat'; timeout -s KILL 70 loat --mode termination research/frontier2/tasks/its/toy2.t2.broken.entry.ari 2>&1 | head -c 4000; echo '-- loat-abmc'; timeout -s KILL 70 loat --mode termination --engine abmc research/frontier2/tasks/its/toy2.t2.broken.entry.ari 2>&1 | head -c 4000; echo '-- koat2'; timeout -s KILL 70 bash -c 'sed -e '\\''s/\\^/_hat_/g'\\'' -e \"s/'\\''/_q_/g\" -e '\\''s/|//g'\\'' \"$1\" > /tmp/t.ari && koat2 ari-to-koat /tmp/t.ari --output-file /tmp/t.koat > /dev/null && koat2 analyse --termination -i /tmp/t.koat --show-proof' koat research/frontier2/tasks/its/toy2.t2.broken.entry.ari 2>&1 | head -c 30000; echo '-- done'",
+  "cpu": 2.0,
+  "timeout": 300
+ }
+]

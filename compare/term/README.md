@@ -20,7 +20,8 @@ wall-clock limit for every tool:
 | `ari.ts` | The ARI format read (`(format LCTRS)`, `(theory Ints)`: locations, an entrypoint, rules with guards), and an evaluator of a rule on integer values (BigInt) that uses no gdp-wired code; `checkLasso` replays a nontermination witness on it |
 | `translate.ts` | A task as a kernel `Loop`, the same statement (below); `stepOf` turns a turn of the loop back into the task's step for the witness |
 | `scc.ts` | The second translation, a stronger statement counted apart: each strongly connected component of the locations, chained (the paths between cut points composed into one rule each), from any state at its cut points |
-| `solve.ts` | One task: lassos from the loop's runs (2 s), `findRank` with all but 9 s of the limit, the kernel's check again on the loop as translated (the answer printed then, and again with the certificate once made), lassos again with what is left; `--scc` for the second translation |
+| `solve.ts` | One task: lassos from the loop's runs (2 s), a recurrent set (core/nonterm.ts, 4 s), `findRank` with all but 9 s of the limit, the kernel's check again on the loop as translated (the answer printed then, and again with the certificate once made), a recurrent set again (3/5 of what is left) and lassos with the rest; `--scc` for the second translation |
+| `recur-lean.ts` | The recurrent sets of a run's answers (each printed in its `recur`) as Lean theorems `NeverEnds <task>_loop` by Kern.never_ends_of; `--shard i/n` |
 | `c2ari.py` | An SV-COMP C program as an ARI system (pycparser): main and the functions it calls inlined, signed integers, the C subset in its header; refusals with their reason |
 | `modal_term.py` | The ITS track on Modal: gdp-wired (`gdp`, `gdp-scc`), LoAT, LoAT with `--engine abmc`, KoAT2; `koat2-proof` and `loat-proof`, the same runs with their proofs kept |
 | `modal_sv.py` | The SV-COMP tasks on Modal: gdp-wired on its translation, Ultimate Automizer on the C program, LoAT and KoAT2 on gdp-wired's translation |
@@ -58,7 +59,11 @@ proves nothing.
 Nonterminating means a lasso: a run of the translated loop (gdp-wired's interpreter, random turns, inputs small or
 values the state holds) that comes back to a state it was in, turned back into the task's steps (the rule and the
 value of each of its free variables) and replayed by ari.ts's evaluator from the start to the repeat. gdp-wired's
-prover makes no claim about runs that never end; a nonterminating run that never repeats a state isn't found.
+prover made no claim about runs that never end until NonTerm.lean's `NeverEnds`: now a nonterminating answer is also
+a closed recurrent set with its turn given by terms (core/nonterm.ts's findNeverEnds: a lasso's states, or a set of
+linear facts fitted to a run whose inputs are terms over the state), a start and a stem into it, its closure goal
+checked by the kernel (kernel.ts's checkRecur) and printed (`recur`) for Lean (`recur-lean.ts`); a lasso among those is
+replayed by ari.ts's evaluator too.
 
 For C, `c2ari.py` reads main and the functions it calls (each call inlined), over signed integer variables, with
 `__VERIFIER_nondet_*` a fresh value in its type's range, `__VERIFIER_assume` a guard, and `/` and `%` by a positive
@@ -136,6 +141,37 @@ LoAT's or KoAT2's (`full1`, `koat-fix1`), any earlier gdp-wired run's (`gdp2`, `
   base, 2.65 s here); the median over all solved rises (ITS 0.09 s to 8.94 s), the new proofs being slower ones.
 - Of the 572 ITS proofs on the task's statement, 522 read the location (a rank per location) and 13 needed invariants;
   on SV 136 and 26. Certificates: 260 cyclic, 268 the usual trees, 44 not made within the limit (SV: 1, 117, 18).
+
+### Runs that never end, after 0.22.0
+
+The ITS track again, `gdp` alone, on Modal (the boat pool had no VM to spare): 0.22.0 (`c215ded`,
+`runs/nonterm/base-its`) against this branch (`runs/nonterm/after2-its`); SV-COMP the same way (`runs/nonterm/base-sv`,
+`runs/nonterm/after2-sv`).
+
+| | terminates | nonterminating | unknown | timeout |
+| --- | --- | --- | --- | --- |
+| ITS, 0.22.0 | 56 | 320 | 837 | 26 |
+| ITS, this branch | 56 | 450 | 703 | 30 |
+| SV, 0.22.0 | 0 | 47 | 179 (56 unsupported) | 0 |
+| SV, this branch | 0 | 47 | 179 (56 unsupported) | 0 |
+
+- The 450: 319 lassos of solve.ts's own stage, as before, and 131 recurrent sets (106 sets of linear facts, 19 lassos
+  of a policy run, 6 of a random run). 133 tasks are answered that 0.22.0 left (131 unknown, 2 timeouts); 3 that it
+  answered by a lasso are not (2.t2 and bio.t2 unknown, afagp-fail.t2_fixed a timeout: the lasso stages' runs are
+  bounded by time, and here the import took 2.9 s of the first stage's 2 s). The 56 proofs of termination are the same
+  tasks.
+- No answer contradicts another: none of the 450 is a task LoAT, LoAT abmc or KoAT2 proves terminating
+  (`runs/modal/term/full1`, `koat-fix1`), none of the 56 one they prove nonterminating, and no task changed its answer
+  between the two runs. Of the 133 new ones, 105 are LoAT's NO too and 24 are lassos replayed by ari.ts's evaluator;
+  db2 and db3 had a replayed lasso in an earlier run (`runs/modal/term/gdp2`, gdp-scc); Velroyen08-fib and
+  NonPeriodicNonterm2, which no other tool answers, were read by hand (a Fibonacci pair past a fixed bound never meets
+  it again; a counter that doubles each time it meets the other).
+- Lean: every recurrent set of the run, 131, is a theorem `NeverEnds <task>_loop` that Lean 4.34.0 checks (`decide
+  +kernel`, on `propext`, `Classical.choice`, `Quot.sound`; `recur-lean.ts --shard i/32`, at most 1,865.9 s a shard on
+  Modal, 4 CPUs: `runs/nonterm/after2-lean`). The 127 of an earlier run of this branch checked as well
+  (`runs/nonterm/bench-lean`, `bench-lean2`).
+- SV-COMP: unchanged; every nonterminating task another tool answers and gdp-wired doesn't is one the C translation
+  refuses.
 
 ## Where gdp-wired stops
 

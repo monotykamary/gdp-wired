@@ -255,14 +255,37 @@ no verdict, has its rank checked by z3.
 The SV tasks are vendored as the C program, its `.yml` and the `.ari` that `compare/term/c2ari.py` makes from it,
 which is what gdp-wired ran.
 
+### Nontermination (`nonterm.ts`, 5 items)
+
+The claim is NonTerm.lean's `NeverEnds` of the task's loop (compare/term/translate.ts's, as the benchmark reads it):
+some run from the entrypoint never ends, exactly when the task doesn't terminate. `today` is the lassos of random runs
+(core/nonterm.ts with `lassos`, what compare/term found before the claim, 2 s); `frontier` the whole search within the
+benchmark's 51 s. Each certificate is checked by the kernel (kernel.ts's `checkRecur`). The broken variant of each is its
+terminating twin, which nothing may prove never ends. Truth: `truth-nonterm.json` (LoAT, LoAT abmc, KoAT2 at 70 s,
+`runs/corpus2/truth-nonterm`; toy2's twin through a fresh entry location, `runs/corpus2/truth-nonterm-entry`, since
+KoAT2 refuses a rule back to the entrypoint).
+
+| Item | Group | The run | Broken variant (terminating) | Checked |
+| --- | --- | --- | --- | --- |
+| nonterm/toy2.t2 | the runs stop within 5 turns | while x >= 100: x := x + 1 (random starts are within 64) | x := x − 1 | LoAT NO, LoAT abmc NO; twin: KoAT2 Finite (fresh entry), LoAT abmc YES |
+| nonterm/toy4.t2 | the runs stop within 5 turns | a fresh y chosen outside {0, 1} | y := 0 once x >= 100 | LoAT NO, LoAT abmc NO; twin: KoAT2 Finite, LoAT abmc YES |
+| nonterm/Choose.jar-obl-8 | long runs, no state repeated | from 3: +1 below 6, then +3 forever | the +3 rule bounded by x < 20 | LoAT NO, LoAT abmc NO, KoAT2 no claim; twin: KoAT2 Finite, LoAT abmc YES |
+| nonterm/NO_10.jar-obl-8 | long runs, no state repeated | two counters climbing together | y' = y | LoAT NO, LoAT abmc NO; twin: KoAT2 Finite, LoAT abmc YES |
+| nonterm/EvenOdd.jar-obl-8 | long runs, no state repeated | two locations alternating, a value falling below 0 | the negative branches' x − 1 as x + 1 | LoAT NO, LoAT abmc NO; twin: KoAT2 Finite |
+
+Scored on this branch (`runs/corpus2/nonterm-items2`, 20 jobs on boat VMs, 2 vCPU each): today 0 / 5, frontier 5 / 5
+(each within 1,535–2,364 ms: a recurrent set, stems of 1 to 3,008 turns), broken variants refused 5 / 5 (2,002–51,004
+ms). At 0.21.0 and 0.22.0 none could be stated.
+
 ## Language gaps
 
 What the corpus can't hold, because the library's language can't state it:
 
-- **Nontermination** (ITS: 212 tasks another tool proves nonterminating, `runs/corpus2/failures-its-term-gdp.txt`:
-  127 long runs with no state repeated, 83 runs that stop within 5 turns on average, 2 that take no turn). A law is a
-  claim about every run. The library has no claim that some run never ends: no recurrent set, no existential over
-  starts or runs. gdp-wired answers nonterminating only with a lasso, which compare/term's code finds and checks.
+- **Nontermination**, stated after 0.22.0 (CHANGELOG, Unreleased): `NeverEnds` (NonTerm.lean), some run of the loop never ends,
+  with a closed recurrent set as its certificate (`proveNeverEnds`). At 0.21.0 the language had no such claim: 212 ITS
+  tasks another tool proves nonterminating had no answer (`runs/corpus2/failures-its-term-gdp.txt`: 127 long runs
+  with no state repeated, 83 runs that stop within 5 turns on average, 2 that take no turn). Five of them are items now
+  (`nonterm.ts`, below).
 - **TIP problems the translation refuses at 0.21.0** (`runs/modal/arith/tip-gdp`, `runs/corpus2/groups-tip.txt`):
   - a function variable returning a list, 4;
   - an uninterpreted sort, 2;
