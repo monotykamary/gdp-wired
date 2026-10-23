@@ -1,7 +1,7 @@
 // The conformance generator: random terms and conditions over every operation of E and C (the op lists must name every
 // op, or this file doesn't type-check), concrete inputs and map cells, and the reference value from evalE and evalC.
 // core/conformance.test.ts holds every consumer of terms to it; lean-kernel/conformance.ts writes its cases for Lean.
-import {type C, type E, type Law, type Machine, type State, evalC, evalE, interpret} from './machine.ts'
+import {type C, type E, type Law, type Machine, type State, evalC, evalE, interpret, n as k, x as v} from './machine.ts'
 import {type Goal, type KInduction, type Loop, type QC, type QE, type QGoal, type QMachine, type Recur, type Tree, checkKInduction, kInductionStart, kInductionSteps, recurGoal, stepLawObligations, trueC} from '../kernel/kernel.ts'
 import {type KindProof, proveKInduction} from './kind.ts'
 import type {Step} from './solver.ts'
@@ -96,7 +96,6 @@ export const inlineC = (c: C, f: C): C => {
 //   - the set not reached: a start whose stem ends outside it, a stem turn the guard or the assumption refuses.
 // The reference (`recurReference`) is evalE and evalC: the stem replayed, then the witnessed turn taken again and again.
 export type RecurCase = {loop: Loop, recur: Recur, what: string, family: string}
-const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})
 export function randomLoop(): {loop: Loop, family: string} {
   const c = rand(4), j = rand(3), m = 1 + rand(4), family = pick(['climb', 'wrap', 'choose', 'fall'] as const)
   const base = {params: ['p'], inputs: ['w'], state: {x: v('p'), y: k(rand(3))}}

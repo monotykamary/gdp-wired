@@ -18,7 +18,7 @@
 //     law (read at their arguments), each unfolded definition's fact at its call, and the congruences between a call
 //     and the same call at the arguments said another way. Its goal is equalities; nothing is assumed.
 // The bridges and the copies' laws are nodes like any lemma's, at levels below the law's.
-import {type C, type E, walk} from './machine.ts'
+import {type C, type E, n as k, walk} from './machine.ts'
 import {type DataLaw, type DataVerdict, type Fn, type Options, type Program, type Proven, type SearchCtx, type Sort, type X, type Y, Bool, Integer, Nat, Val, argsOf, bindName, define, encX, encY, evalX, factsOf, fnNamed, programOf, rankWidth, schemesOf, searchIn} from './data.ts'
 import {type NodeSpec, proveCyclic} from './cyclic.ts'
 import {clock, pairedKeys, withDeadline} from '../kernel/prove.ts'
@@ -212,7 +212,6 @@ function build(l: DataLaw, bridged: Map<string, Op>, unfold: boolean): Built | u
 
 // --- the proof ---------------------------------------------------------------------------------------------------------
 
-const k = (value: number): E => ({op: 'const', value})
 const yes: C = {op: '<=', a: k(0), b: k(0)}
 const top = (pr: Proven): number => Math.max(0, ...pr.nodes.map(n => (n.rank[0]?.op === 'const' ? n.rank[0].value : 0)))
 const verify = (fs: ReturnType<typeof factsOf>, specs: NodeSpec[], until: number) => {

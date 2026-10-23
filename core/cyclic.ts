@@ -53,7 +53,7 @@
 // GDP_CYCLIC_ROUTE=translate|search|both, its route). Diagnostics: GDP_CYCLIC_LOG=1, the `cyclic: {...}` lines
 // research/cyclic/ratios.ts reads; GDP_CYCLIC_PROF=1, where each proof's time went; GDP_CYCLIC_SLICE=0, every goal grown
 // whole; GDP_CYCLIC_DEBUG=1, each goal grown.
-import {type C, type E, type Law, type Machine, walk} from './machine.ts'
+import {type C, type E, type Law, type Machine, atMost as le, get, n as k, plus as add, same as eq, walk, x as v} from './machine.ts'
 import type {Fold, Goal, Instances, Loop, StepLaw, Subst, Tree} from '../kernel/kernel.ts'
 import {assumed, boundOf, foldObligations, livenessParts, loopLiveness, loopMachine, loopObligations, obligations, stepLawObligations, substC, substE, witnessesOf} from '../kernel/kernel.ts'
 import {type CNode, type Cyclic, type Fact, type Use, baseHyps, descentGoal, instHyps, mainGoal, premiseGoal, refuseCyclic} from '../kernel/cyclic.ts'
@@ -70,13 +70,7 @@ import {type Reads, type Renamer, type TStats, carry, decide, readsFirst, rename
 export type NodeSpec = Omit<CNode, 'uses' | 'main'> & {uses: Omit<Use, 'premises' | 'descent'>[], opaque?: E[], variants?: NodeSpec[], weak?: boolean, slice?: boolean, main?: Tree, carry?: boolean | 'sliced'}
 export type CyclicVerdict = {proven: true, checked: boolean, proof: Cyclic, why?: string} | {proven: false, checked: false, node: string, goal: string, stuck: string}
 
-const v = (name: string): E => ({op: 'var', name})
-const k = (value: number): E => ({op: 'const', value})
-const add = (a: E, b: E): E => ({op: 'add', a, b})
 const less1 = (a: E): E => ({op: 'sub', a, b: k(1)})
-const get = (map: string, key: E): E => ({op: 'get', map, key})
-const le = (a: E, b: E): C => ({op: '<=', a, b})
-const eq = (a: E, b: E): C => ({op: '=', a, b})
 const and = (...xs: C[]): C => (xs.length === 1 ? xs[0]! : {op: 'and', xs})
 const implies = (a: C, b: C): C => ({op: 'or', xs: [{op: 'not', x: a}, b]})
 const yes: C = le(k(0), k(0))

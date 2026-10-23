@@ -14,7 +14,7 @@
 // value before, shifts of it, the request's values and the state before; each is chosen to satisfy P at every
 // counterexample so far, per case of the step (the conditions its updates split on: the request's clause, say).
 // A law under a `forall` key takes witness terms only (a ghost per key would be a map).
-import {type C, type E, type Law, type Machine, type SomeProof, type SomeWitness, type State, evalC, evalE, walk} from './machine.ts'
+import {type C, type E, type Law, type Machine, type SomeProof, type SomeWitness, type State, evalC, evalE, n as k, walk, x as v} from './machine.ts'
 import {type Report, clock, proveLaw, proveLaws, withinDeadline} from '../kernel/prove.ts'
 
 type Env = Record<string, number>
@@ -23,8 +23,6 @@ type Group = string[]
 // A candidate for a group: one term per natural.
 type Cand = E[]
 
-const k = (value: number): E => ({op: 'const', value})
-const v = (name: string): E => ({op: 'var', name})
 const add = (a: E, b: E): E => (a.op === 'const' && a.value === 0 ? b : b.op === 'const' && b.value === 0 ? a : {op: 'add', a, b})
 const sum = (es: E[]): E => es.reduce<E>((acc, e) => add(acc, e), k(0))
 const sub = (a: E, b: E): E => (b.op === 'const' && b.value === 0 ? a : {op: 'sub', a, b})

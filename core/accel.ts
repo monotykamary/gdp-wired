@@ -25,7 +25,7 @@
 //   where the cycle passes a location twice, its commonest value with no condition.
 // - Stems (`stemsTo`): from the start's location to a part's, a path at a time or a self-loop that is a translation
 //   taken n times at once, all linear, then run on the loop itself.
-import type {C, E} from './machine.ts'
+import {type C, type E, n as K, x as V} from './machine.ts'
 import type {Loop} from '../kernel/kernel.ts'
 import {type Path, type Relation, relationOf} from './relation.ts'
 import {type Lin, canon, gcd, konst, plus, solve, subst, times, vars} from './solver.ts'
@@ -34,7 +34,6 @@ import {type Lin, canon, gcd, konst, plus, solve, subst, times, vars} from './so
 export type Target = {loc: number, rows: Lin[]}
 export type Accelerated = {set: C, wit: Record<string, E>, cycle: number[], locs: number[], targets: Target[]}
 
-const K = (value: number): E => ({op: 'const', value}), V = (name: string): E => ({op: 'var', name})
 const isConst = (l: Lin) => vars(l).length === 0
 // (a row's coefficients divided by their common divisor, its constant rounded up: an integer row as tight as it goes)
 const tight = (l: Lin): Lin => {

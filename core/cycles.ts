@@ -25,7 +25,7 @@
 // values (a constant on a region, a line, bounds), proves them from the facts as cyclic claims (Houdini), and proves the
 // laws with them as facts.
 import type {C, E, Law, Machine, Request, State} from './machine.ts'
-import {compileFunction, evalC as evalMC, evalE as evalME, fnValue, interpret, pairedArgs, seeded, walk} from './machine.ts'
+import {atMost as le, compileFunction, evalC as evalMC, evalE as evalME, fnValue, get, interpret, minus as sub, n as k, pairedArgs, plus as add, same as eqC, seeded, walk, x as v} from './machine.ts'
 import type {Goal, Liveness, Loop, Subst, Tree} from '../kernel/kernel.ts'
 import {check, livenessHelpful, livenessParts, loopLiveness, loopMachine, loopObligations, substC, substE} from '../kernel/kernel.ts'
 import {type Cyclic, type Fact, checkCyclic, factsAvoid, lexLt} from '../kernel/cyclic.ts'
@@ -47,10 +47,6 @@ export type CycleVerdict = {proven: boolean, checked: boolean, proof?: Cyclic, s
 
 // --- terms ----------------------------------------------------------------------------------------------------------
 
-const v = (name: string): E => ({op: 'var', name}), k = (value: number): E => ({op: 'const', value})
-const add = (a: E, b: E): E => ({op: 'add', a, b}), sub = (a: E, b: E): E => ({op: 'sub', a, b})
-const get = (map: string, key: E): E => ({op: 'get', map, key})
-const le = (a: E, b: E): C => ({op: '<=', a, b}), eqC = (a: E, b: E): C => ({op: '=', a, b})
 const and = (...xs: C[]): C => (xs.length === 1 ? xs[0]! : {op: 'and', xs})
 const yes: C = le(k(0), k(0))
 const vs = (s: Record<string, E>): Subst => ({vars: s, maps: {}, flags: {}})
