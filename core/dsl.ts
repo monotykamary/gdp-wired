@@ -19,7 +19,7 @@ import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type M
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
 import {someHolds, substVars} from './exists.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations} from '../kernel/kernel.ts'
-import {certLoop, factsFor, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline} from '../kernel/prove.ts'
+import {certLoop, clock, factsFor, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
@@ -2394,8 +2394,10 @@ const withKinds = (r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[])
 // A real run from the start that breaks a law or a step law, from a few random runs (each request drawn by its kinds,
 // those the rule's assumption refuses skipped): a false law is refused at once, with the run, where the symbolic search
 // would have to decide every case of its goal to reach one. Nothing here is trusted; a run it finds is a run the
-// interpreter took. A rule that reads functions is skipped: the kernel knows them only by their facts (a recurrence's
-// induction machine reads the function it proves things about), so a run computing them proves nothing about the goal.
+// interpreter took. A function the rule reads is computed by its JavaScript, as the runtimes compute it; the kernel
+// knows it only by its facts, which may also bound the params (a recurrence's induction machines take f(x) as a param
+// fx), so params are drawn only where every fact holds: a fact about the params alone exactly, one about every key at
+// each key (or tuple of keys) up to twice the bound. A rule whose function breaks its own facts there gets no run.
 const refuteBudget = {trials: 60, depth: 6, bound: 3, ms: 150}
 // A request as a run's trace shows it: each map it carries as an object of its cells.
 const shownRequest = (input: Request) => Object.fromEntries(Object.entries(input).map(([n, x]) => [n, typeof x === 'number' ? x : Object.fromEntries(x as ReadonlyMap<number, number>)]))
@@ -2403,13 +2405,24 @@ const shownRequest = (input: Request) => Object.fromEntries(Object.entries(input
 const deeperBudget = {trials: 600, depth: 24, bound: 8, ms: 1500, seed: 29}
 function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[] = [], budget: typeof refuteBudget & {seed?: number} = refuteBudget): {goal: string, witness: Record<string, number>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}} | undefined {
   const m = r.machine
-  // Division by a constant is a function too, but its facts fix its value, so a run computing it is a run of the rule.
-  if (Object.keys(m.fns ?? {}).some(f => !isArithmetic(f)) || m.facts?.some(f => !isArithmetic(f.name.slice(0, f.name.indexOf(':'))))) return undefined
   const run = interpret(m), rand = seeded(budget.seed ?? 13), until = performance.now() + budget.ms, bound = budget.bound, shown = shownRequest
+  // (Division by a constant is a function too, its facts Euclid's, which its JavaScript meets: not checked.)
+  const facts = (m.facts ?? []).filter(f => !isArithmetic(f.name.slice(0, f.name.indexOf(':'))))
+  const holds = (f: Law, params: Record<string, number>): boolean => {
+    const names = f.forall ? [f.forall, ...(f.keys ?? [])] : [], top = names.length > 1 ? bound : 2 * bound
+    const at = (env: Record<string, number>, i: number): boolean => (i === names.length ? evalC(f.holds, env, {scalars: {}, maps: {}}, m)
+      : Array.from({length: top + 1}, (_, key) => key).every(key => at({...env, [names[i]!]: key}, i + 1)))
+    try { return at(params, 0) } catch { return false }
+  }
+  // (those that read no param once)
+  const readsParams = (f: Law) => m.params.some(p => JSON.stringify(f.holds).includes(`"name":${JSON.stringify(p)}`))
+  let alone: boolean | undefined
+  const factsHold = (params: Record<string, number>): boolean => (alone ??= facts.filter(f => !readsParams(f)).every(f => holds(f, params)))
+    && facts.filter(readsParams).every(f => holds(f, params))
   try {
     for (let trial = 0; trial < budget.trials && performance.now() < until; trial++) {
       const params = r.randomParams(rand, bound)
-      if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) continue
+      if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m) || !factsHold(params)) continue
       const watching = [...laws, ...stepLaws].map(w => ({w, on: watch(m, run, w, params, bound)}))
       let st = run.init(params)
       const trace: Request[] = []
@@ -2436,7 +2449,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     const wide = Object.keys(m.state).length + m.inputs.length >= 32, lawsHere = wide ? given : [], kinded = wide ? r.kindsOfState() : []
     for (let trial = 0; !m.history && (steps1.length || lawsHere.length) && trial < budget.trials * 4 && performance.now() < until; trial++) {
       const params = r.randomParams(rand, bound)
-      if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m)) continue
+      if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m) || !factsHold(params)) continue
       const scalars: Record<string, number> = Object.fromEntries(Object.keys(m.state).map(n => [n, rand(8)]))
       for (const [n, k] of kinded) Object.assign(scalars, k.random(n, rand, bound))
       const st: State = {scalars, maps: Object.fromEntries(Object.keys(m.maps ?? {}).map(n => [n, new Map(Array.from({length: rand(3)}, () => [rand(bound + 1), rand(bound + 1)] as const))]))}
@@ -2529,7 +2542,12 @@ export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, la
   const out = proveLiveness(r.machine, withKinds(r, laws), l)
   return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
 }
-export const proveDecision = (d: Decision): Verdict => (d.steps ? proveSteps(d.steps.rule as never, [], [d.steps.law], {search: false}) : goalsVerdict([d.goal]))
+// `ms`: the budget (the prover's own per goal, 20 s or a second a hypothesis, where none is given), on the clock the
+// prover reads (the counted one inside a counted search): past it the verdict is unknown.
+export const proveDecision = (d: Decision, opts: {ms?: number} = {}): Verdict => {
+  const go = () => (d.steps ? proveSteps(d.steps.rule as never, [], [d.steps.law], {search: false}) : goalsVerdict([d.goal]))
+  return opts.ms === undefined ? go() : withDeadline(clock() + opts.ms, go)
+}
 const seeded = (seed: number): Rand => { let x = seed; return k => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) } }
 // A decision's callbacks against its condition, on random params and requests: `given` and `then` each run with every
 // value known, against what the interpreter evaluates of the decision built from them.

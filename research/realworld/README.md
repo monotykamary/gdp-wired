@@ -211,6 +211,11 @@ Every one of them is in `triage/*.json` with the law it breaks and its notes.
 
 ## For the library (not changed here: core/, kernel/ and lean-kernel/ are untouched)
 
+Since fixed (CHANGELOG, "What the real-world corpus found"): items 1, 4 and 5 below, and the traps above it names
+(`fromXState` and v4's `cond`, a flag in a map key, `refuteByRuns` and functions, `proveDecision`'s budget). The
+corpus again beside main 6b2e2df, both on Modal: 237 proven against 218, 18 refuted against 17 (BullMQ's law error,
+triaged, the one more), 56 neither against 76; liveness 18 of 35 against 0 (`runs/rwfix/score2`, `runs/rwfix/base2`).
+
 1. **The no-rank liveness search** (`findLeadsTo`) misses the constant rank whenever a helpful step reaches `to` at
    once. That is 19 of the 35 liveness laws, which `rank0.ts` proves with rank 0. Trying the constant ranks first would
    move the liveness score from 0 toward 19.

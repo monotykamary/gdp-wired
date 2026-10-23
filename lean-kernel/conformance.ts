@@ -8,7 +8,8 @@
 // With --rationals, the rational cases (core/conformance.ts's randomQCase): values, proven goals' trees, their tampered
 // twins and models, each with kernel.ts's answer, for Rationals.lean to compute:
 //   bun conformance.ts --rationals [cases] > RatConformance.lean && lean RatConformance.lean
-import {CELLS, INIT, VARS, qgoals, qreference, qtampered, randomCase, randomQCase, recurCases, reference, reseed} from '../core/conformance.ts'
+import {CELLS, INIT, VARS, qgoals, qreference, qtampered, randomCase, randomQCase, recurCases, reference, reseed, ringCase} from '../core/conformance.ts'
+import type {Measure, Termination} from '../core/data.ts'
 import type {Loop, QGoal, Recur} from '../kernel/kernel.ts'
 import {canon, checkQTree, checkRecur} from '../kernel/kernel.ts'
 import {growQ} from '../kernel/qprove.ts'
@@ -89,6 +90,35 @@ open Cert Kern
 Rationals.lean's evalE, evalC and checkGoal compute kernel.ts's answers. -/
 
 ${out.join('\n')}`)
+  process.exit(0)
+}
+// With --rings, the rings of functions core/data.ts takes by well-founded recursion (core/conformance.ts's ringCase), each
+// as one `mutual` block with `termination_by` the measures it found (Data.lean's Lx where they have several
+// components), for Lean to check the decrease of every call again:
+//   bun conformance.ts --rings [cases] > RingConformance.lean && lean RingConformance.lean
+if (process.argv.includes('--rings')) {
+  const n = Number(process.argv.filter(a => !a.startsWith('--'))[2] ?? 24), out: string[] = [], tally: Record<string, number> = {}
+  const comp = (ps: string[], c: Measure['comps'][number]) => {
+    const pos = [...c.coef.flatMap((k, i) => (k > 0 ? [`${k} * ${ps[i]}`] : [])), ...(c.c > 0 ? [String(c.c)] : [])], neg = [...c.coef.flatMap((k, i) => (k < 0 ? [`${-k} * ${ps[i]}`] : [])), ...(c.c < 0 ? [String(-c.c)] : [])]
+    const sum = (ts: string[]) => (ts.length ? ts.join(' + ') : '0')
+    return neg.length ? `(${sum(pos)} - (${sum(neg)}))` : `(${sum(pos)})`
+  }
+  for (let i = 0; i < n; i++) {
+    const r = ringCase()
+    let ts: (Termination | undefined)[]
+    try { ts = r.fns.map(f => (void f.fn.ring, f.fn.termination)) } catch { tally[`${r.family}: refused`] = (tally[`${r.family}: refused`] ?? 0) + 1; continue }
+    if (!ts.every(t => t)) { tally[`${r.family}: structural`] = (tally[`${r.family}: structural`] ?? 0) + 1; continue }
+    const mOf = (j: number) => { const f = r.fns[j]!.fn, m = ts[j]!.measure, ps = f.params.map(q => q.name); return m.comps.length === 1 ? comp(ps, m.comps[0]!) : `Lx.mk [${m.comps.map(c => comp(ps, c)).join(', ')}]` }
+    out.push(`-- ${r.name}: ${ts.map(t => t!.text).join('; ')}\nnamespace ${r.name}\n${r.lean(mOf(0), mOf(1))}\nend ${r.name}`)
+    tally[`${r.family}: taken`] = (tally[`${r.family}: taken`] ?? 0) + 1
+  }
+  console.log(`import Data
+open Kern
+set_option linter.unusedSimpArgs false
+
+/-! ${out.length} rings of functions core/data.ts took by well-founded recursion (core/conformance.ts's ringCase; ${Object.entries(tally).map(([w, k]) => `${w} ${k}`).join('; ')}): Lean checks each call's decrease again under the measures found. -/
+
+${out.join('\n\n')}`)
   process.exit(0)
 }
 const count = Number(process.argv.filter(a => !a.startsWith('--'))[2] ?? (nonterm ? 40 : 400))

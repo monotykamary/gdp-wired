@@ -40,7 +40,7 @@
 //     a function that returns a function, Int arithmetic beyond the above, a selector of a datatype of several
 //     constructors (partial: TIP leaves it unspecified at the others), recursion whose termination core/data.ts doesn't
 //     prove (no measure found and proven to fall at every call: `idiv x 0` never ends, and TIP's define-fun-rec doesn't
-//     say so), nested recursion, a ring of functions that isn't structural, an uninterpreted sort of arguments, an
+//     say so), nested recursion, a ring of functions whose termination isn't proven, an uninterpreted sort of arguments, an
 //     uninterpreted constant at two sorts (TIP's evaluator gives a name one value), a nested datatype at ever larger
 //     instances (no finite set of instances: monomorphisation doesn't end).
 // The background facts a problem asserts (`assert`, true lemmas given as hints) aren't given to proveData: the statement
@@ -541,7 +541,7 @@ export function translate(tip: Tip, name: string, lemmas: Sx[] = [], opts: {sort
     } catch (e) {
       if (e instanceof Unsupported) throw e
       const m = (e as Error).message
-      if (/a ring of functions is taken by structural recursion only/.test(m)) throw new Unsupported(`a ring of functions that isn't structural recursion: ${m}`)
+      if (/, in its ring /.test(m)) throw new Unsupported(`a ring of functions that isn't structural recursion: ${m}`)
       if (/nested recursion/.test(m)) throw new Unsupported(`nested recursion: ${m}`)
       if (/not structural recursion/.test(m)) throw new Unsupported(`recursion whose termination isn't proven: ${m}`)
       throw e
