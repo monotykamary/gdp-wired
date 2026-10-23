@@ -22,6 +22,34 @@ and Eldarica (2.3).
     modal run compare/chc/modal_chc.py --out <dir> --tools tmpl            # then --tools given --tasks-json <file>
     python3 compare/chc/prof/gap.py --gdp <run> --others <run> --models <dir> --template <run> [--cex <dir>] [--given <run>] --out <file.json>
 
+## Disjunctions in the join (after 0.23.0)
+
+The invariant search's join (core/infer.ts) asks its goals first of kernel/cdcl.ts for a model alone, the forms a
+refutation read being its core (the hypotheses its leaves read, cdcl.ts's `core` option); where no candidate rules out a
+counterexample to the law, it blocks the counterexample's cube as IC3 does (the control state and the bounds that keep
+the samples out, relative to the set, cut to the literals the refutation's core read, predecessors blocked first), each
+cube a disjunction in the set; the control states no run reached are one law until it is broken twice; solve.ts answers
+as soon as the set is proven (`minimize: false`). Nothing trusted changed. The budget split is as it was (runs 5 s,
+guided 8 s, bounded 10 s).
+
+| gdp-wired, 60 s, Modal | sat | unsat | wrong | solved of 1,406 | out of time |
+| --- | --- | --- | --- | --- | --- |
+| main 6b2e2df (`runs/chcsat/final4/chc-main`) | 517 | 265 | 0 | 782 | 12 |
+| this (`runs/chcsat/final4/chc`), launched beside it | 551 | 265 | 0 | 816 | 5 |
+
+- By group (research/frontier2's): A 161 → 177 of 195, B 30 → 30 of 39, C 8 → 17 of 38, D 8 → 13 of 113, E 27 → 31
+  of 71, F 7 → 8 of 34, G 8 → 9 of 15, H and I 121 → 121 of 303, the rest 412 → 410 of 598. By family: Lustre 291 →
+  311, ctigar 14 → 26.
+- 40 sat more, 6 fewer: those 6 stopped at once on main's join (0.2–2.9 s, a counterexample no candidate rules out)
+  and the search below it proved them in 24–58 s; here a cube was blocked and the join went on (10.8–18.1 s). Unsat:
+  one more, one fewer, both the bounded runs'.
+- Runs of the same code vary: this code twice, 551 and 555 sat (`runs/chcsat/final4/chc`, `runs/chcsat/final3/chc-k2`);
+  main four times the same day, 517, 519, 521 and 523 (`runs/chcsat/final4/chc-main`, `final2/chc-main`,
+  `final/chc-main`, `full2-main`).
+- Measured and left out: IC3 with frames after the join (547 against 552 without, `runs/chcsat/full1`,
+  `full1-noframes`), runs from the kernel's models for Lustre's few samples (no gain on 80 Lustre tasks,
+  `runs/chcsat/l1*`, `l2*`, `l3*`), and the CHANGELOG's other variants.
+
 ## Bounded runs (after 0.22.0)
 
 An unsat answer is a run that `checkDerivation` confirms against the CHC, step by step; until now the runs came from
