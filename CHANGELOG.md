@@ -5,6 +5,45 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+Bounded runs faster and longer: CHC-COMP LIA-Lin at 60 s on Modal, 923 answered (526 sat, 397 unsat), main (6b2e2df)
+launched beside it 783 (517, 266); unsat 131 more and none fewer, sat 17 more and 8 fewer, out of time 5 against 8
+(`runs/bmc2/chc-mine4-b15`, `runs/bmc2/chc-base4`). Every unsat answer is a run the compiled rule takes and
+`checkDerivation` confirms against the CHC; none contradicts Spacer's or Golem's verdict, and 20 are tasks neither
+answered. Two derivations refute their task's expected verdict, both checked again by a simulation of the clauses:
+`s_split_50_000_001` (999,002 steps; its verdict sat is LoAT's vote alone, so `summary.ts` counts it wrong) and
+`s_split_22_000_001` (280,277 steps; a placeholder verdict, no vote). Lustre's 321 unsat tasks: 147 to 254; by Golem's
+derivation length, 4 steps 18/81 to 78/81, 5 or more 9/59 to 19/59; the round-2 corpus's group H 108 to 215 of 273. Its
+derivation items 3 of 3 (main 2): `s_split_01`'s 10,002 steps in 260 ms. Nothing trusted changed (`kernel/kernel.ts`,
+`kernel/cyclic.ts`, `core/check.ts` and `lean-kernel/` are as at 6b2e2df).
+
+- core/bmc.ts: each goal relaxed (an integer pair written as any two naturals of the difference, which every read of
+  a pair is; the interpreter normalizes, and where it refuses the run the goal itself is asked) and reduced (copies and
+  constants put in, definitions nothing reads dropped and put back into the model); the deeper goals one growing goal
+  for one CDCL search (kernel/cdcl.ts's `cdclSession`: each depth's query assumed by an activation atom and set aside
+  at the next, so learned clauses, activities, phases and the simplex carry over), its cone of influence; a forced run
+  first (a deterministic loop run by the compiled rule, up to 30% of the stage and a million steps); the counted
+  clock's rate 250 units a ms (252 measured at the median, 168 at main).
+- kernel/reader.ts keeps a value with an open read while nothing it read has changed (`touch` at each change of the
+  trail marks its readers): research/dag's 332 step goals give the same trees, by `growCdcl` and by `grow`, as at 0.23.0,
+  in half the search time (608.4 s to 303.9 s; 638.7 s to 360.9 s); 734 bounded-run goals searched alike with and
+  without it (`runs/bmc2/eq332-1`, `eq3`, `eq2`).
+- compare/chc/solve.ts's `bmc` stage 15 s (was 10): beside main in three batches, 10 s against 15 s solved 902 and 910,
+  904 and 914, 909 and 923; 20 s 917 and 923 (compare/chc/README.md, `runs/bmc2/chc-*`).
+- The stage alone on the 475 unsat tasks (56 s): 407, main 312; within 10 s 365, main 244 (`runs/bmc2/only-inc3`,
+  `only-base1`).
+- The other benchmarks beside main, launched together: TIP 2015 182 proven, main 181 (`isaplanner/prop_51` more, none
+  fewer; `runs/bmc2/tip-mine`, `tip-base`); SV-COMP termination 182 and 182, every answer the same (`sv-*`); TermComp
+  ITS 1,029, main 1,026 (10 more, 7 fewer, each where the lasso and rank searches, random and bounded by wall time,
+  finish near the limit, `its-*`); research/realworld's 311 laws: every verdict as main's (`rw-mine3`, `rw-base`).
+  The second frontier corpus: frontier 28 of 47, main 27, every broken variant refused in both (`corpus2-mine2`,
+  `corpus2-base1`).
+- The infer and data tests on 1 vCPU, ten jobs each side interleaved (`runs/bmc2/onecpu`): none failed; data's "agrees
+  with + on small values only" median 2,447 ms, max 3,341, main 2,985 and 3,665; infer's slowest median 4,895 ms, max
+  5,814, main 5,302 and 6,052. search.test's "a search that finds nothing" 0.89 to 1.18 s, main 0.53 to 0.84 s (its
+  counter is a deterministic loop, run forward until the forced run's share is spent), within its 8 s.
+- A new test (core/search.test.ts): a deterministic loop broken after 10,000 steps, refuted by its forced run.
+
+
 Rules read from the code that ships (`gdp-wired/extract`, core/extract.ts): `extract(code, {entry})` reads a reducer,
 `useReducer`'s, functions over one record, a Redux Toolkit slice or a class whose methods write its fields, through the
 TypeScript compiler, and returns the rule that steps the same way, as a builder value and as the source that makes it

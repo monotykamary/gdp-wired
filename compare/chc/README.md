@@ -10,7 +10,7 @@ and Eldarica (2.3).
 | `chc.ts` | The CHC-COMP format read (S-expressions, predicates, clauses), and an evaluator of a clause on values that uses no gdp-wired code |
 | `translate.ts` | A linear CHC system as a rule: the state is where a derivation is (start, a predicate, error) and the predicate's arguments; a request names a clause that fires where the run is (the rule's assumption) and the values it leaves free, so each update reads the clause named alone. The law: error is never reached. `checkDerivation` checks a run against the CHC itself |
 | `houdini.ts` | The first Houdini (`--old-houdini`): candidate laws per predicate (bounds, differences, sums, booleans, unreachable), those a run's state breaks dropped, then rounds of `proveRule` until the rest are inductive together |
-| `solve.ts` | One task: import, `proveRule` on the law, random runs of the compiled rule, runs the prover guides (each request a model of its clause's condition where the run is, the clauses that derive false tried first), bounded runs (core/bmc.ts: a model of the kernel's k-step goal from the start to error, 10 s), then the library's invariant search (`inferLaws`, core/infer.ts) from the states the runs reached. Answers sat (a proof the kernel checked), unsat (a run reaching error that `checkDerivation` confirms), unknown or unsupported |
+| `solve.ts` | One task: import, `proveRule` on the law, random runs of the compiled rule, runs the prover guides (each request a model of its clause's condition where the run is, the clauses that derive false tried first), bounded runs (core/bmc.ts: a deterministic loop's forced run, then a model of a k-step goal from the start to error, 15 s), then the library's invariant search (`inferLaws`, core/infer.ts) from the states the runs reached. Answers sat (a proof the kernel checked), unsat (a run reaching error that `checkDerivation` confirms), unknown or unsupported |
 | `modal_chc.py` | The track on Modal: every task in its own container (2 vCPU, 4 GB), each tool under the same 60 s wall-clock limit, all at once (`starmap`) |
 | `summary.ts` | The table below from a run's `results.jsonl`, with wrong answers counted against each task's expected verdict where some tool decided it at CHC-COMP'26 |
 | `prof/kind.ts` | Not a solver (`--tools kind`): whether the law is k-inductive, a measure of what k-induction would add |
@@ -86,6 +86,74 @@ stages ran past their deadlines.
 **k-induction** (`prof/kind.ts`, `runs/unsat/kind1`, the 403 sat tasks main leaves unsolved, 55 s): 17 are
 k-inductive (13 Lustre; k = 3: 5, 4: 9, 9, 10, 11: one each). The kernel's proofs are 1-inductive, so a k-inductive
 law isn't a checked answer without a new trusted rule; not kept.
+
+## Bounded runs, faster and longer (after 0.23.0)
+
+The bounded runs' stage (core/bmc.ts) now asks smaller goals, keeps one search from depth to depth, runs a
+deterministic loop forward, and has 15 s; kernel/reader.ts keeps the values whose reads didn't change. Every unsat
+answer is still a run the compiled rule takes and `checkDerivation` confirms against the CHC, step by step.
+
+- **Relaxed goals** (`relax`): a CHC integer is a pair of naturals normalized where it is written (n = a ∸ b,
+  n$neg = b ∸ a: a case per pair and step); every read of a pair is of its difference, so the pair written as any two
+  naturals of difference a − b (n + b = a + n$neg) is the same integer to every read. The relaxed goal has every model
+  of the goal; the interpreter normalizes, and where it refuses the run the goal itself is asked.
+- **Reduced goals** (`reduce`, `putBack`): a name another name or a constant gives put in; a definition nothing else
+  reads dropped, and the model's value for it put back from its term; for the growing goal, the cone of influence of
+  the laws and the assumption through the updates.
+- **One search across depths** (kernel/cdcl.ts `cdclSession`): the steps written once in names that stay (n~j,
+  input@j), each depth's query `act@k >= 1 or <the law broken at ~k>`, assumed by act@k <= 0 and set aside at the next
+  depth, so the learned clauses, activities, phases and the simplex's tableau carry over. For machines whose goals read
+  no function and no flag; the others are asked depth by depth as before.
+- **Forced runs** (`forcedRun`): from the start, the one way on the rule allows (cases chosen among a finite input's
+  values, every other request value 0, at most two steps that read one), by the compiled rule with its assumption as
+  a value, until a law breaks, for up to 30% of the stage and a million steps: CHC-COMP's deterministic s_split loops
+  (10,002 steps; past 64, the kernel's bound on k, their k-step goals fold to false).
+- **reader.ts**: a value with an open read was found again at every node; now each value notes what it read, and a
+  change of the trail at an atom marks its readers to be found again (all the way up). research/dag's 332 step goals:
+  the same trees (outcome, leaves, splits, conflicts, decisions) by `growCdcl` and by `grow`, as at 0.23.0
+  (`runs/unsat/goals332-*`), in half the search time (608.4 s to 303.9 s over the 332 by growCdcl, 638.7 s to 360.9 s
+  by grow, `runs/bmc2/eq332-1`, `eq3`); 734 bounded-run goals searched alike with and without it (`runs/bmc2/eq2`).
+- **The counted clock's rate** measured again: 252 units a ms at the median (`runs/bmc2/only-mine3`), was 168 at main
+  (`only-base1`); bmcRate 200 to 250.
+
+**The stage alone** (`--runs-ms 0 --guide-ms 0 --no-houdini --bmc-ms 56000`, the 475 unsat tasks):
+
+| run | unsat | found within 10 s | Lustre (321) | the others (154) |
+| --- | --- | --- | --- | --- |
+| main 6b2e2df (`runs/bmc2/only-base1`) | 312 | 244 | 210 | 102 |
+| relaxed and reduced goals (`only-mine1`) | 365 | 313 | 254 | 111 |
+| with forced runs and reader.ts's clean values (`only-mine2`) | 391 | 352 | 255 | 136 |
+| without one search across depths (`only-noinc1`, GDP_BMC_INC=0) | 397 | 358 | 260 | 137 |
+| one search across depths, its cone of influence (`only-inc3`) | 407 | 365 | 268 | 139 |
+
+**The track** (60 s, Modal, each batch launched at one time beside main 6b2e2df; sat, unsat, solved):
+
+| batch | main | 6 s | 10 s | 15 s | 20 s |
+| --- | --- | --- | --- | --- | --- |
+| at 012a145, depth by depth (`chc-base2`, `chc-mine2*`) | 520, 265, 785 | 528, 351, 879 | 524, 378, 902 | 518, 392, 910 | |
+| at 6b3a15b, one search (`chc-base3`, `chc-mine3*`) | 521, 264, 785 | | 522, 382, 904 | 518, 396, 914 | 516, 401, 917 |
+| at f5593ac, its cone of influence (`chc-base4`, `chc-mine4*`) | 517, 266, 783 | | 525, 384, 909 | 526, 397, 923 | 519, 404, 923 |
+
+15 s solved more than 10 s in each of the three batches (8, 10 and 14 more), and as many as 20 s or within 3; it is
+the default. At 15 s (`chc-mine4-b15` beside `chc-base4`): unsat 131 more, none fewer; sat 17 more, 8 fewer (4 solved past
+58 s in main; 4 where the invariant search, starting 5 s later, didn't finish, between 24.2 s and 49.0 s in main:
+`s_split_42_000_000`, the 24.2 s one, is unknown in main's `chc-base3` too). No unsat answer contradicts Spacer's or Golem's verdict
+(`runs/modal/chc2/combined-v020`); 20 are tasks neither answered at 60 s, all aeval-unsafe's s_split but one
+(`metros_4_e2_968_e6_236`). Out of time 5 (main 8).
+
+- **Two expected verdicts the derivations refute.** `aeval-unsafe/s_split_50_000_001` (expected sat, the majority
+  vote LoAT's alone): a derivation of 999,002 steps, confirmed by `checkDerivation`, and by a simulation of the clauses
+  in Python (D counts modulo 2,000, B grows while D < 1,000 and A while D >= 1,000: after 499 periods B − A is 0,
+and 1,000 steps later, at C = 999,000, it is 1,000);
+  `summary.ts` counts it wrong against the vote. `s_split_22_000_001` (expected sat, a placeholder verdict, no vote):
+  280,277 steps, likewise. No tool answered either at CHC-COMP'26's runs here.
+- Lustre's 321 unsat tasks by Golem's derivation length (`chc-base4` → `chc-mine4-b15`): 2 steps 8/8 → 8/8, 3 steps
+  111/148 → 148/148, 4 steps 18/81 → 78/81, 5 or more 9/59 → 19/59, no derivation 1/25 → 1/25; 147 → 254. Group H of
+  the round-2 corpus (273): 108 → 215 (2: 4/4, 3: 126/126, 4: 75/78, 5 or more: 10/50).
+- Left: the deep Lustre tasks (metros 34, car 14, swimmingpool 9: 7 to 24 steps, each depth past 8 a search of seconds
+  to tens of seconds), DRAGON_14's 5 steps, the s_split loops of 10^8 steps or a start of free values (an acceleration
+  of the loop's runs, gen/accel's for nontermination, would summarize them; a derivation replayed step by step stays
+  bounded by the steps it replays), and O3_id's 103 to 1,003 steps from a start value the run must guess.
 
 ## There exists (after 0.20.0)
 
