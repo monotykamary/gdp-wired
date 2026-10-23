@@ -1140,7 +1140,7 @@ function proveThinned(m: Machine, laws: Law[], instances: Record<string, Instanc
     const out = grow(goal)
     // Where thinned instances leave such a goal unproven, every goal again with the full ones.
     if (!('tree' in out) && laws.some(l => instances[l.name] !== fulls[l.name])) return proveWith(m, laws, fulls)
-    if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false}
+    if (!('tree' in out)) return stuckAt(goal, out, nodes, leaves)
     trees[goal.name] = out.tree
     nodes += out.nodes
     leaves += countLeaves(out.tree)
@@ -1148,13 +1148,15 @@ function proveThinned(m: Machine, laws: Law[], instances: Record<string, Instanc
   const proof = {instances, trees}
   return {proven: true, nodes, leaves, checked: !usualCheck.on || checkLaws(m, laws, proof), proof}
 }
+// A goal left unproven, the search's report so far.
+const stuckAt = (goal: Goal, out: Extract<Outcome, {stuck: unknown}>, nodes: number, leaves: number): Report => ({proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false})
 // Every goal of the laws with these instances.
 function proveWith(m: Machine, laws: Law[], instances: Record<string, Instances>): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
   const trees: Record<string, Tree> = {}
   let nodes = 0, leaves = 0
   for (const goal of obligations(m, laws, instances)) {
     const out = grow(goal)
-    if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false}
+    if (!('tree' in out)) return stuckAt(goal, out, nodes, leaves)
     trees[goal.name] = out.tree
     nodes += out.nodes
     leaves += countLeaves(out.tree)
@@ -1212,7 +1214,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
       const again = grow(stepLawObligations(m, laws, kept, sl)[0]!)
       if ('tree' in again) { out = again; perStep[sl.name] = kept; break }
     }
-    if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false}
+    if (!('tree' in out)) return stuckAt(goal, out, nodes, leaves)
     if (minimal.on) {
       const had = perStep[sl.name] ?? instances, built = stepLawObligations(m, laws, had, sl).find(g => g.name === goal.name)
       if (built) {
@@ -1282,7 +1284,7 @@ export function proveProgress(m: Machine, laws: Law[], p: {name: string, when: C
   let nodes = base.nodes, leaves = base.leaves
   for (const goal of progressObligations(m, ls, instances, p)) {
     const out = grow(goal)
-    if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false}
+    if (!('tree' in out)) return stuckAt(goal, out, nodes, leaves)
     trees[goal.name] = out.tree
     nodes += out.nodes
     leaves += countLeaves(out.tree)
