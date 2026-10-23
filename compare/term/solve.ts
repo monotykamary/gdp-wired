@@ -12,10 +12,11 @@
 //     start and a stem into it), its closure goal's tree checked by the kernel (kernel.ts's checkRecur), the certificate
 //     printed (`recur`) for NonTerm.lean's never_ends_of; a lasso among them replayed by ari.ts's evaluator too
 //   - unknown (and why: the rank the runs gave and the goal the kernel refused, or no rank), or unsupported (and why)
-// The time: a lasso search first (2 s), a recurrent set (4 s, `--recur-ms`), then the rank search with all but a margin
-// of the limit, then a recurrent set again (3/5 of what is left) and lassos with the rest. `--scc`: the rank search on
-// each strongly connected component of the locations, chained, from any state at its cut points (scc.ts: a stronger statement, counted apart); a task with no cycle of locations is proven
-// whole. The lassos are always the task's own runs.
+// The time: a lasso search first (2 s), a recurrent set (4 s, `--recur-ms`), then the rank search with 70% of what is
+// left before a margin of the limit, then a recurrent set again (3/5 of what is left) and lassos with the rest.
+// `--scc`: the rank search on each strongly connected component of the locations, chained, from any state at its cut
+// points (scc.ts: a stronger statement, counted apart); a task with no cycle of locations is proven whole. The lassos
+// are always the task's own runs.
 import {readFileSync} from 'node:fs'
 import {Unsupported, checkLasso, parseAri, type Step} from './ari.ts'
 import {type Built, build, stepOf} from './translate.ts'
@@ -148,7 +149,8 @@ function prove(l: typeof loop, ms: number, tag: object = {}): Proven {
   }
   return {ok: false, why: f.why ?? 'no rank'}
 }
-const left = () => (limit - margin) * 1000 - ms()
+// the rank search's time: 70% of what is left before the margin (the recurrent set's second search has the rest)
+const rankUntil = ms() + 0.7 * ((limit - margin) * 1000 - ms()), left = () => rankUntil - ms()
 let why = 'no rank'
 const comps = scc ? components(task!) : []
 if (scc && comps.length) {

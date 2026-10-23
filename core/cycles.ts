@@ -1056,8 +1056,8 @@ export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): R
     }
   }
   const samples: Sampled[][] = [[...points.values()].map(env => ({env, calls: new Set()}))]
-  // (the runs' LP within 30% of the time: the relation's search below has its share)
-  const {comps, left} = lexRanks([0], [node], samples, [...edges.values()], shared, Math.min(until, t0 + 0.3 * (opts.ms ?? 10_000)))
+  // (the runs' LP within 10% of the time: the relation's search below has its share)
+  const {comps, left} = lexRanks([0], [node], samples, [...edges.values()], shared, Math.min(until, t0 + 0.1 * (opts.ms ?? 10_000)))
   // Ranks of degree 2 where the linear one leaves turns or the kernel refuses it (while i < N·M: N·M − i, where the runs
   // alone give 299 − i): one product of two variables at a time. The products the loop's own terms read first (a rank
   // of degree 2 measures what its terms of degree 2 bound), before the invariants; the others after them, within a
@@ -1088,8 +1088,8 @@ export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): R
   let tried: {rank: E[], verdict: ReturnType<typeof goalsProven>}[] = []
   if (comps.length && !left) {
     seen.add(id(linear))
-    // (its check within 40% of the time: the relation's search below has its share)
-    tried.push({rank: linear, verdict: withDeadline(Math.min(until, t0 + 0.4 * (opts.ms ?? 10_000)), () => goalsProven(loopObligations(l, laws, linear)))})
+    // (its check within 20% of the time: the relation's search below has its share)
+    tried.push({rank: linear, verdict: withDeadline(Math.min(until, t0 + 0.2 * (opts.ms ?? 10_000)), () => goalsProven(loopObligations(l, laws, linear)))})
     if ('trees' in tried[0]!.verdict) return done(linear, tried[0]!.verdict.trees)
   }
   // The relation's rank (per location, in phases), within half the time left; then degree 2 over the products the loop
