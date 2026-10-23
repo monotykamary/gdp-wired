@@ -760,18 +760,22 @@ export function rankOfRelation(l: Loop, laws: Law[], until: number): {rank: E[],
 }
 // `extra`: atoms (each ≤ 0) that hold at each location (by its index among the locations' values), read as rows of the
 // paths that leave it.
-function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []): {rank: E[], text: string, blocks: number[]} | {why: string} {
+// The locations (the values of the location natural, sorted; one with none), and the names each location's rank may
+// read: those its paths' rows read, and what the values after read of the names read where the paths go (live).
+const locations = (rel: Relation) => {
   const values = rel.loc ? [...new Set([...rel.from, ...rel.to])].sort((a, b) => a - b) : [0]
   const fromOf = (i: number) => (rel.loc ? values.indexOf(rel.from[i]!) : 0), toOf = (i: number) => (rel.loc ? values.indexOf(rel.to[i]!) : 0)
-  // the names each location's rank may read: those its paths' rows read, and what the values after read of the names
-  // read where the paths go (live variables)
   const names = new Set([...rel.state, ...rel.params]), live = values.map(() => new Set<string>())
   for (const [i, p] of rel.paths.entries()) for (const r of p.rows) for (const x of Object.keys(r)) if (names.has(x)) live[fromOf(i)]!.add(x)
   for (let grew = true; grew;) {
     grew = false
     for (const [i, p] of rel.paths.entries()) for (const x of live[toOf(i)]!) for (const y of p.post[x] ? Object.keys(p.post[x]!) : [x]) if (names.has(y) && !live[fromOf(i)]!.has(y)) { live[fromOf(i)]!.add(y); grew = true }
   }
-  const every = [...new Set(live.flatMap(s => [...s]))].sort(), at = live.map(s => [...s].sort())
+  return {values, fromOf, toOf, names, at: live.map(s => [...s].sort())}
+}
+function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []): {rank: E[], text: string, blocks: number[]} | {why: string} {
+  const {values, fromOf, toOf, names, at} = locations(rel)
+  const every = [...new Set(at.flat())].sort()
   const gpaths: GPath[] = []
   for (const [i, p] of rel.paths.entries()) {
     if (performance.now() > until) return {why: 'out of time on the relation'}
@@ -943,17 +947,18 @@ const leC = (rel: Relation, f: Lin): C => {
 export function rankWithInvariants(l: Loop, laws: Law[], until: number): {rank: E[], text: string, laws: Law[], texts: string[]} | {why: string} {
   const rel = relationOf(l, laws)
   if (!rel) return {why: 'the turn is not linear'}
-  const values = rel.loc ? [...new Set([...rel.from, ...rel.to])].sort((a, b) => a - b) : [0]
-  const locOf = (i: number): [number, number] => (rel.loc ? [values.indexOf(rel.from[i]!), values.indexOf(rel.to[i]!)] : [0, 0])
-  const names = new Set([...rel.state, ...rel.params])
+  const {values, fromOf, toOf, names, at} = locations(rel)
+  const locOf = (i: number): [number, number] => [fromOf(i), toOf(i)]
   const consts = new Set([0, 1, -1])
   for (const p of rel.paths) for (const r of p.rows) { const c = r['1'] ?? 0, xs = Object.keys(r).filter(x => x !== '1'); if (Math.abs(c) <= 1_000_000) for (const d of xs.length === 1 ? [c / Math.abs(r[xs[0]!]!)] : [c]) if (Number.isInteger(d)) { consts.add(d); consts.add(-d); consts.add(d + 1); consts.add(d - 1); consts.add(-d + 1); consts.add(-d - 1) } }
   const K = [...consts].sort((a, b) => Math.abs(a) - Math.abs(b) || a - b).slice(0, 24)
-  const read = [...names].filter(x => rel.paths.some(p => p.rows.some(r => x in r) || Object.values(p.post).some(f => x in f))).sort()
-  const atoms: Lin[] = [...new Map(rel.paths.flatMap(p => p.rows).filter(r => Object.keys(r).every(x => x === '1' || names.has(x)) && Object.keys(r).length > 1).map(r => [id(Object.keys(r).sort().map(x => [x, r[x]])), r] as const)).values()]
-  let cands = values.map(() => [...read.flatMap(x => K.flatMap((c): Lin[] => [plusL({[x]: 1}, konstL(-c)), plusL({[x]: -1}, konstL(c))])), ...atoms])
+  const atoms: Lin[] = [...new Map(rel.paths.flatMap(p => p.rows).filter(r => Object.keys(r).filter(x => x !== '1').length > 1 && Object.keys(r).every(x => x === '1' || names.has(x))).map(r => [id(Object.keys(r).sort().map(x => [x, r[x]])), r] as const)).values()]
+  // per location, over the names live there: their bounds at the constants, then (a second try) the paths' atoms too
+  const bounds = values.map((_, n) => at[n]!.flatMap(x => K.flatMap((c): Lin[] => [plusL({[x]: 1}, konstL(-c)), plusL({[x]: -1}, konstL(c))])))
+  const withAtoms = values.map((_, n) => [...bounds[n]!, ...atoms.filter(a => Object.keys(a).every(x => x === '1' || at[n]!.includes(x)))])
   // the starts: random params (the precondition's), the state they begin in
   const cx: Ctx = {eqs: new Map(), arity: new Map(), values: {}, memo: new Map(), fuel: Infinity, depth: 0}, rand = seeded(31)
+  const starts: [number, Env][] = []
   for (let s = 0; s < 400; s++) {
     const big = [2, 8, 64, 1000, 1_000_000][s % 5]!, ps = Object.fromEntries(l.params.map(p => [p, rand(big + 1)]))
     if (l.pre && evC(cx, l.pre, ps) !== true) continue
@@ -961,9 +966,9 @@ export function rankWithInvariants(l: Loop, laws: Law[], until: number): {rank: 
     for (const [x, e] of Object.entries(l.state)) st[x] = ev(cx, e, ps) ?? 0
     const n = rel.loc ? values.indexOf(st[rel.loc] ?? -1) : 0
     if (n < 0) continue
-    const env = Object.fromEntries([...names].map(x => { const p = rel.ints.get(x); return [x, p ? st[p[0]]! - st[p[1]]! : st[x] ?? 0] }))
-    cands[n] = cands[n]!.filter(c => valueAt(c, env) <= 0)
+    starts.push([n, Object.fromEntries([...names].map(x => { const p = rel.ints.get(x); return [x, p ? st[p[0]]! - st[p[1]]! : st[x] ?? 0] }))])
   }
+  const atStarts = (cs: Lin[][]) => cs.map((c, n) => c.filter(h => starts.every(([m, env]) => m !== n || valueAt(h, env) <= 0)))
   const asLaws = (H: Lin[][]): {laws: Law[], texts: string[]} => {
     const out: Law[] = [], texts: string[] = []
     for (const [n, hs] of H.entries()) for (const [i, h] of hs.entries()) {
@@ -984,12 +989,18 @@ export function rankWithInvariants(l: Loop, laws: Law[], until: number): {rank: 
     }
     return [...best.values(), ...rest]
   }
-  const closed = houdini(rel, cands, locOf, until)
-  if (!closed || !closed.some(h => h.length)) return {why: 'no invariant'}
-  let H = closed.map(tightest)
+  let H: Lin[][] = [], found: ReturnType<typeof relationRank> = {why: 'no invariant'}
   const t1 = performance.now()
-  let found = relationRank(l, rel, until, H)
-  if (!('rank' in found)) return {why: `with ${H.flat().length} invariants: ${found.why}`}
+  for (const [i, cands] of [bounds, withAtoms].entries()) {
+    if (performance.now() > until) break
+    const closed = houdini(rel, atStarts(cands), locOf, i ? until : performance.now() + (until - performance.now()) / 2)
+    if (!closed || !closed.some(h => h.length)) continue
+    H = closed.map(tightest)
+    found = relationRank(l, rel, until, H)
+    if ('rank' in found) break
+    found = {why: `with ${H.flat().length} invariants: ${found.why}`}
+  }
+  if (!('rank' in found)) return found
   // fewer: a location's atoms at once, then one atom at a time, within ten times the first search's time
   const stop = Math.min(until, performance.now() + Math.max(500, 10 * (performance.now() - t1)))
   const without = (drop: (n: number, h: Lin) => boolean): boolean => {

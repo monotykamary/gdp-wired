@@ -345,9 +345,17 @@ export function houdini(rel: Relation, cands: Lin[][], locOf: (i: number) => [nu
       const [a, b] = locOf(i)
       if (!H[b]!.length) continue
       const rows = [...p.rows, ...tight(H[a]!)]
-      const ns = [...new Set([...rows.flatMap(vars), ...Object.values(p.post).flatMap(vars)])].sort()
+      // (the names the candidates at the target read too: one the path reads nowhere is free there, a line)
+      const ns = [...new Set([...rows.flatMap(vars), ...Object.values(p.post).flatMap(vars), ...H[b]!.flatMap(vars)])].sort()
       const g = generators(rows, ns, rel.nats, 600, until)
-      if (!g) return undefined
+      if (!g) {
+        // past the generators' cap: each candidate after the turn refuted by the integer solver, or dropped
+        const nat = rel.nats.filter(x => ns.includes(x)).map((x): Lin => ({[x]: -1}))
+        const through = (c: Lin): Lin => { let o: Lin = {}; for (const [y, k] of Object.entries(c)) o = plus(o, y !== '1' && p.post[y] ? times(p.post[y]!, k) : {[y]: k}); return o }
+        const keep = H[b]!.filter(c => performance.now() < until && solve([...rows, ...nat, plus(konst(1), through(c), -1)].map(lin => ({lin, label: ''})), 4000).kind === 'refuted')
+        if (keep.length < H[b]!.length) { H[b] = keep; changed = true }
+        continue
+      }
       if (!g.vertices.length) continue // no point: the path never runs where the candidates hold
       const at = (x: number[], t: number, c: Lin): number => {
         // c after the turn: each name through the path's value
