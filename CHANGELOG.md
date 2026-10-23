@@ -6,14 +6,20 @@ noted), each with the command that reproduces it.
 ## Unreleased
 
 What the real-world corpus (research/realworld) found in gdp-wired itself, fixed. Nothing trusted changed (`kernel/kernel.ts`,
-`core/check.ts` and `lean-kernel/` as they were). The corpus again on Modal, the same day, beside main at 6f03586 (311
-jobs each, 2 vCPU): proven 237 against 218, refuted 16 against 15, neither 58 against 78 (main's 78: 77 unknown, one
-error); liveness 18 of 35 against 0 (`runs/rwfix/score`, `runs/rwfix/base`). Every one of main's 15 refutations is
-still refuted, and nothing went from refuted to proven. The changed verdicts: 18 liveness laws proven with the rank 0
-found; p-retry's "an uncapped retry waits at least minTimeout" proven (main threw), through the lemma found
-`f(x) >= minTimeout`; BullMQ's "an exponential retry waits at least the base delay" refuted (main: unknown), a law
-error triaged as one (`triage/queuebreaker.json`: with delay 0 the code retries at once and the rule leaves its ghost
-`until` as it was). With rank 0 stated, `rank0.ts` proves the same 18 on Modal (the README's 19 was a local run).
+`core/check.ts` and `lean-kernel/` as they were). The corpus on Modal (311 jobs, 2 vCPU each), this branch beside main
+the same day: at main 6b2e2df, proven 237 against 218, refuted 18 against 17, neither 56 against 76, liveness 18 of 35
+against 0 (`runs/rwfix/score2`, `base2`); before main took gen/extract and lang/reals, at 6f03586, 237 against 218,
+16 against 15, 58 against 78 (main's 77 unknown and one error) (`runs/rwfix/score`, `base`). Every one of main's
+refutations is still refuted, and nothing went from refuted to proven. The 20 changed verdicts, the same in both
+pairs: 18 liveness laws proven with the rank 0 found; p-retry's "an uncapped retry waits at least minTimeout" proven
+(main threw), through the lemma found `f(x) >= minTimeout`; BullMQ's "an exponential retry waits at least the base
+delay" refuted (main: unknown), a law error triaged as one (`triage/queuebreaker.json`: with delay 0 the code retries
+at once and the rule leaves its ghost `until` as it was). With rank 0 stated, `rank0.ts` proves the same 18 on Modal
+(`runs/rwfix/extra`; the README's 19 was a local run). Suites, each mode after the other, on Modal: at 6f03586's base
+210 jobs, by default 485.4 s wall and 5,002.9 s of job time, `--usual` 516.8 s and 4,740.2 s, none failed
+(`runs/rwfix/suite-default`, `-usual`); merged with main, 213 jobs, by default 639.6 s and 5,025.4 s, none failed
+(`runs/rwfix/suite2-default`); `--usual` 729.0 s and 4,535.9 s, none failed (`runs/rwfix/suite2-usual`). The `data` job's paths (core/data.ts and what it calls) are
+untouched, so its 1-vCPU timing wasn't measured again.
 
 - `fromXState` dropped XState v4's `cond` without a word, so a v4 config was proven with fewer guards than it has. It
   now refuses every key it doesn't read, by name (a node's, the root's, a transition's), rather than dropping it: v4's
@@ -26,7 +32,8 @@ error triaged as one (`triage/queuebreaker.json`: with delay 0 the code retries 
   refused (the version read off the machine; a plain config is read by the key it uses). `reenter` and v4's
   `internal` are read as changing nothing a chart shows (they choose which entry and exit actions run, and those write
   no context here), which `conforms` confirms against both XStates on self, child and ancestor targets. For gen/extract:
-  the API is the same; a config it took before with a key it ignored is refused now. None of the corpus's six machines
+  the API is the same (its `inline` guards and actions kept beside `cond`); a config it took before with a key it
+  ignored is refused now; `extractXState` still refuses `cond` itself (its machines are v5's), its reason reworded. None of the corpus's six machines
   was scored through a dropped guard: five are charts by hand with their `cond` guards written in, and gapless.js's
   config (v5's `guard`) builds as before and conforms to XState's actor over 19,200 steps
   (`repro/conform-gapless.ts`, `runs/rwfix/extra`); `repro/xstate-refusals.ts` gives each shipped machine the same
