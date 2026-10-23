@@ -7,7 +7,7 @@ import type {RealItem} from './lib.ts'
 const dir = new URL('./items/', import.meta.url)
 const files = readdirSync(dir).filter(f => f.endsWith('.ts')).sort()
 export const corpus: RealItem[] = []
-for (const f of files) corpus.push(...((await import(new URL(f, dir).href)) as {items: RealItem[]}).items)
+for (const f of files) corpus.push(...((await import(new URL(f, dir).href)) as {items?: RealItem[]}).items ?? [])
 const ids = new Set<string>()
 for (const it of corpus) {
   if (ids.has(it.id)) throw new Error(`two items named ${it.id}`)
