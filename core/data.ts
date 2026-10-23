@@ -26,7 +26,7 @@
 // using the others at the fields of their datatypes (mutual induction). Lemmas the law needs are found by the values
 // (theory exploration: equations between terms the random values agree on, then the shapes of a predicate kept), proven
 // the same way at lower levels, and used at the terms of the law they match.
-import type {C, E} from './machine.ts'
+import {type C, type E, walk} from './machine.ts'
 import {type Fact} from '../kernel/cyclic.ts'
 import {substC, substE} from '../kernel/kernel.ts'
 import {type CyclicVerdict, type NodeSpec, proveCyclic} from './cyclic.ts'
@@ -333,13 +333,6 @@ export function define(name: string, params: Record<string, Sort>, ret: Sort, bo
 export const fnParam = (name: string): ((x: NatLike) => Nat) & {param: string} =>
   Object.assign((x: NatLike) => new Nat({op: 'apply', param: name, arg: natX(x)}), {param: name})
 const paramsIn = (t: unknown): string[] => { const out: string[] = []; walk(t, o => { if (o.op === 'apply') out.push(o.param as string) }); return out }
-function walk(t: unknown, f: (o: Record<string, unknown>) => void): void {
-  if (Array.isArray(t)) { t.forEach(x => walk(x, f)); return }
-  if (!t || typeof t !== 'object') return
-  const o = t as Record<string, unknown>
-  f(o)
-  for (const v of Object.values(o)) walk(v, f)
-}
 // Each object once, in walk's order (a term shared within another is visited where walk first reaches it).
 function walkOnce(t: unknown, f: (o: Record<string, unknown>) => void, seen = new WeakSet<object>()): void {
   if (!t || typeof t !== 'object' || seen.has(t)) return

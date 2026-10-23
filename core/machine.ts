@@ -12,6 +12,14 @@ import {type Constraint, type Lin, type Verdict, add, eq, k, le, lt, nat, scale,
 // The searches' random draws: the high bits of a linear congruence (the low ones repeat with a short period).
 export type Rand = (k: number) => number
 export const seeded = (seed: number): Rand => { let x = seed; return k => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) } }
+// Every object in a term, the term first.
+export const walk = (t: unknown, f: (o: Record<string, unknown>) => void): void => {
+  if (Array.isArray(t)) { for (const x of t) walk(x, f); return }
+  if (!t || typeof t !== 'object') return
+  const o = t as Record<string, unknown>
+  f(o)
+  for (const x of Object.values(o)) walk(x, f)
+}
 
 export type E =
   | {op: 'var', name: string}

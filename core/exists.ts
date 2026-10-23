@@ -14,7 +14,7 @@
 // value before, shifts of it, the request's values and the state before; each is chosen to satisfy P at every
 // counterexample so far, per case of the step (the conditions its updates split on: the request's clause, say).
 // A law under a `forall` key takes witness terms only (a ghost per key would be a map).
-import {type C, type E, type Law, type Machine, type SomeProof, type SomeWitness, type State, evalC, evalE} from './machine.ts'
+import {type C, type E, type Law, type Machine, type SomeProof, type SomeWitness, type State, evalC, evalE, walk} from './machine.ts'
 import {type Report, proveLaw, proveLaws, withinDeadline} from '../kernel/prove.ts'
 
 type Env = Record<string, number>
@@ -214,14 +214,10 @@ const caseAt = (cases: C[], env: Env, st: State, m: Machine): number => {
 
 function constantsOf(m: Machine): number[] {
   const out = new Set<number>([1, 2])
-  const walk = (t: unknown): void => {
-    if (!t || typeof t !== 'object') return
-    const o = t as Record<string, unknown>
+  walk(m.step, o => {
     if (o.op === 'const' && typeof o.value === 'number' && o.value > 0 && o.value <= 64) out.add(o.value)
     if (o.op === 'mul' && typeof o.k === 'number' && o.k > 1 && o.k <= 64) out.add(o.k)
-    for (const x of Object.values(o)) (Array.isArray(x) ? x : [x]).forEach(walk)
-  }
-  walk(m.step)
+  })
   return [...out].sort((a, b) => a - b).slice(0, 6)
 }
 const dedupe = (cs: Cand[]): Cand[] => [...new Map(cs.map(c => [key(c), c])).values()]

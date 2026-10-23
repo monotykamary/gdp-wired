@@ -18,7 +18,7 @@
 //     law (read at their arguments), each unfolded definition's fact at its call, and the congruences between a call
 //     and the same call at the arguments said another way. Its goal is equalities; nothing is assumed.
 // The bridges and the copies' laws are nodes like any lemma's, at levels below the law's.
-import type {C, E} from './machine.ts'
+import {type C, type E, walk} from './machine.ts'
 import {type DataLaw, type DataVerdict, type Fn, type Options, type Program, type Proven, type SearchCtx, type Sort, type X, type Y, Bool, Integer, Nat, Val, argsOf, bindName, define, encX, encY, evalX, factsOf, fnNamed, programOf, rankWidth, schemesOf, searchIn} from './data.ts'
 import {type NodeSpec, proveCyclic} from './cyclic.ts'
 import {clock, pairedKeys, withDeadline} from '../kernel/prove.ts'
@@ -87,13 +87,7 @@ function isBridge(y: Y, f: Fn, op: Op): boolean {
   return sides.some(([c, x]) => c.op === 'call' && c.fn === f.name && c.args.every(a => a.op === 'var') && new Set(c.args.map(a => JSON.stringify(a))).size === c.args.length
     && JSON.stringify(x) === JSON.stringify(op.x(c.args)))
 }
-const callsOf = (t: unknown): string[] => { const out: string[] = []; walkO(t, o => { if (o.op === 'call') out.push(o.fn as string) }); return out }
-function walkO(t: unknown, f: (o: Record<string, unknown>) => void): void {
-  if (Array.isArray(t)) { t.forEach(x => walkO(x, f)); return }
-  if (!t || typeof t !== 'object') return
-  f(t as Record<string, unknown>)
-  for (const v of Object.values(t)) walkO(v, f)
-}
+const callsOf = (t: unknown): string[] => { const out: string[] = []; walk(t, o => { if (o.op === 'call') out.push(o.fn as string) }); return out }
 
 // What a law may go through: the bridges' candidates (by their values), and the functions it reaches that aren't
 // recursive (unfolded). None of either: the law as stated. A candidate whose bridge law is the law itself isn't one:

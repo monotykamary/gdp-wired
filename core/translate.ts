@@ -9,7 +9,7 @@
 // among the node's rows at the renamed path. A leaf whose rows aren't all there (two cells the path proves equal, whose
 // keys over Ω the node's path doesn't yet compare) is grown again on the node's goal at its path (`regrown`); a split the
 // node's path already decides is followed, not made again.
-import type {C, E} from './machine.ts'
+import {type C, type E, walk} from './machine.ts'
 import {type Lin, type Step, add, refuteFast, scale, solve} from './solver.ts'
 import {checkRefutation} from './check.ts'
 import {type Goal, type Path, type Subst, type Tree, canon, canonFlip, columnTerm, factorsOf, isCell, isMonomial, leafConstraintsReusing, linear, substE, truth, withProducts} from '../kernel/kernel.ts'
@@ -309,13 +309,10 @@ function choiceAtom(g: Goal, wp: Path): Lin | undefined {
 // The cells of the conclusion refuted at the path (reads it gives no rows of yet among them).
 function conclCells(g: Goal, wp: Path): string[] {
   const out: string[] = []
-  const walk = (x: unknown): void => {
-    if (!x || typeof x !== 'object') return
+  walk(g.hyps.at(-1), x => {
     const o = x as E
     if (o.op === 'get' && o.map.endsWith('@')) { const l = linear(o, wp); if (l) out.push(...Object.keys(l)) }
-    for (const val of Object.values(o)) walk(val)
-  }
-  walk(g.hyps.at(-1))
+  })
   return out
 }
 // Two cells over time at keys u + a·Ω and u + b·Ω: a = b decided first, then the keys' difference, its other side
@@ -378,13 +375,10 @@ export function carry(g: Goal, nFacts: number, nUses: number, st: TStats, until:
   // The times before (t ∸ 1, x ∸ 1, y ∸ 1, each a choice until c <= v is decided), decided after the guards: then the
   // cells at t − 1 and at (t − 1) + 1 are the same reads.
   const prev: C[] = [], seenPrev = new Set<string>()
-  const walk = (x: unknown): void => {
-    if (!x || typeof x !== 'object') return
+  walk(g.hyps, x => {
     const o = x as E
     if (o.op === 'sub' && o.a.op === 'var' && o.b.op === 'const' && !seenPrev.has(`${o.a.name}-${o.b.value}`)) { seenPrev.add(`${o.a.name}-${o.b.value}`); prev.push({op: '<=', a: o.b, b: o.a}) }
-    for (const val of Object.values(o)) walk(val)
-  }
-  walk(g.hyps)
+  })
   const guardsIn = (c: C, wp: Path, out: C[]): void => {
     if (c.op === 'and') { for (const x of c.xs) guardsIn(x, wp, out); return }
     if (c.op === 'or' && c.xs.length === 2 && c.xs[0]!.op === 'not') { const t = truth(c.xs[0]!.x, wp); if (t === undefined) out.push(c.xs[0]!.x); else if (t) guardsIn(c.xs[1]!, wp, out) }

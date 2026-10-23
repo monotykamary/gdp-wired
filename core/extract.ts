@@ -25,7 +25,7 @@
 // state a reducer is given, a throw after a method wrote a field, two keys of one map written in one step, a map
 // replaced whole, a reference into a map held across a set, aliasing that depends on the path, other modules' code.
 import * as dsl from './dsl.ts'
-import {compileFunction} from './machine.ts'
+import {compileFunction, walk} from './machine.ts'
 import type {Rule} from './dsl.ts'
 import type {Law} from './machine.ts'
 import * as I from './extract-ir.ts'
@@ -224,8 +224,7 @@ function hoist(m: Model, P: Printer, roots: object[]) {
     if (!isBool(node)) {
       const ctx: Ctx = {m, sorts: P.sorts, atoms: []}, free = natOK(node as N, ctx)
       const cells: string[] = []
-      const walk = (x: unknown): void => { if (x && typeof x === 'object') { const o = x as {op?: string, map?: string, field?: string}; if (o.op === 'cell') cells.push(`${o.map}.${o.field}`); Object.values(o).forEach(walk) } }
-      walk(node)
+      walk(node, o => { if (o.op === 'cell') cells.push(`${o.map as string}.${o.field as string}`) })
       const hasInt = [...I.varsOf(node as N).vars].some(n => P.sorts.get(n) === 'int') || cells.some(c => P.sorts.get(c) === 'int')
       if (!free && !hasInt) continue
     }

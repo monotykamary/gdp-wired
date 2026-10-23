@@ -25,7 +25,7 @@
 // values (a constant on a region, a line, bounds), proves them from the facts as cyclic claims (Houdini), and proves the
 // laws with them as facts.
 import type {C, E, Law, Machine, Request, State} from './machine.ts'
-import {compileFunction, evalC as evalMC, evalE as evalME, fnValue, interpret, pairedArgs, seeded} from './machine.ts'
+import {compileFunction, evalC as evalMC, evalE as evalME, fnValue, interpret, pairedArgs, seeded, walk} from './machine.ts'
 import type {Goal, Liveness, Loop, Subst, Tree} from '../kernel/kernel.ts'
 import {check, livenessHelpful, livenessParts, loopLiveness, loopMachine, loopObligations, substC, substE} from '../kernel/kernel.ts'
 import {type Cyclic, type Fact, checkCyclic, factsAvoid, lexLt} from '../kernel/cyclic.ts'
@@ -89,13 +89,6 @@ export const showC = (c: C): string => {
     case 'flag': return `?${c.name}`
     case 'all': return `∀${c.key}. ${showC(c.c)}`
   }
-}
-const walk = (t: unknown, f: (o: Record<string, unknown>) => void): void => {
-  if (Array.isArray(t)) { for (const x of t) walk(x, f); return }
-  if (!t || typeof t !== 'object') return
-  const o = t as Record<string, unknown>
-  f(o)
-  for (const x of Object.values(o)) walk(x, f)
 }
 const readsOf = (t: unknown): Extract<E, {op: 'get'}>[] => { const out: Extract<E, {op: 'get'}>[] = []; walk(t, o => { if (o.op === 'get') out.push(o as never) }); return out }
 const varsOf = (t: unknown): string[] => { const out = new Set<string>(); walk(t, o => { if (o.op === 'var') out.add(o.name as string) }); return [...out].sort() }
