@@ -5,6 +5,59 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+Rules over the rationals: `ratRule` (`gdp-wired/rationals`) with params, inputs and state of kind `rat` or `nonneg`,
+each value an exact rational (0.1 is 1/10, a third is 1/3; nothing scaled or encoded as naturals), terms linear (+,
+−, × and ÷ by a constant, min, max, when). Linear arithmetic over ℚ is decidable: a law is proven by trees whose
+leaves are Farkas certificates with strict rows, or refuted by an exact run from the start. A fee split, a rate
+limiter with fractional tokens and a ledger in decimals proven, each broken twin refuted with its run; 12 laws true
+over one of ℕ and ℚ and false over the other (5 true over ℚ only: halving keeps a positive amount positive, s ∸ c + c
+is s, ...; 7 over ℕ only: x < y gives x + 1 ≤ y, 2s ≠ 1, a difference is never negative, ...), 12 of 12 decided both
+ways (`examples/rationals.ts`, the suite's `rationals`). Nothing existing changes: every Lean export of the examples
+(21 domains, key names renumbered in order), the package check's Proofs.lean (4 shards), the sets export and the
+600-case conformance file are the same as 5c3f947's (`runs/reals/exports`, `runs/reals/exports2`).
+
+**The trusted base grows.** `lean-kernel/Rationals.lean` (new, on top of `Kernel.lean`, 946 lines) and its twins,
+`kernel/kernel.ts`'s rational section (185 lines, 162 of code) and `core/check.ts` (22 lines in, 10 out):
+- Cert's rows read at a rational point, each strict or not. `Q.checkQ` replays Cert's steps with no cut, a
+  combination strict when either row is, and accepts a last row of zero coefficients with a constant > 0, or ≥ 0 and
+  strict. `Q.checkQ_sound`: no rational point satisfies the rows. The naturals' and integers' check is the same
+  replay with the cut, the one step whose soundness needs an integer point (Cert's `cut_sound`): check.ts's
+  `checkRefutation(rows, steps, integral)` is both (`integral` false: no cut, every coefficient a safe integer).
+- Terms over ℚ (`QE`: variables, rational constants, +, − not truncated, × by a rational constant, min, max, if;
+  `QC`: ≤, <, =, and, or, not). A term's linear form is a row over a positive denominator, a comparison's row a
+  positive multiple of a − b; a split's no side is −l < 0; a leaf claims rows found among its own. `Q.sound`: an
+  accepted goal's hypotheses hold together at no `Nat → Rat` environment. `Q.machine_sound`: the induction rule for
+  step machines over ℚ, as Kernel.lean's scalar machines. All three on `propext`, `Classical.choice`, `Quot.sound`.
+- kernel.ts mirrors each definition (`qlinear`, `qtruth`, `qfacts`, `qLeafRows`, `checkQTree`, `qObligations`,
+  `checkQMachine`), forms in bigint. Lean's `evalE`, `evalC` and `checkGoal` compute kernel.ts's answers on 2,931
+  cases (`lean-kernel/conformance.ts --rationals 150`, the suite's `lean-rationals`): 150 terms' values and truths,
+  300 proven goals, 300 models, and 2,031 tampered trees, each refused by both (a multiplier negated or 0, a cut, an
+  input out of range, a combination of itself) or by Lean alone (a claimed row's coefficient sign flipped, a row not
+  among the leaf's, a row claimed strict that isn't). core/conformance.test.ts over its 8 seeds: 4,800 goals proven
+  and checked, 4,800 models confirmed by the exact evaluator, 20,214 tampered trees refused (`runs/reals/suite-default`).
+
+One linear-arithmetic core: `core/solver.ts`'s elimination takes `integral` false (no cut, strict rows, an exact
+witness), the incremental simplex (`kernel/simplex.ts`) too (no rounding, strict bounds moved in by 1e-7), and both
+are what `growQ` (`kernel/qprove.ts`, untrusted) uses: the kernel's rows at each node, the simplex's conflict refuted
+exactly, else a split on an open atom, complete for linear arithmetic over ℚ. The runtimes compute over bigint
+fractions (`interpretQ`, `loadQJs`); `refuteQ` decides the machine unrolled up to 3 requests over ℚ and replays the
+model; `rationalsToLean` (`gdp-wired/lean`) exports through `Q.machine_sound` (the examples' 20 theorems, the suite's
+`lean-rationals`). Outside: products of unknowns (refused) and transcendental functions; a rule is all rationals or
+all naturals (integrality mixed with rationals is mixed-integer arithmetic, which a cut-free certificate doesn't
+refute).
+
+The suites on Modal beside 5c3f947, run side by side: by default 208 jobs, none failed, 735.5 s wall, 5,003.5 s of job
+time (`runs/reals/suite-default`), 5c3f947's 206 jobs 581.8 s and 4,770.2 s, 6 of them failing for want of
+vendor/handwired in its checkout, each passing once it was copied in (`suite-base-default`, `suite-base-default-6`);
+over the 200 jobs both passed, 4,754.5 s against 4,745.6 s. `--usual`: 208 jobs, 532.0 s wall, 4,354.3 s, `check`
+failing on a copy of the base tree left in the worktree and passing alone (`suite-usual`, `suite-usual-check`);
+5c3f947's 1,134.6 s and 4,963.5 s, its `pairs` timing out once (843 s) and passing alone; over the 204 jobs both
+passed, 4,180.6 s against 4,079.8 s. Fuzz shards summed 905.4 s against 803.4 s there, so the fuzz was run again
+interleaved on 1 vCPU, 8 runs a seed each (`runs/reals/fuzzcmp`): seed 1 median 25.18 s against 26.26 s, seed 12345
+27.74 s against 30.05 s. The `infer` and `data` tests on bun's 5 s limit, on 1 vCPU, 5 jobs each side interleaved
+(`runs/reals/onecpu`): the slowest, data's "agrees with + on small values only", 3,613 ms at most against 5c3f947's
+6,606 ms (one base job timed out there); infer's slowest 2,877 ms against 4,318 ms; none failed on this branch.
+
 Lemmas the datatype search finds and uses. TIP 2015 at 60 s on Modal: 176 of 492 proven, 0.22.0 the same day 140, none
 wrong (`runs/lem/tip-final`, `runs/lem/tip-final-base`; `false/`: 23 refuted in both, each confirmed by TIP's
 evaluator, none proven). Nothing trusted changed (`kernel/`, `core/check.ts` and `lean-kernel/` are as in 0.22.0). The
