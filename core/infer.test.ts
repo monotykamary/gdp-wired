@@ -6,7 +6,7 @@ import {forall, proveRule} from './dsl.ts'
 import {inferLaws} from './infer.ts'
 import {inflight, inflightLoss} from './models.ts'
 import {proveLaws} from '../kernel/prove.ts'
-import {bucket, bucketLaw, lease, leaseLaw, pool, poolLaw} from '../examples/infer.ts'
+import {accounts, accountsLaw, bucket, bucketLaw, lease, leaseLaw, pool, poolLaw} from '../examples/infer.ts'
 
 test('a law that needs an invariant: not proven alone, proven with what the search finds, and the set checks', () => {
   for (const [r, law] of [[pool(), poolLaw()], [bucket(), bucketLaw()], [lease(), leaseLaw()]] as const) {
@@ -31,6 +31,15 @@ test('what was found reads as the builder call that states it, and that call, wr
   const leased = l.law('every k: Expiry[k] <= until', ({until, Expiry}) => forall(k => Expiry.at(k).atMost(until)))
   expect(proveRule(l, [leaseLaw(l), leased])).toMatchObject({proven: true, checked: true})
 })
+
+test('an invariant over four values (the join: the samples\' hull, made inductive): one account within the total paid in', () => {
+  const r = accounts(), law = accountsLaw(r)
+  expect(proveRule(r, [law], {search: false}).proven).toBe(false)
+  const v = inferLaws(r, [law], [], {ms: 15000})
+  expect(v).toMatchObject({proven: true, checked: true, stats: {stopped: false}})
+  expect(v.found.map(f => f.source)).toEqual(["r.law('a + b + c <= total', ({a, b, c, total}) => a.plus(b).plus(c).atMost(total))"])
+  expect(proveRule(r, [law, ...v.found.map(f => f.law)])).toMatchObject({proven: true, checked: true})
+}, 60_000)
 
 test('a machine with no rule: the in-flight bound needs s + 50·p <= b + 150 or tighter', () => {
   expect(proveLaws(inflight, [inflightLoss]).proven).toBe(false)

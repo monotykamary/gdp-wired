@@ -60,6 +60,58 @@ are `runs/release/0.22.0-*`.
   time over the benchmark runs, the suites and the truth checks, plus the Lean recheck's 12,817.7 s (and a first one stopped for the machine going offline), the day's dollars
   not yet in Modal's billing report.
 
+Invariants from the samples' hull, made inductive (`core/infer.ts`, the join): per control state, the affine hull of
+the states the runs reached and each direction's largest value there, then Houdini on the cone of the caller's laws by
+relative induction, the kernel's models as counterexamples. Nothing trusted changed (`kernel/kernel.ts`,
+`kernel/cyclic.ts`, `core/check.ts` and `lean-kernel/` are as in 0.22.0). CHC-COMP LIA-Lin at 60 s, gdp alone, this
+branch and 0.22.0 (c215ded) one after the other on Modal: 670 solved (526 sat, 144 unsat) against 510 (366, 144), none
+wrong either (`runs/inv/chc`, `runs/inv/chc-base`); 166 only this branch solved, 6 only 0.22.0 (five Lustre tasks and
+llreve's break_safe.c-1, which 0.22.0 solved in 26.39 to 38.9 s and this branch leaves unknown at the limit). The
+second frontier corpus, 8 of 42 against 3 of 42, every broken variant refused in both (`runs/inv/corpus2-after`,
+`runs/inv/corpus2-before`, Modal).
+
+- The join, where the old search would begin choosing candidates: the control state is the choice (loc) and, where
+  the reached choices times their valuations are at most 128, the yes/nos (a program counter in bits: per pc its own
+  hull, a pc no run reached a clause `never …`). Per control state: the hull's equalities (exact, over ℤ: a point
+  joined in removes the dimensions it leaves; at most 4 values, coefficients up to 1,000, as laws) and each direction's
+  largest value (each value up and down, pairs of them where there are at most 10 values, and the rule's own
+  comparisons over the state, a request's value read as the state it makes).
+- Houdini on the cone, not the whole set: the caller's laws first, then each form their trees read (`usedHyps`). Each
+  goal is proven with as little of the set assumed as will do: none, then the forms that rule out the kernel's model
+  (those of the cone first), two at a time, as IC3's relative induction, then the whole set. A model the whole set
+  allows is a counterexample to induction: its successor, and those of short walks from it, are joined in (the hull
+  grows; a bound rises to the next of the rule's constants and their sums, then to a constant, then goes). A model that
+  breaks a caller's law adds a candidate of the old search's that rules it out. The cone proven, it is the answer, and
+  the old search proves it as a set as before. Unproven within 60 % of the budget, the old search runs as it did,
+  from the same candidates and counterexamples.
+- Kernel searches counted in its work unless the search is timed, so a counted search finds the same on any machine.
+  `GDP_JOIN=0` turns the join off.
+- By CHC group (research/frontier2's, the tasks left at 0.21.0), 0.22.0 against this branch: A 113 → 165 of 195,
+  B 7 → 30 of 39, G 1 → 9 of 15, C 0 → 10 of 38, D 1 → 9 of 113, E 3 → 28 of 71, F 1 → 7 of 34, H and I 1 and 1 as
+  before; outside the groups 381 → 408 of 581. Where the join ended in a proof (502 tasks, at an earlier commit,
+  `runs/inv/chc-join4`) it took a median 0.967 s, p90 6.174 s.
+- The second corpus's new items: FIREFLY_1 (`1 <= b13`) and MESI_i3_e1_447_e3_1180 (`1 <= b8`, `i6 <= 0`, `0 <= i4`),
+  simple.c (per pc in bits), three_dots_moving_2 (`i1 + i2 <= 2·i0 + i3` among three, from the start clause's
+  comparison) and loop2 (equalities over four values); reve 015 and break_safe.c-1 as before.
+- Measured and left out, each no gain on the same tasks (`runs/inv/dev80-*`, 79 tasks, Modal): candidates tried as IC3
+  would before one is added, and a counterexample to a cone form ruled out before it is joined (675 against 670 on all
+  1,406, `runs/inv/chc-join4`, `chc-join6`); IC3's lemma from a counterexample's cube (68, 68 and 67 of 79); a request
+  the assumption refuses mended by local search, as WalkSAT does (67 against 67); the join at 0.35 of the budget
+  (662 against 670, `runs/inv/chc-join5`).
+- `examples/infer.ts`: three accounts and moves between them, one account within the total paid in, which needs
+  `a + b + c <= total` (the old search's forms of three values don't hold it); a test in `core/infer.test.ts`.
+- The suite (204 jobs) on Modal, 0.22.0 and this branch one after the other, as boat had no starts left: by default
+  0.22.0 491.5 s wall and 4,796.4 s of job time, this branch 480.1 s and 4,604.1 s, none failed (`runs/inv/suite-base`,
+  `runs/inv/suite`; a first run failed the new test on bun's 5 s limit for a test, now 60 s as the other searches'
+  tests have, `runs/inv/suite-try1`); `--usual` 482.5 s and 4,351.6 s against 444.9 s and 4,237.4 s, none failed
+  (`runs/inv/suite-base-usual`, `runs/inv/suite-usual`). The release's boat runs, for scale: 307.8 s and 3,073.9 s,
+  `--usual` 264.7 s and 2,418.3 s (`runs/release/0.22.0-default`, `-usual`). The first frontier corpus 90 of 92, its 42
+  broken variants refused, in all three.
+- Sizes: `core/infer.ts` 681 → 987 lines (+313, −7), `core/infer.test.ts` +10 −1, `examples/infer.ts` +16 −1,
+  `research/inv/one.ts` +11 (inferLaws on one CHC task as the corpus runs it).
+- Cost: Modal $22.60314 for this track's 29 apps today (`modal billing report --for today`, today's figures before the
+  day closes); boat $0.01892 (the runner's lines, four batches).
+
 Infrastructure (nothing in the library changed): the boat backend paces its VM starts.
 
 - boat's starts are spent by plan (a resume is a start; `boat limits` is read at every batch, so a new plan takes
