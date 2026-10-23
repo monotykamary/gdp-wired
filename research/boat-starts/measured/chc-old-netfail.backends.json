@@ -1,0 +1,47 @@
+{
+ "backend": "auto",
+ "vms": 214,
+ "leased_running": 0,
+ "resumed": 156,
+ "created": 47,
+ "topped_up": 0,
+ "not_resumed": 0,
+ "account_day": null,
+ "to_running_s": [
+  3.9,
+  9.5,
+  69.8
+ ],
+ "prep_s": [
+  1.4,
+  9.2,
+  58.3
+ ],
+ "tree_from_seed": 198,
+ "types": [
+  "default"
+ ],
+ "held_s": 155756.2,
+ "ready_held_s": 148423.3,
+ "busy_s": 23995.5,
+ "idle_vm_s": 124427.8,
+ "bring_up_s": 7332.8,
+ "idle_tail_s": 0,
+ "idle_s": 60,
+ "starts": 203,
+ "dollars_so_far": 0,
+ "batch": "20261023-113253-6sppux",
+ "image": "gdpw-9fee57bd731c",
+ "where": {
+  "boat": 952,
+  "modal": 0
+ },
+ "fallbacks": [
+  {
+   "calls": 455,
+   "to": "modal",
+   "reason": "every boat VM lost (bx_sxtanj9a: boat list failed (1): {\"error\":\"could not reach the Boat API at https://boat.dev: error sending request for url (https://boat.dev/api/boat/sandboxes?limit=200&state=init,provisioning,provisioned,cloni)"
+  }
+ ],
+ "wall_s": 1076.1
+}

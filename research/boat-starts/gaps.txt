@@ -1,0 +1,15 @@
+67 batches; at 26 of their ends another batch was running
+to the next batch of any track: 66 gaps, median 67 s, p75 128 s, p90 398 s, max 3010 s
+  covered by an idle window of    60 s: 32 of 66
+  covered by an idle window of   120 s: 48 of 66
+  covered by an idle window of   300 s: 59 of 66
+  covered by an idle window of   600 s: 62 of 66
+  covered by an idle window of   900 s: 62 of 66
+  covered by an idle window of  1800 s: 65 of 66
+to the same track's next batch: 60 gaps, median 74 s, p75 450 s, p90 1216 s, max 3010 s
+  covered by an idle window of    60 s: 27 of 60
+  covered by an idle window of   120 s: 35 of 60
+  covered by an idle window of   300 s: 44 of 60
+  covered by an idle window of   600 s: 51 of 60
+  covered by an idle window of   900 s: 53 of 60
+  covered by an idle window of  1800 s: 57 of 60
