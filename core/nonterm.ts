@@ -259,12 +259,14 @@ export function findNeverEnds(l: Loop, opts: NeverEndsOptions = {}): NeverEndsVe
   // 1. Random runs: the states they reach, each with its stem; a lasso on the way is tried at once.
   const visits: Visit[] = [], bounds = [1, 2, 4, 8, 16, 64]
   try {
-    while (performance.now() < t0 + (until - t0) * (opts.lassos ? 1 : 0.2)) {
+    // (a fifth of the time, at most 1.5 s, unless only lassos are asked for; at most 4,000 states kept, then only a
+    // run's last)
+    while (performance.now() < (opts.lassos ? until : Math.min(t0 + (until - t0) * 0.2, t0 + 1500))) {
       const bound = bounds[stats.runs++ % bounds.length]!, ps = drawParams(bound)
       if (!ps) continue
       let st = start(ps)
       const stem: Env[] = [], seen = new Map<string, number>(), trail: Env[] = [], run = {n: 0}
-      visits.push({params: ps, trail: stem, at: 0, st, run})
+      if (visits.length < 4000) visits.push({params: ps, trail: stem, at: 0, st, run})
       for (let n = 0; n < 3000 && performance.now() < until; n++) {
         const key = keyOf(st), back = seen.get(key)
         if (back !== undefined) {
@@ -279,9 +281,9 @@ export function findNeverEnds(l: Loop, opts: NeverEndsOptions = {}): NeverEndsVe
         if (!next) break
         stem.push(input!); stats.turns++; run.n++
         st = next
-        if (n % 50 === 49 || n < 8) visits.push({params: ps, trail: stem, at: stem.length, st, run})
+        if ((n % 50 === 49 || n < 8) && visits.length < 4000) visits.push({params: ps, trail: stem, at: stem.length, st, run})
       }
-      visits.push({params: ps, trail: stem, at: stem.length, st, run})
+      if (visits.length < 20000 || run.n >= 100) visits.push({params: ps, trail: stem, at: stem.length, st, run})
     }
   } catch (e) { if (!(e instanceof Overflow)) return done({proven: false, checked: false, why: (e as Error).message.slice(0, 200)}) }
 
