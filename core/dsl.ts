@@ -2476,9 +2476,15 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   if (deeper?.run) return refutedVerdict(deeper)
   const until = performance.now() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000)
   // Bounded runs (core/bmc.ts): a law broken k steps from the start, a model of the kernel's k-step goal, the run taken
-  // by the interpreter; a tenth of the search's budget, counted and in wall time, at most a second.
-  const bmcMs = Math.min(1000, (until - performance.now()) / 10), bounded = findBoundedRun(r.machine, laws, {ms: bmcMs, wall: performance.now() + bmcMs})
-  if (bounded) return refutedVerdict({goal: `${bounded.law} @step (a run of ${bounded.depth} steps from the start)`, witness: bounded.witness, run: {params: bounded.params, trace: bounded.trace.map(shownRequest)}})
+  // by the interpreter. The shallow depths first, within a fortieth of the search's budget (at most 250 ms, counted and
+  // in wall time); the deeper ones only where the invariant search finds nothing, within the tenth (at most a second)
+  // kept from it, so a law the search proves costs no more than the shallow depths.
+  const total = until - performance.now(), tail = Math.min(1000, total / 10)
+  let reached = 0
+  const bounded = (ms: number, from: number) => findBoundedRun(r.machine, laws, {ms, wall: performance.now() + ms, from, progress: k => { reached = k }})
+  const refutedBy = (b: NonNullable<ReturnType<typeof bounded>>): Verdict => refutedVerdict({goal: `${b.law} @step (a run of ${b.depth} steps from the start)`, witness: b.witness, run: {params: b.params, trace: b.trace.map(shownRequest)}})
+  const shallow = bounded(Math.min(250, total / 40), 1)
+  if (shallow) return refutedBy(shallow)
   let rule = r, lemmas: Found['lemmas']
   const {fns, lists} = r.parts
   if (lists.length || fns.some(([, d]) => recurOf(d))) {
@@ -2492,10 +2498,14 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
     const c = withDeadline(until, () => cycleLemmas(rule.machine, withKinds(rule, laws), stepLaws, {ms: (until - performance.now()) / 2}))
     if (c.proven && c.checked) return {proven: true, checked: true, found: {...(lemmas ? {lemmas} : {}), facts: c.found.map(f => f.text)}}
   }
-  const ms = until - performance.now()
+  const ms = until - performance.now() - tail
   if (ms < 500) return v
   const inf = inferLaws(rule, laws, stepLaws, {ms, ...(rule === r ? {first: v} : {})})
-  if (!(inf.proven && inf.checked)) return {...v, why: [v.why, `the search found nothing that proves it in ${Math.round(inf.stats.ms)} ms`].filter(Boolean).join('; ')}
+  if (!(inf.proven && inf.checked)) {
+    const deep = bounded(Math.max(0, until - performance.now()), Math.max(1, reached))
+    if (deep) return refutedBy(deep)
+    return {...v, why: [v.why, `the search found nothing that proves it in ${Math.round(inf.stats.ms)} ms`].filter(Boolean).join('; ')}
+  }
   const {found, stats: _stats, ...verdict} = inf
   void _stats
   return {...verdict, found: {laws: found, ...(lemmas ? {lemmas} : {})}}
