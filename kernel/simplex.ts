@@ -176,6 +176,17 @@ export class Simplex {
     this.colOf[e]!.delete(r)
     for (const j of ecoef.keys()) this.colOf[j]!.add(r)
   }
+  // Whether a row (lin <= 0) holds at the current point, or undefined where it reads a variable the tableau hasn't met.
+  holds(lin: Lin): boolean | undefined {
+    let x = lin['1'] ?? 0
+    for (const key in lin) {
+      if (key === '1') continue
+      const j = this.index.get(key)
+      if (j === undefined) return undefined
+      x += lin[key]! * this.val[j]!
+    }
+    return x <= tol(x)
+  }
   get size(): number { return this.rows.length }
   get nnz(): number { let n = 0; for (const r of this.rows) n += r.coef.size; return n }
   get vars(): number { return this.val.length }
