@@ -274,11 +274,21 @@ function unrolled(m: Machine, laws: Law[]) {
       cs = cs.map(put).flatMap(top)
       if (cs.some(isFalse)) return undefined
       cs = cs.filter(c => !isTrue(c))
-      const h = cs.find(c => c.op === '=' && ((c.a.op === 'var' && own.has(c.a.name) && !(c.a.name in sub) && (c.b.op === 'const' || (c.b.op === 'var' && c.b.name !== c.a.name))) || (c.b.op === 'var' && own.has(c.b.name) && !(c.b.name in sub) && c.a.op === 'const')))
-      if (!h || h.op !== '=') return cs
-      const [n, e] = h.a.op === 'var' && own.has(h.a.name) && !(h.a.name in sub) ? [h.a.name, h.b] : [(h.b as {name: string}).name, h.a]
-      sub[n] = e; defs.push([n, e])
-      for (const x of Object.keys(sub)) if (sub[x]!.op === 'var' && (sub[x] as {name: string}).name === n) sub[x] = e
+      // (each round, every name of this step that an equation gives a constant or another name, put in at once)
+      const now: Record<string, E> = {}, used = new Set<C>()
+      for (const c of cs) {
+        if (c.op !== '=') continue
+        const free = (x: E) => x.op === 'var' && own.has(x.name) && !(x.name in sub) && !(x.name in now)
+        const [n, e] = free(c.a) && (c.b.op === 'const' || (c.b.op === 'var' && c.b.name !== (c.a as {name: string}).name && !(c.b.name in now))) ? [(c.a as {name: string}).name, c.b] : free(c.b) && c.a.op === 'const' ? [(c.b as {name: string}).name, c.a] : []
+        if (n === undefined) continue
+        now[n] = e!; used.add(c)
+      }
+      if (!Object.keys(now).length) return cs
+      // (a name another of this round's names is: the end of the chain)
+      for (const n of Object.keys(now)) { let e = now[n]!; for (let i = 0; e.op === 'var' && now[e.name] && i < 64; i++) e = now[e.name]!; now[n] = e }
+      for (const [n, e] of Object.entries(now)) { sub[n] = e; defs.push([n, e]) }
+      for (const x of Object.keys(sub)) { const e = sub[x]!; if (e.op === 'var' && e.name in now) sub[x] = now[e.name]! }
+      cs = cs.filter(c => !used.has(c))
     }
   }
   // The next depth: its hypotheses added, and asked; the query folded to false is refuted with no search.
