@@ -207,7 +207,10 @@ export function forcedRun(m: Machine, laws: Law[], opts: {steps: number, wall: n
   let choices: Record<string, number>[] = [{}]
   for (const i of finite) { const n = bound.get(i)!; choices = choices.flatMap(ch => Array.from({length: n}, (_, v) => ({...ch, [i]: v}))); if (choices.length > 256) return undefined }
   // Whether a case reads a free value: its assumption and updates with the case put in.
-  const conds: C[] = [...(m.assume ? [m.assume] : []), ...Object.values(m.step.flags ?? {})], updates = Object.values(m.step.state ?? {})
+  // (the step's flags put in first: each a condition of the step, read where the terms read it)
+  const flags = {vars: {}, maps: {}, flags: m.step.flags ?? {}}
+  const assume = m.assume && substC(m.assume, flags)
+  const conds: C[] = assume ? [assume] : [], updates = Object.values(m.step.state ?? {}).map(e => substE(e, flags))
   const reads = choices.map(ch => {
     const s = {vars: Object.fromEntries(Object.entries(ch).map(([n, v]) => [n, {op: 'const', value: v} as E])), maps: {}, flags: {}}
     const ns = occurrences([...conds.map(c => simpC(substC(c, s))), ...updates.map(e => simpE(substE(e, s)))])
@@ -217,7 +220,7 @@ export function forcedRun(m: Machine, laws: Law[], opts: {steps: number, wall: n
   // before the step is taken.
   const at = choices.map(ch => {
     const s = {vars: Object.fromEntries(Object.entries(ch).map(([n, v]) => [n, {op: 'const', value: v} as E])), maps: {}, flags: {}}
-    return (m.assume ? top(simpC(substC(m.assume, s))) : []).flatMap(c => (c.op === '=' && c.a.op === 'var' && c.a.name in m.state && c.b.op === 'const' ? [[c.a.name, c.b.value] as const] : []))
+    return (assume ? top(simpC(substC(assume, s))) : []).flatMap(c => (c.op === '=' && c.a.op === 'var' && c.a.name in m.state && c.b.op === 'const' ? [[c.a.name, c.b.value] as const] : []))
   })
   // The rule with its assumption as a value (bmc$ok: 1 where the request is allowed), so a refused request throws nothing.
   const ok = 'bmc$ok'
