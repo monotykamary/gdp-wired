@@ -1,0 +1,7 @@
+// expect: nonterminating
+// The right side of || is never evaluated (x == 0 always): no overflow happens, the loop runs forever.
+int main(void) {
+  int x = 0;
+  while (x == 0 || 2147483647 + 1 > 0) { }
+  return 0;
+}

@@ -1,0 +1,9 @@
+// expect: nonterminating. s - 1 is the int -32769, and stored back in a short it is 32767 (gcc's conversion, modulo
+// 2^16), so s > 0 holds forever. Stored as it is, s would be -32769 and the loop would end.
+int main() {
+  short s = -32768;
+  s = s - 1;
+  while (s > 0) {
+  }
+  return 0;
+}

@@ -1,0 +1,9 @@
+// expect: terminates. x / d with d = 0 is undefined behaviour, where the run ends.
+int main() {
+  int d = 0;
+  int x = 5;
+  while (1) {
+    x = x / d;
+  }
+  return 0;
+}

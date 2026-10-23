@@ -1,0 +1,7 @@
+// expect: terminates
+// A static array in main starts all zeros: the loop is never entered.
+int main(void) {
+  static int a[3];
+  while (a[1] != 0) { }
+  return 0;
+}

@@ -1,0 +1,10 @@
+// expect: nonterminating. f calls itself forever with the same argument (no frame ever returns, no arithmetic is
+// done, so no overflow either). Calls read only as returning some value would end the program at once. (f(n + 1)
+// would not do: it overflows at INT_MAX, undefined behaviour, where the run ends.)
+int f(int n) {
+  return f(n) - 1;
+}
+int main() {
+  f(0);
+  return 0;
+}

@@ -1,0 +1,12 @@
+// expect: nonterminating. q = p makes *q x, not y: x becomes 2.
+int main() {
+  int x = 0;
+  int y = 0;
+  int *p = &x;
+  int *q = &y;
+  q = p;
+  *q = 2;
+  while (x == 2) {
+  }
+  return 0;
+}

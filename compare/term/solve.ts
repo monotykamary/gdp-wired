@@ -17,6 +17,8 @@
 // `--scc`: the rank search on each strongly connected component of the locations, chained, from any state at its cut
 // points (scc.ts: a stronger statement, counted apart); a task with no cycle of locations is proven whole. The lassos
 // are always the task's own runs.
+// `--want terminates` or `--want nonterminating`: only that answer is searched for (c2ari.py's two translations of a
+// recursive C program, each exact for one answer).
 import {readFileSync} from 'node:fs'
 import {Unsupported, checkLasso, parseAri, type Step} from './ari.ts'
 import {type Built, build, stepOf} from './translate.ts'
@@ -30,6 +32,7 @@ import {findNeverEnds} from '../../core/nonterm.ts'
 const args = process.argv.slice(2), file = args[0]!
 const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 ? d : Number(args[i + 1]) }
 const limit = opt('--limit', 60), lassoMs = opt('--lasso-ms', 2000), margin = opt('--margin', 9), scc = args.includes('--scc'), ntMs = opt('--recur-ms', 4000)
+const want = args.includes('--want') ? args[args.indexOf('--want') + 1] : ''
 const t0 = performance.now(), ms = () => Math.round(performance.now() - t0)
 const say = (o: object) => console.log(JSON.stringify({ms: ms(), ...o}))
 const done = (answer: string, o: object = {}) => { say({stage: 'answer', answer, ...o}); process.exit(0) }
@@ -95,8 +98,10 @@ function lassos(until: number): void {
     }
   }
 }
-lassos(Math.min(t0 + lassoMs, t0 + limit * 1000))
-say({stage: 'lassos', runs, turns, refused: refusedWitness})
+if (want !== 'terminates') {
+  lassos(Math.min(t0 + lassoMs, t0 + limit * 1000))
+  say({stage: 'lassos', runs, turns, refused: refusedWitness})
+}
 
 // --- runs that never end: a closed recurrent set with its turn given (core/nonterm.ts), its closure goal's tree checked
 // by the kernel (kernel.ts's checkRecur; NonTerm.lean's never_ends_of). Where the set is a lasso's, the lasso is also
@@ -122,7 +127,7 @@ function neverEnds(ms: number, tag: string): void {
   }
   done('nonterminating', {by: 'recurrent set', kind: v.by, stem: r.stem.length, setSize: size, ...(replay ? {replay} : {}), recur: size < 200_000 ? r : undefined})
 }
-neverEnds(Math.min(ntMs, limit * 1000 - ms() - 1000), 'first')
+if (want !== 'terminates') neverEnds(Math.min(ntMs, limit * 1000 - ms() - 1000), 'first')
 
 // --- the rank ---------------------------------------------------------------------------------------------------------
 // findRank on a loop, then the kernel again on the loop as translated: every goal of its halting, with the rank and the
@@ -150,10 +155,11 @@ function prove(l: typeof loop, ms: number, tag: object = {}): Proven {
   return {ok: false, why: f.why ?? 'no rank'}
 }
 // the rank search's time: 70% of what is left before the margin (the recurrent set's second search has the rest)
-const rankUntil = ms() + 0.7 * ((limit - margin) * 1000 - ms()), left = () => rankUntil - ms()
+const rankUntil = ms() + (want === 'terminates' ? 1 : 0.7) * ((limit - margin) * 1000 - ms()), left = () => rankUntil - ms()
 let why = 'no rank'
 const comps = scc ? components(task!) : []
-if (scc && comps.length) {
+if (want === 'nonterminating') why = 'no rank searched (--want nonterminating)'
+else if (scc && comps.length) {
   // each component on its own, from any state at its cut points; every one must halt
   say({stage: 'components', components: comps.map(c => ({locations: c.locations, rules: c.rules, chained: c.chained}))})
   const sizes: object[] = []
@@ -183,7 +189,9 @@ if (scc && comps.length) {
   }
   why = out.why!
 }
-neverEnds(((limit - 2) * 1000 - ms()) * 0.6, 'again')
-lassos(t0 + (limit - 2) * 1000)
-say({stage: 'lassos', runs, turns, refused: refusedWitness})
+if (want !== 'terminates') {
+  neverEnds(((limit - 2) * 1000 - ms()) * 0.6, 'again')
+  lassos(t0 + (limit - 2) * 1000)
+  say({stage: 'lassos', runs, turns, refused: refusedWitness})
+}
 done('unknown', {why})

@@ -1,0 +1,9 @@
+// expect: nonterminating
+// gcc and clang give an enum with no negative constant the type unsigned int (C11 6.7.2.2p4, implementation-defined):
+// e-- wraps and e >= 0 always holds. c2ari reads every enum as int: e falls to INT_MIN and overflows.
+typedef enum { A, B } E;
+int main(void) {
+  E e = A;
+  while (e >= 0) { e--; }
+  return 0;
+}

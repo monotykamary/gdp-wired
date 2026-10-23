@@ -323,6 +323,60 @@ refuses it. Nothing trusted changed (`kernel/`, `core/check.ts` and `lean-kernel
   4,298.9 s and 4,300.6 s `--usual`. Modal's billing for the work: $0.870 here (four extraction batches $0.011, three
   suites, the lean-nonterm reruns), $0.851 for the base.
 
+SV-COMP's C programs, faithfully and more of them (`compare/term/c2ari.py`): C's integer types and conversions on the
+task's data model (unsigned arithmetic modulo 2^n, the usual arithmetic conversions, narrowing as gcc does it, _Bool
+0 or 1), undefined behaviour ending the run (a signed overflow, checked unless the task's .yml declares none; division
+by zero; an access out of bounds or through a bad pointer), division by any divisor, the ternary operator, calls
+inside expressions, arrays of a fixed size, pointers to a fixed set of objects (&x, malloc, alloca, free), and
+recursion as two translations, each exact for its one answer (for "terminates" a call either never returns, its frame
+forgotten, or returns any value and writes any value to the globals it may write; for "nonterminating" calls inlined
+4 deep, past that never returning); solve.ts `--want` searches for one answer. Nothing trusted changed. 271 of the
+282 tasks translate (226 before); the 192 that translated before and have no overflow to check translate character
+for character as before (`runs/svfront/translations-main`, `translations-mine`). At 60 s on Modal, launched together
+with main at 6b2e2df: 213 solved (158 terminating, 55 not), main 181 (134, 47); per component 199 (144, 55), main 172
+(125, 47); none wrong against the tasks' expected verdicts, none lost (`runs/svfront/f2-mine`, `f2-base`). Ultimate
+Automizer 224 (`runs/modal/term/sv2`); 16 of the 213 it doesn't answer, 27 of its 224 not here (18 loops whose rank
+isn't found, 6 recursive programs needing what a call returns, 4BitCounterPointer, and 2 nonterminating). 38
+adversarial C programs (`compare/term/adversarial/*.c.txt`, `c2ari_test.py`: conversions, the data model, recursion,
+arrays, pointers, division, undefined behaviour where it is and isn't evaluated) are never answered against how they
+run (`runs/svfront/probes2`). Suites: by default 213 jobs, none failed, 595.3 s wall, 5,213.5 s of job time
+(`runs/svfront/suite-default`); `--usual` 213 jobs, none failed, 504.5 s wall, 4,895.0 s (`suite-usual`); `term-c2ari`
+now takes 2 vCPU.
+
+An independent check of the C front end (branch verify/sv-front, research/verify-sv: 93 adversarial C programs, run
+natively under gcc and clang with UBSan) found 20 answered against how C runs, from 8 defects, now fixed, each
+modelled or refused: static locals in main start at 0; a pointer read knows every object the program takes the address
+of or allocates (two passes, the second with the first's objects), not only those earlier in the text; an overflowing
+constant on the side of && or || that isn't evaluated no longer ends the run; an array past 64 elements keeps the
+elements read at plain int constant indices only (no names, suffixes or wrapping), anything else refused; an enum's
+type is gcc's (unsigned int where no constant is negative, constants counted from the one before), and a task's typedef
+of bool is its own; preprocessor directives other than #include of a known standard header are refused (no task has
+one); C's unspecified evaluation order is refused wherever it can matter (two calls one of which writes a global or
+through a pointer or ends the run, a call writing what the rest of the expression reads, an assignment's target
+included); a task's own reach_error that returns is its own function. Also: with goto, the entry's 64-bit values keep
+their range (a declaration jumped past), and an array whose size reads a variable is refused. All 93 programs are now
+answered by no run against how C runs (`runs/svfront/verify-fix1`); 21 of them join `c2ari_test.py` (60 programs, none
+answered against the program, `suite-default-2`). The 282 tasks' translations are unchanged, character for character,
+for both recursion translations and --unchecked; 4 refusals' messages reworded (`translations-fix`). SV-COMP beside
+main at 5055882, launched together: 213 (158, 55), main 182 (135, 47); per component 199, main 172, none wrong, none lost
+(`runs/svfront/f4-mine`, `f4-base`); a run before it answered 212 (`f3-mine`: gcd01-2, translated the same, not proven
+within the time where four other runs proved it at 26 to 33 s). Suites after merging main at 5055882: by default 217
+jobs, none failed, 640.8 s wall, 5,350.6 s of job time (`suite-default-2`); `--usual` 217, none failed, 602.9 s wall,
+4,961.4 s (`suite-usual-2`).
+
+Its re-check (branch verify/sv-front-2: 52 more programs) found 2 more defects, fixed: the order check read `*p` as
+reading only p (now a dereference reads every object the program takes the address of, and every allocated cell:
+`*p + f()` and `*p += f()` with f writing the global p names are refused); and comments were stripped by regular
+expressions, so a /* inside a // comment or a string literal began one (now one pass left to right, as C's lexer reads,
+string and character literals kept whole). Refused as compilers read them differently: trigraphs, and a backslash with
+spaces before its newline. All 145 programs: no run answers against how C runs (`runs/svfront/verify-fix2`); 6 join
+`c2ari_test.py` (66, none answered against the program). The 282 tasks' translations unchanged, both recursion
+translations and --unchecked (`translations-fix2`). SV-COMP beside main at 5055882: 213 (158, 55), main 182 (135, 47);
+per component 200, main 172; none wrong, none lost (`f5-mine`, `f5-base`). Suites: by default 217 jobs, none failed,
+533.6 s wall, 5,227.8 s of job time (`suite-default-3`); `--usual` 217, none failed, 593.2 s wall, 4,837.5 s
+(`suite-usual-3`). Not done (it loses answers, it isn't unsound): a call before && or ? is sequenced first, so
+`f() && g` could be allowed where f writes g; it is still refused.
+
 ## 0.23.0
 
 Every benchmark moved, two trusted additions came with their Lean proofs first, and a real-world corpus joins the

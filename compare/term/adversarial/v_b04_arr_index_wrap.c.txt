@@ -1,0 +1,7 @@
+// expect: nonterminating
+// 4294967295u + 1u wraps to 0: the loop reads a[0], which is 0 forever.
+int a[100];
+int main(void) {
+  while (a[4294967295u + 1u] == 0) { }
+  return 0;
+}

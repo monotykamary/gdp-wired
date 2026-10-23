@@ -1,0 +1,9 @@
+// expect: nonterminating. x is unsigned: x-- from 0 is UINT_MAX, and x >= 0 always holds. Over unbounded integers x
+// reaches -1 and the loop ends.
+int main() {
+  unsigned int x = __VERIFIER_nondet_uint();
+  while (x >= 0) {
+    x--;
+  }
+  return 0;
+}

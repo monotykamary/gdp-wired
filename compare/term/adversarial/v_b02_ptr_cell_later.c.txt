@@ -1,0 +1,12 @@
+// expect: nonterminating
+// *p reads x on the first turn and y (whose address is taken later in the text) on every later one.
+int main(void) {
+  int x = 0;
+  int y = 0;
+  int *p = &x;
+  while (1) {
+    y = *p;
+    p = &y;
+  }
+  return 0;
+}
