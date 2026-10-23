@@ -88,28 +88,32 @@ contradicts another tool's, a lasso or any of this track's or main's runs (`runs
 Disjunctive invariants in the join (`core/infer.ts`): a counterexample no candidate rules out is blocked as IC3 blocks
 a cube, by relative induction, its literals cut down to the core of the CDCL search's refutation (`kernel/cdcl.ts`'s
 new `core` option); the join's goals asked first of that search for a model alone; the control states no run reached
-one law. Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts` and `lean-kernel/` are as in
-0.23.0): every answer is still the kernel's proof of the whole set. CHC-COMP LIA-Lin at 60 s on Modal, gdp alone,
-beside main at 6b2e2df launched at the same time: 816 solved (551 sat, 265 unsat) against 782 (517, 265), none wrong
-either (`runs/chcsat/final4/chc`, `chc-main`); 40 sat more, 6 fewer, unsat one more and one fewer. The same code
-again gave 555 sat (`runs/chcsat/final3/chc-k2`), main three more times the same day 519, 521 and 523.
+one law until it is first broken. Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts` and
+`lean-kernel/` are as in 0.24.0): every answer is still the kernel's proof of the whole set. CHC-COMP LIA-Lin at 60 s
+on Modal, gdp alone, merged with main at 54bbec9 (0.24.0's bounded search on one CDCL session at 15 s, k-induction on
+the second vCPU) and launched together with it: 966 solved (569 sat, 397 unsat) against 935 (537, 398), none wrong, 2
+disputed in each (s_split_22 and s_split_50, as main lists them) (`runs/chcsat/m2/chc`, `chc-main`). 37 sat more, 5
+fewer, 1 unsat fewer; of the sat, 436 by the invariant search against 403, 133 by k-induction against 134.
 
 | Group (research/frontier2's) | tasks | main | here |
 | --- | --- | --- | --- |
-| A: Lustre, the step goal over a wide transition | 195 | 161 | 177 |
-| B: Lustre, within the templates, not found | 39 | 30 | 30 |
-| C: a program counter in bits beside at most one linear literal | 38 | 8 | 17 |
-| D: a clause of two or more linear literals | 113 | 8 | 13 |
-| E: an atom over more than three values | 71 | 27 | 31 |
-| F: a remainder, a quotient, a projection's existential | 34 | 7 | 8 |
-| G: not Lustre, within the templates, not found | 15 | 8 | 9 |
-| H, I: unsat | 303 | 121 | 121 |
-| the rest | 598 | 412 | 410 |
+| A: Lustre, the step goal over a wide transition | 195 | 168 | 185 |
+| B: Lustre, within the templates, not found | 39 | 33 | 33 |
+| C: a program counter in bits beside at most one linear literal | 38 | 8 | 12 |
+| D: a clause of two or more linear literals | 113 | 15 | 18 |
+| E: an atom over more than three values | 71 | 28 | 31 |
+| F: a remainder, a quotient, a projection's existential | 34 | 7 | 9 |
+| G: not Lustre, within the templates, not found | 15 | 8 | 8 |
+| H, I: unsat | 303 | 242 | 241 |
+| the rest | 598 | 426 | 429 |
 
-- `growCdcl(..., {model: true, core: true})`: a refutation's outcome names the hypotheses its leaves read (each leaf's
-  rows are those hypotheses' facts at its decisions, or rows true of any value: the trail's atoms, the naturals, the
-  term columns' definitions); a clause never made into a node (a bound's, not yet materialized) leaves it unnamed. Off,
-  the search is as it was.
+- `growCdcl(..., {model: true, core: true})` (on bmc2's session, `cdclSession(goal, root, {model, core})`): a
+  refutation's outcome names the hypotheses its leaves read (each leaf's rows are those hypotheses' facts at its
+  decisions, or rows true of any value: the trail's atoms, the naturals, the term columns' definitions); a clause never
+  made into a node (a bound's, not yet materialized) leaves it unnamed. Off, the search is as it was: research/dag's
+  332 step goals give the same trees (outcome, leaves, splits, conflicts, decisions) by `growCdcl` and by `grow` here
+  and on main, all 664 proven, and `GDP_CDCL_VERIFY=1` passes (`runs/chcsat/m1/eq`, `eq-main`). 88 cores of step goals
+  of four tasks (ctigar, HOLA, Lustre) each refuted again with their hypotheses alone.
 - The join's goals (`stepWith`): first a model alone of the CDCL search at a quarter of the goal's budget, the forms a
   refutation read (its core) standing for those a tree reads (`usedHyps`); a model is the counterexample; undecided,
   the prover as before. The set's proof below is the prover's, trees and all, as before.
@@ -123,51 +127,56 @@ again gave 555 sat (`runs/chcsat/final3/chc-k2`), main three more times the same
   deep), else the cube made smaller to leave its successor out (a reached state's successor a sample now). Each cube
   blocked is a form of the set ("never all of these"), kept or dropped by the join as any other; 48 at most, 2 s a
   query. Once one is in, the join has 0.3 of what is left of its time and the search below the rest.
-- The control states no run reached (pc values in bits, their combinations) one form for all: each alone needs the
-  others to be inductive, a goal each with the whole set (ctigar's `nest-if3`: 30 rounds of 0.5–0.7 s, each proving
-  one such goal, `runs/chcsat/full1-noframes`). Broken twice, they are forms of their own again, so that a state joined in changes only the proofs that read
-  its own control state (found on the real-world corpus: xstate gapless.js's "the fetch-and-decode child is spawned at
-  most once", proven 6 of 6 on main and 0 of 6 with one form for good, 5 of 6 now, 47–53 s against main's 46–57 s,
-  `runs/chcsat/final2/gapless-k`, `gapless-m`).
+- The control states no run reached (pc values in bits, their combinations) one form for all until it is first broken:
+  each alone needs the others to be inductive, a goal each with the whole set (ctigar's `nest-if3`: 30 rounds of 0.5–0.7
+  s, each proving one such goal, `runs/chcsat/full1-noframes`); once broken, each its own form, so that a state joined
+  in changes only the proofs that read its own control state. Kept one form for good, a real-world law's search
+  (xstate gapless.js, "the fetch-and-decode child is spawned at most once") went from 6 of 6 proven to 0 of 6
+  (`runs/chcsat/final2/gapless-k`, before the merge); after it, split at the second break, 6 of 6 at 43–58 s (main
+  41–47 s); at the first, 6 of 6 at 33–44 s (`runs/chcsat/m1/gapless-ab`). The
+  first break costs group C about 4 (12 and 11 in two runs against 15, 15 and 16, the whole track 566 and 570 sat
+  against 567, 571 and 575, `runs/chcsat/m1/chc-k1a`, `chc-k1b`, `chc`, `chc-k2a`, `chc-k2b`); the real-world verdicts
+  come first.
 - `InferOptions.minimize` (default true): false answers as soon as the set is proven, without taking out what the
-  proof doesn't need; compare/chc/solve.ts passes false (main's answers waited for it to the deadline: on the 511 sat
-  tasks both solve, a median 28.83 s here, 30.2 s on main).
-- Sat, by family: Lustre 291 → 311, ctigar 14 → 26, rust-horn 2 → 4; of the 40 gained, 38 through the join's own
-  proof (6 of them with cubes), 2 through the search below it after cubes. Lost: 6 sat tasks whose join on main stopped
-  at once on a counterexample no candidate rules out (0.2–2.9 s) and whose search below then proved them (24–58 s);
-  here the join blocked a cube and went on (10.8–18.1 s), leaving that search too little. The unsat one lost and one
-  gained are the bounded runs' (`O3_sum01_bug02`, `O3_id_o10`), a stage this doesn't change.
+  proof doesn't need; compare/chc/solve.ts passes false (on the 532 sat tasks both solve, a median 28.94 s here, 29.81 s
+  on main).
+- By family: Lustre 307 → 329, ctigar 13 → 22. Lost: s_split_08, s_split_22_000_000, nested-while_merged_safe,
+  FIREFLY_4_e3_1713, _6counters_e8_371_e1_448 (sat), 025c-horn (unsat, by main's bounded runs at 28 s, not found here).
+  s_split_08 is the samples' (run locally three times each: proven 2 of 3 here and 2 of 3 on main, the search below
+  the join failing where the runs' samples leave 124 of its 164 candidates); FIREFLY_4 had fewer samples (142 against
+  205); on the others the join's cubes took time the search below it used on main, or the search stopped otherwise.
+- Before merging main, beside 6b2e2df: 816 (551 sat, 265 unsat) against 782 (517, 265) (`runs/chcsat/final4/chc`,
+  `chc-main`; main four times that day 517, 519, 521, 523), the second frontier corpus 27 of 47 in both with every
+  broken variant refused and each item's verdict the same (`final4/corpus2`, `corpus2-main`), TermComp's ITS 1,029 and
+  1,041 in both, terminating 568 and 578 against 574 and 580 (the 8 terminating tasks main answered and this didn't,
+  run twice more each: main 8 of 16, here 7 of 16, `final4/itsl-*`), SV-COMP 181 against 182 (`final4/its`, `sv`).
 - Measured and left out (each against the same code without it, on the 169 tasks of `runs/chcsat/dev.json` or all
-  1,406): IC3 with frames after the join (F_1..F_N, lemmas pushed, obligations by level, cubes joined per control
-  state; 547 against 552 on all, `runs/chcsat/full1`, `full1-noframes`); runs from the kernel's models past the
-  samples' bounds (k-step goals from a sample, 4 steps at most: few models within budget on Lustre, 27 of 80 Lustre
+  1,406, before the merge): IC3 with frames after the join (F_1..F_N, lemmas pushed, obligations by level, cubes joined
+  per control state; 547 against 552 on all, `runs/chcsat/full1`, `full1-noframes`); runs from the kernel's models past
+  the samples' bounds (k-step goals from a sample, 4 steps at most: few models within budget on Lustre, 27 of 80 Lustre
   tasks both ways, `l1`, `l1n`); runs whose every request is a CDCL model, for Lustre's few samples (28, 29, 27 and 28
   of 80 at shares 0, 0.1, 0.25, 0.4, `l2o`, `l2`, `l3a`, `l3b`); the search below the join by CDCL models first (551
   against 554 on all, `full2`, `full2-nosearch`); the set sliced by the control states a step comes from (33 against
   47, `dev-c8`, `dev-c8ns`); every unproven goal of the cone in one query (44 and 44, `dev-c10`, `dev-c10o`); cubes'
   predecessors 8 deep (41 against 40); the join's share at 0.9 (38 against 39).
-- Other benchmarks, beside main launched at the same time: TermComp's ITS, on the task's statement 1,029 (568
-  terminating, 461 not) against 1,029 (574, 455), per component 1,041 (578, 463) against 1,041 (580, 461)
-  (`runs/chcsat/final4/its`, `its-main`); the 8 terminating tasks main answered and this didn't, run twice more each:
-  main 8 of 16, here 7 of 16, here with `GDP_JOIN_CORE=0` 8 of 16 (`itsl-*`), 6 of them answered at 60.07–60.15 s on
-  main. SV-COMP's termination 181 (134, 47) against 182 (135, 47), per component 172 both (`sv`, `sv-main`; the one,
-  LeikeHeizmann-TACAS2014-Ex9, at 55.1 s on main). The real-world corpus: every law's verdict as main's, 218 proven, 75
-  open, 17 refuted, 1 error (`rw`, `rw-main`).
-- The second frontier corpus: 27 of 47 in both, every broken variant refused in both, each item's verdict the same
-  (`runs/chcsat/final4/corpus2`, `corpus2-main`; TIP's `bin_nat_plus` killed at 200 s here and not proven there, a
-  track this code doesn't run). The first: the suite's `frontier-score` and `frontier-datatype-*` jobs pass.
-- The suite on Modal: by default 213 jobs, none failed, 537.9 s wall, 5,305.1 s of job time
-  (`runs/chcsat/final4/suite`); `--usual` 213, none failed, 525.4 s and 4,852.3 s (`suite-usual`).
-- `infer`'s tests on 1 vCPU, ten each, this branch's and main's batches launched together
-  (`runs/chcsat/final4/infer1`, `infer1-main`): the 5 s-limited tests' min, median and max, here and on main: the law
-  that needs an invariant 2,554, 3,052, 3,824 ms against 2,183, 2,942, 3,849; what was found reads as the builder call
-  1,816, 2,172, 2,678 against 1,482, 2,144, 2,611; a machine with no rule 1,102, 1,270, 1,594 against 906, 1,230,
-  1,711; a false law 5, 6, 14 against 4, 6, 14; `search.test.ts`'s five each at most 1,423 ms here, 1,441 ms on main;
-  none failed.
-- The budget split is as it was: random runs 5 s, guided runs 8 s, bounded runs 10 s, the invariant search the rest.
-- Sizes: `core/infer.ts` +191 −22, `kernel/cdcl.ts` +34 −7, `compare/chc/solve.ts` +1 −1.
-- Cost: Modal $65.99 for this track's 114 apps (`modal billing report`, today's and yesterday's figures before the day
-  closes); no boat.
+- The real-world corpus, after the merge: every law's verdict as main's, 237 proven, 56 open, 18 refuted
+  (`runs/chcsat/m2/rw`, `rw-main`); gapless.js's law 56.0 s on main, 39.7 s here; run eight times more each in one
+  batch, 7 of 8 here (33.6–60.0 s, one at 61.7 s unknown), 8 of 8 on main (42.6–58.6 s) (`m2/gapless`).
+- The suites, launched together with main's: by default 217 jobs, none failed, 636.2 s wall and 5,349.3 s of job time,
+  main 633.6 s and 5,475.5 s, none failed (`runs/chcsat/m3/suite`, `suite-main`); `--usual` none failed, 646.0 s and
+  4,961.4 s, main 564.4 s and 4,946.5 s (`suite-usual`, `suite-usual-main`).
+- `infer`'s and `data`'s tests on 1 vCPU, ten jobs each here and on main, interleaved in one batch, twice
+  (`runs/chcsat/m2/vcpu1`, `m3/vcpu1`). `infer`'s 5 s-limited "a law that needs an invariant": min, median, max 1,989,
+  2,857, 5,841 ms here and 2,132, 2,970, 3,495 on main, then 1,948, 2,946, 3,353 here and 2,049, 3,096, 5,121 on main;
+  each batch failed it once past 5 s, here in the first and on main in the second, both in a job whose every test ran
+  two to twenty times its usual time (here "the bounded run" 3,182 ms against a median 148). `data`'s nearPlus ("a
+  function that agrees with + on small values"): 1,879, 2,636, 3,380 here, 1,861, 2,385, 2,986 on main; then 1,886,
+  2,477, 3,056 here, 2,500, 2,737, 3,359 on main. No other failure.
+- The budget split is main's: random runs 5 s, guided runs 8 s, bounded runs 15 s (with k-induction beside), the
+  invariant search the rest.
+- Sizes against 54bbec9: `core/infer.ts` +191 −22, `kernel/cdcl.ts` +35 −8, `compare/chc/solve.ts` +1 −1.
+- Cost: Modal $65.99 for the 114 apps before the merge, $20.64 for the 26 after it (`modal billing report`, today's
+  and yesterday's figures before the day closes). No boat.
 
 ## 0.24.0
 

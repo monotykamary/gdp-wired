@@ -24,30 +24,29 @@ and Eldarica (2.3).
     modal run compare/chc/modal_chc.py --out <dir> --tools tmpl            # then --tools given --tasks-json <file>
     python3 compare/chc/prof/gap.py --gdp <run> --others <run> --models <dir> --template <run> [--cex <dir>] [--given <run>] --out <file.json>
 
-## Disjunctions in the join (after 0.23.0)
+## Disjunctions in the join (after 0.24.0)
 
 The invariant search's join (core/infer.ts) asks its goals first of kernel/cdcl.ts for a model alone, the forms a
 refutation read being its core (the hypotheses its leaves read, cdcl.ts's `core` option); where no candidate rules out a
 counterexample to the law, it blocks the counterexample's cube as IC3 does (the control state and the bounds that keep
 the samples out, relative to the set, cut to the literals the refutation's core read, predecessors blocked first), each
-cube a disjunction in the set; the control states no run reached are one law until it is broken twice; solve.ts answers
-as soon as the set is proven (`minimize: false`). Nothing trusted changed. The budget split is as it was (runs 5 s,
-guided 8 s, bounded 10 s).
+cube a disjunction in the set; the control states no run reached are one law until it is first broken; solve.ts answers
+as soon as the set is proven (`minimize: false`). Nothing trusted changed. The budget split is main's (runs 5 s, guided
+8 s, bounded 15 s with k-induction beside).
 
-| gdp-wired, 60 s, Modal | sat | unsat | wrong | solved of 1,406 | out of time |
-| --- | --- | --- | --- | --- | --- |
-| main 6b2e2df (`runs/chcsat/final4/chc-main`) | 517 | 265 | 0 | 782 | 12 |
-| this (`runs/chcsat/final4/chc`), launched beside it | 551 | 265 | 0 | 816 | 5 |
+| gdp-wired, 60 s, Modal | sat | unsat | wrong | disputed | solved of 1,406 | out of time |
+| --- | --- | --- | --- | --- | --- | --- |
+| main 54bbec9 (`runs/chcsat/m2/chc-main`) | 537 | 398 | 0 | 2 | 935 | 10 |
+| this, merged with it (`runs/chcsat/m2/chc`), launched beside it | 569 | 397 | 0 | 2 | 966 | 7 |
 
-- By group (research/frontier2's): A 161 → 177 of 195, B 30 → 30 of 39, C 8 → 17 of 38, D 8 → 13 of 113, E 27 → 31
-  of 71, F 7 → 8 of 34, G 8 → 9 of 15, H and I 121 → 121 of 303, the rest 412 → 410 of 598. By family: Lustre 291 →
-  311, ctigar 14 → 26.
-- 40 sat more, 6 fewer: those 6 stopped at once on main's join (0.2–2.9 s, a counterexample no candidate rules out)
-  and the search below it proved them in 24–58 s; here a cube was blocked and the join went on (10.8–18.1 s). Unsat:
-  one more, one fewer, both the bounded runs'.
-- Runs of the same code vary: this code twice, 551 and 555 sat (`runs/chcsat/final4/chc`, `runs/chcsat/final3/chc-k2`);
-  main four times the same day, 517, 519, 521 and 523 (`runs/chcsat/final4/chc-main`, `final2/chc-main`,
-  `final/chc-main`, `full2-main`).
+- By group (research/frontier2's): A 168 → 185 of 195, B 33 → 33 of 39, C 8 → 12 of 38, D 15 → 18 of 113, E 28 → 31
+  of 71, F 7 → 9 of 34, G 8 → 8 of 15, H and I 242 → 241 of 303, the rest 426 → 429 of 598. By family: Lustre 307 →
+  329, ctigar 13 → 22. Sat by the invariant search 403 → 436, by k-induction 134 → 133.
+- 37 sat more, 5 fewer, 1 unsat fewer (main's bounded runs at 28 s, not found here); the losses in the CHANGELOG.
+- Runs of the same code vary: the merged branch at 0.24.0's other settings 567, 571 and 575 sat
+  (`runs/chcsat/m1/chc-k2a`, `chc`, `chc-k2b`, the control states' law split at its second break), 566 and 570 at the
+  first (`chc-k1a`, `chc-k1b`); before the merge, beside 6b2e2df, 816 solved (551 sat, 265 unsat) against 782 (517, 265)
+  (`runs/chcsat/final4`).
 - Measured and left out: IC3 with frames after the join (547 against 552 without, `runs/chcsat/full1`,
   `full1-noframes`), runs from the kernel's models for Lustre's few samples (no gain on 80 Lustre tasks,
   `runs/chcsat/l1*`, `l2*`, `l3*`), and the CHANGELOG's other variants.
