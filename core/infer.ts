@@ -13,20 +13,24 @@
 //   - the join: per control state (the choice, loc, and a few yes/nos), the samples' affine hull (its equalities, exact)
 //     and each direction's largest value (each value up and down, pairs where there are few, the rule's own comparisons);
 //     Houdini on the cone of the caller's laws: each goal proven with as little of that set assumed as will do (none,
-//     then the forms a counterexample breaks, as IC3's relative induction, then all), a counterexample the whole set
-//     allows joined in (the hull grows to hold it, a bound rises to the next of the rule's constants, then goes), one to a
-//     caller's law ruled out by a candidate; every goal of the cone proven, the cone is the answer
+//     then the forms a counterexample breaks, as IC3's relative induction, then all), each asked first of the CDCL
+//     search for a model alone (a refutation's core: the forms it read), a counterexample the whole set allows joined in
+//     (the hull grows to hold it, a bound rises to the next of the rule's constants, then goes), one to a caller's law
+//     ruled out by a candidate or, where none does, by a cube blocked as IC3 blocks one (its control state and the
+//     bounds that keep the samples out, the literals its refutation's core read, its predecessors blocked first); every
+//     goal of the cone proven, the cone is the answer
 //   - the kernel (where the join proves nothing, as it was): the laws with the candidates chosen so far, proven one law
 //     at a time; when a goal is stuck at a step, its witness is a counterexample to induction, so the candidate that
 //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
-import {type C, type E, type Law, type Machine, type Request, type State, any, atMost, divisorsIn, evalC, get, interpret, machineTerms, modName, n, not, plus, same, times, withArithmetic, x} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, get, interpret, machineTerms, modName, n, not, plus, same, times, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, proveRule, proveSteps} from './dsl.ts'
 import {allowed, watch} from './watch.ts'
 import {clock, counted, grow, proveLaw, proveLaws, proveStepLaws, usedHyps, withDeadline} from '../kernel/prove.ts'
 import {obligations, substC} from '../kernel/kernel.ts'
 import {work} from './solver.ts'
+import {REFUTED, type Refuted, growCdcl} from '../kernel/cdcl.ts'
 
 type AnyRule = Parameters<typeof proveRule>[0]
 type Env = Record<string, number>
@@ -50,6 +54,7 @@ export type InferOptions = {
   first?: Verdict // the laws' verdict alone, when the caller has it already
   progress?: (phase: string, info: Record<string, number | string>) => void // told as each phase ends
   existentials?: boolean // congruences as "there exists" (∃k. v = c·k + r), where the runs keep v's remainder (true)
+  minimize?: boolean // once proven, each chosen law the proof doesn't need taken out again (true); false answers at once
   remainders?: boolean // remainders (v mod k = r, a guard where only some runs keep one) where the runs keep one (true); with false, congruences instead (`existentials`)
 }
 // What was found: each law as a Law (pass it with the rule's laws), how it reads, and for a rule, the builder call
@@ -68,8 +73,11 @@ type Guard = {atom: number, value: number} | {keyNot: number}
 // integer, an integer; the same claim, made only where remainders are off (InferOptions.remainders).
 // `also`: more values the form holds under, beside its guard (a control state: loc and the yes/nos at once); `never`:
 // values never all held at once (a control state no run reaches). The join makes both.
+// `nevers`: control states none of which is ever held (the join's control states no run reached, one law for all).
+// `cube`: literals never all true at once (a value at one value, or Σ c·v ≤ d): a cube the join blocked.
 type At = {atom: number, value: number}
-type Form = {coef: [number, number][], d: number, cells: boolean, guard?: Guard, also?: At[], when?: {coef: [number, number][], d: number}, unreachable?: At, never?: At[], mod?: {k: number, r: number}, cong?: {mod: number, rest: number}, size: number}
+type Lit = {at: At} | {lin: {coef: [number, number][], d: number}}
+type Form = {coef: [number, number][], d: number, cells: boolean, guard?: Guard, also?: At[], when?: {coef: [number, number][], d: number}, unreachable?: At, never?: At[], nevers?: At[][], cube?: Lit[], mod?: {k: number, r: number}, cong?: {mod: number, rest: number}, size: number}
 
 const KEY = 'key$found', AT = '@', K = '#', SOME = 'k$found'
 // The counted clock's rates, units a millisecond: about the slowest tenth of what Modal's 1-vCPU containers do in each
@@ -92,6 +100,19 @@ const inferTrace = !!(globalThis as {process?: {env?: Record<string, string | un
 const joinOn = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN !== '0'
 const joinShare = 0.6, joinQueryMs = 8000, joinRequestMs = 150, joinWalk = 8, joinPairs = 10, joinRaises = 2, joinSparse = 4, joinCoef = 1000
 const joinExtras = 24, joinTries = 40, joinBits = 7, joinKeys = 128, joinAttempts = 6, joinAdd = 2
+// GDP_JOIN_CORE=0: the join's goals by the prover's trees alone, as before (else a model, or a refutation's core, of the
+// CDCL search first, at a quarter of the goal's budget).
+// GDP_JOIN_NEVERS=0: each control state no run reached a form of its own, as before (else one form for all of them,
+// until it is first broken).
+const joinNevers = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_NEVERS !== '0'
+const joinNeversBreaks = 1
+const joinCore = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_CORE !== '0'
+// Cubes blocked where no candidate rules a counterexample out (GDP_JOIN_CUBES=0: none): at most 48 in all, each tried 8
+// times, its predecessors blocked first 3 deep, each query's budget 2 s (counted, or wall time where timed).
+const joinCubes = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_CUBES !== '0'
+const joinCubeMax = 48, joinCubeTries = 8, joinCubeDepth = 3, joinCubeMs = 2000
+// Once a cube is in the set, the join has 0.3 of what is left of its time (the search below the rest).
+const joinCubeWindow = 0.3
 const seeded = (seed: number): Rand => { let s = seed; return k => { s = (s * 1103515245 + 12345) % 2 ** 31; return Math.floor(s / 2 ** 31 * k) } }
 const isRule = (t: AnyRule | Machine): t is AnyRule => typeof (t as AnyRule).kindsOfState === 'function'
 const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
@@ -445,6 +466,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const textOf = (f: Form): string => {
     const atText = (g: At) => `${nameOf(g.atom)} is ${shownValue(g.atom, g.value)}`
     if (f.never) return `never ${f.never.map(atText).join(' and ')}`
+    if (f.nevers) return `never ${f.nevers.map(c => c.map(atText).join(' and ')).join('; nor ')}`
+    if (f.cube) return `never ${f.cube.map(l => ('at' in l ? atText(l.at) : (({l: a, r: b}) => `${a} <= ${b}`)(sides({coef: l.lin.coef, d: l.lin.d, cells: false, size: 0})))).join(' and ')}`
     if (f.also) return `${f.also.map(atText).join(' and ')} → ${textOf({...f, also: undefined})}`
     if (f.unreachable) return `${nameOf(f.unreachable.atom)} is never ${shownValue(f.unreachable.atom, f.unreachable.value)}`
     if (f.cong) return `∃k. ${f.coef.map(([i, c], j) => `${j ? (c > 0 ? ' + ' : ' − ') : c < 0 ? '−' : ''}${nameOf(i)}`).join('')} = ${f.cong.mod}·k${f.cong.rest ? ` + ${f.cong.rest}` : ''}`
@@ -469,6 +492,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       return value === 0 ? atMost(n(1), e) : value === lastValue ? atMost(e, n(value - 1)) : not(same(e, n(value)))
     }
     if (f.never) return any(...f.never.map(g => notAt(g.atom, g.value)))
+    if (f.nevers) return all(...f.nevers.map(c => any(...c.map(g => notAt(g.atom, g.value)))))
+    if (f.cube) return not(all(...f.cube.map(l => ('at' in l ? same(part(atoms[l.at.atom]!, atoms[l.at.atom]!.parts[0]![0]), n(l.at.value)) : condOf({coef: l.lin.coef, d: l.lin.d, cells: false, size: 0})))))
     if (f.also) return any(...f.also.map(g => notAt(g.atom, g.value)), condOf({...f, also: undefined}))
     if (f.unreachable) return notAt(f.unreachable.atom, f.unreachable.value)
     if (f.mod) {
@@ -491,7 +516,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   }
   // The builder call, for a rule whose atoms are its own variables (naturals, or integers alone).
   const sourceOf = (f: Form, text: string): string | undefined => {
-    if (!rule || f.when || f.mod || f.also || f.never) return undefined
+    if (!rule || f.when || f.mod || f.also || f.never || f.nevers || f.cube) return undefined
     const used = [...new Set([...f.coef.map(([i]) => i), ...(f.guard ? ['keyNot' in f.guard ? f.guard.keyNot : f.guard.atom] : []), ...(f.unreachable ? [f.unreachable.atom] : [])])]
     const ints = f.coef.filter(([i]) => atoms[i]!.int).length
     if (ints && ints !== f.coef.length) return undefined
@@ -529,6 +554,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     used.evals++
     const vs = valuesOf(env)
     if (f.never) return f.never.some(g => vs[g.atom] !== g.value)
+    if (f.nevers) return f.nevers.every(c => c.some(g => vs[g.atom] !== g.value))
+    if (f.cube) return !f.cube.every(l => ('at' in l ? vs[l.at.atom] === l.at.value : l.lin.coef.reduce((acc, [i, c]) => acc + c * vs[i]!, 0) <= l.lin.d))
     if (f.also?.some(g => vs[g.atom] !== g.value)) return true
     if (f.unreachable) return vs[f.unreachable.atom] !== f.unreachable.value
     if (f.cong) {
@@ -697,17 +724,20 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const locsReached = jChoice ? new Set(valsS[jChoice.atom]!).size : 1
     const keyModes = [...(jChoice ? [jChoice] : []), ...(bits.length && bits.length <= joinBits && locsReached * 2 ** bits.length <= joinKeys ? bits : [])]
     const keyAtoms = keyModes.map(mo => mo.atom), coords = plain.filter(i => !keyAtoms.includes(i)), CN = coords.length
-    const dirs: [number, number][][] = []
-    for (const i of coords) dirs.push([[i, 1]], [[i, -1]])
-    if (CN <= joinPairs) for (const [a2, i] of coords.entries()) for (const j of coords.slice(a2 + 1)) for (const [c1, c2] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as const) dirs.push([[i, c1], [j, c2]])
-    // and the rule's own comparisons over the state (a guard, the query's condition): each as a direction, both ways
-    {
-      const known = new Set(dirs.map(t => JSON.stringify(t)))
-      for (const t of comparisons(m, laws, atoms, coords)) for (const u of [t, t.map(([i, c]) => [i, -c] as [number, number])]) {
+    // The directions over some values: each value up and down, pairs of them where there are few, and the rule's own
+    // comparisons over the state (a guard, the query's condition), each both ways.
+    const directions = (cs: number[]): [number, number][][] => {
+      const out: [number, number][][] = []
+      for (const i of cs) out.push([[i, 1]], [[i, -1]])
+      if (cs.length <= joinPairs) for (const [a2, i] of cs.entries()) for (const j of cs.slice(a2 + 1)) for (const [c1, c2] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as const) out.push([[i, c1], [j, c2]])
+      const known = new Set(out.map(t => JSON.stringify(t)))
+      for (const t of comparisons(m, laws, atoms, cs)) for (const u of [t, t.map(([i, c]) => [i, -c] as [number, number])]) {
         const k2 = JSON.stringify(u)
-        if (!known.has(k2) && dirs.length < 2 * CN + 4 * joinPairs * joinPairs + 64) { known.add(k2); dirs.push(u) }
+        if (!known.has(k2) && out.length < 2 * cs.length + 4 * joinPairs * joinPairs + 64) { known.add(k2); out.push(u) }
       }
+      return out
     }
+    const dirs = directions(coords)
     // Widening with thresholds: a bound a counterexample breaks rises to the next of the rule's constants (their sums and
     // products the first time, the constants alone after), and past that it is dropped.
     const fine = bounds, coarse = [...new Set([0, ...consts.flatMap(k => [k, -k])])].sort((p2, q2) => p2 - q2)
@@ -742,16 +772,18 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const keyOf = (vs: Float64Array | number[]) => keyAtoms.map(i => vs[i]!).join(',')
     const combos = keyModes.reduce<number[][]>((acc, mo) => acc.flatMap(c => mo.values.map(v => [...c, v])), [[]])
     for (let j = 0; j < NS; j++) join(keyOf(valsS.map(col => col[j]!)), valsS.map(col => col[j]!), false)
+    let neversBroken = 0
     const formsNow = (): Form[] => {
       const out: Form[] = [], seenT = new Set<string>()
       const push = (f: Form) => { const t = textOf(f); if (!seenT.has(t) && !names.has(t)) { seenT.add(t); out.push(f) } }
-      // (a choice's value no state reached: one form, whatever the yes/nos)
-      const reachedFirst = new Set([...groups.keys()].map(k2 => k2.split(',')[0]))
+      // (a choice's value no state reached: one form, whatever the yes/nos; the control states no state reached, one form
+      // for all, where there are several: each alone needs the others to be inductive, a goal each where one does)
+      const reachedFirst = new Set([...groups.keys()].map(k2 => k2.split(',')[0])), nev: At[][] = []
       for (const combo of combos) {
-        if (combo.length > 1 && !reachedFirst.has(String(combo[0]))) { if (combo.slice(1).every(v => v === 0)) push({coef: [], d: 0, cells: false, unreachable: {atom: keyAtoms[0]!, value: combo[0]!}, size: 1}); continue }
+        if (combo.length > 1 && !reachedFirst.has(String(combo[0]))) { if (combo.slice(1).every(v => v === 0)) nev.push([{atom: keyAtoms[0]!, value: combo[0]!}]); continue }
         const ats = combo.map((value, k) => ({atom: keyAtoms[k]!, value})), grp = groups.get(combo.join(','))
         const guard = ats.length ? {guard: ats[0]!, ...(ats.length > 1 ? {also: ats.slice(1)} : {})} : {}
-        if (!grp) { if (ats.length) push({coef: [], d: 0, cells: false, ...(ats.length > 1 ? {never: ats} : {unreachable: ats[0]!}), size: 1}); continue }
+        if (!grp) { if (ats.length) nev.push(ats); continue }
         for (const e of grp.eqs) {
           const coef: [number, number][] = []
           for (let k = 0; k < CN; k++) if (e[k]) coef.push([coords[k]!, Number(e[k]!)])
@@ -769,6 +801,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           push({coef: t, d: hi, cells: false, ...guard, size: 0})
         })
       }
+      // (once broken, each its own form from then on, so that a state joined in changes only the forms that
+      // read its own control state, not every proof that read them all)
+      if (nev.length > 1 && joinNevers && neversBroken < joinNeversBreaks) push({coef: [], d: 0, cells: false, nevers: nev, size: 1})
+      else for (const ats of nev) push({coef: [], d: 0, cells: false, ...(ats.length > 1 ? {never: ats} : {unreachable: ats[0]!}), size: 1})
       return out
     }
     let rounds = 0, why = '', set: Form[] = []
@@ -815,16 +851,143 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const stepWith = (name: string, form: Form | undefined, ctx: Form[]) => {
       const ctxLaws = [...ctx, ...(form ? [form] : [])].map(lawFor), ls = [...given, ...ctxLaws], mm = forLaws(ctxLaws).m
       const idx = form ? ls.length - 1 : ls.findIndex(l => l.name === name)
-      const g = obligations(mm, ls, {}, idx)[1]!
+      const g = obligations(mm, ls, {}, idx)[1]!, base0 = g.hyps.length - 1 - ls.length, used: string[] = []
+      // First a model alone of the CDCL search (no tree unfolded): refuted, the hypotheses its leaves read are those
+      // a tree would (the set's proof is the kernel's below, as before); a model is the counterexample; else the prover.
+      if (joinCore) {
+        const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
+        if (!('tree' in quick) && quick.why === REFUTED && quick.core) {
+          for (const h of quick.core) { const k = h - base0; if (k >= given.length && k < ls.length && k !== idx) used.push(ls[k]!.name) }
+          return {used}
+        }
+        if (!('tree' in quick) && quick.stuck === 'sat' && quick.witness) return {stuck: 'sat', witness: quick.witness}
+      }
       const out = budgeted(joinQueryMs, until2 => grow(g, new Map(), {nodes: 0, until: until2}))
       if (!('tree' in out)) return {stuck: out.stuck, witness: out.stuck === 'sat' ? out.witness : undefined}
-      const base0 = g.hyps.length - 1 - ls.length, used: string[] = []
       for (const h of usedHyps(g, out.tree)) { const k = h - base0; if (k >= given.length && k < ls.length && k !== idx) used.push(ls[k]!.name) }
       return {used}
     }
     const stateOf = (w: Record<string, number>): {params: Env, st: State} => ({params: m.params.length ? Object.fromEntries(m.params.map(p => [p, w[p] ?? 0])) : params0, st: {scalars: Object.fromEntries(scalars.map(v => [v, w[v] ?? 0])), maps: {}}})
+    // --- cubes: a point the samples leave out, as literals -------------------------------------------------------------
+    const ctrl = modes.filter(mo => (mo.choice || mo.bool) && !atoms[mo.atom]!.cell && !atoms[mo.atom]!.param).map(mo => mo.atom)
+    // (the rule's own comparisons first, then each value, then pairs: of two directions that leave out as many samples
+    // the first is taken, so a bound the runs' depth sets, i0 <= 1 where they went 1 deep, gives way to the relation
+    // that holds at every depth, i0 <= i1)
+    const lc = plain.filter(i => !atoms[i]!.param && !ctrl.includes(i)), D0 = directions(lc), own = 2 * lc.length + (lc.length <= joinPairs ? 2 * lc.length * (lc.length - 1) : 0)
+    const D = [...D0.slice(own), ...D0.slice(0, own)]
+    const dot = (t: [number, number][], v: ArrayLike<number>) => { let s2 = 0; for (const [i, c] of t) s2 += c * v[i]!; return s2 }
+    const litHolds = (l: Lit, v: ArrayLike<number>) => ('at' in l ? v[l.at.atom] === l.at.value : dot(l.lin.coef, v) <= l.lin.d)
+    const inCube = (c: Lit[], v: ArrayLike<number>) => c.every(l => litHolds(l, v))
+    const vecKey = (v: ArrayLike<number>) => Array.from(v).join(',')
+    const S: Float64Array[] = rowsS.map(r => valuesOf(r)), sampled = new Set(S.map(vecKey))
+    let initVec: Float64Array | undefined
+    try { if (!m.params.length) initVec = valuesOf(pointOf({}, run.init({})).scalar) } catch { initVec = undefined }
+    if (initVec && !sampled.has(vecKey(initVec))) { S.push(initVec); sampled.add(vecKey(initVec)) }
+    const addSample = (v: Float64Array) => { const k2 = vecKey(v); if (!sampled.has(k2)) { sampled.add(k2); S.push(v) } }
+    // a state from a point's values: an integer's two naturals normalized (the kernel's model may leave both above 0)
+    const stateAt = (w: Record<string, number>): State => {
+      const sc: Env = Object.fromEntries(scalars.map(v => [v, w[v] ?? 0]))
+      for (const a of atoms) if (a.int && !a.param && !a.cell) { const [p, q] = [a.parts[0]![0], a.parts[1]![0]], v = (sc[p] ?? 0) - (sc[q] ?? 0); sc[p] = Math.max(0, v); sc[q] = Math.max(0, -v) }
+      return {scalars: sc, maps: {}}
+    }
+    const vecOf = (st: State) => valuesOf(pointOf({}, st).scalar)
+    // The cube of a point the samples leave out: its control literals, then the direction that leaves out the most
+    // samples still in, its bound as weak as leaves them out, until none is in (undefined: none leaves out the rest).
+    const cubeOf = (v: Float64Array): Lit[] | undefined => {
+      const lits: Lit[] = ctrl.map(i => ({at: {atom: i, value: v[i]!}}))
+      let alive = S.filter(s2 => inCube(lits, s2))
+      while (alive.length) {
+        let best = -1, bestN = 0
+        for (let q = 0; q < D.length; q++) { const tv = dot(D[q]!, v); let cnt = 0; for (const s2 of alive) if (dot(D[q]!, s2) > tv) cnt++; if (cnt > bestN) (bestN = cnt, best = q) }
+        if (best < 0) return undefined
+        const t = D[best]!, tv = dot(t, v)
+        let d = Infinity
+        for (const s2 of alive) { const w2 = dot(t, s2); if (w2 > tv && w2 - 1 < d) d = w2 - 1 }
+        lits.push({lin: {coef: t, d}})
+        alive = alive.filter(s2 => dot(t, s2) <= d)
+      }
+      return lits
+    }
+    // A literal true at v and false at u (a control value first, then the direction u is furthest past v in), its
+    // bound v's own (a bound just short of u would creep up one reached state at a time).
+    const apart = (v: Float64Array, u: Float64Array): Lit | undefined => {
+      for (const i of ctrl) if (v[i] !== u[i]) return {at: {atom: i, value: v[i]!}}
+      let best: Lit | undefined, gap = 0
+      for (const t of D) { const g2 = (dot(t, u) - dot(t, v)) / t.reduce((acc, [, c]) => acc + Math.abs(c), 0); if (g2 > gap) (gap = g2, best = {lin: {coef: t, d: dot(t, v)}}) }
+      return best
+    }
+    // Literals put back from `from` until no sample is in the cube (false where a sample can't be left out).
+    const outOfSamples = (c: Lit[], from: Lit[]): boolean => {
+      for (let alive = S.filter(s2 => inCube(c, s2)); alive.length;) {
+        let best: Lit | undefined, bestN = 0
+        for (const l of from) { if (c.includes(l)) continue; let cnt = 0; for (const s2 of alive) if (!litHolds(l, s2)) cnt++; if (cnt > bestN) (bestN = cnt, best = l) }
+        if (!best) return false
+        c.push(best); alive = alive.filter(s2 => litHolds(best!, s2))
+      }
+      return true
+    }
+    const formOf = (c: Lit[]): Form => ({coef: [], d: 0, cells: false, cube: c, size: 1})
+    const witnessStep = (w: Record<string, number>): {pre: State, post?: State} => {
+      const pre = stateAt(w), input = Object.fromEntries(m.inputs.map(i => [i, w[i] ?? 0])) as Request
+      try { return {pre, post: run.step({}, pre, input)} } catch { return {pre} }
+    }
+    // Is the cube's negation inductive relative to these laws (the caller's and the kinds' beside)? Its literals after
+    // the step are hypotheses of their own, so the refutation's core names those it read.
+    const queryWith = (c: Lit[], frame: Law[]): {ok: true, core: Set<number>} | {ok: false, pre: State, post?: State} | undefined => {
+      const f = formOf(c), ls = [...given, ...frame, lawFor(f)], mm = forLaws(ls).m
+      const g = obligations(mm, ls, {}, ls.length - 1)[1]!, last = g.hyps.at(-1)!
+      const inner = last.op === 'not' && last.x.op === 'not' && last.x.x.op === 'and' && last.x.x.xs.length === c.length ? last.x.x.xs : undefined
+      const tails = inner ?? [last], hyps = [...g.hyps.slice(0, -1), ...tails], base = hyps.length - tails.length
+      const out = budgeted(joinCubeMs, until2 => growCdcl({name: 'a cube', hyps}, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
+      if ('tree' in out) return {ok: true, core: new Set(c.map((_, j) => j))}
+      if (out.why === REFUTED) return {ok: true, core: inner && out.core ? new Set(out.core.filter(h => h >= base).map(h => h - base)) : new Set(c.map((_, j) => j))}
+      if (out.stuck === 'sat' && out.witness) return {ok: false, ...witnessStep(out.witness)}
+      return undefined
+    }
+    // A counterexample to a caller's law no candidate rules out: its cube (its control state and the bounds that keep
+    // the samples out), blocked relative to the set (the set assumed before the step, and the cube's own negation, as
+    // IC3's relative induction), its literals after the step those the refutation read (its core), the samples and the
+    // start kept out. A predecessor the set allows into the cube: its own cube blocked first (a few deep), else the
+    // cube made smaller to leave the predecessor's successor out. Each cube blocked is a form of the set (a
+    // disjunction: never all its literals), which the join keeps or drops as any other.
+    let cubed = 0, cubeWhy = '', cubeUntil = Infinity
+    const blockCube = (v: Float64Array, depth: number, within: Form[]): Form[] => {
+      let c = cubeOf(v)
+      const made: Form[] = []
+      if (!c) cubeWhy = sampled.has(vecKey(v)) ? 'a sample' : 'inside'
+      // (relative to as little of the set as will do, as the join's goals are: the forms that rule out each
+      // predecessor found, doubling, then the whole set)
+      let ctx: Form[] = []
+      for (let tries = 0; c && tries < joinCubeTries && now() < jUntil && !stop(); tries++) {
+        const r = queryWith(c, [...ctx, ...made].map(lawFor).filter(l => l.name !== textOf(formOf(c!))))
+        if (!r) { cubeWhy = 'unknown'; break }
+        if (r.ok) {
+          const c2 = c.filter((_, j) => r.core.has(j))
+          if (initVec && inCube(c2, initVec)) { const l = c.find(l2 => !litHolds(l2, initVec!)); if (l) c2.push(l) }
+          made.push(formOf(outOfSamples(c2, c) ? c2 : c))
+          break
+        }
+        if (!r.post) { cubeWhy = 'no step'; break }
+        const pv = vecOf(r.pre), qv = vecOf(r.post)
+        const ruling = within.filter(f => !ctx.includes(f) && !holdsRow(f, {...r.pre.scalars}))
+        if (ruling.length) { ctx = [...ctx, ...ruling.slice(0, Math.max(joinAdd, ctx.length))]; tries--; continue }
+        if (!inCube(c, qv)) { cubeWhy = 'outside'; break }
+        const sub = depth > 0 && !sampled.has(vecKey(pv)) ? blockCube(pv, depth - 1, [...within, ...made]) : []
+        if (sub.length) { made.push(...sub); continue }
+        // (a predecessor the runs reached: its successor is reached too, a sample now)
+        if (sampled.has(vecKey(pv))) addSample(qv)
+        const l = apart(v, qv)
+        if (!l) { cubeWhy = 'reached'; break }
+        c = [...c, l]
+        cubeWhy = 'tries'
+      }
+      return made
+    }
     for (;;) {
       if (now() > jUntil || stop()) { why = 'time'; break }
+      // (once a cube is in the set, the join has a part of what is left, the search below the rest: the cubes are
+      // for counterexamples no candidate rules out, which the search below rules out its own way)
+      if (now() > cubeUntil) { why = 'cubes'; break }
       rounds++
       set = [...formsNow(), ...extras].filter(f => !blocked.has(textOf(f)))
       const byText = new Map(set.map(f => [textOf(f), f]))
@@ -843,7 +1006,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // counterexample the whole set allows is one to learn from.
       const todoForm = callers.has(todo) ? undefined : byText.get(todo)!
       const inCone = new Set(order)
-      const rank = (f: Form) => (inCone.has(textOf(f)) ? 0 : stood.has(textOf(f)) ? 1 : 2) * 1000 + f.coef.length * 10 + (f.never || f.also ? 1 : 0)
+      const rank = (f: Form) => (inCone.has(textOf(f)) ? 0 : stood.has(textOf(f)) ? 1 : 2) * 1000 + f.coef.length * 10 + (f.never || f.nevers || f.also ? 1 : 0)
       const whole = set.filter(f => f !== todoForm)
       let ctx: Form[] = [], witness: Record<string, number> | undefined, lastStuck = '', qms = 0, settled = false
       for (let attempt = 0; attempt <= joinAttempts; attempt++) {
@@ -870,6 +1033,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         blocked.add(todo); continue
       }
       const w = witness, {params, st} = stateOf(w)
+      if (todoForm?.nevers) neversBroken++
       const input = Object.fromEntries(m.inputs.map(i => [i, w[i] ?? 0])) as Request
       let post: State | undefined
       try { post = run.step(params, st, input) } catch { post = undefined }
@@ -888,6 +1052,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         if (!next && room) { const made = fromCti(pre); pool.push(...made); next = pick(made) }
         if (next) tried++
         opts.progress?.('join', {round: rounds, set: set.length, ms: qms, target: next ? textOf(next).slice(0, 60) : 'none'})
+        if (!next && !outside && joinCubes && initVec && cubed < joinCubeMax && now() < jUntil) {
+          const made = blockCube(valuesOf(pre.scalar), joinCubeDepth, set)
+          opts.progress?.('join', {round: rounds, set: set.length, cubes: made.map(f => textOf(f).slice(0, 100)).join('; ') || `none: ${cubeWhy}`})
+          if (made.length) { if (!cubed) cubeUntil = now() + (jUntil - now()) * joinCubeWindow; cubed += made.length; extras.push(...made); continue }
+        }
         if (!next) { why = 'target'; break }
         extras.push(next); continue
       }
@@ -975,7 +1144,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   trace('kernel', {chosen: chosen.length, proven: !!(last.proven && last.checked)})
   if (!(last.proven && last.checked)) { trace('end', {proven: false, stopped: stop()}); return {...last, found: [], stats: stats(samples.length, forms.length, alive.length)} }
   // Take out what the proof doesn't need, the last added first.
-  for (const f of [...chosen].reverse()) {
+  for (const f of opts.minimize === false ? [] : [...chosen].reverse()) {
     if (now() > until || stop()) break
     const without = chosen.filter(g => g !== f), v = prove([...laws, ...without.map(lawFor)])
     if (v.proven && v.checked) (chosen = without, last = v)
