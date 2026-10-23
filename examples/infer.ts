@@ -4,6 +4,8 @@
 //   - a connection pool: nothing is released that wasn't acquired, which needs in use + released <= acquired
 //   - a token bucket: what is spent stays within 10 and 3 a tick, which needs tokens + spent <= 3·ticks + 10
 //   - a lease: a lease another client holds has ended, which needs every lease to end by `until` (a law about every key)
+//   - three accounts and moves between them: one account holds at most the total paid in, which needs a + b + c <=
+//     total, a form over four values (the join's hull finds it; the forms of three values don't hold it)
 //   - the pool with a release nobody checks: the law is false, and the search answers with the run that breaks it
 import {type Law} from '../core/machine.ts'
 import {forall, nat, oneOf, rule, when} from '../core/dsl.ts'
@@ -43,11 +45,24 @@ export const lease = () => rule('lease').params({duration: nat})
     now: when(op.is('tick'), now.plus(1), now),
     Expiry: Expiry.set(who, when(granted, now.plus(duration), when(dropped, now, Expiry.at(who)))),
   }))
+export const accounts = () => rule('three accounts').inputs({op: oneOf('a', 'b', 'c', 'ab', 'bc', 'ca')})
+  .state({a: 0, b: 0, c: 0, total: 0})
+  .step(({op, a, b, c, total}) => {
+    const ab = op.is('ab').and(a.atLeast(1)), bc = op.is('bc').and(b.atLeast(1)), ca = op.is('ca').and(c.atLeast(1))
+    return {
+      a: when(op.is('a'), a.plus(1), when(ab, a.minus(1), when(ca, a.plus(1), a))),
+      b: when(op.is('b'), b.plus(1), when(bc, b.minus(1), when(ab, b.plus(1), b))),
+      c: when(op.is('c'), c.plus(1), when(ca, c.minus(1), when(bc, c.plus(1), c))),
+      total: when(op.is('a').or(op.is('b')).or(op.is('c')), total.plus(1), total),
+    }
+  })
+export const accountsLaw = (r = accounts()): Law => r.law('a <= total', ({a, total}) => a.atMost(total))
+
 export const leaseLaw = (r = lease()): Law => r.law('only the owner holds a live lease', ({Expiry, owner, now}) => forall(c => c.eq(owner).or(Expiry.at(c).atMost(now))))
 
 if (import.meta.main) {
   const results: [string, boolean, boolean][] = []
-  for (const [what, r, law] of [['connection pool', pool(), poolLaw], ['token bucket', bucket(), bucketLaw], ['lease', lease(), leaseLaw]] as const) {
+  for (const [what, r, law] of [['connection pool', pool(), poolLaw], ['token bucket', bucket(), bucketLaw], ['lease', lease(), leaseLaw], ['three accounts', accounts(), accountsLaw]] as const) {
     const v = inferLaws(r as never, [law(r as never)], [], {ms: 15000})
     results.push([what, v.proven && v.checked, true])
     for (const f of v.found) console.log(`     found: ${f.source ?? f.text}`)

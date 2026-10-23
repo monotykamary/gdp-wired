@@ -10,9 +10,15 @@
 //     or …), and where a cell holds one value
 //   - Houdini on the runs' neighbors: a reached state moved a little that every candidate alive and every law allows,
 //     stepped; a candidate its step breaks is in no inductive set of them, so it is dropped
-//   - the kernel: the laws with the candidates chosen so far, proven one law at a time; when a goal is stuck at a step,
-//     its witness is a counterexample to induction, so the candidate that rules it out (and the most of those seen) is
-//     added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
+//   - the join: per control state (the choice, loc, and a few yes/nos), the samples' affine hull (its equalities, exact)
+//     and each direction's largest value (each value up and down, pairs where there are few, the rule's own comparisons);
+//     Houdini on the cone of the caller's laws: each goal proven with as little of that set assumed as will do (none,
+//     then the forms a counterexample breaks, as IC3's relative induction, then all), a counterexample the whole set
+//     allows joined in (the hull grows to hold it, a bound rises to the next of the rule's constants, then goes), one to a
+//     caller's law ruled out by a candidate; every goal of the cone proven, the cone is the answer
+//   - the kernel (where the join proves nothing, as it was): the laws with the candidates chosen so far, proven one law
+//     at a time; when a goal is stuck at a step, its witness is a counterexample to induction, so the candidate that
+//     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
 import {type C, type E, type Law, type Machine, type Request, type State, any, atMost, divisorsIn, evalC, get, interpret, machineTerms, modName, n, not, plus, same, times, withArithmetic, x} from './machine.ts'
@@ -77,8 +83,15 @@ export const inferRates = {tries: 100, rows: 10_000, evals: 10_000, watched: 100
 export const inferRuns = 16_000
 // GDP_INFER_TRACE=1: each phase's wall time beside what it counted, to stderr (the calibration's numbers).
 const inferTrace = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_INFER_TRACE
-const inferEnv = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env ?? {}
-const joinOn = inferEnv.GDP_JOIN !== '0', joinShare = Number(inferEnv.GDP_JOIN_SHARE ?? 0.6), joinQueryMs = Number(inferEnv.GDP_JOIN_QMS ?? 8000), joinWalk = Number(inferEnv.GDP_JOIN_WALK ?? 8), joinPairs = Number(inferEnv.GDP_JOIN_PAIRS ?? 10), joinRaises = Number(inferEnv.GDP_JOIN_RAISES ?? 2), joinCoef = Number(inferEnv.GDP_JOIN_COEF ?? 1000), joinSparse = Number(inferEnv.GDP_JOIN_SPARSE ?? 4), joinExtras = Number(inferEnv.GDP_JOIN_EXTRAS ?? 24), joinTries = Number(inferEnv.GDP_JOIN_TRIES ?? 40), joinBits = Number(inferEnv.GDP_JOIN_BITS ?? 7), joinAttempts = Number(inferEnv.GDP_JOIN_ATTEMPTS ?? 6), joinAdd = Number(inferEnv.GDP_JOIN_ADD ?? 2), joinKeys = Number(inferEnv.GDP_JOIN_KEYS ?? 128), joinRequestMs = Number(inferEnv.GDP_JOIN_RMS ?? 150)
+// The join (below, after the candidates): GDP_JOIN=0 turns it off, for comparing. Its share of what is left of the
+// search's budget; each kernel search's budget (counted, or wall time where timed), a request's 150 ms; the steps a walk
+// from a joined state takes; pairs of values as directions up to 10 values; a bound raised twice at most, then dropped;
+// equalities of at most 4 values, coefficients up to 1,000; at most 24 candidates beside the hull, 40 tried; yes/nos in
+// the control state up to 7, and 128 of its values; a goal tried with 6 parts of the set before all of it, 2 forms added
+// at a time.
+const joinOn = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN !== '0'
+const joinShare = 0.6, joinQueryMs = 8000, joinRequestMs = 150, joinWalk = 8, joinPairs = 10, joinRaises = 2, joinSparse = 4, joinCoef = 1000
+const joinExtras = 24, joinTries = 40, joinBits = 7, joinKeys = 128, joinAttempts = 6, joinAdd = 2
 const seeded = (seed: number): Rand => { let s = seed; return k => { s = (s * 1103515245 + 12345) % 2 ** 31; return Math.floor(s / 2 ** 31 * k) } }
 const isRule = (t: AnyRule | Machine): t is AnyRule => typeof (t as AnyRule).kindsOfState === 'function'
 const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
