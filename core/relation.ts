@@ -15,7 +15,7 @@
 import type {C, E, Law} from './machine.ts'
 import type {Loop} from '../kernel/kernel.ts'
 import {clock} from '../kernel/prove.ts'
-import {type Lin, solve, work} from './solver.ts'
+import {type Lin, canon, konst, plus, solve, times, vars, work} from './solver.ts'
 import {bgcd} from './q.ts'
 
 export type Path = {
@@ -39,11 +39,6 @@ class Refused extends Error {}
 type PP = {rows: Lin[], pins: Record<string, number>}
 type Val = {lin: Lin} | {sub: [Lin, Lin]}
 const id = (t: unknown) => JSON.stringify(t)
-const canon = (l: Lin) => id(Object.keys(l).sort().map(x => [x, l[x]]))
-const plus = (a: Lin, b: Lin, f = 1): Lin => { const o: Lin = {...a}; for (const x in b) { o[x] = (o[x] ?? 0) + f * b[x]!; if (!o[x]) delete o[x] } return o }
-const times = (a: Lin, f: number): Lin => { const o: Lin = {}; if (f) for (const x in a) o[x] = a[x]! * f; return o }
-const konst = (c: number): Lin => (c ? {1: c} : {})
-const vars = (l: Lin) => Object.keys(l).filter(x => x !== '1')
 const pinned = (l: Lin, pins: Record<string, number>): Lin => {
   let out: Lin | undefined
   for (const x in l) if (x !== '1' && x in pins) { out ??= {...l}; delete out[x]; out['1'] = (out['1'] ?? 0) + l[x]! * pins[x]!; if (!out['1']) delete out['1'] }

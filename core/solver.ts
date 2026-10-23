@@ -64,7 +64,12 @@ export type Verdict =
   | {kind: 'unknown', point?: Record<string, number>} // point: a rational solution, a hint for where to split
 
 export const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
-const vars = (lin: Lin) => Object.keys(lin).filter(key => key !== '1')
+export const vars = (lin: Lin) => Object.keys(lin).filter(key => key !== '1')
+// The relation's and the accelerations' arithmetic (a's keys first, then b's new ones, no zero kept).
+export const plus = (a: Lin, b: Lin, f = 1): Lin => { const o: Lin = {...a}; for (const x in b) { o[x] = (o[x] ?? 0) + f * b[x]!; if (!o[x]) delete o[x] } return o }
+export const times = (a: Lin, f: number): Lin => { const o: Lin = {}; if (f) for (const x in a) o[x] = a[x]! * f; return o }
+export const konst = (c: number): Lin => (c ? {1: c} : {})
+export const canon = (l: Lin) => JSON.stringify(Object.keys(l).sort().map(x => [x, l[x]]))
 
 // maxRows: elimination can square the rows each round; past this many live rows, or a round that would make more than
 // five times as many before merging them, it gives up with `unknown`.

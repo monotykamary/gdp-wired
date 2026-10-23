@@ -28,23 +28,18 @@
 import type {C, E} from './machine.ts'
 import type {Loop} from '../kernel/kernel.ts'
 import {type Path, type Relation, relationOf} from './relation.ts'
-import {type Lin, gcd, solve} from './solver.ts'
+import {type Lin, canon, gcd, konst, plus, solve, times, vars} from './solver.ts'
 
 // `targets`: the set's parts, each a location and its rows over the relation's names (R_j), for a stem's search.
 export type Target = {loc: number, rows: Lin[]}
 export type Accelerated = {set: C, wit: Record<string, E>, cycle: number[], locs: number[], targets: Target[]}
 
 const K = (value: number): E => ({op: 'const', value}), V = (name: string): E => ({op: 'var', name})
-const vars = (l: Lin) => Object.keys(l).filter(x => x !== '1')
-const plus = (a: Lin, b: Lin, f = 1): Lin => { const o: Lin = {...a}; for (const x in b) { o[x] = (o[x] ?? 0) + f * b[x]!; if (!o[x]) delete o[x] } return o }
-const times = (a: Lin, f: number): Lin => { const o: Lin = {}; if (f) for (const x in a) o[x] = a[x]! * f; return o }
-const konst = (c: number): Lin => (c ? {1: c} : {})
 const subst = (l: Lin, m: Record<string, Lin>): Lin => {
   let o: Lin = konst(l['1'] ?? 0)
   for (const x of vars(l)) o = plus(o, m[x] ?? {[x]: 1}, l[x]!)
   return o
 }
-const canon = (l: Lin) => JSON.stringify(Object.keys(l).sort().map(x => [x, l[x]]))
 const isConst = (l: Lin) => vars(l).length === 0
 // (a row's coefficients divided by their common divisor, its constant rounded up: an integer row as tight as it goes)
 const tight = (l: Lin): Lin => {
