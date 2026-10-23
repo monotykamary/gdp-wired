@@ -129,10 +129,14 @@ for (const k of cases) {
     ...(Object.keys(files).length ? {files} : {}), check: {modules: {'@reduxjs/toolkit': rtk, xstate}}})
   if (!x.ok) { rows.push({id: k.id, extracted: false, refusal: x.refusals[0]}); console.log(`${k.id}: not extracted (${x.refusals[0]?.what})`); continue }
   const extracted: Any = k.kind === 'chart' ? (x as Any).chart : (x as Any).rule, hand = k.hand()
+  // The extracted rule's representation invariants (each key a map doesn't hold holds the defaults): proven, and beside
+  // each law there, as its laws are about the code's states.
+  const inv: Law[] = (x as Any).invariants ?? []
+  if (inv.length) { const v = proveRule(extracted, inv); rows.push({id: k.id, invariants: inv.map(l => l.name), proven: v.proven && v.checked}); console.log(`${k.id}: its invariants ${v.proven && v.checked ? 'proven' : 'NOT proven'}`) }
   for (const [name, expect, mk] of k.laws) {
     const verdicts = [extracted, hand].map(r => {
-      const l = mk(r), isStep = 'then' in l
-      const t0 = performance.now(), v = (k.kind === 'chart' ? chartProve : ruleProve)(r, isStep ? [] : [l as Law], isStep ? [l as StepLaw] : [])
+      const l = mk(r), isStep = 'then' in l, given = r === extracted ? inv : []
+      const t0 = performance.now(), v = (k.kind === 'chart' ? chartProve : ruleProve)(r, isStep ? given : [...given, l as Law], isStep ? [l as StepLaw] : [])
       return {verdict: verdictOf(v), ms: Math.round(performance.now() - t0)}
     })
     const row = {id: k.id, law: name, expect, extracted: verdicts[0], hand: verdicts[1], agree: verdicts[0]!.verdict === verdicts[1]!.verdict}

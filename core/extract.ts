@@ -27,6 +27,7 @@
 import * as dsl from './dsl.ts'
 import {compileFunction} from './machine.ts'
 import type {Rule} from './dsl.ts'
+import type {Law} from './machine.ts'
 import * as I from './extract-ir.ts'
 import type {B, N} from './extract-ir.ts'
 import {type MapDecl, type Model, Refusal, type Term, type Var} from './extract-read.ts'
@@ -48,6 +49,10 @@ export type Extraction = {
   ok: boolean,
   // The rule (when ok), and its source, also printed when the check refused it (to read why).
   rule?: Rule,
+  // What every state of the code is in the rule's terms (a map's key the code doesn't hold holds the defaults): the
+  // rule has states no object of the code is in, and a law about every state is about the code's with these beside it
+  // (proveRule(rule, [...invariants, law])). Each is inductive: proveRule(rule, invariants) proves them.
+  invariants?: Law[],
   source?: string,
   model?: Model,
   sorts?: Sorts,
@@ -81,11 +86,12 @@ export function extract(code: string, opts: ExtractOptions): Extraction {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes, model}
     throw e
   }
-  let rule: Rule
-  try { rule = evaluate(body) } catch (e) { return {ok: false, source, model, sorts, refusals: [{where: file, what: `the rule printed doesn't build: ${(e as Error).message}`}], notes} }
+  let rule: Rule, invariants: Law[]
+  try { rule = evaluate(body); invariants = evaluateLaws(rule, invariantsOf(model, sorts)) } catch (e) { return {ok: false, source, model, sorts, refusals: [{where: file, what: `the rule printed doesn't build: ${(e as Error).message}`}], notes} }
+  if (invariants.length) source = `${source}\n// What every state of the code is: a law about every state is about the code's with these beside it.\nexport const ${identOf(model)}Invariants = [${invariantsOf(model, sorts).map(x => x.replace(/^r\./, `${identOf(model)}Rule.`)).join(', ')}]\n`
   const evidence = check(code, file, model, rule, sorts, {...opts.check, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})})
   if (evidence.mismatch) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `the rule and the code differ: ${evidence.mismatch}`}], notes}
-  return {ok: true, rule, source, model, sorts, evidence, refusals: [], notes}
+  return {ok: true, rule, ...(invariants.length ? {invariants} : {}), source, model, sorts, evidence, refusals: [], notes}
 }
 // The module a user keeps: the rule, with what it was read from and how it was checked.
 export const toSource = (x: Extraction): string => x.source ?? ''
@@ -98,13 +104,25 @@ function evaluate(body: string): Rule {
   void r.machine
   return r
 }
+// A map's representation: each key it doesn't hold holds the defaults (as no object of the code holds a value there).
+function invariantsOf(m: Model, sorts: Sorts): string[] {
+  const empty = (d: MapDecl, f: Var) => (f.sort.k === 'num' ? `.eq(0)` : f.sort.k === 'bool' ? `.not()` : f.sort.k === 'choice' ? `.is(${JSON.stringify(f.sort.values[0])})` : `.eq('')`)
+  void sorts
+  return m.maps.map(d => `r.law(${JSON.stringify(`${d.name}: a key it doesn't hold holds the defaults`)}, ({${d.name}}) => forall(k => any(${d.name}.at(k).has, all(${d.fields.map(f => `${d.name}.at(k).${f.name}${empty(d, f)}`).join(', ')}))))`)
+}
+function evaluateLaws(r: Rule, xs: string[]): Law[] {
+  if (!xs.length) return []
+  const f = compileFunction<(...xs: unknown[]) => Law[]>(['r', 'forall', 'any', 'all'], `return [${xs.join(', ')}]`)
+  return f(r, dsl.forall, dsl.any, dsl.all)
+}
+const identOf = (m: Model) => (/^[A-Za-z_$][\w$]*$/.test(m.name) ? m.name.charAt(0).toLowerCase() + m.name.slice(1) : 'extracted')
 function moduleOf(m: Model, body: string, file: string): string {
   const used = NAMES.filter(n => new RegExp(`(^|[^.\\w$])${n}\\(|(^|[^.\\w$])${n}\\b(?!\\s*:)`).test(body.replace(/'[^']*'/g, "''")) || (n === 'rule'))
-  const ident = /^[A-Za-z_$][\w$]*$/.test(m.name) ? m.name.charAt(0).toLowerCase() + m.name.slice(1) : 'extracted'
+  const ident = identOf(m)
   return [
     `// Extracted by gdp-wired/extract from ${file} (${m.entry}, ${m.shape === 'class' ? 'a class' : m.shape === 'reducer' ? 'a step function' : 'functions over one record'}).`,
     `// Checked against the code it was read from; read again with extract() after the code changes.`,
-    `import {${[...used].sort((a, b) => a.localeCompare(b)).join(', ')}} from 'gdp-wired'`,
+    `import {${[...new Set([...used, ...(m.maps.length ? ['all', 'any', 'forall'] : [])])].sort((a, b) => a.localeCompare(b)).join(', ')}} from 'gdp-wired'`,
     '',
     `export const ${ident}Rule = ${body}`,
     '',

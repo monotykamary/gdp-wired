@@ -67,6 +67,9 @@ test('a class with a keyed map: get or create, refill by elapsed seconds, a resu
   expect(x.source).toContain('.pre(({capacity, refillPerSec}) => all(capacity.atLeast(1), refillPerSec.atLeast(0)))')
   expect(x.source).toContain('record({has: bool, tokens: nat, last: nat})')
   expect(x.evidence!.coverage).toMatchObject({hit: 10, arms: 10})
+  // Its representation: a key the map doesn't hold holds the defaults, inductive.
+  expect(x.invariants!.map(l => l.name)).toEqual(["buckets: a key it doesn't hold holds the defaults"])
+  expect(proveRule(x.rule!, x.invariants!)).toMatchObject({proven: true, checked: true})
 })
 
 test('a wallet: debit refused past the balance, a getter, a counter of calls', () => {
