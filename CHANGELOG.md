@@ -51,6 +51,64 @@ time, none failed (`runs/step/suite-final`), 0.21.0's 200 jobs 328.8 s and 2,776
   satisfiable, and with `GDP_CDCL_VERIFY=1` compares reader.ts's rows with kernel.ts's at every node and unfolded leaf.
   research/step: the runs (`modal_step.py`, `jobs.py`, `goal.ts`, `tally.py`, `suite-times.py`).
 
+Claims about runs that never end get their cyclic certificate: a loop's halting and a liveness, each from the cyclic
+proof of its step laws, nothing trusted changed (kernel/kernel.ts, kernel/cyclic.ts, core/check.ts, lean-kernel/ as in
+0.21.0). Left on the usual rule in the whole suite (200 jobs, `runs/live/suite`, and again `runs/live/suite2`): 4
+proofs, the four laws reading a map at a key read from a map; 119 at 0.21.0 (loops 79, liveness 36, those four;
+`runs/release/0.21.0-default`). Then a line was printed for every claim tried, broken variants and claims refused
+before their proof among them; now one for each claim proven: 36 loops and 22 liveness claims, every one with its
+cyclic certificate.
+
+- The rule was already there: Lean's `cyclic_sound`, through BridgeRules.lean's `cyc_kstep_sound`, gives a step law's
+  meaning (`SKStepHolds`), and `sleads_of_holds` reads a liveness from its step laws' meaning (Live.lean's
+  `leads_of_lex`: the rank can't drop forever, the region stays once it stops, its request comes), as `sleads_sound`
+  reads it from their usual trees; `loop_halts_of` reads a loop's halting from either. One statement under both
+  certificates, and the cyclic Lean export already took that route (lean-kernel/emit.ts's `cycMachineToLean`). What
+  was missing was the TypeScript side.
+- A liveness (kernel/prove.ts's `proveLiveness`): its certificate is its parts', the step laws' cyclic proof (stay,
+  cover, one per helpful request, translated as any machine's) and each helpful request's allowed node; covered
+  exactly where every part is (`cyclic: {kind: 'liveness', ..., route: 'its step laws'}`), else counted uncovered with
+  the part's why (`uncovered` on the verdict).
+- A loop (`certLoop`, core/cyclic.ts's `loopNodes`): the usual trees of its halting goals (kernel.ts's
+  `loopObligations`) translated to one cyclic proof, the loop's machine's laws and its liveness's step laws, the proof
+  Lean reads; the usual trees then its input and not checked again (`proveLoop`, a rank stated or found by
+  `findRank`); where none is made, the usual trees, checked. core/cyclic.test.ts: gcd by subtraction's proof checked,
+  and refused with its helpful turn's conclusion given a false part, its rank lowered to 0 or its use dropped.
+- Time: loop certificates in the examples 31 to 271 ms against usual proofs of 4 to 30 ms. In one wave on Modal, the
+  jobs that prove loops and liveness, three runs each against 0.21.0 (`runs/live/ab2`, `runs/live/ab2-base479`): 481.5 s
+  of job time against 424.2 s (medians: the 21 examples jobs 50.31 s against 48.59 s, cycles 56.54 s against 50.16 s,
+  liveness 7.25 s against 7.60 s, lean-cycles-loops 35.08 s against 30.59 s). The suite by default on Modal, every job there (no boat VM was ready): 678.3 s wall,
+  4,100.5 s of job time, `data` failed (`runs/live/suite`); on boat 263.8 s wall, 2,965.4 s, four jobs that never ran
+  (0.02 to 0.41 s, empty logs, boat's ticks failing with 502) failed (`runs/live/suite2`); run again on Modal, `check`,
+  `infer` and `gdp` passed and `pairs` failed, its resource groups' test at 844,786.92 ms where it takes 9 to 15 s
+  (`runs/live/suite2-again`), then passed three runs of three, as 0.21.0 did (`runs/live/pairs3`,
+  `runs/live/base479`, the test 12.2 to 15.3 s and 9.9 to 10.9 s); with `--usual` on Modal, 642.5 s wall, 4,050.8 s, none failed (`runs/live/suite-usual`).
+  `data`'s failure is its test of a function agreeing with + on small values only, at bun's 5 s limit with a 5 s
+  search budget: of eight runs each on Modal one fails at this branch (5,506.90 ms) and two at 0.21.0 (5,026.99 and
+  7,860.63 ms; `runs/live/data8`, `runs/live/base479`); nothing here touches its route.
+- Lean: the 17 liveness and loop items' export is 0.21.0's byte for byte (the same SHA-256), 818,826 bytes cyclic
+  (811,398 of them the items) and 281,197 usual (277,167); each checks on the standard axioms, 26 s cyclic and 13 s
+  usual (`runs/live/lean-measure`, `runs/live/leandiff`; 0.21.0's in `runs/live/base479`, 23 s and 12 s).
+- Termination (compare/term, 1,239 TPDB-ARI tasks at 60 s, on Modal): 58 terminate, each with its cyclic certificate
+  (`cert` in the answer; 45,322 ms in all, at most 6,256 ms), the same 58 as 0.21.0 on Modal; 323 nonterminating against
+  321, none contradicting (`runs/live/term-gdp`, `runs/live/term-gdp-base479`). Against 0.21.0's run on boat
+  (`runs/backends/term-gdp`, 59 terminate) `iecs.t2.ari` is unknown: on Modal 0.21.0 doesn't prove it either, in
+  three runs of three (its invariants not found within the rank search's time; `runs/live/term-diff-base479-1..3`).
+- Still out: the search tree's and the sheet's laws reading a map at a key read from a map. Their usual proofs
+  translated (research/cyclic/nested.ts, `runs/live/probe1`): the search tree's 18 nodes, a kind law ("every Tree
+  node's folds are its children's") not proven in its 10 s (3,013 leaves grown), the sheet's 27 nodes likewise (1,445
+  leaves); such a key is a cell, and its pair with the time (`t + k·Ω`) a product, so two of them equal only through
+  products the translation doesn't find.
+- Retiring the usual certificate, measured, not done: every rule but those four has a cyclic certificate, and the
+  cyclic exports of the whole package (every item but the two) reach 866 of the Lean library's 1,098 declarations; the
+  other 232 (2,779 of 10,493 lines; 176 and 1,892 with the two exported the usual way) are the usual twins'
+  (`machine_sound`, `checkSKStep`, `sleads_sound`, Progress.lean, StepLaw.lean, Steps.lean's checkers) and a few no
+  export reads (`wf_fix_unique`, `Repr` instances; research/cyclic/Retire.lean, `runs/live/lean-measure`'s `retire`).
+  Before they go: the two laws above need a cyclic proof, and the jobs that read the usual twin need the cyclic one
+  (export-kernel.ts `--examples`, every example rule and loop, the 21 `lean-examples-*` jobs; `--sets`; Trees.lean,
+  TreesBig.lean, HistoryTrees.lean, StepLaw.lean and Steps.lean's demos; `lean-ksteps`, `lean-jev-fabric`). The
+  usual trees stay either way: they are what core/translate.ts translates.
+
 ## 0.21.0
 
 Four new things a law or a rule can say, none of them trusted: recursion that isn't structural (a measure, found or

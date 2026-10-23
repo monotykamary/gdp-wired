@@ -2,14 +2,15 @@
 // instances (a recurrence, a machine, a fold) agree with the usual rules, and translate their proofs; nested and mutual
 // inductions no rule had.
 import {expect, test} from 'bun:test'
-import type {E} from './machine.ts'
+import type {E, Law} from './machine.ts'
 import {type Cyclic, refuseCyclic} from '../kernel/cyclic.ts'
-import {foldNodes, machineNodes, proveCyclic, recurNodes} from './cyclic.ts'
+import {foldNodes, loopNodes, machineNodes, proveCyclic, recurNodes} from './cyclic.ts'
 import {grow, proveLaws} from '../kernel/prove.ts'
-import {foldObligations} from '../kernel/kernel.ts'
+import {foldObligations, loopObligations} from '../kernel/kernel.ts'
 import {mccarthy, mutual} from '../examples/cyclic.ts'
 import {counter, counterLaws, growing, retries, retryLaws} from '../examples/lemmas.ts'
 import {rollup, rollupLaws} from '../examples/folds.ts'
+import {euclid} from '../examples/cycles.ts'
 
 const proof = (e: ReturnType<typeof mccarthy>): Cyclic => { const r = proveCyclic(e.facts, e.specs); if (!r.proven || !r.checked) throw new Error('not proven'); return r.proof }
 const n: E = {op: 'var', name: 'n'}
@@ -69,4 +70,25 @@ test('the usual proofs translated: a machine, a fold and a recurrence, each chec
   expect(rn.why).toBeUndefined()
   const rv = proveCyclic(rn.facts, rn.specs)
   expect(rv.proven && rv.checked).toBe(true)
+})
+
+test('a loop\'s halting translated: its laws and its liveness\'s step laws one cyclic proof, a tampered one refused', () => {
+  // gcd by subtraction, ranked a + b with both positive (examples/cycles.ts): the usual trees, then their translation.
+  const l = euclid().loop, a: E = {op: 'var', name: 'a'}, b: E = {op: 'var', name: 'b'}, rank: E[] = [{op: 'add', a, b}]
+  const laws: Law[] = [{name: 'both positive', holds: {op: 'and', xs: [{op: '<=', a: {op: 'const', value: 1}, b: a}, {op: '<=', a: {op: 'const', value: 1}, b}]}}]
+  const goals = loopObligations(l, laws, rank), trees = Object.fromEntries(goals.map(g => { const o = grow(g); if (!('tree' in o)) throw new Error(g.name); return [g.name, o.tree] }))
+  const ln = loopNodes(l, laws, rank, trees)
+  expect(ln.why).toBeUndefined()
+  const lv = proveCyclic(ln.facts, ln.specs)
+  if (!lv.proven) throw new Error(`${lv.goal}: ${lv.stuck}`)
+  expect([lv.checked, refuseCyclic(lv.proof)]).toEqual([true, undefined])
+  // Its last node, the helpful turn's step law: `then` with a false part, a rank no use can drop below, or no use of
+  // the turn's node it reads its conclusion from.
+  const p = lv.proof, last = p.nodes.length - 1, at = (f: (n: Cyclic['nodes'][number]) => Cyclic['nodes'][number]): Cyclic => ({...p, nodes: p.nodes.map((x, i) => (i === last ? f(x) : x))})
+  const zero: E = {op: 'const', value: 0}
+  expect(refuseCyclic(at(x => ({...x, concl: {op: 'and', xs: [x.concl, {op: '<', a: zero, b: zero}]}})))).toMatch(/its goal/)
+  expect(refuseCyclic(at(x => ({...x, rank: x.rank.map(() => zero)})))).toMatch(/rank/)
+  expect(refuseCyclic(at(x => ({...x, uses: []})))).toMatch(/its goal/)
+  // A rank that doesn't drop has no usual trees to translate, and none is made.
+  expect(loopObligations(l, laws, [a]).every(g => 'tree' in grow(g))).toBe(false)
 })
