@@ -47,10 +47,11 @@ export function bmcFits(m: Machine, laws: Law[]): boolean {
   return laws.every(l => !l.forall && !l.some?.length)
 }
 // The counted clock's rate here, units of the kernel's work a millisecond: the median of what Modal's 2-vCPU containers
-// did on the k-step goals of CHC-COMP's unsat LIA-Lin tasks (runs/unsat/bmc-only1: 1,462 depths past 200 ms, from 0 to
-// 340 units a ms at the 90th percentile, 190 at the median). The CDCL search counts its rows, which a goal of many atoms
+// did on the k-step goals of CHC-COMP's unsat LIA-Lin tasks, the stage alone (runs/bmc2/only-mine3: 1,215 depths past
+// 200 ms, 252 units a ms at the median, 383 at the 90th percentile; 168 at the median before reader.ts kept its clean
+// values and the goals were reduced, runs/bmc2/only-base1). The CDCL search counts its rows, which a goal of many atoms
 // and few rows a node keeps low, so a caller under a wall-clock limit gives a wall stop too.
-export const bmcRate = 200
+export const bmcRate = 250
 // A forced run's share of the budget, and its steps at most (a derivation checkDerivation replays step by step).
 const forcedShare = 0.3, forcedSteps = 1_000_000
 // GDP_BMC_RELAX=0: no relaxed goal first (for comparing).
