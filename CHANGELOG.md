@@ -91,7 +91,8 @@ isn't found, 6 recursive programs needing what a call returns, 4BitCounterPointe
 adversarial C programs (`compare/term/adversarial/*.c.txt`, `c2ari_test.py`: conversions, the data model, recursion,
 arrays, pointers, division, undefined behaviour where it is and isn't evaluated) are never answered against how they
 run (`runs/svfront/probes2`). Suites: by default 213 jobs, none failed, 595.3 s wall, 5,213.5 s of job time
-(`runs/svfront/suite-default`); `term-c2ari` now takes 2 vCPU.
+(`runs/svfront/suite-default`); `--usual` 213 jobs, none failed, 504.5 s wall, 4,895.0 s (`suite-usual`); `term-c2ari`
+now takes 2 vCPU.
 
 ## 0.23.0
 
