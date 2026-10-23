@@ -743,7 +743,7 @@ export function findCycles(facts: Fact[], claims: Claim[], opts: CycleOptions = 
 // are fⱼ + 1 read truncated, in order: on a path it is strict on, the first fⱼ that is ≥ 0 drops and those before it
 // stay 0; on one it keeps (each fⱼ' ≤ fⱼ), none rises. (Of depth 1, f ≥ 1 where it drops, and f itself: the same rank,
 // its least constant.) The kernel proves the halting goals with it, as with any rank.
-type GPath = {from: number, to: number, gens: Generators, post: Record<string, Lin>}
+type GPath = {from: number, to: number, gens: Generators, post: Record<string, Lin>, rows: Lin[]}
 type Template = {depth: number, own: boolean, tag: string}
 const plusL = (a: Lin, b: Lin, f = 1): Lin => { const o: Lin = {...a}; for (const x in b) { o[x] = (o[x] ?? 0) + f * b[x]!; if (!o[x]) delete o[x] } return o }
 const konstL = (c: number): Lin => (c ? {1: c} : {})
@@ -779,11 +779,13 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
     const ns = [...new Set([...rows.flatMap(r => Object.keys(r)), ...Object.values(p.post).flatMap(r => Object.keys(r)), ...every])].filter(x => x !== '1').sort()
     const gens = generators(rows, ns, rel.nats, 600, until)
     if (!gens) return {why: 'a path past the generators\' cap'}
-    if (gens.vertices.length) gpaths.push({from: fromOf(i), to: toOf(i), gens, post: p.post})
+    if (gens.vertices.length) gpaths.push({from: fromOf(i), to: toOf(i), gens, post: p.post, rows})
   }
   // A template's value at a generator (x, t), as a form over the unknowns; after the turn, through the path's values.
   const unknown = (tp: Template, j: number, n: number, x: string | 1) => (x === 1 ? `b:${tp.tag}${j}:${n}` : `a:${tp.tag}${j}:${tp.own ? n : '*'}:${x}`)
-  const varsAt = (tp: Template, n: number) => (tp.own ? at[n]! : every)
+  // a node: a location, or one side of an atom at a location (regions, below)
+  const nodeLoc: number[] = values.map((_, n) => n)
+  const varsAt = (tp: Template, n: number) => (tp.own ? at[nodeLoc[n]!]! : every)
   const fAt = (tp: Template, j: number, n: number, x: Env, t: number): Lin => {
     const out: Lin = {}
     for (const v of varsAt(tp, n)) if (x[v]) out[unknown(tp, j, n, v)] = x[v]!
@@ -816,7 +818,7 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
   const scale = 1 + Math.max(0, ...gpaths.flatMap(p => p.gens.vertices.flatMap(g => g.map(Math.abs))))
   const sat = (w: Record<string, number>, rows: Lin[]) => rows.every(r => valueAt(r, w) <= 0)
   // One block over the paths left: strict on all of them at once, else on as many as one after another allows.
-  const block = (tp: Template, left: GPath[], greedy: boolean): {w: Record<string, number>, strict: GPath[]} | undefined => {
+  const block = (tp: Template, left: GPath[], greedy: boolean, until: number): {w: Record<string, number>, strict: GPath[]} | undefined => {
     const all = lp(left.flatMap(p => strictRows(tp, p)), [], until, scale, undefined, true)
     if (all) return {w: all, strict: left}
     if (!greedy) return undefined
@@ -836,25 +838,24 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
   for (const p of gpaths) graph[p.from]!.add(p.to)
   const comp = sccs(graph.map(g => [...g])), height: number[] = []
   const heightOf = (c: number): number => (height[c] ??= Math.max(0, ...values.flatMap((_, n) => (comp[n] === c ? [...graph[n]!].filter(m => comp[m] !== c).map(m => heightOf(comp[m]!) + 1) : []))))
-  const parts: Lin[][][] = [] // per component of the locations: its parts, each a form per location
-  const sizes: number[] = []
-  for (const c of [...new Set(comp)].sort((a, b) => a - b)) {
-    let left = gpaths.filter(p => comp[p.from] === c && comp[p.to] === c)
-    const mine: Lin[][] = []
+  // The paths of one component in order of blocks: each component a form per node.
+  const ranked = (paths: GPath[], tag0: string, until: number): {parts: Lin[][], sizes: number[]} | {why: string} => {
+    let left = paths
+    const mine: Lin[][] = [], sizes: number[] = []
     while (left.length && mine.length < 8 && performance.now() < until) {
-      const tag = `${c}.${mine.length}.`
+      const tag = `${tag0}${mine.length}.`
       // depth 1 first, all at once then one path after another; then deeper
       const order: [Template, boolean][] = [1, 2, 3].flatMap(depth => [false, true].flatMap(greedy => [false, true].map((own): [Template, boolean] => [{depth, own, tag}, greedy])))
       let found: {w: Record<string, number>, strict: GPath[], tp: Template} | undefined
       for (const [tp, greedy] of order) {
         if (found || performance.now() > until) break
-        const t1 = performance.now(), b = block(tp, left, greedy)
+        const t1 = performance.now(), b = block(tp, left, greedy, until)
         if (trace) console.error(`[cycles] ${l.name}: block ${tag} depth ${tp.depth}${tp.own ? ' own' : ''}${greedy ? ' greedy' : ''}: ${b ? b.strict.length : 'none'} of ${left.length} paths, ${Math.round(performance.now() - t1)} ms`)
         if (b && b.strict.length) found = {...b, tp}
       }
       if (!found) return {why: `no block of a nested rank per location is strict on any of the ${left.length} paths left (of ${gpaths.length})`}
       const {w, tp, strict} = found
-      for (let j = 0; j < tp.depth; j++) mine.push(values.map((_, n) => {
+      for (let j = 0; j < tp.depth; j++) mine.push(nodeLoc.map((_, n) => {
         const f: Lin = {}
         for (const x of varsAt(tp, n)) { const a = w[unknown(tp, j, n, x)] ?? 0; if (a) f[x] = a }
         return plusL(f, {1: (tp.depth === 1 ? 0 : 1) + (w[unknown(tp, j, n, 1)] ?? 0)})
@@ -863,14 +864,57 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
       left = left.filter(p => !strict.includes(p))
     }
     if (left.length) return {why: performance.now() >= until ? 'out of time on the relation' : 'past 8 components'}
-    parts[c] = mine
+    return {parts: mine, sizes}
+  }
+  // Regions: a component with no rank, its locations split by an atom its paths read (q < p: min(p, q); y ≥ 2: a
+  // sign), each side a node of its own, its paths split by the side before and after; the kernel's term reads the atom
+  // (if atom then f else g).
+  const after1 = (p: GPath, a: Lin): Lin => { let o: Lin = {}; for (const [x, c] of Object.entries(a)) o = plusL(o, x !== '1' && p.post[x] ? scaleL(p.post[x]!, c) : {[x]: c}); return o }
+  const side = (a: Lin, yes: boolean): Lin => (yes ? a : plusL({1: 1}, a, -1))
+  const regions = (c: number, paths: GPath[]): {parts: E[][], sizes: number[]} | undefined => {
+    const seen = new Set<string>(), atoms: Lin[] = []
+    for (const r of paths.flatMap(p => p.rows)) {
+      if (!Object.keys(r).every(x => x === '1' || names.has(x)) || Object.keys(r).length < 2) continue
+      const key = [id(Object.keys(r).sort().map(x => [x, r[x]])), id(Object.keys(side(r, false)).sort().map(x => [x, side(r, false)[x]]))].sort().join()
+      if (!seen.has(key)) { seen.add(key); atoms.push(r) }
+    }
+    atoms.sort((a, b) => Object.keys(b).length - Object.keys(a).length)
+    const locs = values.flatMap((_, n) => (comp[n] === c ? [n] : []))
+    for (const [ai, a] of atoms.slice(0, 8).entries()) {
+      if (performance.now() > until) return undefined
+      const base = nodeLoc.length, node = (n: number, yes: boolean) => base + 2 * locs.indexOf(n) + (yes ? 0 : 1)
+      for (const n of locs) nodeLoc.push(n, n)
+      const split: GPath[] = []
+      for (const p of paths) for (const yes of [true, false]) for (const yes2 of [true, false]) {
+        const rows = [...p.rows, side(a, yes), side(after1(p, a), yes2)]
+        const gens = generators(rows, p.gens.names, rel.nats, 600, until)
+        if (gens?.vertices.length) split.push({from: node(p.from, yes), to: node(p.to, yes2), gens, post: p.post, rows})
+      }
+      const out = ranked(split, `${c}.r${ai}.`, until)
+      if (trace) console.error(`[cycles] ${l.name}: component ${c} split by ${showC(leC(rel, a))}: ${'parts' in out ? out.parts.length + ' parts' : out.why}`)
+      if ('parts' in out) {
+        const cond = leC(rel, a)
+        return {parts: out.parts.map(fs => values.map((_, n) => (locs.includes(n) ? {op: 'if', c: cond, then: termOf(rel, fs[node(n, true)]!), else: termOf(rel, fs[node(n, false)]!)} : k(0)))), sizes: out.sizes}
+      }
+    }
+    return undefined
+  }
+  const parts: E[][][] = [] // per component of the locations: its parts, each a term per location
+  const sizes: number[] = []
+  for (const c of [...new Set(comp)].sort((a, b) => a - b)) {
+    // (half the time left for the component as it is: the regions have the rest)
+    const inner = gpaths.filter(p => comp[p.from] === c && comp[p.to] === c), out = ranked(inner, `${c}.`, performance.now() + (until - performance.now()) / 2)
+    if ('parts' in out) { parts[c] = out.parts.map(fs => values.map((_, n) => termOf(rel, fs[n]!))); sizes.push(...out.sizes); continue }
+    const r = regions(c, inner)
+    if (!r) return out
+    parts[c] = r.parts
+    sizes.push(...r.sizes)
   }
   // per location, its component's parts in order (0 past them), the heights first where paths join components
   const width = Math.max(0, ...parts.map(p => p?.length ?? 0))
-  const forms: Lin[][] = [...(gpaths.some(p => comp[p.from] !== comp[p.to]) ? [values.map((_, n) => konstL(heightOf(comp[n]!)))] : []),
-    ...Array.from({length: width}, (_, j) => values.map((_, n) => parts[comp[n]!]?.[j]?.[n] ?? {}))]
-  const rank = forms.map(fs => {
-    const terms = fs.map(f => termOf(rel, f))
+  const columns: E[][] = [...(gpaths.some(p => comp[p.from] !== comp[p.to]) ? [values.map((_, n) => termOf(rel, konstL(heightOf(comp[n]!))))] : []),
+    ...Array.from({length: width}, (_, j) => values.map((_, n) => parts[comp[n]!]?.[j]?.[n] ?? k(0)))]
+  const rank = columns.map(terms => {
     let e = terms.at(-1) ?? k(0)
     for (let n = terms.length - 2; n >= 0; n--) if (id(terms[n]) !== id(e)) e = {op: 'if', c: eqC(v(rel.loc!), k(values[n]!)), then: terms[n]!, else: e}
     return e
