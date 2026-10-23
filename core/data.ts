@@ -1888,7 +1888,7 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
       // step the case's rewriting joins), `perCase` more of a lemma.
       const fit = [...uses, ...spare].filter(u => holdsIn(u.guard) && applies(u)), kept = capUses(fit.filter(u => uses.includes(u)))
       const rest = fit.filter(u => u.node >= 0 && !kept.includes(u)), joins = rest.length && c.models ? caseJoins(fs, [concl, ihConcls], pre, ihConcls, few(c.models)) : undefined
-      const us = [...kept, ...capUses(joins ? rest.filter(u => joins(useConcl(u))) : [])]
+      const us = [...kept, ...capUses(joins ? rest.filter(u => joins(useConcl(u))) : [], lemmaCaps.joined)]
       const ms = few(c.models ?? c.near ?? models)
       plan.push({name: `${name}, case ${i + 1}`, hyps: c.lits, concl, sub: 0, insts: reached(p, fs, instsFor(ms, us, false, c.lits), [c.lits, concl, us.map(u => [u.guard, useConcl(u)]), shapesAt], ms), uses: us})
     }
@@ -2085,8 +2085,9 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number
   return out
 }
 // How many uses of lemmas a goal gets: the candidates kept (`perLemma` of each lemma, `total`), and of those a case node
-// keeps (`perCase` of each lemma, those its models meet).
-export const lemmaCaps = {perLemma: 8, total: 24, perCase: 4, spare: 96}
+// keeps (`perCase` of each lemma, those its models meet); past the node's, `spare` kept for its cases, of which a case
+// takes `joined` more (those its own rewriting passes through).
+export const lemmaCaps = {perLemma: 8, total: 24, perCase: 4, spare: 96, joined: 2}
 // A node's uses: the scheme's (the cycle's, read at nodes not yet placed) all, `perCase` of each lemma, `total` lemma
 // uses in all, in the order given.
 function capUses(uses: NodeSpec['uses'], total = Infinity): NodeSpec['uses'] {
