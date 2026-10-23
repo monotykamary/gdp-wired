@@ -694,7 +694,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         if (!known.has(k2) && dirs.length < 2 * CN + 4 * joinPairs * joinPairs + 64) { known.add(k2); dirs.push(u) }
       }
     }
-    const thresholds = bounds
+    // Widening with thresholds: a bound a counterexample breaks rises to the next of the rule's constants (their sums and
+    // products the first time, the constants alone after), and past that it is dropped.
+    const fine = bounds, coarse = [...new Set([0, ...consts.flatMap(k => [k, -k])])].sort((p2, q2) => p2 - q2)
     type Group = {eqs: bigint[][], hi: number[], raised: number[]}
     const groups = new Map<string, Group>()
     const bgcd = (a2: bigint, b2: bigint): bigint => { a2 = a2 < 0n ? -a2 : a2; b2 = b2 < 0n ? -b2 : b2; while (b2) [a2, b2] = [b2, a2 % b2]; return a2 }
@@ -718,8 +720,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const v = dirValue(t, vs)
         if (v <= grp!.hi[k]!) return
         if (!widen) { grp!.hi[k] = v; return }
-        const up = thresholds.find(b2 => b2 >= v)
-        grp!.hi[k] = ++grp!.raised[k]! > joinRaises || up === undefined ? Infinity : up
+        const n2 = ++grp!.raised[k]!, up = (n2 === 1 ? fine : coarse).find(b2 => b2 >= v)
+        grp!.hi[k] = n2 > joinRaises || up === undefined ? Infinity : up
       })
       joins++
     }
@@ -783,7 +785,27 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // (or, breaking a caller's law, a candidate that rules the state out is added). Every goal of the cone proven, the
     // cone is inductive with the caller's laws, and it is the answer.
     const stood = new Map<string, string[]>(), blocked = new Set<string>(), callers = new Set(laws.map(l => l.name))
-    let cone: Form[] = []
+    let cone: Form[] = [], dropped = 0
+    // A state reached from one the set allows: joined in, and every extra false there dropped.
+    const reach = (p2: Point) => {
+      if (reached.length < 2000) reached.push(p2)
+      const vs = valuesOf(p2.scalar)
+      join(keyOf(vs), vs, true)
+      for (let k = extras.length - 1; k >= 0; k--) if (!holdsAt(extras[k]!, p2)) { const f = extras[k]!; extras.splice(k, 1); pool = pool.filter(g2 => g2 !== f); dropped++ }
+    }
+    // A goal's step with these forms assumed (beside the caller's laws and the kinds'): its tree and the forms it read, or
+    // the kernel's model.
+    const stepWith = (name: string, form: Form | undefined, ctx: Form[]) => {
+      const ctxLaws = [...ctx, ...(form ? [form] : [])].map(lawFor), ls = [...given, ...ctxLaws], mm = forLaws(ctxLaws).m
+      const idx = form ? ls.length - 1 : ls.findIndex(l => l.name === name)
+      const g = obligations(mm, ls, {}, idx)[1]!
+      const out = budgeted(joinQueryMs, until2 => grow(g, new Map(), {nodes: 0, until: until2}))
+      if (!('tree' in out)) return {stuck: out.stuck, witness: out.stuck === 'sat' ? out.witness : undefined}
+      const base0 = g.hyps.length - 1 - ls.length, used: string[] = []
+      for (const h of usedHyps(g, out.tree)) { const k = h - base0; if (k >= given.length && k < ls.length && k !== idx) used.push(ls[k]!.name) }
+      return {used}
+    }
+    const stateOf = (w: Record<string, number>): {params: Env, st: State} => ({params: m.params.length ? Object.fromEntries(m.params.map(p => [p, w[p] ?? 0])) : params0, st: {scalars: Object.fromEntries(scalars.map(v => [v, w[v] ?? 0])), maps: {}}})
     for (;;) {
       if (now() > jUntil || stop()) { why = 'time'; break }
       rounds++
@@ -809,22 +831,16 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       let ctx: Form[] = [], witness: Record<string, number> | undefined, lastStuck = '', qms = 0, settled = false
       for (let attempt = 0; attempt <= joinAttempts; attempt++) {
         if (attempt === joinAttempts) ctx = whole
-        const ctxLaws = [...ctx, ...(todoForm ? [todoForm] : [])].map(lawFor), ls = [...given, ...ctxLaws], mm = forLaws(ctxLaws).m
-        const idx = todoForm ? ls.length - 1 : ls.findIndex(l => l.name === todo)
-        const g = obligations(mm, ls, {}, idx)[1]!
-        const tq = performance.now()
-        const out = budgeted(joinQueryMs, until2 => grow(g, new Map(), {nodes: 0, until: until2}))
+        const tq = performance.now(), out = stepWith(todo, todoForm, ctx)
         qms += Math.round(performance.now() - tq)
-        if ('tree' in out) {
-          const base0 = g.hyps.length - 1 - ls.length, used: string[] = []
-          for (const h of usedHyps(g, out.tree)) { const k = h - base0; if (k >= given.length && k < ls.length && k !== idx) used.push(ls[k]!.name) }
-          stood.set(todo, used)
-          opts.progress?.('join', {round: rounds, set: set.length, ms: qms, proven: todo.slice(0, 60), reads: used.length, ctx: ctx.length, attempt})
+        if ('used' in out) {
+          stood.set(todo, out.used!)
+          opts.progress?.('join', {round: rounds, set: set.length, ms: qms, proven: todo.slice(0, 60), reads: out.used!.length, ctx: ctx.length, attempt})
           settled = true; break
         }
-        lastStuck = out.stuck
-        if (out.stuck !== 'sat' || !out.witness) { if (ctx === whole) break; ctx = whole; attempt = joinAttempts - 1; continue }
-        const w = out.witness, pre0 = pointOf(m.params.length ? Object.fromEntries(m.params.map(p => [p, w[p] ?? 0])) : params0, {scalars: Object.fromEntries(scalars.map(v => [v, w[v] ?? 0])), maps: {}})
+        lastStuck = out.stuck!
+        if (!out.witness) { if (ctx === whole) break; ctx = whole; attempt = joinAttempts - 1; continue }
+        const w = out.witness, {params: pp0, st: st0} = stateOf(w), pre0 = pointOf(pp0, st0)
         if (ctx === whole) { witness = w; break }
         const ruling = whole.filter(f => !ctx.includes(f) && !holdsAt(f, pre0)).sort((p2, q2) => rank(p2) - rank(q2))
         if (!ruling.length) { witness = w; break }
@@ -836,8 +852,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         if (callers.has(todo)) { why = `stuck ${lastStuck}`; break }
         blocked.add(todo); continue
       }
-      const w = witness, params: Env = m.params.length ? Object.fromEntries(m.params.map(p => [p, w[p] ?? 0])) : params0
-      const st: State = {scalars: Object.fromEntries(scalars.map(v => [v, w[v] ?? 0])), maps: {}}
+      const w = witness, {params, st} = stateOf(w)
       const input = Object.fromEntries(m.inputs.map(i => [i, w[i] ?? 0])) as Request
       let post: State | undefined
       try { post = run.step(params, st, input) } catch { post = undefined }
@@ -847,8 +862,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const outside = !post || set.some(f => !holdsAt(f, pre))
       if (outside && !callers.has(todo)) { blocked.add(todo); opts.progress?.('join', {round: rounds, set: set.length, ms: qms, result: 'outside', goal: todo.slice(0, 60)}); continue }
       if (outside || breaks(params, post!)) {
-        // the caller's law broken from a state the set allows: a candidate false there, the one false at the most such
-        // states (then the smallest), or one made from it (fromCti)
+        // the caller's law broken from a state the set allows: a candidate false there and at every state reached, the
+        // one false at the most such states (then the smallest), or one made from it (fromCti)
         negs.push(pre); ctis.push(pre)
         const pick = (fs: Form[]) => { let bestF: Form | undefined, score = -Infinity; for (const f of fs) { if (f.cells || f.cong || extras.includes(f) || blocked.has(textOf(f)) || holdsAt(f, pre) || !reached.every(p2 => holdsAt(f, p2))) continue; const sc = negs.reduce((k2, c) => k2 + (holdsAt(f, c) ? 0 : 1), 0) * 1000 - f.size; if (sc > score) (bestF = f, score = sc) } return bestF }
         const room = extras.length < joinExtras && tried < joinTries
@@ -862,14 +877,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const after = post!, postP = pointOf(params, after)
       // (a model past what doubles hold exactly, or one the interpreter reads otherwise: nothing to join)
       if (!set.some(f => !holdsAt(f, postP))) { why = 'no violation'; opts.progress?.('join', {round: rounds, set: set.length, ms: qms, result: why}); break }
-      const j0 = joins
-      let dropped = 0
-      const reach = (p2: Point) => {
-        if (reached.length < 2000) reached.push(p2)
-        const vs = valuesOf(p2.scalar)
-        join(keyOf(vs), vs, true)
-        for (let k = extras.length - 1; k >= 0; k--) if (!holdsAt(extras[k]!, p2)) { const f = extras[k]!; extras.splice(k, 1); pool = pool.filter(g2 => g2 !== f); dropped++ }
-      }
+      const j0 = joins, d0 = dropped
       reach(postP)
       // short walks from the state joined: every state they reach is a successor of one the invariant holds at
       let walked = 0
@@ -881,7 +889,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         if (breaks(params, next)) break
         reach(pointOf(params, next)); at = next; walked++
       }
-      opts.progress?.('join', {round: rounds, set: set.length, ms: qms, goal: todo.slice(0, 60), joins: joins - j0, walked, dropped})
+      opts.progress?.('join', {round: rounds, set: set.length, ms: qms, goal: todo.slice(0, 60), joins: joins - j0, walked, dropped: dropped - d0})
     }
     opts.progress?.('join end', {rounds, set: set.length, why, cone: cone.length, ms: Math.round(performance.now() - jT0)})
     // (unproven, the search below begins as it would have: the candidates and the counterexamples as they were)
