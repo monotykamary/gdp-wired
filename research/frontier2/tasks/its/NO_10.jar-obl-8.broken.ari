@@ -1,0 +1,17 @@
+(format LCTRS)
+(theory Ints)
+(fun __init (-> Int Int Int))
+(fun f1_0_main_ConstantStackPush (-> Int Int Int))
+(fun f51_0_main_GE (-> Int Int Int))
+(entrypoint __init)
+(rule
+(f1_0_main_ConstantStackPush arg1 arg2)
+(f51_0_main_GE arg1P arg2P)
+:guard
+(and (= 0 arg1P) (= 100 arg2P)))
+(rule
+(f51_0_main_GE arg1 arg2)
+(f51_0_main_GE arg1P arg2P)
+:guard
+(and (and (> arg2 arg1) (= (+ arg1 1) arg1P)) (= arg2 arg2P)))
+(rule (__init arg1 arg2) (f1_0_main_ConstantStackPush arg1P arg2P))
