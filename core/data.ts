@@ -2174,30 +2174,35 @@ function reached(p: Program, fs: Facts, insts: NodeSpec['insts'], from: unknown[
     return reach.has(id(get(m, keyOf(q.at.slice(0, n))))) && reach.has(id(get(m, keyOf(q.at.slice(n)))))
   })
 }
-// The uses of lemmas a goal's reads match: each lemma's largest reads (those inside no other) matched against the goal's
-// reads of the same map at keys equal, by the instances' equations (every branch), to the read's key.
-// `hits`: the lemmas (their nodes) with any use at all, gathered there (and no uses made): whether a goal reads each.
-function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number, concl: C}[], from: unknown[], insts: NodeSpec['insts'], models: M[] = [], spare?: NodeSpec['uses'], hits?: Set<number>): NodeSpec['uses'] {
-  const id = tid, parent = new Map<string, string>(), terms = new Map<string, E>()
+// Classes of terms by text (`union`, each term given to `onUnion`), closed under congruence (`congruent`: two reads of a
+// map, each given to `cell`, at arguments of one class are one), by signatures.
+function congruence(fs: Facts, onUnion?: (x: E) => void) {
+  const parent = new Map<string, string>(), cells = new Map<string, {key: E, as: E[]}[]>()
   const find = (x: string): string => { let r = x; while (parent.has(r)) r = parent.get(r)!; return r }
-  const union = (x: E, y: E) => { terms.set(id(x), x); terms.set(id(y), y); const a = find(id(x)), b = find(id(y)); if (a !== b) parent.set(a, b) }
-  const leaves = (e: E): E[] => (e.op === 'if' ? [...leaves(e.then), ...leaves(e.else)] : [e])
-  for (const q of insts) for (const [a, b] of equalities(holdsAt(fs, q))) for (const leaf of leaves(b)) union(a, leaf)
-  // Closed under congruence (two reads of one map at arguments of one class), by signatures.
-  const cells = new Map<string, {key: E, as: E[]}[]>(), classes = new Map<string, E[]>()
-  const close = (t: unknown) => {
-    walkOnce(t, o => { if (o.op !== 'get') return; const n = fs.arity.get(o.map as string), as = n ? argsOf(o.key as E, n) : undefined; if (as) (cells.get(o.map as string) ?? cells.set(o.map as string, []).get(o.map as string)!).push({key: o.key as E, as}) })
+  const union = (x: E, y: E) => { onUnion?.(x); onUnion?.(y); const a = find(tid(x)), b = find(tid(y)); if (a !== b) parent.set(a, b) }
+  const cell = (o: Record<string, unknown>) => { const n = fs.arity.get(o.map as string), as = n ? argsOf(o.key as E, n) : undefined; if (as) (cells.get(o.map as string) ?? cells.set(o.map as string, []).get(o.map as string)!).push({key: o.key as E, as}) }
+  const congruent = () => {
     for (let changed = true, rounds = 0; changed && rounds < 8; rounds++) {
       changed = false
       for (const [map, list] of cells) {
         const bySig = new Map<string, E>()
-        for (const x of list) {
-          const sig = x.as.map(t2 => find(id(t2))).join('\u0001'), y = bySig.get(sig), cx = get(map, x.key)
-          if (!y) { bySig.set(sig, cx); continue }
-          if (find(id(y)) !== find(id(cx))) { union(y, cx); changed = true }
-        }
+        for (const x of list) { const sig = x.as.map(t => find(tid(t))).join('\u0001'), y = bySig.get(sig), cx = get(map, x.key); if (!y) bySig.set(sig, cx); else if (find(tid(y)) !== find(tid(cx))) { union(y, cx); changed = true } }
       }
     }
+  }
+  return {find, union, cell, cells, congruent}
+}
+// The uses of lemmas a goal's reads match: each lemma's largest reads (those inside no other) matched against the goal's
+// reads of the same map at keys equal, by the instances' equations (every branch), to the read's key.
+// `hits`: the lemmas (their nodes) with any use at all, gathered there (and no uses made): whether a goal reads each.
+function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number, concl: C}[], from: unknown[], insts: NodeSpec['insts'], models: M[] = [], spare?: NodeSpec['uses'], hits?: Set<number>): NodeSpec['uses'] {
+  const terms = new Map<string, E>(), {find, union, cell, congruent} = congruence(fs, x => terms.set(tid(x), x))
+  const leaves = (e: E): E[] => (e.op === 'if' ? [...leaves(e.then), ...leaves(e.else)] : [e])
+  for (const q of insts) for (const [a, b] of equalities(holdsAt(fs, q))) for (const leaf of leaves(b)) union(a, leaf)
+  const classes = new Map<string, E[]>()
+  const close = (t: unknown) => {
+    walkOnce(t, o => { if (o.op === 'get') cell(o) })
+    congruent()
     classes.clear()
     for (const [key, e] of terms) { const r = find(key); (classes.get(r) ?? classes.set(r, []).get(r)!).push(e) }
   }
@@ -2327,9 +2332,7 @@ const matchedAt = new WeakMap<object, {goal: E, lemma: E}>()
 // is a step the case's own rewriting passes through, from one of its terms to another (ripple's fertilisation), where
 // a use that only matches one of its terms is one its models alone may agree with (app (t, []) for t).
 function caseJoins(fs: Facts, from: unknown[], insts: NodeSpec['insts'], hyps: C[], ms: M[]): (c: C) => boolean {
-  const parent = new Map<string, string>()
-  const find = (x: string): string => { let r = x; while (parent.has(r)) r = parent.get(r)!; return r }
-  const union = (x: E, y: E) => { const a = find(tid(x)), b = find(tid(y)); if (a !== b) parent.set(a, b) }
+  const {find, union, cell, cells, congruent} = congruence(fs)
   const truth = (c: C): boolean | undefined => { let v: boolean | undefined; for (const {m, env} of ms) { let t: boolean; try { t = m.evalC(c, env) } catch { return undefined } if (v === undefined) v = t; else if (v !== t) return undefined } return v }
   const leaf = (e: E): E | undefined => { if (e.op !== 'if') return e; const t = truth(e.c); return t === undefined ? undefined : leaf(t ? e.then : e.else) }
   const eqs = (c: C): void => {
@@ -2339,15 +2342,9 @@ function caseJoins(fs: Facts, from: unknown[], insts: NodeSpec['insts'], hyps: C
   }
   for (const q of insts) eqs(holdsAt(fs, q))
   for (const h of hyps) eqs(h)
-  const cells = new Map<string, {key: E, as: E[]}[]>(), seen = new Set<string>()
-  walkOnce([from, insts.map(q => holdsAt(fs, q)), hyps], o => { if (o.op !== 'get') return; seen.add(tid(o as unknown as E)); const n = fs.arity.get(o.map as string), as = n ? argsOf(o.key as E, n) : undefined; if (as) (cells.get(o.map as string) ?? cells.set(o.map as string, []).get(o.map as string)!).push({key: o.key as E, as}) })
-  for (let changed = true, rounds = 0; changed && rounds < 8; rounds++) {
-    changed = false
-    for (const [map, list] of cells) {
-      const bySig = new Map<string, E>()
-      for (const x of list) { const sig = x.as.map(t => find(tid(t))).join('\u0001'), y = bySig.get(sig), cx = get(map, x.key); if (!y) bySig.set(sig, cx); else if (find(tid(y)) !== find(tid(cx))) { union(y, cx); changed = true } }
-    }
-  }
+  const seen = new Set<string>()
+  walkOnce([from, insts.map(q => holdsAt(fs, q)), hyps], o => { if (o.op !== 'get') return; seen.add(tid(o as unknown as E)); cell(o) })
+  congruent()
   const bySig = new Map<string, string>()
   for (const [map, list] of cells) for (const x of list) bySig.set(`${map}\u0002${x.as.map(t => find(tid(t))).join('\u0001')}`, find(tid(get(map, x.key))))
   // (once per object: a key's pairing reads its arguments again, so a term's objects are shared deep down)
