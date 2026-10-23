@@ -9,7 +9,7 @@
 //     derive false tried first at each state)
 //   - bmc: bounded runs (core/bmc.ts), a model of the kernel's k-step goal from the start to error, k = 1, 2, ...,
 //     within --bmc-ms (10,000)
-//   - kind: k-induction (core/kind.ts), beside the others on the container's second CPU (compare/chc/kind.ts, started
+//   - kind: k-induction (core/kind.ts), beside the others on the container's second CPU at the lowest priority (compare/chc/kind.ts, started
 //     once the task is read, until the search's deadline; `--kind-ms 0` leaves it out): proven, it ends this process
 //     and answers sat itself
 //   - houdini: the library's search for the invariants the law needs (core/infer.ts), from the states the runs reached:
@@ -48,8 +48,10 @@ const {rule: r, law} = b!
 say({stage: 'import', preds: chc!.preds.size, clauses: chc!.clauses.length, ints: b!.nInt, bools: b!.nBool, inputs: b!.inInt + b!.inBool})
 
 // k-induction beside the other stages (compare/chc/kind.ts), until the search's deadline; stopped when this answers.
+// At the lowest priority (nice 19): of the 41 tasks this or main answered alone, 32 and 35 answered that way, 30, 31 and
+// 32 at the same priority, main 9, 16 and 18 (runs/kind/ch-nice-*, chc-mine, ch-mine-*, chc-base, ch-base-*).
 const kindMs = opt('--kind-ms', Math.max(0, houdiniMs - 2000 - ms()))
-const kind = kindMs > 0 ? Bun.spawn(['bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid)], {stdout: 'inherit', stderr: 'ignore'}) : undefined
+const kind = kindMs > 0 ? Bun.spawn(['nice', '-n', '19', 'bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid)], {stdout: 'inherit', stderr: 'ignore'}) : undefined
 process.on('exit', () => { kind?.kill() })
 
 // A run, replayed on the compiled rule and checked against the CHC.
