@@ -823,18 +823,20 @@ function relationRank(l: Loop, rel: Relation, until: number, extra: Lin[][] = []
   const sat = (w: Record<string, number>, rows: Lin[]) => rows.every(r => valueAt(r, w) <= 0)
   // One block over the paths left: strict on all of them at once, else on as many as one after another allows.
   const block = (tp: Template, left: GPath[], greedy: boolean, until: number): {w: Record<string, number>, strict: GPath[]} | undefined => {
-    const all = lp(left.flatMap(p => strictRows(tp, p)), [], until, scale, undefined, true)
-    if (all) return {w: all, strict: left}
-    if (!greedy) return undefined
+    // (each path's rows made once for the template)
+    const strict = new Map(left.map(p => [p, strictRows(tp, p)])), weak = new Map<GPath, Lin[]>()
+    const weakOf = (q: GPath) => { let r = weak.get(q); if (!r) weak.set(q, r = weakRows(tp, q)); return r }
+    // all at once (a greedy try follows the same template's try of this, so it doesn't make it again)
+    if (!greedy) { const all = lp(left.flatMap(p => strict.get(p)!), [], until, scale, undefined, true); return all && {w: all, strict: left} }
     const must: Lin[] = []
     let w: Record<string, number> | undefined
     for (const p of left) {
       if (performance.now() > until) break
-      if (w && sat(w, strictRows(tp, p))) continue
-      const rows = strictRows(tp, p), w2 = lp([...must, ...rows], left.filter(q => q !== p).flatMap(q => weakRows(tp, q)), until, scale, undefined, true)
+      if (w && sat(w, strict.get(p)!)) continue
+      const rows = strict.get(p)!, w2 = lp([...must, ...rows], left.filter(q => q !== p).flatMap(weakOf), until, scale, undefined, true)
       if (w2) { must.push(...rows); w = w2 }
     }
-    return w && {w, strict: left.filter(p => sat(w, strictRows(tp, p)))}
+    return w && {w, strict: left.filter(p => sat(w, strict.get(p)!))}
   }
   // The locations' components: a path between two drops by the first part of the rank, the component's height; the
   // paths within each are ranked on their own (their locations are no other's, so the parts line up per location).
