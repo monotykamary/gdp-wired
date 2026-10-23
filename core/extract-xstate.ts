@@ -8,7 +8,7 @@
 // raise, send or spawn.
 import ts from 'typescript'
 import * as dsl from './dsl.ts'
-import {compileFunction} from './machine.ts'
+import {compileFunction, seeded} from './machine.ts'
 import * as I from './extract-ir.ts'
 import type {B} from './extract-ir.ts'
 import {Exec, type Model, type Path, Refusal, type Setup, type Term, type V, type Var, program} from './extract-read.ts'
@@ -225,8 +225,7 @@ export function extractXState(code: string, opts: XStateOptions): XStateExtracti
     void named
     const chart = compileFunction<(...xs: unknown[]) => ReturnType<typeof fromXState>>([...NAMES, 'fromXState', opts.entry], `return fromXState(${opts.entry}, ${bridge})`)(...NAMES.map(n => (dsl as Record<string, unknown>)[n]), fromXState, machine)
     // The check: XState's actor and the chart's compiled rule on the same events, payloads drawn for every input read.
-    let x = opts.check?.seed ?? 3
-    const rand = (k: number) => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) }
+    const rand = seeded(opts.check?.seed ?? 3)
     const draw = (v: Var): unknown => (v.sort.k === 'bool' ? rand(2) === 1 : v.sort.k === 'choice' ? v.sort.values[rand(v.sort.values.length)] : v.sort.k === 'str' ? ['a', 'b', ''][rand(3)] : sorts.get(v.name) === 'nat' ? rand(12) : rand(25) - 12)
     const runs = opts.check?.runs ?? 200, depth = opts.check?.depth ?? 16
     let result: {checked: number, failure?: string}

@@ -25,7 +25,7 @@
 // values (a constant on a region, a line, bounds), proves them from the facts as cyclic claims (Houdini), and proves the
 // laws with them as facts.
 import type {C, E, Law, Machine, Request, State} from './machine.ts'
-import {compileFunction, evalC as evalMC, evalE as evalME, fnValue, interpret, pairedArgs} from './machine.ts'
+import {compileFunction, evalC as evalMC, evalE as evalME, fnValue, interpret, pairedArgs, seeded} from './machine.ts'
 import type {Goal, Liveness, Loop, Subst, Tree} from '../kernel/kernel.ts'
 import {check, livenessHelpful, livenessParts, loopLiveness, loopMachine, loopObligations, substC, substE} from '../kernel/kernel.ts'
 import {type Cyclic, type Fact, checkCyclic, factsAvoid, lexLt} from '../kernel/cyclic.ts'
@@ -1258,7 +1258,6 @@ export function rankWithInvariants(l: Loop, laws: Law[], until: number): {rank: 
 // --- loops ----------------------------------------------------------------------------------------------------------
 
 export type RankVerdict = {proven: boolean, checked: boolean, rank?: E[], laws?: Law[], found?: {rank: string, laws: string[]}, trees?: Record<string, Tree>, goal?: string, stuck?: string, witness?: Record<string, number>, why?: string}
-const seeded = (seed: number) => { let x = seed; return (n: number) => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * n) } }
 const goalsProven = (goals: Goal[]): {trees: Record<string, Tree>} | {goal: string, stuck: string, witness?: Record<string, number>} => {
   const trees: Record<string, Tree> = {}
   for (const g of goals) {

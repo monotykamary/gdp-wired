@@ -15,7 +15,7 @@
 //
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
-import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type MapUpdate, type Request, type State, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, withArithmetic} from './machine.ts'
+import {type C, type E, type Fn, type Law, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
 import {someHolds, substVars} from './exists.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations} from '../kernel/kernel.ts'
@@ -169,7 +169,6 @@ export const sum = (first: TermLike, ...rest: TermLike[]): Term => rest.reduce<T
 
 // --- kinds: what a param or input may be ------------------------------------------------------------------------------
 
-type Rand = (k: number) => number
 // A runtime value: a number, a boolean, a string, null for a missing value, or an object (a record, a variant's case).
 export type Raw = number | boolean | string | null | undefined | RawObject | readonly Raw[]
 export type RawObject = {readonly [field: string]: Raw}
@@ -2557,7 +2556,6 @@ export const proveDecision = (d: Decision, opts: {ms?: number} = {}): Verdict =>
   const go = () => (d.steps ? proveSteps(d.steps.rule as never, [], [d.steps.law], {search: false}) : goalsVerdict([d.goal]))
   return opts.ms === undefined ? go() : withDeadline(clock() + opts.ms, go)
 }
-const seeded = (seed: number): Rand => { let x = seed; return k => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) } }
 // A decision's callbacks against its condition, on random params and requests: `given` and `then` each run with every
 // value known, against what the interpreter evaluates of the decision built from them.
 export function crossCheckDecision(d: Decision, opts: {trials?: number, bound?: number, rand?: Rand} = {}): {checked: number, failure?: string} {

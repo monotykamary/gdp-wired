@@ -20,7 +20,7 @@ type VM = {createContext: (o: Context) => Context, runInContext: (code: string, 
 const proc = (globalThis as {process?: {getBuiltinModule?: (id: string) => unknown}}).process
 const vmOf = (): VM => { const m = proc?.getBuiltinModule?.('node:vm'); if (!m) throw new Error('the check runs the code in node:vm (Node 20.16 or later, or Bun)'); return m as VM }
 import {Int, Term, bool, int, intern, interned, nat, no, oneOf, str, type Kind, type Rule, type StepLaw, proveSteps} from './dsl.ts'
-import {type Request, type State} from './machine.ts'
+import {type Rand, type Request, type State, seeded} from './machine.ts'
 import {allowed} from './watch.ts'
 import {type Arg, type Layout, type MapDecl, type Model, type Var, normalize, resolveIn, scriptKind} from './extract-read.ts'
 import * as I from './extract-ir.ts'
@@ -236,8 +236,6 @@ import {record} from './dsl.ts'
 const cellKind = (d: MapDecl, sorts: Sorts) => record({has: bool, ...Object.fromEntries(d.fields.map(f => [f.name, kindOfVar(f, sorts, `${d.name}.${f.name}`)]))}) as Kind<unknown>
 
 // --- values to draw -------------------------------------------------------------------------------------------------
-type Rand = (n: number) => number
-const seeded = (seed: number): Rand => { let x = seed >>> 0 || 1; return n => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * n) } }
 const BIG = [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER - 1, 2 ** 31, 2 ** 32]
 function constantsOf(m: Model): number[] {
   const out = new Set<number>([0, 1])
@@ -266,7 +264,7 @@ function draw(sort: Var['sort'], sorts: Sorts, name: string, rand: Rand, near: n
 // --- the check ------------------------------------------------------------------------------------------------------
 export type CheckOptions = {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean, probeMs?: number, modules?: Record<string, unknown>, files?: Record<string, string>}
 export function check(code: string, file: string, m: Model, r: Rule, sorts: Sorts, opts: CheckOptions & {given?: Record<string, 'nat' | 'int'>} = {}): Evidence {
-  const t0 = performance.now(), rand = seeded(opts.seed ?? 7), bound = opts.bound ?? 12
+  const t0 = performance.now(), rand = seeded((opts.seed ?? 7) >>> 0 || 1), bound = opts.bound ?? 12
   const isClass = m.shape === 'class', fns = m.shape === 'class' ? [m.entry] : [...new Set(m.events.map(e => e.call))]
   const box = sandbox(code, file, fns, opts.modules, m.initSource, opts.files)
   const interp = r.interpreter(), gen = r.compiled(), machine = r.machine

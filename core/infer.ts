@@ -24,7 +24,7 @@
 //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
-import {type C, type E, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, get, interpret, machineTerms, modName, n, not, plus, same, times, withArithmetic, x} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, get, interpret, machineTerms, modName, n, not, plus, same, seeded, times, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, proveRule, proveSteps} from './dsl.ts'
 import {allowed, watch} from './watch.ts'
 import {clock, counted, grow, proveLaw, proveLaws, proveStepLaws, usedHyps, withDeadline} from '../kernel/prove.ts'
@@ -34,7 +34,6 @@ import {REFUTED, type Refuted, growCdcl} from '../kernel/cdcl.ts'
 
 type AnyRule = Parameters<typeof proveRule>[0]
 type Env = Record<string, number>
-type Rand = (k: number) => number
 
 // The search's budgets are counted in what it did, not timed, so that what it finds is the same on any machine (kernel/
 // prove.ts's `counted` does the same for the datatype search): the runs by the requests they try (`runs`), the rest by
@@ -113,7 +112,6 @@ const joinCubes = (globalThis as {process?: {env?: Record<string, string | undef
 const joinCubeMax = 48, joinCubeTries = 8, joinCubeDepth = 3, joinCubeMs = 2000
 // Once a cube is in the set, the join has 0.3 of what is left of its time (the search below the rest).
 const joinCubeWindow = 0.3
-const seeded = (seed: number): Rand => { let s = seed; return k => { s = (s * 1103515245 + 12345) % 2 ** 31; return Math.floor(s / 2 ** 31 * k) } }
 const isRule = (t: AnyRule | Machine): t is AnyRule => typeof (t as AnyRule).kindsOfState === 'function'
 const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
 

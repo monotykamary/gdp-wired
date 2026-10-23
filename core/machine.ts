@@ -9,6 +9,10 @@
 import {boundOf, crossFree, historyMachine, keyTerm, plainKey, scope} from '../kernel/kernel.ts'
 import {type Constraint, type Lin, type Verdict, add, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
 
+// The searches' random draws: the high bits of a linear congruence (the low ones repeat with a short period).
+export type Rand = (k: number) => number
+export const seeded = (seed: number): Rand => { let x = seed; return k => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) } }
+
 export type E =
   | {op: 'var', name: string}
   | {op: 'const', value: number}

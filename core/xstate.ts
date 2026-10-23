@@ -25,6 +25,7 @@
 // so a v5 machine with `cond` or a v4 one with `guard` is refused (a plain config is read by the key it uses).
 import {type Kind, Choice, type Cond, bool, int} from './dsl.ts'
 import {type Chart, type StateNode, chart} from './chart.ts'
+import {seeded} from './machine.ts'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Obj = Record<string, any>
@@ -224,9 +225,7 @@ export function conforms(c: Chart<Obj, Obj, Obj>, machine: MachineLike, createAc
   const walk = (n: XNode) => { for (const e of Object.keys(n.on ?? {})) if (!events.includes(e)) events.push(e); Object.values(n.states ?? {}).forEach(walk) }
   walk(root)
   const r = c.rule, g = r.compiled(), ps = r.encodeParams((opts.params ?? {}) as never)
-  // dsl.ts's generator: the high bits of a linear congruence (the low ones repeat with a short period)
-  let x = opts.seed ?? 1
-  const rand = (k: number) => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) }
+  const rand = seeded(opts.seed ?? 1)
   const valueOf = (d: Obj): unknown => {
     const nest = (path: string): unknown => path.split('.').reduceRight<unknown>((acc, seg) => (acc === undefined ? seg : {[seg]: acc}), undefined)
     if (root.type === 'parallel') return Object.fromEntries(Object.keys(root.states ?? {}).filter(k => root.states![k]!.type !== 'history').map(k => [k, nest(String(d[k]))]))

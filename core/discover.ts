@@ -11,7 +11,7 @@
 //   out.verdict          // the laws, proven of out.rule: r with its functions and lists made again with the lemmas
 //   out.found            // per function or list, the lemmas found, as source to paste into recur(...) or carriesList(...)
 import {quietly} from './cyclic.ts'
-import {type C, type E, type Law, type Machine, type State, any, atMost, compileFunction, evalC, evalE, n, plus, prod, same, times, x} from './machine.ts'
+import {type C, type E, type Law, type Machine, type State, any, atMost, compileFunction, evalC, evalE, n, plus, prod, same, seeded, times, x} from './machine.ts'
 import {type FnDef, type Kind, type ListFold, type ListLemma, type StepLaw, type Verdict, Cond, Rule, Term, Unproven, lit, proveFold, proveSteps, recur, recurOf} from './dsl.ts'
 import {type Fold} from '../kernel/kernel.ts'
 
@@ -24,7 +24,6 @@ type Cand = {name: string, rel: '<=' | '=', lin: Lin, target?: string}
 export type Found = {lemmas?: string[], between?: string[]}
 export type Discovery = {verdict: Verdict, rule: AnyRule, found: Record<string, Found>}
 
-const seeded = (seed: number) => { let s = seed; return (k: number) => { s = (s * 1103515245 + 12345) % 2 ** 31; return Math.floor(s / 2 ** 31 * k) } }
 const valueOf = (t: Term | number): number | undefined => (typeof t === 'number' ? t : t.val)
 const evalLin = (l: Lin, at: Record<string, number>) => Object.entries(l).reduce((s, [a, c]) => s + c * (a === '1' ? 1 : at[a]!), 0)
 const holds = (c: Cand, at: Record<string, number>) => { const v = evalLin(c.lin, at); return c.rel === '=' ? v === 0 : v <= 0 }
