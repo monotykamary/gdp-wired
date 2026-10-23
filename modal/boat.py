@@ -1317,7 +1317,7 @@ def preflight(want: int = 1, vm_type: str = "default") -> tuple[str | None, dict
     st = lim["starts"]
     # (a resume is a start to boat, as a creation is; the minute's starts come back within the minute, so only the
     # old policy counts them out)
-    starts = max(0, min(starts_left(lim), *([st["minute"]["remaining"]] if OLD else [])))
+    starts = max(0, min([starts_left(lim)] + ([st["minute"]["remaining"]] if OLD else [])))
     resumable = min(len(free) - up, max(0, room), starts)
     creatable = min(starts - resumable, max(0, room - resumable))
     can = up + resumable + creatable
