@@ -43,6 +43,15 @@ derivation items 3 of 3 (main 2): `s_split_01`'s 10,002 steps in 260 ms. Nothing
   5,814, main 5,302 and 6,052. search.test's "a search that finds nothing" 0.89 to 1.18 s, main 0.53 to 0.84 s (its
   counter is a deterministic loop, run forward until the forced run's share is spent), within its 8 s.
 - A new test (core/search.test.ts): a deterministic loop broken after 10,000 steps, refuted by its forced run.
+- After merging main at 5055882 (k-induction on the second vCPU beside every stage; the bounded runs' stage unchanged
+  in the first process's time plan): CHC-COMP 940 answered (540 sat, 398 unsat, 2 of them the disputed labels above),
+  main 5055882 launched beside it 801 (536, 265); unsat 133 more and none fewer, sat 10 more and 6 fewer (5 solved
+  past 58 s in main, and `s_split_42_000_000`), sat by k-induction 134 against main's 133 (`runs/bmc2/chc-merged1`,
+  `chc-main5`). The 332 step goals: the same trees by growCdcl and by grow (`runs/bmc2/eq4`). The suite (217 jobs): by
+  default 552.7 s wall, 5,164.0 s of job time, none failed (`suite-merged-default`); `--usual` 569.4 s and 4,888.9 s,
+  none failed (`suite-merged-usual`). The infer and data tests on 1 vCPU beside main's, interleaved (`onecpu2`,
+  `onecpu3`): none failed; "a search that finds nothing" median 1.2 s against 0.8 s (above), the rest within the runs'
+  spread (the infer join test median 6,004 and 5,511 ms in two runs, main's 5,334 and 5,944).
 - The suite (213 jobs) on Modal at this branch's last commit: by default 552.0 s wall, 5,042.3 s of job time, none
   failed (`runs/bmc2/suite-default2`); `--usual` 526.0 s and 4,497.3 s, none failed (`suite-usual2`). Main's default
   run beside an earlier commit here: on the 207 jobs both passed, 4,833.9 s of job time against 4,846.9 s
