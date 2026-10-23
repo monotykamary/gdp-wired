@@ -1,0 +1,4 @@
+run                                  measured VMs   sim wall at:  n=20   n=40   n=50   n=80   n=120  n=190   (s; sum of call seconds / 2 slots = the work)
+CHC (gdp, 1,406 tasks)                  192           1813    935    761    522    413    386   (71597 slot-s)
+TIP (gdp, 560 calls of a whole VM)      119            776    416    348    264    238    238   (30238 slot-s)
+termination (gdp, 1,239 ITS tasks)      170           1440    766    639    456    389    338   (56737 slot-s)
