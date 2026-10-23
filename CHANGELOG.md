@@ -5,6 +5,28 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+Derivations of false found together (core/bmc.ts, bounded runs). CHC-COMP LIA-Lin at 60 s on Modal: 264 unsat and 518
+sat (782 solved), main the same day 144 and 528 (672), none wrong either way, no unsat answer but a derivation
+`checkDerivation` confirmed (`runs/unsat/chc`, `runs/unsat/chc-base`; four runs of main that day gave 528 to 533 sat).
+Lustre's 321 unsat tasks: 38 to 147. Nothing trusted changed. The second frontier corpus: derivation 2 of 3 (main 0),
+frontier 16 of 47 (main 14), every broken variant refused in both (`runs/unsat/corpus2`, `corpus2-base`).
+
+- A run of k steps from the start that breaks a law, as a model of the kernel's own k-step goal (kernel.ts's
+  `stepLawObligations`) with its start constants folded in (core/nonterm.ts's folding, now shared); the run then taken
+  by the interpreter, and kept only where it breaks a law. compare/chc/solve.ts's `bmc` stage (10 s, after the guided
+  runs) and proveRule's search (its shallow depths first, within 250 ms; the deeper ones where the invariant search
+  finds nothing, within a tenth of the budget kept from it). proveRule now searches on from a wide rule's random
+  counterexample to induction (a state, not a run), as from the kernel's.
+- kernel/cdcl.ts asked for a model alone (`model`): a refutation isn't unfolded into a tree, and each decision's phase is
+  the incremental simplex's point's (kernel/simplex.ts `holds`): 320 of the 475 unsat tasks by the stage alone, 280
+  with the phases as stored (`runs/unsat/bmc-only-phase`, `bmc-only-off`). Off by default: research/dag's 332 step
+  goals all proven with the same leaves, by `growCdcl` and by `grow`, as at main (`runs/unsat/goals332-*`).
+- Measured and left out: runs of at most k steps (2 more, `bmc-only-upto1`); a second process for the stage (539 of
+  1,406 containers failed, `chc-p1`); longer budgets (15 s: 292 unsat, 508 sat; 20 s: 303 and 497; beside main's 144
+  and 528, `chc-b15000`, `chc-b20000`); k-induction (`compare/chc/prof/kind.ts`: 17 of the 403 sat tasks main leaves
+  are k-inductive, which the kernel's 1-inductive proofs don't check; `runs/unsat/kind1`). compare/chc/README.md has
+  each run.
+
 Lemmas the datatype search finds and uses. TIP 2015 at 60 s on Modal: 176 of 492 proven, 0.22.0 the same day 140, none
 wrong (`runs/lem/tip-final`, `runs/lem/tip-final-base`; `false/`: 23 refuted in both, each confirmed by TIP's
 evaluator, none proven). Nothing trusted changed (`kernel/`, `core/check.ts` and `lean-kernel/` are as in 0.22.0). The
