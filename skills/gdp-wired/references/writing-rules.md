@@ -293,10 +293,13 @@ c.check(); c.prove([c.law('retries within 2', ({retries}) => retries.atMost(2))]
   object or a list (`#id.path`, `.child`, a sibling), targetless transitions (internal), named guards and actions with
   their `params`, several actions in a row (each reads what the one before wrote), history nodes (a transition through
   one restores; one straight to the state enters it fresh, as XState does), root transitions (not from a final state).
+  An XState v4 machine too: its `cond` is the guard (a name, or `{type, ...params}`, the params its other keys).
 - Refused when built, with the reason: a parallel state below the root, `always`, `after`, `invoke`, `onDone`, wildcard
   events, several targets, inline guards and actions (name them in `setup`), entry and exit actions that write the
   context, two regions writing the context on one event, a shallow history over nested states, context that isn't
-  numbers and booleans unless its kinds are given (`context: {status: oneOf('a', 'b').from('a')}`).
+  numbers and booleans unless its kinds are given (`context: {status: oneOf('a', 'b').from('a')}`). So is any key it
+  doesn't read, by name, rather than dropped (v4's `in`, `strict`, `activities`, `onEntry`; an event XState raises itself;
+  `cond` in a v5 machine and `guard` in a v4 one, which that XState ignores, taking the transition unguarded).
 - `conforms` is what ties the two: a guard or an action given wrongly shows up as the run where XState and the chart part.
   Payloads come from `payload: (event, rand) => ({amount: rand(10)})`, with `inputs: {amount: nat}` in `fromXState`.
 
