@@ -30,7 +30,7 @@ import type {Goal, Liveness, Loop, Subst, Tree} from '../kernel/kernel.ts'
 import {check, livenessHelpful, livenessParts, loopLiveness, loopMachine, loopObligations, substC, substE} from '../kernel/kernel.ts'
 import {type Cyclic, type Fact, checkCyclic, factsAvoid, lexLt} from '../kernel/cyclic.ts'
 import {type NodeSpec, proveCyclic} from './cyclic.ts'
-import {type Lin, canon, gcd, konst, pivot, plus, ratioRow, refuteFast, solve, subst, times, vars, work} from './solver.ts'
+import {type Lin, canon, env, gcd, konst, pivot, plus, ratioRow, refuteFast, solve, subst, times, vars, work} from './solver.ts'
 import {clock, grow, proveLaws, proveLiveness, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {inferLaws} from './infer.ts'
 import {bgcd} from './q.ts'
@@ -393,7 +393,7 @@ const nearFraction = (x: number, most = 10_000): [number, number] => {
   }
   return [h1, k1]
 }
-const lpTrace = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.LP_TRACE
+const lpTrace = !!env.LP_TRACE
 function floatSolve(rows: Lin[], until: number, equil = true, again = true): Record<string, number> | 'infeasible' | undefined {
   const xs = [...new Set(rows.flatMap(l => Object.keys(l)).filter(x => x !== '1'))].sort(), n = xs.length, m = rows.length
   const cols = 2 * n + 2 * m, T: Float64Array[] = [], basis: number[] = [], eps = 1e-9
@@ -768,7 +768,7 @@ function beside(cx: Ctx, facts: Fact[], nodes: Node[], big: number, until: numbe
   return [...new Map(out.map(n => [n.name, n])).values()]
 }
 
-const trace = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.CYCLES_TRACE
+const trace = !!env.CYCLES_TRACE
 const nodeOf = (c: Claim, level: number, given: boolean): Node => ({name: c.name, hyps: c.hyps ?? [], concl: c.concl, vars: varsOf([c.hyps ?? [], c.concl]), level, given})
 // The facts at the terms a claim's goal reads (and at those the facts read, `depth` times over): what the search gives
 // each node, for a caller building nodes of its own (research/frontier's today, the builders' shape).

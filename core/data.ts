@@ -31,7 +31,7 @@ import {type Fact} from '../kernel/cyclic.ts'
 import {substC, substE} from '../kernel/kernel.ts'
 import {type CyclicVerdict, type NodeSpec, proveCyclic} from './cyclic.ts'
 import {clock, counted, pairedKeys, withDeadline} from '../kernel/prove.ts'
-import {work} from './solver.ts'
+import {env, work} from './solver.ts'
 import {rankOfPaths, ranksOfCalls, showC} from './cycles.ts'
 import type {Path as RelPath, Relation} from './relation.ts'
 import type {Lin} from './solver.ts'
@@ -2023,11 +2023,11 @@ function casesOf(p: Program, unfolded: C[], vars: Set<string>, models: M[]): Cas
 // One attempt: the law's node (and the lemmas', proven before, with their own nodes) at a scheme and a depth. With
 // several cases, a main node uses a node per case (each its guards as hypotheses, its own instances), at rank
 // (level, size, 1) above theirs (level, size, 0); a case node uses the main node at the children.
-const dataTrace = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.DATA_TRACE
+const dataTrace = !!env.DATA_TRACE
 // Debugging: every congruence a model's closure makes, not only those explanations use.
-const allCong = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.DATA_ALLCONG
+const allCong = !!env.DATA_ALLCONG
 // Debugging: a failed attempt's node whose name the pattern matches, written out (hypotheses, uses, instances).
-const nodeTrace = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.DATA_NODE
+const nodeTrace = env.DATA_NODE
 function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, depth: number, lemmas: Proven[], level: number, pool: M[]): {verdict: CyclicVerdict, specs: NodeSpec[], main: number} {
   const t0 = clock()
   anchoredAt.clear()

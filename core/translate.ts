@@ -10,7 +10,7 @@
 // keys over Ω the node's path doesn't yet compare) is grown again on the node's goal at its path (`regrown`); a split the
 // node's path already decides is followed, not made again.
 import {type C, type E, walk} from './machine.ts'
-import {type Lin, type Step, add, refuteFast, scale, solve} from './solver.ts'
+import {type Lin, type Step, add, env, refuteFast, scale, solve} from './solver.ts'
 import {checkRefutation} from './check.ts'
 import {type Goal, type Path, type Subst, type Tree, canon, canonFlip, columnTerm, factorsOf, isCell, isMonomial, leafConstraintsReusing, linear, substE, truth, withProducts} from '../kernel/kernel.ts'
 import {cellProducts, clock, grow} from '../kernel/prove.ts'
@@ -20,7 +20,7 @@ import {cellProducts, clock, grow} from '../kernel/prove.ts'
 // substitution's map there), by its name there.
 export type Rename = {s: Subst, cells?: Record<string, {to: string, at: E}>}
 const omega = 'O$'
-const debugOn = () => !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_CYCLIC_DEBUG
+const debugOn = () => !!env.GDP_CYCLIC_DEBUG
 
 // The kernel's product of two linear forms (kernel.ts's `times`): each monomial its factors sorted, joined by '*'.
 function times(a: Lin, b: Lin): Lin | undefined {
@@ -346,7 +346,7 @@ export function close(g: Goal, wp: Path, st: TStats, until: number): Tree | unde
     return y && n ? {split: next, yes: y, no: n} : undefined
   }
   st.regrown++
-  if ((globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_CYCLIC_DEBUG) console.error(`[close] ${g.name}: grown again at ${[...wp.values()].map(a => `${JSON.stringify(a.lin)} ${a.holds}`).join('; ')}`)
+  if (env.GDP_CYCLIC_DEBUG) console.error(`[close] ${g.name}: grown again at ${[...wp.values()].map(a => `${JSON.stringify(a.lin)} ${a.holds}`).join('; ')}`)
   return regrow(g, wp, until)
 }
 

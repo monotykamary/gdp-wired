@@ -16,6 +16,7 @@
 // A law under a `forall` key takes witness terms only (a ghost per key would be a map).
 import {type C, type E, type Law, type Machine, type SomeProof, type SomeWitness, type State, evalC, evalE, n as k, walk, x as v} from './machine.ts'
 import {type Report, clock, proveLaw, proveLaws, withinDeadline} from '../kernel/prove.ts'
+import {env} from './solver.ts'
 
 type Env = Record<string, number>
 // A bound value's naturals: [x], or an integer's [x, x$neg].
@@ -347,7 +348,7 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number} = {})
     return {machine: b.machine, laws: out, ghosts: b.ghosts}
   }
   const rounds = opts.rounds ?? 24
-  const log = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_EXISTS_LOG === '1'
+  const log = env.GDP_EXISTS_LOG === '1'
   // Each law's witness until its goals are proven with every law assumed (choose); then the whole set, and where a
   // later choice broke a law proven before (a witness term is a hypothesis of every law), that law's again.
   const choose = (i: number, p: Plan, pass: number, first?: {goal: string, stuck: string, witness?: Record<string, number>}): SomeReport | undefined => {

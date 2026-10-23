@@ -29,7 +29,7 @@ import {type StepLaw, type Verdict, proveRule, proveSteps} from './dsl.ts'
 import {allowed, watch} from './watch.ts'
 import {clock, counted, grow, proveLaw, proveLaws, proveStepLaws, usedHyps, withDeadline} from '../kernel/prove.ts'
 import {obligations, substC} from '../kernel/kernel.ts'
-import {gcd, work} from './solver.ts'
+import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
 import {REFUTED, type Refuted, growCdcl} from '../kernel/cdcl.ts'
 
@@ -90,26 +90,26 @@ const KEY = 'key$found', AT = '@', K = '#', SOME = 'k$found'
 export const inferRates = {tries: 100, rows: 10_000, evals: 10_000, watched: 100, work: 40}
 export const inferRuns = 16_000
 // GDP_INFER_TRACE=1: each phase's wall time beside what it counted, to stderr (the calibration's numbers).
-const inferTrace = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_INFER_TRACE
+const inferTrace = !!env.GDP_INFER_TRACE
 // The join (below, after the candidates): GDP_JOIN=0 turns it off, for comparing. Its share of what is left of the
 // search's budget; each kernel search's budget (counted, or wall time where timed), a request's 150 ms; the steps a walk
 // from a joined state takes; pairs of values as directions up to 10 values; a bound raised twice at most, then dropped;
 // equalities of at most 4 values, coefficients up to 1,000; at most 24 candidates beside the hull, 40 tried; yes/nos in
 // the control state up to 7, and 128 of its values; a goal tried with 6 parts of the set before all of it, 2 forms added
 // at a time.
-const joinOn = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN !== '0'
+const joinOn = env.GDP_JOIN !== '0'
 const joinShare = 0.6, joinQueryMs = 8000, joinRequestMs = 150, joinWalk = 8, joinPairs = 10, joinRaises = 2, joinSparse = 4, joinCoef = 1000
 const joinExtras = 24, joinTries = 40, joinBits = 7, joinKeys = 128, joinAttempts = 6, joinAdd = 2
 // GDP_JOIN_CORE=0: the join's goals by the prover's trees alone, as before (else a model, or a refutation's core, of the
 // CDCL search first, at a quarter of the goal's budget).
 // GDP_JOIN_NEVERS=0: each control state no run reached a form of its own, as before (else one form for all of them,
 // until it is first broken).
-const joinNevers = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_NEVERS !== '0'
+const joinNevers = env.GDP_JOIN_NEVERS !== '0'
 const joinNeversBreaks = 1
-const joinCore = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_CORE !== '0'
+const joinCore = env.GDP_JOIN_CORE !== '0'
 // Cubes blocked where no candidate rules a counterexample out (GDP_JOIN_CUBES=0: none): at most 48 in all, each tried 8
 // times, its predecessors blocked first 3 deep, each query's budget 2 s (counted, or wall time where timed).
-const joinCubes = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_CUBES !== '0'
+const joinCubes = env.GDP_JOIN_CUBES !== '0'
 const joinCubeMax = 48, joinCubeTries = 8, joinCubeDepth = 3, joinCubeMs = 2000
 // Once a cube is in the set, the join has 0.3 of what is left of its time (the search below the rest).
 const joinCubeWindow = 0.3

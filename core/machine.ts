@@ -7,7 +7,7 @@
 // at the same value; a law about a map holds for every key x, and is proven at one arbitrary x (with the law assumed at
 // every other key the step reads).
 import {boundOf, crossFree, historyMachine, keyTerm, plainKey, scope} from '../kernel/kernel.ts'
-import {type Constraint, type Lin, type Verdict, add, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
+import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
 
 // The searches' random draws: the high bits of a linear congruence (the low ones repeat with a short period).
 export type Rand = (k: number) => number
@@ -685,7 +685,7 @@ function symC(c: C, s: Sym, truth: boolean): Cases<null> {
 
 
 // PROVE_DEBUG=1 logs the case counts to stderr; read through globalThis so the module also loads where there is no process.
-const proveDebug = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.PROVE_DEBUG
+const proveDebug = !!env.PROVE_DEBUG
 const debug = (label: string, n: number) => { if (proveDebug) console.error(`[prove] ${label}: ${n} (${Math.round(performance.now())} ms)`) }
 // Drops the cases whose path is already impossible, so impossible branches don't multiply.
 function feasible<T>(cases: Cases<T>): Cases<T> {

@@ -17,7 +17,7 @@
 // sides; one the path decides follows the parent that agrees; a leaf's derivation is found again among the rows at
 // its tree path (a longer path than its clause's), and where a row isn't there, the rows at the tree path are solved
 // afresh.
-import {type Constraint, type Lin, type Step, refuteFast, solve, work} from '../core/solver.ts'
+import {type Constraint, type Lin, type Step, env, refuteFast, solve, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
 import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isCell, isMonomial, leafConstraints} from './kernel.ts'
 import {clock, nearOf, openAt, openCells, rowsAt, unitAtoms, type Outcome} from './prove.ts'
@@ -51,7 +51,6 @@ type Var = {lin: Lin, terms: [string, number][], val?: boolean, level: number, r
 type Clause = {lits: Map<string, boolean>, node: number}
 // GDP_CDCL_LP=0: each node solved by elimination alone (no simplex); GDP_CDCL_FILL (8): the simplex's tableau begun
 // again past this many entries a row the node reads (research/step's comparisons).
-const env = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env ?? {}
 const lpFill = Number(env.GDP_CDCL_FILL ?? 8), useLp = env.GDP_CDCL_LP !== '0', verify = env.GDP_CDCL_VERIFY === '1'
 // Counters research/step reads (times only while `on`).
 export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions: 0, solveMs: 0, rowsMs: 0, coreMs: 0, unfoldMs: 0, leaves: 0, resolved: 0, coreSize: 0, pathSize: 0, lpMisses: 0, resolved2: 0, unfoldWhy: '', orderMs: 0, boundMs: 0, openMisses: 0, lpMs: 0, lpUnknown: 0, fmCalls: 0, pivots: 0, lpRebuilds: 0, lpRows: 0, lpNnz: 0, lpVars: 0, lpLoad: 0, nodes: 0, boundRounds: 0}

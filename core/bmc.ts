@@ -28,6 +28,7 @@ import {REFUTED, cdclSession, growCdcl} from '../kernel/cdcl.ts'
 import type {Outcome} from '../kernel/prove.ts'
 import {allowed} from './watch.ts'
 import {simpC, simpE} from './nonterm.ts'
+import {env} from './solver.ts'
 
 export type BoundedRun = {law: string, depth: number, witness: Record<string, number>, params: Record<string, number>, trace: Request[]}
 export type BmcOptions = {
@@ -56,7 +57,6 @@ export const bmcRate = 250
 // A forced run's share of the budget, and its steps at most (a derivation checkDerivation replays step by step).
 const forcedShare = 0.3, forcedSteps = 1_000_000
 // GDP_BMC_RELAX=0: no relaxed goal first; GDP_BMC_INC=0: each depth's goal a search of its own (for comparing).
-const env = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env ?? {}
 const useRelax = env.GDP_BMC_RELAX !== '0', useInc = env.GDP_BMC_INC !== '0'
 
 // The goal of depth k: a run of k steps from the start whose last state breaks a law.

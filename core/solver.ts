@@ -14,6 +14,8 @@
 import {type Rat, Q0, Q1, q, qadd, qcmp, qdiv, qneg, qnum, qrow, qsub} from './q.ts'
 
 export type Lin = Record<string, number> // variable -> coefficient, '1' -> constant
+// The process's environment (the switches and traces the searches read), empty where there is none.
+export const env: Record<string, string | undefined> = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env ?? {}
 // lin <= 0. `src`: where a leaf's row comes from (the path's i-th atom, a hypothesis's facts, a column's naturality, a pair
 // of equal cells, a term column's rows), a hint for Lean's check, which looks there first.
 // `strict`: lin < 0 (over the rationals; over the integers a strict row is written lin + 1 <= 0 instead).

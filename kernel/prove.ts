@@ -9,7 +9,7 @@
 //   - a hypothesis' rows and open atoms, and every term inside them, are reused from an earlier path that decided the
 //     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
 import type {C, E, Law, Machine} from '../core/machine.ts'
-import {type Lin, type Step, add, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
+import {type Lin, type Step, add, env, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
 import {allowNode, allowTranslated, certCyclic, certOn, certSearch, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, loopNodes, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
 import type {TStats} from '../core/translate.ts'
@@ -145,7 +145,7 @@ const solveP = (rows: Parameters<typeof solve>[0], maxRows?: number): ReturnType
 // PROVE_DUMP: a hook research/perf/prof sets to read each root goal.
 export let proveDump: ((goal: Goal) => void) | undefined
 export const setProveDump = (f: ((goal: Goal) => void) | undefined) => { proveDump = f }
-const proveTrace = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.PROVE_TRACE
+const proveTrace = !!env.PROVE_TRACE
 // `why`, when the budget ran out: which limit, at what size, and what usually helps.
 // Set while core/cyclic.ts grows its goals.
 export const cellProducts = {on: false}
@@ -194,8 +194,7 @@ export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number,
 }
 // The share of a root goal's budget the CDCL search gets (GDP_CDCL_SHARE; 0 turns it off), and the quick search's nodes
 // before it (GDP_QUICK_CAP; 64 where the CDCL search isn't tried, as before it): research/step's comparisons.
-const proveEnv = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env ?? {}
-const cdclShare = Number(proveEnv.GDP_CDCL_SHARE ?? 0.75), quickCap = Number(proveEnv.GDP_QUICK_CAP ?? 16)
+const cdclShare = Number(env.GDP_CDCL_SHARE ?? 0.75), quickCap = Number(env.GDP_QUICK_CAP ?? 16)
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
   // Past a few cases, CDCL over the atoms (kernel/cdcl.ts), with most of the budget: a linear goal's refutation there
   // is a resolution of short clauses, which the tree search would find again in every case that reaches one. Unknown
@@ -558,7 +557,7 @@ export function nearOf(goal: Goal): boolean[] {
 // `?f = 1` holds, `k < len` where it is given). Split at the top, its forced side refutes at once; split late, under
 // every other case, it is split again in each.
 // GDP_UNITS=0 leaves them in the goal's order (for comparing).
-const unitFirst = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_UNITS !== '0'
+const unitFirst = env.GDP_UNITS !== '0'
 let unitsNow = true
 // The units growPlain splits first, where it does (kernel/cdcl.ts reads them too).
 export const unitAtoms = (goal: Goal): Lin[] => (unitFirst && unitsNow ? unitsOf(goal) : [])
@@ -903,7 +902,7 @@ const triggers = (body: C, key: string): {map: string, at: E}[] => {
 }
 const substKey = (e: E, key: string, by: E): E => JSON.parse(JSON.stringify(e).replaceAll(`{"op":"var","name":${JSON.stringify(key)}}`, JSON.stringify(by))) as E
 // GDP_TRIGGER=0 keeps every instance (for comparing).
-const triggerOn = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_TRIGGER !== '0'
+const triggerOn = env.GDP_TRIGGER !== '0'
 function triggered(m: Machine, laws: Law[], inst: Instances, build: (inst: Instances) => Goal[], focus: string[] = []): Instances {
   if (!triggerOn) return inst
   // Per name: its bound keys, and for each the triggers that read it alone (a key with none takes any value).

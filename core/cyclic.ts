@@ -59,6 +59,7 @@ import {assumed, boundOf, foldObligations, livenessParts, loopLiveness, loopMach
 import {type CNode, type Cyclic, type Fact, type Use, baseHyps, descentGoal, instHyps, mainGoal, premiseGoal, refuseCyclic} from '../kernel/cyclic.ts'
 import {cellProducts, clock, grow, profile, usedHyps, widen, withDeadline, withinDeadline} from '../kernel/prove.ts'
 import {type Reads, type Renamer, type TStats, carry, decide, readsFirst, renamer, translate, tstats} from './translate.ts'
+import {env} from './solver.ts'
 
 // What only the search reads: `opaque`, terms it reads as variables of their own in the node's goal (the trees are the
 // goal's still: see `widen`); `variants`, the node stated otherwise (fewer facts, other uses), each tried in turn where
@@ -84,7 +85,7 @@ export const pair = (u: E, key: E): E => add(u, {op: 'prod', a: key, b: omega})
 // GDP_CYCLIC_PROF=1: each comparison's line also has where the cyclic proof's time went, by goal kind (main, premise,
 // descent, the kernel's check): ms, goals, hypotheses, solver and row ms.
 export const cyclicProf: Record<string, {ms: number, n: number, hyps: number, solveMs: number, rowsMs: number}> = {}
-const profOn = () => env()?.GDP_CYCLIC_PROF === '1'
+const profOn = () => env.GDP_CYCLIC_PROF === '1'
 export function timedKind<T>(kind: string, hyps: number, f: () => T): T {
   if (!profOn()) return f()
   const was = profile.on, s0 = profile.solveMs, r0 = profile.rowsMs, t0 = performance.now()
@@ -171,7 +172,7 @@ export function slice(g: Goal, whole: (i: number) => boolean, hypsOnly = false, 
 }
 const withProducts = <T>(f: () => T): T => { const was = cellProducts.on; cellProducts.on = true; try { return f() } finally { cellProducts.on = was } }
 let sliceNow = false
-const sliceOn = () => sliceNow && env()?.GDP_CYCLIC_SLICE !== '0'
+const sliceOn = () => sliceNow && env.GDP_CYCLIC_SLICE !== '0'
 // Trees already grown, by their goal (a node met again: a recurrence's lemmas in its laws between, a machine proven again),
 // with the facts and uses a node's own goal kept.
 // (Each route its own: `proveCyclic(..., cache)`, so that one route's trees don't time another's.)
@@ -195,7 +196,7 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
       if (part) {
         // (within two seconds: a weaker goal no easier than the whole is left to the whole)
         const t0 = performance.now(), p = timedKind(`${kind} sliced`, part.hyps.length, () => grow(part, new Map(), {nodes: 0, until: clock() + Math.min(2_000, later ?? 2_000)}))
-        if (env()?.GDP_CYCLIC_DEBUG) console.error(`[cyc] ${g.name}: ${part.hyps.length} hyps${part !== sliced ? ' (opaque)' : ''}, ${'tree' in p ? `${p.nodes} nodes` : p.stuck}, ${Math.round(performance.now() - t0)} ms`)
+        if (env.GDP_CYCLIC_DEBUG) console.error(`[cyc] ${g.name}: ${part.hyps.length} hyps${part !== sliced ? ' (opaque)' : ''}, ${'tree' in p ? `${p.nodes} nodes` : p.stuck}, ${Math.round(performance.now() - t0)} ms`)
         if ('tree' in p) return {tree: p.tree, from: part, used: () => new Set([...usedHyps(part, p.tree)].flatMap(i => part.from[i]!))}
         if (part !== sliced) {
           const q = timedKind(`${kind} sliced`, sliced.hyps.length, () => grow(sliced, new Map(), {nodes: 0, until: clock() + Math.min(2_000, later ?? 2_000)}))
@@ -241,7 +242,7 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
     if (part) {
       const nf = part.from.filter(f => f[0]! >= h0 && f[0]! < base).length, nu = part.from.filter(f => f[0]! >= base && f[0]! < last).length
       const tree = carry(part, nf, nu, st, clock() + 2_000), wide = tree && timedKind('widen', 0, () => widen(part, g, tree))
-      if (env()?.GDP_CYCLIC_DEBUG) console.error(`[carry] ${n1.name}: ${part.hyps.length} of ${g.hyps.length} hyps, ${tree ? (wide ? 'carried, widened' : 'carried, not widened') : 'not carried'}`)
+      if (env.GDP_CYCLIC_DEBUG) console.error(`[carry] ${n1.name}: ${part.hyps.length} of ${g.hyps.length} hyps, ${tree ? (wide ? 'carried, widened' : 'carried, not widened') : 'not carried'}`)
       if (wide) return wide
     }
     return carry(g, n1.insts.length, n1.uses.length, st, clock() + 2_000)
@@ -267,7 +268,7 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
       if (n2 && (n2.insts.length < n1.insts.length || n2.uses.length < n1.uses.length)) {
         const g2 = mainGoal(facts, shapes, n2), part = hide(g2)
         const p = timedKind('main selected', g2.hyps.length, () => withProducts(() => grow(part, new Map(), {nodes: 0, until: clock() + Math.min(2_000, later ?? 2_000)})))
-        if (env()?.GDP_CYCLIC_DEBUG) console.error(`[cyc] ${g.name}: ${g2.hyps.length} of ${g.hyps.length} hyps selected, ${'tree' in p ? `${p.nodes} nodes` : p.stuck}`)
+        if (env.GDP_CYCLIC_DEBUG) console.error(`[cyc] ${g.name}: ${g2.hyps.length} of ${g.hyps.length} hyps selected, ${'tree' in p ? `${p.nodes} nodes` : p.stuck}`)
         const t = 'tree' in p ? own({tree: p.tree, from: part}, g2) : undefined
         if (t && 'tree' in p) { n = n2; main = t; src = {tree: p.tree, from: part} }
       }
@@ -297,7 +298,7 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
         const premises: Tree[] = []
         for (const [i, c] of m.hyps.entries()) {
           const t = whole(premiseGoal(facts, n, u, c, i), n.name, mine2)
-          if ('proven' in t && env()?.GDP_CYCLIC_DEBUG) console.error(`[premise] ${n.name}: use of node ${u.node}, its hypothesis ${i} (${t.stuck}): ${JSON.stringify(substC(c, vars(u.subst)))}`)
+          if ('proven' in t && env.GDP_CYCLIC_DEBUG) console.error(`[premise] ${n.name}: use of node ${u.node}, its hypothesis ${i} (${t.stuck}): ${JSON.stringify(substC(c, vars(u.subst)))}`)
           if ('proven' in t) return t
           premises.push(t)
         }
@@ -1170,12 +1171,11 @@ export function foldNodes(f: Fold, laws: Law[], usual?: Record<string, Tree>, st
 
 // With GDP_CYCLIC=1, every proof the instances above cover is made again as a cyclic proof, and a verdict that differs
 // throws (GDP_CYCLIC_LAX=1 only prints it, to measure a whole run): the suite run so shows the rules are instances. Each comparison is printed to stderr as a line `cyclic: {...}`.
-const env = () => (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
 let quiet = 0
-export const cyclicOn = () => quiet === 0 && env()?.GDP_CYCLIC === '1'
+export const cyclicOn = () => quiet === 0 && env.GDP_CYCLIC === '1'
 // The `cyclic: {...}` lines research/cyclic/ratios.ts reads, printed only with GDP_CYCLIC=1 (the cross-check) or
 // GDP_CYCLIC_LOG=1 (modal/run.py sets it): a user's proofs print nothing.
-export const cycLog = (o: object) => { if (env()?.GDP_CYCLIC === '1' || env()?.GDP_CYCLIC_LOG === '1') console.error(`cyclic: ${JSON.stringify(o)}`) }
+export const cycLog = (o: object) => { if (env.GDP_CYCLIC === '1' || env.GDP_CYCLIC_LOG === '1') console.error(`cyclic: ${JSON.stringify(o)}`) }
 // A search's many trial proofs (core/discover.ts, core/infer.ts) aren't compared: what it finds is proven again.
 export const quietly = <T>(f: () => T): T => { quiet++; try { return f() } finally { quiet-- } }
 // GDP_CYCLIC_ROUTE: `translate` (the default) makes the cyclic proof of what the usual route proved by translating the
@@ -1200,7 +1200,7 @@ export function translatedProof(key: () => string, build: (reused: boolean) => {
   if (v.proven && v.checked) { if (proofsMade.size >= 1024) proofsMade.clear(); proofsMade.set(k0, v.proof) }
   return {verdict: v}
 }
-export const routeOf = () => env()?.GDP_CYCLIC_ROUTE ?? 'translate'
+export const routeOf = () => env.GDP_CYCLIC_ROUTE ?? 'translate'
 const none = (): CyclicVerdict => ({proven: false, checked: false, node: '', goal: 'no instance searched', stuck: 'unknown'})
 // The cyclic proof of what the usual route proved: translated, else (`fallback`, or `searched` where nothing is
 // translated) searched, within `until` where it is given; with why the translation wasn't proven.
@@ -1231,7 +1231,7 @@ export function crossCyclic(kind: string, name: string, usual: boolean, run0: ((
   let search: {searchMs: number, searchCyclic: boolean} | undefined
   if (route === 'both' && run0) { const s0 = performance.now(), o = run0(); search = {searchMs: Math.round(performance.now() - s0), searchCyclic: o.proven && o.checked} }
   cycLog({kind, name, usual, cyclic, ms, ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {}), ...search, ...prof, ...(out.proven ? {nodes: out.proof.nodes.length, ...(out.why ? {why: out.why} : {})} : {goal: out.goal, stuck: out.stuck})})
-  const lax = env()?.GDP_CYCLIC_LAX === '1'
+  const lax = env.GDP_CYCLIC_LAX === '1'
   if (cyclic !== usual && !lax) throw new Error(`cyclic route: ${kind} ${name} is ${cyclic ? 'proven' : 'not proven'} as a cyclic proof, ${usual ? 'proven' : 'not proven'} the usual way${out.proven ? (out.why ? ` (${out.why})` : '') : ` (${out.goal}: ${out.stuck})`}`)
   if (search && search.searchCyclic !== usual && !lax) throw new Error(`cyclic route: ${kind} ${name} is ${search.searchCyclic ? 'proven' : 'not proven'} as a cyclic proof searched, ${usual ? 'proven' : 'not proven'} the usual way`)
 }
@@ -1242,10 +1242,10 @@ export function crossCyclic(kind: string, name: string, usual: boolean, run0: ((
 // checks the usual trees and counts the proof uncovered (`why`). With GDP_CERT_SEARCH=1 (off by default: a search costs
 // seconds a proof) a proof the translation doesn't cover is searched first, within GDP_CERT_MS (10 s by default). Each
 // logs a line `cyclic: {..., cert: true}` (cycLog).
-export const certMode = () => env()?.GDP_CERT !== 'usual'
+export const certMode = () => env.GDP_CERT !== 'usual'
 export const certOn = () => quiet === 0 && certMode()
-export const certSearch = () => env()?.GDP_CERT_SEARCH === '1'
-export const certMs = () => Number(env()?.GDP_CERT_MS ?? 10_000)
+export const certSearch = () => env.GDP_CERT_SEARCH === '1'
+export const certMs = () => Number(env.GDP_CERT_MS ?? 10_000)
 // A proof of a kind no cyclic instance covers, or whose cyclic proof wasn't made, counted (`cyclic: {..., uncovered:
 // true, why}`): its certificate the usual trees.
 export const uncovered = (kind: string, name: string, why: string): void => cycLog({kind, name, uncovered: true, why})

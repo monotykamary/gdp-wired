@@ -12,7 +12,7 @@
 // Nothing here is trusted: the rows it gives are the kernel's (the search's tree is checked by kernel.ts at the end,
 // and each leaf's derivation is found again among kernel.ts's rows when the search's refutation is unfolded).
 import type {C, E} from '../core/machine.ts'
-import {type Lin, add, k, scale, sub, v} from '../core/solver.ts'
+import {type Lin, add, env, k, scale, sub, v} from '../core/solver.ts'
 import {type Goal, atomOf, canon, canonFlip, columnTerm, factorsOf, isCell, termColumn} from './kernel.ts'
 
 export type W = ReadonlySet<string>
@@ -64,7 +64,7 @@ function same<T>(site: number, owner: object, a: unknown, b: unknown, c: unknown
 }
 
 // GDP_READER_CLEAN=0: values with an open read found again at every node, as before (for comparing).
-const keepClean = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_READER_CLEAN !== '0'
+const keepClean = env.GDP_READER_CLEAN !== '0'
 export class Reader {
   private node = 0
   private natRows = new Map<string, Row>()
