@@ -102,7 +102,7 @@ class ModalCtx:
 
 
 # ------------------------------------------------------------------------------------------------- modal/run.py jobs
-def run_jobs(app, spec: list[dict], out: str, pre: str, cmd, modal_jobs, backend: str = "modal", vms: int = 0, idle: int = 60, teardown: bool = False,
+def run_jobs(app, spec: list[dict], out: str, pre: str, cmd, modal_jobs, backend: str = "modal", vms: int = 0, idle: int | None = None, teardown: bool = False,
              durations: str = "", vm_type: str = "default", max_vms: int = 0, max_wait: int = 120):
     """modal/run.py's batch on its backend. modal_jobs(jobs, on_done) runs jobs on Modal (inside the running app)
     and returns {name: {code, seconds, out, err}}. Writes <out>/<name>.log and <out>/summary.tsv (name, exit,
@@ -215,7 +215,7 @@ class BoatEx:
 
     backend = "boat"
 
-    def __init__(self, runner: str, vms: int = 0, idle: int = 60, teardown: bool = False, vm_type: str = "default", max_vms: int = 0, durations: str = "",
+    def __init__(self, runner: str, vms: int = 0, idle: int | None = None, teardown: bool = False, vm_type: str = "default", max_vms: int = 0, durations: str = "",
                  limit: int = 3600, build: bool = True, max_wait: int = 0):
         import boat
         self.boat = boat
@@ -394,7 +394,7 @@ def cli(run, runner: str, doc: str = ""):
     ap.add_argument("--backend", default="auto", choices=["modal", "auto", "boat"])
     ap.add_argument("--vms", type=int, default=0, help="boat VMs for the batch (default: by the work and the plan's limits)")
     ap.add_argument("--max-vms", type=int, default=0)
-    ap.add_argument("--idle", type=int, default=60, help="seconds a released VM stays up before boat stops it (0: stop at once)")
+    ap.add_argument("--idle", type=int, default=None, help="seconds a released VM stays up before boat stops it (0: stop at once; default 300, 900 while starts are short)")
     ap.add_argument("--teardown", action="store_true", help="delete the batch's VMs at the end instead of stopping them")
     ap.add_argument("--vm-type", default="default", choices=["small", "default", "large"])
     ap.add_argument("--durations", default="", help="an earlier results.jsonl: the longest calls start first")

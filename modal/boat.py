@@ -2,8 +2,8 @@
 stopped between them (a stopped VM bills no compute and keeps its disk), resumed per batch, stopped again a short idle
 time after it, and deleted only on teardown or when the image changes.
 
-    python3 modal/run.py --backend boat --jobs modal/suite.json --out runs/backends/suite [--vms N] [--idle 60]
-    python3 modal/boat.py status | reap | teardown [--all] | image [--build] | usage <since ISO>
+    python3 modal/run.py --backend boat --jobs modal/suite.json --out runs/backends/suite [--vms N] [--idle 300]
+    python3 modal/boat.py status | reap | cold | teardown [--all] | image [--build] | usage <since ISO>
 
 The image is one named snapshot, `gdpw-<hash>`, built in layers (bun and Lean, then each compare runner's solvers and
 benchmarks: its BOAT_SETUP), each layer a snapshot of its own, so changing a layer rebuilds it and the ones above only.
@@ -12,6 +12,12 @@ guarded by a lock: a batch leases VMs (its pid on each), resumes the stopped one
 limits (`boat limits`: active VMs, starts per minute, hour and day), and releases them at the end. Every VM a batch
 holds has a TTL renewed while the client lives (a VM whose client died stops by itself within 15 minutes); a released
 VM's TTL is the idle time, after which boat stops it.
+
+Starts are what the plan rations (a resume is one): a batch spends at most a share of those left (budget()), a VM is
+resumed only while the batch still needs it, released VMs stay up 300 s (900 while starts are short) so the next
+batch, any track's, takes them without one, a batch with more work than slots takes them as other batches release
+them, and with no start left a batch waits for those rather than going to Modal at once (GDPW_BOAT_POLICY=old: the
+policy before).
 
 A batch: the worktree as git sees it (tracked and untracked files that aren't ignored, with the submodules', minus the
 same paths modal/run.py leaves out) goes to one VM, which serves it to the others through a token-gated boat URL, and
@@ -46,6 +52,16 @@ TYPES = {"small": (2, 4096), "default": (4, 8192), "large": (8, 16384)}  # vCPU,
 LIBRARY = ["Cert", "Kernel", "Cyclic", "Progress", "StepLaw", "Steps", "Sets", "History", "Live", "Ghost", "Refine", "Bridge", "BridgeRules", "Data"]
 BACKSTOP = 900  # the TTL a held VM keeps renewing: a VM whose client is gone stops within this
 STARTS_RESERVE = 10  # starts of the day and the hour never spent by one batch
+# How a batch spends the plan's starts (research/boat-starts: the simulation of today's mix and the runs that chose
+# it). GDPW_BOAT_POLICY=old restores the policy before, to compare: as many VMs as speed a batch up, released VMs up
+# 60 s, no waiting for a VM when no start is left.
+OLD = os.environ.get("GDPW_BOAT_POLICY", "") == "old"
+SHARE = float(os.environ.get("GDPW_BOAT_SHARE", "0.25"))  # a batch starts at most this share of the starts left
+MIN_STARTS = 2  # (but this many, while any are left)
+IDLE = 60 if OLD else 300  # a released VM stays up this long (the next batch came within 300 s of 59 of today's 66 ends)
+IDLE_SHORT = 900  # ...and this long while starts are short:
+SHORT = 100  # fewer than this left in the hour or the day
+WAIT_STARTS = 0 if OLD else 600  # with no start to be had, wait this long for a VM another batch releases
 
 
 class Unavailable(RuntimeError):
@@ -123,6 +139,30 @@ def stop_vm(vm: str) -> bool:
 
 def limits() -> dict:
     return bj("limits")
+
+
+def starts_left(lim: dict) -> int:
+    """The starts the plan has left this hour and day, minus the reserve."""
+    st = lim["starts"]
+    return min(st["hour"]["remaining"], st["day"]["remaining"]) - STARTS_RESERVE
+
+
+def budget(left: int) -> int:
+    """The starts one batch may spend of those left: a share, so that the tracks running at once all get some and
+    the hour isn't spent by the first big batch (the old policy: all of them)."""
+    if left <= 0:
+        return 0
+    return left if OLD else min(left, max(MIN_STARTS, math.floor(SHARE * left)))
+
+
+def release_idle(lim: dict | None = None) -> int:
+    """How long a released VM stays up: longer while starts are short, when a VM kept up is cheaper than a start."""
+    if OLD:
+        return IDLE
+    try:
+        return IDLE_SHORT if starts_left(lim or limits()) < SHORT else IDLE
+    except Exception:
+        return IDLE
 
 
 def sandboxes() -> dict:
@@ -348,8 +388,13 @@ def reconcile(d: dict, live: dict):
         s = live.get(i)
         if not s or s.get("state") in ("deleted", "deleting"):
             d["vms"].pop(i)
-        elif s.get("dataExpiredAt") or (s.get("state") in ("error", "stopped") and lease_free(d["vms"][i]) and not s.get("snapshotAvailable")):
-            # (a stopped VM with no snapshot can't be resumed: boat stops a VM that young without one)
+        elif (s.get("dataExpiredAt") or (s.get("state") in ("error", "stopped") and lease_free(d["vms"][i]) and not s.get("snapshotAvailable"))
+              or (lease_free(d["vms"][i]) and (s.get("stop") or {}).get("status") == "failing" and s.get("hydrated") is False)):
+            # (a stopped VM with no snapshot can't be resumed: boat stops a VM that young without one; one whose disk
+            # isn't there and that boat can't stop, for want of a snapshot to stop to, answers no exec and stays up,
+            # billed: a batch would take it as up and wait for it in vain)
+            if not s.get("dataExpiredAt"):
+                log(f"{i}: {'stuck stopping, no disk' if s.get('hydrated') is False else 'stopped without a snapshot'}: deleted")
             d["vms"].pop(i)
             threading.Thread(target=boat, args=("delete", i, "--yes", "--json"), kwargs={"check": False}, daemon=False).start()
         else:
@@ -478,12 +523,13 @@ class VM:
         self.src = ""
         self.busy: list[list[float]] = []  # [start, end] per item
         self.dead = False
+        self.skipped = False  # leased stopped, then not resumed: the batch no longer needed it
 
 
 class Session:
     """The VMs a batch holds: leased from the pool, resumed, or created, each prepared with the batch's tree."""
 
-    def __init__(self, label: str, idle: int = 60, teardown: bool = False, vm_type: str = "default", build: bool = True, oleans: bool = True):
+    def __init__(self, label: str, idle: int | None = None, teardown: bool = False, vm_type: str = "default", build: bool = True, oleans: bool = True):
         self.batch = time.strftime("%Y%m%d-%H%M%S") + "-" + "".join(random.choice("abcdefghijklmnopqrstuvwxyz0123456789") for _ in range(6))
         self.label, self.idle, self.teardown, self.vm_type = label, idle, teardown, vm_type
         self.reg = Registry()
@@ -504,9 +550,14 @@ class Session:
         self.creating = 0
         self.t0 = time.time()
         self.threads: list[threading.Thread] = []
-        self.counts = {"leased_running": 0, "resumed": 0, "created": 0}
+        self.counts = {"leased_running": 0, "resumed": 0, "created": 0, "topped_up": 0, "not_resumed": 0}
         self.gate = StartGate()
         self.last_error = ""
+        self.short = False  # no start was to be had for VMs the batch wanted: run() waits longer for released ones
+        try:
+            self.day0 = limits()["starts"]["day"]["used"]  # the account's starts of the day, before (and after, in close)
+        except Exception:
+            self.day0 = None
         threading.Thread(target=self._heartbeat, daemon=True).start()
         log(f"batch {self.batch}: image {self.image}, tree {len(self.tar) // 1024} KB, library {self.key[:12]}"
             f" ({len(self.olean_names)} .olean here, {len(self.olean or b'') // 1024} KB, for VMs that lack them)")
@@ -515,7 +566,7 @@ class Session:
     def ensure(self, n: int, vm_type: str | None = None):
         """Asks for n VMs of a type in all (leased, resumed or created); returns at once, VMs join as they're ready."""
         vm_type = vm_type or self.vm_type
-        have = sum(1 for v in self.vms.values() if v.type == vm_type and not v.dead)
+        have = sum(1 for v in list(self.vms.values()) if v.type == vm_type and not v.dead)
         need = n - have
         if need <= 0:
             return
@@ -531,12 +582,13 @@ class Session:
             free = [i for i, v in d["vms"].items() if v["snapshot"] == self.image and v["type"] == vm_type and lease_free(v) and i not in self.vms]
             free.sort(key=lambda i: (d["vms"][i].get("state") not in RUNNING, -d["vms"][i].get("last_used", 0)))
             up = [i for i in free if d["vms"][i].get("state") in RUNNING]
-            try:  # a stopped VM takes a start to resume: no more of them than the plan has starts left
-                st = limits()["starts"]
-                starts = max(0, min(st["hour"]["remaining"], st["day"]["remaining"]) - STARTS_RESERVE)
+            try:  # a stopped VM takes a start to resume: no more of them than the batch may start
+                starts = max(0, starts_left(limits()))
             except Exception:
                 starts = need
-            free = up + [i for i in free if i not in up][:starts]
+            if need > len(up) and starts <= 0:
+                self.short = True
+            free = up + [i for i in free if i not in up][:budget(starts)]
             for i in free[:need]:
                 d["vms"][i]["lease"] = {"pid": os.getpid(), "host": socket.gethostname(), "batch": self.batch, "since": time.time(), "label": self.label}
                 mine.append((i, d["vms"][i].get("state")))
@@ -545,8 +597,41 @@ class Session:
             self.vms[i] = vm
             self._go(self._bring_up, vm, state in RUNNING)
         rest = need - len(mine)
-        if rest > 0:
+        if not OLD:  # what the batch starts in all (its resumes and creations) stays within its budget
+            rest = min(rest, budget(starts) - sum(1 for _, s in mine if s not in RUNNING))
+        if rest > 0 and starts > 0:
             self._go(self._create, rest, vm_type)
+        elif need > len(mine):
+            log("no starts left this hour or day: no more VMs for this batch" if starts <= 0 else f"{need - len(mine)} VMs fewer: the batch's share of the starts left ({budget(starts)} of {starts})")
+
+    def lease_up(self, k: int, vm_type: str) -> int:
+        """Leases up to k pool VMs that are up and free (released by another batch less than its idle time ago), so
+        without a start; returns how many."""
+        if k <= 0 or self.stop.is_set():
+            return 0
+        try:
+            live = states()
+        except Exception:
+            return 0
+        mine = []
+        with self.reg.locked() as d:
+            now = time.time()
+            for i, v in sorted(d["vms"].items(), key=lambda x: -x[1].get("last_used", 0)):
+                if len(mine) >= k:
+                    break
+                if (i not in self.vms and v["snapshot"] == self.image and v["type"] == vm_type and lease_free(v)
+                        and live.get(i, {}).get("state") in RUNNING and v.get("until", 0) > now + 20):
+                    v["lease"] = {"pid": os.getpid(), "host": socket.gethostname(), "batch": self.batch, "since": now, "label": self.label}
+                    mine.append(i)
+        for i in mine:
+            vm = VM(i, vm_type, "running")
+            self.vms[i] = vm
+            self.wanted += 1
+            self.counts["topped_up"] += 1
+            self._go(self._bring_up, vm, True)
+        if mine:
+            log(f"{len(mine)} VMs another batch released join this one")
+        return len(mine)
 
     def _go(self, f, *a):
         t = threading.Thread(target=f, args=a, daemon=True)
@@ -558,7 +643,7 @@ class Session:
             if running:
                 self.counts["leased_running"] += 1
                 boat("extend", vm.id, "--ttl", str(BACKSTOP), "--json", check=False)
-                up = wait_running([vm.id], 300)
+                up = wait_running([vm.id], 300 if OLD else 90)  # (one that's up answers in seconds)
             else:
                 up = False
                 attempt = 0
@@ -568,6 +653,12 @@ class Session:
                         if states().get(vm.id, {}).get("state") not in ("stopping", "pausing", "snapshotting"):
                             break
                         time.sleep(3)
+                    if not OLD and attempt == 0 and self.enough(vm):
+                        # the VMs already up have slots for all that's left: this one isn't worth a start
+                        self.counts["not_resumed"] += 1
+                        vm.dead = vm.skipped = True
+                        self._release([vm.id])
+                        return
                     if not self.gate.take(1, self.stop):
                         raise RuntimeError("no boat starts left this hour or day (a resume is a start)")
                     vm.t_request = time.time()  # (billing starts at the resume, not at the wait for a start)
@@ -643,12 +734,14 @@ class Session:
                 log(f"boat new gave no VM: {out[-300:]}")
                 time.sleep(15)
                 continue
-            if self.stop.is_set():  # the batch ended while they were made: into the pool, stopped
+            if self.stop.is_set():  # the batch ended while they were made: into the pool, stopped after the idle time
+                ttl = max(60, self.idle if self.idle is not None else IDLE)
                 with self.reg.locked() as d:
                     for i in ids:
-                        d["vms"][i] = {"type": vm_type, "snapshot": self.image, "created": time.time(), "last_used": time.time(), "state": "starting", "lease": None}
+                        d["vms"][i] = {"type": vm_type, "snapshot": self.image, "created": time.time(), "last_used": time.time(), "state": "starting", "lease": None,
+                                       "until": time.time() + ttl}
                 for i in ids:
-                    boat("extend", i, "--ttl", str(max(60, self.idle)), "--json", check=False)
+                    boat("extend", i, "--ttl", str(ttl), "--json", check=False)
                 break
             with self.reg.locked() as d:
                 for i in ids:
@@ -674,10 +767,11 @@ class Session:
             stop_vm(vm.id)
             self._release([vm.id])
 
-    def enough(self) -> bool:
-        """Whether the run under way has slots for all it still has to start (no more VMs worth creating)."""
+    def enough(self, without=None) -> bool:
+        """Whether the run under way has slots for all it still has to start (no more VMs worth starting), counting
+        the session's VMs but `without`."""
         f = getattr(self, "_enough", None)
-        return bool(f and f())
+        return bool(f and f(without))
 
     # -- preparing
     def _prepare(self, vm: VM):
@@ -785,7 +879,7 @@ class Session:
         queue = sorted(items, key=lambda it: -it.get("est", 60))
         lock = threading.Lock()
         left = {"n": len(items)}
-        self._enough = lambda: len(queue) <= sum(v.slots for v in self.vms.values() if not v.dead)
+        self._enough = lambda without=None: len(queue) <= sum(v.slots for v in list(self.vms.values()) if not v.dead and v is not without)
         started_threads = set()
         all_done = threading.Event()
         t_start = time.time()
@@ -903,14 +997,48 @@ class Session:
             for it in rest:
                 finish(it, None, reason)
 
+        def topup():
+            """More work than slots: VMs other batches released (still up, so no start) join this one as they come,
+            and, when the batch has no VM at all, as many as its share once starts are back."""
+            while not all_done.wait(10) and not self.stop.is_set():
+                with lock:
+                    q = [it for it in queue if not it.get("vm_type")]
+                alive = [v for v in list(self.vms.values()) if not v.dead and v.type == self.vm_type]
+                short = len(q) - sum(v.slots for v in alive)
+                if short <= 0:
+                    continue
+                per = TYPES[self.vm_type][0] // SLOT_CPU
+                got = self.lease_up(math.ceil(short / per), self.vm_type)
+                if not got and not alive and self.short:
+                    with contextlib.suppress(Exception):
+                        k = budget(starts_left(limits()))
+                        if k > 0:
+                            log(f"starts are back: {min(k, math.ceil(short / per))} VMs")
+                            self.ensure(min(k, math.ceil(short / per)))
+
         sp = threading.Thread(target=spawn_workers, daemon=True)
         sp.start()
+        if not OLD:
+            threading.Thread(target=topup, daemon=True).start()
+        if max_wait and self.short and WAIT_STARTS > max_wait:
+            log(f"no start to be had: waiting up to {WAIT_STARTS} s for VMs other batches release")
+            max_wait = WAIT_STARTS
         while not all_done.wait(1):
             if self.stop.is_set():
                 raise KeyboardInterrupt
-            gone = self.vms and all(v.dead for v in self.vms.values()) and not any(t.is_alive() for t in self.threads)
+            gone = self.vms and all(v.dead for v in list(self.vms.values())) and not any(t.is_alive() for t in self.threads)
+            if max_wait and self.ready and time.time() - t_start > max_wait and not any(t.is_alive() for t in self.threads):
+                # items that need a bigger VM than the batch's own, none of which came (no start for it): not on boat
+                with lock:
+                    have = {v.type for v in list(self.vms.values()) if not v.dead}
+                    stuck = [it for it in queue if it.get("vm_type") and it["vm_type"] not in have]
+                    for it in stuck:
+                        queue.remove(it)
+                for it in stuck:
+                    finish(it, None, f"no boat {it['vm_type']} VM to be had" + (" (no starts left)" if self.short else ""))
             if max_wait and not self.ready and time.time() - t_start > max_wait:
-                give_up(f"no boat VM ready after {max_wait} s" + (f" ({self.last_error})" if self.last_error else ""))
+                give_up(f"no boat VM ready after {max_wait} s" + (" (no starts left; none released by another batch meanwhile)" if self.short else "")
+                        + (f" ({self.last_error})" if self.last_error else ""))
                 if not any(t.is_alive() for t in self.threads) or all_done.is_set():
                     break
             elif gone:
@@ -1002,7 +1130,9 @@ class Session:
             if self.creating == 0:
                 break
             time.sleep(1)
-        vms = [v for v in self.vms.values()]
+        vms = [v for v in list(self.vms.values()) if not v.skipped]
+        idle = self.idle if self.idle is not None else release_idle()
+        self.idle_used = idle
 
         def wind(vm: VM):
             if kill and vm.t_ready and not vm.dead:
@@ -1014,34 +1144,44 @@ class Session:
             vm.t_end = time.time()
             if self.teardown:
                 boat("delete", vm.id, "--yes", "--json", check=False, timeout=180)
-            elif self.idle <= 0:
+            elif idle <= 0:
                 stop_vm(vm.id)
             else:
-                boat("extend", vm.id, "--ttl", str(self.idle), "--json", check=False)
+                boat("extend", vm.id, "--ttl", str(idle), "--json", check=False)
         ts = [threading.Thread(target=wind, args=(vm,)) for vm in vms]
         [t.start() for t in ts]
         [t.join(timeout=400) for t in ts]
-        self._release([v.id for v in vms], deleted=self.teardown)
+        self._release([v.id for v in vms], deleted=self.teardown, idle=idle, up={v.id for v in vms if not v.dead})
         held = sum((v.t_end or time.time()) - v.t_request for v in vms if v.t_running)  # (a VM that never ran bills nothing)
         busy = sum(union(v.busy) for v in vms)
         ready_held = sum((v.t_end or time.time()) - v.t_ready for v in vms if v.t_ready)
         up = [v.t_running - v.t_request for v in vms if v.t_running]
         prep = [v.t_ready - v.t_running for v in vms if v.t_ready and v.t_running]
-        return {"vms": len(vms), **self.counts, "to_running_s": [round(min(up), 1), round(sorted(up)[len(up) // 2], 1), round(max(up), 1)] if up else None,
+        day = None
+        with contextlib.suppress(Exception):  # (every client's starts of the day, before and after; a rolling day can drop some meanwhile)
+            day = f"{self.day0} to {limits()['starts']['day']['used']}" if self.day0 is not None else None
+        return {"vms": len(vms), **self.counts, "account_day": day, "to_running_s": [round(min(up), 1), round(sorted(up)[len(up) // 2], 1), round(max(up), 1)] if up else None,
                 "prep_s": [round(min(prep), 1), round(sorted(prep)[len(prep) // 2], 1), round(max(prep), 1)] if prep else None,
                 "tree_from_seed": sum(1 for v in vms if v.src == "seed"), "types": sorted({v.type for v in vms}), "held_s": round(held, 1), "ready_held_s": round(ready_held, 1),
                 "busy_s": round(busy, 1), "idle_vm_s": round(ready_held - busy, 1), "bring_up_s": round(held - ready_held, 1),
-                "idle_tail_s": 0 if self.teardown or self.idle <= 0 else self.idle * len([v for v in vms if not v.dead])}
+                "idle_tail_s": 0 if self.teardown or idle <= 0 else idle * len([v for v in vms if not v.dead]), "idle_s": idle,
+                "starts": self.counts["created"] + self.counts["resumed"]}
 
-    def _release(self, ids: list[str], deleted: bool = False):
+    def _release(self, ids: list[str], deleted: bool = False, idle: int = 0, up: set | None = None):
+        """Lets go of the batch's VMs (only those still leased to it: one it gave back early may be another's now);
+        `until` is when boat stops one left up, so another batch may lease it without a start before then."""
+        now = time.time()
         with self.reg.locked() as d:
             for i in ids:
-                if i in d["vms"]:
-                    if deleted:
-                        d["vms"].pop(i)
-                    else:
-                        d["vms"][i]["lease"] = None
-                        d["vms"][i]["last_used"] = time.time()
+                v = d["vms"].get(i)
+                if v is None or (v.get("lease") and v["lease"].get("batch") != self.batch):
+                    continue
+                if deleted:
+                    d["vms"].pop(i)
+                else:
+                    v["lease"] = None
+                    v["last_used"] = now
+                    v["until"] = now + idle if up and i in up and idle > 0 else 0
 
     def dollars(self, ids: list[str] | None = None) -> float:
         """What boat bills for this batch's VMs since it began (`boat usage`, every VM at once)."""
@@ -1089,7 +1229,9 @@ def plan_vms(items: list[dict], slots_per_vm: int, override: int = 0, cap: int =
     """Enough VMs that the longest item bounds the batch (no more help), fewer when VMs come at the plan's start rate:
     with W slot-seconds of work, r starts a second and c slots a VM, n VMs arriving over n/r seconds finish by about
     W/(c n) + n/(2r), least at n = sqrt(2 r W / c). boat counts a resume as a start, as a creation is: only the pool's
-    VMs still up (within their idle time) come without one."""
+    VMs still up (within their idle time) come without one. Of the starts left this hour and day, a batch takes its
+    budget() (a quarter), so a big batch runs longer on fewer VMs (two slots each, longest first) instead of
+    spending the hour; more VMs join it as other batches release theirs (Session.run's top-up)."""
     if override:
         return override
     if not items:
@@ -1100,13 +1242,15 @@ def plan_vms(items: list[dict], slots_per_vm: int, override: int = 0, cap: int =
     useful = min(useful, sum(it["weight"] for it in items) // max(1, slots_per_vm) + 1, len(items))
     try:
         lim = limits()
-        up = sum(1 for v in Registry().read()["vms"].values() if lease_free(v) and v.get("state") in RUNNING)
+        now = time.time()
+        up = sum(1 for v in Registry().read()["vms"].values() if lease_free(v) and v.get("state") in RUNNING and v.get("until", now + 60) > now + 20)
         rate = max(lim["currentLimits"]["creationRatePerMinute"], 1) / 60
         by_rate = up + math.ceil(math.sqrt(2 * rate * W / slots_per_vm))
         room = lim["currentLimits"]["activeSandboxes"] - lim["activeSandboxes"] + up
-        st = lim["starts"]
-        starts = min(st["hour"]["remaining"], st["day"]["remaining"]) - STARTS_RESERVE
-        n = min(useful, by_rate, room, up + max(0, starts))
+        starts = max(0, starts_left(lim))
+        n = min(useful, by_rate, room, up + budget(starts))
+        if n < min(useful, by_rate, room, up + starts):
+            log(f"{up} VMs up and free, {budget(starts)} starts of the {starts} left: {n} VMs (the old policy: {min(useful, by_rate, room, up + starts)})")
     except Exception:
         n = min(useful, 10)
     if cap:
@@ -1159,19 +1303,26 @@ def preflight(want: int = 1, vm_type: str = "default") -> tuple[str | None, dict
         with Registry().locked() as d:
             reconcile(d, sandboxes())
             free = [v for v in d["vms"].values() if v["snapshot"] == img and v["type"] == vm_type and lease_free(v)]
+            leased = sum(1 for v in d["vms"].values() if v["snapshot"] == img and v["type"] == vm_type and not lease_free(v))
     except Exception as e:
         return f"boat API unreachable ({str(e)[:160]})", {}
     up = sum(1 for v in free if v.get("state") in RUNNING)
     room = lim["currentLimits"]["activeSandboxes"] - lim["activeSandboxes"]
     st = lim["starts"]
-    starts = max(0, min(st["minute"]["remaining"], st["hour"]["remaining"] - STARTS_RESERVE, st["day"]["remaining"] - STARTS_RESERVE))
-    # (a resume is a start to boat, as a creation is)
+    # (a resume is a start to boat, as a creation is; the minute's starts come back within the minute, so only the
+    # old policy counts them out)
+    starts = max(0, min(st["hour"]["remaining"] - STARTS_RESERVE, st["day"]["remaining"] - STARTS_RESERVE, *([st["minute"]["remaining"]] if OLD else [])))
     resumable = min(len(free) - up, max(0, room), starts)
     creatable = min(starts - resumable, max(0, room - resumable))
     can = up + resumable + creatable
-    info = {"free_up": up, "free_stopped": len(free) - up, "active_room": room, "starts_now": starts, "can": can}
+    info = {"free_up": up, "free_stopped": len(free) - up, "active_room": room, "starts_now": starts, "can": can, "leased": leased}
     if can <= 0:
         why = "boat at its active-VM limit" if room <= 0 else "no boat starts left this hour or day" if starts <= 0 else "no boat VM to be had"
+        if WAIT_STARTS and starts <= 0 and room > 0 and leased:
+            # other batches hold VMs: one they release (still up, so no start) is had sooner and cheaper than Modal
+            info["wait"] = WAIT_STARTS
+            log(f"{why}; {leased} VMs leased by other batches: waiting up to {WAIT_STARTS} s for one they release")
+            return None, info
         return why, info
     return None, info
 
@@ -1198,7 +1349,7 @@ def job_items(spec: list[dict], pre: str, cmd, vm_type: str, past: dict) -> tupl
     return items, order
 
 
-def boat_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int = 60, teardown: bool = False, durations: str = "", vm_type: str = "default",
+def boat_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int | None = None, teardown: bool = False, durations: str = "", vm_type: str = "default",
               max_vms: int = 0, on_lost=None, max_wait: int = 0, on_done=None) -> tuple[dict, dict]:
     """modal/run.py's jobs on the pool: {name: {code, seconds, out, err}} for those that ran, and the batch's figures.
     A job lost twice (its VM died) goes to on_lost(name, reason), as does every job when boat can't serve the batch."""
@@ -1260,7 +1411,9 @@ def boat_jobs(spec: list[dict], out: str, pre: str, cmd, vms: int = 0, idle: int
 
 
 def summary_line(s: dict) -> str:
-    return (f"boat: {s['vms']} VMs ({s['created']} created, {s['resumed']} resumed, {s['leased_running']} already up), ${s['dollars_so_far']} so far (boat usage), "
+    return (f"boat: {s['vms']} VMs ({s['created']} created, {s['resumed']} resumed, {s['leased_running']} already up"
+            + (f", {s['topped_up']} of them joining mid-batch" if s.get("topped_up") else "") + (f", {s['not_resumed']} leased but not worth a start" if s.get("not_resumed") else "")
+            + f"; {s.get('starts', s['created'] + s['resumed'])} starts" + (f", the account's day {s['account_day']}" if s.get("account_day") else "") + f"), ${s['dollars_so_far']} so far (boat usage), "
             f"{s['idle_vm_s']} idle VM-s of {s['ready_held_s']} held ready, {s['bring_up_s']} VM-s bringing up"
             + (f", then up to {s['idle_tail_s']} VM-s idle before they stop" if s.get("idle_tail_s") else ""))
 
@@ -1295,7 +1448,10 @@ def reap():
                 kill.append((i, l["batch"]))
                 v["lease"] = None
                 v["last_used"] = now
-            if not v.get("lease") and v.get("state") in RUNNING and now - v.get("last_used", 0) > 120:
+            # a free VM up past the idle time its batch gave it (`until`; boat stops it then by itself, this is the
+            # backstop), or, for one released before `until` was kept, 120 s after its release
+            past = now > v["until"] + 60 if v.get("until") else now - v.get("last_used", 0) > 120
+            if not v.get("lease") and v.get("state") in RUNNING and past:
                 stop.append(i)
     for i, b in kill:
         exec_(i, ["bash", "-c", f"python3 ~/.gdpw/agent.py kill {b} 2>/dev/null || true"], 60)
@@ -1313,6 +1469,20 @@ def reap():
     up = [i for i, s in live.items() if s.get("state") in RUNNING]
     mine = set(reg.read()["vms"])
     print(f"{len(up)} boat VMs up ({len([i for i in up if i in mine])} of the pool)" + "".join(f"\n  not in the pool: {i} {live[i].get('name')}" for i in up if i not in mine))
+
+
+def cold():
+    """Stops every free VM that's up now (their idle time cut short), so the next batch finds the pool cold: before a
+    measurement of what a batch starts."""
+    with Registry().locked() as d:
+        reconcile(d, sandboxes())
+        up = [i for i, v in d["vms"].items() if lease_free(v) and v.get("state") in RUNNING]
+        for i in up:
+            d["vms"][i]["until"] = 0
+    ts = [threading.Thread(target=stop_vm, args=(i,)) for i in up]
+    [t.start() for t in ts]
+    [t.join() for t in ts]
+    print(f"stopped {len(up)} free VMs")
 
 
 def teardown(everything: bool = False, vm_type: str = ""):
@@ -1339,6 +1509,7 @@ if __name__ == "__main__":
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("status")
     sub.add_parser("reap")
+    sub.add_parser("cold")
     t = sub.add_parser("teardown")
     t.add_argument("--all", action="store_true")
     t.add_argument("--type", default="", choices=["", "small", "default", "large"])
@@ -1351,6 +1522,8 @@ if __name__ == "__main__":
         status()
     elif a.cmd == "reap":
         reap()
+    elif a.cmd == "cold":
+        cold()
     elif a.cmd == "teardown":
         teardown(a.all, a.type)
     elif a.cmd == "image":

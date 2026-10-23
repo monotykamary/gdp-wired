@@ -2,7 +2,7 @@
 on every run (so edits need no rebuild).
 
     modal run modal/run.py --jobs jobs.json --out ../runs/modal/<name>
-    python3 modal/run.py --backend auto|boat|modal --jobs jobs.json --out runs/backends/<name> [--vms N] [--idle 60]
+    python3 modal/run.py --backend auto|boat|modal --jobs jobs.json --out runs/backends/<name> [--vms N] [--idle 300]
 
 `--backend auto` runs the same jobs, with the same flags and outputs, on boat.dev VMs (modal/boat.py: a pool kept
 stopped between batches, 2 vCPU and 4 GB a slot) and moves to Modal what boat can't serve (modal/fanout.py); summary.tsv
@@ -115,13 +115,13 @@ def flags(native: bool, cyclic: bool, usual: bool):
 
 @app.local_entrypoint()
 def main(jobs: str, out: str, native: bool = False, cyclic: bool = False, usual: bool = False, backend: str = "modal",
-         vms: int = 0, idle: int = 60, teardown: bool = False, vm_type: str = "default", durations: str = "", max_vms: int = 0, max_wait: int = 120):
+         vms: int = 0, idle: int = -1, teardown: bool = False, vm_type: str = "default", durations: str = "", max_vms: int = 0, max_wait: int = 120):
     import sys
     sys.path.insert(0, str(HERE))
     import fanout
     spec = json.loads(pathlib.Path(jobs).read_text())
     pre, cmd = flags(native, cyclic, usual)
-    fanout.run_jobs(app, spec, out, pre, cmd, lambda js, on_done: modal_jobs(js, pre, cmd, on_done), backend=backend, vms=vms, idle=idle, teardown=teardown,
+    fanout.run_jobs(app, spec, out, pre, cmd, lambda js, on_done: modal_jobs(js, pre, cmd, on_done), backend=backend, vms=vms, idle=None if idle < 0 else idle, teardown=teardown,
                     durations=durations, vm_type=vm_type, max_vms=max_vms, max_wait=max_wait)
 
 
@@ -167,7 +167,7 @@ if __name__ == "__main__":
     ap.add_argument("--backend", default="auto", choices=["modal", "auto", "boat"])
     ap.add_argument("--vms", type=int, default=0, help="boat VMs for the batch (default: by the jobs' last times and the plan's limits)")
     ap.add_argument("--max-vms", type=int, default=0)
-    ap.add_argument("--idle", type=int, default=60, help="seconds a released VM stays up before boat stops it (0: stop at once)")
+    ap.add_argument("--idle", type=int, default=-1, help="seconds a released VM stays up before boat stops it (0: stop at once; default 300, 900 while starts are short)")
     ap.add_argument("--vm-type", default="default", choices=["small", "default", "large"])
     ap.add_argument("--durations", default="", help="a summary.tsv whose times order the jobs (default: the last run's)")
     ap.add_argument("--max-wait", type=int, default=120, help="auto: seconds to wait for a boat VM before Modal takes the batch")
