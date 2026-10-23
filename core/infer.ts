@@ -113,6 +113,8 @@ const joinCubes = (globalThis as {process?: {env?: Record<string, string | undef
 const joinCubeMax = 48, joinCubeTries = 8, joinCubeDepth = 3, joinCubeMs = 2000
 // Once a cube is in the set, the join has 0.3 of what is left of its time (the search below the rest).
 const joinCubeWindow = 0.3
+// GDP_JOIN_PRIME=0: each control state no state reached a form of its own, every value read.
+const joinPrime = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_PRIME !== '0'
 // GDP_JOIN_DOWN=0: a blocked cube kept as its refutation's core cuts it (no literal dropped); joinDownQueries, the
 // queries a cube's generalization may ask.
 const joinDown = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_DOWN !== '0', joinDownQueries = 24
@@ -807,8 +809,29 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // (once broken, each its own form from then on, so that a state joined in changes only the forms that
       // read its own control state, not every proof that read them all)
       if (nev.length > 1 && joinNevers && neversBroken < joinNeversBreaks) push({coef: [], d: 0, cells: false, nevers: nev, size: 1})
-      else for (const ats of nev) push({coef: [], d: 0, cells: false, ...(ats.length > 1 ? {never: ats} : {unreachable: ats[0]!}), size: 1})
+      else for (const ats of joinPrime ? primes(nev) : nev) push({coef: [], d: 0, cells: false, ...(ats.length > 1 ? {never: ats} : {unreachable: ats[0]!}), size: 1})
       return out
+    }
+    // The control states no state reached, as fewer and smaller cubes (a program counter in bits: Spacer's clauses there
+    // read two or three of its bits): each cube's values dropped one at a time, the yes/nos first, while it holds at no
+    // control state reached, then the cubes another cube's values include left out. Together they say what the cubes
+    // of every value say (the control state is one reached), but a goal reads fewer of them, and each of them less.
+    const primes = (nev: At[][]): At[][] => {
+      const reachedKeys = [...groups.keys()].map(k2 => k2.split(',').map(Number))
+      const holdsAtSome = (c: At[]) => reachedKeys.some(vs => c.every(a => vs[keyAtoms.indexOf(a.atom)] === a.value))
+      const out: At[][] = []
+      for (const ats of nev) {
+        let c = ats
+        for (const a of [...ats.slice(1), ats[0]!]) {
+          if (c.length <= 1) break
+          const fewer = c.filter(b2 => b2 !== a)
+          if (!holdsAtSome(fewer)) c = fewer
+        }
+        out.push(c)
+      }
+      const key2 = (c: At[]) => c.map(a => `${a.atom}=${a.value}`).sort().join('&')
+      const uniq = [...new Map(out.map(c => [key2(c), c])).values()].sort((a, b) => a.length - b.length)
+      return uniq.filter((c, i) => !uniq.slice(0, i).some(d => d.every(a => c.some(b2 => b2.atom === a.atom && b2.value === a.value))))
     }
     let rounds = 0, why = '', set: Form[] = []
     const params0: Env = {}
