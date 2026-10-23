@@ -1,0 +1,9 @@
+// expect: nonterminating
+// bool is the task's own enum (as SV-COMP's tasks define it), not _Bool: b = 2 stores 2, and b != true holds forever.
+// c2ari reads the type name bool as _Bool before the typedef, so b is 1.
+typedef enum { false, true } bool;
+int main(void) {
+  bool b = 2;
+  while (b != true) { }
+  return 0;
+}

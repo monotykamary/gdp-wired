@@ -1,0 +1,18 @@
+// c2ari: no_overflow
+// expect: terminates
+// x is a long long (goto jumps past its declaration: any value of its type, or undefined behaviour to read it):
+// x / 2 is at most 2^62 - 1 < 2^63 - 1, so the loop is never entered. No operation overflows.
+int main(void) {
+  long long big = 1;
+  big = big * 1048576;
+  big = big * 1048576;
+  big = big * 1048576;
+  big = big * 4;
+  goto L;
+  {
+    long long x;
+  L:
+    while (x / 2 > big + (big - 1)) { }
+  }
+  return 0;
+}

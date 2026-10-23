@@ -1065,6 +1065,45 @@ export const stepZone = (m: Machine, k: number): string[] => [
   ...Array.from({length: k - 1}, (_, i) => Object.keys(m.state).map(n => stateName(n, i + 1))).flat(),
 ]
 
+// --- k-induction: a law k steps in a row keep -------------------------------------------------------------------------
+
+// A plain law (no key) holds in every reachable state if it holds at the start, after every run of j steps from the
+// start for 1 ≤ j < k (the base), and after any k steps in a row from a reachable state, each step starting where it
+// holds (the step). Every goal but the start's (the law's own @start goal) is a k-step law's, its `when`s and `then`
+// built here from the law alone: the base of depth j reads its first state as the start (each state variable its start
+// term) with the law there, and the law before each later step; the step reads the law before each of its k steps; `then`
+// is the law with primed names. The Lean twin (KInd.lean's checkKInd) builds the same goals, and `kind_sound` proves
+// that a checked certificate makes the law hold in every reachable state. The proof is a step laws' proof (the laws
+// assumed, proven inductive as ever; each goal's tree by name), its start goal's instances `perStep[<law> @start]`.
+export type KInduction = {law: Law, k: number}
+export function kInductionSteps(machine: Machine, kl: KInduction): StepLaw[] {
+  const m = machine.history ? historyMachine(machine).machine : machine, L = kl.law, k = kl.k
+  if (L.forall || L.keys?.length || L.some?.length || L.ex) throw new Error(`k-induction of ${L.name}: a law with no key`)
+  if (!Number.isInteger(k) || k < 1 || k > 64) throw new Error(`k-induction of ${L.name}: k is a whole number from 1 to 64`)
+  // (as the twin's checkKInd: the law reads no request's name, flag or witness; the start reads none, nor a state
+  // variable, nor a map; scope below asks the rest)
+  const ext = [...m.inputs, ...quantified(m).flatMap(([f, q]) => [`?${f}`, ...witnessesOf(f, q)]), ...Object.keys(m.step.flags ?? {}).map(f => `?${f}`)]
+  if (mentions(L.holds, ext) || Object.keys(m.state).some(n => ext.includes(n))) throw new Error(`k-induction of ${L.name}: reads a request's name or a flag`)
+  for (const e of Object.values(m.state)) if (mentions({op: '=', a: e, b: e}, [...ext, ...Object.keys(m.state)]) || JSON.stringify(e).includes('"op":"get"')) throw new Error(`k-induction of ${L.name}: a start reads the params alone`)
+  const start: C = {op: 'and', xs: Object.entries(m.state).map(([n, e]): C => ({op: '=', a: {op: 'var', name: n}, b: e}))}
+  const after: Subst = {vars: Object.fromEntries(Object.keys(m.state).map(n => [n, {op: 'var', name: `${n}'`} as E])), maps: Object.fromEntries(Object.keys(m.maps ?? {}).map(map => [map, (key: E): E => ({op: 'get', map: `${map}'`, key})])), flags: {}}
+  const then = substC(L.holds, after)
+  return [
+    ...Array.from({length: k - 1}, (_, i): StepLaw => ({name: `${L.name} @base ${i + 1}`, when: [{op: 'and', xs: [start, L.holds]}, ...Array.from({length: i}, () => L.holds)], then, steps: i + 1})),
+    {name: `${L.name} @k-step`, when: Array.from({length: k}, () => L.holds), then, steps: k},
+  ]
+}
+export const kInductionStart = (machine: Machine, kl: KInduction, instances: Instances): Goal => {
+  const m = machine.history ? historyMachine(machine).machine : machine
+  return obligations(m, [kl.law], {[kl.law.name]: instances})[0]!
+}
+export function checkKInduction(m: Machine, laws: Law[], kl: KInduction, proof: {laws: {instances: Record<string, Instances>, trees: Record<string, Tree>}, instances: Instances, perStep?: Record<string, Instances>, trees: Record<string, Tree>}): boolean {
+  const steps = kInductionSteps(m, kl), plain = m.history ? historyMachine(m).machine : m
+  scope(plain, [...laws, kl.law])
+  const start = kInductionStart(m, kl, proof.perStep?.[`${kl.law.name} @start`] ?? proof.instances)
+  return proof.trees[start.name] !== undefined && check(start, proof.trees[start.name]!) && checkStepLaws(m, laws, steps, proof)
+}
+
 // --- trees: structural induction ---------------------------------------------------------------------------------------
 
 // A fold over binary trees whose leaves and nodes carry inputs: a leaf's state from its inputs, a node's from its

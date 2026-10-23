@@ -51,3 +51,12 @@ test('a law broken only past where random runs go is refuted by a bounded run, w
   expect(v.goal).toContain('a run of 5 steps')
   expect(v.run?.trace.map(t => t.code)).toEqual(codes)
 })
+
+test('a deterministic loop broken only after thousands of steps is refuted by its forced run', () => {
+  // No request: every run is the one run, 10,000 steps to the break, past any k-step goal (the kernel's k is at most 64).
+  const r = rule('ticker').inputs({}).state({n: 0, m: 0}).step(({n, m}) => ({n: n.plus(1), m: when(n.atLeast(5000), m.plus(1), m)}))
+  const law = r.law('m stays below 5,000', ({m}) => m.atMost(4999))
+  const v = proveRule(r, [law], {search: {ms: 4000}})
+  expect(v.proven).toBe(false)
+  expect(v.run?.trace.length).toBe(10_000)
+})

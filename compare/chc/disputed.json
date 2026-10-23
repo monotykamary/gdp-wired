@@ -1,0 +1,20 @@
+{
+ "aeval-unsafe/s_split_50_000_001.yml": {
+  "label": "sat",
+  "vote": "LoAT's alone (majority_vote_verdict sat, sat: [loat])",
+  "answer": "unsat",
+  "steps": 999002,
+  "derivation": "runs/bmc2/disputed/s_split_50_000_001.json.gz",
+  "why": "D counts modulo 2,000, B grows while D < 1,000 and A while D >= 1,000: after 499 periods B - A is 0, and 1,000 steps later, at C = 999,000, it is 1,000, which the query asks",
+  "from": "one vote"
+ },
+ "aeval-unsafe/s_split_22_000_001.yml": {
+  "label": "sat",
+  "vote": "none (a placeholder verdict, auto-added)",
+  "answer": "unsat",
+  "steps": 280277,
+  "derivation": "runs/bmc2/disputed/s_split_22_000_001.json.gz",
+  "why": "the third argument grows by 3 every third step, so after 280,275 steps the first and the third are both at least 280,275, which the query asks",
+  "from": "a placeholder"
+ }
+}

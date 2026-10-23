@@ -1,0 +1,13 @@
+// expect: nonterminating
+// q = p reads p, which points to y (its address taken later in the text) from the second turn on.
+int main(void) {
+  int x = 0;
+  int y = 0;
+  int *p = &x;
+  int *q = 0;
+  while (1) {
+    q = p;
+    p = &y;
+  }
+  return 0;
+}

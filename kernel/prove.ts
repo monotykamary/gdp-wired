@@ -16,7 +16,7 @@ import type {TStats} from '../core/translate.ts'
 import type {Cyclic} from './cyclic.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
 import {growCdcl} from './cdcl.ts'
-import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
+import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
 function openE(e: E, path: Path, out: Lin[]): void {
@@ -746,7 +746,16 @@ function readKeys(m: Machine, laws: Law[]): E[] {
   Object.values(m.step.flags ?? {}).forEach(inC)
   for (const w of Object.values(m.step.maps ?? {})) { if (!('each' in w)) { out.set(JSON.stringify(w.key), w.key); inE(w.key) } inE(w.value) }
   for (const l of laws.filter(l => !l.forall)) inC(l.holds)
-  return [...out.values()]
+  return keysInlined(m, [...out.values()])
+}
+// Keys as the kernel's goals read them: a key that reads a flag (a map read at `when(flag, a, b)` in the step) with the
+// flag's condition in its place (kernel.ts's updateOf inlines them so), since an instance is a term over the frame and
+// names no flag. A quantified flag reads as its 0/1 variable ?f, as the goals read it.
+function keysInlined(m: Machine, keys: E[]): E[] {
+  if (!keys.some(e => JSON.stringify(e).includes('"op":"flag"'))) return keys
+  const flags: Record<string, C> = {}
+  for (const [f, c] of Object.entries(m.step.flags ?? {})) flags[f] = c.op === 'all' ? {op: '=', a: {op: 'var', name: `?${f}`}, b: {op: 'const', value: 1}} : substC(c, {vars: {}, maps: {}, flags})
+  return [...new Map(keys.map(e => substE(e, {vars: {}, maps: {}, flags})).map(e => [JSON.stringify(e), e])).values()]
 }
 const shifts = (m: Machine) => Object.values(m.step.maps ?? {}).some(w => 'each' in w && !plainKey(w.value, w.each))
 // The keys some goals read a map at.
@@ -1197,7 +1206,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
   // stepZone), so a k-step law drops the keys that read one; but a flag that holds at every key holds at a later step's
   // key too: where these instances don't prove it, each flag at its own witness at every step is tried (keptAcross).
   const shared = [...readKeys(plain, laws), ...witnesses(plain)], named = [...laws, ...(plain.facts ?? [])], reads = shifts(plain) || laws.some(l => l.keys?.length) || pairFlags(plain)
-  const own = (sl: StepLaw): E[] => [...[sl.then, ...(sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when])].flatMap(readKeysC),
+  const own = (sl: StepLaw): E[] => [...keysInlined(plain, [sl.then, ...(sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when])].flatMap(readKeysC)),
     ...[sl.forall, ...(sl.keys ?? [])].flatMap(key => (key ? [{op: 'var', name: key} as E] : []))]
   const perStep: Record<string, Instances> = {}
   for (const sl of stepLaws) {

@@ -1,0 +1,8 @@
+// expect: nonterminating. _Bool b = 256 is 1 (any nonzero value converts to 1), so the loop runs forever. Taken
+// modulo 2, as an unsigned 1-bit value would be, 256 is 0 and the loop ends.
+int main() {
+  _Bool b = 256;
+  while (b) {
+  }
+  return 0;
+}

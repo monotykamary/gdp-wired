@@ -1,0 +1,9 @@
+// expect: terminates
+// The same enum set to -1 holds 4294967295 (unsigned int): e < 0 is false and the loop is never entered.
+typedef enum { A, B } E;
+int main(void) {
+  E e = A;
+  e = -1;
+  while (e < 0) { }
+  return 0;
+}

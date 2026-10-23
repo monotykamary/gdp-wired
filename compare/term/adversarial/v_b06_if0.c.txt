@@ -1,0 +1,10 @@
+// expect: nonterminating
+// The preprocessor drops the assignment: x stays 1.
+int main(void) {
+  int x = 1;
+#if 0
+  x = 0;
+#endif
+  while (x == 1) { }
+  return 0;
+}

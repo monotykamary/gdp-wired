@@ -8,7 +8,7 @@ import {check, loopObligations} from '../kernel/kernel.ts'
 import {grow} from '../kernel/prove.ts'
 import {parseAri} from '../compare/term/ari.ts'
 import {build} from '../compare/term/translate.ts'
-import {proveLeadsTo, proveLoop, proveRule} from './dsl.ts'
+import {bool, nat, no, oneOf, proveLeadsTo, proveLoop, proveRule, rule, when, yes} from './dsl.ts'
 import {accumulator, ackermann, claimCases, countUp, euclid, exchange, exchangeLoop, liveCases, loopCases, mccarthy, phases, ruleCases, toProduct, triangle} from '../examples/cycles.ts'
 
 test('claims over functions: each proven and checked by the kernel again, each broken variant refused', () => {
@@ -84,3 +84,23 @@ test('ranks from the relation: per location, in order, multiphase, with invarian
   expect(halts('sv/Toulouse-BranchesToLoop-2.ari', true)).toBe(true)
   expect(halts('sv/Toulouse-BranchesToLoop-2.broken.ari', true)).toBe(false)
 }, 120_000)
+
+// The real-world corpus: with no rank stated, 0 of its 35 liveness laws; with rank 0 stated, 19. The fit needs a
+// helpful step that stays pending, and where every helpful step reaches `to` at once there is none. The trivial
+// ranks are tried first: 0, then each state variable alone that the runs allow.
+test('liveness with no rank: the trivial ranks tried first (0, a variable alone)', () => {
+  // a marker set by a refill and cleared by the next admission (LibreChat's): the helpful request clears it at once
+  const marker = rule('marker').inputs({op: oneOf('refill', 'admit', 'noop')}).state({pending: bool.from(false), refills: 0})
+    .step(({op, pending, refills}) => ({pending: when(op.is('refill'), yes, when(op.is('admit'), no, pending)), refills: when(op.is('refill'), refills.plus(1), refills)}))
+  const v = proveLeadsTo(marker, [], marker.leadsTo('a marker is eventually cleared', {from: ({pending}) => pending, to: ({pending}) => pending.not(), helpful: () => ({op: 1})}), {ms: 5000})
+  expect(v).toMatchObject({proven: true, checked: true, found: {rank: '(0)'}})
+  // a batch of n jobs drained one at a time (a peek takes none): the rank is what is left alone
+  const queue = rule('queue').params({n: nat}).inputs({op: oneOf('peek', 'pop')}).state({len: ({n}) => n})
+    .step(({op, len}) => ({len: when(op.is('pop'), len.minus(1), len)}))
+  const w = proveLeadsTo(queue, [], queue.leadsTo('the queue drains', {from: () => yes, to: ({len}) => len.eq(0), helpful: () => ({op: 1})}), {ms: 5000})
+  expect(w).toMatchObject({proven: true, checked: true, found: {rank: '(len)'}})
+  // and a helpful step that misses the goal still refused: a marker the admission never clears
+  const stuck = rule('stuck marker').inputs({op: oneOf('refill', 'admit')}).state({pending: bool.from(false)})
+    .step(({op, pending}) => ({pending: when(op.is('refill'), yes, pending)}))
+  expect(proveLeadsTo(stuck, [], stuck.leadsTo('cleared', {from: ({pending}) => pending, to: ({pending}) => pending.not(), helpful: () => ({op: 1})}), {ms: 3000}).proven).toBe(false)
+}, 60_000)

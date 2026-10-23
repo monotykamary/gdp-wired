@@ -1,0 +1,8 @@
+// expect: nonterminating. 7 / -2 is -3 (C truncates toward zero; floor division gives -4), so the loop runs forever.
+int main() {
+  int d = -2;
+  int x = 7;
+  while (x / d == -3) {
+  }
+  return 0;
+}
