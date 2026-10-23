@@ -153,6 +153,24 @@ the task's expected verdict.
 
 ### Accelerated cycles (Unreleased)
 
+After merging main at 54bbec9 (gen/ranks2's rank splits, gen/sv-front's C front end), launched together with main
+at that commit (`runs/accel2/its-mine`, `its-base`, `sv-mine`, `sv-base`):
+
+| | ITS terminates | nonterminating | solved of 1,239 | SV terminates | nonterminating | solved of 282 |
+| --- | --- | --- | --- | --- | --- | --- |
+| the task's statement (`gdp`), here | 612 | 519 | 1,131 | 170 | 55 | 225 |
+| 54bbec9 | 612 | 461 | 1,073 | 170 | 55 | 225 |
+| per component (`gdp-scc`), here | 612 | 521 | 1,133 | 151 | 55 | 206 |
+| 54bbec9 | 611 | 463 | 1,074 | 152 | 55 | 207 |
+
+LoAT's default engine (532) leads on nonterminating tasks: 13 more than `gdp` here, 11 more than `gdp-scc`. Gained 59
+nonterminating on each statement, lost one lasso each (db3.t2_fixed, db2.t2_fixed: found by main's lasso stage at 46
+to 50 s); SV-COMP's per-component loss, cohencu5-both-t, is a rank search bounded by time, proved by main in 6 of 10
+runs and here in 1 of 10 (4 of 9 with the accelerated stage off: `runs/accel2/svre-*`). The relation is one: ranks2's
+shortcut for the ifs a path's pins decide, always on, and 6b2e2df's relation wherever both build
+(`runs/accel2/relsame2`). Lean checks 40 of the 57 new accelerated sets, drawn at random, 40 of 40
+(`runs/accel2/lean-sample`). The figures below are the run before the merge, beside 6b2e2df.
+
 Recurrent sets from the relation's cycles (core/accel.ts), between the random runs and the policies in
 core/nonterm.ts's search, on Modal (2 vCPU, 4 GB a task, 60 s): this branch (`runs/accel/its-mine1`, `sv-mine1`)
 against main at 6b2e2df launched at the same time (`its-base1`, `sv-base1`). No answer contradicts another: not
