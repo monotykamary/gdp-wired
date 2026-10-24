@@ -6,7 +6,7 @@
 import ts from 'typescript'
 import * as I from './extract-ir.ts'
 import type {B} from './extract-ir.ts'
-import {type Arg, type Event, Exec, type Heap, type Layout, type ListObj, type ListOp, type ListWrite, type MapDecl, type MapObj, type Model, type Path, type Rec, Refusal, Retype, type Setup, type Shape, type Sort, type Term, type V, type Var, memberName, mergeOps, normalize, program, shapeOf} from './extract-read.ts'
+import {type Arg, type Event, Exec, type Heap, type Layout, type ListObj, type ListOp, type ListWrite, type MapDecl, type MapObj, type Model, type Path, type Rec, Refusal, Retype, type Setup, type Shape, type Sort, type Term, type V, type Var, memberName, mergeOps, normalize, program, shapeOf, unparen} from './extract-read.ts'
 
 export type ReadOptions = {
   entry: string,
@@ -124,7 +124,7 @@ function materialize(ex: Exec, v: V, layout: Layout, p: Path, at: ts.Node, out: 
     case 'const': return out
   }
 }
-const strip = (p: Path): Path => ({pc: p.pc, locals: new Map(), heap: new Map(), wrote: [], nows: p.nows})
+const strip = (p: Path): Path => ({pc: p.pc, locals: new Map(), heap: new Map(), wrote: [], nows: p.nows, ...(p.outs ? {outs: p.outs} : {})})
 // The condition that tells two paths apart (as Exec.merge reads it).
 function split(a: Path, b: Path): B {
   let i = 0
@@ -440,7 +440,8 @@ function finish(s: Setup, m: {name: string, shape: Model['shape'], file: string,
   for (const [n, ops] of m.final.lists ?? []) if (ops.length) listWrites[n] = ops.map(o => (o.op === 'pop' ? o : {...o, x: termOf(o.x)}))
   return {name: m.name, shape: m.shape, file: m.file, entry: m.entry, params: vars.filter(v => v.role === 'param'), inputs: vars.filter(v => v.role === 'input'), state: vars.filter(v => v.role === 'state'),
     maps: [...s.maps.values()], ...(s.lists?.size ? {lists: [...s.lists.values()], listWrites} : {}), init: m.init, writes, mapWrites, outputs: m.outputs, refuse: m.refuse, pre: m.pre, layout: m.layout, events: m.events, notes: [...s.notes], hints: s.hints,
-    ...(m.event ? {event: m.event} : {}), ...(m.ctorArgs ? {ctorArgs: m.ctorArgs} : {}), ...(s.lazy.size ? {lazy: s.lazy} : {}), ...(m.initSource ? {initSource: m.initSource} : {}), ...(s.spans ? {spans: s.spans} : {})}
+    ...(m.event ? {event: m.event} : {}), ...(m.ctorArgs ? {ctorArgs: m.ctorArgs} : {}), ...(s.lazy.size ? {lazy: s.lazy} : {}), ...(m.initSource ? {initSource: m.initSource} : {}), ...(s.spans ? {spans: s.spans} : {}),
+    ...(s.fnFields?.names.size ? {fnFields: [...s.fnFields.names]} : {}), ...(s.fnFields?.outside.size ? {answers: Object.fromEntries([...s.fnFields.outside].map(([n, o]) => [n, o.path.replace(/^this\./, '')]))} : {})}
 }
 
 // --- classes --------------------------------------------------------------------------------------------------------
@@ -465,19 +466,54 @@ export function readClass(code: string, file: string, opts: ReadOptions): Model 
 // mixin, or one from another module is refused where it is named).
 function chainOf(s: Setup, cls: ts.ClassLikeDeclaration): ts.ClassLikeDeclaration[] {
   const chain = [cls]
-  for (let c = cls; ;) {
-    const h = c.heritageClauses?.find(x => x.token === ts.SyntaxKind.ExtendsKeyword)
-    if (!h) return chain
-    const e = h.types[0]!.expression
-    if (!ts.isIdentifier(e) && !ts.isPropertyAccessExpression(e)) return refuse(h, `extends ${e.getText().slice(0, 60)}: a class a call makes (a mixin), not one the files read declare`)
+  const add = (decl: ts.ClassLikeDeclaration, at: ts.Node) => { if (chain.includes(decl)) refuse(at, ts.isClassExpression(decl) ? 'a mixin applied twice (one class written once, twice in the chain)' : 'a class that extends itself'); chain.push(decl) }
+  // What `extends e` names: a class of the files read, or (a mixin) the class a function of the files read makes from
+  // the class it is given, `(B) => class extends B {...}`, which extends what the call is given.
+  const base = (e: ts.Expression, at: ts.Node): ts.ClassLikeDeclaration | undefined => {
+    e = unparen(e)
+    if (ts.isClassExpression(e)) { add(e, at); return e }
+    if (ts.isCallExpression(e)) {
+      // (the mixin's class, then what it is given: the class that one extends)
+      add(mixinOf(s, e, at), at)
+      return base(e.arguments[0]!, e)
+    }
+    if (!ts.isIdentifier(e) && !ts.isPropertyAccessExpression(e)) return refuse(at, `extends ${e.getText().slice(0, 60)}: neither a class nor a mixin of the files read`)
     let sym = s.checker.getSymbolAtLocation(ts.isPropertyAccessExpression(e) ? e.name : e)
     if (sym && sym.flags & ts.SymbolFlags.Alias) sym = s.checker.getAliasedSymbol(sym)
     const decl = sym?.declarations?.find(ts.isClassLike)
-    if (!decl) return refuse(h, `extends ${e.getText()}: no class of the files read (another module's, or not a class)`)
-    if (!s.ours(decl.getSourceFile())) return refuse(h, `extends ${e.getText()}, a class from another module (not among the files read)`)
-    if (chain.includes(decl)) return refuse(h, 'a class that extends itself')
-    chain.push(decl); c = decl
+    if (!decl) return refuse(at, `extends ${e.getText()}: no class of the files read (another module's, or not a class)`)
+    if (!s.ours(decl.getSourceFile())) return refuse(at, `extends ${e.getText()}, a class from another module (not among the files read)`)
+    add(decl, at)
+    return decl
   }
+  for (let c = cls; ;) {
+    const h = c.heritageClauses?.find(x => x.token === ts.SyntaxKind.ExtendsKeyword)
+    if (!h) return chain
+    c = base(h.types[0]!.expression, h)!
+  }
+}
+// A mixin of the files read: a function of one parameter whose body is a class expression (or returns one) extending
+// that parameter, called with one argument. Its class is resolved where it is written, so one mixin applied twice is
+// one class here: refused (its members would be the same declarations twice in the chain).
+function mixinOf(s: Setup, call: ts.CallExpression, at: ts.Node): ts.ClassExpression {
+  const what = `extends ${call.getText().slice(0, 60)}`
+  if (!ts.isIdentifier(call.expression)) return refuse(at, `${what}: a class a call makes (a mixin) that isn't a function of the files read`)
+  let sym = s.checker.getSymbolAtLocation(call.expression)
+  if (sym && sym.flags & ts.SymbolFlags.Alias) sym = s.checker.getAliasedSymbol(sym)
+  const d = sym?.valueDeclaration
+  const fn = d && ts.isFunctionDeclaration(d) ? d : d && ts.isVariableDeclaration(d) && d.initializer && (ts.isArrowFunction(unparen(d.initializer)) || ts.isFunctionExpression(unparen(d.initializer))) ? unparen(d.initializer) as ts.ArrowFunction | ts.FunctionExpression : undefined
+  if (!fn || !s.ours(fn.getSourceFile())) return refuse(at, `${what}: a class a call makes (a mixin), not one the files read declare`)
+  if (d && ts.isVariableDeclaration(d) && !(d.parent.flags & ts.NodeFlags.Const)) return refuse(at, `${what}: a mixin held in a let`)
+  const p = fn.parameters[0]
+  if (fn.parameters.length !== 1 || !p || !ts.isIdentifier(p.name) || p.initializer) return refuse(fn, `${what}: a mixin of other than one parameter (the class it extends)`)
+  if (call.arguments.length !== 1 || ts.isSpreadElement(call.arguments[0]!)) return refuse(call, `${what}: a mixin called with other than the class it extends`)
+  const body = fn.body && ts.isBlock(fn.body) ? (fn.body.statements.length === 1 && ts.isReturnStatement(fn.body.statements[0]!) ? fn.body.statements[0].expression : undefined) : fn.body
+  const ce = body && unparen(body)
+  if (!ce || !ts.isClassExpression(ce)) return refuse(fn, `${what}: a mixin whose body is more than a class (a function read as a mixin returns one class expression)`)
+  const h = ce.heritageClauses?.find(x => x.token === ts.SyntaxKind.ExtendsKeyword)
+  const he = h && unparen(h.types[0]!.expression)
+  if (!he || !ts.isIdentifier(he) || he.text !== (p.name as ts.Identifier).text) return refuse(ce, `${what}: a mixin's class that extends other than its parameter`)
+  return ce
 }
 // What a method returns, kept: a value (`m_result`), a record of values (`m_result_<field>`), or a value that may be
 // missing (`m_result`, and `m_result_missing` where it is null or undefined).
@@ -491,26 +527,44 @@ function attempt(code: string, file: string, opts: ReadOptions, written: Set<str
   const chain = chainOf(s, cls)
   s.chain = chain
   if (chain.length > 1) s.notes.add(`${opts.entry} extends ${chain.slice(1).map(c => c.name?.text ?? '(a class)').join(', which extends ')}: its fields and methods are read with them, each method the nearest the object has`)
-  const ownCtor = (c: ts.ClassLikeDeclaration) => c.members.find((m): m is ts.ConstructorDeclaration => ts.isConstructorDeclaration(m) && !!m.body)
+  // (`constructor(...args) { super(...args) }`, a mixin's usual one, is the constructor a class without one has)
+  const forwards = (k: ts.ConstructorDeclaration) => {
+    const [p] = k.parameters, st = k.body?.statements
+    if (k.parameters.length !== 1 || !p?.dotDotDotToken || !ts.isIdentifier(p.name) || st?.length !== 1 || !ts.isExpressionStatement(st[0]!)) return false
+    const call = st[0].expression
+    return ts.isCallExpression(call) && call.expression.kind === ts.SyntaxKind.SuperKeyword && call.arguments.length === 1 && ts.isSpreadElement(call.arguments[0]!) && ts.isIdentifier(call.arguments[0].expression) && call.arguments[0].expression.text === p.name.text
+  }
+  const ownCtor = (c: ts.ClassLikeDeclaration) => c.members.find((m): m is ts.ConstructorDeclaration => ts.isConstructorDeclaration(m) && !!m.body && !forwards(m))
   // The constructor the object is made with: the entry's, or the nearest it inherits.
   const ctorAt = chain.findIndex(ownCtor), ctor = ctorAt >= 0 ? ownCtor(chain[ctorAt]!) : undefined
   for (const c of chain) { const k = ownCtor(c); if (k && k.getSourceFile() === s.sf) (s.spans ??= []).push([k.getStart(), k.end]) }
   type Field = {name: string, shape: Shape, node: ts.Node, init?: ts.Expression, of: ts.ClassLikeDeclaration}
   const fields: Field[] = []
   const addField = (f: Field) => { if (fields.some(x => x.name === f.name)) refuse(f.node, `${f.name}: a field declared again in a class that extends one with it`); fields.push(f) }
+  // A field whose type is a function (an injected clock, random or id source): no state; each call an input
+  // (core/extract-read.ts's fnFields). Its start is a function written there or the one the constructor is given.
+  const fnType = (t: ts.Type) => !(t.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) && s.checker.getSignaturesOfType(s.checker.getNonNullableType(t), ts.SignatureKind.Call).length > 0 && !s.checker.getPropertiesOfType(s.checker.getNonNullableType(t)).length
+  s.fnFields = {outside: new Map(), names: new Set()}
+  const fnField = (name: string, at: ts.Node) => { if (s.fnFields!.names.has(name)) refuse(at, `${name}: a field declared again in a class that extends one with it`); s.fnFields!.names.add(name) }
   for (const c of [...chain].reverse()) {
     for (const m of c.members) {
       if (ts.isPropertyDeclaration(m)) {
         if (ts.isPrivateIdentifier(m.name)) refuse(m, `${m.name.text}: a #private field (the check reads the object's fields; \`private\` is in the subset)`)
         if (has(m, ts.SyntaxKind.StaticKeyword)) refuse(m, 'a static field (state shared by every object)')
         if (has(m, ts.SyntaxKind.AbstractKeyword) || has(m, ts.SyntaxKind.DeclareKeyword)) continue
+        if (fnType(s.checker.getTypeAtLocation(m))) {
+          const i = m.initializer && unparen(m.initializer)
+          if (i && !ts.isArrowFunction(i) && !ts.isFunctionExpression(i)) refuse(m, `${memberName(m.name)} starts as ${i.getText().slice(0, 40)} (a field holding a function starts as one written there, or the one the constructor is given)`)
+          fnField(memberName(m.name), m); continue
+        }
         addField({name: memberName(m.name), shape: shapeOf(s.checker.getTypeAtLocation(m), s.checker, m), node: m, ...(m.initializer ? {init: m.initializer} : {}), of: c})
       } else if (ts.isSetAccessorDeclaration(m)) refuse(m, 'a setter')
       else if (ts.isMethodDeclaration(m) && ts.isPrivateIdentifier(m.name)) refuse(m, 'a #private method')
       else if (ts.isIndexSignatureDeclaration(m) || ts.isClassStaticBlockDeclaration(m)) refuse(m, 'a static block or index signature')
     }
     const k = ownCtor(c)
-    for (const p of k?.parameters ?? []) if (ts.isParameterPropertyDeclaration(p, k!)) addField({name: (p.name as ts.Identifier).text, shape: shapeOf(s.checker.getTypeAtLocation(p), s.checker, p), node: p, of: c})
+    for (const p of k?.parameters ?? []) if (ts.isParameterPropertyDeclaration(p, k!) && fnType(s.checker.getTypeAtLocation(p))) fnField((p.name as ts.Identifier).text, p)
+    else if (ts.isParameterPropertyDeclaration(p, k!)) addField({name: (p.name as ts.Identifier).text, shape: shapeOf(s.checker.getTypeAtLocation(p), s.checker, p), node: p, of: c})
   }
   const ex0 = new Exec(s)
   const constant = (f: Field) => !first && !written.has(f.name) && f.shape.k !== 'map' && f.shape.k !== 'list'
@@ -531,6 +585,11 @@ function attempt(code: string, file: string, opts: ReadOptions, written: Set<str
   const argValues: V[] = []
   for (const p of ctor?.parameters ?? []) {
     if (!ts.isIdentifier(p.name)) refuse(p, 'a destructured constructor argument')
+    // A function given to the constructor: the check gives one that answers each request's input.
+    if (fnType(s.checker.getTypeAtLocation(p))) {
+      const optional = !!p.questionToken || !!p.initializer || !!(s.checker.getTypeAtLocation(p).flags & ts.TypeFlags.Union && (s.checker.getTypeAtLocation(p) as ts.UnionType).types.some(x => x.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Null)))
+      ctorArgs.push('$fn'); argValues.push({t: 'outside', path: `new${optional ? '?' : ''} ${opts.entry}(${(p.name as ts.Identifier).text})`}); continue
+    }
     const sh = shapeOf(s.checker.getTypeAtLocation(p), s.checker, p)
     // A Map given to the constructor: the field it becomes starts as that Map, taken here as empty (as callers make it).
     if (sh.k === 'map') { ctorArgs.push(`$map:${sh.js}`); argValues.push({t: 'undef'}); mapArgs.set((p.name as ts.Identifier).text, `$map:${sh.js}`); continue }

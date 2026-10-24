@@ -11,7 +11,7 @@
 import {appendFileSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {type GoOptions, type GoPkg, extractGo, probeGoFunc, readGoPackage} from '../../core/extract-go.ts'
-import {checkout} from './go-fetch.ts'
+import {checkout, withImports} from './go-fetch.ts'
 
 const here = import.meta.dir, args = process.argv.slice(2)
 const flag = (n: string) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined }
@@ -91,7 +91,10 @@ for (const s of sources) {
     if (!s.path.endsWith('.go')) throw new NotGo(`${s.path.split('/').pop()}: not Go code (a document the corpus cites beside it)`)
     const dir = checkout(s.repo, s.commit, s.path.split('/').slice(0, -1).join('/'))
     let pkg: GoPkg
-    try { pkg = readGoPackage(dir) } catch (e) { throw new Error(`the reader: ${String((e as {stderr?: string}).stderr ?? (e as Error).message).slice(0, 300)}`) }
+    const read = () => { try { return readGoPackage(dir) } catch (e) { throw new Error(`the reader: ${String((e as {stderr?: string}).stderr ?? (e as Error).message).slice(0, 300)}`) } }
+    pkg = read()
+    // The repo's packages it imports, checked out too (the reader reads their types; the check builds with them).
+    if (withImports(s.repo, s.commit, dir, [...new Set(pkg.files.flatMap(f => f.imports.filter(i => !i.std).map(i => i.path)))])) pkg = read()
     const units = unitsOf(s, pkg, dir), opt = options[`${s.repo}/${s.path}`]
     row.units = units
     const done: Record<string, unknown>[] = []

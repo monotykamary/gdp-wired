@@ -310,6 +310,42 @@ t('outside the subset, each where it is: floats, loops, goroutines, closures, ge
   refused(go('import "strings"\ntype F struct{ S string; N int64 }\nfunc (f *F) Up() { f.S = strings.ToUpper(f.S) }', 'F'), /standard library the subset doesn't read/)
 }, 600_000)
 
+t('a context.Context argument passed on to the package\'s own functions is read; one the step reads is refused', () => {
+  const x = ok(go(`import "context"
+type Q struct{ Used int64; Limit int64 }
+func (q *Q) take(ctx context.Context, n int64) bool {
+	if n < 0 || q.Used+n > q.Limit { return false }
+	q.Used += n
+	return true
+}
+func (q *Q) Take(ctx context.Context, n int64) bool { return q.take(ctx, n) }
+func (q *Q) Reset(_ context.Context) { q.Used = 0 }`, 'Q', {methods: ['Take', 'Reset']}))
+  expect(x.notes.join(' ')).toMatch(/a context.Context, passed on/)
+  const r = x.rule! as any
+  expect(proveRule(r, [...(x.invariants ?? []), r.law('within the limit', ({Used, Limit}: any) => Used.atMost(Limit).or(Used.eq(0)))]).proven).toBe(true)
+  // read: its methods are another package's code, and a function of another package takes it as its own
+  refused(go('import "context"\ntype Q struct{ N int64 }\nfunc (q *Q) Inc(ctx context.Context) { if ctx.Err() == nil { q.N++ } }', 'Q'), /ctx.Err\(\): a method of context/)
+  refused(go('import "context"\ntype Q struct{ N int64 }\nfunc (q *Q) Inc(ctx context.Context) { if ctx != nil { q.N++ } }', 'Q'), /compared with a nil/)
+  refused(go('import (\n\t"context"\n\t"time"\n)\ntype Q struct{ N int64 }\nfunc (q *Q) Inc(ctx context.Context) { c, f := context.WithTimeout(ctx, time.Second); _ = c; f(); q.N++ }', 'Q'), /context.WithTimeout.*standard library the subset doesn't read/)
+}, 600_000)
+
+t('another package\'s struct as an argument: its exported fields read as inputs; its methods stay its own code', () => {
+  // p reads q's struct as data
+  const two = (code: string) => {
+    const root = mkdtempSync(`${tmpdir()}/gdp-gocase-`)
+    writeFileSync(`${root}/go.mod`, 'module example.com/gocase\n\ngo 1.22\n')
+    mkdirSync(`${root}/p`); mkdirSync(`${root}/q`)
+    writeFileSync(`${root}/q/q.go`, 'package q\n\ntype Inner struct{ A int64 }\ntype Rule struct {\n\tMax  int64\n\tOn   bool\n\tIn   Inner\n\thidden int64\n}\nfunc (r *Rule) Twice() int64 { return 2 * r.Max }\n')
+    writeFileSync(`${root}/p/p.go`, `package p\n\nimport "example.com/gocase/q"\n\n${code}\n`)
+    return extractGo(`${root}/p`, {entry: 'L', check: budget})
+  }
+  const x = ok(two('type L struct{ N int64 }\nfunc (l *L) Take(r *q.Rule, n int64) bool {\n\tif !r.On || n < 0 || l.N+n > r.Max { return false }\n\tl.N += n\n\treturn true\n}'))
+  expect(x.source).toContain('Take_r_Max')
+  expect(x.evidence!.coverage.hit).toBe(x.evidence!.coverage.arms)
+  refused(two('type L struct{ N int64 }\nfunc (l *L) Take(r *q.Rule) { l.N = r.Twice() }'), /a method of example.com\/gocase\/q/)
+  refused(two('type L struct{ N int64 }\nfunc (l *L) Take(r *q.Rule) { l.N = r.In.A }'), /In of the argument: q.Inner: a value outside the subset/)
+}, 600_000)
+
 t('Go\'s integer division truncates toward zero; conversions wrap into the narrower type', () => {
   const x = ok(go(`
 type D struct {

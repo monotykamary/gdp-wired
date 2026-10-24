@@ -147,7 +147,8 @@ function snapOf(v: unknown, layout: Layout, m: Model, consts: (t: N | B | I.L) =
     }
     case 'rec': {
       if (typeof v !== 'object' || v === null) throw new Error(`${path} is ${JSON.stringify(v)}, not an object`)
-      const own = Object.keys(v), want = layout.fields.map(([f]) => f).filter(f => !f.endsWith('()'))
+      // (a class's fields holding a function are no state: the object's own, left out where they hold one)
+      const own = Object.keys(v).filter(k => !(path === 'state' && m.fnFields?.includes(k) && typeof (v as Record<string, unknown>)[k] === 'function')), want = layout.fields.map(([f]) => f).filter(f => !f.endsWith('()'))
       for (const k of own) if (!want.includes(k)) throw new Error(`${path} has a field ${k} the rule doesn't`)
       for (const [f, sub] of layout.fields) if (!f.endsWith('()')) snapOf((v as Record<string, unknown>)[f], sub, m, consts, out, `${path}.${f}`)
       return out
@@ -323,17 +324,26 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
   const E = JSON.stringify(m.entry)
   if (isClass && !m.factory) vmOf().runInContext(`__gdp.$method = function (name, args) { return this[name](...args) }; __gdp.$new = function (...args) { return new __gdp[${E}](...args) }; __gdp.$at = function (fields) { return Object.assign(Object.create(__gdp[${E}].prototype), fields) }`, box.ctx)
   if (m.factory) vmOf().runInContext(`__gdp.$method = function (name, args) { return this[name](...args) }; __gdp.$new = function (...args) { return __gdp[${E}](...args) }; __gdp.$get = function () { return this.__gdpGet() }; __gdp.$at = function (fields, args) { const o = __gdp[${E}](...args); o.__gdpSet(fields); return o }`, box.ctx)
-  const ctorValues = (params: Record<string, Raw>) => (m.ctorArgs ?? []).filter(n => !m.params.find(v => v.name === n)?.note?.startsWith('Date.now()')).map(n => (n.startsWith('$map:') ? vmOf().runInContext(n === '$map:Map' ? 'new Map()' : '({})', box.ctx) : params[n]))
+  // A class's fields holding a function: each answers the request's input (set on the object before each call; a
+  // function given to the constructor is one such too).
+  let answers: Record<string, Raw> = {}
+  const answering = (f: string) => () => { const n = Object.keys(m.answers ?? {}).find(k => m.answers![k] === f); return n === undefined ? undefined : answers[n] }
+  const fnArg = () => () => { throw new Error('a function given to the constructor called while the object is made') }
+  const ctorValue = (n: string, params: Record<string, Raw>) => (n === '$fn' ? fnArg() : n.startsWith('$map:') ? vmOf().runInContext(n === '$map:Map' ? 'new Map()' : '({})', box.ctx) : params[n])
+  const ctorValues = (params: Record<string, Raw>) => (m.ctorArgs ?? []).filter(n => !m.params.find(v => v.name === n)?.note?.startsWith('Date.now()')).map(n => ctorValue(n, params))
   const side: CodeSide = {
     make: params => {
       const now0 = m.params.find(v => v.note?.startsWith('Date.now()'))
       if (now0) box.setNow(params[now0.name] as number)
       // A Map the constructor is given: an empty one, made in the code's realm.
-      return box.call('$new', undefined, (m.ctorArgs ?? []).filter(n => n !== now0?.name).map(n => (n.startsWith('$map:') ? vmOf().runInContext(n === '$map:Map' ? 'new Map()' : '({})', box.ctx) : params[n])))
+      return box.call('$new', undefined, (m.ctorArgs ?? []).filter(n => n !== now0?.name).map(n => ctorValue(n, params)))
     },
     at: (snap, params) => (box.call('$at', undefined, [valueOf(snap, m.layout, m, evalAt(params), box.ctx), ctorValues(params)]).ok ? (box.ctx.__r as {value: object}).value : (() => { throw new Error(`could not make the object: ${(box.ctx.__r as {error?: string}).error}`) })()),
     snapOf: (self, params) => snapOf(stateOf(self), m.layout, m, evalAt(params)),
-    call: (self, e, args) => box.call('$method', self, [e.call, args]),
+    call: (self, e, args) => {
+      for (const f of new Set(Object.values(m.answers ?? {}))) (self as Record<string, unknown>)[f] = answering(f)
+      return box.call('$method', self, [e.call, args])
+    },
     reduce: (snap, e, args, params) => {
       const input = valueOf(snap, m.layout, m, evalAt(params), box.ctx), before = JSON.stringify(input, mapReplacer)
       const res = box.call(e.call, undefined, [input, ...args.slice(1)])
@@ -341,6 +351,7 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
       return res.ok ? {snap: snapOf(res.value, m.layout, m, evalAt(params))} : {refused: res.error}
     },
     args: (inputs, e) => {
+      answers = inputs
       const dateIn = (n: string) => { const x = m.inputs.find(v => v.name === n); return x?.sort.k === 'num' && x.sort.date ? vmOf().runInContext(`new Date(${Number(inputs[n])})`, box.ctx) : inputs[n] }
       const build = (a: Arg): unknown => (a.k === 'input' ? dateIn(a.name) : a.k === 'lit' ? a.value : a.k === 'rec' ? Object.fromEntries(a.fields.map(([f, x]) => [f, build(x)])) : a.k === 'lazy'
         ? Object.fromEntries([...m.inputs].filter(v => m.lazy?.get(v.name)?.prefix === a.prefix).map(v => [m.lazy!.get(v.name)!.field, inputs[v.name]]))
@@ -395,7 +406,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
     const used = new Set<string>()
     const walk = (a: Arg) => { if (a.k === 'input') used.add(a.name); else if (a.k === 'rec') a.fields.forEach(([, x]) => walk(x)); else if (a.k === 'lazy') for (const v of m.inputs) if (m.lazy?.get(v.name)?.prefix === a.prefix) used.add(v.name) }
     e.args.forEach(walk)
-    for (const v of m.inputs) if (v.note?.startsWith('Date.now()')) used.add(v.name)
+    for (const v of m.inputs) if (v.note?.startsWith('Date.now()') || m.answers?.[v.name]) used.add(v.name)
     // An input the event doesn't bring: its kind's first value (the rule reads it only under another event).
     return Object.fromEntries(m.inputs.map(v => [v.name, v.name in e.select ? e.select[v.name]! : used.has(v.name) ? inputs[v.name]! : v.sort.k === 'num' ? 0 : v.sort.k === 'bool' ? false : v.sort.k === 'choice' ? v.sort.values[0]! : '']))
   }
