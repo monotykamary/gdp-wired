@@ -66,10 +66,10 @@ func main() {
 			if isStd(path) {
 				return std.Import(path)
 			}
-			// Another module's package: empty here (its names are undefined, their types invalid).
-			p := types.NewPackage(path, guessName(path))
-			p.MarkComplete()
-			return p, nil
+			// Another package outside the standard library: read from its source where `go list` finds it (its names'
+			// types, so its structs are data the step can read), its own imports empty (their names undefined, their
+			// types invalid); empty itself where it isn't found.
+			return foreignPackage(path, os.Args[1], std), nil
 		}),
 		Error: func(err error) { errors = append(errors, err.Error()) },
 	}
@@ -130,10 +130,138 @@ func main() {
 	}
 }
 
+// Another package, one level deep: type-checked from its files with its own imports left empty, its errors (names of
+// those imports, undefined) kept out of the package's own.
+var foreign = map[string]*types.Package{}
+
+func foreignPackage(path, from string, std types.Importer) *types.Package {
+	if p, ok := foreign[path]; ok {
+		return p
+	}
+	empty := func(p string) *types.Package {
+		q := types.NewPackage(p, guessName(p))
+		q.MarkComplete()
+		return q
+	}
+	foreign[path] = empty(path)
+	dir := from
+	if st, err := os.Stat(from); err != nil || !st.IsDir() {
+		dir = filepath.Dir(from)
+	}
+	pdir := localDir(path, dir)
+	if pdir == "" {
+		return foreign[path]
+	}
+	bp, err := build.Default.ImportDir(pdir, 0)
+	if err != nil || len(bp.GoFiles) == 0 {
+		return foreign[path]
+	}
+	var asts []*ast.File
+	for _, f := range bp.GoFiles {
+		a, err := parser.ParseFile(fset, filepath.Join(pdir, f), nil, parser.SkipObjectResolution)
+		if err != nil {
+			return foreign[path]
+		}
+		asts = append(asts, a)
+	}
+	conf := types.Config{
+		Importer: importerFunc(func(p string) (*types.Package, error) {
+			if isStd(p) {
+				return std.Import(p)
+			}
+			return empty(p), nil
+		}),
+		Error: func(error) {},
+	}
+	tp, _ := conf.Check(path, fset, asts, nil)
+	if tp == nil {
+		return foreign[path]
+	}
+	foreign[path] = tp
+	return tp
+}
+
+// Where a package of the module the code is in lives: under the module's root, or under a local replace of its go.mod
+// (Kubernetes's staging modules). Another module's (downloaded) is not read: "".
+func localDir(path, from string) string {
+	root := from
+	for {
+		if _, err := os.Stat(filepath.Join(root, "go.mod")); err == nil {
+			break
+		}
+		up := filepath.Dir(root)
+		if up == root {
+			return ""
+		}
+		root = up
+	}
+	data, err := os.ReadFile(filepath.Join(root, "go.mod"))
+	if err != nil {
+		return ""
+	}
+	under := func(base, mod string) string {
+		if path == mod {
+			return base
+		}
+		if strings.HasPrefix(path, mod+"/") {
+			return filepath.Join(base, filepath.FromSlash(path[len(mod)+1:]))
+		}
+		return ""
+	}
+	inReplace := false
+	for _, line := range strings.Split(string(data), "\n") {
+		f := strings.Fields(strings.SplitN(line, "//", 2)[0])
+		switch {
+		case len(f) == 2 && f[0] == "module":
+			if d := under(root, strings.Trim(f[1], `"`)); d != "" {
+				return existing(d)
+			}
+		case len(f) >= 2 && f[0] == "replace" && f[1] == "(":
+			inReplace = true
+		case inReplace && len(f) == 1 && f[0] == ")":
+			inReplace = false
+		default:
+			if len(f) > 0 && f[0] == "replace" {
+				f = f[1:]
+			} else if !inReplace {
+				continue
+			}
+			// a [v] => ./local [v]
+			for i, x := range f {
+				if x == "=>" && i+1 < len(f) && i >= 1 && (strings.HasPrefix(f[i+1], "./") || strings.HasPrefix(f[i+1], "../")) {
+					if d := under(filepath.Join(root, filepath.FromSlash(f[i+1])), f[0]); d != "" {
+						return existing(d)
+					}
+				}
+			}
+		}
+	}
+	return ""
+}
+func existing(d string) string {
+	if st, err := os.Stat(d); err == nil && st.IsDir() {
+		return d
+	}
+	return ""
+}
+
 type importerFunc func(string) (*types.Package, error)
 
 func (f importerFunc) Import(path string) (*types.Package, error) { return f(path) }
 
+// The name the check's harness imports another package by (two packages may share a name: k8s.io/api/rbac/v1 and
+// k8s.io/apimachinery/pkg/apis/meta/v1 are both v1). core/extract-go-check.ts's alias is the same.
+func alias(path string) string {
+	b := []byte("gdp_")
+	for _, c := range []byte(path) {
+		if c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' {
+			b = append(b, c)
+		} else {
+			b = append(b, '_')
+		}
+	}
+	return string(b)
+}
 func isStd(path string) bool {
 	first := strings.SplitN(path, "/", 2)[0]
 	return !strings.Contains(first, ".") && path != "C"
@@ -189,11 +317,15 @@ func tid(t types.Type) int {
 		if p == pkg {
 			return ""
 		}
+		if !isStd(p.Path()) {
+			return alias(p.Path())
+		}
 		return p.Name()
 	})
 	ttab[i] = d
 	return i
 }
+
 func describe(t types.Type) J {
 	switch t := t.(type) {
 	case *types.Basic:
@@ -228,6 +360,16 @@ func describe(t types.Type) J {
 			j["k"] = "ext"
 			if _, ok := t.Underlying().(*types.Interface); ok {
 				j["iface"] = true
+			}
+			// Another package's struct (outside the standard library): its fields too, as data. Its methods stay
+			// another package's code.
+			if st, ok := t.Underlying().(*types.Struct); ok && strings.Contains(strings.Split(path, "/")[0], ".") {
+				fields := []J{}
+				for i := 0; i < st.NumFields(); i++ {
+					f := st.Field(i)
+					fields = append(fields, J{"name": f.Name(), "t": tid(f.Type()), "embedded": f.Embedded(), "exported": f.Exported()})
+				}
+				j["xfields"] = fields
 			}
 			if obj.Name() == "error" && path == "" {
 				j["k"] = "error"

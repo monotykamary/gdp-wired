@@ -60,6 +60,8 @@ export type Model = {
   results?: Record<string, {k: 'scalar', name: string} | {k: 'rec', fields: [string, string][]} | {k: 'maybe', name: string, missing: string, null: boolean}>,
   // Laws every state of the code keeps that the front end knows (a Go field within its type's range), as `r.law(...)`.
   laws?: string[],
+  // A class's fields holding a function: the input each one's call answers (by the input's name, the field's).
+  answers?: Record<string, string>, fnFields?: string[],
 }
 
 // --- values ---------------------------------------------------------------------------------------------------------
@@ -79,8 +81,9 @@ type MapObj = {k: 'map', base: string, decl: MapDecl, w?: {key: K, has: B, vals:
 type ListObj = {k: 'list', base: string, decl: MapDecl, ops: ListOp[], origin: 'fresh' | 'input' | 'this' | 'shared'}
 type Obj = Rec | MapObj | ListObj | {k: 'alias', to: V}
 type Heap = Map<string, Obj>
-type Path = {pc: B[], locals: Map<string, V>, heap: Heap, wrote: string[], nows: number}
+type Path = {pc: B[], locals: Map<string, V>, heap: Heap, wrote: string[], nows: number, outs?: string[]}
 type Flow = {live?: Path, rets: [Path, V][], breaks: Path[]}
+export const unparen = (x: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(x) ? unparen(x.expression) : x)
 
 const where = (n: ts.Node): string => {
   const sf = n.getSourceFile(), {line, character} = sf.getLineAndCharacterOfPosition(n.getStart())
@@ -192,6 +195,10 @@ export type Setup = {
   // XState's guards and actions: null is a value; a payload of a type outside the subset is opaque (refused where read);
   // each answer of a function from outside, the input it is (by the function's path), read once.
   xstate?: {outside: Map<string, {path: string, sort: Sort}>},
+  // A class's fields that hold a function (an injected clock, random or id source): each call's answer an input (any
+  // value of the function's return type), one a step, the same input in every method; the function is taken to leave
+  // the object alone.
+  fnFields?: {outside: Map<string, {path: string, sort: Sort}>, names: Set<string>},
 }
 
 export class Exec {
@@ -268,7 +275,8 @@ export class Exec {
       const oa = a.heap.get(id), ob = b.heap.get(id)
       heap.set(id, !oa ? ob! : !ob ? oa : this.mergeObj(c, oa, ob, a, b, heap, pairs, at))
     }
-    return {pc, locals, heap, wrote: [...new Set([...a.wrote, ...b.wrote])], nows: Math.max(a.nows, b.nows)}
+    const outs = [...new Set([...(a.outs ?? []), ...(b.outs ?? [])])]
+    return {pc, locals, heap, wrote: [...new Set([...a.wrote, ...b.wrote])], nows: Math.max(a.nows, b.nows), ...(outs.length ? {outs} : {})}
   }
   private deref(p: Path, v: V): V {
     while (v.t === 'ref') { const o = p.heap.get(v.id); if (o?.k !== 'alias') return v; v = o.to }
@@ -477,7 +485,8 @@ export class Exec {
       case 'choice': return v.values.includes('') ? I.not(I.is(v.e, '')) : I.T
       // A string is truthy where it isn't empty.
       case 'str': return v.e.op === 'slit' ? (v.e.value ? I.T : I.F) : I.not(I.keq(v.e, {op: 'slit', value: ''}))
-      case 'ref': case 'cell': case 'phi': case 'outside': return I.T
+      case 'outside': if (v.path.startsWith('new? ')) return refuse(at, `${text(at)}: whether a function was given to the constructor, read (the check gives one: the claim would be only for calls that do)`); return I.T
+      case 'ref': case 'cell': case 'phi': return I.T
       case 'opt': return I.and(v.has, this.truthy(v.v, at))
       case 'undef': return I.F
       case 'opaque': return refuse(at, `${text(at)} read as a condition: ${v.what}`)
@@ -609,6 +618,13 @@ export class Exec {
   }
   private binary(e: ts.BinaryExpression, p: Path): [V, Path] {
     const op = e.operatorToken.kind, S = ts.SyntaxKind
+    if (op === S.EqualsToken && this.fnField(e.left)) {
+      // A function field set while the object is made, to the function given or one written there: nothing the rule keeps.
+      const r = unparen(e.right), given = ts.isIdentifier(r) && p.locals.get(r.text)?.t === 'outside'
+      if (!this.s.ctor) return refuse(e, `${text(e.left)}: a field holding a function, set by a method (its calls would answer by another function from then on)`)
+      if (!given && !ts.isArrowFunction(r) && !ts.isFunctionExpression(r)) return refuse(e, `${text(e.left)} set to ${text(r)} (a field holding a function is set to the function given or one written there)`)
+      return [{t: 'undef'}, p]
+    }
     if (op === S.EqualsToken) { const [v, q] = this.ev(e.right, p); return [v, this.assign(e.left, v, q)] }
     const compound: Partial<Record<ts.SyntaxKind, ts.SyntaxKind>> = {[S.PlusEqualsToken]: S.PlusToken, [S.MinusEqualsToken]: S.MinusToken, [S.AsteriskEqualsToken]: S.AsteriskToken}
     if (compound[op] !== undefined) {
@@ -992,6 +1008,10 @@ export class Exec {
       if (ts.isIdentifier(obj) && ['Number', 'Object', 'JSON', 'Array', 'String', 'Promise', 'performance'].includes(obj.text)) return refuse(e, `${obj.text}.${m}`)
       // A function the factory is given: its answer is an input of the step (any value of its type), read once.
       if (ts.isIdentifier(obj) && p.locals.get(obj.text)?.t === 'outside') return this.outside(e, `${(p.locals.get(obj.text) as {path: string}).path}.${m}`, p)
+      if (this.fnField(callee)) {
+        if (this.s.ctor) return refuse(e, `${text(callee)}() called while the object is made`)
+        return this.outside(e, `this.${m}`, p)
+      }
       if (obj.kind === ts.SyntaxKind.ThisKeyword && this.s.cls) {
         const member = this.member(m)
         if (member && ts.isMethodDeclaration(member)) { const [args, q] = this.args(e.arguments, p); return this.inline({decl: member, self: 'this'}, args, e, q) }
@@ -1056,8 +1076,14 @@ export class Exec {
     }
     return refuse(e, 'a call the subset doesn\'t read')
   }
+  // this.f, where f is a field holding a function.
+  fnField(x: ts.Expression): boolean {
+    const t = unparen(x)
+    return !!this.s.fnFields && ts.isPropertyAccessExpression(t) && t.expression.kind === ts.SyntaxKind.ThisKeyword && this.s.fnFields.names.has(memberName(t.name))
+  }
   private outside(e: ts.CallExpression, path: string, p: Path): [V, Path] {
-    const x = this.s.xstate ?? refuse(e, `${path}: a function from outside`)
+    const own = this.s.fnFields
+    const x = this.s.xstate ?? own ?? refuse(e, `${path}: a function from outside`)
     if (e.arguments.some(impure)) refuse(e, `${path}(...) with arguments that have effects`)
     const [, q] = this.args(e.arguments, p)
     const t = this.s.checker.getTypeAtLocation(e)
@@ -1065,6 +1091,15 @@ export class Exec {
     if (t.getSymbol()?.getName() === 'Promise') return refuse(e, `${path}() returns a promise (an answer that comes later is an actor's, invoked)`)
     const sh = shapeOf(t, this.s.checker, e)
     if (sh.k !== 'num' && sh.k !== 'bool' && sh.k !== 'choice' && sh.k !== 'str') return refuse(e, `${path}() returns a compound value`)
+    if (own) {
+      // A class's: one answer a step (a second call may answer differently), the same input in each method.
+      if (q.outs?.includes(path)) return refuse(e, `${path}() called twice in one step (each call may answer differently: call it once into a local)`)
+      const had = [...own.outside].find(([, o]) => o.path === path)
+      if (had && had[1].sort.k !== sh.k) return refuse(e, `${path}() read as two sorts`)
+      const v = had ? this.s.vars.get(had[0])! : this.newVar(path.split('.').pop()!, sh, 'input', `${path}(): the answer of the function the field holds (any value of its type: the claim is for every such function that leaves the object alone)`)
+      if (!had) { own.outside.set(v.name, {path, sort: sh}); this.s.notes.add(`${path}(): the answer of the function the field holds, an input (any value of its type: the claim is for every such function that leaves the object alone)`) }
+      return [Exec.valueOf(v), {...q, outs: [...(q.outs ?? []), path]}]
+    }
     if ([...x.outside.values()].some(o => o.path === path)) return refuse(e, `${path}() read in two places (each call may answer differently)`)
     const v = this.newVar(path.split('.').pop()!, sh, 'input', `${path}(): the answer of a function the machine is given (any value of its type)`)
     x.outside.set(v.name, {path, sort: sh})
