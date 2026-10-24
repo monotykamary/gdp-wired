@@ -162,6 +162,72 @@ the task's expected verdict.
 - Not run: the Lean twin on the ranks found (every proof here is the kernel's, checked twice: in `findRank`, and again
   in solve.ts on the obligations of the loop as translated).
 
+### Closures by cases, deeper cycles, the time for the next candidate (Unreleased)
+
+The large programs' runs that never end (core/nonterm.ts, core/accel.ts) and one new certificate, Lean-first:
+
+- **A closure by cases** (kernel.ts's `checkRecurCases`, NonTerm.lean's `never_ends_of_cases`, on `propext`,
+  `Classical.choice`, `Quot.sound`). A translated program's closure goal reads the whole body at every read of the
+  set: pgarch's sets, 537,164 distinct terms, never closed. Each part of an accelerated set is now a case: its location
+  pinned, its rows the condition; one tree refutes the set with no case holding (`cover`), and each case's goal is read
+  at its pins with the constants folded (`simpC`, `simpC_evalC`), the witness and the body first (`caseNeg`,
+  `caseNeg_eval`), so it holds only that location's rules: pgarch's ten cases are 86 to 216 terms and close in 0.5 s in
+  all on a laptop. Used where the goal is past 20,000 distinct terms (and so past the 1.5 million cap, where it was dropped);
+  otherwise the certificate is the plain one. core/conformance.ts makes the found certificates by cases (nothing
+  pinned, a value pinned) and tampered twins (the pin at another value, no case, a stem ending outside the set); every
+  found one is accepted and holds on the reference run, every tampered one refused, by kernel.ts and by Lean
+  (lean-kernel/conformance.ts --nonterm).
+- **The time for the next candidate:** a closure tried on a set a stem reaches no longer counts against the search for
+  candidates (up to the extension), and the sets whose closure ran out of time are retried smallest first, each its
+  share of the time by its goal's size. edn's set (17,269 terms, closed in 1.7 s on a laptop) came after a run's 64-turn cycle whose
+  closure took the whole extension. The search starts once the loop's relation is built (up to 10 s later): pgarch's and
+  slayer's relations take seconds.
+- **Deeper cycles:** after the walks of at most 6 choices, walks of up to 16 choices, at most 5,000, in the time left
+  (hqr's cycle of 25 turns makes 16).
+- **Stems:** a run's stem past 64 turns is replaced by a shorter one of the accelerated runs' search where it finds one
+  within 500 ms (Lean replays every stem turn over the whole loop).
+
+Two batches beside main a6d6403 (this branch merged it), launched together on Modal (60 s, 2 vCPU): `runs/nt5/its1-*`
+(this branch at cebbf7c) and `its2-*` (at b3e8519), every gained and lost task run three times more a side
+(`itsre-*`, `itsre2-*`, `itsre3-mine-*`).
+
+| | ITS terminates | nonterminating | solved of 1,239 |
+| --- | --- | --- | --- |
+| the task's statement (`gdp`), here | 611, 613 | 541, 538 | 1,152, 1,151 |
+| a6d6403 | 611, 612 | 531, 534 | 1,142, 1,146 |
+| per component (`gdp-scc`), here | 613, 613 | 542, 542 | 1,155, 1,155 |
+| a6d6403 | 614, 612 | 532, 533 | 1,146, 1,145 |
+| LoAT's default engine (`full1`) | 2 | 532 | |
+
+Nonterminating, 538 to 541 on the task's statement and 542 per component against LoAT's default engine's 532: ahead in
+both batches, in this harness and unconfirmed under TermComp's own setup. No answer contradicts LoAT's, LoAT abmc's or
+KoAT2's (`full1`), or any tool's at TermComp 2025 (its raw data, zenodo.org/records/17076326: Golem, iRankFinder, T2,
+VeryMax, MuVal, LoAT, KoAT on 1,222 of these tasks).
+
+- **Gained**, in 5 of 5 runs here and 0 of 5 on main unless noted (task's statement; per component alike): edn.t2,
+  pgarch.t2 and its `_fixed` twin, slayer-3-new.t2, slayer-3.t2; hqr.t2_fixed 3 of 5 (per component 5 of 5); db3.t2_fixed
+  5 of 5 against 2 of 5; s1-striped.t2_fixed 5 against 3, s1.t2_fixed 5 against 4. Per component also slayer-3.t2_fixed
+  and slayer-3-new.t2_fixed (5 of 5; on the task's statement 0 and 1 of 5). At TermComp 2025, slayer-3-new.t2 is T2's and
+  LoAT's NO, slayer-3.t2 T2's, slayer-3.t2_fixed LoAT's; none is LoAT's here. In the probes (`runs/nt5/p*`) the s1 family
+  answers at 15 to 26 s (38 to 59 s on main), tqli's at 4 s (15 to 40 s).
+- **Lost**, each at the limit on both sides: db2.t2 (a lasso of the random runs, 4 of 5 against 5 of 5), qrdcmp.t2 and
+  traverse.t2_fixed (terminating, ranks at 57 to 60 s, 4 of 5 against 5 of 5). Gained the same way: traverse2.t2_fixed,
+  juLinkedListCreateRemoveFirstOccurrence (5 against 3), queens.t2 (1 against 0).
+- **Still LoAT's alone:** hqr.c.i.hqr.pl.t2.fixed.t2_fixed and its `nor.t2.rlgfixed` twin. The deeper walks try their
+  24- and 25-turn cycles (hundreds of them) and none gives a candidate set; LoAT's ends in an identity loop at l45 whose
+  two fresh values sum below 0.
+- **Not answered by anyone here, NO at TermComp 2025:** slayer-4-filtered (LoAT), Velroyen08-alternatingIncr (VeryMax,
+  MuVal: an odd x climbing by 2 forever, whose set needs x's parity, which no linear set holds).
+
+SV-COMP in the same batches (`sv1-*`, `sv2-*`): 239 (183, 56) and 239 against 225 and 223 on the task's statement, per
+component 210 against 206 and 207; every answer its expected verdict. The gains are the chained C translation's above
+(gen/nonterm5-sv, merged).
+
+Lean (`runs/nt5/lean-*`), each certificate a theorem `NeverEnds <task>_loop`, on `propext`, `Classical.choice`,
+`Quot.sound`: s1.t2's file 410,471,697 bytes to 1,965,614 (the closure table held every choice of the goal, 5,214
+term columns averaging 78 KB; it now holds the ones Lean's linear forms look up, here one), and the four s1 tasks
+checked in 68 to 89 s each where s1.t2's was killed at 3,300 s (`lean-s1a`). LEAN_SAMPLE
+
 ### Straight-line C code composed (Unreleased)
 
 SV-COMP's 282 tasks at 60 s on Modal, `gdp` and `gdp-scc`, branch gen/nonterm5-sv (`runs/nt5/sv-chain5`) beside

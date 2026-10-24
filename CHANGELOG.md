@@ -5,6 +5,54 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+Runs that never end in large programs, and the certificates Lean can check (gen/nonterm5), with the chained C
+translation (gen/nonterm5-sv). One trusted change, Lean-first: **NonTerm.lean's `never_ends_of_cases`** (on `propext`,
+`Classical.choice`, `Quot.sound`; with `simpC_evalC`, `caseNeg_eval`), mirrored by kernel.ts's `checkRecurCases`
+(`checkRecur` takes either certificate) and tested on found and tampered certificates by core/conformance.ts and
+lean-kernel/conformance.ts. In our harness (60 s on Modal, 2 vCPU), beside main a6d6403 launched together, two batches
+(`runs/nt5/its1-*`, `its2-*`, `sv1-*`, `sv2-*`), every gained and lost task three times more a side:
+- **TermComp ITS, doesn't terminate:** 541 and 538 on the task's statement against 531 and 534; per component 542 and
+  542 against 532 and 533. LoAT's default engine 532: ahead in both batches, unconfirmed under TermComp's own setup. No
+  answer contradicts LoAT's, LoAT abmc's, KoAT2's, or any tool's at TermComp 2025 (its raw data, 7 tools).
+- **TermComp ITS, terminates:** 611 and 613 against 611 and 612 (per component 613, 613 against 614, 612).
+- **SV-COMP termination:** 239 (183, 56) in both batches against 225 and 223; per component 210 against 206 and 207.
+  Every answer its expected verdict. Ultimate Automizer 224: ahead, unconfirmed.
+- **Lean:** s1.t2's file 410,471,697 bytes to 1,965,614, the four s1 tasks checked in 68 to 89 s each (s1.t2's was
+  killed at 3,300 s). LEAN_CHANGELOG
+
+What carried them (core/nonterm.ts, core/accel.ts, compare/term/c2ari.py, lean-kernel/emit.ts):
+- **A closure by cases:** a translated program's closure goal reads every rule's body at each read of the set
+  (pgarch's, 537,164 distinct terms, never closed). Each part of an accelerated set is a case at its location; the
+  cover's tree and each case's goal, read at the pins with the constants folded, hold only that location's rules
+  (pgarch's ten: 86 to 216 terms). Where the goal is past 20,000 terms, and no longer dropped past 1.5 million.
+- **The time for the next candidate:** a closure tried on a set a stem reaches no longer counts against the search for
+  the next; the sets whose closure ran out of time are retried smallest first, each its share by its goal's size; the
+  search starts once the relation is built (up to 10 s later). Walks of up to 16 choices in the time left (hqr's
+  cycle of 25 turns). A run's stem past 64 turns replaced by a shorter one where the accelerated runs' search finds it.
+- **The Lean export:** a closure table holds only the choices Lean's linear forms look up (`encode`'s `reach`: s1's
+  5,214 term columns to 1); a loop's start and body past 128 variables as definitions of 128 (pgarch's passed Lean's
+  recursion limit).
+- **SV-COMP:** c2ari composes straight-line code away (a location with one rule in or out, no self-loop), with
+  unreached locations, rules into dead ends and false constant guards dropped, constant divisions folded; 12 of the 20
+  tasks Ultimate Automizer answered and `gdp` didn't are answered (compare/term/README.md has the 20 by why).
+- **findLeadsTo** reads the rule for its invariant search (the hand-off from gen/realworld2): the real-world corpus's
+  verdicts are the same law by law beside a6d6403 (252 proven, 29 refuted, 29 unknown, 1 timeout on both sides,
+  `runs/nt5/rw-*`) but tigerbeetle/transfers' laws 4 and 6, unknown and timeout swapped; opossum's "an open breaker goes
+  half-open" finds `st is open → 1 <= armed` itself (10.2 s against 14.3 s).
+
+Gained and lost, with the reruns, are in compare/term/README.md. The other benchmarks, beside a6d6403: CHC-COMP 1,041
+(613 sat, 428 unsat) against 1,039 (`chc1-*`), the same two disputed labels wrong on both; TIP 198 against 199
+(`tip2-*`: list_assoc, lost here and gained at 0.27.0 by chance of the time); frontier round 1 90 of 92 on both sides,
+all 42 broken variants refused (`f1-*`); round 2 31 of 47 against 30 (term/Piecewise), all 47 broken variants
+refused, its 5 nontermination items 5 of 5 (`f2-*`). 1 vCPU, ten jobs a side interleaved (`onecpu`): none failed;
+data's agrees-with-+ test median 2,474.4 ms, at most 3,838.4 (main 2,514.3, 3,189.1); infer's "a law that needs an
+invariant" 2,870.2 and 3,517.2 (main 2,803.1, 3,418.3). Suites (220 jobs): none failed by default at b3e8519
+(463.6 s wall, 5,591.6 s of job time, `suite-default2`); SUITE_USUAL.
+
+**Size:** `core/` and `kernel/` (tests excluded) are 2,194,592 bytes against a6d6403's 2,179,154 (+15,438, +200 lines):
+kernel.ts +7,994 (the trusted mirror), nonterm.ts +3,484, conformance.ts +2,608, accel.ts +1,165, cycles.ts +173,
+dsl.ts +14.
+
 The real-world frontier (gen/realworld2): the corpus's 53 unknown laws of 0.27.0 classified and 23 of them closed in the
 shared search, the suspected upstream bugs checked again against the current code, and the extractor reading more.
 Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/` as at 0.27.0): every
