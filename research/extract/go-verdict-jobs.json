@@ -1,0 +1,80 @@
+[
+ {
+  "name": "go-corpus-blnk-0",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; . research/extract/go-setup.sh >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/go-verdicts.ts --one 'blnk' 0 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "go-corpus-blnk-1",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; . research/extract/go-setup.sh >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/go-verdicts.ts --one 'blnk' 1 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "go-corpus-blnk-2",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; . research/extract/go-setup.sh >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/go-verdicts.ts --one 'blnk' 2 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "go-corpus-blnk-3",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; . research/extract/go-setup.sh >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/go-verdicts.ts --one 'blnk' 3 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "go-corpus-blnk-4",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; . research/extract/go-setup.sh >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/go-verdicts.ts --one 'blnk' 4 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "go-corpus-blnk-5",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; . research/extract/go-setup.sh >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/go-verdicts.ts --one 'blnk' 5 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "go-corpus-gobreaker-0",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; . research/extract/go-setup.sh >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/go-verdicts.ts --one 'gobreaker' 0 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "go-corpus-gobreaker-1",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; . research/extract/go-setup.sh >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/go-verdicts.ts --one 'gobreaker' 1 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "go-corpus-gobreaker-2",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; . research/extract/go-setup.sh >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/go-verdicts.ts --one 'gobreaker' 2 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "go-corpus-gobreaker-3",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; . research/extract/go-setup.sh >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/go-verdicts.ts --one 'gobreaker' 3 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "go-corpus-gobreaker-4",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; . research/extract/go-setup.sh >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/go-verdicts.ts --one 'gobreaker' 4 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "go-corpus-gobreaker-5",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; . research/extract/go-setup.sh >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/go-verdicts.ts --one 'gobreaker' 5 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "go-corpus-gobreaker-6",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; . research/extract/go-setup.sh >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/go-verdicts.ts --one 'gobreaker' 6 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ }
+]

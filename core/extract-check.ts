@@ -126,8 +126,8 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
 type Cells = Record<string, Record<string, Raw>>
 export type Snap = {leaves: Record<string, Raw>, maps: Record<string, Cells>, lists?: Record<string, Raw[]>}
 const isMap = (x: unknown): x is Map<unknown, unknown> => Object.prototype.toString.call(x) === '[object Map]'
-class Outside extends Error {}
-class Refused extends Error {}
+export class Outside extends Error {}
+export class Refused extends Error {}
 // The code's value as a snapshot, by the layout; what the rule has no place for is a difference.
 function snapOf(v: unknown, layout: Layout, m: Model, consts: (t: N | B | I.L) => Raw, out: Snap = {leaves: {}, maps: {}}, path = 'state'): Snap {
   switch (layout.k) {
@@ -212,8 +212,8 @@ function valueOf(s: Snap, layout: Layout, m: Model, consts: (t: N | B | I.L) => 
   ctx.__in = JSON.stringify(tree(layout))
   return vmOf().runInContext('JSON.parse(__in, (k, v) => v && typeof v === "object" && v.$map ? (v.$map === "Map" ? new Map(v.entries) : Object.fromEntries(v.entries)) : v && typeof v === "object" && "$date" in v ? new Date(v.$date) : v)', ctx)
 }
-const showSnap = (s: Snap) => JSON.stringify({...s.leaves, ...Object.fromEntries(Object.entries(s.maps).map(([k, v]) => [k, v])), ...(s.lists ?? {})})
-const sameSnap = (a: Snap, b: Snap): string | undefined => {
+export const showSnap = (s: Snap) => JSON.stringify({...s.leaves, ...Object.fromEntries(Object.entries(s.maps).map(([k, v]) => [k, v])), ...(s.lists ?? {})})
+export const sameSnap = (a: Snap, b: Snap): string | undefined => {
   for (const k of new Set([...Object.keys(a.leaves), ...Object.keys(b.leaves)])) if (a.leaves[k] !== b.leaves[k]) return `${k} is ${JSON.stringify(a.leaves[k])} in the code, ${JSON.stringify(b.leaves[k])} in the rule`
   for (const k of new Set([...Object.keys(a.maps), ...Object.keys(b.maps)])) {
     const x = a.maps[k] ?? {}, y = b.maps[k] ?? {}
@@ -226,7 +226,7 @@ const sameSnap = (a: Snap, b: Snap): string | undefined => {
 // --- the rule's side ------------------------------------------------------------------------------------------------
 export const kindOfVar = (v: Var, sorts: Sorts, at = v.name): Kind<unknown> => (v.sort.k === 'num' ? (sorts.get(at) === 'nat' ? nat : int) : v.sort.k === 'bool' ? bool : v.sort.k === 'choice' ? oneOf(...v.sort.values) : str()) as Kind<unknown>
 const idText = (id: number): string | undefined => interned().find(([, n]) => n === id)?.[0]
-function ruleSnap(r: Rule, m: Model, st: State, sorts: Sorts): Snap {
+export function ruleSnap(r: Rule, m: Model, st: State, sorts: Sorts): Snap {
   const d = r.decode(st), leaves: Record<string, Raw> = {}, maps: Record<string, Cells> = {}
   for (const v of m.state) if (!m.outputs.includes(v.name)) leaves[v.name] = d[v.name] as Raw
   for (const md of m.maps) {
@@ -244,7 +244,7 @@ function ruleSnap(r: Rule, m: Model, st: State, sorts: Sorts): Snap {
   return {leaves, maps, ...(m.lists?.length ? {lists} : {})}
 }
 // A snapshot as a state of the rule (each variable and cell by its kind).
-function ruleState(base: State, s: Snap, m: Model, sorts: Sorts): State {
+export function ruleState(base: State, s: Snap, m: Model, sorts: Sorts): State {
   const scalars = {...base.scalars}, maps: Record<string, Map<number, number>> = Object.fromEntries(Object.entries(base.maps).map(([k]) => [k, new Map()]))
   for (const v of m.state) if (v.name in s.leaves) Object.assign(scalars, kindOfVar(v, sorts).encode(v.name, s.leaves[v.name]!))
   for (const d of m.maps) {
@@ -267,12 +267,12 @@ const cellKind = (d: MapDecl, sorts: Sorts) => record({has: bool, ...Object.from
 
 // --- values to draw -------------------------------------------------------------------------------------------------
 const BIG = [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER - 1, 2 ** 31, 2 ** 32]
-function constantsOf(m: Model): number[] {
+export function constantsOf(m: Model): number[] {
   const out = new Set<number>([0, 1])
   walk([m.writes, m.mapWrites, m.refuse, m.pre, m.init], o => { if (o.op === 'const' && typeof o.v === 'number') out.add(o.v); if (typeof o.k === 'number') out.add(o.k) })
   return [...out]
 }
-function draw(sort: Var['sort'], sorts: Sorts, name: string, rand: Rand, near: number[], bound: number, strs: string[]): Raw {
+export function draw(sort: Var['sort'], sorts: Sorts, name: string, rand: Rand, near: number[], bound: number, strs: string[]): Raw {
   switch (sort.k) {
     case 'bool': return rand(2) === 1
     case 'choice': return sort.values[rand(sort.values.length)]!
@@ -292,40 +292,91 @@ function draw(sort: Var['sort'], sorts: Sorts, name: string, rand: Rand, near: n
 
 // --- the check ------------------------------------------------------------------------------------------------------
 export type CheckOptions = {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean, probeMs?: number, modules?: Record<string, unknown>, files?: Record<string, string>}
+type Ev = Model['events'][number]
+// The code's side of the check: how its object is made, set to a state, read and stepped. The TypeScript code runs in
+// a VM (below); the Go code in a harness built with its package (core/extract-go-check.ts). Everything else, the
+// requests, the rule's side and the comparison, is `drive`'s, the same for both.
+export type CodeSide = {
+  // A class's object (made, set to a state, read as a snapshot, a method called on it), or a reducer's step.
+  make: (params: Record<string, Raw>) => {ok: true, value: unknown} | {ok: false, error: string},
+  at: (snap: Snap, params: Record<string, Raw>) => unknown,
+  snapOf: (self: unknown, params: Record<string, Raw>) => Snap,
+  call: (self: unknown, e: Ev, args: unknown[]) => {ok: true, value: unknown} | {ok: false, error: string},
+  reduce?: (snap: Snap, e: Ev, args: unknown[], params: Record<string, Raw>) => {refused: string} | {snap: Snap} | {problem: string},
+  // The request's arguments, the time it is made at, the code's own initial state (a problem where it differs).
+  args: (inputs: Record<string, Raw>, e: Ev) => unknown[], setNow: (n: number) => void, init?: (snap: Snap, params: Record<string, Raw>) => string | undefined,
+  coverage: () => Coverage,
+  // Go's: an input drawn within its type, a state drawn within the fields' types, a witness's state as Go holds it,
+  // and the refusals where Go goes on past the rule's numbers (a uint64 below 0), counted as the rule's edge.
+  input?: (v: Var, x: Raw, rand: Rand) => Raw, drawSnap?: (rand: Rand) => Snap, normalize?: (s: Snap) => Snap, edge?: (s: Snap, raw: Record<string, Raw>) => boolean,
+}
 export function check(code: string, file: string, m: Model, r: Rule, sorts: Sorts, opts: CheckOptions & {given?: Record<string, 'nat' | 'int'>} = {}): Evidence {
-  const t0 = performance.now(), rand = seeded((opts.seed ?? 7) >>> 0 || 1), bound = opts.bound ?? 12
   const isClass = m.shape === 'class', fns = m.shape === 'class' ? [m.entry] : [...new Set(m.events.map(e => e.call))]
   const box = sandbox(code, file, fns, opts.modules, m.initSource, opts.files, m.factory ? [[m.factory.at, m.factory.text]] : [])
   // An object a factory makes: its state is what its functions close over, read and set through the two functions the
   // check added to it.
   const stateOf = (self: unknown): unknown => (m.factory ? (box.call('$get', self, []) as {ok: boolean, value?: unknown}).value : self)
-  const interp = r.interpreter(), gen = r.compiled(), machine = r.machine
-  const ev: Evidence = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: box.arms.length, hit: 0, missed: []}, ms: 0}
-  const consts = constantsOf(m), strs = ['a', 'b', 'c', '']
-  const paramKinds = m.params.map(v => [v, kindOfVar(v, sorts)] as const), inputKinds = m.inputs.map(v => [v, kindOfVar(v, sorts)] as const)
-  // A term over the params at their values (a constant field, a start).
   const evalAt = (env: Record<string, Raw>) => (t: N | B | I.L): Raw => evalTerm(t, env)
-  const fail = (what: string): Evidence => { ev.mismatch = what; return finish() }
   // The arms of the code the step reads (the entry, its methods, the functions it inlines; a class's constructor too).
   const inSpan = (a: Arm) => !m.spans || m.spans.some(([s0, e0]) => a.pos >= s0 && a.pos < e0)
   const counted = box.arms.map((a, i) => [a, i] as const).filter(([a]) => inSpan(a))
-  ev.coverage.arms = counted.length
+  const E = JSON.stringify(m.entry)
+  if (isClass && !m.factory) vmOf().runInContext(`__gdp.$method = function (name, args) { return this[name](...args) }; __gdp.$new = function (...args) { return new __gdp[${E}](...args) }; __gdp.$at = function (fields) { return Object.assign(Object.create(__gdp[${E}].prototype), fields) }`, box.ctx)
+  if (m.factory) vmOf().runInContext(`__gdp.$method = function (name, args) { return this[name](...args) }; __gdp.$new = function (...args) { return __gdp[${E}](...args) }; __gdp.$get = function () { return this.__gdpGet() }; __gdp.$at = function (fields, args) { const o = __gdp[${E}](...args); o.__gdpSet(fields); return o }`, box.ctx)
+  const ctorValues = (params: Record<string, Raw>) => (m.ctorArgs ?? []).filter(n => !m.params.find(v => v.name === n)?.note?.startsWith('Date.now()')).map(n => (n.startsWith('$map:') ? vmOf().runInContext(n === '$map:Map' ? 'new Map()' : '({})', box.ctx) : params[n]))
+  const side: CodeSide = {
+    make: params => {
+      const now0 = m.params.find(v => v.note?.startsWith('Date.now()'))
+      if (now0) box.setNow(params[now0.name] as number)
+      // A Map the constructor is given: an empty one, made in the code's realm.
+      return box.call('$new', undefined, (m.ctorArgs ?? []).filter(n => n !== now0?.name).map(n => (n.startsWith('$map:') ? vmOf().runInContext(n === '$map:Map' ? 'new Map()' : '({})', box.ctx) : params[n])))
+    },
+    at: (snap, params) => (box.call('$at', undefined, [valueOf(snap, m.layout, m, evalAt(params), box.ctx), ctorValues(params)]).ok ? (box.ctx.__r as {value: object}).value : (() => { throw new Error(`could not make the object: ${(box.ctx.__r as {error?: string}).error}`) })()),
+    snapOf: (self, params) => snapOf(stateOf(self), m.layout, m, evalAt(params)),
+    call: (self, e, args) => box.call('$method', self, [e.call, args]),
+    reduce: (snap, e, args, params) => {
+      const input = valueOf(snap, m.layout, m, evalAt(params), box.ctx), before = JSON.stringify(input, mapReplacer)
+      const res = box.call(e.call, undefined, [input, ...args.slice(1)])
+      if (JSON.stringify(input, mapReplacer) !== before) return {problem: `${e.call} changed the state it was given`}
+      return res.ok ? {snap: snapOf(res.value, m.layout, m, evalAt(params))} : {refused: res.error}
+    },
+    args: (inputs, e) => {
+      const dateIn = (n: string) => { const x = m.inputs.find(v => v.name === n); return x?.sort.k === 'num' && x.sort.date ? vmOf().runInContext(`new Date(${Number(inputs[n])})`, box.ctx) : inputs[n] }
+      const build = (a: Arg): unknown => (a.k === 'input' ? dateIn(a.name) : a.k === 'lit' ? a.value : a.k === 'rec' ? Object.fromEntries(a.fields.map(([f, x]) => [f, build(x)])) : a.k === 'lazy'
+        ? Object.fromEntries([...m.inputs].filter(v => m.lazy?.get(v.name)?.prefix === a.prefix).map(v => [m.lazy!.get(v.name)!.field, inputs[v.name]]))
+        : undefined)
+      return e.args.map(build)
+    },
+    setNow: n => box.setNow(n),
+    // The code's own initial state (where the code gives it), against the rule's.
+    init: (snap, params) => {
+      if (!m.initSource) return undefined
+      const made = vmOf().runInContext('(() => { try { return {ok: true, value: __gdpInit()} } catch (e) { return {ok: false, error: String(e)} } })()', box.ctx) as {ok: boolean, value?: unknown, error?: string}
+      if (!made.ok) return `the initial state throws (${made.error})`
+      try { const diff = sameSnap(snapOf(made.value, m.layout, m, evalAt(params)), snap); if (diff) return `the initial state: ${diff}` } catch (x) { return `the initial state: ${(x as Error).message}` }
+      return undefined
+    },
+    coverage: () => ({arms: counted.length, hit: counted.filter(([, i]) => box.counts[i]! > 0).length, missed: counted.filter(([, i]) => box.counts[i] === 0).map(([a]) => `${a.label} at ${a.where}`)}),
+  }
+  return drive(m, r, sorts, side, opts)
+}
+// The check: requests from the start, from drawn states and from the prover's witnesses, each made of the code
+// (through its side) and of the rule, and compared.
+export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: CheckOptions & {given?: Record<string, 'nat' | 'int'>} = {}): Evidence {
+  const t0 = performance.now(), rand = seeded((opts.seed ?? 7) >>> 0 || 1), bound = opts.bound ?? 12
+  const isClass = m.shape === 'class'
+  const interp = r.interpreter(), gen = r.compiled(), machine = r.machine
+  const ev: Evidence = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0}
+  const consts = constantsOf(m), strs = ['a', 'b', 'c', '']
+  const paramKinds = m.params.map(v => [v, kindOfVar(v, sorts)] as const), inputKinds = m.inputs.map(v => [v, kindOfVar(v, sorts)] as const)
+  const fail = (what: string): Evidence => { ev.mismatch = what; return finish() }
   const finish = (): Evidence => {
-    ev.coverage.hit = counted.filter(([, i]) => box.counts[i]! > 0).length
-    ev.coverage.missed = counted.filter(([, i]) => box.counts[i] === 0).map(([a]) => `${a.label} at ${a.where}`)
+    ev.coverage = code.coverage()
     ev.ms = Math.round(performance.now() - t0)
     return ev
   }
   // One request, both sides, from a state given as a snapshot (and, for a class, the object).
   type Side = {snap: Snap, self?: object}
-  const request = (params: Record<string, Raw>, inputs: Record<string, Raw>, e: (typeof m.events)[number]) => {
-    const dateIn = (n: string) => { const x = m.inputs.find(v => v.name === n); return x?.sort.k === 'num' && x.sort.date ? vmOf().runInContext(`new Date(${Number(inputs[n])})`, box.ctx) : inputs[n] }
-    const build = (a: Arg): unknown => (a.k === 'input' ? dateIn(a.name) : a.k === 'lit' ? a.value : a.k === 'rec' ? Object.fromEntries(a.fields.map(([f, x]) => [f, build(x)])) : a.k === 'lazy'
-      ? Object.fromEntries([...m.inputs].filter(v => m.lazy?.get(v.name)?.prefix === a.prefix).map(v => [m.lazy!.get(v.name)!.field, inputs[v.name]]))
-      : undefined)
-    void params
-    return e.args.map(build)
-  }
   const draws = (st: Snap, params: Record<string, Raw>): number[] => [...consts, ...Object.values(st.leaves).filter((x): x is number => typeof x === 'number'), ...Object.values(params).filter((x): x is number => typeof x === 'number')]
   let lastNow = 1_000
   const drawRequest = (st: Snap, params: Record<string, Raw>) => {
@@ -336,11 +387,11 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
       const keys = Object.values(st.maps).flatMap(c => Object.keys(c))
       // An input given as a natural (domains) is drawn as one: the claim is for those, as the user said.
       const x = draw(v.sort, sorts, v.name, rand, near, bound, [...strs, ...keys])
-      inputs[v.name] = opts.given?.[v.name] === 'nat' && typeof x === 'number' ? Math.abs(x) : x
+      inputs[v.name] = code.input ? code.input(v, x, rand) : opts.given?.[v.name] === 'nat' && typeof x === 'number' ? Math.abs(x) : x
     }
     return {e, inputs}
   }
-  const ruleInputs = (inputs: Record<string, Raw>, e: (typeof m.events)[number]): Record<string, Raw> => {
+  const ruleInputs = (inputs: Record<string, Raw>, e: Ev): Record<string, Raw> => {
     const used = new Set<string>()
     const walk = (a: Arg) => { if (a.k === 'input') used.add(a.name); else if (a.k === 'rec') a.fields.forEach(([, x]) => walk(x)); else if (a.k === 'lazy') for (const v of m.inputs) if (m.lazy?.get(v.name)?.prefix === a.prefix) used.add(v.name) }
     e.args.forEach(walk)
@@ -350,25 +401,24 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
   }
   // Steps the code and the rule from one state; undefined when they agree (the next state on both sides is returned
   // through `next`), else the difference.
-  const step = (params: Record<string, Raw>, ps: Record<string, number>, side: Side, st: State, inputs: Record<string, Raw>, e: (typeof m.events)[number], next: {side?: Side, st?: State, stop?: boolean}, where: string): string | undefined => {
-    const args = request(params, inputs, e), raw = ruleInputs(inputs, e)
+  const step = (params: Record<string, Raw>, ps: Record<string, number>, side: Side, st: State, inputs: Record<string, Raw>, e: Ev, next: {side?: Side, st?: State, stop?: boolean}, where: string): string | undefined => {
+    const args = code.args(inputs, e), raw = ruleInputs(inputs, e)
     const nowVar = m.inputs.find(v => v.note?.startsWith('Date.now()'))
-    if (nowVar) box.setNow(inputs[nowVar.name] as number)
+    if (nowVar) code.setNow(inputs[nowVar.name] as number)
     // The code.
-    let code: {refused: string} | {snap: Snap, out?: Raw, self?: object} | {outside: string}
+    let res: {refused: string} | {snap: Snap, out?: Raw, self?: object} | {outside: string}
     try {
       if (isClass) {
-        const self = side.self!, res = box.call('$method', self, [e.call, args])
-        if (!res.ok) code = {refused: res.error}
-        else code = {snap: snapOf(stateOf(self), m.layout, m, evalAt(params)), out: res.value as Raw, self}
+        const self = side.self!, c = code.call(self, e, args)
+        if (!c.ok) res = {refused: c.error}
+        else res = {snap: code.snapOf(self, params), out: c.value as Raw, self}
       } else {
-        const input = valueOf(side.snap, m.layout, m, evalAt(params), box.ctx), before = JSON.stringify(input, mapReplacer)
-        const res = box.call(e.call, undefined, [input, ...args.slice(1)])
-        if (JSON.stringify(input, mapReplacer) !== before) return `${where}: ${e.call} changed the state it was given`
-        code = res.ok ? {snap: snapOf(res.value, m.layout, m, evalAt(params))} : {refused: res.error}
+        const c = code.reduce!(side.snap, e, args, params)
+        if ('problem' in c) return `${where}: ${c.problem}`
+        res = c
       }
     } catch (x) {
-      if (x instanceof Outside) code = {outside: x.message}
+      if (x instanceof Outside) res = {outside: x.message}
       else return `${where}: the code's state after the request: ${(x as Error).message}`
     }
     // The rule.
@@ -384,80 +434,70 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
         if (JSON.stringify(r.decode(s2)) !== JSON.stringify(r.decode(s1))) return `${where}: the rule's interpreter and its generated JavaScript differ (${JSON.stringify(r.decode(s1))} against ${JSON.stringify(r.decode(s2))})`
         ev.compiledAgreed++
       } catch (x) { rule = x instanceof Refused ? {refused: x.message} : /2\^53|safe integer/.test((x as Error).message) ? {outside: (x as Error).message} : {refused: (x as Error).message} }
+      // Where Go goes on past a type the rule refuses at (a uint64 below 0): the edge the rule's claim stops at.
+      if ('refused' in rule && code.edge?.(side.snap, raw)) rule = {outside: `${rule.refused}: past the rule's numbers`}
     }
     const req = `${e.call}(${JSON.stringify(args).slice(1, -1)})${nowVar ? ` at ${inputs[nowVar.name]}` : ''}`
     const from = `from ${showSnap(side.snap)}${m.params.length ? ` with ${JSON.stringify(params)}` : ''}`
-    if ('outside' in code || 'outside' in rule!) {
+    if ('outside' in res || 'outside' in rule!) {
       // The code past the safe integers: the rule's runtime must refuse there too (it never rounds).
       next.stop = true
-      if ('outside' in code) { if ('st' in rule!) return `${where}: ${req} ${from}: the code leaves the safe integers (${code.outside}) where the rule takes the step`; ev.outside++; return undefined }
-      if ('refused' in code) { ev.refusedBoth++; return undefined }
+      if ('outside' in res) { if ('st' in rule!) return `${where}: ${req} ${from}: the code leaves the safe integers (${res.outside}) where the rule takes the step`; ev.outside++; return undefined }
+      if ('refused' in res) { ev.refusedBoth++; return undefined }
       // The rule's runtime refuses a sum or a comparison past 2^53 where the code's values are still safe: the edge
       // its claim stops at, counted apart (a sample kept), not a difference in what the step computes.
       ev.edge++
       ev.edgeSample ??= `${req} ${from}`
       return undefined
     }
-    if ('refused' in code && 'refused' in rule!) {
+    if ('refused' in res && 'refused' in rule!) {
       // A refusal leaves the state as it was: the object the code threw from must be as it was too.
-      if (isClass) { try { const after = snapOf(stateOf(side.self), m.layout, m, evalAt(params)), d = sameSnap(after, side.snap); if (d) return `${where}: ${req} ${from}: the code throws (${code.refused}) after changing the object: ${d}` } catch (x) { return `${where}: ${req} ${from}: the code throws after changing the object (${(x as Error).message})` } }
+      if (isClass) { try { const after = code.snapOf(side.self, params), d = sameSnap(after, side.snap); if (d) return `${where}: ${req} ${from}: the code throws (${res.refused}) after changing the object: ${d}` } catch (x) { return `${where}: ${req} ${from}: the code throws after changing the object (${(x as Error).message})` } }
       ev.refusedBoth++
       return undefined
     }
-    if ('refused' in code) return `${where}: ${req} ${from}: the code throws (${code.refused}), the rule takes the step`
+    if ('refused' in res) return `${where}: ${req} ${from}: the code throws (${res.refused}), the rule takes the step`
     if ('refused' in rule!) return `${where}: ${req} ${from}: the rule refuses it (${rule.refused}), the code doesn't`
-    const ruleSide = ruleSnap(r, m, (rule as {st: State}).st, sorts), diff = sameSnap(code.snap, ruleSide)
+    const ruleSide = ruleSnap(r, m, (rule as {st: State}).st, sorts), diff = sameSnap(res.snap, ruleSide)
     if (diff) return `${where}: ${req} ${from}: ${diff}`
     if (isClass) {
       // The method's result, as the rule keeps it: a value, a record's fields, or a value and whether it is missing.
-      const res = m.results?.[e.call], d = r.decode((rule as {st: State}).st)
-      const bad = (what: string) => `${where}: ${req} ${from}: ${e.call} returns ${JSON.stringify(code.out)}, ${what}`
-      if (res?.k === 'scalar' && d[res.name] !== code.out) return bad(`the rule's ${res.name} is ${JSON.stringify(d[res.name])}`)
-      if (res?.k === 'rec') {
-        const o = code.out as Record<string, unknown> | undefined
-        if (typeof o !== 'object' || o === null || Object.keys(o).length !== res.fields.length) return bad('not a record of the fields the rule keeps')
-        for (const [f, n] of res.fields) if (o[f] !== d[n]) return bad(`the rule's ${n} is ${JSON.stringify(d[n])}`)
+      const rk = m.results?.[e.call], d = r.decode((rule as {st: State}).st)
+      const bad = (what: string) => `${where}: ${req} ${from}: ${e.call} returns ${JSON.stringify(res.out)}, ${what}`
+      if (rk?.k === 'scalar' && d[rk.name] !== res.out) return bad(`the rule's ${rk.name} is ${JSON.stringify(d[rk.name])}`)
+      if (rk?.k === 'rec') {
+        const o = res.out as Record<string, unknown> | undefined
+        if (typeof o !== 'object' || o === null || Object.keys(o).length !== rk.fields.length) return bad('not a record of the fields the rule keeps')
+        for (const [f, n] of rk.fields) if (o[f] !== d[n]) return bad(`the rule's ${n} is ${JSON.stringify(d[n])}`)
       }
-      if (res?.k === 'maybe') {
-        const gone = code.out === (res.null ? null : undefined)
-        if (gone !== d[res.missing]) return bad(`the rule's ${res.missing} is ${JSON.stringify(d[res.missing])}`)
-        if (!gone && d[res.name] !== code.out) return bad(`the rule's ${res.name} is ${JSON.stringify(d[res.name])}`)
+      if (rk?.k === 'maybe') {
+        const gone = res.out === (rk.null ? null : undefined)
+        if (gone !== d[rk.missing]) return bad(`the rule's ${rk.missing} is ${JSON.stringify(d[rk.missing])}`)
+        if (!gone && d[rk.name] !== res.out) return bad(`the rule's ${rk.name} is ${JSON.stringify(d[rk.name])}`)
       }
     }
-    next.side = {snap: code.snap, ...(code.self ? {self: code.self} : {})}
+    next.side = {snap: res.snap, ...(res.self ? {self: res.self} : {})}
     next.st = (rule as {st: State}).st
     return undefined
   }
   // A class's object: made by its constructor, or set to a snapshot.
-  const E = JSON.stringify(m.entry)
-  if (isClass && !m.factory) vmOf().runInContext(`__gdp.$method = function (name, args) { return this[name](...args) }; __gdp.$new = function (...args) { return new __gdp[${E}](...args) }; __gdp.$at = function (fields) { return Object.assign(Object.create(__gdp[${E}].prototype), fields) }`, box.ctx)
-  if (m.factory) vmOf().runInContext(`__gdp.$method = function (name, args) { return this[name](...args) }; __gdp.$new = function (...args) { return __gdp[${E}](...args) }; __gdp.$get = function () { return this.__gdpGet() }; __gdp.$at = function (fields, args) { const o = __gdp[${E}](...args); o.__gdpSet(fields); return o }`, box.ctx)
-  const ctorValues = (params: Record<string, Raw>) => (m.ctorArgs ?? []).filter(n => !m.params.find(v => v.name === n)?.note?.startsWith('Date.now()')).map(n => (n.startsWith('$map:') ? vmOf().runInContext(n === '$map:Map' ? 'new Map()' : '({})', box.ctx) : params[n]))
-  const objectAt = (snap: Snap, params: Record<string, Raw>): object => box.call('$at', undefined, [valueOf(snap, m.layout, m, evalAt(params), box.ctx), ctorValues(params)]).ok ? (box.ctx.__r as {value: object}).value : (() => { throw new Error(`could not make the object: ${(box.ctx.__r as {error?: string}).error}`) })()
   const drawParams = (): Record<string, Raw> => Object.fromEntries(m.params.map(v => [v.name, v.note?.startsWith('Date.now()') ? rand(10_000) : draw(v.sort, sorts, v.name, rand, consts, bound, strs)]))
   const start = (params: Record<string, Raw>): {side?: Side, st?: State, ps?: Record<string, number>, problem?: string} => {
     const ctorRefuses = (() => { const pre = evalTerm(m.pre, params); return pre !== true })()
     let ps: Record<string, number> | undefined
     try { ps = r.encodeParams(params as never) } catch { ps = undefined }
     if (isClass) {
-      const now0 = m.params.find(v => v.note?.startsWith('Date.now()'))
-      if (now0) box.setNow(params[now0.name] as number)
-      // A Map the constructor is given: an empty one, made in the code's realm.
-      const made = box.call('$new', undefined, (m.ctorArgs ?? []).filter(n => n !== now0?.name).map(n => (n.startsWith('$map:') ? vmOf().runInContext(n === '$map:Map' ? 'new Map()' : '({})', box.ctx) : params[n])))
+      const made = code.make(params)
       const ruleRefuses = ps === undefined || ctorRefuses
       if (!made.ok) return ruleRefuses ? {} : {problem: `new ${m.entry}(${JSON.stringify(params)}) throws (${made.error}), the rule's precondition holds`}
       if (ruleRefuses) return {problem: `new ${m.entry}(${JSON.stringify(params)}) is made, the rule's ${ps === undefined ? 'param kinds refuse' : 'precondition refuses'} it`}
       const st = interp.init(ps!)
-      try { const snap = snapOf(stateOf(made.value), m.layout, m, evalAt(params)); const diff = sameSnap(snap, ruleSnap(r, m, st, sorts)); if (diff) return {problem: `new ${m.entry}(${JSON.stringify(params)}): ${diff}`}; return {side: {snap, self: made.value as object}, st, ps: ps!} }
+      try { const snap = code.snapOf(made.value, params); const diff = sameSnap(snap, ruleSnap(r, m, st, sorts)); if (diff) return {problem: `new ${m.entry}(${JSON.stringify(params)}): ${diff}`}; return {side: {snap, self: made.value as object}, st, ps: ps!} }
       catch (x) { return {problem: `new ${m.entry}: ${(x as Error).message}`} }
     }
     const st = interp.init(ps ?? {}), snap = ruleSnap(r, m, st, sorts)
-    // The code's own initial state (where the code gives it), against the rule's.
-    if (m.initSource) {
-      const made = vmOf().runInContext('(() => { try { return {ok: true, value: __gdpInit()} } catch (e) { return {ok: false, error: String(e)} } })()', box.ctx) as {ok: boolean, value?: unknown, error?: string}
-      if (!made.ok) return {problem: `the initial state throws (${made.error})`}
-      try { const diff = sameSnap(snapOf(made.value, m.layout, m, evalAt(params)), snap); if (diff) return {problem: `the initial state: ${diff}`} } catch (x) { return {problem: `the initial state: ${(x as Error).message}`} }
-    }
+    const problem = code.init?.(snap, params)
+    if (problem) return {problem}
     return {side: {snap}, st, ps: ps ?? {}}
   }
   const runs = opts.runs ?? 200, depth = opts.depth ?? 12
@@ -479,6 +519,7 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
   }
   // Steps from drawn states.
   const drawSnap = (params: Record<string, Raw>): Snap => {
+    if (code.drawSnap) return code.drawSnap(rand)
     const leaves: Record<string, Raw> = {}, maps: Record<string, Cells> = {}
     for (const v of m.state) if (!m.outputs.includes(v.name)) leaves[v.name] = draw(v.sort, sorts, v.name, rand, [...consts, ...Object.values(params).filter((x): x is number => typeof x === 'number')], bound, strs)
     for (const v of m.state) if (v.name in leaves && v.sort.k === 'num' && sorts.get(v.name) === 'nat' && (leaves[v.name] as number) < 0) leaves[v.name] = -(leaves[v.name] as number)
@@ -498,12 +539,15 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
     for (const d of m.maps) for (const f of d.fields) if (f.sort.k === 'num' && f.sort.date) for (const c of Object.values(maps[d.name] ?? {})) if (Math.abs(c[f.name] as number) > 8.64e15) c[f.name] = rand(bound)
     return {leaves, maps, ...(m.lists?.length ? {lists} : {})}
   }
-  const fromState = (params: Record<string, Raw>, snap: Snap, inputs: Record<string, Raw>, e: (typeof m.events)[number], where: string): string | undefined => {
+  const fromState = (params: Record<string, Raw>, snap: Snap, inputs: Record<string, Raw>, e: Ev, where: string): string | undefined => {
     let ps: Record<string, number>
     try { ps = r.encodeParams(params as never) } catch { return undefined }
     if (evalTerm(m.pre, params) !== true) return undefined
     const st = ruleState(interp.init(ps), snap, m, sorts)
-    const side: Side = {snap, ...(isClass ? {self: objectAt(snap, params)} : {})}
+    // A state the code can't hold (a value outside its type, Go's): no state of the code is that one.
+    const self = isClass ? code.at(snap, params) as object | undefined : undefined
+    if (isClass && self === undefined) return undefined
+    const side: Side = {snap, ...(isClass ? {self: self!} : {})}
     return step(params, ps, side, st, inputs, e, {}, where)
   }
   for (let i = 0; i < (opts.states ?? 400); i++) {
@@ -530,7 +574,8 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
       for (const vv of m.state) dec(vv, kindOfVar(vv, sorts), leaves)
       if (!ok) continue
       const e = m.events.find(x => Object.entries(x.select).every(([n, val]) => inputs[n] === val)) ?? m.events[0]!
-      const diff = fromState(params, {leaves, maps: Object.fromEntries(m.maps.map(d => [d.name, {}]))}, inputs, e, `the prover's witness for ${showCond(c)}`)
+      const snap: Snap = {leaves, maps: Object.fromEntries(m.maps.map(d => [d.name, {}]))}
+      const diff = fromState(params, code.normalize ? code.normalize(snap) : snap, inputs, e, `the prover's witness for ${showCond(c)}`)
       ev.probes.steps++
       if (diff) return fail(diff)
     }
@@ -540,7 +585,7 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
 const mapReplacer = (_: string, v: unknown) => (isMap(v) ? {$map: [...v.entries()]} : v)
 
 // The conditions a step reads (each branch's, each refusal's), as a probe asks the prover to reach.
-function conditionsOf(m: Model): B[] {
+export function conditionsOf(m: Model): B[] {
   const out: B[] = [], seen = new Set<string>()
   const add = (c: B) => { if (c.op === 'const') return; const k = I.keyOf(c); if (!seen.has(k) && !hasCell(c)) { seen.add(k); out.push(c, I.not(c)) } }
   walk([m.writes, m.mapWrites], o => { if ((o.op === 'ite' || o.op === 'kite') && o.c) add(o.c as B) })
@@ -550,7 +595,7 @@ function conditionsOf(m: Model): B[] {
 const hasCell = (c: B) => I.varsOf(c).maps.size > 0
 const showCond = (c: B): string => JSON.stringify(c).replace(/"op":/g, '').slice(0, 120)
 // A condition over the rule's env (the step law's `when`): the builders' own values, read from the env by name.
-function condAt(c: B, env: Record<string, unknown>): ReturnType<Term['lt']> {
+export function condAt(c: B, env: Record<string, unknown>): ReturnType<Term['lt']> {
   const n = (e: N): Int => {
     switch (e.op) {
       case 'var': return Int.of(env[e.name] as Term | Int)
@@ -594,8 +639,11 @@ function condAt(c: B, env: Record<string, unknown>): ReturnType<Term['lt']> {
 import {yes as yesC, no as noC, when as whenDsl} from './dsl.ts'
 const whenInt = (c: ReturnType<Term['lt']>, a: Int, b: Int): Int => whenDsl(c, a, b)
 
-// A term at concrete values (a constant field over the params, a start, the precondition).
-export function evalTerm(t: N | B | I.L, env: Record<string, Raw>): Raw {
+// A term at concrete values (a constant field over the params, a start, the precondition; with `cell`, a state's
+// map cells and list items too).
+export function evalTerm(t: N | B | I.L, env: Record<string, Raw>, cell?: (map: string, key: Raw, field: string) => Raw): Raw {
+  const at = (map: string, k: I.K, field: string): Raw => (cell ?? (() => { throw new Error('a map cell at the start') }))(map, key(k), field)
+  const key = (k: I.K): Raw => (k.op === 'num' ? n(k.e) : k.op === 'svar' ? env[k.name]! : k.op === 'slit' ? k.value : b(k.c) ? key(k.a) : key(k.b))
   const n = (e: N): number => {
     switch (e.op) {
       case 'var': return env[e.name] as number
@@ -610,7 +658,7 @@ export function evalTerm(t: N | B | I.L, env: Record<string, Raw>): Raw {
       case 'divk': return Math.floor(n(e.a) / e.k)
       case 'modk': return ((n(e.a) % e.k) + e.k) % e.k
       case 'ite': return b(e.c) ? n(e.a) : n(e.b)
-      case 'cell': throw new Error('a map cell at the start')
+      case 'cell': return at(e.map, e.key, e.field) as number
     }
   }
   const l = (x: I.L): string => (x.op === 'var' ? env[x.name] as string : x.op === 'lit' ? x.value : x.op === 'ite' ? (b(x.c) ? l(x.a) : l(x.b)) : (() => { throw new Error('a map cell') })())
@@ -625,14 +673,14 @@ export function evalTerm(t: N | B | I.L, env: Record<string, Raw>): Raw {
       case 'ite': return b(x.c) ? b(x.a) : b(x.b)
       case 'is': return l(x.l) === x.value
       case 'leq': return l(x.a) === l(x.b)
-      case 'keq': throw new Error('a key at the start')
-      case 'cell': throw new Error('a map cell at the start')
+      case 'keq': if (!cell) throw new Error('a key at the start'); return key(x.a) === key(x.b)
+      case 'cell': return at(x.map, x.key, x.field) as boolean
     }
   }
   if (t.op === 'var') return env[t.name]!
   if (t.op === 'const') return t.v
   if (t.op === 'lit') return t.value
-  if (t.op === 'ite') return b(t.c) ? evalTerm(t.a, env) : evalTerm(t.b, env)
+  if (t.op === 'ite') return b(t.c) ? evalTerm(t.a, env, cell) : evalTerm(t.b, env, cell)
   if (['add', 'sub', 'neg', 'mulk', 'mul', 'min', 'max', 'divk', 'modk', 'cell'].includes(t.op)) return n(t as N)
   return b(t as B)
 }

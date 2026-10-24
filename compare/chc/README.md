@@ -24,6 +24,97 @@ and Eldarica (2.3).
     modal run compare/chc/modal_chc.py --out <dir> --tools tmpl            # then --tools given --tasks-json <file>
     python3 compare/chc/prof/gap.py --gdp <run> --others <run> --models <dir> --template <run> [--cex <dir>] [--given <run>] --out <file.json>
 
+## The rule's own comparisons in the join's cubes (after 0.26.0)
+
+**Where the gap was.** At 0.26.0 the join (core/infer.ts) blocks a counterexample's cube only where no candidate
+rules it out, its predecessors 3 deep, and the cube is the counterexample's control values and the samples' bounds.
+Where no sample is at the control state (a location the runs never reached: on HOLA/04, the assertion's location
+after its loop and the locations before it), that cube is the control values alone: its predecessors take it back
+toward the samples, one location at a time, and past 3 deep the join ends (`none: reached`). Given 300 s instead of 60
+(`runs/inv2/l300-base`), the join solves 21 of the 154 sat-gap tasks whose Spacer invariant the kernel proves
+(`research/inv/gap.json`); of the other 133, 25 end by the join's time and the rest by its shape: `target` (no
+candidate and no cube, 43), the cube window (32), an undecided query (15), no join (18).
+
+**What changed.** Nothing trusted (`kernel/`, `core/check.ts`, `lean-kernel/` as at 0.26.0).
+- **A cube's literals at a counterexample read the rule's own comparisons** (`comparisons`, each now kept with its
+  bound: Σ t·v ≤ d as the rule writes it, and its negation), those true there, beside its control values and the
+  samples' bounds. A cube where no sample is then reads the guards that led to its location, as a predecessor
+  Spacer projects from the step would, and the refutation's core and `down` cut it from there.
+- **Predecessors blocked 8 deep** (3), and **the cube first** where no sample holds the counterexample's control
+  state (the samples say nothing there, so no candidate fitted to them will); elsewhere after the candidates, as
+  before. The window that gave the join 0.3 of its time once a cube was in goes.
+- **The join has 0.8 of the search here** (solve.ts passes `InferOptions.join`; 0.6, the default, elsewhere): after
+  a join that ran out of time the search below answered 4 of the 478 sat answers of `runs/chc3/final-mine`.
+- **A cube blocked twice in one chain** no longer ends the join (its law was declared twice: rust-horn's
+  simple-4-06, `runs/inv2/c2-a8`).
+
+**The track** (60 s, Modal, `runs/inv2/chc3-mine` at b9ec9f6 beside `runs/inv2/chc3-base`, main e883e53, launched
+together):
+
+| gdp-wired | sat | unsat | wrong | disputed | solved of 1,406 | out of time | median s, sat both answer |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| main e883e53 (`chc3-base`) | 592 | 409 | 0 | 2 | 1,001 | 4 | 18.03 |
+| this (`chc3-mine`) | 613 | 410 | 0 | 2 | 1,023 | 5 | 18.17 |
+
+The batch before it (`chc2-mine` at 54dcd4d, the same CHC path, beside `chc2-base`): 1,026 (617 sat, 409 unsat)
+against 1,001 (592, 409). No answer contradicts Spacer's or Golem's (`runs/modal/chc2/combined-v020`); the two
+disputed labels are answered as before.
+- **Gained 27** (each solved in both batches here unless noted, and how often main solved it in its five runs,
+  `f1-base`, `f2-base`, `chc-base`, `chc2-base`, `chc3-base`): s_split_17, 37 and 38 (0 of 5), HOLA/04 (0 of 5),
+  reve 013, 013b (0 of 5), 014 (1 of 5) and 015 (2 of 5), llreve break_merged and break (2 and 3 of 5), ctigar
+  gulwani_cegar2 and dillig37 (0 of 5) and up4 (0 of 5, 1 of 2 here), Lustre car_2 ×3, car_all ×3, SYNAPSE_4 (0 of
+  5), _6counters (2 of 5), FIREFLY_4_e3_3511_e3_422, ticket3i_all_e2_1117 and ticket3i_7_e1_2192 (4 of 5),
+  durationThm_2_e1_118 and _e3_329_e6_128 (2 of 5, 1 of 2 here), and peterson_vt (unsat by the second CPU's bounded
+  runs at 53.8 s; 4 of 5).
+- **Lost 5.** PRODUCER_CONSUMER_2 (main 5 of 5 at 17.9 to 20.1 s, here 0 of 2): its counterexamples are at control
+  states no sample holds, so each is blocked first, a cube a round for 24 rounds, the last taking 21 s, and the join
+  ends by its time; main tried the candidates first, blocked one cube at round 12 and was inductive at round 17.
+  s_split_42 (main 4 of 5) and llreve loop__fib_000_002 (main 5 of 5, 31.6 to 42.8 s): a cube blocked 8 deep counts
+  a bound up one value at a time (s_split_42's one blocking took most of the join's 35 s: `never 251 <= i0 and i2 <=
+  253`, `252`, ...) where main's 3 deep failed at once and the search below found the invariant; each 1 of 2 here,
+  past 45 s. ctigar up3 (main 2 of 5) and durationThm_2 (main 3 of 5): 1 of 2 here.
+- **By stage:** sat by the invariant search 480 → 503, by k-induction 112 → 110; unsat by bounded runs 316 → 317.
+- **By group** (groups_chc.py's tests on the 0.20.0 gap rows, `chc2` batch): C 19 → 24 of 38, D 25 → 31 of 116, G
+  10 → 12, B 36 → 38, A 190 → 192, F 17 → 18, E 32 → 32; Lustre 601 → 607 of 766, ctigar 34 → 41 of 110.
+- **The gap now** (tasks Spacer or Golem solve at 60 s, `combined-v020`, and this doesn't): 263 (211 sat, 52 unsat)
+  in `chc2-mine`, 281 (229, 52) for main in the same batch. Of the 154 sat-gap tasks whose Spacer invariant the
+  kernel proves, 18 are solved (main 4, `chc2`).
+
+**Each change measured** (sat on the 254 tasks of `research/inv/dev.json`: the 154 above and 100 the join solves at
+0.26.0; 260 with `dev2.json`'s six earlier losses; each batch launched together, runs of the same code differing by
+up to 3):
+
+| run | what | sat |
+| --- | --- | --- |
+| `c2-base`, `a-base`, `d1-base` | main's search | 101, 101, 101 |
+| `c-atoms3` | the rule's comparisons in cubes, 3 deep | 101 |
+| `c-d8` | 8 deep alone | 101 |
+| `c-atoms8`, `c2-a8` | both | 107, 103 |
+| `c2-a16` | 16 deep | 105 |
+| `g-a8cf`, `g-a8cfw` | the cube first; and no window | 108, 111 |
+| `h-cfw`, `h-d16` | the cube first, no window; 16 deep | 111, 112 |
+| `i-cfw`, `i-s8`, `i-s9`, `j-s8` | the join's share 0.6, 0.8, 0.9, 0.8 | 114, 117, 115, 116 |
+| `l-cub100`, `l-cand100`, `l-hyb100` (260) | the cube first always, the candidates first always, by the control state | 120, 118, 124 |
+
+Full runs, each beside main in its batch: `f1-a8` (comparisons, 8 deep) 1,009 against 998; `f2-cfw` (cube first, no
+window) 1,015 and `f2-s8` (and 0.8) 1,021 against 1,000; `chc-mine` (fd136bc, the cube first always) 1,024 against
+1,003.
+
+**Measured and left out.**
+- **PDR frames over the join's cube machinery** (frames F₁..F_N of blocked cubes, obligations as the kernel's
+  predecessor points, lemmas pushed, the frames' fixpoint the answer): before the join with half or 0.9 of its time,
+  93 and 80 against 101 (`d1-pdr5`, `d1-pdr9`); given the join's time from the start (guided runs off, `e-*`), 75
+  against the join's 104, and 71 with cubes at the rule's constants (each direction's next constant above the point),
+  Houdini-seeded control cubes and the fewest literals that leave the samples out; after a join that ran out of time,
+  100 and 111 against 101 and 111 (`a-pdr`, `h-pdr`). At 300 s it converged on 6 of the 154 (`l300-pdr9`: car_2 ×3,
+  car_all ×2, gulwani_cegar1), each with 43 to 66 lemmas, and reached 2 to 9 frames on the others. Its queries are
+  the cost: 12 to 170 ms each locally (dillig19, FIREFLY_6), and each lemma's generalization asks up to 24 more, where
+  Spacer's invariants for DRAGON_4, FIREFLY_6, dillig19 and nest-if6 have 10 to 23 clauses.
+- A deadline for one counterexample's cubes (a quarter of the join's time left: 116 against 119, `k-sh25`, `k-sh100`;
+  `l-hyb25` 120 against 124); the depth counted only at control states the samples hold (`m-ch8`, 122 of 264, HOLA/04
+  lost: its chain passes sampled locations); `down`'s 12 or 48 queries (116, 115 against 116); 96 cubes (109 against
+  111); 16 tries (112).
+
 ## The second CPU, and the join's control states as cubes (after 0.25.0)
 
 **Where the gap was.** At 0.25.0 (`runs/chcsat/m2/chc`), 312 tasks are solved at 60 s by Spacer or Golem
