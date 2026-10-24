@@ -17,7 +17,7 @@ from scipy.optimize import nnls
 arg = lambda k, d: sys.argv[sys.argv.index(k) + 1] if k in sys.argv else d
 dirs = [a for a in sys.argv[1:] if not a.startswith("--") and pathlib.Path(a).is_dir()]
 min_ms = float(arg("--min-ms", "20"))
-feats = arg("--features", "values,copies,edges,scan,bounds,pivotRows,unitRows,unfoldRows,goalNodes,cdclNodes,plainNodes,props").split(",")
+feats = arg("--features", "fm,fcells,plainRows,values,copies,edges,scan,pivotRows,unitRows,unfoldRows,goalNodes").split(",")
 free = "--free" in sys.argv  # no work.n in the model: every term weighed (work.n's own parts among the features)
 rows = []
 for d in dirs:
@@ -28,8 +28,8 @@ for d in dirs:
             except json.JSONDecodeError: continue
             if q["ms"] < min_ms: continue
             c = dict(q.get("c", {}))
-            # (the float simplex's cells, from work.n: what it counts beyond the solver's rows, the pairs, each pivot and each node's rows)
-            c["fcells"] = max(0, q["work"] - sum(c.get(k, 0) for k in ("solveRows", "fm", "fpivots", "cdclNodes", "cdclRows", "plainNodes", "plainRows")))
+            # (the float simplex's cells, where a run logged none: from work.n, what it counts beyond the solver's rows, the pairs, each pivot and each node's rows)
+            if "fcells" not in c: c["fcells"] = max(0, q["work"] - sum(c.get(k, 0) for k in ("solveRows", "fm", "fpivots", "cdclNodes", "cdclRows", "plainNodes", "plainRows")))
             rows.append((group, q["kind"], q["ms"], q["work"], [c.get(k, 0) for k in feats], f.parent.name))
 print(f"{len(rows)} queries of {min_ms} ms or more, from {len(dirs)} runs")
 ms = np.array([r[2] for r in rows]); work = np.array([r[3] for r in rows], float); X = np.array([r[4] for r in rows], float)

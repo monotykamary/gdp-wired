@@ -3,7 +3,8 @@
     modal run research/query/modal_query.py --jobs <jobs.json> --out runs/query/<name>
 
 jobs.json is a list of {"name", "cmd", "limit"?, "prof"?, "base"?}: cmd runs under bash in /work/gdp-wired (this tree,
-mounted fresh), or in its `.base` copy (main, made by `jobs.py base`) with "base": true, killed at `limit` seconds
+mounted fresh), or in /work/base (main with research/query's instrumentation, made outside the tree by `jobs.py base`
+and mounted) with "base": true, killed at `limit` seconds
 (default 120) by `timeout -s KILL`. Every bun process it starts loads research/query/log.ts (each root query a line of
 <out>/<name>/q.jsonl); with "prof": true each also writes a CPU profile, summarized in the container by top.py
 (<out>/<name>/prof-<n>.json). Mounted: the CHC-COMP'26 LIA-Lin benchmarks at compare/chc's pinned commit (/chc),
@@ -40,6 +41,7 @@ for p in sorted(root.rglob('*'), reverse=True):
         p.rmdir()
 """
 GOALS = MAIN / "runs" / "modal" / "dag" / "goals"
+BASE = pathlib.Path(os.environ.get("GDP_QUERY_BASE", "/tmp/gdp-query-base"))
 IGNORE = ["node_modules", "**/*.olean", "**/*.ilean", "**/node_modules/**", "**/runs/**", "runs/**", "modal/**", "private/**", "vendor/**",
           "compare/**/*.js", "compare/**/out/**", "research/enum/**", "research/perf/bend-enum/**", "research/hw/**", "research/modal-gpu/**",
           "docs/**", "static/**", "**/lean-kernel/.lake/**", "research/extract/.cache/**", "**/.git"]
@@ -57,6 +59,8 @@ image = (
     .add_local_dir(GOALS, "/goals")
     .add_local_dir(GDP, "/src/gdp-wired", ignore=IGNORE)
 )
+if BASE.exists():
+    image = image.add_local_dir(BASE, "/src/base", ignore=IGNORE)
 app = modal.App("gdp-wired-query", image=image)
 
 
@@ -68,7 +72,9 @@ def job(name: str, cmd: str, limit: int, prof: bool, base: bool) -> dict:
     work = pathlib.Path("/work/gdp-wired")
     if not work.exists():
         shutil.copytree("/src/gdp-wired", work)
-    cwd = work / ".base" if base else work
+    if pathlib.Path("/src/base").exists() and not pathlib.Path("/work/base").exists():
+        shutil.copytree("/src/base", "/work/base")
+    cwd = pathlib.Path("/work/base") if base else work
     out = pathlib.Path("/tmp/out")
     shutil.rmtree(out, ignore_errors=True)
     (out / "raw").mkdir(parents=True)

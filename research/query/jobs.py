@@ -6,10 +6,12 @@
           hqr: compare/term/solve.ts), the false 944-hypothesis step goals (pairs-false.ts, 120 s)
   realworld  the real-world corpus' laws, research/realworld/jobs.ts's commands
   g332    research/step/goal.ts on each of research/dag's 332 step goals (grow, the goal's own budget within 55 s)
-  base    (not a jobs file) writes `.base`: main e883e53's tree with research/query's instrumentation patch
-          (research/query/base.patch), for runs beside main (each job then also as base-<name> with "base": true)
+  base    (not a jobs file) writes $GDP_QUERY_BASE (/tmp/gdp-query-base): main e883e53's tree with research/query's
+          instrumentation patch (research/query/base.patch), for runs beside main (--base: each job also as
+          base-<name> with "base": true)
 """
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -50,11 +52,12 @@ def main(kind: str, extra: list[str]):
         for j in rw:
             jobs.append({"name": f"rw__{j['name']}", "limit": 200, "cmd": j["cmd"]})
     elif kind == "base":
-        base = GDP / ".base"
+        # (outside the tree, at $GDP_QUERY_BASE: a copy in it would be checked and linted with it)
+        base = pathlib.Path(os.environ.get("GDP_QUERY_BASE", "/tmp/gdp-query-base"))
         subprocess.run(["rm", "-rf", str(base)], check=True)
-        base.mkdir()
+        base.mkdir(parents=True)
         subprocess.run(f"git -C {GDP} archive e883e53 | tar -x -C {base}", shell=True, check=True)
-        subprocess.run(["git", "apply", "--directory=.base", str(HERE / "base.patch")], cwd=GDP, check=True)
+        subprocess.run(["git", "apply", str(HERE / "base.patch")], cwd=base, check=True)
         subprocess.run(["cp", "-r", str(HERE), str(base / "research/")], check=True)
         return
     else:
@@ -75,7 +78,7 @@ def main(kind: str, extra: list[str]):
         # both sides in one container, one after the other (here first in every other job), each line of output after
         # a "=here" or "=main" line: the same CPU for both, so their times compare
         for i, j in enumerate(jobs):
-            here, main = f"echo =here; {j['cmd']}", f"echo =main; (cd .base && {j['cmd']})"
+            here, main = f"echo =here; {j['cmd']}", f"echo =main; (cd /work/base && {j['cmd']})"
             j["cmd"] = f"{here}; {main}" if i % 2 == 0 else f"{main}; {here}"
             j["limit"] = 2 * j["limit"]
     json.dump(jobs, sys.stdout, indent=0)

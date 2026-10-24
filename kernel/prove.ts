@@ -87,7 +87,7 @@ export const cellPair = (a: string, b: string): {d: Lin, neg: Lin, q0?: Lin, q1?
   return pair
 }
 const cellKey = (n: string) => { let c = cellKeys.get(n); if (!c) { if (cellKeys.size > 100_000) cellKeys.clear(); cellKeys.set(n, (c = {map: n.slice(0, n.indexOf('[')), key: parseKey(n.slice(n.indexOf('[') + 1, -1))})) } return c }
-export function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
+function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
   const seen = new Set<string>(), names: string[] = []
   for (const r of rows) for (const n in r.lin) if (!seen.has(n)) { seen.add(n); if (isCell(n)) names.push(n) }
   const out: Lin[] = []

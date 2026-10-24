@@ -20,8 +20,8 @@
 import {type Constraint, type Lin, type Step, costs, env, refuteFast, solve, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
 import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isMonomial, leafConstraints} from './kernel.ts'
-import {cellPair, late, logged, nearOf, openAt, openCells, pairedKeys, queryHook, rowsAt, unitAtoms, type Outcome} from './prove.ts'
-import {Reader, type Row, keepClean, namesOf} from './reader.ts'
+import {cellPair, late, logged, nearOf, openAt, pairedKeys, queryHook, rowsAt, unitAtoms, type Outcome} from './prove.ts'
+import {Reader, type Row, namesOf} from './reader.ts'
 import {Simplex} from './simplex.ts'
 
 // A derivation's own inputs: the rows it reads, in order, and the steps renumbered to them.
@@ -47,15 +47,12 @@ const keyOf = (lin: Lin): string => {
 // A node of the refutation: a leaf (its decisions, by variable, and a derivation over the rows at its path) or a
 // resolution of two earlier nodes on a variable (`res[0]` the one with the atom as stored true, `res[1]` false).
 type DagNode = {inputs: Lin[], steps: Step[]} | {res: [number, number], on: Lin}
-type Var = {name: string, lin: Lin, terms: [string, number][], col: boolean, tid?: number[], val?: boolean, level: number, reason?: number, at: number, act: number, phase: boolean,
+type Var = {name: string, lin: Lin, terms: [string, number][], col: boolean, val?: boolean, level: number, reason?: number, at: number, act: number, phase: boolean,
   bj?: number[], bjAt?: number, bsig?: number, bver?: number, sj?: (number | undefined)[], sx?: Simplex, pair?: boolean}
 type Clause = {lits: Map<string, boolean>, node: number}
 // GDP_CDCL_LP=0: each node solved by elimination alone (no simplex); GDP_CDCL_FILL (8): the simplex's tableau begun
 // again past this many entries a row the node reads (research/step's comparisons).
 const lpFill = Number(env.GDP_CDCL_FILL ?? 8), useLp = env.GDP_CDCL_LP !== '0', verify = env.GDP_CDCL_VERIFY === '1'
-// GDP_CDCL_INC=0: each node's rows read whole and loaded into the simplex whole (as before, for comparing); else the
-// rows kept from node to node (reader.ts's sync) and the simplex given the rows that came and went.
-const useInc = env.GDP_CDCL_INC !== '0' && keepClean
 // Counters research/step reads (times only while `on`).
 export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions: 0, solveMs: 0, rowsMs: 0, coreMs: 0, unfoldMs: 0, leaves: 0, resolved: 0, coreSize: 0, pathSize: 0, lpMisses: 0, resolved2: 0, unfoldWhy: '', orderMs: 0, boundMs: 0, openMisses: 0, lpMs: 0, lpUnknown: 0, fmCalls: 0, pivots: 0, lpRebuilds: 0, lpRows: 0, lpNnz: 0, lpVars: 0, lpLoad: 0, nodes: 0, boundRounds: 0}
 
@@ -80,17 +77,13 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
   const st = cdclStats, timing = st.on
   const t = <T>(f: () => T, add: (ms: number) => void): T => { if (!timing) return f(); const t0 = performance.now(); try { return f() } finally { add(performance.now() - t0) } }
   st.runs++
-  costs.sessions++; costs.sessionHyps += goal.hyps.length
   const vars = new Map<string, Var>(), trail: string[] = [], levels: number[] = []
   let sx = useLp ? new Simplex() : undefined
   const nodes: DagNode[] = [], clauses: Clause[] = [], occ = new Map<string, number[]>()
   // (with opts.core: each leaf's hypotheses, by node; the hypothesis each row at this node came from)
   const leafHyps = new Map<number, number[]>(), wantCore = !!(opts.core && opts.model)
   const hypsOf = (rs: Row[]): number[] => {
-    if (useInc && sx) return reader.hypsOf(rs)
-    const at = new Map<Row, number>()
-    for (let i = 0; i < goal.hyps.length; i++) for (const r of reader.facts(i).rows) at.set(r, i)
-    return [...new Set(rs.flatMap(r => { const i = at.get(r); return i === undefined ? [] : [i] }))]
+    return reader.hypsOf(rs)
   }
   let inc = 1
   // An atom as a variable: the stored form is the one whose canonical text is the variable's name (the smaller).
@@ -106,7 +99,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
   // apart by form, as a set of forms would).
   const recs = new WeakMap<Lin, {x: Var | undefined, seen: number}>()
   const recOf = (lin: Lin) => { let r = recs.get(lin); if (!r) recs.set(lin, (r = {x: namesOf(lin).length > 0 ? vars.get(ensure(lin)) : undefined, seen: 0})); return r }
-  let candGen = 0, colsOn = 0, boundGen = 0, pairsChanged = 0
+  let candGen = 0, colsOn = 0, pairsChanged = 0
   // prove.ts's openCells at the trail, from the reader's live cells: each pair of one map whose keys' difference the
   // trail leaves open (that atom, or its flip where the trail decides it one way); made again only where the live cells
   // or the decisions about pairs have changed.
@@ -131,7 +124,6 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
   }
   const listRecs = new WeakMap<Lin[], {x: Var | undefined, seen: number}[]>()
   const bx = new Simplex(true, true), bxIn = new Set<number>(), toAssert = new Set<number>(), toRetract = new Set<number>()
-  const loAt: number[] = [], loB: number[] = [], loRow: number[] = [], hiAt: number[] = [], hiB: number[] = [], hiRow: number[] = []
   // The root's own decisions are level 0, with no reason: they stay in every clause (the tree starts below them).
   const rootNames = new Set<string>(), stamps: number[] = []
   let stampN = 0
@@ -177,7 +169,6 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
       const name = trail[qhead++]!, x = vars.get(name)!
       for (const ci of occ.get(`${name}=${x.val}`) ?? []) {
         const c = clauses[ci]!
-        costs.props += c.lits.size
         let open: string | undefined, nOpen = 0, dead = false
         for (const [w, p] of c.lits) {
           const y = vars.get(w)!
@@ -274,16 +265,14 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
       } else {
         reader.begin()
         st.nodes++
-        const inc = useInc && sx !== undefined
-        const rowsR = t(() => (inc ? (reader.sync(), reader.live) : reader.rows()), ms => { st.rowsMs += ms })
+        // The rows, kept from the node before (reader.ts's sync); the forms that came and went: the single-variable
+        // ones' bounds now (for bound propagation, `bx`), the simplex's when it next runs (`toAssert`, `toRetract`: a
+        // form in and out between its runs never reaches it).
+        const rowsR = t(() => (reader.sync(), reader.live), ms => { st.rowsMs += ms })
         const full: Constraint[] = rowsR
-        if (inc) {
-          // The forms that came and went: the single-variable ones' bounds now (for bound propagation, `bx`), the
-          // simplex's when it next runs (`toAssert`, `toRetract`: a form in and out between its runs never reaches it).
-          const single = (id: number) => reader.form(full[reader.slotOf(id)]!.lin).names.length === 1
-          for (const id of reader.left) { if (bxIn.delete(id)) bx.retract(id); if (!toAssert.delete(id)) toRetract.add(id) }
-          for (const id of reader.entered) { if (single(id)) { bxIn.add(id); bx.assert(id, full[reader.slotOf(id)]!.lin) } if (!toRetract.delete(id)) toAssert.add(id) }
-        }
+        const single = (id: number) => reader.form(full[reader.slotOf(id)]!.lin).names.length === 1
+        for (const id of reader.left) { if (bxIn.delete(id)) bx.retract(id); if (sx && !toAssert.delete(id)) toRetract.add(id) }
+        for (const id of reader.entered) { if (single(id)) { bxIn.add(id); bx.assert(id, full[reader.slotOf(id)]!.lin) } if (sx && !toRetract.delete(id)) toAssert.add(id) }
         if (verify) {
           const mine = new Set(rowsR.map(r => canon(r.lin))), theirs = new Set(leafConstraints(goal, pathOf()).map(r => canon(r.lin)))
           if (mine.size !== theirs.size || [...mine].some(x => !theirs.has(x))) throw new Error(`reader.ts's rows differ from kernel.ts's at a node of ${goal.name}`)
@@ -315,61 +304,38 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
           if (last >= 0) take(reader.openList(last))
           for (let i = 0; i < last; i++) if (near[i]) take(reader.openList(i))
           for (let i = 0; i < last; i++) if (!near[i]) take(reader.openList(i))
-          if (inc) { if (reader.hasCells()) take(openCellsLive()) } else if (plain().some(r => reader.readsCell(r.lin))) take(openCells(plain(), pathOf()))
+          if (reader.hasCells()) take(openCellsLive())
           return keep
         }, ms => { st.orderMs += ms })
         const open = cands.length > 0
-        costs.cands += cands.length
         // Bound propagation: an open atom its variables' bounds (the single-variable rows) decide.
         const tb = timing ? performance.now() : 0
         if (open) {
-          // (each name's tightest bounds and their rows, by the name's id, stamped by node; kept from node to node, the
-          // simplex's own bounds)
-          const g = ++boundGen
-          for (let i = 0; i < (inc ? 0 : full.length); i++) {
-            const lin = full[i]!.lin, ks = reader.form(lin).names
-            if (ks.length !== 1) continue
-            const j = ks[0]!, c = lin[reader.nameOf(j)]!, k0 = lin['1'] ?? 0
-            if (c > 0) { const b = Math.floor(-k0 / c); if (hiAt[j] !== g || b < hiB[j]!) { hiAt[j] = g; hiB[j] = b; hiRow[j] = i } }
-            else if (c < 0) { const b = Math.ceil(k0 / -c); if (loAt[j] !== g || b > loB[j]!) { loAt[j] = g; loB[j] = b; loRow[j] = i } }
-          }
           let forced = 0
           for (const x of cands) {
             const name = x.name
             if (x.val !== undefined || x.col) continue // (a term column's rows read differently once its choice is decided)
             // (unforced at the bounds it last read, which haven't changed since: unforced still)
             // (no bound has changed since; or a name without any; or no bound it reads has)
-            let sig = 0
-            if (inc) {
-              if (x.bver === bx.changes) continue
-              if (!x.bj) {
-                if (x.bjAt === bx.vars) continue
-                x.bjAt = bx.vars
-                const bj = x.terms.map(([x0]) => bx.indexOf(x0))
-                if (bj.some(j => j === undefined)) continue
-                x.bj = bj as number[]
-              }
-              for (const j of x.bj) sig += bx.version(j)
-              if (x.bsig === sig) { x.bver = bx.changes; continue }
+            if (x.bver === bx.changes) continue
+            if (!x.bj) {
+              if (x.bjAt === bx.vars) continue
+              x.bjAt = bx.vars
+              const bj = x.terms.map(([x0]) => bx.indexOf(x0))
+              if (bj.some(j => j === undefined)) continue
+              x.bj = bj as number[]
             }
-            const tid = (x.tid ??= reader.form(x.lin).names)
+            const bj = x.bj
+            let sig = 0
+            for (const j of bj) sig += bx.version(j)
+            if (x.bsig === sig) { x.bver = bx.changes; continue }
             const side = (val: boolean): number[] | undefined => { // the rows that force the stored atom to `val`
               let sum = x.lin['1'] ?? 0
               const used: number[] = []
-              if (inc) {
-                for (let q = 0; q < x.terms.length; q++) {
-                  const [x0, c] = x.terms[q]!, j = x.bj ? x.bj[q] : bx.indexOf(x0), up = (c > 0) === val
-                  if (j === undefined) return undefined
-                  const b = up ? bx.high(j) : bx.low(j)
-                  if (!Number.isFinite(b)) return undefined
-                  sum += c * b; used.push(reader.slotOf(up ? bx.highWhy(j) : bx.lowWhy(j)))
-                }
-                return (val ? sum <= 0 : sum >= 1) ? used : undefined
-              }
-              for (let q = 0; q < tid.length; q++) {
-                const c = x.terms[q]![1], j = tid[q]!, up = (c > 0) === val
-                if (up ? hiAt[j] !== g : loAt[j] !== g) return undefined
-                sum += c * (up ? hiB[j]! : loB[j]!); used.push(up ? hiRow[j]! : loRow[j]!)
+              for (let q = 0; q < bj.length; q++) {
+                const c = x.terms[q]![1], j = bj[q]!, up = (c > 0) === val, b = up ? bx.high(j) : bx.low(j)
+                if (!Number.isFinite(b)) return undefined
+                sum += c * b; used.push(reader.slotOf(up ? bx.highWhy(j) : bx.lowWhy(j)))
               }
               return (val ? sum <= 0 : sum >= 1) ? used : undefined
             }
@@ -386,7 +352,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
               forced++
               break
             }
-            if (inc) { x.bsig = hit ? undefined : sig; x.bver = hit ? undefined : bx.changes }
+            x.bsig = hit ? undefined : sig; x.bver = hit ? undefined : bx.changes
           }
           if (timing) st.boundMs += performance.now() - tb
           if (forced) { st.boundRounds++; continue }
@@ -401,17 +367,15 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
             // (a tableau that has gathered many more forms than a node reads is begun again: every pivot updates them all)
             const over = sx.size > 4 * full.length + 500 || sx.nnz > lpFill * full.length
             if (over) { sx = new Simplex(); st.lpRebuilds++ }
-            if (inc) {
-              // (a tableau begun has the rows asserted in kernel.ts's order, which its variables', so Bland's rule, follow)
-              if (over || !sx.vars) for (const r of reader.rows()) sx.assert(reader.form(r.lin).id, r.lin)
-              else { for (const id of toRetract) sx.retract(id); for (const id of toAssert) sx.assert(id, full[reader.slotOf(id)]!.lin) }
-              toAssert.clear(); toRetract.clear()
-            }
+            // (a tableau begun has the rows asserted in kernel.ts's order, which its variables', so Bland's rule, follow)
+            if (over || !sx.vars) for (const r of reader.rows()) sx.assert(reader.form(r.lin).id, r.lin)
+            else { for (const id of toRetract) sx.retract(id); for (const id of toAssert) sx.assert(id, full[reader.slotOf(id)]!.lin) }
+            toAssert.clear(); toRetract.clear()
             const p0 = sx.pivots
-            let lp = inc ? sx.settle() : sx.load(full)
+            let lp = sx.settle()
             if (lp.kind === 'sat') lp = sx.check()
-            if (inc && lp.kind === 'conflict') lp = {kind: 'conflict', rows: lp.rows.map(id => reader.slotOf(id))}
-            costs.pivots += sx.pivots - p0; if (sx.pivots > p0) costs.pivotNnz += (sx.pivots - p0) * sx.size
+            if (lp.kind === 'conflict') lp = {kind: 'conflict', rows: lp.rows.map(id => reader.slotOf(id))}
+            costs.pivots += sx.pivots - p0
             if (timing) { st.lpMs += performance.now() - t0; st.pivots += sx.pivots - p0; st.lpRows = sx.size; st.lpNnz = sx.nnz; st.lpVars = sx.vars; st.lpLoad = full.length; if (lp.kind === 'unknown') st.lpUnknown++ }
             if (lp.kind === 'conflict') {
               const support = lp.rows.sort((x, y) => x - y), out = solve(support.map(i => full[i]!))

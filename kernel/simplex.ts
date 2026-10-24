@@ -146,7 +146,6 @@ export class Simplex {
   private movedAt: number[] = []
   private settles = 0
   assert(id: number, lin: Lin, strict?: boolean): void {
-    costs.bounds++
     const at = this.place(lin), k = lin['1'] ?? 0
     if (at === null) { this.ins.set(id, null); if (k > 0 || (!this.integral && strict && k >= 0)) this.falseIn.add(id); return }
     const {j, c} = at, b0 = c > 0 ? -k / c : k / -c, upper = c > 0, d = !this.integral && strict ? 1e-7 * Math.max(1, Math.abs(b0)) : 0
@@ -156,7 +155,6 @@ export class Simplex {
     if (upper ? b < this.hi[j]! : b > this.lo[j]!) { if (upper) { this.hi[j] = b; this.hiWhy[j] = id } else { this.lo[j] = b; this.loWhy[j] = id } this.move(j) }
   }
   retract(id: number): void {
-    costs.bounds++
     const a = this.ins.get(id)
     this.ins.delete(id)
     if (a === undefined) return

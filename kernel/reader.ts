@@ -401,10 +401,8 @@ export class Reader {
     this.forms.set(lin, (f = {id, names}))
     return f
   }
-  // Whether a form reads a term column; a cell; a name's text by its id.
+  // Whether a form reads a term column.
   readsColumn(lin: Lin): boolean { for (const j of this.form(lin).names) if (this.nameKind[j] === 1) return true; return false }
-  readsCell(lin: Lin): boolean { for (const j of this.form(lin).names) if (this.nameKind[j] === 2) return true; return false }
-  nameOf(j: number): string { return this.nameText[j]! }
   // The trail's atom rows, by position, kept while the position's stamp is.
   private trailRows: Row[] = []
   private trailStamps: number[] = []
@@ -647,8 +645,7 @@ export class Reader {
     for (const q of same) this.segOff(this.pairKey(j, q))
   }
   // prove.ts's open atoms of a hypothesis (openH), in its order; none for a hypothesis whose facts are final.
-  open(i: number, out: Lin[]): void { for (const lin of this.openList(i)) out.push(lin) }
-  // (the list itself, the same array while it stands)
+  // (the same array while it stands)
   openList(i: number): Lin[] {
     const key = (this.openKeys[i] ??= {}), had = this.os[i]
     if (had && ((keepClean && this.clean.has(key)) || had.node === this.node)) return had.lins
