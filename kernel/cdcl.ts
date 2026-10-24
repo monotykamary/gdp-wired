@@ -20,7 +20,7 @@
 import {type Constraint, type Lin, type Step, env, refuteFast, solve, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
 import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isCell, isMonomial, leafConstraints} from './kernel.ts'
-import {late, nearOf, openAt, openCells, rowsAt, unitAtoms, type Outcome} from './prove.ts'
+import {clock, nearOf, openAt, openCells, rowsAt, unitAtoms, type Outcome} from './prove.ts'
 import {Reader, type Row, namesOf} from './reader.ts'
 import {Simplex} from './simplex.ts'
 
@@ -215,7 +215,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
   }
   const search = (): Outcome => {
     for (;;) {
-      if (++budget.nodes > 200_000 || late(until) || (wall !== undefined && performance.now() > wall)) return stuck('unknown', budget.nodes > 200_000 ? 'nodes' : 'time')
+      if (++budget.nodes > 200_000 || clock() > until || (wall !== undefined && performance.now() > wall)) return stuck('unknown', budget.nodes > 200_000 ? 'nodes' : 'time')
       let conflict: Clause | undefined
       const ci = propagate()
       if (ci !== undefined) conflict = clauses[ci]!
@@ -416,7 +416,7 @@ function unfold(goal: Goal, nodes: DagNode[], top: number, root: Path, maxLeaves
       push(key, n.on, false); const no = go(n.res[1]); pop()
       return no && {split: n.on, yes, no}
     }
-    if (++leaves > maxLeaves || late(until)) { cdclStats.unfoldWhy = leaves > maxLeaves ? 'leaves' : 'time'; return undefined }
+    if (++leaves > maxLeaves || clock() > until) { cdclStats.unfoldWhy = leaves > maxLeaves ? 'leaves' : 'time'; return undefined }
     reader.begin()
     const rows = reader.leafRows()
     if (verify) {
