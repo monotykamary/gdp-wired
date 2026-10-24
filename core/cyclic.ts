@@ -57,7 +57,7 @@ import {type C, type E, type Law, type Machine, atMost as le, get, n as k, plus 
 import type {Fold, Goal, Instances, Loop, StepLaw, Subst, Tree} from '../kernel/kernel.ts'
 import {assumed, boundOf, foldObligations, livenessParts, loopLiveness, loopMachine, loopObligations, obligations, stepLawObligations, substC, substE, witnessesOf} from '../kernel/kernel.ts'
 import {type CNode, type Cyclic, type Fact, type Use, baseHyps, descentGoal, instHyps, mainGoal, premiseGoal, refuseCyclic} from '../kernel/cyclic.ts'
-import {cellProducts, clock, grow, profile, usedHyps, widen, withDeadline, withinDeadline} from '../kernel/prove.ts'
+import {cellProducts, clock, counted, fullRate, grow, profile, usedHyps, widen, withDeadline, withinDeadline} from '../kernel/prove.ts'
 import {type Reads, type Renamer, type TStats, carry, decide, readsFirst, renamer, translate, tstats} from './translate.ts'
 import {env} from './solver.ts'
 
@@ -833,14 +833,21 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
 // the reads a write's key decides first), the node's tree then given (`main`); or why one isn't.
 type Made = {g: Goal, tree: Tree, node: number, ren: Renamer, decide?: C[], reads?: Reads}
 function translateMade(facts: Fact[], all: NodeSpec[], made: Made[], st: TStats, until: number): {specs: NodeSpec[], why?: string} {
-  for (const x of made) {
-    const whole = mainGoal(facts, all, all[x.node]!)
-    const tree = timedKind('translate', 0, () => withProducts(() => decide(whole, x.decide ?? [], wp => readsFirst(whole, x.reads ?? [], x.ren, (p, swaps) => translate(x.g, whole, x.tree, x.ren, st, until, new Map(), p, swaps), st, until, wp), st, until)))
-    if (!tree) return {specs: [], why: `${all[x.node]!.name}: not translated`}
-    all[x.node] = {...all[x.node]!, main: tree}
-  }
-  return {specs: sliced(all)}
+  return counting(until, end => {
+    for (const x of made) {
+      const whole = mainGoal(facts, all, all[x.node]!)
+      const tree = timedKind('translate', 0, () => withProducts(() => decide(whole, x.decide ?? [], wp => readsFirst(whole, x.reads ?? [], x.ren, (p, swaps) => translate(x.g, whole, x.tree, x.ren, st, end, new Map(), p, swaps), st, end, wp), st, end)))
+      if (!tree) return {specs: [], why: `${all[x.node]!.name}: not translated`}
+      all[x.node] = {...all[x.node]!, main: tree}
+    }
+    return {specs: sliced(all)}
+  })
 }
+// A translation on the cost model's clock (kernel/prove.ts's `counted` with `full`): its budget the time from now to
+// `until`, counted, translate.ts counting each leaf's rows as it reads them, so a large tree's translation stops at its
+// budget on any machine. (On wall time alone it ran past it: the bound was read only where a leaf was grown again, and
+// ledger/tigerbeetle/transfers' 21,108 leaves took 92.7 s, the law then past the real-world corpus's 150 s.)
+const counting = <T>(until: number, f: (end: number) => T): T => { const ms = Math.max(0, until - clock()); return counted(fullRate, () => f(clock() + ms), true) }
 
 // The terms (not a read, a variable or a constant) of a conclusion that a node's facts read too, largest first; none
 // inside a product (a product of a term's linear form is no linear form).
@@ -1028,7 +1035,7 @@ export function allowTranslated(given: Machine, laws: Law[], inst: Instances, p:
     insts: closeHyps.length ? cl : [], uses: [{node: lawNodes.length, subst: {}, guard: yes}], carry: true}
   const all = [...lawNodes, terms, allowed], whole = mainGoal(facts, all, terms), until = withinDeadline(clock() + 10_000)
   const ren = renamer({s: now, cells: Object.fromEntries(mapNames.map(map => [map, {to: `${map}@`, at: t}]))})
-  const tree = timedKind('translate', 0, () => withProducts(() => decide(whole, closeFacts.length ? [le(t, T)] : [], wp => translate(g, whole, usual.tree, ren, st, until, new Map(), wp), st, until)))
+  const tree = counting(until, end => timedKind('translate', 0, () => withProducts(() => decide(whole, closeFacts.length ? [le(t, T)] : [], wp => translate(g, whole, usual.tree, ren, st, end, new Map(), wp), st, end))))
   if (!tree) return {specs: [], why: `${terms.name}: not translated`}
   return {specs: sliced([{...terms, main: tree}, allowed])}
 }

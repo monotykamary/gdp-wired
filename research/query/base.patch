@@ -1,0 +1,149 @@
+diff --git a/core/solver.ts b/core/solver.ts
+index 0b104be..b2d801f 100644
+--- a/core/solver.ts
++++ b/core/solver.ts
+@@ -90,8 +90,11 @@ export const canon = (l: Lin) => JSON.stringify(Object.keys(l).sort().map(x => [
+ // five times as many before merging them, it gives up with `unknown`.
+ // The rows the solver has read and made, which a counted search reads as its clock (kernel/prove.ts's `counted`).
+ export const work = {n: 0}
++// What the searches did, by kind, beside work.n (research/query reads them: the cost of each query's parts).
++export const costs = {solves: 0, solveRows: 0, fm: 0, fpivots: 0, cdclNodes: 0, cdclRows: 0, cands: 0, props: 0, pivots: 0, pivotNnz: 0, plainNodes: 0, plainRows: 0, sessions: 0, sessionHyps: 0}
+ export function solve(constraints: Constraint[], maxRows = 20_000, integral = true): Verdict {
+   work.n += constraints.length
++  costs.solves++; costs.solveRows += constraints.length
+   const steps: Step[] = []
+   const lins: Lin[] = [], stricts: boolean[] = []
+   const push = (step: Step, lin: Lin, strict = false) => (steps.push(step), lins.push(lin), stricts.push(strict), lins.length - 1)
+@@ -181,6 +184,7 @@ export function solve(constraints: Constraint[], maxRows = 20_000, integral = tr
+     if (!choice) break
+     if (choice.pos.length * choice.neg.length > 5 * maxRows) return {kind: 'unknown'}
+     work.n += choice.pos.length * choice.neg.length
++    costs.fm += choice.pos.length * choice.neg.length
+     exact &&= choice.isExact
+     eliminated.push({x: choice.x, rows: [...choice.pos, ...choice.neg]})
+     const next = rows.filter(r => (lins[r]![choice.x] ?? 0) === 0)
+@@ -326,6 +330,7 @@ export function refuteFast(constraints: Constraint[], maxRows = 2_000, integral
+   const eps = 1e-9
+   for (let iter = 0; iter < 50 * (R + m); iter++) {
+     work.n += 1 + ((R * cols) >> 8)
++    costs.fpivots++
+     // Bland's rule: the first column with a negative reduced cost enters (no cycling on degenerate systems).
+     let enter = -1
+     for (let j = 0; j < cols; j++) if (z[j]! < -eps) { enter = j; break }
+diff --git a/kernel/cdcl.ts b/kernel/cdcl.ts
+index 1b1dd8f..f76707f 100644
+--- a/kernel/cdcl.ts
++++ b/kernel/cdcl.ts
+@@ -17,10 +17,10 @@
+ // sides; one the path decides follows the parent that agrees; a leaf's derivation is found again among the rows at
+ // its tree path (a longer path than its clause's), and where a row isn't there, the rows at the tree path are solved
+ // afresh.
+-import {type Constraint, type Lin, type Step, env, refuteFast, solve, work} from '../core/solver.ts'
++import {type Constraint, type Lin, type Step, costs, env, refuteFast, solve, work} from '../core/solver.ts'
+ import {checkRefutation} from '../core/check.ts'
+ import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isCell, isMonomial, leafConstraints} from './kernel.ts'
+-import {clock, nearOf, openAt, openCells, rowsAt, unitAtoms, type Outcome} from './prove.ts'
++import {clock, logged, nearOf, openAt, openCells, queryHook, rowsAt, unitAtoms, type Outcome} from './prove.ts'
+ import {Reader, type Row, namesOf} from './reader.ts'
+ import {Simplex} from './simplex.ts'
+ 
+@@ -63,7 +63,8 @@ export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions
+ export const REFUTED = 'refuted, not unfolded'
+ export type Refuted = Outcome & {core?: number[]}
+ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?: number}, opts: {maxLeaves?: number, model?: boolean, wall?: number, core?: boolean} = {}): Outcome {
+-  return cdclSession(goal, root, opts).run(budget, opts.wall)
++  const go = () => cdclSession(goal, root, opts).run(budget, opts.wall)
++  return queryHook.on && !queryHook.depth ? logged(opts.model ? 'model' : 'cdcl', goal, go) : go()
+ }
+ // A search kept from one run to the next (core/bmc.ts's deeper goals): its atoms, their activities and phases, its learned
+ // clauses and the simplex's tableau. Between runs the caller may add hypotheses to the goal (goal.hyps grows; none is
+@@ -75,6 +76,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
+   const st = cdclStats, timing = st.on
+   const t = <T>(f: () => T, add: (ms: number) => void): T => { if (!timing) return f(); const t0 = performance.now(); try { return f() } finally { add(performance.now() - t0) } }
+   st.runs++
++  costs.sessions++; costs.sessionHyps += goal.hyps.length
+   const vars = new Map<string, Var>(), trail: string[] = [], levels: number[] = []
+   let sx = useLp ? new Simplex() : undefined
+   const nodes: DagNode[] = [], clauses: Clause[] = [], occ = new Map<string, number[]>()
+@@ -134,6 +136,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
+       const name = trail[qhead++]!, x = vars.get(name)!
+       for (const ci of occ.get(`${name}=${x.val}`) ?? []) {
+         const c = clauses[ci]!
++        costs.props += c.lits.size
+         let open: string | undefined, nOpen = 0, dead = false
+         for (const [w, p] of c.lits) {
+           const y = vars.get(w)!
+@@ -211,7 +214,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
+     restartAt = 32; nRestart = 0; sinceRestart = 0
+     undoTo(0); qhead = Math.min(qhead, trail.length) // (a run before this one may have left decisions)
+     if (assume) { const name = ensure(assume); assumed = [name, name === canon(assume)] } else assumed = undefined
+-    return search()
++    return queryHook.on && !queryHook.depth ? logged(opts.model ? 'model' : 'cdcl', goal, search) : search()
+   }
+   const search = (): Outcome => {
+     for (;;) {
+@@ -234,6 +237,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
+           if (mine.size !== theirs.size || [...mine].some(x => !theirs.has(x))) throw new Error(`reader.ts's rows differ from kernel.ts's at a node of ${goal.name}`)
+         }
+         work.n += 1 + full.length
++        costs.cdclNodes++; costs.cdclRows += full.length
+         // (the elimination below reads term columns' rows only once the trail has an atom about one, as growPlain does)
+         let columns = false
+         for (let i = 0; i < trail.length && !columns; i++) for (const key in vars.get(trail[i]!)!.lin) if (key.startsWith('⟦')) { columns = true; break }
+@@ -251,6 +255,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
+           return out.filter(lin => !seen.has(lin) && (seen.add(lin), namesOf(lin).length > 0) && !decidedLin(lin))
+         }, ms => { st.orderMs += ms })
+         const open = cands.length > 0
++        costs.cands += cands.length
+         // Bound propagation: an open atom its variables' bounds (the single-variable rows) decide.
+         const tb = timing ? performance.now() : 0
+         if (open) {
+@@ -303,6 +308,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
+             const p0 = sx.pivots
+             let lp = sx.load(full)
+             if (lp.kind === 'sat') lp = sx.check()
++            costs.pivots += sx.pivots - p0; if (sx.pivots > p0) costs.pivotNnz += (sx.pivots - p0) * sx.size
+             if (timing) { st.lpMs += performance.now() - t0; st.pivots += sx.pivots - p0; st.lpRows = sx.size; st.lpNnz = sx.nnz; st.lpVars = sx.vars; st.lpLoad = full.length; if (lp.kind === 'unknown') st.lpUnknown++ }
+             if (lp.kind === 'conflict') {
+               const support = lp.rows.sort((x, y) => x - y), out = solve(support.map(i => full[i]!))
+diff --git a/kernel/prove.ts b/kernel/prove.ts
+index 706d057..18f429d 100644
+--- a/kernel/prove.ts
++++ b/kernel/prove.ts
+@@ -9,7 +9,7 @@
+ //   - a hypothesis' rows and open atoms, and every term inside them, are reused from an earlier path that decided the
+ //     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
+ import {type C, type E, type Law, type Machine, walkOnce} from '../core/machine.ts'
+-import {type Lin, type Step, add, env, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
++import {type Lin, type Step, add, costs, env, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
+ import {checkRefutation} from '../core/check.ts'
+ import {allowNode, allowTranslated, certCyclic, certOn, certSearch, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, loopNodes, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
+ import type {TStats} from '../core/translate.ts'
+@@ -205,7 +205,19 @@ export function withTrees<T>(f: () => T): T {
+   treeCache.on++
+   try { return f() } finally { if (--treeCache.on === 0) treeCache.trees.clear() }
+ }
++// Each root query as it ends, for research's logs (research/query/log.ts sets it; off otherwise): the kind, the goal,
++// its wall time and counted work, its outcome, and how many queries it is inside.
++export const queryHook: {on?: (q: {kind: string, goal: Goal, ms: number, work: number, out: Outcome, depth: number}) => void, depth: number} = {depth: 0}
++export function logged(kind: string, goal: Goal, f: () => Outcome): Outcome {
++  const t0 = performance.now(), w0 = work.n
++  queryHook.depth++
++  try { const out = f(); queryHook.on?.({kind, goal, ms: performance.now() - t0, work: work.n - w0, out, depth: queryHook.depth - 1}); return out } finally { queryHook.depth-- }
++}
+ function growKept(goal: Goal, path: Path, budget: {nodes: number, until?: number, units?: boolean}): Outcome {
++  if (queryHook.on && !path.size && !budget.nodes && !queryHook.depth) return logged('grow', goal, () => growKept0(goal, path, budget))
++  return growKept0(goal, path, budget)
++}
++function growKept0(goal: Goal, path: Path, budget: {nodes: number, until?: number, units?: boolean}): Outcome {
+   if (!profile.on || path.size || budget.nodes) return growRoot(goal, path, budget)
+   const t = performance.now(), s0 = profile.solves, m0 = profile.solveMs, r0 = profile.rowsMs, n0 = profile.nodes
+   const out = growRoot(goal, path, budget)
+@@ -260,6 +272,7 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
+   // (what it saw before term columns), renumbered to the whole leaf's when a leaf is found.
+   const full = timed(() => rowsAt(goal, path), ms => { profile.rowsMs += ms })
+   work.n += 1 + full.length
++  costs.plainNodes++; costs.plainRows += full.length
+   const columns = [...path.values()].some(a => Object.keys(a.lin).some(key => key.startsWith('⟦')))
+   const idx = full.flatMap((r, i) => (columns || !Object.keys(r.lin).some(key => key.startsWith('⟦')) ? [i] : []))
+   const rows = idx.map(i => full[i]!), at = (i: number) => (i < rows.length ? idx[i]! : full.length + i - rows.length)

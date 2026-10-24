@@ -9,7 +9,7 @@
 //   - a hypothesis' rows and open atoms, and every term inside them, are reused from an earlier path that decided the
 //     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
 import {type C, type E, type Law, type Machine, walkOnce} from '../core/machine.ts'
-import {type Lin, type Step, add, env, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
+import {type Lin, type Step, add, costs, env, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
 import {allowNode, allowTranslated, certCyclic, certOn, certSearch, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, loopNodes, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
 import type {TStats} from '../core/translate.ts'
@@ -73,30 +73,44 @@ function openH(c: C, path: Path, out: Lin[], positive = true): void {
 // keys a pairing builds ((a + b)² + b, keys whose difference has monomials) are left uncompared: that encoding states
 // their congruence as facts, and comparing their keys only brings products into leaves its linear rows decide.
 export const pairedKeys = {skip: false}
-export function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
-  const names = [...new Set(rows.flatMap(r => Object.keys(r.lin)))].filter(isCell)
+// (each cell's map and key, and each pair's difference both ways, made once: the pairs are quadratic in the names, and
+// the same forms at every node keep what is remembered per form)
+const cellKeys = new Map<string, {map: string, key: Lin}>(), cellPairs = new Map<string, {d: Lin, neg: Lin, q0?: Lin, q1?: Lin}>()
+export const cellPair = (a: string, b: string): {d: Lin, neg: Lin, q0?: Lin, q1?: Lin} => {
+  const pk = `${a}\u0000${b}`
+  let pair = cellPairs.get(pk)
+  if (!pair) {
+    if (cellPairs.size > 200_000) cellPairs.clear()
+    const d = sub(cellKey(a).key, cellKey(b).key)
+    cellPairs.set(pk, (pair = {d, neg: scale(d, -1)}))
+  }
+  return pair
+}
+const cellKey = (n: string) => { let c = cellKeys.get(n); if (!c) { if (cellKeys.size > 100_000) cellKeys.clear(); cellKeys.set(n, (c = {map: n.slice(0, n.indexOf('[')), key: parseKey(n.slice(n.indexOf('[') + 1, -1))})) } return c }
+function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
+  const seen = new Set<string>(), names: string[] = []
+  for (const r of rows) for (const n in r.lin) if (!seen.has(n)) { seen.add(n); if (isCell(n)) names.push(n) }
   const out: Lin[] = []
-  const keyText = (n: string) => n.slice(n.indexOf('[') + 1, -1)
-  // (each name's map and key read once: the pairs are quadratic in the names)
-  const maps = names.map(n => n.slice(0, n.indexOf('['))), keys = names.map(n => parseKey(keyText(n)))
+  const cs = names.map(cellKey)
+  const dec = (lin: Lin) => path.get(canon(lin))?.holds ?? (path.has(canonFlip(lin)) ? !path.get(canonFlip(lin))!.holds : undefined)
   for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
-    if (maps[i] !== maps[j]) continue
-    const d = sub(keys[i]!, keys[j]!)
+    if (cs[i]!.map !== cs[j]!.map) continue
+    const pair = cellPair(names[i]!, names[j]!), d = pair.d
     if (pairedKeys.skip && Object.keys(d).some(isMonomial)) continue
-    const dec = (lin: Lin) => path.get(canon(lin))?.holds ?? (path.has(canonFlip(lin)) ? !path.get(canonFlip(lin))!.holds : undefined)
     // Two cells of a run's map (core/cyclic.ts: time u and key k at u + k·Ω) at keys k·Ω and k'·Ω: k = k' first, a
     // linear atom; the keys' own difference only where k = k' (its other side then refuted by (k − k')·Ω = 0, a product).
-    const q0 = cellProducts.on ? quotient(d) : undefined
+    const q0 = cellProducts.on ? ('q0' in pair ? pair.q0 : (pair.q0 = quotient(d))) : undefined
     if (q0) {
-      const qa = dec(q0), qb = dec(scale(q0, -1))
+      const q1 = (pair.q1 ??= scale(q0, -1))
+      const qa = dec(q0), qb = dec(q1)
       if (qa === undefined) { out.push(q0); continue }
-      if (qa === true && qb === undefined) { out.push(scale(q0, -1)); continue }
+      if (qa === true && qb === undefined) { out.push(q1); continue }
       if (!(qa && qb)) continue
-      cellDiffs.set(canon(d), q0); cellDiffs.set(canon(scale(d, -1)), scale(q0, -1))
+      cellDiffs.set(canon(d), q0); cellDiffs.set(canon(pair.neg), q1)
     }
-    const a = dec(d), b = dec(scale(d, -1))
+    const a = dec(d), b = dec(pair.neg)
     if (a === undefined) out.push(d)
-    else if (a === true && b === undefined) out.push(scale(d, -1))
+    else if (a === true && b === undefined) out.push(pair.neg)
   }
   return out
 }
@@ -152,8 +166,8 @@ const proveTrace = !!env.PROVE_TRACE
 export const cellProducts = {on: false}
 export type Outcome = {tree: Tree, nodes: number} | {stuck: 'sat' | 'unknown', witness?: Record<string, number>, path: Path, why?: string}
 
-// The budget: 200,000 nodes and, by default, a second per hypothesis (at least 20 seconds) per goal; past either the goal
-// is left `unknown`. A goal with many instances (a law about two keys at its pairs) has that many more rows per leaf.
+// The budget: 200,000 nodes and, by default, a second per hypothesis (at least 20 seconds) per goal, on the counted
+// clock inside `counted` and in the cost model's work outside it (`withWork`); past either the goal is left `unknown`. A goal with many instances (a law about two keys at its pairs) has that many more rows per leaf.
 // A deadline every goal grown inside `withDeadline` keeps, beside its own budget: a search that proves many things (core/
 // infer.ts, core/discover.ts, the search proveRule falls back on) bounds them all; a goal past it is left `unknown`.
 let deadline = Infinity
@@ -161,14 +175,36 @@ let deadline = Infinity
 // time, or within `counted` the work the prover has done (the solver's rows read and made, each node's rows), `perMs`
 // units a millisecond, so that what a search's budget lets it try, and so its verdict, doesn't depend on the machine's
 // speed. A counted search inside another reads the outer's clock.
-let rate = 0
-export const clock = (): number => (rate ? work.n / rate : performance.now())
-export function counted<T>(perMs: number, f: () => T): T {
+// With `full`, the clock reads the cost model below in place of work.n.
+let rate = 0, meter = (): number => work.n
+export const clock = (): number => (rate ? meter() / rate : performance.now())
+export function counted<T>(perMs: number, f: () => T, full = false): T {
   if (rate) return f()
   const outer = deadline
-  rate = perMs; deadline = Infinity
+  rate = perMs; deadline = Infinity; meter = full ? fullWork : () => work.n
   try { return f() } finally { rate = 0; deadline = outer }
 }
+// The cost model: what a query does, by kind (core/solver.ts's costs), each weighed to the milliseconds a Modal 2-vCPU
+// container takes for it, `fullRate` units a millisecond at the median query: elimination's pairs and the float
+// simplex's cells, the plain search's rows a node (kernel.ts's reading, whole at each node), the values reader.ts finds
+// again, the live rows' copies it keeps and the read edges a change walks, the candidates scanned, the pivots' rows,
+// the root's rows for units, the unfolding's rows a leaf, the goal's nodes where a query starts. work.n counts the rows
+// the solver and each node read, which the incremental search reads whole no more: on 7,027 root queries of 20 ms or
+// more (research/query/fit.py on runs/query/cal2: the 332 step goals, CHC sat and unsat, ITS, the false step goals and
+// the real-world corpus), work.n did 28 to 377 units a ms (p10, p90), the model 120 to 401.
+const model: [keyof typeof costs, number][] = [['fm', 2.33], ['fcells', 0.0123], ['plainRows', 7.93], ['values', 0.672], ['copies', 0.735], ['edges', 0.0435],
+  ['scan', 0.0765], ['pivotRows', 0.599], ['unitRows', 15.6], ['unfoldRows', 0.735], ['goalNodes', 0.492], ['translateRows', 7.93]]
+export const fullRate = 250
+export const fullWork = (): number => { let n = 0; for (const [k, w] of model) n += w * costs[k]; return n }
+// A goal's own budget where its caller gives none, outside a counted search: the cost model's work, groundRate units a
+// millisecond of the budget (below fullRate: the queries of 10 s or more did 163 to 271 units a ms at their median, by
+// group of the run above, so a long goal's budget takes about the wall time it had), so a goal left unknown is left so
+// on any machine; a deadline it is grown within stays.
+const groundRate = 180
+let workCap = Infinity
+const withWork = <T>(cap: number, f: () => T): T => { const outer = workCap; workCap = Math.min(outer, cap); try { return f() } finally { workCap = outer } }
+// Past a budget's end on the clock, or past the work a goal's own budget allows.
+export const late = (until: number): boolean => clock() > until || (workCap !== Infinity && fullWork() > workCap)
 // A budget's end, within the deadline (a translation's own bound, core/cyclic.ts's, kept by the export's GDP_CERT_MS).
 export const withinDeadline = (until: number): number => Math.min(until, deadline)
 export function withDeadline<T>(until: number, f: () => T): T {
@@ -178,7 +214,12 @@ export function withDeadline<T>(until: number, f: () => T): T {
 }
 // `units: false`: the goal's own order, no units first (a caller after a model, not a proof: a run guided by the
 // prover's witnesses, say, whose models units would steer).
-export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number, until?: number, units?: boolean} = {nodes: 0, until: clock() + Math.max(20_000, 1_000 * goal.hyps.length)}): Outcome {
+export function grow(goal: Goal, path: Path = new Map(), budget?: {nodes: number, until?: number, units?: boolean}): Outcome {
+  if (!budget) {
+    const ms = Math.max(20_000, 1_000 * goal.hyps.length)
+    if (!rate) return withWork(fullWork() + groundRate * ms, () => grow(goal, path, {nodes: 0}))
+    budget = {nodes: 0, until: clock() + ms}
+  }
   if (deadline < (budget.until ?? Infinity)) budget.until = deadline
   if (budget.units === false && unitsNow) { unitsNow = false; try { return grow(goal, path, budget) } finally { unitsNow = true } }
   if (proveDump && !path.size && !budget.nodes) { proveDump(goal); }
@@ -205,7 +246,19 @@ export function withTrees<T>(f: () => T): T {
   treeCache.on++
   try { return f() } finally { if (--treeCache.on === 0) treeCache.trees.clear() }
 }
+// Each root query as it ends, for research's logs (research/query/log.ts sets it; off otherwise): the kind, the goal,
+// its wall time and counted work, its outcome, and how many queries it is inside.
+export const queryHook: {on?: (q: {kind: string, goal: Goal, ms: number, work: number, out: Outcome, depth: number}) => void, depth: number} = {depth: 0}
+export function logged(kind: string, goal: Goal, f: () => Outcome): Outcome {
+  const t0 = performance.now(), w0 = work.n
+  queryHook.depth++
+  try { const out = f(); queryHook.on?.({kind, goal, ms: performance.now() - t0, work: work.n - w0, out, depth: queryHook.depth - 1}); return out } finally { queryHook.depth-- }
+}
 function growKept(goal: Goal, path: Path, budget: {nodes: number, until?: number, units?: boolean}): Outcome {
+  if (queryHook.on && !path.size && !budget.nodes && !queryHook.depth) return logged('grow', goal, () => growKept0(goal, path, budget))
+  return growKept0(goal, path, budget)
+}
+function growKept0(goal: Goal, path: Path, budget: {nodes: number, until?: number, units?: boolean}): Outcome {
   if (!profile.on || path.size || budget.nodes) return growRoot(goal, path, budget)
   const t = performance.now(), s0 = profile.solves, m0 = profile.solveMs, r0 = profile.rowsMs, n0 = profile.nodes
   const out = growRoot(goal, path, budget)
@@ -235,8 +288,8 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
   }
   if (root) {
     if (cdcl) {
-      const now = clock(), end = withinDeadline(budget.until ?? Infinity)
-      const out = growCdcl(goal, path, {nodes: 0, until: end === Infinity ? end : now + cdclShare * (end - now)})
+      const now = clock(), end = withinDeadline(budget.until ?? Infinity), w = fullWork()
+      const out = withWork(workCap === Infinity ? Infinity : w + cdclShare * (workCap - w), () => growCdcl(goal, path, {nodes: 0, until: end === Infinity ? end : now + cdclShare * (end - now)}))
       // (with `realModels.on`, a model whose products don't multiply out is no model: the CDCL search reads a product as
       // a name of its own, where the plain search below multiplies rows; a goal whose products only its cases bring,
       // core/nonterm.ts's x' := x·y)
@@ -255,11 +308,12 @@ const fakeProducts = (w: Record<string, number> | undefined): boolean => !!w && 
 function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: number, cap?: number}): Outcome {
   if (budget.cap !== undefined && budget.nodes >= budget.cap) return {stuck: 'unknown', path, why: 'cap'}
   if (profile.on) profile.nodes++
-  if (++budget.nodes > 200_000 || (budget.until !== undefined && clock() > budget.until)) return {stuck: 'unknown', path, why: outOfBudget(goal, budget.nodes > 200_000 ? 'nodes' : 'time', path.size)}
+  if (++budget.nodes > 200_000 || late(budget.until ?? Infinity)) return {stuck: 'unknown', path, why: outOfBudget(goal, budget.nodes > 200_000 ? 'nodes' : 'time', path.size)}
   // Rows that read a term column only once a cut has put one on the path; before, the rows a choice-free search uses
   // (what it saw before term columns), renumbered to the whole leaf's when a leaf is found.
   const full = timed(() => rowsAt(goal, path), ms => { profile.rowsMs += ms })
   work.n += 1 + full.length
+  costs.plainNodes++; costs.plainRows += full.length
   const columns = [...path.values()].some(a => Object.keys(a.lin).some(key => key.startsWith('⟦')))
   const idx = full.flatMap((r, i) => (columns || !Object.keys(r.lin).some(key => key.startsWith('⟦')) ? [i] : []))
   const rows = idx.map(i => full[i]!), at = (i: number) => (i < rows.length ? idx[i]! : full.length + i - rows.length)
@@ -572,7 +626,7 @@ const nearSeen = new WeakMap<Goal, boolean[]>()
 // (the names a term reads, its shared parts walked once: a witness read at each of its uses is one object)
 const namesOf = (t: unknown): Set<string> => {
   const out = new Set<string>()
-  walkOnce(t, o => { for (const [key, v] of Object.entries(o)) if ((key === 'name' || key === 'map') && typeof v === 'string') out.add(v) })
+  walkOnce(t, o => { costs.goalNodes++; for (const [key, v] of Object.entries(o)) if ((key === 'name' || key === 'map') && typeof v === 'string') out.add(v) })
   return out
 }
 export function nearOf(goal: Goal): boolean[] {
@@ -598,6 +652,7 @@ function unitsOf(goal: Goal): Lin[] {
   // Forced by the root's rows without a solver: a row the atom is (or is the negation of), or the bounds the rows give
   // single variables (x <= c, x >= c) deciding it whichever way its variables go.
   const root: Path = new Map(), rows = leafConstraints(goal, root), seen = new Set<string>(), given = new Set<string>()
+  costs.unitRows += rows.length
   const lo = new Map<string, number>(), hi = new Map<string, number>()
   for (const r of rows) {
     given.add(canon(r.lin))
@@ -970,8 +1025,19 @@ function triggered(m: Machine, laws: Law[], inst: Instances, build: (inst: Insta
 // found that its leaves refute with, the proof grown again with those alone. The checked goal is then built from far
 // fewer hypotheses (a law about pairs of items with 900 instance hypotheses and 30 leaves using a few of them, say).
 export const minimal = {on: false}
+// The rows a tree's leaf reads, where the search that made it knew them (kernel/cdcl.ts's unfolding: reader.ts's rows,
+// kernel.ts's at the leaf's path): how many the path gives, and each one its derivation reads, with its form and source
+// (a hypothesis' index, the pair of cells it equates, else -1). A large tree is then walked without its leaves' rows
+// read again (usedHyps, core/translate.ts): ledger/tigerbeetle/transfers' 21,108 leaves took 22.6 s here.
+export type LeafRows = {n: number, at: Map<number, {lin: Lin, src: number | [string, string]}>}
+export const leafRowsOf = new WeakMap<object, LeafRows>()
 // The hypotheses a tree's leaves read: each leaf's input rows, and the rows its products multiply.
 export function usedHyps(goal: Goal, tree: Tree, path: Path = new Map(), out = new Set<number>()): Set<number> {
+  const known = 'leaf' in tree && !tree.products && !tree.squares ? leafRowsOf.get(tree) : undefined
+  if (known && 'leaf' in tree) {
+    for (const st of tree.leaf) if (st.kind === 'input') { const s = known.at.get(st.index)?.src; if (typeof s === 'number' && s >= 0) out.add(s) }
+    return out
+  }
   if ('leaf' in tree) {
     const rows = rowsAt(goal, path), n = rows.length, sq = tree.squares?.length ?? 0
     const mark = (i: number): void => {
