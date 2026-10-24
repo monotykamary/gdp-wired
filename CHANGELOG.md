@@ -3,6 +3,69 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+The interchange format, version 1.0 (spec/interchange): a rule, its laws and a certificate as JSON that another language
+can read, write and check, with gdp-wired as its reference implementation. Nothing trusted changed: `kernel/kernel.ts`,
+`kernel/cyclic.ts`, `core/check.ts` and the Lean files are as they were, and the checker is built from them (git blobs
+348282b, 3e9a73c, 0e5a454, printed by every build, the same in every run below).
+
+- **The format** (`interchange/schema.json`, JSON Schema 2020-12: 204 lines, 41 definitions, 176 field descriptions;
+  the meaning in `docs/interchange.md`): 13 kinds, each the certificate of one trusted entry point: kernel trees
+  (`goals`: splits, inputs, combinations, cuts, squares and products), `laws`, `stepLaws` (k steps, histories, sets,
+  functions and facts), `kInduction`, `progress`, `liveness`, `loop` (ranks in order), `recur` (nontermination),
+  `fold`, `cyclic`, `qgoals` and `qmachine` (the rational trees), and `termination` (a ring's measures with each
+  call's cyclic proof). Records are lists of pairs in order, a linear form lists its constant first and its atoms in
+  the kernel's order (a derivation names rows by place), and a term column is named by its term (the kernel numbers
+  them per process).
+- **Export and import** (`interchange/format.ts`, untrusted): `toInterchange(certificate)` and `fromInterchange(json)`,
+  refusing with where whatever is outside the format.
+- **The standalone checker** (`interchange/check.ts`, `cli.ts`, `wasm.ts`; `bun interchange/build.ts --wasm`):
+  `gdp-wired-check`, a 119.4 KB bundle (node or bun) and a 1,439.8 KB WebAssembly module (Javy 9.1.0, WASI preview 1),
+  accepted or refused per law. It reads a document, writes it back and refuses it unless the two agree, then calls the
+  kernel's own entry points.
+- **A second checker** in Python (`interchange/py/check.py`, 458 lines, written from the spec): the tree and
+  derivation check of a `goals` document, any certificate's goals written by `gdp-wired-check --goals`.
+- **docs/ARCHITECTURE.md**: the trust boundaries and why each sits where it does, how to add a front end and a
+  certificate kind, how the benchmarks and corpora are measured.
+
+Measured (`runs/interchange/`): every suite job (`interchange/suite-jobs.ts`: 155 of modal/suite.json's, all but Lean's
+and the type check, plus the two examples no job runs) with every certificate handed to a trusted entry point captured
+(`interchange/capture.ts`), each written, read back in the same process, then checked in other processes by the
+checker, the bundled CLI, the WebAssembly module under Wasmtime 49.0.1 and, on its goals, the Python checker, against
+the kernel's answer where it was made, with three tampered twins of each accepted document; every document and twin
+validated against the schema (Python jsonschema 4.23.0).
+
+- By default (`runs/interchange/capture-default`, and `capture-rest-default`): 51,958 documents (cyclic 5,973, goals
+  37,711, kInduction 2,038, laws 955, recur 1,991, qgoals 2,965, termination 115, stepLaws 127, loop 23, fold 25,
+  qmachine 19, progress 10, liveness 6; the kernel accepting 41,960 and refusing 9,998, among them the 10 progress documents, whose laws are proven by
+  their cyclic certificate by default, taken apart, so they carry no lawsProof and the checker refuses them as the capture
+  records), every one read back to the same
+  objects, and the checker, the CLI and the WebAssembly module agreeing with the kernel on all 51,958; the Python checker
+  agreeing on all 107,153 goals of theirs. 82,784 tampered twins: the checker refused 82,559, the CLI and the module
+  agreed on all, the Python checker on all 244,149 of their goals; the 225 the checker accepts are twins the tamper left
+  a proof (a raised multiplier or a moved split constant that still refutes), accepted by all four. Schema: 263,551
+  valid, none invalid. Outside the format: 10 tampered trees of kernel/tamper.test.ts with a multiplier that isn't an
+  integer, which the kernel refuses too. One job, compare/term's c2ari, hands the kernel nothing from its own bun
+  processes (python starts them).
+- With `--usual`: USUAL.
+- Lean (`runs/interchange/lean-2`, `interchange/lean-jobs.ts`): the conformance cases written as documents, read back
+  in another process, checked, and written as Lean through lean-kernel's emitters, each claim computed to the checker's
+  answer: NonTerm.lean's checkRecur on 127 (28 found, 99 tampered or forged), KInd.lean's checkKInd on 112 of 24
+  machines' certificates and twins (33 accepted, 79 refused; 24 refused twins with no KInd literal not sent), Rationals.lean's Q.checkGoal on 1,584 (300
+  proven, 1,284 tampered), Kernel.lean's checkGoal on 547 goals of 40 example rules and their 117 twins (431 accepted,
+  116 refused; one twin's goal unwritable: a cut by a divisor its row no longer has), Cyclic.lean's checkCyclic on
+  40 example rules' cyclic certificates and 116 of their 117 twins with a node changed (the 117th below), Data.lean's `termination_by` under
+  the 10 rings' measures the documents hold: every file elaborates, Lean computing the checker's answer on each. One
+  cyclic twin (a use made of another node) the checker refuses and Lean accepts: Lean finds a leaf's rows by value
+  (the emitter claims them), kernel.ts by their place, and that twin's rows are all there, moved; `IxCyclicByValue.lean`
+  computes it to true, and kernel.ts accepts it too once each input is pointed at its row (`interchange/lean.ts`'s
+  `byValue`). It appeared in `runs/interchange/lean-1` as a failed `= false`.
+- Suites: by default 218 jobs, none failed (`runs/interchange/suite-default`: 222.0 s wall, 3,520.1 s of job time);
+  `--usual` 218 jobs, 1 failed (`runs/interchange/suite-usual`: the new `interchange` job, whose test needed the cyclic
+  certificate GDP_CERT=usual turns off; fixed, and the job passes with and without `--usual`:
+  `runs/interchange/suite-usual-interchange`, `suite-default-interchange`).
+
 ## 0.25.0
 
 Ahead of or level with the leading tools on four of the six measures we run, in our harness (60 s on Modal, 2 vCPU, the

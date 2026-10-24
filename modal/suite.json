@@ -1547,5 +1547,12 @@
 "cpu": 4.0,
 "memory": 8192,
 "timeout": 2400
+},
+{
+"name": "interchange",
+"cmd": "bun test interchange.test.ts 2>&1",
+"cwd": "interchange",
+"cpu": 2.0,
+"timeout": 900
 }
 ]
