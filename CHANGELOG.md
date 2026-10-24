@@ -53,6 +53,68 @@ in 0.26.0).
   `runs/front-go/suite-usual`); after the sharing (146ca37, `runs/front-go/step1`) none failed either (250.4 s and
   3,310.6 s by default, 230.6 s and 2,865.7 s with `--usual`).
 
+The invariant search's cubes read the rule's own comparisons (core/infer.ts, the join). CHC-COMP LIA-Lin in our
+harness (60 s on Modal, 2 vCPU, the rivals as installed in compare/): 1,023 solved (613 sat, 410 unsat) beside main
+e883e53's 1,001 (592, 409) launched with it (`runs/inv2/chc3-mine`, `chc3-base`), and 1,026 (617, 409) beside 1,001
+(592, 409) in the batch before (`chc2`); none wrong, the same 2 disputed on both. Spacer 1,163, Golem 1,154. Nothing
+trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts` and the Lean files as in 0.26.0).
+
+- **The cubes.** A counterexample to a caller's law is blocked as IC3 blocks one; its cube's literals now read the
+  rule's own comparisons true there (`comparisons` keeps each comparison's bound: Σ t·v ≤ d and its negation) beside
+  its control values and the samples' bounds, so a cube where no sample is (a location the runs never reached, where
+  the cube was the control values alone and its predecessors walked it back toward the samples) reads the guards
+  that led there. Predecessors are blocked 8 deep (3). The cube comes first where no sample holds the
+  counterexample's control state, else after the candidates as before; the window that gave the join 0.3 of its time
+  once a cube was in goes. A cube blocked twice in one chain no longer ends the join (a law declared twice).
+- **The join's share** is an option (`InferOptions.join`, 0.6 as before); compare/chc/solve.ts passes 0.8.
+- **CHC-COMP, gained 27 and lost 5** (compare/chc/README.md, "after 0.26.0", has each): s_split_17, 37, 38, HOLA/04,
+  reve 013, 013b, 014, 015, llreve break and break_merged, ctigar gulwani_cegar2, dillig37, up4, Lustre car_2 ×3,
+  car_all ×3, SYNAPSE_4 and 7 more main solves in some of its five runs. Lost: PRODUCER_CONSUMER_2 (main 5 of 5;
+  here its counterexamples, at control states no sample holds, are blocked first, a cube a round until the join's
+  time ends), s_split_42 and loop__fib_000_002 (a cube blocked 8 deep counting a bound up one value at a time, where
+  main's 3 deep failed at once and the search below answered; 1 of 2 here), up3 and durationThm_2 (main 2 and 3 of
+  5, here 1 of 2). By group: C 19 → 24 of 38, D 25 → 31 of 116; Lustre 601 → 607, ctigar 34 → 41 (`chc2`). The gap
+  to Spacer and Golem: 263 (211 sat, 52 unsat) against 281 (229, 52); of the 154 sat-gap tasks whose Spacer
+  invariant the kernel proves, 18 solved against 4.
+- **Measured and left out** (the README has each run): PDR frames over the join's cube machinery (frames of blocked
+  cubes, obligations as the kernel's predecessor points, lemmas pushed): before the join 93 and 80 against 101 on
+  the 254 tasks of `research/inv/dev.json`, from the start 75 against the join's 104, after the join 100 against 101;
+  at 300 s it converged on 6 of 154 with 43 to 66 lemmas, each query 12 to 170 ms locally. Also: cubes at the rule's
+  constants, Houdini-seeded control cubes, a deadline for one counterexample's cubes, the depth counted at sampled
+  control states, `down`'s 12 or 48 queries, 96 cubes, 16 tries.
+- **The other benchmarks**, each beside main launched with it: TermComp ITS 1,140 (613 terminating, 527 not) against
+  1,139 (613, 526) (`its3`) and 1,142 against 1,140 (`its2`), every difference at 39 to 60 s (s1.t2's accelerated set:
+  9 of 10 here, 10 of 10 on main, 38.5 to 67.9 s and 39.2 to 62.1 s, `s1rep`); SV-COMP 224 against 225 (`sv2`) and
+  225 against 226 (`sv`), each at 45 to 59 s on main, where findRank's sampling, bounded by wall time, found no rank;
+  TIP 195 against 198 (`tip`): proveData reads no invariant search, and each task lost was proven at 53.6 to 59.2 s
+  on main.
+- **The corpora.** Frontier round 1: 90 of 92, 42 of 42 refused, every verdict and every law found the same
+  (`fr1b`). Round 2: 31 of 47 against 30, 47 of 47 refused on both (`fr2b`): chc/D/gulwani_fig1a proven (in `fr2`
+  too), the rest the same. The real-world corpus: 237 proven, 18 refuted, 56 unknown on both, every verdict the same
+  (`rwb`); gapless.js's law 2, at the edge of its 60 s: 8 of 8 on each side (34.3 to 55.8 s here, 31.9 to 58.3 s on
+  main, `onecpu-b`).
+- **Suites and 1 vCPU.** By default 218 jobs, none failed, 619.8 s wall, 5,485.7 s of job time
+  (`runs/inv2/suite-default`); `--usual` none failed, 507.8 s wall, 4,865.8 s (`suite-usual`). Ten jobs a side, interleaved (`onecpu-b`): infer's "a law that
+  needs an invariant" at most 3,348.30 ms (median 2,506.07) against 3,036.21 (2,704.82) on main, "what was found
+  reads as the builder call" 2,357.69 against 2,033.28; data's nearPlus 2,912.31 against 3,059.37.
+- **One invariant engine, measured.** What the invariant searches share, read from the code: candidates from the
+  runs (inferLaws' templates; nonterm's atom pool, bounds of one value and the sums and differences of two), a
+  CDCL query with its core (the join's `stepWith` and `queryWith`; kind's k-step goals; nonterm's closure goal),
+  a counterexample answered by a form false there (the join's cubes, `down` and prime control cubes; the search below
+  the join; nonterm's next atom), and Houdini (the join; its runs' neighbours; relation.ts's over the relation's
+  generators for findRank; findCycles' over cyclic nodes; invariant.ts's over Fourier–Motzkin). Moved onto the engine:
+  `run-strengthen.ts`, whose Houdini (invariant.ts, 63 lines) is retired for `inferLaws` (s + 50·p ≤ b + 149 in 790
+  ms, the job 0.87 s, against the Houdini's 14.94 s on Modal in `runs/pairshang/suite-default`). findRank and
+  findLeadsTo already state only their goal to `inferLaws` (the descent as step laws); a helper for the block they
+  share measured +194 bytes and was dropped. PDR as a second driver over the cubes paid nothing (above). The rest
+  stay: k-induction is a certificate of its own whose step goal's model is k states, not a state to block; nonterm's
+  closure is a goal of its own whose counterexample one atom of a 16-line pool excludes; relation.ts's Houdini reads
+  exact generators, no samples and no kernel. What they share with the join is a loop of a few lines each, as
+  research/refine (branch gen/loop) measured.
+- **The library** (`core/` and `kernel/`, tests excluded): 1,941,047 bytes and 26,427 lines against 0.26.0's
+  1,943,031 and 26,476 (−1,984 bytes, −49 lines): infer.ts +46 and −31 lines (91,053 → 92,508 bytes) (the comparisons' bounds, the cubes' literals and
+  order, the share, the duplicates), invariant.ts −63, machine.ts −1, run-strengthen.ts +5 and −5.
+
 ## 0.26.0
 
 Five benchmarks moved or held, the library got smaller, the extractor reads real projects' code, and certificates have

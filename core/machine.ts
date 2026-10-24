@@ -2,7 +2,6 @@
 //   - interpret / compileJs: the runtime, as an interpreter and as generated JavaScript
 //   - prove: each law by induction (holds at the start, one step preserves it), with every case decided by solver.ts
 //   - search: real counterexample traces from the start, by bounded enumeration of short request sequences
-//   - strengthen (invariant.ts): candidate invariants dropped until the rest are inductive (Houdini)
 // Arithmetic is linear: +, −, × by a constant, min, max, if. Maps are naturals indexed by naturals, every cell starting
 // at the same value; a law about a map holds for every key x, and is proven at one arbitrary x (with the law assumed at
 // every other key the step reads).
