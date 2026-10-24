@@ -131,10 +131,11 @@ const joinWarmEnv = env.GDP_JOIN_WARM ?? 'pdr', joinWarmHyps = 4000, joinWarmAdd
 // GDP_JOIN_FIXGATE=0: a walk's request always tried with some inputs fixed first (else only while that pays, below).
 const joinFixGate = env.GDP_JOIN_FIXGATE !== '0'
 // PDR beside the join (InferOptions.pdr, or GDP_JOIN_PDR, which `off` turns off): first, before the join, with
-// joinPdrShare of its time (the join the rest); after, once the join ends unproven, with joinPdrShare of what the search
-// has left. At most joinPdrObligations obligations queued at once, 64 frames.
+// joinPdrShare of its time (the join the rest); after, once the join ends unproven, with joinPdrAfter of what the
+// search has left (the kernel's search below, after a join that ran out of time, answered 4 of 478 sat answers:
+// compare/chc/README.md). At most joinPdrObligations obligations queued at once, 64 frames.
 const joinPdrOwn = env.GDP_JOIN_PDR_OWN !== '0'
-const joinPdrEnv = env.GDP_JOIN_PDR, joinPdrShare = Number(env.GDP_JOIN_PDR_SHARE ?? 0.5), joinPdrObligations = 64
+const joinPdrEnv = env.GDP_JOIN_PDR, joinPdrShare = Number(env.GDP_JOIN_PDR_SHARE ?? 0.5), joinPdrAfter = Number(env.GDP_JOIN_PDR_AFTER ?? 0.9), joinPdrObligations = 64
 // The kernel's search below the join: GDP_INFER_HALVES=0, a candidate chosen without its equality's other half;
 // GDP_INFER_DROP=0, a chosen candidate stuck inferStuckDrop times kept.
 const inferHalves = env.GDP_INFER_HALVES !== '0', inferDrop = env.GDP_INFER_DROP !== '0', inferStuckDrop = 4
@@ -1341,7 +1342,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (joinPdr === 'only' && why !== 'inductive') why = 'pdr'
     if (why !== 'inductive' && why !== 'pdr') { why = ''; joinRounds() }
     opts.progress?.('join end', {rounds, set: set.length, why, cone: cone.length, ms: Math.round(performance.now() - jT0)})
-    if (joinPdr === 'after') pdrFor(jEnd + (until - jEnd) * joinPdrShare)
+    if (joinPdr === 'after') pdrFor(jEnd + (until - jEnd) * joinPdrAfter)
     // (unproven, the search below begins as it would have: the candidates and the counterexamples as they were)
     if (why === 'inductive') chosen = cone
     else { pool = pool0; ctis.length = ctis0 }

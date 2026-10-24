@@ -69,10 +69,11 @@ const bmcTurn = (slice: number) => {
 }
 
 // PDR over the join's cubes (core/infer.ts's inferLaws with `pdr: 'only'`: its own runs for the samples, no candidates),
-// one turn of --pdr-ms (16 s) once k-induction and the bounded runs have had their first two turns each: the invariant
+// one turn of --pdr-ms (16 s) in place of k-induction's turn of 16 s (by then k-induction has answered 95% of what it
+// answers, runs/chc5/f2-main), the bounded runs keeping theirs: the invariant
 // search on solve.ts's CPU keeps the join's whole time, and PDR has this CPU's. Proven (the kernel's proof, checked),
 // it stops solve.ts and answers sat.
-const pdrMs = opt('--pdr-ms', Number(process.env.GDP_CHC_PDR_MS ?? 16_000))
+const pdrMs = opt('--pdr-ms', Number(process.env.GDP_CHC_PDR_MS ?? 0)), pdrAt = Number(process.env.GDP_CHC_PDR_AT ?? 16_000)
 let pdrDone = pdrMs <= 0
 const pdrTurn = (ms2: number) => {
   pdrDone = true
@@ -81,8 +82,9 @@ const pdrTurn = (ms2: number) => {
   if (h.proven && h.checked) { stop(); say({stage: 'answer', answer: 'sat', by: 'pdr', invariants: h.found.length}); process.exit(0) }
 }
 for (let slice = 2000; performance.now() < end && (kindLive || bmcLive || !pdrDone); slice *= 2) {
-  if (!pdrDone && (slice >= 8000 || !(kindLive || bmcLive))) pdrTurn(Math.min(pdrMs, end - performance.now()))
-  if (kindLive) kindTurn(bmcLive ? slice : end - performance.now())
+  // (PDR in k-induction's turn of 16 s, or its first from 4 s on once k-induction is over: the bounded runs keep theirs)
+  if (!pdrDone && (slice >= pdrAt || (!kindLive && slice >= 4000) || !(kindLive || bmcLive))) pdrTurn(Math.min(pdrMs, end - performance.now()))
+  else if (kindLive) kindTurn(bmcLive ? slice : end - performance.now())
   if (bmcLive && performance.now() < end) bmcTurn(kindLive ? slice : end - performance.now())
 }
 say({stage: 'kind', proven: false, checked: false, depths: kindDepths, ...(kindWhy ? {why: kindWhy.slice(0, 120)} : {})})
