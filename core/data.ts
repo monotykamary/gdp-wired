@@ -1419,8 +1419,10 @@ function unfoldAt(f: Fn): number[] {
 }
 // The inductions the search tries for a law (its schemes), for tests.
 export const schemesOf = (p: Program, l: DataLaw): Scheme[] => schemes(p, l)
+const readsName = (x: X, name: string) => { let yes = false; walk(x, o => { if (o.op === 'var' && o.name === name) yes = true }); return yes }
 function schemes(p: Program, l: DataLaw): Scheme[] {
   const out: Scheme[] = [], seen = new Set<string>(), halves: Scheme[] = [], peano: Scheme[] = []
+  const inDecreasing = (name: string) => { let yes = false; walk(l.holds, o => { if (o.op !== 'call') return; const f = fnOf(o.fn as string), a = f.decreases === undefined ? undefined : (o.args as X[])[f.decreases]; if (a && a.op !== 'var' && readsName(a, name)) yes = true }); return yes }
   const add = (s: Scheme) => { const id = JSON.stringify(s.uses); if (!seen.has(id)) { seen.add(id); out.push(s) } }
   // Recursion induction: each call of the law to a recursive function at the law's variables, its recursive calls'
   // arguments as the uses' substitution (where the case's tag holds).
@@ -1497,8 +1499,9 @@ function schemes(p: Program, l: DataLaw): Scheme[] {
   // Structural induction on each variable of a datatype, the others fixed; mutual where its fields reach another of its
   // group (the law and its companions), plain where they reach none or no companion is found.
   for (const v of l.vars) {
-    // (a natural's: v − 1 where v isn't 0, Peano's, where no call of the law recurs on it: even(x + x); placed last)
-    if (v.sort === 'nat') { if (!out.some(sc => sc.on?.v === v.name) && !halves.some(sc => sc.on?.v === v.name)) peano.push({name: `structure of ${v.name}`, on: {v: v.name, d: 'nat'}, uses: [{subst: {[v.name]: {op: 'sub', a: ev(v.name), b: k(1)}}, guard: {op: 'not', x: eqC(ev(v.name), k(0))}}]}); continue }
+    // (a natural's: v − 1 where v isn't 0, Peano's, where no call of the law recurs on it and a call's decreasing argument
+    // is a term that reads it: even(x + x); placed last)
+    if (v.sort === 'nat') { if (!out.some(sc => sc.on?.v === v.name) && !halves.some(sc => sc.on?.v === v.name) && inDecreasing(v.name)) peano.push({name: `structure of ${v.name}`, on: {v: v.name, d: 'nat'}, uses: [{subst: {[v.name]: {op: 'sub', a: ev(v.name), b: k(1)}}, guard: {op: 'not', x: eqC(ev(v.name), k(0))}}]}); continue }
     if (!(v.sort instanceof Data)) continue
     const d = v.sort, x = ev(v.name), mut = mutualScheme(l, v.name, d)
     if (mut) { out.push(mut); continue }
