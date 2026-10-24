@@ -283,15 +283,16 @@ function search(l: Loop, opts: NeverEndsOptions): NeverEndsVerdict {
   // 1. Random runs: the states they reach, each with its stem; a lasso on the way is tried at once.
   const visits: Visit[] = [], bounds = [1, 2, 4, 8, 16, 64]
   try {
-    // (a fifth of the time, at most 1.5 s, unless only lassos are asked for; at most 4,000 states kept, then only a
-    // run's last)
-    while (now() < (opts.lassos ? until : Math.min(t0 + (until - t0) * 0.2, t0 + 1500))) {
+    // (a fifth of the time, at most 1.5 s, a run too, unless only lassos are asked for; at most 4,000 states kept, then
+    // only a run's last)
+    const runsUntil = opts.lassos ? until : Math.min(t0 + (until - t0) * 0.2, t0 + 1500)
+    while (now() < runsUntil) {
       const bound = bounds[stats.runs++ % bounds.length]!, ps = drawParams(bound)
       if (!ps) continue
       let st = start(ps)
       const stem: Env[] = [], seen = new Map<string, number>(), trail: Env[] = [], run = {n: 0}
       if (visits.length < 4000) visits.push({params: ps, trail: stem, at: 0, st, run})
-      for (let n = 0; n < 3000 && now() < until; n++) {
+      for (let n = 0; n < 3000 && now() < runsUntil; n++) {
         const key = keyOf(st), back = seen.get(key)
         if (back !== undefined) {
           const cycle = trail.slice(back).map((s, j) => ({st: s, input: stem[back + j]!}))
@@ -320,9 +321,9 @@ function search(l: Loop, opts: NeverEndsOptions): NeverEndsVerdict {
       const ends = new Map<object, Visit>()
       for (const v of visits) if (v.run && (ends.get(v.run)?.at ?? -1) < v.at) ends.set(v.run, v)
       const runs = [...ends.values()].sort((a, b) => b.at - a.at).slice(0, 20).map(v => ({params: v.params, inputs: stemOf(v)}))
-      // A set's closure (`budget`: when it stops), then, where no stem is known, a bounded run (core/bmc.ts: the kernel's
-      // k-step goal's model, the set's complement as the law it breaks), then the kernel's check of each stem; `late`
-      // where the closure ran out of time.
+      // A set's closure (`budget`: when it stops), then, where no stem is known, the accelerated runs' search deeper and a
+      // bounded run (core/bmc.ts: the kernel's k-step goal's model, the set's complement as the law it breaks), then the
+      // kernel's check of each stem; `late` where the closure ran out of time.
       const attempt = (a: ReturnType<typeof accelerated> extends Generator<infer T> ? T : never, goal: ReturnType<typeof recurGoal>, stems: {params: Env, stem: Env[]}[], cut: (t: {params: Env, stem: Env[]}) => {params: Env, stem: Env[]} | undefined, budget: number): NeverEndsVerdict | 'late' | undefined => {
         // (a model of the CDCL search whose products don't multiply out goes on to the plain search, which multiplies rows)
         const was = realModels.on
@@ -331,6 +332,8 @@ function search(l: Loop, opts: NeverEndsOptions): NeverEndsVerdict {
         try { out = grow(goal, new Map(), {nodes: 0, until: budget}) } finally { realModels.on = was }
         if (!('tree' in out)) return out.stuck === 'unknown' && out.why !== undefined ? 'late' : undefined
         stats.accelClosed++
+        // (the accelerated runs' search again, deeper: fun9's stem of 30 turns)
+        if (!stems.length && now() < until) for (const t of stemsTo(l, a.targets, {start, turn}, {now, until: Math.min(until, now() + 1000), deepen: true})) { const c = cut(t); if (c) { stems.push(c); break } }
         if (!stems.length && now() < until) {
           const left = Math.min(until - now(), 2000)
           const run = findBoundedRun(m, [{name: 'outside the set', holds: {op: 'not', x: a.set}}], {ms: left, depth: 24, ...(opts.counted ? {} : {wall: performance.now() + left})})
@@ -348,6 +351,7 @@ function search(l: Loop, opts: NeverEndsOptions): NeverEndsVerdict {
       // (sets with a small goal that the accelerated runs' search, run to its end, doesn't reach: after the rest, their
       // closures and bounded runs, in the time the search has left)
       const later: {a: Parameters<typeof attempt>[0], goal: ReturnType<typeof recurGoal>, cut: Parameters<typeof attempt>[3]}[] = []
+      let deepened = 0
       const again: {a: Parameters<typeof attempt>[0], goal: ReturnType<typeof recurGoal>, stems: Parameters<typeof attempt>[2], cut: Parameters<typeof attempt>[3]}[] = []
       for (const a of accelerated(l, {now, until: accelUntil, runs, io: {start, turn}})) {
         stats.accel++
@@ -381,6 +385,8 @@ function search(l: Loop, opts: NeverEndsOptions): NeverEndsVerdict {
             if (c) { stems.push(c); break }
             if (++n >= 4) break
           }
+          // (a set that search, run to its end, doesn't reach: again deeper, at most 500 ms, for the first four)
+          if (!stems.length && report.exhausted && deepened++ < 4) for (const t of stemsTo(l, a.targets, {start, turn}, {now, until: Math.min(longUntil, now() + 500), deepen: true})) { const c = cut(t); if (c) { stems.push(c); break } }
         }
         // (a set the accelerated runs' search, run to its end, doesn't reach is left: the time goes to sets a run
         // reaches; a small one is tried after them)
