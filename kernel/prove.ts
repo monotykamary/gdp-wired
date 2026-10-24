@@ -185,16 +185,22 @@ export function counted<T>(perMs: number, f: () => T, full = false): T {
   try { return f() } finally { rate = 0; deadline = outer }
 }
 // The cost model: what a query does, by kind (core/solver.ts's costs), each weighed to the milliseconds a Modal 2-vCPU
-// container takes for it, `fullRate` units a millisecond at the median query; work.n counts only the rows the solver
-// and each node read, which the incremental search no longer reads whole (research/query/fit.py, the weights' fit, on
-// runs/query/cal2: the root queries of the 332 step goals, the CHC, ITS and false step goals' searches and the
-// real-world corpus).
-const model: [keyof typeof costs, number][] = [['solveRows', 0.56], ['fm', 0.75], ['plainRows', 14.2], ['cdclNodes', 8.2], ['values', 0.32], ['copies', 0.62],
-  ['edges', 0.11], ['scan', 0.11], ['pivotRows', 0.19], ['unitRows', 24.5], ['unfoldRows', 0.86], ['goalNodes', 0.24]]
+// container takes for it, `fullRate` units a millisecond at the median query: elimination's pairs and the float
+// simplex's cells, the plain search's rows a node (kernel.ts's reading, whole at each node), the values reader.ts finds
+// again, the live rows' copies it keeps and the read edges a change walks, the candidates scanned, the pivots' rows,
+// the root's rows for units, the unfolding's rows a leaf, the goal's nodes where a query starts. work.n counts the rows
+// the solver and each node read, which the incremental search reads whole no more: on 7,027 root queries of 20 ms or
+// more (research/query/fit.py on runs/query/cal2: the 332 step goals, CHC sat and unsat, ITS, the false step goals and
+// the real-world corpus), work.n did 28 to 377 units a ms (p10, p90), the model 120 to 401.
+const model: [keyof typeof costs, number][] = [['fm', 2.33], ['fcells', 0.0123], ['plainRows', 7.93], ['values', 0.672], ['copies', 0.735], ['edges', 0.0435],
+  ['scan', 0.0765], ['pivotRows', 0.599], ['unitRows', 15.6], ['unfoldRows', 0.735], ['goalNodes', 0.492]]
 export const fullRate = 250
 export const fullWork = (): number => { let n = 0; for (const [k, w] of model) n += w * costs[k]; return n }
-// A goal's own budget where its caller gives none, outside a counted search: the cost model's work (fullRate units a
-// millisecond of the budget), so a goal left unknown is left so on any machine; a deadline it is grown within stays.
+// A goal's own budget where its caller gives none, outside a counted search: the cost model's work, groundRate units a
+// millisecond of the budget (below fullRate: the queries of 10 s or more did 163 to 271 units a ms at their median, by
+// group of the run above, so a long goal's budget takes about the wall time it had), so a goal left unknown is left so
+// on any machine; a deadline it is grown within stays.
+const groundRate = 180
 let workCap = Infinity
 const withWork = <T>(cap: number, f: () => T): T => { const outer = workCap; workCap = Math.min(outer, cap); try { return f() } finally { workCap = outer } }
 // Past a budget's end on the clock, or past the work a goal's own budget allows.
@@ -211,7 +217,7 @@ export function withDeadline<T>(until: number, f: () => T): T {
 export function grow(goal: Goal, path: Path = new Map(), budget?: {nodes: number, until?: number, units?: boolean}): Outcome {
   if (!budget) {
     const ms = Math.max(20_000, 1_000 * goal.hyps.length)
-    if (!rate) return withWork(fullWork() + fullRate * ms, () => grow(goal, path, {nodes: 0}))
+    if (!rate) return withWork(fullWork() + groundRate * ms, () => grow(goal, path, {nodes: 0}))
     budget = {nodes: 0, until: clock() + ms}
   }
   if (deadline < (budget.until ?? Infinity)) budget.until = deadline

@@ -92,7 +92,7 @@ export const canon = (l: Lin) => JSON.stringify(Object.keys(l).sort().map(x => [
 export const work = {n: 0}
 // What the searches did, by kind, beside work.n (research/query reads them: the cost of each query's parts).
 export const costs = {solves: 0, solveRows: 0, fm: 0, fpivots: 0, cdclNodes: 0, cdclRows: 0, cands: 0, scan: 0, props: 0, pivots: 0, pivotNnz: 0, pivotRows: 0, bounds: 0,
-  plainNodes: 0, plainRows: 0, sessions: 0, sessionHyps: 0, values: 0, copies: 0, edges: 0, unitRows: 0, unfoldRows: 0, goalNodes: 0}
+  plainNodes: 0, plainRows: 0, sessions: 0, sessionHyps: 0, values: 0, copies: 0, edges: 0, unitRows: 0, unfoldRows: 0, goalNodes: 0, fcells: 0}
 export function solve(constraints: Constraint[], maxRows = 20_000, integral = true): Verdict {
   work.n += constraints.length
   costs.solves++; costs.solveRows += constraints.length
@@ -331,7 +331,7 @@ export function refuteFast(constraints: Constraint[], maxRows = 2_000, integral 
   const eps = 1e-9
   for (let iter = 0; iter < 50 * (R + m); iter++) {
     work.n += 1 + ((R * cols) >> 8)
-    costs.fpivots++
+    costs.fpivots++; costs.fcells += (R * cols) >> 8
     // Bland's rule: the first column with a negative reduced cost enters (no cycling on degenerate systems).
     let enter = -1
     for (let j = 0; j < cols; j++) if (z[j]! < -eps) { enter = j; break }

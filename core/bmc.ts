@@ -19,11 +19,11 @@
 // that run breaks no law (a read of a pair the relaxation doesn't keep), the goal itself is asked at that depth. A
 // relaxed goal refuted is the goal refuted.
 //
-// The budget is read off prove.ts's clock inside `counted` (the kernel's work, bmcRate units a millisecond), so the
+// The budget is read off prove.ts's clock inside `counted` (the cost model's work, bmcRate units a millisecond), so the
 // search is the same on any machine; a wall-clock stop beside it (`wall`) is for callers under a wall-clock limit.
 import {type C, type E, type Law, type Machine, type Request, type State, evalC, evalE, interpret, isArithmetic, loadJs, numbersOf} from './machine.ts'
 import {stepLawObligations, substC, substE} from '../kernel/kernel.ts'
-import {clock, counted} from '../kernel/prove.ts'
+import {clock, counted, fullRate} from '../kernel/prove.ts'
 import {REFUTED, cdclSession, growCdcl} from '../kernel/cdcl.ts'
 import type {Outcome} from '../kernel/prove.ts'
 import {allowed} from './watch.ts'
@@ -32,7 +32,7 @@ import {env, linOfE, plus, vars} from './solver.ts'
 
 export type BoundedRun = {law: string, depth: number, witness: Record<string, number>, params: Record<string, number>, trace: Request[]}
 export type BmcOptions = {
-  ms: number // the budget, counted (bmcRate units a millisecond of the kernel's work)
+  ms: number // the budget, counted (bmcRate units a millisecond of the cost model's work)
   wall?: number // a stop, in wall time (performance.now())
   from?: number // the first depth (1)
   depth?: number // the last depth (64, the kernel's bound)
@@ -49,12 +49,10 @@ export function bmcFits(m: Machine, laws: Law[]): boolean {
   if (JSON.stringify([m.state, m.step, m.assume ?? null, laws.map(l => l.holds)]).includes('"op":"prod"')) return false
   return laws.every(l => !l.forall && !l.some?.length)
 }
-// The counted clock's rate here, units of the kernel's work a millisecond: the median of what Modal's 2-vCPU containers
-// did on the k-step goals of CHC-COMP's unsat LIA-Lin tasks, the stage alone (runs/bmc2/only-mine3: 1,215 depths past
-// 200 ms, 252 units a ms at the median, 383 at the 90th percentile; 168 at the median before reader.ts kept its clean
-// values and the goals were reduced, runs/bmc2/only-base1). The CDCL search counts its rows, which a goal of many atoms
-// and few rows a node keeps low, so a caller under a wall-clock limit gives a wall stop too.
-export const bmcRate = 250
+// The counted clock's rate here: the cost model's (kernel/prove.ts's fullWork, about a Modal 2-vCPU container's
+// milliseconds at the median query), which counts what the incremental search does at a node; work.n's rows a node,
+// read whole no more, ran the counted clock about four times past wall time on the unsat tasks' k-step goals.
+export const bmcRate = fullRate
 // A forced run's share of the budget, and its steps at most (a derivation checkDerivation replays step by step).
 const forcedShare = 0.3, forcedSteps = 1_000_000, forcedRate = 1_000
 // GDP_BMC_RELAX=0: no relaxed goal first; GDP_BMC_INC=0: each depth's goal a search of its own (for comparing).
@@ -474,7 +472,7 @@ export function boundedSearch(m: Machine, laws: Law[], opts: Omit<BmcOptions, 'm
         return done(typeof got === 'string' ? 'over' : got)
       }
       return done('over')
-    })
+    }, true)
   }
   return {run, depth: () => k}
 }

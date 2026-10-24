@@ -27,7 +27,9 @@ for d in dirs:
             try: q = json.loads(l)
             except json.JSONDecodeError: continue
             if q["ms"] < min_ms: continue
-            c = q.get("c", {})
+            c = dict(q.get("c", {}))
+            # (the float simplex's cells, from work.n: what it counts beyond the solver's rows, the pairs, each pivot and each node's rows)
+            c["fcells"] = max(0, q["work"] - sum(c.get(k, 0) for k in ("solveRows", "fm", "fpivots", "cdclNodes", "cdclRows", "plainNodes", "plainRows")))
             rows.append((group, q["kind"], q["ms"], q["work"], [c.get(k, 0) for k in feats], f.parent.name))
 print(f"{len(rows)} queries of {min_ms} ms or more, from {len(dirs)} runs")
 ms = np.array([r[2] for r in rows]); work = np.array([r[3] for r in rows], float); X = np.array([r[4] for r in rows], float)
@@ -51,10 +53,12 @@ spread(work0, "work.n alone")
 # `--scale` units a ms (250, bmc.ts's rate for work.n's). Without --free, work.n is a term of its own, weighed too.
 if not free: X = np.concatenate([work0[:, None], X], axis=1); feats = ["work"] + feats
 A = X / ms[:, None]; b = np.ones(len(ms))
-# (--balance: each job group (g332, sat, unsat, its, pairs, rw) and kind weighs alike, however many queries it has)
+# (--balance: each job group (g332, sat, unsat, its, pairs, rw), kind and size (under 100 ms, under a second, longer)
+# weighs alike, however many queries it has)
 if "--balance" in sys.argv:
-    cnt = collections.Counter((r[0], r[1]) for r in rows)
-    sw = np.sqrt(np.array([1 / cnt[(r[0], r[1])] for r in rows]))
+    size = lambda r: 0 if r[2] < 100 else 1 if r[2] < 1000 else 2
+    cnt = collections.Counter((r[0], r[1], size(r)) for r in rows)
+    sw = np.sqrt(np.array([1 / cnt[(r[0], r[1], size(r))] for r in rows]))
     A = A * sw[:, None]; b = b * sw
 weights, _ = nnls(A, b)
 scale = float(arg("--scale", "250"))
