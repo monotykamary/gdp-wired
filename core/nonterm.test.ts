@@ -118,3 +118,34 @@ test('accelerated cycles: each found and checked, its twin halting and not found
   // without the stage, none of the three (the lassos, policies and fitted sets miss them)
   for (const l of [alternate, longStem]) expect(findNeverEnds(l, {ms: 2000, accel: 0}).proven, l.name).toBe(false)
 }, 120_000)
+
+// The closed forms' engine (core/accel.ts): inner loops taken to their end by their metering function, products with a
+// turn's input in the cases that fix the state value, stems found by deepening. Each a loop with no lasso, found by the
+// accelerated stage (at 0.26.0 the first two by a fitted set only, the third not at all); its twin isn't proven never to
+// end, and the first two twins are proven to halt.
+const ariN = (name: string, n: number, k: number, rules: string) => build(parseAri(`(format LCTRS)\n(theory Ints)\n${Array.from({length: n}, (_, i) => `(fun l${i} (-> ${'Int '.repeat(k)}Int))`).join('\n')}\n(entrypoint l0)\n${rules}`), name).loop
+// y counts from 0 to x at l2 for each turn of x at l1 (MysteriousProgram's display loop): the inner loop's count x grows
+// with every round, which no cycle of bounded turns takes; the twin's x stops at 100.
+const toX = ari2('an inner loop to x', '(rule (l0 x0 x1) (l1 x0 x1))\n(rule (l1 x0 x1) (l2 x0 y1) :guard (= y1 0))\n(rule (l2 x0 x1) (l2 x0 y1) :guard (and (< x1 x0) (= y1 (+ x1 1))))\n(rule (l2 x0 x1) (l1 y0 x1) :guard (and (>= x1 x0) (= y0 (+ x0 1))))')
+const toXTwin = ari2('an inner loop to x, x below 100', '(rule (l0 x0 x1) (l1 x0 x1))\n(rule (l1 x0 x1) (l2 x0 y1) :guard (= y1 0))\n(rule (l2 x0 x1) (l2 x0 y1) :guard (and (< x1 x0) (= y1 (+ x1 1))))\n(rule (l2 x0 x1) (l1 y0 x1) :guard (and (>= x1 x0) (< x0 100) (= y0 (+ x0 1))))')
+// the next y a choice with x·y' = y (RandomHard's arg2 = arg3·x): linear at x = 1, where y' = y, z counting up; the
+// twin's z stops at 50
+const byChoice = ariN('a product with a choice', 2, 3, '(rule (l0 x0 x1 x2) (l1 x0 x1 x2))\n(rule (l1 x0 x1 x2) (l1 x0 y1 y2) :guard (and (> x1 0) (= x1 (* x0 y1)) (= y2 (+ x2 1))))')
+const byChoiceTwin = ariN('a product with a choice, z below 50', 2, 3, '(rule (l0 x0 x1 x2) (l1 x0 x1 x2))\n(rule (l1 x0 x1 x2) (l1 x0 y1 y2) :guard (and (> x1 0) (< x2 50) (= x1 (* x0 y1)) (= y2 (+ x2 1))))')
+// the climb at l29 is open once a side chain of 27 turns, each a value the guard pins by two bounds, has set f (fun9's
+// stem of 30 turns): past the stems' depth of 8 and a bounded run's 24; the twin's climb stops at 100
+const side = (stop: string) => ariN(`a side chain${stop ? ', then down' : ''}`, 30, 2, ['(rule (l0 x0 x1) (l1 x0 y1) :guard (= y1 0))', '(rule (l1 x0 x1) (l29 x0 x1) :guard (= x1 1))',
+  '(rule (l1 x0 x1) (l2 y0 x1) :guard (and (= x1 0) (> y0 x0) (< y0 (+ x0 2))))', ...Array.from({length: 26}, (_, i) => `(rule (l${i + 2} x0 x1) (l${i + 3} y0 x1) :guard (and (> y0 x0) (< y0 (+ x0 2))))`),
+  '(rule (l28 x0 x1) (l1 x0 y1) :guard (= y1 1))', `(rule (l29 x0 x1) (l29 y0 x1) :guard (and ${stop} (= y0 (+ x0 1))))`].join('\n'))
+
+test('closed forms: an inner loop to its end, a product fixed by a case, a stem by deepening; each twin not found', () => {
+  for (const l of [toX, byChoice, side('')]) {
+    const n = findNeverEnds(l, {ms: 8000})
+    expect(n.proven && n.checked, l.name).toBe(true)
+    expect(n.by, l.name).toBe('accelerated')
+    expect(checkRecur(l, n.recur!), l.name).toBe(true)
+  }
+  expect(findNeverEnds(side(''), {ms: 8000}).recur!.stem.length).toBeGreaterThanOrEqual(30)
+  for (const l of [toXTwin, byChoiceTwin, side('(< x0 100)')]) expect(findNeverEnds(l, {ms: 2000}).proven, l.name).toBe(false)
+  for (const l of [toXTwin, byChoiceTwin]) { const r = findRank(l, [], {ms: 8000}); expect(r.proven && r.checked, `${l.name} halts`).toBe(true) }
+}, 120_000)

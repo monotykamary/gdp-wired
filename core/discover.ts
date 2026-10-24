@@ -11,10 +11,11 @@
 //   out.verdict          // the laws, proven of out.rule: r with its functions and lists made again with the lemmas
 //   out.found            // per function or list, the lemmas found, as source to paste into recur(...) or carriesList(...)
 import {quietly} from './cyclic.ts'
-import {type C, type E, type Law, type Machine, type State, any, atMost, compileFunction, evalC, evalE, n, plus, prod, same, seeded, times, x} from './machine.ts'
+import {type C, type E, type Law, type Machine, type Recurrence, type State, any, atMost, compileFunction, evalC, evalE, n, plus, prod, same, seeded, times, x} from './machine.ts'
 import {type FnDef, type Kind, type ListFold, type ListLemma, type StepLaw, type Verdict, Cond, Rule, Term, Unproven, lit, proveFold, proveSteps, recur, recurOf} from './dsl.ts'
 import {type Fold} from '../kernel/kernel.ts'
-import {gcd} from './solver.ts'
+import {gcd, plus as addLin} from './solver.ts'
+import {closedForm as fit, nfold, polyOf} from './accel.ts'
 
 type Obj = object
 type AnyRule = Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>
@@ -86,27 +87,52 @@ const dedupe = (cs: Cand[]) => [...new Map(cs.map(c => [c.name, c])).values()]
 // A statement whose coefficients are naturals a term can hold (a fit to values near 2^53 can make one that isn't).
 const exact = (c: Cand) => Object.values(c.lin).every(Number.isSafeInteger)
 
-// A polynomial in x of degree 3 at most, exact over the rationals, as d·f = a·x·x·x + b·x·x + c·x + e with whole
-// numbers: fitted to four points (Newton's differences), kept when every sample meets it.
-function closedForm(samples: Record<string, number>[], show: (a: string) => string): Cand[] {
+// A polynomial in x of degree 2 or 3, exact over the rationals, as d·f = a·x·x·x + b·x·x + c·x + e with whole numbers,
+// from core/accel.ts's closed forms: the recurrence's own where its step is affine in f and a polynomial in x (the
+// engine on f and the powers of x, a triangular system), else the values' (the engine on the numbers: the shortest
+// recurrence they all meet); kept when every sample meets it.
+function closedForm(samples: Record<string, number>[], show: (a: string) => string, rec?: Recurrence): Cand[] {
   const at = new Map<number, number>()
   for (const s of samples) { if (at.has(s.x!) && at.get(s.x!) !== s.f) return []; at.set(s.x!, s.f!) }
-  if (![0, 1, 2].every(x => at.has(x))) return []
-  const [f0, f1, f2] = [at.get(0)!, at.get(1)!, at.get(2)!]
-  const keep = (lin: Record<string, number>): Cand[] => {
-    const g = Object.values(lin).reduce((p, q) => gcd(p, Math.abs(q)), 0)
-    const c: Cand = {name: '', rel: '=', lin: Object.fromEntries(Object.entries(lin).map(([a, k]) => [a, k / g]).filter(([, k]) => k !== 0))}
-    c.name = nameOf(c, show, 'f')
-    return exact(c) && samples.every(s => holds(c, s)) ? [c] : []
+  const seq: Lin[] = []
+  while (at.has(seq.length)) seq.push({1: at.get(seq.length)!})
+  const p = (() => {
+    const next = rec && powers(rec.next), zero = rec?.zero.op === 'const' ? rec.zero.value : undefined
+    const f = next && zero !== undefined ? nfold({prev: 1}, {x: {x: 1, 1: 1}, xx: {xx: 1, x: 2, 1: 1}, xxx: {xxx: 1, xx: 3, x: 3, 1: 1}, prev: next}) : undefined
+    const start = (c: Lin) => ({1: (c['1'] ?? 0) + (c.prev ?? 0) * zero!})
+    if (f) return {terms: f.terms.map(t => ({...t, c: start(t.c)})), den: f.den}
+    return seq.length >= 3 ? fit(seq, false) : undefined
+  })()
+  const cs = p && polyOf(p)
+  if (!cs || cs.length < 3 || cs.length > 4) return []
+  // Σ c_k·C(x, k) / den, times 6·den: C(x, 2)·6 = 3·x·x − 3·x, C(x, 3)·6 = x·x·x − 3·x·x + 2·x
+  const [c0, c1, c2, c3] = [0, 1, 2, 3].map(k => cs[k]?.['1'] ?? 0) as [number, number, number, number]
+  const lin: Lin = {f: 6 * p!.den, xxx: -c3, xx: -(3 * c2 - 3 * c3), x: -(6 * c1 - 3 * c2 + 2 * c3), 1: -6 * c0}
+  const g = Object.values(lin).reduce((a, b) => gcd(a, Math.abs(b)), 0)
+  const c: Cand = {name: '', rel: '=', lin: Object.fromEntries(Object.entries(lin).map(([a, k]) => [a, k / g]).filter(([, k]) => k !== 0))}
+  c.name = nameOf(c, show, 'f')
+  return exact(c) && samples.every(s => holds(c, s)) ? [c] : []
+}
+// A step as a form over prev and the powers of x up to x·x·x (x, xx, xxx), or undefined where it isn't one.
+function powers(e: E): Lin | undefined {
+  switch (e.op) {
+    case 'var': return e.name === 'x' || e.name === 'prev' ? {[e.name]: 1} : undefined
+    case 'const': return {1: e.value}
+    case 'add': { const a = powers(e.a), b = powers(e.b); return a && b && addLin(a, b) }
+    case 'mul': { const a = powers(e.a); return a && Object.fromEntries(Object.entries(a).map(([k, c]) => [k, c * e.k])) }
+    case 'prod': {
+      const a = powers(e.a), b = powers(e.b)
+      if (!a || !b) return undefined
+      let o: Lin = {}
+      for (const [u, c] of Object.entries(a)) for (const [w, d] of Object.entries(b)) {
+        if (u !== '1' && w !== '1' && (u === 'prev' || w === 'prev' || u.length + w.length > 3)) return undefined
+        const m = u === '1' ? w : w === '1' ? u : 'x'.repeat(u.length + w.length)
+        o = addLin(o, {[m]: c * d})
+      }
+      return o
+    }
+    case 'sub': case 'min': case 'max': case 'if': case 'get': return undefined
   }
-  // f = a x² + b x + c: c = f0, a = (f2 - 2 f1 + f0) / 2, b = f1 - f0 - a; times 2 to keep whole numbers.
-  const A = f2 - 2 * f1 + f0, B = 2 * (f1 - f0) - A, C = 2 * f0
-  const square = A === 0 ? [] : keep({f: 2, xx: -A, x: -B, 1: -C})
-  if (square.length || !at.has(3)) return square
-  // f = Δ0 + Δ1·x + Δ2·x(x − 1)/2 + Δ3·x(x − 1)(x − 2)/6, times 6: x³ by Δ3, x² by 3Δ2 − 3Δ3, x by 6Δ1 − 3Δ2 + 2Δ3.
-  const d1 = f1 - f0, d2 = f2 - 2 * f1 + f0, d3 = at.get(3)! - 3 * f2 + 3 * f1 - f0
-  if (d3 === 0) return [] // degree 2 at most: above, or linear (the bounds find it)
-  return keep({f: 6, xxx: -d3, xx: -(3 * d2 - 3 * d3), x: -(6 * d1 - 3 * d2 + 2 * d3), 1: -6 * f0})
 }
 // The law a goal is of (the kernel names each goal after its law: '<law> @step').
 const lawOfGoal = (goal: string) => goal.replace(/ @(start|step|step law|\d+ steps|leaf|node)$/, '')
@@ -132,7 +158,7 @@ function recurSamples(d: FnDef, args: string[]): Record<string, number>[] {
   return out
 }
 // Lemmas about every x and f(x), and laws between two points, that every value meets.
-function recurCands(samples: Record<string, number>[], args: string[]) {
+function recurCands(samples: Record<string, number>[], args: string[], rec?: Recurrence) {
   const slopes = new Set<number>()
   const byArgs = new Map<string, Record<string, number>[]>()
   for (const s of samples) { const k = args.map(a => s[a]).join(); byArgs.set(k, [...(byArgs.get(k) ?? []), s]) }
@@ -141,7 +167,7 @@ function recurCands(samples: Record<string, number>[], args: string[]) {
   const sorted = [...slopes].sort((a, b) => a - b), picked = [...new Set([...sorted.slice(0, 3), ...sorted.slice(-1)])]
   const xs = [{}, ...picked.map(s => ({x: s}))]
   const forms: Lin[] = xs.flatMap(fx => [fx, ...args.map(a => ({...fx, [a]: 1}))])
-  const lemmas = [...linearCands('f', forms, samples, showRecur), ...(args.length ? [] : closedForm(samples, showRecur))]
+  const lemmas = [...linearCands('f', forms, samples, showRecur), ...(args.length ? [] : closedForm(samples, showRecur, rec))]
   const pairs: Record<string, number>[] = []
   for (const run of byArgs.values()) for (const a of run) for (const b of run) if (a.x! <= b.x!) pairs.push({x: a.x!, f: a.f!, y: b.x!, g: b.f!})
   const steepest = Math.max(0, ...slopes)
@@ -252,7 +278,7 @@ function discoverSearch(r: AnyRule, laws: Law[], stepLaws: StepLaw[], first: Ver
   // Per function and per list: what is proven, made into the rule. A function with a closed form (of degree 2 or 3,
   // fitted exactly) first with it alone: it decides the function, and the bounds beside it, which the closed form
   // implies only through products, are slow to prove by induction; the rest where the laws aren't proven with it.
-  const cands = new Map(fns.flatMap(([n, d]) => { const src = recurOf(d); if (!src) return []; const args = [...(src.def.args ?? [])]; return [[n, recurCands(recurSamples(d, args), args)] as const] }))
+  const cands = new Map(fns.flatMap(([n, d]) => { const src = recurOf(d); if (!src) return []; const args = [...(src.def.args ?? [])]; return [[n, recurCands(recurSamples(d, args), args, d.recur)] as const] }))
   const exact = (c: Cand) => c.rel === '=' && ('xx' in c.lin || 'xxx' in c.lin)
   const makeFns = (closedOnly: boolean): Record<string, Made> => {
     const out: Record<string, Made> = {}

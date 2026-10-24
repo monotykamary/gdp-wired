@@ -7,28 +7,160 @@
 //   graph; its closed walks (a location may come twice: x > 0 and x < 0 taken in turn), each by its least rotation, by
 //   how many choices they make among a location's paths (at most `maxLen`; a chain of locations with one path out, as a
 //   translated program's straight-line code, costs nothing) and at most 64 turns, a walk cut where its rows (each turn's
-//   inputs left open) are refuted; a self-loop also twice over (a period of two: x := −x). Then the cycles the random
-//   runs take, between two visits of a location, the commonest first.
+//   inputs left open) are refuted; a self-loop also twice over (a period of two: x := −x). An inner loop (a self-loop,
+//   or a cycle of two turns, whose turn is a translation with a metering function: `accelerate`) is one more choice at
+//   its location, taken to its end at once: its count the metering function's value, linear in the state. Then the
+//   cycles the random runs take, between two visits of a location, the commonest first.
 // - A turn's inputs as terms of the state before it: a value a row pins (an equation in it), else a bound a row puts on
-//   it (x < i0 gives i0 := x + 1, i0 >= 3 gives 3), else 0; or constants from a model of two rounds of the cycle. The
-//   cycle is then one linear loop: its guard G (each turn's rows, read at the state the turns before it leave) and its
-//   update U (affine in the state at the cycle's start).
-// - Its n-fold run in closed form: an atom g ≤ 0 of G holds after every number n of turns where its value along the
-//   run, g(Uⁿx), a polynomial in n for a translation or a triangular update (the differences core/discover.ts's
-//   closedForm fits), has its differences at n = 0 all ≤ 0: Δ⁰g = g, Δ^{k+1}g = Δ^k g∘U − Δ^k g, each linear in x
-//   (Σ C(n, k)·Δ^k g is g(Uⁿx)). For a geometric update (x := 2x) the differences repeat (Δ²g = Δ¹g) and the same set
-//   holds. So the set R is G with each atom's differences up to degree 3, and Houdini drops a difference that isn't kept
-//   by U (G's atoms are kept or the cycle is given up): R ∧ ¬a(Ux) refuted for each atom a, by the integer solver
-//   (core/solver.ts). A constant difference above 0 gives the cycle up at once: g grows past 0.
-// - The set of the loop: per turn j of the cycle, at its location, the states from which the rest of the cycle's turns
-//   are allowed and end in R (R_j, the weakest precondition: the rest composed); the witness by location, or by R_j
-//   where the cycle passes a location twice, its commonest value with no condition.
-// - Stems (`stemsTo`): from the start's location to a part's, a path at a time or a self-loop that is a translation
-//   taken n times at once, all linear, then run on the loop itself.
+//   it (x < i0 gives i0 := x + 1, i0 >= 3 gives 3), else 0; or constants from a model of two rounds of the cycle; or a
+//   bound the rest of the cycle puts on it (`lookahead`). The cycle is then one linear loop: its guard G (each turn's
+//   rows, read at the state the turns before it leave) and its update U (affine in the state at the cycle's start).
+// - Its n-fold run in closed form (the engine below): an atom g ≤ 0 of G holds after every number n of turns where its
+//   value along the run, g(Uⁿx), a polynomial in n for a translation or a triangular update, has its differences at
+//   n = 0 all ≤ 0: Δ⁰g = g, Δ^{k+1}g = Δ^k g∘U − Δ^k g, each linear in x (Σ C(n, k)·Δ^k g is g(Uⁿx)). For a geometric
+//   update (x := 2x) the differences repeat (Δ²g = Δ¹g) and the same set holds. So the set R is G with each atom's
+//   differences up to degree 3, and Houdini drops a difference that isn't kept by U (G's atoms are kept or the cycle is
+//   given up): R ∧ ¬a(Ux) refuted for each atom a, by the integer solver (core/solver.ts). A constant difference above 0
+//   gives the cycle up at once: g grows past 0.
+// - The set of the loop: per step j of the cycle, at its location, the states from which the rest of the cycle's steps
+//   are allowed and end in R (R_j, the weakest precondition: the rest composed; an inner loop's at each of its turns);
+//   the witness by location, or by R_j where the cycle passes a location twice, its commonest value with no condition.
+// - Products with a turn's input (x·u, which the relation leaves out): the loop's cases with x fixed (`fixedCases`), the
+//   set holding x so.
+// - Stems (`stemsTo`): from the start's location to a part's, a path at a time or a self-loop with a closed form taken
+//   many times at once (a translation n times, any other 2 to 16), all linear, deeper where the search ran out, then run
+//   on the loop itself.
 import {type C, type E, n as K, x as V} from './machine.ts'
 import type {Loop} from '../kernel/kernel.ts'
 import {type Path, type Relation, relationOf} from './relation.ts'
 import {type Lin, canon, gcd, konst, linOfE, plus, solve, subst, times, vars} from './solver.ts'
+import {type Rat, Q0, Q1, bgcd, q, qadd, qdiv, qmul, qsub} from './q.ts'
+
+// --- closed forms -------------------------------------------------------------------------------------------------------
+//
+// The one engine for what a loop does after n turns (discover's closed forms, the cycles' differences, the stems' and the
+// inner loops' n-fold turns): a sequence of linear forms v₀, v₁, … (a form g read after n turns of an affine update U,
+// g(Uⁿx), or the numbers a function's values are) as Σ c·C(n, k)·rⁿ over the integer roots r of the shortest linear
+// recurrence every given term meets, each root to its multiplicity (rⁿ read as [n = k] at r = 0), each c a linear form
+// over the rationals, written with integer coefficients over `den`. Undefined where the recurrence is longer than
+// `order` or its characteristic polynomial has a root that isn't an integer (Fibonacci's). A translation's forms have
+// the root 1 (k ≤ 1: linear in n), a polynomial update's 1 to the degree, a triangular system's its diagonal's, a
+// geometric one (x := 2·x) its ratio; a form of an affine update meets its recurrence everywhere once it meets it at the
+// first terms (`exact`), numbers only where every window of them does.
+export type ClosedForm = {terms: {r: number, k: number, c: Lin}[], den: number}
+type QV = Map<string, Rat>
+const qv = (l: Lin): QV => new Map(Object.entries(l).filter(([, c]) => c).map(([x, c]) => [x, q(c)]))
+const qvAdd = (a: QV, b: QV, f: Rat): QV => { const o = new Map(a); for (const [x, c] of b) { const s = qadd(o.get(x) ?? Q0, qmul(c, f)); if (s.num) o.set(x, s); else o.delete(x) } return o }
+// The unknowns of A·u = B (each right-hand side a form), by elimination over the rationals; undefined where they aren't
+// one solution.
+function solveQ(A: Rat[][], B: QV[], m: number): QV[] | undefined {
+  const rows = A.map((r, i) => ({a: [...r], b: B[i]!})), piv: number[] = []
+  let at = 0
+  for (let j = 0; j < m; j++) {
+    const p = rows.findIndex((r, i) => i >= at && r.a[j]!.num !== 0n)
+    if (p < 0) return undefined
+    const r = rows[p]!
+    rows[p] = rows[at]!; rows[at] = r
+    const inv = qdiv(Q1, r.a[j]!)
+    r.a = r.a.map(x => qmul(x, inv)); r.b = qvAdd(new Map(), r.b, inv)
+    for (const [i, o] of rows.entries()) if (i !== at && o.a[j]!.num !== 0n) { const f = o.a[j]!; o.a = o.a.map((x, c) => qsub(x, qmul(f, r.a[c]!))); o.b = qvAdd(o.b, r.b, qsub(Q0, f)) }
+    piv.push(at++)
+  }
+  return rows.slice(at).every(r => r.b.size === 0) ? piv.map(i => rows[i]!.b) : undefined
+}
+const choose = (n: number, k: number): bigint => { let c = 1n; for (let i = 0; i < k; i++) c = c * BigInt(n - i) / BigInt(i + 1); return c }
+const basis = (r: number, k: number, n: number): Rat => (r === 0 ? (n === k ? Q1 : Q0) : q(choose(n, k) * BigInt(r) ** BigInt(n)))
+// The integer roots of Σ P[i]·tⁱ to their multiplicities, all of them, or undefined.
+function intRoots(P: bigint[]): {r: number, mult: number}[] | undefined {
+  let p = [...P]
+  const out: {r: number, mult: number}[] = []
+  const take = (r: bigint): boolean => {
+    const n = p.length - 1, b: bigint[] = new Array(n)
+    let acc = 0n
+    for (let i = n; i >= 1; i--) { acc = acc * r + p[i]!; b[i - 1] = acc }
+    if (acc * r + p[0]! !== 0n) return false
+    p = b
+    const e = out.find(x => x.r === Number(r))
+    if (e) e.mult++; else out.push({r: Number(r), mult: 1})
+    return true
+  }
+  while (p.length > 1 && p[0] === 0n) take(0n)
+  const c = p[0]! < 0n ? -p[0]! : p[0]!
+  if (p.length > 1 && c > 10n ** 12n) return undefined
+  for (let d = 1n; p.length > 1 && d * d <= c; d++) {
+    if (c % d) continue
+    for (const r of [d, -d, c / d, -c / d]) while (p.length > 1 && take(r));
+  }
+  return p.length === 1 && out.every(x => Math.abs(x.r) <= 2 ** 20) ? out : undefined
+}
+export function closedForm(terms: Lin[], exact: boolean, order = 6): ClosedForm | undefined {
+  const vs = terms.map(qv)
+  if (vs.every(v => v.size === 0)) return {terms: [], den: 1}
+  for (let m = 1; m <= order; m++) {
+    const windows = exact ? 1 : vs.length - 2 * m
+    if (vs.length < m + 1 || windows < 1) return undefined
+    // v[n + m] = Σ a_i·v[n + i], each coordinate of each window an equation
+    const A: Rat[][] = [], B: QV[] = []
+    for (let n = 0; n < (exact ? 1 : vs.length - m); n++) for (const x of new Set(vs.slice(n, n + m + 1).flatMap(v => [...v.keys()]))) {
+      A.push(vs.slice(n, n + m).map(v => v.get(x) ?? Q0)); B.push(new Map([['1', vs[n + m]!.get(x) ?? Q0]]))
+    }
+    const a = solveQ(A, B.map(b => new Map([...b].filter(([, c]) => c.num))), m)
+    if (!a) continue
+    // tᵐ − Σ a_i·tⁱ over the integers
+    const as = a.map(f => f.get('1') ?? Q0), L = as.reduce((l, x) => l / bgcd(l, x.den) * x.den, 1n)
+    const roots = intRoots([...as.map(x => -x.num * (L / x.den)), L])
+    if (!roots) return undefined
+    const bs = roots.flatMap(({r, mult}) => Array.from({length: mult}, (_, k) => ({r, k})))
+    const c = solveQ(Array.from({length: m}, (_, n) => bs.map(b => basis(b.r, b.k, n))), vs.slice(0, m), m)
+    if (!c) return undefined
+    let den = 1n
+    for (const f of c) for (const x of f.values()) den = den / bgcd(den, x.den) * x.den
+    const out: ClosedForm['terms'] = []
+    for (const [j, f] of c.entries()) {
+      const l: Lin = {}
+      for (const [x, y] of f) { const v = Number(y.num * (den / y.den)); if (!Number.isSafeInteger(v)) return undefined; l[x] = v }
+      if (Object.keys(l).length) out.push({...bs[j]!, c: l})
+    }
+    return Number.isSafeInteger(Number(den)) ? {terms: out, den: Number(den)} : undefined
+  }
+  return undefined
+}
+// g, g∘U, g∘U², … (count of them)
+export const iterates = (g: Lin, U: Record<string, Lin>, count: number): Lin[] => { const out = [g]; while (out.length < count) out.push(subst(out.at(-1)!, U)); return out }
+// g(Uⁿx) in closed form
+export const nfold = (g: Lin, U: Record<string, Lin>, order = 6): ClosedForm | undefined => closedForm(iterates(g, U, order + 1), true, order)
+// A closed form that is a polynomial in n: its coefficients by k in the binomial basis C(n, k) (over den), or undefined.
+export const polyOf = (f: ClosedForm): Lin[] | undefined => {
+  if (f.terms.some(t => t.r !== 1)) return undefined
+  const out: Lin[] = []
+  for (const t of f.terms) out[t.k] = t.c
+  return Array.from({length: out.length}, (_, k) => out[k] ?? {})
+}
+// A closed form at a count n: a linear form (over the rationals where den doesn't divide it; a form of integer iterates
+// is integral).
+export const closedAt = (f: ClosedForm, n: number): Lin => {
+  let o: Lin = {}
+  for (const t of f.terms) o = plus(o, times(t.c, Number(basis(t.r, t.k, n).num)))
+  return times(o, 1 / f.den)
+}
+// A loop's n-fold turn where it is a translation (every state form's closed form linear in n, so the turns are x + n·δ)
+// and its guard G (rows over the turn's start) holds on an interval: each atom of G is linear in n along the turns, so
+// it holds at every turn from 0 to n − 1 where it holds at the first and the last (conditional acceleration). And its
+// metering function: where an atom a of G rises by exactly 1 a turn (a(x + δ) = a(x) + 1), the guard fails after
+// 1 − a(x) turns at most, exactly that many where the rest of G holds throughout: the count, linear in x.
+export type Accel = {delta: Record<string, number>, meter?: Lin}
+export function accelerate(G: Lin[], U: Record<string, Lin>, S: string[]): Accel | undefined {
+  const delta: Record<string, number> = {}
+  for (const x of S) {
+    const f = nfold({[x]: 1}, U, 2), p = f && polyOf(f)
+    if (!p || p.length > 2 || f!.den !== 1 || vars(p[1] ?? {}).length) return undefined
+    if (p[1]?.['1']) delta[x] = p[1]['1']
+  }
+  if (!Object.keys(delta).length) return undefined
+  const rise = (a: Lin) => vars(a).reduce((s, x) => s + a[x]! * (delta[x] ?? 0), 0)
+  const m = G.find(a => rise(a) === 1)
+  return {delta, ...(m ? {meter: plus(konst(1), m, -1)} : {})}
+}
 
 // `targets`: the set's parts, each a location and its rows over the relation's names (R_j), for a stem's search.
 export type Target = {loc: number, rows: Lin[]}
@@ -55,24 +187,49 @@ const implied = (rows: Lin[], a: Lin) => solve([...rows, plus(times(a, -1), kons
 // read as the relation's path it took (`io` replays them).
 export type AccelOptions = {now: () => number, until: number, maxLen?: number, maxCycles?: number, runs?: {params: Record<string, number>, inputs: Record<string, number>[]}[], io?: StemIO}
 
-// The candidates, one at a time (a generator: the caller tries each against the kernel and stops when one is proven).
+// The candidates, one at a time (a generator: the caller tries each against the kernel and stops when one is proven):
+// the relation's cycles, then those of its cases where a state value that a product reads with a turn's input is fixed
+// (`fixedCases`), which have 30% of the time where there are any.
 export function* accelerated(l: Loop, opts: AccelOptions): Generator<Accelerated> {
-  const rel = relOf(l)
-  if (!rel) return
+  const rel = relOf(l), fixed = fixedCases(l), {now} = opts
+  if (rel) yield* cyclesOf(l, rel, fixed.length ? {...opts, until: now() + (opts.until - now()) * 0.7} : opts, [])
+  for (const f of fixed) { if (now() > opts.until) return; yield* cyclesOf(l, f.rel, {now, until: opts.until, ...(opts.maxLen ? {maxLen: opts.maxLen} : {})}, f.pins) }
+}
+// (`pins`: rows every part of the set keeps, the fixed values of a case)
+function* cyclesOf(l: Loop, rel: Relation, opts: AccelOptions, pins: Lin[]): Generator<Accelerated> {
   const {now, until} = opts, maxLen = opts.maxLen ?? 6
-  const S = rel.state, P = new Set(rel.params), Sset = new Set(S)
+  const S = rel.state, P = new Set(rel.params), Sset = new Set(S), NP = rel.paths.length
   const natState = S.filter(x => !rel.ints.has(x))
-  const from = (i: number) => (rel.loc ? rel.from[i]! : 0), to = (i: number) => (rel.loc ? rel.to[i]! : 0)
   // Each path's inputs as terms of the state before it (a few choices each, the first the likeliest).
   const choices = rel.paths.map(p => inputChoices(p, Sset, P))
+  // The inner loops: a self-loop or a cycle of two turns at a location whose turn, with its inputs' choices, is a
+  // translation with a metering function (core/accel.ts's `accelerate`), taken to its end as one step of a walk; each
+  // named NP + k among the paths.
+  const loops: Inner[] = []
+  let tries = 2000
+  for (let i = 0; i < NP && loops.length < 40 && tries > 0 && now() < until; i++) {
+    const at = rel.loc ? rel.from[i]! : 0
+    if (readsPi(rel.paths[i]!)) continue
+    const tails = rel.loc && rel.to[i] !== at ? rel.paths.flatMap((_, j) => (rel.from[j] === rel.to[i] && rel.to[j] === at && j !== i ? [j] : [])) : []
+    for (const ps of [...(!rel.loc || rel.to[i] === at ? [[i]] : []), ...tails.map(j => [i, j])]) {
+      if (ps.some(j => readsPi(rel.paths[j]!))) continue
+      const combos: Ins[][] = ps.length === 1 ? choices[i]!.map(c => [c]) : choices[i]!.flatMap(a => choices[ps[1]!]!.map(b => [a, b]))
+      for (const ins of combos.slice(0, 9)) {
+        if (--tries < 0) break
+        const c = compose(rel, ps.map((path, j) => ({path, ins: ins[j]!})), natState), a = c && accelerate(c.rows, c.post, S)
+        if (c && a?.meter && sat(c.rows)) { loops.push({loc: at, paths: ps, ins, rows: c.rows, acc: {delta: a.delta, meter: a.meter}}); break }
+      }
+    }
+  }
+  const from = (i: number) => (i >= NP ? loops[i - NP]!.loc : rel.loc ? rel.from[i]! : 0), to = (i: number) => (i >= NP ? loops[i - NP]!.loc : rel.loc ? rel.to[i]! : 0)
   // The cycles: closed walks of paths (a location may come twice: two turns at one location, taken in turn), each once
   // (its least rotation), with at most `maxLen` choices among a location's paths (a chain of locations with one path out,
   // as a translated program's straight-line code, is free) and at most 64 turns; the shortest first.
   let cycles: number[][] = []
-  // (those with an inner loop apart, at most 60, after the rest)
-  const inners: number[][] = []
+  // (those with an inner loop counted out apart, at most 60, after the rest)
+  const counted: number[][] = []
   const byFrom = new Map<number, number[]>()
-  rel.paths.forEach((_, i) => { const f = from(i); byFrom.set(f, [...(byFrom.get(f) ?? []), i]) })
+  for (let i = 0; i < NP + loops.length; i++) { const f = from(i); byFrom.set(f, [...(byFrom.get(f) ?? []), i]) }
   const cap = opts.maxCycles ?? 400
   const least = (seq: number[]) => seq.every((_, r) => r === 0 || cmp(seq, [...seq.slice(r), ...seq.slice(0, r)]) < 0)
   // (a turn costs 1 at a location of more than one path, 0 else; each location's least cost back to the cycle's start,
@@ -82,7 +239,7 @@ export function* accelerated(l: Loop, opts: AccelOptions): Generator<Accelerated
     const d = new Map<number, number>([[start, 0]]), queue = [start]
     while (queue.length) {
       const y = queue.shift()!
-      for (let i = 0; i < rel.paths.length; i++) {
+      for (let i = 0; i < NP; i++) {
         if (to(i) !== y) continue
         const x = from(i), c = d.get(y)! + costAt(x)
         if (c < (d.get(x) ?? Infinity)) { d.set(x, c); if (costAt(x)) queue.push(x); else queue.unshift(x) }
@@ -106,31 +263,32 @@ export function* accelerated(l: Loop, opts: AccelOptions): Generator<Accelerated
     counters.set(j, out)
     return out
   }
-  // (each walk's turns composed with their inputs left open, u@k: a walk whose rows are refuted is cut where it chose)
-  const open = (sigma: Record<string, Lin>, i: number, k: number) => turn(rel, natState, i, sigma, symbolic(rel.paths[i]!, k, Sset, P), k)
+  // (each walk's turns composed with their inputs left open, u@k: a walk whose rows are refuted is cut where it chose; an
+  // inner loop with its own inputs)
+  const open = (sigma: Record<string, Lin>, i: number, k: number) => (i >= NP ? stepTurn(rel, natState, {inner: loops[i - NP]!}, sigma) : turn(rel, natState, i, sigma, symbolic(rel.paths[i]!, k, Sset, P), k))
   const id0: Record<string, Lin> = Object.fromEntries(S.map(x => [x, {[x]: 1}]))
   let nodes = 20_000
   for (let budget = 0; budget <= maxLen && cycles.length < cap && nodes > 0; budget++) {
-    for (let i = 0; i < rel.paths.length && cycles.length < cap && nodes > 0 && now() < until; i++) {
+    for (let i = 0; i < NP && cycles.length < cap && nodes > 0 && now() < until; i++) {
       const s0 = from(i)
       if (!backs.has(s0)) backs.set(s0, back(s0))
       const d = backs.get(s0)!
       // (`inner`: the self-loop just taken as many times as its rows allow, not taken again at once)
       const walk = (seq: number[], at: number, cost: number, sigma: Record<string, Lin>, rows: Lin[], inner?: number) => {
         if (--nodes < 0 || cycles.length >= cap || now() > until) return
-        if (at === s0 && cost === budget && least(seq) && sat(rows)) { if (!seq.some((x, q) => q > 0 && x === seq[q - 1] && to(x) === from(x))) cycles.push(seq); else if (inners.length < 60) inners.push(seq) }
+        if (at === s0 && cost === budget && least(seq) && sat(rows)) { if (!seq.some((x, q) => q > 0 && x === seq[q - 1] && to(x) === from(x) && x < NP)) cycles.push(seq); else if (counted.length < 60) counted.push(seq) }
         if (seq.length >= 64) return
         const c = cost + costAt(at)
         if (c + (d.get(at) ?? Infinity) - costAt(at) > budget || c > budget) return
         for (const j of byFrom.get(at) ?? []) {
-          if (j === inner || j < seq[0]! || c + (d.get(to(j)) ?? Infinity) > budget) continue
+          if (j === inner || j < seq[0]! || (j >= NP && j === seq.at(-1)) || c + (d.get(to(j)) ?? Infinity) > budget) continue
           const {rs, post} = open(sigma, j, seq.length), all = [...rows, ...rs]
           if (all.some(big) || (costAt(at) && !sat(all))) continue
           walk([...seq, j], to(j), c, post, all)
           // An inner loop: a self-loop that counts x by ±1 up or down to a bound of its rows, from a value the walk has
           // set (x := 0, then x := x + 1 while x < 12: KnapsackDP's), taken as many times as that, as one choice, where
           // that is 2 to 24 times; the walk goes on from there.
-          const cl = to(j) === at && j !== seq.at(-1) && inners.length < 60 ? counter(j) : undefined, k0 = cl && sigma[cl.x]
+          const cl = j < NP && to(j) === at && j !== seq.at(-1) && counted.length < 60 ? counter(j) : undefined, k0 = cl && sigma[cl.x]
           if (cl && k0 && isConst(k0)) {
             const k = k0['1'] ?? 0, r = cl.delta > 0 ? (cl.hi ?? -Infinity) - k + 1 : k - (cl.lo ?? Infinity) + 1
             if (r >= 2 && r <= 24 && seq.length + r < 64) {
@@ -147,7 +305,7 @@ export function* accelerated(l: Loop, opts: AccelOptions): Generator<Accelerated
     }
   }
   cycles = cycles.sort((x, y) => x.length - y.length).slice(0, cap)
-  cycles = [...cycles.filter(c => c.length <= 6), ...inners.sort((x, y) => x.length - y.length), ...cycles.filter(c => c.length > 6)]
+  cycles = [...cycles.filter(c => c.length <= 6), ...counted.sort((x, y) => x.length - y.length), ...cycles.filter(c => c.length > 6)]
   // the runs' cycles: between two visits of a location, the paths taken (as their least rotation), by how often; after
   // the enumerated ones of at most 4 turns (at most 20,000 turns read)
   if (opts.runs && opts.io) {
@@ -185,34 +343,57 @@ export function* accelerated(l: Loop, opts: AccelOptions): Generator<Accelerated
     cycles = [...short, ...fromRuns.filter(c => !shortKeys.has(c.join(','))), ...cycles.filter(c => c.length > 4 && !keys.has(c.join(',')))]
   }
   const tried = new Set<string>()
+  const stepOf = (pi: number, ins: Ins): Step => (pi >= NP ? {inner: loops[pi - NP]!} : {path: pi, ins})
   for (const cyc0 of cycles) {
     // (a cycle with a product: its turn first, where its product is read at the cycle's start; one such turn at most)
-    const prodAt = cyc0.flatMap((pi, j) => (readsPi(rel.paths[pi]!) ? [j] : []))
+    const prodAt = cyc0.flatMap((pi, j) => (pi < NP && readsPi(rel.paths[pi]!) ? [j] : []))
     if (prodAt.length > 1) continue
     const cyc = prodAt.length ? [...cyc0.slice(prodAt[0]!), ...cyc0.slice(0, prodAt[0]!)] : cyc0
     for (const reps of cyc.length === 1 && !prodAt.length ? [1, 2] : [1]) {
       const seq = Array.from({length: reps}, () => cyc).flat()
+      const firsts = seq.map(pi => (pi >= NP ? {} : choices[pi]![0]!))
       // the choices of inputs: constants from a model of two rounds of the cycle (the constants the same in each), then
-      // each path's first choice of terms, then one path at a time its others
+      // each path's first choice of terms, then one path at a time its others, then one input at a time a bound the rest
+      // of the cycle puts on it (`lookahead`)
       const sets: Ins[][] = []
-      const sym = seq.map((pi, j) => symbolic(rel.paths[pi]!, j, Sset, P))
+      const sym = seq.map((pi, j) => (pi >= NP ? {} : symbolic(rel.paths[pi]!, j, Sset, P)))
       if (sym.some(x => Object.values(x).some(t => vars(t).some(v => v.includes('@'))))) {
-        const two = compose(rel, [...seq, ...seq].map((path, j) => ({path, ins: sym[j % seq.length]!})), natState)
+        const two = compose(rel, [...seq, ...seq].map((pi, j) => stepOf(pi, sym[j % seq.length]!)), natState)
         const m = two && solve(two.rows.map(lin => ({lin, label: ''})), 3000)
         if (m && m.kind === 'sat') sets.push(sym.map(x => Object.fromEntries(Object.entries(x).map(([u, t]) => [u, subst(t, Object.fromEntries(vars(t).filter(v => v.includes('@')).map(v => [v, konst(Math.round(m.witness[v] ?? 0))])))]))))
       }
-      sets.push(seq.map(pi => choices[pi]![0]!))
-      seq.forEach((pi, j) => { for (let c = 1; c < choices[pi]!.length; c++) sets.push(seq.map((qi, k) => choices[qi]![k === j ? c : 0]!)) })
+      sets.push(firsts)
+      seq.forEach((pi, j) => { if (pi < NP) for (let c = 1; c < choices[pi]!.length; c++) sets.push(seq.map((qi, k) => (k === j ? choices[pi]![c]! : firsts[k]!))) })
+      sets.push(...lookahead(rel, seq.map((pi, j) => stepOf(pi, firsts[j]!)), natState, Sset, P))
       for (const ins of sets) {
         if (now() > until) return
         const key = `${seq.join(',')}|${JSON.stringify(ins)}`
         if (tried.has(key)) continue
         tried.add(key)
-        const out = candidate(rel, seq, ins, natState, from, l, () => now() > until)
+        const out = candidate(rel, seq.map((pi, j) => stepOf(pi, ins[j]!)), natState, l, () => now() > until, pins)
         if (out) yield {...out, cycle: seq, locs: seq.map(from)}
       }
     }
   }
+}
+// The choices one input at a time of a turn's that the rest of the cycle bounds: the cycle from that turn on (its other
+// inputs as chosen), the bounds its rows put on the input, as terms of the state at that turn (x ≤ u gives x, the
+// tightest of those that leave the rows satisfiable first); at most 12.
+function lookahead(rel: Relation, steps: Step[], natState: string[], S: Set<string>, P: Set<string>): Ins[][] {
+  const out: Ins[][] = []
+  for (const [j, s] of steps.entries()) {
+    if (!('path' in s)) continue
+    for (const u of inputsOf(rel.paths[s.path]!, S, P)) {
+      if (out.length >= 12) return out
+      const name = `${u}@look`, rot = [{path: s.path, ins: {...s.ins, [u]: {[name]: 1}}}, ...steps.slice(j + 1), ...steps.slice(0, j)]
+      const c = compose(rel, rot, natState)
+      if (!c) continue
+      const {bounds} = optionsFor(c.rows, name, x => S.has(x) || P.has(x))
+      const ok = unique(bounds).filter(t => sat(c.rows.map(f => subst(f, {[name]: t}))))
+      for (const t of ok.slice(0, 3)) out.push(steps.map((x, k) => (k === j ? {...s.ins, [u]: t} : 'path' in x ? x.ins : {})))
+    }
+  }
+  return out
 }
 
 // The path a turn takes: its pins (the location, the rule) and its rows hold at the state and the turn's inputs.
@@ -228,20 +409,48 @@ function pathAt(rel: Relation, among: number[], st: Record<string, number>, inpu
 }
 const rels = new WeakMap<Loop, Relation | undefined>()
 function relOf(l: Loop): Relation | undefined {
-  if (rels.has(l)) return rels.get(l)
-  // (a path that reads a product, which the relation stands for by a natural of its own, is kept where each product is
-  // of two values of the state or params, x := x·y: a cycle may take it as its first turn, the product read at the
-  // cycle's start (`piFacts`); a product of a turn's input is left out. The kernel checks what is found against the loop
-  // itself.)
-  let r = relationOf(l)
+  if (!rels.has(l)) rels.set(l, kept(l, relationOf(l)))
+  return rels.get(l)
+}
+// (a path that reads a product, which the relation stands for by a natural of its own, is kept where each product is
+// of two values of the state or params, x := x·y: a cycle may take it as its first turn, the product read at the
+// cycle's start (`piFacts`); a product of a turn's input is left out. The kernel checks what is found against the loop
+// itself.)
+function kept(l: Loop, r: Relation | undefined): Relation | undefined {
   if (r && !r.exact) {
     const known = new Set([...l.params, ...Object.keys(l.state)])
     const ok = (x: string) => !isPi(x) || piParts(x)?.every(f => vars(f).every(n => known.has(n))) === true
     const keep = r.paths.map(p => [...p.rows.flatMap(vars), ...Object.values(p.post).flatMap(vars)].every(ok))
     r = {...r, paths: r.paths.filter((_, i) => keep[i]), from: r.from.filter((_, i) => keep[i]), to: r.to.filter((_, i) => keep[i])}
   }
-  const out = r && r.paths.length ? r : undefined
-  rels.set(l, out)
+  return r && r.paths.length ? r : undefined
+}
+// A product of a state value (or a param) and a turn's input (RandomHard's arg2 = arg3·x) is linear where the value is fixed:
+// the loop's cases at x = 1, 0, −1 and 2 (an integer x, x$n or x$neg; a natural at 1, 0 and 2), each the relation of the
+// loop whose condition fixes x first (its products then a constant times the input), the set holding x fixed (`pins`).
+// At most two such values.
+const fixes = new WeakMap<Loop, {rel: Relation, pins: Lin[]}[]>()
+function fixedCases(l: Loop): {rel: Relation, pins: Lin[]}[] {
+  const hit = fixes.get(l)
+  if (hit) return hit
+  const out: {rel: Relation, pins: Lin[]}[] = [], raw = relationOf(l), S = new Set([...Object.keys(l.state), ...l.params]), I = new Set(l.inputs), xs = new Set<string>()
+  for (const p of raw && !raw.exact ? raw.paths : []) for (const n of [...p.rows.flatMap(vars), ...Object.values(p.post).flatMap(vars)]) {
+    const fs = isPi(n) ? piParts(n) : undefined
+    if (!fs) continue
+    const [a, b] = fs.map(vars) as [string[], string[]]
+    for (const [f, g] of [[a, b], [b, a]] as const) if (f.length === 1 && S.has(f[0]!) && g.some(x => I.has(x))) xs.add(f[0]!.replace(/\$(n|neg)$/, ''))
+  }
+  for (const x of [...xs].filter(x => S.has(x)).slice(0, 2)) {
+    const twin = [`${x}$n`, `${x}$neg`].find(t => S.has(t))
+    for (const c of twin ? [1, 0, -1, 2] : [1, 0, 2]) {
+      const vals: [string, number][] = twin ? [[x, Math.max(c, 0)], [twin, Math.max(-c, 0)]] : [[x, c]]
+      const r = kept(l, relationOf({...l, while: {op: 'and', xs: [...vals.map(([n, v]): C => ({op: '=', a: V(n), b: K(v)})), l.while]}}))
+      if (!r) continue
+      const pins = r.ints.has(x) ? [{[x]: 1, 1: -c}, {[x]: -1, 1: c}] : vals.flatMap(([n, v]) => [{[n]: 1, ...konst(-v)}, {[n]: -1, ...konst(v)}])
+      out.push({rel: r, pins})
+    }
+  }
+  fixes.set(l, out)
   return out
 }
 
@@ -411,7 +620,11 @@ function symbolic(p: Path, j: number, S: Set<string>, P: Set<string>): Ins {
 
 // --- one cycle --------------------------------------------------------------------------------------------------------
 
-type Step = {path: number, ins: Ins}
+// A step of a cycle: a path taken once with its inputs, or an inner loop taken to its end at once (`Inner`: its paths
+// from its location back to it, their inputs, its turn's rows over the turn's start, its translation and metering
+// function).
+type Inner = {loc: number, paths: number[], ins: Ins[], rows: Lin[], acc: Required<Accel>}
+type Step = {path: number, ins: Ins} | {inner: Inner}
 // A turn of path i from the state sigma (each state name's form), its inputs' forms over the turn's start: its rows (a
 // natural's term a natural), and the state after; with `k`, the turn's products named for the turn k (`freshPath`).
 function turn(rel: Relation, natState: string[], i: number, sigma: Record<string, Lin>, ins: Ins, k?: number): {rs: Lin[], post: Record<string, Lin>} {
@@ -419,13 +632,23 @@ function turn(rel: Relation, natState: string[], i: number, sigma: Record<string
   return {rs: [...p.rows.map(f => subst(f, sub)), ...natState.map(x => times(sigma[x]!, -1)), ...Object.keys(insAt).filter(u => !rel.ints.has(u)).map(u => times(insAt[u]!, -1))],
     post: Object.fromEntries(rel.state.map(x => [x, subst(p.post[x] ?? {[x]: 1}, sub)]))}
 }
-// Turns j.. of the cycle composed from a state x (identity at j): the rows over x, and the state after them over x.
+// A step from sigma. An inner loop's: its count m = meter(sigma) at least 1, its turn's rows at the first and the last
+// of its turns (sigma + (m − 1)·δ: each row is linear in the turn's number, so it holds between), the state after
+// sigma + m·δ, all linear in sigma.
+function stepTurn(rel: Relation, natState: string[], s: Step, sigma: Record<string, Lin>): {rs: Lin[], post: Record<string, Lin>} {
+  if ('path' in s) return turn(rel, natState, s.path, sigma, s.ins)
+  const {rows, acc} = s.inner, m = subst(acc.meter, sigma)
+  const shift = (t: Lin) => Object.fromEntries(rel.state.map(x => [x, plus(sigma[x]!, times(t, acc.delta[x] ?? 0))]))
+  const last = shift(plus(m, konst(-1)))
+  return {rs: [plus(konst(1), m, -1), ...rows.map(f => subst(f, sigma)), ...rows.map(f => subst(f, last))], post: shift(m)}
+}
+// Steps j.. of the cycle composed from a state x (identity at j): the rows over x, and the state after them over x.
 function compose(rel: Relation, steps: Step[], natState: string[]): {rows: Lin[], post: Record<string, Lin>} | undefined {
   let sigma: Record<string, Lin> = Object.fromEntries(rel.state.map(x => [x, {[x]: 1}]))
   const rows: Lin[] = []
   for (const [j, s] of steps.entries()) {
-    if (j > 0 && readsPi(rel.paths[s.path]!)) return undefined
-    const t = turn(rel, natState, s.path, sigma, s.ins)
+    if (j > 0 && 'path' in s && readsPi(rel.paths[s.path]!)) return undefined
+    const t = stepTurn(rel, natState, s, sigma)
     rows.push(...t.rs)
     sigma = t.post
     if (Object.values(sigma).some(big) || rows.some(big)) return undefined
@@ -434,21 +657,22 @@ function compose(rel: Relation, steps: Step[], natState: string[]): {rows: Lin[]
 }
 const dedupe = (rows: Lin[]) => [...new Map(rows.map(f => [canon(f), f])).values()]
 
-// (`late`: the time is up; a candidate half made is given up)
-function candidate(rel: Relation, seq: number[], ins: Ins[], natState: string[], from: (i: number) => number, l: Loop, late: () => boolean): Omit<Accelerated, 'cycle' | 'locs'> | undefined {
-  const steps: Step[] = seq.map((path, j) => ({path, ins: ins[j]!}))
+// (`late`: the time is up; a candidate half made is given up; `pins`: rows each part keeps, a case's fixed values)
+function candidate(rel: Relation, steps: Step[], natState: string[], l: Loop, late: () => boolean, pins: Lin[]): Omit<Accelerated, 'cycle' | 'locs'> | undefined {
   const whole = compose(rel, steps, natState)
   if (!whole) return undefined
-  const G = whole.rows, U = whole.post
+  const G = dedupe([...whole.rows, ...pins]), U = whole.post
   if (G.some(f => isConst(f) && (f['1'] ?? 0) > 0) || G.some(f => vars(f).some(isPi)) || !sat(G)) return undefined
-  // the differences of each atom of G along U, up to degree 3 (none past a product: it is read at the cycle's start)
+  // the differences of each atom of G along U, up to degree 3 (none past a product: it is read at the cycle's start): the
+  // iterates g, g∘U, … of the closed forms' engine, differenced; a constant last difference above 0 gives the cycle up (g
+  // grows past 0)
   const opt: Lin[] = []
   for (const g of G) {
     let d = g
     for (let k = 1; k <= 3; k++) {
       const next = plus(subst(d, U), d, -1)
       if (vars(next).some(isPi)) break
-      if (isConst(next)) { if ((next['1'] ?? 0) > 0) return undefined; break } // (a constant > 0: g grows past 0)
+      if (isConst(next)) { if ((next['1'] ?? 0) > 0) return undefined; break }
       if (canon(next) === canon(d)) break
       opt.push(tight(next)); d = next
     }
@@ -489,14 +713,32 @@ function candidate(rel: Relation, seq: number[], ins: Ins[], natState: string[],
   // R without what the rest of it implies (a smaller goal for the kernel)
   R = irredundant(R, late)
   if (late()) return undefined
-  // per turn j: R_j, the rest of the cycle from turn j allowed and ending in R
+  // per step j: R_j, the rest of the cycle from step j allowed and ending in R (an inner loop's, at each of its turns'
+  // starts with a turn of it left: the same state after it)
+  const restOf = (rows: Lin[], post: Record<string, Lin>, to: Lin[]) => irredundant(dedupe([...rows, ...pins, ...to.map(a => tight(subst(a, post)))].filter(f => !(isConst(f) && (f['1'] ?? 0) <= 0))), late)
   const Rs: Lin[][] = steps.map((_, j) => {
     if (j === 0) return R
     const rest = compose(rel, steps.slice(j), natState)!
-    return irredundant(dedupe([...rest.rows, ...R.map(a => tight(subst(a, rest.post)))].filter(f => !(isConst(f) && (f['1'] ?? 0) <= 0))), late)
+    return restOf(rest.rows, rest.post, R)
   })
   if (late()) return undefined
-  if (Rs.some(r => !sat(r))) return undefined
+  // The parts: a location, its rows, the path a state there takes and its inputs. An inner loop's turns after its first,
+  // each twice: the rest of the loop's turn then another of its turns (R_j), or then the step after it (R_{j+1}).
+  type Part = {loc: number, rows: Lin[], path: number, ins: Ins}
+  const locOf = (i: number) => (rel.loc ? rel.from[i]! : 0)
+  const parts: Part[] = []
+  for (const [j, s] of steps.entries()) {
+    if ('path' in s) { parts.push({loc: locOf(s.path), rows: Rs[j]!, path: s.path, ins: s.ins}); continue }
+    const {paths, ins} = s.inner
+    parts.push({loc: s.inner.loc, rows: Rs[j]!, path: paths[0]!, ins: ins[0]!})
+    for (let t = 1; t < paths.length; t++) {
+      const rest = compose(rel, paths.slice(t).map((path, k) => ({path, ins: ins[t + k]!})), natState)
+      if (!rest) return undefined
+      for (const to of [Rs[j]!, Rs[(j + 1) % steps.length]!]) parts.push({loc: locOf(paths[t]!), rows: restOf(rest.rows, rest.post, to), path: paths[t]!, ins: ins[t]!})
+    }
+  }
+  if (late()) return undefined
+  if (parts.some(p => !sat(p.rows))) return undefined
   // as the loop's condition and witness
   const intOf = (x: string) => rel.ints.get(x)
   const term = (f: Lin): {p: E, n: E} => {
@@ -512,20 +754,20 @@ function candidate(rel: Relation, seq: number[], ins: Ins[], natState: string[],
   }
   const atom = (f: Lin): C => { const t = term(f); return {op: '<=', a: t.p, b: t.n} }
   const conj = (xs: C[]): C => (xs.length === 1 ? xs[0]! : {op: 'and', xs})
-  const pcIs = (j: number): C[] => (rel.loc ? [{op: '=', a: V(rel.loc), b: K(from(seq[j]!))}] : [])
-  const parts = Rs.map((r, j) => conj([...pcIs(j), ...r.map(atom)]))
-  // the witness: each input of the loop per turn
+  const pcIs = (j: number): C[] => (rel.loc ? [{op: '=', a: V(rel.loc), b: K(parts[j]!.loc)}] : [])
+  const full = parts.map((r, j) => conj([...pcIs(j), ...r.rows.map(atom)]))
+  // the witness: each input of the loop per part
   // (a part is told by its location, and where the cycle comes back to a location, by an atom of its rows that each
   // other part there refutes: a short condition, which the body's reads of the witness multiply less; its full rows
   // where no atom tells it apart)
   const tell = (j: number): C => {
-    if (!rel.loc) return parts[j]!
-    const others = Rs.flatMap((r, k) => (k !== j && from(seq[k]!) === from(seq[j]!) ? [r] : []))
+    if (!rel.loc) return full[j]!
+    const others = parts.flatMap((r, k) => (k !== j && r.loc === parts[j]!.loc ? [r.rows] : []))
     const atoms: Lin[] = []
     for (const r of others) {
       if (atoms.some(a => !sat([...r, a]))) continue
-      const a = Rs[j]!.find(f => !sat([...r, f]))
-      if (!a) return parts[j]!
+      const a = parts[j]!.rows.find(f => !sat([...r, f]))
+      if (!a) return full[j]!
       atoms.push(a)
     }
     return conj([...pcIs(j), ...atoms.map(atom)])
@@ -536,19 +778,19 @@ function candidate(rel: Relation, seq: number[], ins: Ins[], natState: string[],
   // the set after the turn costs it the next part's atoms, not every part's (TermComp's tqli: its check 10.4 s to 4.5
   // s). Not where parts share a location: their conditions in each chain cost more than they save (s1).
   const slotted = (): C => {
-    const width = Math.max(...Rs.map(r => r.length)), chain = (pick: (j: number) => E): E => conds.reduceRight<E>((acc, c, j) => (isZ(pick(j)) && isZ(acc) ? acc : {op: 'if', c, then: pick(j), else: acc}), K(0))
+    const width = Math.max(...parts.map(r => r.rows.length)), chain = (pick: (j: number) => E): E => conds.reduceRight<E>((acc, c, j) => (isZ(pick(j)) && isZ(acc) ? acc : {op: 'if', c, then: pick(j), else: acc}), K(0))
     const slots: C[] = []
     for (let k = 0; k < width; k++) {
-      const ts = Rs.map(r => (r[k] ? term(r[k]!) : {p: K(0), n: K(0)}))
+      const ts = parts.map(r => (r.rows[k] ? term(r.rows[k]!) : {p: K(0), n: K(0)}))
       slots.push({op: '<=', a: chain(j => ts[j]!.p), b: chain(j => ts[j]!.n)})
     }
     return {op: 'and', xs: [{op: 'or', xs: conds}, ...slots]}
   }
-  const set: C = parts.length > 1 && rel.loc && new Set(seq.map(from)).size === seq.length ? slotted() : parts.length === 1 ? parts[0]! : {op: 'or', xs: parts}
+  const set: C = parts.length > 1 && rel.loc && new Set(parts.map(p => p.loc)).size === parts.length ? slotted() : parts.length === 1 ? full[0]! : {op: 'or', xs: full}
   const valueAt = (j: number, n: string): E => {
-    const p = rel.paths[seq[j]!]!
+    const p = rel.paths[parts[j]!.path]!
     if (n in p.pins) return K(p.pins[n]!)
-    const u = steps[j]!.ins
+    const u = parts[j]!.ins
     for (const [x, pair] of rel.ints) if (pair[0] === n || pair[1] === n) {
       const t = u[x]
       if (!t) return K(0)
@@ -562,7 +804,7 @@ function candidate(rel: Relation, seq: number[], ins: Ins[], natState: string[],
   }
   const wit: Record<string, E> = {}
   for (const n of l.inputs) {
-    const vals = seq.map((_, j) => valueAt(j, n)), keys = vals.map(v => JSON.stringify(v))
+    const vals = parts.map((_, j) => valueAt(j, n)), keys = vals.map(v => JSON.stringify(v))
     if (keys.every(k => k === keys[0])) { wit[n] = vals[0]!; continue }
     // (the commonest value last, with no condition: a state of any part whose turn takes it matches no other's; a
     // state matched by another part's condition is in that part, whose turn keeps it in the set too)
@@ -573,7 +815,7 @@ function candidate(rel: Relation, seq: number[], ins: Ins[], natState: string[],
     for (let j = vals.length - 1; j >= 0; j--) if (keys[j] !== common) e = {op: 'if', c: conds[j]!, then: vals[j]!, else: e}
     wit[n] = e
   }
-  return {set, wit, targets: Rs.map((rows, j) => ({loc: from(seq[j]!), rows}))}
+  return {set, wit, targets: parts.map(p => ({loc: p.loc, rows: p.rows}))}
 }
 const cmp = (a: number[], b: number[]) => { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i]! - b[i]!; return 0 }
 const isZ = (e: E) => e.op === 'const' && e.value === 0
@@ -648,22 +890,25 @@ export function* stemsTo(l: Loop, targets: Target[], io: StemIO, opts: {now: () 
   if (rel.loc && locE?.op !== 'const') return
   const startLoc = locE?.op === 'const' ? locE.value : 0
   const from = (i: number) => (rel.loc ? rel.from[i]! : 0), to = (i: number) => (rel.loc ? rel.to[i]! : 0)
-  // the self-loops that are translations, with their inputs as terms
-  type Loopy = {path: number, ins: Ins, delta: Lin}
+  // the self-loops whose n-fold turn has a closed form (the engine's), with their inputs as terms: a translation's taken
+  // n@k times at once (`delta`), any other's (x := 2·x, a doubling loop; a polynomial update) 2, 4, 8 or 16 times at
+  // once, the state after each count its closed form at that count
+  type Loopy = {path: number, ins: Ins, delta?: Lin, closed?: Record<string, ClosedForm>}
   const loops = new Map<number, Loopy[]>()
   rel.paths.forEach((p, i) => {
-    if (from(i) !== to(i)) return
+    if (from(i) !== to(i) || readsPi(p)) return
     for (const ins of inputChoices(p, Sset, P)) {
       const c = compose(rel, [{path: i, ins}], natState)
       if (!c) continue
-      const delta: Lin = {}
-      let ok = true
-      for (const x of S) { const d = plus(c.post[x]!, {[x]: 1}, -1); if (!isConst(d)) { ok = false; break } if (d['1']) delta[x] = d['1'] }
-      if (ok && Object.keys(delta).length) { loops.set(from(i), [...(loops.get(from(i)) ?? []), {path: i, ins, delta}]); break }
+      const a = accelerate(c.rows, c.post, S)
+      if (a) { loops.set(from(i), [...(loops.get(from(i)) ?? []), {path: i, ins, delta: a.delta}]); break }
+      const closed: Record<string, ClosedForm> = {}
+      for (const x of S) { const f = nfold({[x]: 1}, c.post, 4); if (!f) break; closed[x] = f }
+      if (Object.keys(closed).length === S.length && S.some(x => canon(c.post[x]!) !== canon({[x]: 1}))) { loops.set(from(i), [...(loops.get(from(i)) ?? []), {path: i, ins, closed}]); break }
     }
   })
   const natParams = paramInts.filter(p => !p[1]).map(p => p[0])
-  type Seg = {path: number, ins: Ins, n?: string}
+  type Seg = {path: number, ins: Ins, n?: string, times?: number}
   const solveRows = (rows: Lin[]) => { calls--; return solve(rows.map(lin => ({lin, label: ''})), 3000) }
   const evalLin = (f: Lin, env: Env, w: Env) => {
     let v = f['1'] ?? 0
@@ -687,7 +932,7 @@ export function* stemsTo(l: Loop, targets: Target[], io: StemIO, opts: {now: () 
     const stem: Env[] = []
     let left = 200_000
     for (const s of segs) {
-      const times = s.n ? Math.round(w[s.n] ?? 1) : 1
+      const times = s.n ? Math.round(w[s.n] ?? 1) : s.times ?? 1
       if (times > 100_000) return undefined
       for (let k = 0; k < times; k++) {
         if (--left < 0) return undefined
@@ -707,7 +952,8 @@ export function* stemsTo(l: Loop, targets: Target[], io: StemIO, opts: {now: () 
     for (let i = 0; i < rel.paths.length; i++) { const d = dist.get(to(i)); if (d !== undefined && (dist.get(from(i)) ?? Infinity) > d + 1) { dist.set(from(i), d + 1); changed = true } }
   }
   if (!dist.has(startLoc)) { if (opts.report) opts.report.exhausted = true; return }
-  const maxDepth = Math.max(depth, dist.get(startLoc)! + depth)
+  // (deepening: the depth, then twice and four times it, with the calls given, 4 and 16 times them, a stem yielded once)
+  let maxDepth = 0, shallow = -1
   const outs = new Map<number, number[]>()
   for (let i = 0; i < rel.paths.length; i++) if (dist.has(to(i))) outs.set(from(i), [...(outs.get(from(i)) ?? []), i])
   for (const xs of outs.values()) xs.sort((a, b) => dist.get(to(a))! - dist.get(to(b))!)
@@ -715,7 +961,7 @@ export function* stemsTo(l: Loop, targets: Target[], io: StemIO, opts: {now: () 
     if (calls <= 0 || now() > until) return
     for (const t of targets) if (t.loc === loc) {
       const m = solveRows([...rows, ...t.rows.map(f => subst(f, sigma))])
-      if (m.kind === 'sat') { const c = concrete(segs, m.witness); if (c) yield c }
+      if (m.kind === 'sat' && segs.length > shallow) { const c = concrete(segs, m.witness); if (c) yield c }
     }
     if (segs.length + (dist.get(loc) ?? Infinity) > maxDepth) return
     const step = (i: number, ins: Ins, n?: {name: string, delta: Lin}) => {
@@ -729,7 +975,20 @@ export function* stemsTo(l: Loop, targets: Target[], io: StemIO, opts: {now: () 
     }
     // a self-loop accelerated, then each path out
     if (!lastLoop) for (const lp of loops.get(loc) ?? []) {
-      const name = `n@${k}`, {rs, post} = step(lp.path, lp.ins, {name, delta: lp.delta})
+      if (lp.closed) {
+        // each count: its turns' rows (each turn's state the closed form at its number), the state after at the count
+        let rs: Lin[] = []
+        for (let c = 1, at = sigma; c <= 16; c++) {
+          rs = [...rs, ...turn(rel, natState, lp.path, at, lp.ins).rs]
+          at = Object.fromEntries(S.map(x => [x, subst(closedAt(lp.closed![x]!, c), sigma)]))
+          if (![2, 4, 8, 16].includes(c)) continue
+          const all = [...rows, ...rs]
+          if (all.some(big) || Object.values(at).some(big) || solveRows(all).kind === 'refuted') break
+          yield* dfs(loc, at, all, [...segs, {path: lp.path, ins: lp.ins, times: c}], k + 1, true)
+        }
+        continue
+      }
+      const name = `n@${k}`, {rs, post} = step(lp.path, lp.ins, {name, delta: lp.delta!})
       const all = [...rows, ...rs]
       if (solveRows(all).kind === 'refuted') continue
       yield* dfs(loc, post, all, [...segs, {path: lp.path, ins: lp.ins, n: name}], k + 1, true)
@@ -744,6 +1003,13 @@ export function* stemsTo(l: Loop, targets: Target[], io: StemIO, opts: {now: () 
       yield* dfs(to(i), post, all, [...segs, {path: i, ins}], k + 1, false)
     }
   }
-  yield* dfs(startLoc, sigma0, [...base], [], 0, false)
-  if (opts.report && calls > 0 && now() <= until) opts.report.exhausted = true
+  for (const r of [1, 2, 4]) {
+    const d = r * depth
+    calls = (opts.calls ?? 400) * r * r
+    maxDepth = Math.max(d, dist.get(startLoc)! + d)
+    yield* dfs(startLoc, sigma0, [...base], [], 0, false)
+    if (calls <= 0 || now() > until) return
+    shallow = maxDepth
+  }
+  if (opts.report) opts.report.exhausted = true
 }
