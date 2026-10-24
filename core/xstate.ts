@@ -292,12 +292,13 @@ export function fromXState(machine: MachineLike, opts: Bridge = {}): Chart<Obj, 
     const value = (was: unknown, v: unknown): unknown => (typeof v === 'string' && was instanceof Choice ? (was as Choice<string>).of(v) : typeof v === 'string' && was instanceof Str ? was.literal(v)
       : was instanceof Maybe && v instanceof Maybe ? new Maybe(v.present, value(was.inner, v.inner)) : was instanceof Maybe && v === null ? new Maybe(lit(0), was.inner)
         : typeof v === 'number' ? lit(v) : typeof v === 'boolean' ? (v ? yes : no) : v)
-    const at = (env: Obj, writes: Obj, leaf: Info): Obj => Object.assign(Object.create(null), env, Object.fromEntries(Object.entries(writes).map(([k, v]) => [k, value(env[k], v)])), {
+    // (With no state given, the state is the one the step starts in: the chart's own `in`.)
+    const at = (env: Obj, writes: Obj, leaf?: Info): Obj => Object.assign(Object.create(null), env, Object.fromEntries(Object.entries(writes).map(([k, v]) => [k, value(env[k], v)])), leaf ? {
       in: (p: string) => { const t = infos.find(x => pathOf(x) === p) ?? refuse('', `no state ${p}`); return under(leaf, t) ? yes : no },
       last: () => refuse('', 'a history read in a machine with eventless transitions or entry or exit actions that write the context'),
-    })
-    const run = (fs: ((env: Obj) => Obj)[], env: Obj, writes: Obj, leaf: Info): Obj => { let w = writes; for (const f of fs) w = {...w, ...f(at(env, w, leaf))}; return w }
-    type Variant = {conds: ((env: Obj) => Cond)[], apply: (env: Obj) => Obj, leaf: Info}
+    } : {})
+    const run = (fs: ((env: Obj) => Obj)[], env: Obj, writes: Obj, leaf?: Info): Obj => { let w = writes; for (const f of fs) w = {...w, ...f(at(env, w, leaf))}; return w }
+    type Variant = {conds: ((env: Obj) => Cond)[], apply: (env: Obj) => Obj, leaf: Info, exits?: boolean}
     // One microstep: transition o of state src, taken from leaf.
     const micro = (v: Variant, src: Info, o: Obj, where: string): Variant => {
       const fs = actionsOf(where, list(o.actions))
@@ -313,7 +314,7 @@ export function fromXState(machine: MachineLike, opts: Bridge = {}): Chart<Obj, 
       for (let n = T; ;) { const kids = infos.filter(x => x.parent === n && x.node.type !== 'history'); if (!kids.length) break; n = kids.find(k => k.segs.at(-1) === n.node.initial) ?? kids[0]!; entered.push(n) }
       const all = [...exited.map(n => exitOf.get(n)), ...fs, ...entered.map(n => entryOf.get(n))].filter((f): f is (env: Obj) => Obj => !!f)
       const leaf = entered.at(-1) ?? leafOf(T)
-      return {conds: v.conds, leaf, apply: env => run(all, env, v.apply(env), v.leaf)}
+      return {conds: v.conds, leaf, apply: env => run(all, env, v.apply(env), v.leaf), exits: v.exits || exited.some(n => exitOf.get(n))}
     }
     // The eventless transitions from where a microstep lands, until none is enabled (at most a few in a row).
     const settle = (v: Variant, depth: number): Variant[] => {
@@ -369,12 +370,25 @@ export function fromXState(machine: MachineLike, opts: Bridge = {}): Chart<Obj, 
     for (const {event, src: i, o, where} of raws) {
       const to = o.target === undefined ? undefined : resolve(i, list(o.target)[0] as string)
       const when = guardOfO(where, o), from = fromOf(i, to?.to)
-      for (const leaf of (i.segs.length ? leavesUnder(i) : top.filter(x => x.node.type !== 'final' && x.node.type !== 'history').flatMap(leavesUnder))) {
-        for (const v of settle(micro({conds: [], apply: () => ({}), leaf}, i, o, where), 0)) {
+      // Per state the machine may be in: where the transition exits states whose exit actions write the context, or
+      // lands where an eventless transition may be enabled, its macrostep by cases there; everywhere else one
+      // transition (its writes and the state it lands in the same from each), after those (which take every case
+      // where they are).
+      const sources = i.segs.length ? leavesUnder(i) : top.filter(x => x.node.type !== 'final' && x.node.type !== 'history').flatMap(leavesUnder)
+      let plain: Variant | undefined
+      for (const leaf of sources) {
+        const v0 = micro({conds: [], apply: () => ({}), leaf}, i, o, where)
+        if (!v0.exits && !chain(v0.leaf).some(n => alwaysOf.get(n)?.length)) { plain ??= v0; continue }
+        for (const v of settle(v0, 0)) {
           const conds = [...(when ? [when] : []), ...v.conds]
           c = c.on(event, {from, ...(o.target === undefined && v.leaf === leaf ? {} : {to: pathOf(v.leaf), fresh: true}),
             when: env => all(env.in(pathOf(leaf)), ...conds.map(f => f(env))), set: ((env: Obj) => v.apply(env)) as never})
         }
+      }
+      if (plain) {
+        // (a transition with no target writes as its actions do from wherever it is taken: in the state it starts in)
+        const p = plain, fs = actionsOf(where, list(o.actions)), apply = o.target === undefined ? (env: Obj) => run(fs, env, {}) : p.apply
+        c = c.on(event, {from, ...(o.target === undefined ? {} : {to: pathOf(p.leaf), fresh: true}), ...(when ? {when} : {}), set: ((env: Obj) => apply(env)) as never})
       }
     }
   }
