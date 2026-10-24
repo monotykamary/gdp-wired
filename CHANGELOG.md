@@ -310,7 +310,7 @@ can read, write and check, with gdp-wired as its reference implementation. Nothi
 - **Export and import** (`interchange/format.ts`, untrusted): `toInterchange(certificate)` and `fromInterchange(json)`,
   refusing with where whatever is outside the format.
 - **The standalone checker** (`interchange/check.ts`, `cli.ts`, `wasm.ts`; `bun interchange/build.ts --wasm`):
-  `gdp-wired-check`, a 119.4 KB bundle (node or bun) and a 1,439.8 KB WebAssembly module (Javy 9.1.0, WASI preview 1),
+  `gdp-wired-check`, a 119.7 KB bundle (node or bun) and a 1,440.1 KB WebAssembly module (Javy 9.1.0, WASI preview 1),
   accepted or refused per law. It reads a document, writes it back and refuses it unless the two agree, then calls the
   kernel's own entry points.
 - **A second checker** in Python (`interchange/py/check.py`, 458 lines, written from the spec): the tree and
@@ -318,43 +318,49 @@ can read, write and check, with gdp-wired as its reference implementation. Nothi
 - **docs/ARCHITECTURE.md**: the trust boundaries and why each sits where it does, how to add a front end and a
   certificate kind, how the benchmarks and corpora are measured.
 
-Measured (`runs/interchange/`): every suite job (`interchange/suite-jobs.ts`: 155 of modal/suite.json's, all but Lean's
-and the type check, plus the two examples no job runs) with every certificate handed to a trusted entry point captured
-(`interchange/capture.ts`), each written, read back in the same process, then checked in other processes by the
-checker, the bundled CLI, the WebAssembly module under Wasmtime 49.0.1 and, on its goals, the Python checker, against
-the kernel's answer where it was made, with three tampered twins of each accepted document; every document and twin
-validated against the schema (Python jsonschema 4.23.0).
+Measured on this branch after merging main at e13a123 (`runs/interchange/final2-*`): every suite job
+(`interchange/suite-jobs.ts`: modal/suite.json's 218 but Lean's and the type check, and the two examples no job runs:
+157 jobs) with every certificate handed to a trusted entry point captured (`interchange/capture.ts`), each written,
+read back in the same process, then checked in other processes by the checker, the bundled CLI, the WebAssembly module
+under Wasmtime 49.0.1 and, on its goals, the Python checker, against the kernel's answer where it was made, with three
+tampered twins of each accepted document; every document and twin validated against the schema (jsonschema 4.23.0).
 
-- By default (`runs/interchange/capture-default`, and `capture-rest-default`): 51,958 documents (cyclic 5,973, goals
-  37,711, kInduction 2,038, laws 955, recur 1,991, qgoals 2,965, termination 115, stepLaws 127, loop 23, fold 25,
-  qmachine 19, progress 10, liveness 6; the kernel accepting 41,960 and refusing 9,998, among them the 10 progress documents, whose laws are proven by
-  their cyclic certificate by default, taken apart, so they carry no lawsProof and the checker refuses them as the capture
-  records), every one read back to the same
-  objects, and the checker, the CLI and the WebAssembly module agreeing with the kernel on all 51,958; the Python checker
-  agreeing on all 107,153 goals of theirs. 82,784 tampered twins: the checker refused 82,559, the CLI and the module
-  agreed on all, the Python checker on all 244,149 of their goals; the 225 the checker accepts are twins the tamper left
-  a proof (a raised multiplier or a moved split constant that still refutes), accepted by all four. Schema: 263,551
+- By default (`final2-capture-default-all`: `final2-capture-default`, its `ix-data` job, which ran past its 6,570 s
+  limit on Modal, from `final2-capture-default-data`, 2,506.7 s on boat): 52,202 documents (goals 37,895, cyclic 5,990,
+  qgoals 2,967, kInduction 2,043, recur 1,998, laws 968, stepLaws 133, termination 115, loop 29, fold 29, qmachine 19,
+  progress 10, liveness 6), the kernel accepting 42,156 and refusing 10,046 (the fuzzers' and tamper tests' own, the
+  searches' failed attempts, and the 10 progress documents: by default the laws they assume are proven by a cyclic
+  certificate, captured apart, so they carry no lawsProof and the checker refuses them, as the capture records). Every
+  one read back to the same objects; the checker, the CLI and the WebAssembly module agree with the kernel on all
+  52,202, the Python checker on all 107,892 of their goals. 83,209 twins: the checker refuses 82,982, the CLI and the
+  module agree on all, the Python checker on all 245,539 of their goals; the 227 accepted are twins the tamper left a
+  proof (a raised multiplier or a moved split constant that still refutes), accepted by all four. Schema: 264,880
   valid, none invalid. Outside the format: 10 tampered trees of kernel/tamper.test.ts with a multiplier that isn't an
-  integer, which the kernel refuses too. One job, compare/term's c2ari, hands the kernel nothing from its own bun
-  processes (python starts them).
-- With `--usual`: USUAL.
-- Lean (`runs/interchange/lean-2`, `interchange/lean-jobs.ts`): the conformance cases written as documents, read back
-  in another process, checked, and written as Lean through lean-kernel's emitters, each claim computed to the checker's
-  answer: NonTerm.lean's checkRecur on 127 (28 found, 99 tampered or forged), KInd.lean's checkKInd on 112 of 24
-  machines' certificates and twins (33 accepted, 79 refused; 24 refused twins with no KInd literal not sent), Rationals.lean's Q.checkGoal on 1,584 (300
-  proven, 1,284 tampered), Kernel.lean's checkGoal on 547 goals of 40 example rules and their 117 twins (431 accepted,
-  116 refused; one twin's goal unwritable: a cut by a divisor its row no longer has), Cyclic.lean's checkCyclic on
-  40 example rules' cyclic certificates and 116 of their 117 twins with a node changed (the 117th below), Data.lean's `termination_by` under
-  the 10 rings' measures the documents hold: every file elaborates, Lean computing the checker's answer on each. One
+  integer, which the kernel refuses too. compare/term's c2ari job hands the kernel nothing from its own bun processes
+  (python starts them), nor does any child a script spawns: the capture covers each job's own bun processes.
+- With `--usual` (`final2-capture-usual`): 43,896 documents (goals 18,272, laws 15,950, qgoals 2,967, kInduction
+  2,043, recur 1,998, stepLaws 1,523, cyclic 872, termination 115, loop 64, fold 36, liveness 26, qmachine 19,
+  progress 11), the kernel accepting 33,729 and refusing 10,167; every one read back to the same objects, and all four
+  agree with the kernel on every document and goal (66,398 goals). 63,656 twins: 63,600 refused, the 56 accepted by
+  all four; the Python checker agrees on all 129,305 of their goals. Schema: 207,032 valid, none invalid; outside the
+  format: 24, as above.
+- Lean (`final2-lean`, `interchange/lean-jobs.ts`): the conformance cases written as documents, read back in another
+  process, checked, and written as Lean through lean-kernel's emitters, each claim computed to the checker's answer:
+  NonTerm.lean's checkRecur on 127 (28 found, 99 tampered or forged); KInd.lean's checkKInd on 112 of 24 machines'
+  certificates and twins (33 accepted, 79 refused; 24 refused twins with no KInd literal not sent); Rationals.lean's
+  Q.checkGoal on 1,584 (300 proven, 1,284 tampered); Kernel.lean's checkGoal on 547 goals of 40 example rules' usual
+  certificates and their 117 twins (431 accepted, 116 refused; one twin's goal not writable: a cut by a divisor its
+  row no longer has, which Lean's Int has no quotient for); Cyclic.lean's checkCyclic on 40 example rules' cyclic
+  certificates and 116 of their 117 twins with a node changed; Data.lean's `termination_by` under the 10 rings'
+  measures the documents hold. Every file elaborates: Lean computes the checker's answer on each claim. The 117th
   cyclic twin (a use made of another node) the checker refuses and Lean accepts: Lean finds a leaf's rows by value
   (the emitter claims them), kernel.ts by their place, and that twin's rows are all there, moved; `IxCyclicByValue.lean`
   computes it to true, and kernel.ts accepts it too once each input is pointed at its row (`interchange/lean.ts`'s
-  `byValue`). It appeared in `runs/interchange/lean-1` as a failed `= false`.
-- Suites: by default 218 jobs, none failed (`runs/interchange/suite-default`: 222.0 s wall, 3,520.1 s of job time);
-  `--usual` 218 jobs, 1 failed (`runs/interchange/suite-usual`: the new `interchange` job, whose test needed the cyclic
-  certificate GDP_CERT=usual turns off; fixed, and the job passes with and without `--usual`:
-  `runs/interchange/suite-usual-interchange`, `suite-default-interchange`).
-
+  `byValue`). It showed first in `runs/interchange/lean-1` as a failed `= false`.
+- Suites, after the merge: by default 218 jobs, none failed (`final2-suite-default`, Modal: 652.0 s wall, 5,511.0 s of
+  job time); `--usual` 218, none failed (`final2-suite-usual`, Modal: 536.8 s wall, 4,890.4 s).
+- The figures before the merges (main at f990361, then 056fcc3: `runs/interchange/capture-*`, `final-*`) agree with
+  these: no disagreement in any run.
 
 ## 0.25.0
 
