@@ -7,7 +7,7 @@ checked against itself by running both (core/extract-check.ts); a difference ref
 | --- | --- |
 | `sources.json` | 22 examples from open-source code (react.dev, redux, statelyai/xstate, rate limiters), each with repo, commit, path and licence |
 | `realworld-sources.json` | research/realworld's corpus as of 6c675e4 on research/realworld (its `sources.json`, 41 entries), read as it is |
-| `run.ts` | each source extracted (the entry its `export` names, the whole file, its relative imports fetched from the same commit; a class the corpus names without its methods is read for the public methods in its pinned lines; an XState machine on the XState its code is written for, v4 or v5) |
+| `run.ts` | (`--list research/realworld/sources.json`: the corpus's sources as they are now) each source extracted (the entry its `export` names, the whole file, its relative imports fetched from the same commit; a class the corpus names without its methods is read for the public methods in its pinned lines; an XState machine on the XState its code is written for, v4 or v5) |
 | `verdicts.ts` | each extracted example's laws proven of the extracted rule and of a rule written by hand, the corpus's way |
 | `corpus-verdicts.ts` | the real-world corpus's own laws (research/realworld/items) stated again on the rules extracted from the corpus's code, each proven on both sides the corpus's way (60 s of search; a liveness law with no rank) |
 | `fetch.ts` | the files at their commits, cached in `.cache/` (not committed) |
@@ -69,6 +69,24 @@ The upstash cache isn't compared: the item's rule is the token bucket (single.ts
 laws are about both. The extracted radio rule's laws take 27 to 57 s where the item's take 1 to 3 s: its url and error
 are the code's strings (`str()`, an id and a length) where the item interned the url as a natural and kept the error as
 a flag, and its eventless transition is read by cases where it lands.
+
+**Widened after 0.27.0** (`runs/extract-rw2/b1-mine` beside main 548c343's `b1-main`, one batch on boat, the same
+driver on both sides). Four constructs, each checked against the code as before; none reached a whole source yet, so
+the counts are the same on both sides (41-source list: 5 extracted; the corpus's current `research/realworld/sources.json`
+through `run.ts --list`, 81 TypeScript and JavaScript sources: 8 extracted, cockatiel's `ConsecutiveBreaker` the one beyond
+the 41; Go: 1 whole). Every extracted rule is the same text on both sides. What moved:
+
+| Construct | Refused before | Refused now, further in |
+| --- | --- | --- |
+| a field holding a function (each call's answer an input, one a step) | upstash's three `single.ts`: `Algorithm<TContext>: a function value`; unleash: `() => string: a function value` | upstash: `TContext is not in the subset` (the context field, a type parameter); unleash: whether the optional `randomGenerator` was given, read |
+| a mixin of the files read (`(B) => class extends B {...}`) | medusa's two services | the same two (`MedusaService` is `@medusajs/framework`'s: a mixin of another module stays refused) |
+| an XState factory argument's untyped (`any`) functions, called only by actors | amplify-ui: `getCurrentUser is of type any` | amplify-ui: `the guards given as other than an object of them` (an imported object) |
+| Go: a `context.Context` argument only passed on to the package's own functions | 6 (gitea's CreateReview, DeleteReview, HasEnoughApprovals and DismissApprovalReviews, the csr strategy, blnk's applyTransactionToBalances) | gitea: CreateReview's `opts` struct by value, `db.WithTx` and `issues_model.FindReviews` (another package's code), `db.GetEngine(ctx)...` (a call on a value of a type beyond the packages read); csr: `runtime.Object` (an interface); blnk: `[]*model.Balance` |
+| Go: another package's struct as an argument (its exported fields inputs; the package type-checked from its source in the repo, under the module or a local replace, its own imports empty) | `*rbacv1.PolicyRule`, `*field.Path` | `VerbMatches`: `a loop (range)`; `validateConditions`: its `opts` struct by value |
+
+Interfaces of another package now say so (`authorizer.Attributes`, `runtime.Object`: an interface). go-run.ts adds the
+repo's directories a package imports to the sparse checkout before reading it, so the Go batch took 367.7 s against
+61.8 s.
 
 ## The Go front end (core/extract-go.ts)
 

@@ -109,8 +109,15 @@ export function extractXState(code: string, opts: XStateOptions): XStateExtracti
       const classify = (name: string, node: ts.Node, t: ts.Type): Arg => {
         if (ctxExpr && ts.isIdentifier(ctxExpr) && ctxExpr.text === name) return {name, kind: 'context', node, type: t}
         const nn = checker.getNonNullableType(t), props = checker.getPropertiesOfType(nn)
-        const fnTyped = (p: ts.Symbol) => checker.getSignaturesOfType(checker.getNonNullableType(checker.getTypeOfSymbolAtLocation(p, node)), ts.SignatureKind.Call).length > 0
-        if (props.length && props.every(fnTyped)) return {name, kind: 'outside', node, type: nn, fields: props.map(p => [p.getName(), checker.getNonNullableType(checker.getTypeOfSymbolAtLocation(p, node))])}
+        // A function's member, or one of type any (untyped code's): the machine's own guards and actions reading it are
+        // refused where they call it (its answer has no type the subset reads); an actor's body calling it is outside.
+        const untyped = (p: ts.Symbol) => (checker.getTypeOfSymbolAtLocation(p, node).flags & ts.TypeFlags.Any) !== 0
+        const fnTyped = (p: ts.Symbol) => untyped(p) || checker.getSignaturesOfType(checker.getNonNullableType(checker.getTypeOfSymbolAtLocation(p, node)), ts.SignatureKind.Call).length > 0
+        if (props.length && props.every(fnTyped)) {
+          const anys = props.filter(untyped).map(p => p.getName())
+          if (anys.length) notes.push(`${name}: ${anys.join(', ')} of type any, called only where an actor runs (outside the machine): a guard or an action that calls one is refused`)
+          return {name, kind: 'outside', node, type: nn, fields: props.map(p => [p.getName(), checker.getNonNullableType(checker.getTypeOfSymbolAtLocation(p, node))])}
+        }
         const bad = props.find(p => !fnTyped(p))
         return refuse(node, `${name}: a factory argument that is neither the machine's context nor an object of functions (${props.length ? `${bad!.getName()} is of type ${checker.typeToString(checker.getTypeOfSymbolAtLocation(bad!, node))}` : `of type ${checker.typeToString(t)}`})`)
       }
@@ -130,7 +137,10 @@ export function extractXState(code: string, opts: XStateOptions): XStateExtracti
     const stubOf = (a: Arg): unknown => {
       const out: Obj = {}
       for (const [f, t] of a.fields ?? []) {
-        const sig = checker.getSignaturesOfType(t, ts.SignatureKind.Call)[0]!, rt = checker.getReturnTypeOfSignature(sig)
+        const sig = checker.getSignaturesOfType(t, ts.SignatureKind.Call)[0]
+        // An untyped one: called while the machine is made, it throws (and the factory is refused).
+        if (!sig) { out[f] = () => { throw new Error(`${a.name}.${f}, of type any, called`) }; continue }
+        const rt = checker.getReturnTypeOfSignature(sig)
         const promise = rt.getSymbol()?.getName() === 'Promise', path = `${a.name}.${f}`
         out[f] = promise ? () => new Promise(() => {}) : () => answers[path]
       }

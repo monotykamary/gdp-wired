@@ -28,11 +28,14 @@
 // Boolean(x), Date.now() (an input; once a step), throws (the rule's refusals: its assumption, or its precondition
 // for a constructor), helper functions and methods of the same files (inlined), getters, single inheritance (each
 // member resolved statically: this.m() the nearest the object has, super.m() the nearest above the class it is in),
-// results kept (a value, a record of values, a value that may be missing). Refused: loops, strings beyond keys and
+// mixins of the same files (`(B) => class extends B {...}`, its class between the entry and the class it is given),
+// a field holding a function (an injected clock, random or id source: each call's answer an input, one a step, for
+// every such function that leaves the object alone), results kept (a value, a record of values, a value that may be
+// missing). Refused: loops, strings beyond keys and
 // literals, floats, async, try/catch, writes to the state a reducer is given, a throw after a method wrote a field, two
 // keys of one map or two writes of one list in one step, a map or a list replaced whole, a reference into a map held
-// across a set, one object (an array, a Map, a Date) in two places, aliasing that depends on the path, mixins, other
-// modules' code.
+// across a set, one object (an array, a Map, a Date) in two places, aliasing that depends on the path, mixins of other
+// modules, other modules' code.
 import * as dsl from './dsl.ts'
 import {compileFunction, walk} from './machine.ts'
 import type {Rule} from './dsl.ts'
