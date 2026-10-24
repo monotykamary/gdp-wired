@@ -228,6 +228,88 @@ triaged, the one more), 56 neither against 76; liveness 18 of 35 against 0 (`run
 6. **Deeper runs.** 13 false laws stayed unknown because the search's runs (depth 24) didn't reach the bug; `search`
    by hand at depth 8 found the cockatiel run.
 
+## The 53 unknown laws of 0.27.0, classified and closed (gen/realworld2)
+
+At 0.27.0 (main 548c343) the corpus was 240 proven, 18 refuted and 53 unknown. Each unknown law was classified by why
+the search stopped, each invariant claimed checked by proving the law with it added (`search: false`), each run
+claimed replayed through the rule's interpreter. The fixes are in the shared search: `core/live.ts` (liveness ranks
+of the rule's own terms), `core/fresh.ts` (laws about ids a counter hands out), and in `core/dsl.ts` the search that
+goes on past a run-less step-law refutation, its further runs and the bounded runs over one-step laws (CHANGELOG,
+Unreleased). One item's model was wrong and is fixed (Gitea, below); no law was restated and no hint added.
+
+Beside main 548c343, launched together on Modal (2 vCPU, 60 s a law; `runs/rw2/c2-mine`, `runs/rw2/c2-main` in the
+main checkout): **252 proven, 29 refuted, 30 unknown** against 240, 18 and 53. 23 verdicts changed, all from unknown,
+none lost: 12 proven, 11 refuted, each of the 11 a triaged `bug` (the original code does what the run shows).
+Liveness is 26 of 35, against 18. An earlier batch (`c1`: before fresh.ts, the further runs in four passes) had 19 of the 23 and lost gapless.js's
+law 2, which main itself proves in 2 of 3 runs (38.2 and 55.4 s; unknown at 62.0 s, `runs/rw2/gap-main`).
+
+| # | Law | Was | Why the search stopped | Now |
+| --- | --- | --- | --- | --- |
+| 1 | xstate/vef uploader: a started upload ends | unknown | no rank: the runs' fitted rank read the counters, which needs invariants; the control's levels need none | proven, `(if state = 1 then 3 else ...)` |
+| 2 | xstate/electric pullWakeRunner: comes back to stopped | unknown | no rank: running's substates cycle; one level for the cycle | proven |
+| 3 | xstate/open-decision: an opening connection ends | unknown | no rank (as 1) | proven |
+| 4 | xstate/amplify forgotPassword: a submitted password ends | unknown | no rank (as 1) | proven |
+| 5 | p-retry: with finite retries every call settles | unknown | no rank: `retries ∸ consumed`, a distance the guard compares | proven |
+| 6 | Timelock: every scheduled operation becomes ready | unknown | no rank: `Ts(d) ∸ (t0 + now)`, a map cell the fit never reads | proven |
+| 7 | Governor: a queued proposal is executed or canceled | unknown | no rank: findLeadsTo sampled no step from a pending state; `Ts ∸ (t0 + ts + 1)`, chosen again with the kernel's counterexamples | proven |
+| 8 | opossum: an open breaker goes half-open | unknown | an invariant: `st is open → armed`, found once inferLaws is given the rule, not its machine | proven |
+| 9 | flagd: a variant of weight 0 is never chosen | unknown | no search ran: a run-less step-law refutation returned at once | proven, `done is no → rangeEnd <= bucket` |
+| 10 | lucia: a deleted session never comes back | unknown | an invariant of a form the search lacked: `∀k. next <= k → Sess[k] unset` | proven (fresh.ts) |
+| 11 | oidc: a rotated token's old value is rejected | unknown | the same, over two counters | proven (fresh.ts) |
+| 12 | oidc: once reuse is detected, no token of that grant is live | unknown | the same, with `Tok.grant[k] < nextGrant` | proven (fresh.ts) |
+| 13 | open-decision: a synced connection resets the retries | unknown | false (bug 17); no search ran (as 9), a 24-step run | refuted |
+| 14 | saleor: a deallocation returns what it takes | unknown | false (bug 8); as 9, a 10-step run | refuted |
+| 15 | cockatiel: half-open reopens only on its test failing | unknown | false (bug 3); as 9, and the run needs small params (bound 1) | refuted |
+| 16 | vendure orderProcess: cancelled only with every line cancelled | unknown | false (bug 7); bounded runs took laws, not step laws | refuted, a bounded run of 5 steps |
+| 17 | opossum: no call within resetTimeout of opening | unknown | false (bug 2); the assumption pins `life = lives`, so random requests were refused | refuted |
+| 18 | opossum: a failure in half-open reopens | unknown | false (bug 1); runs too shallow at bound 8 | refuted |
+| 19 | express-rate-limit: no client window lets through more than limit | unknown | false (bug 4); every request must name one key: bound 1 | refuted |
+| 20 | express-rate-limit: a decrement never lowers a reset count | unknown | false (bug 4); as 19 | refuted |
+| 21 | keycloak: past the failure factor a failure disables | unknown | false (bug 15); the run needs now = 2^31·1000, the kernel's witness's value | refuted |
+| 22 | medusa reservations: a batch never takes more than available | unknown | false (bug 5); keys must meet: bounds 1 to 4 | refuted |
+| 23 | medusa reservations: an update never takes more than available | unknown | false (bug 5); as 22 | refuted |
+| 24 | opossum: a half-open breaker closes or reopens | unknown | false (bug 1): the reachable state no helpful region covers; no search refutes a liveness | unknown |
+| 25 | bullmq: every job completes or fails for good | unknown | expressiveness (fairness): after a deferred failure, stall and fetch alternate forever and lower nothing, so no rank exists; true only under strong fairness of `fail` | unknown |
+| 26–29 | upstash fixedWindow, slidingWindow, tokenBucket; x/time AllowN: a rejected caller is admitted later | unknown | expressiveness (nonlinear): rate × time, window × bucket; the kernel's products are uninterpreted (the items' `nonlinear` gaps) | unknown |
+| 30 | medusa captureRefund: a pending refund is resolved | unknown | expressiveness (a sum over keys): the retry needs `refunded >= Refunds.amount(d)` | unknown |
+| 31 | RefundEscrow: once refunding, every deposit is refunded | unknown | the same: the withdrawal needs the deposits covered by the balance | unknown |
+| 32 | RefundEscrow: until closed, every deposit is covered | unknown | the same | unknown |
+| 33 | ERC20: no balance exceeds the total supply | unknown | the same: `Bal[a] + Bal[b] <= supply` recurs for any number of keys | unknown |
+| 34 | librechat: the reserved total is never negative | unknown | the same: `reserved = Σ Held[k]` | unknown |
+| 35, 36 | tigerbeetle: no more debits than credits, and the converse | unknown | the same, per account: the open pending amounts | unknown |
+| 37 | tigerbeetle: only voiding or expiry moves a closed account | unknown | time: `∀k. ¬exists → ¬closed` proves it in 156.8 s locally; the search has 60 | unknown |
+| 38 | tigerbeetle: a pending transfer is resolved at most once | unknown | time: `∀k. Status[k] = none ∨ T[k].kind = pending` proves it in 109.8 s locally | unknown |
+| 39 | tigerbeetle: a pending transfer with a timeout is resolved | unknown | time: findLeadsTo takes the 60 s; core/live.ts alone reaches no pending state of the wide rule | unknown |
+| 40 | Timelock: executes at most once | unknown | no invariant: `∀k. Runs[k] = 0 ∨ Ts[k] = 1` (both halves of a guarded equality; core/infer.ts) | unknown |
+| 41 | Timelock: no sooner than the minimum delay | unknown | no invariant: a threshold guard on a cell, `Ts[k] <= 1 ∨ ReadyAt[k] <= Ts[k]` (infer.ts) | unknown |
+| 42 | Governor: a proposal's calls run at most once | unknown | no invariant: both candidates are in the pool, the loop keeps a stuck one (infer.ts) | unknown |
+| 43, 44 | Governor, only proposer: run after queued; canceled never runs | unknown | no invariant: guards on a yes/no param, threshold guards, four terms (infer.ts) | unknown |
+| 45 | blnk: no overdraw past the largest limit | unknown | no invariant: the cell equality `balance = credit − debit` at one key (infer.ts); proven with it in 27.8 s | unknown |
+| 46 | bullmq: finished at most max(attempts, 1) times | unknown | no invariant: the law's own `max(attempts, 1)` tightened under a choice (infer.ts) | unknown |
+| 47 | bottleneck: two jobs start minTime apart | unknown | no invariant: the join's cone starts from the laws, not the step laws (infer.ts) | unknown |
+| 48 | express-rate-limit: the timer drops only passed windows | unknown | no invariant: a cell guard over one cell and two scalars; the join is off for rules with maps (infer.ts) | unknown |
+| 49 | rate-limiter-flexible: a record lets through no more than points | unknown | no invariant: a four-cell form `Start + Admitted <= Val + Rewarded` (infer.ts) | unknown |
+| 50 | librechat: every applied auto-refill is recorded | unknown | no invariant: the join is off for rules with maps though the law reads none (infer.ts) | unknown |
+| 51 | litellm: without overlap, spend passes max_budget by one request | unknown | no invariant: a case split on `inflight ∈ {0, 1}` (infer.ts) | unknown |
+| 52 | casbin roleManager: after deleteLink, no direct inheritance | unknown | a two-key invariant (the item's law 0); even assumed, the step goal doesn't instantiate it at (a, b) (kernel/prove.ts) | unknown |
+| 53 | gitea: two counted approvals never by one reviewer | unknown | a modelling error (fixed, `triage/invapprove.json`), then two-row invariants per reviewer | unknown |
+
+Liveness, the 17 unproven at 0.27.0: 8 proven (1–8), and of the 9 left, 1 is false (24), 1 needs strong fairness
+(25), 4 are nonlinear (26–29), 2 need a sum over keys (30, 31) and 1 is time on TigerBeetle's map (39).
+
+**The model fixed:** Gitea's DeleteReview restores the latest official review of the deleted review's reviewer
+(review.go:1040-1044, `restoreLatestOfficialReview(ctx, r.IssueID, r.ReviewerID)`), where the rule restored the
+deleting doer's. The rule's assumption now ties a delete's doer to `By[id]`; the item's four verdicts are as before.
+
+**What is left, by where its fix belongs:**
+- core/infer.ts (12 laws: 40–51), the invariant search's candidates and choice, each with its invariant checked. A
+  hand-off to gen/chc5 (below).
+- A sum over a map's keys (7: 30–36): the kernel has no `Σ_k M[k]` and no fact that a cell is at most the sum; a
+  ghost total (`compose.ts`'s `total`) keeps the sum but proves no `cell <= total`. It is a trusted change (a Lean
+  proof of the sum's facts first).
+- Nonlinear (4), strong fairness (1), a false liveness no search refutes (1), two-key instances (1), TigerBeetle's
+  cost (3), Gitea's two-row invariants (1).
+
 ## Cost
 
 | Run | Jobs | Wall | Job time | Hardware |
