@@ -2555,7 +2555,9 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   const total = until - clock(), tail = Math.min(1000, total / 10)
   let reached = 0
   const ghosted = stepGhosts(r.machine, stepLaws)
-  const bounded = (ms: number, from: number) => counted(fullRate, () => findBoundedRun(ghosted?.machine ?? r.machine, [...laws, ...(ghosted?.laws ?? [])], {ms, from, steps: true, progress: k => { reached = k }}), true)
+  // (with the step laws' ghosts, a wall stop too, at the budget: their goals cost the cost model more than its clock
+  // counts, a wide rule's past twice its wall time)
+  const bounded = (ms: number, from: number) => counted(fullRate, () => findBoundedRun(ghosted?.machine ?? r.machine, [...laws, ...(ghosted?.laws ?? [])], {ms, from, steps: true, ...(ghosted ? {wall: performance.now() + ms} : {}), progress: k => { reached = k }}), true)
   const refutedBy = (b: NonNullable<ReturnType<typeof bounded>>): Verdict => refutedVerdict({goal: `${b.law} @step (a run of ${b.depth} steps from the start)`, witness: b.witness, run: {params: b.params, trace: b.trace.map(shownRequest)}})
   const shallow = bounded(Math.min(250, total / 40), 1)
   if (shallow) return refutedBy(shallow)
@@ -2594,7 +2596,8 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   if (ms < 500) return v
   const inf = inferLaws(rule, [...fresh.map(f => f.law), ...laws], stepLaws, {ms, ...(rule === r && !fresh.length ? {first: v} : {})})
   if (!(inf.proven && inf.checked)) {
-    const deep = bounded(Math.max(0, until - clock()), Math.max(1, reached))
+    // (a step law's ghost: at most 10 s of it, as its goals cost more than the laws')
+    const deep = bounded(Math.max(0, Math.min(until - clock(), ghosted && !laws.length ? 10_000 : Infinity)), Math.max(1, reached))
     if (deep) return refutedBy(deep)
     return {...v, why: [v.why, `the search found nothing that proves it in ${Math.round(inf.stats.ms)} ms`].filter(Boolean).join('; ')}
   }
