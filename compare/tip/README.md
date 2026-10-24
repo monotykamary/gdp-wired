@@ -38,6 +38,60 @@ Vampire; gdp-wired isn't given them.
 
 ## Results
 
+### The hypothesis at other values, an implication's premise models, Peano induction (gen/tip2)
+
+Three runs a side of every tool in one batch on Modal, 60 s, 2 vCPU (`runs/tip2/final4`: this branch `mine-1..3`, main
+a6d6403 `main-1..3`, cvc5 `tools-1`, Vampire and cvc5 with conjecture generation `tools-1..3`):
+
+| theorems (492) | proven, by run | in all three | `false/` refuted | wrong |
+| --- | --- | --- | --- | --- |
+| gdp-wired, this branch | 207, 207, 205 | 205 | 23 | 0 |
+| gdp-wired, main a6d6403 | 198, 196, 199 | 195 | 23 | 0 |
+| Vampire 5.1.0 | 188, 191, 190 | 186 | 0 | 0 |
+| cvc5 1.4.2, conjecture generation | 187, 187, 187 | 187 | 0 | 6 (`false/` proven) |
+| cvc5 1.4.2 | 168 | 168 | 0 | 1 (`false/` proven) |
+
+- Gained, 3 of 3 here and 0 of 3 on main, again in three reruns a side (`re-*`): isaplanner/prop_48, prop_58, prop_80,
+  prop_82, prod/prop_13, prop_16, prop_41, prop_43. Lost: none.
+- Vampire's 186 include the 12 `sort_nat_StoogeSort*` and `sort_nat_MSortTD*` tasks, refused here: TIP's
+  `idiv x y` is `ite (lt x y) zero (succ (idiv (minus x y) y))`, so `idiv x zero = succ (idiv x zero)`, and Vampire
+  proves `zero = succ zero` from StoogeSortCount's definitions alone in 60 s (`runs/tip2/probe-idiv.log`; cvc5
+  `--quant-ind` says unknown there). Without them, Vampire's 3 of 3 are 174.
+- The lead is this harness's (60 s, our installs), unconfirmed under TIP's own setup.
+
+What each change does (core/data.ts):
+- **The hypothesis at other values** (`attempt`'s `selfAt`, `lemmaUsesFor`'s `LemmaAt`): each use of a scheme is also
+  read as a lemma whose descended variables are fixed and whose others are matched to the goal's reads (by their
+  fields too, where a step names a value by them), its descent the scheme's own, so the kernel checks it as it checks
+  the scheme's. Kept where the values matched are built by a datatype's constructors and fields (one use of arithmetic
+  alone a node), up to four. drop n (zip xs ys) needs it at both tails (prop_58), take n (xs ++ ys) at n − 1 (prop_80).
+- **An implication's premise models:** the node's and each case's instances come from the models where the premise
+  holds first (x ⊆ y makes intersect (tail x) y the tail: prop_41; prop_43); the cases still from every model.
+- **Peano induction** on a natural no call of the law recurs on, where a call's decreasing argument reads it inside a
+  term: even (x + x), half (x + x) (prop_16, prop_13).
+- **Eta at nil:** at a value a case's conditions say is a constructor of no field (prop_48: [x]'s tail is nil).
+
+Measured and left out: E-matching the hypothesis up to the goal's classes (no task gained, 15 s more wall time on
+list_assoc), a first pass of the smallest conjectures about functions below the law's in the call graph (HipSpec's
+bottom-up order: list_Select, list_nat_Select, list_assoc lost, none gained, `runs/tip2/m6`), merged schemes at two
+unfoldings (none gained), and eta at every value whose tag a case reads (list_PairOdds 56 to 61 s against 38 to 41 s).
+
+What another tool proves and this branch doesn't, in any run (45; `runs/tip2/final4`):
+
+| group | tasks | here |
+| --- | --- | --- |
+| a sort calling `idiv` (rivals' axioms inconsistent, above) | 12 | refused |
+| termination not proven (weird_concat 2, mccarthy91_M2, tree_Flatten3) or an existential (list_elem) | 5 | refused |
+| take, drop and zip at lengths (prop_83, prop_84, lemma_04, lemma_06, lemma_07, prop_08, prop_09) | 7 | unknown or out of time |
+| integers and binary numbers as datatypes (int_* 5, bin_*plus_comm 2) | 7 | unknown or out of time |
+| a reversal or butlast over ++ (prop_49, lemma_09, lemma_10) | 3 | out of time |
+| parity of a length (prop_22, prop_23, prop_25) | 3 | unknown |
+| escape 2, regexp 2, simp_expr_unambig5, nat_pow_times, relaxedprefix_is_prefix_4, tree_Flatten2 | 8 | unknown or out of time |
+
+Of the failing attempts across the 179 unproven translated theorems (`runs/tip2/tr-all`, one traced run each at 34834fe, the first of these changes), 5,098
+ended with a countermodel (an instance or a lemma missing) and 1,005 out of their time; 77 of those theorems have an
+attempt of over 500 instances.
+
 ### The lemma search: calculated steps, uses ranked per case, merged schemes (gen/tip-lemmas)
 
 After merging main at 54bbec9 (0.24.0): every tool in one batch on Modal, 60 s, the same image and container shape

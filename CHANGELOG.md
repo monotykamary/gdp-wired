@@ -5,6 +5,51 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+The lemma search on TIP 2015 (gen/tip2, core/data.ts): the induction hypothesis at other values of the variables an
+induction leaves, an implication's instances from the values where its premise holds, Peano induction on a natural
+inside a decreasing argument, and eta at a value a case says is nil. Nothing trusted changed (`kernel/kernel.ts`,
+`kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/` as at 0.27.0): every new proof is a cyclic proof the kernel checks,
+its uses' descent included. In our harness (60 s a task on Modal, 2 vCPU, the rivals as installed in compare/tip/), three
+runs a side, beside main a6d6403 launched together with Vampire and cvc5 (`runs/tip2/final4`):
+- **TIP 2015:** 207, 207 and 205 of 492 proven, against main's 198, 196 and 199; 205 in all three runs against 195.
+  Vampire 188, 191 and 190 (186 in all three), cvc5 with conjecture generation 187 in each (187), cvc5 168. The same 7
+  refuted on both sides (the `tip2015` ones TIP writes false) and 23 of `false/`, each counterexample confirmed by TIP's
+  evaluator; none wrong. Vampire's 186 include the 12 sorts that call `idiv`, refused here: `idiv x 0` is
+  `S (idiv x 0)`, and Vampire derives `zero = succ zero` from that file's definitions alone (`runs/tip2/probe-idiv.log`).
+  - Gained, in 3 of 3 runs and again in 3 of 3 reruns, never on main: isaplanner/prop_48 (1.4 to 3.4 s), prop_58 (2.4 to
+    3.9 s), prop_80 (29 to 36 s), prop_82 (7.7 to 9.9 s), prod/prop_13 and prop_16 (under 0.4 s), prop_41 (1.2 to
+    2.4 s), prop_43 (3.2 to 4.5 s). cvc5 with conjecture generation proves each of them, Vampire 5: gaps closed.
+  - Lost: none. list_Select and list_assoc, 2 of 3 on main, are 3 of 3 here (`re-*`: list_assoc 3 of 3 against 2).
+  - At 0.27.0 (main 548c343, three runs, `runs/tip2/b0-*`): 200, 199 and 199, 199 in all three; Vampire 192, 192 and
+    188 (186 in all three); 108 refused (81 termination not proven, 21 rings, 2 existential, 2 nested recursion, 1 product
+    of two integers, 1 nested datatype), 81 to 91 unknown and 87 to 97 out of time.
+- **The changes:**
+  - The hypothesis at other values (`attempt`, `lemmaUsesFor`'s `LemmaAt`): each use of a scheme is also a lemma whose
+    descended variables are fixed and the others matched to the goal's reads like a lemma's, its descent the scheme's
+    own; kept where the values matched are made by a datatype's constructors and fields (one of arithmetic alone), up
+    to four a node. drop n (zip xs ys) needs it at both tails, take n (xs ++ ys) at n − 1.
+  - An implication's instance models (the node's and each case's) are those where its premise holds first; its cases
+    still come from all of them (x ⊆ y makes intersect (tail x) y the tail).
+  - Peano induction on a natural no call of the law recurs on, where a call's decreasing argument reads it inside a
+    term (even (x + x), half (x + x)); after the other schemes, merged with none.
+  - Eta at a value a case's conditions say is a constructor of no field ([x]'s tail is nil).
+  - Measured and left out: E-matching a hypothesis up to the goal's classes (no task gained, 15 s more on list_assoc), a
+    first pass of the smallest conjectures below the law in the call graph (HipSpec's order: 3 lost, none gained),
+    merged schemes at two unfoldings (none gained).
+- **Other benchmarks:** the frontier corpora, round 1 90 of 92 and round 2 30 of 47 on both sides, every broken variant
+  refused (42 and 47), every verdict the same, the same job killed at 200 s on both; the real-world corpus 252 proven,
+  29 refuted, 30 unknown on both, every verdict the same (`f1-*`, `f2-*`, `rw-*`). CHC, ITS and SV-COMP don't reach
+  core/data.ts, and weren't run.
+- **Suites** (221 jobs, core/hypothesis.test.ts new: the three laws above with broken variants, each failing on main):
+  none failed by default (493.5 s wall, 5,743.3 s of job time) or with `--usual` (479.1 s, 5,122.5 s).
+- **1 vCPU,** ten jobs a side interleaved with main: data's nearPlus at a median 2,688.89 ms (main 2,603.36), infer's
+  invariant law 2,805.36 ms (2,859.95). One job a side failed, each on a container that took about twice the others'
+  time (mine-data-7 126.5 s, nearPlus 5,922.22 ms; main-data-9 139.8 s, "laws with no lemma" 12,310.10 ms); the others
+  took 44.7 to 68.9 s. The hypothesis matched at a function's value or another variable had made nearPlus 4,271 ms at
+  the median (main 3,001.5, `runs/tip2/near`); restricted as above, 3,274 against 3,157.5 (`near3`).
+- **Size:** `core/` and `kernel/` (tests excluded) 2,184,786 bytes and 30,078 lines against main a6d6403's 2,179,154
+  and 30,044 (+5,632 bytes, +34 lines), all in core/data.ts.
+
 The real-world frontier (gen/realworld2): the corpus's 53 unknown laws of 0.27.0 classified and 23 of them closed in the
 shared search, the suspected upstream bugs checked again against the current code, and the extractor reading more.
 Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/` as at 0.27.0): every

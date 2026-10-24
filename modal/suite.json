@@ -1002,6 +1002,13 @@
 "timeout": 1800
 },
 {
+"name": "hypothesis",
+"cmd": "bun test hypothesis.test.ts 2>&1",
+"cwd": "core",
+"cpu": 2.0,
+"timeout": 600
+},
+{
 "name": "data-bst",
 "cmd": "bun examples/data.ts bstInsert 2>&1",
 "cwd": ".",
