@@ -27,7 +27,7 @@ import {quietly} from './cyclic.ts'
 import {type C, type E, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, get, interpret, machineTerms, modName, n, not, plus, same, times, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, proveRule, proveSteps} from './dsl.ts'
 import {allowed, watch} from './watch.ts'
-import {clock, counted, grow, proveLaw, proveLaws, proveStepLaws, usedHyps, withDeadline} from '../kernel/prove.ts'
+import {clock, counted, grow, proveLaw, proveLaws, proveStepLaws, usedHyps, withDeadline, withTrees} from '../kernel/prove.ts'
 import {obligations, substC} from '../kernel/kernel.ts'
 import {work} from './solver.ts'
 import {REFUTED, type Refuted, growCdcl} from '../kernel/cdcl.ts'
@@ -113,6 +113,11 @@ const joinCubes = (globalThis as {process?: {env?: Record<string, string | undef
 const joinCubeMax = 48, joinCubeTries = 8, joinCubeDepth = 3, joinCubeMs = 2000
 // Once a cube is in the set, the join has 0.3 of what is left of its time (the search below the rest).
 const joinCubeWindow = 0.3
+// GDP_JOIN_PRIME=0: each control state no state reached a form of its own, every value read.
+const joinPrime = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_PRIME !== '0'
+// GDP_JOIN_DOWN=0: a blocked cube kept as its refutation's core cuts it (no literal dropped); joinDownQueries, the
+// queries a cube's generalization may ask.
+const joinDown = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_DOWN !== '0', joinDownQueries = 24
 const seeded = (seed: number): Rand => { let s = seed; return k => { s = (s * 1103515245 + 12345) % 2 ** 31; return Math.floor(s / 2 ** 31 * k) } }
 const isRule = (t: AnyRule | Machine): t is AnyRule => typeof (t as AnyRule).kindsOfState === 'function'
 const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
@@ -804,8 +809,29 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // (once broken, each its own form from then on, so that a state joined in changes only the forms that
       // read its own control state, not every proof that read them all)
       if (nev.length > 1 && joinNevers && neversBroken < joinNeversBreaks) push({coef: [], d: 0, cells: false, nevers: nev, size: 1})
-      else for (const ats of nev) push({coef: [], d: 0, cells: false, ...(ats.length > 1 ? {never: ats} : {unreachable: ats[0]!}), size: 1})
+      else for (const ats of joinPrime ? primes(nev) : nev) push({coef: [], d: 0, cells: false, ...(ats.length > 1 ? {never: ats} : {unreachable: ats[0]!}), size: 1})
       return out
+    }
+    // The control states no state reached, as fewer and smaller cubes (a program counter in bits: Spacer's clauses there
+    // read two or three of its bits): each cube's values dropped one at a time, the yes/nos first, while it holds at no
+    // control state reached, then the cubes another cube's values include left out. Together they say what the cubes
+    // of every value say (the control state is one reached), but a goal reads fewer of them, and each of them less.
+    const primes = (nev: At[][]): At[][] => {
+      const reachedKeys = [...groups.keys()].map(k2 => k2.split(',').map(Number))
+      const holdsAtSome = (c: At[]) => reachedKeys.some(vs => c.every(a => vs[keyAtoms.indexOf(a.atom)] === a.value))
+      const out: At[][] = []
+      for (const ats of nev) {
+        let c = ats
+        for (const a of [...ats.slice(1), ats[0]!]) {
+          if (c.length <= 1) break
+          const fewer = c.filter(b2 => b2 !== a)
+          if (!holdsAtSome(fewer)) c = fewer
+        }
+        out.push(c)
+      }
+      const key2 = (c: At[]) => c.map(a => `${a.atom}=${a.value}`).sort().join('&')
+      const uniq = [...new Map(out.map(c => [key2(c), c])).values()].sort((a, b) => a.length - b.length)
+      return uniq.filter((c, i) => !uniq.slice(0, i).some(d => d.every(a => c.some(b2 => b2.atom === a.atom && b2.value === a.value))))
     }
     let rounds = 0, why = '', set: Form[] = []
     const params0: Env = {}
@@ -951,6 +977,27 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // cube made smaller to leave the predecessor's successor out. Each cube blocked is a form of the set (a
     // disjunction: never all its literals), which the join keeps or drops as any other.
     let cubed = 0, cubeWhy = '', cubeUntil = Infinity
+    // IC3's generalization of a cube blocked (Bradley's down, literal dropping as Een, Mishchenko and Brayton's): the
+    // literals taken out a part at a time (half of them, then quarters, ..., then one by one), a part kept out where the
+    // cube without it still leaves the start and the samples out and is still blocked relative to the same laws (the
+    // refutation's core then cutting it further); within joinDownQueries queries. A cube's core reads most of its
+    // literals where the step's terms are a chain of ifs (research/dag: a refutation's core is nearly its whole path), so
+    // the core alone leaves a cube of every control value; Spacer's clauses on these tasks read two to four.
+    const down = (c: Lit[], frame: Law[]): Lit[] => {
+      let cur = c, queries = 0
+      for (let part = Math.ceil(cur.length / 2); part >= 1 && queries < joinDownQueries && now() < jUntil && !stop(); part = part === 1 ? 0 : Math.ceil(part / 2)) {
+        for (let i = 0; i < cur.length && cur.length > 1 && queries < joinDownQueries && now() < jUntil && !stop();) {
+          const cand = [...cur.slice(0, i), ...cur.slice(i + part)]
+          if (!cand.length || (initVec && inCube(cand, initVec)) || S.some(s2 => inCube(cand, s2))) { i += part; continue }
+          queries++
+          const r = queryWith(cand, frame)
+          if (!r?.ok) { i += part; continue }
+          const cut = cand.filter((_, j) => r.core.has(j))
+          cur = cut.length && !(initVec && inCube(cut, initVec)) && !S.some(s2 => inCube(cut, s2)) ? cut : cand
+        }
+      }
+      return cur
+    }
     const blockCube = (v: Float64Array, depth: number, within: Form[]): Form[] => {
       let c = cubeOf(v)
       const made: Form[] = []
@@ -964,7 +1011,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         if (r.ok) {
           const c2 = c.filter((_, j) => r.core.has(j))
           if (initVec && inCube(c2, initVec)) { const l = c.find(l2 => !litHolds(l2, initVec!)); if (l) c2.push(l) }
-          made.push(formOf(outOfSamples(c2, c) ? c2 : c))
+          const c3 = outOfSamples(c2, c) ? c2 : c
+          made.push(formOf(joinDown ? down(c3, [...ctx, ...made].map(lawFor).filter(l => l.name !== textOf(formOf(c3)))) : c3))
           break
         }
         if (!r.post) { cubeWhy = 'no step'; break }
@@ -1108,7 +1156,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   }
   for (let iter = 0; iter < 300 && now() < until && !stop(); iter++) {
     const began = now(), wall = performance.now()
-    last = search([...given, ...chosen.map(lawFor)])
+    // (each law proven alone, then the set as a whole: the same goals, grown once)
+    last = withTrees(() => search([...given, ...chosen.map(lawFor)]))
     const took = now() - began
     opts.progress?.('proof', {chosen: chosen.length, goal: last.goal ?? '', stuck: last.stuck ?? '', ms: Math.round(performance.now() - wall), counted: Math.round(took)})
     if (last.proven && last.checked) break

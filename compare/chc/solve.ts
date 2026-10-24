@@ -7,18 +7,19 @@
 //     that doubles per round
 //   - guided: runs the prover guides, each request a model of its clause's condition where the run is (the clauses that
 //     derive false tried first at each state)
-//   - bmc: bounded runs (core/bmc.ts): a deterministic loop's forced run, then a model of a k-step goal from the start
-//     to error, k = 1, 2, ..., within --bmc-ms (15,000)
-//   - kind: k-induction (core/kind.ts), beside the others on the container's second CPU at the lowest priority (compare/chc/kind.ts, started
-//     once the task is read, until the search's deadline; `--kind-ms 0` leaves it out): proven, it ends this process
-//     and answers sat itself
+//   - kind and bmc: on the container's second CPU at the lowest priority (compare/chc/kind.ts, started once the task is
+//     read, until the search's deadline; `--kind-ms 0` leaves it out), k-induction (core/kind.ts) and bounded runs
+//     (core/bmc.ts: a deterministic loop's forced run, then a model of a k-step goal from the start to error, k = 1, 2,
+//     ...) in turn, in doubling slices; proven, or a run checkDerivation confirms, it ends this process and answers
+//     itself. With `--bmc-here` (or `--kind-ms 0`) the bounded runs are this process's stage after the guided runs,
+//     within --bmc-ms (15,000), as before
 //   - houdini: the library's search for the invariants the law needs (core/infer.ts), from the states the runs reached:
 //     candidates per predicate (loc = p → a bound, a difference, a sum), those a run's state breaks dropped, then the
 //     kernel's counterexamples to induction choosing which to add; `--old-houdini`, this folder's first Houdini
 //     (houdini.ts: every candidate kept, rounds of proveRule until the rest are inductive together)
 import {readFileSync} from 'node:fs'
 import {Unsupported, parseChc} from './chc.ts'
-import {type Step, build, checkDerivation} from './translate.ts'
+import {type Raw, build, checkDerivation, requestOf, stepsOf} from './translate.ts'
 import {proveRule} from '../../core/dsl.ts'
 import {houdini} from './houdini.ts'
 import {inferLaws} from '../../core/infer.ts'
@@ -50,24 +51,16 @@ say({stage: 'import', preds: chc!.preds.size, clauses: chc!.clauses.length, ints
 // k-induction beside the other stages (compare/chc/kind.ts), until the search's deadline; stopped when this answers.
 // At the lowest priority (nice 19): of the 41 tasks this or main answered alone, 32 and 35 answered that way, 30, 31 and
 // 32 at the same priority, main 9, 16 and 18 (runs/kind/ch-nice-*, chc-mine, ch-mine-*, chc-base, ch-base-*).
-const kindMs = opt('--kind-ms', Math.max(0, houdiniMs - 2000 - ms()))
-const kind = kindMs > 0 ? Bun.spawn(['nice', '-n', '19', 'bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid)], {stdout: 'inherit', stderr: 'ignore'}) : undefined
+// The bounded runs go there too (`--bmc-here` keeps them in this process's stage, after the guided runs, as before), in
+// turn with k-induction, so this process's invariant search starts after the guided runs.
+const kindMs = opt('--kind-ms', Math.max(0, houdiniMs - 2000 - ms())), bmcThere = kindMs > 0 && !args.includes('--bmc-here') && bmcMs > 0
+const kind = kindMs > 0 ? Bun.spawn(['nice', '-n', '19', 'bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid), '--bmc', bmcThere ? '1' : '0'], {stdout: 'inherit', stderr: 'ignore'}) : undefined
 process.on('exit', () => { kind?.kill() })
 
 // A run, replayed on the compiled rule and checked against the CHC.
 const g = r.compiled()
-const replay = (raws: Record<string, number | boolean | string>[]) => {
-  let st = g.init({})
-  const steps: Step[] = []
-  for (const raw of raws) {
-    const before = r.decode(st), next = g.step({}, st, r.encodeInput(raw as never))
-    steps.push({clause: Number(String(raw.c).slice(1)), input: raw, before, after: r.decode(next)})
-    st = next
-  }
-  return steps
-}
-const unsat = (stage: string, raws: Record<string, number | boolean | string>[]) => {
-  const bad = checkDerivation(b!, chc!, replay(raws))
+const unsat = (stage: string, raws: Raw[]) => {
+  const bad = checkDerivation(b!, chc!, stepsOf(b!, raws))
   if (bad) { say({stage, refused: bad}); return }
   done('unsat', {by: stage, steps: raws.length})
 }
@@ -81,7 +74,7 @@ if (direct.run) unsat('prove', direct.run.trace.map(t => decodeRequest(t)))
 // for k = 1, 2, ..., each a model of a k-step goal; within --bmc-ms, counted and in wall time (the track's limit is wall
 // time), and the limit.
 const bounded = () => {
-  if (bmcMs <= 0) return
+  if (bmcMs <= 0 || bmcThere) return
   // each depth tried: [k, its outcome's letter (refuted, sat, unknown), counted ms, wall ms]
   const depths: [number, string, number, number][] = []
   let w0 = ms()
@@ -90,12 +83,7 @@ const bounded = () => {
   if (found) unsat('bmc', found.trace.map(t => decodeRequest(t as Record<string, unknown>)))
 }
 
-function decodeRequest(t: Record<string, unknown>): Record<string, number | boolean | string> {
-  const out: Record<string, number | boolean | string> = {c: b!.clauseNames[t.c as number]!}
-  for (let k = 0; k < b!.inInt; k++) out[`x${k}`] = (t[`x${k}`] as number) - (t[`x${k}$neg`] as number)
-  for (let k = 0; k < b!.inBool; k++) out[`y${k}`] = t[`y${k}`] === 1
-  return out
-}
+function decodeRequest(t: Record<string, unknown>): Raw { return requestOf(b!, t) }
 
 // Random runs: a seeded walk; at each step a clause whose body is where the run is, request values in ±bound. The
 // states they reach are kept (a sample) for Houdini.
