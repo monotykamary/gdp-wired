@@ -422,9 +422,11 @@ function pathAt(rel: Relation, among: number[], st: Record<string, number>, inpu
   }
   return undefined
 }
-const rels = new WeakMap<Loop, Relation | undefined>()
+// (the relation as built, products and all, and as kept: each built once a loop)
+const raws = new WeakMap<Loop, Relation | undefined>(), rels = new WeakMap<Loop, Relation | undefined>()
+const rawOf = (l: Loop): Relation | undefined => { if (!raws.has(l)) raws.set(l, relationOf(l)); return raws.get(l) }
 function relOf(l: Loop): Relation | undefined {
-  if (!rels.has(l)) rels.set(l, kept(l, relationOf(l)))
+  if (!rels.has(l)) rels.set(l, kept(l, rawOf(l)))
   return rels.get(l)
 }
 // (a path that reads a product, which the relation stands for by a natural of its own, is kept where each product is
@@ -448,7 +450,7 @@ const fixes = new WeakMap<Loop, {rel: Relation, pins: Lin[]}[]>()
 function fixedCases(l: Loop): {rel: Relation, pins: Lin[]}[] {
   const hit = fixes.get(l)
   if (hit) return hit
-  const out: {rel: Relation, pins: Lin[]}[] = [], raw = relationOf(l), S = new Set([...Object.keys(l.state), ...l.params]), I = new Set(l.inputs), xs = new Set<string>()
+  const out: {rel: Relation, pins: Lin[]}[] = [], raw = rawOf(l), S = new Set([...Object.keys(l.state), ...l.params]), I = new Set(l.inputs), xs = new Set<string>()
   for (const p of raw && !raw.exact ? raw.paths : []) for (const n of [...p.rows.flatMap(vars), ...Object.values(p.post).flatMap(vars)]) {
     const fs = isPi(n) ? piParts(n) : undefined
     if (!fs) continue
