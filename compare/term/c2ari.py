@@ -1019,6 +1019,13 @@ class Main:
         """C's / and % (truncation toward zero): a fresh quotient q, the remainder a − b·q between 0 and b, its sign a's;
         by zero, undefined behaviour."""
         p = self.p
+        # (of two constants, its value: C's quotient truncated toward zero, the remainder with the dividend's sign)
+        ka, kb = (None, None) if a.raw or b.raw else (cval(a.sx), cval(b.sx))
+        if ka is not None and kb:
+            qv = abs(ka) // abs(kb) * (1 if (ka >= 0) == (kb > 0) else -1)
+            lo, hi = rng(t)
+            if lo <= qv <= hi:
+                return V(num(qv if op == "/" else ka - kb * qv), t)
         p.features.add("division")
         q = p.new("q")
         r, nr = ["-", a.sx, ["*", b.sx, q]], ["-", ["*", b.sx, q], a.sx]
@@ -1865,7 +1872,8 @@ def chain(prog, start):
     locations' states left out: every cycle keeps a location (a cycle of left-out ones would have ended in a rule back
     to itself), so a run is infinite exactly when the program's is, and one that stops at a left-out location (no
     guard out of it holds, or undefined behaviour) stops one step earlier. A composition past 3 times its parts' size
-    (a term read many times) is not made."""
+    (a term read many times) is not made, nor one with more disjunctions, or more fresh values a guard constrains past their
+    bounds, than either part (each is a choice a run has to draw)."""
     def size(s):
         return 1 if isinstance(s, str) else sum(size(x) for x in s)
 
@@ -1920,6 +1928,22 @@ def chain(prog, start):
                 return g[1], None, const(g[2])
         return None
 
+    CMP = {"<": lambda a, b: a < b, "<=": lambda a, b: a <= b, ">": lambda a, b: a > b, ">=": lambda a, b: a >= b, "=": lambda a, b: a == b}
+
+    def fold(g):
+        """A comparison of constants as true or false, through and, or (a composition reads a test at a value the
+        rule before set)."""
+        if isinstance(g, list) and g and g[0] in CMP and len(g) == 3:
+            a, b = cval(g[1]), cval(g[2])
+            return g if a is None or b is None else ("true" if CMP[g[0]](a, b) else "false")
+        if isinstance(g, list) and g and g[0] in ("and", "or"):
+            return simp([g[0], *(fold(x) for x in g[1:])])
+        return g
+
+    def folded(r):
+        gs = [simp(fold(g)) for g in r[2]]
+        return None if "false" in gs else (r[0], r[1], [g for g in gs if g != "true"], r[3])
+
     def hard(r):
         """The fresh values a guard constrains past their bounds (x = nd, nd = 2·q + r): a run must draw them."""
         out = set()
@@ -1928,6 +1952,10 @@ def chain(prog, start):
                 if bound(x) is None:
                     frees((None, None, [x], {}), out)
         return out
+
+    def ors(r):
+        """The disjunctions among a rule's conjuncts (a rule of k is up to 2^k paths of the loop's relation)."""
+        return sum(1 for g in r[2] for x in flat(g) if isinstance(x, list) and x and x[0] == "or")
 
     def unused(r):
         """A fresh value only bounded (a nondeterministic value no update or other guard reads): its bounds left out
@@ -1949,15 +1977,16 @@ def chain(prog, start):
         drop = {x for x in set(lo) | set(hi) if lo.get(x, -2 ** 70) <= hi.get(x, 2 ** 70)}
         return (r[0], r[1], [g for g in gs if not (bound(g) and bound(g)[0] in drop)], r[3])
 
-    # (only what the entry reaches)
+    # (only what the entry reaches, by rules whose guard isn't false by its constants)
+    base = [f for f in (folded(r) for r in prog.rules) if f]
     seen, todo = {start}, [start]
     while todo:
         a = todo.pop()
-        for r in prog.rules:
+        for r in base:
             if r[0] == a and r[1] not in seen:
                 seen.add(r[1])
                 todo.append(r[1])
-    rules = [r for r in prog.rules if r[0] in seen]
+    rules = [r for r in base if r[0] in seen]
     # (and no rule into a location none leaves, but the entry's: the run ends there either way, a step earlier)
     def unsunk(rules):
         while True:
@@ -1976,9 +2005,10 @@ def chain(prog, start):
                 continue
             pairs = [(a, b) for a in ins for b in outs]
             made = [compose(a, b) for a, b in pairs]
-            if any(rsize(m) > 3 * (rsize(a) + rsize(b)) + 8 or len(hard(m)) > max(len(hard(a)), len(hard(b))) for m, (a, b) in zip(made, pairs)):
+            if any(rsize(m) > 3 * (rsize(a) + rsize(b)) + 8 or len(hard(m)) > max(len(hard(a)), len(hard(b)))
+                   or ors(m) > max(ors(a), ors(b)) for m, (a, b) in zip(made, pairs)):
                 continue
-            made = [m for m in made if "false" not in [simp(g) for g in m[2]]]
+            made = [f for f in (folded(m) for m in made) if f]
             rules = [r for r in rules if r[0] != l and r[1] != l] + made
             changed = True
     # (a system with no rule left, one that never fires: every run ends at the entry)
