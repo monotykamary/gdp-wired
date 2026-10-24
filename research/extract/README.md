@@ -70,24 +70,76 @@ laws are about both. The extracted radio rule's laws take 27 to 57 s where the i
 are the code's strings (`str()`, an id and a length) where the item interned the url as a natural and kept the error as
 a flag, and its eventless transition is read by cases where it lands.
 
-## A second front end (Python, Go, Java, Rust; Solidity)
+## The Go front end (core/extract-go.ts)
 
-The other languages are out of this round. A front end would follow the C one's pattern (compare/term/c2ari.py): the
-language's own parser and type checker, a subset with the language's exact semantics, refusals where it leaves them,
-and an intermediate the rest reads. Here that intermediate is the extractor's Model (core/extract-read.ts: the state's
-variables and maps, the step's terms over them, the refusals, how a request is made of the code), so the printer, the
-sorts and the rule are shared, and only two pieces are the language's:
+A second language, Go, on the same Model: a struct of the package and its methods, read through Go's own parser and
+type checker (core/go/reader.go, go/ast and go/types, printing the typed AST as JSON), executed symbolically into the
+Model, then printed, built and checked as the TypeScript extractor's are (core/extract.ts's `fromModel`). The check
+(core/extract-go-check.ts) builds the package in its own module (its go.mod and dependencies) with a generated harness
+beside it, sends it every request as one batch (runs from the start drawn on the rule's side, steps from drawn states,
+steps from the prover's witnesses), compares every state, result and refusal, asks that the fields the rule leaves out
+are unchanged, and counts the blocks reached with `go build -cover`. docs/ARCHITECTURE.md's front-end section has the
+subset and its semantics (integers wrapping at their width, pointers aliasing, `*big.Int` unbounded, errors and panics
+as refusals).
 
-- **the reader**: its AST and types (Go's `go/types` from a small Go program emitting JSON; Python's `ast` with its
-  annotations; javac or JavaParser; rust-analyzer or `syn`; solc's AST JSON), executed symbolically into the Model, with
-  its integers as they are: Go's and Java's wrap at 2^64 and 2^32 (a rule's numbers would need the modular arithmetic
-  c2ari.py has, or a refusal past the range, as JavaScript's past 2^53), Python's are unbounded (the simplest), Rust's
-  panic on overflow in debug and wrap in release (a choice the build makes), Solidity ≥ 0.8's revert (a refusal, as a
-  throw is here);
-- **the check's runner**: the code run in its own runtime beside the rule (a subprocess per language: python, `go run`,
-  the JVM, cargo, a local EVM such as anvil), driven through a harness that makes the object, calls the entry, and
-  prints its state as JSON for the same snapshot comparison core/extract-check.ts makes.
+Which language second: by the items whose rule lives in it, Go reaches 8 of research/realworld/sources.json's items
+(rbac, gitea, csr conditions, blnk, gobreaker, flagd, resource quota, x/time/rate) and Solidity 4 (Governor,
+TimelockController, ERC20, RefundEscrow); in the 41-source list above, Go 6 items and Solidity 4 (7 files). So Go.
 
-The corpus's 7 Solidity contracts would come first (ledgers and governance: uint256 state, mappings, `require` as the
-rule's refusals, msg.sender an input), then Go's 6 (gitea's reviews, kubernetes's validation, x/time/rate's floats would
-be refused).
+| File | What |
+| --- | --- |
+| `go-run.ts` | every Go source of research/realworld's sources.json: the package at its commit (`go-fetch.ts`, a sparse checkout), each name its `export` gives read (Type.method, a type the methods in its pinned lines, a method alone; a function read as far as the subset goes, for where it stops); a refused struct's part that extracts (each method alone, then those together) beside it |
+| `go-options.json` | what a source's callers do with an object a failed call wrote, with where the code says so (blnk's: dropped) |
+| `go-verdicts.ts` | the corpus's own laws on the extracted Go rules, beside the items' rules by hand (one job per law, `go-verdict-jobs.json`) |
+| `go-setup.sh`, `go-jobs.json`, `go-one.ts` | Go 1.27.1 in a job where the image has another; the tests and the corpus run; one struct through the front end |
+| `results/go/` | the batch `runs/front-go/go2`: `realworld.jsonl` (one line per source), `corpus.jsonl` (one line per law), `rules/` |
+
+```sh
+python3 modal/run.py --backend auto --jobs research/extract/go-jobs.json --out runs/front-go/<name> && sh modal/reap.sh   # with go-verdict-jobs.json
+```
+
+**On the corpus's Go code** (`runs/front-go/go2`): of its 25 Go sources (8 items), 1 is extracted whole and 24 are
+refused, each where it is. The one extracted is gobreaker's `v2/counter.go` (`Counts`, an `also` of the CircuitBreaker
+item): six uint32 counters, their increments wrapping at 2^32 as Go's do; 2,400 requests in 200 runs from the start,
+424 single steps from drawn states and the prover's witnesses (24 of 24 conditions), 2,824 steps where the generated
+JavaScript agreed, 8 of 8 blocks. Of blnk's `model/model.go` (the ledger item's rule source), the part that extracts is
+`Balance`'s addCredit, addDebit, computeBalance, RollbackInflightCredit and RollbackInflightDebit (its `*big.Int`
+balances unbounded integers, nil a state of their own; a failed call's writes dropped, as transaction_execution.go:
+536-551 drops them): 2,263 requests in 200 runs, 428 single steps (28 of 30 conditions witnessed), 323 refused on both
+sides, 28 steps where the code leaves the safe integers and the rule's runtime refuses, 6 where the rule's runtime
+refuses a sum past 2^53 while the code's values stay safe, 34 of 34 blocks. CommitInflight* and UpdateBalances are
+refused there: `ApplyPrecision` reads the transaction's float64 `Precision` (model.go:286), `canProcessTransaction` its
+float64 `OverdraftLimit` and shopspring/decimal.
+
+The refusals, by reason: an interface argument 7 (gitea's four functions over a `context.Context` and the database
+behind it, kubernetes's csr strategy and blnk's `applyTransactionToBalances` over one too, flagd's
+`parseFractionalEvaluationDistributions(values []any)`), another module's type 6 (kubernetes's
+`authorizer.Attributes`, `*rbacv1.PolicyRule`, `*field.Path`, `[]corev1.ResourceQuota` twice, `corev1.ResourceList`),
+floats 3 (blnk twice; x/time/rate's `Limit` is a float64 type), not code to read 3 (a test, a type's documentation, a
+Markdown file), 2 tallied as not a declaration (gitea's `MarkReviewsAsStale`, declared in models/issues and called
+from services/pull; the csr `CertificateSigningRequestStatus`, a struct with no methods in the lines cited: data, not a
+step), a generic type 1 (gobreaker's `CircuitBreaker[T]`), a loop 1
+(flagd's `distributeValue`), the clock 1 (x/time/rate's `AllowN(t time.Time)`). No item has its rule source extracted
+whole.
+
+**The corpus's laws on the extracted rules** (`results/go/corpus.jsonl`): the two items' 13 laws. 3 have a statement on
+the code's rule, all blnk's, and all 3 differ, each for a reason the code gives:
+
+| Law | By hand | Extracted | Why |
+| --- | --- | --- | --- |
+| every balance is its credits less its debits | proven | refuted (1 step: addCredit(3, posted) from the zero Balance) | the item's step is a whole transaction (UpdateBalances: addDebit or addCredit, then computeBalance); the extracted steps are Balance's methods, one call each, and the identity holds between transactions, not between the calls that make one. UpdateBalances is refused (floats) |
+| every inflight balance is its inflight credits less its inflight debits | proven | refuted (2 steps: addCredit, then addDebit(3, inflight)) | the same: computeBalance(true) comes after |
+| no inflight debit is ever negative | proven | refuted (1 step: addDebit(−3, inflight)) | the item's amounts are positive because Transaction.validate refuses others inside UpdateBalances (refused); addDebit itself takes any big.Int |
+
+The other 10 read what the extracted code doesn't keep: blnk's sums over every balance (tC, tD, tIC, tID) and what a
+balance sourced under (Unbounded, MaxLimit), ghosts the item adds (3); gobreaker's breaker state, generation and expiry
+(7), the CircuitBreaker's, refused, where the extracted Counts keeps none.
+
+## Other languages (Python, Java, Rust; Solidity)
+
+The Go front end is the template (docs/ARCHITECTURE.md): the language's own parser and type checker printing JSON, an
+executor into the Model with the language's integers as they are (Java's wrap at 2^32 and 2^64 as Go's do, Python's
+are unbounded, Rust's panic in debug and wrap in release, a choice the build makes, Solidity ≥ 0.8's revert), and a
+runner in its own runtime (python, the JVM, cargo, a local EVM such as anvil) printing the state as JSON for the same
+comparison. Solidity's 4 items would be next (ledgers and governance: uint256 state, mappings, `require` as the rule's
+refusals with the state rolled back, msg.sender an input).

@@ -3,6 +3,45 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+A second language for the extractor: Go (`core/extract-go.ts`, untrusted), on the same Model, printer and rule as the
+TypeScript one. Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts` and the Lean files as
+in 0.26.0).
+
+- **Why Go**: of research/realworld's items, 8 have their rule in Go and 4 in Solidity (in the 41-source list, 6 and 4).
+- **The reader**: core/go/reader.go (go/parser and go/types, built and run with the Go toolchain) prints a package's
+  typed AST as JSON; core/extract-go.ts executes a struct's methods symbolically into core/extract-read.ts's Model.
+  Integers are Go's: 8 to 32 bits wrap modulo 2^n by cases (as compare/term/c2ari.py takes C's unsigned arithmetic), 64
+  bits stop at the rule's ±2^53 with a uint64 below 0 refused, division truncates toward zero; pointers alias (interior
+  pointers too), struct values copy, `*big.Int` is unbounded with nil a state of its own, maps and slices (as lists),
+  switch, early returns, a mutex's Lock with its deferred Unlock; an error that isn't nil and a panic are refusals, the
+  state as it was (or dropped where the caller drops it: `onError: 'discard'`, cited in research/extract/go-options.json).
+  Refused where they are: loops (a range over a map besides), slices under a second name, other defers, recover,
+  floats, interfaces, generics, the clock, another module's code.
+- **The check**: core/extract-go-check.ts builds the package in its own module with a generated harness (`go build
+  -cover`), sends every request in one batch (runs from the start drawn on the rule's side, drawn states with the
+  types' edges, the prover's witnesses), compares every state, result and refusal, and asks the fields the rule leaves
+  out to be unchanged; a model edited to forget the uint8 wrap is refused by it (core/extract-go.test.ts, 16 tests:
+  overflow at each width, aliasing, maps, slices sharing a backing array, defer, panics, errors after a write).
+- **Shared, not copied**: core/extract.ts's printing, build and invariants are `fromModel`, called by both front ends;
+  core/extract-check.ts's rule side (`ruleSnap`, `ruleState`, `sameSnap`, `draw`, `constantsOf`, `conditionsOf`,
+  `condAt`) is exported for the Go check; the Model takes the laws a front end knows (`laws`: a field within its type).
+  `core/` and `kernel/` (tests excluded) 2,088,966 bytes and 28,795 lines against 0.26.0's 1,943,031 and 26,476
+  (extract-go.ts 108,675, extract-go-check.ts 36,430, the shared files +830; reader.go's 20,138 bytes are Go, apart).
+- **The corpus's Go code** (`runs/front-go/go2`, research/extract/results/go/): of 25 Go sources (8 items), gobreaker's
+  `Counts` (an `also`) extracted whole (2,824 steps beside Go, 8 of 8 blocks) and blnk's Balance in part (5 of its 7
+  methods, 2,691 steps, 34 of 34 blocks); 24 refused (an interface 7, another module's type 6, floats 3, not code 3,
+  not a declaration 2, generics 1, a loop 1, the clock 1). Of the two items' 13 laws, 3 have a statement on the
+  extracted rules and all 3 differ from the hand's (proven by hand, refuted on the code), each explained: the item's
+  step is a whole transaction where the code's methods are its parts, and its amounts are validated by UpdateBalances,
+  which is refused (floats); 10 read ghosts or the CircuitBreaker's state, which the extracted code doesn't keep.
+- **Beside main e883e53, on boat** (`runs/front-go/extract-mine`, `extract-base`): the extract job the same (52 of 52
+  tests; 22 and 41 sources with the same rows and rules; 36 of 36 verdicts) and the corpus's 33 laws on the extracted
+  XState rules the same. The suites with the new `extract-go` job, 219 jobs: by default none failed (251.2 s wall,
+  3,313.5 s of job time, `runs/front-go/suite-default`), with `--usual` none failed (236.7 s, 3,012.1 s,
+  `runs/front-go/suite-usual`).
+
 ## 0.26.0
 
 Five benchmarks moved or held, the library got smaller, the extractor reads real projects' code, and certificates have
