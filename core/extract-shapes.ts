@@ -360,7 +360,12 @@ function readFunctionsOnce(code: string, file: string, opts: ReadOptions): Model
       visit(s.sf)
     }
     if (!initExpr) for (const stmt of s.sf.statements) if (ts.isVariableStatement(stmt)) for (const d of stmt.declarationList.declarations) if (ts.isIdentifier(d.name) && d.name.text === 'initialState' && d.initializer) initExpr = d.initializer
-    if (!initExpr) refuse(sp, 'no initial state: a default parameter, useReducer(reducer, initial), a const initialState, or init')
+    if (!initExpr) {
+      // A function whose result is not of its first argument's type takes no state to step: name what it is.
+      const sig = s.checker.getSignatureFromDeclaration(first), rt = sig && s.checker.getReturnTypeOfSignature(sig), st0 = s.checker.getTypeAtLocation(sp)
+      if (rt && !(st0.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) && !s.checker.isTypeAssignableTo(rt, st0)) refuse(first, `${names[0]} is not a step over a state (a step takes the state first and returns the next): it takes ${s.checker.typeToString(st0).slice(0, 60)} and returns ${s.checker.typeToString(rt).slice(0, 60)}`)
+      refuse(sp, 'no initial state: a default parameter, useReducer(reducer, initial), a const initialState, or init')
+    }
     raw = constValue(initExpr!, s)
     initSource = initExpr!.getText()
   }

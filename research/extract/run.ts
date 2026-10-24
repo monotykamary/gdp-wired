@@ -18,7 +18,8 @@ import {fetchSource, importsOf} from './fetch.ts'
 
 type Ours = {id: string, repo: string, commit: string, path: string, lines?: string, file?: string, entry: string, shape?: 'xstate' | 'class' | 'functions', functions?: string[], methods?: string[], init?: unknown, close?: string, domains?: Record<string, 'nat' | 'int'>, licence: string, note: string}
 type Real = {item: string, domain: string, role: string, repo: string, commit: string, licence: string, language: string, path: string, lines: string, export: string}
-type Job = {set: 'ours' | 'realworld', id: string, role?: string, repo: string, commit: string, path: string, lines?: string, pinned?: string, file: string, entry: string, shape?: 'xstate' | 'class' | 'functions', functions?: string[], methods?: string[], init?: unknown, close?: string, domains?: Record<string, 'nat' | 'int'>, language: string}
+class RegistryEntry extends Error {}
+type Job = {set: 'ours' | 'realworld', id: string, exportText?: string, role?: string, repo: string, commit: string, path: string, lines?: string, pinned?: string, file: string, entry: string, shape?: 'xstate' | 'class' | 'functions', functions?: string[], methods?: string[], init?: unknown, close?: string, domains?: Record<string, 'nat' | 'int'>, language: string}
 
 const here = import.meta.dir, args = process.argv.slice(2)
 const flag = (n: string) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined }
@@ -30,7 +31,7 @@ const ours: Job[] = (JSON.parse(readFileSync(join(here, 'sources.json'), 'utf8')
 const real: Job[] = (JSON.parse(readFileSync(join(here, 'realworld-sources.json'), 'utf8')) as Real[]).map(s => {
   const m = /^([\w$]+)(?:\.([\w$]+))?(?:\s*\(([^)]*)\))?/.exec(s.export.trim())
   const entry = m?.[1] ?? s.export, method = m?.[2], list = m?.[3]?.split(',').map(x => x.trim().replace(/\{.*$/, '')).filter(x => /^[\w$]+$/.test(x))
-  return {set: 'realworld', id: `${s.item} :: ${s.path}`, role: s.role, repo: s.repo, commit: s.commit, path: s.path, pinned: s.lines, file: s.path.split('/').pop()!, entry, language: s.language,
+  return {set: 'realworld', id: `${s.item} :: ${s.path}`, exportText: s.export, role: s.role, repo: s.repo, commit: s.commit, path: s.path, pinned: s.lines, file: s.path.split('/').pop()!, entry, language: s.language,
     ...(s.domain === 'xstate' ? {shape: 'xstate' as const} : {}), ...(method ? {methods: [method]} : list?.length ? {methods: list} : {})}
 })
 // A class the corpus names without its methods: the public methods its pinned lines hold (the code the item mirrors).
@@ -60,7 +61,9 @@ const reason = (what: string): string => {
     [/no type the subset reads|any or unknown/, 'untyped'], [/fromXState: .*`(invoke|after|always|onDone)`/, 'xstate: invoke, after, always or onDone'], [/fromXState: .*inline/, 'xstate: inline actions or guards'],
     [/v4 `cond`/, 'xstate: v4 cond'], [/fromXState/, 'xstate: other'], [/made by a function|makes the machine/, 'xstate: a machine made by a function'], [/extends another/, 'class extends'],
     [/state it was given/, 'mutates its argument'], [/differ/, 'check: a difference'], [/no function|no class|no machine/, 'entry not found'], [/may be missing|undefined/, 'missing values'],
-    [/function value|a call the subset|a method the subset|new /, 'calls and objects outside the subset'], [/try\/catch/, 'try/catch'],
+    [/a mixin/, 'class: extends what a call makes (a mixin)'], [/a setter/, 'class: a setter'], [/is static/, "a static factory (not an object's method)"],
+    [/not a name the code declares|not declared in the file/, 'not a declaration of the code'],
+    [/function value|a call the subset|a method the subset|new |a function from outside/, 'calls and objects outside the subset'], [/try\/catch/, 'try/catch'],
   ]
   return rules.find(([re]) => re.test(what))?.[1] ?? 'other'
 }
@@ -74,8 +77,14 @@ for (const j of jobs) {
   try {
     if (!/^(TypeScript|JavaScript)$/.test(j.language)) {
       Object.assign(row, {ok: false, refusal: {where: j.path, what: `${j.language}: not TypeScript or JavaScript`}, reason: 'language'})
+    } else if (j.set === 'realworld' && /\.(test|spec)\.[jt]sx?$/.test(j.path)) {
+      // The corpus names a test case here (`over-refund`), not a declaration a rule is read from.
+      Object.assign(row, {ok: false, refusal: {where: j.path, what: `${j.exportText}: a test's name, not a name the code declares (a test sets up the code it checks; the code is read where it is declared)`}, reason: 'not a declaration of the code'})
     } else {
       let code = slice(await fetchSource(j), j.lines)
+      // An entry the file doesn't declare, named as an argument of a call (an action type given to a registry).
+      const reg = !new RegExp(`(class|function|const|let|var)\\s+${j.entry}\\b`).test(code) ? new RegExp(`([\\w$.]+)\\(\\s*[\\w$.]*\\b${j.entry}\\b`).exec(code) : null
+      if (reg) throw new RegistryEntry(`${j.entry} is not declared in the file: it names what the file registers by a call (${reg[1]}(${j.entry}, ...)), an object of functions another module's registry runs (the step is that module's, with what it is given)`)
       if (j.close) code += `\n${j.close}\n`
       const shape = j.shape ?? (new RegExp(`\\bclass\\s+${j.entry}\\b`).test(code) ? 'class' : /\bcreateMachine\b/.test(code) && !/\bfunction\s+\w+\s*\(\s*state/.test(code) ? 'xstate' : 'functions')
       if (shape === 'xstate') {
@@ -97,7 +106,8 @@ for (const j of jobs) {
       }
     }
   } catch (e) {
-    Object.assign(row, {ok: false, refusal: {where: j.path, what: `the extractor failed: ${(e as Error).message}`}, reason: 'extractor error'})
+    if (e instanceof RegistryEntry) Object.assign(row, {ok: false, refusal: {where: j.path, what: e.message}, reason: 'not a declaration of the code'})
+    else Object.assign(row, {ok: false, refusal: {where: j.path, what: `the extractor failed: ${(e as Error).message}`}, reason: 'extractor error'})
   }
   row.ms = Math.round(performance.now() - start)
   appendFileSync(results, `${JSON.stringify(row)}\n`)
