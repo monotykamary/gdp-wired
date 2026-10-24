@@ -3,6 +3,96 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+The real-world frontier (gen/realworld2): the corpus's 53 unknown laws of 0.27.0 classified and 23 of them closed in the
+shared search, the suspected upstream bugs checked again against the current code, and the extractor reading more.
+Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/` as at 0.27.0): every
+new proof is the kernel's, every new refutation a run the interpreter took. In our harness (60 s a law on Modal, 2 vCPU),
+beside main 548c343 launched together:
+- **The real-world corpus:** 252 proven, 29 refuted, 30 unknown, no timeouts (`runs/rw2/c2-mine`), against 240, 18 and
+  53 (`runs/rw2/c2-main`). 23 verdicts changed, all from unknown, none lost: 12 proven (8 liveness laws, 4 laws), 11
+  refuted, each a triaged suspected bug the original code shows. Liveness 26 of 35 against 18.
+  research/realworld/README.md has each of the 53 with why the search stopped and what closed it.
+- **Frontier corpora:** round 1, 90 of 92 on both sides, all 42 broken variants refused (`runs/rw2/f1-*`). Round 2,
+  31 of 47 against 30 (term/Piecewise, proven here and not on main, as at 0.27.0's own batch: findRank, untouched), all
+  47 broken variants refused, the same job killed at 200 s on both sides (`runs/rw2/f2-*`).
+- **CHC-COMP, TermComp ITS, SV-COMP, TIP:** not run. None reaches the code changed: CHC calls proveRule with
+  `search: false` and inferLaws directly, ITS and SV-COMP go through compare/term and core/nonterm.ts, TIP through
+  core/data.ts.
+
+**Liveness, ranks of the rule's own terms** (core/live.ts's `leadsByTerms`, called by proveLeadsTo where findLeadsTo
+doesn't prove the law, in the time left). The components come from the rule, not a fit to the runs:
+- a variable its kind bounds (a chart's state, a status), ranked by the steps between its values: each strongly
+  connected set of values one level, above every one it goes to;
+- the distance until a comparison the rule makes changes, for each comparison of its guards, its steps, the law and
+  the helpful requests (the request's inputs replaced by what it sends): `retries ∸ consumed`, `Ts(d) ∸ (t0 + now)`,
+  a map cell the fit never read;
+- a state variable alone, and 0.
+
+The steps come from runs from the start and from random states the laws allow where the law is pending: a helpful
+request's must lower the rank, so must one that leaves a region it was in, and none may raise it. Components are chosen
+in order, each the one no step raises that lowers the most left. The kernel's counterexample to a rank is stepped by the
+interpreter and added, and the ranks chosen again (Governor's queued proposal: no pending state in findLeadsTo's runs).
+Then inferLaws on the rank's goals, given the rule rather than its machine (it draws by the rule's kinds: opossum's
+`st is open → armed`, which it misses from the machine alone). 8 liveness laws: four charts' control levels, p-retry,
+Timelock, Governor, opossum.
+
+**Laws about ids a counter hands out** (core/fresh.ts, in `searched` before inferLaws, within a tenth of the time
+left): a state variable no step lowers whose value some map's cell is written at as it goes on (an id handed out), with
+each map: `∀k. c <= k → M[k]` unset, and `∀k. G[k]` unset `∨ M[k] < c` for maps of one record. Those the runs keep, then
+Houdini with the kernel; the laws with them, then inferLaws with them given. lucia's deleted session, oidc's rotated
+token and its reuse detection.
+
+**The search past a step-law refutation with no run** (core/dsl.ts): proveSteps went to the verdict at once when the
+random states broke a step law with no run to the state, so no search ran. It goes on now, as proveRule did: the
+invariant search proves flagd's weight-0 law. With `search: false`, the verdict is as before (core/dsl.test.ts).
+
+**Further runs** (core/dsl.ts's refuteByRuns, in `searched` after the deeper runs): 600 runs at bound 1 (keys that meet,
+small params), then 1,200 at bounds 1 to 4 whose requests meet their assumption's equalities (`life = lives`) and clocks
+(`now >= last`: the last time or a little past it), every fourth near the kernel's counterexample (its params and
+request values half the time: keycloak's now = 2^31·1000). Each is counted in runs, not time.
+
+**Bounded runs over one-step laws** (core/dsl.ts's `stepGhosts`): core/bmc.ts reads laws alone; a one-step law over no
+key, on a machine without maps or a history, becomes a ghost set once a step breaks it (`then` read through the step's
+updates) and the law that it stays unset. A run breaking it is the step law's counterexample; these runs also stop at
+their wall budget, the deep ones at 10 s (bottleneck's step law took 133 s on the cost model's clock alone). Vendure's
+order cancelled with a live line, at 5 steps.
+
+**A modelling error fixed:** Gitea's DeleteReview restores the deleted review's reviewer's latest official review
+(review.go:1040-1044), where the rule restored the deleting doer's (`triage/invapprove.json`).
+
+**The suspected upstream bugs, re-checked (2026-10-24):** each of the 20 against the project's current default branch
+and latest release, read-only, and its repro run again on the latest release where it has one; nothing was reported
+upstream. 17 are unchanged and still happen. Three changed since the pins:
+- Medusa's RETURN_ITEM is partly fixed in 2.22.1 (#17431): the positive run is refused, but a negative
+  CANCEL_RETURN_ITEM still passes.
+- Vendure 3.8.x clamps a negative `stockAllocated` at 0 (GHSA-8ghm-q833-cmgp), but a second release still frees another
+  line's allocation.
+- cockatiel 4.0.0 ignores a superseded half-open test's result, but a stale failure still reopens the circuit while
+  its test runs.
+
+None is a modelling error. Each triage entry records the refs, the lines and the command (`triage/*.json`, `recheck`);
+the repros take `REPRO_VERSION` or `REPRO_COMMIT`, and `repro/recheck/` runs the two Vendure harnesses on 3.8.1.
+
+**The extractor reads further into real code,** every rule still checked against it. TypeScript: a field holding a
+function (an injected clock, random or id source), each call's answer an input, one a step; mixins written in the
+files read, in the class chain; an XState factory's untyped functions called only by actors, outside the machine.
+Go: a `context.Context` argument passed on only to the package's own functions; another package's struct given by
+pointer, read as data, its package type-checked from the repo's source (and the check's pointer-to-struct argument,
+never built before, fixed). Beside main 548c343 (`runs/extract-rw2/b1-*`, boat) the extracted sources are the same (5
+of 41, 8 of the corpus's 81 current TypeScript and JavaScript sources, 1 Go) and so are their rules and the 35
+example-law verdicts; 15 refusals moved further into the code (research/extract/README.md). The Go batch took 367.7 s
+against 61.8 s: it now reads the imported packages too.
+
+**Suites (220 jobs, the new `live` among them),** at 3ec46bc on Modal: none failed by default (521.6 s wall, 5,363.4 s
+of job time, `runs/rw2/suite2-default`); with `--usual`, none failed (444.1 s, 4,794.0 s, `runs/rw2/suite2-usual`). The data and infer tests under the 1-vCPU
+limit read none of the code changed (infer's call proveRule with laws the kernel proves at once, or `search: false`).
+
+**Size:** `core/` and `kernel/` (tests excluded) are 2,179,154 bytes against 0.27.0's 2,139,175 (+39,979): live.ts
+15,266, fresh.ts 4,501, dsl.ts +6,725; the extractor +13,487 (extract-shapes.ts +5,966, extract-read.ts +3,149,
+extract-go.ts +1,991, the rest +2,381; core/go/reader.go, Go, +4,138 beside it).
+
 ## 0.27.0
 
 The search's shared engines got faster and more general, and a second language front end joined the extractor. None
