@@ -2408,13 +2408,14 @@ const refuteBudget = {trials: 60, depth: 6, bound: 3}
 const shownRequest = (input: Request) => Object.fromEntries(Object.entries(input).map(([n, x]) => [n, typeof x === 'number' ? x : Object.fromEntries(x as ReadonlyMap<number, number>)]))
 // The search's own runs, before it looks for what the laws need: deeper and wider, from another seed.
 const deeperBudget = {trials: 600, depth: 24, bound: 8, seed: 29}
-// The budget's further runs (`searched`'s, past the deeper ones): `guided`, each input the request's assumption pins to
-// a term of the state set to it (x = t), one it bounds below by one moved from it by a small step (t <= x: a clock
-// that only goes on); `near`, a counterexample's values (the kernel's, at a step from a state no run reached), each
-// param and input taken from it half the time; `states: false`, the runs alone.
-type RunBudget = typeof refuteBudget & {seed?: number, guided?: boolean, near?: Record<string, number>, states?: boolean}
+// The budget's further runs (`searched`'s, past the deeper ones), `mixed`: over small values (bounds 1 to 4: keys
+// that meet, small params); guided, each input the request's assumption pins to a term of the state set to it (x = t),
+// one it bounds below moved from it by a small step (t <= x: a clock that only goes on); and near `near`, a
+// counterexample's values (the kernel's, at a step from a state no run reached), each param and input taken from it
+// half the time. `states: false`: the runs alone.
+type RunBudget = typeof refuteBudget & {seed?: number, mixed?: boolean, near?: Record<string, number>, states?: boolean}
 const conjuncts = (c: C | undefined): C[] => (!c ? [] : c.op === 'and' ? c.xs.flatMap(conjuncts) : [c])
-function guides(m: Machine): ((env: Record<string, number>, st: State, rand: Rand, bound: number) => [string, number] | undefined)[] {
+function guidesOf(m: Machine): ((env: Record<string, number>, st: State, rand: Rand, bound: number) => [string, number] | undefined)[] {
   const isInput = (e: E): e is {op: 'var', name: string} => e.op === 'var' && m.inputs.includes(e.name)
   const free = (e: E) => !namesIn(e).some(n => m.inputs.includes(n))
   return conjuncts(m.assume).flatMap(c => {
@@ -2426,7 +2427,7 @@ function guides(m: Machine): ((env: Record<string, number>, st: State, rand: Ran
 }
 function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[] = [], budget: RunBudget = refuteBudget): {goal: string, witness: Record<string, number>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}} | undefined {
   const m = r.machine
-  const run = interpret(m), rand = seeded(budget.seed ?? 13), bound = budget.bound, shown = shownRequest, near = budget.near, guided = budget.guided ? guides(m) : []
+  const run = interpret(m), rand = seeded(budget.seed ?? 13), bound = budget.bound, shown = shownRequest, guides = budget.mixed ? guidesOf(m) : []
   // (Division by a constant is a function too, its facts Euclid's, which its JavaScript meets: not checked.)
   const facts = (m.facts ?? []).filter(f => !isArithmetic(f.name.slice(0, f.name.indexOf(':'))))
   const holds = (f: Law, params: Record<string, number>): boolean => {
@@ -2442,6 +2443,8 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     && facts.filter(readsParams).every(f => holds(f, params))
   try {
     for (let trial = 0; trial < budget.trials; trial++) {
+      // (`mixed`: the trials in turn at bounds 1 to 4, every fourth near)
+      const bound = budget.mixed ? 1 + trial % 4 : budget.bound, guided = guides, near = budget.mixed && trial % 4 ? undefined : budget.near
       const params = r.randomParams(rand, bound)
       if (near) for (const p of m.params) if (near[p] !== undefined && rand(2)) params[p] = near[p]!
       if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m) || !factsHold(params)) continue
@@ -2537,9 +2540,9 @@ function stepGhosts(m: Machine, stepLaws: StepLaw[]): {machine: Machine, laws: L
 // prover's on the laws with what was found; when nothing is found, the prover's own (with why).
 function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions): Verdict {
   if ((v.proven && v.checked) || opts.search === false || v.run || v.stuck === 'sat' && !/@step|@\d+ steps/.test(v.goal ?? '')) return v
-  // The deeper runs; then runs over small values (keys that meet, small params), runs whose requests meet their
-  // assumption's equalities and clocks, and runs near the counterexample the verdict ends at.
-  for (const b of [deeperBudget, ...(v.witness ? [{...deeperBudget, states: false, seed: 43, near: v.witness}] : []), {...deeperBudget, bound: 1, seed: 31, states: false}, {...deeperBudget, bound: 2, seed: 37, states: false}, {...deeperBudget, bound: 3, seed: 41, states: false, guided: true}]) {
+  // The deeper runs; then runs over small values (keys that meet, small params), whose requests meet their
+  // assumption's equalities and clocks, or near the counterexample the verdict ends at.
+  for (const b of [deeperBudget, {...deeperBudget, bound: 1, seed: 31, states: false}, {...deeperBudget, trials: 1200, seed: 41, states: false, mixed: true, ...(v.witness ? {near: v.witness} : {})}]) {
     const deeper = refuteByRuns(r, laws, stepLaws, b)
     if (deeper?.run) return refutedVerdict(deeper)
   }
