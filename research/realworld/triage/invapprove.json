@@ -109,5 +109,10 @@
   "verdict": "law",
   "note": "the original allows it: /status sets a valid certificate before any approval, then /approval adds Denied (types.go:194 describes what signers do, not what the API server enforces); kept as stated, so it stays in the corpus as a false law the search must not prove",
   "repro": "research/realworld/repro/k8s-csr.ts"
+ },
+ "approval/gitea/reviews#two counted approvals are never by the same reviewer": {
+  "verdict": "model",
+  "note": "A modelling error found while classifying the unknown laws (2026-10-24), fixed in the rule: DeleteReview restores the latest official review of the deleted review's reviewer (review.go:1040-1044, restoreLatestOfficialReview(ctx, r.IssueID, r.ReviewerID), read again at 829b49c), but the rule's `l2` was the latest row of the request's `doer`, so a delete could restore another reviewer's review. The assumption now ties a delete's doer to By[id]. The law stays unknown (it needs invariants over two rows of one reviewer); its verdict at 548c343 was unknown too.",
+  "repro": "research/realworld/items/invapprove-gitea.ts (the assume's last conjunct)"
  }
 }
