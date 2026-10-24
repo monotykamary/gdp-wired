@@ -12,8 +12,9 @@
 //     start and a stem into it), its closure goal's tree checked by the kernel (kernel.ts's checkRecur), the certificate
 //     printed (`recur`) for NonTerm.lean's never_ends_of; a lasso among them replayed by ari.ts's evaluator too
 //   - unknown (and why: the rank the runs gave and the goal the kernel refused, or no rank), or unsupported (and why)
-// The time: a lasso search first (2 s), a recurrent set (4 s, `--recur-ms`), then the rank search with 70% of what is
-// left before a margin of the limit, then a recurrent set again (3/5 of what is left) and lassos with the rest.
+// The time: a lasso search first (2 s), a recurrent set (4 s, `--recur-ms`; an accelerated set a stem reaches up to 10 s
+// before the limit), then the rank search with 70% of what is left before a margin of the limit, then a recurrent set
+// again (3/5 of what is left; such a set 85% of it) and lassos with the rest.
 // `--scc`: the rank search on each strongly connected component of the locations, chained, from any state at its cut
 // points (scc.ts: a stronger statement, counted apart); a task with no cycle of locations is proven whole. The lassos
 // are always the task's own runs.
@@ -106,10 +107,10 @@ if (want !== 'terminates') {
 // --- runs that never end: a closed recurrent set with its turn given (core/nonterm.ts), its closure goal's tree checked
 // by the kernel (kernel.ts's checkRecur; NonTerm.lean's never_ends_of). Where the set is a lasso's, the lasso is also
 // turned back into the task's steps and replayed by ari.ts's evaluator.
-function neverEnds(ms: number, tag: string): void {
+function neverEnds(ms: number, tag: string, extend = ms, accel?: number): void {
   if (ms < 200) return
   let v
-  try { v = findNeverEnds(loop, {ms}) } catch (e) { say({stage: 'recur', tag, error: (e as Error).message.slice(0, 300)}); return }
+  try { v = findNeverEnds(loop, {ms, extend, ...(accel ? {accel} : {})}) } catch (e) { say({stage: 'recur', tag, error: (e as Error).message.slice(0, 300)}); return }
   const {ms: searchMs, ...counts} = v.stats
   say({stage: 'recur', tag, proven: v.proven, checked: v.checked, ...(v.by ? {by: v.by} : {}), ...(v.why ? {why: v.why} : {}), searchMs, ...counts})
   if (!(v.proven && v.checked && v.recur)) return
@@ -127,7 +128,10 @@ function neverEnds(ms: number, tag: string): void {
   }
   done('nonterminating', {by: 'recurrent set', kind: v.by, stem: r.stem.length, setSize: size, ...(replay ? {replay} : {}), recur: size < 200_000 ? r : undefined})
 }
-if (want !== 'terminates') neverEnds(Math.min(ntMs, limit * 1000 - ms() - 1000), 'first')
+// (the accelerated cycles have 75% of the first search after its runs; a set of theirs that a stem reaches may take
+// until 10 s before the limit: its cycle keeps it, by the closed forms, and a run gets there, so its loop is very likely
+// not to halt, and the rank search would find nothing)
+if (want !== 'terminates') neverEnds(Math.min(ntMs, limit * 1000 - ms() - 1000), 'first', (limit - 10) * 1000 - ms(), 0.75)
 
 // --- the rank ---------------------------------------------------------------------------------------------------------
 // findRank on a loop, then the kernel again on the loop as translated: every goal of its halting, with the rank and the
@@ -190,7 +194,7 @@ else if (scc && comps.length) {
   why = out.why!
 }
 if (want !== 'terminates') {
-  neverEnds(((limit - 2) * 1000 - ms()) * 0.6, 'again')
+  neverEnds(((limit - 2) * 1000 - ms()) * 0.6, 'again', ((limit - 2) * 1000 - ms()) * 0.85)
   lassos(t0 + (limit - 2) * 1000)
   say({stage: 'lassos', runs, turns, refused: refusedWitness})
 }

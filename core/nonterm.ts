@@ -23,7 +23,7 @@
 //   run with its loops accelerated, checked as the rest are.
 import type {C, E} from './machine.ts'
 import {type Loop, type Recur, checkRecur, loopMachine, recurGoal, substC, trueC} from '../kernel/kernel.ts'
-import {clock, counted, grow} from '../kernel/prove.ts'
+import {clock, counted, grow, realModels} from '../kernel/prove.ts'
 import {work} from './solver.ts'
 import {accelerated, stemsTo} from './accel.ts'
 import {findBoundedRun} from './bmc.ts'
@@ -33,7 +33,9 @@ import {findBoundedRun} from './bmc.ts'
 // as is each turn's condition weighed), not wall time, so the same loop and seed give the same verdict and certificate
 // on any machine (core/conformance.ts's cases are made so).
 // `accel`: the share of the time (after the random runs) for the accelerated cycles' sets (core/accel.ts; 0 none).
-export type NeverEndsOptions = {ms?: number, seed?: number, maxTurns?: number, lassos?: boolean, counted?: number, accel?: number}
+// `extend`: an accelerated set that a stem reaches (the likeliest candidate there is: its cycle keeps it, by the closed
+// forms, and a run gets there) may take until this many ms from the start, past `ms`, for its closure.
+export type NeverEndsOptions = {ms?: number, seed?: number, maxTurns?: number, lassos?: boolean, counted?: number, accel?: number, extend?: number}
 // `lasso`: where the set is a lasso's, its turns' inputs (a stem from the start, then a cycle back to the state it began
 // at), so a caller can replay it on its own semantics.
 export type NeverEndsVerdict = {proven: boolean, checked: boolean, recur?: Recur, by?: 'lasso' | 'policy lasso' | 'recurrent set' | 'accelerated', why?: string,
@@ -100,10 +102,22 @@ export function goalSize(x: unknown): number {
   return n
 }
 const GOAL_MAX = 300_000
-// An accelerated set's goal: the witness reads the location (and the set's parts only where the cycle comes back to one),
-// so its ifs multiply the body's less, and such goals of millions of nodes have closed (TermComp's tqli: 720,729 nodes,
-// proven in 22 s).
-const ACCEL_GOAL_MAX = 5_000_000
+// An accelerated set's goal: the witness reads the location (and, where the cycle comes back to one, an atom that tells
+// the parts there apart), so its ifs multiply the body's less; and the kernel reads a term shared in the goal once per
+// case, so its size here is its distinct terms (TermComp's s1: 23 million nodes written out, 707,064 distinct, proven in
+// 11 s; tqli: 720,729 written out, proven in 22 s).
+export function dagSize(x: unknown): number {
+  const seen = new WeakSet<object>()
+  let n = 0
+  const go = (y: unknown): void => {
+    if (typeof y !== 'object' || y === null || seen.has(y)) return
+    seen.add(y); n++
+    for (const v of Object.values(y)) go(v)
+  }
+  go(x)
+  return n
+}
+const ACCEL_DAG_MAX = 1_500_000
 
 // --- running the loop ---------------------------------------------------------------------------------------------------
 
@@ -313,22 +327,50 @@ function search(l: Loop, opts: NeverEndsOptions): NeverEndsVerdict {
   if (opts.lassos) return done({proven: false, checked: false, why: `no lasso in ${stats.runs} runs`})
   // 1b. Accelerated cycles (core/accel.ts): a set from a cycle of the relation, a stem into it, its closure proven.
   if ((opts.accel ?? 0.4) > 0) {
-    const accelUntil = Math.min(until, now() + (until - now()) * (opts.accel ?? 0.4)), m = loopMachine(l)
+    const accelUntil = Math.min(until, now() + (until - now()) * (opts.accel ?? 0.4)), m = loopMachine(l), longUntil = Math.max(until, t0 + (opts.extend ?? 0))
     try {
       // (the random runs, the longest 20, for the cycles they take)
       const ends = new Map<object, Visit>()
       for (const v of visits) if (v.run && (ends.get(v.run)?.at ?? -1) < v.at) ends.set(v.run, v)
       const runs = [...ends.values()].sort((a, b) => b.at - a.at).slice(0, 20).map(v => ({params: v.params, inputs: stemOf(v)}))
+      // A set's closure (`budget`: when it stops), then, where no stem is known, a bounded run (core/bmc.ts: the kernel's
+      // k-step goal's model, the set's complement as the law it breaks), then the kernel's check of each stem; `late`
+      // where the closure ran out of time.
+      const attempt = (a: ReturnType<typeof accelerated> extends Generator<infer T> ? T : never, goal: ReturnType<typeof recurGoal>, stems: {params: Env, stem: Env[]}[], cut: (t: {params: Env, stem: Env[]}) => {params: Env, stem: Env[]} | undefined, budget: number): NeverEndsVerdict | 'late' | undefined => {
+        // (a model of the CDCL search whose products don't multiply out goes on to the plain search, which multiplies rows)
+        const was = realModels.on
+        realModels.on = true
+        let out: ReturnType<typeof grow>
+        try { out = grow(goal, new Map(), {nodes: 0, until: budget}) } finally { realModels.on = was }
+        if (!('tree' in out)) return out.stuck === 'unknown' && out.why !== undefined ? 'late' : undefined
+        stats.accelClosed++
+        if (!stems.length && now() < until) {
+          const left = Math.min(until - now(), 2000)
+          const run = findBoundedRun(m, [{name: 'outside the set', holds: {op: 'not', x: a.set}}], {ms: left, depth: 24, ...(opts.counted ? {} : {wall: performance.now() + left})})
+          const c = run && cut({params: run.params as Env, stem: run.trace.map(r => Object.fromEntries(l.inputs.map(n => [n, Number(r[n] ?? 0)])))})
+          if (c) stems.push(c)
+        }
+        for (const t of stems) {
+          const recur: Recur = {start: params(t.params), stem: asStem(t.stem), set: a.set, wit: a.wit, tree: out.tree}
+          let ok = false
+          try { ok = checkRecur(l, recur) } catch { ok = false }
+          if (ok) return done({proven: true, checked: true, recur, by: 'accelerated'})
+        }
+        return undefined
+      }
+      // (sets with a small goal that the accelerated runs' search, run to its end, doesn't reach: after the rest, their
+      // closures and bounded runs, in the time the search has left)
+      const later: {a: Parameters<typeof attempt>[0], goal: ReturnType<typeof recurGoal>, cut: Parameters<typeof attempt>[3]}[] = []
+      const again: {a: Parameters<typeof attempt>[0], goal: ReturnType<typeof recurGoal>, stems: Parameters<typeof attempt>[2], cut: Parameters<typeof attempt>[3]}[] = []
       for (const a of accelerated(l, {now, until: accelUntil, runs, io: {start, turn}})) {
         stats.accel++
         const goal = recurGoal(l, a)
         stats.goalSize = Math.max(stats.goalSize, goalSize(goal.hyps))
-        if (goalSize(goal.hyps) > ACCEL_GOAL_MAX) continue
+        if (dagSize(goal.hyps) > ACCEL_DAG_MAX) continue
         const inSet = cC(a.set)
         // A stem into the set, cut where it first enters it (every turn allowed): from a state a random run reached (the
         // shortest), else an accelerated run (cheap: tried before the closure, which is not tried for a set no stem
-        // reaches), else, once the set is closed, a bounded run (core/bmc.ts: the kernel's k-step goal's model, the set's
-        // complement as the law it breaks).
+        // reaches), else, once the set is closed, a bounded run.
         const cut = (t: {params: Env, stem: Env[]}): {params: Env, stem: Env[]} | undefined => {
           let st = start(t.params)
           for (let j = 0; j <= t.stem.length; j++) {
@@ -347,31 +389,34 @@ function search(l: Loop, opts: NeverEndsOptions): NeverEndsVerdict {
         else {
           // (a set's stem has time of its own, past the stage's if need be, within the search's)
           let n = 0
-          for (const t of stemsTo(l, a.targets, {start, turn}, {now, until: Math.min(until, now() + 1000), report})) {
+          for (const t of stemsTo(l, a.targets, {start, turn}, {now, until: Math.min(longUntil, now() + 1000), report})) {
             const c = cut(t)
             if (c) { stems.push(c); break }
             if (++n >= 4) break
           }
         }
-        // (a set the accelerated runs' search, run to its end, doesn't reach is left: the time goes to sets a run reaches)
-        if (!stems.length && report.exhausted) continue
+        // (a set the accelerated runs' search, run to its end, doesn't reach is left: the time goes to sets a run
+        // reaches; a small one is tried after them)
+        if (!stems.length && report.exhausted) { if (dagSize(goal.hyps) <= 50_000 && later.length < 8) later.push({a, goal, cut}); continue }
         // (a set with a stem is likely: its closure may take most of what is left, past the stage's share; one without,
         // the stage's share and at most 4 s)
-        const out = grow(goal, new Map(), {nodes: 0, until: stems.length ? Math.min(until, now() + Math.max(4000, (until - now()) * 0.6)) : Math.min(accelUntil, now() + 4000)})
-        if (!('tree' in out)) continue
-        stats.accelClosed++
-        if (!stems.length && now() < until) {
-          const left = Math.min(until - now(), 2000)
-          const run = findBoundedRun(m, [{name: 'outside the set', holds: {op: 'not', x: a.set}}], {ms: left, depth: 24, ...(opts.counted ? {} : {wall: performance.now() + left})})
-          const c = run && cut({params: run.params as Env, stem: run.trace.map(r => Object.fromEntries(l.inputs.map(n => [n, Number(r[n] ?? 0)])))})
-          if (c) stems.push(c)
-        }
-        for (const t of stems) {
-          const recur: Recur = {start: params(t.params), stem: asStem(t.stem), set: a.set, wit: a.wit, tree: out.tree}
-          let ok = false
-          try { ok = checkRecur(l, recur) } catch { ok = false }
-          if (ok) return done({proven: true, checked: true, recur, by: 'accelerated'})
-        }
+        const v = attempt(a, goal, stems, cut, stems.length ? Math.min(until, now() + Math.max(4000, (until - now()) * 0.6)) : Math.min(accelUntil, now() + 4000))
+        if (v && v !== 'late') return v
+        if (v === 'late' && stems.length && longUntil > until && again.length < 3) again.push({a, goal, stems, cut})
+      }
+      // (the small sets no stem reaches: a closure and a bounded run each, in what is left of the search's time)
+      for (const {a, goal, cut} of later) {
+        if (now() >= until) break
+        const v = attempt(a, goal, [], cut, Math.min(until, now() + 2000))
+        if (v && v !== 'late') return v
+      }
+      // (a set with a stem whose closure ran out of time: again, with the time `extend` gives, shared, the smaller goal
+      // first)
+      again.sort((x, y) => dagSize(x.goal.hyps) - dagSize(y.goal.hyps))
+      for (const [k, {a, goal, stems, cut}] of again.entries()) {
+        if (now() >= longUntil - 1000) break
+        const v = attempt(a, goal, stems, cut, Math.min(longUntil, now() + Math.max(4000, (longUntil - now()) * 0.9 / (again.length - k))))
+        if (v && v !== 'late') return v
       }
     } catch (e) { if (!(e instanceof Overflow)) throw e }
   }

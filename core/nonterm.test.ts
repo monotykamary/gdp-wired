@@ -77,6 +77,31 @@ const chooseTwin = ari('choose 14, then below', '(rule (l0 x0) (l1 x0))\n(rule (
 const longStem = ari('a long stem', '(rule (l0 x0) (l1 y0) :guard (= y0 0))\n(rule (l1 x0) (l1 y0) :guard (and (< x0 5000) (= y0 (+ x0 1))))\n(rule (l1 x0) (l2 x0) :guard (>= x0 5000))\n(rule (l2 x0) (l2 y0) :guard (and (>= x0 5000) (= y0 (+ x0 1))))')
 const longStemTwin = ari('a long stem, then down', '(rule (l0 x0) (l1 y0) :guard (= y0 0))\n(rule (l1 x0) (l1 y0) :guard (and (< x0 5000) (= y0 (+ x0 1))))\n(rule (l1 x0) (l2 x0) :guard (>= x0 5000))\n(rule (l2 x0) (l2 y0) :guard (and (>= x0 5000) (= y0 (- x0 1))))')
 
+// Two values (l0 to l2 of two arguments).
+const ari2 = (name: string, rules: string) => build(parseAri(`(format LCTRS)\n(theory Ints)\n${['l0', 'l1', 'l2'].map(f => `(fun ${f} (-> Int Int Int))`).join('\n')}\n(entrypoint l0)\n${rules}`), name).loop
+// a product: y := (x + 1)² while y > 9, x counting up (Velroyen08-complInterv's): the set needs x ≥ 4, a bound on the
+// product's factor, and the product's facts to keep y > 9. The twin squares x and counts y down.
+const square = ari2('a square', '(rule (l0 x0 x1) (l1 x0 x1))\n(rule (l1 x0 x1) (l1 y0 y1) :guard (and (> x1 9) (> x0 (- 1)) (= y0 (+ x0 1)) (= y1 (* (+ x0 1) (+ x0 1)))))')
+const squareTwin = ari2('a square, counting down', '(rule (l0 x0 x1) (l1 x0 x1))\n(rule (l1 x0 x1) (l1 y0 y1) :guard (and (> x1 9) (> x0 (- 1)) (= y0 (* x0 x0)) (= y1 (- x1 1))))')
+// an inner loop: y counts from 0 to 12 at l2 for each turn of x at l1 (KnapsackDP's), twelve choices of a path at l2 in
+// each round, past the six the cycles are enumerated to; the twin's x stops at 100.
+const inner = ari2('an inner loop', '(rule (l0 x0 x1) (l1 x0 x1))\n(rule (l1 x0 x1) (l2 x0 y1) :guard (= y1 0))\n(rule (l2 x0 x1) (l2 x0 y1) :guard (and (< x1 12) (= y1 (+ x1 1))))\n(rule (l2 x0 x1) (l1 y0 x1) :guard (and (>= x1 12) (= y0 (+ x0 1))))')
+const innerTwin = ari2('an inner loop, x below 100', '(rule (l0 x0 x1) (l1 x0 x1))\n(rule (l1 x0 x1) (l2 x0 y1) :guard (= y1 0))\n(rule (l2 x0 x1) (l2 x0 y1) :guard (and (< x1 12) (= y1 (+ x1 1))))\n(rule (l2 x0 x1) (l1 y0 x1) :guard (and (>= x1 12) (< x0 100) (= y0 (+ x0 1))))')
+
+test('accelerated cycles with a product and with an inner loop: each found and checked, its twin halting and not found', () => {
+  for (const l of [square, inner]) {
+    const n = findNeverEnds(l, {ms: 8000})
+    expect(n.proven && n.checked, l.name).toBe(true)
+    expect(n.by, l.name).toBe('accelerated')
+    expect(checkRecur(l, n.recur!), l.name).toBe(true)
+  }
+  for (const l of [squareTwin, innerTwin]) {
+    expect(findNeverEnds(l, {ms: 2000}).proven, l.name).toBe(false)
+    const r = findRank(l, [], {ms: 8000})
+    expect(r.proven && r.checked, `${l.name} halts`).toBe(true)
+  }
+}, 120_000)
+
 test('accelerated cycles: each found and checked, its twin halting and not found', () => {
   for (const l of [alternate, choose, longStem]) {
     const n = findNeverEnds(l, {ms: 4000})
