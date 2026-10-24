@@ -217,14 +217,14 @@ run and what was left out.
 Runs that never end, more of them from the loop's relation (core/accel.ts, core/nonterm.ts): a cycle whose first turn
 reads a product (x := x·y, y := (x + 1)²), an inner loop counted out inside a cycle, and closure goals of millions of
 nodes, now built and checked in the time. Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`,
-`core/check.ts`, `lean-kernel/` as in 0.25.0): each answer is the same certificate as before, kernel.ts's `checkRecur`
-and NonTerm.lean's `never_ends_of`. Measured at 60 s on Modal (2 vCPU), launched together with main at f990361 (0.25.0)
-in one batch (`runs/nt3/its-mine5`, `its-base5`, `sv-mine5`, `sv-base5`): TermComp's ITS on the task's statement 1,139
-solved (611 terminating, 528 nonterminating) against main's 1,126 (609, 517); per component 1,142 (611, 531) against
-1,133 (612, 521). LoAT's default engine proves 532 nonterminating in this harness (`runs/modal/term/full1`): 4 more than
-here on the task's statement, 1 more per component, so no lead. SV-COMP's termination tasks 223 (168, 55) against 224
-(169, 55), per component 207 against 206. No answer contradicts another tool's or any other run's (40 ITS runs of this
-track, main's and the tools'), and every SV-COMP answer is its expected verdict.
+`core/check.ts`, `lean-kernel/`): each answer is the same certificate as before, kernel.ts's `checkRecur` and
+NonTerm.lean's `never_ends_of`. Measured after merging main at 056fcc3 (refactor/shared-engines, gen/chc3,
+gen/extract2), at 60 s on Modal (2 vCPU), launched together with main at that commit in one batch (`runs/nt3/its-mine6`,
+`its-main6`, `sv-mine6`, `sv-main6`): TermComp's ITS on the task's statement 1,139 solved (610 terminating, 529
+nonterminating) against main's 1,127 (611, 516); per component 1,141 (612, 529) against 1,133 (611, 522). LoAT's default
+engine proves 532 nonterminating in this harness (`runs/modal/term/full1`): 3 more than here on either statement, so no
+lead. SV-COMP's termination tasks 224 (169, 55) as main, per component 206 as main. No answer contradicts another tool's
+or any other run's (42 ITS runs of this track, main's and the tools'), and every SV-COMP answer is its expected verdict.
 
 - **Products** (`piFacts`): a path that reads a product of two values of the state or params is kept in the relation (it
   was left out); a cycle may take one such turn, as its first, the product read at the cycle's start. Where the set's
@@ -234,60 +234,65 @@ track, main's and the tools'), and every SV-COMP answer is its expected verdict.
   that does (complInterv's x ≥ 4 for y := (x + 1)² > 9). In the kernel's search for the closure, a model of the CDCL
   search whose products don't multiply out goes on to the plain search, which multiplies rows (kernel/prove.ts's
   `realModels`, off unless core/nonterm.ts sets it for these closures: no other search changes). Over several turns of a
-  walk or a stem, a product is a value of its own each turn.
+  walk or a stem, a product is a value of its own each turn (the shared `turn` names it for the turn).
 - **Inner loops** (`counter`): a self-loop that counts a value by ±1 to a bound of its rows, from a value the walk has
   set (x := 0, then x := x + 1 while x < 12), is taken that many times (2 to 24) as one choice of the cycle's walk:
   KnapsackDP's cycle of 15 turns, past the 6 choices the walks go to. At most 60 such cycles, after those of up to 6
   turns.
 - **Large closure goals**: the prover's open atoms read which names a goal's hypotheses read through its JSON text
   (kernel/prove.ts's `namesOf`), the goal written out: s1's first goal, 163,346,993 nodes written out and 706,964
-  distinct, spent 20.8 s in it before the search began (a laptop's profile). It walks the distinct terms now (the same
-  names). A part of the set is told apart by its location and, where the cycle comes back to a location, by one atom of
-  its rows that each other part there refutes (the witness's ifs read that, not the part's rows); where each part has a
-  location of its own, the set is written by slots, the parts' k-th atoms in one comparison of two if-chains over the
-  locations, the same set, so the kernel's reading of the set after the turn follows one branch (tqli's check, 10.4 s to
-  4.5 s on a laptop). An accelerated goal's cap counts its distinct terms (1.5 million), not its written size (5
-  million).
+  distinct, spent 20.8 s in it before the search began (a laptop's profile). It walks the distinct terms now
+  (machine.ts's `walkOnce`, beside `walk`; the same names), as the accelerated goals' cap does, at 1.5 million distinct
+  terms (it was 5 million written out). A part of the set is told apart by its location and, where the cycle comes back
+  to a location, by one atom of its rows that each other part there refutes (the witness's ifs read that, not the part's
+  rows); where each part has a location of its own, the set is written by slots, the parts' k-th atoms in one comparison
+  of two if-chains over the locations, the same set, so the kernel's reading of the set after the turn follows one
+  branch (tqli's check, 10.4 s to 4.5 s on a laptop).
 - **Time**: in solve.ts's first search the accelerated cycles have 75% of what the random runs leave (40%), and a set
   that a stem reaches whose closure runs out of time is tried again after the rest, with the time up to 10 s before the
   limit (shared, the smaller goal first; in the second search 85% of what is left). Its cycle keeps it by the closed
   forms and a run gets there, so its loop very likely doesn't halt; the rank search starts later only on such a task. A
   small set that no accelerated run reaches is tried after the rest, its closure and a bounded run for its stem
   (core/bmc.ts), within the search's time (it was left).
-- **Beside main, one batch**: nonterminating on the task's statement gained 13 (KnapsackDP, Test4,
-  Velroyen08-complInterv, -factorial, s1.t2, s1-striped.t2, s1-striped.t2_fixed, the four tqli, agafp.t2, db2.t2_fixed),
-  each LoAT's NO but db2.t2_fixed; agafp.t2 and db2.t2_fixed are lassos (ari.ts's evaluator replays them), the rest
-  accelerated sets; lost 2, agafp.t2_fixed and db3.t2_fixed, each a lasso main's last lasso stage found at 50 and 58 s.
-  Terminating: qrdcmp.t2, reverse.t2_fixed and traverse.t2_fixed gained, elmhes.t2 lost, each answered at 60.0x s on its
-  side (the answer printed before the limit, the certificate not made). Per component: 12 nonterminating gained
-  (Graph.jar-obl-17 among them, which no other tool answers), edn.t2 lost (main's second recurrent-set search at 17 s;
-  here, a run's cycle of 64 turns took that search's time in some runs), and zeroconf_withassume (60.04 s) lost. Six
-  batches through this track, each launched with main: 524, 527, 525, 525, 528, 528 nonterminating here against 518,
-  520, 517, 517, 515, 517 (`runs/nt3/its-*`).
+- **Beside main at 056fcc3, one batch**: nonterminating on the task's statement gained 13 (KnapsackDP,
+  Velroyen08-complInterv, -factorial, s1.t2, s1.t2_fixed, s1-striped.t2 and its `_fixed` twin, the four tqli,
+  db2.t2_fixed, db3.t2), each LoAT's NO but the two db (lassos ari.ts's evaluator replays), none lost. Terminating:
+  traverse_twice.t2 gained, juLinkedListCreateRemoveFirstOccurrence and s1-saved.t2_fixed lost, answered at 60.12, 60.06
+  and 60.09 s on their sides (the answer printed before the limit, the certificate not made). Per component: 9
+  nonterminating gained, 2 lost (db3.t2_fixed, a lasso main found at 53.46 s; edn.t2, main's second recurrent-set search
+  at 21.69 s: here a run's cycle of 64 turns took that search's time in some runs), ndes.t2 (60.06 s) gained. Seven
+  batches through this track, each launched with main: 524, 527, 525, 525, 528 and 528 nonterminating here beside
+  f990361's 518, 520, 517, 517, 515 and 517, then 529 beside 056fcc3's 516 (`runs/nt3/its-*`).
 - **Where it stops beside LoAT** (12 tasks): RandomHard (a product of the state and a turn's input, which the set makes
   linear only at arg3 = 1), MysteriousProgram (a stem through a doubling loop), fun9 (closed sets no stem reaches;
   LoAT's set is on another cycle), the three hqr (a cycle of 25 turns, past the 6 choices: with 16 choices and 5,000
-  cycles it is found in 9 s, and its closure, 633,928 distinct nodes, not in 5 s), pgarch.t2 and its `_fixed` twin, and
-  slayer-3-new (203 and 426 locations), s1.t2_fixed (closed and checked at 42 to 55 s in the runs before, past the limit
-  here), edn.t2, and agafp.t2_fixed (a lasso found by chance).
-- **The rank search beside main**: its tasks at the limit move between runs. The reverse, traverse and print family and
-  elmhes and ns, five runs each side (`runs/nt3/trav2-*`): 88 of 120 terminating here, 90 on main. SV-COMP's tasks that
-  moved, five runs each side (`runs/nt3/svre2-*`): the same counts but for BradleyMannaSipma-Fig1 (4 of 5 here, 5 on
-  main), Singapore-2 (1, 2) and ps3-both-t (0, 2), each answered after 40 s where it is.
-- **The other benchmarks**, beside main in one batch: CHC-COMP LIA-Lin 565 sat and 396 unsat against 563 and 394 (two
-  disputed labels each, as before; none wrong; `runs/nt3/chc-mine2`, `chc-base2`); TIP 2015 197 proven against 195
-  (`tip-mine2`, `tip-base2`). The corpora: round 1 90 / 92, broken 42 / 42, as main; round 2 30 / 47 against 29, broken
-  47 / 47 (the difference term/Piecewise, at findRank's limit: 3 of 8 runs prove it on each side, `runs/nt3/pw-*`), its
-  nontermination items 5 / 5, broken 5 / 5, as main (`c2-mine3`, `c2-base3`); the real-world corpus 237 proven, 18
-  refuted, 56 unknown, every law as main's (`rw-mine2`, `rw-base2`). The 5 s tests on 1 vCPU, ten jobs each side
-  interleaved (`runs/nt3/onecpu2`): data's nearPlus at most 3,304.20 ms here (median 2,848.49 ms), 3,666.16 ms on main
-  (2,728.98 ms); nearSucc 2,765.92 ms (2,267.48 ms) and 3,031.49 ms (2,215.61 ms).
-- **Lean**: the new accelerated sets of a run (`runs/nt3/its-mine2`), each a theorem `NeverEnds <task>_loop` by
-  `never_ends_of` that Lean 4.34.0 checks on `propext`, `Classical.choice`, `Quot.sound`: 7 of 9 (complInterv,
-  factorial, Test4 and the four tqli, 1 s to 22 minutes a job); s1.t2's and s1-striped.t2_fixed's were stopped at 55
-  minutes, not checked (`runs/nt3/lean-sample`).
+  cycles it is found in 9 s, and its closure, 633,928 distinct nodes, not in 5 s), pgarch.t2 and its `_fixed` twin and
+  slayer-3-new (203 and 426 locations), and by time or chance agafp.t2 and its `_fixed` twin (lassos) and edn.t2.
+- **The rank search beside f990361**: its tasks at the limit move between runs. The reverse, traverse and print family
+  and elmhes and ns, five runs each side (`runs/nt3/trav2-*`): 88 of 120 terminating here, 90 on main. SV-COMP's tasks
+  that moved, five runs each side (`runs/nt3/svre2-*`): the same counts but for BradleyMannaSipma-Fig1 (4 of 5 here, 5
+  on main), Singapore-2 (1, 2) and ps3-both-t (0, 2), each answered after 40 s where it is.
+- **The other benchmarks**, beside main at 056fcc3 in one batch: CHC-COMP LIA-Lin 588 sat and 406 unsat against 590 and
+  405 (two disputed labels each, as before; none wrong; 11 tasks answered on one side only, 5 here and 6 there, each
+  after 24 s; `runs/nt3/chc-mine6`, `chc-main6`); TIP 2015 194 proven against 193 (`tip-mine6`, `tip-main6`). The
+  corpora: round 1 90 / 92, broken 42 / 42, as main; round 2 30 / 47 against 29, broken 47 / 47 (the difference
+  term/Piecewise, at findRank's limit: 3 of 8 runs prove it on each side beside f990361, `runs/nt3/pw-*`), its
+  nontermination items 5 / 5, broken 5 / 5, as main; the real-world corpus 237 proven, 18 refuted, 56 unknown, every law
+  as main's (`c1-`, `c2-`, `rw-mine6`, `-main6`). The 5 s tests on 1 vCPU, ten jobs each side interleaved, none failed
+  (`runs/nt3/onecpu6`): data's nearPlus at most 3,462.90 ms here (median 2,778.51 ms), 2,869.95 ms on main (2,589.99
+  ms); nearSucc 2,651.50 ms (2,213.97 ms) and 2,189.73 ms (2,076.57 ms); in a batch beside f990361 (`onecpu2`) nearPlus
+  at most 3,304.20 ms here and 3,666.16 ms on main. The suites on Modal: by default 217 jobs, none failed, 668.8 s wall,
+  5,814.5 s of job time (`runs/nt3/suite-default6`); `--usual` 217, none failed, 639.9 s and 5,703.0 s (`suite-usual6`).
+- **Lean**: the new accelerated sets of a run before the merge (`runs/nt3/its-mine2`), each a theorem `NeverEnds
+  <task>_loop` by `never_ends_of` that Lean 4.34.0 checks on `propext`, `Classical.choice`, `Quot.sound`: 7 of 9
+  (complInterv, factorial, Test4 and the four tqli, 1.155 s to 21 m 32.322 s a job); s1.t2's and s1-striped.t2_fixed's
+  stopped at 55 minutes, not checked (`runs/nt3/lean-sample`). Of a later run's 11 (`its-mine5`, KnapsackDP's among
+  them), 7 jobs exited 0 within 1,518.59 s (KnapsackDP's in 18.52 s) and 4 (the three s1 and one tqli) were still
+  running at two hours and stopped; their logs were lost with the batch (`lean-sample2.log`).
 - Tests: core/nonterm.test.ts's accelerated cycles with a product (y := (x + 1)²) and with an inner loop, each found and
   checked, each twin proven to halt and not found.
+- Cost: Modal $53.22419204 for 111 of this track's 123 apps on 2026-10-24 UTC (`modal billing report --for today`,
+  before the day closes; main's runs beside included); no boat.
 
 ## 0.25.0
 
