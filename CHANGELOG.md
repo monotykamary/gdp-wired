@@ -3,6 +3,54 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+CHC-COMP LIA-Lin at 60 s on Modal: 996 solved (588 sat, 408 unsat), main (f990361, 0.25.0) launched beside it 961
+(564, 397), none wrong in either, the two disputed labels answered as before (`runs/chc3/final-mine`, `final-base`);
+Spacer 1,163 and Golem 1,154 in this harness. The tasks Spacer or Golem solve and gdp-wired doesn't: 318 for main in
+that batch, 282 here (231 sat, 51 unsat). Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`,
+`core/check.ts` and `lean-kernel/` as at 0.25.0). compare/chc/README.md has the gap by group and family, each change's
+run and what was left out.
+
+- The container's second CPU shared (compare/chc/kind.ts): k-induction and the bounded runs in turn, in slices of 2 s,
+  then 4, 8, 16, ..., each going on where it stopped (core/bmc.ts's `boundedSearch`, `findBoundedRun` made resumable:
+  the forced run and the CDCL session kept between slices); solve.ts's own 15 s stage of bounded runs goes (`--bmc-here`
+  keeps it), so the invariant search starts about 15 s earlier. Every unsat answer is still a run `checkDerivation`
+  confirms. Each step of a bounded run's goal is tidied first (`tidier`). Median time to an answer: unsat 13.58 s to
+  2.58 s, sat 28.905 s to 18.075 s.
+- The join's control states no state reached as prime cubes (core/infer.ts's `primes`): each drops the values that keep
+  it off every reached control state, so a goal reads few of them (ctigar's programs keep their counter in bits: 20 to 31 of them solved, with every change
+  here).
+- A blocked cube generalized by literal dropping (IC3's down, within 24 queries): on FIREFLY the refutation's core alone
+  kept every control value, 20 or so literals, and now three or four are left.
+- inferLaws' final proof grows each goal once (kernel/prove.ts's `withTrees`: a root goal's tree kept by its hypotheses
+  while each law is proven alone and then the set as a whole; the kernel checks the trees as before; `GDP_TREES=0` off).
+- Gained 41 (30 sat, 11 unsat), lost 6 (sat by the invariant search in main, at 24.84 to 52.49 s; compare/chc/README.md
+  names them). By stage: sat by the invariant search 431 to 478, by k-induction 133 to 110 (none lost: the search
+  answers first), unsat by bounded runs 253 to 315. No answer contradicts Spacer's or Golem's.
+- research/dag's 332 step goals: the same trees (outcome, leaves, splits, conflicts, decisions, nodes) by growCdcl and by
+  grow here and on main, all 332 proven by each (`runs/chc3/g332`; summed search time, grow 343.7 s here and 330.6 s on
+  main, growCdcl 293.6 s and 301.2 s); kernel/cdcl.test.ts with GDP_CDCL_VERIFY=1 passes on both.
+- The other benchmarks, each launched with main (60 s, Modal, gdp-wired alone): TermComp's ITS 1,128 (610 terminating,
+  518 not), main 1,129 (612, 517), 4 gained and 5 lost, every one at the limit in the run that answered it
+  (`runs/chc3/its-mine`, `its-base`); run again three times a side (`its-rm*`, `its-rb*`), each answers on both sides in
+  some runs (`destroy_seg_leak.t2_fixed`: found in 4 of 8 runs here, 1 of 4 here with GDP_BMC_TIDY=0, 3 of 4 on main: the
+  second recurrent-set search finds it at 9.1 to 12.2 s of its 13.3 s, or not). SV-COMP's termination tasks 224 (169, 55), main 225
+  (170, 55), every answer its expected verdict; Singapore-2, mannadiv-both-t and ps3-both-t, run three times a side,
+  answer 1, 2 and 1 times here and 1, 2 and 0 on main (`sv-*`). TIP 2015 197 of 492 on both, the same 7 refuted
+  (`tip-mine`, `tip-base`); prop_61 gained and list_nat_Select lost, each proven 3 of 3 times here and 2 of 3 on main
+  when run again (`tipr-*`); TIP's prover reads none of the code changed here. No answer contradicts another run's.
+- The real-world corpus (`runs/chc3/rw`): 311 laws, every verdict as on main (237 proven, 18 refuted, 56 unknown). The
+  frontier corpora, every item as on main: round 1 (`f1`) frontier 90 of 92, broken variants 42 of 42 refused; round 2
+  (`f2`) frontier 30 of 47, broken 47 of 47 refused (one job killed at 200 s on both sides).
+- The suites (217 jobs) on Modal: by default 546.4 s wall, 5,132.1 s of job time, none failed (`runs/chc3/suite-default2`);
+  `--usual` 614.4 s and 4,913.8 s, none failed (`suite-usual`). (An earlier default run failed `check` alone: oxlint read
+  a copy of main the measurements had left in the tree; without it `check` passes, `suite-default-check`.)
+- The 5 s tests on 1 vCPU, ten jobs a side interleaved with main, none failed: `data`'s nearPlus median 2,472.6 ms, at most
+  2,692.7 (main 2,486.2, 3,331.7); `infer`'s "a law that needs an invariant" 2,934.2 and 3,278.7 (main 2,569.9 and
+  3,718.7) (`runs/chc3/vcpu1`); in a second batch (`vcpu1b`) 2,435 and 3,700 (main 2,574 and 3,027), with the trees kept
+  off (GDP_TREES=0) 2,772 and 3,126, with the prime cubes and down off 2,653 and 3,197.
+
 ## 0.25.0
 
 Ahead of or level with the leading tools on four of the six measures we run, in our harness (60 s on Modal, 2 vCPU, the

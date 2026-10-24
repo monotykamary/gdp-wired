@@ -10,10 +10,10 @@ and Eldarica (2.3).
 | `chc.ts` | The CHC-COMP format read (S-expressions, predicates, clauses), and an evaluator of a clause on values that uses no gdp-wired code |
 | `translate.ts` | A linear CHC system as a rule: the state is where a derivation is (start, a predicate, error) and the predicate's arguments; a request names a clause that fires where the run is (the rule's assumption) and the values it leaves free, so each update reads the clause named alone. The law: error is never reached. `checkDerivation` checks a run against the CHC itself |
 | `houdini.ts` | The first Houdini (`--old-houdini`): candidate laws per predicate (bounds, differences, sums, booleans, unreachable), those a run's state breaks dropped, then rounds of `proveRule` until the rest are inductive together |
-| `solve.ts` | One task: import, `proveRule` on the law, random runs of the compiled rule, runs the prover guides (each request a model of its clause's condition where the run is, the clauses that derive false tried first), bounded runs (core/bmc.ts: a deterministic loop's forced run, then a model of a k-step goal from the start to error, 15 s), then the library's invariant search (`inferLaws`, core/infer.ts) from the states the runs reached. Answers sat (a proof the kernel checked), unsat (a run reaching error that `checkDerivation` confirms), unknown or unsupported |
+| `solve.ts` | One task: import, `proveRule` on the law, random runs of the compiled rule, runs the prover guides (each request a model of its clause's condition where the run is, the clauses that derive false tried first), then the library's invariant search (`inferLaws`, core/infer.ts) from the states the runs reached; the bounded runs on the second CPU (`kind.ts`; `--bmc-here`, this process's stage after the guided runs, 15 s, as before). Answers sat (a proof the kernel checked), unsat (a run reaching error that `checkDerivation` confirms), unknown or unsupported |
 | `modal_chc.py` | The track on Modal: every task in its own container (2 vCPU, 4 GB), each tool under the same 60 s wall-clock limit, all at once (`starmap`) |
 | `summary.ts` | The table below from a run's `results.jsonl`, with wrong answers counted against each task's expected verdict where some tool decided it at CHC-COMP'26 |
-| `kind.ts` | k-induction (core/kind.ts) beside solve.ts's other stages, a second process at the lowest priority on the container's second CPU, started once the task is read, until the search's deadline; proven and checked (kernel.ts's `checkKInduction`), it stops solve.ts and answers sat |
+| `kind.ts` | The container's second CPU, a process at the lowest priority started once the task is read, until the search's deadline: k-induction (core/kind.ts) and the bounded runs (core/bmc.ts's `boundedSearch`: a deterministic loop's forced run, then a model of a k-step goal from the start to error) in turn, in slices of 2 s each, then 4, 8, 16, ..., each going on where it stopped; proven and checked (kernel.ts's `checkKInduction`), or a run `checkDerivation` confirms, it stops solve.ts and answers |
 | `prof/kind.ts` | Not a solver (`--tools kind`): whether the law is k-inductive, a measure of what k-induction would add |
 | `prof/kind-tree.ts`, `prof/kind-lean.ts` | Not solvers: where a k-step goal's time goes (CDCL's model search, its tree, the unfolding, the check), and a task's k-induction certificate as Lean (KInd.lean's `kind_sound`) |
 | `prof/` | A Modal profiler for one task's `proveRule`; `spacer_models.py`, the invariants Spacer finds for given tasks (or, with `--engine golem`, Golem's derivations of false); `template.ts` (`--tools tmpl`), what `inferLaws` would search on a task (its atoms, coefficient magnitudes and shape limits); `given.ts` (`--tools given`), `proveRule` given Spacer's invariant as laws; `gap.py`, the gap to Spacer by the shape of its invariant and what gdp-wired did |
@@ -23,6 +23,95 @@ and Eldarica (2.3).
     modal run compare/chc/prof/spacer_models.py --out <dir> --tasks-json <file> [--engine golem]
     modal run compare/chc/modal_chc.py --out <dir> --tools tmpl            # then --tools given --tasks-json <file>
     python3 compare/chc/prof/gap.py --gdp <run> --others <run> --models <dir> --template <run> [--cex <dir>] [--given <run>] --out <file.json>
+
+## The second CPU, and the join's control states as cubes (after 0.25.0)
+
+**Where the gap was.** At 0.25.0 (`runs/chcsat/m2/chc`), 312 tasks are solved at 60 s by Spacer or Golem
+(`runs/modal/chc2/combined-v020`) and not by gdp-wired: 250 sat, 62 unsat (232 by both, 54 by Spacer alone, 26 by Golem
+alone). None was refused: 306 ended unknown at the search's deadline, 6 out of time.
+- **Sat, by group** (research/frontier2's tests, on the 0.20.0 gap rows): D 95, E 40, C 26, F 26, A 10, G 7, B 6, the rest
+  15, no 0.20.0 row 25. **By family:** Lustre 101, eldarica-misc/LIA 57, ctigar 52, llreve 15, aeval 10, the rest 15.
+- **Given Spacer's invariant** (`prof/given.ts` on the 226 of the 250 Spacer gave one, `runs/chc3/given1`): the kernel
+  proves 152, D 76 of 95; with the usual certificate (`GDP_CERT=usual`, as `inferLaws` proves, `runs/chc3/given2-usual`)
+  176, median 6.5 s on Lustre's D tasks (24.6 s with the cyclic one). So most of the sat gap is the search, not the proof.
+- **Unsat, all 62 Lustre but 6:** metros 24, car 12, swimmingpool 9, DRAGON 6, FIREFLY 4, peterson 1; O3_id 3, 025c and
+  025d, bmc-1-test. Golem's derivations (clause steps, as gap.py counts them): car 12 or 13, metros 9 to 24 (15 with none
+  in 60 s), swimmingpool 5 to 13, DRAGON, FIREFLY and peterson 4 or 5, O3_id 103 to 1,003 (from a start the run must
+  guess), 025c and 025d 8, bmc-1-test 13. The stage alone at 56 s (`runs/bmc2/only-inc3`) solved 20 of the 62: what is
+  missing is time, and on metros each depth costs about four times the one before.
+
+**What changed.** Nothing trusted (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/` as at 0.25.0).
+- **The second CPU shared** (`kind.ts`): k-induction ran there alone until the deadline, but answered by 30.9 s on every
+  task of `m2/chc` (95% by 23.6 s), and an unsat task's step goals have models at every k. Now k-induction and the bounded runs
+  take turns there, in slices of 2 s each, then 4, 8, 16, ... (neither knows whether the task is sat or unsat); the
+  bounded runs are core/bmc.ts's `boundedSearch`, `findBoundedRun` made resumable (its forced run and its CDCL session
+  go on where the last slice stopped; the forced run has 4.5 s in all, its share of the old 15 s stage). solve.ts's own
+  15 s stage goes, so the invariant search starts after the guided runs, at about 13 s, not after that stage's 15 s.
+  Each step's goal is also tidied first (`tidier`): a comparison whose sides differ by a constant folded, and a yes/no
+  copied through an if (`b~1 = if y = 1 then 1 else 0`) read as the copy, so `reduce` puts it in.
+- **The control states no state reached as prime cubes** (core/infer.ts's `primes`): the join's control state is the
+  choice and up to 7 yes/nos (a program counter in bits); each unreached one was a form of its own reading every bit, and a
+  goal's proof read some twenty of them, each then a goal of the cone (ctigar's `dillig25`: 24 forms read by a goal, the
+  join out of time). Each unreached cube now drops its values while it holds at no reached control state, and cubes
+  another includes go: together they say the same (the control state is one reached), and a goal reads six or fewer.
+- **A blocked cube generalized** (`down`, IC3's literal dropping): the core of a cube's refutation reads most of its
+  literals where the step's terms are a chain of ifs; its literals are now dropped a part at a time (halves, then
+  quarters, ..., then one by one), kept out where the cube without them still leaves the start and the samples out and
+  is still blocked relative to the same laws, within 24 queries. FIREFLY's cubes went from every control value (20 or so
+  literals) to three or four.
+- **The final proof grows each goal once** (kernel/prove.ts's `withTrees`): `inferLaws` proves each law of the set alone
+  (`proveLaw`) and then the set as a whole (`proveRule`), the same goals twice; within `withTrees` a root goal's tree is
+  kept by its hypotheses and given again (the kernel checks it wherever it goes). `dillig25`'s final proof 17.2 s to 10.8 s,
+  locally. Off elsewhere; `GDP_TREES=0` turns it off.
+
+**The track** (60 s, Modal, `runs/chc3/final-mine` at fba8136 beside `runs/chc3/final-base`, main f990361, launched
+together):
+
+| gdp-wired | sat | unsat | wrong | disputed | solved of 1,406 | out of time | median s, sat / unsat |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| main f990361 (`final-base`) | 564 | 397 | 0 | 2 | 961 | 8 | 28.905 / 13.58 |
+| this (`final-mine`) | 588 | 408 | 0 | 2 | 996 | 5 | 18.075 / 2.58 |
+
+- **Gained 41:** sat 30 (ctigar 12, Lustre 9, eldarica-misc 7, aeval 1, rust-horn 1), unsat 11 (Lustre 10: swimmingpool 5,
+  FIREFLY 3, DRAGON_4, peterson_vt; reve 025d). **Lost 6**, all sat by the invariant search in main: s_split_08
+  (24.84 s; its candidates differ with the runs' samples: solved in `t4-mine`, not in `y-ctl`), s_split_42 (35.98 s;
+  unknown in main's `chc-base3` too), reve 014 (52.49 s), xy0 (36.30 s), durationThm_2_e1_118 (47.49 s) and
+  durationThm_2_e3_329_e6_128 (50.95 s; both gained in `t2-mine`). No unsat answer lost.
+- **By stage:** sat by the invariant search 431 → 478, by k-induction 133 → 110 (none of main's lost: the search answers
+  first); unsat by bounded runs 253 → 315, guided runs 57 → 9 (the bounded runs, from the start, answer first), random
+  runs 50 → 47, `prove` 37 → 37.
+- **By group** (groups_chc.py's tests on every task with a 0.20.0 gap row, so larger totals than the corpus's): C 10 → 19 of 38, D 21 → 23 of 116, F 13 → 17, A 184 → 191, H 216 → 226 of 273, I 25 → 26;
+  ctigar 20 → 31, Lustre 584 → 601.
+- No answer contradicts Spacer's or Golem's (`runs/modal/chc2/combined-v020`); the two disputed labels are answered as
+  before, by the derivations of 999,002 and 280,277 steps.
+- **The gap now** (`runs/chc3/gap-final.json`): 282 (231 sat, 51 unsat), from 318 for main in the same batch. Sat: D 93,
+  E 40, F 25, C 19; given Spacer's invariant the kernel proves 154 of the 231 (the usual certificate); the join ends by
+  its time on 126 (Lustre's DRAGON: 7 to 16 rounds, a goal's proof 0.4 to 5 s on the wide step), and finds neither a
+  candidate nor a cube on 64 (most often `none: reached`: a counterexample's predecessors deeper than the cubes' 3, as
+  HOLA/04's; 8 deep, its cubes block `i3 <= k` one value at a time). Unsat: metros 24, car 12 (the bounded runs reach
+  depth 9 to 11 of the 12 or 13), DRAGON 5, swimmingpool 4, O3_id 3, FIREFLY_a3 2, bmc-1-test 1.
+
+**Each change measured** (sat, unsat; each batch of runs launched together):
+
+| run | what | sat | unsat |
+| --- | --- | --- | --- |
+| `t1-base` | main f990361 (launched about 2.5 min after `t1-mine`) | 566 | 394 |
+| `t1-mine` | the second CPU shared, goals tidied | 576 | 408 |
+| `t2-mine` | and cubes generalized (`down`) | 574 | 408 |
+| `t3-mine`, `t3-nodown` (one batch) | and prime control cubes; without `down` | 589, 584 | 409, 406 |
+| `t4-mine` | and the final proof's trees kept | 594 | 407 |
+
+Runs of the same code differ by a few: `t4-mine`, `x-ctl` and `y-ctl` (the same commit) 594, 593 and 592 sat, 407 each.
+
+**Measured and left out:** the join's share of the search 0.75 (0.6; `x-share75` 596 sat beside `x-ctl` 593) and the
+cubes' window 0.5 (0.3; `x-window5` 590); the guided runs 4 s (8 s; `y-g4` 597 beside `y-ctl` 592, unsat 407 each) and
+random runs 3 s with them (`y-r3g4` 594, 405): within the spread. k-induction stopped past k = 8 (`t5-mine`, 594, 407,
+as `t4-mine`). Cube blocking 8 or 16 deep (3): HOLA/04's cubes then count `i3 <= k` up one value at a time, locally.
+Bound propagation through rows in the model-only search (a row's variable of coefficient ±1 bounded by the others'):
+car_5's nodes at depth 8 864 against 868, locally. The linear forms built without `delete` (core/solver.ts) and the
+search's variables without (kernel/cdcl.ts): on 40 bounded-run searches (`runs/chc3/ab-both`), 39 did the same work,
+in 374.5 s against 397.9 s (median ratio 0.95 over the 36 past 0.5 s): left out. Acceleration (core/accel.ts's `stemsTo`) for O3_id's guessed
+starts: core/relation.ts gives no relation for the CHC rule (its free yes/nos' cases, 14.3 s locally to refuse).
 
 ## Disjunctions in the join (after 0.24.0)
 
