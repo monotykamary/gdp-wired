@@ -6,21 +6,20 @@
 // from drawn states, steps from the prover's counterexamples), drawn on the rule's side and sent to the code in one
 // batch; the rule runs through its interpreter and its generated JavaScript, and every state, map cell, list, result
 // and refusal is compared, and the fields the rule leaves out are asked to be unchanged.
-import {type Rule, type StepLaw, no, proveSteps, type Kind} from './dsl.ts'
-import {type Request, type State, seeded} from './machine.ts'
-import {allowed} from './watch.ts'
-import type {Arg, Model, Var} from './extract-read.ts'
-import * as I from './extract-ir.ts'
+import type {Rule} from './dsl.ts'
+import type {Rand} from './machine.ts'
+import type {Arg, Model} from './extract-read.ts'
 import type {B} from './extract-ir.ts'
 import type {Sorts} from './extract-print.ts'
-import {type Evidence, type Snap, condAt, evalTerm, conditionsOf, constantsOf, draw, kindOfVar, ruleSnap, ruleState, sameSnap, showSnap} from './extract-check.ts'
+import {type CodeSide, type Coverage, type Evidence, Outside, type Snap, constantsOf, draw, drive, evalTerm} from './extract-check.ts'
 import {type GoOptions, type GoPkg, type GoRead, type TT, node} from './extract-go.ts'
 
 export type GoLeaf = {name: string, path: string[], kind: 'int' | 'bool' | 'str' | 'big' | 'bignil' | 'map' | 'mapnil' | 'list' | 'frame', t: number, go: string}
 export type GoCheckOptions = {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean, keep?: string}
-export type GoEvidence = Evidence & {unmakeable: number, buildMs: number, runMs: number, blocks?: {file: string, from: number, to: number, hit: boolean}[]}
+export type GoEvidence = Evidence & {buildMs: number, runMs: number}
 type Raw = number | boolean | string
-type FS = {existsSync: (p: string) => boolean, mkdirSync: (p: string, o?: unknown) => void, readFileSync: (p: string, e: string) => string, writeFileSync: (p: string, s: string) => void, rmSync: (p: string, o?: unknown) => void, mkdtempSync: (p: string) => string}
+type FS = {existsSync: (p: string) => boolean, mkdirSync: (p: string, o?: unknown) => void, readFileSync: (p: string, e: string) => string, writeFileSync: (p: string, s: string) => void, rmSync: (p: string, o?: unknown) => void, mkdtempSync: (p: string) => string,
+  openSync: (p: string, f: string) => number, closeSync: (fd: number) => void, readSync: (fd: number, b: Uint8Array, o: number, n: number, at: null) => number, writeSync: (fd: number, s: string) => number}
 type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) => string}
 
 // --- the harness ------------------------------------------------------------------------------------------------------
@@ -28,7 +27,7 @@ type CP = {execFileSync: (f: string, a: string[], o: Record<string, unknown>) =>
 // arguments made from JSON; a panic recovered; the left-out fields compared before and after.
 function harness(pkg: GoPkg, read: GoRead, m: Model, discard: boolean): {code: string, imports: Set<string>} {
   const T = (t: number): TT => pkg.ttab[t] ?? {k: 'invalid'}
-  const imports = new Set(['encoding/json', 'fmt', 'os', 'reflect', 'strconv', 'math/big'])
+  const imports = new Set(['bufio', 'encoding/json', 'fmt', 'os', 'reflect', 'strconv', 'math/big'])
   const qual = (t: number) => { const x = T(t); if (x.pkg && !x.own && x.pkg !== '') imports.add(x.pkg) }
   const acc = (path: string[]) => `o.${path.join('.')}`
   const get: string[] = [], set: string[] = []
@@ -116,9 +115,12 @@ type gdpStep struct {
 	M string            \`json:"m"\`
 	A []json.RawMessage \`json:"a"\`
 }
-type gdpEp struct {
-	From  map[string]json.RawMessage \`json:"from"\`
-	Steps []gdpStep                  \`json:"steps"\`
+type gdpCmd struct {
+	Op    string                     \`json:"op"\`
+	ID    int                        \`json:"id"\`
+	State map[string]json.RawMessage \`json:"state"\`
+	M     string                     \`json:"m"\`
+	A     []json.RawMessage          \`json:"a"\`
 }
 type gdpRes struct {
 	State  map[string]any \`json:"state,omitempty"\`
@@ -205,34 +207,49 @@ func gdpRun(o *${read.entry}, st gdpStep) (res gdpRes) {
 	return
 }
 
-// GdpHarnessMain runs the episodes in the file in and writes their results to the file out.
+// GdpHarnessMain answers the requests read from the named pipe in, a JSON line each, on the named pipe out.
 func GdpHarnessMain(in, out string) {
-	b, err := os.ReadFile(in)
+	inf, err := os.Open(in)
 	if err != nil {
 		panic(err)
 	}
-	var eps []gdpEp
-	if err := json.Unmarshal(b, &eps); err != nil {
+	outf, err := os.OpenFile(out, os.O_WRONLY, 0)
+	if err != nil {
 		panic(err)
 	}
-	all := [][]gdpRes{}
-	for _, ep := range eps {
-		o := new(${read.entry})
-		rs := []gdpRes{}
-		if ep.From != nil {
-			if err := gdpSet(o, ep.From); err != nil {
-				all = append(all, []gdpRes{{Bad: "state: " + err.Error()}})
-				continue
+	rd, wr := bufio.NewReaderSize(inf, 1<<20), bufio.NewWriter(outf)
+	objs := map[int]*${read.entry}{}
+	for {
+		line, err := rd.ReadBytes('\\n')
+		if err != nil {
+			break
+		}
+		var c gdpCmd
+		var res any
+		if err := json.Unmarshal(line, &c); err != nil {
+			panic(err)
+		}
+		switch c.Op {
+		case "new":
+			objs[len(objs)+1] = new(${read.entry})
+			res = map[string]any{"id": len(objs)}
+		case "at":
+			o := new(${read.entry})
+			if err := gdpSet(o, c.State); err != nil {
+				res = map[string]any{"bad": err.Error()}
+			} else {
+				objs[len(objs)+1] = o
+				res = map[string]any{"id": len(objs)}
 			}
+		case "get":
+			res = map[string]any{"state": gdpGet(objs[c.ID])}
+		case "call":
+			res = gdpRun(objs[c.ID], gdpStep{M: c.M, A: c.A})
 		}
-		for _, st := range ep.Steps {
-			rs = append(rs, gdpRun(o, st))
-		}
-		all = append(all, rs)
-	}
-	ob, _ := json.Marshal(all)
-	if err := os.WriteFile(out, ob, 0o644); err != nil {
-		panic(err)
+		b, _ := json.Marshal(res)
+		wr.Write(b)
+		wr.WriteByte('\\n')
+		wr.Flush()
 	}
 }
 `
@@ -259,143 +276,17 @@ function moduleOf(dir: string): {root: string, path: string, module: string} {
 const goEnv = () => ({...(globalThis as {process?: {env?: Record<string, string>}}).process?.env, GOFLAGS: '-mod=mod -buildvcs=false', GOWORK: 'off'})
 
 // --- the check --------------------------------------------------------------------------------------------------------
-type Outcome = {k: 'ok', st: State, snap: Snap, out?: Raw} | {k: 'refused', why: string, edge: boolean} | {k: 'outside', why: string}
-type PlanStep = {e: Model['events'][number], inputs: Record<string, Raw>, raw: Record<string, Raw>, before: Snap, o: Outcome, where: string}
-type Episode = {from?: Snap, steps: PlanStep[]}
+// core/extract-check.ts's `drive`, with the Go code's side: the harness built once and spoken to through two named
+// pipes, a JSON line a request (make an object, set it to a state, read it, call a method on it).
 export function checkGo(dir: string, pkg: GoPkg, read: GoRead, r: Rule, sorts: Sorts, gopts: GoOptions): GoEvidence {
-  const opts = gopts.check ?? {}, m = read.model
-  const t0 = performance.now(), rand = seeded((opts.seed ?? 7) >>> 0 || 1), bound = opts.bound ?? 12
-  const interp = r.interpreter(), gen = r.compiled(), machine = r.machine
-  const ev: GoEvidence = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0, unmakeable: 0, buildMs: 0, runMs: 0}
-  const fail = (what: string): GoEvidence => { ev.mismatch = what; ev.ms = Math.round(performance.now() - t0); return ev }
-  const consts = constantsOf(m), strs = ['a', 'b', 'c', '']
-  const ranges = rangesOf(m, read, pkg)
-  const ps = r.encodeParams({} as never)
-  const edges = edgeConditions(m, read)
-  // A drawn number within its variable's type (a value of the type is all the code can hold); a quarter of them at
-  // the type's own edges (where Go wraps).
-  const fit = (x: Raw, name: string): Raw => {
-    if (typeof x !== 'number') return x
-    const rg = ranges.get(name)
-    if (!rg) return x
-    if (rand(4) === 0 && rg[1] < Number.MAX_SAFE_INTEGER) { const e = [rg[0], rg[0] + 1, rg[1] - 1, rg[1]]; return e[rand(4)]! }
-    const [lo, hi] = rg
-    if (x >= lo && x <= hi) return x
-    if (Number.isFinite(hi) && Number.isFinite(lo)) return lo + (((x - lo) % (hi - lo + 1)) + (hi - lo + 1)) % (hi - lo + 1)
-    return x < lo ? lo : x
-  }
-  // --- the rule's side, step by step
-  const ruleInputs = (inputs: Record<string, Raw>, e: Model['events'][number]): Record<string, Raw> => {
-    const used = new Set<string>()
-    const walk = (a: Arg) => { if (a.k === 'input') used.add(a.name); else if (a.k === 'rec') a.fields.forEach(([, x]) => walk(x)) }
-    e.args.forEach(walk)
-    return Object.fromEntries(m.inputs.map(v => [v.name, v.name in e.select ? e.select[v.name]! : used.has(v.name) ? inputs[v.name]! : v.sort.k === 'num' ? 0 : v.sort.k === 'bool' ? false : v.sort.k === 'choice' ? v.sort.values[0]! : '']))
-  }
-  const ruleStep = (st: State, before: Snap, raw: Record<string, Raw>): Outcome | string => {
-    let enc: Request
-    try { enc = r.encodeInput(raw as never, {} as never) } catch (x) { return {k: 'refused', why: `outside the input's kind (${(x as Error).message})`, edge: false} }
-    try {
-      if (!allowed(machine, interp, ps, st, enc)) return {k: 'refused', why: 'the assumption', edge: edges.some(c => evalB(c, before, raw))}
-      const s1 = interp.step(ps, st, enc), s2 = gen.step(ps, gen.fork(st), enc)
-      if (JSON.stringify(r.decode(s2)) !== JSON.stringify(r.decode(s1))) return `the rule's interpreter and its generated JavaScript differ (${JSON.stringify(r.decode(s1))} against ${JSON.stringify(r.decode(s2))})`
-      ev.compiledAgreed++
-      const snap = ruleSnap(r, m, s1, sorts), d = r.decode(s1), res = m.results?.[e0(raw)] as {k: string, name: string} | undefined
-      return {k: 'ok', st: s1, snap, ...(res?.k === 'scalar' ? {out: d[res.name] as Raw} : {})}
-    } catch (x) {
-      const msg = (x as Error).message
-      return /2\^53|safe integer/.test(msg) ? {k: 'outside', why: msg} : {k: 'refused', why: msg, edge: false}
-    }
-  }
-  const e0 = (raw: Record<string, Raw>) => String(raw[m.event!])
-  const drawRequest = (st: Snap) => {
-    const e = m.events[rand(m.events.length)]!, near = [...consts, ...Object.values(st.leaves).filter((x): x is number => typeof x === 'number')], inputs: Record<string, Raw> = {}
-    const keys = Object.values(st.maps).flatMap(c => Object.keys(c))
-    for (const v of m.inputs) {
-      if (v.name in e.select) { inputs[v.name] = e.select[v.name]!; continue }
-      // A number outside its type now and then (the rule must refuse what the code can't be given).
-      const x = draw(v.sort, sorts, v.name, rand, near, bound, [...strs, ...keys])
-      inputs[v.name] = rand(8) === 0 ? x : fit(x, v.name)
-    }
-    return {e, inputs}
-  }
-  const plan: Episode[] = []
-  const runs = opts.runs ?? 200, depth = opts.depth ?? 12
-  for (let run = 0; run < runs; run++) {
-    let st = interp.init(ps), snap = ruleSnap(r, m, st, sorts)
-    const steps: PlanStep[] = []
-    for (let d = 0; d < depth; d++) {
-      const {e, inputs} = drawRequest(snap), raw = ruleInputs(inputs, e), o = ruleStep(st, snap, raw)
-      if (typeof o === 'string') return fail(`run ${run + 1}, request ${d + 1}: ${o}`)
-      steps.push({e, inputs, raw, before: snap, o, where: `run ${run + 1}, request ${d + 1}`})
-      // Past the safe integers, or past a type's range where the rule refuses and Go wraps, the two part by design.
-      if (o.k === 'outside' || (o.k === 'refused' && o.edge)) break
-      if (o.k === 'ok') { st = o.st; snap = o.snap }
-    }
-    plan.push({steps})
-  }
-  // Single steps from drawn states, every value of each leaf's type.
-  const drawSnap = (): Snap => {
-    const leaves: Record<string, Raw> = {}, maps: Snap['maps'] = {}, lists: Record<string, Raw[]> = {}
-    for (const v of m.state) {
-      if (m.outputs.includes(v.name)) continue
-      let x = draw(v.sort, sorts, v.name, rand, consts, bound, strs)
-      if (typeof x === 'number' && sorts.get(v.name) === 'nat' && x < 0) x = -x
-      if (typeof x === 'number' && Math.abs(x) > Number.MAX_SAFE_INTEGER / 4) x = rand(bound)
-      leaves[v.name] = fit(x, v.name)
-    }
-    // A nil *big.Int holds 0 (the rule's encoding of it); a nil map no key.
-    for (const l of read.leaves) if (l.kind === 'big' && leaves[`${l.name}_nil`] === true) leaves[l.name] = 0
-    for (const d of m.maps) {
-      const cells: Snap['maps'][string] = {}
-      if (leaves[`${d.name}_nil`] !== true) for (let i = rand(4); i > 0; i--) {
-        const key = d.key === 'str' ? strs[rand(3)]! : String(rand(4))
-        cells[key] = Object.fromEntries(d.fields.map(f => { let x = draw(f.sort, sorts, `${d.name}.${f.name}`, rand, consts, bound, strs); if (typeof x === 'number' && sorts.get(`${d.name}.${f.name}`) === 'nat') x = Math.abs(x); return [f.name, fit(x, `${d.name}.${f.name}`)] }))
-      }
-      maps[d.name] = cells
-    }
-    for (const d of m.lists ?? []) { const f = d.fields[0]!; lists[d.name] = Array.from({length: rand(4)}, () => { let x = draw(f.sort, sorts, `${d.name}.$item`, rand, consts, bound, strs); if (typeof x === 'number' && sorts.get(`${d.name}.$item`) === 'nat') x = Math.abs(x); return fit(x, `${d.name}.$item`) }) }
-    return {leaves, maps, ...(m.lists?.length ? {lists} : {})}
-  }
-  const single = (snap: Snap, inputs: Record<string, Raw>, e: Model['events'][number], where: string): string | undefined => {
-    const st = ruleState(interp.init(ps), snap, m, sorts), raw = ruleInputs(inputs, e), o = ruleStep(st, snap, raw)
-    if (typeof o === 'string') return `${where}: ${o}`
-    plan.push({from: snap, steps: [{e, inputs, raw, before: snap, o, where}]})
-    return undefined
-  }
-  for (let i = 0; i < (opts.states ?? 400); i++) {
-    const snap = drawSnap(), {e, inputs} = drawRequest(snap)
-    const bad = single(snap, inputs, e, `drawn state ${i + 1}`)
-    if (bad) return fail(bad)
-  }
-  // Steps from the prover's counterexamples: each condition of the step, refuted as "never holds".
-  if (opts.probes !== false) {
-    for (const [i, c] of conditionsOf(m).entries()) {
-      ev.probes.conditions++
-      let law: StepLaw
-      try { law = r.stepLaw(`probe ${i + 1}`, () => no, env => condAt(c, env as Record<string, unknown>)) } catch { continue }
-      const v = proveSteps(r as never, [], [law], {search: false})
-      if (v.proven || !v.witness) continue
-      ev.probes.witnesses++
-      const w = v.witness, inputs: Record<string, Raw> = {}, leaves: Record<string, Raw> = {}
-      let ok = true
-      const dec = (vv: Var, k: Kind<unknown>, at: Record<string, Raw>) => { try { at[vv.name] = k.decode(vv.name, Object.fromEntries(k.vars(vv.name).map(part => [part, w[part] ?? 0]))) as Raw } catch { ok = false } }
-      for (const vv of m.inputs) dec(vv, kindOfVar(vv, sorts), inputs)
-      for (const vv of m.state) if (!m.outputs.includes(vv.name)) dec(vv, kindOfVar(vv, sorts), leaves)
-      if (!ok) continue
-      for (const l of read.leaves) if (l.kind === 'big' && leaves[`${l.name}_nil`] === true) leaves[l.name] = 0
-      const e = m.events.find(x => Object.entries(x.select).every(([n, val]) => inputs[n] === val)) ?? m.events[0]!
-      const bad = single({leaves, maps: Object.fromEntries(m.maps.map(d => [d.name, {}])), ...(m.lists?.length ? {lists: Object.fromEntries(m.lists.map(d => [d.name, []]))} : {})}, inputs, e, `the prover's witness for ${JSON.stringify(c).replace(/"op":/g, '').slice(0, 120)}`)
-      ev.probes.steps++
-      if (bad) return fail(bad)
-    }
-  }
-  // --- the code's side: one batch through the harness
+  const opts = gopts.check ?? {}, m = read.model, bound = opts.bound ?? 12
   const fs = node<FS>('node:fs'), cp = node<CP>('node:child_process'), os = node<{tmpdir: () => string}>('node:os')
   const mod = moduleOf(dir), work = fs.mkdtempSync(`${os.tmpdir()}/gdp-gocheck-`)
   const hfile = `${dir.replace(/\/$/, '')}/zz_gdp_harness_gen.go`, mainDir = `${mod.root}/gdpharness_${Date.now().toString(36)}`
   const {code} = harness(pkg, read, m, gopts.onError === 'discard')
-  const importPath = mod.path
+  const importPath = mod.path, empty = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0, buildMs: 0, runMs: 0}
   const b0 = performance.now()
+  let child: {kill: () => void} | undefined, wi = -1, ro = -1
   try {
     fs.writeFileSync(hfile, code)
     fs.mkdirSync(mainDir, {recursive: true})
@@ -406,119 +297,134 @@ export function checkGo(dir: string, pkg: GoPkg, read: GoRead, r: Rule, sorts: S
       cp.execFileSync('go', ['build', '-cover', `-coverpkg=${importPath},${mod.module}/${mainDir.split('/').pop()}`, '-o', `${work}/harness`, `./${mainDir.split('/').pop()}`], {cwd: mod.root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: goEnv(), maxBuffer: 1 << 26})
     } catch (x) {
       const err = String((x as {stderr?: string}).stderr ?? (x as Error).message)
-      return fail(`the package doesn't build with the check's harness: ${err.split('\n').filter(Boolean).slice(0, 6).join(' | ')}`)
+      return {...empty, mismatch: `the package doesn't build with the check's harness: ${err.split('\n').filter(Boolean).slice(0, 6).join(' | ')}`}
     }
-    ev.buildMs = Math.round(performance.now() - b0)
-    // The episodes as the harness reads them: each request's arguments in its parameters' order.
-    const argJson = (a: Arg, inputs: Record<string, Raw>): unknown => (a.k === 'input' ? (typeof inputs[a.name] === 'number' ? String(inputs[a.name]) : inputs[a.name]) : a.k === 'rec' ? Object.fromEntries(a.fields.map(([f, x]) => [f, argJson(x, inputs)])) : null)
+    const buildMs = Math.round(performance.now() - b0)
+    fs.mkdirSync(`${work}/cov`, {recursive: true})
+    cp.execFileSync('mkfifo', [`${work}/in`, `${work}/out`], {})
+    child = node<{spawn: (f: string, a: string[], o: Record<string, unknown>) => {kill: () => void}}>('node:child_process').spawn(`${work}/harness`, [`${work}/in`, `${work}/out`], {stdio: 'ignore', env: {...goEnv(), GOCOVERDIR: `${work}/cov`}})
+    wi = fs.openSync(`${work}/in`, 'w'); ro = fs.openSync(`${work}/out`, 'r')
+    const buf = new Uint8Array(1 << 20), dec = new TextDecoder()
+    let pend = ''
+    const line = (): string | undefined => {
+      for (;;) {
+        const k = pend.indexOf('\n')
+        if (k >= 0) { const l = pend.slice(0, k); pend = pend.slice(k + 1); return l }
+        const n = fs.readSync(ro, buf, 0, buf.length, null)
+        if (n === 0) return undefined
+        pend += dec.decode(buf.subarray(0, n), {stream: true})
+      }
+    }
+    const ask = (cmd: Record<string, unknown>): Record<string, unknown> => {
+      fs.writeSync(wi, `${JSON.stringify(cmd)}\n`)
+      const l = line()
+      if (l === undefined) throw new Error('the harness stopped')
+      return JSON.parse(l) as Record<string, unknown>
+    }
+    // A state from the harness as a snapshot (a number past the safe integers: the code leaves the rule's numbers).
+    const toSnap = (s: Record<string, unknown>): Snap => {
+      const leaves: Record<string, Raw> = {}, maps: Snap['maps'] = {}, lists: Record<string, Raw[]> = {}
+      const num = (x: unknown, at: string): number => { const n = Number(x); if (Number.isSafeInteger(n) && String(n) === String(x)) return n; throw new Outside(`${at} is ${String(x)}`) }
+      for (const v of m.state) if (!m.outputs.includes(v.name)) leaves[v.name] = v.sort.k === 'num' ? num(s[v.name], v.name) : s[v.name] as Raw
+      for (const d of m.maps) maps[d.name] = Object.fromEntries(Object.entries((s[d.name] ?? {}) as Record<string, Record<string, unknown>>).map(([k, c]) => [k, Object.fromEntries(d.fields.map(f => [f.name, f.sort.k === 'num' ? num(c[f.name], `${d.name}[${k}].${f.name}`) : c[f.name] as Raw]))]))
+      for (const d of m.lists ?? []) lists[d.name] = ((s[d.name] ?? []) as unknown[]).map(x => (d.fields[0]!.sort.k === 'num' ? num(x, d.name) : x as Raw))
+      return {leaves, maps, ...(m.lists?.length ? {lists} : {})}
+    }
     const snapJson = (s: Snap): Record<string, unknown> => {
       const out: Record<string, unknown> = {}
-      for (const [k, v] of Object.entries(s.leaves)) out[k] = typeof v === 'number' ? String(v) : v
-      for (const [k, cells] of Object.entries(s.maps)) out[k] = Object.fromEntries(Object.entries(cells).map(([key, c]) => [key, Object.fromEntries(Object.entries(c).map(([f, x]) => [f, typeof x === 'number' ? String(x) : x]))]))
-      for (const [k, xs] of Object.entries(s.lists ?? {})) out[k] = xs.map(x => (typeof x === 'number' ? String(x) : x))
+      const j = (x: Raw) => (typeof x === 'number' ? String(x) : x)
+      for (const [k, v] of Object.entries(s.leaves)) out[k] = j(v)
+      for (const [k, cells] of Object.entries(s.maps)) out[k] = Object.fromEntries(Object.entries(cells).map(([key, c]) => [key, Object.fromEntries(Object.entries(c).map(([f, x]) => [f, j(x)]))]))
+      for (const [k, xs] of Object.entries(s.lists ?? {})) out[k] = xs.map(j)
       return out
     }
-    const eps = plan.map(p => ({from: p.from ? snapJson(p.from) : null, steps: p.steps.map(s => ({m: s.e.call, a: s.e.args.map(a => argJson(a, s.inputs))}))}))
-    fs.writeFileSync(`${work}/in.json`, JSON.stringify(eps))
-    fs.mkdirSync(`${work}/cov`, {recursive: true})
+    const argJson = (a: Arg, inputs: Record<string, Raw>): unknown => (a.k === 'input' ? (typeof inputs[a.name] === 'number' ? String(inputs[a.name]) : inputs[a.name]) : a.k === 'rec' ? Object.fromEntries(a.fields.map(([f, x]) => [f, argJson(x, inputs)])) : null)
+    // A drawn number within its variable's type (a value of the type is all the code can hold); a quarter of them at
+    // the type's own edges (where Go wraps).
+    const ranges = rangesOf(m, read, pkg), consts = constantsOf(m), strs = ['a', 'b', 'c', '']
+    const fit = (x: Raw, name: string, rand: Rand): Raw => {
+      if (typeof x !== 'number') return x
+      const rg = ranges.get(name)
+      if (!rg) return x
+      if (rand(4) === 0 && rg[1] < Number.MAX_SAFE_INTEGER) { const e = [rg[0], rg[0] + 1, rg[1] - 1, rg[1]]; return e[rand(4)]! }
+      const [lo, hi] = rg
+      if (x >= lo && x <= hi) return x
+      if (Number.isFinite(hi) && Number.isFinite(lo)) return lo + (((x - lo) % (hi - lo + 1)) + (hi - lo + 1)) % (hi - lo + 1)
+      return x < lo ? lo : x
+    }
+    // A nil *big.Int holds 0 (the rule's encoding of it).
+    const normalize = (s: Snap): Snap => { for (const l of read.leaves) if (l.kind === 'big' && s.leaves[`${l.name}_nil`] === true) s.leaves[l.name] = 0; return s }
+    let coverage: Coverage | undefined
     const r0 = performance.now()
-    try {
-      cp.execFileSync(`${work}/harness`, [`${work}/in.json`, `${work}/out.json`], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: {...goEnv(), GOCOVERDIR: `${work}/cov`}, maxBuffer: 1 << 26, timeout: 600_000})
-    } catch (x) { return fail(`the harness failed: ${String((x as {stderr?: string}).stderr ?? (x as Error).message).slice(0, 400)}`) }
-    ev.runMs = Math.round(performance.now() - r0)
-    const results = JSON.parse(fs.readFileSync(`${work}/out.json`, 'utf8')) as {state?: Record<string, unknown>, out?: unknown, hasOut?: boolean, err?: string, panic?: string, bad?: string, frame?: string}[][]
-    // --- compared, step by step
-    const toSnap = (s: Record<string, unknown>): {snap?: Snap, outside?: string} => {
-      const leaves: Record<string, Raw> = {}, maps: Snap['maps'] = {}, lists: Record<string, Raw[]> = {}
-      const num = (x: unknown, at: string): number | string => { const n = Number(x); return Number.isSafeInteger(n) && String(n) === String(x) ? n : `${at} is ${String(x)}` }
-      for (const v of m.state) {
-        if (m.outputs.includes(v.name)) continue
-        const x = s[v.name]
-        if (v.sort.k === 'num') { const n = num(x, v.name); if (typeof n === 'string') return {outside: n}; leaves[v.name] = n } else leaves[v.name] = x as Raw
-      }
-      for (const d of m.maps) {
-        const cells: Snap['maps'][string] = {}
-        for (const [k, c] of Object.entries((s[d.name] ?? {}) as Record<string, Record<string, unknown>>)) {
-          const cell: Record<string, Raw> = {}
-          for (const f of d.fields) { const x = c[f.name]; if (f.sort.k === 'num') { const n = num(x, `${d.name}[${k}].${f.name}`); if (typeof n === 'string') return {outside: n}; cell[f.name] = n } else cell[f.name] = x as Raw }
-          cells[k] = cell
+    const side: CodeSide = {
+      make: () => ({ok: true, value: ask({op: 'new'}).id}),
+      at: s => { const res = ask({op: 'at', state: snapJson(s)}); return res.bad ? undefined : res.id },
+      snapOf: self => toSnap(ask({op: 'get', id: self}).state as Record<string, unknown>),
+      call: (self, e, args) => {
+        const res = ask({op: 'call', id: self, m: e.call, a: args}) as {out?: unknown, hasOut?: boolean, err?: string, panic?: string, bad?: string, frame?: string}
+        if (res.frame) throw new Error(`the code changes ${res.frame}, a field the rule leaves out`)
+        if (res.bad) return {ok: false, error: `the code can't be given it (${res.bad})`}
+        if (res.err !== undefined || res.panic !== undefined) return {ok: false, error: res.err !== undefined ? `error: ${res.err}` : `panic: ${res.panic}`}
+        return {ok: true, value: typeof res.out === 'string' && /^-?\d+$/.test(res.out) && m.results?.[e.call] && m.state.find(v => v.name === (m.results![e.call] as {name: string}).name)?.sort.k === 'num' ? Number(res.out) : res.out}
+      },
+      args: (inputs, e) => e.args.map(a => argJson(a, inputs)),
+      setNow: () => {},
+      coverage: () => (coverage ??= closeAndCount()),
+      input: (v, x, rand) => (rand(8) === 0 ? x : fit(x, v.name, rand)),
+      drawSnap: rand => {
+        const leaves: Record<string, Raw> = {}, maps: Snap['maps'] = {}, lists: Record<string, Raw[]> = {}
+        for (const v of m.state) {
+          if (m.outputs.includes(v.name)) continue
+          let x = draw(v.sort, sorts, v.name, rand, consts, bound, strs)
+          if (typeof x === 'number' && sorts.get(v.name) === 'nat' && x < 0) x = -x
+          if (typeof x === 'number' && Math.abs(x) > Number.MAX_SAFE_INTEGER / 4) x = rand(bound)
+          leaves[v.name] = fit(x, v.name, rand)
         }
-        maps[d.name] = cells
-      }
-      for (const d of m.lists ?? []) {
-        const xs: Raw[] = []
-        for (const x of (s[d.name] ?? []) as unknown[]) { if (d.fields[0]!.sort.k === 'num') { const n = num(x, d.name); if (typeof n === 'string') return {outside: n}; xs.push(n) } else xs.push(x as Raw) }
-        lists[d.name] = xs
-      }
-      return {snap: {leaves, maps, ...(m.lists?.length ? {lists} : {})}}
-    }
-    for (const [i, p] of plan.entries()) {
-      const rs = results[i] ?? []
-      if (p.from) ev.fromStates++; else ev.runs++
-      // A drawn state Go can't hold (a value outside its type): no state of the code is that one.
-      if (p.from && rs.length === 1 && rs[0]!.bad?.startsWith('state: ')) { ev.unmakeable++; continue }
-      for (const [j, s] of p.steps.entries()) {
-        const c = rs[j]
-        ev.requests++
-        if (!c) return fail(`${s.where}: the harness gave no result`)
-        const req = `${s.e.call}(${s.e.args.map(a => JSON.stringify(argJson(a, s.inputs))).join(', ')})`, from = `from ${showSnap(s.before)}`
-        if (c.bad) {
-          if (s.o.k === 'refused') { ev.unmakeable++; continue }
-          return fail(`${s.where}: ${req} ${from}: the code can't be given it (${c.bad}), the rule takes it`)
-        }
-        if (c.frame) return fail(`${s.where}: ${req} ${from}: the code changes ${c.frame}, a field the rule leaves out`)
-        const failed = c.err !== undefined || c.panic !== undefined
-        const got = c.state ? toSnap(c.state) : {outside: 'no state'}
-        if (s.o.k === 'outside' || (s.o.k === 'refused' && s.o.edge)) {
-          // Where the rule's numbers stop (2^53) or Go wraps past a type the rule refuses: counted apart.
-          if (failed) { ev.refusedBoth++; continue }
-          if (got.outside) { ev.outside++; continue }
-          ev.edge++; ev.edgeSample ??= `${req} ${from}`
-          continue
-        }
-        if (s.o.k === 'refused') {
-          if (!failed) return fail(`${s.where}: ${req} ${from}: the rule refuses it (${s.o.why}), the code doesn't`)
-          if (gopts.onError !== 'discard') {
-            if (got.outside) return fail(`${s.where}: ${req} ${from}: the code fails (${c.err ?? c.panic}) and its state is outside the safe integers`)
-            const d = sameSnap(got.snap!, s.before)
-            if (d) return fail(`${s.where}: ${req} ${from}: the code fails (${c.err ?? c.panic}) after changing the object: ${d}`)
+        normalize({leaves, maps})
+        for (const d of m.maps) {
+          const cells: Snap['maps'][string] = {}
+          if (leaves[`${d.name}_nil`] !== true) for (let i = rand(4); i > 0; i--) {
+            const key = d.key === 'str' ? strs[rand(3)]! : String(rand(4))
+            cells[key] = Object.fromEntries(d.fields.map(f => { let x = draw(f.sort, sorts, `${d.name}.${f.name}`, rand, consts, bound, strs); if (typeof x === 'number' && sorts.get(`${d.name}.${f.name}`) === 'nat') x = Math.abs(x); return [f.name, fit(x, `${d.name}.${f.name}`, rand)] }))
           }
-          ev.refusedBoth++
-          continue
+          maps[d.name] = cells
         }
-        if (failed) return fail(`${s.where}: ${req} ${from}: the code fails (${c.err ? `error: ${c.err}` : `panic: ${c.panic}`}), the rule takes the step`)
-        if (got.outside) return fail(`${s.where}: ${req} ${from}: the code leaves the safe integers (${got.outside}) where the rule takes the step`)
-        const diff = sameSnap(got.snap!, s.o.snap)
-        if (diff) return fail(`${s.where}: ${req} ${from}: ${diff}`)
-        const res = m.results?.[s.e.call] as {k: string, name: string} | undefined
-        if (res) {
-          const want = s.o.out, have = typeof c.out === 'string' && typeof want === 'number' ? Number(c.out) : c.out
-          if (have !== want) return fail(`${s.where}: ${req} ${from}: ${s.e.call} returns ${JSON.stringify(c.out)}, the rule's ${res.name} is ${JSON.stringify(want)}`)
-        }
-      }
+        for (const d of m.lists ?? []) { const f = d.fields[0]!; lists[d.name] = Array.from({length: rand(4)}, () => { let x = draw(f.sort, sorts, `${d.name}.$item`, rand, consts, bound, strs); if (typeof x === 'number' && sorts.get(`${d.name}.$item`) === 'nat') x = Math.abs(x); return fit(x, `${d.name}.$item`, rand) }) }
+        return {leaves, maps, ...(m.lists?.length ? {lists} : {})}
+      },
+      normalize,
+      edge: (s, raw) => read.edges.some(c => evalB(c, s, raw)),
     }
-    // The blocks of the code the step reads that the requests reached.
-    try {
-      cp.execFileSync('go', ['tool', 'covdata', 'textfmt', `-i=${work}/cov`, `-o=${work}/cov.txt`], {cwd: mod.root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: goEnv()})
-      const blocks = new Map<string, {file: string, from: number, to: number, hit: boolean}>()
-      for (const line of fs.readFileSync(`${work}/cov.txt`, 'utf8').split('\n').slice(1)) {
-        const mm = /^(.*):(\d+)\.\d+,(\d+)\.\d+ \d+ (\d+)$/.exec(line)
-        if (!mm) continue
-        const file = mm[1]!.split('/').pop()!, from = Number(mm[2]), to = Number(mm[3]), n = Number(mm[4])
-        if (!read.spans.some(([f, a, b]) => f === file && from >= a && to <= b)) continue
-        const k = `${file}:${mm[2]}-${mm[3]}:${line.split(' ')[0]}`
-        const prev = blocks.get(k)
-        blocks.set(k, {file, from, to, hit: (prev?.hit ?? false) || n > 0})
-      }
-      ev.coverage = {arms: blocks.size, hit: [...blocks.values()].filter(b => b.hit).length, missed: [...blocks.values()].filter(b => !b.hit).map(b => `the block at ${b.file}:${b.from}-${b.to}`)}
-    } catch { /* coverage is evidence, not the check */ }
+    // The harness told to stop: its counters written as it exits, the blocks of the code the step reads that the
+    // requests reached.
+    function closeAndCount(): Coverage {
+      fs.closeSync(wi); wi = -1
+      while (line() !== undefined) { /* to its end */ }
+      fs.closeSync(ro); ro = -1
+      try {
+        cp.execFileSync('go', ['tool', 'covdata', 'textfmt', `-i=${work}/cov`, `-o=${work}/cov.txt`], {cwd: mod.root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: goEnv()})
+        const blocks = new Map<string, {file: string, from: number, to: number, hit: boolean}>()
+        for (const l of fs.readFileSync(`${work}/cov.txt`, 'utf8').split('\n').slice(1)) {
+          const mm = /^(.*):(\d+)\.\d+,(\d+)\.\d+ \d+ (\d+)$/.exec(l)
+          if (!mm) continue
+          const file = mm[1]!.split('/').pop()!, from = Number(mm[2]), to = Number(mm[3]), n = Number(mm[4])
+          if (!read.spans.some(([f, a, b]) => f === file && from >= a && to <= b)) continue
+          const k = `${file}:${mm[2]}-${mm[3]}:${l.split(' ')[0]}`
+          blocks.set(k, {file, from, to, hit: (blocks.get(k)?.hit ?? false) || n > 0})
+        }
+        return {arms: blocks.size, hit: [...blocks.values()].filter(b => b.hit).length, missed: [...blocks.values()].filter(b => !b.hit).map(b => `the block at ${b.file}:${b.from}-${b.to}`)}
+      } catch { return {arms: 0, hit: 0, missed: []} }
+    }
+    const ev = drive(m, r, sorts, side, opts)
+    return {...ev, buildMs, runMs: Math.round(performance.now() - r0)}
   } finally {
+    if (wi >= 0) try { fs.closeSync(wi) } catch { /* closed */ }
+    if (ro >= 0) try { fs.closeSync(ro) } catch { /* closed */ }
+    try { child?.kill() } catch { /* gone */ }
     try { fs.rmSync(hfile) } catch { /* gone */ }
     try { fs.rmSync(mainDir, {recursive: true, force: true}) } catch { /* gone */ }
     try { fs.rmSync(work, {recursive: true, force: true}) } catch { /* gone */ }
   }
-  ev.ms = Math.round(performance.now() - t0)
-  return ev
 }
 
 // Each fixed-width number's range, by the rule's name (inputs, state, map fields, list items).
@@ -548,12 +454,9 @@ function rangesOf(m: Model, read: GoRead, pkg: GoPkg): Map<string, [number, numb
   for (const d of m.lists ?? []) { const l = read.leaves.find(x => x.name === d.name && x.kind === 'list'); const r = l ? rg(pkg.ttab[l.t]!.elem!) : undefined; if (r) out.set(`${d.name}.$item`, r) }
   return out
 }
-// The refusals that are where the rule's numbers stop and Go's go on (a uint64 below 0, which Go wraps).
-function edgeConditions(m: Model, read: GoRead): B[] { void m; return read.edges }
 
 // A condition at a state and a request: core/extract-check.ts's evaluator, the snapshot's cells and items beside it.
 const evalB = (c: B, s: Snap, inputs: Record<string, Raw>): boolean => {
   const env: Record<string, Raw> = {...s.leaves, ...Object.fromEntries(Object.entries(s.lists ?? {}).map(([k, xs]) => [`${k}_len`, xs.length])), ...inputs}
   return evalTerm(c, env, (map, key, field) => (field === '$item' ? s.lists?.[map]?.[Number(key)] ?? 0 : field === 'has' ? !!s.maps[map]?.[String(key)] : s.maps[map]?.[String(key)]?.[field] ?? 0)) === true
 }
-void I
