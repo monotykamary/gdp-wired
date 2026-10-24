@@ -58,6 +58,8 @@ export type Model = {
   factory?: {at: number, text: string},
   // For a class: what each method's result is kept as (core/extract-shapes.ts's Result).
   results?: Record<string, {k: 'scalar', name: string} | {k: 'rec', fields: [string, string][]} | {k: 'maybe', name: string, missing: string, null: boolean}>,
+  // Laws every state of the code keeps that the front end knows (a Go field within its type's range), as `r.law(...)`.
+  laws?: string[],
 }
 
 // --- values ---------------------------------------------------------------------------------------------------------
@@ -315,7 +317,7 @@ export class Exec {
     if (oa.k === 'list' && ob.k === 'list') {
       if (oa.base !== ob.base) return refuse(at, 'one of two lists by the path taken')
       const origin = oa.origin === 'input' || ob.origin === 'input' ? 'input' : oa.origin
-      return {...oa, origin, ops: [...oa.ops.map(o => ({...o, when: I.and(c, o.when)})), ...ob.ops.map(o => ({...o, when: I.and(I.not(c), o.when)}))]}
+      return {...oa, origin, ops: mergeOps(c, oa.ops, ob.ops)}
     }
     if (oa.k === 'map' && ob.k === 'map') {
       if (oa.base !== ob.base) return refuse(at, 'one of two maps by the path taken')
@@ -326,14 +328,7 @@ export class Exec {
     return refuse(at, 'an object that is of another kind by the path taken')
   }
   private mergeW(c: B, oa: MapObj, ob: MapObj, at: ts.Node): MapObj['w'] { return this.mergeWrites(c, oa.decl, oa.w, ob.w, at) }
-  mergeWrites(c: B, decl: MapDecl, wa: MapObj['w'], wb: MapObj['w'], at: ts.Node): MapObj['w'] {
-    if (!wa && !wb) return undefined
-    const base = (key: K) => this.baseCell(decl, key)
-    const fill = (w: MapObj['w'], key: K) => w ?? {key, ...base(key)}
-    const xa = fill(wa, (wa ?? wb)!.key), xb = fill(wb, (wb ?? wa)!.key)
-    const vals = new Map([...xa.vals].map(([f, v]) => [f, this.mergeScalar(c, v, xb.vals.get(f)!, at)]))
-    return {key: I.kite(c, xa.key, xb.key), has: I.bite(c, xa.has, xb.has), vals}
-  }
+  mergeWrites(c: B, decl: MapDecl, wa: MapObj['w'], wb: MapObj['w'], at: ts.Node): MapObj['w'] { return mergeWrites(c, wa, wb, key => this.baseCell(decl, key), (c2, x, y) => this.mergeScalar(c2, x, y, at)) }
   mergeScalar(c: B, a: V, b: V, at: ts.Node): V {
     if (a.t === 'num' && b.t === 'num') return {t: 'num', e: I.nite(c, a.e, b.e)}
     if (a.t === 'bool' && b.t === 'bool') return {t: 'bool', e: I.bite(c, a.e, b.e)}
@@ -1208,6 +1203,16 @@ const nullOf = (at: ts.Node, a: V, b: V): {null?: true} => {
   if (ka && kb && ka !== kb) refuse(at, 'a value that may be null on one side and undefined on the other')
   return ka === 'null' || kb === 'null' ? {null: true} : {}
 }
+// A map's write and a list's operations by a condition (the Go reader's too).
+export function mergeWrites<V>(c: B, wa: Write<V> | undefined, wb: Write<V> | undefined, base: (key: K) => {has: B, vals: Map<string, V>}, scalar: (c: B, a: V, b: V) => V): Write<V> | undefined {
+  if (!wa && !wb) return undefined
+  const fill = (w: Write<V> | undefined, key: K) => w ?? {key, ...base(key)}
+  const xa = fill(wa, (wa ?? wb)!.key), xb = fill(wb, (wb ?? wa)!.key)
+  const vals = new Map([...xa.vals].map(([f, v]) => [f, scalar(c, v, xb.vals.get(f)!)]))
+  return {key: I.kite(c, xa.key, xb.key), has: I.bite(c, xa.has, xb.has), vals}
+}
+type Write<V> = {key: K, has: B, vals: Map<string, V>}
+export const mergeOps = <O extends {when: B}>(c: B, a: O[], b: O[]): O[] => [...a.map(o => ({...o, when: I.and(c, o.when)})), ...b.map(o => ({...o, when: I.and(I.not(c), o.when)}))]
 const mergedGen = (a: MapObj, b: MapObj) => (a.gen === b.gen ? a.gen : Math.max(a.gen, b.gen) + 1)
 // The module an import names, for a refusal.
 const moduleOf = (d: ts.Declaration): string => { let n: ts.Node = d; while (n && !ts.isImportDeclaration(n)) n = n.parent; return n && ts.isImportDeclaration(n) && ts.isStringLiteral(n.moduleSpecifier) ? ` ('${n.moduleSpecifier.text}')` : '' }

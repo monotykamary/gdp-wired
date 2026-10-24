@@ -84,9 +84,14 @@ export function extract(code: string, opts: ExtractOptions): Extraction {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
     throw e
   }
+  return fromModel(model, file, opts.domains, notes, (rule, sorts) => check(code, file, model, rule, sorts, {...opts.check, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})}))
+}
+// A model read by a front end (this file's TypeScript, or core/extract-go.ts's Go) printed as the rule, built, and
+// checked against the code by the front end's own check: what both front ends share.
+export function fromModel(model: Model, file: string, domains: Record<string, 'nat' | 'int'> | undefined, notes: string[], run: (rule: Rule, sorts: Sorts) => Evidence): Extraction {
   let source: string, body: string, sorts: Sorts
   try {
-    const s = sortsOf(model, opts.domains)
+    const s = sortsOf(model, domains)
     sorts = s.sorts
     datesInRange(model, sorts)
     notes.push(...model.notes, ...s.notes)
@@ -99,7 +104,7 @@ export function extract(code: string, opts: ExtractOptions): Extraction {
   let rule: Rule, invariants: Law[]
   try { rule = evaluate(body); invariants = evaluateLaws(rule, invariantsOf(model, sorts)) } catch (e) { return {ok: false, source, model, sorts, refusals: [{where: file, what: `the rule printed doesn't build: ${(e as Error).message}`}], notes} }
   if (invariants.length) source = `${source}\n// What every state of the code is: a law about every state is about the code's with these beside it.\nexport const ${identOf(model)}Invariants = [${invariantsOf(model, sorts).map(x => x.replace(/^r\./, `${identOf(model)}Rule.`)).join(', ')}]\n`
-  const evidence = check(code, file, model, rule, sorts, {...opts.check, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})})
+  const evidence = run(rule, sorts)
   if (evidence.mismatch) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `the rule and the code differ: ${evidence.mismatch}`}], notes}
   return {ok: true, rule, ...(invariants.length ? {invariants} : {}), source, model, sorts, evidence, refusals: [], notes}
 }
@@ -132,7 +137,7 @@ function evaluate(body: string): Rule {
 function invariantsOf(m: Model, sorts: Sorts): string[] {
   const empty = (d: MapDecl, f: Var) => (f.sort.k === 'num' ? `.eq(0)` : f.sort.k === 'bool' ? `.not()` : f.sort.k === 'choice' ? `.is(${JSON.stringify(f.sort.values[0])})` : `.eq('')`)
   void sorts
-  return [...m.maps.map(d => `r.law(${JSON.stringify(`${d.name}: a key it doesn't hold holds the defaults`)}, ({${d.name}}) => forall(k => any(${d.name}.at(k).has, all(${d.fields.map(f => `${d.name}.at(k).${f.name}${empty(d, f)}`).join(', ')}))))`),
+  return [...(m.laws ?? []), ...m.maps.map(d => `r.law(${JSON.stringify(`${d.name}: a key it doesn't hold holds the defaults`)}, ({${d.name}}) => forall(k => any(${d.name}.at(k).has, all(${d.fields.map(f => `${d.name}.at(k).${f.name}${empty(d, f)}`).join(', ')}))))`),
     ...(m.lists ?? []).map(d => `r.law(${JSON.stringify(`${d.name}: nothing past its end`)}, ({${d.name}}) => ${d.name}.within())`)]
 }
 function evaluateLaws(r: Rule, xs: string[]): Law[] {
@@ -145,9 +150,9 @@ function moduleOf(m: Model, body: string, file: string): string {
   const used = NAMES.filter(n => new RegExp(`(^|[^.\\w$])${n}\\(|(^|[^.\\w$])${n}\\b(?!\\s*:)`).test(body.replace(/'[^']*'/g, "''")) || (n === 'rule'))
   const ident = identOf(m)
   return [
-    `// Extracted by gdp-wired/extract from ${file} (${m.entry}, ${m.factory ? 'a factory of an object of functions' : m.shape === 'class' ? 'a class' : m.shape === 'reducer' ? 'a step function' : 'functions over one record'}).`,
+    `// Extracted by gdp-wired/extract from ${file} (${m.entry}, ${m.factory ? 'a factory of an object of functions' : m.shape === 'class' ? (/\.go$/.test(file) ? 'a struct and its methods' : 'a class') : m.shape === 'reducer' ? 'a step function' : 'functions over one record'}).`,
     `// Checked against the code it was read from; read again with extract() after the code changes.`,
-    `import {${[...new Set([...used, ...(m.maps.length ? ['all', 'any', 'forall'] : [])])].sort((a, b) => a.localeCompare(b)).join(', ')}} from 'gdp-wired'`,
+    `import {${[...new Set([...used, ...(m.maps.length ? ['all', 'any', 'forall'] : []), ...['all', 'any', 'forall'].filter(n => (m.laws ?? []).some(l => l.includes(`${n}(`)))])].sort((a, b) => a.localeCompare(b)).join(', ')}} from 'gdp-wired'`,
     '',
     `export const ${ident}Rule = ${body}`,
     '',
