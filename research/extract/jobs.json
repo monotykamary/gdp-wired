@@ -1,6 +1,6 @@
 [
-{"name": "extract-tests", "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && cd core && bun test extract.test.ts 2>&1", "cpu": 2.0, "timeout": 900},
+{"name": "extract-tests", "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && cd core && bun test extract.test.ts xstate.test.ts 2>&1", "cpu": 2.0, "timeout": 900},
 {"name": "extract-ours", "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && bun research/extract/run.ts --set ours --out /tmp/ex 2>&1 && echo '--- results.jsonl' && cat /tmp/ex/results.jsonl && for f in /tmp/ex/rules/*.ts; do echo \"--- rule $(basename $f)\"; cat \"$f\"; done", "cpu": 2.0, "timeout": 900},
-{"name": "extract-realworld", "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && bun research/extract/run.ts --set realworld --out /tmp/ex 2>&1 && echo '--- results.jsonl' && cat /tmp/ex/results.jsonl", "cpu": 2.0, "timeout": 900},
+{"name": "extract-realworld", "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && bun research/extract/run.ts --set realworld --out /tmp/ex 2>&1 && echo '--- results.jsonl' && cat /tmp/ex/results.jsonl && for f in /tmp/ex/rules/*.ts; do echo \"--- rule $(basename $f)\"; cat \"$f\"; done", "cpu": 2.0, "timeout": 900},
 {"name": "extract-verdicts", "cmd": "bun install --frozen-lockfile >/dev/null 2>&1 && bun research/extract/verdicts.ts --out /tmp/ev 2>&1 && echo '--- verdicts.jsonl' && cat /tmp/ev/verdicts.jsonl", "cpu": 2.0, "timeout": 900}
 ]

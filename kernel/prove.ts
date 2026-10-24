@@ -8,8 +8,8 @@
 //   - a refutation of a split's yes side that never reads the split refutes its parent (lift), and the no side is skipped;
 //   - a hypothesis' rows and open atoms, and every term inside them, are reused from an earlier path that decided the
 //     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
-import type {C, E, Law, Machine} from '../core/machine.ts'
-import {type Lin, type Step, add, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
+import {type C, type E, type Law, type Machine, walkOnce} from '../core/machine.ts'
+import {type Lin, type Step, add, env, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
 import {allowNode, allowTranslated, certCyclic, certOn, certSearch, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, loopNodes, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
 import type {TStats} from '../core/translate.ts'
@@ -78,7 +78,7 @@ export function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
   const out: Lin[] = []
   const keyText = (n: string) => n.slice(n.indexOf('[') + 1, -1)
   // (each name's map and key read once: the pairs are quadratic in the names)
-  const maps = names.map(n => n.slice(0, n.indexOf('['))), keys = names.map(n => parse(keyText(n)))
+  const maps = names.map(n => n.slice(0, n.indexOf('['))), keys = names.map(n => parseKey(keyText(n)))
   for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
     if (maps[i] !== maps[j]) continue
     const d = sub(keys[i]!, keys[j]!)
@@ -112,7 +112,8 @@ const quotient = (d: Lin): Lin | undefined => {
 }
 // The cells' key differences split at their quotient's equality, by canonical text: their quotient.
 const cellDiffs = new Map<string, Lin>()
-function parse(text: string): Lin {
+// A key's canonical text read back as its linear form.
+export function parseKey(text: string): Lin {
   const out: Lin = {}
   let depth = 0, start = 0
   for (let i = 0; i <= text.length; i++) {
@@ -145,7 +146,7 @@ const solveP = (rows: Parameters<typeof solve>[0], maxRows?: number): ReturnType
 // PROVE_DUMP: a hook research/perf/prof sets to read each root goal.
 export let proveDump: ((goal: Goal) => void) | undefined
 export const setProveDump = (f: ((goal: Goal) => void) | undefined) => { proveDump = f }
-const proveTrace = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.PROVE_TRACE
+const proveTrace = !!env.PROVE_TRACE
 // `why`, when the budget ran out: which limit, at what size, and what usually helps.
 // Set while core/cyclic.ts grows its goals.
 export const cellProducts = {on: false}
@@ -186,6 +187,25 @@ export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number,
     console.error(`[grow] ${goal.name}: ${goal.hyps.length} hyps, ${budget.nodes} nodes, ${Math.round(performance.now() - t)} ms, ${'tree' in out ? 'proven' : `${out.stuck}${out.why ? ` (${out.why})` : ''}`}`)
     return out
   }
+  // (a root goal grown before within `withTrees`: its tree again; a tree is the kernel's to check wherever it goes)
+  const key = treeCache.on && !path.size && !budget.nodes ? treeKey(goal) : undefined, had = key === undefined ? undefined : treeCache.trees.get(key)
+  if (had) return {tree: had, nodes: 0}
+  if (key !== undefined) { const out = growKept(goal, path, budget); if ('tree' in out) treeCache.keep(key, out.tree); return out }
+  return growKept(goal, path, budget)
+}
+// Trees of root goals kept by their hypotheses (and the search's modes) while `withTrees` runs: core/infer.ts proves each
+// law of a set alone (proveLaw) and then the set as a whole (proveRule), the same goals twice. At most 2,000 trees, and
+// goals of at most 4 MB written out.
+const treeCache = {on: 0, trees: new Map<string, Tree>(), keep(key: string, tree: Tree) { if (this.trees.size >= 2000) this.trees.clear(); this.trees.set(key, tree) }}
+const treeKey = (goal: Goal): string | undefined => { const text = JSON.stringify(goal.hyps); return text.length > 4_000_000 ? undefined : `${cellProducts.on ? 1 : 0}${unitsNow ? 1 : 0}${text}` }
+// GDP_TREES=0: no tree kept (each goal grown every time it is asked).
+const keepTrees = env.GDP_TREES !== '0'
+export function withTrees<T>(f: () => T): T {
+  if (!keepTrees) return f()
+  treeCache.on++
+  try { return f() } finally { if (--treeCache.on === 0) treeCache.trees.clear() }
+}
+function growKept(goal: Goal, path: Path, budget: {nodes: number, until?: number, units?: boolean}): Outcome {
   if (!profile.on || path.size || budget.nodes) return growRoot(goal, path, budget)
   const t = performance.now(), s0 = profile.solves, m0 = profile.solveMs, r0 = profile.rowsMs, n0 = profile.nodes
   const out = growRoot(goal, path, budget)
@@ -194,8 +214,7 @@ export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number,
 }
 // The share of a root goal's budget the CDCL search gets (GDP_CDCL_SHARE; 0 turns it off), and the quick search's nodes
 // before it (GDP_QUICK_CAP; 64 where the CDCL search isn't tried, as before it): research/step's comparisons.
-const proveEnv = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env ?? {}
-const cdclShare = Number(proveEnv.GDP_CDCL_SHARE ?? 0.75), quickCap = Number(proveEnv.GDP_QUICK_CAP ?? 16)
+const cdclShare = Number(env.GDP_CDCL_SHARE ?? 0.75), quickCap = Number(env.GDP_QUICK_CAP ?? 16)
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
   // Past a few cases, CDCL over the atoms (kernel/cdcl.ts), with most of the budget: a linear goal's refutation there
   // is a resolution of short clauses, which the tree search would find again in every case that reaches one. Unknown
@@ -552,13 +571,8 @@ export function widen(part: Goal, whole: Goal, tree: Tree, opaque: Record<string
 const nearSeen = new WeakMap<Goal, boolean[]>()
 // (the names a term reads, its shared parts walked once: a witness read at each of its uses is one object)
 const namesOf = (t: unknown): Set<string> => {
-  const out = new Set<string>(), seen = new Set<object>()
-  const go = (x: unknown): void => {
-    if (typeof x !== 'object' || x === null || seen.has(x)) return
-    seen.add(x)
-    for (const [key, v] of Object.entries(x)) { if ((key === 'name' || key === 'map') && typeof v === 'string') out.add(v); else go(v) }
-  }
-  go(t)
+  const out = new Set<string>()
+  walkOnce(t, o => { for (const [key, v] of Object.entries(o)) if ((key === 'name' || key === 'map') && typeof v === 'string') out.add(v) })
   return out
 }
 export function nearOf(goal: Goal): boolean[] {
@@ -573,7 +587,7 @@ export function nearOf(goal: Goal): boolean[] {
 // `?f = 1` holds, `k < len` where it is given). Split at the top, its forced side refutes at once; split late, under
 // every other case, it is split again in each.
 // GDP_UNITS=0 leaves them in the goal's order (for comparing).
-const unitFirst = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_UNITS !== '0'
+const unitFirst = env.GDP_UNITS !== '0'
 let unitsNow = true
 // The units growPlain splits first, where it does (kernel/cdcl.ts reads them too).
 export const unitAtoms = (goal: Goal): Lin[] => (unitFirst && unitsNow ? unitsOf(goal) : [])
@@ -747,18 +761,18 @@ function fractional(point: Record<string, number> | undefined, path: Path): Lin 
 }
 
 // The keys a proof assumes the every-key laws at: every key the step and the laws read, and the fresh key of the goal.
+// Each map read of a term (inE) or a condition (inC) given to f, outermost first, a quantified flag's body included.
+const eachRead = (f: (e: Extract<E, {op: 'get'}>) => void) => {
+  const inE = (e: E): void => { if (e.op === 'get') { f(e); inE(e.key) } else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul') inE(e.a); else if ('a' in e) (inE(e.a), inE(e.b)) }
+  const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? inC(c.c) : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
+  return {inE, inC}
+}
 // A key bound by a quantified flag or a write at every key isn't one: those reads are at every key already.
 function readKeys(m: Machine, laws: Law[]): E[] {
   const out = new Map<string, E>()
   const bound = new Set<string>([...Object.values(m.step.flags ?? {}).flatMap(c => (c.op === 'all' ? boundOf(c) : [])), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : []))])
   const free = (e: E) => !JSON.stringify(e).match(/"name":"([^"]+)"/g)?.some(n => bound.has(n.slice(8, -1)))
-  const inE = (e: E): void => {
-    if (e.op === 'get') { if (free(e.key)) out.set(JSON.stringify(e.key), e.key); inE(e.key) }
-    else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else))
-    else if (e.op === 'mul') inE(e.a)
-    else if ('a' in e) (inE(e.a), inE(e.b))
-  }
-  const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? inC(c.c) : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
+  const {inE, inC} = eachRead(e => { if (free(e.key)) out.set(JSON.stringify(e.key), e.key) })
   Object.values(m.step.state ?? {}).forEach(inE)
   Object.values(m.step.flags ?? {}).forEach(inC)
   for (const w of Object.values(m.step.maps ?? {})) { if (!('each' in w)) { out.set(JSON.stringify(w.key), w.key); inE(w.key) } inE(w.value) }
@@ -777,14 +791,7 @@ function keysInlined(m: Machine, keys: E[]): E[] {
 const shifts = (m: Machine) => Object.values(m.step.maps ?? {}).some(w => 'each' in w && !plainKey(w.value, w.each))
 // The keys some goals read a map at.
 function mapKeys(goals: Goal[]): E[] {
-  const out = new Map<string, E>()
-  const inE = (e: E): void => {
-    if (e.op === 'get') { out.set(JSON.stringify(e.key), e.key); inE(e.key) }
-    else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else))
-    else if (e.op === 'mul') inE(e.a)
-    else if ('a' in e) (inE(e.a), inE(e.b))
-  }
-  const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? inC(c.c) : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
+  const out = new Map<string, E>(), {inC} = eachRead(e => { out.set(JSON.stringify(e.key), e.key) })
   for (const g of goals) g.hyps.forEach(inC)
   return [...out.values()]
 }
@@ -820,14 +827,7 @@ const related = (keys: E[], focus: string[], n: number): E[][] => {
 const tuples = (keys: E[], n: number): E[] => (n === 0 ? [] : n === 1 ? keys : keys.flatMap(a => { const rest = tuples(keys, n - 1); return Array.from({length: rest.length / (n - 1)}, (_, t) => [a, ...rest.slice(t * (n - 1), (t + 1) * (n - 1))]).flat() }))
 // The keys some goals read a function at.
 function fnKeys(m: Machine, goals: Goal[]): E[] {
-  const fns = Object.keys(m.fns ?? {}), out = new Map<string, E>()
-  const inE = (e: E): void => {
-    if (e.op === 'get') { if (fns.includes(e.map)) out.set(JSON.stringify(e.key), e.key); inE(e.key) }
-    else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else))
-    else if (e.op === 'mul') inE(e.a)
-    else if ('a' in e) (inE(e.a), inE(e.b))
-  }
-  const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? inC(c.c) : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
+  const fns = Object.keys(m.fns ?? {}), out = new Map<string, E>(), {inC} = eachRead(e => { if (fns.includes(e.map)) out.set(JSON.stringify(e.key), e.key) })
   for (const g of goals) g.hyps.forEach(inC)
   return [...out.values()]
 }
@@ -927,14 +927,12 @@ function instancesFor(m: Machine, laws: Law[], build: (inst: Instances) => Goal[
 // Untrusted: fewer instances still make a checked proof, and where they don't prove a goal the full set is tried.
 const triggers = (body: C, key: string): {map: string, at: E}[] => {
   const out: {map: string, at: E}[] = [], mentions = (e: E): boolean => JSON.stringify(e).includes(`"name":${JSON.stringify(key)}`)
-  const inE = (e: E): void => { if (e.op === 'get') { if (mentions(e.key)) out.push({map: e.map, at: e.key}); inE(e.key) } else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul') inE(e.a); else if ('a' in e) (inE(e.a), inE(e.b)) }
-  const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? inC(c.c) : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
-  inC(body)
+  eachRead(e => { if (mentions(e.key)) out.push({map: e.map, at: e.key}) }).inC(body)
   return out
 }
 const substKey = (e: E, key: string, by: E): E => JSON.parse(JSON.stringify(e).replaceAll(`{"op":"var","name":${JSON.stringify(key)}}`, JSON.stringify(by))) as E
 // GDP_TRIGGER=0 keeps every instance (for comparing).
-const triggerOn = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_TRIGGER !== '0'
+const triggerOn = env.GDP_TRIGGER !== '0'
 function triggered(m: Machine, laws: Law[], inst: Instances, build: (inst: Instances) => Goal[], focus: string[] = []): Instances {
   if (!triggerOn) return inst
   // Per name: its bound keys, and for each the triggers that read it alone (a key with none takes any value).
@@ -953,8 +951,7 @@ function triggered(m: Machine, laws: Law[], inst: Instances, build: (inst: Insta
   const out: Instances = Object.fromEntries(Object.entries(inst).map(([n, ks]) => [n, bodies.has(n) ? tuplesOf(n, ks).filter(kept).flat() : ks]))
   for (let round = 0; round < 8; round++) {
     const reads = new Set<string>()
-    const inE = (e: E): void => { if (e.op === 'get') { reads.add(`${e.map}|${JSON.stringify(e.key)}`); inE(e.key) } else if (e.op === 'if') (inC(e.c), inE(e.then), inE(e.else)); else if (e.op === 'mul') inE(e.a); else if ('a' in e) (inE(e.a), inE(e.b)) }
-    const inC = (c: C): void => (c.op === 'flag' ? undefined : c.op === 'all' ? inC(c.c) : c.op === 'not' ? inC(c.x) : c.op === 'and' || c.op === 'or' ? c.xs.forEach(inC) : (inE(c.a), inE(c.b)))
+    const {inC} = eachRead(e => { reads.add(`${e.map}|${JSON.stringify(e.key)}`) })
     for (const g of build(out)) g.hyps.forEach(inC)
     let grew = false
     for (const [n, {keys, per}] of bodies) {
@@ -1172,7 +1169,7 @@ function proveThinned(m: Machine, laws: Law[], instances: Record<string, Instanc
     const out = grow(goal)
     // Where thinned instances leave such a goal unproven, every goal again with the full ones.
     if (!('tree' in out) && laws.some(l => instances[l.name] !== fulls[l.name])) return proveWith(m, laws, fulls)
-    if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false}
+    if (!('tree' in out)) return stuckAt(goal, out, nodes, leaves)
     trees[goal.name] = out.tree
     nodes += out.nodes
     leaves += countLeaves(out.tree)
@@ -1180,13 +1177,15 @@ function proveThinned(m: Machine, laws: Law[], instances: Record<string, Instanc
   const proof = {instances, trees}
   return {proven: true, nodes, leaves, checked: !usualCheck.on || checkLaws(m, laws, proof), proof}
 }
+// A goal left unproven, the search's report so far.
+const stuckAt = (goal: Goal, out: Extract<Outcome, {stuck: unknown}>, nodes: number, leaves: number): Report => ({proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false})
 // Every goal of the laws with these instances.
 function proveWith(m: Machine, laws: Law[], instances: Record<string, Instances>): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
   const trees: Record<string, Tree> = {}
   let nodes = 0, leaves = 0
   for (const goal of obligations(m, laws, instances)) {
     const out = grow(goal)
-    if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false}
+    if (!('tree' in out)) return stuckAt(goal, out, nodes, leaves)
     trees[goal.name] = out.tree
     nodes += out.nodes
     leaves += countLeaves(out.tree)
@@ -1244,7 +1243,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
       const again = grow(stepLawObligations(m, laws, kept, sl)[0]!)
       if ('tree' in again) { out = again; perStep[sl.name] = kept; break }
     }
-    if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false}
+    if (!('tree' in out)) return stuckAt(goal, out, nodes, leaves)
     if (minimal.on) {
       const had = perStep[sl.name] ?? instances, built = stepLawObligations(m, laws, had, sl).find(g => g.name === goal.name)
       if (built) {
@@ -1314,7 +1313,7 @@ export function proveProgress(m: Machine, laws: Law[], p: {name: string, when: C
   let nodes = base.nodes, leaves = base.leaves
   for (const goal of progressObligations(m, ls, instances, p)) {
     const out = grow(goal)
-    if (!('tree' in out)) return {proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false}
+    if (!('tree' in out)) return stuckAt(goal, out, nodes, leaves)
     trees[goal.name] = out.tree
     nodes += out.nodes
     leaves += countLeaves(out.tree)

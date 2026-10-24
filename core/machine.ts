@@ -7,7 +7,30 @@
 // at the same value; a law about a map holds for every key x, and is proven at one arbitrary x (with the law assumed at
 // every other key the step reads).
 import {boundOf, crossFree, historyMachine, keyTerm, plainKey, scope} from '../kernel/kernel.ts'
-import {type Constraint, type Lin, type Verdict, add, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
+import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
+
+// The searches' random draws: the high bits of a linear congruence (the low ones repeat with a short period).
+export type Rand = (k: number) => number
+export const seeded = (seed: number): Rand => { let x = seed; return k => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * k) } }
+// Every object in a term, the term first.
+export const walk = (t: unknown, f: (o: Record<string, unknown>) => void): void => {
+  if (Array.isArray(t)) { for (const x of t) walk(x, f); return }
+  if (!t || typeof t !== 'object') return
+  const o = t as Record<string, unknown>
+  f(o)
+  for (const x of Object.values(o)) walk(x, f)
+}
+// Every object in a term once (arrays too), a part shared by several uses read at its first: a witness read at each of
+// its uses in a goal is one object, and a walk of the goal written out would read it at each.
+export const walkOnce = (t: unknown, f: (o: object) => void): void => {
+  const seen = new Set<object>()
+  const go = (x: unknown): void => {
+    if (!x || typeof x !== 'object' || seen.has(x)) return
+    seen.add(x); f(x)
+    for (const y of Object.values(x)) go(y)
+  }
+  go(t)
+}
 
 export type E =
   | {op: 'var', name: string}
@@ -280,7 +303,10 @@ const callOf = (fn: Fn): ((...args: number[]) => number) => {
   if (!f) { f = compileFunction<() => (...args: number[]) => number>([], `return (${fn.call})`)(); compiledCalls.set(fn, f) }
   return f
 }
-// The n arguments a key pairs (left-nested, ((a, b), c)..., each pair (s)² + b with s = a + b), if it is their pairing.
+// A key of several arguments: their pairing, left-nested, ((a, b), c)..., each pair (s)² + b with s = a + b.
+export const pairE = (a: E, b: E): E => { const s = plus(a, b); return plus(prod(s, s), b) }
+export const argsKey = (args: E[]): E => args.slice(1).reduce(pairE, args[0]!)
+// The n arguments a key pairs (argsKey's), if it is their pairing.
 const paired = new WeakMap<E, Map<number, E[] | undefined>>()
 export function pairedArgs(key: E, n: number): E[] | undefined {
   let byN = paired.get(key)
@@ -670,7 +696,7 @@ function symC(c: C, s: Sym, truth: boolean): Cases<null> {
 
 
 // PROVE_DEBUG=1 logs the case counts to stderr; read through globalThis so the module also loads where there is no process.
-const proveDebug = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.PROVE_DEBUG
+const proveDebug = !!env.PROVE_DEBUG
 const debug = (label: string, n: number) => { if (proveDebug) console.error(`[prove] ${label}: ${n} (${Math.round(performance.now())} ms)`) }
 // Drops the cases whose path is already impossible, so impossible branches don't multiply.
 function feasible<T>(cases: Cases<T>): Cases<T> {

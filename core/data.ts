@@ -26,12 +26,12 @@
 // using the others at the fields of their datatypes (mutual induction). Lemmas the law needs are found by the values
 // (theory exploration: equations between terms the random values agree on, then the shapes of a predicate kept), proven
 // the same way at lower levels, and used at the terms of the law they match.
-import type {C, E} from './machine.ts'
+import {type C, type E, argsKey, atMost as leC, get, n as k, same as eqC, walk, x as ev} from './machine.ts'
 import {type Fact} from '../kernel/cyclic.ts'
 import {substC, substE} from '../kernel/kernel.ts'
-import {type CyclicVerdict, type NodeSpec, proveCyclic} from './cyclic.ts'
+import {type CyclicVerdict, type NodeSpec, and as andC, implies, proveCyclic} from './cyclic.ts'
 import {clock, counted, pairedKeys, withDeadline} from '../kernel/prove.ts'
-import {work} from './solver.ts'
+import {env, work} from './solver.ts'
 import {rankOfPaths, ranksOfCalls, showC} from './cycles.ts'
 import type {Path as RelPath, Relation} from './relation.ts'
 import type {Lin} from './solver.ts'
@@ -333,13 +333,6 @@ export function define(name: string, params: Record<string, Sort>, ret: Sort, bo
 export const fnParam = (name: string): ((x: NatLike) => Nat) & {param: string} =>
   Object.assign((x: NatLike) => new Nat({op: 'apply', param: name, arg: natX(x)}), {param: name})
 const paramsIn = (t: unknown): string[] => { const out: string[] = []; walk(t, o => { if (o.op === 'apply') out.push(o.param as string) }); return out }
-function walk(t: unknown, f: (o: Record<string, unknown>) => void): void {
-  if (Array.isArray(t)) { t.forEach(x => walk(x, f)); return }
-  if (!t || typeof t !== 'object') return
-  const o = t as Record<string, unknown>
-  f(o)
-  for (const v of Object.values(o)) walk(v, f)
-}
 // Each object once, in walk's order (a term shared within another is visited where walk first reaches it).
 function walkOnce(t: unknown, f: (o: Record<string, unknown>) => void, seen = new WeakSet<object>()): void {
   if (!t || typeof t !== 'object' || seen.has(t)) return
@@ -945,16 +938,8 @@ export function samples(vars: {name: string, sort: Sort}[], paramNames: string[]
 
 // --- the encoding -----------------------------------------------------------------------------------------------------
 
-const ev = (name: string): E => ({op: 'var', name})
-const k = (value: number): E => ({op: 'const', value})
-const get = (map: string, key: E): E => ({op: 'get', map, key})
-const eqC = (a: E, b: E): C => ({op: '=', a, b})
-const leC = (a: E, b: E): C => ({op: '<=', a, b})
-const andC = (...xs: C[]): C => (xs.length === 1 ? xs[0]! : {op: 'and', xs})
-const implies = (a: C, b: C): C => ({op: 'or', xs: [{op: 'not', x: a}, b]})
 const yesC: C = leC(k(0), k(0))
-const pairE = (a: E, b: E): E => { const s: E = {op: 'add', a, b}; return {op: 'add', a: {op: 'prod', a: s, b: s}, b} }
-export const keyOf = (args: E[]): E => args.slice(1).reduce(pairE, args[0]!)
+export const keyOf = argsKey
 // The arguments of a key built by keyOf (n of them), read back from its shape.
 export function argsOf(key: E, n: number): E[] | undefined {
   if (n === 1) return [key]
@@ -2036,11 +2021,11 @@ function casesOf(p: Program, unfolded: C[], vars: Set<string>, models: M[]): Cas
 // One attempt: the law's node (and the lemmas', proven before, with their own nodes) at a scheme and a depth. With
 // several cases, a main node uses a node per case (each its guards as hypotheses, its own instances), at rank
 // (level, size, 1) above theirs (level, size, 0); a case node uses the main node at the children.
-const dataTrace = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.DATA_TRACE
+const dataTrace = !!env.DATA_TRACE
 // Debugging: every congruence a model's closure makes, not only those explanations use.
-const allCong = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.DATA_ALLCONG
+const allCong = !!env.DATA_ALLCONG
 // Debugging: a failed attempt's node whose name the pattern matches, written out (hypotheses, uses, instances).
-const nodeTrace = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.DATA_NODE
+const nodeTrace = env.DATA_NODE
 function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, depth: number, lemmas: Proven[], level: number, pool: M[]): {verdict: CyclicVerdict, specs: NodeSpec[], main: number} {
   const t0 = clock()
   anchoredAt.clear()
@@ -2181,30 +2166,35 @@ function reached(p: Program, fs: Facts, insts: NodeSpec['insts'], from: unknown[
     return reach.has(id(get(m, keyOf(q.at.slice(0, n))))) && reach.has(id(get(m, keyOf(q.at.slice(n)))))
   })
 }
-// The uses of lemmas a goal's reads match: each lemma's largest reads (those inside no other) matched against the goal's
-// reads of the same map at keys equal, by the instances' equations (every branch), to the read's key.
-// `hits`: the lemmas (their nodes) with any use at all, gathered there (and no uses made): whether a goal reads each.
-function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number, concl: C}[], from: unknown[], insts: NodeSpec['insts'], models: M[] = [], spare?: NodeSpec['uses'], hits?: Set<number>): NodeSpec['uses'] {
-  const id = tid, parent = new Map<string, string>(), terms = new Map<string, E>()
+// Classes of terms by text (`union`, each term given to `onUnion`), closed under congruence (`congruent`: two reads of a
+// map, each given to `cell`, at arguments of one class are one), by signatures.
+function congruence(fs: Facts, onUnion?: (x: E) => void) {
+  const parent = new Map<string, string>(), cells = new Map<string, {key: E, as: E[]}[]>()
   const find = (x: string): string => { let r = x; while (parent.has(r)) r = parent.get(r)!; return r }
-  const union = (x: E, y: E) => { terms.set(id(x), x); terms.set(id(y), y); const a = find(id(x)), b = find(id(y)); if (a !== b) parent.set(a, b) }
-  const leaves = (e: E): E[] => (e.op === 'if' ? [...leaves(e.then), ...leaves(e.else)] : [e])
-  for (const q of insts) for (const [a, b] of equalities(holdsAt(fs, q))) for (const leaf of leaves(b)) union(a, leaf)
-  // Closed under congruence (two reads of one map at arguments of one class), by signatures.
-  const cells = new Map<string, {key: E, as: E[]}[]>(), classes = new Map<string, E[]>()
-  const close = (t: unknown) => {
-    walkOnce(t, o => { if (o.op !== 'get') return; const n = fs.arity.get(o.map as string), as = n ? argsOf(o.key as E, n) : undefined; if (as) (cells.get(o.map as string) ?? cells.set(o.map as string, []).get(o.map as string)!).push({key: o.key as E, as}) })
+  const union = (x: E, y: E) => { onUnion?.(x); onUnion?.(y); const a = find(tid(x)), b = find(tid(y)); if (a !== b) parent.set(a, b) }
+  const cell = (o: Record<string, unknown>) => { const n = fs.arity.get(o.map as string), as = n ? argsOf(o.key as E, n) : undefined; if (as) (cells.get(o.map as string) ?? cells.set(o.map as string, []).get(o.map as string)!).push({key: o.key as E, as}) }
+  const congruent = () => {
     for (let changed = true, rounds = 0; changed && rounds < 8; rounds++) {
       changed = false
       for (const [map, list] of cells) {
         const bySig = new Map<string, E>()
-        for (const x of list) {
-          const sig = x.as.map(t2 => find(id(t2))).join('\u0001'), y = bySig.get(sig), cx = get(map, x.key)
-          if (!y) { bySig.set(sig, cx); continue }
-          if (find(id(y)) !== find(id(cx))) { union(y, cx); changed = true }
-        }
+        for (const x of list) { const sig = x.as.map(t => find(tid(t))).join('\u0001'), y = bySig.get(sig), cx = get(map, x.key); if (!y) bySig.set(sig, cx); else if (find(tid(y)) !== find(tid(cx))) { union(y, cx); changed = true } }
       }
     }
+  }
+  return {find, union, cell, cells, congruent}
+}
+// The uses of lemmas a goal's reads match: each lemma's largest reads (those inside no other) matched against the goal's
+// reads of the same map at keys equal, by the instances' equations (every branch), to the read's key.
+// `hits`: the lemmas (their nodes) with any use at all, gathered there (and no uses made): whether a goal reads each.
+function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number, concl: C}[], from: unknown[], insts: NodeSpec['insts'], models: M[] = [], spare?: NodeSpec['uses'], hits?: Set<number>): NodeSpec['uses'] {
+  const terms = new Map<string, E>(), {find, union, cell, congruent} = congruence(fs, x => terms.set(tid(x), x))
+  const leaves = (e: E): E[] => (e.op === 'if' ? [...leaves(e.then), ...leaves(e.else)] : [e])
+  for (const q of insts) for (const [a, b] of equalities(holdsAt(fs, q))) for (const leaf of leaves(b)) union(a, leaf)
+  const classes = new Map<string, E[]>()
+  const close = (t: unknown) => {
+    walkOnce(t, o => { if (o.op === 'get') cell(o) })
+    congruent()
     classes.clear()
     for (const [key, e] of terms) { const r = find(key); (classes.get(r) ?? classes.set(r, []).get(r)!).push(e) }
   }
@@ -2334,9 +2324,7 @@ const matchedAt = new WeakMap<object, {goal: E, lemma: E}>()
 // is a step the case's own rewriting passes through, from one of its terms to another (ripple's fertilisation), where
 // a use that only matches one of its terms is one its models alone may agree with (app (t, []) for t).
 function caseJoins(fs: Facts, from: unknown[], insts: NodeSpec['insts'], hyps: C[], ms: M[]): (c: C) => boolean {
-  const parent = new Map<string, string>()
-  const find = (x: string): string => { let r = x; while (parent.has(r)) r = parent.get(r)!; return r }
-  const union = (x: E, y: E) => { const a = find(tid(x)), b = find(tid(y)); if (a !== b) parent.set(a, b) }
+  const {find, union, cell, cells, congruent} = congruence(fs)
   const truth = (c: C): boolean | undefined => { let v: boolean | undefined; for (const {m, env} of ms) { let t: boolean; try { t = m.evalC(c, env) } catch { return undefined } if (v === undefined) v = t; else if (v !== t) return undefined } return v }
   const leaf = (e: E): E | undefined => { if (e.op !== 'if') return e; const t = truth(e.c); return t === undefined ? undefined : leaf(t ? e.then : e.else) }
   const eqs = (c: C): void => {
@@ -2346,15 +2334,9 @@ function caseJoins(fs: Facts, from: unknown[], insts: NodeSpec['insts'], hyps: C
   }
   for (const q of insts) eqs(holdsAt(fs, q))
   for (const h of hyps) eqs(h)
-  const cells = new Map<string, {key: E, as: E[]}[]>(), seen = new Set<string>()
-  walkOnce([from, insts.map(q => holdsAt(fs, q)), hyps], o => { if (o.op !== 'get') return; seen.add(tid(o as unknown as E)); const n = fs.arity.get(o.map as string), as = n ? argsOf(o.key as E, n) : undefined; if (as) (cells.get(o.map as string) ?? cells.set(o.map as string, []).get(o.map as string)!).push({key: o.key as E, as}) })
-  for (let changed = true, rounds = 0; changed && rounds < 8; rounds++) {
-    changed = false
-    for (const [map, list] of cells) {
-      const bySig = new Map<string, E>()
-      for (const x of list) { const sig = x.as.map(t => find(tid(t))).join('\u0001'), y = bySig.get(sig), cx = get(map, x.key); if (!y) bySig.set(sig, cx); else if (find(tid(y)) !== find(tid(cx))) { union(y, cx); changed = true } }
-    }
-  }
+  const seen = new Set<string>()
+  walkOnce([from, insts.map(q => holdsAt(fs, q)), hyps], o => { if (o.op !== 'get') return; seen.add(tid(o as unknown as E)); cell(o) })
+  congruent()
   const bySig = new Map<string, string>()
   for (const [map, list] of cells) for (const x of list) bySig.set(`${map}\u0002${x.as.map(t => find(tid(t))).join('\u0001')}`, find(tid(get(map, x.key))))
   // (once per object: a key's pairing reads its arguments again, so a term's objects are shared deep down)
@@ -2497,25 +2479,12 @@ export function conjectures(p: Program, l: DataLaw, max = 24, maxSize = 6): Data
   // Rewriting with the equations kept, each oriented from its larger side; one that rewrites to itself is dropped.
   type Rule = {l: X, r: X, vs: Set<string>}
   const rules: Rule[] = []
-  const matchX = (pat: X, t: X, vs: Set<string>, sub: Map<string, X>): boolean => {
-    if (pat.op === 'var' && vs.has(pat.name)) { const had = sub.get(pat.name); if (had) return JSON.stringify(had) === JSON.stringify(t); sub.set(pat.name, t); return true }
-    if (pat.op !== t.op) return false
-    const po = pat as Record<string, unknown>, to = t as Record<string, unknown>
-    for (const key of Object.keys(po)) {
-      const a2 = po[key], b2 = to[key]
-      if (Array.isArray(a2)) { if (!Array.isArray(b2) || a2.length !== b2.length || !a2.every((x, i) => matchX(x as X, b2[i] as X, vs, sub))) return false }
-      else if (a2 && typeof a2 === 'object') { if (!b2 || typeof b2 !== 'object' || !matchX(a2 as X, b2 as X, vs, sub)) return false }
-      else if (a2 !== b2) return false
-    }
-    return true
-  }
-  const substX = (x: X, sub: Map<string, X>): X => JSON.parse(JSON.stringify(x), (_, v) => (v && typeof v === 'object' && v.op === 'var' && sub.has(v.name) ? sub.get(v.name) : v))
   const norm = (x: X, depth = 0): X => {
     if (depth > 30) return x
     let t: X = JSON.parse(JSON.stringify(x))
     if (t.op === 'call' || t.op === 'ctor') t = {...t, args: t.args.map(a2 => norm(a2, depth + 1))}
     if (t.op === 'add') { const [a2, b2] = [norm(t.a, depth + 1), norm(t.b, depth + 1)]; if (a2.op === 'nat' && a2.value === 0) return b2; if (b2.op === 'nat' && b2.value === 0) return a2; t = JSON.stringify(a2) <= JSON.stringify(b2) ? {op: 'add', a: a2, b: b2} : {op: 'add', a: b2, b: a2} }
-    for (const r of rules) { const sub = new Map<string, X>(); if (matchX(r.l, t, r.vs, sub)) return norm(substX(r.r, sub), depth + 1) }
+    for (const r of rules) { const sub = new Map<string, X>(); if (matchX(r.l, t, r.vs, sub)) return norm(substXs(r.r, sub), depth + 1) }
     return t
   }
   // The law in the same names (its variables by sort, in order of appearance).
@@ -2651,6 +2620,13 @@ function canonText(y: Y, vars: {name: string, sort: Sort}[]): string {
 }
 const substXs = (x: X, sub: Map<string, X>): X => (sub.size ? JSON.parse(JSON.stringify(x), (_, v) => (v && typeof v === 'object' && v.op === 'var' && sub.has(v.name) ? sub.get(v.name) : v)) : x)
 const sameX = (a: X, b: X) => JSON.stringify(a) === JSON.stringify(b)
+// Whether t is pat with each of `free` given a term (in `sub`, one term a name).
+const matchX = (pat: unknown, t: unknown, free: Set<string>, sub: Map<string, X>): boolean => {
+  if (pat && typeof pat === 'object' && (pat as X).op === 'var' && free.has((pat as {name: string}).name)) { const n = (pat as {name: string}).name, had = sub.get(n); if (had) return sameX(had, t as X); sub.set(n, t as X); return true }
+  if (Array.isArray(pat)) return Array.isArray(t) && pat.length === t.length && pat.every((x, i) => matchX(x, t[i], free, sub))
+  if (pat && typeof pat === 'object') { if (!t || typeof t !== 'object' || Array.isArray(t)) return false; const po = pat as Record<string, unknown>, to = t as Record<string, unknown>; return Object.keys(po).length === Object.keys(to).length && Object.keys(po).every(key => matchX(po[key], to[key], free, sub)) }
+  return pat === t
+}
 // A term with its definitions unfolded where they are decided: a call whose body, its parameters given, decides its
 // first choice (the match, natmatch or if at its top, and the ones in the case taken) is that case's term (else the
 // call stays); a match of a constructor, a natmatch of a constant or of a successor (x + k), an if whose condition the
@@ -2764,19 +2740,13 @@ function stepsOf(p: Program, l: DataLaw): DataLaw[] {
   const rewrite = (x: X, from: X, to: X): X => { const f = JSON.stringify(from); return JSON.parse(JSON.stringify(x), (_, v) => (v && typeof v === 'object' && v.op && JSON.stringify(v) === f ? to : v)) }
   // The hypothesis at any values of the law's other variables (`free`): from's instances rewritten to to's, outermost
   // first (qrev (x, a :: y) to rev x ++ (a :: y), the hypothesis read at y := a :: y). Whether one was.
-  const matchP = (pat: unknown, t: unknown, free: Set<string>, sub: Map<string, X>): boolean => {
-    if (pat && typeof pat === 'object' && (pat as X).op === 'var' && free.has((pat as {name: string}).name)) { const n = (pat as {name: string}).name, had = sub.get(n); if (had) return sameX(had, t as X); sub.set(n, t as X); return true }
-    if (Array.isArray(pat)) return Array.isArray(t) && pat.length === t.length && pat.every((x, i) => matchP(x, t[i], free, sub))
-    if (pat && typeof pat === 'object') { if (!t || typeof t !== 'object' || Array.isArray(t)) return false; const po = pat as Record<string, unknown>, to = t as Record<string, unknown>; return Object.keys(po).length === Object.keys(to).length && Object.keys(po).every(key => matchP(po[key], to[key], free, sub)) }
-    return pat === t
-  }
   const rewriteP = (x: X, from: X, to: X, free: Set<string>): {x: X, hit: boolean} => {
     let hit = false
     const go = (t: unknown): unknown => {
       if (!t || typeof t !== 'object') return t
       if (Array.isArray(t)) return t.map(go)
       const sub = new Map<string, X>()
-      if ((t as X).op && matchP(from, t, free, sub)) { hit = true; return substXs(to, sub) }
+      if ((t as X).op && matchX(from, t, free, sub)) { hit = true; return substXs(to, sub) }
       return Object.fromEntries(Object.entries(t).map(([key, v]) => [key, go(v)]))
     }
     return {x: go(x) as X, hit}

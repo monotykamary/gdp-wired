@@ -27,7 +27,8 @@ import {clock, counted} from '../kernel/prove.ts'
 import {REFUTED, cdclSession, growCdcl} from '../kernel/cdcl.ts'
 import type {Outcome} from '../kernel/prove.ts'
 import {allowed} from './watch.ts'
-import {simpC, simpE} from './nonterm.ts'
+import {isF as isFalse, isT as isTrue, simpC, simpE} from './nonterm.ts'
+import {env, linOfE, plus, vars} from './solver.ts'
 
 export type BoundedRun = {law: string, depth: number, witness: Record<string, number>, params: Record<string, number>, trace: Request[]}
 export type BmcOptions = {
@@ -56,8 +57,7 @@ export const bmcRate = 250
 // A forced run's share of the budget, and its steps at most (a derivation checkDerivation replays step by step).
 const forcedShare = 0.3, forcedSteps = 1_000_000
 // GDP_BMC_RELAX=0: no relaxed goal first; GDP_BMC_INC=0: each depth's goal a search of its own (for comparing).
-const env = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env ?? {}
-const useRelax = env.GDP_BMC_RELAX !== '0', useInc = env.GDP_BMC_INC !== '0'
+const useRelax = env.GDP_BMC_RELAX !== '0', useInc = env.GDP_BMC_INC !== '0', useTidy = env.GDP_BMC_TIDY !== '0'
 
 // The goal of depth k: a run of k steps from the start whose last state breaks a law.
 export function bmcGoal(m: Machine, laws: Law[], k: number) {
@@ -73,8 +73,6 @@ export function bmcGoal(m: Machine, laws: Law[], k: number) {
 // terms folded (core/nonterm.ts's simpC), until none is left; the names fixed, with their values (a model's part), or
 // undefined where a hypothesis folds to false (no model).
 const top = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(top) : [c])
-const isFalse = (c: C) => (c.op === '<' || c.op === '<=') && c.a.op === 'const' && c.b.op === 'const' && (c.op === '<' ? c.a.value >= c.b.value : c.a.value > c.b.value)
-const isTrue = (c: C) => c.op === '<=' && c.a.op === 'const' && c.b.op === 'const' && c.a.value <= c.b.value
 export function fixed(hyps: C[]): {hyps: C[], fixed: Record<string, number>} | undefined {
   const values: Record<string, number> = {}
   let cs = hyps.flatMap(top)
@@ -108,6 +106,73 @@ const occurrences = (xs: (C | E)[], out = new Map<string, number>()): Map<string
   }
   xs.forEach(go)
   return out
+}
+
+// The goal tidied, keeping its models (`tidy`): a comparison whose sides differ by a constant (x5 = 10 + x5, the CHC's
+// pairs read on both sides) folded to its truth, and a yes/no copied through an if (b~1 = if y = 1 then 1 else 0, how a
+// CHC Bool argument is written) read as the copy itself where y is a yes/no (0 or 1: an input the assumption bounds by 1,
+// or a state value every step writes as one), so `reduce` puts it in. Each step's yes/no values are the inputs a
+// hypothesis bounds by 1 and the names an equation gives a 0/1 value.
+const diffConst = (a: E, b: E): number | undefined => {
+  const l = linOfE(a), r = l && linOfE(b), d = r && plus(l, r, -1)
+  return d && !vars(d).length ? d['1'] ?? 0 : undefined
+}
+const T0: C = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}, F0: C = {op: '<', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
+export function tidier(bools: Set<string>) {
+  const memo = new WeakMap<object, E | C>()
+  const isBool = (e: E): boolean => (e.op === 'const' ? e.value === 0 || e.value === 1 : e.op === 'var' ? bools.has(e.name) : e.op === 'if' ? isBool(e.then) && isBool(e.else) : false)
+  const oneOf = (c: C): string | undefined => (c.op === '=' && c.a.op === 'var' && bools.has(c.a.name) && c.b.op === 'const' && c.b.value === 1 ? c.a.name : c.op === '=' && c.b.op === 'var' && bools.has(c.b.name) && c.a.op === 'const' && c.a.value === 1 ? c.b.name : undefined)
+  const e1 = (e: E): E => {
+    const hit = memo.get(e)
+    if (hit) return hit as E
+    let out: E = e
+    switch (e.op) {
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': { const a = e1(e.a), b = e1(e.b); if (a !== e.a || b !== e.b) out = {...e, a, b}; break }
+      case 'mul': { const a = e1(e.a); if (a !== e.a) out = {...e, a}; break }
+      case 'if': {
+        const c = c1(e.c), t = e1(e.then), f = e1(e.else), v = oneOf(c)
+        if (v !== undefined && t.op === 'const' && t.value === 1 && f.op === 'const' && f.value === 0) out = {op: 'var', name: v}
+        else if (c.op === '<=' && c.a.op === 'const' && c.b.op === 'const') out = c.a.value <= c.b.value ? t : f
+        else if (c.op === '<' && c.a.op === 'const' && c.b.op === 'const') out = c.a.value < c.b.value ? t : f
+        else if (c !== e.c || t !== e.then || f !== e.else) out = {op: 'if', c, then: t, else: f}
+        break
+      }
+      case 'get': { const key = e1(e.key); if (key !== e.key) out = {...e, key}; break }
+      case 'var': case 'const': break
+    }
+    memo.set(e, out)
+    return out
+  }
+  const c1 = (c: C): C => {
+    const hit = memo.get(c)
+    if (hit) return hit as C
+    let out: C = c
+    switch (c.op) {
+      case '<=': case '<': case '=': {
+        const a = e1(c.a), b = e1(c.b), d = diffConst(a, b)
+        if (d !== undefined) out = (c.op === '<=' ? d <= 0 : c.op === '<' ? d < 0 : d === 0) ? T0 : F0
+        else if (a !== c.a || b !== c.b) out = {op: c.op, a, b}
+        break
+      }
+      case 'and': case 'or': { const xs = c.xs.map(c1); if (xs.some((x, i) => x !== c.xs[i])) out = simpC({op: c.op, xs}); break }
+      case 'not': { const x = c1(c.x); if (x !== c.x) out = simpC({op: 'not', x}); break }
+      case 'flag': case 'all': break
+    }
+    memo.set(c, out)
+    return out
+  }
+  // Learns the yes/no names of some hypotheses (a bound by 1, an equation giving a 0/1 value), then tidies them.
+  return (cs: C[]): C[] => {
+    for (const c of cs) {
+      if (c.op === '<=' && c.a.op === 'var' && c.b.op === 'const' && c.b.value <= 1) bools.add(c.a.name)
+      if (c.op === '<' && c.a.op === 'var' && c.b.op === 'const' && c.b.value <= 2) bools.add(c.a.name)
+    }
+    for (let again = true; again;) {
+      again = false
+      for (const c of cs) if (c.op === '=' && c.a.op === 'var' && !bools.has(c.a.name) && isBool(e1(c.b))) { bools.add(c.a.name); again = true }
+    }
+    return cs.map(c1)
+  }
 }
 
 // The goal relaxed (above): each pair written normalized at a step (n = a ∸ b and n$neg = b ∸ a, its partner the name
@@ -199,6 +264,13 @@ export function replay(m: Machine, laws: Law[], run: {params: Record<string, num
 // steps; the k-step goals fold to false without a case past depth 64) are its runs; a machine whose steps read their
 // requests stops within a few steps. The run, as a bounded run's.
 export function forcedRun(m: Machine, laws: Law[], opts: {steps: number, wall: number, guesses?: number}): BoundedRun | undefined {
+  const out = forcedRunner(m, laws, opts)?.(opts.wall)
+  return typeof out === 'object' ? out : undefined
+}
+// The same run, resumable: each call goes on from where the last stopped, until `wall`: the run, or 'over' (no way on,
+// a guess too many, its steps spent), or 'paused' (the wall reached first). Undefined where it doesn't apply.
+type Forced = (wall: number) => BoundedRun | 'over' | 'paused'
+function forcedRunner(m: Machine, laws: Law[], opts: {steps: number, guesses?: number}): Forced | undefined {
   if (m.params.length || !laws.length || !bmcFits(m, laws)) return undefined
   // Each input bounded by the assumption (a top-level i < c or i <= c, c at most 64): its values; the others free.
   const bound = new Map<string, number>()
@@ -234,24 +306,29 @@ export function forcedRun(m: Machine, laws: Law[], opts: {steps: number, wall: n
   const take = (st: State, input: Request): State | undefined => { try { const next = js.step({}, js.fork(st), input); return next.scalars[ok] === 1 ? next : undefined } catch (e) { if (e instanceof RangeError) return undefined; throw e } }
   const broken = (st: State) => laws.find(l => !evalC(l.holds, {}, st, m))?.name
   const requests = choices.map(ch => ({...Object.fromEntries(free.map(i => [i, 0])), ...ch}) as Request)
-  let st: State = js.init({}), guesses = opts.guesses ?? 2
+  let st: State = js.init({}), guesses = opts.guesses ?? 2, n = 0, over = false
   const trace: Request[] = []
-  for (let n = 0; n < opts.steps && (n % 256 || performance.now() < opts.wall); n++) {
-    let next: State | undefined, request: Request | undefined, forced = true
-    for (const [j, input] of requests.entries()) {
-      if (at[j]!.some(([n, v]) => st.scalars[n] !== v)) continue
-      const a = take(st, input)
-      if (!a) continue
-      const law = broken(a)
-      if (law !== undefined) { const {[ok]: _, ...before} = st.scalars; return {law, depth: n + 1, witness: {...before, ...numbersOf(input)}, params: {}, trace: [...trace, input]} }
-      if (same(a, st)) continue
-      if (reads[j]) forced = false
-      if (!next) { next = a; request = input } else if (!same(next, a)) forced = false
+  return (wall: number) => {
+    if (over) return 'over'
+    for (; n < opts.steps; n++) {
+      if (!(n % 256) && performance.now() >= wall) return 'paused'
+      let next: State | undefined, request: Request | undefined, forced = true
+      for (const [j, input] of requests.entries()) {
+        if (at[j]!.some(([x, v]) => st.scalars[x] !== v)) continue
+        const a = take(st, input)
+        if (!a) continue
+        const law = broken(a)
+        if (law !== undefined) { const {[ok]: _, ...before} = st.scalars; over = true; return {law, depth: n + 1, witness: {...before, ...numbersOf(input)}, params: {}, trace: [...trace, input]} }
+        if (same(a, st)) continue
+        if (reads[j]) forced = false
+        if (!next) { next = a; request = input } else if (!same(next, a)) forced = false
+      }
+      if (!next || (!forced && --guesses < 0)) { over = true; return 'over' }
+      trace.push(request!); st = next
     }
-    if (!next || (!forced && --guesses < 0)) return undefined
-    trace.push(request!); st = next
+    over = true
+    return 'over'
   }
-  return undefined
 }
 
 // The deeper goals as one growing goal, for one CDCL search kept from depth to depth (kernel/cdcl.ts's cdclSession):
@@ -268,7 +345,7 @@ function unrolled(m: Machine, laws: Law[]) {
   const stateAt = (j: number): Record<string, E> => Object.fromEntries(Object.keys(m.state).map(n => [n, j === 0 ? m.state[n]! : v(`${n}~${j}`)]))
   const put = (c: C): C => simpC(substC(c, {vars: sub, maps: {}, flags: {}}))
   let k = 0, dead = false
-  const session = cdclSession(goal, new Map(), {model: true})
+  const session = cdclSession(goal, new Map(), {model: true}), tidy = useTidy ? tidier(new Set()) : (cs: C[]) => cs
   // The cone of influence: the state values the laws, the assumption or the precondition read, and those the updates of
   // these read, again until no more; the others' terms are left out at every step (no hypothesis reads them, and the
   // interpreter takes the run's own values).
@@ -283,7 +360,7 @@ function unrolled(m: Machine, laws: Law[]) {
     const raw: C[] = [...(j === 1 && m.pre ? [m.pre] : []), ...(m.assume ? [substC(m.assume, at)] : []), ...[...live].map((n): C => ({op: '=', a: v(`${n}~${j}`), b: substE(m.step.state?.[n] ?? v(n), at)}))]
     let cs = (useRelax ? relax(raw) : undefined) ?? raw
     for (;;) {
-      cs = cs.map(put).flatMap(top)
+      cs = tidy(cs.map(put).flatMap(top)).flatMap(top)
       if (cs.some(isFalse)) return undefined
       cs = cs.filter(c => !isTrue(c))
       // (each round, every name of this step that an equation gives a constant or another name, put in at once)
@@ -316,51 +393,86 @@ function unrolled(m: Machine, laws: Law[]) {
     goal.hyps.push({op: 'or', xs: [{op: '<=', a: K(1), b: v(`act@${k}`)}, query]})
     return {k, out: session.run(b, wall, {[`act@${k}`]: 1})}
   }
-  return {next, defs}
+  // The same depth's query asked again (its search cut short by its budget), its hypotheses already in.
+  const again = (b: {nodes: number, until?: number}, wall?: number): {k: number, out: Outcome | 'refuted' | 'impossible'} => ({k, out: dead ? 'impossible' : session.run(b, wall, {[`act@${k}`]: 1})})
+  return {next, again, defs}
 }
 
 export function findBoundedRun(m: Machine, laws: Law[], opts: BmcOptions): BoundedRun | undefined {
-  if (!laws.length || !bmcFits(m, laws)) return undefined
-  const last = Math.min(64, opts.depth ?? 64)
   // A forced run first, within forcedShare of the budget (as wall time: it is the compiled rule's, not the kernel's).
   const now = performance.now(), end = Math.min(opts.wall ?? Infinity, now + opts.ms)
-  const forced = forcedRun(m, laws, {steps: forcedSteps, wall: now + forcedShare * (end - now)})
-  if (forced) return forced
-  return counted(bmcRate, () => {
-    const until = clock() + opts.ms
-    const inc = useInc && !(opts.from && opts.from > 1) && !Object.keys(m.fns ?? {}).length && !Object.keys(m.step.flags ?? {}).length ? unrolled(m, laws) : undefined
-    for (let k = opts.from ?? 1; k <= last && clock() < until && !(opts.wall !== undefined && performance.now() > opts.wall); k++) {
-      const t0 = clock()
-      if (inc) {
-        const {out} = inc.next({nodes: 0, until}, opts.wall)
-        if (out === 'impossible') { opts.progress?.(k, 'refuted', Math.round(clock() - t0)); return undefined }
-        if (out === 'refuted' || 'tree' in out || out.why === REFUTED) { opts.progress?.(k, 'refuted', Math.round(clock() - t0)); continue }
-        if (out.stuck !== 'sat' || !out.witness) { opts.progress?.(k, 'unknown', Math.round(clock() - t0)); return undefined }
-        const run = runOf(m, putBack(m, out.witness, inc.defs), k), broken = replay(m, laws, run)
-        if (broken) { opts.progress?.(k, 'sat', Math.round(clock() - t0)); return {law: broken.law, witness: broken.witness, depth: broken.steps, params: run.params, trace: run.trace.slice(0, broken.steps)} }
-        // (a model the interpreter refuses: the goal itself asked at this depth, below)
-      }
-      let goal
-      try { goal = bmcGoal(m, laws, k) } catch { return undefined }
-      const f = fixed(goal.hyps)
-      if (!f) { opts.progress?.(k, 'refuted', Math.round(clock() - t0)); continue }
-      // The goal asked (relaxed or as it is), reduced: refuted, or a run that breaks a law, or neither (undefined).
-      const ask = (hyps: C[]): 'refuted' | 'sat' | 'unknown' | BoundedRun => {
-        const r = reduce(hyps)
-        if (!r) return 'refuted'
-        const out = growCdcl({name: goal.name, hyps: r.hyps}, new Map(), {nodes: 0, until}, {model: true, ...(opts.wall !== undefined ? {wall: opts.wall} : {})})
-        if ('tree' in out || out.why === REFUTED) return 'refuted'
-        if (out.stuck !== 'sat' || !out.witness) return 'unknown'
-        const run = runOf(m, putBack(m, {...out.witness, ...f.fixed}, r.defs), k), broken = replay(m, laws, run)
-        return broken ? {law: broken.law, witness: broken.witness, depth: broken.steps, params: run.params, trace: run.trace.slice(0, broken.steps)} : 'sat'
-      }
-      const relaxed = useRelax && !inc ? relax(f.hyps) : undefined
-      let got = relaxed ? ask(relaxed) : 'sat'
-      if (got === 'sat') got = ask(f.hyps)
-      opts.progress?.(k, typeof got === 'string' ? got : 'sat', Math.round(clock() - t0))
-      if (got === 'refuted') continue
-      return typeof got === 'string' ? undefined : got
+  const out = boundedSearch(m, laws, {...opts, forcedMs: forcedShare * (end - now)})?.run(opts.ms, opts.wall)
+  return typeof out === 'object' ? out : undefined
+}
+
+// The same search, resumable (compare/chc/kind.ts gives it slices of a second CPU in turn with k-induction): each `run`
+// goes on where the last stopped, within its own budget (`ms` counted, `wall`), and answers a run, 'over' (every depth
+// up to the last refuted, or a search that can't go on) or 'paused' (its budget spent first: the depth it was asking is
+// asked again next time, the CDCL session's learned clauses kept). The forced run has `forcedMs` of wall time in all,
+// across runs. Undefined where the machine doesn't fit.
+export type BoundedSearch = {run: (ms: number, wall?: number) => BoundedRun | 'over' | 'paused', depth: () => number}
+export function boundedSearch(m: Machine, laws: Law[], opts: Omit<BmcOptions, 'ms' | 'wall'> & {forcedMs: number}): BoundedSearch | undefined {
+  if (!laws.length || !bmcFits(m, laws)) return undefined
+  const last = Math.min(64, opts.depth ?? 64)
+  const forced = forcedRunner(m, laws, {steps: forcedSteps})
+  let forcedLeft = forced === undefined ? 0 : opts.forcedMs, over = false, again = false
+  let inc: ReturnType<typeof unrolled> | undefined, made = false, k = opts.from ?? 1
+  const run = (ms: number, wall?: number): BoundedRun | 'over' | 'paused' => {
+    if (over) return 'over'
+    if (forced && forcedLeft > 0) {
+      const t0 = performance.now(), out = forced(Math.min(wall ?? Infinity, t0 + forcedLeft))
+      forcedLeft -= performance.now() - t0
+      if (typeof out === 'object') { over = true; return out }
+      if (out === 'over') forcedLeft = 0
+      else if (wall !== undefined && performance.now() >= wall) return 'paused'
     }
-    return undefined
-  })
+    return counted(bmcRate, () => {
+      const until = clock() + ms
+      const late = () => clock() >= until || (wall !== undefined && performance.now() >= wall)
+      if (!made) { made = true; inc = useInc && !(opts.from && opts.from > 1) && !Object.keys(m.fns ?? {}).length && !Object.keys(m.step.flags ?? {}).length ? unrolled(m, laws) : undefined }
+      const done = (out: BoundedRun | 'over') => { over = true; return out }
+      for (; k <= last; k++) {
+        if (late()) return 'paused'
+        const t0 = clock()
+        if (inc) {
+          const {out} = again ? inc.again({nodes: 0, until}, wall) : inc.next({nodes: 0, until}, wall)
+          again = false
+          if (out === 'impossible') { opts.progress?.(k, 'refuted', Math.round(clock() - t0)); return done('over') }
+          if (out === 'refuted' || 'tree' in out || out.why === REFUTED) { opts.progress?.(k, 'refuted', Math.round(clock() - t0)); continue }
+          if (out.stuck !== 'sat' || !out.witness) {
+            opts.progress?.(k, 'unknown', Math.round(clock() - t0))
+            if (out.why === 'time' && late()) { again = true; return 'paused' }
+            return done('over')
+          }
+          const run = runOf(m, putBack(m, out.witness, inc.defs), k), broken = replay(m, laws, run)
+          if (broken) { opts.progress?.(k, 'sat', Math.round(clock() - t0)); return done({law: broken.law, witness: broken.witness, depth: broken.steps, params: run.params, trace: run.trace.slice(0, broken.steps)}) }
+          // (a model the interpreter refuses: the goal itself asked at this depth, below)
+        }
+        let goal
+        try { goal = bmcGoal(m, laws, k) } catch { return done('over') }
+        const f = fixed(goal.hyps)
+        if (!f) { opts.progress?.(k, 'refuted', Math.round(clock() - t0)); continue }
+        // The goal asked (relaxed or as it is), reduced: refuted, or a run that breaks a law, or neither (undefined).
+        const ask = (hyps: C[]): 'refuted' | 'sat' | 'unknown' | BoundedRun => {
+          const r = reduce(hyps)
+          if (!r) return 'refuted'
+          const out = growCdcl({name: goal.name, hyps: r.hyps}, new Map(), {nodes: 0, until}, {model: true, ...(wall !== undefined ? {wall} : {})})
+          if ('tree' in out || out.why === REFUTED) return 'refuted'
+          if (out.stuck !== 'sat' || !out.witness) return 'unknown'
+          const run = runOf(m, putBack(m, {...out.witness, ...f.fixed}, r.defs), k), broken = replay(m, laws, run)
+          return broken ? {law: broken.law, witness: broken.witness, depth: broken.steps, params: run.params, trace: run.trace.slice(0, broken.steps)} : 'sat'
+        }
+        const relaxed = useRelax && !inc ? relax(f.hyps) : undefined
+        let got = relaxed ? ask(relaxed) : 'sat'
+        if (got === 'sat') got = ask(f.hyps)
+        // (out of its budget: this depth asked again next time; with a session, its query too, as it stands)
+        opts.progress?.(k, typeof got === 'string' ? got : 'sat', Math.round(clock() - t0))
+        if (got === 'unknown' && late()) { again = !!inc; return 'paused' }
+        if (got === 'refuted') continue
+        return done(typeof got === 'string' ? 'over' : got)
+      }
+      return done('over')
+    })
+  }
+  return {run, depth: () => k}
 }
