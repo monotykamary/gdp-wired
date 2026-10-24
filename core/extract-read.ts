@@ -274,6 +274,8 @@ export class Exec {
   }
   private mergeV(c: B, va: V, vb: V, a: Path, b: Path, heap: Heap, pairs: Map<string, string>, at: ts.Node): V {
     va = this.deref(a, va); vb = this.deref(b, vb)
+    if (va.t === 'outside' && vb.t === 'outside' && va.path === vb.path) return va
+    if (va.t === 'opaque' && vb.t === 'opaque') return va
     if (va.t === 'num' && vb.t === 'num') return {t: 'num', e: I.nite(c, va.e, vb.e)}
     if (va.t === 'bool' && vb.t === 'bool') return {t: 'bool', e: I.bite(c, va.e, vb.e)}
     if ((va.t === 'choice' || va.t === 'str') && (vb.t === 'choice' || vb.t === 'str')) {
@@ -642,7 +644,9 @@ export class Exec {
     if (op === S.EqualsEqualsEqualsToken || op === S.EqualsEqualsToken) return [{t: 'bool', e: this.equal(l, r, e, op === S.EqualsEqualsToken)}, q2]
     if (op === S.ExclamationEqualsEqualsToken || op === S.ExclamationEqualsToken) return [{t: 'bool', e: I.not(this.equal(l, r, e, op === S.ExclamationEqualsToken))}, q2]
     if (op === S.PlusToken || op === S.MinusToken || op === S.AsteriskToken || op === S.PercentToken) return [this.arith(op, l, r, e, q2), q2]
-    if (op === S.SlashToken) return refuse(e, 'a division (its result may be a fraction): Math.floor(x / k) for a constant k is in the subset')
+    // A fraction is a binary float in the code: each operation on it rounds (0.1 + 0.2 is not 0.3), so a rule over ℚ
+    // (gdp-wired/rationals) is the code only where nothing rounds, which no check shows; refused, with what is read.
+    if (op === S.SlashToken) return refuse(e, 'a division whose result may be a fraction (a binary float in the code: each operation on it rounds, where a rule over the rationals would not; Math.floor or Math.ceil of x / k for a constant k is in the subset)')
     if (op === S.AsteriskAsteriskToken) return refuse(e, 'a power')
     if (op === S.CommaToken) return [r, q2]
     if (op === S.InKeyword || op === S.InstanceOfKeyword) return refuse(e, e.operatorToken.getText())
@@ -732,6 +736,8 @@ export class Exec {
   }
   // Two values within one path, by a condition.
   phiV(c: B, x: V, y: V, at: ts.Node): V {
+    if (x.t === 'outside' && y.t === 'outside' && x.path === y.path) return x
+    if (x.t === 'opaque' && y.t === 'opaque') return x
     if (x.t === 'num' && y.t === 'num') return {t: 'num', e: I.nite(c, x.e, y.e)}
     if (x.t === 'bool' && y.t === 'bool') return {t: 'bool', e: I.bite(c, x.e, y.e)}
     if (x.t === 'choice' && y.t === 'choice') return {t: 'choice', e: I.lite(c, x.e, y.e), values: x.values}

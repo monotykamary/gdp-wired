@@ -203,8 +203,24 @@ export function extractXState(code: string, opts: XStateOptions): XStateExtracti
         fields.push({k, var: x})
       }
     }
-    // The chart's event: event.type in a guard or an action is which event it is.
-    const events = eventsOf(m0)
+    // The chart's events: those the machine reacts to, and those its type declares that no state takes (each a step
+    // that changes nothing, as XState ignores it). event.type in a guard or an action is which event it is.
+    const declared = ((): string[] => {
+      const et = ((): ts.Type | undefined => {
+        const types = propRaw(setupArg, 'types')
+        if (types) { const t = checker.getTypeAtLocation(types), e = t.getProperty('events'); if (e) return checker.getTypeOfSymbolAtLocation(e, types) }
+        const ta = call.typeArguments?.[1]
+        if (ta) return checker.getTypeFromTypeNode(ta)
+        const schema = propRaw(prop(config, 'schema'), 'events')
+        return schema && checker.getTypeAtLocation(schema)
+      })()
+      if (!et) return []
+      const out: string[] = []
+      for (const m of et.isUnion() ? et.types : [et]) { const tp = m.getProperty('type'), tt = tp && checker.getTypeOfSymbolAtLocation(tp, config); for (const x of tt ? (tt.isUnion() ? tt.types : [tt]) : []) if (x.flags & ts.TypeFlags.StringLiteral && !out.includes((x as ts.StringLiteralType).value)) out.push((x as ts.StringLiteralType).value) }
+      return out
+    })()
+    const handled = eventsOf(m0), events = [...handled, ...declared.filter(e => !handled.includes(e))]
+    if (events.length > handled.length) notes.push(`events its type declares that no state takes, each a step that changes nothing: ${events.slice(handled.length).join(', ')}`)
     const eventVar: Var = {name: 'event', sort: {k: 'choice', values: events}, role: 'input'}
     s.vars.set('event', eventVar); s.names.add('event')
     const ctxValue = (): V => ({t: 'ref', id: 'xs.context'})
@@ -464,6 +480,7 @@ export function extractXState(code: string, opts: XStateOptions): XStateExtracti
     if (ctxParts.length) parts.push(`context: {${ctxParts.join(', ')}}`)
     const dropped = fields.filter(f => f.dropped).map(f => f.k)
     if (dropped.length) parts.push(`ignore: ${JSON.stringify(dropped)}`)
+    if (events.length > handled.length) parts.push(`events: ${JSON.stringify(events)}`)
     if (guards.length) parts.push(`guards: {${guards.map(([n, g]) => `${JSON.stringify(n)}: ${guardSrc(g)}`).join(', ')}}`)
     if (actions.length) parts.push(`actions: {${actions.map(([n, ws]) => `${JSON.stringify(n)}: ${actionSrc(ws, n)}`).join(', ')}}`)
     if (inlineGuards.length || inlineActions.length) parts.push(`inline: {${[inlineGuards.length ? `guards: new Map([${inlineGuards.map(([p, g]) => `[${p}, ${guardSrc(g)}]`).join(', ')}])` : '', inlineActions.length ? `actions: new Map([${inlineActions.map(([p, ws]) => `[${p}, ${actionSrc(ws, p)}]`).join(', ')}])` : ''].filter(Boolean).join(', ')}}`)

@@ -33,7 +33,7 @@
 // An XState v4 machine reads the same, its `cond` the guard v5 calls `guard` (a name, or {type, ...params}); v4's
 // `in`, `strict`, `activities` and eventless `''` are refused with the rest. Each XState ignores the other's guard key,
 // so a v5 machine with `cond` or a v4 one with `guard` is refused (a plain config is read by the key it uses).
-import {type Kind, Choice, Cond, Term, all, bool, int, lit, no, yes} from './dsl.ts'
+import {type Kind, Choice, Cond, Maybe, Str, Term, all, bool, int, lit, no, yes} from './dsl.ts'
 import {type Chart, type StateNode, chart} from './chart.ts'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -288,7 +288,10 @@ export function fromXState(machine: MachineLike, opts: Bridge = {}): Chart<Obj, 
     const leavesUnder = (i: Info): Info[] => { const kids = infos.filter(x => x.parent === i && x.node.type !== 'history'); return kids.length ? kids.flatMap(leavesUnder) : [i] }
     const chain = (i: Info): Info[] => (i.parent ? [i, ...chain(i.parent)] : [i])
     // The context after writes, read as a guard or an action reads it, in a state known statically.
-    const value = (was: unknown, v: unknown) => (typeof v === 'string' && was instanceof Choice ? (was as Choice<string>).of(v) : typeof v === 'number' ? lit(v) : typeof v === 'boolean' ? (v ? yes : no) : v)
+    // A value written, as the context's own kind holds it (a literal as the choice or the string it is; a maybe's parts).
+    const value = (was: unknown, v: unknown): unknown => (typeof v === 'string' && was instanceof Choice ? (was as Choice<string>).of(v) : typeof v === 'string' && was instanceof Str ? was.literal(v)
+      : was instanceof Maybe && v instanceof Maybe ? new Maybe(v.present, value(was.inner, v.inner)) : was instanceof Maybe && v === null ? new Maybe(lit(0), was.inner)
+        : typeof v === 'number' ? lit(v) : typeof v === 'boolean' ? (v ? yes : no) : v)
     const at = (env: Obj, writes: Obj, leaf: Info): Obj => Object.assign(Object.create(null), env, Object.fromEntries(Object.entries(writes).map(([k, v]) => [k, value(env[k], v)])), {
       in: (p: string) => { const t = infos.find(x => pathOf(x) === p) ?? refuse('', `no state ${p}`); return under(leaf, t) ? yes : no },
       last: () => refuse('', 'a history read in a machine with eventless transitions or entry or exit actions that write the context'),

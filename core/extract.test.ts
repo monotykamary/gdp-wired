@@ -600,3 +600,78 @@ test('arrays: one array in two places, a write to the state given, past the end,
   refused(ts('export class C { xs: number[] = []; has(v: number): boolean { return this.xs.includes(v) } }', 'C'), /the array method includes/)
   refused(ts('export class C { xs: string[] = []; go(): void {} }', 'C'), /an array of strings/)
 })
+
+// --- XState: machines made by a function, actors, timers, eventless transitions, maybes, v4 ---------------------------
+import * as xstate4 from 'xstate4'
+test('XState: a machine a factory makes, its answers from outside an input; an actor, a timer and always run as XState', () => {
+  const x = extractXState(`import {setup, assign, fromPromise} from 'xstate'
+    export interface Deps { upload: () => Promise<void>, latched: () => boolean, log: (n: number) => void }
+    export function makeUploader(deps: Deps) {
+      return setup({
+        types: {} as {context: {tries: number, note: string | null}, events: {type: 'START'} | {type: 'RETRY'} | {type: 'STOP'}},
+        actors: {upload: fromPromise(() => deps.upload())},
+        guards: {latched: () => deps.latched(), canRetry: ({context}) => context.tries < 2, noted: ({context}) => Boolean(context.note)},
+        actions: {count: assign({tries: ({context}) => context.tries + 1}), say: () => deps.log(1), note: assign({note: ({event}) => (event.type === 'STOP' ? 'stopped' : null)})},
+      }).createMachine({
+        id: 'up', initial: 'idle', context: {tries: 0, note: null},
+        states: {
+          idle: {on: {START: [{guard: 'latched', target: 'done'}, {target: 'busy'}], STOP: {actions: 'note'}}, always: {guard: 'noted', target: 'done'}},
+          busy: {entry: 'say', invoke: {src: 'upload', onDone: 'done', onError: [{guard: 'canRetry', target: 'wait', actions: 'count'}, {target: 'failed'}]}},
+          wait: {after: {1000: 'busy'}, on: {STOP: {target: 'idle', actions: 'note'}}},
+          done: {type: 'final'}, failed: {type: 'final'},
+        },
+      })
+    }`, {file: 'up.ts', entry: 'makeUploader', xstate, check: {runs: 120, depth: 12}})
+  if (!x.ok) throw new Error(JSON.stringify(x.refusals))
+  expect(x.source).toContain('inputs: {latched: bool}')
+  expect(x.source).toContain('note: maybe(str()).from(null)')
+  expect(x.source).toContain('"latched": ({latched}) => latched')
+  expect(x.evidence!.events).toBeGreaterThan(1000)
+  const c = x.chart!
+  expect(c.prove([c.law('at most two retries', ({tries}: any) => tries.atMost(2))])).toMatchObject({proven: true, checked: true})
+})
+
+test('XState: what a factory or a machine could not run the same way is refused, with the reason', () => {
+  const m = (body: string) => `import {setup, assign} from 'xstate'\n${body}`
+  // a factory's own mutable state, closed over by a guard: every machine made shares it (and the check's would part)
+  const closure = extractXState(m(`export function make() { let n = 0; return setup({guards: {ok: () => n++ < 3}}).createMachine({initial: 'a', states: {a: {on: {GO: {target: 'b', guard: 'ok'}}}, b: {}}}) }`), {file: 'm.ts', entry: 'make', xstate})
+  expect(closure.refusals[0]!.what).toMatch(/does more than return the machine/)
+  // an outside answer read in two places: each call may answer differently
+  const twice = extractXState(m(`export function make(d: {ok: () => boolean}) { return setup({guards: {a: () => d.ok(), b: () => d.ok()}}).createMachine({initial: 'a', states: {a: {on: {GO: [{target: 'b', guard: 'a'}, {target: 'c', guard: 'b'}]}}, b: {}, c: {}}}) }`), {file: 'm.ts', entry: 'make', xstate})
+  expect(twice.refusals[0]!.what).toMatch(/read in two places/)
+  // a context field outside the subset, read by a guard: refused where it is read (left out only where nothing reads it)
+  const obj = extractXState(m(`export const mm = setup({types: {} as {context: {err: Error | null}}, guards: {bad: ({context}) => !context.err}}).createMachine({initial: 'a', context: {err: null}, states: {a: {on: {GO: {target: 'b', guard: 'bad'}}}, b: {}}})`), {file: 'm.ts', entry: 'mm', xstate})
+  expect(obj.refusals[0]!.what).toMatch(/read as a condition/)
+  // two timers in a state fire in the order of their delays: refused; a guard writing the context from outside: an effect
+  const timers = extractXState(m(`export const mm = setup({}).createMachine({initial: 'a', states: {a: {after: {100: 'b', 200: 'c'}}, b: {}, c: {}}})`), {file: 'm.ts', entry: 'mm', xstate})
+  expect(timers.refusals[0]!.what).toMatch(/two timers in one state/)
+  // raise sends to the machine itself: refused
+  const raise = extractXState(`import {setup, raise} from 'xstate'\nexport const mm = setup({actions: {again: raise({type: 'GO'})}}).createMachine({initial: 'a', states: {a: {on: {GO: {target: 'b', actions: 'again'}}}, b: {}}})`, {file: 'm.ts', entry: 'mm', xstate})
+  expect(raise.refusals[0]!.what).toMatch(/sends to the machine itself/)
+})
+
+test('XState v4: cond, (context, event) guards and actions, services, after; a field written from an unread payload left out', () => {
+  const x = extractXState(`import {createMachine, assign} from 'xstate'
+    type Ctx = {retries: number, limit: number, token?: string}
+    export const conn = createMachine<Ctx, {type: 'OPEN'} | {type: 'DROP'} | {type: 'CLOSE'}>({
+      id: 'conn', initial: 'idle', predictableActionArguments: true, context: {retries: 0, limit: 3, token: undefined},
+      states: {
+        idle: {on: {OPEN: 'auth'}},
+        auth: {invoke: {id: 'auth', src: 'auth', onDone: {target: 'up', actions: 'keep'}, onError: 'down'}},
+        up: {on: {DROP: [{target: 'wait', cond: 'under'}, {target: 'down'}]}},
+        wait: {after: {500: {target: 'auth', actions: 'count'}}},
+        down: {type: 'final'},
+      },
+    }, {
+      services: {auth: async () => ({token: 't'})},
+      actions: {keep: assign({token: (_c, e: any) => e.data.token}), count: assign({retries: (c) => c.retries + 1})},
+      guards: {under: (c) => c.retries < c.limit},
+    })`, {file: 'conn.ts', entry: 'conn', xstate: xstate4 as never, check: {runs: 120, depth: 12}})
+  if (!x.ok) throw new Error(JSON.stringify(x.refusals))
+  expect(x.source).toContain('ignore: ["token"]')
+  expect(x.source).toContain('"under": ({retries, limit}) => retries.lt(limit)')
+  // CLOSE: declared by the machine's type, taken by no state (a step that changes nothing)
+  expect(x.source).toContain('"CLOSE"')
+  const c = x.chart!
+  expect(c.prove([c.law('the retries stay within the limit', ({retries, limit}: any) => retries.atMost(limit))])).toMatchObject({proven: true, checked: true})
+})
