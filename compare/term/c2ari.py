@@ -1874,7 +1874,8 @@ def chain(prog, start):
     to itself), so a run is infinite exactly when the program's is, and one that stops at a left-out location (no
     guard out of it holds, or undefined behaviour) stops one step earlier. A composition past 3 times its parts' size
     (a term read many times) is not made, nor one with more disjunctions, or more fresh values a guard constrains past their
-    bounds, than either part (each is a choice a run has to draw)."""
+    bounds, than either part (each is a choice a run has to draw), nor one through a guard with a product of two values (the
+    rank search reads the steps around it linearly)."""
     def size(s):
         return 1 if isinstance(s, str) else sum(size(x) for x in s)
 
@@ -1954,6 +1955,13 @@ def chain(prog, start):
                     frees((None, None, [x], {}), out)
         return out
 
+    def nonlinear(s):
+        if isinstance(s, str):
+            return False
+        if s and s[0] == "*" and len(s) == 3 and cval(s[1]) is None and cval(s[2]) is None:
+            return True
+        return any(nonlinear(x) for x in s)
+
     def ors(r):
         """The disjunctions among a rule's conjuncts (a rule of k is up to 2^k paths of the loop's relation)."""
         return sum(1 for g in r[2] for x in flat(g) if isinstance(x, list) and x and x[0] == "or")
@@ -2002,7 +2010,8 @@ def chain(prog, start):
         for l in sorted({r[1] for r in rules} - {start}):
             ins = [r for r in rules if r[1] == l]
             outs = [r for r in rules if r[0] == l]
-            if not outs or any(r[0] == l for r in ins) or (len(ins) > 1 and len(outs) > 1):
+            if not outs or any(r[0] == l for r in ins) or (len(ins) > 1 and len(outs) > 1) or \
+                    any(nonlinear(g) for r in ins + outs for g in r[2]):
                 continue
             pairs = [(a, b) for a in ins for b in outs]
             made = [compose(a, b) for a, b in pairs]
