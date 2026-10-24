@@ -1,8 +1,8 @@
 import {inflight, inflightLoss} from './models.ts'
 import {report} from './run-proofs.ts'
-import {strengthen} from './invariant.ts'
+import {inferLaws} from './infer.ts'
 const started = performance.now()
-const result = strengthen(inflight, inflightLoss)
-console.log(`${result.candidates} candidates, ${result.trueAtStart} true at the start, ${result.invariants.length} inductive together (${Math.round(performance.now() - started)} ms):`)
-console.log('  ' + result.invariants.map(l => l.name).join('\n  '))
-report(inflight, inflightLoss, [inflightLoss, ...result.invariants])
+const result = inferLaws(inflight, [inflightLoss])
+console.log(`${result.stats.candidates} candidates, ${result.stats.alive} the runs keep, ${result.found.length} found (${Math.round(performance.now() - started)} ms):`)
+console.log('  ' + result.found.map(f => f.text).join('\n  '))
+report(inflight, inflightLoss, [inflightLoss, ...result.found.map(f => f.law)])
