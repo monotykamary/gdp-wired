@@ -37,6 +37,7 @@ export type BmcOptions = {
   from?: number // the first depth (1)
   depth?: number // the last depth (64, the kernel's bound)
   progress?: (depth: number, outcome: 'refuted' | 'sat' | 'unknown', ms: number) => void
+  steps?: boolean // (findBoundedRun, with no wall stop) the forced run's share counted in its steps, forcedRate a millisecond
 }
 
 // Machines whose runs the goals describe as they are: scalars only (no maps, history or carried maps), no quantified
@@ -55,7 +56,7 @@ export function bmcFits(m: Machine, laws: Law[]): boolean {
 // and few rows a node keeps low, so a caller under a wall-clock limit gives a wall stop too.
 export const bmcRate = 250
 // A forced run's share of the budget, and its steps at most (a derivation checkDerivation replays step by step).
-const forcedShare = 0.3, forcedSteps = 1_000_000
+const forcedShare = 0.3, forcedSteps = 1_000_000, forcedRate = 1_000
 // GDP_BMC_RELAX=0: no relaxed goal first; GDP_BMC_INC=0: each depth's goal a search of its own (for comparing).
 const useRelax = env.GDP_BMC_RELAX !== '0', useInc = env.GDP_BMC_INC !== '0', useTidy = env.GDP_BMC_TIDY !== '0'
 
@@ -399,9 +400,10 @@ function unrolled(m: Machine, laws: Law[]) {
 }
 
 export function findBoundedRun(m: Machine, laws: Law[], opts: BmcOptions): BoundedRun | undefined {
-  // A forced run first, within forcedShare of the budget (as wall time: it is the compiled rule's, not the kernel's).
-  const now = performance.now(), end = Math.min(opts.wall ?? Infinity, now + opts.ms)
-  const out = boundedSearch(m, laws, {...opts, forcedMs: forcedShare * (end - now)})?.run(opts.ms, opts.wall)
+  // A forced run first, within forcedShare of the budget (as wall time: it is the compiled rule's, not the kernel's;
+  // with `steps` and no wall stop, in its steps instead).
+  const now = performance.now(), end = Math.min(opts.wall ?? Infinity, now + opts.ms), steps = opts.steps && opts.wall === undefined
+  const out = boundedSearch(m, laws, {...opts, forcedMs: steps ? Infinity : forcedShare * (end - now), ...(steps ? {forcedSteps: Math.min(forcedSteps, Math.round(forcedShare * forcedRate * opts.ms))} : {})})?.run(opts.ms, opts.wall)
   return typeof out === 'object' ? out : undefined
 }
 
@@ -411,10 +413,10 @@ export function findBoundedRun(m: Machine, laws: Law[], opts: BmcOptions): Bound
 // asked again next time, the CDCL session's learned clauses kept). The forced run has `forcedMs` of wall time in all,
 // across runs. Undefined where the machine doesn't fit.
 export type BoundedSearch = {run: (ms: number, wall?: number) => BoundedRun | 'over' | 'paused', depth: () => number}
-export function boundedSearch(m: Machine, laws: Law[], opts: Omit<BmcOptions, 'ms' | 'wall'> & {forcedMs: number}): BoundedSearch | undefined {
+export function boundedSearch(m: Machine, laws: Law[], opts: Omit<BmcOptions, 'ms' | 'wall'> & {forcedMs: number, forcedSteps?: number}): BoundedSearch | undefined {
   if (!laws.length || !bmcFits(m, laws)) return undefined
   const last = Math.min(64, opts.depth ?? 64)
-  const forced = forcedRunner(m, laws, {steps: forcedSteps})
+  const forced = forcedRunner(m, laws, {steps: opts.forcedSteps ?? forcedSteps})
   let forcedLeft = forced === undefined ? 0 : opts.forcedMs, over = false, again = false
   let inc: ReturnType<typeof unrolled> | undefined, made = false, k = opts.from ?? 1
   const run = (ms: number, wall?: number): BoundedRun | 'over' | 'paused' => {

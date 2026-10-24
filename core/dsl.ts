@@ -19,7 +19,7 @@ import {type C, type E, type Fn, argsKey, type Law, type Recurrence, type Machin
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
 import {someHolds, substVars} from './exists.ts'
 import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations} from '../kernel/kernel.ts'
-import {type Report, certLoop, clock, factsFor, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline} from '../kernel/prove.ts'
+import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws} from './infer.ts'
@@ -2500,20 +2500,21 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   if (deeper?.run) return refutedVerdict(deeper)
   const until = clock() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000)
   // Bounded runs (core/bmc.ts): a law broken k steps from the start, a model of the kernel's k-step goal, the run taken
-  // by the interpreter. The shallow depths first, within a fortieth of the search's budget (at most 250 ms, counted and
-  // in wall time); the deeper ones only where the invariant search finds nothing, within the tenth (at most a second)
-  // kept from it, so a law the search proves costs no more than the shallow depths.
+  // by the interpreter. The shallow depths first, within a fortieth of the search's budget (at most 250 ms, counted in
+  // the cost model's work: kernel/prove.ts's `counted` with `full`); the deeper ones only where the invariant search
+  // finds nothing, within the tenth (at most a second) kept from it, so a law the search proves costs no more than the
+  // shallow depths.
   const total = until - clock(), tail = Math.min(1000, total / 10)
   let reached = 0
-  const bounded = (ms: number, from: number) => findBoundedRun(r.machine, laws, {ms, wall: performance.now() + ms, from, progress: k => { reached = k }})
+  const bounded = (ms: number, from: number) => counted(fullRate, () => findBoundedRun(r.machine, laws, {ms, from, steps: true, progress: k => { reached = k }}), true)
   const refutedBy = (b: NonNullable<ReturnType<typeof bounded>>): Verdict => refutedVerdict({goal: `${b.law} @step (a run of ${b.depth} steps from the start)`, witness: b.witness, run: {params: b.params, trace: b.trace.map(shownRequest)}})
   const shallow = bounded(Math.min(250, total / 40), 1)
   if (shallow) return refutedBy(shallow)
   // k-induction (core/kind.ts): the plain laws as one, over k = 2, 3, ... steps in a row, the rule's kinds assumed;
-  // within a twentieth of the budget (at most 500 ms, counted and in wall time).
+  // within a twentieth of the budget (at most 500 ms, counted so too).
   if (!stepLaws.length && laws.every(l => !l.forall && !l.keys?.length && !l.some?.length)) {
     const ms = Math.min(500, total / 20), kinds = withKinds(r, []).filter(k => !laws.some(l => l.name === k.name))
-    const kd = proveKInduction(r.machine, kinds, conjunction(laws), {ms, wall: performance.now() + ms})
+    const kd = counted(fullRate, () => proveKInduction(r.machine, kinds, conjunction(laws), {ms}), true)
     if (kd.proven && kd.checked) return {proven: true, checked: true, k: kd.k!}
   }
   let rule = r, lemmas: Found['lemmas']
