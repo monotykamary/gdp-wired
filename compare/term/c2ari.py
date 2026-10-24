@@ -1920,6 +1920,15 @@ def chain(prog, start):
                 return g[1], None, const(g[2])
         return None
 
+    def hard(r):
+        """The fresh values a guard constrains past their bounds (x = nd, nd = 2·q + r): a run must draw them."""
+        out = set()
+        for g in r[2]:
+            for x in flat(g):
+                if bound(x) is None:
+                    frees((None, None, [x], {}), out)
+        return out
+
     def unused(r):
         """A fresh value only bounded (a nondeterministic value no update or other guard reads): its bounds left out
         where some value meets them, which says nothing then."""
@@ -1950,13 +1959,13 @@ def chain(prog, start):
                 todo.append(r[1])
     rules = [r for r in prog.rules if r[0] in seen]
     # (and no rule into a location none leaves, but the entry's: the run ends there either way, a step earlier)
-    while True:
-        sinks = {r[1] for r in rules} - {r[0] for r in rules} - {start}
-        if not sinks:
-            break
-        rules = [r for r in rules if r[1] not in sinks]
-    if not rules:
-        rules = [(start, "lend", ["false"], {})]
+    def unsunk(rules):
+        while True:
+            sinks = {r[1] for r in rules} - {r[0] for r in rules} - {start}
+            if not sinks:
+                return rules
+            rules = [r for r in rules if r[1] not in sinks]
+    rules = unsunk(rules)
     changed = True
     while changed:
         changed = False
@@ -1965,13 +1974,15 @@ def chain(prog, start):
             outs = [r for r in rules if r[0] == l]
             if not outs or any(r[0] == l for r in ins) or (len(ins) > 1 and len(outs) > 1):
                 continue
-            made = [compose(a, b) for a in ins for b in outs]
-            if any(rsize(m) > 3 * (rsize(a) + rsize(b)) + 8 for m, (a, b) in zip(made, [(a, b) for a in ins for b in outs])):
+            pairs = [(a, b) for a in ins for b in outs]
+            made = [compose(a, b) for a, b in pairs]
+            if any(rsize(m) > 3 * (rsize(a) + rsize(b)) + 8 or len(hard(m)) > max(len(hard(a)), len(hard(b))) for m, (a, b) in zip(made, pairs)):
                 continue
             made = [m for m in made if "false" not in [simp(g) for g in m[2]]]
             rules = [r for r in rules if r[0] != l and r[1] != l] + made
             changed = True
-    prog.rules = [unused(r) for r in rules]
+    # (a system with no rule left, one that never fires: every run ends at the entry)
+    prog.rules = [unused(r) for r in unsunk(rules)] or [(start, "lend", ["false"], {})]
     return prog
 
 
