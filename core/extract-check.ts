@@ -127,7 +127,7 @@ type Cells = Record<string, Record<string, Raw>>
 export type Snap = {leaves: Record<string, Raw>, maps: Record<string, Cells>, lists?: Record<string, Raw[]>}
 const isMap = (x: unknown): x is Map<unknown, unknown> => Object.prototype.toString.call(x) === '[object Map]'
 class Outside extends Error {}
-class Refused extends Error {}
+export class Refused extends Error {}
 // The code's value as a snapshot, by the layout; what the rule has no place for is a difference.
 function snapOf(v: unknown, layout: Layout, m: Model, consts: (t: N | B | I.L) => Raw, out: Snap = {leaves: {}, maps: {}}, path = 'state'): Snap {
   switch (layout.k) {
@@ -212,8 +212,8 @@ function valueOf(s: Snap, layout: Layout, m: Model, consts: (t: N | B | I.L) => 
   ctx.__in = JSON.stringify(tree(layout))
   return vmOf().runInContext('JSON.parse(__in, (k, v) => v && typeof v === "object" && v.$map ? (v.$map === "Map" ? new Map(v.entries) : Object.fromEntries(v.entries)) : v && typeof v === "object" && "$date" in v ? new Date(v.$date) : v)', ctx)
 }
-const showSnap = (s: Snap) => JSON.stringify({...s.leaves, ...Object.fromEntries(Object.entries(s.maps).map(([k, v]) => [k, v])), ...(s.lists ?? {})})
-const sameSnap = (a: Snap, b: Snap): string | undefined => {
+export const showSnap = (s: Snap) => JSON.stringify({...s.leaves, ...Object.fromEntries(Object.entries(s.maps).map(([k, v]) => [k, v])), ...(s.lists ?? {})})
+export const sameSnap = (a: Snap, b: Snap): string | undefined => {
   for (const k of new Set([...Object.keys(a.leaves), ...Object.keys(b.leaves)])) if (a.leaves[k] !== b.leaves[k]) return `${k} is ${JSON.stringify(a.leaves[k])} in the code, ${JSON.stringify(b.leaves[k])} in the rule`
   for (const k of new Set([...Object.keys(a.maps), ...Object.keys(b.maps)])) {
     const x = a.maps[k] ?? {}, y = b.maps[k] ?? {}
@@ -226,7 +226,7 @@ const sameSnap = (a: Snap, b: Snap): string | undefined => {
 // --- the rule's side ------------------------------------------------------------------------------------------------
 export const kindOfVar = (v: Var, sorts: Sorts, at = v.name): Kind<unknown> => (v.sort.k === 'num' ? (sorts.get(at) === 'nat' ? nat : int) : v.sort.k === 'bool' ? bool : v.sort.k === 'choice' ? oneOf(...v.sort.values) : str()) as Kind<unknown>
 const idText = (id: number): string | undefined => interned().find(([, n]) => n === id)?.[0]
-function ruleSnap(r: Rule, m: Model, st: State, sorts: Sorts): Snap {
+export function ruleSnap(r: Rule, m: Model, st: State, sorts: Sorts): Snap {
   const d = r.decode(st), leaves: Record<string, Raw> = {}, maps: Record<string, Cells> = {}
   for (const v of m.state) if (!m.outputs.includes(v.name)) leaves[v.name] = d[v.name] as Raw
   for (const md of m.maps) {
@@ -244,7 +244,7 @@ function ruleSnap(r: Rule, m: Model, st: State, sorts: Sorts): Snap {
   return {leaves, maps, ...(m.lists?.length ? {lists} : {})}
 }
 // A snapshot as a state of the rule (each variable and cell by its kind).
-function ruleState(base: State, s: Snap, m: Model, sorts: Sorts): State {
+export function ruleState(base: State, s: Snap, m: Model, sorts: Sorts): State {
   const scalars = {...base.scalars}, maps: Record<string, Map<number, number>> = Object.fromEntries(Object.entries(base.maps).map(([k]) => [k, new Map()]))
   for (const v of m.state) if (v.name in s.leaves) Object.assign(scalars, kindOfVar(v, sorts).encode(v.name, s.leaves[v.name]!))
   for (const d of m.maps) {
@@ -267,12 +267,12 @@ const cellKind = (d: MapDecl, sorts: Sorts) => record({has: bool, ...Object.from
 
 // --- values to draw -------------------------------------------------------------------------------------------------
 const BIG = [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER - 1, 2 ** 31, 2 ** 32]
-function constantsOf(m: Model): number[] {
+export function constantsOf(m: Model): number[] {
   const out = new Set<number>([0, 1])
   walk([m.writes, m.mapWrites, m.refuse, m.pre, m.init], o => { if (o.op === 'const' && typeof o.v === 'number') out.add(o.v); if (typeof o.k === 'number') out.add(o.k) })
   return [...out]
 }
-function draw(sort: Var['sort'], sorts: Sorts, name: string, rand: Rand, near: number[], bound: number, strs: string[]): Raw {
+export function draw(sort: Var['sort'], sorts: Sorts, name: string, rand: Rand, near: number[], bound: number, strs: string[]): Raw {
   switch (sort.k) {
     case 'bool': return rand(2) === 1
     case 'choice': return sort.values[rand(sort.values.length)]!
@@ -540,7 +540,7 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
 const mapReplacer = (_: string, v: unknown) => (isMap(v) ? {$map: [...v.entries()]} : v)
 
 // The conditions a step reads (each branch's, each refusal's), as a probe asks the prover to reach.
-function conditionsOf(m: Model): B[] {
+export function conditionsOf(m: Model): B[] {
   const out: B[] = [], seen = new Set<string>()
   const add = (c: B) => { if (c.op === 'const') return; const k = I.keyOf(c); if (!seen.has(k) && !hasCell(c)) { seen.add(k); out.push(c, I.not(c)) } }
   walk([m.writes, m.mapWrites], o => { if ((o.op === 'ite' || o.op === 'kite') && o.c) add(o.c as B) })
@@ -550,7 +550,7 @@ function conditionsOf(m: Model): B[] {
 const hasCell = (c: B) => I.varsOf(c).maps.size > 0
 const showCond = (c: B): string => JSON.stringify(c).replace(/"op":/g, '').slice(0, 120)
 // A condition over the rule's env (the step law's `when`): the builders' own values, read from the env by name.
-function condAt(c: B, env: Record<string, unknown>): ReturnType<Term['lt']> {
+export function condAt(c: B, env: Record<string, unknown>): ReturnType<Term['lt']> {
   const n = (e: N): Int => {
     switch (e.op) {
       case 'var': return Int.of(env[e.name] as Term | Int)

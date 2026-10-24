@@ -58,6 +58,8 @@ export type Model = {
   factory?: {at: number, text: string},
   // For a class: what each method's result is kept as (core/extract-shapes.ts's Result).
   results?: Record<string, {k: 'scalar', name: string} | {k: 'rec', fields: [string, string][]} | {k: 'maybe', name: string, missing: string, null: boolean}>,
+  // Laws every state of the code keeps that the front end knows (a Go field within its type's range), as `r.law(...)`.
+  laws?: string[],
 }
 
 // --- values ---------------------------------------------------------------------------------------------------------
