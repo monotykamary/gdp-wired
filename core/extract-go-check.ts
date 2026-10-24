@@ -11,9 +11,9 @@ import {type Request, type State, seeded} from './machine.ts'
 import {allowed} from './watch.ts'
 import type {Arg, Model, Var} from './extract-read.ts'
 import * as I from './extract-ir.ts'
-import type {B, K, N} from './extract-ir.ts'
+import type {B} from './extract-ir.ts'
 import type {Sorts} from './extract-print.ts'
-import {type Evidence, type Snap, condAt, conditionsOf, constantsOf, draw, kindOfVar, ruleSnap, ruleState, sameSnap, showSnap} from './extract-check.ts'
+import {type Evidence, type Snap, condAt, evalTerm, conditionsOf, constantsOf, draw, kindOfVar, ruleSnap, ruleState, sameSnap, showSnap} from './extract-check.ts'
 import {type GoOptions, type GoPkg, type GoRead, type TT, node} from './extract-go.ts'
 
 export type GoLeaf = {name: string, path: string[], kind: 'int' | 'bool' | 'str' | 'big' | 'bignil' | 'map' | 'mapnil' | 'list' | 'frame', t: number, go: string}
@@ -551,48 +551,9 @@ function rangesOf(m: Model, read: GoRead, pkg: GoPkg): Map<string, [number, numb
 // The refusals that are where the rule's numbers stop and Go's go on (a uint64 below 0, which Go wraps).
 function edgeConditions(m: Model, read: GoRead): B[] { void m; return read.edges }
 
-// A condition at a state and a request (the snapshot's leaves, map cells and list items; the request's inputs).
-function evalB(c: B, s: Snap, inputs: Record<string, Raw>): boolean {
-  const env = (n: string): Raw | undefined => (n in inputs ? inputs[n] : s.leaves[n] ?? (n.endsWith('_len') ? s.lists?.[n.slice(0, -4)]?.length : undefined))
-  const key = (k: K): Raw => (k.op === 'num' ? n(k.e) : k.op === 'svar' ? env(k.name) as Raw : k.op === 'slit' ? k.value : b(k.c) ? key(k.a) : key(k.b))
-  const cell = (map: string, k: K, field: string): Raw => {
-    if (field === '$item') return s.lists?.[map]?.[Number(key(k))] ?? 0
-    const c = s.maps[map]?.[String(key(k))]
-    if (field === 'has') return !!c
-    return c?.[field] ?? 0
-  }
-  function n(e: N): number {
-    switch (e.op) {
-      case 'var': return Number(env(e.name) ?? 0)
-      case 'const': return e.v
-      case 'add': return n(e.a) + n(e.b)
-      case 'sub': return n(e.a) - n(e.b)
-      case 'neg': return -n(e.a)
-      case 'mulk': return e.k * n(e.a)
-      case 'mul': return n(e.a) * n(e.b)
-      case 'min': return Math.min(n(e.a), n(e.b))
-      case 'max': return Math.max(n(e.a), n(e.b))
-      case 'divk': return Math.floor(n(e.a) / e.k)
-      case 'modk': return ((n(e.a) % e.k) + e.k) % e.k
-      case 'ite': return b(e.c) ? n(e.a) : n(e.b)
-      case 'cell': return Number(cell(e.map, e.key, e.field))
-    }
-  }
-  function b(x: B): boolean {
-    switch (x.op) {
-      case 'const': return x.v
-      case 'var': return env(x.name) === true
-      case 'cmp': return x.rel === '<' ? n(x.a) < n(x.b) : x.rel === '<=' ? n(x.a) <= n(x.b) : n(x.a) === n(x.b)
-      case 'and': return x.xs.every(b)
-      case 'or': return x.xs.some(b)
-      case 'not': return !b(x.x)
-      case 'ite': return b(x.c) ? b(x.a) : b(x.b)
-      case 'is': return (x.l.op === 'var' ? env(x.l.name) : x.l.op === 'lit' ? x.l.value : undefined) === x.value
-      case 'leq': return false
-      case 'keq': return key(x.a) === key(x.b)
-      case 'cell': return cell(x.map, x.key, x.field) === true
-    }
-  }
-  return b(c)
+// A condition at a state and a request: core/extract-check.ts's evaluator, the snapshot's cells and items beside it.
+const evalB = (c: B, s: Snap, inputs: Record<string, Raw>): boolean => {
+  const env: Record<string, Raw> = {...s.leaves, ...Object.fromEntries(Object.entries(s.lists ?? {}).map(([k, xs]) => [`${k}_len`, xs.length])), ...inputs}
+  return evalTerm(c, env, (map, key, field) => (field === '$item' ? s.lists?.[map]?.[Number(key)] ?? 0 : field === 'has' ? !!s.maps[map]?.[String(key)] : s.maps[map]?.[String(key)]?.[field] ?? 0)) === true
 }
 void I

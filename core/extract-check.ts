@@ -594,8 +594,11 @@ export function condAt(c: B, env: Record<string, unknown>): ReturnType<Term['lt'
 import {yes as yesC, no as noC, when as whenDsl} from './dsl.ts'
 const whenInt = (c: ReturnType<Term['lt']>, a: Int, b: Int): Int => whenDsl(c, a, b)
 
-// A term at concrete values (a constant field over the params, a start, the precondition).
-export function evalTerm(t: N | B | I.L, env: Record<string, Raw>): Raw {
+// A term at concrete values (a constant field over the params, a start, the precondition; with `cell`, a state's
+// map cells and list items too).
+export function evalTerm(t: N | B | I.L, env: Record<string, Raw>, cell?: (map: string, key: Raw, field: string) => Raw): Raw {
+  const at = (map: string, k: I.K, field: string): Raw => (cell ?? (() => { throw new Error('a map cell at the start') }))(map, key(k), field)
+  const key = (k: I.K): Raw => (k.op === 'num' ? n(k.e) : k.op === 'svar' ? env[k.name]! : k.op === 'slit' ? k.value : b(k.c) ? key(k.a) : key(k.b))
   const n = (e: N): number => {
     switch (e.op) {
       case 'var': return env[e.name] as number
@@ -610,7 +613,7 @@ export function evalTerm(t: N | B | I.L, env: Record<string, Raw>): Raw {
       case 'divk': return Math.floor(n(e.a) / e.k)
       case 'modk': return ((n(e.a) % e.k) + e.k) % e.k
       case 'ite': return b(e.c) ? n(e.a) : n(e.b)
-      case 'cell': throw new Error('a map cell at the start')
+      case 'cell': return at(e.map, e.key, e.field) as number
     }
   }
   const l = (x: I.L): string => (x.op === 'var' ? env[x.name] as string : x.op === 'lit' ? x.value : x.op === 'ite' ? (b(x.c) ? l(x.a) : l(x.b)) : (() => { throw new Error('a map cell') })())
@@ -625,14 +628,14 @@ export function evalTerm(t: N | B | I.L, env: Record<string, Raw>): Raw {
       case 'ite': return b(x.c) ? b(x.a) : b(x.b)
       case 'is': return l(x.l) === x.value
       case 'leq': return l(x.a) === l(x.b)
-      case 'keq': throw new Error('a key at the start')
-      case 'cell': throw new Error('a map cell at the start')
+      case 'keq': if (!cell) throw new Error('a key at the start'); return key(x.a) === key(x.b)
+      case 'cell': return at(x.map, x.key, x.field) as boolean
     }
   }
   if (t.op === 'var') return env[t.name]!
   if (t.op === 'const') return t.v
   if (t.op === 'lit') return t.value
-  if (t.op === 'ite') return b(t.c) ? evalTerm(t.a, env) : evalTerm(t.b, env)
+  if (t.op === 'ite') return b(t.c) ? evalTerm(t.a, env, cell) : evalTerm(t.b, env, cell)
   if (['add', 'sub', 'neg', 'mulk', 'mul', 'min', 'max', 'divk', 'modk', 'cell'].includes(t.op)) return n(t as N)
   return b(t as B)
 }
