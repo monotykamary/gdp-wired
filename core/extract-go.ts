@@ -32,7 +32,7 @@
 // or two writes of one list in one step.
 import * as I from './extract-ir.ts'
 import type {B, K, N} from './extract-ir.ts'
-import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var} from './extract-read.ts'
+import {type Arg, type Event, type Layout, type MapDecl, type Model, Refusal, type Term, type Var, mergeOps, mergeWrites} from './extract-read.ts'
 import {type Extraction, fromModel} from './extract.ts'
 import {nonneg} from './extract-print.ts'
 import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
@@ -356,14 +356,10 @@ export class GoReader {
       return {...a, f}
     }
     if (a.k === 'map' && b.k === 'map') {
-      const nil = I.bite(c, a.nil, b.nil)
-      if (!a.w && !b.w) return {...a, nil}
-      const key = a.w && b.w ? I.kite(c, a.w.key, b.w.key) : (a.w ?? b.w)!.key
-      const cell = (o: typeof a) => (o.w ? o.w : this.baseCell(o.decl, key))
-      const x = cell(a), y = cell(b)
-      return {...a, nil, w: {key, has: I.bite(c, x.has, y.has), vals: new Map([...x.vals].map(([f, v]) => [f, this.mergeV(c, v, y.vals.get(f)!, at)]))}}
+      const w = mergeWrites(c, a.w, b.w, key => this.baseCell(a.decl, key), (c2, x, y) => this.mergeV(c2, x, y, at))
+      return {...a, nil: I.bite(c, a.nil, b.nil), ...(w ? {w} : {})}
     }
-    if (a.k === 'list' && b.k === 'list') return {...a, ops: [...a.ops.map(o => ({...o, when: I.and(c, o.when)})), ...b.ops.map(o => ({...o, when: I.and(I.not(c), o.when)}))]}
+    if (a.k === 'list' && b.k === 'list') return {...a, ops: mergeOps(c, a.ops, b.ops)}
     return refuse(at, 'an object of two kinds by a condition')
   }
   baseCell(d: MapDecl, key: K): {has: B, vals: Map<string, GV>} {
@@ -1171,16 +1167,9 @@ export class GoReader {
     if (!rets.length) return [{t: 'opaque', why: 'no return', ty: -1}, {...p, pc: [...p.pc, I.F]}]
     // Deferred unlocks at the return.
     const done = rets.map(r => ({...r, p: {...r.p, locks: r.p.locks.filter(k => !r.p.defers.includes(k)), defers: p.defers}}))
-    const joined = this.join(done.map(r => r.p), at)!
-    // The results, each by the path that returned it.
-    const vals: GV[] = fn.results.map((_, i) => {
-      let acc = done.at(-1)!.vs[i]!
-      for (let j = done.length - 2; j >= 0; j--) {
-        const c = I.and(...done[j]!.p.pc.slice(joined.pc.length))
-        acc = this.mergeV(c, done[j]!.vs[i]!, acc, at)
-      }
-      return acc
-    })
+    // The results, each by the path that returned it (kept as locals the join merges).
+    const joined = this.join(done.map(r => ({...r.p, locals: new Map([...r.p.locals, ...r.vs.map((v, i) => [`$ret${i}`, v] as const)])})), at)!
+    const vals = fn.results.map((_, i) => joined.locals.get(`$ret${i}`)!)
     const locals = new Map(p.locals)
     return [vals.length === 1 ? vals[0]! : {t: 'tuple', xs: vals}, {...joined, locals, defers: p.defers}]
   }
@@ -1478,13 +1467,11 @@ export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
       } else ok.push(done)
     }
     if (!ok.length) refuse(fn, `${fn.name} always fails`)
-    const final = g.join(ok.map(r => r.p), fn)!
-    // The kept result: by the path that returned it.
+    // The kept result: by the path that returned it (a local the join merges).
+    const ri = fn.results.findIndex((_, i) => i !== errAt)
+    const final = g.join(ok.map(r => (kept.length ? {...r.p, locals: new Map(r.p.locals).set('$ret', r.vs[ri]!)} : r.p)), fn)!, acc = final.locals.get('$ret')!
     let out: [string, Term] | undefined
     if (kept.length) {
-      const ri = fn.results.findIndex((_, i) => i !== errAt)
-      let acc = ok.at(-1)!.vs[ri]!
-      for (let j = ok.length - 2; j >= 0; j--) acc = g.mergeV(I.and(...ok[j]!.p.pc.slice(final.pc.length)), ok[j]!.vs[ri]!, acc, fn)
       const s = g.scalar(fn.results[ri]!.t)
       if (typeof s === 'string') refuse(fn, `${fn.name} returns ${s}`)
       const x = g.newVar(`${fn.name}_result`, s as Var['sort'], 'state', `what ${fn.name} returned, at the step that called it (its default at others)`)
