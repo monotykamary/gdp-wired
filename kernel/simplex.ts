@@ -37,7 +37,8 @@ function formOf(lin: Lin): Form | {single: string, c: number} | null {
 export type SimplexVerdict = {kind: 'sat'} | {kind: 'conflict', rows: number[]} | {kind: 'unknown'}
 
 export class Simplex {
-  constructor(readonly integral = true) {}
+  // `boundsOnly`: only the bounds are kept (assert, retract and their versions; no settle or check).
+  constructor(readonly integral = true, readonly boundsOnly = false) {}
   private index = new Map<string, number>()
   private lo: number[] = []
   private hi: number[] = []
@@ -50,7 +51,18 @@ export class Simplex {
   private rows: {basic: number, coef: Map<number, number>}[] = []
   private colOf: Set<number>[] = []
   pivots = 0
+  private nnzN = 0
   private at = new WeakMap<Lin, {j: number, c: number} | null>()
+  // (a row's variable and coefficient, kept per form)
+  private place(lin: Lin): {j: number, c: number} | null {
+    let at = this.at.get(lin)
+    if (at === undefined) {
+      const f = formOf(lin)
+      at = f === null ? null : 'single' in f ? {j: this.varOf(f.single), c: f.c} : {j: this.slackOf(f), c: f.g}
+      this.at.set(lin, at)
+    }
+    return at
+  }
   private varOf(name: string): number {
     let j = this.index.get(name)
     if (j !== undefined) return j
@@ -73,6 +85,7 @@ export class Simplex {
     }
     const s = this.varOf(f.slack), r = this.rows.length
     this.rows.push({basic: s, coef})
+    this.nnzN += coef.size
     this.rowOf[s] = r
     for (const j of coef.keys()) this.colOf[j]!.add(r)
     let value = 0
@@ -99,13 +112,7 @@ export class Simplex {
     }
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i]!, k = r.lin['1'] ?? 0
-      // (each row's variable and coefficient, kept per form: the same forms at every node)
-      let at = this.at.get(r.lin)
-      if (at === undefined) {
-        const f = formOf(r.lin)
-        at = f === null ? null : 'single' in f ? {j: this.varOf(f.single), c: f.c} : {j: this.slackOf(f), c: f.g}
-        this.at.set(r.lin, at)
-      }
+      const at = this.place(r.lin)
       if (at === null) { if (k > 0 || (!integral && r.strict && k >= 0)) return {kind: 'conflict', rows: [i]}; continue }
       // c·x + k <= 0 (a slack's: g·form + k <= 0)
       bound(at.c, at.j, k, i, !integral && r.strict)
@@ -125,6 +132,72 @@ export class Simplex {
     }
     return {kind: 'sat'}
   }
+  // Incremental use, a node's rows as the last node's with some in and some out (kernel/cdcl.ts's search): each row's
+  // bound asserted and retracted by an id, a variable's bounds the tightest of those in (the first asserted among
+  // equals); `settle` then finds a conflict among them (a constant row that is false, two bounds that cross: the least
+  // such variable) or moves each nonbasic value whose bounds changed into them, and `check` goes on as after `load`, a
+  // conflict's rows given by their ids. The basic values are computed afresh from their rows every 16 settles.
+  private ins = new Map<number, {j: number, upper: boolean, b: number} | null>()
+  private inLo: [number, number][][] = []
+  private inHi: [number, number][][] = []
+  private falseIn = new Set<number>()
+  private crossing = new Set<number>()
+  private moved: number[] = []
+  private movedAt: number[] = []
+  private settles = 0
+  assert(id: number, lin: Lin, strict?: boolean): void {
+    const at = this.place(lin), k = lin['1'] ?? 0
+    if (at === null) { this.ins.set(id, null); if (k > 0 || (!this.integral && strict && k >= 0)) this.falseIn.add(id); return }
+    const {j, c} = at, b0 = c > 0 ? -k / c : k / -c, upper = c > 0, d = !this.integral && strict ? 1e-7 * Math.max(1, Math.abs(b0)) : 0
+    const b = this.integral ? (upper ? Math.floor(b0 + eps) : Math.ceil(b0 - eps)) : upper ? b0 - d : b0 + d
+    this.ins.set(id, {j, upper, b});
+    ((upper ? this.inHi : this.inLo)[j] ??= []).push([b, id])
+    if (upper ? b < this.hi[j]! : b > this.lo[j]!) { if (upper) { this.hi[j] = b; this.hiWhy[j] = id } else { this.lo[j] = b; this.loWhy[j] = id } this.move(j) }
+  }
+  retract(id: number): void {
+    const a = this.ins.get(id)
+    this.ins.delete(id)
+    if (a === undefined) return
+    if (a === null) { this.falseIn.delete(id); return }
+    const {j, upper} = a, list = (upper ? this.inHi : this.inLo)[j]!
+    list.splice(list.findIndex(x => x[1] === id), 1)
+    if ((upper ? this.hiWhy : this.loWhy)[j] !== id) return
+    let b = upper ? Infinity : -Infinity, why = -1
+    for (const [x, i] of list) if (upper ? x < b : x > b) { b = x; why = i }
+    if (upper) { this.hi[j] = b; this.hiWhy[j] = why } else { this.lo[j] = b; this.loWhy[j] = why }
+    this.move(j)
+  }
+  private move(j: number) {
+    this.vers[j] = (this.vers[j] ?? 0) + 1
+    if (!this.boundsOnly && this.movedAt[j] !== this.settles + 1) { this.movedAt[j] = this.settles + 1; this.moved.push(j) }
+  }
+  private vers: number[] = []
+  // How many times a variable's bounds have changed.
+  version(j: number): number { return this.vers[j] ?? 0 }
+  value(j: number): number { return this.val[j]! }
+  settle(): SimplexVerdict {
+    for (const id of this.falseIn) return {kind: 'conflict', rows: [id]}
+    for (const j of this.moved) { if (this.lo[j]! > this.hi[j]! + eps) this.crossing.add(j); else this.crossing.delete(j) }
+    if (this.crossing.size) {
+      let j = Infinity
+      for (const x of this.crossing) if (x < j) j = x
+      return {kind: 'conflict', rows: [this.loWhy[j]!, this.hiWhy[j]!].filter(x => x >= 0)}
+    }
+    for (const j of this.moved) {
+      if (this.rowOf[j]! >= 0) continue
+      const x = this.val[j]!, to = x < this.lo[j]! ? this.lo[j]! : x > this.hi[j]! ? this.hi[j]! : x
+      if (to !== x) this.shift(j, to - x)
+    }
+    this.moved = []
+    if (++this.settles % 16 === 0) for (const row of this.rows) { let value = 0; for (const [j, c] of row.coef) value += c * this.val[j]!; this.val[row.basic] = value }
+    return {kind: 'sat'}
+  }
+  // A variable's index by name (undefined where no row has read it); its bounds and the ids that give them.
+  indexOf(name: string): number | undefined { return this.index.get(name) }
+  low(j: number): number { return this.lo[j]! }
+  high(j: number): number { return this.hi[j]! }
+  lowWhy(j: number): number { return this.loWhy[j]! }
+  highWhy(j: number): number { return this.hiWhy[j]! }
   private shift(j: number, d: number) {
     this.val[j]! += d
     for (const r of this.colOf[j]!) { const row = this.rows[r]!; this.val[row.basic]! += row.coef.get(j)! * d }
@@ -166,18 +239,20 @@ export class Simplex {
     for (const [j, c] of row.coef) if (j !== e) ecoef.set(j, -c / a)
     ecoef.set(b, 1 / a)
     for (const j of row.coef.keys()) this.colOf[j]!.delete(r)
+    this.nnzN += ecoef.size - row.coef.size
     row.basic = e; row.coef = ecoef
     this.rowOf[e] = r; this.rowOf[b] = -1
     for (const j of ecoef.keys()) this.colOf[j]!.add(r)
     // Every other row reading x_e: substitute.
     for (const q of [...this.colOf[e]!]) {
       if (q === r) continue
-      const other = this.rows[q]!, c = other.coef.get(e)!
+      const other = this.rows[q]!, c = other.coef.get(e)!, before = other.coef.size
       other.coef.delete(e); this.colOf[e]!.delete(q)
       for (const [j, d] of ecoef) {
         const x = (other.coef.get(j) ?? 0) + c * d
         if (Math.abs(x) < eps) { if (other.coef.delete(j)) this.colOf[j]!.delete(q) } else { if (!other.coef.has(j)) this.colOf[j]!.add(q); other.coef.set(j, x) }
       }
+      this.nnzN += other.coef.size - before
     }
     this.colOf[e]!.delete(r)
     for (const j of ecoef.keys()) this.colOf[j]!.add(r)
@@ -194,6 +269,6 @@ export class Simplex {
     return x <= tol(x)
   }
   get size(): number { return this.rows.length }
-  get nnz(): number { let n = 0; for (const r of this.rows) n += r.coef.size; return n }
+  get nnz(): number { return this.nnzN }
   get vars(): number { return this.val.length }
 }

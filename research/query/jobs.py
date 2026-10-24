@@ -57,6 +57,14 @@ def main(kind: str, extra: list[str]):
         j["prof"] = prof
     if "--base" in extra:
         jobs = jobs + [{**j, "name": f"base-{j['name']}", "base": True} for j in jobs]
+    elif "--envs" in extra:
+        # both settings in one container, one after the other (the first first in every other job): `--envs "A=1|A=0"`,
+        # each side's output after a "=here" (the first) or "=main" (the second) line, as --pair writes them
+        a, b = extra[extra.index("--envs") + 1].split("|")
+        for i, j in enumerate(jobs):
+            here, main = f"echo =here; (export {a}; {j['cmd']})", f"echo =main; (export {b}; {j['cmd']})"
+            j["cmd"] = f"{here}; {main}" if i % 2 == 0 else f"{main}; {here}"
+            j["limit"] = 2 * j["limit"]
     elif "--pair" in extra:
         # both sides in one container, one after the other (here first in every other job), each line of output after
         # a "=here" or "=main" line: the same CPU for both, so their times compare
