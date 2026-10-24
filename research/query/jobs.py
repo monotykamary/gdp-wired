@@ -6,7 +6,7 @@
           hqr: compare/term/solve.ts), the false 944-hypothesis step goals (pairs-false.ts, 120 s)
   realworld  the real-world corpus' laws, research/realworld/jobs.ts's commands
   g332    research/step/goal.ts on each of research/dag's 332 step goals (grow, the goal's own budget within 55 s)
-  base    (not a jobs file) writes $GDP_QUERY_BASE (/tmp/gdp-query-base): main db0369f's tree with research/query's
+  base    (not a jobs file) writes $GDP_QUERY_BASE (/tmp/gdp-query-base): main 3cc00e3's tree with research/query's
           instrumentation patch (research/query/base.patch), for runs beside main (--base: each job also as
           base-<name> with "base": true)
 """
@@ -22,12 +22,17 @@ MAIN = GDP.parent / "gdp-wired"
 SAT = ["DRAGON_4_000_001", "DRAGON_5_000_001", "DRAGON_11_000_001", "DRAGON_13_000_001", "DRAGON_12_e2_1618_000_001", "car_5_000_001", "car_6_000_001", "metros_2_000_001"]
 UNSAT = ["metros_2_e2_704_000", "metros_3_e3_1117_000", "metros_2_e3_112_000_001", "car_5_e3_11_000", "car_6_e2_893_000_001", "car_5_e2_405_e2_1083_000_001"]
 ITS = ["s1.t2", "s1.t2_fixed", "s1-striped.t2", "hqr.t2_fixed", "hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2_fixed"]
+# The goals other tracks hand off as bound by the query: ITS nonterminating misses (the kernel's closures, the programs'
+# size) and the join's cube queries (PDR's, gen/invariants2)
+ITS2 = ["hqr.c.i.hqr.pl.t2.fixed.t2_fixed", "pgarch.t2", "pgarch.t2_fixed", "slayer-3-new.t2", "slayer-3-new.t2_fixed", "edn.t2", "s1-striped.t2_fixed"]
+SAT2 = ["vmt-chc-benchmarks/ctigar/dillig19.c_000", "vmt-chc-benchmarks/ctigar/nest-if6.c_000_001", "FIREFLY_6_000_001"]
 BUGS = ["diagonal only", "skips the last left effect", "first right effect only", "within one side"]
 
 
 def smt2(name: str) -> str:
     tasks = json.loads((MAIN / "runs/chc3/final-mine/tasks.json").read_text())
-    return next(t["smt2"] for t in tasks if t["task"] == f"vmt-chc-benchmarks/lustre/{name}.yml")
+    task = name if "/" in name else f"vmt-chc-benchmarks/lustre/{name}"
+    return next(t["smt2"] for t in tasks if t["task"] == f"{task}.yml")
 
 
 def main(kind: str, extra: list[str]):
@@ -39,6 +44,10 @@ def main(kind: str, extra: list[str]):
         for t in UNSAT:
             jobs.append({"name": f"unsat__{t}", "limit": 80, "cmd": f"bun compare/chc/kind.ts /chc/{smt2(t)} --ms 55000"})
         for t in ITS:
+            jobs.append({"name": f"its__{t}", "limit": 90, "cmd": f"bun compare/term/solve.ts /its/Integer_Transition_Systems/From_T2/{t}.ari --limit 60"})
+        for t in SAT2:
+            jobs.append({"name": f"sat__{t.split('/')[-1]}", "limit": 100, "cmd": f"bun compare/chc/solve.ts /chc/{smt2(t)} --runs-ms 5000 --houdini-ms 55000 --kind-ms 0 --bmc-ms 0"})
+        for t in ITS2:
             jobs.append({"name": f"its__{t}", "limit": 90, "cmd": f"bun compare/term/solve.ts /its/Integer_Transition_Systems/From_T2/{t}.ari --limit 60"})
         for b in BUGS:
             jobs.append({"name": f"pairs__{b.replace(' ', '_')}", "limit": 200, "cmd": f"bun research/query/pairs-false.ts '{b}' --ms 120000"})
@@ -56,7 +65,7 @@ def main(kind: str, extra: list[str]):
         base = pathlib.Path(os.environ.get("GDP_QUERY_BASE", "/tmp/gdp-query-base"))
         subprocess.run(["rm", "-rf", str(base)], check=True)
         base.mkdir(parents=True)
-        subprocess.run(f"git -C {GDP} archive db0369f | tar -x -C {base}", shell=True, check=True)
+        subprocess.run(f"git -C {GDP} archive 3cc00e3 | tar -x -C {base}", shell=True, check=True)
         subprocess.run(["git", "apply", str(HERE / "base.patch")], cwd=base, check=True)
         subprocess.run(["cp", "-r", str(HERE), str(base / "research/")], check=True)
         return
