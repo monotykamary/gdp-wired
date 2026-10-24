@@ -171,6 +171,13 @@ export function counted<T>(perMs: number, f: () => T): T {
 }
 // A budget's end, within the deadline (a translation's own bound, core/cyclic.ts's, kept by the export's GDP_CERT_MS).
 export const withinDeadline = (until: number): number => Math.min(until, deadline)
+// A goal's own budget where its caller gives none, counted in the prover's work (groundRate units a millisecond) outside
+// a counted search, so a goal left unknown is left so on any machine; a deadline it is grown within stays as it is.
+const groundRate = 250
+let workCap = Infinity
+const withWork = <T>(cap: number, f: () => T): T => { const outer = workCap; workCap = Math.min(outer, cap); try { return f() } finally { workCap = outer } }
+// Past a budget's end on the clock, or past the work a goal's own budget allows.
+export const late = (until: number): boolean => clock() > until || work.n > workCap
 export function withDeadline<T>(until: number, f: () => T): T {
   const outer = deadline
   deadline = Math.min(outer, until)
@@ -178,7 +185,12 @@ export function withDeadline<T>(until: number, f: () => T): T {
 }
 // `units: false`: the goal's own order, no units first (a caller after a model, not a proof: a run guided by the
 // prover's witnesses, say, whose models units would steer).
-export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number, until?: number, units?: boolean} = {nodes: 0, until: clock() + Math.max(20_000, 1_000 * goal.hyps.length)}): Outcome {
+export function grow(goal: Goal, path: Path = new Map(), budget?: {nodes: number, until?: number, units?: boolean}): Outcome {
+  if (!budget) {
+    const ms = Math.max(20_000, 1_000 * goal.hyps.length)
+    if (!rate) return withWork(work.n + groundRate * ms, () => grow(goal, path, {nodes: 0}))
+    budget = {nodes: 0, until: clock() + ms}
+  }
   if (deadline < (budget.until ?? Infinity)) budget.until = deadline
   if (budget.units === false && unitsNow) { unitsNow = false; try { return grow(goal, path, budget) } finally { unitsNow = true } }
   if (proveDump && !path.size && !budget.nodes) { proveDump(goal); }
@@ -217,7 +229,7 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
   if (root) {
     if (cdcl) {
       const now = clock(), end = withinDeadline(budget.until ?? Infinity)
-      const out = growCdcl(goal, path, {nodes: 0, until: end === Infinity ? end : now + cdclShare * (end - now)})
+      const out = withWork(work.n + cdclShare * (workCap - work.n), () => growCdcl(goal, path, {nodes: 0, until: end === Infinity ? end : now + cdclShare * (end - now)}))
       if ('tree' in out || out.stuck === 'sat') return out
     }
     const open = new Set(root.flatMap(r => Object.keys(r.lin)).filter(n => n.startsWith('⟦') && columnTerm(n)?.op === 'if')).size
@@ -231,7 +243,7 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
 function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: number, cap?: number}): Outcome {
   if (budget.cap !== undefined && budget.nodes >= budget.cap) return {stuck: 'unknown', path, why: 'cap'}
   if (profile.on) profile.nodes++
-  if (++budget.nodes > 200_000 || (budget.until !== undefined && clock() > budget.until)) return {stuck: 'unknown', path, why: outOfBudget(goal, budget.nodes > 200_000 ? 'nodes' : 'time', path.size)}
+  if (++budget.nodes > 200_000 || late(budget.until ?? Infinity)) return {stuck: 'unknown', path, why: outOfBudget(goal, budget.nodes > 200_000 ? 'nodes' : 'time', path.size)}
   // Rows that read a term column only once a cut has put one on the path; before, the rows a choice-free search uses
   // (what it saw before term columns), renumbered to the whole leaf's when a leaf is found.
   const full = timed(() => rowsAt(goal, path), ms => { profile.rowsMs += ms })
