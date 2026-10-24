@@ -44,9 +44,7 @@ const decide = (lin: Lin, path: Path): boolean | undefined => {
   return f === undefined ? undefined : !f
 }
 export const int = (v: number) => (v < 0 ? `(${v})` : String(v))
-// (a list past 256 entries as lists of 128 appended: Lean's list literal nests one level per entry, and a loop of 700
-// variables reaches its recursion limit)
-export const list = (xs: string[]): string => (xs.length > 256 ? `(${Array.from({length: Math.ceil(xs.length / 128)}, (_, i) => `[${xs.slice(i * 128, i * 128 + 128).join(', ')}]`).join(' ++ ')})` : `[${xs.join(', ')}]`)
+export const list = (xs: string[]) => `[${xs.join(', ')}]`
 
 export function leaves(t: Tree, path: Path, visit: (t: Tree & {leaf: Step[], products?: [number, number][], squares?: Lin[]}, path: Path) => void) {
   if ('leaf' in t) return visit(t, path)

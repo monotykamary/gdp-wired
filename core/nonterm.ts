@@ -410,8 +410,12 @@ function search(l: Loop, opts: NeverEndsOptions): NeverEndsVerdict {
         const stems: {params: Env, stem: Env[]}[] = [], report = {exhausted: false}
         let best: Visit | undefined
         for (const v of visits) if ((!best || v.at < best.at) && inSet(v.st)) best = v
-        if (best) stems.push({params: best.params, stem: stemOf(best)})
-        else {
+        if (best) {
+          stems.push(cut({params: best.params, stem: stemOf(best)}) ?? {params: best.params, stem: stemOf(best)})
+          // (a run's stem past 64 turns, which Lean replays turn by turn over the whole loop: a shorter one of the
+          // accelerated runs' search first, where it finds one within 500 ms)
+          if (stems[0]!.stem.length > 64) for (const t of stemsTo(l, a.targets, {start, turn}, {now, until: Math.min(longUntil, now() + 500)})) { const c = cut(t); if (c && c.stem.length < stems[0]!.stem.length) { stems.unshift(c); break } }
+        } else {
           // (a set's stem has time of its own, past the stage's if need be, within the search's)
           let n = 0
           for (const t of stemsTo(l, a.targets, {start, turn}, {now, until: Math.min(longUntil, now() + 1000), report})) {
