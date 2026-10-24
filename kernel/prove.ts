@@ -8,7 +8,7 @@
 //   - a refutation of a split's yes side that never reads the split refutes its parent (lift), and the no side is skipped;
 //   - a hypothesis' rows and open atoms, and every term inside them, are reused from an earlier path that decided the
 //     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
-import type {C, E, Law, Machine} from '../core/machine.ts'
+import {type C, type E, type Law, type Machine, walkOnce} from '../core/machine.ts'
 import {type Lin, type Step, add, env, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
 import {allowNode, allowTranslated, certCyclic, certOn, certSearch, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, loopNodes, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
@@ -237,7 +237,10 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
     if (cdcl) {
       const now = clock(), end = withinDeadline(budget.until ?? Infinity)
       const out = growCdcl(goal, path, {nodes: 0, until: end === Infinity ? end : now + cdclShare * (end - now)})
-      if ('tree' in out || out.stuck === 'sat') return out
+      // (with `realModels.on`, a model whose products don't multiply out is no model: the CDCL search reads a product as
+      // a name of its own, where the plain search below multiplies rows; a goal whose products only its cases bring,
+      // core/nonterm.ts's x' := x·y)
+      if ('tree' in out || (out.stuck === 'sat' && !(realModels.on && fakeProducts(out.witness)))) return out
     }
     const open = new Set(root.flatMap(r => Object.keys(r.lin)).filter(n => n.startsWith('⟦') && columnTerm(n)?.op === 'if')).size
     const plain = growPlain(goal, path, {nodes: 0, until: budget.until, cap: Math.max(32, Math.round(4_000 / 2 ** (open / 2)))})
@@ -247,6 +250,8 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
   }
   return growPlain(goal, path, budget)
 }
+export const realModels = {on: false}
+const fakeProducts = (w: Record<string, number> | undefined): boolean => !!w && Object.keys(w).some(key => isMonomial(key) && (w[key] ?? 0) !== factorsOf(key).reduce((acc, f) => acc * (w[f] ?? 0), 1))
 function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: number, cap?: number}): Outcome {
   if (budget.cap !== undefined && budget.nodes >= budget.cap) return {stuck: 'unknown', path, why: 'cap'}
   if (profile.on) profile.nodes++
@@ -564,12 +569,17 @@ export function widen(part: Goal, whole: Goal, tree: Tree, opaque: Record<string
 
 // Whether each hypothesis reads only names the goal's conclusion (its last hypothesis) reads.
 const nearSeen = new WeakMap<Goal, boolean[]>()
-const namesOf = (t: unknown): string[] => (t === undefined ? [] : [...JSON.stringify(t).matchAll(/"(?:name|map)":"([^"]+)"/g)].map(m => m[1]!))
+// (the names a term reads, its shared parts walked once: a witness read at each of its uses is one object)
+const namesOf = (t: unknown): Set<string> => {
+  const out = new Set<string>()
+  walkOnce(t, o => { for (const [key, v] of Object.entries(o)) if ((key === 'name' || key === 'map') && typeof v === 'string') out.add(v) })
+  return out
+}
 export function nearOf(goal: Goal): boolean[] {
   let out = nearSeen.get(goal)
   if (!out) {
     const theirs = new Set(namesOf(goal.hyps.at(-1)))
-    nearSeen.set(goal, (out = goal.hyps.map(h => namesOf(h).every(n => theirs.has(n)))))
+    nearSeen.set(goal, (out = goal.hyps.map(h => [...namesOf(h)].every(n => theirs.has(n)))))
   }
   return out
 }

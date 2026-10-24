@@ -151,6 +151,42 @@ the task's expected verdict.
 - Not run: the Lean twin on the ranks found (every proof here is the kernel's, checked twice: in `findRank`, and again
   in solve.ts on the obligations of the loop as translated).
 
+### Accelerated cycles: products, inner loops, larger goals (Unreleased)
+
+After merging main at 056fcc3, launched together with main at that commit in one batch (`runs/nt3/its-mine6`,
+`its-main6`, `sv-mine6`, `sv-main6`):
+
+| | ITS terminates | nonterminating | solved of 1,239 | SV terminates | nonterminating | solved of 282 |
+| --- | --- | --- | --- | --- | --- | --- |
+| the task's statement (`gdp`), here | 610 | 529 | 1,139 | 169 | 55 | 224 |
+| 056fcc3 | 611 | 516 | 1,127 | 169 | 55 | 224 |
+| per component (`gdp-scc`), here | 612 | 529 | 1,141 | 151 | 55 | 206 |
+| 056fcc3 | 611 | 522 | 1,133 | 151 | 55 | 206 |
+| LoAT (`full1`), the nonterminating leader | 2 | 532 | | | | |
+
+LoAT's default engine still leads on nonterminating ITS tasks, by 3 on either statement. Of the 21 tasks it answered
+NO and 0.25.0's run didn't, six are answered in each of the seven batches through this track (complInterv and
+factorial by products, Test4, and three tqli by closures the kernel now builds and checks in the time); s1.t2,
+s1.t2_fixed, s1-striped.t2 and its `_fixed` twin in 5 or 6 of the 7 (closure and check take 35 to 58 s); KnapsackDP
+(its inner loop) in 4 (the three batches between gave the sets no stem reaches less time, since put back); agafp.t2 (a
+lasso) in 3. In this batch 12 are left beside LoAT, 10 of the 21 and two that 0.25.0's run had, each read against
+LoAT's proof (`runs/accel/loat-proof2`):
+
+- a product of the state and a turn's input (RandomHard: `arg2 = arg3·x`, linear only at arg3 = 1, which nothing
+  suggests), a stem through a doubling loop (MysteriousProgram: LoAT's runs x := 2x six times first);
+- a cycle past the walks' 6 choices (the three hqr: one of 25 turns is found with 16 choices and 5,000 cycles, in 9 s,
+  and its closure, of 633,928 distinct nodes, is not in 5 s), and programs of 203 and 426 locations (pgarch.t2, its
+  `_fixed` twin, slayer-3-new);
+- sets closed on a cycle no stem reaches (fun9: LoAT's set is on another cycle);
+- by chance and time: agafp.t2 and its `_fixed` twin (lassos the last lasso stage finds or not), edn.t2 (main's
+  second search finds it at 21.69 s per component; here, in some runs, a run's cycle of 64 turns takes that search's
+  time).
+
+Seven batches, each with main launched with it: 524, 527, 525, 525, 528 and 528 nonterminating here beside f990361's
+518, 520, 517, 517, 515 and 517 (`runs/nt3/its-m4` and `its-base1`, then `its-mine` to `its-mine5` and `its-base` to
+`its-base5`), then 529 beside 056fcc3's 516. No answer contradicts another tool's or another run's in the 42 ITS runs,
+and every SV answer is its expected verdict.
+
 ### Accelerated cycles (Unreleased)
 
 After merging main at 54bbec9 (gen/ranks2's rank splits, gen/sv-front's C front end), launched together with main
