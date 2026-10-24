@@ -20,6 +20,17 @@ export const walk = (t: unknown, f: (o: Record<string, unknown>) => void): void 
   f(o)
   for (const x of Object.values(o)) walk(x, f)
 }
+// Every object in a term once (arrays too), a part shared by several uses read at its first: a witness read at each of
+// its uses in a goal is one object, and a walk of the goal written out would read it at each.
+export const walkOnce = (t: unknown, f: (o: object) => void): void => {
+  const seen = new Set<object>()
+  const go = (x: unknown): void => {
+    if (!x || typeof x !== 'object' || seen.has(x)) return
+    seen.add(x); f(x)
+    for (const y of Object.values(x)) go(y)
+  }
+  go(t)
+}
 
 export type E =
   | {op: 'var', name: string}
