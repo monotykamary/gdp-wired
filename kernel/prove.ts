@@ -197,7 +197,10 @@ export function grow(goal: Goal, path: Path = new Map(), budget: {nodes: number,
 // goals of at most 4 MB written out.
 const treeCache = {on: 0, trees: new Map<string, Tree>(), keep(key: string, tree: Tree) { if (this.trees.size >= 2000) this.trees.clear(); this.trees.set(key, tree) }}
 const treeKey = (goal: Goal): string | undefined => { const text = JSON.stringify(goal.hyps); return text.length > 4_000_000 ? undefined : `${cellProducts.on ? 1 : 0}${unitsNow ? 1 : 0}${text}` }
+// GDP_TREES=0: no tree kept (each goal grown every time it is asked).
+const keepTrees = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_TREES !== '0'
 export function withTrees<T>(f: () => T): T {
+  if (!keepTrees) return f()
   treeCache.on++
   try { return f() } finally { if (--treeCache.on === 0) treeCache.trees.clear() }
 }
