@@ -17,10 +17,10 @@
 // sides; one the path decides follows the parent that agrees; a leaf's derivation is found again among the rows at
 // its tree path (a longer path than its clause's), and where a row isn't there, the rows at the tree path are solved
 // afresh.
-import {type Constraint, type Lin, type Step, env, refuteFast, solve, work} from '../core/solver.ts'
+import {type Constraint, type Lin, type Step, costs, env, refuteFast, solve, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
-import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isCell, isMonomial, leafConstraints} from './kernel.ts'
-import {clock, nearOf, openAt, openCells, rowsAt, unitAtoms, type Outcome} from './prove.ts'
+import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isMonomial, leafConstraints} from './kernel.ts'
+import {clock, logged, nearOf, openAt, openCells, queryHook, rowsAt, unitAtoms, type Outcome} from './prove.ts'
 import {Reader, type Row, namesOf} from './reader.ts'
 import {Simplex} from './simplex.ts'
 
@@ -47,7 +47,7 @@ const keyOf = (lin: Lin): string => {
 // A node of the refutation: a leaf (its decisions, by variable, and a derivation over the rows at its path) or a
 // resolution of two earlier nodes on a variable (`res[0]` the one with the atom as stored true, `res[1]` false).
 type DagNode = {inputs: Lin[], steps: Step[]} | {res: [number, number], on: Lin}
-type Var = {lin: Lin, terms: [string, number][], val?: boolean, level: number, reason?: number, at: number, act: number, phase: boolean}
+type Var = {name: string, lin: Lin, terms: [string, number][], col: boolean, tid?: number[], val?: boolean, level: number, reason?: number, at: number, act: number, phase: boolean}
 type Clause = {lits: Map<string, boolean>, node: number}
 // GDP_CDCL_LP=0: each node solved by elimination alone (no simplex); GDP_CDCL_FILL (8): the simplex's tableau begun
 // again past this many entries a row the node reads (research/step's comparisons).
@@ -63,7 +63,8 @@ export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions
 export const REFUTED = 'refuted, not unfolded'
 export type Refuted = Outcome & {core?: number[]}
 export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?: number}, opts: {maxLeaves?: number, model?: boolean, wall?: number, core?: boolean} = {}): Outcome {
-  return cdclSession(goal, root, opts).run(budget, opts.wall)
+  const go = () => cdclSession(goal, root, opts).run(budget, opts.wall)
+  return queryHook.on && !queryHook.depth ? logged(opts.model ? 'model' : 'cdcl', goal, go) : go()
 }
 // A search kept from one run to the next (core/bmc.ts's deeper goals): its atoms, their activities and phases, its learned
 // clauses and the simplex's tableau. Between runs the caller may add hypotheses to the goal (goal.hyps grows; none is
@@ -75,6 +76,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
   const st = cdclStats, timing = st.on
   const t = <T>(f: () => T, add: (ms: number) => void): T => { if (!timing) return f(); const t0 = performance.now(); try { return f() } finally { add(performance.now() - t0) } }
   st.runs++
+  costs.sessions++; costs.sessionHyps += goal.hyps.length
   const vars = new Map<string, Var>(), trail: string[] = [], levels: number[] = []
   let sx = useLp ? new Simplex() : undefined
   const nodes: DagNode[] = [], clauses: Clause[] = [], occ = new Map<string, number[]>()
@@ -89,15 +91,25 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
   // An atom as a variable: the stored form is the one whose canonical text is the variable's name (the smaller).
   const ensure = (lin: Lin): string => {
     const key = keyOf(lin)
-    if (!vars.has(key)) { const flip = key !== canon(lin), stored = flip ? atomOf(lin, false).lin : lin; vars.set(key, {lin: stored, terms: Object.entries(stored).filter(([x0]) => x0 !== '1'), level: -1, at: -1, act: 0, phase: !flip}) }
+    if (!vars.has(key)) {
+      const flip = key !== canon(lin), stored = flip ? atomOf(lin, false).lin : lin, terms = Object.entries(stored).filter(([x0]) => x0 !== '1')
+      vars.set(key, {name: key, lin: stored, terms, col: terms.some(([x0]) => x0.startsWith('⟦')), level: -1, at: -1, act: 0, phase: !flip})
+    }
     return key
   }
+  // Each candidate form's variable (none for a constant form), and the node it was last met at (the candidates told
+  // apart by form, as a set of forms would).
+  const recs = new WeakMap<Lin, {x: Var | undefined, seen: number}>()
+  const recOf = (lin: Lin) => { let r = recs.get(lin); if (!r) recs.set(lin, (r = {x: namesOf(lin).length > 0 ? vars.get(ensure(lin)) : undefined, seen: 0})); return r }
+  let candGen = 0, colsOn = 0, boundGen = 0
+  const loAt: number[] = [], loB: number[] = [], loRow: number[] = [], hiAt: number[] = [], hiB: number[] = [], hiRow: number[] = []
   // The root's own decisions are level 0, with no reason: they stay in every clause (the tree starts below them).
   const rootNames = new Set<string>(), stamps: number[] = []
   let stampN = 0
   for (const [key, a] of root) {
     const name = ensure(a.lin), x = vars.get(name)!, val = name === key ? a.holds : !a.holds
     x.val = val; x.level = 0; x.at = trail.length; stamps[x.at] = ++stampN; trail.push(name); rootNames.add(name)
+    if (x.col) colsOn++
   }
   const reader = new Reader(goal, {
     get: name => vars.get(name), stamp: at => stamps[at]!, size: () => trail.length,
@@ -114,11 +126,12 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
     x.val = val; x.level = level(); x.at = trail.length; x.phase = val; stamps[x.at] = ++stampN
     if (reason === undefined) delete x.reason; else x.reason = reason
     trail.push(name)
+    if (x.col) colsOn++
     reader.touch(name)
   }
   const undoTo = (l: number) => {
     const keep = levels[l] ?? trail.length
-    while (trail.length > Math.max(keep, fixed)) { const name = trail.pop()!, x = vars.get(name)!; delete x.val; x.level = -1; delete x.reason; reader.touch(name) }
+    while (trail.length > Math.max(keep, fixed)) { const name = trail.pop()!, x = vars.get(name)!; delete x.val; x.level = -1; delete x.reason; if (x.col) colsOn--; reader.touch(name) }
     levels.length = l
   }
   const addClause = (lits: Map<string, boolean>, node: number): number => {
@@ -134,6 +147,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
       const name = trail[qhead++]!, x = vars.get(name)!
       for (const ci of occ.get(`${name}=${x.val}`) ?? []) {
         const c = clauses[ci]!
+        costs.props += c.lits.size
         let open: string | undefined, nOpen = 0, dead = false
         for (const [w, p] of c.lits) {
           const y = vars.get(w)!
@@ -198,8 +212,8 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
   // CHC-COMP's 475 unsat tasks, 280 without; each atom decided at once at the point instead, 271).
   const phaseAtPoint = (cands: Lin[], lp: Simplex) => {
     for (const lin of cands) {
-      const x = vars.get(ensure(lin))!
-      if (x.val !== undefined || x.terms.some(([key]) => key.startsWith('⟦'))) continue
+      const x = recOf(lin).x!
+      if (x.val !== undefined || x.col) continue
       const at = lp.holds(x.lin)
       if (at !== undefined) x.phase = at
     }
@@ -211,7 +225,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
     restartAt = 32; nRestart = 0; sinceRestart = 0
     undoTo(0); qhead = Math.min(qhead, trail.length) // (a run before this one may have left decisions)
     if (assume) { const name = ensure(assume); assumed = [name, name === canon(assume)] } else assumed = undefined
-    return search()
+    return queryHook.on && !queryHook.depth ? logged(opts.model ? 'model' : 'cdcl', goal, search) : search()
   }
   const search = (): Outcome => {
     for (;;) {
@@ -234,10 +248,10 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
           if (mine.size !== theirs.size || [...mine].some(x => !theirs.has(x))) throw new Error(`reader.ts's rows differ from kernel.ts's at a node of ${goal.name}`)
         }
         work.n += 1 + full.length
+        costs.cdclNodes++; costs.cdclRows += full.length
         // (the elimination below reads term columns' rows only once the trail has an atom about one, as growPlain does)
-        let columns = false
-        for (let i = 0; i < trail.length && !columns; i++) for (const key in vars.get(trail[i]!)!.lin) if (key.startsWith('⟦')) { columns = true; break }
-        const idx = columns ? undefined : full.flatMap((r, i) => (namesOf(r.lin).some(key => key.startsWith('⟦')) ? [] : [i]))
+        const columns = colsOn > 0
+        const idx = columns ? undefined : full.flatMap((r, i) => (reader.readsColumn(r.lin) ? [] : [i]))
         const rows = idx ? idx.map(i => full[i]!) : full, at = (i: number) => (!idx ? i : i < rows.length ? idx[i]! : full.length + i - rows.length)
         // The candidates, in growPlain's order: the units, the conclusion's open atoms, the hypotheses' near it, the
         // rest, pairs of cells.
@@ -246,33 +260,37 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
           if (last >= 0) reader.open(last, out)
           for (let i = 0; i < last; i++) if (near[i]) reader.open(i, out)
           for (let i = 0; i < last; i++) if (!near[i]) reader.open(i, out)
-          if (rows.some(r => namesOf(r.lin).some(isCell))) for (const x of openCells(rows, pathOf())) out.push(x)
-          const seen = new Set<Lin>()
-          return out.filter(lin => !seen.has(lin) && (seen.add(lin), namesOf(lin).length > 0) && !decidedLin(lin))
+          if (rows.some(r => reader.readsCell(r.lin))) for (const x of openCells(rows, pathOf())) out.push(x)
+          const g = ++candGen, keep: Lin[] = []
+          for (const lin of out) { const r = recOf(lin); if (r.seen === g) continue; r.seen = g; if (r.x && r.x.val === undefined) keep.push(lin) }
+          return keep
         }, ms => { st.orderMs += ms })
         const open = cands.length > 0
+        costs.cands += cands.length
         // Bound propagation: an open atom its variables' bounds (the single-variable rows) decide.
         const tb = timing ? performance.now() : 0
         if (open) {
-          const lo = new Map<string, [number, number]>(), hi = new Map<string, [number, number]>()
-          full.forEach((r, i) => {
-            const ks = namesOf(r.lin)
-            if (ks.length !== 1) return
-            const x0 = ks[0]!, c = r.lin[x0]!, k0 = r.lin['1'] ?? 0
-            if (c > 0) { const b = Math.floor(-k0 / c); if (b < (hi.get(x0)?.[0] ?? Infinity)) hi.set(x0, [b, i]) }
-            else if (c < 0) { const b = Math.ceil(k0 / -c); if (b > (lo.get(x0)?.[0] ?? -Infinity)) lo.set(x0, [b, i]) }
-          })
+          // (each name's tightest bounds and their rows, by the name's id, stamped by node)
+          const g = ++boundGen
+          for (let i = 0; i < full.length; i++) {
+            const lin = full[i]!.lin, ks = reader.form(lin).names
+            if (ks.length !== 1) continue
+            const j = ks[0]!, c = lin[reader.nameOf(j)]!, k0 = lin['1'] ?? 0
+            if (c > 0) { const b = Math.floor(-k0 / c); if (hiAt[j] !== g || b < hiB[j]!) { hiAt[j] = g; hiB[j] = b; hiRow[j] = i } }
+            else if (c < 0) { const b = Math.ceil(k0 / -c); if (loAt[j] !== g || b > loB[j]!) { loAt[j] = g; loB[j] = b; loRow[j] = i } }
+          }
           let forced = 0
           for (const lin of cands) {
-            const name = ensure(lin), x = vars.get(name)!
-            if (x.val !== undefined || namesOf(x.lin).some(key => key.startsWith('⟦'))) continue // (a term column's rows read differently once its choice is decided)
+            const x = recOf(lin).x!, name = x.name
+            if (x.val !== undefined || x.col) continue // (a term column's rows read differently once its choice is decided)
+            const tid = (x.tid ??= reader.form(x.lin).names)
             const side = (val: boolean): number[] | undefined => { // the rows that force the stored atom to `val`
               let sum = x.lin['1'] ?? 0
               const used: number[] = []
-              for (const [x0, c] of x.terms) {
-                const b = (c > 0) === val ? hi.get(x0) : lo.get(x0)
-                if (!b) return undefined
-                sum += c * b[0]; used.push(b[1])
+              for (let q = 0; q < tid.length; q++) {
+                const c = x.terms[q]![1], j = tid[q]!, up = (c > 0) === val
+                if (up ? hiAt[j] !== g : loAt[j] !== g) return undefined
+                sum += c * (up ? hiB[j]! : loB[j]!); used.push(up ? hiRow[j]! : loRow[j]!)
               }
               return (val ? sum <= 0 : sum >= 1) ? used : undefined
             }
@@ -303,6 +321,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
             const p0 = sx.pivots
             let lp = sx.load(full)
             if (lp.kind === 'sat') lp = sx.check()
+            costs.pivots += sx.pivots - p0; if (sx.pivots > p0) costs.pivotNnz += (sx.pivots - p0) * sx.size
             if (timing) { st.lpMs += performance.now() - t0; st.pivots += sx.pivots - p0; st.lpRows = sx.size; st.lpNnz = sx.nnz; st.lpVars = sx.vars; st.lpLoad = full.length; if (lp.kind === 'unknown') st.lpUnknown++ }
             if (lp.kind === 'conflict') {
               const support = lp.rows.sort((x, y) => x - y), out = solve(support.map(i => full[i]!))
@@ -325,7 +344,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
           if (opts.model && lpSat && sx && open) phaseAtPoint(cands, sx)
           // A decision: the open atom of highest activity (the first candidate among equals).
           let pick: string | undefined, best = -1
-          for (const lin of cands) { const name = ensure(lin), x = vars.get(name)!; if (x.val === undefined && x.act > best) { best = x.act; pick = name } }
+          for (const lin of cands) { const x = recOf(lin).x!; if (x.val === undefined && x.act > best) { best = x.act; pick = x.name } }
           if (!pick && verdict?.kind === 'unknown') {
             for (const [x0, value] of Object.entries(verdict.point ?? {})) {
               if (Math.abs(value - Math.round(value)) < 1e-9 || isMonomial(x0)) continue

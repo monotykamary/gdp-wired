@@ -9,7 +9,7 @@
 //   - a hypothesis' rows and open atoms, and every term inside them, are reused from an earlier path that decided the
 //     same atoms they read (kernel.ts's reusing), so a new decision reads again only what it touches.
 import {type C, type E, type Law, type Machine, walkOnce} from '../core/machine.ts'
-import {type Lin, type Step, add, env, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
+import {type Lin, type Step, add, costs, env, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
 import {allowNode, allowTranslated, certCyclic, certOn, certSearch, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, loopNodes, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
 import type {TStats} from '../core/translate.ts'
@@ -73,30 +73,41 @@ function openH(c: C, path: Path, out: Lin[], positive = true): void {
 // keys a pairing builds ((a + b)² + b, keys whose difference has monomials) are left uncompared: that encoding states
 // their congruence as facts, and comparing their keys only brings products into leaves its linear rows decide.
 export const pairedKeys = {skip: false}
+// (each cell's map and key, and each pair's difference both ways, made once: the pairs are quadratic in the names, and
+// the same forms at every node keep what is remembered per form)
+const cellKeys = new Map<string, {map: string, key: Lin}>(), cellPairs = new Map<string, {d: Lin, neg: Lin, q0?: Lin, q1?: Lin}>()
+const cellKey = (n: string) => { let c = cellKeys.get(n); if (!c) { if (cellKeys.size > 100_000) cellKeys.clear(); cellKeys.set(n, (c = {map: n.slice(0, n.indexOf('[')), key: parseKey(n.slice(n.indexOf('[') + 1, -1))})) } return c }
 export function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
-  const names = [...new Set(rows.flatMap(r => Object.keys(r.lin)))].filter(isCell)
+  const seen = new Set<string>(), names: string[] = []
+  for (const r of rows) for (const n in r.lin) if (!seen.has(n)) { seen.add(n); if (isCell(n)) names.push(n) }
   const out: Lin[] = []
-  const keyText = (n: string) => n.slice(n.indexOf('[') + 1, -1)
-  // (each name's map and key read once: the pairs are quadratic in the names)
-  const maps = names.map(n => n.slice(0, n.indexOf('['))), keys = names.map(n => parseKey(keyText(n)))
+  const cs = names.map(cellKey)
+  const dec = (lin: Lin) => path.get(canon(lin))?.holds ?? (path.has(canonFlip(lin)) ? !path.get(canonFlip(lin))!.holds : undefined)
   for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
-    if (maps[i] !== maps[j]) continue
-    const d = sub(keys[i]!, keys[j]!)
+    if (cs[i]!.map !== cs[j]!.map) continue
+    const pk = `${names[i]}\u0000${names[j]}`
+    let pair = cellPairs.get(pk)
+    if (!pair) {
+      if (cellPairs.size > 200_000) cellPairs.clear()
+      const d = sub(cs[i]!.key, cs[j]!.key)
+      cellPairs.set(pk, (pair = {d, neg: scale(d, -1)}))
+    }
+    const d = pair.d
     if (pairedKeys.skip && Object.keys(d).some(isMonomial)) continue
-    const dec = (lin: Lin) => path.get(canon(lin))?.holds ?? (path.has(canonFlip(lin)) ? !path.get(canonFlip(lin))!.holds : undefined)
     // Two cells of a run's map (core/cyclic.ts: time u and key k at u + k·Ω) at keys k·Ω and k'·Ω: k = k' first, a
     // linear atom; the keys' own difference only where k = k' (its other side then refuted by (k − k')·Ω = 0, a product).
-    const q0 = cellProducts.on ? quotient(d) : undefined
+    const q0 = cellProducts.on ? ('q0' in pair ? pair.q0 : (pair.q0 = quotient(d))) : undefined
     if (q0) {
-      const qa = dec(q0), qb = dec(scale(q0, -1))
+      const q1 = (pair.q1 ??= scale(q0, -1))
+      const qa = dec(q0), qb = dec(q1)
       if (qa === undefined) { out.push(q0); continue }
-      if (qa === true && qb === undefined) { out.push(scale(q0, -1)); continue }
+      if (qa === true && qb === undefined) { out.push(q1); continue }
       if (!(qa && qb)) continue
-      cellDiffs.set(canon(d), q0); cellDiffs.set(canon(scale(d, -1)), scale(q0, -1))
+      cellDiffs.set(canon(d), q0); cellDiffs.set(canon(pair.neg), q1)
     }
-    const a = dec(d), b = dec(scale(d, -1))
+    const a = dec(d), b = dec(pair.neg)
     if (a === undefined) out.push(d)
-    else if (a === true && b === undefined) out.push(scale(d, -1))
+    else if (a === true && b === undefined) out.push(pair.neg)
   }
   return out
 }
@@ -205,7 +216,19 @@ export function withTrees<T>(f: () => T): T {
   treeCache.on++
   try { return f() } finally { if (--treeCache.on === 0) treeCache.trees.clear() }
 }
+// Each root query as it ends, for research's logs (research/query/log.ts sets it; off otherwise): the kind, the goal,
+// its wall time and counted work, its outcome, and how many queries it is inside.
+export const queryHook: {on?: (q: {kind: string, goal: Goal, ms: number, work: number, out: Outcome, depth: number}) => void, depth: number} = {depth: 0}
+export function logged(kind: string, goal: Goal, f: () => Outcome): Outcome {
+  const t0 = performance.now(), w0 = work.n
+  queryHook.depth++
+  try { const out = f(); queryHook.on?.({kind, goal, ms: performance.now() - t0, work: work.n - w0, out, depth: queryHook.depth - 1}); return out } finally { queryHook.depth-- }
+}
 function growKept(goal: Goal, path: Path, budget: {nodes: number, until?: number, units?: boolean}): Outcome {
+  if (queryHook.on && !path.size && !budget.nodes && !queryHook.depth) return logged('grow', goal, () => growKept0(goal, path, budget))
+  return growKept0(goal, path, budget)
+}
+function growKept0(goal: Goal, path: Path, budget: {nodes: number, until?: number, units?: boolean}): Outcome {
   if (!profile.on || path.size || budget.nodes) return growRoot(goal, path, budget)
   const t = performance.now(), s0 = profile.solves, m0 = profile.solveMs, r0 = profile.rowsMs, n0 = profile.nodes
   const out = growRoot(goal, path, budget)
@@ -260,6 +283,7 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
   // (what it saw before term columns), renumbered to the whole leaf's when a leaf is found.
   const full = timed(() => rowsAt(goal, path), ms => { profile.rowsMs += ms })
   work.n += 1 + full.length
+  costs.plainNodes++; costs.plainRows += full.length
   const columns = [...path.values()].some(a => Object.keys(a.lin).some(key => key.startsWith('⟦')))
   const idx = full.flatMap((r, i) => (columns || !Object.keys(r.lin).some(key => key.startsWith('⟦')) ? [i] : []))
   const rows = idx.map(i => full[i]!), at = (i: number) => (i < rows.length ? idx[i]! : full.length + i - rows.length)

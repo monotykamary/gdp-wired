@@ -50,6 +50,7 @@ export class Simplex {
   private rows: {basic: number, coef: Map<number, number>}[] = []
   private colOf: Set<number>[] = []
   pivots = 0
+  private at = new WeakMap<Lin, {j: number, c: number} | null>()
   private varOf(name: string): number {
     let j = this.index.get(name)
     if (j !== undefined) return j
@@ -96,12 +97,18 @@ export class Simplex {
       const d = strict ? 1e-7 * Math.max(1, Math.abs(b)) : 0
       if (c > 0) tighten(j, true, b - d, i); else tighten(j, false, b + d, i)
     }
-    for (const [i, r] of rows.entries()) {
-      const f = formOf(r.lin), k = r.lin['1'] ?? 0
-      if (f === null) { if (k > 0 || (!integral && r.strict && k >= 0)) return {kind: 'conflict', rows: [i]}; continue }
-      if ('single' in f) { bound(f.c, this.varOf(f.single), k, i, !integral && r.strict); continue }
-      // g·form + k <= 0
-      bound(f.g, this.slackOf(f), k, i, !integral && r.strict)
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i]!, k = r.lin['1'] ?? 0
+      // (each row's variable and coefficient, kept per form: the same forms at every node)
+      let at = this.at.get(r.lin)
+      if (at === undefined) {
+        const f = formOf(r.lin)
+        at = f === null ? null : 'single' in f ? {j: this.varOf(f.single), c: f.c} : {j: this.slackOf(f), c: f.g}
+        this.at.set(r.lin, at)
+      }
+      if (at === null) { if (k > 0 || (!integral && r.strict && k >= 0)) return {kind: 'conflict', rows: [i]}; continue }
+      // c·x + k <= 0 (a slack's: g·form + k <= 0)
+      bound(at.c, at.j, k, i, !integral && r.strict)
     }
     for (let j = 0; j < this.val.length; j++) if (this.lo[j]! > this.hi[j]! + eps) return {kind: 'conflict', rows: [this.loWhy[j]!, this.hiWhy[j]!].filter(x => x >= 0)}
     // Nonbasic variables into their bounds, then each basic one computed afresh from its row (no drift from the shifts

@@ -20,6 +20,11 @@ export const none: W = new Set<string>()
 export const join = (a: W, b: W): W => {
   if (!a.size || a === b) return b
   if (!b.size) return a
+  // (one inside the other, often: a reason with the parts it already has; the same set, not a copy)
+  const [s, l] = a.size <= b.size ? [a, b] : [b, a]
+  let inside = true
+  for (const x of s) if (!l.has(x)) { inside = false; break }
+  if (inside) return l
   const out = new Set(a)
   for (const x of b) out.add(x)
   return out
@@ -79,41 +84,49 @@ export class Reader {
   begin() { this.node++ }
   // The reads: a value's key (its term, condition, or a hypothesis' facts or open atoms) → the keys of the values that
   // read it; an atom's name → the keys of the values that read it. A clean key's value stands.
-  private up = new Map<object, Set<object>>()
-  private byAtom = new Map<string, Set<object>>()
+  private up = new Map<object, Map<object, number>>()
+  private byAtom = new Map<string, Map<object, number>>()
+  // (each key's finding, counted: a read is an edge from a finding, and one from an earlier finding than the reader's
+  // last is no read any more, dropped when a change walks past it)
+  private found = new Map<object, number>()
   private clean = new Set<object>()
   private frame: object | undefined
   private factKeys: object[] = []
   private openKeys: object[] = []
-  private lastUp = new WeakMap<object, object>()
+  private frameN = 0
   private read(key: object) {
-    if (!this.frame || this.lastUp.get(key) === this.frame) return
-    this.lastUp.set(key, this.frame)
-    let s = this.up.get(key)
-    if (!s) this.up.set(key, (s = new Set()))
-    s.add(this.frame)
+    const frame = this.frame
+    if (!frame) return
+    const s = this.up.get(key)
+    if (!s) this.up.set(key, new Map([[frame, this.frameN]]))
+    else if (s.get(frame) !== this.frameN) s.set(frame, this.frameN)
   }
   private readAtom(name: string) {
     if (!this.frame) return
     let s = this.byAtom.get(name)
-    if (!s) this.byAtom.set(name, (s = new Set()))
-    s.add(this.frame)
+    if (!s) this.byAtom.set(name, (s = new Map()))
+    s.set(this.frame, this.frameN)
   }
   private within<T>(key: object, f: () => T): T {
-    const was = this.frame
-    this.frame = key
-    try { return f() } finally { this.frame = was }
+    const was = this.frame, wasN = this.frameN, n = (this.found.get(key) ?? 0) + 1
+    this.found.set(key, n)
+    this.frame = key; this.frameN = n
+    try { return f() } finally { this.frame = was; this.frameN = wasN }
   }
   // The trail changed at this atom (decided, or taken back): every value that read it, and every reader of those, all
   // the way up (a value kept as final reads below it values that are not clean).
   touch(name: string) {
-    const todo = [...(this.byAtom.get(name) ?? [])], seen = new Set<object>()
+    const todo: object[] = [], seen = new Set<object>(), found = this.found
+    const walk = (edges: Map<object, number> | undefined) => {
+      if (edges) for (const [p, n] of edges) { if (found.get(p) === n) todo.push(p); else edges.delete(p) }
+    }
+    walk(this.byAtom.get(name))
     while (todo.length) {
       const key = todo.pop()!
       if (seen.has(key)) continue
       seen.add(key)
       this.clean.delete(key)
-      for (const p of this.up.get(key) ?? []) todo.push(p)
+      walk(this.up.get(key))
     }
   }
   private ok(x: Kept & {fin: boolean}, key: object): boolean {
@@ -311,43 +324,87 @@ export class Reader {
   // equal cells at keys the trail proves equal, each term column's rows (and those of the columns they bring), and a
   // natural's row for every name.
   rows(): Row[] {
-    // One row per linear form, with the shortest reason any of its copies has.
-    const out: Row[] = [], at = new Map<string, number>()
+    // One row per linear form, with the shortest reason any of its copies has (forms told apart by their ids, stamped).
+    const out: Row[] = [], g = ++this.gen
     for (const r of this.leafRows()) {
-      const id = canon(r.lin), j = at.get(id)
-      if (j === undefined) { at.set(id, out.length); out.push(r) } else if (r.w.size < out[j]!.w.size) out[j] = r
+      const id = this.form(r.lin).id
+      if (this.formSeen[id] !== g) { this.formSeen[id] = g; this.formAt[id] = out.length; out.push(r) } else { const j = this.formAt[id]!; if (r.w.size < out[j]!.w.size) out[j] = r }
     }
     return out
   }
+  // Each form's id (by its canonical text) and its names' ids, kept per reader; the stamps that tell a node's forms and
+  // names apart without hashing their texts at every node.
+  private forms = new WeakMap<Lin, {id: number, names: number[]}>()
+  private formIds = new Map<string, number>()
+  private nameIds = new Map<string, number>()
+  private nameText: string[] = []
+  private nameKind: number[] = [] // 1: a term column, 2: a cell, 0: else
+  private formSeen: number[] = []
+  private formAt: number[] = []
+  private nameSeen: number[] = []
+  private termSeen: number[] = []
+  private gen = 0
+  form(lin: Lin): {id: number, names: number[]} {
+    let f = this.forms.get(lin)
+    if (f) return f
+    const text = canon(lin)
+    let id = this.formIds.get(text)
+    if (id === undefined) { id = this.formIds.size; this.formIds.set(text, id); this.formSeen.push(0); this.formAt.push(0) }
+    const names = namesOf(lin).map(n => {
+      let j = this.nameIds.get(n)
+      if (j === undefined) { j = this.nameText.length; this.nameIds.set(n, j); this.nameText.push(n); this.nameKind.push(n.startsWith('⟦') ? 1 : isCell(n) ? 2 : 0); this.nameSeen.push(0); this.termSeen.push(0) }
+      return j
+    })
+    this.forms.set(lin, (f = {id, names}))
+    return f
+  }
+  // Whether a form reads a term column; a cell; a name's text by its id.
+  readsColumn(lin: Lin): boolean { for (const j of this.form(lin).names) if (this.nameKind[j] === 1) return true; return false }
+  readsCell(lin: Lin): boolean { for (const j of this.form(lin).names) if (this.nameKind[j] === 2) return true; return false }
+  nameOf(j: number): string { return this.nameText[j]! }
+  // The trail's atom rows, by position, kept while the position's stamp is.
+  private trailRows: Row[] = []
+  private trailStamps: number[] = []
+  private pairs = new Map<string, {d: Lin, neg: Lin, pq: Lin, qp: Lin}>()
   // The rows in kernel.ts's order, copies kept (a leaf's derivation indexes these).
   leafRows(): Row[] {
     const rows: Row[] = []
     for (let i = 0; i < this.trail.size(); i++) {
-      const a = this.trail.lin(i), key = `${a.name}=${a.holds}`
-      let r = this.atomRows.get(key)
-      if (!r) this.atomRows.set(key, (r = {lin: atomOf(a.lin, a.holds).lin, w: new Set([a.name]), label: ''}))
+      const s = this.trail.stamp(i)
+      let r = this.trailStamps[i] === s ? this.trailRows[i] : undefined
+      if (!r) {
+        const a = this.trail.lin(i), key = `${a.name}=${a.holds}`
+        r = this.atomRows.get(key)
+        if (!r) this.atomRows.set(key, (r = {lin: atomOf(a.lin, a.holds).lin, w: new Set([a.name]), label: ''}))
+        this.trailRows[i] = r; this.trailStamps[i] = s
+      }
       rows.push(r)
     }
     for (let i = 0; i < this.goal.hyps.length; i++) for (const r of this.facts(i).rows) rows.push(r)
-    const names = new Set<string>()
-    for (const r of rows) for (const key of namesOf(r.lin)) names.add(key)
-    const cells = [...names].filter(isCell).map(cellOf)
+    // (each name once, in the order first read, as a set of texts would keep them)
+    const g = ++this.gen, names: number[] = [], seen = this.nameSeen, kind = this.nameKind
+    for (const r of rows) for (const j of this.form(r.lin).names) if (seen[j] !== g) { seen[j] = g; names.push(j) }
+    const cells = names.filter(j => kind[j] === 2).map(j => cellOf(this.nameText[j]!))
     for (const [i, p] of cells.entries()) for (const q of cells.slice(i + 1)) {
       if (p.map !== q.map) continue
-      const d = sub(p.key, q.key), x = this.dec(d), y = this.dec(scale(d, -1))
-      if (x.t === true && y.t === true) { const w = join(x.w, y.w); rows.push({lin: sub(v(p.name), v(q.name)), w, label: ''}, {lin: sub(v(q.name), v(p.name)), w, label: ''}) }
+      // (each pair's forms made once: the same objects at every node, so what is kept per form is found again)
+      const key = `${p.name}\u0000${q.name}`
+      let f = this.pairs.get(key)
+      if (!f) { if (this.pairs.size > 200_000) this.pairs.clear(); const d = sub(p.key, q.key); this.pairs.set(key, (f = {d, neg: scale(d, -1), pq: sub(v(p.name), v(q.name)), qp: sub(v(q.name), v(p.name))})) }
+      const x = this.dec(f.d), y = this.dec(f.neg)
+      if (x.t === true && y.t === true) { const w = join(x.w, y.w); rows.push({lin: f.pq, w, label: ''}, {lin: f.qp, w, label: ''}) }
     }
-    const seen = new Set<string>(), todo = [...names].filter(n => n.startsWith('⟦'))
+    const done = this.termSeen, todo = names.filter(j => kind[j] === 1)
     while (todo.length) {
-      const name = todo.pop()!
-      if (seen.has(name)) continue
-      seen.add(name)
-      for (const r of this.termRows(name)) {
+      const j = todo.pop()!
+      if (done[j] === g) continue
+      done[j] = g
+      for (const r of this.termRows(this.nameText[j]!)) {
         rows.push(r)
-        for (const key of namesOf(r.lin)) { names.add(key); if (key.startsWith('⟦') && !seen.has(key)) todo.push(key) }
+        for (const n of this.form(r.lin).names) { if (seen[n] !== g) { seen[n] = g; names.push(n) } if (kind[n] === 1 && done[n] !== g) todo.push(n) }
       }
     }
-    for (const name of names) { let r = this.natRows.get(name); if (!r) this.natRows.set(name, (r = {lin: {[name]: -1}, w: none, label: ''})); rows.push(r) }
+    for (const j of names) { const name = this.nameText[j]!; let r = this.natRows.get(name); if (!r) this.natRows.set(name, (r = {lin: {[name]: -1}, w: none, label: ''})); rows.push(r) }
     return rows
   }
   // prove.ts's open atoms of a hypothesis (openH), in its order; none for a hypothesis whose facts are final.

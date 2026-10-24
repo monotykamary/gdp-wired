@@ -90,8 +90,11 @@ export const canon = (l: Lin) => JSON.stringify(Object.keys(l).sort().map(x => [
 // five times as many before merging them, it gives up with `unknown`.
 // The rows the solver has read and made, which a counted search reads as its clock (kernel/prove.ts's `counted`).
 export const work = {n: 0}
+// What the searches did, by kind, beside work.n (research/query reads them: the cost of each query's parts).
+export const costs = {solves: 0, solveRows: 0, fm: 0, fpivots: 0, cdclNodes: 0, cdclRows: 0, cands: 0, props: 0, pivots: 0, pivotNnz: 0, plainNodes: 0, plainRows: 0, sessions: 0, sessionHyps: 0}
 export function solve(constraints: Constraint[], maxRows = 20_000, integral = true): Verdict {
   work.n += constraints.length
+  costs.solves++; costs.solveRows += constraints.length
   const steps: Step[] = []
   const lins: Lin[] = [], stricts: boolean[] = []
   const push = (step: Step, lin: Lin, strict = false) => (steps.push(step), lins.push(lin), stricts.push(strict), lins.length - 1)
@@ -181,6 +184,7 @@ export function solve(constraints: Constraint[], maxRows = 20_000, integral = tr
     if (!choice) break
     if (choice.pos.length * choice.neg.length > 5 * maxRows) return {kind: 'unknown'}
     work.n += choice.pos.length * choice.neg.length
+    costs.fm += choice.pos.length * choice.neg.length
     exact &&= choice.isExact
     eliminated.push({x: choice.x, rows: [...choice.pos, ...choice.neg]})
     const next = rows.filter(r => (lins[r]![choice.x] ?? 0) === 0)
@@ -326,6 +330,7 @@ export function refuteFast(constraints: Constraint[], maxRows = 2_000, integral 
   const eps = 1e-9
   for (let iter = 0; iter < 50 * (R + m); iter++) {
     work.n += 1 + ((R * cols) >> 8)
+    costs.fpivots++
     // Bland's rule: the first column with a negative reduced cost enters (no cycling on degenerate systems).
     let enter = -1
     for (let j = 0; j < cols; j++) if (z[j]! < -eps) { enter = j; break }
