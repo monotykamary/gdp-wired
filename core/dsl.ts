@@ -28,6 +28,7 @@ import {conjunction, proveKInduction} from './kind.ts'
 import {cycleLemmas, findLeadsTo, findRank} from './cycles.ts'
 import {findNeverEnds} from './nonterm.ts'
 import {leadsByTerms} from './live.ts'
+import {type FreshLaw, freshLaws} from './fresh.ts'
 
 // --- terms and conditions -------------------------------------------------------------------------------------------
 
@@ -2575,9 +2576,20 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
     const c = withDeadline(until, () => cycleLemmas(rule.machine, withKinds(rule, laws), stepLaws, {ms: (until - clock()) / 2}))
     if (c.proven && c.checked) return {proven: true, checked: true, found: {...(lemmas ? {lemmas} : {}), facts: c.found.map(f => f.text)}}
   }
+  // Laws about the ids a counter hands out (core/fresh.ts), within a tenth of what is left: the laws with them, then
+  // the invariant search with them given.
+  let fresh: FreshLaw[] = []
+  if (Object.keys(rule.machine.maps ?? {}).length && until - clock() - tail > 1000) {
+    const fm = rule.machine, share = (until - clock() - tail) / 10
+    fresh = withDeadline(clock() + share, () => freshLaws(fm, rule.kindLaws(), {params: (rand, bound) => rule.randomParams(rand, bound), input: (rand, bound, ps) => rule.randomInput(rand, bound, ps)}, {ms: share}))
+    if (fresh.length) {
+      const given = [...withKinds(rule, laws), ...fresh.map(f => f.law)], out = withDeadline(clock() + share, () => (stepLaws.length ? proveStepLaws(fm, given, stepLaws) : proveLaws(fm, given)))
+      if (out.proven && out.checked) return {proven: true, checked: true, found: {laws: fresh, ...(lemmas ? {lemmas} : {})}}
+    }
+  }
   const ms = until - clock() - tail
   if (ms < 500) return v
-  const inf = inferLaws(rule, laws, stepLaws, {ms, ...(rule === r ? {first: v} : {})})
+  const inf = inferLaws(rule, [...fresh.map(f => f.law), ...laws], stepLaws, {ms, ...(rule === r && !fresh.length ? {first: v} : {})})
   if (!(inf.proven && inf.checked)) {
     const deep = bounded(Math.max(0, until - clock()), Math.max(1, reached))
     if (deep) return refutedBy(deep)
@@ -2585,7 +2597,7 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   }
   const {found, stats: _stats, ...verdict} = inf
   void _stats
-  return {...verdict, found: {laws: found, ...(lemmas ? {lemmas} : {})}}
+  return {...verdict, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}}
 }
 export type {StepLaw}
 export type {Liveness}
