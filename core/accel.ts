@@ -28,7 +28,7 @@
 import {type C, type E, n as K, x as V} from './machine.ts'
 import type {Loop} from '../kernel/kernel.ts'
 import {type Path, type Relation, relationOf} from './relation.ts'
-import {type Lin, canon, gcd, konst, plus, solve, subst, times, vars} from './solver.ts'
+import {type Lin, canon, gcd, konst, linOfE, plus, solve, subst, times, vars} from './solver.ts'
 
 // `targets`: the set's parts, each a location and its rows over the relation's names (R_j), for a stem's search.
 export type Target = {loc: number, rows: Lin[]}
@@ -422,15 +422,6 @@ export function* stemsTo(l: Loop, targets: Target[], io: StemIO, opts: {now: () 
   const pairOf = new Map<string, [string, number]>(), paramInts: [string, string | undefined][] = []
   for (const x of l.params) for (const sfx of ['$n', '$neg']) if (l.params.includes(x + sfx)) { pairOf.set(x, [x, 1]); pairOf.set(x + sfx, [x, -1]); paramInts.push([x, x + sfx]) }
   for (const x of l.params) if (!pairOf.has(x)) { pairOf.set(x, [x, 1]); paramInts.push([x, undefined]) }
-  const linRaw = (e: E): Lin | undefined => {
-    switch (e.op) {
-      case 'var': return {[e.name]: 1}
-      case 'const': return konst(e.value)
-      case 'add': { const a = linRaw(e.a), b = linRaw(e.b); return a && b && plus(a, b) }
-      case 'mul': { const a = linRaw(e.a); return a && times(a, e.k) }
-      case 'sub': case 'prod': case 'min': case 'max': case 'if': case 'get': return undefined
-    }
-  }
   const toInts = (raw: Lin): Lin | undefined => {
     const o: Lin = konst(raw['1'] ?? 0), seen = new Map<string, number>()
     for (const r of vars(raw)) {
@@ -450,14 +441,14 @@ export function* stemsTo(l: Loop, targets: Target[], io: StemIO, opts: {now: () 
   }
   const startOf = (x: string): Lin | undefined => {
     const pair = rel.ints.get(x)
-    if (!pair) { const e = l.state[x]; const r = e && linRaw(e); return r && toInts(r) }
+    if (!pair) { const e = l.state[x]; const r = e && linOfE(e); return r && toInts(r) }
     const ep = l.state[pair[0]], en = l.state[pair[1]]
     if (!ep || !en) return undefined
     if (ep.op === 'sub' && en.op === 'sub' && JSON.stringify(ep.a) === JSON.stringify(en.b) && JSON.stringify(ep.b) === JSON.stringify(en.a)) {
-      const a = linRaw(ep.a), b = linRaw(ep.b)
+      const a = linOfE(ep.a), b = linOfE(ep.b)
       return a && b && toInts(plus(a, b, -1))
     }
-    const a = linRaw(ep), b = linRaw(en)
+    const a = linOfE(ep), b = linOfE(en)
     return a && b && toInts(plus(a, b, -1))
   }
   const sigma0: Record<string, Lin> = {}

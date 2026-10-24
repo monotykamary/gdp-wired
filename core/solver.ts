@@ -12,6 +12,7 @@
 // with no cut: the integers are this with the cut rule, and a strict row over them is lin + 1 <= 0.
 
 import {type Rat, Q0, Q1, q, qadd, qcmp, qdiv, qneg, qnum, qrow, qsub} from './q.ts'
+import type {E} from './machine.ts'
 
 export type Lin = Record<string, number> // variable -> coefficient, '1' -> constant
 // The process's environment (the switches and traces the searches read), empty where there is none.
@@ -71,6 +72,16 @@ export const vars = (lin: Lin) => Object.keys(lin).filter(key => key !== '1')
 export const plus = (a: Lin, b: Lin, f = 1): Lin => { const o: Lin = {...a}; for (const x in b) { o[x] = (o[x] ?? 0) + f * b[x]!; if (!o[x]) delete o[x] } return o }
 export const times = (a: Lin, f: number): Lin => { const o: Lin = {}; if (f) for (const x in a) o[x] = a[x]! * f; return o }
 export const konst = (c: number): Lin => (c ? {1: c} : {})
+// A term as a linear form where it is one (names, constants, sums and constant multiples).
+export const linOfE = (e: E): Lin | undefined => {
+  switch (e.op) {
+    case 'var': return {[e.name]: 1}
+    case 'const': return konst(e.value)
+    case 'add': { const a = linOfE(e.a), b = linOfE(e.b); return a && b && plus(a, b) }
+    case 'mul': { const a = linOfE(e.a); return a && times(a, e.k) }
+    case 'sub': case 'prod': case 'min': case 'max': case 'if': case 'get': return undefined
+  }
+}
 // l with each name of m's replaced by its form there
 export const subst = (l: Lin, m: Record<string, Lin>): Lin => { let o: Lin = {}; for (const [x, c] of Object.entries(l)) o = plus(o, x !== '1' && m[x] ? times(m[x]!, c) : {[x]: c}); return o }
 export const canon = (l: Lin) => JSON.stringify(Object.keys(l).sort().map(x => [x, l[x]]))

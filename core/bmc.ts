@@ -28,7 +28,7 @@ import {REFUTED, cdclSession, growCdcl} from '../kernel/cdcl.ts'
 import type {Outcome} from '../kernel/prove.ts'
 import {allowed} from './watch.ts'
 import {isF as isFalse, isT as isTrue, simpC, simpE} from './nonterm.ts'
-import {env} from './solver.ts'
+import {env, linOfE, plus, vars} from './solver.ts'
 
 export type BoundedRun = {law: string, depth: number, witness: Record<string, number>, params: Record<string, number>, trace: Request[]}
 export type BmcOptions = {
@@ -113,21 +113,9 @@ const occurrences = (xs: (C | E)[], out = new Map<string, number>()): Map<string
 // CHC Bool argument is written) read as the copy itself where y is a yes/no (0 or 1: an input the assumption bounds by 1,
 // or a state value every step writes as one), so `reduce` puts it in. Each step's yes/no values are the inputs a
 // hypothesis bounds by 1 and the names an equation gives a 0/1 value.
-type Lin0 = Map<string, number>
-const linOf = (e: E, k = 1, out: Lin0 = new Map()): Lin0 | undefined => {
-  switch (e.op) {
-    case 'var': out.set(e.name, (out.get(e.name) ?? 0) + k); return out
-    case 'const': out.set('1', (out.get('1') ?? 0) + k * e.value); return out
-    case 'add': return linOf(e.a, k, out) && linOf(e.b, k, out)
-    case 'mul': return linOf(e.a, k * e.k, out)
-    case 'sub': case 'min': case 'max': case 'prod': case 'if': case 'get': return undefined
-  }
-}
 const diffConst = (a: E, b: E): number | undefined => {
-  const l = linOf(a), r = l && linOf(b, -1, l)
-  if (!r) return undefined
-  for (const [n, c] of r) if (n !== '1' && c !== 0) return undefined
-  return r.get('1') ?? 0
+  const l = linOfE(a), r = l && linOfE(b), d = r && plus(l, r, -1)
+  return d && !vars(d).length ? d['1'] ?? 0 : undefined
 }
 const T0: C = {op: '<=', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}, F0: C = {op: '<', a: {op: 'const', value: 0}, b: {op: 'const', value: 0}}
 export function tidier(bools: Set<string>) {
