@@ -128,17 +128,14 @@ const joinDown = env.GDP_JOIN_DOWN !== '0', joinDownQueries = 24
 // compare/chc/README.md); PDR on it answers more. Begun again past joinWarmHyps hypotheses; a query that would add more
 // than joinWarmAdd laws asked cold.
 const joinWarmEnv = env.GDP_JOIN_WARM ?? 'pdr', joinWarmHyps = 4000, joinWarmAdd = 256
-// GDP_JOIN_FIXGATE=0: a walk's request always tried with some inputs fixed first (else only while that pays, below).
-const joinFixGate = env.GDP_JOIN_FIXGATE !== '0'
 // PDR beside the join (InferOptions.pdr, or GDP_JOIN_PDR, which `off` turns off): first, before the join, with
 // joinPdrShare of its time (the join the rest); after, once the join ends unproven, with joinPdrAfter of what the
 // search has left (the kernel's search below, after a join that ran out of time, answered 4 of 478 sat answers:
 // compare/chc/README.md). At most joinPdrObligations obligations queued at once, 64 frames.
 const joinPdrOwn = env.GDP_JOIN_PDR_OWN !== '0'
 const joinPdrEnv = env.GDP_JOIN_PDR, joinPdrShare = Number(env.GDP_JOIN_PDR_SHARE ?? 0.5), joinPdrAfter = Number(env.GDP_JOIN_PDR_AFTER ?? 0.9), joinPdrObligations = 64
-// The kernel's search below the join: GDP_INFER_HALVES=0, a candidate chosen without its equality's other half;
-// GDP_INFER_DROP=0, a chosen candidate stuck inferStuckDrop times kept.
-const inferHalves = env.GDP_INFER_HALVES !== '0', inferDrop = env.GDP_INFER_DROP !== '0', inferStuckDrop = 4
+// The kernel's search below the join: GDP_INFER_HALVES=0, a cell form chosen without its equality's other half.
+const inferHalves = env.GDP_INFER_HALVES !== '0'
 const isRule = (t: AnyRule | Machine): t is AnyRule => typeof (t as AnyRule).kindsOfState === 'function'
 
 // The constants a machine's expressions hold, and the factors it multiplies by.
@@ -928,20 +925,14 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       if (out.stuck === 'sat' && out.witness) return {witness: out.witness}
       return undefined
     }
-    // (the inputs fixed first only while that finds a request one time in five or more, past eight tries, and every
-    // eighth time after: on a rule of many inputs, fixed ones rarely leave a request, and each such query is spent)
-    let fixTries = 0, fixWins = 0, requests = 0
     const requestAt = (params: Env, st: State): Request | undefined => {
       const vars: Record<string, E> = {}
       for (const [v, val] of Object.entries({...params, ...st.scalars})) vars[v] = n(val)
-      const fixing = joinFixGate ? fixTries < 8 || fixWins * 5 >= fixTries || ++requests % 8 === 0 : true
-      for (let tries = fixing ? 0 : 1; tries < 2; tries++) {
+      for (let tries = 0; tries < 2; tries++) {
         const fix: C[] = []
         if (tries === 0) for (const i of m.inputs) if (rand(3) === 0) fix.push(same(x(i), n([0, 1, 2, ...Object.values(st.scalars)][rand(3 + scalars.length)]!)))
         const o = budgeted(joinRequestMs, until2 => grow({name: 'a request', hyps: [substC(m.assume!, {vars, maps: {}, flags: {}}), ...fix]}, new Map(), {nodes: 0, until: until2, units: false}))
-        const got = !('tree' in o) && o.stuck === 'sat' && o.witness
-        if (tries === 0) { fixTries++; if (got) fixWins++ }
-        if (got) return Object.fromEntries(m.inputs.map(i => [i, o.witness![i] ?? 0])) as Request
+        if (!('tree' in o) && o.stuck === 'sat' && o.witness) return Object.fromEntries(m.inputs.map(i => [i, o.witness![i] ?? 0])) as Request
       }
       return undefined
     }
@@ -1342,7 +1333,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (joinPdr === 'only' && why !== 'inductive') why = 'pdr'
     if (why !== 'inductive' && why !== 'pdr') { why = ''; joinRounds() }
     opts.progress?.('join end', {rounds, set: set.length, why, cone: cone.length, ms: Math.round(performance.now() - jT0)})
-    if (joinPdr === 'after') pdrFor(jEnd + (until - jEnd) * joinPdrAfter)
+    // (after a join that ran its time out: one that ended sooner, with no target or a goal undecided, leaves the time
+    // to the kernel's search below, which answers there: CHC's s_split and loop__fib tasks)
+    if (joinPdr === 'after' && why === 'time') pdrFor(now() + (until - now()) * joinPdrAfter)
     // (unproven, the search below begins as it would have: the candidates and the counterexamples as they were)
     if (why === 'inductive') chosen = cone
     else { pool = pool0; ctis.length = ctis0 }
@@ -1370,8 +1363,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (!(whole.proven && whole.checked)) forget()
     return whole
   }
-  const stuckCount = new Map<Form, number>()
-  const mirrorText = (f: Form): string | undefined => (f.mod || f.cong || f.never || f.nevers || f.cube || f.unreachable || f.also || !f.coef.length ? undefined : textOf({...f, coef: f.coef.map(([i, c]) => [i, -c]), d: -f.d}))
+  const mirrorText = (f: Form): string | undefined => (!f.cells || f.mod || f.cong || f.never || f.nevers || f.cube || f.unreachable || f.also || !f.coef.length ? undefined : textOf({...f, coef: f.coef.map(([i, c]) => [i, -c]), d: -f.d}))
   for (let iter = 0; iter < 300 && now() < until && !stop(); iter++) {
     const began = now(), wall = performance.now()
     // (each law proven alone, then the set as a whole: the same goals, grown once)
@@ -1390,14 +1382,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (chosen.length && took > slow) { drop(chosen.at(-1)!); continue }
     const p = /@step|@\d+ steps/.test(last.goal) && last.witness ? witnessPoint(last.witness) : undefined
     if (p) ctis.push(p)
-    // (a chosen candidate whose own goal is stuck again and again, inferStuckDrop times, goes: what supports it keeps
-    // coming, and it may be what keeps the set from being inductive)
-    if (stuckOn && p && inferDrop) { const k = (stuckCount.get(stuckOn) ?? 0) + 1; stuckCount.set(stuckOn, k); if (k >= inferStuckDrop) { stuckCount.delete(stuckOn); drop(stuckOn); continue } }
     let next = p ? best(p) : undefined
     if (!next && p) next = best(p, true)
     if (!next && p) { const t = performance.now(), made = fromCti(p); pool.push(...made); next = best(p); opts.progress?.('cti', {forms: made.length, ms: Math.round(performance.now() - t)}) }
-    // (a candidate with its mirror alive, Σ ≤ d beside −Σ ≤ −d under the same guard: the equality both halves state,
-    // chosen together, as neither half is inductive without the other)
+    // (a cell form with its mirror alive, Σ ≤ d beside −Σ ≤ −d under the same guard: the equality both halves state at
+    // every key, chosen together, as neither half is inductive without the other: the real-world corpus's Timelock and
+    // blnk; on CHC's scalar forms, measured, it cost s_split tasks)
     if (next) { chosen.push(next); const mt = inferHalves && mirrorText(next), mirror = mt && pool.find(g => !chosen.includes(g) && textOf(g) === mt); if (mirror) chosen.push(mirror); continue }
     // Stuck with no counterexample on a goal not a candidate's: the last candidate made it harder, so it goes.
     if (chosen.length && !stuckOn && !p) { drop(chosen.at(-1)!); continue }
