@@ -1,0 +1,6 @@
+{
+  "blnkfinance/blnk/model/model.go": {
+    "onError": "discard",
+    "why": "transaction_execution.go:536-551: each transaction's balances are loaded afresh (validateAndPrepareTransaction, getSourceAndDestination), applied in memory (processBalances, :739-747, \"in-memory only\"), and an error returns before they are persisted (:553 on); so what a failed CommitInflight*, RollbackInflight* or UpdateBalances wrote (InitializeBalanceFields' zeros) is dropped"
+  }
+}

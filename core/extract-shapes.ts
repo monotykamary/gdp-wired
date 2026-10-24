@@ -6,7 +6,7 @@
 import ts from 'typescript'
 import * as I from './extract-ir.ts'
 import type {B} from './extract-ir.ts'
-import {type Arg, type Event, Exec, type Heap, type Layout, type ListObj, type ListOp, type ListWrite, type MapDecl, type MapObj, type Model, type Path, type Rec, Refusal, Retype, type Setup, type Shape, type Sort, type Term, type V, type Var, memberName, normalize, program, shapeOf} from './extract-read.ts'
+import {type Arg, type Event, Exec, type Heap, type Layout, type ListObj, type ListOp, type ListWrite, type MapDecl, type MapObj, type Model, type Path, type Rec, Refusal, Retype, type Setup, type Shape, type Sort, type Term, type V, type Var, memberName, mergeOps, normalize, program, shapeOf} from './extract-read.ts'
 
 export type ReadOptions = {
   entry: string,
@@ -137,7 +137,7 @@ function mergeVals(ex: Exec, c: B, a: StateVal, b: StateVal, at: ts.Node): State
   const maps = new Map([...a.maps].map(([n, w]) => [n, ex.mergeWrites(c, ex.s.maps.get(n)!, w, b.maps.get(n), at)]))
   // A list's write by cases: each side's under its condition.
   const lists = new Map<string, ListOp[]>()
-  for (const n of new Set([...(a.lists?.keys() ?? []), ...(b.lists?.keys() ?? [])])) lists.set(n, [...(a.lists?.get(n) ?? []).map(o => ({...o, when: I.and(c, o.when)})), ...(b.lists?.get(n) ?? []).map(o => ({...o, when: I.and(I.not(c), o.when)}))])
+  for (const n of new Set([...(a.lists?.keys() ?? []), ...(b.lists?.keys() ?? [])])) lists.set(n, mergeOps(c, a.lists?.get(n) ?? [], b.lists?.get(n) ?? []))
   return {leaves, maps, ...(lists.size ? {lists} : {})}
 }
 // Every way a step ends (each a path and its state), as one state by cases.
