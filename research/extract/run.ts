@@ -80,6 +80,9 @@ for (const j of jobs) {
   try {
     if (!/^(TypeScript|JavaScript)$/.test(j.language)) {
       Object.assign(row, {ok: false, refusal: {where: j.path, what: `${j.language}: not TypeScript or JavaScript`}, reason: 'language'})
+    } else if (!/\.[cm]?[jt]sx?$/.test(j.path)) {
+      // A document the corpus cites beside the code (a README's options).
+      Object.assign(row, {ok: false, refusal: {where: j.path, what: `${j.path.split('/').pop()}: not code to read (a document the corpus cites beside the code)`}, reason: 'not code to read'})
     } else if (j.set === 'realworld' && /\.(test|spec)\.[jt]sx?$/.test(j.path)) {
       // The corpus names a test case here (`over-refund`), not a declaration a rule is read from.
       Object.assign(row, {ok: false, refusal: {where: j.path, what: `${j.exportText}: a test's name, not a name the code declares (a test sets up the code it checks; the code is read where it is declared)`}, reason: 'not a declaration of the code'})
