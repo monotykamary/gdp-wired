@@ -93,7 +93,7 @@ for (const j of jobs) {
         const x = extractXState(code, {file: j.file, entry: j.entry, xstate: (v4(code) ? xstate4 : xstate) as never, ...(Object.keys(files).length ? {files} : {}), check: {runs: 200, depth: 16}})
         if (v4(code)) row.xstate = 4
         Object.assign(row, {ok: x.ok, shape, ...(x.ok ? {} : {refusal: x.refusals[0], reason: reason(x.refusals[0]?.what ?? '')}), ...(x.evidence ? {evidence: x.evidence} : {}), notes: x.notes})
-        if (x.source) writeFileSync(join(out, 'rules', `${j.id.replace(/[^\w.-]+/g, '_')}.ts`), x.source)
+        if (x.ok && x.source) writeFileSync(join(out, 'rules', `${j.id.replace(/[^\w.-]+/g, '_')}.ts`), x.source)
       } else {
         const files = j.lines ? {} : await importsOf(j, code)
         if (Object.keys(files).length) row.files = Object.keys(files)
@@ -102,7 +102,7 @@ for (const j of jobs) {
         const x = extract(code, {file: j.file, entry: j.entry, ...(Object.keys(files).length ? {files} : {}), ...(shape === 'class' ? {shape: 'class' as const} : {shape: 'functions' as const}),
           ...(j.functions ? {functions: j.functions} : {}), ...(j.methods ? {methods: j.methods} : {}), ...(j.init !== undefined ? {init: j.init} : {}), ...(j.domains ? {domains: j.domains} : {}), check: {runs: 200, depth: 12, states: 400, modules: {'@reduxjs/toolkit': rtk, xstate}}})
         Object.assign(row, {ok: x.ok, shape, ...(x.ok ? {} : {refusal: x.refusals[0], reason: reason(x.refusals[0]?.what ?? '')}), ...(x.evidence ? {evidence: x.evidence} : {}), notes: x.notes})
-        if (x.source) writeFileSync(join(out, 'rules', `${j.id.replace(/[^\w.-]+/g, '_')}.ts`), x.source)
+        if (x.ok && x.source) writeFileSync(join(out, 'rules', `${j.id.replace(/[^\w.-]+/g, '_')}.ts`), x.source)
       }
     }
   } catch (e) {

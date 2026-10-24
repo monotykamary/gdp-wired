@@ -1,4 +1,4 @@
-// Extracted by gdp-wired/extract from machine.ts (machine, an XState machine): its guards and actions read from setup().
+// Extracted by gdp-wired/extract from machine.ts (machine, an XState machine): its guards and actions read from the code.
 // Checked against XState's own actor; read again with extractXState() after the code changes.
 import {fromXState} from 'gdp-wired/xstate'
 import {machine} from './machine'

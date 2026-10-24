@@ -1,28 +1,36 @@
-{"id":"react.dev/useReducer/counter","law":"the age never goes below 42","expect":"true","extracted":{"verdict":"proven","ms":20},"hand":{"verdict":"proven","ms":11},"agree":true}
-{"id":"react.dev/useReducer/counter","law":"the age stays at most 100","expect":"false","extracted":{"verdict":"refuted","ms":1309},"hand":{"verdict":"refuted","ms":1023},"agree":true}
-{"id":"react.dev/useReducer/counter","law":"each action adds one","expect":"true","extracted":{"verdict":"proven","ms":13},"hand":{"verdict":"proven","ms":10},"agree":true}
-{"id":"react.dev/useReducer/form","law":"the age never goes below 42","expect":"true","extracted":{"verdict":"proven","ms":29},"hand":{"verdict":"proven","ms":19},"agree":true}
+{"id":"react.dev/useReducer/counter","law":"the age never goes below 42","expect":"true","extracted":{"verdict":"proven","ms":17},"hand":{"verdict":"proven","ms":17},"agree":true}
+{"id":"react.dev/useReducer/counter","law":"the age stays at most 100","expect":"false","extracted":{"verdict":"refuted","ms":104},"hand":{"verdict":"refuted","ms":43},"agree":true}
+{"id":"react.dev/useReducer/counter","law":"each action adds one","expect":"true","extracted":{"verdict":"proven","ms":26},"hand":{"verdict":"proven","ms":16},"agree":true}
+{"id":"react.dev/useReducer/form","law":"the age never goes below 42","expect":"true","extracted":{"verdict":"proven","ms":36},"hand":{"verdict":"proven","ms":24},"agree":true}
 {"id":"react.dev/useReducer/form","law":"the name stays Taylor","expect":"false","extracted":{"verdict":"refuted","ms":0},"hand":{"verdict":"refuted","ms":0},"agree":true}
-{"id":"react.dev/useReducer/form","law":"incremented_age keeps the name","expect":"true","extracted":{"verdict":"proven","ms":55},"hand":{"verdict":"proven","ms":43},"agree":true}
+{"id":"react.dev/useReducer/form","law":"incremented_age keeps the name","expect":"true","extracted":{"verdict":"proven","ms":52},"hand":{"verdict":"proven","ms":38},"agree":true}
 {"id":"redux/shopping-cart/cart","invariants":["state: a key it doesn't hold holds the defaults"],"proven":true}
-{"id":"redux/shopping-cart/cart","law":"a quantity never goes down","expect":"true","extracted":{"verdict":"proven","ms":109},"hand":{"verdict":"proven","ms":36},"agree":true}
-{"id":"redux/shopping-cart/cart","law":"an add counts one more of its product","expect":"true","extracted":{"verdict":"proven","ms":84},"hand":{"verdict":"proven","ms":33},"agree":true}
-{"id":"redux/shopping-cart/cart","law":"no product is added twice","expect":"false","extracted":{"verdict":"refuted","ms":0},"hand":{"verdict":"refuted","ms":0},"agree":true}
-{"id":"redux/todos/visibilityFilter","law":"another action keeps the filter","expect":"true","extracted":{"verdict":"proven","ms":48},"hand":{"verdict":"proven","ms":28},"agree":true}
-{"id":"redux/todos/visibilityFilter","law":"the filter is always SHOW_ALL","expect":"false","extracted":{"verdict":"refuted","ms":0},"hand":{"verdict":"refuted","ms":0},"agree":true}
-{"id":"redux/counter/counterSlice","law":"the value never goes below 0","expect":"false","extracted":{"verdict":"refuted","ms":0},"hand":{"verdict":"refuted","ms":0},"agree":true}
-{"id":"redux/counter/counterSlice","law":"a pending fetch is loading","expect":"true","extracted":{"verdict":"proven","ms":40},"hand":{"verdict":"proven","ms":29},"agree":true}
-{"id":"redux/counter/counterSlice","law":"the status is never failed","expect":"false","extracted":{"verdict":"refuted","ms":0},"hand":{"verdict":"refuted","ms":0},"agree":true}
-{"id":"redux/counter/counterSlice","law":"an increment adds one","expect":"true","extracted":{"verdict":"proven","ms":34},"hand":{"verdict":"proven","ms":23},"agree":true}
-{"id":"xstate/examples/toggle","law":"a toggle from inactive goes to active","expect":"true","extracted":{"verdict":"proven","ms":28},"hand":{"verdict":"proven","ms":8},"agree":true}
-{"id":"xstate/examples/toggle","law":"it is never active","expect":"false","extracted":{"verdict":"refuted","ms":0},"hand":{"verdict":"refuted","ms":0},"agree":true}
-{"id":"xstate/examples/counter","law":"the count never goes below 0","expect":"false","extracted":{"verdict":"refuted","ms":0},"hand":{"verdict":"refuted","ms":0},"agree":true}
-{"id":"xstate/examples/counter","law":"an increment adds one","expect":"true","extracted":{"verdict":"proven","ms":32},"hand":{"verdict":"proven","ms":23},"agree":true}
-{"id":"xstate/examples/counter","law":"a decrement takes one","expect":"true","extracted":{"verdict":"proven","ms":26},"hand":{"verdict":"proven","ms":9},"agree":true}
-{"id":"xstate/examples/7guis-counter-react","law":"the count never goes below 0","expect":"true","extracted":{"verdict":"proven","ms":11},"hand":{"verdict":"proven","ms":3},"agree":true}
-{"id":"xstate/examples/7guis-counter-react","law":"the count stays at most 5","expect":"false","extracted":{"verdict":"refuted","ms":0},"hand":{"verdict":"refuted","ms":0},"agree":true}
-{"id":"xstate/examples/7guis-counter-vue","law":"the count never goes below 0","expect":"true","extracted":{"verdict":"proven","ms":12},"hand":{"verdict":"proven","ms":3},"agree":true}
-{"id":"xstate/examples/7guis-counter-vue","law":"an increase adds one","expect":"true","extracted":{"verdict":"proven","ms":17},"hand":{"verdict":"proven","ms":5},"agree":true}
-{"id":"xstate/examples/express-workflow","law":"a timer at red turns green and counts a cycle","expect":"true","extracted":{"verdict":"proven","ms":53},"hand":{"verdict":"proven","ms":9},"agree":true}
-{"id":"xstate/examples/express-workflow","law":"a cycle is counted only on the way to green","expect":"true","extracted":{"verdict":"proven","ms":27},"hand":{"verdict":"proven","ms":10},"agree":true}
-{"id":"xstate/examples/express-workflow","law":"the cycles stay below 3","expect":"false","extracted":{"verdict":"refuted","ms":5},"hand":{"verdict":"refuted","ms":5},"agree":true}
+{"id":"redux/shopping-cart/cart","law":"a quantity never goes down","expect":"true","extracted":{"verdict":"proven","ms":124},"hand":{"verdict":"proven","ms":35},"agree":true}
+{"id":"redux/shopping-cart/cart","law":"an add counts one more of its product","expect":"true","extracted":{"verdict":"proven","ms":130},"hand":{"verdict":"proven","ms":43},"agree":true}
+{"id":"redux/shopping-cart/cart","law":"no product is added twice","expect":"false","extracted":{"verdict":"refuted","ms":1},"hand":{"verdict":"refuted","ms":0},"agree":true}
+{"id":"redux/todos/visibilityFilter","law":"another action keeps the filter","expect":"true","extracted":{"verdict":"proven","ms":54},"hand":{"verdict":"proven","ms":43},"agree":true}
+{"id":"redux/todos/visibilityFilter","law":"the filter is always SHOW_ALL","expect":"false","extracted":{"verdict":"refuted","ms":1},"hand":{"verdict":"refuted","ms":0},"agree":true}
+{"id":"redux/counter/counterSlice","law":"the value never goes below 0","expect":"false","extracted":{"verdict":"refuted","ms":0},"hand":{"verdict":"refuted","ms":1},"agree":true}
+{"id":"redux/counter/counterSlice","law":"a pending fetch is loading","expect":"true","extracted":{"verdict":"proven","ms":93},"hand":{"verdict":"proven","ms":92},"agree":true}
+{"id":"redux/counter/counterSlice","law":"the status is never failed","expect":"false","extracted":{"verdict":"refuted","ms":4},"hand":{"verdict":"refuted","ms":3},"agree":true}
+{"id":"redux/counter/counterSlice","law":"an increment adds one","expect":"true","extracted":{"verdict":"proven","ms":68},"hand":{"verdict":"proven","ms":60},"agree":true}
+{"id":"xstate/examples/toggle","law":"a toggle from inactive goes to active","expect":"true","extracted":{"verdict":"proven","ms":149},"hand":{"verdict":"proven","ms":70},"agree":true}
+{"id":"xstate/examples/toggle","law":"it is never active","expect":"false","extracted":{"verdict":"refuted","ms":1},"hand":{"verdict":"refuted","ms":0},"agree":true}
+{"id":"xstate/examples/counter","law":"the count never goes below 0","expect":"false","extracted":{"verdict":"refuted","ms":1},"hand":{"verdict":"refuted","ms":1},"agree":true}
+{"id":"xstate/examples/counter","law":"an increment adds one","expect":"true","extracted":{"verdict":"proven","ms":58},"hand":{"verdict":"proven","ms":10},"agree":true}
+{"id":"xstate/examples/counter","law":"a decrement takes one","expect":"true","extracted":{"verdict":"proven","ms":49},"hand":{"verdict":"proven","ms":12},"agree":true}
+{"id":"xstate/examples/7guis-counter-react","law":"the count never goes below 0","expect":"true","extracted":{"verdict":"proven","ms":21},"hand":{"verdict":"proven","ms":6},"agree":true}
+{"id":"xstate/examples/7guis-counter-react","law":"the count stays at most 5","expect":"false","extracted":{"verdict":"refuted","ms":1},"hand":{"verdict":"refuted","ms":1},"agree":true}
+{"id":"xstate/examples/7guis-counter-vue","law":"the count never goes below 0","expect":"true","extracted":{"verdict":"proven","ms":19},"hand":{"verdict":"proven","ms":5},"agree":true}
+{"id":"xstate/examples/7guis-counter-vue","law":"an increase adds one","expect":"true","extracted":{"verdict":"proven","ms":54},"hand":{"verdict":"proven","ms":11},"agree":true}
+{"id":"xstate/examples/express-workflow","law":"a timer at red turns green and counts a cycle","expect":"true","extracted":{"verdict":"proven","ms":46},"hand":{"verdict":"proven","ms":13},"agree":true}
+{"id":"xstate/examples/express-workflow","law":"a cycle is counted only on the way to green","expect":"true","extracted":{"verdict":"proven","ms":28},"hand":{"verdict":"proven","ms":27},"agree":true}
+{"id":"xstate/examples/express-workflow","law":"the cycles stay below 3","expect":"false","extracted":{"verdict":"refuted","ms":9},"hand":{"verdict":"refuted","ms":7},"agree":true}
+{"id":"xstate/examples/stopwatch","law":"the time never goes back but on a reset","expect":"true","extracted":{"verdict":"proven","ms":51},"hand":{"verdict":"proven","ms":38},"agree":true}
+{"id":"xstate/examples/stopwatch","law":"a reset stops it at zero","expect":"true","extracted":{"verdict":"proven","ms":37},"hand":{"verdict":"proven","ms":28},"agree":true}
+{"id":"xstate/examples/stopwatch","law":"a tick while stopped changes nothing","expect":"true","extracted":{"verdict":"proven","ms":32},"hand":{"verdict":"proven","ms":66},"agree":true}
+{"id":"xstate/examples/stopwatch","law":"the time stays at most 100","expect":"false","extracted":{"verdict":"refuted","ms":9906},"hand":{"verdict":"refuted","ms":7602},"agree":true}
+{"id":"xstate/examples/timer","law":"the seconds never go below 0","expect":"true","extracted":{"verdict":"proven","ms":1570},"hand":{"verdict":"proven","ms":1300},"agree":true}
+{"id":"xstate/examples/timer","law":"it runs only with time left","expect":"true","extracted":{"verdict":"proven","ms":249},"hand":{"verdict":"proven","ms":119},"agree":true}
+{"id":"xstate/examples/timer","law":"the last tick stops it","expect":"true","extracted":{"verdict":"proven","ms":191},"hand":{"verdict":"proven","ms":80},"agree":true}
+{"id":"xstate/examples/timer","law":"the seconds stay at most 60","expect":"false","extracted":{"verdict":"refuted","ms":1},"hand":{"verdict":"refuted","ms":1},"agree":true}
