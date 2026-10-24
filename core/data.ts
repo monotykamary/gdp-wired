@@ -2076,7 +2076,14 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
     // the goal's reads, its descent the scheme's own (the rank reads only the variable descended on).
     const free = (u: SchemeUse, m: number) => (mb.rank || !members[m]!.on || !(members[m]!.on!.v in u.subst) ? [] : members[m]!.law.vars.filter(v => !(v.name in u.subst)))
     const selfAt: LemmaAt[] = mb.uses.flatMap(u => { const m = u.member ?? mi, vs = free(u, m); return vs.length ? [{law: {...members[m]!.law, vars: vs}, node: -1 - m, concl: concls[m]!, pat: substC(concls[m]!, {vars: u.subst, maps: {}, flags: {}}), fixed: u.subst, guard: u.guard}] : [] })
-    const own = new Set(ih.map(u => sid([u.node, u.subst]))), selfUses = selfAt.length ? lemmaUsesFor(p, fs, selfAt, [concl, ihConcls], pre, models).filter(u => !own.has(sid([u.node, u.subst]))).slice(0, lemmaCaps.self) : []
+    // (each other variable at a value made of the goal's values by a datatype's constructors and fields and arithmetic,
+    // one of them a datatype's: tail ys beside n − 1, head x :: acc; not a function's value or another variable, which
+    // the classes of every branch may join to it; of arithmetic alone, one)
+    const shape = (t: E): 'no' | 'nat' | 'data' => { if (t.op === 'var' || t.op === 'const') return 'no'; let ok = true, built = false, reads = false; walk(t, o => { if (o.op === 'var') reads = true; if (o.op === 'get') { if (p.fns.some(f => f.name === o.map)) ok = false; else if (p.datas.some(d => (o.map as string).startsWith(`${d.name}.`))) built = true } }); return !ok || !reads ? 'no' : built ? 'data' : 'nat' }
+    const shaped = (u: NodeSpec['uses'][number], fixed: Record<string, E>): 'no' | 'nat' | 'data' => { const ks = Object.entries(u.subst).filter(([x]) => !(x in fixed)).map(([, t]) => shape(t)); return ks.includes('no') ? 'no' : ks.includes('data') ? 'data' : 'nat' }
+    const own = new Set(ih.map(u => sid([u.node, u.subst]))), found = selfAt.length ? lemmaUsesFor(p, fs, selfAt, [concl, ihConcls], pre, models).filter(u => !own.has(sid([u.node, u.subst]))).map(u => ({u, k: shaped(u, selfAt.find(a => a.node === u.node && Object.keys(a.fixed!).every(y => sid(a.fixed![y]) === sid(u.subst[y])))?.fixed ?? {})})) : []
+    // (those with a datatype's value first; one of arithmetic alone: take n (xs ++ ys)'s n − 1 beside xs's tail)
+    const selfUses = [...found.filter(f => f.k === 'data'), ...found.filter(f => f.k === 'nat').slice(0, 1)].map(f => f.u).slice(0, lemmaCaps.self)
     if (dataTrace) for (const u of selfUses) console.error(`[data]   hypothesis use at ${Object.entries(u.subst).map(([x, t]) => `${x} := ${brief(t, 80)}`).join('; ')}`)
     const uses = [...ih, ...selfUses, ...lemmaUses]
     if (dataTrace) for (const u of lemmaUses) console.error(`[data]   lemma use ${specs[u.node]!.name.slice(0, 40)} at ${Object.entries(u.subst).map(([x, t]) => `${x} := ${brief(t, 80)}`).join('; ')}`)
