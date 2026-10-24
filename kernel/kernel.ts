@@ -901,7 +901,9 @@ const natC = (c: C, env: Record<string, bigint>): boolean => {
 // Lean's checkRecur: the witness sets only inputs; the start meets the precondition; the stem's turns meet `while` and
 // the assumption, and the state after them is in the set; the closure goal's tree checks. A certificate outside the
 // language (names the loop doesn't declare, values that aren't naturals, a set reading a turn's input) is refused.
-export function checkRecur(l: Loop, r: Recur): boolean {
+export function checkRecur(l: Loop, r: Recur | RecurCases): boolean { return 'cases' in r ? checkRecurCases(l, r) : stemOk(l, r) && check(recurGoal(l, r), r.tree) }
+// Everything but the closure: the language, the witness's names, the start and the stem.
+function stemOk(l: Loop, r: Omit<Recur, 'tree'>): boolean {
   const names = [...l.params, ...l.inputs, ...Object.keys(l.state)], values = (o: Record<string, number>) => Object.values(o).every(x => Number.isSafeInteger(x) && x >= 0)
   distinct(l.name, names)
   for (const name of Object.keys(l.body)) if (!(name in l.state)) throw new Error(`${l.name}'s body sets ${name}, which isn't in its state`)
@@ -922,7 +924,77 @@ export function checkRecur(l: Loop, r: Recur): boolean {
     if (!natC(l.while, at) || !natC(l.assume ?? trueC, at)) return false
     env = apply(l.body, at)
   }
-  return natC(r.set, env) && check(recurGoal(l, r), r.tree)
+  return natC(r.set, env)
+}
+
+// The closure by cases (NonTerm.lean's `never_ends_of_cases`), for a large program's closure goal, which reads every
+// rule's body: each case pins some variables to values (a location) and names a condition (the set's part there);
+// `cover` refutes the set with no case's pins and condition holding, and each case's goal is [its condition, the closure
+// goal's second hypothesis], the pins substituted and the constants folded (`foldPinned`, Lean's simpC ∘ substC). Where
+// the pins hold, substituting them keeps every value; folding keeps every value.
+export type RecurCases = Omit<Recur, 'tree'> & {cover: Tree, cases: {pins: [string, number][], cond: C, tree: Tree}[]}
+const isTC = (c: C) => c.op === '<=' && c.a.op === 'const' && c.b.op === 'const' && c.a.value <= c.b.value
+const isFC = (c: C) => c.op === '<' && c.a.op === 'const' && c.b.op === 'const' ? c.b.value <= c.a.value : c.op === '<=' && c.a.op === 'const' && c.b.op === 'const' && c.b.value < c.a.value
+const kE = (value: number): E => ({op: 'const', value})
+// Lean's folds, on kernel.ts's terms: an and of several (Lean: each and of two, nested to the right) is false if one is,
+// else the rest that aren't true, and so for or; read through the Lean text, the two give the same terms.
+const foldMul = (k0: number, a: E): E => (k0 === 0 ? kE(0) : k0 === 1 ? a : a.op === 'const' ? kE(k0 * a.value) : {op: 'mul', k: k0, a})
+function foldTerm(e: E, f: (e: E) => E, fc: (c: C) => C): E {
+  switch (e.op) {
+    case 'var': case 'const': return e
+    case 'add': { const a = f(e.a), b = f(e.b); return a.op === 'const' && a.value === 0 ? b : b.op === 'const' && b.value === 0 ? a : a.op === 'const' && b.op === 'const' ? kE(a.value + b.value) : {op: 'add', a, b} }
+    case 'sub': { const a = f(e.a), b = f(e.b); return b.op === 'const' && b.value === 0 ? a : a.op === 'const' && b.op === 'const' ? kE(Math.max(0, a.value - b.value)) : {op: 'sub', a, b} }
+    case 'mul': return foldMul(e.k, f(e.a))
+    case 'min': case 'max': { const a = f(e.a), b = f(e.b); return a.op === 'const' && b.op === 'const' ? kE(Math[e.op](a.value, b.value)) : {op: e.op, a, b} }
+    case 'prod': { const a = f(e.a), b = f(e.b); return a.op === 'const' ? foldMul(a.value, b) : b.op === 'const' ? foldMul(b.value, a) : {op: 'prod', a, b} }
+    case 'if': { const c = fc(e.c); return isTC(c) ? f(e.then) : isFC(c) ? f(e.else) : {op: 'if', c, then: f(e.then), else: f(e.else)} }
+    case 'get': return {op: 'get', map: e.map, key: f(e.key)}
+    default: return unreachable(e)
+  }
+}
+function foldCond(c: C, f: (e: E) => E, fc: (c: C) => C): C {
+  switch (c.op) {
+    case '<=': case '<': case '=': {
+      const a = f(c.a), b = f(c.b)
+      if (a.op !== 'const' || b.op !== 'const') return {op: c.op, a, b}
+      return (c.op === '<=' ? a.value <= b.value : c.op === '<' ? a.value < b.value : a.value === b.value) ? trueC : falseC
+    }
+    case 'and': case 'or': {
+      const ys = c.xs.map(fc), stop = c.op === 'and' ? isFC : isTC, unit = c.op === 'and' ? isTC : isFC
+      if (ys.some(stop)) return c.op === 'and' ? falseC : trueC
+      const zs = ys.filter(y => !unit(y))
+      return zs.length === 0 ? (c.op === 'and' ? trueC : falseC) : zs.length === 1 ? zs[0]! : {op: c.op, xs: zs}
+    }
+    case 'not': { const x = fc(c.x); return isTC(x) ? falseC : isFC(x) ? trueC : {op: 'not', x} }
+    case 'flag': case 'all': throw new Error('a loop reads no flag')
+    default: return unreachable(c)
+  }
+}
+// The pins substituted and the constants folded, each shared part once.
+export function foldPinned(c: C, pins: [string, number][]): C {
+  const at = new Map(pins), me = new WeakMap<E, E>(), mc = new WeakMap<C, C>()
+  const f = (e: E): E => { let o = me.get(e); if (!o) { o = e.op === 'var' && at.has(e.name) ? kE(at.get(e.name)!) : foldTerm(e, f, fc); me.set(e, o) } return o }
+  const fc = (x: C): C => { let o = mc.get(x); if (!o) { o = foldCond(x, f, fc); mc.set(x, o) } return o }
+  return fc(c)
+}
+// The pins as a condition, as Lean's pinC: each variable equal to its value, nested to the right; none: true.
+export const pinC = (pins: [string, number][]): C => (pins.length === 0 ? trueC : pins.length === 1 ? {op: '=', a: {op: 'var', name: pins[0]![0]}, b: kE(pins[0]![1])}
+  : {op: 'and', xs: [{op: '=', a: {op: 'var', name: pins[0]![0]}, b: kE(pins[0]![1])}, pinC(pins.slice(1))]})
+export const coverGoal = (r: {set: C, cases: Pick<RecurCases['cases'][number], 'pins' | 'cond'>[]}): Goal => ({name: 'the set is covered by its cases', hyps: [r.set, ...r.cases.map((c): C => ({op: 'not', x: {op: 'and', xs: [pinC(c.pins), c.cond]}}))]})
+export function caseGoals(l: Loop, r: Pick<Recur, 'set' | 'wit'>, cases: Pick<RecurCases['cases'][number], 'pins' | 'cond'>[]): Goal[] {
+  const turn = recurGoal(l, r).hyps[1]!
+  return cases.map(({pins, cond}) => ({name: `${l.name} never ends: the set is closed where ${pins.map(([n, x]) => `${n} = ${x}`).join(', ')}`, hyps: [foldPinned(cond, pins), foldPinned(turn, pins)]}))
+}
+// Lean's checkRecurCases: as checkRecur, the closure by its cases.
+export function checkRecurCases(l: Loop, r: RecurCases): boolean {
+  const scope = [...l.params, ...Object.keys(l.state)]
+  for (const c of r.cases) {
+    inScope(`${l.name}'s case`, [c.cond], scope)
+    if (!naturalC(c.cond) || !c.pins.every(([n, x]) => scope.includes(n) && Number.isSafeInteger(x) && x >= 0)) throw new Error('outside the kernel')
+  }
+  if (!stemOk(l, r) || !check(coverGoal(r), r.cover)) return false
+  const goals = caseGoals(l, r, r.cases)
+  return r.cases.every((c, j) => check(goals[j]!, c.tree))
 }
 
 // --- progress: laws with "there is a request" ----------------------------------------------------------------------

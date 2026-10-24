@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type StepLaw, type Tree, boundOf, check, checkRecur, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
+import {type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {grow, minimal, proveBuilt, proveLaws, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
@@ -44,7 +44,9 @@ const decide = (lin: Lin, path: Path): boolean | undefined => {
   return f === undefined ? undefined : !f
 }
 export const int = (v: number) => (v < 0 ? `(${v})` : String(v))
-export const list = (xs: string[]) => `[${xs.join(', ')}]`
+// (a list past 256 entries as lists of 128 appended: Lean's list literal nests one level per entry, and a loop of 700
+// variables reaches its recursion limit)
+export const list = (xs: string[]): string => (xs.length > 256 ? `(${Array.from({length: Math.ceil(xs.length / 128)}, (_, i) => `[${xs.slice(i * 128, i * 128 + 128).join(', ')}]`).join(' ++ ')})` : `[${xs.join(', ')}]`)
 
 export function leaves(t: Tree, path: Path, visit: (t: Tree & {leaf: Step[], products?: [number, number][], squares?: Lin[]}, path: Path) => void) {
   if ('leaf' in t) return visit(t, path)
@@ -346,9 +348,43 @@ theorem ${id}_never_ends : NeverEnds ${id}_loop :=
 def ${id}_tampered${j} : Recur := ${recur(t.recur)}
 example : checkRecur ${id}_loop ${id}_tampered${j} = false := by ${checkBy}`).join('')}`
 }
+// A loop with a run that never ends, its set closed by cases (NonTerm.lean's never_ends_of_cases): the cover's and each
+// case's table and tree, read against the goals Lean builds (the pins substituted, the constants folded).
+export function neverEndsCasesToLean(id: string, l: Loop, r: RecurCases): string {
+  if (!checkRecurCases(l, r)) throw new Error(`${id}: the certificate does not check`)
+  const {vars, loop, recur} = recurCasesLean(id, l)
+  return `-- ${l.name}: a run that never ends, closed by ${r.cases.length} cases  (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')})
+def ${id}_loop : Loop := ${loop}
+def ${id}_recur : RecurCases := ${recur(r)}
+/-- ${l.name} never ends: for some params meeting its precondition, a run of turns from the start goes on forever. -/
+theorem ${id}_never_ends : NeverEnds ${id}_loop :=
+  never_ends_of_cases ${id}_loop ${id}_recur (by ${checkBy})`
+}
+// A certificate by cases as NonTerm.lean's RecurCases (each tree written against the goal it refutes, else none).
+export function recurCasesLean(id: string, l: Loop): {vars: string[], loop: string, recur: (r: RecurCases) => string} {
+  const {vars, loop} = recurLean(id, l, undefined)
+  const {e, c} = leanTerms(vars, [], id)
+  const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
+  const vals = (o: Record<string, number>) => list(Object.entries(o).map(([name, v2]) => `(${ix(name)}, ${v2})`))
+  const cert = (goal: Goal, tree: Tree) => {
+    let fits = false
+    try { fits = check(goal, tree) } catch { fits = false }
+    const coded = fits ? encode({name: `${id}: ${goal.name}`, goal, tree}, false, true, vars, [], false, true) : {tab: '[]', tree: '.leafAt [] [] [] []'}
+    return `(${coded.tab}, [], ${coded.tree})`
+  }
+  const recur = (r: RecurCases) => `⟨${list(vars.map((_, j) => String(j)))},
+  ${vals(r.start)},
+  ${list(r.stem.map(vals))},
+  ${c(r.set)},
+  ${list(Object.entries(r.wit).map(([name, t]) => `(${ix(name)}, ${e(t)})`))},
+  ${cert(coverGoal(r), r.cover)},
+  ${list(r.cases.map((k2, j) => `(${list(k2.pins.map(([n2, x]) => `(${ix(n2)}, ${x})`))}, ${c(k2.cond)}, ${cert(goals(r)[j]!, k2.tree)})`))}⟩`
+  const made = new WeakMap<RecurCases, Goal[]>(), goals = (r: RecurCases) => { let g = made.get(r); if (!g) made.set(r, (g = caseGoals(l, r, r.cases))); return g }
+  return {vars, loop, recur}
+}
 // The loop and a certificate as NonTerm.lean's Loop and Recur (the domain every variable; a certificate whose tree
 // doesn't refute its own goal carries `fallback`'s table and tree, which refutes `fallback`'s). lean-kernel/conformance.ts prints its cases with it.
-export function recurLean(id: string, l: Loop, fallback: Recur): {vars: string[], loop: string, recur: (r: Recur) => string} {
+export function recurLean(id: string, l: Loop, fallback: Recur | undefined): {vars: string[], loop: string, recur: (r: Recur) => string} {
   const vars = [...l.params, ...l.inputs, ...Object.keys(l.state)]
   const {e, c} = leanTerms(vars, [], id)
   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
@@ -366,7 +402,7 @@ export function recurLean(id: string, l: Loop, fallback: Recur): {vars: string[]
     // number written is one kernel.ts's check replayed: integers, every cut dividing its row.
     const fits = (g: Recur) => { try { return check(recurGoal(l, g), g.tree) } catch { return false } }
     // (neither refuting its goal, as a forged certificate's: a leaf with no step, the tree that refutes nothing)
-    const by = fits(rr) ? rr : fits(fallback) ? fallback : undefined
+    const by = fits(rr) ? rr : fallback && fits(fallback) ? fallback : undefined
     const coded = by ? enc(by) : {tab: '[]', tree: '.leafAt [] [] [] []'}
     return `⟨${list(vars.map((_, j) => String(j)))},
   ${vals(rr.start)},
@@ -1617,6 +1653,7 @@ export type LeanItem =
   // A loop with a run that never ends (core/nonterm.ts's certificate), through Kern.never_ends_of; each tampered
   // certificate's check computed to false.
   | {id: string, neverEnds: Loop, recur: Recur, tampered?: {what: string, recur: Recur}[]}
+  | {id: string, neverEnds: Loop, cases: RecurCases}
   // A fold over trees (a fold rule's `.fold`) and its laws, through Kern.fold_sound.
   | {id: string, fold: Fold, laws: Law[]}
   // A law proven by k-induction (core/kind.ts's search, from k = 1, or at `k`), through KInd.lean's kind_sound, with the
@@ -1721,7 +1758,7 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
       parts.push(`-- ${item.id}\n${cyc && 'text' in cyc ? cyc.text : loopToLean(id, item.loop, item.laws ?? [], item.rank)}`)
       theorems.push(`${id}_halts`)
     } else if ('neverEnds' in item) {
-      parts.push(`-- ${item.id}\n${neverEndsToLean(id, item.neverEnds, item.recur, item.tampered ?? [])}`)
+      parts.push(`-- ${item.id}\n${'cases' in item ? neverEndsCasesToLean(id, item.neverEnds, item.cases) : neverEndsToLean(id, item.neverEnds, item.recur, item.tampered ?? [])}`)
       theorems.push(`${id}_never_ends`)
     } else if ('cyclic' in item) {
       parts.push(`-- ${item.id}\n${cyclicToLean(id, item.cyclic, item.tampered ?? [], item.after, item.bridge, item.recur, item.fold)}`)

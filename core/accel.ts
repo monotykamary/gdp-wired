@@ -164,7 +164,8 @@ export function accelerate(G: Lin[], U: Record<string, Lin>, S: string[]): Accel
 
 // `targets`: the set's parts, each a location and its rows over the relation's names (R_j), for a stem's search.
 export type Target = {loc: number, rows: Lin[]}
-export type Accelerated = {set: C, wit: Record<string, E>, cycle: number[], locs: number[], targets: Target[]}
+// `cases`: the set's parts, each at its location (the location's variable pinned) with its rows, for a closure by cases.
+export type Accelerated = {set: C, wit: Record<string, E>, cycle: number[], locs: number[], targets: Target[], cases?: {pins: [string, number][], cond: C}[]}
 
 const isConst = (l: Lin) => vars(l).length === 0
 // (a row's coefficients divided by their common divisor, its constant rounded up: an integer row as tight as it goes)
@@ -185,19 +186,21 @@ const implied = (rows: Lin[], a: Lin) => solve([...rows, plus(times(a, -1), kons
 
 // `runs`: runs of the loop (params and each turn's inputs) whose cycles are tried first, the commonest first: each turn
 // read as the relation's path it took (`io` replays them).
+// `until` is read each time (a getter may move it: the caller's time spent on a candidate need not count against the
+// search for the next one).
 export type AccelOptions = {now: () => number, until: number, maxLen?: number, maxCycles?: number, runs?: {params: Record<string, number>, inputs: Record<string, number>[]}[], io?: StemIO}
 
 // The candidates, one at a time (a generator: the caller tries each against the kernel and stops when one is proven):
 // the relation's cycles, then those of its cases where a state value that a product reads with a turn's input is fixed
 // (`fixedCases`), which have 30% of the time where there are any.
 export function* accelerated(l: Loop, opts: AccelOptions): Generator<Accelerated> {
-  const rel = relOf(l), fixed = fixedCases(l), {now} = opts
-  if (rel) yield* cyclesOf(l, rel, fixed.length ? {...opts, until: now() + (opts.until - now()) * 0.7} : opts, [])
-  for (const f of fixed) { if (now() > opts.until) return; yield* cyclesOf(l, f.rel, {now, until: opts.until, ...(opts.maxLen ? {maxLen: opts.maxLen} : {})}, f.pins) }
+  const rel = relOf(l), fixed = fixedCases(l), {now} = opts, t0 = now()
+  if (rel) yield* cyclesOf(l, rel, fixed.length ? {...opts, get until() { return t0 + (opts.until - t0) * 0.7 }} : opts, [])
+  for (const f of fixed) { if (now() > opts.until) return; yield* cyclesOf(l, f.rel, {now, get until() { return opts.until }, ...(opts.maxLen ? {maxLen: opts.maxLen} : {})}, f.pins) }
 }
 // (`pins`: rows every part of the set keeps, the fixed values of a case)
 function* cyclesOf(l: Loop, rel: Relation, opts: AccelOptions, pins: Lin[]): Generator<Accelerated> {
-  const {now, until} = opts, maxLen = opts.maxLen ?? 6
+  const {now} = opts, maxLen = opts.maxLen ?? 6
   const S = rel.state, P = new Set(rel.params), Sset = new Set(S), NP = rel.paths.length
   const natState = S.filter(x => !rel.ints.has(x))
   // Each path's inputs as terms of the state before it (a few choices each, the first the likeliest).
@@ -207,13 +210,13 @@ function* cyclesOf(l: Loop, rel: Relation, opts: AccelOptions, pins: Lin[]): Gen
   // The cycles: closed walks of paths (a location may come twice: two turns at one location, taken in turn), each once
   // (its least rotation), with at most `maxLen` choices among a location's paths (a chain of locations with one path out,
   // as a translated program's straight-line code, is free) and at most 64 turns; the shortest first.
-  const enumerate = (ids: number): number[][] => {
+  // (`fewest`: the fewest choices a walk makes, so a deeper search finds only walks the first didn't)
+  const enumerate = (ids: number, fewest = 0, upTo = maxLen, cap = opts.maxCycles ?? 400): number[][] => {
   let cycles: number[][] = []
   // (those with an inner loop counted out apart, at most 60, after the rest)
   const counted: number[][] = []
   const byFrom = new Map<number, number[]>()
   for (let i = 0; i < ids; i++) { const f = from(i); byFrom.set(f, [...(byFrom.get(f) ?? []), i]) }
-  const cap = opts.maxCycles ?? 400
   const least = (seq: number[]) => seq.every((_, r) => r === 0 || cmp(seq, [...seq.slice(r), ...seq.slice(0, r)]) < 0)
   // (a turn costs 1 at a location of more than one path, 0 else; each location's least cost back to the cycle's start,
   // so a walk that can't come back within the budget is cut)
@@ -251,14 +254,14 @@ function* cyclesOf(l: Loop, rel: Relation, opts: AccelOptions, pins: Lin[]): Gen
   const open = (sigma: Record<string, Lin>, i: number, k: number) => (i >= NP ? stepTurn(rel, natState, {inner: loops[i - NP]!}, sigma) : turn(rel, natState, i, sigma, symbolic(rel.paths[i]!, k, Sset, P), k))
   const id0: Record<string, Lin> = Object.fromEntries(S.map(x => [x, {[x]: 1}]))
   let nodes = 20_000
-  for (let budget = 0; budget <= maxLen && cycles.length < cap && nodes > 0; budget++) {
-    for (let i = 0; i < NP && cycles.length < cap && nodes > 0 && now() < until; i++) {
+  for (let budget = fewest; budget <= upTo && cycles.length < cap && nodes > 0; budget++) {
+    for (let i = 0; i < NP && cycles.length < cap && nodes > 0 && now() < opts.until; i++) {
       const s0 = from(i)
       if (!backs.has(s0)) backs.set(s0, back(s0))
       const d = backs.get(s0)!
       // (`inner`: the self-loop just taken as many times as its rows allow, not taken again at once)
       const walk = (seq: number[], at: number, cost: number, sigma: Record<string, Lin>, rows: Lin[], inner?: number) => {
-        if (--nodes < 0 || cycles.length >= cap || now() > until) return
+        if (--nodes < 0 || cycles.length >= cap || now() > opts.until) return
         if (at === s0 && cost === budget && least(seq) && sat(rows)) { if (!seq.some((x, q) => q > 0 && x === seq[q - 1] && to(x) === from(x) && x < NP)) cycles.push(seq); else if (counted.length < 60) counted.push(seq) }
         if (seq.length >= 64) return
         const c = cost + costAt(at)
@@ -299,7 +302,7 @@ function* cyclesOf(l: Loop, rel: Relation, opts: AccelOptions, pins: Lin[]): Gen
     rel.paths.forEach((_, i) => { byLoc.set(from(i), [...(byLoc.get(from(i)) ?? []), i]) })
     let budget = 20_000
     for (const r of opts.runs) {
-      if (now() > until || budget <= 0) break
+      if (now() > opts.until || budget <= 0) break
       let st = opts.io.start(r.params)
       const seq: number[] = []
       for (const input of r.inputs.slice(0, Math.min(budget, 1000))) {
@@ -356,11 +359,11 @@ function* cyclesOf(l: Loop, rel: Relation, opts: AccelOptions, pins: Lin[]): Gen
           if (look === 'yes') sets.push(...lookahead(rel, seq.map((pi, j) => stepOf(pi, firsts[j]!)), natState, Sset, P))
         }
         for (const ins of sets) {
-          if (now() > until) return
+          if (now() > opts.until) return
           const key = `${seq.join(',')}|${JSON.stringify(ins)}`
           if (tried.has(key)) continue
           tried.add(key)
-          const out = candidate(rel, seq.map((pi, j) => stepOf(pi, ins[j]!)), natState, l, () => now() > until, pins)
+          const out = candidate(rel, seq.map((pi, j) => stepOf(pi, ins[j]!)), natState, l, () => now() > opts.until, pins)
           if (out) yield {...out, cycle: seq, locs: seq.map(from)}
         }
       }
@@ -368,12 +371,12 @@ function* cyclesOf(l: Loop, rel: Relation, opts: AccelOptions, pins: Lin[]): Gen
   }
   // The relation's cycles, then the cycles with an inner loop taken to its end, then the lookahead's choices on the first
   yield* tryAll(cycles, 'no')
-  if (now() > until) return
+  if (now() > opts.until) return
   // The inner loops: a self-loop or a cycle of two turns at a location whose turn, with its inputs' choices, is a
   // translation with a metering function (core/accel.ts's `accelerate`), taken to its end as one step of a walk; each
   // named NP + k among the paths.
   let tries = 2000
-  for (let i = 0; i < NP && loops.length < 40 && tries > 0 && now() < until; i++) {
+  for (let i = 0; i < NP && loops.length < 40 && tries > 0 && now() < opts.until; i++) {
     const at = rel.loc ? rel.from[i]! : 0
     if (readsPi(rel.paths[i]!)) continue
     const tails = rel.loc && rel.to[i] !== at ? rel.paths.flatMap((_, j) => (rel.from[j] === rel.to[i] && rel.to[j] === at && j !== i ? [j] : [])) : []
@@ -388,8 +391,12 @@ function* cyclesOf(l: Loop, rel: Relation, opts: AccelOptions, pins: Lin[]): Gen
     }
   }
   if (loops.length) yield* tryAll(enumerate(NP + loops.length).filter(c => c.some(i => i >= NP)), 'yes')
-  if (now() < until) yield* tryAll(cycles, 'only')
+  if (now() < opts.until) yield* tryAll(cycles, 'only')
+  // Deeper, in the time left: walks of up to 16 choices, at most 5,000 of them (hqr's cycle of 25 turns makes 16), each
+  // tried with its first inputs.
+  if (now() < opts.until && maxLen < DEEP) yield* tryAll(enumerate(NP, maxLen + 1, DEEP, 5000), 'no')
 }
+const DEEP = 16
 // The choices one input at a time of a turn's that the rest of the cycle bounds: the cycle from that turn on (its other
 // inputs as chosen), the bounds its rows put on the input, as terms of the state at that turn (x ≤ u gives x), the
 // first three that leave the rows satisfiable; at most 12.
@@ -831,7 +838,7 @@ function candidate(rel: Relation, steps: Step[], natState: string[], l: Loop, la
     for (let j = vals.length - 1; j >= 0; j--) if (keys[j] !== common) e = {op: 'if', c: conds[j]!, then: vals[j]!, else: e}
     wit[n] = e
   }
-  return {set, wit, targets: parts.map(p => ({loc: p.loc, rows: p.rows}))}
+  return {set, wit, targets: parts.map(p => ({loc: p.loc, rows: p.rows})), ...(rel.loc ? {cases: parts.map((p, j) => ({pins: [[rel.loc!, p.loc]] as [string, number][], cond: full[j]!}))} : {})}
 }
 const cmp = (a: number[], b: number[]) => { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i]! - b[i]!; return 0 }
 const isZ = (e: E) => e.op === 'const' && e.value === 0
