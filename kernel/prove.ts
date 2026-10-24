@@ -596,7 +596,7 @@ const nearSeen = new WeakMap<Goal, boolean[]>()
 // (the names a term reads, its shared parts walked once: a witness read at each of its uses is one object)
 const namesOf = (t: unknown): Set<string> => {
   const out = new Set<string>()
-  walkOnce(t, o => { for (const [key, v] of Object.entries(o)) if ((key === 'name' || key === 'map') && typeof v === 'string') out.add(v) })
+  walkOnce(t, o => { costs.goalNodes++; for (const [key, v] of Object.entries(o)) if ((key === 'name' || key === 'map') && typeof v === 'string') out.add(v) })
   return out
 }
 export function nearOf(goal: Goal): boolean[] {
@@ -622,6 +622,7 @@ function unitsOf(goal: Goal): Lin[] {
   // Forced by the root's rows without a solver: a row the atom is (or is the negation of), or the bounds the rows give
   // single variables (x <= c, x >= c) deciding it whichever way its variables go.
   const root: Path = new Map(), rows = leafConstraints(goal, root), seen = new Set<string>(), given = new Set<string>()
+  costs.unitRows += rows.length
   const lo = new Map<string, number>(), hi = new Map<string, number>()
   for (const r of rows) {
     given.add(canon(r.lin))

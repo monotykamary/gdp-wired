@@ -285,6 +285,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
           const take = (lins: Lin[]) => {
             let rs = listRecs.get(lins)
             if (!rs) listRecs.set(lins, (rs = lins.map(recOf)))
+            costs.scan += rs.length
             for (const r of rs) { if (r.seen === g) continue; r.seen = g; if (r.x && r.x.val === undefined) keep.push(r.x) }
           }
           take(unitAtoms(goal))
@@ -496,6 +497,7 @@ function unfold(goal: Goal, nodes: DagNode[], top: number, root: Path, maxLeaves
     if (++leaves > maxLeaves || clock() > until) { cdclStats.unfoldWhy = leaves > maxLeaves ? 'leaves' : 'time'; return undefined }
     reader.begin()
     const rows = reader.leafRows()
+    costs.unfoldRows += rows.length
     if (verify) {
       const path: Path = new Map(stack.map(x => [x.name, {lin: x.lin, holds: x.holds}])), kr = leafConstraints(goal, path)
       if (kr.length !== rows.length || kr.some((r, j) => canon(r.lin) !== canon(rows[j]!.lin))) {
@@ -516,6 +518,7 @@ function unfold(goal: Goal, nodes: DagNode[], top: number, root: Path, maxLeaves
     // (a row a longer path reads otherwise: a hypothesis false outright there, a choice decided)
     cdclStats.resolved2++
     work.n += 1 + rows.length
+    costs.unfoldRows += rows.length
     const fast = rows.length > 60 ? refuteFast(rows) : undefined
     if (fast?.kind === 'refuted') return {leaf: fast.steps}
     const out = solve(rows)

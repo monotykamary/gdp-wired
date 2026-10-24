@@ -10,7 +10,7 @@
 // row by its coefficients' divisor gives, which the exact elimination makes as well. Over the rationals (`integral`
 // false) nothing is rounded, and a strict row's bound is moved in by a hair (1e-7, relative): the floats only pick a
 // conflict's rows, which the exact elimination then refutes, strictness and all, or doesn't.
-import {type Lin, gcd} from '../core/solver.ts'
+import {type Lin, costs, gcd} from '../core/solver.ts'
 
 const eps = 1e-9
 // A bound's tolerance: relative past 1 (values drift by a few ulps a pivot).
@@ -146,6 +146,7 @@ export class Simplex {
   private movedAt: number[] = []
   private settles = 0
   assert(id: number, lin: Lin, strict?: boolean): void {
+    costs.bounds++
     const at = this.place(lin), k = lin['1'] ?? 0
     if (at === null) { this.ins.set(id, null); if (k > 0 || (!this.integral && strict && k >= 0)) this.falseIn.add(id); return }
     const {j, c} = at, b0 = c > 0 ? -k / c : k / -c, upper = c > 0, d = !this.integral && strict ? 1e-7 * Math.max(1, Math.abs(b0)) : 0
@@ -155,6 +156,7 @@ export class Simplex {
     if (upper ? b < this.hi[j]! : b > this.lo[j]!) { if (upper) { this.hi[j] = b; this.hiWhy[j] = id } else { this.lo[j] = b; this.loWhy[j] = id } this.move(j) }
   }
   retract(id: number): void {
+    costs.bounds++
     const a = this.ins.get(id)
     this.ins.delete(id)
     if (a === undefined) return
@@ -244,6 +246,7 @@ export class Simplex {
     this.rowOf[e] = r; this.rowOf[b] = -1
     for (const j of ecoef.keys()) this.colOf[j]!.add(r)
     // Every other row reading x_e: substitute.
+    costs.pivotRows += this.colOf[e]!.size
     for (const q of [...this.colOf[e]!]) {
       if (q === r) continue
       const other = this.rows[q]!, c = other.coef.get(e)!, before = other.coef.size

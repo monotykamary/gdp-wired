@@ -4,6 +4,7 @@
   reps    the representative queries: CHC sat (the join on Lustre's wide steps, solve.ts with no second CPU), CHC
           unsat (metros, car: compare/chc/kind.ts, k-induction and the bounded runs in turn), ITS nontermination (s1,
           hqr: compare/term/solve.ts), the false 944-hypothesis step goals (pairs-false.ts, 120 s)
+  realworld  the real-world corpus' laws, research/realworld/jobs.ts's commands
   g332    research/step/goal.ts on each of research/dag's 332 step goals (grow, the goal's own budget within 55 s)
   base    (not a jobs file) writes `.base`: main e883e53's tree with research/query's instrumentation patch
           (research/query/base.patch), for runs beside main (each job then also as base-<name> with "base": true)
@@ -43,6 +44,11 @@ def main(kind: str, extra: list[str]):
         for t in json.loads((GDP / "research/dag/step332-tasks.json").read_text()):
             s = t.removesuffix(".yml").replace("/", "__")
             jobs.append({"name": f"g332__{s}", "limit": 120, "cmd": f"bun research/step/goal.ts /goals/{s}/goal.json --ms 55000"})
+    elif kind == "realworld":
+        # the real-world corpus' laws (research/realworld/jobs.ts's jobs), as its runs give them
+        rw = json.loads(subprocess.run(["bun", "research/realworld/jobs.ts"], cwd=GDP, capture_output=True, text=True, check=True).stdout)
+        for j in rw:
+            jobs.append({"name": f"rw__{j['name']}", "limit": 200, "cmd": j["cmd"]})
     elif kind == "base":
         base = GDP / ".base"
         subprocess.run(["rm", "-rf", str(base)], check=True)

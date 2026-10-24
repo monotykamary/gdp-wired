@@ -91,7 +91,8 @@ export const canon = (l: Lin) => JSON.stringify(Object.keys(l).sort().map(x => [
 // The rows the solver has read and made, which a counted search reads as its clock (kernel/prove.ts's `counted`).
 export const work = {n: 0}
 // What the searches did, by kind, beside work.n (research/query reads them: the cost of each query's parts).
-export const costs = {solves: 0, solveRows: 0, fm: 0, fpivots: 0, cdclNodes: 0, cdclRows: 0, cands: 0, props: 0, pivots: 0, pivotNnz: 0, plainNodes: 0, plainRows: 0, sessions: 0, sessionHyps: 0}
+export const costs = {solves: 0, solveRows: 0, fm: 0, fpivots: 0, cdclNodes: 0, cdclRows: 0, cands: 0, scan: 0, props: 0, pivots: 0, pivotNnz: 0, pivotRows: 0, bounds: 0,
+  plainNodes: 0, plainRows: 0, sessions: 0, sessionHyps: 0, values: 0, copies: 0, edges: 0, unitRows: 0, unfoldRows: 0, goalNodes: 0}
 export function solve(constraints: Constraint[], maxRows = 20_000, integral = true): Verdict {
   work.n += constraints.length
   costs.solves++; costs.solveRows += constraints.length

@@ -12,7 +12,7 @@
 // Nothing here is trusted: the rows it gives are the kernel's (the search's tree is checked by kernel.ts at the end,
 // and each leaf's derivation is found again among kernel.ts's rows when the search's refutation is unfolded).
 import type {C, E} from '../core/machine.ts'
-import {type Lin, add, env, k, scale, sub, v} from '../core/solver.ts'
+import {type Lin, add, costs, env, k, scale, sub, v} from '../core/solver.ts'
 import {type Goal, atomOf, canon, canonFlip, columnTerm, factorsOf, isCell, termColumn} from './kernel.ts'
 
 export type W = ReadonlySet<string>
@@ -116,6 +116,7 @@ export class Reader {
   }
   private within<T>(key: object, f: () => T): T {
     const was = this.finding, now = {key}
+    costs.values++
     this.found.set(key, now)
     this.finding = now
     try { return f() } finally { this.finding = was }
@@ -125,7 +126,7 @@ export class Reader {
   touch(name: string) {
     const todo: object[] = [], seen = new Set<object>(), found = this.found
     const walk = (edges: Map<object, Finding> | undefined) => {
-      if (edges) for (const [k, f] of edges) { if (found.get(k) === f) todo.push(k); else edges.delete(k) }
+      if (edges) { costs.edges += edges.size; for (const [k, f] of edges) { if (found.get(k) === f) todo.push(k); else edges.delete(k) } }
     }
     walk(this.byAtom.get(name))
     while (todo.length) {
@@ -562,12 +563,14 @@ export class Reader {
   // natural's or a pair of cells', whose names it doesn't count).
   private addCopy(r: Row, kind: number, self = -1) {
     const f = this.form(r.lin), id = f.id, cs = (this.copies[id] ??= [])
+    costs.copies++
     if (!cs.length) { this.mark(id, false); this.slot[id] = this.live.length; this.live.push(r) } else { const at = this.slot[id]!; if (r.w.size < this.live[at]!.w.size) this.live[at] = r }
     cs.push(r)
     if (kind) for (const j of f.names) if (j !== self) this.countUp(j, kind)
   }
   private removeCopy(r: Row, kind: number, self = -1) {
     const f = this.form(r.lin), id = f.id, cs = this.copies[id]!
+    costs.copies++
     cs.splice(cs.indexOf(r), 1)
     const at = this.slot[id]!
     if (!cs.length) {
