@@ -10,13 +10,12 @@
 // row by its coefficients' divisor gives, which the exact elimination makes as well. Over the rationals (`integral`
 // false) nothing is rounded, and a strict row's bound is moved in by a hair (1e-7, relative): the floats only pick a
 // conflict's rows, which the exact elimination then refutes, strictness and all, or doesn't.
-import type {Lin} from '../core/solver.ts'
+import {type Lin, gcd} from '../core/solver.ts'
 
 const eps = 1e-9
 // A bound's tolerance: relative past 1 (values drift by a few ulps a pivot).
 const tol = (b: number) => 1e-7 * Math.max(1, Math.abs(b))
 type Form = {slack: string, g: number, terms: [string, number][]} // the row's variable part is g · (the slack's form)
-const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
 const formMemo = new WeakMap<Lin, Form | {single: string, c: number} | null>()
 function formOf(lin: Lin): Form | {single: string, c: number} | null {
   let out = formMemo.get(lin)

@@ -53,12 +53,13 @@
 // GDP_CYCLIC_ROUTE=translate|search|both, its route). Diagnostics: GDP_CYCLIC_LOG=1, the `cyclic: {...}` lines
 // research/cyclic/ratios.ts reads; GDP_CYCLIC_PROF=1, where each proof's time went; GDP_CYCLIC_SLICE=0, every goal grown
 // whole; GDP_CYCLIC_DEBUG=1, each goal grown.
-import type {C, E, Law, Machine} from './machine.ts'
+import {type C, type E, type Law, type Machine, atMost as le, get, n as k, plus as add, same as eq, walk, x as v} from './machine.ts'
 import type {Fold, Goal, Instances, Loop, StepLaw, Subst, Tree} from '../kernel/kernel.ts'
 import {assumed, boundOf, foldObligations, livenessParts, loopLiveness, loopMachine, loopObligations, obligations, stepLawObligations, substC, substE, witnessesOf} from '../kernel/kernel.ts'
 import {type CNode, type Cyclic, type Fact, type Use, baseHyps, descentGoal, instHyps, mainGoal, premiseGoal, refuseCyclic} from '../kernel/cyclic.ts'
 import {cellProducts, clock, grow, profile, usedHyps, widen, withDeadline, withinDeadline} from '../kernel/prove.ts'
 import {type Reads, type Renamer, type TStats, carry, decide, readsFirst, renamer, translate, tstats} from './translate.ts'
+import {env} from './solver.ts'
 
 // What only the search reads: `opaque`, terms it reads as variables of their own in the node's goal (the trees are the
 // goal's still: see `widen`); `variants`, the node stated otherwise (fewer facts, other uses), each tried in turn where
@@ -70,17 +71,11 @@ import {type Reads, type Renamer, type TStats, carry, decide, readsFirst, rename
 export type NodeSpec = Omit<CNode, 'uses' | 'main'> & {uses: Omit<Use, 'premises' | 'descent'>[], opaque?: E[], variants?: NodeSpec[], weak?: boolean, slice?: boolean, main?: Tree, carry?: boolean | 'sliced'}
 export type CyclicVerdict = {proven: true, checked: boolean, proof: Cyclic, why?: string} | {proven: false, checked: false, node: string, goal: string, stuck: string}
 
-const v = (name: string): E => ({op: 'var', name})
-const k = (value: number): E => ({op: 'const', value})
-const add = (a: E, b: E): E => ({op: 'add', a, b})
 const less1 = (a: E): E => ({op: 'sub', a, b: k(1)})
-const get = (map: string, key: E): E => ({op: 'get', map, key})
-const le = (a: E, b: E): C => ({op: '<=', a, b})
-const eq = (a: E, b: E): C => ({op: '=', a, b})
-const and = (...xs: C[]): C => (xs.length === 1 ? xs[0]! : {op: 'and', xs})
-const implies = (a: C, b: C): C => ({op: 'or', xs: [{op: 'not', x: a}, b]})
+export const and = (...xs: C[]): C => (xs.length === 1 ? xs[0]! : {op: 'and', xs})
+export const implies = (a: C, b: C): C => ({op: 'or', xs: [{op: 'not', x: a}, b]})
 const yes: C = le(k(0), k(0))
-const vars = (s: Record<string, E>): Subst => ({vars: s, maps: {}, flags: {}})
+export const vars = (s: Record<string, E>): Subst => ({vars: s, maps: {}, flags: {}})
 // A map's cell at time u and key k, in the run's one map over both: u + k·Ω, where Ω is above the run's length T, so
 // that no two (u, k) with u <= T meet (u < Ω). Linear in u, and two keys' cells differ by (k − k')·Ω.
 const omega = v('O$')
@@ -90,7 +85,7 @@ export const pair = (u: E, key: E): E => add(u, {op: 'prod', a: key, b: omega})
 // GDP_CYCLIC_PROF=1: each comparison's line also has where the cyclic proof's time went, by goal kind (main, premise,
 // descent, the kernel's check): ms, goals, hypotheses, solver and row ms.
 export const cyclicProf: Record<string, {ms: number, n: number, hyps: number, solveMs: number, rowsMs: number}> = {}
-const profOn = () => env()?.GDP_CYCLIC_PROF === '1'
+const profOn = () => env.GDP_CYCLIC_PROF === '1'
 export function timedKind<T>(kind: string, hyps: number, f: () => T): T {
   if (!profOn()) return f()
   const was = profile.on, s0 = profile.solveMs, r0 = profile.rowsMs, t0 = performance.now()
@@ -111,11 +106,10 @@ export function timedKind<T>(kind: string, hyps: number, f: () => T): T {
 // A cell by what it may be equal to: a run's map read at time u and any key (two keys the prover may prove equal) is
 // one, by its map and u; a function's read at any key is one, by the function; a run's other reads are themselves.
 const cellsIn = (t: unknown, out = new Set<string>()): Set<string> => {
-  if (t && typeof t === 'object') {
-    const o = t as Record<string, unknown>, map = o.map as string
+  walk(t, o => {
+    const map = o.map as string
     if (o.op === 'get') { const key = o.key as E; out.add(key.op === 'add' && key.b.op === 'prod' && JSON.stringify(key.b.b) === JSON.stringify(omega) ? `${map}@${JSON.stringify(key.a)}` : map.endsWith('@') ? JSON.stringify(o) : map) }
-    for (const val of Object.values(o)) cellsIn(val, out)
-  }
+  })
   return out
 }
 // A hypothesis' parts: through its conjunctions and its guarded parts (¬g ∨ x), each part with the guards it is under;
@@ -178,7 +172,7 @@ export function slice(g: Goal, whole: (i: number) => boolean, hypsOnly = false, 
 }
 const withProducts = <T>(f: () => T): T => { const was = cellProducts.on; cellProducts.on = true; try { return f() } finally { cellProducts.on = was } }
 let sliceNow = false
-const sliceOn = () => sliceNow && env()?.GDP_CYCLIC_SLICE !== '0'
+const sliceOn = () => sliceNow && env.GDP_CYCLIC_SLICE !== '0'
 // Trees already grown, by their goal (a node met again: a recurrence's lemmas in its laws between, a machine proven again),
 // with the facts and uses a node's own goal kept.
 // (Each route its own: `proveCyclic(..., cache)`, so that one route's trees don't time another's.)
@@ -202,7 +196,7 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
       if (part) {
         // (within two seconds: a weaker goal no easier than the whole is left to the whole)
         const t0 = performance.now(), p = timedKind(`${kind} sliced`, part.hyps.length, () => grow(part, new Map(), {nodes: 0, until: clock() + Math.min(2_000, later ?? 2_000)}))
-        if (env()?.GDP_CYCLIC_DEBUG) console.error(`[cyc] ${g.name}: ${part.hyps.length} hyps${part !== sliced ? ' (opaque)' : ''}, ${'tree' in p ? `${p.nodes} nodes` : p.stuck}, ${Math.round(performance.now() - t0)} ms`)
+        if (env.GDP_CYCLIC_DEBUG) console.error(`[cyc] ${g.name}: ${part.hyps.length} hyps${part !== sliced ? ' (opaque)' : ''}, ${'tree' in p ? `${p.nodes} nodes` : p.stuck}, ${Math.round(performance.now() - t0)} ms`)
         if ('tree' in p) return {tree: p.tree, from: part, used: () => new Set([...usedHyps(part, p.tree)].flatMap(i => part.from[i]!))}
         if (part !== sliced) {
           const q = timedKind(`${kind} sliced`, sliced.hyps.length, () => grow(sliced, new Map(), {nodes: 0, until: clock() + Math.min(2_000, later ?? 2_000)}))
@@ -248,7 +242,7 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
     if (part) {
       const nf = part.from.filter(f => f[0]! >= h0 && f[0]! < base).length, nu = part.from.filter(f => f[0]! >= base && f[0]! < last).length
       const tree = carry(part, nf, nu, st, clock() + 2_000), wide = tree && timedKind('widen', 0, () => widen(part, g, tree))
-      if (env()?.GDP_CYCLIC_DEBUG) console.error(`[carry] ${n1.name}: ${part.hyps.length} of ${g.hyps.length} hyps, ${tree ? (wide ? 'carried, widened' : 'carried, not widened') : 'not carried'}`)
+      if (env.GDP_CYCLIC_DEBUG) console.error(`[carry] ${n1.name}: ${part.hyps.length} of ${g.hyps.length} hyps, ${tree ? (wide ? 'carried, widened' : 'carried, not widened') : 'not carried'}`)
       if (wide) return wide
     }
     return carry(g, n1.insts.length, n1.uses.length, st, clock() + 2_000)
@@ -274,7 +268,7 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
       if (n2 && (n2.insts.length < n1.insts.length || n2.uses.length < n1.uses.length)) {
         const g2 = mainGoal(facts, shapes, n2), part = hide(g2)
         const p = timedKind('main selected', g2.hyps.length, () => withProducts(() => grow(part, new Map(), {nodes: 0, until: clock() + Math.min(2_000, later ?? 2_000)})))
-        if (env()?.GDP_CYCLIC_DEBUG) console.error(`[cyc] ${g.name}: ${g2.hyps.length} of ${g.hyps.length} hyps selected, ${'tree' in p ? `${p.nodes} nodes` : p.stuck}`)
+        if (env.GDP_CYCLIC_DEBUG) console.error(`[cyc] ${g.name}: ${g2.hyps.length} of ${g.hyps.length} hyps selected, ${'tree' in p ? `${p.nodes} nodes` : p.stuck}`)
         const t = 'tree' in p ? own({tree: p.tree, from: part}, g2) : undefined
         if (t && 'tree' in p) { n = n2; main = t; src = {tree: p.tree, from: part} }
       }
@@ -304,7 +298,7 @@ export function proveCyclic(facts: Fact[], specs: NodeSpec[], order0?: number[],
         const premises: Tree[] = []
         for (const [i, c] of m.hyps.entries()) {
           const t = whole(premiseGoal(facts, n, u, c, i), n.name, mine2)
-          if ('proven' in t && env()?.GDP_CYCLIC_DEBUG) console.error(`[premise] ${n.name}: use of node ${u.node}, its hypothesis ${i} (${t.stuck}): ${JSON.stringify(substC(c, vars(u.subst)))}`)
+          if ('proven' in t && env.GDP_CYCLIC_DEBUG) console.error(`[premise] ${n.name}: use of node ${u.node}, its hypothesis ${i} (${t.stuck}): ${JSON.stringify(substC(c, vars(u.subst)))}`)
           if ('proven' in t) return t
           premises.push(t)
         }
@@ -502,7 +496,7 @@ function withReads(facts: Fact[], specs: NodeSpec[], nodes: NodeSpec[] = specs):
     return reads.map(m => ({fact: i, map: m[1]!}))
   })
   if (!simple.length) return specs
-  const readsIn = (t: unknown, map: string): E[] => { const out: E[] = []; const walk = (x: unknown): void => { if (x && typeof x === 'object') { const o = x as Record<string, unknown>; if (o.op === 'get' && o.map === map) out.push(o.key as E); for (const val of Object.values(o)) walk(val) } }; walk(t); return out }
+  const readsIn = (t: unknown, map: string): E[] => { const out: E[] = []; walk(t, o => { if (o.op === 'get' && o.map === map) out.push(o.key as E) }); return out }
   return specs.map(n => {
     const insts = [...n.insts], seen = new Set(insts.map(p => JSON.stringify(p)))
     for (let round = 0; round < 2; round++) {
@@ -677,7 +671,7 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
     // A function's fact also at its keys with the terms the step gives a state variable (the usual proof reads the state
     // after the step so) as that variable's cell at t, where it then reads the function where the law at t does: at the
     // key its own reads are at, not one the prover would have to prove equal to it.
-    const fnReads = (x: unknown): string[] => { const out: string[] = []; const walk = (y: unknown): void => { if (y && typeof y === 'object') { const o = y as Record<string, unknown>; if (o.op === 'get' && !(o.map as string).endsWith('@')) out.push(JSON.stringify(o)); Object.values(o).forEach(walk) } }; walk(x); return out }
+    const fnReads = (x: unknown): string[] => { const out: string[] = []; walk(x, o => { if (o.op === 'get' && !(o.map as string).endsWith('@')) out.push(JSON.stringify(o)) }); return out }
     const concl = substC(l.holds, at(t)), reads = new Set(fnReads(concl))
     const after = (e: E) => substE(afterStep(substE(e, vars(fresh))), pre)
     const both = <T>(tuple: E[], make: (ks: E[]) => T, read: (x: T) => unknown): T[] => {
@@ -729,13 +723,10 @@ export function machineNodes(given: Machine, laws: Law[], instances: Record<stri
     const wkeys = new Set(mapNames.flatMap(map => { const w = m.step.maps?.[map]; return w && !('each' in w) ? [JSON.stringify(inlineE(w.key))] : [] }))
     const readsOf = (c: C): Reads => {
       const out: Reads = [], seen = new Set<string>()
-      const walk = (x: unknown): void => {
-        if (!x || typeof x !== 'object') return
+      walk(c, x => {
         const o = x as E
         if (o.op === 'if' && o.c.op === '=' && wkeys.has(JSON.stringify(o.c.b))) { const id = JSON.stringify([o.c.a, o.c.b]); if (!seen.has(id)) { seen.add(id); out.push({k: o.c.a, w: o.c.b}) } }
-        for (const val of Object.values(o)) walk(val)
-      }
-      walk(c)
+      })
       return out
     }
     for (const [i, l] of laws.entries()) {
@@ -937,9 +928,7 @@ export function stepLawNodes(m: Machine, laws: Law[], steps: {law: StepLaw, inst
 function cellsAt(m: Machine, facts: Fact[], x: unknown): NodeSpec['insts'] {
   const mapNames = Object.keys(m.maps ?? {}), t = JSON.stringify(v('t$')), fi = (name: string) => facts.findIndex(f => f.name === name)
   const out: NodeSpec['insts'] = [], seen = new Set<string>()
-  const walk = (y: unknown): void => {
-    if (!y || typeof y !== 'object') return
-    const o = y as Record<string, unknown>
+  walk(x, o => {
     if (o.op === 'get' && typeof o.map === 'string' && o.map.endsWith('@') && mapNames.includes(o.map.slice(0, -1))) {
       const key = o.key as E
       if (key.op === 'add' && JSON.stringify(key.a) === t && key.b.op === 'prod') {
@@ -947,9 +936,7 @@ function cellsAt(m: Machine, facts: Fact[], x: unknown): NodeSpec['insts'] {
         if (!seen.has(id)) { seen.add(id); out.push(...['at the start', 'at a step', '\'s cells are naturals'].map(what => ({fact: fi(`${m.name}: ${map}${what.startsWith('\'') ? what : ` ${what}`}`), at: [key.a, cell]}))) }
       }
     }
-    for (const val of Object.values(o)) walk(val)
-  }
-  walk(x)
+  })
   return out
 }
 // Each map cell a node reads at one of `times` (the first the earliest), pushed to `insts`: that map's step there (at a
@@ -995,16 +982,12 @@ export function allowNode(m: Machine, laws: Law[], inst: Instances, w: C, facts:
   // Each carried cell the conclusion and the facts given at t read there (a flag's body at its witness, say): 0 (the
   // request carries empty sets).
   const zeros: C[] = [], seen = new Set<string>()
-  const walk = (x: unknown): void => {
-    if (!x || typeof x !== 'object') return
-    const o = x as Record<string, unknown>
+  walk([concl, instHyps(facts, extra)], o => {
     if (o.op === 'get' && typeof o.map === 'string' && o.map.endsWith('@') && carried.includes(o.map.slice(0, -1))) {
       const id = JSON.stringify(o)
       if (!seen.has(id)) { seen.add(id); zeros.push(eq(o as E, k(0))) }
     }
-    for (const val of Object.values(o)) walk(val)
-  }
-  walk([concl, instHyps(facts, extra)])
+  })
   const hyps: C[] = [...(m.pre ? [m.pre] : []), le(t, T), ...(traced.length ? [{op: '<', a: T, b: omega} as C] : []), substC(w, now), ...zeros]
   const uses: NodeSpec['uses'] = laws.flatMap((l, i) => tuplesOf(l).map(ts => ({node: i, subst: Object.fromEntries(keysOf(l).map((kn, q) => [kn, substE(ts[q]!, now)])), guard: yes})))
   const insts: NodeSpec['insts'] = [{fact: fi(`${m.name}: the start`), at: [t]}, {fact: fi(`${m.name}: a step`), at: [t]},
@@ -1188,12 +1171,11 @@ export function foldNodes(f: Fold, laws: Law[], usual?: Record<string, Tree>, st
 
 // With GDP_CYCLIC=1, every proof the instances above cover is made again as a cyclic proof, and a verdict that differs
 // throws (GDP_CYCLIC_LAX=1 only prints it, to measure a whole run): the suite run so shows the rules are instances. Each comparison is printed to stderr as a line `cyclic: {...}`.
-const env = () => (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env
 let quiet = 0
-export const cyclicOn = () => quiet === 0 && env()?.GDP_CYCLIC === '1'
+export const cyclicOn = () => quiet === 0 && env.GDP_CYCLIC === '1'
 // The `cyclic: {...}` lines research/cyclic/ratios.ts reads, printed only with GDP_CYCLIC=1 (the cross-check) or
 // GDP_CYCLIC_LOG=1 (modal/run.py sets it): a user's proofs print nothing.
-export const cycLog = (o: object) => { if (env()?.GDP_CYCLIC === '1' || env()?.GDP_CYCLIC_LOG === '1') console.error(`cyclic: ${JSON.stringify(o)}`) }
+export const cycLog = (o: object) => { if (env.GDP_CYCLIC === '1' || env.GDP_CYCLIC_LOG === '1') console.error(`cyclic: ${JSON.stringify(o)}`) }
 // A search's many trial proofs (core/discover.ts, core/infer.ts) aren't compared: what it finds is proven again.
 export const quietly = <T>(f: () => T): T => { quiet++; try { return f() } finally { quiet-- } }
 // GDP_CYCLIC_ROUTE: `translate` (the default) makes the cyclic proof of what the usual route proved by translating the
@@ -1218,7 +1200,7 @@ export function translatedProof(key: () => string, build: (reused: boolean) => {
   if (v.proven && v.checked) { if (proofsMade.size >= 1024) proofsMade.clear(); proofsMade.set(k0, v.proof) }
   return {verdict: v}
 }
-export const routeOf = () => env()?.GDP_CYCLIC_ROUTE ?? 'translate'
+export const routeOf = () => env.GDP_CYCLIC_ROUTE ?? 'translate'
 const none = (): CyclicVerdict => ({proven: false, checked: false, node: '', goal: 'no instance searched', stuck: 'unknown'})
 // The cyclic proof of what the usual route proved: translated, else (`fallback`, or `searched` where nothing is
 // translated) searched, within `until` where it is given; with why the translation wasn't proven.
@@ -1249,7 +1231,7 @@ export function crossCyclic(kind: string, name: string, usual: boolean, run0: ((
   let search: {searchMs: number, searchCyclic: boolean} | undefined
   if (route === 'both' && run0) { const s0 = performance.now(), o = run0(); search = {searchMs: Math.round(performance.now() - s0), searchCyclic: o.proven && o.checked} }
   cycLog({kind, name, usual, cyclic, ms, ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {}), ...search, ...prof, ...(out.proven ? {nodes: out.proof.nodes.length, ...(out.why ? {why: out.why} : {})} : {goal: out.goal, stuck: out.stuck})})
-  const lax = env()?.GDP_CYCLIC_LAX === '1'
+  const lax = env.GDP_CYCLIC_LAX === '1'
   if (cyclic !== usual && !lax) throw new Error(`cyclic route: ${kind} ${name} is ${cyclic ? 'proven' : 'not proven'} as a cyclic proof, ${usual ? 'proven' : 'not proven'} the usual way${out.proven ? (out.why ? ` (${out.why})` : '') : ` (${out.goal}: ${out.stuck})`}`)
   if (search && search.searchCyclic !== usual && !lax) throw new Error(`cyclic route: ${kind} ${name} is ${search.searchCyclic ? 'proven' : 'not proven'} as a cyclic proof searched, ${usual ? 'proven' : 'not proven'} the usual way`)
 }
@@ -1260,10 +1242,10 @@ export function crossCyclic(kind: string, name: string, usual: boolean, run0: ((
 // checks the usual trees and counts the proof uncovered (`why`). With GDP_CERT_SEARCH=1 (off by default: a search costs
 // seconds a proof) a proof the translation doesn't cover is searched first, within GDP_CERT_MS (10 s by default). Each
 // logs a line `cyclic: {..., cert: true}` (cycLog).
-export const certMode = () => env()?.GDP_CERT !== 'usual'
+export const certMode = () => env.GDP_CERT !== 'usual'
 export const certOn = () => quiet === 0 && certMode()
-export const certSearch = () => env()?.GDP_CERT_SEARCH === '1'
-export const certMs = () => Number(env()?.GDP_CERT_MS ?? 10_000)
+export const certSearch = () => env.GDP_CERT_SEARCH === '1'
+export const certMs = () => Number(env.GDP_CERT_MS ?? 10_000)
 // A proof of a kind no cyclic instance covers, or whose cyclic proof wasn't made, counted (`cyclic: {..., uncovered:
 // true, why}`): its certificate the usual trees.
 export const uncovered = (kind: string, name: string, why: string): void => cycLog({kind, name, uncovered: true, why})

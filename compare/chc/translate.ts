@@ -207,6 +207,28 @@ export function build(chc: Chc, name = 'chc') {
   return {rule: r, law, plans, predNames, loc, clauseNames, nInt, nBool, inInt, inBool, fires}
 }
 
+// A bounded run's request (core/bmc.ts's trace: an integer as its two naturals, a yes/no as 0 or 1) as a request of the
+// rule's (the clause by name, each value as the CHC reads it).
+export type Raw = Record<string, number | boolean | string>
+export function requestOf(b: Built, t: Record<string, unknown>): Raw {
+  const out: Raw = {c: b.clauseNames[t.c as number]!}
+  for (let k = 0; k < b.inInt; k++) out[`x${k}`] = (t[`x${k}`] as number) - (t[`x${k}$neg`] as number)
+  for (let k = 0; k < b.inBool; k++) out[`y${k}`] = t[`y${k}`] === 1
+  return out
+}
+// A run's requests taken by the compiled rule from the start: each step's clause, request and the states around it.
+export function stepsOf(b: Built, raws: Raw[]): Step[] {
+  const r = b.rule, g = r.compiled()
+  let st = g.init({})
+  const steps: Step[] = []
+  for (const raw of raws) {
+    const before = r.decode(st), next = g.step({}, st, r.encodeInput(raw as never))
+    steps.push({clause: Number(String(raw.c).slice(1)), input: raw, before, after: r.decode(next)})
+    st = next
+  }
+  return steps
+}
+
 // A run the rule took, checked against the CHC itself (evalSx: no gdp-wired code): each step's clause, with its
 // variables valued from the state before (the body's slots), the request (its free variables) and its definitions,
 // satisfies its whole constraint and its body arguments, and its head arguments are the state after. The last step's

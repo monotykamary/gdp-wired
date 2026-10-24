@@ -20,7 +20,7 @@ type VM = {createContext: (o: Context) => Context, runInContext: (code: string, 
 const proc = (globalThis as {process?: {getBuiltinModule?: (id: string) => unknown}}).process
 const vmOf = (): VM => { const m = proc?.getBuiltinModule?.('node:vm'); if (!m) throw new Error('the check runs the code in node:vm (Node 20.16 or later, or Bun)'); return m as VM }
 import {Int, Term, bool, int, intern, interned, nat, no, oneOf, str, type Kind, type Rule, type StepLaw, proveSteps} from './dsl.ts'
-import {type Request, type State} from './machine.ts'
+import {type Rand, type Request, type State, seeded, walk} from './machine.ts'
 import {allowed} from './watch.ts'
 import {type Arg, type Layout, type MapDecl, type Model, type Var, normalize, resolveIn, scriptKind} from './extract-read.ts'
 import * as I from './extract-ir.ts'
@@ -36,7 +36,7 @@ export type Evidence = {
 }
 
 // --- the code, instrumented and loaded ------------------------------------------------------------------------------
-export function instrument(code: string, file: string, tail = ''): {js: string, arms: Arm[]} {
+export function instrument(code: string, file: string, tail = '', extra: [number, string][] = []): {js: string, arms: Arm[]} {
   const sf = ts.createSourceFile(file, code, ts.ScriptTarget.ES2022, true, scriptKind(file))
   const arms: Arm[] = [], edits: [number, string][] = []
   const loc = (n: ts.Node) => { const {line, character} = sf.getLineAndCharacterOfPosition(n.getStart()); return `${file.split('/').pop()}:${line + 1}:${character + 1}` }
@@ -64,6 +64,7 @@ export function instrument(code: string, file: string, tail = ''): {js: string, 
     ts.forEachChild(n, visit)
   }
   visit(sf)
+  edits.push(...extra)
   // Later positions first; at one position, in the order made reversed (a closing paren before the next opening one).
   const order = edits.map((e, i) => [...e, i] as const).sort((a, b) => b[0] - a[0] || b[2] - a[2])
   let out = code
@@ -73,21 +74,22 @@ export function instrument(code: string, file: string, tail = ''): {js: string, 
   return {js, arms}
 }
 export type Sandbox = {ctx: Context, counts: number[], call: (f: string, self: unknown, args: unknown[]) => {ok: true, value: unknown} | {ok: false, error: string}, setNow: (n: number) => void, get: (name: string) => unknown}
-export function sandbox(code: string, file: string, expose: string[], modules: Record<string, unknown> = {}, init?: string, files: Record<string, string> = {}): Sandbox & {arms: Arm[]} {
+export function sandbox(code: string, file: string, expose: string[], modules: Record<string, unknown> = {}, init?: string, files: Record<string, string> = {}, extra: [number, string][] = []): Sandbox & {arms: Arm[]} {
   const vm = vmOf()
-  const {js, arms} = instrument(code, file, init ? `\n;(globalThis as any).__gdpInit = () => (${init});\n` : '')
+  const {js, arms} = instrument(code, file, init ? `\n;(globalThis as any).__gdpInit = () => (${init});\n` : '', extra)
   const counts = arms.map(() => 0)
   let now = 0
+  const stub = (name: string) => new Proxy({}, {
+    get: (_, k) => { if (k === '__esModule' || typeof k === 'symbol') return undefined; throw new Error(`the check loads no module ${name} (its ${String(k)} was read)`) },
+    ownKeys: () => [],
+  })
   const module = {exports: {} as Record<string, unknown>}
   const ctx = vm.createContext({
     __cov: (i: number) => { counts[i]!++ }, __now: () => now, module, exports: module.exports,
     // A relative import among the files given: loaded in this VM (not counted: the branches are the entry's). A module
     // the step doesn't name (React, for the component beside a reducer): a stub that throws when read, so a step that
     // reads it fails the check rather than running without it.
-    require: (name: string) => (name in modules ? modules[name] : name.startsWith('.') && Object.keys(files).length ? load(ENTRY, name) : new Proxy({}, {
-      get: (_, k) => { if (k === '__esModule' || typeof k === 'symbol') return undefined; throw new Error(`the check loads no module ${name} (its ${String(k)} was read)`) },
-      ownKeys: () => [],
-    })),
+    require: (name: string) => (name in modules ? modules[name] : name.startsWith('.') && Object.keys(files).length ? load(ENTRY, name) : stub(name)),
     console: {log() {}, warn() {}, error() {}, info() {}, debug() {}},
   })
   // The files given, by their place beside the entry's; each loaded once.
@@ -99,12 +101,17 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
     const m = {exports: {} as Record<string, unknown>}
     loaded.set(at, m.exports)
     const js = ts.transpileModule(abs[at]!, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true, jsx: ts.JsxEmit.React}, fileName: at.replace(/\.js$/, '.ts').replace(/\.jsx$/, '.tsx')}).outputText
-    const f = vm.runInContext(`(function (module, exports, require) {${js}\n})`, ctx) as (m: unknown, e: unknown, r: unknown) => void
-    f(m, m.exports, (s2: string) => (s2 in modules ? modules[s2] : s2.startsWith('.') ? load(at, s2) : (() => { throw new Error(`the check loads no module ${s2}`) })()))
+    // A file that doesn't load here (it reads import.meta, a browser's globals): a stub that throws when read, so a step
+    // that reads it fails the check rather than running without it.
+    try {
+      const f = vm.runInContext(`(function (module, exports, require) {${js}\n})`, ctx) as (m: unknown, e: unknown, r: unknown) => void
+      f(m, m.exports, (s2: string) => (s2 in modules ? modules[s2] : s2.startsWith('.') ? load(at, s2) : stub(s2)))
+    } catch (e) { const st = stub(`${spec} (${(e as Error).message})`); loaded.set(at, st); return st }
     loaded.set(at, m.exports)
     return m.exports
   }
-  vm.runInContext('Date.now = () => __now(); Math.random = () => { throw new Error("Math.random in a step") }', ctx)
+  // The clock is the request's: Date.now() and new Date() read it.
+  vm.runInContext('globalThis.Date = new Proxy(Date, {construct: (D, a) => (a.length ? new D(...a) : new D(__now())), get: (D, k) => (k === "now" ? () => __now() : D[k])}); Math.random = () => { throw new Error("Math.random in a step") }', ctx)
   vm.runInContext(`${js}\n;globalThis.__gdp = {${expose.map(n => { if (n === 'default') return 'default: module.exports.default'; const [h, ...rest] = n.split('.'); return `${JSON.stringify(n)}: (typeof ${h} !== 'undefined' ? ${h} : module.exports.${h})${rest.map(x => `.${x}`).join('')}` }).join(', ')}};`, ctx, {timeout: 2000, filename: file})
   const script = new vm.Script('globalThis.__r = (() => { try { return {ok: true, value: __gdp[__f].apply(__self, __args)} } catch (e) { return {ok: false, error: String(e && e.message || e)} } })()')
   const call = (f: string, self: unknown, args: unknown[]) => {
@@ -117,7 +124,7 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
 
 // --- snapshots: a state as its leaves and its maps' present keys ----------------------------------------------------
 type Cells = Record<string, Record<string, Raw>>
-export type Snap = {leaves: Record<string, Raw>, maps: Record<string, Cells>}
+export type Snap = {leaves: Record<string, Raw>, maps: Record<string, Cells>, lists?: Record<string, Raw[]>}
 const isMap = (x: unknown): x is Map<unknown, unknown> => Object.prototype.toString.call(x) === '[object Map]'
 class Outside extends Error {}
 class Refused extends Error {}
@@ -126,6 +133,8 @@ function snapOf(v: unknown, layout: Layout, m: Model, consts: (t: N | B | I.L) =
   switch (layout.k) {
     case 'scalar': {
       const sort = m.state.find(x => x.name === layout.name)?.sort
+      // A Date: its time.
+      if (sort?.k === 'num' && sort.date) { if (!isDateValue(v)) throw new Error(`${path} is ${JSON.stringify(v)}, not a Date`); v = (v as Date).getTime(); if (Number.isNaN(v)) throw new Outside(`${path} is an invalid Date (past ±8.64e15 ms)`) }
       if (sort?.k === 'num' && !(typeof v === 'number' && Number.isSafeInteger(v))) {
         if (typeof v === 'number') throw new Outside(`${path} is ${v}`)
         throw new Error(`${path} is ${JSON.stringify(v)}, not a number`)
@@ -161,6 +170,14 @@ function snapOf(v: unknown, layout: Layout, m: Model, consts: (t: N | B | I.L) =
       out.maps[d.name] = cells
       return out
     }
+    case 'list': {
+      const d = m.lists!.find(x => x.name === layout.name)!
+      if (!Array.isArray(v)) throw new Error(`${path} is ${JSON.stringify(v)}, not an array`)
+      // Every index an item (an array with holes, or more than its own indices, is not a list).
+      if (Object.keys(v).length !== v.length) throw new Error(`${path} has holes or fields beside its items`)
+      ;(out.lists ??= {})[d.name] = v.map((x, i) => checkCell(x, d.fields[0]!, `${path}[${i}]`))
+      return out
+    }
     case 'const': {
       const want = layout.value.s === 'str' ? (layout.value.e.op === 'slit' ? layout.value.e.value : undefined) : consts(layout.value.e)
       if (v !== want) throw new Error(`${path} is ${JSON.stringify(v)}, the constant ${JSON.stringify(want)} the rule takes it for`)
@@ -168,7 +185,9 @@ function snapOf(v: unknown, layout: Layout, m: Model, consts: (t: N | B | I.L) =
     }
   }
 }
+const isDateValue = (x: unknown): boolean => Object.prototype.toString.call(x) === '[object Date]'
 function checkCell(x: unknown, f: Var, path: string): Raw {
+  if (f.sort.k === 'num' && f.sort.date) { if (!isDateValue(x)) throw new Error(`${path} is ${JSON.stringify(x)}, not a Date`); x = (x as Date).getTime(); if (Number.isNaN(x)) throw new Outside(`${path} is an invalid Date (past ±8.64e15 ms)`) }
   if (f.sort.k === 'num') { if (typeof x === 'number' && Number.isSafeInteger(x)) return x; if (typeof x === 'number') throw new Outside(`${path} is ${x}`); throw new Error(`${path} is ${JSON.stringify(x)}, not a number`) }
   if (f.sort.k === 'bool') { if (typeof x === 'boolean') return x; throw new Error(`${path} is ${JSON.stringify(x)}, not a boolean`) }
   if (f.sort.k === 'choice') { if (typeof x === 'string' && f.sort.values.includes(x)) return x; throw new Error(`${path} is ${JSON.stringify(x)}`) }
@@ -178,26 +197,29 @@ function checkCell(x: unknown, f: Var, path: string): Raw {
 function valueOf(s: Snap, layout: Layout, m: Model, consts: (t: N | B | I.L) => Raw, ctx: Context): unknown {
   const tree = (l: Layout): unknown => {
     switch (l.k) {
-      case 'scalar': return s.leaves[l.name]
+      case 'scalar': { const sort = m.state.find(x => x.name === l.name)?.sort; return sort?.k === 'num' && sort.date ? {$date: s.leaves[l.name]} : s.leaves[l.name] }
       case 'rec': return Object.fromEntries(l.fields.filter(([f]) => !f.endsWith('()')).map(([f, sub]) => [f, tree(sub)]))
       case 'map': {
         const d = m.maps.find(x => x.name === l.name)!
-        const entries = Object.entries(s.maps[d.name] ?? {}).map(([k, c]) => [d.key === 'num' ? Number(k) : k, d.scalar ? c.value : c])
+        const dated = (f: Var, x: Raw) => (f.sort.k === 'num' && f.sort.date ? {$date: x} : x)
+        const entries = Object.entries(s.maps[d.name] ?? {}).map(([k, c]) => [d.key === 'num' ? Number(k) : k, d.scalar ? dated(d.fields[0]!, c.value!) : Object.fromEntries(d.fields.map(f => [f.name, dated(f, c[f.name]!)]))])
         return {$map: d.js, entries}
       }
+      case 'list': return s.lists?.[l.name] ?? []
       case 'const': return l.value.s === 'str' ? (l.value.e.op === 'slit' ? l.value.e.value : undefined) : consts(l.value.e)
     }
   }
   ctx.__in = JSON.stringify(tree(layout))
-  return vmOf().runInContext('JSON.parse(__in, (k, v) => v && typeof v === "object" && v.$map ? (v.$map === "Map" ? new Map(v.entries) : Object.fromEntries(v.entries)) : v)', ctx)
+  return vmOf().runInContext('JSON.parse(__in, (k, v) => v && typeof v === "object" && v.$map ? (v.$map === "Map" ? new Map(v.entries) : Object.fromEntries(v.entries)) : v && typeof v === "object" && "$date" in v ? new Date(v.$date) : v)', ctx)
 }
-const showSnap = (s: Snap) => JSON.stringify({...s.leaves, ...Object.fromEntries(Object.entries(s.maps).map(([k, v]) => [k, v]))})
+const showSnap = (s: Snap) => JSON.stringify({...s.leaves, ...Object.fromEntries(Object.entries(s.maps).map(([k, v]) => [k, v])), ...(s.lists ?? {})})
 const sameSnap = (a: Snap, b: Snap): string | undefined => {
   for (const k of new Set([...Object.keys(a.leaves), ...Object.keys(b.leaves)])) if (a.leaves[k] !== b.leaves[k]) return `${k} is ${JSON.stringify(a.leaves[k])} in the code, ${JSON.stringify(b.leaves[k])} in the rule`
   for (const k of new Set([...Object.keys(a.maps), ...Object.keys(b.maps)])) {
     const x = a.maps[k] ?? {}, y = b.maps[k] ?? {}
     for (const key of new Set([...Object.keys(x), ...Object.keys(y)])) if (JSON.stringify(x[key]) !== JSON.stringify(y[key])) return `${k}[${key}] is ${JSON.stringify(x[key])} in the code, ${JSON.stringify(y[key])} in the rule`
   }
+  for (const k of new Set([...Object.keys(a.lists ?? {}), ...Object.keys(b.lists ?? {})])) if (JSON.stringify(a.lists?.[k] ?? []) !== JSON.stringify(b.lists?.[k] ?? [])) return `${k} is ${JSON.stringify(a.lists?.[k] ?? [])} in the code, ${JSON.stringify(b.lists?.[k] ?? [])} in the rule`
   return undefined
 }
 
@@ -216,8 +238,10 @@ function ruleSnap(r: Rule, m: Model, st: State, sorts: Sorts): Snap {
     }
     maps[md.name] = cells
   }
+  const lists: Record<string, Raw[]> = {}
+  for (const ld of m.lists ?? []) lists[ld.name] = (d[ld.name] ?? []) as Raw[]
   void sorts
-  return {leaves, maps}
+  return {leaves, maps, ...(m.lists?.length ? {lists} : {})}
 }
 // A snapshot as a state of the rule (each variable and cell by its kind).
 function ruleState(base: State, s: Snap, m: Model, sorts: Sorts): State {
@@ -230,19 +254,22 @@ function ruleState(base: State, s: Snap, m: Model, sorts: Sorts): State {
       for (const [part, x] of Object.entries(kind.encode(d.name, {has: true, ...c}))) if (x !== 0) (maps[part] ??= new Map()).set(key, x)
     }
   }
+  // A list: its items at their indices, its length.
+  for (const d of m.lists ?? []) {
+    const kind = kindOfVar(d.fields[0]!, sorts, `${d.name}.$item`), xs = s.lists?.[d.name] ?? []
+    scalars[`${d.name}_len`] = xs.length
+    xs.forEach((x, i) => { for (const [part, y] of Object.entries(kind.encode(d.name, x))) if (y !== 0) (maps[part] ??= new Map()).set(i, y) })
+  }
   return {...base, scalars, maps}
 }
 import {record} from './dsl.ts'
 const cellKind = (d: MapDecl, sorts: Sorts) => record({has: bool, ...Object.fromEntries(d.fields.map(f => [f.name, kindOfVar(f, sorts, `${d.name}.${f.name}`)]))}) as Kind<unknown>
 
 // --- values to draw -------------------------------------------------------------------------------------------------
-type Rand = (n: number) => number
-const seeded = (seed: number): Rand => { let x = seed >>> 0 || 1; return n => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * n) } }
 const BIG = [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER - 1, 2 ** 31, 2 ** 32]
 function constantsOf(m: Model): number[] {
   const out = new Set<number>([0, 1])
-  const go = (x: unknown): void => { if (x && typeof x === 'object') { const o = x as {op?: string, v?: unknown, k?: unknown}; if (o.op === 'const' && typeof o.v === 'number') out.add(o.v); if (typeof o.k === 'number') out.add(o.k); Object.values(o).forEach(go) } }
-  go([m.writes, m.mapWrites, m.refuse, m.pre, m.init])
+  walk([m.writes, m.mapWrites, m.refuse, m.pre, m.init], o => { if (o.op === 'const' && typeof o.v === 'number') out.add(o.v); if (typeof o.k === 'number') out.add(o.k) })
   return [...out]
 }
 function draw(sort: Var['sort'], sorts: Sorts, name: string, rand: Rand, near: number[], bound: number, strs: string[]): Raw {
@@ -266,9 +293,12 @@ function draw(sort: Var['sort'], sorts: Sorts, name: string, rand: Rand, near: n
 // --- the check ------------------------------------------------------------------------------------------------------
 export type CheckOptions = {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean, probeMs?: number, modules?: Record<string, unknown>, files?: Record<string, string>}
 export function check(code: string, file: string, m: Model, r: Rule, sorts: Sorts, opts: CheckOptions & {given?: Record<string, 'nat' | 'int'>} = {}): Evidence {
-  const t0 = performance.now(), rand = seeded(opts.seed ?? 7), bound = opts.bound ?? 12
+  const t0 = performance.now(), rand = seeded((opts.seed ?? 7) >>> 0 || 1), bound = opts.bound ?? 12
   const isClass = m.shape === 'class', fns = m.shape === 'class' ? [m.entry] : [...new Set(m.events.map(e => e.call))]
-  const box = sandbox(code, file, fns, opts.modules, m.initSource, opts.files)
+  const box = sandbox(code, file, fns, opts.modules, m.initSource, opts.files, m.factory ? [[m.factory.at, m.factory.text]] : [])
+  // An object a factory makes: its state is what its functions close over, read and set through the two functions the
+  // check added to it.
+  const stateOf = (self: unknown): unknown => (m.factory ? (box.call('$get', self, []) as {ok: boolean, value?: unknown}).value : self)
   const interp = r.interpreter(), gen = r.compiled(), machine = r.machine
   const ev: Evidence = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: box.arms.length, hit: 0, missed: []}, ms: 0}
   const consts = constantsOf(m), strs = ['a', 'b', 'c', '']
@@ -289,7 +319,8 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
   // One request, both sides, from a state given as a snapshot (and, for a class, the object).
   type Side = {snap: Snap, self?: object}
   const request = (params: Record<string, Raw>, inputs: Record<string, Raw>, e: (typeof m.events)[number]) => {
-    const build = (a: Arg): unknown => (a.k === 'input' ? inputs[a.name] : a.k === 'lit' ? a.value : a.k === 'rec' ? Object.fromEntries(a.fields.map(([f, x]) => [f, build(x)])) : a.k === 'lazy'
+    const dateIn = (n: string) => { const x = m.inputs.find(v => v.name === n); return x?.sort.k === 'num' && x.sort.date ? vmOf().runInContext(`new Date(${Number(inputs[n])})`, box.ctx) : inputs[n] }
+    const build = (a: Arg): unknown => (a.k === 'input' ? dateIn(a.name) : a.k === 'lit' ? a.value : a.k === 'rec' ? Object.fromEntries(a.fields.map(([f, x]) => [f, build(x)])) : a.k === 'lazy'
       ? Object.fromEntries([...m.inputs].filter(v => m.lazy?.get(v.name)?.prefix === a.prefix).map(v => [m.lazy!.get(v.name)!.field, inputs[v.name]]))
       : undefined)
     void params
@@ -329,7 +360,7 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
       if (isClass) {
         const self = side.self!, res = box.call('$method', self, [e.call, args])
         if (!res.ok) code = {refused: res.error}
-        else code = {snap: snapOf(self, m.layout, m, evalAt(params)), out: res.value as Raw, self}
+        else code = {snap: snapOf(stateOf(self), m.layout, m, evalAt(params)), out: res.value as Raw, self}
       } else {
         const input = valueOf(side.snap, m.layout, m, evalAt(params), box.ctx), before = JSON.stringify(input, mapReplacer)
         const res = box.call(e.call, undefined, [input, ...args.slice(1)])
@@ -369,7 +400,7 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
     }
     if ('refused' in code && 'refused' in rule!) {
       // A refusal leaves the state as it was: the object the code threw from must be as it was too.
-      if (isClass) { try { const after = snapOf(side.self, m.layout, m, evalAt(params)), d = sameSnap(after, side.snap); if (d) return `${where}: ${req} ${from}: the code throws (${code.refused}) after changing the object: ${d}` } catch (x) { return `${where}: ${req} ${from}: the code throws after changing the object (${(x as Error).message})` } }
+      if (isClass) { try { const after = snapOf(stateOf(side.self), m.layout, m, evalAt(params)), d = sameSnap(after, side.snap); if (d) return `${where}: ${req} ${from}: the code throws (${code.refused}) after changing the object: ${d}` } catch (x) { return `${where}: ${req} ${from}: the code throws after changing the object (${(x as Error).message})` } }
       ev.refusedBoth++
       return undefined
     }
@@ -377,17 +408,32 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
     if ('refused' in rule!) return `${where}: ${req} ${from}: the rule refuses it (${rule.refused}), the code doesn't`
     const ruleSide = ruleSnap(r, m, (rule as {st: State}).st, sorts), diff = sameSnap(code.snap, ruleSide)
     if (diff) return `${where}: ${req} ${from}: ${diff}`
-    if (isClass && code.out !== undefined) {
-      const o = m.outputs.find(n => n === `${e.call}_result`)
-      if (o !== undefined && r.decode((rule as {st: State}).st)[o] !== code.out) return `${where}: ${req} ${from}: ${e.call} returns ${JSON.stringify(code.out)}, the rule's ${o} is ${JSON.stringify(r.decode((rule as {st: State}).st)[o])}`
+    if (isClass) {
+      // The method's result, as the rule keeps it: a value, a record's fields, or a value and whether it is missing.
+      const res = m.results?.[e.call], d = r.decode((rule as {st: State}).st)
+      const bad = (what: string) => `${where}: ${req} ${from}: ${e.call} returns ${JSON.stringify(code.out)}, ${what}`
+      if (res?.k === 'scalar' && d[res.name] !== code.out) return bad(`the rule's ${res.name} is ${JSON.stringify(d[res.name])}`)
+      if (res?.k === 'rec') {
+        const o = code.out as Record<string, unknown> | undefined
+        if (typeof o !== 'object' || o === null || Object.keys(o).length !== res.fields.length) return bad('not a record of the fields the rule keeps')
+        for (const [f, n] of res.fields) if (o[f] !== d[n]) return bad(`the rule's ${n} is ${JSON.stringify(d[n])}`)
+      }
+      if (res?.k === 'maybe') {
+        const gone = code.out === (res.null ? null : undefined)
+        if (gone !== d[res.missing]) return bad(`the rule's ${res.missing} is ${JSON.stringify(d[res.missing])}`)
+        if (!gone && d[res.name] !== code.out) return bad(`the rule's ${res.name} is ${JSON.stringify(d[res.name])}`)
+      }
     }
     next.side = {snap: code.snap, ...(code.self ? {self: code.self} : {})}
     next.st = (rule as {st: State}).st
     return undefined
   }
   // A class's object: made by its constructor, or set to a snapshot.
-  if (isClass) vmOf().runInContext(`__gdp.$method = function (name, args) { return this[name](...args) }; __gdp.$new = function (...args) { return new __gdp[${JSON.stringify(m.entry)}](...args) }; __gdp.$at = function (fields) { return Object.assign(Object.create(__gdp[${JSON.stringify(m.entry)}].prototype), fields) }`, box.ctx)
-  const objectAt = (snap: Snap, params: Record<string, Raw>): object => box.call('$at', undefined, [valueOf(snap, m.layout, m, evalAt(params), box.ctx)]).ok ? (box.ctx.__r as {value: object}).value : (() => { throw new Error('could not make the object') })()
+  const E = JSON.stringify(m.entry)
+  if (isClass && !m.factory) vmOf().runInContext(`__gdp.$method = function (name, args) { return this[name](...args) }; __gdp.$new = function (...args) { return new __gdp[${E}](...args) }; __gdp.$at = function (fields) { return Object.assign(Object.create(__gdp[${E}].prototype), fields) }`, box.ctx)
+  if (m.factory) vmOf().runInContext(`__gdp.$method = function (name, args) { return this[name](...args) }; __gdp.$new = function (...args) { return __gdp[${E}](...args) }; __gdp.$get = function () { return this.__gdpGet() }; __gdp.$at = function (fields, args) { const o = __gdp[${E}](...args); o.__gdpSet(fields); return o }`, box.ctx)
+  const ctorValues = (params: Record<string, Raw>) => (m.ctorArgs ?? []).filter(n => !m.params.find(v => v.name === n)?.note?.startsWith('Date.now()')).map(n => (n.startsWith('$map:') ? vmOf().runInContext(n === '$map:Map' ? 'new Map()' : '({})', box.ctx) : params[n]))
+  const objectAt = (snap: Snap, params: Record<string, Raw>): object => box.call('$at', undefined, [valueOf(snap, m.layout, m, evalAt(params), box.ctx), ctorValues(params)]).ok ? (box.ctx.__r as {value: object}).value : (() => { throw new Error(`could not make the object: ${(box.ctx.__r as {error?: string}).error}`) })()
   const drawParams = (): Record<string, Raw> => Object.fromEntries(m.params.map(v => [v.name, v.note?.startsWith('Date.now()') ? rand(10_000) : draw(v.sort, sorts, v.name, rand, consts, bound, strs)]))
   const start = (params: Record<string, Raw>): {side?: Side, st?: State, ps?: Record<string, number>, problem?: string} => {
     const ctorRefuses = (() => { const pre = evalTerm(m.pre, params); return pre !== true })()
@@ -396,12 +442,13 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
     if (isClass) {
       const now0 = m.params.find(v => v.note?.startsWith('Date.now()'))
       if (now0) box.setNow(params[now0.name] as number)
-      const made = box.call('$new', undefined, (m.ctorArgs ?? []).filter(n => n !== now0?.name).map(n => params[n]))
+      // A Map the constructor is given: an empty one, made in the code's realm.
+      const made = box.call('$new', undefined, (m.ctorArgs ?? []).filter(n => n !== now0?.name).map(n => (n.startsWith('$map:') ? vmOf().runInContext(n === '$map:Map' ? 'new Map()' : '({})', box.ctx) : params[n])))
       const ruleRefuses = ps === undefined || ctorRefuses
       if (!made.ok) return ruleRefuses ? {} : {problem: `new ${m.entry}(${JSON.stringify(params)}) throws (${made.error}), the rule's precondition holds`}
       if (ruleRefuses) return {problem: `new ${m.entry}(${JSON.stringify(params)}) is made, the rule's ${ps === undefined ? 'param kinds refuse' : 'precondition refuses'} it`}
       const st = interp.init(ps!)
-      try { const snap = snapOf(made.value, m.layout, m, evalAt(params)); const diff = sameSnap(snap, ruleSnap(r, m, st, sorts)); if (diff) return {problem: `new ${m.entry}(${JSON.stringify(params)}): ${diff}`}; return {side: {snap, self: made.value as object}, st, ps: ps!} }
+      try { const snap = snapOf(stateOf(made.value), m.layout, m, evalAt(params)); const diff = sameSnap(snap, ruleSnap(r, m, st, sorts)); if (diff) return {problem: `new ${m.entry}(${JSON.stringify(params)}): ${diff}`}; return {side: {snap, self: made.value as object}, st, ps: ps!} }
       catch (x) { return {problem: `new ${m.entry}: ${(x as Error).message}`} }
     }
     const st = interp.init(ps ?? {}), snap = ruleSnap(r, m, st, sorts)
@@ -443,8 +490,13 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
       }
       maps[d.name] = cells
     }
+    const lists: Record<string, Raw[]> = {}
+    for (const d of m.lists ?? []) { const f = d.fields[0]!; lists[d.name] = Array.from({length: rand(4)}, () => { let x = draw(f.sort, sorts, `${d.name}.$item`, rand, consts, bound, strs); if (typeof x === 'number' && sorts.get(`${d.name}.$item`) === 'nat') x = Math.abs(x); return x }) }
     for (const v of m.state) if (v.name in leaves && v.sort.k === 'num' && Math.abs(leaves[v.name] as number) > Number.MAX_SAFE_INTEGER / 4) leaves[v.name] = rand(bound)
-    return {leaves, maps}
+    // A Date's time within its range (a Date past it is invalid in the code: no state of the code holds one).
+    for (const v of m.state) if (v.name in leaves && v.sort.k === 'num' && v.sort.date && Math.abs(leaves[v.name] as number) > 8.64e15) leaves[v.name] = rand(bound)
+    for (const d of m.maps) for (const f of d.fields) if (f.sort.k === 'num' && f.sort.date) for (const c of Object.values(maps[d.name] ?? {})) if (Math.abs(c[f.name] as number) > 8.64e15) c[f.name] = rand(bound)
+    return {leaves, maps, ...(m.lists?.length ? {lists} : {})}
   }
   const fromState = (params: Record<string, Raw>, snap: Snap, inputs: Record<string, Raw>, e: (typeof m.events)[number], where: string): string | undefined => {
     let ps: Record<string, number>
@@ -491,13 +543,7 @@ const mapReplacer = (_: string, v: unknown) => (isMap(v) ? {$map: [...v.entries(
 function conditionsOf(m: Model): B[] {
   const out: B[] = [], seen = new Set<string>()
   const add = (c: B) => { if (c.op === 'const') return; const k = I.keyOf(c); if (!seen.has(k) && !hasCell(c)) { seen.add(k); out.push(c, I.not(c)) } }
-  const go = (x: unknown): void => {
-    if (!x || typeof x !== 'object') return
-    const o = x as {op?: string, c?: B}
-    if ((o.op === 'ite' || o.op === 'kite') && o.c) add(o.c)
-    Object.values(o).forEach(go)
-  }
-  go([m.writes, m.mapWrites])
+  walk([m.writes, m.mapWrites], o => { if ((o.op === 'ite' || o.op === 'kite') && o.c) add(o.c as B) })
   for (const d of m.refuse.op === 'or' ? m.refuse.xs : [m.refuse]) add(d)
   return out.slice(0, 48)
 }

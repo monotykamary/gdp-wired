@@ -21,7 +21,7 @@
 // - Accelerated cycles, between the runs and the policies (core/accel.ts): a set from a cycle of the loop's relation,
 //   the cycle's n-fold run read in closed form (an atom's differences along it), and a stem from a reached state or a
 //   run with its loops accelerated, checked as the rest are.
-import type {C, E} from './machine.ts'
+import {type C, type E, n as K, same as eq, seeded, x as V} from './machine.ts'
 import {type Loop, type Recur, checkRecur, loopMachine, recurGoal, substC, trueC} from '../kernel/kernel.ts'
 import {clock, counted, grow} from '../kernel/prove.ts'
 import {work} from './solver.ts'
@@ -41,13 +41,11 @@ export type NeverEndsVerdict = {proven: boolean, checked: boolean, recur?: Recur
   stats: {runs: number, turns: number, policies: number, rounds: number, ms: number, lassoTried: number, goalSize: number, accel: number, accelClosed: number}}
 
 type Env = Record<string, number>
-const K = (value: number): E => ({op: 'const', value}), V = (name: string): E => ({op: 'var', name})
 const T: C = trueC, F: C = {op: '<', a: K(0), b: K(0)}
-const isT = (c: C) => c.op === '<=' && c.a.op === 'const' && c.b.op === 'const' && c.a.value <= c.b.value
-const isF = (c: C) => (c.op === '<' && c.a.op === 'const' && c.b.op === 'const' && c.a.value >= c.b.value) || (c.op === '<=' && c.a.op === 'const' && c.b.op === 'const' && c.a.value > c.b.value)
+export const isT = (c: C) => c.op === '<=' && c.a.op === 'const' && c.b.op === 'const' && c.a.value <= c.b.value
+export const isF = (c: C) => (c.op === '<' && c.a.op === 'const' && c.b.op === 'const' && c.a.value >= c.b.value) || (c.op === '<=' && c.a.op === 'const' && c.b.op === 'const' && c.a.value > c.b.value)
 const and = (xs: C[]): C => { const ys = xs.flatMap(x => (x.op === 'and' ? x.xs : [x])).filter(x => !isT(x)); return ys.some(isF) ? F : ys.length === 0 ? T : ys.length === 1 ? ys[0]! : {op: 'and', xs: ys} }
 const or = (xs: C[]): C => { const ys = xs.flatMap(x => (x.op === 'or' ? x.xs : [x])).filter(x => !isF(x)); return ys.some(isT) ? T : ys.length === 0 ? F : ys.length === 1 ? ys[0]! : {op: 'or', xs: ys} }
-const eq = (a: E, b: E): C => ({op: '=', a, b})
 const plus = (a: E, b: E): E => (a.op === 'const' && a.value === 0 ? b : b.op === 'const' && b.value === 0 ? a : a.op === 'const' && b.op === 'const' ? K(a.value + b.value) : {op: 'add', a, b})
 const minus = (a: E, b: E): E => (b.op === 'const' && b.value === 0 ? a : a.op === 'const' && b.op === 'const' ? K(Math.max(0, a.value - b.value)) : {op: 'sub', a, b})
 const times = (k: number, a: E): E => (k === 0 ? K(0) : k === 1 ? a : a.op === 'const' ? K(k * a.value) : {op: 'mul', k, a})
@@ -199,8 +197,7 @@ export function findNeverEnds(l: Loop, opts: NeverEndsOptions = {}): NeverEndsVe
 }
 function search(l: Loop, opts: NeverEndsOptions): NeverEndsVerdict {
   const wall0 = performance.now(), now = clock, t0 = now(), until = t0 + (opts.ms ?? 10_000), maxTurns = opts.maxTurns ?? 400
-  let seed = opts.seed ?? 7
-  const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
+  const rand = seeded(opts.seed ?? 7)
   const stats = {runs: 0, turns: 0, policies: 0, rounds: 0, ms: 0, lassoTried: 0, goalSize: 0, accel: 0, accelClosed: 0}
   const done = (v: Omit<NeverEndsVerdict, 'stats'>): NeverEndsVerdict => ({...v, stats: {...stats, ms: Math.round(performance.now() - wall0)}})
   const stateNames = Object.keys(l.state), kept = [...l.params, ...stateNames]

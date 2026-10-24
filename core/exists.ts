@@ -14,8 +14,9 @@
 // value before, shifts of it, the request's values and the state before; each is chosen to satisfy P at every
 // counterexample so far, per case of the step (the conditions its updates split on: the request's clause, say).
 // A law under a `forall` key takes witness terms only (a ghost per key would be a map).
-import {type C, type E, type Law, type Machine, type SomeProof, type SomeWitness, type State, evalC, evalE} from './machine.ts'
-import {type Report, proveLaw, proveLaws, withinDeadline} from '../kernel/prove.ts'
+import {type C, type E, type Law, type Machine, type SomeProof, type SomeWitness, type State, evalC, evalE, n as k, walk, x as v} from './machine.ts'
+import {type Report, clock, proveLaw, proveLaws, withinDeadline} from '../kernel/prove.ts'
+import {env} from './solver.ts'
 
 type Env = Record<string, number>
 // A bound value's naturals: [x], or an integer's [x, x$neg].
@@ -23,8 +24,6 @@ type Group = string[]
 // A candidate for a group: one term per natural.
 type Cand = E[]
 
-const k = (value: number): E => ({op: 'const', value})
-const v = (name: string): E => ({op: 'var', name})
 const add = (a: E, b: E): E => (a.op === 'const' && a.value === 0 ? b : b.op === 'const' && b.value === 0 ? a : {op: 'add', a, b})
 const sum = (es: E[]): E => es.reduce<E>((acc, e) => add(acc, e), k(0))
 const sub = (a: E, b: E): E => (b.op === 'const' && b.value === 0 ? a : {op: 'sub', a, b})
@@ -214,14 +213,10 @@ const caseAt = (cases: C[], env: Env, st: State, m: Machine): number => {
 
 function constantsOf(m: Machine): number[] {
   const out = new Set<number>([1, 2])
-  const walk = (t: unknown): void => {
-    if (!t || typeof t !== 'object') return
-    const o = t as Record<string, unknown>
+  walk(m.step, o => {
     if (o.op === 'const' && typeof o.value === 'number' && o.value > 0 && o.value <= 64) out.add(o.value)
     if (o.op === 'mul' && typeof o.k === 'number' && o.k > 1 && o.k <= 64) out.add(o.k)
-    for (const x of Object.values(o)) (Array.isArray(x) ? x : [x]).forEach(walk)
-  }
-  walk(m.step)
+  })
   return [...out].sort((a, b) => a - b).slice(0, 6)
 }
 const dedupe = (cs: Cand[]): Cand[] => [...new Map(cs.map(c => [key(c), c])).values()]
@@ -353,7 +348,7 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number} = {})
     return {machine: b.machine, laws: out, ghosts: b.ghosts}
   }
   const rounds = opts.rounds ?? 24
-  const log = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_EXISTS_LOG === '1'
+  const log = env.GDP_EXISTS_LOG === '1'
   // Each law's witness until its goals are proven with every law assumed (choose); then the whole set, and where a
   // later choice broke a law proven before (a witness term is a hypothesis of every law), that law's again.
   const choose = (i: number, p: Plan, pass: number, first?: {goal: string, stuck: string, witness?: Record<string, number>}): SomeReport | undefined => {
@@ -364,7 +359,7 @@ export function proveSome(m: Machine, laws: Law[], opts: {rounds?: number} = {})
       const fail = (stuck: string): SomeReport => ({proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: r.goal, stuck, ...(r.witness ? {witness: r.witness} : {})}})
       // A witness given: the kernel proves the law with it, or refuses it here, with its counterexample.
       if (p.given) return {proven: false, nodes: 0, leaves: 0, checked: false, failed: {goal: r.goal, stuck: r.stuck, ...(r.witness ? {witness: r.witness} : {}), why: `the witness given for "${p.law.name}" does not prove it`}}
-      if (withinDeadline(Infinity) <= performance.now()) return fail(`the deadline passed choosing a witness for "${p.law.name}" (${r.stuck})`)
+      if (withinDeadline(Infinity) <= clock()) return fail(`the deadline passed choosing a witness for "${p.law.name}" (${r.stuck})`)
       if (round >= rounds) return fail(`no witness found for "${p.law.name}" in ${rounds} rounds (${r.stuck}): name one (exists(kind, f, witness))`)
       if (r.stuck !== 'sat' || !r.witness) {
         if (p.pick.mode === 'term' && !p.law.forall && !p.given) { p.pick = {mode: 'ghost', start: p.groups.map(() => 0), cases: new Map()}; continue }

@@ -9,44 +9,22 @@
 // among the node's rows at the renamed path. A leaf whose rows aren't all there (two cells the path proves equal, whose
 // keys over Ω the node's path doesn't yet compare) is grown again on the node's goal at its path (`regrown`); a split the
 // node's path already decides is followed, not made again.
-import type {C, E} from './machine.ts'
-import {type Lin, type Step, add, refuteFast, scale, solve} from './solver.ts'
+import {type C, type E, walk} from './machine.ts'
+import {type Lin, type Step, add, env, refuteFast, scale, solve} from './solver.ts'
 import {checkRefutation} from './check.ts'
 import {type Goal, type Path, type Subst, type Tree, canon, canonFlip, columnTerm, factorsOf, isCell, isMonomial, leafConstraintsReusing, linear, substE, truth, withProducts} from '../kernel/kernel.ts'
-import {cellProducts, clock, grow} from '../kernel/prove.ts'
+import {cellProducts, clock, grow, parseKey} from '../kernel/prove.ts'
+import {times} from '../kernel/reader.ts'
 
 // How the usual goal's names read in the node's: `s`, a substitution of its variables and maps (which builds the node's
 // goal from the usual one's hypotheses); `cells`, each map whose cell k is read at `at` + k·Ω in the node's goal (the
 // substitution's map there), by its name there.
 export type Rename = {s: Subst, cells?: Record<string, {to: string, at: E}>}
 const omega = 'O$'
-const debugOn = () => !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_CYCLIC_DEBUG
+const debugOn = () => !!env.GDP_CYCLIC_DEBUG
 
-// The kernel's product of two linear forms (kernel.ts's `times`): each monomial its factors sorted, joined by '*'.
-function times(a: Lin, b: Lin): Lin | undefined {
-  const out: Lin[] = []
-  for (const [p, cp] of Object.entries(a)) for (const [q, cq] of Object.entries(b)) {
-    if (p.includes('⟦') || q.includes('⟦')) return undefined
-    const fs = [...(p === '1' ? [] : factorsOf(p)), ...(q === '1' ? [] : factorsOf(q))].sort()
-    out.push({[fs.length ? fs.join('*') : '1']: cp * cq})
-  }
-  return add(...out)
-}
 // A cell's key, from its name (`M[key]`, the key's canonical text, whose names may be cells themselves).
-function keyOf(cell: string): Lin {
-  const text = cell.slice(cell.indexOf('[') + 1, -1), out: Lin = {}
-  let depth = 0, start = 0
-  for (let i = 0; i <= text.length; i++) {
-    const ch = text[i]
-    if (ch === '[') depth++
-    else if (ch === ']') depth--
-    else if ((ch === ',' && depth === 0) || i === text.length) {
-      if (i > start) { const part = text.slice(start, i), at = part.lastIndexOf(':'); out[part.slice(0, at)] = Number(part.slice(at + 1)) }
-      start = i + 1
-    }
-  }
-  return out
-}
+const keyOf = (cell: string): Lin => parseKey(cell.slice(cell.indexOf('[') + 1, -1))
 
 // A linear form of the usual goal read in the node's, at the node's path: undefined where a column has no linear form
 // there (a product of a term column).
@@ -309,13 +287,10 @@ function choiceAtom(g: Goal, wp: Path): Lin | undefined {
 // The cells of the conclusion refuted at the path (reads it gives no rows of yet among them).
 function conclCells(g: Goal, wp: Path): string[] {
   const out: string[] = []
-  const walk = (x: unknown): void => {
-    if (!x || typeof x !== 'object') return
+  walk(g.hyps.at(-1), x => {
     const o = x as E
     if (o.op === 'get' && o.map.endsWith('@')) { const l = linear(o, wp); if (l) out.push(...Object.keys(l)) }
-    for (const val of Object.values(o)) walk(val)
-  }
-  walk(g.hyps.at(-1))
+  })
   return out
 }
 // Two cells over time at keys u + a·Ω and u + b·Ω: a = b decided first, then the keys' difference, its other side
@@ -349,7 +324,7 @@ export function close(g: Goal, wp: Path, st: TStats, until: number): Tree | unde
     return y && n ? {split: next, yes: y, no: n} : undefined
   }
   st.regrown++
-  if ((globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_CYCLIC_DEBUG) console.error(`[close] ${g.name}: grown again at ${[...wp.values()].map(a => `${JSON.stringify(a.lin)} ${a.holds}`).join('; ')}`)
+  if (env.GDP_CYCLIC_DEBUG) console.error(`[close] ${g.name}: grown again at ${[...wp.values()].map(a => `${JSON.stringify(a.lin)} ${a.holds}`).join('; ')}`)
   return regrow(g, wp, until)
 }
 
@@ -378,13 +353,10 @@ export function carry(g: Goal, nFacts: number, nUses: number, st: TStats, until:
   // The times before (t ∸ 1, x ∸ 1, y ∸ 1, each a choice until c <= v is decided), decided after the guards: then the
   // cells at t − 1 and at (t − 1) + 1 are the same reads.
   const prev: C[] = [], seenPrev = new Set<string>()
-  const walk = (x: unknown): void => {
-    if (!x || typeof x !== 'object') return
+  walk(g.hyps, x => {
     const o = x as E
     if (o.op === 'sub' && o.a.op === 'var' && o.b.op === 'const' && !seenPrev.has(`${o.a.name}-${o.b.value}`)) { seenPrev.add(`${o.a.name}-${o.b.value}`); prev.push({op: '<=', a: o.b, b: o.a}) }
-    for (const val of Object.values(o)) walk(val)
-  }
-  walk(g.hyps)
+  })
   const guardsIn = (c: C, wp: Path, out: C[]): void => {
     if (c.op === 'and') { for (const x of c.xs) guardsIn(x, wp, out); return }
     if (c.op === 'or' && c.xs.length === 2 && c.xs[0]!.op === 'not') { const t = truth(c.xs[0]!.x, wp); if (t === undefined) out.push(c.xs[0]!.x); else if (t) guardsIn(c.xs[1]!, wp, out) }

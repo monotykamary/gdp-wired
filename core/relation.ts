@@ -15,7 +15,8 @@
 import type {C, E, Law} from './machine.ts'
 import type {Loop} from '../kernel/kernel.ts'
 import {clock} from '../kernel/prove.ts'
-import {type Lin, solve, work} from './solver.ts'
+import {type Lin, canon, konst, plus, solve, subst, times, vars, work} from './solver.ts'
+import {bgcd} from './q.ts'
 
 export type Path = {
   rows: Lin[] // each lin <= 0, over the integers (`ints`) and naturals (`nats`) of the relation
@@ -38,11 +39,6 @@ class Refused extends Error {}
 type PP = {rows: Lin[], pins: Record<string, number>}
 type Val = {lin: Lin} | {sub: [Lin, Lin]}
 const id = (t: unknown) => JSON.stringify(t)
-const canon = (l: Lin) => id(Object.keys(l).sort().map(x => [x, l[x]]))
-const plus = (a: Lin, b: Lin, f = 1): Lin => { const o: Lin = {...a}; for (const x in b) { o[x] = (o[x] ?? 0) + f * b[x]!; if (!o[x]) delete o[x] } return o }
-const times = (a: Lin, f: number): Lin => { const o: Lin = {}; if (f) for (const x in a) o[x] = a[x]! * f; return o }
-const konst = (c: number): Lin => (c ? {1: c} : {})
-const vars = (l: Lin) => Object.keys(l).filter(x => x !== '1')
 const pinned = (l: Lin, pins: Record<string, number>): Lin => {
   let out: Lin | undefined
   for (const x in l) if (x !== '1' && x in pins) { out ??= {...l}; delete out[x]; out['1'] = (out['1'] ?? 0) + l[x]! * pins[x]!; if (!out['1']) delete out['1'] }
@@ -316,7 +312,6 @@ const renameC = (c: C, names: Set<string>, f: (x: string) => string): C => {
 // The rows are integer rows (x < y is x + 1 ≤ y), so a condition proven over a path's rational points holds of its
 // integer ones; past `cap` generators, entries past 2^53, or `until`, there are none.
 export type Generators = {names: string[], vertices: number[][], rays: number[][], lines: number[][]} // each entry over names, then t
-const bgcd = (a: bigint, b: bigint): bigint => { if (a < 0n) a = -a; if (b < 0n) b = -b; while (b) [a, b] = [b, a % b]; return a }
 const norm = (x: bigint[]): bigint[] => { const g = x.reduce(bgcd, 0n); return g > 1n ? x.map(y => y / g) : x }
 const dot = (a: bigint[], b: bigint[]) => a.reduce((s, x, i) => s + x * b[i]!, 0n)
 export function generators(rows: Lin[], names: string[], nats: string[] = [], cap = 600, until = Infinity): Generators | undefined {
@@ -362,6 +357,18 @@ export function generators(rows: Lin[], names: string[], nats: string[] = [], ca
   return {names, vertices: rays.filter(r => r.v[n]! > 0n).map(r => num(r.v)), rays: rays.filter(r => r.v[n]! === 0n).map(r => num(r.v)), lines: lines.map(num)}
 }
 
+// Of the bounds on one name each way, the tightest (the others follow from it), then the rows of more names.
+export const tightBounds = (cs: Lin[]): Lin[] => {
+  const best = new Map<string, Lin>(), rest: Lin[] = []
+  for (const c of cs) {
+    const xs = vars(c)
+    if (xs.length !== 1) { rest.push(c); continue }
+    const x = xs[0]!, key = `${x}${Math.sign(c[x]!)}`, b = (c['1'] ?? 0) / Math.abs(c[x]!), was = best.get(key)
+    if (!was || b > (was['1'] ?? 0) / Math.abs(was[x]!)) best.set(key, c)
+  }
+  return [...best.values(), ...rest]
+}
+
 // --- invariants: Houdini over the relation --------------------------------------------------------------------------
 //
 // Candidate atoms per location (each lin ≤ 0 over the relation's names), those that fail at a start dropped by the
@@ -370,33 +377,21 @@ export function generators(rows: Lin[], names: string[], nats: string[] = [], ca
 // inductive over the relation (so over the loop, where the relation is exact); the kernel proves it again as laws.
 export function houdini(rel: Relation, cands: Lin[][], locOf: (i: number) => [number, number], until: number): Lin[][] | undefined {
   const H = cands.map(cs => [...new Map(cs.map(c => [canon(c), c])).values()])
-  // A path's rows with the candidates at its start: of the bounds on one name, only the tightest each way (the others
-  // add no vertex).
-  const tight = (cs: Lin[]): Lin[] => {
-    const best = new Map<string, Lin>(), rest: Lin[] = []
-    for (const c of cs) {
-      const xs = vars(c)
-      if (xs.length !== 1) { rest.push(c); continue }
-      const x = xs[0]!, s = Math.sign(c[x]!), key = `${x}${s}`, b = (c['1'] ?? 0) / Math.abs(c[x]!), was = best.get(key)
-      if (!was || b > (was['1'] ?? 0) / Math.abs(was[x]!)) best.set(key, c)
-    }
-    return [...best.values(), ...rest]
-  }
   for (let round = 0, changed = true; changed && round < 50; round++) {
     changed = false
     for (const [i, p] of rel.paths.entries()) {
       if (clock() > until) return undefined
       const [a, b] = locOf(i)
       if (!H[b]!.length) continue
-      const rows = [...p.rows, ...tight(H[a]!)]
+      // (a path's rows with the candidates at its start, the tightest bounds of them: the others add no vertex)
+      const rows = [...p.rows, ...tightBounds(H[a]!)]
       // (the names the candidates at the target read too: one the path reads nowhere is free there, a line)
       const ns = [...new Set([...rows.flatMap(vars), ...Object.values(p.post).flatMap(vars), ...H[b]!.flatMap(vars)])].sort()
       const g = generators(rows, ns, rel.nats, 600, until)
       if (!g) {
         // past the generators' cap: each candidate after the turn refuted by the integer solver, or dropped
         const nat = rel.nats.filter(x => ns.includes(x)).map((x): Lin => ({[x]: -1}))
-        const through = (c: Lin): Lin => { let o: Lin = {}; for (const [y, k] of Object.entries(c)) o = plus(o, y !== '1' && p.post[y] ? times(p.post[y]!, k) : {[y]: k}); return o }
-        const keep = H[b]!.filter(c => clock() < until && solve([...rows, ...nat, plus(konst(1), through(c), -1)].map(lin => ({lin, label: ''})), 4000).kind === 'refuted')
+        const keep = H[b]!.filter(c => clock() < until && solve([...rows, ...nat, plus(konst(1), subst(c, p.post), -1)].map(lin => ({lin, label: ''})), 4000).kind === 'refuted')
         if (keep.length < H[b]!.length) { H[b] = keep; changed = true }
         continue
       }

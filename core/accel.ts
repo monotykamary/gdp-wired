@@ -25,29 +25,17 @@
 //   where the cycle passes a location twice, its commonest value with no condition.
 // - Stems (`stemsTo`): from the start's location to a part's, a path at a time or a self-loop that is a translation
 //   taken n times at once, all linear, then run on the loop itself.
-import type {C, E} from './machine.ts'
+import {type C, type E, n as K, x as V} from './machine.ts'
 import type {Loop} from '../kernel/kernel.ts'
 import {type Path, type Relation, relationOf} from './relation.ts'
-import {type Lin, solve} from './solver.ts'
+import {type Lin, canon, gcd, konst, linOfE, plus, solve, subst, times, vars} from './solver.ts'
 
 // `targets`: the set's parts, each a location and its rows over the relation's names (R_j), for a stem's search.
 export type Target = {loc: number, rows: Lin[]}
 export type Accelerated = {set: C, wit: Record<string, E>, cycle: number[], locs: number[], targets: Target[]}
 
-const K = (value: number): E => ({op: 'const', value}), V = (name: string): E => ({op: 'var', name})
-const vars = (l: Lin) => Object.keys(l).filter(x => x !== '1')
-const plus = (a: Lin, b: Lin, f = 1): Lin => { const o: Lin = {...a}; for (const x in b) { o[x] = (o[x] ?? 0) + f * b[x]!; if (!o[x]) delete o[x] } return o }
-const times = (a: Lin, f: number): Lin => { const o: Lin = {}; if (f) for (const x in a) o[x] = a[x]! * f; return o }
-const konst = (c: number): Lin => (c ? {1: c} : {})
-const subst = (l: Lin, m: Record<string, Lin>): Lin => {
-  let o: Lin = konst(l['1'] ?? 0)
-  for (const x of vars(l)) o = plus(o, m[x] ?? {[x]: 1}, l[x]!)
-  return o
-}
-const canon = (l: Lin) => JSON.stringify(Object.keys(l).sort().map(x => [x, l[x]]))
 const isConst = (l: Lin) => vars(l).length === 0
 // (a row's coefficients divided by their common divisor, its constant rounded up: an integer row as tight as it goes)
-const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
 const tight = (l: Lin): Lin => {
   const g = vars(l).reduce((s, x) => gcd(s, l[x]!), 0)
   if (g <= 1) return l
@@ -102,12 +90,7 @@ export function* accelerated(l: Loop, opts: AccelOptions): Generator<Accelerated
   }
   const backs = new Map<number, Map<number, number>>()
   // (each walk's turns composed with their inputs left open, u@k: a walk whose rows are refuted is cut where it chose)
-  const open = (sigma: Record<string, Lin>, i: number, k: number) => {
-    const p = rel.paths[i]!, insAt = Object.fromEntries(Object.entries(symbolic(p, k, Sset, P)).map(([u, t]) => [u, subst(t, sigma)]))
-    const sub = {...sigma, ...insAt}
-    const rs = [...p.rows.map(f => subst(f, sub)), ...natState.map(x => times(sigma[x]!, -1)), ...Object.keys(insAt).filter(u => !rel.ints.has(u)).map(u => times(insAt[u]!, -1))]
-    return {rs, post: Object.fromEntries(S.map(x => [x, subst(p.post[x] ?? {[x]: 1}, sub)]))}
-  }
+  const open = (sigma: Record<string, Lin>, i: number, k: number) => turn(rel, natState, i, sigma, symbolic(rel.paths[i]!, k, Sset, P))
   const id0: Record<string, Lin> = Object.fromEntries(S.map(x => [x, {[x]: 1}]))
   let nodes = 20_000
   for (let budget = 0; budget <= maxLen && cycles.length < cap && nodes > 0; budget++) {
@@ -288,21 +271,21 @@ function symbolic(p: Path, j: number, S: Set<string>, P: Set<string>): Ins {
 // --- one cycle --------------------------------------------------------------------------------------------------------
 
 type Step = {path: number, ins: Ins}
+// A turn of path i from the state sigma (each state name's form), its inputs' forms over the turn's start: its rows (a
+// natural's term a natural), and the state after.
+function turn(rel: Relation, natState: string[], i: number, sigma: Record<string, Lin>, ins: Ins): {rs: Lin[], post: Record<string, Lin>} {
+  const p = rel.paths[i]!, insAt = Object.fromEntries(Object.entries(ins).map(([u, t]) => [u, subst(t, sigma)])), sub = {...sigma, ...insAt}
+  return {rs: [...p.rows.map(f => subst(f, sub)), ...natState.map(x => times(sigma[x]!, -1)), ...Object.keys(insAt).filter(u => !rel.ints.has(u)).map(u => times(insAt[u]!, -1))],
+    post: Object.fromEntries(rel.state.map(x => [x, subst(p.post[x] ?? {[x]: 1}, sub)]))}
+}
 // Turns j.. of the cycle composed from a state x (identity at j): the rows over x, and the state after them over x.
 function compose(rel: Relation, steps: Step[], natState: string[]): {rows: Lin[], post: Record<string, Lin>} | undefined {
   let sigma: Record<string, Lin> = Object.fromEntries(rel.state.map(x => [x, {[x]: 1}]))
   const rows: Lin[] = []
   for (const s of steps) {
-    const p = rel.paths[s.path]!
-    const insAt: Record<string, Lin> = Object.fromEntries(Object.entries(s.ins).map(([u, t]) => [u, subst(t, sigma)]))
-    const sub = {...sigma, ...insAt}
-    for (const f of p.rows) rows.push(subst(f, sub))
-    for (const x of natState) rows.push(times(sigma[x]!, -1))
-    // (a natural input's term is a natural)
-    for (const u in insAt) if (!rel.ints.has(u)) rows.push(times(insAt[u]!, -1))
-    const next: Record<string, Lin> = {}
-    for (const x of rel.state) next[x] = subst(p.post[x] ?? {[x]: 1}, sub)
-    sigma = next
+    const t = turn(rel, natState, s.path, sigma, s.ins)
+    rows.push(...t.rs)
+    sigma = t.post
     if (Object.values(sigma).some(big) || rows.some(big)) return undefined
   }
   return {rows: dedupe(rows.map(tight).filter(f => !(isConst(f) && (f['1'] ?? 0) <= 0))), post: sigma}
@@ -439,15 +422,6 @@ export function* stemsTo(l: Loop, targets: Target[], io: StemIO, opts: {now: () 
   const pairOf = new Map<string, [string, number]>(), paramInts: [string, string | undefined][] = []
   for (const x of l.params) for (const sfx of ['$n', '$neg']) if (l.params.includes(x + sfx)) { pairOf.set(x, [x, 1]); pairOf.set(x + sfx, [x, -1]); paramInts.push([x, x + sfx]) }
   for (const x of l.params) if (!pairOf.has(x)) { pairOf.set(x, [x, 1]); paramInts.push([x, undefined]) }
-  const linRaw = (e: E): Lin | undefined => {
-    switch (e.op) {
-      case 'var': return {[e.name]: 1}
-      case 'const': return konst(e.value)
-      case 'add': { const a = linRaw(e.a), b = linRaw(e.b); return a && b && plus(a, b) }
-      case 'mul': { const a = linRaw(e.a); return a && times(a, e.k) }
-      case 'sub': case 'prod': case 'min': case 'max': case 'if': case 'get': return undefined
-    }
-  }
   const toInts = (raw: Lin): Lin | undefined => {
     const o: Lin = konst(raw['1'] ?? 0), seen = new Map<string, number>()
     for (const r of vars(raw)) {
@@ -467,14 +441,14 @@ export function* stemsTo(l: Loop, targets: Target[], io: StemIO, opts: {now: () 
   }
   const startOf = (x: string): Lin | undefined => {
     const pair = rel.ints.get(x)
-    if (!pair) { const e = l.state[x]; const r = e && linRaw(e); return r && toInts(r) }
+    if (!pair) { const e = l.state[x]; const r = e && linOfE(e); return r && toInts(r) }
     const ep = l.state[pair[0]], en = l.state[pair[1]]
     if (!ep || !en) return undefined
     if (ep.op === 'sub' && en.op === 'sub' && JSON.stringify(ep.a) === JSON.stringify(en.b) && JSON.stringify(ep.b) === JSON.stringify(en.a)) {
-      const a = linRaw(ep.a), b = linRaw(ep.b)
+      const a = linOfE(ep.a), b = linOfE(ep.b)
       return a && b && toInts(plus(a, b, -1))
     }
-    const a = linRaw(ep), b = linRaw(en)
+    const a = linOfE(ep), b = linOfE(en)
     return a && b && toInts(plus(a, b, -1))
   }
   const sigma0: Record<string, Lin> = {}
@@ -554,19 +528,13 @@ export function* stemsTo(l: Loop, targets: Target[], io: StemIO, opts: {now: () 
     }
     if (segs.length + (dist.get(loc) ?? Infinity) > maxDepth) return
     const step = (i: number, ins: Ins, n?: {name: string, delta: Lin}) => {
-      const p = rel.paths[i]!
-      const insAt = Object.fromEntries(Object.entries(ins).map(([u, t]) => [u, subst(t, sigma)]))
-      const sub = {...sigma, ...insAt}
-      const rs = [...p.rows.map(f => subst(f, sub)), ...natState.map(x => times(sigma[x]!, -1)), ...Object.keys(insAt).filter(u => !rel.ints.has(u)).map(u => times(insAt[u]!, -1))]
-      let post: Record<string, Lin>
-      if (n) {
-        // the last turn's rows: at sigma + (n − 1)·δ
-        const last = Object.fromEntries(S.map(x => [x, plus(plus(sigma[x]!, times({[n.name]: 1}, n.delta[x] ?? 0)), konst(-(n.delta[x] ?? 0)))]))
-        const insLast = Object.fromEntries(Object.entries(ins).map(([u, t]) => [u, subst(t, last)]))
-        rs.push(...p.rows.map(f => subst(f, {...last, ...insLast})), ...natState.map(x => times(last[x]!, -1)), plus(konst(1), {[n.name]: -1}))
-        post = Object.fromEntries(S.map(x => [x, plus(sigma[x]!, times({[n.name]: 1}, n.delta[x] ?? 0))]))
-      } else post = Object.fromEntries(S.map(x => [x, subst(p.post[x] ?? {[x]: 1}, sub)]))
-      return {rs, post}
+      const {rs, post} = turn(rel, natState, i, sigma, ins)
+      if (!n) return {rs, post}
+      // the last turn's rows: at sigma + (n − 1)·δ
+      const p = rel.paths[i]!, last = Object.fromEntries(S.map(x => [x, plus(plus(sigma[x]!, times({[n.name]: 1}, n.delta[x] ?? 0)), konst(-(n.delta[x] ?? 0)))]))
+      const insLast = Object.fromEntries(Object.entries(ins).map(([u, t]) => [u, subst(t, last)]))
+      rs.push(...p.rows.map(f => subst(f, {...last, ...insLast})), ...natState.map(x => times(last[x]!, -1)), plus(konst(1), {[n.name]: -1}))
+      return {rs, post: Object.fromEntries(S.map(x => [x, plus(sigma[x]!, times({[n.name]: 1}, n.delta[x] ?? 0))]))}
     }
     // a self-loop accelerated, then each path out
     if (!lastLoop) for (const lp of loops.get(loc) ?? []) {
