@@ -1,0 +1,200 @@
+[
+ {
+  "name": "corpus-vef-0",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'vef' 0 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-vef-1",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'vef' 1 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-vef-2",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'vef' 2 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-vef-3",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'vef' 3 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-vef-4",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'vef' 4 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-vef-5",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'vef' 5 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-vef-6",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'vef' 6 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-vef-7",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'vef' 7 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-vef-8",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'vef' 8 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-vef-9",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'vef' 9 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-radio-0",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'radio' 0 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-radio-1",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'radio' 1 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-radio-2",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'radio' 2 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-radio-3",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'radio' 3 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-radio-4",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'radio' 4 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-radio-5",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'radio' 5 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-radio-6",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'radio' 6 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-radio-7",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'radio' 7 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-gapless-0",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'gapless' 0 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-gapless-1",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'gapless' 1 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-gapless-2",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'gapless' 2 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-gapless-3",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'gapless' 3 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-gapless-4",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'gapless' 4 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-gapless-5",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'gapless' 5 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-gapless-6",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'gapless' 6 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-gapless-7",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'gapless' 7 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-opendecision-0",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'opendecision' 0 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-opendecision-1",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'opendecision' 1 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-opendecision-2",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'opendecision' 2 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-opendecision-3",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'opendecision' 3 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-opendecision-4",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'opendecision' 4 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-opendecision-5",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'opendecision' 5 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ },
+ {
+  "name": "corpus-opendecision-6",
+  "cmd": "bun install --frozen-lockfile >/dev/null 2>&1; timeout -s KILL 280 bun research/extract/corpus-verdicts.ts --one 'opendecision' 6 --ms 60000 2>&1 | tail -1",
+  "cpu": 2,
+  "timeout": 330
+ }
+]
