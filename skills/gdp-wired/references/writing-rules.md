@@ -294,9 +294,13 @@ c.check(); c.prove([c.law('retries within 2', ({retries}) => retries.atMost(2))]
   their `params`, several actions in a row (each reads what the one before wrote), history nodes (a transition through
   one restores; one straight to the state enters it fresh, as XState does), root transitions (not from a final state).
   An XState v4 machine too: its `cond` is the guard (a name, or `{type, ...params}`, the params its other keys).
-- Refused when built, with the reason: a parallel state below the root, `always`, `after`, `invoke`, `onDone`, wildcard
-  events, several targets, inline guards and actions (name them in `setup`), entry and exit actions that write the
-  context, two regions writing the context on one event, a shallow history over nested states, context that isn't
+- Also read: an `invoke`'s done and error and an `after` timer firing, as events from outside taken only in the state
+  that invoked or set them (each once a visit, one timer at a time); `always` transitions and entry and exit actions
+  that write the context, folded into each transition as XState's macrostep.
+- Refused when built, with the reason: a parallel state below the root, `onDone`, wildcard events, several targets,
+  inline guards and actions (name them in `setup`), two timers in one state, eventless transitions or context-writing
+  entry and exit actions in a parallel machine or beside a history node, eventless transitions that may run without end,
+  two regions writing the context on one event, a shallow history over nested states, context that isn't
   numbers and booleans unless its kinds are given (`context: {status: oneOf('a', 'b').from('a')}`). So is any key it
   doesn't read, by name, rather than dropped (v4's `in`, `strict`, `activities`, `onEntry`; an event XState raises itself;
   `cond` in a v5 machine and `guard` in a v4 one, which that XState ignores, taking the transition unguarded).

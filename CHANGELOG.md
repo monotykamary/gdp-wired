@@ -3,7 +3,25 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.26.0
+
+Five benchmarks moved or held, the library got smaller, the extractor reads real projects' code, and certificates have
+an interchange format with checkers outside the library. None wrong anywhere, and nothing trusted changed since 0.25.0
+(`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts` and the Lean files as they were). In our harness (60 s on
+Modal, 2 vCPU, the rivals as installed in compare/), each beside main launched with it:
+- **TermComp ITS:** 1,139 answered (610 terminating, 529 not) beside 1,127 (`runs/nt3/its-mine6`, `its-main6`).
+  KoAT2 proves 601 terminating; LoAT's default engine 532 nonterminating, still 3 ahead.
+- **CHC-COMP LIA-Lin:** 996 (588 sat, 408 unsat) beside 961 (`runs/chc3/final-mine`, `final-base`); 994 to 1,002
+  in the later batches. Spacer 1,163.
+- **SV-COMP termination:** 224 to 225, Ultimate Automizer 224.
+- **TIP 2015:** 193 to 197 across this round's batches (`runs/consol/r5`: 194 beside 197), Vampire 193 in 0.25.0's
+  batch.
+
+These are measurements in this harness, ours to confirm under each competition's own setup (its time limit, scoring
+and current entrants). The release suites (218 jobs, one after the other) on boat: by default 270.4 s wall, 3,732.6 s
+of job time, none failed (`runs/release/0.26.0-default`); `--usual` 244.6 s, 3,699.0 s, none failed
+(`runs/release/0.26.0-usual`). The skill's XState section now lists what `fromXState` reads (invoked actors, timers,
+eventless transitions, entry and exit actions).
 
 The library smaller by sharing what the searches had copied (refactor/shared-engines): `core/` and `kernel/` (tests
 excluded) 1,926,132 bytes and 26,229 lines against main 84142cc's 1,940,485 and 26,407 (−14,353 bytes; before the
