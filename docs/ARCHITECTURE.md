@@ -103,8 +103,10 @@ The extractor's intermediate is its Model (`core/extract-read.ts`): the state's 
 inputs and the event that picks a method, one term per state variable over them (`core/extract-ir.ts`), the
 refusals, and how a request is made of the code. Everything from the Model on is shared: the sorts and the printer
 (`core/extract-print.ts`), the rule built from the printed source and its invariants (`core/extract.ts`'s
-`fromModel`, which both front ends call), and the rule's side of the check (`ruleSnap`, `ruleState`, `sameSnap`,
-`draw`, `constantsOf`, `conditionsOf`, `condAt` in `core/extract-check.ts`). A language brings two pieces:
+`fromModel`, which both front ends call), the merges of a map's write and a list's operations by a condition
+(`mergeWrites`, `mergeOps`), the evaluator of terms at concrete values (`evalTerm`, map cells too), and the whole check
+but the code's side (`core/extract-check.ts`'s `drive`: the requests, the rule's side and the comparison). A language
+brings two pieces:
 
 - **A reader**: its own parser and type checker, run by its own toolchain, printing the AST with each expression's
   type and folded constant as JSON (`core/go/reader.go`, 755 lines of Go, deciding nothing); then a symbolic
@@ -120,12 +122,15 @@ refusals, and how a request is made of the code. Everything from the Model on is
   The executor refuses where Go leaves the subset, with the place: loops, a range over a map (its order is random),
   a slice under a second name (two slices may share a backing array), defer but a mutex's Unlock, floats, interfaces,
   generics, another module's code.
-- **A runner**: the code run in its own runtime beside the rule. `core/extract-go-check.ts` writes a harness into the
-  package (set the object from a JSON state, call a method with JSON arguments, recover a panic, print the state, and
-  ask that the fields the rule leaves out are unchanged), builds it with `go build -cover` in the package's module
-  (its go.mod and dependencies), and sends it every request at once: the runs from the start are drawn on the rule's
-  side (the code must follow the same states, or the first difference refuses), the drawn states and the prover's
-  witnesses are single steps. Go's coverage counts the blocks reached.
+- **A code side** for `drive` (`CodeSide`: make the object, set it to a snapshot, read it, call a method; and, Go's
+  own, draws within the types and the refusals where Go goes on past the rule's numbers). The TypeScript one is a VM;
+  `core/extract-go-check.ts` writes a harness into the package (set the object from a JSON state, call a method with
+  JSON arguments, recover a panic, print the state, ask that the fields the rule leaves out are unchanged), builds it
+  with `go build -cover` in the package's module (its go.mod and dependencies), and speaks to it through two named
+  pipes, a JSON line a request. Go's coverage counts the blocks reached.
+
+The symbolic executors' path joins stay each language's: a shared core (one `mergePaths` over each language's values)
+was written and measured, and it made `core/` 1,149 bytes larger than the two joins it replaced, so it was dropped.
 
 `core/extract-go.test.ts` holds the semantics adversarially: overflow at each width (and a model edited to forget
 the wrap, which the check refuses), aliasing through pointers and interior pointers, maps (a nil map's write, a range

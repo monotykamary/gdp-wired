@@ -75,10 +75,11 @@ a flag, and its eventless transition is read by cases where it lands.
 A second language, Go, on the same Model: a struct of the package and its methods, read through Go's own parser and
 type checker (core/go/reader.go, go/ast and go/types, printing the typed AST as JSON), executed symbolically into the
 Model, then printed, built and checked as the TypeScript extractor's are (core/extract.ts's `fromModel`). The check
-(core/extract-go-check.ts) builds the package in its own module (its go.mod and dependencies) with a generated harness
-beside it, sends it every request as one batch (runs from the start drawn on the rule's side, steps from drawn states,
-steps from the prover's witnesses), compares every state, result and refusal, asks that the fields the rule leaves out
-are unchanged, and counts the blocks reached with `go build -cover`. docs/ARCHITECTURE.md's front-end section has the
+(core/extract-go-check.ts) is core/extract-check.ts's `drive` with Go's code side: the package built in its own module
+(its go.mod and dependencies) with a generated harness beside it, spoken to through two named pipes (runs from the
+start, steps from drawn states, steps from the prover's witnesses, as the TypeScript code is checked); every state,
+result and refusal compared, the fields the rule leaves out asked to be unchanged, the blocks reached counted with
+`go build -cover`. docs/ARCHITECTURE.md's front-end section has the
 subset and its semantics (integers wrapping at their width, pointers aliasing, `*big.Int` unbounded, errors and panics
 as refusals).
 
@@ -92,20 +93,20 @@ TimelockController, ERC20, RefundEscrow); in the 41-source list above, Go 6 item
 | `go-options.json` | what a source's callers do with an object a failed call wrote, with where the code says so (blnk's: dropped) |
 | `go-verdicts.ts` | the corpus's own laws on the extracted Go rules, beside the items' rules by hand (one job per law, `go-verdict-jobs.json`) |
 | `go-setup.sh`, `go-jobs.json`, `go-one.ts` | Go 1.27.1 in a job where the image has another; the tests and the corpus run; one struct through the front end |
-| `results/go/` | the batch `runs/front-go/go2`: `realworld.jsonl` (one line per source), `corpus.jsonl` (one line per law), `rules/` |
+| `results/go/` | `realworld.jsonl` (one line per source) and `rules/` from `runs/front-go/step1/extract` (the code of 146ca37), `corpus.jsonl` (one line per law) from `runs/front-go/go2` |
 
 ```sh
 python3 modal/run.py --backend auto --jobs research/extract/go-jobs.json --out runs/front-go/<name> && sh modal/reap.sh   # with go-verdict-jobs.json
 ```
 
-**On the corpus's Go code** (`runs/front-go/go2`): of its 25 Go sources (8 items), 1 is extracted whole and 24 are
+**On the corpus's Go code** (`runs/front-go/step1/extract`): of its 25 Go sources (8 items), 1 is extracted whole and 24 are
 refused, each where it is. The one extracted is gobreaker's `v2/counter.go` (`Counts`, an `also` of the CircuitBreaker
 item): six uint32 counters, their increments wrapping at 2^32 as Go's do; 2,400 requests in 200 runs from the start,
-424 single steps from drawn states and the prover's witnesses (24 of 24 conditions), 2,824 steps where the generated
+400 steps from drawn states and 24 from the prover's witnesses (24 of 24 conditions), 2,824 steps where the generated
 JavaScript agreed, 8 of 8 blocks. Of blnk's `model/model.go` (the ledger item's rule source), the part that extracts is
 `Balance`'s addCredit, addDebit, computeBalance, RollbackInflightCredit and RollbackInflightDebit (its `*big.Int`
 balances unbounded integers, nil a state of their own; a failed call's writes dropped, as transaction_execution.go:
-536-551 drops them): 2,263 requests in 200 runs, 428 single steps (28 of 30 conditions witnessed), 323 refused on both
+536-551 drops them): 2,263 requests in 200 runs, 400 steps from drawn states and 28 from witnesses (28 of 30 conditions), 323 refused on both
 sides, 28 steps where the code leaves the safe integers and the rule's runtime refuses, 6 where the rule's runtime
 refuses a sum past 2^53 while the code's values stay safe, 34 of 34 blocks. CommitInflight* and UpdateBalances are
 refused there: `ApplyPrecision` reads the transaction's float64 `Precision` (model.go:286), `canProcessTransaction` its

@@ -19,19 +19,29 @@ in 0.26.0).
   state as it was (or dropped where the caller drops it: `onError: 'discard'`, cited in research/extract/go-options.json).
   Refused where they are: loops (a range over a map besides), slices under a second name, other defers, recover,
   floats, interfaces, generics, the clock, another module's code.
-- **The check**: core/extract-go-check.ts builds the package in its own module with a generated harness (`go build
-  -cover`), sends every request in one batch (runs from the start drawn on the rule's side, drawn states with the
-  types' edges, the prover's witnesses), compares every state, result and refusal, and asks the fields the rule leaves
-  out to be unchanged; a model edited to forget the uint8 wrap is refused by it (core/extract-go.test.ts, 16 tests:
+- **The check**: core/extract-check.ts's `drive` with Go's code side: the package built in its own module with a
+  generated harness (`go build -cover`), spoken to through two named pipes (runs from the start, drawn states with the
+  types' edges, the prover's witnesses), every state, result and refusal compared, the fields the rule leaves out
+  asked to be unchanged; a model edited to forget the uint8 wrap is refused by it (core/extract-go.test.ts, 16 tests:
   overflow at each width, aliasing, maps, slices sharing a backing array, defer, panics, errors after a write).
-- **Shared, not copied**: core/extract.ts's printing, build and invariants are `fromModel`, called by both front ends;
-  core/extract-check.ts's rule side (`ruleSnap`, `ruleState`, `sameSnap`, `draw`, `constantsOf`, `conditionsOf`,
-  `condAt`) is exported for the Go check; the Model takes the laws a front end knows (`laws`: a field within its type).
-  `core/` and `kernel/` (tests excluded) 2,088,966 bytes and 28,795 lines against 0.26.0's 1,943,031 and 26,476
-  (extract-go.ts 108,675, extract-go-check.ts 36,430, the shared files +830; reader.go's 20,138 bytes are Go, apart).
+- **Shared, not copied**, each step measured on its own with the extract job's rows and rules (22 and 41 sources),
+  the Go corpus's rules and rows, 52 + 16 tests and both suites (`runs/front-go/step3`, `step2`, `step1`):
+  - core/extract.ts's printing, build and invariants are `fromModel`, called by both front ends; the Model takes the
+    laws a front end knows (`laws`: a field within its type);
+  - one evaluator at concrete values, `evalTerm` with map cells and list items (−1,055 bytes);
+  - one check driver, `drive`, with a pluggable code side (`CodeSide`), the TypeScript VM's and the Go harness's
+    (−4,138); every TypeScript row the same, and Go's rows the same but for two counts, which now mean what the
+    TypeScript check's do: `requests` the runs' steps alone (2,400 and 2,263, were 2,824 and 2,691) and `fromStates`
+    the drawn states alone (400, were 424 and 428), the witnesses counted in `probes`;
+  - one merge of a map's write and of a list's operations by a condition (`mergeWrites`, `mergeOps`) for both
+    readers, and the Go reader's results joined as locals (−53);
+  - dropped: one path-join core for both executors (`mergePaths`), +1,149 bytes over the two joins it replaced.
+  `core/` and `kernel/` (tests excluded) 2,083,720 bytes and 28,697 lines against 0.26.0's 1,943,031 and 26,476, and
+  2,088,966 before the sharing (extract-go.ts 108,240, extract-go-check.ts 27,966, the shared files +4,483;
+  reader.go's 20,138 bytes are Go, outside the count, and outside the package: dist's 87 files don't reach it).
 - **The corpus's Go code** (`runs/front-go/go2`, research/extract/results/go/): of 25 Go sources (8 items), gobreaker's
   `Counts` (an `also`) extracted whole (2,824 steps beside Go, 8 of 8 blocks) and blnk's Balance in part (5 of its 7
-  methods, 2,691 steps, 34 of 34 blocks); 24 refused (an interface 7, another module's type 6, floats 3, not code 3,
+  methods, 2,334 steps, 34 of 34 blocks); 24 refused (an interface 7, another module's type 6, floats 3, not code 3,
   not a declaration 2, generics 1, a loop 1, the clock 1). Of the two items' 13 laws, 3 have a statement on the
   extracted rules and all 3 differ from the hand's (proven by hand, refuted on the code), each explained: the item's
   step is a whole transaction where the code's methods are its parts, and its amounts are validated by UpdateBalances,
@@ -40,7 +50,8 @@ in 0.26.0).
   tests; 22 and 41 sources with the same rows and rules; 36 of 36 verdicts) and the corpus's 33 laws on the extracted
   XState rules the same. The suites with the new `extract-go` job, 219 jobs: by default none failed (251.2 s wall,
   3,313.5 s of job time, `runs/front-go/suite-default`), with `--usual` none failed (236.7 s, 3,012.1 s,
-  `runs/front-go/suite-usual`).
+  `runs/front-go/suite-usual`); after the sharing (146ca37, `runs/front-go/step1`) none failed either (250.4 s and
+  3,310.6 s by default, 230.6 s and 2,865.7 s with `--usual`).
 
 ## 0.26.0
 
