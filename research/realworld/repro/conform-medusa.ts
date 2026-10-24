@@ -13,12 +13,14 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {reservations} from '../items/invapprove-medusa.ts'
 
-const dir = join(tmpdir(), 'gdp-realworld-medusa-inventory-2.22.0')
+// REPRO_VERSION=2.22.1 runs another release (the re-check of 2026-10-24); the rule mirrors 2.22.0.
+const version = process.env.REPRO_VERSION ?? '2.22.0'
+const dir = join(tmpdir(), `gdp-realworld-medusa-inventory-${version}`)
 export function loadMedusa(): new (deps: Record<string, unknown>, decl: unknown) => Record<string, (...a: unknown[]) => Promise<unknown>> {
   if (!existsSync(join(dir, 'node_modules/@medusajs/inventory'))) {
     mkdirSync(dir, {recursive: true})
     writeFileSync(join(dir, 'package.json'), '{"name":"medusa-repro","private":true}')
-    execSync('npm install --ignore-scripts --no-audit --no-fund @medusajs/inventory@2.22.0 @medusajs/framework@2.22.0', {cwd: dir, stdio: 'ignore'})
+    execSync(`npm install --ignore-scripts --no-audit --no-fund @medusajs/inventory@${version} @medusajs/framework@${version}`, {cwd: dir, stdio: 'ignore'})
   }
   return createRequire(join(dir, 'package.json'))('@medusajs/inventory/dist/services/inventory-module').default
 }

@@ -22,17 +22,41 @@
   "payment/medusa/orderItemQuantities#never more returned than fulfilled": {
     "verdict": "bug",
     "note": "Suspected real bug at the module's action level. With positive quantities: fulfil 1, return 1, receive 1, return 1, receive 1 leaves return_received_quantity 2 for 1 fulfilled: RETURN_ITEM (return-item.ts:51-61) checks `fulfilled - return_requested` and forgets what was already received. The search's run is a negative quantity: CANCEL_RETURN_ITEM of -2 passes `!quantity` and `-2 > return_requested` and raises return_requested to 2 with nothing fulfilled. @medusajs/order@2.22.0 does both. The admin route that feeds RETURN_ITEM takes `quantity: z.number()` with no minimum (api/admin/returns/validators.ts:128) and request-item-return.ts:99-104 checks no quantity; whether something else upstream stops either was not found.",
-    "repro": "research/realworld/repro/conform-medusa-order.ts"
+    "repro": "research/realworld/repro/conform-medusa-order.ts",
+    "recheck": {
+      "date": "2026-10-24",
+      "upstream": "medusajs/medusa develop@029fb31; @medusajs/order 2.22.1 (latest, 2026-10-23)",
+      "status": "changed",
+      "verdict": "bug",
+      "evidence": "Partly fixed upstream: 879fb819 (#17431, 2026-10-23, released in 2.22.1) makes RETURN_ITEM subtract return_received_quantity and return_dismissed_quantity too (return-item.ts:51-58), so the positive run (fulfil 1, return, receive, return, receive) is refused on 2.22.1. The search's run is not: CANCEL_RETURN_ITEM of -2 (cancel-return.ts:44-56, unchanged) still raises return_requested to 2 with nothing fulfilled on 2.22.1, and the admin returns validators still take quantity z.number() with no minimum (validators.ts:128). The rule mirrors 2.22.0, where both happen.",
+      "rerun": "REPRO_VERSION=2.22.1 bun research/realworld/repro/conform-medusa-order.ts"
+    }
   },
   "payment/medusa/orderItemQuantities#never more written off than ordered": {
     "verdict": "bug",
     "note": "Suspected real bug at the module's action level (lower confidence: the claim workflows that emit WRITE_OFF_ITEM were not traced). WRITE_OFF_ITEM (write-off-item.ts:48-53) compares one action's quantity with the item's quantity, not the total written off: two write-offs of 2 on an item of 2 write off 4. The search's run: REINSTATE_ITEM of -3 (any quantity not above the item's passes) raises written_off_quantity to 3 of 2. The original does both.",
-    "repro": "research/realworld/repro/conform-medusa-order.ts"
+    "repro": "research/realworld/repro/conform-medusa-order.ts",
+    "recheck": {
+      "date": "2026-10-24",
+      "upstream": "medusajs/medusa develop@029fb31; @medusajs/order 2.22.1",
+      "status": "present",
+      "verdict": "bug",
+      "evidence": "write-off-item.ts is unchanged (:41-49 compares one action's quantity with the item's); on 2.22.1 two write-offs of 2 still write off 4 of 2, and REINSTATE_ITEM of -3 still raises written_off to 3.",
+      "rerun": "REPRO_VERSION=2.22.1 bun research/realworld/repro/conform-medusa-order.ts"
+    }
   },
   "payment/vendure/orderProcess#a placed order is cancelled only with every line cancelled": {
     "verdict": "bug",
     "note": "Suspected real bug. Local search: unknown (a state witness, no run within 3 s); a run exists and the original does it: Created, AddingItems, ArrangingPayment, PaymentAuthorized, ArrangingAdditionalPayment, Cancelled with a line still of quantity 1. default-order-process.ts:283-285 `if (toState === 'Cancelled') { return; }` inside the checkAdditionalPaymentsAmount block returns from onTransitionStart itself, so checkAllItemsBeforeCancel (:364-374, documented at :115-121 'Prevents transition to the Cancelled state unless all OrderItems are already cancelled. @default true') never runs from ArrangingAdditionalPayment; from PaymentAuthorized the same cancel is refused. Found by the conformance harness first (as a modelling error in the rule, fixed).",
-    "repro": "research/realworld/repro/conform-vendure-order.ts"
+    "repro": "research/realworld/repro/conform-vendure-order.ts",
+    "recheck": {
+      "date": "2026-10-24",
+      "upstream": "vendure-ecommerce/vendure master@aba3e9c; @vendure/core 3.8.1 (latest); the rule mirrors 2.2.7",
+      "status": "present",
+      "verdict": "bug",
+      "evidence": "default-order-process.ts still returns from onTransitionStart on `toState === 'Cancelled'` inside the checkAdditionalPaymentsAmount block (:287-289), before checkAllItemsBeforeCancel (:416-425). The rule conforms to @vendure/core@3.8.1's OrderStateMachine on 3000 random runs, and on 3.8.1 PaymentAuthorized, ArrangingAdditionalPayment, Cancelled cancels an order with a live line (from PaymentAuthorized the same cancel is refused).",
+      "rerun": "bun research/realworld/repro/recheck/vendure-order-3.8.1.ts"
+    }
   },
   "payment/vendure/orderProcess#an order ships only once its payment has settled": {
     "verdict": "law",
@@ -47,6 +71,14 @@
   "payment/solidus/Payment#refunds never exceed the payment amount": {
     "verdict": "bug",
     "note": "Suspected real bug (from the source; ActiveRecord models, not run). With the default configuration a Spree::Refund of the whole amount is valid on a pending (authorized) payment (refund.rb:89-109; refundable_payment_states default %w[completed pending]), and a later partial capture! sets the payment's amount to what was captured (processing.rb:88 `update!(amount: captured_amount)`), below the refunds: credit_allowed (payment.rb:93-95) goes negative. The search's run takes the deprecated path (a refund while processing, allowed unless require_refundable_payment_state), then pend, then capture! of 2 of 6.",
-    "repro": "research/realworld/repro/solidus-refund-capture.rb"
+    "repro": "research/realworld/repro/solidus-refund-capture.rb",
+    "recheck": {
+      "date": "2026-10-24",
+      "upstream": "solidusio/solidus main@6f5b2b9 (2026-10-23); latest tag v4.8.0 = the pin",
+      "status": "present",
+      "verdict": "bug",
+      "evidence": "refund.rb, payment.rb, payment/processing.rb and the payment state machine are unchanged since the pin: capture! still sets update!(amount: captured_amount) (processing.rb:88), credit_allowed is still amount - refunds (payment.rb:93-95), refundable_payment_states still defaults to %w[completed pending] (app_configuration.rb:290) and require_refundable_payment_state stays false until 5.0 (:298). Still from the source only (no Rails run).",
+      "rerun": "ruby research/realworld/repro/solidus-refund-capture.rb (reasoned, not run against Rails)"
+    }
   }
 }

@@ -8,7 +8,8 @@ import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
 const dir = mkdtempSync(join(tmpdir(), 'cockatiel-'))
-execSync('npm init -y >/dev/null && npm install --silent cockatiel@3.2.1', {cwd: dir, stdio: 'inherit'})
+// REPRO_VERSION=4.0.0 runs another release (the re-check of 2026-10-24: 4.0.0 still reopens on the stale failure).
+execSync(`npm init -y >/dev/null && npm install --silent cockatiel@${process.env.REPRO_VERSION ?? '3.2.1'}`, {cwd: dir, stdio: 'inherit'})
 const {circuitBreaker, handleAll, ConsecutiveBreaker, CircuitState} = await import(join(dir, 'node_modules/cockatiel/dist/index.js'))
 
 const tick = () => new Promise(r => setTimeout(r, 5))

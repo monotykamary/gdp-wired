@@ -41,6 +41,10 @@ export const reviews = () => rule('Gitea pull request reviews')
     return cur.match({none: () => everyKey(k => mine(k).and(Ty.at(k).is('pending')).not()), some: c => mine(c).and(Ty.at(c).is('pending'))})
       // after RemoveReviewRequest deletes l1, or DeleteReview deletes `id`
       .and(latest(l1), latest(l2, when(op.is('delete'), id, first)))
+      // DeleteReview restores the latest official review of the deleted review's reviewer, `r.ReviewerID`
+      // (:1040-1044), whoever deletes it: so for a delete, `doer` (whose rows `l2` is the latest of) is By[id]. (First
+      // written without this, which let a delete restore another reviewer's review.)
+      .and(op.is('delete').implies(doer.eq(By.at(id))))
   })
   .flags(({op, type, empty, hasComments, cur, l1, id, dismiss, closed, Ty, Dis}) => {
     const ar = type.is('approve').or(type.is('reject'))

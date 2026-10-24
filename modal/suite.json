@@ -1100,6 +1100,13 @@
 "timeout": 900
 },
 {
+"name": "live",
+"cmd": "bun test live.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
 "name": "nonterm",
 "cwd": "core",
 "cpu": 2.0,

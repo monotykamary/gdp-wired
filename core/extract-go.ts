@@ -13,8 +13,10 @@
 // calls of the package's functions and methods (inlined), pointers to the state's objects (an interior pointer &x.f
 // too: a write through one is a write to the object), errors.New and fmt.Errorf (a non-nil error), big.NewInt,
 // new(big.Int) and big.Int's Add, Sub, Mul, Neg, Abs, Set, SetInt64, SetUint64, Cmp, Sign, Int64, IsInt64, the
-// builtins len, append, delete, make, new, min, max and panic, conversions between integer types, and a
-// sync.Mutex's Lock with its deferred Unlock (one step is atomic in the rule).
+// builtins len, append, delete, make, new, min, max and panic, conversions between integer types, a sync.Mutex's
+// Lock with its deferred Unlock (one step is atomic in the rule), a context.Context argument only passed on to the
+// package's own functions, and a pointer to another package's struct as an argument (its exported fields read as
+// inputs, the package read from its source in the repo: core/go/reader.go's foreignPackage).
 //
 // Integers are exactly Go's. A result past its type's range wraps in Go: at 8, 16 and 32 bits the rule takes it modulo
 // 2^n by cases (x + 1 past 2^32 − 1 is 0), as compare/term/c2ari.py takes C's unsigned arithmetic; at 64 bits the rule's
@@ -39,7 +41,7 @@ import {type GoCheckOptions, type GoLeaf, checkGo} from './extract-go-check.ts'
 
 // --- the reader's JSON ----------------------------------------------------------------------------------------------
 export type TT = {k: string, go?: string, generic?: boolean, name?: string, pkg?: string, own?: boolean, bits?: number, signed?: boolean, untyped?: boolean, elem?: number, key?: number,
-  fields?: {name: string, t: number, embedded: boolean}[], methods?: {name: string, ptr: boolean}[], params?: number[], results?: number[], elems?: number[], iface?: boolean, args?: number[], len?: number}
+  fields?: {name: string, t: number, embedded: boolean}[], xfields?: {name: string, t: number, embedded: boolean, exported: boolean}[], methods?: {name: string, ptr: boolean}[], params?: number[], results?: number[], elems?: number[], iface?: boolean, args?: number[], len?: number}
 type GC = {int?: string, bool?: boolean, str?: string, float?: string, other?: string}
 export type GX = {e: string, p: string, t: number, text: string, c?: GC, n?: string, o?: string, id?: string, x?: GX, y?: GX, op?: string, f?: GX, a?: GX[], k?: string, lo?: GX, hi?: GX, three?: boolean,
   path?: number[], indirect?: boolean, mptr?: boolean, mtype?: string, mpkg?: string, pkg?: string, builtin?: string, conv?: boolean, ell?: boolean, elts?: {field?: string, k?: GX, v: GX}[], i?: GX}
@@ -115,7 +117,8 @@ export class GoReader {
   method = ''
   constructor(readonly pkg: GoPkg, readonly opts: GoOptions) {}
   T(t: number): TT { return this.pkg.ttab[t] ?? {k: 'invalid'} }
-  tname(t: number): string { const x = this.T(t); return x.go ?? x.name ?? x.k }
+  // (another package's types by its name, not the harness's alias for it)
+  tname(t: number): string { const x = this.T(t); return x.go?.replace(/\bgdp_(?:\w*_)?(\w+)\./g, '$1.') ?? x.name ?? x.k }
 
   // --- types --------------------------------------------------------------------------------------------------------
   intTy(t: number): IntTy | undefined {
@@ -125,6 +128,7 @@ export class GoReader {
   }
   isBig(t: number): boolean { const x = this.T(t); return x.k === 'ext' && x.pkg === 'math/big' && x.name === 'Int' }
   isBigPtr(t: number): boolean { const x = this.T(t); return x.k === 'ptr' && this.isBig(x.elem!) }
+  isContext(t: number): boolean { const x = this.T(t); return x.k === 'ext' && x.pkg === 'context' && x.name === 'Context' }
   isMutex(t: number): boolean { const x = this.T(t); return x.k === 'ext' && x.pkg === 'sync' && (x.name === 'Mutex' || x.name === 'RWMutex') }
   bigTy(t: number): IntTy { return {bits: 0, signed: true, t} }
   // An integer type's range (64 bits: the rule's numbers stop at 2^53 before Go's do).
@@ -146,6 +150,7 @@ export class GoReader {
   whyType(t: number, depth = 0): string {
     const x = this.T(t)
     if (x.k === 'invalid') return "another module's type"
+    if (x.k === 'ext' && x.iface) return 'an interface'
     if ((x.k === 'ext' || x.name) && x.pkg && !this.stdlib(x.pkg)) return "another module's type"
     if (x.k === 'ext' && x.pkg === 'time' && x.name === 'Time') return "the clock's time (time.Time is outside the subset)"
     if (x.k === 'error' || x.k === 'iface' || x.iface) return 'an interface'
@@ -264,13 +269,21 @@ export class GoReader {
         p.heap.set(id, {k: 'big', v: I.nvar(x.name), origin: 'input'})
         v = {t: 'ptr', to: {k: 'obj', id, path: []}, elem: tt.elem!}; arg = {k: 'input', name: x.name}
         this.notes.add(`${name}: a *big.Int argument, never nil here (the claim is for calls that give one)`)
-      } else if (tt.k === 'ptr' && this.T(tt.elem!).k === 'struct' && this.T(tt.elem!).own) {
+      } else if (tt.k === 'ptr' && ((this.T(tt.elem!).k === 'struct' && this.T(tt.elem!).own) || this.T(tt.elem!).xfields)) {
+        // (Another package's struct is read as data the same way: its exported fields, the only ones the package's code
+        // can read; its methods stay that package's code, refused where they are called.)
         // A pointer to a struct the caller gives: its fields read are inputs (each made where it is first read).
         const id = `in:${name}`
         p.heap.set(id, {k: 'struct', ty: tt.elem!, f: new Map(), origin: 'input', lazy: name})
         this.lazyInputs.set(id, {id: name, fields: []})
         v = {t: 'ptr', to: {k: 'obj', id, path: []}, elem: tt.elem!}; arg = {k: 'lazy', prefix: name}
         this.notes.add(`${name}: a *${this.tname(tt.elem!)} the caller gives, a fresh one for each call (its fields read are inputs; the claim is for calls that don't pass the object itself)`)
+      } else if (this.isContext(pa.t)) {
+        // A context.Context: the check gives context.Background(). Exact while the step never reads it: passed on to the
+        // package's own functions only (its methods, Done, Err, Value, are another package's code; given to another
+        // package's function, it is that function's: both refused where they are).
+        v = {t: 'opaque', why: `${pa.name ?? 'the context'}, a context.Context read (the subset only passes one on to the package's own functions)`, ty: pa.t}; arg = {k: 'lit', value: 'context'}
+        this.notes.add(`${fn.name}(${pa.name ?? '_'}): a context.Context, passed on to the package's own functions only (the claim is for any context, the step never reading it)`)
       } else return refuse(fn, `${fn.name}(${pa.name}): an argument of type ${pa.ts ?? this.tname(pa.t)} (${this.whyType(pa.t)})`)
       if (pa.id) p = this.bind(pa.id, v, fn, p)
       args.push(arg); params.push({name: pa.name ?? '', t: pa.t, arg})
@@ -404,7 +417,7 @@ export class GoReader {
   // A field of an input struct, made an input where it is first read.
   lazyField(id: string, f: string, ty: number, p: Path, at: {p: string}): GV {
     const li = this.lazyInputs.get(id)
-    const ft = this.T(ty).fields?.find(x => x.name === f)
+    const ft = (this.T(ty).fields ?? this.T(ty).xfields)?.find(x => x.name === f)
     if (!li || !ft) return refuse(at, `no field ${f}`)
     const s = this.scalar(ft.t)
     if (typeof s === 'string') {
@@ -483,7 +496,7 @@ export class GoReader {
     if (t.k === 'ptr') t = this.T(t.elem!)
     const out: {name: string, t: number}[] = []
     for (const i of x.path ?? []) {
-      const f = t.fields?.[i]
+      const f = (t.fields ?? t.xfields)?.[i]
       if (!f) return refuse(x, `${x.text}: a field the struct's type doesn't list`)
       out.push(f)
       t = this.T(f.t)
@@ -1235,6 +1248,7 @@ export class GoReader {
     if (path === 'math/big' && n === 'NewInt') { const [v, q] = this.ev(x.a![0]!, p); return this.newBig(this.num(v, x), x.t, q) }
     if (path === 'time' && n === 'Now') return refuse(x, 'time.Now(): the clock (the check can\'t set it for the code, and time.Time is outside the subset)')
     if (!this.stdlib(path)) return refuse(x, `${x.text}: a function of ${path} (another module's code)`)
+    if (!path) return refuse(x, `${x.text}: a call on a value whose type isn't read here (another module's, beyond the packages the code imports)`)
     return refuse(x, `${x.text}: a function of the standard library the subset doesn't read`)
   }
   newBig(v: N, t: number, p: Path): [GV, Path] {
@@ -1486,7 +1500,10 @@ export function readGo(pkg: GoPkg, opts: GoOptions): GoRead {
   }
   // The lazy inputs' records: the fields read.
   const lazy = g.lazyInputs
-  for (const e of events) e.args = e.args.map(a => (a.k === 'lazy' ? {k: 'rec', fields: (lazy.get(`in:${a.prefix}`)?.fields ?? []).map(([f, n]) => [f, {k: 'input', name: n} as Arg])} : a))
+  const recOf = (a: Arg): Arg => (a.k === 'lazy' ? {k: 'rec', fields: (lazy.get(`in:${a.prefix}`)?.fields ?? []).map(([f, n]) => [f, {k: 'input', name: n} as Arg])} : a)
+  for (const e of events) e.args = e.args.map(recOf)
+  // (and the harness's: it makes the struct with the fields read)
+  for (const mt of methods) mt.params = mt.params.map(pa => ({...pa, arg: recOf(pa.arg)}))
   // The methods together: each variable by the method called.
   const writes: Record<string, Term> = {}, init: Record<string, Term> = {}
   const leafVars = stateVars.filter(v => !g.lists.some(d => d.name === v.name) && !g.maps.some(d => d.name === v.name))

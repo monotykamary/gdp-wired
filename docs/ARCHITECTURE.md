@@ -121,7 +121,10 @@ brings two pieces:
     what a failed call wrote, `onError: 'discard'`, cited per source in `research/extract/go-options.json`).
   The executor refuses where Go leaves the subset, with the place: loops, a range over a map (its order is random),
   a slice under a second name (two slices may share a backing array), defer but a mutex's Unlock, floats, interfaces,
-  generics, another module's code.
+  generics, another module's code. Two reach past it: a `context.Context` argument only passed on to the package's own
+  functions (the check passes `context.Background()`; a method of it, a nil test or another package's function given
+  it is refused), and another package's struct given by pointer, its exported fields read as inputs (its package
+  type-checked from the repo's own source; its methods refused).
 - **A code side** for `drive` (`CodeSide`: make the object, set it to a snapshot, read it, call a method; and, Go's
   own, draws within the types and the refusals where Go goes on past the rule's numbers). The TypeScript one is a VM;
   `core/extract-go-check.ts` writes a harness into the package (set the object from a JSON state, call a method with

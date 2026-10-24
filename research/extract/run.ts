@@ -2,7 +2,7 @@
 // against itself; one JSON line per source in <out>/results.jsonl (extracted or refused, the reason and where, the
 // check's evidence), and the rule's source in <out>/rules/ where one was extracted.
 //
-//   bun research/extract/run.ts --out runs/extract/<name> [--only <id substring>] [--set ours|realworld|all]
+//   bun research/extract/run.ts --out runs/extract/<name> [--only <id substring>] [--set ours|realworld|all] [--list <sources.json>]
 //
 // Two lists: sources.json (examples from well-known open-source code, picked for this, each with repo and commit) and
 // realworld-sources.json (research/realworld's corpus, its sources.json as of 6c675e4 on research/realworld, read
@@ -28,7 +28,10 @@ mkdirSync(join(out, 'rules'), {recursive: true})
 
 const ours: Job[] = (JSON.parse(readFileSync(join(here, 'sources.json'), 'utf8')) as Ours[]).map(s => ({set: 'ours', ...s, file: s.file ?? s.path.split('/').pop()!, language: /\.tsx?$/.test(s.file ?? s.path) ? 'TypeScript' : 'JavaScript'}))
 // The corpus's export names a class, a function, a machine, Class.method, or Name (a, b, c) for the methods it reads.
-const real: Job[] = (JSON.parse(readFileSync(join(here, 'realworld-sources.json'), 'utf8')) as Real[]).map(s => {
+// `--list <file>`: another list of the corpus's sources in place of realworld-sources.json (research/realworld/sources.json,
+// the corpus as it is now: every TypeScript and JavaScript source of its 51 items).
+const list = flag('--list')
+const real: Job[] = (JSON.parse(readFileSync(list ?? join(here, 'realworld-sources.json'), 'utf8')) as Real[]).map(s => {
   const m = /^([\w$]+)(?:\.([\w$]+))?(?:\s*\(([^)]*)\))?/.exec(s.export.trim())
   const entry = m?.[1] ?? s.export, method = m?.[2], list = m?.[3]?.split(',').map(x => x.trim().replace(/\{.*$/, '')).filter(x => /^[\w$]+$/.test(x))
   return {set: 'realworld', id: `${s.item} :: ${s.path}`, exportText: s.export, role: s.role, repo: s.repo, commit: s.commit, path: s.path, pinned: s.lines, file: s.path.split('/').pop()!, entry, language: s.language,
@@ -77,6 +80,9 @@ for (const j of jobs) {
   try {
     if (!/^(TypeScript|JavaScript)$/.test(j.language)) {
       Object.assign(row, {ok: false, refusal: {where: j.path, what: `${j.language}: not TypeScript or JavaScript`}, reason: 'language'})
+    } else if (!/\.[cm]?[jt]sx?$/.test(j.path)) {
+      // A document the corpus cites beside the code (a README's options).
+      Object.assign(row, {ok: false, refusal: {where: j.path, what: `${j.path.split('/').pop()}: not code to read (a document the corpus cites beside the code)`}, reason: 'not code to read'})
     } else if (j.set === 'realworld' && /\.(test|spec)\.[jt]sx?$/.test(j.path)) {
       // The corpus names a test case here (`over-refund`), not a declaration a rule is read from.
       Object.assign(row, {ok: false, refusal: {where: j.path, what: `${j.exportText}: a test's name, not a name the code declares (a test sets up the code it checks; the code is read where it is declared)`}, reason: 'not a declaration of the code'})
