@@ -55,7 +55,7 @@ export function bmcFits(m: Machine, laws: Law[]): boolean {
 // and few rows a node keeps low, so a caller under a wall-clock limit gives a wall stop too.
 export const bmcRate = 250
 // A forced run's share of the budget, and its steps at most (a derivation checkDerivation replays step by step).
-const forcedShare = 0.3, forcedSteps = 1_000_000, forcedRate = 1_000
+const forcedShare = 0.3, forcedSteps = 1_000_000
 // GDP_BMC_RELAX=0: no relaxed goal first; GDP_BMC_INC=0: each depth's goal a search of its own (for comparing).
 const useRelax = env.GDP_BMC_RELAX !== '0', useInc = env.GDP_BMC_INC !== '0'
 
@@ -320,10 +320,9 @@ function unrolled(m: Machine, laws: Law[]) {
 export function findBoundedRun(m: Machine, laws: Law[], opts: BmcOptions): BoundedRun | undefined {
   if (!laws.length || !bmcFits(m, laws)) return undefined
   const last = Math.min(64, opts.depth ?? 64)
-  // A forced run first, within forcedShare of the budget: with a wall stop, of its wall time (the compiled rule's, not
-  // the kernel's); else counted in its steps, forcedRate a millisecond.
+  // A forced run first, within forcedShare of the budget (as wall time: it is the compiled rule's, not the kernel's).
   const now = performance.now(), end = Math.min(opts.wall ?? Infinity, now + opts.ms)
-  const forced = forcedRun(m, laws, opts.wall === undefined ? {steps: Math.min(forcedSteps, Math.round(forcedShare * forcedRate * opts.ms)), wall: Infinity} : {steps: forcedSteps, wall: now + forcedShare * (end - now)})
+  const forced = forcedRun(m, laws, {steps: forcedSteps, wall: now + forcedShare * (end - now)})
   if (forced) return forced
   return counted(bmcRate, () => {
     const until = clock() + opts.ms
