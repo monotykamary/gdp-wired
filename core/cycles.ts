@@ -1348,7 +1348,8 @@ export function findRank(l: Loop, laws: Law[] = [], opts: {ms?: number} = {}): R
 // the rank, any other must not raise it (weak edges, kept until a component lowers them). The components linear over
 // the state and params, in order, by the same elimination (the exact LP past the box); then the kernel's liveness goals
 // (proveLiveness), with the invariants inferLaws finds where they need some. Nothing new is trusted.
-export type Sampler = {params: (rand: (n: number) => number, bound: number) => Record<string, number>, input: (rand: (n: number) => number, bound: number, ps: Record<string, number>) => Request}
+// (`rule`: the rule the machine is, where there is one: the invariant search draws its runs and states by its kinds)
+export type Sampler = {params: (rand: (n: number) => number, bound: number) => Record<string, number>, input: (rand: (n: number) => number, bound: number, ps: Record<string, number>) => Request, rule?: Parameters<typeof inferLaws>[0]}
 export type LeadsVerdict = {proven: boolean, checked: boolean, rank?: E[], laws?: Law[], found?: {rank: string, laws: string[]}, goal?: string, stuck?: string, witness?: Record<string, number>, why?: string}
 export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sampler, opts: {ms?: number} = {}): LeadsVerdict {
   const t0 = clock(), until = t0 + (opts.ms ?? 10_000), rand = seeded(29), run = interpret(m)
@@ -1409,7 +1410,7 @@ export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sample
   if (first.proven && first.checked) return {proven: true, checked: true, rank, laws: [], found: {rank: text, laws: []}}
   const ms = until - clock()
   if (ms > 300) {
-    const {stay, cover, helps} = livenessParts(m, lv), inf = inferLaws(m, laws, [stay, cover, ...helps], {ms})
+    const {stay, cover, helps} = livenessParts(m, lv), inf = inferLaws(sample.rule ?? m, laws, [stay, cover, ...helps], {ms})
     const kept = inf.found.filter(f => !f.law.forall && !f.law.keys?.length), more = kept.map(f => f.law)
     if (inf.proven && more.length) {
       const again = withDeadline(until + 5000, () => proveLiveness(m, [...laws, ...more], lv))

@@ -2612,7 +2612,7 @@ export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, la
   if (laws.some(law => law.some?.length)) throw new Error(`${r.machine.name}: a law with "there exists" goes to proveRule or proveSteps; a liveness takes plain laws (the ones its proof printed, Verdict.witnesses)`)
   if (Array.isArray(l.rank) && !l.rank.length) {
     const until = clock() + (opts.ms ?? 10_000), draws = {params: (rand: Rand, bound: number) => r.randomParams(rand, bound), input: (rand: Rand, bound: number, ps: Record<string, number>) => r.randomInput(rand, bound, ps)}
-    let f = findLeadsTo(r.machine, withKinds(r, laws), l, draws, opts)
+    let f = findLeadsTo(r.machine, withKinds(r, laws), l, {...draws, rule: r}, opts)
     // Where the rank fitted to the runs isn't the one: a rank of the rule's own terms (core/live.ts), in the time left.
     if (!(f.proven && f.checked) && until - clock() > 500) {
       const g = leadsByTerms(r.machine, withKinds(r, laws), l, {...draws, rule: r, state: (rand, bound) => Object.assign({}, ...r.kindsOfState().map(([n, kd]) => kd.random(n, rand, bound)))}, {ms: until - clock()})
