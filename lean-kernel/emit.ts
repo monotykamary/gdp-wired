@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type StepLaw, type Tree, boundOf, check, checkRecur, recurGoal, canon, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, historyMachine, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
+import {type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type StepLaw, type Tree, boundOf, check, checkRecur, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {grow, minimal, proveBuilt, proveLaws, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
@@ -53,7 +53,52 @@ export function leaves(t: Tree, path: Path, visit: (t: Tree & {leaf: Step[], pro
   leaves(t.no, new Map(path).set(id, {lin: t.split, holds: false}), visit)
 }
 
-export function encode(ex: Exported, tamper = false, dropStep = true, globalVars?: string[], globalMaps?: string[], slim = false) {
+// The choices Lean's linear forms look up in the table (Kernel.lean's linear and truth): at each leaf, walking what the
+// leaf's hinted rows make Lean read (a hypothesis's facts, a term column's rows), every ∸, min, max or if the path
+// leaves open, and only an if's branch the path takes. Undefined where a leaf has a row of no hint (Lean then reads every
+// hypothesis's rows, and every term column's).
+function reachedChoices(goal: Goal, leafList: {leaf: Tree & {leaf: Step[], products?: [number, number][]}, path: Path, base: ReturnType<typeof leafConstraints>}[]): Set<string> | undefined {
+  const out = new Set<string>()
+  for (const {leaf, path, base} of leafList) {
+    const n0 = base.length, seen = new Set<object>()
+    const walkE = (e: E): void => {
+      if (seen.has(e)) return
+      seen.add(e)
+      switch (e.op) {
+        case 'var': case 'const': return
+        case 'mul': return walkE(e.a)
+        case 'get': return walkE(e.key)
+        case 'add': case 'prod': walkE(e.a); walkE(e.b); return
+        case 'sub': case 'min': case 'max':
+          walkE(e.a); walkE(e.b)
+          if (linear(e.a, path) && linear(e.b, path) && !decided(e, path)) out.add(termColumn(e))
+          return
+        case 'if': {
+          walkC(e.c)
+          const t = truth(e.c, path)
+          if (t === undefined) out.add(termColumn(e)); else walkE(t ? e.then : e.else)
+        }
+      }
+    }
+    const walkC = (c: C): void => {
+      if (seen.has(c)) return
+      seen.add(c)
+      if (c.op === 'not') walkC(c.x)
+      else if (c.op === 'and' || c.op === 'or') c.xs.forEach(walkC)
+      else if (c.op === 'all') walkC(c.c)
+      else if (c.op !== 'flag') { walkE(c.a); walkE(c.b) }
+    }
+    for (const i of new Set([...leaf.leaf.flatMap(st => (st.kind === 'input' && st.index < n0 ? [st.index] : [])), ...(leaf.products ?? []).flat().filter(i => i < n0)])) {
+      const src = base[i]!.src
+      if (!src) return undefined
+      if ('fact' in src) walkC(goal.hyps[src.fact]!)
+      else if ('term' in src) { const t = columnTerm(src.term)!; out.add(src.term); walkE(t); if (t.op === 'if') { walkE(t.then); walkE(t.else) } } // (Lean's termRowsAt reads an if's two branches)
+    }
+  }
+  return out
+}
+
+export function encode(ex: Exported, tamper = false, dropStep = true, globalVars?: string[], globalMaps?: string[], slim = false, reach = false) {
   const {goal, tree} = ex
   // `slim`: the table only has the columns Lean reads. Each row a leaf uses has a hint (where Lean looks for it first),
   // and Lean computes only the hinted hypotheses' linear forms (Kernel.lean's srcRows), so the columns are the
@@ -102,8 +147,10 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
     if (t.op === 'sub' || t.op === 'min' || t.op === 'max' || t.op === 'if') terms.add(termColumn(t))
     for (const val of Object.values(t)) if (Array.isArray(val)) val.forEach(x => choices(x as E | C)); else if (typeof val === 'object' && val !== null) choices(val as E | C)
   }
-  readHyps.forEach(choices)
-  readTerms.forEach(choices)
+  // (`reach`: only the choices Lean's linear forms look up, where they can be found)
+  const reachedCols = reach && !slim ? reachedChoices(goal, leafList) : undefined
+  if (reachedCols) for (const name of reachedCols) terms.add(name)
+  else { readHyps.forEach(choices); readTerms.forEach(choices) }
   const readSubterms = [...readHyps, ...readTerms.map((t): C => ({op: '<=', a: t, b: t}))].flatMap(subterms).filter(e => e.op === 'prod' || e.op === 'get')
   for (const {leaf, path, base} of leafList) {
     const n0 = base.length
@@ -313,7 +360,7 @@ export function recurLean(id: string, l: Loop, fallback: Recur): {vars: string[]
   ${l.assume ? c(l.assume) : TRUE}⟩`
   const vals = (o: Record<string, number>) => list(Object.entries(o).map(([name, v]) => `(${ix(name)}, ${v})`))
   const recur = (rr: Recur) => {
-    const enc = (g: Recur) => encode({name: `${id}: ${l.name} never ends`, goal: recurGoal(l, g), tree: g.tree}, false, true, vars, [])
+    const enc = (g: Recur) => encode({name: `${id}: ${l.name} never ends`, goal: recurGoal(l, g), tree: g.tree}, false, true, vars, [], false, true)
     // The tree is written against the goal it refutes: the certificate's own where kernel.ts's check accepts it there,
     // else `fallback`'s (which must check), and Lean reads it against the goal it builds from `rr` either way. So every
     // number written is one kernel.ts's check replayed: integers, every cut dividing its row.
