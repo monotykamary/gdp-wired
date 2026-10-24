@@ -29,16 +29,17 @@ under each competition's own setup.
   3 on main). LoAT's default engine proves 532 nonterminating: level, not ahead.
 - **SV-COMP termination:** 224 (169, 55) against 225 (170, 55). Every answer is its expected verdict. The one task
   lost, Singapore-2, answers 1 of 3 times on each side.
-- **The real-world corpus:** 237 proven, 18 refuted, 52 unknown and 4 timeouts at the 150 s kill, against 237, 18 and
-  56. ledger/tigerbeetle/transfers' laws 2 to 6 end unknown on main at 105.6 to 107.9 s. Here, their goal "every T
-  cell is a value of its kind @step" is proven by CDCL in 10.4 s; main gave up on it at its 20 s budget
-  (`runs/query/tb1`). The cyclic
-  certificate's translation of that tree then runs past the kill (`runs/query/tb2p`: 72% of the law's time in
-  `certCyclic`).
-  - Law 2 is proven in this batch (142.9 s), and in 3 of 3 runs again (110 to 150 s; `rwr-mine`).
-  - Law 3 is proven in 1 of 3 runs (119 s). Laws 4 to 6 time out.
-  - xstate/gapless.js/track's law 2 is unknown in this batch. It is proven in 1 of 3 runs again here and in 2 of 3 on
-    main.
+- **The real-world corpus** (`runs/query/m5`, after the translation's fix below, beside main 3cc00e3): 240 proven, 18
+  refuted, 53 unknown and no timeout, against 237, 18 and 56. Every verdict is the same but three, each a gain:
+  ledger/tigerbeetle/transfers' laws 2, 3 and 5, proven in 60.3, 79.9 and 68.5 s, unknown on main at 105.0, 107.5
+  and 106.4 s. Its laws 4 and 6 end unknown in 107.2 and 115.4 s (main 106.2, 106.8).
+  - Before the fix (`runs/query/m4`): laws 3 to 6 timed out at the 150 s kill, and law 2 was proven in 142.9 s.
+  - Why: the faster search proves the laws' goal "every T cell is a value of its kind @step" in 10.4 s, where main
+    gave up at its 20 s budget (`runs/query/tb1`). The cyclic certificate's translation of that tree, 9,523 to 21,108
+    leaves, then took 92.7 s of a law's time (`runs/query/tb2p`, `tb3log`). It read both goals' leaf rows afresh with
+    kernel.ts at each leaf, and the leaves whose rows weren't all there were solved again on the node's whole goal.
+    usedHyps read every leaf's rows again too (22.6 s, `tb4p`). Its 60 s bound was wall time, read only where a leaf was
+    grown again.
   - ledger/openzeppelin/RefundEscrow's laws 0 and 1 are proven in 9.0 s and 9.1 s (`runs/query/rw1`). These are the
     k-induction laws that ran out of memory when 0.26.0 first counted the search's budget.
 - **Frontier corpora:** round 1, 90 of 92, with all 42 broken variants refused, every verdict the same as main's.
@@ -49,7 +50,11 @@ under each competition's own setup.
   at p90 (`g332`, both sides in one container per goal). kernel/cdcl.test.ts passes with `GDP_CDCL_VERIFY=1`, which
   compares the kept rows with kernel.ts's at every node (`runs/query/fuzz-x5`).
 - **Suites (219 jobs):** none failed by default (550.6 s wall, 5,352.3 s of job time) or with `--usual` (570.8 s,
-  4,865.2 s).
+  4,865.2 s); after the translation's fix, none either way (466.1 s, 5,635.2 s; 437.3 s, 4,890.4 s; `runs/query/m5`).
+- **After the translation's fix** (`runs/query/m5`, beside main 3cc00e3): CHC-COMP 1,035 (610 sat, 425 unsat)
+  against 1,019 (613, 406), none wrong. Of the 11 lost, run three times a side, four are lost in each run or all but one
+  (gulwani_cegar2, SYNAPSE_4, car_2_e7_1027_e1_1047 and car_2_e8_491_e7_826: the join on another path, as above); the
+  others answer as often on both sides. TermComp ITS 1,141 (611, 530) against 1,142 (611, 531). TIP 198 against 196.
 - **1 vCPU,** ten jobs a side interleaved with main, none failed. In an earlier batch, main db0369f failed one: data's
   nearPlus at 5,389.34 ms (`runs/query/m3/onecpu`). In this batch:
   - data's nearPlus: median 2,403.07 ms, at most 3,108.12 (main 2,351.16, 2,768.43).
@@ -111,6 +116,20 @@ were hot in every case except ITS.
     and the goal's size bound them. CDCL nodes cost the same there, so hqr, pgarch, slayer-3-new and edn stay unknown
     on both sides.
 
+**The cyclic certificate's translation** (core/translate.ts, core/cyclic.ts, kernel/prove.ts, kernel/cdcl.ts;
+untrusted):
+- **The node's rows at each leaf** come from a reader whose trail follows the translation's path (reader.ts's leaf
+  rows: only what the step between two leaves' paths changed is read again). A path about a term column, a cut's,
+  is still read by kernel.ts. `GDP_CDCL_VERIFY=1` compares them with kernel.ts's at every leaf; core's and research/hw's
+  tests pass with it.
+- **The usual leaf's rows** are kept as CDCL's unfolding made them (prove.ts's `leafRowsOf`), for the translation and
+  for usedHyps.
+- **The translation is on the cost model's clock** (cyclic.ts's `counting`, its bound the time it had, counted; the
+  leaves' rows counted, `translateRows`), so a large tree's translation stops at its bound on any machine.
+- ledger/tigerbeetle/transfers' translations took 20.2 to 25.7 s, against 40.0 to 60.6 s with the counted bound
+  alone and 92.7 s on wall time (`runs/query/tbc5`, `tbc2`, `tb3log`). Laws 0 to 7 ended in 42.1 to 109.1 s
+  (jobs' seconds), the longest law 6, against 140.0 and 152.1 s for laws 4 and 6 with the bound alone.
+
 **The cost model and the counted budgets** (kernel/prove.ts's `fullWork`, `counted(…, full)`; core/bmc.ts;
 core/dsl.ts).
 - **The model:** each kind of the kernel's work, weighed to its time on a Modal 2-vCPU container: elimination's pairs,
@@ -133,9 +152,10 @@ core/dsl.ts).
   set against it. On the model's clock, s1.t2 and s1.t2_fixed timed out (`runs/query/its-mine`). On work.n's clock,
   they answer (`its2-mine`).
 
-**Size:** `core/` and `kernel/` (tests excluded) are 2,112,338 bytes and 29,174 lines, against main 3cc00e3's
-2,081,736 and 28,648 (+30,602 bytes, +526 lines). By file: reader.ts +14,845, cdcl.ts +5,220, simplex.ts +4,664,
-prove.ts +4,513, bmc.ts +766, solver.ts +516, dsl.ts +78. The non-incremental node is gone, and its flag with it.
+**Size:** `core/` and `kernel/` (tests excluded) are 2,139,175 bytes and 29,549 lines, against main 3cc00e3's
+2,103,360 and 28,962 (+35,815 bytes, +587 lines). By file: reader.ts +15,114, cdcl.ts +5,703, prove.ts +5,459,
+simplex.ts +4,664, translate.ts +2,778, bmc.ts +766, cyclic.ts +719, solver.ts +534, dsl.ts +78; the translation's
+fix is 5,213 of it. The non-incremental node is gone, and its flag with it.
 research/query/ holds the profiler, the runner, the fit and the comparisons, outside the library.
 
 One closed-form engine for what a loop does after n turns, and the nonterminating ITS tasks it reaches: TermComp's ITS
