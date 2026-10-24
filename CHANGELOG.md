@@ -3,6 +3,50 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+The suite's `pairs` job no longer hangs. Its test "two groups of effects" ran about 840 s now and then, in place of 9
+to 15 s (`runs/live/suite`, `runs/tiplem/suite-default-1` and `-3`, `runs/reals/suite-base-usual`). Nothing trusted
+changed.
+
+- **The cause.** core/dsl.ts's `refuteByRuns` stopped its random runs after 150 ms of wall time. A broken variant's run
+  is normally found in the first or second trial, in a median 11.1 ms. Sometimes the first trial alone took longer than
+  150 ms, a pause on a loaded container (`runs/pairshang/rtrace`: 159.2 ms, cut before its second trial). The false
+  step law then went to the kernel. Its goal, with 944 hypotheses, has a default budget of a second per hypothesis, and
+  it used all of it: `unknown` after 944,441 to 990,167 ms. The variant "within one side" left two goals, 386 and 440
+  hypotheses, unknown after 389,623 and 440,073 ms; the deeper runs then refuted it, at 829,796 ms in all. These are
+  the suite's 836 s (`runs/pairshang/forced`, with the stop set to 0 ms). The unchanged code, 130 runs of the job
+  (`runs/pairshang/natural-base`): 7 ran 845 to 870 s, 4 of 50 at 1 vCPU, 2 of 50 at 2 vCPU and 1 of 30 beside three
+  busy loops.
+- **The fix.** The runs' budget is counted: the trials, the depth and the requests tried, as core/infer.ts counts its
+  runs. Nothing reads the clock, so a run within the budget is found on any machine. This holds both for the runs
+  before the kernel and for the deeper runs of the search after it. Their cost without the stop, across the default
+  suite (`runs/pairshang/nocap-suite`): of 3,721 calls before the kernel, the median took 3.9 ms, the 99th percentile
+  55.1 ms and the slowest 389.4 ms. Only 4 calls passed 150 ms (ledger 2, resource groups 2), and none of them found a
+  run past it. Of the 39 deeper calls, the slowest took 1,350 ms (invoices), and none passed their old 1,500 ms.
+- **With the fix**, 260 runs of the job (`runs/pairshang/natural-fix`: 100 at 1 vCPU, 100 at 2 vCPU, 60 beside three
+  busy loops) had no failures. The longest job ran 46.12 s, and the test took 5,195.24 to 13,825.39 ms (median
+  7,772.57).
+- **Against main f990361, launched together on Modal.** CHC-COMP LIA-Lin at 60 s solved 966 (568 sat, 398 unsat)
+  against 962 (565, 397), with none wrong and the same 2 disputed on both (`runs/pairshang/chc-mine`, `chc-base`).
+  - Gained 9: s_split_08_000_000, reve 025c, 014, 014b and 015b, DRAGON_2_e2_3183_e2_3580, and three ticket3i tasks.
+  - Lost 5: s_split_22_000_000, reve 015, ctigar pldi08 and xy0, and durationThm_2_e3_329_e6_128. These took 39.5 to
+    55.7 s on main, with the same stages here, in the join's timed steps. Each was unknown in one of the earlier runs
+    `runs/chcsat/m2/chc-main` and `chc`.
+  - Both runs answered the tasks they share in a median 17.33 s here and 18.27 s on main.
+- **The other corpora, against the same run of main.** The real-world corpus had the same outcome for every law: 237
+  proven, 18 refuted, 56 unknown (`realworld-mine`, `realworld-base`). Frontier round 1 had the same verdicts: 90 of
+  92, with 42 of 42 broken variants refused (`frontier-mine`, `frontier-base`). Round 2 proved 30 of 47 against 29,
+  with 47 of 47 refused on both (`frontier2-mine`, `frontier2-base`). The one difference is term/Piecewise, at the
+  edge of findRank's 51 s, which reads no runs of `refuteByRuns`.
+- **The 5 s tests on 1 vCPU**, ten jobs each, interleaved with main (`runs/pairshang/onecpu`).
+  - `data`'s nearPlus: at most 3,513.00 ms (median 2,500.82) here, against 3,098.49 ms (median 2,504.91) on main.
+  - `infer`'s "a law that needs an invariant": at most 3,301.65 ms here, against 3,770.07 ms on main.
+  - "what was found reads as the builder call": at most 2,529.88 ms here, against 2,847.39 ms on main.
+- **The suites on Modal**, 217 jobs each. By default: 0 failed, 616.2 s wall, 5,408.9 s of job time
+  (`runs/pairshang/suite-default`). With `--usual`: 0 failed, 635.8 s wall, 4,964.4 s of job time
+  (`runs/pairshang/suite-usual`).
+
 ## 0.25.0
 
 Ahead of or level with the leading tools on four of the six measures we run, in our harness (60 s on Modal, 2 vCPU, the
