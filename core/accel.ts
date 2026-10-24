@@ -366,10 +366,8 @@ function* cyclesOf(l: Loop, rel: Relation, opts: AccelOptions, pins: Lin[]): Gen
       }
     }
   }
-  // The relation's cycles, then the lookahead's choices on them, then the cycles with an inner loop taken to its end
+  // The relation's cycles, then the cycles with an inner loop taken to its end, then the lookahead's choices on the first
   yield* tryAll(cycles, 'no')
-  if (now() > until) return
-  yield* tryAll(cycles, 'only')
   if (now() > until) return
   // The inner loops: a self-loop or a cycle of two turns at a location whose turn, with its inputs' choices, is a
   // translation with a metering function (core/accel.ts's `accelerate`), taken to its end as one step of a walk; each
@@ -390,6 +388,7 @@ function* cyclesOf(l: Loop, rel: Relation, opts: AccelOptions, pins: Lin[]): Gen
     }
   }
   if (loops.length) yield* tryAll(enumerate(NP + loops.length).filter(c => c.some(i => i >= NP)), 'yes')
+  if (now() < until) yield* tryAll(cycles, 'only')
 }
 // The choices one input at a time of a turn's that the rest of the cycle bounds: the cycle from that turn on (its other
 // inputs as chosen), the bounds its rows put on the input, as terms of the state at that turn (x ≤ u gives x), the
