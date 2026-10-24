@@ -3,7 +3,31 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.27.0
+
+The search's shared engines got faster and more general, and a second language front end joined the extractor. None
+wrong anywhere, and nothing trusted changed since 0.26.0 (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts` and
+the Lean files as they were). In our harness (60 s on Modal, 2 vCPU, the rivals as installed in compare/), each beside
+main launched with it:
+- **CHC-COMP LIA-Lin:** 1,035 (610 sat, 425 unsat) beside 1,019 (`runs/query/m5/chc-mine`, `chc-main`); 1,039 beside
+  1,023 in `runs/query/m4`. Spacer 1,163.
+- **TermComp ITS, doesn't terminate:** 532 (`runs/query/m4/its-mine`), 530 to 535 across this round's batches, per
+  component 532 to 535 (`runs/closed/`). LoAT's default engine 532: level.
+- **TermComp ITS, terminates:** 610 to 614. KoAT2 601.
+- **TIP 2015:** 198 beside 196 (`runs/query/m5/tip-*`), 199 beside 194 in `runs/query/m4`. Vampire 193.
+- **SV-COMP termination:** 224 to 225. Ultimate Automizer 224.
+- **The real-world corpus:** 240 of 311 laws proven, 18 refuted, 53 unknown, no timeouts (`runs/query/m5/rw-mine`),
+  against 237, 18, 56 at 0.26.0.
+
+These are measurements in this harness, ours to confirm under each competition's own setup. What carried them: the
+kernel's CDCL keeps its rows from node to node (1.2 times the nodes a second on the step goals, 1.4 on CHC's join, 2.4
+on its bounded runs, 18 on the large false goals), a cost model counts the kernel's work so k-induction, the bounded
+runs and `grow`'s own budget run on the counted clock, the join's cubes read the rule's own comparisons, one
+closed-form engine serves `discover`, the cycles and the stems, and the extractor reads Go beside TypeScript through
+one check driver. The library (`core/` and `kernel/`, tests excluded) is 2,139,175 bytes against 0.26.0's 1,943,031,
+about 140 KB of it the Go front end. The release suites (219 jobs, one after the other) on boat: by default 184.0 s
+wall, 2,725.4 s of job time, none failed (`runs/release/0.27.0-default`); `--usual` 238.7 s, 3,344.5 s, none failed
+(`runs/release/0.27.0-usual`).
 
 A kernel query costs less: the CDCL search keeps its rows from one node to the next, and the reader finds again only
 the values a change touches. A cost model counts what a query does, and the two budgets 0.26.0 left on wall time are
