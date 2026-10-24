@@ -73,7 +73,7 @@ function same<T>(site: number, owner: object, a: unknown, b: unknown, c: unknown
 // GDP_READER_CLEAN=0: values with an open read found again at every node, as before (for comparing).
 export const keepClean = env.GDP_READER_CLEAN !== '0'
 // The key of a part of the live rows (`sync`): a hypothesis' facts (0, its index), a term column's rows (1, the column's
-// name id), a pair of cells' (2, their name ids).
+// name id), a pair of cells' (2, their name ids), a hypothesis' part's facts (3, its index and the part's).
 class Seg { constructor(readonly kind: number, readonly i: number, readonly j = -1) {} }
 type Finding = {key: object}
 export class Reader {
@@ -289,16 +289,50 @@ export class Reader {
       }
     }
   }
+  // (a hypothesis' facts are its parts': each conjunct's, kept as a value is, so a change finds again only the parts
+  // that read it)
   facts(i: number): FV {
     const key = (this.factKeys[i] ??= new Seg(0, i))
     this.read(key)
     const had = this.fs[i]
     if (had && this.ok(had, key)) return had
     return this.within(key, () => {
-      const rows: Row[] = [], r = this.factsOf(this.goal.hyps[i]!, true, rows)
-      const out: FV = {rows, fin: r.fin, pos: r.pos, stamp: r.pos < 0 ? 0 : this.trail.stamp(r.pos), node: this.node}
+      const parts = this.parts(i)
+      let rows: Row[] = [], pos = -1, fin = true
+      if (parts.length === 1) { const f = this.part(parts[0]!); rows = f.rows; pos = f.pos; fin = f.fin }
+      else for (const p of parts) { const f = this.part(p); for (const r of f.rows) rows.push(r); if (f.pos > pos) pos = f.pos; fin &&= f.fin }
+      const out: FV = {rows, fin, pos, stamp: pos < 0 ? 0 : this.trail.stamp(pos), node: this.node}
       this.fs[i] = out
       this.clean.add(key)
+      return out
+    })
+  }
+  // Whether a hypothesis' facts are final (each part's).
+  private factsFin(i: number): boolean { for (const p of this.parts(i)) if (!this.part(p).fin) return false; return true }
+  // A hypothesis' conjuncts (a conjunction's parts, a negated disjunction's, flattened), each with its sign.
+  private partsOf: {c: C, positive: boolean, key: Seg}[][] = []
+  private ps = new Map<Seg, FV>()
+  private parts(i: number): {c: C, positive: boolean, key: Seg}[] {
+    let out = this.partsOf[i]
+    if (out) return out
+    const mine: {c: C, positive: boolean, key: Seg}[] = []
+    const flat = (c: C, positive: boolean): void => {
+      if (c.op === 'not') return flat(c.x, !positive)
+      if ((c.op === 'and' && positive) || (c.op === 'or' && !positive)) { for (const y of c.xs) flat(y, positive); return }
+      mine.push({c, positive, key: new Seg(3, i, mine.length)})
+    }
+    flat(this.goal.hyps[i]!, true)
+    return (this.partsOf[i] = out = mine)
+  }
+  private part(p: {c: C, positive: boolean, key: Seg}): FV {
+    this.read(p.key)
+    const had = this.ps.get(p.key)
+    if (had && this.ok(had, p.key)) return had
+    return this.within(p.key, () => {
+      const rows: Row[] = [], r = this.factsOf(p.c, p.positive, rows)
+      const out: FV = {rows, fin: r.fin, pos: r.pos, stamp: r.pos < 0 ? 0 : this.trail.stamp(r.pos), node: this.node}
+      this.ps.set(p.key, out)
+      this.clean.add(p.key)
       return out
     })
   }
@@ -428,7 +462,12 @@ export class Reader {
   private c12: number[] = [] // by name id: the copies from the trail and the facts that read it
   private cT: number[] = [] // and from term rows (a column's own rows not counted for it)
   private inTrail: (Row | undefined)[] = []
-  private inFacts: (FV | undefined)[] = []
+  private inParts = new Map<Seg, FV>()
+  private hypsIn = 0
+  // (the hypothesis each live copy of a fact came from)
+  private src = new WeakMap<Row, number>()
+  // The hypotheses some rows came from, as the live rows have them.
+  hypsOf(rows: Row[]): number[] { const out = new Set<number>(); for (const r of rows) { const i = this.src.get(r); if (i !== undefined) out.add(i) } return [...out] }
   private inSeg = new Map<Seg, Row[]>()
   private cached = new Map<Seg, Row[]>()
   private termKeys: Seg[] = []
@@ -456,14 +495,15 @@ export class Reader {
       this.inTrail[i] = r
     }
     this.inTrail.length = n
-    for (let i = this.inFacts.length; i < this.goal.hyps.length; i++) { this.dirty.add((this.factKeys[i] ??= new Seg(0, i))); this.inFacts.push(undefined) }
+    for (; this.hypsIn < this.goal.hyps.length; this.hypsIn++) for (const p of this.parts(this.hypsIn)) this.dirty.add(p.key)
     for (const key of [...this.dirty]) {
-      if (key.kind === 0) {
-        const fv = this.facts(key.i), had = this.inFacts[key.i]
+      if (key.kind === 0) continue
+      if (key.kind === 3) {
+        const fv = this.part(this.partsOf[key.i]![key.j]!), had = this.inParts.get(key)
         if (fv === had) continue
-        for (const r of fv.rows) this.addCopy(r, 1)
+        for (const r of fv.rows) { this.src.set(r, key.i); this.addCopy(r, 1) }
         if (had) for (const r of had.rows) this.removeCopy(r, 1)
-        this.inFacts[key.i] = fv
+        this.inParts.set(key, fv)
       } else if (this.inSeg.has(key)) {
         const had = this.inSeg.get(key)!, now = this.segRows(key)
         if (now === had) continue
@@ -602,7 +642,7 @@ export class Reader {
     if (had && ((keepClean && this.clean.has(key)) || had.node === this.node)) return had.lins
     const lins = this.within(key, () => {
       const mine: Lin[] = []
-      if (!this.facts(i).fin) this.openH(this.goal.hyps[i]!, mine, true)
+      if (!this.factsFin(i)) this.openH(this.goal.hyps[i]!, mine, true)
       return mine
     })
     this.os[i] = {lins, node: this.node}

@@ -87,6 +87,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
   // (with opts.core: each leaf's hypotheses, by node; the hypothesis each row at this node came from)
   const leafHyps = new Map<number, number[]>(), wantCore = !!(opts.core && opts.model)
   const hypsOf = (rs: Row[]): number[] => {
+    if (useInc && sx) return reader.hypsOf(rs)
     const at = new Map<Row, number>()
     for (let i = 0; i < goal.hyps.length; i++) for (const r of reader.facts(i).rows) at.set(r, i)
     return [...new Set(rs.flatMap(r => { const i = at.get(r); return i === undefined ? [] : [i] }))]
