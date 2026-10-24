@@ -281,14 +281,16 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
         costs.cdclNodes++; costs.cdclRows += full.length
         // (the elimination below reads term columns' rows only once the trail has an atom about one, as growPlain does)
         const columns = colsOn > 0
-        // (the rows read by the elimination, made when it runs)
-        let idx: number[] | undefined, rows: Constraint[] | undefined
+        // (the rows read by the elimination, made when it runs, in kernel.ts's order: elimination's choices, and the
+        // bounded one's give-up, follow the order it is given)
+        let kidx: number[] | undefined, idx: number[] | undefined, rows: Constraint[] | undefined
+        const korder = (): number[] => (kidx ??= reader.rows().map(r => reader.slotOf(reader.form(r.lin).id)))
         const plain = (): Constraint[] => {
           if (rows) return rows
-          idx = columns ? undefined : full.flatMap((r, i) => (reader.readsColumn(r.lin) ? [] : [i]))
-          return (rows = idx ? idx.map(i => full[i]!) : full)
+          idx = korder().filter(i => columns || !reader.readsColumn(full[i]!.lin))
+          return (rows = idx.map(i => full[i]!))
         }
-        const at = (i: number) => (!idx ? i : i < plain().length ? idx[i]! : full.length + i - plain().length)
+        const at = (i: number) => (i < plain().length ? idx![i]! : full.length + i - plain().length)
         // The candidates, in growPlain's order: the units, the conclusion's open atoms, the hypotheses' near it, the
         // rest, pairs of cells.
         const cands = t(() => {
@@ -392,7 +394,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
             verdict = open && rows.length > 60 ? solve(rows, 2 * rows.length) : solve(rows)
             if (verdict.kind === 'refuted') steps = verdict.steps.map(s => (s.kind === 'input' ? {...s, index: at(s.index)} : s))
           }
-          if (!steps && open && !columns && full.length > rows.length) { const fast = refuteFast(full); if (fast?.kind === 'refuted') steps = fast.steps }
+          if (!steps && open && !columns && full.length > rows.length) { const k = korder(), fast = refuteFast(k.map(i => full[i]!)); if (fast?.kind === 'refuted') steps = fast.steps.map(s => (s.kind === 'input' ? {...s, index: k[s.index]!} : s)) }
         }, ms => { st.solveMs += ms })
         if (steps) conflict = leafAt(rowsR, steps)
         else {
