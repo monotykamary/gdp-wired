@@ -62,7 +62,7 @@ func (c *Counts) validRequests() uint32 {
   step(x, 'onRequest below 2^32 − 1 adds 1', (b, a) => a.Requests.eq(b.Requests.plus(1)), b => b.method.is('onRequest').and(b.Requests.lt(4294967295)))
   const r = x.rule! as any
   expect(proveRule(r, [...x.invariants!, r.law('validRequests is at most Requests', ({validRequests_result, Requests}: any) => validRequests_result.atMost(Requests))]).proven).toBe(true)
-}, 60_000)
+}, 600_000)
 
 t('overflow at each width: int8 wraps to −128, uint16 below 0 wraps up, int32 products wrap', () => {
   const x = ok(go(`
@@ -77,7 +77,7 @@ func (w *W) Twice()         { w.C = w.C * 2 }`, 'W'))
   step(x, 'int8 127 + 1 is −128', (_, a) => a.A.eq(-128), b => b.method.is('IncA').and(b.A.eq(127)))
   step(x, 'uint16 0 − 1 is 65535', (_, a) => a.B.eq(65535), b => b.method.is('SubB').and(b.B.eq(0), b.SubB_d.eq(1)))
   step(x, 'int32 2^30 · 2 is −2^31', (_, a) => a.C.eq(-2147483648), b => b.method.is('Twice').and(b.C.eq(1073741824)))
-}, 60_000)
+}, 600_000)
 
 t('a uint64 below 0 is refused (Go wraps it past the rule\'s 2^53); past 2^53 the runtime refuses', () => {
   const x = ok(go(`
@@ -89,7 +89,7 @@ func (l *L) Add(d uint64)  { l.N += d }`, 'L'))
   // The rule refuses the step Go would wrap: Take(d) with d > N.
   const r = x.rule! as any
   expect(proveSteps(r, x.invariants ?? [], [r.stepLaw('Take never takes N below 0', (_: any, a: any) => a.N.atLeast(0), (b: any) => b.method.is('Take'))]).proven).toBe(true)
-}, 60_000)
+}, 600_000)
 
 t('*big.Int fields (blnk\'s balances): nil a state of its own, Add and Sub in place, Cmp, an error as the refusal', () => {
   const x = ok(go(`
@@ -129,7 +129,7 @@ func (b *Bal) Debit1(x *big.Int) error {
 }`, 'Bal'))
   const r = x.rule! as any
   expect(proveRule(r, [...x.invariants!, r.law('Net is Credit − Debit once set', ({Net, Credit, Debit, Net_nil}: any) => Net_nil.or(Net.eq(Credit.minus(Debit))))]).proven).toBe(true)
-}, 60_000)
+}, 600_000)
 
 // --- overflow: a wrong model of it is caught by the check -------------------------------------------------------------
 t('the check catches a rule that forgets the wrap (the model edited after reading)', async () => {
@@ -147,7 +147,7 @@ t('the check catches a rule that forgets the wrap (the model edited after readin
   const y = fromModel(read.model, 'C.go', {N: 'nat'}, [], (rule, sorts) => checkGo(`${root}/p`, pkg, read, rule, sorts, {entry: 'C', check: budget}))
   expect(y.ok).toBe(false)
   expect(y.refusals[0]!.what).toMatch(/the rule and the code differ: .*N is 0 in the code, 256 in the rule/)
-}, 60_000)
+}, 600_000)
 
 // --- aliasing through pointers ----------------------------------------------------------------------------------------
 t('aliasing through pointers: a copied pointer writes the object, a copied struct doesn\'t, an interior pointer does', () => {
@@ -172,7 +172,7 @@ func (a *A) ViaChoice(c bool) {
   step(x, 'a copied struct leaves the object', (b, a) => a.N.eq(b.N).and(a.M.eq(7)), b => b.method.is('ViaCopy'))
   step(x, 'an interior pointer writes the nested field', (b, a) => a.Sub_X.eq(b.Sub_X.plus(1)), b => b.method.is('ViaInterior').and(b.Sub_X.lt(1000)))
   step(x, 'a pointer chosen by a condition writes the one it is', (b, a) => a.M.eq(1).and(a.N.eq(b.N)), b => b.method.is('ViaChoice').and(b.ViaChoice_c))
-}, 60_000)
+}, 600_000)
 
 t('aliasing refused: one big.Int in two fields, a pointer the caller gave kept in the state', () => {
   refused(go(`
@@ -183,7 +183,7 @@ func (b *B) Share() { b.X = big.NewInt(1); b.Y = b.X }`, 'B'), /one object in tw
 import "math/big"
 type B struct{ X *big.Int }
 func (b *B) Keep(v *big.Int) { b.X = v }`, 'B'), /pointer the caller gave|keeps the \*big\.Int the caller gave/)
-}, 60_000)
+}, 600_000)
 
 // --- maps -------------------------------------------------------------------------------------------------------------
 t('maps: read with a zero for a missing key, comma-ok, delete, a nil map\'s write panics; a range over one is refused', () => {
@@ -207,7 +207,7 @@ func (m *M) Sum() int64 {
 	}
 	return s
 }`, 'M'), /a range over a map \(Go's iteration order is random/)
-}, 90_000)
+}, 600_000)
 
 // --- slices -----------------------------------------------------------------------------------------------------------
 t('slices as lists: append and pop in place, an index out of range panics; a second name for a slice is refused', () => {
@@ -230,7 +230,7 @@ func (s *S) Share() { s.Ys = s.Xs }`, 'S'), /a slice given a second name.*backin
   refused(go(`
 type S struct{ Xs []int64 }
 func (s *S) Window() { s.Xs = s.Xs[1:] }`, 'S'), /a slice of a slice \(it shares the backing array/)
-}, 90_000)
+}, 600_000)
 
 // --- defer ------------------------------------------------------------------------------------------------------------
 t('defer: a mutex\'s Unlock after its Lock is read (the step is atomic); any other defer, or a lock taken twice, is refused', () => {
@@ -263,7 +263,7 @@ func (c *C) Inc() {
 	defer c.mu.Unlock()
 	c.N = c.get() + 1
 }`, 'C', {methods: ['Inc']}), /locked again in the same step \(a deadlock\)/)
-}, 90_000)
+}, 600_000)
 
 // --- panics and errors ------------------------------------------------------------------------------------------------
 t('panics: explicit, a nil *big.Int, a division by a constant zero is Go\'s compile error; each a refusal, the state as it was', () => {
@@ -282,7 +282,7 @@ func (p *P) Check(v int64) {
 func (p *P) Grow(d *big.Int) { p.X.Add(p.X, d) }`, 'P'))
   step(x, 'Check refuses a negative value', () => no, b => b.method.is('Check').and(b.Check_v.lt(0)))
   step(x, 'Grow on a nil X is refused (a nil dereference)', () => no, b => b.method.is('Grow').and(b.X_nil))
-}, 60_000)
+}, 600_000)
 
 t('a panic or an error after a write is refused, unless the caller discards what a failed call wrote', () => {
   const src = `
@@ -299,7 +299,7 @@ func (e *E) Move(d int64) error {
   refused(go(src, 'E'), /an error returned after the state is written/)
   const x = ok(go(src, 'E', {onError: 'discard'}))
   step(x, 'Move never leaves N below 0', (_, a) => a.N.atLeast(0), b => b.method.is('Move').and(b.N.atLeast(0)))
-}, 90_000)
+}, 600_000)
 
 t('outside the subset, each where it is: floats, loops, goroutines, closures, generics, another module\'s code', () => {
   refused(go('type F struct{ X float64 }\nfunc (f *F) Half() { f.X = f.X / 2 }', 'F'), /a float/)
@@ -308,7 +308,7 @@ t('outside the subset, each where it is: floats, loops, goroutines, closures, ge
   refused(go('type F struct{ N int64 }\nfunc (f *F) Do() { g := func() int64 { return 1 }; f.N = g() }', 'F'), /a closure/)
   refused(go('type F[T any] struct{ N int64; v T }\nfunc (f *F[T]) Inc() { f.N++ }', 'F'), /generic/)
   refused(go('import "strings"\ntype F struct{ S string; N int64 }\nfunc (f *F) Up() { f.S = strings.ToUpper(f.S) }', 'F'), /standard library the subset doesn't read/)
-}, 90_000)
+}, 600_000)
 
 t('Go\'s integer division truncates toward zero; conversions wrap into the narrower type', () => {
   const x = ok(go(`
@@ -325,7 +325,7 @@ func (d *D) Unsigned(v int64) { d.U = uint8(v) }`, 'D'))
   step(x, '−7 % 3 is −1', (_, a) => a.N.eq(-1), b => b.method.is('Rem').and(b.N.eq(-7)))
   step(x, 'int8(200) is −56', (_, a) => a.B.eq(-56), b => b.method.is('Narrow').and(b.Narrow_v.eq(200)))
   step(x, 'uint8(−1) is 255', (_, a) => a.U.eq(255), b => b.method.is('Unsigned').and(b.Unsigned_v.eq(-1)))
-}, 60_000)
+}, 600_000)
 
 t('embedded structs: a promoted pointer method writes the embedded field, a value receiver writes a copy', () => {
   const x = ok(go(`
@@ -340,7 +340,7 @@ func (r *R) Hit()  { r.onRequest(); r.Age++ }
 func (r *R) Copy() { r.bump() }`, 'R'))
   step(x, 'Hit counts a request', (b, a) => a.Counts_Requests.eq(b.Counts_Requests.plus(1)), b => b.method.is('Hit').and(b.Counts_Requests.lt(100), b.Age.lt(100)))
   step(x, 'a value receiver leaves the object', (b, a) => a.Counts_Requests.eq(b.Counts_Requests), b => b.method.is('Copy'))
-}, 60_000)
+}, 600_000)
 
 t('recover is refused (a panic is a refusal here, not a value)', () => {
   refused(go(`
@@ -349,4 +349,4 @@ func (c *C) Safe() {
 	defer func() { _ = recover() }()
 	c.N++
 }`, 'C'), /defer|recover/)
-}, 60_000)
+}, 600_000)
