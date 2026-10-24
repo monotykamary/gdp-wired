@@ -1,6 +1,7 @@
 // Rules read from the code that ships (`gdp-wired/extract`): `extract(code, {entry})` reads a TypeScript or JavaScript
-// step function (a reducer `(state, action) => state`, `useReducer`'s, functions over one record) or a class whose
-// methods write its fields (a rate limiter's `tryRemove(n)`, a wallet's `debit(x)`), and returns the rule that steps the
+// step function (a reducer `(state, action) => state`, `useReducer`'s, functions over one record), a class whose
+// methods write its fields (a rate limiter's `tryRemove(n)`, a wallet's `debit(x)`), with the classes it extends, or
+// the object of functions a factory returns (its state what they close over), and returns the rule that steps the
 // same way, as a builder value and as the source that makes it (`toSource`), for a user to read and keep:
 //
 //   const x = extract(readFileSync('bucket.ts', 'utf8'), {file: 'bucket.ts', entry: 'TokenBucket'})
@@ -10,20 +11,28 @@
 //
 // The extractor is untrusted. The rule is checked against the original code by running both (core/extract-check.ts):
 // requests from the start, steps from drawn states, and steps from the prover's counterexamples, every state, map cell,
-// result and refusal compared, and the code's branches counted. Any difference refuses the extraction with the
+// list, result and refusal compared, and the code's branches counted. Any difference refuses the extraction with the
 // difference; nothing is adopted that the check didn't run. What the subset doesn't read is refused where it is, with
 // the reason, never approximated. XState machines go through `fromXState` (core/xstate.ts), their guards and actions
-// read the same way (`extractXState`).
+// read the same way (`extractXState`, a machine or a function that makes one, its actors, timers and eventless
+// transitions included).
 //
 // The subset: numbers (integers: a literal that isn't one is refused; division only as Math.floor or Math.ceil of
-// x / k for a constant k; % by a constant of a natural), booleans, string-literal unions, records and nested records
-// (spreads, shorthand), Map and Record state keyed by numbers or strings (get, set, has, delete, [k], ?? a default),
-// conditionals, ternaries, && || ?? (their right side's effects on its own path), early returns, switch on a tag
-// (fall-through, default), Math.min, Math.max, Math.abs, Date.now() (an input; once a step), throws (the rule's
-// refusals: its assumption, or its precondition for a constructor), helper functions and methods of the same file
-// (inlined), getters. Refused: loops, arrays, strings beyond keys and literals, floats, async, try/catch, writes to the
-// state a reducer is given, a throw after a method wrote a field, two keys of one map written in one step, a map
-// replaced whole, a reference into a map held across a set, aliasing that depends on the path, other modules' code.
+// x / k for a constant k, a fraction being a binary float the code rounds; % by a constant of a natural), booleans,
+// string-literal unions, strings (set, compared, truthy where not empty), null and undefined where a value may be
+// missing, records and nested records (spreads, shorthand), Map and Record state keyed by numbers or strings (get,
+// set, has, delete, [k], ?? a default; a Map given to a constructor starts empty), arrays of numbers, booleans and
+// string unions as lists (length, [i], push, pop, [i] = x within the array, [...xs], [...xs, x]), Dates as their time
+// (new Date(), getTime(), setTime() where the Date is held), conditionals, ternaries, && || ?? (their right side's
+// effects on its own path), early returns, switch on a tag (fall-through, default), Math.min, Math.max, Math.abs,
+// Boolean(x), Date.now() (an input; once a step), throws (the rule's refusals: its assumption, or its precondition
+// for a constructor), helper functions and methods of the same files (inlined), getters, single inheritance (each
+// member resolved statically: this.m() the nearest the object has, super.m() the nearest above the class it is in),
+// results kept (a value, a record of values, a value that may be missing). Refused: loops, strings beyond keys and
+// literals, floats, async, try/catch, writes to the state a reducer is given, a throw after a method wrote a field, two
+// keys of one map or two writes of one list in one step, a map or a list replaced whole, a reference into a map held
+// across a set, one object (an array, a Map, a Date) in two places, aliasing that depends on the path, mixins, other
+// modules' code.
 import * as dsl from './dsl.ts'
 import {compileFunction} from './machine.ts'
 import type {Rule} from './dsl.ts'

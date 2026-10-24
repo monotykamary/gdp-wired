@@ -104,9 +104,9 @@ const cases: Case[] = [
 const NOT_COMPARED = [{item: 'rate limit/upstash-ratelimit/tokenBucket', path: 'src/cache.ts', why: "the item's rule is the token bucket (single.ts, its Lua) with the cache: its laws are about both; the source extracted is the cache alone"}]
 
 const verdictOf = (v: Verdict, decision = false): string => (v.proven && v.checked ? 'proven' : v.run || (decision && v.stuck === 'sat' && v.witness) ? 'refuted' : 'unknown')
-const prove = (l: RealLaw): {verdict: string, ms: number, error?: string} => {
+const prove = (l: RealLaw): {verdict: string, ms: number, error?: string, goal?: string, stuck?: string, why?: string, run?: unknown} => {
   const t = performance.now()
-  try { return {verdict: verdictOf(l.prove(ms), l.form === 'decision'), ms: Math.round(performance.now() - t)} } catch (e) { return {verdict: 'error', ms: Math.round(performance.now() - t), error: String((e as Error).message).slice(0, 300)} }
+  try { const v = l.prove(ms); return {verdict: verdictOf(v, l.form === 'decision'), ms: Math.round(performance.now() - t), ...(v.proven ? {} : {goal: v.goal, stuck: v.stuck, why: v.why?.slice(0, 300)}), ...(v.run ? {run: v.run} : {})} } catch (e) { return {verdict: 'error', ms: Math.round(performance.now() - t), error: String((e as Error).message).slice(0, 300)} }
 }
 
 if (args.includes('--jobs')) {
@@ -135,7 +135,7 @@ if (oneAt >= 0) {
 }
 const from = arg('--from')
 if (from) {
-  const rows = readdirSync(from).filter(f => f.endsWith('.log')).map(f => { const l = readFileSync(join(from, f), 'utf8').trim().split('\n').at(-1)!; try { return JSON.parse(l) } catch { return {file: f, error: l.slice(0, 300)} } })
+  const rows = readdirSync(from).filter(f => f.startsWith('corpus-') && f.endsWith('.log')).map(f => { const l = readFileSync(join(from, f), 'utf8').trim().split('\n').at(-1)!; try { return JSON.parse(l) } catch { return {file: f, error: l.slice(0, 300)} } })
   for (const r of rows) console.log(JSON.stringify(r))
   for (const n of NOT_COMPARED) console.log(JSON.stringify({item: n.item, path: n.path, notCompared: n.why}))
   const stated = rows.filter(r => r.agree !== undefined)
