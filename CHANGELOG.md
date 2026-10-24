@@ -5,6 +5,139 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+A kernel query costs less: the CDCL search keeps its rows from one node to the next, and the reader finds again only
+the values a change touches. A cost model counts what a query does, and the two budgets 0.26.0 left on wall time are
+counted in it. Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts` and `lean-kernel/` as
+in 0.26.0). Every figure below is from a batch launched together with main 3cc00e3 on Modal (60 s, 2 vCPU),
+`runs/query/m4` in the main checkout, unless another run is named. These are measurements in our harness, unconfirmed
+under each competition's own setup.
+
+- **CHC-COMP LIA-Lin:** 1,039 (615 sat, 424 unsat) against main's 1,023 (615, 408). None wrong, and the same 2
+  disputed labels on both. 22 gained and 6 lost; each was run again three times a side (`chcr1`..`chcr3`).
+  - Gained every time, never on main: DRAGON_14 ×5, FIREFLY_a3 ×2, car_5 ×5, metros_2_e1_1116_e3_287, swimmingpool
+    ×3 and ticket3i_7_e8_2126_e7_78. They are unsat answers by the bounded runs, which now go 2 to 3 depths further
+    (car_5 reaches depth 12 where main stops at 10). The exception is ticket3i, which is sat.
+  - Lost every time: car_2_e7_1027_e1_1047, sat on main by the join in every run. The join blocks other cubes here
+    (CDCL's models differ), and its 14th round runs out of time. SYNAPSE_4 is lost in 2 of 3 runs.
+  - The others answer on both sides in some runs.
+  - Spacer 1,163 and Golem 1,154 lead.
+- **TIP 2015:** 199 of 492 proven against 194, the same 7 refuted, none wrong. 5 gained (prop_60, prop_12, list_Select,
+  list_assoc, list_nat_Select), each in 2 or 3 of 3 runs again on each side. None lost. Vampire proves 193 in this
+  harness (0.25.0's batch): 199 is ahead, unconfirmed.
+- **TermComp ITS:** 1,146 (614 terminating, 532 not) against 1,141 (610, 531). 6 gained, 1 lost (db3.t2_fixed). Run
+  three times a side, each of the 7 answers equally often on both sides, except s1-striped.t2_fixed (2 of 3 here, 3 of
+  3 on main). LoAT's default engine proves 532 nonterminating: level, not ahead.
+- **SV-COMP termination:** 224 (169, 55) against 225 (170, 55). Every answer is its expected verdict. The one task
+  lost, Singapore-2, answers 1 of 3 times on each side.
+- **The real-world corpus:** 237 proven, 18 refuted, 52 unknown and 4 timeouts at the 150 s kill, against 237, 18 and
+  56. ledger/tigerbeetle/transfers' laws 2 to 6 end unknown on main at 105.6 to 107.9 s. Here, their goal "every T
+  cell is a value of its kind @step" is proven by CDCL in 10.4 s; main gave up on it at its 20 s budget
+  (`runs/query/tb1`). The cyclic
+  certificate's translation of that tree then runs past the kill (`runs/query/tb2p`: 72% of the law's time in
+  `certCyclic`).
+  - Law 2 is proven in this batch (142.9 s), and in 3 of 3 runs again (110 to 150 s; `rwr-mine`).
+  - Law 3 is proven in 1 of 3 runs (119 s). Laws 4 to 6 time out.
+  - xstate/gapless.js/track's law 2 is unknown in this batch. It is proven in 1 of 3 runs again here and in 2 of 3 on
+    main.
+  - ledger/openzeppelin/RefundEscrow's laws 0 and 1 are proven in 9.0 s and 9.1 s (`runs/query/rw1`). These are the
+    k-induction laws that ran out of memory when 0.26.0 first counted the search's budget.
+- **Frontier corpora:** round 1, 90 of 92, with all 42 broken variants refused, every verdict the same as main's.
+  Round 2, 31 of 47 against 30 (term/Piecewise), with all 47 broken variants refused. One job was killed at 200 s on
+  both sides, as before.
+- **research/dag's 332 step goals:** all 332 proven on both sides; 297 trees differ from main's, 35 are the same.
+  Summed search time is 283.1 s against 353.6 s. Per goal, here/main is 0.706 at p10, 0.833 at the median and 0.976
+  at p90 (`g332`, both sides in one container per goal). kernel/cdcl.test.ts passes with `GDP_CDCL_VERIFY=1`, which
+  compares the kept rows with kernel.ts's at every node (`runs/query/fuzz-x5`).
+- **Suites (219 jobs):** none failed by default (550.6 s wall, 5,352.3 s of job time) or with `--usual` (570.8 s,
+  4,865.2 s).
+- **1 vCPU,** ten jobs a side interleaved with main, none failed. In an earlier batch, main db0369f failed one: data's
+  nearPlus at 5,389.34 ms (`runs/query/m3/onecpu`). In this batch:
+  - data's nearPlus: median 2,403.07 ms, at most 3,108.12 (main 2,351.16, 2,768.43).
+  - infer's "a law that needs an invariant": 2,239.70 ms and 2,909.15 (main 2,698.39, 3,665.57).
+
+**Where a query's time went** (`runs/query/prof-g332`, `prof-reps`: bun CPU profiles of every root query of the 332
+goals, CHC sat and unsat tasks, s1 and hqr, and the false 944-hypothesis step goals, at 0.26.0). The same few places
+were hot in every case except ITS.
+- At each CDCL node, every row was rebuilt from all hypotheses' facts, then deduplicated by text, then loaded into the
+  simplex whole. This took 20.7 to 38.3% of the time.
+- The candidate atoms were listed for every hypothesis, and bound propagation scanned all rows and all candidates.
+  The lists alone took 10.7 to 27.7%.
+- Simplex pivots were 0.0 to 0.5 a node; the arithmetic was cheap.
+- On the false step goals, 159,895,024 candidates were scanned over 12,777 nodes (`runs/query/cal1`), and pairs of
+  cells were made again with their texts at each node.
+- ITS's time was mostly outside the queries (the relation's generators, runs, rank LPs). Its closures' kernel check
+  took 12.4% of it.
+
+**What changed** (kernel/cdcl.ts, kernel/reader.ts, kernel/simplex.ts, kernel/prove.ts; untrusted).
+- **The rows kept** (reader.ts's `sync`): the live rows go from one node to the next. A node remakes only these:
+  - the trail's rows by position;
+  - each hypothesis conjunct whose read a change touched (a hypothesis' facts are kept by conjunct);
+  - the rows these bring as the names they read come and go: a natural's row per name, each term column's rows, and
+    each pair of cells' rows.
+  There is one row per form, the first of its copies with the shortest reason. `GDP_CDCL_VERIFY=1` checks the set
+  against kernel.ts's at every node.
+- **The simplex given what came and went** (`assert`, `retract`, `settle`): a form that comes in and goes out
+  between two runs never reaches it. A new tableau gets its rows in kernel.ts's order. Bound propagation reads a
+  tableau of single-variable bounds of its own. An atom whose bounds haven't changed since it was found unforced is
+  not checked again.
+- **The elimination gets the rows in kernel.ts's order.** In the live rows' order, its bounded run gave up where
+  kernel order refutes: s_multipl_17's `i0 mod 6 = 0 @step` took 15 s against 0.1 s.
+- **The reading made cheaper, with the same search.** These steps kept all 332 trees the same, and saved 6.5% of the
+  time on their own (`runs/query/ab2-g332`):
+  - forms and names numbered, and stamped by node;
+  - pairs of cells made once;
+  - a read edge to an earlier finding dropped when a change walks past it;
+  - a reason inside another not copied.
+- **Candidates by variable**, each list's variables kept with the list. A decision's phase is set at the point for
+  the atom decided. Pairs of cells come from the reader's live cells and are made again only when those, or the
+  decisions about pairs, change.
+
+**Query time, before and after, on the same tasks** (`runs/query/m4`; both sides log every root query; main is
+3cc00e3 with research/query's logging patch).
+
+| Tasks | Main's queries a second of CDCL nodes | Here |
+| --- | --- | --- |
+| The 332 step goals | 355 (median query 718.6 ms, p90 2,131.6) | 441 (604.1, 1,540.4) |
+| CHC sat, 11 Lustre and ctigar tasks (the join) | 470 (12,403 queries, median 7.5 ms, p99 520.7) | 680 (13,204, 9.2, 450.9) |
+| CHC unsat, metros and car (k-induction and the bounded runs) | 173 (median 1,898.5 ms) | 415 (1,333.5) |
+| The false step goals (944 hypotheses, 120 s) | 15 | 268 |
+| ITS (s1, hqr, pgarch, slayer-3-new, edn) | 48 | 45 |
+
+- **The handed-off goals:**
+  - The join's model-only queries, PDR's kind (gen/invariants2), at their median: dillig19 39.1 ms against 43.0,
+    FIREFLY_6 98.0 against 183.7, DRAGON_4 219.9 against 352.6, nest-if6 116.0 against 133.3.
+  - The small queries cost about as much as before: each starts the reader cold.
+  - ITS's s1 tasks' two root queries took 13.0 to 23.9 s together, on both sides alike. The kernel's closure check
+    and the goal's size bound them. CDCL nodes cost the same there, so hqr, pgarch, slayer-3-new and edn stay unknown
+    on both sides.
+
+**The cost model and the counted budgets** (kernel/prove.ts's `fullWork`, `counted(…, full)`; core/bmc.ts;
+core/dsl.ts).
+- **The model:** each kind of the kernel's work, weighed to its time on a Modal 2-vCPU container: elimination's pairs,
+  the float simplex's cells, the plain search's rows a node, the values the reader finds again, the live rows'
+  copies, the read edges walked, the candidates scanned, the pivots' rows, the root's rows for units, the unfolding's
+  rows, and the goal's nodes. The weights come from research/query/fit.py on 7,027 root queries of 20 ms or more
+  (`runs/query/cal2`).
+- **The spread:** work.n did 28 to 377 units a ms (p10 to p90); the model does 120 to 401. On queries of 10 s or more,
+  the median by group is 163 to 271.
+- **grow's own budget**, where its caller gives none and outside `counted`, is the model's work: 180 units a ms of the
+  second a hypothesis.
+- **The search proveRule falls back on:** its bounded runs and k-induction are counted on the model's clock with no
+  wall stop. Their forced run is counted in steps. This needs no memory blowup (RefundEscrow above), and no
+  real-world verdict changed by it. The tigerbeetle laws change by the speed.
+- **The resumable bounded search** (compare/chc/kind.ts's second CPU) reads the model's clock, so a slice takes about
+  the wall time it is given. On work.n's clock it stopped before its slice's end, its counted budget spent: the
+  faster nodes now run that clock about four times past wall time (CHC unsat's model queries: a median 979 units a
+  ms of work.n, `runs/query/cal2`). This is where the CHC unsat gains come from.
+- **findBoundedRun keeps work.n's clock** unless asked (`full`). core/nonterm.ts's bounded runs from a closed set were
+  set against it. On the model's clock, s1.t2 and s1.t2_fixed timed out (`runs/query/its-mine`). On work.n's clock,
+  they answer (`its2-mine`).
+
+**Size:** `core/` and `kernel/` (tests excluded) are 2,112,338 bytes and 29,174 lines, against main 3cc00e3's
+2,081,736 and 28,648 (+30,602 bytes, +526 lines). By file: reader.ts +14,845, cdcl.ts +5,220, simplex.ts +4,664,
+prove.ts +4,513, bmc.ts +766, solver.ts +516, dsl.ts +78. The non-incremental node is gone, and its flag with it.
+research/query/ holds the profiler, the runner, the fit and the comparisons, outside the library.
+
 One closed-form engine for what a loop does after n turns, and the nonterminating ITS tasks it reaches: TermComp's ITS
 per component 533 to 535 nonterminating against LoAT's default engine's 532, ahead in each of three batches launched
 with main at e883e53 (527 to 531 there), 532 and 533 after merging main at db0369f (529 and 531 there); on the task's
