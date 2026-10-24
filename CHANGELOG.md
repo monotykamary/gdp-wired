@@ -3,6 +3,68 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+One closed-form engine for what a loop does after n turns, and the nonterminating ITS tasks it reaches: TermComp's ITS
+per component 533 to 535 nonterminating against LoAT's default engine's 532, ahead in each of three batches launched
+with main at e883e53 (527 to 531 there); on the task's statement 529 to 531 against main's 526 to 528, 1 to 3 behind
+LoAT. In our harness (60 s on Modal, 2 vCPU), unconfirmed under TermComp's own setup. Nothing trusted changed
+(`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/` as at 0.26.0): each answer is a recurrent set
+kernel.ts's `checkRecur` checks, NonTerm.lean's `never_ends_of`. compare/term/README.md has the batches, every task
+gained and lost, and what was left out.
+
+- **The engine** (core/accel.ts's `closedForm`, `nfold`, `polyOf`, `closedAt`, `accelerate`): a run of linear forms (a
+  form along an affine update, g(Uⁿx), or the numbers of a function's values) as Σ c·C(n, k)·rⁿ over the integer roots
+  of the shortest recurrence every given term meets (exact over the rationals; a form of an affine update meets it
+  everywhere once it meets it at its first terms, numbers only where every window does). Polynomial, geometric and
+  triangular updates have one; Fibonacci's doesn't. `accelerate` reads a translation's n-fold turn and its metering
+  function (an atom of the guard that rises by 1 a turn: the count, linear in the state; the guard's other atoms at the
+  first and the last turn, so throughout).
+- **Its callers.** core/discover.ts's closed forms of degree 2 and 3 come from it: the recurrence's own where its step
+  is affine in f and a polynomial in x (squares, the pyramid: the engine on f and x, x·x, x·x·x), else the values', each
+  checked against every sample as before (the same lemmas found: core/discover.test.ts, examples/discover.ts). The
+  accelerated cycles take inner loops to their end (a self-loop or a cycle of two turns that is a translation with a
+  metering function: one step of a walk, its count linear in the state, a part of the set at each of its turns); the
+  stems take a self-loop with a closed form many times at once (a translation n times, as before; any other, a doubling
+  loop, 2 to 16 times). The cycles' differences are its iterates differenced, as before.
+- **Products with a turn's input** (RandomHard's arg2 = arg3·x, which the relation leaves out): the loop's cases with
+  the state value or param fixed at 1, 0, −1 or 2, each the relation of the loop whose condition fixes it first, the set
+  holding it fixed; 30% of the stage's time where there are such cases.
+- **Stems by deepening**: a set the stem search, run to its end, doesn't reach is searched again at twice and four times
+  the depth (with 4 and 16 times the calls), at once for the first four such sets (500 ms each) and after a set's
+  closure (fun9's stem of 30 turns, past the depth of 8 and a bounded run's 24).
+- **Inputs from the rest of the cycle** (`lookahead`): a turn's input chosen as a bound the cycle's later turns put on
+  it, over the state at that turn (MysteriousProgram's reset of a bound to the one the next turns need). After the
+  relation's cycles and those with inner loops.
+- **Time**: the relation built once a loop (the cases' search had built it again: agafp's, 822 and 854 ms on a laptop);
+  a random run stopped at its phase's end (one run of agafp's 140 locations took a whole search).
+- **Beside main at e883e53**, three batches launched together (`runs/closed/its-mine-2` to `-4`, `its-main-2` to `-4`,
+  `sv-*`): ITS on the task's statement 1,141, 1,144 and 1,142 solved (612 to 613 terminating, 529 to 531 not) against
+  1,137, 1,139 and 1,139; per component 1,147, 1,145 and 1,146 against 1,143, 1,141 and 1,139. Gained in each:
+  MysteriousProgram, RandomHard, fun9; agafp.t2 and its twin in the last two. Lost: lassos and closures at the limit on
+  both sides (db2 and db3's `_fixed`, the s1 family, 36.58 to 59.73 s), terminating answers at 58.44 to 60.08 s. SV-COMP
+  225, 224, 225 against 225, 224, 224 (per component 207, 206, 206 against 207, 206, 207), every answer its expected
+  verdict; its moving tasks, five runs a side (`svre-*`), within the same counts. No answer contradicts another's in the
+  13 ITS runs read.
+- **The other benchmarks**, launched with main: CHC-COMP LIA-Lin 1,004 (595 sat, 409 unsat) against 1,001 (591, 410),
+  the same two disputed labels on both, none other wrong (`chc-mine-1`, `chc-main-1`; 13 tasks answered on one side,
+  each at 17.31 s or later); TIP 2015 199 proven against 198 (`tip-mine-1`, `tip-main-1`: isaplanner's prop_60 at 57.37
+  s here). The corpora, every item as main's: round 1 90 / 92, broken 42 / 42; round 2 30 / 47, broken 47 / 47, its
+  nontermination items 5 / 5, broken 5 / 5; the real-world corpus 237 proven, 18 refuted, 56 unknown, law by law (`c1-`,
+  `c2-`, `rw-mine-1`, `-main-1`). The suites (218 jobs) on Modal: by default 593.5 s wall, 5,337.0 s of job time, none
+  failed (`suite-default`); `--usual` 553.5 s and 4,979.3 s, none failed (`suite-usual`). The 5 s tests on 1 vCPU, ten
+  jobs a side interleaved twice (`onecpu-1`, `-2`), none failed: `data`'s nearPlus at most 3,484.95 and 3,179.47 ms here
+  (medians 2,576.01, 2,602.35), 2,987.93 and 3,317.47 on main (2,536.98, 2,379.18); `infer`'s "a law that needs an
+  invariant" 3,546.35 and 3,150.34 here, 3,734.60 and 3,732.28 on main.
+- **Left out:** the inner loops among the first walks, KnapsackDP's counted loops dropped for them (its inner loop is no
+  translation: no candidate); the second search's accelerated share 0.6 (`its-varA-1` beside `its-mine-5`: 529 and 530
+  nonterminating against 531 and 534); a rank from a closed form for the terminating side (LogMult's x := x·x below a0:
+  the rank a0 − 1 − x, its guard atom's first difference x·x − x ≥ 2, has its step goal unproven by the kernel within 5
+  s, products' facts and real models on; the translations' metering functions are linear ranks findRank's LP finds
+  already).
+- **Size**: `core/` and `kernel/` (tests excluded) 1,964,655 bytes and 26,790 lines against 0.26.0's 1,943,031 and
+  26,476 (+21,624). The engine is 7,862 bytes (126 lines); discover's closed forms 3,059 bytes for its 1,637.
+
 ## 0.26.0
 
 Five benchmarks moved or held, the library got smaller, the extractor reads real projects' code, and certificates have

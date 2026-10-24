@@ -151,6 +151,57 @@ the task's expected verdict.
 - Not run: the Lean twin on the ranks found (every proof here is the kernel's, checked twice: in `findRank`, and again
   in solve.ts on the obligations of the loop as translated).
 
+### Closed forms (Unreleased)
+
+One engine for what a loop does after n turns (core/accel.ts's `closedForm`, `nfold`, `accelerate`): a linear form along
+an affine update, or a run of numbers, as Σ c·C(n, k)·rⁿ over the integer roots of its shortest recurrence. The
+accelerated cycles read it for inner loops (a self-loop or a cycle of two turns that is a translation with a metering
+function, taken to its end as one step: MysteriousProgram's display loop, its count growing each round), the stems for
+self-loops with a closed form (a translation n times, a doubling loop 2 to 16 times at once), and core/discover.ts for
+its closed forms. Around it: a product of a state value and a turn's input fixed by a case (RandomHard's arg2 = arg3·x
+at arg3 = 1), the stem search deepened (twice and four times its depth) for a set the first search doesn't reach (fun9's
+stem of 30 turns), a choice of a turn's input from the bounds the rest of the cycle puts on it (`lookahead`), and the
+random runs held to their phase (one run of agafp's 140 locations took the whole search). Each answer is the same
+certificate as before (kernel.ts's `checkRecur`, NonTerm.lean's `never_ends_of`); nothing trusted changed.
+
+Beside main at e883e53 (0.26.0), launched together on Modal (60 s, 2 vCPU), three batches (`runs/closed/its-mine-2`
+to `-4` beside `its-main-2` to `-4`; `sv-mine-2` to `-4` beside `sv-main-2` to `-4`), the branch at 55af42b, 369d88f and
+6a3673e:
+
+| | ITS terminates | nonterminating | solved of 1,239 | SV terminates | nonterminating | solved of 282 |
+| --- | --- | --- | --- | --- | --- | --- |
+| the task's statement (`gdp`), here | 612, 613, 613 | 529, 531, 529 | 1,141, 1,144, 1,142 | 170, 169, 170 | 55, 55, 55 | 225, 224, 225 |
+| e883e53 | 610, 611, 613 | 527, 528, 526 | 1,137, 1,139, 1,139 | 170, 169, 169 | 55, 55, 55 | 225, 224, 224 |
+| per component (`gdp-scc`), here | 613, 612, 611 | 534, 533, 535 | 1,147, 1,145, 1,146 | 152, 151, 151 | 55, 55, 55 | 207, 206, 206 |
+| e883e53 | 612, 612, 612 | 531, 529, 527 | 1,143, 1,141, 1,139 | 152, 151, 152 | 55, 55, 55 | 207, 206, 207 |
+| LoAT (`full1`), the nonterminating leader | 2 | 532 | | | | |
+
+Per component, 533 to 535 nonterminating against LoAT's default engine's 532: ahead in each batch, in this harness and
+unconfirmed under TermComp's own setup. On the task's statement 529 to 531, 1 to 3 behind. No answer contradicts
+another's in the 13 ITS runs read (these, `its-mine1`, `its-mine-5`, `its-varA-1`, `nt3/its-mine6`, `its-main6`, and
+LoAT's, LoAT abmc's and KoAT2's `full1`, `koat-fix1`), and every SV answer is its expected verdict.
+
+- **Gained in every batch** on both statements: MysteriousProgram (the inner loops and the lookahead; 42.31 to 44.91 s
+  on the task's statement, where the first search's 4 s don't reach it, 8.55 to 21.92 s per component), RandomHard
+  (the case arg3 = 1; 4.89 to 7.37 s), fun9 (the deepened stem; 4.09 to 5.03 s, but 41.3 s in the batch before the
+  deepening moved into the first search). agafp.t2 and its `_fixed` twin, by an accelerated set since the random runs
+  keep to their phase: on both statements in batches 3 and 4 (5.97 to 42.55 s); main's task statement has neither in
+  any batch, its per component run some (26.14 to 55.02 s).
+- **Lost**, each a search at the limit on main's side too: db2.t2_fixed and db3.t2_fixed (lassos main's runs found at
+  53.99 to 57.77 s; found here per component at 55.26 to 57.01 s in batches 3 and 4), the s1 family (s1.t2, s1.t2_fixed,
+  s1-striped.t2 and its twin: the closure of a set of 700,000 distinct nodes, answered between 36.58 and 59.73 s on
+  both sides, lost and gained on both), and terminating answers at 58.44 to 60.08 s (elmhes, qrdcmp, ludcmp, traverse,
+  print, ns, RSA: the rank search to the limit on both sides). SV's moving tasks run five
+  times a side (`svre-*`): cohencu5-both-t per component 3 of 5 here, 2 of 5 on main; cohencu4-both-t 2 and 3;
+  Singapore-2 4 and 1; BradleyMannaSipma-CAV2005-Fig1 5 and 5.
+- **Tried and left out:** the inner loops among the first walks (and KnapsackDP's counted loops dropped for them): its
+  inner loop isn't a translation, and no candidate came (a local replay); the second search's accelerated
+  share 0.6 in place of 0.4 (`its-varA-1` beside `its-mine-5`): 529 and 530 nonterminating against 531 and 534, the s1
+  family timing out.
+- **Still behind LoAT** on the task's statement: hqr's three (a cycle of 25 turns, as before), pgarch's two and
+  slayer-3-new (203 and 426 locations), edn (its closure, 34 million nodes written out, not done in time), and the s1
+  family and the db lassos by time.
+
 ### Accelerated cycles: products, inner loops, larger goals (Unreleased)
 
 After merging main at 056fcc3, launched together with main at that commit in one batch (`runs/nt3/its-mine6`,
