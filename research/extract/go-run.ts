@@ -79,6 +79,7 @@ const reason = (what: string): string => {
   return rules.find(([re]) => re.test(what))?.[1] ?? 'other'
 }
 
+class NotGo extends Error {}
 const results = join(out, 'results.jsonl')
 writeFileSync(results, '')
 const t0 = performance.now()
@@ -87,6 +88,7 @@ for (const s of sources) {
   const id = `${s.item} :: ${s.path}`, start = performance.now()
   const row: Record<string, unknown> = {set: 'realworld-go', id, item: s.item, role: s.role, repo: s.repo, commit: s.commit, path: s.path, lines: s.lines, export: s.export, language: s.language}
   try {
+    if (!s.path.endsWith('.go')) throw new NotGo(`${s.path.split('/').pop()}: not Go code (a document the corpus cites beside it)`)
     const dir = checkout(s.repo, s.commit, s.path.split('/').slice(0, -1).join('/'))
     let pkg: GoPkg
     try { pkg = readGoPackage(dir) } catch (e) { throw new Error(`the reader: ${String((e as {stderr?: string}).stderr ?? (e as Error).message).slice(0, 300)}`) }
@@ -115,7 +117,8 @@ for (const s of sources) {
     const first = done.find(d => !d.ok)
     Object.assign(row, {ok: !first, ...(first ? {refusal: first.refusal, reason: reason((first.refusal as {what: string}).what)} : {})})
   } catch (e) {
-    Object.assign(row, {ok: false, refusal: {where: s.path, what: `the front end failed: ${(e as Error).message.slice(0, 400)}`}, reason: 'front end error'})
+    if (e instanceof NotGo) Object.assign(row, {ok: false, refusal: {where: s.path, what: e.message}, reason: 'not code to read'})
+    else Object.assign(row, {ok: false, refusal: {where: s.path, what: `the front end failed: ${(e as Error).message.slice(0, 400)}`}, reason: 'front end error'})
   }
   row.ms = Math.round(performance.now() - start)
   appendFileSync(results, `${JSON.stringify(row)}\n`)
