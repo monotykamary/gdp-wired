@@ -181,6 +181,13 @@ unconfirmed under TermComp's own setup. On the task's statement 529 to 531, 1 to
 another's in the 13 ITS runs read (these, `its-mine1`, `its-mine-5`, `its-varA-1`, `nt3/its-mine6`, `its-main6`, and
 LoAT's, LoAT abmc's and KoAT2's `full1`, `koat-fix1`), and every SV answer is its expected verdict.
 
+After merging main at db0369f (gen/front-go, gen/invariants2), two batches beside db0369f (`its-merged-1`, `-2` beside
+`its-main2-1`, `-2`; `sv-merged-1` beside `sv-main2-1`): ITS on the task's statement 532 and 530 nonterminating (610 and
+614 terminating) against 528 and 530 (612, 613); per component 532 and 533 (613, 611) against 529 and 531 (612, 612).
+LoAT's 532 is tied on either statement in the first batch, led by 1 per component in the second. SV-COMP 225 (170, 55)
+against 224, per component 207 against 207 (cohencu5-both-t gained, cohencu4-both-t lost: the movers above). db2.t2
+is a lasso of the first 2 s that both sides miss where the import takes past 1.6 s (here at 1.67 s in `its-merged-2`).
+
 - **Gained in every batch** on both statements: MysteriousProgram (the inner loops and the lookahead; 42.31 to 44.91 s
   on the task's statement, where the first search's 4 s don't reach it, 8.55 to 21.92 s per component), RandomHard
   (the case arg3 = 1; 4.89 to 7.37 s), fun9 (the deepened stem; 4.09 to 5.03 s, but 41.3 s in the batch before the
@@ -194,6 +201,9 @@ LoAT's, LoAT abmc's and KoAT2's `full1`, `koat-fix1`), and every SV answer is it
   print, ns, RSA: the rank search to the limit on both sides). SV's moving tasks run five
   times a side (`svre-*`): cohencu5-both-t per component 3 of 5 here, 2 of 5 on main; cohencu4-both-t 2 and 3;
   Singapore-2 4 and 1; BradleyMannaSipma-CAV2005-Fig1 5 and 5.
+- **Lean** (`runs/closed/lean-1`): 39 of 40 certificates checked, on `propext`, `Classical.choice`, `Quot.sound`: the
+  new ones of `its-mine-4` (MysteriousProgram, RandomHard, fun9, agafp.t2 and its twin, at most 251.7 s) and 34 others
+  drawn at random; s1.t2's is too big, its Lean file 410,471,697 bytes, killed at 3,300 s.
 - **Tried and left out:** the inner loops among the first walks (and KnapsackDP's counted loops dropped for them): its
   inner loop isn't a translation, and no candidate came (a local replay); the second search's accelerated
   share 0.6 in place of 0.4 (`its-varA-1` beside `its-mine-5`): 529 and 530 nonterminating against 531 and 534, the s1

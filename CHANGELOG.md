@@ -7,11 +7,12 @@ noted), each with the command that reproduces it.
 
 One closed-form engine for what a loop does after n turns, and the nonterminating ITS tasks it reaches: TermComp's ITS
 per component 533 to 535 nonterminating against LoAT's default engine's 532, ahead in each of three batches launched
-with main at e883e53 (527 to 531 there); on the task's statement 529 to 531 against main's 526 to 528, 1 to 3 behind
-LoAT. In our harness (60 s on Modal, 2 vCPU), unconfirmed under TermComp's own setup. Nothing trusted changed
-(`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/` as at 0.26.0): each answer is a recurrent set
-kernel.ts's `checkRecur` checks, NonTerm.lean's `never_ends_of`. compare/term/README.md has the batches, every task
-gained and lost, and what was left out.
+with main at e883e53 (527 to 531 there), 532 and 533 after merging main at db0369f (529 and 531 there); on the task's
+statement 529 to 531 against main's 526 to 528, 1 to 3 behind LoAT, 532 and 530 after the merge (528 and 530). In our
+harness (60 s on Modal, 2 vCPU), unconfirmed under TermComp's own setup. Nothing trusted changed (`kernel/kernel.ts`,
+`kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/` as at 0.26.0): each answer is a recurrent set kernel.ts's
+`checkRecur` checks, NonTerm.lean's `never_ends_of`. compare/term/README.md has the batches, every task gained and lost,
+and what was left out.
 
 - **The engine** (core/accel.ts's `closedForm`, `nfold`, `polyOf`, `closedAt`, `accelerate`): a run of linear forms (a
   form along an affine update, g(Uⁿx), or the numbers of a function's values) as Σ c·C(n, k)·rⁿ over the integer roots
@@ -46,6 +47,11 @@ gained and lost, and what was left out.
   225, 224, 225 against 225, 224, 224 (per component 207, 206, 206 against 207, 206, 207), every answer its expected
   verdict; its moving tasks, five runs a side (`svre-*`), within the same counts. No answer contradicts another's in the
   13 ITS runs read.
+- **After merging main at db0369f**, two batches beside it (`its-merged-1`, `-2`, `its-main2-1`, `-2`, `sv-merged-1`,
+  `sv-main2-1`): ITS nonterminating 532 and 530 on the task's statement against 528 and 530, per component 532 and 533
+  against 529 and 531 (LoAT 532: tied, then led by 1 per component); terminating 610 and 614 against 612 and 613, per
+  component 613 and 611 against 612 and 612, each loss at 55 s or later. SV-COMP 225 against 224, per component 207 and
+  207.
 - **The other benchmarks**, launched with main: CHC-COMP LIA-Lin 1,004 (595 sat, 409 unsat) against 1,001 (591, 410),
   the same two disputed labels on both, none other wrong (`chc-mine-1`, `chc-main-1`; 13 tasks answered on one side,
   each at 17.31 s or later); TIP 2015 199 proven against 198 (`tip-mine-1`, `tip-main-1`: isaplanner's prop_60 at 57.37
@@ -56,6 +62,10 @@ gained and lost, and what was left out.
   jobs a side interleaved twice (`onecpu-1`, `-2`), none failed: `data`'s nearPlus at most 3,484.95 and 3,179.47 ms here
   (medians 2,576.01, 2,602.35), 2,987.93 and 3,317.47 on main (2,536.98, 2,379.18); `infer`'s "a law that needs an
   invariant" 3,546.35 and 3,150.34 here, 3,734.60 and 3,732.28 on main.
+- **Lean** (`runs/closed/lean-1`, Lean 4.34.0, `recur-lean.ts`): 39 of 40 certificates are theorems `NeverEnds
+  <task>_loop` on `propext`, `Classical.choice`, `Quot.sound`: the six new ones of `its-mine-4` but s1.t2
+  (MysteriousProgram 96.5 s, RandomHard 13.9 s, fun9 48.4 s, agafp.t2 183.2 s, agafp.t2_fixed 251.7 s) and 34 of the
+  run's other accelerated sets drawn at random. s1.t2's is too big: its Lean file 410,471,697 bytes, killed at 3,300 s.
 - **Left out:** the inner loops among the first walks, KnapsackDP's counted loops dropped for them (its inner loop is no
   translation: no candidate); the second search's accelerated share 0.6 (`its-varA-1` beside `its-mine-5`: 529 and 530
   nonterminating against 531 and 534); a rank from a closed form for the terminating side (LogMult's x := x·x below a0:
