@@ -32,12 +32,13 @@ import {env, linOfE, plus, vars} from './solver.ts'
 
 export type BoundedRun = {law: string, depth: number, witness: Record<string, number>, params: Record<string, number>, trace: Request[]}
 export type BmcOptions = {
-  ms: number // the budget, counted (bmcRate units a millisecond of the cost model's work)
+  ms: number // the budget, counted (on the cost model's clock or work.n's: `full`)
   wall?: number // a stop, in wall time (performance.now())
   from?: number // the first depth (1)
   depth?: number // the last depth (64, the kernel's bound)
   progress?: (depth: number, outcome: 'refuted' | 'sat' | 'unknown', ms: number) => void
   steps?: boolean // (findBoundedRun, with no wall stop) the forced run's share counted in its steps, forcedRate a millisecond
+  full?: boolean // the cost model's clock (bmcRate units a ms), not work.n's (250 units a ms); boundedSearch's default
 }
 
 // Machines whose runs the goals describe as they are: scalars only (no maps, history or carried maps), no quantified
@@ -51,8 +52,11 @@ export function bmcFits(m: Machine, laws: Law[]): boolean {
 }
 // The counted clock's rate here: the cost model's (kernel/prove.ts's fullWork, about a Modal 2-vCPU container's
 // milliseconds at the median query), which counts what the incremental search does at a node; work.n's rows a node,
-// read whole no more, ran the counted clock about four times past wall time on the unsat tasks' k-step goals.
-export const bmcRate = fullRate
+// read whole no more, ran the counted clock about four times past wall time on the unsat tasks' k-step goals. The
+// resumable search (compare/chc/kind.ts's second CPU) reads it, so a slice takes about the wall time it is given;
+// findBoundedRun keeps work.n's (`full` to read the model's), as its callers' budgets were set against it (core/
+// nonterm.ts's bounded runs from a closed set: on that clock s1.t2's recurrent set past the ITS track's 60 s).
+export const bmcRate = fullRate, workRate = 250
 // A forced run's share of the budget, and its steps at most (a derivation checkDerivation replays step by step).
 const forcedShare = 0.3, forcedSteps = 1_000_000, forcedRate = 1_000
 // GDP_BMC_RELAX=0: no relaxed goal first; GDP_BMC_INC=0: each depth's goal a search of its own (for comparing).
@@ -401,7 +405,7 @@ export function findBoundedRun(m: Machine, laws: Law[], opts: BmcOptions): Bound
   // A forced run first, within forcedShare of the budget (as wall time: it is the compiled rule's, not the kernel's;
   // with `steps` and no wall stop, in its steps instead).
   const now = performance.now(), end = Math.min(opts.wall ?? Infinity, now + opts.ms), steps = opts.steps && opts.wall === undefined
-  const out = boundedSearch(m, laws, {...opts, forcedMs: steps ? Infinity : forcedShare * (end - now), ...(steps ? {forcedSteps: Math.min(forcedSteps, Math.round(forcedShare * forcedRate * opts.ms))} : {})})?.run(opts.ms, opts.wall)
+  const out = boundedSearch(m, laws, {...opts, full: opts.full ?? false, forcedMs: steps ? Infinity : forcedShare * (end - now), ...(steps ? {forcedSteps: Math.min(forcedSteps, Math.round(forcedShare * forcedRate * opts.ms))} : {})})?.run(opts.ms, opts.wall)
   return typeof out === 'object' ? out : undefined
 }
 
@@ -426,7 +430,8 @@ export function boundedSearch(m: Machine, laws: Law[], opts: Omit<BmcOptions, 'm
       if (out === 'over') forcedLeft = 0
       else if (wall !== undefined && performance.now() >= wall) return 'paused'
     }
-    return counted(bmcRate, () => {
+    const full = opts.full ?? true
+    return counted(full ? bmcRate : workRate, () => {
       const until = clock() + ms
       const late = () => clock() >= until || (wall !== undefined && performance.now() >= wall)
       if (!made) { made = true; inc = useInc && !(opts.from && opts.from > 1) && !Object.keys(m.fns ?? {}).length && !Object.keys(m.step.flags ?? {}).length ? unrolled(m, laws) : undefined }
@@ -472,7 +477,7 @@ export function boundedSearch(m: Machine, laws: Law[], opts: Omit<BmcOptions, 'm
         return done(typeof got === 'string' ? 'over' : got)
       }
       return done('over')
-    }, true)
+    }, full)
   }
   return {run, depth: () => k}
 }
