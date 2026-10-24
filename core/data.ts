@@ -1420,7 +1420,7 @@ function unfoldAt(f: Fn): number[] {
 // The inductions the search tries for a law (its schemes), for tests.
 export const schemesOf = (p: Program, l: DataLaw): Scheme[] => schemes(p, l)
 function schemes(p: Program, l: DataLaw): Scheme[] {
-  const out: Scheme[] = [], seen = new Set<string>(), halves: Scheme[] = []
+  const out: Scheme[] = [], seen = new Set<string>(), halves: Scheme[] = [], peano: Scheme[] = []
   const add = (s: Scheme) => { const id = JSON.stringify(s.uses); if (!seen.has(id)) { seen.add(id); out.push(s) } }
   // Recursion induction: each call of the law to a recursive function at the law's variables, its recursive calls'
   // arguments as the uses' substitution (where the case's tag holds).
@@ -1497,6 +1497,8 @@ function schemes(p: Program, l: DataLaw): Scheme[] {
   // Structural induction on each variable of a datatype, the others fixed; mutual where its fields reach another of its
   // group (the law and its companions), plain where they reach none or no companion is found.
   for (const v of l.vars) {
+    // (a natural's: v − 1 where v isn't 0, Peano's, where no call of the law recurs on it: even(x + x); placed last)
+    if (v.sort === 'nat') { if (!out.some(sc => sc.on?.v === v.name) && !halves.some(sc => sc.on?.v === v.name)) peano.push({name: `structure of ${v.name}`, on: {v: v.name, d: 'nat'}, uses: [{subst: {[v.name]: {op: 'sub', a: ev(v.name), b: k(1)}}, guard: {op: 'not', x: eqC(ev(v.name), k(0))}}]}); continue }
     if (!(v.sort instanceof Data)) continue
     const d = v.sort, x = ev(v.name), mut = mutualScheme(l, v.name, d)
     if (mut) { out.push(mut); continue }
@@ -1523,6 +1525,8 @@ function schemes(p: Program, l: DataLaw): Scheme[] {
     add({name: `${s1.name} with ${s2.name}`, on, uses, merged: true})
     if (out.length > before) merged++
   }
+  // (Peano's after the others, and merged with none)
+  for (const sc of peano) add(sc)
   return out
 }
 
@@ -2051,7 +2055,12 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
   type Planned = Omit<NodeSpec, 'rank'> & {sub: number, cases?: C[]}
   const plans: Planned[][] = []
   for (const [mi, mb] of members.entries()) {
-    const models = mb.pool.slice(0, 24), concl = concls[mi]!, name = mi === 0 ? title : `${title}, at ${(mb.on!.d as Data).name}`
+    // (an implication's instances from the models where its premise holds first, the node's and each case's, as only they
+    // say anything of its conclusion: x ⊆ y makes y's intersection with x's tail that tail; its cases from them all)
+    const prem = mb.law.holds.op === 'or' && mb.law.holds.xs.length === 2 && mb.law.holds.xs[0]!.op === 'not' ? encY(p, mb.law.holds.xs[0]!.x, new Map()) : undefined
+    const held = ({m, env}: M) => { try { return m.evalC(prem!, env) } catch { return false } }
+    const first = (ms: M[]) => (prem ? [...ms.filter(held), ...ms.filter(x => !held(x))] : ms)
+    const models = first(mb.pool).slice(0, 24), concl = concls[mi]!, name = mi === 0 ? title : `${title}, at ${(mb.on!.d as Data).name}`
     const ih = mb.uses.map(u => ({node: -1 - (u.member ?? mi), subst: u.subst, guard: u.guard}))
     const shapesAt = mb.rank ? rankShapes(mb.shapes ?? [], mb.rank, mb.uses) : mb.on && mb.on.d !== 'nat' ? [ev(mb.on.v)] : []
     const ihConcls = ih.map(useConcl)
@@ -2059,7 +2068,14 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
     // equalities the unfolded definitions give (any branch); twice over, the uses' own conclusions read the second time.
     const pre = instancesOf(p, fs, {roots: [concl], others: ihConcls, depth, shapesAt, etaAt: [], models: [], until: t0 + attemptMs.ms})
     const spare: NodeSpec['uses'] = [], lemmaUses = lemmaUsesFor(p, fs, lemmaNodes, [concl, ihConcls], pre, models, spare)
-    const uses = [...ih, ...lemmaUses]
+    // The hypothesis at other values of the variables the step leaves (generalised: qrev's accumulator, drop's list at
+    // a zip's other list): each use of the scheme a lemma whose descended variables are fixed and the others matched to
+    // the goal's reads, its descent the scheme's own (the rank reads only the variable descended on).
+    const free = (u: SchemeUse, m: number) => (mb.rank || !members[m]!.on || !(members[m]!.on!.v in u.subst) ? [] : members[m]!.law.vars.filter(v => !(v.name in u.subst)))
+    const selfAt: LemmaAt[] = env.DATA_SELF === '0' ? [] : mb.uses.flatMap(u => { const m = u.member ?? mi, vs = free(u, m); return vs.length ? [{law: {...members[m]!.law, vars: vs}, node: -1 - m, concl: concls[m]!, pat: substC(concls[m]!, {vars: u.subst, maps: {}, flags: {}}), fixed: u.subst, guard: u.guard}] : [] })
+    const own = new Set(ih.map(u => sid([u.node, u.subst]))), selfUses = selfAt.length ? lemmaUsesFor(p, fs, selfAt, [concl, ihConcls], pre, models).filter(u => !own.has(sid([u.node, u.subst]))).slice(0, lemmaCaps.self) : []
+    if (dataTrace) for (const u of selfUses) console.error(`[data]   hypothesis use at ${Object.entries(u.subst).map(([x, t]) => `${x} := ${brief(t, 80)}`).join('; ')}`)
+    const uses = [...ih, ...selfUses, ...lemmaUses]
     if (dataTrace) for (const u of lemmaUses) console.error(`[data]   lemma use ${specs[u.node]!.name.slice(0, 40)} at ${Object.entries(u.subst).map(([x, t]) => `${x} := ${brief(t, 80)}`).join('; ')}`)
     // The lemmas' conclusions are unfolded like the law's (they are what the goal reads, said another way); the cycle's
     // own uses only from depth 3.
@@ -2082,7 +2098,7 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
       const fit = [...uses, ...spare].filter(u => holdsIn(u.guard) && applies(u)), kept = capUses(fit.filter(u => uses.includes(u)))
       const rest = fit.filter(u => u.node >= 0 && !kept.includes(u)), joins = rest.length && c.models ? caseJoins(fs, [concl, ihConcls], pre, ihConcls, few(c.models)) : undefined
       const us = [...kept, ...capUses(joins ? rest.filter(u => joins(useConcl(u))) : [], lemmaCaps.joined)]
-      const ms = few(c.models ?? c.near ?? models)
+      const ms = few(first(c.models ?? c.near ?? models))
       plan.push({name: `${name}, case ${i + 1}`, hyps: c.lits, concl, sub: 0, insts: reached(p, fs, instsFor(ms, us, false, c.lits), [c.lits, concl, us.map(u => [u.guard, useConcl(u)]), shapesAt], ms), uses: us})
     }
     plans.push(plan)
@@ -2187,7 +2203,11 @@ function congruence(fs: Facts, onUnion?: (x: E) => void) {
 // The uses of lemmas a goal's reads match: each lemma's largest reads (those inside no other) matched against the goal's
 // reads of the same map at keys equal, by the instances' equations (every branch), to the read's key.
 // `hits`: the lemmas (their nodes) with any use at all, gathered there (and no uses made): whether a goal reads each.
-function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number, concl: C}[], from: unknown[], insts: NodeSpec['insts'], models: M[] = [], spare?: NodeSpec['uses'], hits?: Set<number>): NodeSpec['uses'] {
+// A lemma a goal may use: its node and conclusion; or the goal's own node at an induction's step (`pat`, its conclusion
+// at the step's `fixed` substitution, under its `guard`), the law's other variables (`law.vars`) matched like a lemma's:
+// the hypothesis at any value of the variables the induction doesn't descend on.
+type LemmaAt = {law: DataLaw, node: number, concl: C, pat?: C, fixed?: Record<string, E>, guard?: C}
+function lemmaUsesFor(p: Program, fs: Facts, lemmas: LemmaAt[], from: unknown[], insts: NodeSpec['insts'], models: M[] = [], spare?: NodeSpec['uses'], hits?: Set<number>): NodeSpec['uses'] {
   const terms = new Map<string, E>(), {find, union, cell, congruent} = congruence(fs, x => terms.set(tid(x), x))
   const leaves = (e: E): E[] => (e.op === 'if' ? [...leaves(e.then), ...leaves(e.else)] : [e])
   for (const q of insts) for (const [a, b] of equalities(holdsAt(fs, q))) for (const leaf of leaves(b)) union(a, leaf)
@@ -2207,21 +2227,22 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number
     const fresh: C[] = []
     // The candidates of a round, each scored by the models where the lemma's read is the goal's (a match through every
     // branch's classes holds only in some), two that give the lemma's variables the same values in every model one.
-    type Cand = {use: NodeSpec['uses'][number], at: {goal: E, lemma: E}, score: number, fp: string, size: number}
+    type Cand = {use: NodeSpec['uses'][number], at: {goal: E, lemma: E}, score: number, fp: string, size: number, concl: C}
     const cands: Cand[] = []
     // The newest lemma first (the one the law is tried again for).
     for (const lm of [...lemmas].reverse()) {
       if (round > 0 && out.some(u => u.node === lm.node)) continue
       const vars = new Set(lm.law.vars.map(v => v.name)), sides: E[] = []
-      walk(encY(p, lm.law.holds, new Map()), o => { if (o.op === 'get') sides.push(o as unknown as E) })
+      walk(lm.pat ?? encY(p, lm.law.holds, new Map()), o => { if (o.op === 'get') sides.push(o as unknown as E) })
       const tops0 = sides.filter(a => !sides.some(b => b !== a && JSON.stringify(b).includes(JSON.stringify(a)))) as Extract<E, {op: 'get'}>[]
       // (a read of a function where the lemma has one: a size law about a filter is used at the filter's reads, not at
       // every size the goal reads)
       const callsFn = (t: E) => { let yes = false; walk(t, o => { if (o.op === 'get' && fs.arity.has(o.map as string) && p.fns.some(f => f.name === o.map)) yes = true }); return yes }
       const tops = tops0.some(callsFn) ? tops0.filter(callsFn) : tops0
-      // (a constructor matched by its fields only for a lemma no read matches as it stands: the uses would multiply)
+      // (a constructor matched by its fields only for a lemma no read matches as it stands, the uses would multiply; always
+      // for the hypothesis, whose step names a value by its fields: y :: zs at the tail of a cons)
       for (const byFields of [false, true]) {
-        if (byFields && cands.some(c => c.use.node === lm.node)) break
+        if (byFields && !lm.fixed && cands.some(c => c.use.node === lm.node)) break
         fieldMatch.on = byFields
         for (const top of tops) {
           const n = fs.arity.get(top.map) ?? 1, pats = argsOf(top.key, n)
@@ -2251,14 +2272,14 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number
               const there = pats.map(a => substE(a, {vars: sub, maps: {}, flags: {}}))
               const score = models.length ? models.filter(({m, env}) => { try { return there.every((a, q) => m.evalE(a, env) === m.evalE(args[q]!, env)) } catch { return false } }).length : 1
               if (!score) continue
-              const k2 = sid([lm.node, sub])
+              const k2 = sid([lm.node, lm.fixed ?? {}, sub])
               if (seen.has(k2)) continue
               seen.add(k2)
-              const names = Object.keys(sub).sort()
-              const fp = models.length ? JSON.stringify([lm.node, models.map(({m, env}) => names.map(x => { try { return m.evalE(sub[x]!, env) } catch { return -1 } }))]) : k2
-              const use = {node: lm.node, subst: sub, guard: yesC}
+              const names = Object.keys(sub).sort(), full = lm.fixed ? {...lm.fixed, ...Object.fromEntries(Object.entries(sub).filter(([x, t]) => !(t.op === 'var' && t.name === x)))} : sub
+              const fp = models.length ? JSON.stringify([lm.node, lm.fixed ? sid(lm.fixed) : '', models.map(({m, env}) => names.map(x => { try { return m.evalE(sub[x]!, env) } catch { return -1 } }))]) : k2
+              const use = {node: lm.node, subst: full, guard: lm.guard ?? yesC}
               if (hits) { hits.add(lm.node); break }
-              cands.push({use, at: {goal: t, lemma: substE(top, {vars: sub, maps: {}, flags: {}})}, score, fp, size: textLength([lm.node, sub])})
+              cands.push({use, at: {goal: t, lemma: substE(top, {vars: sub, maps: {}, flags: {}})}, score, fp, size: textLength([lm.node, sub]), concl: lm.concl})
             }
           }
         }
@@ -2275,7 +2296,7 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number
     for (const c of cands) {
       if (out.length >= 12 || out.filter(u => u.node === c.use.node).length >= 4) continue
       take(c); first.add(c)
-      fresh.push(substC(lemmas.find(lm => lm.node === c.use.node)!.concl, {vars: c.use.subst, maps: {}, flags: {}}))
+      fresh.push(substC(c.concl, {vars: c.use.subst, maps: {}, flags: {}}))
     }
     const rest = cands.filter(c => !first.has(c)).sort((a, b) => b.score - a.score || a.size - b.size)
     for (const c of rest) {
@@ -2295,7 +2316,7 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: {law: DataLaw, node: number
 // How many uses of lemmas a goal gets: the candidates kept (`perLemma` of each lemma, `total`), and of those a case node
 // keeps (`perCase` of each lemma, those its models meet); past the node's, `spare` kept for its cases, of which a case
 // takes `joined` more (those its own rewriting passes through).
-export const lemmaCaps = {perLemma: 8, total: 24, perCase: 4, spare: 96, joined: 2}
+export const lemmaCaps = {perLemma: 8, total: 24, perCase: 4, spare: 96, joined: 2, self: 4}
 // A node's uses: the scheme's (the cycle's, read at nodes not yet placed) all, `perCase` of each lemma, `total` lemma
 // uses in all, in the order given.
 function capUses(uses: NodeSpec['uses'], total = Infinity): NodeSpec['uses'] {
