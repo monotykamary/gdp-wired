@@ -58,7 +58,7 @@ export type InferOptions = {
   minimize?: boolean // once proven, each chosen law the proof doesn't need taken out again (true); false answers at once
   remainders?: boolean // remainders (v mod k = r, a guard where only some runs keep one) where the runs keep one (true); with false, congruences instead (`existentials`)
   join?: number // the join's share of what is left of the search after the candidates (0.6)
-  pdr?: 'first' | 'after' // PDR over the join's cubes beside it (GDP_JOIN_PDR; off)
+  pdr?: 'first' | 'after' | 'only' // PDR over the join's cubes beside it (GDP_JOIN_PDR; off), or in its place (only)
 }
 // What was found: each law as a Law (pass it with the rule's laws), how it reads, and for a rule, the builder call
 // that states it (`r.law(...)`), to paste.
@@ -123,15 +123,21 @@ const joinPrime = env.GDP_JOIN_PRIME !== '0'
 // GDP_JOIN_DOWN=0: a blocked cube kept as its refutation's core cuts it (no literal dropped); joinDownQueries, the
 // queries a cube's generalization may ask.
 const joinDown = env.GDP_JOIN_DOWN !== '0', joinDownQueries = 24
-// GDP_JOIN_WARM=0: each of the join's model queries a CDCL search of its own (else one session kept across them, begun
-// again past joinWarmHyps hypotheses; a query that would add more than joinWarmAdd laws asked cold).
-const joinWarm = env.GDP_JOIN_WARM !== '0', joinWarmHyps = 4000, joinWarmAdd = 256
+// The warm session (below) for PDR's queries, each of the join's a CDCL search of its own (GDP_JOIN_WARM=1: the join's
+// too; =0: neither). The join on it lost tasks it answers cold (CHC's SYNAPSE_6 tasks: 5 of 12 against 9 and 10,
+// compare/chc/README.md); PDR on it answers more. Begun again past joinWarmHyps hypotheses; a query that would add more
+// than joinWarmAdd laws asked cold.
+const joinWarmEnv = env.GDP_JOIN_WARM ?? 'pdr', joinWarmHyps = 4000, joinWarmAdd = 256
 // GDP_JOIN_FIXGATE=0: a walk's request always tried with some inputs fixed first (else only while that pays, below).
 const joinFixGate = env.GDP_JOIN_FIXGATE !== '0'
 // PDR beside the join (InferOptions.pdr, or GDP_JOIN_PDR, which `off` turns off): first, before the join, with
 // joinPdrShare of its time (the join the rest); after, once the join ends unproven, with joinPdrShare of what the search
 // has left. At most joinPdrObligations obligations queued at once, 64 frames.
+const joinPdrOwn = env.GDP_JOIN_PDR_OWN !== '0'
 const joinPdrEnv = env.GDP_JOIN_PDR, joinPdrShare = Number(env.GDP_JOIN_PDR_SHARE ?? 0.5), joinPdrObligations = 64
+// The kernel's search below the join: GDP_INFER_HALVES=0, a candidate chosen without its equality's other half;
+// GDP_INFER_DROP=0, a chosen candidate stuck inferStuckDrop times kept.
+const inferHalves = env.GDP_INFER_HALVES !== '0', inferDrop = env.GDP_INFER_DROP !== '0', inferStuckDrop = 4
 const isRule = (t: AnyRule | Machine): t is AnyRule => typeof (t as AnyRule).kindsOfState === 'function'
 
 // The constants a machine's expressions hold, and the factors it multiplies by.
@@ -903,6 +909,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const postOf = (w: Warm, mm: Machine, l: Law) => selOf(w, `post ${l.name}`, () => obOf(w, mm, l).at(-1))
     // Whether a query's laws are few enough to add to the session (each a goal of obligations' to write; a query over
     // thousands of new forms, the whole set at once, is asked cold, as one goal).
+    const warm = () => joinWarmEnv === '1' || (joinWarmEnv === 'pdr' && side === 1)
     const fits = (mm: Machine, ls2: Law[]) => { const w = warmOf(mm); let k = 0; for (const l of ls2) if (!w.at.has(`pre ${l.name}`) && ++k > joinWarmAdd) return false; return true }
     // A query: the selectors on (the rest off), the conclusion's; refuted with the selectors on it rests on, a model, or
     // undefined (its budget spent).
@@ -959,7 +966,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const g = obligations(mm, ls, {}, idx)[1]!, base0 = g.hyps.length - 1 - ls.length, used: string[] = []
       // First a model alone of the CDCL search (no tree unfolded): refuted, the hypotheses its leaves read are those
       // a tree would (the set's proof is the kernel's below, as before); a model is the counterexample; else the prover.
-      if (joinCore && joinWarm && fits(mm, ctxLaws)) {
+      if (joinCore && warm() && fits(mm, ctxLaws)) {
         const w = warmOf(mm), pres = ctxLaws.map(l => [l.name, preOf(w, mm, l)] as const), post = postOf(w, mm, ls[idx]!)
         if (post !== undefined && pres.every(([, j]) => j !== undefined)) {
           const r = warmRun(w, [...pres.map(([, j]) => j!), post], post, joinQueryMs / 4)
@@ -1054,7 +1061,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const f = formOf(c), own = lawFor(f), names2 = new Set([own.name]), ls = [...given, ...frame.filter(l => !names2.has(l.name) && !!names2.add(l.name)), own], mm = forLaws(ls).m
       const g = obligations(mm, ls, {}, ls.length - 1)[1]!, last = g.hyps.at(-1)!
       const inner = last.op === 'not' && last.x.op === 'not' && last.x.x.op === 'and' && last.x.x.xs.length === c.length ? last.x.x.xs : undefined
-      if (joinWarm && inner && fits(mm, ls.slice(given.length))) {
+      if (warm() && inner && fits(mm, ls.slice(given.length))) {
         const w = warmOf(mm), pres = ls.slice(given.length).map(l => preOf(w, mm, l)), posts = inner.map((h, j) => selOf(w, `lit ${JSON.stringify(c[j])}`, () => h))
         if (pres.every(j => j !== undefined) && posts.every(j => j !== undefined)) {
           const r = warmRun(w, [...pres as number[], ...posts as number[]], posts.at(-1)!, joinCubeMs)
@@ -1321,15 +1328,18 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       if (why === 'inductive') return
       const t1 = performance.now(), u0 = jUntil
       jUntil = end; side = 1
-      const found = pdr()
+      // (the samples PDR adds, its own: the join's cubes read the samples as they were)
+      const s0 = S.length, found = pdr()
+      if (joinPdrOwn) for (const v of S.splice(s0)) sampled.delete(vecKey(v))
       side = 0
       opts.progress?.('pdr end', {why: found ? 'inductive' : pdrWhy, lemmas: found?.length ?? 0, ms: Math.round(performance.now() - t1)})
       if (found) { why = 'inductive'; cone = found }
       jUntil = u0
     }
     const j0t = now(), at = (share: number) => j0t + (jEnd - j0t) * share
-    if (joinPdr === 'first') pdrFor(at(joinPdrShare))
-    if (why !== 'inductive') { why = ''; joinRounds() }
+    if (joinPdr === 'first' || joinPdr === 'only') pdrFor(joinPdr === 'only' ? jEnd : at(joinPdrShare))
+    if (joinPdr === 'only' && why !== 'inductive') why = 'pdr'
+    if (why !== 'inductive' && why !== 'pdr') { why = ''; joinRounds() }
     opts.progress?.('join end', {rounds, set: set.length, why, cone: cone.length, ms: Math.round(performance.now() - jT0)})
     if (joinPdr === 'after') pdrFor(jEnd + (until - jEnd) * joinPdrShare)
     // (unproven, the search below begins as it would have: the candidates and the counterexamples as they were)
@@ -1359,6 +1369,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (!(whole.proven && whole.checked)) forget()
     return whole
   }
+  const stuckCount = new Map<Form, number>()
+  const mirrorText = (f: Form): string | undefined => (f.mod || f.cong || f.never || f.nevers || f.cube || f.unreachable || f.also || !f.coef.length ? undefined : textOf({...f, coef: f.coef.map(([i, c]) => [i, -c]), d: -f.d}))
   for (let iter = 0; iter < 300 && now() < until && !stop(); iter++) {
     const began = now(), wall = performance.now()
     // (each law proven alone, then the set as a whole: the same goals, grown once)
@@ -1377,10 +1389,15 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (chosen.length && took > slow) { drop(chosen.at(-1)!); continue }
     const p = /@step|@\d+ steps/.test(last.goal) && last.witness ? witnessPoint(last.witness) : undefined
     if (p) ctis.push(p)
+    // (a chosen candidate whose own goal is stuck again and again, inferStuckDrop times, goes: what supports it keeps
+    // coming, and it may be what keeps the set from being inductive)
+    if (stuckOn && p && inferDrop) { const k = (stuckCount.get(stuckOn) ?? 0) + 1; stuckCount.set(stuckOn, k); if (k >= inferStuckDrop) { stuckCount.delete(stuckOn); drop(stuckOn); continue } }
     let next = p ? best(p) : undefined
     if (!next && p) next = best(p, true)
     if (!next && p) { const t = performance.now(), made = fromCti(p); pool.push(...made); next = best(p); opts.progress?.('cti', {forms: made.length, ms: Math.round(performance.now() - t)}) }
-    if (next) { chosen.push(next); continue }
+    // (a candidate with its mirror alive, Σ ≤ d beside −Σ ≤ −d under the same guard: the equality both halves state,
+    // chosen together, as neither half is inductive without the other)
+    if (next) { chosen.push(next); const mt = inferHalves && mirrorText(next), mirror = mt && pool.find(g => !chosen.includes(g) && textOf(g) === mt); if (mirror) chosen.push(mirror); continue }
     // Stuck with no counterexample on a goal not a candidate's: the last candidate made it harder, so it goes.
     if (chosen.length && !stuckOn && !p) { drop(chosen.at(-1)!); continue }
     if (!stuckOn) break
