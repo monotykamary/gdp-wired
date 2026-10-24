@@ -2072,7 +2072,7 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
     // a zip's other list): each use of the scheme a lemma whose descended variables are fixed and the others matched to
     // the goal's reads, its descent the scheme's own (the rank reads only the variable descended on).
     const free = (u: SchemeUse, m: number) => (mb.rank || !members[m]!.on || !(members[m]!.on!.v in u.subst) ? [] : members[m]!.law.vars.filter(v => !(v.name in u.subst)))
-    const selfAt: LemmaAt[] = env.DATA_SELF === '0' ? [] : mb.uses.flatMap(u => { const m = u.member ?? mi, vs = free(u, m); return vs.length ? [{law: {...members[m]!.law, vars: vs}, node: -1 - m, concl: concls[m]!, pat: substC(concls[m]!, {vars: u.subst, maps: {}, flags: {}}), fixed: u.subst, guard: u.guard}] : [] })
+    const selfAt: LemmaAt[] = mb.uses.flatMap(u => { const m = u.member ?? mi, vs = free(u, m); return vs.length ? [{law: {...members[m]!.law, vars: vs}, node: -1 - m, concl: concls[m]!, pat: substC(concls[m]!, {vars: u.subst, maps: {}, flags: {}}), fixed: u.subst, guard: u.guard}] : [] })
     const own = new Set(ih.map(u => sid([u.node, u.subst]))), selfUses = selfAt.length ? lemmaUsesFor(p, fs, selfAt, [concl, ihConcls], pre, models).filter(u => !own.has(sid([u.node, u.subst]))).slice(0, lemmaCaps.self) : []
     if (dataTrace) for (const u of selfUses) console.error(`[data]   hypothesis use at ${Object.entries(u.subst).map(([x, t]) => `${x} := ${brief(t, 80)}`).join('; ')}`)
     const uses = [...ih, ...selfUses, ...lemmaUses]
