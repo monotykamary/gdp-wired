@@ -1,6 +1,7 @@
 // Rules read from the code that ships (`gdp-wired/extract`): `extract(code, {entry})` reads a TypeScript or JavaScript
-// step function (a reducer `(state, action) => state`, `useReducer`'s, functions over one record) or a class whose
-// methods write its fields (a rate limiter's `tryRemove(n)`, a wallet's `debit(x)`), and returns the rule that steps the
+// step function (a reducer `(state, action) => state`, `useReducer`'s, functions over one record), a class whose
+// methods write its fields (a rate limiter's `tryRemove(n)`, a wallet's `debit(x)`), with the classes it extends, or
+// the object of functions a factory returns (its state what they close over), and returns the rule that steps the
 // same way, as a builder value and as the source that makes it (`toSource`), for a user to read and keep:
 //
 //   const x = extract(readFileSync('bucket.ts', 'utf8'), {file: 'bucket.ts', entry: 'TokenBucket'})
@@ -10,20 +11,28 @@
 //
 // The extractor is untrusted. The rule is checked against the original code by running both (core/extract-check.ts):
 // requests from the start, steps from drawn states, and steps from the prover's counterexamples, every state, map cell,
-// result and refusal compared, and the code's branches counted. Any difference refuses the extraction with the
+// list, result and refusal compared, and the code's branches counted. Any difference refuses the extraction with the
 // difference; nothing is adopted that the check didn't run. What the subset doesn't read is refused where it is, with
 // the reason, never approximated. XState machines go through `fromXState` (core/xstate.ts), their guards and actions
-// read the same way (`extractXState`).
+// read the same way (`extractXState`, a machine or a function that makes one, its actors, timers and eventless
+// transitions included).
 //
 // The subset: numbers (integers: a literal that isn't one is refused; division only as Math.floor or Math.ceil of
-// x / k for a constant k; % by a constant of a natural), booleans, string-literal unions, records and nested records
-// (spreads, shorthand), Map and Record state keyed by numbers or strings (get, set, has, delete, [k], ?? a default),
-// conditionals, ternaries, && || ?? (their right side's effects on its own path), early returns, switch on a tag
-// (fall-through, default), Math.min, Math.max, Math.abs, Date.now() (an input; once a step), throws (the rule's
-// refusals: its assumption, or its precondition for a constructor), helper functions and methods of the same file
-// (inlined), getters. Refused: loops, arrays, strings beyond keys and literals, floats, async, try/catch, writes to the
-// state a reducer is given, a throw after a method wrote a field, two keys of one map written in one step, a map
-// replaced whole, a reference into a map held across a set, aliasing that depends on the path, other modules' code.
+// x / k for a constant k, a fraction being a binary float the code rounds; % by a constant of a natural), booleans,
+// string-literal unions, strings (set, compared, truthy where not empty), null and undefined where a value may be
+// missing, records and nested records (spreads, shorthand), Map and Record state keyed by numbers or strings (get,
+// set, has, delete, [k], ?? a default; a Map given to a constructor starts empty), arrays of numbers, booleans and
+// string unions as lists (length, [i], push, pop, [i] = x within the array, [...xs], [...xs, x]), Dates as their time
+// (new Date(), getTime(), setTime() where the Date is held), conditionals, ternaries, && || ?? (their right side's
+// effects on its own path), early returns, switch on a tag (fall-through, default), Math.min, Math.max, Math.abs,
+// Boolean(x), Date.now() (an input; once a step), throws (the rule's refusals: its assumption, or its precondition
+// for a constructor), helper functions and methods of the same files (inlined), getters, single inheritance (each
+// member resolved statically: this.m() the nearest the object has, super.m() the nearest above the class it is in),
+// results kept (a value, a record of values, a value that may be missing). Refused: loops, strings beyond keys and
+// literals, floats, async, try/catch, writes to the state a reducer is given, a throw after a method wrote a field, two
+// keys of one map or two writes of one list in one step, a map or a list replaced whole, a reference into a map held
+// across a set, one object (an array, a Map, a Date) in two places, aliasing that depends on the path, mixins, other
+// modules' code.
 import * as dsl from './dsl.ts'
 import {compileFunction, walk} from './machine.ts'
 import type {Rule} from './dsl.ts'
@@ -31,8 +40,8 @@ import type {Law} from './machine.ts'
 import * as I from './extract-ir.ts'
 import type {B, N} from './extract-ir.ts'
 import {type MapDecl, type Model, Refusal, type Term, type Var} from './extract-read.ts'
-import {type ReadOptions, isSlice, readClass, readFunctions, readSlice} from './extract-shapes.ts'
-import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, pb, pk, pterm, sortsOf} from './extract-print.ts'
+import {type ReadOptions, isFactory, isSlice, readClass, readFactory, readFunctions, readSlice} from './extract-shapes.ts'
+import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, pb, pidx, pk, pterm, sortsOf} from './extract-print.ts'
 import {type CheckOptions, type Evidence, check} from './extract-check.ts'
 
 export type ExtractOptions = ReadOptions & {
@@ -69,7 +78,7 @@ export function extract(code: string, opts: ExtractOptions): Extraction {
     const isClass = opts.shape ? opts.shape === 'class' : new RegExp(`\\bclass\\s+${opts.entry}\\b|\\b${opts.entry}\\s*=\\s*class\\b`).test(code)
     // The file sits in the working directory, so its imports (xstate, say) resolve as the project's do.
     const cwd = (globalThis as {process?: {cwd?: () => string}}).process?.cwd?.() ?? '.', at = `${cwd}/${file}`
-    model = isClass ? readClass(code, at, opts) : isSlice(code, opts.entry) ? readSlice(code, at, opts) : readFunctions(code, at, opts)
+    model = isClass ? readClass(code, at, opts) : isSlice(code, opts.entry) ? readSlice(code, at, opts) : isFactory(code, file, opts.entry) ? readFactory(code, at, opts) : readFunctions(code, at, opts)
     model.file = file
   } catch (e) {
     if (e instanceof Refusal) return {ok: false, refusals: [{where: e.where, what: e.what}], notes}
@@ -79,6 +88,7 @@ export function extract(code: string, opts: ExtractOptions): Extraction {
   try {
     const s = sortsOf(model, opts.domains)
     sorts = s.sorts
+    datesInRange(model, sorts)
     notes.push(...model.notes, ...s.notes)
     body = builderOf(model, sorts)
     source = moduleOf(model, body, file)
@@ -92,6 +102,20 @@ export function extract(code: string, opts: ExtractOptions): Extraction {
   const evidence = check(code, file, model, rule, sorts, {...opts.check, ...(opts.files ? {files: opts.files} : {}), ...(opts.domains ? {given: opts.domains} : {})})
   if (evidence.mismatch) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `the rule and the code differ: ${evidence.mismatch}`}], notes}
   return {ok: true, rule, ...(invariants.length ? {invariants} : {}), source, model, sorts, evidence, refusals: [], notes}
+}
+// A Date holds a time within ±8.64e15 ms; past it the code's Date is invalid (NaN). The rule refuses a step that would
+// set one there (as it refuses a sum past 2^53), and a start there: its claim stops at the Date's range.
+const DATE_MAX = 8_640_000_000_000_000
+function datesInRange(m: Model, sorts: Sorts) {
+  const out = (e: N, at: string) => (sorts.get(at) === 'nat' ? I.cmp('<', I.num(DATE_MAX), e) : I.or(I.cmp('<', I.num(DATE_MAX), e), I.cmp('<', e, I.num(-DATE_MAX))))
+  const dated = m.state.filter(v => v.sort.k === 'num' && v.sort.date)
+  const over: B[] = []
+  for (const v of dated) { const w = m.writes[v.name]; if (w?.s === 'num') over.push(out(w.e, v.name)) }
+  for (const d of m.maps) for (const f of d.fields) if (f.sort.k === 'num' && f.sort.date) { const w = m.mapWrites[d.name]; const t = w?.vals[f.name]; if (t?.s === 'num') over.push(I.and(w!.has, out(t.e, `${d.name}.${f.name}`))) }
+  if (over.length) m.refuse = I.or(m.refuse, ...over)
+  const starts = dated.filter(v => m.init[v.name]?.s === 'num').map(v => I.not(out((m.init[v.name] as Term & {s: 'num'}).e, v.name)))
+  if (starts.length) m.pre = I.and(m.pre, ...starts)
+  if (over.length || starts.length) m.notes.push('a Date holds a time within ±8.64e15 ms: a step that would set one past it is refused (the code\'s Date would be invalid)')
 }
 // The module a user keeps: the rule, with what it was read from and how it was checked.
 export const toSource = (x: Extraction): string => x.source ?? ''
@@ -108,7 +132,8 @@ function evaluate(body: string): Rule {
 function invariantsOf(m: Model, sorts: Sorts): string[] {
   const empty = (d: MapDecl, f: Var) => (f.sort.k === 'num' ? `.eq(0)` : f.sort.k === 'bool' ? `.not()` : f.sort.k === 'choice' ? `.is(${JSON.stringify(f.sort.values[0])})` : `.eq('')`)
   void sorts
-  return m.maps.map(d => `r.law(${JSON.stringify(`${d.name}: a key it doesn't hold holds the defaults`)}, ({${d.name}}) => forall(k => any(${d.name}.at(k).has, all(${d.fields.map(f => `${d.name}.at(k).${f.name}${empty(d, f)}`).join(', ')}))))`)
+  return [...m.maps.map(d => `r.law(${JSON.stringify(`${d.name}: a key it doesn't hold holds the defaults`)}, ({${d.name}}) => forall(k => any(${d.name}.at(k).has, all(${d.fields.map(f => `${d.name}.at(k).${f.name}${empty(d, f)}`).join(', ')}))))`),
+    ...(m.lists ?? []).map(d => `r.law(${JSON.stringify(`${d.name}: nothing past its end`)}, ({${d.name}}) => ${d.name}.within())`)]
 }
 function evaluateLaws(r: Rule, xs: string[]): Law[] {
   if (!xs.length) return []
@@ -120,7 +145,7 @@ function moduleOf(m: Model, body: string, file: string): string {
   const used = NAMES.filter(n => new RegExp(`(^|[^.\\w$])${n}\\(|(^|[^.\\w$])${n}\\b(?!\\s*:)`).test(body.replace(/'[^']*'/g, "''")) || (n === 'rule'))
   const ident = identOf(m)
   return [
-    `// Extracted by gdp-wired/extract from ${file} (${m.entry}, ${m.shape === 'class' ? 'a class' : m.shape === 'reducer' ? 'a step function' : 'functions over one record'}).`,
+    `// Extracted by gdp-wired/extract from ${file} (${m.entry}, ${m.factory ? 'a factory of an object of functions' : m.shape === 'class' ? 'a class' : m.shape === 'reducer' ? 'a step function' : 'functions over one record'}).`,
     `// Checked against the code it was read from; read again with extract() after the code changes.`,
     `import {${[...new Set([...used, ...(m.maps.length ? ['all', 'any', 'forall'] : [])])].sort((a, b) => a.localeCompare(b)).join(', ')}} from 'gdp-wired'`,
     '',
@@ -150,6 +175,7 @@ function builderOf(m: Model, sorts: Sorts): string {
   }
   if (m.state.length) lines.push(`  .state({${m.state.map(v => `${v.name}: ${start(v)}`).join(', ')}})`)
   if (m.maps.length) lines.push(`  .maps({${m.maps.map((d: MapDecl) => `${d.name}: ${mapKind(d, sorts)}.from(${mapEmpty(d)})`).join(', ')}})`)
+  if (m.lists?.length) lines.push(`  .items({${m.lists.map(d => `${d.name}: ${kindOf(d.fields[0]!, sorts, `${d.name}.$item`)}`).join(', ')}})`)
   const envOf = (...xs: object[]) => {
     const vars = new Set<string>(), maps = new Set<string>()
     for (const x of xs) I.varsOf(x as N, vars, maps)
@@ -180,9 +206,19 @@ function builderOf(m: Model, sorts: Sorts): string {
     const vals = d.fields.map(f => `${f.name}: ${pterm(w.vals[f.name]!, P, {m, sorts, atoms: [w.has]}, `${n}.${f.name}`)}`)
     outs.push([n, `${n}.set(${pk(w.key, P, ctx())}, {has: ${pb(w.has, P, ctx())}, ${vals.join(', ')}})`])
   }
+  // A list's write: its apply over the operations by cases (each under its condition).
+  const lw = Object.entries(m.listWrites ?? {})
+  for (const [n, ops] of lw) {
+    const one = (o: (typeof ops)[number]) => {
+      const at = {m, sorts, atoms: [o.when]}, when = pb(o.when, P, ctx())
+      return o.op === 'push' ? `${n}.push(${pterm(o.x, P, at, `${n}.$item`)}, ${when})` : o.op === 'pop' ? `${n}.pop(${when})` : `${n}.set(when(${when}, ${pidx(o.i, P, at)}, 0), ${pterm(o.x, P, at, `${n}.$item`)}, ${when})`
+    }
+    outs.push([`...${n}`, `${n}.apply(${ops.map(one).join(', ')})`])
+  }
   const all = [...defs, ...outs.map(([, x]) => x)].join('\n')
-  const env = withChoices(envOf(...writes.map(([, t]) => t.e), ...mw.flatMap(([, w]) => [w.has, w.key, ...Object.values(w.vals).map(t => t.e)])), all, P, mw.map(([n]) => n))
-  const ret = `{${outs.map(([n, x]) => `${n}: ${x}`).join(', ')}}`
+  const lterms = lw.flatMap(([, ops]) => ops.flatMap(o => [o.when, ...(o.op === 'pop' ? [] : [o.x.e]), ...(o.op === 'set' ? [o.i] : [])]))
+  const env = withChoices(envOf(...writes.map(([, t]) => t.e), ...mw.flatMap(([, w]) => [w.has, w.key, ...Object.values(w.vals).map(t => t.e)]), ...lterms), all, P, [...mw.map(([n]) => n), ...lw.map(([n]) => n)])
+  const ret = `{${outs.map(([n, x]) => (n.startsWith('...') ? `...${x}` : `${n}: ${x}`)).join(', ')}}`
   lines.push(defs.length ? `  .step((${env}) => {\n${defs.map(d => `    ${d}`).join('\n')}\n    return ${ret}\n  })` : `  .step((${env}) => (${ret}))`)
   return lines.join('\n')
 }

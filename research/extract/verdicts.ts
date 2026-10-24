@@ -118,6 +118,34 @@ const cases: Case[] = [
       ['a cycle is counted only on the way to green', 'true', c => c.stepLaw('a cycle is counted only on the way to green', ({cycles}: Any, a: Any) => a.cycles.eq(cycles).or(a.in('green')))],
       ['the cycles stay below 3', 'false', c => c.law('the cycles stay below 3', ({cycles}: Any) => cycles.lt(3))],
     ]},
+  {id: 'xstate/examples/stopwatch', kind: 'chart',
+    // stopwatchMachine.ts: start/stop between stopped and running; the invoked ticker's TICK (an event from outside, as
+    // the actor sends it while running) counts one; the root's reset zeroes it and stops.
+    hand: () => chart('stopwatch').context({elapsed: 0}).states({stopped: {}, running: {}})
+      .on('start', {from: 'stopped', to: 'running'}).on('TICK', {from: 'running', set: ({elapsed}: Any) => ({elapsed: elapsed.plus(1)})}).on('stop', {from: 'running', to: 'stopped'})
+      .on('reset', {from: ['stopped', 'running'], to: 'stopped', set: () => ({elapsed: 0})}),
+    laws: [
+      ['the time never goes back but on a reset', 'true', c => c.stepLaw('the time never goes back but on a reset', ({elapsed}: Any, a: Any) => elapsed.atMost(a.elapsed), (b: Any) => b.event.is('reset').not())],
+      ['a reset stops it at zero', 'true', c => c.stepLaw('a reset stops it at zero', (_: Any, a: Any) => a.in('stopped').and(a.elapsed.eq(0)), (b: Any) => b.event.is('reset'))],
+      ['a tick while stopped changes nothing', 'true', c => c.stepLaw('a tick while stopped changes nothing', ({elapsed}: Any, a: Any) => a.elapsed.eq(elapsed).and(a.in('stopped')), (b: Any) => b.in('stopped').and(b.event.is('TICK')))],
+      ['the time stays at most 100', 'false', c => c.law('the time stays at most 100', ({elapsed}: Any) => elapsed.atMost(100))],
+    ]},
+  {id: 'xstate/examples/timer', kind: 'chart',
+    // timerMachine.ts: minute and second add time while stopped; start runs it with time left; each TICK (the invoked
+    // ticker's) takes a second, and the eventless transition stops it at 0; the root's reset (with time left) zeroes it,
+    // which the eventless transition then stops.
+    hand: () => chart('timer').context({seconds: int.from(0)}).states({stopped: {}, running: {}})
+      .on('start', {from: 'stopped', to: 'running', when: ({seconds}: Any) => seconds.gt(0)})
+      .on('minute', {from: 'stopped', set: ({seconds}: Any) => ({seconds: seconds.plus(60)})}).on('second', {from: 'stopped', set: ({seconds}: Any) => ({seconds: seconds.plus(1)})})
+      .on('stop', {from: 'running', to: 'stopped'})
+      .on('TICK', {from: 'running', to: 'stopped', when: ({seconds}: Any) => seconds.eq(1), set: ({seconds}: Any) => ({seconds: seconds.minus(1)})}).on('TICK', {from: 'running', set: ({seconds}: Any) => ({seconds: seconds.minus(1)})})
+      .on('reset', {from: 'running', to: 'stopped', when: ({seconds}: Any) => seconds.gt(0), set: () => ({seconds: 0})}).on('reset', {from: 'stopped', when: ({seconds}: Any) => seconds.gt(0), set: () => ({seconds: 0})}),
+    laws: [
+      ['the seconds never go below 0', 'true', c => c.law('the seconds never go below 0', ({seconds}: Any) => seconds.atLeast(0))],
+      ['it runs only with time left', 'true', c => c.law('it runs only with time left', (env: Any) => env.in('running').implies(env.seconds.atLeast(1)))],
+      ['the last tick stops it', 'true', c => c.stepLaw('the last tick stops it', (_: Any, a: Any) => a.in('stopped'), (b: Any) => b.in('running').and(b.event.is('TICK'), b.seconds.eq(1)))],
+      ['the seconds stay at most 60', 'false', c => c.law('the seconds stay at most 60', ({seconds}: Any) => seconds.atMost(60))],
+    ]},
 ]
 
 const rows: Record<string, unknown>[] = []

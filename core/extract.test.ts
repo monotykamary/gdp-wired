@@ -136,10 +136,10 @@ test('functions over one record, each an event; a Record keyed by strings with ?
 })
 
 test('what the subset does not read is refused where it is, with the reason', () => {
-  refused(ts('export function r(s: {xs: number[]}, a: {type: "push"}) { return s }', 'r', {init: {xs: []}}), /an array/)
+  refused(ts('export function r(s: {xs: {a: number}[]}, a: {type: "push"}) { return s }', 'r', {init: {xs: []}}), /an array of records/)
   refused(ts('export function r(s: {n: number}, a: {k: number}): {n: number} { for (let i = 0; i < a.k; i++) {} return s }', 'r', {init: {n: 0}}), /a loop/)
   refused(ts('export class C { n = 0; async go(): Promise<void> { this.n++ } }', 'C'), /async/)
-  refused(ts('class B { n = 0 }\nexport class C extends B { go(): void { this.n++ } }', 'C'), /extends another/)
+  refused(ts('const Mixin = (b: any) => class extends b {}\nexport class C extends Mixin(Object) { n = 0; go(): void { this.n++ } }', 'C'), /a class a call makes \(a mixin\)/)
   // `implements` is a type's only: read.
   ok(ts('interface Counter { go(): void }\nexport class C implements Counter { n = 0; go(): void { this.n++ } }', 'C'))
   refused(ts('export function r(s: {n: number}, a: {k: number}): {n: number} { try { return s } catch { return s } }', 'r', {init: {n: 0}}), /try\/catch/)
@@ -287,9 +287,9 @@ test('time: Date.now() is an input read once; twice in one step is refused; Math
   refused(ts('export class T { a = 0; go(): void { this.a = Math.floor(Math.random()) } }', 'T'), /random/)
 })
 
-test('loose equality of a number with a string, and a string as a condition, are refused', () => {
+test('loose equality of a number with a string is refused; a string as a condition is whether it is empty', () => {
   refused(ts('export class T { n = 0; go(s: string): void { if (this.n == (s as any)) this.n++ } }', 'T'), /comparison of a num with a str|string/)
-  refused(ts('export class T { n = 0; go(s: string): void { if (s) this.n++ } }', 'T'), /string as a condition/)
+  ok(ts('export class T { n = 0; go(s: string): void { if (s) this.n++ } }', 'T'))
 })
 
 test('truthiness of 0, fall-through, and a postfix increment\'s old value', () => {
@@ -347,8 +347,9 @@ test('XState: a payload read by a guard and an action; a context that goes below
       actions: {add: assign({total: ({context, event}) => context.total + (event.type === 'ADD' ? event.amount : 0)}), take: assign({total: ({context}) => context.total - 1})},
     }).createMachine({id: 'tally', initial: 'open', context: {total: 0}, states: {open: {on: {ADD: {target: 'open', guard: 'small', actions: 'add'}, TAKE: {actions: 'take'}, CLOSE: 'closed'}}, closed: {type: 'final'}}})`),
   {file: 'tally.ts', entry: 'tally', xstate, check: {runs: 60, depth: 10}})
-  // event.type isn't a payload field: reading it is refused (fromXState gives each event's transitions their own guard).
-  expect(x.ok).toBe(false)
+  // event.type is which event it is: the chart's own event
+  if (!x.ok) throw new Error(JSON.stringify(x.refusals))
+  expect(x.source).toContain('"small": ({event, amount}) => all(event.is(\'ADD\'), amount.atMost(3))')
   const y = extractXState(machineFile(`
     export const tally = setup({
       types: {} as {context: {total: number}, events: {type: 'ADD', amount: number} | {type: 'TAKE', amount: number} | {type: 'CLOSE', amount: number}},
@@ -363,11 +364,9 @@ test('XState: a payload read by a guard and an action; a context that goes below
 
 test('XState: v4 cond, a machine made by a function, and what fromXState refuses, each refused with the reason', () => {
   const v4 = extractXState(machineFile(`export const m = setup({guards: {ok: () => true}}).createMachine({initial: 'a', states: {a: {on: {GO: {target: 'b', cond: 'ok'}}}, b: {}}})`), {file: 'm.ts', entry: 'm', xstate})
-  expect(v4.refusals[0]!.what).toMatch(/v4 `cond`/)
-  const fn = extractXState(machineFile(`export function makeM() { return setup({}).createMachine({initial: 'a', states: {a: {}}}) }`), {file: 'm.ts', entry: 'makeM', xstate})
-  expect(fn.refusals[0]!.what).toMatch(/made by a function/)
-  const after = extractXState(machineFile(`export const m = setup({}).createMachine({initial: 'a', states: {a: {after: {1000: 'b'}}, b: {}}})`), {file: 'm.ts', entry: 'm', xstate})
-  expect(after.refusals[0]!.what).toMatch(/fromXState: .*`after`/)
+  expect(v4.refusals[0]!.what).toMatch(/v4's `cond` in an XState v5 machine/)
+  const after = extractXState(machineFile(`export const m = setup({}).createMachine({initial: 'a', states: {a: {after: {1000: 'b', 2000: 'c'}}, b: {}, c: {}}})`), {file: 'm.ts', entry: 'm', xstate})
+  expect(after.refusals[0]!.what).toMatch(/fromXState: .*two timers in one state/)
 })
 
 test('XState: inline assign actions and an inline guard, given by their place in the config; a machine with no states', () => {
@@ -435,4 +434,244 @@ test('a Redux Toolkit slice: case reducers on the draft, a thunk\'s cases, check
   // Writing the draft and returning another value: immer throws, so the extractor refuses it.
   refused(extract(code.replace("set: (state, action: PayloadAction<number>) => ({...state, value: action.payload})", "set: (state, action: PayloadAction<number>) => { state.status = 'idle'; return {...state, value: action.payload} }"),
     {file: 'counter.ts', entry: 'counter', check: {...budget, modules: {'@reduxjs/toolkit': rtk}}}), /immer throws/)
+})
+
+// --- inheritance: one class extending another, each member resolved statically ---------------------------------------
+test('inheritance: an override reached through the base, super calls with side effects, constructors in order', () => {
+  // The base's take() calls this.cost(), which the derived class overrides: the object's own cost runs (a naive reading
+  // of the base alone would charge 1). The derived pay() calls super.pay() (which writes) and then writes again; the
+  // derived constructor's field initializer runs after super(...) and reads what the base's constructor wrote.
+  const x = ok(ts(`
+    class Meter {
+      used = 0
+      limit: number
+      constructor(limit: number) { if (limit < 1) throw new Error('limit'); this.limit = limit }
+      cost(): number { return 1 }
+      take(): boolean { const c = this.cost(); if (this.used + c > this.limit) return false; this.used += c; return true }
+      pay(n: number): void { this.used = Math.max(0, this.used - n) }
+    }
+    export class Double extends Meter {
+      paid = 0
+      spare = this.limit * 2
+      constructor(limit: number) { super(limit + 1) }
+      override cost(): number { return 2 }
+      override pay(n: number): void { super.pay(n); this.paid += n }
+    }`, 'Double'))
+  // super(limit + 1): the base's constructor refuses below 1, so the derived one below 0 (its precondition)
+  expect(x.source).toContain('.pre(({limit}) => limit.plus(1).atLeast(1))')
+  // the override: two a take
+  expect(x.source).toContain('used.plus(2)')
+  // super.pay() then the derived write
+  expect(x.source).toContain('Int.of(used).minus(pay_n).clamped')
+  expect(x.source).toContain('paid.plus(pay_n)')
+  expect(x.notes.join(' ')).toContain('Double extends Meter')
+})
+
+test('inheritance: a mixin, a class from another module, a field declared again and a missing super(...) are refused', () => {
+  refused(ts('const Mixin = (b: any) => class extends b {}\nexport class C extends Mixin(Object) { n = 0; go(): void { this.n++ } }', 'C'), /a mixin/)
+  refused(ts("import {EventEmitter} from 'node:events'\nexport class C extends EventEmitter { n = 0; go(): void { this.n++ } }", 'C'), /another module|no class of the files read/)
+  refused(ts('class B { n = 0 }\nexport class C extends B { n = 1; go(): void { this.n++ } }', 'C'), /declared again/)
+  refused(ts('class B { constructor(public n: number) {} }\nexport class C extends B { constructor(k: number) { if (k > 0) super(k); else super(0) } go(): void { this.n++ } }', 'C'), /no super\(\.\.\.\) at its top level/)
+  // a static method named as the entry's event: a function of the class, not a step of an object
+  refused(ts('export class C { n = 0; static make(): C { return new C() } go(): void { this.n++ } }', 'C', {methods: ['make']}), /make is static/)
+})
+
+// --- a Map given to the constructor, and results kept ----------------------------------------------------------------
+test('a Map given to the constructor starts empty, as the callers make it; results: a record, a value or null', () => {
+  const x = ok(ts(`
+    export class Cache {
+      private readonly cache: Map<string, number>
+      constructor(cache: Map<string, number>) { this.cache = cache }
+      isBlocked(id: string): {blocked: boolean, reset: number} {
+        if (!this.cache.has(id)) return {blocked: false, reset: 0}
+        const reset = this.cache.get(id)!
+        if (reset < Date.now()) { this.cache.delete(id); return {blocked: false, reset: 0} }
+        return {blocked: true, reset}
+      }
+      blockUntil(id: string, reset: number): void { this.cache.set(id, reset) }
+      get(key: string): number | null { return this.cache.get(key) || null }
+    }`, 'Cache'))
+  expect(x.source).toContain('isBlocked_result_blocked: bool.from(false)')
+  expect(x.source).toContain('get_result_missing: bool.from(false)')
+  expect(x.notes.join(' ')).toContain('it starts empty here')
+  // one Map given to two fields: one object in two places (a write through one is the other's)
+  refused(ts('export class C { a: Map<string, number>; b: Map<string, number>; constructor(m: Map<string, number>) { this.a = m; this.b = m } put(k: string): void { this.a.set(k, 1) } }', 'C'), /given to two fields/)
+  // a record returned that is the object's own: the caller would share it
+  refused(ts('type P = {x: number}\nexport class C { p: P = {x: 0}; bump(): P { this.p.x++; return this.p } }', 'C'), /an object of the state's own/)
+})
+
+// --- Dates: a Date is its time, read by getTime() and set by setTime(), made by new Date() ---------------------------
+test('Dates as naturals: new Date(), getTime(), setTime() where the Date is held; a second name for one is refused', () => {
+  const x = ok(ts(`
+    type Client = {hits: number, reset: Date}
+    export class Window {
+      windowMs = 1000
+      clients = new Map<string, Client>()
+      hit(key: string): number {
+        const now = new Date()
+        const c = this.clients.get(key)
+        if (!c) { this.clients.set(key, {hits: 1, reset: new Date(now.getTime() + this.windowMs)}); return 1 }
+        if (c.reset.getTime() <= now.getTime()) { c.hits = 0; c.reset.setTime(now.getTime() + this.windowMs) }
+        c.hits++
+        return c.hits
+      }
+    }`, 'Window'))
+  expect(x.source).toContain('reset: nat')
+  // a Date held under a second name: a setTime through one moves the other
+  refused(ts('export class W { a = new Date(0); b = new Date(0); go(): void { this.b = this.a } }', 'W'), /a Date held elsewhere/)
+  refused(ts('export class W { a = new Date(0); go(): void { const d = this.a; d.setTime(5) } }', 'W'), /a second name for a Date/)
+  refused(ts('type C = {d: Date}\nexport class W { m = new Map<string, C>(); go(k: string): void { const c = this.m.get(k); if (c) this.m.set(k + "x", {...c}) } }', 'W'), /a spread of an object holding a Date|string concatenation/)
+  refused(ts('export class W { a = new Date(0); b = new Date(0); same(): boolean { return this.a === this.b } }', 'W'), /whether they are one object/)
+  // the clock read twice in a step (the two reads may differ)
+  refused(ts('export class W { a = 0; go(): void { const t = new Date(); this.a = Date.now() - t.getTime() } }', 'W'), /read twice/)
+})
+
+// --- an object a factory makes: its state is what its functions close over -------------------------------------------
+test('a factory\'s object: the variables its functions close over are its state, a helper writing them inlined', () => {
+  const x = ok(ts(`
+    export function counter(limit: number) {
+      if (limit < 1) throw new Error('limit')
+      let n = 0
+      const seen = new Map<string, number>()
+      function bump(by: number): void { n += by }
+      return {
+        inc(by: number): boolean { if (by < 1) throw new Error('by'); if (n + by > limit) return false; bump(by); return true },
+        get: (): number => n,
+        mark(k: string): void { seen.set(k, n) },
+      }
+    }`, 'counter'))
+  expect(x.source).toContain('.params({limit: nat})')
+  expect(x.source).toContain('.pre(({limit}) => limit.atLeast(1))')
+  expect(x.source).toContain('.maps({seen:')
+  expect(x.notes.join(' ')).toContain('its state is what they close over (limit, n, seen)')
+  // a law over the extracted rule: the count never passes the limit
+  const r = x.rule!, v = proveRule(r, [...(x.invariants ?? []), r.law('n stays within the limit', ({n, limit}: any) => n.atMost(limit))])
+  expect(v).toMatchObject({proven: true, checked: true})
+})
+
+test('a factory\'s object: state outside the factory, this, a value beside the functions and async are refused', () => {
+  // closed over a module-level let: every object would share it (and the check's fresh objects would part from the rule)
+  refused(ts('let total = 0\nexport function make() { let n = 0; return {inc(): void { n++; total++ }} }', 'make'), /a module-level let/)
+  refused(ts('export function make() { let n = 0; return {inc(): void { n++ }, peek(): number { return this.inc.length } } }', 'make'), /this in an object a factory makes/)
+  refused(ts('export function make() { let n = 0; return {inc(): void { n++ }, size: 3} }', 'make'), /a value the object returns beside its functions/)
+  refused(ts('export function make() { let n = 0; return {async inc(): Promise<void> { n++ }} }', 'make'), /async/)
+  refused(ts('export function make() { let n = 0; for (let i = 0; i < 2; i++) n++; return {inc(): void { n++ }} }', 'make'), /a factory read here declares its state/)
+  refused(ts('export function make() { const n = 0; return {inc(): void { // @ts-ignore\n n++ }} }', 'make'), /is a const/)
+})
+
+// --- arrays, as lists --------------------------------------------------------------------------------------------------
+test('arrays as lists: push, pop, length, an item read and set within the array; a reducer\'s [...xs, x]', () => {
+  const x = ok(ts(`
+    export class Recent {
+      limit = 3
+      xs: number[] = []
+      add(v: number): number { if (v < 0) throw new Error('v'); if (this.xs.length >= this.limit) return this.xs.length; return this.xs.push(v) }
+      last(): number { const y = this.xs.pop(); return y ?? 0 }
+      bump(i: number): void { if (i >= 0 && i < this.xs.length) { const a = this.xs; a[i] = this.xs[i]! + 1 } }
+      first(): number { return this.xs[0] ?? 0 }
+    }`, 'Recent'))
+  expect(x.source).toContain('.items({xs: nat})')
+  expect(x.source).toMatch(/\.\.\.xs\.apply\(xs\.push\(/)
+  const r = x.rule!, v = proveRule(r, [...(x.invariants ?? []), r.law('at most three items', ({xs}: any) => xs.len.atMost(3))])
+  expect(v).toMatchObject({proven: true, checked: true})
+  const y = ok(ts(`
+    type S = {xs: number[], n: number}
+    export function r(s: S, a: {type: 'add', v: number} | {type: 'count'}): S {
+      switch (a.type) {
+        case 'add': return a.v < 0 ? s : {...s, xs: [...s.xs, a.v]}
+        case 'count': return {...s, n: s.xs.length}
+      }
+    }`, 'r', {init: {xs: [], n: 0}}))
+  // the item pushed is an integer input (the code doesn't refuse it below 0: it leaves the state as it is)
+  expect(y.source).toContain('.items({xs: int})')
+  expect(y.source).toContain("...xs.apply(xs.push(v, all(type.is('add'), v.atLeast(0))))")
+})
+
+test('arrays: one array in two places, a write to the state given, past the end, two writes, a read after a write are refused', () => {
+  // two fields holding one array: a push through one is the other's (the rule's lists are two)
+  refused(ts('export class C { xs: number[] = []; ys: number[] = []; tie(): void { this.ys = this.xs } add(): void { this.xs.push(1) } }', 'C'), /another array \(one array in two places/)
+  // React and Redux keep the old state
+  refused(ts('type S = {xs: number[]}\nexport function r(s: S, a: {type: "add"}): S { s.xs.push(1); return {xs: s.xs} }', 'r', {init: {xs: []}}), /in the state it was given/)
+  // an index the code doesn't keep within the array: past the end the array grows with holes
+  refused(ts('export class C { xs: number[] = []; put(i: number): void { this.xs[i] = 1 } }', 'C'), /an index the code doesn't keep within the array/)
+  refused(ts('export class C { xs: number[] = []; two(): void { this.xs.push(1); this.xs.push(2) } }', 'C'), /a second write to xs in one step|read after it is written/)
+  refused(ts('export class C { xs: number[] = []; n = 0; go(): void { this.xs.push(1); this.n = this.xs.length } }', 'C'), /read after it is written in one step/)
+  refused(ts('export class C { xs: number[] = [1, 2]; go(): void { this.xs.push(1) } }', 'C'), /starts with items/)
+  refused(ts('export class C { xs: number[] = []; has(v: number): boolean { return this.xs.includes(v) } }', 'C'), /the array method includes/)
+  refused(ts('export class C { xs: string[] = []; go(): void {} }', 'C'), /an array of strings/)
+})
+
+// --- XState: machines made by a function, actors, timers, eventless transitions, maybes, v4 ---------------------------
+import * as xstate4 from 'xstate4'
+test('XState: a machine a factory makes, its answers from outside an input; an actor, a timer and always run as XState', () => {
+  const x = extractXState(`import {setup, assign, fromPromise} from 'xstate'
+    export interface Deps { upload: () => Promise<void>, latched: () => boolean, log: (n: number) => void }
+    export function makeUploader(deps: Deps) {
+      return setup({
+        types: {} as {context: {tries: number, note: string | null}, events: {type: 'START'} | {type: 'RETRY'} | {type: 'STOP'}},
+        actors: {upload: fromPromise(() => deps.upload())},
+        guards: {latched: () => deps.latched(), canRetry: ({context}) => context.tries < 2, noted: ({context}) => Boolean(context.note)},
+        actions: {count: assign({tries: ({context}) => context.tries + 1}), say: () => deps.log(1), note: assign({note: ({event}) => (event.type === 'STOP' ? 'stopped' : null)})},
+      }).createMachine({
+        id: 'up', initial: 'idle', context: {tries: 0, note: null},
+        states: {
+          idle: {on: {START: [{guard: 'latched', target: 'done'}, {target: 'busy'}], STOP: {actions: 'note'}}, always: {guard: 'noted', target: 'done'}},
+          busy: {entry: 'say', invoke: {src: 'upload', onDone: 'done', onError: [{guard: 'canRetry', target: 'wait', actions: 'count'}, {target: 'failed'}]}},
+          wait: {after: {1000: 'busy'}, on: {STOP: {target: 'idle', actions: 'note'}}},
+          done: {type: 'final'}, failed: {type: 'final'},
+        },
+      })
+    }`, {file: 'up.ts', entry: 'makeUploader', xstate, check: {runs: 120, depth: 12}})
+  if (!x.ok) throw new Error(JSON.stringify(x.refusals))
+  expect(x.source).toContain('inputs: {latched: bool}')
+  expect(x.source).toContain('note: maybe(str()).from(null)')
+  expect(x.source).toContain('"latched": ({latched}) => latched')
+  expect(x.evidence!.events).toBeGreaterThan(1000)
+  const c = x.chart!
+  expect(c.prove([c.law('at most two retries', ({tries}: any) => tries.atMost(2))])).toMatchObject({proven: true, checked: true})
+})
+
+test('XState: what a factory or a machine could not run the same way is refused, with the reason', () => {
+  const m = (body: string) => `import {setup, assign} from 'xstate'\n${body}`
+  // a factory's own mutable state, closed over by a guard: every machine made shares it (and the check's would part)
+  const closure = extractXState(m(`export function make() { let n = 0; return setup({guards: {ok: () => n++ < 3}}).createMachine({initial: 'a', states: {a: {on: {GO: {target: 'b', guard: 'ok'}}}, b: {}}}) }`), {file: 'm.ts', entry: 'make', xstate})
+  expect(closure.refusals[0]!.what).toMatch(/does more than return the machine/)
+  // an outside answer read in two places: each call may answer differently
+  const twice = extractXState(m(`export function make(d: {ok: () => boolean}) { return setup({guards: {a: () => d.ok(), b: () => d.ok()}}).createMachine({initial: 'a', states: {a: {on: {GO: [{target: 'b', guard: 'a'}, {target: 'c', guard: 'b'}]}}, b: {}, c: {}}}) }`), {file: 'm.ts', entry: 'make', xstate})
+  expect(twice.refusals[0]!.what).toMatch(/read in two places/)
+  // a context field outside the subset, read by a guard: refused where it is read (left out only where nothing reads it)
+  const obj = extractXState(m(`export const mm = setup({types: {} as {context: {err: Error | null}}, guards: {bad: ({context}) => !context.err}}).createMachine({initial: 'a', context: {err: null}, states: {a: {on: {GO: {target: 'b', guard: 'bad'}}}, b: {}}})`), {file: 'm.ts', entry: 'mm', xstate})
+  expect(obj.refusals[0]!.what).toMatch(/read as a condition/)
+  // two timers in a state fire in the order of their delays: refused; a guard writing the context from outside: an effect
+  const timers = extractXState(m(`export const mm = setup({}).createMachine({initial: 'a', states: {a: {after: {100: 'b', 200: 'c'}}, b: {}, c: {}}})`), {file: 'm.ts', entry: 'mm', xstate})
+  expect(timers.refusals[0]!.what).toMatch(/two timers in one state/)
+  // raise sends to the machine itself: refused
+  const raise = extractXState(`import {setup, raise} from 'xstate'\nexport const mm = setup({actions: {again: raise({type: 'GO'})}}).createMachine({initial: 'a', states: {a: {on: {GO: {target: 'b', actions: 'again'}}}, b: {}}})`, {file: 'm.ts', entry: 'mm', xstate})
+  expect(raise.refusals[0]!.what).toMatch(/sends to the machine itself/)
+})
+
+test('XState v4: cond, (context, event) guards and actions, services, after; a field written from an unread payload left out', () => {
+  const x = extractXState(`import {createMachine, assign} from 'xstate'
+    type Ctx = {retries: number, limit: number, token?: string}
+    export const conn = createMachine<Ctx, {type: 'OPEN'} | {type: 'DROP'} | {type: 'CLOSE'}>({
+      id: 'conn', initial: 'idle', predictableActionArguments: true, context: {retries: 0, limit: 3, token: undefined},
+      states: {
+        idle: {on: {OPEN: 'auth'}},
+        auth: {invoke: {id: 'auth', src: 'auth', onDone: {target: 'up', actions: 'keep'}, onError: 'down'}},
+        up: {on: {DROP: [{target: 'wait', cond: 'under'}, {target: 'down'}]}},
+        wait: {after: {500: {target: 'auth', actions: 'count'}}},
+        down: {type: 'final'},
+      },
+    }, {
+      services: {auth: async () => ({token: 't'})},
+      actions: {keep: assign({token: (_c, e: any) => e.data.token}), count: assign({retries: (c) => c.retries + 1})},
+      guards: {under: (c) => c.retries < c.limit},
+    })`, {file: 'conn.ts', entry: 'conn', xstate: xstate4 as never, check: {runs: 120, depth: 12}})
+  if (!x.ok) throw new Error(JSON.stringify(x.refusals))
+  expect(x.source).toContain('ignore: ["token"]')
+  expect(x.source).toContain('"under": ({retries, limit}) => retries.lt(limit)')
+  // CLOSE: declared by the machine's type, taken by no state (a step that changes nothing)
+  expect(x.source).toContain('"CLOSE"')
+  const c = x.chart!
+  expect(c.prove([c.law('the retries stay within the limit', ({retries, limit}: any) => retries.atMost(limit))])).toMatchObject({proven: true, checked: true})
 })
