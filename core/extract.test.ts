@@ -139,7 +139,7 @@ test('what the subset does not read is refused where it is, with the reason', ()
   refused(ts('export function r(s: {xs: {a: number}[]}, a: {type: "push"}) { return s }', 'r', {init: {xs: []}}), /an array of records/)
   refused(ts('export function r(s: {n: number}, a: {k: number}): {n: number} { for (let i = 0; i < a.k; i++) {} return s }', 'r', {init: {n: 0}}), /a loop/)
   refused(ts('export class C { n = 0; async go(): Promise<void> { this.n++ } }', 'C'), /async/)
-  refused(ts('const Mixin = (b: any) => class extends b {}\nexport class C extends Mixin(Object) { n = 0; go(): void { this.n++ } }', 'C'), /a class a call makes \(a mixin\)/)
+  refused(ts("import {Mixin} from 'somewhere'\nexport class C extends Mixin(Object) { n = 0; go(): void { this.n++ } }", 'C'), /a class a call makes \(a mixin\), not one the files read declare/)
   // `implements` is a type's only: read.
   ok(ts('interface Counter { go(): void }\nexport class C implements Counter { n = 0; go(): void { this.n++ } }', 'C'))
   refused(ts('export function r(s: {n: number}, a: {k: number}): {n: number} { try { return s } catch { return s } }', 'r', {init: {n: 0}}), /try\/catch/)
@@ -467,8 +467,69 @@ test('inheritance: an override reached through the base, super calls with side e
   expect(x.notes.join(' ')).toContain('Double extends Meter')
 })
 
+test('a field holding a function (an injected clock): each call an input, one a step, the same in every method', () => {
+  const x = ok(ts(`
+    export class Window {
+      private hits = 0
+      private start = 0
+      constructor(private readonly limit: number, private readonly clock: () => number) {}
+      private roll(now: number): void { if (now - this.start >= 1000) { this.start = now; this.hits = 0 } }
+      hit(): boolean {
+        const now = this.clock()
+        this.roll(now)
+        if (this.hits >= this.limit) return false
+        this.hits++
+        return true
+      }
+      reset(): void { this.roll(this.clock()); this.hits = 0 }
+    }`, 'Window'))
+  expect(x.notes.join(' ')).toMatch(/this.clock\(\): the answer of the function the field holds/)
+  expect(x.source!.match(/clock: int/g)?.length).toBe(1)
+  const r = x.rule! as any
+  expect(proveRule(r, [r.law('within the limit', ({hits, limit}: any) => limit.atLeast(hits).or(hits.eq(0)))]).proven).toBe(true)
+  // a default written there, replaced by the one given
+  ok(ts('export class Ids { last = 0; private gen: () => number = () => 7\n constructor(g: () => number) { this.gen = g }\n next(): void { this.last = this.gen() } }', 'Ids'))
+  // whether an optional one was given: the check always gives one, so the claim would be narrower than the code
+  refused(ts('export class Ids { last = 0; private gen: () => number = () => 7\n constructor(g?: () => number) { if (g) { this.gen = g } }\n next(): void { this.last = this.gen() } }', 'Ids'), /whether a function was given to the constructor/)
+})
+
+test('a field holding a function: called twice in a step, set by a method, called while made, or read as a value, refused', () => {
+  const C = (body: string) => ts(`export class C { n = 0; constructor(private f: () => number) {} ${body} }`, 'C')
+  refused(C('go(): void { this.n = this.f() + this.f() }'), /called twice in one step/)
+  refused(C('go(): void { this.f = () => 1 }'), /set by a method/)
+  refused(ts('export class C { n = 0; f: () => number = () => 1\n constructor() { this.n = this.f() }\n go(): void { this.n++ } }', 'C'), /called while the object is made/)
+  refused(C('go(): void { const g = this.f; this.n = g() }'), /this.f: no field f the step can read/)
+  refused(ts('export class C { n = 0; f: () => number = makeF()\n go(): void { this.n = this.f() } }\nfunction makeF(): () => number { return () => 1 }', 'C'), /starts as makeF\(\)/)
+  refused(C('go(): void { this.n = this.f() }').ok ? ts('export class C { n = 0; constructor(private f: () => {a: number}) {} go(): void { this.n = this.f().a } }', 'C') : C(''), /returns a compound value/)
+})
+
+test('a mixin of the files read: its class between the entry and the class it is given, members resolved in that order', () => {
+  const x = ok(ts(`
+    type Ctor<T = {}> = new (...args: any[]) => T
+    class Counter { count = 0; constructor(readonly cap: number) {} bump(): void { if (this.count < this.cap) this.count++ } }
+    function Resettable<B extends Ctor>(Base: B) {
+      return class extends Base {
+        resets = 0
+        constructor(...args: any[]) { super(...args) }
+        reset(): void { this.resets++ }
+      }
+    }
+    const Named = <B extends Ctor>(Base: B) => class extends Base { on = false; flip(): void { this.on = !this.on } }
+    export class Meter extends Named(Resettable(Counter)) {
+      reset(): void { super.reset(); this.count = 0 }
+    }`, 'Meter'))
+  expect(x.notes.join(' ')).toMatch(/Meter extends/)
+  const r = x.rule! as any
+  expect(proveRule(r, [r.law('within the cap', ({count, cap}: any) => cap.atLeast(count).or(count.eq(0)))]).proven).toBe(true)
+  // one mixin twice in the chain; a mixin that does more than make a class; one that extends other than its parameter
+  refused(ts('class B { n = 0 }\nconst M = <T extends new (...a: any[]) => {}>(X: T) => class extends X { m = 0 }\nexport class C extends M(M(B)) { go(): void { this.n++ } }', 'C'), /a mixin applied twice/)
+  refused(ts('class B { n = 0 }\nlet made = 0\nfunction M<T extends new (...a: any[]) => {}>(X: T) { made++; return class extends X { m = 0 } }\nexport class C extends M(B) { go(): void { this.n++ } }', 'C'), /more than a class/)
+  refused(ts('class B { n = 0 }\nclass D { n = 0 }\nconst M = <T extends new (...a: any[]) => {}>(X: T) => class extends D { m = 0 }\nexport class C extends M(B) { go(): void { this.n++ } }', 'C'), /extends other than its parameter/)
+})
+
 test('inheritance: a mixin, a class from another module, a field declared again and a missing super(...) are refused', () => {
-  refused(ts('const Mixin = (b: any) => class extends b {}\nexport class C extends Mixin(Object) { n = 0; go(): void { this.n++ } }', 'C'), /a mixin/)
+  // a mixin of the files read over a class from another module: refused at that class
+  refused(ts('const Mixin = (b: any) => class extends b {}\nexport class C extends Mixin(Object) { n = 0; go(): void { this.n++ } }', 'C'), /extends Object, a class from another module|no class of the files read/)
   refused(ts("import {EventEmitter} from 'node:events'\nexport class C extends EventEmitter { n = 0; go(): void { this.n++ } }", 'C'), /another module|no class of the files read/)
   refused(ts('class B { n = 0 }\nexport class C extends B { n = 1; go(): void { this.n++ } }', 'C'), /declared again/)
   refused(ts('class B { constructor(public n: number) {} }\nexport class C extends B { constructor(k: number) { if (k > 0) super(k); else super(0) } go(): void { this.n++ } }', 'C'), /no super\(\.\.\.\) at its top level/)
@@ -629,6 +690,28 @@ test('XState: a machine a factory makes, its answers from outside an input; an a
   expect(x.evidence!.events).toBeGreaterThan(1000)
   const c = x.chart!
   expect(c.prove([c.law('at most two retries', ({tries}: any) => tries.atMost(2))])).toMatchObject({proven: true, checked: true})
+})
+
+test('XState: a factory argument with untyped functions (of type any), called only by an actor: outside the machine', () => {
+  const src = (guard: string) => `import {setup, fromPromise} from 'xstate'
+    export function make(services: {submit: any, check: () => boolean}) {
+      return setup({
+        types: {} as {context: {tries: number}, events: {type: 'GO'} | {type: 'RESET'}},
+        actors: {send: fromPromise(() => services.submit())},
+        guards: {ok: ${guard}},
+      }).createMachine({
+        initial: 'idle', context: {tries: 0},
+        states: {idle: {on: {GO: {target: 'busy', guard: 'ok'}}}, busy: {invoke: {src: 'send', onDone: 'done', onError: 'idle'}}, done: {on: {RESET: 'idle'}}},
+      })
+    }`
+  const x = extractXState(src('() => services.check()'), {file: 'm.ts', entry: 'make', xstate, check: {runs: 60, depth: 10}})
+  if (!x.ok) throw new Error(JSON.stringify(x.refusals))
+  expect(x.notes.join(' ')).toMatch(/submit of type any, called only where an actor runs/)
+  expect(x.evidence!.events).toBeGreaterThan(300)
+  // a guard that calls the untyped one: its answer has no type the subset reads
+  const bad = extractXState(src('() => services.submit()'), {file: 'm.ts', entry: 'make', xstate})
+  expect(bad.ok).toBe(false)
+  expect(bad.refusals[0]!.what).toMatch(/no type the subset reads/)
 })
 
 test('XState: what a factory or a machine could not run the same way is refused, with the reason', () => {

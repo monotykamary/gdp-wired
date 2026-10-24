@@ -180,14 +180,16 @@ test('search tries every value of a small kind, whatever the bound', () => {
   expect(search(far.machine, far.law('never three', ({hit}) => hit.eq(0)), 3, 3)?.trace).toEqual([{n: 3}])
 })
 
-// A step law holds from every state the laws allow, reached or not: one broken only from a state no run reaches is
-// refused from a random such state, with its witness and no run.
-test('a step law broken only from a state no run reaches is refused at once, with the state', () => {
+// A step law the laws given don't prove, broken only from a state no run reaches: refused from a random such state,
+// with its witness and no run, where the search is off; with it, proven with the invariant that rules the state out.
+test('a step law broken only from a state no run reaches: its state without the search, proven with it', () => {
   const r = rule('stays').inputs({go: bool}).state({s: 0}).step(({s}) => ({s}))
-  const v = proveSteps(r, [], [r.stepLaw('the count stays at 0', (_, after) => after.s.eq(0))])
+  const law = r.stepLaw('the count stays at 0', (_, after) => after.s.eq(0))
+  const v = proveSteps(r, [], [law], {search: false})
   expect(v).toMatchObject({proven: false, stuck: 'sat'})
   expect(v.run).toBeUndefined()
   expect(v.witness!.s).toBeGreaterThan(0)
+  expect(proveSteps(r, [], [law])).toMatchObject({proven: true, checked: true})
 })
 
 // A choice compares with a name, another choice of its kind or an index, and reads its index as a term.

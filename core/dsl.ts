@@ -18,7 +18,7 @@
 import {type C, type E, type Fn, argsKey, type Law, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
 import {someHolds, substVars} from './exists.ts'
-import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations} from '../kernel/kernel.ts'
+import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations, substC} from '../kernel/kernel.ts'
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
@@ -27,6 +27,8 @@ import {findBoundedRun} from './bmc.ts'
 import {conjunction, proveKInduction} from './kind.ts'
 import {cycleLemmas, findLeadsTo, findRank} from './cycles.ts'
 import {findNeverEnds} from './nonterm.ts'
+import {leadsByTerms} from './live.ts'
+import {type FreshLaw, freshLaws} from './fresh.ts'
 
 // --- terms and conditions -------------------------------------------------------------------------------------------
 
@@ -2406,9 +2408,26 @@ const refuteBudget = {trials: 60, depth: 6, bound: 3}
 const shownRequest = (input: Request) => Object.fromEntries(Object.entries(input).map(([n, x]) => [n, typeof x === 'number' ? x : Object.fromEntries(x as ReadonlyMap<number, number>)]))
 // The search's own runs, before it looks for what the laws need: deeper and wider, from another seed.
 const deeperBudget = {trials: 600, depth: 24, bound: 8, seed: 29}
-function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[] = [], budget: typeof refuteBudget & {seed?: number} = refuteBudget): {goal: string, witness: Record<string, number>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}} | undefined {
+// The budget's further runs (`searched`'s, past the deeper ones), `mixed`: over small values (bounds 1 to 4: keys
+// that meet, small params); guided, each input the request's assumption pins to a term of the state set to it (x = t),
+// one it bounds below moved from it by a small step (t <= x: a clock that only goes on); and near `near`, a
+// counterexample's values (the kernel's, at a step from a state no run reached), each param and input taken from it
+// half the time. `states: false`: the runs alone.
+type RunBudget = typeof refuteBudget & {seed?: number, mixed?: boolean, near?: Record<string, number>, states?: boolean}
+const conjuncts = (c: C | undefined): C[] => (!c ? [] : c.op === 'and' ? c.xs.flatMap(conjuncts) : [c])
+function guidesOf(m: Machine): ((env: Record<string, number>, st: State, rand: Rand, bound: number) => [string, number] | undefined)[] {
+  const isInput = (e: E): e is {op: 'var', name: string} => e.op === 'var' && m.inputs.includes(e.name)
+  const free = (e: E) => !namesIn(e).some(n => m.inputs.includes(n))
+  return conjuncts(m.assume).flatMap(c => {
+    if (c.op !== '=' && c.op !== '<=' && c.op !== '<') return []
+    const [x, t, up] = isInput(c.a) && free(c.b) && c.op === '=' ? [c.a, c.b, false] : isInput(c.b) && free(c.a) ? [c.b, c.a, c.op !== '='] : [undefined, undefined, false]
+    if (!x || !t) return []
+    return [(env, st, rand, bound) => { try { return [x.name, evalE(t, env, st, m) + (up ? (c.op === '<' ? 1 : 0) + rand(bound + 1) : 0)] } catch { return undefined } }]
+  })
+}
+function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[] = [], budget: RunBudget = refuteBudget): {goal: string, witness: Record<string, number>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}} | undefined {
   const m = r.machine
-  const run = interpret(m), rand = seeded(budget.seed ?? 13), bound = budget.bound, shown = shownRequest
+  const run = interpret(m), rand = seeded(budget.seed ?? 13), bound = budget.bound, shown = shownRequest, guides = budget.mixed ? guidesOf(m) : []
   // (Division by a constant is a function too, its facts Euclid's, which its JavaScript meets: not checked.)
   const facts = (m.facts ?? []).filter(f => !isArithmetic(f.name.slice(0, f.name.indexOf(':'))))
   const holds = (f: Law, params: Record<string, number>): boolean => {
@@ -2424,7 +2443,10 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     && facts.filter(readsParams).every(f => holds(f, params))
   try {
     for (let trial = 0; trial < budget.trials; trial++) {
+      // (`mixed`: the trials in turn at bounds 1 to 4, every fourth near)
+      const bound = budget.mixed ? 1 + trial % 4 : budget.bound, guided = guides, near = budget.mixed && trial % 4 ? undefined : budget.near
       const params = r.randomParams(rand, bound)
+      if (near) for (const p of m.params) if (near[p] !== undefined && rand(2)) params[p] = near[p]!
       if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m) || !factsHold(params)) continue
       const watching = [...laws, ...stepLaws].map(w => ({w, on: watch(m, run, w, params, bound)}))
       let st = run.init(params)
@@ -2435,6 +2457,8 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
       for (const {w, on} of watching) if (!('then' in w) && !on.start(st)) return broken(w, '@start', st)
       for (let d = 0, tries = 0; d < budget.depth && tries < 40; tries++) {
         const input = r.randomInput(rand, bound, params)
+        if (near) for (const x of m.inputs) if (near[x] !== undefined && typeof input[x] === 'number' && rand(2)) input[x] = near[x]!
+        for (const g of guided) { const set = g({...params, ...st.scalars}, st, rand, bound); if (set && typeof input[set[0]] === 'number') input[set[0]] = set[1] }
         if (!allowed(m, run, params, st, input)) continue
         d++
         const next = run.step(params, st, input)
@@ -2450,7 +2474,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     // variable of a kind is drawn as its kind draws (33 yes/nos drawn from 0..7 almost never make a lawful state).
     const steps1 = stepLaws.filter(sl => (sl.steps ?? 1) === 1), given = withKinds(r, laws)
     const wide = Object.keys(m.state).length + m.inputs.length >= 32, lawsHere = wide ? given : [], kinded = wide ? r.kindsOfState() : []
-    for (let trial = 0; !m.history && (steps1.length || lawsHere.length) && trial < budget.trials * 4; trial++) {
+    for (let trial = 0; budget.states !== false && !m.history && (steps1.length || lawsHere.length) && trial < budget.trials * 4; trial++) {
       const params = r.randomParams(rand, bound)
       if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m) || !factsHold(params)) continue
       const scalars: Record<string, number> = Object.fromEntries(Object.keys(m.state).map(n => [n, rand(8)]))
@@ -2486,18 +2510,42 @@ export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws:
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
   noting(r, laws, stepLaws)
   const refuted = refuteByRuns(r, laws, stepLaws)
-  if (refuted) return refutedVerdict(refuted)
+  // (a step law broken from a state the laws allow, with no run to it: the laws may need an invariant there, or the run
+  // be further than these runs go; the search goes on from it, as from the kernel's)
+  if (refuted) return refuted.run ? refutedVerdict(refuted) : searched(r, laws, stepLaws, refutedVerdict(refuted), opts)
   const out = proveStepLaws(r.machine, withKinds(r, laws), stepLaws)
   const v = verdictOf(out)
   return searched(r, laws, stepLaws, v, opts)
+}
+// The one-step laws as laws the bounded runs read (core/bmc.ts takes laws alone): a ghost per step law, set once a step
+// it is about breaks it (`then` read with each primed name the step's update), and the law that it is never set. Only a
+// machine bmc takes (no maps, no history) and a step law over no key; the ghost changes no run of the machine.
+function stepGhosts(m: Machine, stepLaws: StepLaw[]): {machine: Machine, laws: Law[]} | undefined {
+  const plain = stepLaws.filter(sl => (sl.steps ?? 1) === 1 && !sl.forall && !sl.keys?.length)
+  if (!plain.length || Object.keys(m.maps ?? {}).length || m.history || m.inputMaps?.length) return undefined
+  const flags = Object.fromEntries(Object.keys(m.step.flags ?? {}).map(f => [f, {op: 'flag', name: f} as C]))
+  const after = {vars: Object.fromEntries(Object.keys(m.state).map(n => [`${n}'`, m.step.state?.[n] ?? {op: 'var', name: n} as E])), maps: {}, flags}
+  const ghosts: Record<string, E> = {}, out: Law[] = []
+  for (const [i, sl] of plain.entries()) {
+    const name = `broken$${i}`, whens = sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when]
+    if (name in m.state) return undefined
+    ghosts[name] = {op: 'if', c: {op: 'and', xs: [...whens, {op: 'not', x: substC(sl.then, after)}]}, then: {op: 'const', value: 1}, else: {op: 'var', name}}
+    out.push({name: sl.name, holds: {op: '<=', a: {op: 'var', name}, b: {op: 'const', value: 0}}})
+  }
+  // (as core/compose.ts's `ghost`: each starts at 0, nothing of the machine reads it)
+  try { return {machine: {...m, state: {...m.state, ...Object.fromEntries(Object.keys(ghosts).map(n => [n, {op: 'const', value: 0} as E]))}, step: {...m.step, state: {...m.step.state, ...ghosts}}}, laws: out} } catch { return undefined }
 }
 // The search, where the prover alone didn't prove the laws and nothing refuted them: the lemmas first where the rule has
 // recurrences or carried lists (the rule made again with them), then invariants over what it then is. The verdict is the
 // prover's on the laws with what was found; when nothing is found, the prover's own (with why).
 function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions): Verdict {
   if ((v.proven && v.checked) || opts.search === false || v.run || v.stuck === 'sat' && !/@step|@\d+ steps/.test(v.goal ?? '')) return v
-  const deeper = refuteByRuns(r, laws, stepLaws, deeperBudget)
-  if (deeper?.run) return refutedVerdict(deeper)
+  // The deeper runs; then runs over small values (keys that meet, small params), whose requests meet their
+  // assumption's equalities and clocks, or near the counterexample the verdict ends at.
+  for (const b of [deeperBudget, {...deeperBudget, bound: 1, seed: 31, states: false}, {...deeperBudget, trials: 1200, seed: 41, states: false, mixed: true, ...(v.witness ? {near: v.witness} : {})}]) {
+    const deeper = refuteByRuns(r, laws, stepLaws, b)
+    if (deeper?.run) return refutedVerdict(deeper)
+  }
   const until = clock() + (typeof opts.search === 'object' && opts.search.ms !== undefined ? opts.search.ms : 10_000)
   // Bounded runs (core/bmc.ts): a law broken k steps from the start, a model of the kernel's k-step goal, the run taken
   // by the interpreter. The shallow depths first, within a fortieth of the search's budget (at most 250 ms, counted in
@@ -2506,7 +2554,10 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   // shallow depths.
   const total = until - clock(), tail = Math.min(1000, total / 10)
   let reached = 0
-  const bounded = (ms: number, from: number) => counted(fullRate, () => findBoundedRun(r.machine, laws, {ms, from, steps: true, progress: k => { reached = k }}), true)
+  const ghosted = stepGhosts(r.machine, stepLaws)
+  // (with the step laws' ghosts, a wall stop too, at the budget: their goals cost the cost model more than its clock
+  // counts, a wide rule's past twice its wall time)
+  const bounded = (ms: number, from: number) => counted(fullRate, () => findBoundedRun(ghosted?.machine ?? r.machine, [...laws, ...(ghosted?.laws ?? [])], {ms, from, steps: true, ...(ghosted ? {wall: performance.now() + ms} : {}), progress: k => { reached = k }}), true)
   const refutedBy = (b: NonNullable<ReturnType<typeof bounded>>): Verdict => refutedVerdict({goal: `${b.law} @step (a run of ${b.depth} steps from the start)`, witness: b.witness, run: {params: b.params, trace: b.trace.map(shownRequest)}})
   const shallow = bounded(Math.min(250, total / 40), 1)
   if (shallow) return refutedBy(shallow)
@@ -2530,17 +2581,29 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
     const c = withDeadline(until, () => cycleLemmas(rule.machine, withKinds(rule, laws), stepLaws, {ms: (until - clock()) / 2}))
     if (c.proven && c.checked) return {proven: true, checked: true, found: {...(lemmas ? {lemmas} : {}), facts: c.found.map(f => f.text)}}
   }
+  // Laws about the ids a counter hands out (core/fresh.ts), within a tenth of what is left: the laws with them, then
+  // the invariant search with them given.
+  let fresh: FreshLaw[] = []
+  if (Object.keys(rule.machine.maps ?? {}).length && until - clock() - tail > 1000) {
+    const fm = rule.machine, share = (until - clock() - tail) / 10
+    fresh = withDeadline(clock() + share, () => freshLaws(fm, rule.kindLaws(), {params: (rand, bound) => rule.randomParams(rand, bound), input: (rand, bound, ps) => rule.randomInput(rand, bound, ps)}, {ms: share}))
+    if (fresh.length) {
+      const given = [...withKinds(rule, laws), ...fresh.map(f => f.law)], out = withDeadline(clock() + share, () => (stepLaws.length ? proveStepLaws(fm, given, stepLaws) : proveLaws(fm, given)))
+      if (out.proven && out.checked) return {proven: true, checked: true, found: {laws: fresh, ...(lemmas ? {lemmas} : {})}}
+    }
+  }
   const ms = until - clock() - tail
   if (ms < 500) return v
-  const inf = inferLaws(rule, laws, stepLaws, {ms, ...(rule === r ? {first: v} : {})})
+  const inf = inferLaws(rule, [...fresh.map(f => f.law), ...laws], stepLaws, {ms, ...(rule === r && !fresh.length ? {first: v} : {})})
   if (!(inf.proven && inf.checked)) {
-    const deep = bounded(Math.max(0, until - clock()), Math.max(1, reached))
+    // (a step law's ghost: at most 10 s of it, as its goals cost more than the laws')
+    const deep = bounded(Math.max(0, Math.min(until - clock(), ghosted && !laws.length ? 10_000 : Infinity)), Math.max(1, reached))
     if (deep) return refutedBy(deep)
     return {...v, why: [v.why, `the search found nothing that proves it in ${Math.round(inf.stats.ms)} ms`].filter(Boolean).join('; ')}
   }
   const {found, stats: _stats, ...verdict} = inf
   void _stats
-  return {...verdict, found: {laws: found, ...(lemmas ? {lemmas} : {})}}
+  return {...verdict, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}}
 }
 export type {StepLaw}
 export type {Liveness}
@@ -2548,7 +2611,13 @@ export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, la
   noting(r, laws, l)
   if (laws.some(law => law.some?.length)) throw new Error(`${r.machine.name}: a law with "there exists" goes to proveRule or proveSteps; a liveness takes plain laws (the ones its proof printed, Verdict.witnesses)`)
   if (Array.isArray(l.rank) && !l.rank.length) {
-    const f = findLeadsTo(r.machine, withKinds(r, laws), l, {params: (rand, bound) => r.randomParams(rand, bound), input: (rand, bound, ps) => r.randomInput(rand, bound, ps)}, opts)
+    const until = clock() + (opts.ms ?? 10_000), draws = {params: (rand: Rand, bound: number) => r.randomParams(rand, bound), input: (rand: Rand, bound: number, ps: Record<string, number>) => r.randomInput(rand, bound, ps)}
+    let f = findLeadsTo(r.machine, withKinds(r, laws), l, draws, opts)
+    // Where the rank fitted to the runs isn't the one: a rank of the rule's own terms (core/live.ts), in the time left.
+    if (!(f.proven && f.checked) && until - clock() > 500) {
+      const g = leadsByTerms(r.machine, withKinds(r, laws), l, {...draws, rule: r, state: (rand, bound) => Object.assign({}, ...r.kindsOfState().map(([n, kd]) => kd.random(n, rand, bound)))}, {ms: until - clock()})
+      if (g.proven && g.checked) f = g
+    }
     return {proven: f.proven, checked: f.checked, ...(f.goal ? {goal: f.goal, stuck: f.stuck} : {}), ...(f.witness ? {witness: f.witness} : {}), ...(f.why ? {why: f.why} : {}),
       ...(f.found ? {found: {rank: f.found.rank, ...(f.laws?.length ? {laws: f.laws.map((law, i) => ({law, text: f.found!.laws[i] ?? law.name}))} : {})}} : {})}
   }

@@ -80,16 +80,17 @@ function harness(pkg: GoPkg, read: GoRead, m: Model, discard: boolean): {code: s
     const lines: string[] = []
     meth.params.forEach((pa, i) => {
       const t = T(pa.t), raw = `a[${i}]`
-      if (pa.arg.k === 'input') {
+      if (pa.arg.k === 'lit' && pa.arg.value === 'context') { imports.add('context'); lines.push(`var a${i} context.Context = context.Background()`) } else if (pa.arg.k === 'input') {
         if (t.k === 'int') { lines.push(`var a${i} ${t.go}`); lines.push(intSet(`a${i}`, raw, pa.t).replace('return fmt.Errorf', 'return nil, fmt.Errorf')) }
         else if (t.k === 'ptr') lines.push(`a${i}, ok${i} := new(big.Int).SetString(gdpStr(${raw}), 10); if !ok${i} { return nil, fmt.Errorf("bad big") }`)
         else { lines.push(`var a${i} ${t.go}`); lines.push(`if err := json.Unmarshal(${raw}, &a${i}); err != nil { return nil, err }`) }
       } else if (pa.arg.k === 'rec') {
         const st = T(t.elem!)
+        qual(t.elem!)
         lines.push(`a${i} := &${st.go}{}`)
         lines.push(`var f${i} map[string]json.RawMessage; json.Unmarshal(${raw}, &f${i})`)
         for (const [f] of pa.arg.fields) {
-          const ft = st.fields!.find(g => g.name === f)!.t, fx = T(ft)
+          const ft = (st.fields ?? st.xfields)!.find(g => g.name === f)!.t, fx = T(ft)
           if (fx.k === 'int') lines.push(`if r, ok := f${i}[${JSON.stringify(f)}]; ok { ${intSet(`a${i}.${f}`, 'r', ft).replace('return fmt.Errorf', 'return nil, fmt.Errorf')} }`)
           else if (fx.k === 'ptr') lines.push(`if r, ok := f${i}[${JSON.stringify(f)}]; ok { z, ok := new(big.Int).SetString(gdpStr(r), 10); if !ok { return nil, fmt.Errorf("bad big") }; a${i}.${f} = z }`)
           else lines.push(`if r, ok := f${i}[${JSON.stringify(f)}]; ok { json.Unmarshal(r, &a${i}.${f}) }`)
@@ -108,7 +109,7 @@ function harness(pkg: GoPkg, read: GoRead, m: Model, discard: boolean): {code: s
 package ${pkg.package}
 
 import (
-${[...imports].sort().map(p => `\t${JSON.stringify(p)}`).join('\n')}
+${[...imports].sort().map(p => `\t${p.split('/')[0]!.includes('.') ? `${p.replace(/[^A-Za-z0-9]/g, '_').replace(/^/, 'gdp_')} ` : ''}${JSON.stringify(p)}`).join('\n')}
 )
 
 type gdpStep struct {

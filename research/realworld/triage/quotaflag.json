@@ -12,7 +12,15 @@
   "quota/litellm/maxBudgetChecks#a team whose spend has reached its max_budget is refused": {
     "verdict": "bug",
     "note": "Suspected real bug (an inconsistency, low severity). team_max_budget_check (auth_checks.py:6386) refuses only at spend > max_budget, so a team whose spend equals its max_budget is admitted, while the key (:5912), user, org and window checks refuse at spend >= max_budget. The original does it (repro: key at spend 1.0 of 1.0 refused, team at 1.0 of 1.0 admitted). The repo's own tests/e2e/quota_management/budgets/BUDGET_CODE_MATRIX.md:38-39 lists it under 'flags from the code' as 'Comparison operators are inconsistent ... Spend exactly at max_budget blocks a key but not a team', not as an intent. Law and rule kept; no issue opened.",
-    "repro": "research/realworld/repro/litellm-team-budget.py"
+    "repro": "research/realworld/repro/litellm-team-budget.py",
+    "recheck": {
+      "date": "2026-10-24",
+      "upstream": "BerriAI/litellm main@e04e89c (2026-10-23) and v1.106.3 (4fa8bf1f, latest); pin v1.106.2",
+      "status": "present",
+      "verdict": "bug",
+      "evidence": "team_max_budget_check still refuses only at spend > max_budget (auth_checks.py:7186 at main, moved from :6386), while the key check uses >= (:6712). The repro run on both refs: the key at its budget is refused, the team at its budget admitted. BUDGET_CODE_MATRIX.md:38-39 still lists the inconsistency.",
+      "rerun": "REPRO_COMMIT=e04e89c7010809cc051b14f0e43d71dd018cdaee python3 -I research/realworld/repro/litellm-team-budget.py"
+    }
   },
   "quota/litellm/maxBudgetChecks#a key's spend passes its max_budget by at most one request's cost": {
     "verdict": "law",
