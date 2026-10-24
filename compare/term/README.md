@@ -103,6 +103,17 @@ the independent check's 93 that found defects, branch verify/sv-front, and 6 of 
 against how they run; nor are the check's 145 (`runs/svfront/suite-default-3`, `verify-fix2`). The ITS translation folds constants exactly and refuses one
 past 2^53, which the kernel's numbers can't hold (no ITS task has one; a C task's 64-bit range is refused the same way).
 
+`c2ari.py` then composes straight-line code away (`chain`; `--no-chain` keeps every location): a location other than
+the entry, with no rule back to itself and one rule into it or one out of it, is left out, each rule into it composed
+with each rule out of it; rules into a location no rule leaves are left out (the run ends there either way, a step
+earlier), and so are locations the entry doesn't reach, rules whose guard its constants make false, and the bounds of
+a fresh value nothing else reads. Every cycle keeps a location, so a run of the system is infinite exactly when the
+program's is. A composition is not made where it would have more disjunctions, or more fresh values a guard
+constrains past their bounds, than either part (each is a choice a random run has to draw), where it reads a guard
+with a product of two values, or past 3 times its parts' size; the nonterminating translation of recursion isn't
+chained (its lassos are found by runs turn by turn). A division of two constants is folded (`UINT_MAX / 2`). Across
+the 271 translated tasks (`--for terminates`), the median system keeps 16% of its locations and 18% of its rules.
+
 ## Results
 
 Integer transition systems (1,239). LoAT and KoAT2 from `runs/modal/term/full1`, KoAT2's 64 tasks that errored
@@ -150,6 +161,44 @@ the task's expected verdict.
   coefficient past 4.
 - Not run: the Lean twin on the ranks found (every proof here is the kernel's, checked twice: in `findRank`, and again
   in solve.ts on the obligations of the loop as translated).
+
+### Straight-line C code composed (Unreleased)
+
+SV-COMP's 282 tasks at 60 s on Modal, `gdp` and `gdp-scc`, branch gen/nonterm5-sv (`runs/nt5/sv-chain5`) beside
+gen/nonterm5 at eebdf44 (`sv-base5`), launched together; wrong is an answer against the expected verdict.
+
+| | terminates | nonterminating | wrong | solved of 282 |
+| --- | --- | --- | --- | --- |
+| the task's statement (`gdp`), here | 183 | 56 | 0 | 239 |
+| eebdf44 | 170 | 55 | 0 | 225 |
+| per component (`gdp-scc`), here | 153 | 56 | 0 | 209 |
+| eebdf44 | 151 | 55 | 0 | 206 |
+| Ultimate Automizer v0.3.1 (`runs/modal/term/sv2`) | 171 | 53 | 0 | 224 |
+
+On the task's statement 239 against Ultimate Automizer's 224 in this harness, unconfirmed under SV-COMP's own setup.
+Every gained task, run three times a side (`svre5-mine-1..3`, `svre5-base-1..3`), answers in 3 of 3 here; none is lost.
+- **Gained, `gdp`** (here's seconds; eebdf44 answers none of them in 3 runs but Singapore-2 in 1): Piecewise 8.5 to 9.4,
+  HeizmannHoenickeLeikePodelski-ATVA2013-Fig5 9.8 to 11.2, Singapore-2 11.2 to 13.6, TelAviv-Amir-Minimum 14.7 to 16.1,
+  GCD3 16.0 to 21.9, aaron3-1 19.4 to 19.5, Toulouse-MultiBranchesToLoop-2 23.7 to 25.4, UrbanMine-ESOP2014-Fig3 26.7
+  to 30.1, AliasDarteFeautrierGonnord-SAS2010-nestedLoop-1 28.0 to 28.8, HarrisLalNoriRajamani-SAS2010-Fig1 37.0 to
+  37.4, dijkstra1-both-t 42.8 to 45.5, cohencu4-both-t 50.3 to 50.4, TwoWay 57.3 to 57.4: ranks the search finds on
+  the chained loop (a location or a few, each loop's body one turn) where per-location ranks over its 20 to 60
+  locations weren't found; divbin1-both-nt (nonterminating) 0.2 to 0.3: `UINT_MAX / 2` folded, where a fresh quotient
+  stood that no run drew (its lasso: B odd, the loop changes nothing).
+- **Gained, `gdp-scc`:** divbin1-both-nt, LeeJonesBen-Amram-POPL2001-Ex4 (3 of 3 against 0), cohencu5-both-t (3 of 3
+  against 1) and cohencu4-both-t (3 of 3 against 2).
+- **Earlier versions of the chaining** (`sv-chain1` to `sv-chain4` beside `sv-base1` to `sv-base4`): composing a range
+  check into the nondeterministic value it checks lost Stockholm-1 and Gothenburg_v2-1 (the invariant a = b read
+  only through fresh values); composing two rules that each draw a constrained value, or each with a disjunction, lost
+  Binary_Search-2's lasso (its runs stopped within 3 turns), and chaining the nonterminating translation of recursion
+  lost it still; composing through `z·z` lost cohencu5-both-t (3 of 3 on eebdf44, 0 of 3 then, `svre-*`).
+- `c2ari_test.py`: 66 programs, none answered against the program, 40 answered as they run (39 at eebdf44;
+  `runs/nt5/sv-tests5`, `sv-tests-base`); `adversarial.test.ts` passes.
+- **What Ultimate Automizer answers and `gdp` doesn't**, 8, none closed: the recursive programs whose rank needs what a
+  call returns (McCarthy91_Recursion, NestedRecursion_1b, 1c, 1d, rec_counter3: the terminates translation lets a call
+  return any value) and MutualRecursion_1a (nonterminating: a call that returns before the one that never does, past
+  the inlining depth); 4BitCounterPointer (the rank reads the cells through pointers fixed after the stem: an invariant
+  on the pointers' values); KroeningSharyginaTsitovichWintersteiger-CAV2010-Fig1 (x % 2: a rank over the parity).
 
 ### Closed forms (Unreleased)
 
