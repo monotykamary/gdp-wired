@@ -20,7 +20,7 @@
 import {type Constraint, type Lin, type Step, costs, env, refuteFast, solve, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
 import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isMonomial, leafConstraints} from './kernel.ts'
-import {clock, logged, nearOf, openAt, openCells, queryHook, rowsAt, unitAtoms, type Outcome} from './prove.ts'
+import {cellPair, clock, logged, nearOf, openAt, openCells, pairedKeys, queryHook, rowsAt, unitAtoms, type Outcome} from './prove.ts'
 import {Reader, type Row, keepClean, namesOf} from './reader.ts'
 import {Simplex} from './simplex.ts'
 
@@ -48,7 +48,7 @@ const keyOf = (lin: Lin): string => {
 // resolution of two earlier nodes on a variable (`res[0]` the one with the atom as stored true, `res[1]` false).
 type DagNode = {inputs: Lin[], steps: Step[]} | {res: [number, number], on: Lin}
 type Var = {name: string, lin: Lin, terms: [string, number][], col: boolean, tid?: number[], val?: boolean, level: number, reason?: number, at: number, act: number, phase: boolean,
-  bj?: number[], bsig?: number, sj?: (number | undefined)[], sx?: Simplex}
+  bj?: number[], bjAt?: number, bsig?: number, bver?: number, sj?: (number | undefined)[], sx?: Simplex, pair?: boolean}
 type Clause = {lits: Map<string, boolean>, node: number}
 // GDP_CDCL_LP=0: each node solved by elimination alone (no simplex); GDP_CDCL_FILL (8): the simplex's tableau begun
 // again past this many entries a row the node reads (research/step's comparisons).
@@ -106,7 +106,29 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
   // apart by form, as a set of forms would).
   const recs = new WeakMap<Lin, {x: Var | undefined, seen: number}>()
   const recOf = (lin: Lin) => { let r = recs.get(lin); if (!r) recs.set(lin, (r = {x: namesOf(lin).length > 0 ? vars.get(ensure(lin)) : undefined, seen: 0})); return r }
-  let candGen = 0, colsOn = 0, boundGen = 0
+  let candGen = 0, colsOn = 0, boundGen = 0, pairsChanged = 0
+  // prove.ts's openCells at the trail, from the reader's live cells: each pair of one map whose keys' difference the
+  // trail leaves open (that atom, or its flip where the trail decides it one way); made again only where the live cells
+  // or the decisions about pairs have changed.
+  let cellsAt = [-1, -1], cellsOpen: Lin[] = []
+  const truthOf = (lin: Lin): boolean | undefined => { const x = recOf(lin).x; return x?.val === undefined ? undefined : x.name === canon(lin) ? x.val : !x.val }
+  const openCellsLive = (): Lin[] => {
+    if (cellsAt[0] === reader.cellsChanged && cellsAt[1] === pairsChanged) return cellsOpen
+    const out: Lin[] = []
+    for (const names of reader.cells.values()) {
+      const ns = [...names]
+      for (let i = 0; i < ns.length; i++) for (let j = i + 1; j < ns.length; j++) {
+        const pair = cellPair(ns[i]!, ns[j]!)
+        if (pairedKeys.skip && Object.keys(pair.d).some(isMonomial)) continue
+        for (const lin of [pair.d, pair.neg]) { const x = recOf(lin).x; if (x) x.pair = true }
+        const a = truthOf(pair.d), b = truthOf(pair.neg)
+        if (a === undefined) out.push(pair.d)
+        else if (a === true && b === undefined) out.push(pair.neg)
+      }
+    }
+    cellsAt = [reader.cellsChanged, pairsChanged]
+    return (cellsOpen = out)
+  }
   const listRecs = new WeakMap<Lin[], {x: Var | undefined, seen: number}[]>()
   const bx = new Simplex(true, true), bxIn = new Set<number>(), toAssert = new Set<number>(), toRetract = new Set<number>()
   const loAt: number[] = [], loB: number[] = [], loRow: number[] = [], hiAt: number[] = [], hiB: number[] = [], hiRow: number[] = []
@@ -134,11 +156,12 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
     if (reason === undefined) delete x.reason; else x.reason = reason
     trail.push(name)
     if (x.col) colsOn++
+    if (x.pair) pairsChanged++
     reader.touch(name)
   }
   const undoTo = (l: number) => {
     const keep = levels[l] ?? trail.length
-    while (trail.length > Math.max(keep, fixed)) { const name = trail.pop()!, x = vars.get(name)!; delete x.val; x.level = -1; delete x.reason; if (x.col) colsOn--; reader.touch(name) }
+    while (trail.length > Math.max(keep, fixed)) { const name = trail.pop()!, x = vars.get(name)!; delete x.val; x.level = -1; delete x.reason; if (x.col) colsOn--; if (x.pair) pairsChanged++; reader.touch(name) }
     levels.length = l
   }
   const addClause = (lits: Map<string, boolean>, node: number): number => {
@@ -292,7 +315,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
           if (last >= 0) take(reader.openList(last))
           for (let i = 0; i < last; i++) if (near[i]) take(reader.openList(i))
           for (let i = 0; i < last; i++) if (!near[i]) take(reader.openList(i))
-          if ((!inc || reader.hasCells()) && plain().some(r => reader.readsCell(r.lin))) take(openCells(plain(), pathOf()))
+          if (inc) { if (reader.hasCells()) take(openCellsLive()) } else if (plain().some(r => reader.readsCell(r.lin))) take(openCells(plain(), pathOf()))
           return keep
         }, ms => { st.orderMs += ms })
         const open = cands.length > 0
@@ -315,10 +338,19 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
             const name = x.name
             if (x.val !== undefined || x.col) continue // (a term column's rows read differently once its choice is decided)
             // (unforced at the bounds it last read, which haven't changed since: unforced still)
+            // (no bound has changed since; or a name without any; or no bound it reads has)
             let sig = 0
             if (inc) {
-              if (!x.bj) { const bj = x.terms.map(([x0]) => bx.indexOf(x0)); if (bj.every(j => j !== undefined)) x.bj = bj as number[] }
-              if (x.bj) { for (const j of x.bj) sig += bx.version(j); if (x.bsig === sig) continue }
+              if (x.bver === bx.changes) continue
+              if (!x.bj) {
+                if (x.bjAt === bx.vars) continue
+                x.bjAt = bx.vars
+                const bj = x.terms.map(([x0]) => bx.indexOf(x0))
+                if (bj.some(j => j === undefined)) continue
+                x.bj = bj as number[]
+              }
+              for (const j of x.bj) sig += bx.version(j)
+              if (x.bsig === sig) { x.bver = bx.changes; continue }
             }
             const tid = (x.tid ??= reader.form(x.lin).names)
             const side = (val: boolean): number[] | undefined => { // the rows that force the stored atom to `val`
@@ -354,7 +386,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
               forced++
               break
             }
-            x.bsig = hit || !x.bj ? undefined : sig
+            if (inc) { x.bsig = hit ? undefined : sig; x.bver = hit ? undefined : bx.changes }
           }
           if (timing) st.boundMs += performance.now() - tb
           if (forced) { st.boundRounds++; continue }

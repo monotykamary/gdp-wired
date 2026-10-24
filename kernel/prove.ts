@@ -76,6 +76,16 @@ export const pairedKeys = {skip: false}
 // (each cell's map and key, and each pair's difference both ways, made once: the pairs are quadratic in the names, and
 // the same forms at every node keep what is remembered per form)
 const cellKeys = new Map<string, {map: string, key: Lin}>(), cellPairs = new Map<string, {d: Lin, neg: Lin, q0?: Lin, q1?: Lin}>()
+export const cellPair = (a: string, b: string): {d: Lin, neg: Lin, q0?: Lin, q1?: Lin} => {
+  const pk = `${a}\u0000${b}`
+  let pair = cellPairs.get(pk)
+  if (!pair) {
+    if (cellPairs.size > 200_000) cellPairs.clear()
+    const d = sub(cellKey(a).key, cellKey(b).key)
+    cellPairs.set(pk, (pair = {d, neg: scale(d, -1)}))
+  }
+  return pair
+}
 const cellKey = (n: string) => { let c = cellKeys.get(n); if (!c) { if (cellKeys.size > 100_000) cellKeys.clear(); cellKeys.set(n, (c = {map: n.slice(0, n.indexOf('[')), key: parseKey(n.slice(n.indexOf('[') + 1, -1))})) } return c }
 export function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
   const seen = new Set<string>(), names: string[] = []
@@ -85,14 +95,7 @@ export function openCells(rows: {lin: Lin}[], path: Path): Lin[] {
   const dec = (lin: Lin) => path.get(canon(lin))?.holds ?? (path.has(canonFlip(lin)) ? !path.get(canonFlip(lin))!.holds : undefined)
   for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
     if (cs[i]!.map !== cs[j]!.map) continue
-    const pk = `${names[i]}\u0000${names[j]}`
-    let pair = cellPairs.get(pk)
-    if (!pair) {
-      if (cellPairs.size > 200_000) cellPairs.clear()
-      const d = sub(cs[i]!.key, cs[j]!.key)
-      cellPairs.set(pk, (pair = {d, neg: scale(d, -1)}))
-    }
-    const d = pair.d
+    const pair = cellPair(names[i]!, names[j]!), d = pair.d
     if (pairedKeys.skip && Object.keys(d).some(isMonomial)) continue
     // Two cells of a run's map (core/cyclic.ts: time u and key k at u + k·Ω) at keys k·Ω and k'·Ω: k = k' first, a
     // linear atom; the keys' own difference only where k = k' (its other side then refuted by (k − k')·Ω = 0, a product).

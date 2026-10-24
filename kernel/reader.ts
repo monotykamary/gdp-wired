@@ -483,6 +483,9 @@ export class Reader {
   slotOf(id: number): number { return this.slot[id]! }
   hasCells(): boolean { return this.cellsOn > 0 }
   private cellsOn = 0
+  // The live cells' names by map (every cell a live row reads), and a count of their changes.
+  readonly cells = new Map<string, Set<string>>()
+  cellsChanged = 0
   sync(): void {
     this.syncing = true
     this.syncN++
@@ -598,13 +601,19 @@ export class Reader {
     if (!r) this.natRows.set(name, (r = {lin: {[name]: -1}, w: none, label: ''}))
     this.inNat[j] = r
     this.addCopy(r, 0)
-    if (this.nameKind[j] === 2) this.cellsOn++
+    if (this.nameKind[j] === 2) {
+      this.cellsOn++; this.cellsChanged++
+      const c = cellOf(name)
+      let same = this.cells.get(c.map)
+      if (!same) this.cells.set(c.map, (same = new Set()))
+      same.add(name)
+    }
     if (this.nameKind[j] === 1) this.segOn((this.termKeys[j] ??= new Seg(1, j)))
   }
   private nameOff(j: number) {
     this.removeCopy(this.inNat[j]!, 0)
     this.inNat[j] = undefined
-    if (this.nameKind[j] === 2) this.cellsOn--
+    if (this.nameKind[j] === 2) { this.cellsOn--; this.cellsChanged++; this.cells.get(cellOf(this.nameText[j]!).map)!.delete(this.nameText[j]!) }
     if (this.nameKind[j] === 1) this.segOff(this.termKeys[j]!)
   }
   private segOn(key: Seg) {

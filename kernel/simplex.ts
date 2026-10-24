@@ -169,8 +169,11 @@ export class Simplex {
     if (upper) { this.hi[j] = b; this.hiWhy[j] = why } else { this.lo[j] = b; this.loWhy[j] = why }
     this.move(j)
   }
+  // (every change of any bound, counted)
+  changes = 0
   private move(j: number) {
     this.vers[j] = (this.vers[j] ?? 0) + 1
+    this.changes++
     if (!this.boundsOnly && this.movedAt[j] !== this.settles + 1) { this.movedAt[j] = this.settles + 1; this.moved.push(j) }
   }
   private vers: number[] = []
