@@ -5,6 +5,55 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+The library smaller by sharing what the searches had copied (refactor/shared-engines): `core/` and `kernel/` (tests
+excluded) 1,926,132 bytes and 26,229 lines against main 84142cc's 1,940,485 and 26,407 (−14,353 bytes; before the
+merges, 1,806,516 against 0.25.0's 1,820,259, −13,743), every result as on main within its run-to-run noise. Nothing
+trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/`).
+
+- **One copy each** (sizes are the library's, each step measured on its own): the random draws' `seeded`
+  (machine.ts, for eight copies, −827); `gcd` (solver.ts) and the bigint `bgcd` (q.ts) (−684); a term walker `walk`
+  (machine.ts) for data's, transfer's, cycles' and eleven inline walkers (−2,176); the linear forms' `vars`, `plus`,
+  `times`, `konst`, `canon` (solver.ts) (−902), `subst` (−425), `linOfE` for accel's `linRaw` and the bmc tidier's
+  `linOf` (−385); relation.ts's `tightBounds` for cycles' `tightest` (−338); a congruence closure for lemmaUsesFor and
+  caseJoins (data.ts, −507); conjectures' `substX` as `substXs` (−179) and one `matchX` for conjectures and the lemma
+  calculation (−744); prove.ts's `eachRead` for five map-read visitors (−1,291) and `stuckAt` (−225); the float
+  simplex's ratio test and pivot (solver.ts's `ratioRow`, `pivot`) for refuteFast and floatSolve (−165); machine.ts's
+  builders for eight files' own `v`, `k`, `get`, `le`, `eq` (−1,181) and its `pairE`, `argsKey` for three pairings
+  (−271); the environment read once (solver.ts's `env`, 22 reads, −1,541); translate.ts on prove.ts's `parseKey` and
+  reader.ts's `times` (−700); dsl.ts's `verdictOf` (−451); cyclic.ts's `and`, `implies`, `vars` and nonterm's `isT`,
+  `isF` (−486); accel.ts's `turn` for three compositions of a path's turn (−527).
+- **Budgets on the counted clock** (−123): exists.ts's choice of witnesses compared a deadline with wall time;
+  findLeadsTo's trivial ranks took a share of a clock() deadline by wall time; inferLaws' outer deadline and the search
+  proveRule falls back on read wall time. Each reads `clock()` now, which is wall time outside `counted` (the same
+  results there). The wall stops left are the deliberate ones (findBoundedRun's, proveKInduction's, cdcl's, the
+  forced run's share, inferLaws' stop and timed mode) and the times only reported.
+- **Tried and reverted, measured beside main 207179c** (`runs/consol/r2`, `r3`): searched()'s bounded runs and
+  k-induction on the counted clock alone ran ledger/openzeppelin/RefundEscrow's k-induction out of memory (the k-step
+  goals' building isn't counted work); grow's default budget counted (250 units a millisecond) ran five real-world laws
+  (ledger/tigerbeetle/transfers 2 to 6, unknown on main) past the corpus's 150 s, the prover's work being 46 to 788
+  units a millisecond across goals.
+- **Beside main 84142cc, launched together on Modal** (`runs/consol/r5`): CHC-COMP LIA-Lin 1,002 against 1,000, none
+  wrong (the 2 disputed labels on both); TIP 2015 194 against 197, every task both prove with the same counted
+  search (`tried`), the 4 lost and 1 gained at 41 to 60 s; TermComp ITS 1,126 against 1,130 (3 gained, 7 lost, at 45
+  to 60 s, 4 of them at 60.04 s or later); SV-COMP 225 and 225. The 332 step goals: 664 of 664 the same trees
+  (outcome, leaves, splits, conflicts, decisions), all proven, `GDP_CDCL_VERIFY` passing. Frontier round 1: 90 of 92,
+  42 of 42 refused, every verdict the same; round 2: 29 of 47 against 30 (term/Piecewise, at the edge of findRank's
+  51 s, proven in one of two runs of the same base before), 47 of 47 refused. The real-world corpus: every verdict the
+  same (237 proven, 18 refuted, 56 unknown). Lean exports: 516 files the same up to their fresh names' numbering (496
+  byte for byte; two runs of one base differ so too). The suites, 217 jobs: none failed by default (253.5 s wall,
+  3,110.8 s of job time) or with `--usual` (276.8 s, 3,117.7 s), on boat. 1 vCPU, ten jobs a side interleaved:
+  `data`'s nearPlus at most 1,850.85 ms here, 1,842.41 ms on main.
+- **The searches' results the same**, beside 0.25.0 (f990361, `runs/consol`): each search's calls and results hashed
+  (`[found]`, research tooling outside the library): the suite 213 of 217 jobs the same, the 4 others (exists, nonterm,
+  term-c2ari, a frontier item's inferLaws) differing between two runs of 0.25.0 or between its repeats too; round 1 259
+  of 260, round 2 162 of 188 (25 differing between two runs of 0.25.0), the real-world corpus 295 of 311, each
+  difference in a search bounded by wall time (findNeverEnds, proveKInduction's wall stop, inferLaws' stop).
+- Dropped (no smaller, or not the same): natN shared with compare/tip (+7 bytes here), infer's guard (+1), the
+  tidier's folding moved into `simpC` (+298, and it changes what simpC returns), the forward differences
+  (discover's closedForm fits numbers, accel's differences are symbolic), the float LP for solver.ts's users and CDCL's
+  cores for bmc and cycles' Houdini (each changes a search), the prime cubes for cycles' never-forms (a location's is
+  one value already), a polyhedra module (each search's rows differ in shape; their shared pieces are above).
+
 The suite's `pairs` job no longer hangs. Its test "two groups of effects" ran about 840 s now and then, in place of 9
 to 15 s (`runs/live/suite`, `runs/tiplem/suite-default-1` and `-3`, `runs/reals/suite-base-usual`). Nothing trusted
 changed.
