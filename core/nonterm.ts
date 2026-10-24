@@ -320,9 +320,9 @@ function search(l: Loop, opts: NeverEndsOptions): NeverEndsVerdict {
       const ends = new Map<object, Visit>()
       for (const v of visits) if (v.run && (ends.get(v.run)?.at ?? -1) < v.at) ends.set(v.run, v)
       const runs = [...ends.values()].sort((a, b) => b.at - a.at).slice(0, 20).map(v => ({params: v.params, inputs: stemOf(v)}))
-      // A set's closure (`budget`: when it stops), then, where no stem is known, a bounded run (core/bmc.ts: the kernel's
-      // k-step goal's model, the set's complement as the law it breaks), then the kernel's check of each stem; `late`
-      // where the closure ran out of time.
+      // A set's closure (`budget`: when it stops), then, where no stem is known, the accelerated runs' search deeper and a
+      // bounded run (core/bmc.ts: the kernel's k-step goal's model, the set's complement as the law it breaks), then the
+      // kernel's check of each stem; `late` where the closure ran out of time.
       const attempt = (a: ReturnType<typeof accelerated> extends Generator<infer T> ? T : never, goal: ReturnType<typeof recurGoal>, stems: {params: Env, stem: Env[]}[], cut: (t: {params: Env, stem: Env[]}) => {params: Env, stem: Env[]} | undefined, budget: number): NeverEndsVerdict | 'late' | undefined => {
         // (a model of the CDCL search whose products don't multiply out goes on to the plain search, which multiplies rows)
         const was = realModels.on
@@ -331,6 +331,8 @@ function search(l: Loop, opts: NeverEndsOptions): NeverEndsVerdict {
         try { out = grow(goal, new Map(), {nodes: 0, until: budget}) } finally { realModels.on = was }
         if (!('tree' in out)) return out.stuck === 'unknown' && out.why !== undefined ? 'late' : undefined
         stats.accelClosed++
+        // (the accelerated runs' search again, deeper: fun9's stem of 30 turns)
+        if (!stems.length && now() < until) for (const t of stemsTo(l, a.targets, {start, turn}, {now, until: Math.min(until, now() + 1000), deepen: true})) { const c = cut(t); if (c) { stems.push(c); break } }
         if (!stems.length && now() < until) {
           const left = Math.min(until - now(), 2000)
           const run = findBoundedRun(m, [{name: 'outside the set', holds: {op: 'not', x: a.set}}], {ms: left, depth: 24, ...(opts.counted ? {} : {wall: performance.now() + left})})
