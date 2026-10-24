@@ -2079,7 +2079,9 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
     if (dataTrace) for (const u of lemmaUses) console.error(`[data]   lemma use ${specs[u.node]!.name.slice(0, 40)} at ${Object.entries(u.subst).map(([x, t]) => `${x} := ${brief(t, 80)}`).join('; ')}`)
     // The lemmas' conclusions are unfolded like the law's (they are what the goal reads, said another way); the cycle's
     // own uses only from depth 3.
-    const instsFor = (ms: M[], us: NodeSpec['uses'], every = false, hyps?: C[]) => instancesOf(p, fs, {roots: [concl], others: us.map(useConcl), depth, shapesAt, etaAt: [...shapesAt, ...valuesCompared(p, mb.law)], models: ms, every, until: t0 + attemptMs.ms, hyps})
+    // (eta also at each value whose tag a case's conditions read: [x]'s tail is nil, and so the value nil)
+    const tagged = (hyps?: C[]): E[] => { const out = new Map<string, E>(); walk(hyps ?? [], o => { if (o.op === 'get' && typeof o.map === 'string' && p.datas.some(d => o.map === tagMap(d.name))) { const key = o.key as E; if (key.op !== 'var') out.set(sid(key), key) } }); return [...out.values()] }
+    const instsFor = (ms: M[], us: NodeSpec['uses'], every = false, hyps?: C[]) => instancesOf(p, fs, {roots: [concl], others: us.map(useConcl), depth, shapesAt, etaAt: [...shapesAt, ...valuesCompared(p, mb.law), ...tagged(hyps)], models: ms, every, until: t0 + attemptMs.ms, hyps})
     const cases = scheme ? casesOf(p, pre.filter(q => fs.facts[q.fact]!.name.startsWith('fn ')).map(q => holdsAt(fs, q)), new Set(mb.law.vars.map(v => v.name)), mb.pool) : []
     if (cases.length <= 1) {
       // One node: four uses of a lemma, twelve in all, the best first (as lemmaUsesFor ranks them).
