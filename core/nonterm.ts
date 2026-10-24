@@ -20,7 +20,9 @@
 //   among these sets: their bounds and differences grow along the run.
 // - Accelerated cycles, between the runs and the policies (core/accel.ts): a set from a cycle of the loop's relation,
 //   the cycle's n-fold run read in closed form (an atom's differences along it), and a stem from a reached state or a
-//   run with its loops accelerated, checked as the rest are.
+//   run with its loops accelerated, checked as the rest are. A large closure goal (a program of many locations, whose
+//   body reads every rule) is closed by the set's parts (`cases`): each part's goal at its location, the location
+//   substituted and the constants folded, which leaves only that location's rules (kernel.ts's checkRecurCases).
 import {type C, type E, n as K, same as eq, seeded, walkOnce, x as V} from './machine.ts'
 import {type Loop, type Recur, type RecurCases, type Tree, caseGoals, checkRecur, checkRecurCases, coverGoal, loopMachine, recurGoal, substC, trueC} from '../kernel/kernel.ts'
 import {clock, counted, grow, realModels} from '../kernel/prove.ts'

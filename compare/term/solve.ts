@@ -10,7 +10,9 @@
 //     state it was in, replayed as the task's own steps and confirmed by ari.ts's evaluator, which uses no gdp-wired code;
 //     or a recurrent set (core/nonterm.ts's findNeverEnds: a closed set of states, the turn from each given by terms, a
 //     start and a stem into it), its closure goal's tree checked by the kernel (kernel.ts's checkRecur), the certificate
-//     printed (`recur`) for NonTerm.lean's never_ends_of; a lasso among them replayed by ari.ts's evaluator too
+//     printed (`recur`) for NonTerm.lean's never_ends_of; a large program's set closed by its cases, one per location
+//     (`cases`: kernel.ts's checkRecurCases, NonTerm.lean's never_ends_of_cases); a lasso among them replayed by ari.ts's
+//     evaluator too
 //   - unknown (and why: the rank the runs gave and the goal the kernel refused, or no rank), or unsupported (and why)
 // The time: a lasso search first (2 s), a recurrent set (4 s, `--recur-ms`; an accelerated set a stem reaches up to 10 s
 // before the limit), then the rank search with 70% of what is left before a margin of the limit, then a recurrent set
