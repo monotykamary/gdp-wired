@@ -2,37 +2,93 @@
  "inventory/medusa/reservations#a batch created without backorder never takes more than is available": {
   "verdict": "bug",
   "note": "Suspected real bug (module level). ensureInventoryLevels checks each item of a createReservationItems batch against the level's available_quantity read before the batch (inventory-module.ts:183-185), then adds the batch's total: two reservations of 1 at a level stocked 1 with nothing reserved, no backorder, reserve 2. Confirmed on @medusajs/inventory@2.22.0's own code over in-memory storage. Workflows may confirm inventory first; the module's own check does not hold for a batch.",
-  "repro": "research/realworld/repro/medusa.ts"
+  "repro": "research/realworld/repro/medusa.ts",
+  "recheck": {
+   "date": "2026-10-24",
+   "upstream": "medusajs/medusa develop@029fb31 (2026-10-23); @medusajs/inventory 2.22.1 (latest, released 2026-10-23)",
+   "status": "present",
+   "verdict": "bug",
+   "evidence": "packages/modules/inventory/src is unchanged since the pin; on @medusajs/inventory@2.22.1 two reservations of 1 in one batch still reserve 2 of a level stocked 1, no backorder.",
+   "rerun": "REPRO_VERSION=2.22.1 bun research/realworld/repro/medusa.ts"
+  }
  },
  "inventory/medusa/reservations#an update without backorder never takes more than is available where the reservation ends up": {
   "verdict": "bug",
   "note": "Suspected real bug. updateReservationItems_ with a new location_id and an unchanged quantity checks the new location for `data.quantity ? data.quantity - reservation.quantity : 0` = 0 more (inventory-module.ts:656-672), then adds the whole reservation there (:629-638): a reservation of 3 moved to a location stocked 0 reserves 3 of 0 without backorder. Confirmed on the original module code.",
-  "repro": "research/realworld/repro/medusa.ts"
+  "repro": "research/realworld/repro/medusa.ts",
+  "recheck": {
+   "date": "2026-10-24",
+   "upstream": "medusajs/medusa develop@029fb31; @medusajs/inventory 2.22.1",
+   "status": "present",
+   "verdict": "bug",
+   "evidence": "Unchanged source; on 2.22.1 moving a reservation of 3 to a location stocked 0 reserves 3 there (and the old location keeps its 3).",
+   "rerun": "REPRO_VERSION=2.22.1 bun research/realworld/repro/medusa.ts"
+  }
  },
  "inventory/medusa/reservations#the reserved quantity at a location is what its live reservations hold": {
   "verdict": "bug",
   "note": "Suspected real bugs, two paths. (1) Moving a reservation: the old location's -quantity adjustment is computed (:617-628) but applied only to levels ensureInventoryLevels returned (:684-702), which are the new location's: the old level keeps the reservation's quantity forever. (2) restoreReservationItems_ on an id that is already live lists it again and adds its quantity again (:780-796, :1179-1229): reserved 4 for live reservations of 2. Both confirmed on the original module code; the search's run uses the restore path.",
-  "repro": "research/realworld/repro/medusa.ts"
+  "repro": "research/realworld/repro/medusa.ts",
+  "recheck": {
+   "date": "2026-10-24",
+   "upstream": "medusajs/medusa develop@029fb31; @medusajs/inventory 2.22.1",
+   "status": "present",
+   "verdict": "bug",
+   "evidence": "Unchanged source; on 2.22.1 both paths still happen: the moved reservation's old level keeps its quantity, and restoring a live reservation adds it again (reserved 4 for live reservations of 2).",
+   "rerun": "REPRO_VERSION=2.22.1 bun research/realworld/repro/medusa.ts"
+  }
  },
  "inventory/saleor/allocations#the stock's allocated count is the sum of its allocations": {
   "verdict": "bug",
   "note": "Suspected real bug. deallocate_stock appends one Stock instance per allocation, each with quantity_allocated = F(...) - n (management.py:399-405), and saves them with Stock.objects.bulk_update (:449). For two order lines allocated on one stock (two lines of one variant), the list holds that stock twice; Django's bulk_update writes only the first of duplicate objects (its CASE WHEN on the pk), so Stock.quantity_allocated drops by the first line's amount only while both Allocation rows drop. allocate_stocks (:203-213) and _reduce_quantity_allocated_for_stocks (:509-516) aggregate per stock first; deallocate_stock does not. The repro runs Django's bulk_update with a duplicate object on SQLite.",
-  "repro": "research/realworld/repro/saleor-bulk-update.py"
+  "repro": "research/realworld/repro/saleor-bulk-update.py",
+  "recheck": {
+   "date": "2026-10-24",
+   "upstream": "saleor/saleor main@1771e1c (2026-10-23); latest tag 3.23.44 = the pin; Django 5.2.18 (the pinned ~=5.2.18)",
+   "status": "present",
+   "verdict": "bug",
+   "evidence": "saleor/warehouse/management.py is unchanged since the pin (models.py gained only two docstrings): deallocate_stock still appends one Stock instance per allocation with F(\"quantity_allocated\") - n (:399-405) and saves them with one bulk_update (:449). The Django repro still loses the second line's decrement (3 allocated against 0 in the allocations).",
+   "rerun": "uv run --no-project --with 'django~=5.2.18' python -I research/realworld/repro/saleor-bulk-update.py"
+  }
  },
  "inventory/saleor/allocations#a deallocation returns to the stock exactly what it takes from the allocations": {
   "verdict": "bug",
   "note": "The same mechanism as the stock's allocated count law: decrease_allocations for two lines on one stock lowers quantity_allocated by the first line's deallocation only.",
-  "repro": "research/realworld/repro/saleor-bulk-update.py"
+  "repro": "research/realworld/repro/saleor-bulk-update.py",
+  "recheck": {
+   "date": "2026-10-24",
+   "upstream": "saleor/saleor main@1771e1c; 3.23.44",
+   "status": "present",
+   "verdict": "bug",
+   "evidence": "The same unchanged lines (management.py:399-405, :449) and the same repro.",
+   "rerun": "uv run --no-project --with 'django~=5.2.18' python -I research/realworld/repro/saleor-bulk-update.py"
+  }
  },
  "inventory/vendure/stockMovements#stock allocated never goes negative": {
   "verdict": "bug",
   "note": "Suspected real bug (with a caller that triggers it). createReleasesForOrderLines and createSalesForOrder free min(quantity, the line's Allocation records) (default-stock-location-strategy.ts:79-106), and Allocation records are never reduced, so a second release (or a release after a sale) of the same line frees the same stock again: stock 5, allocate 1, release 1, release 1 gives stockAllocated -1 (and allocations made before the level row exists are not counted, while later releases are). Confirmed on @vendure/core@2.3.4's own services over in-memory repositories. OrderModifier.cancelOrderByOrderLines guards with allocations + sales - releases (order-modifier.ts:305), but OrderModifier.updateOrderLineQuantity (order-modifier.ts:220-250) passes the line's new quantity to both createCancellationsForOrderLines and createReleasesForOrderLines with no such guard.",
-  "repro": "research/realworld/repro/conform-vendure.ts"
+  "repro": "research/realworld/repro/conform-vendure.ts",
+  "recheck": {
+   "date": "2026-10-24",
+   "upstream": "vendure-ecommerce/vendure master@aba3e9c (2026-10-23); @vendure/core 3.8.1 (latest); the rule mirrors 2.3.4 (the last 2.x)",
+   "status": "changed",
+   "verdict": "bug",
+   "evidence": "Fixed as a symptom in 3.8.x: commit 92e4f356 (GHSA-8ghm-q833-cmgp, 2026-10-05, atomic stock level updates) makes updateStockAllocatedForLocation clamp stockAllocated at 0 after a negative change, with a warning (stock-level.service.ts:278-325). On 3.8.1 the repro's double release ends at 0, not -1. Still present in 2.3.4, the release the rule mirrors; the mechanism behind it is not fixed (next entry).",
+   "rerun": "bun research/realworld/repro/recheck/vendure-stock-3.8.1.ts"
+  }
  },
  "inventory/vendure/stockMovements#a line's sales and releases never free more than it allocated": {
   "verdict": "bug",
   "note": "The same mechanism: the strategy reads the line's Allocation records and never what was already sold or released.",
-  "repro": "research/realworld/repro/conform-vendure.ts"
+  "repro": "research/realworld/repro/conform-vendure.ts",
+  "recheck": {
+   "date": "2026-10-24",
+   "upstream": "vendure-ecommerce/vendure master@aba3e9c; @vendure/core 3.8.1",
+   "status": "present",
+   "verdict": "bug",
+   "evidence": "getLocationsBasedOnAllocations (default-stock-location-strategy.ts:142-173) still frees min(quantity, the line's Allocation records) with no account of earlier sales or releases, and OrderModifier.updateOrderLineQuantity (order-modifier.ts:228-258) still passes the line's new quantity to both createCancellationsForOrderLines and createReleasesForOrderLines unguarded. On 3.8.1: two lines allocate 1 each, line 0 is released twice, stockAllocated is 0 while line 1 still holds 1 (the clamp hides only the negative).",
+   "rerun": "bun research/realworld/repro/recheck/vendure-stock-3.8.1.ts"
+  }
  },
  "inventory/vendure/stockMovements#a sale takes from the allocated stock exactly what it takes from stock on hand": {
   "verdict": "law",

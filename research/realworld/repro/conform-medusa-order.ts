@@ -13,7 +13,9 @@ import {orderItem} from '../items/ledgerpay-medusa.ts'
 let dir = process.argv[2]
 if (!dir || !existsSync(join(dir, 'node_modules/@medusajs/order'))) {
   dir = mkdtempSync(join(tmpdir(), 'medusa-order-'))
-  execSync('npm init -y && npm install @medusajs/order@2.22.0 @medusajs/framework@2.22.0 --no-audit --no-fund --legacy-peer-deps', {cwd: dir, stdio: 'ignore'})
+  // REPRO_VERSION=2.22.1 runs another release (the re-check of 2026-10-24); the rule mirrors 2.22.0.
+  const v = process.env.REPRO_VERSION ?? '2.22.0'
+  execSync(`npm init -y && npm install @medusajs/order@${v} @medusajs/framework@${v} --no-audit --no-fund --legacy-peer-deps`, {cwd: dir, stdio: 'ignore'})
 }
 const req = createRequire(join(dir, 'package.json'))
 req('@medusajs/order/dist/utils/actions/index.js') // registers every action type

@@ -7,7 +7,9 @@
 import ast, asyncio, math, sys, types, urllib.request
 from typing import Final
 
-URL = "https://raw.githubusercontent.com/BerriAI/litellm/49943cd52ea46aacf8db2e5cb2b890d580fe9bb4/litellm/proxy/auth/auth_checks.py"
+# REPRO_COMMIT=<sha> fetches another commit (the re-check of 2026-10-24 ran main e04e89c7 and v1.106.3 4fa8bf1f).
+import os
+URL = f"https://raw.githubusercontent.com/BerriAI/litellm/{os.environ.get('REPRO_COMMIT', '49943cd52ea46aacf8db2e5cb2b890d580fe9bb4')}/litellm/proxy/auth/auth_checks.py"
 src = urllib.request.urlopen(URL).read().decode()
 tree = ast.parse(src)
 wanted = {"team_max_budget_check", "virtual_key_max_budget_check"}
