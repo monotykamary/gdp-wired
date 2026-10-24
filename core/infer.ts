@@ -24,17 +24,17 @@
 //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
-import {type C, type E, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, get, interpret, machineTerms, modName, n, not, plus, same, times, withArithmetic, x} from './machine.ts'
-import {type StepLaw, type Verdict, proveRule, proveSteps} from './dsl.ts'
+import {type C, type E, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, get, interpret, machineTerms, modName, n, not, plus, same, seeded, times, withArithmetic, x} from './machine.ts'
+import {type StepLaw, type Verdict, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, watch} from './watch.ts'
 import {clock, counted, grow, proveLaw, proveLaws, proveStepLaws, usedHyps, withDeadline, withTrees} from '../kernel/prove.ts'
 import {obligations, substC} from '../kernel/kernel.ts'
-import {work} from './solver.ts'
+import {env, gcd, work} from './solver.ts'
+import {bgcd} from './q.ts'
 import {REFUTED, type Refuted, growCdcl} from '../kernel/cdcl.ts'
 
 type AnyRule = Parameters<typeof proveRule>[0]
 type Env = Record<string, number>
-type Rand = (k: number) => number
 
 // The search's budgets are counted in what it did, not timed, so that what it finds is the same on any machine (kernel/
 // prove.ts's `counted` does the same for the datatype search): the runs by the requests they try (`runs`), the rest by
@@ -90,37 +90,35 @@ const KEY = 'key$found', AT = '@', K = '#', SOME = 'k$found'
 export const inferRates = {tries: 100, rows: 10_000, evals: 10_000, watched: 100, work: 40}
 export const inferRuns = 16_000
 // GDP_INFER_TRACE=1: each phase's wall time beside what it counted, to stderr (the calibration's numbers).
-const inferTrace = !!(globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_INFER_TRACE
+const inferTrace = !!env.GDP_INFER_TRACE
 // The join (below, after the candidates): GDP_JOIN=0 turns it off, for comparing. Its share of what is left of the
 // search's budget; each kernel search's budget (counted, or wall time where timed), a request's 150 ms; the steps a walk
 // from a joined state takes; pairs of values as directions up to 10 values; a bound raised twice at most, then dropped;
 // equalities of at most 4 values, coefficients up to 1,000; at most 24 candidates beside the hull, 40 tried; yes/nos in
 // the control state up to 7, and 128 of its values; a goal tried with 6 parts of the set before all of it, 2 forms added
 // at a time.
-const joinOn = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN !== '0'
+const joinOn = env.GDP_JOIN !== '0'
 const joinShare = 0.6, joinQueryMs = 8000, joinRequestMs = 150, joinWalk = 8, joinPairs = 10, joinRaises = 2, joinSparse = 4, joinCoef = 1000
 const joinExtras = 24, joinTries = 40, joinBits = 7, joinKeys = 128, joinAttempts = 6, joinAdd = 2
 // GDP_JOIN_CORE=0: the join's goals by the prover's trees alone, as before (else a model, or a refutation's core, of the
 // CDCL search first, at a quarter of the goal's budget).
 // GDP_JOIN_NEVERS=0: each control state no run reached a form of its own, as before (else one form for all of them,
 // until it is first broken).
-const joinNevers = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_NEVERS !== '0'
+const joinNevers = env.GDP_JOIN_NEVERS !== '0'
 const joinNeversBreaks = 1
-const joinCore = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_CORE !== '0'
+const joinCore = env.GDP_JOIN_CORE !== '0'
 // Cubes blocked where no candidate rules a counterexample out (GDP_JOIN_CUBES=0: none): at most 48 in all, each tried 8
 // times, its predecessors blocked first 3 deep, each query's budget 2 s (counted, or wall time where timed).
-const joinCubes = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_CUBES !== '0'
+const joinCubes = env.GDP_JOIN_CUBES !== '0'
 const joinCubeMax = 48, joinCubeTries = 8, joinCubeDepth = 3, joinCubeMs = 2000
 // Once a cube is in the set, the join has 0.3 of what is left of its time (the search below the rest).
 const joinCubeWindow = 0.3
 // GDP_JOIN_PRIME=0: each control state no state reached a form of its own, every value read.
-const joinPrime = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_PRIME !== '0'
+const joinPrime = env.GDP_JOIN_PRIME !== '0'
 // GDP_JOIN_DOWN=0: a blocked cube kept as its refutation's core cuts it (no literal dropped); joinDownQueries, the
 // queries a cube's generalization may ask.
-const joinDown = (globalThis as {process?: {env?: Record<string, string | undefined>}}).process?.env?.GDP_JOIN_DOWN !== '0', joinDownQueries = 24
-const seeded = (seed: number): Rand => { let s = seed; return k => { s = (s * 1103515245 + 12345) % 2 ** 31; return Math.floor(s / 2 ** 31 * k) } }
+const joinDown = env.GDP_JOIN_DOWN !== '0', joinDownQueries = 24
 const isRule = (t: AnyRule | Machine): t is AnyRule => typeof (t as AnyRule).kindsOfState === 'function'
-const gcd = (a: number, b: number): number => (b === 0 ? Math.abs(a) : gcd(b, a % b))
 
 // The constants a machine's expressions hold, and the factors it multiplies by.
 function constantsOf(m: Machine, laws: Law[]): number[] {
@@ -216,7 +214,7 @@ function comparisons(m: Machine, laws: Law[], atoms: Atom[], coords: number[]): 
 }
 
 export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
-  return quietly(() => withDeadline(performance.now() + (opts.ms ?? 20000), () => inferLawsSearch(target, laws, stepLaws, opts)))
+  return quietly(() => withDeadline(clock() + (opts.ms ?? 20000), () => inferLawsSearch(target, laws, stepLaws, opts)))
 }
 function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
   const t0 = performance.now(), ms = opts.ms ?? 20000, wallUntil = t0 + ms, rule = isRule(target) ? target : undefined
@@ -252,7 +250,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const {r: searchRule, m: mm} = forLaws(ls)
     if (searchRule) return stepLaws.length ? proveSteps(searchRule, ls, stepLaws, {search: false}) : proveRule(searchRule, ls, {search: false})
     const out = stepLaws.length ? proveStepLaws(mm, ls, stepLaws) : proveLaws(mm, ls)
-    return {proven: out.proven, checked: out.checked, ...(out.failed ? {goal: out.failed.goal, stuck: out.failed.stuck, ...(out.failed.witness ? {witness: out.failed.witness} : {}), ...(out.failed.why ? {why: out.failed.why} : {})} : {})}
+    return verdictOf(out)
   }
   const stats = (samples: number, candidates: number, alive: number) => ({samples, candidates, alive, proofs, ms: Math.round(performance.now() - t0), stopped: stop()})
   const first = opts.first ?? prove(laws)
@@ -748,7 +746,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const fine = bounds, coarse = [...new Set([0, ...consts.flatMap(k => [k, -k])])].sort((p2, q2) => p2 - q2)
     type Group = {eqs: bigint[][], hi: number[], raised: number[]}
     const groups = new Map<string, Group>()
-    const bgcd = (a2: bigint, b2: bigint): bigint => { a2 = a2 < 0n ? -a2 : a2; b2 = b2 < 0n ? -b2 : b2; while (b2) [a2, b2] = [b2, a2 % b2]; return a2 }
     const normal = (e: bigint[]) => { let g2 = 0n; for (const x2 of e) g2 = bgcd(g2, x2); if (g2 > 1n) for (let k = 0; k < e.length; k++) e[k]! /= g2; const lead = e.find(x2 => x2 !== 0n); if (lead !== undefined && lead < 0n) for (let k = 0; k < e.length; k++) e[k] = -e[k]!; return e }
     const dirValue = (t: [number, number][], vs: Float64Array | number[]) => { let v = 0; for (const [i, c] of t) v += c * vs[i]!; return v }
     const residual = (e: bigint[], vs: Float64Array | number[]) => { let r = e[CN]!; for (let k = 0; k < CN; k++) if (e[k]) r += e[k]! * BigInt(vs[coords[k]!]!); return r }

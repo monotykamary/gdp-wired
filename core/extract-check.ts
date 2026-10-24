@@ -20,7 +20,7 @@ type VM = {createContext: (o: Context) => Context, runInContext: (code: string, 
 const proc = (globalThis as {process?: {getBuiltinModule?: (id: string) => unknown}}).process
 const vmOf = (): VM => { const m = proc?.getBuiltinModule?.('node:vm'); if (!m) throw new Error('the check runs the code in node:vm (Node 20.16 or later, or Bun)'); return m as VM }
 import {Int, Term, bool, int, intern, interned, nat, no, oneOf, str, type Kind, type Rule, type StepLaw, proveSteps} from './dsl.ts'
-import {type Request, type State} from './machine.ts'
+import {type Rand, type Request, type State, seeded, walk} from './machine.ts'
 import {allowed} from './watch.ts'
 import {type Arg, type Layout, type MapDecl, type Model, type Var, normalize, resolveIn, scriptKind} from './extract-read.ts'
 import * as I from './extract-ir.ts'
@@ -266,13 +266,10 @@ import {record} from './dsl.ts'
 const cellKind = (d: MapDecl, sorts: Sorts) => record({has: bool, ...Object.fromEntries(d.fields.map(f => [f.name, kindOfVar(f, sorts, `${d.name}.${f.name}`)]))}) as Kind<unknown>
 
 // --- values to draw -------------------------------------------------------------------------------------------------
-type Rand = (n: number) => number
-const seeded = (seed: number): Rand => { let x = seed >>> 0 || 1; return n => { x = (x * 1103515245 + 12345) % 2 ** 31; return Math.floor(x / 2 ** 31 * n) } }
 const BIG = [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER - 1, 2 ** 31, 2 ** 32]
 function constantsOf(m: Model): number[] {
   const out = new Set<number>([0, 1])
-  const go = (x: unknown): void => { if (x && typeof x === 'object') { const o = x as {op?: string, v?: unknown, k?: unknown}; if (o.op === 'const' && typeof o.v === 'number') out.add(o.v); if (typeof o.k === 'number') out.add(o.k); Object.values(o).forEach(go) } }
-  go([m.writes, m.mapWrites, m.refuse, m.pre, m.init])
+  walk([m.writes, m.mapWrites, m.refuse, m.pre, m.init], o => { if (o.op === 'const' && typeof o.v === 'number') out.add(o.v); if (typeof o.k === 'number') out.add(o.k) })
   return [...out]
 }
 function draw(sort: Var['sort'], sorts: Sorts, name: string, rand: Rand, near: number[], bound: number, strs: string[]): Raw {
@@ -296,7 +293,7 @@ function draw(sort: Var['sort'], sorts: Sorts, name: string, rand: Rand, near: n
 // --- the check ------------------------------------------------------------------------------------------------------
 export type CheckOptions = {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean, probeMs?: number, modules?: Record<string, unknown>, files?: Record<string, string>}
 export function check(code: string, file: string, m: Model, r: Rule, sorts: Sorts, opts: CheckOptions & {given?: Record<string, 'nat' | 'int'>} = {}): Evidence {
-  const t0 = performance.now(), rand = seeded(opts.seed ?? 7), bound = opts.bound ?? 12
+  const t0 = performance.now(), rand = seeded((opts.seed ?? 7) >>> 0 || 1), bound = opts.bound ?? 12
   const isClass = m.shape === 'class', fns = m.shape === 'class' ? [m.entry] : [...new Set(m.events.map(e => e.call))]
   const box = sandbox(code, file, fns, opts.modules, m.initSource, opts.files, m.factory ? [[m.factory.at, m.factory.text]] : [])
   // An object a factory makes: its state is what its functions close over, read and set through the two functions the
@@ -546,13 +543,7 @@ const mapReplacer = (_: string, v: unknown) => (isMap(v) ? {$map: [...v.entries(
 function conditionsOf(m: Model): B[] {
   const out: B[] = [], seen = new Set<string>()
   const add = (c: B) => { if (c.op === 'const') return; const k = I.keyOf(c); if (!seen.has(k) && !hasCell(c)) { seen.add(k); out.push(c, I.not(c)) } }
-  const go = (x: unknown): void => {
-    if (!x || typeof x !== 'object') return
-    const o = x as {op?: string, c?: B}
-    if ((o.op === 'ite' || o.op === 'kite') && o.c) add(o.c)
-    Object.values(o).forEach(go)
-  }
-  go([m.writes, m.mapWrites])
+  walk([m.writes, m.mapWrites], o => { if ((o.op === 'ite' || o.op === 'kite') && o.c) add(o.c as B) })
   for (const d of m.refuse.op === 'or' ? m.refuse.xs : [m.refuse]) add(d)
   return out.slice(0, 48)
 }
