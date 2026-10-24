@@ -6,7 +6,7 @@
           hqr: compare/term/solve.ts), the false 944-hypothesis step goals (pairs-false.ts, 120 s)
   realworld  the real-world corpus' laws, research/realworld/jobs.ts's commands
   g332    research/step/goal.ts on each of research/dag's 332 step goals (grow, the goal's own budget within 55 s)
-  base    (not a jobs file) writes $GDP_QUERY_BASE (/tmp/gdp-query-base): main e883e53's tree with research/query's
+  base    (not a jobs file) writes $GDP_QUERY_BASE (/tmp/gdp-query-base): main db0369f's tree with research/query's
           instrumentation patch (research/query/base.patch), for runs beside main (--base: each job also as
           base-<name> with "base": true)
 """
@@ -56,7 +56,7 @@ def main(kind: str, extra: list[str]):
         base = pathlib.Path(os.environ.get("GDP_QUERY_BASE", "/tmp/gdp-query-base"))
         subprocess.run(["rm", "-rf", str(base)], check=True)
         base.mkdir(parents=True)
-        subprocess.run(f"git -C {GDP} archive e883e53 | tar -x -C {base}", shell=True, check=True)
+        subprocess.run(f"git -C {GDP} archive db0369f | tar -x -C {base}", shell=True, check=True)
         subprocess.run(["git", "apply", str(HERE / "base.patch")], cwd=base, check=True)
         subprocess.run(["cp", "-r", str(HERE), str(base / "research/")], check=True)
         return
