@@ -25,7 +25,7 @@ import {type C, type E, n as K, same as eq, seeded, walkOnce, x as V} from './ma
 import {type Loop, type Recur, type RecurCases, type Tree, caseGoals, checkRecur, checkRecurCases, coverGoal, loopMachine, recurGoal, substC, trueC} from '../kernel/kernel.ts'
 import {clock, counted, grow, realModels} from '../kernel/prove.ts'
 import {work} from './solver.ts'
-import {accelerated, stemsTo} from './accel.ts'
+import {accelerated, relationBuilt, stemsTo} from './accel.ts'
 import {findBoundedRun} from './bmc.ts'
 
 // `lassos`: only lassos of the random runs (no policy, no set fitted), the cheap case. `counted`: the budget read off the
@@ -379,12 +379,17 @@ function search(l: Loop, opts: NeverEndsOptions): NeverEndsVerdict {
       const again: {a: Parameters<typeof attempt>[0], goal: ReturnType<typeof recurGoal>, stems: Parameters<typeof attempt>[2], cut: Parameters<typeof attempt>[3]}[] = []
       // (the search for the next candidate has its own time: a closure tried on a set a stem reaches doesn't count
       // against it, up to `extend`; so a set whose closure runs out of time leaves the time to look for a smaller one)
-      let genUntil = accelUntil
+      // (a large loop's relation takes seconds to build, once: the search for candidates starts when it is built, up to
+      // 10 s later; pgarch's 203 locations, 4 s to build its loop and 13 s its relation on a laptop)
+      const built = now()
+      relationBuilt(l)
+      let genUntil = accelUntil + Math.min(10_000, now() - built)
       for (const a of accelerated(l, {now, get until() { return genUntil }, runs, io: {start, turn}})) {
         stats.accel++
         const goal = recurGoal(l, a)
         stats.goalSize = Math.max(stats.goalSize, goalSize(goal.hyps))
-        if (dagSize(goal.hyps) > ACCEL_DAG_MAX) continue
+        // (past the cap a goal is closed only by its cases, each at one location)
+        if (dagSize(goal.hyps) > ACCEL_DAG_MAX && !(opts.cases && a.cases)) continue
         const inSet = cC(a.set)
         // A stem into the set, cut where it first enters it (every turn allowed): from a state a random run reached (the
         // shortest), else an accelerated run (cheap: tried before the closure, which is not tried for a set no stem

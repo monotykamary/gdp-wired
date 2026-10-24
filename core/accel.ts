@@ -431,6 +431,9 @@ function pathAt(rel: Relation, among: number[], st: Record<string, number>, inpu
 // (the relation as built, products and all, and as kept: each built once a loop)
 const raws = new WeakMap<Loop, Relation | undefined>(), rels = new WeakMap<Loop, Relation | undefined>()
 const rawOf = (l: Loop): Relation | undefined => { if (!raws.has(l)) raws.set(l, relationOf(l)); return raws.get(l) }
+// The loop's relation and its cases with a value fixed, built (once a loop): a caller may build them before the search,
+// and not count the time against it.
+export const relationBuilt = (l: Loop): boolean => { relOf(l); fixedCases(l); return !!rels.get(l) }
 function relOf(l: Loop): Relation | undefined {
   if (!rels.has(l)) rels.set(l, kept(l, rawOf(l)))
   return rels.get(l)
