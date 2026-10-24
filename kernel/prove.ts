@@ -193,7 +193,7 @@ export function counted<T>(perMs: number, f: () => T, full = false): T {
 // more (research/query/fit.py on runs/query/cal2: the 332 step goals, CHC sat and unsat, ITS, the false step goals and
 // the real-world corpus), work.n did 28 to 377 units a ms (p10, p90), the model 120 to 401.
 const model: [keyof typeof costs, number][] = [['fm', 2.33], ['fcells', 0.0123], ['plainRows', 7.93], ['values', 0.672], ['copies', 0.735], ['edges', 0.0435],
-  ['scan', 0.0765], ['pivotRows', 0.599], ['unitRows', 15.6], ['unfoldRows', 0.735], ['goalNodes', 0.492]]
+  ['scan', 0.0765], ['pivotRows', 0.599], ['unitRows', 15.6], ['unfoldRows', 0.735], ['goalNodes', 0.492], ['translateRows', 7.93]]
 export const fullRate = 250
 export const fullWork = (): number => { let n = 0; for (const [k, w] of model) n += w * costs[k]; return n }
 // A goal's own budget where its caller gives none, outside a counted search: the cost model's work, groundRate units a
@@ -1025,8 +1025,19 @@ function triggered(m: Machine, laws: Law[], inst: Instances, build: (inst: Insta
 // found that its leaves refute with, the proof grown again with those alone. The checked goal is then built from far
 // fewer hypotheses (a law about pairs of items with 900 instance hypotheses and 30 leaves using a few of them, say).
 export const minimal = {on: false}
+// The rows a tree's leaf reads, where the search that made it knew them (kernel/cdcl.ts's unfolding: reader.ts's rows,
+// kernel.ts's at the leaf's path): how many the path gives, and each one its derivation reads, with its form and source
+// (a hypothesis' index, the pair of cells it equates, else -1). A large tree is then walked without its leaves' rows
+// read again (usedHyps, core/translate.ts): ledger/tigerbeetle/transfers' 21,108 leaves took 22.6 s here.
+export type LeafRows = {n: number, at: Map<number, {lin: Lin, src: number | [string, string]}>}
+export const leafRowsOf = new WeakMap<object, LeafRows>()
 // The hypotheses a tree's leaves read: each leaf's input rows, and the rows its products multiply.
 export function usedHyps(goal: Goal, tree: Tree, path: Path = new Map(), out = new Set<number>()): Set<number> {
+  const known = 'leaf' in tree && !tree.products && !tree.squares ? leafRowsOf.get(tree) : undefined
+  if (known && 'leaf' in tree) {
+    for (const st of tree.leaf) if (st.kind === 'input') { const s = known.at.get(st.index)?.src; if (typeof s === 'number' && s >= 0) out.add(s) }
+    return out
+  }
   if ('leaf' in tree) {
     const rows = rowsAt(goal, path), n = rows.length, sq = tree.squares?.length ?? 0
     const mark = (i: number): void => {

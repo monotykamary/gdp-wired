@@ -408,7 +408,8 @@ export class Reader {
   private trailStamps: number[] = []
   private pairs = new Map<string, {d: Lin, neg: Lin, pq: Lin, qp: Lin}>()
   // The rows in kernel.ts's order, copies kept (a leaf's derivation indexes these).
-  leafRows(): Row[] {
+  // With `src`, each row's source beside it: the hypothesis whose facts it is, the pair of cells it equates, else -1.
+  leafRows(src?: (number | [string, string])[]): Row[] {
     const rows: Row[] = []
     for (let i = 0; i < this.trail.size(); i++) {
       const s = this.trail.stamp(i)
@@ -420,8 +421,9 @@ export class Reader {
         this.trailRows[i] = r; this.trailStamps[i] = s
       }
       rows.push(r)
+      src?.push(-1)
     }
-    for (let i = 0; i < this.goal.hyps.length; i++) for (const r of this.facts(i).rows) rows.push(r)
+    for (let i = 0; i < this.goal.hyps.length; i++) for (const r of this.facts(i).rows) { rows.push(r); src?.push(i) }
     // (each name once, in the order first read, as a set of texts would keep them)
     const g = ++this.gen, names: number[] = [], seen = this.nameSeen, kind = this.nameKind
     for (const r of rows) for (const j of this.form(r.lin).names) if (seen[j] !== g) { seen[j] = g; names.push(j) }
@@ -429,7 +431,7 @@ export class Reader {
     for (const [i, p] of cells.entries()) for (const q of cells.slice(i + 1)) {
       if (p.map !== q.map) continue
       const f = this.pair(p, q), x = this.dec(f.d), y = this.dec(f.neg)
-      if (x.t === true && y.t === true) { const w = join(x.w, y.w); rows.push({lin: f.pq, w, label: ''}, {lin: f.qp, w, label: ''}) }
+      if (x.t === true && y.t === true) { const w = join(x.w, y.w); rows.push({lin: f.pq, w, label: ''}, {lin: f.qp, w, label: ''}); src?.push([p.name, q.name], [p.name, q.name]) }
     }
     const done = this.termSeen, todo = names.filter(j => kind[j] === 1)
     while (todo.length) {
@@ -437,11 +439,11 @@ export class Reader {
       if (done[j] === g) continue
       done[j] = g
       for (const r of this.termRows(this.nameText[j]!)) {
-        rows.push(r)
+        rows.push(r); src?.push(-1)
         for (const n of this.form(r.lin).names) { if (seen[n] !== g) { seen[n] = g; names.push(n) } if (kind[n] === 1 && done[n] !== g) todo.push(n) }
       }
     }
-    for (const j of names) { const name = this.nameText[j]!; let r = this.natRows.get(name); if (!r) this.natRows.set(name, (r = {lin: {[name]: -1}, w: none, label: ''})); rows.push(r) }
+    for (const j of names) { const name = this.nameText[j]!; let r = this.natRows.get(name); if (!r) this.natRows.set(name, (r = {lin: {[name]: -1}, w: none, label: ''})); rows.push(r); src?.push(-1) }
     return rows
   }
   // --- The live rows: kept from one node to the next (kernel/cdcl.ts's search) ---------------------------------------

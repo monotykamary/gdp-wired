@@ -20,7 +20,7 @@
 import {type Constraint, type Lin, type Step, costs, env, refuteFast, solve, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
 import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isMonomial, leafConstraints} from './kernel.ts'
-import {cellPair, late, logged, nearOf, openAt, pairedKeys, queryHook, rowsAt, unitAtoms, type Outcome} from './prove.ts'
+import {cellPair, late, leafRowsOf, logged, nearOf, openAt, pairedKeys, queryHook, rowsAt, unitAtoms, type Outcome} from './prove.ts'
 import {Reader, type Row, namesOf} from './reader.ts'
 import {Simplex} from './simplex.ts'
 
@@ -494,8 +494,15 @@ function unfold(goal: Goal, nodes: DagNode[], top: number, root: Path, maxLeaves
     }
     if (++leaves > maxLeaves || late(until)) { cdclStats.unfoldWhy = leaves > maxLeaves ? 'leaves' : 'time'; return undefined }
     reader.begin()
-    const rows = reader.leafRows()
+    const src: (number | [string, string])[] = [], rows = reader.leafRows(src)
     costs.unfoldRows += rows.length
+    // (the rows the leaf's derivation reads kept with it: prove.ts's leafRowsOf)
+    const noted = (leaf: Step[]): Tree => {
+      const t = {leaf}, at = new Map<number, {lin: Lin, src: number | [string, string]}>()
+      for (const st of leaf) if (st.kind === 'input' && st.index < rows.length) at.set(st.index, {lin: rows[st.index]!.lin, src: src[st.index]!})
+      leafRowsOf.set(t, {n: rows.length, at})
+      return t
+    }
     if (verify) {
       const path: Path = new Map(stack.map(x => [x.name, {lin: x.lin, holds: x.holds}])), kr = leafConstraints(goal, path)
       if (kr.length !== rows.length || kr.some((r, j) => canon(r.lin) !== canon(rows[j]!.lin))) {
@@ -512,15 +519,15 @@ function unfold(goal: Goal, nodes: DagNode[], top: number, root: Path, maxLeaves
       if (j === undefined) break
       steps.push({...s, index: j})
     }
-    if (steps.length === n.steps.length && checkRefutation(rows, steps)) return {leaf: steps}
+    if (steps.length === n.steps.length && checkRefutation(rows, steps)) return noted(steps)
     // (a row a longer path reads otherwise: a hypothesis false outright there, a choice decided)
     cdclStats.resolved2++
     work.n += 1 + rows.length
     costs.unfoldRows += rows.length
     const fast = rows.length > 60 ? refuteFast(rows) : undefined
-    if (fast?.kind === 'refuted') return {leaf: fast.steps}
+    if (fast?.kind === 'refuted') return noted(fast.steps)
     const out = solve(rows)
-    if (out.kind === 'refuted') return {leaf: out.steps}
+    if (out.kind === 'refuted') return noted(out.steps)
     cdclStats.unfoldWhy = 'refute'
     return undefined
   }

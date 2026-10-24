@@ -92,7 +92,7 @@ export const canon = (l: Lin) => JSON.stringify(Object.keys(l).sort().map(x => [
 export const work = {n: 0}
 // What the searches did, by kind, beside work.n (research/query reads them: the cost of each query's parts).
 export const costs = {solves: 0, solveRows: 0, fm: 0, fpivots: 0, fcells: 0, cdclNodes: 0, cdclRows: 0, scan: 0, pivots: 0, pivotRows: 0, plainNodes: 0, plainRows: 0,
-  values: 0, copies: 0, edges: 0, unitRows: 0, unfoldRows: 0, goalNodes: 0}
+  values: 0, copies: 0, edges: 0, unitRows: 0, unfoldRows: 0, goalNodes: 0, translateRows: 0}
 export function solve(constraints: Constraint[], maxRows = 20_000, integral = true): Verdict {
   work.n += constraints.length
   costs.solves++; costs.solveRows += constraints.length
