@@ -66,7 +66,8 @@ boundary, and the two translations differ there; each is exact for its one answe
 the program is then a prefix of one of the system's (the same until its undefined behaviour, where the program's run
 ends), so the system's termination is the program's: a translation for "terminates" only, beside the checked one.
 
-Straight-line code is composed away (`chain`; `--no-chain` keeps every location): a location other than the entry
+Straight-line code is composed away (`chain`, but in the nonterminating translation of recursion; `--no-chain` keeps every
+location): a location other than the entry
 with no rule back to itself and one rule into it or one out of it is left out, each rule into it composed with each
 out of it; rules into a location no rule leaves are left out, and so are locations the entry doesn't reach. A run of
 the system is a run of the program with those states left out, ending at most a step earlier: every cycle keeps a
@@ -2060,7 +2061,9 @@ def main():
         text = open(path).read()
         prog, start = translate(text, dm, no_overflow, mode)
         rules0 = len(prog.rules)
-        if "--no-chain" not in args:
+        # (not the nonterminating translation of a recursive program: its calls inlined, its lassos are found by runs
+        # turn by turn, and composed turns make those runs end sooner: Binary_Search-2's)
+        if "--no-chain" not in args and mode != "nonterminating":
             chain(prog, start)
         sys.stdout.write(emit(prog, start))
         split = any(f.startswith("recursion (") for f in prog.features)
