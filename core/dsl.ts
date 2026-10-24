@@ -2397,14 +2397,18 @@ const withKinds = (r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[])
 // knows it only by its facts, which may also bound the params (a recurrence's induction machines take f(x) as a param
 // fx), so params are drawn only where every fact holds: a fact about the params alone exactly, one about every key at
 // each key (or tuple of keys) up to twice the bound. A rule whose function breaks its own facts there gets no run.
-const refuteBudget = {trials: 60, depth: 6, bound: 3, ms: 150}
+// The budget is counted, in the runs and requests tried (as core/infer.ts counts its runs), never timed, so a run within
+// it is found on any machine. (A stop at 150 ms of wall time left a false law to the kernel whenever the first run alone
+// took that long, a pause on a loaded container: core/pairs.test.ts's two groups, whose 944-hypothesis step goal then ran
+// out its 944 s, in 7 of 130 runs of the suite's pairs job on Modal.)
+const refuteBudget = {trials: 60, depth: 6, bound: 3}
 // A request as a run's trace shows it: each map it carries as an object of its cells.
 const shownRequest = (input: Request) => Object.fromEntries(Object.entries(input).map(([n, x]) => [n, typeof x === 'number' ? x : Object.fromEntries(x as ReadonlyMap<number, number>)]))
 // The search's own runs, before it looks for what the laws need: deeper and wider, from another seed.
-const deeperBudget = {trials: 600, depth: 24, bound: 8, ms: 1500, seed: 29}
+const deeperBudget = {trials: 600, depth: 24, bound: 8, seed: 29}
 function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[] = [], budget: typeof refuteBudget & {seed?: number} = refuteBudget): {goal: string, witness: Record<string, number>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}} | undefined {
   const m = r.machine
-  const run = interpret(m), rand = seeded(budget.seed ?? 13), until = clock() + budget.ms, bound = budget.bound, shown = shownRequest
+  const run = interpret(m), rand = seeded(budget.seed ?? 13), bound = budget.bound, shown = shownRequest
   // (Division by a constant is a function too, its facts Euclid's, which its JavaScript meets: not checked.)
   const facts = (m.facts ?? []).filter(f => !isArithmetic(f.name.slice(0, f.name.indexOf(':'))))
   const holds = (f: Law, params: Record<string, number>): boolean => {
@@ -2419,7 +2423,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
   const factsHold = (params: Record<string, number>): boolean => (alone ??= facts.filter(f => !readsParams(f)).every(f => holds(f, params)))
     && facts.filter(readsParams).every(f => holds(f, params))
   try {
-    for (let trial = 0; trial < budget.trials && clock() < until; trial++) {
+    for (let trial = 0; trial < budget.trials; trial++) {
       const params = r.randomParams(rand, bound)
       if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m) || !factsHold(params)) continue
       const watching = [...laws, ...stepLaws].map(w => ({w, on: watch(m, run, w, params, bound)}))
@@ -2446,7 +2450,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
     // variable of a kind is drawn as its kind draws (33 yes/nos drawn from 0..7 almost never make a lawful state).
     const steps1 = stepLaws.filter(sl => (sl.steps ?? 1) === 1), given = withKinds(r, laws)
     const wide = Object.keys(m.state).length + m.inputs.length >= 32, lawsHere = wide ? given : [], kinded = wide ? r.kindsOfState() : []
-    for (let trial = 0; !m.history && (steps1.length || lawsHere.length) && trial < budget.trials * 4 && clock() < until; trial++) {
+    for (let trial = 0; !m.history && (steps1.length || lawsHere.length) && trial < budget.trials * 4; trial++) {
       const params = r.randomParams(rand, bound)
       if (m.pre && !evalC(m.pre, params, {scalars: {}, maps: {}}, m) || !factsHold(params)) continue
       const scalars: Record<string, number> = Object.fromEntries(Object.keys(m.state).map(n => [n, rand(8)]))
