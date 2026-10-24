@@ -16,9 +16,10 @@
 //     then the forms a counterexample breaks, as IC3's relative induction, then all), each asked first of the CDCL
 //     search for a model alone (a refutation's core: the forms it read), a counterexample the whole set allows joined in
 //     (the hull grows to hold it, a bound rises to the next of the rule's constants, then goes), one to a caller's law
-//     ruled out by a cube blocked as IC3 blocks one (its control state, the rule's own comparisons true there and the
-//     bounds that keep the samples out, the literals its refutation's core read, its predecessors blocked first) or,
-//     where none is, by a candidate; every goal of the cone proven, the cone is the answer
+//     ruled out by a candidate or by a cube blocked as IC3 blocks one (its control state, the rule's own comparisons
+//     true there and the bounds that keep the samples out, the literals its refutation's core read, its predecessors
+//     blocked first), the cube first where no sample is at its control state; every goal of the cone proven, the cone
+//     is the answer
 //   - the kernel (where the join proves nothing, as it was): the laws with the candidates chosen so far, proven one law
 //     at a time; when a goal is stuck at a step, its witness is a counterexample to induction, so the candidate that
 //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
@@ -107,9 +108,9 @@ const joinExtras = 24, joinTries = 40, joinBits = 7, joinKeys = 128, joinAttempt
 const joinNevers = env.GDP_JOIN_NEVERS !== '0'
 const joinNeversBreaks = 1
 const joinCore = env.GDP_JOIN_CORE !== '0'
-// Cubes blocked for a counterexample to a caller's law, before any candidate is tried (GDP_JOIN_CUBES=0: none): at most
-// 48 in all, each tried 8 times, its predecessors blocked first 8 deep, each query's budget 2 s (counted, or wall time
-// where timed).
+// Cubes blocked for a counterexample to a caller's law (GDP_JOIN_CUBES=0: none), before any candidate is tried where
+// no sample holds its control state, else where none rules it out: at most 48 in all, each tried 8 times, its
+// predecessors blocked first 8 deep, each query's budget 2 s (counted, or wall time where timed).
 const joinCubes = env.GDP_JOIN_CUBES !== '0'
 const joinCubeMax = 48, joinCubeTries = 8, joinCubeDepth = 8, joinCubeMs = 2000
 // GDP_JOIN_ATOMS=0: a cube's literals at a point its control values and the samples' bounds alone (else the rule's own
@@ -1095,21 +1096,26 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const outside = !post || set.some(f => !holdsAt(f, pre))
       if (outside && !callers.has(todo)) { blocked.add(todo); opts.progress?.('join', {round: rounds, set: set.length, ms: qms, result: 'outside', goal: todo.slice(0, 60)}); continue }
       if (outside || breaks(params, post!)) {
-        // the caller's law broken from a state the set allows: its cube blocked, as IC3 blocks one; else a candidate false
-        // there and at every state reached, the one false at the most such states (then the smallest), or one made from
-        // it (fromCti)
+        // the caller's law broken from a state the set allows: a candidate false there and at every state reached, the
+        // one false at the most such states (then the smallest), or one made from it (fromCti); else its cube blocked,
+        // as IC3 blocks one. Where no sample holds its control state (the samples say nothing of it) the cube comes first.
         negs.push(pre); ctis.push(pre)
-        if (!outside && joinCubes && initVec && cubed < joinCubeMax) {
-          const made = blockCube(valuesOf(pre.scalar), joinCubeDepth, set), fresh = made.filter((f, i) => !set.some(g2 => textOf(g2) === textOf(f)) && made.findIndex(g2 => textOf(g2) === textOf(f)) === i)
+        const pv = valuesOf(pre.scalar), alone = !S.some(s2 => ctrl.every(i => s2[i] === pv[i]))
+        const cube = (): boolean => {
+          if (outside || !joinCubes || !initVec || cubed >= joinCubeMax) return false
+          const made = blockCube(pv, joinCubeDepth, set), fresh = made.filter((f, i) => !set.some(g2 => textOf(g2) === textOf(f)) && made.findIndex(g2 => textOf(g2) === textOf(f)) === i)
           opts.progress?.('join', {round: rounds, set: set.length, cubes: made.map(f => textOf(f).slice(0, 100)).join('; ') || `none: ${cubeWhy}`})
-          if (fresh.length) { cubed += fresh.length; extras.push(...fresh); continue }
+          cubed += fresh.length; extras.push(...fresh)
+          return fresh.length > 0
         }
+        if (alone && cube()) continue
         const pick = (fs: Form[]) => { let bestF: Form | undefined, score = -Infinity; for (const f of fs) { if (f.cells || f.cong || extras.includes(f) || blocked.has(textOf(f)) || holdsAt(f, pre) || !reached.every(p2 => holdsAt(f, p2))) continue; const sc = negs.reduce((k2, c) => k2 + (holdsAt(f, c) ? 0 : 1), 0) * 1000 - f.size; if (sc > score) (bestF = f, score = sc) } return bestF }
         const room = extras.length < joinExtras && tried < joinTries
         let next = room ? pick(pool) : undefined
         if (!next && room) { const made = fromCti(pre); pool.push(...made); next = pick(made) }
         if (next) tried++
         opts.progress?.('join', {round: rounds, set: set.length, ms: qms, target: next ? textOf(next).slice(0, 60) : 'none'})
+        if (!next && !alone && cube()) continue
         if (!next) { why = 'target'; break }
         extras.push(next); continue
       }
