@@ -796,6 +796,7 @@ function sumOver(map: string, at: (key: Term) => TermLike, plain: boolean): Term
 }
 // The sums a set of terms reads (by name), declared.
 export const sumsIn = (ts: unknown[], more: Iterable<string> = []): Record<string, Sum> | undefined => {
+  if (!sumDecls.size) return undefined
   const names = new Set([...more, ...[...JSON.stringify(ts).matchAll(/"op":"var","name":"(sum\$[^"]+)"/g)].map(x2 => x2[1]!)].filter(n => sumDecls.has(n)))
   return names.size ? Object.fromEntries([...names].sort().map(n => [n, sumDecls.get(n)!])) : undefined
 }
