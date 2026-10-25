@@ -1574,25 +1574,9 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const m = this.machine
     if (m.history) return undefined
     const have = new Set(Object.keys(m.sums ?? {})), more = new Set(this.spec.sumsRead ?? [])
-    const written = Object.entries(m.maps ?? {}).filter(([map, init]) => init === 0 && m.step.maps?.[map] && !(m.inputMaps ?? []).includes(map)).map(([map]) => map)
-    // (and of a record's field where another field holds one of the values the rule compares it with, a constant: the
-    // live refunds' amounts, Refunds.sum(r => when(r.deleted, 0, r.amount)), as the deleted field at 0)
-    const valuesOf = new Map<string, Set<number>>()
-    JSON.parse(JSON.stringify([m.step, m.assume]), (_k, c) => {
-      if (c && c.op === '=') for (const [g, k] of [[c.a, c.b], [c.b, c.a]]) if (g?.op === 'get' && k?.op === 'const' && written.includes(g.map)) { if (!valuesOf.has(g.map)) valuesOf.set(g.map, new Set()); valuesOf.get(g.map)!.add(k.value) }
-      return c
-    })
-    const record = (map: string) => (map.includes('.') ? map.slice(0, map.indexOf('.')) : undefined)
-    // (a field whose written value a step also adds to a state variable, as `refunded` takes the refund's amount: what a
-    // total of the state counts)
-    const parts = (e: E): string[] => (e.op === 'if' ? [...parts(e.then), ...parts(e.else)] : [JSON.stringify(e)])
-    const added = new Set<string>()
-    JSON.parse(JSON.stringify(Object.values(m.step.state ?? {})), (_k, c) => { if (c && (c.op === 'add' || c.op === 'sub') && c.b) for (const t of parts(c.b)) added.add(t); return c })
-    const counted = (map: string) => { const w = m.step.maps?.[map]; return !!w && parts(w.value).some(t => added.has(t) && !t.includes('"op":"get"')) }
-    const sums = written.flatMap(map => [new MapRef(map, 0).sum(), ...written.filter(b => b !== map && record(b) !== undefined && record(b) === record(map) && !valuesOf.has(map) && counted(map))
-      .flatMap(b => [...(valuesOf.get(b) ?? [])].sort((p2, q2) => p2 - q2).map(c => sumOver(map, key => when(new MapRef(b, 0).at(key).eq(c), new MapRef(map, 0).at(key), 0), false)))])
-    for (const t of sums) {
-      const name = (t.e as {name: string}).name
+    for (const [map, init] of Object.entries(m.maps ?? {})) {
+      if (init !== 0 || !m.step.maps?.[map] || (m.inputMaps ?? []).includes(map)) continue
+      const name = (new MapRef(map, 0).sum().e as {name: string}).name
       if (have.has(name)) continue
       try { sumMachine({...m, sums: {...m.sums, ...sumsIn([], [name])}}); more.add(name) } catch { /* a sum the kernel takes no cover of */ }
     }
