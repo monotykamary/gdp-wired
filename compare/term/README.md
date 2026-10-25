@@ -103,6 +103,17 @@ the independent check's 93 that found defects, branch verify/sv-front, and 6 of 
 against how they run; nor are the check's 145 (`runs/svfront/suite-default-3`, `verify-fix2`). The ITS translation folds constants exactly and refuses one
 past 2^53, which the kernel's numbers can't hold (no ITS task has one; a C task's 64-bit range is refused the same way).
 
+`c2ari.py` then composes straight-line code away (`chain`; `--no-chain` keeps every location): a location other than
+the entry, with no rule back to itself and one rule into it or one out of it, is left out, each rule into it composed
+with each rule out of it; rules into a location no rule leaves are left out (the run ends there either way, a step
+earlier), and so are locations the entry doesn't reach, rules whose guard its constants make false, and the bounds of
+a fresh value nothing else reads. Every cycle keeps a location, so a run of the system is infinite exactly when the
+program's is. A composition is not made where it would have more disjunctions, or more fresh values a guard
+constrains past their bounds, than either part (each is a choice a random run has to draw), where it reads a guard
+with a product of two values, or past 3 times its parts' size; the nonterminating translation of recursion isn't
+chained (its lassos are found by runs turn by turn). A division of two constants is folded (`UINT_MAX / 2`). Across
+the 271 translated tasks (`--for terminates`), the median system keeps 16% of its locations and 18% of its rules.
+
 ## Results
 
 Integer transition systems (1,239). LoAT and KoAT2 from `runs/modal/term/full1`, KoAT2's 64 tasks that errored
@@ -150,6 +161,121 @@ the task's expected verdict.
   coefficient past 4.
 - Not run: the Lean twin on the ranks found (every proof here is the kernel's, checked twice: in `findRank`, and again
   in solve.ts on the obligations of the loop as translated).
+
+### Closures by cases, deeper cycles, the time for the next candidate (Unreleased)
+
+The large programs' runs that never end (core/nonterm.ts, core/accel.ts) and one new certificate, Lean-first:
+
+- **A closure by cases** (kernel.ts's `checkRecurCases`, NonTerm.lean's `never_ends_of_cases`, on `propext`,
+  `Classical.choice`, `Quot.sound`). A translated program's closure goal reads the whole body at every read of the
+  set: pgarch's sets, 537,164 distinct terms, never closed. Each part of an accelerated set is now a case: its location
+  pinned, its rows the condition; one tree refutes the set with no case holding (`cover`), and each case's goal is read
+  at its pins with the constants folded (`simpC`, `simpC_evalC`), the witness and the body first (`caseNeg`,
+  `caseNeg_eval`), so it holds only that location's rules: pgarch's ten cases are 86 to 216 terms and close in 0.5 s in
+  all on a laptop. Used where the goal is past 20,000 distinct terms (and so past the 1.5 million cap, where it was dropped);
+  otherwise the certificate is the plain one. core/conformance.ts makes the found certificates by cases (nothing
+  pinned, a value pinned) and tampered twins (the pin at another value, no case, a stem ending outside the set); every
+  found one is accepted and holds on the reference run, every tampered one refused, by kernel.ts and by Lean
+  (lean-kernel/conformance.ts --nonterm).
+- **The time for the next candidate:** a closure tried on a set a stem reaches no longer counts against the search for
+  candidates (up to the extension), and the sets whose closure ran out of time are retried smallest first, each its
+  share of the time by its goal's size. edn's set (17,269 terms, closed in 1.7 s on a laptop) came after a run's 64-turn cycle whose
+  closure took the whole extension. The search starts once the loop's relation is built (up to 10 s later): pgarch's and
+  slayer's relations take seconds.
+- **Deeper cycles:** after the walks of at most 6 choices, walks of up to 16 choices, at most 5,000, in the time left
+  (hqr's cycle of 25 turns makes 16).
+- **Stems:** a run's stem past 64 turns is replaced by a shorter one of the accelerated runs' search where it finds one
+  within 500 ms (Lean replays every stem turn over the whole loop).
+
+Two batches beside main a6d6403 (this branch merged it), launched together on Modal (60 s, 2 vCPU): `runs/nt5/its1-*`
+(this branch at cebbf7c) and `its2-*` (at b3e8519), every gained and lost task run three times more a side
+(`itsre-*`, `itsre2-*`, `itsre3-mine-*`); then a third after merging main f589873, beside it (`its3-*`, at 53bf839;
+its new losses three times more, `itsre4-*`).
+
+| | ITS terminates | nonterminating | solved of 1,239 |
+| --- | --- | --- | --- |
+| the task's statement (`gdp`), here | 611, 613, 612 | 541, 538, 540 | 1,152, 1,151, 1,152 |
+| main (a6d6403, a6d6403, f589873) | 611, 612, 611 | 531, 534, 532 | 1,142, 1,146, 1,143 |
+| per component (`gdp-scc`), here | 613, 613, 611 | 542, 542, 542 | 1,155, 1,155, 1,153 |
+| main | 614, 612, 613 | 532, 533, 532 | 1,146, 1,145, 1,145 |
+| LoAT's default engine (`full1`) | 2 | 532 | |
+
+Nonterminating, 538 to 541 on the task's statement and 542 per component against LoAT's default engine's 532: ahead in
+all three batches, in this harness and unconfirmed under TermComp's own setup. No answer contradicts LoAT's, LoAT abmc's or
+KoAT2's (`full1`), or any tool's at TermComp 2025 (its raw data, zenodo.org/records/17076326: Golem, iRankFinder, T2,
+VeryMax, MuVal, LoAT, KoAT on 1,222 of these tasks).
+
+- **Gained**, in 5 of 5 runs here and 0 of 5 on main unless noted (task's statement; per component alike): edn.t2,
+  pgarch.t2 and its `_fixed` twin, slayer-3-new.t2, slayer-3.t2; hqr.t2_fixed 3 of 5 (per component 5 of 5); db3.t2_fixed
+  5 of 5 against 2 of 5; s1-striped.t2_fixed 5 against 3, s1.t2_fixed 5 against 4. Per component also slayer-3.t2_fixed
+  and slayer-3-new.t2_fixed (5 of 5; on the task's statement 0 and 1 of 5). At TermComp 2025, slayer-3-new.t2 is T2's and
+  LoAT's NO, slayer-3.t2 T2's, slayer-3.t2_fixed LoAT's; none is LoAT's here. In the probes (`runs/nt5/p*`) the s1 family
+  answers at 15 to 26 s (38 to 59 s on main), tqli's at 4 s (15 to 40 s).
+- **Lost**, each at the limit on both sides: db2.t2 (a lasso of the random runs, 4 of 5 against 5 of 5), qrdcmp.t2 and
+  traverse.t2_fixed (terminating, ranks at 57 to 60 s, 4 of 5 against 5 of 5). Gained the same way: traverse2.t2_fixed,
+  juLinkedListCreateRemoveFirstOccurrence (5 against 3), queens.t2 (1 against 0). After the merge (`its3-*`, 4 runs a
+  side with `itsre4-*`): per component RSA.jar-obl-17 lost, 1 of 4 against 4 of 4 (main answers at 58.1 to 58.2 s: its
+  component 4's rank, found there in 2.3 s and here in 1.2 s on a laptop, not found in time on Modal), ndes.t2_fixed 3
+  of 4 against 4 of 4; reverse.t2_fixed gained on the task's statement, 3 of 4 against 3 of 4 (ranks at 52 to 60 s).
+- **Still LoAT's alone:** hqr.c.i.hqr.pl.t2.fixed.t2_fixed and its `nor.t2.rlgfixed` twin. The deeper walks try their
+  24- and 25-turn cycles (hundreds of them) and none gives a candidate set; LoAT's ends in an identity loop at l45 whose
+  two fresh values sum below 0.
+- **Not answered by anyone here, NO at TermComp 2025:** slayer-4-filtered (LoAT), Velroyen08-alternatingIncr (VeryMax,
+  MuVal: an odd x climbing by 2 forever, whose set needs x's parity, which no linear set holds).
+
+SV-COMP in the same batches (`sv1-*`, `sv2-*`, `sv3-*`): 239 (183, 56) in each against 225, 223 and 223 on the task's
+statement, per component 210, 210 and 209 against 206, 207 and 207; every answer its expected verdict. The gains are the chained C translation's above
+(gen/nonterm5-sv, merged).
+
+Lean (`runs/nt5/lean-*`), each certificate a theorem `NeverEnds <task>_loop`, on `propext`, `Classical.choice`,
+`Quot.sound`: s1.t2's file 410,471,697 bytes to 1,965,614 (the closure table held every choice of the goal, 5,214
+term columns averaging 78 KB; it now holds the ones Lean's linear forms look up, here one), and the four s1 tasks
+checked in 68 to 89 s each where s1.t2's was killed at 3,300 s (`lean-s1a`). A sample of
+  48 recurrent sets of `its2-mine` (`lean-final`: every one closed by cases, 27, every task gained, the s1 family and 20
+  more drawn at random), 48 of 48 checked, the longest 487.3 s (db2.t2_fixed), the largest file 16,485,844 bytes
+  (pgarch.t2_fixed, its loop alone 10.9 MB), the median 10.2 s; Test4.jar-obl-10's in 9.0 s (62 minutes in `runs/accel/its-lean1-shard5`).
+  Two exports had to change on the way: a list of more than 256 entries written as appended lists made Lean's
+  elaboration of a certificate run past an hour (tqli.t2_fixed, killed at 3,300 s in `lean-p5`; 90 s as one list,
+  `lean-pilot2`), and pgarch's loop, 690 body terms each 228 rules deep in one list, passed Lean's recursion limit, so a
+  loop's start and body past 128 variables are definitions of 128 each (`lean-pilot3`, `lean-pilot4`: 7 min 8 s).
+
+### Straight-line C code composed (Unreleased)
+
+SV-COMP's 282 tasks at 60 s on Modal, `gdp` and `gdp-scc`, branch gen/nonterm5-sv (`runs/nt5/sv-chain5`) beside
+gen/nonterm5 at eebdf44 (`sv-base5`), launched together; wrong is an answer against the expected verdict.
+
+| | terminates | nonterminating | wrong | solved of 282 |
+| --- | --- | --- | --- | --- |
+| the task's statement (`gdp`), here | 183 | 56 | 0 | 239 |
+| eebdf44 | 170 | 55 | 0 | 225 |
+| per component (`gdp-scc`), here | 153 | 56 | 0 | 209 |
+| eebdf44 | 151 | 55 | 0 | 206 |
+| Ultimate Automizer v0.3.1 (`runs/modal/term/sv2`) | 171 | 53 | 0 | 224 |
+
+On the task's statement 239 against Ultimate Automizer's 224 in this harness, unconfirmed under SV-COMP's own setup.
+Every gained task, run three times a side (`svre5-mine-1..3`, `svre5-base-1..3`), answers in 3 of 3 here; none is lost.
+- **Gained, `gdp`** (here's seconds; eebdf44 answers none of them in 3 runs but Singapore-2 in 1): Piecewise 8.5 to 9.4,
+  HeizmannHoenickeLeikePodelski-ATVA2013-Fig5 9.8 to 11.2, Singapore-2 11.2 to 13.6, TelAviv-Amir-Minimum 14.7 to 16.1,
+  GCD3 16.0 to 21.9, aaron3-1 19.4 to 19.5, Toulouse-MultiBranchesToLoop-2 23.7 to 25.4, UrbanMine-ESOP2014-Fig3 26.7
+  to 30.1, AliasDarteFeautrierGonnord-SAS2010-nestedLoop-1 28.0 to 28.8, HarrisLalNoriRajamani-SAS2010-Fig1 37.0 to
+  37.4, dijkstra1-both-t 42.8 to 45.5, cohencu4-both-t 50.3 to 50.4, TwoWay 57.3 to 57.4: ranks the search finds on
+  the chained loop (a location or a few, each loop's body one turn) where per-location ranks over its 20 to 60
+  locations weren't found; divbin1-both-nt (nonterminating) 0.2 to 0.3: `UINT_MAX / 2` folded, where a fresh quotient
+  stood that no run drew (its lasso: B odd, the loop changes nothing).
+- **Gained, `gdp-scc`:** divbin1-both-nt, LeeJonesBen-Amram-POPL2001-Ex4 (3 of 3 against 0), cohencu5-both-t (3 of 3
+  against 1) and cohencu4-both-t (3 of 3 against 2).
+- **Earlier versions of the chaining** (`sv-chain1` to `sv-chain4` beside `sv-base1` to `sv-base4`): composing a range
+  check into the nondeterministic value it checks lost Stockholm-1 and Gothenburg_v2-1 (the invariant a = b read
+  only through fresh values); composing two rules that each draw a constrained value, or each with a disjunction, lost
+  Binary_Search-2's lasso (its runs stopped within 3 turns), and chaining the nonterminating translation of recursion
+  lost it still; composing through `z·z` lost cohencu5-both-t (3 of 3 on eebdf44, 0 of 3 then, `svre-*`).
+- `c2ari_test.py`: 66 programs, none answered against the program, 40 answered as they run (39 at eebdf44;
+  `runs/nt5/sv-tests5`, `sv-tests-base`); `adversarial.test.ts` passes.
+- **What Ultimate Automizer answers and `gdp` doesn't**, 8, none closed: the recursive programs whose rank needs what a
+  call returns (McCarthy91_Recursion, NestedRecursion_1b, 1c, 1d, rec_counter3: the terminates translation lets a call
+  return any value) and MutualRecursion_1a (nonterminating: a call that returns before the one that never does, past
+  the inlining depth); 4BitCounterPointer (the rank reads the cells through pointers fixed after the stem: an invariant
+  on the pointers' values); KroeningSharyginaTsitovichWintersteiger-CAV2010-Fig1 (x % 2: a rank over the parity).
 
 ### Closed forms (Unreleased)
 

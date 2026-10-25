@@ -10,7 +10,7 @@
 // Each consumer either agrees or refuses with an error; undefined, NaN or a silent different answer fails.
 import {expect, test} from 'bun:test'
 import {type C, type E, compileFunction, conditionCases, interpret, loadJs} from './machine.ts'
-import {type Case, C_OPS, CELLS, E_OPS, QC_OPS, QE_OPS, VARS, inlineC, inlineE, machineOf, qcoverage, qgoals, qmachineOf, qreference, qtampered, randomCase, randomQCase, recurCases, recurReference, reference, ringCase, ringLowers, ringReference, seen, stateOf, tamperedMeasures, kindAnswer, kindCases, kindReference} from './conformance.ts'
+import {type Case, C_OPS, CELLS, E_OPS, QC_OPS, QE_OPS, VARS, inlineC, inlineE, machineOf, qcoverage, qgoals, qmachineOf, qreference, qtampered, randomCase, randomQCase, recurCases, recurCasesCases, recurReference, reference, ringCase, ringLowers, ringReference, seen, stateOf, tamperedMeasures, kindAnswer, kindCases, kindReference} from './conformance.ts'
 import {type Termination, checkMeasures} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
 import {type Loop, type Recur, check, checkQTree, checkRecur, recurGoal} from '../kernel/kernel.ts'
@@ -120,6 +120,24 @@ test('nontermination certificates: accepted ones hold on the reference run, tamp
   }
   for (const what of ['found', 'the set not closed: every state', 'the set not reached: a start whose stem ends outside it', 'the set not reached: a stem turn the guard or the assumption refuses', "a lasso's cycle that doesn't close: its set less one state", 'forged: the guard as the set']) expect(counts[what]?.n ?? 0, what).toBeGreaterThan(0)
   console.log(`nontermination: ${Object.entries(counts).map(([w, x]) => `${w} ${x.accepted}/${x.n} accepted`).join('; ')}`)
+}, 600_000)
+
+// Nontermination certificates closed by cases (kernel.ts's checkRecurCases): each accepted one holds on the reference's
+// run; each found one is accepted; each tampered one (a pin at another value, no case, a stem that ends outside the set)
+// is refused. lean-kernel/conformance.ts --nonterm writes the same cases for Lean's checkRecurCases.
+test('nontermination certificates by cases: accepted ones hold on the reference run, tampered ones are refused', () => {
+  const counts: Record<string, {n: number, accepted: number}> = {}
+  for (const c of recurCasesCases(recurCases(Math.round(40 * scale)))) {
+    let ok = false
+    try { ok = checkRecur(c.loop, c.cases) } catch { ok = false }
+    const at = (counts[c.what] ??= {n: 0, accepted: 0})
+    at.n++
+    if (ok) at.accepted++
+    if (ok) expect(recurReference(c.loop, {...c.cases, tree: {leaf: []}}), `${c.loop.name}: ${c.what}`).toBe(true)
+    expect(ok, `${c.loop.name}: ${c.what}`).toBe(c.what.startsWith('by cases: found'))
+  }
+  for (const what of ['by cases: found, nothing pinned', 'by cases: found, a value pinned', 'by cases: the pin at another value', 'by cases: no case', 'by cases: a start whose stem ends outside the set']) expect(counts[what]?.n ?? 0, what).toBeGreaterThan(0)
+  console.log(`nontermination by cases: ${Object.entries(counts).map(([w, x]) => `${w} ${x.accepted}/${x.n} accepted`).join('; ')}`)
 }, 600_000)
 
 // Rings of functions by well-founded recursion (core/data.ts's termination; Data.lean's wf_fix_unique_ring): a ring

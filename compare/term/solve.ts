@@ -10,7 +10,9 @@
 //     state it was in, replayed as the task's own steps and confirmed by ari.ts's evaluator, which uses no gdp-wired code;
 //     or a recurrent set (core/nonterm.ts's findNeverEnds: a closed set of states, the turn from each given by terms, a
 //     start and a stem into it), its closure goal's tree checked by the kernel (kernel.ts's checkRecur), the certificate
-//     printed (`recur`) for NonTerm.lean's never_ends_of; a lasso among them replayed by ari.ts's evaluator too
+//     printed (`recur`) for NonTerm.lean's never_ends_of; a large program's set closed by its cases, one per location
+//     (`cases`: kernel.ts's checkRecurCases, NonTerm.lean's never_ends_of_cases); a lasso among them replayed by ari.ts's
+//     evaluator too
 //   - unknown (and why: the rank the runs gave and the goal the kernel refused, or no rank), or unsupported (and why)
 // The time: a lasso search first (2 s), a recurrent set (4 s, `--recur-ms`; an accelerated set a stem reaches up to 10 s
 // before the limit), then the rank search with 70% of what is left before a margin of the limit, then a recurrent set
@@ -110,11 +112,12 @@ if (want !== 'terminates') {
 function neverEnds(ms: number, tag: string, extend = ms, accel?: number): void {
   if (ms < 200) return
   let v
-  try { v = findNeverEnds(loop, {ms, extend, ...(accel ? {accel} : {})}) } catch (e) { say({stage: 'recur', tag, error: (e as Error).message.slice(0, 300)}); return }
+  try { v = findNeverEnds(loop, {ms, extend, cases: true, ...(accel ? {accel} : {})}) } catch (e) { say({stage: 'recur', tag, error: (e as Error).message.slice(0, 300)}); return }
   const {ms: searchMs, ...counts} = v.stats
   say({stage: 'recur', tag, proven: v.proven, checked: v.checked, ...(v.by ? {by: v.by} : {}), ...(v.why ? {why: v.why} : {}), searchMs, ...counts})
-  if (!(v.proven && v.checked && v.recur)) return
-  const r = v.recur, size = JSON.stringify(r.set).length + JSON.stringify(r.wit).length
+  const r = v.recur ?? v.cases
+  if (!(v.proven && v.checked && r)) return
+  const size = JSON.stringify(r.set).length + JSON.stringify(r.wit).length
   let replay: string | undefined
   if (v.lasso) {
     try {
@@ -126,7 +129,7 @@ function neverEnds(ms: number, tag: string, extend = ms, accel?: number): void {
       replay = checkLasso(task!, {start, stem: steps.slice(0, v.lasso.stem.length), cycle: steps.slice(v.lasso.stem.length)}) ?? 'confirmed'
     } catch (e) { replay = `not replayed: ${(e as Error).message.slice(0, 120)}` }
   }
-  done('nonterminating', {by: 'recurrent set', kind: v.by, stem: r.stem.length, setSize: size, ...(replay ? {replay} : {}), recur: size < 200_000 ? r : undefined})
+  done('nonterminating', {by: 'recurrent set', kind: v.by, ...(v.cases ? {cases: v.cases.cases.length} : {}), stem: r.stem.length, setSize: size, ...(replay ? {replay} : {}), recur: size < 200_000 ? r : undefined})
 }
 // (the accelerated cycles have 75% of the first search after its runs; a set of theirs that a stem reaches may take
 // until 10 s before the limit: its cycle keeps it, by the closed forms, and a run gets there, so its loop is very likely
