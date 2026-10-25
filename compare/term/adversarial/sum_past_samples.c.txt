@@ -1,0 +1,15 @@
+// expect: nonterminating. f's values on the arguments its summary is fitted to are 0 where n > 0 (n·n <= 90000 there),
+// but f(301) is 7: a summary believed would let the loop below end. Its check (a path of f's body that returns a value
+// the summary doesn't allow) is the copy's turn back to its entry, which repeats forever.
+int f(int n) {
+  if (n <= 0) return 0;
+  if (n * n > 90000) return 7;
+  return f(n - 1);
+}
+int main() {
+  int x = __VERIFIER_nondet_int();
+  int r = f(x);
+  while (r == 7) {
+  }
+  return 0;
+}

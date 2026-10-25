@@ -27,7 +27,7 @@
 import type {C, E, Law, Machine, Request, State} from './machine.ts'
 import {argsKey, atMost as le, compileFunction, evalC as evalMC, evalE as evalME, fnValue, get, interpret, minus as sub, n as k, pairedArgs, plus as add, same as eqC, seeded, walk, x as v} from './machine.ts'
 import type {Goal, Liveness, Loop, Tree} from '../kernel/kernel.ts'
-import {check, livenessHelpful, livenessParts, loopLiveness, loopMachine, loopObligations, substC, substE} from '../kernel/kernel.ts'
+import {check, livenessHelpful, livenessParts, loopLiveness, loopMachine, loopObligations, strongly, substC, substE} from '../kernel/kernel.ts'
 import {type Cyclic, type Fact, checkCyclic, factsAvoid, lexLt} from '../kernel/cyclic.ts'
 import {type NodeSpec, and, proveCyclic, vars as vs} from './cyclic.ts'
 import {type Lin, canon, env, gcd, konst, pivot, plus, ratioRow, refuteFast, solve, subst, times, vars, work} from './solver.ts'
@@ -1353,12 +1353,15 @@ export type Sampler = {params: (rand: (n: number) => number, bound: number) => R
 export type LeadsVerdict = {proven: boolean, checked: boolean, rank?: E[], laws?: Law[], found?: {rank: string, laws: string[]}, goal?: string, stuck?: string, witness?: Record<string, number>, why?: string}
 export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sampler, opts: {ms?: number} = {}): LeadsVerdict {
   const t0 = clock(), until = t0 + (opts.ms ?? 10_000), rand = seeded(29), run = interpret(m)
-  const names = [...Object.keys(m.state), ...m.params].sort(), helpful = livenessHelpful(l)
+  const names = [...Object.keys(m.state), ...m.params].sort(), helpful = livenessHelpful(l), fair = strongly(l)
   const node: Node = {name: l.name, hyps: [], concl: yes, vars: names, level: 0, given: true}
   const env = (ps: Env, st: State): Env => ({...ps, ...st.scalars})
   const holds = (c: C, ps: Env, st: State) => { try { return evalMC(c, env(ps, st), st, m) } catch { return undefined } }
   const pending = (ps: Env, st: State) => holds(l.from, ps, st) === true && holds(l.to, ps, st) === false
   const points = new Map<string, Env>(), strong = new Map<string, Edge>(), weak = new Map<string, Edge>()
+  // (under strong fairness, the helpful steps that stay pending, by the regions they land in, and the regions whose
+  // helpful step reached `to`)
+  const handed: {e: Edge, from: number, to: number[]}[] = [], finishes = new Set<number>()
   for (const bound of [2, 4, 8, 16]) for (let trial = 0; trial < 20 && clock() < t0 + 1000; trial++) {
     let ps: Env
     try { ps = sample.params(rand, bound) } catch { continue }
@@ -1379,9 +1382,26 @@ export function findLeadsTo(m: Machine, laws: Law[], l: Liveness, sample: Sample
         } catch { /* refused: another */ }
       }
       if (!next) break
-      if (was && pending(ps, next)) { const e = {from: 0, to: 0, s: here, t: env(ps, next)}; (h ? strong : weak).set(id([e.s, e.t]), e) }
+      if (was && pending(ps, next)) {
+        const e = {from: 0, to: 0, s: here, t: env(ps, next)}
+        if (h && fair) handed.push({e, from: helpful.indexOf(h), to: helpful.flatMap((g, j) => (g !== h && holds(g.when, ps, next!) === true ? [j] : []))})
+        else (h ? strong : weak).set(id([e.s, e.t]), e)
+      } else if (was && h && fair) finishes.add(helpful.indexOf(h))
       st = next
     }
+  }
+  // Under strong fairness a helpful step may hand over to the region of a higher level instead of lowering the rank
+  // (kernel.ts's livenessParts; the levels the kernel's search chooses, kernel/prove.ts's chooseLevels): the levels
+  // read off the runs, a region's the fewer hand-overs from it to one whose helpful step reached `to`, so a step that
+  // hands over closer only keeps the rank and every other must lower it (BullMQ's fetch, wait to active, and promote,
+  // delayed to wait, keep it; a retry, active to wait, lowers it).
+  if (fair) {
+    const dist = helpful.map((_, i) => (finishes.has(i) ? 0 : Infinity))
+    for (let changed = true; changed;) {
+      changed = false
+      for (const x of handed) for (const j of x.to) if (dist[j]! + 1 < dist[x.from]!) { dist[x.from] = dist[j]! + 1; changed = true }
+    }
+    for (const x of handed) (x.to.some(j => dist[j]! < dist[x.from]!) ? weak : strong).set(id([x.e.s, x.e.t]), x.e)
   }
   // The trivial ranks first, where the runs allow them: the constant 0 (every helpful step in its region reaches `to` at
   // once: none sampled stays pending, which leaves the fit below nothing to fit), then each state variable alone (every

@@ -104,3 +104,22 @@ test('liveness with no rank: the trivial ranks tried first (0, a variable alone)
     .step(({op, pending}) => ({pending: when(op.is('refill'), yes, pending)}))
   expect(proveLeadsTo(stuck, [], stuck.leadsTo('cleared', {from: ({pending}) => pending, to: ({pending}) => pending.not(), helpful: () => ({op: 1})}), {ms: 3000}).proven).toBe(false)
 }, 60_000)
+
+// Under strong fairness a helpful request may hand over to a higher region instead of lowering the rank (kernel.ts's
+// livenessParts): the search reads the levels off the runs (a region's hand-overs to one whose request ends), so a fetch
+// that hands a waiting job to a worker keeps the rank and no rank must fall on it: rank 0, with the levels the kernel's
+// search chooses. A stall that may lose the job is refused all the same.
+test('strong fairness: the rank search lets a helpful request hand over', () => {
+  const job = (bug?: 'lost') => rule('flaky job')
+    .inputs({op: oneOf('fetch', 'stall', 'fail', 'lose')})
+    .state({st: (bug ? oneOf('wait', 'active', 'failed', 'lost') : oneOf('wait', 'active', 'failed')).from('wait')})
+    .flags(({op, st}) => ({fetches: op.is('fetch').and(st.is('wait')), stalls: op.is('stall').and(st.is('active')), fails: op.is('fail').and(st.is('active')),
+      loses: bug ? op.is('lose').and(st.is('active')) : op.is('lose').and(st.is('active'), st.is('wait'))}))
+    .step(({st, fetches, stalls, fails, loses}) => ({st: when(fetches, 'active', when(stalls, 'wait', when(fails, 'failed', bug ? when(loses, 'lost', st) : st)))}))
+  const ends = (j: ReturnType<typeof job>) => j.leadsTo('the job fails for good', {from: ({st}) => st.is('failed').not(), to: ({st}) => st.is('failed'),
+    helpful: [{when: ({st}) => st.is('wait'), request: () => ({op: 0})}, {when: ({st}) => st.is('active'), request: () => ({op: 2})}], fairness: 'strong'})
+  const j = job(), v = proveLeadsTo(j, j.kindLaws(), ends(j), {ms: 20000})
+  expect([v.proven, v.checked, v.found?.rank]).toEqual([true, true, '(0)'])
+  const jb = job('lost')
+  expect(proveLeadsTo(jb, jb.kindLaws(), ends(jb), {ms: 5000}).proven).toBe(false)
+}, 60_000)

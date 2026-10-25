@@ -5,6 +5,61 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+The last termination misses (gen/parity): call summaries the translated C system checks itself, calls that return
+past a recursion's boundary, facts at locations whose every answer is made again on the task's own loop, and, for the
+liveness search under strong fairness, a helpful step that hands over. Nothing trusted changed. `core/` and `kernel/`
+(tests excluded) are 2,324,777 bytes against main f2e468d's 2,323,315 (+1,462, core/cycles.ts +20 lines);
+compare/term/facts.ts 345 lines, ontask.ts 117, c2ari.py +533 and −18, solve.ts +114 and −35. Beside main f2e468d
+(merged), launched together on Modal (60 s, 2 vCPU; `runs/par/itsJ-*`, `svJ-*` in the main checkout), every task gained
+or lost there or in the batch before run three times more a side (`itsreJ-*`, `svreJ-*`):
+- **SV-COMP termination:** 246 (189, 57) against 239; per component 216 against 209. Gained 3 of 3 against 0 of 3:
+  McCarthy91_Recursion, NestedRecursion_1b, 1c, 1d, 2c, rec_counter3 (summaries), MutualRecursion_1a (returning
+  calls); none lost. Ultimate Automizer 224: ahead in this harness, unconfirmed.
+- **TermComp ITS:** 613 terminate and 540 don't on the task's statement against 612 and 541, per component 614 and 542
+  against 614 and 542: the same within the batch's spread; per component consts5.t2_fixed and whatwhat gained 3 of 3
+  (from facts the kernel proved).
+No answer contradicts another tool's, and none rests on a rewrite of the task: each is the kernel's on the task's own
+translation, or a lasso ari.ts's evaluator replays on the task as written.
+
+- **Call summaries** (c2ari.py, the terminates translation): a recursive function's value at a call that returns is
+  its summary's, a relation fitted to its values; the system checks it by a turn back to the function's entry where
+  some path of its body returns a value the summary doesn't allow, so the kernel's termination proof proves there is
+  none (a wrong summary makes the proof fail, never an answer wrong).
+- **Calls that return past a boundary** (the nonterminating translation): inlined one deep, a call past it entering
+  its copy or returning within one call more; a function's variables one per place and depth.
+- **Facts at locations** (compare/term/facts.ts, ontask.ts): each slot's constant at each location, a fixpoint of the
+  rules from the entrypoint; the task rewritten with them, and the rules the kernel shows never fire left out, where a
+  search looks again after the task's own loop's. Every answer of the rewritten task is made again on the task's own
+  loop: its constants laws the kernel proves inductive with the rank (`pc = L → s = c`, an unreached location's
+  `pc = L → false`), a recurrent set's turn and stem read back and its closure grown and checked again. Per component,
+  the task's own components from states where those facts hold, the kernel proving them invariants of the whole task
+  first. A residue (x ≡ c mod k) is no term of the kernel's: answers that need one (Velroyen08-alternatingIncr,
+  KroeningSharygina, on a task split by parity, `--split`) are not made and not counted. The first version counted the
+  rewritten task's answers on facts.ts's argument; its batches (beside 8b710ba and 4af8556) are superseded, the first
+  of them with 28 wrong answers from a bug in the rewrite (a slot pinned by its own guard replaced by the value),
+  which a random-run check of facts.ts against the task now catches (891 tasks, 4.3 million steps, none refused).
+- **Strong fairness in findLeadsTo** (core/cycles.ts, the hand-off from gen/sums): the fit required every sampled
+  helpful step to lower the rank, where kernel.ts's strong rule lets one hand over to a region of a higher level. The
+  levels are read off the runs (a region's distance in hand-overs to one whose helpful request reaches `to`), and a step
+  handing over closer only keeps the rank: a flaky job that ends only under strong fairness is found with rank 0
+  (core/cycles.test.ts; main finds none). BullMQ #25 is still unknown, at a269124 too: the fit then finds one linear
+  component (`1 + attempts + backoff + delay + maxStalledCount + maxStartedAttempts − (atm + defa + last + stc)`) that
+  every sampled step accepts, and the kernel refuses at a retry (active to wait, atm + 1) whose step the interpreter
+  takes lowering it: the kernel's witness names the backoff's products (atm·delay and the like), atoms to the kernel,
+  not traced further. The kernel's rank `[attempts ∸ atm, defa ? 0 : 1, maxStalledCount + 1 ∸ stc]` reads only the
+  rule's own comparisons, core/live.ts's leadsByTerms' shape. Refitting on the kernel's counterexamples was measured and
+  left out: the replayed step changes no fit.
+- **Hand-off to gen/sums:** division by a constant in a loop's terms (`{op: 'div', a, k}`, Euclid's two rows as its term
+  column), which makes a residue a law and a set's part, so the split task's answers can be made on the task
+  (compare/term/README.md).
+- **Other benchmarks**, beside f2e468d (`rwI-*`, `f1I-*`, `f2I-*`): the real-world corpus the same law by law (274
+  proven); frontier round 1 90 of 92 and 42 of 42 broken variants refused on both sides, round 2 31 of 47 and 47 of 47,
+  its nontermination items 5 of 5. Suites (224 jobs): none failed by default (503.3 s wall, 5,616.7 s of job time,
+  `suite-defaultJ`) or with `--usual` (693.0 s, 5,148.9 s, `suite-usualJ`). `adversarial.test.ts` passes (4 new ITS
+  programs), `c2ari_test.py` 69 programs (3 new) none answered against the program (`testsI-mine`). CHC-COMP, TIP 2015
+  and the 1-vCPU tests weren't run: none reaches the code changed (compare/term, and findLeadsTo only under strong
+  fairness).
+
 The suite's slow jobs since 0.26.0, measured in pairs on Modal (the old commit and the new launched together, three
 runs a side) and their causes (perf/regressions; `runs/perf/` in the main checkout). Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`,
 `core/check.ts`, `lean-kernel/*.lean`).
