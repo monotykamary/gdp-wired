@@ -10,6 +10,7 @@ import type {C} from '../../../core/machine.ts'
 import {expand, liftProven, prepare} from '../compose.ts'
 import {proveRule} from '../../../core/dsl.ts'
 import {counted, withDeadline} from '../../../kernel/prove.ts'
+import {cdclStats} from '../../../kernel/cdcl.ts'
 
 // (GDP_CHC_ARGS: more flags, as solve.ts reads them; `--compose`, `--slice`: the search on the system compose.ts makes,
 // its answers expanded and lifted to the original rule and checked there)
@@ -23,8 +24,13 @@ const cc = prepare(chc0, {slice: on('--slice'), chains: on('--compose')}), bo = 
 // (each query: its depth, its outcome's letter, the frontiers so far, its ms)
 const steps: [number, string, number, number][] = []
 let q0 = performance.now()
-const out = counted(250, () => imc(m, b.law, {until: Infinity, wall, kinds: r.kindLaws().map(l => l.holds), progress: (k, what, info) => { const now = performance.now(); steps.push([k, what[0]!, info.parts!, Math.round(now - q0)]); q0 = now }}), true)
-say({stage: 'imc', depths: steps, ...('why' in out ? {why: out.why} : {}), k: out.k})
+// (GDP_IMC_QSTATS=1: each query's ms, CDCL nodes and decisions, in `queries`)
+const qs: number[][] = [], qon = process.env.GDP_IMC_QSTATS === '1'
+if (qon) cdclStats.on = true
+let qt = performance.now(), qn = cdclStats.nodes, qd = cdclStats.decisions
+const qnote = () => { if (!qon) return; const now = performance.now(); qs.push([Math.round(now - qt), cdclStats.nodes - qn, cdclStats.decisions - qd]); qt = now; qn = cdclStats.nodes; qd = cdclStats.decisions }
+const out = counted(250, () => imc(m, b.law, {until: Infinity, wall, kinds: r.kindLaws().map(l => l.holds), progress: (k, what, info) => { qnote(); const now = performance.now(); steps.push([k, what[0]!, info.parts!, Math.round(now - q0)]); q0 = now }}), true)
+say({stage: 'imc', ...(qon ? {queries: qs} : {}), depths: steps, ...('why' in out ? {why: out.why} : {}), k: out.k})
 if ('run' in out) {
   const raws = out.run.trace.map(t => requestOf(b, t as Record<string, unknown>)), orig = cc ? expand(bo, b, cc, stepsOf(b, raws)) : raws
   const bad = typeof orig === 'string' ? orig : checkDerivation(bo, chc0, stepsOf(bo, orig))

@@ -281,8 +281,10 @@ const useRelax = env.GDP_IMC_RELAX !== '0'
 // GDP_ITP_DAG=0: interpolants from the unfolded tree alone.
 const useDag = env.GDP_ITP_DAG !== '0', useClausal = env.GDP_ITP_CLAUSAL === '1', useStrong = env.GDP_ITP_STRONG !== '0', useSession = env.GDP_IMC_SESSION !== '0'
 
-export type ImcResult = {inv: C, k: number, parts: number} | {run: {params: Record<string, number>, trace: Request[]}, k: number} | {why: string, k: number}
-export type ImcOptions = {until: number, wall?: number, kinds?: C[], from?: number, to?: number, progress?: (k: number, what: string, info: Record<string, number>) => void}
+// (`kinductive`: the law holds after k steps in a row where it held before each, the session's k-induction, which the
+// caller's kernel proof may confirm; asked with `induction`)
+export type ImcResult = {inv: C, k: number, parts: number} | {run: {params: Record<string, number>, trace: Request[]}, k: number} | {why: string, k: number} | {kinductive: number, k: number}
+export type ImcOptions = {until: number, wall?: number, kinds?: C[], from?: number, to?: number, induction?: boolean, progress?: (k: number, what: string, info: Record<string, number>) => void}
 
 // The machine whose steps from a state that breaks the law stay put. A step's truncated difference (an integer's pair
 // normalized, a ∸ b) stays one, of its parts kept or stepped (n ∸ n$neg is n for a normalized pair), so core/bmc.ts's
@@ -426,7 +428,7 @@ function stepHyps(m: Machine, live: Set<string>, j: number, tidy: (cs: C[]) => C
 export function imcSession(m: Machine, law: Law, opts: Omit<ImcOptions, 'until' | 'wall'> = {}) {
   const m2 = stutter(m, law), names = Object.keys(m.state), start = startOf(m)
   const goal: Goal = {name: 'an unrolling', hyps: []}, isA: boolean[] = []
-  const quiet = (n: string) => n.startsWith('sel@') || n.startsWith('act@')
+  const quiet = (n: string) => n.startsWith('sel@') || n.startsWith('act@') || n.startsWith('ind@')
   // (a frontier's gates its own, so it can be retired: its hypothesis' own memo, `own`)
   const own = new Set<number>()
   const session = cdclSession(goal, new Map(), {model: true, dag: true, clausal: true, quiet, sideOf: h => (own.has(h) ? 2 + h : isA[h] ? 0 : 1)})
@@ -437,13 +439,24 @@ export function imcSession(m: Machine, law: Law, opts: Omit<ImcOptions, 'until' 
   const stepTo = (k: number) => { for (; steps < k;) { const j = ++steps; for (const c of stepHyps(m2, live, j, tidy)) add(c, j === 1) } }
   for (const c of opts.kinds ?? []) add(c, true)
   const one: E = {op: 'const', value: 1}, guard = (s: string, c: C): C => ({op: 'or', xs: [{op: '<=', a: one, b: v(s)}, c]}), off = (s: string): C => ({op: '<=', a: one, b: v(s)})
-  let nSel = 0, act = 0, named = 0
+  let nSel = 0, act = 0, named = 0, kAsked = 0
   const seen: Names = {a: new Set(), b: new Set()}
   // The query: the frontier at its depth. An interpolant (over the state's names), a model (a run where the frontier is
   // the start), or why neither came.
-  const ask = (frontier: number, k: number, budget: {until: number, wall?: number}): Interpolated => {
+  const depth = (k: number) => {
     stepTo(k)
     if (act !== k) { if (act) add(off(`act@${act}`), false); act = k; add(guard(`act@${k}`, substC({op: 'not', x: law.holds}, stateAt(m, k))), false) }
+  }
+  // k-induction on the same unrolling: the law before each of the first k steps (each behind ind@j), broken after them.
+  let inds = 0
+  const inductive = (k: number, budget: {until: number, wall?: number}): boolean | undefined => {
+    depth(k)
+    for (; inds < k; inds++) add(guard(`ind@${inds}`, substC(law.holds, stateAt(m, inds))), inds === 0)
+    const out = session.run({nodes: 0, until: budget.until}, budget.wall, [{[`act@${k}`]: 1}, ...Array.from({length: k}, (_, j) => ({[`ind@${j}`]: 1}))]) as Refuted
+    return 'tree' in out ? undefined : out.why === REFUTED ? true : out.stuck === 'sat' ? false : undefined
+  }
+  const ask = (frontier: number, k: number, budget: {until: number, wall?: number}): Interpolated => {
+    depth(k)
     const out = session.run({nodes: 0, until: budget.until}, budget.wall, [{[`act@${k}`]: 1}, {[`sel@${frontier}`]: 1}]) as Refuted
     if ('tree' in out) return {unknown: 'a tree'}
     if (out.why === REFUTED) {
@@ -467,6 +480,13 @@ export function imcSession(m: Machine, law: Law, opts: Omit<ImcOptions, 'until' 
     const over = () => clock() > until || (wall !== undefined && performance.now() > wall), budget = {until, ...(wall !== undefined ? {wall} : {})}
     if (!front) fresh()
     for (; k <= Math.min(64, opts.to ?? 64); k++, fresh()) {
+      if (opts.induction && kAsked < k) {
+        const ind = inductive(k, budget)
+        if (ind === undefined && over()) return 'paused'
+        kAsked = k
+        opts.progress?.(k, ind ? 'kinductive' : 'not k-inductive', {parts: 0})
+        if (ind) return {kinductive: k, k}
+      }
       for (;;) {
         if (over()) return 'paused'
         const out = ask(front, k, budget)

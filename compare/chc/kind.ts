@@ -89,7 +89,10 @@ const bmcTurn = (slice: number) => {
 
 // Interpolation over the unrolling, a slice at a time (counted as the bounded runs are, beside the wall stop).
 const imcDepths: [number, string][] = []
-const is = withImc ? imcSearch(m, b.law, {kinds: b.rule.kindLaws().map(l => l.holds), progress: (k, what) => { imcDepths.push([k, what[0]!]) }}) : undefined
+// (with the rule as written, k-induction asked on the same unrolling: `--induction 1`, the default where k-induction has no
+// turn of its own; its answer proven by core/kind.ts at that k)
+const induction = !cc && opt('--induction', withKind ? 0 : 1) !== 0
+const is = withImc ? imcSearch(m, b.law, {kinds: b.rule.kindLaws().map(l => l.holds), induction, progress: (k, what) => { imcDepths.push([k, what[0]!]) }}) : undefined
 let imcLive = !!is
 const imcTurn = (slice: number) => {
   const wall = Math.min(end, performance.now() + slice)
@@ -97,6 +100,13 @@ const imcTurn = (slice: number) => {
   if (out === 'paused') return
   imcLive = false
   say({stage: 'imc', depths: imcDepths, k: out.k, ...('why' in out ? {why: out.why.slice(0, 80)} : {}), by: 'second'})
+  if ('kinductive' in out) {
+    const kd = proveKInduction(mo, bo.rule.kindLaws(), bo.law, {ms: 20 * Math.max(1, end - performance.now()), wall: end, from: out.kinductive, to: out.kinductive})
+    say({stage: 'imc', kinductive: out.kinductive, proven: kd.proven, checked: kd.checked, ...(kd.why ? {why: kd.why.slice(0, 80)} : {})})
+    if (kd.proven && kd.checked) { stop(); say({stage: 'answer', answer: 'sat', by: 'kind', k: kd.k}); process.exit(0) }
+    imcLive = true
+    return
+  }
   if ('run' in out) {
     const ok = confirmed(out.run.trace as Record<string, unknown>[])
     if ('bad' in ok) { say({stage: 'imc', refused: ok.bad}); return }
