@@ -87,7 +87,10 @@ All of these are proven automatically, and each proof is also a Lean theorem:
   and no run breaks them, it looks for lemmas about the rule's recurrences and lists (`discover`), lemmas about the
   functions it knows by their facts (`cycleLemmas`, each proven by a cyclic proof) and then invariants (`inferLaws`),
   within 10 s (`{search: {ms}}`; `{search: false}`, the prover alone); the verdict's `found` holds what
-  proved them, as laws and lemmas with the source to paste.
+  proved them, as laws and lemmas with the source to paste. Each invariant found holds in the states reachable from the
+  start, so a proof that needs one holds there and the verdict says so (`assumes: {states: 'reachable', laws}`). Code that
+  steps the rule from states it is handed proves with `{from: 'any'}`: every step law then holds from every state the
+  laws allow, reachable or not, and the search never adds an invariant.
 - **Invariants nobody wrote** (`gdp-wired/infer`): `inferLaws(rule, laws)` proves a law that holds but isn't inductive
   alone, with the laws it finds (bounds, sums and differences over the state, the same where a flag or a choice holds
   one value, remainders of a value or of a sum or difference of two, x mod 2 = 0 for a counter stepping by 2, and laws

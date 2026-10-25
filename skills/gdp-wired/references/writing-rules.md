@@ -40,6 +40,10 @@ proveSteps(caps, [dayCap], [onlyUp, once, twice]) // {proven: true, checked: tru
 - `stepLaw(name, then, when?)`: about one step; `after` reads the state and maps after it.
 - `stepsLaw(name, k, then, when?)`: k steps in a row (k ≤ 16); the third argument holds each step's request.
 - Step laws assume the laws you pass beside them (`proveSteps(rule, laws, stepLaws)`).
+- By default the search may prove a step law with invariants it finds, which hold only in states reachable from the
+  start; the verdict then says `assumes: {states: 'reachable', laws}`. If your code steps the compiled rule from states
+  it is handed, prove with `{from: 'any'}`: every step law then holds from every state the laws allow
+  ([reading verdicts](reading-verdicts.md#from-any-state-from-any)).
 
 ## Sums over a map's keys
 
@@ -57,6 +61,10 @@ proveRule(token, [token.law('the balances sum to the supply', ({Bal, supply}) =>
 - `M.sum()`: the sum of every cell of `M`, exact over every key (no bound on the keys). `M.sum(cell => ...)` sums a
   term of the cell (a count: `M.sum(c => when(c.gt(0), 1, 0))`); on a map of records, `R.sum(r => when(r.deleted, 0, r.amount))`.
   Use it in laws, flags, the step or the assumption; it reads like a state variable (`sum$M`) the step keeps exact.
+- A law that reads a sum leaves its rule as it is: the rule's machine, `compiled()` and `decode` gain `sum$M` only when
+  the rule's own flags, step or assumption read it. `proveRule`, `proveSteps`, `proveLeadsTo` and `crossCheck` add the
+  sums their laws read, and `crossCheck` checks what your callbacks write, not the sum's bookkeeping. Handing a machine
+  to the kernel yourself (`toLean`, `gdp-wired/prove`), take `rule.withSumsOf(...laws).machine`.
 - The map must start where the term is 0 (`.maps({Bal: 0})`), be part of the state (not a carried set or a function),
   and each step must change the term at keys it names: a write at one key, or a write at every key whose value compares
   the key with terms (`k.eq(from)`, `k.eq(to)`) and keeps every other cell. A write that moves every cell (`M.at(k).plus(1)`)

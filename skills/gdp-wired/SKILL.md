@@ -58,7 +58,11 @@ When adding or changing a rule whose invariants matter:
    default; `{search: {ms}}`, or `{search: false}` for the prover alone):
    lemmas first (`discover`), then invariants (`inferLaws`), and the verdict's
    `found` holds what proved the laws, as laws to pass with them and as
-   lemmas to state, each with the source to paste.
+   lemmas to state, each with the source to paste. An invariant found holds
+   only in states reachable from the start, and the verdict says so
+   (`assumes`). If the code steps the rule from states it is handed (a
+   host's, a stored one), prove with `{from: 'any'}` and require
+   `proven && checked && !assumes`.
 5. **Never prove a different rule than the one that ships.** Ship the rule
    itself (`rule.compiled()`), or hold hand-written code to it with
    `rule.compare(reference)`; run `rule.crossCheck(laws)` in tests
@@ -105,7 +109,7 @@ From `gdp-wired`:
 | `r.law`, `r.stepLaw`, `r.stepsLaw`, `r.leadsTo`, `r.decide`, `r.relate` | Claims: invariant, one step, k steps (k ≤ 64), liveness, a decision about one request, a decision about two. |
 | `ratRule(name)`, `rat`, `nonneg`, `proveRatRule(rule, laws)` (`gdp-wired/rationals`) | A rule over the rationals: exact values (decimals, fractions), linear terms (`plus` `minus` `times(k)` `over(k)`, `rmin` `rmax` `rwhen`); `{proven, checked, goal?, stuck?, witness?, run?}`, refuted by an exact run from the start or proven by trees of Farkas certificates; `rule.run(params, requests)` computes exactly; `rationalsToLean` (`gdp-wired/lean`) checks the proofs in Lean. |
 | `proveNeverEnds(loop, {from?, ms?})` | Some run of the loop never ends (the claim a halting proof refutes): `{proven, checked, recur, loop, by, run}`, the certificate a closed recurrent set with the turn from each state given; toLean's `{id, neverEnds: v.loop, recur: v.recur}` proves `NeverEnds` in Lean. |
-| `proveRule`, `proveSteps`, `proveLeadsTo`, `proveDecision`, `proveLoop` | Verdicts: `{proven, checked, goal?, stuck?, witness?, why?, found?}`. `proveRule` and `proveSteps` take `{search}`: where the prover alone doesn't prove the laws and no run breaks them, they look for lemmas and invariants (10 s by default; `false` for the prover alone), and `found` says what proved them. |
+| `proveRule`, `proveSteps`, `proveLeadsTo`, `proveDecision`, `proveLoop` | Verdicts: `{proven, checked, goal?, stuck?, witness?, why?, found?}`. `proveRule` and `proveSteps` take `{search}`: where the prover alone doesn't prove the laws and no run breaks them, they look for lemmas and invariants (10 s by default; `false` for the prover alone), and `found` says what proved them. `assumes` says the proof holds only in states reachable from the start; `{from: 'any'}` proves step laws from every state the laws allow. |
 | `when`, `min`, `max`, `count`, `sum`, `all`, `any`, `not`, `forall`, `everyKey`, `someKey`, `relation` | Terms and conditions; terms have `plus` `minus` (truncated) `times(k)` `mul` `lt` `atMost` `atLeast` `gt` `eq`, conditions `and` `or` `not` `implies`. |
 | `chart(name)` | A statechart: `.states({...})` (nested: `{states: {...}, initial, history, final}`) or `.regions({...})` (parallel), `.params`, `.inputs` (the payload), `.context` (extended state), `.outputs` (decided each step, reset to a default), `.events` (their order), `.on(event, {from, to, when, set, fresh})` (no `to`: internal; `fresh`: ignore history); `.check()` (every state reached with its run or proven unreachable, none stuck, no event ambiguous), `.law`, `.stepLaw` (`env.in('active.paid')`, `env.last('active')`), `.prove`, `.rule`. |
 | `inferLaws(rule, laws, stepLaws?)` | `gdp-wired/infer`: the invariants a law that isn't inductive needs, found from runs and the kernel's counterexamples (bounds, sums, differences, guarded by a flag or a choice, laws about every key of a map); `found[i].source` is the `r.law(...)` call; proven and checked like `proveRule`. |
