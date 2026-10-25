@@ -16,6 +16,7 @@ and Eldarica (2.3).
 | `kind.ts` | The container's second CPU, a process at the lowest priority started once the task is read, until the search's deadline: k-induction (core/kind.ts) and the bounded runs (core/bmc.ts's `boundedSearch`: a deterministic loop's forced run, then a model of a k-step goal from the start to error) in turn, in slices of 2 s each, then 4, 8, 16, ..., each going on where it stopped; proven and checked (kernel.ts's `checkKInduction`), or a run `checkDerivation` confirms, it stops solve.ts and answers |
 | `prof/kind.ts` | Not a solver (`--tools kind`): whether the law is k-inductive, a measure of what k-induction would add |
 | `prof/kind-tree.ts`, `prof/kind-lean.ts` | Not solvers: where a k-step goal's time goes (CDCL's model search, its tree, the unfolding, the check), and a task's k-induction certificate as Lean (KInd.lean's `kind_sound`) |
+| `prof/gap27.py` | The gap at a release by group, family and cause, from runs of the track and Spacer's and Golem's answers |
 | `prof/` | A Modal profiler for one task's `proveRule`; `spacer_models.py`, the invariants Spacer finds for given tasks (or, with `--engine golem`, Golem's derivations of false); `template.ts` (`--tools tmpl`), what `inferLaws` would search on a task (its atoms, coefficient magnitudes and shape limits); `given.ts` (`--tools given`), `proveRule` given Spacer's invariant as laws; `gap.py`, the gap to Spacer by the shape of its invariant and what gdp-wired did |
 
     modal run compare/chc/modal_chc.py --out runs/modal/chc/<name> [--tools gdp,z3,golem,eldarica] [--limit 60]
@@ -23,6 +24,118 @@ and Eldarica (2.3).
     modal run compare/chc/prof/spacer_models.py --out <dir> --tasks-json <file> [--engine golem]
     modal run compare/chc/modal_chc.py --out <dir> --tools tmpl            # then --tools given --tasks-json <file>
     python3 compare/chc/prof/gap.py --gdp <run> --others <run> --models <dir> --template <run> [--cex <dir>] [--given <run>] --out <file.json>
+
+## A warm CDCL session, PDR over the join's cubes, and the gap at 0.27.0 (gen/chc5)
+
+Every run named here is in the main checkout's `runs/chc5/` (60 s, Modal, 2 vCPU). Counts of the whole track leave out
+the 2 disputed labels, which both sides answer in every batch. Nothing trusted changed. The
+default CHC path is the same as main's. The new searches are opt-in (`GDP_JOIN_PDR`, `kind.ts --pdr-ms`), because on the
+whole track they cost about as many tasks as they gained.
+
+**The gap at 0.27.0** (`prof/gap27.py`, on `runs/query/m5/chc-mine` and its reruns, with Spacer and Golem from
+`runs/modal/chc2/combined-v020`):
+- **Size:** 251 tasks (217 sat, 34 unsat). 10 of them are answered in some other run of 0.27.0.
+- **Sat, by group:** D 87, E 39, F 24, C 16, the rest 15, G 4, B 4, A 2. 26 tasks were answered at 0.20.0.
+- **Sat, by family:** ctigar 41, HOLA 40, Lustre's DRAGON 29 and FIREFLY_luke 11, the rest at most 8 each.
+- **Sat, by cause:** the join ran out of time on 166, had no target on 43, was stuck on 4, and was inductive while the
+  kernel's search after it failed on 3.
+- **Sat, given Spacer's invariant:** the kernel proves 140 of them and fails 50; 27 have no Spacer model.
+- **Unsat:** 34 tasks. Lustre's metros 22 and car 6, then O3_id 3, swimmingpool 1, reve 1 and rust-horn 1. The bounded
+  runs refuted depths 8 to 12, where Golem's derivations take 12 to 24 steps (O3_id: 103 to 1,003).
+
+**Where the join's time goes** (`prof1`: bun CPU profiles and every root query of 8 join-time tasks):
+- **The cube queries:** on car_2_e7_1027_e1_1047, 29.0 s of 47.7 s of query time went to `a cube` models. On
+  durationThm_1 they took 28.6 s.
+- **The walks' request queries:** 14.2 s of 46.1 s on DRAGON_4_e1_4312, 7.8 s on car_2.
+- **The reader:** in the CPU profile, the reader reading the goal at each node (`sync`, `factsOf`, `truth`) led.
+
+**The warm session** (core/infer.ts, kernel/cdcl.ts, kernel/reader.ts). One `cdclSession` holds the step once. Each
+law before the step, each goal after it, and each cube literal after it is a hypothesis behind a selector of its own,
+written as `1 <= sel@j` (twice) or the hypothesis. A query assumes the selectors of what it reads on and the rest off.
+- **The assumptions:** `run` takes a list of them, each decided at a level of its own. A refutation names the
+  assumptions it rests on (`assumed`, MiniSat's analyzeFinal).
+- **Levels kept:** the levels whose decisions start the next query's list stay from one query to the next.
+- **Unread:** an off selector's hypothesis isn't read past its guard (reader.ts, a guard written twice first).
+- **No rows:** the selectors' atoms bring no row to the simplex (`quiet`).
+- **Stamps:** a trail position's stamp is its content, so decisions made again in the same order find their values
+  kept.
+
+How it measured:
+- **Fewer nodes:** on car_2, 28 nodes a query against 235 (`prof2`).
+- **Slower nodes:** each cost about 6 times as much at first, and the median query took about the same time after the
+  fixes (`prof3`: 76.8 against 99.5 ms on car_2, 119.0 against 51.6 on nest-if3).
+- **On the join, it loses tasks:** on 318 dev tasks it was level with the cold join (`a1`, `a2`: 105 and 107 against
+  107 and 107). On the 12 tasks it lost in a full run (`lost2`, `d1`), it answered 5 against the cold join's 9 and 10
+  and main's 8 and 9. SYNAPSE_6, which main's join proves in about 1 s, was lost every time.
+
+So the join stays cold, and the session serves PDR alone (`GDP_JOIN_WARM=pdr`, the default; `1` for both, `0` for
+neither). `GDP_CDCL_VERIFY=1` compares its rows with kernel.ts's, less the selectors' atoms. On the 332 step goals the
+searches are the same as main's in all 332 (`h-g332`: 270,048 against 271,766 ms).
+
+**PDR** (core/infer.ts's `pdr`, on the join's cube machinery: `cubeOf`, `queryWith`, a `generalize` that blockCube now
+shares, `down` and `apart`):
+- **Frames:** F_0 is the start, a law of its own. F_i holds the lemmas blocked at level i or above.
+- **Obligations:** the lowest level is blocked first. A cube is blocked relative to F_{i-1} and its own negation, then
+  generalized and pushed up while it stays blocked.
+- **A predecessor the runs reached:** it becomes a sample, and `apart` makes the cube leave it out.
+- **Pushing:** each lemma moves up where F_i keeps it after the step. A frame left empty is the invariant, and the
+  kernel then proves it.
+- **Sessions:** PDR has a session of its own, and its samples are its own.
+
+On the dev tasks (`dev5`, 318: the 217 sat-gap tasks, 100 the join solves and the losses):
+
+| PDR run | sat | the join alone, same batch |
+| --- | --- | --- |
+| first, half the join's time (a2, a3, a4, a5, a6, a7, a8) | 113, 116, 110, 113 and 110, 114, 112 and 113, 116 and 115, 115, 114 and 114 | 107, 106, 109, 112, 108 to 111, 108 and 110, 106 and 107 |
+| first on a cold session (a3) | 110 | 106 |
+| after the join (a4) | 111 | 109 |
+| between two halves of the join (a4) | 106 to 109 | 109 |
+| in turns with the join (a5, a6, a7) | 112 to 115 | 108 to 112 |
+
+- **Its own tasks:** PDR solves seven that the join never did, in 3 of 3 or 5 of 5 runs: array_fill1_abstracted,
+  barthe2-big2_merged, 35.c, bind_expands_vars2, szymanski, car_2_e8_491_e7_826 and car_2_e7_1027_e1_1047 (1.1 to
+  16.3 s).
+- **On the whole track it loses as much:**
+  - First (`f1`, beside 548c343): 1,033 against 1,042. The join's quick tasks lost their time (SYNAPSE_6, ctigar's
+    up2, up3 and bound).
+  - On the second CPU, 16 s after the first turns (`f3`): 1,027 and 1,030 against 1,037. The deep bounded runs lost
+    their turns (car_5, DRAGON_14, metros).
+  - In k-induction's 16 s turn (`f4`): 1,040 against 1,039. It loses metros_1's late k-induction answers, 6 of them.
+  - After the join with 0.9 of what is left (`f5`, `r9`): the kernel's search below loses loop__fib ×2 and s_split_19,
+    0 of 3 runs against 3 of 3. That search answers more than the 4 of 478 counted above: loop__fib and durationThm_2
+    there at 53 to 56 s.
+
+**Measured and left out:**
+- A walk's request with inputs fixed only while that pays.
+- A chosen candidate dropped after four stuck goals.
+- An equality's two halves chosen together on scalar forms.
+
+On the 9 tasks they touched (`r7`, `r8`, 3 runs each), with PDR off: all three off answered 8, 7 and 8. The request gate
+alone answered 5, 6 and 6, the drop alone 3, 5 and 3, and the halves alone 6, 7 and 7.
+
+**Kept:** an equality's two halves are chosen together for cell forms (`every k: Σ ≤ d` beside `−Σ ≤ −d`). It proves
+the real-world corpus's TimelockController law 0 and blnk law 5. CHC has no cell forms.
+
+**The track, beside main 1a66834** (`h-chc-*`):
+- **This run:** 1,039 (615 sat, 424 unsat) against 1,044 (617, 427). None wrong, and the same 2 disputed labels on both.
+- **The 11 tasks that differ, run 3 times a side** (`hr1`..`hr3`): 23 answers here against 14 on main. ex1 3 against 1,
+  s_split_22 2 against 0, car_2_e7_1027_e7_359 2 against 0. No task is lost every time.
+- **Beside f589873** (`g-chc`): 1,042 against 1,042, and the 10 that differ answer 20 of 30 against 19.
+- **Unchanged ahead:** Spacer 1,163 and Golem 1,154 lead.
+
+**Unsat** (`bmc1`, profiles of kind.ts on 3 metros, 2 car_5 and swimmingpool_9):
+- **Depths:** the bounded runs reach 9 to 12, where Golem needs 12 to 24, and each depth costs 2 to 3 times the one
+  before.
+- **The time:** k-induction takes 30.2 of the second CPU's 55 s, and the reader's per-node reading leads the bounded
+  runs' own time.
+- **Neither closes it:** neither half of the CPU, nor a constant factor, reaches 4 or more depths further. Acceleration
+  in the unrolling (gen/nonterm5's accel.ts) was not tried.
+
+**The three named losses:**
+- **car_2_e7_1027_e1_1047:** PDR answers it in 2 to 3 s, every time.
+- **SYNAPSE_4 and gulwani_cegar2:** they stay as they were.
+- **The join's path:** it depends on more than CDCL's model order. The wall-time runs and guided stages give it other
+  samples (SYNAPSE_6: 386 against 476), and the hull follows them.
 
 ## The rule's own comparisons in the join's cubes (after 0.26.0)
 

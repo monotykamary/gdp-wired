@@ -194,6 +194,59 @@ limit read none of the code changed (infer's call proveRule with laws the kernel
 15,266, fresh.ts 4,501, dsl.ts +6,725; the extractor +13,487 (extract-shapes.ts +5,966, extract-read.ts +3,149,
 extract-go.ts +1,991, the rest +2,381; core/go/reader.go, Go, +4,138 beside it).
 
+The CHC-COMP gap reclassified, a warm CDCL session and PDR over the join's cubes, both opt-in, and an equality's two
+halves for cell forms (gen/chc5). Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts` and
+`lean-kernel/` as main has them). compare/chc/README.md has every batch and task. In our harness (60 s on Modal,
+2 vCPU), beside main 1a66834 launched together (`runs/chc5/h-*`), unless another run is named:
+- **CHC-COMP LIA-Lin:** 1,039 (615 sat, 424 unsat) against 1,044 (617, 427), none wrong, the same 2 disputed labels.
+  The 11 tasks that differ answer 23 of 33 times here against 14 on main when run three times a side, and none is lost
+  in every run. Beside f589873 it was 1,042 against 1,042. Level, not a gain. Spacer 1,163 and Golem 1,154 lead.
+- **TermComp ITS:** 1,152 (613, 539) against 1,155 (614, 541). The 3 lost tasks, run three times a side: hqr.t2_fixed
+  3 against 3, queens.t2 1 against 0, slayer-3-new.t2_fixed 0 against 0.
+- **SV-COMP termination:** 239 against 239. **TIP 2015:** 206 against 206 proven, 7 refuted on both.
+- **The real-world corpus:** 254 proven, 29 refuted, 27 unknown and 1 timeout, against 252, 29 and 30.
+  - Gained: TimelockController's law 0 (3 of 3 runs, 3.1 to 4.4 s; main unknown 3 of 3) and blnk's law 5 (3 of 3,
+    47.0 to 60.1 s; main unknown 3 of 3).
+  - TigerBeetle's law 6 was killed at 150 s, where main ends unknown at 114.7 and 137.0 s. Without the halves it ends
+    unknown at 101.1 s. It is the corpus's known cost on a wide map.
+- **Both frontier corpora:** round 1, 90 of 92 with all 42 broken variants refused; round 2, 30 of 47 with all 47
+  refused. Both are the same on both sides, with the same job killed at 200 s.
+- **The 332 step goals:** the searches are the same in all 332; summed time 270,048 against 271,766 ms.
+- **Suites (221 jobs):** none failed by default (381.8 s wall, 5,319.6 s of job time) or with `--usual` (437.4 s,
+  5,044.8 s).
+- **1 vCPU, ten jobs a side:** none failed. data's nearPlus took a median of 2,588.57 ms, at most 3,021.96 (main
+  2,849.06, 3,207.86). infer's "a law that needs an invariant" took 2,833.81 and 3,286.72 (main 2,830.23, 3,344.98).
+  In the batch beside f589873, one data job of ours ran at half speed throughout (132.0 s against 43 to 73 s for the
+  others) and timed out four 5 s tests. In a second batch, ten jobs a side, none failed (`onecpu3`).
+
+What changed:
+- **The gap at 0.27.0** (compare/chc/prof/gap27.py): 251 tasks, 217 sat and 34 unsat.
+  - On 166 of the sat tasks the join ran out of time. Of the 217, the kernel proves 140 with Spacer's invariant.
+  - The unsat tasks are deep Lustre runs. The bounded runs reach depths 9 to 12, where Golem's derivations take 12 to
+    24 steps.
+- **A warm CDCL session** (kernel/cdcl.ts, kernel/reader.ts, core/infer.ts):
+  - `cdclSession.run` takes a list of assumptions and a refutation names those it rests on (MiniSat's analyzeFinal).
+  - The levels that start the next list stay from one query to the next.
+  - Selectors bring no rows (`quiet`), and an off selector's hypothesis is unread past its guard.
+  - Trail stamps are by content.
+  - Measured: the join on it took 28 nodes a query where it had taken 235, but lost tasks the cold join answers (5 of
+    12 against 9 and 10). So the join stays cold, and the session serves PDR.
+- **PDR over the join's cubes** (core/infer.ts's `pdr`, `InferOptions.pdr` or `GDP_JOIN_PDR`: `first`, `after`,
+  `only`; compare/chc/kind.ts's `--pdr-ms` for a turn on the second CPU):
+  - It has frames from the start up, obligations lowest level first, and lemmas generalized by the join's own
+    `generalize` and `down` and pushed. A frame left empty is the invariant.
+  - On 318 dev tasks it answers 110 to 116 sat against the join's 106 to 112 in the same batches. Seven tasks are
+    PDR's alone, every time.
+  - Every placement on the whole track cost as much as it gained: first, after the join, on the second CPU, or in
+    k-induction's turn. So it is off by default.
+- **Measured and taken out:** a request gate on the walks, a candidate dropped after four stuck goals, and an
+  equality's halves on scalar forms. Each cost CHC tasks on its own.
+
+**Size:** `core/` and `kernel/` (tests excluded) are 2,220,063 bytes and 30,540 lines, against main 1a66834's
+2,200,224 and 30,278: +19,839 bytes and +262 lines.
+- By file: infer.ts +14,831, cdcl.ts +4,257, reader.ts +751.
+- About 13 KB of it is the session and PDR, which run only when asked for.
+
 ## 0.27.0
 
 The search's shared engines got faster and more general, and a second language front end joined the extractor. None
