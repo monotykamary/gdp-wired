@@ -11,7 +11,7 @@
 // A residue (x ≡ c mod k) is no term of the kernel's: an answer that needs one is not made here (the hand-off: division
 // by a constant in a loop's terms).
 import type {Ari, Step} from './ari.ts'
-import {type Built, stepOf} from './translate.ts'
+import {type Built, stepOf, varsOf} from './translate.ts'
 import {type Facts, lift, unreached} from './facts.ts'
 import type {C, E, Law} from '../../core/machine.ts'
 import {interpret} from '../../core/machine.ts'
@@ -35,6 +35,23 @@ function atLocation(b: Built, consts: Map<string, Map<number, bigint>>): [number
 }
 export const factLaws = (b: Built, consts: Map<string, Map<number, bigint>>): Law[] =>
   atLocation(b, consts).map(([i, c]) => ({name: `the facts at ${b.locs[i]}`, holds: {op: 'or', xs: [{op: 'not', x: eq(V('pc'), K(i))}, c]}}))
+// The facts a rank of the rewritten task needs on the task's, first: where a rule the rewrite left out starts, its
+// location's (no run reaches it, or the constants its guard reads); then every location's, as one law (one goal to
+// prove it inductive, not one a location).
+export function factLawSets(b: Built, t: Ari, f: Facts): Law[][] {
+  const kept = new Set(f.origins.map(o => o.rule)), need = new Map<string, Map<number, bigint>>()
+  for (const [i, r] of t.rules.entries()) {
+    if (kept.has(i)) continue
+    const cs = f.consts.get(r.from)
+    if (!cs) continue
+    if (cs === unreached) { need.set(r.from, cs); continue }
+    const read = varsOf(r.guard), slots = new Map([...cs].filter(([j]) => typeof r.lhs[j] === 'string' && read.has(r.lhs[j] as string)))
+    if (slots.size) need.set(r.from, new Map([...need.get(r.from) ?? [], ...slots]))
+  }
+  const first = factLaws(b, need), all = factLaws(b, f.consts)
+  const one: Law[] = all.length ? [{name: 'the facts at each location', holds: and(all.map(l => l.holds))}] : []
+  return [first, ...(all.length > first.length ? [one] : [])]
+}
 const factsC = (b: Built, consts: Map<string, Map<number, bigint>>): C => and([{op: '<=', a: K(0), b: K(0)}, ...factLaws(b, consts).map(l => l.holds)])
 
 const grown = (g: Goal, until: number): Tree | undefined => { const o = grow(g, new Map(), {nodes: 0, until}); return 'tree' in o && check(g, o.tree) ? o.tree : undefined }
@@ -73,22 +90,28 @@ export function recurOnTask(b: Built, bR: Built, t: Ari, f: Facts, r: Recur | Re
     for (const [m, x] of p.inputs.entries()) { const v = Number(s.others[x] ?? 'NaN'); if (!Number.isSafeInteger(v)) return undefined; turn[`i${m}`] = Math.max(v, 0); turn[`i${m}$n`] = Math.max(-v, 0) }
     stem.push(turn)
   }
-  const facts = factsC(b, f.consts), set: C = and([r.set, facts]), base = {start: ps, stem, set, wit}
+  // (the set as found, then with every location's facts: each its share of the time)
   const was = realModels.on
   realModels.on = true
   try {
-    if ('cases' in r) {
-      const cases = r.cases.map(c => ({pins: c.pins, cond: and([c.cond, facts])}))
-      const cover = grown(coverGoal({set, cases}), until)
-      if (!cover) return undefined
-      const trees: Tree[] = []
-      for (const g of caseGoals(b.loop, {set, wit}, cases)) { const tr = grown(g, until); if (!tr) return undefined; trees.push(tr) }
-      const out: RecurCases = {...base, cover, cases: cases.map((c, i) => ({...c, tree: trees[i]!}))}
-      return checkRecur(b.loop, out) ? out : undefined
+    for (const [n, facts] of [and([{op: '<=', a: K(0), b: K(0)}]), factsC(b, f.consts)].entries()) {
+      const set: C = and([r.set, facts]), base = {start: ps, stem, set, wit}, end = n === 0 ? performance.now() + (until - performance.now()) / 3 : until
+      if ('cases' in r) {
+        const cases = r.cases.map(c => ({pins: c.pins, cond: and([c.cond, facts])}))
+        const cover = grown(coverGoal({set, cases}), end)
+        if (!cover) continue
+        const trees: Tree[] = []
+        for (const g of caseGoals(b.loop, {set, wit}, cases)) { const tr = grown(g, end); if (!tr) break; trees.push(tr) }
+        if (trees.length < cases.length) continue
+        const out: RecurCases = {...base, cover, cases: cases.map((c, i) => ({...c, tree: trees[i]!}))}
+        if (checkRecur(b.loop, out)) return out
+        continue
+      }
+      const tree = grown(recurGoal(b.loop, {set, wit}), end)
+      if (!tree) continue
+      const out: Recur = {...base, tree}
+      if (checkRecur(b.loop, out)) return out
     }
-    const tree = grown(recurGoal(b.loop, {set, wit}), until)
-    if (!tree) return undefined
-    const out: Recur = {...base, tree}
-    return checkRecur(b.loop, out) ? out : undefined
+    return undefined
   } catch { return undefined } finally { realModels.on = was }
 }

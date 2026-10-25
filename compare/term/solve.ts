@@ -25,13 +25,13 @@
 import {readFileSync} from 'node:fs'
 import {type Ari, type Lasso, Unsupported, checkLasso, parseAri, type Step} from './ari.ts'
 import {type Facts, deadRules, facts, lift, without} from './facts.ts'
-import {factLaws, rankOnTask, recurOnTask} from './ontask.ts'
+import {factLawSets, factLaws, rankOnTask, recurOnTask} from './ontask.ts'
 import type {Law} from '../../core/machine.ts'
 import {type Built, build, stepOf} from './translate.ts'
 import {components} from './scc.ts'
 import {findRank, showE} from '../../core/cycles.ts'
 import {interpret} from '../../core/machine.ts'
-import {check, loopMachine, loopObligations} from '../../kernel/kernel.ts'
+import {type Tree, check, loopMachine, loopObligations} from '../../kernel/kernel.ts'
 import {certLoop, proveLaws, withDeadline} from '../../kernel/prove.ts'
 import {findNeverEnds} from '../../core/nonterm.ts'
 
@@ -171,15 +171,23 @@ if (want !== 'terminates') neverEnds(Math.min(ntMs, limit * 1000 - ms() - 1000),
 type Proven = {ok: boolean, rank?: string, laws?: string[], goals?: number, cert?: () => string, why?: string}
 // `given`: laws the search may read and the kernel proves with the rank; `onTask`: the task's own loop, where the rank
 // found on the rewritten one is proven again (with the facts as laws).
-function prove(l: typeof loop, ms: number, tag: object = {}, given: Law[] = [], onTask?: {b: Built, laws: Law[]}): Proven {
+function prove(l: typeof loop, ms: number, tag: object = {}, given: Law[] = [], onTask?: {b: Built, laws: Law[][]}): Proven {
   let f
   try { f = findRank(l, given, {ms}) } catch (e) { say({stage: 'rank', ...tag, error: (e as Error).message.slice(0, 300)}); return {ok: false, why: 'rank search threw'} }
   say({stage: 'rank', ...tag, proven: f.proven, checked: f.checked, ...(f.found ? {rank: f.found.rank, laws: f.found.laws} : {}), ...(f.goal ? {goal: f.goal, stuck: String(f.stuck).slice(0, 200)} : {}), ...(f.why ? {why: f.why} : {})})
   if (f.proven && f.checked && f.rank && f.trees) {
     let lc = l, laws = [...given, ...f.laws ?? []], trees = f.trees
     if (onTask) {
-      lc = onTask.b.loop; laws = [...onTask.laws, ...laws]
-      const t2 = withDeadline(t0 + (limit - 1) * 1000, () => rankOnTask(onTask.b, laws, f.rank!, t0 + (limit - 1) * 1000))
+      // (with the facts it needs first, then every one, each its share of the time)
+      lc = onTask.b.loop
+      let t2: Record<string, Tree> | undefined
+      const own = laws
+      for (const [i, facts] of onTask.laws.entries()) {
+        const now = performance.now(), end = t0 + (limit - 1) * 1000, until = i === onTask.laws.length - 1 ? end : now + (end - now) / 2
+        laws = [...facts, ...own]
+        t2 = withDeadline(until, () => rankOnTask(onTask.b, laws, f.rank!, until))
+        if (t2) break
+      }
       say({stage: 'on task', ...tag, onTask: t2 ? 'made again' : 'not made'})
       // (not made there: the search again on the task's own loop, in the time left)
       if (!t2) return left() > 1000 ? prove(onTask.b.loop, left(), tag) : {ok: false, why: `rank ${f.found?.rank} of the rewritten task, not proven on the task`}
@@ -235,7 +243,7 @@ else if (scc && comps.length) {
     done('terminates', {...o, cert: certs.map(c => c()).every(c => c === 'cyclic') ? 'cyclic' : 'usual'})
   }
 } else {
-  const out = prove(loop, Math.max(1000, left()), {}, [], f ? {b: b0!, laws: factLaws(b0!, f.split ? new Map() : f.consts)} : undefined)
+  const out = prove(loop, Math.max(1000, left()), {}, [], f ? {b: b0!, laws: f.split ? [[]] : factLawSets(b0!, task0!, f)} : undefined)
   if (out.ok) {
     // the answer as soon as the kernel has checked every tree again; then the certificate, and the answer with it
     const o = {by: 'rank', rank: out.rank, laws: out.laws, goals: out.goals}
