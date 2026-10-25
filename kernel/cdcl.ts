@@ -21,7 +21,7 @@ import {type Constraint, type Lin, type Step, costs, env, refuteFast, solve, wor
 import {checkRefutation} from '../core/check.ts'
 import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isMonomial, leafConstraints} from './kernel.ts'
 import {cellPair, late, leafRowsOf, logged, nearOf, openAt, pairedKeys, queryHook, rowsAt, unitAtoms, type Outcome} from './prove.ts'
-import {Clausal, Reader, type Row, litVar, namesOf} from './reader.ts'
+import {Clausal, Reader, type Row, namesOf} from './reader.ts'
 import {Simplex} from './simplex.ts'
 
 // A derivation's own inputs: the rows it reads, in order, and the steps renumbered to them.
@@ -275,10 +275,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
       ;(byHyp[hyp] ??= []).push(ci)
       if (own && m.size) { const [name, pos] = m.entries().next().value!, z = 2 * vars.get(name)!.id + (pos ? 1 : 0); oc[ci] = z; (ownBy[z] ??= []).push(ci) }
       let open: string | undefined
-      for (const [name, pos] of m) {
-        const x = vars.get(name)!
-        if (x.val === undefined) open = name
-      }
+      for (const name of m.keys()) if (vars.get(name)!.val === undefined) open = name
       if (!m.size) dead = nodes.length - 1
       else if (m.size === 1 && open !== undefined) assign(open, !m.get(open)!, ci)
       // (a hypothesis' own clause: its variables relevant for good; a gate's, where the gate needs it already)

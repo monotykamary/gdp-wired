@@ -807,7 +807,7 @@ export class Clausal {
           else if (cs.atoms !== false) this.clause([...not, ...cs.atoms.map(notLit)])
         }
         return
-      default: throw new Unread()
+      case 'flag': case 'all': throw new Unread()
     }
   }
   // A condition's literal (or its constant truth), its gate written for `pol` (1: read true, 2: read false, 3: both).
@@ -815,7 +815,7 @@ export class Clausal {
     switch (c.op) {
       case 'not': { const x = this.lit(c.x, ((pol & 1) << 1) | ((pol & 2) >> 1)); return typeof x === 'boolean' ? !x : notLit(x) }
       case 'and': case 'or': case '<': case '<=': case '=': break
-      default: throw new Unread()
+      case 'flag': case 'all': throw new Unread()
     }
     const m = this.memo(this.gm), had = m.get(c)
     if (had && (typeof had.l === 'boolean' || !(pol & ~had.done))) return had.l
@@ -919,7 +919,7 @@ export class Clausal {
         for (const [m2, x] of [[l, e.then], [notLit(l), e.else]] as const) for (const c of this.cases(x)) { const g = this.join(c.g, [m2]); if (g) out.push({g, lin: c.lin}) }
         break
       }
-      default: throw new Unread()
+      case 'prod': throw new Unread()
     }
     if (out.length > this.maxCases) {
       const col = v(this.fresh('ϰ'))

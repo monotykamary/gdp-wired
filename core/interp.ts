@@ -13,14 +13,14 @@
 // - a split on an atom of A's: the two sides' interpolants or-ed; on an atom of B's: and-ed.
 // The interpolant is over A's names (the shared ones), as a condition the kernel reads.
 import {type C, type E, type Law, type Machine, type Request, walkOnce} from './machine.ts'
-import {type Goal, type Path, type Tree, atomOf, canon, columnTerm, falseC, leafConstraints, stepLawObligations, substC, substE, trueC} from '../kernel/kernel.ts'
+import {type Goal, type Path, type Tree, atomOf, canon, columnTerm, falseC, leafConstraints, stepLawObligations, substC, trueC} from '../kernel/kernel.ts'
 import {type Lin, type Step, env, gcd, linOfE, plus, solve, vars} from './solver.ts'
 import {litVar} from '../kernel/reader.ts'
-import {namesOf, showC} from './exists.ts'
+import {namesOf} from './exists.ts'
 import {type Dag, REFUTED, type Refuted, cdclSession, growCdcl} from '../kernel/cdcl.ts'
 import {clock, grow} from '../kernel/prove.ts'
 import {relax, replay, runOf, tidier} from './bmc.ts'
-import {dagSize, isF, isT, simpC} from './nonterm.ts'
+import {isF, isT, simpC} from './nonterm.ts'
 
 export type Interpolated = {itp: C, tree?: Tree} | {sat: Record<string, number>} | {unknown: string}
 
@@ -221,7 +221,6 @@ export function fromDag(goal: Goal, dag: Dag, isA: (hyp: number) => boolean, max
       out = p && shared.reduceRight((acc, c) => and(c, acc), p)
     }
     if (out && ++made > maxNodes) out = undefined
-    if (!out && env.GDP_ITP_WHY) console.error('no itp at', i, 'res' in n ? `res on ${JSON.stringify(n.on)} side ${linSide(n.on)}` : 'hyp' in n ? 'hyp' : `leaf ${JSON.stringify(n.inputs.map(l => [l, linSide(l)])).slice(0, 600)} steps ${JSON.stringify(n.steps).slice(0, 300)}`, made > maxNodes ? 'max' : '')
     return out
   }
   const out = at(dag.top)
@@ -279,7 +278,7 @@ export function fromTree(goal: Goal, tree: Tree, isA: (hyp: number) => boolean, 
 // GDP_IMC_RELAX=0: the goals as the kernel writes them (each pair normalized at each step).
 const useRelax = env.GDP_IMC_RELAX !== '0'
 // GDP_ITP_DAG=0: interpolants from the unfolded tree alone.
-const useDag = env.GDP_ITP_DAG !== '0', useClausal = env.GDP_ITP_CLAUSAL === '1', useStrong = env.GDP_ITP_STRONG !== '0', useSession = env.GDP_IMC_SESSION !== '0'
+const useDag = env.GDP_ITP_DAG !== '0', useClausal = env.GDP_ITP_CLAUSAL === '1', useStrong = env.GDP_ITP_STRONG !== '0'
 
 // (`kinductive`: the law holds after k steps in a row where it held before each, the session's k-induction, which the
 // caller's kernel proof may confirm; asked with `induction`)
@@ -327,44 +326,12 @@ export function imc(m: Machine, law: Law, opts: ImcOptions): ImcResult {
   const out = imcSearch(m, law, opts).run(opts.until, opts.wall)
   return out === 'paused' ? {why: 'the budget', k: 0} : out
 }
-// The same search, resumable (compare/chc/kind.ts's turns): each run goes on from the depth and the R it stopped at,
-// until `until` on the counted clock or `wall`, and is 'paused' there (the query it was asking asked again next time).
+// The same search, resumable (compare/chc/kind.ts's turns): each run goes on from where it stopped, until `until` on the
+// counted clock or `wall`, and is 'paused' there (the query it was asking asked again next time). On one unrolling
+// (below), for machines whose goals have no map, flag, param, history or carried map.
 export function imcSearch(m: Machine, law: Law, opts: Omit<ImcOptions, 'until' | 'wall'> = {}) {
   const plain = !(Object.keys(m.maps ?? {}).length || Object.keys(m.step.flags ?? {}).length || m.params.length || m.history || m.inputMaps?.length)
-  if (plain && useSession) return imcSession(m, law, opts)
-  const m2 = stutter(m, law), names = Object.keys(m.state), start = startOf(m)
-  const back = {vars: Object.fromEntries(names.map(n => [`${n}~1`, v(n)])), maps: {}, flags: {}}
-  const then = substC(law.holds, {vars: Object.fromEntries(names.map(n => [n, v(`${n}'`)])), maps: {}, flags: {}})
-  let k = Math.max(2, opts.from ?? 2), rs: C[] = [start]
-  const run = (until: number, wall?: number): ImcResult | 'paused' => {
-    if (!plain) return {why: 'not a plain machine', k: 0}
-    const over = () => clock() > until || (wall !== undefined && performance.now() > wall), budget = {until, ...(wall !== undefined ? {wall} : {})}
-    for (; k <= Math.min(64, opts.to ?? 64); k++, rs = [start]) {
-      for (;;) {
-        if (over()) return 'paused'
-        const r: C = rs.length === 1 ? start : {op: 'or', xs: rs}
-        const out = cutInterpolant(m2, opts.kinds?.length ? {op: 'and', xs: [r, ...opts.kinds]} : r, then, k, budget)
-        if ('sat' in out) {
-          opts.progress?.(k, 'sat', {parts: rs.length})
-          if (rs.length > 1) break
-          const found = runOf(m, out.sat, k), broken = replay(m, [law], found)
-          if (broken) return {run: {params: found.params, trace: found.trace.slice(0, broken.steps)}, k}
-          break
-        }
-        if ('unknown' in out) { if (over()) return 'paused'; return {why: out.unknown, k} }
-        const I = substC(out.itp, back)
-        // I within R: the fixed point.
-        const inR = growCdcl({name: 'an interpolant within', hyps: [I, {op: 'not', x: r}]}, new Map(), {nodes: 0, until}, {model: true, ...(wall !== undefined ? {wall} : {})})
-        const within = !('tree' in inR) && inR.why === REFUTED
-        opts.progress?.(k, within ? 'fixed' : 'refuted', {parts: rs.length})
-        if (within) return {inv: r, k, parts: rs.length}
-        if (!('tree' in inR) && inR.stuck === 'unknown') { if (over()) return 'paused'; return {why: 'containment unknown', k} }
-        rs.push(I)
-      }
-    }
-    return {why: 'no depth left', k: 64}
-  }
-  return {run}
+  return plain ? imcSession(m, law, opts) : {run: (): ImcResult | 'paused' => ({why: 'not a plain machine', k: 0})}
 }
 
 // --- IMC on one unrolling ----------------------------------------------------------------------------------------------
@@ -394,7 +361,7 @@ function renamer(to: Record<string, string>) {
       case 'mul': out = {...e, a: e1(e.a)}; break
       case 'if': out = {op: 'if', c: c1(e.c), then: e1(e.then), else: e1(e.else)}; break
       case 'get': out = {op: 'get', map: e.map, key: e1(e.key)}; break
-      default: out = {...e, a: e1(e.a), b: e1(e.b)} as E
+      case 'add': case 'sub': case 'min': case 'max': case 'prod': out = {...e, a: e1(e.a), b: e1(e.b)}; break
     }
     memo.set(e, out)
     return out
@@ -510,7 +477,6 @@ export function imcSession(m: Machine, law: Law, opts: Omit<ImcOptions, 'until' 
       if (!out.dag) return {unknown: 'no DAG'}
       sideNames(goal, h => isA[h]!, seen, named); named = goal.hyps.length
       const itp = fromDag(goal, out.dag, h => isA[h]!, 200_000, useStrong, budget.wall, seen)
-      if (itp && env.GDP_ITP_SIZE) console.error(JSON.stringify({k, size: dagSize(itp)}))
       return itp ? {itp: tidyC(renamed(itp, back))} : {unknown: 'a leaf with no interpolant'}
     }
     return out.stuck === 'sat' && out.witness ? {sat: out.witness} : {unknown: out.why ?? out.stuck}
@@ -545,16 +511,6 @@ export function imcSession(m: Machine, law: Law, opts: Omit<ImcOptions, 'until' 
           break
         }
         if ('unknown' in out) { if (over()) return 'paused'; return {why: out.unknown, k} }
-        if (env.GDP_IMC_CHECK === '1') {
-          // (a check, for debugging: each step from the frontier lands in the interpolant, and none from it breaks the law
-          // within k − 1 steps; each asked of the kernel's own goals)
-          const F = rs.at(-1)!, prime = (c: C) => substC(c, {vars: Object.fromEntries(names.map(n => [n, v(`${n}'`)])), maps: {}, flags: {}})
-          const g1 = stepLawObligations(m2, [], {}, {name: 'A ⊨ I', when: {op: 'and', xs: [F, ...(opts.kinds ?? [])]}, then: prime(out.itp), steps: 1})[0]!
-          const g2 = stepLawObligations(m2, [], {}, {name: 'I ∧ B', when: out.itp, then: prime(law.holds), steps: k - 1})[0]!
-          const r1 = growCdcl(g1, new Map(), {nodes: 0}, {model: true}), r2 = k > 1 ? growCdcl(g2, new Map(), {nodes: 0}, {model: true}) : r1
-          const ok = (r: ReturnType<typeof growCdcl>) => ('tree' in r ? 'tree' : r.why === REFUTED ? 'ok' : r.stuck)
-          console.error(JSON.stringify({check: true, k, parts, aImpliesI: ok(r1), iAndB: ok(r2)}))
-        }
         // The interpolant within the states reached: the fixed point.
         const q = `q@${++nq}`
         wgoal.hyps.push({op: 'or', xs: [{op: '<=', a: one, b: v(q)}, out.itp]})
@@ -638,12 +594,12 @@ export function compress(m: Machine, law: Law, R: C, kinds: C[], budget: {until:
     if (i > 0 && !on[i - 1]) { i++; continue }
     const out = holdsAfter(i)
     if (!('tree' in out) && out.why === REFUTED) { i++; continue }
-    if ('tree' in out || out.stuck !== 'sat' || !out.witness) { if (env.GDP_SMALL_TRACE) console.error('cti query', 'tree' in out ? 'tree' : out.stuck); return undefined }
+    if ('tree' in out || out.stuck !== 'sat' || !out.witness) return undefined
     // The counterexample read by R's atoms (a name no row read: 0), each atom as it holds there an assumption of R's
     // session: R is a combination of its atoms, so where they hold as there, R doesn't.
     const w = out.witness, cube = atomsR.map(lin => { let x = lin['1'] ?? 0; for (const n of vars(lin)) x += lin[n]! * Math.max(0, Math.round(w[n] ?? 0)); return x <= 0 ? lin : atomOf(lin, false).lin })
     const o = O.run({nodes: 0, until: budget.until}, budget.wall, cube) as Refuted
-    if ('tree' in o || o.why !== REFUTED || !o.assumed?.length) { if (env.GDP_SMALL_TRACE) console.error('oracle', 'tree' in o ? 'tree' : o.stuck, o.assumed); return undefined }
+    if ('tree' in o || o.why !== REFUTED || !o.assumed?.length) return undefined
 
     // The bounds R needs, fewer: each dropped where R still refutes the rest (its own refutation's assumptions kept).
     let core = o.assumed.map(q => cube[q]!)
@@ -654,7 +610,6 @@ export function compress(m: Machine, law: Law, R: C, kinds: C[], budget: {until:
     core = mic(core)
     // (each bound's negation: n <= x fails where n >= x + 1, n >= x where n <= x − 1)
     const clause: C = {op: 'or', xs: core.map(lin => linLe(atomOf(lin, false).lin))}
-    if (env.GDP_SMALL_TRACE) console.error('clause', clauses.length, o.assumed.length, '→', core.length, 'of', cube.length, env.GDP_SMALL_TRACE === '2' ? showC(clause) : '')
     sGoal.hyps.push({op: 'or', xs: [{op: '<=', a: one, b: v(`k@${clauses.length}`)}, clause]}); clauses.push(clause); cores.push(core); on.push(true); target(clause)
     if (clauses.length > maxClauses) return undefined
     i = 0
