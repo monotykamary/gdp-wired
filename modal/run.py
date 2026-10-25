@@ -136,16 +136,17 @@ def modal_jobs(spec: list[dict], pre: str, cmd, on_done) -> dict:
     try:
         for (cpu, memory, timeout), js in groups.items():
             fn = sh.with_options(cpu=cpu, memory=memory, timeout=timeout + 60)
-            calls += [(j["name"], fn.spawn(j["name"], pre + cmd(j["cmd"]), j.get("cwd", "."), timeout - 30)) for j in js]
-        for name, c in calls:
+            calls += [(j["name"], fn.spawn(j["name"], pre + cmd(j["cmd"]), j.get("cwd", "."), timeout - 30), timeout) for j in js]
+        for name, c, timeout in calls:
             try:
-                r = c.get()
+                # (a call Modal lost would hang the batch: past its function's own timeout it is a failed row)
+                r = c.get(timeout=timeout + 180)
             except Exception as e:  # a container that timed out or died still gets a row
                 r = {"name": name, "code": -1, "seconds": -1, "out": "", "err": repr(e)}
             rows[name] = r
             on_done(name, r)
     finally:  # whatever happened, nothing keeps running (cancelling a finished call is a no-op)
-        for _, c in calls:
+        for _, c, _ in calls:
             try:
                 c.cancel()
             except Exception:
