@@ -69,7 +69,7 @@ say({stage: 'import', preds: chc!.preds.size, clauses: chc!.clauses.length, ints
 // The bounded runs go there too (`--bmc-here` keeps them in this process's stage, after the guided runs, as before), in
 // turn with k-induction, so this process's invariant search starts after the guided runs.
 const kindMs = opt('--kind-ms', Math.max(0, houdiniMs - 2000 - ms())), bmcThere = kindMs > 0 && !args.includes('--bmc-here') && bmcMs > 0
-const kind = kindMs > 0 ? Bun.spawn(['nice', '-n', '19', 'bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid), '--bmc', bmcThere ? '1' : '0', '--imc', String(opt('--imc', 2)), '--kind', String(opt('--kind', 1)), '--compose', String(opt('--compose', 1)), '--slice', String(opt('--slice', 0))], {stdout: 'inherit', stderr: 'ignore'}) : undefined
+const kind = kindMs > 0 ? Bun.spawn(['nice', '-n', '19', 'bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid), '--bmc', bmcThere ? '1' : '0', '--imc', String(opt('--imc', 1)), '--imc-x', String(opt('--imc-x', 1)), '--imc-first', String(opt('--imc-first', 1)), '--bmc-depth', String(opt('--bmc-depth', 0)), '--induction', String(opt('--induction', -1)), '--kind', String(opt('--kind', 0)), '--compose', String(opt('--compose', 1)), '--slice', String(opt('--slice', 0))], {stdout: 'inherit', stderr: 'ignore'}) : undefined
 process.on('exit', () => { kind?.kill() })
 
 // A run, replayed on the compiled rule and checked against the CHC.
@@ -222,6 +222,7 @@ if (useHoudini && oldHoudini) {
   say({stage: 'houdini', candidates: h.candidates, afterRuns: h.afterRuns, kept: h.kept.length, rounds: h.rounds, proven: h.proven, ...(h.why ? {why: h.why} : {})})
   if (h.proven && !cc) done('sat', {by: 'houdini', invariants: h.kept.length})
 }
-// (k-induction may still answer: its end, at the deadline, is this one's)
-if (kind) await kind.exited
+// (the second CPU may still answer: its end, at the deadline, is this one's; a step of it that overruns the deadline,
+// such as a kernel proof that reads past it, is stopped with this process half a second after it, before the track's cap)
+if (kind) await Promise.race([kind.exited, new Promise(res => setTimeout(res, Math.max(0, houdiniMs + 500 - ms())))])
 done('unknown')

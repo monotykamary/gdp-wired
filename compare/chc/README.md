@@ -14,11 +14,11 @@ and Eldarica (2.3).
 | `modal_chc.py` | The track on Modal: every task in its own container (2 vCPU, 4 GB), each tool under the same 60 s wall-clock limit, all at once (`starmap`) |
 | `summary.ts` | The table below from a run's `results.jsonl`, with wrong answers counted against each task's expected verdict where some tool decided it at CHC-COMP'26 |
 | `compose.ts` | The system the searches read (`prepare`): chains composed away (a predicate with no clause to itself whose incoming times outgoing clauses are no more than the two together, each pair made one clause), and with `--slice` the cone of influence as a weakening (definitions of what nothing relevant reads dropped). `expand`: a derivation of it as requests of the original rule, replayed there and checked by `checkDerivation`. `lift`: an invariant of it as laws of the original rule, an interpolant at each eliminated predicate (or its weakest precondition), which the kernel proves of the original (`liftProven`) |
-| `kind.ts` | The container's second CPU, a process at the lowest priority started once the task is read, until the search's deadline: k-induction (core/kind.ts) and the bounded runs (core/bmc.ts's `boundedSearch`: a deterministic loop's forced run, then a model of a k-step goal from the start to error) in turn, in slices of 2 s each, then 4, 8, 16, ..., each going on where it stopped; proven and checked (kernel.ts's `checkKInduction`), or a run `checkDerivation` confirms, it stops solve.ts and answers |
+| `kind.ts` | The container's second CPU, a process at the lowest priority started once the task is read, until the search's deadline: interpolation over the unrolling first (core/interp.ts's `imcSearch`, one CDCL session in the clausal mode for the whole search), whose same session asks k-induction at each depth where the rule is as written (proven by core/kind.ts at that k) and the start's query at each depth (the bounded runs'); beside it the forced run of a deterministic loop (core/bmc.ts's `boundedSearch`, `--bmc-depth 0`), in slices of 2 s, 4, 8, ...; an invariant made a few clauses (`compress`) and proven by the kernel (lifted to the original where composed), a run `checkDerivation` confirms, stops solve.ts and answers. `--imc 2 --imc-first 0 --kind 1 --bmc-depth 64` is gen/chc7's turns |
 | `prof/kind.ts` | Not a solver (`--tools kind`): whether the law is k-inductive, a measure of what k-induction would add |
 | `prof/kind-tree.ts`, `prof/kind-lean.ts` | Not solvers: where a k-step goal's time goes (CDCL's model search, its tree, the unfolding, the check), and a task's k-induction certificate as Lean (KInd.lean's `kind_sound`) |
 | `prof/gap27.py` | The gap at a release by group, family and cause, from runs of the track and Spacer's and Golem's answers |
-| `prof/imc.ts`, `prof/tpa.ts` | Not the solver (`--tools imc`, `--tools tpa`): interpolation over the unrolling (core/interp.ts) and transition power abstraction (core/tpa.ts) alone, each answer checked as solve.ts checks it |
+| `prof/imc.ts`, `prof/tpa.ts` | Not the solver (`--tools imc`, `--tools tpa`): interpolation over the unrolling (core/interp.ts, its invariant made small by `compress`; `GDP_IMC_QSTATS=1` prints each query's ms, CDCL nodes and decisions) and transition power abstraction (core/tpa.ts) alone, each answer checked as solve.ts checks it |
 | `prof/itpdirs.ts` | Not a solver (`--tools itpdirs`): the directions of Spacer's invariant atoms that bounded refutations' interpolants find, from `prof/gap-models.json` (Spacer's models of the gap tasks, `runs/modal/chc2/spacer-models-sat/models.jsonl` by smt2 path; not kept) |
 | `prof/` | A Modal profiler for one task's `proveRule`; `spacer_models.py`, the invariants Spacer finds for given tasks (or, with `--engine golem`, Golem's derivations of false); `template.ts` (`--tools tmpl`), what `inferLaws` would search on a task (its atoms, coefficient magnitudes and shape limits); `given.ts` (`--tools given`), `proveRule` given Spacer's invariant as laws; `gap.py`, the gap to Spacer by the shape of its invariant and what gdp-wired did |
 
@@ -28,6 +28,112 @@ and Eldarica (2.3).
     modal run compare/chc/modal_chc.py --out <dir> --tools tmpl            # then --tools given --tasks-json <file>
     python3 compare/chc/prof/gap.py --gdp <run> --others <run> --models <dir> --template <run> [--cex <dir>] [--given <run>] --out <file.json>
     modal run compare/chc/modal_chc.py --out <dir> --tools golem-imc,golem-tpa   # Golem with one engine of its own
+
+## IMC's query made cheap: the goal read as clauses, one session for the search, on gen/chc8 (after 0.28.0)
+
+Every run named here is in the main checkout's `runs/chc8/` and `runs/bar/runs/` (60 s, Modal, 2 vCPU), against main
+b12965e's shared baseline (`runs/bar/base/b12965ecddfc-modal-r1`, three runs). Nothing trusted changed: kernel/kernel.ts,
+kernel/cyclic.ts, core/check.ts and lean-kernel/ are main's. Every sat answer is the kernel's proof (on the original rule,
+lifted where composed), every unsat answer a run `checkDerivation` confirms.
+
+**Where IMC's time went** (FIREFLY_11, 132 state values and 104 request values a step; bun's CPU profile of 12 s of
+gen/chc7's IMC, `runs/chc8` notes): the reader's rows (reader.ts's `sync`) 5.25 s, of which its own bookkeeping of what
+each value read (`read`, `touch`, `walk`, `readAtom`, self time) 3.88 s; the decision's candidates, every hypothesis'
+open atoms scanned at every node, 2.20 s; the simplex and the exact elimination 1.03 s; building the goal and reading
+the interpolant off the DAG a few ms each. The eighth query: 4,025 nodes at about 1.4 ms each, 2,527 decisions for 574
+conflicts. Golem's IMC answers the task at its third lookahead in 0.17 s (locally), its invariant 212 KB: the queries
+are the same in kind, about a hundred times cheaper.
+
+**The structure.** One search engine, one unrolling, one session:
+- **The goal read as clauses** (reader.ts's `Clausal`, kernel/cdcl.ts's clausal mode, a model alone wanted): each
+  hypothesis as clauses over atoms and gates (Tseitin's, written for the polarities a gate is read in, Plaisted and
+  Greenbaum), a term's choices (if, min, max, ∸, a division or remainder by a constant) lifted out of the comparison
+  that reads them, case by case (past 16 cases a fresh natural). Unit propagation over two watched literals (a blocker
+  each) in place of the reader; the rows at a node the trail's atoms and their names' naturals; a decision the most
+  active relevant variable (relevance top-down: a hypothesis' own clauses at once, a gate's where the gate holds the
+  value that needs them), never a case's atom; up to 16 decisions at the simplex's point between two simplex checks;
+  the most violated row first and the sparsest column for the first 200 pivots of a check, Bland's rule after. Where a
+  goal reads what the clauses don't (a product, a map, a quantified flag), the kernel's reading as before. Its refutation
+  is a DAG whose leaves are theory conflicts or a hypothesis' clauses; the interpolant is McMillan's own system over it
+  (the strongest; gen/chc7's is its dual, the weakest).
+- **IMC on one unrolling** (core/interp.ts's `imcSession`): each step's hypotheses written once in names that stay (the
+  state before the first step the machine's own names, one renaming a step so the parts its updates share stay shared:
+  kernel.ts's substC writes a DAG out as a tree), the law broken after step k behind act@k, each frontier behind a
+  selector of its own, retired when the next comes (its clauses read no more). McMillan's own loop, as Golem's IMC.cc
+  has it: the query starts from the latest interpolant, not from all of them (gen/chc7's R ∨ I grew every query). The
+  refutation's DAG ends in the clause of the two assumptions, so the interpolant is the query's as asked. The states
+  reached so far are a second session's: each frontier's negation once, the next interpolant behind a selector.
+- **The same session's other queries**: the start's query at each depth is the bounded run of that depth (a model is
+  a run, replayed and checked); k-induction at each depth, the law before each of the first k steps behind ind@j, its
+  refutation then proven by core/kind.ts at that k (the rule as written: a composed rule's k-induction is not the
+  original's). The forced run of a deterministic loop stays beside it (s_split's 10,002 steps).
+- **The invariant made small** (`compress`): IMC's R, the frontiers' disjunction, is correct (each interpolant checked
+  on its own by the kernel reading's model search: FIREFLY_11's 10 of 10) but the kernel's proof of its step took past 38 s.
+  PDR at one frame with R as the oracle: a state the clauses and the law allow, one step from which breaks one of them,
+  lies outside R; read by R's atoms, the atoms R's refutation needs (its assumptions, then each dropped while R still
+  refutes the rest) are a cube; its negation, generalized by relative induction (an atom dropped where the clause
+  without it holds at the start and after every step from where it and the clauses hold), a clause; every clause
+  generalized again from the full frame, then each left out where the rest still holds. FIREFLY_11: 3 clauses, proven
+  in 1.5 s (locally); without the relative induction 25 clauses of 11 atoms, 8.8 s; R as it is, not proven in 38 s.
+
+**The query, before and after** (16 tasks of the gap: FIREFLY, DRAGON, ctigar, metros, car, durationThm; IMC alone,
+`prof/imc.ts --tools imc` with `GDP_IMC_QSTATS=1`; `q-before` on b12965e, `q-after2` on this branch):
+
+| | queries | median ms | p90 ms | max ms | CDCL nodes, median |
+| --- | --- | --- | --- | --- | --- |
+| b12965e (gen/chc7's IMC) | 346 | 1,239 | 4,663 | 24,033 | 927 |
+| gen/chc8 | 1,419 | 81 | 450 | 17,623 | 42 |
+
+The queries are not the same ones (the frontier's against R ∨ I; deeper depths reached): a median 15 times and a p90
+10 times cheaper. By task, FIREFLY_11 3,346 → 317 ms (sat at k = 4), DRAGON_4 6,456 → 530 (sat), car_6_e2_893 1,995 →
+44 (unsat, 13 steps), nest-if7 1,249 → 53 (sat at k = 12, Golem's lookahead 10), metros_4_e1_917 1,133 → 92 (depth 18
+by 60 s; Golem reaches its lookahead 32 in about 2 s).
+
+**IMC alone on the 239 gap tasks** (`prof/imc.ts`, 55 s, chains composed): gen/chc7 41 (`runs/chc7/i1-comp`); the
+session, frontier and compression 94 (`i2-sessc`); McMillan's strong interpolants 111 (`i3-strong`, the dual 103);
+the greedy pivots and the interpolants tidied 125 (`i4-g1t1`; 122, 116, 120 without either or one); the final commit
+119 (`i5-final`). Golem's IMC: 193.
+
+**Measured on the whole track** (one run each, counted as the bar counts them, against the baseline's 1,079, 1,083
+and 1,085; `runs/chc8/t*`):
+
+| run | what | solved |
+| --- | --- | --- |
+| t1-imc2 / t1-imc1 | gen/chc7's turns (IMC sharing k-induction's slice) / IMC its own turn | 1,132 / 1,140 |
+| t2-first / -x2 | IMC's turn first / and twice as long | 1,149 / 1,150 |
+| t3-nokind / -x4 | no k-induction / IMC's turn four times as long | 1,154 / 1,154 |
+| t4-sesskind | k-induction on IMC's session, no turn of its own | 1,147 (1,149 with -x2) |
+| t5-nokind / -sesskind / -kind | compression by relative induction: none / on the session / its own turn | 1,164 / 1,163 / 1,163 |
+| t6-nobmc | no bounded runs at all | 1,150: the forced runs' s_split ×17 lost |
+| t7-sess / -forced | greedy pivots, interpolants tidied; the bounded runs' k-step goals / the forced run alone | 1,159 / 1,162 |
+| t8-clausal / -strong | the lift's interpolants the clausal mode's too: dual / strong | 1,158 / 1,166 (HOLA/14, 26 lost either way) |
+
+The answers near the limit flip from run to run (of the 41 tasks t3-nokind, t3-x4, t4-sesskind and t2-first disagree
+on, 29 were answered past 45 s in some run): what moved the count was what made IMC's answers earlier. The default
+(solve.ts) is `--imc 1 --imc-first 1 --kind 0 --bmc-depth 0`: IMC's session first, k-induction and the start's queries on
+it, the forced run beside it; the lift's interpolants stay the kernel reading's (t8: the clausal mode's lose HOLA/14
+and 26, which the bar of 6776a87 confirmed, 0 of 4 against 6 of 6).
+
+**Timeouts.** The bar of 5044f13 had 21 timeouts against the baseline's 1 to 4: solve.ts waited for the second CPU
+past its own deadline, and a kernel proof there (durationThm_3: IMC's invariant at 0.8 s, its clauses at 1.0 s, the
+proof still running at the cap; locally it takes 0.2 s) read past kind.ts's. solve.ts now stops waiting half a second
+after its deadline (183f4e2): 2, 3 and 3 timeouts in the three runs below.
+
+**The final commit (183f4e2), three runs of the whole track** (`runs/chc8/final-r1`..`r3`): 1,166, 1,164 and 1,166
+(mean 1,165.33, spread 2), every one wrong 0 with the same 2 disputed labels; Spacer 1,163 and Golem 1,154 (our
+harness, unconfirmed under CHC-COMP's own setup). Against the baseline's three runs: gained in every run 65 (ctigar 15,
+FIREFLY 11, car 7, metros 7, reve 4, DRAGON 4, durationThm 4, the rest 13), lost in every run 0; lost in a majority 1,
+ctigar's nest-len (unknown, unknown and a timeout against the base's 53.9 and 54.9 s and one unknown: at the limit).
+
+**The full bar of 183f4e2** (`runs/bar/runs/183f4e2042d5-vs-b12965ecddfc-full-2026-10-251345`): CHC 1,174 against a mean
+of 1,082.33 (gained 77, 59 in every run; lost 0; wrong 0), a fourth run of the commit: with it the four runs are 1,166,
+1,164, 1,166 and 1,174, a mean of 1,167.5 whose margin over Spacer's 1,163 (4.5) is below their spread (10); the three
+runs alone clear it (2.33 against 2). Everything else level: ITS 1,153 against 1,153 (per component 1,157 against
+1,156.67), SV-COMP 246 and 216 as the base, TIP 212 against 212.67 (one differing, noise), the frontier corpora 90 and 32
+against 90 and 31 (every broken variant refused), the real-world corpus 274, 29, 8 as the base, the 332 step goals the
+same search on all 332, both suites 224 of 224, the 1-vCPU tests within the base's spread (no failed job), Lean 47 of
+48 (slayer-3-new.t2_fixed's export fails to compile on a noncomputable definition, its theorem on the standard axioms;
+the same export error is in the infra/bar runs against e1711ca, before this branch).
 
 ## Chains composed away and interpolants off CDCL's DAG, on gen/chc7 (after 0.28.0)
 

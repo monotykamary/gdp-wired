@@ -17,7 +17,7 @@ import {parseChc} from './chc.ts'
 import {type Raw, build, checkDerivation, requestOf, stepsOf} from './translate.ts'
 import {type KindResult, proveKInduction} from '../../core/kind.ts'
 import {boundedSearch} from '../../core/bmc.ts'
-import {imcSearch} from '../../core/interp.ts'
+import {compress, imcSearch} from '../../core/interp.ts'
 import {proveRule} from '../../core/dsl.ts'
 import {clock, counted, fullRate, withDeadline} from '../../kernel/prove.ts'
 import {expand, invOf, liftProven, prepare} from './compose.ts'
@@ -71,7 +71,8 @@ const kindTurn = (slice: number) => {
 // forced run 4.5 s of wall time in all, what it had as 30% of solve.ts's 15 s stage).
 const bmcDepths: [number, string, number, number][] = []
 let w0 = performance.now()
-const bs = withBmc ? boundedSearch(m, [b.law], {forcedMs: 4500, progress: (k, o, c) => { bmcDepths.push([k, o[0]!, c, Math.round(performance.now() - w0)]); w0 = performance.now() }}) : undefined
+// (`--bmc-depth d`: the k-step goals up to d alone; 0, the forced run alone, the session's queries from the start the rest)
+const bs = withBmc ? boundedSearch(m, [b.law], {forcedMs: 4500, depth: opt('--bmc-depth', 64), progress: (k, o, c) => { bmcDepths.push([k, o[0]!, c, Math.round(performance.now() - w0)]); w0 = performance.now() }}) : undefined
 let bmcLive = !!bs
 const bmcTurn = (slice: number) => {
   w0 = performance.now()
@@ -89,7 +90,10 @@ const bmcTurn = (slice: number) => {
 
 // Interpolation over the unrolling, a slice at a time (counted as the bounded runs are, beside the wall stop).
 const imcDepths: [number, string][] = []
-const is = withImc ? imcSearch(m, b.law, {kinds: b.rule.kindLaws().map(l => l.holds), progress: (k, what) => { imcDepths.push([k, what[0]!]) }}) : undefined
+// (with the rule as written, k-induction asked on the same unrolling: `--induction 1`, the default where k-induction has no
+// turn of its own; its answer proven by core/kind.ts at that k)
+const ind0 = opt('--induction', -1), induction = !cc && (ind0 < 0 ? !withKind : ind0 !== 0)
+const is = withImc ? imcSearch(m, b.law, {kinds: b.rule.kindLaws().map(l => l.holds), induction, progress: (k, what) => { imcDepths.push([k, what[0]!]) }}) : undefined
 let imcLive = !!is
 const imcTurn = (slice: number) => {
   const wall = Math.min(end, performance.now() + slice)
@@ -97,6 +101,13 @@ const imcTurn = (slice: number) => {
   if (out === 'paused') return
   imcLive = false
   say({stage: 'imc', depths: imcDepths, k: out.k, ...('why' in out ? {why: out.why.slice(0, 80)} : {}), by: 'second'})
+  if ('kinductive' in out) {
+    const kd = proveKInduction(mo, bo.rule.kindLaws(), bo.law, {ms: 20 * Math.max(1, end - performance.now()), wall: end, from: out.kinductive, to: out.kinductive})
+    say({stage: 'imc', kinductive: out.kinductive, proven: kd.proven, checked: kd.checked, ...(kd.why ? {why: kd.why.slice(0, 80)} : {})})
+    if (kd.proven && kd.checked) { stop(); say({stage: 'answer', answer: 'sat', by: 'kind', k: kd.k}); process.exit(0) }
+    imcLive = true
+    return
+  }
   if ('run' in out) {
     const ok = confirmed(out.run.trace as Record<string, unknown>[])
     if ('bad' in ok) { say({stage: 'imc', refused: ok.bad}); return }
@@ -105,9 +116,17 @@ const imcTurn = (slice: number) => {
     process.exit(0)
   }
   if ('inv' in out) {
-    const v = cc ? liftProven(cc, bo, invOf([b.law, ...b.rule.kindLaws(), {name: 'imc', holds: out.inv}])!, end) : withDeadline(end, () => proveRule(b.rule, [b.law, {name: 'imc', holds: out.inv}], {search: false}))
-    const proven = v.proven && (!('checked' in v) || v.checked)
-    say({stage: 'imc', proven, parts: out.parts, ...('liftMs' in v ? {why: v.why, liftMs: v.liftMs, proveMs: v.proveMs, laws: v.laws} : {checked: v.checked})})
+    // (the invariant made a few clauses first, core/interp.ts's compress, each a law for the kernel; else as it is)
+    const t1 = performance.now(), small = counted(fullRate, () => compress(m, b.law, out.inv, b.rule.kindLaws().map(l => l.holds), {until: Infinity, wall: end}), true)
+    say({stage: 'imc', small: small?.length ?? -1, smallMs: Math.round(performance.now() - t1)})
+    // (where the clauses aren't proven, the invariant as it is, in the time left)
+    let proven = false
+    for (const laws of [...(small ? [small.map((holds, j) => ({name: `imc ${j}`, holds}))] : []), [{name: 'imc', holds: out.inv}]]) {
+      if (proven || performance.now() >= end) break
+      const v = cc ? liftProven(cc, bo, invOf([b.law, ...b.rule.kindLaws(), ...laws])!, end) : withDeadline(end, () => proveRule(b.rule, [b.law, ...laws], {search: false}))
+      proven = v.proven && (!('checked' in v) || v.checked)
+      say({stage: 'imc', proven, parts: out.parts, laws: laws.length, ...('liftMs' in v ? {why: v.why, liftMs: v.liftMs, proveMs: v.proveMs} : {checked: v.checked})})
+    }
     if (!proven) return
     stop()
     say({stage: 'answer', answer: 'sat', by: 'imc', k: out.k})
@@ -117,13 +136,15 @@ const imcTurn = (slice: number) => {
 
 // Each live search its slice in turn; the last one live, the rest of the time.
 // `--imc 2`: k-induction and interpolation share k-induction's slice, half each, the bounded runs' as before.
-const half = opt('--imc', 0) === 2
+const half = opt('--imc', 0) === 2, imcX = opt('--imc-x', 1), imcFirst = opt('--imc-first', 0) !== 0
 for (let slice = 2000; performance.now() < end && (kindLive || bmcLive || imcLive); slice *= 2) {
   const share = (others: boolean, part = slice) => (others ? part : end - performance.now())
-  const kindPart = half && imcLive ? slice / 2 : slice, imcPart = half && kindLive ? slice / 2 : slice
-  if (kindLive) kindTurn(share(bmcLive || imcLive, kindPart))
+  const kindPart = half && imcLive ? slice / 2 : slice, imcPart = (half && kindLive ? slice / 2 : slice) * imcX
+  // (`--imc-first 1`: interpolation's turn first)
+  if (imcFirst && imcLive) imcTurn(share(kindLive || bmcLive, imcPart))
+  if (kindLive && performance.now() < end) kindTurn(share(bmcLive || imcLive, kindPart))
   if (bmcLive && performance.now() < end) bmcTurn(share(kindLive || imcLive))
-  if (imcLive && performance.now() < end) imcTurn(share(kindLive || bmcLive, imcPart))
+  if (!imcFirst && imcLive && performance.now() < end) imcTurn(share(kindLive || bmcLive, imcPart))
 }
 if (withKind) say({stage: 'kind', proven: false, checked: false, depths: kindDepths, ...(kindWhy ? {why: kindWhy.slice(0, 120)} : {})})
 if (bmcLive) say({stage: 'bmc', depth: bmcDepths.at(-1)?.[0] ?? 0, found: false, depths: bmcDepths, by: 'second'})

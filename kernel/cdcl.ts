@@ -21,7 +21,7 @@ import {type Constraint, type Lin, type Step, costs, env, refuteFast, solve, wor
 import {checkRefutation} from '../core/check.ts'
 import {type Goal, type Path, type Tree, atomOf, canon, canonFlip, isMonomial, leafConstraints} from './kernel.ts'
 import {cellPair, late, leafRowsOf, logged, nearOf, openAt, pairedKeys, queryHook, rowsAt, unitAtoms, type Outcome} from './prove.ts'
-import {Reader, type Row, namesOf} from './reader.ts'
+import {Clausal, Reader, type Row, namesOf} from './reader.ts'
 import {Simplex} from './simplex.ts'
 
 // A derivation's own inputs: the rows it reads, in order, and the steps renumbered to them.
@@ -47,16 +47,20 @@ const keyOf = (lin: Lin): string => {
 // A node of the refutation: a leaf (its decisions, by variable, and a derivation over the rows at its path) or a
 // resolution of two earlier nodes on a variable (`res[0]` the one with the atom as stored true, `res[1]` false).
 // (with opts.dag, a leaf also has each input's hypothesis, -1 for a row of no hypothesis, and its clause's literals)
-type DagNode = {inputs: Lin[], steps: Step[], src?: number[], lits?: [Lin, boolean][]} | {res: [number, number], on: Lin}
+// (in the clausal mode, a leaf may be a clause of a hypothesis', `hyp` its index: its literals, as a leaf's, can't all hold)
+type DagNode = {inputs: Lin[], steps: Step[], src?: number[], lits?: [Lin, boolean][]} | {res: [number, number], on: Lin} | {hyp: number, lits: [Lin, boolean][]}
 // A refutation's DAG (opts.dag, with model): its nodes and the empty clause's, for interpolants read off it
 // (core/interp.ts's fromDag) instead of the tree it unfolds to.
-export type Dag = {nodes: DagNode[], top: number}
-type Var = {name: string, lin: Lin, terms: [string, number][], col: boolean, val?: boolean, level: number, reason?: number, at: number, act: number, phase: boolean,
+// (`clausal`: made in the clausal mode, its theory leaves reading the trail's atoms alone)
+export type Dag = {nodes: DagNode[], top: number, clausal?: boolean}
+// (the clausal mode's: `id` its index, a pair (x, v) coded 2·id + v; `hp` its place in the heap; `cond` whether a
+// decision may take it)
+type Var = {name: string, lin: Lin, terms: [string, number][], col: boolean, quiet?: boolean, id: number, hp?: number, cond?: boolean, val?: boolean | undefined, level: number, reason?: number | undefined, at: number, act: number, phase: boolean,
   bj?: number[], bjAt?: number, bsig?: number, bver?: number, sj?: (number | undefined)[], sx?: Simplex, pair?: boolean}
-type Clause = {lits: Map<string, boolean>, node: number}
+type Clause = {lits: Map<string, boolean>, node: number, input?: boolean}
 // GDP_CDCL_LP=0: each node solved by elimination alone (no simplex); GDP_CDCL_FILL (8): the simplex's tableau begun
 // again past this many entries a row the node reads (research/step's comparisons).
-const lpFill = Number(env.GDP_CDCL_FILL ?? 8), useLp = env.GDP_CDCL_LP !== '0', verify = env.GDP_CDCL_VERIFY === '1'
+const lpFill = Number(env.GDP_CDCL_FILL ?? 8), lpGrow = Number(env.GDP_CDCL_GROW ?? 4), lpBase = Number(env.GDP_CDCL_BASE ?? 500), lpGreedy = Number(env.GDP_CDCL_GREEDY ?? 200), useLp = env.GDP_CDCL_LP !== '0', verify = env.GDP_CDCL_VERIFY === '1'
 // Counters research/step reads (times only while `on`).
 export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions: 0, solveMs: 0, rowsMs: 0, coreMs: 0, unfoldMs: 0, leaves: 0, resolved: 0, coreSize: 0, pathSize: 0, lpMisses: 0, resolved2: 0, unfoldWhy: '', orderMs: 0, boundMs: 0, openMisses: 0, lpMs: 0, lpUnknown: 0, fmCalls: 0, pivots: 0, lpRebuilds: 0, lpRows: 0, lpNnz: 0, lpVars: 0, lpLoad: 0, nodes: 0, boundRounds: 0}
 
@@ -66,23 +70,62 @@ export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions
 // goal.hyps): those alone have no model (each leaf's rows are those hypotheses' facts at its decisions, or rows true of
 // any value: the trail's atoms, the naturals, the term columns' definitions), as core/infer.ts's join reads it.
 export const REFUTED = 'refuted, not unfolded'
-export type Refuted = Outcome & {core?: number[], dag?: Dag}
-export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?: number}, opts: {maxLeaves?: number, model?: boolean, wall?: number, core?: boolean, dag?: boolean} = {}): Outcome {
+export type Refuted = Outcome & {core?: number[], dag?: Dag, assumed?: number[]}
+export type CdclOptions = {maxLeaves?: number, model?: boolean, core?: boolean, dag?: boolean, clausal?: boolean, sideOf?: (hyp: number) => number, quiet?: (name: string) => boolean}
+export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?: number}, opts: CdclOptions & {wall?: number} = {}): Outcome {
   const go = () => cdclSession(goal, root, opts).run(budget, opts.wall)
   return queryHook.on && !queryHook.depth ? logged(opts.model ? 'model' : 'cdcl', goal, go) : go()
 }
-// A search kept from one run to the next (core/bmc.ts's deeper goals): its atoms, their activities and phases, its learned
-// clauses and the simplex's tableau. Between runs the caller may add hypotheses to the goal (goal.hyps grows; none is
-// taken away), so every clause learned stays a consequence of the goal. A run may assume an atom (`assume`, decided
-// first, at level 1): where the search learns it false the run ends refuted (REFUTED), as where nothing is assumed and
-// the goal is refuted. Each run's own budget: nodes, `until` on the counted clock, `wall`.
-export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, model?: boolean, core?: boolean, dag?: boolean} = {}) {
-  let until = Infinity, budget: {nodes: number, until?: number} = {nodes: 0}, wall: number | undefined, assumed: [string, boolean] | undefined
+// A search kept from one run to the next (core/bmc.ts's deeper goals, core/unroll.ts's sessions): its atoms, their
+// activities and phases, its learned clauses and the simplex's tableau. Between runs the caller may add hypotheses to the
+// goal (goal.hyps grows; none is taken away), so every clause learned stays a consequence of the goal. A run may assume
+// atoms (`assume`, each decided first, at a level of its own, in order; gen/chc5-pdr's): where the search learns one false
+// the run ends refuted (REFUTED), as where nothing is assumed and the goal is refuted; given a list, the refutation names
+// the assumptions it needed (`assumed`, their indices, MiniSat's analyzeFinal), and with `dag` its DAG ends in the
+// clause of those assumptions. Each run's own budget: nodes, `until` on the counted clock, `wall`.
+// `quiet`, with `model`: names read only as decisions (a session's selectors): an atom over one of them alone brings no
+// row (the simplex and the elimination never see it).
+// `clausal`, with `model`: the goal read as clauses (reader.ts's Clausal) in place of the kernel's reading: unit
+// propagation over them, the rows at a node the trail's atoms and their names' naturals, a decision an atom or gate of a
+// clause no literal satisfies yet (the most active), a model where every clause is satisfied and the rows have an
+// integer point. Where the goal reads what the clauses don't, the kernel's reading as before. `sideOf` colors gates and
+// columns for interpolation (by the hypothesis that wrote them).
+export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
+  let until = Infinity, budget: {nodes: number, until?: number} = {nodes: 0}, wall: number | undefined, assumed: [string, boolean][] = [], listed = false
+  // (the first assumption not known to hold: those before it held when last looked at, and an assumption taken back
+  // brings it down to its own; each assumption's index by name)
+  let aq = 0, aqOf = new Map<string, number>()
   const st = cdclStats, timing = st.on
   const t = <T>(f: () => T, add: (ms: number) => void): T => { if (!timing) return f(); const t0 = performance.now(); try { return f() } finally { add(performance.now() - t0) } }
   st.runs++
-  const vars = new Map<string, Var>(), trail: string[] = [], levels: number[] = []
+  // (`tv`: the trail's variables, beside their names)
+  const vars = new Map<string, Var>(), trail: string[] = [], tv: Var[] = [], levels: number[] = []
+  // The clausal mode: the hypotheses as clauses (each clause a leaf of the DAG), how many literals of each input clause
+  // hold and how many input clauses none satisfies; the variables by activity (a heap), and those found read by
+  // satisfied clauses alone at a level (out of the heap until that level is taken back).
+  let clausal = !!(opts.clausal && opts.model), enc = clausal ? new Clausal(opts.sideOf) : undefined, fed = 0, dead = -1, unread = false, lowAt = 0
+  if (enc) for (; fed < goal.hyps.length; fed++) if (!enc.add(goal.hyps[fed]!, fed)) { clausal = false; enc = undefined; fed = 0; break }
+  // (by a pair's code, 2·id + v: whether it holds, `vals[id]` 1 true, 2 false, 0 open; the clauses watching it; the input
+  // clauses that have it; a gate's clauses needed where it holds; each clause's pairs by code, the first two watched, and
+  // its gate's pair, or -1)
+  const heap: Var[] = [], byId: Var[] = [], vals: number[] = []
+  // (relevance, top-down: a hypothesis' own clauses' variables at level 0, a gate's clauses' where the gate is relevant
+  // and holds the value that needs them; `rel` the level a variable became relevant at, or -1, `relStack` in order)
+  const rel: number[] = [], relStack: number[] = []
+  const wl: number[][] = [], ownBy: number[][] = [], cls: Int32Array[] = [], oc: number[] = []
+  // (each hypothesis' input clauses; those of a hypothesis retired, read no more)
+  const byHyp: number[][] = [], retired: boolean[] = []
+  const holds = (c: number) => vals[c >> 1] === 2 - (c & 1), opposed = (c: number) => vals[c >> 1] === 1 + (c & 1)
+  const heapUp = (i: number) => { const x = heap[i]!; while (i > 0) { const p = (i - 1) >> 1, y = heap[p]!; if (y.act >= x.act) break; heap[i] = y; y.hp = i; i = p } heap[i] = x; x.hp = i }
+  const heapDown = (i: number) => {
+    const x = heap[i]!, n = heap.length
+    for (;;) { let c = 2 * i + 1; if (c >= n) break; if (c + 1 < n && heap[c + 1]!.act > heap[c]!.act) c++; if (heap[c]!.act <= x.act) break; heap[i] = heap[c]!; heap[i]!.hp = i; i = c }
+    heap[i] = x; x.hp = i
+  }
+  const heapIn = (x: Var) => { if (!x.cond || rel[x.id]! < 0 || (x.hp !== undefined && x.hp >= 0)) return; x.hp = heap.length; heap.push(x); heapUp(x.hp) }
+  const heapPop = () => { const top = heap[0]!, end = heap.pop()!; top.hp = -1; if (heap.length) { heap[0] = end; end.hp = 0; heapDown(0) } }
   let sx = useLp ? new Simplex() : undefined
+  if (sx && clausal) sx.greedy = lpGreedy
   const nodes: DagNode[] = [], clauses: Clause[] = [], occ = new Map<string, number[]>()
   // (with opts.core: each leaf's hypotheses, by node; the hypothesis each row at this node came from)
   const leafHyps = new Map<number, number[]>(), wantCore = !!(opts.core && opts.model), wantDag = !!(opts.dag && opts.model)
@@ -95,7 +138,11 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
     const key = keyOf(lin)
     if (!vars.has(key)) {
       const flip = key !== canon(lin), stored = flip ? atomOf(lin, false).lin : lin, terms = Object.entries(stored).filter(([x0]) => x0 !== '1')
-      vars.set(key, {name: key, lin: stored, terms, col: terms.some(([x0]) => x0.startsWith('⟦')), level: -1, at: -1, act: 0, phase: !flip})
+      const x: Var = {name: key, lin: stored, terms, col: terms.some(([x0]) => x0.startsWith('⟦')), id: byId.length, level: -1, at: -1, act: 0, phase: !flip}
+      byId.push(x); vals.push(0); rel.push(-1)
+      if (opts.model && terms.length === 1 && (opts.quiet?.(terms[0]![0]) || (clausal && terms[0]![0].startsWith('τ')))) x.quiet = true
+      vars.set(key, x)
+      if (clausal) heapIn(x)
     }
     return key
   }
@@ -133,12 +180,13 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
   let stampN = 0
   for (const [key, a] of root) {
     const name = ensure(a.lin), x = vars.get(name)!, val = name === key ? a.holds : !a.holds
-    x.val = val; x.level = 0; x.at = trail.length; stamps[x.at] = ++stampN; trail.push(name); rootNames.add(name)
+    x.val = val; x.level = 0; x.at = trail.length; stamps[x.at] = ++stampN; trail.push(name); tv.push(x); rootNames.add(name)
     if (x.col) colsOn++
   }
-  const reader = new Reader(goal, {
+  const reader = new Reader(clausal ? {name: goal.name, hyps: []} : goal, {
     get: name => vars.get(name), stamp: at => stamps[at]!, size: () => trail.length,
     lin: at => { const name = trail[at]!, x = vars.get(name)!; return {name, lin: x.lin, holds: x.val!} },
+    ...(clausal || opts.quiet ? {quiet: (at: number) => !!tv[at]!.quiet} : {}),
   })
   let last = goal.hyps.length - 1
   const near = nearOf(goal)
@@ -146,32 +194,152 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
   const fixed = trail.length
   const level = () => levels.length
   const pathOf = (): Path => new Map(trail.map(name => { const x = vars.get(name)!; return [name, {lin: x.lin, holds: x.val!}] }))
-  const assign = (name: string, val: boolean, reason?: number) => {
-    const x = vars.get(name)!
+  // (the kernel reading's and the clausal mode's each a function of its own, so neither's hot path reads the other's)
+  const assignKernel = (x: Var, val: boolean, reason?: number) => {
+    const name = x.name
+    lowAt = Math.min(lowAt, trail.length)
     x.val = val; x.level = level(); x.at = trail.length; x.phase = val; stamps[x.at] = ++stampN
-    if (reason === undefined) delete x.reason; else x.reason = reason
-    trail.push(name)
+    x.reason = reason
+    trail.push(name); tv.push(x)
     if (x.col) colsOn++
     if (x.pair) pairsChanged++
     reader.touch(name)
   }
-  const undoTo = (l: number) => {
+  const assignClausal = (x: Var, val: boolean, reason?: number) => {
+    lowAt = Math.min(lowAt, trail.length)
+    x.val = val; x.level = level(); x.at = trail.length; x.phase = val; stamps[x.at] = ++stampN
+    x.reason = reason
+    trail.push(x.name); tv.push(x)
+    vals[x.id] = val ? 1 : 2
+    if (rel[x.id]! >= 0) activate(x.id)
+  }
+  const assignVar = clausal ? assignClausal : assignKernel
+  const assign = (name: string, val: boolean, reason?: number) => assignVar(vars.get(name)!, val, reason)
+  // A variable relevant (at this level), and, where it is a gate with a value, the clauses that value needs: their
+  // variables relevant in turn.
+  const relevant = (id: number) => {
+    if (rel[id]! >= 0) return
+    rel[id] = levels.length; relStack.push(id); heapIn(byId[id]!)
+    if (vals[id]) activate(id)
+  }
+  const activate = (id0: number) => {
+    for (const todo = [id0]; todo.length;) {
+      const id = todo.pop()!, own = ownBy[2 * id + (vals[id] === 1 ? 1 : 0)]
+      if (!own) continue
+      for (let i = 0; i < own.length; i++) {
+        const ci = own[i]!
+        if (retired[ci]) continue
+        const c = cls[ci]!
+        costs.scan += 1 + (c.length >> 2)
+        for (let j = 0; j < c.length; j++) { const y = c[j]! >> 1; if (rel[y]! < 0) { rel[y] = levels.length; relStack.push(y); heapIn(byId[y]!); if (vals[y]) todo.push(y) } }
+      }
+    }
+  }
+  const undoKernel = (l: number) => {
     const keep = levels[l] ?? trail.length
-    while (trail.length > Math.max(keep, fixed)) { const name = trail.pop()!, x = vars.get(name)!; delete x.val; x.level = -1; delete x.reason; if (x.col) colsOn--; if (x.pair) pairsChanged++; reader.touch(name) }
+    while (trail.length > Math.max(keep, fixed)) {
+      const name = trail.pop()!, x = tv.pop()!, q = aqOf.size ? aqOf.get(name) : undefined
+      x.val = undefined; x.level = -1; x.reason = undefined; if (x.col) colsOn--; if (x.pair) pairsChanged++; reader.touch(name)
+      if (q !== undefined && q < aq) aq = q
+    }
+    lowAt = Math.min(lowAt, trail.length)
     levels.length = l
   }
+  const undoClausal = (l: number) => {
+    const keep = levels[l] ?? trail.length, undone: Var[] = []
+    while (trail.length > keep) {
+      const name = trail.pop()!, x = tv.pop()!, q = aqOf.size ? aqOf.get(name) : undefined
+      vals[x.id] = 0; undone.push(x)
+      x.val = undefined; x.level = -1; x.reason = undefined
+      if (q !== undefined && q < aq) aq = q
+    }
+    lowAt = Math.min(lowAt, trail.length)
+    levels.length = l
+    while (relStack.length && rel[relStack.at(-1)!]! > l) rel[relStack.pop()!] = -1
+    for (const x of undone) heapIn(x)
+  }
+  const undoTo = clausal ? undoClausal : undoKernel
   const addClause = (lits: Map<string, boolean>, node: number): number => {
     clauses.push({lits, node})
     const i = clauses.length - 1
+    if (clausal) { watches(i); return i }
     for (const [name, pos] of lits) { const key = `${name}=${pos}`; let xs = occ.get(key); if (!xs) occ.set(key, (xs = [])); xs.push(i) }
     return i
   }
+  // The clausal mode's watches: each clause's pairs by code, its first two watched, those that don't hold first, then
+  // those that came last on the trail (a learned clause's: its latest two).
+  const watches = (ci: number) => {
+    const c = Int32Array.from([...clauses[ci]!.lits].map(([name, pos]) => 2 * vars.get(name)!.id + (pos ? 1 : 0)))
+    cls[ci] = c; oc[ci] = -1
+    if (c.length < 2) return
+    const rank = (z: number) => (holds(z) ? byId[z >> 1]!.at : Infinity)
+    for (const j of [0, 1]) { let b = j; for (let q = j + 1; q < c.length; q++) if (rank(c[q]!) > rank(c[b]!)) b = q; const t0 = c[j]!; c[j] = c[b]!; c[b] = t0 }
+    for (const j of [0, 1]) (wl[c[j]!] ??= []).push(ci, c[1 - j]!)
+  }
+  // The clausal mode's clauses of the hypotheses not yet taken (each a leaf: its hypothesis and its literals), at level 0:
+  // a unit's literal assigned, an empty one the goal refuted, every clause read again by propagation from the trail's
+  // start; the variables left out as read by satisfied clauses alone put back.
+  const take = () => {
+    if (!enc) return
+    for (; fed < goal.hyps.length; fed++) if (!enc.add(goal.hyps[fed]!, fed)) { unread = true; break }
+    if (!enc.made.length) return
+    for (const {lits, hyp, own, out} of enc.made) {
+      const m = new Map<string, boolean>()
+      for (const l of lits) { const name = ensure(l.lin); m.set(name, !(name === canon(l.lin) ? l.holds : !l.holds)) }
+      nodes.push({hyp, lits: [...m].map(([name, pos]) => [vars.get(name)!.lin, pos])})
+      // (a variable decided only where some clause reads it as more than a case's atom)
+      let j = 0
+      for (const name of m.keys()) { const x = vars.get(name)!; if (!x.cond && !(out && j === m.size - 1)) { x.cond = true; heapIn(x) } j++ }
+      const ci = addClause(m, nodes.length - 1)
+      clauses[ci]!.input = true
+      ;(byHyp[hyp] ??= []).push(ci)
+      if (own && m.size) { const [name, pos] = m.entries().next().value!, z = 2 * vars.get(name)!.id + (pos ? 1 : 0); oc[ci] = z; (ownBy[z] ??= []).push(ci) }
+      let open: string | undefined
+      for (const name of m.keys()) if (vars.get(name)!.val === undefined) open = name
+      if (!m.size) dead = nodes.length - 1
+      else if (m.size === 1 && open !== undefined) assign(open, !m.get(open)!, ci)
+      else if (m.size === 1 && dead < 0) {
+        // (a unit false at level 0, which no watch sees: resolved with the reasons below it down to the empty clause)
+        let c = clauses[ci]!
+        while (c.lits.size) { let best: Var | undefined; for (const name of c.lits.keys()) { const y = vars.get(name)!; if (y.val === c.lits.get(name) && (!best || y.at > best.at)) best = y } if (!best || best.reason === undefined) break; c = resolveOn(c, best.name) }
+        if (!c.lits.size) dead = c.node
+      }
+      // (a hypothesis' own clause: its variables relevant for good; a gate's, where the gate needs it already)
+      if (oc[ci]! < 0 || (rel[oc[ci]! >> 1]! >= 0 && holds(oc[ci]!))) for (const name of m.keys()) relevant(vars.get(name)!.id)
+    }
+    enc.made = []
+    qhead = 0
+  }
+  // The open variable a decision takes in the clausal mode: the most active relevant one. A clause is needed where it is
+  // a hypothesis' own (no gate's), or its gate is relevant and its literal in the clause false; every variable of a
+  // needed clause is relevant, so where none is open, every needed clause is satisfied (unit propagation found no
+  // conflict), and a model of the needed clauses is a model of the goal.
+  const needed = (ci: number) => !retired[ci] && (oc[ci]! < 0 || (rel[oc[ci]! >> 1]! >= 0 && holds(oc[ci]!)))
+  const satisfied = (ci: number) => { const c = cls[ci]!; costs.scan += 1 + (c.length >> 2); for (let j = 0; j < c.length; j++) if (opposed(c[j]!)) return true; return false }
+  const pickOpen = (): Var | undefined => {
+    while (heap.length) {
+      const x = heap[0]!
+      if (x.val !== undefined || rel[x.id]! < 0) { heapPop(); continue }
+      return x
+    }
+    // (never: GDP_CDCL_VERIFY=1 checks it where a model is about to be answered)
+    if (verify) for (let ci = 0; ci < clauses.length; ci++) if (clauses[ci]!.input && needed(ci) && !satisfied(ci)) throw new Error('clausal: a needed clause unsatisfied with no open variable')
+    return undefined
+  }
+  // A point of the rows the simplex is at, where it is integral and meets them all (a model then).
+  const pointOf = (lp: Simplex, rows: Row[]): Record<string, number> | undefined => {
+    const w: Record<string, number> = {}
+    for (const r of rows) for (const n of namesOf(r.lin)) if (!(n in w)) { const j = lp.indexOf(n); if (j === undefined) return undefined; const x = lp.value(j), y = Math.round(x); if (Math.abs(x - y) > 1e-9) return undefined; w[n] = y }
+    for (const r of rows) { let x = r.lin['1'] ?? 0; for (const n of namesOf(r.lin)) x += r.lin[n]! * w[n]!; if (x > 0) return undefined }
+    return w
+  }
   let qhead = 0
   // Unit propagation: a clause whose literals all hold is a conflict (its index); all but one, the last is flipped.
-  const propagate = (): number | undefined => {
+  const propagateKernel = (): number | undefined => {
     while (qhead < trail.length) {
-      const name = trail[qhead++]!, x = vars.get(name)!
-      for (const ci of occ.get(`${name}=${x.val}`) ?? []) {
+      const name = trail[qhead++]!, x = vars.get(name)!, os = occ.get(`${name}=${x.val}`)
+      if (!os) continue
+      for (const ci of os) {
         const c = clauses[ci]!
         let open: string | undefined, nOpen = 0, dead = false
         for (const [w, p] of c.lits) {
@@ -185,8 +353,36 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
     }
     return undefined
   }
+  // The clausal mode's, over the watches: a pair that now holds moves its watch to a pair that doesn't, else the clause
+  // is unit, its other watched pair's variable flipped, or, that pair holding too, a conflict.
+  const propagateClausal = (): number | undefined => {
+    // (each watch a clause and a blocker, a pair of it that, where it doesn't hold, satisfies the clause untouched)
+    while (qhead < trail.length) {
+      const x = tv[qhead++]!, code = 2 * x.id + (x.val ? 1 : 0), ws = wl[code]
+      if (!ws) continue
+      let n = 0
+      for (let i = 0; i < ws.length;) {
+        if (opposed(ws[i + 1]!)) { i += 2; continue }
+        const ci = ws[i]!, c = cls[ci]!
+        n++
+        if (retired[ci]) { ws[i] = ws[ws.length - 2]!; ws[i + 1] = ws[ws.length - 1]!; ws.length -= 2; continue }
+        if (c[0] === code) { c[0] = c[1]!; c[1] = code }
+        const o = c[0]!
+        if (opposed(o)) { ws[i + 1] = o; i += 2; continue }
+        let j = 2
+        while (j < c.length && holds(c[j]!)) j++
+        if (j < c.length) { const z = c[j]!; c[j] = code; c[1] = z; (wl[z] ??= []).push(ci, o); ws[i] = ws[ws.length - 2]!; ws[i + 1] = ws[ws.length - 1]!; ws.length -= 2; continue }
+        if (!vals[o >> 1]) { assignVar(byId[o >> 1]!, !(o & 1), ci); i += 2; continue }
+        costs.scan += n
+        return ci
+      }
+      costs.scan += n
+    }
+    return undefined
+  }
+  const propagate = clausal ? propagateClausal : propagateKernel
   const bump = (lits: Map<string, boolean>) => {
-    for (const name of lits.keys()) { const x = vars.get(name)!; x.act += inc; if (x.act > 1e100) { for (const y of vars.values()) y.act *= 1e-100; inc *= 1e-100 } }
+    for (const name of lits.keys()) { const x = vars.get(name)!; x.act += inc; if (x.act > 1e100) { for (const y of vars.values()) y.act *= 1e-100; inc *= 1e-100 } if (clausal && x.hp !== undefined && x.hp >= 0) heapUp(x.hp) }
     inc /= 0.95
   }
   const resolveOn = (c: Clause, name: string): Clause => {
@@ -232,6 +428,46 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
     const loc = localize(local, s.steps), made = leafNode(b.w, loc.inputs, loc.steps, [b.name, !b.val], b.hyps, b.src && loc.from.map(i => b.src![i] ?? -1))
     c.lits = made.lits; c.node = made.node
   }, ms => { st.coreMs += ms })
+  // The clausal mode's conflict analysis: the same resolutions, in one pass down the trail (the clause kept as it is
+  // resolved, its literals at its latest level counted, each step the latest of them on the trail).
+  const analyzeClausal = (c: Clause): Clause => {
+    const lits = new Map(c.lits)
+    let node = c.node, {top, here} = levelsOf(c), p = trail.length - 1
+    if (top < level()) { undoTo(top); qhead = trail.length; p = trail.length - 1 }
+    while (lits.size && !(top > 0 && here === 1)) {
+      while (p >= 0 && !(lits.has(trail[p]!) && vars.get(trail[p]!)!.level === top)) p--
+      const name = trail[p]!, x = vars.get(name)!
+      if (top > 0 && x.reason === undefined) break
+      const r = clauses[x.reason!]!
+      if (r.node < 0) materialize(x.reason!)
+      nodes.push({res: lits.get(name)! ? [node, r.node] : [r.node, node], on: x.lin})
+      st.resolved++
+      node = nodes.length - 1
+      lits.delete(name); here--
+      for (const [w, q] of r.lits) if (w !== name && !lits.has(w)) { lits.set(w, q); if (vars.get(w)!.level === top) here++ }
+    }
+    return {lits, node}
+  }
+  // (a decision at the simplex's last point, without a node: `free` of them after a node whose rows it met)
+  const decideFree = (): boolean => {
+    const x = pickOpen()
+    if (!x) return false
+    free--
+    if (!x.quiet && sx) phaseAtPoint(x, sx)
+    levels.push(trail.length); st.decisions++
+    assignVar(x, x.phase)
+    return true
+  }
+  const levelsOf = (c: Clause) => {
+    let top = -1, here = 0, latest: string | undefined, at = -1
+    for (const name of c.lits.keys()) {
+      const x = vars.get(name)!
+      if (x.level > top) { top = x.level; here = 1; latest = name; at = x.at } else if (x.level === top) { here++; if (x.at > at) { latest = name; at = x.at } }
+    }
+    let below = 0
+    for (const name of c.lits.keys()) { const l = vars.get(name)!.level; if (name !== latest && l > below) below = l }
+    return {top, here, latest, below}
+  }
   const luby = (i: number): number => { let n = 1; while ((1 << n) - 1 < i + 1) n++; return (1 << n) - 1 === i + 1 ? 1 << (n - 1) : luby(i + 1 - (1 << (n - 1))) }
   // With a model wanted: each open atom's phase (no term column's) set to its value at the simplex's point, which meets
   // every row read (over the rationals), so a decision tends to stay feasible (runs/unsat/bmc-only-phase: 320 of
@@ -247,38 +483,87 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
     if (!known) { const at = lp.holds(x.lin); if (at !== undefined) x.phase = at; x.sx = undefined; return }
     x.phase = v <= 1e-7 * Math.max(1, Math.abs(v))
   }
-  let restartAt = 32, nRestart = 0, sinceRestart = 0
+  let restartAt = 32, nRestart = 0, sinceRestart = 0, free = 0
+  const batch = Number(env.GDP_CDCL_BATCH ?? 16)
   const stuck = (kind: 'sat' | 'unknown', why: string, extra: {witness?: Record<string, number>} = {}): Outcome => ({stuck: kind, path: pathOf(), why, ...extra})
-  const run = (b: {nodes: number, until?: number}, w?: number, assume?: Lin): Outcome => {
+  const run = (b: {nodes: number, until?: number}, w?: number, assume?: Lin | Lin[]): Outcome => {
     budget = b; until = b.until ?? Infinity; wall = w; last = goal.hyps.length - 1
     restartAt = 32; nRestart = 0; sinceRestart = 0
-    undoTo(0); qhead = Math.min(qhead, trail.length) // (a run before this one may have left decisions)
-    if (assume) { const name = ensure(assume); assumed = [name, name === canon(assume)] } else assumed = undefined
+    listed = Array.isArray(assume)
+    assumed = (assume === undefined ? [] : Array.isArray(assume) ? assume : [assume]).map(lin => { const name = ensure(lin); return [name, name === canon(lin)] as [string, boolean] })
+    // (a run before this one may have left decisions: given a list, the levels whose decisions are its first
+    // assumptions in order stay, each assumption before them holding below them already, so the rows they read stand;
+    // none where the clausal mode has hypotheses to take)
+    let keep = 0
+    if (listed && !(enc && fed < goal.hyps.length)) for (let l = 0, q = 0; l < levels.length; l++) {
+      const d = trail[levels[l]!]!
+      for (let y = q < assumed.length ? vars.get(assumed[q]![0])! : undefined; y && y.val === assumed[q]![1] && y.at < levels[l]!; y = ++q < assumed.length ? vars.get(assumed[q]![0])! : undefined);
+      if (q >= assumed.length || assumed[q]![0] !== d || vars.get(d)!.val !== assumed[q]![1]) break
+      q++; keep = l + 1
+    }
+    aq = 0; aqOf = new Map(assumed.map(([name], q) => [name, q]))
+    undoTo(keep); qhead = Math.min(qhead, trail.length)
+    take()
+    if (unread) return {stuck: 'unknown', path: new Map(), why: 'a hypothesis the clauses do not read'}
+    if (dead >= 0) return {stuck: 'unknown', path: new Map(), why: REFUTED, ...(listed ? {assumed: []} : {}), ...(wantDag ? {dag: {nodes, top: dead, clausal}} : {})} as Refuted
     return queryHook.on && !queryHook.depth ? logged(opts.model ? 'model' : 'cdcl', goal, search) : search()
+  }
+  // The assumptions a falsified one rests on: the decisions its reasons reach, each reason materialized where it is a
+  // bound's (every decision on the trail is an assumption here: the search decides nothing else until they all hold).
+  const final = (q0: number): number[] => {
+    const at = aqOf, out = new Set([q0]), seen = new Set<string>(), todo = [assumed[q0]![0]]
+    while (todo.length) {
+      const name = todo.pop()!, x = vars.get(name)!
+      if (seen.has(name) || x.level <= 0) continue
+      seen.add(name)
+      if (x.reason === undefined) { const q = at.get(name); if (q !== undefined) out.add(q); continue }
+      if (clauses[x.reason]!.node < 0) materialize(x.reason)
+      for (const w of clauses[x.reason]!.lits.keys()) if (w !== name) todo.push(w)
+    }
+    return [...out].sort((a, b) => a - b)
+  }
+  // With `dag`: the falsified assumption's reason resolved with the reasons of every literal in it that is no
+  // assumption, latest first, down to a clause of assumptions alone (the DAG's last node).
+  const finalDag = (q0: number): number => {
+    const x0 = vars.get(assumed[q0]![0])!
+    if (clauses[x0.reason!]!.node < 0) materialize(x0.reason!)
+    let c = clauses[x0.reason!]!
+    for (;;) {
+      let best: Var | undefined
+      for (const name of c.lits.keys()) { if (aqOf.has(name)) continue; const y = vars.get(name)!; if (!best || y.at > best.at) best = y }
+      if (!best) return c.node
+      c = resolveOn(c, best.name)
+    }
   }
   const search = (): Outcome => {
     for (;;) {
       if (++budget.nodes > 200_000 || late(until) || (wall !== undefined && performance.now() > wall)) return stuck('unknown', budget.nodes > 200_000 ? 'nodes' : 'time')
       let conflict: Clause | undefined
       const ci = propagate()
+      let open = -1, wrong = -1
+      if (ci === undefined) for (; aq < assumed.length; aq++) { const val = vars.get(assumed[aq]![0])!.val; if (val === !assumed[aq]![1]) { wrong = aq; break } if (val === undefined) { open = aq; break } }
       if (ci !== undefined) conflict = clauses[ci]!
-      else if (assumed && vars.get(assumed[0])!.val === !assumed[1]) return {stuck: 'unknown', path: new Map(), why: REFUTED}
-      else if (assumed && vars.get(assumed[0])!.val === undefined) {
+      else if (wrong >= 0) return {stuck: 'unknown', path: new Map(), why: REFUTED, ...(listed ? {assumed: final(wrong)} : {}), ...(wantDag ? {dag: {nodes, top: finalDag(wrong), clausal}} : {})} as Refuted
+      else if (open >= 0) {
         levels.push(trail.length)
-        assign(assumed[0], assumed[1])
+        assign(assumed[open]![0], assumed[open]![1])
         continue
       } else {
+        // (the clausal mode: after a node whose rows the simplex met, up to `batch` decisions more before the next node,
+        // each its own level, an atom's value the point's: they keep that point, so the rows meet it but where unit
+        // propagation brought an atom it doesn't meet, which the next node finds)
+        if (free > 0 && decideFree()) continue
         reader.begin()
         st.nodes++
         // The rows, kept from the node before (reader.ts's sync); the forms that came and went: the single-variable
         // ones' bounds now (for bound propagation, `bx`), the simplex's when it next runs (`toAssert`, `toRetract`: a
         // form in and out between its runs never reaches it).
-        const rowsR = t(() => (reader.sync(), reader.live), ms => { st.rowsMs += ms })
+        const rowsR = t(() => (reader.sync(lowAt), lowAt = trail.length, reader.live), ms => { st.rowsMs += ms })
         const full: Constraint[] = rowsR
         const single = (id: number) => reader.form(full[reader.slotOf(id)]!.lin).names.length === 1
         for (const id of reader.left) { if (bxIn.delete(id)) bx.retract(id); if (sx && !toAssert.delete(id)) toRetract.add(id) }
         for (const id of reader.entered) { if (single(id)) { bxIn.add(id); bx.assert(id, full[reader.slotOf(id)]!.lin) } if (sx && !toRetract.delete(id)) toAssert.add(id) }
-        if (verify) {
+        if (verify && !clausal) {
           const mine = new Set(rowsR.map(r => canon(r.lin))), theirs = new Set(leafConstraints(goal, pathOf()).map(r => canon(r.lin)))
           if (mine.size !== theirs.size || [...mine].some(x => !theirs.has(x))) throw new Error(`reader.ts's rows differ from kernel.ts's at a node of ${goal.name}`)
         }
@@ -299,6 +584,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
         // The candidates, in growPlain's order: the units, the conclusion's open atoms, the hypotheses' near it, the
         // rest, pairs of cells.
         const cands = t(() => {
+          if (clausal) { const x = pickOpen(); return x ? [x] : [] }
           // (each list's forms' variables kept with the list, the same array while it stands)
           const g = ++candGen, keep: Var[] = []
           const take = (lins: Lin[]) => {
@@ -372,8 +658,8 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
           if (sx) {
             const t0 = timing ? performance.now() : 0
             // (a tableau that has gathered many more forms than a node reads is begun again: every pivot updates them all)
-            const over = sx.size > 4 * full.length + 500 || sx.nnz > lpFill * full.length
-            if (over) { sx = new Simplex(); st.lpRebuilds++ }
+            const over = sx.size > (clausal ? lpGrow : 4) * full.length + (clausal ? lpBase : 500) || sx.nnz > lpFill * full.length
+            if (over) { sx = new Simplex(); if (clausal) sx.greedy = lpGreedy; st.lpRebuilds++ }
             // (a tableau begun has the rows asserted in kernel.ts's order, which its variables', so Bland's rule, follow)
             if (over || !sx.vars) for (const r of reader.rows()) sx.assert(reader.form(r.lin).id, r.lin)
             else { for (const id of toRetract) sx.retract(id); for (const id of toAssert) sx.assert(id, full[reader.slotOf(id)]!.lin) }
@@ -391,6 +677,8 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
             }
             lpSat = lp.kind === 'sat'
             if (steps || (open && lp.kind === 'sat')) return
+            // (the clausal mode, every clause satisfied: the simplex's point, where it is integral, is a model)
+            if (clausal && !open && lpSat) { const w = pointOf(sx, rowsR); if (w) { verdict = {kind: 'sat', witness: w}; return } }
           }
           st.fmCalls++
           const rows = plain()
@@ -415,7 +703,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
             }
           }
           // Nothing open by this reading: the kernel's own reading of the trail (prove.ts's) has the last word.
-          if (!pick) {
+          if (!pick && !clausal) {
             const p = pathOf(), more = openAt(goal, p, rowsAt(goal, p)).find(lin => Object.keys(lin).some(key => key !== '1') && !decidedLin(lin))
             if (more) { st.openMisses++; pick = ensure(more) }
           }
@@ -423,16 +711,20 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
           levels.push(trail.length)
           st.decisions++
           assign(pick, vars.get(pick)!.phase)
+          if (clausal && lpSat) free = batch
           continue
         }
       }
       // Conflict analysis.
-      st.conflicts++; sinceRestart++
+      st.conflicts++; sinceRestart++; free = 0
+      // (a clause's latest level, how many of its literals are at it, the latest of those on the trail, and the latest
+      // level of the rest: one pass)
       let c = conflict
+      if (clausal) c = analyzeClausal(c)
       for (;;) {
         if (!c.lits.size) {
           if (opts.model) {
-            if (wantDag) return {stuck: 'unknown', path: new Map(), why: REFUTED, dag: {nodes, top: c.node}} as Refuted
+            if (wantDag) return {stuck: 'unknown', path: new Map(), why: REFUTED, dag: {nodes, top: c.node, clausal}} as Refuted
             if (!wantCore) return {stuck: 'unknown', path: new Map(), why: REFUTED}
             // the hypotheses the leaves below the empty clause read (a clause never made into a node, a bound's not yet
             // materialized, leaves the core unknown)
@@ -453,28 +745,29 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
           st.proven++
           return {tree, nodes: budget.nodes}
         }
-        const top = Math.max(...[...c.lits.keys()].map(name => vars.get(name)!.level))
+        const {top, here, latest} = levelsOf(c)
         if (top < level()) { undoTo(top); qhead = trail.length }
-        const here = [...c.lits.keys()].filter(name => vars.get(name)!.level === top)
-        if (top === 0) { c = resolveOn(c, here.reduce((a, b) => (vars.get(a)!.at > vars.get(b)!.at ? a : b))); continue }
-        if (here.length === 1) break
-        const latest = here.reduce((a, b) => (vars.get(a)!.at > vars.get(b)!.at ? a : b))
-        if (vars.get(latest)!.reason === undefined) break
-        c = resolveOn(c, latest)
+        if (top === 0) { c = resolveOn(c, latest!); continue }
+        if (here === 1) break
+        if (vars.get(latest!)!.reason === undefined) break
+        c = resolveOn(c, latest!)
       }
-      const top = Math.max(...[...c.lits.keys()].map(name => vars.get(name)!.level))
-      const here = [...c.lits.keys()].filter(name => vars.get(name)!.level === top)
+      const {top, here, latest: uip, below} = levelsOf(c)
       bump(c.lits)
       const learned = addClause(c.lits, c.node)
-      if (here.length !== 1) { undoTo(Math.max(0, top - 1)); qhead = Math.min(qhead, trail.length); continue }
-      const uip = here[0]!
-      undoTo(Math.max(0, ...[...c.lits.keys()].filter(name => name !== uip).map(name => vars.get(name)!.level)))
+      if (here !== 1) { undoTo(Math.max(0, top - 1)); qhead = Math.min(qhead, trail.length); continue }
+      undoTo(below)
       qhead = trail.length
-      assign(uip, !c.lits.get(uip)!, learned)
+      assign(uip!, !c.lits.get(uip!)!, learned)
       if (sinceRestart >= restartAt) { sinceRestart = 0; restartAt = 32 * luby(++nRestart); undoTo(0); qhead = Math.min(qhead, trail.length) }
     }
   }
-  return {run}
+  // A hypothesis read no more (clausal mode): its clauses out of propagation and of what a decision reads. Sound where
+  // nothing else reads its gates (the caller's `sideOf` gives it gates of its own) and nothing later asks it to hold:
+  // the clauses learned from it stay consequences of the goal with its gates' definitions, which any model of the rest
+  // extends to (a gate its formula's value).
+  const retire = (hyp: number) => { for (const ci of byHyp[hyp] ?? []) retired[ci] = true }
+  return {run, retire}
 }
 
 // The DAG as a kernel tree below `root`, walked depth first with a reader of its own (the tree's path is a stack, as
@@ -498,6 +791,7 @@ function unfold(goal: Goal, nodes: DagNode[], top: number, root: Path, maxLeaves
       push(key, n.on, false); const no = go(n.res[1]); pop()
       return no && {split: n.on, yes, no}
     }
+    if ('hyp' in n) return undefined // (the clausal mode's: never unfolded, a model alone wanted there)
     if (++leaves > maxLeaves || late(until)) { cdclStats.unfoldWhy = leaves > maxLeaves ? 'leaves' : 'time'; return undefined }
     reader.begin()
     const src: (number | [string, string])[] = [], rows = reader.leafRows(src)

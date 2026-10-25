@@ -3,6 +3,31 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+IMC's query made cheap (gen/chc8): the goal read as clauses, one CDCL session for the whole search. Nothing trusted
+changed (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/*.lean`); every sat answer is the
+kernel's proof on the original rule (lifted where composed), every unsat answer a run `checkDerivation` confirms.
+Details and every run in compare/chc/README.md's gen/chc8 section (`runs/chc8/`, `runs/bar/runs/` in the main checkout).
+- **The clausal mode** (kernel/cdcl.ts, reader.ts's `Clausal`; a model alone wanted): each hypothesis as clauses over
+  atoms and Tseitin gates written for the polarities they are read in, a term's choices lifted out of the comparison
+  that reads them; two watched literals with blockers in place of the reader; relevance top-down; batched decisions at
+  the simplex's point; greedy pivots before Bland's rule. Its refutation DAG's interpolant is McMillan's own system.
+  The kernel reading's search is the same on all 332 step goals.
+- **IMC on one unrolling** (core/interp.ts's `imcSession`): McMillan's own loop (the frontier, not every interpolant so
+  far, is the next query's start), each depth's and frontier's hypotheses behind selectors, a frontier retired when the
+  next comes; the start's query and k-induction asked on the same session. Its invariant made a few clauses
+  (`compress`: R as the oracle, PDR's relative induction) for the kernel to prove.
+- **The query**: on 16 gap tasks a median 1,239 → 81 ms, p90 4,663 → 450 ms, CDCL nodes a median 927 → 42; IMC alone on
+  the 239 gap tasks 41 → 119 (Golem's IMC 193).
+- **CHC-COMP LIA-Lin**, three runs of 183f4e2: 1,166, 1,164 and 1,166 against b12965e's 1,079, 1,083 and 1,085; gained in
+  every run 65, lost in every run 0, wrong 0; its full bar's run 1,174 (gained 77, lost 0). Spacer 1,163, Golem 1,154:
+  our harness, unconfirmed; with the bar's run the four runs' margin over Spacer (4.5) is below their spread (10).
+- **Everything else level** in that bar: ITS, SV-COMP, TIP, both frontier corpora, the real-world corpus, the 332 step
+  goals (the same search on all 332), both suites, the 1-vCPU tests; Lean 47 of 48 (an export error seen before).
+- **compare/chc**: kind.ts runs IMC first in a turn of its own (`--imc 1 --imc-first 1 --kind 0 --bmc-depth 0`, the
+  defaults); solve.ts stops waiting for it half a second past its deadline.
+
 ## 0.29.0
 
 Measured in one run of the new bar (`bun bar --cand b12965e --base 8b710ba`, `runs/bar/runs/release-0.29.0/REPORT.md`):
