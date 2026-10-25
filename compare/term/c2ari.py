@@ -66,7 +66,15 @@ boundary, and the two translations differ there; each is exact for its one answe
 the program is then a prefix of one of the system's (the same until its undefined behaviour, where the program's run
 ends), so the system's termination is the program's: a translation for "terminates" only, beside the checked one.
 
-What the translation changes, said once here: nothing past what the recursion and --unchecked translations say.
+Straight-line code is composed away (`chain`, but in the nonterminating translation of recursion; `--no-chain` keeps every
+location): a location other than the entry
+with no rule back to itself and one rule into it or one out of it is left out, each rule into it composed with each
+out of it; rules into a location no rule leaves are left out, and so are locations the entry doesn't reach. A run of
+the system is a run of the program with those states left out, ending at most a step earlier: every cycle keeps a
+location, so it is infinite exactly when the program's run is.
+
+What the translation changes, said once here: nothing past what the recursion and --unchecked translations say, and
+the chaining.
 
 Refused, by reason, the data first (prescan): structs, floats, pointers to pointers, function pointers, pointer
 arithmetic; then the code: calls to functions with no body (but the ones above); a call in a conditional part of an
@@ -1012,6 +1020,13 @@ class Main:
         """C's / and % (truncation toward zero): a fresh quotient q, the remainder a − b·q between 0 and b, its sign a's;
         by zero, undefined behaviour."""
         p = self.p
+        # (of two constants, its value: C's quotient truncated toward zero, the remainder with the dividend's sign)
+        ka, kb = (None, None) if a.raw or b.raw else (cval(a.sx), cval(b.sx))
+        if ka is not None and kb:
+            qv = abs(ka) // abs(kb) * (1 if (ka >= 0) == (kb > 0) else -1)
+            lo, hi = rng(t)
+            if lo <= qv <= hi:
+                return V(num(qv if op == "/" else ka - kb * qv), t)
         p.features.add("division")
         q = p.new("q")
         r, nr = ["-", a.sx, ["*", b.sx, q]], ["-", ["*", b.sx, q], a.sx]
@@ -1848,6 +1863,169 @@ def build1(main, funcs, globs, info, no_overflow, mode, depth, all_cells):
     return prog, start
 
 
+FREE = re.compile(r"[a-z]+_\d+")
+
+
+def chain(prog, start):
+    """Straight-line code composed away: a location (not the entry) with no rule back to itself, one rule into it or
+    one out of it, is left out, each rule into it composed with each out of it (the second's guard and updates read at
+    the first's updates, its fresh values renamed). A run of the system is then a run of the program with those
+    locations' states left out: every cycle keeps a location (a cycle of left-out ones would have ended in a rule back
+    to itself), so a run is infinite exactly when the program's is, and one that stops at a left-out location (no
+    guard out of it holds, or undefined behaviour) stops one step earlier. A composition past 3 times its parts' size
+    (a term read many times) is not made, nor one with more disjunctions, or more fresh values a guard constrains past their
+    bounds, than either part (each is a choice a run has to draw), nor one through a guard with a product of two values (the
+    rank search reads the steps around it linearly)."""
+    def size(s):
+        return 1 if isinstance(s, str) else sum(size(x) for x in s)
+
+    def rsize(r):
+        return sum(size(g) for g in r[2]) + sum(size(e) for e in r[3].values())
+
+    def sub(s, m):
+        if isinstance(s, str):
+            return m.get(s, s)
+        return [sub(x, m) for x in s]
+
+    def frees(r, out):
+        def walk(s):
+            if isinstance(s, str):
+                if FREE.fullmatch(s):
+                    out.add(s)
+            else:
+                for x in s:
+                    walk(x)
+        for g in r[2]:
+            walk(g)
+        for e in r[3].values():
+            walk(e)
+        return out
+
+    def compose(r1, r2):
+        fresh = {x: prog.new("j") for x in sorted(frees(r2, set()))}
+        g2 = [sub(g, fresh) for g in r2[2]]
+        u2 = {v: sub(e, fresh) for v, e in r2[3].items()}
+        sigma = r1[3]
+        upd = dict(sigma)
+        for v, e in u2.items():
+            upd[v] = sub(e, sigma)
+        return (r1[0], r2[1], [*r1[2], *(sub(g, sigma) for g in g2)], upd)
+
+    def flat(g):
+        return [y for x in g[1:] for y in flat(x)] if isinstance(g, list) and g and g[0] == "and" else [g]
+
+    def const(s):
+        if isinstance(s, str) and s.isdigit():
+            return int(s)
+        if isinstance(s, list) and len(s) == 2 and s[0] == "-" and isinstance(s[1], str) and s[1].isdigit():
+            return -int(s[1])
+        return None
+
+    def bound(g):
+        """(fresh value, lower, upper) where g is lo <= x or x <= hi for a fresh value x."""
+        if isinstance(g, list) and len(g) == 3 and g[0] == "<=":
+            if isinstance(g[2], str) and FREE.fullmatch(g[2]) and const(g[1]) is not None:
+                return g[2], const(g[1]), None
+            if isinstance(g[1], str) and FREE.fullmatch(g[1]) and const(g[2]) is not None:
+                return g[1], None, const(g[2])
+        return None
+
+    CMP = {"<": lambda a, b: a < b, "<=": lambda a, b: a <= b, ">": lambda a, b: a > b, ">=": lambda a, b: a >= b, "=": lambda a, b: a == b}
+
+    def fold(g):
+        """A comparison of constants as true or false, through and, or (a composition reads a test at a value the
+        rule before set)."""
+        if isinstance(g, list) and g and g[0] in CMP and len(g) == 3:
+            a, b = cval(g[1]), cval(g[2])
+            return g if a is None or b is None else ("true" if CMP[g[0]](a, b) else "false")
+        if isinstance(g, list) and g and g[0] in ("and", "or"):
+            return simp([g[0], *(fold(x) for x in g[1:])])
+        return g
+
+    def folded(r):
+        gs = [simp(fold(g)) for g in r[2]]
+        return None if "false" in gs else (r[0], r[1], [g for g in gs if g != "true"], r[3])
+
+    def hard(r):
+        """The fresh values a guard constrains past their bounds (x = nd, nd = 2·q + r): a run must draw them."""
+        out = set()
+        for g in r[2]:
+            for x in flat(g):
+                if bound(x) is None:
+                    frees((None, None, [x], {}), out)
+        return out
+
+    def nonlinear(s):
+        if isinstance(s, str):
+            return False
+        if s and s[0] == "*" and len(s) == 3 and cval(s[1]) is None and cval(s[2]) is None:
+            return True
+        return any(nonlinear(x) for x in s)
+
+    def ors(r):
+        """The disjunctions among a rule's conjuncts (a rule of k is up to 2^k paths of the loop's relation)."""
+        return sum(1 for g in r[2] for x in flat(g) if isinstance(x, list) and x and x[0] == "or")
+
+    def unused(r):
+        """A fresh value only bounded (a nondeterministic value no update or other guard reads): its bounds left out
+        where some value meets them, which says nothing then."""
+        gs = [x for g in r[2] for x in flat(g)]
+        reads = set()
+        for i, g in enumerate(gs):
+            if bound(g) is None:
+                frees((None, None, [g], {}), reads)
+        frees((None, None, [], r[3]), reads)
+        lo, hi = {}, {}
+        for g in gs:
+            b = bound(g)
+            if b and b[0] not in reads:
+                if b[1] is not None:
+                    lo[b[0]] = max(lo.get(b[0], b[1]), b[1])
+                if b[2] is not None:
+                    hi[b[0]] = min(hi.get(b[0], b[2]), b[2])
+        drop = {x for x in set(lo) | set(hi) if lo.get(x, -2 ** 70) <= hi.get(x, 2 ** 70)}
+        return (r[0], r[1], [g for g in gs if not (bound(g) and bound(g)[0] in drop)], r[3])
+
+    # (only what the entry reaches, by rules whose guard isn't false by its constants)
+    base = [f for f in (folded(r) for r in prog.rules) if f]
+    seen, todo = {start}, [start]
+    while todo:
+        a = todo.pop()
+        for r in base:
+            if r[0] == a and r[1] not in seen:
+                seen.add(r[1])
+                todo.append(r[1])
+    rules = [r for r in base if r[0] in seen]
+    # (and no rule into a location none leaves, but the entry's: the run ends there either way, a step earlier)
+    def unsunk(rules):
+        while True:
+            sinks = {r[1] for r in rules} - {r[0] for r in rules} - {start}
+            if not sinks:
+                return rules
+            rules = [r for r in rules if r[1] not in sinks]
+    rules = unsunk(rules)
+    changed = True
+    while changed:
+        changed = False
+        for l in sorted({r[1] for r in rules} - {start}):
+            ins = [r for r in rules if r[1] == l]
+            outs = [r for r in rules if r[0] == l]
+            if not outs or any(r[0] == l for r in ins) or (len(ins) > 1 and len(outs) > 1) or \
+                    any(nonlinear(g) for r in ins + outs for g in r[2]):
+                continue
+            pairs = [(a, b) for a in ins for b in outs]
+            made = [compose(a, b) for a, b in pairs]
+            if any(rsize(m) > 3 * (rsize(a) + rsize(b)) + 8 or len(hard(m)) > max(len(hard(a)), len(hard(b)))
+                   or ors(m) > max(ors(a), ors(b)) for m, (a, b) in zip(made, pairs)):
+                continue
+            made = [f for f in (folded(m) for m in made) if f]
+            rules = [r for r in rules if r[0] != l and r[1] != l] + made
+            changed = True
+    # (a system with no rule left, one that never fires: every run ends at the entry)
+    prog.rules = [unused(r) for r in unsunk(rules)] or [(start, "lend", ["false"], {})]
+    return prog
+
+
 def emit(prog, start):
     vs = prog.vars or ["dummy"]
     locs = sorted({r[0] for r in prog.rules} | {r[1] for r in prog.rules}, key=lambda l: (l != start, l))
@@ -1891,9 +2069,15 @@ def main():
     try:
         text = open(path).read()
         prog, start = translate(text, dm, no_overflow, mode)
+        rules0 = len(prog.rules)
+        # (not the nonterminating translation of a recursive program: its calls inlined, its lassos are found by runs
+        # turn by turn, and composed turns make those runs end sooner: Binary_Search-2's)
+        if "--no-chain" not in args and mode != "nonterminating":
+            chain(prog, start)
         sys.stdout.write(emit(prog, start))
         split = any(f.startswith("recursion (") for f in prog.features)
-        sys.stderr.write(json.dumps({"translated": True, "locations": prog.nlocs, "vars": len(prog.vars), "rules": len(prog.rules), "features": sorted(prog.features),
+        sys.stderr.write(json.dumps({"translated": True, "locations": prog.nlocs, "vars": len(prog.vars), "rules": rules0,
+                                     "chained": {"locations": len({r[0] for r in prog.rules} | {r[1] for r in prog.rules}), "rules": len(prog.rules)}, "features": sorted(prog.features),
                                      "data_model": dm, "no_overflow": no_overflow, **({"for": mode} if split else {}), "split": split,
                                      **({"unchecked": True, "for": "terminates"} if unchecked else {})}) + "\n")
     except Refused as e:

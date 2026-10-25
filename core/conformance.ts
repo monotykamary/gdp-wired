@@ -2,7 +2,7 @@
 // op, or this file doesn't type-check), concrete inputs and map cells, and the reference value from evalE and evalC.
 // core/conformance.test.ts holds every consumer of terms to it; lean-kernel/conformance.ts writes its cases for Lean.
 import {type C, type E, type Law, type Machine, type State, evalC, evalE, interpret, n as k, x as v} from './machine.ts'
-import {type Goal, type KInduction, type Loop, type QC, type QE, type QGoal, type QMachine, type Recur, type Tree, checkKInduction, kInductionStart, kInductionSteps, recurGoal, stepLawObligations, trueC} from '../kernel/kernel.ts'
+import {type Goal, type KInduction, type Loop, type QC, type QE, type QGoal, type QMachine, type Recur, type RecurCases, type Tree, caseGoals, checkKInduction, coverGoal, kInductionStart, kInductionSteps, recurGoal, stepLawObligations, trueC} from '../kernel/kernel.ts'
 import {type KindProof, proveKInduction} from './kind.ts'
 import type {Step} from './solver.ts'
 import {type Rat, q} from './q.ts'
@@ -164,6 +164,43 @@ export function recurCases(n: number, ms = 300): RecurCase[] {
     const refused = {...r, stem: [{w: 1000}, ...r.stem], start: {...r.start, p: 0}}
     if (!recurReference(loop, refused, 0)) out.push({loop, family, what: 'the set not reached: a stem turn the guard or the assumption refuses', recur: refused})
     if (f.lasso && r.set.op === 'or' && r.set.xs.length > 1 && open({op: 'or', xs: r.set.xs.slice(0, -1)})) out.push({loop, family, what: "a lasso's cycle that doesn't close: its set less one state", recur: {...r, set: {op: 'or', xs: r.set.xs.slice(0, -1)}}})
+  }
+  return out
+}
+
+// --- nontermination certificates closed by cases (kernel.ts's checkRecurCases, NonTerm.lean's never_ends_of_cases) ----
+
+// From each certificate found, its set closed by cases: one case, the set itself, nothing pinned; and one pinning a value
+// the set fixes (a conjunct that equates a param or a state variable with a constant), the set as its condition. Their
+// tampered twins: the pin at another value (the cover is not refuted), no case at all, a stem that ends outside the set.
+export type RecurCasesCase = {loop: Loop, cases: RecurCases, what: string, family: string}
+export function recurCasesCases(from: RecurCase[]): RecurCasesCase[] {
+  const out: RecurCasesCase[] = []
+  for (const c of from) {
+    if (c.what !== 'found') continue
+    const {tree: _, ...base} = c.recur, l = c.loop, names = [...l.params, ...Object.keys(l.state)]
+    const proven = (g: Goal): Tree | undefined => { const o = grow(g); return 'tree' in o ? o.tree : undefined }
+    const make = (cs: {pins: [string, number][], cond: C}[]): RecurCases | undefined => {
+      const cover = proven(coverGoal({set: base.set, cases: cs})), trees = caseGoals(l, base, cs).map(proven)
+      return cover && trees.every(t => t) ? {...base, cover, cases: cs.map((x, j) => ({...x, tree: trees[j]!}))} : undefined
+    }
+    const plain = make([{pins: [], cond: base.set}])
+    if (plain) out.push({loop: l, family: c.family, what: 'by cases: found, nothing pinned', cases: plain})
+    const fixed = (base.set.op === 'and' ? base.set.xs : [base.set]).flatMap((x): [string, number][] => {
+      if (x.op !== '=') return []
+      const [a, b] = x.a.op === 'var' ? [x.a, x.b] : [x.b, x.a]
+      return a.op === 'var' && names.includes(a.name) && b.op === 'const' ? [[a.name, b.value]] : []
+    })
+    if (!fixed.length) continue
+    const pinned = make([{pins: [fixed[0]!], cond: base.set}])
+    if (!pinned) continue
+    out.push({loop: l, family: c.family, what: 'by cases: found, a value pinned', cases: pinned})
+    out.push({loop: l, family: c.family, what: 'by cases: the pin at another value', cases: {...pinned, cases: pinned.cases.map(x => ({...x, pins: [[x.pins[0]![0], x.pins[0]![1] + 1]]}))}})
+    out.push({loop: l, family: c.family, what: 'by cases: no case', cases: {...pinned, cases: []}})
+    for (let p = 0; p <= 40; p++) {
+      const t = {...pinned, start: {...pinned.start, p}}
+      if (!recurReference(l, {...t, tree: {leaf: []}}, 0)) { out.push({loop: l, family: c.family, what: 'by cases: a start whose stem ends outside the set', cases: t}); break }
+    }
   }
   return out
 }

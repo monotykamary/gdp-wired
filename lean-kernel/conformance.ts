@@ -11,7 +11,7 @@
 // With --rationals, the rational cases (core/conformance.ts's randomQCase): values, proven goals' trees, their tampered
 // twins and models, each with kernel.ts's answer, for Rationals.lean to compute:
 //   bun conformance.ts --rationals [cases] > RatConformance.lean && lean RatConformance.lean
-import {CELLS, INIT, VARS, qgoals, qreference, qtampered, randomCase, randomQCase, recurCases, reference, reseed, ringCase, kindAnswer, kindCases} from '../core/conformance.ts'
+import {CELLS, INIT, VARS, qgoals, qreference, qtampered, randomCase, randomQCase, recurCases, recurCasesCases, reference, reseed, ringCase, kindAnswer, kindCases} from '../core/conformance.ts'
 import type {Measure, Termination} from '../core/data.ts'
 import {kInductionStart, kInductionSteps} from '../kernel/kernel.ts'
 import type {Loop, QGoal, Recur} from '../kernel/kernel.ts'
@@ -20,7 +20,7 @@ import {growQ} from '../kernel/qprove.ts'
 import {type Rat, q} from '../core/q.ts'
 import type {Lin} from '../core/solver.ts'
 import {type LeafTamper, qCondLean, qTermLean, qTreeLean, ratLean} from './qlean.ts'
-import {recurLean, seedStepProof, smachineToLean} from './emit.ts'
+import {recurCasesLean, recurLean, seedStepProof, smachineToLean} from './emit.ts'
 import {leanTerms} from './lean-terms.ts'
 
 reseed(Number(process.env.FUZZ_SEED ?? 4242))
@@ -157,12 +157,21 @@ const count = Number(process.argv.filter(a => !a.startsWith('--'))[2] ?? (nonter
 if (nonterm) {
   const out: string[] = [], tally: Record<string, number> = {}
   const found = new Map<Loop, Recur>()
-  recurCases(count).forEach((k, i) => {
+  const all = recurCases(count)
+  all.forEach((k, i) => {
     if (k.what === 'found') found.set(k.loop, k.recur)
     let ts = false
     try { ts = checkRecur(k.loop, k.recur) } catch { ts = false }
     const {loop, recur} = recurLean(`case ${i}`, k.loop, found.get(k.loop) ?? k.recur)
     out.push(`-- ${k.loop.name}: ${k.what}\nexample : checkRecur ${loop} ${recur(k.recur)} = ${ts} := by decide +kernel`)
+    tally[`${k.what}: ${ts}`] = (tally[`${k.what}: ${ts}`] ?? 0) + 1
+  })
+  // (the same certificates closed by cases, and their tampered twins: NonTerm.lean's checkRecurCases)
+  recurCasesCases(all).forEach((k, i) => {
+    let ts = false
+    try { ts = checkRecur(k.loop, k.cases) } catch { ts = false }
+    const {loop, recur} = recurCasesLean(`cases ${i}`, k.loop)
+    out.push(`-- ${k.loop.name}: ${k.what}\nexample : checkRecurCases ${loop} ${recur(k.cases)} = ${ts} := by decide +kernel`)
     tally[`${k.what}: ${ts}`] = (tally[`${k.what}: ${ts}`] ?? 0) + 1
   })
   console.log(`import NonTerm

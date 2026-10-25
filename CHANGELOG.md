@@ -5,6 +5,62 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+Runs that never end in large programs, and the certificates Lean can check (gen/nonterm5), with the chained C
+translation (gen/nonterm5-sv). One trusted change, Lean-first: **NonTerm.lean's `never_ends_of_cases`** (on `propext`,
+`Classical.choice`, `Quot.sound`; with `simpC_evalC`, `caseNeg_eval`), mirrored by kernel.ts's `checkRecurCases`
+(`checkRecur` takes either certificate) and tested on found and tampered certificates by core/conformance.ts and
+lean-kernel/conformance.ts. In our harness (60 s on Modal, 2 vCPU), beside main a6d6403 launched together, two batches
+(`runs/nt5/its1-*`, `its2-*`, `sv1-*`, `sv2-*`), and after merging main f589873 one beside it (`its3-*`, `sv3-*`,
+`tip3-*`), every gained and lost task three times more a side:
+- **TermComp ITS, doesn't terminate:** 541, 538 and 540 on the task's statement against 531, 534 and 532; per component
+  542 in each against 532, 533 and 532. LoAT's default engine 532: ahead in all three batches, unconfirmed under TermComp's own setup. No
+  answer contradicts LoAT's, LoAT abmc's, KoAT2's, or any tool's at TermComp 2025 (its raw data, 7 tools).
+- **TermComp ITS, terminates:** 611, 613 and 612 against 611, 612 and 611 (per component 613, 613, 611 against 614,
+  612, 613).
+- **SV-COMP termination:** 239 (183, 56) in each batch against 225, 223 and 223; per component 210, 210, 209 against
+  206, 207, 207.
+  Every answer its expected verdict. Ultimate Automizer 224: ahead, unconfirmed.
+- **Lean:** s1.t2's file 410,471,697 bytes to 1,965,614, the four s1 tasks checked in 68 to 89 s each (s1.t2's was
+  killed at 3,300 s). A sample of 48 of the batch's recurrent sets (all 27 closed by cases, every task gained, the s1
+  family and 20 drawn at random) checked, 48 of 48, at most 487.3 s, files up to 16.5 MB (`lean-final`).
+
+What carried them (core/nonterm.ts, core/accel.ts, compare/term/c2ari.py, lean-kernel/emit.ts):
+- **A closure by cases:** a translated program's closure goal reads every rule's body at each read of the set
+  (pgarch's, 537,164 distinct terms, never closed). Each part of an accelerated set is a case at its location; the
+  cover's tree and each case's goal, read at the pins with the constants folded, hold only that location's rules
+  (pgarch's ten: 86 to 216 terms). Where the goal is past 20,000 terms, and no longer dropped past 1.5 million.
+- **The time for the next candidate:** a closure tried on a set a stem reaches no longer counts against the search for
+  the next; the sets whose closure ran out of time are retried smallest first, each its share by its goal's size; the
+  search starts once the relation is built (up to 10 s later). Walks of up to 16 choices in the time left (hqr's
+  cycle of 25 turns). A run's stem past 64 turns replaced by a shorter one where the accelerated runs' search finds it.
+- **The Lean export:** a closure table holds only the choices Lean's linear forms look up (`encode`'s `reach`: s1's
+  5,214 term columns to 1); a loop's start and body past 128 variables as definitions of 128 (pgarch's passed Lean's
+  recursion limit).
+- **SV-COMP:** c2ari composes straight-line code away (a location with one rule in or out, no self-loop), with
+  unreached locations, rules into dead ends and false constant guards dropped, constant divisions folded; 12 of the 20
+  tasks Ultimate Automizer answered and `gdp` didn't are answered (compare/term/README.md has the 20 by why).
+- **findLeadsTo** reads the rule for its invariant search (the hand-off from gen/realworld2): the real-world corpus's
+  verdicts are the same law by law beside a6d6403 (252 proven, 29 refuted, 29 unknown, 1 timeout on both sides,
+  `runs/nt5/rw-*`) but tigerbeetle/transfers' laws 4 and 6, unknown and timeout swapped; opossum's "an open breaker goes
+  half-open" finds `st is open → 1 <= armed` itself (10.2 s against 14.3 s).
+
+Gained and lost, with the reruns, are in compare/term/README.md. The other benchmarks, beside a6d6403: CHC-COMP 1,041
+(613 sat, 428 unsat) against 1,039 (`chc1-*`), the same two disputed labels wrong on both; TIP 198 against 199
+(`tip2-*`: list_assoc, lost here and gained at 0.27.0 by chance of the time); frontier round 1 90 of 92 on both sides,
+all 42 broken variants refused (`f1-*`); round 2 31 of 47 against 30 (term/Piecewise), all 47 broken variants
+refused, its 5 nontermination items 5 of 5 (`f2-*`). 1 vCPU, ten jobs a side interleaved (`onecpu`): none failed;
+data's agrees-with-+ test median 2,474.4 ms, at most 3,838.4 (main 2,514.3, 3,189.1); infer's "a law that needs an
+invariant" 2,870.2 and 3,517.2 (main 2,803.1, 3,418.3). TIP 2015 after the merge: 206 against f589873's 204 (`tip3-*`). Suites: none failed at 53bf839, the merge, by default
+(221 jobs, 452.4 s wall, 5,648.4 s of job time, `suite-default3`) or with `--usual` (429.9 s, 5,093.5 s,
+`suite-usual3`), nor by default at b3e8519
+(463.6 s wall, 5,591.6 s of job time, `suite-default2`); with `--usual` at d6ea665, none failed (432.7 s,
+4,841.3 s, `suite-usual2`).
+
+**Size:** `core/` and `kernel/` (tests excluded) are 2,194,592 bytes against a6d6403's 2,179,154 (+15,438, +200 lines;
+after merging f589873, 2,200,224 against its 2,184,786):
+kernel.ts +7,994 (the trusted mirror), nonterm.ts +3,484, conformance.ts +2,608, accel.ts +1,165, cycles.ts +173,
+dsl.ts +14.
+
 The lemma search on TIP 2015 (gen/tip2, core/data.ts): the induction hypothesis at other values of the variables an
 induction leaves, an implication's instances from the values where its premise holds, Peano induction on a natural
 inside a decreasing argument, and eta at a value a case says is nil. Nothing trusted changed (`kernel/kernel.ts`,
