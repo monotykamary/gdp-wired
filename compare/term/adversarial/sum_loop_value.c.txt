@@ -1,0 +1,16 @@
+// expect: nonterminating. g's value is written in a loop (any value, for its check): its summary, fitted to the runs
+// (g(n) = 0 where n <= 0, n where n > 0), holds, but g(5) and main's loop run forever where the value is 3.
+int g(int n) {
+  if (n <= 0) return 0;
+  int k = g(n - 1);
+  int v = 0;
+  while (v < n) v++;
+  return v;
+}
+int main() {
+  int x = __VERIFIER_nondet_int();
+  int r = g(x);
+  while (r == 3) {
+  }
+  return 0;
+}

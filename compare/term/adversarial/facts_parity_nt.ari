@@ -1,0 +1,8 @@
+; expect: nonterminating. An odd x above 0 climbs by 2 forever (facts.ts splits l1 by x's parity); an even x stops.
+(format LCTRS)
+(theory Ints)
+(fun l0 (-> Int Int))
+(fun l1 (-> Int Int))
+(entrypoint l0)
+(rule (l0 x) (l1 x))
+(rule (l1 x) (l1 (+ x 2)) :guard (exists ((q Int)) (and (> x 0) (= (- x (* 2 q)) 1))))
