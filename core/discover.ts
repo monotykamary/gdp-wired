@@ -270,6 +270,7 @@ function houdiniList(r: AnyRule, part: ListPart, cands: Cand[], params: string[]
 // is proven first, then each dropped in turn while the laws stay proven without it.
 // `first`: the laws' verdict on r alone, when the caller has it.
 export function discover(r: AnyRule, laws: Law[], stepLaws: StepLaw[] = [], first?: Verdict): Discovery {
+  r = r.withSumsOf(laws, stepLaws)
   return quietly(() => discoverSearch(r, laws, stepLaws, first ?? proveSteps(r, laws, stepLaws, {search: false})))
 }
 function discoverSearch(r: AnyRule, laws: Law[], stepLaws: StepLaw[], first: Verdict): Discovery {

@@ -1532,8 +1532,10 @@ type Spec = {
   // The divisors the rule's laws, step laws, liveness and decisions divide by (modBy, divBy): the machine declares
   // div$k and mod$k for each, beside those its own terms read. Shared by every rule made from this one.
   arith?: Set<number>
-  // The sums over a map's keys the rule's laws, step laws and liveness read (M.sum()): the machine declares each,
-  // beside those its own terms read. Shared by every rule made from this one.
+  // Sums over a map's keys the machine declares beside those its own terms read: the ones a prover entry's laws, step
+  // laws, liveness or decision read (withSumsOf), and those the search adds (withMapSums). Defining a law adds none: a
+  // law that reads M.sum() leaves its rule, and every rule made from it, as they were (up to 0.30.0 it added the sum to
+  // all of them, which changed what they decode and compile to, and broke crossCheck).
   sumsRead?: Set<string>
   flags: ((env: never) => Record<string, Cond>)[]
   step?: (env: never) => Record<string, TermLike | MapWrite | undefined>
@@ -1730,8 +1732,13 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // What a law, a step law or a decision divides by, noted so the machine declares it (Spec.arith).
   private divides<T extends object>(x: T): T {
     if (this.spec.arith) divisorsIn([x as never], this.spec.arith)
-    for (const n of Object.keys(sumsIn([x]) ?? {})) (this.spec.sumsRead ??= new Set()).add(n)
     return x
+  }
+  // The same rule declaring every sum over a map's keys these read (laws, step laws, a liveness, a decision's goal), as
+  // each prover entry takes it; this rule itself unchanged. The rule where they read none it doesn't already declare.
+  withSumsOf(...xs: unknown[]): this {
+    const had = this.spec.sumsRead ?? new Set<string>(), names = Object.keys(sumsIn(xs) ?? {}).filter(n => !had.has(n))
+    return names.length ? this.with({sumsRead: new Set([...had, ...names])}) : this
   }
   // Divide by these too (inferLaws' candidates): the machine declares div$k and mod$k for each.
   dividesBy(...ks: number[]): this { for (const k of ks) (this.spec.arith ??= new Set()).add(divisor(k, 'dividesBy')); return this }
@@ -1833,7 +1840,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const listed = lists.flatMap(l => l.equationsAt(uniqueTerms([l.len, l.len.minus(1), ...keysRead([...hyps, t], l.maps)])).map(c => c.c))
     const goal: Goal = this.divides({name, hyps: [...listed, ...hyps, {op: 'not', x: t}]})
     const facts = this.spec.fns?.length || this.spec.facts?.length || this.spec.arith?.size ? factsFor(this.machine, goal) : []
-    const d: Decision = {name, rule: this as Rule<Obj>, given: hyps, then: t, goal: {name, hyps: [...facts, ...goal.hyps]}}
+    const d: Decision = {name, rule: this.withSumsOf(goal) as Rule<Obj>, given: hyps, then: t, goal: {name, hyps: [...facts, ...goal.hyps]}}
     if ([...(Array.isArray(g) ? g : [g]).map(c => c.c), t].some(quantifiedIn)) {
       const conds = (e: never) => { const own = given(e); return {given$: all(...(Array.isArray(own) ? own : [own])), then$: then(e)} }
       const r = (this.spec.step ? this : this.step(() => ({}) as never)).flags(conds as never) as unknown as Rule<Obj>
@@ -2026,6 +2033,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // interpreter evaluates (core/watch.ts's verdicts, over the same keys). A law that says something other than its
   // callback, or a step that writes something other than it means, is reported with the state it shows at.
   crossCheck(laws: Law[], stepLaws: StepLaw[] = [], opts: {trials?: number, depth?: number, bound?: number, rand?: Rand} = {}): {checked: number, failure?: string} {
+    const summed = this.withSumsOf(laws, stepLaws)
+    if (summed !== this) return summed.crossCheck(laws, stepLaws, opts)
     const s = this.spec, m = this.machine, run = interpret(m), bound = opts.bound ?? 4, rand = opts.rand ?? seeded(7)
     let checked = 0
     const at = (what: string, params: object, st: State, input?: Request) => `${what}: params ${JSON.stringify(params)}, state ${JSON.stringify(this.decode(st))}${input ? `, request ${JSON.stringify(numbersOf(input))}` : ''}`
@@ -2094,6 +2103,8 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     const written: Record<string, unknown> = {...updates}
     inScope(sc, () => { for (const [n, k] of s.kinded ?? []) if (updates[n] !== undefined) { delete written[n]; Object.assign(written, k.store(n, updates[n])) } })
     for (const n of Object.keys(st.scalars)) {
+      // (a sum over a map's keys: no callback writes it; the runtimes keep it exact, kernel.ts's sumMachine)
+      if (m.sums && n in m.sums) continue
       const u = written[n], got = next.scalars[n]!, want = u === undefined ? st.scalars[n] : valOf(u as TermLike)
       if (want === undefined) continue
       count()
@@ -2558,6 +2569,7 @@ const refutedVerdict = (out: NonNullable<ReturnType<typeof refuteByRuns>>): Verd
 // another instance of the same rule (a factory called twice).
 const noting = <R extends Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>>(r: R, ...xs: object[]): R => { const ks = divisorsIn(xs as never); if (ks.size) r.dividesBy(...ks); return r }
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions = {}): Verdict {
+  r = r.withSumsOf(laws)
   noting(r, laws)
   const refuted = refuteByRuns(r, laws)
   // A state the laws allow whose step breaks one, with no run to it (a wide rule's: what the kernel's step goal would end
@@ -2569,6 +2581,7 @@ export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws:
   return searched(r, laws, [], v, opts)
 }
 export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions = {}): Verdict {
+  r = r.withSumsOf(laws, stepLaws)
   noting(r, laws, stepLaws)
   const refuted = refuteByRuns(r, laws, stepLaws)
   // (a step law broken from a state the laws allow, with no run to it: the laws may need an invariant there, or the run
@@ -2676,6 +2689,7 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
 export type {StepLaw}
 export type {Liveness}
 export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: Liveness, opts: {ms?: number} = {}): Verdict {
+  r = r.withSumsOf(laws, l)
   noting(r, laws, l)
   if (laws.some(law => law.some?.length)) throw new Error(`${r.machine.name}: a law with "there exists" goes to proveRule or proveSteps; a liveness takes plain laws (the ones its proof printed, Verdict.witnesses)`)
   if (Array.isArray(l.rank) && !l.rank.length) {

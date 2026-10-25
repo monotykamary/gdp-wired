@@ -20,8 +20,7 @@ const token = (bug?: 'free mint') => rule('token')
 
 test('the runtimes keep every sum exact', () => {
   const r = token(), law = r.law('sum', ({Bal, supply}) => Bal.sum().eq(supply))
-  void law
-  const m = r.machine, it = interpret(m), js = loadJs(m), rand = seeded(5)
+  const m = r.withSumsOf(law).machine, it = interpret(m), js = loadJs(m), rand = seeded(5)
   let a = it.init({}), b = js.init({})
   for (let i = 0; i < 400; i++) {
     const req = {op: rand(3), from: rand(5), to: rand(5), value: rand(4)}
@@ -47,6 +46,39 @@ test('laws over a sum and over cells against it are proven; false ones refused w
   const tooTight = proveRule(r, [r.law('the balances sum to at most 3', ({Bal}) => Bal.sum().atMost(3))])
   expect(tooTight.proven).toBe(false)
   expect(tooTight.run).toBeDefined()
+})
+
+// Up to 0.30.0 a law reading M.sum() added the sum to its rule and to every rule made from it, before or after: they
+// decoded and compiled with a sum$M field, and crossCheck failed on it ("the step writes sum$Bal = 0 by its callback, 4
+// by the machine"). Now a law changes no rule; the prover entries and crossCheck take the sums the laws read.
+test('a law over a sum leaves its rule as it was; crossCheck follows the sum', () => {
+  // (a copy of the token's step whose mint forgets the supply)
+  const freeMint = (x: ReturnType<typeof token>) => x.step(({from, to, value, supply, Bal, mints, transfers, burns}) => ({
+    Bal: Bal.each(k => Bal.at(k).minus(when(transfers.or(burns).and(k.eq(from)), value, 0)).plus(when(mints.or(transfers).and(k.eq(to)), value, 0))),
+    supply: when(burns, supply.minus(value), supply),
+  }))
+  const r = token(), before = r.step(({supply}) => ({supply}) as never), early = freeMint(r), shown = (x: {machine: Machine}) => JSON.stringify([Object.keys(x.machine.state), x.machine.sums ?? null])
+  const was = [shown(r), shown(before)]
+  const sum = r.law('the balances sum to the supply', ({Bal, supply}) => Bal.sum().eq(supply))
+  const cell = r.law('no balance exceeds the supply', ({Bal, supply}) => forall(k => Bal.at(k).atMost(supply)))
+  const after = r.step(({supply}) => ({supply}) as never)
+  expect([shown(r), shown(before)]).toEqual(was)
+  expect(shown(after)).toBe(was[1]!)
+  expect(Object.keys(r.compiled().init({}).scalars)).toEqual(['supply'])
+  expect(Object.keys(r.decode(r.interpreter().init({})))).toEqual(['supply'])
+  expect(r.crossCheck([sum, cell])).toEqual({checked: expect.any(Number)})
+  expect(proveRule(r, [sum, cell], {search: false})).toMatchObject({proven: true, checked: true})
+  // a variant made from the rule before the laws, and one made after: each refused with a run
+  for (const b of [early, freeMint(r)]) {
+    const v = proveRule(b, [sum], {search: false})
+    expect(v.proven).toBe(false)
+    expect(v.run).toBeDefined()
+  }
+  // a sum the rule's own flags read: no callback writes it either
+  const capped = rule('capped').inputs({k: nat}).params({cap: nat}).maps({M: 0})
+    .flags(({k, cap, M}) => ({adds: M.sum().lt(cap).and(M.at(k).eq(0))}))
+    .step(({k, M, adds}) => ({M: M.set(k, when(adds, 1, M.at(k)))}))
+  expect(capped.crossCheck([capped.law('at most cap', ({M, cap}) => M.sum().atMost(cap))])).toEqual({checked: expect.any(Number)})
 })
 
 test('a sum the kernel cannot keep exact is refused', () => {

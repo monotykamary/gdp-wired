@@ -60,7 +60,8 @@ const seatBit = s.law('a seat is taken or free', ({Taken}) => forall(k => Taken.
 
 if (process.argv.includes('--lean')) {
   const items: LeanItem[] = [
-    {id: 'token', machine: t.machine, laws: [...t.kindLaws(), supplyLaw, cellLaw]},
+    // (the machine with the sums the laws read: a law leaves its rule as it was)
+    {id: 'token', machine: t.withSumsOf(supplyLaw, cellLaw).machine, laws: [...t.kindLaws(), supplyLaw, cellLaw]},
     {id: 'seats', machine: s.machine, laws: [...s.kindLaws(), seatBit, seatLaw]},
     {id: 'job', machine: j.machine, laws: j.kindLaws(), liveness: [ends(j, 'strong')]},
   ]
