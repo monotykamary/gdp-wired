@@ -183,7 +183,7 @@ function prove(l: typeof loop, ms: number, tag: object = {}, given: Law[] = [], 
       let t2: Record<string, Tree> | undefined
       const own = laws
       for (const [i, facts] of onTask.laws.entries()) {
-        const now = performance.now(), end = t0 + (limit - 1) * 1000, until = i === onTask.laws.length - 1 ? end : now + (end - now) / 2
+        const now = performance.now(), end = t0 + (limit - 1) * 1000, until = i === onTask.laws.length - 1 ? end : now + (end - now) / (onTask.laws.length - i)
         laws = [...facts, ...own]
         t2 = withDeadline(until, () => rankOnTask(onTask.b, laws, f.rank!, until))
         if (t2) break

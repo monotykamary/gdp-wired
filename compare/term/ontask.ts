@@ -35,9 +35,9 @@ function atLocation(b: Built, consts: Map<string, Map<number, bigint>>): [number
 }
 export const factLaws = (b: Built, consts: Map<string, Map<number, bigint>>): Law[] =>
   atLocation(b, consts).map(([i, c]) => ({name: `the facts at ${b.locs[i]}`, holds: {op: 'or', xs: [{op: 'not', x: eq(V('pc'), K(i))}, c]}}))
-// The facts a rank of the rewritten task needs on the task's, first: where a rule the rewrite left out starts, its
-// location's (no run reaches it, or the constants its guard reads); then every location's, as one law (one goal to
-// prove it inductive, not one a location).
+// The facts a rank of the rewritten task needs on the task's, in turn: none (the rank often holds as it is); where a
+// rule the rewrite left out starts, its location's (no run reaches it, or the constants its guard reads); then every
+// location's, as one law (one goal to prove it inductive, not one a location).
 export function factLawSets(b: Built, t: Ari, f: Facts): Law[][] {
   const kept = new Set(f.origins.map(o => o.rule)), need = new Map<string, Map<number, bigint>>()
   for (const [i, r] of t.rules.entries()) {
@@ -50,7 +50,7 @@ export function factLawSets(b: Built, t: Ari, f: Facts): Law[][] {
   }
   const first = factLaws(b, need), all = factLaws(b, f.consts)
   const one: Law[] = all.length ? [{name: 'the facts at each location', holds: and(all.map(l => l.holds))}] : []
-  return [first, ...(all.length > first.length ? [one] : [])]
+  return [[], ...(first.length ? [first] : []), ...(all.length > first.length ? [one] : [])]
 }
 const factsC = (b: Built, consts: Map<string, Map<number, bigint>>): C => and([{op: '<=', a: K(0), b: K(0)}, ...factLaws(b, consts).map(l => l.holds)])
 
