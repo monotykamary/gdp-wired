@@ -229,54 +229,60 @@ function preimages(m: Machine, laws: Law[], stepLaws: StepLaw[], atoms: Atom[], 
     if (c.op === 'and' || c.op === 'or') { c.xs.forEach(y => atomsOfC(y, post, out)); return }
     if (c.op === 'not') { atomsOfC(c.x, post, out); return }
     if (c.op !== '<' && c.op !== '<=' && c.op !== '=') return
-    for (const a of linE(c.a, post)) for (const b of linE(c.b, post)) if (out.length < 400) out.push(plus(a, b, -1))
+    for (const a of linE(c.a, post)) for (const b of linE(c.b, post)) if (out.length < 1000) out.push(plus(a, b, -1))
   }
   const condsOfE = (e: E, out: Lin[]): void => {
     if (e.op === 'if') { atomsOfC(inline(e.c), false, out); condsOfE(e.then, out); condsOfE(e.else, out) }
     else if (e.op === 'add' || e.op === 'sub' || e.op === 'min' || e.op === 'max' || e.op === 'prod') { condsOfE(e.a, out); condsOfE(e.b, out) }
     else if (e.op === 'mul') condsOfE(e.a, out)
   }
-  const bad: Lin[] = [], guards: Lin[] = []
-  for (const l of laws) atomsOfC(inline(l.holds), true, bad)
+  // (each law its own: its comparisons, their eliminations and its share of the directions, taken in turn)
+  const sources: Lin[][] = [], guards: Lin[] = []
+  for (const l of laws) { const b: Lin[] = []; atomsOfC(inline(l.holds), true, b); sources.push(b) }
   for (const sl of stepLaws) {
-    atomsOfC(inline(sl.then), false, bad)
+    const b: Lin[] = []
+    atomsOfC(inline(sl.then), false, b); sources.push(b)
     for (const w of sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when]) atomsOfC(inline(w), false, guards)
   }
   Object.values(flags).forEach(c => atomsOfC(c, false, guards))
   if (m.assume) atomsOfC(inline(m.assume), false, guards)
   Object.values(m.step.state ?? {}).forEach(e => condsOfE(e, guards))
   const reads = (l: Lin) => [...l].filter(([v, c]) => c && inputs.has(v)).map(([v]) => v)
-  const found = new Map<string, Rel>()
-  const keep = (l: Lin) => {
+  const dir = (l: Lin): Rel | undefined => {
     const coef: [number, number][] = []
     for (const i of coords) {
       const a = atoms[i]!, [pos, neg] = a.parts, cp = l.get(pos![0]) ?? 0
-      if (neg && (l.get(neg[0]) ?? 0) !== -cp) return
+      if (neg && (l.get(neg[0]) ?? 0) !== -cp) return undefined
       if (cp) coef.push([i, cp])
     }
     const rest = [...l].filter(([v, c]) => c && v !== '1' && !coef.some(([i]) => atoms[i]!.parts.some(([q]) => q === v)))
-    if (rest.length || coef.length < 2) return
+    if (rest.length || coef.length < 2) return undefined
     const g = coef.reduce((acc, [, cc]) => gcd(acc, cc), 0), t = coef.map(([i, cc]) => [i, cc / g] as [number, number])
-    const u = t[0]![1] > 0 ? t : t.map(([i, cc]) => [i, -cc] as [number, number])
-    found.set(JSON.stringify(u), {coef: u, d: 0})
+    return {coef: t[0]![1] > 0 ? t : t.map(([i, cc]) => [i, -cc] as [number, number]), d: 0}
   }
-  let front = bad
-  for (let round = 0; round < 3 && front.length; round++) {
-    const next: Lin[] = []
-    for (const f of front) {
-      const vs = reads(f)
-      if (!vs.length) { keep(f); continue }
-      if (round === 2) continue
-      const v = vs[0]!
-      for (const g of guards) {
-        const gv = g.get(v) ?? 0, fv = f.get(v)!
-        if (!gv || next.length > 2000) continue
-        next.push(plus(new Map([...f].map(([k2, c]) => [k2, c * gv])), g, -fv))
+  const per = sources.map(bad => {
+    const found = new Map<string, Rel>()
+    let front = bad
+    for (let round = 0; round < 3 && front.length; round++) {
+      const next: Lin[] = []
+      for (const f of front) {
+        const vs = reads(f)
+        if (!vs.length) { const r = dir(f); if (r) found.set(JSON.stringify(r.coef), r); continue }
+        if (round === 2) continue
+        const v = vs[0]!
+        for (const g of guards) {
+          const gv = g.get(v) ?? 0, fv = f.get(v)!
+          if (!gv || next.length > 2000) continue
+          next.push(plus(new Map([...f].map(([k2, c]) => [k2, c * gv])), g, -fv))
+        }
       }
+      front = next
     }
-    front = next
-  }
-  return [...found.values()]
+    return [...found.values()]
+  })
+  const out = new Map<string, Rel>()
+  for (let i = 0; per.some(l => i < l.length); i++) for (const l of per) if (i < l.length) out.set(JSON.stringify(l[i]!.coef), l[i]!)
+  return [...out.values()]
 }
 
 // The linear comparisons a machine's conditions make over the state alone (its assumption, its step's conditions and the
@@ -626,19 +632,21 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const c = f.coef[0]![1]
     return only.values.filter(v => c * v <= f.d)
   }
-  const textOf = (f: Form): string => {
+  // (a form about every key says so first)
+  const textOf = (f: Form): string => (f.cells ? `every k: ${textIn(f)}` : textIn(f))
+  const textIn = (f: Form): string => {
     const atText = (g: At) => (g.hi === undefined ? `${nameOf(g.atom)} is ${shownValue(g.atom, g.value)}` : g.hi === Infinity ? `${g.value} <= ${nameOf(g.atom)}` : `${nameOf(g.atom)} in ${g.value}..${g.hi}`)
     if (f.never) return `never ${f.never.map(atText).join(' and ')}`
     if (f.nevers) return `never ${f.nevers.map(c => c.map(atText).join(' and ')).join('; nor ')}`
     if (f.cube) return `never ${f.cube.map(l => ('at' in l ? atText(l.at) : (({l: a, r: b}) => `${a} <= ${b}`)(sides({coef: l.lin.coef, d: l.lin.d, cells: false, size: 0})))).join(' and ')}`
-    if (f.also) return `${f.also.map(atText).join(' and ')} → ${textOf({...f, also: undefined})}`
+    if (f.also) return `${f.also.map(atText).join(' and ')} → ${textIn({...f, also: undefined})}`
     if (f.unreachable) return f.unreachable.hi === undefined ? `${nameOf(f.unreachable.atom)} is never ${shownValue(f.unreachable.atom, f.unreachable.value)}` : `never ${atText(f.unreachable)}`
     if (f.cong) return `∃k. ${f.coef.map(([i, c], j) => `${j ? (c > 0 ? ' + ' : ' − ') : c < 0 ? '−' : ''}${nameOf(i)}`).join('')} = ${f.cong.mod}·k${f.cong.rest ? ` + ${f.cong.rest}` : ''}`
     const {l, r} = sides(f), within = allowedValues(f)
     const body = f.mod ? `${f.coef.map(([i, c], j) => `${c < 0 ? (j ? ' − ' : '−') : j ? ' + ' : ''}${nameOf(i)}`).join('')} mod ${f.mod.k} = ${f.mod.r}` : within ? `${nameOf(f.coef[0]![0])} is ${within.map(v => shownValue(f.coef[0]![0], v)).join(' or ')}` : `${l} <= ${r}`
     const under = f.when ? (({l: wl, r: wr}) => `${wl} <= ${wr} → `)(sides({coef: f.when.coef, d: f.when.d, cells: false, size: 0})) : ''
     const guarded = !f.guard ? under + body : 'keyNot' in f.guard ? `k = ${nameOf(f.guard.keyNot)} or ${body}` : `${atText(f.guard)} → ${under}${body}`
-    return f.cells ? `every k: ${guarded}` : guarded
+    return guarded
   }
   const sum = (es: E[]): E => es.reduce((p, q) => plus(p, q), n(0))
   // Each congruence its own witness's name (each may be a ghost of the machine).
@@ -935,7 +943,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       for (const i of cs) out.push([[i, 1]], [[i, -1]])
       if (cs.length <= joinPairs) for (const [a2, i] of cs.entries()) for (const j of cs.slice(a2 + 1)) for (const [c1, c2] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as const) out.push([[i, c1], [j, c2]])
       const known = new Set(out.map(t => JSON.stringify(t))), pre = preimages(m, laws, stepLaws, atoms, cs)
-      opts.progress?.('preimages', {n: pre.length, dirs: pre.slice(0, 40).map(r => r.coef.map(([i, c]) => `${c}·${nameOf(i)}`).join(' + ')).join('; ')})
       for (const {coef} of [...comparisons(m, laws, atoms, cs), ...pre]) if (coef.length > 1) for (const u of coef[0]![1] > 0 ? [coef, coef.map(([i, c]) => [i, -c] as [number, number])] : []) {
         const k2 = JSON.stringify(u)
         if (!known.has(k2) && out.length < 2 * cs.length + 4 * joinPairs * joinPairs + 64) { known.add(k2); out.push(u) }
@@ -994,7 +1001,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const add = (p: Point, widen: boolean) => { for (const v of vecs(p)) join(keyOf(v), v, widen) }
       const rows = (cells ? rowsK : rowsS).map(valuesOf)
       for (const v of rows) join(keyOf(v), v, false)
-      opts.progress?.('join start', {wide: dirs.filter(t => t.length >= 4).map(t => t.map(([i, c]) => `${c}${nameOf(i)}`).join(' ')).join('; ').slice(0, 600), cells: cells ? 1 : 0, control: ctl.map(c => `${nameOf(c.atom)}:${c.cuts.join('/')}`).join(' '), groups: groups.size, dirs: dirs.length, coords: CN})
+      opts.progress?.('join start', {cells: cells ? 1 : 0, control: ctl.map(c => `${nameOf(c.atom)}:${c.cuts.join('/')}`).join(' '), groups: groups.size, dirs: dirs.length, coords: CN})
       // The control states no state reached, as fewer and smaller cubes (a program counter in bits: Spacer's clauses there
       // read two or three of its bits): each cube's values dropped one at a time, the yes/nos first, while it holds at no
       // control state reached, then the cubes another cube's values include left out. Together they say what the cubes
@@ -1407,13 +1414,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         }
         if (alone && cube()) continue
         // (the control refined first, where a level leaves the state out: the samples then say what holds there)
-        if (!outside && refine(pre)) { opts.progress?.('join', {round: rounds, refined: spaces.map(sp => sp.control()).join('; '), cti: JSON.stringify(pre.scalar).slice(0, 400), goal: todo.slice(0, 50)}); continue }
+        if (!outside && refine(pre)) { opts.progress?.('join', {round: rounds, refined: spaces.map(sp => sp.control()).join('; ')}); continue }
         const pick = (fs: Form[]) => { let bestF: Form | undefined, score = -Infinity; for (const f of fs) { if (f.cells || f.cong || extras.includes(f) || blocked.has(textOf(f)) || holdsAt(f, pre) || !reached.every(p2 => holdsAt(f, p2))) continue; const sc = negs.reduce((k2, c) => k2 + (holdsAt(f, c) ? 0 : 1), 0) * 1000 - f.size; if (sc > score) (bestF = f, score = sc) } return bestF }
         const room = extras.length < joinExtras && tried < joinTries
         let next = room ? pick(pool) : undefined
         if (!next && room) { const made = fromCti(pre); pool.push(...made); next = pick(made) }
         if (next) tried++
-        opts.progress?.('join', {round: rounds, set: set.length, ms: qms, target: next ? textOf(next).slice(0, 60) : 'none', ...(next ? {} : {outside: outside ? 1 : 0, breaking: set.filter(f => textOf(f).includes('Rewarded[k]') && textOf(f).includes('Val[k]') && textOf(f).includes('Start[k]')).slice(0, 8).map(f => textOf(f)).join(' | ').slice(0, 1500), at: JSON.stringify({c: pre.cells, in: input}).slice(0, 500)})})
+        opts.progress?.('join', {round: rounds, set: set.length, ms: qms, target: next ? textOf(next).slice(0, 60) : 'none', ...(next ? {} : {outside: outside ? 1 : 0})})
         if (!next && !alone && cube()) continue
         if (!next) { why = 'target'; break }
         extras.push(next); continue
