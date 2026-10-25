@@ -436,6 +436,22 @@ test('constants from another file of the repository: read, and loaded in the che
   refused(extract(`import {ADD} from './types'\nexport default function c(state = 0, action) { return action.type === ADD ? state + 1 : state }`, {file: 'c.js', entry: 'default', check: budget}), /from another module \('.\/types'\)/)
 })
 
+test('an absolute file path: read as the relative one is (it threw in findFunction up to 0.30.0)', () => {
+  const code = `
+    import {ADD, RESET} from './types'
+    export default function count(state = 0, action) {
+      switch (action.type) { case ADD: return state + 1; case RESET: return 0; default: return state }
+    }
+    export function decide(x: number): boolean { return x > 3 }`
+  const files = {'./types.js': "export const ADD = 'count/add'\nexport const RESET = 'count/reset'\n"}
+  const rel = ok(extract(code, {file: 'src/count.js', entry: 'default', files, check: budget}))
+  for (const file of ['/somewhere/src/count.js', 'C:\\somewhere\\src\\count.js']) {
+    const abs = ok(extract(code, {file, entry: 'default', files, check: budget}))
+    expect(abs.source!.split('\n').slice(1)).toEqual(rel.source!.split('\n').slice(1)) // the first line names the file
+    refused(extract(code, {file, entry: 'decide', check: budget}), /decide is not a step over a state/)
+  }
+})
+
 test('a Redux Toolkit slice: case reducers on the draft, a thunk\'s cases, checked against Redux Toolkit itself', () => {
   const code = `
     import {createAsyncThunk, createSlice, type PayloadAction} from '@reduxjs/toolkit'

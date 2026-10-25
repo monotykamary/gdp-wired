@@ -110,12 +110,18 @@ export function program(code: string, file: string, extra: Record<string, string
   host.getSourceFile = (name, lang, ...rest) => (name === file ? ts.createSourceFile(name, code, lang, true, scriptKind(file)) : name in extra ? ts.createSourceFile(name, extra[name]!, lang, true, scriptKind(name)) : getSourceFile(name, lang, ...rest))
   host.readFile = name => (name === file ? code : name in extra ? extra[name] : readFile(name))
   host.fileExists = name => name === file || name in extra || fileExists(name)
-  const dirExists = host.directoryExists?.bind(host), dirs = new Set(Object.keys(extra).flatMap(f => f.split('/').slice(1, -1).map((_, i, a) => `/${a.slice(0, i + 1).join('/')}`)))
+  const dirExists = host.directoryExists?.bind(host), dirs = new Set(Object.keys(extra).flatMap(f => { const p = f.split('/'); return p.slice(1, -1).map((_, i) => p.slice(0, i + 2).join('/')) }))
   host.directoryExists = d => dirs.has(d.replace(/\/$/, '')) || (dirExists ? dirExists(d) : true)
   const p = ts.createProgram([file], options, host)
   return {sf: p.getSourceFile(file)!, checker: p.getTypeChecker()}
 }
 
+// Where the file sits: an absolute path as given (backslashes as slashes), a relative one in the working directory, so its
+// imports (xstate, say) resolve as the project's do.
+export function placed(file: string): string {
+  const cwd = (globalThis as {process?: {cwd?: () => string}}).process?.cwd?.() ?? '.'
+  return (/^([A-Za-z]:)?[\\/]/.test(file) ? file : `${cwd}/${file}`).replace(/\\/g, '/')
+}
 export const scriptKind = (file: string): ts.ScriptKind => (/\.jsx$/.test(file) ? ts.ScriptKind.JSX : /\.tsx$/.test(file) ? ts.ScriptKind.TSX : /\.[cm]?js$/.test(file) ? ts.ScriptKind.JS : ts.ScriptKind.TS)
 // The shape a type has in the subset.
 // (`inner`: the field path inside the value at `at` that t is the type of, for where a refusal says it is)

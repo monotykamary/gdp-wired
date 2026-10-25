@@ -42,7 +42,7 @@ import type {Rule} from './dsl.ts'
 import type {Law} from './machine.ts'
 import * as I from './extract-ir.ts'
 import type {B, N} from './extract-ir.ts'
-import {type MapDecl, type Model, Refusal, type Term, type Var} from './extract-read.ts'
+import {type MapDecl, type Model, Refusal, type Term, type Var, placed} from './extract-read.ts'
 import {type ReadOptions, isFactory, isSlice, readClass, readFactory, readFunctions, readSlice} from './extract-shapes.ts'
 import {type Ctx, type Printer, type Sorts, kindOf, mapEmpty, mapKind, natOK, pb, pidx, pk, pterm, sortsOf} from './extract-print.ts'
 import {type CheckOptions, type Evidence, check} from './extract-check.ts'
@@ -79,8 +79,7 @@ export function extract(code: string, opts: ExtractOptions): Extraction {
   let model: Model
   try {
     const isClass = opts.shape ? opts.shape === 'class' : new RegExp(`\\bclass\\s+${opts.entry}\\b|\\b${opts.entry}\\s*=\\s*class\\b`).test(code)
-    // The file sits in the working directory, so its imports (xstate, say) resolve as the project's do.
-    const cwd = (globalThis as {process?: {cwd?: () => string}}).process?.cwd?.() ?? '.', at = `${cwd}/${file}`
+    const at = placed(file)
     model = isClass ? readClass(code, at, opts) : isSlice(code, opts.entry) ? readSlice(code, at, opts) : isFactory(code, file, opts.entry) ? readFactory(code, at, opts) : readFunctions(code, at, opts)
     model.file = file
   } catch (e) {

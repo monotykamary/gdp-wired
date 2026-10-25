@@ -25,7 +25,7 @@ import * as dsl from './dsl.ts'
 import {compileFunction, seeded} from './machine.ts'
 import * as I from './extract-ir.ts'
 import type {B} from './extract-ir.ts'
-import {Exec, type Model, type Path, Refusal, type Setup, type Shape, type Sort, type Term, type V, type Var, memberName, normalize, program, shapeOf} from './extract-read.ts'
+import {Exec, type Model, type Path, Refusal, type Setup, type Shape, type Sort, type Term, type V, type Var, memberName, normalize, placed, program, shapeOf} from './extract-read.ts'
 import {type Printer, kindOf, pb, pterm, sortsOf} from './extract-print.ts'
 import {type Coverage, sandbox} from './extract-check.ts'
 import {conforms, eventsOf, fromXState} from './xstate.ts'
@@ -54,8 +54,7 @@ type Field = {k: string, var?: Var, maybe?: {has: Var, inner: Var, null: boolean
 export function extractXState(code: string, opts: XStateOptions): XStateExtraction {
   const file = opts.file ?? 'machine.ts', t0 = performance.now(), notes: string[] = []
   try {
-    const cwd = (globalThis as {process?: {cwd?: () => string}}).process?.cwd?.() ?? '.'
-    const at = `${cwd}/${file}`, root = at.slice(0, at.length - file.split('/').pop()!.length)
+    const at = placed(file), root = at.slice(0, at.length - file.split('/').pop()!.length)
     const extra = Object.fromEntries(Object.entries(opts.files ?? {}).map(([p, c]) => [normalize(`${root}${p}`), c]))
     const {sf, checker} = program(code, at, extra)
     // The entry: a machine (setup(...).createMachine(...), createMachine(...)) or a function that returns one.
