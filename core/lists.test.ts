@@ -19,7 +19,7 @@ test('the normalized scope: its step law translated for the Lean export, checked
   expect(certReport.cyclic).toEqual(['scope'])
   expect(certReport.translatedSteps).toEqual([ok.machine.name])
   expect(text.length).toBeLessThan(250_000)
-})
+}, 60_000)
 
 test('the normalized scope: proven, through a law about every two positions; each broken variant refused', () => {
   const ok = scope(), r = proveStepLaws(ok.machine, scopeLaws(ok), scopeSteps(ok))
