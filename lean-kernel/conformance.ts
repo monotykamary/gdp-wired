@@ -11,9 +11,9 @@
 // With --rationals, the rational cases (core/conformance.ts's randomQCase): values, proven goals' trees, their tampered
 // twins and models, each with kernel.ts's answer, for Rationals.lean to compute:
 //   bun conformance.ts --rationals [cases] > RatConformance.lean && lean RatConformance.lean
-import {CELLS, INIT, VARS, qgoals, qreference, qtampered, randomCase, randomQCase, recurCases, recurCasesCases, reference, reseed, ringCase, kindAnswer, kindCases} from '../core/conformance.ts'
+import {CELLS, INIT, VARS, fairAnswer, fairCases, sumAnswer, sumCases, qgoals, qreference, qtampered, randomCase, randomQCase, recurCases, recurCasesCases, reference, reseed, ringCase, kindAnswer, kindCases} from '../core/conformance.ts'
 import type {Measure, Termination} from '../core/data.ts'
-import {kInductionStart, kInductionSteps} from '../kernel/kernel.ts'
+import {kInductionStart, kInductionSteps, livenessParts, sumMachine} from '../kernel/kernel.ts'
 import type {Loop, QGoal, Recur} from '../kernel/kernel.ts'
 import {canon, checkQTree, checkRecur} from '../kernel/kernel.ts'
 import {growQ} from '../kernel/qprove.ts'
@@ -25,6 +25,39 @@ import {leanTerms} from './lean-terms.ts'
 
 reseed(Number(process.env.FUZZ_SEED ?? 4242))
 const nonterm = process.argv.includes('--nonterm'), rationals = process.argv.includes('--rationals'), kind = process.argv.includes('--kind')
+// With --sums, the sums certificates (core/conformance.ts's sumCases: found, and their tampered twins), each twin as
+// `checkSums twin covers && checkSMachine twin.plain proof = b`, b kernel.ts's answer; with --fair, the strong fairness
+// certificates (fairCases), each twin's step laws checked against the found proof:
+//   bun conformance.ts --sums [cases] > SumConformance.lean && lean SumConformance.lean
+//   bun conformance.ts --fair [cases] > FairConformance.lean && lean FairConformance.lean
+if (process.argv.includes('--sums') || process.argv.includes('--fair')) {
+  const sums = process.argv.includes('--sums'), count0 = Number(process.argv.filter(a => !a.startsWith('--'))[2] ?? 8), out: string[] = [], tally: Record<string, number> = {}
+  const note = (what: string, b: boolean) => { tally[`${what}: ${b}`] = (tally[`${what}: ${b}`] ?? 0) + 1 }
+  if (sums) sumCases(count0).forEach((c, i) => {
+    const plain = sumMachine(c.m).machine
+    seedStepProof(plain, c.laws, [], {proven: true, checked: true, nodes: 0, leaves: 0, proof: {laws: c.proof, instances: {}, trees: {}}})
+    const sumTampers = c.tampers.map(t => ({...t, expect: sumAnswer(t.m, c.laws, c.proof, t.covers)}))
+    note('found', sumAnswer(c.m, c.laws, c.proof)); for (const t of sumTampers) note(t.what, t.expect)
+    out.push(smachineToLean(`sum${i}`, c.m, c.laws, {sumTampers, coverTrees: c.proof.trees, noFacts: true}))
+  })
+  else fairCases(count0).forEach((c, i) => {
+    const {stay, cover, helps} = livenessParts(c.m, c.l)
+    seedStepProof(c.m, c.laws, [stay, cover, ...helps], {proven: true, checked: true, nodes: 0, leaves: 0, proof: c.proof!})
+    const liveTampers = c.tampers.map(t => ({...t, expect: fairAnswer(c.m, c.laws, t.l, c.proof)}))
+    note('found', fairAnswer(c.m, c.laws, c.l, c.proof)); for (const t of liveTampers) note(t.what, t.expect)
+    out.push(smachineToLean(`fair${i}`, c.m, c.laws, {liveness: [c.l], liveTampers, noFacts: true}))
+  })
+  console.log(`import ${sums ? 'Sums' : 'Live'}
+open Kern Cert
+set_option maxRecDepth 100000
+set_option maxHeartbeats 0
+
+/-! ${count0} ${sums ? 'machines with sums over a map\'s keys from core/conformance.ts\'s sumCases' : 'liveness claims under strong fairness from core/conformance.ts\'s fairCases'} (${Object.entries(tally).map(([w, n]) => `${w} ${n}`).join('; ')}):
+the found certificates check, and Lean computes kernel.ts's answer on each tampered twin. -/
+
+${out.join('\n\n')}`)
+  process.exit(0)
+}
 if (kind) {
   const count0 = Number(process.argv.filter(a => !a.startsWith('--'))[2] ?? 12), out: string[] = [], tally: Record<string, number> = {}
   kindCases(count0).forEach((c, i) => {

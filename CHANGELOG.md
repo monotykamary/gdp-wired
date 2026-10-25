@@ -3,6 +3,70 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+Sums over a map's keys, and liveness under strong fairness (gen/sums). Two trusted changes, Lean-first, each on the
+standard axioms (`propext`, `Classical.choice`, `Quot.sound`; `isSum_change` and `dsum_le` on `propext` and `Quot.sound`
+alone), mirrored by kernel.ts and tested on found and tampered certificates by core/conformance.ts and
+lean-kernel/conformance.ts (`--sums`, `--fair`):
+- **Sums (lean-kernel/Sums.lean, new):** `M.sum()`, the sum of a map's cells over every key, exact, and
+  `M.sum(cell => ...)`, of a term of the cell (a count, a record's field where another says so). Lean builds the plain
+  machine (`SumMachine.plain`: each sum from 0, after each step `(S + new) ∸ old` over the keys the step writes; conjoined
+  to the assumption, `old ≤ S` and a quantified flag: at every key, the term there and at those keys is at most S) and
+  checks kernel.ts's conditions and each write at every key's cover goal (`checkSums`). Theorems: `sum_holds` (in every
+  reachable state each sum variable is the sum of its term over every key, `IsSum`), `sum_allowed` (there the plain
+  machine allows exactly what the rule's assumption allows), `sum_laws`, `sumleads_sound`, `sumleads_wf_sound`,
+  `sumleads_sf_sound`, `sum_project_laws` (a law proven with sums the rule doesn't read is a law of the rule); under them
+  `isSum_change`, `dsum_le`, `isSum_unique`. kernel.ts's `sumMachine` builds the same machine and cover goals; the
+  runtimes keep each sum as state (`sumRuntime`).
+- **Strong fairness (lean-kernel/Live.lean):** `leads_of_lex_sf`, `leads_view_sf`, `sleads_sf_soundA`: each helpful
+  request taken in its region infinitely often wherever, infinitely often, it is allowed there; the regions need not
+  stay, and a helpful request may reach the region of one of a higher level instead of `to` or a lower rank
+  (`liveStaySC`, `liveHelpThenS`, `sliveHelpsOkS`). Weak fairness generalized to a condition implying the assumption
+  where the machine is (`sleads_wf_soundA`, `sallowA_sound`; `sleads_wf_sound` is it at the assumption). kernel.ts's
+  `livenessParts` under `fairness: 'strong'`; kernel/prove.ts's `chooseLevels`; the DSL's `leadsTo({..., fairness: 'strong'})`.
+
+In the search (untrusted): where the invariant search finds nothing, it adds the sum of each map the step writes and
+searches again (core/dsl.ts's `withMapSums`, half of what is left, at most 20 s; liveness the same with the rank
+searches). examples/sums.ts (`--lean`), core/sums.test.ts and the suite's `sums` and `lean-sums` jobs. In our harness
+(Modal, 2 vCPU, 60 s), beside main 8b710ba launched together (`runs/sums/`):
+- **The real-world corpus:** 258 proven, 29 refuted, 24 unknown against 254, 29, 28 (`rw1-*`). Gained, in 4 of 4 runs
+  each and never on main (`re1-*`): ERC20's "no balance exceeds the total supply" (`sum$Bal <= totalSupply`),
+  RefundEscrow's "until closed, every deposit is covered" and "once refunding, every deposit is refunded" (a liveness),
+  librechat's "the reserved total is never negative" (`sum$Held <= reserved`), and librechat's "once settled, every
+  applied auto-refill is recorded" (the second search finds laws that read no sum). Lost: none; RefundEscrow's "the
+  beneficiary and the refundees are never both paid" was unknown once in the batch (27.5 s) and proven 3 of 3 after.
+  Not closed: BullMQ's "every job completes or fails for good", now stated under strong fairness (false under weak):
+  the kernel proves it with the rank `[attempts ∸ atm, defa ? 0 : 1, maxStalledCount + 1 ∸ stc]`, but the search finds
+  no rank in 60 s (core/live.ts's, a hand-off); Medusa's refund (a conditional sum the search doesn't propose);
+  TigerBeetle's two (a sum per account, which `M.sum()` isn't). research/realworld/README.md has each.
+- **Frontier corpora:** round 1 90 of 92 on both sides, all 42 broken variants refused; round 2 31 of 47 on both, all 47
+  refused, the same job killed at 200 s on both; every verdict the same (`f1-*`, `f2-*`).
+- **research/dag's 332 step goals:** the same search on all 332 (outcome, leaves, splits, CDCL's decisions, conflicts
+  and nodes), all proven; summed search time 278.5 s against 262.0 s, here/main 0.770 at p10, 1.062 at the median, 1.433
+  at p90 (`g332-*`, separate containers).
+- **CHC-COMP LIA-Lin:** 1,042 (616 sat, 426 unsat) against 1,038 (613, 425), none wrong, the same two disputed labels
+  (`chc-*`). The 10 tasks answered on one side only were answered past 42 s; run six times more a side (`chc-re1-*` to
+  `chc-re6-*`) they were answered 22 times here and 30 on main, in batches where this side's containers ran 5% to 11%
+  slower (its runs stage, the same interpreter, made that many fewer trials at the median; 0.987 in the full batch).
+  CHC calls the prover with no search and takes no changed path (`plainOf` is the machine itself without sums).
+- **TermComp ITS:** terminates 613 against 614, doesn't terminate 540 against 541 on the task's statement; per component
+  613 and 542 against 614 and 540 (`its-*`); every changed task answered past 44 s on its side but two that main left
+  unknown at 58 s and this side answered in 2.1 and 4.4 s. **SV-COMP termination:** 239 (183, 56) on both, per
+  component 210 on both (`sv-*`). **TIP 2015:** 207 of 492 against 206 (isaplanner/prop_61 at 53.6 s), 7 refuted on
+  both, none wrong (`tip-*`).
+- **Suites** (223 jobs): none failed by default (456.6 s wall, 6,334.6 s of job time, `suite-default`) or with
+  `--usual` (654.4 s, 5,017.5 s, `suite-usual`); `lean-sums` builds Sums.lean and Live.lean's new theorems with their
+  axioms printed, checks 16 sums machines and 52 tampered twins, 8 strong-fairness claims and 32 twins, and the examples.
+- **1 vCPU,** ten jobs a side interleaved (`onecpu-*`): none failed; data's agrees-with-+ test median 2,735.07 ms, at
+  most 3,458.31 (main 2,478.5, 3,001.0); infer's "a law that needs an invariant" 2,891.52 and 3,532.44 (main 2,841.78,
+  3,036.88).
+
+**Size:** `core/` and `kernel/` (tests excluded) 2,234,466 bytes and 30,687 lines against 2,201,135 and 30,285
+(+33,331, +402): kernel.ts +12,201 (the trusted mirror), conformance.ts +10,232, dsl.ts +6,458, prove.ts +3,746,
+machine.ts +694. The new search is 46 lines (`withMapSums` 12, the two fallbacks 7 and 12, `chooseLevels` 15),
+replacing none.
+
 ## 0.28.0
 
 Four of the five benchmarks we run now lead clearly, in our harness (60 s on Modal, 2 vCPU, the rivals as installed in
