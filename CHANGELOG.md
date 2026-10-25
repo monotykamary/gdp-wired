@@ -190,6 +190,67 @@ searches). examples/sums.ts (`--lean`), core/sums.test.ts and the suite's `sums`
 machine.ts +694. The new search is 46 lines (`withMapSums` 12, the two fallbacks 7 and 12, `chooseLevels` 15),
 replacing none.
 
+CHC-COMP's chains composed away before the rule is built, and interpolants read off CDCL's refutation DAG (gen/chc7, on
+gen/chc6). Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/` as at main
+a269124): every unsat answer is a run of the original rule `checkDerivation` confirms against the original CHC, every
+sat answer the kernel's proof of the original rule's law. In our harness (60 s, Modal, 2 vCPU), beside main a269124
+launched together (`runs/chc7/` in the main checkout), wrong 0 and the same 2 disputed labels on both sides:
+- **CHC-COMP LIA-Lin:** 1,084 (657 sat, 427 unsat) against 1,037 (612, 425), 1 timeout against 7 (`f1-chc-*`). Gained
+  56, lost 9; the 65 rerun 3 times a side: 179 answers against 42 of 195. 42 gained in 3 of 3 against 0 of 3 (HOLA ×26,
+  reve 004/004b/010/010b, loop__barthe2 ×3, SYNAPSE_4, car_2_e8_491_e7_826, ...); lost in 3 of 3, s_split_28 and
+  s_multipl_17 (each composes only its query proxy away, and the join then fails or proves late); metros_1 ×5 at the
+  edge, 14 of 15 against 15 of 15 (k-induction shares its slice with IMC). Spacer 1,163 and Golem 1,154 still lead.
+- **The layer** (compare/chc/compose.ts): a predicate with no clause to itself whose incoming times outgoing clauses
+  are no more than the two together is eliminated; every predicate stays declared, so the composed rule has the
+  original's locations and slots. Unsat: each composed step's variables valued (translate.ts's `envOf`), each original
+  clause given its own free variables, the run replayed on the original rule and checked. Sat: in the reverse order of
+  elimination, the two-step goal through each eliminated predicate (on the rule of its clauses alone, every neighbour's
+  condition already known) colored after its first step gives its condition (its weakest precondition where no
+  interpolant comes and no clause out of it leaves a value to the request); the kernel proves the original rule's law
+  with them. 162 of 172 lifts proven, a median 70 ms, the original's proof a median 436.5 ms.
+- **Interpolants** (core/interp.ts `fromDag`, kernel/cdcl.ts's `dag` option): McMillan's rules over CDCL's resolution
+  DAG, no tree unfolded and no leaf read again; a leaf whose integer cut mixes A and B refuted again over the rationals.
+  IMC, TPA and the lifting share one query (`cutInterpolant`). IMC alone on the 239 gap tasks: 41 composed with the
+  DAG's interpolants, 20 with the DAG's alone, against gen/chc6's 7 and Golem's 193; 189 of the 198 left end at the
+  budget (the one-predicate systems' per-query cost: FIREFLY_11's eighth query 3,744 CDCL nodes at about 1.5 ms each).
+- **Certificates:** a sat answer's are the usual trees, checked by kernel.ts (`GDP_CERT=usual`, solve.ts's default); on
+  main the setting changes nothing on the 513 dev tasks (236 and 236).
+- **Measured and left opt-in:** the cone of influence as a weakening (`--slice`), 272 against 275 on the dev tasks.
+- **The other benchmarks** (kernel/cdcl.ts and kernel/reader.ts changed, additively: the DAG is kept only when asked;
+  at 85e4342 beside a269124, `runs/chc7/other/`): the 332 step goals the same search on all 332 (276,409 against
+  269,698 ms); ITS 612 terminating and 541 not against 614 and 539, the 13 that differ answered 16 times against 14 in
+  their batch and 3 reruns a side; SV-COMP 239 on both, no task different; TIP 207 against 205 proven (prop_61 4 of 4
+  against 2 of 4, list_assoc 2 against 1; none lost); frontier round 1 90 of 92 on both, all 42 broken variants refused;
+  round 2 32 of 47 on both, all 47 refused (nat_pow_pow stopped unproven at 197 s here, killed at the 200 s cap on main);
+  the real-world corpus 274 proven, 29 refuted, 8 unknown on both, every verdict the same. Suites (224 jobs, interp's
+  two new tests among them): none failed by default (576.9 s wall, 5,385.3 s of job time; main 551.5 s, 5,363.4 s) or
+  with `--usual` (513.6 s, 5,123.9 s; main 518.7 s, 5,051.6 s). 1 vCPU, ten jobs a side: none failed; infer's "a law
+  that needs an invariant" median 2,541.39 ms, at most 3,706.09 (main 2,964.14, 3,754.87); data's agrees-with-+ median
+  2,649.17 ms, at most 3,663.47 (main 2,334.84, 3,199.59).
+- **Size:** `core/` and `kernel/` (tests excluded) 2,313,485 bytes and 31,732 lines against main a269124's 2,281,914
+  and 31,272 (+31,571, +460): gen/chc6's core/interp.ts and core/tpa.ts 24,912 and 371, this round +6,659 and +89
+  (interp.ts +5,458: `fromDag`, the leaf replay shared with `fromTree`, the rational re-derivation, `cutInterpolant`;
+  cdcl.ts +1,021; reader.ts +180). compare/chc/compose.ts, the layer, is 301 lines. compare/chc/README.md has the
+  measurements.
+
+Interpolants and transition powers on CHC-COMP (gen/chc6, unmerged: level with main on the full track). Nothing
+trusted changed (kernel/, core/check.ts, lean-kernel/ as at 0.28.0), and no existing search changed: core/interp.ts
+(interpolants from the kernel's trees, any coloring; McMillan's IMC over the kernel's k-step goal) and core/tpa.ts
+(transition power abstraction) are new, compare/chc/kind.ts runs IMC on the second CPU only with `--imc`. In our
+harness (60 s, Modal, 2 vCPU), beside main 8b710ba launched together, wrong 0 and the same 2 disputed labels on both:
+- **IMC sharing k-induction's slice** (`runs/chc6/f3-chc-*`): 1,043 (614 sat, 429 unsat) against 1,044 (616, 428).
+  The 22 tasks that differ or timed out, 3 runs a side: 28 answers against 21 (car_2_e7_1027_e1_1047 3 of 3 against
+  0, durationThm_2 3 against 1; metros_1 ×3 lost, 5 of 9 against 9).
+- **IMC in turns beside both** (`f2-chc-*`): 1,040 (624, 416) against 1,042 (613, 429): sat +11, unsat −13.
+- **Interpolant directions as the join's shapes** (`f1-chc-*`): 1,039 against 1,044; dropped.
+- **Alone:** of the 239 gap tasks, IMC 7 and TPA 0; of main's 120 k-induction answers IMC 107, of 100 bounded-run
+  answers 83. Golem's own engines on the same 239: IMC 193, split-TPA 109, lawi 108, TPA 78, k-induction 60.
+- **Suites** at 128bc41, core/interp.test.ts among them (222 jobs, boat): none failed by default (229.1 s wall, 3,504.9 s of
+  job time) or with `--usual` (404.0 s, 3,030.3 s). The other benchmarks, the frontier corpora, the real-world corpus
+  and the 1-vCPU tests weren't run: no code they reach changed.
+- **Size:** `core/` and `kernel/` (tests excluded) 2,226,047 bytes and 30,656 lines against 0.28.0's 2,201,135 and
+  30,285 (+24,912, +371: core/interp.ts 223 lines, core/tpa.ts 148). compare/chc/README.md has the measurements.
+
 ## 0.28.0
 
 Four of the five benchmarks we run now lead clearly, in our harness (60 s on Modal, 2 vCPU, the rivals as installed in
