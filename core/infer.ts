@@ -226,6 +226,8 @@ export function inferLaws(target: AnyRule | Machine, laws: Law[], stepLaws: Step
   return quietly(() => withDeadline(clock() + (opts.ms ?? 20000), () => inferLawsSearch(target, laws, stepLaws, opts)))
 }
 function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepLaw[] = [], opts: InferOptions = {}): Inferred {
+  // (GDP_INFER_TRACE=2: each phase's progress too, to stderr)
+  if (env.GDP_INFER_TRACE === '2' && !opts.progress) opts = {...opts, progress: (phase, info) => (globalThis as unknown as {process: {stderr: {write: (s: string) => void}}}).process.stderr.write(`[infer ${phase}] ${JSON.stringify(info)}\n`)}
   const t0 = performance.now(), ms = opts.ms ?? 20000, wallUntil = t0 + ms, rule = isRule(target) ? target : undefined
   // The clock the budgets read (counted milliseconds since the start, or wall time where `timed`), and the stop.
   const timed = !!opts.timed, w0 = work.n, used = {tries: 0, rows: 0, evals: 0, watched: 0}
