@@ -278,7 +278,7 @@ export function fromTree(goal: Goal, tree: Tree, isA: (hyp: number) => boolean, 
 // GDP_IMC_RELAX=0: the goals as the kernel writes them (each pair normalized at each step).
 const useRelax = env.GDP_IMC_RELAX !== '0'
 // GDP_ITP_DAG=0: interpolants from the unfolded tree alone.
-const useDag = env.GDP_ITP_DAG !== '0', useClausal = env.GDP_ITP_CLAUSAL !== '0', useStrong = env.GDP_ITP_STRONG !== '0', useTidy = env.GDP_ITP_TIDY !== '0'
+const useDag = env.GDP_ITP_DAG !== '0', useClausal = env.GDP_ITP_CLAUSAL === '1', useStrong = env.GDP_ITP_STRONG !== '0', useTidy = env.GDP_ITP_TIDY !== '0'
 
 // (`kinductive`: the law holds after k steps in a row where it held before each, the session's k-induction, which the
 // caller's kernel proof may confirm; asked with `induction`)

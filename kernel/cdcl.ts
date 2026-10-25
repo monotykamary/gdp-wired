@@ -98,7 +98,8 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   const st = cdclStats, timing = st.on
   const t = <T>(f: () => T, add: (ms: number) => void): T => { if (!timing) return f(); const t0 = performance.now(); try { return f() } finally { add(performance.now() - t0) } }
   st.runs++
-  const vars = new Map<string, Var>(), trail: string[] = [], levels: number[] = []
+  // (`tv`: the trail's variables, beside their names)
+  const vars = new Map<string, Var>(), trail: string[] = [], tv: Var[] = [], levels: number[] = []
   // The clausal mode: the hypotheses as clauses (each clause a leaf of the DAG), how many literals of each input clause
   // hold and how many input clauses none satisfies; the variables by activity (a heap), and those found read by
   // satisfied clauses alone at a level (out of the heap until that level is taken back).
@@ -179,13 +180,13 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   let stampN = 0
   for (const [key, a] of root) {
     const name = ensure(a.lin), x = vars.get(name)!, val = name === key ? a.holds : !a.holds
-    x.val = val; x.level = 0; x.at = trail.length; stamps[x.at] = ++stampN; trail.push(name); rootNames.add(name)
+    x.val = val; x.level = 0; x.at = trail.length; stamps[x.at] = ++stampN; trail.push(name); tv.push(x); rootNames.add(name)
     if (x.col) colsOn++
   }
   const reader = new Reader(clausal ? {name: goal.name, hyps: []} : goal, {
     get: name => vars.get(name), stamp: at => stamps[at]!, size: () => trail.length,
     lin: at => { const name = trail[at]!, x = vars.get(name)!; return {name, lin: x.lin, holds: x.val!} },
-    quiet: at => !!vars.get(trail[at]!)!.quiet,
+    ...(clausal || opts.quiet ? {quiet: (at: number) => !!tv[at]!.quiet} : {}),
   })
   let last = goal.hyps.length - 1
   const near = nearOf(goal)
@@ -193,12 +194,13 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   const fixed = trail.length
   const level = () => levels.length
   const pathOf = (): Path => new Map(trail.map(name => { const x = vars.get(name)!; return [name, {lin: x.lin, holds: x.val!}] }))
-  const assign = (name: string, val: boolean, reason?: number) => {
-    const x = vars.get(name)!
+  const assign = (name: string, val: boolean, reason?: number) => assignVar(vars.get(name)!, val, reason)
+  const assignVar = (x: Var, val: boolean, reason?: number) => {
+    const name = x.name
     lowAt = Math.min(lowAt, trail.length)
     x.val = val; x.level = level(); x.at = trail.length; x.phase = val; stamps[x.at] = ++stampN
     x.reason = reason
-    trail.push(name)
+    trail.push(name); tv.push(x)
     if (x.col) colsOn++
     if (x.pair) pairsChanged++
     if (!clausal) { reader.touch(name); return }
@@ -226,10 +228,10 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     }
   }
   const undoTo = (l: number) => {
-    const keep = levels[l] ?? trail.length, undone: Var[] = []
+    const keep = levels[l] ?? trail.length, undone: Var[] | undefined = clausal ? [] : undefined
     while (trail.length > Math.max(keep, fixed)) {
-      const name = trail.pop()!, x = vars.get(name)!, q = aqOf.get(name)
-      if (clausal) { vals[x.id] = 0; undone.push(x) }
+      const name = trail.pop()!, x = tv.pop()!, q = aqOf.size ? aqOf.get(name) : undefined
+      if (undone) { vals[x.id] = 0; undone.push(x) }
       x.val = undefined; x.level = -1; x.reason = undefined; if (x.col) colsOn--; if (x.pair) pairsChanged++; if (!clausal) reader.touch(name)
       if (q !== undefined && q < aq) aq = q
     }
@@ -237,7 +239,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     levels.length = l
     if (clausal) {
       while (relStack.length && rel[relStack.at(-1)!]! > l) rel[relStack.pop()!] = -1
-      for (const x of undone) heapIn(x)
+      for (const x of undone!) heapIn(x)
     }
   }
   const addClause = (lits: Map<string, boolean>, node: number): number => {
@@ -322,7 +324,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     if (clausal) {
       // (each watch a clause and a blocker, a pair of it that, where it doesn't hold, satisfies the clause untouched)
       while (qhead < trail.length) {
-        const x = vars.get(trail[qhead++]!)!, code = 2 * x.id + (x.val ? 1 : 0), ws = wl[code]
+        const x = tv[qhead++]!, code = 2 * x.id + (x.val ? 1 : 0), ws = wl[code]
         if (!ws) continue
         let n = 0
         for (let i = 0; i < ws.length;) {
@@ -336,7 +338,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
           let j = 2
           while (j < c.length && holds(c[j]!)) j++
           if (j < c.length) { const z = c[j]!; c[j] = code; c[1] = z; (wl[z] ??= []).push(ci, o); ws[i] = ws[ws.length - 2]!; ws[i + 1] = ws[ws.length - 1]!; ws.length -= 2; continue }
-          if (!vals[o >> 1]) { assign(byId[o >> 1]!.name, !(o & 1), ci); i += 2; continue }
+          if (!vals[o >> 1]) { assignVar(byId[o >> 1]!, !(o & 1), ci); i += 2; continue }
           costs.scan += n
           return ci
         }
