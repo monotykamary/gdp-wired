@@ -17,7 +17,7 @@ import {parseChc} from './chc.ts'
 import {type Raw, build, checkDerivation, requestOf, stepsOf} from './translate.ts'
 import {type KindResult, proveKInduction} from '../../core/kind.ts'
 import {boundedSearch} from '../../core/bmc.ts'
-import {imcSearch} from '../../core/interp.ts'
+import {compress, imcSearch} from '../../core/interp.ts'
 import {proveRule} from '../../core/dsl.ts'
 import {clock, counted, fullRate, withDeadline} from '../../kernel/prove.ts'
 import {expand, invOf, liftProven, prepare} from './compose.ts'
@@ -105,7 +105,11 @@ const imcTurn = (slice: number) => {
     process.exit(0)
   }
   if ('inv' in out) {
-    const v = cc ? liftProven(cc, bo, invOf([b.law, ...b.rule.kindLaws(), {name: 'imc', holds: out.inv}])!, end) : withDeadline(end, () => proveRule(b.rule, [b.law, {name: 'imc', holds: out.inv}], {search: false}))
+    // (the invariant made a few clauses first, core/interp.ts's compress, each a law for the kernel; else as it is)
+    const t1 = performance.now(), small = counted(fullRate, () => compress(m, b.law, out.inv, b.rule.kindLaws().map(l => l.holds), {until: Infinity, wall: end}), true)
+    say({stage: 'imc', small: small?.length ?? -1, smallMs: Math.round(performance.now() - t1)})
+    const laws = small ? small.map((holds, j) => ({name: `imc ${j}`, holds})) : [{name: 'imc', holds: out.inv}]
+    const v = cc ? liftProven(cc, bo, invOf([b.law, ...b.rule.kindLaws(), ...laws])!, end) : withDeadline(end, () => proveRule(b.rule, [b.law, ...laws], {search: false}))
     const proven = v.proven && (!('checked' in v) || v.checked)
     say({stage: 'imc', proven, parts: out.parts, ...('liftMs' in v ? {why: v.why, liftMs: v.liftMs, proveMs: v.proveMs, laws: v.laws} : {checked: v.checked})})
     if (!proven) return

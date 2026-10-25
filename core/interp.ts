@@ -52,7 +52,7 @@ export function interpolate(a: C[], b: C[], shared: string[], budget: {until: nu
   // CDCL's DAG first (no tree unfolded, no leaf read again); where it gives none, the tree's
   if (useDag) {
     const d = growCdcl(goal, new Map(), {nodes: 0, until: budget.until}, {model: true, dag: true, ...(useClausal ? {clausal: true, sideOf: (i: number) => (i < a.length ? 0 : 1)} : {}), ...(budget.wall !== undefined ? {wall: budget.wall} : {})}) as Refuted
-    if (d.dag) { const itp = fromDag(goal, d.dag, i => i < a.length, 50_000, useClausal && useStrong); if (itp) return {itp} } else if (!('tree' in d)) {
+    if (d.dag) { const itp = fromDag(goal, d.dag, i => i < a.length, 50_000, useClausal && env.GDP_ITP_STRONG === '1'); if (itp) return {itp} } else if (!('tree' in d)) {
       if (d.stuck === 'sat' && d.witness) return {sat: d.witness}
       if (budget.wall !== undefined) return {unknown: d.why ?? d.stuck}
     }
@@ -199,6 +199,8 @@ export function fromDag(goal: Goal, dag: Dag, isA: (hyp: number) => boolean, max
     if ('res' in n) {
       const side = linSide(n.on), y = side === undefined || n.res[0] < 0 ? undefined : memo.get(n.res[0]), z = y && n.res[1] >= 0 ? memo.get(n.res[1]) : undefined
       out = z && ((strong ? side !== 'A' : side === 'B') ? and(y!, z) : or(y!, z))
+      // (only a part made anew counts toward the limit)
+      if (out === y || out === z) return out
     } else if ('hyp' in n) {
       // (a hypothesis' clause, the clausal mode's: A's has none; B's, the shared literals it rests on; strong, A's the or
       // of its shared literals, B's none)
@@ -219,6 +221,7 @@ export function fromDag(goal: Goal, dag: Dag, isA: (hyp: number) => boolean, max
       out = p && shared.reduceRight((acc, c) => and(c, acc), p)
     }
     if (out && ++made > maxNodes) out = undefined
+    if (!out && env.GDP_ITP_WHY) console.error('no itp at', i, 'res' in n ? `res on ${JSON.stringify(n.on)} side ${linSide(n.on)}` : 'hyp' in n ? 'hyp' : `leaf ${JSON.stringify(n.inputs.map(l => [l, linSide(l)])).slice(0, 600)} steps ${JSON.stringify(n.steps).slice(0, 300)}`, made > maxNodes ? 'max' : '')
     return out
   }
   const out = at(dag.top)
@@ -276,7 +279,7 @@ export function fromTree(goal: Goal, tree: Tree, isA: (hyp: number) => boolean, 
 // GDP_IMC_RELAX=0: the goals as the kernel writes them (each pair normalized at each step).
 const useRelax = env.GDP_IMC_RELAX !== '0'
 // GDP_ITP_DAG=0: interpolants from the unfolded tree alone.
-const useDag = env.GDP_ITP_DAG !== '0', useClausal = env.GDP_ITP_CLAUSAL === '1', useStrong = env.GDP_ITP_STRONG === '1', useSession = env.GDP_IMC_SESSION === '1'
+const useDag = env.GDP_ITP_DAG !== '0', useClausal = env.GDP_ITP_CLAUSAL === '1', useStrong = env.GDP_ITP_STRONG !== '0', useSession = env.GDP_IMC_SESSION !== '0'
 
 export type ImcResult = {inv: C, k: number, parts: number} | {run: {params: Record<string, number>, trace: Request[]}, k: number} | {why: string, k: number}
 export type ImcOptions = {until: number, wall?: number, kinds?: C[], from?: number, to?: number, progress?: (k: number, what: string, info: Record<string, number>) => void}
@@ -447,7 +450,7 @@ export function imcSession(m: Machine, law: Law, opts: Omit<ImcOptions, 'until' 
       if (!out.dag) return {unknown: 'no DAG'}
       sideNames(goal, h => isA[h]!, seen, named); named = goal.hyps.length
       const itp = fromDag(goal, out.dag, h => isA[h]!, 200_000, useStrong, budget.wall, seen)
-      if (itp && env.GDP_ITP_SIZE) console.error(JSON.stringify({k, size: dagSize(itp), chars: JSON.stringify(itp).length}))
+      if (itp && env.GDP_ITP_SIZE) console.error(JSON.stringify({k, size: dagSize(itp)}))
       return itp ? {itp: renamed(itp, back)} : {unknown: 'a leaf with no interpolant'}
     }
     return out.stuck === 'sat' && out.witness ? {sat: out.witness} : {unknown: out.why ?? out.stuck}

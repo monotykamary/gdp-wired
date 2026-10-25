@@ -898,6 +898,20 @@ export class Clausal {
         }
         break
       }
+      case 'get': {
+        // (a division or remainder by a constant, core/machine.ts's div$c and mod$c: a fresh natural q per case of its
+        // key x with c·q <= x <= c·q + c − 1, the remainder x − c·q)
+        const f = /^(div|mod)\$(\d+)$/.exec(e.map)
+        if (!f) throw new Unread()
+        const c = Number(f[2]!)
+        out = []
+        for (const x of this.cases(e.key)) {
+          const q = v(this.fresh('ϰ')), cq = scale(q, c), not = x.g.map(notLit)
+          for (const lin of [sub(cq, x.lin), add(sub(x.lin, cq), k(1 - c))]) this.clause([...not, {lin, holds: true}])
+          out.push({g: x.g, lin: f[1] === 'div' ? q : sub(x.lin, cq)})
+        }
+        break
+      }
       case 'if': {
         const l = this.lit(e.c, 3)
         if (typeof l === 'boolean') { out = this.cases(l ? e.then : e.else); break }

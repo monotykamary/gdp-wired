@@ -33,8 +33,8 @@ if ('run' in out) {
 } else if ('inv' in out) {
   const t1 = performance.now()
   // (GDP_IMC_SMALL=1: the invariant made a few clauses first, core/interp.ts's compress, each a law)
-  const small = process.env.GDP_IMC_SMALL === '1' ? counted(250, () => compress(m, b.law, out.inv, r.kindLaws().map(l => l.holds), {until: Infinity, wall}), true) : undefined
-  if (process.env.GDP_IMC_SMALL === '1') say({stage: 'small', clauses: small?.length ?? -1, ms: Math.round(performance.now() - t1)})
+  const small = process.env.GDP_IMC_SMALL !== '0' ? counted(250, () => compress(m, b.law, out.inv, r.kindLaws().map(l => l.holds), {until: Infinity, wall}), true) : undefined
+  if (process.env.GDP_IMC_SMALL !== '0') say({stage: 'small', clauses: small?.length ?? -1, ms: Math.round(performance.now() - t1)})
   const inv: C = small ? {op: 'and', xs: small} : out.inv, laws = small ? small.map((c, j) => ({name: `imc ${j}`, holds: c})) : [{name: 'imc', holds: out.inv}]
   const v = cc ? liftProven(cc, bo, {op: 'and', xs: [b.law.holds, ...r.kindLaws().map(l => l.holds), inv]}, wall) : withDeadline(wall, () => proveRule(r, [b.law, ...laws], {search: false}))
   const proven = v.proven && (!('checked' in v) || v.checked)

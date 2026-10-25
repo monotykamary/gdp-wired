@@ -253,7 +253,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     if (c.length < 2) return
     const rank = (z: number) => (holds(z) ? byId[z >> 1]!.at : Infinity)
     for (const j of [0, 1]) { let b = j; for (let q = j + 1; q < c.length; q++) if (rank(c[q]!) > rank(c[b]!)) b = q; const t0 = c[j]!; c[j] = c[b]!; c[b] = t0 }
-    for (const j of [0, 1]) (wl[c[j]!] ??= []).push(ci)
+    for (const j of [0, 1]) (wl[c[j]!] ??= []).push(ci, c[1 - j]!)
   }
   // The clausal mode's clauses of the hypotheses not yet taken (each a leaf: its hypothesis and its literals), at level 0:
   // a unit's literal assigned, an empty one the goal refuted, every clause read again by propagation from the trail's
@@ -315,21 +315,23 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     // (the clausal mode's, over the watches: a pair that now holds moves its watch to a pair that doesn't, else the clause
     // is unit, its other watched pair's variable flipped, or, that pair holding too, a conflict)
     if (clausal) {
+      // (each watch a clause and a blocker, a pair of it that, where it doesn't hold, satisfies the clause untouched)
       while (qhead < trail.length) {
         const x = vars.get(trail[qhead++]!)!, code = 2 * x.id + (x.val ? 1 : 0), ws = wl[code]
         if (!ws) continue
         let n = 0
         for (let i = 0; i < ws.length;) {
+          if (opposed(ws[i + 1]!)) { i += 2; continue }
           const ci = ws[i]!, c = cls[ci]!
           n++
-          if (retired[ci]) { ws[i] = ws[ws.length - 1]!; ws.pop(); continue }
+          if (retired[ci]) { ws[i] = ws[ws.length - 2]!; ws[i + 1] = ws[ws.length - 1]!; ws.length -= 2; continue }
           if (c[0] === code) { c[0] = c[1]!; c[1] = code }
           const o = c[0]!
-          if (opposed(o)) { i++; continue }
+          if (opposed(o)) { ws[i + 1] = o; i += 2; continue }
           let j = 2
           while (j < c.length && holds(c[j]!)) j++
-          if (j < c.length) { const z = c[j]!; c[j] = code; c[1] = z; (wl[z] ??= []).push(ci); ws[i] = ws[ws.length - 1]!; ws.pop(); continue }
-          if (!vals[o >> 1]) { assign(byId[o >> 1]!.name, !(o & 1), ci); i++; continue }
+          if (j < c.length) { const z = c[j]!; c[j] = code; c[1] = z; (wl[z] ??= []).push(ci, o); ws[i] = ws[ws.length - 2]!; ws[i + 1] = ws[ws.length - 1]!; ws.length -= 2; continue }
+          if (!vals[o >> 1]) { assign(byId[o >> 1]!.name, !(o & 1), ci); i += 2; continue }
           costs.scan += n
           return ci
         }
@@ -427,7 +429,8 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     if (!known) { const at = lp.holds(x.lin); if (at !== undefined) x.phase = at; x.sx = undefined; return }
     x.phase = v <= 1e-7 * Math.max(1, Math.abs(v))
   }
-  let restartAt = 32, nRestart = 0, sinceRestart = 0
+  let restartAt = 32, nRestart = 0, sinceRestart = 0, free = 0
+  const batch = Number(env.GDP_CDCL_BATCH ?? 16)
   const stuck = (kind: 'sat' | 'unknown', why: string, extra: {witness?: Record<string, number>} = {}): Outcome => ({stuck: kind, path: pathOf(), why, ...extra})
   const run = (b: {nodes: number, until?: number}, w?: number, assume?: Lin | Lin[]): Outcome => {
     budget = b; until = b.until ?? Infinity; wall = w; last = goal.hyps.length - 1
@@ -492,6 +495,19 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
         assign(assumed[open]![0], assumed[open]![1])
         continue
       } else {
+        // (the clausal mode: after a node whose rows the simplex met, up to `batch` decisions more before the next node,
+        // each its own level, an atom's value the point's: they keep that point, so the rows meet it but where unit
+        // propagation brought an atom it doesn't meet, which the next node finds)
+        if (free > 0) {
+          const x = pickOpen()
+          if (x) {
+            free--
+            if (!x.quiet && sx) phaseAtPoint(x, sx)
+            levels.push(trail.length); st.decisions++
+            assign(x.name, x.phase)
+            continue
+          }
+        }
         reader.begin()
         st.nodes++
         // The rows, kept from the node before (reader.ts's sync); the forms that came and went: the single-variable
@@ -650,11 +666,12 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
           levels.push(trail.length)
           st.decisions++
           assign(pick, vars.get(pick)!.phase)
+          if (clausal && lpSat) free = batch
           continue
         }
       }
       // Conflict analysis.
-      st.conflicts++; sinceRestart++
+      st.conflicts++; sinceRestart++; free = 0
       // (a clause's latest level, how many of its literals are at it, the latest of those on the trail, and the latest
       // level of the rest: one pass)
       let c = conflict
