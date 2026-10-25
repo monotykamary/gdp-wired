@@ -39,7 +39,7 @@ import {clock, counted, grow, lawInstances, proveLaw, proveLaws, proveStepLaws, 
 import {type Instances, assumed, historyMachine, obligations, stepLawObligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
-import {showE} from './exists.ts'
+import {showC, showE} from './exists.ts'
 import {REFUTED, type Refuted, growCdcl} from '../kernel/cdcl.ts'
 
 type AnyRule = Parameters<typeof proveRule>[0]
@@ -75,7 +75,8 @@ export type Inferred = Verdict & {found: Found[], stats: {samples: number, candi
 // An atom: a value the forms read, the naturals it is made of with their signs (an integer is pos − neg); a cell atom
 // is a map's cell at the law's key (its parts are maps).
 // A term atom (`term`) is a term the laws read that isn't linear, over the state and params: a value of its own.
-type Atom = {name: string, parts: [string, 1 | -1][], param: boolean, int: boolean, cell: boolean, term?: E}
+// A pair atom (`place`) is a map's cell at one of two keys a rule composes into one (Known[x], Known[y], Link[N·x + y]).
+type Atom = {name: string, parts: [string, 1 | -1][], param: boolean, int: boolean, cell: boolean, term?: E, place?: number}
 // (`hi`: the value up to `hi` from `value`, Infinity for no end: a level of a value the rule compares with constants)
 type Guard = {atom: number, value: number, hi?: number} | {keyNot: number}
 // `when`: a linear condition the form holds under (Σ c·v ≤ d over scalars), beside its guard; the search makes such forms
@@ -91,9 +92,9 @@ type At = {atom: number, value: number, hi?: number}
 // a value outside a guard's (or a control value's) values
 const off = (g: At, v: number) => v < g.value || v > (g.hi ?? g.value)
 type Lit = {at: At} | {lin: {coef: [number, number][], d: number}}
-type Form = {coef: [number, number][], d: number, cells: boolean, guard?: Guard, also?: At[], when?: {coef: [number, number][], d: number}, unreachable?: At, never?: At[], nevers?: At[][], cube?: Lit[], mod?: {k: number, r: number}, cong?: {mod: number, rest: number}, size: number}
+type Form = {coef: [number, number][], d: number, cells: boolean, pairs?: boolean, guard?: Guard, also?: At[], when?: {coef: [number, number][], d: number}, unreachable?: At, never?: At[], nevers?: At[][], cube?: Lit[], mod?: {k: number, r: number}, cong?: {mod: number, rest: number}, size: number}
 
-const KEY = 'key$found', AT = '@', K = '#', SOME = 'k$found'
+const KEY = 'key$found', KEY2 = 'key2$found', AT = '@', K = '#', K2 = '##', SOME = 'k$found'
 // The counted clock's rates, units a millisecond: about the slowest tenth of what Modal's 1-vCPU containers do in each
 // phase (`runs/modal/infer/after2`, GDP_INFER_TRACE=1: requests tried 85 a ms, rows 13,093, forms evaluated 11,240, the
 // kernel's work 37; laws watched 198 by a fit), so a counted budget runs out no later than a timed one would there.
@@ -183,6 +184,38 @@ const keyValue = (cell: string, w: Record<string, number>): number | undefined =
     else if (name.includes('[')) return undefined
   }
   return value
+}
+
+// Two keys a rule composes into one, N·a + b (+ c) of two of its inputs, a map read or written there (Casbin's link
+// table, Link[a·64 + b]): the frame (what its assumption says of a and b alone, over x and y), N, c. The first.
+type Pairing = {n: number, c: number, frame: C}
+function pairingOf(m: Machine): Pairing | undefined {
+  const inputs = new Set(m.inputs)
+  const lin = (e: E, k: number, out: Map<string, number>): boolean => (e.op === 'const' ? (out.set('1', (out.get('1') ?? 0) + k * e.value), true) : e.op === 'var' ? inputs.has(e.name) && (out.set(e.name, (out.get(e.name) ?? 0) + k), true) : e.op === 'add' ? lin(e.a, k, out) && lin(e.b, k, out) : e.op === 'mul' ? lin(e.a, k * e.k, out) : false)
+  let found: Pairing | undefined
+  const each = new Set(Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : [])))
+  const consider = (key: E) => {
+    if (found) return
+    const l = new Map<string, number>()
+    if (!lin(key, 1, l)) return
+    const vs = [...l].filter(([v, c]) => v !== '1' && c)
+    if (vs.length !== 2) return
+    const [[a, ca], [b, cb]] = vs[0]![1] >= vs[1]![1] ? [vs[0]!, vs[1]!] : [vs[1]!, vs[0]!]
+    if (cb !== 1 || ca < 2) return
+    const conj = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(conj) : [c]), names = (c: C) => [...JSON.stringify(c).matchAll(/"name":"([^"]+)"/g)].map(q => q[1]!)
+    const own = m.assume ? conj(m.assume).filter(c => names(c).length && names(c).every(v => v === a || v === b)) : []
+    found = {n: ca, c: l.get('1') ?? 0, frame: substC({op: 'and', xs: own}, {vars: {[a]: x(KEY), [b]: x(KEY2)}, maps: {}, flags: {}})}
+  }
+  const visit = (t: unknown): void => {
+    if (!t || typeof t !== 'object') return
+    if (Array.isArray(t)) { t.forEach(visit); return }
+    const o = t as {op?: string, key?: E, a?: E, b?: E}
+    if (o.op === 'get' && o.key && m.maps && (o as {map?: string}).map! in m.maps) consider(o.key)
+    if (o.op === '=' && o.a?.op === 'var' && each.has(o.a.name) && o.b) consider(o.b)
+    for (const v of Object.values(o)) if (typeof v === 'object') visit(v)
+  }
+  visit([m.step, m.assume])
+  return found
 }
 
 // The products of two of `names` a machine's terms (its step, flags, assumption) and these conditions multiply, a
@@ -513,6 +546,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   }
   const A = atoms.length, cellAtoms = atoms.flatMap((a, i) => (a.cell ? [i] : []))
   const valueOf = (a: Atom, env: Env) => { let s = 0; for (const [p, sign] of a.parts) s += sign * (env[a.cell ? AT + p : p] ?? 0); return s }
+  // The pairs' rows (the join's, where the rule composes two keys into one), once the pair atoms are made.
+  let pairRowsOf: ((params: Env, st: State) => Env[]) | undefined, pairing: Pairing | undefined
   const cellOf = (st: State, map: string, key: number) => st.maps[map]?.get(key) ?? st.defaults?.[map] ?? m.maps![map]!
   // The scalar rows (one per state reached), and the cell rows (one per state and key a map holds, and one fresh key).
   const keysIn = (st: State) => { const ks = new Set<number>(); for (const c of Object.values(st.maps)) for (const k of c.keys()) ks.add(k); return [...ks] }
@@ -668,7 +703,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     return only.values.filter(v => c * v <= f.d)
   }
   // (a form about every key says so first)
-  const textOf = (f: Form): string => (f.cells ? `every k: ${textIn(f)}` : textIn(f))
+  const textOf = (f: Form): string => (f.cells ? `every k: ${textIn(f)}` : f.pairs ? `every x, y${pairing!.frame.op === 'and' && !pairing!.frame.xs.length ? '' : ` with ${showC(pairing!.frame).replaceAll(KEY2, 'y').replaceAll(KEY, 'x')}`}: ${textIn(f)}` : textIn(f))
   const textIn = (f: Form): string => {
     const atText = (g: At) => (g.hi === undefined ? `${nameOf(g.atom)} is ${shownValue(g.atom, g.value)}` : g.hi === Infinity ? `${g.value} <= ${nameOf(g.atom)}` : `${nameOf(g.atom)} in ${g.value}..${g.hi}`)
     if (f.never) return `never ${f.never.map(atText).join(' and ')}`
@@ -686,7 +721,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const sum = (es: E[]): E => es.reduce((p, q) => plus(p, q), n(0))
   // Each congruence its own witness's name (each may be a ghost of the machine).
   const someNames = new Map<Form, string>(), someName = (f: Form) => { let k = someNames.get(f); if (!k) someNames.set(f, (k = `${SOME}${someNames.size}`)); return k }
-  const part = (a: Atom, p: string): E => (a.term ?? (a.cell ? get(p, x(KEY)) : x(p)))
+  const placeKey = (place: number): E => { if (place < 2) return x(place === 0 ? KEY : KEY2); const k = plus(times(pairing!.n, x(KEY)), x(KEY2)); return pairing!.c ? plus(k, n(pairing!.c)) : k }
+  const part = (a: Atom, p: string): E => (a.term ?? (a.place !== undefined ? get(p.slice(2, p.lastIndexOf(AT)), placeKey(a.place)) : a.cell ? get(p, x(KEY)) : x(p)))
   const partsOf = (f: Form, sign: 1 | -1): E[] => f.coef.flatMap(([i, c]) => atoms[i]!.parts.filter(([, s]) => s * c * sign > 0).map(([p]) => { const e = part(atoms[i]!, p); return Math.abs(c) === 1 ? e : times(Math.abs(c), e) }))
   // Σ c·v ≤ d over naturals: the positive parts on the left, the negative ones and d on the right (an integer's
   // negative part goes to the other side of its sign).
@@ -755,7 +791,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const valuesAt = new WeakMap<Env, Float64Array>()
   const valuesOf = (env: Env): Float64Array => {
     let vs = valuesAt.get(env)
-    if (!vs) { vs = new Float64Array(A); for (let i = 0; i < A; i++) vs[i] = valueOf(atoms[i]!, env); valuesAt.set(env, vs) }
+    if (!vs) { const n2 = atoms.length; vs = new Float64Array(n2); for (let i = 0; i < n2; i++) vs[i] = valueOf(atoms[i]!, env); valuesAt.set(env, vs) }
     return vs
   }
   const holdsRow = (f: Form, env: Env): boolean => {
@@ -782,9 +818,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     return f.mod ? residue(s, f.mod.k) === f.mod.r : s <= f.d
   }
   // At a state: a cell form at every key the maps hold and a fresh one.
-  type Point = {scalar: Env, cells: Env[]}
-  const pointOf = (params: Env, st: State): Point => ({scalar: withTerms({...params, ...st.scalars}, st), cells: cellRows(params, st)})
-  const holdsAt = (f: Form, p: Point) => (f.cells ? p.cells.every(r => holdsRow(f, r)) : holdsRow(f, p.scalar))
+  type Point = {scalar: Env, cells: Env[], pairs?: Env[]}
+  const pointOf = (params: Env, st: State): Point => ({scalar: withTerms({...params, ...st.scalars}, st), cells: cellRows(params, st), ...(pairRowsOf ? {pairs: pairRowsOf(params, st)} : {})})
+  const holdsAt = (f: Form, p: Point) => (f.pairs ? (p.pairs ?? []).every(r => holdsRow(f, r)) : f.cells ? p.cells.every(r => holdsRow(f, r)) : holdsRow(f, p.scalar))
   // A kernel witness as a point: its scalars, and a cell row per key it reads a map at.
   const witnessPoint = (w: Record<string, number>): Point => {
     const scalar: Env = Object.fromEntries([...scalars, ...m.params].map(v => [v, w[v] ?? 0]))
@@ -850,7 +886,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // --- the kernel ----------------------------------------------------------------------------------------------------
   const lawOf = new Map<Form, Law>()
   const someOf = (f: Form): string[] => (!f.cong ? [] : f.coef.some(([i, c]) => atoms[i]!.int || c < 0) ? [someName(f), `${someName(f)}$neg`] : [someName(f)])
-  const lawFor = (f: Form) => { let l = lawOf.get(f); if (!l) lawOf.set(f, (l = {name: textOf(f), holds: condOf(f), ...(f.cells ? {forall: KEY} : {}), ...(f.cong ? {some: someOf(f)} : {})})); return l }
+  const lawFor = (f: Form) => {
+    let l = lawOf.get(f)
+    // (about two keys: where the frame holds of them)
+    if (!l) lawOf.set(f, (l = {name: textOf(f), holds: f.pairs ? any(not(pairing!.frame), condOf(f)) : condOf(f), ...(f.cells ? {forall: KEY} : f.pairs ? {forall: KEY, keys: [KEY2]} : {}), ...(f.cong ? {some: someOf(f)} : {})}))
+    return l
+  }
   const names = new Set(given.map(l => l.name))
   alive = alive.filter(f => !names.has(textOf(f)))
   let pool = alive.slice(), chosen: Form[] = []
@@ -971,6 +1012,33 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const lo = level === 0 ? 0 : c.cuts[level - 1]! + 1, hi = level === c.cuts.length ? c.top : c.cuts[level]!
       return lo === hi ? {atom: c.atom, value: lo} : {atom: c.atom, value: lo, hi}
     }
+    // The pairs: where the rule composes two keys into one (Link[N·a + b] beside Known[a], Known[b]), the cells at two
+    // keys x and y and at N·x + y, a row per two keys a state holds (or the parts of a composed key it holds, or a fresh
+    // one) that the frame (the assumption's of a and b) allows: their forms laws at every two keys.
+    pairing = mapNames.length ? pairingOf(m) : undefined
+    const pairAtoms: number[] = [], rowsP: Env[] = []
+    const cellLevels = pairing ? levelsOf(cellAtoms.filter(i => !atoms[i]!.int), valsK) : []
+    if (pairing) {
+      const P = pairing
+      for (const i of cellAtoms) for (const place of [0, 1, 2]) {
+        const a = atoms[i]!, keyText = place === 0 ? 'x' : place === 1 ? 'y' : `${P.n}·x + y${P.c ? ` + ${P.c}` : ''}`
+        pairAtoms.push(atoms.length)
+        atoms.push({name: `${a.parts[0]![0]}[${keyText}]`, parts: a.parts.map(([q, sg]) => [`${AT}${AT}${q}${AT}${place}`, sg] as [string, 1 | -1]), param: false, int: a.int, cell: false, place})
+      }
+      pairRowsOf = (params, st) => {
+        const ks = new Set<number>()
+        for (const c of Object.values(st.maps)) for (const k of c.keys()) { ks.add(k); if (k >= P.c) { ks.add(Math.floor((k - P.c) / P.n)); ks.add((k - P.c) % P.n) } }
+        const held = [...ks], fresh = held.length ? Math.max(...held) + 1 : 0, xs = [...held, fresh].slice(0, 24), out: Env[] = []
+        for (const kx of xs) for (const ky of xs) {
+          try { if (!evalC(P.frame, {...params, ...st.scalars, [KEY]: kx, [KEY2]: ky}, st, m)) continue } catch { continue }
+          const row: Env = {...params, ...st.scalars, [K]: kx, [K2]: ky}
+          for (const mp of mapNames) for (const [place, key] of [[0, kx], [1, ky], [2, P.n * kx + ky + P.c]] as const) row[`${AT}${AT}${mp}${AT}${place}`] = cellOf(st, mp, key)
+          out.push(withTerms(row, st))
+        }
+        return out
+      }
+      for (const s2 of samples) { if (rowsP.length > 6000) break; rowsP.push(...pairRowsOf(s2.params, s2.st)) }
+    }
     // The directions over some values: each value up and down, pairs of them where there are few, the rule's own
     // comparisons over the state (a guard, the query's condition) and the laws' preimages, each both ways.
     const directions = (cs: number[]): [number, number][][] => {
@@ -995,10 +1063,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // key a state's maps hold and a fresh one: the scalars and that key's cells), its control state, its coordinates
     // and directions, and per control state the hull and the bounds. A space's forms are laws of the state, or, of the
     // cells, laws at every key (those that read a cell; the others are the states' space's).
-    const space = (cells: boolean) => {
+    const space = (kind: 'state' | 'cells' | 'pairs') => {
+      const cells = kind === 'cells', pairs = kind === 'pairs'
       const ctl: Ctl[] = keyModes.map(mo => ({atom: mo.atom, cuts: mo.values.slice(0, -1), top: mo.values.at(-1)!}))
-      const exactAtoms = new Set(keyModes.map(mo => mo.atom)), own = cells ? [...plain, ...cellAtoms] : plain
-      const levelable = levelsOf(own.filter(i => !exactAtoms.has(i) && !atoms[i]!.int && (!cells || atoms[i]!.cell)), cells ? valsK : valsS)
+      const exactAtoms = new Set(keyModes.map(mo => mo.atom)), own = cells ? [...plain, ...cellAtoms] : pairs ? [...plain, ...pairAtoms] : plain
+      // (a pair's cells take their map's cells' levels)
+      const levelable = pairs ? cellLevels.flatMap(c => pairAtoms.filter(i => atoms[i]!.parts[0]![0].slice(2, atoms[i]!.parts[0]![0].lastIndexOf(AT)) === atoms[c.atom]!.parts[0]![0]).map(i => ({...c, atom: i})))
+        : levelsOf(own.filter(i => !exactAtoms.has(i) && !atoms[i]!.int && (!cells || atoms[i]!.cell)), cells ? valsK : valsS)
       const coords = own.filter(i => !exactAtoms.has(i)), CN = coords.length, dirs = directions(coords)
       const groups = new Map<string, Group>()
       let keyAtoms = ctl.map(c => c.atom)
@@ -1032,11 +1103,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // a control value by its level (as the keys hold it) as the values it stands for
       const atLevel = (a: At): At => atOf(ctl[keyAtoms.indexOf(a.atom)]!, a.value)
       // a point's rows in this space
-      const vecs = (p: Point): Float64Array[] => (cells ? p.cells.map(valuesOf) : [valuesOf(p.scalar)])
+      const vecs = (p: Point): Float64Array[] => (cells ? p.cells.map(valuesOf) : pairs ? (p.pairs ?? []).map(valuesOf) : [valuesOf(p.scalar)])
       const add = (p: Point, widen: boolean) => { for (const v of vecs(p)) join(keyOf(v), v, widen) }
-      const rows = (cells ? rowsK : rowsS).map(valuesOf)
+      const rows = (cells ? rowsK : pairs ? rowsP : rowsS).map(valuesOf)
       for (const v of rows) join(keyOf(v), v, false)
-      opts.progress?.('join start', {cells: cells ? 1 : 0, control: ctl.map(c => `${nameOf(c.atom)}:${c.cuts.join('/')}`).join(' '), groups: groups.size, dirs: dirs.length, coords: CN})
+      opts.progress?.('join start', {space: kind, control: ctl.map(c => `${nameOf(c.atom)}:${c.cuts.join('/')}`).join(' '), groups: groups.size, dirs: dirs.length, coords: CN})
       // The control states no state reached, as fewer and smaller cubes (a program counter in bits: Spacer's clauses there
       // read two or three of its bits): each cube's values dropped one at a time, the yes/nos first, while it holds at no
       // control state reached, then the cubes another cube's values include left out. Together they say what the cubes
@@ -1060,7 +1131,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       }
       const forms = (push: (f: Form) => void) => {
         // (of the cells: only what reads one)
-        const keep = (f: Form) => { if (!cells || [...f.coef.map(([i]) => i), ...(f.guard && 'atom' in f.guard ? [f.guard.atom] : []), ...(f.also ?? []).map(a => a.atom), ...(f.never ?? []).map(a => a.atom), ...(f.unreachable ? [f.unreachable.atom] : []), ...(f.nevers ?? []).flat().map(a => a.atom)].some(i => atoms[i]!.cell)) push(f) }
+        const keep = (f: Form) => { if (kind === 'state' || [...f.coef.map(([i]) => i), ...(f.guard && 'atom' in f.guard ? [f.guard.atom] : []), ...(f.also ?? []).map(a => a.atom), ...(f.never ?? []).map(a => a.atom), ...(f.unreachable ? [f.unreachable.atom] : []), ...(f.nevers ?? []).flat().map(a => a.atom)].some(i => (pairs ? atoms[i]!.place !== undefined : atoms[i]!.cell))) push(pairs ? {...f, pairs: true} : f) }
         // (a choice's value no state reached: one form, whatever the yes/nos; the control states no state reached, one form
         // for all, where there are several: each alone needs the others to be inductive, a goal each where one does)
         const reachedFirst = new Set([...groups.keys()].map(k2 => k2.split(',')[0])), nev: At[][] = []
@@ -1152,7 +1223,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       }
       return {cells, add, forms, refine, deepen, coords, control: () => `${ctl.map(c => nameOf(c.atom)).join(' ')} (${scored.join(' ')})`, groups}
     }
-    const spaces = [space(false), ...(mapNames.length && cellAtoms.length ? [space(true)] : [])]
+    const spaces = [space('state'), ...(mapNames.length && cellAtoms.length ? [space('cells')] : []), ...(rowsP.length ? [space('pairs')] : [])]
     const formsNow = (): Form[] => {
       const out: Form[] = [], seenT = new Set<string>()
       const push = (f: Form) => { const t = textOf(f); if (!seenT.has(t) && !names.has(t)) { seenT.add(t); out.push(f) } }
