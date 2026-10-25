@@ -118,7 +118,8 @@ export function program(code: string, file: string, extra: Record<string, string
 
 export const scriptKind = (file: string): ts.ScriptKind => (/\.jsx$/.test(file) ? ts.ScriptKind.JSX : /\.tsx$/.test(file) ? ts.ScriptKind.TSX : /\.[cm]?js$/.test(file) ? ts.ScriptKind.JS : ts.ScriptKind.TS)
 // The shape a type has in the subset.
-export function shapeOf(t: ts.Type, checker: ts.TypeChecker, at: ts.Node): Shape {
+// (`inner`: the field path inside the value at `at` that t is the type of, for where a refusal says it is)
+export function shapeOf(t: ts.Type, checker: ts.TypeChecker, at: ts.Node, inner?: string): Shape {
   if (t.flags & (ts.TypeFlags.NumberLike)) return {k: 'num'}
   if (t.flags & ts.TypeFlags.BooleanLike) return {k: 'bool'}
   if (t.flags & ts.TypeFlags.StringLiteral) return {k: 'choice', values: [(t as ts.StringLiteralType).value]}
@@ -131,7 +132,7 @@ export function shapeOf(t: ts.Type, checker: ts.TypeChecker, at: ts.Node): Shape
     if (parts.some(p => p.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Null))) return refuse(at, `${checker.typeToString(t)}: a value that may be missing (a map's cell is how the subset holds one)`)
     return refuse(at, `${checker.typeToString(t)}: a union of other than string literals`)
   }
-  if (t.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) return refuse(at, `${text(at)} has no type the subset reads (any or unknown): annotate it`)
+  if (t.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) return refuse(at, inner ? `${(ts.isPropertyDeclaration(at) || ts.isParameter(at) || ts.isPropertySignature(at)) && ts.isIdentifier(at.name) ? at.name.text : text(at)}.${inner} has no type the subset reads (any or unknown${t.flags & ts.TypeFlags.Any ? ': a type not among the files read, say' : ''})` : `${text(at)} has no type the subset reads (any or unknown): annotate it`)
   if (t.flags & ts.TypeFlags.Object) {
     const sym = t.getSymbol() ?? t.aliasSymbol, name = sym?.getName()
     if (name === 'Map') {
@@ -157,7 +158,7 @@ export function shapeOf(t: ts.Type, checker: ts.TypeChecker, at: ts.Node): Shape
     const fields: [string, Shape][] = checker.getPropertiesOfType(t).map(p => {
       if (p.flags & ts.SymbolFlags.Optional) refuse(at, `the optional field ${p.getName()} (a value that may be missing)`)
       if (p.flags & ts.SymbolFlags.Method) refuse(at, `the method ${p.getName()} in a value`)
-      return [p.getName(), shapeOf(checker.getTypeOfSymbolAtLocation(p, at), checker, at)]
+      return [p.getName(), shapeOf(checker.getTypeOfSymbolAtLocation(p, at), checker, at, inner ? `${inner}.${p.getName()}` : p.getName())]
     })
     return {k: 'rec', fields}
   }

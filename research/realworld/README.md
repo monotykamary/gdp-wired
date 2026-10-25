@@ -341,6 +341,72 @@ Not closed:
 - 35, 36, TigerBeetle: a sum per account (the open pending amounts whose debit account is a given one), a sum with a
   parameter, which `M.sum()` isn't.
 
+## The unknown laws after 0.28.0: the join over the rule's own vocabulary (gen/realworld3)
+
+Nothing trusted changed: every new proof is the kernel's. On boat (2 vCPU, 60 s a law), beside main 4af8556 (0.28.0
+with gen/sums) launched together (`runs/rw3/final/rw-mine`, `rw-main` in the main checkout): **274 proven, 29 refuted,
+8 unknown, no timeouts**, against 259, 29 and 23. 15 verdicts changed, all from unknown to proven; none was lost. Each
+was run three times more a side (`re-mine`, `re-main`), four runs in all. The longest law took 54.4 s, against main's
+78.4 s.
+
+**One idea for the nine invariant laws and Casbin's.** The join (core/infer.ts) already took, per control state, the
+samples' affine hull and the bounds in a few directions. It now reads them in the rule's own vocabulary, in five ways:
+- **Control states** are the choices and yes/nos, then, refined on demand as CEGAR refines its predicates, the levels
+  the rule's comparisons with a constant cut a value into: Ts[k] ≤ 1 or past it, inflight 0 or more, a yes/no param.
+  A refinement must leave the counterexample out of what the samples there hold. It is scored by how many recent
+  counterexamples it leaves out, and by whether a form reading the laws' own values does so.
+- **Spaces** are what a law ranges over: the state; the cells at a key (laws at every key); and the cells at two keys
+  the rule composes into one (Known[x], Known[y], Link[64·x + y]: laws at every two keys).
+- **Values** include the terms the laws read that aren't linear (max(attempts, 1)) and the products the rule
+  multiplies (top·window).
+- **Directions** are the rule's own comparisons (its flags too, and a clock a request moves read as the clock after)
+  and the laws' preimages. A preimage is a law's comparison read after the step, through each branch of the step's
+  terms, with the request's values eliminated against the step's own comparisons (Fourier-Motzkin). When a form's goal
+  fails, its own preimage is tried first.
+- **Roots** are the laws and the step laws.
+
+| Law | Main | Here | Found (the forms the proof needs, abridged) | What the join needed |
+| --- | --- | --- | --- | --- |
+| Timelock: no sooner than the minimum delay | unknown 4 of 4 | proven 4 of 4 (2.0 to 4.2 s) | `every k: 2 <= Ts[k] → ReadyAt[k] <= Ts[k]` | cells at a key; Ts's level; the step law's preimage |
+| Governor: run only after succeeded and queued | unknown 4 of 4 | proven 4 of 4 (7.9 to 21.2 s) | `others is 0 and 1 <= eta → voteStart + votingPeriod + 1 <= bn + b0`, `quorum <= forVotes + abstainVotes`, `Ts <= 0` before queued | levels of `others`, `voteStart`, `eta`; the clock moved by `db` read as `bn` after |
+| Governor: calls run at most once | unknown 4 of 4 | proven 4 of 4 (5.5 to 10.2 s) | `2 <= Ts → runs <= 0`, `never executed and 2 <= Ts` | Ts's levels (0, 1, 2 or more) |
+| Governor: a canceled proposal's calls never run | unknown 4 of 4 | proven 4 of 4 (4.5 to 8.6 s) | `never canceled and 2 <= Ts and others is 0` | the refinement from the samples alone |
+| BullMQ: finished at most max(attempts, 1) times | unknown 4 of 4 | proven 4 of 4 (8.5 to 25.6 s) | `st is active → atm + 1 <= max(attempts, 1)` | the law's term as a value |
+| bottleneck: two jobs start minTime apart | unknown 4 of 4 | proven 4 of 4 (2.4 to 3.9 s) | `started → lastStart + minTime <= nextRequest` | the step law as a root |
+| express-rate-limit: the timer drops only passed windows | unknown 4 of 4 | proven 4 of 4 (4.8 to 10.5 s) | `every k: Where[k] is 1 → Reset[k] <= lastTick + windowMs`, `2 <= Where[k] → Reset[k] <= clock + windowMs` | cells; the preimage, then the preimage of that form |
+| rate-limiter-flexible: no more than points | unknown 4 of 4 | proven 4 of 4 (3.7 to 5.9 s) | `every k: Start[k] + Admitted[k] <= Val[k] + Rewarded[k]` | cells; the preimage of the law against the refusal (four cells) |
+| litellm: spend past max_budget by one request | unknown 4 of 4 | proven 4 of 4 (3.4 to 8.8 s) | `1 <= keyLimited and 1 <= inflight → keySpend + 1 <= keyMax`, `inflight <= 1` | levels of `inflight`, `keyLimited` |
+| Casbin: after deleteLink, no direct inheritance | unknown 4 of 4 | proven 4 of 4 (13.9 to 29.6 s) | `every x, y with x < 64 ∧ y < 64: Link[64·x + y] <= Known[x]`, `<= Known[y]` | the space of two keys; prove.ts's instances at the tuple a composed read matches |
+| TigerBeetle: a pending transfer with a timeout is resolved | unknown 3 of 4 (proven once, 45.0 s) | proven 4 of 4 (30.6 to 62.0 s) | rank (0) | the step laws as roots (live.ts's goals); the certificate deferred (prove.ts) |
+| Upstash fixedWindow: a rejected caller is admitted later | unknown 4 of 4 | proven 4 of 4 (4.6 to 8.6 s) | rank (0); `blockedUntil + 1 <= top + 2·window`, `∀k. top < k → Count[k] = 0` | product values; real models only; a high-water law (fresh.ts) |
+| Upstash slidingWindow | unknown 4 of 4 | proven 3 of 4 (27.2 to 49.5 s; once unknown at 66.8 s) | the same | the same |
+| Upstash tokenBucket | unknown 4 of 4 | proven 4 of 4 (18.1 to 44.7 s) | rank (0) | product rows of the factors' bounds (prove.ts) |
+| x/time AllowN: a refused caller is granted later | unknown 4 of 4 | proven 4 of 4 (0.1 to 1.4 s) | rank (0) | real models only (the root's CDCL model read `rate*t` as free) |
+
+librechat's "every applied auto-refill is recorded" is proven here by the join alone (`pending is yes and recorded is
+no → refillTx + 1 <= refills`, and its other half). Main now proves it through the second search over the maps' sums.
+
+**Not closed, and why:**
+- **Gitea reviews #0.** It needs three two-row invariants per reviewer (an official row has no later approve or reject
+  row of its reviewer; nor does a pending one; two pending rows are never one reviewer's). With them given, the proof
+  takes 55.8 to 68.2 s locally, of which 108.6 s of 121.8 s under the profiler is the cyclic certificate's leaf check.
+  The space of two keys here would be the law's own pair of rows (its frame), not a composed key.
+- **TigerBeetle #4 and #6** now take 35 to 43 s, against 87 to 88 s: the step laws' laws are certified only once the
+  step laws are proven, and the kind laws are the same objects each call. They stay unknown. The runs never reach a
+  set Status cell, so the guards the invariants need are never sampled. Law 6's invariant loses to smaller forms that
+  hold only because nothing is posted. And infer's counted clock counts this rule's solver rows 5 to 27 times faster
+  than wall time.
+- **TigerBeetle #0 and #1, Medusa #30, BullMQ #6, opossum #7**, as gen/sums and gen/realworld2 left them.
+  - Medusa #30: `Refunds.sum(r => when(r.deleted, 0, r.amount)) <= refunded` is inductive alone (0.3 s). Proposed
+    generally (each counted field of a record, summed where another field holds a value the rule compares it with), the
+    liveness still found no rank in 60 s, and TigerBeetle's 43 sums made its second search 56 s. Dropped, measured.
+
+**CHC-COMP's cost, found and fixed.** A first batch lost 22 tasks and gained 4 (1,028 against 1,046, `runs/rw3/chc1-*`).
+The cause was the join's widening. Each form's own preimage was added by rebuilding the groups, which reset every bound
+the widening had raised; the ctigar tasks' joins then ran out of time. Two changes fixed it. The preimage is now kept
+only where its bound leaves the counterexample out, and it is added to the groups as they are. A constant direction is
+also skipped again where the hull says it, as before. The reruns of the differing tasks then answered as often as main.
+
 ## Cost
 
 | Run | Jobs | Wall | Job time | Hardware |
