@@ -252,7 +252,7 @@ function preimages(m: Machine, laws: Law[], stepLaws: StepLaw[], atoms: Atom[], 
   const termOf = new Map(atoms.flatMap(a => (a.term ? [[JSON.stringify(a.term), a.parts[0]![0]] as const] : [])))
   const plus = (a: Lin, b: Lin, k = 1): Lin => { const o = new Map(a); for (const [v, c] of b) o.set(v, (o.get(v) ?? 0) + k * c); return o }
   // (branches deduplicated, at most `cap` a term)
-  const uniq = (ls: Lin[]): Lin[] => [...new Map(ls.map(l => [JSON.stringify([...l].filter(([, c]) => c).sort()), l])).values()].slice(0, cap)
+  const uniq = (ls: Lin[]): Lin[] => [...new Map(ls.map(l => [JSON.stringify([...l].filter(([, c]) => c).sort((p, q) => (p[0] < q[0] ? -1 : 1))), l])).values()].slice(0, cap)
   const cross = (xs: Lin[], ys: Lin[], k: number): Lin[] => uniq(xs.flatMap(a => ys.map(b => plus(a, b, k))))
   // (`post`: names read after the step, through its terms; a step law's primed names are so too)
   const linE = (e: E, post: boolean): Lin[] => {
