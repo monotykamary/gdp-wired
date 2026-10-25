@@ -91,6 +91,10 @@ def command(tool: str, task: str, limit: int) -> list[str]:
         return ["z3", "fp.engine=spacer", task]
     if tool == "golem":
         return ["golem", task]
+    if tool.startswith("golem-"):
+        # Golem with one engine of its own (golem-tpa, golem-split-tpa, golem-lawi, golem-imc, ...): what a technique
+        # does on the track by its authors' build, not a rival's default.
+        return ["golem", "--engine", tool.removeprefix("golem-"), task]
     if tool == "eldarica":
         return ["eld", task]
     if tool == "tmpl":
@@ -99,6 +103,15 @@ def command(tool: str, task: str, limit: int) -> list[str]:
     if tool == "kind":
         # Not a solver: whether the law is k-inductive (prof/kind.ts), a measure of what k-induction would add.
         return ["bun", "compare/chc/prof/kind.ts", task, "--ms", str((limit - 5) * 1000)]
+    if tool == "itpdirs":
+        # Not a solver: whether bounded refutations' interpolants find Spacer's invariant directions (prof/itpdirs.ts).
+        return ["bun", "compare/chc/prof/itpdirs.ts", task, "compare/chc/prof/gap-models.json", "--ms", str((limit - 10) * 1000)]
+    if tool == "tpa":
+        # Not the solver: transition power abstraction alone (prof/tpa.ts), each answer checked as solve.ts checks it.
+        return ["bun", "compare/chc/prof/tpa.ts", task, "--ms", str((limit - 5) * 1000)]
+    if tool == "imc":
+        # Not the solver: interpolation over the unrolling alone (prof/imc.ts), each answer checked as solve.ts checks it.
+        return ["bun", "compare/chc/prof/imc.ts", task, "--ms", str((limit - 5) * 1000)]
     if tool == "given":
         # Not a solver: proveRule given Spacer's invariant (prof/given.ts), its models in prof/given-models.json.
         return ["bun", "compare/chc/prof/given.ts", task, "compare/chc/prof/given-models.json", "--ms", str((limit - 5) * 1000)]
@@ -125,7 +138,7 @@ def shard(tool: str, tasks: list[dict], limit: int, env: str = "") -> list[dict]
             code, out, err = 124, "", "killed"
         secs = round(time.time() - t0, 2)
         lines = [l for l in out.splitlines() if l.strip()]
-        if tool in ("gdp", "tmpl", "given", "kind"):
+        if tool in ("gdp", "tmpl", "given", "kind", "imc", "itpdirs", "tpa"):
             stages = []
             for l in lines:
                 try:
