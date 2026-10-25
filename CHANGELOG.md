@@ -194,6 +194,44 @@ limit read none of the code changed (infer's call proveRule with laws the kernel
 15,266, fresh.ts 4,501, dsl.ts +6,725; the extractor +13,487 (extract-shapes.ts +5,966, extract-read.ts +3,149,
 extract-go.ts +1,991, the rest +2,381; core/go/reader.go, Go, +4,138 beside it).
 
+The CHC-COMP gap reclassified, and an equality's two halves chosen together for cell forms (gen/chc5). Nothing
+trusted changed. In our harness (60 s on Modal, 2 vCPU), beside main 1a66834 launched together (`runs/chc5/k-*`):
+- **The real-world corpus:** 254 proven, 29 refuted and 28 unknown, with no timeout, against 252, 29 and 30.
+  - Every verdict is the same but two, both gains: TimelockController's law 0 (`∀k. Runs[k] is 1 → Ts[k] = 1`, its
+    two halves; proven in 5.0 s, main unknown at 19.0 s; 3 of 3 runs, and main 0 of 3, in `hr-rw`) and blnk's law 5
+    (`balance = credit − debit` at every key; 49.1 s, main unknown at 56.2 s; 3 of 3 against 0 of 3).
+  - TigerBeetle's law 6 ends unknown at 116.5 s (main 124.4 s); the corpus's longest law here takes 117.5 s (main
+    124.4 s).
+  - Its earlier timeout at 150 s was wall time, not the rule: with the rule on, with it off, and on main, the law's
+    invariant search counts the same work (66,406 counted ms), and the law ended in 75.7 to 131.2 s across five runs
+    (`tb6-d2`, `tb6-diag`).
+- **CHC-COMP LIA-Lin:** 1,039 (612 sat, 427 unsat) against 1,040 (614, 426), none wrong, the same 2 disputed labels.
+  - The path is main's: the rule reads only cell forms, and CHC has none.
+  - The 16 tasks that differ or timed out, run three times a side, answer 21 times on each side.
+- **Suites (221 jobs):** none failed by default (368.5 s wall, 5,362.6 s of job time) or with `--usual` (464.2 s,
+  5,204.8 s).
+- **1 vCPU, ten jobs a side:** none failed. data's nearPlus took a median of 2,762.43 ms, at most 3,251.88 (main
+  2,731.20, 3,290.42). infer's "a law that needs an invariant" took 2,904.40 and 3,118.45 (main 2,581.26, 3,097.75).
+
+What changed:
+- **The gap at 0.27.0** (compare/chc/prof/gap27.py): 251 tasks, 217 sat and 34 unsat.
+  - On 166 of the sat tasks the join ran out of time. Of the 217, the kernel proves 140 with Spacer's invariant.
+  - The unsat tasks are deep Lustre runs. The bounded runs reach depths 9 to 12, where Golem's derivations take 12 to
+    24 steps.
+- **The halves:** a cell form the kernel's search below the join chooses brings its mirror (`−Σ ≤ −d` beside `Σ ≤ d`,
+  the same guard) where that is alive among the candidates.
+- **A warm CDCL session for the join's queries, and PDR over its cubes, are kept on branch gen/chc5-pdr, unmerged.**
+  compare/chc/README.md has their batches.
+  - On 318 dev tasks PDR answers 110 to 116 sat against the join's 105 to 112.
+  - On the whole track every placement of it cost as much as it gained: first, after the join, on the second CPU, or in
+    k-induction's turn.
+  - The session cut the join's nodes a query from 235 to 28, but lost tasks the cold join answers.
+  - Three more rules were measured and dropped, each costing CHC tasks: a request gate on the walks, a candidate dropped
+    after four stuck goals, and the halves on scalar forms.
+
+**Size:** `core/` and `kernel/` (tests excluded) are 2,201,135 bytes and 30,285 lines, against main 1a66834's 2,200,224
+and 30,278: +911 bytes and +7 lines, all in core/infer.ts.
+
 ## 0.27.0
 
 The search's shared engines got faster and more general, and a second language front end joined the extractor. None

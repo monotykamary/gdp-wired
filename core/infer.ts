@@ -122,6 +122,8 @@ const joinPrime = env.GDP_JOIN_PRIME !== '0'
 // GDP_JOIN_DOWN=0: a blocked cube kept as its refutation's core cuts it (no literal dropped); joinDownQueries, the
 // queries a cube's generalization may ask.
 const joinDown = env.GDP_JOIN_DOWN !== '0', joinDownQueries = 24
+// GDP_INFER_HALVES=0: a cell form chosen without its equality's other half (below).
+const inferHalves = env.GDP_INFER_HALVES !== '0'
 const isRule = (t: AnyRule | Machine): t is AnyRule => typeof (t as AnyRule).kindsOfState === 'function'
 
 // The constants a machine's expressions hold, and the factors it multiplies by.
@@ -1166,6 +1168,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (!(whole.proven && whole.checked)) forget()
     return whole
   }
+  // A cell form's mirror, −Σ ≤ −d beside Σ ≤ d under the same guard (its text).
+  const mirrorText = (f: Form): string | undefined => (!f.cells || f.mod || f.cong || f.never || f.nevers || f.cube || f.unreachable || f.also || !f.coef.length ? undefined : textOf({...f, coef: f.coef.map(([i, c]) => [i, -c]), d: -f.d}))
   for (let iter = 0; iter < 300 && now() < until && !stop(); iter++) {
     const began = now(), wall = performance.now()
     // (each law proven alone, then the set as a whole: the same goals, grown once)
@@ -1187,7 +1191,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     let next = p ? best(p) : undefined
     if (!next && p) next = best(p, true)
     if (!next && p) { const t = performance.now(), made = fromCti(p); pool.push(...made); next = best(p); opts.progress?.('cti', {forms: made.length, ms: Math.round(performance.now() - t)}) }
-    if (next) { chosen.push(next); continue }
+    // (a cell form chosen with its mirror where that is alive: the equality both halves state at every key, neither
+    // inductive without the other, as the real-world corpus's Timelock and blnk need; on CHC's scalar forms, measured,
+    // it cost s_split tasks, so cell forms only)
+    if (next) { chosen.push(next); const mt = inferHalves ? mirrorText(next) : undefined, mirror = mt && pool.find(g => !chosen.includes(g) && textOf(g) === mt); if (mirror) chosen.push(mirror); continue }
     // Stuck with no counterexample on a goal not a candidate's: the last candidate made it harder, so it goes.
     if (chosen.length && !stuckOn && !p) { drop(chosen.at(-1)!); continue }
     if (!stuckOn) break
