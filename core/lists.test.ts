@@ -9,6 +9,7 @@ import {checkStepLaws, obligations, stepLawObligations} from '../kernel/kernel.t
 import {proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {allowed, watch} from './watch.ts'
 import {certReport, toLean} from '../lean-kernel/emit.ts'
+import {certMode} from './cyclic.ts'
 
 // Its usual proof with the step law translated into one cyclic proof (core/translate.ts) by the Lean export: the
 // translated leaves index the rows as kernel.ts lists them, so the kernel's check accepts them (two forms of one atom,
@@ -16,9 +17,10 @@ import {certReport, toLean} from '../lean-kernel/emit.ts'
 // then searched the step law's node, a file 2.4 times as large).
 test('the normalized scope: its step law translated for the Lean export, checked by the kernel', () => {
   const ok = scope(), text = toLean([{id: 'scope', machine: ok.machine, laws: scopeLaws(ok), stepLaws: scopeSteps(ok)}])
-  expect(certReport.cyclic).toEqual(['scope'])
-  expect(certReport.translatedSteps).toEqual([ok.machine.name])
-  expect(text.length).toBeLessThan(250_000)
+  // (with GDP_CERT=usual the export reads the usual trees: nothing translated)
+  const cyc = certMode()
+  expect([certReport.cyclic, certReport.translatedSteps]).toEqual(cyc ? [['scope'], [ok.machine.name]] : [[], []])
+  if (cyc) expect(text.length).toBeLessThan(250_000)
 }, 60_000)
 
 test('the normalized scope: proven, through a law about every two positions; each broken variant refused', () => {
