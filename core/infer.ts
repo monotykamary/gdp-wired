@@ -58,6 +58,7 @@ export type InferOptions = {
   minimize?: boolean // once proven, each chosen law the proof doesn't need taken out again (true); false answers at once
   remainders?: boolean // remainders (v mod k = r, a guard where only some runs keep one) where the runs keep one (true); with false, congruences instead (`existentials`)
   join?: number // the join's share of what is left of the search after the candidates (0.6)
+  shapes?: Record<string, number>[] // more coefficient vectors over the state, beside the templates (an integer's two naturals with opposite signs read as one value)
 }
 // What was found: each law as a Law (pass it with the rule's laws), how it reads, and for a rule, the builder call
 // that states it (`r.law(...)`), to paste.
@@ -374,6 +375,21 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   pick(2, choose(2, P) * 4 * mags.length ** 2 <= maxCandidates / 4 ? mags : [1], terms, scalarOk, false)
   if (choose(3, P) * 8 * mags.length ** 3 <= maxCandidates / 2) pick(3, mags, terms, scalarOk, false)
   else if (choose(3, P) * 8 <= maxCandidates / 2) pick(3, [1], terms, scalarOk, false)
+  // The caller's shapes (compare/chc/solve.ts: the directions of bounded refutations' interpolants), where each name is
+  // a scalar atom's (an integer's parts at opposite signs), first.
+  const asked: typeof shapes = [], givenKeys = new Set<string>()
+  for (const want of opts.shapes ?? []) {
+    const left = {...want}, coef: [number, number][] = []
+    for (const i of terms) {
+      const [[p0], neg] = atoms[i]!.parts as [[string, number], [string, number]?], c = left[p0] ?? (neg && left[neg[0]] !== undefined ? -left[neg[0]]! : undefined)
+      if (c === undefined || (neg && left[neg[0]] !== undefined && left[neg[0]] !== -c)) continue
+      delete left[p0]; if (neg) delete left[neg[0]]
+      coef.push([i, c])
+    }
+    const g = coef.reduce((a, [, c]) => gcd(a, c), 0), sh = coef.map(([i, c]): [number, number] => [i, c / g]), key = JSON.stringify(sh)
+    if (!Object.keys(left).length && coef.length && scalarOk(coef) && !givenKeys.has(key)) { givenKeys.add(key); asked.push({coef: sh, cells: false}) }
+  }
+  if (asked.length) shapes.splice(0, shapes.length, ...asked, ...shapes.filter(sh => sh.cells || !givenKeys.has(JSON.stringify(sh.coef))))
   if (cellAtoms.length) {
     const all = atoms.flatMap((_, i) => (modeOf(i)?.choice ? [] : [i])), cellOk = (acc: [number, number][]) => acc.some(([i]) => atoms[i]!.cell) && acc.filter(([i]) => !atoms[i]!.cell).length <= 1
     pick(1, [1], cellAtoms, () => true, true)
