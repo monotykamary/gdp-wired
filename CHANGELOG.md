@@ -6,7 +6,7 @@ noted), each with the command that reproduces it.
 ## Unreleased
 
 The suite's slow jobs since 0.26.0, measured in pairs on Modal (the old commit and the new launched together, three
-runs a side) and their causes (perf/regressions). Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`,
+runs a side) and their causes (perf/regressions; `runs/perf/` in the main checkout). Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`,
 `core/check.ts`, `lean-kernel/*.lean`).
 - **The cyclic certificate's translation lost a step law since 0.27.0** (aabd407, engine/query): kernel/reader.ts's
   `leafRows` kept a path atom's row by the atom's name, so two forms of one atom with their names in a different order
