@@ -12,7 +12,11 @@
 //     (core/bmc.ts: a deterministic loop's forced run, then a model of a k-step goal from the start to error, k = 1, 2,
 //     ...) in turn, in doubling slices; proven, or a run checkDerivation confirms, it ends this process and answers
 //     itself. With `--bmc-here` (or `--kind-ms 0`) the bounded runs are this process's stage after the guided runs,
-//     within --bmc-ms (15,000), as before
+//     within --bmc-ms (15,000), as before. Interpolation over the unrolling (core/interp.ts) shares k-induction's slice
+//     (`--imc 2`, the default; `--imc 1` its own turn, `--imc 0` none); `--kind 0`: no k-induction there
+//   - compose (`--compose 1`, the default; 0 for the rule of the CHC as written): every stage but k-induction searches the
+//     system with its chains composed away (compose.ts), its runs expanded and its invariants lifted to the original
+//     rule, where each answer is checked; `--slice 1` also weakens it by its cone of influence
 //   - houdini: the library's search for the invariants the law needs (core/infer.ts), from the states the runs reached:
 //     candidates per predicate (loc = p → a bound, a difference, a sum), those a run's state breaks dropped, then the
 //     kernel's counterexamples to induction choosing which to add; `--old-houdini`, this folder's first Houdini
@@ -24,29 +28,40 @@ import {proveRule} from '../../core/dsl.ts'
 import {houdini} from './houdini.ts'
 import {inferLaws} from '../../core/infer.ts'
 import {findBoundedRun} from '../../core/bmc.ts'
-import type {C, E, State} from '../../core/machine.ts'
+import type {C, E, Law, State} from '../../core/machine.ts'
 import {grow} from '../../kernel/prove.ts'
 import {substC} from '../../kernel/kernel.ts'
+import {type Composed, expand, invOf, liftProven, prepare} from './compose.ts'
 
 // GDP_CHC_ARGS: more flags, read before the command line's (a run's knobs, through modal_chc.py's --env).
 const args = [process.argv[2]!, ...(process.env.GDP_CHC_ARGS ?? '').split(' ').filter(Boolean), ...process.argv.slice(3)], file = args[0]!
 const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 ? d : Number(args[i + 1]) }
-const bmcMs = opt('--bmc-ms', 15000), runsMs = opt('--runs-ms', 5000), guideMs = opt('--guide-ms', 8000), houdiniMs = opt('--houdini-ms', 60000), useHoudini = !args.includes('--no-houdini'), oldHoudini = args.includes('--old-houdini')
+// A sat answer's certificate: the kernel's usual trees, checked by kernel.ts (GDP_CERT=cyclic for the cyclic translation
+// as well, core/cyclic.ts; on the dev tasks main answers the same either way, runs/chc7/d1-main against d1-mainu). kind.ts
+// inherits it.
+process.env.GDP_CERT ??= 'usual'
+const liftMs = opt('--lift-ms', 8000), bmcMs = opt('--bmc-ms', 15000), runsMs = opt('--runs-ms', 5000), guideMs = opt('--guide-ms', 8000), houdiniMs = opt('--houdini-ms', 60000), useHoudini = !args.includes('--no-houdini'), oldHoudini = args.includes('--old-houdini')
 const t0 = performance.now(), ms = () => Math.round(performance.now() - t0)
 const say = (o: object) => console.log(JSON.stringify({task: file, ms: ms(), ...o}))
 const done = (answer: string, o: object = {}) => { say({stage: 'answer', answer, ...o}); process.exit(0) }
 
-let chc, b
+// `--compose 1`: the chains composed away first (compose.ts); every search here then reads the composed rule, its
+// unsat runs expanded and its sat invariants lifted to the original's, each checked there. The original rule (`bo`)
+// is what every answer is checked on.
+let chc, b, bo, cc: Composed | undefined
 try {
   chc = parseChc(readFileSync(file, 'utf8'))
-  b = build(chc)
-  void b.rule.machine
+  bo = build(chc)
+  void bo.rule.machine
+  cc = prepare(chc, {slice: opt('--slice', 0) !== 0, chains: opt('--compose', 1) !== 0})
+  if (cc) { b = build(cc.chc); void b.rule.machine }
+  b ??= bo
 } catch (e) {
   if (e instanceof Unsupported) done('unsupported', {why: e.message})
   done('unsupported', {why: `import failed: ${(e as Error).message.slice(0, 200)}`, error: true})
 }
 const {rule: r, law} = b!
-say({stage: 'import', preds: chc!.preds.size, clauses: chc!.clauses.length, ints: b!.nInt, bools: b!.nBool, inputs: b!.inInt + b!.inBool})
+say({stage: 'import', preds: chc!.preds.size, clauses: chc!.clauses.length, ints: b!.nInt, bools: b!.nBool, inputs: b!.inInt + b!.inBool, ...(cc ? {composed: cc.chc.clauses.length, eliminated: cc.eliminated.length} : {})})
 
 // k-induction beside the other stages (compare/chc/kind.ts), until the search's deadline; stopped when this answers.
 // At the lowest priority (nice 19): of the 41 tasks this or main answered alone, 32 and 35 answered that way, 30, 31 and
@@ -54,20 +69,33 @@ say({stage: 'import', preds: chc!.preds.size, clauses: chc!.clauses.length, ints
 // The bounded runs go there too (`--bmc-here` keeps them in this process's stage, after the guided runs, as before), in
 // turn with k-induction, so this process's invariant search starts after the guided runs.
 const kindMs = opt('--kind-ms', Math.max(0, houdiniMs - 2000 - ms())), bmcThere = kindMs > 0 && !args.includes('--bmc-here') && bmcMs > 0
-const kind = kindMs > 0 ? Bun.spawn(['nice', '-n', '19', 'bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid), '--bmc', bmcThere ? '1' : '0'], {stdout: 'inherit', stderr: 'ignore'}) : undefined
+const kind = kindMs > 0 ? Bun.spawn(['nice', '-n', '19', 'bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid), '--bmc', bmcThere ? '1' : '0', '--imc', String(opt('--imc', 2)), '--kind', String(opt('--kind', 1)), '--compose', String(opt('--compose', 1)), '--slice', String(opt('--slice', 0))], {stdout: 'inherit', stderr: 'ignore'}) : undefined
 process.on('exit', () => { kind?.kill() })
 
 // A run, replayed on the compiled rule and checked against the CHC.
 const g = r.compiled()
 const unsat = (stage: string, raws: Raw[]) => {
-  const bad = checkDerivation(b!, chc!, stepsOf(b!, raws))
+  let orig: Raw[] | string = raws
+  if (cc) { try { orig = expand(bo!, b!, cc, stepsOf(b!, raws)) } catch (e) { orig = `not expanded: ${(e as Error).message.slice(0, 80)}` } }
+  let bad = typeof orig === 'string' ? orig : undefined
+  if (!bad) { try { bad = checkDerivation(bo!, chc!, stepsOf(bo!, orig as Raw[])) } catch (e) { bad = `not replayed: ${(e as Error).message.slice(0, 80)}` } }
   if (bad) { say({stage, refused: bad}); return }
-  done('unsat', {by: stage, steps: raws.length})
+  done('unsat', {by: stage, steps: raws.length, ...(cc ? {original: (orig as Raw[]).length} : {})})
+}
+// A sat answer of the rule searched: itself where nothing was composed; else its invariant (the laws proven beside the
+// law) lifted to the original rule and proven there.
+const sat = (stage: string, laws: Law[], extra: object = {}) => {
+  if (!cc) done('sat', {by: stage, ...extra})
+  const inv = invOf([b!.law, ...r.kindLaws(), ...laws])
+  if (!inv) { say({stage, lifted: false, why: 'a law with a key or "there exists"'}); return }
+  const v = liftProven(cc!, bo!, inv, performance.now() + Math.max(1000, houdiniMs - 1000 - ms()))
+  say({stage: `${stage} lift`, ...v})
+  if (v.proven) done('sat', {by: stage, lifted: v.laws, ...extra})
 }
 
 const direct = proveRule(r, [law], {search: false})
 say({stage: 'prove', proven: direct.proven, checked: direct.checked, ...(direct.stuck ? {stuck: direct.stuck.slice(0, 120)} : {})})
-if (direct.proven && direct.checked) done('sat', {by: 'prove'})
+if (direct.proven && direct.checked) sat('prove', [])
 if (direct.run) unsat('prove', direct.run.trace.map(t => decodeRequest(t)))
 
 // Bounded runs (core/bmc.ts): a deterministic loop's forced run, then a run of k steps from the start that reaches error,
@@ -185,14 +213,14 @@ if (useHoudini && !oldHoudini) {
   // for every solver, not counted as it is by default
   // (the join 0.8 of the search: the kernel's search after it rarely answers where the join ran out of time,
   // runs/inv2/i-s8 beside i-cfw)
-  const h = inferLaws(r, [law], [], {ms: Math.max(1000, houdiniMs - ms()), timed: true, minimize: false, join: 0.8, seen, first: direct, progress: (phase, info) => say({stage: `infer ${phase}`, ...info})})
+  const h = inferLaws(r, [law], [], {ms: Math.max(1000, houdiniMs - ms() - (cc ? liftMs : 0)), timed: true, minimize: false, join: 0.8, seen, first: direct, progress: (phase, info) => say({stage: `infer ${phase}`, ...info})})
   say({stage: 'houdini', engine: 'infer', candidates: h.stats.candidates, alive: h.stats.alive, kept: h.found.length, proofs: h.stats.proofs, proven: h.proven && h.checked, ...(h.proven ? {} : {why: `${h.goal ?? ''} ${h.stuck ?? ''}`.trim().slice(0, 120)})})
-  if (h.proven && h.checked) done('sat', {by: 'houdini', invariants: h.found.length})
+  if (h.proven && h.checked) sat('houdini', h.found.map(f => f.law), {invariants: h.found.length})
 }
 if (useHoudini && oldHoudini) {
   const h = houdini(b!, chc!, seen, {ms: houdiniMs})
   say({stage: 'houdini', candidates: h.candidates, afterRuns: h.afterRuns, kept: h.kept.length, rounds: h.rounds, proven: h.proven, ...(h.why ? {why: h.why} : {})})
-  if (h.proven) done('sat', {by: 'houdini', invariants: h.kept.length})
+  if (h.proven && !cc) done('sat', {by: 'houdini', invariants: h.kept.length})
 }
 // (k-induction may still answer: its end, at the deadline, is this one's)
 if (kind) await kind.exited
