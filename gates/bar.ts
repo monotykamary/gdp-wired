@@ -713,7 +713,7 @@ function devsetCmd() {
   const tree = existsSync(join(BAR, 'trees', sha)) ? join(BAR, 'trees', sha) : MAIN
   // (the sizes from gates/bar-calibrate.ts on every past pair: CHC's prediction error 7.9 tasks at 257, 2.5 at 700)
   const SIZES: Record<string, number> = {chc: 700, its: 400, 'its-scc': 120, sv: 140, 'sv-scc': 40, tip: 250, f1: 50, f2: 40, rw: 90}
-  const d: DevFile = {made: `from ${root} (${new Date().toISOString().slice(0, 10)})`, views: {}, pilot: {}}
+  const d: DevFile = {made: `from runs/bar/base/${key} (${new Date().toISOString().slice(0, 10)})`, views: {}, pilot: {}}
   for (const g of GROUPS) for (const v of views(g)) {
     if (!SIZES[v.key] || !existsSync(join(root, g.key, 'run1'))) continue
     const ref = v.parse(join(root, g.key, 'run1'), tree)
