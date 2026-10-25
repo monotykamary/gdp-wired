@@ -206,11 +206,34 @@ export class Simplex {
     for (const r of this.colOf[j]!) { const row = this.rows[r]!; this.val[row.basic]! += row.coef.get(j)! * d }
   }
   // `greedy` (kernel/cdcl.ts's clausal mode): the most violated basic variable first and the sparsest nonbasic one that
-  // can move, for the first `greedy` pivots of a check, Bland's rule after (which can't cycle).
+  // can move, for the first `greedy` pivots of a check (`checkGreedy`), Bland's rule after (which can't cycle).
   greedy = 0
   check(maxPivots = 5_000): SimplexVerdict {
+    if (this.greedy) return this.checkGreedy(maxPivots)
     for (let n = 0; n < maxPivots; n++) {
       // Bland: the violated basic variable of least index, then the nonbasic one of least index that can move.
+      let b = -1
+      for (const row of this.rows) {
+        const j = row.basic, x = this.val[j]!
+        if ((x < this.lo[j]! - tol(this.lo[j]!) || x > this.hi[j]! + tol(this.hi[j]!)) && (b < 0 || j < b)) b = j
+      }
+      if (b < 0) return {kind: 'sat'}
+      const row = this.rows[this.rowOf[b]!]!, below = this.val[b]! < this.lo[b]!
+      let e = -1
+      for (const [j, a] of row.coef) {
+        if (e >= 0 && j > e) continue
+        const up = below === a > 0 // whether x_j must rise
+        if (up ? this.val[j]! < this.hi[j]! - eps : this.val[j]! > this.lo[j]! + eps) e = j
+      }
+      if (e < 0) return this.conflict(b, row, below)
+      const target = below ? this.lo[b]! : this.hi[b]!
+      this.pivot(b, e, target)
+      this.pivots++
+    }
+    return {kind: 'unknown'}
+  }
+  private checkGreedy(maxPivots: number): SimplexVerdict {
+    for (let n = 0; n < maxPivots; n++) {
       const g = n < this.greedy
       let b = -1, worst = 0
       for (const row of this.rows) {
@@ -222,19 +245,20 @@ export class Simplex {
       let e = -1
       for (const [j, a] of row.coef) {
         if (!g && e >= 0 && j > e) continue
-        const up = below === a > 0 // whether x_j must rise
+        const up = below === a > 0
         if (up ? this.val[j]! < this.hi[j]! - eps : this.val[j]! > this.lo[j]! + eps) { if (!g || e < 0 || this.colOf[j]!.size < this.colOf[e]!.size || (this.colOf[j]!.size === this.colOf[e]!.size && j < e)) e = j }
       }
-      if (e < 0) {
-        const why = [below ? this.loWhy[b]! : this.hiWhy[b]!]
-        for (const [j, a] of row.coef) why.push(below === a > 0 ? this.hiWhy[j]! : this.loWhy[j]!)
-        return {kind: 'conflict', rows: [...new Set(why)].filter(x => x >= 0)}
-      }
-      const target = below ? this.lo[b]! : this.hi[b]!
-      this.pivot(b, e, target)
+      if (e < 0) return this.conflict(b, row, below)
+      this.pivot(b, e, below ? this.lo[b]! : this.hi[b]!)
       this.pivots++
     }
     return {kind: 'unknown'}
+  }
+  // A row whose basic variable can't reach its bound: the rows whose bounds it reads.
+  private conflict(b: number, row: {basic: number, coef: Map<number, number>}, below: boolean): SimplexVerdict {
+    const why = [below ? this.loWhy[b]! : this.hiWhy[b]!]
+    for (const [j, a] of row.coef) why.push(below === a > 0 ? this.hiWhy[j]! : this.loWhy[j]!)
+    return {kind: 'conflict', rows: [...new Set(why)].filter(x => x >= 0)}
   }
   // x_b leaves the basis for x_e, x_b set to `target`.
   private pivot(b: number, e: number, target: number) {

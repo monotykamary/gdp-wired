@@ -194,8 +194,8 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   const fixed = trail.length
   const level = () => levels.length
   const pathOf = (): Path => new Map(trail.map(name => { const x = vars.get(name)!; return [name, {lin: x.lin, holds: x.val!}] }))
-  const assign = (name: string, val: boolean, reason?: number) => assignVar(vars.get(name)!, val, reason)
-  const assignVar = (x: Var, val: boolean, reason?: number) => {
+  // (the kernel reading's and the clausal mode's each a function of its own, so neither's hot path reads the other's)
+  const assignKernel = (x: Var, val: boolean, reason?: number) => {
     const name = x.name
     lowAt = Math.min(lowAt, trail.length)
     x.val = val; x.level = level(); x.at = trail.length; x.phase = val; stamps[x.at] = ++stampN
@@ -203,10 +203,18 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     trail.push(name); tv.push(x)
     if (x.col) colsOn++
     if (x.pair) pairsChanged++
-    if (!clausal) { reader.touch(name); return }
+    reader.touch(name)
+  }
+  const assignClausal = (x: Var, val: boolean, reason?: number) => {
+    lowAt = Math.min(lowAt, trail.length)
+    x.val = val; x.level = level(); x.at = trail.length; x.phase = val; stamps[x.at] = ++stampN
+    x.reason = reason
+    trail.push(x.name); tv.push(x)
     vals[x.id] = val ? 1 : 2
     if (rel[x.id]! >= 0) activate(x.id)
   }
+  const assignVar = clausal ? assignClausal : assignKernel
+  const assign = (name: string, val: boolean, reason?: number) => assignVar(vars.get(name)!, val, reason)
   // A variable relevant (at this level), and, where it is a gate with a value, the clauses that value needs: their
   // variables relevant in turn.
   const relevant = (id: number) => {
@@ -227,21 +235,30 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
       }
     }
   }
-  const undoTo = (l: number) => {
-    const keep = levels[l] ?? trail.length, undone: Var[] | undefined = clausal ? [] : undefined
+  const undoKernel = (l: number) => {
+    const keep = levels[l] ?? trail.length
     while (trail.length > Math.max(keep, fixed)) {
       const name = trail.pop()!, x = tv.pop()!, q = aqOf.size ? aqOf.get(name) : undefined
-      if (undone) { vals[x.id] = 0; undone.push(x) }
-      x.val = undefined; x.level = -1; x.reason = undefined; if (x.col) colsOn--; if (x.pair) pairsChanged++; if (!clausal) reader.touch(name)
+      x.val = undefined; x.level = -1; x.reason = undefined; if (x.col) colsOn--; if (x.pair) pairsChanged++; reader.touch(name)
       if (q !== undefined && q < aq) aq = q
     }
     lowAt = Math.min(lowAt, trail.length)
     levels.length = l
-    if (clausal) {
-      while (relStack.length && rel[relStack.at(-1)!]! > l) rel[relStack.pop()!] = -1
-      for (const x of undone!) heapIn(x)
-    }
   }
+  const undoClausal = (l: number) => {
+    const keep = levels[l] ?? trail.length, undone: Var[] = []
+    while (trail.length > keep) {
+      const name = trail.pop()!, x = tv.pop()!, q = aqOf.size ? aqOf.get(name) : undefined
+      vals[x.id] = 0; undone.push(x)
+      x.val = undefined; x.level = -1; x.reason = undefined
+      if (q !== undefined && q < aq) aq = q
+    }
+    lowAt = Math.min(lowAt, trail.length)
+    levels.length = l
+    while (relStack.length && rel[relStack.at(-1)!]! > l) rel[relStack.pop()!] = -1
+    for (const x of undone) heapIn(x)
+  }
+  const undoTo = clausal ? undoClausal : undoKernel
   const addClause = (lits: Map<string, boolean>, node: number): number => {
     clauses.push({lits, node})
     const i = clauses.length - 1
@@ -318,38 +335,10 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   }
   let qhead = 0
   // Unit propagation: a clause whose literals all hold is a conflict (its index); all but one, the last is flipped.
-  const propagate = (): number | undefined => {
-    // (the clausal mode's, over the watches: a pair that now holds moves its watch to a pair that doesn't, else the clause
-    // is unit, its other watched pair's variable flipped, or, that pair holding too, a conflict)
-    if (clausal) {
-      // (each watch a clause and a blocker, a pair of it that, where it doesn't hold, satisfies the clause untouched)
-      while (qhead < trail.length) {
-        const x = tv[qhead++]!, code = 2 * x.id + (x.val ? 1 : 0), ws = wl[code]
-        if (!ws) continue
-        let n = 0
-        for (let i = 0; i < ws.length;) {
-          if (opposed(ws[i + 1]!)) { i += 2; continue }
-          const ci = ws[i]!, c = cls[ci]!
-          n++
-          if (retired[ci]) { ws[i] = ws[ws.length - 2]!; ws[i + 1] = ws[ws.length - 1]!; ws.length -= 2; continue }
-          if (c[0] === code) { c[0] = c[1]!; c[1] = code }
-          const o = c[0]!
-          if (opposed(o)) { ws[i + 1] = o; i += 2; continue }
-          let j = 2
-          while (j < c.length && holds(c[j]!)) j++
-          if (j < c.length) { const z = c[j]!; c[j] = code; c[1] = z; (wl[z] ??= []).push(ci, o); ws[i] = ws[ws.length - 2]!; ws[i + 1] = ws[ws.length - 1]!; ws.length -= 2; continue }
-          if (!vals[o >> 1]) { assignVar(byId[o >> 1]!, !(o & 1), ci); i += 2; continue }
-          costs.scan += n
-          return ci
-        }
-        costs.scan += n
-      }
-      return undefined
-    }
+  const propagateKernel = (): number | undefined => {
     while (qhead < trail.length) {
       const name = trail[qhead++]!, x = vars.get(name)!, os = occ.get(`${name}=${x.val}`)
       if (!os) continue
-      if (clausal) costs.scan += os.length
       for (const ci of os) {
         const c = clauses[ci]!
         let open: string | undefined, nOpen = 0, dead = false
@@ -364,6 +353,34 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     }
     return undefined
   }
+  // The clausal mode's, over the watches: a pair that now holds moves its watch to a pair that doesn't, else the clause
+  // is unit, its other watched pair's variable flipped, or, that pair holding too, a conflict.
+  const propagateClausal = (): number | undefined => {
+    // (each watch a clause and a blocker, a pair of it that, where it doesn't hold, satisfies the clause untouched)
+    while (qhead < trail.length) {
+      const x = tv[qhead++]!, code = 2 * x.id + (x.val ? 1 : 0), ws = wl[code]
+      if (!ws) continue
+      let n = 0
+      for (let i = 0; i < ws.length;) {
+        if (opposed(ws[i + 1]!)) { i += 2; continue }
+        const ci = ws[i]!, c = cls[ci]!
+        n++
+        if (retired[ci]) { ws[i] = ws[ws.length - 2]!; ws[i + 1] = ws[ws.length - 1]!; ws.length -= 2; continue }
+        if (c[0] === code) { c[0] = c[1]!; c[1] = code }
+        const o = c[0]!
+        if (opposed(o)) { ws[i + 1] = o; i += 2; continue }
+        let j = 2
+        while (j < c.length && holds(c[j]!)) j++
+        if (j < c.length) { const z = c[j]!; c[j] = code; c[1] = z; (wl[z] ??= []).push(ci, o); ws[i] = ws[ws.length - 2]!; ws[i + 1] = ws[ws.length - 1]!; ws.length -= 2; continue }
+        if (!vals[o >> 1]) { assignVar(byId[o >> 1]!, !(o & 1), ci); i += 2; continue }
+        costs.scan += n
+        return ci
+      }
+      costs.scan += n
+    }
+    return undefined
+  }
+  const propagate = clausal ? propagateClausal : propagateKernel
   const bump = (lits: Map<string, boolean>) => {
     for (const name of lits.keys()) { const x = vars.get(name)!; x.act += inc; if (x.act > 1e100) { for (const y of vars.values()) y.act *= 1e-100; inc *= 1e-100 } if (clausal && x.hp !== undefined && x.hp >= 0) heapUp(x.hp) }
     inc /= 0.95
@@ -411,6 +428,36 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     const loc = localize(local, s.steps), made = leafNode(b.w, loc.inputs, loc.steps, [b.name, !b.val], b.hyps, b.src && loc.from.map(i => b.src![i] ?? -1))
     c.lits = made.lits; c.node = made.node
   }, ms => { st.coreMs += ms })
+  // The clausal mode's conflict analysis: the same resolutions, in one pass down the trail (the clause kept as it is
+  // resolved, its literals at its latest level counted, each step the latest of them on the trail).
+  const analyzeClausal = (c: Clause): Clause => {
+    const lits = new Map(c.lits)
+    let node = c.node, {top, here} = levelsOf(c), p = trail.length - 1
+    if (top < level()) { undoTo(top); qhead = trail.length; p = trail.length - 1 }
+    while (lits.size && !(top > 0 && here === 1)) {
+      while (p >= 0 && !(lits.has(trail[p]!) && vars.get(trail[p]!)!.level === top)) p--
+      const name = trail[p]!, x = vars.get(name)!
+      if (top > 0 && x.reason === undefined) break
+      const r = clauses[x.reason!]!
+      if (r.node < 0) materialize(x.reason!)
+      nodes.push({res: lits.get(name)! ? [node, r.node] : [r.node, node], on: x.lin})
+      st.resolved++
+      node = nodes.length - 1
+      lits.delete(name); here--
+      for (const [w, q] of r.lits) if (w !== name && !lits.has(w)) { lits.set(w, q); if (vars.get(w)!.level === top) here++ }
+    }
+    return {lits, node}
+  }
+  // (a decision at the simplex's last point, without a node: `free` of them after a node whose rows it met)
+  const decideFree = (): boolean => {
+    const x = pickOpen()
+    if (!x) return false
+    free--
+    if (!x.quiet && sx) phaseAtPoint(x, sx)
+    levels.push(trail.length); st.decisions++
+    assignVar(x, x.phase)
+    return true
+  }
   const levelsOf = (c: Clause) => {
     let top = -1, here = 0, latest: string | undefined, at = -1
     for (const name of c.lits.keys()) {
@@ -505,16 +552,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
         // (the clausal mode: after a node whose rows the simplex met, up to `batch` decisions more before the next node,
         // each its own level, an atom's value the point's: they keep that point, so the rows meet it but where unit
         // propagation brought an atom it doesn't meet, which the next node finds)
-        if (free > 0) {
-          const x = pickOpen()
-          if (x) {
-            free--
-            if (!x.quiet && sx) phaseAtPoint(x, sx)
-            levels.push(trail.length); st.decisions++
-            assign(x.name, x.phase)
-            continue
-          }
-        }
+        if (free > 0 && decideFree()) continue
         reader.begin()
         st.nodes++
         // The rows, kept from the node before (reader.ts's sync); the forms that came and went: the single-variable
@@ -682,26 +720,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
       // (a clause's latest level, how many of its literals are at it, the latest of those on the trail, and the latest
       // level of the rest: one pass)
       let c = conflict
-      if (clausal) {
-        // (the same resolutions, in one pass down the trail: the clause kept as it is resolved, its literals at its
-        // latest level counted, each step the latest of them on the trail)
-        const lits = new Map(c.lits)
-        let node = c.node, {top, here} = levelsOf(c), p = trail.length - 1
-        if (top < level()) { undoTo(top); qhead = trail.length; p = trail.length - 1 }
-        while (lits.size && !(top > 0 && here === 1)) {
-          while (p >= 0 && !(lits.has(trail[p]!) && vars.get(trail[p]!)!.level === top)) p--
-          const name = trail[p]!, x = vars.get(name)!
-          if (top > 0 && x.reason === undefined) break
-          const r = clauses[x.reason!]!
-          if (r.node < 0) materialize(x.reason!)
-          nodes.push({res: lits.get(name)! ? [node, r.node] : [r.node, node], on: x.lin})
-          st.resolved++
-          node = nodes.length - 1
-          lits.delete(name); here--
-          for (const [w, q] of r.lits) if (w !== name && !lits.has(w)) { lits.set(w, q); if (vars.get(w)!.level === top) here++ }
-        }
-        c = {lits, node}
-      }
+      if (clausal) c = analyzeClausal(c)
       for (;;) {
         if (!c.lits.size) {
           if (opts.model) {
