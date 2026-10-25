@@ -189,18 +189,19 @@ The large programs' runs that never end (core/nonterm.ts, core/accel.ts) and one
 
 Two batches beside main a6d6403 (this branch merged it), launched together on Modal (60 s, 2 vCPU): `runs/nt5/its1-*`
 (this branch at cebbf7c) and `its2-*` (at b3e8519), every gained and lost task run three times more a side
-(`itsre-*`, `itsre2-*`, `itsre3-mine-*`).
+(`itsre-*`, `itsre2-*`, `itsre3-mine-*`); then a third after merging main f589873, beside it (`its3-*`, at 53bf839;
+its new losses three times more, `itsre4-*`).
 
 | | ITS terminates | nonterminating | solved of 1,239 |
 | --- | --- | --- | --- |
-| the task's statement (`gdp`), here | 611, 613 | 541, 538 | 1,152, 1,151 |
-| a6d6403 | 611, 612 | 531, 534 | 1,142, 1,146 |
-| per component (`gdp-scc`), here | 613, 613 | 542, 542 | 1,155, 1,155 |
-| a6d6403 | 614, 612 | 532, 533 | 1,146, 1,145 |
+| the task's statement (`gdp`), here | 611, 613, 612 | 541, 538, 540 | 1,152, 1,151, 1,152 |
+| main (a6d6403, a6d6403, f589873) | 611, 612, 611 | 531, 534, 532 | 1,142, 1,146, 1,143 |
+| per component (`gdp-scc`), here | 613, 613, 611 | 542, 542, 542 | 1,155, 1,155, 1,153 |
+| main | 614, 612, 613 | 532, 533, 532 | 1,146, 1,145, 1,145 |
 | LoAT's default engine (`full1`) | 2 | 532 | |
 
 Nonterminating, 538 to 541 on the task's statement and 542 per component against LoAT's default engine's 532: ahead in
-both batches, in this harness and unconfirmed under TermComp's own setup. No answer contradicts LoAT's, LoAT abmc's or
+all three batches, in this harness and unconfirmed under TermComp's own setup. No answer contradicts LoAT's, LoAT abmc's or
 KoAT2's (`full1`), or any tool's at TermComp 2025 (its raw data, zenodo.org/records/17076326: Golem, iRankFinder, T2,
 VeryMax, MuVal, LoAT, KoAT on 1,222 of these tasks).
 
@@ -212,21 +213,31 @@ VeryMax, MuVal, LoAT, KoAT on 1,222 of these tasks).
   answers at 15 to 26 s (38 to 59 s on main), tqli's at 4 s (15 to 40 s).
 - **Lost**, each at the limit on both sides: db2.t2 (a lasso of the random runs, 4 of 5 against 5 of 5), qrdcmp.t2 and
   traverse.t2_fixed (terminating, ranks at 57 to 60 s, 4 of 5 against 5 of 5). Gained the same way: traverse2.t2_fixed,
-  juLinkedListCreateRemoveFirstOccurrence (5 against 3), queens.t2 (1 against 0).
+  juLinkedListCreateRemoveFirstOccurrence (5 against 3), queens.t2 (1 against 0). After the merge (`its3-*`, 4 runs a
+  side with `itsre4-*`): per component RSA.jar-obl-17 lost, 1 of 4 against 4 of 4 (main answers at 58.1 to 58.2 s: its
+  component 4's rank, found there in 2.3 s and here in 1.2 s on a laptop, not found in time on Modal), ndes.t2_fixed 3
+  of 4 against 4 of 4; reverse.t2_fixed gained on the task's statement, 3 of 4 against 3 of 4 (ranks at 52 to 60 s).
 - **Still LoAT's alone:** hqr.c.i.hqr.pl.t2.fixed.t2_fixed and its `nor.t2.rlgfixed` twin. The deeper walks try their
   24- and 25-turn cycles (hundreds of them) and none gives a candidate set; LoAT's ends in an identity loop at l45 whose
   two fresh values sum below 0.
 - **Not answered by anyone here, NO at TermComp 2025:** slayer-4-filtered (LoAT), Velroyen08-alternatingIncr (VeryMax,
   MuVal: an odd x climbing by 2 forever, whose set needs x's parity, which no linear set holds).
 
-SV-COMP in the same batches (`sv1-*`, `sv2-*`): 239 (183, 56) and 239 against 225 and 223 on the task's statement, per
-component 210 against 206 and 207; every answer its expected verdict. The gains are the chained C translation's above
+SV-COMP in the same batches (`sv1-*`, `sv2-*`, `sv3-*`): 239 (183, 56) in each against 225, 223 and 223 on the task's
+statement, per component 210, 210 and 209 against 206, 207 and 207; every answer its expected verdict. The gains are the chained C translation's above
 (gen/nonterm5-sv, merged).
 
 Lean (`runs/nt5/lean-*`), each certificate a theorem `NeverEnds <task>_loop`, on `propext`, `Classical.choice`,
 `Quot.sound`: s1.t2's file 410,471,697 bytes to 1,965,614 (the closure table held every choice of the goal, 5,214
 term columns averaging 78 KB; it now holds the ones Lean's linear forms look up, here one), and the four s1 tasks
-checked in 68 to 89 s each where s1.t2's was killed at 3,300 s (`lean-s1a`). LEAN_SAMPLE
+checked in 68 to 89 s each where s1.t2's was killed at 3,300 s (`lean-s1a`). A sample of
+  48 recurrent sets of `its2-mine` (`lean-final`: every one closed by cases, 27, every task gained, the s1 family and 20
+  more drawn at random), 48 of 48 checked, the longest 487.3 s (db2.t2_fixed), the largest file 16,485,844 bytes
+  (pgarch.t2_fixed, its loop alone 10.9 MB), the median 10.2 s; Test4.jar-obl-10's in 9.0 s (62 minutes in `runs/accel/its-lean1-shard5`).
+  Two exports had to change on the way: a list of more than 256 entries written as appended lists made Lean's
+  elaboration of a certificate run past an hour (tqli.t2_fixed, killed at 3,300 s in `lean-p5`; 90 s as one list,
+  `lean-pilot2`), and pgarch's loop, 690 body terms each 228 rules deep in one list, passed Lean's recursion limit, so a
+  loop's start and body past 128 variables are definitions of 128 each (`lean-pilot3`, `lean-pilot4`: 7 min 8 s).
 
 ### Straight-line C code composed (Unreleased)
 

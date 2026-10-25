@@ -10,15 +10,19 @@ translation (gen/nonterm5-sv). One trusted change, Lean-first: **NonTerm.lean's 
 `Classical.choice`, `Quot.sound`; with `simpC_evalC`, `caseNeg_eval`), mirrored by kernel.ts's `checkRecurCases`
 (`checkRecur` takes either certificate) and tested on found and tampered certificates by core/conformance.ts and
 lean-kernel/conformance.ts. In our harness (60 s on Modal, 2 vCPU), beside main a6d6403 launched together, two batches
-(`runs/nt5/its1-*`, `its2-*`, `sv1-*`, `sv2-*`), every gained and lost task three times more a side:
-- **TermComp ITS, doesn't terminate:** 541 and 538 on the task's statement against 531 and 534; per component 542 and
-  542 against 532 and 533. LoAT's default engine 532: ahead in both batches, unconfirmed under TermComp's own setup. No
+(`runs/nt5/its1-*`, `its2-*`, `sv1-*`, `sv2-*`), and after merging main f589873 one beside it (`its3-*`, `sv3-*`,
+`tip3-*`), every gained and lost task three times more a side:
+- **TermComp ITS, doesn't terminate:** 541, 538 and 540 on the task's statement against 531, 534 and 532; per component
+  542 in each against 532, 533 and 532. LoAT's default engine 532: ahead in all three batches, unconfirmed under TermComp's own setup. No
   answer contradicts LoAT's, LoAT abmc's, KoAT2's, or any tool's at TermComp 2025 (its raw data, 7 tools).
-- **TermComp ITS, terminates:** 611 and 613 against 611 and 612 (per component 613, 613 against 614, 612).
-- **SV-COMP termination:** 239 (183, 56) in both batches against 225 and 223; per component 210 against 206 and 207.
+- **TermComp ITS, terminates:** 611, 613 and 612 against 611, 612 and 611 (per component 613, 613, 611 against 614,
+  612, 613).
+- **SV-COMP termination:** 239 (183, 56) in each batch against 225, 223 and 223; per component 210, 210, 209 against
+  206, 207, 207.
   Every answer its expected verdict. Ultimate Automizer 224: ahead, unconfirmed.
 - **Lean:** s1.t2's file 410,471,697 bytes to 1,965,614, the four s1 tasks checked in 68 to 89 s each (s1.t2's was
-  killed at 3,300 s). LEAN_CHANGELOG
+  killed at 3,300 s). A sample of 48 of the batch's recurrent sets (all 27 closed by cases, every task gained, the s1
+  family and 20 drawn at random) checked, 48 of 48, at most 487.3 s, files up to 16.5 MB (`lean-final`).
 
 What carried them (core/nonterm.ts, core/accel.ts, compare/term/c2ari.py, lean-kernel/emit.ts):
 - **A closure by cases:** a translated program's closure goal reads every rule's body at each read of the set
@@ -46,12 +50,17 @@ Gained and lost, with the reruns, are in compare/term/README.md. The other bench
 all 42 broken variants refused (`f1-*`); round 2 31 of 47 against 30 (term/Piecewise), all 47 broken variants
 refused, its 5 nontermination items 5 of 5 (`f2-*`). 1 vCPU, ten jobs a side interleaved (`onecpu`): none failed;
 data's agrees-with-+ test median 2,474.4 ms, at most 3,838.4 (main 2,514.3, 3,189.1); infer's "a law that needs an
-invariant" 2,870.2 and 3,517.2 (main 2,803.1, 3,418.3). Suites (220 jobs): none failed by default at b3e8519
-(463.6 s wall, 5,591.6 s of job time, `suite-default2`); SUITE_USUAL.
+invariant" 2,870.2 and 3,517.2 (main 2,803.1, 3,418.3). TIP 2015 after the merge: 206 against f589873's 204 (`tip3-*`). Suites: none failed at 53bf839, the merge, by default
+(221 jobs, 452.4 s wall, 5,648.4 s of job time, `suite-default3`) or with `--usual` (429.9 s, 5,093.5 s,
+`suite-usual3`), nor by default at b3e8519
+(463.6 s wall, 5,591.6 s of job time, `suite-default2`); with `--usual` at d6ea665, none failed (432.7 s,
+4,841.3 s, `suite-usual2`).
 
-**Size:** `core/` and `kernel/` (tests excluded) are 2,194,592 bytes against a6d6403's 2,179,154 (+15,438, +200 lines):
+**Size:** `core/` and `kernel/` (tests excluded) are 2,194,592 bytes against a6d6403's 2,179,154 (+15,438, +200 lines;
+after merging f589873, 2,200,224 against its 2,184,786):
 kernel.ts +7,994 (the trusted mirror), nonterm.ts +3,484, conformance.ts +2,608, accel.ts +1,165, cycles.ts +173,
 dsl.ts +14.
+
 The lemma search on TIP 2015 (gen/tip2, core/data.ts): the induction hypothesis at other values of the variables an
 induction leaves, an implication's instances from the values where its premise holds, Peano induction on a natural
 inside a decreasing argument, and eta at a value a case says is nil. Nothing trusted changed (`kernel/kernel.ts`,
