@@ -2158,9 +2158,9 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
     const tagged = (hyps?: C[]): E[] => { const out = new Map<string, E>(); for (const h of hyps ?? []) { if (h.op !== '=' || h.a.op !== 'get' || h.b.op !== 'const' || h.a.key.op === 'var') continue; const t = h.a, d = p.datas.find(d2 => t.map === tagMap(d2.name)), j = (h.b as {value: number}).value; if (d && d.ctors[j] && !d.ctors[j]!.fields.length) out.set(sid(t.key), t.key) } return [...out.values()] }
     // (a rank that reads a function, a fold's measure, read at the node and at each use, unfolded once: its descent
     // reads it; and the uses' conclusions, at the values built of constructors the fold's calls take: weird_concat's
-    // hypothesis at x :: xss, its definition decided there)
+    // hypothesis at x :: xss, its definition decided there; a fusion chain's last links', drop(v + 1 + w + x, y :: z))
     const rankReads = mb.rank && JSON.stringify(mb.rank).includes('"op":"get"') && mb.rank.some(e => { let yes = false; walk(e, o => { if (o.op === 'get' && p.fns.some(f => f.name === o.map)) yes = true }); return yes }) ? [mb.rank, mb.uses.map(u => mb.rank!.map(e => substE(e, {vars: u.subst, maps: {}, flags: {}})))] : []
-    const instsFor = (ms: M[], us: NodeSpec['uses'], every = false, hyps?: C[]) => instancesOf(p, fs, {roots: [concl], others: us.map(useConcl), once: [rankReads, rankReads.length ? us.map(useConcl) : []], depth, shapesAt, etaAt: [...shapesAt, ...valuesCompared(p, mb.law), ...tagged(hyps)], models: ms, every, until: t0 + attemptMs.ms, hyps})
+    const instsFor = (ms: M[], us: NodeSpec['uses'], every = false, hyps?: C[]) => instancesOf(p, fs, {roots: [concl], others: us.map(useConcl), once: [rankReads, rankReads.length ? us.map(useConcl) : us.filter(u => chained.has(u)).map(useConcl)], depth, shapesAt, etaAt: [...shapesAt, ...valuesCompared(p, mb.law), ...tagged(hyps)], models: ms, every, until: t0 + attemptMs.ms, hyps})
     const cases = scheme ? casesOf(p, pre.filter(q => fs.facts[q.fact]!.name.startsWith('fn ')).map(q => holdsAt(fs, q)), new Set(mb.law.vars.map(v => v.name)), mb.pool) : []
     if (cases.length <= 1) {
       // One node: four uses of a lemma, twelve in all, the best first (as lemmaUsesFor ranks them).
