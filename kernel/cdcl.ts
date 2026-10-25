@@ -106,8 +106,13 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   // (by a pair's code, 2·id + v: whether it holds, `vals[id]` 1 true, 2 false, 0 open; the clauses watching it; the input
   // clauses that have it; a gate's clauses needed where it holds; each clause's pairs by code, the first two watched, and
   // its gate's pair, or -1)
-  const heap: Var[] = [], skipped: [Var, number][] = [], byId: Var[] = [], vals: number[] = []
-  const wl: number[][] = [], occIn: number[][] = [], ownBy: number[][] = [], cls: Int32Array[] = [], oc: number[] = []
+  const heap: Var[] = [], byId: Var[] = [], vals: number[] = []
+  // (relevance, top-down: a hypothesis' own clauses' variables at level 0, a gate's clauses' where the gate is relevant
+  // and holds the value that needs them; `rel` the level a variable became relevant at, or -1, `relStack` in order)
+  const rel: number[] = [], relStack: number[] = []
+  const wl: number[][] = [], ownBy: number[][] = [], cls: Int32Array[] = [], oc: number[] = []
+  // (each hypothesis' input clauses; those of a hypothesis retired, read no more)
+  const byHyp: number[][] = [], retired: boolean[] = []
   const holds = (c: number) => vals[c >> 1] === 2 - (c & 1), opposed = (c: number) => vals[c >> 1] === 1 + (c & 1)
   const heapUp = (i: number) => { const x = heap[i]!; while (i > 0) { const p = (i - 1) >> 1, y = heap[p]!; if (y.act >= x.act) break; heap[i] = y; y.hp = i; i = p } heap[i] = x; x.hp = i }
   const heapDown = (i: number) => {
@@ -115,7 +120,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     for (;;) { let c = 2 * i + 1; if (c >= n) break; if (c + 1 < n && heap[c + 1]!.act > heap[c]!.act) c++; if (heap[c]!.act <= x.act) break; heap[i] = heap[c]!; heap[i]!.hp = i; i = c }
     heap[i] = x; x.hp = i
   }
-  const heapIn = (x: Var) => { if (!x.cond || (x.hp !== undefined && x.hp >= 0)) return; x.hp = heap.length; heap.push(x); heapUp(x.hp) }
+  const heapIn = (x: Var) => { if (!x.cond || rel[x.id]! < 0 || (x.hp !== undefined && x.hp >= 0)) return; x.hp = heap.length; heap.push(x); heapUp(x.hp) }
   const heapPop = () => { const top = heap[0]!, end = heap.pop()!; top.hp = -1; if (heap.length) { heap[0] = end; end.hp = 0; heapDown(0) } }
   let sx = useLp ? new Simplex() : undefined
   const nodes: DagNode[] = [], clauses: Clause[] = [], occ = new Map<string, number[]>()
@@ -131,7 +136,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     if (!vars.has(key)) {
       const flip = key !== canon(lin), stored = flip ? atomOf(lin, false).lin : lin, terms = Object.entries(stored).filter(([x0]) => x0 !== '1')
       const x: Var = {name: key, lin: stored, terms, col: terms.some(([x0]) => x0.startsWith('⟦')), id: byId.length, level: -1, at: -1, act: 0, phase: !flip}
-      byId.push(x); vals.push(0)
+      byId.push(x); vals.push(0); rel.push(-1)
       if (opts.model && terms.length === 1 && (opts.quiet?.(terms[0]![0]) || (clausal && terms[0]![0].startsWith('τ')))) x.quiet = true
       vars.set(key, x)
       if (clausal) heapIn(x)
@@ -196,21 +201,42 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     if (x.pair) pairsChanged++
     if (!clausal) { reader.touch(name); return }
     vals[x.id] = val ? 1 : 2
-    // (a gate's clauses needed now: their variables back in the heap, where a level skipped them)
-    const own = ownBy[2 * x.id + (val ? 1 : 0)]
-    if (own) for (let i = 0; i < own.length; i++) { const ci = own[i]!; if (satisfied(ci)) continue; const c = cls[ci]!; for (let j = 0; j < c.length; j++) if (!vals[c[j]! >> 1]) heapIn(byId[c[j]! >> 1]!) }
+    if (rel[x.id]! >= 0) activate(x.id)
+  }
+  // A variable relevant (at this level), and, where it is a gate with a value, the clauses that value needs: their
+  // variables relevant in turn.
+  const relevant = (id: number) => {
+    if (rel[id]! >= 0) return
+    rel[id] = levels.length; relStack.push(id); heapIn(byId[id]!)
+    if (vals[id]) activate(id)
+  }
+  const activate = (id0: number) => {
+    for (const todo = [id0]; todo.length;) {
+      const id = todo.pop()!, own = ownBy[2 * id + (vals[id] === 1 ? 1 : 0)]
+      if (!own) continue
+      for (let i = 0; i < own.length; i++) {
+        const ci = own[i]!
+        if (retired[ci]) continue
+        const c = cls[ci]!
+        costs.scan += 1 + (c.length >> 2)
+        for (let j = 0; j < c.length; j++) { const y = c[j]! >> 1; if (rel[y]! < 0) { rel[y] = levels.length; relStack.push(y); heapIn(byId[y]!); if (vals[y]) todo.push(y) } }
+      }
+    }
   }
   const undoTo = (l: number) => {
-    const keep = levels[l] ?? trail.length
+    const keep = levels[l] ?? trail.length, undone: Var[] = []
     while (trail.length > Math.max(keep, fixed)) {
       const name = trail.pop()!, x = vars.get(name)!, q = aqOf.get(name)
-      if (clausal) { vals[x.id] = 0; heapIn(x) }
+      if (clausal) { vals[x.id] = 0; undone.push(x) }
       x.val = undefined; x.level = -1; x.reason = undefined; if (x.col) colsOn--; if (x.pair) pairsChanged++; if (!clausal) reader.touch(name)
       if (q !== undefined && q < aq) aq = q
     }
     lowAt = Math.min(lowAt, trail.length)
-    while (skipped.length && skipped.at(-1)![1] > l) heapIn(skipped.pop()![0])
     levels.length = l
+    if (clausal) {
+      while (relStack.length && rel[relStack.at(-1)!]! > l) rel[relStack.pop()!] = -1
+      for (const x of undone) heapIn(x)
+    }
   }
   const addClause = (lits: Map<string, boolean>, node: number): number => {
     clauses.push({lits, node})
@@ -245,48 +271,36 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
       for (const name of m.keys()) { const x = vars.get(name)!; if (!x.cond && !(out && j === m.size - 1)) { x.cond = true; heapIn(x) } j++ }
       const ci = addClause(m, nodes.length - 1)
       clauses[ci]!.input = true
+      ;(byHyp[hyp] ??= []).push(ci)
       if (own && m.size) { const [name, pos] = m.entries().next().value!, z = 2 * vars.get(name)!.id + (pos ? 1 : 0); oc[ci] = z; (ownBy[z] ??= []).push(ci) }
       let open: string | undefined
       for (const [name, pos] of m) {
         const x = vars.get(name)!
-        ;(occIn[2 * x.id + (pos ? 1 : 0)] ??= []).push(ci)
         if (x.val === undefined) open = name
       }
       if (!m.size) dead = nodes.length - 1
       else if (m.size === 1 && open !== undefined) assign(open, !m.get(open)!, ci)
+      // (a hypothesis' own clause: its variables relevant for good; a gate's, where the gate needs it already)
+      if (oc[ci]! < 0 || (rel[oc[ci]! >> 1]! >= 0 && holds(oc[ci]!))) for (const name of m.keys()) relevant(vars.get(name)!.id)
     }
     enc.made = []
-    while (skipped.length) heapIn(skipped.pop()![0])
     qhead = 0
   }
-  // The open variable a decision takes in the clausal mode: the most active one some unsatisfied input clause reads
-  // (those read by satisfied ones alone set aside at this level).
-  // A clause is needed where it is a hypothesis' own (no gate's) or its gate's literal in it is false; a variable is read
-  // where a needed clause no literal satisfies has it (the value that satisfies that clause, or undefined).
-  const needed = (ci: number) => oc[ci]! < 0 || holds(oc[ci]!)
+  // The open variable a decision takes in the clausal mode: the most active relevant one. A clause is needed where it is
+  // a hypothesis' own (no gate's), or its gate is relevant and its literal in the clause false; every variable of a
+  // needed clause is relevant, so where none is open, every needed clause is satisfied (unit propagation found no
+  // conflict), and a model of the needed clauses is a model of the goal.
+  const needed = (ci: number) => !retired[ci] && (oc[ci]! < 0 || (rel[oc[ci]! >> 1]! >= 0 && holds(oc[ci]!)))
   const satisfied = (ci: number) => { const c = cls[ci]!; costs.scan += 1 + (c.length >> 2); for (let j = 0; j < c.length; j++) if (opposed(c[j]!)) return true; return false }
-  const relevant = (x: Var): boolean | undefined => {
-    for (let v0 = 1; v0 >= 0; v0--) { const os = occIn[2 * x.id + v0]; if (os) for (let i = 0; i < os.length; i++) if (needed(os[i]!) && !satisfied(os[i]!)) return !v0 }
-    return undefined
-  }
   const pickOpen = (): Var | undefined => {
-    for (let again = true; ; again = false) {
-      while (heap.length) {
-        const x = heap[0]!
-        if (x.val !== undefined) { heapPop(); continue }
-        const v0 = relevant(x)
-        if (v0 === undefined) { heapPop(); skipped.push([x, level()]); continue }
-        if (x.quiet) x.phase = v0
-        return x
-      }
-      // (never: every open variable a needed unsatisfied clause reads is in the heap; were one lost, all are put back once)
-      let lost = false
-      for (let ci = 0; ci < clauses.length && !lost; ci++) if (clauses[ci]!.input && needed(ci) && !satisfied(ci)) lost = true
-      if (!lost) return undefined
-      if (!again) throw new Error('clausal: a needed clause unsatisfied with no open variable')
-      for (const x of vars.values()) if (x.val === undefined) heapIn(x)
-      skipped.length = 0
+    while (heap.length) {
+      const x = heap[0]!
+      if (x.val !== undefined || rel[x.id]! < 0) { heapPop(); continue }
+      return x
     }
+    // (never: checked where a model is about to be answered)
+    for (let ci = 0; ci < clauses.length; ci++) if (clauses[ci]!.input && needed(ci) && !satisfied(ci)) throw new Error('clausal: a needed clause unsatisfied with no open variable')
+    return undefined
   }
   // A point of the rows the simplex is at, where it is integral and meets them all (a model then).
   const pointOf = (lp: Simplex, rows: Row[]): Record<string, number> | undefined => {
@@ -308,6 +322,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
         for (let i = 0; i < ws.length;) {
           const ci = ws[i]!, c = cls[ci]!
           n++
+          if (retired[ci]) { ws[i] = ws[ws.length - 1]!; ws.pop(); continue }
           if (c[0] === code) { c[0] = c[1]!; c[1] = code }
           const o = c[0]!
           if (opposed(o)) { i++; continue }
@@ -387,6 +402,16 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     const loc = localize(local, s.steps), made = leafNode(b.w, loc.inputs, loc.steps, [b.name, !b.val], b.hyps, b.src && loc.from.map(i => b.src![i] ?? -1))
     c.lits = made.lits; c.node = made.node
   }, ms => { st.coreMs += ms })
+  const levelsOf = (c: Clause) => {
+    let top = -1, here = 0, latest: string | undefined, at = -1
+    for (const name of c.lits.keys()) {
+      const x = vars.get(name)!
+      if (x.level > top) { top = x.level; here = 1; latest = name; at = x.at } else if (x.level === top) { here++; if (x.at > at) { latest = name; at = x.at } }
+    }
+    let below = 0
+    for (const name of c.lits.keys()) { const l = vars.get(name)!.level; if (name !== latest && l > below) below = l }
+    return {top, here, latest, below}
+  }
   const luby = (i: number): number => { let n = 1; while ((1 << n) - 1 < i + 1) n++; return (1 << n) - 1 === i + 1 ? 1 << (n - 1) : luby(i + 1 - (1 << (n - 1))) }
   // With a model wanted: each open atom's phase (no term column's) set to its value at the simplex's point, which meets
   // every row read (over the rationals), so a decision tends to stay feasible (runs/unsat/bmc-only-phase: 320 of
@@ -630,7 +655,29 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
       }
       // Conflict analysis.
       st.conflicts++; sinceRestart++
+      // (a clause's latest level, how many of its literals are at it, the latest of those on the trail, and the latest
+      // level of the rest: one pass)
       let c = conflict
+      if (clausal) {
+        // (the same resolutions, in one pass down the trail: the clause kept as it is resolved, its literals at its
+        // latest level counted, each step the latest of them on the trail)
+        const lits = new Map(c.lits)
+        let node = c.node, {top, here} = levelsOf(c), p = trail.length - 1
+        if (top < level()) { undoTo(top); qhead = trail.length; p = trail.length - 1 }
+        while (lits.size && !(top > 0 && here === 1)) {
+          while (p >= 0 && !(lits.has(trail[p]!) && vars.get(trail[p]!)!.level === top)) p--
+          const name = trail[p]!, x = vars.get(name)!
+          if (top > 0 && x.reason === undefined) break
+          const r = clauses[x.reason!]!
+          if (r.node < 0) materialize(x.reason!)
+          nodes.push({res: lits.get(name)! ? [node, r.node] : [r.node, node], on: x.lin})
+          st.resolved++
+          node = nodes.length - 1
+          lits.delete(name); here--
+          for (const [w, q] of r.lits) if (w !== name && !lits.has(w)) { lits.set(w, q); if (vars.get(w)!.level === top) here++ }
+        }
+        c = {lits, node}
+      }
       for (;;) {
         if (!c.lits.size) {
           if (opts.model) {
@@ -655,28 +702,29 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
           st.proven++
           return {tree, nodes: budget.nodes}
         }
-        const top = Math.max(...[...c.lits.keys()].map(name => vars.get(name)!.level))
+        const {top, here, latest} = levelsOf(c)
         if (top < level()) { undoTo(top); qhead = trail.length }
-        const here = [...c.lits.keys()].filter(name => vars.get(name)!.level === top)
-        if (top === 0) { c = resolveOn(c, here.reduce((a, b) => (vars.get(a)!.at > vars.get(b)!.at ? a : b))); continue }
-        if (here.length === 1) break
-        const latest = here.reduce((a, b) => (vars.get(a)!.at > vars.get(b)!.at ? a : b))
-        if (vars.get(latest)!.reason === undefined) break
-        c = resolveOn(c, latest)
+        if (top === 0) { c = resolveOn(c, latest!); continue }
+        if (here === 1) break
+        if (vars.get(latest!)!.reason === undefined) break
+        c = resolveOn(c, latest!)
       }
-      const top = Math.max(...[...c.lits.keys()].map(name => vars.get(name)!.level))
-      const here = [...c.lits.keys()].filter(name => vars.get(name)!.level === top)
+      const {top, here, latest: uip, below} = levelsOf(c)
       bump(c.lits)
       const learned = addClause(c.lits, c.node)
-      if (here.length !== 1) { undoTo(Math.max(0, top - 1)); qhead = Math.min(qhead, trail.length); continue }
-      const uip = here[0]!
-      undoTo(Math.max(0, ...[...c.lits.keys()].filter(name => name !== uip).map(name => vars.get(name)!.level)))
+      if (here !== 1) { undoTo(Math.max(0, top - 1)); qhead = Math.min(qhead, trail.length); continue }
+      undoTo(below)
       qhead = trail.length
-      assign(uip, !c.lits.get(uip)!, learned)
+      assign(uip!, !c.lits.get(uip!)!, learned)
       if (sinceRestart >= restartAt) { sinceRestart = 0; restartAt = 32 * luby(++nRestart); undoTo(0); qhead = Math.min(qhead, trail.length) }
     }
   }
-  return {run}
+  // A hypothesis read no more (clausal mode): its clauses out of propagation and of what a decision reads. Sound where
+  // nothing else reads its gates (the caller's `sideOf` gives it gates of its own) and nothing later asks it to hold:
+  // the clauses learned from it stay consequences of the goal with its gates' definitions, which any model of the rest
+  // extends to (a gate its formula's value).
+  const retire = (hyp: number) => { for (const ci of byHyp[hyp] ?? []) retired[ci] = true }
+  return {run, retire}
 }
 
 // The DAG as a kernel tree below `root`, walked depth first with a reader of its own (the tree's path is a stack, as
