@@ -1197,6 +1197,21 @@
 "cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets History Live; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; lean -o KInd.olean KInd.lean > kind.out 2>&1 || { grep -B2 -A25 error kind.out | head -80; echo build-failed KInd; exit 1; }; if grep -q -e sorry -e sorryAx kind.out; then echo sorry-in KInd; exit 1; fi; grep Kern. kind.out; bun conformance.ts --kind 24 > KindConformance.lean && (time lean KindConformance.lean) > kc.out 2>&1; s=$?; grep -v -e linter -e Hint -e unused kc.out | tail -20; grep -c '^example' KindConformance.lean; grep -c '_kind_check :' KindConformance.lean; sed -n 4,5p KindConformance.lean; bun ../examples/kinduction.ts --lean > KindExamples.lean && (time lean KindExamples.lean) > ke.out 2>&1; t=$?; grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' ke.out | tail -20; grep -c 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' ke.out; [ $s -eq 0 ] && s=$t; echo lean-exit $s; exit $s"
 },
 {
+"name": "sums",
+"cmd": "bun test sums.test.ts 2>&1 && cd .. && bun examples/sums.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 900
+},
+{
+"name": "lean-sums",
+"cwd": "lean-kernel",
+"cpu": 4.0,
+"memory": 8192,
+"timeout": 1800,
+"cmd": "export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets History Live Ghost; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; lean -o Sums.olean Sums.lean > sums.out 2>&1 || { grep -B2 -A25 error sums.out | head -80; echo build-failed Sums; exit 1; }; if grep -q -e sorry -e sorryAx sums.out; then echo sorry-in Sums; exit 1; fi; grep Kern. sums.out; lean Live.lean 2>&1 | grep Kern.sleads_sf; bun conformance.ts --sums 16 > SumConformance.lean && (time lean SumConformance.lean) > sc.out 2>&1; s=$?; grep -v -e linter -e Hint -e unused -e warning sc.out | tail -20; grep -c '^example' SumConformance.lean; sed -n 6,6p SumConformance.lean; bun conformance.ts --fair 8 > FairConformance.lean && (time lean FairConformance.lean) > fc.out 2>&1; t=$?; grep -v -e linter -e Hint -e unused -e warning fc.out | tail -20; grep -c '^example' FairConformance.lean; sed -n 6,6p FairConformance.lean; [ $s -eq 0 ] && s=$t; bun ../examples/sums.ts --lean > SumsExamples.lean && (time lean SumsExamples.lean) > se.out 2>&1; t=$?; grep -v 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' se.out | grep -v warning | tail -20; grep -c 'depends on axioms: \\[propext, Classical.choice, Quot.sound\\]' se.out; [ $s -eq 0 ] && s=$t; echo lean-exit $s; exit $s"
+},
+{
 "name": "values-builders",
 "cmd": "bun test values.test.ts builders.test.ts 2>&1",
 "cwd": "core",

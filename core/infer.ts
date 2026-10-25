@@ -36,7 +36,7 @@ import {type C, type E, type Law, type Machine, type Request, type State, all, a
 import {type StepLaw, type Verdict, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, watch} from './watch.ts'
 import {clock, counted, grow, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withTrees} from '../kernel/prove.ts'
-import {type Instances, assumed, historyMachine, obligations, stepLawObligations, substC} from '../kernel/kernel.ts'
+import {type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
 import {showC, showE} from './exists.ts'
@@ -1278,7 +1278,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // A goal's hypotheses that are laws, by the law (the facts, the precondition and, for a law's step, the assumption
     // before them; a law about every key none, at no instances).
     const lawsFrom = (m0: Machine, ls: Law[], stepGoal: boolean, inst: Instances) => {
-      const at = new Map<number, number>(), mm = m0.history ? historyMachine(m0).machine : m0
+      const at = new Map<number, number>(), mm = plainOf(m0)
       let h = assumed(mm.facts ?? [], inst).length + (mm.pre ? 1 : 0) + (!stepGoal && mm.assume ? 1 : 0)
       ls.forEach((l, k) => { for (let q = assumed([l], inst).length; q > 0; q--) at.set(h++, k) })
       return at
