@@ -189,8 +189,7 @@ function prove(l: typeof loop, ms: number, tag: object = {}, given: Law[] = [], 
         if (t2) break
       }
       say({stage: 'on task', ...tag, onTask: t2 ? 'made again' : 'not made'})
-      // (not made there: the search again on the task's own loop, in the time left)
-      if (!t2) return left() > 1000 ? prove(onTask.b.loop, left(), tag) : {ok: false, why: `rank ${f.found?.rank} of the rewritten task, not proven on the task`}
+      if (!t2) return {ok: false, why: `rank ${f.found?.rank} of the rewritten task, not proven on the task`}
       trees = t2
     }
     const goals = loopObligations(lc, laws, f.rank)
@@ -243,7 +242,10 @@ else if (scc && comps.length) {
     done('terminates', {...o, cert: certs.map(c => c()).every(c => c === 'cyclic') ? 'cyclic' : 'usual'})
   }
 } else {
-  const out = prove(loop, Math.max(1000, left()), {}, [], f ? {b: b0!, laws: f.split ? [[]] : factLawSets(b0!, task0!, f)} : undefined)
+  // (the task's own loop first, with three quarters of the time; then the rewritten one, its rank proven again on the
+  // task's, with the rest)
+  let out = prove(b0!.loop, Math.max(1000, f ? left() * 0.75 : left()))
+  if (!out.ok && f && left() > 3000) { const o2 = prove(loop, left(), {rewritten: true}, [], {b: b0!, laws: f.split ? [[]] : factLawSets(b0!, task0!, f)}); if (o2.ok) out = o2 }
   if (out.ok) {
     // the answer as soon as the kernel has checked every tree again; then the certificate, and the answer with it
     const o = {by: 'rank', rank: out.rank, laws: out.laws, goals: out.goals}
