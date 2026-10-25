@@ -25,12 +25,15 @@ and Eldarica (2.3).
     modal run compare/chc/modal_chc.py --out <dir> --tools tmpl            # then --tools given --tasks-json <file>
     python3 compare/chc/prof/gap.py --gdp <run> --others <run> --models <dir> --template <run> [--cex <dir>] [--given <run>] --out <file.json>
 
-## A warm CDCL session, PDR over the join's cubes, and the gap at 0.27.0 (gen/chc5)
+## The gap at 0.27.0; a warm CDCL session and PDR, kept on gen/chc5-pdr (gen/chc5)
 
 Every run named here is in the main checkout's `runs/chc5/` (60 s, Modal, 2 vCPU). Counts of the whole track leave out
-the 2 disputed labels, which both sides answer in every batch. Nothing trusted changed. The
-default CHC path is the same as main's. The new searches are opt-in (`GDP_JOIN_PDR`, `kind.ts --pdr-ms`), because on the
-whole track they cost about as many tasks as they gained.
+the 2 disputed labels, which both sides answer in every batch. Nothing trusted changed.
+- **Merged (gen/chc5):** `prof/gap27.py` and an equality's two halves chosen together for cell forms (core/infer.ts).
+  The CHC path is main's.
+- **Kept unmerged, a measured result (branch gen/chc5-pdr, e4f5e0a):** the warm session and PDR described below. On
+  the whole track they cost about as many tasks as they gained, so they are not on main. The branch has them opt-in
+  (`GDP_JOIN_PDR`, `kind.ts --pdr-ms`).
 
 **The gap at 0.27.0** (`prof/gap27.py`, on `runs/query/m5/chc-mine` and its reruns, with Spacer and Golem from
 `runs/modal/chc2/combined-v020`):
@@ -49,7 +52,7 @@ whole track they cost about as many tasks as they gained.
 - **The walks' request queries:** 14.2 s of 46.1 s on DRAGON_4_e1_4312, 7.8 s on car_2.
 - **The reader:** in the CPU profile, the reader reading the goal at each node (`sync`, `factsOf`, `truth`) led.
 
-**The warm session** (core/infer.ts, kernel/cdcl.ts, kernel/reader.ts). One `cdclSession` holds the step once. Each
+**The warm session** (gen/chc5-pdr: core/infer.ts, kernel/cdcl.ts, kernel/reader.ts). One `cdclSession` holds the step once. Each
 law before the step, each goal after it, and each cube literal after it is a hypothesis behind a selector of its own,
 written as `1 <= sel@j` (twice) or the hypothesis. A query assumes the selectors of what it reads on and the rest off.
 - **The assumptions:** `run` takes a list of them, each decided at a level of its own. A refutation names the
@@ -72,7 +75,7 @@ So the join stays cold, and the session serves PDR alone (`GDP_JOIN_WARM=pdr`, t
 neither). `GDP_CDCL_VERIFY=1` compares its rows with kernel.ts's, less the selectors' atoms. On the 332 step goals the
 searches are the same as main's in all 332 (`h-g332`: 270,048 against 271,766 ms).
 
-**PDR** (core/infer.ts's `pdr`, on the join's cube machinery: `cubeOf`, `queryWith`, a `generalize` that blockCube now
+**PDR** (gen/chc5-pdr: core/infer.ts's `pdr`, on the join's cube machinery: `cubeOf`, `queryWith`, a `generalize` that blockCube now
 shares, `down` and `apart`):
 - **Frames:** F_0 is the start, a law of its own. F_i holds the lemmas blocked at level i or above.
 - **Obligations:** the lowest level is blocked first. A cube is blocked relative to F_{i-1} and its own negation, then
@@ -116,7 +119,15 @@ alone answered 5, 6 and 6, the drop alone 3, 5 and 3, and the halves alone 6, 7 
 **Kept:** an equality's two halves are chosen together for cell forms (`every k: Σ ≤ d` beside `−Σ ≤ −d`). It proves
 the real-world corpus's TimelockController law 0 and blnk law 5. CHC has no cell forms.
 
-**The track, beside main 1a66834** (`h-chc-*`):
+**gen/chc5 as merged, beside main 1a66834** (`k-*`, launched together):
+- **CHC-COMP:** 1,039 (612 sat, 427 unsat) against 1,040 (614, 426). None wrong, and the same 2 disputed labels on
+  both.
+- **The CHC path is main's:** the halves rule reads only cell forms, and CHC has none.
+- **Reruns:** the 16 tasks that differ or timed out, run 3 times a side (`kr1`..`kr3`), answer 21 times on each side
+  and time out 5 times on each.
+- **The real-world corpus:** law by law below, in the CHANGELOG.
+
+**gen/chc5-pdr on the track, PDR off, beside main 1a66834** (`h-chc-*`):
 - **This run:** 1,039 (615 sat, 424 unsat) against 1,044 (617, 427). None wrong, and the same 2 disputed labels on both.
 - **The 11 tasks that differ, run 3 times a side** (`hr1`..`hr3`): 23 answers here against 14 on main. ex1 3 against 1,
   s_split_22 2 against 0, car_2_e7_1027_e7_359 2 against 0. No task is lost every time.
