@@ -16,7 +16,7 @@ at), a quantified flag and its witness. Lean builds the machine kernel.ts proves
   `M[t] + M[c] <= S` where t is not c, at the keys its proof names.
 It checks kernel.ts's side conditions (`sumOk`: the term reads its maps only at its key and no variable, is 0 at the
 start, reads no carried map; each map it reads written at one key has that key among the cover keys) and, for each map
-the term reads that a step writes at every key, the cover goal (`coverGoal`): at a key none of the cover keys is, the
+the term reads that a step writes at every key, the cover goal (`sumCoverGoal`): at a key none of the cover keys is, the
 write keeps the cell.
 
 `sum_holds`: in every state the plain machine reaches, each sum variable is the sum of its term over the keys (IsSum),
@@ -286,7 +286,7 @@ def postRd (s : SMachine) : Nat → E → E := fun mp key =>
 def gAfter (s : SMachine) (d : SumDecl) (t : E) : E := substRE [(d.k, t)] (postRd s) d.g
 
 -- The sum after a step: the new values at the cover keys in, the old ones out.
-def sumStep (s : SMachine) (d : SumDecl) : E := .sub (.add (.var d.v) (dTermE (gAfter s d) d.cs)) (dTermE (gHere d) d.cs)
+def sumNext (s : SMachine) (d : SumDecl) : E := .sub (.add (.var d.v) (dTermE (gAfter s d) d.cs)) (dTermE (gHere d) d.cs)
 -- The old values at the cover keys are at most the sum.
 def sumFact (d : SumDecl) : C := .le (dTermE (gHere d) d.cs) (.var d.v)
 -- At every key k: the term at k and at the cover keys, each key once, is at most the sum (a quantified flag's body, its
@@ -296,13 +296,13 @@ def sumsC : List SumDecl → C
   | [] => trueC
   | d :: ds => .and (.and (sumFact d) (.eq (.var d.q) (.const 1))) (sumsC ds)
 
-/-- The machine kernel.ts proves things about: each sum a state variable from 0, moved by `sumStep`; the facts conjoined
+/-- The machine kernel.ts proves things about: each sum a state variable from 0, moved by `sumNext`; the facts conjoined
 to the assumption; each sum's quantified flag. -/
 def SumMachine.plain (h : SumMachine) : SMachine :=
   { h.s with
     f := ⟨{ h.s.f.m with
       init := h.s.f.m.init ++ h.sums.map (fun d => (d.v, .const 0)),
-      step := h.s.f.m.step ++ h.sums.map (fun d => (d.v, sumStep h.s d)),
+      step := h.s.f.m.step ++ h.sums.map (fun d => (d.v, sumNext h.s d)),
       assume := .and h.s.f.m.assume (sumsC h.sums) }, h.s.f.flags⟩,
     qflags := h.s.qflags ++ h.sums.map (fun d => (d.q, [d.k], sumBody h.s d)),
     wits := h.s.wits ++ h.sums.map (fun d => (d.q, [d.w])) }
@@ -311,7 +311,7 @@ def SumMachine.plain (h : SumMachine) : SMachine :=
 def coverWs (s : SMachine) (d : SumDecl) : List (Nat × Nat × E) := s.every.filter (fun w => occME w.1 d.g)
 
 -- At a key x none of the cover keys is, a step the rule allows keeps the map's cell.
-def coverGoal (s : SMachine) (d : SumDecl) (w : Nat × Nat × E) : List C :=
+def sumCoverGoal (s : SMachine) (d : SumDecl) (w : Nat × Nat × E) : List C :=
   [inlineC s.f.flags s.f.m.assume] ++ d.cs.map (fun c => .not (.eq (.var d.x) (inlineE s.f.flags c)))
     ++ [.not (.eq (substE [(w.2.1, .var d.x)] (inlineE s.f.flags w.2.2)) (.get w.1 (.var d.x)))]
 
@@ -394,7 +394,7 @@ def sumOk (h : SumMachine) : Bool := distinct (h.sums.map (·.v)) && h.sums.all 
 def checkSums (h : SumMachine) (covers : List (List (List VDef × Tree))) : Bool :=
   sumOk h && covers.length == h.sums.length
     && (h.sums.zip covers).all (fun p => (coverWs h.s p.1).length == p.2.length
-      && ((coverWs h.s p.1).zip p.2).all (fun x => checkGoal ⟨x.2.1, coverGoal h.s p.1 x.1⟩ x.2.2))
+      && ((coverWs h.s p.1).zip p.2).all (fun x => checkGoal ⟨x.2.1, sumCoverGoal h.s p.1 x.1⟩ x.2.2))
 
 /-! What the checks give -/
 
@@ -425,7 +425,7 @@ theorem sumOk_parts {h : SumMachine} (hok : sumOk h = true) : distinct (h.sums.m
   simp only [sumOk, Bool.and_eq_true, List.all_eq_true] at hok; exact hok
 
 theorem checkSums_parts {h : SumMachine} {covers : List (List (List VDef × Tree))} (hc : checkSums h covers = true) :
-    sumOk h = true ∧ ∀ d ∈ h.sums, ∀ w ∈ coverWs h.s d, ∃ t : List VDef × Tree, checkGoal ⟨t.1, coverGoal h.s d w⟩ t.2 = true := by
+    sumOk h = true ∧ ∀ d ∈ h.sums, ∀ w ∈ coverWs h.s d, ∃ t : List VDef × Tree, checkGoal ⟨t.1, sumCoverGoal h.s d w⟩ t.2 = true := by
   simp only [checkSums, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hc
   obtain ⟨⟨hok, hlen⟩, hall⟩ := hc
   refine ⟨hok, fun d hd w hw => ?_⟩
@@ -528,9 +528,9 @@ theorem sum_step (hc : checkSums h covers = true) {ρ : Nat → Nat} {M : Nat �
       obtain ⟨hfl, hbf, hxv, hxb⟩ := hev w hwc
       show evalE (upd V w.2.1 key) N w.2.2 = M mp key
       apply Decidable.byContradiction; intro hne
-      apply sound ⟨t.1, coverGoal h.s d w⟩ t.2 ht (upd X d.x key) N
+      apply sound ⟨t.1, sumCoverGoal h.s d w⟩ t.2 ht (upd X d.x key) N
       intro c hcm
-      simp only [coverGoal, List.mem_append, List.mem_singleton, List.mem_map] at hcm
+      simp only [sumCoverGoal, List.mem_append, List.mem_singleton, List.mem_map] at hcm
       rcases hcm with (rfl | ⟨c0, hc0, rfl⟩) | rfl
       · rw [congrC _ X N _ (fun i hi => by simp only [upd]; rw [if_neg (fun he => avoids_occ hax hi (by simp [he]))]), inline_evalC]
         exact ha
@@ -563,10 +563,10 @@ theorem sum_step (hc : checkSums h covers = true) {ρ : Nat → Nat} {M : Nat �
   have hnew : evalE V N (dTermE (gAfter h.s d) d.cs) = dsum (gAt d.g M') cs' :=
     dTermE_eval V N d.cs (gAfter h.s d) (gAt d.g M') (fun t => gAfter_eval h d hg V N t)
   have hval : (sNext h.plain ρ M ι κ).1 d.v = ρ d.v + dsum (gAt d.g M') cs' - dsum (gAt d.g M) cs' := by
-    show applyS (h.s.f.m.step ++ h.sums.map (fun d => (d.v, sumStep h.s d))) V N d.v = _
+    show applyS (h.s.f.m.step ++ h.sums.map (fun d => (d.v, sumNext h.s d))) V N d.v = _
     simp only [applyS]
-    rw [assoc_after (fun hm => hv (by simp [hm])), assoc_sums (sumStep h.s) hdist hd]
-    simp only [sumStep, evalE, hold, hnew]
+    rw [assoc_after (fun hm => hv (by simp [hm])), assoc_sums (sumNext h.s) hdist hd]
+    simp only [sumNext, evalE, hold, hnew]
     rw [← hV, view_v h hv ρ M ι κ]
   rw [hval, hM']
   exact isSum_change cs' (hsum d hd) hag
@@ -725,7 +725,7 @@ theorem sum_ghost_step {ρ ρg : Nat → Nat} (hag : Agree h.ghosts.vars ρg ρ)
     exact congrC _ _ _ _ (fun i hi => hD i (avoids_occ ha hi))
   · have hvi : i ∉ h.sums.map (fun d => d.v) := fun hm => by
       obtain ⟨d, hd, rfl⟩ := List.mem_map.mp hm; exact hi (ghosts_vars h hd).1
-    show applyS (h.s.f.m.step ++ h.sums.map (fun d => (d.v, sumStep h.s d))) (decideFlags h.s.f.flags (decideQ h.plain (withInputs h.s.f.m.inputs ρg ι) (withCarried h.s M κ)) (withCarried h.s M κ)) (withCarried h.s M κ) i = _
+    show applyS (h.s.f.m.step ++ h.sums.map (fun d => (d.v, sumNext h.s d))) (decideFlags h.s.f.flags (decideQ h.plain (withInputs h.s.f.m.inputs ρg ι) (withCarried h.s M κ)) (withCarried h.s M κ)) (withCarried h.s M κ) i = _
     rw [applyS_append_other (by simpa using hvi)]
     simp only [sNext, sView, applyS]
     cases hst : assoc h.s.f.m.step i with

@@ -1163,8 +1163,8 @@ export function checkRecurCases(l: Loop, r: RecurCases): boolean {
 // primed names (s', and M'[k] as a read of the map named M'). The laws assumed must be proven inductive on their own.
 // A machine with sums: the request is allowed by the rule's own assumption (the facts its plain machine assumes besides
 // hold of every request where the sums are exact: Sums.lean's sum_allowed).
-export function progressObligations(given: Machine, laws: Law[], instances: Instances, p: {name: string, when: C, then: C, request: Record<string, E>}): Goal[] {
-  const m = plainOf(given), own = given.sums && Object.keys(given.sums).length ? given.assume : m.assume
+export function progressObligations(m0: Machine, laws: Law[], instances: Instances, p: {name: string, when: C, then: C, request: Record<string, E>}): Goal[] {
+  const m = plainOf(m0), own = m0.sums && Object.keys(m0.sums).length ? m0.assume : m.assume
   if (!m.inputs.every(i => i in p.request) || !Object.values(p.request).every(natural) || mentions(p.when, m.inputs)) throw new Error('outside the kernel')
   for (const e of Object.values(p.request)) if (mentions({op: '=', a: e, b: e}, m.inputs)) throw new Error('a request is named from the state and params')
   const req: Subst = {vars: p.request, maps: {}, flags: {}}

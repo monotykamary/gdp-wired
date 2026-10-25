@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
+import {type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, check, checkRecur, checkRecurCases, coverGoal, substE, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {grow, minimal, proveBuilt, proveLaws, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
@@ -796,7 +796,10 @@ export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {s
     kind?: KindLean} = {}): string {
   const hm = given.history ? {...given, history: {...given.history, prune: undefined}} : undefined
   const hplain = hm ? historyMachine(hm) : undefined, stepLaws = opts.stepLaws ?? [], rf = opts.refined, gv = opts.ghosts ?? []
-  const m = hplain ? hplain.machine : given
+  // A machine with sums goes as its plain machine too (kernel.ts's sumMachine), built in Lean (Sums.lean's
+  // SumMachine.plain) from the rule without them and the sums.
+  const sm = !hm && given.sums && Object.keys(given.sums).length ? given : undefined
+  const m = hplain ? hplain.machine : sm ? sumMachine(sm).machine : given
   // Every claim about the machine past its laws goes through one pipeline: a claim brings the step laws it needs and
   // the requests it needs proven allowed in a region, the proofs are found and encoded once for all claims, and each
   // claim states its theorem from them (the Lean meaning of each is a theorem in Live.lean, Refine.lean or Ghost.lean).
@@ -876,15 +879,23 @@ theorem ${id}_refines : ∀ ρ M, SReach ${id}_refined.impl ρ M → ∃ ρc Mc 
       const al = allows.map(h.allow)
       const wf = al.every(a => a !== undefined) ? `
 def ${lid}_ap : List (List (Nat × E) × SProof × List E) := ${list(al as string[])}
-theorem ${lid}_allows : sliveAllowsOk ${id}_machine ${id}_proof ${lid} ${lid}_ap = true := by ${checkBy}
+theorem ${lid}_allows : ${sm ? `sliveAllowsOkA ${id}_machine ${id}_proof ${lid} ${lid}_ap ${id}_sums.s.f.m.assume` : `sliveAllowsOk ${id}_machine ${id}_proof ${lid} ${lid}_ap`} = true := by ${checkBy}
 /-- ${l.name}, under weak fairness: along every run that takes each helpful request whenever, from some point on, it
 stays allowed, \`from\` is followed by \`to\`. -/
 theorem ${lid}_holds_wf (run : SRun ${id}_machine)
     (fair : ∀ h ∈ ${lid}.helps, ∀ n, (∀ m, n ≤ m → ∃ ι κ, (∀ p ∈ h.2, ι p.1 = evalE (run.st m).1 (run.st m).2 p.2)
-        ∧ evalC (sView ${id}_machine (run.st m).1 (run.st m).2 ι κ).1 (sView ${id}_machine (run.st m).1 (run.st m).2 ι κ).2 ${id}_machine.f.m.assume = true) →
+        ∧ evalC (sView ${id}_machine (run.st m).1 (run.st m).2 ι κ).1 (sView ${id}_machine (run.st m).1 (run.st m).2 ι κ).2 ${sm ? `${id}_sums.s` : `${id}_machine`}.f.m.assume = true) →
       ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
     ∀ n, evalC (run.st n).1 (run.st n).2 ${lid}.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 ${lid}.to = true :=
-  sleads_wf_sound ${id}_machine ${id}_proof ${lid} _ _ _ _ ${id}_check ${lid}_ok ${lid}_stay ${lid}_cover ${lid}_helps ${lid}_allows run fair` : ''
+  ${sm ? `sleads_wf_soundA ${id}_machine ${id}_proof ${lid} _ _ _ _ _ ${id}_check ${lid}_ok ${lid}_stay ${lid}_cover ${lid}_helps ${lid}_allows run fair` : `sleads_wf_sound ${id}_machine ${id}_proof ${lid} _ _ _ _ ${id}_check ${lid}_ok ${lid}_stay ${lid}_cover ${lid}_helps ${lid}_allows run fair`}${sm ? `
+/-- ${l.name}, for the rule with its sums under weak fairness of its own assumption: along every run of requests the
+rule allows, each helpful request taken whenever, from some point on, the rule allows it. -/
+theorem ${lid}_sums_wf (run : SumRun ${id}_sums)
+    (fair : ∀ h ∈ ${lid}.helps, ∀ n, (∀ m, n ≤ m → ∃ ι κ, (∀ p ∈ h.2, ι p.1 = evalE (run.st m).1 (run.st m).2 p.2)
+        ∧ evalC (sView ${id}_machine (run.st m).1 (run.st m).2 ι κ).1 (sView ${id}_machine (run.st m).1 (run.st m).2 ι κ).2 ${id}_sums.s.f.m.assume = true) →
+      ∃ m, n ≤ m ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
+    ∀ n, evalC (run.st n).1 (run.st n).2 ${lid}.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 ${lid}.to = true :=
+  sumleads_wf_sound ${id}_sums ${id}_covers ${id}_proof ${lid} _ _ _ _ ${id}_scheck ${id}_check ${lid}_ok ${lid}_stay ${lid}_cover ${lid}_helps ${lid}_allows run fair` : ''}` : ''
       return `-- Liveness: ${l.name}
 def ${lid} : Live := ${liveLit(l, {e, c}, ix, list(Object.keys(m.state).map(s2 => `(${ix(s2)}, ${ix(`${s2}'`)})`)), list(Object.keys(m.maps ?? {}).map(mp => `(${mx(mp)}, ${mx(`${mp}'`)})`)))}
 def ${lid}_sp : SProof := ${h.sproof(stay)}
@@ -970,7 +981,7 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
           ...Array.from({length: Math.floor(qi.length / n)}, (_, t): C => ({op: 'or', xs: [eqC({op: 'var', name: `?${f}`}, zero1(0)), at(qi.slice(t * n, (t + 1) * n))]})),
           {op: 'or', xs: [eqC({op: 'var', name: `?${f}`}, zero1(1)), {op: 'not', x: at(qwits(f).map((name): E => ({op: 'var', name})))}]}]
       })]
-    const last: C = {op: 'not', x: sInline(m.assume ?? trueC)}, zkeys = carriedKeys([...base, last])
+    const last: C = {op: 'not', x: sInline((sm ? sm.assume : m.assume) ?? trueC)}, zkeys = carriedKeys([...base, last])
     return {name: 'allowed', hyps: [...base, ...(m.inputMaps ?? []).flatMap(mp => zkeys.map(t => eqC({op: 'get', map: mp, key: t}, zero1(0)))), last], zkeys}
   }
   const allowed = new Map(claims.flatMap(cl => cl.allows).map(a => [a, withWitness(m, a.request, wit => {
@@ -978,8 +989,17 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
     return r2.proven ? r2 : undefined
   })] as const))
   const allowGoals = [...allowed.values()].flatMap(a => (a ? [a.out.goal!] : []))
+  // Each sum's cover goals as Lean builds them (Sums.lean's coverGoal: the rule's assumption and the write's value with
+  // their flags inlined as Lean inlines them), per write at every key to a map the term reads, in the rule's order.
+  const covers = sm ? Object.entries(sm.sums!).map(([s2, sum]): Goal[] => {
+    const cs = sumCovers(sm)[s2]!, X: E = {op: 'var', name: sumParts(s2).x}, inlE = (t: E): E => substE(t, {vars: {}, maps: {}, flags: Object.fromEntries(allFlags.map(([f, fc]) =>
+      [f, fc.op === 'all' ? eqC({op: 'var', name: `?${f}`}, zero1(1)) : eqC({op: 'if', c: fl0[f]!, then: zero1(1), else: zero1(0)}, zero1(1))]))})
+    return Object.entries(sm.step.maps ?? {}).flatMap(([map, w]): Goal[] => ('each' in w && JSON.stringify(sum.term).includes(`"op":"get","map":${JSON.stringify(map)}`) ? [{name: `${s2} @cover ${map}`, hyps: [
+      sInline(sm.assume ?? trueC), ...cs.map((c2): C => ({op: 'not', x: eqC(X, inlE(c2))})),
+      {op: 'not', x: eqC(substE(inlE(w.value), {vars: {[w.each]: X}, maps: {}, flags: {}}), {op: 'get', map, key: X})}]}] : []))
+  }) : []
   const named = machineNames(m, laws, allSteps, stepLaws, {...opts, ...(hm ? {record: hm.history.record} : {})})
-  const vars = [...new Set([...named.vars, ...[...goalsL, ...goalsS, ...allowGoals, ...(hplain?.goals ?? []), ...(opts.kind ? [opts.kind.start.goal] : [])].flatMap(g => g.hyps.flatMap(varsOf))])]
+  const vars = [...new Set([...named.vars, ...[...goalsL, ...goalsS, ...allowGoals, ...(hplain?.goals ?? []), ...covers.flat(), ...(opts.kind ? [opts.kind.start.goal] : [])].flatMap(g => g.hyps.flatMap(varsOf))])]
   const mapNames = [...new Set([...named.maps, ...[...JSON.stringify([...goalsL, ...goalsS, ...allowGoals]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!)])]
   const enc = (g: Goal, tree: Tree) => encode({name: `${id}: ${g.name}`, goal: g, tree}, false, true, vars, mapNames)
   const {e, c} = leanTerms(vars, mapNames, id)
@@ -1005,6 +1025,33 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
   ${list(Object.entries(h.sums).map(([name, g]) => `(${ix(name)}, ${e(g)})`))},
   ${list(Object.entries(h.queries).map(([name, g]) => `(${ix(name)}, ${e(g)})`))},
   ${list(rels.map(rel => { if (rel.holds.op !== '<=') throw new Error(`${id}: a relation is a <= b`); return `(${c(rel.when)}, ${e(rel.holds.a)}, ${e(rel.holds.b)})` }))}⟩`
+  }
+  // The sums: the rule without them (its state without their variables) and each sum (Sums.lean's SumDecl: the
+  // variable, the term's key, the term, the cover keys, the quantified flag and its witness, the cover goals' key).
+  const sumsDef = () => {
+    const sums = Object.entries(sm!.sums!), cov = sumCovers(sm!)
+    const base: Machine = {...sm!, sums: undefined, state: Object.fromEntries(Object.entries(sm!.state).filter(([n2]) => !(n2 in sm!.sums!)))}
+    return `def ${id}_sums : SumMachine := ⟨${lit(base)},
+  ${list(sums.map(([s2, sum]) => { const {flag, x} = sumParts(s2); return `⟨${ix(s2)}, ${ix(sum.key)}, ${e(sum.term)}, ${list(cov[s2]!.map(e))}, ${ix(`?${flag}`)}, ${ix(`w?${flag}`)}, ${ix(x)}⟩` }))}⟩
+def ${id}_machine : SMachine := ${id}_sums.plain`
+  }
+  // Each cover goal's tree, the sums' check, and what it gives: each sum exact, the rule's assumption the plain
+  // machine's, the laws.
+  const sumsBlock = () => {
+    const trees = covers.map(gs => list(gs.map(g => { const out = grow(g); if (!('tree' in out)) throw new Error(`${id}: ${g.name} not proven`); const x2 = enc(g, out.tree); return `(${x2.tab}, ${x2.tree})` })))
+    return `
+def ${id}_covers : List (List (List VDef × Tree)) := ${list(trees)}
+theorem ${id}_scheck : checkSums ${id}_sums ${id}_covers = true := by ${checkBy}
+/-- Each sum's variable is, in every state the machine reaches, the sum over every key of its term there. -/
+theorem ${id}_exact : ∀ ρ M, SReach ${id}_machine ρ M → ∀ d ∈ ${id}_sums.sums, IsSum (gAt d.g M) (ρ d.v) :=
+  sum_holds ${id}_sums ${id}_scheck
+/-- There the machine allows a request exactly when the rule's own assumption does. -/
+theorem ${id}_own : ∀ ρ M, SReach ${id}_machine ρ M → ∀ ι κ, evalC (sView ${id}_machine ρ M ι κ).1 (sView ${id}_machine ρ M ι κ).2 ${id}_machine.f.m.assume
+    = evalC (sView ${id}_machine ρ M ι κ).1 (sView ${id}_machine ρ M ι κ).2 ${id}_sums.s.f.m.assume :=
+  sum_allowed ${id}_sums ${id}_scheck (sOk_of ${id}_check)
+${Object.entries(sm!.sums!).map(([s2, sum], j) => `/-- ${s2}: the sum over every key of its term (Sums.lean's IsSum). -/
+theorem ${id}_sum${j} : ∀ ρ M, SReach ${id}_machine ρ M → IsSum (gAt (${e(sum.term)}) M) (ρ ${ix(s2)}) :=
+  fun ρ M h => ${id}_exact ρ M h (${id}_sums.sums[${j}]'(by decide)) (List.getElem_mem (by decide))`).join('\n')}`
   }
   // Each relation's record goal and its tree, the history's check, and the laws over histories.
   const histBlock = () => {
@@ -1070,14 +1117,14 @@ def ${id}_machine : SMachine := ${id}_refined.full` : gv.length ? `def ${id}_gho
   ${list(gv.map(v2 => `(${ix(v2)}, ${e(m.state[v2]!)}, ${e(m.step.state?.[v2] ?? {op: 'var', name: v2})})`))}⟩
 def ${id}_machine : SMachine := ${id}_ghosted.full
 theorem ${id}_ghostOk : sghostOk ${id}_ghosted = true := by ${checkBy}` : hm ? `def ${id}_hist : HMachine := ${hlit(hm.history.relations ?? [])}
-def ${id}_machine : SMachine := ${id}_hist.plain` : lp0 ? `def ${id}_loop : Loop := ${loopLit(lp0.loop)}
+def ${id}_machine : SMachine := ${id}_hist.plain` : sm ? sumsDef() : lp0 ? `def ${id}_loop : Loop := ${loopLit(lp0.loop)}
 def ${id}_machine : SMachine := ${id}_loop.machine` : `def ${id}_machine : SMachine := ${lit(m)}`}
 ${entries.join('\n')}
 def ${id}_proof : List SEntry := ${list(laws.map((_, j) => `${id}_e${j}`))}
 theorem ${id}_check : checkSMachine ${id}_machine ${id}_proof = true := by ${checkBy}
 theorem ${id}_laws : ∀ ρ M, SReach ${id}_machine ρ M → ∀ e ∈ ${id}_proof, e.Holds ρ M :=
   smachine_sound ${id}_machine ${id}_proof ${id}_check
-${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`, lit: c, eLit: e})}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
+${hm ? histBlock() : readable(id, laws, vars, mapNames, {binders: '(ρ : Nat → Nat) (μ : Nat → Nat → Nat)', hyp: `SReach ${id}_machine ρ μ`, call: `${id}_laws ρ μ h`, lit: c, eLit: e})}${sm ? sumsBlock() : ''}${opts.noFacts ? '' : factsProof(id, m, mapNames, vars, opts.simp)}${opts.tamper ? `
 -- TAMPERED: ${opts.tamper.what}. Lean computes the check to false.
 def ${id}_tampered : SMachine := ${lit(opts.tamper.machine)}
 example : checkSMachine ${id}_tampered ${id}_proof = false := by ${checkBy}` : ''}${records.length ? `\n\n${records.join('\n\n')}` : ''}${opts.after ? `\n\n${opts.after(ix)}` : ''}`
@@ -1739,10 +1786,12 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
       const mopts = {stepLaws: item.stepLaws, ...(item.liveness?.length ? {liveness: item.liveness} : {}),
         ...(item.ghosts?.length ? {ghosts: item.ghosts} : {}), ...(item.lean?.simp ? {simp: item.lean.simp} : {}), ...(item.lean?.after ? {after: item.lean.after} : {})}
       const defs = `${recurDefs(m)}${item.lean?.defs ? `${item.lean.defs}\n` : ''}`
-      const cyc = certsOn ? cycMachineToLean(id, m, item.laws, mopts) : undefined
+      // (a machine with sums has no cyclic twin: the usual trees, Sums.lean)
+      const sums = !!(m.sums && Object.keys(m.sums).length)
+      const cyc = certsOn && !sums ? cycMachineToLean(id, m, item.laws, mopts) : undefined
       if (cyc && 'text' in cyc) certReport.cyclic.push(item.id); else if (cyc) certReport.usual.push({id: item.id, why: cyc.why})
       parts.push(`-- ${item.id}\n${defs}${cyc && 'text' in cyc ? cyc.text : smachineToLean(id, m, item.laws, mopts)}`)
-      theorems.push(`${id}_laws`, ...item.laws.flatMap((l, j) => (l.ex ? [`${id}.some${j}`] : [])), ...(m.history ? [`${id}_hlaws`] : []), ...(item.stepLaws ?? []).map((_, j) => `${id}_step${j}_holds`), ...(item.liveness ?? []).map((_, j) => `${id}_live${j}_holds`))
+      theorems.push(`${id}_laws`, ...item.laws.flatMap((l, j) => (l.ex ? [`${id}.some${j}`] : [])), ...(m.history ? [`${id}_hlaws`] : []), ...(sums ? [`${id}_exact`, `${id}_own`] : []), ...(item.stepLaws ?? []).map((_, j) => `${id}_step${j}_holds`), ...(item.liveness ?? []).map((_, j) => `${id}_live${j}_holds`))
       if (item.lean?.after) theorems.push(...[...item.lean.after(() => 0).matchAll(/^theorem (\S+)/gm)].map(x2 => x2[1]!))
     } else if ('refinement' in item) {
       const {impl, spec, relation, witness} = item.refinement
@@ -1796,7 +1845,7 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   }
   // The file the items need: Live.lean for a liveness or a loop, Sets.lean (which imports Steps.lean) for any machine.
   return `import History
-${items.some(item => 'neverEnds' in item) ? 'import NonTerm\n' : ''}${items.some(item => 'kInduction' in item) ? 'import KInd\n' : ''}${cycTexts ? 'import BridgeRules\n' : ''}${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && (item.ghosts?.length || item.laws.some(l => l.some?.length))) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
+${items.some(item => 'machine' in item && item.machine.sums && Object.keys(item.machine.sums).length) ? 'import Sums\n' : ''}${items.some(item => 'neverEnds' in item) ? 'import NonTerm\n' : ''}${items.some(item => 'kInduction' in item) ? 'import KInd\n' : ''}${cycTexts ? 'import BridgeRules\n' : ''}${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && (item.ghosts?.length || item.laws.some(l => l.some?.length))) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0

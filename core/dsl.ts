@@ -2647,6 +2647,13 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   if (ms < 500) return v
   const inf = inferLaws(rule, [...fresh.map(f => f.law), ...laws], stepLaws, {ms, ...(rule === r && !fresh.length ? {first: v} : {})})
   if (!(inf.proven && inf.checked)) {
+    // The sum of each map the step writes (withMapSums): the search again over the rule with them, within half of what
+    // is left (at most 20 s), where a law of cells against a total needs one (no ERC20 balance past the supply).
+    const summed = rule.withMapSums()
+    if (summed && until - clock() - tail > 1000) {
+      const inf2 = inferLaws(summed, [...fresh.map(f => f.law), ...laws], stepLaws, {ms: Math.min(20_000, (until - clock() - tail) / 2)})
+      if (inf2.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; return {...verdict, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}} }
+    }
     // (a step law's ghost: at most 10 s of it, as its goals cost more than the laws')
     const deep = bounded(Math.max(0, Math.min(until - clock(), ghosted && !laws.length ? 10_000 : Infinity)), Math.max(1, reached))
     if (deep) return refutedBy(deep)
@@ -2668,6 +2675,18 @@ export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, la
     if (!(f.proven && f.checked) && until - clock() > 500) {
       const g = leadsByTerms(r.machine, withKinds(r, laws), l, {...draws, rule: r, state: (rand, bound) => Object.assign({}, ...r.kindsOfState().map(([n, kd]) => kd.random(n, rand, bound)))}, {ms: until - clock()})
       if (g.proven && g.checked) f = g
+    }
+    // The sum of each map the step writes (withMapSums), where neither found a rank: both again over the rule with them,
+    // in the time left (a refund that needs the escrow's balance to cover every deposit).
+    const summed = !(f.proven && f.checked) && until - clock() > 1000 ? r.withMapSums() : undefined
+    if (summed) {
+      const sd = {params: (rand: Rand, bound: number) => summed.randomParams(rand, bound), input: (rand: Rand, bound: number, ps: Record<string, number>) => summed.randomInput(rand, bound, ps)}
+      const f2 = findLeadsTo(summed.machine, withKinds(summed, laws), l, {...sd, rule: summed}, {ms: until - clock()})
+      if (f2.proven && f2.checked) f = f2
+      else if (until - clock() > 500) {
+        const g2 = leadsByTerms(summed.machine, withKinds(summed, laws), l, {...sd, rule: summed, state: (rand, bound) => Object.assign({}, ...summed.kindsOfState().map(([n, kd]) => kd.random(n, rand, bound)))}, {ms: until - clock()})
+        if (g2.proven && g2.checked) f = g2
+      }
     }
     return {proven: f.proven, checked: f.checked, ...(f.goal ? {goal: f.goal, stuck: f.stuck} : {}), ...(f.witness ? {witness: f.witness} : {}), ...(f.why ? {why: f.why} : {}),
       ...(f.found ? {found: {rank: f.found.rank, ...(f.laws?.length ? {laws: f.laws.map((law, i) => ({law, text: f.found!.laws[i] ?? law.name}))} : {})}} : {})}
