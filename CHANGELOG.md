@@ -3,7 +3,40 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.30.0
+
+CHC-COMP LIA-Lin reaches the leading tools, in our harness (60 s on Modal, 2 vCPU, the rivals as installed in compare/).
+None wrong anywhere, and nothing trusted changed since 0.29.0. Measured with the bar against 0.29.0's code (b12965e,
+three runs of the shared baseline; `runs/bar/runs/183f4e2042d5-vs-b12965ecddfc-full-2026-10-251345/REPORT.md`) and
+three more full CHC runs of the final commit (`runs/chc8/final-r1` to `r3`):
+- **CHC-COMP LIA-Lin:** 1,166, 1,164, 1,166 and 1,174 in four full runs, against 0.29.0's 1,082.33. 65 gained in every
+  run, 0 lost in every run.
+  - Every run is above Spacer's 1,163 and Golem's 1,154.
+  - The mean margin over Spacer (4.5) is inside our own run-to-run spread (10). By our rule (a lead counts only when the
+    margin exceeds the spread), that is a tie with Spacer, not a lead.
+- **Everything else, against the same base:**
+  - TermComp ITS 1,153 (613 terminating, 540 not) and 1,157 per component, level.
+  - SV-COMP 246, level. TIP 2015 212, against 212.67.
+  - Frontier corpora 90 of 92 and 32 of 47, every broken variant refused.
+  - The real-world corpus 274 / 29 / 8, unchanged.
+  - The 332 step goals the same.
+  - Both suites 224 of 224, and no failed 1-vCPU job.
+  - Lean 47 of 48: slayer-3-new.t2_fixed's export doesn't compile (a noncomputable definition), as before this release.
+
+So at 0.30.0, in this harness, gdp-wired leads TIP 2015, SV-COMP termination and both sides of TermComp ITS, and ties
+the leader on CHC-COMP LIA-Lin. These are measurements in our harness, ours to confirm under each competition's own
+setup.
+
+What carried CHC is IMC's query made cheap:
+- **Clauses:** the goal read as clauses, with watched literals, and McMillan's interpolants taken from the refutation.
+- **One session:** a single CDCL session and unrolling for IMC and k-induction, restarting only from the last
+  interpolant, as Golem runs it.
+- **Compression:** IMC's large invariant compressed into a few clauses the kernel proves, using PDR's relative
+  induction.
+- **Cost:** the median query on 16 gap tasks went from 1,239 ms to 81 ms. IMC alone on the 239 gap tasks went from
+  41 to 119; Golem's IMC solves 193.
+
+The library (`core/` and `kernel/`, tests excluded) is 2,382,130 bytes against 0.29.0's 2,326,252.
 
 IMC's query made cheap (gen/chc8): the goal read as clauses, one CDCL session for the whole search. Nothing trusted
 changed (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/*.lean`); every sat answer is the
