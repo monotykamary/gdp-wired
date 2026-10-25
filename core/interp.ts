@@ -278,7 +278,7 @@ export function fromTree(goal: Goal, tree: Tree, isA: (hyp: number) => boolean, 
 // GDP_IMC_RELAX=0: the goals as the kernel writes them (each pair normalized at each step).
 const useRelax = env.GDP_IMC_RELAX !== '0'
 // GDP_ITP_DAG=0: interpolants from the unfolded tree alone.
-const useDag = env.GDP_ITP_DAG !== '0', useClausal = env.GDP_ITP_CLAUSAL === '1', useStrong = env.GDP_ITP_STRONG !== '0'
+const useDag = env.GDP_ITP_DAG !== '0', useClausal = env.GDP_ITP_CLAUSAL === '1', useStrong = env.GDP_ITP_STRONG !== '0', useTidy = env.GDP_ITP_TIDY !== '0'
 
 // (`kinductive`: the law holds after k steps in a row where it held before each, the session's k-induction, which the
 // caller's kernel proof may confirm; asked with `induction`)
@@ -477,7 +477,7 @@ export function imcSession(m: Machine, law: Law, opts: Omit<ImcOptions, 'until' 
       if (!out.dag) return {unknown: 'no DAG'}
       sideNames(goal, h => isA[h]!, seen, named); named = goal.hyps.length
       const itp = fromDag(goal, out.dag, h => isA[h]!, 200_000, useStrong, budget.wall, seen)
-      return itp ? {itp: tidyC(renamed(itp, back))} : {unknown: 'a leaf with no interpolant'}
+      return itp ? {itp: useTidy ? tidyC(renamed(itp, back)) : renamed(itp, back)} : {unknown: 'a leaf with no interpolant'}
     }
     return out.stuck === 'sat' && out.witness ? {sat: out.witness} : {unknown: out.why ?? out.stuck}
   }
