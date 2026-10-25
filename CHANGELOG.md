@@ -5,6 +5,41 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+The suite's slow jobs since 0.26.0, measured in pairs on Modal (the old commit and the new launched together, three
+runs a side) and their causes (perf/regressions). Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`,
+`core/check.ts`, `lean-kernel/*.lean`).
+- **The cyclic certificate's translation lost a step law since 0.27.0** (aabd407, engine/query): kernel/reader.ts's
+  `leafRows` kept a path atom's row by the atom's name, so two forms of one atom with their names in a different order
+  gave the row of the first, and the naturals' rows past the facts came in another order than kernel.ts's. The
+  translated leaves then indexed the wrong rows and the kernel refused the node (`…, after a step: its goal`), and the
+  certificate fell back to a search. Each atom's row is now kept by its own form. The normalized scope's step law is
+  translated again, as at 0.26.0: its Lean export 11.6 s to 1.5 s, 460,036 bytes to 185,974 and 44 theorems to 62
+  (core/lists.test.ts, failing before). The suite had 20 such fallbacks. `lean-package-3` 124.0, 143.6 and 152.1 s
+  beside 136.2, 119.3 and 121.5 (export 50 to 63 s against 41 to 44 s). In every export the suite checks, only this
+  shard's Proofs.lean changed (the others are the same once fresh names are normalized).
+- **lean-kernel/package-check.ts** makes the five discovered items only where ONLY or SHARD keeps them (a search, about
+  3.8 s, that every ONLY job ran): `ONLY=datalen` 4.9 s to 0.8 s locally.
+- **The Lean library's cache** keeps NonTerm.lean (scripts/lean-items.sh compiled it in every job), and boat's key now
+  hashes Sums.lean (a changed Sums.lean was given the last one's .olean).
+- **Not changed, reported:** `lean-data-0` is 3.5 times as slow as at 0.27.0 (60.0 s against 207.8 s, median of three).
+  The cause is core/data.ts's eta at a value a case says is nil (22ae0dc, gen/tip2, which proves TIP's prop_48):
+  insertion-keeps-sorted's law at two unfoldings used 8,988 of its 9,000 counted ms at 0.27.0, and the eta's 10 more
+  instances in two cases push it past, so the search falls through to the conjectures. That takes 49.3 million units
+  of work at 765ecf9 against 6.0 million (at e1711ca, 59.6 million). In the other 44 laws of examples/data.ts, the eta
+  changes the work by under 3% and no verdict. gen/tip3's 94e611e makes the frontier's datatype/roseSizeMirror 3.8 s to
+  33.7 s locally (`frontier-datatype-3`'s median 133.3 s to 178.6 s).
+- **Noise:** `cycles`, `lean-data-2`, `lean-package-0`, `lean-edges`, `frontier-datatype-4`, `steplaw-k` and
+  `hw-check-histories` take the same time paired with their old commit (within the runs' spread).
+- **Beside main 765ecf9:** CHC 1,088 against 1,084 (the same 2 disputed labels wrong); in reruns the 14 tasks that
+  differed came out 28 of 42 against 26. ITS: no answer contradicts, 616 and 615 terminate against 614 and 614. SV-COMP
+  is the same task by task. TIP has 205 against 205.
+  **Beside e1711ca:** the real-world corpus is the same law by law (274, 29, 8); frontier round 1 is 90 of 92 on both,
+  42 of 42 broken variants refused. Round 2 is 30 of 47 against 32: term/Piecewise is proven 1 of 3 on both sides in
+  reruns, and chc/E/loop2 is 3 of 3 on both. All 47 broken variants are refused. Suites: none failed by default (224 jobs, 5,562.5 s of job time
+  against 5,592.5; the Lean jobs 1,666.4 against 1,909.3), nor with `--usual` (4,898.1 s against 5,003.9). 1 vCPU, ten a side: none failed.
+- **Size:** `core/` and `kernel/` (tests excluded) 2,323,315 bytes against e1711ca's 2,323,022 (+293 bytes, +2 lines, all in
+  kernel/reader.ts).
+
 The join over the rule's own vocabulary (gen/realworld3), with the round's forks for nonlinear rate × time, TigerBeetle's
 time and the extractor merged. Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`,
 `lean-kernel/` as at main 4af8556): every new proof is the kernel's. In our harness (60 s, 2 vCPU), beside main 4af8556
