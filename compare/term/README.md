@@ -203,31 +203,35 @@ The last misses of 0.28.0 (compare/term/facts.ts, c2ari.py; nothing in core/ or 
   depth of calls (frames at one depth are never live together; a value an earlier frame left is one an uninitialized
   variable may hold): MutualRecursion_1a's 121 variables to 19.
 
-One batch beside main 8b710ba (this branch's 0.28.0) launched together on Modal (60 s, 2 vCPU), and one earlier at
-3ab223c (`its2-*`, `sv1-*`; `runs/par/`); every task gained or lost in either, run three times more a side
-(`itsre-*`, `svre-*`). Wrong stays 0: no answer contradicts another's, LoAT's, LoAT abmc's or KoAT2's (`full1`).
+Three batches on Modal (60 s, 2 vCPU), each beside main launched with it (`runs/par/` in the main checkout): at
+3ab223c beside 8b710ba (`its2-*`, `sv1-*`), at cc10df0 beside 8b710ba (`its3-*`, `sv2-*`), and after merging main
+4af8556 (gen/sums), at 8c42ab0 beside 4af8556 (`its4-*`, `sv3-*`); every task gained or lost, run three times more a
+side, beside 8b710ba (`itsre-*`, `svre-*`) and again beside 4af8556 (`itsre5-*`, `svre5-*`). Wrong stays 0: no
+answer contradicts another's, LoAT's, LoAT abmc's or KoAT2's (`full1`).
 
 | | ITS terminates | nonterminating | SV-COMP terminates | nonterminating | SV solved of 282 |
 | --- | --- | --- | --- | --- | --- |
-| the task's statement (`gdp`), here (cc10df0, 3ab223c) | 617, 614 | 544, 543 | 191, 191 | 57, 57 | 248, 248 |
-| main 8b710ba (`its3`, `its2`, `its1`) | 612, 613, 611 | 540, 542, 539 | 183, 183 | 56, 56 | 239, 239 |
-| per component (`gdp-scc`), here | 616, 613 | 545, 543 | 161, 161 | 57, 57 | 218, 218 |
-| main | 614, 612, 612 | 543, 542, 542 | 154, 154 | 56, 56 | 210, 210 |
+| the task's statement (`gdp`), here (8c42ab0, cc10df0, 3ab223c) | 615, 617, 614 | 540, 544, 543 | 191, 191, 191 | 57, 57, 57 | 248, 248, 248 |
+| main beside them (4af8556; 8b710ba, 8b710ba) | 613; 612, 613 | 541; 540, 542 | 183, 183, 183 | 56, 56, 56 | 239, 239, 239 |
+| per component (`gdp-scc`), here | 616, 616, 613 | 545, 545, 543 | 161, 161, 161 | 57, 57, 57 | 218, 218, 218 |
+| main | 613; 614, 612 | 542; 543, 542 | 154, 154, 154 | 56, 56, 56 | 210, 210, 210 |
 
-ITS nonterminating 543 to 544 on the task's statement against LoAT's default engine's 532; terminates 614 to 617
-against KoAT2's 601; SV-COMP 248 against Ultimate Automizer's 224: ahead in this harness, unconfirmed under the
-competitions' own setups.
+ITS nonterminating 540 to 544 on the task's statement (main 540 to 542) against LoAT's default engine's 532; terminates
+614 to 617 (main 612 to 613) against KoAT2's 601; SV-COMP 248 against Ultimate Automizer's 224: ahead in this harness,
+unconfirmed under the competitions' own setups. The ITS gain on the task's statement is thin (Velroyen08-alternatingIncr
+in every run, slayer-4-filtered in most, the rest at the limit both ways); per component it is 2 to 3.
 
-- **Gained, ITS**, 3 of 3 here and 0 of 3 on main unless noted (both statements where not said): Velroyen08-alternatingIncr
+- **Gained, ITS**, 3 of 3 here and 0 of 3 on main in the reruns beside 8b710ba unless noted (both statements where not
+  said; beside 4af8556 the same, but juLinkedListCreateContainsAll 2 of 3 and slayer-4-filtered 3 of 3): Velroyen08-alternatingIncr
   (nonterminating, 3.1 s: the odd x climbing by 2, a recurrent set over its parity's copies; VeryMax's and MuVal's NO at
   TermComp 2025), slayer-4-filtered (nonterminating, 2 of 3 here on the task's statement, 3 of 3 per component;
   LoAT's NO at TermComp 2025: 1,324 values fixed and 241 rules left out), juLinkedListCreateContainsAll, and on the
   task's statement eric2, queens.t2_fixed, traverse_twice.t2_fixed, ud.t2_fixed; per component loop3 and its `_fixed`
   twin, consts5.t2_fixed, slayer-n3-filtered and its twin, whatwhat, Graph.jar-obl-17 (nonterminating, 2 of 3).
 - **Lost, ITS:** per component fun2, fun2b and fun3 (0 of 3 against 3 of 3: with 8 rules left out its component chains
-  into one cut point of 108 rules, where main's, past scc.ts's cap, stays 6 locations of 36), RSA.jar-obl-17 (1 of 3
-  against 3 of 3 on the task's statement, 0 against 2 per component: at the limit on main, 45.8 to 55.3 s, split by a
-  parity it doesn't need, 28 locations to 34). The rest at the limit on both sides (elmhes, ns, queens.t2, opt-tree, hqr.t2_fixed,
+  into one cut point of 108 rules, where main's, past scc.ts's cap, stays 6 locations of 36), RSA.jar-obl-17 (on the task's
+  statement 1 of 3 against 3 of 3 beside 8b710ba, 2 against 3 beside 4af8556; per component 0 against 2, then 0 against
+  3: at the limit on main, 40.3 to 60.0 s, split by a parity it doesn't need, 28 locations to 34). The rest at the limit on both sides (elmhes, ns, queens.t2, opt-tree, hqr.t2_fixed,
   statemate.t2_fixed).
 - **Gained, SV-COMP**, 3 of 3 here, 0 of 3 on main: the eight 0.28.0 left, McCarthy91_Recursion, NestedRecursion_1b,
   1c, 1d, rec_counter3 (summaries), MutualRecursion_1a (nonterminating: g(1) returns past the boundary before g(2) is

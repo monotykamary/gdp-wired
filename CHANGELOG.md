@@ -6,16 +6,19 @@ noted), each with the command that reproduces it.
 ## Unreleased
 
 The last termination misses (gen/parity): facts at locations for the ITS and C tasks, and call summaries the
-translated system checks itself. Nothing trusted changed, and nothing in `core/` or `kernel/` (2,201,135 bytes, as at
-0.28.0): compare/term/facts.ts (335 lines) and c2ari.py (+533 lines, 18 removed). In our harness (60 s on Modal, 2 vCPU), beside
-main 8b710ba launched together (`runs/par/its3-*`, `sv2-*`; an earlier batch at 3ab223c, `its2-*`, `sv1-*`), every
-gained and lost task three times more a side (`itsre-*`, `svre-*`):
-- **TermComp ITS, doesn't terminate:** 544 and 543 on the task's statement against 540 and 542 (539 in a third main
-  batch); per component 545 and 543 against 543, 542, 542. LoAT's default engine 532.
-- **TermComp ITS, terminates:** 617 and 614 against 612, 613, 611; per component 616 and 613 against 614, 612, 612.
+translated system checks itself; and, for the liveness search under strong fairness, a helpful step that hands over.
+Nothing trusted changed. `core/` and `kernel/` (tests excluded) are 2,235,928 bytes against main 4af8556's 2,234,466
+(+1,462, core/cycles.ts +20 lines); compare/term/facts.ts is 335 lines, c2ari.py +533 and −18. In our harness (60 s on
+Modal, 2 vCPU), three batches each beside main launched with it (`runs/par/`: `its2-*`, `sv1-*` at 3ab223c and
+`its3-*`, `sv2-*` at cc10df0 beside 8b710ba; `its4-*`, `sv3-*` at 8c42ab0, after merging main, beside 4af8556), every
+gained and lost task three times more a side beside each base (`itsre-*`, `svre-*`; `itsre5-*`, `svre5-*`):
+- **SV-COMP termination:** 248 (191, 57) in each batch against 239; per component 218 against 210. Ultimate Automizer
+  224. All eight tasks 0.28.0 left are answered, 3 of 3 in each rerun, none lost.
+- **TermComp ITS, terminates:** 615, 617, 614 against 613, 612, 613; per component 616, 616, 613 against 613, 614, 612.
   KoAT2 601.
-- **SV-COMP termination:** 248 (191, 57) in both batches against 239; per component 218 against 210. Ultimate
-  Automizer 224. All eight tasks 0.28.0 left are answered, 3 of 3.
+- **TermComp ITS, doesn't terminate:** 540, 544, 543 against 541, 540, 542 on the task's statement (a thin gain:
+  Velroyen08-alternatingIncr in every run, slayer-4-filtered in most, the rest at the limit both ways); per component
+  545, 545, 543 against 542, 543, 542. LoAT's default engine 532.
 No answer contradicts another tool's; every lead is in this harness, unconfirmed under the competitions' setups.
 
 - **Facts at locations** (compare/term/facts.ts, read by solve.ts): each slot's constant or residue at each location,
@@ -33,15 +36,34 @@ No answer contradicts another tool's; every lead is in this harness, unconfirmed
   McCarthy91_Recursion, NestedRecursion_1b, 1c, 1d, 2c, rec_counter3.
 - **Calls that return past a boundary** (the nonterminating translation): inlined one deep, a call past it entering
   its copy or returning within one call more, a function's variables one per place and depth. MutualRecursion_1a.
+- **Strong fairness in findLeadsTo** (core/cycles.ts, the hand-off from gen/sums): the fit required every sampled
+  helpful step to lower the rank, where kernel.ts's strong rule lets one hand over to a region of a higher level, so
+  BullMQ #25's fetch (wait to active) and promote (delayed to wait) left no rank of the searched shapes. The levels are
+  now read off the runs (a region's distance in hand-overs to one whose helpful request reaches `to`), and a step
+  handing over closer only keeps the rank: a flaky job that ends only under strong fairness is now found with rank 0
+  (core/cycles.test.ts; main finds none). BullMQ #25 is still unknown: the fit then finds one linear component
+  (`1 + attempts + backoff + delay + maxStalledCount + maxStartedAttempts − (atm + defa + last + stc)`) that every
+  sampled step accepts, and the kernel refuses at a retry (active to wait, atm + 1) whose step the interpreter takes
+  lowering it: the kernel's witness names the backoff's products (atm·delay and the like), atoms to the kernel, and was
+  not traced further; the kernel's rank `[attempts ∸ atm, defa ? 0 : 1,
+  maxStalledCount + 1 ∸ stc]` reads only the rule's own comparisons, which is core/live.ts's leadsByTerms' shape (the
+  one more hand-off: those terms in that order, under strong fairness). Refitting on the kernel's counterexamples was
+  measured and left out: the replayed step changes no fit.
 - **Lean:** 17 recurrent sets of the batch through the facts, 17 of 17 checked on `propext`, `Classical.choice`,
   `Quot.sound`, the longest 4 min 0.8 s (`runs/par/lean1`).
 - Lost: per component fun2, fun2b, fun3 (their component now chains into one cut point of 108 rules), RSA.jar-obl-17
   (at the limit on main, split by a parity it doesn't need).
 - **Hand-off to gen/sums:** division by a constant in a loop's terms (`{op: 'div', a, k}`, Euclid's two rows as its term
   column), for the parities a location split can't hold (compare/term/README.md).
-- Suites (221 jobs): none failed by default (456.1 s wall, 5,457.7 s of job time, `runs/par/suite-default`) or with
-  `--usual` (`runs/par/suite-usual`). CHC-COMP, TIP 2015, the frontier corpora, the real-world corpus and the 1-vCPU
-  tests weren't run: none reaches compare/term, and `core/` and `kernel/` are as at 0.28.0.
+- **Other benchmarks**, beside 4af8556: the real-world corpus 257 proven against 259, the two the batch lost
+  (node-oidc-provider's "once reuse is detected, no token of that grant is live", 8 of 10 runs against 10 of 10, 8.3 to
+  11.8 s where proven; gapless.js's track law 2, 2 of 4 against 4 of 4, at the limit: 43.6 to 60.7 s here, 41.8 to 54.1 s on main) at the limit, no
+  code they reach changed (`rw-*`, `rwre-*`, `rwre2-*`); frontier round 1 90 of 92 and 42 of 42 broken variants refused
+  on both sides, round 2 30 of 47 and 47 of 47, its nontermination items 5 of 5 (`f1-*`, `f2-*`). Suites (223 jobs):
+  none failed by default (662.4 s wall, 5,783.1 s of job time, `suite-default2`) or with `--usual` (516.5 s, 5,358.4 s,
+  `suite-usual2`); before the merge, 221 jobs, none failed either way (`suite-default`, `suite-usual`). CHC-COMP, TIP
+  2015 and the 1-vCPU tests weren't run: none reaches the code changed (compare/term, and findLeadsTo only under strong
+  fairness).
 
 Sums over a map's keys, and liveness under strong fairness (gen/sums). Two trusted changes, Lean-first, each on the
 standard axioms (`propext`, `Classical.choice`, `Quot.sound`; `isSum_change` and `dsum_le` on `propext` and `Quot.sound`
