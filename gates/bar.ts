@@ -225,7 +225,10 @@ async function leanPass(p: Pass): Promise<number> {
   const n = smoke ? 1 : p.quickSize ? 6 : 48, rows = inp.rows.filter(r => r.stages.at(-1)?.by === 'recurrent set' && r.stages.at(-1)?.recur)
   const rank = (r: {task: string, stages: {recur?: object}[]}) => [inp.gained.has(r.task) ? 0 : 1, /\/s1[.-]/.test(r.task) ? 0 : 1, 'cases' in (r.stages.at(-1)!.recur!) ? 0 : 1, hash(p.tree.sha + r.task)]
   const byRank = (a: number[], b: number[]) => { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i]! - b[i]!; return 0 }
-  const pick = [...rows].sort((a, b) => byRank(rank(a), rank(b))).slice(0, n)
+  // (quick mode: drawn among the certificates under 200 KB, so the sample checks in a minute or two, not the 8 a
+  // 17 MB file takes)
+  const pool = p.quickSize ? rows.filter(r => JSON.stringify(r.stages.at(-1)!.recur).length < 200_000) : rows
+  const pick = [...pool].sort((a, b) => p.quickSize ? hash(p.tree.sha + a.task) - hash(p.tree.sha + b.task) : byRank(rank(a), rank(b))).slice(0, n)
   const id = `.bar-lean/${p.dir.split('/').slice(-3).join('-')}`, here = join(p.tree.path, id)
   rmSync(here, {recursive: true, force: true})
   mkdir(here)

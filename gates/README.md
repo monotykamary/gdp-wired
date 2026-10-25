@@ -49,4 +49,50 @@ seconds (Modal bills an hour once it is over); the report gives the bill for the
 
 ## Measured
 
-(filled in below by infra/bar's runs)
+Every figure from the run directory named, under the main checkout's `runs/bar/`; Modal's bill from `modal billing
+report` where the hour was over, else the bar's estimate from task seconds (which came within 0.3% of the bill on
+`repro-chc7-cache`, $2.34 against $2.343, and `repro-chc7-quick`, $1.31 against $1.3159).
+
+| Run | Wall | Modal |
+| --- | --- | --- |
+| The shared baseline of main e1711ca, 3 runs of every group, one after the other (`base/e1711cace848-modal-r1`) | 3,172 s | $14.73 billed |
+| Full: infra/bar (main f2e468d) against it, every group, reruns, Lean 48 (`runs/full-infra-bar-vs-e1711ca`) | 1,249 s, the suites one mode after the other being the longest path | $6.26 estimated |
+| Quick: the same, dev sets, Lean 6, no suites (`runs/quick-infra-bar-vs-e1711ca`) | 780 s; every group but Lean ended by 367 s | $3.09 estimated |
+| The quick Lean sample drawn under 200 KB, since (`runs/quick-lean-check`) | Lean 29.4 s after ITS | |
+| A track today, runs/chc7 (gen/chc7): its runs/ activity, 11:20 to 12:24 | 64 min, launched and compared by hand | $20.61 billed (48 apps) |
+| A track today, runs/rw3 (gen/realworld3) | 152 min | $13.52 billed (58 apps) |
+
+**The cache against launching together.** Main e1711ca against its own baseline (`runs/validate-e1711ca-full`): CHC
+1,087 against 1,084, 1,085 and 1,086 (6 differ, 3 outside the band; after reruns 1 gained and 1 lost, neither in every
+run, both answered past 45 s, 4 noise); ITS 1,151 against a mean of 1,152.33 (2 differ, both in the band, noise);
+per component 2 differ, noise; SV-COMP, TIP, both frontier corpora and the real-world corpus with no task differing;
+the 332 goals the same search on all 332; Lean 48 of 48; `--usual` 224 of 224 (the default suite's client hung on a
+call Modal lost, 0 tasks running for 20 minutes: modal/run.py now bounds each wait). Two past merges, the candidate
+against a baseline of its base made at another time:
+
+| | Launched together (the track's runs) | Against the cached baseline (`runs/repro-*-cache`) |
+| --- | --- | --- |
+| gen/chc7 2601d15 against a269124, CHC | 1,084 against 1,037 (+47); 65 differ; gained 52 (42 in every run), lost 3 (2) | 1,089 against 1,042, 1,043, 1,045 (+45.67); 54 differ; gained 47 (41), lost 3 (2) |
+| gen/realworld3 891a238 against 4af8556, the real-world corpus | 274 against 259 (+15); gained 15 (13 in every run), lost 0 | 274 against 258, 259, 258 (+15.67); the same 15 laws gained, all 15 in every run, lost 0 |
+
+Of chc7's gains, 44 are gained both ways and 39 in every run both ways; every task classified differently but two
+(HOLA/24.c, ctigar/gulv_simp.c) was answered past 45 s in some run (the launched-together base ran slower: 1,037 against the cached 1,042 to 1,045). The
+size line matches the CHANGELOG's (+47,448 bytes, +585 lines). So the cache is the default; `--together` stays.
+
+**The dev sets** (`bun gates/bar-calibrate.ts`, every past pair of full runs in runs/ launched together; the dev sets
+drawn from e1711ca's run 1, `gates/bar-dev.json`):
+
+| Benchmark | Dev set | Pairs | r, predicted against full | Mean error | Pairs with a full delta within ±30: r, mean error, sign right |
+| --- | --- | --- | --- | --- | --- |
+| CHC | 662 of 1,406 | 42 | 0.994 | 2.9 | 36: 0.964, 2.45, 32 of 34 |
+| ITS | 398 of 1,239 | 54 | 0.998 | 4.1 | 46: 0.937, 2.92, 34 of 42 |
+| SV-COMP | 129 of 282 | 57 | 0.988 | 2.5 | 52: 0.908, 2.19, 35 of 38 |
+| TIP | 239 of 492 | 49 | 0.635 | 2.2 | 49: 0.635, 2.21, 37 of 43 |
+| Frontier 1 | 48 of 134 | 47 | 0.947 | 0.0 | |
+| Frontier 2 | 64 of 94 | 50 | 0.893 | 0.1 | |
+| Real-world | 91 of 311 | 51 | 0.959 | 0.7 | 51: 0.959, 0.71, 26 of 26 |
+
+CHC at 257 tasks predicted with a mean error of 7.9 (r 0.789 on the small deltas), at 450 5.05, at 662 2.45. TIP's
+past deltas are within -3 to 11, mostly noise, so its subset predicts poorly; its full run costs $0.55, so
+`--only tip` without `--quick` is the better inner loop for TIP work. Measured: gen/chc7 against a269124 in quick mode
+(`runs/repro-chc7-quick`) predicted +41.8 (raw +35.33 on 662 tasks), the full run +45.67.

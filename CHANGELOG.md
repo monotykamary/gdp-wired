@@ -5,6 +5,26 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+The bar in one command (infra/bar): `bun bar` (gates/bar.ts) runs a candidate against a base on CHC, ITS (the task's
+statement and per component), SV-COMP, TIP (`--rivals`), both frontier corpora, the real-world corpus, the 332 step
+goals, both suites, the 1-vCPU tests and a Lean sample of the ITS run's recurrent sets, each runner in its side's own
+tree, reruns every task that differs three times a side, and writes one report (gates/README.md). The base comes from
+a shared baseline per base commit (`<main>/runs/bar/base/`, three runs, made once, reused by every candidate);
+`--together` launches it beside the candidate instead; `--quick` runs dev sets stratified by family and by how main did
+(gates/bar-dev.json) and predicts the full delta. Nothing in core/ or kernel/ changed. modal/run.py: a call Modal lost
+is a failed row after its function's timeout and three minutes, not a batch that waits forever (it hung a default suite
+for 20 minutes with no task running); the bar runs such tasks once more on Modal. In the main checkout's `runs/bar/`:
+- **Against launching together:** gen/chc7 against a cached a269124, +45.67 on CHC (1,089 against 1,042, 1,043, 1,045),
+  gained 47 (41 in every run), lost 3 (2), against +47 launched together (gained 52, 42; lost 3, 2), 44 gains in
+  common; gen/realworld3 against a cached 4af8556, the same 15 laws gained in every run, none lost (`repro-*-cache`).
+- **Main against its own baseline** (e1711ca): CHC +2 with no task gained or lost in every run, ITS -1.33 and per
+  component +0.67 all noise, every other benchmark with no task differing (`validate-e1711ca-full`).
+- **Time and spend:** the full bar 1,249 s and $6.26 (estimated from task seconds), the quick bar 780 s and $3.09, the
+  baseline 3,172 s and $14.73 billed, once per base commit; runs/chc7's track 64 min of runs and $20.61 billed.
+- **Found on the way:** f2e468d on CHC 1,081 against 1,084 to 1,086, six lost, none in every run, all answered past 45 s
+  on some run; slayer-3.t2_fixed's recurrent set (a 17.5 MB file, closed by cases) fails in Lean (maxRecDepth, then a
+  noncomputable body) where the kernel accepts it (`full-infra-bar-vs-e1711ca`).
+
 The last termination misses (gen/parity): call summaries the translated C system checks itself, calls that return
 past a recursion's boundary, facts at locations whose every answer is made again on the task's own loop, and, for the
 liveness search under strong fairness, a helpful step that hands over. Nothing trusted changed. `core/` and `kernel/`
