@@ -284,12 +284,13 @@ function facts0(t: Ari, maxCopies: number): Facts | undefined {
   }
   if (splits.size) run()
   // The rewritten rules, from each node a run reaches.
-  const rules: Rule[] = [], origins: Origin[] = []
-  let fixed = 0
-  for (const [nd, F] of at) for (const i of out.get(nodeLoc.get(nd)!) ?? []) for (const e of edges(i, F)) {
-    rules.push({...e.rule, from: nd}); origins.push(e.origin); fixed += e.origin.fixed.size
-  }
-  const funs = new Map([...at.keys()].map(nd => [nd, arity.get(nodeLoc.get(nd)!)!] as const))
+  // (in the task's order: its locations as declared, each one's copies by residue, its rules as written)
+  const order = [...at.keys()].sort((a, b) => locs.indexOf(nodeLoc.get(a)!) - locs.indexOf(nodeLoc.get(b)!) || (a < b ? -1 : a > b ? 1 : 0))
+  const made: {rule: Rule, origin: Origin}[] = []
+  for (const nd of order) for (const i of out.get(nodeLoc.get(nd)!) ?? []) for (const e of edges(i, at.get(nd)!)) made.push({rule: {...e.rule, from: nd}, origin: e.origin})
+  made.sort((a, b) => a.origin.rule - b.origin.rule)
+  const rules = made.map(m => m.rule), origins = made.map(m => m.origin), fixed = origins.reduce((n, o) => n + o.fixed.size, 0)
+  const funs = new Map(order.map(nd => [nd, arity.get(nodeLoc.get(nd)!)!] as const))
   const dropped = t.rules.length - new Set(origins.map(o => o.rule)).size
   if (!splits.size && !fixed && !dropped && funs.size === arity.size) return undefined
   return {task: {funs, entry: t.entry, rules}, origins, split: splits.size, fixed, dropped}
