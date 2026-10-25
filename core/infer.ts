@@ -1058,21 +1058,29 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // (past its hull or a bound, or with no state there at all) becomes a control value, and every state is joined
       // again: of those, the one that leaves out the most of the last counterexamples, then the one of fewest levels;
       // within joinKeys control states.
-      const outOf = (c: Ctl, p: Point, all: Float64Array[]): boolean => vecs(p).some(pv => {
+      // (2: left out with no state at its level, or by a form that reads what the laws read; 1: by another form; 0: not)
+      const lawCoord = coords.map(i => read.has(atoms[i]!.cell ? atoms[i]!.parts[0]![0] : atoms[i]!.name))
+      const lawDir = dirs.map(t => t.some(([i]) => lawCoord[coords.indexOf(i)]))
+      const outOf = (c: Ctl, p: Point, all: Float64Array[]): number => Math.max(0, ...vecs(p).map(pv => {
         const key = keyOf(pv), side = all.filter(v => keyOf(v) === key && levelOf(c, v[c.atom]!) === levelOf(c, pv[c.atom]!))
         used.rows += all.length
-        if (!side.length) return true
+        if (!side.length) return 2
         const tmp = new Map<string, Group>()
         for (const v of side) join('', v, false, tmp)
         const grp = tmp.get('')!
-        return grp.eqs.some(e => emitted(e) && residual(e, pv) !== 0n) || dirs.some((t, k) => dirValue(t, pv) > grp.hi[k]!)
-      })
+        let out = 0
+        for (const e of grp.eqs) if (emitted(e) && residual(e, pv) !== 0n) out = Math.max(out, e.some((x2, k) => k < CN && x2 !== 0n && lawCoord[k]) ? 2 : 1)
+        dirs.forEach((t, k) => { if (dirValue(t, pv) > grp.hi[k]!) out = Math.max(out, lawDir[k] ? 2 : 1) })
+        return out
+      }))
       const refine = (recent: Point[], reached: Point[]): boolean => {
         const all = [...rows, ...reached.flatMap(vecs)]
         let pick: Ctl | undefined, score = 0
         for (const c of levelable) {
-          if (keyAtoms.includes(c.atom) || combos.length * (c.cuts.length + 1) > joinKeys || !outOf(c, recent[0]!, all)) continue
-          const sc = recent.slice(1).reduce((k, q) => k + (outOf(c, q, all) ? 1 : 0), 1) * 100 - c.cuts.length
+          if (keyAtoms.includes(c.atom) || combos.length * (c.cuts.length + 1) > joinKeys) continue
+          const first = outOf(c, recent[0]!, all)
+          if (!first) continue
+          const sc = recent.slice(1).reduce((k, q) => k + outOf(c, q, all), first) * 100 - c.cuts.length
           if (sc > score) (pick = c, score = sc)
         }
         if (!pick) return false
@@ -1081,7 +1089,16 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         for (const v of all) join(keyOf(v), v, false)
         return true
       }
-      return {cells, add, forms, refine, control: () => ctl.map(c => nameOf(c.atom)).join(' '), groups}
+      // More directions (a form's own preimage), every state joined again with them.
+      const deepen = (more: Rel[], reached: Point[]): boolean => {
+        const known = new Set(dirs.map(t => JSON.stringify(t))), fresh = more.flatMap(r => [r.coef, r.coef.map(([i, c]) => [i, -c] as [number, number])]).filter(t => !known.has(JSON.stringify(t)) && t.every(([i]) => coords.includes(i)))
+        if (!fresh.length) return false
+        dirs.push(...fresh); lawDir.push(...fresh.map(t => t.some(([i]) => lawCoord[coords.indexOf(i)])))
+        groups.clear()
+        for (const v of [...rows, ...reached.flatMap(vecs)]) join(keyOf(v), v, false)
+        return true
+      }
+      return {cells, add, forms, refine, deepen, coords, control: () => ctl.map(c => nameOf(c.atom)).join(' '), groups}
     }
     const spaces = [space(false), ...(mapNames.length && cellAtoms.length ? [space(true)] : [])]
     const formsNow = (): Form[] => {
@@ -1124,6 +1141,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // cone is inductive with the caller's laws, and it is the answer.
     const stood = new Map<string, string[]>(), blocked = new Set<string>(), callers = new Set([...laws, ...stepLaws].map(l => l.name))
     let cone: Form[] = [], dropped = 0
+    const deepened = new Set<string>()
     // A state reached from one the set allows: joined in, and every extra false there dropped.
     const reach = (p2: Point) => {
       if (reached.length < 2000) reached.push(p2)
@@ -1402,6 +1420,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         // (a caller's goal: nothing to learn from, as a stuck one)
         if (callers.has(todo)) { why = 'no violation'; break }
         blocked.add(todo); opts.progress?.('join', {round: rounds, set: set.length, ms: qms, result: 'no violation', goal: todo.slice(0, 60)}); continue }
+      // (a form's counterexample: its own preimage's directions first, bounded by the states, where they leave the
+      // state out; else the state it steps to is joined in)
+      if (todoForm && !deepened.has(todo)) {
+        deepened.add(todo)
+        const more = spaces.map(sp => sp.deepen(preimages(m, [lawFor(todoForm)], [], atoms, sp.coords), reached)).some(Boolean)
+        if (more && formsNow().some(f => !holdsAt(f, pre))) { stood.clear(); opts.progress?.('join', {round: rounds, deepened: todo.slice(0, 60)}); continue }
+      }
       const j0 = joins, d0 = dropped
       reach(postP)
       // short walks from the state joined: every state they reach is a successor of one the invariant holds at
