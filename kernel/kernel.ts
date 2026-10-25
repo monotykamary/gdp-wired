@@ -1192,7 +1192,13 @@ export function progressObligations(m0: Machine, laws: Law[], instances: Instanc
 // it is in stays and its request comes (the Lean twin's `leads_sound`, `sleads_sound`). The conditions are built
 // exactly as Live.lean builds them, two parts per and/or.
 export type Helpful = {when?: C, request: Record<string, E>}
-export type Liveness = {name: string, from: C, to: C, rank: E | E[], request?: Record<string, E>, helpful?: Helpful[]}
+// `fairness: 'strong'` (Live.lean's sleads_sf_soundA): each helpful request taken in its region infinitely often wherever,
+// infinitely often, it is allowed there; the regions need not stay, and a helpful request may reach, instead of `to` or
+// a lower rank, the region of one of a higher level (`levels`, one per helpful request in order; the order itself where
+// left out).
+export type Liveness = {name: string, from: C, to: C, rank: E | E[], request?: Record<string, E>, helpful?: Helpful[], fairness?: 'weak' | 'strong', levels?: number[]}
+export const strongly = (l: Liveness): boolean => l.fairness === 'strong'
+export const livenessLevels = (l: Liveness): number[] => l.levels ?? livenessHelpful(l).map((_, i) => i)
 const zero: E = {op: 'const', value: 0}
 export const trueC: C = {op: '<=', a: zero, b: zero}, falseC: C = {op: '<', a: zero, b: zero}
 const and2 = (a: C, b: C): C => ({op: 'and', xs: [a, b]}), or2 = (a: C, b: C): C => ({op: 'or', xs: [a, b]})
@@ -1222,6 +1228,17 @@ export function livenessParts(m: Machine, l: Liveness): {stay: StepLaw, cover: S
   const after: Subst = {vars: Object.fromEntries(Object.keys(plain.state).map(n => [n, {op: 'var', name: `${n}'`} as E])), maps: Object.fromEntries(Object.keys(plain.maps ?? {}).map(map => [map, (key: E): E => ({op: 'get', map: `${map}'`, key})])), flags: {}}
   const prime = (c: C) => substC(c, after), ranks2 = ranks.map(r => substE(r, after)), to2 = prime(l.to)
   const pending = and2(l.from, {op: 'not', x: l.to}), lower = lexLt(ranks2, ranks), regions = helpful.map(h => h.when)
+  if (strongly(l)) {
+    // (Live.lean's liveStaySC and liveHelpThenS: the regions of a higher level, in order)
+    const levels = livenessLevels(l)
+    if (levels.length !== helpful.length || !levels.every(n => Number.isInteger(n) && n >= 0)) throw new Error(`liveness ${l.name}: a level, a natural, per helpful request`)
+    return {
+      stay: {name: `${l.name}: each step stays or gets there, the rank never rising`, when: pending, then: and2(or2(prime(l.from), to2), or2(to2, or2(lower, eqs(ranks2, ranks))))},
+      cover: {name: `${l.name}: some helpful request applies`, when: pending, then: anyOf(regions)},
+      helps: helpful.map((h, i) => ({name: `${l.name}: helpful request ${i + 1}`, when: and2(pending, and2(h.when, named(Object.entries(h.request)))),
+        then: or2(to2, or2(lower, anyOf(regions.filter((_, j) => levels[i]! < levels[j]!).map(prime))))})),
+    }
+  }
   return {
     stay: {name: `${l.name}: each step stays or gets there, the rank kept only with its region`, when: pending,
       then: and2(or2(prime(l.from), to2), or2(to2, or2(lower, and2(eqs(ranks2, ranks), keep(regions, prime)))))},

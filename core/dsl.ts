@@ -1801,12 +1801,17 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   //   batches.leadsTo('every batch is done', {from: () => yes, to: ({waiting, items}) => waiting.eq(0).and(items.eq(0)),
   //     rank: ({waiting, items}) => [waiting, items], helpful: [{when: ({items}) => items.gt(0), request: () => ({op: 1})}, {when: ({items}) => items.eq(0), request: () => ({op: 0})}]})
   // With no rank, proveLeadsTo finds one from the rule's runs (core/cycles.ts's findLeadsTo).
+  // `fairness: 'strong'`: each helpful request taken in its region infinitely often wherever it is allowed there
+  // infinitely often (an event that keeps coming back is taken). Its regions need not stay; a helpful request may move to
+  // the region of one of a higher `levels` (found where left out) instead of reaching `to` or lowering the rank:
+  //   job.leadsTo('every job ends', {..., fairness: 'strong', helpful: [{when: waiting, request: fetch}, {when: active, request: fail}]})
   leadsTo(name: string, spec: {from: (env: P & S & M & Su) => Cond, to: (env: P & S & M & Su) => Cond, rank?: (env: P & S & M & Su) => TermLike | TermLike[],
-    helpful: ((env: P & S & M & Su) => Record<string, TermLike>) | {when?: (env: P & S & M & Su) => Cond, request: (env: P & S & M & Su) => Record<string, TermLike>}[]}): Liveness {
+    helpful: ((env: P & S & M & Su) => Record<string, TermLike>) | {when?: (env: P & S & M & Su) => Cond, request: (env: P & S & M & Su) => Record<string, TermLike>}[],
+    fairness?: 'weak' | 'strong', levels?: number[]}): Liveness {
     const env = this.env({flags: false, inputs: false, queries: false}) as never
     const req = (f: (env: never) => Record<string, TermLike>) => Object.fromEntries(Object.entries(f(env)).map(([n, t]) => [n, termOf(t)]))
     const r = spec.rank ? spec.rank(env) : [], rank = Array.isArray(r) ? r.map(termOf) : termOf(r)
-    const base = {name, from: spec.from(env).c, to: spec.to(env).c, rank}
+    const base = {name, from: spec.from(env).c, to: spec.to(env).c, rank, ...(spec.fairness === 'strong' ? {fairness: 'strong' as const} : {}), ...(spec.levels ? {levels: spec.levels} : {})}
     return this.divides(typeof spec.helpful === 'function' ? {...base, request: req(spec.helpful)} : {...base, helpful: spec.helpful.map(h => ({...(h.when ? {when: h.when(env).c} : {}), request: req(h.request)}))})
   }
 

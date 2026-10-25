@@ -5,8 +5,8 @@
 import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, check, checkRecur, checkRecurCases, coverGoal, substE, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessRanks, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
-import {grow, minimal, proveBuilt, proveLaws, proveStepLaws, withDeadline} from '../kernel/prove.ts'
+import {type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, check, checkRecur, checkRecurCases, coverGoal, substE, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
+import {chooseLevels, grow, minimal, proveBuilt, proveLaws, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
 import {type Cyclic, descentGoal, mainGoal, premiseGoal} from '../kernel/cyclic.ts'
@@ -872,9 +872,39 @@ theorem ${id}_refines : ∀ ρ M, SReach ${id}_refined.impl ρ M → ∃ ρc Mc 
   }})
   // Liveness (Live.lean's sleads_sound): its step laws (stay, cover, one per helpful request), and where each helpful
   // request is proven allowed in its region, the same under weak fairness (sleads_wf_sound).
-  for (const [j, l] of (opts.liveness ?? []).entries()) {
+  for (const [j, l0] of (opts.liveness ?? []).entries()) {
+    // (strong fairness: the levels the helpful requests hand over by, chosen as proveLiveness chooses them)
+    const l: Liveness = strongly(l0) && !l0.levels && livenessHelpful(l0).length > 1 ? {...l0, levels: chooseLevels(sm ?? m, laws, l0) ?? livenessLevels(l0)} : l0
     const {stay, cover, helps} = livenessParts(m, l), helpful = livenessHelpful(l), lid = `${id}_live${j}`
     const allows: Allow[] = helps.map((hs, i) => ({when: hs.when as C, request: helpful[i]!.request}))
+    if (strongly(l)) {
+      claims.push({steps: [stay, cover, ...helps], allows, render: h => {
+        const al = allows.map(h.allow)
+        if (!al.every(a => a !== undefined)) throw new Error(`${id}: ${l.name}: under strong fairness each helpful request is shown allowed in its region`)
+        const own = sm ? `${id}_sums.s.f.m.assume` : `${id}_machine.f.m.assume`
+        return `-- Liveness under strong fairness: ${l.name}
+def ${lid} : Live := ${liveLit(l, {e, c}, ix, list(Object.keys(m.state).map(s2 => `(${ix(s2)}, ${ix(`${s2}'`)})`)), list(Object.keys(m.maps ?? {}).map(mp => `(${mx(mp)}, ${mx(`${mp}'`)})`)))}
+def ${lid}_lv : List Nat := ${list(livenessLevels(l).map(String))}
+def ${lid}_sp : SProof := ${h.sproof(stay)}
+def ${lid}_cp : SProof := ${h.sproof(cover)}
+def ${lid}_hp : List SProof := ${list(helps.map(h.sproof))}
+def ${lid}_ap : List (List (Nat × E) × SProof × List E) := ${list(al as string[])}
+theorem ${lid}_ok : sliveOk ${id}_machine ${lid} = true := by ${checkBy}
+theorem ${lid}_stay : checkSKStep ${id}_machine ${id}_proof (sliveStep ${lid} ${lid}.pend (liveStaySC ${lid}) ${lid}_sp) = true := by ${checkBy}
+theorem ${lid}_cover : checkSKStep ${id}_machine ${id}_proof (sliveStep ${lid} ${lid}.pend (liveCoverC ${lid}) ${lid}_cp) = true := by ${checkBy}
+theorem ${lid}_helps : sliveHelpsOkS ${id}_machine ${id}_proof ${lid} ${lid}_lv ${lid}_hp = true := by ${checkBy}
+theorem ${lid}_allows : sliveAllowsOkA ${id}_machine ${id}_proof ${lid} ${lid}_ap ${own} = true := by ${checkBy}
+/-- ${l.name}, under strong fairness: along every run that takes each helpful request in its region infinitely often
+wherever, infinitely often, it is allowed there, \`from\` is followed by \`to\`. -/
+theorem ${lid}_holds (run : SRun ${id}_machine)
+    (fair : ∀ h ∈ ${lid}.helps, (∀ n, ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 h.1 = true ∧ ∃ ι κ, (∀ p ∈ h.2, ι p.1 = evalE (run.st m).1 (run.st m).2 p.2)
+        ∧ evalC (sView ${id}_machine (run.st m).1 (run.st m).2 ι κ).1 (sView ${id}_machine (run.st m).1 (run.st m).2 ι κ).2 ${own} = true) →
+      ∀ n, ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 h.1 = true ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
+    ∀ n, evalC (run.st n).1 (run.st n).2 ${lid}.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 ${lid}.to = true :=
+  sleads_sf_soundA ${id}_machine ${id}_proof ${lid} ${lid}_lv _ _ _ _ _ ${id}_check ${lid}_ok ${lid}_stay ${lid}_cover ${lid}_helps ${lid}_allows run fair`
+      }})
+      continue
+    }
     claims.push({steps: [stay, cover, ...helps], allows, render: h => {
       const al = allows.map(h.allow)
       const wf = al.every(a => a !== undefined) ? `

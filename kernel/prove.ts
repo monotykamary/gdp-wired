@@ -16,7 +16,7 @@ import type {TStats} from '../core/translate.ts'
 import type {Cyclic} from './cyclic.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
 import {growCdcl} from './cdcl.ts'
-import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
+import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
 function openE(e: E, path: Path, out: Lin[]): void {
@@ -1434,7 +1434,28 @@ export function proveProgress(m: Machine, laws: Law[], p: {name: string, when: C
 // liveness is covered exactly where every part has its cyclic certificate (`cyclic: {kind: 'liveness', ...}`), and
 // uncovered, with the part's why, where one is on the usual rule.
 // (`uncovered`, where the certificate is on: why each part is on the usual rule; none, the liveness is covered)
-export function proveLiveness(m: Machine, laws: Law[], l: Liveness): Report & {steps?: ReturnType<typeof proveStepLaws>, uncovered?: string[]} {
+// Under strong fairness, where no levels are given: each helpful request's goal tried handing over to no region and to
+// each other one alone (levels 0 but its own and that one's), then levels from the hand-overs that end at a request
+// reaching `to` or lowering the rank (each level above the one it hands over from: no cycle). Undefined where none.
+export function chooseLevels(m: Machine, laws: Law[], l: Liveness): number[] | undefined {
+  // (help i at level 0 hands over to j alone at level 1, or to none: every level 0)
+  const n = livenessHelpful(l).length, at = (j?: number) => Array.from({length: n}, (_, x) => (x === j ? 1 : 0))
+  const proves = (i: number, j?: number) => { const r = proveStepLaws(m, laws, [livenessParts(m, {...l, levels: at(j)}).helps[i]!]); return r.proven && r.checked }
+  const dist: (number | undefined)[] = Array.from({length: n}, (_, i) => (proves(i) ? 0 : undefined))
+  if (dist.every(d => d === 0)) return dist.map(() => 0)
+  const edges = Array.from({length: n}, (_, i) => (dist[i] === 0 ? [] : Array.from({length: n}, (_, j) => j).filter(j => j !== i && proves(i, j))))
+  for (let round = 0; round < n; round++) for (let i = 0; i < n; i++) if (dist[i] === undefined) {
+    const ds = edges[i]!.flatMap(j => (dist[j] === undefined ? [] : [dist[j]!]))
+    if (ds.length) dist[i] = Math.min(...ds) + 1
+  }
+  if (dist.some(d => d === undefined)) return undefined
+  const top = Math.max(...(dist as number[]))
+  return (dist as number[]).map(d => top - d)
+}
+export function proveLiveness(m: Machine, laws: Law[], given: Liveness): Report & {steps?: ReturnType<typeof proveStepLaws>, uncovered?: string[], levels?: number[]} {
+  // (strong fairness: the levels the helpful requests hand over by, where they aren't given)
+  const lv = strongly(given) && !given.levels && livenessHelpful(given).length > 1 ? chooseLevels(m, laws, given) : undefined
+  const l: Liveness = lv ? {...given, levels: lv} : given
   const {stay, cover, helps} = livenessParts(m, l)
   const a = proveStepLaws(m, laws, [stay, cover, ...helps])
   if (!a.proven || !a.checked) return {proven: false, nodes: a.nodes, leaves: a.leaves, ...(a.failed ? {failed: a.failed} : {}), checked: false}
@@ -1443,7 +1464,23 @@ export function proveLiveness(m: Machine, laws: Law[], l: Liveness): Report & {s
   const left = [...(a.uncovered ?? []).map(why => `a step law: ${why}`)]
   for (const [i, h] of livenessHelpful(l).entries()) {
     // (a machine with sums: allowed by the rule's own assumption, its plain machine's facts given; Sums.lean)
-    if (m.history || plain.inputMaps?.length || !(sumsWhy(m) ? m.assume : plain.assume) || !plain.inputs.every(inp => inp in h.request)) continue
+    const own = sumsWhy(m) ? m.assume : plain.assume
+    // Under strong fairness the claim reads each helpful request allowed in its region (Live.lean's sleads_sf_soundA):
+    // proven always, the inputs it leaves free given witness terms.
+    if (strongly(l)) {
+      if (m.history || plain.inputMaps?.length) return {proven: false, nodes, leaves, failed: {goal: `${l.name}: helpful request ${i + 1} is allowed`, stuck: 'a history or carried maps: no request allowed shown under strong fairness'}, checked: false}
+      if (!own) continue
+      const w = withWitness(plain, h.request, wit => {
+        if (!plain.inputs.every(inp => inp in h.request || wit.some(([x2]) => x2 === inp))) return undefined
+        const b = proveProgress(sumsWhy(m) ? m : plain, laws, {name: `${l.name}: helpful request ${i + 1} is allowed`, when: {op: 'and', xs: [l.from, {op: 'not', x: l.to}, h.when]}, then: trueC, request: {...h.request, ...Object.fromEntries(wit)}})
+        return b.proven && b.checked ? b : undefined
+      })
+      if (!w) return {proven: false, nodes, leaves, failed: {goal: `${l.name}: helpful request ${i + 1} is allowed`, stuck: 'no request with its terms the assumption allows'}, checked: false}
+      nodes += w.out.nodes; leaves += w.out.leaves
+      if (w.out.uncovered) left.push(`helpful request ${i + 1} allowed: ${w.out.uncovered}`)
+      continue
+    }
+    if (m.history || plain.inputMaps?.length || !own || !plain.inputs.every(inp => inp in h.request)) continue
     const b = proveProgress(sumsWhy(m) ? m : plain, laws, {name: `${l.name}: helpful request ${i + 1} is allowed`, when: {op: 'and', xs: [l.from, {op: 'not', x: l.to}, h.when]}, then: trueC, request: h.request})
     nodes += b.nodes; leaves += b.leaves
     if (!b.proven || !b.checked) return {proven: false, nodes, leaves, ...(b.failed ? {failed: b.failed} : {}), checked: false}
@@ -1453,7 +1490,7 @@ export function proveLiveness(m: Machine, laws: Law[], l: Liveness): Report & {s
     if (left.length) uncovered('liveness', m.name, left.join('; '))
     else cycLog({kind: 'liveness', name: m.name, cert: true, usual: true, cyclic: true, route: 'its step laws', parts: 2 + helps.length})
   } else if (cyclicOn()) uncovered('liveness', m.name, 'a claim about runs that never end')
-  return {proven: true, checked: true, nodes, leaves, steps: a, ...(certOn() ? {uncovered: left} : {})}
+  return {proven: true, checked: true, nodes, leaves, steps: a, ...(certOn() ? {uncovered: left} : {}), ...(lv ? {levels: lv} : {})}
 }
 
 // A loop's halting (kernel.ts's loopObligations: its machine's laws, and its liveness's step laws, `while` failing later
