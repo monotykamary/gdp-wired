@@ -71,11 +71,12 @@ const replayed = (w: Lasso): string | undefined => {
 say({stage: 'import', ...(f ? {facts: {split: f.split, fixed: f.fixed, dropped: f.dropped, dead: dead0, locations: f.task.funs.size}} : {}), locations: b!.locs.length, rules: b!.plans.length, slots: b!.slots, fixed: b!.fixed.size, inputs: b!.nInputs, features: b!.features})
 
 // --- lassos -------------------------------------------------------------------------------------------------------------
-const run = interpret(loopMachine(loop))
+// (the task's own loop's runs, as main's: a lasso is the task's, replayed by ari.ts's evaluator)
+const run = interpret(loopMachine(b0!.loop))
 let seed = 7
 const rand = (k: number) => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return Math.floor(seed / 2 ** 31 * k) }
 const out = new Map<number, number>()
-for (const p of b!.plans) out.set(p.from, (out.get(p.from) ?? 0) + 1)
+for (const p of b0!.plans) out.set(p.from, (out.get(p.from) ?? 0) + 1)
 const pair = (x: number) => [Math.max(x, 0), Math.max(-x, 0)] as const
 let runs = 0, turns = 0, refusedWitness = 0
 function lassos(until: number): void {
@@ -83,7 +84,7 @@ function lassos(until: number): void {
   while (performance.now() < until) {
     runs++
     const bound = bounds[runs % bounds.length]!, draw = () => rand(2 * bound + 1) - bound
-    const start = Array.from({length: b!.slots}, draw)
+    const start = Array.from({length: b0!.slots}, draw)
     const ps: Record<string, number> = {}
     start.forEach((x, j) => { [ps[`a${j}`], ps[`a${j}$n`]] = pair(x) })
     let st = run.init(ps)
@@ -92,9 +93,9 @@ function lassos(until: number): void {
       const key = JSON.stringify(st.scalars)
       const at = seen.get(key)
       if (at !== undefined) {
-        const steps: Step[] = trace.map(x => stepOf(b!, ps, x.scalars, x.input))
+        const steps: Step[] = trace.map(x => stepOf(b0!, ps, x.scalars, x.input))
         const w = {start: start.map(String), stem: steps.slice(0, at), cycle: steps.slice(at)}
-        const bad = replayed(w)
+        const bad = checkLasso(task0!, w)
         if (!bad) done('nonterminating', {by: 'lasso', stem: w.stem.length, cycle: w.cycle.length, witness: w, runs, turns})
         refusedWitness++
         say({stage: 'lasso', refused: bad})
@@ -106,9 +107,9 @@ function lassos(until: number): void {
       let next, input: Record<string, number> | undefined
       for (let tries = 0; tries < 40 && !next; tries++) {
         input = {t: rand(k)}
-        for (let m = 0; m < b!.nInputs; m++) {
+        for (let m = 0; m < b0!.nInputs; m++) {
           // an input: small, or a value the state holds (x' = x is a common way back)
-          const pick = rand(4) === 0 && b!.slots ? (st.scalars[`s${rand(b!.slots)}`] ?? ps[`a${rand(b!.slots)}`] ?? 0) * (rand(2) ? 1 : -1) : draw();
+          const pick = rand(4) === 0 && b0!.slots ? (st.scalars[`s${rand(b0!.slots)}`] ?? ps[`a${rand(b0!.slots)}`] ?? 0) * (rand(2) ? 1 : -1) : draw();
           [input[`i${m}`], input[`i${m}$n`]] = pair(pick)
         }
         try { next = run.step(ps, st, input) } catch { next = undefined }
@@ -148,12 +149,12 @@ function neverEnds(ms: number, tag: string, extend = ms, accel?: number, l = loo
   let replay: string | undefined
   if (v.lasso) {
     try {
-      const ps = v.lasso.params
-      let st = run.init(ps)
+      const ps = v.lasso.params, own = l === b0!.loop, bl = own ? b0! : b!, rl = own ? run : interpret(loopMachine(l))
+      let st = rl.init(ps)
       const steps: Step[] = []
-      for (const input of [...v.lasso.stem, ...v.lasso.cycle]) { steps.push(stepOf(b!, ps, st.scalars, input)); st = run.step(ps, st, input) }
-      const start = Array.from({length: b!.slots}, (_, j) => String((ps[`a${j}`] ?? 0) - (ps[`a${j}$n`] ?? 0)))
-      replay = replayed({start, stem: steps.slice(0, v.lasso.stem.length), cycle: steps.slice(v.lasso.stem.length)}) ?? 'confirmed'
+      for (const input of [...v.lasso.stem, ...v.lasso.cycle]) { steps.push(stepOf(bl, ps, st.scalars, input)); st = rl.step(ps, st, input) }
+      const start = Array.from({length: bl.slots}, (_, j) => String((ps[`a${j}`] ?? 0) - (ps[`a${j}$n`] ?? 0))), w = {start, stem: steps.slice(0, v.lasso.stem.length), cycle: steps.slice(v.lasso.stem.length)}
+      replay = (own ? checkLasso(task0!, w) : replayed(w)) ?? 'confirmed'
     } catch (e) { replay = `not replayed: ${(e as Error).message.slice(0, 120)}` }
   }
   // (not made there and no lasso: the search again, on the task's own loop, in the same time)
