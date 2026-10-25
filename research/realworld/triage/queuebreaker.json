@@ -1,8 +1,9 @@
 {
   "circuit breaker/cockatiel/ConsecutiveBreaker#at most one half-open test runs at a time": {
     "verdict": "bug",
-    "note": "Suspected real bug. A call admitted while Closed that fails after the circuit went half-open runs breaker.failure (the ConsecutiveBreaker count is still past the threshold) and open() from HalfOpen (CircuitBreakerPolicy.ts:226-233, :321-337), so the circuit reopens while its test is in flight; the next call past halfOpenAfter starts a second test, and the first test's success then closes the circuit with the second still running. Run (search, depth 8): threshold 0, halfOpenAfter 0: execute, execute, closedDone handled, execute (test 1), closedDone handled (stale), execute (test 2). The original 3.2.1 does it (repro, threshold 1). Polly handles the same race by ignoring results that arrive while Open (ConsecutiveCountCircuitController.cs:48, :78). Found by machine search() locally; the 3 s prover search found no run.",
+    "note": "Real bug. A call admitted while Closed that fails after the circuit went half-open runs breaker.failure (the ConsecutiveBreaker count is still past the threshold) and open() from HalfOpen (CircuitBreakerPolicy.ts:226-233, :321-337), so the circuit reopens while its test is in flight; the next call past halfOpenAfter starts a second test, and the first test's success then closes the circuit with the second still running. Run (search, depth 8): threshold 0, halfOpenAfter 0: execute, execute, closedDone handled, execute (test 1), closedDone handled (stale), execute (test 2). The original 3.2.1 does it (repro, threshold 1). Polly ignores late results only while fully Open (ConsecutiveCountCircuitController.cs:46-48, :76-78); while HalfOpen any failure reopens its circuit, the test's or not (:64-66; Polly v8's CircuitStateController.cs:221-231 the same), so on the reopen cockatiel does as Polly does. Found by machine search() locally; the 3 s prover search found no run.",
     "repro": "research/realworld/repro/cockatiel-stale-failure.ts",
+    "reported": "https://github.com/connor4312/cockatiel/issues/131",
     "recheck": {
       "date": "2026-10-24",
       "upstream": "connor4312/cockatiel master@f48bea5 (2026-10-08); cockatiel 4.0.0 (latest on npm; the rule mirrors 3.2.1)",
@@ -14,8 +15,9 @@
   },
   "circuit breaker/cockatiel/ConsecutiveBreaker#a half-open circuit reopens only on its test failing": {
     "verdict": "bug",
-    "note": "Suspected real bug, the same behaviour: a stale Closed-era failure moves HalfOpen to Open (the repro prints 'after the stale B fails: Open tests in flight: 1'), against CircuitBreakerPolicy.ts:21-25 'Success of subsequent action/s controls onward transition to Open or Closed state'. Locally unknown at 3 s (the step law's witness is that state; the run is the repro's).",
+    "note": "Real bug, the same behaviour: a stale Closed-era failure moves HalfOpen to Open (the repro prints 'after the stale B fails: Open tests in flight: 1'), against CircuitBreakerPolicy.ts:21-25 'Success of subsequent action/s controls onward transition to Open or Closed state'. Locally unknown at 3 s (the step law's witness is that state; the run is the repro's).",
     "repro": "research/realworld/repro/cockatiel-stale-failure.ts",
+    "reported": "https://github.com/connor4312/cockatiel/issues/131",
     "recheck": {
       "date": "2026-10-24",
       "upstream": "connor4312/cockatiel master@f48bea5; cockatiel 4.0.0",
@@ -27,8 +29,9 @@
   },
   "circuit breaker/opossum/CircuitBreaker#no call is let through within resetTimeout of the breaker opening": {
     "verdict": "bug",
-    "note": "Suspected real bug. LAST_TIMER_AT, which toJSON() exports as state.lastTimerAt, is set once, when the constructor runs `_startTimer(this)` (circuit.js:315-316, :348); the 'open' listener it returns never updates it. A breaker remade from the state of one that opened just now comes back half-open whenever the old breaker is older than resetTimeout (:361-368) and lets a call through at once. Rule run (replayed with the compiled rule): t0 1, resetTimeout 10: open at 20, restore at 20, fire at 20 -> admitted. The original 10.0.0 does it: the repro restores a breaker opened 0 ms earlier (resetTimeout 200 ms) as halfOpen and the next call goes through. Locally unknown at 3 s.",
+    "note": "Real bug. LAST_TIMER_AT, which toJSON() exports as state.lastTimerAt, is set once, when the constructor runs `_startTimer(this)` (circuit.js:315-316, :348); the 'open' listener it returns never updates it. A breaker remade from the state of one that opened just now comes back half-open whenever the old breaker is older than resetTimeout (:361-368) and lets a call through at once. Rule run (replayed with the compiled rule): t0 1, resetTimeout 10: open at 20, restore at 20, fire at 20 -> admitted. The original 10.0.0 does it: the repro restores a breaker opened 0 ms earlier (resetTimeout 200 ms) as halfOpen and the next call goes through. Locally unknown at 3 s.",
     "repro": "research/realworld/repro/opossum-lasttimerat.ts",
+    "reported": "https://github.com/nodeshift/opossum/issues/959",
     "recheck": {
       "date": "2026-10-24",
       "upstream": "nodeshift/opossum main@decbedf (2026-08-21); latest release 10.0.0 = the pin",
@@ -40,8 +43,9 @@
   },
   "circuit breaker/opossum/CircuitBreaker#a failure in half-open reopens the breaker": {
     "verdict": "bug",
-    "note": "Suspected real bug. fail() returns under warm-up before its half-open check (circuit.js:988 then :992-997), so with allowWarmUp a breaker that goes half-open during the warm-up (opened by open(), a health check or a restored state, then resetTimeout passing) ignores its trial's failure; PENDING_CLOSE is already false (:724), no timer is armed, every later call is rejected (:711), and it stays half-open for good, also after the warm-up ends. Rule run: allowWarmUp, rollingCountTimeout 100, resetTimeout 10: open at 1, resetTimer at 11, fire at 11, done failure at 12 -> still halfOpen; fire at 13 rejected. The original 10.0.0 does it (repro). Against :337-340 'If that attempt is successful, the circuit will be closed. Otherwise it remains open.' Locally unknown at 3 s.",
+    "note": "Real bug. fail() returns under warm-up before its half-open check (circuit.js:988 then :992-997), so with allowWarmUp a breaker that goes half-open during the warm-up (opened by open(), a health check or a restored state, then resetTimeout passing) ignores its trial's failure; PENDING_CLOSE is already false (:724), no timer is armed, every later call is rejected (:711), and it stays half-open for good, also after the warm-up ends. Rule run: allowWarmUp, rollingCountTimeout 100, resetTimeout 10: open at 1, resetTimer at 11, fire at 11, done failure at 12 -> still halfOpen; fire at 13 rejected. The original 10.0.0 does it (repro). Against :337-340 'If that attempt is successful, the circuit will be closed. Otherwise it remains open.' Locally unknown at 3 s.",
     "repro": "research/realworld/repro/opossum-warmup-halfopen.ts",
+    "reported": "https://github.com/nodeshift/opossum/issues/960",
     "recheck": {
       "date": "2026-10-24",
       "upstream": "nodeshift/opossum main@decbedf; 10.0.0",
@@ -53,8 +57,9 @@
   },
   "circuit breaker/opossum/CircuitBreaker#a half-open breaker closes or reopens": {
     "verdict": "bug",
-    "note": "Suspected real bug, the same warm-up case seen as liveness: once the trial's failure is ignored, no request leaves half-open (no call is admitted, no timer is armed). Locally unknown at 3 s.",
+    "note": "Real bug, the same warm-up case seen as liveness: once the trial's failure is ignored, no request leaves half-open (no call is admitted, no timer is armed). Locally unknown at 3 s.",
     "repro": "research/realworld/repro/opossum-warmup-halfopen.ts",
+    "reported": "https://github.com/nodeshift/opossum/issues/960",
     "recheck": {
       "date": "2026-10-24",
       "upstream": "nodeshift/opossum main@decbedf; 10.0.0",

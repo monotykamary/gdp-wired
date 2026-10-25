@@ -24,6 +24,11 @@ the same 60 s limit, the same containers, at the same time. None wrong in any ba
 So in our harness gdp-wired leads every benchmark we measure: TIP 2015, SV-COMP termination, both sides of TermComp ITS
 and CHC-COMP LIA-Lin. These are measurements in this harness, ours to confirm under each competition's own setup.
 
+**The real-world corpus at 0.30.0:** 311 laws, 274 proven, 29 refuted, 8 unknown. Of the 29 refuted, 27 are real bugs
+in the original code and 2 are laws stated wrong, kept as false laws the prover must not prove. The bugs were verified
+against each project's latest release and reported to its maintainers, or were already known to them; each triage
+entry links its report (research/realworld/README.md, `triage/*.json`).
+
 ## 0.30.0
 
 CHC-COMP LIA-Lin reaches the leading tools, in our harness (60 s on Modal, 2 vCPU, the rivals as installed in compare/).
