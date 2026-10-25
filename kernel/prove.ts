@@ -1150,11 +1150,7 @@ export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {
     const r = proveLaws(m, laws)
     return r.proven ? {proven: true} : {proven: false, goal: r.failed!.goal, stuck: r.failed!.stuck, ...(r.failed!.witness ? {witness: r.failed!.witness} : {})}
   }
-  const keys = [...readKeys(m, laws), ...witnesses(m)]
-  const inst = instancesFor(m, laws, inst => obligations(m, laws, {[law.name]: inst}, i), {
-    seed: [...keys, ...(law.forall ? [{op: 'var', name: `${law.forall}#`} as E] : []), ...(law.keys ?? []).map((name): E => ({op: 'var', name}))],
-    focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
-  })
+  const inst = lawInstances(m, laws, i)
   const few = triggered(m, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
   if (!sameInstances(few, inst) && obligations(m, laws, {[law.name]: few}, i).every(goal => 'tree' in grow(goal))) return {proven: true}
   for (const goal of obligations(m, laws, {[law.name]: inst}, i)) {
@@ -1162,6 +1158,14 @@ export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {
     if (!('tree' in out)) return {proven: false, goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {})}
   }
   return {proven: true}
+}
+// The instances law i's goals are read at (proveLaw's; core/infer.ts's join asks one goal at a time).
+export function lawInstances(m: Machine, laws: Law[], i: number): Instances {
+  const law = laws[i]!, keys = [...readKeys(m, laws), ...witnesses(m)]
+  return instancesFor(m, laws, inst => obligations(m, laws, {[law.name]: inst}, i), {
+    seed: [...keys, ...(law.forall ? [{op: 'var', name: `${law.forall}#`} as E] : []), ...(law.keys ?? []).map((name): E => ({op: 'var', name}))],
+    focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
+  })
 }
 function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
   // Each law's two goals (start and step) get their own instances, seeded with its own keys.
@@ -1278,6 +1282,20 @@ export function proveStepLaws(given0: Machine, given: Law[], stepLaws: StepLaw[]
   }
   return {...proveStepLawsAsGiven(m, laws, stepLaws, base), ...(base.laws ? {laws} : {}), ...mx}
 }
+// The keys a step law reads its maps at, and its own.
+const ownKeys = (plain: Machine, sl: StepLaw): E[] => [...keysInlined(plain, [sl.then, ...(sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when])].flatMap(readKeysC)),
+  ...[sl.forall, ...(sl.keys ?? [])].flatMap(key => (key ? [{op: 'var', name: key} as E] : []))]
+// Each step law's instances (proveStepLaws'; core/infer.ts's join asks one goal at a time).
+export function stepLawInstances(m: Machine, laws: Law[]): (sl: StepLaw) => Instances {
+  const plain = m.history ? historyMachine(m).machine : m
+  const shared = [...readKeys(plain, laws), ...witnesses(plain)], named = [...laws, ...(plain.facts ?? [])], reads = shifts(plain) || laws.some(l => l.keys?.length) || pairFlags(plain)
+  const own = (sl: StepLaw) => ownKeys(plain, sl)
+  return sl => {
+    const zone = stepZone(plain, sl.steps ?? 1), keep = (inst: Instances) => avoiding(inst, zone, named, plain)
+    return keep(instancesFor(plain, laws, inst => stepLawObligations(m, laws, keep(inst), sl),
+      {seed: [...shared, ...own(sl)], focus: [sl.forall, ...(sl.keys ?? [])].flatMap(k => (k ? [k] : [])), reads}))
+  }
+}
 function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base: Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}}): Report & {proof?: StepProof, uncovered?: string[]} {
   if (!base.proof) return {proven: false, nodes: base.nodes, leaves: base.leaves, checked: false}
   const t0 = performance.now()
@@ -1287,15 +1305,8 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
   // keys its goal reads a map at too. A frame's hypotheses read no name the run introduces later (kernel.ts's
   // stepZone), so a k-step law drops the keys that read one; but a flag that holds at every key holds at a later step's
   // key too: where these instances don't prove it, each flag at its own witness at every step is tried (keptAcross).
-  const shared = [...readKeys(plain, laws), ...witnesses(plain)], named = [...laws, ...(plain.facts ?? [])], reads = shifts(plain) || laws.some(l => l.keys?.length) || pairFlags(plain)
-  const own = (sl: StepLaw): E[] => [...keysInlined(plain, [sl.then, ...(sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when])].flatMap(readKeysC)),
-    ...[sl.forall, ...(sl.keys ?? [])].flatMap(key => (key ? [{op: 'var', name: key} as E] : []))]
-  const perStep: Record<string, Instances> = {}
-  for (const sl of stepLaws) {
-    const zone = stepZone(plain, sl.steps ?? 1), keep = (inst: Instances) => avoiding(inst, zone, named, plain)
-    perStep[sl.name] = keep(instancesFor(plain, laws, inst => stepLawObligations(m, laws, keep(inst), sl),
-      {seed: [...shared, ...own(sl)], focus: [sl.forall, ...(sl.keys ?? [])].flatMap(k => (k ? [k] : [])), reads}))
-  }
+  const perStep: Record<string, Instances> = {}, at = stepLawInstances(m, laws)
+  for (const sl of stepLaws) perStep[sl.name] = at(sl)
   const instances = perStep[stepLaws[0]?.name ?? ''] ?? {}
   const trees: Record<string, Tree> = {}
   let nodes = base.nodes, leaves = base.leaves
@@ -1305,7 +1316,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
     if ('tree' in out && !sameInstances(few, full)) perStep[sl.name] = few
     else if (!sameInstances(few, full)) out = grow(goal)
     // A k-step law that reads a condition kept across its steps: each flag at its own witnesses, at every step.
-    if (!('tree' in out)) for (const kept of keptAcross(plain, laws, perStep[sl.name] ?? instances, own(sl), sl.steps ?? 1)) {
+    if (!('tree' in out)) for (const kept of keptAcross(plain, laws, perStep[sl.name] ?? instances, ownKeys(plain, sl), sl.steps ?? 1)) {
       const again = grow(stepLawObligations(m, laws, kept, sl)[0]!)
       if ('tree' in again) { out = again; perStep[sl.name] = kept; break }
     }
