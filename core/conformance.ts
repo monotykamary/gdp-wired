@@ -2,7 +2,7 @@
 // op, or this file doesn't type-check), concrete inputs and map cells, and the reference value from evalE and evalC.
 // core/conformance.test.ts holds every consumer of terms to it; lean-kernel/conformance.ts writes its cases for Lean.
 import {type C, type E, type Law, type Machine, type State, evalC, evalE, interpret, n as k, x as v} from './machine.ts'
-import {type Goal, type KInduction, type Loop, type QC, type QE, type QGoal, type QMachine, type Recur, type RecurCases, type Tree, type Liveness, type StepLaw, caseGoals, check, checkKInduction, checkLaws, checkStepLaws, coverGoal, kInductionStart, kInductionSteps, livenessParts, recurGoal, stepLawObligations, sumCovers, sumMachine, trueC} from '../kernel/kernel.ts'
+import {type Goal, type KInduction, type Loop, type QC, type QE, type QGoal, type QMachine, type Recur, type RecurCases, type Tree, type Liveness, caseGoals, check, checkKInduction, checkLaws, checkStepLaws, coverGoal, kInductionStart, kInductionSteps, livenessParts, recurGoal, stepLawObligations, sumCovers, sumMachine, trueC} from '../kernel/kernel.ts'
 import {type KindProof, proveKInduction} from './kind.ts'
 import type {Step} from './solver.ts'
 import {type Rat, q} from './q.ts'

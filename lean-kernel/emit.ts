@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, check, checkRecur, checkRecurCases, coverGoal, substE, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
+import {type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {chooseLevels, grow, minimal, proveBuilt, proveLaws, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {leanSurface, leanTerms} from './lean-terms.ts'
@@ -1832,8 +1832,9 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
         ...(item.ghosts?.length ? {ghosts: item.ghosts} : {}), ...(item.lean?.simp ? {simp: item.lean.simp} : {}), ...(item.lean?.after ? {after: item.lean.after} : {})}
       const defs = `${recurDefs(m)}${item.lean?.defs ? `${item.lean.defs}\n` : ''}`
       // (a machine with sums has no cyclic twin: the usual trees, Sums.lean)
-      const sums = !!(m.sums && Object.keys(m.sums).length)
-      const cyc = certsOn && !sums ? cycMachineToLean(id, m, item.laws, mopts) : undefined
+      // (nor a liveness under strong fairness: Live.lean's sleads_sf_soundA reads the usual step laws)
+      const sums = !!(m.sums && Object.keys(m.sums).length), sf = (item.liveness ?? []).some(strongly)
+      const cyc = certsOn && !sums && !sf ? cycMachineToLean(id, m, item.laws, mopts) : undefined
       if (cyc && 'text' in cyc) certReport.cyclic.push(item.id); else if (cyc) certReport.usual.push({id: item.id, why: cyc.why})
       parts.push(`-- ${item.id}\n${defs}${cyc && 'text' in cyc ? cyc.text : smachineToLean(id, m, item.laws, mopts)}`)
       theorems.push(`${id}_laws`, ...item.laws.flatMap((l, j) => (l.ex ? [`${id}.some${j}`] : [])), ...(m.history ? [`${id}_hlaws`] : []), ...(sums ? [`${id}_exact`, `${id}_own`] : []), ...(item.stepLaws ?? []).map((_, j) => `${id}_step${j}_holds`), ...(item.liveness ?? []).map((_, j) => `${id}_live${j}_holds`))

@@ -7,7 +7,7 @@ set -o pipefail
 bun scripts/gen-lean-library.ts --check || exit 1
 cd lean-kernel
 export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean
-for f in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Refine Bridge BridgeRules Data; do
+for f in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live NonTerm Ghost Sums Refine Bridge BridgeRules Data; do
   { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }
 done
 t0=$SECONDS

@@ -18,7 +18,7 @@
 // meet it), so it holds at the start and at every step; `assume`, about each request, holds only at a step, since no
 // request has come at the start.
 import {checkRefutation} from '../core/check.ts'
-import type {C, E, Law, Machine, MapUpdate, Sum} from '../core/machine.ts'
+import type {C, E, Law, Machine, MapUpdate} from '../core/machine.ts'
 import {type Constraint, type Lin, type Step, add, k, scale, sub, v} from '../core/solver.ts'
 
 // An exhaustive switch's default: TypeScript proves it unreachable, and if it is reached anyway (a value from outside
