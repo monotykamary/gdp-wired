@@ -217,7 +217,7 @@ halves for cell forms (gen/chc5). Nothing trusted changed (`kernel/kernel.ts`, `
 - **1 vCPU, ten jobs a side:** none failed. data's nearPlus took a median of 2,588.57 ms, at most 3,021.96 (main
   2,849.06, 3,207.86). infer's "a law that needs an invariant" took 2,833.81 and 3,286.72 (main 2,830.23, 3,344.98).
   In the batch beside f589873, one data job of ours ran at half speed throughout (132.0 s against 43 to 73 s for the
-  others) and timed out four 5 s tests. In a second batch, ten jobs a side, none failed (`onecpu3`).
+  others) and timed out four 5 s tests. In a second batch, ten jobs a side, none failed (`onecpu3`, beside f589873).
 
 What changed:
 - **The gap at 0.27.0** (compare/chc/prof/gap27.py): 251 tasks, 217 sat and 34 unsat.
@@ -235,7 +235,7 @@ What changed:
   `only`; compare/chc/kind.ts's `--pdr-ms` for a turn on the second CPU):
   - It has frames from the start up, obligations lowest level first, and lemmas generalized by the join's own
     `generalize` and `down` and pushed. A frame left empty is the invariant.
-  - On 318 dev tasks it answers 110 to 116 sat against the join's 106 to 112 in the same batches. Seven tasks are
+  - On 318 dev tasks it answers 110 to 116 sat against the join's 105 to 112 in the same batches. Seven tasks are
     PDR's alone, every time.
   - Every placement on the whole track cost as much as it gained: first, after the join, on the second CPU, or in
     k-induction's turn. So it is off by default.
