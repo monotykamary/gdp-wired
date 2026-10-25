@@ -14,7 +14,7 @@
 // The interpolant is over A's names (the shared ones), as a condition the kernel reads.
 import type {C, E, Law, Machine, Request} from './machine.ts'
 import {type Goal, type Path, type Tree, atomOf, canon, columnTerm, falseC, leafConstraints, stepLawObligations, substC, trueC} from '../kernel/kernel.ts'
-import {type Lin, type Step, env, vars} from './solver.ts'
+import {type Lin, type Step, env, solve, vars} from './solver.ts'
 import {namesOf} from './exists.ts'
 import {type Dag, REFUTED, type Refuted, growCdcl} from '../kernel/cdcl.ts'
 import {clock, grow} from '../kernel/prove.ts'
@@ -91,7 +91,18 @@ function sidesOf(goal: Goal, isA: (hyp: number) => boolean) {
 // input of A's is all A part, a combination adds the parts, a cut divides the A part where the rest has no variable, and
 // the rest where the A part has none (else undefined). The last row is a positive constant, A gives `A part <= 0` and B
 // the rest, so where the A part reads only shared names, `A part <= 0` is the leaf's interpolant.
+// Where a cut mixes the parts, the rows the derivation reads refuted again over the rationals (core/solver.ts's
+// elimination with no cut, which Farkas' lemma says finds a refutation wherever they have no rational solution): every
+// leaf whose rows the simplex found infeasible has one, and it needs no cut.
 function replayA(steps: Step[], row: (k: number) => {lin: Lin, a: boolean} | undefined, nameSide: (n: string) => Side): C | undefined {
+  const out = replay1(steps, row, nameSide)
+  if (out || !steps.some(s => s.kind === 'cut')) return out
+  const used = [...new Set(steps.flatMap(s => (s.kind === 'input' ? [s.index] : [])))], rows = used.map(row)
+  if (rows.some(r => !r)) return undefined
+  const q = solve(rows.map(r => ({lin: r!.lin, label: ''})), 20_000, false)
+  return q.kind === 'refuted' ? replay1(q.steps.map(s => (s.kind === 'input' ? {...s, index: used[s.index]!} : s)), row, nameSide) : undefined
+}
+function replay1(steps: Step[], row: (k: number) => {lin: Lin, a: boolean} | undefined, nameSide: (n: string) => Side): C | undefined {
   const tot: Lin[] = [], ap: Lin[] = []
   const plus = (x: Lin, mx: number, y: Lin, my: number): Lin => {
     const o: Lin = {}

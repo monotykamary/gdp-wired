@@ -5,7 +5,7 @@ import {expect, test} from 'bun:test'
 import {parseChc} from '../compare/chc/chc.ts'
 import {build, checkDerivation, requestOf, stepsOf} from '../compare/chc/translate.ts'
 import {byStep, fromDag, fromTree, imc, interpolate, stutter} from './interp.ts'
-import {compose, expand, liftProven} from '../compare/chc/compose.ts'
+import {compose, expand, liftProven, prepare, slice} from '../compare/chc/compose.ts'
 import {boundedSearch} from './bmc.ts'
 import {type Refuted, growCdcl} from '../kernel/cdcl.ts'
 import {tpa} from './tpa.ts'
@@ -105,4 +105,28 @@ test('chains composed: the loop alone is left; a sat answer lifted and proven of
     if (typeof raws !== 'string') { expect(raws.length).toBeGreaterThan(out.trace.length); expect(checkDerivation(ob, bad, stepsOf(ob, raws))).toBeUndefined() }
   }
   expect(liftProven(cb, ob, rb.law.holds, performance.now() + 10_000).proven).toBe(false)
+}, 120_000)
+
+// z counts beside x and y and nothing reads it but itself; b is a guard's, and so stays.
+const cone = `(declare-fun inv (Int Int Int Bool) Bool)
+(assert (forall ((x Int) (y Int) (z Int) (b Bool)) (=> (and (= x 0) (= y 0) (= z 7) (= b true)) (inv x y z b))))
+(assert (forall ((x Int) (y Int) (z Int) (b Bool) (x1 Int) (y1 Int) (z1 Int)) (=> (and (inv x y z b) (= b true) (= x1 (+ x 1)) (= y1 (+ y 1)) (= z1 (* 2 z))) (inv x1 y1 z1 b))))
+(assert (forall ((x Int) (y Int) (z Int) (b Bool)) (=> (and (inv x y z b) (not (= x y))) false)))`
+
+test('the cone of influence: what nothing reads made the request\'s, the rest kept; a sat answer proven of the original, an unsat run replayed on it', () => {
+  const chc = parseChc(cone), s = slice(chc)
+  expect(s.dropped).toBe(2) // z = 7 at the start and z1 = 2·z after
+  expect(JSON.stringify(s.chc.clauses[1]!.constraint)).toContain('"b","true"')
+  const cc = prepare(chc, {slice: true, chains: true})!, bo = build(chc), bc = build(cc.chc)
+  const fixed = counted(250, () => imc(bc.rule.machine, bc.law, {until: Infinity, wall: performance.now() + 30_000}), true)
+  expect('inv' in fixed).toBe(true)
+  if ('inv' in fixed) expect(liftProven(cc, bo, {op: 'and', xs: [bc.law.holds, fixed.inv]}, performance.now() + 30_000).proven).toBe(true)
+  const bad = parseChc(cone.replace('(= y1 (+ y 1))', '(= y1 (+ y 2))')), cb = prepare(bad, {slice: true, chains: true})!, ob = build(bad), rb = build(cb.chc)
+  const out = boundedSearch(rb.rule.machine, [rb.law], {forcedMs: 1000})!.run(30_000, performance.now() + 30_000)
+  expect(typeof out).toBe('object')
+  if (typeof out === 'object') {
+    const raws = expand(ob, rb, cb, stepsOf(rb, out.trace.map(t => requestOf(rb, t as Record<string, unknown>))))
+    expect(typeof raws).not.toBe('string')
+    if (typeof raws !== 'string') expect(checkDerivation(ob, bad, stepsOf(ob, raws))).toBeUndefined()
+  }
 }, 120_000)

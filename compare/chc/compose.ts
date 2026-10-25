@@ -19,6 +19,7 @@ import {type C, type E, type Law, type Machine, arithmetic, divisorsIn} from '..
 import {cutInterpolant} from '../../core/interp.ts'
 import {substC, substE} from '../../kernel/kernel.ts'
 import {simpC, simpE} from '../../core/nonterm.ts'
+import {canon, gcd, linOfE, plus, vars} from '../../core/solver.ts'
 import {withDeadline} from '../../kernel/prove.ts'
 import {proveRule} from '../../core/dsl.ts'
 
@@ -139,13 +140,13 @@ export function slice(chc: Chc): {chc: Chc, dropped: number} {
   })
   // Definitions and guards: x = e defines x where nothing else of the clause reads x (no other conjunct, no body
   // argument; the head may), and e doesn't.
-  const plans = clauses.map(({c0, conj}) => {
+  const plans = clauses.map(({c0, conj, vars}) => {
     const body = new Set(c0.body.flatMap(a => a.args.flatMap(x => [...varsOf(x)]))), count = new Map<string, number>()
     for (const k of conj) for (const v of varsOf(k)) count.set(v, (count.get(v) ?? 0) + 1)
     const defs = new Map<string, number>()
     conj.forEach((k, i) => {
       if (!Array.isArray(k) || k[0] !== '=' || k.length !== 3) return
-      for (const [x, e] of [[k[1]!, k[2]!], [k[2]!, k[1]!]] as const) if (typeof x === 'string' && !defs.has(x) && ![...defs.values()].includes(i) && !body.has(x) && count.get(x) === 1 && !varsOf(e).has(x)) defs.set(x, i)
+      for (const [x, e] of [[k[1]!, k[2]!], [k[2]!, k[1]!]] as const) if (typeof x === 'string' && vars.has(x) && !defs.has(x) && ![...defs.values()].includes(i) && !body.has(x) && count.get(x) === 1 && !varsOf(e).has(x)) defs.set(x, i)
     })
     return {defs, isDef: new Set(defs.values())}
   })
@@ -212,7 +213,7 @@ export function lift(cc: Composed, inv: C, budget: {until: number, wall?: number
   const at = (p: string): C => ({op: '=', a: loc, b: {op: 'const', value: 1 + preds.indexOf(p)}})
   const implies = (a: C, b: C): C => ({op: 'or', xs: [{op: 'not', x: a}, b]})
   // (each condition read at its location: the location put in, the rest folded)
-  const atLoc = (c: C, p: string | 0): C => simpC(substC(c, {vars: {loc: {op: 'const', value: p === 0 ? 0 : 1 + preds.indexOf(p)}}, maps: {}, flags: {}}))
+  const atLoc = (c: C, p: string | 0): C => tidy(substC(c, {vars: {loc: {op: 'const', value: p === 0 ? 0 : 1 + preds.indexOf(p)}}, maps: {}, flags: {}}))
   const kept = preds.filter(p => !cc.eliminated.includes(p) && cc.chc.clauses.some(c => c.head?.pred === p || c.body[0]?.pred === p))
   const laws: Law[] = [{name: 'never error', holds: {op: 'not', x: {op: '=', a: loc, b: {op: 'const', value: 1 + preds.length}}}}, {name: 'the composed invariant at the start', holds: implies({op: '=', a: loc, b: {op: 'const', value: 0}}, atLoc(inv, 0))},
     ...kept.map(p => ({name: `the composed invariant at ${p}`, holds: implies(at(p), atLoc(inv, p))}))]
@@ -238,6 +239,31 @@ export function lift(cc: Composed, inv: C, budget: {until: number, wall?: number
   return {laws}
 }
 
+// A condition with its repeated parts once: and-s and or-s flattened, a comparison known by its linear form over the
+// integers (a − b <= 0 and a − b + 1 <= 0 for <, divided by the gcd of its coefficients, the constant rounded up), each
+// form kept once among its siblings. Interpolants of one cut, joined over many leaves, repeat their atoms.
+function tidy(c: C): C {
+  const key = (x: C): string => {
+    if (x.op === '<=' || x.op === '<') {
+      const a = linOfE(x.a), b = linOfE(x.b)
+      if (a && b) {
+        const l = plus(plus(a, b, -1), x.op === '<' ? {1: 1} : {}), xs = vars(l)
+        const g = xs.reduce((m, n) => gcd(m, l[n]!), 0)
+        if (g > 1) { for (const n of xs) l[n] = l[n]! / g; l['1'] = Math.ceil((l['1'] ?? 0) / g) }
+        return canon(Object.fromEntries(Object.entries(l).filter(([, v]) => v !== 0)))
+      }
+    }
+    return JSON.stringify(x)
+  }
+  const go = (x: C): C => {
+    if (x.op === 'not') return {op: 'not', x: go(x.x)}
+    if (x.op !== 'and' && x.op !== 'or') return x
+    const seen = new Set<string>(), xs: C[] = []
+    for (const y of x.xs.map(go).flatMap(y => (y.op === x.op ? y.xs : [y]))) { const k = key(y); if (!seen.has(k)) { seen.add(k); xs.push(y) } }
+    return xs.length === 1 ? xs[0]! : {op: x.op, xs}
+  }
+  return simpC(go(c))
+}
 // J after each clause from `first` on, where it fires (undefined where one leaves a value to the request).
 function wp(bt: Built, m: Machine, first: number, J: C): C | undefined {
   const parts: C[] = []
