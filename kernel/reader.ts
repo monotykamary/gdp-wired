@@ -80,6 +80,7 @@ export class Reader {
   private node = 0
   private natRows = new Map<string, Row>()
   private atomRows = new Map<string, Row>()
+  private leafAtomRows = new WeakMap<Lin, Row[]>()
   private ls = new Map<E, LV>()
   private ts = new Map<C, TV>()
   private fs: (FV | undefined)[] = []
@@ -415,9 +416,10 @@ export class Reader {
       const s = this.trail.stamp(i)
       let r = this.trailStamps[i] === s ? this.trailRows[i] : undefined
       if (!r) {
-        const a = this.trail.lin(i), key = `${a.name}=${a.holds}`
-        r = this.atomRows.get(key)
-        if (!r) this.atomRows.set(key, (r = {lin: atomOf(a.lin, a.holds).lin, w: new Set([a.name]), label: ''}))
+        // (by the atom's own form, not its name: kernel.ts reads the names in a form's own order, which two forms of
+        // one atom may not share, and the names' order is the order of the rows past the facts)
+        const a = this.trail.lin(i), own = this.leafAtomRows.get(a.lin) ?? this.leafAtomRows.set(a.lin, []).get(a.lin)!, k = a.holds ? 1 : 0
+        r = own[k] ?? (own[k] = {lin: atomOf(a.lin, a.holds).lin, w: new Set([a.name]), label: ''})
         this.trailRows[i] = r; this.trailStamps[i] = s
       }
       rows.push(r)
