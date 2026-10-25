@@ -70,13 +70,13 @@ export type Plan = {
   features: string[],
 }
 
-const varsOf = (s: Sx, out = new Set<string>()): Set<string> => {
+export const varsOf = (s: Sx, out = new Set<string>()): Set<string> => {
   if (typeof s === 'string') { if (isVar(s)) out.add(s) } else s.forEach((x, i) => (i === 0 && typeof x === 'string' ? undefined : varsOf(x, out)))
   return out
 }
 // A linear form: coefficients by variable and a constant; undefined where a term isn't linear.
 type Lin = {c: Map<string, bigint>, k: bigint}
-function lin(s: Sx): Lin | undefined {
+export function lin(s: Sx): Lin | undefined {
   if (typeof s === 'string') return isNum(s) ? {c: new Map(), k: BigInt(s)} : isVar(s) ? {c: new Map([[s, 1n]]), k: 0n} : undefined
   const [op, ...xs] = s, ls = xs.map(lin)
   if (ls.some(l => !l)) return undefined
@@ -183,9 +183,16 @@ export function planRule(r: Rule, locs: string[], local: number): Plan {
   return {rule: {...r, rhs}, from: locs.indexOf(r.from), to: locs.indexOf(r.to), local, slots, inputs, defs, guard: left, features}
 }
 
-export type Built = {loop: Loop, plans: Plan[], locs: string[], slots: number, fixed: Set<number>, dropped: Set<number>, nInputs: number, features: string[]}
+// `turns`: each rule's turn, the condition it fires on (its location and index, its guard), the assumption's parts.
+export type Built = {loop: Loop, plans: Plan[], locs: string[], slots: number, fixed: Set<number>, dropped: Set<number>, nInputs: number, features: string[], turns: C[], active: number[]}
 // `starts`: the run starts at any of these locations (scc.ts's components), not only at the entrypoint.
-export function build(t: Ari, name = 'task', opts: {starts?: string[], slice?: boolean} = {}): Built {
+// `fixed`: the slots read as params (a subset of those no rule changes; by default all of them), and `active`, the
+// locations the loop runs at (by default those a rule leaves), so a loop of the task rewritten (facts.ts) names its
+// values and runs while the task's own does (a location whose every rule the rewrite left out still runs, as the
+// task's). `facts`: each start location's slots' constants, a
+// precondition of the start (scc.ts's components, from a state where the task's facts hold; slot -1, a location no run
+// reaches: none).
+export function build(t: Ari, name = 'task', opts: {starts?: string[], slice?: boolean, fixed?: Set<number>, active?: number[], facts?: Map<string, Map<number, bigint>>} = {}): Built {
   const locs = [...t.funs.keys()], n = Math.max(0, ...t.funs.values())
   const counts = new Map<string, number>()
   const plans = t.rules.map(r => { const k = counts.get(r.from) ?? 0; counts.set(r.from, k + 1); return planRule(r, locs, k) })
@@ -223,7 +230,7 @@ export function build(t: Ari, name = 'task', opts: {starts?: string[], slice?: b
     }
     for (let j = 0; j < n; j++) if (!keep.has(j)) dropped.add(j)
   }
-  const fixed = new Set(Array.from({length: n}, (_, j) => j).filter(j => !dropped.has(j) && plans.every(p => same(p, j))))
+  const fixed = new Set(Array.from({length: n}, (_, j) => j).filter(j => !dropped.has(j) && plans.every(p => same(p, j)) && (!opts.fixed || opts.fixed.has(j))))
   const slot = (j: number): I => (fixed.has(j) ? {p: V(`a${j}`), n: V(`a${j}$n`)} : {p: V(`s${j}`), n: V(`s${j}$n`)})
   const input = (m: number): I => ({p: V(`i${m}`), n: V(`i${m}$n`)})
   const intOf = (p: Plan) => {
@@ -274,7 +281,7 @@ export function build(t: Ari, name = 'task', opts: {starts?: string[], slice?: b
     return {go, cond}
   }
   const fires = plans.map(p => and([eqN(V('pc'), K(p.from)), eqN(V('t'), K(p.local))]))
-  const assume = or(plans.map((p, k) => and([fires[k]!, ...p.guard.map(intOf(p).cond)])))
+  const turns = plans.map((p, k) => and([fires[k]!, ...p.guard.map(intOf(p).cond)])), assume = or(turns)
   const body: Record<string, E> = {}
   const chain = (vals: (E | undefined)[], keep: E): E | undefined => {
     if (vals.every(v => v === undefined)) return undefined
@@ -295,7 +302,7 @@ export function build(t: Ari, name = 'task', opts: {starts?: string[], slice?: b
     if (pe) body[`s${j}`] = pe
     if (ne) body[`s${j}$n`] = ne
   }
-  const active = [...new Set(plans.map(p => p.from))].sort((a, b) => a - b)
+  const active = opts.active ?? [...new Set(plans.map(p => p.from))].sort((a, b) => a - b)
   const loop: Loop = {
     name, params: [...(opts.starts ? ['pc0'] : []), ...Array.from({length: n}, (_, j) => j).filter(j => !dropped.has(j)).flatMap(j => [`a${j}`, `a${j}$n`])],
     inputs: ['t', ...Array.from({length: nInputs}, (_, m) => [`i${m}`, `i${m}$n`]).flat()],
@@ -304,8 +311,8 @@ export function build(t: Ari, name = 'task', opts: {starts?: string[], slice?: b
     body, assume,
   }
   if (!active.length) loop.while = {op: 'not', x: TRUE}
-  if (opts.starts) loop.pre = or(opts.starts.map(l => eqN(V('pc0'), K(locs.indexOf(l)))))
-  return {loop, plans, locs, slots: n, fixed, dropped, nInputs, features: [...new Set(plans.flatMap(p => p.features))].sort()}
+  if (opts.starts) loop.pre = or(opts.starts.map(l => and([eqN(V('pc0'), K(locs.indexOf(l))), ...[...opts.facts?.get(l) ?? []].filter(([j]) => !dropped.has(j) && !fixed.has(j)).map(([j, c]) => (j < 0 ? {op: 'not', x: TRUE} as C : icmp('=', {p: V(`a${j}`), n: V(`a${j}$n`)}, iconst(c))))])))
+  return {loop, plans, locs, slots: n, fixed, dropped, nInputs, features: [...new Set(plans.flatMap(p => p.features))].sort(), turns, active}
 }
 
 // A turn of the loop as the task's step: the rule it fires and the values of the rule's other variables (inputs, and

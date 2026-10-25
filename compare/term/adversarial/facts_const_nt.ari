@@ -1,0 +1,8 @@
+; expect: nonterminating. y is 5 after the first rule (a fact of l1, not a param): the loop runs forever where x >= 0.
+(format LCTRS)
+(theory Ints)
+(fun l0 (-> Int Int Int))
+(fun l1 (-> Int Int Int))
+(entrypoint l0)
+(rule (l0 x y) (l1 x 5))
+(rule (l1 x y) (l1 (+ x (- y 5)) y) :guard (>= x 0))

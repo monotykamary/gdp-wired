@@ -1,0 +1,9 @@
+; expect: terminates. An odd x goes up by 1, an even one down by 3: down by 2 every two turns, so x > 0 fails.
+(format LCTRS)
+(theory Ints)
+(fun l0 (-> Int Int))
+(fun l1 (-> Int Int))
+(entrypoint l0)
+(rule (l0 x) (l1 x))
+(rule (l1 x) (l1 (+ x 1)) :guard (exists ((q Int)) (and (> x 0) (= (- x (* 2 q)) 1))))
+(rule (l1 x) (l1 (- x 3)) :guard (exists ((q Int)) (and (> x 0) (= (- x (* 2 q)) 0))))
