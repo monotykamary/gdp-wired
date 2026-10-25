@@ -13,6 +13,7 @@ and Eldarica (2.3).
 | `solve.ts` | One task: import, `proveRule` on the law, random runs of the compiled rule, runs the prover guides (each request a model of its clause's condition where the run is, the clauses that derive false tried first), then the library's invariant search (`inferLaws`, core/infer.ts) from the states the runs reached; the bounded runs on the second CPU (`kind.ts`; `--bmc-here`, this process's stage after the guided runs, 15 s, as before). Answers sat (a proof the kernel checked), unsat (a run reaching error that `checkDerivation` confirms), unknown or unsupported |
 | `modal_chc.py` | The track on Modal: every task in its own container (2 vCPU, 4 GB), each tool under the same 60 s wall-clock limit, all at once (`starmap`) |
 | `summary.ts` | The table below from a run's `results.jsonl`, with wrong answers counted against each task's expected verdict where some tool decided it at CHC-COMP'26 |
+| `compose.ts` | The system the searches read (`prepare`): chains composed away (a predicate with no clause to itself whose incoming times outgoing clauses are no more than the two together, each pair made one clause), and with `--slice` the cone of influence as a weakening (definitions of what nothing relevant reads dropped). `expand`: a derivation of it as requests of the original rule, replayed there and checked by `checkDerivation`. `lift`: an invariant of it as laws of the original rule, an interpolant at each eliminated predicate (or its weakest precondition), which the kernel proves of the original (`liftProven`) |
 | `kind.ts` | The container's second CPU, a process at the lowest priority started once the task is read, until the search's deadline: k-induction (core/kind.ts) and the bounded runs (core/bmc.ts's `boundedSearch`: a deterministic loop's forced run, then a model of a k-step goal from the start to error) in turn, in slices of 2 s each, then 4, 8, 16, ..., each going on where it stopped; proven and checked (kernel.ts's `checkKInduction`), or a run `checkDerivation` confirms, it stops solve.ts and answers |
 | `prof/kind.ts` | Not a solver (`--tools kind`): whether the law is k-inductive, a measure of what k-induction would add |
 | `prof/kind-tree.ts`, `prof/kind-lean.ts` | Not solvers: where a k-step goal's time goes (CDCL's model search, its tree, the unfolding, the check), and a task's k-induction certificate as Lean (KInd.lean's `kind_sound`) |
@@ -27,6 +28,83 @@ and Eldarica (2.3).
     modal run compare/chc/modal_chc.py --out <dir> --tools tmpl            # then --tools given --tasks-json <file>
     python3 compare/chc/prof/gap.py --gdp <run> --others <run> --models <dir> --template <run> [--cex <dir>] [--given <run>] --out <file.json>
     modal run compare/chc/modal_chc.py --out <dir> --tools golem-imc,golem-tpa   # Golem with one engine of its own
+
+## Chains composed away and interpolants off CDCL's DAG, on gen/chc7 (after 0.28.0)
+
+Every run named here is in the main checkout's `runs/chc7/` (60 s, Modal, 2 vCPU), beside main a269124 launched
+together. Nothing trusted changed: kernel/kernel.ts, kernel/cyclic.ts, core/check.ts and lean-kernel/ are main's. The
+branch has it on by default (`solve.ts --compose 1 --imc 2`; `--compose 0` is main's path with gen/chc6's IMC sharing k-induction's slice).
+
+**The structure.** One CHC-to-CHC layer (compose.ts) in front of every search, and one primitive behind it:
+- **The system searched** is the original with its chains composed away (large-block encoding): a predicate with no
+  clause to itself whose incoming times outgoing clauses are no more than the two together is eliminated, each pair
+  made one clause. Every predicate stays declared in its order, so the composed rule has the original's locations and
+  slots, and a law of one reads the same names in the other. HOLA's 26-predicate chains shrink to their loops (HOLA/13:
+  33 clauses to 10). 341 of the track's 1,406 tasks change; the Lustre and ctigar transition systems (one predicate)
+  don't.
+- **Unsat** (`expand`): each composed step's variables valued (translate.ts's `envOf`, split out of
+  `checkDerivation`), each original clause it is made of given its own free variables' values, the run replayed on the
+  original rule and checked by `checkDerivation` against the original CHC, as every run is.
+- **Sat** (`lift`): the predicates eliminated, in reverse order. When Q was eliminated, its incoming and outgoing
+  clauses joined predicates alive then, each kept or eliminated later, so each already has its condition J; their
+  products were clauses of the system after Q, which J models. So no state J allows at a predecessor reaches, through
+  Q, a state J doesn't allow at a successor: that two-step goal, on the rule of those clauses alone, refuted and colored
+  after its first step, gives an interpolant I with every state into Q in I and every step out of I keeping J. With
+  `loc = Q → I`, J models the clauses before Q went; in the end every original clause. Where no interpolant comes and
+  no clause out of Q leaves a value to the request, its weakest precondition stands in. The kernel then proves the
+  original rule's law with the lifted laws (proveRule, no search): the certificate is the original's.
+- **One primitive:** the lifting's query is IMC's own (`cutInterpolant`: the kernel's k-step goal colored at the first
+  cut), and IMC, TPA and the lifting all read their interpolants off CDCL's refutation DAG (`fromDag`), McMillan's way
+  over resolution: no tree unfolded, no leaf read again. A leaf whose integer cut mixes A and B is refuted again over
+  the rationals (core/solver.ts's elimination with no cut). The tree route stays as the fallback.
+
+**What made it work:**
+- **The lifted laws' repeated atoms once** (`tidy`, a comparison known by its linear form): HOLA/16's proof of the
+  original from 11.4 s to 3.0 s (locally).
+- **The law read per location** (each condition with its location put in and folded), with `never error` beside it.
+- **A clause's unread variables dropped:** the `CHC_COMP_UNUSED` Bool of a `fail → false` query became a request value,
+  and with it s_split_08's join failed.
+- **Functions an invariant reads** (a remainder by 2) can't be read by the kernel's step-law goal; that predicate goes to
+  its weakest precondition.
+- **Certificates:** a sat answer's are the usual trees, checked by kernel.ts (`GDP_CERT=usual`, solve.ts's default
+  here): the cyclic translation took its 10 s cap on the proof of HOLA/13's composed rule with IMC's invariant (10.3 s against 0.2 s, locally). On main it changes
+  nothing on the dev tasks (`d1-main` 236, `d1-mainu` 236).
+
+**The whole track** (`f1-chc-*`, wrong 0, the same 2 disputed labels on both sides):
+
+| | sat | unsat | solved | timeouts |
+| --- | --- | --- | --- | --- |
+| gen/chc7 | 657 | 427 | 1,084 | 1 |
+| main a269124 | 612 | 425 | 1,037 | 7 |
+
+- **Gained 56, lost 9.** Rerun 3 times a side (`f1r1`..`f1r3`): 179 answers against 42 of 195, none wrong.
+- **Gained in 3 of 3 against 0 of 3:** 42 tasks. HOLA ×26, reve 004, 004b, 010, 010b, barthe2-big2,
+  array_fill1_abstracted, array_init, s_split_44, SYNAPSE_4_e8_420_e7_572, car_2_e8_491_e7_826, loop__barthe2 ×3,
+  loop__fib (clausified), simple-5-hhk2008, O0_sum01. The rest gained: car_2_e7_1027_e7_359 2 of 3, nested5 2,
+  array_fill2_abstracted 2, nest-len 1, against 0; car_2_e7_1027_e1_1047 and durationThm_2_e1_118 3 against 1,
+  s_split_22 3 against 1, durationThm_2 ×2, reve 019b and bmc-1-test-bmc-1-unsafe 3 against 2; up5 1 against 1, reve 025d
+  and rtp_3 3 against 3.
+- **By:** IMC 31 (16 on composed systems, 15 on systems composition leaves as they are: the DAG's interpolants), the join on the composed
+  rule 23, the bounded runs 2. By family: eldarica-misc 33, Lustre 8, llreve 4, ctigar 3, the rest 8.
+- **Lost in 3 of 3:** s_split_28 and s_multipl_17 (0 of 3 against 3 of 3). Each composes only its query proxy away (`inv
+  → fail → false` to `inv → false`); the join's samples and proofs change with the rule (s_multipl_17's final proof
+  takes 34.5 s on the composed rule).
+- **Lost at the edge:** metros_1 ×5, 14 of 15 against 15 of 15, k-induction's answers at 41 to 54 s here (27 to 31 s on
+  main): IMC shares its slice (as on gen/chc6). id_build 3 against 3, gulv_simp 1 against 0.
+- **Lifting:** 162 of 172 lifts proven, the lift a median 70 ms (at most 7.07 s), the original's proof 436.5 ms (at most
+  30.6 s). Not proven: the original's proof undecided at the deadline 8 times, the lift out of time once, a step goal
+  reading a function once.
+
+**The dev tasks** (513: the 341 composed and the 239 gap tasks, `d1`..`d4`): 278 against 236 in `d4`. `--slice` (the
+cone of influence as a weakening: what nothing relevant reads made the request's) measured 272 against 275 without it
+(`d3`): kept opt-in.
+
+**Does IMC pay now?** On the 239 gap tasks, IMC alone (`i1-*`, `prof/imc.ts`, 55 s): 41 with the chains composed and the
+DAG's interpolants, 20 with the DAG's alone, against gen/chc6's 7 (`runs/chc6/imc1`) and Golem's 193. Wired in, it
+answers 31 of the 56 gained. Of the 198 it leaves, 189 end at the budget: the per-query cost on the one-predicate
+systems is what is left. FIREFLY_11 (55 integers, 21 booleans, 60 request values): its eighth query took 3,744 CDCL
+nodes, about 1.5 ms a node, reader.ts's re-reading 42% of it (locally); Golem answers it in 0.07 s. Composition does
+nothing for the 172 gap tasks it leaves as they are (the Lustre and ctigar transition systems among them).
 
 ## Interpolants and transition powers, kept on gen/chc6 (after 0.28.0)
 

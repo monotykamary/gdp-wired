@@ -12,8 +12,11 @@
 //     (core/bmc.ts: a deterministic loop's forced run, then a model of a k-step goal from the start to error, k = 1, 2,
 //     ...) in turn, in doubling slices; proven, or a run checkDerivation confirms, it ends this process and answers
 //     itself. With `--bmc-here` (or `--kind-ms 0`) the bounded runs are this process's stage after the guided runs,
-//     within --bmc-ms (15,000), as before. `--imc 1`: interpolation over the unrolling takes its turn there too
-//     (core/interp.ts); `--kind 0`: no k-induction there
+//     within --bmc-ms (15,000), as before. Interpolation over the unrolling (core/interp.ts) shares k-induction's slice
+//     (`--imc 2`, the default; `--imc 1` its own turn, `--imc 0` none); `--kind 0`: no k-induction there
+//   - compose (`--compose 1`, the default; 0 for the rule of the CHC as written): every stage but k-induction searches the
+//     system with its chains composed away (compose.ts), its runs expanded and its invariants lifted to the original
+//     rule, where each answer is checked; `--slice 1` also weakens it by its cone of influence
 //   - houdini: the library's search for the invariants the law needs (core/infer.ts), from the states the runs reached:
 //     candidates per predicate (loc = p → a bound, a difference, a sum), those a run's state breaks dropped, then the
 //     kernel's counterexamples to induction choosing which to add; `--old-houdini`, this folder's first Houdini
@@ -33,6 +36,10 @@ import {type Composed, expand, invOf, liftProven, prepare} from './compose.ts'
 // GDP_CHC_ARGS: more flags, read before the command line's (a run's knobs, through modal_chc.py's --env).
 const args = [process.argv[2]!, ...(process.env.GDP_CHC_ARGS ?? '').split(' ').filter(Boolean), ...process.argv.slice(3)], file = args[0]!
 const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 ? d : Number(args[i + 1]) }
+// A sat answer's certificate: the kernel's usual trees, checked by kernel.ts (GDP_CERT=cyclic for the cyclic translation
+// as well, core/cyclic.ts; on the dev tasks main answers the same either way, runs/chc7/d1-main against d1-mainu). kind.ts
+// inherits it.
+process.env.GDP_CERT ??= 'usual'
 const liftMs = opt('--lift-ms', 8000), bmcMs = opt('--bmc-ms', 15000), runsMs = opt('--runs-ms', 5000), guideMs = opt('--guide-ms', 8000), houdiniMs = opt('--houdini-ms', 60000), useHoudini = !args.includes('--no-houdini'), oldHoudini = args.includes('--old-houdini')
 const t0 = performance.now(), ms = () => Math.round(performance.now() - t0)
 const say = (o: object) => console.log(JSON.stringify({task: file, ms: ms(), ...o}))
@@ -46,7 +53,7 @@ try {
   chc = parseChc(readFileSync(file, 'utf8'))
   bo = build(chc)
   void bo.rule.machine
-  cc = prepare(chc, {slice: opt('--slice', 0) !== 0, chains: opt('--compose', 0) !== 0})
+  cc = prepare(chc, {slice: opt('--slice', 0) !== 0, chains: opt('--compose', 1) !== 0})
   if (cc) { b = build(cc.chc); void b.rule.machine }
   b ??= bo
 } catch (e) {
@@ -62,7 +69,7 @@ say({stage: 'import', preds: chc!.preds.size, clauses: chc!.clauses.length, ints
 // The bounded runs go there too (`--bmc-here` keeps them in this process's stage, after the guided runs, as before), in
 // turn with k-induction, so this process's invariant search starts after the guided runs.
 const kindMs = opt('--kind-ms', Math.max(0, houdiniMs - 2000 - ms())), bmcThere = kindMs > 0 && !args.includes('--bmc-here') && bmcMs > 0
-const kind = kindMs > 0 ? Bun.spawn(['nice', '-n', '19', 'bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid), '--bmc', bmcThere ? '1' : '0', '--imc', String(opt('--imc', 0)), '--kind', String(opt('--kind', 1)), '--compose', String(opt('--compose', 0)), '--slice', String(opt('--slice', 0))], {stdout: 'inherit', stderr: 'ignore'}) : undefined
+const kind = kindMs > 0 ? Bun.spawn(['nice', '-n', '19', 'bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid), '--bmc', bmcThere ? '1' : '0', '--imc', String(opt('--imc', 2)), '--kind', String(opt('--kind', 1)), '--compose', String(opt('--compose', 1)), '--slice', String(opt('--slice', 0))], {stdout: 'inherit', stderr: 'ignore'}) : undefined
 process.on('exit', () => { kind?.kill() })
 
 // A run, replayed on the compiled rule and checked against the CHC.
