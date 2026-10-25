@@ -3,7 +3,86 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.30.1
+
+A patch release: four fixes found while upgrading two projects that use gdp-wired, and the CHC-COMP and
+real-world figures measured after 0.30.0. Nothing trusted changed.
+- **A proof that rests on reachable states says so.**
+  - Since 0.16.0, `proveRule` and `proveSteps` search by default, and the invariants the search finds hold only in
+    states reachable from `init`. So a step law could come back plainly proven when it was false from a state no run
+    reaches. A caller that steps the rule from states it is handed (a host's, a stored one) read that verdict as a proof
+    for those states too. One such caller had 3 of its 50 broken variants come back proven at 0.30.0.
+  - The verdict now carries `assumes: {states: 'reachable', laws}` whenever the proof used found invariants (their
+    texts) or k-induction. `proveLeadsTo` does the same.
+  - The new `{from: 'any'}` option proves step laws from every state the laws allow, reachable or not. The search then
+    still looks for breaking runs and for lemmas about functions and lists, but never for an invariant. A step law
+    broken from such a state comes back `stuck: 'sat'` with the state.
+  - The default is unchanged: no proven verdict changes, and only the new field says when one rests on reachability.
+  - `chart.prove(laws, stepLaws, opts)` takes the options too. The README, `references/reading-verdicts.md` ("From any
+    state") and `references/writing-rules.md` say when to use `{from: 'any'}`.
+- **A law over `M.sum()` leaves its rule as it was, and `crossCheck` follows the sum.**
+  - Defining a law that read `M.sum()` added `sum$M` to a set shared by the rule and every rule made from it, before or
+    after. They all decoded and compiled with the sum, and `crossCheck` failed: "the step writes sum$Acct = 0 by its
+    callback, 1 by the machine".
+  - Now a law changes no rule. `proveRule`, `proveSteps`, `proveLeadsTo`, `discover`, `inferLaws`, a decision's rule and
+    `crossCheck` add the sums their laws read (`rule.withSumsOf(...laws)`).
+  - `crossCheck` checks what the callbacks write, not the sum's bookkeeping, also where a flag reads the sum.
+  - **Behaviour change:** `rule.machine` has `sum$M` only where the rule's own flags, step or assumption read it. If you
+    hand a machine to the kernel yourself (`toLean`, `gdp-wired/prove`) with laws over sums, take
+    `rule.withSumsOf(...laws).machine` (as `examples/sums.ts --lean` now does; its Lean output is byte-identical).
+- **`gdp-wired/extract` takes an absolute `file`.** It threw `TypeError: ... reading 'statements'` in `findFunction`,
+  because the path was joined to the working directory. An absolute path (POSIX, or a Windows drive path) is now read as
+  given, and `extractXState` likewise.
+- **Step-law certificates no longer wait out 10 s for every failed translation.**
+  - Bisected on pi-fabric's binding lifecycle (a statechart, 19 step laws; `begin_safe` alone as the reduced case),
+    each version from npm on boat VMs:
+
+    | Version | `begin_safe` | All 19 | All 19, `GDP_CERT=usual` |
+    | --- | --- | --- | --- |
+    | 0.13.3 | 0.4 s | 1.6 s | 1.7 s |
+    | 0.18.0 | 0.5 s | 1.8 s | 2.0 s |
+    | 0.19.0 | 29.2 s | 36.3 s | 1.1 s |
+    | 0.20.0 | 14.8 s | 71.7 s | 1.1 s |
+    | 0.29.0 | 14.0 s | 65.7 s | 0.6 s |
+    | 0.30.0 | 8.3 s | 56.4 s | 0.6 s |
+
+  - The cause: 0.19.0 made the cyclic certificate the default. Three of these step laws don't translate, and each failed
+    translation waited out `GDP_CERT_MS` (10 s, the floor of `translateMs`) before the usual trees were kept. Those trees
+    are an equally checked certificate. 0.20.0 then tried each step law alone after the set failed, so each failure was
+    paid twice. `carry` and `translate` also read only their own 2 s bound, so they ran past the deadline set for them.
+  - The fix:
+    - a step law's translation has four times its own usual time, at least 250 ms (`GDP_CERT_STEP_MS`);
+    - the alone retries share one such budget;
+    - `carry` and `translate` keep the deadline they run in.
+    Past the budget, a step law's certificate is its usual trees, checked by kernel.ts. Machines, loops and progress keep
+    their budgets.
+  - pi-fabric's proof run (every claim, every broken variant and each `crossCheck`), 3 runs a side on boat:
+
+    | | Base, 0.30.0 code | 0.30.1 |
+    | --- | --- | --- |
+    | `bindingStep` | 36.8, 44.1, 40.9 s | 2.5, 2.6, 3.1 s |
+    | The lifecycle module | 69.1, 62.5, 75.3 s | 4.4, 3.6, 3.6 s |
+    | The whole run | 204.0, 154.3, 186.8 s | 138.8, 94.7, 115.5 s |
+
+    `GDP_CERT=usual` takes 0.57 s and 0.50 s for `bindingStep`. Locally (an M-series Mac), `bindingStep` went from 55.4 s
+    to 2.0 s, against 0.3 s with the usual trees.
+
+Measured with the bar against main fe6d8a6 (three runs of its shared baseline, every differing task rerun three times
+a side, Modal, 60 s, 2 vCPU; `runs/bar/runs/fix301-full/REPORT.md`). None wrong anywhere, and nothing gained or lost in
+every run:
+- **CHC-COMP LIA-Lin:** 1,165 against 1,164.33. 7 gained and 4 lost, none solid, 9 of the 11 answered only past 45 s.
+- **TermComp ITS:** 1,153 against 1,154.33 on the task's statement (614 terminating, 539 not), and 1,156 against 1,158.33
+  per component. Every one of the differing tasks was noise on its reruns.
+- **SV-COMP termination:** 246, level; 216 against 215.67 per component.
+- **TIP 2015:** 213 against 212.33 (`list_assoc` gained, at the limit).
+- **Corpora:** frontier round 1 90 of 92 and round 2 32 of 47, every broken variant refused. The real-world corpus is
+  274 / 29 / 8, unchanged.
+- **The 332 step goals:** all proven, the same search on every goal (266.9 s against 262.7 s summed).
+- **Suites:** 224 of 224 by default and 224 of 224 with `--usual`. No 1-vCPU job failed.
+- **Lean:** 48 of 48 sampled recurrent sets check again.
+
+The library (`core/` and `kernel/`, tests excluded) is 2,387,735 bytes against 2,382,130 (+5,605, mostly comments). The
+bar took 3,491 s wall and $17.81 billed, including main's baseline.
 
 **CHC-COMP LIA-Lin settled: a lead, not a tie.** 0.30.0 called CHC a tie because we compared our runs with a single old
 Spacer figure. Four batches (`runs/settle/r1` to `r4`) now run gdp-wired 0.30.0, Z3's Spacer and Golem side by side:
