@@ -5,6 +5,69 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+The join over the rule's own vocabulary (gen/realworld3), with the round's forks for nonlinear rate × time, TigerBeetle's
+time and the extractor merged. Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`,
+`lean-kernel/` as at main 4af8556): every new proof is the kernel's. In our harness (60 s, 2 vCPU), beside main 4af8556
+launched together (`runs/rw3/final/` in the main checkout):
+- **The real-world corpus:** 274 proven, 29 refuted, 8 unknown, no timeouts (boat), against 259, 29 and 23. 15 verdicts
+  changed, all gains, none lost. Each was run three times more a side; 14 were proven in 4 of 4 runs, and Upstash's
+  slidingWindow in 3 of 4. The longest law took 54.4 s (main 78.4 s). research/realworld/README.md has each law, what
+  proves it and what the join needed.
+- **CHC-COMP LIA-Lin:** 1,041 (615 sat, 426 unsat) against 1,039 (612, 427), none wrong, the same 2 disputed labels. The
+  20 tasks that differed or timed out, run three times a side, answered 29 times here and 28 on main (`chcr*`).
+- **TermComp ITS:** gdp 614 terminating and 539 not, against 614 and 540; gdp-scc 612 and 542, against 612 and 543. The
+  8 differing tasks, run three times a side, answered 37 times here and 34 on main.
+- **SV-COMP termination:** gdp 239 on both; gdp-scc 209 against 210, whose one task answered 3 of 3 here against 2 of 3
+  in reruns. **TIP 2015:** 207 proven on both, none wrong.
+- **Frontier corpora:** round 1, 90 of 92 on both, 42 of 42 broken variants refused. Round 2, 32 of 47 against 31 (chc/G/s_split_34,
+  proven here in 10.0 s), 47 of 47 refused; the same job was killed at 200 s on both.
+- **Extract jobs:** the 35 example-law verdicts are the same; 58 tests passed against 56. Upstash's three sources now
+  stop at `ctx.redis` instead of `TContext`.
+- **Suites (223 jobs):** none failed by default (323.2 s wall, 3,893.6 s of job time) or with `--usual` (236.1 s,
+  3,355.1 s).
+- **1 vCPU, ten jobs a side:** none failed. infer's "a law that needs an invariant" took a median of 2,589.99 ms and at
+  most 3,213.65 (main 2,809.79, 3,453.00). data's agrees-with-+ took 2,953.72 and 3,187.75 (main 2,503.26, 3,218.09).
+
+The join (core/infer.ts) takes, per control state, the samples' hull and their bounds. It now reads them in the rule's
+own terms:
+- **Control states, refined on demand:** beside the choice and the yes/nos, the levels that the rule's comparisons
+  with a constant cut a value or a cell into, as CEGAR refines its predicates. A level is added where its part of the
+  samples leaves a counterexample to a caller's law out. Of those, the one that leaves out the most recent
+  counterexamples is taken, ahead of a level that only a form not reading the laws' values excludes. Each refinement
+  starts the join again from the samples.
+- **Three spaces:** the states; for a rule with maps, the cells at a key (laws at every key, read at the prover's
+  instances); and where a rule composes two keys into one (Casbin's `Link[64·a + b]`), the cells at two keys and at
+  their composite (laws at every two keys).
+- **Values:** the terms the laws read that aren't linear (max(attempts, 1)) and the products the rule multiplies
+  (top·window), each a value of its own.
+- **Directions:** the rule's own comparisons (its flags too, and a clock a request moves, `bn + db`, read as the clock
+  after), and the laws' preimages. A preimage is a comparison read after the step through each branch of the step's
+  terms, with the request's values eliminated against the step's own comparisons. On a form's counterexample, its own
+  preimage is tried first, kept only where it leaves the state out.
+- **Roots:** the step laws as well as the laws. The join also runs on rules with maps and with a history.
+- A kernel witness's missing key names read as 0, as its scalars are, in the counterexamples of both searches.
+
+The forks, merged:
+- **Nonlinear rate × time** (gen/rw3-nonlin): CDCL models with a product left free are refused (`realModels` on by
+  default). Past 40 rows, products of each monomial's factors' bounds are added (prove.ts). fresh.ts gains a
+  high-water law. Upstash ×3 and x/time AllowN are proven.
+- **TigerBeetle's time** (gen/rw3-tb): a step law's laws are certified and checked only once the step laws are proven,
+  and a rule's kind laws are the same objects each call (prove.ts, dsl.ts). Laws 4 and 6 take 35 to 43 s, against 87
+  to 88 s, still unknown; law 7 is proven.
+- **The extractor** (gen/rw3-extract): a class's inherited fields at the type arguments it extends with; XState guards
+  and actions followed through the imports; Go structs passed by value. research/extract/README.md has the details.
+- **Two-key instances** (gen/rw3-twokey, its prove.ts part): a law about several keys is read at the tuple that a
+  composed read matches. Its separate search (core/twokey.ts) was not merged: the join's space of two keys finds
+  Casbin's invariant.
+
+Measured and dropped: conditional sums proposed by withMapSums (each counted field of a record, summed where another
+field holds a value the rule compares it with). Medusa's liveness still found no rank, and TigerBeetle's 43 sums
+doubled its second search.
+
+**Size:** `core/` and `kernel/` (tests excluded) are 2,281,914 bytes and 31,272 lines, against main 4af8556's 2,234,466
+and 30,687: +47,448 bytes and +585 lines. infer.ts +34,656 (+426 lines), prove.ts +4,845, the extractor +6,078, fresh.ts
++1,139, dsl.ts +730.
+
 Sums over a map's keys, and liveness under strong fairness (gen/sums). Two trusted changes, Lean-first, each on the
 standard axioms (`propext`, `Classical.choice`, `Quot.sound`; `isSum_change` and `dsum_le` on `propext` and `Quot.sound`
 alone), mirrored by kernel.ts and tested on found and tampered certificates by core/conformance.ts and

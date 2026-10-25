@@ -93,10 +93,23 @@ export function extractXState(code: string, opts: XStateOptions): XStateExtracti
       return p && (ts.isPropertyAssignment(p) ? p.initializer : ts.isShorthandPropertyAssignment(p) ? p.name : undefined)
     }
     const prop = (o: ts.Expression | undefined, name: string) => { const x = propRaw(o, name); return x && strip(x) }
+    // What a name stands for, through the program: a const's value or a function declared, in the files read (an import,
+    // `export default X`, a const of a const), as TypeScript resolves the name; anything else as it is.
+    const valueOf = (e: ts.Expression, depth = 0): ts.Expression | ts.FunctionDeclaration => {
+      e = strip(e)
+      if (!ts.isIdentifier(e) || depth > 8) return e
+      let sym = ts.isShorthandPropertyAssignment(e.parent) && e.parent.name === e ? checker.getShorthandAssignmentValueSymbol(e.parent) : checker.getSymbolAtLocation(e)
+      if (sym && sym.flags & ts.SymbolFlags.Alias) sym = checker.getAliasedSymbol(sym)
+      const d = sym?.valueDeclaration
+      if (d && ts.isFunctionDeclaration(d) && d.body) return d
+      if (d && ts.isVariableDeclaration(d) && d.initializer && d.parent.flags & ts.NodeFlags.Const && !d.getSourceFile().isDeclarationFile) return valueOf(d.initializer, depth + 1)
+      return e
+    }
     const objOf = (o: ts.Expression | undefined, name: string): ts.ObjectLiteralExpression | undefined => {
-      const v = prop(o, name)
-      if (v === undefined) return undefined
-      return ts.isObjectLiteralExpression(v) ? v : refuse(v, `the ${name} given as other than an object of them`)
+      const v0 = prop(o, name)
+      if (v0 === undefined) return undefined
+      const v = valueOf(v0)
+      return ts.isObjectLiteralExpression(v) ? v : refuse(v0, `the ${name} given as other than an object of them`)
     }
 
     // The factory's arguments: an object of functions (outside), or the context it starts with (the chart's params).
@@ -247,22 +260,24 @@ export function extractXState(code: string, opts: XStateOptions): XStateExtracti
     // One function of ({context, event}) (v4: (context, event)) at a time, with the context as variables and the event's
     // fields as inputs.
     const run = (f: ts.Expression, what: string): {v: V, p: Path} => {
-      const fn = strip(f)
-      if (!isFn(fn)) return refuse(f, `${what}: a reference to a function defined elsewhere`)
+      const fn = valueOf(f)
+      if (!isFn(fn) && !ts.isFunctionDeclaration(fn)) return refuse(f, `${what}: a reference to a function defined elsewhere`)
       if (fn.parameters.length > (v === 4 ? 2 : 1)) refuse(fn, `${what} reads its params (guards and actions with params are not in the subset)`)
       if (fn.getSourceFile() === sf) (s.spans ??= []).push([fn.getStart(), fn.end])
       let p: Path = {pc: [], locals: new Map(scope), heap: ctxHeap() as never, wrote: [], nows: 0}
       if (v === 5 && fn.parameters[0]) p = ex.bind(fn.parameters[0].name, {t: 'ref', id: 'xs.arg'}, p)
       if (v === 4 && fn.parameters[0]) p = ex.bind(fn.parameters[0].name, ctxValue(), p)
       if (v === 4 && fn.parameters[1]) p = ex.bind(fn.parameters[1].name, {t: 'ref', id: 'xs.event'}, p)
-      if (!ts.isBlock(fn.body)) { const [x, q] = ex.ev(fn.body, p); return {v: x, p: q} }
+      if (!ts.isBlock(fn.body!)) { const [x, q] = ex.ev(fn.body as ts.Expression, p); return {v: x, p: q} }
       const flow = ex.block(fn.body.statements, p)
       if (flow.live || flow.rets.length !== 1 || ex.throws.length) refuse(fn, `${what}: one return, no throw (a function by cases is written with ?: in the subset)`)
       return {v: flow.rets[0]![1], p: flow.rets[0]![0]}
     }
     // A guard: a condition of ({context, event}), or stateIn.
     const guardOf = (g: ts.Expression, name: string): B | {in: string} => {
-      g = strip(g)
+      const gv = valueOf(g)
+      if (ts.isFunctionDeclaration(gv)) { const {v: out} = run(g, `the guard ${name}`); if (out.t !== 'bool') refuse(g, `the guard ${name} returns other than a boolean`); return (out as {e: B}).e }
+      g = gv
       if (ts.isCallExpression(g) && ts.isIdentifier(g.expression) && g.expression.text === 'stateIn') {
         const a = g.arguments[0] && strip(g.arguments[0])
         const path = (o: ts.Expression): string => (ts.isStringLiteral(o) ? o.text : ts.isObjectLiteralExpression(o) && o.properties.length === 1 && ts.isPropertyAssignment(o.properties[0]!) ? `${o.properties[0].name.getText()}.${path(strip(o.properties[0].initializer))}` : refuse(o, 'a stateIn of other than one state'))
@@ -278,7 +293,9 @@ export function extractXState(code: string, opts: XStateOptions): XStateExtracti
     type Write = {k: string, x?: V, failed?: string}
     const failing = <T>(f: () => T): T | {failed: string} => { try { return f() } catch (e) { if (e instanceof Refusal) return {failed: `${e.where}: ${e.what}`}; throw e } }
     const actionOf = (a: ts.Expression, name: string): Write[] | null => {
-      a = strip(a)
+      const av = valueOf(a)
+      if (ts.isFunctionDeclaration(av)) { notes.push(`the action ${name} writes no context (its effects outside the machine are left out)`); return null }
+      a = av
       const fname = ts.isCallExpression(a) && ts.isIdentifier(a.expression) ? a.expression.text : undefined
       if (fname === 'assign' && ts.isCallExpression(a)) {
         const arg = a.arguments[0] ? strip(a.arguments[0]) : refuse(a, 'assign()')
@@ -315,11 +332,41 @@ export function extractXState(code: string, opts: XStateOptions): XStateExtracti
       if (isFn(a)) { notes.push(`the action ${name} writes no context (its effects outside the machine are left out)`); return null }
       return refuse(a, `the action ${name}: an action the subset doesn't read`)
     }
-    const named = (o: ts.ObjectLiteralExpression | undefined) => (o?.properties ?? []).map(x => (ts.isPropertyAssignment(x) ? [memberName(x.name), x.initializer] as const : refuse(x, 'an entry written other than name: value')))
+    // An object's entries by name: `name: value`, `name` (the value its name stands for), `...other` (another
+    // object's entries, the later ones winning, as JavaScript spreads them).
+    const named = (o: ts.ObjectLiteralExpression | undefined, out = new Map<string, ts.Expression>(), depth = 0): Map<string, ts.Expression> => {
+      for (const x of o?.properties ?? []) {
+        if (ts.isPropertyAssignment(x)) out.set(memberName(x.name), x.initializer)
+        else if (ts.isShorthandPropertyAssignment(x)) out.set(x.name.text, x.name)
+        else if (ts.isSpreadAssignment(x)) { const w = valueOf(x.expression); if (!ts.isObjectLiteralExpression(w) || depth > 4) refuse(x, 'an entry spread from other than an object of them'); named(w as ts.ObjectLiteralExpression, out, depth + 1) }
+        else refuse(x, 'an entry written other than name: value')
+      }
+      return out
+    }
+    // Only the guards and actions the config names are read: XState runs no other (an object shared by several machines
+    // holds others').
+    const names = new Set<string>()
+    const namesIn = (e: ts.Expression, role?: boolean): void => {
+      e = strip(e)
+      if (role && ts.isStringLiteral(e)) { names.add(e.text); return }
+      if (ts.isArrayLiteralExpression(e)) { e.elements.forEach(el => namesIn(el, role)); return }
+      if (ts.isCallExpression(e)) { e.arguments.forEach(el => namesIn(el, role)); return }
+      if (!ts.isObjectLiteralExpression(e)) return
+      for (const p of e.properties) if (ts.isPropertyAssignment(p)) {
+        const k = ts.isIdentifier(p.name) || ts.isStringLiteral(p.name) ? p.name.text : ''
+        namesIn(p.initializer, ['guard', 'cond', 'actions', 'entry', 'exit'].includes(k) || (role === true && k === 'type'))
+      }
+    }
+    namesIn(config)
+    const implementations = (o: ts.ObjectLiteralExpression | undefined, what: string) => {
+      const all = [...named(o)], used = all.filter(([n]) => names.has(n))
+      if (used.length < all.length) notes.push(`${all.length - used.length} ${what} of the object the config never names, not read (XState runs only those it names)`)
+      return used
+    }
     const guards: [string, B | {in: string}][] = [], actions: [string, Write[] | null][] = []
     const where0 = v === 5 ? setupArg : options
-    for (const [n, g] of named(objOf(where0, 'guards'))) guards.push([n, guardOf(g, n)])
-    for (const [n, a] of named(objOf(where0, 'actions'))) actions.push([n, actionOf(a, n)])
+    for (const [n, g] of implementations(objOf(where0, 'guards'), 'guards')) guards.push([n, guardOf(g, n)])
+    for (const [n, a] of implementations(objOf(where0, 'actions'), 'actions')) actions.push([n, actionOf(a, n)])
     if (v === 4 && setupArg) refuse(setupArg, 'setup() with XState v4')
     const unread = (where0 && ts.isObjectLiteralExpression(where0) ? where0.properties : []).map(x => (x.name ? memberName(x.name) : '')).filter(k => !['guards', 'actions', 'delays', 'actors', 'services', 'types', 'schemas'].includes(k))
     if (unread.length) refuse(where0!, `${unread.join(', ')} in ${v === 5 ? 'setup' : 'the options'}: not read`)

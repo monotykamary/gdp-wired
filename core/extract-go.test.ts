@@ -346,6 +346,36 @@ t('another package\'s struct as an argument: its exported fields read as inputs;
   refused(two('type L struct{ N int64 }\nfunc (l *L) Take(r *q.Rule) { l.N = r.In.A }'), /In of the argument: q.Inner: a value outside the subset/)
 }, 600_000)
 
+t('a struct given by value (gitea\'s CreateReviewOptions, the csr options): its fields inputs; writing the copy changes nothing the caller sees', () => {
+  const x = ok(go(`
+type Opts struct {
+	Allow bool
+	Max   int32
+	note  string
+}
+type L struct{ N int64 }
+func (l *L) Take(o Opts, n int64) bool {
+	o.Max++
+	if !o.Allow || n < 0 || l.N+n > int64(o.Max) { return false }
+	l.N += n
+	return true
+}`, 'L'))
+  expect(x.source).toContain('Take_o_Allow')
+  expect(x.evidence!.coverage.hit).toBe(x.evidence!.coverage.arms)
+  step(x, 'a refused take changes nothing', (b, a) => a.N.eq(b.N), b => b.method.is('Take').and(b.Take_o_Allow.not()))
+  // (a field of a narrower integer type, read through a pointer the caller gives: a value past its type is no request)
+  ok(go('type Opts struct{ Max int32 }\ntype L struct{ N int64 }\nfunc (l *L) Take(o *Opts) { if l.N < int64(o.Max) { l.N++ } }', 'L'))
+  // another package's struct by value: its exported fields (all its code can set)
+  const root = mkdtempSync(`${tmpdir()}/gdp-gocase-`)
+  writeFileSync(`${root}/go.mod`, 'module example.com/gocase\n\ngo 1.22\n')
+  mkdirSync(`${root}/p`); mkdirSync(`${root}/q`)
+  writeFileSync(`${root}/q/q.go`, 'package q\n\ntype Rule struct {\n\tMax    int64\n\thidden int64\n}\n')
+  writeFileSync(`${root}/p/p.go`, 'package p\n\nimport "example.com/gocase/q"\n\ntype L struct{ N int64 }\nfunc (l *L) Take(r q.Rule, n int64) bool {\n\tif n < 0 || l.N+n > r.Max { return false }\n\tl.N += n\n\treturn true\n}\n')
+  const y = ok(extractGo(`${root}/p`, {entry: 'L', check: budget}))
+  expect(y.source).toContain('Take_r_Max')
+  expect(y.source).not.toContain('hidden')
+}, 600_000)
+
 t('Go\'s integer division truncates toward zero; conversions wrap into the narrower type', () => {
   const x = ok(go(`
 type D struct {
