@@ -793,7 +793,11 @@ export type KindLean = {kl: KInduction, start: {goal: Goal, tree: Tree, inst: In
 export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {stepLaws?: StepLaw[], liveness?: Liveness[], tamper?: {what: string, machine: Machine}, simp?: string[], free?: string[],
     ghosts?: string[], after?: (ix: (name: string) => number) => string, historyTampers?: {what: string, relations: {when: C, holds: C}[], withRecordTrees: boolean}[],
     refined?: {impl: Machine, spec: Machine, wit: Record<string, E>, stutter: C, specPre: number}, loop?: {loop: Loop, tamper?: {what: string, loop: Loop}}, noFacts?: boolean,
-    kind?: KindLean} = {}): string {
+    kind?: KindLean,
+    // (core/conformance.ts's twins: a sums machine tampered, with kernel.ts's answer; the cover goals' trees as found; a
+    // liveness under strong fairness tampered, with kernel.ts's answer)
+    sumTampers?: {what: string, m: Machine, covers?: Record<string, E[]>, expect: boolean}[], coverTrees?: Record<string, Tree>,
+    liveTampers?: {what: string, l: Liveness, expect: boolean}[]} = {}): string {
   const hm = given.history ? {...given, history: {...given.history, prune: undefined}} : undefined
   const hplain = hm ? historyMachine(hm) : undefined, stepLaws = opts.stepLaws ?? [], rf = opts.refined, gv = opts.ghosts ?? []
   // A machine with sums goes as its plain machine too (kernel.ts's sumMachine), built in Lean (Sums.lean's
@@ -901,7 +905,14 @@ theorem ${lid}_holds (run : SRun ${id}_machine)
         ∧ evalC (sView ${id}_machine (run.st m).1 (run.st m).2 ι κ).1 (sView ${id}_machine (run.st m).1 (run.st m).2 ι κ).2 ${own} = true) →
       ∀ n, ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 h.1 = true ∧ ∀ p ∈ h.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
     ∀ n, evalC (run.st n).1 (run.st n).2 ${lid}.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 ${lid}.to = true :=
-  sleads_sf_soundA ${id}_machine ${id}_proof ${lid} ${lid}_lv _ _ _ _ _ ${id}_check ${lid}_ok ${lid}_stay ${lid}_cover ${lid}_helps ${lid}_allows run fair`
+  sleads_sf_soundA ${id}_machine ${id}_proof ${lid} ${lid}_lv _ _ _ _ _ ${id}_check ${lid}_ok ${lid}_stay ${lid}_cover ${lid}_helps ${lid}_allows run fair${j === 0 ? (opts.liveTampers ?? []).map(t => {
+          const L = `(${liveLit(t.l, {e, c}, ix, list(Object.keys(m.state).map(s2 => `(${ix(s2)}, ${ix(`${s2}'`)})`)), list(Object.keys(m.maps ?? {}).map(mp => `(${mx(mp)}, ${mx(`${mp}'`)})`)))} : Live)`
+          const steps = strongly(t.l) ? `checkSKStep ${id}_machine ${id}_proof (sliveStep ${L} ${L}.pend (liveStaySC ${L}) ${lid}_sp)
+    && checkSKStep ${id}_machine ${id}_proof (sliveStep ${L} ${L}.pend (liveCoverC ${L}) ${lid}_cp) && sliveHelpsOkS ${id}_machine ${id}_proof ${L} ${list(livenessLevels(t.l).map(String))} ${lid}_hp`
+            : `checkSKStep ${id}_machine ${id}_proof (sliveStep ${L} ${L}.pend (liveStayC ${L}) ${lid}_sp)
+    && checkSKStep ${id}_machine ${id}_proof (sliveStep ${L} ${L}.pend (liveCoverC ${L}) ${lid}_cp) && sliveHelpsOk ${id}_machine ${id}_proof ${L} ${lid}_hp`
+          return `\n-- TAMPERED: ${t.what}. Lean computes the check to ${t.expect}, kernel.ts's answer.\nexample : (${steps}) = ${t.expect} := by ${checkBy}`
+        }).join('') : ''}`
       }})
       continue
     }
@@ -1019,17 +1030,11 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
     return r2.proven ? r2 : undefined
   })] as const))
   const allowGoals = [...allowed.values()].flatMap(a => (a ? [a.out.goal!] : []))
-  // Each sum's cover goals as Lean builds them (Sums.lean's coverGoal: the rule's assumption and the write's value with
-  // their flags inlined as Lean inlines them), per write at every key to a map the term reads, in the rule's order.
-  const covers = sm ? Object.entries(sm.sums!).map(([s2, sum]): Goal[] => {
-    const cs = sumCovers(sm)[s2]!, X: E = {op: 'var', name: sumParts(s2).x}, inlE = (t: E): E => substE(t, {vars: {}, maps: {}, flags: Object.fromEntries(allFlags.map(([f, fc]) =>
-      [f, fc.op === 'all' ? eqC({op: 'var', name: `?${f}`}, zero1(1)) : eqC({op: 'if', c: fl0[f]!, then: zero1(1), else: zero1(0)}, zero1(1))]))})
-    return Object.entries(sm.step.maps ?? {}).flatMap(([map, w]): Goal[] => ('each' in w && JSON.stringify(sum.term).includes(`"op":"get","map":${JSON.stringify(map)}`) ? [{name: `${s2} @cover ${map}`, hyps: [
-      sInline(sm.assume ?? trueC), ...cs.map((c2): C => ({op: 'not', x: eqC(X, inlE(c2))})),
-      {op: 'not', x: eqC(substE(inlE(w.value), {vars: {[w.each]: X}, maps: {}, flags: {}}), {op: 'get', map, key: X})}]}] : []))
-  }) : []
+  // Each sum's cover goals (kernel.ts builds them as Sums.lean's sumCoverGoal does), per sum in order.
+  const covers = sm ? Object.keys(sm.sums!).map(s2 => sumMachine(sm).goals.filter(g => g.name.startsWith(`${s2} @cover `))) : []
   const named = machineNames(m, laws, allSteps, stepLaws, {...opts, ...(hm ? {record: hm.history.record} : {})})
-  const vars = [...new Set([...named.vars, ...[...goalsL, ...goalsS, ...allowGoals, ...(hplain?.goals ?? []), ...covers.flat(), ...(opts.kind ? [opts.kind.start.goal] : [])].flatMap(g => g.hyps.flatMap(varsOf))])]
+  const sumNames = sm ? Object.entries(sm.sums!).flatMap(([s2, sum]) => { const {flag, x} = sumParts(s2); return [s2, sum.key, `?${flag}`, `w?${flag}`, x] }) : []
+  const vars = [...new Set([...named.vars, ...sumNames, ...[...goalsL, ...goalsS, ...allowGoals, ...(hplain?.goals ?? []), ...covers.flat(), ...(opts.kind ? [opts.kind.start.goal] : [])].flatMap(g => g.hyps.flatMap(varsOf))])]
   const mapNames = [...new Set([...named.maps, ...[...JSON.stringify([...goalsL, ...goalsS, ...allowGoals]).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!)])]
   const enc = (g: Goal, tree: Tree) => encode({name: `${id}: ${g.name}`, goal: g, tree}, false, true, vars, mapNames)
   const {e, c} = leanTerms(vars, mapNames, id)
@@ -1068,7 +1073,17 @@ def ${id}_machine : SMachine := ${id}_sums.plain`
   // Each cover goal's tree, the sums' check, and what it gives: each sum exact, the rule's assumption the plain
   // machine's, the laws.
   const sumsBlock = () => {
-    const trees = covers.map(gs => list(gs.map(g => { const out = grow(g); if (!('tree' in out)) throw new Error(`${id}: ${g.name} not proven`); const x2 = enc(g, out.tree); return `(${x2.tab}, ${x2.tree})` })))
+    const trees = covers.map(gs => list(gs.map(g => {
+      const t2 = opts.coverTrees?.[g.name] ?? (() => { const out = grow(g); if (!('tree' in out)) throw new Error(`${id}: ${g.name} not proven`); return out.tree })()
+      const x2 = enc(g, t2); return `(${x2.tab}, ${x2.tree})`
+    })))
+    const tamperLit = (t: {m: Machine, covers?: Record<string, E[]>}) => {
+      const cov = t.covers ?? sumCovers(t.m), base: Machine = {...t.m, sums: undefined, state: Object.fromEntries(Object.entries(t.m.state).filter(([n2]) => !(n2 in t.m.sums!)))}
+      return `(⟨${lit(base)},
+  ${list(Object.entries(t.m.sums!).map(([s2, sum]) => { const {flag, x} = sumParts(s2); return `⟨${ix(s2)}, ${ix(sum.key)}, ${e(sum.term)}, ${list(cov[s2]!.map(e))}, ${ix(`?${flag}`)}, ${ix(`w?${flag}`)}, ${ix(x)}⟩` }))}⟩ : SumMachine)`
+    }
+    const tampered = (opts.sumTampers ?? []).map(t => `-- TAMPERED: ${t.what}. Lean computes the check to ${t.expect}, kernel.ts's answer.
+example : (checkSums ${tamperLit(t)} ${id}_covers && checkSMachine ${tamperLit(t)}.plain ${id}_proof) = ${t.expect} := by ${checkBy}`)
     return `
 def ${id}_covers : List (List (List VDef × Tree)) := ${list(trees)}
 theorem ${id}_scheck : checkSums ${id}_sums ${id}_covers = true := by ${checkBy}
@@ -1081,7 +1096,7 @@ theorem ${id}_own : ∀ ρ M, SReach ${id}_machine ρ M → ∀ ι κ, evalC (sV
   sum_allowed ${id}_sums ${id}_scheck (sOk_of ${id}_check)
 ${Object.entries(sm!.sums!).map(([s2, sum], j) => `/-- ${s2}: the sum over every key of its term (Sums.lean's IsSum). -/
 theorem ${id}_sum${j} : ∀ ρ M, SReach ${id}_machine ρ M → IsSum (gAt (${e(sum.term)}) M) (ρ ${ix(s2)}) :=
-  fun ρ M h => ${id}_exact ρ M h (${id}_sums.sums[${j}]'(by decide)) (List.getElem_mem (by decide))`).join('\n')}`
+  fun ρ M h => ${id}_exact ρ M h (${id}_sums.sums[${j}]'(by decide)) (List.getElem_mem (by decide))`).join('\n')}${tampered.length ? `\n${tampered.join('\n')}` : ''}`
   }
   // Each relation's record goal and its tree, the history's check, and the laws over histories.
   const histBlock = () => {

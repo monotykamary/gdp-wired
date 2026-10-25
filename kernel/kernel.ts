@@ -550,7 +550,6 @@ const updateOf = (m: Machine): Update => {
   }
 }
 const inlineFlags = (m: Machine, c: C): C => substC(c, {vars: {}, maps: {}, flags: flagsOf(m)})
-const inlineFlagsE = (m: Machine, e: E): E => substE(e, {vars: {}, maps: {}, flags: flagsOf(m)})
 // A quantified flag ?f, closed: it is 0 or 1; where it is 1, its condition holds at each key the proof names (instances
 // under ?f); where it is 0, the condition fails at a fresh witness w?f. A real step decides ?f by the condition, and if
 // that fails some key fails it, so these hold of every real step: a goal that refutes them refutes the machine.
@@ -838,11 +837,12 @@ export function sumCovers(m: Machine): Record<string, E[]> {
     return [s, [...out.values()]]
   }))
 }
-export function sumMachine(m: Machine): {machine: Machine, goals: Goal[]} {
+// `given`: each sum's cover keys (core/conformance.ts's tampered twins), else sumCovers'.
+export function sumMachine(m: Machine, given?: Record<string, E[]>): {machine: Machine, goals: Goal[]} {
   const sums = Object.entries(m.sums ?? {})
   if (!sums.length) return {machine: m, goals: []}
   if (m.history) throw new Error(`${m.name}: sums over a map's keys go on a machine without a history`)
-  const covers = sumCovers(m), flags = m.step.flags ?? {}
+  const covers = given ?? sumCovers(m), flags = m.step.flags ?? {}
   // (substitutions that leave each flag as it is: Lean reads a flag as its variable in the step's view)
   const same: Record<string, C> = Object.fromEntries(Object.keys(flags).map(f => [f, {op: 'flag', name: f} as C]))
   // (a sum may be declared in the state, at 0, which no step sets: a state variable the plain machine moves)
@@ -863,6 +863,8 @@ export function sumMachine(m: Machine): {machine: Machine, goals: Goal[]} {
     const atStart = substE(term, {vars: {}, maps: Object.fromEntries(read.map(map => [map, () => ({op: 'const', value: m.maps![map]!} as E)])), flags: same})
     if (natE(atStart, {}) !== 0n) bad('its term is not 0 at the start')
     for (const c of cs) if (JSON.stringify(c).includes('"op":"flag"') || readsKey(c, key) || readsKey(c, x)) bad('a key a step writes it at reads a flag')
+    // (Sums.lean's sumOk1: a map the term reads written at one key has that key among the cover keys)
+    for (const map of read) { const w = m.step.maps?.[map]; if (w && !('each' in w) && !cs.some(c => JSON.stringify(c) === JSON.stringify(w.key))) bad(`the key ${map} is written at is no cover key`) }
     const here = (t: E): E => substE(term, {vars: {[key]: t}, maps: {}, flags: same})
     // A map read after the step, over the step's view (Sums.lean's postRd).
     const post = (map: string) => (k2: E): E => {
@@ -876,13 +878,16 @@ export function sumMachine(m: Machine): {machine: Machine, goals: Goal[]} {
     steps[s] = {op: 'sub', a: {op: 'add', a: S, b: dTerm(after, cs)}, b: dTerm(here, cs)}
     qflags[flag] = {op: 'all', key, c: {op: '<=', a: dTerm(here, [{op: 'var', name: key}, ...cs]), b: S}}
     facts.push({op: 'and', xs: [{op: '<=', a: dTerm(here, cs), b: S}, {op: 'flag', name: flag}]})
-    // A map it reads written at every key: at a key none of the cover keys is, the write keeps the cell.
-    for (const map of read) {
-      const w = m.step.maps?.[map]
-      if (!w || !('each' in w)) continue
+    // A map it reads written at every key: at a key none of the cover keys is, the write keeps the cell. Built as
+    // Sums.lean's sumCoverGoal builds it (each write at every key in the machine's order, its flags inlined as Lean
+    // inlines them: a flag f read as (if f's condition then 1 else 0) = 1), so the Lean export reads these goals as they are.
+    const lean: Subst = {vars: {}, maps: {}, flags: Object.fromEntries(Object.entries(flagsOf(m)).map(([f, c]): [string, C] => [f, flags[f]!.op === 'all' ? c
+      : {op: '=', a: {op: 'if', c, then: {op: 'const', value: 1}, else: ZERO}, b: {op: 'const', value: 1}}]))}
+    for (const [map, w] of Object.entries(m.step.maps ?? {})) {
+      if (!('each' in w) || !read.includes(map)) continue
       const X: E = {op: 'var', name: x}
-      goals.push({name: `${s} @cover ${map}`, hyps: [inlineFlags(m, m.assume ?? TRUE_C), ...cs.map((c): C => ({op: 'not', x: {op: '=', a: X, b: c}})),
-        {op: 'not', x: {op: '=', a: substE(inlineFlagsE(m, w.value), {vars: {[w.each]: X}, maps: {}, flags: same}), b: {op: 'get', map, key: X}}}]})
+      goals.push({name: `${s} @cover ${map}`, hyps: [substC(m.assume ?? TRUE_C, lean), ...cs.map((c): C => ({op: 'not', x: {op: '=', a: X, b: c}})),
+        {op: 'not', x: {op: '=', a: substE(substE(w.value, lean), {vars: {[w.each]: X}, maps: {}, flags: {}}), b: {op: 'get', map, key: X}}}]})
     }
   }
   // (Sums.lean's sumsC: each sum's facts, then the rest, ending in 0 ≤ 0)

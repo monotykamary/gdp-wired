@@ -2,12 +2,12 @@
 // op, or this file doesn't type-check), concrete inputs and map cells, and the reference value from evalE and evalC.
 // core/conformance.test.ts holds every consumer of terms to it; lean-kernel/conformance.ts writes its cases for Lean.
 import {type C, type E, type Law, type Machine, type State, evalC, evalE, interpret, n as k, x as v} from './machine.ts'
-import {type Goal, type KInduction, type Loop, type QC, type QE, type QGoal, type QMachine, type Recur, type RecurCases, type Tree, caseGoals, checkKInduction, coverGoal, kInductionStart, kInductionSteps, recurGoal, stepLawObligations, trueC} from '../kernel/kernel.ts'
+import {type Goal, type KInduction, type Loop, type QC, type QE, type QGoal, type QMachine, type Recur, type RecurCases, type Tree, type Liveness, type StepLaw, caseGoals, check, checkKInduction, checkLaws, checkStepLaws, coverGoal, kInductionStart, kInductionSteps, livenessParts, recurGoal, stepLawObligations, sumCovers, sumMachine, trueC} from '../kernel/kernel.ts'
 import {type KindProof, proveKInduction} from './kind.ts'
 import type {Step} from './solver.ts'
 import {type Rat, q} from './q.ts'
 import {evalQC, evalQE} from './rationals.ts'
-import {grow} from '../kernel/prove.ts'
+import {grow, proveLaws, proveLiveness} from '../kernel/prove.ts'
 import {findNeverEnds} from './nonterm.ts'
 import {type Callable, type Measure, type Nat, define, natural, when} from './data.ts'
 
@@ -432,3 +432,133 @@ export function kindCases(n: number, ms = 3000): KindCase[] {
 }
 // kernel.ts's answer (a refusal by an error is a refusal).
 export const kindAnswer = (c: {m: Machine, laws: Law[]}, t: {kl: KInduction, proof: KindProof}): boolean => { try { return checkKInduction(c.m, c.laws, t.kl, t.proof) } catch { return false } }
+
+// --- sums over a map's keys (kernel.ts's sumMachine, Sums.lean's checkSums and SumMachine.plain) ----------------------
+
+// Random machines with a map M (every cell 0 at the start) and a sum S of a term of M's cell over every key: the cell, a
+// count of the cells above 0, or the cells capped at 3. Families: `set`, one write at w (u, M[w] + u or M[w] ∸ u);
+// `two`, a write at every key that adds u at w or takes it at w2; `move`, a mint at w (and T, a total kept beside, by u)
+// or a move of u from w to w2 where M[w] has it (a write at every key, w2 = w moving nothing). The laws: each key's term
+// at most S (true of every sum, proven from its facts); for `move`, S = T and each cell at most T. Each case's
+// certificate is the kernel's proof, and its tampered twins, each with kernel.ts's answer:
+//   - the cover without its last key (one written at one key: refused by the check; at every key: the cover goal);
+//   - M starting at 1 (the term is no longer 0 at the start), the term read at the key + 1 (not a term at its key);
+//   - twice the term (another sum: the trees for this one's laws read it wrong);
+//   - for a write at every key, the step changing a key past the cover too (M[w + 1] + 1 under `two`'s first op),
+//     its cover kept as found.
+export type SumTamper = {what: string, m: Machine, covers?: Record<string, E[]>}
+export type SumCase = {m: Machine, laws: Law[], family: string, proof: {instances: Record<string, Record<string, E[]>>, trees: Record<string, Tree>}, tampers: SumTamper[]}
+const sumKey = 'k$S', at = (key: E): E => ({op: 'get', map: 'M', key}), eqE = (a: E, b: E): C => ({op: '=', a, b}), and2 = (a: C, b: C): C => ({op: 'and', xs: [a, b]})
+const iteE = (c: C, a: E, b: E): E => ({op: 'if', c, then: a, else: b}), add = (a: E, b: E): E => ({op: 'add', a, b}), sub = (a: E, b: E): E => ({op: 'sub', a, b})
+export function randomSumMachine(): {m: Machine, laws: Law[], family: string} {
+  const family = pick(['set', 'two', 'move'] as const), termFam = family === 'move' ? 'cell' : pick(['cell', 'count', 'cap'] as const)
+  const cell = at(v(sumKey)), term: E = termFam === 'cell' ? cell : termFam === 'count' ? iteE({op: '<', a: k(0), b: cell}, k(1), k(0)) : {op: 'min', a: cell, b: k(3)}
+  const op = (i: number) => eqE(v('op'), k(i)), K = v('k$w')
+  const write = family === 'set' ? {key: v('w'), value: iteE(op(0), v('u'), iteE(op(1), add(at(v('w')), v('u')), sub(at(v('w')), v('u'))))}
+    : family === 'two' ? {each: 'k$w', value: iteE(and2(op(0), eqE(K, v('w'))), add(at(K), v('u')), iteE(and2(op(1), eqE(K, v('w2'))), sub(at(K), v('u')), at(K)))}
+    : {each: 'k$w', value: iteE(op(0), iteE(eqE(K, v('w')), add(at(K), v('u')), at(K)),
+        iteE(and2(op(1), {op: '<=', a: v('u'), b: at(v('w'))}), add(sub(at(K), iteE(eqE(K, v('w')), v('u'), k(0))), iteE(eqE(K, v('w2')), v('u'), k(0))), at(K)))}
+  const m: Machine = {name: `sums ${family} ${termFam}`, params: [], inputs: ['op', 'w', 'w2', 'u'], state: {S: k(0), ...(family === 'move' ? {T: k(0)} : {})}, maps: {M: 0},
+    step: {maps: {M: write}, ...(family === 'move' ? {state: {T: iteE(op(0), add(v('T'), v('u')), v('T'))}} : {})},
+    assume: and2({op: '<=', a: v('op'), b: k(2)}, {op: '<=', a: v('u'), b: k(5)}), sums: {S: {key: sumKey, term}}}
+  const laws: Law[] = [{name: 'each key at most the sum', forall: 'k$l', holds: {op: '<=', a: JSON.parse(JSON.stringify(term).replaceAll('"k$S"', '"k$l"')) as E, b: v('S')}},
+    ...(family === 'move' ? [{name: 'the sum is the total', holds: eqE(v('S'), v('T'))}, {name: 'each cell at most the total', forall: 'k$l', holds: {op: '<=', a: at(v('k$l')), b: v('T')} as C}] : [])]
+  return {m, laws, family}
+}
+// The reference: random runs of the interpreter (each request allowed), at every state S the term summed over every cell
+// held (past them the term is 0) and each law by evalC at every cell held and one past.
+export function sumReference(m: Machine, laws: Law[], runs = 30, steps = 12): boolean {
+  let it: ReturnType<typeof interpret>
+  try { it = interpret(m) } catch { return false }
+  const sum = m.sums!.S!
+  for (let r = 0; r < runs; r++) {
+    let st = it.init({})
+    for (let j = 0; j <= steps; j++) {
+      const keys = [...st.maps.M!.keys()], past = Math.max(0, ...keys) + 1
+      const total = keys.reduce((acc, key) => acc + evalE(sum.term, {[sum.key]: key}, st, m), 0)
+      if (evalE(sum.term, {[sum.key]: past}, st, m) !== 0 || st.scalars.S !== total) return false
+      for (const l of laws) for (const key of l.forall ? [...keys, past] : [0]) if (!evalC(l.holds, {...st.scalars, ...(l.forall ? {[l.forall]: key} : {})}, st, m)) return false
+      try { st = it.step({}, st, {op: rand(3), w: rand(4), w2: rand(4), u: rand(6)}) } catch (e) { if (e instanceof RangeError) continue; throw e }
+    }
+  }
+  return true
+}
+// kernel.ts's answer: the sums' check (their cover goals read by the proof's trees) and the plain machine's laws.
+export const sumAnswer = (m: Machine, laws: Law[], proof: SumCase['proof'], covers?: Record<string, E[]>): boolean => {
+  try {
+    const {machine, goals} = sumMachine(m, covers)
+    return goals.every(g => proof.trees[g.name] !== undefined && check(g, proof.trees[g.name]!)) && checkLaws(machine, laws, proof)
+  } catch { return false }
+}
+export function sumCases(n: number): SumCase[] {
+  const out: SumCase[] = []
+  for (let i = 0; i < n; i++) {
+    const {m, laws, family} = randomSumMachine()
+    const r = proveLaws(m, laws)
+    if (!r.proven || !r.proof) throw new Error(`${m.name}: not proven (${r.failed?.goal}: ${r.failed?.stuck})`)
+    const sum = m.sums!.S!, cs = sumCovers(m).S ?? []
+    const tampers: SumTamper[] = []
+    if (cs.length) tampers.push({what: 'the cover without its last key', m, covers: {S: cs.slice(0, -1)}})
+    tampers.push({what: 'M starting at 1', m: {...m, maps: {M: 1}}})
+    tampers.push({what: 'the term read at the key + 1', m: {...m, sums: {S: {...sum, term: JSON.parse(JSON.stringify(sum.term).replaceAll('{"op":"var","name":"k$S"}', '{"op":"add","a":{"op":"var","name":"k$S"},"b":{"op":"const","value":1}}')) as E}}}})
+    tampers.push({what: 'twice the term', m: {...m, sums: {S: {...sum, term: {op: 'mul', k: 2, a: sum.term}}}}})
+    if (family === 'two') {
+      const w = m.step.maps!.M! as {each: string, value: E}, K = v(w.each)
+      const value = iteE(and2(eqE(v('op'), k(0)), eqE(K, add(v('w'), k(1)))), add(at(K), k(1)), w.value)
+      tampers.push({what: 'a key past the cover written', m: {...m, step: {...m.step, maps: {M: {each: w.each, value}}}}, covers: {S: cs}})
+    }
+    out.push({m, laws, family, proof: r.proof, tampers})
+  }
+  return out
+}
+
+// --- strong fairness (kernel.ts's livenessParts under fairness: 'strong', Live.lean's sleads_sf_soundA) ----------------
+
+// Random ladders: a state st from 0 to n (n from 2 to 4) that `next` moves up (below n − 1), `back` sends to 0 (below n)
+// and `done` takes from n − 1 to n; "from anywhere st reaches n", each st = i helped by next (by done at n − 1). Under weak
+// fairness no rank proves it (back leaves every region); under strong fairness the constant rank does, each helpful
+// request handing over to the region above. The certificate is the kernel's proof at the levels proveLiveness chooses,
+// and its tampered twins, with kernel.ts's answers: the levels reversed, all levels equal, the weak fairness parts (its
+// stay keeps the regions), the last helpful request left out (the cover fails).
+export type FairTamper = {what: string, l: Liveness}
+export type FairCase = {m: Machine, laws: Law[], l: Liveness, n: number, proof: NonNullable<ReturnType<typeof proveLiveness>['steps']>['proof'], tampers: FairTamper[]}
+export function randomLadder(): {m: Machine, l: Liveness, n: number} {
+  const n = 2 + rand(3), st = v('st'), opIs = (i: number) => eqE(v('op'), k(i))
+  const m: Machine = {name: `ladder ${n}`, params: [], inputs: ['op'], state: {st: k(0)},
+    step: {state: {st: iteE(and2(opIs(0), {op: '<', a: st, b: k(n - 1)}), add(st, k(1)), iteE(and2(opIs(1), {op: '<', a: st, b: k(n)}), k(0), iteE(and2(opIs(2), eqE(st, k(n - 1))), k(n), st)))}},
+    assume: {op: '<=', a: v('op'), b: k(2)}}
+  const l: Liveness = {name: 'st reaches n', from: trueC, to: eqE(st, k(n)), rank: [k(0)], fairness: 'strong',
+    helpful: Array.from({length: n}, (_, i) => ({when: eqE(st, k(i)), request: {op: k(i === n - 1 ? 2 : 0)}}))}
+  return {m, l, n}
+}
+export const fairAnswer = (m: Machine, laws: Law[], l: Liveness, proof: FairCase['proof']): boolean => {
+  try { const {stay, cover, helps} = livenessParts(m, l); return checkStepLaws(m, laws, [stay, cover, ...helps], proof!) } catch { return false }
+}
+export function fairCases(count: number): FairCase[] {
+  const out: FairCase[] = []
+  for (let i = 0; i < count; i++) {
+    const {m, l, n} = randomLadder(), laws: Law[] = [{name: 'st is at most n', holds: {op: '<=', a: v('st'), b: k(n)}}]
+    const r = proveLiveness(m, laws, l)
+    if (!r.proven || !r.steps?.proof || !r.levels) throw new Error(`${m.name}: not proven under strong fairness (${r.failed?.goal})`)
+    const found: Liveness = {...l, levels: r.levels}
+    const tampers: FairTamper[] = [
+      {what: 'the levels reversed', l: {...found, levels: r.levels.map(x => Math.max(...r.levels!) - x)}},
+      {what: 'every level equal', l: {...found, levels: r.levels.map(() => 0)}},
+      {what: 'weak fairness', l: {...found, fairness: 'weak'}},
+      {what: 'the last helpful request left out', l: {...found, helpful: found.helpful!.slice(0, -1), levels: r.levels.slice(0, -1)}},
+    ]
+    out.push({m, laws, l: found, n, proof: r.steps.proof, tampers})
+  }
+  return out
+}
+// The reference: random runs of the interpreter from the start, each request drawn at random (a run that keeps every
+// event coming back), each reaching n within 4,000 steps.
+export function ladderReference(m: Machine, n: number, runs = 20): boolean {
+  const it = interpret(m)
+  for (let r = 0; r < runs; r++) {
+    let st = it.init({})
+    for (let t = 0; t < 4000 && st.scalars.st !== n; t++) st = it.step({}, st, {op: rand(3)})
+    if (st.scalars.st !== n) return false
+  }
+  return true
+}
