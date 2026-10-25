@@ -51,7 +51,8 @@ const keyOf = (lin: Lin): string => {
 type DagNode = {inputs: Lin[], steps: Step[], src?: number[], lits?: [Lin, boolean][]} | {res: [number, number], on: Lin} | {hyp: number, lits: [Lin, boolean][]}
 // A refutation's DAG (opts.dag, with model): its nodes and the empty clause's, for interpolants read off it
 // (core/interp.ts's fromDag) instead of the tree it unfolds to.
-export type Dag = {nodes: DagNode[], top: number}
+// (`clausal`: made in the clausal mode, its theory leaves reading the trail's atoms alone)
+export type Dag = {nodes: DagNode[], top: number, clausal?: boolean}
 // (the clausal mode's: `id` its index, a pair (x, v) coded 2·id + v; `hp` its place in the heap; `cond` whether a
 // decision may take it)
 type Var = {name: string, lin: Lin, terms: [string, number][], col: boolean, quiet?: boolean, id: number, hp?: number, cond?: boolean, val?: boolean | undefined, level: number, reason?: number | undefined, at: number, act: number, phase: boolean,
@@ -278,6 +279,12 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
       for (const name of m.keys()) if (vars.get(name)!.val === undefined) open = name
       if (!m.size) dead = nodes.length - 1
       else if (m.size === 1 && open !== undefined) assign(open, !m.get(open)!, ci)
+      else if (m.size === 1 && dead < 0) {
+        // (a unit false at level 0, which no watch sees: resolved with the reasons below it down to the empty clause)
+        let c = clauses[ci]!
+        while (c.lits.size) { let best: Var | undefined; for (const name of c.lits.keys()) { const y = vars.get(name)!; if (y.val === c.lits.get(name) && (!best || y.at > best.at)) best = y } if (!best || best.reason === undefined) break; c = resolveOn(c, best.name) }
+        if (!c.lits.size) dead = c.node
+      }
       // (a hypothesis' own clause: its variables relevant for good; a gate's, where the gate needs it already)
       if (oc[ci]! < 0 || (rel[oc[ci]! >> 1]! >= 0 && holds(oc[ci]!))) for (const name of m.keys()) relevant(vars.get(name)!.id)
     }
@@ -449,7 +456,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     undoTo(keep); qhead = Math.min(qhead, trail.length)
     take()
     if (unread) return {stuck: 'unknown', path: new Map(), why: 'a hypothesis the clauses do not read'}
-    if (dead >= 0) return {stuck: 'unknown', path: new Map(), why: REFUTED, ...(listed ? {assumed: []} : {}), ...(wantDag ? {dag: {nodes, top: dead}} : {})} as Refuted
+    if (dead >= 0) return {stuck: 'unknown', path: new Map(), why: REFUTED, ...(listed ? {assumed: []} : {}), ...(wantDag ? {dag: {nodes, top: dead, clausal}} : {})} as Refuted
     return queryHook.on && !queryHook.depth ? logged(opts.model ? 'model' : 'cdcl', goal, search) : search()
   }
   // The assumptions a falsified one rests on: the decisions its reasons reach, each reason materialized where it is a
@@ -487,7 +494,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
       let open = -1, wrong = -1
       if (ci === undefined) for (; aq < assumed.length; aq++) { const val = vars.get(assumed[aq]![0])!.val; if (val === !assumed[aq]![1]) { wrong = aq; break } if (val === undefined) { open = aq; break } }
       if (ci !== undefined) conflict = clauses[ci]!
-      else if (wrong >= 0) return {stuck: 'unknown', path: new Map(), why: REFUTED, ...(listed ? {assumed: final(wrong)} : {}), ...(wantDag ? {dag: {nodes, top: finalDag(wrong)}} : {})} as Refuted
+      else if (wrong >= 0) return {stuck: 'unknown', path: new Map(), why: REFUTED, ...(listed ? {assumed: final(wrong)} : {}), ...(wantDag ? {dag: {nodes, top: finalDag(wrong), clausal}} : {})} as Refuted
       else if (open >= 0) {
         levels.push(trail.length)
         assign(assumed[open]![0], assumed[open]![1])
@@ -696,7 +703,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
       for (;;) {
         if (!c.lits.size) {
           if (opts.model) {
-            if (wantDag) return {stuck: 'unknown', path: new Map(), why: REFUTED, dag: {nodes, top: c.node}} as Refuted
+            if (wantDag) return {stuck: 'unknown', path: new Map(), why: REFUTED, dag: {nodes, top: c.node, clausal}} as Refuted
             if (!wantCore) return {stuck: 'unknown', path: new Map(), why: REFUTED}
             // the hypotheses the leaves below the empty clause read (a clause never made into a node, a bound's not yet
             // materialized, leaves the core unknown)
