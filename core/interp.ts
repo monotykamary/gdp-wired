@@ -13,12 +13,13 @@
 // - a split on an atom of A's: the two sides' interpolants or-ed; on an atom of B's: and-ed.
 // The interpolant is over A's names (the shared ones), as a condition the kernel reads.
 import type {C, E, Law, Machine, Request} from './machine.ts'
-import {type Goal, type Path, type Tree, atomOf, canon, columnTerm, falseC, leafConstraints, stepLawObligations, substC, trueC} from '../kernel/kernel.ts'
-import {type Lin, type Step, env, solve, vars} from './solver.ts'
-import {namesOf} from './exists.ts'
-import {type Dag, REFUTED, type Refuted, growCdcl} from '../kernel/cdcl.ts'
+import {type Goal, type Path, type Tree, atomOf, canon, columnTerm, falseC, leafConstraints, stepLawObligations, substC, substE, trueC} from '../kernel/kernel.ts'
+import {type Lin, type Step, env, linOfE, plus, solve, vars} from './solver.ts'
+import {litVar} from '../kernel/reader.ts'
+import {namesOf, showC} from './exists.ts'
+import {type Dag, REFUTED, type Refuted, cdclSession, growCdcl} from '../kernel/cdcl.ts'
 import {clock, grow} from '../kernel/prove.ts'
-import {relax, replay, runOf} from './bmc.ts'
+import {relax, replay, runOf, tidier} from './bmc.ts'
 import {isF, isT, simpC} from './nonterm.ts'
 
 export type Interpolated = {itp: C, tree?: Tree} | {sat: Record<string, number>} | {unknown: string}
@@ -48,8 +49,8 @@ export function interpolate(a: C[], b: C[], shared: string[], budget: {until: nu
   const goal: Goal = {name: 'an interpolant', hyps: [...a, ...b.map(c => substC(c, sub)), ...ties]}
   // CDCL's DAG first (no tree unfolded, no leaf read again); where it gives none, the tree's
   if (useDag) {
-    const d = growCdcl(goal, new Map(), {nodes: 0, until: budget.until}, {model: true, dag: true, ...(budget.wall !== undefined ? {wall: budget.wall} : {})}) as Refuted
-    if (d.dag) { const itp = fromDag(goal, d.dag, i => i < a.length); if (itp) return {itp} } else if (!('tree' in d)) {
+    const d = growCdcl(goal, new Map(), {nodes: 0, until: budget.until}, {model: true, dag: true, ...(useClausal ? {clausal: true, sideOf: (i: number) => (i < a.length ? 0 : 1)} : {}), ...(budget.wall !== undefined ? {wall: budget.wall} : {})}) as Refuted
+    if (d.dag) { const itp = fromDag(goal, d.dag, i => i < a.length, 50_000, useClausal && useStrong); if (itp) return {itp} } else if (!('tree' in d)) {
       if (d.stuck === 'sat' && d.witness) return {sat: d.witness}
       if (budget.wall !== undefined) return {unknown: d.why ?? d.stuck}
     }
@@ -67,11 +68,13 @@ export function refute(goal: Goal, budget: {until: number, wall?: number}): Retu
 }
 
 type Side = 'A' | 'B' | 'S' | undefined
+const nameMemo = new WeakMap<C, string[]>()
+const namesIn = (c: C): string[] => { let out = nameMemo.get(c); if (!out) nameMemo.set(c, (out = namesOf(c))); return out }
 // The sides of names: a name only A's hypotheses read is A's own, only B's B's own, both shared ('S'); a term column is
 // its term's names' (undefined where they mix A's own and B's own), and so is a linear form.
 function sidesOf(goal: Goal, isA: (hyp: number) => boolean) {
   const aNames = new Set<string>(), bNames = new Set<string>()
-  goal.hyps.forEach((h, i) => { for (const n of namesOf(h)) (isA(i) ? aNames : bNames).add(n) })
+  goal.hyps.forEach((h, i) => { for (const n of namesIn(h)) (isA(i) ? aNames : bNames).add(n) })
   const colMemo = new Map<string, Side>()
   const join = (sides: Side[]): Side => {
     if (sides.includes(undefined)) return undefined
@@ -79,6 +82,8 @@ function sidesOf(goal: Goal, isA: (hyp: number) => boolean) {
     return a && b ? undefined : a ? 'A' : b ? 'B' : 'S'
   }
   const nameSide = (n: string): Side => {
+    // (a gate's or a column's of kernel/cdcl.ts's clausal mode: its side the hypothesis' that wrote it)
+    if (n.startsWith('τ') || n.startsWith('ϰ')) return isA(Number(n.slice(1, n.indexOf('_')))) ? 'A' : 'B'
     if (!n.startsWith('⟦')) return aNames.has(n) ? (bNames.has(n) ? 'S' : 'A') : bNames.has(n) ? 'B' : 'S'
     if (colMemo.has(n)) return colMemo.get(n)
     const t = columnTerm(n), out = join((t ? namesOf(t) : []).map(nameSide))
@@ -137,7 +142,11 @@ function replay1(steps: Step[], row: (k: number) => {lin: Lin, a: boolean} | und
 // part with the leaf's own literals over shared names beside it (B's rows may need them). A resolution on an atom of
 // B's own and-s its parents' interpolants, on any other or-s them. Each node once (the DAG's sharing kept); none where
 // an atom or a cut mixes A's own and B's own, or past `maxNodes` of the formula.
-export function fromDag(goal: Goal, dag: Dag, isA: (hyp: number) => boolean, maxNodes = 50_000): C | undefined {
+// `strong` (a clausal DAG, whose theory leaves read the trail's atoms alone): McMillan's own system, the strongest, in
+// place of that one (its dual, the weakest): A's clause the or of its literals over shared names, B's true; a theory
+// leaf the A part of its derivation, an atom over shared names B's; a resolution on an atom of A's own or-s, any other
+// and-s.
+export function fromDag(goal: Goal, dag: Dag, isA: (hyp: number) => boolean, maxNodes = 50_000, strong = false): C | undefined {
   const {nameSide, linSide} = sidesOf(goal, isA), memo = new Map<number, C | undefined>()
   let made = 0
   const at = (i: number): C | undefined => {
@@ -147,7 +156,15 @@ export function fromDag(goal: Goal, dag: Dag, isA: (hyp: number) => boolean, max
     let out: C | undefined
     if ('res' in n) {
       const side = linSide(n.on), y = side === undefined ? undefined : at(n.res[0]), z = y && at(n.res[1])
-      out = z && (side === 'B' ? and(y!, z) : or(y!, z))
+      out = z && ((strong ? side !== 'A' : side === 'B') ? and(y!, z) : or(y!, z))
+    } else if ('hyp' in n) {
+      // (a hypothesis' clause, the clausal mode's: A's has none; B's, the shared literals it rests on; strong, A's the or
+      // of its shared literals, B's none)
+      const shared = n.lits.filter(([lin]) => linSide(lin) === 'S')
+      out = strong ? (isA(n.hyp) ? shared.map(([lin, holds]) => linLe(atomOf(lin, !holds).lin)).reduceRight<C>((acc, c) => or(c, acc), falseC) : trueC)
+        : isA(n.hyp) ? falseC : shared.map(([lin, holds]) => linLe(atomOf(lin, holds).lin)).reduceRight<C>((acc, c) => and(c, acc), trueC)
+    } else if (strong) {
+      out = n.src && replayA(n.steps, k => { const lin = n.inputs[k], side = lin && linSide(lin); return side === undefined || !lin ? undefined : {lin, a: side === 'A'} }, nameSide)
     } else {
       const p = n.src && replayA(n.steps, k => {
         const lin = n.inputs[k], h = n.src![k]
@@ -218,7 +235,7 @@ export function fromTree(goal: Goal, tree: Tree, isA: (hyp: number) => boolean, 
 // GDP_IMC_RELAX=0: the goals as the kernel writes them (each pair normalized at each step).
 const useRelax = env.GDP_IMC_RELAX !== '0'
 // GDP_ITP_DAG=0: interpolants from the unfolded tree alone.
-const useDag = env.GDP_ITP_DAG !== '0'
+const useDag = env.GDP_ITP_DAG !== '0', useClausal = env.GDP_ITP_CLAUSAL === '1', useStrong = env.GDP_ITP_STRONG === '1', useSession = env.GDP_IMC_SESSION === '1'
 
 export type ImcResult = {inv: C, k: number, parts: number} | {run: {params: Record<string, number>, trace: Request[]}, k: number} | {why: string, k: number}
 export type ImcOptions = {until: number, wall?: number, kinds?: C[], from?: number, to?: number, progress?: (k: number, what: string, info: Record<string, number>) => void}
@@ -268,6 +285,7 @@ export function imc(m: Machine, law: Law, opts: ImcOptions): ImcResult {
 // until `until` on the counted clock or `wall`, and is 'paused' there (the query it was asking asked again next time).
 export function imcSearch(m: Machine, law: Law, opts: Omit<ImcOptions, 'until' | 'wall'> = {}) {
   const plain = !(Object.keys(m.maps ?? {}).length || Object.keys(m.step.flags ?? {}).length || m.params.length || m.history || m.inputMaps?.length)
+  if (plain && useSession) return imcSession(m, law, opts)
   const m2 = stutter(m, law), names = Object.keys(m.state), start = startOf(m)
   const back = {vars: Object.fromEntries(names.map(n => [`${n}~1`, v(n)])), maps: {}, flags: {}}
   const then = substC(law.holds, {vars: Object.fromEntries(names.map(n => [n, v(`${n}'`)])), maps: {}, flags: {}})
@@ -301,4 +319,168 @@ export function imcSearch(m: Machine, law: Law, opts: Omit<ImcOptions, 'until' |
     return {why: 'no depth left', k: 64}
   }
   return {run}
+}
+
+// --- IMC on one unrolling ----------------------------------------------------------------------------------------------
+//
+// McMillan's own loop (Golem's IMC.cc: the frontier, not the states reached so far, is the next query's start), on one
+// unrolling kept in one CDCL session (kernel/cdcl.ts's clausal mode) from query to query and depth to depth: each step's
+// hypotheses written once in names that stay (the state before the first step the machine's own names, after step j
+// n~j; the first step's request its plain names, step j's input@j), relaxed and tidied as core/bmc.ts's are; the law
+// broken after step k a hypothesis behind act@k, each frontier one behind a selector of its own (both read as
+// decisions alone). A query assumes its frontier's selector and its depth's act; the steps' clauses and every clause
+// learned stay. Its refutation's DAG ends in the clause of those two assumptions, the frontier's A's own and the depth's
+// B's own, so its interpolant (A: the frontier, the kinds and the first step; B: the rest) is one of the query as asked.
+// The states reached so far, as the frontiers' disjunction, are a second session's: each frontier's negation once, the
+// next interpolant behind a selector, refuted where it lies within them (the fixed point).
+// The state values a law and the assumption read, and those their updates read (the cone of influence, as core/bmc.ts's).
+function liveOf(m: Machine, law: Law): Set<string> {
+  const live = new Set<string>(), read = (xs: (C | E)[]) => [...new Set(xs.flatMap(x => namesOf(x as C)))].filter(n => n in m.state)
+  for (const todo = read([law.holds, ...(m.assume ? [m.assume] : [])]); todo.length;) { const n = todo.pop()!; if (live.has(n)) continue; live.add(n); todo.push(...read([m.step.state?.[n] ?? v(n)])) }
+  return live
+}
+// Step j's hypotheses in an unrolling's names (the state before step 1 the machine's own names, after step j n~j; step
+// j's request input@j, step 1's plain): its assumption and each live value's update, relaxed and tidied as core/bmc.ts's.
+const stateAt = (m: Machine, j: number) => ({vars: Object.fromEntries(Object.keys(m.state).map(n => [n, v(j ? `${n}~${j}` : n)])), maps: {}, flags: {}})
+const topOf = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(topOf) : [c])
+function stepHyps(m: Machine, live: Set<string>, j: number, tidy: (cs: C[]) => C[]): C[] {
+  const at = {vars: {...stateAt(m, j - 1).vars, ...Object.fromEntries(m.inputs.map(i => [i, v(j === 1 ? i : `${i}@${j}`)]))}, maps: {}, flags: {}}
+  const raw: C[] = [...(m.assume ? [substC(m.assume, at)] : []), ...[...live].map((n): C => ({op: '=', a: v(`${n}~${j}`), b: substE(m.step.state?.[n] ?? v(n), at)}))]
+  return tidy((relax(raw) ?? raw).map(simpC).flatMap(topOf)).flatMap(topOf).filter(c => !isT(c))
+}
+export function imcSession(m: Machine, law: Law, opts: Omit<ImcOptions, 'until' | 'wall'> = {}) {
+  const m2 = stutter(m, law), names = Object.keys(m.state), start = startOf(m)
+  const goal: Goal = {name: 'an unrolling', hyps: []}, isA: boolean[] = []
+  const quiet = (n: string) => n.startsWith('sel@') || n.startsWith('act@')
+  const session = cdclSession(goal, new Map(), {model: true, dag: true, clausal: true, quiet, sideOf: h => (isA[h] ? 0 : 1)})
+  const add = (c: C, a: boolean) => { if (!isT(c)) { goal.hyps.push(c); isA.push(a) } }
+  const back = {vars: Object.fromEntries(names.map(n => [`${n}~1`, v(n)])), maps: {}, flags: {}}
+  const live = liveOf(m, law), tidy = tidier(new Set())
+  let steps = 0
+  const stepTo = (k: number) => { for (; steps < k;) { const j = ++steps; for (const c of stepHyps(m2, live, j, tidy)) add(c, j === 1) } }
+  for (const c of opts.kinds ?? []) add(c, true)
+  const one: E = {op: 'const', value: 1}, guard = (s: string, c: C): C => ({op: 'or', xs: [{op: '<=', a: one, b: v(s)}, c]}), off = (s: string): C => ({op: '<=', a: one, b: v(s)})
+  let nSel = 0, act = 0
+  // The query: the frontier at its depth. An interpolant (over the state's names), a model (a run where the frontier is
+  // the start), or why neither came.
+  const ask = (frontier: number, k: number, budget: {until: number, wall?: number}): Interpolated => {
+    stepTo(k)
+    if (act !== k) { if (act) add(off(`act@${act}`), false); act = k; add(guard(`act@${k}`, substC({op: 'not', x: law.holds}, stateAt(m, k))), false) }
+    const out = session.run({nodes: 0, until: budget.until}, budget.wall, [{[`act@${k}`]: 1}, {[`sel@${frontier}`]: 1}]) as Refuted
+    if ('tree' in out) return {unknown: 'a tree'}
+    if (out.why === REFUTED) {
+      if (!out.dag) return {unknown: 'no DAG'}
+      const itp = fromDag(goal, out.dag, h => isA[h]!, 200_000, useStrong)
+      return itp ? {itp: substC(itp, back)} : {unknown: 'a leaf with no interpolant'}
+    }
+    return out.stuck === 'sat' && out.witness ? {sat: out.witness} : {unknown: out.why ?? out.stuck}
+  }
+  const frontierOf = (c: C): number => { const i = ++nSel; add(guard(`sel@${i}`, c), true); return i }
+  // The states reached at this depth, and the frontier the next query starts from.
+  let k = Math.max(2, opts.from ?? 2), parts = 0, rs: C[] = [], front = 0
+  let within: ReturnType<typeof cdclSession> | undefined, wgoal: Goal = {name: 'within', hyps: []}, nq = 0
+  const fresh = () => { rs = [start]; parts = 1; if (front) add(off(`sel@${front}`), true); front = frontierOf(start); wgoal = {name: 'within', hyps: [{op: 'not', x: start}]}; within = cdclSession(wgoal, new Map(), {model: true, clausal: true, quiet: n => n.startsWith('q@')}) }
+  const run = (until: number, wall?: number): ImcResult | 'paused' => {
+    const over = () => clock() > until || (wall !== undefined && performance.now() > wall), budget = {until, ...(wall !== undefined ? {wall} : {})}
+    if (!front) fresh()
+    for (; k <= Math.min(64, opts.to ?? 64); k++, fresh()) {
+      for (;;) {
+        if (over()) return 'paused'
+        const out = ask(front, k, budget)
+        if ('sat' in out) {
+          opts.progress?.(k, 'sat', {parts})
+          if (parts > 1) break
+          const found = runOf(m, out.sat, k), broken = replay(m, [law], found)
+          if (broken) return {run: {params: found.params, trace: found.trace.slice(0, broken.steps)}, k}
+          break
+        }
+        if ('unknown' in out) { if (over()) return 'paused'; return {why: out.unknown, k} }
+        if (env.GDP_IMC_CHECK === '1') {
+          // (a check, for debugging: each step from the frontier lands in the interpolant, and none from it breaks the law
+          // within k − 1 steps; each asked of the kernel's own goals)
+          const F = rs.at(-1)!, prime = (c: C) => substC(c, {vars: Object.fromEntries(names.map(n => [n, v(`${n}'`)])), maps: {}, flags: {}})
+          const g1 = stepLawObligations(m2, [], {}, {name: 'A ⊨ I', when: {op: 'and', xs: [F, ...(opts.kinds ?? [])]}, then: prime(out.itp), steps: 1})[0]!
+          const g2 = stepLawObligations(m2, [], {}, {name: 'I ∧ B', when: out.itp, then: prime(law.holds), steps: k - 1})[0]!
+          const r1 = growCdcl(g1, new Map(), {nodes: 0}, {model: true}), r2 = k > 1 ? growCdcl(g2, new Map(), {nodes: 0}, {model: true}) : r1
+          const ok = (r: ReturnType<typeof growCdcl>) => ('tree' in r ? 'tree' : r.why === REFUTED ? 'ok' : r.stuck)
+          console.error(JSON.stringify({check: true, k, parts, aImpliesI: ok(r1), iAndB: ok(r2)}))
+        }
+        // The interpolant within the states reached: the fixed point.
+        const q = `q@${++nq}`
+        wgoal.hyps.push({op: 'or', xs: [{op: '<=', a: one, b: v(q)}, out.itp]})
+        const inR = within!.run({nodes: 0, until}, wall, [{[q]: 1}])
+        const fixed = !('tree' in inR) && inR.why === REFUTED
+        opts.progress?.(k, fixed ? 'fixed' : 'refuted', {parts})
+        if (fixed) return {inv: rs.length === 1 ? rs[0]! : {op: 'or', xs: rs}, k, parts}
+        if (!('tree' in inR) && inR.stuck === 'unknown') { if (over()) return 'paused'; return {why: 'containment unknown', k} }
+        wgoal.hyps.push(off(q), {op: 'not', x: out.itp})
+        rs.push(out.itp); parts++
+        add(off(`sel@${front}`), true)
+        front = frontierOf(out.itp)
+      }
+    }
+    return {why: 'no depth left', k: 64}
+  }
+  return {run}
+}
+
+// --- The invariant made small ------------------------------------------------------------------------------------------
+//
+// IMC's invariant R (its frontiers' disjunction) is inductive and keeps the law, but large: the kernel's proof of its
+// step reads every frontier at once. Its information made a few clauses (PDR at one frame, R the oracle that
+// generalizes): a state the clauses and the law allow, one step from which breaks one of them (a counterexample to
+// induction), lies outside R (R is inductive, and within them); its values as a cube of bounds, the bounds R's
+// refutation rests on (the assumptions it needed) are a cube no state of R is in: its negation, a clause. Until each
+// clause and the law hold after every step from where they all hold: then their conjunction is an inductive invariant,
+// each clause a law for the kernel to prove. Each query is of one of two sessions (kernel/cdcl.ts's clausal mode): the
+// step from where the kinds, the law and the clauses hold, each target's negation after it behind a selector; and R.
+// Undefined where a query is left unknown, or R doesn't refute a counterexample (never, R being inductive).
+export function compress(m: Machine, law: Law, R: C, kinds: C[], budget: {until: number, wall?: number}, maxClauses = 200): C[] | undefined {
+  const live = liveOf(m, law), one: E = {op: 'const', value: 1}
+  const sGoal: Goal = {name: 'a step from the clauses', hyps: [...kinds, law.holds, ...stepHyps(m, live, 1, tidier(new Set()))]}
+  const oGoal: Goal = {name: 'the invariant', hyps: [R, ...kinds]}
+  const quiet = (n: string) => n.startsWith('t@')
+  const S = cdclSession(sGoal, new Map(), {model: true, clausal: true, quiet}), O = cdclSession(oGoal, new Map(), {model: true, clausal: true})
+  const after = stateAt(m, 1), clauses: C[] = [], targets: {c: C, sel: string}[] = []
+  // (R's atoms, each linear form once)
+  const atomsR: Lin[] = [], seenA = new Set<string>(), seenC = new Set<object>()
+  const atomsOf = (c: C): void => {
+    if (seenC.has(c)) return
+    seenC.add(c)
+    if (c.op === 'not') return atomsOf(c.x)
+    if (c.op === 'and' || c.op === 'or') return c.xs.forEach(atomsOf)
+    if (c.op !== '<=' && c.op !== '<' && c.op !== '=') return
+    const a = linOfE(c.a), b = linOfE(c.b)
+    if (!a || !b) return
+    const d = plus(a, b, -1)
+    for (const lin of c.op === '<=' ? [d] : c.op === '<' ? [plus(d, {1: 1}, 1)] : [d, plus({}, d, -1)]) { if (!vars(lin).length) continue; const [key] = litVar({lin, holds: true}); if (!seenA.has(key)) { seenA.add(key); atomsR.push(lin) } }
+  }
+  atomsOf(R)
+  const target = (c: C) => { const sel = `t@${targets.length}`; targets.push({c, sel}); sGoal.hyps.push({op: 'or', xs: [{op: '<=', a: one, b: v(sel)}, {op: 'not', x: substC(c, after)}]}) }
+  target(law.holds)
+  for (let i = 0; i < targets.length;) {
+    if (clock() > budget.until || (budget.wall !== undefined && performance.now() > budget.wall)) return undefined
+    const out = S.run({nodes: 0, until: budget.until}, budget.wall, [{[targets[i]!.sel]: 1}]) as Refuted
+    if (!('tree' in out) && out.why === REFUTED) { i++; continue }
+    if ('tree' in out || out.stuck !== 'sat' || !out.witness) { if (env.GDP_SMALL_TRACE) console.error('cti query', 'tree' in out ? 'tree' : out.stuck); return undefined }
+    // The counterexample read by R's atoms (a name no row read: 0), each atom as it holds there an assumption of R's
+    // session: R is a combination of its atoms, so where they hold as there, R doesn't.
+    const w = out.witness, cube = atomsR.map(lin => { let x = lin['1'] ?? 0; for (const n of vars(lin)) x += lin[n]! * Math.max(0, Math.round(w[n] ?? 0)); return x <= 0 ? lin : atomOf(lin, false).lin })
+    const o = O.run({nodes: 0, until: budget.until}, budget.wall, cube) as Refuted
+    if ('tree' in o || o.why !== REFUTED || !o.assumed?.length) { if (env.GDP_SMALL_TRACE) console.error('oracle', 'tree' in o ? 'tree' : o.stuck, o.assumed); return undefined }
+
+    // The bounds R needs, fewer: each dropped where R still refutes the rest (its own refutation's assumptions kept).
+    let core = o.assumed.map(q => cube[q]!)
+    for (let j = 0; j < core.length && core.length > 1;) {
+      const rest = core.filter((_, q) => q !== j), o2 = O.run({nodes: 0, until: budget.until}, budget.wall, rest) as Refuted
+      if (!('tree' in o2) && (o2 as {why?: string}).why === REFUTED && o2.assumed?.length) core = o2.assumed.map(q => rest[q]!); else j++
+    }
+    // (each bound's negation: n <= x fails where n >= x + 1, n >= x where n <= x − 1)
+    const clause: C = {op: 'or', xs: core.map(lin => linLe(atomOf(lin, false).lin))}
+    if (env.GDP_SMALL_TRACE) console.error('clause', clauses.length, o.assumed.length, '→', core.length, 'of', cube.length, env.GDP_SMALL_TRACE === '2' ? showC(clause) : '')
+    clauses.push(clause); sGoal.hyps.push(clause); target(clause)
+    if (clauses.length > maxClauses) return undefined
+    i = 0
+  }
+  return clauses
 }

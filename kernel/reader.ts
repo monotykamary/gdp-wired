@@ -31,7 +31,8 @@ export const join = (a: W, b: W): W => {
 }
 // A trail: each decided atom (by its variable's name, the canonical text of its stored form) with its value and its
 // position; each position's stamp.
-export type Trail = {get(name: string): {val?: boolean, at: number} | undefined, stamp(at: number): number, size(): number, lin(at: number): {name: string, lin: Lin, holds: boolean}}
+// `quiet`: a position whose atom brings no row (kernel/cdcl.ts's gates and selectors, read only as decisions).
+export type Trail = {get(name: string): {val?: boolean, at: number} | undefined, stamp(at: number): number, size(): number, lin(at: number): {name: string, lin: Lin, holds: boolean}, quiet?(at: number): boolean}
 // A reason, its latest position on the trail, and whether the value read nothing open.
 type R = {w: W, pos: number, fin: boolean}
 const R0: R = {w: none, pos: -1, fin: true}, R1: R = {w: none, pos: -1, fin: false}
@@ -413,6 +414,7 @@ export class Reader {
   leafRows(src?: (number | [string, string])[]): Row[] {
     const rows: Row[] = []
     for (let i = 0; i < this.trail.size(); i++) {
+      if (this.trail.quiet?.(i)) continue
       const s = this.trail.stamp(i)
       let r = this.trailStamps[i] === s ? this.trailRows[i] : undefined
       if (!r) {
@@ -490,13 +492,14 @@ export class Reader {
   // The live cells' names by map (every cell a live row reads), and a count of their changes.
   readonly cells = new Map<string, Set<string>>()
   cellsChanged = 0
-  sync(): void {
+  // (`from`: the trail's first position that may have changed since the last sync, where the caller knows it)
+  sync(from = 0): void {
     this.syncing = true
     this.syncN++
     this.changed = []
     const n = this.trail.size()
-    for (let i = 0; i < Math.max(n, this.inTrail.length); i++) {
-      const r = i < n ? this.trailRow(i) : undefined, had = this.inTrail[i]
+    for (let i = from; i < Math.max(n, this.inTrail.length); i++) {
+      const r = i < n && !this.trail.quiet?.(i) ? this.trailRow(i) : undefined, had = this.inTrail[i]
       if (r === had) continue
       if (r) this.addCopy(r, 1)
       if (had) this.removeCopy(had, 1)
@@ -733,4 +736,183 @@ export const keyLin = (cell: string): Lin => {
     }
   }
   return out
+}
+
+// --- The clausal reading (kernel/cdcl.ts's clausal mode, for a model alone) ------------------------------------------
+// A goal's hypotheses as clauses over literals: an atom (lin <= 0, held or not) or a fresh yes/no τ<h>_<n> (a gate: a
+// subformula's truth, read only as a decision, never a row). A term's choices (if, min, max, ∸) are lifted out of the
+// comparison that reads them: each case its conditions' literals and its linear form, the comparison of that case under
+// them; a term of more than `maxCases` cases is a fresh natural ϰ<h>_<n>, each case's form under its conditions. A gate
+// is written for the polarities it is read in (Plaisted and Greenbaum: read true, it implies its formula; read false, the
+// formula implies it), so a partial assignment that satisfies every clause is a model of the goal at any point of the
+// atoms it assigns (the literals left open are read by satisfied clauses only). Gates and columns are kept per side
+// (`sideOf` a hypothesis, which interpolation colors them by; h in the name is the hypothesis that first wrote them).
+// `add` is false where a hypothesis reads what the kernel reads otherwise (a product, a map, a flag, a quantifier, a
+// name that is no plain variable): the caller then reads the goal as the kernel does.
+export type Lit = {lin: Lin, holds: boolean}
+type Case = {g: Lit[], lin: Lin}
+const notLit = (l: Lit): Lit => ({lin: l.lin, holds: !l.holds})
+const litIds = new WeakMap<Lin, [string, boolean]>()
+// A literal's variable (the smaller of its atom's texts, as kernel/cdcl.ts names it) and value.
+export const litVar = (l: Lit): [string, boolean] => {
+  let x = litIds.get(l.lin)
+  if (!x) { const a = canon(l.lin), f = canonFlip(l.lin); litIds.set(l.lin, (x = f < a ? [f, false] : [a, true])) }
+  return [x[0], x[1] === l.holds]
+}
+const isConst = (lin: Lin) => { for (const key in lin) if (key !== '1' && lin[key] !== 0) return false; return true }
+class Unread extends Error {}
+export class Clausal {
+  // The clauses made since the caller last took them (each a disjunction, with the hypothesis it is for; `own`: a gate's,
+  // its first literal the gate's, so the clause is needed only where that literal is false; `out`: its last literal a
+  // case's atom, which the clause's other literals false imply, so a search need never decide it for this clause).
+  made: {lits: Lit[], hyp: number, own: boolean, out: boolean}[] = []
+  private n = 0
+  private hyp = 0
+  private gm = new Map<number, Map<object, {l: Lit | boolean, done: number}>>()
+  private cm = new Map<number, Map<object, Case[]>>()
+  constructor(readonly sideOf: (hyp: number) => number = () => 0, readonly maxCases = 16) {}
+  add(c: C, hyp: number): boolean {
+    this.hyp = hyp
+    try { this.top(c, true); return true } catch (e) { if (e instanceof Unread) return false; throw e }
+  }
+  private memo<T>(m: Map<number, Map<object, T>>): Map<object, T> {
+    const s = this.sideOf(this.hyp)
+    let out = m.get(s)
+    if (!out) m.set(s, (out = new Map()))
+    return out
+  }
+  private fresh(kind: string): string { return `${kind}${this.hyp}_${this.n++}` }
+  private clause(lits: Lit[], own = false, last = false) {
+    const seen = new Map<string, boolean>(), out: Lit[] = []
+    for (const l of lits) {
+      const [x, val] = litVar(l), had = seen.get(x)
+      if (had === undefined) { seen.set(x, val); out.push(l) } else if (had !== val) return
+    }
+    this.made.push({lits: out, hyp: this.hyp, own, out: last && out.at(-1) === lits.at(-1)})
+  }
+  private top(c: C, positive: boolean): void {
+    switch (c.op) {
+      case 'not': return this.top(c.x, !positive)
+      case 'and': case 'or': {
+        if ((c.op === 'and') === positive) { for (const y of c.xs) this.top(y, positive); return }
+        const lits: Lit[] = []
+        for (const y of c.xs) { const l = this.lit(y, positive ? 1 : 2), m = typeof l === 'boolean' ? l === positive : positive ? l : notLit(l); if (m === true) return; if (m !== false) lits.push(m) }
+        return this.clause(lits)
+      }
+      case '<': case '<=': case '=':
+        for (const cs of this.cmpCases(c)) {
+          const not = cs.g.map(notLit)
+          if (positive) { if (cs.atoms === false) this.clause(not); else if (cs.atoms !== true) for (const a of cs.atoms) this.clause([...not, a], false, true) }
+          else if (cs.atoms === true) this.clause(not)
+          else if (cs.atoms !== false) this.clause([...not, ...cs.atoms.map(notLit)])
+        }
+        return
+      default: throw new Unread()
+    }
+  }
+  // A condition's literal (or its constant truth), its gate written for `pol` (1: read true, 2: read false, 3: both).
+  private lit(c: C, pol: number): Lit | boolean {
+    switch (c.op) {
+      case 'not': { const x = this.lit(c.x, ((pol & 1) << 1) | ((pol & 2) >> 1)); return typeof x === 'boolean' ? !x : notLit(x) }
+      case 'and': case 'or': case '<': case '<=': case '=': break
+      default: throw new Unread()
+    }
+    const m = this.memo(this.gm), had = m.get(c)
+    if (had && (typeof had.l === 'boolean' || !(pol & ~had.done))) return had.l
+    const need = had ? pol & ~had.done : pol
+    let g: Lit | undefined = had?.l as Lit | undefined, out: Lit | boolean
+    const gate = () => (g ??= {lin: v(this.fresh('τ')), holds: true})
+    if (c.op === 'and' || c.op === 'or') {
+      const dominant = c.op === 'or', kids: Lit[] = []
+      let fold: boolean | undefined
+      for (const y of c.xs) { const l = this.lit(y, need); if (typeof l === 'boolean') { if (l === dominant) { fold = dominant; break } } else kids.push(l) }
+      if (fold !== undefined || !kids.length) out = fold ?? !dominant
+      else if (kids.length === 1) out = kids[0]!
+      else {
+        const t = gate()
+        if (need & 1) { if (dominant) this.clause([notLit(t), ...kids], true); else for (const x of kids) this.clause([notLit(t), x], true) }
+        if (need & 2) { if (dominant) for (const x of kids) this.clause([t, notLit(x)], true); else this.clause([t, ...kids.map(notLit)], true) }
+        out = t
+      }
+    } else {
+      const cases = this.cmpCases(c)
+      if (cases.length === 1 && !cases[0]!.g.length && (typeof cases[0]!.atoms === 'boolean' || cases[0]!.atoms.length === 1)) out = typeof cases[0]!.atoms === 'boolean' ? cases[0]!.atoms : cases[0]!.atoms[0]!
+      else {
+        const t = gate()
+        for (const cs of cases) {
+          const not = cs.g.map(notLit)
+          if (need & 1) { if (cs.atoms === false) this.clause([notLit(t), ...not], true); else if (cs.atoms !== true) for (const a of cs.atoms) this.clause([notLit(t), ...not, a], true, true) }
+          if (need & 2) { if (cs.atoms === true) this.clause([t, ...not], true); else if (cs.atoms !== false) this.clause([t, ...not, ...cs.atoms.map(notLit)], true) }
+        }
+        out = t
+      }
+    }
+    m.set(c, {l: out, done: (had?.done ?? 0) | need})
+    return out
+  }
+  // A comparison's cases: each its conditions and its atoms (true or false where they are constant).
+  private cmpCases(c: Extract<C, {a: E}>): {g: Lit[], atoms: Lit[] | boolean}[] {
+    return this.cross(this.cases(c.a), this.cases(c.b), sub).map(({g, lin: d}) => {
+      const lins = c.op === '<=' ? [d] : c.op === '<' ? [add(d, k(1))] : [d, scale(d, -1)], atoms: Lit[] = []
+      for (const lin of lins) { if (!isConst(lin)) atoms.push({lin, holds: true}); else if ((lin['1'] ?? 0) > 0) return {g, atoms: false} }
+      return {g, atoms: atoms.length ? atoms : true}
+    })
+  }
+  // A guard joined to a case's: undefined where it contradicts it.
+  private join(g: Lit[], more: Lit[]): Lit[] | undefined {
+    if (!more.length) return g
+    if (!g.length) return more
+    const out = [...g], ids = new Map(g.map(l => litVar(l)))
+    for (const l of more) { const [x, val] = litVar(l), had = ids.get(x); if (had === undefined) { ids.set(x, val); out.push(l) } else if (had !== val) return undefined }
+    return out
+  }
+  private cross(xs: Case[], ys: Case[], f: (a: Lin, b: Lin) => Lin): Case[] {
+    const out: Case[] = []
+    for (const x of xs) for (const y of ys) { const g = this.join(x.g, y.g); if (g) out.push({g, lin: f(x.lin, y.lin)}) }
+    return out
+  }
+  // A case split on a literal: `yes` where it holds, `no` where it doesn't.
+  private split(c: Case, l: Lit | boolean, yes: Lin, no: Lin): Case[] {
+    if (typeof l === 'boolean') return [{g: c.g, lin: l ? yes : no}]
+    const out: Case[] = []
+    for (const [m, lin] of [[l, yes], [notLit(l), no]] as const) { const g = this.join(c.g, [m]); if (g) out.push({g, lin}) }
+    return out
+  }
+  private cases(e: E): Case[] {
+    const m = this.memo(this.cm), had = m.get(e)
+    if (had) return had
+    let out: Case[]
+    switch (e.op) {
+      case 'var': if (e.name === '1' || /[*[\],:⟦]/.test(e.name)) throw new Unread(); out = [{g: [], lin: v(e.name)}]; break
+      case 'const': out = [{g: [], lin: k(e.value)}]; break
+      case 'add': out = this.cross(this.cases(e.a), this.cases(e.b), add); break
+      case 'mul': out = this.cases(e.a).map(c => ({g: c.g, lin: scale(c.lin, e.k)})); break
+      case 'sub': case 'min': case 'max': {
+        // (∸: a − b where b <= a, else 0; min: a where a <= b, else b; max the other way)
+        out = []
+        for (const x of this.cases(e.a)) for (const y of this.cases(e.b)) {
+          const g = this.join(x.g, y.g)
+          if (!g) continue
+          const a = x.lin, b = y.lin, d = e.op === 'sub' ? sub(b, a) : sub(a, b)
+          out.push(...this.split({g, lin: a}, isConst(d) ? (d['1'] ?? 0) <= 0 : {lin: d, holds: true}, e.op === 'sub' ? sub(a, b) : e.op === 'min' ? a : b, e.op === 'sub' ? {} : e.op === 'min' ? b : a))
+        }
+        break
+      }
+      case 'if': {
+        const l = this.lit(e.c, 3)
+        if (typeof l === 'boolean') { out = this.cases(l ? e.then : e.else); break }
+        out = []
+        for (const [m2, x] of [[l, e.then], [notLit(l), e.else]] as const) for (const c of this.cases(x)) { const g = this.join(c.g, [m2]); if (g) out.push({g, lin: c.lin}) }
+        break
+      }
+      default: throw new Unread()
+    }
+    if (out.length > this.maxCases) {
+      const col = v(this.fresh('ϰ'))
+      for (const c of out) { const not = c.g.map(notLit); for (const lin of [sub(col, c.lin), sub(c.lin, col)]) if (!isConst(lin)) this.clause([...not, {lin, holds: true}], false, true); else if ((lin['1'] ?? 0) > 0) this.clause(not) }
+      out = [{g: [], lin: col}]
+    }
+    m.set(e, out)
+    return out
+  }
 }
