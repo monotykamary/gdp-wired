@@ -38,6 +38,78 @@ Vampire; gdp-wired isn't given them.
 
 ## Results
 
+### Fusions of two definitions, weighted sizes as measures (gen/tip3)
+
+Three runs a side of every tool in one batch on Modal, 60 s, 2 vCPU (`runs/tip3/final3` in the main checkout: this
+branch at 8b5b9d6 `mine-1..3`, main a269124 `main-1..3`, cvc5 `tools-1`, Vampire and cvc5 with conjecture generation
+`tools-1..3`):
+
+| theorems (492) | proven, by run | in all three | `false/` refuted | wrong |
+| --- | --- | --- | --- | --- |
+| gdp-wired, this branch | 212, 213, 213 | 212 | 23 | 0 |
+| gdp-wired, main a269124 | 205, 206, 206 | 203 | 23 | 0 |
+| Vampire 5.1.0 | 190, 191, 191 | 187 | 0 | 0 |
+| cvc5 1.4.2, conjecture generation | 188, 187, 188 | 187 | 0 | 6 (`false/` proven) |
+| cvc5 1.4.2 | 168 | 168 | 0 | 1 (`false/` proven) |
+
+- The same 7 refuted on both sides (the `tip2015` ones TIP writes false) and the same 23 of `false/`, each
+  counterexample confirmed by TIP's evaluator. One `false/` task (`regexp_kfind7`) ran out of memory in run 2 on both
+  sides.
+- Gained, every gained and lost task run three times more a side (`final3/re-*`): `prod/lemma_04`, `lemma_06`, `prop_08`,
+  `prop_09`, `prop_22`, `prop_23` in 6 of 6 runs here and 0 of 6 on main; `prod/prop_25` in 5 of 6 (one rerun out of
+  time), 0 of 6. Each is one another tool proves (Vampire 6 of the 7, cvc5 with conjecture generation 4): the parity group
+  is closed, and 4 of the 7 of take, drop and zip at lengths. `isaplanner/prop_60` and `tip2015/list_Select`, 2 of 3 on
+  main in the batch, were 3 of 3 on both sides in the reruns.
+- Lost: `isaplanner/prop_61` (`last (xs ++ ys) = lastOfTwo xs ys`), 0 of 6 here against 2 of 6 on main, each of main's
+  at 59 s: its fusions (`last (xs ++ [])`, `last (xs ++ y :: ys)`) are now tried first, at two unfoldings, and the law
+  through its definitions, which main proves after its lemma pass with none of them, comes past 60 s.
+- At main 765ecf9 (after merging it, one run a side, `final4`): 213 against 206, the same 7 gained, none lost.
+- Vampire's 187 include the 12 sorts calling `idiv`, refused here (above). The lead is this harness's (60 s, our
+  installs), unconfirmed under TIP's own setup.
+
+What changed (core/data.ts):
+- **Fusions:** a conjecture one side of which is a call nested in another's argument, the other calls on its variables
+  alone, `length(x ++ y) = length(x) + length(y)`, `drop(n + m, xs) = drop(n, drop(m, xs))`,
+  `rev(xs ++ [x]) = x :: rev(xs)`: the rewrite that takes a composition the goal reads apart. Ranked after the others of
+  its shape among those the goal reads, and proven at up to two unfoldings (it unfolds both functions). Its uses: first
+  at the goal's reads as they stand, then, in the uses' second round, at the terms its own first uses made, as they stand
+  (`drop(w, drop(x, drop(y, z)))` to `drop(w + x, drop(y, z))` to `drop(w + x + y, z)`), up to four more past the
+  lemma's caps, each such last link's conclusion unfolded once (`drop(v + 1 + w + x, y :: z)` is decided). Parity of a
+  length (prop_22, 23, 25) is `length`'s fusion over `++`; the drops (lemma_04, 06, prop_08, 09) `drop`'s over itself.
+- **Termination through the built-ins:** an obligation without an induction scheme is tried by proveData with its
+  bridges too (mod2's call, `¬lt(x, y) ⇒ minus(x, y) < x`): `mod_same`, `rotate_mod` translated, not proven in 60 s.
+- **Weighted sizes as measures:** where no size of the parameters falls (a call on a value of the same size), a
+  structural fold of the parameter's datatype, each constructor 1 plus each field's weight times its fold (1 or 2) or
+  its size (another datatype's, 0 or 1), the lightest the runs' calls all lower: `flatten3`'s turned tree (the left
+  subtree weighs 2), `weird_concat`'s list of lists (its inner lists' sizes). The fold is a function defined for it and
+  taken structurally, so the kernel proves each obligation as any; Lean's `wf_fix_unique` is about any measure into the
+  naturals. A rank that reads it is unfolded once at each node and use. `tree_Flatten3`, `list_weird_is_normal`,
+  `list_weird_concat_map_bind` translated, not proven in 60 s (their proofs need `++` unfolded inside `concat`'s, at
+  two unfoldings, past their attempts' time).
+- Measured and left out: fusions before the calculated steps and every equation one side shallower ranked first, the law
+  tried again only after the last of them (prop_05, prop_12, prop_20, list_assoc lost); a fusion's matches at the classes
+  of every branch in its second round as well (the frontier's reverseReverse and sumFlatten lost, 18 s on main); 4 s in
+  place of 8 for a fusion's attempt (no change).
+
+Refused now 103 of the 492 (108 at 0.28.0), `final3/mine-1`: termination not proven 76 (`toList` 16, the `idiv` sorts
+12, correctly, since `idiv x 0 = S (idiv x 0)` has no solution; `bubsort` 8, `bmerge` 8, `ssort` 8, `msorttd` 4,
+`nmsorttd` 4, and 12 over integers with no parameter a measure reads: `third` 4, `twoThirds` 4, `nmsorttd-half1` 4;
+`flatten1` 2, McCarthy's `m` 2), rings with a nested call 21 (the Stooge sorts 16, `models` 5), existential goals 2,
+nested recursion 2 (`subst`), a product of two integers 1, a nested datatype 1. What each needs: `bubsort`, a count of
+inversions; `toList`, `hmerge`'s size law proven by its two-argument recursion within the measure's 10 s; `ssort`, a
+conditional size law (`elem m xs ⇒ size(delete m xs) < size xs`) with `minimum`'s membership; `msorttd`, `take` and
+`drop` at `length / 2` over integers; the integer helpers, a measure over integers (`|n|`); `flatten1`, a fold of a list
+weighted by its trees' folds; the nested calls (McCarthy's `m(m(x + 11))`, the Stooge rings), a Lean theorem for nested
+recursion (`wf_fix_unique` reads the function only below the measure, and a nested call's argument is the function's own
+value); `list_elem`, a witness that is a function (an index of `x` in `xs`), not a variable.
+
+What another tool proves and this branch doesn't, in any of the three runs (40; `final3`): the 12 `idiv` sorts;
+termination or an existential 5 (`list_weird_concat_map_bind`, `list_weird_is_normal` and `tree_Flatten3` translated
+now, `mccarthy91_M2`, `list_elem`); take, drop and zip at lengths 3 (`prop_83`, `prop_84`, `lemma_07`); integers and
+binary numbers as datatypes 7; a reversal or butlast over `++` 3 (`prop_49`, `lemma_09`, `lemma_10`); `prop_61` (lost,
+above), `prod/prop_27` (Vampire 2 of 3, out of time on both sides here); and `escape` 2, `regexp` 2,
+`simp_expr_unambig5`, `nat_pow_times`, `relaxedprefix_is_prefix_4`, `tree_Flatten2`.
+
 ### The hypothesis at other values, an implication's premise models, Peano induction (gen/tip2)
 
 Three runs a side of every tool in one batch on Modal, 60 s, 2 vCPU (`runs/tip2/final4`: this branch `mine-1..3`, main
