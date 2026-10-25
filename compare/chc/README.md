@@ -17,6 +17,8 @@ and Eldarica (2.3).
 | `prof/kind.ts` | Not a solver (`--tools kind`): whether the law is k-inductive, a measure of what k-induction would add |
 | `prof/kind-tree.ts`, `prof/kind-lean.ts` | Not solvers: where a k-step goal's time goes (CDCL's model search, its tree, the unfolding, the check), and a task's k-induction certificate as Lean (KInd.lean's `kind_sound`) |
 | `prof/gap27.py` | The gap at a release by group, family and cause, from runs of the track and Spacer's and Golem's answers |
+| `prof/imc.ts`, `prof/tpa.ts` | Not the solver (`--tools imc`, `--tools tpa`): interpolation over the unrolling (core/interp.ts) and transition power abstraction (core/tpa.ts) alone, each answer checked as solve.ts checks it |
+| `prof/itpdirs.ts` | Not a solver (`--tools itpdirs`): the directions of Spacer's invariant atoms that bounded refutations' interpolants find, from `prof/gap-models.json` (Spacer's models of the gap tasks, `runs/modal/chc2/spacer-models-sat/models.jsonl` by smt2 path; not kept) |
 | `prof/` | A Modal profiler for one task's `proveRule`; `spacer_models.py`, the invariants Spacer finds for given tasks (or, with `--engine golem`, Golem's derivations of false); `template.ts` (`--tools tmpl`), what `inferLaws` would search on a task (its atoms, coefficient magnitudes and shape limits); `given.ts` (`--tools given`), `proveRule` given Spacer's invariant as laws; `gap.py`, the gap to Spacer by the shape of its invariant and what gdp-wired did |
 
     modal run compare/chc/modal_chc.py --out runs/modal/chc/<name> [--tools gdp,z3,golem,eldarica] [--limit 60]
@@ -24,6 +26,92 @@ and Eldarica (2.3).
     modal run compare/chc/prof/spacer_models.py --out <dir> --tasks-json <file> [--engine golem]
     modal run compare/chc/modal_chc.py --out <dir> --tools tmpl            # then --tools given --tasks-json <file>
     python3 compare/chc/prof/gap.py --gdp <run> --others <run> --models <dir> --template <run> [--cex <dir>] [--given <run>] --out <file.json>
+    modal run compare/chc/modal_chc.py --out <dir> --tools golem-imc,golem-tpa   # Golem with one engine of its own
+
+## Interpolants and transition powers, kept on gen/chc6 (after 0.28.0)
+
+Every run named here is in the main checkout's `runs/chc6/` (60 s, 2 vCPU; Modal unless named boat). Nothing trusted
+changed, none of the existing searches changed, and nothing is merged: on the full track the best variant is level with
+main. The branch has it opt-in (`solve.ts --imc 2`).
+
+**What the leaders' techniques do on our gap** (`golem-engines`, boat: Golem 0.9.0 with one engine each, on the 239
+tasks Spacer or Golem solves at 60 s and five runs of main never did; our "Golem 1,154" is its default engine, spacer):
+
+| Golem engine | solved of 239 | sat | unsat |
+| --- | --- | --- | --- |
+| `imc` (McMillan's interpolation over the unrolling) | 193 | 162 | 31 |
+| `split-tpa` | 109 | 77 | 32 |
+| `lawi` (lazy abstraction with interpolants) | 108 | 77 | 31 |
+| `tpa` | 78 | 46 | 32 |
+| `kind` (k-induction with bounded runs) | 60 | 29 | 31 |
+
+The union is 211. IMC answers 147 of its 193 in under a second, and Golem's k-induction with its bounded runs 31 of
+the 32 unsat (metros and car among them).
+
+**What was built** (core/interp.ts, core/tpa.ts; core/interp.test.ts):
+- **Interpolants from the kernel's trees** (`fromTree`): any coloring of a refutation tree's hypotheses into A and B.
+  At a leaf, its derivation is replayed with each row's A part beside it (an input of A's whole, a combination adding
+  the parts, a cut dividing whichever part holds the variables, else no interpolant there); a split on A's atom or-s
+  its sides, on B's and-s them, and a path atom over shared names is kept in the leaf's interpolant. `interpolate`
+  renames B apart and ties the shared names. The tests check A ⊨ I and B ∧ I refuted by trees the kernel checks.
+- **IMC** (`imc`, `imcSearch`): the kernel's own k-step goal (stepLawObligations) with R as its `when`, on the machine
+  whose step stays put once the law is broken, integers relaxed (core/bmc.ts's `relax`). Refuted, the interpolant at
+  the first cut joins R; one within R is a fixed point, an invariant the kernel proves with the law (proveRule).
+- **TPA** (`tpa`): relations R_n ⊇ T^{≤2ⁿ}, R_0 a step or none, each R_{n+1} the interpolants of two R_n against a
+  start and a target; a model's middle state recursed into at n − 1 as an exact point; Houdini over R_{n+1} read from
+  the start for invariants.
+- **Interpolant directions as the join's shapes** (measured, then dropped: below).
+
+**Each alone** (`prof/imc.ts`, `prof/tpa.ts`, 55 s):
+- **On the 239 gap tasks:** IMC 7 (`imc1`: car_2_e7_1027_e7_359, car_2_e8_491_e7_826, array_fill1_abstracted,
+  SYNAPSE_4_e8_420_e7_572, simple-5-hhk2008, durationThm_1 and its e3_389_e6_167, at 10.2 to 57.5 s, the kernel's proof
+  6.1 to 20.0 s of it). TPA 0 (`tpa1`, `tpa2-unsat`: 0 of the 32 unsat).
+- **What they subsume** (`rep1`): of the 120 tasks main's k-induction answers (sat), IMC 107 (median 9.9 s), TPA 3; of
+  100 drawn from the 335 main's bounded runs answer (unsat), IMC 83 (median 3.0 s), TPA 30.
+- **The cost:** a proof-producing query is the kernel's tree. HOLA/13's two-step goal: CDCL 270 to 920 ms, reading the
+  64 to 230 leaves 130 to 270 ms more. car_6_e2_893's TPA query of two steps: 1.1 to 1.9 s. A counter to 10 (12
+  steps) takes TPA 10 s to level 3, and to 20 more than 30 s: each refinement learns a case-split interpolant.
+- **What interpolants at affordable depths say** (`itpdirs1`, the 185 gap tasks with a Spacer model, 156 that ended in
+  time): Spacer's 1,442 atom directions, 284 among the interpolants'; of its 127 beyond the join's templates (more
+  than three values or a coefficient past 3), 20, on 16 tasks. Locally, ctigar's nest-if7 and dillig19 to depth 7
+  give interpolants of the program counter's bits alone, and HOLA/13 to depth 4 of its location alone
+  (`24 <= loc~1 <= 24`): eldarica-misc/LIA's 42 multi-predicate gap tasks have 27 predicates at the median, 13 on
+  cycles.
+
+**Wired in, against main** (each batch launched together; wrong 0, the same 2 disputed labels on both sides):
+
+| run | what | this | main |
+| --- | --- | --- | --- |
+| `d3-*` (339 dev tasks) | interpolant directions as shapes (4 s from the guided runs); the guided runs at 4 s alone | 101; 102 | 102 |
+| `f1-chc-*` (track) | the shapes | 1,039 (611 sat, 428 unsat) | 1,044 (615, 429) |
+| `e1-*` (557 dev) | IMC in turns beside k-induction and the bounded runs; IMC in k-induction's place | 321; 318 | 318 |
+| `f2-chc-*` (track) | IMC in turns (`--imc 1`) | 1,040 (624, 416) | 1,042 (613, 429) |
+| `e2-*` (579 dev) | IMC sharing k-induction's slice (`--imc 2`); in turns | 337; 332 | 334 |
+| `f3-chc-*` (track) | IMC sharing k-induction's slice (`--imc 2`) | 1,043 (614, 429) | 1,044 (616, 428) |
+
+- **In turns** (`f2`), sat +11 and unsat −13: IMC's turns take the bounded runs' late ones (car_5 ×6, metros_2 ×2,
+  FIREFLY_a3 ×2, swimmingpool_1, reve 025c, bmc-1-test, at 28 to 54 s in main).
+- **In k-induction's place** (`e1-rep`), level (7 gained, 7 lost): it loses metros_1 ×6, which k-induction answers
+  at 26 to 33 s, and llreve's bug15.
+- **Sharing k-induction's slice** (`f3`, 7 gained, 8 lost). The 22 tasks that differ or timed out, 3 runs a side
+  (`f3r1`..`f3r3`): 28 answers here against 21. car_2_e7_1027_e1_1047 3 of 3 against 0 of 3, durationThm_2 3 against
+  1, its e1_118 3 against 2, dillig25 2 against 0, ctigar bound 3 against 1, ex1 3 against 2, nested5 1 against 0;
+  lost, metros_1_e2_1102_e7_1163, _e7_1255_e7_12 and _e7_606 2, 2 and 1 against 3 of 3 (k-induction's half slice puts
+  its answers at 46 to 54 s, from 27 to 31 s), bmc-1-test 2 against 3. HOLA/39, array_fill1_abstracted and dillig17,
+  differing in the first runs, 0 of 3 on both sides.
+- **The shapes**, dropped: level on the dev tasks, five fewer on the track.
+
+**The structure.** One object serves every search here: the kernel's k-step goal and its tree. The bounded runs ask
+it from the start for a model; k-induction with the law before each step; IMC with R at the start, colored at its
+first cut; the sequence interpolants color the same tree at every cut; TPA asks the two-step goal over its relations.
+One primitive (`fromTree`, any coloring of any kernel tree) is all four's interpolation. Measured as replacements: IMC
+reproduces 107 of k-induction's 120 and 83 of 100 of the bounded runs' answers alone, but in k-induction's place on
+the second CPU it is level (it misses the late metros_1), and beside the bounded runs it costs their deep turns. What
+stops it is the price of a tree (the cost above), and interpolants that split by cases, so R and the relations grow a
+case at a time. Two things would move it, neither measured here: an interpolant read from CDCL's resolution DAG
+(kernel/cdcl.ts keeps it internally) instead of the unfolded tree, and the clauses composed along the CHC's chains
+before the rule is built (HOLA's chains to its loops), which needs the sat answer read back on the original
+predicates for the kernel.
 
 ## The gap at 0.27.0; a warm CDCL session and PDR, kept on gen/chc5-pdr (gen/chc5)
 

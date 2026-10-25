@@ -3,6 +3,26 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+Interpolants and transition powers on CHC-COMP (gen/chc6, unmerged: level with main on the full track). Nothing
+trusted changed (kernel/, core/check.ts, lean-kernel/ as at 0.28.0), and no existing search changed: core/interp.ts
+(interpolants from the kernel's trees, any coloring; McMillan's IMC over the kernel's k-step goal) and core/tpa.ts
+(transition power abstraction) are new, compare/chc/kind.ts runs IMC on the second CPU only with `--imc`. In our
+harness (60 s, Modal, 2 vCPU), beside main 8b710ba launched together, wrong 0 and the same 2 disputed labels on both:
+- **IMC sharing k-induction's slice** (`runs/chc6/f3-chc-*`): 1,043 (614 sat, 429 unsat) against 1,044 (616, 428).
+  The 22 tasks that differ or timed out, 3 runs a side: 28 answers against 21 (car_2_e7_1027_e1_1047 3 of 3 against
+  0, durationThm_2 3 against 1; metros_1 ×3 lost, 5 of 9 against 9).
+- **IMC in turns beside both** (`f2-chc-*`): 1,040 (624, 416) against 1,042 (613, 429): sat +11, unsat −13.
+- **Interpolant directions as the join's shapes** (`f1-chc-*`): 1,039 against 1,044; dropped.
+- **Alone:** of the 239 gap tasks, IMC 7 and TPA 0; of main's 120 k-induction answers IMC 107, of 100 bounded-run
+  answers 83. Golem's own engines on the same 239: IMC 193, split-TPA 109, lawi 108, TPA 78, k-induction 60.
+- **Suites** at 128bc41, core/interp.test.ts among them (222 jobs, boat): none failed by default (229.1 s wall, 3,504.9 s of
+  job time) or with `--usual` (404.0 s, 3,030.3 s). The other benchmarks, the frontier corpora, the real-world corpus
+  and the 1-vCPU tests weren't run: no code they reach changed.
+- **Size:** `core/` and `kernel/` (tests excluded) 2,226,047 bytes and 30,656 lines against 0.28.0's 2,201,135 and
+  30,285 (+24,912, +371: core/interp.ts 223 lines, core/tpa.ts 148). compare/chc/README.md has the measurements.
+
 ## 0.28.0
 
 Four of the five benchmarks we run now lead clearly, in our harness (60 s on Modal, 2 vCPU, the rivals as installed in
