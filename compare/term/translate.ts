@@ -190,7 +190,8 @@ export type Built = {loop: Loop, plans: Plan[], locs: string[], slots: number, f
 // locations the loop runs at (by default those a rule leaves), so a loop of the task rewritten (facts.ts) names its
 // values and runs while the task's own does (a location whose every rule the rewrite left out still runs, as the
 // task's). `facts`: each start location's slots' constants, a
-// precondition of the start (scc.ts's components, from a state where the task's facts hold).
+// precondition of the start (scc.ts's components, from a state where the task's facts hold; slot -1, a location no run
+// reaches: none).
 export function build(t: Ari, name = 'task', opts: {starts?: string[], slice?: boolean, fixed?: Set<number>, active?: number[], facts?: Map<string, Map<number, bigint>>} = {}): Built {
   const locs = [...t.funs.keys()], n = Math.max(0, ...t.funs.values())
   const counts = new Map<string, number>()
@@ -310,7 +311,7 @@ export function build(t: Ari, name = 'task', opts: {starts?: string[], slice?: b
     body, assume,
   }
   if (!active.length) loop.while = {op: 'not', x: TRUE}
-  if (opts.starts) loop.pre = or(opts.starts.map(l => and([eqN(V('pc0'), K(locs.indexOf(l))), ...[...opts.facts?.get(l) ?? []].filter(([j]) => !dropped.has(j) && !fixed.has(j)).map(([j, c]) => icmp('=', {p: V(`a${j}`), n: V(`a${j}$n`)}, iconst(c)))])))
+  if (opts.starts) loop.pre = or(opts.starts.map(l => and([eqN(V('pc0'), K(locs.indexOf(l))), ...[...opts.facts?.get(l) ?? []].filter(([j]) => !dropped.has(j) && !fixed.has(j)).map(([j, c]) => (j < 0 ? {op: 'not', x: TRUE} as C : icmp('=', {p: V(`a${j}`), n: V(`a${j}$n`)}, iconst(c))))])))
   return {loop, plans, locs, slots: n, fixed, dropped, nInputs, features: [...new Set(plans.flatMap(p => p.features))].sort(), turns, active}
 }
 

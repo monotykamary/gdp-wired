@@ -12,7 +12,7 @@
 // by a constant in a loop's terms).
 import type {Ari, Step} from './ari.ts'
 import {type Built, stepOf} from './translate.ts'
-import {type Facts, lift} from './facts.ts'
+import {type Facts, lift, unreached} from './facts.ts'
 import type {C, E, Law} from '../../core/machine.ts'
 import {interpret} from '../../core/machine.ts'
 import {type Goal, type Recur, type RecurCases, type Tree, caseGoals, check, checkRecur, coverGoal, loopMachine, loopObligations, recurGoal} from '../../kernel/kernel.ts'
@@ -22,10 +22,12 @@ const K = (value: number): E => ({op: 'const', value}), V = (name: string): E =>
 const eq = (a: E, b: E): C => ({op: '=', a, b}), and = (xs: C[]): C => (xs.length === 1 ? xs[0]! : {op: 'and', xs})
 const plus = (a: E, k: number): E => (k ? {op: 'add', a, b: K(k)} : a)
 
-// Each location's constants, as `pc = L → each slot its value` (a slot read as a param left out: no rule changes it).
+// Each location's constants, as `pc = L → each slot its value` (a slot read as a param left out: no rule changes it),
+// and a location no run reaches as `pc = L → false`.
 function atLocation(b: Built, consts: Map<string, Map<number, bigint>>): [number, C][] {
   const out: [number, C][] = []
   for (const [loc, cs] of consts) {
+    if (cs === unreached) { const i = b.locs.indexOf(loc); if (i >= 0) out.push([i, {op: '<', a: K(0), b: K(0)}]); continue }
     const i = b.locs.indexOf(loc), xs = [...cs].filter(([j]) => !b.fixed.has(j) && !b.dropped.has(j)).map(([j, c]) => eq(plus(V(`s${j}`), Math.max(0, -Number(c))), plus(V(`s${j}$n`), Math.max(0, Number(c)))))
     if (i >= 0 && xs.length) out.push([i, and(xs)])
   }

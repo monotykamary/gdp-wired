@@ -181,6 +181,8 @@ export type Origin = {rule: number, fixed: Map<string, bigint>, gone: (Mod & {re
 // `consts`: each location's slots a constant at (where no location is split: the rewritten task's locations are the
 // task's, in its order, so a loop built from either numbers them alike; facts.ts's certificates are made on the task's
 // own loop, solve.ts's `onTask`).
+// (`unreached`, a location's facts where no run reaches it)
+export const unreached = new Map<number, bigint>([[-1, 0n]])
 export type Facts = {task: Ari, origins: Origin[], split: number, fixed: number, dropped: number, consts: Map<string, Map<number, bigint>>}
 
 // `maxCopies`: the residues a location is split into at most (the product of its moduli); 1, none: a split task's
@@ -297,6 +299,8 @@ function facts0(t: Ari, maxCopies: number): Facts | undefined {
   const rules = made.map(m => m.rule), origins = made.map(m => m.origin), fixed = origins.reduce((n, o) => n + o.fixed.size, 0)
   const funs = splits.size ? new Map(order.map(nd => [nd, arity.get(nodeLoc.get(nd)!)!] as const)) : new Map(arity)
   const consts = new Map(splits.size ? [] : [...at].map(([nd, F]) => [nd, new Map(F.flatMap((c, j) => (c.k === 0n ? [[j, c.c] as const] : [])))] as const))
+  // (a location no run reaches: no constant of its own, its law that it isn't reached)
+  if (!splits.size) for (const l of locs) if (!at.has(l)) consts.set(l, unreached)
   const dropped = t.rules.length - new Set(origins.map(o => o.rule)).size
   if (!splits.size && !fixed && !dropped && order.length === arity.size) return undefined
   return {task: {funs, entry: t.entry, rules}, origins, split: splits.size, fixed, dropped, consts}

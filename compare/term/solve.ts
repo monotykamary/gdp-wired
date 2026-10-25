@@ -128,17 +128,17 @@ if (want !== 'terminates') {
 // --- runs that never end: a closed recurrent set with its turn given (core/nonterm.ts), its closure goal's tree checked
 // by the kernel (kernel.ts's checkRecur; NonTerm.lean's never_ends_of). Where the set is a lasso's, the lasso is also
 // turned back into the task's steps and replayed by ari.ts's evaluator.
-function neverEnds(ms: number, tag: string, extend = ms, accel?: number): void {
+function neverEnds(ms: number, tag: string, extend = ms, accel?: number, l = loop): void {
   if (ms < 200) return
   let v
-  try { v = findNeverEnds(loop, {ms, extend, cases: true, ...(accel ? {accel} : {})}) } catch (e) { say({stage: 'recur', tag, error: (e as Error).message.slice(0, 300)}); return }
+  try { v = findNeverEnds(l, {ms, extend, cases: true, ...(accel ? {accel} : {})}) } catch (e) { say({stage: 'recur', tag, error: (e as Error).message.slice(0, 300)}); return }
   const {ms: searchMs, ...counts} = v.stats
   say({stage: 'recur', tag, proven: v.proven, checked: v.checked, ...(v.by ? {by: v.by} : {}), ...(v.why ? {why: v.why} : {}), searchMs, ...counts})
   let r = v.recur ?? v.cases
   if (!(v.proven && v.checked && r)) return
   // (on the task's own loop, where the set is the rewritten task's: else only a lasso replayed on the task answers)
   let onTask = 'as written'
-  if (f) {
+  if (f && l !== b0!.loop) {
     const r0 = f.split ? undefined : recurOnTask(b0!, b!, task0!, f, r, t0 + (limit - 1) * 1000)
     onTask = r0 ? 'made again' : 'not made'
     say({stage: 'on task', onTask})
@@ -156,7 +156,8 @@ function neverEnds(ms: number, tag: string, extend = ms, accel?: number): void {
       replay = replayed({start, stem: steps.slice(0, v.lasso.stem.length), cycle: steps.slice(v.lasso.stem.length)}) ?? 'confirmed'
     } catch (e) { replay = `not replayed: ${(e as Error).message.slice(0, 120)}` }
   }
-  if (onTask === 'not made' && replay !== 'confirmed') return
+  // (not made there and no lasso: the search again, on the task's own loop, in the same time)
+  if (onTask === 'not made' && replay !== 'confirmed') { if (l !== b0!.loop) neverEnds(ms, tag, extend, accel, b0!.loop); return }
   done('nonterminating', {by: onTask === 'not made' ? 'lasso' : 'recurrent set', kind: v.by, ...('cases' in r ? {cases: r.cases.length} : {}), stem: r.stem.length, setSize: size, ...(replay ? {replay} : {}), ...(f ? {onTask} : {}), recur: size < 200_000 && onTask !== 'not made' ? r : undefined})
 }
 // (the accelerated cycles have 75% of the first search after its runs; a set of theirs that a stem reaches may take
@@ -180,7 +181,8 @@ function prove(l: typeof loop, ms: number, tag: object = {}, given: Law[] = [], 
       lc = onTask.b.loop; laws = [...onTask.laws, ...laws]
       const t2 = withDeadline(t0 + (limit - 1) * 1000, () => rankOnTask(onTask.b, laws, f.rank!, t0 + (limit - 1) * 1000))
       say({stage: 'on task', ...tag, onTask: t2 ? 'made again' : 'not made'})
-      if (!t2) return {ok: false, why: `rank ${f.found?.rank} of the rewritten task, not proven on the task`}
+      // (not made there: the search again on the task's own loop, in the time left)
+      if (!t2) return left() > 1000 ? prove(onTask.b.loop, left(), tag) : {ok: false, why: `rank ${f.found?.rank} of the rewritten task, not proven on the task`}
       trees = t2
     }
     const goals = loopObligations(lc, laws, f.rank)
