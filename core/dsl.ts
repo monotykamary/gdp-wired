@@ -1758,7 +1758,11 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // a case in range, a presence bit 0 or 1), as laws: proveRule, proveSteps and proveLeadsTo prove them beside the laws
   // they are given, so a law may lean on "the hold is idle, holding or released" without stating it; give them to
   // toLean (or the kernel) with the rest.
-  kindLaws(): Law[] {
+  // (the same laws each time, their keys' names too: a goal built from them again is the same goal, whose tree
+  // kernel/prove.ts's withTrees keeps)
+  private kinds?: Law[]
+  kindLaws(): Law[] { return [...(this.kinds ??= this.kindLawsOf())] }
+  private kindLawsOf(): Law[] {
     const out: Law[] = []
     const of = (env: unknown, n: string) => (env as Record<string, unknown>)[n]
     for (const [n, k] of this.spec.kinded ?? []) if (k.invariant(k.value(n)).length) out.push(this.law(`${n} is a value of its kind`, env => all(...k.invariant(of(env, n)))))
