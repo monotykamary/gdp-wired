@@ -287,6 +287,10 @@ export const items: RealItem[] = [{
         {when: ({st}) => st.is('active'), request: ({last}) => ({op: 2, unrecoverable: 0, now: last})},
         {when: ({st}) => st.is('delayed'), request: ({until, last}) => ({op: 3, now: max(until, last)})},
       ],
+      // Strong fairness: a stall and a fetch may alternate forever after a deferred failure (the job active, then
+      // waiting, then active), so `fail` is enabled infinitely often without staying so; the claim is that an event
+      // that keeps coming back is taken (under weak fairness it is false).
+      fairness: 'strong',
     }), 'docs', 'base-job-options.ts:30-34 attempts "until it completes"; worker.ts:307 maxStalledCount: a job that keeps stalling is failed'),
   ],
 }, {

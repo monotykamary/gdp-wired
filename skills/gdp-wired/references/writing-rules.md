@@ -41,6 +41,35 @@ proveSteps(caps, [dayCap], [onlyUp, once, twice]) // {proven: true, checked: tru
 - `stepsLaw(name, k, then, when?)`: k steps in a row (k ≤ 16); the third argument holds each step's request.
 - Step laws assume the laws you pass beside them (`proveSteps(rule, laws, stepLaws)`).
 
+## Sums over a map's keys
+
+```ts
+const token = rule('token').inputs({op: oneOf('mint', 'transfer', 'burn'), from: nat, to: nat, value: nat})
+  .state({supply: 0}).maps({Bal: 0})
+  .flags(({op, from, value, Bal}) => ({mints: op.is('mint'), moves: op.is('transfer').and(Bal.at(from).atLeast(value))}))
+  .step(({from, to, value, supply, Bal, mints, moves}) => ({
+    Bal: Bal.each(k => Bal.at(k).minus(when(moves.and(k.eq(from)), value, 0)).plus(when(mints.or(moves).and(k.eq(to)), value, 0))),
+    supply: when(mints, supply.plus(value), supply)}))
+proveRule(token, [token.law('the balances sum to the supply', ({Bal, supply}) => Bal.sum().eq(supply)),
+  token.law('no balance exceeds the supply', ({Bal, supply}) => forall(k => Bal.at(k).atMost(supply)))]) // proven
+```
+
+- `M.sum()`: the sum of every cell of `M`, exact over every key (no bound on the keys). `M.sum(cell => ...)` sums a
+  term of the cell (a count: `M.sum(c => when(c.gt(0), 1, 0))`); on a map of records, `R.sum(r => when(r.deleted, 0, r.amount))`.
+  Use it in laws, flags, the step or the assumption; it reads like a state variable (`sum$M`) the step keeps exact.
+- The map must start where the term is 0 (`.maps({Bal: 0})`), be part of the state (not a carried set or a function),
+  and each step must change the term at keys it names: a write at one key, or a write at every key whose value compares
+  the key with terms (`k.eq(from)`, `k.eq(to)`) and keeps every other cell. A write that moves every cell (`M.at(k).plus(1)`)
+  has no finite sum: the law about it is not proven.
+- The kernel knows a sum by two facts: a step moves it by the term's change at the keys it writes, and the term at any
+  key, with the keys the step writes, is at most the sum (`M[t] <= sum`, and `M[t] + M[from] <= sum` when t isn't from).
+  So a cell law like "no balance exceeds the supply" is proven from the sum's law; alone, the search adds the sum of
+  each map the step writes and finds that law itself (`found: sum$Bal <= totalSupply`).
+- The runtimes keep the sum as state (one subtraction and one addition a step), so reading it costs nothing.
+- In Lean (Sums.lean): `sum_holds` (every reachable state's sum variable is the sum of its term over the keys, `IsSum`),
+  `sum_allowed` (there the machine allows exactly what the rule's assumption allows) and `sum_project_laws` (a law proven
+  with a sum the rule doesn't read is a law of the rule).
+
 ## Histories
 
 ```ts
@@ -73,6 +102,22 @@ proveLeadsTo(tickets, [noneEarly], everyTicket)
 
 "Whenever `from`, later `to`", in every run that sends each helpful request
 infinitely often. A helpful request names only the inputs it fixes.
+
+Under strong fairness, `fairness: 'strong'`: an event that keeps coming back is taken. Each helpful request is taken in
+its region infinitely often wherever, infinitely often, it is allowed there; the regions need not stay, and a helpful
+request may move to the region of one of a higher level instead of reaching `to` or lowering the rank (`levels`, one per
+helpful request; found when left out):
+
+```ts
+// A worker takes the job (fetch), loses it (stall), takes it again ...: it fails for good only when failed while active.
+job.leadsTo('the job fails for good', {from: ({st}) => st.is('failed').not(), to: ({st}) => st.is('failed'), rank: () => 0,
+  helpful: [{when: ({st}) => st.is('wait'), request: () => ({op: 0})}, {when: ({st}) => st.is('active'), request: () => ({op: 2})}],
+  fairness: 'strong'})  // proven; under weak fairness no rank exists (the regions don't stay)
+```
+
+Use it where the code's guarantee is that an event that keeps being possible happens (a retry, a scheduler that keeps
+coming back): weak fairness, the default, only covers an event possible from some point on without a break. Each
+helpful request is shown allowed in its region; the Lean theorem is Live.lean's `sleads_sf_soundA`.
 
 ## Decisions, pure functions, two runs
 
