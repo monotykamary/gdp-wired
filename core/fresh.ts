@@ -21,6 +21,9 @@ export function freshLaws(m: Machine, kinds: Law[], draws: Draws, opts: {ms?: nu
   const until = clock() + (opts.ms ?? 5000), run = interpret(m), rand = seeded(53), bound = 4
   // the runs: their states, and the variables some step lowers
   const states: {ps: Record<string, number>, st: State}[] = [], lowered = new Set<string>(), handed = new Set<string>()
+  // a high-water mark: a variable every key a step writes some map at is at most, after the step (top = max(top, b),
+  // a cell written at b): each map no step wrote past it, and each it was seen bounding
+  const past = new Set<string>(), bounds = new Set<string>()
   for (let trial = 0; trial < 60 && clock() < until; trial++) {
     let ps: Record<string, number>, st: State
     try { ps = draws.params(rand, bound); if (m.pre && !evalC(m.pre, ps, {scalars: {}, maps: {}}, m)) continue; st = run.init(ps) } catch { continue }
@@ -35,13 +38,18 @@ export function freshLaws(m: Machine, kinds: Law[], draws: Draws, opts: {ms?: nu
           // an id handed out: the counter goes on, and some map's cell at its old value is written
           else if (now > was && maps.some(([n, init]) => (st.maps[n]?.get(was) ?? init) !== (next.maps[n]?.get(was) ?? init))) handed.add(x)
         }
+        for (const [n, init] of maps) for (const key of new Set([...(st.maps[n]?.keys() ?? []), ...(next.maps[n]?.keys() ?? [])])) {
+          if ((st.maps[n]?.get(key) ?? init) === (next.maps[n]?.get(key) ?? init)) continue
+          for (const x of Object.keys(m.state)) (key <= next.scalars[x]! ? bounds : past).add(`${x}\u0000${n}`)
+        }
         st = next; d++
         states.push({ps, st})
       } catch { /* refused: another */ }
     }
   }
   const counters = [...handed].filter(c => !lowered.has(c))
-  if (!counters.length) return []
+  const highs = [...bounds].filter(p => !past.has(p) && !lowered.has(p.split('\u0000')[0]!) && !counters.includes(p.split('\u0000')[0]!)).map(p => p.split('\u0000') as [string, string])
+  if (!counters.length && !highs.length) return []
   const key = 'k$fresh', record = (n: string) => n.slice(0, Math.max(0, n.indexOf('.')))
   const cands: FreshLaw[] = []
   for (const c of counters) for (const [map, init] of maps) {
@@ -51,6 +59,10 @@ export function freshLaws(m: Machine, kinds: Law[], draws: Draws, opts: {ms?: nu
       if (g !== map && (!record(g) || record(g) !== record(map))) continue
       cands.push({law: {name: `ids from ${c}: ${map} below them where ${g} is set`, holds: {op: 'or', xs: [{op: '=', a: get(g, v(key)), b: {op: 'const', value: gi}}, {op: '<', a: at, b: v(c)}]}, forall: key}, text: `∀k. ${g}[k] ≠ ${gi} → ${map}[k] < ${c}`})
     }
+  }
+  for (const [c, map] of highs) {
+    const init = m.maps![map]!
+    cands.push({law: {name: `keys up to ${c}: ${map} unset past it`, holds: {op: 'or', xs: [{op: '<=', a: v(key), b: v(c)}, {op: '=', a: get(map, v(key)), b: {op: 'const', value: init}}]}, forall: key}, text: `∀k. ${c} < k → ${map}[k] = ${init}`})
   }
   let alive = cands.filter(f => states.every(({ps, st}) => { try { return watch(m, run, f.law, ps, bound).start(st) } catch { return false } }))
   while (alive.length && clock() < until) {

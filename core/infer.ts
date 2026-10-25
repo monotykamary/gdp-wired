@@ -185,6 +185,26 @@ const keyValue = (cell: string, w: Record<string, number>): number | undefined =
   return value
 }
 
+// The products of two of `names` a machine's terms (its step, flags, assumption) and these conditions multiply, a
+// product of sums read as its monomials ((top + 2)·window: top·window), each pair of factors once, in order.
+function monomialsOf(m: Machine, cs: C[], names: Set<string>): [string, string][] {
+  const out = new Map<string, [string, string]>()
+  const vars = (e: E, acc: Set<string>): Set<string> => {
+    if (e.op === 'var') acc.add(e.name)
+    else if (e.op === 'add' || e.op === 'sub' || e.op === 'min' || e.op === 'max') { vars(e.a, acc); vars(e.b, acc) } else if (e.op === 'mul') vars(e.a, acc)
+    return acc
+  }
+  const visit = (t: unknown): void => {
+    if (!t || typeof t !== 'object') return
+    if (Array.isArray(t)) { t.forEach(visit); return }
+    const o = t as {op?: string, a?: E, b?: E}
+    if (o.op === 'prod' && o.a && o.b) for (const u of vars(o.a, new Set())) for (const w of vars(o.b, new Set())) if (names.has(u) && names.has(w)) { const p = [u, w].sort() as [string, string]; out.set(p.join('*'), p) }
+    for (const val of Object.values(o)) if (typeof val === 'object') visit(val)
+  }
+  visit([m.state, m.step, m.assume, cs])
+  return [...out.values()].slice(0, 8)
+}
+
 // The directions of the states a step breaks a law from (its preimage, made linear): each comparison a law makes, read
 // after the step through each branch of the step's terms (an if's two sides, max's and min's each, a ∸ b as a − b, a
 // map's written value or its old one), and a step law's as it reads; the request's values in it eliminated against the
@@ -474,7 +494,15 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       if (e.op === 'mul') visitE(e.a); else if (e.op === 'if') { visitC(e.c); visitE(e.then); visitE(e.else) } else if (e.op === 'get') visitE(e.key); else { visitE(e.a); visitE(e.b) }
     }
     const visitC = (c: C): void => { if (c.op === 'and' || c.op === 'or') c.xs.forEach(visitC); else if (c.op === 'not') visitC(c.x); else if (c.op === '<' || c.op === '<=' || c.op === '=') { visitE(c.a); visitE(c.b) } }
-    for (const c of [...laws.map(l => l.holds), ...stepLaws.flatMap(sl => [sl.then, ...(sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when])])]) if (!c.op.startsWith('all')) visitC(c)
+    const lawConds = [...laws.map(l => l.holds), ...stepLaws.flatMap(sl => [sl.then, ...(sl.when === undefined ? [] : Array.isArray(sl.when) ? sl.when : [sl.when])])]
+    for (const c of lawConds) if (!c.op.startsWith('all')) visitC(c)
+    // and a product of two naturals the rule, its laws or its step laws multiply (u·w of the state and the params, a
+    // monomial as the kernel's arithmetic reads it: (top + 2)·window's top·window), its value its factors' product; a
+    // bound over it is linear for the kernel, which multiplies the factors' rows where a goal needs the product's facts
+    for (const [u, w] of monomialsOf(m, lawConds, new Set([...scalars, ...m.params].filter(p => !stateSet.has(`${p}$neg`) && !m.params.includes(`${p}$neg`))))) {
+      const e: E = {op: 'prod', a: x(u), b: x(w)}, k = JSON.stringify(e)
+      if (!seenT.has(k)) { seenT.add(k); atoms.push({name: `${u}·${w}`, parts: [[`$t${seenT.size - 1}`, 1]], param: false, int: false, cell: false, term: e}) }
+    }
   }
   const termAtoms = atoms.filter(a => a.term)
   // a row's term atoms' values, at its state (a term whose value the interpreter can't take: 0)
@@ -502,7 +530,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   type Mode = {atom: number, values: number[], choice?: readonly string[], bool?: boolean}
   const modes: Mode[] = []
   atoms.forEach((a, i) => {
-    if (a.param || a.int) return
+    if (a.param || a.int || a.term) return
     const k = a.cell ? undefined : kindOf.get(a.name), seenValues = [...new Set(a.cell ? valsK[i]! : valsS[i]!)].sort((p, q) => p - q)
     const decoded = k?.vars(a.name).length === 1 ? k.decode(a.name, {[a.name]: 0}) : undefined
     const values = (k as unknown as {values?: readonly string[]} | undefined)?.values

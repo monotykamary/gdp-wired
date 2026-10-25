@@ -303,7 +303,10 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
   }
   return growPlain(goal, path, budget)
 }
-export const realModels = {on: false}
+// A CDCL model whose products don't multiply out is no model (GDP_REAL_MODELS=0: taken as one, as before): its
+// monomials are names of their own there, so x' = (t − last)·rate may read 0 with rate = 1 and t − last = 1, where
+// the plain search multiplies the factors' rows (x/time/rate's refill, a rank-0 step goal).
+export const realModels = {on: env.GDP_REAL_MODELS !== '0'}
 const fakeProducts = (w: Record<string, number> | undefined): boolean => !!w && Object.keys(w).some(key => isMonomial(key) && (w[key] ?? 0) !== factorsOf(key).reduce((acc, f) => acc * (w[f] ?? 0), 1))
 function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: number, cap?: number}): Outcome {
   if (budget.cap !== undefined && budget.nodes >= budget.cap) return {stuck: 'unknown', path, why: 'cap'}
@@ -382,6 +385,23 @@ function growPlain(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
         const ineq = solve(withProducts(rows, more))
         if (ineq.kind === 'refuted') return {tree: leafOf(ineq.steps, more), nodes: budget.nodes}
       }
+    }
+  }
+  // Past forty rows, every pair is too many: each monomial x·y's factors' bounds (rows of x alone, of y alone)
+  // multiplied pairwise, McCormick's envelope of the product (interval·blockedUntil >= blockedUntil from interval >= 1
+  // and blockedUntil >= 0), each pair once, at most 300.
+  if (!split && monomials && rows.length > 40) {
+    const alone = new Map<string, number[]>()
+    rows.forEach((r, i) => { const ks = Object.keys(r.lin).filter(key => key !== '1'); if (ks.length === 1 && !isMonomial(ks[0]!)) alone.set(ks[0]!, [...(alone.get(ks[0]!) ?? []), i]) })
+    const seenP = new Set<string>(), pairs: [number, number][] = []
+    for (const m of new Set(rows.flatMap(r => Object.keys(r.lin).filter(isMonomial)))) {
+      const fs = factorsOf(m)
+      if (fs.length !== 2) continue
+      for (const i of alone.get(fs[0]!) ?? []) for (const j of alone.get(fs[1]!) ?? []) { const key2 = i < j ? `${i},${j}` : `${j},${i}`; if (!seenP.has(key2) && pairs.length < 300) { seenP.add(key2); pairs.push(i < j ? [i, j] : [j, i]) } }
+    }
+    if (pairs.length) {
+      const mc = solve(withProducts(rows, pairs))
+      if (mc.kind === 'refuted') return {tree: leafOf(mc.steps, pairs), nodes: budget.nodes}
     }
   }
   if (!split && monomials && rows.length <= 40) {
