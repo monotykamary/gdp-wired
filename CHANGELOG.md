@@ -3,6 +3,27 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+**CHC-COMP LIA-Lin settled: a lead, not a tie.** 0.30.0 called CHC a tie because we compared our runs with a single old
+Spacer figure. Four batches (`runs/settle/r1` to `r4`) now run gdp-wired 0.30.0, Z3's Spacer and Golem side by side:
+the same 60 s limit, the same containers, at the same time. None wrong in any batch.
+
+| Batch | gdp-wired | Spacer | Golem |
+| --- | --- | --- | --- |
+| r1 | 1,165 | 1,160 | 1,154 |
+| r2 | 1,168 | 1,160 | 1,154 |
+| r3 | 1,166 | 1,160 | 1,153 |
+| r4 | 1,168 | 1,159 | 1,155 |
+| mean | 1,166.75 | 1,159.75 | 1,154 |
+
+- **By the rule:** our lowest run (1,165) beats Spacer's highest (1,160), so it's a lead.
+- **Spacer's figure:** 1,159 to 1,160 in this harness, not the 1,163 quoted from an older run.
+- **Our counts** exclude our 2 disputed tasks, each answered unsat with a checked derivation.
+
+So in our harness gdp-wired leads every benchmark we measure: TIP 2015, SV-COMP termination, both sides of TermComp ITS
+and CHC-COMP LIA-Lin. These are measurements in this harness, ours to confirm under each competition's own setup.
+
 ## 0.30.0
 
 CHC-COMP LIA-Lin reaches the leading tools, in our harness (60 s on Modal, 2 vCPU, the rivals as installed in compare/).
