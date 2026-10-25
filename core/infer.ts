@@ -29,7 +29,7 @@ import {type C, type E, type Law, type Machine, type Request, type State, all, a
 import {type StepLaw, type Verdict, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, watch} from './watch.ts'
 import {clock, counted, grow, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withTrees} from '../kernel/prove.ts'
-import {type Instances, assumed, obligations, stepLawObligations, substC} from '../kernel/kernel.ts'
+import {type Instances, assumed, historyMachine, obligations, stepLawObligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
 import {showE} from './exists.ts'
@@ -903,7 +903,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // states short walks from it reach, until the kernel proves them inductive. The caller's laws are then proven with
   // them assumed, and what their proofs read (and what those read, in turn) is the answer.
   const pool0 = pool.slice(), ctis0 = ctis.length
-  if (joinOn && NS && !m.history) try {
+  if (joinOn && NS) try {
     const jT0 = performance.now(), jUntil = Math.min(until, now() + (until - now()) * (opts.join ?? joinShare))
     // The control state: the choice (loc) and, where they are few, the yes/nos (a program counter in bits), each of its
     // values reached a part of its own.
@@ -1034,22 +1034,19 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           const lv = combo.map((value, k) => ({atom: keyAtoms[k]!, value})), ats = lv.map(atLevel), grp = groups.get(combo.join(','))
           const guard = ats.length ? {guard: ats[0]!, ...(ats.length > 1 ? {also: ats.slice(1)} : {})} : {}
           if (!grp) { if (lv.length) nev.push(lv); continue }
-          const said = new Set<string>()
           for (const e of grp.eqs) {
             if (!emitted(e)) continue
             const coef: [number, number][] = []
             for (let k = 0; k < CN; k++) if (e[k]) coef.push([coords[k]!, Number(e[k]!)])
-            const d = -Number(e[CN]!), minus = coef.map(([i, c]) => [i, -c] as [number, number])
-            said.add(JSON.stringify(coef)); said.add(JSON.stringify(minus))
-            keep({coef, d, cells, ...guard, size: 0}); keep({coef: minus, d: -d, cells, ...guard, size: 0})
+            const d = -Number(e[CN]!)
+            keep({coef, d, cells, ...guard, size: 0}); keep({coef: coef.map(([i, c]) => [i, -c]), d: -d, cells, ...guard, size: 0})
           }
           dirs.forEach((t, k) => {
             const hi = grp.hi[k]!
             if (!Number.isFinite(hi)) return
-            // constant on the hull where an equality says it (one the forms hold: a sum of the equalities' basis that no
-            // row of it is, Start + Admitted − Val − Rewarded, is said by its two bounds), or a yes/no's own range
+            // constant on the hull (the equalities say it), or a yes/no's own range
             const neg = dirs.findIndex(u => u.length === t.length && u.every(([i, c], q2) => i === t[q2]![0] && c === -t[q2]![1]))
-            if (neg >= 0 && grp.hi[neg] === -hi && said.has(JSON.stringify([...t].sort((a, b) => coords.indexOf(a[0]) - coords.indexOf(b[0]))))) return
+            if (neg >= 0 && grp.hi[neg] === -hi) return
             if (t.length === 1 && modeOf(t[0]![0])?.bool && (t[0]![1] > 0 ? hi >= 1 : hi >= 0)) return
             keep({coef: t, d: hi, cells, ...guard, size: 0})
           })
@@ -1164,8 +1161,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // the kernel's model.
     // A goal's hypotheses that are laws, by the law (the facts, the precondition and, for a law's step, the assumption
     // before them; a law about every key none, at no instances).
-    const lawsFrom = (mm: Machine, ls: Law[], stepGoal: boolean, inst: Instances) => {
-      const at = new Map<number, number>()
+    const lawsFrom = (m0: Machine, ls: Law[], stepGoal: boolean, inst: Instances) => {
+      const at = new Map<number, number>(), mm = m0.history ? historyMachine(m0).machine : m0
       let h = assumed(mm.facts ?? [], inst).length + (mm.pre ? 1 : 0) + (!stepGoal && mm.assume ? 1 : 0)
       ls.forEach((l, k) => { for (let q = assumed([l], inst).length; q > 0; q--) at.set(h++, k) })
       return at
