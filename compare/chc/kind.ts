@@ -14,7 +14,6 @@ import {parseChc} from './chc.ts'
 import {build, checkDerivation, requestOf, stepsOf} from './translate.ts'
 import {type KindResult, proveKInduction} from '../../core/kind.ts'
 import {boundedSearch} from '../../core/bmc.ts'
-import {inferLaws} from '../../core/infer.ts'
 
 const args = process.argv.slice(2), file = args[0]!
 const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 ? d : Number(args[i + 1]) }
@@ -68,23 +67,8 @@ const bmcTurn = (slice: number) => {
   process.exit(0)
 }
 
-// PDR over the join's cubes (core/infer.ts's inferLaws with `pdr: 'only'`: its own runs for the samples, no candidates),
-// one turn of --pdr-ms (16 s) in place of k-induction's turn of 16 s (by then k-induction has answered 95% of what it
-// answers, runs/chc5/f2-main), the bounded runs keeping theirs: the invariant
-// search on solve.ts's CPU keeps the join's whole time, and PDR has this CPU's. Proven (the kernel's proof, checked),
-// it stops solve.ts and answers sat.
-const pdrMs = opt('--pdr-ms', Number(process.env.GDP_CHC_PDR_MS ?? 0)), pdrAt = Number(process.env.GDP_CHC_PDR_AT ?? 16_000)
-let pdrDone = pdrMs <= 0
-const pdrTurn = (ms2: number) => {
-  pdrDone = true
-  const h = inferLaws(b.rule, [b.law], [], {ms: ms2, timed: true, minimize: false, pdr: 'only', maxCandidates: 1, join: 0.95})
-  say({stage: 'pdr', proven: !!(h.proven && h.checked), kept: h.found.length, ms2})
-  if (h.proven && h.checked) { stop(); say({stage: 'answer', answer: 'sat', by: 'pdr', invariants: h.found.length}); process.exit(0) }
-}
-for (let slice = 2000; performance.now() < end && (kindLive || bmcLive || !pdrDone); slice *= 2) {
-  // (PDR in k-induction's turn of 16 s, or its first from 4 s on once k-induction is over: the bounded runs keep theirs)
-  if (!pdrDone && (slice >= pdrAt || (!kindLive && slice >= 4000) || !(kindLive || bmcLive))) pdrTurn(Math.min(pdrMs, end - performance.now()))
-  else if (kindLive) kindTurn(bmcLive ? slice : end - performance.now())
+for (let slice = 2000; performance.now() < end && (kindLive || bmcLive); slice *= 2) {
+  if (kindLive) kindTurn(bmcLive ? slice : end - performance.now())
   if (bmcLive && performance.now() < end) bmcTurn(kindLive ? slice : end - performance.now())
 }
 say({stage: 'kind', proven: false, checked: false, depths: kindDepths, ...(kindWhy ? {why: kindWhy.slice(0, 120)} : {})})

@@ -31,9 +31,7 @@ export const join = (a: W, b: W): W => {
 }
 // A trail: each decided atom (by its variable's name, the canonical text of its stored form) with its value and its
 // position; each position's stamp.
-// `quiet`: a position whose atom brings no row to the live rows (kernel/cdcl.ts's session's selectors, read only as
-// decisions).
-export type Trail = {get(name: string): {val?: boolean, at: number} | undefined, stamp(at: number): number, size(): number, lin(at: number): {name: string, lin: Lin, holds: boolean}, quiet?(at: number): boolean}
+export type Trail = {get(name: string): {val?: boolean, at: number} | undefined, stamp(at: number): number, size(): number, lin(at: number): {name: string, lin: Lin, holds: boolean}}
 // A reason, its latest position on the trail, and whether the value read nothing open.
 type R = {w: W, pos: number, fin: boolean}
 const R0: R = {w: none, pos: -1, fin: true}, R1: R = {w: none, pos: -1, fin: false}
@@ -225,10 +223,7 @@ export class Reader {
       case 'all': t = undefined; r = R1; break
       case 'not': { const x = this.truth(c.x); t = x.t === undefined ? undefined : !x.t; r = x; break }
       case 'and': case 'or': {
-        const dominant = c.op === 'or'
-        // (a guard written twice first, a session's selector: its value decides the whole, unread past it)
-        if (c.xs.length > 2 && c.xs[0] === c.xs[1]) { const g = this.truth(c.xs[0]!); if (g.t === dominant) { t = dominant; r = g; break } }
-        const xs = c.xs.map(y => this.truth(y))
+        const dominant = c.op === 'or', xs = c.xs.map(y => this.truth(y))
         // One part with the dominant value decides it (the one that needs fewest decisions); else every part.
         let best: TV | undefined
         for (const x of xs) if (x.t === dominant && (!best || x.w.size < best.w.size || (x.w.size === best.w.size && x.fin && !best.fin))) best = x
@@ -264,8 +259,6 @@ export class Reader {
       case 'not': return this.factsOf(c.x, !positive, out)
       case 'and': case 'or': {
         if ((c.op === 'and') === positive) return c.xs.reduce<R>((acc, y) => both(acc, this.factsOf(y, positive, out)), R0)
-        // (a guard written twice first and open, or true: two parts open, no facts, whatever the rest reads)
-        if (c.xs.length > 2 && c.xs[0] === c.xs[1]) { const g = this.truth(c.xs[0]!); if (g.t === positive) return {w: g.w, pos: g.pos, fin: g.fin} }
         let closed = R0
         const open: C[] = []
         for (const y of c.xs) { const t = this.truth(y); if (t.t === !positive) closed = both(closed, t); else open.push(y) }
@@ -419,7 +412,6 @@ export class Reader {
   leafRows(src?: (number | [string, string])[]): Row[] {
     const rows: Row[] = []
     for (let i = 0; i < this.trail.size(); i++) {
-      if (this.trail.quiet?.(i)) continue
       const s = this.trail.stamp(i)
       let r = this.trailStamps[i] === s ? this.trailRows[i] : undefined
       if (!r) {
@@ -500,7 +492,7 @@ export class Reader {
     this.changed = []
     const n = this.trail.size()
     for (let i = 0; i < Math.max(n, this.inTrail.length); i++) {
-      const r = i < n && !this.trail.quiet?.(i) ? this.trailRow(i) : undefined, had = this.inTrail[i]
+      const r = i < n ? this.trailRow(i) : undefined, had = this.inTrail[i]
       if (r === had) continue
       if (r) this.addCopy(r, 1)
       if (had) this.removeCopy(had, 1)

@@ -29,10 +29,10 @@ import {type C, type E, type Law, type Machine, type Request, type State, all, a
 import {type StepLaw, type Verdict, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, watch} from './watch.ts'
 import {clock, counted, grow, proveLaw, proveLaws, proveStepLaws, usedHyps, withDeadline, withTrees} from '../kernel/prove.ts'
-import {type Goal, obligations, substC} from '../kernel/kernel.ts'
+import {obligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
-import {REFUTED, type Refuted, cdclSession, growCdcl} from '../kernel/cdcl.ts'
+import {REFUTED, type Refuted, growCdcl} from '../kernel/cdcl.ts'
 
 type AnyRule = Parameters<typeof proveRule>[0]
 type Env = Record<string, number>
@@ -58,7 +58,6 @@ export type InferOptions = {
   minimize?: boolean // once proven, each chosen law the proof doesn't need taken out again (true); false answers at once
   remainders?: boolean // remainders (v mod k = r, a guard where only some runs keep one) where the runs keep one (true); with false, congruences instead (`existentials`)
   join?: number // the join's share of what is left of the search after the candidates (0.6)
-  pdr?: 'first' | 'after' | 'only' // PDR over the join's cubes beside it (GDP_JOIN_PDR; off), or in its place (only)
 }
 // What was found: each law as a Law (pass it with the rule's laws), how it reads, and for a rule, the builder call
 // that states it (`r.law(...)`), to paste.
@@ -123,18 +122,7 @@ const joinPrime = env.GDP_JOIN_PRIME !== '0'
 // GDP_JOIN_DOWN=0: a blocked cube kept as its refutation's core cuts it (no literal dropped); joinDownQueries, the
 // queries a cube's generalization may ask.
 const joinDown = env.GDP_JOIN_DOWN !== '0', joinDownQueries = 24
-// The warm session (below) for PDR's queries, each of the join's a CDCL search of its own (GDP_JOIN_WARM=1: the join's
-// too; =0: neither). The join on it lost tasks it answers cold (CHC's SYNAPSE_6 tasks: 5 of 12 against 9 and 10,
-// compare/chc/README.md); PDR on it answers more. Begun again past joinWarmHyps hypotheses; a query that would add more
-// than joinWarmAdd laws asked cold.
-const joinWarmEnv = env.GDP_JOIN_WARM ?? 'pdr', joinWarmHyps = 4000, joinWarmAdd = 256
-// PDR beside the join (InferOptions.pdr, or GDP_JOIN_PDR, which `off` turns off): first, before the join, with
-// joinPdrShare of its time (the join the rest); after, once the join ends unproven, with joinPdrAfter of what the
-// search has left (the kernel's search below, after a join that ran out of time, answered 4 of 478 sat answers:
-// compare/chc/README.md). At most joinPdrObligations obligations queued at once, 64 frames.
-const joinPdrOwn = env.GDP_JOIN_PDR_OWN !== '0'
-const joinPdrEnv = env.GDP_JOIN_PDR, joinPdrShare = Number(env.GDP_JOIN_PDR_SHARE ?? 0.5), joinPdrAfter = Number(env.GDP_JOIN_PDR_AFTER ?? 0.9), joinPdrObligations = 64
-// The kernel's search below the join: GDP_INFER_HALVES=0, a cell form chosen without its equality's other half.
+// GDP_INFER_HALVES=0: a cell form chosen without its equality's other half (below).
 const inferHalves = env.GDP_INFER_HALVES !== '0'
 const isRule = (t: AnyRule | Machine): t is AnyRule => typeof (t as AnyRule).kindsOfState === 'function'
 
@@ -741,8 +729,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // them assumed, and what their proofs read (and what those read, in turn) is the answer.
   const pool0 = pool.slice(), ctis0 = ctis.length
   if (joinOn && !mapNames.length && NS) try {
-    const joinPdr = joinPdrEnv ?? opts.pdr ?? '', jT0 = performance.now(), jEnd = Math.min(until, now() + (until - now()) * (opts.join ?? joinShare))
-    let jUntil = jEnd
+    const jT0 = performance.now(), jUntil = Math.min(until, now() + (until - now()) * (opts.join ?? joinShare))
     // The control state: the choice (loc) and, where they are few, the yes/nos (a program counter in bits), each of its
     // values reached a part of its own.
     const jChoice = modes.find(mo => mo.choice && !atoms[mo.atom]!.cell), bits = modes.filter(mo => mo.bool && !atoms[mo.atom]!.cell && !atoms[mo.atom]!.param)
@@ -866,65 +853,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // a millisecond), so that what it finds doesn't depend on the machine.
     const budgeted = <T>(ms2: number, f: (until2: number) => T): T => (timed ? f(performance.now() + Math.max(200, Math.min(ms2, wallUntil - performance.now())))
       : counted(inferRates.work, () => f(clock() + ms2)))
-    // The warm session (joinWarm): one CDCL search kept across the join's model queries. The step's hypotheses are its
-    // once (the start of every goal obligations makes: the facts, the precondition, the assumption, and the caller's and
-    // the kinds' laws before the step), and each law before the step and each goal after it a hypothesis behind a
-    // selector of its own (1 <= sel@j, or the hypothesis); a query assumes sel@j <= 0 for what it reads and 1 <= sel@j for
-    // the rest. Its learned clauses, the atoms' activities and phases and the simplex's tableau stay from one query to
-    // the next (the goal only grows, so every clause learned stays its consequence), and a refutation names the
-    // selectors it rests on (kernel/cdcl.ts's `assumed`), as the cold query's core names the hypotheses it read.
-    type Warm = {goal: Goal, run: ReturnType<typeof cdclSession>['run'], at: Map<string, number>, last: Map<number, number>, n: number}
-    // (a session for each machine, and for each of the join and PDR: `side`)
-    const warms = [new Map<Machine, Warm>(), new Map<Machine, Warm>()]
-    let side = 0
-    const warmOf = (mm: Machine): Warm => {
-      let w = warms[side]!.get(mm)
-      if (!w || w.goal.hyps.length > joinWarmHyps) {
-        const g0 = obligations(mm, given, {}, 0)[1]!, goal = {name: side ? 'PDR' : 'the join', hyps: g0.hyps.slice(0, g0.hyps.length - 1)}
-        warms[side]!.set(mm, (w = {goal, run: cdclSession(goal, new Map(), {model: true, quiet: name => name.startsWith('sel@')}).run, at: new Map(), last: new Map(), n: 0}))
-      }
-      return w
-    }
-    // A hypothesis behind its selector (its index), added once per key.
-    const selOf = (w: Warm, key: string, h: () => C | undefined): number | undefined => {
-      let j = w.at.get(key)
-      if (j === undefined) {
-        const c = h()
-        if (!c) return undefined
-        // (the selector's part twice: off, the hypothesis is unread, kernel/reader.ts)
-        j = w.goal.hyps.length
-        const off = atMost(n(1), x(`sel@${j}`))
-        w.goal.hyps.push({op: 'or', xs: [off, off, c]}); w.at.set(key, j); w.last.set(j, w.n)
-      }
-      return j
-    }
-    // A law before the step and its goal after it (the negated conclusion), as obligations writes them.
-    const obOf = (w: Warm, mm: Machine, l: Law): C[] => {
-      const g = given.findIndex(k => k.name === l.name), ob = g >= 0 ? obligations(mm, given, {}, g)[1]! : obligations(mm, [...given, l], {}, given.length)[1]!
-      return g >= 0 ? [ob.hyps.at(-1)!] : [ob.hyps.at(-2)!, ob.hyps.at(-1)!]
-    }
-    const preOf = (w: Warm, mm: Machine, l: Law) => selOf(w, `pre ${l.name}`, () => given.some(k => k.name === l.name) ? undefined : obOf(w, mm, l)[0])
-    const postOf = (w: Warm, mm: Machine, l: Law) => selOf(w, `post ${l.name}`, () => obOf(w, mm, l).at(-1))
-    // Whether a query's laws are few enough to add to the session (each a goal of obligations' to write; a query over
-    // thousands of new forms, the whole set at once, is asked cold, as one goal).
-    const warm = () => joinWarmEnv === '1' || (joinWarmEnv === 'pdr' && side === 1)
-    const fits = (mm: Machine, ls2: Law[]) => { const w = warmOf(mm); let k = 0; for (const l of ls2) if (!w.at.has(`pre ${l.name}`) && ++k > joinWarmAdd) return false; return true }
-    // A query: the selectors on (the rest off), the conclusion's; refuted with the selectors on it rests on, a model, or
-    // undefined (its budget spent).
-    // (the selectors off first, those on longest ago (or made longest ago) first, then those on: consecutive queries
-    // share most of their assumptions, whose levels the session keeps)
-    const warmRun = (w: Warm, on: number[], focus: number, ms2: number): {refuted: Set<number>} | {witness: Record<string, number>} | undefined => {
-      const ons = new Set(on), byLast = (a: number, b: number) => w.last.get(a)! - w.last.get(b)! || a - b
-      const off = [...w.at.values()].filter(j => !ons.has(j)).sort(byLast)
-      on = [...ons].sort(byLast); w.n++
-      for (const j of on) w.last.set(j, w.n)
-      const lits = [...off.map(j => ({'1': 1, [`sel@${j}`]: -1})), ...on.map(j => ({[`sel@${j}`]: 1}))], ord = [...off, ...on]
-      const out = budgeted(ms2, until2 => w.run({nodes: 0, until: until2}, undefined, lits, focus)) as Refuted
-      if ('tree' in out) return undefined
-      if (out.why === REFUTED) return {refuted: new Set((out.assumed ?? ord.map((_, q) => q)).map(q => ord[q]!).filter(j => ons.has(j)))}
-      if (out.stuck === 'sat' && out.witness) return {witness: out.witness}
-      return undefined
-    }
     const requestAt = (params: Env, st: State): Request | undefined => {
       const vars: Record<string, E> = {}
       for (const [v, val] of Object.entries({...params, ...st.scalars})) vars[v] = n(val)
@@ -958,14 +886,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const g = obligations(mm, ls, {}, idx)[1]!, base0 = g.hyps.length - 1 - ls.length, used: string[] = []
       // First a model alone of the CDCL search (no tree unfolded): refuted, the hypotheses its leaves read are those
       // a tree would (the set's proof is the kernel's below, as before); a model is the counterexample; else the prover.
-      if (joinCore && warm() && fits(mm, ctxLaws)) {
-        const w = warmOf(mm), pres = ctxLaws.map(l => [l.name, preOf(w, mm, l)] as const), post = postOf(w, mm, ls[idx]!)
-        if (post !== undefined && pres.every(([, j]) => j !== undefined)) {
-          const r = warmRun(w, [...pres.map(([, j]) => j!), post], post, joinQueryMs / 4)
-          if (r && 'refuted' in r) { for (const [name2, j] of pres) if (r.refuted.has(j!) && name2 !== ls[idx]!.name) used.push(name2); return {used} }
-          if (r) return {stuck: 'sat', witness: r.witness}
-        }
-      } else if (joinCore) {
+      if (joinCore) {
         const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
         if (!('tree' in quick) && quick.why === REFUTED && quick.core) {
           for (const h of quick.core) { const k = h - base0; if (k >= given.length && k < ls.length && k !== idx) used.push(ls[k]!.name) }
@@ -1053,15 +974,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const f = formOf(c), own = lawFor(f), names2 = new Set([own.name]), ls = [...given, ...frame.filter(l => !names2.has(l.name) && !!names2.add(l.name)), own], mm = forLaws(ls).m
       const g = obligations(mm, ls, {}, ls.length - 1)[1]!, last = g.hyps.at(-1)!
       const inner = last.op === 'not' && last.x.op === 'not' && last.x.x.op === 'and' && last.x.x.xs.length === c.length ? last.x.x.xs : undefined
-      if (warm() && inner && fits(mm, ls.slice(given.length))) {
-        const w = warmOf(mm), pres = ls.slice(given.length).map(l => preOf(w, mm, l)), posts = inner.map((h, j) => selOf(w, `lit ${JSON.stringify(c[j])}`, () => h))
-        if (pres.every(j => j !== undefined) && posts.every(j => j !== undefined)) {
-          const r = warmRun(w, [...pres as number[], ...posts as number[]], posts.at(-1)!, joinCubeMs)
-          if (!r) return undefined
-          if ('refuted' in r) return {ok: true, core: new Set(c.flatMap((_, j) => (r.refuted.has(posts[j]!) ? [j] : [])))}
-          return {ok: false, ...witnessStep(r.witness)}
-        }
-      }
       const tails = inner ?? [last], hyps = [...g.hyps.slice(0, -1), ...tails], base = hyps.length - tails.length
       const out = budgeted(joinCubeMs, until2 => growCdcl({name: 'a cube', hyps}, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
       if ('tree' in out) return {ok: true, core: new Set(c.map((_, j) => j))}
@@ -1097,14 +1009,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       }
       return cur
     }
-    // A cube blocked relative to a frame, generalized: cut to its refutation's core (a literal put back where the start
-    // or the samples would be in it), then `down`.
-    const generalize = (c: Lit[], core: Set<number>, frame: Law[]): Lit[] => {
-      const c2 = c.filter((_, j) => core.has(j))
-      if (initVec && inCube(c2, initVec)) { const l = c.find(l2 => !litHolds(l2, initVec!)); if (l) c2.push(l) }
-      const c3 = outOfSamples(c2, c) ? c2 : c
-      return joinDown ? down(c3, frame.filter(l => l.name !== textOf(formOf(c3)))) : c3
-    }
     const blockCube = (v: Float64Array, depth: number, within: Form[]): Form[] => {
       let c = cubeOf(v)
       const made: Form[] = []
@@ -1115,7 +1019,13 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       for (let tries = 0; c && tries < joinCubeTries && now() < jUntil && !stop(); tries++) {
         const r = queryWith(c, [...ctx, ...made].map(lawFor).filter(l => l.name !== textOf(formOf(c!))))
         if (!r) { cubeWhy = 'unknown'; break }
-        if (r.ok) { made.push(formOf(generalize(c, r.core, [...ctx, ...made].map(lawFor)))); break }
+        if (r.ok) {
+          const c2 = c.filter((_, j) => r.core.has(j))
+          if (initVec && inCube(c2, initVec)) { const l = c.find(l2 => !litHolds(l2, initVec!)); if (l) c2.push(l) }
+          const c3 = outOfSamples(c2, c) ? c2 : c
+          made.push(formOf(joinDown ? down(c3, [...ctx, ...made].map(lawFor).filter(l => l.name !== textOf(formOf(c3)))) : c3))
+          break
+        }
         if (!r.post) { cubeWhy = 'no step'; break }
         const pv = vecOf(r.pre), qv = vecOf(r.post)
         const ruling = within.filter(f => !ctx.includes(f) && !holdsRow(f, {...r.pre.scalars}))
@@ -1132,210 +1042,105 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       }
       return made
     }
-    // --- PDR over the cubes (GDP_JOIN_PDR) ------------------------------------------------------------------------------
-    // Frames as IC3/PDR keeps them (Bradley; Een, Mishchenko and Brayton): F_0 the start (the one state a rule without
-    // params starts at, as a law of its own), F_i the cubes blocked at level i or above, each lemma at the highest
-    // level it was blocked at. At the frontier N, each state F_N allows whose step breaks a caller's law (a goal's model)
-    // is an obligation: its cube (cubeOf) blocked relative to F_{N-1} and its own negation (queryWith), a predecessor's
-    // cube first, at one level down, the lowest level first; a predecessor the runs reached (or the start) makes the
-    // cube leave its successor out instead (apart). A cube blocked is generalized as the join's are and pushed up while
-    // it stays blocked. Then each lemma is pushed a level up where F_i keeps it after the step; a frame left empty
-    // is the invariant: the lemmas above it, inductive with the caller's laws. Every query is the join's (the warm
-    // session's where it is on); undefined where PDR stops unproven.
-    const st0 = initVec ? run.init({}) : undefined
-    const startLaw: Law | undefined = st0 && {name: 'the start', holds: all(...scalars.map(v => same(x(v), n(st0.scalars[v] ?? 0))))}
-    let pdrWhy = ''
-    // (resumable: the frames stay from one call to the next, each going on at the frontier it was at)
-    const lemmas: Form[] = [], level = new Map<Form, number>()
-    let N = 1
-    const pdr = (): Form[] | undefined => {
-      if (!startLaw || !initVec) { pdrWhy = 'no start'; return undefined }
-      const frame = (i: number): Law[] => (i === 0 ? [startLaw] : lemmas.filter(f => level.get(f)! >= i).map(lawFor))
-      const late3 = () => now() > jUntil || stop()
-      const add = (c: Lit[], i: number) => {
-        const t = textOf(formOf(c)), had = lemmas.find(f => textOf(f) === t)
-        if (had) level.set(had, Math.max(level.get(had)!, i)); else { const f = formOf(c); lemmas.push(f); level.set(f, i) }
+    for (;;) {
+      if (now() > jUntil || stop()) { why = 'time'; break }
+      rounds++
+      set = [...formsNow(), ...extras].filter(f => !blocked.has(textOf(f)))
+      const byText = new Map(set.map(f => [textOf(f), f]))
+      for (const [t, used] of stood) if (used.some(u => !byText.has(u))) stood.delete(t)
+      const order = laws.map(l => l.name), inOrder = new Set(order)
+      let todo: string | undefined
+      for (let q = 0; q < order.length; q++) {
+        const used = stood.get(order[q]!)
+        if (!used) { todo = order[q]; break }
+        for (const u of used) if (!inOrder.has(u)) { inOrder.add(u); order.push(u) }
       }
-      type Ob = {v: Float64Array, c: Lit[], i: number}
-      const block = (v0: Float64Array, N: number): boolean => {
-        const c0 = cubeOf(v0)
-        if (!c0) { pdrWhy = sampled.has(vecKey(v0)) ? 'a sample' : 'inside'; return false }
-        const q: Ob[] = [{v: v0, c: c0, i: N}]
-        while (q.length) {
-          if (late3()) { pdrWhy = 'time'; return false }
-          if (q.length > joinPdrObligations) { pdrWhy = 'obligations'; return false }
-          q.sort((a, b) => a.i - b.i)
-          const ob = q[0]!
-          if (lemmas.some(f => level.get(f)! >= ob.i && inCube(f.cube!, ob.v))) { q.shift(); continue }
-          const fr = frame(ob.i - 1), r = queryWith(ob.c, fr)
-          if (!r) { pdrWhy = 'unknown'; return false }
-          if (r.ok) {
-            const g = generalize(ob.c, r.core, fr)
-            let i = ob.i
-            while (i < N && !late3() && queryWith(g, frame(i))?.ok) i++
-            add(g, i); q.shift(); continue
-          }
-          if (!r.post) { pdrWhy = 'no step'; return false }
-          const pv = vecOf(r.pre), qv = vecOf(r.post)
-          if (!inCube(ob.c, qv)) { pdrWhy = 'outside'; return false }
-          const pc = sampled.has(vecKey(pv)) ? undefined : cubeOf(pv)
-          if (pc && ob.i > 1) { q.push({v: pv, c: pc, i: ob.i - 1}); continue }
-          // (a predecessor the runs reached, or the start: its successor is reached too, a sample now)
-          addSample(qv)
-          const l = apart(ob.v, qv)
-          if (!l) { pdrWhy = 'reached'; return false }
-          ob.c = [...ob.c, l]
+      if (todo === undefined) { why = 'inductive'; cone = order.filter(t => !callers.has(t)).map(t => byText.get(t)!); break }
+      // The goal with as little of the set assumed as will do (relative induction, as IC3 has it): first none of it; a
+      // counterexample the set rules out adds to what is assumed the forms that rule it out that the cone already has
+      // (else those proven before, else the smallest), a few at a time; past a few tries, or stuck, the whole set. A
+      // counterexample the whole set allows is one to learn from.
+      const todoForm = callers.has(todo) ? undefined : byText.get(todo)!
+      const inCone = new Set(order)
+      const rank = (f: Form) => (inCone.has(textOf(f)) ? 0 : stood.has(textOf(f)) ? 1 : 2) * 1000 + f.coef.length * 10 + (f.never || f.nevers || f.also ? 1 : 0)
+      const whole = set.filter(f => f !== todoForm)
+      let ctx: Form[] = [], witness: Record<string, number> | undefined, lastStuck = '', qms = 0, settled = false
+      for (let attempt = 0; attempt <= joinAttempts; attempt++) {
+        if (attempt === joinAttempts) ctx = whole
+        const tq = performance.now(), out = stepWith(todo, todoForm, ctx)
+        qms += Math.round(performance.now() - tq)
+        if ('used' in out) {
+          stood.set(todo, out.used!)
+          opts.progress?.('join', {round: rounds, set: set.length, ms: qms, proven: todo.slice(0, 60), reads: out.used!.length, ctx: ctx.length, attempt})
+          settled = true; break
         }
-        return true
+        lastStuck = out.stuck!
+        if (!out.witness) { if (ctx === whole) break; ctx = whole; attempt = joinAttempts - 1; continue }
+        const w = out.witness, {params: pp0, st: st0} = stateOf(w), pre0 = pointOf(pp0, st0)
+        if (ctx === whole) { witness = w; break }
+        const ruling = whole.filter(f => !ctx.includes(f) && !holdsAt(f, pre0)).sort((p2, q2) => rank(p2) - rank(q2))
+        if (!ruling.length) { witness = w; break }
+        ctx = [...ctx, ...ruling.slice(0, joinAdd)]
       }
-      for (; N <= 64; N++) {
-        for (;;) {
-          if (late3()) { pdrWhy = 'time'; return undefined }
-          let cti: Float64Array | undefined
-          for (const l of laws) {
-            const out = stepWith(l.name, undefined, lemmas.filter(f => level.get(f)! >= N))
-            if ('used' in out) continue
-            if (!out.witness) { pdrWhy = `stuck ${out.stuck}`; return undefined }
-            const {params: pp, st: s0} = stateOf(out.witness)
-            cti = valuesOf(pointOf(pp, stateAt(s0.scalars)).scalar); break
-          }
-          if (!cti) break
-          if (!block(cti, N)) return undefined
-        }
-        opts.progress?.('pdr', {frame: N, lemmas: lemmas.length, ...Object.fromEntries([...new Set(level.values())].sort((a, b) => a - b).map(i => [`F${i}`, lemmas.filter(f => level.get(f) === i).length]))})
-        for (let i = 1; i <= N; i++) {
-          for (const f of lemmas.filter(g => level.get(g) === i)) {
-            if (late3()) { pdrWhy = 'time'; return undefined }
-            if (queryWith(f.cube!, frame(i))?.ok) level.set(f, i + 1)
-          }
-          if (!lemmas.some(g => level.get(g) === i)) return lemmas.filter(g => level.get(g)! > i)
-        }
+      if (settled) continue
+      if (!witness) {
+        opts.progress?.('join', {round: rounds, set: set.length, ms: qms, result: lastStuck, goal: todo.slice(0, 60)})
+        if (callers.has(todo)) { why = `stuck ${lastStuck}`; break }
+        blocked.add(todo); continue
       }
-      pdrWhy = 'frames'
-      return undefined
+      const w = witness, {params, st} = stateOf(w)
+      if (todoForm?.nevers) neversBroken++
+      const input = Object.fromEntries(m.inputs.map(i => [i, w[i] ?? 0])) as Request
+      let post: State | undefined
+      try { post = run.step(params, st, input) } catch { post = undefined }
+      const pre = pointOf(params, st)
+      // A model the interpreter reads otherwise (a remainder's term the kernel left free, a value past what doubles hold):
+      // for a form, its goal is set aside; for a caller's law, the state is still one to rule out.
+      const outside = !post || set.some(f => !holdsAt(f, pre))
+      if (outside && !callers.has(todo)) { blocked.add(todo); opts.progress?.('join', {round: rounds, set: set.length, ms: qms, result: 'outside', goal: todo.slice(0, 60)}); continue }
+      if (outside || breaks(params, post!)) {
+        // the caller's law broken from a state the set allows: a candidate false there and at every state reached, the
+        // one false at the most such states (then the smallest), or one made from it (fromCti); else its cube blocked,
+        // as IC3 blocks one. Where no sample holds its control state (the samples say nothing of it) the cube comes first.
+        negs.push(pre); ctis.push(pre)
+        const pv = valuesOf(pre.scalar), alone = !S.some(s2 => ctrl.every(i => s2[i] === pv[i]))
+        const cube = (): boolean => {
+          if (outside || !joinCubes || !initVec || cubed >= joinCubeMax) return false
+          const made = blockCube(pv, joinCubeDepth, set), fresh = made.filter((f, i) => !set.some(g2 => textOf(g2) === textOf(f)) && made.findIndex(g2 => textOf(g2) === textOf(f)) === i)
+          opts.progress?.('join', {round: rounds, set: set.length, cubes: made.map(f => textOf(f).slice(0, 100)).join('; ') || `none: ${cubeWhy}`})
+          cubed += fresh.length; extras.push(...fresh)
+          return fresh.length > 0
+        }
+        if (alone && cube()) continue
+        const pick = (fs: Form[]) => { let bestF: Form | undefined, score = -Infinity; for (const f of fs) { if (f.cells || f.cong || extras.includes(f) || blocked.has(textOf(f)) || holdsAt(f, pre) || !reached.every(p2 => holdsAt(f, p2))) continue; const sc = negs.reduce((k2, c) => k2 + (holdsAt(f, c) ? 0 : 1), 0) * 1000 - f.size; if (sc > score) (bestF = f, score = sc) } return bestF }
+        const room = extras.length < joinExtras && tried < joinTries
+        let next = room ? pick(pool) : undefined
+        if (!next && room) { const made = fromCti(pre); pool.push(...made); next = pick(made) }
+        if (next) tried++
+        opts.progress?.('join', {round: rounds, set: set.length, ms: qms, target: next ? textOf(next).slice(0, 60) : 'none'})
+        if (!next && !alone && cube()) continue
+        if (!next) { why = 'target'; break }
+        extras.push(next); continue
+      }
+      const after = post!, postP = pointOf(params, after)
+      // (a model the interpreter reads otherwise, a quotient's term the kernel left free, say: nothing to join, and the
+      // goal is set aside)
+      if (!set.some(f => !holdsAt(f, postP))) { blocked.add(todo); opts.progress?.('join', {round: rounds, set: set.length, ms: qms, result: 'no violation', goal: todo.slice(0, 60)}); continue }
+      const j0 = joins, d0 = dropped
+      reach(postP)
+      // short walks from the state joined: every state they reach is a successor of one the invariant holds at
+      let walked = 0
+      for (let t = 0, at = after, misses = 0; t < joinWalk && misses < 3; t++) {
+        let inp: Request | undefined = randomInput(params, 4), next: State | undefined
+        try { if (allowed(m, run, params, at, inp)) next = run.step(params, at, inp) } catch { next = undefined }
+        if (!next && flagless) { inp = requestAt(params, at); try { if (inp) next = run.step(params, at, inp) } catch { next = undefined } }
+        if (!next) { misses++; continue }
+        if (breaks(params, next)) break
+        reach(pointOf(params, next)); at = next; walked++
+      }
+      opts.progress?.('join', {round: rounds, set: set.length, ms: qms, goal: todo.slice(0, 60), joins: joins - j0, walked, dropped: dropped - d0})
     }
-    // The join's rounds, until it is inductive or `jUntil` (it may be given more time after: its state stands).
-    const joinRounds = () => {
-      for (; why !== 'inductive';) {
-        if (now() > jUntil || stop()) { why = 'time'; break }
-        rounds++
-        set = [...formsNow(), ...extras].filter(f => !blocked.has(textOf(f)))
-        const byText = new Map(set.map(f => [textOf(f), f]))
-        for (const [t, used] of stood) if (used.some(u => !byText.has(u))) stood.delete(t)
-        const order = laws.map(l => l.name), inOrder = new Set(order)
-        let todo: string | undefined
-        for (let q = 0; q < order.length; q++) {
-          const used = stood.get(order[q]!)
-          if (!used) { todo = order[q]; break }
-          for (const u of used) if (!inOrder.has(u)) { inOrder.add(u); order.push(u) }
-        }
-        if (todo === undefined) { why = 'inductive'; cone = order.filter(t => !callers.has(t)).map(t => byText.get(t)!); break }
-        // The goal with as little of the set assumed as will do (relative induction, as IC3 has it): first none of it; a
-        // counterexample the set rules out adds to what is assumed the forms that rule it out that the cone already has
-        // (else those proven before, else the smallest), a few at a time; past a few tries, or stuck, the whole set. A
-        // counterexample the whole set allows is one to learn from.
-        const todoForm = callers.has(todo) ? undefined : byText.get(todo)!
-        const inCone = new Set(order)
-        const rank = (f: Form) => (inCone.has(textOf(f)) ? 0 : stood.has(textOf(f)) ? 1 : 2) * 1000 + f.coef.length * 10 + (f.never || f.nevers || f.also ? 1 : 0)
-        const whole = set.filter(f => f !== todoForm)
-        let ctx: Form[] = [], witness: Record<string, number> | undefined, lastStuck = '', qms = 0, settled = false
-        for (let attempt = 0; attempt <= joinAttempts; attempt++) {
-          if (attempt === joinAttempts) ctx = whole
-          const tq = performance.now(), out = stepWith(todo, todoForm, ctx)
-          qms += Math.round(performance.now() - tq)
-          if ('used' in out) {
-            stood.set(todo, out.used!)
-            opts.progress?.('join', {round: rounds, set: set.length, ms: qms, proven: todo.slice(0, 60), reads: out.used!.length, ctx: ctx.length, attempt})
-            settled = true; break
-          }
-          lastStuck = out.stuck!
-          if (!out.witness) { if (ctx === whole) break; ctx = whole; attempt = joinAttempts - 1; continue }
-          const w = out.witness, {params: pp0, st: st0} = stateOf(w), pre0 = pointOf(pp0, st0)
-          if (ctx === whole) { witness = w; break }
-          const ruling = whole.filter(f => !ctx.includes(f) && !holdsAt(f, pre0)).sort((p2, q2) => rank(p2) - rank(q2))
-          if (!ruling.length) { witness = w; break }
-          ctx = [...ctx, ...ruling.slice(0, joinAdd)]
-        }
-        if (settled) continue
-        if (!witness) {
-          opts.progress?.('join', {round: rounds, set: set.length, ms: qms, result: lastStuck, goal: todo.slice(0, 60)})
-          if (callers.has(todo)) { why = `stuck ${lastStuck}`; break }
-          blocked.add(todo); continue
-        }
-        const w = witness, {params, st} = stateOf(w)
-        if (todoForm?.nevers) neversBroken++
-        const input = Object.fromEntries(m.inputs.map(i => [i, w[i] ?? 0])) as Request
-        let post: State | undefined
-        try { post = run.step(params, st, input) } catch { post = undefined }
-        const pre = pointOf(params, st)
-        // A model the interpreter reads otherwise (a remainder's term the kernel left free, a value past what doubles hold):
-        // for a form, its goal is set aside; for a caller's law, the state is still one to rule out.
-        const outside = !post || set.some(f => !holdsAt(f, pre))
-        if (outside && !callers.has(todo)) { blocked.add(todo); opts.progress?.('join', {round: rounds, set: set.length, ms: qms, result: 'outside', goal: todo.slice(0, 60)}); continue }
-        if (outside || breaks(params, post!)) {
-          // the caller's law broken from a state the set allows: a candidate false there and at every state reached, the
-          // one false at the most such states (then the smallest), or one made from it (fromCti); else its cube blocked,
-          // as IC3 blocks one. Where no sample holds its control state (the samples say nothing of it) the cube comes first.
-          negs.push(pre); ctis.push(pre)
-          const pv = valuesOf(pre.scalar), alone = !S.some(s2 => ctrl.every(i => s2[i] === pv[i]))
-          const cube = (): boolean => {
-            if (outside || !joinCubes || !initVec || cubed >= joinCubeMax) return false
-            const made = blockCube(pv, joinCubeDepth, set), fresh = made.filter((f, i) => !set.some(g2 => textOf(g2) === textOf(f)) && made.findIndex(g2 => textOf(g2) === textOf(f)) === i)
-            opts.progress?.('join', {round: rounds, set: set.length, cubes: made.map(f => textOf(f).slice(0, 100)).join('; ') || `none: ${cubeWhy}`})
-            cubed += fresh.length; extras.push(...fresh)
-            return fresh.length > 0
-          }
-          if (alone && cube()) continue
-          const pick = (fs: Form[]) => { let bestF: Form | undefined, score = -Infinity; for (const f of fs) { if (f.cells || f.cong || extras.includes(f) || blocked.has(textOf(f)) || holdsAt(f, pre) || !reached.every(p2 => holdsAt(f, p2))) continue; const sc = negs.reduce((k2, c) => k2 + (holdsAt(f, c) ? 0 : 1), 0) * 1000 - f.size; if (sc > score) (bestF = f, score = sc) } return bestF }
-          const room = extras.length < joinExtras && tried < joinTries
-          let next = room ? pick(pool) : undefined
-          if (!next && room) { const made = fromCti(pre); pool.push(...made); next = pick(made) }
-          if (next) tried++
-          opts.progress?.('join', {round: rounds, set: set.length, ms: qms, target: next ? textOf(next).slice(0, 60) : 'none'})
-          if (!next && !alone && cube()) continue
-          if (!next) { why = 'target'; break }
-          extras.push(next); continue
-        }
-        const after = post!, postP = pointOf(params, after)
-        // (a model the interpreter reads otherwise, a quotient's term the kernel left free, say: nothing to join, and the
-        // goal is set aside)
-        if (!set.some(f => !holdsAt(f, postP))) { blocked.add(todo); opts.progress?.('join', {round: rounds, set: set.length, ms: qms, result: 'no violation', goal: todo.slice(0, 60)}); continue }
-        const j0 = joins, d0 = dropped
-        reach(postP)
-        // short walks from the state joined: every state they reach is a successor of one the invariant holds at
-        let walked = 0
-        for (let t = 0, at = after, misses = 0; t < joinWalk && misses < 3; t++) {
-          let inp: Request | undefined = randomInput(params, 4), next: State | undefined
-          try { if (allowed(m, run, params, at, inp)) next = run.step(params, at, inp) } catch { next = undefined }
-          if (!next && flagless) { inp = requestAt(params, at); try { if (inp) next = run.step(params, at, inp) } catch { next = undefined } }
-          if (!next) { misses++; continue }
-          if (breaks(params, next)) break
-          reach(pointOf(params, next)); at = next; walked++
-        }
-        opts.progress?.('join', {round: rounds, set: set.length, ms: qms, goal: todo.slice(0, 60), joins: joins - j0, walked, dropped: dropped - d0})
-      }
-    }
-    // PDR beside the join, first or after it (joinPdr).
-    const pdrFor = (end: number) => {
-      if (why === 'inductive') return
-      const t1 = performance.now(), u0 = jUntil
-      jUntil = end; side = 1
-      // (the samples PDR adds, its own: the join's cubes read the samples as they were)
-      const s0 = S.length, found = pdr()
-      if (joinPdrOwn) for (const v of S.splice(s0)) sampled.delete(vecKey(v))
-      side = 0
-      opts.progress?.('pdr end', {why: found ? 'inductive' : pdrWhy, lemmas: found?.length ?? 0, ms: Math.round(performance.now() - t1)})
-      if (found) { why = 'inductive'; cone = found }
-      jUntil = u0
-    }
-    const j0t = now(), at = (share: number) => j0t + (jEnd - j0t) * share
-    if (joinPdr === 'first' || joinPdr === 'only') pdrFor(joinPdr === 'only' ? jEnd : at(joinPdrShare))
-    if (joinPdr === 'only' && why !== 'inductive') why = 'pdr'
-    if (why !== 'inductive' && why !== 'pdr') { why = ''; joinRounds() }
     opts.progress?.('join end', {rounds, set: set.length, why, cone: cone.length, ms: Math.round(performance.now() - jT0)})
-    // (after a join that ran its time out: one that ended sooner, with no target or a goal undecided, leaves the time
-    // to the kernel's search below, which answers there: CHC's s_split and loop__fib tasks)
-    if (joinPdr === 'after' && why === 'time') pdrFor(now() + (until - now()) * joinPdrAfter)
     // (unproven, the search below begins as it would have: the candidates and the counterexamples as they were)
     if (why === 'inductive') chosen = cone
     else { pool = pool0; ctis.length = ctis0 }
@@ -1363,6 +1168,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     if (!(whole.proven && whole.checked)) forget()
     return whole
   }
+  // A cell form's mirror, −Σ ≤ −d beside Σ ≤ d under the same guard (its text).
   const mirrorText = (f: Form): string | undefined => (!f.cells || f.mod || f.cong || f.never || f.nevers || f.cube || f.unreachable || f.also || !f.coef.length ? undefined : textOf({...f, coef: f.coef.map(([i, c]) => [i, -c]), d: -f.d}))
   for (let iter = 0; iter < 300 && now() < until && !stop(); iter++) {
     const began = now(), wall = performance.now()
@@ -1385,10 +1191,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     let next = p ? best(p) : undefined
     if (!next && p) next = best(p, true)
     if (!next && p) { const t = performance.now(), made = fromCti(p); pool.push(...made); next = best(p); opts.progress?.('cti', {forms: made.length, ms: Math.round(performance.now() - t)}) }
-    // (a cell form with its mirror alive, Σ ≤ d beside −Σ ≤ −d under the same guard: the equality both halves state at
-    // every key, chosen together, as neither half is inductive without the other: the real-world corpus's Timelock and
-    // blnk; on CHC's scalar forms, measured, it cost s_split tasks)
-    if (next) { chosen.push(next); const mt = inferHalves && mirrorText(next), mirror = mt && pool.find(g => !chosen.includes(g) && textOf(g) === mt); if (mirror) chosen.push(mirror); continue }
+    // (a cell form chosen with its mirror where that is alive: the equality both halves state at every key, neither
+    // inductive without the other, as the real-world corpus's Timelock and blnk need; on CHC's scalar forms, measured,
+    // it cost s_split tasks, so cell forms only)
+    if (next) { chosen.push(next); const mt = inferHalves ? mirrorText(next) : undefined, mirror = mt && pool.find(g => !chosen.includes(g) && textOf(g) === mt); if (mirror) chosen.push(mirror); continue }
     // Stuck with no counterexample on a goal not a candidate's: the last candidate made it harder, so it goes.
     if (chosen.length && !stuckOn && !p) { drop(chosen.at(-1)!); continue }
     if (!stuckOn) break

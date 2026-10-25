@@ -47,7 +47,7 @@ const keyOf = (lin: Lin): string => {
 // A node of the refutation: a leaf (its decisions, by variable, and a derivation over the rows at its path) or a
 // resolution of two earlier nodes on a variable (`res[0]` the one with the atom as stored true, `res[1]` false).
 type DagNode = {inputs: Lin[], steps: Step[]} | {res: [number, number], on: Lin}
-type Var = {name: string, lin: Lin, terms: [string, number][], col: boolean, quiet?: boolean, val?: boolean, level: number, reason?: number, at: number, act: number, phase: boolean,
+type Var = {name: string, lin: Lin, terms: [string, number][], col: boolean, val?: boolean, level: number, reason?: number, at: number, act: number, phase: boolean,
   bj?: number[], bjAt?: number, bsig?: number, bver?: number, sj?: (number | undefined)[], sx?: Simplex, pair?: boolean}
 type Clause = {lits: Map<string, boolean>, node: number}
 // GDP_CDCL_LP=0: each node solved by elimination alone (no simplex); GDP_CDCL_FILL (8): the simplex's tableau begun
@@ -62,26 +62,18 @@ export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions
 // goal.hyps): those alone have no model (each leaf's rows are those hypotheses' facts at its decisions, or rows true of
 // any value: the trail's atoms, the naturals, the term columns' definitions), as core/infer.ts's join reads it.
 export const REFUTED = 'refuted, not unfolded'
-export type Refuted = Outcome & {core?: number[], assumed?: number[]}
+export type Refuted = Outcome & {core?: number[]}
 export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?: number}, opts: {maxLeaves?: number, model?: boolean, wall?: number, core?: boolean} = {}): Outcome {
   const go = () => cdclSession(goal, root, opts).run(budget, opts.wall)
   return queryHook.on && !queryHook.depth ? logged(opts.model ? 'model' : 'cdcl', goal, go) : go()
 }
-// A search kept from one run to the next (core/bmc.ts's deeper goals, core/infer.ts's join): its atoms, their activities
-// and phases, its learned clauses and the simplex's tableau. Between runs the caller may add hypotheses to the goal
-// (goal.hyps grows; none is taken away), so every clause learned stays a consequence of the goal. A run may assume
-// atoms (`assume`, each decided first, at a level of its own, in order): where the search learns one false the run ends
-// refuted (REFUTED), as where nothing is assumed and the goal is refuted; given a list, the refutation names the
-// assumptions it needed (`assumed`, their indices: the decisions the learned clause that made one false rests on, as
-// MiniSat's analyzeFinal finds them). `focus`, the hypothesis read as the conclusion (its open atoms the first
-// candidates; the last by default). Each run's own budget: nodes, `until` on the counted clock, `wall`.
-// `quiet`, with `model`: names read only as decisions (a session's selectors): an atom over one of them alone brings no
-// row to the node's rows (the simplex and the elimination never see it).
-export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, model?: boolean, core?: boolean, quiet?: (name: string) => boolean} = {}) {
-  let until = Infinity, budget: {nodes: number, until?: number} = {nodes: 0}, wall: number | undefined, assumed: [string, boolean][] = [], listed = false
-  // (the first assumption not known to hold: those before it held when last looked at, and an assumption taken back
-  // brings it down to its own; each assumption's index by name)
-  let aq = 0, aqOf = new Map<string, number>()
+// A search kept from one run to the next (core/bmc.ts's deeper goals): its atoms, their activities and phases, its learned
+// clauses and the simplex's tableau. Between runs the caller may add hypotheses to the goal (goal.hyps grows; none is
+// taken away), so every clause learned stays a consequence of the goal. A run may assume an atom (`assume`, decided
+// first, at level 1): where the search learns it false the run ends refuted (REFUTED), as where nothing is assumed and
+// the goal is refuted. Each run's own budget: nodes, `until` on the counted clock, `wall`.
+export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, model?: boolean, core?: boolean} = {}) {
+  let until = Infinity, budget: {nodes: number, until?: number} = {nodes: 0}, wall: number | undefined, assumed: [string, boolean] | undefined
   const st = cdclStats, timing = st.on
   const t = <T>(f: () => T, add: (ms: number) => void): T => { if (!timing) return f(); const t0 = performance.now(); try { return f() } finally { add(performance.now() - t0) } }
   st.runs++
@@ -99,7 +91,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
     const key = keyOf(lin)
     if (!vars.has(key)) {
       const flip = key !== canon(lin), stored = flip ? atomOf(lin, false).lin : lin, terms = Object.entries(stored).filter(([x0]) => x0 !== '1')
-      vars.set(key, {name: key, lin: stored, terms, col: terms.some(([x0]) => x0.startsWith('⟦')), level: -1, at: -1, act: 0, phase: !flip, ...(opts.quiet && opts.model && terms.length === 1 && opts.quiet(terms[0]![0]) ? {quiet: true} : {})})
+      vars.set(key, {name: key, lin: stored, terms, col: terms.some(([x0]) => x0.startsWith('⟦')), level: -1, at: -1, act: 0, phase: !flip})
     }
     return key
   }
@@ -135,25 +127,14 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
   // The root's own decisions are level 0, with no reason: they stay in every clause (the tree starts below them).
   const rootNames = new Set<string>(), stamps: number[] = []
   let stampN = 0
-  // A position's stamp is its trail's up to it, by what it holds (the stamp below, the atom, its value): decisions taken
-  // back and made again in the same order (a restart, the next run of a session) find the values whose reasons they
-  // are, as kept (reader.ts reads a final value as standing while its reason's latest position keeps its stamp).
-  const stampIds = new Map<string, number>()
-  const stampAt = (at: number, name: string, val: boolean): number => {
-    const key = `${at ? stamps[at - 1] : 0} ${name} ${val ? 1 : 0}`
-    let id = stampIds.get(key)
-    if (id === undefined) { if (stampIds.size > 1 << 21) stampIds.clear(); stampIds.set(key, (id = ++stampN)) }
-    return id
-  }
   for (const [key, a] of root) {
     const name = ensure(a.lin), x = vars.get(name)!, val = name === key ? a.holds : !a.holds
-    x.val = val; x.level = 0; x.at = trail.length; stamps[x.at] = stampAt(x.at, name, val); trail.push(name); rootNames.add(name)
+    x.val = val; x.level = 0; x.at = trail.length; stamps[x.at] = ++stampN; trail.push(name); rootNames.add(name)
     if (x.col) colsOn++
   }
   const reader = new Reader(goal, {
     get: name => vars.get(name), stamp: at => stamps[at]!, size: () => trail.length,
     lin: at => { const name = trail[at]!, x = vars.get(name)!; return {name, lin: x.lin, holds: x.val!} },
-    ...(opts.quiet ? {quiet: (at: number) => !!vars.get(trail[at]!)!.quiet} : {}),
   })
   let last = goal.hyps.length - 1
   const near = nearOf(goal)
@@ -163,7 +144,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
   const pathOf = (): Path => new Map(trail.map(name => { const x = vars.get(name)!; return [name, {lin: x.lin, holds: x.val!}] }))
   const assign = (name: string, val: boolean, reason?: number) => {
     const x = vars.get(name)!
-    x.val = val; x.level = level(); x.at = trail.length; x.phase = val; stamps[x.at] = stampAt(x.at, name, val)
+    x.val = val; x.level = level(); x.at = trail.length; x.phase = val; stamps[x.at] = ++stampN
     if (reason === undefined) delete x.reason; else x.reason = reason
     trail.push(name)
     if (x.col) colsOn++
@@ -172,11 +153,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
   }
   const undoTo = (l: number) => {
     const keep = levels[l] ?? trail.length
-    while (trail.length > Math.max(keep, fixed)) {
-      const name = trail.pop()!, x = vars.get(name)!, q = aqOf.get(name)
-      delete x.val; x.level = -1; delete x.reason; if (x.col) colsOn--; if (x.pair) pairsChanged++; reader.touch(name)
-      if (q !== undefined && q < aq) aq = q
-    }
+    while (trail.length > Math.max(keep, fixed)) { const name = trail.pop()!, x = vars.get(name)!; delete x.val; x.level = -1; delete x.reason; if (x.col) colsOn--; if (x.pair) pairsChanged++; reader.touch(name) }
     levels.length = l
   }
   const addClause = (lits: Map<string, boolean>, node: number): number => {
@@ -267,50 +244,23 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
   }
   let restartAt = 32, nRestart = 0, sinceRestart = 0
   const stuck = (kind: 'sat' | 'unknown', why: string, extra: {witness?: Record<string, number>} = {}): Outcome => ({stuck: kind, path: pathOf(), why, ...extra})
-  const run = (b: {nodes: number, until?: number}, w?: number, assume?: Lin | Lin[], focus?: number): Outcome => {
-    budget = b; until = b.until ?? Infinity; wall = w; last = focus ?? goal.hyps.length - 1
+  const run = (b: {nodes: number, until?: number}, w?: number, assume?: Lin): Outcome => {
+    budget = b; until = b.until ?? Infinity; wall = w; last = goal.hyps.length - 1
     restartAt = 32; nRestart = 0; sinceRestart = 0
-    listed = Array.isArray(assume)
-    assumed = (assume === undefined ? [] : Array.isArray(assume) ? assume : [assume]).map(lin => { const name = ensure(lin); return [name, name === canon(lin)] as [string, boolean] })
-    // (a run before this one may have left decisions: given a list, the levels whose decisions are its first
-    // assumptions in order stay, each assumption before them holding below them already, so the rows they read stand)
-    let keep = 0
-    if (listed) for (let l = 0, q = 0; l < levels.length; l++) {
-      const d = trail[levels[l]!]!
-      for (let y = q < assumed.length ? vars.get(assumed[q]![0])! : undefined; y && y.val === assumed[q]![1] && y.at < levels[l]!; y = ++q < assumed.length ? vars.get(assumed[q]![0])! : undefined);
-      if (q >= assumed.length || assumed[q]![0] !== d || vars.get(d)!.val !== assumed[q]![1]) break
-      q++; keep = l + 1
-    }
-    aq = 0; aqOf = new Map(assumed.map(([name], q) => [name, q]))
-    undoTo(keep); qhead = Math.min(qhead, trail.length)
+    undoTo(0); qhead = Math.min(qhead, trail.length) // (a run before this one may have left decisions)
+    if (assume) { const name = ensure(assume); assumed = [name, name === canon(assume)] } else assumed = undefined
     return queryHook.on && !queryHook.depth ? logged(opts.model ? 'model' : 'cdcl', goal, search) : search()
-  }
-  // The assumptions a falsified one rests on: the decisions its reasons reach, each reason materialized where it is a
-  // bound's (every decision on the trail is an assumption here: the search decides nothing else until they all hold).
-  const final = (q0: number): number[] => {
-    const at = aqOf, out = new Set([q0]), seen = new Set<string>(), todo = [assumed[q0]![0]]
-    while (todo.length) {
-      const name = todo.pop()!, x = vars.get(name)!
-      if (seen.has(name) || x.level <= 0) continue
-      seen.add(name)
-      if (x.reason === undefined) { const q = at.get(name); if (q !== undefined) out.add(q); continue }
-      if (clauses[x.reason]!.node < 0) materialize(x.reason)
-      for (const w of clauses[x.reason]!.lits.keys()) if (w !== name) todo.push(w)
-    }
-    return [...out].sort((a, b) => a - b)
   }
   const search = (): Outcome => {
     for (;;) {
       if (++budget.nodes > 200_000 || late(until) || (wall !== undefined && performance.now() > wall)) return stuck('unknown', budget.nodes > 200_000 ? 'nodes' : 'time')
       let conflict: Clause | undefined
       const ci = propagate()
-      let open = -1, wrong = -1
-      if (ci === undefined) for (; aq < assumed.length; aq++) { const val = vars.get(assumed[aq]![0])!.val; if (val === !assumed[aq]![1]) { wrong = aq; break } if (val === undefined) { open = aq; break } }
       if (ci !== undefined) conflict = clauses[ci]!
-      else if (wrong >= 0) return {stuck: 'unknown', path: new Map(), why: REFUTED, ...(listed ? {assumed: final(wrong)} : {})} as Refuted
-      else if (open >= 0) {
+      else if (assumed && vars.get(assumed[0])!.val === !assumed[1]) return {stuck: 'unknown', path: new Map(), why: REFUTED}
+      else if (assumed && vars.get(assumed[0])!.val === undefined) {
         levels.push(trail.length)
-        assign(assumed[open]![0], assumed[open]![1])
+        assign(assumed[0], assumed[1])
         continue
       } else {
         reader.begin()
@@ -324,9 +274,8 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
         for (const id of reader.left) { if (bxIn.delete(id)) bx.retract(id); if (sx && !toAssert.delete(id)) toRetract.add(id) }
         for (const id of reader.entered) { if (single(id)) { bxIn.add(id); bx.assert(id, full[reader.slotOf(id)]!.lin) } if (sx && !toRetract.delete(id)) toAssert.add(id) }
         if (verify) {
-          const loud = (r: {lin: Lin}) => { const xs = Object.keys(r.lin).filter(x0 => x0 !== '1'); return !opts.quiet || xs.length !== 1 || !opts.quiet(xs[0]!) }
-          const mine = new Set(rowsR.map(r => canon(r.lin))), theirs = new Set(leafConstraints(goal, pathOf()).filter(loud).map(r => canon(r.lin)))
-          if (mine.size !== theirs.size || [...mine].some(x => !theirs.has(x))) throw new Error(`reader.ts's rows differ from kernel.ts's at a node of ${goal.name}: ${[...mine].filter(x => !theirs.has(x)).slice(0, 3).join('; ')} | ${[...theirs].filter(x => !mine.has(x)).slice(0, 3).join('; ')}`)
+          const mine = new Set(rowsR.map(r => canon(r.lin))), theirs = new Set(leafConstraints(goal, pathOf()).map(r => canon(r.lin)))
+          if (mine.size !== theirs.size || [...mine].some(x => !theirs.has(x))) throw new Error(`reader.ts's rows differ from kernel.ts's at a node of ${goal.name}`)
         }
         work.n += 1 + full.length
         costs.cdclNodes++; costs.cdclRows += full.length
@@ -354,11 +303,9 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
             for (const r of rs) { if (r.seen === g) continue; r.seen = g; if (r.x && r.x.val === undefined) keep.push(r.x) }
           }
           take(unitAtoms(goal))
-          // (the hypotheses past the conclusion, a session's that `focus` names, among the rest)
-          const nh = Math.max(last, goal.hyps.length - 1)
           if (last >= 0) take(reader.openList(last))
           for (let i = 0; i < last; i++) if (near[i]) take(reader.openList(i))
-          for (let i = 0; i < nh + 1; i++) if (i !== last && !near[i]) take(reader.openList(i))
+          for (let i = 0; i < last; i++) if (!near[i]) take(reader.openList(i))
           if (reader.hasCells()) take(openCellsLive())
           return keep
         }, ms => { st.orderMs += ms })
@@ -480,7 +427,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
       for (;;) {
         if (!c.lits.size) {
           if (opts.model) {
-            if (!wantCore) return {stuck: 'unknown', path: new Map(), why: REFUTED, ...(listed ? {assumed: []} : {})} as Refuted
+            if (!wantCore) return {stuck: 'unknown', path: new Map(), why: REFUTED}
             // the hypotheses the leaves below the empty clause read (a clause never made into a node, a bound's not yet
             // materialized, leaves the core unknown)
             const core = new Set<number>(), seen = new Set<number>(), todo = [c.node]
