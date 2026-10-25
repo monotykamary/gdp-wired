@@ -1,0 +1,2930 @@
+{
+ "made": "from /Users/monotykamary/VCS/working-remote/open-source/gdp-wired/runs/bar/base/e1711cace848-modal-r1 (2026-10-25)",
+ "views": {
+  "chc": {
+   "size": 662,
+   "of": 1406,
+   "reference": "e1711cace848-modal-r1/chc/run1",
+   "strata": {
+    "aeval-benchmarks/multi-phase | early": {
+     "n": 5,
+     "of": 16
+    },
+    "aeval-benchmarks/multi-phase | late": {
+     "n": 3,
+     "of": 3
+    },
+    "aeval-benchmarks/multi-phase | unsolved": {
+     "n": 20,
+     "of": 35
+    },
+    "aeval-unsafe | early": {
+     "n": 12,
+     "of": 40
+    },
+    "aeval-unsafe | late": {
+     "n": 1,
+     "of": 1
+    },
+    "aeval-unsafe | unsolved": {
+     "n": 8,
+     "of": 13
+    },
+    "eldarica-misc/BV/qarmc | unsolved": {
+     "n": 1,
+     "of": 2
+    },
+    "eldarica-misc/LIA/HOLA | early": {
+     "n": 4,
+     "of": 13
+    },
+    "eldarica-misc/LIA/HOLA | late": {
+     "n": 20,
+     "of": 20
+    },
+    "eldarica-misc/LIA/HOLA | unsolved": {
+     "n": 8,
+     "of": 13
+    },
+    "eldarica-misc/LIA/llreve | early": {
+     "n": 9,
+     "of": 31
+    },
+    "eldarica-misc/LIA/llreve | late": {
+     "n": 7,
+     "of": 7
+    },
+    "eldarica-misc/LIA/llreve | unsolved": {
+     "n": 3,
+     "of": 5
+    },
+    "eldarica-misc/LIA/reve | early": {
+     "n": 12,
+     "of": 42
+    },
+    "eldarica-misc/LIA/reve | late": {
+     "n": 6,
+     "of": 6
+    },
+    "eldarica-misc/LIA/reve | unsolved": {
+     "n": 6,
+     "of": 10
+    },
+    "extra-small-lia | early": {
+     "n": 11,
+     "of": 39
+    },
+    "extra-small-lia | late": {
+     "n": 7,
+     "of": 7
+    },
+    "extra-small-lia | unsolved": {
+     "n": 5,
+     "of": 9
+    },
+    "hcai-bench/arrays_orig | early": {
+     "n": 1,
+     "of": 1
+    },
+    "hcai-bench/arrays_orig | unsolved": {
+     "n": 1,
+     "of": 2
+    },
+    "hcai-bench/svcomp/O0 | early": {
+     "n": 9,
+     "of": 31
+    },
+    "hcai-bench/svcomp/O0 | unsolved": {
+     "n": 1,
+     "of": 1
+    },
+    "hcai-bench/svcomp/O3 | early": {
+     "n": 13,
+     "of": 44
+    },
+    "hcai-bench/svcomp/O3 | late": {
+     "n": 1,
+     "of": 1
+    },
+    "hcai-bench/svcomp/O3 | unsolved": {
+     "n": 3,
+     "of": 6
+    },
+    "hopv/lia/fpice | early": {
+     "n": 2,
+     "of": 7
+    },
+    "hopv/lia/mochi | early": {
+     "n": 4,
+     "of": 15
+    },
+    "hopv/lia/mochi | late": {
+     "n": 1,
+     "of": 1
+    },
+    "hopv/lia/termination | early": {
+     "n": 8,
+     "of": 26
+    },
+    "llreve-bench/muz | early": {
+     "n": 5,
+     "of": 18
+    },
+    "llreve-bench/muz | unsolved": {
+     "n": 2,
+     "of": 4
+    },
+    "llreve-bench/smt2 | early": {
+     "n": 5,
+     "of": 16
+    },
+    "llreve-bench/smt2 | late": {
+     "n": 2,
+     "of": 2
+    },
+    "llreve-bench/smt2 | unsolved": {
+     "n": 2,
+     "of": 4
+    },
+    "llreve-bench/smt2/clausified | early": {
+     "n": 4,
+     "of": 15
+    },
+    "llreve-bench/smt2/clausified | late": {
+     "n": 3,
+     "of": 3
+    },
+    "llreve-bench/smt2/clausified | unsolved": {
+     "n": 2,
+     "of": 4
+    },
+    "rust-horn | early": {
+     "n": 2,
+     "of": 8
+    },
+    "rust-horn | late": {
+     "n": 2,
+     "of": 2
+    },
+    "rust-horn | unsolved": {
+     "n": 1,
+     "of": 1
+    },
+    "vmt-chc-benchmarks/conc | unsolved": {
+     "n": 3,
+     "of": 6
+    },
+    "vmt-chc-benchmarks/ctigar | early": {
+     "n": 2,
+     "of": 7
+    },
+    "vmt-chc-benchmarks/ctigar | late": {
+     "n": 34,
+     "of": 34
+    },
+    "vmt-chc-benchmarks/ctigar | unsolved": {
+     "n": 40,
+     "of": 69
+    },
+    "vmt-chc-benchmarks/lustre/ | early": {
+     "n": 1,
+     "of": 5
+    },
+    "vmt-chc-benchmarks/lustre/ | late": {
+     "n": 1,
+     "of": 1
+    },
+    "vmt-chc-benchmarks/lustre/car | early": {
+     "n": 12,
+     "of": 40
+    },
+    "vmt-chc-benchmarks/lustre/car | late": {
+     "n": 12,
+     "of": 12
+    },
+    "vmt-chc-benchmarks/lustre/car | unsolved": {
+     "n": 7,
+     "of": 12
+    },
+    "vmt-chc-benchmarks/lustre/cd | early": {
+     "n": 1,
+     "of": 2
+    },
+    "vmt-chc-benchmarks/lustre/cd | unsolved": {
+     "n": 1,
+     "of": 2
+    },
+    "vmt-chc-benchmarks/lustre/DRAGON | early": {
+     "n": 13,
+     "of": 44
+    },
+    "vmt-chc-benchmarks/lustre/DRAGON | late": {
+     "n": 67,
+     "of": 67
+    },
+    "vmt-chc-benchmarks/lustre/DRAGON | unsolved": {
+     "n": 25,
+     "of": 43
+    },
+    "vmt-chc-benchmarks/lustre/durationThm | early": {
+     "n": 8,
+     "of": 28
+    },
+    "vmt-chc-benchmarks/lustre/durationThm | late": {
+     "n": 4,
+     "of": 4
+    },
+    "vmt-chc-benchmarks/lustre/durationThm | unsolved": {
+     "n": 2,
+     "of": 4
+    },
+    "vmt-chc-benchmarks/lustre/ex | early": {
+     "n": 3,
+     "of": 11
+    },
+    "vmt-chc-benchmarks/lustre/fast | early": {
+     "n": 3,
+     "of": 10
+    },
+    "vmt-chc-benchmarks/lustre/fast | late": {
+     "n": 3,
+     "of": 3
+    },
+    "vmt-chc-benchmarks/lustre/FIREFLY | early": {
+     "n": 30,
+     "of": 102
+    },
+    "vmt-chc-benchmarks/lustre/FIREFLY | late": {
+     "n": 7,
+     "of": 7
+    },
+    "vmt-chc-benchmarks/lustre/FIREFLY | unsolved": {
+     "n": 13,
+     "of": 22
+    },
+    "vmt-chc-benchmarks/lustre/Gas | unsolved": {
+     "n": 1,
+     "of": 2
+    },
+    "vmt-chc-benchmarks/lustre/hysteresis | early": {
+     "n": 1,
+     "of": 4
+    },
+    "vmt-chc-benchmarks/lustre/ILLINOIS | early": {
+     "n": 8,
+     "of": 28
+    },
+    "vmt-chc-benchmarks/lustre/ILLINOIS | unsolved": {
+     "n": 1,
+     "of": 2
+    },
+    "vmt-chc-benchmarks/lustre/MESI | early": {
+     "n": 13,
+     "of": 44
+    },
+    "vmt-chc-benchmarks/lustre/MESI | unsolved": {
+     "n": 2,
+     "of": 4
+    },
+    "vmt-chc-benchmarks/lustre/metros | early": {
+     "n": 4,
+     "of": 14
+    },
+    "vmt-chc-benchmarks/lustre/metros | late": {
+     "n": 11,
+     "of": 11
+    },
+    "vmt-chc-benchmarks/lustre/metros | unsolved": {
+     "n": 21,
+     "of": 36
+    },
+    "vmt-chc-benchmarks/lustre/MOESI | early": {
+     "n": 9,
+     "of": 32
+    },
+    "vmt-chc-benchmarks/lustre/peterson | early": {
+     "n": 1,
+     "of": 1
+    },
+    "vmt-chc-benchmarks/lustre/peterson | late": {
+     "n": 6,
+     "of": 6
+    },
+    "vmt-chc-benchmarks/lustre/PRODUCER | early": {
+     "n": 1,
+     "of": 5
+    },
+    "vmt-chc-benchmarks/lustre/PRODUCER | unsolved": {
+     "n": 3,
+     "of": 6
+    },
+    "vmt-chc-benchmarks/lustre/readwrit | early": {
+     "n": 1,
+     "of": 1
+    },
+    "vmt-chc-benchmarks/lustre/rtp | early": {
+     "n": 3,
+     "of": 9
+    },
+    "vmt-chc-benchmarks/lustre/rtp | late": {
+     "n": 4,
+     "of": 4
+    },
+    "vmt-chc-benchmarks/lustre/rtp | unsolved": {
+     "n": 1,
+     "of": 2
+    },
+    "vmt-chc-benchmarks/lustre/speed | early": {
+     "n": 3,
+     "of": 11
+    },
+    "vmt-chc-benchmarks/lustre/swimmingpool | early": {
+     "n": 3,
+     "of": 10
+    },
+    "vmt-chc-benchmarks/lustre/swimmingpool | late": {
+     "n": 3,
+     "of": 3
+    },
+    "vmt-chc-benchmarks/lustre/swimmingpool | unsolved": {
+     "n": 1,
+     "of": 1
+    },
+    "vmt-chc-benchmarks/lustre/SYNAPSE | early": {
+     "n": 19,
+     "of": 66
+    },
+    "vmt-chc-benchmarks/lustre/SYNAPSE | late": {
+     "n": 4,
+     "of": 4
+    },
+    "vmt-chc-benchmarks/lustre/SYNAPSE | unsolved": {
+     "n": 1,
+     "of": 2
+    },
+    "vmt-chc-benchmarks/lustre/ticket | early": {
+     "n": 4,
+     "of": 13
+    },
+    "vmt-chc-benchmarks/lustre/ticket | late": {
+     "n": 16,
+     "of": 16
+    },
+    "vmt-chc-benchmarks/lustre/traffic | early": {
+     "n": 1,
+     "of": 4
+    },
+    "vmt-chc-benchmarks/lustre/twisted | early": {
+     "n": 1,
+     "of": 1
+    },
+    "vmt-chc-benchmarks/lustre/two | early": {
+     "n": 1,
+     "of": 5
+    }
+   },
+   "tasks": {
+    "aeval-benchmarks/multi-phase/s_split_02_000_000.yml": "aeval-benchmarks/multi-phase | early",
+    "aeval-benchmarks/multi-phase/s_split_13_000_000.yml": "aeval-benchmarks/multi-phase | early",
+    "aeval-benchmarks/multi-phase/s_split_18_000_000.yml": "aeval-benchmarks/multi-phase | early",
+    "aeval-benchmarks/multi-phase/s_split_22_000_000.yml": "aeval-benchmarks/multi-phase | early",
+    "aeval-benchmarks/multi-phase/s_split_38_000_000.yml": "aeval-benchmarks/multi-phase | early",
+    "aeval-benchmarks/multi-phase/s_split_19_000_000.yml": "aeval-benchmarks/multi-phase | late",
+    "aeval-benchmarks/multi-phase/s_split_37_000_000.yml": "aeval-benchmarks/multi-phase | late",
+    "aeval-benchmarks/multi-phase/s_split_42_000_000.yml": "aeval-benchmarks/multi-phase | late",
+    "aeval-benchmarks/multi-phase/s_split_03_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_10_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_11_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_12_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_14_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_15_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_16_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_20_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_24_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_25_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_27_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_29_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_30_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_32_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_40_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_41_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_45_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_46_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_49_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-benchmarks/multi-phase/s_split_50_000_000.yml": "aeval-benchmarks/multi-phase | unsolved",
+    "aeval-unsafe/s_split_10_000_001.yml": "aeval-unsafe | early",
+    "aeval-unsafe/s_split_14_000_001.yml": "aeval-unsafe | early",
+    "aeval-unsafe/s_split_17_000_001.yml": "aeval-unsafe | early",
+    "aeval-unsafe/s_split_23_000_001.yml": "aeval-unsafe | early",
+    "aeval-unsafe/s_split_26_000_001.yml": "aeval-unsafe | early",
+    "aeval-unsafe/s_split_28_000_001.yml": "aeval-unsafe | early",
+    "aeval-unsafe/s_split_32_000_001.yml": "aeval-unsafe | early",
+    "aeval-unsafe/s_split_37_000_001.yml": "aeval-unsafe | early",
+    "aeval-unsafe/s_split_44_000_001.yml": "aeval-unsafe | early",
+    "aeval-unsafe/s_split_49_000_001.yml": "aeval-unsafe | early",
+    "aeval-unsafe/s_split_52_000_001.yml": "aeval-unsafe | early",
+    "aeval-unsafe/s_split_54_000_001.yml": "aeval-unsafe | early",
+    "aeval-unsafe/s_split_45_000_001.yml": "aeval-unsafe | late",
+    "aeval-unsafe/s_split_04_000_001.yml": "aeval-unsafe | unsolved",
+    "aeval-unsafe/s_split_06_000_001.yml": "aeval-unsafe | unsolved",
+    "aeval-unsafe/s_split_07_000_001.yml": "aeval-unsafe | unsolved",
+    "aeval-unsafe/s_split_08_000_001.yml": "aeval-unsafe | unsolved",
+    "aeval-unsafe/s_split_12_000_001.yml": "aeval-unsafe | unsolved",
+    "aeval-unsafe/s_split_20_000_001.yml": "aeval-unsafe | unsolved",
+    "aeval-unsafe/s_split_31_000_001.yml": "aeval-unsafe | unsolved",
+    "aeval-unsafe/s_split_50_000_001.yml": "aeval-unsafe | unsolved",
+    "eldarica-misc/BV/qarmc/qrsolv_000.yml": "eldarica-misc/BV/qarmc | unsolved",
+    "eldarica-misc/LIA/HOLA/03.c_000.yml": "eldarica-misc/LIA/HOLA | early",
+    "eldarica-misc/LIA/HOLA/11.c_000.yml": "eldarica-misc/LIA/HOLA | early",
+    "eldarica-misc/LIA/HOLA/28.c_000.yml": "eldarica-misc/LIA/HOLA | early",
+    "eldarica-misc/LIA/HOLA/43.c_000.yml": "eldarica-misc/LIA/HOLA | early",
+    "eldarica-misc/LIA/HOLA/02.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/05.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/06.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/07.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/08.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/09.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/13.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/14.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/16.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/19.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/21.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/22.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/24.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/25.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/26.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/37.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/39.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/40.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/44.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/46.c_000.yml": "eldarica-misc/LIA/HOLA | late",
+    "eldarica-misc/LIA/HOLA/12.c_000.yml": "eldarica-misc/LIA/HOLA | unsolved",
+    "eldarica-misc/LIA/HOLA/18.c_000.yml": "eldarica-misc/LIA/HOLA | unsolved",
+    "eldarica-misc/LIA/HOLA/29.c_000.yml": "eldarica-misc/LIA/HOLA | unsolved",
+    "eldarica-misc/LIA/HOLA/31.c_000.yml": "eldarica-misc/LIA/HOLA | unsolved",
+    "eldarica-misc/LIA/HOLA/32.c_000.yml": "eldarica-misc/LIA/HOLA | unsolved",
+    "eldarica-misc/LIA/HOLA/36.c_000.yml": "eldarica-misc/LIA/HOLA | unsolved",
+    "eldarica-misc/LIA/HOLA/38.c_000.yml": "eldarica-misc/LIA/HOLA | unsolved",
+    "eldarica-misc/LIA/HOLA/42.c_000.yml": "eldarica-misc/LIA/HOLA | unsolved",
+    "eldarica-misc/LIA/llreve/03_while_unsafe.c-1_000.yml": "eldarica-misc/LIA/llreve | early",
+    "eldarica-misc/LIA/llreve/barthe2_safe.c-1_000.yml": "eldarica-misc/LIA/llreve | early",
+    "eldarica-misc/LIA/llreve/barthe_unsafe.c-1_000.yml": "eldarica-misc/LIA/llreve | early",
+    "eldarica-misc/LIA/llreve/break_single_safe.c-1_000.yml": "eldarica-misc/LIA/llreve | early",
+    "eldarica-misc/LIA/llreve/cube_square_unsafe.c-1_000.yml": "eldarica-misc/LIA/llreve | early",
+    "eldarica-misc/LIA/llreve/loop3_merged_safe.c-1_000.yml": "eldarica-misc/LIA/llreve | early",
+    "eldarica-misc/LIA/llreve/loop5_merged_unsafe.c-1_000.yml": "eldarica-misc/LIA/llreve | early",
+    "eldarica-misc/LIA/llreve/loop5_unsafe.c-1_000.yml": "eldarica-misc/LIA/llreve | early",
+    "eldarica-misc/LIA/llreve/loop_unswitching_safe.c-1_000.yml": "eldarica-misc/LIA/llreve | early",
+    "eldarica-misc/LIA/llreve/barthe2_merged_safe.c-1_000.yml": "eldarica-misc/LIA/llreve | late",
+    "eldarica-misc/LIA/llreve/break_safe.c-1_000.yml": "eldarica-misc/LIA/llreve | late",
+    "eldarica-misc/LIA/llreve/bug15_safe.c-1_000.yml": "eldarica-misc/LIA/llreve | late",
+    "eldarica-misc/LIA/llreve/loop2_merged_safe.c-1_000.yml": "eldarica-misc/LIA/llreve | late",
+    "eldarica-misc/LIA/llreve/loop_merged_safe.c-1_000.yml": "eldarica-misc/LIA/llreve | late",
+    "eldarica-misc/LIA/llreve/nested-while_merged_safe.c-1_000.yml": "eldarica-misc/LIA/llreve | late",
+    "eldarica-misc/LIA/llreve/square_twice_merged_safe.c-1_000.yml": "eldarica-misc/LIA/llreve | late",
+    "eldarica-misc/LIA/llreve/digits10_inl_merged_safe.c-1_000.yml": "eldarica-misc/LIA/llreve | unsolved",
+    "eldarica-misc/LIA/llreve/loop_unswitching_merged_safe.c-1_000.yml": "eldarica-misc/LIA/llreve | unsolved",
+    "eldarica-misc/LIA/llreve/square_twice_safe.c-1_000.yml": "eldarica-misc/LIA/llreve | unsolved",
+    "eldarica-misc/LIA/reve/002-horn_000.yml": "eldarica-misc/LIA/reve | early",
+    "eldarica-misc/LIA/reve/002d-horn_000.yml": "eldarica-misc/LIA/reve | early",
+    "eldarica-misc/LIA/reve/007-horn_000.yml": "eldarica-misc/LIA/reve | early",
+    "eldarica-misc/LIA/reve/007b-horn_000.yml": "eldarica-misc/LIA/reve | early",
+    "eldarica-misc/LIA/reve/011c-horn_000.yml": "eldarica-misc/LIA/reve | early",
+    "eldarica-misc/LIA/reve/012c-horn_000.yml": "eldarica-misc/LIA/reve | early",
+    "eldarica-misc/LIA/reve/012d-horn_000.yml": "eldarica-misc/LIA/reve | early",
+    "eldarica-misc/LIA/reve/014-horn_000.yml": "eldarica-misc/LIA/reve | early",
+    "eldarica-misc/LIA/reve/014c-horn_000.yml": "eldarica-misc/LIA/reve | early",
+    "eldarica-misc/LIA/reve/014d-horn_000.yml": "eldarica-misc/LIA/reve | early",
+    "eldarica-misc/LIA/reve/017b-horn_000.yml": "eldarica-misc/LIA/reve | early",
+    "eldarica-misc/LIA/reve/026b-horn_000.yml": "eldarica-misc/LIA/reve | early",
+    "eldarica-misc/LIA/reve/010-horn_000.yml": "eldarica-misc/LIA/reve | late",
+    "eldarica-misc/LIA/reve/010b-horn_000.yml": "eldarica-misc/LIA/reve | late",
+    "eldarica-misc/LIA/reve/018-horn_000.yml": "eldarica-misc/LIA/reve | late",
+    "eldarica-misc/LIA/reve/018b-horn_000.yml": "eldarica-misc/LIA/reve | late",
+    "eldarica-misc/LIA/reve/025c-horn_000.yml": "eldarica-misc/LIA/reve | late",
+    "eldarica-misc/LIA/reve/025d-horn_000.yml": "eldarica-misc/LIA/reve | late",
+    "eldarica-misc/LIA/reve/008-horn_000.yml": "eldarica-misc/LIA/reve | unsolved",
+    "eldarica-misc/LIA/reve/009b-horn_000.yml": "eldarica-misc/LIA/reve | unsolved",
+    "eldarica-misc/LIA/reve/011-horn_000.yml": "eldarica-misc/LIA/reve | unsolved",
+    "eldarica-misc/LIA/reve/012b-horn_000.yml": "eldarica-misc/LIA/reve | unsolved",
+    "eldarica-misc/LIA/reve/025-horn_000.yml": "eldarica-misc/LIA/reve | unsolved",
+    "eldarica-misc/LIA/reve/025b-horn_000.yml": "eldarica-misc/LIA/reve | unsolved",
+    "extra-small-lia/bouncy_three_counters_merged_000.yml": "extra-small-lia | early",
+    "extra-small-lia/bouncy_two_counters_equality_000.yml": "extra-small-lia | early",
+    "extra-small-lia/bouncy_two_counters_merged_000.yml": "extra-small-lia | early",
+    "extra-small-lia/const_mod_2_000.yml": "extra-small-lia | early",
+    "extra-small-lia/const_mod_3_000.yml": "extra-small-lia | early",
+    "extra-small-lia/dillig05_m_000.yml": "extra-small-lia | early",
+    "extra-small-lia/dtuc_000.yml": "extra-small-lia | early",
+    "extra-small-lia/half_true_modif_m_000.yml": "extra-small-lia | early",
+    "extra-small-lia/s_multipl_09_000.yml": "extra-small-lia | early",
+    "extra-small-lia/s_mutants_06_m_000.yml": "extra-small-lia | early",
+    "extra-small-lia/yz_plus_minus_1_000.yml": "extra-small-lia | early",
+    "extra-small-lia/count_by_2_000.yml": "extra-small-lia | late",
+    "extra-small-lia/dillig02_m_000.yml": "extra-small-lia | late",
+    "extra-small-lia/dillig21_m_000.yml": "extra-small-lia | late",
+    "extra-small-lia/gj2007_m_1_000.yml": "extra-small-lia | late",
+    "extra-small-lia/gj2007_m_3_000.yml": "extra-small-lia | late",
+    "extra-small-lia/phases_m_000.yml": "extra-small-lia | late",
+    "extra-small-lia/s_multipl_13_000.yml": "extra-small-lia | late",
+    "extra-small-lia/count_by_2_m_nest_000.yml": "extra-small-lia | unsolved",
+    "extra-small-lia/dillig32_000.yml": "extra-small-lia | unsolved",
+    "extra-small-lia/gj2007_m_2_000.yml": "extra-small-lia | unsolved",
+    "extra-small-lia/s_multipl_11_000.yml": "extra-small-lia | unsolved",
+    "extra-small-lia/s_multipl_14_000.yml": "extra-small-lia | unsolved",
+    "hcai-bench/arrays_orig/array_fill1_abstracted_000.yml": "hcai-bench/arrays_orig | early",
+    "hcai-bench/arrays_orig/array_fill1_even_odd_abstracted_000.yml": "hcai-bench/arrays_orig | unsolved",
+    "hcai-bench/svcomp/O0/O0_EvenOdd03WithOverflowBug_false-no-overflow_000.yml": "hcai-bench/svcomp/O0 | early",
+    "hcai-bench/svcomp/O0/O0_fibo_2calls_5_false-unreach-call_true-termination_000.yml": "hcai-bench/svcomp/O0 | early",
+    "hcai-bench/svcomp/O0/O0_fibo_2calls_8_false-unreach-call_000.yml": "hcai-bench/svcomp/O0 | early",
+    "hcai-bench/svcomp/O0/O0_id2_b3_o2_false-unreach-call_000.yml": "hcai-bench/svcomp/O0 | early",
+    "hcai-bench/svcomp/O0/O0_sum01_false-unreach-call_true-termination_000.yml": "hcai-bench/svcomp/O0 | early",
+    "hcai-bench/svcomp/O0/O0_terminator_02_false-unreach-call_true-termination_000.yml": "hcai-bench/svcomp/O0 | early",
+    "hcai-bench/svcomp/O0/O0_terminator_02_true-unreach-call_true-termination_000.yml": "hcai-bench/svcomp/O0 | early",
+    "hcai-bench/svcomp/O0/O0_terminator_03_true-unreach-call_true-termination_000.yml": "hcai-bench/svcomp/O0 | early",
+    "hcai-bench/svcomp/O0/O0_trex01_false-unreach-call_true-termination_000.yml": "hcai-bench/svcomp/O0 | early",
+    "hcai-bench/svcomp/O0/O0_EvenOdd03_false-unreach-call_true-no-overflow_true-termination_000.yml": "hcai-bench/svcomp/O0 | unsolved",
+    "hcai-bench/svcomp/O3/O3_Addition01_true-unreach-call_true-no-overflow_true-termination_000.yml": "hcai-bench/svcomp/O3 | early",
+    "hcai-bench/svcomp/O3/O3_Addition02WithOverflowBug_false-no-overflow_000.yml": "hcai-bench/svcomp/O3 | early",
+    "hcai-bench/svcomp/O3/O3_EvenOdd03_false-unreach-call_true-no-overflow_true-termination_000.yml": "hcai-bench/svcomp/O3 | early",
+    "hcai-bench/svcomp/O3/O3_afterrec_false-unreach-call_true-termination_000.yml": "hcai-bench/svcomp/O3 | early",
+    "hcai-bench/svcomp/O3/O3_afterrec_true-unreach-call_true-termination_000.yml": "hcai-bench/svcomp/O3 | early",
+    "hcai-bench/svcomp/O3/O3_array_false-unreach-call_true-termination_000.yml": "hcai-bench/svcomp/O3 | early",
+    "hcai-bench/svcomp/O3/O3_count_up_down_true-unreach-call_true-termination_000.yml": "hcai-bench/svcomp/O3 | early",
+    "hcai-bench/svcomp/O3/O3_id_o10_false-unreach-call_000.yml": "hcai-bench/svcomp/O3 | early",
+    "hcai-bench/svcomp/O3/O3_sum01_bug02_sum01_bug02_base.case_false-unreach-call_true-termination_000.yml": "hcai-bench/svcomp/O3 | early",
+    "hcai-bench/svcomp/O3/O3_sum_non_false-unreach-call_true-termination_000.yml": "hcai-bench/svcomp/O3 | early",
+    "hcai-bench/svcomp/O3/O3_terminator_03_false-unreach-call_true-termination_000.yml": "hcai-bench/svcomp/O3 | early",
+    "hcai-bench/svcomp/O3/O3_terminator_03_true-unreach-call_true-termination_000.yml": "hcai-bench/svcomp/O3 | early",
+    "hcai-bench/svcomp/O3/O3_trex04_true-unreach-call_false-termination_000.yml": "hcai-bench/svcomp/O3 | early",
+    "hcai-bench/svcomp/O3/O3_Addition03_true-unreach-call_true-no-overflow_true-termination_000.yml": "hcai-bench/svcomp/O3 | late",
+    "hcai-bench/svcomp/O3/O3_gcd02_true-unreach-call_true-no-overflow_true-termination_000.yml": "hcai-bench/svcomp/O3 | unsolved",
+    "hcai-bench/svcomp/O3/O3_id_o1000_false-unreach-call_000.yml": "hcai-bench/svcomp/O3 | unsolved",
+    "hcai-bench/svcomp/O3/O3_id_o200_false-unreach-call_000.yml": "hcai-bench/svcomp/O3 | unsolved",
+    "hopv/lia/fpice/inductive5_000.yml": "hopv/lia/fpice | early",
+    "hopv/lia/fpice/inductive6_000.yml": "hopv/lia/fpice | early",
+    "hopv/lia/mochi/intro1_000.yml": "hopv/lia/mochi | early",
+    "hopv/lia/mochi/map_000.yml": "hopv/lia/mochi | early",
+    "hopv/lia/mochi/neg1_000.yml": "hopv/lia/mochi | early",
+    "hopv/lia/mochi/sum_000.yml": "hopv/lia/mochi | early",
+    "hopv/lia/mochi/array_init_000.yml": "hopv/lia/mochi | late",
+    "hopv/lia/termination/Ackermann00_000.yml": "hopv/lia/termination | early",
+    "hopv/lia/termination/Ackermann01_000.yml": "hopv/lia/termination | early",
+    "hopv/lia/termination/CE-1CFA00_000.yml": "hopv/lia/termination | early",
+    "hopv/lia/termination/CE-1CFA05_000.yml": "hopv/lia/termination | early",
+    "hopv/lia/termination/Fibonacci00_000.yml": "hopv/lia/termination | early",
+    "hopv/lia/termination/alias_partial02_000.yml": "hopv/lia/termination | early",
+    "hopv/lia/termination/binomial03_000.yml": "hopv/lia/termination | early",
+    "hopv/lia/termination/zip00_000.yml": "hopv/lia/termination | early",
+    "llreve-bench/muz/loop__barthe_000_000.yml": "llreve-bench/muz | early",
+    "llreve-bench/muz/loop__break_000_000.yml": "llreve-bench/muz | early",
+    "llreve-bench/muz/loop__fib_000_000.yml": "llreve-bench/muz | early",
+    "llreve-bench/muz/loop__simple-loop_000_000.yml": "llreve-bench/muz | early",
+    "llreve-bench/muz/loop__while_after_while_if_000_000.yml": "llreve-bench/muz | early",
+    "llreve-bench/muz/loop__barthe2-big2_000_000.yml": "llreve-bench/muz | unsolved",
+    "llreve-bench/muz/loop__digits10_inl_000_000.yml": "llreve-bench/muz | unsolved",
+    "llreve-bench/smt2/loop__break_000_002.yml": "llreve-bench/smt2 | early",
+    "llreve-bench/smt2/loop__loop2_000_002.yml": "llreve-bench/smt2 | early",
+    "llreve-bench/smt2/loop__nested-while_000_002.yml": "llreve-bench/smt2 | early",
+    "llreve-bench/smt2/loop__upcount_000_002.yml": "llreve-bench/smt2 | early",
+    "llreve-bench/smt2/loop__while_after_while_if_000_002.yml": "llreve-bench/smt2 | early",
+    "llreve-bench/smt2/loop__barthe2_000_002.yml": "llreve-bench/smt2 | late",
+    "llreve-bench/smt2/loop__fib_000_002.yml": "llreve-bench/smt2 | late",
+    "llreve-bench/smt2/loop__barthe2-big3_000_002.yml": "llreve-bench/smt2 | unsolved",
+    "llreve-bench/smt2/loop__digits10_inl_000_002.yml": "llreve-bench/smt2 | unsolved",
+    "llreve-bench/smt2/clausified/faulty__loop5!_000_001.yml": "llreve-bench/smt2/clausified | early",
+    "llreve-bench/smt2/clausified/faulty__nested-while!_000_001.yml": "llreve-bench/smt2/clausified | early",
+    "llreve-bench/smt2/clausified/loop__bug15_000_001.yml": "llreve-bench/smt2/clausified | early",
+    "llreve-bench/smt2/clausified/loop__simple-loop_000_001.yml": "llreve-bench/smt2/clausified | early",
+    "llreve-bench/smt2/clausified/loop__barthe2_000_001.yml": "llreve-bench/smt2/clausified | late",
+    "llreve-bench/smt2/clausified/loop__while-if_000_001.yml": "llreve-bench/smt2/clausified | late",
+    "llreve-bench/smt2/clausified/loop__while_after_while_if_000_001.yml": "llreve-bench/smt2/clausified | late",
+    "llreve-bench/smt2/clausified/loop__barthe2-big2_000_001.yml": "llreve-bench/smt2/clausified | unsolved",
+    "llreve-bench/smt2/clausified/loop__digits10_inl_000_001.yml": "llreve-bench/smt2/clausified | unsolved",
+    "rust-horn/bmc-2-test-bmc-2-unsafe_000.yml": "rust-horn | early",
+    "rust-horn/bmc-3-test-bmc-3-unsafe_000.yml": "rust-horn | early",
+    "rust-horn/bmc-5-test-bmc-diamond-2-safe_000.yml": "rust-horn | late",
+    "rust-horn/simple-5-hhk2008_000.yml": "rust-horn | late",
+    "rust-horn/bmc-1-test-bmc-1-safe_000.yml": "rust-horn | unsolved",
+    "vmt-chc-benchmarks/conc/fib_bench_safe_v2_000.yml": "vmt-chc-benchmarks/conc | unsolved",
+    "vmt-chc-benchmarks/conc/lamport_safe_000.yml": "vmt-chc-benchmarks/conc | unsolved",
+    "vmt-chc-benchmarks/conc/szymanski_safe_000.yml": "vmt-chc-benchmarks/conc | unsolved",
+    "vmt-chc-benchmarks/ctigar/nested.c_000_001.yml": "vmt-chc-benchmarks/ctigar | early",
+    "vmt-chc-benchmarks/ctigar/xy0.c_000.yml": "vmt-chc-benchmarks/ctigar | early",
+    "vmt-chc-benchmarks/ctigar/bound.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/dillig01.c_000.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/dillig03.c_000.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/dillig07.c_000.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/dillig28.c_000.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/dillig37.c_000.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/down.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/ex1.c_000.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/fig1a.c_000.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/gulv_simp.c_000.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/gulwani_cegar1.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/id_build.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/ken-imp.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/nest-if.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/nest-if1.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/nest-if2.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/nest-if3.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/nest-if4.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/nest-if5.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/nested1.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/nested2.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/nested3.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/nested4.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/nested5.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/simple.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/simple_nest.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/svd3.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/up.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/up2.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/up3.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/up4.c_000_001.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/xy4.c_000.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/xyz.c_000.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/xyz2.c_000.yml": "vmt-chc-benchmarks/ctigar | late",
+    "vmt-chc-benchmarks/ctigar/NetBSD_loop.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/NetBSD_loop_int.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/apache-get-tag.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/barbr.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/barbrprime.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/bk-nat.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/dillig05.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/dillig12.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/dillig17.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/dillig20.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/dillig25.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/efm.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/ex2.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/fig2.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/fragtest_simple.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/gulwani_cegar2.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/hsort.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/hsortprime.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/lifnat.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/lifnatprime.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/lifo.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/nest-if6.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/nest-len.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/nested7.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/nested8.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/pldi082_unbounded.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/seesaw.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/sendmail-mime-fromqp.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/seq-len.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/seq-proc.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/seq-sim.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/seq-z3.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/seq4.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/string_concat-noarr.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/substring1.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/svd-some-loop.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/svd.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/svd2.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/up-nd.c_000.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/ctigar/up5.c_000_001.yml": "vmt-chc-benchmarks/ctigar | unsolved",
+    "vmt-chc-benchmarks/lustre/_6countern_000_001.yml": "vmt-chc-benchmarks/lustre/ | early",
+    "vmt-chc-benchmarks/lustre/_6counters_e8_371_e1_448_000_001.yml": "vmt-chc-benchmarks/lustre/ | late",
+    "vmt-chc-benchmarks/lustre/car_1_e7_184_e3_299_000_001.yml": "vmt-chc-benchmarks/lustre/car | early",
+    "vmt-chc-benchmarks/lustre/car_3_e2_695_000_001.yml": "vmt-chc-benchmarks/lustre/car | early",
+    "vmt-chc-benchmarks/lustre/car_3_e8_33_000_001.yml": "vmt-chc-benchmarks/lustre/car | early",
+    "vmt-chc-benchmarks/lustre/car_3_e8_33_e2_1010_000_001.yml": "vmt-chc-benchmarks/lustre/car | early",
+    "vmt-chc-benchmarks/lustre/car_4_e7_592_000_001.yml": "vmt-chc-benchmarks/lustre/car | early",
+    "vmt-chc-benchmarks/lustre/car_4_e7_592_e7_265_000_001.yml": "vmt-chc-benchmarks/lustre/car | early",
+    "vmt-chc-benchmarks/lustre/car_4_e8_118_e3_514_000_001.yml": "vmt-chc-benchmarks/lustre/car | early",
+    "vmt-chc-benchmarks/lustre/car_4_e8_118_e7_178_000_001.yml": "vmt-chc-benchmarks/lustre/car | early",
+    "vmt-chc-benchmarks/lustre/car_6_e3_294_e3_47_000_001.yml": "vmt-chc-benchmarks/lustre/car | early",
+    "vmt-chc-benchmarks/lustre/car_all_e1_388_000.yml": "vmt-chc-benchmarks/lustre/car | early",
+    "vmt-chc-benchmarks/lustre/car_all_e3_1068_e5_882_000_001.yml": "vmt-chc-benchmarks/lustre/car | early",
+    "vmt-chc-benchmarks/lustre/car_all_e8_856_000_001.yml": "vmt-chc-benchmarks/lustre/car | early",
+    "vmt-chc-benchmarks/lustre/car_2_e7_1027_e1_1047_000_001.yml": "vmt-chc-benchmarks/lustre/car | late",
+    "vmt-chc-benchmarks/lustre/car_2_e7_1027_e7_359_000_001.yml": "vmt-chc-benchmarks/lustre/car | late",
+    "vmt-chc-benchmarks/lustre/car_2_e8_491_e7_826_000_001.yml": "vmt-chc-benchmarks/lustre/car | late",
+    "vmt-chc-benchmarks/lustre/car_5_e2_405_e2_1083_000_001.yml": "vmt-chc-benchmarks/lustre/car | late",
+    "vmt-chc-benchmarks/lustre/car_5_e2_405_e3_473_000_001.yml": "vmt-chc-benchmarks/lustre/car | late",
+    "vmt-chc-benchmarks/lustre/car_5_e2_405_e8_1055_000_001.yml": "vmt-chc-benchmarks/lustre/car | late",
+    "vmt-chc-benchmarks/lustre/car_5_e3_11_000.yml": "vmt-chc-benchmarks/lustre/car | late",
+    "vmt-chc-benchmarks/lustre/car_5_e3_11_e1_429_000_001.yml": "vmt-chc-benchmarks/lustre/car | late",
+    "vmt-chc-benchmarks/lustre/car_5_e3_11_e5_24_000_001.yml": "vmt-chc-benchmarks/lustre/car | late",
+    "vmt-chc-benchmarks/lustre/car_all_e2_142_e7_209_000_001.yml": "vmt-chc-benchmarks/lustre/car | late",
+    "vmt-chc-benchmarks/lustre/car_all_e7_188_e7_743_000_001.yml": "vmt-chc-benchmarks/lustre/car | late",
+    "vmt-chc-benchmarks/lustre/car_all_e8_856_e7_578_000_001.yml": "vmt-chc-benchmarks/lustre/car | late",
+    "vmt-chc-benchmarks/lustre/car_5_e2_405_e7_1028_000.yml": "vmt-chc-benchmarks/lustre/car | unsolved",
+    "vmt-chc-benchmarks/lustre/car_5_e3_11_e7_693_000.yml": "vmt-chc-benchmarks/lustre/car | unsolved",
+    "vmt-chc-benchmarks/lustre/car_5_e7_244_000_001.yml": "vmt-chc-benchmarks/lustre/car | unsolved",
+    "vmt-chc-benchmarks/lustre/car_5_e7_244_e1_823_000_001.yml": "vmt-chc-benchmarks/lustre/car | unsolved",
+    "vmt-chc-benchmarks/lustre/car_6_e1_152_000_001.yml": "vmt-chc-benchmarks/lustre/car | unsolved",
+    "vmt-chc-benchmarks/lustre/car_6_e2_893_000_001.yml": "vmt-chc-benchmarks/lustre/car | unsolved",
+    "vmt-chc-benchmarks/lustre/car_6_e3_294_e5_979_000_001.yml": "vmt-chc-benchmarks/lustre/car | unsolved",
+    "vmt-chc-benchmarks/lustre/cd_e7_621_000.yml": "vmt-chc-benchmarks/lustre/cd | early",
+    "vmt-chc-benchmarks/lustre/cd_000_001.yml": "vmt-chc-benchmarks/lustre/cd | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_10_e3_144_e5_2046_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | early",
+    "vmt-chc-benchmarks/lustre/DRAGON_10_e3_144_e7_523_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | early",
+    "vmt-chc-benchmarks/lustre/DRAGON_12_e1_4640_e7_128_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | early",
+    "vmt-chc-benchmarks/lustre/DRAGON_13_e7_2336_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | early",
+    "vmt-chc-benchmarks/lustre/DRAGON_13_e7_2336_e1_541_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | early",
+    "vmt-chc-benchmarks/lustre/DRAGON_13_e7_2336_e2_1255_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | early",
+    "vmt-chc-benchmarks/lustre/DRAGON_2_e7_25_e1_154_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | early",
+    "vmt-chc-benchmarks/lustre/DRAGON_2_e7_25_e7_4469_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | early",
+    "vmt-chc-benchmarks/lustre/DRAGON_5_e2_3018_e7_2443_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | early",
+    "vmt-chc-benchmarks/lustre/DRAGON_all2_e1_2636_e8_5957_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | early",
+    "vmt-chc-benchmarks/lustre/DRAGON_all2_e3_4612_e8_5861_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | early",
+    "vmt-chc-benchmarks/lustre/DRAGON_all2_e7_5406_e7_6697_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | early",
+    "vmt-chc-benchmarks/lustre/DRAGON_all_e7_4065_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | early",
+    "vmt-chc-benchmarks/lustre/DRAGON_10_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_10_e1_3587_e3_2749_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_10_e1_998_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_10_e2_402_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_10_e3_144_e6_4484_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_10_e3_3429_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_14_e2_3606_e7_4891_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_14_e7_3162_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_14_e7_3162_e1_3998_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_14_e7_3162_e3_4298_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_14_e7_3162_e7_3528_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_1_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_1_e1_14612_e1_268_e7_501_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_1_e1_14612_e2_2653_e7_4370_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_1_e1_14612_e7_1026_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_1_e1_3184_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_1_e2_1997_e7_3613_e2_3409_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_1_e3_11891_e7_4569_e4_4881_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_2_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_2_e1_2316_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_2_e2_3183_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_2_e2_3183_e1_2644_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_2_e2_3183_e2_3580_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_2_e2_3183_e3_5972_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_2_e7_25_e8_3171_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_3_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_e1_3755_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_e2_158_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_3_e1_4783_e3_511_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_3_e2_5343_e1_988_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_3_e3_3846_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_3_e3_5422_e1_2288_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_3_e3_5422_e2_3135_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_6_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_6_e7_5046_e7_3623_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_7_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_7_e2_2872_e2_5844_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_7_e2_2872_e3_2640_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_7_e2_2872_e7_1264_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_8_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_8_e2_3896_e3_3125_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_8_e3_786_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_8_e3_786_e7_4541_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_8_e7_3752_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_9_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_9_e7_1843_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_9_e7_1843_e1_5434_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_9_e7_1843_e2_1145_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_9_e7_1843_e3_5316_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_9_e7_1843_e7_2225_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_9_e7_1843_e8_3031_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_all_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_e1_1759_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_e2_267_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_all_e1_4022_e3_3628_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_all_e2_1514_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_all_e2_6104_e1_6205_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_all_e2_6104_e2_3308_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_all_e2_6104_e3_2607_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e1_1318_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e2_1089_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e4_1791_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e5_1536_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_all_e3_4821_e6_2061_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | late",
+    "vmt-chc-benchmarks/lustre/DRAGON_11_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_11_e1_2450_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_11_e1_2450_e3_2330_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_11_e2_1678_e1_3565_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_11_e3_382_e1_505_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_11_e3_382_e4_4421_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_12_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_12_e7_4611_e8_5145_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_13_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_13_e3_1418_e3_2761_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_13_e7_2336_e8_1940_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_14_e1_2392_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_14_e2_3606_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_14_e3_1259_e1_5798_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_14_e3_5120_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_4_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_e1_1303_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_e3_1915_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_4_e7_2329_e8_3915_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_5_e2_3018_e2_936_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_5_e7_2017_e8_4841_000.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_all2_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_all2_e3_4612_e4_3719_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/DRAGON_all2_e3_4612_e5_3642_000_001.yml": "vmt-chc-benchmarks/lustre/DRAGON | unsolved",
+    "vmt-chc-benchmarks/lustre/durationThm_1_e2_3_000_001.yml": "vmt-chc-benchmarks/lustre/durationThm | early",
+    "vmt-chc-benchmarks/lustre/durationThm_1_e3_389_e5_5_000_001.yml": "vmt-chc-benchmarks/lustre/durationThm | early",
+    "vmt-chc-benchmarks/lustre/durationThm_1_e7_217_e7_31_000_001.yml": "vmt-chc-benchmarks/lustre/durationThm | early",
+    "vmt-chc-benchmarks/lustre/durationThm_2_e2_206_e7_33_000.yml": "vmt-chc-benchmarks/lustre/durationThm | early",
+    "vmt-chc-benchmarks/lustre/durationThm_2_e3_329_e4_1_000_001.yml": "vmt-chc-benchmarks/lustre/durationThm | early",
+    "vmt-chc-benchmarks/lustre/durationThm_3_e1_36_000_001.yml": "vmt-chc-benchmarks/lustre/durationThm | early",
+    "vmt-chc-benchmarks/lustre/durationThm_3_e2_148_000_001.yml": "vmt-chc-benchmarks/lustre/durationThm | early",
+    "vmt-chc-benchmarks/lustre/durationThm_3_e3_207_000_001.yml": "vmt-chc-benchmarks/lustre/durationThm | early",
+    "vmt-chc-benchmarks/lustre/durationThm_2_000_001.yml": "vmt-chc-benchmarks/lustre/durationThm | late",
+    "vmt-chc-benchmarks/lustre/durationThm_2_e1_118_000.yml": "vmt-chc-benchmarks/lustre/durationThm | late",
+    "vmt-chc-benchmarks/lustre/durationThm_2_e3_329_e6_128_000.yml": "vmt-chc-benchmarks/lustre/durationThm | late",
+    "vmt-chc-benchmarks/lustre/durationThm_3_e2_63_e7_21_000.yml": "vmt-chc-benchmarks/lustre/durationThm | late",
+    "vmt-chc-benchmarks/lustre/durationThm_3_000_001.yml": "vmt-chc-benchmarks/lustre/durationThm | unsolved",
+    "vmt-chc-benchmarks/lustre/durationThm_3_e3_442_e6_113_000.yml": "vmt-chc-benchmarks/lustre/durationThm | unsolved",
+    "vmt-chc-benchmarks/lustre/ex3_e8_381_e8_477_000_001.yml": "vmt-chc-benchmarks/lustre/ex | early",
+    "vmt-chc-benchmarks/lustre/ex8_e8_220_000_001.yml": "vmt-chc-benchmarks/lustre/ex | early",
+    "vmt-chc-benchmarks/lustre/ex8_e8_220_e7_249_000_001.yml": "vmt-chc-benchmarks/lustre/ex | early",
+    "vmt-chc-benchmarks/lustre/fast_1_e8_747_e7_692_000_001.yml": "vmt-chc-benchmarks/lustre/fast | early",
+    "vmt-chc-benchmarks/lustre/fast_1_e8_747_e8_1041_000_001.yml": "vmt-chc-benchmarks/lustre/fast | early",
+    "vmt-chc-benchmarks/lustre/fast_2_e8_460_e7_43_000_001.yml": "vmt-chc-benchmarks/lustre/fast | early",
+    "vmt-chc-benchmarks/lustre/fast_2_000_001.yml": "vmt-chc-benchmarks/lustre/fast | late",
+    "vmt-chc-benchmarks/lustre/fast_2_e8_460_000.yml": "vmt-chc-benchmarks/lustre/fast | late",
+    "vmt-chc-benchmarks/lustre/fast_2_e8_460_e8_1920_000_001.yml": "vmt-chc-benchmarks/lustre/fast | late",
+    "vmt-chc-benchmarks/lustre/FIREFLY_1_e1_1092_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_1_e1_1092_e2_1853_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_1_e1_1092_e7_1119_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_2_e7_1776_e2_3202_000.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_3_e2_2236_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_3_e2_2236_e3_2657_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_3_e2_2236_e7_3681_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_4_e3_3511_e4_1464_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_4_e3_3511_e7_3568_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_5_e1_2552_e7_1169_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_5_e2_2884_e2_1492_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_5_e2_2884_e3_1882_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_8_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_8_e2_1692_000.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_9_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_a3_e1_3233_e7_906_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_a3_e2_2086_e7_2614_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_a3_e3_314_e2_2812_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_all_e1_1207_e3_1928_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_all_e1_1207_e7_156_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_all_e2_2924_e3_3946_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_000.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_all_e3_1600_e2_676_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_all_e7_1909_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e1_1139_000.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e2_3049_e3_2697_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e2_3049_e7_1173_000.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_luke_1b_e3_671_e5_1637_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_luke_rt_e2_3460_e1_1455_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_u1_e7_3318_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | early",
+    "vmt-chc-benchmarks/lustre/FIREFLY_4_e3_1713_000.yml": "vmt-chc-benchmarks/lustre/FIREFLY | late",
+    "vmt-chc-benchmarks/lustre/FIREFLY_4_e3_3511_e2_1923_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | late",
+    "vmt-chc-benchmarks/lustre/FIREFLY_4_e3_3511_e3_422_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | late",
+    "vmt-chc-benchmarks/lustre/FIREFLY_4_e3_3511_e5_3248_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | late",
+    "vmt-chc-benchmarks/lustre/FIREFLY_a3_e3_314_e4_897_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | late",
+    "vmt-chc-benchmarks/lustre/FIREFLY_all_e2_2924_e1_768_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | late",
+    "vmt-chc-benchmarks/lustre/FIREFLY_luke_5_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | late",
+    "vmt-chc-benchmarks/lustre/FIREFLY_11_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | unsolved",
+    "vmt-chc-benchmarks/lustre/FIREFLY_11_e3_2076_e1_1270_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | unsolved",
+    "vmt-chc-benchmarks/lustre/FIREFLY_6_e3_686_e6_2964_000.yml": "vmt-chc-benchmarks/lustre/FIREFLY | unsolved",
+    "vmt-chc-benchmarks/lustre/FIREFLY_luke_1a_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | unsolved",
+    "vmt-chc-benchmarks/lustre/FIREFLY_luke_1a_e2_284_e1_2924_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | unsolved",
+    "vmt-chc-benchmarks/lustre/FIREFLY_luke_1a_e2_284_e3_3091_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | unsolved",
+    "vmt-chc-benchmarks/lustre/FIREFLY_luke_1a_e7_3042_e3_1213_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | unsolved",
+    "vmt-chc-benchmarks/lustre/FIREFLY_luke_2_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | unsolved",
+    "vmt-chc-benchmarks/lustre/FIREFLY_luke_2_e2_1375_e1_418_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | unsolved",
+    "vmt-chc-benchmarks/lustre/FIREFLY_luke_2_e7_1826_e8_126_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | unsolved",
+    "vmt-chc-benchmarks/lustre/FIREFLY_luke_3_e1_2217_e3_1200_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | unsolved",
+    "vmt-chc-benchmarks/lustre/FIREFLY_rt_e3_1770_e2_637_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | unsolved",
+    "vmt-chc-benchmarks/lustre/FIREFLY_u1_e2_3403_e2_957_000_001.yml": "vmt-chc-benchmarks/lustre/FIREFLY | unsolved",
+    "vmt-chc-benchmarks/lustre/Gas_000_001.yml": "vmt-chc-benchmarks/lustre/Gas | unsolved",
+    "vmt-chc-benchmarks/lustre/hysteresis_3_000_001.yml": "vmt-chc-benchmarks/lustre/hysteresis | early",
+    "vmt-chc-benchmarks/lustre/ILLINOIS_2_e1_834_e2_3395_000_001.yml": "vmt-chc-benchmarks/lustre/ILLINOIS | early",
+    "vmt-chc-benchmarks/lustre/ILLINOIS_2_e1_834_e7_3738_000_001.yml": "vmt-chc-benchmarks/lustre/ILLINOIS | early",
+    "vmt-chc-benchmarks/lustre/ILLINOIS_2_e2_2367_000.yml": "vmt-chc-benchmarks/lustre/ILLINOIS | early",
+    "vmt-chc-benchmarks/lustre/ILLINOIS_3_000_001.yml": "vmt-chc-benchmarks/lustre/ILLINOIS | early",
+    "vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_e3_979_000_001.yml": "vmt-chc-benchmarks/lustre/ILLINOIS | early",
+    "vmt-chc-benchmarks/lustre/ILLINOIS_3_e3_2581_e6_2476_000.yml": "vmt-chc-benchmarks/lustre/ILLINOIS | early",
+    "vmt-chc-benchmarks/lustre/ILLINOIS_4_000_001.yml": "vmt-chc-benchmarks/lustre/ILLINOIS | early",
+    "vmt-chc-benchmarks/lustre/ILLINOIS_5_000_001.yml": "vmt-chc-benchmarks/lustre/ILLINOIS | early",
+    "vmt-chc-benchmarks/lustre/ILLINOIS_a1_000_001.yml": "vmt-chc-benchmarks/lustre/ILLINOIS | unsolved",
+    "vmt-chc-benchmarks/lustre/MESI_2_000_001.yml": "vmt-chc-benchmarks/lustre/MESI | early",
+    "vmt-chc-benchmarks/lustre/MESI_3_e1_2517_e8_2163_000_001.yml": "vmt-chc-benchmarks/lustre/MESI | early",
+    "vmt-chc-benchmarks/lustre/MESI_3_e2_819_e1_1145_000_001.yml": "vmt-chc-benchmarks/lustre/MESI | early",
+    "vmt-chc-benchmarks/lustre/MESI_3_e2_819_e4_1595_000_001.yml": "vmt-chc-benchmarks/lustre/MESI | early",
+    "vmt-chc-benchmarks/lustre/MESI_3_e2_819_e6_1459_000_001.yml": "vmt-chc-benchmarks/lustre/MESI | early",
+    "vmt-chc-benchmarks/lustre/MESI_3_e3_2584_000.yml": "vmt-chc-benchmarks/lustre/MESI | early",
+    "vmt-chc-benchmarks/lustre/MESI_4_e7_1140_e7_433_000_001.yml": "vmt-chc-benchmarks/lustre/MESI | early",
+    "vmt-chc-benchmarks/lustre/MESI_i1_e3_2145_e5_2391_000_001.yml": "vmt-chc-benchmarks/lustre/MESI | early",
+    "vmt-chc-benchmarks/lustre/MESI_i1_e4_1986_000_001.yml": "vmt-chc-benchmarks/lustre/MESI | early",
+    "vmt-chc-benchmarks/lustre/MESI_i2_000_001.yml": "vmt-chc-benchmarks/lustre/MESI | early",
+    "vmt-chc-benchmarks/lustre/MESI_i3_e1_447_e3_1180_000_001.yml": "vmt-chc-benchmarks/lustre/MESI | early",
+    "vmt-chc-benchmarks/lustre/MESI_i4_e1_1023_e8_2498_000.yml": "vmt-chc-benchmarks/lustre/MESI | early",
+    "vmt-chc-benchmarks/lustre/MESI_i4_e4_1689_e8_290_000.yml": "vmt-chc-benchmarks/lustre/MESI | early",
+    "vmt-chc-benchmarks/lustre/MESI_i3_e1_447_e1_1292_000_001.yml": "vmt-chc-benchmarks/lustre/MESI | unsolved",
+    "vmt-chc-benchmarks/lustre/MESI_i3_e1_447_e6_2281_000_001.yml": "vmt-chc-benchmarks/lustre/MESI | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_1_e8_1567_000.yml": "vmt-chc-benchmarks/lustre/metros | early",
+    "vmt-chc-benchmarks/lustre/metros_3_e3_1275_e3_640_000_001.yml": "vmt-chc-benchmarks/lustre/metros | early",
+    "vmt-chc-benchmarks/lustre/metros_4_e2_968_e1_956_000_001.yml": "vmt-chc-benchmarks/lustre/metros | early",
+    "vmt-chc-benchmarks/lustre/metros_4_e2_968_e2_1166_000_001.yml": "vmt-chc-benchmarks/lustre/metros | early",
+    "vmt-chc-benchmarks/lustre/metros_1_000_001.yml": "vmt-chc-benchmarks/lustre/metros | late",
+    "vmt-chc-benchmarks/lustre/metros_1_e1_846_e1_1317_000_001.yml": "vmt-chc-benchmarks/lustre/metros | late",
+    "vmt-chc-benchmarks/lustre/metros_1_e1_846_e3_1060_000_001.yml": "vmt-chc-benchmarks/lustre/metros | late",
+    "vmt-chc-benchmarks/lustre/metros_1_e2_1102_000.yml": "vmt-chc-benchmarks/lustre/metros | late",
+    "vmt-chc-benchmarks/lustre/metros_1_e2_1102_e1_317_000_001.yml": "vmt-chc-benchmarks/lustre/metros | late",
+    "vmt-chc-benchmarks/lustre/metros_1_e2_1102_e2_943_000_001.yml": "vmt-chc-benchmarks/lustre/metros | late",
+    "vmt-chc-benchmarks/lustre/metros_1_e2_1102_e3_961_000_001.yml": "vmt-chc-benchmarks/lustre/metros | late",
+    "vmt-chc-benchmarks/lustre/metros_1_e2_1102_e7_1163_000_001.yml": "vmt-chc-benchmarks/lustre/metros | late",
+    "vmt-chc-benchmarks/lustre/metros_1_e7_1255_e8_598_000.yml": "vmt-chc-benchmarks/lustre/metros | late",
+    "vmt-chc-benchmarks/lustre/metros_2_e1_1116_e3_287_000_001.yml": "vmt-chc-benchmarks/lustre/metros | late",
+    "vmt-chc-benchmarks/lustre/metros_2_e2_704_e3_76_000_001.yml": "vmt-chc-benchmarks/lustre/metros | late",
+    "vmt-chc-benchmarks/lustre/metros_1_e7_606_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_2_e1_1116_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_2_e1_1116_e2_617_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_2_e2_704_e2_13_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_2_e2_704_e7_810_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_3_e3_1117_000.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_3_e3_1275_e1_1350_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_3_e3_1275_e4_164_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_3_e3_1275_e6_1315_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_3_e3_1275_e7_529_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_3_e4_987_e1_1115_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_3_e4_987_e2_80_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_3_e4_987_e3_291_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_4_e1_821_e5_911_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_4_e1_917_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_4_e2_968_e4_801_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_4_e2_968_e5_991_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_4_e2_968_e7_860_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_4_e3_1091_e4_232_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_4_e5_1150_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/metros_5_000_001.yml": "vmt-chc-benchmarks/lustre/metros | unsolved",
+    "vmt-chc-benchmarks/lustre/MOESI_2_e1_1753_e1_1510_000_001.yml": "vmt-chc-benchmarks/lustre/MOESI | early",
+    "vmt-chc-benchmarks/lustre/MOESI_2_e1_1753_e2_615_000_001.yml": "vmt-chc-benchmarks/lustre/MOESI | early",
+    "vmt-chc-benchmarks/lustre/MOESI_2_e1_1753_e7_1626_000.yml": "vmt-chc-benchmarks/lustre/MOESI | early",
+    "vmt-chc-benchmarks/lustre/MOESI_2_e1_1753_e8_1769_000.yml": "vmt-chc-benchmarks/lustre/MOESI | early",
+    "vmt-chc-benchmarks/lustre/MOESI_2_e2_1599_e2_1815_000_001.yml": "vmt-chc-benchmarks/lustre/MOESI | early",
+    "vmt-chc-benchmarks/lustre/MOESI_2_e2_1599_e8_1334_000_001.yml": "vmt-chc-benchmarks/lustre/MOESI | early",
+    "vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e1_2319_000_001.yml": "vmt-chc-benchmarks/lustre/MOESI | early",
+    "vmt-chc-benchmarks/lustre/MOESI_2_e3_929_e8_1167_000_001.yml": "vmt-chc-benchmarks/lustre/MOESI | early",
+    "vmt-chc-benchmarks/lustre/MOESI_2_e7_2607_000_001.yml": "vmt-chc-benchmarks/lustre/MOESI | early",
+    "vmt-chc-benchmarks/lustre/peterson_1_000_001.yml": "vmt-chc-benchmarks/lustre/peterson | early",
+    "vmt-chc-benchmarks/lustre/peterson_1_e7_4234_000_001.yml": "vmt-chc-benchmarks/lustre/peterson | late",
+    "vmt-chc-benchmarks/lustre/peterson_2_000_001.yml": "vmt-chc-benchmarks/lustre/peterson | late",
+    "vmt-chc-benchmarks/lustre/peterson_3_000_001.yml": "vmt-chc-benchmarks/lustre/peterson | late",
+    "vmt-chc-benchmarks/lustre/peterson_4_000_001.yml": "vmt-chc-benchmarks/lustre/peterson | late",
+    "vmt-chc-benchmarks/lustre/peterson_all_000_001.yml": "vmt-chc-benchmarks/lustre/peterson | late",
+    "vmt-chc-benchmarks/lustre/peterson_vt_000_001.yml": "vmt-chc-benchmarks/lustre/peterson | late",
+    "vmt-chc-benchmarks/lustre/PRODUCER_CONSUMER_1_000_001.yml": "vmt-chc-benchmarks/lustre/PRODUCER | early",
+    "vmt-chc-benchmarks/lustre/PRODUCER_CONSUMER_vt_e2_1352_000_001.yml": "vmt-chc-benchmarks/lustre/PRODUCER | unsolved",
+    "vmt-chc-benchmarks/lustre/PRODUCER_CONSUMMER_luke_2_000_001.yml": "vmt-chc-benchmarks/lustre/PRODUCER | unsolved",
+    "vmt-chc-benchmarks/lustre/PRODUCER_CONSUMMER_luke_2_e7_1068_e8_1019_000_001.yml": "vmt-chc-benchmarks/lustre/PRODUCER | unsolved",
+    "vmt-chc-benchmarks/lustre/readwrit_000_001.yml": "vmt-chc-benchmarks/lustre/readwrit | early",
+    "vmt-chc-benchmarks/lustre/rtp_1_000_001.yml": "vmt-chc-benchmarks/lustre/rtp | early",
+    "vmt-chc-benchmarks/lustre/rtp_5_000_001.yml": "vmt-chc-benchmarks/lustre/rtp | early",
+    "vmt-chc-benchmarks/lustre/rtp_6_000_001.yml": "vmt-chc-benchmarks/lustre/rtp | early",
+    "vmt-chc-benchmarks/lustre/rtp_4_000_001.yml": "vmt-chc-benchmarks/lustre/rtp | late",
+    "vmt-chc-benchmarks/lustre/rtp_5_e7_3972_000_001.yml": "vmt-chc-benchmarks/lustre/rtp | late",
+    "vmt-chc-benchmarks/lustre/rtp_8_000_001.yml": "vmt-chc-benchmarks/lustre/rtp | late",
+    "vmt-chc-benchmarks/lustre/rtp_all_000_001.yml": "vmt-chc-benchmarks/lustre/rtp | late",
+    "vmt-chc-benchmarks/lustre/rtp_all_e7_2500_000_001.yml": "vmt-chc-benchmarks/lustre/rtp | unsolved",
+    "vmt-chc-benchmarks/lustre/speed2_e8_449_000_001.yml": "vmt-chc-benchmarks/lustre/speed | early",
+    "vmt-chc-benchmarks/lustre/speed2_e8_449_e7_353_000_001.yml": "vmt-chc-benchmarks/lustre/speed | early",
+    "vmt-chc-benchmarks/lustre/speed2_e8_449_e8_517_000_001.yml": "vmt-chc-benchmarks/lustre/speed | early",
+    "vmt-chc-benchmarks/lustre/swimmingpool_3_000_001.yml": "vmt-chc-benchmarks/lustre/swimmingpool | early",
+    "vmt-chc-benchmarks/lustre/swimmingpool_6_e7_10_e7_341_000_001.yml": "vmt-chc-benchmarks/lustre/swimmingpool | early",
+    "vmt-chc-benchmarks/lustre/swimmingpool_6_e7_10_e8_1713_000.yml": "vmt-chc-benchmarks/lustre/swimmingpool | early",
+    "vmt-chc-benchmarks/lustre/swimmingpool_1_000_001.yml": "vmt-chc-benchmarks/lustre/swimmingpool | late",
+    "vmt-chc-benchmarks/lustre/swimmingpool_7_000_001.yml": "vmt-chc-benchmarks/lustre/swimmingpool | late",
+    "vmt-chc-benchmarks/lustre/swimmingpool_8_000_001.yml": "vmt-chc-benchmarks/lustre/swimmingpool | late",
+    "vmt-chc-benchmarks/lustre/swimmingpool_9_000_001.yml": "vmt-chc-benchmarks/lustre/swimmingpool | unsolved",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_123_e8_953_e1_1128_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_123_e8_953_e3_271_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_2_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_2_e1_1239_e1_1331_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_2_e8_1118_e2_237_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_3_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_3_e1_1416_e1_1675_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_3_e1_1416_e2_753_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_3_e1_1416_e7_193_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_3_e3_518_e8_922_000.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_3_e7_1444_e8_1581_000.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_3_e7_425_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_3_e8_1329_e8_320_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_5_e1_811_e1_823_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_5_e1_811_e2_1026_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_5_e7_1138_e8_809_000.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_6_e8_1147_e2_1326_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_all_e3_1750_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_all_e8_251_e1_1852_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | early",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_123_e7_837_e7_1262_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | late",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_123_e7_856_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | late",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_123_e8_953_e7_1465_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | late",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_5_e2_1525_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | late",
+    "vmt-chc-benchmarks/lustre/SYNAPSE_all_e7_907_e7_1363_000_001.yml": "vmt-chc-benchmarks/lustre/SYNAPSE | unsolved",
+    "vmt-chc-benchmarks/lustre/ticket3i_2_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | early",
+    "vmt-chc-benchmarks/lustre/ticket3i_3_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | early",
+    "vmt-chc-benchmarks/lustre/ticket3i_3_e8_1703_e8_2560_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | early",
+    "vmt-chc-benchmarks/lustre/ticket3i_all_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | early",
+    "vmt-chc-benchmarks/lustre/ticket3i_1_e7_1669_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | late",
+    "vmt-chc-benchmarks/lustre/ticket3i_4_e7_1775_e7_3320_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | late",
+    "vmt-chc-benchmarks/lustre/ticket3i_5_e7_3307_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | late",
+    "vmt-chc-benchmarks/lustre/ticket3i_6_e7_1096_e7_2688_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | late",
+    "vmt-chc-benchmarks/lustre/ticket3i_7_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | late",
+    "vmt-chc-benchmarks/lustre/ticket3i_7_e1_2192_e1_1852_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | late",
+    "vmt-chc-benchmarks/lustre/ticket3i_7_e1_2192_e7_3516_000.yml": "vmt-chc-benchmarks/lustre/ticket | late",
+    "vmt-chc-benchmarks/lustre/ticket3i_7_e2_2724_e7_524_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | late",
+    "vmt-chc-benchmarks/lustre/ticket3i_7_e3_59_e7_2122_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | late",
+    "vmt-chc-benchmarks/lustre/ticket3i_7_e7_3176_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | late",
+    "vmt-chc-benchmarks/lustre/ticket3i_7_e8_2126_e7_78_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | late",
+    "vmt-chc-benchmarks/lustre/ticket3i_all_e1_2706_e7_1776_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | late",
+    "vmt-chc-benchmarks/lustre/ticket3i_all_e2_1117_e7_553_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | late",
+    "vmt-chc-benchmarks/lustre/ticket3i_all_e3_557_e7_3464_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | late",
+    "vmt-chc-benchmarks/lustre/ticket3i_all_e7_1837_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | late",
+    "vmt-chc-benchmarks/lustre/ticket3i_all_e8_505_e7_2450_000_001.yml": "vmt-chc-benchmarks/lustre/ticket | late",
+    "vmt-chc-benchmarks/lustre/traffic_e7_46_e8_16_000.yml": "vmt-chc-benchmarks/lustre/traffic | early",
+    "vmt-chc-benchmarks/lustre/twisted_counters_000_001.yml": "vmt-chc-benchmarks/lustre/twisted | early",
+    "vmt-chc-benchmarks/lustre/two_counters_e1_268_000_001.yml": "vmt-chc-benchmarks/lustre/two | early"
+   }
+  },
+  "its": {
+   "size": 398,
+   "of": 1239,
+   "reference": "e1711cace848-modal-r1/its/run1",
+   "strata": {
+    "Integer_Transition_Systems/Britikov_26 | early": {
+     "n": 1,
+     "of": 6
+    },
+    "Integer_Transition_Systems/From_AProVE_2014 | early": {
+     "n": 67,
+     "of": 337
+    },
+    "Integer_Transition_Systems/From_AProVE_2014 | late": {
+     "n": 51,
+     "of": 64
+    },
+    "Integer_Transition_Systems/From_AProVE_2014 | unsolved": {
+     "n": 6,
+     "of": 15
+    },
+    "Integer_Transition_Systems/From_T2 | early": {
+     "n": 114,
+     "of": 573
+    },
+    "Integer_Transition_Systems/From_T2 | late": {
+     "n": 129,
+     "of": 162
+    },
+    "Integer_Transition_Systems/From_T2 | unsolved": {
+     "n": 28,
+     "of": 71
+    },
+    "Integer_Transition_Systems/Lommen_26 | early": {
+     "n": 1,
+     "of": 6
+    },
+    "Integer_Transition_Systems/Monma_26 | early": {
+     "n": 1,
+     "of": 5
+    }
+   },
+   "tasks": {
+    "Integer_Transition_Systems/Britikov_26/toy3.t2.ari": "Integer_Transition_Systems/Britikov_26 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/BinarySearchTree.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/BubbleSort.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Carre.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/ClassAnalysis.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Convert.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Count.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/CountUpRound.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/CyclicalListDuplicate.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/DivTernary.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Double2.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Et1.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Et5-rec.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Et6-rec.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/FactSLR.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/FlattenTreeRec.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/GCD5.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Infix2Postfix.jar-obl-11.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/KnapsackDP.jar-obl-11.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/List.jar-obl-12.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/ListContent.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Log.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/LogIterative.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Loop.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/MainMove.jar-obl-11.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/NO_03.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/NO_13.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/PastaA7.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/PastaB1.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/PastaB10.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/PastaB12.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/PastaB17.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/PastaB18.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/PastaB4.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/PastaC7.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Power.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/RunningPointers.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/SearchTreeR.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Sequence.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/SharingAnalysisRec.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Shuffle.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Take.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/TermCreateCollect.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Test2.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Test4.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Test9.jar-obl-20.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/TestJulia6.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Velroyen08-alternDivWidening.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Velroyen08-complInterv2.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Velroyen08-ex02.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Velroyen08-ex03.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Velroyen08-ex04.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Velroyen08-lcm.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Velroyen08-mirrorInterv.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Velroyen08-moduloUp.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Velroyen08-plait.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Velroyen08-whileSum.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/complInterv3_rec.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/costa09-example_1.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/costa09-example_5.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/even_rec.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/ex06_rec.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/ex07_rec.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/ex08_rec.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateElement.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreatePop.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/mirrorInterv_rec.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/upAndDown_rec.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Alternate.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/BinarySearch.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/Binomial.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/CyclicAnalysis.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/Diff.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/Et2-rec.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/Et5.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/Fractale1.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/Kernel88.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/Kernel93.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/Kernel95.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/LessLeavesRec.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/MergeSort.jar-obl-12.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/MirrorBinTreeRec.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/Mod.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/RSA.jar-obl-17.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/SortCount.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/Sudoku.jar-obl-14.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/TaylorSeriesIte.jar-obl-13.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/TaylorSeriesRec.jar-obl-13.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/TermsCreateMatch.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/TimesPlusUserDef.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juHashMapCreate.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juHashMapCreateContainsKey.jar-obl-11.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juHashMapCreateGet.jar-obl-11.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juHashMapCreateIsEmpty.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juHashMapCreateIteratorKeyLoop.jar-obl-12.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juHashMapCreatePut.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juHashMapCreateRemove.jar-obl-11.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateAdd.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateAddAt.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateAddLast.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateContains.jar-obl-16.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateDescendingIteratorLoop.jar-obl-13.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateEquals.jar-obl-13.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateIsEmpty.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateIteratorLoop.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateLastIndexOf.jar-obl-16.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateListIteratorLoop.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateOfferFirst.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateOfferLast.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreatePollLast.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreatePush.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateRemove.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateRemoveAt.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateRemoveElement.jar-obl-16.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateRemoveFirstOccurrence.jar-obl-16.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateRemoveLast.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateRemoveLastOccurrence.jar-obl-16.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateRemoveRange.jar-obl-14.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateSubList.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/Collatz.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | unsolved",
+    "Integer_Transition_Systems/From_AProVE_2014/Iterations.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | unsolved",
+    "Integer_Transition_Systems/From_AProVE_2014/LogMult.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | unsolved",
+    "Integer_Transition_Systems/From_AProVE_2014/Round3.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | unsolved",
+    "Integer_Transition_Systems/From_AProVE_2014/Test6.jar-obl-13.ari": "Integer_Transition_Systems/From_AProVE_2014 | unsolved",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateAddAll.jar-obl-11.ari": "Integer_Transition_Systems/From_AProVE_2014 | unsolved",
+    "Integer_Transition_Systems/From_T2/1394complete-fail.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/1394complete-succeed.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/apchildlive-succeed.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/armc-difficult_foo2.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/array2.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/bakery.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/bitcount16.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/bitcount32.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/bubblesort_inner_loop.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/compress.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/consts1.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/consts1nt.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/consts1nt.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/consts4.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/consts5.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/consts5nt.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/curious2.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/db.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/defect.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/dsa_test15.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/dummy.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/e-acqrel-succeed.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/edn.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/efegp.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/eric.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/ex14.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/ex20.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/ex21.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/ex3.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/ex6.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/ex8.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/fast_poll.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/fourn.c.i.fourn.pl.t2.nor.t2.rlgfixed.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/fourn.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/fuhs-inflasso.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/fun1.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/fun1b.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/fun4-alt.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/fun6.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/fun7.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/fun9.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/heidy7.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/huh.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/huh.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/insertsort.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/java_Break.c.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/java_DivMinus1.c.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/java_Factorial.c.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/java_MinusBuiltIn.c.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/java_Sequence.c.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/jfdctint.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/n-10.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/n-10.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/n-12a.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/n-48.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/n-6.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/n-7.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/neg-e-1394complete-succeed.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/neg-e-pgarch-succeed.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/neg-e-popl07-succeed.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/neg-e-popl07-succeed.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/neg-popl07-fail.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/neg-popl07-succeed.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/neg-smagilla-fail.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/neg-smagilla-succeed.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/p-1.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/p-10.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/p-1b.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/p-1d.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/p-42.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/p-49.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/p-5.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/p-55.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/p-56.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/p-61.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/p-7.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/p.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/polling.bug.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/polling.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/polyrank4.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/popl07-succeed.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/ppblockterm.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/ppblocktermbug.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/prime.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/refine_disj_problem.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/rev_nt4.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/rewrite.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/ruslan-benchmarks_misc_n-38.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/s1.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/s2.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/simple_array_inversion.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/simple_pre.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/simple_pre1.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/slayer-3-new.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/slayer-n2-filtered.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/slayer-n2.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/small01.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/small02.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/small03.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/small08.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/small13.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/small21.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/small22.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/small26.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/small27.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/small28.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/small33.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/st88b-fail.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/tqli.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/w2_nt.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/w3_nt.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/walk.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/whatwhat.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/bf10.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf10.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf11.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf11.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf12.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf13.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf14.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf14.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf15.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf15.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf16.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf17.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf17.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf18.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf18.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf19.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf20.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf20.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf5.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf5.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf6.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf6.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf7.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf7.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf8.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf8.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bf9.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bsort100.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bsort100.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/bubbleSort.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/cnt.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/crc.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/create_via_tmps.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/db2.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/destroy.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/destroy_seg.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/dsa_test10.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/dsa_test10.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/edn.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/elmhes.c.i.elmhes.pl.t2.fixed.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/elmhes.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ex17.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ex17.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ex18.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ex18.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ex21.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ex22.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ex22.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ex27.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ex29.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ex29.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ex3.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ex30.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ex4.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/fir.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/fir.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/florian_pldi.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/florian_sas1.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/florian_sumit.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/fun2.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/fun2.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/fun2b.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/fun3.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/fun8.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/fun8.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/graycode.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/graycode.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/java_Ackermann.c.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/java_Avg.c.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/java_Break.c.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/java_BubbleSort.c.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/java_Continue1.c.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/java_Diff.c.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/java_DivMinus2.c.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/java_DivWithoutMinus.c.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/java_Double1.c.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/java_Duplicate.c.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/java_FactSum.c.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/java_Nested.c.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/java_TimesPlusUserDef.c.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/jfdctint.c.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/jfdctint.c.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/matmul.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/matmul.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/matmult.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/matrixsqrt.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ns.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/p-38.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/p-38.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/p-4.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/polyrank5.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/qrdcmp.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/queue_10.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/queue_10.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/queue_100.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/queue_1000.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/queue_1000.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/randomwalk_withassume.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/reverse.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/reverse.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/reverse_seg_cyclic.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/reverse_seg_cyclic.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/s1-saved.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/s1-saved.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/selectSort.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/send-more-money.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/send-more-money.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/slayer-1-rf.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/slayer-2-filtered.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/small06.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/sort.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/sort.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/toeplz.c.i.toeplz.pl.t2.fixed.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/traverse.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/traverse.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/traverse2.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/traverse_seg.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/traverse_seg2.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/traverse_seg2.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/traverse_twice.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/two_arrays.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/two_arrays.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/two_arrays1.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/two_arrays2.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/two_arrays6.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/wrap.c.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/wtf.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/armc-difficult_foo3.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/bio.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/broydn.c.i.broydn.pl.t2.fixed.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/collatz.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/cover.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/cover.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/firewire.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/jacobi.c.i.jacobi.pl.t2.fixed.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/jacobi.c.i.jacobi.pl.t2.fixed.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/jacobi.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/loop3.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/ludcmp.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/magic.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/n_firewire_instrumented-PP.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/pentagon.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/s3.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/s4.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/slayer-3.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/slayer-4-filtered.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/spctrm.c.i.spctrm.pl.t2.fixed.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/svdcmp.c.i.svdcmp.pl.t2.fixed.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/svdcmp.c.i.svdcmp.pl.t2.nor.t2.rlgfixed.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/svdcmp.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/svdcmp.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/ud.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/ud.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/zeroconf_withassume.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/Lommen_26/farkas_mod_div.ari": "Integer_Transition_Systems/Lommen_26 | early",
+    "Integer_Transition_Systems/Monma_26/reverse_lexicographic.ari": "Integer_Transition_Systems/Monma_26 | early"
+   }
+  },
+  "its-scc": {
+   "size": 122,
+   "of": 1239,
+   "reference": "e1711cace848-modal-r1/its/run1",
+   "strata": {
+    "Integer_Transition_Systems/Britikov_26 | early": {
+     "n": 1,
+     "of": 6
+    },
+    "Integer_Transition_Systems/From_AProVE_2014 | early": {
+     "n": 28,
+     "of": 362
+    },
+    "Integer_Transition_Systems/From_AProVE_2014 | late": {
+     "n": 11,
+     "of": 36
+    },
+    "Integer_Transition_Systems/From_AProVE_2014 | unsolved": {
+     "n": 3,
+     "of": 18
+    },
+    "Integer_Transition_Systems/From_T2 | early": {
+     "n": 53,
+     "of": 694
+    },
+    "Integer_Transition_Systems/From_T2 | late": {
+     "n": 14,
+     "of": 47
+    },
+    "Integer_Transition_Systems/From_T2 | unsolved": {
+     "n": 10,
+     "of": 65
+    },
+    "Integer_Transition_Systems/Lommen_26 | early": {
+     "n": 1,
+     "of": 6
+    },
+    "Integer_Transition_Systems/Monma_26 | early": {
+     "n": 1,
+     "of": 5
+    }
+   },
+   "tasks": {
+    "Integer_Transition_Systems/Britikov_26/toy3.t2.ari": "Integer_Transition_Systems/Britikov_26 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/BinarySearchTree.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Binomial.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/DivTernary.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Et1.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/FlattenTreeRec.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/KnapsackDP.jar-obl-11.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/List.jar-obl-12.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/ListContent.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/LogIterative.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Loop.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/MainMove.jar-obl-11.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/NO_13.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/PastaB1.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/PastaB4.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/RunningPointers.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/SearchTreeR.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Shuffle.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/TestJulia6.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Velroyen08-ex03.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Velroyen08-lcm.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Velroyen08-whileSum.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/costa09-example_5.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/even_rec.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/ex06_rec.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/ex07_rec.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateElement.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreatePop.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreatePush.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | early",
+    "Integer_Transition_Systems/From_AProVE_2014/Infix2Postfix.jar-obl-11.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/RSA.jar-obl-17.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juHashMapCreateContainsKey.jar-obl-11.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juHashMapCreateIteratorKeyLoop.jar-obl-12.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juHashMapCreatePut.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juHashMapCreateRemove.jar-obl-11.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateContains.jar-obl-16.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateEquals.jar-obl-13.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateLastIndexOf.jar-obl-16.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateRemove.jar-obl-10.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/juLinkedListCreateRemoveFirstOccurrence.jar-obl-16.ari": "Integer_Transition_Systems/From_AProVE_2014 | late",
+    "Integer_Transition_Systems/From_AProVE_2014/BinarySearch.jar-obl-9.ari": "Integer_Transition_Systems/From_AProVE_2014 | unsolved",
+    "Integer_Transition_Systems/From_AProVE_2014/Iterations.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | unsolved",
+    "Integer_Transition_Systems/From_AProVE_2014/Round3.jar-obl-8.ari": "Integer_Transition_Systems/From_AProVE_2014 | unsolved",
+    "Integer_Transition_Systems/From_T2/bf10.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/bf5.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/bitcount16.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/cnt.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/consts1.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/consts1nt.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/consts5nt.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/dummy.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/edn.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/efegp.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/ex14.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/ex20.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/ex21.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/ex3.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/fast_poll.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/fuhs-inflasso.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/fun1b.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/heidy7.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/insertsort.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/java_Break.c.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/java_Factorial.c.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/java_MinusBuiltIn.c.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/java_Sequence.c.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/jfdctint.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/n-10.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/n-10.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/n-12a.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/n-7.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/neg-e-1394complete-succeed.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/neg-popl07-fail.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/neg-smagilla-fail.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/p-10.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/p-1b.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/p-1d.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/p-49.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/p-5.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/polling.bug.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/polling.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/ppblocktermbug.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/randomwalk_withassume.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/rev_nt4.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/ruslan-benchmarks_misc_n-38.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/s1.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/s2.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/simple_pre.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/simple_pre1.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/slayer-2-filtered.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/slayer-3-new.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/slayer-n2-filtered.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/slayer-n2.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/small33.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/w2_nt.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/walk.t2.ari": "Integer_Transition_Systems/From_T2 | early",
+    "Integer_Transition_Systems/From_T2/destroy_seg.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/elmhes.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ex29.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/fun2.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/fun3.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/graycode.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ludcmp.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ns.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/p-38.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/qrdcmp.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/reverse.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/slayer-3.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/ud.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/zeroconf_withassume.t2.ari": "Integer_Transition_Systems/From_T2 | late",
+    "Integer_Transition_Systems/From_T2/armc-difficult_foo3.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/cover.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/jacobi.c.i.jacobi.pl.t2.fixed.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/n_firewire_instrumented-PP.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/s4.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/slayer-4-filtered.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/svdcmp.t2.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/From_T2/svdcmp.t2_fixed.ari": "Integer_Transition_Systems/From_T2 | unsolved",
+    "Integer_Transition_Systems/Lommen_26/farkas_mod_div.ari": "Integer_Transition_Systems/Lommen_26 | early",
+    "Integer_Transition_Systems/Monma_26/reverse_lexicographic.ari": "Integer_Transition_Systems/Monma_26 | early"
+   }
+  },
+  "sv": {
+   "size": 129,
+   "of": 282,
+   "reference": "e1711cace848-modal-r1/sv/run1",
+   "strata": {
+    "termination-crafted | early": {
+     "n": 16,
+     "of": 45
+    },
+    "termination-crafted | late": {
+     "n": 8,
+     "of": 8
+    },
+    "termination-crafted | refused": {
+     "n": 1,
+     "of": 3
+    },
+    "termination-crafted | unsolved": {
+     "n": 6,
+     "of": 9
+    },
+    "termination-crafted-lit | early": {
+     "n": 19,
+     "of": 54
+    },
+    "termination-crafted-lit | late": {
+     "n": 5,
+     "of": 5
+    },
+    "termination-crafted-lit | refused": {
+     "n": 1,
+     "of": 6
+    },
+    "termination-crafted-lit | unsolved": {
+     "n": 1,
+     "of": 1
+    },
+    "termination-nla | early": {
+     "n": 1,
+     "of": 4
+    },
+    "termination-nla | late": {
+     "n": 12,
+     "of": 12
+    },
+    "termination-nla | refused": {
+     "n": 1,
+     "of": 2
+    },
+    "termination-nla | unsolved": {
+     "n": 10,
+     "of": 15
+    },
+    "termination-numeric | early": {
+     "n": 1,
+     "of": 2
+    },
+    "termination-numeric | late": {
+     "n": 8,
+     "of": 8
+    },
+    "termination-numeric | unsolved": {
+     "n": 3,
+     "of": 5
+    },
+    "termination-restricted-15 | early": {
+     "n": 35,
+     "of": 101
+    },
+    "termination-restricted-15 | unsolved": {
+     "n": 1,
+     "of": 2
+    }
+   },
+   "tasks": {
+    "termination-crafted/4NestedWith3Variables-1.yml": "termination-crafted | early",
+    "termination-crafted/Arrays02-EquivalentConstantIndices.yml": "termination-crafted | early",
+    "termination-crafted/Bangalore_v2.yml": "termination-crafted | early",
+    "termination-crafted/Benghazi.yml": "termination-crafted | early",
+    "termination-crafted/Benghazi_nondet-2.yml": "termination-crafted | early",
+    "termination-crafted/Copenhagen.yml": "termination-crafted | early",
+    "termination-crafted/Copenhagen_disj-2.yml": "termination-crafted | early",
+    "termination-crafted/Lobnya-Boolean-Reordered-2.yml": "termination-crafted | early",
+    "termination-crafted/Mysore-2.yml": "termination-crafted | early",
+    "termination-crafted/Nyala-2lex-2.yml": "termination-crafted | early",
+    "termination-crafted/Piecewise.yml": "termination-crafted | early",
+    "termination-crafted/Rotation180-1.yml": "termination-crafted | early",
+    "termination-crafted/Singapore-2.yml": "termination-crafted | early",
+    "termination-crafted/aaron3-1.yml": "termination-crafted | early",
+    "termination-crafted/countup-down-nested.yml": "termination-crafted | early",
+    "termination-crafted/easy1.yml": "termination-crafted | early",
+    "termination-crafted/Ackermann-2.yml": "termination-crafted | late",
+    "termination-crafted/Binary_Search-2.yml": "termination-crafted | late",
+    "termination-crafted/MutualRecursion_1b.yml": "termination-crafted | late",
+    "termination-crafted/NestedRecursion_1a-2.yml": "termination-crafted | late",
+    "termination-crafted/NestedRecursion_2b.yml": "termination-crafted | late",
+    "termination-crafted/RecursiveMultiplication-1.yml": "termination-crafted | late",
+    "termination-crafted/RecursiveNonterminating-1.yml": "termination-crafted | late",
+    "termination-crafted/Toulouse-MultiBranchesToLoop-2.yml": "termination-crafted | late",
+    "termination-crafted/LexIndexValue-Pointer-2.yml": "termination-crafted | refused",
+    "termination-crafted/4BitCounterPointer.yml": "termination-crafted | unsolved",
+    "termination-crafted/McCarthy91_Recursion.yml": "termination-crafted | unsolved",
+    "termination-crafted/NestedRecursion_1b.yml": "termination-crafted | unsolved",
+    "termination-crafted/NestedRecursion_1c.yml": "termination-crafted | unsolved",
+    "termination-crafted/NestedRecursion_1d.yml": "termination-crafted | unsolved",
+    "termination-crafted/NestedRecursion_2c.yml": "termination-crafted | unsolved",
+    "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-Fig1.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-easy1.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-easy2-2.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-speedpldi4.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-wcet2.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-wise.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/ChawdharyCookGulwaniSagivYang-ESOP2008-random2d.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/ChenCookFuhsNimkarOHearn-TACAS2014-Introduction.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/ChenFlurMukhopadhyay-SAS2012-Ex2.20.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig7b.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig8a-modified.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig8a.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/GopanReps-CAV2006-Fig1a.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/HarrisLalNoriRajamani-SAS2010-Fig3.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/HeizmannHoenickeLeikePodelski-ATVA2013-Fig1.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/HeizmannHoenickeLeikePodelski-ATVA2013-Fig6.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/KroeningSharyginaTsitovichWintersteiger-CAV2010-Ex.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/LeikeHeizmann-WST2014-Ex9.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/PodelskiRybalchenko-TACAS2011-Fig4.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-nestedLoop-1.yml": "termination-crafted-lit | late",
+    "termination-crafted-lit/HarrisLalNoriRajamani-SAS2010-Fig1.yml": "termination-crafted-lit | late",
+    "termination-crafted-lit/LeeJonesBen-Amram-POPL2001-Ex4.yml": "termination-crafted-lit | late",
+    "termination-crafted-lit/LeeJonesBen-Amram-POPL2001-Ex5.yml": "termination-crafted-lit | late",
+    "termination-crafted-lit/UrbanMine-ESOP2014-Fig3.yml": "termination-crafted-lit | late",
+    "termination-crafted-lit/cstrlen.yml": "termination-crafted-lit | refused",
+    "termination-crafted-lit/KroeningSharyginaTsitovichWintersteiger-CAV2010-Fig1.yml": "termination-crafted-lit | unsolved",
+    "termination-nla/cohencu1-both-t.yml": "termination-nla | early",
+    "termination-nla/cohencu2-both-t.yml": "termination-nla | late",
+    "termination-nla/cohencu3-both-t.yml": "termination-nla | late",
+    "termination-nla/cohencu4-both-t.yml": "termination-nla | late",
+    "termination-nla/cohencu5-both-t.yml": "termination-nla | late",
+    "termination-nla/cohencu6-both-t.yml": "termination-nla | late",
+    "termination-nla/cohencu7-both-t.yml": "termination-nla | late",
+    "termination-nla/dijkstra1-both-nt.yml": "termination-nla | late",
+    "termination-nla/dijkstra1-both-t.yml": "termination-nla | late",
+    "termination-nla/mannadiv-both-t.yml": "termination-nla | late",
+    "termination-nla/ps2-both-t.yml": "termination-nla | late",
+    "termination-nla/ps3-both-t.yml": "termination-nla | late",
+    "termination-nla/sqrt1-both-t.yml": "termination-nla | late",
+    "termination-nla/knuth-both-nt.yml": "termination-nla | refused",
+    "termination-nla/dijkstra3-both-t.yml": "termination-nla | unsolved",
+    "termination-nla/dijkstra5-both-t.yml": "termination-nla | unsolved",
+    "termination-nla/divbin1-both-t.yml": "termination-nla | unsolved",
+    "termination-nla/egcd2-both-t.yml": "termination-nla | unsolved",
+    "termination-nla/hard2-both-t.yml": "termination-nla | unsolved",
+    "termination-nla/knuth-nosqrt-both-nt.yml": "termination-nla | unsolved",
+    "termination-nla/knuth-nosqrt-both-t.yml": "termination-nla | unsolved",
+    "termination-nla/lcm1-both-t.yml": "termination-nla | unsolved",
+    "termination-nla/ps5-both-t.yml": "termination-nla | unsolved",
+    "termination-nla/ps6-both-t.yml": "termination-nla | unsolved",
+    "termination-numeric/twisted.yml": "termination-numeric | early",
+    "termination-numeric/EvenOdd01-2.yml": "termination-numeric | late",
+    "termination-numeric/Fibonacci01-2.yml": "termination-numeric | late",
+    "termination-numeric/LeUserDefRec.yml": "termination-numeric | late",
+    "termination-numeric/TerminatorRec02.yml": "termination-numeric | late",
+    "termination-numeric/TwoWay.yml": "termination-numeric | late",
+    "termination-numeric/gcd01-2.yml": "termination-numeric | late",
+    "termination-numeric/recHanoi02-1.yml": "termination-numeric | late",
+    "termination-numeric/rec_counter1.yml": "termination-numeric | late",
+    "termination-numeric/Binomial.yml": "termination-numeric | unsolved",
+    "termination-numeric/LogRecursive.yml": "termination-numeric | unsolved",
+    "termination-numeric/rec_counter3.yml": "termination-numeric | unsolved",
+    "termination-restricted-15/DivMinus.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/Ex06.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/GCD2.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/GCD3.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/GCD4.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/LogAG.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/Loop-2.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/MinusUserDefined.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/NO_03.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/NO_04.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/NO_22.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/NO_23.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/NO_24.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/PastaB14.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/PastaB16.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/PastaB2.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/PastaB4.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/PastaB7.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/PastaC7.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/PastaC9.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/Sequence.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/TwoFloatInterv.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/WhileDecr.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/WhileSingle.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/a.04.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/a.05.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/a.10.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/b.04.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/b.07.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/b.09-no-inv_assume.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/b.13.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/b.14.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/c.01-no-inv.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/c.03.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/java_Sequence.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/ex3b.yml": "termination-restricted-15 | unsolved"
+   }
+  },
+  "sv-scc": {
+   "size": 43,
+   "of": 282,
+   "reference": "e1711cace848-modal-r1/sv/run1",
+   "strata": {
+    "termination-crafted | early": {
+     "n": 4,
+     "of": 38
+    },
+    "termination-crafted | late": {
+     "n": 2,
+     "of": 5
+    },
+    "termination-crafted | refused": {
+     "n": 1,
+     "of": 3
+    },
+    "termination-crafted | unsolved": {
+     "n": 4,
+     "of": 19
+    },
+    "termination-crafted-lit | early": {
+     "n": 5,
+     "of": 48
+    },
+    "termination-crafted-lit | late": {
+     "n": 1,
+     "of": 1
+    },
+    "termination-crafted-lit | refused": {
+     "n": 1,
+     "of": 6
+    },
+    "termination-crafted-lit | unsolved": {
+     "n": 2,
+     "of": 11
+    },
+    "termination-nla | early": {
+     "n": 1,
+     "of": 9
+    },
+    "termination-nla | late": {
+     "n": 2,
+     "of": 5
+    },
+    "termination-nla | refused": {
+     "n": 1,
+     "of": 2
+    },
+    "termination-nla | unsolved": {
+     "n": 4,
+     "of": 17
+    },
+    "termination-numeric | early": {
+     "n": 1,
+     "of": 2
+    },
+    "termination-numeric | late": {
+     "n": 2,
+     "of": 6
+    },
+    "termination-numeric | unsolved": {
+     "n": 1,
+     "of": 7
+    },
+    "termination-restricted-15 | early": {
+     "n": 10,
+     "of": 96
+    },
+    "termination-restricted-15 | unsolved": {
+     "n": 1,
+     "of": 7
+    }
+   },
+   "tasks": {
+    "termination-crafted/Arrays02-EquivalentConstantIndices.yml": "termination-crafted | early",
+    "termination-crafted/Benghazi_nondet-2.yml": "termination-crafted | early",
+    "termination-crafted/Copenhagen_disj-2.yml": "termination-crafted | early",
+    "termination-crafted/Rotation180-1.yml": "termination-crafted | early",
+    "termination-crafted/Ackermann-2.yml": "termination-crafted | late",
+    "termination-crafted/MutualRecursion_1b.yml": "termination-crafted | late",
+    "termination-crafted/LexIndexValue-Pointer-2.yml": "termination-crafted | refused",
+    "termination-crafted/McCarthy91_Recursion.yml": "termination-crafted | unsolved",
+    "termination-crafted/NestedRecursion_1c.yml": "termination-crafted | unsolved",
+    "termination-crafted/NestedRecursion_2c.yml": "termination-crafted | unsolved",
+    "termination-crafted/Singapore-2.yml": "termination-crafted | unsolved",
+    "termination-crafted-lit/ChawdharyCookGulwaniSagivYang-ESOP2008-random2d.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig8a-modified.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/GopanReps-CAV2006-Fig1a.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/KroeningSharyginaTsitovichWintersteiger-CAV2010-Ex.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/LeikeHeizmann-WST2014-Ex9.yml": "termination-crafted-lit | early",
+    "termination-crafted-lit/LeeJonesBen-Amram-POPL2001-Ex4.yml": "termination-crafted-lit | late",
+    "termination-crafted-lit/cstrlen.yml": "termination-crafted-lit | refused",
+    "termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-speedpldi4.yml": "termination-crafted-lit | unsolved",
+    "termination-crafted-lit/LeeJonesBen-Amram-POPL2001-Ex5.yml": "termination-crafted-lit | unsolved",
+    "termination-nla/ps2-both-t.yml": "termination-nla | early",
+    "termination-nla/cohencu4-both-t.yml": "termination-nla | late",
+    "termination-nla/dijkstra1-both-nt.yml": "termination-nla | late",
+    "termination-nla/knuth-both-nt.yml": "termination-nla | refused",
+    "termination-nla/dijkstra5-both-t.yml": "termination-nla | unsolved",
+    "termination-nla/ps3-both-t.yml": "termination-nla | unsolved",
+    "termination-nla/ps5-both-t.yml": "termination-nla | unsolved",
+    "termination-nla/ps6-both-t.yml": "termination-nla | unsolved",
+    "termination-numeric/twisted.yml": "termination-numeric | early",
+    "termination-numeric/Binomial.yml": "termination-numeric | late",
+    "termination-numeric/Fibonacci01-2.yml": "termination-numeric | late",
+    "termination-numeric/rec_counter3.yml": "termination-numeric | unsolved",
+    "termination-restricted-15/Ex06.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/NO_03.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/NO_04.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/NO_22.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/NO_23.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/PastaB2.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/Sequence.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/b.04.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/b.14.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/java_Sequence.yml": "termination-restricted-15 | early",
+    "termination-restricted-15/b.09-no-inv_assume.yml": "termination-restricted-15 | unsolved"
+   }
+  },
+  "tip": {
+   "size": 239,
+   "of": 492,
+   "reference": "e1711cace848-modal-r1/tip/run1",
+   "strata": {
+    "grammars | unsolved": {
+     "n": 5,
+     "of": 6
+    },
+    "isaplanner | early": {
+     "n": 26,
+     "of": 68
+    },
+    "isaplanner | late": {
+     "n": 7,
+     "of": 7
+    },
+    "isaplanner | unsolved": {
+     "n": 8,
+     "of": 11
+    },
+    "prod | early": {
+     "n": 17,
+     "of": 44
+    },
+    "prod | late": {
+     "n": 8,
+     "of": 8
+    },
+    "prod | unsolved": {
+     "n": 17,
+     "of": 22
+    },
+    "tip2015 | early": {
+     "n": 31,
+     "of": 81
+    },
+    "tip2015 | late": {
+     "n": 5,
+     "of": 5
+    },
+    "tip2015 | refused": {
+     "n": 10,
+     "of": 103
+    },
+    "tip2015 | unsolved": {
+     "n": 105,
+     "of": 137
+    }
+   },
+   "tasks": {
+    "grammars/packrat_unambigPackrat.smt2": "grammars | unsolved",
+    "grammars/simp_expr_unambig1.smt2": "grammars | unsolved",
+    "grammars/simp_expr_unambig2.smt2": "grammars | unsolved",
+    "grammars/simp_expr_unambig3.smt2": "grammars | unsolved",
+    "grammars/simp_expr_unambig5.smt2": "grammars | unsolved",
+    "isaplanner/prop_04.smt2": "isaplanner | early",
+    "isaplanner/prop_05.smt2": "isaplanner | early",
+    "isaplanner/prop_06.smt2": "isaplanner | early",
+    "isaplanner/prop_09.smt2": "isaplanner | early",
+    "isaplanner/prop_10.smt2": "isaplanner | early",
+    "isaplanner/prop_12.smt2": "isaplanner | early",
+    "isaplanner/prop_13.smt2": "isaplanner | early",
+    "isaplanner/prop_14.smt2": "isaplanner | early",
+    "isaplanner/prop_15.smt2": "isaplanner | early",
+    "isaplanner/prop_16.smt2": "isaplanner | early",
+    "isaplanner/prop_17.smt2": "isaplanner | early",
+    "isaplanner/prop_18.smt2": "isaplanner | early",
+    "isaplanner/prop_20.smt2": "isaplanner | early",
+    "isaplanner/prop_23.smt2": "isaplanner | early",
+    "isaplanner/prop_27.smt2": "isaplanner | early",
+    "isaplanner/prop_29.smt2": "isaplanner | early",
+    "isaplanner/prop_30.smt2": "isaplanner | early",
+    "isaplanner/prop_39.smt2": "isaplanner | early",
+    "isaplanner/prop_42.smt2": "isaplanner | early",
+    "isaplanner/prop_43.smt2": "isaplanner | early",
+    "isaplanner/prop_47.smt2": "isaplanner | early",
+    "isaplanner/prop_57.smt2": "isaplanner | early",
+    "isaplanner/prop_64.smt2": "isaplanner | early",
+    "isaplanner/prop_66.smt2": "isaplanner | early",
+    "isaplanner/prop_70.smt2": "isaplanner | early",
+    "isaplanner/prop_75.smt2": "isaplanner | early",
+    "isaplanner/prop_41.smt2": "isaplanner | late",
+    "isaplanner/prop_50.smt2": "isaplanner | late",
+    "isaplanner/prop_51.smt2": "isaplanner | late",
+    "isaplanner/prop_60.smt2": "isaplanner | late",
+    "isaplanner/prop_71.smt2": "isaplanner | late",
+    "isaplanner/prop_77.smt2": "isaplanner | late",
+    "isaplanner/prop_80.smt2": "isaplanner | late",
+    "isaplanner/prop_49.smt2": "isaplanner | unsolved",
+    "isaplanner/prop_52.smt2": "isaplanner | unsolved",
+    "isaplanner/prop_61.smt2": "isaplanner | unsolved",
+    "isaplanner/prop_72.smt2": "isaplanner | unsolved",
+    "isaplanner/prop_73.smt2": "isaplanner | unsolved",
+    "isaplanner/prop_74.smt2": "isaplanner | unsolved",
+    "isaplanner/prop_84.smt2": "isaplanner | unsolved",
+    "isaplanner/prop_85.smt2": "isaplanner | unsolved",
+    "prod/lemma_06.smt2": "prod | early",
+    "prod/lemma_11.smt2": "prod | early",
+    "prod/lemma_17.smt2": "prod | early",
+    "prod/lemma_19.smt2": "prod | early",
+    "prod/lemma_22.smt2": "prod | early",
+    "prod/lemma_23.smt2": "prod | early",
+    "prod/prop_01.smt2": "prod | early",
+    "prod/prop_07.smt2": "prod | early",
+    "prod/prop_10.smt2": "prod | early",
+    "prod/prop_26.smt2": "prod | early",
+    "prod/prop_31.smt2": "prod | early",
+    "prod/prop_34.smt2": "prod | early",
+    "prod/prop_36.smt2": "prod | early",
+    "prod/prop_37.smt2": "prod | early",
+    "prod/prop_45.smt2": "prod | early",
+    "prod/prop_46.smt2": "prod | early",
+    "prod/prop_48.smt2": "prod | early",
+    "prod/lemma_04.smt2": "prod | late",
+    "prod/lemma_05.smt2": "prod | late",
+    "prod/lemma_12.smt2": "prod | late",
+    "prod/lemma_21.smt2": "prod | late",
+    "prod/prop_02.smt2": "prod | late",
+    "prod/prop_09.smt2": "prod | late",
+    "prod/prop_12.smt2": "prod | late",
+    "prod/prop_25.smt2": "prod | late",
+    "prod/lemma_07.smt2": "prod | unsolved",
+    "prod/lemma_09.smt2": "prod | unsolved",
+    "prod/lemma_10.smt2": "prod | unsolved",
+    "prod/prop_06.smt2": "prod | unsolved",
+    "prod/prop_11.smt2": "prod | unsolved",
+    "prod/prop_14.smt2": "prod | unsolved",
+    "prod/prop_17.smt2": "prod | unsolved",
+    "prod/prop_18.smt2": "prod | unsolved",
+    "prod/prop_19.smt2": "prod | unsolved",
+    "prod/prop_21.smt2": "prod | unsolved",
+    "prod/prop_28.smt2": "prod | unsolved",
+    "prod/prop_29.smt2": "prod | unsolved",
+    "prod/prop_32.smt2": "prod | unsolved",
+    "prod/prop_33.smt2": "prod | unsolved",
+    "prod/prop_42.smt2": "prod | unsolved",
+    "prod/prop_44.smt2": "prod | unsolved",
+    "prod/prop_50.smt2": "prod | unsolved",
+    "tip2015/int_add_ident_left.smt2": "tip2015 | early",
+    "tip2015/int_add_ident_right.smt2": "tip2015 | early",
+    "tip2015/list_append_inj_2.smt2": "tip2015 | early",
+    "tip2015/list_concat_map_bind.smt2": "tip2015 | early",
+    "tip2015/list_nat_append_inj_2.smt2": "tip2015 | early",
+    "tip2015/list_nat_perm_refl.smt2": "tip2015 | early",
+    "tip2015/list_perm_refl.smt2": "tip2015 | early",
+    "tip2015/list_return_2.smt2": "tip2015 | early",
+    "tip2015/nat_boring_ge_antisym.smt2": "tip2015 | early",
+    "tip2015/nat_boring_ge_trans.smt2": "tip2015 | early",
+    "tip2015/nat_boring_gt_asymmetric.smt2": "tip2015 | early",
+    "tip2015/nat_boring_min_assoc.smt2": "tip2015 | early",
+    "tip2015/nat_lt_ne.smt2": "tip2015 | early",
+    "tip2015/nat_lt_trans.smt2": "tip2015 | early",
+    "tip2015/nat_max_assoc.smt2": "tip2015 | early",
+    "tip2015/nat_min_max_abs.smt2": "tip2015 | early",
+    "tip2015/relaxedprefix_is_prefix_3.smt2": "tip2015 | early",
+    "tip2015/weird_nat_add3_assoc1.smt2": "tip2015 | early",
+    "tip2015/weird_nat_add3_comm12.smt2": "tip2015 | early",
+    "tip2015/weird_nat_add3_rot.smt2": "tip2015 | early",
+    "tip2015/weird_nat_add3_same.smt2": "tip2015 | early",
+    "tip2015/weird_nat_add3acc_assoc2.smt2": "tip2015 | early",
+    "tip2015/weird_nat_add3acc_assoc3.smt2": "tip2015 | early",
+    "tip2015/weird_nat_add3acc_rot.smt2": "tip2015 | early",
+    "tip2015/weird_nat_add3acc_rrot.smt2": "tip2015 | early",
+    "tip2015/weird_nat_add3acc_spec.smt2": "tip2015 | early",
+    "tip2015/weird_nat_mul3_comm12.smt2": "tip2015 | early",
+    "tip2015/weird_nat_mul3_rrot.smt2": "tip2015 | early",
+    "tip2015/weird_nat_mul3acc_comm12.smt2": "tip2015 | early",
+    "tip2015/weird_nat_mul3acc_rrot.smt2": "tip2015 | early",
+    "tip2015/weird_nat_op_spec.smt2": "tip2015 | early",
+    "tip2015/list_PairOdds.smt2": "tip2015 | late",
+    "tip2015/list_Select.smt2": "tip2015 | late",
+    "tip2015/list_assoc.smt2": "tip2015 | late",
+    "tip2015/list_nat_PairOdds.smt2": "tip2015 | late",
+    "tip2015/list_nat_Select.smt2": "tip2015 | late",
+    "tip2015/list_nat_elem.smt2": "tip2015 | refused",
+    "tip2015/mccarthy91_M1.smt2": "tip2015 | refused",
+    "tip2015/sort_MSortTDPermutes.smt2": "tip2015 | refused",
+    "tip2015/sort_StoogeSort2Permutes.smt2": "tip2015 | refused",
+    "tip2015/sort_StoogeSort2Sorts.smt2": "tip2015 | refused",
+    "tip2015/sort_StoogeSortIsSort.smt2": "tip2015 | refused",
+    "tip2015/sort_nat_HSort2Sorts.smt2": "tip2015 | refused",
+    "tip2015/sort_nat_NMSortTDIsSort.smt2": "tip2015 | refused",
+    "tip2015/sort_nat_NStoogeSort2Sorts.smt2": "tip2015 | refused",
+    "tip2015/sort_nat_StoogeSort2Permutes.smt2": "tip2015 | refused",
+    "tip2015/bin_nat_plus_assoc.smt2": "tip2015 | unsolved",
+    "tip2015/bin_nat_plus_comm.smt2": "tip2015 | unsolved",
+    "tip2015/bin_nat_times.smt2": "tip2015 | unsolved",
+    "tip2015/bin_nat_times_comm.smt2": "tip2015 | unsolved",
+    "tip2015/bin_plus.smt2": "tip2015 | unsolved",
+    "tip2015/bin_plus_comm.smt2": "tip2015 | unsolved",
+    "tip2015/bin_times_assoc.smt2": "tip2015 | unsolved",
+    "tip2015/bin_times_comm.smt2": "tip2015 | unsolved",
+    "tip2015/escape_Injective.smt2": "tip2015 | unsolved",
+    "tip2015/escape_NoSpecial.smt2": "tip2015 | unsolved",
+    "tip2015/int_add_assoc.smt2": "tip2015 | unsolved",
+    "tip2015/int_add_inv_left.smt2": "tip2015 | unsolved",
+    "tip2015/int_add_inv_right.smt2": "tip2015 | unsolved",
+    "tip2015/int_left_distrib.smt2": "tip2015 | unsolved",
+    "tip2015/int_mul_assoc.smt2": "tip2015 | unsolved",
+    "tip2015/int_mul_comm.smt2": "tip2015 | unsolved",
+    "tip2015/int_mul_ident_left.smt2": "tip2015 | unsolved",
+    "tip2015/int_mul_ident_right.smt2": "tip2015 | unsolved",
+    "tip2015/int_right_distrib.smt2": "tip2015 | unsolved",
+    "tip2015/list_PairUnpair.smt2": "tip2015 | unsolved",
+    "tip2015/list_append_inj_1.smt2": "tip2015 | unsolved",
+    "tip2015/list_count_nub.smt2": "tip2015 | unsolved",
+    "tip2015/list_deleteAll_count.smt2": "tip2015 | unsolved",
+    "tip2015/list_elem_map.smt2": "tip2015 | unsolved",
+    "tip2015/list_elem_nub_l.smt2": "tip2015 | unsolved",
+    "tip2015/list_elem_nub_r.smt2": "tip2015 | unsolved",
+    "tip2015/list_nat_PairEvens.smt2": "tip2015 | unsolved",
+    "tip2015/list_nat_PairUnpair.smt2": "tip2015 | unsolved",
+    "tip2015/list_nat_SelectPermutations'.smt2": "tip2015 | unsolved",
+    "tip2015/list_nat_SelectPermutations.smt2": "tip2015 | unsolved",
+    "tip2015/list_nat_deleteAll_count.smt2": "tip2015 | unsolved",
+    "tip2015/list_nat_elem_map.smt2": "tip2015 | unsolved",
+    "tip2015/list_nat_elem_nub_l.smt2": "tip2015 | unsolved",
+    "tip2015/list_nat_elem_nub_r.smt2": "tip2015 | unsolved",
+    "tip2015/list_nat_nub_nub.smt2": "tip2015 | unsolved",
+    "tip2015/list_nat_perm_elem.smt2": "tip2015 | unsolved",
+    "tip2015/list_nat_perm_trans.smt2": "tip2015 | unsolved",
+    "tip2015/list_perm_elem.smt2": "tip2015 | unsolved",
+    "tip2015/list_perm_trans.smt2": "tip2015 | unsolved",
+    "tip2015/list_weird_concat_map_bind.smt2": "tip2015 | unsolved",
+    "tip2015/list_weird_is_normal.smt2": "tip2015 | unsolved",
+    "tip2015/mod_same.smt2": "tip2015 | unsolved",
+    "tip2015/nat_acc_alt_mul_assoc.smt2": "tip2015 | unsolved",
+    "tip2015/nat_alt_mul_assoc.smt2": "tip2015 | unsolved",
+    "tip2015/nat_pow_pow.smt2": "tip2015 | unsolved",
+    "tip2015/regexp_Deeps.smt2": "tip2015 | unsolved",
+    "tip2015/regexp_PlusCommutative.smt2": "tip2015 | unsolved",
+    "tip2015/regexp_PlusIdempotent.smt2": "tip2015 | unsolved",
+    "tip2015/regexp_RecAtom.smt2": "tip2015 | unsolved",
+    "tip2015/regexp_RecEps.smt2": "tip2015 | unsolved",
+    "tip2015/regexp_RecSeq.smt2": "tip2015 | unsolved",
+    "tip2015/regexp_Reverse.smt2": "tip2015 | unsolved",
+    "tip2015/regexp_SeqAssociative.smt2": "tip2015 | unsolved",
+    "tip2015/relaxedprefix_correct.smt2": "tip2015 | unsolved",
+    "tip2015/relaxedprefix_is_prefix_2.smt2": "tip2015 | unsolved",
+    "tip2015/relaxedprefix_is_prefix_4.smt2": "tip2015 | unsolved",
+    "tip2015/rotate_mod.smt2": "tip2015 | unsolved",
+    "tip2015/rotate_self.smt2": "tip2015 | unsolved",
+    "tip2015/rotate_snoc_self.smt2": "tip2015 | unsolved",
+    "tip2015/rotate_structural_mod.smt2": "tip2015 | unsolved",
+    "tip2015/sort_ISortCount.smt2": "tip2015 | unsolved",
+    "tip2015/sort_ISortPermutes.smt2": "tip2015 | unsolved",
+    "tip2015/sort_ISortSorts.smt2": "tip2015 | unsolved",
+    "tip2015/sort_MSortBU2Count.smt2": "tip2015 | unsolved",
+    "tip2015/sort_MSortBU2IsSort.smt2": "tip2015 | unsolved",
+    "tip2015/sort_MSortBU2Sorts.smt2": "tip2015 | unsolved",
+    "tip2015/sort_MSortBUCount.smt2": "tip2015 | unsolved",
+    "tip2015/sort_MSortBUIsSort.smt2": "tip2015 | unsolved",
+    "tip2015/sort_MSortBUPermutes.smt2": "tip2015 | unsolved",
+    "tip2015/sort_MSortBUSorts.smt2": "tip2015 | unsolved",
+    "tip2015/sort_QSortCount.smt2": "tip2015 | unsolved",
+    "tip2015/sort_QSortIsSort.smt2": "tip2015 | unsolved",
+    "tip2015/sort_QSortSorts.smt2": "tip2015 | unsolved",
+    "tip2015/sort_TSortCount.smt2": "tip2015 | unsolved",
+    "tip2015/sort_TSortIsSort.smt2": "tip2015 | unsolved",
+    "tip2015/sort_TSortPermutes.smt2": "tip2015 | unsolved",
+    "tip2015/sort_TSortSorts.smt2": "tip2015 | unsolved",
+    "tip2015/sort_nat_ISortCount.smt2": "tip2015 | unsolved",
+    "tip2015/sort_nat_ISortPermutes.smt2": "tip2015 | unsolved",
+    "tip2015/sort_nat_ISortSorts.smt2": "tip2015 | unsolved",
+    "tip2015/sort_nat_MSortBU2Count.smt2": "tip2015 | unsolved",
+    "tip2015/sort_nat_MSortBU2IsSort.smt2": "tip2015 | unsolved",
+    "tip2015/sort_nat_MSortBU2Permutes.smt2": "tip2015 | unsolved",
+    "tip2015/sort_nat_MSortBU2Sorts.smt2": "tip2015 | unsolved",
+    "tip2015/sort_nat_MSortBUCount.smt2": "tip2015 | unsolved",
+    "tip2015/sort_nat_MSortBUIsSort.smt2": "tip2015 | unsolved",
+    "tip2015/sort_nat_MSortBUSorts.smt2": "tip2015 | unsolved",
+    "tip2015/sort_nat_QSortIsSort.smt2": "tip2015 | unsolved",
+    "tip2015/sort_nat_QSortPermutes.smt2": "tip2015 | unsolved",
+    "tip2015/sort_nat_QSortSorts.smt2": "tip2015 | unsolved",
+    "tip2015/sort_nat_TSortCount.smt2": "tip2015 | unsolved",
+    "tip2015/sort_nat_TSortIsSort.smt2": "tip2015 | unsolved",
+    "tip2015/sort_nat_TSortPermutes.smt2": "tip2015 | unsolved",
+    "tip2015/tree_Flatten2.smt2": "tip2015 | unsolved",
+    "tip2015/tree_Flatten3.smt2": "tip2015 | unsolved",
+    "tip2015/weird_nat_mul3_assoc2.smt2": "tip2015 | unsolved",
+    "tip2015/weird_nat_mul3_assoc3.smt2": "tip2015 | unsolved",
+    "tip2015/weird_nat_mul3_same.smt2": "tip2015 | unsolved",
+    "tip2015/weird_nat_mul3_spec.smt2": "tip2015 | unsolved",
+    "tip2015/weird_nat_mul3acc_assoc1.smt2": "tip2015 | unsolved",
+    "tip2015/weird_nat_mul3acc_assoc3.smt2": "tip2015 | unsolved",
+    "tip2015/weird_nat_mul3acc_spec.smt2": "tip2015 | unsolved",
+    "tip2015/weird_nat_op_assoc.smt2": "tip2015 | unsolved",
+    "tip2015/weird_nat_op_assoc2.smt2": "tip2015 | unsolved",
+    "tip2015/weird_nat_op_comm_comm.smt2": "tip2015 | unsolved"
+   }
+  },
+  "f1": {
+   "size": 48,
+   "of": 134,
+   "reference": "e1711cace848-modal-r1/f1/run1",
+   "strata": {
+    "cycle | early": {
+     "n": 13,
+     "of": 42
+    },
+    "datatype | early": {
+     "n": 10,
+     "of": 33
+    },
+    "datatype | late": {
+     "n": 8,
+     "of": 8
+    },
+    "datatype | unsolved": {
+     "n": 1,
+     "of": 2
+    },
+    "exists | early": {
+     "n": 1,
+     "of": 3
+    },
+    "fold | early": {
+     "n": 1,
+     "of": 3
+    },
+    "invariant | early": {
+     "n": 9,
+     "of": 28
+    },
+    "lemma | early": {
+     "n": 2,
+     "of": 7
+    },
+    "nonlinear | early": {
+     "n": 3,
+     "of": 8
+    }
+   },
+   "tasks": {
+    "cycle/Ackermann": "cycle | early",
+    "cycle/an exchange (a coin for six)": "cycle | early",
+    "cycle/counting up to a square": "cycle | early",
+    "cycle/counting up to a square (claims n·n + 1)": "cycle | early",
+    "cycle/gcd by subtraction (drops y >= 1)": "cycle | early",
+    "cycle/liveness: batches (stalls on the last item): every batch gets done": "cycle | early",
+    "cycle/liveness: batches: every batch gets done": "cycle | early",
+    "cycle/loop: a triangle": "cycle | early",
+    "cycle/loop: a triangle (x never drops)": "cycle | early",
+    "cycle/loop: every other turn (x never drops)": "cycle | early",
+    "cycle/loop: three phases": "cycle | early",
+    "cycle/loop: three phases (y resets with z)": "cycle | early",
+    "cycle/loop: two phases": "cycle | early",
+    "datatype/add3accKeeps (doesn't terminate)": "datatype | early",
+    "datatype/bagLength (broken)": "datatype | early",
+    "datatype/insertCount": "datatype | early",
+    "datatype/lengthAppend": "datatype | early",
+    "datatype/lengthMap": "datatype | early",
+    "datatype/mergeStays (doesn't terminate)": "datatype | early",
+    "datatype/replicateLength": "datatype | early",
+    "datatype/replicateLength (broken)": "datatype | early",
+    "datatype/roseSizeMirror (broken)": "datatype | early",
+    "datatype/takeDrop (broken)": "datatype | early",
+    "datatype/appendAssoc": "datatype | late",
+    "datatype/bstInsert": "datatype | late",
+    "datatype/dropLength": "datatype | late",
+    "datatype/insertSorted": "datatype | late",
+    "datatype/roseSizeMirror": "datatype | late",
+    "datatype/roseSumFlatten": "datatype | late",
+    "datatype/sumFlatten": "datatype | late",
+    "datatype/takeDrop": "datatype | late",
+    "datatype/integers/totalAppend": "datatype | unsolved",
+    "exists/ledger of fives": "exists | early",
+    "fold/invoices": "fold | early",
+    "invariant/access/role grants: every admin is a member": "invariant | early",
+    "invariant/finance/vesting with a cliff: claimed <= vested": "invariant | early",
+    "invariant/games/loot drops with pity: opened <= rares * (pity + 1) + misses": "invariant | early",
+    "invariant/governance/one vote per voter: every voter: at most one ballot counted": "invariant | early",
+    "invariant/operations/connection pool: released <= acquired": "invariant | early",
+    "invariant/protocols/lease: every lease ends by until": "invariant | early",
+    "invariant/remainder/pair dispenser: never 7": "invariant | early",
+    "invariant/safety and iot/emergency stop: step laws": "invariant | early",
+    "invariant/supply/machine maintenance interval: hours since service <= limit + one shift": "invariant | early",
+    "lemma/escalation": "lemma | early",
+    "lemma/leftover ledger": "lemma | early",
+    "nonlinear/per-key quota": "nonlinear | early",
+    "nonlinear/running statistics": "nonlinear | early",
+    "nonlinear/shares": "nonlinear | early"
+   }
+  },
+  "f2": {
+   "size": 64,
+   "of": 94,
+   "reference": "e1711cace848-modal-r1/f2/run1",
+   "strata": {
+    "chc/A | early": {
+     "n": 1,
+     "of": 2
+    },
+    "chc/A | late": {
+     "n": 2,
+     "of": 2
+    },
+    "chc/B | early": {
+     "n": 1,
+     "of": 1
+    },
+    "chc/B | unsolved": {
+     "n": 1,
+     "of": 1
+    },
+    "chc/C | early": {
+     "n": 1,
+     "of": 2
+    },
+    "chc/D | early": {
+     "n": 1,
+     "of": 3
+    },
+    "chc/D | late": {
+     "n": 1,
+     "of": 1
+    },
+    "chc/E | early": {
+     "n": 1,
+     "of": 4
+    },
+    "chc/F | early": {
+     "n": 1,
+     "of": 1
+    },
+    "chc/F | late": {
+     "n": 2,
+     "of": 2
+    },
+    "chc/F | unsolved": {
+     "n": 1,
+     "of": 1
+    },
+    "chc/G | early": {
+     "n": 1,
+     "of": 1
+    },
+    "chc/G | late": {
+     "n": 1,
+     "of": 1
+    },
+    "chc/H | early": {
+     "n": 1,
+     "of": 2
+    },
+    "chc/I | early": {
+     "n": 1,
+     "of": 4
+    },
+    "nonterm/Choose.jar-obl-8 (broken: the +3 rule bounded by x < 20) | late": {
+     "n": 1,
+     "of": 1
+    },
+    "nonterm/Choose.jar-obl-8 | early": {
+     "n": 1,
+     "of": 1
+    },
+    "nonterm/EvenOdd.jar-obl-8 (broken: the negative branches' x − 1 made x + 1) | late": {
+     "n": 1,
+     "of": 1
+    },
+    "nonterm/EvenOdd.jar-obl-8 | early": {
+     "n": 1,
+     "of": 1
+    },
+    "nonterm/NO_10.jar-obl-8 (broken: the second counter kept (y' = y)) | late": {
+     "n": 1,
+     "of": 1
+    },
+    "nonterm/NO_10.jar-obl-8 | early": {
+     "n": 1,
+     "of": 1
+    },
+    "nonterm/toy2.t2 (broken: x := x + 1 made x := x − 1) | late": {
+     "n": 1,
+     "of": 1
+    },
+    "nonterm/toy2.t2 | early": {
+     "n": 1,
+     "of": 1
+    },
+    "nonterm/toy4.t2 (broken: y := 0 once x >= 100 (toy3's rule)) | late": {
+     "n": 1,
+     "of": 1
+    },
+    "nonterm/toy4.t2 | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/2Nested-1 (broken: y = y − 1 made y = y + 1 (in the C program, then c2ari.py)) | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/2Nested-1 | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/AckR.jar-obl-8 (broken: x := x − 1 made x := x) | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/AckR.jar-obl-8 | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/Alternate.jar-obl-10 (broken: the copy loop's x' + 1 <= x made x' <= x) | late": {
+     "n": 1,
+     "of": 1
+    },
+    "term/Alternate.jar-obl-10 | late": {
+     "n": 1,
+     "of": 1
+    },
+    "term/AProVEMath.jar-obl-8 (broken: the even case's halving made x' = x) | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/AProVEMath.jar-obl-8 | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/Continue1.jar-obl-8 (broken: the bound x < 20 dropped from the rule for x > 9) | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/Continue1.jar-obl-8 | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/ListReverseCyclicList.jar-obl-10 (broken: the list builder's counter n := n − 1 made n := n) | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/ListReverseCyclicList.jar-obl-10 | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/McCarthy91_Iteration (broken: c = c − 1 made c = c) | late": {
+     "n": 1,
+     "of": 1
+    },
+    "term/McCarthy91_Iteration | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/p-60.t2_fixed (broken: the bound i <= 100 dropped from the loop's rule) | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/p-60.t2_fixed | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/Piecewise (broken: q = q − 1 made q = q) | late": {
+     "n": 1,
+     "of": 1
+    },
+    "term/Piecewise | unsolved": {
+     "n": 1,
+     "of": 1
+    },
+    "term/polyrank1.t2 (broken: y := y + 1 made y := y − 1) | late": {
+     "n": 1,
+     "of": 1
+    },
+    "term/polyrank1.t2 | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/Toulouse-BranchesToLoop-2 (broken: x = −1 made x = 0) | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/Toulouse-BranchesToLoop-2 | late": {
+     "n": 1,
+     "of": 1
+    },
+    "term/toy3.t2 (broken: y := 0 at x >= 100 made y := y) | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/toy3.t2 | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/WhileFalse (broken: while (false) made while (true)) | early": {
+     "n": 1,
+     "of": 1
+    },
+    "term/WhileFalse | early": {
+     "n": 1,
+     "of": 1
+    },
+    "tip/isaplanner | early": {
+     "n": 1,
+     "of": 3
+    },
+    "tip/isaplanner | unsolved": {
+     "n": 1,
+     "of": 3
+    },
+    "tip/prod | early": {
+     "n": 1,
+     "of": 4
+    },
+    "tip/prod | unsolved": {
+     "n": 2,
+     "of": 4
+    },
+    "tip/tip2015 | early": {
+     "n": 2,
+     "of": 9
+    },
+    "tip/tip2015 | late": {
+     "n": 1,
+     "of": 1
+    },
+    "tip/tip2015 | unsolved": {
+     "n": 3,
+     "of": 6
+    }
+   },
+   "tasks": {
+    "chc/A/MESI_i3_e1_447_e3_1180": "chc/A | early",
+    "chc/A/FIREFLY_1": "chc/A | late",
+    "chc/A/FIREFLY_1 (mutant e1_1092)": "chc/A | late",
+    "chc/B/hysteresis_2 (the property negated)": "chc/B | early",
+    "chc/B/hysteresis_2": "chc/B | unsolved",
+    "chc/C/simple.c (query at a reached pc)": "chc/C | early",
+    "chc/D/gulwani_fig1a": "chc/D | early",
+    "chc/D/gulwani_fig1a (query at a reached pc)": "chc/D | late",
+    "chc/E/loop2 (equal results)": "chc/E | early",
+    "chc/F/break_safe.c-1 (equal results)": "chc/F | early",
+    "chc/F/HOLA 38 (checked at odd i too)": "chc/F | late",
+    "chc/F/break_safe.c-1": "chc/F | late",
+    "chc/F/HOLA 38": "chc/F | unsolved",
+    "chc/G/s_split_34": "chc/G | early",
+    "chc/G/s_split_34 (bound 99)": "chc/G | late",
+    "chc/H/durationThm_1_e1_197 (the original, durationThm_1)": "chc/H | early",
+    "chc/I/O0_terminator_01": "chc/I | early",
+    "nonterm/Choose.jar-obl-8 (broken: the +3 rule bounded by x < 20)": "nonterm/Choose.jar-obl-8 (broken: the +3 rule bounded by x < 20) | late",
+    "nonterm/Choose.jar-obl-8": "nonterm/Choose.jar-obl-8 | early",
+    "nonterm/EvenOdd.jar-obl-8 (broken: the negative branches' x − 1 made x + 1)": "nonterm/EvenOdd.jar-obl-8 (broken: the negative branches' x − 1 made x + 1) | late",
+    "nonterm/EvenOdd.jar-obl-8": "nonterm/EvenOdd.jar-obl-8 | early",
+    "nonterm/NO_10.jar-obl-8 (broken: the second counter kept (y' = y))": "nonterm/NO_10.jar-obl-8 (broken: the second counter kept (y' = y)) | late",
+    "nonterm/NO_10.jar-obl-8": "nonterm/NO_10.jar-obl-8 | early",
+    "nonterm/toy2.t2 (broken: x := x + 1 made x := x − 1)": "nonterm/toy2.t2 (broken: x := x + 1 made x := x − 1) | late",
+    "nonterm/toy2.t2": "nonterm/toy2.t2 | early",
+    "nonterm/toy4.t2 (broken: y := 0 once x >= 100 (toy3's rule))": "nonterm/toy4.t2 (broken: y := 0 once x >= 100 (toy3's rule)) | late",
+    "nonterm/toy4.t2": "nonterm/toy4.t2 | early",
+    "term/2Nested-1 (broken: y = y − 1 made y = y + 1 (in the C program, then c2ari.py))": "term/2Nested-1 (broken: y = y − 1 made y = y + 1 (in the C program, then c2ari.py)) | early",
+    "term/2Nested-1": "term/2Nested-1 | early",
+    "term/AckR.jar-obl-8 (broken: x := x − 1 made x := x)": "term/AckR.jar-obl-8 (broken: x := x − 1 made x := x) | early",
+    "term/AckR.jar-obl-8": "term/AckR.jar-obl-8 | early",
+    "term/Alternate.jar-obl-10 (broken: the copy loop's x' + 1 <= x made x' <= x)": "term/Alternate.jar-obl-10 (broken: the copy loop's x' + 1 <= x made x' <= x) | late",
+    "term/Alternate.jar-obl-10": "term/Alternate.jar-obl-10 | late",
+    "term/AProVEMath.jar-obl-8 (broken: the even case's halving made x' = x)": "term/AProVEMath.jar-obl-8 (broken: the even case's halving made x' = x) | early",
+    "term/AProVEMath.jar-obl-8": "term/AProVEMath.jar-obl-8 | early",
+    "term/Continue1.jar-obl-8 (broken: the bound x < 20 dropped from the rule for x > 9)": "term/Continue1.jar-obl-8 (broken: the bound x < 20 dropped from the rule for x > 9) | early",
+    "term/Continue1.jar-obl-8": "term/Continue1.jar-obl-8 | early",
+    "term/ListReverseCyclicList.jar-obl-10 (broken: the list builder's counter n := n − 1 made n := n)": "term/ListReverseCyclicList.jar-obl-10 (broken: the list builder's counter n := n − 1 made n := n) | early",
+    "term/ListReverseCyclicList.jar-obl-10": "term/ListReverseCyclicList.jar-obl-10 | early",
+    "term/McCarthy91_Iteration (broken: c = c − 1 made c = c)": "term/McCarthy91_Iteration (broken: c = c − 1 made c = c) | late",
+    "term/McCarthy91_Iteration": "term/McCarthy91_Iteration | early",
+    "term/p-60.t2_fixed (broken: the bound i <= 100 dropped from the loop's rule)": "term/p-60.t2_fixed (broken: the bound i <= 100 dropped from the loop's rule) | early",
+    "term/p-60.t2_fixed": "term/p-60.t2_fixed | early",
+    "term/Piecewise (broken: q = q − 1 made q = q)": "term/Piecewise (broken: q = q − 1 made q = q) | late",
+    "term/Piecewise": "term/Piecewise | unsolved",
+    "term/polyrank1.t2 (broken: y := y + 1 made y := y − 1)": "term/polyrank1.t2 (broken: y := y + 1 made y := y − 1) | late",
+    "term/polyrank1.t2": "term/polyrank1.t2 | early",
+    "term/Toulouse-BranchesToLoop-2 (broken: x = −1 made x = 0)": "term/Toulouse-BranchesToLoop-2 (broken: x = −1 made x = 0) | early",
+    "term/Toulouse-BranchesToLoop-2": "term/Toulouse-BranchesToLoop-2 | late",
+    "term/toy3.t2 (broken: y := 0 at x >= 100 made y := y)": "term/toy3.t2 (broken: y := 0 at x >= 100 made y := y) | early",
+    "term/toy3.t2": "term/toy3.t2 | early",
+    "term/WhileFalse (broken: while (false) made while (true))": "term/WhileFalse (broken: while (false) made while (true)) | early",
+    "term/WhileFalse": "term/WhileFalse | early",
+    "tip/isaplanner/prop_49 (broken: butlastConcat ys xs for butlastConcat xs ys)": "tip/isaplanner | early",
+    "tip/isaplanner/prop_49": "tip/isaplanner | unsolved",
+    "tip/prod/prop_14 (broken: sorted (1 :: isort x) for sorted (isort x))": "tip/prod | early",
+    "tip/prod/lemma_09": "tip/prod | unsolved",
+    "tip/prod/prop_35": "tip/prod | unsolved",
+    "tip/tip2015/bin_nat_plus (broken: toNat (s y) for toNat y on the right)": "tip/tip2015 | early",
+    "tip/tip2015/nat_pow_pow (broken: x^(y + z) for x^(y·z))": "tip/tip2015 | early",
+    "tip/tip2015/list_PairOdds": "tip/tip2015 | late",
+    "tip/tip2015/nat_pow_pow": "tip/tip2015 | unsolved",
+    "tip/tip2015/sort_HSortCount": "tip/tip2015 | unsolved",
+    "tip/tip2015/sort_nat_ISortPermutes": "tip/tip2015 | unsolved"
+   }
+  },
+  "rw": {
+   "size": 91,
+   "of": 311,
+   "reference": "e1711cace848-modal-r1/rw/run1",
+   "strata": {
+    "access | early": {
+     "n": 6,
+     "of": 25
+    },
+    "access | unsolved": {
+     "n": 1,
+     "of": 2
+    },
+    "approval | early": {
+     "n": 5,
+     "of": 21
+    },
+    "approval | late": {
+     "n": 1,
+     "of": 1
+    },
+    "approval | unsolved": {
+     "n": 1,
+     "of": 2
+    },
+    "auth | early": {
+     "n": 5,
+     "of": 22
+    },
+    "auth | unsolved": {
+     "n": 1,
+     "of": 1
+    },
+    "circuit breaker | early": {
+     "n": 6,
+     "of": 25
+    },
+    "circuit breaker | unsolved": {
+     "n": 2,
+     "of": 5
+    },
+    "feature flag | early": {
+     "n": 4,
+     "of": 18
+    },
+    "inventory | early": {
+     "n": 3,
+     "of": 11
+    },
+    "inventory | late": {
+     "n": 1,
+     "of": 1
+    },
+    "inventory | unsolved": {
+     "n": 3,
+     "of": 7
+    },
+    "ledger | early": {
+     "n": 4,
+     "of": 18
+    },
+    "ledger | late": {
+     "n": 5,
+     "of": 5
+    },
+    "ledger | unsolved": {
+     "n": 2,
+     "of": 4
+    },
+    "payment | early": {
+     "n": 4,
+     "of": 18
+    },
+    "payment | unsolved": {
+     "n": 2,
+     "of": 5
+    },
+    "queue | early": {
+     "n": 5,
+     "of": 24
+    },
+    "queue | unsolved": {
+     "n": 1,
+     "of": 2
+    },
+    "quota | early": {
+     "n": 3,
+     "of": 15
+    },
+    "quota | late": {
+     "n": 1,
+     "of": 1
+    },
+    "quota | unsolved": {
+     "n": 1,
+     "of": 1
+    },
+    "rate limit | early": {
+     "n": 5,
+     "of": 21
+    },
+    "rate limit | late": {
+     "n": 4,
+     "of": 4
+    },
+    "rate limit | unsolved": {
+     "n": 2,
+     "of": 5
+    },
+    "xstate | early": {
+     "n": 9,
+     "of": 41
+    },
+    "xstate | late": {
+     "n": 3,
+     "of": 3
+    },
+    "xstate | unsolved": {
+     "n": 1,
+     "of": 3
+    }
+   },
+   "tasks": {
+    "access/node-casbin/roleManager#0": "access | early",
+    "access/node-casbin/roleManager#1": "access | early",
+    "access/node-casbin/roleManager#2": "access | early",
+    "access/node-casbin/roleManager#3": "access | early",
+    "access/node-casbin/roleManager#4": "access | early",
+    "access/node-casbin/roleManager#5": "access | early",
+    "access/cedar-examples/documentCloud#7": "access | unsolved",
+    "approval/openzeppelin/TimelockController#2": "approval | early",
+    "approval/openzeppelin/TimelockController#3": "approval | early",
+    "approval/openzeppelin/TimelockController#4": "approval | early",
+    "approval/openzeppelin/TimelockController#5": "approval | early",
+    "approval/openzeppelin/TimelockController#6": "approval | early",
+    "approval/openzeppelin/Governor#6": "approval | late",
+    "approval/gitea/reviews#0": "approval | unsolved",
+    "auth/lucia/validateSession#0": "auth | early",
+    "auth/lucia/validateSession#1": "auth | early",
+    "auth/lucia/validateSession#2": "auth | early",
+    "auth/lucia/validateSession#3": "auth | early",
+    "auth/lucia/validateSession#4": "auth | early",
+    "auth/keycloak/bruteForceProtector#0": "auth | unsolved",
+    "circuit breaker/cockatiel/ConsecutiveBreaker#0": "circuit breaker | early",
+    "circuit breaker/cockatiel/ConsecutiveBreaker#2": "circuit breaker | early",
+    "circuit breaker/cockatiel/ConsecutiveBreaker#6": "circuit breaker | early",
+    "circuit breaker/gobreaker/CircuitBreaker#1": "circuit breaker | early",
+    "circuit breaker/gobreaker/CircuitBreaker#2": "circuit breaker | early",
+    "circuit breaker/gobreaker/CircuitBreaker#3": "circuit breaker | early",
+    "circuit breaker/cockatiel/ConsecutiveBreaker#1": "circuit breaker | unsolved",
+    "circuit breaker/cockatiel/ConsecutiveBreaker#3": "circuit breaker | unsolved",
+    "feature flag/unleash-client-node/flexibleRollout#2": "feature flag | early",
+    "feature flag/unleash-client-node/flexibleRollout#3": "feature flag | early",
+    "feature flag/unleash-client-node/flexibleRollout#4": "feature flag | early",
+    "feature flag/unleash-client-node/flexibleRollout#5": "feature flag | early",
+    "inventory/medusa/reservations#0": "inventory | early",
+    "inventory/medusa/reservations#4": "inventory | early",
+    "inventory/medusa/reservations#5": "inventory | early",
+    "inventory/saleor/allocations#4": "inventory | late",
+    "inventory/medusa/reservations#1": "inventory | unsolved",
+    "inventory/medusa/reservations#2": "inventory | unsolved",
+    "inventory/medusa/reservations#3": "inventory | unsolved",
+    "ledger/blnk/balances#0": "ledger | early",
+    "ledger/blnk/balances#1": "ledger | early",
+    "ledger/blnk/balances#2": "ledger | early",
+    "ledger/blnk/balances#3": "ledger | early",
+    "ledger/blnk/balances#5": "ledger | late",
+    "ledger/tigerbeetle/transfers#2": "ledger | late",
+    "ledger/tigerbeetle/transfers#3": "ledger | late",
+    "ledger/tigerbeetle/transfers#5": "ledger | late",
+    "ledger/tigerbeetle/transfers#7": "ledger | late",
+    "ledger/tigerbeetle/transfers#0": "ledger | unsolved",
+    "ledger/tigerbeetle/transfers#1": "ledger | unsolved",
+    "payment/medusa/orderItemQuantities#0": "payment | early",
+    "payment/medusa/orderItemQuantities#6": "payment | early",
+    "payment/medusa/orderItemQuantities#7": "payment | early",
+    "payment/vendure/orderProcess#0": "payment | early",
+    "payment/medusa/orderItemQuantities#4": "payment | unsolved",
+    "payment/vendure/orderProcess#2": "payment | unsolved",
+    "queue/p-retry/pRetry#0": "queue | early",
+    "queue/p-retry/pRetry#1": "queue | early",
+    "queue/p-retry/pRetry#2": "queue | early",
+    "queue/p-retry/pRetry#3": "queue | early",
+    "queue/p-retry/pRetry#4": "queue | early",
+    "queue/bullmq/jobRetry#4": "queue | unsolved",
+    "quota/librechat/balanceReservation#5": "quota | early",
+    "quota/litellm/maxBudgetChecks#0": "quota | early",
+    "quota/litellm/maxBudgetChecks#2": "quota | early",
+    "quota/librechat/balanceReservation#4": "quota | late",
+    "quota/litellm/maxBudgetChecks#1": "quota | unsolved",
+    "rate limit/upstash-ratelimit/fixedWindow#0": "rate limit | early",
+    "rate limit/upstash-ratelimit/fixedWindow#2": "rate limit | early",
+    "rate limit/upstash-ratelimit/fixedWindow#3": "rate limit | early",
+    "rate limit/upstash-ratelimit/slidingWindow#0": "rate limit | early",
+    "rate limit/upstash-ratelimit/slidingWindow#2": "rate limit | early",
+    "rate limit/upstash-ratelimit/slidingWindow#3": "rate limit | late",
+    "rate limit/upstash-ratelimit/tokenBucket#0": "rate limit | late",
+    "rate limit/upstash-ratelimit/tokenBucket#2": "rate limit | late",
+    "rate limit/upstash-ratelimit/tokenBucket#4": "rate limit | late",
+    "rate limit/upstash-ratelimit/fixedWindow#1": "rate limit | unsolved",
+    "rate limit/upstash-ratelimit/slidingWindow#1": "rate limit | unsolved",
+    "xstate/electric/pullWakeRunner#1": "xstate | early",
+    "xstate/electric/pullWakeRunner#2": "xstate | early",
+    "xstate/electric/pullWakeRunner#3": "xstate | early",
+    "xstate/electric/pullWakeRunner#4": "xstate | early",
+    "xstate/electric/pullWakeRunner#5": "xstate | early",
+    "xstate/electric/pullWakeRunner#6": "xstate | early",
+    "xstate/open-decision/websocket#1": "xstate | early",
+    "xstate/open-decision/websocket#2": "xstate | early",
+    "xstate/open-decision/websocket#3": "xstate | early",
+    "xstate/amplify-ui/forgotPassword#6": "xstate | late",
+    "xstate/gapless.js/track#2": "xstate | late",
+    "xstate/open-decision/websocket#6": "xstate | late",
+    "xstate/open-decision/websocket#5": "xstate | unsolved"
+   }
+  }
+ },
+ "pilot": {
+  "chc": [
+   "eldarica-misc/LIA/llreve/loop5_unsafe.c-1_000.yml",
+   "aeval-unsafe/s_split_03_000_001.yml"
+  ],
+  "its": [
+   "Integer_Transition_Systems/From_AProVE_2014/Velroyen08-complInterv2.jar-obl-8.ari",
+   "Integer_Transition_Systems/From_T2/6.t2.ari"
+  ],
+  "sv": [
+   "termination-crafted/Madrid.yml",
+   "termination-restricted-15/Ex03.yml"
+  ],
+  "tip": [
+   "tip2015/nat_lt_irreflexive.smt2",
+   "isaplanner/prop_17.smt2"
+  ],
+  "f1": [
+   "cycle/rule: capped fill (reads one ahead)",
+   "cycle/rule: doubling (reads one ahead)"
+  ],
+  "f2": [
+   "tip/tip2015/mccarthy91_M1 (broken: n <= 102 for n <= 100 (m 102 = 92))",
+   "tip/tip2015/mccarthy91_M2 (broken: n >= 100 for n >= 101 (m 100 = 91))"
+  ],
+  "rw": [
+   "feature flag/growthbook/forceRuleRollout#6",
+   "feature flag/growthbook/forceRuleRollout#4"
+  ],
+  "suite-usual": [
+   "probe-pugh"
+  ],
+  "suite": [
+   "probe-pugh"
+  ]
+ }
+}
