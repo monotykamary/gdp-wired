@@ -85,9 +85,10 @@ function harness(pkg: GoPkg, read: GoRead, m: Model, discard: boolean): {code: s
         else if (t.k === 'ptr') lines.push(`a${i}, ok${i} := new(big.Int).SetString(gdpStr(${raw}), 10); if !ok${i} { return nil, fmt.Errorf("bad big") }`)
         else { lines.push(`var a${i} ${t.go}`); lines.push(`if err := json.Unmarshal(${raw}, &a${i}); err != nil { return nil, err }`) }
       } else if (pa.arg.k === 'rec') {
-        const st = T(t.elem!)
-        qual(t.elem!)
-        lines.push(`a${i} := &${st.go}{}`)
+        // (a pointer to a struct the caller gives, or a struct given by value)
+        const byValue = t.k !== 'ptr', st = byValue ? t : T(t.elem!)
+        qual(byValue ? pa.t : t.elem!)
+        lines.push(`a${i} := ${byValue ? '' : '&'}${st.go}{}`)
         lines.push(`var f${i} map[string]json.RawMessage; json.Unmarshal(${raw}, &f${i})`)
         for (const [f] of pa.arg.fields) {
           const ft = (st.fields ?? st.xfields)!.find(g => g.name === f)!.t, fx = T(ft)
@@ -442,8 +443,8 @@ function rangesOf(m: Model, read: GoRead, pkg: GoPkg): Map<string, [number, numb
   for (const meth of read.methods) for (const pa of meth.params) {
     if (pa.arg.k === 'input') { const r = rg(pa.t); if (r) out.set(pa.arg.name, r) }
     if (pa.arg.k === 'rec') {
-      const st = pkg.ttab[pkg.ttab[pa.t]!.elem!]!
-      for (const [f, a] of pa.arg.fields) { const ft = st.fields?.find(g => g.name === f)?.t; const r = ft !== undefined ? rg(ft) : undefined; if (r && a.k === 'input') out.set(a.name, r) }
+      const pt = pkg.ttab[pa.t]!, st = pt.k === 'ptr' ? pkg.ttab[pt.elem!]! : pt
+      for (const [f, a] of pa.arg.fields) { const ft = (st.fields ?? st.xfields)?.find(g => g.name === f)?.t; const r = ft !== undefined ? rg(ft) : undefined; if (r && a.k === 'input') out.set(a.name, r) }
     }
   }
   for (const d of m.maps) {

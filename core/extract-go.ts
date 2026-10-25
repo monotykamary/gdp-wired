@@ -112,7 +112,7 @@ export class GoReader {
   readonly inputs: Var[] = []
   private stack: string[] = []
   private fresh = 0
-  readonly lazyInputs = new Map<string, {id: string, fields: [string, string][]}>()
+  readonly lazyInputs = new Map<string, {id: string, fields: [string, string][], sel: B}>()
   private stateOrigin = new Map<string, string>()
   method = ''
   constructor(readonly pkg: GoPkg, readonly opts: GoOptions) {}
@@ -242,6 +242,19 @@ export class GoReader {
     return decl
   }
 
+  // An input of an integer type: a request the code can't be given (past its type's range) is refused where `sel` (the
+  // method called) holds, the claim being for the type's values.
+  typedInput(x: Var, t: number, sel: B): IntTy | undefined {
+    const it = this.intTy(t)
+    if (!it) return undefined
+    this.ranges.set(x.name, this.range(it))
+    const [lo, hi] = this.range(it)
+    if (Number.isFinite(hi)) this.refusals.push(I.and(sel, I.cmp('<', I.num(hi), I.nvar(x.name))))
+    if (Number.isFinite(lo) && lo < 0) this.refusals.push(I.and(sel, I.cmp('<', I.nvar(x.name), I.num(lo))))
+    else if (!it.signed) this.refusals.push(I.and(sel, I.cmp('<', I.nvar(x.name), I.num(0))))
+    return it
+  }
+
   // --- the functions --------------------------------------------------------------------------------------------------
   // The arguments of a method or a function: each an input (a pointer to a struct of the package a fresh object whose
   // fields read are inputs, a *big.Int one whose value is).
@@ -249,20 +262,15 @@ export class GoReader {
     const args: Arg[] = [], params: {name: string, t: number, arg: Arg}[] = []
     let p = p0
     if (fn.params.some(x => x.variadic)) refuse(fn, `${fn.name}: a variadic method`)
+    // An input of an integer type: a request the code can't be given (past its type's range) is refused, the claim
+    // being for the type's values.
+    const typed = (x: Var, t: number) => this.typedInput(x, t, sel)
     for (const pa of fn.params) {
       const name = `${fn.name}_${pa.name ?? 'arg'}`, tt = this.T(pa.t), s = this.scalar(pa.t)
       let v: GV, arg: Arg
       if (typeof s !== 'string') {
-        const x = this.newVar(name, s, 'input'), it = this.intTy(pa.t)
-        if (it) {
-          this.ranges.set(x.name, this.range(it))
-          // A request the code can't be given (past its type's range) is refused: the claim is for the type's values.
-          const [lo, hi] = this.range(it)
-          if (Number.isFinite(hi)) this.refusals.push(I.and(sel, I.cmp('<', I.num(hi), I.nvar(x.name))))
-          if (Number.isFinite(lo) && lo < 0) this.refusals.push(I.and(sel, I.cmp('<', I.nvar(x.name), I.num(lo))))
-          else if (!it.signed) this.refusals.push(I.and(sel, I.cmp('<', I.nvar(x.name), I.num(0))))
-        }
-        v = this.valueOfVar(x, it); arg = {k: 'input', name: x.name}
+        const x = this.newVar(name, s, 'input')
+        v = this.valueOfVar(x, typed(x, pa.t)); arg = {k: 'input', name: x.name}
       } else if (this.isBigPtr(pa.t)) {
         const x = this.newVar(name, {k: 'num'}, 'input', 'a *big.Int argument (not nil: the claim is for calls that give one)')
         const id = `in:${x.name}`
@@ -275,9 +283,22 @@ export class GoReader {
         // A pointer to a struct the caller gives: its fields read are inputs (each made where it is first read).
         const id = `in:${name}`
         p.heap.set(id, {k: 'struct', ty: tt.elem!, f: new Map(), origin: 'input', lazy: name})
-        this.lazyInputs.set(id, {id: name, fields: []})
+        this.lazyInputs.set(id, {id: name, fields: [], sel})
         v = {t: 'ptr', to: {k: 'obj', id, path: []}, elem: tt.elem!}; arg = {k: 'lazy', prefix: name}
         this.notes.add(`${name}: a *${this.tname(tt.elem!)} the caller gives, a fresh one for each call (its fields read are inputs; the claim is for calls that don't pass the object itself)`)
+      } else if ((tt.k === 'struct' && tt.own) || tt.xfields) {
+        // A struct the caller gives by value: the call's own copy, so a value here as a local struct is (no other name
+        // reaches it, and writing it changes nothing the caller sees). Each field of a subset type an input (another
+        // package's, its exported fields: all its code can set), the others left out, refused where they are read.
+        const fields: [string, Arg][] = [], f = new Map<string, GV>()
+        for (const fd of tt.fields ?? tt.xfields!.filter(x => x.exported)) {
+          const fs = this.scalar(fd.t), fname = `${name}_${fd.name}`
+          if (typeof fs === 'string') { f.set(fd.name, {t: 'opaque', why: `${pa.name}.${fd.name} of the argument: ${fs}`, ty: fd.t}); continue }
+          const x = this.newVar(fname, fs, 'input')
+          f.set(fd.name, this.valueOfVar(x, typed(x, fd.t))); fields.push([fd.name, {k: 'input', name: x.name}])
+        }
+        v = {t: 'struct', ty: pa.t, f}; arg = {k: 'rec', fields}
+        this.notes.add(`${fn.name}(${pa.name ?? '_'}): a ${this.tname(pa.t)} given by value, its fields inputs`)
       } else if (this.isContext(pa.t)) {
         // A context.Context: the check gives context.Background(). Exact while the step never reads it: passed on to the
         // package's own functions only (its methods, Done, Err, Value, are another package's code; given to another
@@ -434,9 +455,7 @@ export class GoReader {
     }
     const v = this.newVar(`${li.id}_${f}`, s, 'input')
     li.fields.push([f, v.name])
-    const it = this.intTy(ft.t)
-    if (it) this.ranges.set(v.name, this.range(it))
-    const g = this.valueOfVar(v, it)
+    const g = this.valueOfVar(v, this.typedInput(v, ft.t, li.sel))
     ;(p.heap.get(id) as {f: Map<string, GV>}).f.set(f, g)
     return g
   }
