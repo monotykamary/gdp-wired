@@ -369,6 +369,30 @@ test('XState: v4 cond, a machine made by a function, and what fromXState refuses
   expect(after.refusals[0]!.what).toMatch(/fromXState: .*two timers in one state/)
 })
 
+test('XState: guards and actions from another file (amplify\'s): an imported object, its entries by name and spread; only those the config names read', () => {
+  const files = {'./impl.ts': `import {assign} from 'xstate'
+    const canGo = ({context}: {context: {n: number}}) => context.n < 2
+    // (another machine's: it reads what this one's context doesn't have, so it can't be read here)
+    const elsewhere = ({context}: {context: any}) => context.other.deep > 1
+    function stopped({context}: {context: {n: number}}) { return context.n === 9 }
+    export const base = {count: assign({n: ({context}: {context: {n: number}}) => context.n + 1})}
+    const GUARDS = {canGo, elsewhere, stopped}
+    export default GUARDS`}
+  const x = extractXState(machineFile(`
+    import guards, {base} from './impl'
+    export const m = setup({
+      types: {} as {context: {n: number}, events: {type: 'GO'} | {type: 'HALT'}},
+      guards,
+      actions: {...base, note: () => {}},
+    }).createMachine({id: 'm', initial: 'a', context: {n: 0}, states: {a: {on: {GO: {target: 'a', guard: 'canGo', actions: ['count', 'note']}, HALT: {target: 'b', guard: 'stopped'}}}, b: {}}})`),
+  {file: 'm.ts', entry: 'm', xstate, files, check: {runs: 60, depth: 10}})
+  if (!x.ok) throw new Error(JSON.stringify(x.refusals))
+  expect(x.source).toContain('"canGo": ({n}) => n.lt(2)')
+  expect(x.notes.join(' ')).toMatch(/1 guards of the object the config never names, not read/)
+  const c = x.chart!
+  expect(c.prove([c.law('n stays at most 2', ({n}: any) => n.atMost(2))])).toMatchObject({proven: true, checked: true})
+})
+
 test('XState: inline assign actions and an inline guard, given by their place in the config; a machine with no states', () => {
   const x = extractXState(`import {createMachine, assign} from 'xstate'
     export const counter = createMachine({
@@ -465,6 +489,23 @@ test('inheritance: an override reached through the base, super calls with side e
   expect(x.source).toContain('Int.of(used).minus(pay_n).clamped')
   expect(x.source).toContain('paid.plus(pay_n)')
   expect(x.notes.join(' ')).toContain('Double extends Meter')
+})
+
+test('a class that extends a generic one with its type arguments (upstash\'s Ratelimit<RegionContext>): the fields at the types given', () => {
+  const x = ok(ts(`
+    abstract class Base<T> {
+      protected readonly limit: T
+      protected used = 0
+      constructor(limit: T) { this.limit = limit }
+      protected over(n: number, at: T): boolean { return this.used + n > (at as unknown as number) }
+    }
+    export class Meter extends Base<number> {
+      constructor(cap: number) { if (cap < 0 || cap > 1000) throw new Error('cap'); super(cap) }
+      take(n: number): boolean { if (n < 0 || n > 1000 || this.over(n, this.limit)) return false; this.used += n; return true }
+    }`, 'Meter'))
+  expect(x.source).toContain('.params({cap: nat})')
+  // the type parameter left open (the class read alone): refused where it is
+  refused(ts('export abstract class Base<T> { protected readonly limit: T; constructor(l: T) { this.limit = l } go(): void {} }', 'Base'), /T is not in the subset/)
 })
 
 test('a field holding a function (an injected clock): each call an input, one a step, the same in every method', () => {

@@ -545,6 +545,10 @@ function attempt(code: string, file: string, opts: ReadOptions, written: Set<str
   // (core/extract-read.ts's fnFields). Its start is a function written there or the one the constructor is given.
   const fnType = (t: ts.Type) => !(t.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) && s.checker.getSignaturesOfType(s.checker.getNonNullableType(t), ts.SignatureKind.Call).length > 0 && !s.checker.getPropertiesOfType(s.checker.getNonNullableType(t)).length
   s.fnFields = {outside: new Map(), names: new Set()}
+  // A field's type as the entry's object has it: a class it extends with type arguments (`extends Base<Ctx>`) has its
+  // fields of a type parameter at the types given (TypeScript's own instantiation of the chain).
+  const ct = s.checker.getTypeAtLocation(cls), inst = ts.isClassDeclaration(cls) ? ct : ct.getConstructSignatures()[0]?.getReturnType()
+  const typeOf = (name: string, node: ts.Node) => { const sym = inst && s.checker.getPropertyOfType(inst, name); return sym ? s.checker.getTypeOfSymbolAtLocation(sym, cls) : s.checker.getTypeAtLocation(node) }
   const fnField = (name: string, at: ts.Node) => { if (s.fnFields!.names.has(name)) refuse(at, `${name}: a field declared again in a class that extends one with it`); s.fnFields!.names.add(name) }
   for (const c of [...chain].reverse()) {
     for (const m of c.members) {
@@ -552,19 +556,20 @@ function attempt(code: string, file: string, opts: ReadOptions, written: Set<str
         if (ts.isPrivateIdentifier(m.name)) refuse(m, `${m.name.text}: a #private field (the check reads the object's fields; \`private\` is in the subset)`)
         if (has(m, ts.SyntaxKind.StaticKeyword)) refuse(m, 'a static field (state shared by every object)')
         if (has(m, ts.SyntaxKind.AbstractKeyword) || has(m, ts.SyntaxKind.DeclareKeyword)) continue
-        if (fnType(s.checker.getTypeAtLocation(m))) {
+        const mt = typeOf(memberName(m.name), m)
+        if (fnType(mt)) {
           const i = m.initializer && unparen(m.initializer)
           if (i && !ts.isArrowFunction(i) && !ts.isFunctionExpression(i)) refuse(m, `${memberName(m.name)} starts as ${i.getText().slice(0, 40)} (a field holding a function starts as one written there, or the one the constructor is given)`)
           fnField(memberName(m.name), m); continue
         }
-        addField({name: memberName(m.name), shape: shapeOf(s.checker.getTypeAtLocation(m), s.checker, m), node: m, ...(m.initializer ? {init: m.initializer} : {}), of: c})
+        addField({name: memberName(m.name), shape: shapeOf(mt, s.checker, m), node: m, ...(m.initializer ? {init: m.initializer} : {}), of: c})
       } else if (ts.isSetAccessorDeclaration(m)) refuse(m, 'a setter')
       else if (ts.isMethodDeclaration(m) && ts.isPrivateIdentifier(m.name)) refuse(m, 'a #private method')
       else if (ts.isIndexSignatureDeclaration(m) || ts.isClassStaticBlockDeclaration(m)) refuse(m, 'a static block or index signature')
     }
     const k = ownCtor(c)
-    for (const p of k?.parameters ?? []) if (ts.isParameterPropertyDeclaration(p, k!) && fnType(s.checker.getTypeAtLocation(p))) fnField((p.name as ts.Identifier).text, p)
-    else if (ts.isParameterPropertyDeclaration(p, k!)) addField({name: (p.name as ts.Identifier).text, shape: shapeOf(s.checker.getTypeAtLocation(p), s.checker, p), node: p, of: c})
+    for (const p of k?.parameters ?? []) if (ts.isParameterPropertyDeclaration(p, k!) && fnType(typeOf((p.name as ts.Identifier).text, p))) fnField((p.name as ts.Identifier).text, p)
+    else if (ts.isParameterPropertyDeclaration(p, k!)) addField({name: (p.name as ts.Identifier).text, shape: shapeOf(typeOf((p.name as ts.Identifier).text, p), s.checker, p), node: p, of: c})
   }
   const ex0 = new Exec(s)
   const constant = (f: Field) => !first && !written.has(f.name) && f.shape.k !== 'map' && f.shape.k !== 'list'
