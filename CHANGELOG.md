@@ -191,6 +191,53 @@ harness (60 s, Modal, 2 vCPU), beside main 8b710ba launched together, wrong 0 an
 - **Size:** `core/` and `kernel/` (tests excluded) 2,226,047 bytes and 30,656 lines against 0.28.0's 2,201,135 and
   30,285 (+24,912, +371: core/interp.ts 223 lines, core/tpa.ts 148). compare/chc/README.md has the measurements.
 
+The lemma search on TIP 2015 (gen/tip3, core/data.ts): fusions of two definitions, proven at two unfoldings and used
+along the chains their own uses make; termination obligations through the built-ins; weighted sizes as measures.
+Nothing trusted changed (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/` as at main): every
+new proof is a cyclic proof the kernel checks; a weighted size is an ordinary function defined for it, taken
+structurally, and Data.lean's `wf_fix_unique` holds for any measure into the naturals. In our harness (60 s a task on
+Modal, 2 vCPU), three runs a side beside main a269124 launched together with Vampire and cvc5 (`runs/tip3/final3`):
+- **TIP 2015:** 212, 213 and 213 of 492 proven, 212 in all three, against main's 205, 206 and 206 (203); Vampire 190,
+  191 and 191 (187, 12 of them the `idiv` sorts refused here), cvc5 with conjecture generation 188, 187 and 188 (187),
+  cvc5 168. The same 7 refuted on both sides and 23 of `false/`, each counterexample confirmed by TIP's evaluator; none
+  wrong. After merging main 765ecf9, one run a side: 213 against 206 (`final4`).
+  - Gained, 3 of 3 and again in three reruns a side, never on main: prod/lemma_04, lemma_06, prop_08, prop_09, prop_22,
+    prop_23 (6 of 6), prop_25 (5 of 6). Each is one another tool proves: the parity of a length closed, 4 of the 7 of
+    take and drop at lengths.
+  - Lost: isaplanner/prop_61, 2 of 6 on main (59 s each), 0 of 6 here: its fusions are tried first and at two
+    unfoldings, and the proof main finds after its lemma pass comes past 60 s.
+- **The changes:**
+  - Fusions: a conjecture whose one side nests a call in another's argument and whose other side calls on its variables
+    alone (`length(x ++ y) = length(x) + length(y)`, `drop(n + m, xs) = drop(n, drop(m, xs))`), ranked after the
+    others of its shape among those the goal reads, proven at up to two unfoldings; used first at the goal's reads as
+    they stand, then at the terms its own first uses made, the chain's links (`drop(w, drop(x, drop(y, z)))` to
+    `drop(w + x + y, z)`), up to four past the lemma's caps, the last links' conclusions unfolded once.
+  - Termination obligations without an induction scheme tried through the built-ins (mod2's
+    `¬lt(x, y) ⇒ minus(x, y) < x`); weighted sizes as measures where no size falls (flatten3's turned tree,
+    weird_concat's list of lists), their ranks unfolded once at a node and its uses. 5 tasks translated that were
+    refused (mod_same, rotate_mod, tree_Flatten3, list_weird_concat_map_bind, list_weird_is_normal), none proven in 60 s;
+    103 refused against 108, compare/tip/README.md has each refusal and what it needs.
+  - Hand-off (lean-kernel/, gen/sums' this round): a measure with a fold (`Measure`'s `fold: {fn, of}`) is exported
+    by lean-kernel/data.ts's `fnDef` from its coefficients alone; its `termination_by` needs `+ fold<D>_<w> x` and the
+    fold among `decreasing_by`'s simp set. No test or corpus exports one today (TIP doesn't export).
+  - Measured and left out: fusions before the calculated steps, every equation one side shallower first and the law
+    tried again only after the last of them (prop_05, prop_12, prop_20, list_assoc lost); a fusion's class matches in
+    its second round (the frontier's reverseReverse and sumFlatten lost); 4 s for a fusion's attempt (no change).
+- **Other benchmarks**, beside a269124 launched together (`runs/tip3/gates3`): frontier round 1, every one of its 260 jobs
+  (today and frontier) the same verdict on both sides, 92 proven, every broken variant refused; round 2, 32 jobs proven
+  against 31 (term/Piecewise, findRank's, which this branch doesn't touch), the others' verdicts the same, the same job
+  killed at 200 s on both; the real-world corpus 274 proven, 29 refuted, 8 unknown on both,
+  every verdict the same (it doesn't reach core/data.ts). CHC, ITS and SV-COMP don't reach core/data.ts, and weren't
+  run.
+- **Suites** at b1b01bb (main 765ecf9 merged; 224 jobs): none failed by default (650.2 s wall, 5,727.2 s of job time)
+  or with `--usual` (628.9 s, 5,418.1 s).
+- **1 vCPU,** ten jobs a side launched together (`gates3/onecpu-*`): none failed; data's agrees-with-+ test median
+  2,534.1 ms, at most 3,160.3 (main 2,843.7, 3,135.1); infer's "a law that needs an invariant" 2,798.1 and 3,026.9 (main
+  2,890.2, 3,269.8).
+- **Size:** `core/` and `kernel/` (tests excluded) 2,323,022 bytes and 31,839 lines against main 765ecf9's 2,313,485
+  and 31,732 (+9,537 bytes, +107 lines), all in core/data.ts: the weighted sizes and termination about 5,900 bytes, the
+  fusions about 3,600.
+
 ## 0.28.0
 
 Four of the five benchmarks we run now lead clearly, in our harness (60 s on Modal, 2 vCPU, the rivals as installed in
