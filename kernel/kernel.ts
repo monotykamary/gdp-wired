@@ -18,7 +18,7 @@
 // meet it), so it holds at the start and at every step; `assume`, about each request, holds only at a step, since no
 // request has come at the start.
 import {checkRefutation} from '../core/check.ts'
-import type {C, E, Law, Machine, MapUpdate} from '../core/machine.ts'
+import type {C, E, Law, Machine, MapUpdate, Sum} from '../core/machine.ts'
 import {type Constraint, type Lin, type Step, add, k, scale, sub, v} from '../core/solver.ts'
 
 // An exhaustive switch's default: TypeScript proves it unreachable, and if it is reached anyway (a value from outside
@@ -550,6 +550,7 @@ const updateOf = (m: Machine): Update => {
   }
 }
 const inlineFlags = (m: Machine, c: C): C => substC(c, {vars: {}, maps: {}, flags: flagsOf(m)})
+const inlineFlagsE = (m: Machine, e: E): E => substE(e, {vars: {}, maps: {}, flags: flagsOf(m)})
 // A quantified flag ?f, closed: it is 0 or 1; where it is 1, its condition holds at each key the proof names (instances
 // under ?f); where it is 0, the condition fails at a fresh witness w?f. A real step decides ?f by the condition, and if
 // that fails some key fails it, so these hold of every real step: a goal that refutes them refutes the machine.
@@ -788,9 +789,127 @@ export function historyMachine(m: Machine): {machine: Machine, goals: Goal[]} {
   return {machine, goals}
 }
 
+// --- sums over a map's keys (Sums.lean) ---------------------------------------------------------------------------
+
+// A machine with sums as a plain one, as Sums.lean's SumMachine.plain builds it: each sum S a state variable from 0, after
+// each step (S + new) ∸ old, where old and new are the term's values at the cover keys (each key once: a key equal to an
+// earlier one adds 0) before and after the step; conjoined to the assumption, old ≤ S and a quantified flag that holds
+// at every key k: the term at k and at the cover keys, each once, is at most S. Sound because every sum is exact in every
+// reachable state (Sums.lean's sum_holds): the term starts 0 at every key, a step changes it at the cover keys alone
+// (a map it reads written at one key: that key; written at every key: the keys its value compares the bound key with,
+// each other key kept, the cover goals returned), so the facts hold of every request there (sum_allowed). The cover keys
+// read no flag (a quantified flag reads none; Lean inlines the rest, here nothing to inline).
+const ZERO: E = {op: 'const', value: 0}
+const TRUE_C: C = {op: '<=', a: ZERO, b: ZERO}
+// Sums.lean's dTermE: G at each listed key, a key equal to an earlier one read as 0.
+const dTerm = (G: (t: E) => E, cs: E[]): E => (cs.length ? {op: 'add', a: G(cs[0]!), b: dTerm(t => ({op: 'if', c: {op: '=', a: t, b: cs[0]!}, then: ZERO, else: G(t)}), cs.slice(1))} : ZERO)
+// A term over the maps at the key alone (Sums.lean's gOkE): no variable but in a map's key, and that key the variable.
+const sumTermOk = (e: E, key: string): boolean => {
+  switch (e.op) {
+    case 'var': return false
+    case 'const': return true
+    case 'get': return e.key.op === 'var' && e.key.name === key
+    case 'mul': return sumTermOk(e.a, key)
+    case 'if': return sumCondOk(e.c, key) && sumTermOk(e.then, key) && sumTermOk(e.else, key)
+    case 'add': case 'sub': case 'min': case 'max': case 'prod': return sumTermOk(e.a, key) && sumTermOk(e.b, key)
+    default: return unreachable(e)
+  }
+}
+const sumCondOk = (c: C, key: string): boolean => c.op === 'flag' || c.op === 'all' ? false : c.op === 'not' ? sumCondOk(c.x, key)
+  : c.op === 'and' || c.op === 'or' ? c.xs.every(y => sumCondOk(y, key)) : sumTermOk(c.a, key) && sumTermOk(c.b, key)
+// The names a sum's parts go by: its quantified flag, the cover goals' key.
+export const sumParts = (s: string) => ({flag: `cells$${s}`, x: `x$${s}`})
+// The keys a write at every key compares its bound key with (k = t, t not reading k): where else it keeps every cell.
+function comparedKeys(t: E | C, key: string, out: Map<string, E>): void {
+  if (t.op === '=' && t.a.op === 'var' && t.a.name === key && !readsKey(t.b, key)) out.set(JSON.stringify(t.b), t.b)
+  else if (t.op === '=' && t.b.op === 'var' && t.b.name === key && !readsKey(t.a, key)) out.set(JSON.stringify(t.a), t.a)
+  for (const x of Object.values(t)) if (x && typeof x === 'object') (Array.isArray(x) ? x : [x]).forEach(y => comparedKeys(y as E | C, key, out))
+}
+// Each sum's cover keys, in the order of the maps its term reads (first read first).
+export function sumCovers(m: Machine): Record<string, E[]> {
+  return Object.fromEntries(Object.entries(m.sums ?? {}).map(([s, sum]) => {
+    const out = new Map<string, E>()
+    for (const map of [...new Set([...JSON.stringify(sum.term).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!))]) {
+      const w = m.step.maps?.[map]
+      if (!w) continue
+      if ('each' in w) comparedKeys(w.value, w.each, out)
+      else out.set(JSON.stringify(w.key), w.key)
+    }
+    return [s, [...out.values()]]
+  }))
+}
+export function sumMachine(m: Machine): {machine: Machine, goals: Goal[]} {
+  const sums = Object.entries(m.sums ?? {})
+  if (!sums.length) return {machine: m, goals: []}
+  if (m.history) throw new Error(`${m.name}: sums over a map's keys go on a machine without a history`)
+  const covers = sumCovers(m), flags = m.step.flags ?? {}
+  // (substitutions that leave each flag as it is: Lean reads a flag as its variable in the step's view)
+  const same: Record<string, C> = Object.fromEntries(Object.keys(flags).map(f => [f, {op: 'flag', name: f} as C]))
+  // (a sum may be declared in the state, at 0, which no step sets: a state variable the plain machine moves)
+  for (const [s] of sums) if (s in m.state && JSON.stringify(m.state[s]) !== JSON.stringify(ZERO) || s in (m.step.state ?? {})) throw new Error(`${m.name}: the sum ${s} starts at 0 and no step sets it`)
+  const names = [...m.params, ...m.inputs, ...Object.keys(m.state).filter(n => !(n in m.sums!)), ...Object.keys(m.maps ?? {}), ...(m.inputMaps ?? []), ...Object.keys(m.fns ?? {}), ...Object.keys(flags)]
+  const steps: Record<string, E> = {}, qflags: Record<string, C> = {}, facts: C[] = [], goals: Goal[] = []
+  for (const [s, sum] of sums) {
+    const {term, key} = sum, {flag, x} = sumParts(s), cs = covers[s]!
+    const read = [...new Set([...JSON.stringify(term).matchAll(/"op":"get","map":"([^"]+)"/g)].map(x2 => x2[1]!))]
+    const bad = (why: string) => { throw new Error(`${m.name}: the sum ${s}: ${why}`) }
+    for (const name of [s, key, flag, x]) { plainName(m.name, name); if (names.includes(name) || name in (m.sums ?? {}) && name !== s) bad(`${name} is already a name of the machine`) }
+    if (new Set([s, key, flag, x, `?${flag}`, `w?${flag}`]).size !== 6 || names.includes(`?${flag}`) || names.includes(`w?${flag}`)) bad('its names collide')
+    if (!natural(term) || !sumTermOk(term, key)) bad(`its term reads the maps at ${key} alone, and no other name`)
+    for (const map of read) {
+      if ((m.inputMaps ?? []).includes(map) || (m.fns ?? {})[map] || !(map in (m.maps ?? {}))) bad(`${map} is not a map of the machine's state`)
+    }
+    // 0 where every map holds its start value (Sums.lean's startVal: the term with each read its map's start).
+    const atStart = substE(term, {vars: {}, maps: Object.fromEntries(read.map(map => [map, () => ({op: 'const', value: m.maps![map]!} as E)])), flags: same})
+    if (natE(atStart, {}) !== 0n) bad('its term is not 0 at the start')
+    for (const c of cs) if (JSON.stringify(c).includes('"op":"flag"') || readsKey(c, key) || readsKey(c, x)) bad('a key a step writes it at reads a flag')
+    const here = (t: E): E => substE(term, {vars: {[key]: t}, maps: {}, flags: same})
+    // A map read after the step, over the step's view (Sums.lean's postRd).
+    const post = (map: string) => (k2: E): E => {
+      const w = m.step.maps?.[map]
+      if (!w) return {op: 'get', map, key: k2}
+      if ('each' in w) return substE(w.value, {vars: {[w.each]: k2}, maps: {}, flags: same})
+      return {op: 'if', c: {op: '=', a: k2, b: w.key}, then: w.value, else: {op: 'get', map, key: k2}}
+    }
+    const after = (t: E): E => substE(term, {vars: {[key]: t}, maps: Object.fromEntries(read.map(map => [map, post(map)])), flags: same})
+    const S: E = {op: 'var', name: s}
+    steps[s] = {op: 'sub', a: {op: 'add', a: S, b: dTerm(after, cs)}, b: dTerm(here, cs)}
+    qflags[flag] = {op: 'all', key, c: {op: '<=', a: dTerm(here, [{op: 'var', name: key}, ...cs]), b: S}}
+    facts.push({op: 'and', xs: [{op: '<=', a: dTerm(here, cs), b: S}, {op: 'flag', name: flag}]})
+    // A map it reads written at every key: at a key none of the cover keys is, the write keeps the cell.
+    for (const map of read) {
+      const w = m.step.maps?.[map]
+      if (!w || !('each' in w)) continue
+      const X: E = {op: 'var', name: x}
+      goals.push({name: `${s} @cover ${map}`, hyps: [inlineFlags(m, m.assume ?? TRUE_C), ...cs.map((c): C => ({op: 'not', x: {op: '=', a: X, b: c}})),
+        {op: 'not', x: {op: '=', a: substE(inlineFlagsE(m, w.value), {vars: {[w.each]: X}, maps: {}, flags: same}), b: {op: 'get', map, key: X}}}]})
+    }
+  }
+  // (Sums.lean's sumsC: each sum's facts, then the rest, ending in 0 ≤ 0)
+  const assumed = facts.reduceRight<C>((acc, f) => ({op: 'and', xs: [f, acc]}), TRUE_C)
+  const machine: Machine = {
+    ...m, sums: undefined,
+    state: {...m.state, ...Object.fromEntries(sums.map(([s]) => [s, ZERO]))},
+    step: {...m.step, flags: {...flags, ...qflags}, state: {...m.step.state, ...steps}},
+    assume: {op: 'and', xs: [m.assume ?? TRUE_C, assumed]},
+  }
+  return {machine, goals}
+}
+// The machine the runtimes step: each sum a state variable kept exact by its step, the rule's own assumption.
+export function sumRuntime(m: Machine): Machine {
+  if (!m.sums || !Object.keys(m.sums).length) return m
+  const {machine} = sumMachine(m)
+  const flags = Object.fromEntries(Object.entries(machine.step.flags ?? {}).filter(([f]) => !Object.keys(m.sums!).some(s => sumParts(s).flag === f)))
+  return {...machine, step: {...machine.step, flags}, assume: m.assume}
+}
+// The plain machine any claim is proven of: with a history kernel.ts's historyMachine's, with sums sumMachine's.
+export const plainOf = (m: Machine): Machine => (m.history ? historyMachine(m).machine : m.sums && Object.keys(m.sums).length ? sumMachine(m).machine : m)
+// The goals beside a plain machine's own: a history's record goals, the sums' cover goals.
+export const sideGoals = (m: Machine): Goal[] => (m.history ? historyMachine(m).goals : m.sums && Object.keys(m.sums).length ? sumMachine(m).goals : [])
+
 // `only`: the goals of that law alone (the prover's instance search asks for one law's at a time).
 export function obligations(m: Machine, laws: Law[], instances: Record<string, Instances> = {}, only?: number): Goal[] {
-  if (m.history) { const {machine, goals} = historyMachine(m); return [...obligations(machine, laws, instances, only), ...(only === undefined ? goals : [])] }
+  if (m.history || (m.sums && Object.keys(m.sums).length)) { const goals = sideGoals(m); return [...obligations(plainOf(m), laws, instances, only), ...(only === undefined ? goals : [])] }
   scope(m, laws)
   const ok = [...Object.values(m.state), ...Object.values(m.step.state ?? {}), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.value] : [w.key, w.value]))].every(natural)
     && Object.values(m.step.flags ?? {}).every(naturalC) && laws.every(l => naturalC(l.holds)) && Object.values(m.maps ?? {}).every(c => Number.isInteger(c) && c >= 0)
@@ -1042,7 +1161,10 @@ export function checkRecurCases(l: Loop, r: RecurCases): boolean {
 // request (a term per input over the state and params) and proving it allowed (the machine's assumption holds of it)
 // and that the step it causes makes `then` hold. `then` reads the state before the step by plain names and after it by
 // primed names (s', and M'[k] as a read of the map named M'). The laws assumed must be proven inductive on their own.
-export function progressObligations(m: Machine, laws: Law[], instances: Instances, p: {name: string, when: C, then: C, request: Record<string, E>}): Goal[] {
+// A machine with sums: the request is allowed by the rule's own assumption (the facts its plain machine assumes besides
+// hold of every request where the sums are exact: Sums.lean's sum_allowed).
+export function progressObligations(given: Machine, laws: Law[], instances: Instances, p: {name: string, when: C, then: C, request: Record<string, E>}): Goal[] {
+  const m = plainOf(given), own = given.sums && Object.keys(given.sums).length ? given.assume : m.assume
   if (!m.inputs.every(i => i in p.request) || !Object.values(p.request).every(natural) || mentions(p.when, m.inputs)) throw new Error('outside the kernel')
   for (const e of Object.values(p.request)) if (mentions({op: '=', a: e, b: e}, m.inputs)) throw new Error('a request is named from the state and params')
   const req: Subst = {vars: p.request, maps: {}, flags: {}}
@@ -1053,7 +1175,7 @@ export function progressObligations(m: Machine, laws: Law[], instances: Instance
   const asked = holds(reading(before, p.request), closing(m, instances))
   const caused = step(asked, updateOf(m))
   return [
-    ...(m.assume ? [goal(`${p.name}: the request is allowed`, asked, substC(inlineFlags(m, m.assume), req))] : []),
+    ...(own ? [goal(`${p.name}: the request is allowed`, asked, substC(inlineFlags(m, own), req))] : []),
     goal(`${p.name}: the step it causes`, caused, across(caused, p.then, Object.keys(m.state), Object.keys(m.maps ?? {}), {inputs: p.request, flags})),
   ]
 }
@@ -1086,7 +1208,7 @@ export const livenessHelpful = (l: Liveness): {when: C, request: Record<string, 
 }
 export function livenessParts(m: Machine, l: Liveness): {stay: StepLaw, cover: StepLaw, helps: StepLaw[]} {
   // A machine with a history as its plain machine (its sums are state, its queries inputs no request names).
-  const plain = m.history ? historyMachine(m).machine : m
+  const plain = plainOf(m)
   const queries = Object.keys(m.history?.queries ?? {}), client = plain.inputs.filter(i => !queries.includes(i))
   const ranks = livenessRanks(l), helpful = livenessHelpful(l)
   if (!ranks.length || !helpful.length) throw new Error(`liveness ${l.name}: a rank of one natural or more, and a helpful request or more`)
@@ -1124,7 +1246,7 @@ export function livenessParts(m: Machine, l: Liveness): {stay: StepLaw, cover: S
 // The laws hold at every state on the way (each is reachable), so each is assumed before each step.
 export type StepLaw = {name: string, when?: C | C[], then: C, forall?: string, keys?: string[], steps?: number}
 export function stepLawObligations(machine: Machine, laws: Law[], instances: Instances, sl: StepLaw): Goal[] {
-  const m = machine.history ? historyMachine(machine).machine : machine
+  const m = plainOf(machine)
   scope(m, laws)
   const k = sl.steps ?? 1
   // Past 64 the cost is the bound (proving grows about as k³: 64 steps in about 5 s on Modal; Lean checks 32 in about 14 s, 64 in about 47 s).
@@ -1163,7 +1285,7 @@ export function stepLawObligations(machine: Machine, laws: Law[], instances: Ins
 const lawsOnly = (inst: Instances): Instances => Object.fromEntries(Object.entries(inst).filter(([n]) => !n.startsWith('?')))
 export function checkStepLaws(m: Machine, laws: Law[], stepLaws: StepLaw[], proof: {laws: {instances: Record<string, Instances>, trees: Record<string, Tree>}, instances: Instances, perStep?: Record<string, Instances>, trees: Record<string, Tree>}): boolean {
   return checkLaws(m, laws, proof.laws) && stepLaws.every(sl => {
-    const inst = proof.perStep?.[sl.name] ?? proof.instances, plain = m.history ? historyMachine(m).machine : m
+    const inst = proof.perStep?.[sl.name] ?? proof.instances, plain = plainOf(m)
     const zone = stepZone(plain, sl.steps ?? 1)
     return [...assumed(laws, inst), ...assumed(plain.facts ?? [], inst), ...closing(plain, lawsOnly(inst))].every(c => !mentions(c, zone))
       && stepLawObligations(m, laws, inst, sl).every(g => proof.trees[g.name] !== undefined && check(g, proof.trees[g.name]!))
@@ -1188,7 +1310,7 @@ export const stepZone = (m: Machine, k: number): string[] => [
 // assumed, proven inductive as ever; each goal's tree by name), its start goal's instances `perStep[<law> @start]`.
 export type KInduction = {law: Law, k: number}
 export function kInductionSteps(machine: Machine, kl: KInduction): StepLaw[] {
-  const m = machine.history ? historyMachine(machine).machine : machine, L = kl.law, k = kl.k
+  const m = plainOf(machine), L = kl.law, k = kl.k
   if (L.forall || L.keys?.length || L.some?.length || L.ex) throw new Error(`k-induction of ${L.name}: a law with no key`)
   if (!Number.isInteger(k) || k < 1 || k > 64) throw new Error(`k-induction of ${L.name}: k is a whole number from 1 to 64`)
   // (as the twin's checkKInd: the law reads no request's name, flag or witness; the start reads none, nor a state
@@ -1205,11 +1327,11 @@ export function kInductionSteps(machine: Machine, kl: KInduction): StepLaw[] {
   ]
 }
 export const kInductionStart = (machine: Machine, kl: KInduction, instances: Instances): Goal => {
-  const m = machine.history ? historyMachine(machine).machine : machine
+  const m = plainOf(machine)
   return obligations(m, [kl.law], {[kl.law.name]: instances})[0]!
 }
 export function checkKInduction(m: Machine, laws: Law[], kl: KInduction, proof: {laws: {instances: Record<string, Instances>, trees: Record<string, Tree>}, instances: Instances, perStep?: Record<string, Instances>, trees: Record<string, Tree>}): boolean {
-  const steps = kInductionSteps(m, kl), plain = m.history ? historyMachine(m).machine : m
+  const steps = kInductionSteps(m, kl), plain = plainOf(m)
   scope(plain, [...laws, kl.law])
   const start = kInductionStart(m, kl, proof.perStep?.[`${kl.law.name} @start`] ?? proof.instances)
   return proof.trees[start.name] !== undefined && check(start, proof.trees[start.name]!) && checkStepLaws(m, laws, steps, proof)

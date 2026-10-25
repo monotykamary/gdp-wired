@@ -5,7 +5,7 @@
 // Arithmetic is linear: +, −, × by a constant, min, max, if. Maps are naturals indexed by naturals, every cell starting
 // at the same value; a law about a map holds for every key x, and is proven at one arbitrary x (with the law assumed at
 // every other key the step reads).
-import {boundOf, crossFree, historyMachine, keyTerm, plainKey, scope} from '../kernel/kernel.ts'
+import {boundOf, crossFree, historyMachine, keyTerm, plainKey, scope, sumRuntime} from '../kernel/kernel.ts'
 import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
 
 // The searches' random draws: the high bits of a linear congruence (the low ones repeat with a short period).
@@ -60,6 +60,9 @@ export type Machine = {
   pre?: C // about the params alone: a precondition, holding at the start and at every step
   assume?: C // about each request (inputs, and params), e.g. a flag is 0 or 1; holds at a step, not at the start
   history?: History
+  // Sums over a map's keys (kernel.ts's sumMachine, Sums.lean): each a state variable no step sets, worth at every state
+  // the sum over every key of `term` read there (the term reads its maps at the key `key` alone: M.sum() is M[key]).
+  sums?: Record<string, Sum>
   // Functions the rule reads and never writes, defined outside it (in Lean, say): each read like a map, at any key.
   // The kernel knows a function only through `facts`; the runtimes compute it with its `js`.
   fns?: Record<string, Fn>
@@ -90,6 +93,10 @@ export type Recurrence = {args: string[], zero: E, next: E, lemmas: {name: strin
 // most the request's: the kernel proves such a record adds nothing to any query, and the runtimes refuse a request whose
 // order goes back.
 export type History = {keep: C, record: string[], sums: Record<string, E>, queries: Record<string, E>, relations?: {when: C, holds: C}[], prune?: {order: string, after: E}}
+// A sum over every key: `term` reads the maps only at `key` (M[key], a record's fields there), and is 0 where every map
+// it reads holds its start value. The kernel keeps the sum exact (each step moves it by the term's change at the keys
+// the step writes) and gives every goal that the term at any key, with the keys a step writes, is at most the sum.
+export type Sum = {key: string, term: E}
 // A step writes a map at one key, or at every key at once: `each` names the key, read in `value` only as a map's key
 // (M[k]), so every key the maps hold nothing at reads alike.
 export type MapUpdate = {key: E, value: E} | {each: string, value: E}
@@ -357,8 +364,8 @@ function writeEvery(w: {each: string, value: E}, env: Env, st: State, m: Machine
 // The machine a runtime steps (with a history, kernel.ts's plain machine), its queries, and the inputs a request carries.
 function runnable(m: Machine) {
   const h = m.history
-  if (!h) scope(m)
-  const plain = h ? historyMachine(m).machine : m
+  const plain = h ? historyMachine(m).machine : sumRuntime(m)
+  if (!h) scope(plain)
   const queries = h ? Object.keys(h.queries) : []
   return {h, plain, queries, carried: m.inputs.filter(i => !queries.includes(i))}
 }

@@ -16,7 +16,7 @@ import type {TStats} from '../core/translate.ts'
 import type {Cyclic} from './cyclic.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
 import {growCdcl} from './cdcl.ts'
-import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
+import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
 function openE(e: E, path: Path, out: Lin[]): void {
@@ -1150,12 +1150,12 @@ export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {
     const r = proveLaws(m, laws)
     return r.proven ? {proven: true} : {proven: false, goal: r.failed!.goal, stuck: r.failed!.stuck, ...(r.failed!.witness ? {witness: r.failed!.witness} : {})}
   }
-  const keys = [...readKeys(m, laws), ...witnesses(m)]
-  const inst = instancesFor(m, laws, inst => obligations(m, laws, {[law.name]: inst}, i), {
+  const pm = plainOf(m), keys = [...readKeys(pm, laws), ...witnesses(pm)]
+  const inst = instancesFor(pm, laws, inst => obligations(m, laws, {[law.name]: inst}, i), {
     seed: [...keys, ...(law.forall ? [{op: 'var', name: `${law.forall}#`} as E] : []), ...(law.keys ?? []).map((name): E => ({op: 'var', name}))],
     focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
   })
-  const few = triggered(m, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
+  const few = triggered(pm, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
   if (!sameInstances(few, inst) && obligations(m, laws, {[law.name]: few}, i).every(goal => 'tree' in grow(goal))) return {proven: true}
   for (const goal of obligations(m, laws, {[law.name]: inst}, i)) {
     const out = grow(goal)
@@ -1165,9 +1165,10 @@ export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {
 }
 function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
   // Each law's two goals (start and step) get their own instances, seeded with its own keys.
-  const keys = [...readKeys(m, laws), ...witnesses(m)], instances: Record<string, Instances> = {}
+  // (a machine with sums: its instances are its plain machine's, whose flags hold each sum's facts at every key)
+  const pm = plainOf(m), keys = [...readKeys(pm, laws), ...witnesses(pm)], instances: Record<string, Instances> = {}
   laws.forEach((law, i) => {
-    instances[law.name] = instancesFor(m, laws, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), {
+    instances[law.name] = instancesFor(pm, laws, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), {
       seed: [...keys, ...(law.forall ? [{op: 'var', name: `${law.forall}#`} as E] : []), ...(law.keys ?? []).map((name): E => ({op: 'var', name}))],
       focus: [...(law.forall ? [`${law.forall}#`] : []), ...(law.keys ?? [])],
     })
@@ -1178,7 +1179,7 @@ function proveLawsAsGiven(m: Machine, laws: Law[]): Report & {proof?: {instances
   // among them, do nothing more than before)
   // A machine with a history: its laws are its plain machine's (historyMachine; the record goals leaf goals beside them).
   const modes = cyclicOn() || certOn(), hist = modes && m.history ? historyMachine(m) : undefined, mc = hist ? hist.machine : m
-  const why = modes ? uncoveredWhy(mc, laws) : undefined, cert = certOn() && !why
+  const why = modes ? (sumsWhy(m) ?? uncoveredWhy(mc, laws)) : undefined, cert = certOn() && !why
   usualCheck.on = !cert
   const t0 = performance.now(), out = (() => { try { return proveThinned(m, laws, {...instances}) } finally { usualCheck.on = true } })(), usualMs = performance.now() - t0
   if (out.proof) usualProof.last = {m, laws, proof: out.proof}
@@ -1209,11 +1210,13 @@ export const usualCheck = {on: true}
 // The last machine proof made (core/dsl.ts's recurrences read their machine's, to translate it: core/cyclic.ts).
 export const usualProof: {last?: {m: Machine, laws: Law[], proof: {instances: Record<string, Instances>, trees: Record<string, Tree>}}} = {}
 // Each law with its instances thinned (`triggered`) where that proves it, else with all of them.
+// A machine with sums has no cyclic twin yet: its certificate is the usual trees, checked with its cover goals.
+const sumsWhy = (m: Machine): string | undefined => (m.sums && Object.keys(m.sums).length ? 'a sum over a map\'s keys (Sums.lean checks the usual trees)' : undefined)
 function proveThinned(m: Machine, laws: Law[], instances: Record<string, Instances>): Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}} {
   const trees: Record<string, Tree> = {}, fulls = {...instances}
   let nodes = 0, leaves = 0
   for (const [i, law] of laws.entries()) {
-    const full = instances[law.name]!, few = triggered(m, laws, full, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), law.forall ? [`${law.forall}#`] : [])
+    const full = instances[law.name]!, few = triggered(plainOf(m), laws, full, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), law.forall ? [`${law.forall}#`] : [])
     for (const inst of sameInstances(few, full) ? [full] : [few, full]) {
       instances[law.name] = inst
       const done: Record<string, Tree> = {}
@@ -1270,7 +1273,7 @@ export function proveStepLaws(given0: Machine, given: Law[], stepLaws: StepLaw[]
   const m = base.machine ?? given0, mx = base.machine ? {machine: base.machine} : {}
   if (stepLaws.some(sl => someKeys(sl.then).length)) {
     // Each step law's witnesses on its own (a step law assumes no other), the request and the state after among them.
-    const plain = m.history ? historyMachine(m).machine : m, after = Object.keys(plain.state).map(n => `${n}'`)
+    const plain = plainOf(m), after = Object.keys(plain.state).map(n => `${n}'`)
     const out = chooseWitnesses(stepLaws, sl => sl.then, sl => [...(sl.forall ? [sl.forall] : []), ...plain.inputs, ...after], plain,
       sls => sls.every(sl => { const r = proveStepLawsAsGiven(m, laws, [sl], base); return r.proven && r.checked }), (sl, then) => ({...sl, then}))
     if ('stuck' in out) return {proven: false, nodes: base.nodes, leaves: base.leaves, failed: {goal: 'witnesses', stuck: out.stuck}, checked: false}
@@ -1281,7 +1284,7 @@ export function proveStepLaws(given0: Machine, given: Law[], stepLaws: StepLaw[]
 function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base: Report & {proof?: {instances: Record<string, Instances>, trees: Record<string, Tree>}}): Report & {proof?: StepProof, uncovered?: string[]} {
   if (!base.proof) return {proven: false, nodes: base.nodes, leaves: base.leaves, checked: false}
   const t0 = performance.now()
-  const plain = m.history ? historyMachine(m).machine : m
+  const plain = plainOf(m)
   // Each step law its own instances, from its own goal: the keys the step and the laws read, and its own (a k-step
   // law's later frames read keys no other step law has); where positions shift or a law is about several keys, the
   // keys its goal reads a map at too. A frame's hypotheses read no name the run introduces later (kernel.ts's
@@ -1328,7 +1331,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
   // (core/cyclic.ts); the rest are counted as no instance's.
   // (a machine with a history: its plain machine's; a flag at every key through its sk machine; k-step laws over a map
   // searched, where GDP_CERT_SEARCH=1; where no cyclic proof is made the usual trees, checked above, stay the certificate)
-  const modes = cyclicOn() || certOn(), why = modes ? uncoveredWhy(plain, laws) : undefined, one = stepLaws
+  const modes = cyclicOn() || certOn(), why = modes ? (sumsWhy(m) ?? uncoveredWhy(plain, laws)) : undefined, one = stepLaws
   // Where the cyclic certificate is made below (GDP_CERT, not the cross-check; the laws' certificate checked), the usual
   // trees are its input, as a machine's laws' are: checkStepLaws (the laws' usual trees again, then the step laws') runs
   // only where no certificate is made.
@@ -1374,7 +1377,7 @@ export function proveProgress(m: Machine, laws: Law[], p: {name: string, when: C
   const t0 = performance.now(), base = proveLaws(m, laws)
   if (!base.proven || !base.checked) return {proven: false, nodes: base.nodes, leaves: base.leaves, ...(base.failed ? {failed: base.failed} : {}), checked: false}
   const ls = base.laws ?? laws
-  const instances = instancesFor(m, ls, inst => progressObligations(m, ls, inst, p))
+  const instances = instancesFor(plainOf(m), ls, inst => progressObligations(m, ls, inst, p))
   const trees: Record<string, Tree> = {}
   let nodes = base.nodes, leaves = base.leaves
   for (const goal of progressObligations(m, ls, instances, p)) {
@@ -1389,7 +1392,7 @@ export function proveProgress(m: Machine, laws: Law[], p: {name: string, when: C
   // then the allowed goal translated, core/cyclic.ts's allowTranslated, its last node BridgeRules.lean's cycAOk: from
   // every reachable state, every request meeting the region and its terms is allowed; where GDP_CERT_SEARCH=1 and that
   // isn't proven, allowNode searched with the witnesses withWitness finds)
-  const alone = JSON.stringify(p.then) === JSON.stringify(trueC) && !m.history && !m.inputMaps?.length && m.assume !== undefined
+  const alone = JSON.stringify(p.then) === JSON.stringify(trueC) && !m.history && !sumsWhy(m) && !m.inputMaps?.length && m.assume !== undefined
   if (certOn() && alone && checked && base.proof) {
     const lp = base.proof, q = hasQuantified(m), goal = progressObligations(m, ls, instances, p)[0]!
     const translated = (st: TStats) => translatedProof(() => JSON.stringify(['allowed', m, ls, lp.instances, instances, p]), reused => {
@@ -1435,12 +1438,13 @@ export function proveLiveness(m: Machine, laws: Law[], l: Liveness): Report & {s
   const {stay, cover, helps} = livenessParts(m, l)
   const a = proveStepLaws(m, laws, [stay, cover, ...helps])
   if (!a.proven || !a.checked) return {proven: false, nodes: a.nodes, leaves: a.leaves, ...(a.failed ? {failed: a.failed} : {}), checked: false}
-  const plain = m.history ? historyMachine(m).machine : m
+  const plain = plainOf(m)
   let nodes = a.nodes, leaves = a.leaves
   const left = [...(a.uncovered ?? []).map(why => `a step law: ${why}`)]
   for (const [i, h] of livenessHelpful(l).entries()) {
-    if (m.history || plain.inputMaps?.length || !plain.assume || !plain.inputs.every(inp => inp in h.request)) continue
-    const b = proveProgress(plain, laws, {name: `${l.name}: helpful request ${i + 1} is allowed`, when: {op: 'and', xs: [l.from, {op: 'not', x: l.to}, h.when]}, then: trueC, request: h.request})
+    // (a machine with sums: allowed by the rule's own assumption, its plain machine's facts given; Sums.lean)
+    if (m.history || plain.inputMaps?.length || !(sumsWhy(m) ? m.assume : plain.assume) || !plain.inputs.every(inp => inp in h.request)) continue
+    const b = proveProgress(sumsWhy(m) ? m : plain, laws, {name: `${l.name}: helpful request ${i + 1} is allowed`, when: {op: 'and', xs: [l.from, {op: 'not', x: l.to}, h.when]}, then: trueC, request: h.request})
     nodes += b.nodes; leaves += b.leaves
     if (!b.proven || !b.checked) return {proven: false, nodes, leaves, ...(b.failed ? {failed: b.failed} : {}), checked: false}
     if (b.uncovered) left.push(`helpful request ${i + 1} allowed: ${b.uncovered}`)
