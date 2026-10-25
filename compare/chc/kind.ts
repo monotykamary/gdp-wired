@@ -14,19 +14,33 @@
 // confirms. `--kind 0`: no k-induction.
 import {readFileSync} from 'node:fs'
 import {parseChc} from './chc.ts'
-import {build, checkDerivation, requestOf, stepsOf} from './translate.ts'
+import {type Raw, build, checkDerivation, requestOf, stepsOf} from './translate.ts'
 import {type KindResult, proveKInduction} from '../../core/kind.ts'
 import {boundedSearch} from '../../core/bmc.ts'
 import {imcSearch} from '../../core/interp.ts'
 import {proveRule} from '../../core/dsl.ts'
 import {clock, counted, fullRate, withDeadline} from '../../kernel/prove.ts'
+import {expand, invOf, liftProven, prepare} from './compose.ts'
 
 const args = process.argv.slice(2), file = args[0]!
 const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 ? d : Number(args[i + 1]) }
 const t0 = performance.now(), budget = opt('--ms', 50_000), parent = opt('--parent', 0), withBmc = opt('--bmc', 1) !== 0, withImc = opt('--imc', 0) !== 0, withKind = opt('--kind', 1) !== 0
 const end = t0 + budget, ms = () => Math.round(performance.now() - t0)
 const say = (o: object) => console.log(JSON.stringify({task: file, ms: ms(), ...o}))
-const chc = parseChc(readFileSync(file, 'utf8')), b = build(chc), m = b.rule.machine
+// `--compose 1`: the bounded runs and interpolation read the composed rule (compose.ts), their runs expanded and their
+// invariants lifted to the original rule, each checked there; k-induction reads the original (its proof has no
+// invariant to lift).
+const chc = parseChc(readFileSync(file, 'utf8')), bo = build(chc), cc = prepare(chc, {slice: opt('--slice', 0) !== 0, chains: opt('--compose', 0) !== 0})
+const b = cc ? build(cc.chc) : bo, m = b.rule.machine, mo = bo.rule.machine
+// A run of the rule searched, as the original's requests (expanded where composed), checked against the CHC.
+const confirmed = (trace: Record<string, unknown>[]): {raws: Raw[]} | {bad: string} => {
+  try {
+    const raws = trace.map(t => requestOf(b, t)), orig = cc ? expand(bo, b, cc, stepsOf(b, raws)) : raws
+    if (typeof orig === 'string') return {bad: orig}
+    const bad = checkDerivation(bo, chc, stepsOf(bo, orig))
+    return bad ? {bad} : {raws: orig}
+  } catch (e) { return {bad: `not replayed: ${(e as Error).message.slice(0, 80)}`} }
+}
 const stop = () => { if (parent) { try { process.kill(parent, 'SIGKILL') } catch { /* gone */ } } }
 
 // k-induction, a slice at a time. The track's limit is wall time, as for every solver: the wall stop is the slice, the
@@ -36,7 +50,7 @@ const kindDepths: KindResult['depths'] = []
 let kindFrom = 2, kindLive = withKind, kindWhy = ''
 const kindTurn = (slice: number) => {
   const wall = Math.min(end, performance.now() + slice)
-  const kd = proveKInduction(m, b.rule.kindLaws(), b.law, {ms: 20 * slice, wall, from: kindFrom})
+  const kd = proveKInduction(mo, bo.rule.kindLaws(), bo.law, {ms: 20 * slice, wall, from: kindFrom})
   kindDepths.push(...kd.depths)
   if (kd.proven && kd.checked) {
     stop()
@@ -66,10 +80,10 @@ const bmcTurn = (slice: number) => {
   bmcLive = false
   say({stage: 'bmc', depth: bmcDepths.at(-1)?.[0] ?? 0, found: typeof out === 'object', depths: bmcDepths, by: 'second'})
   if (typeof out !== 'object') return
-  const raws = out.trace.map(t => requestOf(b, t as Record<string, unknown>)), bad = checkDerivation(b, chc, stepsOf(b, raws))
-  if (bad) { say({stage: 'bmc', refused: bad}); return }
+  const ok = confirmed(out.trace as Record<string, unknown>[])
+  if ('bad' in ok) { say({stage: 'bmc', refused: ok.bad}); return }
   stop()
-  say({stage: 'answer', answer: 'unsat', by: 'bmc', steps: raws.length})
+  say({stage: 'answer', answer: 'unsat', by: 'bmc', steps: ok.raws.length})
   process.exit(0)
 }
 
@@ -84,16 +98,17 @@ const imcTurn = (slice: number) => {
   imcLive = false
   say({stage: 'imc', depths: imcDepths, k: out.k, ...('why' in out ? {why: out.why.slice(0, 80)} : {}), by: 'second'})
   if ('run' in out) {
-    const raws = out.run.trace.map(t => requestOf(b, t as Record<string, unknown>)), bad = checkDerivation(b, chc, stepsOf(b, raws))
-    if (bad) { say({stage: 'imc', refused: bad}); return }
+    const ok = confirmed(out.run.trace as Record<string, unknown>[])
+    if ('bad' in ok) { say({stage: 'imc', refused: ok.bad}); return }
     stop()
-    say({stage: 'answer', answer: 'unsat', by: 'imc', steps: raws.length})
+    say({stage: 'answer', answer: 'unsat', by: 'imc', steps: ok.raws.length})
     process.exit(0)
   }
   if ('inv' in out) {
-    const v = withDeadline(end, () => proveRule(b.rule, [b.law, {name: 'imc', holds: out.inv}], {search: false}))
-    say({stage: 'imc', proven: v.proven, checked: v.checked, parts: out.parts})
-    if (!v.proven || !v.checked) return
+    const v = cc ? liftProven(cc, bo, invOf([b.law, ...b.rule.kindLaws(), {name: 'imc', holds: out.inv}])!, end) : withDeadline(end, () => proveRule(b.rule, [b.law, {name: 'imc', holds: out.inv}], {search: false}))
+    const proven = v.proven && (!('checked' in v) || v.checked)
+    say({stage: 'imc', proven, parts: out.parts, ...('liftMs' in v ? {why: v.why, liftMs: v.liftMs, proveMs: v.proveMs, laws: v.laws} : {checked: v.checked})})
+    if (!proven) return
     stop()
     say({stage: 'answer', answer: 'sat', by: 'imc', k: out.k})
     process.exit(0)

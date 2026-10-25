@@ -25,15 +25,15 @@ import {Reader, type Row, namesOf} from './reader.ts'
 import {Simplex} from './simplex.ts'
 
 // A derivation's own inputs: the rows it reads, in order, and the steps renumbered to them.
-function localize(rows: {lin: Lin}[], steps: Step[]): {inputs: Lin[], steps: Step[]} {
-  const inputs: Lin[] = [], at = new Map<number, number>()
+function localize(rows: {lin: Lin}[], steps: Step[]): {inputs: Lin[], steps: Step[], from: number[]} {
+  const inputs: Lin[] = [], at = new Map<number, number>(), from: number[] = []
   const out = steps.map(st => {
     if (st.kind !== 'input') return st
     let j = at.get(st.index)
-    if (j === undefined) { j = inputs.length; at.set(st.index, j); inputs.push(rows[st.index]!.lin) }
+    if (j === undefined) { j = inputs.length; at.set(st.index, j); inputs.push(rows[st.index]!.lin); from.push(st.index) }
     return {...st, index: j}
   })
-  return {inputs, steps: out}
+  return {inputs, steps: out, from}
 }
 // An atom's variable: the smaller of its canonical text and its flip's (remembered per form).
 const keyMemo = new WeakMap<Lin, string>()
@@ -46,7 +46,11 @@ const keyOf = (lin: Lin): string => {
 
 // A node of the refutation: a leaf (its decisions, by variable, and a derivation over the rows at its path) or a
 // resolution of two earlier nodes on a variable (`res[0]` the one with the atom as stored true, `res[1]` false).
-type DagNode = {inputs: Lin[], steps: Step[]} | {res: [number, number], on: Lin}
+// (with opts.dag, a leaf also has each input's hypothesis, -1 for a row of no hypothesis, and its clause's literals)
+type DagNode = {inputs: Lin[], steps: Step[], src?: number[], lits?: [Lin, boolean][]} | {res: [number, number], on: Lin}
+// A refutation's DAG (opts.dag, with model): its nodes and the empty clause's, for interpolants read off it
+// (core/interp.ts's fromDag) instead of the tree it unfolds to.
+export type Dag = {nodes: DagNode[], top: number}
 type Var = {name: string, lin: Lin, terms: [string, number][], col: boolean, val?: boolean, level: number, reason?: number, at: number, act: number, phase: boolean,
   bj?: number[], bjAt?: number, bsig?: number, bver?: number, sj?: (number | undefined)[], sx?: Simplex, pair?: boolean}
 type Clause = {lits: Map<string, boolean>, node: number}
@@ -62,8 +66,8 @@ export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions
 // goal.hyps): those alone have no model (each leaf's rows are those hypotheses' facts at its decisions, or rows true of
 // any value: the trail's atoms, the naturals, the term columns' definitions), as core/infer.ts's join reads it.
 export const REFUTED = 'refuted, not unfolded'
-export type Refuted = Outcome & {core?: number[]}
-export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?: number}, opts: {maxLeaves?: number, model?: boolean, wall?: number, core?: boolean} = {}): Outcome {
+export type Refuted = Outcome & {core?: number[], dag?: Dag}
+export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?: number}, opts: {maxLeaves?: number, model?: boolean, wall?: number, core?: boolean, dag?: boolean} = {}): Outcome {
   const go = () => cdclSession(goal, root, opts).run(budget, opts.wall)
   return queryHook.on && !queryHook.depth ? logged(opts.model ? 'model' : 'cdcl', goal, go) : go()
 }
@@ -72,7 +76,7 @@ export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?:
 // taken away), so every clause learned stays a consequence of the goal. A run may assume an atom (`assume`, decided
 // first, at level 1): where the search learns it false the run ends refuted (REFUTED), as where nothing is assumed and
 // the goal is refuted. Each run's own budget: nodes, `until` on the counted clock, `wall`.
-export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, model?: boolean, core?: boolean} = {}) {
+export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, model?: boolean, core?: boolean, dag?: boolean} = {}) {
   let until = Infinity, budget: {nodes: number, until?: number} = {nodes: 0}, wall: number | undefined, assumed: [string, boolean] | undefined
   const st = cdclStats, timing = st.on
   const t = <T>(f: () => T, add: (ms: number) => void): T => { if (!timing) return f(); const t0 = performance.now(); try { return f() } finally { add(performance.now() - t0) } }
@@ -81,7 +85,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
   let sx = useLp ? new Simplex() : undefined
   const nodes: DagNode[] = [], clauses: Clause[] = [], occ = new Map<string, number[]>()
   // (with opts.core: each leaf's hypotheses, by node; the hypothesis each row at this node came from)
-  const leafHyps = new Map<number, number[]>(), wantCore = !!(opts.core && opts.model)
+  const leafHyps = new Map<number, number[]>(), wantCore = !!(opts.core && opts.model), wantDag = !!(opts.dag && opts.model)
   const hypsOf = (rs: Row[]): number[] => {
     return reader.hypsOf(rs)
   }
@@ -197,13 +201,14 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
   }
   // A leaf: the decisions of a reason (the root's are every leaf's, below which the tree starts: not literals of its
   // clause) and a derivation over the rows it reads.
-  const leafNode = (w: Iterable<string>, inputs: Lin[], steps: Step[], extra?: [string, boolean], hyps?: number[]): Clause => {
-    nodes.push({inputs, steps})
+  const leafNode = (w: Iterable<string>, inputs: Lin[], steps: Step[], extra?: [string, boolean], hyps?: number[], src?: number[]): Clause => {
+    nodes.push(src ? {inputs, steps, src} : {inputs, steps})
     if (hyps) leafHyps.set(nodes.length - 1, hyps)
     st.leaves++
     const lits = new Map<string, boolean>()
     for (const name of w) if (!rootNames.has(name)) lits.set(name, vars.get(name)!.val!)
     if (extra) lits.set(extra[0], extra[1])
+    if (src) (nodes.at(-1) as {lits?: [Lin, boolean][]}).lits = [...lits].map(([name, val]) => [vars.get(name)!.lin, val])
     st.coreSize += lits.size
     return {lits, node: nodes.length - 1}
   }
@@ -213,18 +218,18 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
     for (const s of steps) if (s.kind === 'input') for (const name of rows[s.index]!.w) w.add(name)
     st.pathSize += trail.length - fixed
     const local = localize(rows, steps)
-    return leafNode(w, local.inputs, local.steps, undefined, wantCore ? hypsOf(steps.flatMap(s => (s.kind === 'input' ? [rows[s.index]!] : []))) : undefined)
+    return leafNode(w, local.inputs, local.steps, undefined, wantCore ? hypsOf(steps.flatMap(s => (s.kind === 'input' ? [rows[s.index]!] : []))) : undefined, wantDag ? local.from.map(i => reader.srcOf(rows[i]!) ?? -1) : undefined)
   }, ms => { st.coreMs += ms })
   // Bound propagation's reasons, made when conflict analysis reads them: the atom's bounds (single-variable rows at the
   // trail then) and its other side refute each other, a leaf at the bounds' reasons with that side decided.
-  const pending = new Map<number, {w: Set<string>, used: Lin[], name: string, val: boolean, hyps?: number[]}>()
+  const pending = new Map<number, {w: Set<string>, used: Lin[], name: string, val: boolean, hyps?: number[], src?: number[]}>()
   const materialize = (ci: number) => t(() => {
     const b = pending.get(ci)!, x = vars.get(b.name)!, c = clauses[ci]!
     pending.delete(ci)
     const local = [...b.used.map(lin => ({lin, label: ''})), {lin: atomOf(x.lin, !b.val).lin, label: ''}]
     const s = solve(local)
     if (s.kind !== 'refuted') throw new Error('a bound propagation its bounds do not refute')
-    const loc = localize(local, s.steps), made = leafNode(b.w, loc.inputs, loc.steps, [b.name, !b.val], b.hyps)
+    const loc = localize(local, s.steps), made = leafNode(b.w, loc.inputs, loc.steps, [b.name, !b.val], b.hyps, b.src && loc.from.map(i => b.src![i] ?? -1))
     c.lits = made.lits; c.node = made.node
   }, ms => { st.coreMs += ms })
   const luby = (i: number): number => { let n = 1; while ((1 << n) - 1 < i + 1) n++; return (1 << n) - 1 === i + 1 ? 1 << (n - 1) : luby(i + 1 - (1 << (n - 1))) }
@@ -349,7 +354,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
               const w = new Set<string>()
               for (const i of used) for (const n of rowsR[i]!.w) w.add(n)
               clauses.push({lits: new Map([[name, !val]]), node: -1})
-              pending.set(clauses.length - 1, {w, used: used.map(i => full[i]!.lin), name, val, ...(wantCore ? {hyps: hypsOf(used.map(i => rowsR[i]!))} : {})})
+              pending.set(clauses.length - 1, {w, used: used.map(i => full[i]!.lin), name, val, ...(wantCore ? {hyps: hypsOf(used.map(i => rowsR[i]!))} : {}), ...(wantDag ? {src: used.map(i => reader.srcOf(rowsR[i]!) ?? -1)} : {})})
               assign(name, val, clauses.length - 1)
               forced++
               break
@@ -427,6 +432,7 @@ export function cdclSession(goal: Goal, root: Path, opts: {maxLeaves?: number, m
       for (;;) {
         if (!c.lits.size) {
           if (opts.model) {
+            if (wantDag) return {stuck: 'unknown', path: new Map(), why: REFUTED, dag: {nodes, top: c.node}} as Refuted
             if (!wantCore) return {stuck: 'unknown', path: new Map(), why: REFUTED}
             // the hypotheses the leaves below the empty clause read (a clause never made into a node, a bound's not yet
             // materialized, leaves the core unknown)

@@ -6,13 +6,14 @@ import {readFileSync} from 'node:fs'
 import {parseChc} from '../chc.ts'
 import {build, checkDerivation, requestOf, stepsOf} from '../translate.ts'
 import {imc} from '../../../core/interp.ts'
+import {prepare} from "../compose.ts"
 import {proveRule} from '../../../core/dsl.ts'
 import {counted, withDeadline} from '../../../kernel/prove.ts'
 
 const args = process.argv.slice(2), file = args[0]!
 const ms = Number(args[args.indexOf('--ms') + 1] ?? 55_000) || 55_000, t0 = performance.now(), wall = t0 + ms
 const say = (o: object) => { console.log(JSON.stringify({task: file, ms: Math.round(performance.now() - t0), ...o})); if ((o as {stage?: string}).stage === 'answer') process.exit(0) }
-const b = build(parseChc(readFileSync(file, 'utf8'))), r = b.rule, m = r.machine
+const chc0 = parseChc(readFileSync(file, "utf8")), cc = prepare(chc0, {slice: args.includes("--slice"), chains: args.includes("--compose")}), b = build(cc ? cc.chc : chc0), r = b.rule, m = r.machine
 const steps: [number, string, number][] = []
 const out = counted(250, () => imc(m, b.law, {until: Infinity, wall, kinds: r.kindLaws().map(l => l.holds), progress: (k, what, info) => steps.push([k, what[0]!, info.parts!])}), true)
 say({stage: 'imc', depths: steps, ...('why' in out ? {why: out.why} : {}), k: out.k})

@@ -234,23 +234,30 @@ export function stepsOf(b: Built, raws: Raw[]): Step[] {
 // satisfies its whole constraint and its body arguments, and its head arguments are the state after. The last step's
 // clause is a query.
 export type Step = {clause: number, input: Record<string, number | boolean | string>, before: Record<string, unknown>, after: Record<string, unknown>}
+const val = (x: unknown): Val => (typeof x === 'boolean' ? x : BigInt(x as number))
+const slot = (sort: Sort, k: number, st: Record<string, unknown>) => val(st[`${sort === 'Int' ? 'i' : 'b'}${k}`])
+// A step's clause's variables valued (no gdp-wired code): the body's slots from the state before, the free ones from the
+// request, the definitions evaluated in turn (undefined where they never resolve).
+export function envOf(p: Plan, s: Step): Map<string, Val> | undefined {
+  const env = new Map<string, Val>(), pending = [...p.bound.entries()]
+  for (const [v, bd] of pending) if (bd.kind === 'slot') env.set(v, slot(bd.sort, bd.k, s.before)); else if (bd.kind === 'input') env.set(v, val(s.input[`${bd.sort === 'Int' ? 'x' : 'y'}${bd.k}`]))
+  for (let left = pending.filter(([, bd]) => bd.kind === 'def'); left.length;) {
+    const ready = left.filter(([, bd]) => { try { evalSx((bd as {sx: Sx}).sx, env); return true } catch { return false } })
+    if (!ready.length) return undefined
+    for (const [v, bd] of ready) env.set(v, evalSx((bd as {sx: Sx}).sx, env))
+    left = left.filter(x => !ready.includes(x))
+  }
+  return env
+}
 export function checkDerivation(b: Built, chc: Chc, steps: Step[]): string | undefined {
   if (!steps.length) return 'no steps'
   let where = 'start'
   for (const [n, s] of steps.entries()) {
-    const p = b.plans[s.clause]!, c = p.clause, env = new Map<string, Val>()
-    const val = (x: unknown): Val => (typeof x === 'boolean' ? x : BigInt(x as number))
+    const p = b.plans[s.clause]!, c = p.clause
     const at = c.body[0] ? b.loc[b.predNames.indexOf(c.body[0].pred)] : 'start'
     if (at !== where || s.before.loc !== where) return `step ${n}: clause ${s.clause} needs ${at}, the run is at ${where}`
-    const slot = (sort: Sort, k: number, st: Record<string, unknown>) => val(st[`${sort === 'Int' ? 'i' : 'b'}${k}`])
-    const pending = [...p.bound.entries()]
-    for (const [v, bd] of pending) if (bd.kind === 'slot') env.set(v, slot(bd.sort, bd.k, s.before)); else if (bd.kind === 'input') env.set(v, val(s.input[`${bd.sort === 'Int' ? 'x' : 'y'}${bd.k}`]))
-    for (let left = pending.filter(([, bd]) => bd.kind === 'def'); left.length;) {
-      const ready = left.filter(([, bd]) => { try { evalSx((bd as {sx: Sx}).sx, env); return true } catch { return false } })
-      if (!ready.length) return `step ${n}: definitions that never resolve`
-      for (const [v, bd] of ready) env.set(v, evalSx((bd as {sx: Sx}).sx, env))
-      left = left.filter(x => !ready.includes(x))
-    }
+    const env = envOf(p, s)
+    if (!env) return `step ${n}: definitions that never resolve`
     for (const k of c.constraint) if (evalSx(k, env) !== true) return `step ${n}: clause ${s.clause}'s constraint ${JSON.stringify(k).slice(0, 80)} fails`
     if (c.body[0]) {
       const ns = {Int: 0, Bool: 0}
