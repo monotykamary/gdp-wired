@@ -471,6 +471,8 @@ export class Reader {
   private src = new WeakMap<Row, number>()
   // The hypotheses some rows came from, as the live rows have them.
   hypsOf(rows: Row[]): number[] { const out = new Set<number>(); for (const r of rows) { const i = this.src.get(r); if (i !== undefined) out.add(i) } return [...out] }
+  // The hypothesis a live row came from (undefined for the trail's atoms, the naturals and the term columns' rows).
+  srcOf(r: Row): number | undefined { return this.src.get(r) }
   private inSeg = new Map<Seg, Row[]>()
   private cached = new Map<Seg, Row[]>()
   private termKeys: Seg[] = []

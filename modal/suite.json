@@ -974,6 +974,13 @@
 "timeout": 900
 },
 {
+"name": "interp",
+"cmd": "bun test interp.test.ts 2>&1",
+"cwd": "core",
+"cpu": 1.0,
+"timeout": 600
+},
+{
 "name": "cycles",
 "cmd": "bun test cycles.test.ts 2>&1 && cd .. && bun examples/cycles.ts 2>&1",
 "cwd": "core",
