@@ -1,0 +1,9 @@
+; expect: terminates. The guard pins x to 1 where any x reaches l1 (facts.ts): the value fixed by a guard is a comparison
+; kept, not a fact at l1 (x = 1 read as a fact of l1 would let the rule fire at every x, forever).
+(format LCTRS)
+(theory Ints)
+(fun l0 (-> Int Int))
+(fun l1 (-> Int Int))
+(entrypoint l0)
+(rule (l0 x) (l1 x))
+(rule (l1 x) (l1 (+ x 1)) :guard (= 1 x))

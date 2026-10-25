@@ -58,9 +58,13 @@ boundary, and the two translations differ there; each is exact for its one answe
     (each frame forgotten at the call that never returns) or some frame is never left after some point, every call it
     makes after that returning. A return out of a function's own copy ends the run. So the system's termination is
     the program's (the system has more runs).
-  --for nonterminating: L as deep as the system stays small (at most 4). At a boundary the run goes into the
-    function's own copy only, a return out of it ending the run: every run of the system is a run of the program up
-    to there (entering a call and running on inside it), so an infinite one is the program's.
+    A recursive function's value at a call that returns is its summary's (below), where the system checks it.
+  --for nonterminating: L = 1. At a boundary the run either goes into the function's own copy, a return out of it
+    ending the run, or makes the call inlined exactly one more call deep, a deeper call cutting the run (no rule):
+    every run of the system is a run of the program up to there (entering a call and running on inside it, or a call
+    that returns), so an infinite one is the program's. Where that system would be large (past 400,000 rule-slots),
+    L as deep as the system stays small (at most 4), and a boundary only enters. A function's variables are one per
+    place in its code and depth of calls (frames at one depth are never live together).
 
 `--unchecked`: no signed operation is checked for overflow (arithmetic on unbounded integers past it). Every run of
 the program is then a prefix of one of the system's (the same until its undefined behaviour, where the program's run
@@ -399,6 +403,7 @@ class Program:
         self.inlined = 0
         self.no_overflow = no_overflow
         self.cells = []  # the objects a pointer can name: (slot, type, alive slot or None)
+        self.unchecked = set()  # (--for terminates) the summaries whose checks couldn't be made
 
     def loc(self):
         self.nlocs += 1
@@ -447,6 +452,393 @@ def nondet_type(name):
     return LONG(True) if t == "long" else LONG(False) if t == "ulong" else t
 
 
+# --- call summaries (--for terminates) ----------------------------------------------------------------------------------
+# A recursive function's summary: a relation of its arguments and its value, `region → value = affine(arguments)` for
+# each region its own comparisons of the arguments cut (`f(n) = n − 10 where n > 100, 91 where n <= 100`), each fitted
+# to the values the function returns on a grid of arguments (run here, on its C semantics; a region whose values aren't
+# affine, or none returns, says nothing). A guess, which the system checks itself: a call that returns (skipped at a
+# boundary) has a value the summary allows, and the function's own copy has a turn back to its entry where some path
+# of its body, from its arguments, its calls skipped with their summaries' values, returns a value the summary doesn't
+# allow (`check`). That turn can repeat forever, so a proof that the system terminates proves no such path exists:
+# then, by induction on the calls' depth, every call that returns returns a value its summary allows, and the system
+# still has every run of the program. Only for pure functions (no global read or written, no pointer, no nondeterministic
+# value), integers, at most two arguments; a body with a loop is not checked (its paths aren't enumerated): no summary.
+class NoValue(Exception):
+    pass
+
+
+def evaluate(funcs, name, args, budget):
+    """f(args) on C's integers, or NoValue (undefined behaviour, no value, or past the budget: [steps, depth])."""
+    f = funcs[name]
+    ps, rt = Main.sig_of(funcs, name)
+    if rt[0] != "i" or any(t[0] != "i" for _, t in ps):
+        raise Refused("summary: not integers")
+    budget[1] -= 1
+    if budget[1] < 0:
+        raise NoValue()
+    env = [{}]
+    types = {}
+
+    def fit(v, t):
+        lo, hi = rng(t)
+        if not lo <= v <= hi:
+            raise NoValue()
+        return v
+
+    for (x, t), a in zip(ps, args):
+        env[0][x] = fit(a, t)
+        types[x] = t
+
+    def look(n):
+        for sc in reversed(env):
+            if n in sc:
+                return sc
+        raise Refused(f"summary: {n} is not a local")
+
+    class Ret(Exception):
+        def __init__(s, v):
+            s.v = v
+
+    class Brk(Exception):
+        pass
+
+    class Cont(Exception):
+        pass
+
+    def ex(e):
+        budget[0] -= 1
+        if budget[0] < 0:
+            raise NoValue()
+        if isinstance(e, c_ast.Constant):
+            return constant(e)[0]
+        if isinstance(e, c_ast.ID):
+            return look(e.name)[e.name]
+        if isinstance(e, c_ast.Cast):
+            return fit(ex(e.expr), type_of(e.to_type.type))
+        if isinstance(e, c_ast.TernaryOp):
+            return ex(e.iftrue) if ex(e.cond) else ex(e.iffalse)
+        if isinstance(e, c_ast.FuncCall):
+            if not isinstance(e.name, c_ast.ID) or e.name.name not in funcs:
+                raise Refused("summary: a call to a function with no body")
+            vals = [ex(a) for a in (e.args.exprs if e.args else [])]
+            budget[1] += 0
+            v = evaluate(funcs, e.name.name, vals, budget)
+            budget[1] += 1
+            return v
+        if isinstance(e, c_ast.UnaryOp):
+            if e.op in ("p++", "p--", "++", "--"):
+                if not isinstance(e.expr, c_ast.ID):
+                    raise Refused("summary: ++ of a non-variable")
+                sc, n = look(e.expr.name), e.expr.name
+                old = sc[n]
+                sc[n] = fit(old + (1 if "+" in e.op else -1), types[n])
+                return old if e.op.startswith("p") else sc[n]
+            v = ex(e.expr)
+            if e.op == "-":
+                return fit(-v, INT)
+            if e.op == "+":
+                return v
+            if e.op == "!":
+                return int(not v)
+            raise Refused(f"summary: {e.op}")
+        if isinstance(e, c_ast.BinaryOp):
+            if e.op == "&&":
+                return int(bool(ex(e.left)) and bool(ex(e.right)))
+            if e.op == "||":
+                return int(bool(ex(e.left)) or bool(ex(e.right)))
+            a, b = ex(e.left), ex(e.right)
+            if e.op in ("/", "%"):
+                if b == 0:
+                    raise NoValue()
+                q = abs(a) // abs(b) * (1 if (a < 0) == (b < 0) else -1)
+                return fit(q if e.op == "/" else a - b * q, INT)
+            ops = {"+": lambda: fit(a + b, INT), "-": lambda: fit(a - b, INT), "*": lambda: fit(a * b, INT), "<": lambda: int(a < b),
+                   "<=": lambda: int(a <= b), ">": lambda: int(a > b), ">=": lambda: int(a >= b), "==": lambda: int(a == b), "!=": lambda: int(a != b)}
+            if e.op not in ops:
+                raise Refused(f"summary: {e.op}")
+            return ops[e.op]()
+        if isinstance(e, c_ast.Assignment):
+            if not isinstance(e.lvalue, c_ast.ID):
+                raise Refused("summary: an assignment to a non-variable")
+            sc, n = look(e.lvalue.name), e.lvalue.name
+            v = ex(e.rvalue)
+            if e.op != "=":
+                op = e.op[:-1]
+                v = ex(c_ast.BinaryOp(op, c_ast.Constant("int", str(sc[n])) if sc[n] >= 0 else c_ast.UnaryOp("-", c_ast.Constant("int", str(-sc[n]))), c_ast.Constant("int", str(v)) if v >= 0 else c_ast.UnaryOp("-", c_ast.Constant("int", str(-v)))))
+            sc[n] = fit(v, types[n])
+            return sc[n]
+        raise Refused(f"summary: {type(e).__name__}")
+
+    def st(s):
+        if s is None or isinstance(s, c_ast.EmptyStatement):
+            return
+        if isinstance(s, c_ast.Compound):
+            env.append({})
+            try:
+                for x in s.block_items or []:
+                    st(x)
+            finally:
+                env.pop()
+            return
+        if isinstance(s, c_ast.Decl):
+            t = type_of(s.type)
+            if t[0] != "i":
+                raise Refused("summary: a local that isn't an integer")
+            types[s.name] = t
+            if s.init is None:
+                raise Refused("summary: a local read before it is written")
+            env[-1][s.name] = fit(ex(s.init), t)
+            return
+        if isinstance(s, c_ast.Return):
+            raise Ret(None if s.expr is None else fit(ex(s.expr), rt))
+        if isinstance(s, c_ast.If):
+            st(s.iftrue if ex(s.cond) else s.iffalse)
+            return
+        if isinstance(s, (c_ast.While, c_ast.DoWhile, c_ast.For)):
+            if isinstance(s, c_ast.For) and s.init is not None:
+                if isinstance(s.init, c_ast.DeclList):
+                    for d in s.init.decls:
+                        st(d)
+                else:
+                    ex(s.init)
+            first = isinstance(s, c_ast.DoWhile)
+            while first or s.cond is None or ex(s.cond):
+                first = False
+                try:
+                    st(s.stmt)
+                except Brk:
+                    break
+                except Cont:
+                    pass
+                if isinstance(s, c_ast.For) and s.next is not None:
+                    ex(s.next)
+            return
+        if isinstance(s, c_ast.Break):
+            raise Brk()
+        if isinstance(s, c_ast.Continue):
+            raise Cont()
+        ex(s)
+
+    try:
+        st(f.body)
+    except Ret as r:
+        if r.v is None:
+            raise NoValue()
+        return r.v
+    raise NoValue()  # (its closing brace: no value)
+
+
+def linear_of(e, params):
+    """e as Σ a·param + c ({param: a}, c), or None."""
+    if isinstance(e, c_ast.Constant):
+        try:
+            return {}, constant(e)[0]
+        except Refused:
+            return None
+    if isinstance(e, c_ast.ID):
+        return ({e.name: 1}, 0) if e.name in params else None
+    if isinstance(e, c_ast.UnaryOp) and e.op == "-":
+        x = linear_of(e.expr, params)
+        return x and ({k: -v for k, v in x[0].items()}, -x[1])
+    if isinstance(e, c_ast.BinaryOp) and e.op in ("+", "-", "*"):
+        a, b = linear_of(e.left, params), linear_of(e.right, params)
+        if a is None or b is None:
+            return None
+        if e.op == "*":
+            if a[0] and b[0]:
+                return None
+            k, x = (a[1], b) if not a[0] else (b[1], a)
+            return {v: k * c for v, c in x[0].items()}, k * x[1]
+        f = 1 if e.op == "+" else -1
+        out = dict(a[0])
+        for v, c in b[0].items():
+            out[v] = out.get(v, 0) + f * c
+        return out, a[1] + f * b[1]
+    return None
+
+
+def summarize(funcs, info):
+    """The recursive functions' summaries: name → [(region, (coefficients, constant))], the region a list of
+    (coefficients, constant, sign) for Σ a·param + c compared with 0."""
+    from fractions import Fraction
+    out = {}
+    # (only a function whose value some call's caller reads past returning it: an argument of a call, a condition, a
+    # variable; a value only returned or dropped says nothing the rank reads, and a summary's checks cost the search)
+    feeds = set()
+
+    def calls_in(e, top):
+        """The calls in e whose value e reads, `top` false where e's own value is only returned or dropped."""
+        if isinstance(e, c_ast.FuncCall) and isinstance(e.name, c_ast.ID):
+            if top:
+                feeds.add(e.name.name)
+            for a in (e.args.exprs if e.args else []):
+                calls_in(a, True)
+            return
+        if isinstance(e, c_ast.BinaryOp) and e.op not in ("&&", "||") or isinstance(e, c_ast.UnaryOp) and e.op in ("-", "+"):
+            for c in e:
+                calls_in(c, top)
+            return
+        if isinstance(e, c_ast.Node):
+            for c in e:
+                calls_in(c, True)
+
+    class Feeds(c_ast.NodeVisitor):
+        def visit_Return(s, n):
+            if n.expr is not None:
+                calls_in(n.expr, False)
+
+        def visit_Compound(s, n):
+            for x in n.block_items or []:
+                if isinstance(x, c_ast.FuncCall):
+                    calls_in(x, False)
+                else:
+                    s.visit(x)
+
+        def visit_FuncCall(s, n):
+            calls_in(n, True)
+    for fn in [*funcs.values(), *[x for x in [info.get("main")] if x is not None]]:
+        Feeds().visit(fn.body)
+    for name in sorted(info["recursive"] & feeds):
+        f = funcs[name]
+        try:
+            ps, rt = Main.sig_of(funcs, name)
+        except Refused:
+            continue
+        if not ps or len(ps) > 2 or rt[0] != "i" or any(t[0] != "i" for _, t in ps):
+            continue
+        params = [x for x, _ in ps]
+        atoms, consts = [], {0}
+
+        class Vis(c_ast.NodeVisitor):
+            def visit_BinaryOp(s, n):
+                if n.op in ("<", "<=", ">", ">=", "==", "!="):
+                    a, b = linear_of(n.left, params), linear_of(n.right, params)
+                    if a is not None and b is not None:
+                        coefs = {v: a[0].get(v, 0) - b[0].get(v, 0) for v in params}
+                        if any(coefs.values()) and (coefs, a[1] - b[1]) not in atoms:
+                            atoms.append((coefs, a[1] - b[1]))
+                s.generic_visit(n)
+
+            def visit_Constant(s, n):
+                try:
+                    consts.add(constant(n)[0])
+                except Refused:
+                    pass
+        Vis().visit(f.body)
+        lo, hi = max(min(consts) - 12, -300), min(max(consts) + 12, 300)
+        axis = list(range(lo, hi + 1))
+        if len(ps) == 2:
+            axis = [x for x in range(-6, 7)] + sorted({c + d for c in consts for d in (-1, 0, 1)} - set(range(-6, 7)))
+            axis = [x for x in axis if -300 <= x <= 300][:30]
+        grid = [(x,) for x in axis] if len(ps) == 1 else [(x, y) for x in axis for y in axis]
+        regions = {}
+        try:
+            for a in grid:
+                try:
+                    v = evaluate(funcs, name, list(a), [20000, 400])
+                except NoValue:
+                    continue
+                except RecursionError:
+                    continue
+                key = tuple((sum(c[0][x] * a[i] for i, x in enumerate(params)) + c[1] > 0) - (sum(c[0][x] * a[i] for i, x in enumerate(params)) + c[1] < 0) for c in atoms)
+                regions.setdefault(key, []).append((a, v))
+        except Refused:
+            continue
+        fits = []
+        for key, pts in sorted(regions.items()):
+            # an affine fit through the first points that fix it, exact on every point
+            k = len(params)
+            basis = []
+            for a, v in pts:
+                cand = basis + [(a, v)]
+                rows = [[Fraction(x) for x in b[0]] + [Fraction(1)] for b in cand]
+                # (independent: the rows' rank is their number)
+                m = [r[:] for r in rows]
+                rank = 0
+                for col in range(k + 1):
+                    piv = next((i for i in range(rank, len(m)) if m[i][col] != 0), None)
+                    if piv is None:
+                        continue
+                    m[rank], m[piv] = m[piv], m[rank]
+                    for i in range(len(m)):
+                        if i != rank and m[i][col] != 0:
+                            fac = m[i][col] / m[rank][col]
+                            m[i] = [x - fac * y for x, y in zip(m[i], m[rank])]
+                    rank += 1
+                if rank == len(cand):
+                    basis = cand
+                if len(basis) == k + 1:
+                    break
+            # least norm solution on the basis: coefficients for the params (0 where the basis doesn't fix one)
+            sol = None
+            for trial in range(1 << (k + 1)):
+                # choose which unknowns are free (0): solve the rest exactly
+                free = [i for i in range(k + 1) if trial >> i & 1]
+                unk = [i for i in range(k + 1) if i not in free]
+                if len(unk) != len(basis):
+                    continue
+                A = [[Fraction(b[0][i]) if i < k else Fraction(1) for i in unk] + [Fraction(b[1])] for b in basis]
+                ok = True
+                for col in range(len(unk)):
+                    piv = next((i for i in range(col, len(A)) if A[i][col] != 0), None)
+                    if piv is None:
+                        ok = False
+                        break
+                    A[col], A[piv] = A[piv], A[col]
+                    for i in range(len(A)):
+                        if i != col and A[i][col] != 0:
+                            fac = A[i][col] / A[col][col]
+                            A[i] = [x - fac * y for x, y in zip(A[i], A[col])]
+                if not ok:
+                    continue
+                x = [Fraction(0)] * (k + 1)
+                for col, i in enumerate(unk):
+                    x[i] = A[col][-1] / A[col][col]
+                if all(c.denominator == 1 for c in x) and all(sum(x[i] * a[i] for i in range(k)) + x[k] == v for a, v in pts):
+                    sol = x
+                    break
+            if sol is not None:
+                fits.append((key, ({params[i]: int(sol[i]) for i in range(k)}, int(sol[k]))))
+        if not fits or len(atoms) > 4:
+            continue
+        # every combination of the atoms' signs a case: its fit, or none (any value); the cases with one fit merged
+        # where they differ in one atom (n < 100 and n = 100 to n <= 100), so the summary has few disjuncts
+        import itertools
+        fit_of = dict(fits)
+        cases = [(tuple(frozenset([sg]) for sg in key), fit_of.get(key)) for key in itertools.product((-1, 0, 1), repeat=len(atoms))]
+        merged = True
+        while merged:
+            merged = False
+            for i, j in itertools.combinations(range(len(cases)), 2):
+                (a, fa), (b, fb) = cases[i], cases[j]
+                diff = [n for n in range(len(atoms)) if a[n] != b[n]]
+                if fa == fb and len(diff) <= 1:
+                    cases[i] = (tuple(x | y for x, y in zip(a, b)), fa)
+                    del cases[j]
+                    merged = True
+                    break
+        out[name] = (params, [([(atoms[n][0], atoms[n][1], sg) for n, sg in enumerate(c) if len(sg) < 3], f) for c, f in cases])
+    return out
+
+
+def summary_sx(summ, args, r):
+    """The summary at the arguments' terms and the value's: the disjunction of its cases, each its atoms' signs and
+    its value, or any value."""
+    params, cases = summ
+
+    def lin(coefs, c):
+        terms = [["*", num(a), x] if a != 1 else x for p, a in coefs.items() if a for x in [args[params.index(p)]]]
+        return ["+", *terms, num(c)] if terms else num(c)
+    SIGN = {frozenset([-1]): "<", frozenset([0]): "=", frozenset([1]): ">", frozenset([-1, 0]): "<=", frozenset([0, 1]): ">="}
+    out = []
+    for region, f in cases:
+        cond = [["or", ["<", lin(rc, rk), "0"], [">", lin(rc, rk), "0"]] if sg == frozenset([-1, 1]) else [SIGN[sg], lin(rc, rk), "0"] for rc, rk, sg in region]
+        if f is not None:
+            cond.append(["=", r, lin(*f)])
+        out.append(conj(*cond) if cond else "true")
+    return "true" if "true" in out else out[0] if len(out) == 1 else ["or", *out]
+
+
 class Main:
     def __init__(self, prog, funcs, info, mode, depth):
         self.p = prog
@@ -462,10 +854,29 @@ class Main:
         self.inst = 0
         self.mode = mode
         self.depth = depth
+        self.cut = 0  # --for nonterminating: a call at a boundary may also return, inlined this many calls deep
+        self.cutting, self.cut_base = False, 0
+        self.frames = {}  # --for nonterminating: a variable per place in the code and depth of calls (below)
+
         self.tops = {}  # a recursive function's own copy: (entry, params, param types)
+        self.summaries = {}  # --for terminates: a recursive function's summary, its value at a call that returns
+        self.returns = {}  # its copy's returns: (entry, the location they reach, its value's variable, its locations)
         self.loops = 0  # loops around the code being translated (with the inlined callers')
         self.ntemp = 0
         self.ub = 0  # guards that rule out undefined behaviour, counted (under && and || they hold only where evaluated)
+
+    def var(self, key, name, kind):
+        """A variable of a function's frame. For nonterminating, one per place and depth of calls: two frames at one
+        depth are never live together (a call's frame ends before the next at its depth starts, and entering a copy
+        forgets every frame), and a value left by the earlier is one an uninitialized variable may hold, so every run
+        of the system is still the program's (fewer variables: deeper inlining stays small). Not for terminates, whose
+        system must have every run (an uninitialized variable any value)."""
+        if self.mode != "nonterminating":
+            return self.p.var(name, kind)
+        k = (len(self.calls), key)
+        if k not in self.frames or self.p.kinds[self.frames[k]] != kind:
+            self.frames[k] = self.p.var(name, kind)
+        return self.frames[k]
 
     def main_top(self):
         """In main's outermost block, outside any loop: run once, alive to the end."""
@@ -542,7 +953,11 @@ class Main:
         return isinstance(e, c_ast.FuncCall) and isinstance(e.name, c_ast.ID) and e.name.name in self.funcs
 
     def sig(self, name):
-        f = self.funcs[name]
+        return Main.sig_of(self.funcs, name)
+
+    @staticmethod
+    def sig_of(funcs, name):
+        f = funcs[name]
         params = [x for x in (f.decl.type.args.params if f.decl.type.args else []) if not isinstance(x, c_ast.Typename)]
         ps = [(x.name, type_of(x.type)) for x in params]
         ps = [(n, ("p", t[1]) if t[0] == "a" else t) for n, t in ps]
@@ -566,18 +981,19 @@ class Main:
         them, each return to one location after it; `target`, the variable its value goes to."""
         p, name = self.p, call.name.name
         cur, call = self.hoist(call, cur, keep=True)
-        if name in self.info["recursive"] and self.calls.count(name) >= self.depth:
+        calls = self.calls[self.cut_base:] if self.cutting else self.calls
+        if name in self.info["recursive"] and calls.count(name) >= (self.cut if self.cutting else self.depth):
             return self.boundary(call, cur, target, target_ty)
         ps, rt = self.sig(name)
         g = []
         vals = self.args(call, ps, g)
         scope, upd = {}, {}
         for (x, t), v in zip(ps, vals):
-            u = p.var(x, t)
+            u = self.var(("param", name, x), x, t)
             self.types[u] = t
             scope[x] = u
             upd[u] = v
-        rv = None if rt == VOID else p.var(f"ret_{name}", rt)
+        rv = None if rt == VOID else self.var(("ret", name), f"ret_{name}", rt)
         if rv:
             self.types[rv] = rt
         body = p.loc()
@@ -622,13 +1038,20 @@ class Main:
         saved = (self.scopes, self.ret, self.ret_ty, self.inst, self.calls, self.loops)
         self.p.inlined += 1
         self.scopes, self.ret, self.ret_ty, self.inst, self.calls, self.loops = [self.scopes[0], scope], rv, rt, self.p.inlined, [name], 0
-        last = self.stmt(self.funcs[name].body, entry, None, None, "lend")
+        # (its returns reach a location of their own, then the end: where a summary's check reads the value)
+        n0, fend = p.nlocs, (p.loc() if name in self.summaries else "lend")
+        last = self.stmt(self.funcs[name].body, entry, None, None, fend)
         p.rule(last, "lend")
+        if fend != "lend":
+            p.rule(fend, "lend")
+            self.returns[name] = (entry, fend, rv, {f"l{k}" for k in range(n0, p.nlocs)})
         self.scopes, self.ret, self.ret_ty, self.inst, self.calls, self.loops = saved
         return self.tops[name]
 
     def boundary(self, call, cur, target, target_ty):
         p, name = self.p, call.name.name
+        if self.cutting:
+            return p.loc()  # (past a returning call's depth: no rule, the run cut there)
         p.features.add(f"recursion ({self.mode})")
         ps, rt = self.sig(name)
         g = []
@@ -636,7 +1059,14 @@ class Main:
         entry, slots, _ = self.top(name)
         p.rule(cur, entry, g, dict(zip(slots, vals)))
         if self.mode != "terminates":
-            return p.loc()  # nothing after a call that is entered and never returns
+            if not self.cut:
+                return p.loc()  # nothing after a call that is entered and never returns
+            # or the call returns within `cut` calls deep, inlined exactly (a deeper call cuts the run)
+            self.cutting, self.cut_base = True, len(self.calls)
+            try:
+                return self.inline(call, cur, target, target_ty)
+            finally:
+                self.cutting = False
         # the call returns: its value any of its type, every global it may write any value of its type
         nxt = p.loc()
         g2, upd = list(g), {}
@@ -656,7 +1086,10 @@ class Main:
                 raise Refused(f"the value of {name}, which returns none")
             if rt[0] != "i":
                 raise Refused("pointers in a recursive program")
-            upd[target] = self.conv(V(p.nondet(rt, g2), rt), target_ty, g2)
+            r = p.nondet(rt, g2)
+            if name in self.summaries:
+                g2.append(summary_sx(self.summaries[name], vals, r))
+            upd[target] = self.conv(V(r, rt), target_ty, g2)
         p.rule(cur, nxt, g2, upd)
         return nxt
 
@@ -718,7 +1151,7 @@ class Main:
                 raise Refused(f"the value of {name}, which returns none")
             self.ntemp += 1
             tn = f"__call{self.ntemp}"
-            u = self.p.var(f"t_{name}", rt)
+            u = self.var(("call", id(c)), f"t_{name}", rt)
             self.types[u] = rt
             self.scopes[-1][tn] = u
             cur = self.inline(self.replace(c, subst, top=True), cur, u, rt)
@@ -1205,7 +1638,7 @@ class Main:
             if isinstance(t, c_ast.ArrayDecl) and any(any(n in sc for sc in self.scopes) for n in self.reads(t.dim)):
                 raise Refused("an array whose size reads a variable")  # (a name shadowing an enum constant)
             return self.decl_array(s, k, cur, zero=static)
-        u = p.var(s.name, k)
+        u = self.var(("decl", id(s)), s.name, k)
         self.types[u] = k
         if self.main_top() and s.name in self.addr_taken:
             self.addressable.add(u)
@@ -1784,8 +2217,25 @@ def translate(text, data_model="LP64", no_overflow=False, mode=None, depth=None)
     if not info["recursive"]:
         return build(main, funcs, globs, info, no_overflow, None, 1)
     if mode == "terminates":
-        return build(main, funcs, globs, info, no_overflow, mode, 0)
-    # the deepest exact inlining that keeps the system small
+        # with the summaries whose checks the system can hold (each function's paths enumerated), the rest left out
+        try:
+            summ = summarize(funcs, {**info, "main": main})
+        except (Refused, RecursionError):
+            summ = {}
+        while True:
+            prog, start = build1(main, funcs, globs, info, no_overflow, mode, 0, None, summ)
+            if not prog.unchecked:
+                if summ:
+                    prog.features.add("call summaries")
+                return prog, start
+            summ = {k: v for k, v in summ.items() if k not in prog.unchecked}
+    # calls inlined one deep, and at a boundary a call either entering its copy or returning within one call deep
+    # (inlined exactly; a deeper call cuts the run): MutualRecursion_1a's g(1) returns before g(2) is entered again.
+    # Without the returning calls where the system would be large, as deep as it stays small.
+    prog, start = build(main, funcs, globs, info, no_overflow, mode, depth or 1, 1)
+    if len(prog.rules) * max(1, len(prog.vars)) <= 400_000:
+        prog.features.add(f"recursion inlined {depth or 1} deep, a call past it returning within 1")
+        return prog, start
     for L in ([depth] if depth else (4, 3, 2, 1)):
         prog, start = build(main, funcs, globs, info, no_overflow, mode, L)
         if L == 1 or len(prog.rules) * max(1, len(prog.vars)) <= 400_000:
@@ -1793,20 +2243,22 @@ def translate(text, data_model="LP64", no_overflow=False, mode=None, depth=None)
             return prog, start
 
 
-def build(main, funcs, globs, info, no_overflow, mode, depth):
+def build(main, funcs, globs, info, no_overflow, mode, depth, cut=0):
     """The system; where pointers name objects, twice: the second pass's dereferences know every object the first
     found (the same objects, numbered the same, the passes being the same code on the same program)."""
-    prog, start = build1(main, funcs, globs, info, no_overflow, mode, depth, None)
+    prog, start = build1(main, funcs, globs, info, no_overflow, mode, depth, None, cut=cut)
     if not prog.cells:
         return prog, start
-    prog2, start2 = build1(main, funcs, globs, info, no_overflow, mode, depth, list(prog.cells))
+    prog2, start2 = build1(main, funcs, globs, info, no_overflow, mode, depth, list(prog.cells), cut=cut)
     assert prog2.cells == prog.cells
     return prog2, start2
 
 
-def build1(main, funcs, globs, info, no_overflow, mode, depth, all_cells):
+def build1(main, funcs, globs, info, no_overflow, mode, depth, all_cells, summaries=None, cut=0):
     prog = Program(no_overflow)
     m = Main(prog, funcs, info, mode, depth)
+    m.summaries = summaries or {}
+    m.cut = cut
     m.all_cells = all_cells
     m.addr_taken = info["addr"]
     m.addressable = set()
@@ -1860,7 +2312,99 @@ def build1(main, funcs, globs, info, no_overflow, mode, depth, all_cells):
     # (with goto a declaration can be jumped past, and a variable read before it is written: the range kept)
     init = {v: prog.nondet(prog.kinds[v] if prog.kinds[v][0] != "i" or rng(prog.kinds[v])[1] < 2 ** 53 or info["goto"] else ("u",), g0) for v in vs}
     prog.rules.insert(0, (start, first, g0, init))
+    prog.unchecked = {k for k in m.summaries if k not in m.returns}
+    for name, (entry, fend, rv, region) in m.returns.items():
+        paths = return_paths(prog, entry, fend, region, {e for e, _, _ in m.tops.values()})
+        if paths is None:
+            prog.unchecked.add(name)
+            continue
+        slots = m.tops[name][1]
+        # a turn back to the entry, the state as it is, where a path returns a value the summary doesn't allow
+        for gs, env in paths:
+            prog.rule(entry, entry, [*gs, neg(summary_sx(m.summaries[name], slots, env.get(rv, rv)))], {})
     return prog, start
+
+
+def return_paths(prog, entry, fend, region, entries, most=64):
+    """The paths of a copy's body from its entry to its returns, each its guards and the values after it, over the
+    entry's values (fresh values renamed): calls into a copy (never returning) and ends of the run left out. A loop is
+    taken whole: the values its rules write any values, then a rule out of it (more paths than the body has, each
+    check then stronger). None where there are more than `most`."""
+    def sub(x, m):
+        return m.get(x, x) if isinstance(x, str) else [sub(y, m) for y in x]
+
+    def frees(x, out):
+        if isinstance(x, str):
+            if FREE.fullmatch(x):
+                out.add(x)
+        else:
+            for y in x:
+                frees(y, out)
+        return out
+    outs = {}
+    for r in prog.rules:
+        if r[0] in region or r[0] == entry:
+            if r[1] in entries or r[1] == "lend" or (r[1] not in region and r[1] != fend):
+                continue
+            outs.setdefault(r[0], []).append(r)
+    # the loops: the strongly connected sets of locations with a cycle
+    comp, stack, idx, low, on = {}, [], {}, {}, set()
+
+    def visit(v):
+        idx[v] = low[v] = len(idx)
+        stack.append(v)
+        on.add(v)
+        for r in outs.get(v, []):
+            w = r[1]
+            if w not in idx:
+                visit(w)
+                low[v] = min(low[v], low[w])
+            elif w in on:
+                low[v] = min(low[v], idx[w])
+        if low[v] == idx[v]:
+            c = set()
+            while True:
+                w = stack.pop()
+                on.discard(w)
+                c.add(w)
+                if w == v:
+                    break
+            for w in c:
+                comp[w] = frozenset(c)
+    try:
+        visit(entry)
+    except RecursionError:
+        return None
+    loop = {v: c for v, c in comp.items() if len(c) > 1 or any(r[1] == v for r in outs.get(v, []))}
+    done = []
+
+    def step(r, gs, env):
+        fresh = {x: prog.new("j") for x in sorted(frees(r[2], frees(list(r[3].values()), set())))}
+        env2 = dict(env)
+        for v, e in r[3].items():
+            env2[v] = sub(sub(e, fresh), env)
+        return gs + [sub(sub(g, fresh), env) for g in r[2]], env2
+
+    def walk(loc, gs, env):
+        if len(done) > most:
+            raise OverflowError()
+        if loc == fend:
+            done.append((gs, env))
+            return
+        if loc in loop:
+            c = loop[loc]
+            written = {v for l in c for r in outs.get(l, []) for v, e in r[3].items() if e != v}
+            env = {**env, **{v: prog.new("j") for v in sorted(written)}}
+            for r in [r for l in sorted(c) for r in outs.get(l, []) if r[1] not in c]:
+                walk(r[1], *step(r, gs, env))
+            return
+        for r in outs.get(loc, []):
+            walk(r[1], *step(r, gs, env))
+    try:
+        walk(entry, [], {})
+    except (OverflowError, RecursionError):
+        return None
+    return done
 
 
 FREE = re.compile(r"[a-z]+_\d+")

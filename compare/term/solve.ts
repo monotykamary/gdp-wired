@@ -23,7 +23,8 @@
 // `--want terminates` or `--want nonterminating`: only that answer is searched for (c2ari.py's two translations of a
 // recursive C program, each exact for one answer).
 import {readFileSync} from 'node:fs'
-import {Unsupported, checkLasso, parseAri, type Step} from './ari.ts'
+import {type Ari, type Lasso, Unsupported, checkLasso, parseAri, type Step} from './ari.ts'
+import {type Facts, deadRules, facts, lift, without} from './facts.ts'
 import {type Built, build, stepOf} from './translate.ts'
 import {components} from './scc.ts'
 import {findRank, showE} from '../../core/cycles.ts'
@@ -40,16 +41,29 @@ const t0 = performance.now(), ms = () => Math.round(performance.now() - t0)
 const say = (o: object) => console.log(JSON.stringify({ms: ms(), ...o}))
 const done = (answer: string, o: object = {}) => { say({stage: 'answer', answer, ...o}); process.exit(0) }
 
-let task, b: Built
+let task, task0: Ari, f: Facts | undefined, b: Built, dead0 = 0
 try {
-  task = parseAri(readFileSync(file, 'utf8'))
+  task = task0 = parseAri(readFileSync(file, 'utf8'))
+  // the facts at locations (facts.ts): the same runs, constants and residues as the task's own, `--no-facts` without
+  f = args.includes('--no-facts') ? undefined : facts(task0)
+  if (f) task = f.task
   b = build(task, file.split('/').pop()!)
+  // and the rules the kernel shows never fire, left out (facts.ts's deadRules)
+  const dead = args.includes('--no-facts') ? new Set<number>() : deadRules(b)
+  if (dead.size) { f = without(task0, f, dead); task = f.task; b = build(task, file.split('/').pop()!) }
+  dead0 = dead.size
 } catch (e) {
   if (e instanceof Unsupported) done('unsupported', {why: e.message})
   done('unsupported', {why: `import failed: ${(e as Error).message.slice(0, 200)}`, error: true})
 }
 const loop = b!.loop
-say({stage: 'import', locations: b!.locs.length, rules: b!.plans.length, slots: b!.slots, fixed: b!.fixed.size, inputs: b!.nInputs, features: b!.features})
+// a lasso as the task's own steps, replayed by ari.ts's evaluator on the task as written
+const replayed = (w: Lasso): string | undefined => {
+  if (!f) return checkLasso(task0!, w)
+  const all = lift(task0!, f, w.start, [...w.stem, ...w.cycle])
+  return checkLasso(task0!, {start: w.start, stem: all.slice(0, w.stem.length), cycle: all.slice(w.stem.length)})
+}
+say({stage: 'import', ...(f ? {facts: {split: f.split, fixed: f.fixed, dropped: f.dropped, dead: dead0, locations: f.task.funs.size}} : {}), locations: b!.locs.length, rules: b!.plans.length, slots: b!.slots, fixed: b!.fixed.size, inputs: b!.nInputs, features: b!.features})
 
 // --- lassos -------------------------------------------------------------------------------------------------------------
 const run = interpret(loopMachine(loop))
@@ -75,7 +89,7 @@ function lassos(until: number): void {
       if (at !== undefined) {
         const steps: Step[] = trace.map(x => stepOf(b!, ps, x.scalars, x.input))
         const w = {start: start.map(String), stem: steps.slice(0, at), cycle: steps.slice(at)}
-        const bad = checkLasso(task!, w)
+        const bad = replayed(w)
         if (!bad) done('nonterminating', {by: 'lasso', stem: w.stem.length, cycle: w.cycle.length, witness: w, runs, turns})
         refusedWitness++
         say({stage: 'lasso', refused: bad})
@@ -126,7 +140,7 @@ function neverEnds(ms: number, tag: string, extend = ms, accel?: number): void {
       const steps: Step[] = []
       for (const input of [...v.lasso.stem, ...v.lasso.cycle]) { steps.push(stepOf(b!, ps, st.scalars, input)); st = run.step(ps, st, input) }
       const start = Array.from({length: b!.slots}, (_, j) => String((ps[`a${j}`] ?? 0) - (ps[`a${j}$n`] ?? 0)))
-      replay = checkLasso(task!, {start, stem: steps.slice(0, v.lasso.stem.length), cycle: steps.slice(v.lasso.stem.length)}) ?? 'confirmed'
+      replay = replayed({start, stem: steps.slice(0, v.lasso.stem.length), cycle: steps.slice(v.lasso.stem.length)}) ?? 'confirmed'
     } catch (e) { replay = `not replayed: ${(e as Error).message.slice(0, 120)}` }
   }
   done('nonterminating', {by: 'recurrent set', kind: v.by, ...(v.cases ? {cases: v.cases.cases.length} : {}), stem: r.stem.length, setSize: size, ...(replay ? {replay} : {}), recur: size < 200_000 ? r : undefined})

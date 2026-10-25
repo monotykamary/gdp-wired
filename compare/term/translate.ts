@@ -70,13 +70,13 @@ export type Plan = {
   features: string[],
 }
 
-const varsOf = (s: Sx, out = new Set<string>()): Set<string> => {
+export const varsOf = (s: Sx, out = new Set<string>()): Set<string> => {
   if (typeof s === 'string') { if (isVar(s)) out.add(s) } else s.forEach((x, i) => (i === 0 && typeof x === 'string' ? undefined : varsOf(x, out)))
   return out
 }
 // A linear form: coefficients by variable and a constant; undefined where a term isn't linear.
 type Lin = {c: Map<string, bigint>, k: bigint}
-function lin(s: Sx): Lin | undefined {
+export function lin(s: Sx): Lin | undefined {
   if (typeof s === 'string') return isNum(s) ? {c: new Map(), k: BigInt(s)} : isVar(s) ? {c: new Map([[s, 1n]]), k: 0n} : undefined
   const [op, ...xs] = s, ls = xs.map(lin)
   if (ls.some(l => !l)) return undefined
@@ -183,7 +183,8 @@ export function planRule(r: Rule, locs: string[], local: number): Plan {
   return {rule: {...r, rhs}, from: locs.indexOf(r.from), to: locs.indexOf(r.to), local, slots, inputs, defs, guard: left, features}
 }
 
-export type Built = {loop: Loop, plans: Plan[], locs: string[], slots: number, fixed: Set<number>, dropped: Set<number>, nInputs: number, features: string[]}
+// `turns`: each rule's turn, the condition it fires on (its location and index, its guard), the assumption's parts.
+export type Built = {loop: Loop, plans: Plan[], locs: string[], slots: number, fixed: Set<number>, dropped: Set<number>, nInputs: number, features: string[], turns: C[]}
 // `starts`: the run starts at any of these locations (scc.ts's components), not only at the entrypoint.
 export function build(t: Ari, name = 'task', opts: {starts?: string[], slice?: boolean} = {}): Built {
   const locs = [...t.funs.keys()], n = Math.max(0, ...t.funs.values())
@@ -274,7 +275,7 @@ export function build(t: Ari, name = 'task', opts: {starts?: string[], slice?: b
     return {go, cond}
   }
   const fires = plans.map(p => and([eqN(V('pc'), K(p.from)), eqN(V('t'), K(p.local))]))
-  const assume = or(plans.map((p, k) => and([fires[k]!, ...p.guard.map(intOf(p).cond)])))
+  const turns = plans.map((p, k) => and([fires[k]!, ...p.guard.map(intOf(p).cond)])), assume = or(turns)
   const body: Record<string, E> = {}
   const chain = (vals: (E | undefined)[], keep: E): E | undefined => {
     if (vals.every(v => v === undefined)) return undefined
@@ -305,7 +306,7 @@ export function build(t: Ari, name = 'task', opts: {starts?: string[], slice?: b
   }
   if (!active.length) loop.while = {op: 'not', x: TRUE}
   if (opts.starts) loop.pre = or(opts.starts.map(l => eqN(V('pc0'), K(locs.indexOf(l)))))
-  return {loop, plans, locs, slots: n, fixed, dropped, nInputs, features: [...new Set(plans.flatMap(p => p.features))].sort()}
+  return {loop, plans, locs, slots: n, fixed, dropped, nInputs, features: [...new Set(plans.flatMap(p => p.features))].sort(), turns}
 }
 
 // A turn of the loop as the task's step: the rule it fires and the values of the rule's other variables (inputs, and
