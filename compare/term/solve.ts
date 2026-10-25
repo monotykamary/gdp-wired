@@ -163,7 +163,9 @@ function neverEnds(ms: number, tag: string, extend = ms, accel?: number, l = loo
 // (the accelerated cycles have 75% of the first search after its runs; a set of theirs that a stem reaches may take
 // until 10 s before the limit: its cycle keeps it, by the closed forms, and a run gets there, so its loop is very likely
 // not to halt, and the rank search would find nothing)
-if (want !== 'terminates') neverEnds(Math.min(ntMs, limit * 1000 - ms() - 1000), 'first', (limit - 10) * 1000 - ms(), 0.75)
+// (the first search on the task's own loop; the second on the rewritten one, where facts.ts rewrote it, its set made
+// again on the task's loop, ontask.ts)
+if (want !== 'terminates') neverEnds(Math.min(ntMs, limit * 1000 - ms() - 1000), 'first', (limit - 10) * 1000 - ms(), 0.75, b0!.loop)
 
 // --- the rank ---------------------------------------------------------------------------------------------------------
 // findRank on a loop, then the kernel again on the loop as translated: every goal of its halting, with the rank and the
@@ -242,9 +244,9 @@ else if (scc && comps.length) {
     done('terminates', {...o, cert: certs.map(c => c()).every(c => c === 'cyclic') ? 'cyclic' : 'usual'})
   }
 } else {
-  // (the task's own loop first, with three quarters of the time; then the rewritten one, its rank proven again on the
-  // task's, with the rest)
-  let out = prove(b0!.loop, Math.max(1000, f ? left() * 0.75 : left()))
+  // (the task's own loop first; where its search ends with time left, the rewritten one, its rank proven again on the
+  // task's)
+  let out = prove(b0!.loop, Math.max(1000, left()))
   if (!out.ok && f && left() > 3000) { const o2 = prove(loop, left(), {rewritten: true}, [], {b: b0!, laws: f.split ? [[]] : factLawSets(b0!, task0!, f)}); if (o2.ok) out = o2 }
   if (out.ok) {
     // the answer as soon as the kernel has checked every tree again; then the certificate, and the answer with it
