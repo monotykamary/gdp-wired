@@ -3,7 +3,31 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.29.0
+
+Measured in one run of the new bar (`bun bar --cand b12965e --base 8b710ba`, `runs/bar/runs/release-0.29.0/REPORT.md`):
+main against 0.28.0's shared baseline (three runs), every task that differs run three more times a side, all on Modal,
+60 s, 2 vCPU. None wrong anywhere. One trusted change set, Lean-first: sums over a map's keys (Sums.lean) and strong
+fairness (Live.lean's `leads_of_lex_sf`, `sleads_sf_soundA`), on `propext`, `Classical.choice` and `Quot.sound`.
+- **CHC-COMP LIA-Lin:** 1,086 (659 sat, 427 unsat) against 0.28.0's 1,040.33; gained 47, 41 of them in every run.
+  Spacer 1,163, Golem 1,154. Clause chains are composed in front of every search, and answers are checked on the
+  original system; interpolants are read off CDCL's refutation DAG.
+- **SV-COMP termination:** 246 against 239 (7 gained, every one in every run). Ultimate Automizer 224.
+- **TIP 2015:** 213 against 205 (8 gained, 7 in every run). Vampire 187 in gen/tip3's batch.
+- **TermComp ITS:** 614 terminating and 538 not on the task's statement, 614 and 542 per component, level with 0.28.0.
+  KoAT2 601, LoAT's default engine 532.
+- **The real-world corpus:** 273 of 311 proven, 29 refuted, 9 unknown, against 253.67, 29 and 28.33; 20 gained, every
+  one in every run, none lost.
+- **Frontier corpora:** round 1 90 of 92, round 2 31 of 47, every broken variant refused.
+- **The 332 step goals:** all proven.
+- **Lean:** 48 of 48 sampled recurrent sets check again.
+
+These leads are measurements in this harness, ours to confirm under each competition's own setup. The suites: by
+default 224 jobs, none failed (5,417.8 s of job time); `--usual` 224, none failed (4,724.2 s). The 1-vCPU tests: none
+failed. The library (`core/` and `kernel/`, tests excluded) is 2,326,252 bytes against 0.28.0's 2,201,135. The bar
+itself (gates/bar.ts) is new: one command for every benchmark and corpus, a shared baseline per base commit, reruns
+of what differs, quick dev sets and one report. This run took 2,638 s wall and $21.18 billed, including 0.28.0's
+baseline.
 
 core/data.ts's two slowdowns since 0.27.0 (perf/data-budget), each at its cause. Nothing trusted changed
 (`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/*.lean`). Beside main f2e468d, the base this
