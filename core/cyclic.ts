@@ -1213,11 +1213,18 @@ const none = (): CyclicVerdict => ({proven: false, checked: false, node: '', goa
 // translated) searched, within `until` where it is given; with why the translation wasn't proven.
 // A translation within the certificate's budget (GDP_CERT_MS) or four times the usual proof's time, whichever is longer
 // (`translateMs`): one that will fail is cut there, not at its goals' own bounds.
-export const translateMs = (usualMs = 0): number => Math.max(certMs(), 4 * usualMs)
-function cyclicOf(translated: Translated | undefined, run: () => CyclicVerdict, st: TStats, until?: number, usualMs?: number): {out: CyclicVerdict, how: string, why?: string} {
+// `floor`: the least a translation is given (a step law's certificate passes its own, stepCertFloor).
+export const translateMs = (usualMs = 0, floor = certMs()): number => Math.max(floor, 4 * usualMs)
+// A step law's: four times its usual proof's time, at least a quarter second (GDP_CERT_STEP_MS). Its usual trees are
+// the certificate where the translation isn't made, checked by kernel.ts as every certificate is, so a translation that
+// will fail costs at most that. (With GDP_CERT_MS's 10 s as the floor, from 0.19.0, every step law whose translation
+// fails waited it out, and twice from 0.20.0, together and then alone: a statechart's 19 step laws, proven in 0.35 s,
+// took 55 s to certify, every one of the failed laws' certificates its usual trees in the end.)
+export const stepCertFloor = (): number => Number(env.GDP_CERT_STEP_MS ?? 250)
+function cyclicOf(translated: Translated | undefined, run: () => CyclicVerdict, st: TStats, until?: number, usualMs?: number, floor?: number): {out: CyclicVerdict, how: string, why?: string} {
   let how = 'searched', why: string | undefined
   if (translated) {
-    const r = withDeadline(clock() + translateMs(usualMs), () => translated(st))
+    const r = withDeadline(clock() + translateMs(usualMs, floor), () => translated(st))
     if (r.verdict?.proven && r.verdict.checked) return {out: r.verdict, how: 'translated'}
     how = 'fallback'; why = r.why ?? (r.verdict && !r.verdict.proven ? `${r.verdict.goal}: ${r.verdict.stuck}` : r.verdict?.why)
   }
@@ -1256,10 +1263,10 @@ export const certMs = () => Number(env.GDP_CERT_MS ?? 10_000)
 // A proof of a kind no cyclic instance covers, or whose cyclic proof wasn't made, counted (`cyclic: {..., uncovered:
 // true, why}`): its certificate the usual trees.
 export const uncovered = (kind: string, name: string, why: string): void => cycLog({kind, name, uncovered: true, why})
-export function certCyclic(kind: string, name: string, translated: Translated | undefined, run0: (() => CyclicVerdict) | undefined, usualMs?: number): {checked: boolean, proof?: Cyclic, why: string} {
+export function certCyclic(kind: string, name: string, translated: Translated | undefined, run0: (() => CyclicVerdict) | undefined, usualMs?: number, floor?: number): {checked: boolean, proof?: Cyclic, why: string} {
   for (const key of Object.keys(cyclicProf)) delete cyclicProf[key]
   const st = tstats(), t0 = performance.now(), until = clock() + certMs()
-  const {out, how, why} = cyclicOf(translated, (translated && !certSearch() ? undefined : run0) ?? none, st, until, usualMs)
+  const {out, how, why} = cyclicOf(translated, (translated && !certSearch() ? undefined : run0) ?? none, st, until, usualMs, floor)
   const checked = out.proven && out.checked
   cycLog({kind, name, cert: true, usual: true, cyclic: checked, ms: Math.round(performance.now() - t0), ...(usualMs === undefined ? {} : {usualMs: Math.round(usualMs)}), route: how, ...(how !== 'searched' ? st : {}), ...(why ? {fellBack: why} : {}), ...profLine()})
   const late = clock() > until ? ` within ${certMs()} ms` : ''

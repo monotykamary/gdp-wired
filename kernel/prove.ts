@@ -11,7 +11,7 @@
 import {type C, type E, type Law, type Machine, walkOnce} from '../core/machine.ts'
 import {type Lin, type Step, add, costs, env, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
 import {checkRefutation} from '../core/check.ts'
-import {allowNode, allowTranslated, certCyclic, certOn, certSearch, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, loopNodes, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
+import {allowNode, allowTranslated, certCyclic, certOn, certSearch, stepCertFloor, translateMs, closingInsts, crossCyclic, type CyclicVerdict, cyclicOn, cycLog, hasQuantified, loopNodes, machineNodes, proveCyclic, reqTS, searchedStepNodes, skMachine, timedKind, withWitness, translatedProof, uncovered, uncoveredWhy} from '../core/cyclic.ts'
 import type {TStats} from '../core/translate.ts'
 import type {Cyclic} from './cyclic.ts'
 import {proveSome, someLaws} from '../core/exists.ts'
@@ -1364,7 +1364,10 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
   const instances = perStep[stepLaws[0]?.name ?? ''] ?? {}
   const trees: Record<string, Tree> = {}
   let nodes = base.nodes, leaves = base.leaves
+  // (each step law's own time, its share of the usual proof: what its certificate alone may take, stepCertFloor)
+  const ownMs: Record<string, number> = {}
   for (const sl of stepLaws) for (const goal of stepLawObligations(m, laws, perStep[sl.name] ?? instances, sl)) {
+    const g0 = performance.now()
     const full = perStep[sl.name] ?? instances, few = triggered(plain, laws, full, inst => stepLawObligations(m, laws, inst, sl), [sl.forall, ...(sl.keys ?? [])].flatMap(k => (k ? [k] : [])))
     let out = sameInstances(few, full) ? grow(goal) : grow(stepLawObligations(m, laws, few, sl).find(g => g.name === goal.name) ?? goal)
     if ('tree' in out && !sameInstances(few, full)) perStep[sl.name] = few
@@ -1387,6 +1390,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
     trees[goal.name] = out.tree
     nodes += out.nodes
     leaves += countLeaves(out.tree)
+    ownMs[sl.name] = (ownMs[sl.name] ?? 0) + performance.now() - g0
   }
   // (every step law proven: the laws' certificate, or their check, as proveLaws makes it; its time not the step laws')
   const r0 = performance.now()
@@ -1415,11 +1419,18 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
     if (cyclicOn()) crossCyclic('step law', m.name, true, undefined, usualMs, translatedOf(all))
     // (where the step laws' proof together isn't made, each step law's alone: one the translation misses leaves the
     // others theirs; and the usual trees, unchecked where the certificate was to be the verdict, are checked)
-    const together = certOn() ? certCyclic('step law', m.name, translatedOf(all), undefined, usualMs) : undefined
+    // (a certificate's translation is worth at most a few times the usual proof, which is an equally checked
+    // certificate: the step laws together within translateMs of their usual time, then each alone within its share,
+    // all of them within translateMs again; past that a step law's certificate is its usual trees)
+    const floor = stepCertFloor(), owned = Object.values(ownMs).reduce((a, b) => a + b, 0)
+    const together = certOn() ? certCyclic('step law', m.name, translatedOf(all), undefined, usualMs, floor) : undefined
     if (together && !together.checked) {
       if (byCert) out.checked = checkStepLaws(m, laws, stepLaws, proof)
+      const end = clock() + translateMs(usualMs, floor)
       for (const x of all) {
-        const c = all.length > 1 ? certCyclic('step law', m.name, translatedOf([x]), undefined, usualMs) : together
+        const share = owned > 0 ? usualMs * (ownMs[x.sl.name] ?? 0) / owned : usualMs / all.length
+        const c = all.length === 1 ? together : clock() < end ? withDeadline(end, () => certCyclic('step law', m.name, translatedOf([x]), undefined, share, floor))
+          : {checked: false, why: `the step laws' certificates past ${Math.round(translateMs(usualMs, floor))} ms (their usual trees)`}
         if (!c.checked) miss(x.sl, c.why)
       }
     }

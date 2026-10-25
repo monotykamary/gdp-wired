@@ -13,7 +13,7 @@ import {type C, type E, walk} from './machine.ts'
 import {type Lin, type Step, add, costs, env, refuteFast, scale, solve} from './solver.ts'
 import {checkRefutation} from './check.ts'
 import {type Goal, type Path, type Subst, type Tree, canon, canonFlip, columnTerm, factorsOf, isCell, isMonomial, leafConstraints, leafConstraintsReusing, linear, substE, truth, withProducts} from '../kernel/kernel.ts'
-import {cellProducts, clock, grow, leafRowsOf, parseKey} from '../kernel/prove.ts'
+import {cellProducts, clock, grow, leafRowsOf, parseKey, withinDeadline} from '../kernel/prove.ts'
 import {Reader, times} from '../kernel/reader.ts'
 
 // How the usual goal's names read in the node's: `s`, a substitution of its variables and maps (which builds the node's
@@ -124,7 +124,9 @@ function regrow(whole: Goal, wp: Path, until: number): Tree | undefined {
 // key W equal to a key K the node's conclusion reads its map at, that conclusion reads at K what the usual one reads at
 // W (a write's reads at its key read at the key read, as the step's facts have them), so the usual cells at W are read
 // as the cells at K (`readsFirst` decides the two equal or apart first).
-export function translate(part: Goal, whole: Goal, tree: Tree, ren0: Renamer, st: TStats, until: number, pp: Path = new Map(), wp: Path = new Map(), swaps: [string, string][] = []): Tree | undefined {
+export function translate(part: Goal, whole: Goal, tree: Tree, ren0: Renamer, st: TStats, until0: number, pp: Path = new Map(), wp: Path = new Map(), swaps: [string, string][] = []): Tree | undefined {
+  // (within the deadline it runs in too: a certificate's translation, core/cyclic.ts's translateMs)
+  const until = withinDeadline(until0)
   const ren: Renamer = swaps.length ? (lin, p) => {
     const out: Lin = {}
     for (const key in lin) {
@@ -370,7 +372,8 @@ export function close(g: Goal, wp: Path, st: TStats, until: number): Tree | unde
 // one where both are decided by whichever of the two hypotheses is then false. A case none of that refutes is grown on
 // the goal at its path.
 // `nUses`: the uses' hypotheses, just before the conclusion refuted (mainGoal's order).
-export function carry(g: Goal, nFacts: number, nUses: number, st: TStats, until: number): Tree | undefined {
+export function carry(g: Goal, nFacts: number, nUses: number, st: TStats, until0: number): Tree | undefined {
+  const until = withinDeadline(until0)
   const last = g.hyps.length - 1, uses = g.hyps.slice(last - nUses, last), facts = g.hyps.slice(last - nUses - nFacts, last - nUses)
   const law = (g.hyps[last] as Extract<C, {op: 'not'}>).x
   const parts = uses.map(u => (u.op === 'or' && u.xs.length === 2 && u.xs[0]!.op === 'not' ? {guard: u.xs[0]!.x, concl: u.xs[1]!} : {guard: undefined, concl: u}))
