@@ -15,10 +15,10 @@
 //
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
-import {type C, type E, type Fn, argsKey, type Law, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
+import {type C, type E, type Fn, argsKey, type Law, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch} from './watch.ts'
-import {someHolds, substVars} from './exists.ts'
-import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations, substC} from '../kernel/kernel.ts'
+import {someHolds, substVars, substVarsE} from './exists.ts'
+import {type Fold, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, checkRecur, foldObligations, loopObligations, substC, sumMachine} from '../kernel/kernel.ts'
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, proveLaws, proveLiveness, proveStepLaws, usualProof, withDeadline} from '../kernel/prove.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
@@ -778,6 +778,29 @@ function pulledOut(cs: Cond[], what: string, prefix?: string): {cs: C[], vars: s
   if (stray.length) throw new Error(`${what}: ${stray[0]} is bound by an exists(...) whose condition was taken apart; keep it whole (and, or, not, implies)`)
   return {cs: out, vars, bodies: bs.map(b => ({vars: b.vars.map(n => (prefix === undefined ? n : (ren[n] as {name: string}).name)), body: r(b.body)}))}
 }
+// --- sums over a map's keys ------------------------------------------------------------------------------------------
+// M.sum() is the sum of M's cells over every key; M.sum(cell => ...) the sum of a term of the cell (a count where a
+// condition holds: when(c, 1, 0); a record map's field where another field says so). It reads as a state variable
+// (sum$M, or sum$M$<id> for a term) that the kernel keeps exact (kernel.ts's sumMachine, Sums.lean): every map the term
+// reads starts where the term is 0, so the sum starts at 0 and each step moves it by the term's change at the keys it
+// writes. The name is the sum's: the same term over the same map is the same variable in every rule.
+const sumDecls = new Map<string, Sum>()
+export const declaredSum = (name: string): Sum | undefined => sumDecls.get(name)
+const fnv = (text: string): string => { let h = 0x811c9dc5; for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193) >>> 0; return h.toString(36) }
+function sumOver(map: string, at: (key: Term) => TermLike, plain: boolean): Term {
+  const probe = termOf(at(v('k$sum$'))), id = plain ? `sum$${map}` : `sum$${map}$${fnv(JSON.stringify(probe))}`, key = `${id}$k`
+  const term = substVarsE(probe, {'k$sum$': {op: 'var', name: key}}), had = sumDecls.get(id)
+  if (had && JSON.stringify(had.term) !== JSON.stringify(term)) throw new Error(`${id}: two sums by one name`)
+  sumDecls.set(id, {key, term})
+  return v(id)
+}
+// The sums a set of terms reads (by name), declared.
+export const sumsIn = (ts: unknown[], more: Iterable<string> = []): Record<string, Sum> | undefined => {
+  if (!sumDecls.size) return undefined
+  const names = new Set([...more, ...[...JSON.stringify(ts).matchAll(/"op":"var","name":"(sum\$[^"]+)"/g)].map(x2 => x2[1]!)].filter(n => sumDecls.has(n)))
+  return names.size ? Object.fromEntries([...names].sort().map(n => [n, sumDecls.get(n)!])) : undefined
+}
+
 // A map from naturals to naturals, every cell starting at `init`. One write per map per step.
 export class MapRef {
   private readonly cells: Scope['maps'][string] | undefined
@@ -797,6 +820,8 @@ export class MapRef {
   // carries), and the set's size, the sum of its cells there (exact, given `within`).
   within(n: number): Cond { naturalConst(n); return everyKey(k => k.atLeast(n).implies(this.at(k).eq(0))) }
   sizeBelow(n: number): Term { naturalConst(n); return sum(0, ...Array.from({length: n}, (_, key) => this.at(key))) }
+  // The sum over every key of the cells, or of a term of the cell (the map starts where it is 0): exact, unbounded.
+  sum(of?: (cell: Term) => TermLike): Term { return sumOver(this.name, key => (of ? of(this.at(key)) : this.at(key)), !of) }
 }
 
 // A list: a map's positions 0 .. len − 1 and its length (the state variable <name>_len), every cell past the end 0
@@ -877,6 +902,8 @@ export class CellsRef<V> {
   each(f: (key: Term) => Writes<V>): PartsWrite {
     return {parts: Object.fromEntries(this.kind.vars(this.name).map(part => [part, this.map(part).each(k => partsOf(this.kind, this.name, f(k))[part]!)]))}
   }
+  // The sum over every key of a term of the value there (the start value's term is 0): Refunds.sum(r => when(r.ok, r.amount, 0)).
+  sum(of: (value: V) => TermLike): Term { return sumOver(this.name, key => of(this.at(key)), false) }
 }
 
 // A list whose items are values of a kind: one list per variable of the kind, all of one length <name>_len, each cell
@@ -1505,6 +1532,9 @@ type Spec = {
   // The divisors the rule's laws, step laws, liveness and decisions divide by (modBy, divBy): the machine declares
   // div$k and mod$k for each, beside those its own terms read. Shared by every rule made from this one.
   arith?: Set<number>
+  // The sums over a map's keys the rule's laws, step laws and liveness read (M.sum()): the machine declares each,
+  // beside those its own terms read. Shared by every rule made from this one.
+  sumsRead?: Set<string>
   flags: ((env: never) => Record<string, Cond>)[]
   step?: (env: never) => Record<string, TermLike | MapWrite | undefined>
   pre: ((p: never) => Cond)[]
@@ -1535,6 +1565,22 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
       if (!(v2.proven && v2.checked)) throw new Unproven(`${n}'s fold lemmas`, v2)
     }
     return this.with({fns: (this.spec.fns ?? []).map(([n, d]) => [n, fns[n] ?? d] as [string, FnDef]), lists2: lists})
+  }
+
+  // The same rule with the sum of every map its step writes (each a map of the state starting at 0 everywhere, whose sum
+  // the kernel keeps exact: kernel.ts's sumMachine), beside the sums it reads: what the search proposes laws over where
+  // a law is about the cells of a map against a total (a balance at most the supply). Undefined where there is none.
+  withMapSums(): this | undefined {
+    const m = this.machine
+    if (m.history) return undefined
+    const have = new Set(Object.keys(m.sums ?? {})), more = new Set(this.spec.sumsRead ?? [])
+    for (const [map, init] of Object.entries(m.maps ?? {})) {
+      if (init !== 0 || !m.step.maps?.[map] || (m.inputMaps ?? []).includes(map)) continue
+      const name = (new MapRef(map, 0).sum().e as {name: string}).name
+      if (have.has(name)) continue
+      try { sumMachine({...m, sums: {...m.sums, ...sumsIn([], [name])}}); more.add(name) } catch { /* a sum the kernel takes no cover of */ }
+    }
+    return more.size > (this.spec.sumsRead?.size ?? 0) ? this.with({sumsRead: more}) : undefined
   }
 
   params<K extends Kinds>(kinds: K): Rule<P & ValuesOf<K>, I, S, M, F, R, Su, Q> { return this.with({params: [...this.spec.params, ...Object.entries(kinds)]}) }
@@ -1682,7 +1728,11 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     return {...law, some: vars, ...(Object.keys(witness).length ? {witness} : {})}
   }
   // What a law, a step law or a decision divides by, noted so the machine declares it (Spec.arith).
-  private divides<T extends object>(x: T): T { if (this.spec.arith) divisorsIn([x as never], this.spec.arith); return x }
+  private divides<T extends object>(x: T): T {
+    if (this.spec.arith) divisorsIn([x as never], this.spec.arith)
+    for (const n of Object.keys(sumsIn([x]) ?? {})) (this.spec.sumsRead ??= new Set()).add(n)
+    return x
+  }
   // Divide by these too (inferLaws' candidates): the machine declares div$k and mod$k for each.
   dividesBy(...ks: number[]): this { for (const k of ks) (this.spec.arith ??= new Set()).add(divisor(k, 'dividesBy')); return this }
   // The same rule dividing by these too, its own divisors left as they are.
@@ -1752,12 +1802,17 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   //   batches.leadsTo('every batch is done', {from: () => yes, to: ({waiting, items}) => waiting.eq(0).and(items.eq(0)),
   //     rank: ({waiting, items}) => [waiting, items], helpful: [{when: ({items}) => items.gt(0), request: () => ({op: 1})}, {when: ({items}) => items.eq(0), request: () => ({op: 0})}]})
   // With no rank, proveLeadsTo finds one from the rule's runs (core/cycles.ts's findLeadsTo).
+  // `fairness: 'strong'`: each helpful request taken in its region infinitely often wherever it is allowed there
+  // infinitely often (an event that keeps coming back is taken). Its regions need not stay; a helpful request may move to
+  // the region of one of a higher `levels` (found where left out) instead of reaching `to` or lowering the rank:
+  //   job.leadsTo('every job ends', {..., fairness: 'strong', helpful: [{when: waiting, request: fetch}, {when: active, request: fail}]})
   leadsTo(name: string, spec: {from: (env: P & S & M & Su) => Cond, to: (env: P & S & M & Su) => Cond, rank?: (env: P & S & M & Su) => TermLike | TermLike[],
-    helpful: ((env: P & S & M & Su) => Record<string, TermLike>) | {when?: (env: P & S & M & Su) => Cond, request: (env: P & S & M & Su) => Record<string, TermLike>}[]}): Liveness {
+    helpful: ((env: P & S & M & Su) => Record<string, TermLike>) | {when?: (env: P & S & M & Su) => Cond, request: (env: P & S & M & Su) => Record<string, TermLike>}[],
+    fairness?: 'weak' | 'strong', levels?: number[]}): Liveness {
     const env = this.env({flags: false, inputs: false, queries: false}) as never
     const req = (f: (env: never) => Record<string, TermLike>) => Object.fromEntries(Object.entries(f(env)).map(([n, t]) => [n, termOf(t)]))
     const r = spec.rank ? spec.rank(env) : [], rank = Array.isArray(r) ? r.map(termOf) : termOf(r)
-    const base = {name, from: spec.from(env).c, to: spec.to(env).c, rank}
+    const base = {name, from: spec.from(env).c, to: spec.to(env).c, rank, ...(spec.fairness === 'strong' ? {fairness: 'strong' as const} : {}), ...(spec.levels ? {levels: spec.levels} : {})}
     return this.divides(typeof spec.helpful === 'function' ? {...base, request: req(spec.helpful)} : {...base, helpful: spec.helpful.map(h => ({...(h.when ? {when: h.when(env).c} : {}), request: req(h.request)}))})
   }
 
@@ -1955,7 +2010,9 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
         ...(s.prune ? {prune: {order: pruneOrder![0]!, after: termOf(s.prune.after(pEnv as never))}} : {}),
       }
     }
-    return withArithmetic(m, [], s.arith ?? [])
+    // (each sum a state variable from 0 the step never sets: sumMachine sets it, exact)
+    const sums = sumsIn(machineTerms(m), s.sumsRead ?? [])
+    return withArithmetic(sums ? {...m, state: {...m.state, ...Object.fromEntries(Object.keys(sums).map(n => [n, {op: 'const', value: 0} as E]))}, sums} : m, [], s.arith ?? [])
   }
 
   // --- the builders checked ------------------------------------------------------------------------------------------
@@ -2204,7 +2261,7 @@ const expandParts = <T extends Record<string, unknown>>(updates: T): T => {
 }
 const encode = (kinds: [string, Kind<unknown>][], values: Record<string, Raw>): Record<string, number> => Object.assign({}, ...kinds.map(([n, k]) => k.encode(n, values[n])))
 
-export const rule = (name: string): Rule => new Rule({name, params: [], inputs: [], state: [], maps: [], flags: [], pre: [], assume: [], sums: [], queries: [], arith: new Set()})
+export const rule = (name: string): Rule => new Rule({name, params: [], inputs: [], state: [], maps: [], flags: [], pre: [], assume: [], sums: [], queries: [], arith: new Set(), sumsRead: new Set()})
 
 // The values a rule's callbacks receive, for helpers written outside the chain (a decision's condition, a shared law):
 // `(env: DecisionEnv<typeof r>) => ...`.
@@ -2596,6 +2653,13 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   if (ms < 500) return v
   const inf = inferLaws(rule, [...fresh.map(f => f.law), ...laws], stepLaws, {ms, ...(rule === r && !fresh.length ? {first: v} : {})})
   if (!(inf.proven && inf.checked)) {
+    // The sum of each map the step writes (withMapSums): the search again over the rule with them, within half of what
+    // is left (at most 20 s), where a law of cells against a total needs one (no ERC20 balance past the supply).
+    const summed = rule.withMapSums()
+    if (summed && until - clock() - tail > 1000) {
+      const inf2 = inferLaws(summed, [...fresh.map(f => f.law), ...laws], stepLaws, {ms: Math.min(20_000, (until - clock() - tail) / 2)})
+      if (inf2.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; return {...verdict, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}} }
+    }
     // (a step law's ghost: at most 10 s of it, as its goals cost more than the laws')
     const deep = bounded(Math.max(0, Math.min(until - clock(), ghosted && !laws.length ? 10_000 : Infinity)), Math.max(1, reached))
     if (deep) return refutedBy(deep)
@@ -2617,6 +2681,18 @@ export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, la
     if (!(f.proven && f.checked) && until - clock() > 500) {
       const g = leadsByTerms(r.machine, withKinds(r, laws), l, {...draws, rule: r, state: (rand, bound) => Object.assign({}, ...r.kindsOfState().map(([n, kd]) => kd.random(n, rand, bound)))}, {ms: until - clock()})
       if (g.proven && g.checked) f = g
+    }
+    // The sum of each map the step writes (withMapSums), where neither found a rank: both again over the rule with them,
+    // in the time left (a refund that needs the escrow's balance to cover every deposit).
+    const summed = !(f.proven && f.checked) && until - clock() > 1000 ? r.withMapSums() : undefined
+    if (summed) {
+      const sd = {params: (rand: Rand, bound: number) => summed.randomParams(rand, bound), input: (rand: Rand, bound: number, ps: Record<string, number>) => summed.randomInput(rand, bound, ps)}
+      const f2 = findLeadsTo(summed.machine, withKinds(summed, laws), l, {...sd, rule: summed}, {ms: until - clock()})
+      if (f2.proven && f2.checked) f = f2
+      else if (until - clock() > 500) {
+        const g2 = leadsByTerms(summed.machine, withKinds(summed, laws), l, {...sd, rule: summed, state: (rand, bound) => Object.assign({}, ...summed.kindsOfState().map(([n, kd]) => kd.random(n, rand, bound)))}, {ms: until - clock()})
+        if (g2.proven && g2.checked) f = g2
+      }
     }
     return {proven: f.proven, checked: f.checked, ...(f.goal ? {goal: f.goal, stuck: f.stuck} : {}), ...(f.witness ? {witness: f.witness} : {}), ...(f.why ? {why: f.why} : {}),
       ...(f.found ? {found: {rank: f.found.rank, ...(f.laws?.length ? {laws: f.laws.map((law, i) => ({law, text: f.found!.laws[i] ?? law.name}))} : {})}} : {})}

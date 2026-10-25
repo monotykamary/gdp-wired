@@ -10,7 +10,7 @@
 // Each consumer either agrees or refuses with an error; undefined, NaN or a silent different answer fails.
 import {expect, test} from 'bun:test'
 import {type C, type E, compileFunction, conditionCases, interpret, loadJs} from './machine.ts'
-import {type Case, C_OPS, CELLS, E_OPS, QC_OPS, QE_OPS, VARS, inlineC, inlineE, machineOf, qcoverage, qgoals, qmachineOf, qreference, qtampered, randomCase, randomQCase, recurCases, recurCasesCases, recurReference, reference, ringCase, ringLowers, ringReference, seen, stateOf, tamperedMeasures, kindAnswer, kindCases, kindReference} from './conformance.ts'
+import {type Case, C_OPS, CELLS, E_OPS, QC_OPS, QE_OPS, VARS, inlineC, inlineE, machineOf, qcoverage, qgoals, qmachineOf, qreference, qtampered, randomCase, randomQCase, recurCases, recurCasesCases, recurReference, reference, ringCase, ringLowers, ringReference, seen, stateOf, tamperedMeasures, kindAnswer, kindCases, kindReference, fairAnswer, fairCases, ladderReference, sumAnswer, sumCases, sumReference} from './conformance.ts'
 import {type Termination, checkMeasures} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
 import {type Loop, type Recur, check, checkQTree, checkRecur, recurGoal} from '../kernel/kernel.ts'
@@ -232,3 +232,40 @@ test('rationals: every consumer of rational terms agrees with the reference; tam
   for (const op of [...QE_OPS, ...QC_OPS]) expect(seen[`q${op}`] ?? 0, op).toBeGreaterThan(0)
   console.log(`rationals: ${proven} goals proven and checked, ${models} models found and confirmed, ${tampered} tampered trees refused`)
 })
+
+// Sums over a map's keys (kernel.ts's sumMachine): every certificate found is accepted and true on the reference's
+// runs (each sum the sum of its term over the cells, the laws at every cell and past them); the cover without a key, a
+// term not 0 at the start or read at another key, twice the term, and a key past the cover written are refused (any
+// accepted holds on the reference's runs). lean-kernel/conformance.ts --sums writes the same cases for Sums.lean.
+test('sums: found certificates accepted and true, tampered ones refused', () => {
+  const counts: Record<string, {n: number, accepted: number}> = {}
+  for (const c of sumCases(Math.round(18 * scale))) {
+    for (const t of [{what: 'found', m: c.m, covers: undefined as Record<string, E[]> | undefined}, ...c.tampers]) {
+      const ok = sumAnswer(t.m, c.laws, c.proof, t.covers), at = (counts[t.what] ??= {n: 0, accepted: 0})
+      at.n++
+      if (ok) at.accepted++
+      if (ok) expect(sumReference(t.m, c.laws), `${c.m.name}: ${t.what}`).toBe(true)
+      if (t.what === 'found') expect(ok, c.m.name).toBe(true)
+      else expect(ok, `${c.m.name}: ${t.what}`).toBe(false)
+    }
+  }
+  for (const what of ['found', 'the cover without its last key', 'M starting at 1', 'the term read at the key + 1', 'twice the term', 'a key past the cover written']) expect(counts[what]?.n ?? 0, what).toBeGreaterThan(0)
+  console.log(`sums: ${Object.entries(counts).map(([w, x]) => `${w} ${x.accepted}/${x.n} accepted`).join('; ')}`)
+}, 600_000)
+
+// Strong fairness (kernel.ts's livenessParts under fairness: 'strong'): every certificate found is accepted and its
+// claim true on the reference's runs; the levels reversed or all equal, the weak fairness parts and a helpful request
+// left out are refused. lean-kernel/conformance.ts --fair writes the same cases for Live.lean.
+test('strong fairness: found certificates accepted and true, tampered ones refused', () => {
+  const counts: Record<string, {n: number, accepted: number}> = {}
+  for (const c of fairCases(Math.round(8 * scale))) {
+    for (const t of [{what: 'found', l: c.l}, ...c.tampers]) {
+      const ok = fairAnswer(c.m, c.laws, t.l, c.proof), at = (counts[t.what] ??= {n: 0, accepted: 0})
+      at.n++
+      if (ok) at.accepted++
+      if (t.what === 'found') { expect(ok, c.m.name).toBe(true); expect(ladderReference(c.m, c.n), c.m.name).toBe(true) }
+      else expect(ok, `${c.m.name}: ${t.what}`).toBe(false)
+    }
+  }
+  console.log(`strong fairness: ${Object.entries(counts).map(([w, x]) => `${w} ${x.accepted}/${x.n} accepted`).join('; ')}`)
+}, 600_000)
