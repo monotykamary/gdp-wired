@@ -136,6 +136,8 @@ const joinPrime = env.GDP_JOIN_PRIME !== '0'
 // queries a cube's generalization may ask.
 const joinDown = env.GDP_JOIN_DOWN !== '0', joinDownQueries = 24
 // GDP_INFER_HALVES=0: a cell form chosen without its equality's other half (below).
+// GDP_JOIN_LEVELS=0: the join's control never refined by the levels of the rule's comparisons (the join, `refine`);
+// GDP_JOIN_CLOCKS=0: a request's value a step adds to a state variable kept apart from it in the rule's comparisons.
 const inferHalves = env.GDP_INFER_HALVES !== '0'
 const isRule = (t: AnyRule | Machine): t is AnyRule => typeof (t as AnyRule).kindsOfState === 'function'
 
