@@ -3,6 +3,46 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+The last termination misses (gen/parity): facts at locations for the ITS and C tasks, and call summaries the
+translated system checks itself. Nothing trusted changed, and nothing in `core/` or `kernel/` (2,201,135 bytes, as at
+0.28.0): compare/term/facts.ts (335 lines) and c2ari.py (+533 lines, 18 removed). In our harness (60 s on Modal, 2 vCPU), beside
+main 8b710ba launched together (`runs/par/its3-*`, `sv2-*`; an earlier batch at 3ab223c, `its2-*`, `sv1-*`), every
+gained and lost task three times more a side (`itsre-*`, `svre-*`):
+- **TermComp ITS, doesn't terminate:** 544 and 543 on the task's statement against 540 and 542 (539 in a third main
+  batch); per component 545 and 543 against 543, 542, 542. LoAT's default engine 532.
+- **TermComp ITS, terminates:** 617 and 614 against 612, 613, 611; per component 616 and 613 against 614, 612, 612.
+  KoAT2 601.
+- **SV-COMP termination:** 248 (191, 57) in both batches against 239; per component 218 against 210. Ultimate
+  Automizer 224. All eight tasks 0.28.0 left are answered, 3 of 3.
+No answer contradicts another tool's; every lead is in this harness, unconfirmed under the competitions' setups.
+
+- **Facts at locations** (compare/term/facts.ts, read by solve.ts): each slot's constant or residue at each location,
+  a fixpoint of the rules from the entrypoint (Granger's congruences), the task rewritten with them (the same runs);
+  where a guard reads a slot modulo k through a value of its own and the residue isn't fixed, its component's locations
+  split by the residue. Velroyen08-alternatingIncr's NO (its parity a location), slayer-4-filtered's (1,324 values
+  fixed), 4BitCounterPointer and KroeningSharygina's x % 2; lassos lifted back to the task's own steps and replayed on
+  it as written. Checked against random runs both ways on the 891 tasks it rewrites (4.3 million steps, none refused).
+  The first version replaced a slot pinned by its own guard by the value (28 wrong answers in a first batch,
+  `its1-mine`); fixed, and the random-run check catches it.
+- **The rules no state fires**, each refuted by the kernel (its tree checked), left out.
+- **Call summaries** (c2ari.py, the terminates translation): a recursive function's value at a call that returns is
+  its summary's, a relation fitted to its values; the system checks it by a turn back to the function's entry where
+  some path of its body returns a value the summary doesn't allow (a proof of termination proves there is none).
+  McCarthy91_Recursion, NestedRecursion_1b, 1c, 1d, 2c, rec_counter3.
+- **Calls that return past a boundary** (the nonterminating translation): inlined one deep, a call past it entering
+  its copy or returning within one call more, a function's variables one per place and depth. MutualRecursion_1a.
+- **Lean:** 17 recurrent sets of the batch through the facts, 17 of 17 checked on `propext`, `Classical.choice`,
+  `Quot.sound`, the longest 4 min 0.8 s (`runs/par/lean1`).
+- Lost: per component fun2, fun2b, fun3 (their component now chains into one cut point of 108 rules), RSA.jar-obl-17
+  (at the limit on main, split by a parity it doesn't need).
+- **Hand-off to gen/sums:** division by a constant in a loop's terms (`{op: 'div', a, k}`, Euclid's two rows as its term
+  column), for the parities a location split can't hold (compare/term/README.md).
+- Suites (221 jobs): none failed by default (456.1 s wall, 5,457.7 s of job time, `runs/par/suite-default`) or with
+  `--usual` (`runs/par/suite-usual`). CHC-COMP, TIP 2015, the frontier corpora, the real-world corpus and the 1-vCPU
+  tests weren't run: none reaches compare/term, and `core/` and `kernel/` are as at 0.28.0.
+
 ## 0.28.0
 
 Four of the five benchmarks we run now lead clearly, in our harness (60 s on Modal, 2 vCPU, the rivals as installed in

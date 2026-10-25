@@ -20,8 +20,9 @@ wall-clock limit for every tool:
 | --- | --- |
 | `ari.ts` | The ARI format read (`(format LCTRS)`, `(theory Ints)`: locations, an entrypoint, rules with guards), and an evaluator of a rule on integer values (BigInt) that uses no gdp-wired code; `checkLasso` replays a nontermination witness on it |
 | `translate.ts` | A task as a kernel `Loop`, the same statement (below); `stepOf` turns a turn of the loop back into the task's step for the witness |
+| `facts.ts` | The facts at locations: each value's constant or residue (x ≡ c mod k) at each location, a location split by a residue a guard reads, the task rewritten with them (the same runs); `lift` turns a lasso of the rewritten task back into the task's steps; `deadRules`, the rules the kernel shows never fire |
 | `scc.ts` | The second translation, a stronger statement counted apart: each strongly connected component of the locations, chained (the paths between cut points composed into one rule each), from any state at its cut points |
-| `solve.ts` | One task: lassos from the loop's runs (2 s), a recurrent set (core/nonterm.ts, 4 s), `findRank` with all but 9 s of the limit, the kernel's check again on the loop as translated (the answer printed then, and again with the certificate once made), a recurrent set again (3/5 of what is left) and lassos with the rest; `--scc` for the second translation |
+| `solve.ts` | One task, read through facts.ts (`--no-facts`: as written): lassos from the loop's runs (2 s), a recurrent set (core/nonterm.ts, 4 s), `findRank` with all but 9 s of the limit, the kernel's check again on the loop as translated (the answer printed then, and again with the certificate once made), a recurrent set again (3/5 of what is left) and lassos with the rest; `--scc` for the second translation |
 | `recur-lean.ts` | The recurrent sets of a run's answers (each printed in its `recur`) as Lean theorems `NeverEnds <task>_loop` by Kern.never_ends_of; `--shard i/n` |
 | `c2ari.py` | An SV-COMP C program as an ARI system (pycparser): main and the functions it calls inlined, C's integer types and conversions on the task's data model, arrays, pointers to a fixed set of objects, undefined behaviour ending the run, recursion as two translations (one per answer); the subset in its header; refusals with their reason |
 | `modal_term.py` | The ITS track on Modal: gdp-wired (`gdp`, `gdp-scc`), LoAT, LoAT with `--engine abmc`, KoAT2; `koat2-proof` and `loat-proof`, the same runs with their proofs kept |
@@ -87,9 +88,11 @@ side by side in the container): for "terminates", every call to a recursive func
 own copy with the caller's frame forgotten (a call that never returns) or skips the call, its value and every global
 the function may write any value of their types (a call that returns): every infinite run of the program is one of
 these (its depth grows forever, or some frame is never left and every later call it makes returns), so the system has
-more runs and its termination is the program's. For "nonterminating", calls are inlined exactly up to 4 deep (fewer
-where the system would grow past 400,000 rule-slots) and past that only enter the function's own copy, a return out
-of it ending the run: every run of the system is a run of the program, so an infinite one is the program's. Where
+more runs and its termination is the program's; a call that returns has a value its function's summary allows,
+where the system checks the summary itself (below). For "nonterminating", calls are inlined one deep, and past that a
+call either enters the function's own copy, a return out of it ending the run, or is inlined exactly one call deeper, a
+deeper call cutting the run (where that system would be past 400,000 rule-slots: inlined exactly up to 4 deep, and past
+that only entering): every run of the system is a run of the program, so an infinite one is the program's. Where
 overflow is checked, `--unchecked` (no checks, unbounded integers) is a third translation, for "terminates" only
 (every run of the program is a prefix of one of its runs), run beside the checked one. 271 of the 282 tasks translate
 (28 with recursion, 38 with overflow checked, 33 with products of variables, 25 with division, 10 unsigned, 4 with
@@ -161,6 +164,107 @@ the task's expected verdict.
   coefficient past 4.
 - Not run: the Lean twin on the ranks found (every proof here is the kernel's, checked twice: in `findRank`, and again
   in solve.ts on the obligations of the loop as translated).
+
+### Facts at locations, call summaries checked by the system (Unreleased)
+
+The last misses of 0.28.0 (compare/term/facts.ts, c2ari.py; nothing in core/ or kernel/ changed, nothing trusted):
+
+- **Facts at locations** (`facts.ts`, read by solve.ts before both translations; `--no-facts` without). What every run
+  from the entrypoint knows of each slot at each location: a constant or a residue (x ≡ c mod k, Granger's
+  congruences, a constant one mod 0), a fixpoint of the rules from the entrypoint, where every slot is any integer.
+  The task is rewritten with them: a slot's value replaced by its constant, a value of a rule's own fixed by its guard
+  replaced (∃v φ(v) is φ(c) where φ says v = c; a slot's comparison the guard makes is kept), a rule the facts make
+  false and a location no run reaches left out. Where a guard reads a slot modulo k through a value of its own
+  (`exists q. x − 2·q = 1`, x % 2 as c2ari translates it) and the facts there don't fix the residue, the locations of
+  its strongly connected component are split by it (at most 8 copies): each rule into a copy guarded by the residue it
+  gives (`exists g. x' − 2·g = r`), unless its source fixes it (x + 3 from an odd x), and in a copy the guard's own
+  value is gone (∃q φ(x − k·q) is φ at one t ≡ r of each interval its comparisons of t leave). Each run of the task is
+  one of the rewritten task's and back (the copy named by its values), so termination and the runs that never end are
+  the same; a rank and a recurrent set then read a residue as a location and a value fixed after the start as a
+  constant. A lasso is lifted back to the task's own steps (`lift`) and replayed by ari.ts's evaluator on the task as
+  written. Bounded by its work (3 million units: a variable read), past which the task is read as written.
+- **The rules no state fires** (`deadRules`): each rule's turn refuted by the kernel and its tree checked, within
+  1.5 s in all, left out.
+- **Call summaries** (c2ari.py, `--for terminates`). A recursive function whose value a caller reads past returning it
+  (an argument, a condition, a variable) gets a summary: for each region its own comparisons of the arguments cut, its
+  value an affine function of them, fitted to the values it returns on a grid of arguments (run on its C semantics; a
+  region whose values aren't affine, or that returns none, says nothing): `mc91(n) = n − 10` where n > 100, 91 where
+  n <= 100. A call that returns (skipped at a boundary) has a value the summary allows. The system checks the guess
+  itself: the function's copy has a turn back to its entry, the state as it is, for each path of its body from its
+  arguments (its calls skipped with their summaries' values, a loop's written values any) that returns a value the
+  summary doesn't allow. That turn repeats forever, so a proof that the system terminates proves no path does; then,
+  by induction on the calls' depth, every call that returns returns a value its summary allows, and the system still
+  has every run of the program. The checks, where the summary holds, are rules no state fires (`deadRules` leaves them
+  out; left in, a rank search reads their disjunctions on every path). Only pure functions (no global, pointer or
+  nondeterministic value), of at most two arguments.
+- **Calls that return past a boundary** (`--for nonterminating`): calls inlined one deep, and past that a call either
+  enters the function's own copy or is inlined exactly one call deeper, a deeper call cutting the run (where the
+  system stays under 400,000 rule-slots; else as before). A function's variables are one per place in its code and
+  depth of calls (frames at one depth are never live together; a value an earlier frame left is one an uninitialized
+  variable may hold): MutualRecursion_1a's 121 variables to 19.
+
+One batch beside main 8b710ba (this branch's 0.28.0) launched together on Modal (60 s, 2 vCPU), and one earlier at
+3ab223c (`its2-*`, `sv1-*`; `runs/par/`); every task gained or lost in either, run three times more a side
+(`itsre-*`, `svre-*`). Wrong stays 0: no answer contradicts another's, LoAT's, LoAT abmc's or KoAT2's (`full1`).
+
+| | ITS terminates | nonterminating | SV-COMP terminates | nonterminating | SV solved of 282 |
+| --- | --- | --- | --- | --- | --- |
+| the task's statement (`gdp`), here (cc10df0, 3ab223c) | 617, 614 | 544, 543 | 191, 191 | 57, 57 | 248, 248 |
+| main 8b710ba (`its3`, `its2`, `its1`) | 612, 613, 611 | 540, 542, 539 | 183, 183 | 56, 56 | 239, 239 |
+| per component (`gdp-scc`), here | 616, 613 | 545, 543 | 161, 161 | 57, 57 | 218, 218 |
+| main | 614, 612, 612 | 543, 542, 542 | 154, 154 | 56, 56 | 210, 210 |
+
+ITS nonterminating 543 to 544 on the task's statement against LoAT's default engine's 532; terminates 614 to 617
+against KoAT2's 601; SV-COMP 248 against Ultimate Automizer's 224: ahead in this harness, unconfirmed under the
+competitions' own setups.
+
+- **Gained, ITS**, 3 of 3 here and 0 of 3 on main unless noted (both statements where not said): Velroyen08-alternatingIncr
+  (nonterminating, 3.1 s: the odd x climbing by 2, a recurrent set over its parity's copies; VeryMax's and MuVal's NO at
+  TermComp 2025), slayer-4-filtered (nonterminating, 2 of 3 here on the task's statement, 3 of 3 per component;
+  LoAT's NO at TermComp 2025: 1,324 values fixed and 241 rules left out), juLinkedListCreateContainsAll, and on the
+  task's statement eric2, queens.t2_fixed, traverse_twice.t2_fixed, ud.t2_fixed; per component loop3 and its `_fixed`
+  twin, consts5.t2_fixed, slayer-n3-filtered and its twin, whatwhat, Graph.jar-obl-17 (nonterminating, 2 of 3).
+- **Lost, ITS:** per component fun2, fun2b and fun3 (0 of 3 against 3 of 3: with 8 rules left out its component chains
+  into one cut point of 108 rules, where main's, past scc.ts's cap, stays 6 locations of 36), RSA.jar-obl-17 (1 of 3
+  against 3 of 3 on the task's statement, 0 against 2 per component: at the limit on main, 45.8 to 55.3 s, split by a
+  parity it doesn't need, 28 locations to 34). The rest at the limit on both sides (elmhes, ns, queens.t2, opt-tree, hqr.t2_fixed,
+  statemate.t2_fixed).
+- **Gained, SV-COMP**, 3 of 3 here, 0 of 3 on main: the eight 0.28.0 left, McCarthy91_Recursion, NestedRecursion_1b,
+  1c, 1d, rec_counter3 (summaries), MutualRecursion_1a (nonterminating: g(1) returns past the boundary before g(2) is
+  entered again), 4BitCounterPointer (its pointers' constants), KroeningSharyginaTsitovichWintersteiger-CAV2010-Fig1
+  (x % 2 a location); and NestedRecursion_2c; per component also IntPath and TwoWay. None lost (cohencu5-both-t per
+  component 3 of 3 against 2 of 3).
+- **Tests:** facts.ts against random runs both ways on the 891 ITS tasks it rewrites (each run of the task replayed on
+  the rewritten one, each run of the rewritten one lifted and replayed on the task: 2,210,605 and 2,094,345 steps, none
+  refused; with the first version's bug, a slot's value fixed by its own guard, 151 refused in 2 tasks, the bug that
+  made 28 wrong answers in the first batch, `its1-mine`). `adversarial.test.ts` reads every program through the facts
+  too, and checks no terminating one is answered nonterminating (4 new: a pinned slot, parity both ways, a constant
+  after the start); `c2ari_test.py` 69 programs (3 new: a summary wrong past its samples, a value written in a loop,
+  mutual recursion), none answered against the program, 44 answered as they run (main: 66, none, 40) (`tests1`).
+- **Lean:** 17 recurrent sets of the batch read through the facts (alternatingIncr, slayer-4-filtered, slayer-3 and
+  slayer-3-new `_fixed`, hqr.t2_fixed and 12 drawn at random), each a theorem `NeverEnds` of the rewritten task's loop
+  (recur-lean.ts reads the facts where the answer's import did), on `propext`, `Classical.choice`, `Quot.sound`:
+  17 of 17 checked, the longest 4 min 0.8 s (slayer-4-filtered), files up to 8,564,707 bytes (`lean1`).
+
+What is left: on the terminating side, the 14 tasks another tool proves and no batch here does (of 18 at 0.28.0;
+eric2, juLinkedListCreateContainsAll and loop3's two are closed): jacobi's five and spctrm's two, Iterations and
+sudoku, where the relation's rank is found and the kernel doesn't close its goal in time (a rank per location, read at
+every step: by its locations and rules, a split on pc and on t first, each branch still past the prover's budget,
+17 to 20 case splits deep; KoAT2 bounds each transition on its own, after cutting the ones its invariants make
+unsatisfiable); LogMult (no turn sampled), armc-difficult_foo3 (no nested rank per location on 38 paths), Domino
+(out of time), and Round3 and disj_nightmare (LoAT abmc's). On the nonterminating side the hqr variants (their 24-
+and 25-turn cycles give no candidate set) and the parity a split can't hold: a residue of a sum (x + y even), or past
+8 copies, wants division in the kernel's terms (below).
+
+**Hand-off to gen/sums (kernel.ts, lean-kernel, conformance; not changed here):** division by a constant in a loop's
+terms. A loop's E gains `{op: 'div', a, k}`, k >= 1 a constant, natural floor division: NonTerm.lean's and Live.lean's
+evalE `(.div a k) = evalE a / k`; kernel.ts's natural() accepts it where a is natural, natE reads a / k (bigint), and
+the prover's term column for it brings the two rows that fix it, k·q <= a and a + 1 <= k·q + k (Euclid's, as
+core/machine.ts's div$k facts already give for rules); the derivation's cuts already refute 2q + 1 = 2q'. To prove
+first: the rows hold of evalE (an omega lemma), and never_ends_of/loop_halts_of are unchanged (they read evalC);
+conformance: a set reading x div 2 with a tampered k, a witness reading it at the wrong residue. Then a recurrent set
+can say x = 2·(x div 2) + 1 and a witness give x div 2, and a rank read x mod 2 as x − 2·(x div 2), with no location
+split.
 
 ### Closures by cases, deeper cycles, the time for the next candidate (Unreleased)
 

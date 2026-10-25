@@ -90,6 +90,7 @@ any variable (x + set(&x), pick(x, set(&x))), a dereference reading every object
 every allocated cell): *p + f() with f writing a global p may name; bitwise and, or, xor and shifts; switch; static locals outside main's
 outermost block, or with goto.
 """
+import itertools
 import json
 import re
 import sys
@@ -746,64 +747,34 @@ def summarize(funcs, info):
             continue
         fits = []
         for key, pts in sorted(regions.items()):
-            # an affine fit through the first points that fix it, exact on every point
+            # an affine fit with integer coefficients, exact on every point: over the parameters whose values vary
+            # there (the others' coefficient 0), through the first points that fix it
             k = len(params)
-            basis = []
-            for a, v in pts:
-                cand = basis + [(a, v)]
-                rows = [[Fraction(x) for x in b[0]] + [Fraction(1)] for b in cand]
-                # (independent: the rows' rank is their number)
-                m = [r[:] for r in rows]
-                rank = 0
-                for col in range(k + 1):
-                    piv = next((i for i in range(rank, len(m)) if m[i][col] != 0), None)
-                    if piv is None:
-                        continue
-                    m[rank], m[piv] = m[piv], m[rank]
-                    for i in range(len(m)):
-                        if i != rank and m[i][col] != 0:
-                            fac = m[i][col] / m[rank][col]
-                            m[i] = [x - fac * y for x, y in zip(m[i], m[rank])]
-                    rank += 1
-                if rank == len(cand):
-                    basis = cand
-                if len(basis) == k + 1:
-                    break
-            # least norm solution on the basis: coefficients for the params (0 where the basis doesn't fix one)
+            vary = [i for i in range(k) if len({a[i] for a, _ in pts}) > 1]
             sol = None
-            for trial in range(1 << (k + 1)):
-                # choose which unknowns are free (0): solve the rest exactly
-                free = [i for i in range(k + 1) if trial >> i & 1]
-                unk = [i for i in range(k + 1) if i not in free]
-                if len(unk) != len(basis):
-                    continue
-                A = [[Fraction(b[0][i]) if i < k else Fraction(1) for i in unk] + [Fraction(b[1])] for b in basis]
-                ok = True
-                for col in range(len(unk)):
-                    piv = next((i for i in range(col, len(A)) if A[i][col] != 0), None)
-                    if piv is None:
-                        ok = False
+            for sub in itertools.chain.from_iterable(itertools.combinations(vary, n) for n in range(len(vary) + 1)):
+                for pick in itertools.combinations(pts, len(sub) + 1):
+                    A = [[Fraction(a[i]) for i in sub] + [Fraction(1), Fraction(v)] for a, v in pick]
+                    for col in range(len(sub) + 1):  # Gauss-Jordan
+                        piv = next((r for r in range(col, len(A)) if A[r][col] != 0), None)
+                        if piv is None:
+                            break
+                        A[col], A[piv] = A[piv], A[col]
+                        A = [row if r == col else [x - row[col] / A[col][col] * y for x, y in zip(row, A[col])] for r, row in enumerate(A)]
+                    else:
+                        x = [A[i][-1] / A[i][i] for i in range(len(sub) + 1)]
+                        coef = dict(zip(sub, x[:-1]))
+                        if all(c.denominator == 1 for c in x) and all(sum(coef.get(i, 0) * a[i] for i in range(k)) + x[-1] == v for a, v in pts):
+                            sol = ({params[i]: int(coef.get(i, 0)) for i in range(k)}, int(x[-1]))
                         break
-                    A[col], A[piv] = A[piv], A[col]
-                    for i in range(len(A)):
-                        if i != col and A[i][col] != 0:
-                            fac = A[i][col] / A[col][col]
-                            A[i] = [x - fac * y for x, y in zip(A[i], A[col])]
-                if not ok:
-                    continue
-                x = [Fraction(0)] * (k + 1)
-                for col, i in enumerate(unk):
-                    x[i] = A[col][-1] / A[col][col]
-                if all(c.denominator == 1 for c in x) and all(sum(x[i] * a[i] for i in range(k)) + x[k] == v for a, v in pts):
-                    sol = x
+                if sol is not None:
                     break
             if sol is not None:
-                fits.append((key, ({params[i]: int(sol[i]) for i in range(k)}, int(sol[k]))))
+                fits.append((key, sol))
         if not fits or len(atoms) > 4:
             continue
         # every combination of the atoms' signs a case: its fit, or none (any value); the cases with one fit merged
         # where they differ in one atom (n < 100 and n = 100 to n <= 100), so the summary has few disjuncts
-        import itertools
         fit_of = dict(fits)
         cases = [(tuple(frozenset([sg]) for sg in key), fit_of.get(key)) for key in itertools.product((-1, 0, 1), repeat=len(atoms))]
         merged = True
