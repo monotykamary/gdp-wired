@@ -5,6 +5,42 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+core/data.ts's two slowdowns since 0.27.0 (perf/data-budget), each at its cause. Nothing trusted changed
+(`kernel/kernel.ts`, `kernel/cyclic.ts`, `core/check.ts`, `lean-kernel/*.lean`). Beside main f2e468d, the base this
+track started from (`runs/databudget/` and `runs/bar/runs/databudget-a`, `-b` in the main checkout):
+- **An attempt at the edge of its time is resumed:** an attempt that runs out of its time past half its own nodes gets
+  a quarter of its time once more, spent on the nodes left (those before are proven, their trees kept by
+  core/cyclic.ts's `searched`). Insertion-keeps-sorted's proof at two unfoldings used 8,988 of its 9,000 counted ms at
+  0.27.0, and eta at nil's 10 more instances (22ae0dc, which proves prop_48) pushed it past, so the search went through
+  the conjectures. It now takes 3.7 million units of work at package-check's budget, against 59.6 million (6.0 at
+  0.27.0), with the same proof.
+- **A fusion chain's last links unfold only where their case is decided:** 94e611e unfolded every read of a chain
+  link's conclusion once. Now only reads whose decreasing argument is a constructor's value or a successor unfold
+  (`drop(v + 1 + w + x, y :: z)`: lemma_06 is still proven). roseSizeMirror takes 15.0 million units against 26.4 (14.9
+  before 94e611e).
+- **The two jobs, paired on Modal** (each side's three launched together, then the bar's `--together` suite):
+  `lean-data-0` 49.8, 46.9 and 47.7 s against 168.5, 154.0 and 216.7 (its export 23 to 26 s against 137 to 196); after
+  merging main 18d2387, beside it, 55.5, 45.5 and 51.7 against 211.7, 218.3 and 224.8; in the bar 39.7 against 214.6.
+  `frontier-datatype-3` 114.3, 127.7 and 108.1 against 207.1, 201.1 and 238.8; after the merge 100.7, 125.2 and 139.1
+  against 157.6, 159.5 and 194.7; in the bar 107.6 against 153.9. The same verdicts in each (Lean's exit 0; today
+  0 / 4, frontier 4 / 4, broken 3 / 3).
+- **examples/data.ts by work counter** (its 45 laws at 120 s and patience 3; the counter is deterministic): 100.5
+  million units in all against 132.9. insertSorted 3.67 against 25.95, roseSizeMirror 15.02 against 26.41;
+  reverseReverse 12.78 against 11.50 (its last case resumed and still out of time); no verdict changed.
+- **TIP 2015,** three runs a side: 213, 213 and 212 (212 in all three) against 213, 213 and 213. list_assoc is 2 of 3
+  against 3 of 3, and 3 of 3 on both in reruns. After the merge, beside 18d2387: 213 in each run against 214, 213 and
+  212 (212). There prop_61 was 0 of 3 against 1 of 3, and list_assoc 3 of 3 against 2 of 3; in reruns prop_61 was 0
+  of 3 and list_assoc 2 of 3 on both sides. gen/tip3's seven gains and prop_48 are proven in every run. In the bar
+  (062b292 against f2e468d's baseline): 213 against a mean of 212, gained 0, lost 0, wrong 0.
+- **Frontier round 1:** in the bar, 90 of 92 against a mean of 89.67, 42 of 42 broken variants refused. Paired by hand,
+  each of the 260 jobs gives the same verdict on both sides.
+- **Suites:** in the bar, none failed by default (224 jobs, both sides together) or with `--usual`. One by-hand default
+  run had `pairs` fail on a container that took 130 s against 23. Three reruns a side pass.
+- **1 vCPU,** ten a side in the bar: none failed. data's agrees-with-+ has a median of 2,593.2 ms, at most 2,997.9
+  (main 2,683.8, 3,066.0). infer's "a law that needs an invariant" has 2,866.1 and 3,341.0 (main 3,060.2, 3,684.4).
+- **Size:** `core/` and `kernel/` (tests excluded) are 2,326,252 bytes and 31,874 lines, against 2,324,777 and 31,861
+  with main's core/data.ts in its place (+1,475 bytes, +13 lines, all in core/data.ts).
+
 The bar in one command (infra/bar): `bun bar` (gates/bar.ts) runs a candidate against a base on CHC, ITS (the task's
 statement and per component), SV-COMP, TIP (`--rivals`), both frontier corpora, the real-world corpus, the 332 step
 goals, both suites, the 1-vCPU tests and a Lean sample of the ITS run's recurrent sets, each runner in its side's own
