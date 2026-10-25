@@ -222,6 +222,7 @@ if (useHoudini && oldHoudini) {
   say({stage: 'houdini', candidates: h.candidates, afterRuns: h.afterRuns, kept: h.kept.length, rounds: h.rounds, proven: h.proven, ...(h.why ? {why: h.why} : {})})
   if (h.proven && !cc) done('sat', {by: 'houdini', invariants: h.kept.length})
 }
-// (k-induction may still answer: its end, at the deadline, is this one's)
-if (kind) await kind.exited
+// (the second CPU may still answer: its end, at the deadline, is this one's; a step of it that overruns the deadline,
+// such as a kernel proof that reads past it, is stopped with this process half a second after it, before the track's cap)
+if (kind) await Promise.race([kind.exited, new Promise(res => setTimeout(res, Math.max(0, houdiniMs + 500 - ms())))])
 done('unknown')
