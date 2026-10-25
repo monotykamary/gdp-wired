@@ -542,9 +542,16 @@ export function compress(m: Machine, law: Law, R: C, kinds: C[], budget: {until:
   const live = liveOf(m, law), one: E = {op: 'const', value: 1}
   const sGoal: Goal = {name: 'a step from the clauses', hyps: [...kinds, law.holds, ...stepHyps(m, live, 1, tidier(new Set()))]}
   const oGoal: Goal = {name: 'the invariant', hyps: [R, ...kinds]}
-  const quiet = (n: string) => n.startsWith('t@') || n.startsWith('k@')
-  const S = cdclSession(sGoal, new Map(), {model: true, clausal: true, quiet}), O = cdclSession(oGoal, new Map(), {model: true, clausal: true})
-  const after = stateAt(m, 1), clauses: C[] = [], targets: {c: C, sel: string}[] = []
+  const quiet = (n: string) => n.startsWith('t@') || n.startsWith('k@') || n.startsWith('g@')
+  // (a candidate clause's hypothesis, retired once asked: its own gates, `tmp`)
+  const tmp = new Set<number>()
+  const S = cdclSession(sGoal, new Map(), {model: true, clausal: true, quiet, sideOf: h => (tmp.has(h) ? 2 + h : 0)}), O = cdclSession(oGoal, new Map(), {model: true, clausal: true})
+  const after = stateAt(m, 1), after1 = namesAt(m, 1), clauses: C[] = [], targets: {c: C, sel: string}[] = []
+  // (the start's values, a plain machine's constants; a form's value at some values, a name without one 0)
+  const startValues: Record<string, number> = {}
+  for (const [n, e] of Object.entries(m.state)) { const l = linOfE(e); startValues[n] = l && !vars(l).length ? l['1'] ?? 0 : NaN }
+  const valueAt = (lin: Lin, w: Record<string, number>) => { let x = lin['1'] ?? 0; for (const n of vars(lin)) x += lin[n]! * (w[n] ?? 0); return x }
+  const renamedLin = (lin: Lin, to: Record<string, string>): Lin => Object.fromEntries(Object.entries(lin).map(([n, c]) => [to[n] ?? n, c]))
   // (R's atoms, each linear form once)
   const atomsR: Lin[] = [], seenA = new Set<string>(), seenC = new Set<object>()
   const atomsOf = (c: C): void => {
@@ -562,7 +569,22 @@ export function compress(m: Machine, law: Law, R: C, kinds: C[], budget: {until:
   const target = (c: C) => { const sel = `t@${targets.length}`; targets.push({c, sel}); sGoal.hyps.push({op: 'or', xs: [{op: '<=', a: one, b: v(sel)}, {op: 'not', x: substC(c, after)}]}) }
   target(law.holds)
   // (each clause behind a selector of its own, k@j, so the clauses a step starts from are those assumed: `on`)
-  const on: boolean[] = [], from = (skip = -1): Lin[] => clauses.flatMap((_, j) => (on[j] && j !== skip ? [{[`k@${j}`]: 1}] : []))
+  const on: boolean[] = [], cores: Lin[][] = [], from = (skip = -1): Lin[] => clauses.flatMap((_, j) => (on[j] && j !== skip ? [{[`k@${j}`]: 1}] : []))
+  const late = () => clock() > budget.until || (budget.wall !== undefined && performance.now() > budget.wall)
+  // PDR's inductive generalization: an atom of a cube dropped where the clause without it holds at the start and after
+  // every step from where it and the clauses on hold (so of every state reached, whatever R says).
+  const mic = (core: Lin[], skip = -1): Lin[] => {
+    for (let j = 0; j < core.length && core.length > 1 && !late();) {
+      const rest = core.filter((_, q) => q !== j)
+      if (!rest.some(lin => valueAt(lin, startValues) > 0)) { j++; continue }
+      const h = sGoal.hyps.length, g = `g@${h}`
+      tmp.add(h); sGoal.hyps.push({op: 'or', xs: [{op: '<=', a: one, b: v(g)}, ...rest.map(lin => linLe(atomOf(lin, false).lin))]})
+      const o3 = S.run({nodes: 0, until: budget.until}, budget.wall, [...from(skip), {[g]: 1}, ...rest.map(lin => renamedLin(lin, after1))]) as Refuted
+      S.retire(h)
+      if (!('tree' in o3) && (o3 as {why?: string}).why === REFUTED) core = rest; else j++
+    }
+    return core
+  }
   const holdsAfter = (i: number, skip = -1) => { const out = S.run({nodes: 0, until: budget.until}, budget.wall, [{[targets[i]!.sel]: 1}, ...from(skip)]) as Refuted; return out }
   for (let i = 0; i < targets.length;) {
     if (clock() > budget.until || (budget.wall !== undefined && performance.now() > budget.wall)) return undefined
@@ -582,17 +604,26 @@ export function compress(m: Machine, law: Law, R: C, kinds: C[], budget: {until:
       const rest = core.filter((_, q) => q !== j), o2 = O.run({nodes: 0, until: budget.until}, budget.wall, rest) as Refuted
       if (!('tree' in o2) && (o2 as {why?: string}).why === REFUTED && o2.assumed?.length) core = o2.assumed.map(q => rest[q]!); else j++
     }
+    core = mic(core)
     // (each bound's negation: n <= x fails where n >= x + 1, n >= x where n <= x − 1)
     const clause: C = {op: 'or', xs: core.map(lin => linLe(atomOf(lin, false).lin))}
     if (env.GDP_SMALL_TRACE) console.error('clause', clauses.length, o.assumed.length, '→', core.length, 'of', cube.length, env.GDP_SMALL_TRACE === '2' ? showC(clause) : '')
-    sGoal.hyps.push({op: 'or', xs: [{op: '<=', a: one, b: v(`k@${clauses.length}`)}, clause]}); clauses.push(clause); on.push(true); target(clause)
+    sGoal.hyps.push({op: 'or', xs: [{op: '<=', a: one, b: v(`k@${clauses.length}`)}, clause]}); clauses.push(clause); cores.push(core); on.push(true); target(clause)
     if (clauses.length > maxClauses) return undefined
     i = 0
   }
-  // Fewer: each clause, the latest first, left out where the law and the others still hold after every step from them.
+  // Smaller: each clause generalized again from where all the others hold (a stronger frame than it was made from), the
+  // smaller one beside it (the old one then left out below where it isn't needed).
+  for (let j = 0, n = clauses.length; j < n && !late(); j++) {
+    const core = mic(cores[j]!, j)
+    if (core.length === cores[j]!.length) continue
+    const clause: C = {op: 'or', xs: core.map(lin => linLe(atomOf(lin, false).lin))}
+    sGoal.hyps.push({op: 'or', xs: [{op: '<=', a: one, b: v(`k@${clauses.length}`)}, clause]}); clauses.push(clause); cores.push(core); on.push(true); target(clause)
+  }
+  // Fewer: each clause, the oldest first, left out where the law and the others still hold after every step from them.
   const refuted = (o: Refuted) => !('tree' in o) && (o as {why?: string}).why === REFUTED
-  for (let j = clauses.length - 1; j >= 0; j--) {
-    if (clock() > budget.until || (budget.wall !== undefined && performance.now() > budget.wall)) break
+  for (let j = 0; j < clauses.length; j++) {
+    if (late()) break
     let still = true
     for (let i = 0; i < targets.length && still; i++) if ((i === 0 || (on[i - 1] && i - 1 !== j)) && !refuted(holdsAfter(i, j))) still = false
     if (still) on[j] = false
