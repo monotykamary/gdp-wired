@@ -108,10 +108,14 @@ const imcTurn = (slice: number) => {
     // (the invariant made a few clauses first, core/interp.ts's compress, each a law for the kernel; else as it is)
     const t1 = performance.now(), small = counted(fullRate, () => compress(m, b.law, out.inv, b.rule.kindLaws().map(l => l.holds), {until: Infinity, wall: end}), true)
     say({stage: 'imc', small: small?.length ?? -1, smallMs: Math.round(performance.now() - t1)})
-    const laws = small ? small.map((holds, j) => ({name: `imc ${j}`, holds})) : [{name: 'imc', holds: out.inv}]
-    const v = cc ? liftProven(cc, bo, invOf([b.law, ...b.rule.kindLaws(), ...laws])!, end) : withDeadline(end, () => proveRule(b.rule, [b.law, ...laws], {search: false}))
-    const proven = v.proven && (!('checked' in v) || v.checked)
-    say({stage: 'imc', proven, parts: out.parts, ...('liftMs' in v ? {why: v.why, liftMs: v.liftMs, proveMs: v.proveMs, laws: v.laws} : {checked: v.checked})})
+    // (where the clauses aren't proven, the invariant as it is, in the time left)
+    let proven = false
+    for (const laws of [...(small ? [small.map((holds, j) => ({name: `imc ${j}`, holds}))] : []), [{name: 'imc', holds: out.inv}]]) {
+      if (proven || performance.now() >= end) break
+      const v = cc ? liftProven(cc, bo, invOf([b.law, ...b.rule.kindLaws(), ...laws])!, end) : withDeadline(end, () => proveRule(b.rule, [b.law, ...laws], {search: false}))
+      proven = v.proven && (!('checked' in v) || v.checked)
+      say({stage: 'imc', proven, parts: out.parts, laws: laws.length, ...('liftMs' in v ? {why: v.why, liftMs: v.liftMs, proveMs: v.proveMs} : {checked: v.checked})})
+    }
     if (!proven) return
     stop()
     say({stage: 'answer', answer: 'sat', by: 'imc', k: out.k})
