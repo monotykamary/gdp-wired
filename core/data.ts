@@ -1595,7 +1595,7 @@ function schemes(p: Program, l: DataLaw): Scheme[] {
 // `etaAt`; congruences of reads the random models give equal arguments. `others` (the uses' conclusions) are read for
 // constructors and congruences, and unfolded too from depth 3.
 // `hyps`: a case's conditions, whose equalities the classes take too.
-type Want = {roots: unknown[], others: unknown[], once?: unknown[], depth: number, shapesAt: E[], etaAt: E[], models: {m: Model, env: Record<string, number>}[], every?: boolean, until?: number, hyps?: C[]}
+type Want = {roots: unknown[], others: unknown[], once?: unknown[], decided?: unknown[], depth: number, shapesAt: E[], etaAt: E[], models: {m: Model, env: Record<string, number>}[], every?: boolean, until?: number, hyps?: C[]}
 function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   // Past the attempt's time, what is found so far (the attempt then fails or proves with it).
   const late = () => w.until !== undefined && clock() > w.until
@@ -1623,7 +1623,11 @@ function instancesOf(p: Program, fs: Facts, w: Want): NodeSpec['insts'] {
   note(frontier); note(reads(w.others))
   ctors(all)
   // (`once`: reads unfolded one round whatever the depth, a fold's rank at the node and its uses)
-  const onceReads = w.once ? reads(w.once) : []
+  // (`decided`: those of its reads whose decreasing argument is a constructor's value or a successor, the definition's
+  // case decided there: drop(v + 1 + w + x, y :: z))
+  const succ = (t: E): boolean => t.op === 'add' && ((t.b.op === 'const' && t.b.value > 0) || (t.a.op === 'const' && t.a.value > 0) || succ(t.a) || succ(t.b))
+  const decidedAt = (r: {map: string, key: E}) => { const f = fnOfMap(r.map), as = f && argsOf(r.key, f.params.length), a = f?.decreases === undefined ? undefined : as?.[f.decreases]; return !!a && ((a.op === 'get' && ctorOf(a.map) !== undefined) || succ(a)) }
+  const onceReads = [...(w.once ? reads(w.once) : []), ...(w.decided ? reads(w.decided).filter(decidedAt) : [])]
   note(onceReads)
   for (const r of onceReads) {
     const f = fnOfMap(r.map), as = f && argsOf(r.key, f.params.length), rid = sid(r)
@@ -2160,7 +2164,7 @@ function attempt(p: Program, fs: Facts, l: DataLaw, scheme: Scheme | undefined, 
     // reads it; and the uses' conclusions, at the values built of constructors the fold's calls take: weird_concat's
     // hypothesis at x :: xss, its definition decided there; a fusion chain's last links', drop(v + 1 + w + x, y :: z))
     const rankReads = mb.rank && JSON.stringify(mb.rank).includes('"op":"get"') && mb.rank.some(e => { let yes = false; walk(e, o => { if (o.op === 'get' && p.fns.some(f => f.name === o.map)) yes = true }); return yes }) ? [mb.rank, mb.uses.map(u => mb.rank!.map(e => substE(e, {vars: u.subst, maps: {}, flags: {}})))] : []
-    const instsFor = (ms: M[], us: NodeSpec['uses'], every = false, hyps?: C[]) => instancesOf(p, fs, {roots: [concl], others: us.map(useConcl), once: [rankReads, rankReads.length ? us.map(useConcl) : us.filter(u => chained.has(u)).map(useConcl)], depth, shapesAt, etaAt: [...shapesAt, ...valuesCompared(p, mb.law), ...tagged(hyps)], models: ms, every, until: t0 + attemptMs.ms, hyps})
+    const instsFor = (ms: M[], us: NodeSpec['uses'], every = false, hyps?: C[]) => instancesOf(p, fs, {roots: [concl], others: us.map(useConcl), once: [rankReads, rankReads.length ? us.map(useConcl) : []], decided: us.filter(u => chained.has(u)).map(useConcl), depth, shapesAt, etaAt: [...shapesAt, ...valuesCompared(p, mb.law), ...tagged(hyps)], models: ms, every, until: t0 + attemptMs.ms, hyps})
     const cases = scheme ? casesOf(p, pre.filter(q => fs.facts[q.fact]!.name.startsWith('fn ')).map(q => holdsAt(fs, q)), new Set(mb.law.vars.map(v => v.name)), mb.pool) : []
     if (cases.length <= 1) {
       // One node: four uses of a lemma, twelve in all, the best first (as lemmaUsesFor ranks them).
@@ -2519,11 +2523,20 @@ function proveWith(p: Program, fs: Facts, l: DataLaw, lemmas: Proven[], level: n
     tried++
     const t1 = clock()
     // (and within a third of an attempt's time: a merged scheme's proof, where there is one, is short)
-    const {verdict, specs, main} = (attemptMs.ms = Math.min(per * (opts.patience ?? 1) / (s?.merged ? 3 : 1), until - clock()), attempt(p, fs, l, s, depth, lemmas, level, models))
+    const run = (part = 1) => (attemptMs.ms = Math.min(part * per * (opts.patience ?? 1) / (s?.merged ? 3 : 1), until - clock()), attempt(p, fs, l, s, depth, lemmas, level, models))
+    let {verdict, specs, main} = run(), t2 = t1
+    // Out of its time past half its own nodes (those before proven, their trees kept by cyclic.ts's `searched`): a
+    // quarter of its time more, spent on the nodes left, once (insertion keeps a list sorted at two unfoldings, its last
+    // case at the edge of its time: 3.7 million units of work in place of the conjectures' 26 to 60 million).
+    if (!verdict.proven && verdict.stuck === 'unknown' && clock() > t1 + attemptMs.ms && clock() < until && (at => at > main && (at - main) * 2 >= specs.length - main)(specs.findIndex(n => n.name === (verdict as {goal: string}).goal))) {
+      if (dataTrace) console.error(`[data]   resumed past ${verdict.goal}`)
+      t2 = clock();
+      ({verdict, specs, main} = run(0.25))
+    }
     last = verdict
     if (nodeTrace && !verdict.proven && new RegExp(nodeTrace).test(verdict.goal)) { const n = specs.find(x => x.name === verdict.goal); if (n) console.error(`[node] ${n.name}: ${verdict.stuck}\n hyps: ${n.hyps.map(showC).join(' ; ')}\n concl: ${showC(n.concl)}\n uses:\n   ${n.uses.map(u => `${specs[u.node]?.name.slice(0, 40)}: ${showC(substC(specs[u.node]!.concl, {vars: u.subst, maps: {}, flags: {}}))} if ${showC(u.guard)}`).join('\n   ')}\n instances:\n   ${n.insts.map(q => `${fs.facts[q.fact]!.name}: ${showC(holdsAt(fs, q))}`).join('\n   ')}`) }
     if (dataTrace) console.error(`[data]   -> ${verdict.proven ? (verdict.checked ? 'proven' : `not checked: ${verdict.why}`) : `${verdict.goal}: ${verdict.stuck}`}`)
-    if (!(verdict.proven && verdict.checked) && clock() <= t1 + attemptMs.ms) done.add(key)
+    if (!(verdict.proven && verdict.checked) && clock() <= t2 + attemptMs.ms) done.add(key)
     if (verdict.proven && verdict.checked) return {out: {law: l, spec: specs[main]!, nodes: specs}, verdict, scheme: s?.name ?? (without ? 'no induction' : undefined), tried}
   }
   return {tried, last}
