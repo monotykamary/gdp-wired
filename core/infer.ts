@@ -1405,7 +1405,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         }
         if (alone && cube()) continue
         // (the control refined first, where a level leaves the state out: the samples then say what holds there)
-        if (!outside && refine(pre)) { opts.progress?.('join', {round: rounds, refined: spaces.map(sp => sp.control()).join('; ')}); continue }
+        if (!outside && refine(pre)) { opts.progress?.('join', {round: rounds, refined: spaces.map(sp => sp.control()).join('; '), cti: JSON.stringify(pre.scalar).slice(0, 400), goal: todo.slice(0, 50)}); continue }
         const pick = (fs: Form[]) => { let bestF: Form | undefined, score = -Infinity; for (const f of fs) { if (f.cells || f.cong || extras.includes(f) || blocked.has(textOf(f)) || holdsAt(f, pre) || !reached.every(p2 => holdsAt(f, p2))) continue; const sc = negs.reduce((k2, c) => k2 + (holdsAt(f, c) ? 0 : 1), 0) * 1000 - f.size; if (sc > score) (bestF = f, score = sc) } return bestF }
         const room = extras.length < joinExtras && tried < joinTries
         let next = room ? pick(pool) : undefined
