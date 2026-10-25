@@ -42,6 +42,7 @@ No answer contradicts another tool's; every lead is in this harness, unconfirmed
 - Suites (221 jobs): none failed by default (456.1 s wall, 5,457.7 s of job time, `runs/par/suite-default`) or with
   `--usual` (`runs/par/suite-usual`). CHC-COMP, TIP 2015, the frontier corpora, the real-world corpus and the 1-vCPU
   tests weren't run: none reaches compare/term, and `core/` and `kernel/` are as at 0.28.0.
+
 Sums over a map's keys, and liveness under strong fairness (gen/sums). Two trusted changes, Lean-first, each on the
 standard axioms (`propext`, `Classical.choice`, `Quot.sound`; `isSum_change` and `dsum_le` on `propext` and `Quot.sound`
 alone), mirrored by kernel.ts and tested on found and tampered certificates by core/conformance.ts and
