@@ -101,11 +101,14 @@ const imcTurn = (slice: number) => {
 }
 
 // Each live search its slice in turn; the last one live, the rest of the time.
+// `--imc 2`: k-induction and interpolation share k-induction's slice, half each, the bounded runs' as before.
+const half = opt('--imc', 0) === 2
 for (let slice = 2000; performance.now() < end && (kindLive || bmcLive || imcLive); slice *= 2) {
-  const share = (others: boolean) => (others ? slice : end - performance.now())
-  if (kindLive) kindTurn(share(bmcLive || imcLive))
+  const share = (others: boolean, part = slice) => (others ? part : end - performance.now())
+  const kindPart = half && imcLive ? slice / 2 : slice, imcPart = half && kindLive ? slice / 2 : slice
+  if (kindLive) kindTurn(share(bmcLive || imcLive, kindPart))
   if (bmcLive && performance.now() < end) bmcTurn(share(kindLive || imcLive))
-  if (imcLive && performance.now() < end) imcTurn(share(kindLive || bmcLive))
+  if (imcLive && performance.now() < end) imcTurn(share(kindLive || bmcLive, imcPart))
 }
 if (withKind) say({stage: 'kind', proven: false, checked: false, depths: kindDepths, ...(kindWhy ? {why: kindWhy.slice(0, 120)} : {})})
 if (bmcLive) say({stage: 'bmc', depth: bmcDepths.at(-1)?.[0] ?? 0, found: false, depths: bmcDepths, by: 'second'})
