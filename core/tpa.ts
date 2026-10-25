@@ -98,7 +98,7 @@ export function tpa(m: Machine, law: Law, opts: TpaOptions): TpaResult {
         if (r2 === 'no') continue
         return {steps: [...r1.steps, ...r2.steps], end: r2.end}
       }
-      const itp = fromTree(goal, out.tree, isA)
+      const itp = fromTree(goal, out.tree, isA, opts.wall)
       if (!itp) return 'unknown'
       const back = {vars: Object.fromEntries(names.flatMap(x => [[at(0)(x), v(x)], [at(2)(x), v(`${x}'`)]])), maps: {}, flags: {}}
       ;(R[n + 1] ??= []).push(...tops(substC(itp, back)))

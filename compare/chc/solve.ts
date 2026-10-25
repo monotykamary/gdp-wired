@@ -12,11 +12,8 @@
 //     (core/bmc.ts: a deterministic loop's forced run, then a model of a k-step goal from the start to error, k = 1, 2,
 //     ...) in turn, in doubling slices; proven, or a run checkDerivation confirms, it ends this process and answers
 //     itself. With `--bmc-here` (or `--kind-ms 0`) the bounded runs are this process's stage after the guided runs,
-//     within --bmc-ms (15,000), as before
-//   - interpolants (`--itp-ms`, 0 by default): the bounded runs' goals of depth 2, 3, ... from the start, each refuted
-//     once by the kernel's search and colored at every cut (core/interp.ts's boundedInterpolants); the comparisons the
-//     interpolants read, each way, are shapes for the invariant search beside its templates (InferOptions.shapes). A
-//     goal with a model is a run, checked as the bounded runs' are
+//     within --bmc-ms (15,000), as before. `--imc 1`: interpolation over the unrolling takes its turn there too
+//     (core/interp.ts); `--kind 0`: no k-induction there
 //   - houdini: the library's search for the invariants the law needs (core/infer.ts), from the states the runs reached:
 //     candidates per predicate (loc = p → a bound, a difference, a sum), those a run's state breaks dropped, then the
 //     kernel's counterexamples to induction choosing which to add; `--old-houdini`, this folder's first Houdini
@@ -27,7 +24,6 @@ import {type Raw, build, checkDerivation, requestOf, stepsOf} from './translate.
 import {proveRule} from '../../core/dsl.ts'
 import {houdini} from './houdini.ts'
 import {inferLaws} from '../../core/infer.ts'
-import {boundedInterpolants, directions} from '../../core/interp.ts'
 import {findBoundedRun} from '../../core/bmc.ts'
 import type {C, E, State} from '../../core/machine.ts'
 import {grow} from '../../kernel/prove.ts'
@@ -36,7 +32,7 @@ import {substC} from '../../kernel/kernel.ts'
 // GDP_CHC_ARGS: more flags, read before the command line's (a run's knobs, through modal_chc.py's --env).
 const args = [process.argv[2]!, ...(process.env.GDP_CHC_ARGS ?? '').split(' ').filter(Boolean), ...process.argv.slice(3)], file = args[0]!
 const opt = (k: string, d: number) => { const i = args.indexOf(k); return i < 0 ? d : Number(args[i + 1]) }
-const itpMs = opt('--itp-ms', 0), bmcMs = opt('--bmc-ms', 15000), runsMs = opt('--runs-ms', 5000), guideMs = opt('--guide-ms', 8000), houdiniMs = opt('--houdini-ms', 60000), useHoudini = !args.includes('--no-houdini'), oldHoudini = args.includes('--old-houdini')
+const bmcMs = opt('--bmc-ms', 15000), runsMs = opt('--runs-ms', 5000), guideMs = opt('--guide-ms', 8000), houdiniMs = opt('--houdini-ms', 60000), useHoudini = !args.includes('--no-houdini'), oldHoudini = args.includes('--old-houdini')
 const t0 = performance.now(), ms = () => Math.round(performance.now() - t0)
 const say = (o: object) => console.log(JSON.stringify({task: file, ms: ms(), ...o}))
 const done = (answer: string, o: object = {}) => { say({stage: 'answer', answer, ...o}); process.exit(0) }
@@ -59,7 +55,7 @@ say({stage: 'import', preds: chc!.preds.size, clauses: chc!.clauses.length, ints
 // The bounded runs go there too (`--bmc-here` keeps them in this process's stage, after the guided runs, as before), in
 // turn with k-induction, so this process's invariant search starts after the guided runs.
 const kindMs = opt('--kind-ms', Math.max(0, houdiniMs - 2000 - ms())), bmcThere = kindMs > 0 && !args.includes('--bmc-here') && bmcMs > 0
-const kind = kindMs > 0 ? Bun.spawn(['nice', '-n', '19', 'bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid), '--bmc', bmcThere ? '1' : '0'], {stdout: 'inherit', stderr: 'ignore'}) : undefined
+const kind = kindMs > 0 ? Bun.spawn(['nice', '-n', '19', 'bun', `${import.meta.dir}/kind.ts`, file, '--ms', String(kindMs), '--parent', String(process.pid), '--bmc', bmcThere ? '1' : '0', '--imc', String(opt('--imc', 0)), '--kind', String(opt('--kind', 1))], {stdout: 'inherit', stderr: 'ignore'}) : undefined
 process.on('exit', () => { kind?.kill() })
 
 // A run, replayed on the compiled rule and checked against the CHC.
@@ -185,22 +181,12 @@ const seen: State[] = []
 
 bounded()
 
-// The interpolants' directions (above), for the invariant search's shapes.
-const shapes: Record<string, number>[] = []
-if (itpMs > 0) {
-  const dirs = new Map<string, Record<string, number>>()
-  const out = boundedInterpolants(r.machine, law, {until: performance.now() + itpMs, wall: performance.now() + itpMs, kinds: r.kindLaws().map(l => l.holds), each: c => directions(c.itp, dirs)})
-  say({stage: 'interpolants', depth: out.k, cuts: out.cuts.length, directions: dirs.size, ...(out.why ? {why: out.why.slice(0, 80)} : {})})
-  if (out.run) unsat('interpolants', out.run.trace.map(t => decodeRequest(t as Record<string, unknown>)))
-  for (const d of dirs.values()) shapes.push(d, Object.fromEntries(Object.entries(d).map(([n, c]) => [n, -c])))
-}
-
 if (useHoudini && !oldHoudini) {
   // --houdini-ms is the stage's deadline from the start; the search is timed (`timed`), as the track's limit is wall time
   // for every solver, not counted as it is by default
   // (the join 0.8 of the search: the kernel's search after it rarely answers where the join ran out of time,
   // runs/inv2/i-s8 beside i-cfw)
-  const h = inferLaws(r, [law], [], {ms: Math.max(1000, houdiniMs - ms()), timed: true, minimize: false, join: 0.8, seen, first: direct, ...(shapes.length ? {shapes} : {}), progress: (phase, info) => say({stage: `infer ${phase}`, ...info})})
+  const h = inferLaws(r, [law], [], {ms: Math.max(1000, houdiniMs - ms()), timed: true, minimize: false, join: 0.8, seen, first: direct, progress: (phase, info) => say({stage: `infer ${phase}`, ...info})})
   say({stage: 'houdini', engine: 'infer', candidates: h.stats.candidates, alive: h.stats.alive, kept: h.found.length, proofs: h.stats.proofs, proven: h.proven && h.checked, ...(h.proven ? {} : {why: `${h.goal ?? ''} ${h.stuck ?? ''}`.trim().slice(0, 120)})})
   if (h.proven && h.checked) done('sat', {by: 'houdini', invariants: h.found.length})
 }

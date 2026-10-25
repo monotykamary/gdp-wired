@@ -11,7 +11,7 @@ import {counted, withDeadline} from '../../../kernel/prove.ts'
 
 const args = process.argv.slice(2), file = args[0]!
 const ms = Number(args[args.indexOf('--ms') + 1] ?? 55_000) || 55_000, t0 = performance.now(), wall = t0 + ms
-const say = (o: object) => console.log(JSON.stringify({task: file, ms: Math.round(performance.now() - t0), ...o}))
+const say = (o: object) => { console.log(JSON.stringify({task: file, ms: Math.round(performance.now() - t0), ...o})); if ((o as {stage?: string}).stage === 'answer') process.exit(0) }
 const b = build(parseChc(readFileSync(file, 'utf8'))), r = b.rule, m = r.machine
 const steps: [number, string, number][] = []
 const out = counted(250, () => imc(m, b.law, {until: Infinity, wall, kinds: r.kindLaws().map(l => l.holds), progress: (k, what, info) => steps.push([k, what[0]!, info.parts!])}), true)

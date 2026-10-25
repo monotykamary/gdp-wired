@@ -14,7 +14,7 @@
 // The interpolant is over A's names (the shared ones), as a condition the kernel reads.
 import type {C, E, Law, Machine, Request} from './machine.ts'
 import {type Goal, type Path, type Tree, canon, columnTerm, falseC, leafConstraints, stepLawObligations, substC, trueC} from '../kernel/kernel.ts'
-import {type Lin, env, linOfE, plus, vars} from './solver.ts'
+import {type Lin, env, vars} from './solver.ts'
 import {namesOf} from './exists.ts'
 import {REFUTED, growCdcl} from '../kernel/cdcl.ts'
 import {clock, grow} from '../kernel/prove.ts'
@@ -48,13 +48,13 @@ export function interpolate(a: C[], b: C[], shared: string[], budget: {until: nu
   const goal: Goal = {name: 'an interpolant', hyps: [...a, ...b.map(c => substC(c, sub)), ...ties]}
   const out = refute(goal, budget)
   if (!('tree' in out)) return out.stuck === 'sat' && out.witness ? {sat: out.witness} : {unknown: out.why ?? out.stuck}
-  const itp = fromTree(goal, out.tree, i => i < a.length)
+  const itp = fromTree(goal, out.tree, i => i < a.length, budget.wall)
   return itp ? {itp, tree: out.tree} : {unknown: 'a leaf with no interpolant'}
 }
-// The kernel's tree for a goal (CDCL's, else the plain search's within the budget), or its model.
+// The kernel's tree for a goal (CDCL's, else, with no wall stop, the plain search's within the budget), or its model.
 export function refute(goal: Goal, budget: {until: number, wall?: number}): ReturnType<typeof grow> {
   const out = growCdcl(goal, new Map(), {nodes: 0, until: budget.until}, budget.wall !== undefined ? {wall: budget.wall} : {})
-  if ('tree' in out || out.stuck === 'sat' || (budget.wall !== undefined && performance.now() > budget.wall)) return out
+  if ('tree' in out || out.stuck === 'sat' || budget.wall !== undefined) return out
   return grow(goal, new Map(), {nodes: 0, until: budget.until})
 }
 
@@ -62,7 +62,7 @@ export function refute(goal: Goal, budget: {until: number, wall?: number}): Retu
 // both read (shared). A name only A's hypotheses read is A's own, only B's B's own; a term column is its term's names'.
 // A path atom over shared names alone is A's, and the leaf's interpolant keeps it (B's facts may read it), so a split on
 // it, as on one of A's own, or-s its sides; a split on one of B's own and-s them.
-export function fromTree(goal: Goal, tree: Tree, isA: (hyp: number) => boolean): C | undefined {
+export function fromTree(goal: Goal, tree: Tree, isA: (hyp: number) => boolean, wall?: number): C | undefined {
   const aNames = new Set<string>(), bNames = new Set<string>()
   goal.hyps.forEach((h, i) => { for (const n of namesOf(h)) (isA(i) ? aNames : bNames).add(n) })
   type Side = 'A' | 'B' | 'S' | undefined
@@ -81,7 +81,7 @@ export function fromTree(goal: Goal, tree: Tree, isA: (hyp: number) => boolean):
   }
   const linSide = (l: Lin): Side => join(vars(l).map(nameSide))
   const walk = (t: Tree, path: Path, kept: C[]): C | undefined => {
-    if ('leaf' in t) { const p = leaf(t.leaf, path); return p && kept.reduceRight((acc, c) => and(c, acc), p) }
+    if ('leaf' in t) { if (wall !== undefined && performance.now() > wall) return undefined; const p = leaf(t.leaf, path); return p && kept.reduceRight((acc, c) => and(c, acc), p) }
     const side = linSide(t.split)
     if (side === undefined) return undefined
     const key = canon(t.split)
@@ -177,83 +177,47 @@ export function byStep(m: Machine, hyps: C[]): number[] {
 const startOf = (m: Machine): C => ({op: 'and', xs: Object.entries(m.state).map(([n, e]): C => ({op: '=', a: v(n), b: e}))})
 
 export function imc(m: Machine, law: Law, opts: ImcOptions): ImcResult {
-  if (Object.keys(m.maps ?? {}).length || Object.keys(m.step.flags ?? {}).length || m.params.length || m.history || m.inputMaps?.length) return {why: 'not a plain machine', k: 0}
+  const out = imcSearch(m, law, opts).run(opts.until, opts.wall)
+  return out === 'paused' ? {why: 'the budget', k: 0} : out
+}
+// The same search, resumable (compare/chc/kind.ts's turns): each run goes on from the depth and the R it stopped at,
+// until `until` on the counted clock or `wall`, and is 'paused' there (the query it was asking asked again next time).
+export function imcSearch(m: Machine, law: Law, opts: Omit<ImcOptions, 'until' | 'wall'> = {}) {
+  const plain = !(Object.keys(m.maps ?? {}).length || Object.keys(m.step.flags ?? {}).length || m.params.length || m.history || m.inputMaps?.length)
   const m2 = stutter(m, law), names = Object.keys(m.state), start = startOf(m)
-  const over = () => clock() > opts.until || (opts.wall !== undefined && performance.now() > opts.wall)
   const back = {vars: Object.fromEntries(names.map(n => [`${n}~1`, v(n)])), maps: {}, flags: {}}
   const then = substC(law.holds, {vars: Object.fromEntries(names.map(n => [n, v(`${n}'`)])), maps: {}, flags: {}})
-  for (let k = Math.max(2, opts.from ?? 2); k <= Math.min(64, opts.to ?? 64); k++) {
-    const rs: C[] = [start]
-    for (;;) {
-      if (over()) return {why: 'the budget', k}
-      const r: C = rs.length === 1 ? start : {op: 'or', xs: rs}
-      const g = stepLawObligations(m2, [], {}, {name: 'imc', when: opts.kinds?.length ? {op: 'and', xs: [r, ...opts.kinds]} : r, then, steps: k})[0]!
-      const hyps = (useRelax ? relax(g.hyps) : undefined) ?? g.hyps
-      const st = byStep(m2, hyps), A = hyps.filter((_, i) => st[i]! <= 1), B = hyps.filter((_, i) => st[i]! > 1)
-      const out = interpolate(A, B, names.map(n => `${n}~1`), {until: opts.until, ...(opts.wall !== undefined ? {wall: opts.wall} : {})})
-      if ('sat' in out) {
-        opts.progress?.(k, 'sat', {parts: rs.length})
-        if (rs.length > 1) break
-        const run = runOf(m, out.sat, k), broken = replay(m, [law], run)
-        if (broken) return {run: {params: run.params, trace: run.trace.slice(0, broken.steps)}, k}
-        break
+  let k = Math.max(2, opts.from ?? 2), rs: C[] = [start]
+  const run = (until: number, wall?: number): ImcResult | 'paused' => {
+    if (!plain) return {why: 'not a plain machine', k: 0}
+    const over = () => clock() > until || (wall !== undefined && performance.now() > wall), budget = {until, ...(wall !== undefined ? {wall} : {})}
+    for (; k <= Math.min(64, opts.to ?? 64); k++, rs = [start]) {
+      for (;;) {
+        if (over()) return 'paused'
+        const r: C = rs.length === 1 ? start : {op: 'or', xs: rs}
+        const g = stepLawObligations(m2, [], {}, {name: 'imc', when: opts.kinds?.length ? {op: 'and', xs: [r, ...opts.kinds]} : r, then, steps: k})[0]!
+        const hyps = (useRelax ? relax(g.hyps) : undefined) ?? g.hyps
+        const st = byStep(m2, hyps), A = hyps.filter((_, i) => st[i]! <= 1), B = hyps.filter((_, i) => st[i]! > 1)
+        const out = interpolate(A, B, names.map(n => `${n}~1`), budget)
+        if ('sat' in out) {
+          opts.progress?.(k, 'sat', {parts: rs.length})
+          if (rs.length > 1) break
+          const found = runOf(m, out.sat, k), broken = replay(m, [law], found)
+          if (broken) return {run: {params: found.params, trace: found.trace.slice(0, broken.steps)}, k}
+          break
+        }
+        if ('unknown' in out) { if (over()) return 'paused'; return {why: out.unknown, k} }
+        const I = substC(out.itp, back)
+        // I within R: the fixed point.
+        const inR = growCdcl({name: 'an interpolant within', hyps: [I, {op: 'not', x: r}]}, new Map(), {nodes: 0, until}, {model: true, ...(wall !== undefined ? {wall} : {})})
+        const within = !('tree' in inR) && inR.why === REFUTED
+        opts.progress?.(k, within ? 'fixed' : 'refuted', {parts: rs.length})
+        if (within) return {inv: r, k, parts: rs.length}
+        if (!('tree' in inR) && inR.stuck === 'unknown') { if (over()) return 'paused'; return {why: 'containment unknown', k} }
+        rs.push(I)
       }
-      if ('unknown' in out) return {why: out.unknown, k}
-      const I = substC(out.itp, back)
-      // I within R: the fixed point.
-      const inR = growCdcl({name: 'an interpolant within', hyps: [I, {op: 'not', x: r}]}, new Map(), {nodes: 0, until: opts.until}, {model: true, ...(opts.wall !== undefined ? {wall: opts.wall} : {})})
-      const within = !('tree' in inR) && inR.why === REFUTED
-      opts.progress?.(k, within ? 'fixed' : 'refuted', {parts: rs.length})
-      if (within) return {inv: r, k, parts: rs.length}
-      if (!('tree' in inR) && inR.stuck === 'unknown') return {why: 'containment unknown', k}
-      rs.push(I)
     }
+    return {why: 'no depth left', k: 64}
   }
-  return {why: 'no depth left', k: 64}
-}
-
-// --- interpolants of the bounded runs' goals ------------------------------------------------------------------------
-//
-// The goal of depth k from the start (k = 2, 3, ...; the stuttering machine, relaxed), refuted once, colored at each cut
-// j < k: A the first j steps, B the rest. Each cut's interpolant holds of every state j steps from the start, and from
-// none of them is the law broken in k − j more: what a bounded refutation says about the states between, as conditions
-// over the state (its names plain). A model of a goal is a run from the start (core/bmc.ts's replay takes it), which ends
-// the search; so does the budget.
-export type Cut = {k: number, j: number, itp: C}
-export function boundedInterpolants(m: Machine, law: Law, opts: {until: number, wall?: number, from?: number, to?: number, kinds?: C[], each?: (c: Cut) => void}): {cuts: Cut[], run?: {params: Record<string, number>, trace: Request[]}, k: number, why?: string} {
-  const cuts: Cut[] = []
-  if (Object.keys(m.maps ?? {}).length || Object.keys(m.step.flags ?? {}).length || m.params.length || m.history || m.inputMaps?.length) return {cuts, k: 0, why: 'not a plain machine'}
-  const names = Object.keys(m.state), m2 = stutter(m, law), start = startOf(m)
-  const then = substC(law.holds, {vars: Object.fromEntries(names.map(n => [n, v(`${n}'`)])), maps: {}, flags: {}})
-  const over = () => clock() > opts.until || (opts.wall !== undefined && performance.now() > opts.wall)
-  let k = Math.max(2, opts.from ?? 2)
-  for (; k <= Math.min(64, opts.to ?? 64) && !over(); k++) {
-    const g = stepLawObligations(m2, [], {}, {name: 'interpolants', when: opts.kinds?.length ? {op: 'and', xs: [start, ...opts.kinds]} : start, then, steps: k})[0]!
-    const hyps = (useRelax ? relax(g.hyps) : undefined) ?? g.hyps, goal: Goal = {name: g.name, hyps}, st = byStep(m2, hyps)
-    const out = refute(goal, opts)
-    if (!('tree' in out)) {
-      if (out.stuck !== 'sat' || !out.witness) return {cuts, k, why: out.why ?? out.stuck}
-      const run = runOf(m, out.witness, k), broken = replay(m, [law], run)
-      return broken ? {cuts, run: {params: run.params, trace: run.trace.slice(0, broken.steps)}, k} : {cuts, k, why: 'a model the interpreter refuses'}
-    }
-    for (let j = 1; j < k && !over(); j++) {
-      const itp = fromTree(goal, out.tree, i => st[i]! <= j)
-      if (!itp) continue
-      const back = {vars: Object.fromEntries(names.map(n => [`${n}~${j}`, v(n)])), maps: {}, flags: {}}
-      const c: Cut = {k, j, itp: substC(itp, back)}
-      cuts.push(c); opts.each?.(c)
-    }
-  }
-  return {cuts, k}
-}
-
-// The comparisons a condition reads, as linear forms over names (Σ c·n, the constant left out), each once.
-export function directions(c: C, out = new Map<string, Record<string, number>>()): Map<string, Record<string, number>> {
-  if (c.op === 'and' || c.op === 'or') c.xs.forEach(x => directions(x, out))
-  else if (c.op === 'not') directions(c.x, out)
-  else if (c.op === '<=' || c.op === '<' || c.op === '=') {
-    const a = linOfE(c.a), b = linOfE(c.b), d = a && b ? plus(a, b, -1) : undefined, ks = d ? vars(d).sort() : []
-    if (ks.length) out.set(JSON.stringify(ks.map(n => [n, d![n]])), Object.fromEntries(ks.map(n => [n, d![n]!])))
-  }
-  return out
+  return {run}
 }
