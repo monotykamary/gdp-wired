@@ -88,6 +88,34 @@ Interfaces of another package now say so (`authorizer.Attributes`, `runtime.Obje
 repo's directories a package imports to the sparse checkout before reading it, so the Go batch took 367.7 s against
 61.8 s.
 
+**Widened after 0.28.0** (`runs/extract-rw3/b1-mine` beside main 8b710ba's `b1-main`, launched together on boat, the
+same jobs on both sides). The four blockers named above, each read now and each checked against the code as before;
+none reached a whole source, so the counts are the same on both sides (the 41-source list: 5 extracted; the corpus's
+`sources.json` through `run.ts --list`: 8 of 160 entries; Go: 1 of 19). Every extracted rule is the same text on both
+sides, and the 35 example laws get the same verdicts. What moved:
+
+| Blocker | What it needed | Refused before | Refused now, further in |
+| --- | --- | --- | --- |
+| a type parameter (`Ratelimit<TContext>`) | a field read at the type its class is extended with (`RegionRatelimit extends Ratelimit<RegionContext>`): the member's type on the entry's own instance, as TypeScript instantiates the chain | upstash's three `single.ts`: `TContext is not in the subset` | `ctx.redis has no type the subset reads` (`@upstash/redis`'s client: the step is Lua the client sends to Redis, `src/lua-scripts/single.ts`) |
+| an imported guards object (`guards` from `../guards`) | a name read for what it stands for (a const's value through an import or `export default`, a function declared), an object's entries by name and spread, and only the guards and actions the config names (an object shared by several machines holds others') | amplify-ui: `the guards given as other than an object of them` | `guards.ts:50:3: optional chaining`: `(data as ResetPasswordOutput)?.nextStep...`, the done event's payload, of `aws-amplify/auth`'s type (not among the files read) |
+| a mixin from another module (`MedusaService` of `@medusajs/framework/utils`) | not closed. At the pin it is `packages/core/utils/src/modules-sdk/medusa-service.ts` of the same repository, but it is not a mixin: a function of the models that builds a class whose methods are assigned to its prototype in a loop over them, with decorators; and the service's own methods `await` the repositories a DI container injects (`this.inventoryLevelService_.list(...)`) | medusa's two services | the same (no change: reading the workspace package would only move the refusal to the prototype loop) |
+| Go: a struct by value (`opts CreateReviewOptions`, `opts certificateValidationOptions`) | the call's own copy: a local struct value whose fields are inputs (another package's: its exported fields), integer fields refused past their type as scalar arguments are | gitea's CreateReview, the csr `validateConditions`: `an argument of type ... (outside the subset)` | CreateReview: `db.WithTx2(ctx, …)` (the review is written to the database in a transaction, another package's code); validateConditions: `field.ErrorList{}` (a slice of another package's struct, then a `range` loop) |
+
+Two more refusals changed text, the same reason one level in: vendure's two stock sources (`connection.dataSource has no
+type the subset reads`, where `TransactionalConnection` itself was named before: the field's class is read now, its
+`dataSource` is TypeORM's). Fixed beside: a field of a narrower integer type than int64 read through a pointer the
+caller gives took values past its type (the check refused the extraction; now such a request is refused, as for a
+scalar argument). The tests: extract 48 of 48 and extract-go 19 of 19 (each one new), pairs 22 of 22, by default and
+with `--usual` (`runs/extract-rw3/suite-default`, `suite-usual`).
+
+**What the four share, and what is past them.** Each was a name whose meaning the language's own front end already
+knew and the reader matched by syntax: a type parameter (TypeScript's instantiation of the chain), an imported object
+(its symbol's declaration), a struct by value (Go's copy semantics). Past each, all four sources stop at the same
+place: the state lives in another system and the step is that system's code (Redis and its Lua, gitea's SQL
+transactions, Medusa's injected ORM repositories, Amplify's auth service answering the actor). Reading those needs a
+model of the store itself (a key-value store with the script as the step, tables with the queries as reads and
+writes), not more of the subset.
+
 ## The Go front end (core/extract-go.ts)
 
 A second language, Go, on the same Model: a struct of the package and its methods, read through Go's own parser and
