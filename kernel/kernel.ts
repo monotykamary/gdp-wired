@@ -847,7 +847,11 @@ export function sumMachine(m: Machine, given?: Record<string, E[]>): {machine: M
   const same: Record<string, C> = Object.fromEntries(Object.keys(flags).map(f => [f, {op: 'flag', name: f} as C]))
   // (a sum may be declared in the state, at 0, which no step sets: a state variable the plain machine moves)
   for (const [s] of sums) if (s in m.state && JSON.stringify(m.state[s]) !== JSON.stringify(ZERO) || s in (m.step.state ?? {})) throw new Error(`${m.name}: the sum ${s} starts at 0 and no step sets it`)
-  const names = [...m.params, ...m.inputs, ...Object.keys(m.state).filter(n => !(n in m.sums!)), ...Object.keys(m.maps ?? {}), ...(m.inputMaps ?? []), ...Object.keys(m.fns ?? {}), ...Object.keys(flags)]
+  // (every name the machine has, as the Lean twin numbers them: a flag f's variable ?f, a quantified flag's witnesses,
+  // the keys writes at every key and quantified flags bind)
+  const names = [...m.params, ...m.inputs, ...Object.keys(m.state).filter(n => !(n in m.sums!)), ...Object.keys(m.maps ?? {}), ...(m.inputMaps ?? []), ...Object.keys(m.fns ?? {}),
+    ...Object.keys(flags), ...Object.keys(flags).map(f => `?${f}`), ...Object.entries(flags).flatMap(([f, c]) => (c.op === 'all' ? [...witnessesOf(f, c), ...boundOf(c)] : [])),
+    ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : []))]
   const steps: Record<string, E> = {}, qflags: Record<string, C> = {}, facts: C[] = [], goals: Goal[] = []
   for (const [s, sum] of sums) {
     const {term, key} = sum, {flag, x} = sumParts(s), cs = covers[s]!

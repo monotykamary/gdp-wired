@@ -306,9 +306,40 @@ deleting doer's. The rule's assumption now ties a delete's doer to `By[id]`; the
   hand-off to gen/chc5 (below).
 - A sum over a map's keys (7: 30–36): the kernel has no `Σ_k M[k]` and no fact that a cell is at most the sum; a
   ghost total (`compose.ts`'s `total`) keeps the sum but proves no `cell <= total`. It is a trusted change (a Lean
-  proof of the sum's facts first).
+  proof of the sum's facts first). Done on gen/sums: 31–34 proven (below).
 - Nonlinear (4), strong fairness (1), a false liveness no search refutes (1), two-key instances (1), TigerBeetle's
   cost (3), Gitea's two-row invariants (1).
+
+## Sums over a map's keys and strong fairness (gen/sums)
+
+Two trusted changes, Lean-first (lean-kernel/Sums.lean, Live.lean): `M.sum()`, the sum of a map's cells over every key,
+exact, with the facts a step needs (a write moves it by the difference; a cell, with the keys a step writes, is at most
+it; 0 at the start); and liveness under strong fairness (`fairness: 'strong'`). Where the search finds nothing, it adds
+the sum of every map the step writes and searches again (core/dsl.ts's `withMapSums`, within half of what is left). On
+Modal (2 vCPU, 60 s a law), beside main 8b710ba launched together (`runs/sums/rw1-mine`, `rw1-main` in the main
+checkout): **258 proven, 29 refuted, 24 unknown** against 254, 29 and 28. Every law whose verdict changed was run three
+times more a side (`runs/sums/re1-*`):
+
+| # | Law | Main | Here | Found |
+| --- | --- | --- | --- | --- |
+| 33 | ERC20: no balance exceeds the total supply | unknown 4 of 4 | proven 4 of 4 (6.0 to 8.7 s) | `sum$Bal <= totalSupply` |
+| 32 | RefundEscrow: until closed, every deposit is covered | unknown 4 of 4 | proven 4 of 4 (3.6 to 5.1 s) | `sum$Deposits <= deposited`, `st is Refunding → sum$Deposits <= balance`, `st is Active → deposited <= balance` |
+| 31 | RefundEscrow: once refunding, every deposit is refunded | unknown 4 of 4 | proven 4 of 4 (9.8 to 15.0 s) | rank (0), the same three |
+| 34 | librechat: the reserved total is never negative | unknown 4 of 4 | proven 4 of 4 (11.4 to 17.1 s) | `sum$Held <= reserved` |
+| | librechat: once settled, every applied auto-refill is recorded | unknown 4 of 4 | proven 4 of 4 (21.8 to 38.0 s) | `refillTx + 1 <= recorded + refills`, `recorded + refills <= refillTx + 1`: the second search, over the rule with its maps' sums, finds laws that read none of them |
+| | RefundEscrow: the beneficiary and the refundees are never both paid | proven | unknown once (27.5 s), then proven 3 of 3 (8.7 to 10.6 s) | the batch's loss, not again |
+
+Not closed:
+- 25, BullMQ: every job completes or fails for good, stated now under strong fairness (true there, false under weak).
+  The kernel proves it with the rank `[attempts ∸ atm, defa ? 0 : 1, maxStalledCount + 1 ∸ stc]` and levels delayed 0,
+  wait 1, active 2 (chosen by kernel/prove.ts's `chooseLevels`), in 120 s locally; the search (core/live.ts,
+  core/cycles.ts) fits a linear rank from the runs instead and finds none in 60 s (4 of 4 runs). A hand-off: the rank
+  of the rule's own terms in order, under strong fairness.
+- 30, Medusa captureRefund: needs the live refunds' total, `Refunds.sum(r => when(r.deleted, 0, r.amount))`, which the
+  search doesn't propose (it adds each map's plain sum); declared by hand, the search still finds no invariant set in
+  60 s.
+- 35, 36, TigerBeetle: a sum per account (the open pending amounts whose debit account is a given one), a sum with a
+  parameter, which `M.sum()` isn't.
 
 ## Cost
 
