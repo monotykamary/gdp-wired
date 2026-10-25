@@ -746,7 +746,7 @@ function proveMeasures(ring: Fn[], sites: Site[], ms: Measure[], until: number):
     const inductive = schemes(programOf([law]), law).length > 0, lemmas = sizeLaws(law, names)
     if (dataTrace && lemmas.length) console.error(`[data]   ${law.name}: ${lemmas.map(c => c.name).join('; ')}`)
     let v: DataVerdict | undefined = lemmas.length ? proveData(law, {lemmas, lemmasFirst: true, ms: Math.min(8000, 0.6 * left())}) : undefined
-    if (!v?.proven && !v?.counterexample && inductive && clock() < until) v = proveData(law, {ms: Math.min(12_000, left()), lemmas: false})
+    if (!v?.proven && !v?.counterexample && clock() < until) v = proveData(law, {ms: Math.min(12_000, left()), lemmas: false})
     if (!v?.proven && !v?.counterexample && clock() < until) v = proveData(law, {induction: false, ms: Math.min(4000, left())})
     if (!v || !(v.proven && v.checked)) return {failed: `${text}: its ${call} ${v?.counterexample ? `doesn't lower it at ${JSON.stringify(v.counterexample)}` : 'not proven to lower it'}`}
     const used = v
@@ -2235,16 +2235,19 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: LemmaAt[], from: unknown[],
   const members = (t: E): E[] => { const k0 = tid(t); return [t, ...(classes.get(find(k0)) ?? []).filter(e => tid(e) !== k0)] }
   const out: NodeSpec['uses'] = [], seen = new Set<string>()
   const goalReads = readsOnce([from, insts.map(q => holdsAt(fs, q))])
-  let reads: E[] = goalReads
+  let reads: E[] = goalReads, freshReads: E[] = []
+  const links = new Map<number, number>()
   for (let round = 0; round < 2; round++) {
     const fresh: C[] = []
     // The candidates of a round, each scored by the models where the lemma's read is the goal's (a match through every
     // branch's classes holds only in some), two that give the lemma's variables the same values in every model one.
-    type Cand = {use: NodeSpec['uses'][number], at: {goal: E, lemma: E}, score: number, fp: string, size: number, concl: C}
+    type Cand = {use: NodeSpec['uses'][number], at: {goal: E, lemma: E}, score: number, fp: string, size: number, concl: C, exact: boolean, first: boolean}
     const cands: Cand[] = []
     // The newest lemma first (the one the law is tried again for).
     for (const lm of [...lemmas].reverse()) {
-      if (round > 0 && out.some(u => u.node === lm.node)) continue
+      // (a fusion again in the second round: drop(w, drop(x, drop(y, z))) takes it twice, the second at the term the
+      // first makes)
+      if (round > 0 && out.some(u => u.node === lm.node) && !fusion(lm.law.holds)) continue
       const vars = new Set(lm.law.vars.map(v => v.name)), sides: E[] = []
       walk(lm.pat ?? encY(p, lm.law.holds, new Map()), o => { if (o.op === 'get') sides.push(o as unknown as E) })
       const tops0 = sides.filter(a => !sides.some(b => b !== a && JSON.stringify(b).includes(JSON.stringify(a)))) as Extract<E, {op: 'get'}>[]
@@ -2252,6 +2255,14 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: LemmaAt[], from: unknown[],
       // every size the goal reads)
       const callsFn = (t: E) => { let yes = false; walk(t, o => { if (o.op === 'get' && fs.arity.has(o.map as string) && p.fns.some(f => f.name === o.map)) yes = true }); return yes }
       const tops = tops0.some(callsFn) ? tops0.filter(callsFn) : tops0
+      // (a fusion first at reads as they stand: the goal's, those taken first; then in the next round the terms the
+      // first's uses made, the chain's next links, drop(w, drop(x, drop(y, z))) = drop(w + x, drop(y, z)) =
+      // drop(w + x + y, z), `perCase` past the lemma's caps; the matches through every branch's classes, drop(w + w, ..),
+      // would fill those)
+      const fused = fusion(lm.law.holds)
+      const fnDepth = (t: unknown): number => { if (!t || typeof t !== 'object') return 0; if (Array.isArray(t)) return Math.max(0, ...t.map(fnDepth)); const o = t as Record<string, unknown>, inner = Math.max(0, ...Object.values(o).map(fnDepth)); return o.op === 'get' && p.fns.some(f => f.name === o.map) ? 1 + inner : inner }
+      const composite = (t: E) => fnDepth(t) >= 2
+      const mine: [E, boolean][] = [...(fused ? (round > 0 ? freshReads : reads).map((t): [E, boolean] => [t, true]) : []), ...reads.map((t): [E, boolean] => [t, false])]
       // (a constructor matched by its fields only for a lemma no read matches as it stands, the uses would multiply; always
       // for the hypothesis, whose step names a value by its fields: y :: zs at the tail of a cons)
       for (const byFields of [false, true]) {
@@ -2270,15 +2281,18 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: LemmaAt[], from: unknown[],
             for (const [x, v] of Object.entries(r)) { const had = sb[x]; if (had) { if (sid(had) !== sid(v)) return undefined } else out = out === sb ? {...sb, [x]: v} : (out[x] = v, out) }
             return out
           }
-          for (const t of reads) {
+          for (const [t, exact] of mine) {
             if (t.op !== 'get' || t.map !== top.map) continue
+            // (as it stands, its composition only: len(xs ++ []) = len(xs) read at len(xs ++ []), not at every length,
+            // whose conclusions would grow the chain without end)
+            if (exact && !composite(top)) continue
             // (one use is all `hits` asks of a lemma)
             if (hits?.has(lm.node)) break
             // Each argument of the read matched up to its class (a key of several arguments is their pairing).
             const args = argsOf(t.key, n)
             if (!pats || !args) continue
             let subs: Record<string, E>[] = [{}]
-            for (const q of pats.keys()) { const ms = members(args[q]!).slice(0, 256); subs = subs.flatMap(sb => ms.flatMap(m => { const r = matchAt(q, m, sb); return r ? [r] : [] })).slice(0, 512) }
+            for (const q of pats.keys()) { const ms = (exact ? [args[q]!] : members(args[q]!)).slice(0, 256); subs = subs.flatMap(sb => ms.flatMap(m => { const r = matchAt(q, m, sb); return r ? [r] : [] })).slice(0, 512) }
             for (const sub of subs) {
               if (Object.keys(sub).length !== vars.size) continue
               // Where a model gives the lemma's arguments the goal read's (a match through every branch's classes may be none).
@@ -2292,7 +2306,7 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: LemmaAt[], from: unknown[],
               const fp = models.length ? JSON.stringify([lm.node, lm.fixed ? sid(lm.fixed) : '', models.map(({m, env}) => names.map(x => { try { return m.evalE(sub[x]!, env) } catch { return -1 } }))]) : k2
               const use = {node: lm.node, subst: full, guard: lm.guard ?? yesC}
               if (hits) { hits.add(lm.node); break }
-              cands.push({use, at: {goal: t, lemma: substE(top, {vars: sub, maps: {}, flags: {}})}, score, fp, size: textLength([lm.node, sub]), concl: lm.concl})
+              cands.push({use, at: {goal: t, lemma: substE(top, {vars: sub, maps: {}, flags: {}})}, score, fp, size: textLength([lm.node, sub]), concl: lm.concl, exact: exact && round > 0, first: exact})
             }
           }
         }
@@ -2304,16 +2318,18 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: LemmaAt[], from: unknown[],
     // (the most models, then the smallest terms), one of each set of values, up to `perLemma` of a lemma and `total` in
     // all: a case node keeps those its models meet, `perCase` of a lemma (attempt's `applies`), so a use that holds in
     // one case only (the insertion's other side) isn't crowded out by those found first.
+    cands.sort((a, b) => +b.first - +a.first)
     const fps = new Set<string>(), first = new Set<Cand>()
-    const take = (c: Cand) => { fps.add(c.fp); out.push(c.use); matchedAt.set(c.use, c.at) }
+    const take = (c: Cand) => { fps.add(c.fp); out.push(c.use); matchedAt.set(c.use, c.at); if (c.exact) chained.add(c.use) }
     for (const c of cands) {
       if (out.length >= 12 || out.filter(u => u.node === c.use.node).length >= 4) continue
       take(c); first.add(c)
       fresh.push(substC(c.concl, {vars: c.use.subst, maps: {}, flags: {}}))
     }
-    const rest = cands.filter(c => !first.has(c)).sort((a, b) => b.score - a.score || a.size - b.size)
+    const rest = cands.filter(c => !first.has(c)).sort((a, b) => +b.exact - +a.exact || b.score - a.score || a.size - b.size)
     for (const c of rest) {
       if (fps.has(c.fp)) continue
+      if (c.exact) { const n = links.get(c.use.node) ?? 0; if (n < lemmaCaps.perCase) { links.set(c.use.node, n + 1); take(c) } continue }
       if (out.length < lemmaCaps.total && out.filter(u => u.node === c.use.node).length < lemmaCaps.perLemma) take(c)
       // (past the node's caps, kept for the cases: one case's models may meet a use the node's rank puts below them)
       else if (spare && spare.length < lemmaCaps.spare) { fps.add(c.fp); spare.push(c.use); matchedAt.set(c.use, c.at) }
@@ -2323,6 +2339,7 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: LemmaAt[], from: unknown[],
     for (const c of fresh) for (const [a2, b2] of equalities(c)) for (const leaf of leaves(b2)) union(a2, leaf)
     close(fresh)
     reads = readsOnce([fresh, goalReads])
+    freshReads = readsOnce(fresh)
   }
   return out
 }
@@ -2332,11 +2349,14 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: LemmaAt[], from: unknown[],
 export const lemmaCaps = {perLemma: 8, total: 24, perCase: 4, spare: 96, joined: 2, self: 4}
 // A node's uses: the scheme's (the cycle's, read at nodes not yet placed) all, `perCase` of each lemma, `total` lemma
 // uses in all, in the order given.
+// (a fusion's use at a term another of its uses made, the chain's next link, past them: `perCase` more of a lemma)
+const chained = new WeakSet<object>()
 function capUses(uses: NodeSpec['uses'], total = Infinity): NodeSpec['uses'] {
-  const per = new Map<number, number>()
+  const per = new Map<number, number>(), links = new Map<number, number>()
   let all = 0
   return uses.filter(u => {
     if (u.node < 0) return true
+    if (chained.has(u)) { const m = links.get(u.node) ?? 0; if (m < lemmaCaps.perCase) { links.set(u.node, m + 1); return true } }
     const n = per.get(u.node) ?? 0
     if (n >= lemmaCaps.perCase || all >= total) return false
     per.set(u.node, n + 1); all++
@@ -2983,13 +3003,15 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   const goalHits = new Set<number>(), others = cands.slice(calc.length)
   for (const g of goals) lemmaUsesFor(p2, fs2, others.map((c, i) => ({law: c, node: i, concl: encY(p2, c.holds, new Map())})), g.from, g.insts, [], undefined, goalHits)
   const matchesGoal = (c: DataLaw) => goalHits.has(others.indexOf(c))
-  // Those the goal matches first, of those the ones of the law's shape (an implication for an implication) first.
+  // Those the goal matches first, of those the ones of the law's shape (an implication for an implication) first, then
+  // the fusions.
   const implication = (y: Y) => y.op === 'or' && y.xs.length === 2 && y.xs[0]!.op === 'not'
-  const score = (c: DataLaw, hit: boolean) => (hit ? 2 : 0) + (implication(c.holds) === implication(l.holds) ? 1 : 0)
+  const score = (c: DataLaw, hit: boolean) => (hit ? 4 : 0) + (implication(c.holds) === implication(l.holds) ? 2 : 0) + (fusion(c.holds) ? 1 : 0)
   if (dataTrace) console.error(`[data] ${l.name}: ${cands.length} conjectures at ${Math.round(clock())} of ${Math.round(until)}${cands.map(c => `\n[data]   conjecture ${c.name.slice(0, 160)}`).join('')}`)
   // (the calculated steps first, in their order: each before the one it was calculated from)
   const calcSet = new Set(calc)
   const ranked = [...calc.map(c => ({c, hit: true})), ...cands.slice(calc.length).map(c => ({c, hit: matchesGoal(c)})).sort((a, b) => score(b.c, b.hit) - score(a.c, a.hit))]
+  if (dataTrace) for (const r of ranked) console.error(`[data]   ranked ${r.hit ? "hit" : "   "} ${r.c.name.slice(0, 150)}`)
   // The lemmas proven: those given (`base`) and those found, each found one a level above the last.
   const proven: Proven[] = [...base], failed = new Set<DataLaw>(), level = () => lv + 1 + proven.length - base.length
   // A pass of lemmas: of those the goal reads (`hits`) or the others, each proven at one unfolding (8 s of counted work
@@ -3015,7 +3037,7 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
       if (again2 || calcSet.has(c)) extra++
       else tries++
       // (a calculated step half a conjecture's time: there are few, and one past its time is seldom the one)
-      const r = proveWith(p2, fs2, c, proven, level(), opts, Math.min(end, clock() + (calcSet.has(c) ? 3000 : 8000) * (opts.patience ?? 1)), 5000, [1])
+      const r = proveWith(p2, fs2, c, proven, level(), opts, Math.min(end, clock() + (calcSet.has(c) ? 3000 : 8000) * (opts.patience ?? 1)), 5000, fusion(c.holds) ? [1, 2] : [1])
       tried += r.tried
       if (!r.out) { failed.add(c); continue }
       failed.delete(c)
@@ -3072,6 +3094,17 @@ export function searchIn(l: DataLaw, opts: Options, until: number, ctx?: SearchC
   for (const [i, step] of steps.entries()) { if (clock() > until) break; if (dataTrace) console.error(`[data] ${l.name}: step ${i} at ${Math.round(clock())} of ${Math.round(until)}`); const r = step(); if (r) return r }
   return done({proven: false, checked: false, lemmas: [], tried, ...stuckOf(first?.last)})
 }
+// A fusion: an equation one side of which nests a call of the program's functions in another's argument, the other side
+// calls on its variables alone (length(x ++ y) = length(x) + length(y), drop(n + m, xs) = drop(n, drop(m, xs)),
+// rev(xs ++ [x]) = x :: rev(xs)): the rewrite that takes a composition the goal reads apart. Its proof unfolds both
+// functions: two unfoldings.
+const callDepth = (x: unknown): number => {
+  if (!x || typeof x !== 'object') return 0
+  if (Array.isArray(x)) return Math.max(0, ...x.map(callDepth))
+  const o = x as Record<string, unknown>, inner = Math.max(0, ...Object.values(o).map(callDepth))
+  return o.op === 'call' ? 1 + inner : inner
+}
+const fusion = (y: Y) => y.op === '=' && Math.max(callDepth(y.a), callDepth(y.b)) === 2 && Math.min(callDepth(y.a), callDepth(y.b)) === 1
 const stuckOf = (v?: CyclicVerdict) => (v && !v.proven ? {goal: v.goal, stuck: v.stuck} : v && !v.checked ? {goal: 'check', stuck: v.why} : {})
 
 // The law with no cycle: its definitions unfolded, the kernel's prover alone (what the library proves without the search).

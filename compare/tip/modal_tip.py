@@ -197,7 +197,14 @@ def shard(tool: str, tasks: list[str], limit: int, extra: dict = {}) -> list[dic
             rows.append({"tool": tool, "task": task, "answer": "error", "seconds": 0, "err": "tip's translation failed"})
             continue
         try:
-            p = subprocess.run(["timeout", "-k", "5", str(limit), *command(tool, task, limit, extra.get(task, []) + extra.get("*", []))], cwd=work, capture_output=True, text=True, timeout=limit + 30)
+            # (`--trace` among the gdp args: proveData's trace, DATA_TRACE, kept in the row, its last 400 KB; `--env=K=V`
+            # sets K, DATA_NODE=<regex> say: diagnostics)
+            args = extra.get(task, []) + extra.get("*", [])
+            trace = "--trace" in args
+            envs = dict(a[len("--env="):].split("=", 1) for a in args if a.startswith("--env="))
+            args = [a for a in args if a != "--trace" and not a.startswith("--env=")]
+            p = subprocess.run(["timeout", "-k", "5", str(limit), *command(tool, task, limit, args)], cwd=work, capture_output=True, text=True, timeout=limit + 30,
+                               env={**os.environ, **envs, **({"DATA_TRACE": "1"} if trace else {})} if trace or envs else None)
             code, out, err = p.returncode, p.stdout, p.stderr
         except subprocess.TimeoutExpired:
             code, out, err = 124, "", "killed"
@@ -213,7 +220,7 @@ def shard(tool: str, tasks: list[str], limit: int, extra: dict = {}) -> list[dic
             answer = last.get("answer", "timeout" if code == 124 else "error")
             for s in stages:
                 s.pop("task", None)
-            row = {"tool": tool, "task": task, "answer": answer, "seconds": secs, "stages": stages}
+            row = {"tool": tool, "task": task, "answer": answer, "seconds": secs, "stages": stages, **({"trace": err[-400_000:]} if trace else {})}
         else:
             answer = answer_of(tool, code, out)
             row = {"tool": tool, "task": task, "answer": answer, "seconds": secs}
