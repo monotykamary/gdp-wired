@@ -164,6 +164,7 @@ function constantsOf(m: Machine, laws: Law[]): number[] {
 }
 
 // A cell's key as the kernel names it (kernel.ts keyOf): `name:coef` parts joined by ',', '1' the constant.
+// (a name the model leaves out is 0, as the state's and the request's are read: a law's key it left free, say)
 const keyValue = (cell: string, w: Record<string, number>): number | undefined => {
   const inner = cell.slice(cell.indexOf('[') + 1, -1)
   if (inner.includes('[')) return undefined
@@ -172,7 +173,7 @@ const keyValue = (cell: string, w: Record<string, number>): number | undefined =
     const at = part.lastIndexOf(':'), name = part.slice(0, at), coef = Number(part.slice(at + 1))
     if (name === '1') value += coef
     else if (name in w) value += coef * w[name]!
-    else return undefined
+    else if (name.includes('[')) return undefined
   }
   return value
 }
@@ -187,10 +188,12 @@ const keyValue = (cell: string, w: Record<string, number>): number | undefined =
 // windowMs: what a bound must hold of for the step to keep the law, beside the rule's own comparisons.
 function preimages(m: Machine, laws: Law[], stepLaws: StepLaw[], atoms: Atom[], coords: number[]): Rel[] {
   type Lin = Map<string, number>
-  const cap = 8, inputs = new Set(m.inputs), maps = new Set(Object.keys(m.maps ?? {}))
+  const cap = 256, inputs = new Set(m.inputs), maps = new Set(Object.keys(m.maps ?? {}))
   const termOf = new Map(atoms.flatMap(a => (a.term ? [[JSON.stringify(a.term), a.parts[0]![0]] as const] : [])))
   const plus = (a: Lin, b: Lin, k = 1): Lin => { const o = new Map(a); for (const [v, c] of b) o.set(v, (o.get(v) ?? 0) + k * c); return o }
-  const cross = (xs: Lin[], ys: Lin[], k: number): Lin[] => xs.flatMap(a => ys.map(b => plus(a, b, k))).slice(0, cap)
+  // (branches deduplicated, at most `cap` a term)
+  const uniq = (ls: Lin[]): Lin[] => [...new Map(ls.map(l => [JSON.stringify([...l].filter(([, c]) => c).sort()), l])).values()].slice(0, cap)
+  const cross = (xs: Lin[], ys: Lin[], k: number): Lin[] => uniq(xs.flatMap(a => ys.map(b => plus(a, b, k))))
   // (`post`: names read after the step, through its terms; a step law's primed names are so too)
   const linE = (e: E, post: boolean): Lin[] => {
     const t = termOf.size && e.op !== 'var' && e.op !== 'const' ? termOf.get(JSON.stringify(e)) : undefined
@@ -204,16 +207,17 @@ function preimages(m: Machine, laws: Law[], stepLaws: StepLaw[], atoms: Atom[], 
         return [new Map([[e.name, 1]])]
       }
       case 'add': return cross(linE(e.a, post), linE(e.b, post), 1)
-      case 'sub': return [...cross(linE(e.a, post), linE(e.b, post), -1), new Map()].slice(0, cap)
+      case 'sub': return uniq([...cross(linE(e.a, post), linE(e.b, post), -1), new Map()])
       case 'mul': return linE(e.a, post).map(l => new Map([...l].map(([v, c]) => [v, c * e.k])))
-      case 'min': case 'max': return [...linE(e.a, post), ...linE(e.b, post)].slice(0, cap)
-      case 'if': return [...linE(e.then, post), ...linE(e.else, post)].slice(0, cap)
+      case 'min': case 'max': return uniq([...linE(e.a, post), ...linE(e.b, post)])
+      case 'if': return uniq([...linE(e.then, post), ...linE(e.else, post)])
       case 'prod': return []
       case 'get': {
         const name = e.map.endsWith("'") && maps.has(e.map.slice(0, -1)) ? e.map.slice(0, -1) : e.map
         if (!maps.has(name)) return []
         const w = (post || name !== e.map) ? m.step.maps?.[name] : undefined
-        if (w) return [...linE('each' in w ? w.value : w.value, false), new Map([[name, 1]])].slice(0, cap)
+        // (the cell as it was first: a step writes few)
+        if (w) return uniq([new Map([[name, 1]]), ...linE(w.value, false)])
         return [new Map([[name, 1]])]
       }
     }
@@ -930,8 +934,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const out: [number, number][][] = []
       for (const i of cs) out.push([[i, 1]], [[i, -1]])
       if (cs.length <= joinPairs) for (const [a2, i] of cs.entries()) for (const j of cs.slice(a2 + 1)) for (const [c1, c2] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as const) out.push([[i, c1], [j, c2]])
-      const known = new Set(out.map(t => JSON.stringify(t)))
-      for (const {coef} of [...comparisons(m, laws, atoms, cs), ...preimages(m, laws, stepLaws, atoms, cs)]) if (coef.length > 1) for (const u of coef[0]![1] > 0 ? [coef, coef.map(([i, c]) => [i, -c] as [number, number])] : []) {
+      const known = new Set(out.map(t => JSON.stringify(t))), pre = preimages(m, laws, stepLaws, atoms, cs)
+      opts.progress?.('preimages', {n: pre.length, dirs: pre.slice(0, 40).map(r => r.coef.map(([i, c]) => `${c}·${nameOf(i)}`).join(' + ')).join('; ')})
+      for (const {coef} of [...comparisons(m, laws, atoms, cs), ...pre]) if (coef.length > 1) for (const u of coef[0]![1] > 0 ? [coef, coef.map(([i, c]) => [i, -c] as [number, number])] : []) {
         const k2 = JSON.stringify(u)
         if (!known.has(k2) && out.length < 2 * cs.length + 4 * joinPairs * joinPairs + 64) { known.add(k2); out.push(u) }
       }
@@ -977,6 +982,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         })
         joins++
       }
+      // an equality of the hull that is a form: at most joinSparse values, small coefficients
+      const emitted = (e: bigint[]) => { let nz = 0; for (let k = 0; k < CN; k++) if (e[k]) { nz++; if (e[k]! > BigInt(joinCoef) || e[k]! < -BigInt(joinCoef)) return false } return nz > 0 && nz <= joinSparse && Number.isSafeInteger(Number(e[CN]!)) }
       const keyOf = (vs: Float64Array | number[]) => ctl.map(c => levelOf(c, vs[c.atom]!)).join(',')
       const combosOf = () => ctl.reduce<number[][]>((acc, c) => acc.flatMap(k2 => c.cuts.concat(0).map((_, lv) => [...k2, lv])), [[]])
       let combos = combosOf()
@@ -987,7 +994,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const add = (p: Point, widen: boolean) => { for (const v of vecs(p)) join(keyOf(v), v, widen) }
       const rows = (cells ? rowsK : rowsS).map(valuesOf)
       for (const v of rows) join(keyOf(v), v, false)
-      opts.progress?.('join start', {cells: cells ? 1 : 0, control: ctl.map(c => `${nameOf(c.atom)}:${c.cuts.join('/')}`).join(' '), groups: groups.size, dirs: dirs.length, coords: CN})
+      opts.progress?.('join start', {wide: dirs.filter(t => t.length >= 4).map(t => t.map(([i, c]) => `${c}${nameOf(i)}`).join(' ')).join('; ').slice(0, 600), cells: cells ? 1 : 0, control: ctl.map(c => `${nameOf(c.atom)}:${c.cuts.join('/')}`).join(' '), groups: groups.size, dirs: dirs.length, coords: CN})
       // The control states no state reached, as fewer and smaller cubes (a program counter in bits: Spacer's clauses there
       // read two or three of its bits): each cube's values dropped one at a time, the yes/nos first, while it holds at no
       // control state reached, then the cubes another cube's values include left out. Together they say what the cubes
@@ -1020,19 +1027,22 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           const lv = combo.map((value, k) => ({atom: keyAtoms[k]!, value})), ats = lv.map(atLevel), grp = groups.get(combo.join(','))
           const guard = ats.length ? {guard: ats[0]!, ...(ats.length > 1 ? {also: ats.slice(1)} : {})} : {}
           if (!grp) { if (lv.length) nev.push(lv); continue }
+          const said = new Set<string>()
           for (const e of grp.eqs) {
+            if (!emitted(e)) continue
             const coef: [number, number][] = []
             for (let k = 0; k < CN; k++) if (e[k]) coef.push([coords[k]!, Number(e[k]!)])
-            const d = -Number(e[CN]!)
-            if (!coef.length || coef.length > joinSparse || coef.some(([, c]) => Math.abs(c) > joinCoef) || !Number.isSafeInteger(d)) continue
-            keep({coef, d, cells, ...guard, size: 0}); keep({coef: coef.map(([i, c]) => [i, -c]), d: -d, cells, ...guard, size: 0})
+            const d = -Number(e[CN]!), minus = coef.map(([i, c]) => [i, -c] as [number, number])
+            said.add(JSON.stringify(coef)); said.add(JSON.stringify(minus))
+            keep({coef, d, cells, ...guard, size: 0}); keep({coef: minus, d: -d, cells, ...guard, size: 0})
           }
           dirs.forEach((t, k) => {
             const hi = grp.hi[k]!
             if (!Number.isFinite(hi)) return
-            // constant on the hull (the equalities say it), or a yes/no's own range
+            // constant on the hull where an equality says it (one the forms hold: a sum of the equalities' basis that no
+            // row of it is, Start + Admitted − Val − Rewarded, is said by its two bounds), or a yes/no's own range
             const neg = dirs.findIndex(u => u.length === t.length && u.every(([i, c], q2) => i === t[q2]![0] && c === -t[q2]![1]))
-            if (neg >= 0 && grp.hi[neg] === -hi) return
+            if (neg >= 0 && grp.hi[neg] === -hi && said.has(JSON.stringify([...t].sort((a, b) => coords.indexOf(a[0]) - coords.indexOf(b[0]))))) return
             if (t.length === 1 && modeOf(t[0]![0])?.bool && (t[0]![1] > 0 ? hi >= 1 : hi >= 0)) return
             keep({coef: t, d: hi, cells, ...guard, size: 0})
           })
@@ -1055,7 +1065,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const tmp = new Map<string, Group>()
         for (const v of side) join('', v, false, tmp)
         const grp = tmp.get('')!
-        return grp.eqs.some(e => residual(e, pv) !== 0n) || dirs.some((t, k) => dirValue(t, pv) > grp.hi[k]!)
+        return grp.eqs.some(e => emitted(e) && residual(e, pv) !== 0n) || dirs.some((t, k) => dirValue(t, pv) > grp.hi[k]!)
       })
       const refine = (recent: Point[], reached: Point[]): boolean => {
         const all = [...rows, ...reached.flatMap(vecs)]
@@ -1380,7 +1390,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         let next = room ? pick(pool) : undefined
         if (!next && room) { const made = fromCti(pre); pool.push(...made); next = pick(made) }
         if (next) tried++
-        opts.progress?.('join', {round: rounds, set: set.length, ms: qms, target: next ? textOf(next).slice(0, 60) : 'none'})
+        opts.progress?.('join', {round: rounds, set: set.length, ms: qms, target: next ? textOf(next).slice(0, 60) : 'none', ...(next ? {} : {outside: outside ? 1 : 0, breaking: set.filter(f => textOf(f).includes('Rewarded[k]') && textOf(f).includes('Val[k]') && textOf(f).includes('Start[k]')).slice(0, 8).map(f => textOf(f)).join(' | ').slice(0, 1500), at: JSON.stringify({c: pre.cells, in: input}).slice(0, 500)})})
         if (!next && !alone && cube()) continue
         if (!next) { why = 'target'; break }
         extras.push(next); continue
