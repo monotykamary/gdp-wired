@@ -1388,8 +1388,10 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
     nodes += out.nodes
     leaves += countLeaves(out.tree)
   }
-  // (every step law proven: the laws' certificate, or their check, as proveLaws makes it)
+  // (every step law proven: the laws' certificate, or their check, as proveLaws makes it; its time not the step laws')
+  const r0 = performance.now()
   ready()
+  const usual0 = t0 + performance.now() - r0
   const proof = {laws: base.proof, instances, ...(Object.keys(perStep).length ? {perStep} : {}), trees}
   // Step laws of a machine the cyclic instances cover (one step, or several over no map) are translated with the laws
   // (core/cyclic.ts); the rest are counted as no instance's.
@@ -1409,7 +1411,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
     const all = one.map(sl => { const inst = perStep[sl.name] ?? instances, goal = stepLawObligations(m, laws, inst, sl)[0]!; return {sl, inst, goal, tree: trees[goal.name]!} })
     const translatedOf = (steps: typeof all) => (st: TStats) => translatedProof(() => JSON.stringify(['steps', plain, laws, base.proof!.instances, steps.map(x => [x.sl, x.inst])]), reused => timedKind('instance', 0, () => machineNodes(plain, laws, base.proof!.instances, {trees: base.proof!.trees, steps, lawsMade: reused}, st)), st,
       () => JSON.stringify(['machine', plain, laws, base.proof!.instances]))
-    const usualMs = performance.now() - t0
+    const usualMs = performance.now() - usual0
     if (cyclicOn()) crossCyclic('step law', m.name, true, undefined, usualMs, translatedOf(all))
     // (where the step laws' proof together isn't made, each step law's alone: one the translation misses leaves the
     // others theirs; and the usual trees, unchecked where the certificate was to be the verdict, are checked)
@@ -1430,7 +1432,7 @@ function proveStepLawsAsGiven(m: Machine, laws: Law[], stepLaws: StepLaw[], base
       const b = machineNodes(plain, laws, base.proof!.instances)
       return proveCyclic(b.facts, [...b.specs, ...searchedStepNodes(plain, laws, rest.map(sl => ({law: sl, instances: perStep[sl.name] ?? instances})), b.facts, b.specs)])
     }
-    const c = certCyclic('step law', m.name, undefined, searchedSteps, performance.now() - t0)
+    const c = certCyclic('step law', m.name, undefined, searchedSteps, performance.now() - usual0)
     for (const sl of c.checked ? [] : rest) miss(sl, `${restWhy(sl)}: ${c.why}`)
   } else if (cyclicOn() || certOn()) for (const sl of rest) miss(sl, restWhy(sl))
   return out
