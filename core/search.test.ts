@@ -1,7 +1,7 @@
 // proveRule and proveSteps search for what the laws need where the prover alone doesn't prove them and no run breaks
 // them: lemmas (core/discover.ts), then invariants (core/infer.ts). `{search: false}` is the prover alone.
 import {expect, test} from 'bun:test'
-import {nat, proveRule, proveSteps, rule, when} from './dsl.ts'
+import {nat, oneOf, proveRule, proveSteps, rule, when} from './dsl.ts'
 import {bucket, bucketLaw, pool, poolLaw} from '../examples/infer.ts'
 import {retries, retryLaws, retrySteps} from '../examples/lemmas.ts'
 
@@ -11,6 +11,8 @@ test('an invariant nobody wrote is found and proven, and said as a law', () => {
   const v = proveRule(r, [law])
   expect(v).toMatchObject({proven: true, checked: true})
   expect(v.found?.laws?.length).toBeGreaterThan(0)
+  // The proof rests on the invariants found, each proven from init: the verdict says so.
+  expect(v.assumes).toEqual({states: 'reachable', laws: v.found!.laws!.map(f => f.text)})
   // What was found, given back with the law, is a proof by the prover alone.
   expect(proveRule(r, [law, ...v.found!.laws!.map(f => f.law)], {search: false})).toMatchObject({proven: true, checked: true})
 })
@@ -59,4 +61,43 @@ test('a deterministic loop broken only after thousands of steps is refuted by it
   const v = proveRule(r, [law], {search: {ms: 4000}})
   expect(v.proven).toBe(false)
   expect(v.run?.trace.length).toBe(10_000)
+})
+
+// A step law false from a state no run reaches: the search proves it with an invariant that holds only in reachable
+// states. Up to 0.30.0 the verdict was a plain proven, and a caller that steps the rule from states it is handed (a
+// host's) read it as a proof for those too: 3 of one such caller's 50 broken variants came back proven so.
+const ticket = (bug?: 'payload is swapped') => rule('ticket').inputs({op: oneOf('take', 'revoke')})
+  .state({active: 1, expected: 0, payload: 0, value: 0})
+  .flags(({op, active}) => ({takes: op.is('take').and(active.eq(1))}))
+  .step(({payload, expected, takes}) => ({active: 0, value: when(takes, bug ? expected : payload, 0)}))
+const binding = (bug?: 'failed admits work') => rule('binding').inputs({op: oneOf('fail', 'work')})
+  .state({phase: oneOf('Active', 'Failed').from('Active'), revoked: 0, admitted: 0})
+  .flags(({op, phase, revoked}) => ({admits: op.is('work').and(bug ? phase.is('Active').or(revoked.eq(0)) : phase.is('Active'))}))
+  .step(({op, phase, revoked, admits}) => ({phase: when(op.is('fail'), 'Failed', phase), revoked: when(op.is('fail'), revoked.plus(1), revoked), admitted: when(admits, 1, 0)}))
+type AnyRule = Parameters<typeof proveSteps>[0]
+type AnyStepLaw = Parameters<typeof proveSteps>[2][number]
+const reachableOnly = (b: AnyRule, sl: AnyStepLaw, ok: AnyRule, okLaw: AnyStepLaw) => {
+  const v = proveSteps(b, [], [sl])
+  // proven, never plainly: it rests on the invariants found
+  expect(v).toMatchObject({proven: true, checked: true, assumes: {states: 'reachable'}})
+  expect(v.assumes!.laws.length).toBeGreaterThan(0)
+  expect(v.assumes!.laws).toEqual(v.found!.laws!.map(f => f.text))
+  // from any state the laws allow: refuted, with the state
+  for (const opts of [{from: 'any' as const}, {search: false}]) {
+    const a = proveSteps(b, [], [sl], opts)
+    expect(a).toMatchObject({proven: false, stuck: 'sat'})
+    expect(a.witness).toBeDefined()
+  }
+  // the rule as it ships: proven from any state, with nothing assumed
+  const okv = proveSteps(ok, [], [okLaw], {from: 'any'})
+  expect(okv).toMatchObject({proven: true, checked: true})
+  expect(okv.assumes).toBeUndefined()
+}
+test('a step law proven only in reachable states says so; {from: \'any\'} refutes it with the state', () => {
+  const handsOver = (r: ReturnType<typeof ticket>) => r.stepLaw('a take hands over the payload', ({payload}, a) => a.value.eq(payload), ({takes}) => takes)
+  const tb = ticket('payload is swapped'), t = ticket()
+  reachableOnly(tb, handsOver(tb), t, handsOver(t))
+  const nothing = (r: ReturnType<typeof binding>) => r.stepLaw('a failed binding admits nothing', (_b, a) => a.admitted.eq(0), ({phase}) => phase.is('Failed'))
+  const bb = binding('failed admits work'), b = binding()
+  reachableOnly(bb, nothing(bb), b, nothing(b))
 })

@@ -16,7 +16,7 @@
 // most specific source (an inner state over its parent) is taken, then the first declared; the regions react to the
 // same event at once. A transition into a compound state enters its initial child, or the child it was last in when the
 // compound keeps its history; `set` writes the extended state (a variable two regions both set takes the first region's).
-import {type Kind, type Rule, type TermLike, type Verdict, Choice, Cond, Term, all, any, no, oneOf, proveRule, proveSteps, rule, when, yes} from './dsl.ts'
+import {type Kind, type ProveOptions, type Rule, type TermLike, type Verdict, Choice, Cond, Term, all, any, no, oneOf, proveRule, proveSteps, rule, when, yes} from './dsl.ts'
 import {type Law, type Request, type State, interpret, numbersOf} from './machine.ts'
 import {allowed} from './watch.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
@@ -187,7 +187,7 @@ export class Chart<P extends Obj = {}, I extends Obj = {}, X extends Obj = {}> {
     return regions.flatMap(reg => [...reg.compounds].filter(([c, {history}]) => history && c).map(([c]) =>
       r.law(`${reg.name === 'state' ? '' : `${reg.name}.`}${c} remembers one of its own states`, (env: Obj) => any(...reg.leaves.filter(l => l.startsWith(`${c}.`)).map(l => (env[`${reg.field}.last.${c}`] as Choice<string>).is(l))))))
   }
-  prove(laws: Law[] = [], stepLaws: StepLaw[] = []): Verdict { const given = [...this.chartLaws(), ...laws]; return stepLaws.length ? proveSteps(this.rule, given, stepLaws) : proveRule(this.rule, given) }
+  prove(laws: Law[] = [], stepLaws: StepLaw[] = [], opts: ProveOptions = {}): Verdict { const given = [...this.chartLaws(), ...laws]; return stepLaws.length ? proveSteps(this.rule, given, stepLaws, opts) : proveRule(this.rule, given, opts) }
 
   // --- the checks a chart's author expects -------------------------------------------------------------------------
   // reached: each state, with the first run from the start that reaches it (a breadth-first walk of the compiled rule

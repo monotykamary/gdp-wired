@@ -2436,7 +2436,14 @@ export const loop = (name: string): LoopRule => new LoopRule({name, params: [], 
 // as lemmas to state in `recur` or `carriesList` (source to paste).
 // `witnesses`: for each law with "there exists", the witness it was proven through, as it reads.
 // `k`: the laws were proven by k-induction (core/kind.ts; KInd.lean's kind_sound), as one, over k steps in a row.
-export type Verdict = {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found, witnesses?: Record<string, string>, k?: number}
+// `assumes`: the proof rests on the states being reachable from the start: it needed invariants the search found
+// (`laws`, their texts, as in `found.laws`; each proven from init), or k-induction. So the laws hold in every state a run
+// from init reaches, and each step law holds from every such state, but not from every state the laws allow: a caller
+// that steps the rule from states it didn't reach so (a host's, a stored one it didn't check) has no proof for those.
+// Absent, every step law holds from every state where the laws (and the rule's kinds) hold, reachable or not, and the
+// laws together are kept by every step from such a state. `{from: 'any'}` proves only so.
+export type Verdict = {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found, witnesses?: Record<string, string>, k?: number, assumes?: Assumes}
+export type Assumes = {states: 'reachable', laws: string[]}
 // `facts`: lemmas about the rule's functions (those known by their facts) proven from those facts by a cyclic proof
 // (core/cycles.ts), the laws proven with them; `rank`: a loop's rank, found from its runs (`proveLoop` with none).
 export type Found = {laws?: {law: Law, text: string, source?: string}[], lemmas?: Record<string, {lemmas?: string[], between?: string[]}>, facts?: string[], rank?: string}
@@ -2445,7 +2452,13 @@ export type Found = {laws?: {law: Law, text: string, source?: string}[], lemmas?
 // then lemmas about the functions known by their facts, each proven by a cyclic proof (core/cycles.ts; `cycles: false`
 // leaves them out), then invariants (core/infer.ts), each proven by the kernel with the laws, the verdict theirs.
 // `{search: false}`: the prover alone.
-export type ProveOptions = {search?: boolean | {ms?: number, cycles?: boolean}}
+// `from`: the states the step laws are proven from. 'reachable' (the default): every state a run from init reaches, so
+// the search may prove them with invariants it found (the verdict then says so: `assumes`). 'any': every state the laws
+// and the rule's kinds allow, reachable or not, for a caller that steps the rule from states it is handed. The search
+// then still looks for runs that break the laws and for lemmas about the rule's functions and lists (true in every
+// state), never for an invariant, and a step law broken from a state the laws allow is refuted there, with the state
+// (`stuck: 'sat'`, `witness`), reachable or not.
+export type ProveOptions = {search?: boolean | {ms?: number, cycles?: boolean}, from?: 'reachable' | 'any'}
 // A verdict that isn't a checked proof, as the error a lemma, a guard or a gate is refused with (the verdict on `.verdict`).
 export class Unproven extends Error {
   constructor(what: string, readonly verdict: Verdict) {
@@ -2613,7 +2626,8 @@ function stepGhosts(m: Machine, stepLaws: StepLaw[]): {machine: Machine, laws: L
 // recurrences or carried lists (the rule made again with them), then invariants over what it then is. The verdict is the
 // prover's on the laws with what was found; when nothing is found, the prover's own (with why).
 function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], v: Verdict, opts: ProveOptions): Verdict {
-  if ((v.proven && v.checked) || opts.search === false || v.run || v.stuck === 'sat' && !/@step|@\d+ steps/.test(v.goal ?? '')) return v
+  const any = opts.from === 'any'
+  if ((v.proven && v.checked) || opts.search === false || v.run || v.stuck === 'sat' && (any || !/@step|@\d+ steps/.test(v.goal ?? ''))) return v
   // The deeper runs; then runs over small values (keys that meet, small params), whose requests meet their
   // assumption's equalities and clocks, or near the counterexample the verdict ends at.
   for (const b of [deeperBudget, {...deeperBudget, bound: 1, seed: 31, states: false}, {...deeperBudget, trials: 1200, seed: 41, states: false, mixed: true, ...(v.witness ? {near: v.witness} : {})}]) {
@@ -2637,10 +2651,10 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   if (shallow) return refutedBy(shallow)
   // k-induction (core/kind.ts): the plain laws as one, over k = 2, 3, ... steps in a row, the rule's kinds assumed;
   // within a twentieth of the budget (at most 500 ms, counted so too).
-  if (!stepLaws.length && laws.every(l => !l.forall && !l.keys?.length && !l.some?.length)) {
+  if (!any && !stepLaws.length && laws.every(l => !l.forall && !l.keys?.length && !l.some?.length)) {
     const ms = Math.min(500, total / 20), kinds = withKinds(r, []).filter(k => !laws.some(l => l.name === k.name))
     const kd = counted(fullRate, () => proveKInduction(r.machine, kinds, conjunction(laws), {ms}), true)
-    if (kd.proven && kd.checked) return {proven: true, checked: true, k: kd.k!}
+    if (kd.proven && kd.checked) return {proven: true, checked: true, k: kd.k!, assumes: {states: 'reachable', laws: []}}
   }
   let rule = r, lemmas: Found['lemmas']
   const {fns, lists} = r.parts
@@ -2657,13 +2671,15 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   }
   // Laws about the ids a counter hands out (core/fresh.ts), within a tenth of what is left: the laws with them, then
   // the invariant search with them given.
+  // (each found invariant proven from init: none where the step laws hold from any state)
+  if (any) return {...v, why: [v.why, 'no invariant searched for: {from: \'any\'}'].filter(Boolean).join('; ')}
   let fresh: FreshLaw[] = []
   if (Object.keys(rule.machine.maps ?? {}).length && until - clock() - tail > 1000) {
     const fm = rule.machine, share = (until - clock() - tail) / 10
     fresh = withDeadline(clock() + share, () => freshLaws(fm, rule.kindLaws(), {params: (rand, bound) => rule.randomParams(rand, bound), input: (rand, bound, ps) => rule.randomInput(rand, bound, ps)}, {ms: share}))
     if (fresh.length) {
       const given = [...withKinds(rule, laws), ...fresh.map(f => f.law)], out = withDeadline(clock() + share, () => (stepLaws.length ? proveStepLaws(fm, given, stepLaws) : proveLaws(fm, given)))
-      if (out.proven && out.checked) return {proven: true, checked: true, found: {laws: fresh, ...(lemmas ? {lemmas} : {})}}
+      if (out.proven && out.checked) return {proven: true, checked: true, found: {laws: fresh, ...(lemmas ? {lemmas} : {})}, assumes: reachableBy(fresh)}
     }
   }
   const ms = until - clock() - tail
@@ -2675,7 +2691,7 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
     const summed = rule.withMapSums()
     if (summed && until - clock() - tail > 1000) {
       const inf2 = inferLaws(summed, [...fresh.map(f => f.law), ...laws], stepLaws, {ms: Math.min(20_000, (until - clock() - tail) / 2)})
-      if (inf2.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; return {...verdict, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}} }
+      if (inf2.proven && inf2.checked) { const {found, stats: _s2, ...verdict} = inf2; void _s2; return {...verdict, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])} }
     }
     // (a step law's ghost: at most 10 s of it, as its goals cost more than the laws')
     const deep = bounded(Math.max(0, Math.min(until - clock(), ghosted && !laws.length ? 10_000 : Infinity)), Math.max(1, reached))
@@ -2684,8 +2700,11 @@ function searched(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], 
   }
   const {found, stats: _stats, ...verdict} = inf
   void _stats
-  return {...verdict, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}}
+  return {...verdict, found: {laws: [...fresh, ...found], ...(lemmas ? {lemmas} : {})}, ...withAssumes([...fresh, ...found])}
 }
+// What a verdict proven with these found laws rests on: the states reachable from init (each found law is proven so).
+const reachableBy = (found: {text: string}[]): Assumes => ({states: 'reachable', laws: found.map(f => f.text)})
+const withAssumes = (found: {text: string}[]): {assumes?: Assumes} => (found.length ? {assumes: reachableBy(found)} : {})
 export type {StepLaw}
 export type {Liveness}
 export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: Liveness, opts: {ms?: number} = {}): Verdict {
@@ -2716,8 +2735,9 @@ export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, la
         if (g2.proven && g2.checked) f = g2
       }
     }
+    const helpers = [...fresh, ...(f.laws ?? []).map((law, i) => ({law, text: f.found?.laws[i] ?? law.name}))]
     return {proven: f.proven, checked: f.checked, ...(f.goal ? {goal: f.goal, stuck: f.stuck} : {}), ...(f.witness ? {witness: f.witness} : {}), ...(f.why ? {why: f.why} : {}),
-      ...(f.found ? {found: {rank: f.found.rank, ...(f.laws?.length || fresh.length ? {laws: [...fresh, ...(f.laws ?? []).map((law, i) => ({law, text: f.found!.laws[i] ?? law.name}))]} : {})}} : {})}
+      ...(f.found ? {found: {rank: f.found.rank, ...(helpers.length ? {laws: helpers} : {})}} : {}), ...(f.proven ? withAssumes(helpers) : {})}
   }
   const out = proveLiveness(r.machine, withKinds(r, laws), l)
   return verdictOf(out)
