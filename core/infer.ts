@@ -1073,7 +1073,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         dirs.forEach((t, k) => { if (dirValue(t, pv) > grp.hi[k]!) out = Math.max(out, lawDir[k] ? 2 : 1) })
         return out
       }))
+      const scored: string[] = []
       const refine = (recent: Point[], reached: Point[]): boolean => {
+        scored.length = 0
         const all = [...rows, ...reached.flatMap(vecs)]
         let pick: Ctl | undefined, score = 0
         for (const c of levelable) {
@@ -1081,6 +1083,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           const first = outOf(c, recent[0]!, all)
           if (!first) continue
           const sc = recent.slice(1).reduce((k, q) => k + outOf(c, q, all), first) * 100 - c.cuts.length
+          scored.push(`${nameOf(c.atom)}:${sc}`)
           if (sc > score) (pick = c, score = sc)
         }
         if (!pick) return false
@@ -1098,7 +1101,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         for (const v of [...rows, ...reached.flatMap(vecs)]) join(keyOf(v), v, false)
         return true
       }
-      return {cells, add, forms, refine, deepen, coords, control: () => ctl.map(c => nameOf(c.atom)).join(' '), groups}
+      return {cells, add, forms, refine, deepen, coords, control: () => `${ctl.map(c => nameOf(c.atom)).join(' ')} (${scored.join(' ')})`, groups}
     }
     const spaces = [space(false), ...(mapNames.length && cellAtoms.length ? [space(true)] : [])]
     const formsNow = (): Form[] => {
