@@ -261,9 +261,9 @@ else if (scc && comps.length) {
   // (the task's own loop first; where its search ends with time left, the rewritten one, its rank proven again on the
   // task's)
   let out = prove(b0!.loop, Math.max(1000, left()))
-  // (the rewritten one's share: what the rank search left, or half of what is left before the margin, of the second
-  // recurrent set's time)
-  const share = () => Math.max(left(), ((limit - margin) * 1000 - ms()) * (want === 'terminates' ? 1 : 0.5))
+  // (the rewritten one's share: what the rank search left, none of the second recurrent set's time, which a share of
+  // it cost: hqr's, db3's)
+  const share = () => (want === 'terminates' ? (limit - margin) * 1000 - ms() : left())
   const rw = !out.ok && share() > 3000 ? rewrite() : undefined
   if (rw && share() > 3000) { const o2 = prove(rw.b.loop, share(), {rewritten: true}, [], {b: b0!, laws: rw.f.split ? [[]] : factLawSets(b0!, task0!, rw.f)}); if (o2.ok) out = o2 }
   if (out.ok) {
