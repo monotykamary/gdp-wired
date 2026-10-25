@@ -2303,16 +2303,20 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: LemmaAt[], from: unknown[],
   const members = (t: E): E[] => { const k0 = tid(t); return [t, ...(classes.get(find(k0)) ?? []).filter(e => tid(e) !== k0)] }
   const out: NodeSpec['uses'] = [], seen = new Set<string>()
   const goalReads = readsOnce([from, insts.map(q => holdsAt(fs, q))])
-  let reads: E[] = goalReads, freshReads: E[] = []
+  let reads: E[] = goalReads
+  // (each lemma's first-round conclusions' reads: a fusion's chain goes on at its own)
+  const ownFresh = new Map<number, C[]>()
   const links = new Map<number, number>()
   for (let round = 0; round < 2; round++) {
     const fresh: C[] = []
     // The candidates of a round, each scored by the models where the lemma's read is the goal's (a match through every
     // branch's classes holds only in some), two that give the lemma's variables the same values in every model one.
-    type Cand = {use: NodeSpec['uses'][number], at: {goal: E, lemma: E}, score: number, fp: string, size: number, concl: C, exact: boolean, first: boolean}
+    type Cand = {use: NodeSpec['uses'][number], at: {goal: E, lemma: E}, score: number, fp: string, size: number, concl: C, exact: boolean, first: boolean, ord: number}
     const cands: Cand[] = []
     // The newest lemma first (the one the law is tried again for).
+    let lemmaOrd = 0
     for (const lm of [...lemmas].reverse()) {
+      lemmaOrd++
       // (a fusion again in the second round: drop(w, drop(x, drop(y, z))) takes it twice, the second at the term the
       // first makes)
       if (round > 0 && out.some(u => u.node === lm.node) && !fusion(lm.law.holds)) continue
@@ -2323,14 +2327,15 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: LemmaAt[], from: unknown[],
       // every size the goal reads)
       const callsFn = (t: E) => { let yes = false; walk(t, o => { if (o.op === 'get' && fs.arity.has(o.map as string) && p.fns.some(f => f.name === o.map)) yes = true }); return yes }
       const tops = tops0.some(callsFn) ? tops0.filter(callsFn) : tops0
-      // (a fusion first at reads as they stand: the goal's, those taken first; then in the next round the terms the
-      // first's uses made, the chain's next links, drop(w, drop(x, drop(y, z))) = drop(w + x, drop(y, z)) =
-      // drop(w + x + y, z), `perCase` past the lemma's caps; the matches through every branch's classes, drop(w + w, ..),
-      // would fill those)
+      // (a fusion first at reads as they stand: the goal's, those taken first; then in the next round, used already,
+      // only at the terms its own first uses made, the chain's next links, drop(w, drop(x, drop(y, z))) =
+      // drop(w + x, drop(y, z)) = drop(w + x + y, z), `perCase` past the lemma's caps; the matches through every
+      // branch's classes, drop(w + w, ..), would fill those)
       const fused = fusion(lm.law.holds)
       const fnDepth = (t: unknown): number => { if (!t || typeof t !== 'object') return 0; if (Array.isArray(t)) return Math.max(0, ...t.map(fnDepth)); const o = t as Record<string, unknown>, inner = Math.max(0, ...Object.values(o).map(fnDepth)); return o.op === 'get' && p.fns.some(f => f.name === o.map) ? 1 + inner : inner }
       const composite = (t: E) => fnDepth(t) >= 2
-      const mine: [E, boolean][] = [...(fused ? (round > 0 ? freshReads : reads).map((t): [E, boolean] => [t, true]) : []), ...reads.map((t): [E, boolean] => [t, false])]
+      const again = round > 0 && out.some(u => u.node === lm.node)
+      const mine: [E, boolean][] = [...(fused ? (round > 0 ? readsOnce(ownFresh.get(lm.node) ?? []) : reads).map((t): [E, boolean] => [t, true]) : []), ...(again ? [] : reads.map((t): [E, boolean] => [t, false]))]
       // (a constructor matched by its fields only for a lemma no read matches as it stands, the uses would multiply; always
       // for the hypothesis, whose step names a value by its fields: y :: zs at the tail of a cons)
       for (const byFields of [false, true]) {
@@ -2374,7 +2379,7 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: LemmaAt[], from: unknown[],
               const fp = models.length ? JSON.stringify([lm.node, lm.fixed ? sid(lm.fixed) : '', models.map(({m, env}) => names.map(x => { try { return m.evalE(sub[x]!, env) } catch { return -1 } }))]) : k2
               const use = {node: lm.node, subst: full, guard: lm.guard ?? yesC}
               if (hits) { hits.add(lm.node); break }
-              cands.push({use, at: {goal: t, lemma: substE(top, {vars: sub, maps: {}, flags: {}})}, score, fp, size: textLength([lm.node, sub]), concl: lm.concl, exact: exact && round > 0, first: exact})
+              cands.push({use, at: {goal: t, lemma: substE(top, {vars: sub, maps: {}, flags: {}})}, score, fp, size: textLength([lm.node, sub]), concl: lm.concl, exact: exact && round > 0, first: exact, ord: lemmaOrd})
             }
           }
         }
@@ -2386,13 +2391,15 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: LemmaAt[], from: unknown[],
     // (the most models, then the smallest terms), one of each set of values, up to `perLemma` of a lemma and `total` in
     // all: a case node keeps those its models meet, `perCase` of a lemma (attempt's `applies`), so a use that holds in
     // one case only (the insertion's other side) isn't crowded out by those found first.
-    cands.sort((a, b) => +b.first - +a.first)
+    // (within each lemma's: the others' as found)
+    cands.sort((a, b) => a.ord - b.ord || +b.first - +a.first)
     const fps = new Set<string>(), first = new Set<Cand>()
     const take = (c: Cand) => { fps.add(c.fp); out.push(c.use); matchedAt.set(c.use, c.at); if (c.exact) chained.add(c.use) }
     for (const c of cands) {
       if (out.length >= 12 || out.filter(u => u.node === c.use.node).length >= 4) continue
       take(c); first.add(c)
       fresh.push(substC(c.concl, {vars: c.use.subst, maps: {}, flags: {}}))
+      ;(ownFresh.get(c.use.node) ?? ownFresh.set(c.use.node, []).get(c.use.node)!).push(fresh.at(-1)!)
     }
     const rest = cands.filter(c => !first.has(c)).sort((a, b) => +b.exact - +a.exact || b.score - a.score || a.size - b.size)
     for (const c of rest) {
@@ -2407,7 +2414,6 @@ function lemmaUsesFor(p: Program, fs: Facts, lemmas: LemmaAt[], from: unknown[],
     for (const c of fresh) for (const [a2, b2] of equalities(c)) for (const leaf of leaves(b2)) union(a2, leaf)
     close(fresh)
     reads = readsOnce([fresh, goalReads])
-    freshReads = readsOnce(fresh)
   }
   return out
 }
