@@ -178,10 +178,15 @@ const subst = (s: Sx, m: Map<string, bigint>): Sx => (typeof s === 'string' ? (m
 // How a rule of the rewritten task came from the task's: its origin, the values it fixed, the guard's own values it left
 // out (with the t of each to try), the residue values it added.
 export type Origin = {rule: number, fixed: Map<string, bigint>, gone: (Mod & {reps: bigint[]})[], added: string[]}
-export type Facts = {task: Ari, origins: Origin[], split: number, fixed: number, dropped: number}
+// `consts`: each location's slots a constant at (where no location is split: the rewritten task's locations are the
+// task's, in its order, so a loop built from either numbers them alike; facts.ts's certificates are made on the task's
+// own loop, solve.ts's `onTask`).
+export type Facts = {task: Ari, origins: Origin[], split: number, fixed: number, dropped: number, consts: Map<string, Map<number, bigint>>}
 
-// `maxCopies`: the residues a location is split into at most (the product of its moduli).
-export function facts(t: Ari, maxCopies = 8, budget = 3_000_000): Facts | undefined {
+// `maxCopies`: the residues a location is split into at most (the product of its moduli); 1, none: a split task's
+// certificates are its copies', which the task's own loop can't read (a residue is no term of the kernel's), so only a
+// search of research's (solve.ts --split) splits.
+export function facts(t: Ari, maxCopies = 1, budget = 3_000_000): Facts | undefined {
   work = budget
   try { return facts0(t, maxCopies) } catch (e) { if (e instanceof OutOfWork) return undefined; throw e }
 }
@@ -290,10 +295,11 @@ function facts0(t: Ari, maxCopies: number): Facts | undefined {
   for (const nd of order) for (const i of out.get(nodeLoc.get(nd)!) ?? []) for (const e of edges(i, at.get(nd)!)) made.push({rule: {...e.rule, from: nd}, origin: e.origin})
   made.sort((a, b) => a.origin.rule - b.origin.rule)
   const rules = made.map(m => m.rule), origins = made.map(m => m.origin), fixed = origins.reduce((n, o) => n + o.fixed.size, 0)
-  const funs = new Map(order.map(nd => [nd, arity.get(nodeLoc.get(nd)!)!] as const))
+  const funs = splits.size ? new Map(order.map(nd => [nd, arity.get(nodeLoc.get(nd)!)!] as const)) : new Map(arity)
+  const consts = new Map(splits.size ? [] : [...at].map(([nd, F]) => [nd, new Map(F.flatMap((c, j) => (c.k === 0n ? [[j, c.c] as const] : [])))] as const))
   const dropped = t.rules.length - new Set(origins.map(o => o.rule)).size
-  if (!splits.size && !fixed && !dropped && funs.size === arity.size) return undefined
-  return {task: {funs, entry: t.entry, rules}, origins, split: splits.size, fixed, dropped}
+  if (!splits.size && !fixed && !dropped && order.length === arity.size) return undefined
+  return {task: {funs, entry: t.entry, rules}, origins, split: splits.size, fixed, dropped, consts}
 }
 
 // A lasso's steps on the rewritten task as the task's own: the origin's index, the fixed values and each guard's own
@@ -329,7 +335,7 @@ export function deadRules(b: Built, ms = 1500): Set<number> {
 }
 // The task (as `f` rewrote it, or as written) without those rules, its origins kept for `lift`.
 export function without(t: Ari, f: Facts | undefined, dead: Set<number>): Facts {
-  const base: Facts = f ?? {task: t, origins: t.rules.map((_, rule) => ({rule, fixed: new Map(), gone: [], added: []})), split: 0, fixed: 0, dropped: 0}
+  const base: Facts = f ?? {task: t, origins: t.rules.map((_, rule) => ({rule, fixed: new Map(), gone: [], added: []})), split: 0, fixed: 0, dropped: 0, consts: new Map()}
   const keep = base.task.rules.map((_, i) => !dead.has(i))
   return {...base, task: {...base.task, rules: base.task.rules.filter((_, i) => keep[i])}, origins: base.origins.filter((_, i) => keep[i]), dropped: base.dropped + dead.size}
 }

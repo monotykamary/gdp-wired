@@ -25,12 +25,14 @@
 import {readFileSync} from 'node:fs'
 import {type Ari, type Lasso, Unsupported, checkLasso, parseAri, type Step} from './ari.ts'
 import {type Facts, deadRules, facts, lift, without} from './facts.ts'
+import {factLaws, rankOnTask, recurOnTask} from './ontask.ts'
+import type {Law} from '../../core/machine.ts'
 import {type Built, build, stepOf} from './translate.ts'
 import {components} from './scc.ts'
 import {findRank, showE} from '../../core/cycles.ts'
 import {interpret} from '../../core/machine.ts'
 import {check, loopMachine, loopObligations} from '../../kernel/kernel.ts'
-import {certLoop, withDeadline} from '../../kernel/prove.ts'
+import {certLoop, proveLaws, withDeadline} from '../../kernel/prove.ts'
 import {findNeverEnds} from '../../core/nonterm.ts'
 
 const args = process.argv.slice(2), file = args[0]!
@@ -41,16 +43,19 @@ const t0 = performance.now(), ms = () => Math.round(performance.now() - t0)
 const say = (o: object) => console.log(JSON.stringify({ms: ms(), ...o}))
 const done = (answer: string, o: object = {}) => { say({stage: 'answer', answer, ...o}); process.exit(0) }
 
-let task, task0: Ari, f: Facts | undefined, b: Built, dead0 = 0
+let task, task0: Ari, f: Facts | undefined, b: Built, b0: Built, dead0 = 0
+const name = file.split('/').pop()!
 try {
   task = task0 = parseAri(readFileSync(file, 'utf8'))
-  // the facts at locations (facts.ts): the same runs, constants and residues as the task's own, `--no-facts` without
-  f = args.includes('--no-facts') ? undefined : facts(task0)
-  if (f) task = f.task
-  b = build(task, file.split('/').pop()!)
+  b = b0 = build(task0, name)
+  // the facts at locations (facts.ts), the task rewritten with them, where the searches look (`--no-facts` without;
+  // `--split`, research's, splits locations by a residue, whose answers the task's own loop can't take); every answer
+  // made again on the task's own loop (ontask.ts)
+  f = args.includes('--no-facts') ? undefined : facts(task0, args.includes('--split') ? 8 : 1)
+  if (f) { task = f.task; b = build(task, name, {fixed: b0.fixed, active: b0.active}) }
   // and the rules the kernel shows never fire, left out (facts.ts's deadRules)
   const dead = args.includes('--no-facts') ? new Set<number>() : deadRules(b)
-  if (dead.size) { f = without(task0, f, dead); task = f.task; b = build(task, file.split('/').pop()!) }
+  if (dead.size) { f = without(task0, f, dead); task = f.task; b = build(task, name, {fixed: b0.fixed, active: b0.active}) }
   dead0 = dead.size
 } catch (e) {
   if (e instanceof Unsupported) done('unsupported', {why: e.message})
@@ -129,8 +134,16 @@ function neverEnds(ms: number, tag: string, extend = ms, accel?: number): void {
   try { v = findNeverEnds(loop, {ms, extend, cases: true, ...(accel ? {accel} : {})}) } catch (e) { say({stage: 'recur', tag, error: (e as Error).message.slice(0, 300)}); return }
   const {ms: searchMs, ...counts} = v.stats
   say({stage: 'recur', tag, proven: v.proven, checked: v.checked, ...(v.by ? {by: v.by} : {}), ...(v.why ? {why: v.why} : {}), searchMs, ...counts})
-  const r = v.recur ?? v.cases
+  let r = v.recur ?? v.cases
   if (!(v.proven && v.checked && r)) return
+  // (on the task's own loop, where the set is the rewritten task's: else only a lasso replayed on the task answers)
+  let onTask = 'as written'
+  if (f) {
+    const r0 = f.split ? undefined : recurOnTask(b0!, b!, task0!, f, r, t0 + (limit - 1) * 1000)
+    onTask = r0 ? 'made again' : 'not made'
+    say({stage: 'on task', onTask})
+    r = r0 ?? r
+  }
   const size = JSON.stringify(r.set).length + JSON.stringify(r.wit).length
   let replay: string | undefined
   if (v.lasso) {
@@ -143,7 +156,8 @@ function neverEnds(ms: number, tag: string, extend = ms, accel?: number): void {
       replay = replayed({start, stem: steps.slice(0, v.lasso.stem.length), cycle: steps.slice(v.lasso.stem.length)}) ?? 'confirmed'
     } catch (e) { replay = `not replayed: ${(e as Error).message.slice(0, 120)}` }
   }
-  done('nonterminating', {by: 'recurrent set', kind: v.by, ...(v.cases ? {cases: v.cases.cases.length} : {}), stem: r.stem.length, setSize: size, ...(replay ? {replay} : {}), recur: size < 200_000 ? r : undefined})
+  if (onTask === 'not made' && replay !== 'confirmed') return
+  done('nonterminating', {by: onTask === 'not made' ? 'lasso' : 'recurrent set', kind: v.by, ...('cases' in r ? {cases: r.cases.length} : {}), stem: r.stem.length, setSize: size, ...(replay ? {replay} : {}), ...(f ? {onTask} : {}), recur: size < 200_000 && onTask !== 'not made' ? r : undefined})
 }
 // (the accelerated cycles have 75% of the first search after its runs; a set of theirs that a stem reaches may take
 // until 10 s before the limit: its cycle keeps it, by the closed forms, and a run gets there, so its loop is very likely
@@ -154,17 +168,27 @@ if (want !== 'terminates') neverEnds(Math.min(ntMs, limit * 1000 - ms() - 1000),
 // findRank on a loop, then the kernel again on the loop as translated: every goal of its halting, with the rank and the
 // laws found.
 type Proven = {ok: boolean, rank?: string, laws?: string[], goals?: number, cert?: () => string, why?: string}
-function prove(l: typeof loop, ms: number, tag: object = {}): Proven {
+// `given`: laws the search may read and the kernel proves with the rank; `onTask`: the task's own loop, where the rank
+// found on the rewritten one is proven again (with the facts as laws).
+function prove(l: typeof loop, ms: number, tag: object = {}, given: Law[] = [], onTask?: {b: Built, laws: Law[]}): Proven {
   let f
-  try { f = findRank(l, [], {ms}) } catch (e) { say({stage: 'rank', ...tag, error: (e as Error).message.slice(0, 300)}); return {ok: false, why: 'rank search threw'} }
+  try { f = findRank(l, given, {ms}) } catch (e) { say({stage: 'rank', ...tag, error: (e as Error).message.slice(0, 300)}); return {ok: false, why: 'rank search threw'} }
   say({stage: 'rank', ...tag, proven: f.proven, checked: f.checked, ...(f.found ? {rank: f.found.rank, laws: f.found.laws} : {}), ...(f.goal ? {goal: f.goal, stuck: String(f.stuck).slice(0, 200)} : {}), ...(f.why ? {why: f.why} : {})})
   if (f.proven && f.checked && f.rank && f.trees) {
-    const goals = loopObligations(l, f.laws ?? [], f.rank)
-    const missing = goals.filter(g => !f.trees![g.name] || !check(g, f.trees![g.name]!)).map(g => g.name)
+    let lc = l, laws = [...given, ...f.laws ?? []], trees = f.trees
+    if (onTask) {
+      lc = onTask.b.loop; laws = [...onTask.laws, ...laws]
+      const t2 = withDeadline(t0 + (limit - 1) * 1000, () => rankOnTask(onTask.b, laws, f.rank!, t0 + (limit - 1) * 1000))
+      say({stage: 'on task', ...tag, onTask: t2 ? 'made again' : 'not made'})
+      if (!t2) return {ok: false, why: `rank ${f.found?.rank} of the rewritten task, not proven on the task`}
+      trees = t2
+    }
+    const goals = loopObligations(lc, laws, f.rank)
+    const missing = goals.filter(g => !trees[g.name] || !check(g, trees[g.name]!)).map(g => g.name)
     if (!missing.length) {
       // the certificate later, once the answer is printed (making it has no clock of its own)
       const cert = () => {
-        const c0 = performance.now(), c = withDeadline(t0 + (limit - 2) * 1000, () => certLoop(l, f.laws ?? [], f.rank!, f.trees!))
+        const c0 = performance.now(), c = withDeadline(t0 + (limit - 2) * 1000, () => certLoop(lc, laws, f.rank!, trees))
         say({stage: 'cert', ...tag, cert: c?.checked ? 'cyclic' : 'usual', certMs: Math.round(performance.now() - c0), ...(c && !c.checked ? {why: c.why.slice(0, 200)} : {})})
         return c?.checked ? 'cyclic' : 'usual'
       }
@@ -178,7 +202,15 @@ function prove(l: typeof loop, ms: number, tag: object = {}): Proven {
 // the rank search's time: 70% of what is left before the margin (the recurrent set's second search has the rest)
 const rankUntil = ms() + (want === 'terminates' ? 1 : 0.7) * ((limit - margin) * 1000 - ms()), left = () => rankUntil - ms()
 let why = 'no rank'
-const comps = scc ? components(task!) : []
+// (per component, the task's own components, each from a state at its cut points where the task's facts hold: the
+// facts proven the task's invariants by the kernel first, and its laws in each component; none where they aren't)
+const comps = scc ? components(task0!) : []
+let sccFacts = new Map<string, Map<number, bigint>>()
+if (scc && comps.length && f && !f.split && f.consts.size && want !== 'nonterminating') {
+  const laws = factLaws(b0!, f.consts), v = laws.length ? withDeadline(t0 + Math.min(10_000, left() / 4), () => proveLaws(loopMachine(b0!.loop), laws)) : undefined
+  if (v?.proven && v.checked) sccFacts = f.consts
+  say({stage: 'facts', laws: laws.length, proven: !!(v?.proven && v.checked)})
+}
 if (want === 'nonterminating') why = 'no rank searched (--want nonterminating)'
 else if (scc && comps.length) {
   // each component on its own, from any state at its cut points; every one must halt
@@ -188,9 +220,9 @@ else if (scc && comps.length) {
   let all = true
   for (const [k, c] of comps.entries()) {
     let bc
-    try { bc = build(c.task, `component ${k}`, {starts: c.starts, slice: true}) } catch (e) { why = `component ${k}: ${(e as Error).message.slice(0, 200)}`; all = false; break }
+    try { bc = build(c.task, `component ${k}`, {starts: c.starts, slice: true, facts: sccFacts}) } catch (e) { why = `component ${k}: ${(e as Error).message.slice(0, 200)}`; all = false; break }
     sizes.push({slots: bc.slots, dropped: bc.dropped.size, fixed: bc.fixed.size})
-    const out = prove(bc.loop, Math.max(1000, left() / (comps.length - k)), {component: k, slots: bc.slots, dropped: bc.dropped.size, fixed: bc.fixed.size})
+    const out = prove(bc.loop, Math.max(1000, left() / (comps.length - k)), {component: k, slots: bc.slots, dropped: bc.dropped.size, fixed: bc.fixed.size}, factLaws(bc, sccFacts))
     if (!out.ok) { why = `component ${k}: ${out.why}`; all = false; break }
     ranks.push(out.rank!)
     certs.push(out.cert!)
@@ -201,7 +233,7 @@ else if (scc && comps.length) {
     done('terminates', {...o, cert: certs.map(c => c()).every(c => c === 'cyclic') ? 'cyclic' : 'usual'})
   }
 } else {
-  const out = prove(loop, Math.max(1000, left()))
+  const out = prove(loop, Math.max(1000, left()), {}, [], f ? {b: b0!, laws: factLaws(b0!, f.split ? new Map() : f.consts)} : undefined)
   if (out.ok) {
     // the answer as soon as the kernel has checked every tree again; then the certificate, and the answer with it
     const o = {by: 'rank', rank: out.rank, laws: out.laws, goals: out.goals}
