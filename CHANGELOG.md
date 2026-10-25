@@ -3,7 +3,28 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.28.0
+
+Four of the five benchmarks we run now lead clearly, in our harness (60 s on Modal, 2 vCPU, the rivals as installed in
+compare/), each beside main launched with it. None wrong anywhere. One trusted change, Lean-first: the closure of a
+nontermination certificate by cases (NonTerm.lean's `never_ends_of_cases`, on `propext`, `Classical.choice` and
+`Quot.sound`; kernel.ts's `checkRecurCases`, conformance-tested with tampered certificates in both).
+- **TermComp ITS, doesn't terminate:** 541, 538 and 540 on the task's statement, 542 per component in each of three
+  batches (`runs/nt5/its1-mine` to `its3-mine`), beside main's 531 to 534. LoAT's default engine 532.
+- **SV-COMP termination:** 239 in each of the same three batches, beside 223 to 225. Ultimate Automizer 224.
+- **TIP 2015:** 205 of 492 proven in 3 of 3 runs (207, 207, 205), beside main's 195 and Vampire's 186 in one batch
+  (`runs/tip2/final4`). Twelve of Vampire's are sorts calling `idiv`, whose definitions are contradictory.
+- **TermComp ITS, terminates:** 611 to 613. KoAT2 601.
+- **CHC-COMP LIA-Lin:** 1,039 to 1,044, unchanged this round (`runs/chc5/`). Spacer 1,163. PDR and a warm CDCL session
+  were measured and kept on the unmerged branch gen/chc5-pdr (compare/chc/README.md).
+- **The real-world corpus:** 254 of 311 laws proven, 29 refuted, 28 unknown, no timeouts (`runs/chc5/k-rw-mine`),
+  against 240, 18, 53 at 0.27.0; liveness 26 of 35, against 18.
+
+Large certificates check in Lean again: s1.t2's file from 410,471,697 bytes to 1,965,614, and a sample of 48 recurrent
+sets checks 48 of 48 (`runs/nt5/`). These leads are measurements in this harness, ours to confirm under each
+competition's own setup. The library (`core/` and `kernel/`, tests excluded) is 2,201,135 bytes against 0.27.0's
+2,139,175. The release suites (221 jobs, one after the other) on boat: by default 240.7 s wall, 3,403.3 s of job time,
+none failed (`runs/release/0.28.0-default`); `--usual` 312.9 s, 3,714.0 s, none failed (`runs/release/0.28.0-usual`).
 
 Runs that never end in large programs, and the certificates Lean can check (gen/nonterm5), with the chained C
 translation (gen/nonterm5-sv). One trusted change, Lean-first: **NonTerm.lean's `never_ends_of_cases`** (on `propext`,
