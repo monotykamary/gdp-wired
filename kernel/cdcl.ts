@@ -59,7 +59,7 @@ type Var = {name: string, lin: Lin, terms: [string, number][], col: boolean, qui
 type Clause = {lits: Map<string, boolean>, node: number, input?: boolean}
 // GDP_CDCL_LP=0: each node solved by elimination alone (no simplex); GDP_CDCL_FILL (8): the simplex's tableau begun
 // again past this many entries a row the node reads (research/step's comparisons).
-const lpFill = Number(env.GDP_CDCL_FILL ?? 8), useLp = env.GDP_CDCL_LP !== '0', verify = env.GDP_CDCL_VERIFY === '1'
+const lpFill = Number(env.GDP_CDCL_FILL ?? 8), lpGrow = Number(env.GDP_CDCL_GROW ?? 4), lpBase = Number(env.GDP_CDCL_BASE ?? 500), lpGreedy = Number(env.GDP_CDCL_GREEDY ?? 200), useLp = env.GDP_CDCL_LP !== '0', verify = env.GDP_CDCL_VERIFY === '1'
 // Counters research/step reads (times only while `on`).
 export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions: 0, solveMs: 0, rowsMs: 0, coreMs: 0, unfoldMs: 0, leaves: 0, resolved: 0, coreSize: 0, pathSize: 0, lpMisses: 0, resolved2: 0, unfoldWhy: '', orderMs: 0, boundMs: 0, openMisses: 0, lpMs: 0, lpUnknown: 0, fmCalls: 0, pivots: 0, lpRebuilds: 0, lpRows: 0, lpNnz: 0, lpVars: 0, lpLoad: 0, nodes: 0, boundRounds: 0}
 
@@ -123,6 +123,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   const heapIn = (x: Var) => { if (!x.cond || rel[x.id]! < 0 || (x.hp !== undefined && x.hp >= 0)) return; x.hp = heap.length; heap.push(x); heapUp(x.hp) }
   const heapPop = () => { const top = heap[0]!, end = heap.pop()!; top.hp = -1; if (heap.length) { heap[0] = end; end.hp = 0; heapDown(0) } }
   let sx = useLp ? new Simplex() : undefined
+  if (sx && clausal) sx.greedy = lpGreedy
   const nodes: DagNode[] = [], clauses: Clause[] = [], occ = new Map<string, number[]>()
   // (with opts.core: each leaf's hypotheses, by node; the hypothesis each row at this node came from)
   const leafHyps = new Map<number, number[]>(), wantCore = !!(opts.core && opts.model), wantDag = !!(opts.dag && opts.model)
@@ -298,8 +299,8 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
       if (x.val !== undefined || rel[x.id]! < 0) { heapPop(); continue }
       return x
     }
-    // (never: checked where a model is about to be answered)
-    for (let ci = 0; ci < clauses.length; ci++) if (clauses[ci]!.input && needed(ci) && !satisfied(ci)) throw new Error('clausal: a needed clause unsatisfied with no open variable')
+    // (never: GDP_CDCL_VERIFY=1 checks it where a model is about to be answered)
+    if (verify) for (let ci = 0; ci < clauses.length; ci++) if (clauses[ci]!.input && needed(ci) && !satisfied(ci)) throw new Error('clausal: a needed clause unsatisfied with no open variable')
     return undefined
   }
   // A point of the rows the simplex is at, where it is integral and meets them all (a model then).
@@ -613,8 +614,8 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
           if (sx) {
             const t0 = timing ? performance.now() : 0
             // (a tableau that has gathered many more forms than a node reads is begun again: every pivot updates them all)
-            const over = sx.size > 4 * full.length + 500 || sx.nnz > lpFill * full.length
-            if (over) { sx = new Simplex(); st.lpRebuilds++ }
+            const over = sx.size > (clausal ? lpGrow : 4) * full.length + (clausal ? lpBase : 500) || sx.nnz > lpFill * full.length
+            if (over) { sx = new Simplex(); if (clausal) sx.greedy = lpGreedy; st.lpRebuilds++ }
             // (a tableau begun has the rows asserted in kernel.ts's order, which its variables', so Bland's rule, follow)
             if (over || !sx.vars) for (const r of reader.rows()) sx.assert(reader.form(r.lin).id, r.lin)
             else { for (const id of toRetract) sx.retract(id); for (const id of toAssert) sx.assert(id, full[reader.slotOf(id)]!.lin) }

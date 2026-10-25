@@ -71,7 +71,8 @@ const kindTurn = (slice: number) => {
 // forced run 4.5 s of wall time in all, what it had as 30% of solve.ts's 15 s stage).
 const bmcDepths: [number, string, number, number][] = []
 let w0 = performance.now()
-const bs = withBmc ? boundedSearch(m, [b.law], {forcedMs: 4500, progress: (k, o, c) => { bmcDepths.push([k, o[0]!, c, Math.round(performance.now() - w0)]); w0 = performance.now() }}) : undefined
+// (`--bmc-depth d`: the k-step goals up to d alone; 0, the forced run alone, the session's queries from the start the rest)
+const bs = withBmc ? boundedSearch(m, [b.law], {forcedMs: 4500, depth: opt('--bmc-depth', 64), progress: (k, o, c) => { bmcDepths.push([k, o[0]!, c, Math.round(performance.now() - w0)]); w0 = performance.now() }}) : undefined
 let bmcLive = !!bs
 const bmcTurn = (slice: number) => {
   w0 = performance.now()
@@ -91,7 +92,7 @@ const bmcTurn = (slice: number) => {
 const imcDepths: [number, string][] = []
 // (with the rule as written, k-induction asked on the same unrolling: `--induction 1`, the default where k-induction has no
 // turn of its own; its answer proven by core/kind.ts at that k)
-const induction = !cc && opt('--induction', withKind ? 0 : 1) !== 0
+const ind0 = opt('--induction', -1), induction = !cc && (ind0 < 0 ? !withKind : ind0 !== 0)
 const is = withImc ? imcSearch(m, b.law, {kinds: b.rule.kindLaws().map(l => l.holds), induction, progress: (k, what) => { imcDepths.push([k, what[0]!]) }}) : undefined
 let imcLive = !!is
 const imcTurn = (slice: number) => {

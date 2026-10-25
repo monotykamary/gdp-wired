@@ -14,7 +14,7 @@
 // The interpolant is over A's names (the shared ones), as a condition the kernel reads.
 import {type C, type E, type Law, type Machine, type Request, walkOnce} from './machine.ts'
 import {type Goal, type Path, type Tree, atomOf, canon, columnTerm, falseC, leafConstraints, stepLawObligations, substC, substE, trueC} from '../kernel/kernel.ts'
-import {type Lin, type Step, env, linOfE, plus, solve, vars} from './solver.ts'
+import {type Lin, type Step, env, gcd, linOfE, plus, solve, vars} from './solver.ts'
 import {litVar} from '../kernel/reader.ts'
 import {namesOf, showC} from './exists.ts'
 import {type Dag, REFUTED, type Refuted, cdclSession, growCdcl} from '../kernel/cdcl.ts'
@@ -408,6 +408,53 @@ function renamer(to: Record<string, string>) {
   }
   return {c1, e1}
 }
+// A condition with its repeated parts once (compose.ts's tidy, each shared part read once): and-s and or-s flattened,
+// a comparison known by its linear form over the integers (divided by its coefficients' gcd, the constant rounded up), each
+// part kept once among its siblings, a part beside its negation folded (false in an and, true in an or).
+export function tidyC(c: C): C {
+  const memo = new Map<C, C>(), keys = new Map<C, string>()
+  const key = (x: C): string => {
+    let out = keys.get(x)
+    if (out !== undefined) return out
+    out = ''
+    if (x.op === '<=' || x.op === '<') {
+      const a = linOfE(x.a), b = linOfE(x.b)
+      if (a && b) {
+        const l = plus(plus(a, b, -1), x.op === '<' ? {1: 1} : {}), xs = vars(l)
+        const g = xs.reduce((m, n) => gcd(m, l[n]!), 0)
+        if (g > 1) { for (const n of xs) l[n] = l[n]! / g; l['1'] = Math.ceil((l['1'] ?? 0) / g) }
+        const [name, val] = litVar({lin: l, holds: true})
+        out = `${name}=${val}`
+      }
+    }
+    if (!out) out = `#${keys.size}`
+    keys.set(x, out)
+    return out
+  }
+  const flip = (k: string) => (k.endsWith('=true') ? `${k.slice(0, -5)}=false` : k.endsWith('=false') ? `${k.slice(0, -6)}=true` : '')
+  const go = (x: C): C => {
+    const hit = memo.get(x)
+    if (hit) return hit
+    let out: C = x
+    if (x.op === 'not') { const y = go(x.x); out = isT(y) ? falseC : isF(y) ? trueC : y === x.x ? x : {op: 'not', x: y} }
+    else if (x.op === 'and' || x.op === 'or') {
+      const seen = new Set<string>(), xs: C[] = []
+      let fold: C | undefined
+      for (const y of x.xs.map(go).flatMap(y => (y.op === x.op ? y.xs : [y]))) {
+        if (x.op === 'and' ? isT(y) : isF(y)) continue
+        if (x.op === 'and' ? isF(y) : isT(y)) { fold = y; break }
+        const k = key(y)
+        if (seen.has(k)) continue
+        if (seen.has(flip(k))) { fold = x.op === 'and' ? falseC : trueC; break }
+        seen.add(k); xs.push(y)
+      }
+      out = fold ?? (xs.length === 0 ? (x.op === 'and' ? trueC : falseC) : xs.length === 1 ? xs[0]! : {op: x.op, xs})
+    }
+    memo.set(x, out)
+    return out
+  }
+  return go(c)
+}
 // The state values a law and the assumption read, and those their updates read (the cone of influence, as core/bmc.ts's).
 function liveOf(m: Machine, law: Law): Set<string> {
   const live = new Set<string>(), read = (xs: (C | E)[]) => [...new Set(xs.flatMap(x => namesOf(x as C)))].filter(n => n in m.state)
@@ -464,7 +511,7 @@ export function imcSession(m: Machine, law: Law, opts: Omit<ImcOptions, 'until' 
       sideNames(goal, h => isA[h]!, seen, named); named = goal.hyps.length
       const itp = fromDag(goal, out.dag, h => isA[h]!, 200_000, useStrong, budget.wall, seen)
       if (itp && env.GDP_ITP_SIZE) console.error(JSON.stringify({k, size: dagSize(itp)}))
-      return itp ? {itp: renamed(itp, back)} : {unknown: 'a leaf with no interpolant'}
+      return itp ? {itp: tidyC(renamed(itp, back))} : {unknown: 'a leaf with no interpolant'}
     }
     return out.stuck === 'sat' && out.witness ? {sat: out.witness} : {unknown: out.why ?? out.stuck}
   }
