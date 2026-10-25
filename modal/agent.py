@@ -27,7 +27,7 @@ import tarfile
 import time
 
 ROOT = pathlib.Path.home() / ".gdpw"
-LIBRARY = ["Cert", "Kernel", "Cyclic", "Progress", "StepLaw", "Steps", "Sets", "History", "Live", "Ghost", "Sums", "Refine", "Bridge", "BridgeRules", "Data"]
+LIBRARY = ["Cert", "Kernel", "Cyclic", "Progress", "StepLaw", "Steps", "Sets", "History", "Live", "NonTerm", "Ghost", "Sums", "Refine", "Bridge", "BridgeRules", "Data"]
 HOME = str(pathlib.Path.home())
 PATH = f"{HOME}/.bun/bin:{HOME}/.elan/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 MOUNTPOINTS = ["/work", "/src/gdp-wired", "/bench", "/smt", "/vamp", "/sv"]

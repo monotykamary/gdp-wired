@@ -91,6 +91,10 @@ theorem budget_runs (cap : Nat) (hcap : 1 ≤ cap) (amt spent n : Nat → Nat) (
 }
 
 const auth = authority()
+// An item made only once the filters below keep it (one whose making runs a search).
+type Item = Parameters<typeof toLean>[0][number]
+type Later = {id: string, make: (id: string) => Item}
+const later = (id: string, make: (id: string) => Item): Later => ({id, make})
 // ONLY=id,id,... exports just those items (a quicker check while working on one). The tables of nodes take Lean a few
 // minutes each, so they are checked on their own (the suite's lean-nodes job), and so are the resource groups' laws, one
 // per job (lean-groups-0..3, a quarter of an hour together): left out unless ONLY names them.
@@ -181,11 +185,12 @@ const file = toLean(([
   {id: 'orgchart', fold: orgChart().fold, laws: [...orgChart().lemmas, ...orgChartLaws()]},
   {id: 'metered', machine: metered().machine, laws: meteredLaws()},
   // Lemmas nobody stated, found (core/discover.ts): each rule made again with what was found, its laws as given.
-  {id: 'foundbackoff', machine: foundRetries().rule.machine, laws: foundRetryLaws(), stepLaws: foundRetrySteps()},
-  {id: 'foundarea', machine: foundArea().rule.machine, laws: foundAreaLaws()},
-  {id: 'foundpyramid', machine: foundPyramid().rule.machine, laws: foundPyramidLaws()},
-  {id: 'foundinvoices', machine: foundInvoices().rule.machine, laws: invoiceLaws(invoices('states no lemma')), stepLaws: invoiceSteps(invoices('states no lemma'))},
-  {id: 'foundorgchart', fold: bareOrgChart().fold, laws: [...bareOrgChart().lemmas, ...foundOrgChart().lemmas, ...bareOrgChartLaws()]},
+  // (each made only where ONLY or SHARD keeps it: finding them is a search, 3.8 s together)
+  later('foundbackoff', id => ({id, machine: foundRetries().rule.machine, laws: foundRetryLaws(), stepLaws: foundRetrySteps()})),
+  later('foundarea', id => ({id, machine: foundArea().rule.machine, laws: foundAreaLaws()})),
+  later('foundpyramid', id => ({id, machine: foundPyramid().rule.machine, laws: foundPyramidLaws()})),
+  later('foundinvoices', id => ({id, machine: foundInvoices().rule.machine, laws: invoiceLaws(invoices('states no lemma')), stepLaws: invoiceSteps(invoices('states no lemma'))})),
+  later('foundorgchart', id => ({id, fold: bareOrgChart().fold, laws: [...bareOrgChart().lemmas, ...foundOrgChart().lemmas, ...bareOrgChartLaws()]})),
   // A decision about a carried list: the folds' equations and lemma assumed at the list's end.
   {id: 'taxwithin', goal: invoices().decide('the taxable part is within the total', () => [], ({Lines}) => Lines.fold.taxed.atMost(Lines.fold.total)).goal},
   // Cyclic proofs (Cyclic.lean's cyclic_sound): McCarthy's 91 function, with three tampered proofs computed to false and
@@ -284,7 +289,7 @@ const file = toLean(([
   {id: 'countdown', refinement: {impl: countdown().machine, spec: meter.machine, relation: meterRelation, witness: {amount: {op: 'min', a: {op: 'var', name: 'amount'}, b: {op: 'var', name: 'most'}}}}},
   {id: 'twophase', refinement: {impl: twoPhase().machine, spec: meter.machine, relation: [{name: 'used = used', holds: {op: '=', a: {op: 'var', name: 'a_used'}, b: {op: 'var', name: 'b_used'}}}, {name: 'pending <= most', holds: {op: '<=', a: {op: 'var', name: 'a_pending'}, b: {op: 'var', name: 'most'}}}],
     witness: {amount: {op: 'var', name: 'a_pending'}}, stutter: {op: '=', a: {op: 'var', name: 'op'}, b: {op: 'const', value: 0}}}},
-] as Parameters<typeof toLean>[0]).filter(item => (only ? only.includes(item.id) : !separately.includes(item.id))).filter((_, i) => !shard || i % shard[1]! === shard[0]!), {title: 'gdp-wired/lean, end to end'})
+] as (Item | Later)[]).filter(item => (only ? only.includes(item.id) : !separately.includes(item.id))).filter((_, i) => !shard || i % shard[1]! === shard[0]!).map(item => ('make' in item ? item.make(item.id) : item)), {title: 'gdp-wired/lean, end to end'})
 const out = process.argv[2]
 if (!out) throw new Error('usage: bun package-check.ts <empty folder>')
 mkdirSync(out, {recursive: true})

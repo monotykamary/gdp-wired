@@ -50,7 +50,7 @@ BOAT = os.environ.get("BOAT_BIN") or next((p for p in [str(pathlib.Path.home() /
 ENV = {**os.environ, "BOAT_NO_UPDATE": "1", "NO_COLOR": "1"}
 SLOT_CPU, SLOT_MEM = 2, 4096  # a slot: Modal's default container
 TYPES = {"small": (2, 4096), "default": (4, 8192), "large": (8, 16384)}  # vCPU, MB
-LIBRARY = ["Cert", "Kernel", "Cyclic", "Progress", "StepLaw", "Steps", "Sets", "History", "Live", "Ghost", "Refine", "Bridge", "BridgeRules", "Data"]
+LIBRARY = ["Cert", "Kernel", "Cyclic", "Progress", "StepLaw", "Steps", "Sets", "History", "Live", "NonTerm", "Ghost", "Sums", "Refine", "Bridge", "BridgeRules", "Data"]
 BACKSTOP = 900  # the TTL a held VM keeps renewing: a VM whose client is gone stops within this
 # The account's starts are shared with another project's pool (its setup takes a few to a few dozen a day): this pool
 # never spends the last RESERVE_DAY of the rolling day nor the last RESERVE_HOUR of the hour (under either policy).
