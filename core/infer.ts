@@ -1074,9 +1074,11 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         return out
       }))
       const scored: string[] = []
-      const refine = (recent: Point[], reached: Point[]): boolean => {
+      // (the samples' states alone: the states joined in are successors of states the coarser control allowed, which
+      // the finer may not; the join starts again from the samples)
+      const refine = (recent: Point[]): boolean => {
         scored.length = 0
-        const all = [...rows, ...reached.flatMap(vecs)]
+        const all = rows
         let pick: Ctl | undefined, score = 0
         for (const c of levelable) {
           if (keyAtoms.includes(c.atom) || combos.length * (c.cuts.length + 1) > joinKeys) continue
@@ -1333,7 +1335,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // value the rule compares with a constant (the first, of the values the laws read first, whose levels keep the control
     // states within joinKeys) whose part of those samples and of the states joined in leaves it out (past its hull or a
     // bound, or with no state there at all) becomes a control value, and every state is joined again.
-    const refine = (p: Point): boolean => { const recent = [p, ...negs.slice(-8)]; used.rows += recent.length; const ok = spaces.some(sp => sp.refine(recent, reached)); if (ok) stood.clear(); return ok }
+    const refine = (p: Point): boolean => { const recent = [p, ...negs.slice(-8)]; used.rows += recent.length; const ok = spaces.some(sp => sp.refine(recent)); if (ok) { stood.clear(); reached.length = 0 } return ok }
     for (;;) {
       if (now() > jUntil || stop()) { why = 'time'; break }
       rounds++
