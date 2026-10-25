@@ -10,16 +10,23 @@
 //     or …), and where a cell holds one value
 //   - Houdini on the runs' neighbors: a reached state moved a little that every candidate alive and every law allows,
 //     stepped; a candidate its step breaks is in no inductive set of them, so it is dropped
-//   - the join: per control state (the choice, loc, and a few yes/nos), the samples' affine hull (its equalities, exact)
-//     and each direction's largest value (each value up and down, pairs where there are few, the rule's own comparisons);
-//     Houdini on the cone of the caller's laws: each goal proven with as little of that set assumed as will do (none,
-//     then the forms a counterexample breaks, as IC3's relative induction, then all), each asked first of the CDCL
-//     search for a model alone (a refutation's core: the forms it read), a counterexample the whole set allows joined in
-//     (the hull grows to hold it, a bound rises to the next of the rule's constants, then goes), one to a caller's law
-//     ruled out by a candidate or by a cube blocked as IC3 blocks one (its control state, the rule's own comparisons
-//     true there and the bounds that keep the samples out, the literals its refutation's core read, its predecessors
-//     blocked first), the cube first where no sample is at its control state; every goal of the cone proven, the cone
-//     is the answer
+//   - the join, over the rule's own vocabulary: per control state the samples' affine hull (its equalities, exact) and
+//     each direction's largest value. Two spaces: the states (a row each), and for a rule with maps the cells at a key
+//     (a row per key a state holds and a fresh one, its forms laws at every key). The control state: the choice (loc)
+//     and a few yes/nos, then, refined on demand (as CEGAR refines its predicates), the levels the rule's comparisons
+//     with a constant cut a value or a cell into (Ts[k] ≤ 1 or past it, inflight 0 or more, a yes/no param). The values:
+//     the state, the params, the cells at the key, and the terms the laws read that aren't linear (max(attempts, 1)).
+//     The directions: each value up and down, pairs where there are few, the rule's own comparisons (its flags', a clock
+//     moved by a request read as the clock after), and the laws' preimages: a law's comparison read after the step
+//     through each branch of its terms, the request's values eliminated against the step's own comparisons, and a form's
+//     own when its goal has a counterexample. Houdini on the cone of the caller's laws and step laws: each goal proven
+//     with as little of that set assumed as will do (none, then the forms a counterexample breaks, as IC3's relative
+//     induction, then all), each asked first of the CDCL search for a model alone (a refutation's core: the forms it
+//     read), a counterexample the whole set allows joined in (the hull grows to hold it, a bound rises to the next of
+//     the rule's constants, then goes), one to a caller's law ruled out by a level of the control that leaves it out, a
+//     candidate, or a cube blocked as IC3 blocks one (its control state, the rule's own comparisons true there and the
+//     bounds that keep the samples out, the literals its refutation's core read, its predecessors blocked first), the
+//     cube first where no sample is at its control state; every goal of the cone proven, the cone is the answer
 //   - the kernel (where the join proves nothing, as it was): the laws with the candidates chosen so far, proven one law
 //     at a time; when a goal is stuck at a step, its witness is a counterexample to induction, so the candidate that
 //     rules it out (and the most of those seen) is added; a chosen candidate that nothing supports, or that makes a proof slow, is dropped; the set proven as a whole
@@ -315,7 +322,7 @@ function comparisons(m: Machine, laws: Law[], atoms: Atom[], coords: number[], m
     if (e.op !== 'add') return
     for (const [p, q] of [[e.a, e.b], [e.b, e.a]] as const) if (p.op === 'var' && p.name === v && q.op === 'var' && m.inputs.includes(q.name)) { if (!incr.has(q.name)) incr.set(q.name, new Set()); incr.get(q.name)!.add(v) }
   }
-  for (const [v, e] of Object.entries(m.step.state ?? {})) adds(e, v)
+  if (env.GDP_JOIN_CLOCKS !== '0') for (const [v, e] of Object.entries(m.step.state ?? {})) adds(e, v)
   const found = new Map<string, Rel>()
   const visitE = (e: E): void => {
     if (e.op === 'if') { visitC(e.c); visitE(e.then); visitE(e.else) } else if (e.op === 'add' || e.op === 'sub' || e.op === 'min' || e.op === 'max' || e.op === 'prod') { visitE(e.a); visitE(e.b) } else if (e.op === 'mul') visitE(e.a)
@@ -1098,13 +1105,21 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         for (const v of all) join(keyOf(v), v, false)
         return true
       }
-      // More directions (a form's own preimage), every state joined again with them.
-      const deepen = (more: Rel[], reached: Point[]): boolean => {
+      // More directions (a form's own preimage), each bounded per control state by the states there, kept only where they
+      // leave the point out (the bounds already there, widened or not, as they were).
+      const deepen = (more: Rel[], reached: Point[], p: Point): boolean => {
         const known = new Set(dirs.map(t => JSON.stringify(t))), fresh = more.flatMap(r => [r.coef, r.coef.map(([i, c]) => [i, -c] as [number, number])]).filter(t => !known.has(JSON.stringify(t)) && t.every(([i]) => coords.includes(i)))
         if (!fresh.length) return false
+        const his = new Map<string, number[]>()
+        for (const v of [...rows, ...reached.flatMap(vecs)]) {
+          const g = keyOf(v), h = his.get(g) ?? fresh.map(() => -Infinity)
+          fresh.forEach((t, k) => { h[k] = Math.max(h[k]!, dirValue(t, v)) })
+          his.set(g, h)
+        }
+        used.rows += rows.length
+        if (!vecs(p).some(v => { const h = his.get(keyOf(v)); return !h || fresh.some((t, k) => dirValue(t, v) > h[k]!) })) return false
         dirs.push(...fresh); lawDir.push(...fresh.map(t => t.some(([i]) => lawCoord[coords.indexOf(i)])))
-        groups.clear()
-        for (const v of [...rows, ...reached.flatMap(vecs)]) join(keyOf(v), v, false)
+        for (const [g, grp] of groups) { const h = his.get(g) ?? fresh.map(() => -Infinity); grp.hi.push(...h); grp.raised.push(...fresh.map(() => 0)) }
         return true
       }
       return {cells, add, forms, refine, deepen, coords, control: () => `${ctl.map(c => nameOf(c.atom)).join(' ')} (${scored.join(' ')})`, groups}
@@ -1150,7 +1165,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // cone is inductive with the caller's laws, and it is the answer.
     const stood = new Map<string, string[]>(), blocked = new Set<string>(), callers = new Set([...laws, ...stepLaws].map(l => l.name))
     let cone: Form[] = [], dropped = 0
-    const deepened = new Set<string>()
+    const deepened = new Set<string>(), sameAgain = new Map<string, string>()
     // A state reached from one the set allows: joined in, and every extra false there dropped.
     const reach = (p2: Point) => {
       if (reached.length < 2000) reached.push(p2)
@@ -1426,14 +1441,14 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       // (a model the interpreter reads otherwise, a quotient's term the kernel left free, say: nothing to join, and the
       // goal is set aside)
       if (!set.some(f => !holdsAt(f, postP))) {
-        // (a caller's goal: nothing to learn from, as a stuck one)
-        if (callers.has(todo)) { why = 'no violation'; break }
+        // (a caller's goal: asked again, as before; the same counterexample again, a counted search's, has nothing to teach)
+        if (callers.has(todo)) { const wk = JSON.stringify(w); if (sameAgain.get(todo) === wk) { why = 'no violation'; break } sameAgain.set(todo, wk) }
         blocked.add(todo); opts.progress?.('join', {round: rounds, set: set.length, ms: qms, result: 'no violation', goal: todo.slice(0, 60)}); continue }
       // (a form's counterexample: its own preimage's directions first, bounded by the states, where they leave the
       // state out; else the state it steps to is joined in)
       if (todoForm && !deepened.has(todo)) {
         deepened.add(todo)
-        const more = spaces.map(sp => sp.deepen(preimages(m, [lawFor(todoForm)], [], atoms, sp.coords), reached)).some(Boolean)
+        const more = spaces.map(sp => sp.deepen(preimages(m, [lawFor(todoForm)], [], atoms, sp.coords), reached, pre)).some(Boolean)
         if (more && formsNow().some(f => !holdsAt(f, pre))) { stood.clear(); opts.progress?.('join', {round: rounds, deepened: todo.slice(0, 60)}); continue }
       }
       const j0 = joins, d0 = dropped
