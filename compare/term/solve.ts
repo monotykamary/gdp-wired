@@ -177,8 +177,8 @@ function neverEnds(ms: number, tag: string, extend = ms, accel?: number, l = b0!
 // (the accelerated cycles have 75% of the first search after its runs; a set of theirs that a stem reaches may take
 // until 10 s before the limit: its cycle keeps it, by the closed forms, and a run gets there, so its loop is very likely
 // not to halt, and the rank search would find nothing)
-// (the first search on the task's own loop; the second on the rewritten one, where facts.ts rewrote it, its set made
-// again on the task's loop, ontask.ts)
+// (both searches on the task's own loop; a set of the rewritten one, research's `--facts-recur`, made again on the
+// task's loop, ontask.ts)
 if (want !== 'terminates') neverEnds(Math.min(ntMs, limit * 1000 - ms() - 1000), 'first', (limit - 10) * 1000 - ms(), 0.75, b0!.loop)
 
 // --- the rank ---------------------------------------------------------------------------------------------------------
@@ -275,7 +275,7 @@ else if (scc && comps.length) {
   why = out.why!
 }
 if (want !== 'terminates') {
-  const rw = rewrite()
+  const rw = args.includes('--facts-recur') ? rewrite() : undefined
   neverEnds(((limit - 2) * 1000 - ms()) * 0.6, 'again', ((limit - 2) * 1000 - ms()) * 0.85, undefined, rw?.b.loop ?? b0!.loop)
   lassos(t0 + (limit - 2) * 1000)
   say({stage: 'lassos', runs, turns, refused: refusedWitness})
