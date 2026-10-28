@@ -115,9 +115,6 @@ const inferTrace = !!env.GDP_INFER_TRACE
 const joinOn = env.GDP_JOIN !== '0'
 // GDP_PAIRS=0: the pair space only where the rule composes two keys into one (as before)
 const plainPairs = env.GDP_PAIRS !== '0'
-// GDP_PAIR_DISTINCT=0: no cubes over two keys whose cells never agree
-const pairDistinct = env.GDP_PAIR_DISTINCT !== '0'
-const joinDrop = env.GDP_JOIN_DROP !== '0'
 const joinShare = 0.6, joinQueryMs = 8000, joinRequestMs = 150, joinWalk = 8, joinPairs = 10, joinRaises = 2, joinSparse = 4, joinCoef = 1000
 const joinExtras = 24, joinTries = 40, joinBits = 7, joinKeys = 128, joinAttempts = 6, joinAdd = 2
 // GDP_JOIN_CORE=0: the join's goals by the prover's trees alone, as before (else a model, or a refutation's core, of the
@@ -753,9 +750,8 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   }
   // The builder call, for a rule whose atoms are its own variables (naturals, or integers alone).
   const sourceOf = (f: Form, text: string): string | undefined => {
-    const lits = f.cube && f.pairs ? f.cube : undefined
-    if (!rule || f.when || f.mod || f.also || f.never || f.nevers || (f.cube && !lits) || [...f.coef.map(([i]) => i), ...(f.guard && 'atom' in f.guard ? [f.guard.atom] : [])].some(i => atoms[i]!.term)) return undefined
-    const used = [...new Set([...f.coef.map(([i]) => i), ...(f.guard ? ['keyNot' in f.guard ? f.guard.keyNot : f.guard.atom] : []), ...(f.unreachable ? [f.unreachable.atom] : []), ...(lits ?? []).flatMap(l => ('at' in l ? [l.at.atom] : l.lin.coef.map(([i]) => i)))])]
+    if (!rule || f.when || f.mod || f.also || f.never || f.nevers || f.cube || [...f.coef.map(([i]) => i), ...(f.guard && 'atom' in f.guard ? [f.guard.atom] : [])].some(i => atoms[i]!.term)) return undefined
+    const used = [...new Set([...f.coef.map(([i]) => i), ...(f.guard ? ['keyNot' in f.guard ? f.guard.keyNot : f.guard.atom] : []), ...(f.unreachable ? [f.unreachable.atom] : [])])]
     const ints = f.coef.filter(([i]) => atoms[i]!.int).length
     if (ints && ints !== f.coef.length) return undefined
     // (a pair's cell: its map at x, at y, or at the composed key; over two plain keys alone, as the frame is then x ≠ y)
@@ -779,9 +775,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       if (!parts.length) return String(k)
       return parts.slice(1).reduce((acc, p) => `${acc}.plus(${p})`, parts[0]!) + (k > 0 ? `.plus(${k})` : '')
     }
-    // (a cube over two keys: its literals never all true)
-    const atMostOf = (g: Form) => { const {left: l2, right: r2} = sides(g); return l2.length ? `${term(l2, Math.max(0, -g.d))}.atMost(${term(r2, Math.max(0, g.d))})` : `${term(r2, Math.max(0, g.d))}.atLeast(${Math.max(0, -g.d)})` }
-    if (lits) return `r.law('${text}', ${args} => ${wrap(`all(${lits.map(l => ('at' in l ? cond(l.at.atom, l.at.value, l.at.hi) : atMostOf({coef: l.lin.coef, d: l.lin.d, cells: false, size: 0}))).join(', ')}).not()`)})`
     const {left, right} = sides(f)
     const body = left.length ? `${term(left, Math.max(0, -f.d))}.atMost(${term(right, Math.max(0, f.d))})` : `${term(right, Math.max(0, f.d))}.atLeast(${Math.max(0, -f.d)})`
     const guarded = !f.guard ? body : 'keyNot' in f.guard ? `k.eq(${nameOf(f.guard.keyNot)}).or(${body})` : `${cond(f.guard.atom, f.guard.value, f.guard.hi)}.implies(${body})`
@@ -1233,31 +1226,6 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       return {cells, add, forms, refine, deepen, coords, control: () => `${ctl.map(c => nameOf(c.atom)).join(' ')} (${scored.join(' ')})`, groups}
     }
     const spaces = [space('state'), ...(mapNames.length && cellAtoms.length ? [space('cells')] : []), ...(rowsP.length ? [space('pairs')] : [])]
-    // Two keys that never agree (two waiting threads' tickets, two counted approvals' reviewers): a counterexample's pair
-    // of keys x ≠ y where a map's cells are equal, M[x] = M[y], is blocked as a cube over two keys: that equality, and
-    // the values there of the cells that take few values (a program counter, a yes/no), as few of them as keep every
-    // sample's pair out. Not convex, so neither the hull nor a bound says it; the kernel proves it as every form.
-    const fewValued = pairAtoms.filter(i => new Set(rowsP.slice(0, 2000).map(r => valueOf(atoms[i]!, r))).size <= 3)
-    const pairCubes = pairDistinct && pairing && !pairing.n && rowsP.length ? (pt: Point): Form[] => {
-      const out = new Map<string, Form>(), sampleVs = rowsP.slice(0, 3000).map(valuesOf)
-      for (const r of (pt.pairs ?? []).slice(0, 64)) {
-        const vs = valuesOf(r)
-        for (const i of pairAtoms) {
-          const a = atoms[i]!
-          if (a.place !== 0 || fewValued.includes(i)) continue
-          const j = pairAtoms.find(q => atoms[q]!.place === 1 && atoms[q]!.parts[0]![0].slice(0, -1) === a.parts[0]![0].slice(0, -1))
-          if (j === undefined || vs[i] !== vs[j]) continue
-          const eq: Lit[] = [{lin: {coef: [[i, 1], [j, -1]], d: 0}}, {lin: {coef: [[j, 1], [i, -1]], d: 0}}]
-          let ctl: Lit[] = fewValued.map(q => ({at: {atom: q, value: vs[q]!}}))
-          const meets = (c: Lit[]) => sampleVs.some(sv => c.every(l => ('at' in l ? sv[l.at.atom] === l.at.value : l.lin.coef.reduce((acc, [q, c2]) => acc + c2 * sv[q]!, 0) <= l.lin.d)))
-          if (meets([...ctl, ...eq])) continue
-          for (let k = ctl.length - 1; k >= 0; k--) { const fewer = [...ctl.slice(0, k), ...ctl.slice(k + 1)]; if (!meets([...fewer, ...eq])) ctl = fewer }
-          const f: Form = {coef: [], d: 0, cells: false, pairs: true, cube: [...ctl, ...eq], size: 40 + 10 * ctl.length}
-          out.set(textOf(f), f)
-        }
-      }
-      return [...out.values()]
-    } : undefined
     const formsNow = (): Form[] => {
       const out: Form[] = [], seenT = new Set<string>()
       const push = (f: Form) => { const t = textOf(f); if (!seenT.has(t) && !names.has(t)) { seenT.add(t); out.push(f) } }
@@ -1570,13 +1538,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         const room = extras.length < joinExtras && tried < joinTries
         let next = room ? pick(pool) : undefined
         if (!next && room) { const made = fromCti(pre); pool.push(...made); next = pick(made) }
-        if (!next && room && pairCubes) { const made = pairCubes(pre); pool.push(...made); next = pick(made) }
         if (next) tried++
         opts.progress?.('join', {round: rounds, set: set.length, ms: qms, target: next ? textOf(next).slice(0, 60) : 'none', ...(next ? {} : {outside: outside ? 1 : 0, goal: todo.slice(0, 120)})})
         if (!next && !alone && cube()) continue
-        // (a found form nothing strengthens is dropped, as Houdini drops it, where the forms over two keys are searched:
-        // the cone then finds its way round it or fails on a caller's law)
-        if (!next && joinDrop && pairCubes && !callers.has(todo)) { blocked.add(todo); continue }
         if (!next) { why = 'target'; break }
         extras.push(next); continue
       }

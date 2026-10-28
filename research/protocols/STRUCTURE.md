@@ -366,6 +366,9 @@ search at 10 s as in README.md, each configuration its own job (`runs/protocols/
 - **on:** `GDP_MODEL_INST=1 GDP_PAIR_DISTINCT=0 GDP_JOIN_DROP=0`;
 - **on + cubes:** `GDP_MODEL_INST=1` (the pair cubes on).
 
+These runs are of ade69cd, which still had the cubes and their flags. gen/protocols-merge removes both, so its default
+is "on".
+
 Search capped at 300 s, the written invariant at 420 s ("killed").
 
 | Protocol | Search off / on / on + cubes | Written invariant off / on | Broken variant |

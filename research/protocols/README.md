@@ -66,10 +66,12 @@ every action is Ivy's with the same guards and writes, read side by side in `mod
 ## Results
 
 Modal, 2 vCPU, the search at 10 s (`--ms 10000`), each configuration its own job:
+(`GDP_PAIR_DISTINCT` and `GDP_JOIN_DROP` were b94e8a5's flags for the cubes; the merge branch has neither the flags nor
+the cubes, so its default is mid's search plus STRUCTURE.md's model-based instances.)
 - **base:** 0.30.1's search, `GDP_MULTI_MATCH=0 GDP_PAIRS=0 GDP_PAIR_DISTINCT=0 GDP_JOIN_DROP=0` (the same code paths as
   main 3cdf37e for these rules);
 - **mid:** e83160e, the pair space over two plain keys and the multi-read matching (`GDP_PAIR_DISTINCT=0 GDP_JOIN_DROP=0`);
-- **cand:** this branch, with the cubes over two keys (below).
+- **cand:** b94e8a5, with the cubes over two keys (below; tried, then dropped from the branch).
 
 The search with nothing written is `runs/protocols/r2` (base, mid and cand side by side); the written invariants and
 the broken variants of the 10 protocols are `runs/protocols/r1` (base against mid; the cubes change neither).
@@ -127,7 +129,7 @@ Counting is the idea behind A for the lock protocols: "one token among grant, ho
 over a whole map (Sums.lean), so a per-row sum is a trusted change, Lean first; it would also state TigerBeetle's
 per-account sums in the real-world corpus.
 
-## What changed in the search (this branch)
+## What changed in the search
 
 - **kernel/prove.ts `matched`:** a law about several keys whose body reads a map at keys that each name only some of
   its bound names (`Link[c1·N + s]`, `Link[c2·N + s]`) is now assumed at the tuples two reads' matches bind together,
@@ -143,14 +145,16 @@ per-account sums in the real-world corpus.
   - `GDP_PAIRS=0` turns it off.
 - **core/infer.ts `preimages`:** a flag that reads a quantified flag (2PC's `go1` reads `noGo`) no longer throws
   `unknown flag` and ends the join. The quantified flag now reads as its 0/1 variable, as the kernel's goals read it.
-- **core/infer.ts, cubes over two keys whose cells never agree (class B, the one change tried in full):**
+- **core/infer.ts, cubes over two keys whose cells never agree (class B): tried and dropped.** b94e8a5 had it; the
+  merge branch (gen/protocols-merge) removes its code and its flags, since it moved nothing through proveRule, here
+  or with STRUCTURE.md's model-based instances (`runs/protocols/r3`, "on + cubes"). What it was, for the record:
   - **What it does:** where the join has no candidate for a counterexample, its pairs of keys x ≠ y with M[x] = M[y]
     become cubes. A cube is that equality plus the values there of the cells that take at most 3 values (a program
     counter, a yes/no), cut to as few of those as keep every sample's pair out. The kernel proves each as any form.
   - **Dropping forms:** a found form that nothing strengthens is now dropped, as Houdini drops one, where these cubes
     are searched.
   - **Printing:** a cube is printed as `forall((x, y) => x.eq(y).not().implies(all(...).not()))`.
-  - **Turning it off:** `GDP_PAIR_DISTINCT=0`, and `GDP_JOIN_DROP=0` for the dropping alone.
+  - **Flags (gone with it):** `GDP_PAIR_DISTINCT=0`, and `GDP_JOIN_DROP=0` for the dropping alone.
   - **inferLaws on ticket_lock alone:** proven in 3.9 s and 5.2 s locally. Mid's code and base's are unknown there
     (1.6 s and 0.6 s). It finds 10 laws, among them
     `never Pc[x] is 1 and Pc[y] is 1 and Ticket[x] <= Ticket[y] and Ticket[y] <= Ticket[x]` (two waiting threads
@@ -161,8 +165,8 @@ per-account sums in the real-world corpus.
     - With that law in the set, the kernel's counterexample to the safety law is a state that breaks a set form at a
       pair of keys the kernel never instantiated ("outside").
     - The join gives up on such a state. That is the next gap: instantiate a set form at the keys of a model that
-      breaks it, and ask again.
-  - **Verdict:** a measured no-go on the claim path. No real-world law moves either (below).
+      breaks it, and ask again. STRUCTURE.md's model-based instances do that; with them the cubes still move nothing.
+  - **Verdict:** a measured no-go on the claim path. No real-world law moves either (below). Dropped.
 
 ## The bar and the other benchmarks
 
@@ -184,16 +188,17 @@ Each has the same verdict on both sides: no real-world law moves.
 
 **nested8.c, lost 2 of 4 in the first bar,** replayed locally (M-series Mac, 60 s):
 - base: sat by IMC in 4 of 5 runs (15 to 23 s);
-- this branch: sat in 4 of 8, including 3 of 3 with every change off and 1 of 2 with only `GDP_PAIRS=0`.
+- b94e8a5: sat in 4 of 8, including 3 of 3 with every change off and 1 of 2 with only `GDP_PAIRS=0`.
 
 None of the changes runs on a CHC task. Instrumented, the rule has no maps, and no law has several keys. So these
 flips are the IMC process's timing, not the search.
 
 ## Size, reuse, spend
 
-- **Size:** `core/` and `kernel/`, tests excluded, went from 2,387,735 to 2,393,564 bytes (+5,829).
+- **Size (b94e8a5, with the cubes):** `core/` and `kernel/`, tests excluded, went from 2,387,735 to 2,393,564 bytes
+  (+5,829). Without the cubes, and with the model-based instances, the merge branch's size is in CHANGELOG.md.
   - By diff lines: core/infer.ts +65 −14, kernel/prove.ts +14 −5, core/dsl.ts +2.
-  - The new search is about 25 lines (the cubes over two keys) and replaces nothing. The rest widens existing code:
+  - The new search was about 25 lines (the cubes over two keys, since dropped) and replaced nothing. The rest widens existing code:
     - the pair space's gate and places;
     - the matching;
     - the printer.
