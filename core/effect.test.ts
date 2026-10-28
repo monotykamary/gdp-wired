@@ -134,6 +134,26 @@ export const make = Effect.gen(function* () {
   expect(x.source).toContain(`.maps({running: record({has: bool}).from({has: false})})`)
 })
 
+test('state typed by a Schema (a Struct of Literals and an Int), a record replaced by cases', () => {
+  const x = read(`
+import {Effect, Ref, Schema} from 'effect'
+export const Job = Schema.Struct({status: Schema.Literals(['idle', 'running', 'done']), attempts: Schema.Int})
+export class Busy extends Schema.TaggedError<Busy>()('Busy', {}) {}
+export const make = Effect.gen(function* () {
+  const job = yield* Ref.make<typeof Job.Type>({status: 'idle', attempts: 0})
+  const start = Effect.fn('start')(function* () {
+    const j = yield* Ref.get(job)
+    if (j.status === 'running') return yield* new Busy()
+    yield* Ref.set(job, {status: 'running', attempts: j.attempts + 1})
+  })
+  const finish = () => Ref.update(job, j => (j.status === 'running' ? {...j, status: 'done' as const} : j))
+  return {start, finish}
+})`)
+  expect([x.ok, x.refusals]).toEqual([true, []])
+  expect(x.source).toContain(`job_status: oneOf('idle', 'running', 'done').from('idle')`)
+  expect(x.evidence).toMatchObject({coverage: {missed: []}})
+})
+
 test('a map of records in a Ref, copied and set, with the clock: the example\'s quota proven', () => {
   const x = readQuota()
   expect([x.ok, x.refusals]).toEqual([true, []])
