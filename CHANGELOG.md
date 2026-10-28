@@ -5,6 +5,21 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**Model-based instances (kernel/prove.ts `modelInstances`, gen/protocols).** A goal's model that breaks a law about
+keys, or a quantified flag it sets, at a tuple of the goal's own keys the prover never assumed it at is no
+counterexample. Those tuples are added and the goal is asked again, up to 4 times. This is MBQI, as SMT solvers and
+Ivy's EPR checks read a model. Each bound key ranges only over the terms its own reads match against the goal's keys
+(the key's sort, by `matchMany`). It runs in `proveThinned`, `proveLaw` and the join's `stepWith`.
+- **Trusted:** nothing; it chooses instances only. `GDP_MODEL_INST=0` turns it off.
+- **Gained:** ring leader election's written invariant goes from unknown to proven (38.9 s on Modal; its three-key law
+  at a tuple the model names).
+- **Lost:** decentralized lock's goes from unknown in 11.8 s to killed at 420 s.
+- **Unchanged:** no protocol with nothing written, and every broken variant refused as before.
+- **Quick bars** against 3cdf37e (`runs/bar/runs/0d815ec65635-vs-3cdf37eddf65-quick-2026-10-281106`), wrong 0:
+  - CHC-COMP dev 517 against 517, 518, 517 (3 gained and 1 lost, all at the limit, none in every run);
+  - real-world dev 74 against 74, 74, 73, nothing differing.
+- **Design note:** research/protocols/STRUCTURE.md has the literature and the structures that come next.
+
 **Distributed protocols, a pilot (research/protocols/, gen/protocols).** Ten protocols of the DistAI and DuoAI suites
 (lock servers, decentralized and distributed locks, two-phase commit, ticket lock, two consensus protocols, ring leader
 election, a sharded key-value store) written as rules with their safety laws, broken variants and written invariants.

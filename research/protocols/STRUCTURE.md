@@ -357,11 +357,83 @@ The step was hand-applied in this worktree first:
   - S1's sorts to cut tuples, and a smaller join set per view (S2's views keep each space's forms apart);
   - or S4, which replaces 4-key exclusion laws by sums at one key.
 
-The measured results are in "Results", which gives what moved on the pilot and the quick bars.
 
 ## Results
 
-Pending: the step as committed, on the pilot (Modal) and the quick bars.
+The step as committed (0d815ec, `modelInstances` with each key over its own sort's terms), on Modal, 2 vCPU, the
+search at 10 s as in README.md, each configuration its own job (`runs/protocols/r3` in the main checkout, 56 jobs):
+- **off:** `GDP_MODEL_INST=0 GDP_PAIR_DISTINCT=0 GDP_JOIN_DROP=0` (README's mid);
+- **on:** `GDP_MODEL_INST=1 GDP_PAIR_DISTINCT=0 GDP_JOIN_DROP=0`;
+- **on + cubes:** `GDP_MODEL_INST=1` (the pair cubes on).
+
+Search capped at 300 s, the written invariant at 420 s ("killed").
+
+| Protocol | Search off / on / on + cubes | Written invariant off / on | Broken variant |
+| --- | --- | --- | --- |
+| lock_server_sync | unknown 69.6 / 82.5 / 73.1 s | proven 3.3 / 3.4 s | refuted, 5 steps |
+| lock_server_async | unknown 70.5 / 91.7 / 79.6 s | proven 19.1 / 22.5 s | refuted, 21 steps |
+| decentralized_lock | unknown 12.3 / 10.1 / 11.2 s | unknown 11.8 s / **killed at 420 s** | refuted, 19 steps |
+| distributed_lock | unknown 191.5 / 164.1 / 171.4 s | killed / killed | refuted, 23 steps |
+| two_phase_commit | unknown 9.8 / 9.1 / 8.8 s | proven 13.9 / 12.8 s | refuted, 5 steps |
+| ticket_lock | unknown 6.1 / 10.8 / 12.8 s | proven 1.3 / 1.0 s | refuted, 20 steps |
+| toy_consensus_forall | unknown 43.6 / 25.5 / 36.7 s | killed / killed | refuted, 18 steps |
+| consensus_wo_decide | unknown 84.1 / 62.7 / 52.3 s | killed / killed | unknown (as before; the hand run breaks it) |
+| ring_leader_election | unknown 13.3 / 17.8 / 13.8 s | unknown 14.0 s / **proven 38.9 s** | unknown (as before; the hand run breaks it) |
+| sharded_key_value_store | killed at 300 s (all three) | killed / killed | (not reached) |
+| lock_server_sync@one | proven 1.8 / 2.1 / 1.6 s | | refuted, 3 steps |
+| lock_server_async@one | proven 5.8 / 5.4 / 4.9 s | | refuted, 21 steps |
+
+**What moved:**
+- **Ring leader election's written invariant: unknown to proven.** Locally it is proven in 17.4 s on and unknown in
+  8.7 s off; checked, as every proof is.
+  - Its third law, an id pending past a node is above that node's, is about three keys.
+  - The step goal needed it at a tuple the prover's matching didn't name, and the model named it.
+  - The rule is not EPR-like (n + 1 mod size, an injective `idn`), so this is S3 as a heuristic, not as the finite
+    model property.
+- **No protocol moves with nothing written.** That holds with or without the cubes, so the cubes still don't pay and
+  stay out of a merge.
+- **Every broken variant is refused as before.**
+- **One loss in time: decentralized lock's written invariant.** It went from unknown in 11.8 s to killed at 420 s. The
+  model's tuples (4, then 1, then 1 locally) make the step goal of "one message in flight", a law over 4 keys, one the
+  kernel doesn't finish. The given check runs with the search off, so nothing budgets it. This is class D's cost, as in
+  the probe.
+
+**The quick bars** against 3cdf37e (`runs/bar/runs/0d815ec65635-vs-3cdf37eddf65-quick-2026-10-281106`), wrong 0 in
+both:
+- **CHC-COMP dev (662):** 517 against 517, 518, 517.
+  - 3 gained and 1 lost, none in every run, all four at the time limit.
+  - No CHC task has maps, so these are timing flips.
+- **Real-world dev (91):** 74 against 74, 74, 73.
+  - Nothing differs in the first pass.
+  - Gitea's, Casbin's, Keycloak's and TigerBeetle's laws over several keys are unchanged.
+
+**Size.** `core/` and `kernel/` without tests:
+- the bar reports 2,399,551 bytes against 0.30.1's 2,387,735;
+- against this branch before the step (b94e8a5's 2,393,564), +5,987 bytes;
+- by diff lines, kernel/prove.ts +102 −9, core/infer.ts +22 −31: the join's `stepWith` loop, with its copy of
+  `keyValue` now prove.ts's.
+
+**Reuse.**
+- **Reused:**
+  - the interpreter's `evalE`/`evalC` (a model read as a state);
+  - prove.ts's `mapKeys`, `eachRead` and `matchMany` (the sort of a key is the matching `matched` already does);
+  - the kernel's quantified-flag variables;
+  - infer.ts's `keyValue`, moved to prove.ts and shared.
+- **New search:** about 70 lines (`modelInstances`) and three retry loops.
+- **Could be shared:**
+  - infer.ts's `mapsOf`/`stateOf` read a model as a state as `modelInstances` does, and could share one helper;
+  - the three retry loops (`proveThinned`, `proveLaw`, `stepWith`) are one pattern: a goal, its instances, a model, again.
+
+**Spend.**
+- The pilot: 56 jobs, 6,889.8 s of job time, plus one job of 11.8 s. Estimated about $0.25; its hour isn't billed yet.
+- The quick bar: estimated $1.02 from its task seconds; its hour isn't billed yet.
+
+**Where it leaves the design.**
+- S3 is in, and its one gain is a law about three keys.
+- Its one loss is the kernel's cost on a law about four keys.
+- The next step is still S2 (views, so that the join finds the three-key forms) with S1's sorts cutting the prover's
+  tuples. For the exclusion laws over 4 to 5 keys (decentralized, distributed, sharded KV), it is S4, which says them
+  as sums at one key.
 
 ## Citations
 
