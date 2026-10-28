@@ -1,7 +1,7 @@
 // The pilot: for each protocol of models.ts, its safety law proven with nothing written (proveRule's search), the
 // invariant a person writes checked by the kernel (the search off), and the broken variant, which must be refused with
 // a run. One JSON line per protocol on stdout.
-//   bun research/protocols/run.ts [--ms 20000] [--only id,id] [--skip given,broken]
+//   bun research/protocols/run.ts [--ms 20000] [--only id,id] [--skip search,given,broken]
 // (--only lock_server_sync@one,lock_server_async@one: the diagnostic cuts to one server, models.ts's `cuts`)
 import {proveRule} from '../../core/dsl.ts'
 import {cuts, protocols} from './models.ts'
@@ -17,8 +17,7 @@ for (const p of [...protocols, ...cuts].filter(p => only ? only.includes(p.id) :
   const out: Record<string, unknown> = {id: p.id}
   try {
     const r = p.make(), laws = p.laws(r)
-    const [v, t] = timed(() => proveRule(r, laws, {search: {ms}}))
-    out.search = {...brief(v), ms: t}
+    if (!skip.has('search')) { const [v, t] = timed(() => proveRule(r, laws, {search: {ms}})); out.search = {...brief(v), ms: t} }
     if (!skip.has('given')) { const [g, tg] = timed(() => proveRule(r, [...p.human(r), ...laws], {search: false})); out.given = {...brief(g), ms: tg} }
     if (!skip.has('broken')) { const bad = p.make(p.bug), [b, tb] = timed(() => proveRule(bad, p.laws(bad))); out.broken = {bug: p.bug, ...brief(b), ms: tb} }
   } catch (e) { out.error = String((e as Error).stack ?? e).slice(0, 400) }
