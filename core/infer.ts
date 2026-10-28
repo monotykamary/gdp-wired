@@ -35,7 +35,7 @@ import {quietly} from './cyclic.ts'
 import {type C, type E, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, evalE, get, interpret, machineTerms, modName, n, not, plus, same, seeded, times, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, watch} from './watch.ts'
-import {clock, counted, grow, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withTrees} from '../kernel/prove.ts'
+import {clock, counted, grow, keyValue, lawInstances, modelInstances, modelRounds, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withTrees} from '../kernel/prove.ts'
 import {type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
@@ -176,21 +176,6 @@ function constantsOf(m: Machine, laws: Law[]): number[] {
   if (m.pre) c(m.pre)
   laws.forEach(l => c(l.holds))
   return [...out].filter(k => Number.isSafeInteger(k) && Math.abs(k) <= 1e6)
-}
-
-// A cell's key as the kernel names it (kernel.ts keyOf): `name:coef` parts joined by ',', '1' the constant.
-// (a name the model leaves out is 0, as the state's and the request's are read: a law's key it left free, say)
-const keyValue = (cell: string, w: Record<string, number>): number | undefined => {
-  const inner = cell.slice(cell.indexOf('[') + 1, -1)
-  if (inner.includes('[')) return undefined
-  let value = 0
-  for (const part of inner.split(',').filter(Boolean)) {
-    const at = part.lastIndexOf(':'), name = part.slice(0, at), coef = Number(part.slice(at + 1))
-    if (name === '1') value += coef
-    else if (name in w) value += coef * w[name]!
-    else if (name.includes('[')) return undefined
-  }
-  return value
 }
 
 // Two keys a rule composes into one, N·a + b (+ c) of two of its inputs, a map read or written there (Casbin's link
@@ -1336,23 +1321,29 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const ctxLaws = [...ctx, ...(form ? [form] : [])].map(lawFor), ls = [...given, ...ctxLaws], mm = forLaws(ctxLaws).m, sl = form ? undefined : stepLawOf.get(name)
       const idx = form ? ls.length - 1 : ls.findIndex(l => l.name === name)
       // (a rule with maps: the laws about every key at the instances the prover would read them at)
-      const inst: Instances = !mapNames.length ? {} : sl ? stepLawInstances(mm, ls)(sl) : lawInstances(mm, ls, idx)
-      const g = sl ? stepLawObligations(mm, ls, inst, sl)[0]! : obligations(mm, ls, {[ls[idx]!.name]: inst}, idx)[1]!, lawAt = lawsFrom(mm, ls, !!sl, inst), used: string[] = []
-      const read = (h: number) => { const k = lawAt.get(h); if (k !== undefined && k >= given.length && k !== idx && !used.includes(ls[k]!.name)) used.push(ls[k]!.name) }
-      // First a model alone of the CDCL search (no tree unfolded): refuted, the hypotheses its leaves read are those
-      // a tree would (the set's proof is the kernel's below, as before); a model is the counterexample; else the prover.
-      if (joinCore) {
-        const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
-        if (!('tree' in quick) && quick.why === REFUTED && quick.core) {
-          for (const h of quick.core) read(h)
-          return {used}
+      let inst: Instances = !mapNames.length ? {} : sl ? stepLawInstances(mm, ls)(sl) : lawInstances(mm, ls, idx)
+      const goalOf = (i2: Instances) => (sl ? stepLawObligations(mm, ls, i2, sl)[0]! : obligations(mm, ls, {[ls[idx]!.name]: i2}, idx)[1]!)
+      // (a model that breaks a law or a flag at a tuple of the goal's keys it wasn't assumed at: those instances added,
+      // the goal asked again, a few times; kernel/prove.ts's modelInstances)
+      for (let round = 0; ; round++) {
+        const g = goalOf(inst), lawAt = lawsFrom(mm, ls, !!sl, inst), used: string[] = []
+        const read = (h: number) => { const k = lawAt.get(h); if (k !== undefined && k >= given.length && k !== idx && !used.includes(ls[k]!.name)) used.push(ls[k]!.name) }
+        const again = (w: Record<string, number>) => { const more = mapNames.length && round < modelRounds ? modelInstances(mm, ls, inst, g, w) : undefined; if (more) inst = more; return !!more }
+        // First a model alone of the CDCL search (no tree unfolded): refuted, the hypotheses its leaves read are those
+        // a tree would (the set's proof is the kernel's below, as before); a model is the counterexample; else the prover.
+        if (joinCore) {
+          const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
+          if (!('tree' in quick) && quick.why === REFUTED && quick.core) {
+            for (const h of quick.core) read(h)
+            return {used}
+          }
+          if (!('tree' in quick) && quick.stuck === 'sat' && quick.witness) { if (again(quick.witness)) continue; return {stuck: 'sat', witness: quick.witness} }
         }
-        if (!('tree' in quick) && quick.stuck === 'sat' && quick.witness) return {stuck: 'sat', witness: quick.witness}
+        const out = budgeted(joinQueryMs, until2 => grow(g, new Map(), {nodes: 0, until: until2}))
+        if (!('tree' in out)) { if (out.stuck === 'sat' && out.witness && again(out.witness)) continue; return {stuck: out.stuck, witness: out.stuck === 'sat' ? out.witness : undefined} }
+        for (const h of usedHyps(g, out.tree)) read(h)
+        return {used}
       }
-      const out = budgeted(joinQueryMs, until2 => grow(g, new Map(), {nodes: 0, until: until2}))
-      if (!('tree' in out)) return {stuck: out.stuck, witness: out.stuck === 'sat' ? out.witness : undefined}
-      for (const h of usedHyps(g, out.tree)) read(h)
-      return {used}
     }
     const stateOf = (w: Record<string, number>): {params: Env, st: State} => ({params: m.params.length ? Object.fromEntries(m.params.map(p => [p, w[p] ?? 0])) : params0, st: {scalars: Object.fromEntries(scalars.map(v => [v, w[v] ?? 0])), maps: mapsOf(w)}})
     // --- cubes: a point the samples leave out, as literals -------------------------------------------------------------
