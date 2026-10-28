@@ -5,6 +5,12 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**The join's whole-set queries cheaper; the round's off-switches gone (gen/protocols3).** Before a goal is asked against
+the whole candidate set, it is asked against its context and the forms proven so far: a proof there is a proof with the
+whole set, at a fraction of its hypotheses (ticket_lock's search 44 s to 27 s locally). `GDP_VIEWS`, `GDP_SORTS`,
+`GDP_MODEL_INST`, `GDP_MULTI_MATCH`, `GDP_PAIRS`, `GDP_MODEL_FIRST` and `GDP_MODEL_CORE` are removed (no test or bar read
+them), and the prover reads a goal's keys and its keys per map in one walk.
+
 **Protocols, class B: cubes in every view (gen/protocols3).** Nothing trusted changed. research/protocols/README.md,
 "Class B", has the measurements.
 - **The cubes:** the join blocks cubes in every view, as it does in the state space. A cube's literals include
@@ -60,8 +66,8 @@ mirrored in kernel/kernel.ts.
 **Protocols, round 2: the key's sort (gen/protocols2).** Nothing trusted changed. research/protocols/README.md, "Round 2",
 has the measurements.
 - **Views by the key's sort** (core/infer.ts `keySorts`, `addView`). The pair space is one view, its places now
-  sorted, and each caller law about several keys gets a view of its own (`GDP_VIEWS=0` turns them off).
-- **The prover's tuples cut by sort** (kernel/prove.ts `keySorted`; `GDP_SORTS=0` turns it off).
+  sorted, and each caller law about several keys gets a view of its own.
+- **The prover's tuples cut by sort** (kernel/prove.ts `keySorted`).
 - **One retry loop for model-based instances** (`withModels`): later rounds within 3 times the first's work.
 - **Houdini's watch counted by the tuples it evaluates.**
 - **A write at every key evaluated per stretch** (core/machine.ts `writeEvery`). This fixes CI's core/sums.test.ts at
@@ -78,10 +84,10 @@ model-based instances. Nothing trusted changed (kernel/kernel.ts, kernel/cyclic.
 Lean export, lean-kernel/data.ts, writes `.toNat` for the ADT track's Int measures).
 - **A large goal asked for a model first, and its tree searched over the model search's core** (gen/cdcl-cost,
   kernel/prove.ts's `growRoot`; untrusted search, the certificate the kernel checks as before).
-  - A root goal of 500 hypotheses or more (`GDP_MODEL_FIRST`) goes first to the CDCL search for a model alone, with a
+  - A root goal of 500 hypotheses or more goes first to the CDCL search for a model alone, with a
     quarter of the budget. Its phases sit at the simplex's point; the tree search decides by saved phases.
   - A model is the outcome, and proveThinned's instances read it. Refuted, the tree is searched over the hypotheses
-    the refutation read (its core, `GDP_MODEL_CORE`), then unfolded in the goal itself. kernel/cdcl.ts's `treeOf`:
+    the refutation read (its core), then unfolded in the goal itself. kernel/cdcl.ts's `treeOf`:
     the core's rows at a path are among the goal's.
   - decentralized lock's written invariant (research/protocols): its safety law's step goal, 2,163 hypotheses at the
     thinned instances, has a model that the model search finds in 4 s and the tree search hadn't found in 92 s. The
@@ -188,7 +194,7 @@ keys, or a quantified flag it sets, at a tuple of the goal's own keys the prover
 counterexample. Those tuples are added and the goal is asked again, up to 4 times. This is MBQI, as SMT solvers and
 Ivy's EPR checks read a model. Each bound key ranges only over the terms its own reads match against the goal's keys
 (the key's sort, by `matchMany`). It runs in `proveThinned`, `proveLaw` and the join's `stepWith`.
-- **Trusted:** nothing; it chooses instances only. `GDP_MODEL_INST=0` turns it off.
+- **Trusted:** nothing; it chooses instances only.
 - **Gained:** ring leader election's written invariant goes from unknown to proven (38.9 s on Modal; its three-key law
   at a tuple the model names).
 - **Lost:** decentralized lock's goes from unknown in 11.8 s to killed at 420 s.
@@ -207,9 +213,9 @@ both lock servers are proven with nothing written. README.md there classifies ea
 Nothing trusted changed. In the search:
 - **Laws over several keys at composed keys** (kernel/prove.ts `matched`): a law whose reads each name some of its keys
   (`Link[c1·N + s]`, `Link[c2·N + s]`) is assumed at the tuples two reads bind together, as a fact about several keys
-  was. The two lock servers' written invariants go from unknown to proven. `GDP_MULTI_MATCH=0` turns it off.
+  was. The two lock servers' written invariants go from unknown to proven.
 - **The join's pair space over two plain keys** (core/infer.ts): where a law is about several keys and no key is
-  composed, the cells at two distinct keys x ≠ y, forms reading both. `GDP_PAIRS=0` turns it off. A found law over
+  composed, the cells at two distinct keys x ≠ y, forms reading both. A found law over
   two keys is given as its builder call (`forall((x, y) => x.eq(y).not().implies(...))`), and a cell of a map of
   yes/nos reads as `.n` there.
 - **A flag that reads a quantified flag** no longer ends the join with `unknown flag` (two-phase commit's `go1`).

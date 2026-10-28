@@ -268,8 +268,8 @@ function growKept0(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
 // The share of a root goal's budget the CDCL search gets (GDP_CDCL_SHARE; 0 turns it off), and the quick search's nodes
 // before it (GDP_QUICK_CAP; 64 where the CDCL search isn't tried, as before it): research/step's comparisons.
 const cdclShare = Number(env.GDP_CDCL_SHARE ?? 0.75), quickCap = Number(env.GDP_QUICK_CAP ?? 16)
-// (GDP_MODEL_FIRST: the goals of at least this many hypotheses asked for a model before the tree; 0, none)
-const modelFirst = Number(env.GDP_MODEL_FIRST ?? 500), useCore = env.GDP_MODEL_CORE !== '0'
+// (the goals of at least this many hypotheses asked for a model before the tree)
+const modelFirst = 500
 // A goal an instance round reads a model of: one reading a map's cell or a quantified flag (?f). Others (a CHC rule's,
 // say) have no instances for a model to name, so the model costs its share for nothing.
 const instanced = (goal: Goal): boolean => {
@@ -302,13 +302,13 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
   // cases. A model there is the outcome (proveThinned's instances read it); refuted or undecided, the tree search
   // below as before. (decentralized lock's written invariant, research/protocols: a 2,163-hypothesis step goal with a
   // model in 4 s that the tree search hadn't found in 92 s.)
-  if (root && cdcl && modelFirst > 0 && goal.hyps.length >= modelFirst && instanced(goal)) {
+  if (root && cdcl && goal.hyps.length >= modelFirst && instanced(goal)) {
     const now = clock(), end = withinDeadline(budget.until ?? Infinity)
     const m = growCdcl(goal, path, {nodes: 0, until: end === Infinity ? end : now + 0.25 * (end - now)}, {model: true, core: true}) as Outcome & {core?: number[]}
     if (!('tree' in m) && m.stuck === 'sat' && m.witness && !(realModels.on && fakeProducts(m.witness))) return m
     // Refuted: the tree searched over the hypotheses the refutation read (its core), each node reading those alone, and
     // unfolded in the goal itself (its rows at a path include the core's), so the certificate is the goal's.
-    if (useCore && !('tree' in m) && m.why === REFUTED && m.core && m.core.length < goal.hyps.length) {
+    if (!('tree' in m) && m.why === REFUTED && m.core && m.core.length < goal.hyps.length) {
       const small: Goal = {name: goal.name, hyps: m.core.map(i => goal.hyps[i]!)}, now2 = clock()
       const out = growCdcl(small, path, {nodes: 0, until: end === Infinity ? end : now2 + cdclShare * (end - now2)}, {treeOf: goal})
       if ('tree' in out) return out
@@ -892,11 +892,12 @@ function keysInlined(m: Machine, keys: E[]): E[] {
   return [...new Map(keys.map(e => substE(e, {vars: {}, maps: {}, flags})).map(e => [JSON.stringify(e), e])).values()]
 }
 const shifts = (m: Machine) => Object.values(m.step.maps ?? {}).some(w => 'each' in w && !plainKey(w.value, w.each))
-// The keys some goals read a map at.
-function mapKeys(goals: Goal[]): E[] {
-  const out = new Map<string, E>(), {inC} = eachRead(e => { out.set(JSON.stringify(e.key), e.key) })
+// The keys some goals read a map at, and at each map, in one walk.
+function mapReads(goals: Goal[]): {keys: E[], byMap: Map<string, E[]>} {
+  const all = new Map<string, E>(), out = new Map<string, Map<string, E>>()
+  const {inC} = eachRead(e => { const id = JSON.stringify(e.key); all.set(id, e.key); if (!out.has(e.map)) out.set(e.map, new Map()); out.get(e.map)!.set(id, e.key) })
   for (const g of goals) g.hyps.forEach(inC)
-  return [...out.values()]
+  return {keys: [...all.values()], byMap: new Map([...out].map(([mp, ks]) => [mp, [...ks.values()]]))}
 }
 // A cell's key as the kernel names it (kernel.ts keyOf): `name:coef` parts joined by ',', '1' the constant; its value
 // where the names have these (a name left out is 0, as a model leaves it).
@@ -919,9 +920,8 @@ export const keyValue = (cell: string, w: Record<string, number>): number | unde
 // of their keys, a function read as a map), each law and each quantified flag the model sets evaluated at every tuple of
 // the values the goal's keys take, and each tuple where one fails added, as the goal's terms with those values, to its
 // instances. None found: the model is one on every tuple of the goal's keys. Untrusted: it chooses instances only.
-export const modelOn = env.GDP_MODEL_INST !== '0', modelRounds = 4
+export const modelRounds = 4
 export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: Goal, w: Record<string, number>, most = 64): Instances | undefined {
-  if (!modelOn) return undefined
   const pm = plainOf(m), qs = Object.entries(pm.step.flags ?? {}).filter((e): e is [string, Extract<C, {op: 'all'}>] => e[1].op === 'all' && w[`?${e[0]}`] === 1)
   const keyed = laws.filter(l => l.forall)
   if (!keyed.length && !qs.length) return undefined
@@ -939,7 +939,7 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
   // Each bound key over its own sort as the model fills it: the terms its body's map reads bind matched against the
   // goal's keys (M[x·N + y] against M[a·N + b] binds x to a), one term a value; a key no read binds (or only a
   // function's), every key of the goal.
-  const keys = mapKeys([goal]), all = new Map<number, E>()
+  const keys = mapReads([goal]).keys, all = new Map<number, E>()
   for (const e of keys) { const v2 = valueOf(e); if (v2 !== undefined && !all.has(v2)) all.set(v2, e) }
   if (!all.size) return undefined
   const sortsOf = (body: C, names: string[]): Map<number, E>[] => {
@@ -1005,7 +1005,7 @@ export function withModels<T>(m: Machine, laws: Law[], inst: Instances, goalOf: 
 const withReads = (laws: Law[], inst: Instances, keys: E[], focus: string[], byMap?: Map<string, E[]>, fns: string[] = []): Instances => ({...inst, ...Object.fromEntries(laws.filter(l => l.forall).map(l => {
   const had = inst[l.name] ?? []
   if (l.keys?.length) {
-    const n = l.keys.length + 1, out = new Map<string, E[]>(), sorted = byMap && sortsOn ? keySorted(l, byMap, fns) : undefined
+    const n = l.keys.length + 1, out = new Map<string, E[]>(), sorted = byMap ? keySorted(l, byMap, fns) : undefined
     for (let i = 0; i + n <= had.length; i += n) out.set(JSON.stringify(had.slice(i, i + n)), had.slice(i, i + n))
     for (const tuple of [...related(keys, focus, n), ...matched(l, keys)]) if (!sorted || sorted(tuple)) out.set(JSON.stringify(tuple), tuple)
     return [l.name, [...out.values()].flat()]
@@ -1013,18 +1013,10 @@ const withReads = (laws: Law[], inst: Instances, keys: E[], focus: string[], byM
   const seen = new Set(had.map(e => JSON.stringify(e)))
   return [l.name, [...had, ...keys.filter(e => { const id = JSON.stringify(e); return seen.has(id) ? false : (seen.add(id), true) })]]
 }))})
-// The keys a goal reads each map at.
-function mapReads(goals: Goal[]): Map<string, E[]> {
-  const out = new Map<string, Map<string, E>>(), {inC} = eachRead(e => { if (!out.has(e.map)) out.set(e.map, new Map()); out.get(e.map)!.set(JSON.stringify(e.key), e.key) })
-  for (const g of goals) g.hyps.forEach(inC)
-  return new Map([...out].map(([mp, ks]) => [mp, [...ks.values()]]))
-}
 // A tuple of the key's sort: each of a law's keys read at a map (M[x], M[x·N + y]) takes only the terms its read matches
 // against the keys the goals read that map at (the key's sort, as the goal holds it: Link[c1·N + s] against
 // Link[a·N + b] gives c1 a and s b); a key no read binds, or a read no goal key matches, takes any. A function's
-// argument is no sort (a function is read at any key). Untrusted: it chooses instances only (GDP_SORTS=0 keeps every
-// tuple).
-const sortsOn = env.GDP_SORTS !== '0'
+// argument is no sort (a function is read at any key). Untrusted: it chooses instances only.
 function keySorted(l: Law, byMap: Map<string, E[]>, fns: string[]): (tuple: E[]) => boolean {
   const vars = [l.forall!, ...(l.keys ?? [])], allowed = vars.map(() => new Set<string>()), bound = vars.map(() => false)
   eachRead(e => {
@@ -1042,18 +1034,17 @@ function keySorted(l: Law, byMap: Map<string, E[]>, fns: string[]): (tuple: E[])
 const matched = (l: Law, keys: E[]): E[][] => {
   const vars = [l.forall!, ...(l.keys ?? [])], names = (e: E) => vars.filter(x => JSON.stringify(e).includes(`"name":${JSON.stringify(x)}`))
   const pats = new Map<string, E>()
-  eachRead(e => { const ns = names(e.key); if (ns.length === vars.length || ns.length > 1 && multiOn) pats.set(JSON.stringify(e.key), e.key) }).inC(l.holds)
+  eachRead(e => { const ns = names(e.key); if (ns.length === vars.length || ns.length > 1) pats.set(JSON.stringify(e.key), e.key) }).inC(l.holds)
   const partial: Record<string, E>[] = []
   for (const p of pats.values()) for (const key of keys) { const b = matchMany(p, key, vars); if (b) partial.push(b) }
   const whole = (b: Record<string, E>) => vars.every(x => x in b), out = partial.filter(whole)
-  if (multiOn) for (let i = 0; i < partial.length; i++) for (let j = i + 1; j < partial.length; j++) {
+  for (let i = 0; i < partial.length; i++) for (let j = i + 1; j < partial.length; j++) {
     const a = partial[i]!, b = partial[j]!
     if (whole(a) || whole(b) || !vars.every(x => x in a || x in b)) continue
     out.push({...b, ...a}, {...a, ...b})
   }
   return out.map(b => vars.map(x => b[x]!))
 }
-const multiOn = env.GDP_MULTI_MATCH !== '0'
 // The n-tuples of the keys that relate the focus (withReads).
 const related = (keys: E[], focus: string[], n: number): E[][] => {
   const reads = (e: E, x?: string) => x !== undefined && JSON.stringify(e).includes(`"name":${JSON.stringify(x)}`)
@@ -1158,7 +1149,7 @@ function instancesFor(m: Machine, laws: Law[], build: (inst: Instances) => Goal[
   const reads = opts.reads ?? (!opts.seed || shifts(m) || laws.some(l => l.keys?.length) || pairFlags(m))
   for (let round = 0; round < 2; round++) {
     if (m.facts?.length) inst = withFacts(m, inst, fnKeys(m, build(inst)))
-    if (reads) { const gs = build(inst), keys = mapKeys(gs); inst = union(withReads(laws, inst, keys, opts.focus ?? [], mapReads(gs), Object.keys(m.fns ?? {})), flagInstances(m, keys, opts.focus), m) }
+    if (reads) { const {keys, byMap} = mapReads(build(inst)); inst = union(withReads(laws, inst, keys, opts.focus ?? [], byMap, Object.keys(m.fns ?? {})), flagInstances(m, keys, opts.focus), m) }
   }
   return inst
 }

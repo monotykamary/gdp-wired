@@ -113,10 +113,6 @@ const inferTrace = !!env.GDP_INFER_TRACE
 // the control state up to 7, and 128 of its values; a goal tried with 6 parts of the set before all of it, 2 forms added
 // at a time.
 const joinOn = env.GDP_JOIN !== '0'
-// GDP_PAIRS=0: the pair space only where the rule composes two keys into one (as before)
-const plainPairs = env.GDP_PAIRS !== '0'
-// GDP_VIEWS=0: no views of the caller's laws beyond the pairs (the key's sort; core/infer.ts keySorts)
-const viewsOn = env.GDP_VIEWS !== '0'
 const joinShare = 0.6, joinQueryMs = 8000, joinRequestMs = 150, joinWalk = 8, joinPairs = 10, joinRaises = 2, joinSparse = 4, joinCoef = 1000
 const joinExtras = 24, joinTries = 40, joinBits = 7, joinKeys = 128, joinAttempts = 6, joinAdd = 2
 // GDP_JOIN_CORE=0: the join's goals by the prover's trees alone, as before (else a model, or a refutation's core, of the
@@ -1112,7 +1108,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // one) that the frame (the assumption's of a and b) allows: their forms laws at every two keys.
     // Where no key is composed but a caller's law is about several keys (two counted approvals by distinct reviewers, two
     // holders of one lock), the same space over two distinct keys x ≠ y: the cells at x and at y (`n` 0, no third place).
-    const pairing = mapNames.length ? pairingOf(m) ?? (plainPairs && [...laws, ...stepLaws].some(l => l.keys?.length) ? {n: 0, c: 0, frame: not(same(x(KEY), x(KEY2)))} : undefined) : undefined
+    const pairing = mapNames.length ? pairingOf(m) ?? ([...laws, ...stepLaws].some(l => l.keys?.length) ? {n: 0, c: 0, frame: not(same(x(KEY), x(KEY2)))} : undefined) : undefined
     const cellLevels = pairing ? levelsOf(cellAtoms.filter(i => !atoms[i]!.int), valsK) : []
     // A view's atoms (each map at each place it is read at there) and rows: each assignment of its keys to keys a state
     // holds (by sort: the keys of the maps read at the key's place, the parts of composed keys there, and a fresh one;
@@ -1152,7 +1148,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // Where no key is composed but a caller's law is about several keys (two counted approvals by distinct reviewers, two
     // holders of one lock), the same space over two distinct keys x ≠ y: the cells at x and at y (`n` 0, no third place).
     const callerLaws = [...laws, ...stepLaws.map(sl => ({name: sl.name, holds: sl.then, ...(sl.forall ? {forall: sl.forall} : {}), ...(sl.keys ? {keys: sl.keys} : {})}) as Law)]
-    const sorts = mapNames.length && viewsOn ? keySorts(m, callerLaws, pairing) : undefined
+    const sorts = mapNames.length ? keySorts(m, callerLaws, pairing) : undefined
     if (pairing) {
       const P = pairing, composed = plus(times(P.n, x(KEY)), x(KEY2)), places = P.n ? [x(KEY), x(KEY2), P.c ? plus(composed, n(P.c)) : composed] : [x(KEY), x(KEY2)]
       // (by sort, where the rule composes: a row's maps at x, a column's at y, the composed maps at the composed key)
