@@ -837,8 +837,14 @@ export function sumCovers(m: Machine): Record<string, E[]> {
     return [s, [...out.values()]]
   }))
 }
-// `given`: each sum's cover keys (core/conformance.ts's tampered twins), else sumCovers'.
-export function sumMachine(m: Machine, given?: Record<string, E[]>): {machine: Machine, goals: Goal[]} {
+// The cells' laws at a cover goal's key x (Sums.lean's cellLaws): each law about one key (no further key) that reads
+// nothing but cells of the maps the term reads, at its key, read at x. A cell's kind is one (a yes/no at most 1, a
+// choice below its count): the cover goal may lean on it because the laws are proven with it (Sums.lean's sum_cells).
+const cellLaws = (laws: Law[], read: string[], x: E): C[] => laws.flatMap(l => (l.forall && !l.keys?.length && sumCondOk(l.holds, l.forall)
+  && [...JSON.stringify(l.holds).matchAll(/"op":"get","map":"([^"]+)"/g)].every(y => read.includes(y[1]!)) ? [substC(l.holds, {vars: {[l.forall]: x}, maps: {}, flags: {}})] : []))
+// `given`: each sum's cover keys (core/conformance.ts's tampered twins), else sumCovers'. `laws`: the laws proven with
+// the cover goals, whose cells' laws they assume.
+export function sumMachine(m: Machine, given?: Record<string, E[]>, laws: Law[] = []): {machine: Machine, goals: Goal[]} {
   const sums = Object.entries(m.sums ?? {})
   if (!sums.length) return {machine: m, goals: []}
   if (m.history) throw new Error(`${m.name}: sums over a map's keys go on a machine without a history`)
@@ -890,7 +896,7 @@ export function sumMachine(m: Machine, given?: Record<string, E[]>): {machine: M
     for (const [map, w] of Object.entries(m.step.maps ?? {})) {
       if (!('each' in w) || !read.includes(map)) continue
       const X: E = {op: 'var', name: x}
-      goals.push({name: `${s} @cover ${map}`, hyps: [substC(m.assume ?? TRUE_C, lean), ...cs.map((c): C => ({op: 'not', x: {op: '=', a: X, b: c}})),
+      goals.push({name: `${s} @cover ${map}`, hyps: [substC(m.assume ?? TRUE_C, lean), ...cellLaws(laws, read, X), ...cs.map((c): C => ({op: 'not', x: {op: '=', a: X, b: c}})),
         {op: 'not', x: {op: '=', a: substE(substE(w.value, lean), {vars: {[w.each]: X}, maps: {}, flags: {}}), b: {op: 'get', map, key: X}}}]})
     }
   }
@@ -913,12 +919,12 @@ export function sumRuntime(m: Machine): Machine {
 }
 // The plain machine any claim is proven of: with a history kernel.ts's historyMachine's, with sums sumMachine's.
 export const plainOf = (m: Machine): Machine => (m.history ? historyMachine(m).machine : m.sums && Object.keys(m.sums).length ? sumMachine(m).machine : m)
-// The goals beside a plain machine's own: a history's record goals, the sums' cover goals.
-export const sideGoals = (m: Machine): Goal[] => (m.history ? historyMachine(m).goals : m.sums && Object.keys(m.sums).length ? sumMachine(m).goals : [])
+// The goals beside a plain machine's own: a history's record goals, the sums' cover goals (over the laws proven with them).
+export const sideGoals = (m: Machine, laws: Law[] = []): Goal[] => (m.history ? historyMachine(m).goals : m.sums && Object.keys(m.sums).length ? sumMachine(m, undefined, laws).goals : [])
 
 // `only`: the goals of that law alone (the prover's instance search asks for one law's at a time).
 export function obligations(m: Machine, laws: Law[], instances: Record<string, Instances> = {}, only?: number): Goal[] {
-  if (m.history || (m.sums && Object.keys(m.sums).length)) { const goals = sideGoals(m); return [...obligations(plainOf(m), laws, instances, only), ...(only === undefined ? goals : [])] }
+  if (m.history || (m.sums && Object.keys(m.sums).length)) { const goals = only === undefined ? sideGoals(m, laws) : []; return [...obligations(plainOf(m), laws, instances, only), ...goals] }
   scope(m, laws)
   const ok = [...Object.values(m.state), ...Object.values(m.step.state ?? {}), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.value] : [w.key, w.value]))].every(natural)
     && Object.values(m.step.flags ?? {}).every(naturalC) && laws.every(l => naturalC(l.holds)) && Object.values(m.maps ?? {}).every(c => Number.isInteger(c) && c >= 0)

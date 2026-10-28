@@ -796,7 +796,7 @@ export function smachineToLean(id: string, given: Machine, laws: Law[], opts: {s
     kind?: KindLean,
     // (core/conformance.ts's twins: a sums machine tampered, with kernel.ts's answer; the cover goals' trees as found; a
     // liveness under strong fairness tampered, with kernel.ts's answer)
-    sumTampers?: {what: string, m: Machine, covers?: Record<string, E[]>, expect: boolean}[], coverTrees?: Record<string, Tree>,
+    sumTampers?: {what: string, m: Machine, covers?: Record<string, E[]>, coverLaws?: Law[], expect: boolean}[], coverTrees?: Record<string, Tree>,
     liveTampers?: {what: string, l: Liveness, expect: boolean}[]} = {}): string {
   const hm = given.history ? {...given, history: {...given.history, prune: undefined}} : undefined
   const hplain = hm ? historyMachine(hm) : undefined, stepLaws = opts.stepLaws ?? [], rf = opts.refined, gv = opts.ghosts ?? []
@@ -1031,7 +1031,7 @@ theorem ${id}_orig_laws : ∀ ρ M, SReach ${id}_ghosted.orig ρ M → ∀ e ∈
   })] as const))
   const allowGoals = [...allowed.values()].flatMap(a => (a ? [a.out.goal!] : []))
   // Each sum's cover goals (kernel.ts builds them as Sums.lean's sumCoverGoal does), per sum in order.
-  const covers = sm ? Object.keys(sm.sums!).map(s2 => sumMachine(sm).goals.filter(g => g.name.startsWith(`${s2} @cover `))) : []
+  const covers = sm ? Object.keys(sm.sums!).map(s2 => sumMachine(sm, undefined, laws).goals.filter(g => g.name.startsWith(`${s2} @cover `))) : []
   const named = machineNames(m, laws, allSteps, stepLaws, {...opts, ...(hm ? {record: hm.history.record} : {})})
   const sumNames = sm ? Object.entries(sm.sums!).flatMap(([s2, sum]) => { const {flag, x} = sumParts(s2); return [s2, sum.key, `?${flag}`, `w?${flag}`, x] }) : []
   const vars = [...new Set([...named.vars, ...sumNames, ...[...goalsL, ...goalsS, ...allowGoals, ...(hplain?.goals ?? []), ...covers.flat(), ...(opts.kind ? [opts.kind.start.goal] : [])].flatMap(g => g.hyps.flatMap(varsOf))])]
@@ -1082,18 +1082,24 @@ def ${id}_machine : SMachine := ${id}_sums.plain`
       return `(⟨${lit(base)},
   ${list(Object.entries(t.m.sums!).map(([s2, sum]) => { const {flag, x} = sumParts(s2); return `⟨${ix(s2)}, ${ix(sum.key)}, ${e(sum.term)}, ${list(cov[s2]!.map(e))}, ${ix(`?${flag}`)}, ${ix(`w?${flag}`)}, ${ix(x)}⟩` }))}⟩ : SumMachine)`
     }
+    // The laws a twin's cover goals read: each the entry of its name, with its law and further keys as the twin has them.
+    const coverLit = (ls: Law[]) => list(ls.map(l => {
+      const j = laws.findIndex(l2 => l2.name === l.name)
+      if (j < 0) throw new Error(`${id}: no law ${l.name}`)
+      return JSON.stringify(l) === JSON.stringify(laws[j]) ? `${id}_e${j}` : `{${id}_e${j} with law := ⟨${c(l.holds)}, ${l.forall ? `some ${ix(l.forall)}` : 'none'}⟩, keys2 := ${list((l.keys ?? []).map(k2 => String(ix(k2))))}}`
+    }))
     const tampered = (opts.sumTampers ?? []).map(t => `-- TAMPERED: ${t.what}. Lean computes the check to ${t.expect}, kernel.ts's answer.
-example : (checkSums ${tamperLit(t)} ${id}_covers && checkSMachine ${tamperLit(t)}.plain ${id}_proof) = ${t.expect} := by ${checkBy}`)
+example : (checkSums ${tamperLit(t)} ${t.coverLaws ? coverLit(t.coverLaws) : `${id}_proof`} ${id}_covers && checkSMachine ${tamperLit(t)}.plain ${id}_proof) = ${t.expect} := by ${checkBy}`)
     return `
 def ${id}_covers : List (List (List VDef × Tree)) := ${list(trees)}
-theorem ${id}_scheck : checkSums ${id}_sums ${id}_covers = true := by ${checkBy}
+theorem ${id}_scheck : checkSums ${id}_sums ${id}_proof ${id}_covers = true := by ${checkBy}
 /-- Each sum's variable is, in every state the machine reaches, the sum over every key of its term there. -/
 theorem ${id}_exact : ∀ ρ M, SReach ${id}_machine ρ M → ∀ d ∈ ${id}_sums.sums, IsSum (gAt d.g M) (ρ d.v) :=
-  sum_holds ${id}_sums ${id}_scheck
+  sum_holds ${id}_sums ${id}_check ${id}_scheck
 /-- There the machine allows a request exactly when the rule's own assumption does. -/
 theorem ${id}_own : ∀ ρ M, SReach ${id}_machine ρ M → ∀ ι κ, evalC (sView ${id}_machine ρ M ι κ).1 (sView ${id}_machine ρ M ι κ).2 ${id}_machine.f.m.assume
     = evalC (sView ${id}_machine ρ M ι κ).1 (sView ${id}_machine ρ M ι κ).2 ${id}_sums.s.f.m.assume :=
-  sum_allowed ${id}_sums ${id}_scheck (sOk_of ${id}_check)
+  sum_allowed ${id}_sums ${id}_check ${id}_scheck
 ${Object.entries(sm!.sums!).map(([s2, sum], j) => `/-- ${s2}: the sum over every key of its term (Sums.lean's IsSum). -/
 theorem ${id}_sum${j} : ∀ ρ M, SReach ${id}_machine ρ M → IsSum (gAt (${e(sum.term)}) M) (ρ ${ix(s2)}) :=
   fun ρ M h => ${id}_exact ρ M h (${id}_sums.sums[${j}]'(by decide)) (List.getElem_mem (by decide))`).join('\n')}${tampered.length ? `\n${tampered.join('\n')}` : ''}`
