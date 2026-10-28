@@ -1651,9 +1651,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
           c.push({lin: {coef: best, d}}); alive = alive.filter(y => dot(best!, y) <= d)
         }
         if (!V.out(c)) continue
-        const r2 = queryWith(c, set.map(lawFor), vi)
-        if (!r2?.ok) continue
-        return [formOf(joinDown ? down(c, set.map(lawFor), V.out, vi) : c, vi)]
+        // (relative to the forms proven so far, as little of the set as will do; else the whole set, ungeneralized)
+        const proven = set.filter(f => stood.has(textOf(f))).map(lawFor), r2 = queryWith(c, proven, vi)
+        if (r2?.ok) return [formOf(joinDown ? down(c, proven, V.out, vi) : c, vi)]
+        if (queryWith(c, set.map(lawFor), vi)?.ok) return [formOf(c, vi)]
       }
       return []
     }
