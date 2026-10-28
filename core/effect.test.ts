@@ -96,6 +96,29 @@ export class Wallet extends Effect.Service<Wallet>()('Wallet', {
   expect(proveRule(r, [r.law('the balance never goes below 0', ({balance}: any) => balance.atLeast(0))]).proven).toBe(true)
 })
 
+test('a Set in a Ref, a flag from Ref.modify, and a failure after a write that changed nothing', () => {
+  const x = read(`
+import {Effect, Ref, Schema} from 'effect'
+export class AlreadyRunning extends Schema.TaggedError<AlreadyRunning>()('AlreadyRunning', {target: Schema.String}) {}
+export const make = Effect.gen(function* () {
+  const running = yield* Ref.make<ReadonlySet<string>>(new Set())
+  const acquire = Effect.fn('acquire')(function* (target: string) {
+    const ok = yield* Ref.modify(running, r => {
+      if (r.has(target)) return [false, r] as const
+      const next = new Set(r)
+      next.add(target)
+      return [true, next] as const
+    })
+    if (!ok) return yield* new AlreadyRunning({target})
+  })
+  const release = (target: string) => Ref.update(running, r => { const next = new Set(r); next.delete(target); return next })
+  return {acquire, release}
+})`)
+  expect([x.ok, x.refusals]).toEqual([true, []])
+  expect(x.evidence).toMatchObject({coverage: {missed: []}})
+  expect(x.source).toContain(`.maps({running: record({has: bool}).from({has: false})})`)
+})
+
 test('a map of records in a Ref, copied and set, with the clock: the example\'s quota proven', () => {
   const x = readQuota()
   expect([x.ok, x.refusals]).toEqual([true, []])
@@ -162,7 +185,7 @@ test('what the reader doesn\'t take is refused where it is, with the reason', ()
     [`export const make = Effect.gen(function* () { const n = yield* Ref.make(0); return {go: () => Ref.update(n, x => x + 1).pipe(Effect.retry({times: 2}))} })`, /Effect.retry\(\{times: 2\}\) in a pipe/],
     [`export const make = Effect.gen(function* () { const n = yield* Ref.make(0); return {roll: Effect.fn(function* () { yield* Ref.set(n, yield* Random.nextInt) })} })`, /Random.nextInt: an answer from outside/],
     [`export const make = Effect.gen(function* () { const n = yield* Ref.make(0); return {go: () => Effect.gen(function* () { const m = yield* Ref.make(1); yield* Ref.set(n, yield* Ref.get(m)) })} })`, /Ref.make in a step/],
-    [`export const make = Effect.gen(function* () { const s = yield* Ref.make<ReadonlySet<string>>(new Set()); return {add: (k: string) => Ref.update(s, x => new Set(x).add(k))} })`, /a ReadonlySet/],
+    [`export const make = Effect.gen(function* () { const s = yield* Ref.make<ReadonlySet<string>>(new Set()); return {add: (k: string) => Ref.update(s, x => new Set([...x, k]))} })`, /a spread of other than an array/],
     [`type S = Data.TaggedEnum<{Idle: {}, Busy: {n: number}}>\nconst S = Data.taggedEnum<S>()\nexport const make = Effect.gen(function* () { const s = yield* Ref.make<S>(S.Idle()); return {go: () => Ref.set(s, S.Busy({n: 1}))} })`, /a union of other than string literals/],
     [`export const make = Effect.gen(function* () { const n = yield* Ref.make(0); return {go: () => Effect.timeout(Ref.update(n, x => x + 1), '1 second')} })`, /Effect.timeout \(Effect.gen/],
     [`export const make = Effect.gen(function* () { const c = yield* Clock.currentTimeMillis; const n = yield* Ref.make(c); return {go: () => Ref.set(n, 0)} })`, /run while the service is made/],

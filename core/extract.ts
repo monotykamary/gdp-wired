@@ -139,7 +139,7 @@ function evaluate(body: string): Rule {
 function invariantsOf(m: Model, sorts: Sorts): string[] {
   const empty = (d: MapDecl, f: Var) => (f.sort.k === 'num' ? `.eq(0)` : f.sort.k === 'bool' ? `.not()` : f.sort.k === 'choice' ? `.is(${JSON.stringify(f.sort.values[0])})` : `.eq('')`)
   void sorts
-  return [...(m.laws ?? []), ...m.maps.map(d => `r.law(${JSON.stringify(`${d.name}: a key it doesn't hold holds the defaults`)}, ({${d.name}}) => forall(k => any(${d.name}.at(k).has, all(${d.fields.map(f => `${d.name}.at(k).${f.name}${empty(d, f)}`).join(', ')}))))`),
+  return [...(m.laws ?? []), ...m.maps.filter(d => d.fields.length).map(d => `r.law(${JSON.stringify(`${d.name}: a key it doesn't hold holds the defaults`)}, ({${d.name}}) => forall(k => any(${d.name}.at(k).has, all(${d.fields.map(f => `${d.name}.at(k).${f.name}${empty(d, f)}`).join(', ')}))))`),
     ...(m.lists ?? []).map(d => `r.law(${JSON.stringify(`${d.name}: nothing past its end`)}, ({${d.name}}) => ${d.name}.within())`)]
 }
 function evaluateLaws(r: Rule, xs: string[]): Law[] {
@@ -211,7 +211,7 @@ function builderOf(m: Model, sorts: Sorts): string {
   for (const [n, w] of mw) {
     const d = m.maps.find(x => x.name === n)!
     const vals = d.fields.map(f => `${f.name}: ${pterm(w.vals[f.name]!, P, {m, sorts, atoms: [w.has]}, `${n}.${f.name}`)}`)
-    outs.push([n, `${n}.set(${pk(w.key, P, ctx())}, {has: ${pb(w.has, P, ctx())}, ${vals.join(', ')}})`])
+    outs.push([n, `${n}.set(${pk(w.key, P, ctx())}, {${[`has: ${pb(w.has, P, ctx())}`, ...vals].join(', ')}})`])
   }
   // A list's write: its apply over the operations by cases (each under its condition).
   const lw = Object.entries(m.listWrites ?? {})

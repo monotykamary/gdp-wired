@@ -350,6 +350,6 @@ export const kindOf = (v: Var, sorts: Sorts, at = v.name): string => {
     case 'str': return 'str()'
   }
 }
-export const mapKind = (d: MapDecl, sorts: Sorts): string => `record({has: bool, ${d.fields.map(f => `${f.name}: ${kindOf(f, sorts, `${d.name}.${f.name}`)}`).join(', ')}})`
-export const mapEmpty = (d: MapDecl): string => `{has: false, ${d.fields.map(f => `${f.name}: ${f.sort.k === 'num' ? '0' : f.sort.k === 'bool' ? 'false' : f.sort.k === 'choice' ? q(f.sort.values[0]!) : "''"}`).join(', ')}}`
+export const mapKind = (d: MapDecl, sorts: Sorts): string => `record({${['has: bool', ...d.fields.map(f => `${f.name}: ${kindOf(f, sorts, `${d.name}.${f.name}`)}`)].join(', ')}})`
+export const mapEmpty = (d: MapDecl): string => `{${['has: false', ...d.fields.map(f => `${f.name}: ${f.sort.k === 'num' ? '0' : f.sort.k === 'bool' ? 'false' : f.sort.k === 'choice' ? q(f.sort.values[0]!) : "''"}`)].join(', ')}}`
 export type {Ctx}

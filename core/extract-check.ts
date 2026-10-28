@@ -155,7 +155,7 @@ function snapOf(v: unknown, layout: Layout, m: Model, consts: (t: N | B | I.L) =
     }
     case 'map': {
       const d = m.maps.find(x => x.name === layout.name)!, cells: Cells = {}
-      const entries: [unknown, unknown][] = isMap(v) ? [...v.entries()] : typeof v === 'object' && v !== null ? Object.entries(v) : (() => { throw new Error(`${path} is not a map`) })()
+      const entries: [unknown, unknown][] = isMap(v) ? [...v.entries()] : Object.prototype.toString.call(v) === '[object Set]' ? [...(v as Set<unknown>)].map(k => [k, {}]) : typeof v === 'object' && v !== null ? Object.entries(v) : (() => { throw new Error(`${path} is not a map`) })()
       for (const [k, x] of entries) {
         if (d.key === 'num' && !(typeof k === 'number' || (typeof k === 'string' && /^\d+$/.test(k)))) throw new Error(`${path} has a key ${String(k)} that isn't a natural`)
         if (d.key === 'str' && typeof k !== 'string') throw new Error(`${path} has a key ${String(k)} that isn't a string`)
@@ -211,7 +211,7 @@ function valueOf(s: Snap, layout: Layout, m: Model, consts: (t: N | B | I.L) => 
     }
   }
   ctx.__in = JSON.stringify(tree(layout))
-  return vmOf().runInContext('JSON.parse(__in, (k, v) => v && typeof v === "object" && v.$map ? (v.$map === "Map" ? new Map(v.entries) : Object.fromEntries(v.entries)) : v && typeof v === "object" && "$date" in v ? new Date(v.$date) : v)', ctx)
+  return vmOf().runInContext('JSON.parse(__in, (k, v) => v && typeof v === "object" && v.$map ? (v.$map === "Map" ? new Map(v.entries) : v.$map === "Set" ? new Set(v.entries.map(e => e[0])) : Object.fromEntries(v.entries)) : v && typeof v === "object" && "$date" in v ? new Date(v.$date) : v)', ctx)
 }
 export const showSnap = (s: Snap) => JSON.stringify({...s.leaves, ...Object.fromEntries(Object.entries(s.maps).map(([k, v]) => [k, v])), ...(s.lists ?? {})})
 export const sameSnap = (a: Snap, b: Snap): string | undefined => {

@@ -65,6 +65,9 @@ const refuse = (n: ts.Node, what: string): never => { throw new Refusal(where(n)
 const strip = (e: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isSatisfiesExpression(e) || ts.isNonNullExpression(e) ? strip(e.expression) : e)
 const text = (n: ts.Node) => n.getText().replace(/\s+/g, ' ').slice(0, 60)
 const REFS = new Set(['Ref', 'SynchronizedRef', 'SubscriptionRef', 'TxRef'])
+// Where on a path the step has changed a Ref so far (a condition, kept in the heap so merges and helpers carry it).
+const CHANGED = '$changed'
+const changedOn = (p: Path): I.B => { const o = p.heap.get(CHANGED); return o?.k === 'alias' && o.to.t === 'bool' ? o.to.e : I.F }
 
 // --- the reader -----------------------------------------------------------------------------------------------------
 // The module of Effect a name is (Ref for `import * as Ref from 'effect/Ref'`, `import {Ref} from 'effect'`, or
@@ -199,6 +202,7 @@ function factoryOf(s: Setup, entry: string): FactoryOf {
       set: n => (refs.has(n) ? `${R}.set(${JSON.stringify(refs.get(n))}, ${n}, __s.${n});` : undefined),
       calls: `const __R = ${R}; __gdp.$new = function (...args) { const f = ${make}; return __R.run(typeof f === 'function' ? f(...args) : f, __now()) }; __gdp.$method = function (name, args) { const f = this[name]; return __R.run(typeof f === 'function' ? f(...args) : f, __now()) }; __gdp.$get = function () { return this.__gdpGet() }; __gdp.$at = function (fields, args) { const o = __gdp.$new(...args); o.__gdpSet(fields); return o }`,
       ...(capture ? {extra: [[capture.getStart(), '(globalThis.__gdpMake = '], [capture.end, ')']] as [number, string][]} : {}),
+      start: [[CHANGED, {k: 'alias', to: {t: 'bool', e: I.F}}]],
     }
   }
 }
@@ -290,9 +294,9 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
     for (const x of xs) { const [v, q2] = ex.ev(x, q); out.push(v); q = q2 }
     return [out, q]
   }
-  // A failure: the step refused where it is reached; after a Ref is written, the Ref keeps the write.
+  // A failure: the step refused where it is reached; where a Ref has been changed on the path, the Ref keeps it.
   function fail(ex: Exec, at: ts.Node, q: Path): Path {
-    if (q.wrote.length) refuse(at, `fails after writing ${q.wrote.join(', ')}: a Ref keeps what was written (a rule's refusal leaves the state as it was)`)
+    if (!ex.known(q, I.not(changedOn(q)))) refuse(at, `fails after writing ${q.wrote.join(', ')}: a Ref keeps what was written (a rule's refusal leaves the state as it was)`)
     ex.throws.push({pc: q.pc})
     return {...q, pc: [...q.pc, I.F]}
   }
@@ -304,7 +308,13 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
     const name = ts.isIdentifier(r) && refs.has(r.text) && s.closure?.has(s.checker.getSymbolAtLocation(r)?.valueDeclaration as ts.Node) ? r.text : refuse(r, `${text(r)}: a Ref other than one the service's make effect makes (a Ref held in a value, or given to it)`)
     const self: V = {t: 'ref', id: 'this'}
     const cur = (q: Path) => ex.field(self, name, r, q)
-    const put = (v: V, q: Path): Path => { const [w, q2] = whole(ex, v, q, r); return ex.writeField(self, name, w, q2, r) }
+    // A Ref set to a value: where it is the one it held, nothing changes.
+    const put = (v: V, q: Path): Path => {
+      const [c] = cur(q), changed = changedOf(v, c)
+      if (changed.op === 'const' && !changed.v) return q
+      const [w, q2] = whole(ex, v, q, r), q3 = ex.writeField(self, name, w, q2, r)
+      return {...q3, heap: new Map(q3.heap).set(CHANGED, {k: 'alias', to: {t: 'bool', e: I.or(changedOn(q3), changed)}})}
+    }
     const locals = p.locals
     const apply = (args: V[], q: Path): [V, Path] => {
       const f = e.arguments[1] ?? refuse(e, `${m}.${op} with no function`)
@@ -333,6 +343,8 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
     }
   }
 }
+const changedOf = (v: V, c: V): I.B => (v.t === 'phi' ? I.bite(v.c, changedOf(v.a, c), changedOf(v.b, c)) : v.t === 'ref' && c.t === 'ref' && v.id === c.id ? I.F
+  : (v.t === 'num' || v.t === 'bool' || v.t === 'str' || v.t === 'choice') && v.t === c.t && I.same(v.e as never, (c as unknown as {e: never}).e) ? I.F : I.T)
 // A Ref's new value, whole: two values by a condition (`cond ? next : current`) made one object (a map by cases, a
 // record field by field), as a Ref's value is replaced and never written in place by another holder.
 function whole(ex: Exec, v: V, q: Path, at: ts.Node): [V, Path] {

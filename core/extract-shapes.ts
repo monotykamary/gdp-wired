@@ -454,7 +454,7 @@ function findClass(sf: ts.SourceFile, name: string): ts.ClassLikeDeclaration {
 }
 const has = (n: ts.Node, k: ts.SyntaxKind) => !!(ts.canHaveModifiers(n) && ts.getModifiers(n)?.some(m => m.kind === k))
 const isEmptyArray = (e: ts.Expression | undefined): boolean => !!e && ((ts.isArrayLiteralExpression(e) && !e.elements.length) || ((ts.isAsExpression(e) || ts.isParenthesizedExpression(e)) && isEmptyArray(e.expression)))
-const isMapInit = (e: ts.Expression | undefined): boolean => !!e && ((ts.isNewExpression(e) && ts.isIdentifier(e.expression) && e.expression.text === 'Map' && !e.arguments?.length) || (ts.isObjectLiteralExpression(e) && !e.properties.length) || ((ts.isAsExpression(e) || ts.isParenthesizedExpression(e)) && isMapInit(e.expression)))
+const isMapInit = (e: ts.Expression | undefined): boolean => !!e && ((ts.isNewExpression(e) && ts.isIdentifier(e.expression) && (e.expression.text === 'Map' || e.expression.text === 'Set') && !e.arguments?.length) || (ts.isObjectLiteralExpression(e) && !e.properties.length) || ((ts.isAsExpression(e) || ts.isParenthesizedExpression(e)) && isMapInit(e.expression)))
 
 export function readClass(code: string, file: string, opts: ReadOptions): Model {
   // Read twice: first with every field a state variable, to see which the methods write; then with the others as the
@@ -849,6 +849,8 @@ export type FactoryOf = {
   run: (ex: Exec, v: V, at: ts.Node, p: Path) => [V, Path],
   get: (field: string) => string | undefined, set: (field: string) => string | undefined,
   calls: string, extra?: [number, string][],
+  // Objects every method's path starts with beside the state (core/effect.ts: what the step has changed so far).
+  start?: [string, Heap extends Map<string, infer O> ? O : never][],
 }
 export function readFactory(code: string, file: string, opts: ReadOptions, fx?: (s: Setup) => FactoryOf): Model {
   const written = factoryAttempt(code, file, opts, new Set(), fx).written
@@ -936,6 +938,7 @@ function factoryAttempt(code: string, file: string, opts: ReadOptions, written: 
   for (const f of fields) if (written.has(f.name) && f.isConst && f.shape.k !== 'map' && f.shape.k !== 'rec') refuse(f.node, `${f.name} is a const written by the object`)
   s.now = undefined; s.nowRole = 'input'
   stateHeap.set('this', {k: 'rec', fields: thisFields, origin: 'this'})
+  for (const [id, o] of fx?.start ?? []) stateHeap.set(id, o)
   // The object's functions: each an event.
   type Fn = {name: string, decl: ts.FunctionLikeDeclaration}
   const strip0 = (e: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) ? strip0(e.expression) : e)
@@ -1005,7 +1008,7 @@ function factoryAttempt(code: string, file: string, opts: ReadOptions, written: 
   model.results = results
   // How the check reads and sets the state: two functions added to the object returned (at its end).
   const state = stateLayout.map(([n]) => n)
-  const set = state.map(n => fx?.set(n) ?? (fields.find(f => f.name === n)!.shape.k === 'list' ? `${n}.length = 0; ${n}.push(...__s.${n});` : fields.find(f => f.name === n)!.shape.k === 'map' ? `${n}.clear(); for (const [k, v] of (__s.${n} instanceof Map ? __s.${n} : Object.entries(__s.${n}))) ${n} instanceof Map ? ${n}.set(k, v) : (${n}[k] = v);` : `${n} = __s.${n};`)).join(' ')
+  const set = state.map(n => fx?.set(n) ?? (fields.find(f => f.name === n)!.shape.k === 'list' ? `${n}.length = 0; ${n}.push(...__s.${n});` : fields.find(f => f.name === n)!.shape.k === 'map' ? `${n}.clear(); for (const [k, v] of (__s.${n} instanceof Map ? __s.${n} : __s.${n} instanceof Set ? [...__s.${n}].map(k => [k, true]) : Object.entries(__s.${n}))) ${n} instanceof Map ? ${n}.set(k, v) : ${n} instanceof Set ? ${n}.add(k) : (${n}[k] = v);` : `${n} = __s.${n};`)).join(' ')
   const shown = layout.map(([n]) => n).filter(n => !n.endsWith('()'))
   model.factory = {at: obj.properties.hasTrailingComma ? obj.end - 1 : obj.properties.at(-1)!.end, text: `${obj.properties.hasTrailingComma ? '' : ','} __gdpGet: () => ({${shown.map(n => fx?.get(n) ?? n).join(', ')}}), __gdpSet: (__s) => { ${set} }`, ...(fx ? {calls: fx.calls, ...(fx.extra ? {extra: fx.extra} : {})} : {})}
   return {model, written: wrote}

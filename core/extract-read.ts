@@ -20,11 +20,11 @@ export class Retype extends Error {
 // --- sorts and shapes -----------------------------------------------------------------------------------------------
 // A number may be a Date's time (a Date is its milliseconds: read by getTime(), set by setTime(), made by new Date()).
 export type Sort = {k: 'num', date?: true} | {k: 'bool'} | {k: 'choice', values: string[]} | {k: 'str'}
-export type Shape = Sort | {k: 'rec', fields: [string, Shape][]} | {k: 'map', key: 'num' | 'str', val: Shape, js: 'Map' | 'record'} | {k: 'list', of: Sort}
+export type Shape = Sort | {k: 'rec', fields: [string, Shape][]} | {k: 'map', key: 'num' | 'str', val: Shape, js: 'Map' | 'record' | 'Set'} | {k: 'list', of: Sort}
 // A rule variable: its sort, and where it comes from.
 export type Var = {name: string, sort: Sort, role: 'param' | 'input' | 'state', note?: string}
 // A map of the state: its cells are records of `fields` (one, `value`, for a map of scalars) and `has` (the key holds one).
-export type MapDecl = {name: string, key: 'num' | 'str', fields: Var[], scalar: boolean, js: 'Map' | 'record', untyped?: boolean}
+export type MapDecl = {name: string, key: 'num' | 'str', fields: Var[], scalar: boolean, js: 'Map' | 'record' | 'Set', untyped?: boolean}
 // Where each of the code's values is in the rule: the state's tree, leaf by leaf.
 export type Layout = {k: 'scalar', name: string} | {k: 'rec', fields: [string, Layout][]} | {k: 'map', name: string} | {k: 'list', name: string} | {k: 'const', value: Term}
 export type Term = {s: 'num', e: N} | {s: 'bool', e: B} | {s: 'choice', e: L} | {s: 'str', e: K}
@@ -157,7 +157,9 @@ export function shapeOf(t: ts.Type, checker: ts.TypeChecker, at: ts.Node, inner?
       return {k: 'list', of: el}
     }
     if (name === 'Date') return {k: 'num', date: true}
-    if (name === 'Set' || name === 'ReadonlySet' || name === 'Promise') return refuse(at, `a ${name}`)
+    // A Set: a map of the keys it holds (each cell its `has` alone).
+    if (name === 'Set' || name === 'ReadonlySet') { const [kt] = checker.getTypeArguments(t as ts.TypeReference); return kt ? {k: 'map', key: keySort(shapeOf(kt, checker, at), at), val: {k: 'rec', fields: []}, js: 'Set'} : refuse(at, 'a Set without its type') }
+    if (name === 'Promise') return refuse(at, `a ${name}`)
     const sidx = checker.getIndexInfoOfType(t, ts.IndexKind.String), nidx = checker.getIndexInfoOfType(t, ts.IndexKind.Number)
     if (sidx || nidx) {
       if (checker.getPropertiesOfType(t).length) return refuse(at, `${checker.typeToString(t)}: named fields beside an index signature`)
@@ -911,6 +913,7 @@ export class Exec {
     if (m.w && !I.same(m.w.key, key)) return refuse(at, `writes ${m.decl.name} at a second key in one step (a rule's map takes one write a step)`)
     let vals: Map<string, V>, has: B = I.T
     if (v === undefined) { vals = new Map(m.decl.fields.map(f => [f.name, Exec.defaultOf(f.sort)])); has = I.F }
+    else if (m.decl.js === 'Set') vals = new Map()
     else if (m.decl.scalar) vals = new Map([['value', this.cellValue(v, m.decl.fields[0]!, at, p)]])
     else {
       const src = this.deref(p, v)
@@ -1084,7 +1087,10 @@ export class Exec {
       if (o?.k === 'map' && b.t === 'ref') {
         const [args, q2] = this.args(e.arguments, q)
         const k = () => this.key(args[0] ?? refuse(e, `${m} with no key`), e.arguments[0]!, o.decl)
+        const isSet = o.decl.js === 'Set'
+        if (isSet ? !['has', 'add', 'delete'].includes(m) : m === 'add') return refuse(e, isSet ? `the Set method ${m} (has, add and delete are in the subset)` : `the map method ${m} (get, set, has and delete are in the subset)`)
         switch (m) {
+          case 'add': return [b, this.mapSet(b.id, k(), {t: 'bool', e: I.T}, e, q2)]
           case 'get': return [this.mapGet(b.id, k(), q2), q2]
           case 'has': return [{t: 'bool', e: this.readCell(o, k()).has}, q2]
           case 'set': return [b, this.mapSet(b.id, k(), args[1] ?? refuse(e, 'set with no value'), e, q2)]
@@ -1211,11 +1217,11 @@ export class Exec {
   }
   private newExpr(e: ts.NewExpression, p: Path): [V, Path] {
     const c = e.expression
-    if (ts.isIdentifier(c) && c.text === 'Map') {
+    if (ts.isIdentifier(c) && (c.text === 'Map' || c.text === 'Set')) {
       const a = e.arguments ?? []
-      if (a.length !== 1) return refuse(e, 'a new Map in a step (clearing every key is not in the subset yet)')
+      if (a.length !== 1) return refuse(e, `a new ${c.text} in a step (clearing every key is not in the subset yet)`)
       const [v, q] = this.ev(a[0]!, p), src = v.t === 'ref' ? this.obj(q, v.id) : undefined
-      if (src?.k !== 'map') return refuse(e, 'a new Map of other than a map')
+      if (src?.k !== 'map' || (src.decl.js === 'Set') !== (c.text === 'Set')) return refuse(e, `a new ${c.text} of other than a ${c.text === 'Set' ? 'Set' : 'map'}`)
       const id = this.id('map')
       return [{t: 'ref', id}, {...q, heap: new Map(q.heap).set(id, {...src, origin: 'fresh'})}]
     }
