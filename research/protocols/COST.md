@@ -209,7 +209,9 @@ Modal only. Apps of this round, billed (`modal billing report --for today --reso
 - r4, the gated step, 69 jobs, 3,007 s: $0.142;
 - the pilots: $0.002.
 
-r3 (36 jobs, 2,595 s) was not yet billed when this was written; by the same rate, about $0.12. Total about $0.67.
+- r3, reruns of TigerBeetle and Gitea #0, 36 jobs, 2,595 s: $0.114.
+
+Total billed: $0.66.
 
 ## Citations
 
