@@ -268,6 +268,8 @@ function growKept0(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
 // The share of a root goal's budget the CDCL search gets (GDP_CDCL_SHARE; 0 turns it off), and the quick search's nodes
 // before it (GDP_QUICK_CAP; 64 where the CDCL search isn't tried, as before it): research/step's comparisons.
 const cdclShare = Number(env.GDP_CDCL_SHARE ?? 0.75), quickCap = Number(env.GDP_QUICK_CAP ?? 16)
+// (GDP_MODEL_FIRST: the goals of at least this many hypotheses asked for a model before the tree; 0, none)
+const modelFirst = Number(env.GDP_MODEL_FIRST ?? 500)
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
   // Past a few cases, CDCL over the atoms (kernel/cdcl.ts), with most of the budget: a linear goal's refutation there
   // is a resolution of short clauses, which the tree search would find again in every case that reaches one. Unknown
@@ -285,6 +287,16 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
       const quick = growPlain(goal, path, {nodes: 0, until: budget.until, cap: cdcl ? quickCap : 64})
       if ('tree' in quick || quick.stuck === 'sat' || quick.why === undefined) return quick
     } finally { unitsNow = true }
+  }
+  // A large goal is asked for a model first, with a quarter of the budget: the model search (phases at the simplex's
+  // point, kernel/cdcl.ts's `model`) finds one where the tree search, deciding by its saved phases, wanders among the
+  // cases. A model there is the outcome (proveThinned's instances read it); refuted or undecided, the tree search
+  // below as before. (decentralized lock's written invariant, research/protocols: a 2,163-hypothesis step goal with a
+  // model in 4 s that the tree search hadn't found in 92 s.)
+  if (root && cdcl && modelFirst > 0 && goal.hyps.length >= modelFirst) {
+    const now = clock(), end = withinDeadline(budget.until ?? Infinity)
+    const m = growCdcl(goal, path, {nodes: 0, until: end === Infinity ? end : now + 0.25 * (end - now)}, {model: true})
+    if (!('tree' in m) && m.stuck === 'sat' && m.witness && !(realModels.on && fakeProducts(m.witness))) return m
   }
   if (root) {
     if (cdcl) {
