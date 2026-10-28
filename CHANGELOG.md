@@ -3,6 +3,45 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+IMC's interpolants simplified in linear time, and the bounded runs' unrolling readable as clauses (gen/chc-speed).
+Nothing trusted changed (kernel/kernel.ts, kernel/cyclic.ts, core/check.ts and lean-kernel/ are 3cdf37e's).
+- **An and's (or's) nested parts walked once** (core/nonterm.ts's `simpC`): each nested and of a chain was flattened
+  anew (n² copies) and a part shared along a DAG was read once per path to it. IMC's interpolants are binary and-s and
+  or-s over CDCL's refutation DAG, so on metros_4_e1_917 this was 32.6% of IMC's time (bun's CPU profile, 20 s, local).
+  The parts are the same, in the same order, each kept once. IMC's query sequence there is unchanged (316 of 316
+  queries, the same node counts). Reading the interpolant at depth 20 takes about 0.15 s a depth, where it took about
+  1.7 s, and IMC reaches the depth-24 runs of three metros systems within the limit.
+- **The bounded runs in the clausal mode** (core/bmc.ts's `boundedSearch`, `clausal`; compare/chc/kind.ts's
+  `--bmc-clausal`). The unrolling's session reads the goal as clauses, as IMC's does, and falls back to the kernel's
+  reading where a step reads what the clauses don't (kernel/cdcl.ts's `UNREAD`). On metros_4_e1_917 alone (local) it
+  found the 35-step run in 25 s; the kernel's reading reached depth 10 in 20 s. It is off by default: solve.ts keeps
+  `--bmc-depth 0`. A third of the second CPU given to it (`--bmc-depth 64 --imc-x 2`) gained unsat tasks and lost
+  about as many of IMC's late sat answers (below).
+
+Measured with the bar against 3cdf37e (three runs of its shared baseline, every differing task rerun three times a
+side, Modal, 60 s, 2 vCPU). None wrong anywhere.
+- **CHC-COMP LIA-Lin, the final commit** (`runs/bar/runs/chcspeed-final-chc`): 1,162 against 1,163, 1,165 and 1,162.
+  Unsat is 441 against 437.67, sat 721 against 725.67. Gained 4: metros_2_e2_704, metros_2_e3_112 and
+  metros_3_e3_1275_e1_1350 in every run (unsat by IMC, 24 steps, at 29 to 45 s), and FIREFLY_rt_e3_1770_e2_637 at the
+  limit. Lost 6, none in every run, 5 at the limit: s_split_28 (1 of 4 against 4 of 6, the join's answer at 16.5 s),
+  xyz2, car_6_e1_152_e1_391, DRAGON_4_e1_4312, DRAGON_4_e3_4133 and FIREFLY_6.
+- **With the bounded runs on** (cf8b84d, the full bar `runs/bar/runs/chcspeed-full`): 1,161 against the same base, the
+  same three metros gained and 6 lost at the limit. Everything else, from this run (the final commit differs only in
+  solve.ts's defaults):
+  - TermComp ITS: 1,149 against 1,149.67 on the task's statement, and 1,158 against 1,156.67 per component. Noise on
+    the reruns.
+  - SV-COMP: 246 and 216, level. TIP 2015: 212, level.
+  - Frontier corpora: 90 of 92 and 32 of 47 (the base 31), every broken variant refused. The real-world corpus is
+    274 / 29 / 8.
+  - The 332 step goals: the same search on all 332. Both suites: 224 of 224.
+  - The 1-vCPU tests: no failed job. Lean: 48 of 48.
+- **No side-by-side check with Spacer and Golem:** CHC didn't move beyond its noise, so 0.30.1's four batches
+  (`runs/settle`) stand.
+
+The library (`core/` and `kernel/`, tests excluded) is 2,389,414 bytes against 2,387,735 (+1,679, +28 lines).
+
 ## 0.30.1
 
 A patch release: four fixes found while upgrading two projects that use gdp-wired, and the CHC-COMP and

@@ -14,7 +14,7 @@ and Eldarica (2.3).
 | `modal_chc.py` | The track on Modal: every task in its own container (2 vCPU, 4 GB), each tool under the same 60 s wall-clock limit, all at once (`starmap`) |
 | `summary.ts` | The table below from a run's `results.jsonl`, with wrong answers counted against each task's expected verdict where some tool decided it at CHC-COMP'26 |
 | `compose.ts` | The system the searches read (`prepare`): chains composed away (a predicate with no clause to itself whose incoming times outgoing clauses are no more than the two together, each pair made one clause), and with `--slice` the cone of influence as a weakening (definitions of what nothing relevant reads dropped). `expand`: a derivation of it as requests of the original rule, replayed there and checked by `checkDerivation`. `lift`: an invariant of it as laws of the original rule, an interpolant at each eliminated predicate (or its weakest precondition), which the kernel proves of the original (`liftProven`) |
-| `kind.ts` | The container's second CPU, a process at the lowest priority started once the task is read, until the search's deadline: interpolation over the unrolling first (core/interp.ts's `imcSearch`, one CDCL session in the clausal mode for the whole search), whose same session asks k-induction at each depth where the rule is as written (proven by core/kind.ts at that k) and the start's query at each depth (the bounded runs'); beside it the forced run of a deterministic loop (core/bmc.ts's `boundedSearch`, `--bmc-depth 0`), in slices of 2 s, 4, 8, ...; an invariant made a few clauses (`compress`) and proven by the kernel (lifted to the original where composed), a run `checkDerivation` confirms, stops solve.ts and answers. `--imc 2 --imc-first 0 --kind 1 --bmc-depth 64` is gen/chc7's turns |
+| `kind.ts` | The container's second CPU, a process at the lowest priority started once the task is read, until the search's deadline: interpolation over the unrolling first (core/interp.ts's `imcSearch`, one CDCL session in the clausal mode for the whole search), whose same session asks k-induction at each depth where the rule is as written (proven by core/kind.ts at that k) and the start's query at each depth (the bounded runs'); beside it the forced run of a deterministic loop (core/bmc.ts's `boundedSearch`, `--bmc-depth 0`; with `--bmc-depth 64` the k-step goals from the start after it, on one unrolling in the clausal mode, as IMC's, `--bmc-clausal 0` the kernel's reading), in slices of 2 s, 4, 8, ...; an invariant made a few clauses (`compress`) and proven by the kernel (lifted to the original where composed), a run `checkDerivation` confirms, stops solve.ts and answers. `--imc 2 --imc-first 0 --kind 1 --bmc-depth 64` is gen/chc7's turns |
 | `prof/kind.ts` | Not a solver (`--tools kind`): whether the law is k-inductive, a measure of what k-induction would add |
 | `prof/kind-tree.ts`, `prof/kind-lean.ts` | Not solvers: where a k-step goal's time goes (CDCL's model search, its tree, the unfolding, the check), and a task's k-induction certificate as Lean (KInd.lean's `kind_sound`) |
 | `prof/gap27.py` | The gap at a release by group, family and cause, from runs of the track and Spacer's and Golem's answers |
@@ -28,6 +28,49 @@ and Eldarica (2.3).
     modal run compare/chc/modal_chc.py --out <dir> --tools tmpl            # then --tools given --tasks-json <file>
     python3 compare/chc/prof/gap.py --gdp <run> --others <run> --models <dir> --template <run> [--cex <dir>] [--given <run>] --out <file.json>
     modal run compare/chc/modal_chc.py --out <dir> --tools golem-imc,golem-tpa   # Golem with one engine of its own
+
+## Cheaper queries, on gen/chc-speed (after 0.30.1)
+
+The runs named here are in the main checkout's `runs/bar/runs/chcspeed-*` (Modal, 60 s, 2 vCPU), against 3cdf37e's
+shared baseline (1,163, 1,165 and 1,162). Nothing trusted changed.
+
+**Where a deep query's time went** (metros_4_e1_917, IMC alone, `prof/imc.ts`, bun's CPU profile of 20 s, local):
+- core/nonterm.ts's `simpC` on each interpolant took 32.6%. Its `and` copied each nested and of a binary chain anew,
+  and read a part shared along the DAG once per path to it.
+- The simplex took about 40%: pivots, and the tableau begun again after a deep backjump.
+- Unit propagation took 22% and relevance 12%: about 2,000 assignments a node at depth 19, the unrolling propagated
+  again after each backjump.
+
+With `simpC` linear (each nested part walked once, each part kept once), the queries are the same (316 of 316, the same
+node counts). Interpolation at depth 20 takes about 0.15 s a depth, where it took 1.7 s. IMC on Modal reaches the
+24-step runs of metros_2_e2_704, metros_2_e3_112 and metros_3_e3_1275_e1_1350.
+
+**Deep unsat.** Golem's k-induction finds metros_4_e1_917's 35-step run in 0.74 s, and its TPA in 0.1 s
+(`runs/chc6/golem-engines`). IMC asks 10 to 15 frontier queries at each depth, so the start's query, which is the
+bounded run, reaches depth 31 in 60 s (local). Asked alone on the same session, the bounded runs reach 34 in 14 s.
+core/bmc.ts's unrolling in the clausal mode (`boundedSearch`'s `clausal`) finds that run in 25 s; the kernel's reading
+reached depth 10 in 20 s. The dev set with the k-step goals on the second CPU (`--bmc-depth 64`):
+
+| run | IMC's turn | dev set (662) | full |
+| --- | --- | --- | --- |
+| q1-simp | (no k-step goals) | 518 against 517.33 | 1,162 (`chcspeed-final-chc`) |
+| q2-bmcx2 | twice theirs | 520 | 1,161 (`chcspeed-full`) |
+| q2-bmcx4 | four times | 515 | |
+| q3-bmcx1 | equal | 518 (unsat +4.33, sat -3.67) | |
+
+The share is zero-sum: at a third of the CPU, the bounded runs reach depths 25 to 32 on the metros systems (their runs
+need 34 to 35), and IMC loses late sat answers. So the default stays `--bmc-depth 0`.
+
+**Tried and dropped** (local, metros_4, DRAGON_12, car_5):
+- the tableau begun again against the most rows read since it was begun (fewer pivots, a slower search);
+- the free basic slack rows taken out before a rebuild (no rebuild avoided);
+- a rebuilt tableau seeded from the last point (no fewer pivots);
+- larger rebuild thresholds;
+- bound propagation over every open atom in the clausal mode (depth 21 against 23 in 20 s);
+- the DAG's interpolants kept from query to query (the same search, no measurable gain);
+- IMC's depth growing by k/4 (worse);
+- TPA's queries on the clausal DAG: stuck at level 1, because its midpoints are full points, which Golem generalizes;
+- stuttered bounded runs whose depth grows by k/4.
 
 ## IMC's query made cheap: the goal read as clauses, one session for the search, on gen/chc8 (after 0.28.0)
 

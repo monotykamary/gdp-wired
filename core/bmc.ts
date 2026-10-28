@@ -24,7 +24,7 @@
 import {type C, type E, type Law, type Machine, type Request, type State, evalC, evalE, interpret, isArithmetic, loadJs, numbersOf} from './machine.ts'
 import {stepLawObligations, substC, substE} from '../kernel/kernel.ts'
 import {clock, counted, fullRate} from '../kernel/prove.ts'
-import {REFUTED, cdclSession, growCdcl} from '../kernel/cdcl.ts'
+import {REFUTED, UNREAD, cdclSession, growCdcl} from '../kernel/cdcl.ts'
 import type {Outcome} from '../kernel/prove.ts'
 import {allowed} from './watch.ts'
 import {isF as isFalse, isT as isTrue, simpC, simpE} from './nonterm.ts'
@@ -39,6 +39,7 @@ export type BmcOptions = {
   progress?: (depth: number, outcome: 'refuted' | 'sat' | 'unknown', ms: number) => void
   steps?: boolean // (findBoundedRun, with no wall stop) the forced run's share counted in its steps, forcedRate a millisecond
   full?: boolean // the cost model's clock (bmcRate units a ms), not work.n's (250 units a ms); boundedSearch's default
+  clausal?: boolean // the unrolling's session in kernel/cdcl.ts's clausal mode (compare/chc/kind.ts's bounded runs)
 }
 
 // Machines whose runs the goals describe as they are: scalars only (no maps, history or carried maps), no quantified
@@ -342,13 +343,14 @@ function forcedRunner(m: Machine, laws: Law[], opts: {steps: number, guesses?: n
 // consequence of the hypotheses it has, at every later depth too. For machines whose goals read no function and no
 // flag (whose kernel goals carry no fact this one would lack); the others, and a relaxed model the interpreter refuses,
 // are asked as before, depth by depth.
-function unrolled(m: Machine, laws: Law[]) {
+function unrolled(m: Machine, laws: Law[], clausal = false) {
   const goal = {name: 'a bounded run', hyps: [] as C[]}, sub: Record<string, E> = {}, defs: [string, E][] = []
   const v = (name: string): E => ({op: 'var', name}), K = (value: number): E => ({op: 'const', value})
   const stateAt = (j: number): Record<string, E> => Object.fromEntries(Object.keys(m.state).map(n => [n, j === 0 ? m.state[n]! : v(`${n}~${j}`)]))
   const put = (c: C): C => simpC(substC(c, {vars: sub, maps: {}, flags: {}}))
   let k = 0, dead = false
-  const session = cdclSession(goal, new Map(), {model: true}), tidy = useTidy ? tidier(new Set()) : (cs: C[]) => cs
+  const tidy = useTidy ? tidier(new Set()) : (cs: C[]) => cs
+  let session = cdclSession(goal, new Map(), {model: true, clausal})
   // The cone of influence: the state values the laws, the assumption or the precondition read, and those the updates of
   // these read, again until no more; the others' terms are left out at every step (no hypothesis reads them, and the
   // interpreter takes the run's own values).
@@ -394,10 +396,18 @@ function unrolled(m: Machine, laws: Law[]) {
     const query = put(substC({op: 'not', x: {op: 'and', xs: laws.map(l => l.holds)}}, {vars: stateAt(k), maps: {}, flags: {}}))
     if (isFalse(query)) return {k, out: 'refuted'}
     goal.hyps.push({op: 'or', xs: [{op: '<=', a: K(1), b: v(`act@${k}`)}, query]})
-    return {k, out: session.run(b, wall, {[`act@${k}`]: 1})}
+    return {k, out: ask(b, wall)}
+  }
+  // (`clausal`: the goal read as clauses, kernel/cdcl.ts's clausal mode, as IMC's unrolling is; where a step reads what
+  // the clauses don't, the kernel's reading from then on, a session of its own over the same goal)
+  const ask = (b: {nodes: number, until?: number}, wall?: number): Outcome => {
+    const out = session.run(b, wall, {[`act@${k}`]: 1})
+    if (!clausal || !('why' in out) || out.why !== UNREAD) return out
+    clausal = false; session = cdclSession(goal, new Map(), {model: true})
+    return session.run(b, wall, {[`act@${k}`]: 1})
   }
   // The same depth's query asked again (its search cut short by its budget), its hypotheses already in.
-  const again = (b: {nodes: number, until?: number}, wall?: number): {k: number, out: Outcome | 'refuted' | 'impossible'} => ({k, out: dead ? 'impossible' : session.run(b, wall, {[`act@${k}`]: 1})})
+  const again = (b: {nodes: number, until?: number}, wall?: number): {k: number, out: Outcome | 'refuted' | 'impossible'} => ({k, out: dead ? 'impossible' : ask(b, wall)})
   return {next, again, defs}
 }
 
@@ -434,7 +444,7 @@ export function boundedSearch(m: Machine, laws: Law[], opts: Omit<BmcOptions, 'm
     return counted(full ? bmcRate : workRate, () => {
       const until = clock() + ms
       const late = () => clock() >= until || (wall !== undefined && performance.now() >= wall)
-      if (!made) { made = true; inc = useInc && !(opts.from && opts.from > 1) && !Object.keys(m.fns ?? {}).length && !Object.keys(m.step.flags ?? {}).length ? unrolled(m, laws) : undefined }
+      if (!made) { made = true; inc = useInc && !(opts.from && opts.from > 1) && !Object.keys(m.fns ?? {}).length && !Object.keys(m.step.flags ?? {}).length ? unrolled(m, laws, opts.clausal) : undefined }
       const done = (out: BoundedRun | 'over') => { over = true; return out }
       for (; k <= last; k++) {
         if (late()) return 'paused'
