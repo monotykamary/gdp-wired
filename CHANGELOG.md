@@ -68,6 +68,48 @@ kernel/kernel.ts, kernel/cyclic.ts, core/check.ts and lean-kernel/*.lean are 0.3
   - TIP: 213 against 212, nothing lost, wrong 0 (runs/bar/runs/adt-01773e2-tip).
   - core and kernel: +4,285 bytes.
 
+**Model-based instances (kernel/prove.ts `modelInstances`, gen/protocols).** A goal's model that breaks a law about
+keys, or a quantified flag it sets, at a tuple of the goal's own keys the prover never assumed it at is no
+counterexample. Those tuples are added and the goal is asked again, up to 4 times. This is MBQI, as SMT solvers and
+Ivy's EPR checks read a model. Each bound key ranges only over the terms its own reads match against the goal's keys
+(the key's sort, by `matchMany`). It runs in `proveThinned`, `proveLaw` and the join's `stepWith`.
+- **Trusted:** nothing; it chooses instances only. `GDP_MODEL_INST=0` turns it off.
+- **Gained:** ring leader election's written invariant goes from unknown to proven (38.9 s on Modal; its three-key law
+  at a tuple the model names).
+- **Lost:** decentralized lock's goes from unknown in 11.8 s to killed at 420 s.
+- **Unchanged:** no protocol with nothing written, and every broken variant refused as before.
+- **Quick bars** against 3cdf37e (`runs/bar/runs/0d815ec65635-vs-3cdf37eddf65-quick-2026-10-281106`), wrong 0:
+  - CHC-COMP dev 517 against 517, 518, 517 (3 gained and 1 lost, all at the limit, none in every run);
+  - real-world dev 74 against 74, 74, 73, nothing differing.
+- **Design note:** research/protocols/STRUCTURE.md has the literature and the structures that come next.
+
+**Distributed protocols, a pilot (research/protocols/, gen/protocols).** Ten protocols of the DistAI and DuoAI suites
+(lock servers, decentralized and distributed locks, two-phase commit, ticket lock, two consensus protocols, ring leader
+election, a sharded key-value store) written as rules with their safety laws, broken variants and written invariants.
+With nothing written, none is proven at 10 s (DuoAI proves all ten in 1.3 to 23.9 s, on its own machine and harness);
+every broken variant is refused, 8 with the run the search finds and 2 with a run written by hand. Cut to one server,
+both lock servers are proven with nothing written. README.md there classifies each miss and names the change for each.
+Nothing trusted changed. In the search:
+- **Laws over several keys at composed keys** (kernel/prove.ts `matched`): a law whose reads each name some of its keys
+  (`Link[c1·N + s]`, `Link[c2·N + s]`) is assumed at the tuples two reads bind together, as a fact about several keys
+  was. The two lock servers' written invariants go from unknown to proven. `GDP_MULTI_MATCH=0` turns it off.
+- **The join's pair space over two plain keys** (core/infer.ts): where a law is about several keys and no key is
+  composed, the cells at two distinct keys x ≠ y, forms reading both. `GDP_PAIRS=0` turns it off. A found law over
+  two keys is given as its builder call (`forall((x, y) => x.eq(y).not().implies(...))`), and a cell of a map of
+  yes/nos reads as `.n` there.
+- **A flag that reads a quantified flag** no longer ends the join with `unknown flag` (two-phase commit's `go1`).
+- **Cubes over two keys whose cells never agree: tried and dropped.** Where the join had no candidate, a
+  counterexample's keys x ≠ y with M[x] = M[y] became a cube (that equality and the few-valued cells there), and a
+  found form nothing strengthened was dropped as Houdini drops one. `inferLaws` alone proved ticket lock with them;
+  through `proveRule` nothing moved, before or with the model-based instances above, so the code and its flags
+  (`GDP_PAIR_DISTINCT`, `GDP_JOIN_DROP`) are not part of this release. research/protocols/README.md keeps the record.
+- **Measured at b94e8a5** (with the cubes, since dropped) with two quick bars against 3cdf37e
+  (`runs/bar/runs/b94e8a5f20e8-vs-3cdf37eddf65-quick-2026-10-281018`):
+  CHC-COMP dev 515 against 517, 518, 517 (1 gained, 1 lost, none in every run), the real-world dev set 74 against 74,
+  74, 73 (nothing differs: Gitea's, Casbin's, Keycloak's and TigerBeetle's open laws unchanged), wrong 0. The library
+  was then 2,393,564 bytes against 2,387,735. Without the cubes and with the model-based instances: 2,396,320 (+8,585;
+  by diff lines core/infer.ts +49 −43, kernel/prove.ts +116 −14, core/dsl.ts +2).
+
 ## 0.30.1
 
 A patch release: four fixes found while upgrading two projects that use gdp-wired, and the CHC-COMP and

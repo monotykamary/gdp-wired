@@ -33,9 +33,9 @@
 //     is the answer, after each chosen candidate the proof doesn't need is taken out again
 import {quietly} from './cyclic.ts'
 import {type C, type E, type Law, type Machine, type Request, type State, all, any, atMost, divisorsIn, evalC, evalE, get, interpret, machineTerms, modName, n, not, plus, same, seeded, times, withArithmetic, x} from './machine.ts'
-import {type StepLaw, type Verdict, proveRule, proveSteps, verdictOf} from './dsl.ts'
+import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, watch} from './watch.ts'
-import {clock, counted, grow, lawInstances, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withTrees} from '../kernel/prove.ts'
+import {clock, counted, grow, keyValue, lawInstances, modelInstances, modelRounds, proveLaw, proveLaws, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withTrees} from '../kernel/prove.ts'
 import {type Instances, assumed, obligations, plainOf, stepLawObligations, substC} from '../kernel/kernel.ts'
 import {env, gcd, work} from './solver.ts'
 import {bgcd} from './q.ts'
@@ -113,6 +113,8 @@ const inferTrace = !!env.GDP_INFER_TRACE
 // the control state up to 7, and 128 of its values; a goal tried with 6 parts of the set before all of it, 2 forms added
 // at a time.
 const joinOn = env.GDP_JOIN !== '0'
+// GDP_PAIRS=0: the pair space only where the rule composes two keys into one (as before)
+const plainPairs = env.GDP_PAIRS !== '0'
 const joinShare = 0.6, joinQueryMs = 8000, joinRequestMs = 150, joinWalk = 8, joinPairs = 10, joinRaises = 2, joinSparse = 4, joinCoef = 1000
 const joinExtras = 24, joinTries = 40, joinBits = 7, joinKeys = 128, joinAttempts = 6, joinAdd = 2
 // GDP_JOIN_CORE=0: the join's goals by the prover's trees alone, as before (else a model, or a refutation's core, of the
@@ -171,21 +173,6 @@ function constantsOf(m: Machine, laws: Law[]): number[] {
   if (m.pre) c(m.pre)
   laws.forEach(l => c(l.holds))
   return [...out].filter(k => Number.isSafeInteger(k) && Math.abs(k) <= 1e6)
-}
-
-// A cell's key as the kernel names it (kernel.ts keyOf): `name:coef` parts joined by ',', '1' the constant.
-// (a name the model leaves out is 0, as the state's and the request's are read: a law's key it left free, say)
-const keyValue = (cell: string, w: Record<string, number>): number | undefined => {
-  const inner = cell.slice(cell.indexOf('[') + 1, -1)
-  if (inner.includes('[')) return undefined
-  let value = 0
-  for (const part of inner.split(',').filter(Boolean)) {
-    const at = part.lastIndexOf(':'), name = part.slice(0, at), coef = Number(part.slice(at + 1))
-    if (name === '1') value += coef
-    else if (name in w) value += coef * w[name]!
-    else if (name.includes('[')) return undefined
-  }
-  return value
 }
 
 // Two keys a rule composes into one, N·a + b (+ c) of two of its inputs, a map read or written there (Casbin's link
@@ -285,7 +272,8 @@ function preimages(m: Machine, laws: Law[], stepLaws: StepLaw[], atoms: Atom[], 
     }
   }
   const flags: Record<string, C> = {}
-  for (const [f, c] of Object.entries(m.step.flags ?? {})) if (c.op !== 'all') flags[f] = substC(c, {vars: {}, maps: {}, flags})
+  // (a quantified flag as the goals read it, its 0/1 variable ?f: a flag after it may read it, 2PC's go1 reads noGo)
+  for (const [f, c] of Object.entries(m.step.flags ?? {})) flags[f] = c.op === 'all' ? {op: '=', a: x(`?${f}`), b: n(1)} : substC(c, {vars: {}, maps: {}, flags})
   const inline = (c: C) => substC(c, {vars: {}, maps: {}, flags})
   const atomsOfC = (c: C, post: boolean, out: Lin[]): void => {
     if (c.op === 'and' || c.op === 'or') { c.xs.forEach(y => atomsOfC(y, post, out)); return }
@@ -766,11 +754,16 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     const used = [...new Set([...f.coef.map(([i]) => i), ...(f.guard ? ['keyNot' in f.guard ? f.guard.keyNot : f.guard.atom] : []), ...(f.unreachable ? [f.unreachable.atom] : [])])]
     const ints = f.coef.filter(([i]) => atoms[i]!.int).length
     if (ints && ints !== f.coef.length) return undefined
-    const ref = (i: number) => (atoms[i]!.cell ? `${atoms[i]!.parts[0]![0]}.at(k)` : nameOf(i))
-    const val = (i: number) => { const mo = modeOf(i); return mo?.choice && !atoms[i]!.cell ? `${ref(i)}.index` : mo?.bool && !atoms[i]!.cell ? `${ref(i)}.n` : ref(i) }
+    // (a pair's cell: its map at x, at y, or at the composed key; over two plain keys alone, as the frame is then x ≠ y)
+    if (f.pairs && pairing!.n) return undefined
+    const mapOf = (i: number) => { const a = atoms[i]!, p = a.parts[0]![0]; return a.place !== undefined ? p.slice(2, p.lastIndexOf(AT)) : p }
+    const ref = (i: number) => (atoms[i]!.place !== undefined ? `${mapOf(i)}.at(${atoms[i]!.place === 0 ? 'x' : 'y'})` : atoms[i]!.cell ? `${atoms[i]!.parts[0]![0]}.at(k)` : nameOf(i))
+    // (a cell of a map of yes/nos, at k or at x or y, reads as its 0/1 term too)
+    const boolCell = (i: number) => (atoms[i]!.cell || atoms[i]!.place !== undefined) && rule.kindsOfCells().some(([mp, kd]) => mp === mapOf(i) && kd === bool)
+    const val = (i: number) => { const mo = modeOf(i); return mo?.choice && !atoms[i]!.cell ? `${ref(i)}.index` : (mo?.bool && !atoms[i]!.cell) || boolCell(i) ? `${ref(i)}.n` : ref(i) }
     const cond = (i: number, value: number, hi?: number) => { const mo = modeOf(i); if (hi !== undefined) return hi === Infinity ? `${ref(i)}.atLeast(${value})` : `${ref(i)}.atLeast(${value}).and(${ref(i)}.atMost(${hi}))`; return mo?.choice && !atoms[i]!.cell ? `${ref(i)}.is('${mo.choice[value]}')` : mo?.bool && !atoms[i]!.cell ? (value === 1 ? ref(i) : `${ref(i)}.not()`) : `${ref(i)}.eq(${value})` }
-    const args = `({${[...new Set(used.map(i => (atoms[i]!.cell ? atoms[i]!.parts[0]![0] : nameOf(i))))].join(', ')}})`
-    const wrap = (body: string) => (f.cells ? `forall(k => ${body})` : body)
+    const args = `({${[...new Set(used.map(i => (atoms[i]!.cell || atoms[i]!.place !== undefined ? mapOf(i) : nameOf(i))))].join(', ')}})`
+    const wrap = (body: string) => (f.cells ? `forall(k => ${body})` : f.pairs ? `forall((x, y) => x.eq(y).not().implies(${body}))` : body)
     if (f.unreachable) return `r.law('${text}', ${args} => ${cond(f.unreachable.atom, f.unreachable.value, f.unreachable.hi)}.not())`
     if (f.cong) {
       if (f.coef.length !== 1 || f.coef[0]![1] !== 1) return undefined
@@ -1017,24 +1010,26 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // The pairs: where the rule composes two keys into one (Link[N·a + b] beside Known[a], Known[b]), the cells at two
     // keys x and y and at N·x + y, a row per two keys a state holds (or the parts of a composed key it holds, or a fresh
     // one) that the frame (the assumption's of a and b) allows: their forms laws at every two keys.
-    pairing = mapNames.length ? pairingOf(m) : undefined
+    // Where no key is composed but a caller's law is about several keys (two counted approvals by distinct reviewers, two
+    // holders of one lock), the same space over two distinct keys x ≠ y: the cells at x and at y (`n` 0, no third place).
+    pairing = mapNames.length ? pairingOf(m) ?? (plainPairs && [...laws, ...stepLaws].some(l => l.keys?.length) ? {n: 0, c: 0, frame: not(same(x(KEY), x(KEY2)))} : undefined) : undefined
     const pairAtoms: number[] = [], rowsP: Env[] = []
     const cellLevels = pairing ? levelsOf(cellAtoms.filter(i => !atoms[i]!.int), valsK) : []
     if (pairing) {
       const P = pairing
-      for (const i of cellAtoms) for (const place of [0, 1, 2]) {
+      for (const i of cellAtoms) for (const place of P.n ? [0, 1, 2] : [0, 1]) {
         const a = atoms[i]!, keyText = place === 0 ? 'x' : place === 1 ? 'y' : `${P.n}·x + y${P.c ? ` + ${P.c}` : ''}`
         pairAtoms.push(atoms.length)
         atoms.push({name: `${a.parts[0]![0]}[${keyText}]`, parts: a.parts.map(([q, sg]) => [`${AT}${AT}${q}${AT}${place}`, sg] as [string, 1 | -1]), param: false, int: a.int, cell: false, place})
       }
       pairRowsOf = (params, st) => {
         const ks = new Set<number>()
-        for (const c of Object.values(st.maps)) for (const k of c.keys()) { ks.add(k); if (k >= P.c) { ks.add(Math.floor((k - P.c) / P.n)); ks.add((k - P.c) % P.n) } }
+        for (const c of Object.values(st.maps)) for (const k of c.keys()) { ks.add(k); if (P.n && k >= P.c) { ks.add(Math.floor((k - P.c) / P.n)); ks.add((k - P.c) % P.n) } }
         const held = [...ks], fresh = held.length ? Math.max(...held) + 1 : 0, xs = [...held, fresh].slice(0, 24), out: Env[] = []
         for (const kx of xs) for (const ky of xs) {
           try { if (!evalC(P.frame, {...params, ...st.scalars, [KEY]: kx, [KEY2]: ky}, st, m)) continue } catch { continue }
           const row: Env = {...params, ...st.scalars, [K]: kx, [K2]: ky}
-          for (const mp of mapNames) for (const [place, key] of [[0, kx], [1, ky], [2, P.n * kx + ky + P.c]] as const) row[`${AT}${AT}${mp}${AT}${place}`] = cellOf(st, mp, key)
+          for (const mp of mapNames) for (const [place, key] of P.n ? [[0, kx], [1, ky], [2, P.n * kx + ky + P.c]] as const : [[0, kx], [1, ky]] as const) row[`${AT}${AT}${mp}${AT}${place}`] = cellOf(st, mp, key)
           out.push(withTerms(row, st))
         }
         return out
@@ -1133,7 +1128,12 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       }
       const forms = (push: (f: Form) => void) => {
         // (of the cells: only what reads one)
-        const keep = (f: Form) => { if (kind === 'state' || [...f.coef.map(([i]) => i), ...(f.guard && 'atom' in f.guard ? [f.guard.atom] : []), ...(f.also ?? []).map(a => a.atom), ...(f.never ?? []).map(a => a.atom), ...(f.unreachable ? [f.unreachable.atom] : []), ...(f.nevers ?? []).flat().map(a => a.atom)].some(i => (pairs ? atoms[i]!.place !== undefined : atoms[i]!.cell))) push(pairs ? {...f, pairs: true} : f) }
+        // (over two plain keys, a form that reads one of them alone is the cells' form, which every key's instance covers)
+        const keep = (f: Form) => {
+          const read = [...f.coef.map(([i]) => i), ...(f.guard && 'atom' in f.guard ? [f.guard.atom] : []), ...(f.also ?? []).map(a => a.atom), ...(f.never ?? []).map(a => a.atom), ...(f.unreachable ? [f.unreachable.atom] : []), ...(f.nevers ?? []).flat().map(a => a.atom)]
+          const places = new Set(read.flatMap(i => (atoms[i]!.place !== undefined ? [atoms[i]!.place] : [])))
+          if (kind === 'state' || (pairs ? places.size > (pairing!.n ? 0 : 1) : read.some(i => atoms[i]!.cell))) push(pairs ? {...f, pairs: true} : f)
+        }
         // (a choice's value no state reached: one form, whatever the yes/nos; the control states no state reached, one form
         // for all, where there are several: each alone needs the others to be inductive, a goal each where one does)
         const reachedFirst = new Set([...groups.keys()].map(k2 => k2.split(',')[0])), nev: At[][] = []
@@ -1289,23 +1289,29 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const ctxLaws = [...ctx, ...(form ? [form] : [])].map(lawFor), ls = [...given, ...ctxLaws], mm = forLaws(ctxLaws).m, sl = form ? undefined : stepLawOf.get(name)
       const idx = form ? ls.length - 1 : ls.findIndex(l => l.name === name)
       // (a rule with maps: the laws about every key at the instances the prover would read them at)
-      const inst: Instances = !mapNames.length ? {} : sl ? stepLawInstances(mm, ls)(sl) : lawInstances(mm, ls, idx)
-      const g = sl ? stepLawObligations(mm, ls, inst, sl)[0]! : obligations(mm, ls, {[ls[idx]!.name]: inst}, idx)[1]!, lawAt = lawsFrom(mm, ls, !!sl, inst), used: string[] = []
-      const read = (h: number) => { const k = lawAt.get(h); if (k !== undefined && k >= given.length && k !== idx && !used.includes(ls[k]!.name)) used.push(ls[k]!.name) }
-      // First a model alone of the CDCL search (no tree unfolded): refuted, the hypotheses its leaves read are those
-      // a tree would (the set's proof is the kernel's below, as before); a model is the counterexample; else the prover.
-      if (joinCore) {
-        const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
-        if (!('tree' in quick) && quick.why === REFUTED && quick.core) {
-          for (const h of quick.core) read(h)
-          return {used}
+      let inst: Instances = !mapNames.length ? {} : sl ? stepLawInstances(mm, ls)(sl) : lawInstances(mm, ls, idx)
+      const goalOf = (i2: Instances) => (sl ? stepLawObligations(mm, ls, i2, sl)[0]! : obligations(mm, ls, {[ls[idx]!.name]: i2}, idx)[1]!)
+      // (a model that breaks a law or a flag at a tuple of the goal's keys it wasn't assumed at: those instances added,
+      // the goal asked again, a few times; kernel/prove.ts's modelInstances)
+      for (let round = 0; ; round++) {
+        const g = goalOf(inst), lawAt = lawsFrom(mm, ls, !!sl, inst), used: string[] = []
+        const read = (h: number) => { const k = lawAt.get(h); if (k !== undefined && k >= given.length && k !== idx && !used.includes(ls[k]!.name)) used.push(ls[k]!.name) }
+        const again = (w: Record<string, number>) => { const more = mapNames.length && round < modelRounds ? modelInstances(mm, ls, inst, g, w) : undefined; if (more) inst = more; return !!more }
+        // First a model alone of the CDCL search (no tree unfolded): refuted, the hypotheses its leaves read are those
+        // a tree would (the set's proof is the kernel's below, as before); a model is the counterexample; else the prover.
+        if (joinCore) {
+          const quick = budgeted(joinQueryMs / 4, until2 => growCdcl(g, new Map(), {nodes: 0, until: until2}, {model: true, core: true})) as Refuted
+          if (!('tree' in quick) && quick.why === REFUTED && quick.core) {
+            for (const h of quick.core) read(h)
+            return {used}
+          }
+          if (!('tree' in quick) && quick.stuck === 'sat' && quick.witness) { if (again(quick.witness)) continue; return {stuck: 'sat', witness: quick.witness} }
         }
-        if (!('tree' in quick) && quick.stuck === 'sat' && quick.witness) return {stuck: 'sat', witness: quick.witness}
+        const out = budgeted(joinQueryMs, until2 => grow(g, new Map(), {nodes: 0, until: until2}))
+        if (!('tree' in out)) { if (out.stuck === 'sat' && out.witness && again(out.witness)) continue; return {stuck: out.stuck, witness: out.stuck === 'sat' ? out.witness : undefined} }
+        for (const h of usedHyps(g, out.tree)) read(h)
+        return {used}
       }
-      const out = budgeted(joinQueryMs, until2 => grow(g, new Map(), {nodes: 0, until: until2}))
-      if (!('tree' in out)) return {stuck: out.stuck, witness: out.stuck === 'sat' ? out.witness : undefined}
-      for (const h of usedHyps(g, out.tree)) read(h)
-      return {used}
     }
     const stateOf = (w: Record<string, number>): {params: Env, st: State} => ({params: m.params.length ? Object.fromEntries(m.params.map(p => [p, w[p] ?? 0])) : params0, st: {scalars: Object.fromEntries(scalars.map(v => [v, w[v] ?? 0])), maps: mapsOf(w)}})
     // --- cubes: a point the samples leave out, as literals -------------------------------------------------------------
@@ -1533,7 +1539,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         let next = room ? pick(pool) : undefined
         if (!next && room) { const made = fromCti(pre); pool.push(...made); next = pick(made) }
         if (next) tried++
-        opts.progress?.('join', {round: rounds, set: set.length, ms: qms, target: next ? textOf(next).slice(0, 60) : 'none', ...(next ? {} : {outside: outside ? 1 : 0})})
+        opts.progress?.('join', {round: rounds, set: set.length, ms: qms, target: next ? textOf(next).slice(0, 60) : 'none', ...(next ? {} : {outside: outside ? 1 : 0, goal: todo.slice(0, 120)})})
         if (!next && !alone && cube()) continue
         if (!next) { why = 'target'; break }
         extras.push(next); continue
