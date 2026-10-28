@@ -1,12 +1,12 @@
-# NEXT (gen/protocols3, after the sums-kinds merge)
+# NEXT (gen/protocols3)
 
-Standing (Modal, runs/protocols3/m2, 02cec45): nothing written at 60 s: lock_server_sync, lock_server_async,
-decentralized_lock, ticket_lock (4 of 10); at 10 s: lock_server_sync (1). Written invariants 8 of 10 (m1). Broken
-variants refused as before.
+Standing: 4 of 10 with nothing written at 60 s (lock servers, decentralized, ticket), 1 of 10 at 10 s; written 8 of 10.
+Full bar against c4dff18 (39dfed6): wrong 0, nothing lost in every run, CHC 1,168, Lean 48/48, speed level or faster.
+research/protocols/README.md, the last section, has every figure.
 
-Done this round: proven-first context before the whole set (ticket 44 s -> 27 s locally); the round's env switches
-removed; one walk for keys and keys per map.
-Measured no-go: halving the first search where a sums pass follows (loses lock_server_async at 60 s); a bigger sums-pass
-share (decentralized still unknown at 10 s: its second pass needs more than 10 s in all).
-
-Pending: the full bar against c4dff18 (gen/protocols3), speed against c4dff18 and 3cdf37e.
+Open:
+- decentralized at 10 s: its sums pass needs more than the 10 s budget in all (not a share problem).
+- two_phase_commit, distributed_lock, the two consensus protocols, sharded KV: unmoved; class D (prover cost on
+  3-5-key goals) parked.
+- The model-first gate: CHC seemed to lose without model-first on goals reading functions (dillig17), data's 1-vCPU
+  tests seemed slower with it; both within batch noise so far. A dedicated A/B (several runs a side) would settle it.

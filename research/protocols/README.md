@@ -388,3 +388,80 @@ view cube's instances, and views' rows.
 
 **Spend:** the pilot q1 3,936.4 s and q2 355.9 s of job time (about $0.15), the quick bar about $1.00, and the 1-vCPU
 group $0.05. About $1.2 estimated; the hours aren't billed separately from other tracks.
+
+## After the sums-kinds merge: cheaper whole-set queries, slim, the full bar (gen/protocols3)
+
+The base is 9bb4842: class B merged with gen/sums-kinds, where Sums.lean's `sum_cells` lets a cover goal assume the
+proven one-key laws about the summed cells.
+
+**Standing** (Modal; `runs/protocols3/m1` on 9bb4842, `m2` on 02cec45; the code since then changes no verdict path):
+
+| | 9bb4842 | 02cec45 (proven-first) |
+| --- | --- | --- |
+| Nothing written, 10 s | lock_server_sync | lock_server_sync |
+| Nothing written, 60 s | sync, async, decentralized (15.5 s) | sync, async, decentralized (15.9 s), **ticket_lock (51.8 s)** |
+| Written invariants | 8 of 10 | 8 of 10 (toy 182.4 s) |
+| Broken variants | refused as before | refused as before |
+
+That is 4 of 10 with nothing written at 60 s, and 1 of 10 at 10 s. The misses are unchanged on the merged tree:
+two_phase_commit, distributed_lock, both consensus protocols and sharded KV. None is moved by a general change here.
+
+**Whole-set queries cheaper (proven-first).** In the join's relative induction, before a goal is asked against the whole
+candidate set (about 1,100 laws and 3,400 hypotheses for ticket_lock, 2–5 s a query), it is asked against its context and
+the forms proven so far. A proof there is a proof with the whole set; a model there is followed by the whole set, as
+before.
+- **ticket_lock:** its search went from 44 s to 27 s locally, and it is proven at 60 s on Modal (51.8 s), where it was at
+  the wall-time limit.
+- **Tried and dropped:**
+  - doubling the relative context: the path changes, and ticket is not proven;
+  - halving the first search where a sums pass follows: lock_server_async is lost at 60 s;
+  - giving the sums pass more of the budget: decentralized is still unknown at 10 s, because its second pass needs more
+    than 10 s in all.
+
+**Slim.**
+- **Env switches removed:** `GDP_VIEWS`, `GDP_SORTS`, `GDP_MODEL_INST`, `GDP_MULTI_MATCH`, `GDP_PAIRS`,
+  `GDP_MODEL_FIRST` and `GDP_MODEL_CORE`. No test or bar read them.
+- **One walk:** a goal's keys and its keys per map are read in one walk (`mapReads`).
+- **Tried and reverted:** gating the model-first step to withModels' rounds of keyed rules (9abcd25, reverted in
+  f48ba21). In its quick bar CHC dev was 514 against 520, 516, 517, with dillig17 unknown in 3 of 4 runs where 291a126
+  solved it.
+
+**The full bar** (gen/protocols3 = 39dfed6, the same code as now, against c4dff18;
+`runs/bar/runs/39dfed6c3814-vs-c4dff18b387a-full-2026-10-281853`). Wrong is 0 everywhere and nothing is lost in every
+run anywhere.
+
+| Group | Candidate | c4dff18's three runs | Changes |
+| --- | --- | --- | --- |
+| CHC | 1,168 | 1,165, 1,161, 1,165 | 1 gained, 3 lost, none solid |
+| ITS | 1,150 | 1,150–1,152 | |
+| ITS per component | 1,157 | 1,153–1,156 | |
+| SV | 246 | 246 | |
+| SV per component | 216 | 214–216 | |
+| TIP | 213 | 213 | |
+| Frontier corpus, round 1 | 90 | 90 | |
+| Frontier corpus, round 2 | 31 | 31–32 | one flip, noise |
+| Real-world corpus | 274 | 273 | oidc refreshTokenRotation #0 gained, 4/4 against 3/6 |
+| 332 step goals | 332 | 332 | |
+| Suites | all pass | | |
+| Lean | 48 of 48 checked | | |
+
+**Speed** (the same run):
+
+| Measure | Candidate | c4dff18 | 3cdf37e (its shared baseline) |
+| --- | --- | --- | --- |
+| Suite, job seconds | 5,634.3 | 5,643.9, 5,798.3, 5,723.0 | 5,727.4, 5,816.3, 5,579.4 |
+| Suite --usual, job seconds | 5,226.6 | 5,132.5, 5,172.8, 5,268.1 | 5,283.9, 5,125.4, 5,338.6 |
+| Real-world, per-law time over the 310 laws in every run (sum) | 1,616.4 s | 1,646.1, 1,701.0, 1,694.8 s | 1,708.5, 1,632.6, 1,653.7 s |
+| Real-world, median law | 797 ms | 793–860 ms | 791–815 ms |
+| 332 step goals, search | 297.4 s | 296.6 s | |
+
+- **The suites:** level.
+- **The real world:** fastest of the seven runs.
+- **The 1-vCPU medians:** infer's are faster. data's two slowest tests read slower in this batch (5,586 against 5,075 ms
+  and 4,448 against 4,100). In the next batch (`9abcd25cbfc4-…-full-2026-10-281931`), c4dff18's own medians for the same
+  two tests were 5,907 and 4,583 ms, so base runs swing by up to 16% from batch to batch. Instrumented, those tests call
+  none of the prover helpers this round changed (instancesFor, modelInstances, the sort cut).
+
+**Size.**
+- 2,428,682 bytes: +26,398 against c4dff18 and +8,073 against 2644102.
+- Of the +8,073: class B 5,736, gen/sums-kinds about 2.3 kB, proven-first +785, and the slim −743.
