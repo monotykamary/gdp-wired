@@ -1687,8 +1687,15 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       const rank = (f: Form) => (inCone.has(textOf(f)) ? 0 : stood.has(textOf(f)) ? 1 : 2) * 1000 + f.coef.length * 10 + (f.never || f.nevers || f.also ? 1 : 0)
       const whole = set.filter(f => f !== todoForm)
       let ctx: Form[] = [], witness: Record<string, number> | undefined, lastStuck = '', qms = 0, settled = false
+      // (before the whole set, the forms proven so far beside the context: a proof there is a proof with the whole set,
+      // at a fraction of its hypotheses; a model there, the whole set asked as before)
+      const provenFirst = (): Form[] | undefined => { const ps = whole.filter(f => !ctx.includes(f) && stood.has(textOf(f))); return ps.length && ctx.length + ps.length < whole.length / 2 ? [...ctx, ...ps] : undefined }
       for (let attempt = 0; attempt <= joinAttempts; attempt++) {
-        if (attempt === joinAttempts) ctx = whole
+        if (attempt === joinAttempts && ctx !== whole) {
+          const pf = provenFirst()
+          if (pf) { const out = stepWith(todo, todoForm, pf); if ('used' in out) { stood.set(todo, out.used!); opts.progress?.('join', {round: rounds, set: set.length, ms: qms, proven: todo.slice(0, 60), reads: out.used!.length, ctx: pf.length, attempt}); settled = true; break } }
+          ctx = whole
+        }
         const tq = performance.now(), out = stepWith(todo, todoForm, ctx)
         qms += Math.round(performance.now() - tq)
         if ('used' in out) {
