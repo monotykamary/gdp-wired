@@ -37,6 +37,12 @@ mirrored in kernel/kernel.ts.
 - **Quick bars** against c4dff18 (`runs/bar/runs/sums-kinds-quick`):
   - CHC dev: 520 against 520, 516 and 517. Gained 2 and lost 3, none solid. Wrong: 0.
   - Real-world dev: 74 against 74, 74, 74.
+  - The 1-vCPU tests: no job failed on either side. ITS dev, beside the Lean group: 360 against 362.33. It lost 2
+    (qrdcmp, traverse), neither solid, both past 45 s; ITS has no sums.
+  - Lean: 6 of 6 recurrent sets checked, at most 7.2 s a file. The first try checked 0: the ITS export imports
+    History.lean, which the group never built. It had come from Modal's olean cache, keyed by the Lean sources, and
+    the new Sums.lean missed it. gates/bar.ts now builds it.
+- **Spend:** $2.79 billed for this track's 32 apps (two quick bars, the Lean group again, 21 protocol jobs).
 - **Size:** +2,295 bytes in core/ and kernel/ without tests: kernel.ts +871, the conformance harness +1,424.
 
 **Protocols, round 2: the key's sort (gen/protocols2).** Nothing trusted changed. research/protocols/README.md, "Round 2",
