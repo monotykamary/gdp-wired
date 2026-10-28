@@ -94,7 +94,7 @@ const off = (g: At, v: number) => v < g.value || v > (g.hi ?? g.value)
 type Lit = {at: At} | {lin: {coef: [number, number][], d: number}}
 type Form = {coef: [number, number][], d: number, cells: boolean, view?: number, guard?: Guard, also?: At[], when?: {coef: [number, number][], d: number}, unreachable?: At, never?: At[], nevers?: At[][], cube?: Lit[], mod?: {k: number, r: number}, cong?: {mod: number, rest: number}, size: number}
 
-const KEY = 'key$found', KEY2 = 'key2$found', AT = '@', K = '#', K2 = '##', SOME = 'k$found'
+const KEY = 'key$found', KEY2 = 'key2$found', AT = '@', K = '#', SOME = 'k$found'
 // The counted clock's rates, units a millisecond: about the slowest tenth of what Modal's 1-vCPU containers do in each
 // phase (`runs/modal/infer/after2`, GDP_INFER_TRACE=1: requests tried 85 a ms, rows 13,093, forms evaluated 11,240, the
 // kernel's work 37; laws watched 198 by a fit), so a counted budget runs out no later than a timed one would there.
@@ -1210,7 +1210,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     // and directions, and per control state the hull and the bounds. A space's forms are laws of the state, or, of the
     // cells, laws at every key (those that read a cell; the others are the states' space's).
     const space = (kind: 'state' | 'cells' | number) => {
-      const cells = kind === 'cells', view = typeof kind === 'number' ? views[kind]! : undefined, pairs = !!view
+      const cells = kind === 'cells', view = typeof kind === 'number' ? views[kind]! : undefined
       const ctl: Ctl[] = keyModes.map(mo => ({atom: mo.atom, cuts: mo.values.slice(0, -1), top: mo.values.at(-1)!}))
       const exactAtoms = new Set(keyModes.map(mo => mo.atom)), own = cells ? [...plain, ...cellAtoms] : view ? [...plain, ...view.atoms] : plain
       // (a pair's cells take their map's cells' levels)
