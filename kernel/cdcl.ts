@@ -509,7 +509,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   const batch = Number(env.GDP_CDCL_BATCH ?? 16)
   // (GDP_CDCL_CB: chronological backtracking in the clausal mode where a backjump would undo more than this many levels,
   // -1 none)
-  const cbFar = Number(env.GDP_CDCL_CB ?? 0), useCb = clausal && cbFar >= 0
+  const cbFar = Number(env.GDP_CDCL_CB ?? -1), useCb = clausal && cbFar >= 0
   const stuck = (kind: 'sat' | 'unknown', why: string, extra: {witness?: Record<string, number>} = {}): Outcome => ({stuck: kind, path: pathOf(), why, ...extra})
   const run = (b: {nodes: number, until?: number}, w?: number, assume?: Lin | Lin[]): Outcome => {
     budget = b; until = b.until ?? Infinity; wall = w; last = goal.hyps.length - 1
