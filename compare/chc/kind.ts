@@ -72,7 +72,7 @@ const kindTurn = (slice: number) => {
 const bmcDepths: [number, string, number, number][] = []
 let w0 = performance.now()
 // (`--bmc-depth d`: the k-step goals up to d alone; 0, the forced run alone, the session's queries from the start the rest)
-const bs = withBmc ? boundedSearch(m, [b.law], {forcedMs: 4500, depth: opt('--bmc-depth', 64), progress: (k, o, c) => { bmcDepths.push([k, o[0]!, c, Math.round(performance.now() - w0)]); w0 = performance.now() }}) : undefined
+const bs = withBmc ? boundedSearch(m, [b.law], {forcedMs: 4500, depth: opt('--bmc-depth', 64), clausal: opt('--bmc-clausal', 1) !== 0, progress: (k, o, c) => { bmcDepths.push([k, o[0]!, c, Math.round(performance.now() - w0)]); w0 = performance.now() }}) : undefined
 let bmcLive = !!bs
 const bmcTurn = (slice: number) => {
   w0 = performance.now()
