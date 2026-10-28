@@ -33,7 +33,7 @@ export const make = (capacity: number) => Effect.gen(function* () {
   })
   const refill = (n: number) => Ref.update(tokens, t => Math.min(capacity, t + Math.max(0, n)))
   return {take, refill}
-}, 120_000)
+})
 `
 
 test('a service (4.x): Refs, Effect.fn methods, a yielded error, a result; read, checked on the runtime, its law proven', () => {
