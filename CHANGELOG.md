@@ -20,6 +20,15 @@ Nothing trusted changed. In the search:
   two keys is given as its builder call (`forall((x, y) => x.eq(y).not().implies(...))`), and a cell of a map of
   yes/nos reads as `.n` there.
 - **A flag that reads a quantified flag** no longer ends the join with `unknown flag` (two-phase commit's `go1`).
+- **Cubes over two keys whose cells never agree** (core/infer.ts): where the join has no candidate, a counterexample's
+  keys x ≠ y with M[x] = M[y] become a cube: that equality and the few-valued cells there, as few as keep the samples
+  out. A found form nothing strengthens is then dropped, as Houdini drops it. `inferLaws` alone proves ticket lock
+  with them (two waiting threads hold different tickets). Through `proveRule` nothing moves: a found law leads the join
+  to a model outside its forms. `GDP_PAIR_DISTINCT=0` and `GDP_JOIN_DROP=0` turn them off.
+- **Measured** with two quick bars against 3cdf37e (`runs/bar/runs/b94e8a5f20e8-vs-3cdf37eddf65-quick-2026-10-281018`):
+  CHC-COMP dev 515 against 517, 518, 517 (1 gained, 1 lost, none in every run), the real-world dev set 74 against 74,
+  74, 73 (nothing differs: Gitea's, Casbin's, Keycloak's and TigerBeetle's open laws unchanged), wrong 0. The library is
+  2,393,564 bytes against 2,387,735.
 
 ## 0.30.1
 
