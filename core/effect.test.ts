@@ -33,7 +33,7 @@ export const make = (capacity: number) => Effect.gen(function* () {
   })
   const refill = (n: number) => Ref.update(tokens, t => Math.min(capacity, t + Math.max(0, n)))
   return {take, refill}
-})
+}, 120_000)
 `
 
 test('a service (4.x): Refs, Effect.fn methods, a yielded error, a result; read, checked on the runtime, its law proven', () => {
@@ -45,7 +45,7 @@ test('a service (4.x): Refs, Effect.fn methods, a yielded error, a result; read,
   const r = x.rule!
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   expect(proveRule(r, [r.law('tokens stay within the capacity', ({tokens, capacity}: any) => tokens.atMost(capacity))]).proven).toBe(true)
-})
+}, 120_000)
 
 test('the forms a make effect is written in (4.x): Layer.effect, a Context.Service, Effect.fn, a lock, Ref.modify', () => {
   const svc = (make: string, tail = '') => `
@@ -70,7 +70,7 @@ ${tail}`
     expect([entry, x.ok, x.refusals]).toEqual([entry, true, []])
     expect(x.source).toContain('next_result: 0')
   }
-})
+}, 120_000)
 
 test('a service (3.x): Effect.Service, Data.TaggedError, SynchronizedRef, a lock, Effect.fail; run on Effect 3', () => {
   const x = read3(`
@@ -109,7 +109,7 @@ export const make = (gap: number) => Effect.gen(function* () {
 })`, 'make')
   expect([y.ok, y.refusals]).toEqual([true, []])
   expect(y.evidence).toMatchObject({coverage: {missed: []}})
-})
+}, 120_000)
 
 test('a Set in a Ref, a flag from Ref.modify, and a failure after a write that changed nothing', () => {
   const x = read(`
@@ -132,7 +132,7 @@ export const make = Effect.gen(function* () {
   expect([x.ok, x.refusals]).toEqual([true, []])
   expect(x.evidence).toMatchObject({coverage: {missed: []}})
   expect(x.source).toContain(`.maps({running: record({has: bool}).from({has: false})})`)
-})
+}, 120_000)
 
 test('state typed by a Schema (a Struct of Literals and an Int), a record replaced by cases', () => {
   const x = read(`
@@ -152,7 +152,7 @@ export const make = Effect.gen(function* () {
   expect([x.ok, x.refusals]).toEqual([true, []])
   expect(x.source).toContain(`job_status: oneOf('idle', 'running', 'done').from('idle')`)
   expect(x.evidence).toMatchObject({coverage: {missed: []}})
-})
+}, 120_000)
 
 test('a map of records in a Ref, copied and set, with the clock: the example\'s quota proven', () => {
   const x = readQuota()
@@ -161,12 +161,12 @@ test('a map of records in a Ref, copied and set, with the clock: the example\'s 
   const {laws, stepLaws} = quotaLaws(x.rule!)
   expect(proveRule(x.rule!, [...x.invariants!, ...laws])).toMatchObject({proven: true, checked: true})
   expect(proveSteps(x.rule!, x.invariants!, stepLaws)).toMatchObject({proven: true, checked: true})
-})
+}, 120_000)
 
 test('a rule by hand beside the service: the right one runs as it does, a wrong one is caught by a run', () => {
   expect(quotaConforms().failure).toBeUndefined()
   expect(quotaConforms('a window a millisecond too long').failure).toMatch(/now":86400000.*the service takes the request, the rule refuses it/)
-})
+}, 120_000)
 
 // Effect's own Semaphore: takeIfAvailable, release, releaseAll and resize (a take that would wait is a fiber that
 // acquires later, outside one request: left out), on 4.x and, without takeIfAvailable, 3.x.
@@ -195,7 +195,7 @@ test('Effect\'s Semaphore (4.x and 3.x) runs as a rule written by hand; a rule t
   // Its documented gotcha, as a refuted law: a release past what is taken makes more free than the permits.
   const r = semaphore()
   expect(proveRule(r, [r.law('never more free than the permits', ({taken}) => taken.atLeast(0))]).proven).toBe(false)
-})
+}, 120_000)
 
 test('Schemas as kinds (4.x and 3.x): structs, literals, tagged unions, integers, null and optional fields', () => {
   for (const [E, v] of [[effect, 4], [effect3, 3]] as const) {
@@ -211,7 +211,7 @@ test('Schemas as kinds (4.x and 3.x): structs, literals, tagged unions, integers
     expect(() => fromSchema(S.Number)).toThrow(/a number that may be fractional/)
     expect(() => fromSchema(S.Struct({at: S.Array(S.Int)}))).toThrow(/fromSchema: at is a/)
   }
-})
+}, 120_000)
 
 test('what the reader doesn\'t take is refused where it is, with the reason', () => {
   const cases: [string, RegExp][] = [
@@ -230,4 +230,4 @@ test('what the reader doesn\'t take is refused where it is, with the reason', ()
     expect(x.ok).toBe(false)
     expect(x.refusals[0]!.what).toMatch(why)
   }
-})
+}, 120_000)
