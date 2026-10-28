@@ -270,6 +270,15 @@ function growKept0(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
 const cdclShare = Number(env.GDP_CDCL_SHARE ?? 0.75), quickCap = Number(env.GDP_QUICK_CAP ?? 16)
 // (GDP_MODEL_FIRST: the goals of at least this many hypotheses asked for a model before the tree; 0, none)
 const modelFirst = Number(env.GDP_MODEL_FIRST ?? 500), useCore = env.GDP_MODEL_CORE !== '0'
+// A goal an instance round reads a model of: one reading a map's cell or a quantified flag (?f). Others (a CHC rule's,
+// say) have no instances for a model to name, so the model costs its share for nothing.
+const instanced = (goal: Goal): boolean => {
+  let found = false
+  const {inC} = eachRead(() => { found = true })
+  const flag = (t: unknown): boolean => !!t && typeof t === 'object' && ((t as {op?: string, name?: string}).op === 'var' && (t as {name: string}).name.startsWith('?') || Object.values(t).some(flag))
+  for (const h of goal.hyps) { inC(h); if (found || flag(h)) return true }
+  return false
+}
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
   // Past a few cases, CDCL over the atoms (kernel/cdcl.ts), with most of the budget: a linear goal's refutation there
   // is a resolution of short clauses, which the tree search would find again in every case that reaches one. Unknown
@@ -293,7 +302,7 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
   // cases. A model there is the outcome (proveThinned's instances read it); refuted or undecided, the tree search
   // below as before. (decentralized lock's written invariant, research/protocols: a 2,163-hypothesis step goal with a
   // model in 4 s that the tree search hadn't found in 92 s.)
-  if (root && cdcl && modelFirst > 0 && goal.hyps.length >= modelFirst) {
+  if (root && cdcl && modelFirst > 0 && goal.hyps.length >= modelFirst && instanced(goal)) {
     const now = clock(), end = withinDeadline(budget.until ?? Infinity)
     const m = growCdcl(goal, path, {nodes: 0, until: end === Infinity ? end : now + 0.25 * (end - now)}, {model: true, core: true}) as Outcome & {core?: number[]}
     if (!('tree' in m) && m.stuck === 'sat' && m.witness && !(realModels.on && fakeProducts(m.witness))) return m
