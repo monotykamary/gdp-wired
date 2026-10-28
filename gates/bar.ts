@@ -232,7 +232,7 @@ async function leanPass(p: Pass): Promise<number> {
   const id = `.bar-lean/${p.dir.split('/').slice(-3).join('-')}`, here = join(p.tree.path, id)
   rmSync(here, {recursive: true, force: true})
   mkdir(here)
-  const pre = 'export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets Live NonTerm; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; '
+  const pre = 'export LEAN_PATH=$PWD:$(dirname $(dirname $(readlink -f $(elan which lean))))/lib/lean; for f in Cert Kernel Progress StepLaw Steps Sets History Live NonTerm; do { [ -f $f.olean ] || lean -o $f.olean $f.lean; } > /dev/null 2>&1 || { echo build-failed $f; exit 1; }; done; '
   const jobs: Job[] = pick.map((r, k) => {
     writeFileSync(join(here, `${k}.jsonl`), JSON.stringify(r) + '\n')
     mkdir(dirname(join(here, 'bench', r.task)))

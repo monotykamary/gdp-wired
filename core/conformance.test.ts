@@ -9,7 +9,7 @@
 //   - and the Lean printer, through lean-kernel/conformance.ts, which writes the same cases for Lean's evalE.
 // Each consumer either agrees or refuses with an error; undefined, NaN or a silent different answer fails.
 import {expect, test} from 'bun:test'
-import {type C, type E, compileFunction, conditionCases, interpret, loadJs} from './machine.ts'
+import {type C, type E, type Law, compileFunction, conditionCases, interpret, loadJs} from './machine.ts'
 import {type Case, C_OPS, CELLS, E_OPS, QC_OPS, QE_OPS, VARS, inlineC, inlineE, machineOf, qcoverage, qgoals, qmachineOf, qreference, qtampered, randomCase, randomQCase, recurCases, recurCasesCases, recurReference, reference, ringCase, ringLowers, ringReference, seen, stateOf, tamperedMeasures, kindAnswer, kindCases, kindReference, fairAnswer, fairCases, ladderReference, sumAnswer, sumCases, sumReference} from './conformance.ts'
 import {type Termination, checkMeasures} from './data.ts'
 import {checkCyclic} from '../kernel/cyclic.ts'
@@ -235,13 +235,13 @@ test('rationals: every consumer of rational terms agrees with the reference; tam
 
 // Sums over a map's keys (kernel.ts's sumMachine): every certificate found is accepted and true on the reference's
 // runs (each sum the sum of its term over the cells, the laws at every cell and past them); the cover without a key, a
-// term not 0 at the start or read at another key, twice the term, and a key past the cover written are refused (any
-// accepted holds on the reference's runs). lean-kernel/conformance.ts --sums writes the same cases for Sums.lean.
+// term not 0 at the start or read at another key, twice the term, a key past the cover written, and a cover goal over
+// laws without the cell's kind are refused (any accepted holds on the reference's runs). lean-kernel/conformance.ts --sums writes the same cases for Sums.lean.
 test('sums: found certificates accepted and true, tampered ones refused', () => {
   const counts: Record<string, {n: number, accepted: number}> = {}
   for (const c of sumCases(Math.round(18 * scale))) {
-    for (const t of [{what: 'found', m: c.m, covers: undefined as Record<string, E[]> | undefined}, ...c.tampers]) {
-      const ok = sumAnswer(t.m, c.laws, c.proof, t.covers), at = (counts[t.what] ??= {n: 0, accepted: 0})
+    for (const t of [{what: 'found', m: c.m, covers: undefined as Record<string, E[]> | undefined, coverLaws: undefined as Law[] | undefined}, ...c.tampers]) {
+      const ok = sumAnswer(t.m, c.laws, c.proof, t.covers, t.coverLaws), at = (counts[t.what] ??= {n: 0, accepted: 0})
       at.n++
       if (ok) at.accepted++
       if (ok) expect(sumReference(t.m, c.laws), `${c.m.name}: ${t.what}`).toBe(true)
@@ -249,7 +249,7 @@ test('sums: found certificates accepted and true, tampered ones refused', () => 
       else expect(ok, `${c.m.name}: ${t.what}`).toBe(false)
     }
   }
-  for (const what of ['found', 'the cover without its last key', 'M starting at 1', 'the term read at the key + 1', 'twice the term', 'a key past the cover written']) expect(counts[what]?.n ?? 0, what).toBeGreaterThan(0)
+  for (const what of ['found', 'the cover without its last key', 'M starting at 1', 'the term read at the key + 1', 'twice the term', 'a key past the cover written', 'the kind left out of the cover goals', 'the kind read with a further key', 'the kind reading the sum']) expect(counts[what]?.n ?? 0, what).toBeGreaterThan(0)
   console.log(`sums: ${Object.entries(counts).map(([w, x]) => `${w} ${x.accepted}/${x.n} accepted`).join('; ')}`)
 }, 600_000)
 

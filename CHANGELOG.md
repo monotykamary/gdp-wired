@@ -17,6 +17,46 @@ noted), each with the command that reproduces it.
 - **Quick bars** against c4dff18: no change, wrong 0.
 - **Size:** +5,736 bytes.
 
+**A sum's cells keep their kind (gen/sums-kinds, from 2644102).** Trusted, Lean first: Sums.lean's `sum_cells`,
+mirrored in kernel/kernel.ts.
+- **The cover goal assumes the cells' laws at its key** (Sums.lean's `cellLaws`; kernel.ts's `sumMachine(m, given,
+  laws)` and `sideGoals(m, laws)`).
+  - A sum's cover goal says a write at every key keeps each cell past the cover keys. It now assumes there each law
+    proven with it about one key that reads nothing but the summed maps' cells at that key.
+  - A cell's kind is one such law: a yes/no is at most 1, a choice is below its count.
+  - The DSL writes an untouched yes/no cell as `if cell = 1 then 1 else 0`, which keeps it only where it is at most 1.
+    So the cover goal of every sum over yes/no cells was false before: the model put a 2 in a cell.
+- **Why it is sound** (`sum_cells`): one induction over the plain machine's runs gives each sum exact and every proven
+  law, at every state.
+  - The laws need no exactness: the plain machine's runs already assume the sums' facts (Sets.lean's `smachine_sound`).
+  - A step keeps the sums exact from a state where the laws hold.
+  - `sum_holds`, `sum_allowed`, `sum_project` and the liveness theorems now take the laws' check beside the sums'.
+  - `#print axioms`: propext, Classical.choice, Quot.sound.
+- **What it leaves out.** These are no hypothesis: a law about several keys, a law reading a variable, a law reading a
+  map the term doesn't read.
+  - Conformance's new `flag` family has a twin for each: the kind left out, read with a further key, or reading the
+    sum. kernel.ts and Lean (`conformance.ts --sums 16`, 79 examples) refuse all three.
+  - `upTo` has no kind law (a step may pass its bound), so a sum over its cells is as before.
+  - So is every sum over naturals: the token's cover goals are the same goals.
+- **What moved** (research/protocols, Modal, 2 vCPU):
+  - **decentralized lock, nothing written, 60 s: unknown to proven** (14.7 s; 6.3 s locally). It finds
+    `every k: HasLock[k] <= started` and `sum$HasLock + sum$Message <= started`. Lean re-checks the certificate,
+    whose cover goal leans on HasLock's kind, in 21 s.
+  - With nothing written, 3 of 10 at 60 s (2 before) and 1 of 10 at 10 s (as before). At 10 s decentralized lock is
+    still unknown: the sums pass's join runs out of its share before its last four rounds.
+  - Every other protocol is as in round 2, and so is every written invariant (their laws read no sum). Every broken
+    variant is refused as before.
+- **Quick bars** against c4dff18 (`runs/bar/runs/sums-kinds-quick`):
+  - CHC dev: 520 against 520, 516 and 517. Gained 2 and lost 3, none solid. Wrong: 0.
+  - Real-world dev: 74 against 74, 74, 74.
+  - The 1-vCPU tests: no job failed on either side. ITS dev, beside the Lean group: 360 against 362.33. It lost 2
+    (qrdcmp, traverse), neither solid, both past 45 s; ITS has no sums.
+  - Lean: 6 of 6 recurrent sets checked, at most 7.2 s a file. The first try checked 0: the ITS export imports
+    History.lean, which the group never built. It had come from Modal's olean cache, keyed by the Lean sources, and
+    the new Sums.lean missed it. gates/bar.ts now builds it.
+- **Spend:** $2.79 billed for this track's 32 apps (two quick bars, the Lean group again, 21 protocol jobs).
+- **Size:** +2,295 bytes in core/ and kernel/ without tests: kernel.ts +871, the conformance harness +1,424.
+
 **Protocols, round 2: the key's sort (gen/protocols2).** Nothing trusted changed. research/protocols/README.md, "Round 2",
 has the measurements.
 - **Views by the key's sort** (core/infer.ts `keySorts`, `addView`). The pair space is one view, its places now

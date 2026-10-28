@@ -438,31 +438,38 @@ export const kindAnswer = (c: {m: Machine, laws: Law[]}, t: {kl: KInduction, pro
 // Random machines with a map M (every cell 0 at the start) and a sum S of a term of M's cell over every key: the cell, a
 // count of the cells above 0, or the cells capped at 3. Families: `set`, one write at w (u, M[w] + u or M[w] ∸ u);
 // `two`, a write at every key that adds u at w or takes it at w2; `move`, a mint at w (and T, a total kept beside, by u)
-// or a move of u from w to w2 where M[w] has it (a write at every key, w2 = w moving nothing). The laws: each key's term
-// at most S (true of every sum, proven from its facts); for `move`, S = T and each cell at most T. Each case's
-// certificate is the kernel's proof, and its tampered twins, each with kernel.ts's answer:
+// or a move of u from w to w2 where M[w] has it (a write at every key, w2 = w moving nothing); `flag`, M a yes/no that a
+// write at every key sets at w or clears at w (each other cell read as the DSL reads a yes/no, 1 where it is 1, else
+// 0, which keeps it only where it is at most 1). The laws: each key's term at most S (true of every sum, proven from
+// its facts); for `move`, S = T and each cell at most T; for `flag`, every cell at most 1 (its kind, which the cover
+// goal assumes at its key). Each case's certificate is the kernel's proof, and its tampered twins, each with kernel.ts's
+// answer:
 //   - the cover without its last key (one written at one key: refused by the check; at every key: the cover goal);
 //   - M starting at 1 (the term is no longer 0 at the start), the term read at the key + 1 (not a term at its key);
 //   - twice the term (another sum: the trees for this one's laws read it wrong);
 //   - for a write at every key, the step changing a key past the cover too (M[w + 1] + 1 under `two`'s first op),
-//     its cover kept as found.
-export type SumTamper = {what: string, m: Machine, covers?: Record<string, E[]>}
+//     its cover kept as found;
+//   - for `flag`, the cover goals over laws without the cell's kind as Sums.lean's cellLaws gives it: the kind left
+//     out, read with a further key, or reading the sum (each is no law about the cells at one key).
+export type SumTamper = {what: string, m: Machine, covers?: Record<string, E[]>, coverLaws?: Law[]}
 export type SumCase = {m: Machine, laws: Law[], family: string, proof: {instances: Record<string, Record<string, E[]>>, trees: Record<string, Tree>}, tampers: SumTamper[]}
 const sumKey = 'k$S', at = (key: E): E => ({op: 'get', map: 'M', key}), eqE = (a: E, b: E): C => ({op: '=', a, b}), and2 = (a: C, b: C): C => ({op: 'and', xs: [a, b]})
 const iteE = (c: C, a: E, b: E): E => ({op: 'if', c, then: a, else: b}), add = (a: E, b: E): E => ({op: 'add', a, b}), sub = (a: E, b: E): E => ({op: 'sub', a, b})
 export function randomSumMachine(): {m: Machine, laws: Law[], family: string} {
-  const family = pick(['set', 'two', 'move'] as const), termFam = family === 'move' ? 'cell' : pick(['cell', 'count', 'cap'] as const)
+  const family = pick(['set', 'two', 'move', 'flag'] as const), termFam = family === 'move' || family === 'flag' ? 'cell' : pick(['cell', 'count', 'cap'] as const)
   const cell = at(v(sumKey)), term: E = termFam === 'cell' ? cell : termFam === 'count' ? iteE({op: '<', a: k(0), b: cell}, k(1), k(0)) : {op: 'min', a: cell, b: k(3)}
   const op = (i: number) => eqE(v('op'), k(i)), K = v('k$w')
   const write = family === 'set' ? {key: v('w'), value: iteE(op(0), v('u'), iteE(op(1), add(at(v('w')), v('u')), sub(at(v('w')), v('u'))))}
     : family === 'two' ? {each: 'k$w', value: iteE(and2(op(0), eqE(K, v('w'))), add(at(K), v('u')), iteE(and2(op(1), eqE(K, v('w2'))), sub(at(K), v('u')), at(K)))}
+    : family === 'flag' ? {each: 'k$w', value: iteE(and2(op(0), eqE(K, v('w'))), k(1), iteE(and2(op(1), eqE(K, v('w'))), k(0), iteE(eqE(at(K), k(1)), k(1), k(0))))}
     : {each: 'k$w', value: iteE(op(0), iteE(eqE(K, v('w')), add(at(K), v('u')), at(K)),
         iteE(and2(op(1), {op: '<=', a: v('u'), b: at(v('w'))}), add(sub(at(K), iteE(eqE(K, v('w')), v('u'), k(0))), iteE(eqE(K, v('w2')), v('u'), k(0))), at(K)))}
   const m: Machine = {name: `sums ${family} ${termFam}`, params: [], inputs: ['op', 'w', 'w2', 'u'], state: {S: k(0), ...(family === 'move' ? {T: k(0)} : {})}, maps: {M: 0},
     step: {maps: {M: write}, ...(family === 'move' ? {state: {T: iteE(op(0), add(v('T'), v('u')), v('T'))}} : {})},
     assume: and2({op: '<=', a: v('op'), b: k(2)}, {op: '<=', a: v('u'), b: k(5)}), sums: {S: {key: sumKey, term}}}
   const laws: Law[] = [{name: 'each key at most the sum', forall: 'k$l', holds: {op: '<=', a: JSON.parse(JSON.stringify(term).replaceAll('"k$S"', '"k$l"')) as E, b: v('S')}},
-    ...(family === 'move' ? [{name: 'the sum is the total', holds: eqE(v('S'), v('T'))}, {name: 'each cell at most the total', forall: 'k$l', holds: {op: '<=', a: at(v('k$l')), b: v('T')} as C}] : [])]
+    ...(family === 'move' ? [{name: 'the sum is the total', holds: eqE(v('S'), v('T'))}, {name: 'each cell at most the total', forall: 'k$l', holds: {op: '<=', a: at(v('k$l')), b: v('T')} as C}] : []),
+    ...(family === 'flag' ? [{name: 'every M cell is a value of its kind', forall: 'k$c', holds: {op: '<=', a: at(v('k$c')), b: k(1)} as C}] : [])]
   return {m, laws, family}
 }
 // The reference: random runs of the interpreter (each request allowed), at every state S the term summed over every cell
@@ -483,10 +490,11 @@ export function sumReference(m: Machine, laws: Law[], runs = 30, steps = 12): bo
   }
   return true
 }
-// kernel.ts's answer: the sums' check (their cover goals read by the proof's trees) and the plain machine's laws.
-export const sumAnswer = (m: Machine, laws: Law[], proof: SumCase['proof'], covers?: Record<string, E[]>): boolean => {
+// kernel.ts's answer: the sums' check (their cover goals, over `coverLaws` where given, read by the proof's trees) and
+// the plain machine's laws.
+export const sumAnswer = (m: Machine, laws: Law[], proof: SumCase['proof'], covers?: Record<string, E[]>, coverLaws?: Law[]): boolean => {
   try {
-    const {machine, goals} = sumMachine(m, covers)
+    const {machine, goals} = sumMachine(m, covers, coverLaws ?? laws)
     return goals.every(g => proof.trees[g.name] !== undefined && check(g, proof.trees[g.name]!)) && checkLaws(machine, laws, proof)
   } catch { return false }
 }
@@ -506,6 +514,12 @@ export function sumCases(n: number): SumCase[] {
       const w = m.step.maps!.M! as {each: string, value: E}, K = v(w.each)
       const value = iteE(and2(eqE(v('op'), k(0)), eqE(K, add(v('w'), k(1)))), add(at(K), k(1)), w.value)
       tampers.push({what: 'a key past the cover written', m: {...m, step: {...m.step, maps: {M: {each: w.each, value}}}}, covers: {S: cs}})
+    }
+    if (family === 'flag') {
+      const j = laws.length - 1, kind = laws[j]!, others = laws.slice(0, j)
+      tampers.push({what: 'the kind left out of the cover goals', m, coverLaws: others})
+      tampers.push({what: 'the kind read with a further key', m, coverLaws: [...others, {...kind, keys: [sumKey]}]})
+      tampers.push({what: 'the kind reading the sum', m, coverLaws: [...others, {...kind, holds: {op: '<=', a: at(v('k$c')), b: add(k(1), {op: 'mul', k: 0, a: v('S')})}}]})
     }
     out.push({m, laws, family, proof: r.proof, tampers})
   }

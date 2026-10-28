@@ -17,11 +17,13 @@ at), a quantified flag and its witness. Lean builds the machine kernel.ts proves
 It checks kernel.ts's side conditions (`sumOk`: the term reads its maps only at its key and no variable, is 0 at the
 start, reads no carried map; each map it reads written at one key has that key among the cover keys) and, for each map
 the term reads that a step writes at every key, the cover goal (`sumCoverGoal`): at a key none of the cover keys is, the
-write keeps the cell.
+write keeps the cell. The cover goal assumes there the cells' laws (`cellLaws`): each law proven of the plain machine
+about one key that reads only the summed maps' cells at it, such as a cell's kind (a yes/no at most 1).
 
-`sum_holds`: in every state the plain machine reaches, each sum variable is the sum of its term over the keys (IsSum),
-and `sum_allowed`: there the plain machine allows exactly the requests the rule's own assumption allows, the facts being
-true. So every claim proven of the plain machine (laws, step laws, k-induction, liveness) is a claim about the rule with
+`sum_cells`: in every state the plain machine reaches, each sum variable is the sum of its term over the keys (IsSum)
+and every law proven of it holds, by one induction over the runs (a step keeps the sums exact where the laws hold
+before it); `sum_holds` is its first half, and `sum_allowed`: there the plain machine allows exactly the requests the
+rule's own assumption allows, the facts being true. So every claim proven of the plain machine (laws, step laws, k-induction, liveness) is a claim about the rule with
 its sums exact; under weak fairness the helpful requests are proven allowed by the rule's own assumption
 (`sumleads_wf_sound`, through Live.lean's `sleads_wf_soundA`).
 -/
@@ -310,11 +312,6 @@ def SumMachine.plain (h : SumMachine) : SMachine :=
 -- The writes at every key to a map the term reads.
 def coverWs (s : SMachine) (d : SumDecl) : List (Nat × Nat × E) := s.every.filter (fun w => occME w.1 d.g)
 
--- At a key x none of the cover keys is, a step the rule allows keeps the map's cell.
-def sumCoverGoal (s : SMachine) (d : SumDecl) (w : Nat × Nat × E) : List C :=
-  [inlineC s.f.flags s.f.m.assume] ++ d.cs.map (fun c => .not (.eq (.var d.x) (inlineE s.f.flags c)))
-    ++ [.not (.eq (substE [(w.2.1, .var d.x)] (inlineE s.f.flags w.2.2)) (.get w.1 (.var d.x)))]
-
 -- The maps a term reads.
 mutual
 def mapsE : E → List Nat
@@ -367,6 +364,20 @@ theorem mapsC_occ (mp : Nat) : (c : C) → occMC mp c = true → mp ∈ mapsC c
   | .not a, h => by simp only [occMC] at h; simp only [mapsC]; exact mapsC_occ mp a h
 end
 
+-- The cells' laws at the cover goal's key: each law proven about one key (no further key) that reads nothing but the
+-- cells of maps the term reads, at its key (gOkC: no other variable, no other key), read at x. A cell's kind is one: a
+-- yes/no is at most 1, a choice below its count.
+def cellLaws (ps : List SEntry) (d : SumDecl) : List C := ps.filterMap fun e =>
+  match e.law.key with
+  | some kv => if e.keys2.isEmpty && gOkC kv e.law.holds && (mapsC e.law.holds).all (fun mp => (mapsE d.g).contains mp)
+      then some (substC [(kv, .var d.x)] e.law.holds) else none
+  | none => none
+
+-- At a key x none of the cover keys is, a step the rule allows keeps the map's cell, the cells' laws holding at x.
+def sumCoverGoal (s : SMachine) (ps : List SEntry) (d : SumDecl) (w : Nat × Nat × E) : List C :=
+  [inlineC s.f.flags s.f.m.assume] ++ cellLaws ps d ++ d.cs.map (fun c => .not (.eq (.var d.x) (inlineE s.f.flags c)))
+    ++ [.not (.eq (substE [(w.2.1, .var d.x)] (inlineE s.f.flags w.2.2)) (.get w.1 (.var d.x)))]
+
 def startVal (s : SMachine) (mp : Nat) : Nat := ((lookup (fun p => p.1 == mp) s.f.m.maps0).map (·.2)).getD 0
 
 -- kernel.ts's conditions on each sum.
@@ -390,11 +401,12 @@ def sumOk1 (h : SumMachine) (d : SumDecl) : Bool :=
 
 def sumOk (h : SumMachine) : Bool := distinct (h.sums.map (·.v)) && h.sums.all (sumOk1 h)
 
--- Per sum, per write at every key to a map it reads: (table, tree) for its cover goal.
-def checkSums (h : SumMachine) (covers : List (List (List VDef × Tree))) : Bool :=
+-- Per sum, per write at every key to a map it reads: (table, tree) for its cover goal, over the laws `ps` proven of the
+-- plain machine.
+def checkSums (h : SumMachine) (ps : List SEntry) (covers : List (List (List VDef × Tree))) : Bool :=
   sumOk h && covers.length == h.sums.length
     && (h.sums.zip covers).all (fun p => (coverWs h.s p.1).length == p.2.length
-      && ((coverWs h.s p.1).zip p.2).all (fun x => checkGoal ⟨x.2.1, sumCoverGoal h.s p.1 x.1⟩ x.2.2))
+      && ((coverWs h.s p.1).zip p.2).all (fun x => checkGoal ⟨x.2.1, sumCoverGoal h.s ps p.1 x.1⟩ x.2.2))
 
 /-! What the checks give -/
 
@@ -424,8 +436,8 @@ theorem sumOk1_parts {h : SumMachine} {d : SumDecl} (hd : sumOk1 h d = true) :
 theorem sumOk_parts {h : SumMachine} (hok : sumOk h = true) : distinct (h.sums.map (·.v)) = true ∧ ∀ d ∈ h.sums, sumOk1 h d = true := by
   simp only [sumOk, Bool.and_eq_true, List.all_eq_true] at hok; exact hok
 
-theorem checkSums_parts {h : SumMachine} {covers : List (List (List VDef × Tree))} (hc : checkSums h covers = true) :
-    sumOk h = true ∧ ∀ d ∈ h.sums, ∀ w ∈ coverWs h.s d, ∃ t : List VDef × Tree, checkGoal ⟨t.1, sumCoverGoal h.s d w⟩ t.2 = true := by
+theorem checkSums_parts {h : SumMachine} {ps : List SEntry} {covers : List (List (List VDef × Tree))} (hc : checkSums h ps covers = true) :
+    sumOk h = true ∧ ∀ d ∈ h.sums, ∀ w ∈ coverWs h.s d, ∃ t : List VDef × Tree, checkGoal ⟨t.1, sumCoverGoal h.s ps d w⟩ t.2 = true := by
   simp only [checkSums, Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hc
   obtain ⟨⟨hok, hlen⟩, hall⟩ := hc
   refine ⟨hok, fun d hd w hw => ?_⟩
@@ -483,6 +495,34 @@ theorem gAt_carried (hc : avoidsMapsE h.s.carried d.g = true) (M κ : Nat → Na
 
 end terms
 
+/-! The cells' laws at the cover goal's key -/
+
+/-- Where every law of `ps` holds of the state (ρ, M), each cell law holds at the cover goal's key in any view that
+reads the maps a request doesn't carry as M does. -/
+theorem cellLaw_holds {ps : List SEntry} {d : SumDecl} {c : C} (hc : c ∈ cellLaws ps d) {carried : List Nat}
+    (hcar : ∀ e ∈ ps, avoidsMaps carried e.law.holds = true) {ρ : Nat → Nat} {M : Nat → Nat → Nat} (hlaws : ∀ e ∈ ps, e.Holds ρ M)
+    (W : Nat → Nat) (N : Nat → Nat → Nat) (hN : ∀ mp, mp ∉ carried → N mp (W d.x) = M mp (W d.x)) : evalC W N c = true := by
+  obtain ⟨e, he, hsome⟩ := List.mem_filterMap.mp hc
+  cases hk : e.law.key with
+  | none => simp [hk] at hsome
+  | some kv =>
+    simp only [hk] at hsome
+    split at hsome
+    · rename_i hif
+      simp only [Option.some.injEq] at hsome
+      subst hsome
+      simp only [Bool.and_eq_true, List.isEmpty_iff] at hif
+      obtain ⟨⟨hk2, hg⟩, _⟩ := hif
+      have hl := hlaws e he
+      simp only [SEntry.Holds, hk2, holdsOver, MLaw.Holds, hk] at hl
+      have h1 := hl (W d.x)
+      rw [g_sliceC kv _ M _ hg] at h1
+      rw [subst_evalC, applyS_single, g_sliceC kv _ N _ hg]
+      simp only [evalE, upd_at] at h1 ⊢
+      rw [congrMC _ _ _ _ (fun mp hmp => funext fun _ => hN mp (avoidsMaps_occ (hcar e he) hmp))]
+      exact h1
+    · simp at hsome
+
 /-! The sums are exact -/
 
 section exact
@@ -495,9 +535,9 @@ theorem view_v {d : SumDecl} (hv : d.v ∉ h.s.f.m.inputs ++ flagVars h.s.f.flag
   show decideFlags h.s.f.flags (decideQ h.plain (withInputs h.s.f.m.inputs ρ ι) (withCarried h.s M κ)) (withCarried h.s M κ) d.v = ρ d.v
   rw [decide_other hv.1.1.1.1.2, decideQ_other hv.1.1.1.2, withInputs_other hv.1.1.1.1.1]
 
-/-- One step the rule's assumption allows keeps every sum exact. -/
-theorem sum_step (hc : checkSums h covers = true) {ρ : Nat → Nat} {M : Nat → Nat → Nat}
-    (hsum : ∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v)) (ι : Nat → Nat) (κ : Nat → Nat → Nat)
+/-- One step the rule's assumption allows keeps every sum exact, from a state where the laws hold. -/
+theorem sum_step (hL : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true) {ρ : Nat → Nat} {M : Nat → Nat → Nat}
+    (hsum : ∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v)) (hlaws : ∀ e ∈ ps, e.Holds ρ M) (ι : Nat → Nat) (κ : Nat → Nat → Nat)
     (ha : evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 h.s.f.m.assume = true) :
     ∀ d ∈ h.sums, IsSum (gAt d.g (sNext h.plain ρ M ι κ).2) ((sNext h.plain ρ M ι κ).1 d.v) := by
   obtain ⟨hok, hcov⟩ := checkSums_parts hc
@@ -528,12 +568,14 @@ theorem sum_step (hc : checkSums h covers = true) {ρ : Nat → Nat} {M : Nat �
       obtain ⟨hfl, hbf, hxv, hxb⟩ := hev w hwc
       show evalE (upd V w.2.1 key) N w.2.2 = M mp key
       apply Decidable.byContradiction; intro hne
-      apply sound ⟨t.1, sumCoverGoal h.s d w⟩ t.2 ht (upd X d.x key) N
+      apply sound ⟨t.1, sumCoverGoal h.s ps d w⟩ t.2 ht (upd X d.x key) N
       intro c hcm
       simp only [sumCoverGoal, List.mem_append, List.mem_singleton, List.mem_map] at hcm
-      rcases hcm with (rfl | ⟨c0, hc0, rfl⟩) | rfl
+      rcases hcm with ((rfl | hcl) | ⟨c0, hc0, rfl⟩) | rfl
       · rw [congrC _ X N _ (fun i hi => by simp only [upd]; rw [if_neg (fun he => avoids_occ hax hi (by simp [he]))]), inline_evalC]
         exact ha
+      · refine cellLaw_holds hcl (carried := h.s.carried) (fun e he => (slaws_avoid hL e.law (List.mem_map_of_mem he)).2) hlaws _ N (fun mp hmp => ?_)
+        simp only [upd_at, N, withCarried]; rw [if_neg (by simpa [List.contains_iff_mem] using hmp)]
       · have hc0' := (hcs c0 hc0).2
         simp only [evalC, evalE, upd_at, Bool.not_eq_true', decide_eq_false_iff_not]
         rw [congrE _ X N _ (fun i hi => by simp only [upd]; rw [if_neg (fun he => avoidsE_occ hc0' hi (by simp [he]))]), inline_evalE]
@@ -572,7 +614,7 @@ theorem sum_step (hc : checkSums h covers = true) {ρ : Nat → Nat} {M : Nat �
   exact isSum_change cs' (hsum d hd) hag
 
 -- At the start every term is 0 at every key, and every sum 0.
-theorem sum_start (hc : checkSums h covers = true) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hM : StartMaps h.plain.f.m M) :
+theorem sum_start (hc : checkSums h ps covers = true) (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hM : StartMaps h.plain.f.m M) :
     ∀ d ∈ h.sums, IsSum (gAt d.g M) (applyS h.plain.f.m.init ρ M d.v) := by
   obtain ⟨hok, _⟩ := checkSums_parts hc
   obtain ⟨hdist, hall⟩ := sumOk_parts hok
@@ -602,7 +644,7 @@ theorem q_mem {d : SumDecl} (hd : d ∈ h.sums) : (d.q, [d.k], sumBody h.s d) �
   List.mem_append_right _ (List.mem_map.mpr ⟨d, hd, rfl⟩)
 
 /-- Where every sum is exact, the facts the plain machine assumes hold of every request, in its view. -/
-theorem sum_facts (hc : checkSums h covers = true) (hs : sOk h.plain = true) {ρ : Nat → Nat} {M : Nat → Nat → Nat}
+theorem sum_facts (hc : checkSums h ps covers = true) (hs : sOk h.plain = true) {ρ : Nat → Nat} {M : Nat → Nat → Nat}
     (hsum : ∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v)) (ι : Nat → Nat) (κ : Nat → Nat → Nat) :
     evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 (sumsC h.sums) = true := by
   obtain ⟨hok, _⟩ := checkSums_parts hc
@@ -649,32 +691,41 @@ theorem sum_facts (hc : checkSums h covers = true) (hs : sOk h.plain = true) {ρ
   exact all h.sums (fun _ hd => hd)
 
 /-- The plain machine allows exactly the requests the rule's own assumption allows, wherever the sums are exact. -/
-theorem sum_assume (hc : checkSums h covers = true) (hs : sOk h.plain = true) {ρ : Nat → Nat} {M : Nat → Nat → Nat}
+theorem sum_assume (hc : checkSums h ps covers = true) (hs : sOk h.plain = true) {ρ : Nat → Nat} {M : Nat → Nat → Nat}
     (hsum : ∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v)) (ι : Nat → Nat) (κ : Nat → Nat → Nat) :
     evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 h.plain.f.m.assume
       = evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 h.s.f.m.assume := by
   show (evalC _ _ h.s.f.m.assume && evalC _ _ (sumsC h.sums)) = _
   rw [sum_facts h hc hs hsum ι κ, Bool.and_true]
 
-/-- **The sums are exact**: in every state the plain machine reaches, each sum's variable is the sum, over every key,
-of its term there. -/
-theorem sum_holds (hc : checkSums h covers = true) :
-    ∀ ρ M, SReach h.plain ρ M → ∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v) := by
+/-- **A sum's cells keep their laws**: in every state the plain machine reaches, each sum's variable is the sum, over
+every key, of its term there, and every law proven of the plain machine holds. Together, by induction over the runs:
+a step keeps each sum exact where its cover goals hold, and they assume, at their key, the laws about one key that read
+only the summed maps' cells there (`cellLaws`: a cell's kind, a yes/no at most 1, a choice below its count), which
+hold at the state before the step. -/
+theorem sum_cells (hl : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true) :
+    ∀ ρ M, SReach h.plain ρ M → (∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v)) ∧ ∀ e ∈ ps, e.Holds ρ M := by
   intro ρ M hr
   induction hr with
-  | start ρ M hM _ _ _ => exact sum_start h hc ρ M hM
-  | step ρ M ι κ _ ha ih =>
+  | start ρ M hM h0 hfa hpf => exact ⟨sum_start h hc ρ M hM, smachine_sound h.plain ps hl _ _ (SReach.start ρ M hM h0 hfa hpf)⟩
+  | step ρ M ι κ hr' ha ih =>
     have ha0 : evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 h.s.f.m.assume = true := by
       have : evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 (.and h.s.f.m.assume (sumsC h.sums)) = true := ha
       simp only [evalC, Bool.and_eq_true] at this; exact this.1
-    exact sum_step h hc ih ι κ ha0
+    exact ⟨sum_step h hl hc ih.1 ih.2 ι κ ha0, smachine_sound h.plain ps hl _ _ (SReach.step ρ M ι κ hr' ha)⟩
+
+/-- **The sums are exact**: in every state the plain machine reaches, each sum's variable is the sum, over every key,
+of its term there. -/
+theorem sum_holds (hl : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true) :
+    ∀ ρ M, SReach h.plain ρ M → ∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v) :=
+  fun ρ M hr => (sum_cells h hl hc ρ M hr).1
 
 /-- **The plain machine is the rule**: in every state it reaches, it allows a request exactly when the rule's own
 assumption does. -/
-theorem sum_allowed (hc : checkSums h covers = true) (hs : sOk h.plain = true) :
+theorem sum_allowed (hl : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true) :
     ∀ ρ M, SReach h.plain ρ M → ∀ ι κ, evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 h.plain.f.m.assume
       = evalC (sView h.plain ρ M ι κ).1 (sView h.plain ρ M ι κ).2 h.s.f.m.assume :=
-  fun ρ M hr ι κ => sum_assume h hc hs (sum_holds h hc ρ M hr) ι κ
+  fun ρ M hr ι κ => sum_assume h hc (sOk_of hl) (sum_holds h hl hc ρ M hr) ι κ
 
 end exact
 
@@ -754,7 +805,7 @@ theorem sum_ghost_step {ρ ρg : Nat → Nat} (hag : Agree h.ghosts.vars ρg ρ)
 
 /-- **A rule that reads none of its sums**: every state the rule reaches is, outside the sums' names, one the plain
 machine reaches, so a law proven of the plain machine that reads none of them is a law of the rule. -/
-theorem sum_project (hc : checkSums h covers = true) (hs : sOk h.plain = true) :
+theorem sum_project (hl : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true) :
     ∀ {ρ M}, SReach h.s ρ M → ∃ ρg, SReach h.plain ρg M ∧ Agree h.ghosts.vars ρg ρ := by
   intro ρ M hr
   induction hr with
@@ -770,13 +821,13 @@ theorem sum_project (hc : checkSums h covers = true) (hs : sOk h.plain = true) :
     refine ⟨_, ?_, hS⟩
     rw [← hW]
     refine SReach.step ρg M ι κ hrg ?_
-    rw [sum_allowed h hc hs ρg M hrg ι κ, hA]; exact ha
+    rw [sum_allowed h hl hc ρg M hrg ι κ, hA]; exact ha
 
 /-- The laws of the plain machine that read no sum's name hold in every state the rule reaches. -/
-theorem sum_project_laws (ps : List SEntry) (hl : checkSMachine h.plain ps = true) (hc : checkSums h covers = true) :
+theorem sum_project_laws (ps : List SEntry) (hl : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true) :
     ∀ ρ M, SReach h.s ρ M → ∀ e ∈ ps, avoids h.ghosts.vars e.law.holds = true → e.Holds ρ M := by
   intro ρ M hr e he hav
-  obtain ⟨ρg, hrg, hag⟩ := sum_project h hg hc (sOk_of hl) hr
+  obtain ⟨ρg, hrg, hag⟩ := sum_project h hg hl hc hr
   exact sentry_transfer (V := h.ghosts.vars) (MS := []) hav (by simp [avoidsMaps]) (fun i hi => (hag i hi).symm) (fun _ _ => rfl)
     (smachine_sound h.plain ps hl ρg M hrg e he)
 
@@ -786,9 +837,9 @@ end project
 
 /-- The laws proven of the plain machine hold in every state it reaches, where every sum is exact. -/
 theorem sum_laws (h : SumMachine) (ps : List SEntry) (covers : List (List (List VDef × Tree)))
-    (hl : checkSMachine h.plain ps = true) (hc : checkSums h covers = true) :
+    (hl : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true) :
     ∀ ρ M, SReach h.plain ρ M → (∀ d ∈ h.sums, IsSum (gAt d.g M) (ρ d.v)) ∧ ∀ e ∈ ps, e.Holds ρ M :=
-  fun ρ M hr => ⟨sum_holds h hc ρ M hr, smachine_sound h.plain ps hl ρ M hr⟩
+  sum_cells h hl hc
 
 -- A run of the rule with its sums: each request one the rule's own assumption allows.
 structure SumRun (h : SumMachine) where
@@ -799,54 +850,55 @@ structure SumRun (h : SumMachine) where
   next : ∀ n, st (n + 1) = sNext h.plain (st n).1 (st n).2 (req n).1 (req n).2
 
 -- It is a run of the plain machine: there the facts hold, so the plain machine allows each of its requests.
-def SumRun.plain {h : SumMachine} {covers : List (List (List VDef × Tree))} (hc : checkSums h covers = true) (hs : sOk h.plain = true)
+def SumRun.plain {h : SumMachine} {ps : List SEntry} {covers : List (List (List VDef × Tree))} (hl : checkSMachine h.plain ps = true) (hc : checkSums h ps covers = true)
     (run : SumRun h) : SRun h.plain :=
   have reach : ∀ n, SReach h.plain (run.st n).1 (run.st n).2 := fun n => by
     induction n with
     | zero => exact run.start
     | succ n ih =>
       rw [run.next n]
-      exact SReach.step _ _ _ _ ih (by rw [sum_allowed h hc hs _ _ ih]; exact run.allowed n)
-  ⟨run.st, run.req, run.start, fun n => by rw [sum_allowed h hc hs _ _ (reach n)]; exact run.allowed n, run.next⟩
+      exact SReach.step _ _ _ _ ih (by rw [sum_allowed h hl hc _ _ ih]; exact run.allowed n)
+  ⟨run.st, run.req, run.start, fun n => by rw [sum_allowed h hl hc _ _ (reach n)]; exact run.allowed n, run.next⟩
 
 /-- Liveness of the rule with its sums, along every run that takes each helpful request infinitely often. -/
 theorem sumleads_sound (h : SumMachine) (covers : List (List (List VDef × Tree))) (ps : List SEntry) (l : Live) (sp cp : SProof) (hp : List SProof)
-    (hc : checkSums h covers = true) (hl : checkSMachine h.plain ps = true) (hok : sliveOk h.plain l = true)
+    (hc : checkSums h ps covers = true) (hl : checkSMachine h.plain ps = true) (hok : sliveOk h.plain l = true)
     (hs : checkSKStep h.plain ps (sliveStep l l.pend (liveStayC l) sp) = true) (hcv : checkSKStep h.plain ps (sliveStep l l.pend (liveCoverC l) cp) = true)
     (hh : sliveHelpsOk h.plain ps l hp = true) (run : SumRun h)
     (fair : ∀ x ∈ l.helps, ∀ n, ∃ m, n ≤ m ∧ ∀ p ∈ x.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
     ∀ n, evalC (run.st n).1 (run.st n).2 l.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 l.to = true :=
-  sleads_sound h.plain ps l sp cp hp hl hok hs hcv hh (run.plain hc (sOk_of hl)) fair
+  sleads_sound h.plain ps l sp cp hp hl hok hs hcv hh (run.plain hl hc) fair
 
 /-- Liveness of the rule with its sums under weak fairness of its own assumption: each helpful request is proven allowed
 by the rule's assumption in its region (the facts the plain machine assumes besides hold there). -/
 theorem sumleads_wf_sound (h : SumMachine) (covers : List (List (List VDef × Tree))) (ps : List SEntry) (l : Live) (sp cp : SProof)
     (hp : List SProof) (ap : List (List (Nat × E) × SProof × List E))
-    (hc : checkSums h covers = true) (hl : checkSMachine h.plain ps = true) (hok : sliveOk h.plain l = true)
+    (hc : checkSums h ps covers = true) (hl : checkSMachine h.plain ps = true) (hok : sliveOk h.plain l = true)
     (hs : checkSKStep h.plain ps (sliveStep l l.pend (liveStayC l) sp) = true) (hcv : checkSKStep h.plain ps (sliveStep l l.pend (liveCoverC l) cp) = true)
     (hh : sliveHelpsOk h.plain ps l hp = true) (ha : sliveAllowsOkA h.plain ps l ap h.s.f.m.assume = true) (run : SumRun h)
     (fair : ∀ x ∈ l.helps, ∀ n, (∀ m, n ≤ m → ∃ ι κ, (∀ p ∈ x.2, ι p.1 = evalE (run.st m).1 (run.st m).2 p.2)
         ∧ evalC (sView h.plain (run.st m).1 (run.st m).2 ι κ).1 (sView h.plain (run.st m).1 (run.st m).2 ι κ).2 h.s.f.m.assume = true) →
       ∃ m, n ≤ m ∧ ∀ p ∈ x.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
     ∀ n, evalC (run.st n).1 (run.st n).2 l.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 l.to = true :=
-  sleads_wf_soundA h.plain ps l sp cp hp ap h.s.f.m.assume hl hok hs hcv hh ha (run.plain hc (sOk_of hl)) fair
+  sleads_wf_soundA h.plain ps l sp cp hp ap h.s.f.m.assume hl hok hs hcv hh ha (run.plain hl hc) fair
 
 /-- The same under strong fairness (Live.lean's `sleads_sf_soundA`). -/
 theorem sumleads_sf_sound (h : SumMachine) (covers : List (List (List VDef × Tree))) (ps : List SEntry) (l : Live) (lv : List Nat) (sp cp : SProof)
     (hp : List SProof) (ap : List (List (Nat × E) × SProof × List E))
-    (hc : checkSums h covers = true) (hl : checkSMachine h.plain ps = true) (hok : sliveOk h.plain l = true)
+    (hc : checkSums h ps covers = true) (hl : checkSMachine h.plain ps = true) (hok : sliveOk h.plain l = true)
     (hs : checkSKStep h.plain ps (sliveStep l l.pend (liveStaySC l) sp) = true) (hcv : checkSKStep h.plain ps (sliveStep l l.pend (liveCoverC l) cp) = true)
     (hh : sliveHelpsOkS h.plain ps l lv hp = true) (ha : sliveAllowsOkA h.plain ps l ap h.s.f.m.assume = true) (run : SumRun h)
     (fair : ∀ x ∈ l.helps, (∀ n, ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 x.1 = true ∧ ∃ ι κ, (∀ p ∈ x.2, ι p.1 = evalE (run.st m).1 (run.st m).2 p.2)
         ∧ evalC (sView h.plain (run.st m).1 (run.st m).2 ι κ).1 (sView h.plain (run.st m).1 (run.st m).2 ι κ).2 h.s.f.m.assume = true) →
       ∀ n, ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 x.1 = true ∧ ∀ p ∈ x.2, (run.req m).1 p.1 = evalE (run.st m).1 (run.st m).2 p.2) :
     ∀ n, evalC (run.st n).1 (run.st n).2 l.from_ = true → ∃ m, n ≤ m ∧ evalC (run.st m).1 (run.st m).2 l.to = true :=
-  sleads_sf_soundA h.plain ps l lv sp cp hp ap h.s.f.m.assume hl hok hs hcv hh ha (run.plain hc (sOk_of hl)) fair
+  sleads_sf_soundA h.plain ps l lv sp cp hp ap h.s.f.m.assume hl hok hs hcv hh ha (run.plain hl hc) fair
 
 end Kern
 
 #print axioms Kern.isSum_change
 #print axioms Kern.dsum_le
+#print axioms Kern.sum_cells
 #print axioms Kern.sum_holds
 #print axioms Kern.sum_allowed
 #print axioms Kern.sum_laws

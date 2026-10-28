@@ -36,7 +36,7 @@ if (process.argv.includes('--sums') || process.argv.includes('--fair')) {
   if (sums) sumCases(count0).forEach((c, i) => {
     const plain = sumMachine(c.m).machine
     seedStepProof(plain, c.laws, [], {proven: true, checked: true, nodes: 0, leaves: 0, proof: {laws: c.proof, instances: {}, trees: {}}})
-    const sumTampers = c.tampers.map(t => ({...t, expect: sumAnswer(t.m, c.laws, c.proof, t.covers)}))
+    const sumTampers = c.tampers.map(t => ({...t, expect: sumAnswer(t.m, c.laws, c.proof, t.covers, t.coverLaws)}))
     note('found', sumAnswer(c.m, c.laws, c.proof)); for (const t of sumTampers) note(t.what, t.expect)
     out.push(smachineToLean(`sum${i}`, c.m, c.laws, {sumTampers, coverTrees: c.proof.trees, noFacts: true}))
   })

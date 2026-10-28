@@ -3,9 +3,9 @@
 // cells against them, and refuses what isn't a sum it can keep exact, a law that is false, and a liveness that holds
 // under no fairness.
 import {expect, test} from 'bun:test'
-import {forall, nat, oneOf, proveLeadsTo, proveRule, rule, when, yes} from './dsl.ts'
+import {bool, forall, nat, no, oneOf, proveLeadsTo, proveRule, rule, when, yes} from './dsl.ts'
 import {type Machine, interpret, loadJs, seeded} from './machine.ts'
-import {checkStepLaws, livenessParts, sumMachine} from '../kernel/kernel.ts'
+import {check, checkLaws, checkStepLaws, livenessParts, sideGoals, sumMachine} from '../kernel/kernel.ts'
 import {proveLaws, proveLiveness} from '../kernel/prove.ts'
 
 const token = (bug?: 'free mint') => rule('token')
@@ -79,6 +79,38 @@ test('a law over a sum leaves its rule as it was; crossCheck follows the sum', (
     .flags(({k, cap, M}) => ({adds: M.sum().lt(cap).and(M.at(k).eq(0))}))
     .step(({k, M, adds}) => ({M: M.set(k, when(adds, 1, M.at(k)))}))
   expect(capped.crossCheck([capped.law('at most cap', ({M, cap}) => M.sum().atMost(cap))])).toEqual({checked: expect.any(Number)})
+})
+
+// A yes/no map written at every key (the DSL reads each other cell as 1 where it is 1, else 0): its sum's cover goal
+// holds only where the cells are at most 1, which their kind's law says (Sums.lean's cellLaws and sum_cells). The cover
+// goal assumes the laws about the cells at one key, read at its key, and no other law.
+test('a sum over yes/no cells: its cover goal leans on their kind, and on nothing else', () => {
+  const r = rule('one holder').inputs({op: oneOf('take', 'give'), n: nat}).maps({Holds: bool.from(false)})
+    .flags(({op, Holds}) => ({takes: op.is('take').and(Holds.sum(c => c.n).eq(0)), gives: op.is('give')}))
+    .step(({n, takes, gives, Holds}) => ({Holds: Holds.each(k => when(takes.and(k.eq(n)), yes, when(gives.and(k.eq(n)), no, Holds.at(k))))}))
+  const law = r.law('one holder at most', ({Holds}) => Holds.sum(c => c.n).atMost(1))
+  expect(proveRule(r, [law], {search: false})).toMatchObject({proven: true, checked: true})
+  const m = r.withSumsOf(law).machine, kinds = r.kindLaws(), laws = [...kinds, law]
+  const covers = (ls: typeof laws) => sideGoals(m, ls).filter(g => g.name.includes('@cover'))
+  expect(covers(laws).map(g => g.hyps.length)).toEqual(covers([law]).map(g => g.hyps.length + 1))
+  const v = proveLaws(m, laws)
+  expect(v.proven && v.checked).toBe(true)
+  // Without the kind among the laws, the cover goal is false (a cell at 2 read as 0) and its tree is refused.
+  const without = proveLaws(m, [law])
+  expect(without.proven).toBe(false)
+  expect(without.failed?.goal).toMatch(/@cover Holds/)
+  const [g1] = covers(laws), [g0] = covers([law]), tree = v.proof!.trees[g1!.name]!
+  expect(check(g1!, tree)).toBe(true)
+  expect(check(g0!, tree)).toBe(false)
+  expect(checkLaws(m, [law], v.proof!)).toBe(false)
+  // The kind read with a further key, or reading a variable, is no law about the cells at one key.
+  const [kind] = kinds
+  for (const k2 of [{...kind!, keys: ['k$z']}, {...kind!, holds: {op: '<=', a: (kind!.holds as unknown as {a: never}).a, b: {op: 'add', a: {op: 'const', value: 1}, b: {op: 'mul', k: 0, a: {op: 'var', name: 'n'}}}}} as typeof kind])
+    expect(covers([k2!, law])).toEqual(covers([law]))
+  // A sum over naturals: its laws are about the supply, so its cover goals are as they were.
+  const t = token(), cell = t.law('no balance exceeds the supply', ({Bal, supply}) => forall(k => Bal.at(k).atMost(supply)))
+  const tm = t.withSumsOf(t.law('the balances sum to the supply', ({Bal, supply}) => Bal.sum().eq(supply))).machine
+  expect(sideGoals(tm, [...t.kindLaws(), cell])).toEqual(sideGoals(tm))
 })
 
 test('a sum the kernel cannot keep exact is refused', () => {
