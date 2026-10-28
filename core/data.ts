@@ -600,7 +600,7 @@ function obligation(ring: Fn[], ms: Measure[], s: Site, i: number): DataLaw {
 type Traced = {fns: Map<string, number>, stack: {at: number, vals: Value[]}[], fuel: number, edge: (from: {at: number, vals: Value[]}, to: {at: number, vals: Value[]}) => void}
 let tracing: Traced | undefined
 type CallEdge = {from: number, to: number, s: number[], t: number[], sv: Value[], tv: Value[]}
-const featOf = (f: Fn, vs: Value[]) => f.params.map((p, i) => (p.sort === 'nat' ? vs[i] as number : p.sort === 'int' ? Math.max(0, vs[i] as number) : p.sort instanceof Data ? sizeOf(p.sort, vs[i]!) : 0))
+const featOf = (f: Fn, vs: Value[]) => f.params.map((p, i) => sizeOfValue(p.sort, vs[i]!))
 function runEdges(ring: Fn[]): CallEdge[] {
   const rand = rng(17), edges = new Map<string, CallEdge>()
   const tables = new Map<string, (n: number) => number>()
