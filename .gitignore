@@ -6,7 +6,7 @@ runs-kernel.log
 compare/chc/prof/given-models*.json
 
 # Build output
-node_modules/
+node_modules
 __pycache__/
 *.olean
 *.ilean
