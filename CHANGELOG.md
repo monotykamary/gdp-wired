@@ -5,6 +5,46 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+**Slimmer: what didn't pay since 0.30.1 taken out, what was written twice merged (gen/slim).** Nothing trusted changed
+(kernel/kernel.ts, kernel/cyclic.ts, core/check.ts and lean-kernel/*.lean are 57abcb2's). core/ and kernel/ without
+tests: 2,424,427 bytes, 4,255 fewer than 57abcb2 (2,428,682), +36,692 against 3cdf37e (2,387,735).
+- **Taken out:**
+  - **the bounded runs' clausal option** (core/bmc.ts's `clausal`, kernel/cdcl.ts's `UNREAD`, kind.ts's
+    `--bmc-clausal`), -794 bytes. solve.ts runs kind.ts at `--bmc-depth 0`, where no k-step goal is asked, so nothing
+    read it; core/bmc.ts is 3cdf37e's again.
+  - **growRoot's model-first step** (`instanced`, `modelFirst`, kernel/cdcl.ts's `treeOf`), -2,444 bytes. Its one
+    gain, decentralized lock's written invariant, is now the sort cut's (`keySorted`): proven in 3.0 s with the step
+    off. With it off, the protocols pilot (Modal, all ten) stood as before. It never ran on CHC (no maps). growRoot and
+    kernel/cdcl.ts are 3cdf37e's again.
+- **Merged** (no output changes), -1,017 bytes:
+  - one list of the atoms a form reads (core/infer.ts `atomsIn`, for holdsAt's judgement and a space's keep);
+  - one linear walk of a key (`linKey`, for pairingOf and keySorts);
+  - one reading of a key's sort (kernel/prove.ts `sortTerms`, for keySorted and modelInstances);
+  - one question to withModels for proveLaw and proveThinned (`growAll`);
+  - core/data.ts's featOf as sizeOfValue.
+- **Measured and kept:**
+  - the model-based instances: with them off, ring's written invariant goes from proven to unknown;
+  - the datatype-equality bridge: without it the ADT-LIA pilot is 12, not 14 (prop_11 and prop_56 lost);
+  - `whenOf`: the pilot is 14 either way, but without it core/data.test.ts's `reachesZero` (a Bool recursion behind
+    `when`) is refused;
+  - the rest have their measured gains above (the sort cut, the views, the view cubes, proven-first, the multi-read
+    matching, the simpC walk, writeEvery's stretches, Int measures, the cells' laws).
+- **Protocols** (Modal; the main checkout's `runs/slim/gen-slim/final`): 4 of 10 with nothing written at 60 s and 1 at
+  10 s, the same seven written invariants proven, every broken variant refused as before, as 57abcb2's runs m2 and m3.
+- **The full bar against 57abcb2** (the base launched together, one run a side, three reruns of every differing task;
+  `runs/bar/runs/e6348283afb3-vs-57abcb21ba5b-full-2026-10-282016`): wrong 0 everywhere, nothing lost in every run.
+  - CHC 1,163 against 1,169: 3 gained, 6 lost, none in every run. The code CHC runs is 57abcb2's, so these are timing
+    flips; 57abcb2's code read 1,168 in its own bar, and c4dff18's runs 1,161 to 1,165.
+  - ITS 1,151 against 1,150, and 1,156 against 1,157 per component; SV 246 and 216, level. TIP 213 against 212.
+  - Frontier corpora 90 and 31, the real-world corpus 274 / 29 / 8, both level.
+  - The 332 step goals: the same search on all 332. Suites 224 of 224 both ways. Lean 48 of 48.
+  - Speed, level:
+    - suite job seconds 5,621 against 5,667, and --usual 5,284 against 5,154;
+    - the 332 goals' search 305.6 s against 289.2 s, the same search (per goal p50 1.03);
+    - the real world's per-law time over its 311 laws 1,670 s against 1,652 s, median 806 ms against 842;
+    - the 1-vCPU medians: data's four slowest 3% to 7% faster, infer's two within 3%.
+- **Spend:** $10.51 billed for this track's 66 apps (the full bar, the protocol and ADT pilots).
+
 **The join's whole-set queries cheaper; the round's off-switches gone (gen/protocols3).** Before a goal is asked against
 the whole candidate set, it is asked against its context and the forms proven so far: a proof there is a proof with the
 whole set, at a fraction of its hypotheses (ticket_lock's search 44 s to 27 s locally). `GDP_VIEWS`, `GDP_SORTS`,

@@ -465,3 +465,17 @@ run anywhere.
 **Size.**
 - 2,428,682 bytes: +26,398 against c4dff18 and +8,073 against 2644102.
 - Of the +8,073: class B 5,736, gen/sums-kinds about 2.3 kB, proven-first +785, and the slim −743.
+
+## Slim (gen/slim, from 57abcb2)
+
+What the protocols bought was measured again where later work could have taken its place (Modal; the main checkout's
+`runs/slim/gen-slim`):
+- **growRoot's model-first step:** with it off, every verdict is as in m2 and m3, and decentralized lock's written
+  invariant is proven in 3.0 s (the sort cut made its step goal small). Taken out.
+- **The model-based instances:** with them off, ring's written invariant goes from proven to unknown. Kept.
+- **The final tree** (`final`): 4 of 10 with nothing written at 60 s (sync 90.0 s, async 101.1 s, decentralized
+  16.6 s, ticket 57.4 s), 1 of 10 at 10 s (sync), and the same seven written invariants proven: sync, async,
+  decentralized, 2PC, ticket, toy (234.3 s) and ring. Distributed is unknown, and wo_decide and sharded are killed at
+  600 s. Every broken variant is refused as before. (m2 and m3 prove the same seven written invariants; the "8 of 10"
+  above counts one too many.)
+
