@@ -298,7 +298,7 @@ export function model(h: Horn): Program {
     for (const r of p.runs) runs.set(r.n.index, r)
   })
   groups.forEach((g, gi) => { if (won.picks[gi]!.modes.includes(-2)) { const w = [...memo.entries()].find(([k]) => k.startsWith(`${gi}|`))?.[1].why; if (w) notes.push(w) } })
-  const totalDefaults = won.picks.reduce((a, p, gi) => a + (p.defaults % 1000) % 20 % 100, 0)
+  const totalDefaults = won.picks.reduce((a, p) => a + (p.defaults % 1000) % 20 % 100, 0)
   const name = (p: string) => p
   // The arguments no function reads (but to pass on to an argument no function reads) dropped, at every call: a call is
   // a map read at the pairing of its arguments, a polynomial whose degree doubles with each (kernel/kernel.ts reads it
@@ -572,7 +572,7 @@ export function derive(h: Horn, pr: Program, p: string, ins: V[], fuel = {n: 100
   if (--fuel.n < 0 || m === -2) return undefined
   for (const n of pr.norms.filter(n => n.head?.pred === p)) {
     const r = pr.runs.get(n.index)!, env = new Map<string, V>()
-    if (!r.pats.every((t, j) => matchV(h, r.n.vars, t, ins[j]!, env))) continue
+    if (!r.pats.every((t, j) => matchV(r.n.vars, t, ins[j]!, env))) continue
     const kids = steps(h, pr, r.n, r.steps, env, fuel)
     if (!kids) continue
     return {out: m < 0 ? true : evaluate(h.tip, n.head!.args[m]!, env), node: {clause: n.index, env: origEnv(h, n, env), kids}}
@@ -580,10 +580,10 @@ export function derive(h: Horn, pr: Program, p: string, ins: V[], fuel = {n: 100
   return undefined
 }
 // A pattern (constructors and variables, each variable once) against a value.
-function matchV(h: Horn, vars: Map<string, string>, t: Sx, v: V, env: Map<string, V>): boolean {
+function matchV(vars: Map<string, string>, t: Sx, v: V, env: Map<string, V>): boolean {
   if (typeof t === 'string' && vars.has(t)) { if (env.has(t)) return sameV(env.get(t)!, v); env.set(t, v); return true }
   const k = typeof t === 'string' ? t : t[0] as string
-  return typeof v === 'object' && 'c' in v && v.c === k && (Array.isArray(t) ? t.slice(1).every((x, i) => matchV(h, vars, x, v.a[i]!, env)) : true)
+  return typeof v === 'object' && 'c' in v && v.c === k && (Array.isArray(t) ? t.slice(1).every((x, i) => matchV(vars, x, v.a[i]!, env)) : true)
 }
 // A clause's steps from its inputs' values: each call derived (its derivation the body application's), each guard
 // evaluated; the derivations in body order, or undefined where a guard fails or a call has none.
@@ -599,7 +599,7 @@ function steps(h: Horn, pr: Program, n: Norm, sts: Step[], env: Map<string, V>, 
         kids[st.app] = d.node; v = d.out
       }
       if (st.k === 'def') env.set(st.x, v ?? evaluate(h.tip, st.e, env))
-      else if (st.k === 'guard') { if (st.app !== undefined ? (pr.modes.get(n.body[st.app]!.pred)! >= 0 && !sameV(v!, evaluate(h.tip, (st.g as Sx[])[1]!, env))) : evaluate(h.tip, st.g, env) !== true) return undefined } else if (!matchV(h, n.vars, st.pat, v!, env)) return undefined
+      else if (st.k === 'guard') { if (st.app !== undefined ? (pr.modes.get(n.body[st.app]!.pred)! >= 0 && !sameV(v!, evaluate(h.tip, (st.g as Sx[])[1]!, env))) : evaluate(h.tip, st.g, env) !== true) return undefined } else if (!matchV(n.vars, st.pat, v!, env)) return undefined
     }
   } catch { return undefined }
   return kids.length === n.body.length && n.body.every((_, j) => kids[j]) ? kids : undefined
@@ -625,7 +625,7 @@ export function deriveQuery(h: Horn, pr: Program, law: Law, vals: Map<string, V>
   const heads = n.head.args.map(t => evaluate(h.tip, t, env))
   for (const q of pr.norms.filter(q => !q.head && q.body.length === 1 && q.body[0]!.pred === n.head!.pred)) {
     const qe = new Map<string, V>()
-    if (!q.body[0]!.args.every((t, i) => matchV(h, q.vars, t, heads[i]!, qe))) continue
+    if (!q.body[0]!.args.every((t, i) => matchV(q.vars, t, heads[i]!, qe))) continue
     try { if (q.cons.every(k => evaluate(h.tip, k, qe) === true)) return {clause: q.index, env: origEnv(h, q, qe), kids: [node]} } catch { continue }
   }
   return undefined
