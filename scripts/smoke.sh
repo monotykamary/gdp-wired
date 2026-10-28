@@ -59,6 +59,12 @@ if (!wv.proven || !wv.checked) throw new Error(`recur: not proven: ${JSON.string
 const wr = waits.compiled(), w = wr.step({}, wr.init({}), waits.encodeInput({pay: {tag: 'card', amount: 100}, n: 3}))
 if (w.scalars.w !== 8) throw new Error(`recur: compiled wait ${w.scalars.w}, not 8`)
 if (!toLean([{id: 'waits', machine: waits.machine, laws: []}]).includes('def Recur.delay')) throw new Error('gdp-wired/lean: no recurrence defined')
+// The Effect front end loads with effect absent: nothing in the package imports it (the code read brings it).
+let effectThere = true
+try { await import('effect') } catch { effectThere = false }
+if (effectThere) throw new Error('effect is installed here: the smoke runs without it')
+const fx = await import('gdp-wired/effect')
+if (typeof fx.extractEffect !== 'function' || typeof fx.conforms !== 'function' || typeof fx.fromSchema !== 'function') throw new Error('gdp-wired/effect: an export is missing')
 console.log(`node ${process.version}: proven, kernel accepts; compiled spend 110; Lean project of ${Object.keys(project).length} files; a gate minted once; a recurrence's lemma used`)
 JS
 node smoke.mjs
@@ -70,6 +76,9 @@ import {type LeanItem, toLean} from 'gdp-wired/lean'
 import {product} from 'gdp-wired/compose'
 import {type Mint, guard} from 'gdp-wired/gdp'
 import {defineProof} from '@gdp-ts/core'
+import {type EffectOptions, type Service, extractEffect} from 'gdp-wired/effect'
+const effectRead: (code: string, o: EffectOptions) => boolean = (code, o) => extractEffect(code, o).ok
+const service: Service<{take: (n: number) => unknown}> | undefined = undefined
 const caps = rule('caps').params({d: nat}).inputs({day: nat}).maps({Day: 0})
   .step(({day, Day}) => ({Day: Day.bump(day, Day.at(day).lt(1))}))
 const v: Verdict = proveRule(caps, [caps.law('at most one a day', ({Day}) => forall(k => Day.at(k).atMost(1)))])
@@ -83,7 +92,7 @@ const pay = fun('pay').inputs({p: variant({card: {amount: nat}, cash: {}}), who:
   .returns(({p, who}) => ({ok: p.match({card: c => c.amount.atMost(who.limit), cash: () => p.is('cash')})}))
 const ok: boolean = pay.run({p: {tag: 'card', amount: 3}, who: {limit: 5}}).ok
 const steps = recur('steps', {zero: 0, next: (_, y) => y.plus(1)}, {'at most x': (x, y) => y.atMost(x)})
-export {v, s, m, check, text, mint, ok, steps}
+export {v, s, m, check, text, mint, ok, steps, effectRead, service}
 TS
 printf '{"compilerOptions":{"strict":true,"noEmit":true,"module":"nodenext","moduleResolution":"nodenext","target":"es2022","lib":["es2022"],"types":[],"skipLibCheck":false},"files":["consumer.ts"]}\n' > tsconfig.json
 npx tsc -p tsconfig.json
