@@ -1335,15 +1335,24 @@ export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {
   const few = triggered(pm, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), law.forall ? [`${law.forall}#`] : [])
   if (!sameInstances(few, inst) && obligations(m, laws, {[law.name]: few}, i).every(goal => 'tree' in grow(goal))) return {proven: true}
   // (a model breaking a law at a tuple of the goal's keys: those added, the law asked again)
-  type Asked = {failed?: Goal, out?: Outcome}
-  const {result} = withModels<Asked>(m, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), gs => {
-    for (const goal of gs) { const out = grow(goal); if (!('tree' in out)) return {failed: goal, out} }
-    return {}
-  }, a => (a.failed && a.out && !('tree' in a.out) && a.out.stuck === 'sat' && a.out.witness ? {goal: a.failed, w: a.out.witness} : undefined), a => !a.out || !('tree' in a.out) && a.out.stuck === 'sat')
-  if (!result.failed) return {proven: true}
-  const out = result.out as Extract<Outcome, {stuck: unknown}>
-  return {proven: false, goal: result.failed.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {})}
+  const {result: a} = withModels(m, laws, inst, i2 => obligations(m, laws, {[law.name]: i2}, i), growAll, grownModel, grownSettled)
+  return a.out ? {proven: false, goal: a.goal!.name, stuck: a.out.stuck, ...(a.out.witness ? {witness: a.out.witness} : {})} : {proven: true}
 }
+// Goals grown in turn up to the first one unproven (withModels' question in proveLaw and proveThinned): the trees, their
+// nodes and leaves, and the goal it stopped at with its outcome, whose model asks for more instances.
+type Grown = {done: Record<string, Tree>, n: number, lv: number, goal?: Goal, out?: Extract<Outcome, {stuck: unknown}>}
+function growAll(gs: Goal[]): Grown {
+  const done: Record<string, Tree> = {}
+  let n = 0, lv = 0
+  for (const goal of gs) {
+    const out = grow(goal)
+    if (!('tree' in out)) return {done, n, lv, goal, out}
+    done[goal.name] = out.tree; n += out.nodes; lv += countLeaves(out.tree)
+  }
+  return {done, n, lv}
+}
+const grownModel = (x: Grown) => (x.out?.stuck === 'sat' && x.out.witness ? {goal: x.goal!, w: x.out.witness} : undefined)
+const grownSettled = (x: Grown) => !x.out || x.out.stuck === 'sat'
 // The instances law i's goals are read at (proveLaw's; core/infer.ts's join asks one goal at a time).
 export function lawInstances(m: Machine, laws: Law[], i: number): Instances {
   // (a machine with sums: its plain machine's instances, as proveLawsAsGiven's)
@@ -1423,22 +1432,12 @@ function proveThinned(m: Machine, laws: Law[], instances: Record<string, Instanc
     const full = instances[law.name]!
     const few = triggered(plainOf(m), laws, full, inst => obligations(m, laws, {...instances, [law.name]: inst}, i), law.forall ? [`${law.forall}#`] : [])
     // (thinned instances first, then the full ones; each asked again at the tuples its models ask for)
-    type Asked = {done: Record<string, Tree>, n: number, lv: number, failed?: Report['failed'], goal?: Goal, out?: Outcome}
     for (const inst of sameInstances(few, full) ? [full] : [few, full]) {
-      const {result: a, inst: at} = withModels<Asked>(m, laws, inst, i2 => obligations(m, laws, {...instances, [law.name]: i2}, i), gs => {
-        const done: Record<string, Tree> = {}
-        let n = 0, lv = 0
-        for (const goal of gs) {
-          const out = grow(goal)
-          if (!('tree' in out)) return {done, n, lv, goal, out, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}}
-          done[goal.name] = out.tree; n += out.nodes; lv += countLeaves(out.tree)
-        }
-        return {done, n, lv}
-      }, x => (x.goal && x.out && !('tree' in x.out) && x.out.stuck === 'sat' && x.out.witness ? {goal: x.goal, w: x.out.witness} : undefined), x => !x.failed || x.failed.stuck === 'sat')
+      const {result: a, inst: at} = withModels(m, laws, inst, i2 => obligations(m, laws, {...instances, [law.name]: i2}, i), growAll, grownModel, grownSettled)
       instances[law.name] = at
       if (inst === full) fulls[law.name] = at
-      if (a.failed && inst !== full) continue
-      if (a.failed) return {proven: false, nodes, leaves, failed: a.failed, checked: false}
+      if (a.out && inst !== full) continue
+      if (a.out) return stuckAt(a.goal!, a.out, nodes, leaves)
       Object.assign(trees, a.done); nodes += a.n; leaves += a.lv
       break
     }
