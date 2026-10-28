@@ -270,15 +270,9 @@ function growKept0(goal: Goal, path: Path, budget: {nodes: number, until?: numbe
 const cdclShare = Number(env.GDP_CDCL_SHARE ?? 0.75), quickCap = Number(env.GDP_QUICK_CAP ?? 16)
 // (the goals of at least this many hypotheses asked for a model before the tree)
 const modelFirst = 500
-// A goal an instance round reads a model of: one reading a map's cell or a quantified flag (?f). Others (a CHC rule's,
-// say) have no instances for a model to name, so the model costs its share for nothing.
-const instanced = (goal: Goal): boolean => {
-  let found = false
-  const {inC} = eachRead(() => { found = true })
-  const flag = (t: unknown): boolean => !!t && typeof t === 'object' && ((t as {op?: string, name?: string}).op === 'var' && (t as {name: string}).name.startsWith('?') || Object.values(t).some(flag))
-  for (const h of goal.hyps) { inC(h); if (found || flag(h)) return true }
-  return false
-}
+// A goal an instance round reads a model of: one asked inside withModels for a rule with maps or quantified flags (a
+// CHC rule's goals, a recursion's, have no instances for a model to name, so the model would cost its share for nothing).
+let modelsRead = false
 function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome {
   // Past a few cases, CDCL over the atoms (kernel/cdcl.ts), with most of the budget: a linear goal's refutation there
   // is a resolution of short clauses, which the tree search would find again in every case that reaches one. Unknown
@@ -302,7 +296,7 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
   // cases. A model there is the outcome (proveThinned's instances read it); refuted or undecided, the tree search
   // below as before. (decentralized lock's written invariant, research/protocols: a 2,163-hypothesis step goal with a
   // model in 4 s that the tree search hadn't found in 92 s.)
-  if (root && cdcl && goal.hyps.length >= modelFirst && instanced(goal)) {
+  if (root && cdcl && goal.hyps.length >= modelFirst && modelsRead) {
     const now = clock(), end = withinDeadline(budget.until ?? Infinity)
     const m = growCdcl(goal, path, {nodes: 0, until: end === Infinity ? end : now + 0.25 * (end - now)}, {model: true, core: true}) as Outcome & {core?: number[]}
     if (!('tree' in m) && m.stuck === 'sat' && m.witness && !(realModels.on && fakeProducts(m.witness))) return m
@@ -988,8 +982,10 @@ const within = <T>(ms: number, f: () => T): T => (rate ? withDeadline(clock() + 
 export function withModels<T>(m: Machine, laws: Law[], inst: Instances, goalOf: (i: Instances) => Goal[], ask: (gs: Goal[]) => T,
   modelOf: (t: T) => {goal: Goal, w: Record<string, number>} | undefined, settled: (t: T) => boolean): {result: T, inst: Instances} {
   let at = inst, first: {result: T, inst: Instances} | undefined, cap = 0
+  const pm = plainOf(m), keyed = !!Object.keys(pm.maps ?? {}).length || Object.values(pm.step.flags ?? {}).some(c => c.op === 'all')
+  const asked = (gs: Goal[]): T => { const was = modelsRead; modelsRead = keyed; try { return ask(gs) } finally { modelsRead = was } }
   for (let round = 0; ; round++) {
-    const c0 = costNow(), result = round ? within(Math.max(0, cap), () => ask(goalOf(at))) : ask(goalOf(at))
+    const c0 = costNow(), result = round ? within(Math.max(0, cap), () => asked(goalOf(at))) : asked(goalOf(at))
     if (round) cap -= costNow() - c0; else cap = Math.max(1_000, modelShare * (costNow() - c0))
     if (round && !settled(result)) return first!
     first ??= {result, inst: at}
