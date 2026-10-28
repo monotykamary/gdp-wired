@@ -837,19 +837,32 @@ function returnedObject(fn: ts.FunctionLikeDeclaration): ts.ObjectLiteralExpress
   const fnOf = (p: ts.ObjectLiteralElementLike) => ts.isMethodDeclaration(p) || (ts.isPropertyAssignment(p) && (ts.isArrowFunction(strip0(p.initializer)) || ts.isFunctionExpression(strip0(p.initializer)))) || (ts.isShorthandPropertyAssignment(p) && local.has(p.name.text))
   return e.properties.length && e.properties.some(fnOf) ? e : undefined
 }
-export function readFactory(code: string, file: string, opts: ReadOptions): Model {
-  const written = factoryAttempt(code, file, opts, new Set()).written
-  return factoryAttempt(code, file, opts, written).model
+// A factory a front end finds (core/effect.ts: the Effect.gen that makes a service): the function whose statements
+// declare the state and return the object, its params, each declaration it reads itself (a Ref's: the field, its shape and
+// start; a helper), each method's function, its result's type, how a method that returns an effect runs it, and how the
+// check reads, sets and calls the object (each field's text, the check's calls, text added to the code).
+export type FactoryOf = {
+  fn: ts.FunctionLikeDeclaration, params: readonly ts.ParameterDeclaration[], obj: ts.ObjectLiteralExpression,
+  decl: (d: ts.VariableDeclaration) => {shape: Shape, init: ts.Expression} | 'helper' | undefined,
+  fnOf: (e: ts.Expression) => ts.FunctionLikeDeclaration | undefined,
+  result: (f: ts.FunctionLikeDeclaration) => ts.Type,
+  run: (ex: Exec, v: V, at: ts.Node, p: Path) => [V, Path],
+  get: (field: string) => string | undefined, set: (field: string) => string | undefined,
+  calls: string, extra?: [number, string][],
 }
-function factoryAttempt(code: string, file: string, opts: ReadOptions, written: Set<string>): {model: Model, written: Set<string>} {
-  const s = setupOf(code, file, {}, opts.files), fn = findFunction(s.sf, opts.entry), first = written.size === 0
-  if (fn.modifiers?.some(m => m.kind === ts.SyntaxKind.AsyncKeyword) || fn.asteriskToken) refuse(fn, 'an async or generator factory')
-  const obj = returnedObject(fn) ?? refuse(fn, `${opts.entry} returns no object of functions`)
+export function readFactory(code: string, file: string, opts: ReadOptions, fx?: (s: Setup) => FactoryOf): Model {
+  const written = factoryAttempt(code, file, opts, new Set(), fx).written
+  return factoryAttempt(code, file, opts, written, fx).model
+}
+function factoryAttempt(code: string, file: string, opts: ReadOptions, written: Set<string>, fxOf?: (s: Setup) => FactoryOf): {model: Model, written: Set<string>} {
+  const s = setupOf(code, file, {}, opts.files), fx = fxOf?.(s), fn = fx?.fn ?? findFunction(s.sf, opts.entry), first = written.size === 0
+  if (!fx && (fn.modifiers?.some(m => m.kind === ts.SyntaxKind.AsyncKeyword) || fn.asteriskToken)) refuse(fn, 'an async or generator factory')
+  const obj = fx?.obj ?? returnedObject(fn) ?? refuse(fn, `${opts.entry} returns no object of functions`)
   const stmts = fn.body && ts.isBlock(fn.body) ? fn.body.statements.slice(0, -1) : []
   // The closed-over state: the factory's arguments and variables (a function declared there is a helper, inlined).
   type Field = {name: string, shape: Shape, node: ts.Node, init?: ts.Expression, param?: boolean, isConst?: boolean}
   const fields: Field[] = [], closure = new Set<ts.Node>(), helpers = new Set<ts.Node>()
-  for (const p of fn.parameters) {
+  for (const p of fx?.params ?? fn.parameters) {
     if (!ts.isIdentifier(p.name) || p.dotDotDotToken) refuse(p, 'a destructured or rest argument to the factory')
     fields.push({name: (p.name as ts.Identifier).text, shape: shapeOf(s.checker.getTypeAtLocation(p), s.checker, p), node: p, param: true}); closure.add(p)
   }
@@ -860,6 +873,9 @@ function factoryAttempt(code: string, file: string, opts: ReadOptions, written: 
     if (!(st.declarationList.flags & (ts.NodeFlags.Let | ts.NodeFlags.Const))) refuse(st, 'var (let or const are in the subset)')
     for (const d of st.declarationList.declarations) {
       if (!ts.isIdentifier(d.name)) refuse(d, 'a destructuring in the factory')
+      const own = fx?.decl(d)
+      if (own === 'helper') { helpers.add(d); continue }
+      if (own) { fields.push({name: (d.name as ts.Identifier).text, shape: own.shape, node: d, init: own.init}); closure.add(d); continue }
       const init = d.initializer && (ts.isParenthesizedExpression(d.initializer) ? d.initializer.expression : d.initializer)
       if (init && (ts.isArrowFunction(init) || ts.isFunctionExpression(init))) { helpers.add(d); continue }
       if (!init) refuse(d, `${(d.name as ts.Identifier).text} starts undefined`)
@@ -925,10 +941,11 @@ function factoryAttempt(code: string, file: string, opts: ReadOptions, written: 
   const strip0 = (e: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) ? strip0(e.expression) : e)
   const fns: Fn[] = obj.properties.map(p => {
     if (ts.isMethodDeclaration(p)) return {name: memberName(p.name), decl: p}
-    if (ts.isPropertyAssignment(p)) { const x = strip0(p.initializer); if (ts.isArrowFunction(x) || ts.isFunctionExpression(x)) return {name: memberName(p.name), decl: x} }
+    const fnOf = (x: ts.Expression) => fx?.fnOf(x) ?? (ts.isArrowFunction(x) || ts.isFunctionExpression(x) ? x : undefined)
+    if (ts.isPropertyAssignment(p)) { const x = fnOf(strip0(p.initializer)); if (x) return {name: memberName(p.name), decl: x} }
     if (ts.isShorthandPropertyAssignment(p)) {
       const d = s.checker.getShorthandAssignmentValueSymbol(p)?.valueDeclaration
-      const f = d && ts.isFunctionDeclaration(d) ? d : d && ts.isVariableDeclaration(d) && d.initializer && (ts.isArrowFunction(strip0(d.initializer)) || ts.isFunctionExpression(strip0(d.initializer))) ? strip0(d.initializer) as ts.FunctionLikeDeclaration : undefined
+      const f = d && ts.isFunctionDeclaration(d) ? d : d && ts.isVariableDeclaration(d) && d.initializer ? fnOf(strip0(d.initializer)) : undefined
       if (f && (helpers.has(d!) || helpers.has(f))) return {name: p.name.text, decl: f}
     }
     return refuse(p, `${p.name?.getText() ?? 'an entry'}: a value the object returns beside its functions (its state is what they close over)`)
@@ -937,9 +954,9 @@ function factoryAttempt(code: string, file: string, opts: ReadOptions, written: 
   const mnames = fns.map(f => f.name), ev = ex0.newVar('method', {k: 'choice', values: mnames}, 'input'), evL = {op: 'var' as const, name: ev.name, values: mnames}
   const outputs: string[] = [], perMethod: {sel: B, sv: StateVal, refuse: B}[] = [], events: Event[] = [], results: Record<string, Result> = {}, outVars = new Map<string, Var>()
   for (const f of fns) {
-    if (f.decl.modifiers?.some(m => m.kind === ts.SyntaxKind.AsyncKeyword) || f.decl.asteriskToken) refuse(f.decl, `${f.name}: an async or generator function (its steps interleave with others)`)
-    const sig = s.checker.getSignatureFromDeclaration(f.decl)!, rt = s.checker.getReturnTypeOfSignature(sig)
-    if (rt.flags & (ts.TypeFlags.Void | ts.TypeFlags.Undefined)) continue
+    if (f.decl.modifiers?.some(m => m.kind === ts.SyntaxKind.AsyncKeyword) || (f.decl.asteriskToken && !fx)) refuse(f.decl, `${f.name}: an async or generator function (its steps interleave with others)`)
+    const rt = fx ? fx.result(f.decl) : s.checker.getReturnTypeOfSignature(s.checker.getSignatureFromDeclaration(f.decl)!)
+    if (rt.flags & (ts.TypeFlags.Void | ts.TypeFlags.Undefined | ts.TypeFlags.Never)) continue
     const sh = shapeOf(rt, s.checker, f.decl)
     if (sh.k !== 'num' && sh.k !== 'bool' && sh.k !== 'choice') refuse(f.decl, `${f.name} returns ${sh.k === 'str' ? 'a string' : 'a compound value'} (a result kept is a number, a boolean or a union of literals)`)
     if ((sh as {date?: true}).date) refuse(f.decl, `${f.name} returns a Date (shared with the caller)`)
@@ -962,8 +979,10 @@ function factoryAttempt(code: string, file: string, opts: ReadOptions, written: 
       args.push(a.events[0]!.arg)
     }
     const body = f.decl.body ?? refuse(f.decl, `${f.name} has no body`)
-    const ends: [Path, V][] = ts.isBlock(body) ? (() => { const flow = ex.block(body.statements, p); return [...flow.rets, ...(flow.live ? [[flow.live, {t: 'undef'} as V] as [Path, V]] : [])] })() : [(([v, q]) => [q, v] as [Path, V])(ex.ev(body as ts.Expression, p))]
-    const outs: [Path, StateVal][] = ends.map(([rp, rv]) => {
+    let ends: [Path, V][] = ts.isBlock(body) ? (() => { const flow = ex.block(body.statements, p); return [...flow.rets, ...(flow.live ? [[flow.live, {t: 'undef'} as V] as [Path, V]] : [])] })() : [(([v, q]) => [q, v] as [Path, V])(ex.ev(body as ts.Expression, p))]
+    // A method that returns an effect: the effect run (a generator's body is run as it is read).
+    if (fx && !f.decl.asteriskToken) ends = ends.map(([q, v]) => { const [v2, q2] = fx.run(ex, v, f.decl, q); return [q2, v2] })
+    const outs: [Path, StateVal][] = ends.filter(([q]) => ex.feasible(q)).map(([rp, rv]) => {
       const self = rp.heap.get('this') as Rec, sv: StateVal = {leaves: new Map(), maps: new Map()}
       for (const [fl, lay] of stateLayout) materialize(ex, self.fields.get(fl)!, lay, rp, f.decl, sv)
       for (const [mn, x] of outVars) sv.leaves.set(x.name, mn === f.name ? (rv.t === 'undef' ? refuse(f.decl, `${f.name} returns nothing on some path`) : outValue(ex, rv, x, rp, f.decl)) : Exec.defaultOf(x.sort))
@@ -986,9 +1005,9 @@ function factoryAttempt(code: string, file: string, opts: ReadOptions, written: 
   model.results = results
   // How the check reads and sets the state: two functions added to the object returned (at its end).
   const state = stateLayout.map(([n]) => n)
-  const set = state.map(n => (fields.find(f => f.name === n)!.shape.k === 'list' ? `${n}.length = 0; ${n}.push(...__s.${n});` : fields.find(f => f.name === n)!.shape.k === 'map' ? `${n}.clear(); for (const [k, v] of (__s.${n} instanceof Map ? __s.${n} : Object.entries(__s.${n}))) ${n} instanceof Map ? ${n}.set(k, v) : (${n}[k] = v);` : `${n} = __s.${n};`)).join(' ')
+  const set = state.map(n => fx?.set(n) ?? (fields.find(f => f.name === n)!.shape.k === 'list' ? `${n}.length = 0; ${n}.push(...__s.${n});` : fields.find(f => f.name === n)!.shape.k === 'map' ? `${n}.clear(); for (const [k, v] of (__s.${n} instanceof Map ? __s.${n} : Object.entries(__s.${n}))) ${n} instanceof Map ? ${n}.set(k, v) : (${n}[k] = v);` : `${n} = __s.${n};`)).join(' ')
   const shown = layout.map(([n]) => n).filter(n => !n.endsWith('()'))
-  model.factory = {at: obj.properties.hasTrailingComma ? obj.end - 1 : obj.properties.at(-1)!.end, text: `${obj.properties.hasTrailingComma ? '' : ','} __gdpGet: () => ({${shown.join(', ')}}), __gdpSet: (__s) => { ${set} }`}
+  model.factory = {at: obj.properties.hasTrailingComma ? obj.end - 1 : obj.properties.at(-1)!.end, text: `${obj.properties.hasTrailingComma ? '' : ','} __gdpGet: () => ({${shown.map(n => fx?.get(n) ?? n).join(', ')}}), __gdpSet: (__s) => { ${set} }`, ...(fx ? {calls: fx.calls, ...(fx.extra ? {extra: fx.extra} : {})} : {})}
   return {model, written: wrote}
 }
 function constLayout(v: V, p: Path, at: ts.Node): Layout {

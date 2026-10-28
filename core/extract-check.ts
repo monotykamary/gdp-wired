@@ -313,7 +313,7 @@ export type CodeSide = {
 }
 export function check(code: string, file: string, m: Model, r: Rule, sorts: Sorts, opts: CheckOptions & {given?: Record<string, 'nat' | 'int'>} = {}): Evidence {
   const isClass = m.shape === 'class', fns = m.shape === 'class' ? [m.entry] : [...new Set(m.events.map(e => e.call))]
-  const box = sandbox(code, file, fns, opts.modules, m.initSource, opts.files, m.factory ? [[m.factory.at, m.factory.text]] : [])
+  const box = sandbox(code, file, fns, opts.modules, m.initSource, opts.files, m.factory ? [[m.factory.at, m.factory.text], ...(m.factory.extra ?? [])] : [])
   // An object a factory makes: its state is what its functions close over, read and set through the two functions the
   // check added to it.
   const stateOf = (self: unknown): unknown => (m.factory ? (box.call('$get', self, []) as {ok: boolean, value?: unknown}).value : self)
@@ -323,7 +323,7 @@ export function check(code: string, file: string, m: Model, r: Rule, sorts: Sort
   const counted = box.arms.map((a, i) => [a, i] as const).filter(([a]) => inSpan(a))
   const E = JSON.stringify(m.entry)
   if (isClass && !m.factory) vmOf().runInContext(`__gdp.$method = function (name, args) { return this[name](...args) }; __gdp.$new = function (...args) { return new __gdp[${E}](...args) }; __gdp.$at = function (fields) { return Object.assign(Object.create(__gdp[${E}].prototype), fields) }`, box.ctx)
-  if (m.factory) vmOf().runInContext(`__gdp.$method = function (name, args) { return this[name](...args) }; __gdp.$new = function (...args) { return __gdp[${E}](...args) }; __gdp.$get = function () { return this.__gdpGet() }; __gdp.$at = function (fields, args) { const o = __gdp[${E}](...args); o.__gdpSet(fields); return o }`, box.ctx)
+  if (m.factory) vmOf().runInContext(m.factory.calls ?? `__gdp.$method = function (name, args) { return this[name](...args) }; __gdp.$new = function (...args) { return __gdp[${E}](...args) }; __gdp.$get = function () { return this.__gdpGet() }; __gdp.$at = function (fields, args) { const o = __gdp[${E}](...args); o.__gdpSet(fields); return o }`, box.ctx)
   // A class's fields holding a function: each answers the request's input (set on the object before each call; a
   // function given to the constructor is one such too).
   let answers: Record<string, Raw> = {}

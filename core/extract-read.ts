@@ -55,7 +55,7 @@ export type Model = {
   // The spans of the entry's file the step reads (for the branches counted).
   spans?: [number, number][],
   // An object a factory makes: where the check adds the two functions that read and set its closed-over state.
-  factory?: {at: number, text: string},
+  factory?: {at: number, text: string, calls?: string, extra?: [number, string][]},
   // For a class: what each method's result is kept as (core/extract-shapes.ts's Result).
   results?: Record<string, {k: 'scalar', name: string} | {k: 'rec', fields: [string, string][]} | {k: 'maybe', name: string, missing: string, null: boolean}>,
   // Laws every state of the code keeps that the front end knows (a Go field within its type's range), as `r.law(...)`.
@@ -76,6 +76,9 @@ type V =
   | {t: 'opaque', what: string}
   // One of two objects by a condition: reads by cases, a write to each where it is the one (so aliasing is kept).
   | {t: 'phi', c: B, a: V, b: V}
+  // A front end's own values (core/effect.ts): an effect not yet run (run on a path, it gives its value and the path
+  // after), and a tuple a function returns (Ref.modify's [result, state]).
+  | {t: 'eff', run: (p: Path) => [V, Path]} | {t: 'tuple', xs: V[]}
 type Rec = {k: 'rec', fields: Map<string, V>, origin: 'fresh' | 'input' | 'this' | 'shared', lazy?: {prefix: string}}
 type MapObj = {k: 'map', base: string, decl: MapDecl, w?: {key: K, has: B, vals: Map<string, V>}, origin: 'fresh' | 'input' | 'this' | 'shared', gen: number}
 type ListObj = {k: 'list', base: string, decl: MapDecl, ops: ListOp[], origin: 'fresh' | 'input' | 'this' | 'shared'}
@@ -141,7 +144,7 @@ export function shapeOf(t: ts.Type, checker: ts.TypeChecker, at: ts.Node, inner?
   if (t.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) return refuse(at, inner ? `${(ts.isPropertyDeclaration(at) || ts.isParameter(at) || ts.isPropertySignature(at)) && ts.isIdentifier(at.name) ? at.name.text : text(at)}.${inner} has no type the subset reads (any or unknown${t.flags & ts.TypeFlags.Any ? ': a type not among the files read, say' : ''})` : `${text(at)} has no type the subset reads (any or unknown): annotate it`)
   if (t.flags & ts.TypeFlags.Object) {
     const sym = t.getSymbol() ?? t.aliasSymbol, name = sym?.getName()
-    if (name === 'Map') {
+    if (name === 'Map' || name === 'ReadonlyMap') {
       const [kt, vt] = checker.getTypeArguments(t as ts.TypeReference)
       if (!kt || !vt) return refuse(at, 'a Map without its key and value types')
       return {k: 'map', key: keySort(shapeOf(kt, checker, at), at), val: shapeOf(vt, checker, at), js: 'Map'}
@@ -206,6 +209,9 @@ export type Setup = {
   // value of the function's return type), one a step, the same input in every method; the function is taken to leave
   // the object alone.
   fnFields?: {outside: Map<string, {path: string, sort: Sort}>, names: Set<string>},
+  // A front end's expressions read before the subset's (core/effect.ts: yield*, Effect's and Ref's calls): a value and
+  // the path after, or undefined where the expression is the subset's.
+  effect?: (ex: Exec, e: ts.Expression, p: Path) => [V, Path] | undefined,
 }
 
 export class Exec {
@@ -314,6 +320,7 @@ export class Exec {
       return {t: 'cell', map: va.map, key: I.kite(c, va.key, vb.key), gen: mergedGen(ma, mb)}
     }
     if (va.t === 'ref' && vb.t === 'ref' && va.id === vb.id) return va
+    if ((va.t === 'eff' && vb.t === 'eff') || (va.t === 'tuple' && vb.t === 'tuple')) return this.phiV(c, va, vb, at)
     // Two objects by the path taken: a reference to each by the condition.
     const refs = ['ref', 'cell', 'phi']
     if (refs.includes(va.t) && refs.includes(vb.t)) return {t: 'phi', c, a: va, b: vb}
@@ -369,7 +376,7 @@ export class Exec {
     let live: Path | undefined = p
     const rets: [Path, V][] = [], breaks: Path[] = []
     for (const st of stmts) {
-      if (!live) break
+      if (!live || !this.feasible(live)) break
       if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) for (const n of boundNames(d.name)) { if (live.locals.has(n) && !declared.includes(n)) refuse(d, `${n} shadows another ${n}`); declared.push(n) }
       if (ts.isFunctionDeclaration(st)) refuse(st, 'a function declared inside a step')
       const f = this.stmt(st, live)
@@ -497,6 +504,7 @@ export class Exec {
       case 'opt': return I.and(v.has, this.truthy(v.v, at))
       case 'undef': return I.F
       case 'opaque': return refuse(at, `${text(at)} read as a condition: ${v.what}`)
+      case 'eff': case 'tuple': return refuse(at, `${text(at)}: an ${v.t === 'eff' ? 'effect' : 'array'} read as a condition`)
     }
   }
   num(v: V, at: ts.Node, p: Path): N {
@@ -528,6 +536,8 @@ export class Exec {
   }
   ev(e: ts.Expression, p: Path): [V, Path] {
     if (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isSatisfiesExpression(e) || ts.isTypeAssertionExpression(e)) return this.ev(e.expression, p)
+    const fe = this.s.effect?.(this, e, p)
+    if (fe) return fe
     if (ts.isNonNullExpression(e)) {
       const [v, q] = this.ev(e.expression, p)
       if (v.t !== 'opt') return [v, q]
@@ -572,7 +582,7 @@ export class Exec {
     return refuse(e, `${ts.SyntaxKind[e.kind]} is not in the subset`)
   }
   // Two values each on its path, as one value on the merged path.
-  private joinValues(c: B, qa: Path, va: V, qb: Path, vb: V, at: ts.Node): [V, Path] {
+  joinValues(c: B, qa: Path, va: V, qb: Path, vb: V, at: ts.Node): [V, Path] {
     const tmp = '$join'
     const m = this.merge({...qa, locals: new Map(qa.locals).set(tmp, va)}, {...qb, locals: new Map(qb.locals).set(tmp, vb)}, at)!
     const v = m.locals.get(tmp)!
@@ -718,7 +728,10 @@ export class Exec {
       if (ts.isSpreadAssignment(prop)) {
         const st = this.s.checker.getTypeAtLocation(prop.expression)
         if (this.s.checker.getPropertiesOfType(st).some(x => isDate(this.s.checker.getTypeOfSymbolAtLocation(x, prop)))) refuse(prop, 'a spread of an object holding a Date (the copy and the original share it)')
-        const [v, q2] = this.ev(prop.expression, q); q = q2
+        const [v0, q2] = this.ev(prop.expression, q); q = q2
+        // A value known to be there (narrowed on the path), and a map's cell: its values copied.
+        const v = this.deref(q, v0.t === 'opt' && this.known(q, v0.has) ? v0.v : v0)
+        if (v.t === 'cell') { const mo = q.heap.get(v.map) as MapObj; if (mo.gen !== v.gen) return refuse(prop, 'a spread of a reference into a map read before the map was set'); for (const [f, fv] of this.readCell(mo, v.key).vals) fields.set(f, fv); continue }
         const src = v.t === 'ref' ? this.obj(q, v.id) : undefined
         if (src?.k !== 'rec') return refuse(prop, 'a spread of other than an object')
         if (src.lazy) return refuse(prop, 'a spread of an untyped value')
@@ -771,6 +784,9 @@ export class Exec {
       return {t: 'opt', has: I.bite(c, hx, hy), v: !vx ? vy! : !vy ? vx : this.phiV(c, vx, vy, at), ...nullOf(at, x, y)}
     }
     if (x.t === 'ref' && y.t === 'ref' && x.id === y.id) return x
+    // An effect by a condition: each run where it is the one; a tuple, item by item.
+    if (x.t === 'eff' && y.t === 'eff') return {t: 'eff', run: q => { const [va, qa] = x.run(this.withCond(q, c)), [vb, qb] = y.run(this.withCond(q, I.not(c))); return this.joinValues(c, qa, va, qb, vb, at) }}
+    if (x.t === 'tuple' && y.t === 'tuple' && x.xs.length === y.xs.length) return {t: 'tuple', xs: x.xs.map((v, i) => this.phiV(c, v, y.xs[i]!, at))}
     const refs = ['ref', 'cell', 'phi']
     if (refs.includes(x.t) && refs.includes(y.t)) return {t: 'phi', c, a: x, b: y}
     return refuse(at, `a value that is a ${x.t} or a ${y.t} by a condition`)
@@ -836,8 +852,15 @@ export class Exec {
     return {has: I.bite(c, m.w.has, base.has), vals: new Map([...base.vals].map(([f, v]) => [f, this.mergeScalar(c, m.w!.vals.get(f)!, v, undefined as never)]))}
   }
   private access(e: ts.PropertyAccessExpression | ts.ElementAccessExpression, p: Path): [V, Path] {
-    if (e.questionDotToken) return refuse(e, 'optional chaining')
+    if (e.questionDotToken && !ts.isPropertyAccessExpression(e)) return refuse(e, 'optional chaining')
     const [base, q] = this.ev(e.expression, p)
+    // x?.f: missing where x is, else x.f (read where x is there).
+    const ob = e.questionDotToken ? this.deref(q, base) : undefined
+    if (ob?.t === 'undef') return [ob, q]
+    if (ob?.t === 'opt' && ts.isPropertyAccessExpression(e)) {
+      const [f, q2] = this.field(ob.v, memberName(e.name), e, q)
+      return [f.t === 'opt' ? {...f, has: I.and(ob.has, f.has)} : f.t === 'undef' ? f : {t: 'opt', has: ob.has, v: f, ...(ob.null ? {null: true} : {})}, q2]
+    }
     if (ts.isPropertyAccessExpression(e)) {
       const f = memberName(e.name)
       if (base.t === 'ref') { const o = this.obj(q, base.id); if (o?.k === 'map') return refuse(e, `${f} of a map (get, set, has and delete are in the subset)`) }
@@ -955,7 +978,7 @@ export class Exec {
     return refuse(target, 'an assignment to other than a name, a field or a key')
   }
   // A field written: an object's, a cell's (its map's at the key), or each of two objects' where it is the one.
-  private writeField(b: V, f: string, v: V, q: Path, target: ts.Node): Path {
+  writeField(b: V, f: string, v: V, q: Path, target: ts.Node): Path {
       b = this.deref(q, b)
       if (b.t === 'opt') { if (!this.known(q, b.has)) return refuse(target, `${text(target)} writes a field of a value that may be missing`); return this.writeField(b.v, f, v, q, target) }
       if (b.t === 'phi') {
@@ -981,7 +1004,7 @@ export class Exec {
       if (!o.fields.has(f)) return refuse(target, `a field ${f} the object doesn't have`)
       const old = o.fields.get(f)!
       if (old.t === 'ref' && v.t !== 'ref') return refuse(target, `${f} set to other than an object`)
-      if (old.t === 'ref' && v.t === 'ref') { const om = this.obj(q, old.id); if (om?.k === 'map') return refuse(target, `${f}: a map replaced in a step (clearing every key is not in the subset yet)`); const nl = this.obj(q, v.id); if (om?.k === 'list' && (nl?.k !== 'list' || nl.base !== om.base || nl.origin === 'this')) return refuse(target, `${f} set to ${nl?.k === 'list' && nl.base !== om.base ? 'another array (one array in two places, or another list)' : nl?.k === 'list' ? 'itself' : 'other than a copy of itself'}`) }
+      if (old.t === 'ref' && v.t === 'ref') { const om = this.obj(q, old.id); if (om?.k === 'map') { const nm = this.obj(q, v.id); if (nm?.k !== 'map' || nm.base !== om.base) return refuse(target, `${f}: a map replaced in a step (clearing every key is not in the subset yet)`) } const nl = this.obj(q, v.id); if (om?.k === 'list' && (nl?.k !== 'list' || nl.base !== om.base || nl.origin === 'this')) return refuse(target, `${f} set to ${nl?.k === 'list' && nl.base !== om.base ? 'another array (one array in two places, or another list)' : nl?.k === 'list' ? 'itself' : 'other than a copy of itself'}`) }
       const heap = new Map(q.heap).set(id, {...o, fields: new Map(o.fields).set(f, v)})
       return {...q, heap, wrote: o.origin === 'this' ? [...new Set([...q.wrote, f])] : q.wrote}
   }
@@ -1130,6 +1153,7 @@ export class Exec {
   }
   // [...xs] (a copy), [...xs, x] (a copy with x pushed); [] only as a state's start.
   private array(e: ts.ArrayLiteralExpression, p: Path): [V, Path] {
+    if (this.s.effect && e.elements.length && !e.elements.some(ts.isSpreadElement)) { const [xs, q] = this.args(e.elements, p); return [{t: 'tuple', xs}, q] }
     const [first, ...rest] = e.elements
     if (!first || !ts.isSpreadElement(first) || rest.length > 1 || rest.some(ts.isSpreadElement)) return refuse(e, e.elements.length ? 'an array made other than as [...xs] or [...xs, x]' : 'an empty array in a step (a list emptied whole is not in the subset)')
     const [v, q] = this.ev(first.expression, p), src = v.t === 'ref' ? this.obj(q, v.id) : undefined
@@ -1177,7 +1201,7 @@ export class Exec {
     if (m === 'random') return refuse(e, 'Math.random (a step the code takes differently each time)')
     return refuse(e, `Math.${m} (Math.min, Math.max, Math.abs, and Math.floor or Math.ceil of x / k are in the subset)`)
   }
-  private now(e: ts.CallExpression, p: Path): [V, Path] {
+  now(e: ts.Node, p: Path): [V, Path] {
     if (p.nows > 0) return refuse(e, 'Date.now() read twice in one step (the two reads may differ: read it once into a local)')
     if (!this.s.now) {
       this.s.now = this.fresh(this.s.nowRole === 'param' ? 'now0' : 'now')
@@ -1207,14 +1231,14 @@ export class Exec {
     return refuse(e, `new ${text(c)}`)
   }
   // A function of the same module, or a method or getter of the class, run where it is called.
-  inline(f: Callable, args: V[], at: ts.Node, p: Path): [V, Path] {
+  inline(f: Callable, args: V[], at: ts.Node, p: Path, locals: Map<string, V> = new Map()): [V, Path] {
     if (++this.depth > 24) return refuse(at, 'calls nested too deep (recursion is not in the subset)')
     if (f.decl.getSourceFile() === this.s.sf) (this.s.spans ??= []).push([f.decl.getStart(), f.decl.end])
     try {
       const d = f.decl
       if (ts.isMethodDeclaration(d) || ts.isFunctionDeclaration(d)) if (d.modifiers?.some(m => m.kind === ts.SyntaxKind.AsyncKeyword) || d.asteriskToken) return refuse(at, 'an async or generator function')
       if (!d.body) return refuse(at, 'a function without a body')
-      let q: Path = {...p, locals: new Map()}
+      let q: Path = {...p, locals: new Map(locals)}
       d.parameters.forEach((param, i) => {
         if (param.dotDotDotToken) refuse(param, 'a rest parameter')
         if (isDate(this.s.checker.getTypeAtLocation(param))) refuse(param, `${param.name.getText()}: a Date passed as an argument (a second name for it)`)
