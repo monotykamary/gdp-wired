@@ -989,8 +989,7 @@ function keySorted(l: Law, byMap: Map<string, E[]>, fns: string[]): (tuple: E[])
   const allowed = sortTerms(l.holds, [l.forall!, ...(l.keys ?? [])], fns, mp => byMap.get(mp) ?? []).map(ts => ts && new Set(ts.map(t => JSON.stringify(t))))
   return tuple => tuple.every((t, i) => !allowed[i] || allowed[i]!.has(JSON.stringify(t)))
 }
-// The terms each of `vars` takes by its sort: those each read of `body` at a key naming it binds, matched against the
-// keys `at` gives for the read's map (a function's read binds none); undefined for a name no read binds.
+// The terms `body`'s reads (not a function's) bind each of `vars` to, matched against the keys `at` gives their map.
 function sortTerms(body: C, vars: string[], fns: string[], at: (map: string) => E[]): (E[] | undefined)[] {
   const out: (E[] | undefined)[] = vars.map(() => undefined)
   eachRead(e => {
