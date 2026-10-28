@@ -181,20 +181,22 @@ type Pairing = {n: number, c: number, frame: C}
 // the frame allows (`rowsOf`); its forms, laws at every tuple of the keys, read places covering at least `need` of them.
 // The pair space is one: two keys, and the key the rule composes of them where it composes one.
 type View = {vars: string[], names: string[], places: E[], covers: number[][], frame: C, need: number, rowsOf: (params: Env, st: State) => Env[], atoms: number[], rows: Env[], printable: boolean}
+// A key's linear form over the names `ok` admits, into `out` (`1` the constant); false where it is none.
+const linKey = (e: E, ok: (v: string) => boolean, k: number, out: Map<string, number>): boolean => (e.op === 'const' ? (out.set('1', (out.get('1') ?? 0) + k * e.value), true) : e.op === 'var' ? ok(e.name) && (out.set(e.name, (out.get(e.name) ?? 0) + k), true) : e.op === 'add' ? linKey(e.a, ok, k, out) && linKey(e.b, ok, k, out) : e.op === 'mul' ? linKey(e.a, ok, k * e.k, out) : false)
+const conj = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(conj) : [c])
 function pairingOf(m: Machine): Pairing | undefined {
-  const inputs = new Set(m.inputs)
-  const lin = (e: E, k: number, out: Map<string, number>): boolean => (e.op === 'const' ? (out.set('1', (out.get('1') ?? 0) + k * e.value), true) : e.op === 'var' ? inputs.has(e.name) && (out.set(e.name, (out.get(e.name) ?? 0) + k), true) : e.op === 'add' ? lin(e.a, k, out) && lin(e.b, k, out) : e.op === 'mul' ? lin(e.a, k * e.k, out) : false)
+  const inputs = new Set(m.inputs), input = (v: string) => inputs.has(v)
   let found: Pairing | undefined
   const each = new Set(Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [w.each] : [])))
   const consider = (key: E) => {
     if (found) return
     const l = new Map<string, number>()
-    if (!lin(key, 1, l)) return
+    if (!linKey(key, input, 1, l)) return
     const vs = [...l].filter(([v, c]) => v !== '1' && c)
     if (vs.length !== 2) return
     const [[a, ca], [b, cb]] = vs[0]![1] >= vs[1]![1] ? [vs[0]!, vs[1]!] : [vs[1]!, vs[0]!]
     if (cb !== 1 || ca < 2) return
-    const conj = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(conj) : [c]), names = (c: C) => [...JSON.stringify(c).matchAll(/"name":"([^"]+)"/g)].map(q => q[1]!)
+    const names = (c: C) => [...JSON.stringify(c).matchAll(/"name":"([^"]+)"/g)].map(q => q[1]!)
     const own = m.assume ? conj(m.assume).filter(c => names(c).length && names(c).every(v => v === a || v === b)) : []
     found = {n: ca, c: l.get('1') ?? 0, frame: substC({op: 'and', xs: own}, {vars: {[a]: x(KEY), [b]: x(KEY2)}, maps: {}, flags: {}})}
   }
@@ -223,14 +225,14 @@ function keySorts(m: Machine, laws: Law[], pairing?: Pairing) {
   const split = (key: E, name: (v: string) => string | undefined): [string, string] | undefined => {
     if (!pairing?.n) return undefined
     const lin = new Map<string, number>()
-    const go = (e: E, k: number): boolean => (e.op === 'const' ? (lin.set('1', (lin.get('1') ?? 0) + k * e.value), true) : e.op === 'var' ? (lin.set(e.name, (lin.get(e.name) ?? 0) + k), true) : e.op === 'add' ? go(e.a, k) && go(e.b, k) : e.op === 'mul' ? go(e.a, k * e.k) : false)
-    if (!go(key, 1)) return undefined
+    if (!linKey(key, () => true, 1, lin)) return undefined
     const vs = [...lin].filter(([v, c]) => v !== '1' && c)
     if (vs.length !== 2 || (lin.get('1') ?? 0) !== pairing.c) return undefined
     const hi = vs.find(([, c]) => c === pairing.n), lo = vs.find(([, c]) => c === 1)
     const a = hi && name(hi[0]), b = lo && name(lo[0])
     return a && b ? [a, b] : undefined
   }
+  const kids = (t: E | C, f: (y: E | C) => void) => { for (const v of Object.values(t)) if (v && typeof v === 'object') (Array.isArray(v) ? v : [v]).forEach(y => { if (y && typeof y === 'object' && 'op' in y) f(y as E | C) }) }
   const walk = (t: E | C, name: (v: string) => string | undefined): void => {
     if (t.op === 'get') {
       if (!(t.map in (m.maps ?? {}))) { walk(t.key, name); return }
@@ -241,7 +243,7 @@ function keySorts(m: Machine, laws: Law[], pairing?: Pairing) {
     }
     if (t.op === 'all') { const own = new Set([t.key, ...(t.keys ?? [])]); walk(t.c, v => (own.has(v) ? `Q:${JSON.stringify(t).length}:${v}` : name(v))); return }
     if (t.op === '=' && t.a.op === 'var' && t.b.op === 'var') { const a = name(t.a.name), b = name(t.b.name); if (a && b) union(a, b); return }
-    for (const v of Object.values(t)) if (v && typeof v === 'object') (Array.isArray(v) ? v : [v]).forEach(y => { if (y && typeof y === 'object' && 'op' in y) walk(y as E | C, name) })
+    kids(t, y => walk(y, name))
   }
   const inputs = new Set(m.inputs), rule = (v: string) => (inputs.has(v) ? v : undefined)
   for (const [mp, w] of Object.entries(m.step.maps ?? {})) {
@@ -253,7 +255,6 @@ function keySorts(m: Machine, laws: Law[], pairing?: Pairing) {
   if (m.assume) walk(m.assume, rule)
   const lawName = (l: Law) => { const own = new Set([l.forall, ...(l.keys ?? [])]); return (v: string) => (own.has(v) ? `L:${l.name}:${v}` : undefined) }
   for (const l of laws) walk(l.holds, lawName(l))
-  const conj = (c: C): C[] => (c.op === 'and' ? c.xs.flatMap(conj) : [c])
   return {
     find,
     sortOf: (l: Law, v: string) => find(`L:${l.name}:${v}`),
@@ -261,7 +262,7 @@ function keySorts(m: Machine, laws: Law[], pairing?: Pairing) {
       const own = new Set(bound), composites: [string, string][] = [], guards: C[] = []
       const see = (t: E | C): void => {
         if (t.op === 'get') { const sp = split(t.key, v => (own.has(v) ? v : undefined)); if (sp && !composites.some(([a, b]) => a === sp[0] && b === sp[1])) composites.push(sp) }
-        for (const v of Object.values(t)) if (v && typeof v === 'object') (Array.isArray(v) ? v : [v]).forEach(y => { if (y && typeof y === 'object' && 'op' in y) see(y as E | C) })
+        kids(t, see)
       }
       see(l.holds)
       // (the antecedent's conditions on the keys alone: k < 64, a ≠ b)
@@ -902,8 +903,9 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // At a state: a cell form at every key the maps hold and a fresh one.
   type Point = {scalar: Env, cells: Env[], views: Env[][]}
   const pointOf = (params: Env, st: State): Point => ({scalar: withTerms({...params, ...st.scalars}, st), cells: cellRows(params, st), views: views.map(v => v.rowsOf(params, st))})
-  const partsOf2 = (f: Form): string[] => [...f.coef.map(([i]) => i), ...(f.guard && 'atom' in f.guard ? [f.guard.atom] : []), ...(f.also ?? []).map(a => a.atom), ...(f.never ?? []).map(a => a.atom), ...(f.unreachable ? [f.unreachable.atom] : []), ...(f.nevers ?? []).flat().map(a => a.atom), ...(f.cube ?? []).flatMap(l => ('at' in l ? [l.at.atom] : l.lin.coef.map(([i]) => i)))].flatMap(i => atoms[i]!.parts.map(([q]) => (atoms[i]!.cell ? AT + q : q)))
-  const judged = (f: Form, r: Env) => { const u = unnamed.get(r); return !u || !partsOf2(f).some(q => u.has(q)) }
+  // (the atoms a form reads)
+  const atomsIn = (f: Form): number[] => [...f.coef.map(([i]) => i), ...(f.guard && 'atom' in f.guard ? [f.guard.atom] : []), ...(f.also ?? []).map(a => a.atom), ...(f.never ?? []).map(a => a.atom), ...(f.unreachable ? [f.unreachable.atom] : []), ...(f.nevers ?? []).flat().map(a => a.atom), ...(f.cube ?? []).flatMap(l => ('at' in l ? [l.at.atom] : l.lin.coef.map(([i]) => i)))]
+  const judged = (f: Form, r: Env) => { const u = unnamed.get(r); return !u || !atomsIn(f).some(i => atoms[i]!.parts.some(([q]) => u.has(atoms[i]!.cell ? AT + q : q))) }
   const holdsAt = (f: Form, p: Point) => (f.view !== undefined ? (p.views[f.view] ?? []).every(r => !judged(f, r) || holdsRow(f, r)) : f.cells ? p.cells.every(r => !judged(f, r) || holdsRow(f, r)) : holdsRow(f, p.scalar))
   // A kernel witness as a point: its scalars, and a cell row per key it reads a map at.
   const witnessPoint = (w: Record<string, number>): Point => {
@@ -1282,7 +1284,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
         // (of the cells: only what reads one)
         // (over two plain keys, a form that reads one of them alone is the cells' form, which every key's instance covers)
         const keep = (f: Form) => {
-          const read = [...f.coef.map(([i]) => i), ...(f.guard && 'atom' in f.guard ? [f.guard.atom] : []), ...(f.also ?? []).map(a => a.atom), ...(f.never ?? []).map(a => a.atom), ...(f.unreachable ? [f.unreachable.atom] : []), ...(f.nevers ?? []).flat().map(a => a.atom)]
+          const read = atomsIn(f)
           const covered = new Set(read.flatMap(i => (atoms[i]!.place !== undefined ? view!.covers[atoms[i]!.place!]! : [])))
           if (kind === 'state' || (view ? covered.size >= view.need : read.some(i => atoms[i]!.cell))) push(view ? {...f, view: kind as number} : f)
         }
