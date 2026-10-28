@@ -393,12 +393,15 @@ export function extractEffect(code: string, opts: EffectOptions): Extraction {
 // inputs), each made of the service by `request` (an effect, run on the Effect given with the clock at the input named
 // by `now`) and of the rule. They must fail together (the rule's assumption or step refuses where the effect fails),
 // and after each step every field `observe` reads of the service (an effect or a value: its state in the rule's terms,
-// and the request's result) must be the rule's.
+// and the request's result) must be the rule's state's (or `view`'s of it, where the service shows less than the rule
+// holds).
 export type Service<S> = {
   effect: Mod,
   make: (params: Record<string, unknown>) => unknown,
-  request: (service: S, input: Record<string, unknown>) => unknown,
-  observe?: (service: S, result: unknown, input: Record<string, unknown>) => unknown,
+  request: (service: S, input: Record<string, unknown>, params: Record<string, unknown>) => unknown,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  observe?: (service: S, result: any, input: Record<string, unknown>) => unknown,
+  view?: (state: Record<string, unknown>, input: Record<string, unknown>) => Record<string, unknown>,
   now?: string,
 }
 export function conforms<S>(r: Rule, svc: Service<S>, opts: {draw: (rand: Rand) => Record<string, unknown>, params?: (rand: Rand) => Record<string, unknown>, runs?: number, depth?: number, seed?: number}): {checked: number, failure?: string} {
@@ -411,19 +414,21 @@ export function conforms<S>(r: Rule, svc: Service<S>, opts: {draw: (rand: Rand) 
     const self = made.value as S, sent: string[] = []
     let st = g.init(ps)
     for (let d = 0; d < (opts.depth ?? 12); d++) {
-      const input = opts.draw(rand), enc = r.encodeInput(input as never, params as never), now = svc.now ? Number(input[svc.now]) : 0
+      const input = opts.draw(rand), now = svc.now ? Number(input[svc.now]) : 0
+      let enc
+      try { enc = r.encodeInput(input as never, params as never) } catch (e) { return {checked, failure: `${JSON.stringify(input)} is outside the rule's inputs: ${(e as Error).message}`} }
       sent.push(JSON.stringify(input))
       const at = () => `${params && Object.keys(params).length ? `with ${JSON.stringify(params)}, ` : ''}after ${sent.join(', ')}`
       let ok: boolean
       try { ok = allowed(r.machine, interp, ps, st, enc) && (g.step(ps, g.fork(st), enc), true) } catch { ok = false }
-      const x = R.exit(svc.request(self, input), now)
+      const x = R.exit(svc.request(self, input, params), now)
       if (ok !== x.ok) return {checked, failure: `${at()}: the ${x.ok ? 'service takes the request' : `service fails (${(x as {error: string}).error})`}, the rule ${ok ? 'takes it' : 'refuses it'}`}
       if (!ok) continue
       st = g.step(ps, st, enc)
       if (svc.observe) {
         let o = svc.observe(self, (x as {value: unknown}).value, input)
         if (o && typeof o === 'object' && svc.effect.Effect.isEffect(o)) o = R.run(o, now)
-        const mine = r.decode(st) as Record<string, unknown>
+        const mine = svc.view ? svc.view(r.decode(st) as Record<string, unknown>, input) : r.decode(st) as Record<string, unknown>
         for (const [k, v] of Object.entries(o as Record<string, unknown>)) if (!same(v, mine[k])) return {checked, failure: `${at()}: the service's ${k} is ${JSON.stringify(v)}, the rule's ${JSON.stringify(mine[k])}`}
       }
       checked++
