@@ -15,7 +15,7 @@
 //   - that every fact of the proof holds of the model, each by unfolding and cases on the values it reads
 //   - the law, about the Lean definitions, from cyclic_sound at the law's node
 import type {Cyclic} from '../kernel/cyclic.ts'
-import {type Ctor, type Data, type DataLaw, type FieldSort, type Fn, type Measure, type Program, type X, type Y, ctorMap, divMap, fieldMap, isDataField, modMap, negMap, posMap, sizeMap, tagMap, weakOrder} from '../core/data.ts'
+import {type Ctor, type Data, type DataLaw, type FieldSort, type Fn, type Measure, type Program, type X, type Y, ctorMap, divMap, fieldMap, isDataField, modMap, negMap, posMap, sizeMap, tagMap, weakOrder, whenOf} from '../core/data.ts'
 
 const name = (s: string) => s.replace(/#(\d+)$/, '_$1').replace(/[^A-Za-z0-9_']/g, '_')
 // The function parameters a function reads, through those it calls.
@@ -82,7 +82,8 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
         case '<': case '<=': case '=': return `(decide (${lx(y.a, names)} ${y.op === '<=' ? '≤' : y.op} ${lx(y.b, names)}))`
         case 'i<': case 'i<=': return `(decide (${lx(y.a, names)} ${y.op === 'i<=' ? '≤' : '<'} ${lx(y.b, names)}))`
         case 'and': return `(${y.xs.map(z => ly(z, names)).join(' && ')})`
-        case 'or': return `(${y.xs.map(z => ly(z, names)).join(' || ')})`
+        // (in a well-founded function's body, a condition's choice as the if it is: its calls' decreases read the condition)
+        case 'or': { const w = hyps ? whenOf(y) : undefined; return w ? `(if ${ly(w.c, names)} then ${ly(w.a, names)} else ${ly(w.b, names)})` : `(${y.xs.map(z => ly(z, names)).join(' || ')})` }
         case 'not': return `(!${ly(y.x, names)})`
         case 'is': return `(decide (${y.data}.tag ${lx(y.of, names)} = ${y.ctor}))`
         case 'holds': return lx(y.x, names)
@@ -184,7 +185,8 @@ export function dataLean(id: string, law: DataLaw, p: Program, proof: Cyclic, no
       if (!m) return head
       // The measure, each component Σ coef·size + c (its negative part subtracted, as the kernel reads it).
       const comp = (c: Measure['comps'][number]) => {
-        const term = (i: number) => { const q = f.params[i]!, t = q.sort === 'nat' ? name(q.name) : `(${(q.sort as Data).name}.size ${name(q.name)})`, k = Math.abs(c.coef[i]!); return k === 1 ? t : `${k} * ${t}` }
+        // (an integer's size: Int.toNat, as core/data.ts's measureI reads it)
+        const term = (i: number) => { const q = f.params[i]!, t = q.sort === 'nat' ? name(q.name) : q.sort === 'int' ? `(${name(q.name)}).toNat` : `(${(q.sort as Data).name}.size ${name(q.name)})`, k = Math.abs(c.coef[i]!); return k === 1 ? t : `${k} * ${t}` }
         const pos = [...c.coef.flatMap((k, i) => (k > 0 ? [term(i)] : [])), ...(c.c > 0 ? [String(c.c)] : [])], neg = [...c.coef.flatMap((k, i) => (k < 0 ? [term(i)] : [])), ...(c.c < 0 ? [String(-c.c)] : [])]
         const sum = (ts: string[]) => (ts.length ? ts.join(' + ') : '0')
         return neg.length ? `(${sum(pos)} - (${sum(neg)}))` : `(${sum(pos)})`

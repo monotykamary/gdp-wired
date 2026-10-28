@@ -181,6 +181,13 @@ export class Val {
 // A value of a sort from its term.
 export const wrap = (s: Sort, x: X): Nat | Bool | Val | Integer => (s === 'nat' ? new Nat(x) : s === 'bool' ? new Bool({op: 'holds', x}) : s === 'int' ? new Integer(x) : new Val(s, x))
 const xOf = (s: Sort, v: unknown): X => (s === 'nat' ? natX(v as NatLike) : s === 'bool' ? {op: 'bool', c: (v as Bool).y} : s === 'int' ? intX(v as IntegerLike) : (v as Val).x)
+// `when`'s shape on Bool, read back: its condition and its two sides.
+export const whenOf = (y: Y): {c: Y, a: Y, b: Y} | undefined => {
+  if (y.op !== 'or' || y.xs.length !== 2) return undefined
+  const [p, q] = y.xs as [Y, Y]
+  if (p.op !== 'and' || q.op !== 'and' || p.xs.length !== 2 || q.xs.length !== 2 || q.xs[0]!.op !== 'not') return undefined
+  return JSON.stringify(q.xs[0]!.x) === JSON.stringify(p.xs[0]) ? {c: p.xs[0]!, a: p.xs[1]!, b: q.xs[1]!} : undefined
+}
 export function when<T extends Nat | Val | Bool | Integer | number>(c: Bool, a: T, b: T): T extends number ? Nat : T {
   if (a instanceof Bool) return new Bool({op: 'or', xs: [{op: 'and', xs: [c.y, a.y]}, {op: 'and', xs: [{op: 'not', x: c.y}, (b as Bool).y]}]}) as never
   const int = a instanceof Integer || b instanceof Integer, lit = (t: number) => (int ? intX(t) : natX(t))
@@ -443,7 +450,10 @@ function recursion(fn: Fn): Rec {
 export type Measure = {comps: {coef: number[], c: number, fold?: {fn: string, of: number}}[]}
 export type Termination = {measure: Measure, text: string, obligations: {law: DataLaw, proof?: CyclicVerdict, scheme?: string, lemmas: string[], lemmaLaws?: DataLaw[]}[], ms: number}
 export const terminationMs = {ms: 10_000}
-const measurable = (s: Sort) => s === 'nat' || s instanceof Data
+// (an integer's size is its value where it is positive, 0 below: Lean's Int.toNat; a measure that reads one is read in
+// the integers, its value the same, compare/chc-adt's naturals written as Int)
+const measurable = (s: Sort) => s === 'nat' || s === 'int' || s instanceof Data
+const sized = (s: Sort) => s === 'nat' || s instanceof Data
 function measureOf(name: string, ps: {name: string, sort: Sort}[], m: (string | string[])[]): Measure {
   if (!m.length) throw new Error(`${name}: an empty measure`)
   return {comps: m.map(c => {
@@ -453,7 +463,7 @@ function measureOf(name: string, ps: {name: string, sort: Sort}[], m: (string | 
 }
 export const showMeasure = (f: Pick<Fn, 'params'>, m: Measure): string => {
   const comp = (c: Measure['comps'][number]) => {
-    const parts = c.coef.flatMap((k, i) => (k ? [`${k < 0 ? '−' : ''}${Math.abs(k) === 1 ? '' : `${Math.abs(k)}·`}${f.params[i]!.sort === 'nat' ? f.params[i]!.name : `size(${f.params[i]!.name})`}`] : []))
+    const parts = c.coef.flatMap((k, i) => (k ? [`${k < 0 ? '−' : ''}${Math.abs(k) === 1 ? '' : `${Math.abs(k)}·`}${f.params[i]!.sort === 'nat' ? f.params[i]!.name : f.params[i]!.sort === 'int' ? `toNat(${f.params[i]!.name})` : `size(${f.params[i]!.name})`}`] : []))
     const t = [...parts, ...(c.fold ? [`${c.fold.fn}(${f.params[c.fold.of]!.name})`] : []), ...(c.c ? [String(c.c)] : [])].join(' + ').replace(/\+ −/g, '− ')
     return t || '0'
   }
@@ -462,6 +472,7 @@ export const showMeasure = (f: Pick<Fn, 'params'>, m: Measure): string => {
 // A component at arguments, as a term (its negative part subtracted, truncated as the encoding reads it).
 const sizeX = (s: Sort, a: X): X => (s === 'nat' ? a : {op: 'size', data: (s as Data).name, of: a})
 export function measureX(f: Pick<Fn, 'params'>, c: Measure['comps'][number], args: X[]): X {
+  if (readsInt(f, c)) return measureI(f, c, args)
   const pos: X[] = [], neg: X[] = []
   c.coef.forEach((k, i) => { if (!k) return; const t = sizeX(f.params[i]!.sort, args[i]!); (k > 0 ? pos : neg).push(Math.abs(k) === 1 ? t : {op: 'mul', k: Math.abs(k), a: t}) })
   if (c.fold) pos.push({op: 'call', fn: c.fold.fn, args: [args[c.fold.of]!]})
@@ -470,7 +481,27 @@ export function measureX(f: Pick<Fn, 'params'>, c: Measure['comps'][number], arg
   const sum = (ts: X[]): X => (ts.length ? ts.reduce((a, b) => ({op: 'add', a, b})) : {op: 'nat', value: 0})
   return neg.length ? {op: 'sub', a: sum(pos), b: sum(neg)} : sum(pos)
 }
-const lexY = (as: X[], bs: X[]): Y => (as.length === 1 ? {op: '<', a: as[0]!, b: bs[0]!} : {op: 'or', xs: [{op: '<', a: as[0]!, b: bs[0]!}, {op: 'and', xs: [{op: '=', a: as[0]!, b: bs[0]!}, lexY(as.slice(1), bs.slice(1))]}]})
+// A component that reads an integer, in the integers: max(0, Σ coef·toNat(x) + c), each natural and size made an integer.
+const readsInt = (f: Pick<Fn, 'params'>, c: Measure['comps'][number]) => c.coef.some((k, i) => k && f.params[i]!.sort === 'int')
+const iZero: X = {op: 'int', value: 0}, iMax0 = (a: X): X => ({op: 'if', c: {op: 'i<=', a: iZero, b: a}, then: a, else: iZero})
+function measureI(f: Pick<Fn, 'params'>, c: Measure['comps'][number], args: X[]): X {
+  const terms: X[] = []
+  c.coef.forEach((k, i) => {
+    if (!k) return
+    const q = f.params[i]!.sort, t: X = q === 'int' ? iMax0(args[i]!) : {op: 'ofnat', a: sizeX(q, args[i]!)}
+    terms.push(k === 1 ? t : {op: 'imul', k, a: t})
+  })
+  if (c.fold) terms.push({op: 'ofnat', a: {op: 'call', fn: c.fold.fn, args: [args[c.fold.of]!]}})
+  if (c.c) terms.push({op: 'int', value: c.c})
+  return iMax0(terms.reduce((a, b) => ({op: 'iadd', a, b})))
+}
+// (where either side's component is in the integers, both are, and compared there)
+const lexY = (as: X[], bs: X[], ints: boolean[] = []): Y => {
+  const [a, b] = ints[0] ? [as[0]!, bs[0]!].map(x => (isIntX(x) ? x : {op: 'ofnat', a: x} as X)) as [X, X] : [as[0]!, bs[0]!]
+  const lt: Y = {op: ints[0] ? 'i<' : '<', a, b}
+  return as.length === 1 ? lt : {op: 'or', xs: [lt, {op: 'and', xs: [{op: '=', a, b}, lexY(as.slice(1), bs.slice(1), ints.slice(1))]}]}
+}
+const isIntX = (x: X) => x.op === 'if' && x.else.op === 'int'
 // The measures of a ring, each padded to the longest with components 0 (Data.lean's `lexLt` compares tuples of one length).
 const padded = (ring: Fn[], ms: Measure[]): Measure[] => {
   const w = Math.max(...ms.map(m => m.comps.length))
@@ -490,7 +521,12 @@ function sitesOf(fn: Fn, names: string[]): Omit<Site, 'from'>[] {
   const goY = (y: Y, w: Path): void => {
     switch (y.op) {
       case '<': case '<=': case '=': case 'i<': case 'i<=': goX(y.a, w); goX(y.b, w); return
-      case 'and': case 'or': y.xs.forEach(z => goY(z, w)); return
+      case 'and': case 'or': {
+        // a condition's choice (`when` on Bool: (c ∧ a) ∨ (¬c ∧ b)) is an if: each side on its path
+        const c = whenOf(y)
+        if (c) { goY(c.c, w); goY(c.a, {...w, wrap: z => w.wrap({op: 'or', xs: [{op: 'not', x: c.c}, z]})}); goY(c.b, {...w, wrap: z => w.wrap({op: 'or', xs: [c.c, z]})}); return }
+        y.xs.forEach(z => goY(z, w)); return
+      }
       case 'not': goY(y.x, w); return
       case 'is': goX(y.of, w); return
       case 'holds': goX(y.x, w); return
@@ -554,7 +590,8 @@ const ownArgs = (f: Fn) => f.params.map(q => ({op: 'var', name: `${f.name}.${q.n
 // among its caller's.
 function obligation(ring: Fn[], ms: Measure[], s: Site, i: number): DataLaw {
   const fn = ring[s.from]!, to = ring[s.to]!
-  const holds = shapedBy(s)(s.wrap(lexY(ms[s.to]!.comps.map(c => measureX(to, c, s.args)), ms[s.from]!.comps.map(c => measureX(fn, c, ownArgs(fn)))))) as Y
+  const ints = ms[s.to]!.comps.map((c, j) => readsInt(to, c) || readsInt(fn, ms[s.from]!.comps[j]!))
+  const holds = shapedBy(s)(s.wrap(lexY(ms[s.to]!.comps.map(c => measureX(to, c, s.args)), ms[s.from]!.comps.map(c => measureX(fn, c, ownArgs(fn))), ints))) as Y
   const name = ring.length === 1 ? `${fn.name}'s call ${i + 1} lowers ${showMeasure(fn, ms[0]!)}` : `${fn.name}'s call ${i + 1}, of ${to.name}, lowers ${showMeasure(to, ms[s.to]!)} below ${showMeasure(fn, ms[s.from]!)}`
   return {name, vars: s.vars.filter(v => !s.shape.has(v.name)), holds, params: [...new Set(paramsIn(holds))]}
 }
@@ -563,7 +600,7 @@ function obligation(ring: Fn[], ms: Measure[], s: Site, i: number): DataLaw {
 type Traced = {fns: Map<string, number>, stack: {at: number, vals: Value[]}[], fuel: number, edge: (from: {at: number, vals: Value[]}, to: {at: number, vals: Value[]}) => void}
 let tracing: Traced | undefined
 type CallEdge = {from: number, to: number, s: number[], t: number[], sv: Value[], tv: Value[]}
-const featOf = (f: Fn, vs: Value[]) => f.params.map((p, i) => (p.sort === 'nat' ? vs[i] as number : p.sort instanceof Data ? sizeOf(p.sort, vs[i]!) : 0))
+const featOf = (f: Fn, vs: Value[]) => f.params.map((p, i) => (p.sort === 'nat' ? vs[i] as number : p.sort === 'int' ? Math.max(0, vs[i] as number) : p.sort instanceof Data ? sizeOf(p.sort, vs[i]!) : 0))
 function runEdges(ring: Fn[]): CallEdge[] {
   const rand = rng(17), edges = new Map<string, CallEdge>()
   const tables = new Map<string, (n: number) => number>()
@@ -585,7 +622,7 @@ const lowers = (ms: Measure[], e: CallEdge): boolean => {
 // Bounds of a term's size by the sizes of variables (over values of them): for each set I of at most two of them, the
 // least and greatest of S(t) − Σᵢ S(vᵢ) at the values (an equation where they are one). `coef`: S(t) taken that many times.
 type Bound = {of: number[], lo: number, hi: number, coef: number}
-const sizeOfValue = (s: Sort, v: Value): number => (s === 'nat' ? v as number : s instanceof Data ? sizeOf(s, v) : 0)
+const sizeOfValue = (s: Sort, v: Value): number => (s === 'nat' ? v as number : s === 'int' ? Math.max(0, v as number) : s instanceof Data ? sizeOf(s, v) : 0)
 function sizeBounds(t: X, sort: Sort, vars: {name: string, sort: Sort}[], envs: Sample[], coef = 1): Bound[] {
   const ms = vars.flatMap((v, i) => (measurable(v.sort) ? [i] : [])), at: {t: number, v: number[]}[] = []
   for (const s of envs) { try { at.push({t: coef * sizeOfValue(sort, evalX(t, s.env, s.params)), v: vars.map(v => sizeOfValue(v.sort, s.env.get(v.name)!))}) } catch { /* past the bounds */ } }
@@ -616,15 +653,15 @@ const pathSamples = (vars: {name: string, sort: Sort}[], params: string[], cond:
 // of one natural, those its values refute dropped; each a lemma for proveData to prove by induction and use.
 function sizeLaws(l: DataLaw, ring: string[]): DataLaw[] {
   const seen = new Set<string>(), helpers: Fn[] = []
-  walk(l.holds, o => { if (o.op === 'call' && !ring.includes(o.fn as string) && !seen.has(o.fn as string)) { seen.add(o.fn as string); const g = fnOf(o.fn as string); if (measurable(g.ret)) helpers.push(g) } })
+  walk(l.holds, o => { if (o.op === 'call' && !ring.includes(o.fn as string) && !seen.has(o.fn as string)) { seen.add(o.fn as string); const g = fnOf(o.fn as string); if (sized(g.ret)) helpers.push(g) } })
   const out: DataLaw[] = []
   const nat = (n: number): X => ({op: 'nat', value: n}), add = (a: X, b: X): X => (b.op === 'nat' && b.value === 0 ? a : {op: 'add', a, b})
   for (const g of helpers.slice(0, 4)) {
     const vars = g.params.map((q, i) => ({name: `${q.name}${i}`, sort: q.sort}))
-    if (!vars.some(v => measurable(v.sort))) continue
+    if (!vars.some(v => sized(v.sort))) continue
     const call: X = {op: 'call', fn: g.name, args: vars.map(v => ({op: 'var', name: v.name}))}, envs = samples(vars, [], 160, 23)
     const twice = g.ret === 'nat' && vars.length === 1 && vars[0]!.sort === 'nat' ? upperBounds(sizeBounds(call, g.ret, vars, envs, 2), 1).filter(b => b.lo !== b.hi) : []
-    for (const b of [...upperBounds(sizeBounds(call, g.ret, vars, envs)), ...twice]) {
+    for (const b of [...upperBounds(sizeBounds(call, g.ret, vars, envs)), ...twice].filter(b => b.of.every(i => sized(vars[i]!.sort)))) {
       const lhs0: X = b.coef === 1 ? sizeX(g.ret, call) : {op: 'mul', k: b.coef, a: sizeX(g.ret, call)}
       const sum = b.of.map(i => sizeX(vars[i]!.sort, {op: 'var', name: vars[i]!.name})).reduce((a, c) => ({op: 'add', a, b: c}))
       const lhs = add(lhs0, nat(Math.max(0, -b.hi))), rhs = add(sum, nat(Math.max(0, b.hi)))
@@ -1528,6 +1565,13 @@ function schemes(p: Program, l: DataLaw): Scheme[] {
       if (m && t.op === 'if') {
         const c = encY(p, t.c, env)
         go(t.c, env, guard, through); go(t.then, env, [...guard, c], through); go(t.else, env, [...guard, {op: 'not', x: c}], through)
+        return
+      }
+      // (and a condition's choice on Bool, as termination reads it: core/data.ts's whenOf)
+      const w = m && (x as Y).op === 'or' ? whenOf(x as Y) : undefined
+      if (w) {
+        const c = encY(p, w.c, env)
+        go(w.c, env, guard, through); go(w.a, env, [...guard, c], through); go(w.b, env, [...guard, {op: 'not', x: c}], through)
         return
       }
       if (t.op === 'call' && t.fn === f.name) {
