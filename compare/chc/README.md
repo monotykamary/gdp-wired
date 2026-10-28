@@ -14,7 +14,7 @@ and Eldarica (2.3).
 | `modal_chc.py` | The track on Modal: every task in its own container (2 vCPU, 4 GB), each tool under the same 60 s wall-clock limit, all at once (`starmap`) |
 | `summary.ts` | The table below from a run's `results.jsonl`, with wrong answers counted against each task's expected verdict where some tool decided it at CHC-COMP'26 |
 | `compose.ts` | The system the searches read (`prepare`): chains composed away (a predicate with no clause to itself whose incoming times outgoing clauses are no more than the two together, each pair made one clause), and with `--slice` the cone of influence as a weakening (definitions of what nothing relevant reads dropped). `expand`: a derivation of it as requests of the original rule, replayed there and checked by `checkDerivation`. `lift`: an invariant of it as laws of the original rule, an interpolant at each eliminated predicate (or its weakest precondition), which the kernel proves of the original (`liftProven`) |
-| `kind.ts` | The container's second CPU, a process at the lowest priority started once the task is read, until the search's deadline: interpolation over the unrolling first (core/interp.ts's `imcSearch`, one CDCL session in the clausal mode for the whole search), whose same session asks k-induction at each depth where the rule is as written (proven by core/kind.ts at that k) and the start's query at each depth (the bounded runs'); beside it the forced run of a deterministic loop (core/bmc.ts's `boundedSearch`, `--bmc-depth 0`; with `--bmc-depth 64` the k-step goals from the start after it, on one unrolling in the clausal mode, as IMC's, `--bmc-clausal 0` the kernel's reading), in slices of 2 s, 4, 8, ...; an invariant made a few clauses (`compress`) and proven by the kernel (lifted to the original where composed), a run `checkDerivation` confirms, stops solve.ts and answers. `--imc 2 --imc-first 0 --kind 1 --bmc-depth 64` is gen/chc7's turns |
+| `kind.ts` | The container's second CPU, a process at the lowest priority started once the task is read, until the search's deadline: interpolation over the unrolling first (core/interp.ts's `imcSearch`, one CDCL session in the clausal mode for the whole search), whose same session asks k-induction at each depth where the rule is as written (proven by core/kind.ts at that k) and the start's query at each depth (the bounded runs'); beside it the forced run of a deterministic loop (core/bmc.ts's `boundedSearch`, `--bmc-depth 0`; with `--bmc-depth 64` the k-step goals from the start after it, on one unrolling), in slices of 2 s, 4, 8, ...; an invariant made a few clauses (`compress`) and proven by the kernel (lifted to the original where composed), a run `checkDerivation` confirms, stops solve.ts and answers. `--imc 2 --imc-first 0 --kind 1 --bmc-depth 64` is gen/chc7's turns |
 | `prof/kind.ts` | Not a solver (`--tools kind`): whether the law is k-inductive, a measure of what k-induction would add |
 | `prof/kind-tree.ts`, `prof/kind-lean.ts` | Not solvers: where a k-step goal's time goes (CDCL's model search, its tree, the unfolding, the check), and a task's k-induction certificate as Lean (KInd.lean's `kind_sound`) |
 | `prof/gap27.py` | The gap at a release by group, family and cause, from runs of the track and Spacer's and Golem's answers |
@@ -48,8 +48,9 @@ node counts). Interpolation at depth 20 takes about 0.15 s a depth, where it too
 **Deep unsat.** Golem's k-induction finds metros_4_e1_917's 35-step run in 0.74 s, and its TPA in 0.1 s
 (`runs/chc6/golem-engines`). IMC asks 10 to 15 frontier queries at each depth, so the start's query, which is the
 bounded run, reaches depth 31 in 60 s (local). Asked alone on the same session, the bounded runs reach 34 in 14 s.
-core/bmc.ts's unrolling in the clausal mode (`boundedSearch`'s `clausal`) finds that run in 25 s; the kernel's reading
-reached depth 10 in 20 s. The dev set with the k-step goals on the second CPU (`--bmc-depth 64`):
+core/bmc.ts's unrolling in the clausal mode (a `clausal` option of `boundedSearch`, measured at 4f7d7e6) found that run
+in 25 s; the kernel's reading reached depth 10 in 20 s. The dev set with the k-step goals on the second CPU
+(`--bmc-depth 64`, clausal):
 
 | run | IMC's turn | dev set (662) | full |
 | --- | --- | --- | --- |
@@ -59,7 +60,8 @@ reached depth 10 in 20 s. The dev set with the k-step goals on the second CPU (`
 | q3-bmcx1 | equal | 518 (unsat +4.33, sat -3.67) | |
 
 The share is zero-sum: at a third of the CPU, the bounded runs reach depths 25 to 32 on the metros systems (their runs
-need 34 to 35), and IMC loses late sat answers. So the default stays `--bmc-depth 0`.
+need 34 to 35), and IMC loses late sat answers. So the default stays `--bmc-depth 0`, and the clausal option, which
+nothing ran at that default, was taken out again (gen/slim).
 
 **Tried and dropped** (local, metros_4, DRAGON_12, car_5):
 - the tableau begun again against the most rows read since it was begun (fewer pivots, a slower search);

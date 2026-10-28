@@ -70,8 +70,6 @@ export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions
 // goal.hyps): those alone have no model (each leaf's rows are those hypotheses' facts at its decisions, or rows true of
 // any value: the trail's atoms, the naturals, the term columns' definitions), as core/infer.ts's join reads it.
 export const REFUTED = 'refuted, not unfolded'
-// (the clausal mode's: a hypothesis taken in a session's run reads what the clauses don't)
-export const UNREAD = 'a hypothesis the clauses do not read'
 export type Refuted = Outcome & {core?: number[], dag?: Dag, assumed?: number[]}
 export type CdclOptions = {maxLeaves?: number, model?: boolean, core?: boolean, dag?: boolean, clausal?: boolean, sideOf?: (hyp: number) => number, quiet?: (name: string) => boolean, treeOf?: Goal}
 export function growCdcl(goal: Goal, root: Path, budget: {nodes: number, until?: number}, opts: CdclOptions & {wall?: number} = {}): Outcome {
@@ -506,7 +504,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     aq = 0; aqOf = new Map(assumed.map(([name], q) => [name, q]))
     undoTo(keep); qhead = Math.min(qhead, trail.length)
     take()
-    if (unread) return {stuck: 'unknown', path: new Map(), why: UNREAD}
+    if (unread) return {stuck: 'unknown', path: new Map(), why: 'a hypothesis the clauses do not read'}
     if (dead >= 0) return {stuck: 'unknown', path: new Map(), why: REFUTED, ...(listed ? {assumed: []} : {}), ...(wantDag ? {dag: {nodes, top: dead, clausal}} : {})} as Refuted
     return queryHook.on && !queryHook.depth ? logged(opts.model ? 'model' : 'cdcl', goal, search) : search()
   }
