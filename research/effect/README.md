@@ -68,7 +68,7 @@ Read (core/effect.ts, through core/extract-shapes.ts's factory reader and core/e
 | make effect: `Effect.gen`, a function returning one, `Effect.fn(...)(function* ...)`, `Layer.effect`/`scoped` of one | tested | tested |
 | service classes: `Context.Service` with `Tag.of({...})` (4.x), `Effect.Service` with `effect:` (3.x) | tested | tested |
 | `Ref`, `SynchronizedRef`, `SubscriptionRef`, `TxRef` (4.x): get, set, update, modify, updateAndGet, getAndUpdate, getAndSet, setAndGet, the `*Effect` forms | Ref, Ref.modify tested | SynchronizedRef tested |
-| state: numbers (integers), booleans, string unions, strings, records, `Map`/`ReadonlyMap`, `Set`/`ReadonlySet`, arrays as lists | tested | (same reader) |
+| state: numbers (integers), booleans, string unions, strings, records, `Map`/`ReadonlyMap`, `Set`/`ReadonlySet`, arrays as lists; typed by a Schema (`typeof S.Type`) as by any type | tested | (same reader) |
 | `Effect.fn` / `Effect.fnUntraced` methods and helpers, arrows returning an effect, effects the service keeps | tested | tested |
 | `Effect.fail`, `Effect.die`, `yield* new E(...)` (Schema.TaggedError, Data.TaggedError) as refusals | tested | tested |
 | `Clock.currentTimeMillis` as an input | tested | tested |
