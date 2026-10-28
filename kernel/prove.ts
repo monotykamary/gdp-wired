@@ -973,18 +973,37 @@ export function withModels<T>(m: Machine, laws: Law[], inst: Instances, goalOf: 
 // goal's own keys (`focus`: the skolems of the law it proves, or a step law's keys) to each other and to the keys that
 // read none of them: at the i-th place, a key that reads the i-th focus alone (the first, past the focus there is), and
 // at most one place a key that reads no focus.
-const withReads = (laws: Law[], inst: Instances, keys: E[], focus: string[]): Instances => ({...inst, ...Object.fromEntries(laws.filter(l => l.forall).map(l => {
+const withReads = (laws: Law[], inst: Instances, keys: E[], focus: string[], byMap?: Map<string, E[]>): Instances => ({...inst, ...Object.fromEntries(laws.filter(l => l.forall).map(l => {
   const had = inst[l.name] ?? []
   if (l.keys?.length) {
-    const n = l.keys.length + 1, out = new Map<string, E[]>()
+    const n = l.keys.length + 1, out = new Map<string, E[]>(), sorted = byMap && sortsOn ? keySorted(l, byMap) : undefined
     for (let i = 0; i + n <= had.length; i += n) out.set(JSON.stringify(had.slice(i, i + n)), had.slice(i, i + n))
-    for (const tuple of related(keys, focus, n)) out.set(JSON.stringify(tuple), tuple)
-    for (const tuple of matched(l, keys)) out.set(JSON.stringify(tuple), tuple)
+    for (const tuple of [...related(keys, focus, n), ...matched(l, keys)]) if (!sorted || sorted(tuple)) out.set(JSON.stringify(tuple), tuple)
     return [l.name, [...out.values()].flat()]
   }
   const seen = new Set(had.map(e => JSON.stringify(e)))
   return [l.name, [...had, ...keys.filter(e => { const id = JSON.stringify(e); return seen.has(id) ? false : (seen.add(id), true) })]]
 }))})
+// The keys a goal reads each map at.
+function mapReads(goals: Goal[]): Map<string, E[]> {
+  const out = new Map<string, Map<string, E>>(), {inC} = eachRead(e => { if (!out.has(e.map)) out.set(e.map, new Map()); out.get(e.map)!.set(JSON.stringify(e.key), e.key) })
+  for (const g of goals) g.hyps.forEach(inC)
+  return new Map([...out].map(([mp, ks]) => [mp, [...ks.values()]]))
+}
+// A tuple of the key's sort: each of a law's keys read at a map (M[x], M[x·N + y]) takes only the terms its read matches
+// against the keys the goals read that map at (the key's sort, as the goal holds it: Link[c1·N + s] against
+// Link[a·N + b] gives c1 a and s b); a key no read binds, or a read no goal key matches, takes any. Untrusted: it chooses
+// instances only (GDP_SORTS=0 keeps every tuple).
+const sortsOn = env.GDP_SORTS !== '0'
+function keySorted(l: Law, byMap: Map<string, E[]>): (tuple: E[]) => boolean {
+  const vars = [l.forall!, ...(l.keys ?? [])], allowed = vars.map(() => new Set<string>()), bound = vars.map(() => false)
+  eachRead(e => {
+    const names = vars.filter(x => JSON.stringify(e.key).includes(`"name":${JSON.stringify(x)}`))
+    if (!names.length) return
+    for (const t of byMap.get(e.map) ?? []) { const b = matchMany(e.key, t, vars); if (b) for (const x of names) if (x in b) { const i = vars.indexOf(x); allowed[i]!.add(JSON.stringify(b[x])); bound[i] = true } }
+  }).inC(l.holds)
+  return tuple => tuple.every((t, i) => !bound[i] || allowed[i]!.has(JSON.stringify(t)))
+}
 // A law about several keys where its body reads a map at a key naming every one of them (Link[x·N + y]): the tuple
 // that makes that key one the goals read (Link[a·N + b] gives (a, b)), as a fact about several keys is matched
 // (withFacts). A key of one bound name alone matches every key, so it binds no tuple here.
@@ -1109,7 +1128,7 @@ function instancesFor(m: Machine, laws: Law[], build: (inst: Instances) => Goal[
   const reads = opts.reads ?? (!opts.seed || shifts(m) || laws.some(l => l.keys?.length) || pairFlags(m))
   for (let round = 0; round < 2; round++) {
     if (m.facts?.length) inst = withFacts(m, inst, fnKeys(m, build(inst)))
-    if (reads) { const keys = mapKeys(build(inst)); inst = union(withReads(laws, inst, keys, opts.focus ?? []), flagInstances(m, keys, opts.focus), m) }
+    if (reads) { const gs = build(inst), keys = mapKeys(gs); inst = union(withReads(laws, inst, keys, opts.focus ?? [], mapReads(gs)), flagInstances(m, keys, opts.focus), m) }
   }
   return inst
 }
