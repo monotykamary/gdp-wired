@@ -223,7 +223,9 @@ function hook(s: Setup, refs: Map<string, string>, locks: Set<ts.Node>, effects:
     }
     if (ts.isIdentifier(e)) {
       const d = s.checker.getSymbolAtLocation(e)?.valueDeclaration, init = d && effects.get(d)
-      return init ? ex.ev(init, {...p, locals: new Map()}) : undefined
+      if (!init) return undefined
+      const [v, q] = ex.ev(init, {...p, locals: new Map()})
+      return [v, {...q, locals: p.locals}]
     }
     if (ts.isPropertyAccessExpression(e)) {
       const api = apiOf(s, e)?.join('.')
