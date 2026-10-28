@@ -47,7 +47,7 @@ export const items: RealItem[] = [{
       'safety', 'inferred', 'a counting semaphore\'s free permits are its permits less those held (:276-278); release returns "the resulting available permits"'),
     invariant(s, s.law('what is taken stays within the permits', ({taken, permits}) => Int.of(taken).atMost(permits)),
       'safety', 'inferred', 'takeIfAvailable takes only free permits (:285-289)'),
-    stepLaw(s, s.stepLaw('takeIfAvailable never leaves fewer than none free', ({taken, permits}, after) => Int.of(after.permits).minus(after.taken).atLeast(0).or(Int.of(after.taken).eq(taken)), ({op}) => op.is('takeIfAvailable')),
+    stepLaw(s, s.stepLaw('takeIfAvailable never leaves fewer than none free', ({taken}, after) => Int.of(after.permits).minus(after.taken).atLeast(0).or(Int.of(after.taken).eq(taken)), ({op}) => op.is('takeIfAvailable')),
       'step', 'docs', ':138-145 "Acquires the specified number of permits only if they are immediately available."'),
     stepLaw(s, s.stepLaw('takeIfAvailable never frees permits', ({taken}, after) => Int.of(after.taken).atLeast(taken), ({op}) => op.is('takeIfAvailable')),
       'step', 'docs', ':138-145 "Acquires the specified number of permits only if they are immediately available"'),

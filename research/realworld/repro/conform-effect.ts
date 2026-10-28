@@ -81,7 +81,7 @@ results.push(['T3 Code SourceControlRateLimit (the original, 4.0.7)', conforms(p
 // The refuted laws' counterexamples, replayed on the real code (research/realworld/triage/effect.json).
 const run = <A>(e: Effect.Effect<A, unknown>) => Effect.runSync(e)
 for (const [name, mk, E] of [['4.0.7', (n: number) => effect.Semaphore.makeUnsafe(n), effect], ['3.22.4', (n: number) => effect3.Effect.unsafeMakeSemaphore(n) as never as effect.Semaphore.Semaphore, effect3]] as const) {
-  const run = (e: unknown) => (E.Effect.runSync as (e: unknown) => unknown)(e), andThen = (a: unknown, b: unknown) => (E.Effect.andThen as (a: unknown, b: unknown) => unknown)(a, b)
+  const run = (e: unknown) => String((E.Effect.runSync as (e: unknown) => unknown)(e)), andThen = (a: unknown, b: unknown) => (E.Effect.andThen as (a: unknown, b: unknown) => unknown)(a, b)
   const a = mk(2)
   console.log(`replayed, Semaphore ${name}: makeSemaphore(2), release(1) -> ${run(a.release(1))} free (more than the 2 permits)`)
   const b = mk(2)
